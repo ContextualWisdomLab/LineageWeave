@@ -47,12 +47,14 @@ select post.post_id,
        post.source_detail_state_code
   from source_post post
  where (post.visibility_code = 'public'
-    or post.corporate_entity_id::text = any($2::text[]))
+    or (post.corporate_entity_id::text = any($2::text[])
+        and (cardinality($3::text[]) = 0
+             or post.process_unit_id::text = any($3::text[]))))
    and {_ELIGIBILITY}
-   and post.created_at <= $3
+   and post.created_at <= $4
    and {_PROJECT_MATCH}
  order by post.created_at, post.post_id
- limit $4
+ limit $5
 """
 _FOCUS_SQL = f"""
 select post.post_id,
@@ -63,10 +65,12 @@ select post.post_id,
        post.source_detail_state_code
   from source_post post
  where (post.visibility_code = 'public'
-    or post.corporate_entity_id::text = any($2::text[]))
+    or (post.corporate_entity_id::text = any($2::text[])
+        and (cardinality($3::text[]) = 0
+             or post.process_unit_id::text = any($3::text[]))))
    and {_ELIGIBILITY}
-   and post.created_at <= $3
-   and post.post_id = $4::uuid
+   and post.created_at <= $4
+   and post.post_id = $5::uuid
    and {_PROJECT_MATCH}
  limit 1
 """
@@ -145,6 +149,7 @@ async def fetch_project_history_projection(
     focus_post_id: str | None,
     knowledge_cutoff: datetime,
     corporate_entity_ids: Sequence[str],
+    process_unit_ids: Sequence[str],
     limit: int = PROJECT_HISTORY_DEFAULT_LIMIT,
 ) -> dict[str, Any]:
     """Return a bounded project history from authorized PostgreSQL evidence.
@@ -164,6 +169,7 @@ async def fetch_project_history_projection(
             _EVENT_SQL,
             normalized_key,
             list(corporate_entity_ids),
+            list(process_unit_ids),
             knowledge_cutoff,
             limit + 1,
         )
@@ -179,6 +185,7 @@ async def fetch_project_history_projection(
                 _FOCUS_SQL,
                 normalized_key,
                 list(corporate_entity_ids),
+                list(process_unit_ids),
                 knowledge_cutoff,
                 focus_post_id,
             )

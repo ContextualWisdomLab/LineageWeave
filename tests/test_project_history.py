@@ -19,8 +19,8 @@ def test_project_identity_is_exact_but_unicode_compatible() -> None:
         normalize_project_key("   ")
 
 
-def test_event_display_classification_does_not_create_authority() -> None:
-    """The lifecycle label is presentation metadata over an existing post."""
+def test_event_display_classification_uses_only_controlled_evidence() -> None:
+    """Free text cannot manufacture a lifecycle event classification."""
     assert (
         classify_project_event(
             title="Contract awarded",
@@ -29,7 +29,7 @@ def test_event_display_classification_does_not_create_authority() -> None:
             voc_type_code=None,
             is_focus=False,
         )
-        == "contract_awarded"
+        == "source_recorded"
     )
     for is_focus in (False, True):
         assert (

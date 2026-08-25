@@ -33,6 +33,7 @@ import {
   fetchPostKeymen,
   fetchPostLineage,
   fetchPostFiveW1H,
+  fetchProjectHistory,
   fetchPostSummary,
   fetchPostTickets,
   fetchPostVocEvidence,
@@ -88,6 +89,8 @@ import {
   fetchTenantConfig,
 } from "./api";
 import { CitationChip } from "./components/CitationChip";
+import { ProjectHistoryTimeline } from "./components/ProjectHistoryTimeline";
+import type { ProjectHistoryProjection } from "./projectHistory";
 import { OrganizationAliasChip } from "./components/OrganizationAliasChip";
 import { organizationAliasCaption } from "./components/organizationAliasCaption";
 import { CutoffKnownBody } from "./components/CutoffKnownBody";
@@ -1828,8 +1831,22 @@ function PostDetailPopup({
   const [focusPerson, setFocusPerson] = useState<{ personId: string; personName: string } | null>(null);
   const [focusEntity, setFocusEntity] = useState<{ entityId: string; entityName: string } | null>(null);
   const [focusTeam, setFocusTeam] = useState<{ teamId: string; teamName: string } | null>(null);
+  const [projectHistory, setProjectHistory] = useState<ProjectHistoryProjection | null>(null);
+  const [projectHistoryError, setProjectHistoryError] = useState<string | null>(null);
   const contentReloadRef = useRef<() => void>(() => undefined);
   const dialogRef = useRef<HTMLDivElement>(null);
+
+  async function openProjectHistory(projectKey: string) {
+    setProjectHistory(null);
+    setProjectHistoryError(null);
+    try {
+      setProjectHistory(
+        await fetchProjectHistory(accessToken, projectKey, postId, knowledgeCutoff),
+      );
+    } catch (historyError) {
+      setProjectHistoryError(String(historyError));
+    }
+  }
 
   useEffect(() => {
     const previouslyFocused = document.activeElement instanceof HTMLElement ? document.activeElement : null;
@@ -1840,6 +1857,8 @@ function PostDetailPopup({
 
   useEffect(() => {
     dialogRef.current?.focus();
+    setProjectHistory(null);
+    setProjectHistoryError(null);
   }, [postId]);
 
   useEffect(() => {
@@ -2319,6 +2338,36 @@ function PostDetailPopup({
                     </li>
                   ))}
                 </ul>
+              </section>
+            ) : null}
+
+            {(post.project_evidence?.length || post.source_project_code || post.source_project_name) ? (
+              <section className="popup-section" aria-label={t("Project history")}>
+                <h3>{t("Project history")}</h3>
+                <div className="post-actions">
+                  {(post.project_evidence?.map((project) => project.project_key) ?? [
+                    post.source_project_code ?? post.source_project_name ?? "",
+                  ])
+                    .filter((projectKey, index, values) =>
+                      Boolean(projectKey) && values.indexOf(projectKey) === index,
+                    )
+                    .map((projectKey) => (
+                      <button
+                        key={projectKey}
+                        type="button"
+                        onClick={() => void openProjectHistory(projectKey)}
+                      >
+                        {tf("Open project history: {name}", { name: projectKey })}
+                      </button>
+                    ))}
+                </div>
+                {projectHistoryError ? <p role="alert">{projectHistoryError}</p> : null}
+                {projectHistory ? (
+                  <ProjectHistoryTimeline
+                    projection={projectHistory}
+                    onOpenPost={(sourcePostId) => onSelectPost?.(sourcePostId)}
+                  />
+                ) : null}
               </section>
             ) : null}
 

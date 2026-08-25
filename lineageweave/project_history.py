@@ -21,46 +21,6 @@ PROJECT_HISTORY_TIME_BASIS = "source_post_created_at_fallback"
 PROJECT_HISTORY_MAX_DEPTH = 8
 PROJECT_HISTORY_MAX_PATHS_PER_EVENT = 32
 
-_EVENT_PATTERNS: tuple[tuple[str, tuple[str, ...]], ...] = (
-    ("rebid_started", ("rebid", "re-bid", "retender", "re-tender", "재입찰")),
-    (
-        "handoff_recorded",
-        ("handoff", "hand-off", "transferred ownership", "operational transfer", "인수인계"),
-    ),
-    (
-        "specification_changed",
-        (
-            "specification change",
-            "specification revision",
-            "revised specification",
-            "spec revision",
-            "사양 변경",
-            "사양변경",
-        ),
-    ),
-    (
-        "delivered",
-        (
-            "delivery confirmed",
-            "delivery completed",
-            "delivered",
-            "shipment completed",
-            "납품 완료",
-            "납품완료",
-        ),
-    ),
-    (
-        "contract_awarded",
-        (
-            "contract awarded",
-            "award confirmed",
-            "order confirmation",
-            "purchase order received",
-            "수주 확정",
-            "수주확정",
-        ),
-    ),
-)
 _VOC_CODES = frozenset({"voc", "vocc", "voco", "vom", "vop"})
 _TRUTH_ORDER = {"observed": 0, "inferred": 1}
 _DISPLAY_NAME_ORDER = {"source_project_name": 0, "semantic_project_name": 1}
@@ -92,21 +52,15 @@ def classify_project_event(
 ) -> str:
     """Return a non-authoritative display classification for one source row.
 
-    Explicit title/stage/state markers take precedence. Every already-visible
-    VOC-family row is labelled as VOC, not only the currently selected row.
-    ``is_focus`` is retained for contract compatibility but never changes the
-    truth status or creates an event.
+    Only the persisted controlled VOC code is classified. Free-text titles,
+    stages, and detail states remain evidence fields; this projection never
+    guesses lifecycle semantics from words. ``is_focus`` is retained for
+    contract compatibility but never changes the truth status or creates an
+    event.
     """
 
     del is_focus
-    text = " ".join(
-        part.strip().lower()
-        for part in (title, source_stage_code or "", source_detail_state_code or "")
-        if part.strip()
-    )
-    for event_code, patterns in _EVENT_PATTERNS:
-        if any(pattern in text for pattern in patterns):
-            return event_code
+    del title, source_stage_code, source_detail_state_code
     if (voc_type_code or "").strip().lower() in _VOC_CODES:
         return "voc_received"
     return "source_recorded"
@@ -396,7 +350,7 @@ def build_project_history_projection(
                     voc_type_code=row.get("voc_type_code"),
                     is_focus=event_id == effective_focus,
                 ),
-                "event_type_basis_code": "display_classification",
+                "event_type_basis_code": "controlled_source_code",
                 "occurred_at": _as_utc(row["created_at"]),
                 "time_basis_code": PROJECT_HISTORY_TIME_BASIS,
                 "voc_type_code": row.get("voc_type_code"),

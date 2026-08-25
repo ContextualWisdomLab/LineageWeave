@@ -19,8 +19,8 @@ const projection: ProjectHistoryProjection = {
       event_id: "award",
       source_post_id: "post-award",
       event_title: "Contract awarded",
-      event_type_code: "contract_awarded",
-      event_type_basis_code: "display_classification",
+      event_type_code: "source_recorded",
+      event_type_basis_code: "controlled_source_code",
       occurred_at: "2022-03-11T09:00:00Z",
       time_basis_code: "source_post_created_at_fallback",
       voc_type_code: null,
@@ -45,8 +45,8 @@ const projection: ProjectHistoryProjection = {
       event_id: "spec",
       source_post_id: "post-spec",
       event_title: "Specification changed",
-      event_type_code: "specification_changed",
-      event_type_basis_code: "display_classification",
+      event_type_code: "source_recorded",
+      event_type_basis_code: "controlled_source_code",
       occurred_at: "2023-06-15T09:00:00Z",
       time_basis_code: "source_post_created_at_fallback",
       voc_type_code: null,
@@ -72,7 +72,7 @@ const projection: ProjectHistoryProjection = {
       source_post_id: "post-voc",
       event_title: "VOC received",
       event_type_code: "voc_received",
-      event_type_basis_code: "display_classification",
+      event_type_basis_code: "controlled_source_code",
       occurred_at: "2026-02-02T09:00:00Z",
       time_basis_code: "source_post_created_at_fallback",
       voc_type_code: "voc",
@@ -108,8 +108,8 @@ describe("ProjectHistoryTimeline", () => {
     const vocTab = screen.getByRole("tab", { name: /VOC received/ });
     expect(vocTab).toHaveAttribute("aria-selected", "true");
     expect(vocTab).toHaveAttribute("aria-current", "step");
-    expect(screen.getByText(/evidence gap/i)).toBeInTheDocument();
-    expect(screen.getByText(/related history, not causation/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/evidence gap/i).length).toBeGreaterThan(0);
+    expect(screen.getByText(/related history, not causality/i)).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: /open source record: VOC received/i }));
     expect(onOpenPost).toHaveBeenCalledWith("post-voc");

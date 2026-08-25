@@ -17,6 +17,7 @@ decision from them.
 | [`ONTOLOGY_NAMESPACE_INVENTORY.md`](../doctoring/ONTOLOGY_NAMESPACE_INVENTORY.md) | [0207](0207-repository-case-ontology-namespace-canonical.md), [0157](0157-public-ontology-namespace-identity.md) |
 | [`image-content-schema.md`](../image-content-schema.md) | [0066](0066-position-preserving-image-content.md) |
 | [`storybook-inventory.md`](../storybook-inventory.md) | [0118](0118-uiux-standard-guide-v3-design-overhaul.md), [0184](0184-ontology-provenance-explorer.md) |
+| Project-history timeline | [0224](0224-evidence-bound-project-history-projection.md) |
 | [`POSTGRESQL_CONCURRENCY_REFERENCES.md`](../doctoring/POSTGRESQL_CONCURRENCY_REFERENCES.md) | [0204](0204-analysis-run-short-transaction-delivery.md) |
 | [`operability/http-concurrency-evidence.md`](../operability/http-concurrency-evidence.md) | [0204](0204-analysis-run-short-transaction-delivery.md), [0212](0212-single-query-authorized-post-filter-options.md) |
 | Evidence operations Dashboard (`/`) | [0206](0206-evidence-operations-dashboard.md) |

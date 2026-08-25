@@ -465,6 +465,20 @@ export class BackendError extends Error {
   }
 }
 
+export function fetchProjectHistory(
+  accessToken: string,
+  projectKey: string,
+  focusPostId: string,
+  knowledgeCutoff?: string | null,
+): Promise<import("./projectHistory").ProjectHistoryProjection> {
+  const query = new URLSearchParams({ focus_post_id: focusPostId });
+  if (knowledgeCutoff) query.set("knowledge_cutoff", knowledgeCutoff);
+  return backendFetch(
+    `/api/projects/${encodeURIComponent(projectKey)}/history?${query.toString()}`,
+    accessToken,
+  );
+}
+
 async function backendFetch<T>(
   path: string,
   accessToken: string,

@@ -8,6 +8,10 @@ All notable changes to this project are documented here. Format follows
 
 ### Added
 
+- An evidence-bound project-history projection and post-detail timeline
+  (ADR 0224 / #280) reuse normalized project, responsibility, and Event
+  Lineage rows under RBAC/ABAC and cutoff filtering. Free text never creates a
+  lifecycle fact; unsupported authoritative ingestion remains issue #284.
 - Persist explicit paragraph, list, table, MathML formula, and caller-parsed
   conversation-turn semantic-unit kinds without inferring absent boundaries.
 - Event Lineage now persists each reconstructed connection's independent

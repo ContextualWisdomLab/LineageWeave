@@ -46,7 +46,7 @@ export interface ProjectHistoryEvent {
   source_post_id: string;
   event_title: string;
   event_type_code: string;
-  event_type_basis_code: "display_classification";
+  event_type_basis_code: "controlled_source_code";
   occurred_at: string;
   time_basis_code: ProjectHistoryTimeBasis;
   voc_type_code: string | null;
