@@ -1,6 +1,6 @@
 # Product & Technical Gap Baseline
 
-> Dashboard delivery snapshot: 2026-08-25 21:47 KST. Protected `main` was
+> Dashboard delivery snapshot: 2026-08-25 21:51 KST. Protected `main` was
 > `7403a4528c4a68a4e2636449b9497d0619c47c82`. This local branch is not
 > protected-main release evidence.
 
@@ -61,7 +61,7 @@ only aggregate, non-identifying evidence to this repository.
 ### Exact open-PR boundary
 
 At this snapshot there were 3 open PRs and 10 open issues. Exact observed heads
-were `#631 09b6f330` (this branch's observed parent), `#629 3d69ea4f`, and
+were `#631 a048adf0` (this branch's observed parent), `#629 8797605b`, and
 `#579 f079ff1c`. PR #579 is open; its ADR 0211 reservation is why protected
 main's filter-option decision is ADR 0212. PRs #627 and #628 reached protected
 `main`; #629 remains an open asynchronous-pool follow-up and is not release
@@ -71,7 +71,7 @@ observations are not merge readiness. Re-fetch exact heads,
 unresolved threads, checks, approvals, rulesets, and merge SHA before any
 lifecycle claim.
 
-> Audit snapshot: 2026-08-25 21:47 KST (refreshed by the autonomous merge
+> Audit snapshot: 2026-08-25 21:51 KST (refreshed by the autonomous merge
 > loop). This repository records synthetic fixtures and aggregate,
 > non-identifying runtime evidence only. Open PRs and local checks are not
 > protected-default-branch release evidence. Identifying post identifiers,
@@ -88,8 +88,8 @@ context only.
 
 | PR | Exact observed head | Merge/check state at this snapshot |
 | ---: | --- | --- |
-| #631 | `09b6f330` (observed parent) | decomposes closed PR #490 without replaying it; this row advances when the snapshot correction is committed, and hosted gates plus independent review remain required |
-| #629 | `3d69ea4f` | releases the Global Ask pool before embedding-provider work; hosted gates and independent review remain required |
+| #631 | `a048adf0` (observed parent) | decomposes closed PR #490 without replaying it; this row advances when the snapshot correction is committed, and hosted gates plus independent review remain required |
+| #629 | `8797605b` | releases the Global Ask pool before embedding-provider work; hosted gates and independent review remain required |
 | #579 | `f079ff1c` | persists leftover interaction-map coordinates through the fast-mlsirm owner contract and owns ADR 0211; hosted gates and independent review remain required |
 
 No row above is merge evidence. Immediately before any lifecycle action,
