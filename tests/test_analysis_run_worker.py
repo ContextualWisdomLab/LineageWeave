@@ -317,3 +317,29 @@ async def test_one_refused_delivery_does_not_end_the_worker(monkeypatch):
 
     assert last_id == "2-1"
     assert delivered == ["00000000-0000-0000-0000-000000000002"]
+
+
+@pytest.mark.anyio
+async def test_one_unexpected_delivery_failure_does_not_end_the_worker(monkeypatch):
+    """A malformed provider reply must not stop later durable deliveries."""
+    delivered = []
+
+    async def fake_deliver(conn, **kwargs):
+        del conn
+        if kwargs["analysis_run_id"].endswith("1"):
+            raise RuntimeError("malformed provider reply")
+        delivered.append(kwargs["analysis_run_id"])
+
+    monkeypatch.setattr(analysis_run_worker, "deliver_queued_analysis_run", fake_deliver)
+
+    last_id = await analysis_run_worker.consume_analysis_run_stream_once(
+        _TwoRunsValkey(),
+        _Pool(),
+        last_id="0-0",
+        database_url="postgresql://synthetic",
+        tepp_client=TeppClient(),
+        adjudication_client=NullAdjudicationClient(),
+    )
+
+    assert last_id == "2-1"
+    assert delivered == ["00000000-0000-0000-0000-000000000002"]

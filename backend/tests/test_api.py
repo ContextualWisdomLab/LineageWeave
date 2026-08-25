@@ -196,6 +196,11 @@ _LEFTOVER_MAP_AXIS_MIGRATION = (
     / "migrations"
     / "0169_report_leftover_map_axis.sql"
 )
+_CHANNEL_EVIDENCE_MIGRATION = (
+    Path(__file__).resolve().parents[2]
+    / "migrations"
+    / "0174_post_lineage_edge_signal.sql"
+)
 _LEFTOVER_MAP_COVERAGE_MIGRATION = (
     Path(__file__).resolve().parents[2]
     / "migrations"
@@ -325,6 +330,8 @@ def seeded_db(demo_analyst_token):
             cur.execute(_PROJECT_BOUND_ACTION_MIGRATION.read_text())
             cur.execute(_PROJECT_BOUND_EVENT_MIGRATION.read_text())
             cur.execute(_TENANT_SETTINGS_MIGRATION.read_text())
+            # Compose replays this gate on restart; the second apply is the contract.
+            cur.execute(_TENANT_SETTINGS_MIGRATION.read_text())
             cur.execute(_TOPIC_LINEAGE_KIND_MIGRATION.read_text())
             cur.execute(_TOPIC_LINEAGE_RESULT_MIGRATION.read_text())
             cur.execute(_TOPIC_LINEAGE_VALIDATE_MIGRATION.read_text())
@@ -360,6 +367,7 @@ def seeded_db(demo_analyst_token):
             cur.execute(_GLOBAL_ASK_SCOPE_MIGRATION.read_text())
             cur.execute(_EVENT_OCCURRED_AT_MIGRATION.read_text())
             cur.execute(_LEFTOVER_MAP_AXIS_MIGRATION.read_text())
+            cur.execute(_CHANNEL_EVIDENCE_MIGRATION.read_text())
             cur.execute(_LEFTOVER_MAP_UNEXPLAINED_MIGRATION.read_text())
             cur.execute(_LEFTOVER_MAP_CROSS_SHARE_MIGRATION.read_text())
             cur.execute(_LEFTOVER_MAP_RECONSTRUCTION_MIGRATION.read_text())
@@ -4379,6 +4387,40 @@ def test_post_chat_cites_a_post_linked_only_via_a_shared_keyman(client, demo_ana
 def test_rebuild_lineage_requires_post_admin(client, demo_analyst_token) -> None:
     response = client.post("/api/lineage/rebuild", headers={"Authorization": f"Bearer {demo_analyst_token}"})
     assert response.status_code == 403
+
+
+def test_rebuild_lineage_reports_503_on_orchestrator_failure(
+    monkeypatch, client, demo_analyst_token, seeded_db
+) -> None:
+    """A transient orchestrator failure mid-rebuild must degrade to a clean
+    503, not discard the whole corpus reconstruction as a raw 500 (same
+    discipline as this file's other orchestrator call sites).
+    """
+    admin_conn = psycopg2.connect(seeded_db["dsn"])
+    admin_conn.autocommit = True
+    try:
+        with admin_conn.cursor() as cur:
+            cur.execute(
+                "insert into common_lookup_value (lookup_category, lookup_code, lookup_label) "
+                "values ('permission', 'post_admin', 'Administer posts') on conflict (lookup_code) do nothing"
+            )
+            cur.execute("select access_role_id from account_role_assignment limit 1")
+            role_id = cur.fetchone()[0]
+            cur.execute(
+                "insert into role_permission (access_role_id, permission_code) values (%s, 'post_admin') "
+                "on conflict do nothing",
+                (role_id,),
+            )
+    finally:
+        admin_conn.close()
+
+    async def _raise(pool, *, llm):
+        raise HttpClientError("orchestrator hiccup")
+
+    monkeypatch.setattr("backend.app.main.rebuild_lineage_from_pool", _raise)
+
+    response = client.post("/api/lineage/rebuild", headers={"Authorization": f"Bearer {demo_analyst_token}"})
+    assert response.status_code == 503
 
 
 def test_rebuild_lineage_recovers_the_a100_fork(client, demo_analyst_token, seeded_db) -> None:

@@ -1987,8 +1987,8 @@ describe("App, authenticated", () => {
     expect(await screen.findByLabelText("Reconstructed lineage")).toBeInTheDocument();
     // Two distinct reconstruct threads (thread-alpha, thread-beta) must
     // render as two independent branch-tree figures, not merged into one.
-    expect(screen.getByRole("img", { name: "thread-alpha lineage" })).toBeInTheDocument();
-    expect(screen.getByRole("img", { name: "thread-beta lineage" })).toBeInTheDocument();
+    expect(screen.getByRole("group", { name: "thread-alpha lineage" })).toBeInTheDocument();
+    expect(screen.getByRole("group", { name: "thread-beta lineage" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Open post: Follow-up post" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Open post: Unrelated thread post" })).toBeInTheDocument();
   });

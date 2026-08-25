@@ -8,6 +8,11 @@ All notable changes to this project are documented here. Format follows
 
 ### Added
 
+- Event Lineage now persists each reconstructed connection's independent
+  channel scores, the normalized weights actually used, and their
+  contributions. The Event Lineage DAG discloses those exact values as inferred
+  evidence, not a causal claim, and omits the LLM channel when it did
+  not participate.
 - The repository-case public ontology namespace
   `https://contextualwisdomlab.github.io/LineageWeave/ontology#` is canonical
   (ADR 0207, superseding ADR 0157, resolving issue #372); the lowercase form
@@ -104,6 +109,10 @@ All notable changes to this project are documented here. Format follows
 
 ### Fixed
 
+- Full-corpus Event Lineage rebuilds now count candidate pairs before provider
+  work and omit the optional LLM channel above the 5,000-pair ADR budget,
+  preventing millions of synchronous orchestrator calls while retaining one
+  auditable weight profile for the entire rebuild.
 - Structure adjudication now rejects malformed or duplicate unit indexes before
   calling the orchestrator.
 - Event Lineage's DAG no longer leaves a linear (no-branch) reconstruct

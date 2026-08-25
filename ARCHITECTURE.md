@@ -66,7 +66,7 @@ flowchart LR
 | `tepp_client.py` | TEPP's published `AnalysisRunRequest` wire contract, pluggable transport |
 | `rankweave_client.py` | Fail-closed RankWeave ranking port (`weighted_reciprocal_rank_fuse` in-process; never invent a fused score or a theta) |
 | `reconstruct.py` | The pipeline: group → candidate window → score → fuse → thread |
-| `lineage_persistence.py` | Flattens reconstruct trees into `post_lineage_edge` row specs (parent, child, fused_score) |
+| `lineage_persistence.py` | Flattens reconstruct trees into `post_lineage_edge` rows plus `post_lineage_edge_signal` channel evidence |
 | `interval_relation.py` | Allen (1983) closed interval relations for those edges. Each post is a point interval on its observed UTC `created_at` day; mutable ticket dates are not Event Lineage evidence. |
 | `knowledge_graph.py` | Random-walk-with-restart relevance + per-node adaptive related-node cutoff (Tong et al., 2006) -- pure graph math, no Postgres |
 | `keyman_extraction.py` | Pluggable LLM extraction of two-sided (our-side/counterparty) person mentions + N:N org affiliations from a post |
@@ -221,17 +221,20 @@ lives in `lineageweave/keyman_extraction.py` and talks to
 contextual-orchestrator; persist is `backend/app/keyman_ingestion.py`.
 
 `GET /api/lineage` returns the ABAC-filtered reconstruct graph
-(`{nodes, edges, truncated}`) from persisted `post_lineage_edge` rows. Each node
-includes `group` from the same `reconstruct_group_key()` rebuild uses
-(persisted `thread_group_key`, else process unit, else corp). Each
-direct edge includes `interval_relation_code` / `interval_relation_label`
-(Allen, 1983; ADR 0161) computed from the two posts' observed windows.
+(`{nodes, edges, truncated, reconstruction}`) from persisted `post_lineage_edge`
+rows. Each edge includes additive `channel_evidence` from
+`post_lineage_edge_signal`. Evidence for an endpoint the account cannot
+see is omitted. Each node includes `group` from the same
+`reconstruct_group_key()` rebuild uses (persisted `thread_group_key`,
+else process unit, else corp).
+Each direct edge includes `interval_relation_code` /
+`interval_relation_label` computed from the posts' observed windows.
 Global Ask merges cited threads from one post/edge fetch pair and
 caps the payload at the landing node bound, keeping cited posts first
 (ADR 0169). Open a cited post to read the focused thread.
 `POST /api/lineage/rebuild` (`post_admin`) re-runs `reconstruct()` over
-every `source_post` and rewrites those edges, then names the interval
-relation in the same transaction. Reconstruct grouping is
+every `source_post` and atomically rewrites edges, channel signals, and
+Allen interval relations. Reconstruct grouping is
 stored on the post as `thread_group_key` / `secondary_grouping_key`
 (not derived from process unit or voc type).
 

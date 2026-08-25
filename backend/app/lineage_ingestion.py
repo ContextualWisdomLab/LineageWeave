@@ -10,8 +10,10 @@ not derived from process unit or voc type.
 
 from __future__ import annotations
 
+import asyncio
 import math
 import re
+from collections import defaultdict
 from collections.abc import Mapping
 from datetime import datetime
 from typing import Any
@@ -19,14 +21,23 @@ from typing import Any
 import asyncpg
 
 from backend.app.post_eligibility import SOURCE_POST_ELIGIBILITY_SQL
+from lineageweave.adjudication_client import AdjudicationClient
 from lineageweave.interval_relation import (
     INTERVAL_RELATION_LABELS,
     allen_interval_relation,
     interval_from_post,
     interval_relation_from_current,
 )
-from lineageweave.lineage_persistence import lineage_edge_specs
+from lineageweave.lineage_persistence import (
+    LOOKUP_CODE_TO_SIGNAL,
+    lineage_edge_specs,
+    lineage_rebuild_spec,
+    rank_channel_evidence,
+)
 from lineageweave.models import Edge, Record
+from lineageweave.reconstruct import DEFAULT_CANDIDATE_WINDOW
+
+MAXIMUM_LIVE_LLM_PAIR_EVALUATIONS = 5_000
 
 ISOLATION_NO_COMPARISON_GROUP = "no_comparison_group"
 ISOLATION_COMPARISON_CANDIDATES_AVAILABLE = "comparison_candidates_available"
@@ -35,6 +46,14 @@ ISOLATION_COMPARISON_CANDIDATES_AVAILABLE = "comparison_candidates_available"
 _SUPPORTED_ANCHOR_METHOD_CODES: frozenset[str] = frozenset(
     {"tepp_lineage_criterion_v1"}
 )
+
+
+def estimated_weight_channels(llm: AdjudicationClient | None) -> set[str]:
+    """Return the channels that one live reconstruction can actually use."""
+    channels = {"temporal", "secondary_key", "text"}
+    if getattr(llm, "available", False):
+        channels.add("llm")
+    return channels
 
 
 def _occurred_at(value: datetime) -> datetime:
@@ -125,34 +144,77 @@ def interval_relation_code_for_edge(
 async def persist_lineage_edges(
     conn: asyncpg.Connection,
     edges: list[Edge],
-    points_by_post_id: Mapping[str, Mapping[str, Any]],
+    weights: dict[str, float],
+    points_by_post_id: Mapping[str, Mapping[str, Any]] | None = None,
 ) -> None:
-    """Replace ``post_lineage_edge`` with ``edges`` (reconstruct is source of truth)."""
+    """Replace live Event Lineage with edges, channel evidence, and intervals.
+
+    Reconstruct is the source of truth. The delete is cascaded onto
+    ``post_lineage_edge_signal`` so a rebuild cannot leave orphan or
+    stale signal rows. Rebuild metadata is replaced in the same
+    connection so version, weights, and generated-at stay aligned with
+    the new graph.
+    """
+    points = points_by_post_id or {}
     missing_point_ids = {
         post_id
         for edge in edges
         for post_id in (edge.parent_id, edge.child_id)
-        if post_id not in points_by_post_id
+        if post_id not in points
     }
     if missing_point_ids:
         raise ValueError(
             "missing observed interval point for post ids: "
             + ", ".join(sorted(missing_point_ids))
         )
+    spec = lineage_rebuild_spec(edges, weights=weights)
     await conn.execute("delete from post_lineage_edge")
-    for edge in edges:
-        relation_code = interval_relation_code_for_edge(
-            points_by_post_id[edge.parent_id], points_by_post_id[edge.child_id]
-        )
-        await conn.execute(
-            "insert into post_lineage_edge "
-            "(parent_post_id, child_post_id, fused_score, interval_relation_code) "
-            "values ($1::uuid, $2::uuid, $3, $4)",
-            edge.parent_id,
-            edge.child_id,
-            edge.fused_score,
-            relation_code,
-        )
+    await conn.execute("delete from event_lineage_rebuild")
+    await conn.execute(
+        "insert into event_lineage_rebuild "
+        "(rebuild_lock, reconstruction_version, generated_at, min_fused_score, candidate_window) "
+        "values (true, $1, now(), $2, $3)",
+        spec.reconstruction_version,
+        spec.min_fused_score,
+        spec.candidate_window,
+    )
+    await conn.executemany(
+        "insert into event_lineage_rebuild_channel "
+        "(rebuild_lock, signal_code, signal_weight) values (true, $1, $2)",
+        spec.channel_weights,
+    )
+    await conn.executemany(
+        "insert into post_lineage_edge "
+        "(parent_post_id, child_post_id, fused_score, interval_relation_code) "
+        "values ($1::uuid, $2::uuid, $3, $4)",
+        [
+            (
+                edge.parent_id,
+                edge.child_id,
+                edge.fused_score,
+                interval_relation_code_for_edge(
+                    points[edge.parent_id], points[edge.child_id]
+                ),
+            )
+            for edge in edges
+        ],
+    )
+    await conn.executemany(
+        "insert into post_lineage_edge_signal "
+        "(parent_post_id, child_post_id, signal_code, signal_score, signal_weight, signal_contribution) "
+        "values ($1::uuid, $2::uuid, $3, $4, $5, $6)",
+        [
+            (
+                row["parent_post_id"],
+                row["child_post_id"],
+                row["signal_code"],
+                row["signal_score"],
+                row["signal_weight"],
+                row["signal_contribution"],
+            )
+            for row in spec.signal_rows
+        ],
+    )
 
 
 async def load_estimated_channel_weights(
@@ -334,7 +396,7 @@ class ChannelWeightsNotEstimated(RuntimeError):
     only (ADR 0200 point 1): estimated by fast-mlsirm, provenance-gated,
     never hand-picked constants. No hand-picked default exists anywhere
     -- the library demo estimates its weights from its declared design,
-    and unit tests inject synthetic weights explicitly.
+    and tests use provenance-bearing estimates.
     """
 
     def __init__(self, active_channels: set[str]) -> None:
@@ -347,27 +409,87 @@ class ChannelWeightsNotEstimated(RuntimeError):
         self.active_channels = active_channels
 
 
-async def rebuild_lineage(conn: asyncpg.Connection) -> list[Edge]:
-    """Reconstruct lineage for every ``source_post`` and persist the edges.
-
-    Raises :class:`ChannelWeightsNotEstimated` when no activated
-    estimate matches this path's active channels -- run
-    ``scripts/estimate_channel_weights.py`` first (ADR 0200 point 1).
-    """
+async def _load_lineage_records(conn: asyncpg.Connection) -> list[Record]:
+    """Load the eligible source snapshot used by one reconstruction."""
     rows = await conn.fetch(
         "select post_id, post_title, voc_type_code, created_at, corporate_entity_id, "
         "process_unit_id, thread_group_key, secondary_grouping_key "
         f"from source_post where {SOURCE_POST_ELIGIBILITY_SQL.format(alias='source_post')}"
     )
-    # No adjudication client is wired on this path, so the active channel
-    # set is the three deterministic channels (reconstruct drops llm when
-    # unavailable rather than faking it).
-    active_channels = {"temporal", "secondary_key", "text"}
+    return records_from_source_posts(rows)
+
+
+def _budgeted_llm(
+    records: list[Record], llm: AdjudicationClient | None
+) -> AdjudicationClient | None:
+    """Drop adjudication before weight lookup when the pair budget is exceeded."""
+    pair_count = 0
+    records_per_group: defaultdict[str, int] = defaultdict(int)
+    for record in records:
+        pair_count += min(records_per_group[record.group_key], DEFAULT_CANDIDATE_WINDOW)
+        if pair_count > MAXIMUM_LIVE_LLM_PAIR_EVALUATIONS:
+            return None
+        records_per_group[record.group_key] += 1
+    return llm
+
+
+async def _reconstruct_lineage_records(
+    records: list[Record],
+    llm: AdjudicationClient | None,
+    weights: dict[str, float],
+) -> list[Edge]:
+    """Run the CPU/provider reconstruction without blocking the event loop."""
+    llm = _budgeted_llm(records, llm)
+    return await asyncio.to_thread(lineage_edge_specs, records, llm=llm, weights=weights)
+
+
+async def rebuild_lineage(
+    conn: asyncpg.Connection,
+    *,
+    llm: AdjudicationClient | None = None,
+) -> list[Edge]:
+    """Reconstruct lineage for every ``source_post`` and persist the edges.
+
+    The adjudication channel is dropped before weight lookup when the exact
+    candidate-pair work exceeds the ADR 0172 budget. The resulting active
+    channel set must have a provenance-gated fast-mlsirm estimate; there is no
+    hand-picked fallback (ADR 0200).
+    """
+    records = await _load_lineage_records(conn)
+    llm = _budgeted_llm(records, llm)
+    active_channels = estimated_weight_channels(llm)
     weights = await load_estimated_channel_weights(conn, active_channels)
     if weights is None:
         raise ChannelWeightsNotEstimated(active_channels)
-    edges = lineage_edge_specs(records_from_source_posts(rows), weights=weights)
-    await persist_lineage_edges(conn, edges, {str(row["post_id"]): row for row in rows})
+    edges = await _reconstruct_lineage_records(records, llm, weights)
+    points = {record.record_id: {"created_at": record.occurred_at} for record in records}
+    async with conn.transaction():
+        await persist_lineage_edges(conn, edges, weights, points)
+    return edges
+
+
+async def rebuild_lineage_from_pool(
+    pool: asyncpg.Pool,
+    *,
+    llm: AdjudicationClient | None = None,
+) -> list[Edge]:
+    """Reconstruct without holding a pooled connection during provider work.
+
+    The source snapshot is read and released first. Only the replacement
+    writes run in a transaction, preserving ADR 0172 atomicity without an
+    idle-in-transaction connection during CPU or orchestrator calls.
+    """
+    async with pool.acquire() as conn:
+        records = await _load_lineage_records(conn)
+        llm = _budgeted_llm(records, llm)
+        active_channels = estimated_weight_channels(llm)
+        weights = await load_estimated_channel_weights(conn, active_channels)
+        if weights is None:
+            raise ChannelWeightsNotEstimated(active_channels)
+    edges = await _reconstruct_lineage_records(records, llm, weights)
+    points = {record.record_id: {"created_at": record.occurred_at} for record in records}
+    async with pool.acquire() as conn, conn.transaction():
+        await persist_lineage_edges(conn, edges, weights, points)
     return edges
 
 
@@ -420,8 +542,7 @@ def _connected_visible_component(
 ) -> set[str]:
     """Walk the undirected reconstruct graph; return visible posts only.
 
-    Invisible posts may still bridge two visible posts so the component
-    matches ``visible_lineage_graph`` focus mode.
+    Invisible posts cannot bridge visible posts across the ABAC boundary.
     """
     if focus_id not in allowed:
         return set()
@@ -432,17 +553,41 @@ def _connected_visible_component(
         if current_id in component_ids:
             continue
         component_ids.add(current_id)
-        frontier.extend(neighbors.get(current_id, set()) - component_ids)
-    return component_ids & allowed
+        frontier.extend((neighbors.get(current_id, set()) & allowed) - component_ids)
+    return component_ids
 
 
-def _lineage_graph_payload(visible, edge_rows, truncated: bool) -> dict[str, Any]:
+async def _lineage_graph_payload(
+    conn: asyncpg.Connection, visible, edge_rows, truncated: bool
+) -> dict[str, Any]:
+    """Build a channel-auditable graph from already authorized rows."""
     visible_ids = {str(row["post_id"]) for row in visible}
     visible_edges = [
         row
         for row in edge_rows
         if str(row["parent_post_id"]) in visible_ids and str(row["child_post_id"]) in visible_ids
     ]
+    visible_id_list = sorted(visible_ids)
+    signal_rows = await conn.fetch(
+        "select parent_post_id, child_post_id, signal_code, signal_score, "
+        "signal_weight, signal_contribution from post_lineage_edge_signal "
+        "where parent_post_id = any($1::uuid[]) "
+        "and child_post_id = any($2::uuid[])",
+        visible_id_list,
+        visible_id_list,
+    )
+    rebuild_rows = await conn.fetch(
+        "select reconstruction_version, generated_at, min_fused_score, candidate_window "
+        "from event_lineage_rebuild"
+    )
+    weight_rows = await conn.fetch(
+        "select channel.signal_code, channel.signal_weight "
+        "from event_lineage_rebuild_channel as channel "
+        "join common_lookup_value as lookup "
+        "on lookup.lookup_code = channel.signal_code "
+        "where channel.rebuild_lock = true "
+        "order by lookup.display_order, channel.signal_code"
+    )
     children_of: dict[str, list[str]] = {}
     for row in visible_edges:
         children_of.setdefault(str(row["parent_post_id"]), []).append(str(row["child_post_id"]))
@@ -460,16 +605,51 @@ def _lineage_graph_payload(visible, edge_rows, truncated: bool) -> dict[str, Any
                 "is_branch_point": len(children_of.get(post_id, [])) >= 2,
             }
         )
+
+    signals_by_edge: dict[tuple[str, str], list[dict[str, object]]] = defaultdict(list)
+    for row in signal_rows:
+        parent_id = str(row["parent_post_id"])
+        child_id = str(row["child_post_id"])
+        if parent_id not in visible_ids or child_id not in visible_ids:
+            continue
+        payload = dict(row)
+        payload["channel_name"] = LOOKUP_CODE_TO_SIGNAL.get(str(row["signal_code"]), str(row["signal_code"]))
+        signals_by_edge[(parent_id, child_id)].append(payload)
+
     edges = [
         {
             "source": str(row["parent_post_id"]),
             "target": str(row["child_post_id"]),
             "fused_score": float(row["fused_score"]),
+            "channel_evidence": rank_channel_evidence(
+                signals_by_edge[(str(row["parent_post_id"]), str(row["child_post_id"]))]
+            ),
             **_interval_payload(row),
         }
         for row in visible_edges
     ]
-    return {"nodes": nodes, "edges": edges, "truncated": truncated}
+    reconstruction = None
+    if rebuild_rows:
+        rebuild = rebuild_rows[0]
+        reconstruction = {
+            "reconstruction_version": rebuild["reconstruction_version"],
+            "generated_at": rebuild["generated_at"].isoformat(),
+            "min_fused_score": float(rebuild["min_fused_score"]),
+            "candidate_window": int(rebuild["candidate_window"]),
+            "active_weights": [
+                {
+                    "signal_code": LOOKUP_CODE_TO_SIGNAL.get(str(row["signal_code"]), str(row["signal_code"])),
+                    "signal_weight": float(row["signal_weight"]),
+                }
+                for row in weight_rows
+            ],
+        }
+    return {
+        "nodes": nodes,
+        "edges": edges,
+        "truncated": truncated,
+        "reconstruction": reconstruction,
+    }
 
 
 async def visible_lineage_graph(
@@ -501,12 +681,12 @@ async def visible_lineage_graph(
         component_ids = _connected_visible_component(focus_id, neighbors, allowed)
         visible = (
             [row for row in visible_all if str(row["post_id"]) in component_ids]
-            if include_isolated or len(component_ids) > 1 or focus_id in neighbors
+            if include_isolated or len(component_ids) > 1
             else []
         )
         truncated = False
 
-    payload = _lineage_graph_payload(visible, edge_rows, truncated)
+    payload = await _lineage_graph_payload(conn, visible, edge_rows, truncated)
     payload["isolation_reason"] = focused_isolation_reason(
         focus_post_id, visible_all, len(visible)
     )
@@ -560,7 +740,12 @@ async def lineage_graphs_for_posts(
     """
     unique_ids = list(dict.fromkeys(str(post_id) for post_id in post_ids))
     if not unique_ids:
-        return {"nodes": [], "edges": [], "truncated": False}
+        return {
+            "nodes": [],
+            "edges": [],
+            "truncated": False,
+            "reconstruction": None,
+        }
     visible_all, edge_rows = await _fetch_visible_lineage_rows(conn, can_see_post)
     neighbors = _undirected_neighbors(edge_rows)
     allowed = {str(row["post_id"]) for row in visible_all}
@@ -581,4 +766,4 @@ async def lineage_graphs_for_posts(
     ordered_ids = list(dict.fromkeys([*cited_visible, *newest_ids]))
     truncated = len(ordered_ids) > node_limit
     visible = [rows_by_id[post_id] for post_id in ordered_ids[:node_limit]]
-    return _lineage_graph_payload(visible, edge_rows, truncated)
+    return await _lineage_graph_payload(conn, visible, edge_rows, truncated)
