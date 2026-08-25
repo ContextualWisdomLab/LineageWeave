@@ -73,8 +73,8 @@ remain local audit evidence and are not committed.
 ### Exact open-PR boundary
 
 At this snapshot there were 8 open PRs and 10 open issues. Exact observed heads
-were `#643 041ec13b`, `#640 fae1d576`, `#639 aee02dca`, `#636 20d25fe6`, `#632 e1ebe50a`,
-`#631 c0022c97`, `#629 0f4665b5`, and `#579 689a21b6`. All remain blocked on
+were `#643 041ec13b`, `#640 985b4492`, `#639 aee02dca`, `#636 f7b9a65f`, `#632 e1ebe50a`,
+`#631 c0022c97`, `#629 74823e99`, and `#579 689a21b6`. All remain blocked on
 hosted gates and/or independent review. These
 observations are not merge readiness. Re-fetch exact heads,
 unresolved threads, checks, approvals, rulesets, and merge SHA before any
@@ -98,12 +98,12 @@ context only.
 | PR | Exact observed head | Merge/check state at this snapshot |
 | ---: | --- | --- |
 | #643 | `041ec13b` | shares token-backed success/unavailable/retry status notices for the Calendar surface; hosted gates and independent review remain required |
-| #640 | `fae1d576` | quantifies dashboard case metrics, preserves confidence-ranked project labels, persists explicit missing required facts, and enforces distinct event counts plus SQL-level external scoping; hosted gates and independent review remain required |
+| #640 | `985b4492` | quantifies dashboard case metrics, preserves confidence-ranked project labels, persists explicit missing required facts, and enforces distinct event counts plus SQL-level external scoping; hosted gates and independent review remain required |
 | #639 | `aee02dca` | repairs Running-action, Compose, and TEPP configuration contracts; hosted gates and independent review remain required |
-| #636 | `20d25fe6` | publishes the calibrated external-lineage contract without a redundant explicit-child filter; hosted gates and independent review remain required |
+| #636 | `f7b9a65f` | publishes the calibrated external-lineage contract without a redundant explicit-child filter and repairs test import hygiene; hosted gates and independent review remain required |
 | #632 | `e1ebe50a` | preserves graph-fact source provenance and authorization with a static landing-query contract and shared RankWeave disable switch; hosted gates and independent review remain required |
 | #631 | `c0022c97` | decomposes ADR gaps and queue baseline; hosted gates and independent review remain required |
-| #629 | `0f4665b5` | releases provider work from database leases and bounds landing reads; hosted gates and independent review remain required |
+| #629 | `74823e99` | releases provider work from database leases and bounds landing reads; hosted gates and independent review remain required |
 | #579 | `689a21b6` | delegates leftover interaction-map arithmetic to fast-mlsirm and persists only the consumer projection; hosted gates and independent review remain required |
 
 No row above is merge evidence. Immediately before any lifecycle action,
