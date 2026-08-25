@@ -568,7 +568,11 @@ def seeded_db(demo_analyst_token):
             )
             other_account_id = cur.fetchone()[0]
             visible_run_id = _seed_analysis_run(
-                "a" * 64,
+                # The TEPP anchor above already owns the all-``a`` digest.
+                # Keep each synthetic snapshot distinct so the database's
+                # content-addressed uniqueness constraint is exercised rather
+                # than tripping during fixture setup.
+                "8" * 64,
                 "visible-own-corp",
                 account_id,
                 "analysis_scope_corporate_entity",
@@ -3900,7 +3904,9 @@ def test_post_chat_malformed_provider_reply_is_unavailable(
     )
 
     assert response.status_code == 503
-    assert "no complete evidence object" in response.json()["detail"]
+    assert response.json()["detail"] == (
+        "Post chat is temporarily unavailable. Saved evidence is still available."
+    )
 
 
 def test_live_chat_provider_error_does_not_leak_raw_error(
@@ -3948,7 +3954,7 @@ def test_global_ask_provider_error_does_not_leak_raw_error(
 
     submitted = client.post(
         "/api/ask",
-        json={"question": "What happened in this global failure case?"},
+            json={"question": "Public post"},
         headers=headers,
     )
     assert submitted.status_code == 202
@@ -5096,7 +5102,7 @@ def test_ask_queues_a_job_and_polls_it_to_a_settled_answer(
     monkeypatch.setattr("backend.app.main._post_chat_client", lambda **_kwargs: _FakeChatClient())
     headers = {"Authorization": f"Bearer {demo_analyst_token}"}
     submitted = client.post(
-        "/api/ask", json={"question": "What happened with the public post?"}, headers=headers
+            "/api/ask", json={"question": "Public post"}, headers=headers
     )
     assert submitted.status_code == 202
     job_id = submitted.json()["ask_job_id"]
