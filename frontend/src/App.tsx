@@ -1,6 +1,7 @@
 import { AdminPanel } from "./components/AdminPanel";
 import { LeftoverPairList } from "./components/LeftoverPairList";
 import { WorkspaceCalendar } from "./components/WorkspaceCalendar";
+import { focusedGraphMustReset } from "./focusedGraphSelection";
 
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { useAuth } from "react-oidc-context";
@@ -3885,8 +3886,12 @@ function PostList({
   }
 
   function selectPost(postId: string, options?: SelectPostOptions) {
-    setSelectedPostId(postId);
-    setFocusedGraph(null);
+    setSelectedPostId((currentPostId) => {
+      if (focusedGraphMustReset(currentPostId, postId)) {
+        setFocusedGraph(null);
+      }
+      return postId;
+    });
     setOpenedAfterCutoff(Boolean(options?.liveAfterCutoff));
     setOpenedCutoffIso(options?.knowledgeCutoff ?? null);
     setOpenedFromReportMember(Boolean(options?.fromReportMember));
