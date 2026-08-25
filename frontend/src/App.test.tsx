@@ -1482,6 +1482,36 @@ describe("App, authenticated", () => {
           }),
         );
       }
+      if (url.endsWith("/api/corporate-entities/corp-demo/related")) {
+        return Promise.resolve(
+          jsonResponse({
+            corporate_entity_id: "corp-demo",
+            entity_name: "Demo Corp",
+            related: [
+              {
+                node_id: "person-ada",
+                node_type_code: "node_person",
+                ontology_iri: "https://contextualwisdomlab.github.io/lineageweave/ontology#Person",
+                ontology_label: "Person",
+                label: "Ada West",
+                person_side_code: "our_side",
+                person_side_label: "Our side",
+                relevance: 0.5,
+              },
+              {
+                node_id: "post-1",
+                node_type_code: "node_post",
+                ontology_iri: "https://contextualwisdomlab.github.io/lineageweave/ontology#Post",
+                ontology_label: "Post",
+                label: "Linked post",
+                relevance: 0.6,
+                post_body_excerpt: "A linked body preview.",
+                post_body_truncated: false,
+              },
+            ],
+          }),
+        );
+      }
       if (url.endsWith("/api/posts/post-1/affiliate-tree")) {
         return Promise.resolve(
           jsonResponse({
@@ -1987,6 +2017,32 @@ describe("App, authenticated", () => {
     // sibling at the same top level.
     expect(parentRow?.contains(subsidiaryRow)).toBe(true);
   });
+
+  it("opens a customer's related post in place instead of jumping to the Board", async () => {
+    // Live bug (2026-08-19): opening a related post from Customer
+    // Master swapped the whole workspace to the Board and opened the
+    // popup there, so the customer context the reader was standing in
+    // was gone. The popup must open inside the Customer Master panel.
+    stubBackend();
+    render(<App />);
+    expect(await screen.findByRole("button", { name: "View post: Public post" })).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "고객 마스터" }));
+
+    const entityButton = (await screen.findByText("DEMO-CORP-01 · Company")).closest("button");
+    expect(entityButton).not.toBeNull();
+    await userEvent.click(entityButton as HTMLElement);
+    await userEvent.click(await screen.findByRole("button", { name: "Open related post: Linked post" }));
+
+    // The popup shows the post body without leaving Customer Master:
+    // the Board never mounts and the customer heading stays on screen.
+    expect(await screen.findByText("The full body text.")).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "Board" })).not.toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Customer master" })).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("button", { name: "Close" }));
+    expect(screen.queryByText("The full body text.")).not.toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Customer master" })).toBeInTheDocument();
+  }, 15000);
 
   it("shows every observed relationship role for a counterparty, flagging multi-role names", async () => {
     // Feature request (2026-08-19): a real counterparty is not limited

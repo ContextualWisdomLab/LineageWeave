@@ -15,6 +15,7 @@ from lineageweave.post_content_normalization import (
     NormalizedPostContent,
 )
 from lineageweave.post_content_persistence import (
+    _bounded_structure_batches,
     _bounded_unit_batches,
     _render_image_text,
     persist_post_content,
@@ -94,6 +95,17 @@ class _FailingStructure:
         raise ValueError("synthetic invalid structure response")
 
 
+class _NeverCalledStructure:
+    """Reject provider calls when the serialized request is already oversized."""
+
+    available = True
+
+    def infer(
+        self, _post_title: str, _units: list[dict[str, object]]
+    ) -> tuple[StructureDecision, ...]:
+        raise AssertionError("oversized structure request must not be sent")
+
+
 class _UnexpectedChannelFailure:
     """Represent a programming defect that persistence must expose."""
 
@@ -115,10 +127,14 @@ class _ResolvedStructure:
 
     available = True
 
+    def __init__(self) -> None:
+        self.units: list[dict[str, object]] = []
+
     def infer(
         self, _post_title: str, units: list[dict[str, object]]
     ) -> tuple[StructureDecision, ...]:
         """Return bounded synthetic decisions for persistence filtering."""
+        self.units = units
         return (
             StructureDecision(
                 unit_index=int(units[0]["unit_index"]),
@@ -309,21 +325,81 @@ def test_bounded_batches_cover_empty_count_and_character_limits() -> None:
         len(batch)
         for batch in _bounded_unit_batches([(str(i), "x" * 12_001) for i in range(3)])
     ] == [1, 1, 1]
+    assert [
+        len(batch)
+        for batch in _bounded_unit_batches([("x", {"text": "x" * 12_001}) for _ in range(2)])
+    ] == [1, 1]
+    metadata_bounded = _bounded_unit_batches(
+        [(str(i), {"text": "x" * 11_900, "label": "y" * 200}) for i in range(2)]
+    )
+    assert [len(batch) for batch in metadata_bounded] == [1, 1]
 
 
-def test_explicit_and_adjudicated_structure_are_persisted_by_unit() -> None:
-    """Persist explicit depth and only in-scope orchestrator decisions."""
+def test_structure_batches_measure_the_complete_serialized_request() -> None:
+    """Envelope, schema, JSON escaping, and UTF-8 bytes all count toward the limit."""
+    units = [
+        (
+            index,
+            {
+                "unit_index": index,
+                "text": "가" * 4_000,
+                "label": "p",
+                "style": None,
+                "source_indent_width": 0,
+                "declared_indent_width": 0,
+            },
+        )
+        for index in range(2)
+    ]
+
+    assert [len(batch) for batch in _bounded_structure_batches(units, "Synthetic title")] == [1, 1]
+
+
+def test_oversized_structure_request_remains_unresolved_without_transport() -> None:
+    """An oversized title fails closed before the provider call and preserves source units."""
     conn = _Connection()
 
     assert (
         _persist(
             conn,
+            "post-oversized",
+            "plain text",
+            structure_client=_NeverCalledStructure(),
+            post_title="x" * 24_000,
+        )
+        == 1
+    )
+    assert any(
+        args[2] == "unresolved"
+        for query, args in conn.executed
+        if "insert into post_content_unit_structure" in query
+    )
+
+
+def test_explicit_and_adjudicated_structure_are_persisted_by_unit() -> None:
+    """Persist explicit depth and only in-scope orchestrator decisions."""
+    conn = _Connection()
+    structure_client = _ResolvedStructure()
+
+    assert (
+        _persist(
+            conn,
             "post-7",
-            '<p style="margin-left: 40px">Explicit</p><p>Semantic</p>',
-            structure_client=_ResolvedStructure(),
+            '<p style="margin-left: 40px">Explicit</p><p>&nbsp;&nbsp;Semantic</p>',
+            structure_client=structure_client,
         )
         == 2
     )
+    assert structure_client.units == [
+        {
+            "unit_index": 1,
+            "text": "Semantic",
+            "label": "p",
+            "style": None,
+            "source_indent_width": 2,
+            "declared_indent_width": 0,
+        }
+    ]
     structure_rows = [
         args
         for query, args in conn.executed

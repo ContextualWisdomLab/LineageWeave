@@ -26,6 +26,7 @@ from zoneinfo import ZoneInfo
 
 import asyncpg
 
+from lineageweave.ask_time_axis import row_matches_time_range, time_axis_evidence_fact
 from lineageweave.image_content import ImageContentClient, NullImageContentClient
 from lineageweave.knowledge_graph import (
     NODE_POST,
@@ -407,9 +408,11 @@ async def gather_global_chat_sources(
 
     When `question` contains a Korean relative-time expression ("어제",
     "작년 이맘때쯤", "3일 전", ...; see `lineageweave.temporal_expressions`),
-    the final candidate set is also bounded to posts whose `created_at`
-    falls in the resolved date range -- an unbounded expression ("언젠가")
-    or no expression at all applies no date filter.
+    the final candidate set is bounded to posts whose event instant
+    (`event_occurred_at`, falling back to `created_at`) falls in the
+    resolved Seoul date range -- an unbounded expression ("언젠가")
+    or no expression at all applies no date filter. Cited sources name
+    which clock matched (ADR 0202).
 
     The source set is intentionally bounded until retrieval/reranking is
     needed for a much larger corpus; every selected body still uses the same
@@ -420,8 +423,9 @@ async def gather_global_chat_sources(
     if vision_client is None:
         vision_client = NullImageContentClient()
     # A relative-time expression ("어제", "작년 이맘때쯤", ...) narrows the
-    # candidate window by created_at below; it must not also become a
-    # near-meaningless literal keyword search term (see TEMPORAL_STOPWORDS).
+    # candidate window by event time (fallback: created_at) below; it must
+    # not also become a near-meaningless literal keyword search term
+    # (see TEMPORAL_STOPWORDS).
     resolved_time_range = resolve_korean_relative_time(
         question or "", today=today or _seoul_today()
     )
@@ -476,24 +480,34 @@ async def gather_global_chat_sources(
             """
             select post_id, matched_in
               from (
-                   (select post_id, created_at, 'title' as matched_in
+                   (select post_id, coalesce(event_occurred_at, created_at) as event_clock,
+                           'title' as matched_in
                       from source_post
                      where post_title ilike '%' || $1 || '%'
+                       and ($2::date is null or (coalesce(event_occurred_at, created_at) at time zone 'Asia/Seoul')::date >= $2)
+                       and ($3::date is null or (coalesce(event_occurred_at, created_at) at time zone 'Asia/Seoul')::date <= $3)
                      limit 32)
                     union all
-                   (select post_id, created_at, 'body' as matched_in
+                   (select post_id, coalesce(event_occurred_at, created_at) as event_clock,
+                           'body' as matched_in
                       from source_post
                      where lower(left(source_post_search_text(post_body), 16384))
                                like '%' || lower($1) || '%'
+                       and ($2::date is null or (coalesce(event_occurred_at, created_at) at time zone 'Asia/Seoul')::date >= $2)
+                       and ($3::date is null or (coalesce(event_occurred_at, created_at) at time zone 'Asia/Seoul')::date <= $3)
                      limit 32)
                     union all
-                   (select post_id, created_at, 'body' as matched_in
+                   (select post_id, coalesce(event_occurred_at, created_at) as event_clock,
+                           'body' as matched_in
                       from source_post
                      where to_tsvector('simple', source_post_search_text(post_body))
                                @@ plainto_tsquery('simple', $1)
+                       and ($2::date is null or (coalesce(event_occurred_at, created_at) at time zone 'Asia/Seoul')::date >= $2)
+                       and ($3::date is null or (coalesce(event_occurred_at, created_at) at time zone 'Asia/Seoul')::date <= $3)
                      limit 32)
                     union all
-                   (select post_id, created_at, 'source_field' as matched_in
+                   (select post_id, coalesce(event_occurred_at, created_at) as event_clock,
+                           'source_field' as matched_in
                       from source_post
                      where concat_ws(' ', source_system_code, source_record_key,
                                       source_author_code, source_author_name,
@@ -503,12 +517,16 @@ async def gather_global_chat_sources(
                                       source_customer_code, source_customer_name,
                                       source_project_code, source_project_name)
                                ilike '%' || $1 || '%'
+                       and ($2::date is null or (coalesce(event_occurred_at, created_at) at time zone 'Asia/Seoul')::date >= $2)
+                       and ($3::date is null or (coalesce(event_occurred_at, created_at) at time zone 'Asia/Seoul')::date <= $3)
                      limit 32)
                    ) matches
-             order by created_at desc, post_id desc
+             order by event_clock desc, post_id desc
             limit 32
             """,
             term,
+            resolved_time_range[0] if resolved_time_range else None,
+            resolved_time_range[1] if resolved_time_range else None,
         )
         for row in candidate_rows:
             post_id = str(row["post_id"])
@@ -552,16 +570,17 @@ async def gather_global_chat_sources(
                source_company_code, source_company_name, source_process_unit_code,
                source_process_unit_name, source_sales_pool_code, source_sales_pool_name,
                source_customer_code, source_customer_name,
-               source_project_code, source_project_name
+               source_project_code, source_project_name,
+               created_at, event_occurred_at
           from source_post
          where (visibility_code = 'public'
             or (corporate_entity_id::text = any($1::text[])
                 and (cardinality($2::text[]) = 0
                      or process_unit_id::text = any($2::text[]))))
-           and ($5::date is null or (created_at at time zone 'Asia/Seoul')::date >= $5)
-           and ($6::date is null or (created_at at time zone 'Asia/Seoul')::date <= $6)
+           and ($5::date is null or (coalesce(event_occurred_at, created_at) at time zone 'Asia/Seoul')::date >= $5)
+           and ($6::date is null or (coalesce(event_occurred_at, created_at) at time zone 'Asia/Seoul')::date <= $6)
          order by array_position($3::uuid[], post_id) nulls last,
-                  created_at desc, post_id desc
+                  coalesce(event_occurred_at, created_at) desc, post_id desc
          limit $4
         """,
         list(authorized_corporate_entity_ids),
@@ -571,11 +590,16 @@ async def gather_global_chat_sources(
         resolved_time_range[0] if resolved_time_range else None,
         resolved_time_range[1] if resolved_time_range else None,
     )
-    visible_rows = [row for row in rows if can_see_post(row)][:limit]
+    visible_rows = [
+        row
+        for row in rows
+        if can_see_post(row) and row_matches_time_range(row, resolved_time_range)
+    ][:limit]
     visible_ids = [str(row["post_id"]) for row in visible_rows]
     anchor_is_visible = lineage_anchor_id in visible_ids
     semantic_facts = await _semantic_facts_for_posts(conn, visible_ids)
     graph_facts = (await _graph_facts_for_posts(conn, visible_ids))[:16]
+    time_filter_active = resolved_time_range is not None
     sources: list[ChatSourceDocument] = []
     for index, row in enumerate(visible_rows):
         normalized_body = await _normalize_post_body_text(row["post_body"], vision_client)
@@ -598,7 +622,8 @@ async def gather_global_chat_sources(
                 graph_facts=graph_facts if index == 0 else (),
                 evidence_facts=_source_hint_facts(row)
                 + semantic_facts.get(post_id, ())
-                + lineage_fact,
+                + lineage_fact
+                + time_axis_evidence_fact(row, time_filter_active=time_filter_active),
             )
         )
     return sources

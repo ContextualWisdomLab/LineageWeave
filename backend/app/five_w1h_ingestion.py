@@ -20,7 +20,13 @@ async def load_five_w1h_slots(
     can_see_post: Callable[[asyncpg.Record], bool],
 ) -> dict[str, Any]:
     """Build 5W1H from stored projections and visible lineage only."""
-    summary = await fetch_persisted_summary(conn, post_id) or {}
+    # allow_stale=True: 5W1H never reads korean_summary or summary_status
+    # from this payload, only roles_and_responsibilities/key_events, which
+    # are valid person/org/event evidence regardless of contract version --
+    # gating them on the same freshness check as the Korean summary text
+    # silently emptied "who"/"what" for every post summarized before the
+    # last contract bump, even though nothing about that data was stale.
+    summary = await fetch_persisted_summary(conn, post_id, allow_stale=True) or {}
     evidence_claims = await conn.fetch(
         """
         select slot_code, value_text, evidence_text

@@ -168,6 +168,7 @@ def test_import_rows_persists_raw_and_derived_grouping_values(
         "",
         "project-1",
     )
+    assert source_post_args[-1] is None
     assert result == {
         "source_rows": 1,
         "imported_rows": 1,
