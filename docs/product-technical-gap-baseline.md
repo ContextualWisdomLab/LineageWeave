@@ -19,7 +19,7 @@ context only.
 | ---: | --- | --- |
 | #612 | `85bdcadb` | this post-#609 follow-up clears the previous focused graph during navigation so another post's isolation reason cannot flash; the documentation amendment necessarily supersedes this observed pre-amendment SHA, and auto-merge remains subject to restarted exact-head gates and review |
 | #579 | `9de161ef` | interaction-map coordinates are mergeable on the current head; hosted gates and independent exact-head review remain outstanding |
-| #387 | `b14725f2` | channel evidence plus Ask reconstruction-profile preservation now conflicts with protected `main`; current review also flags one unused calendar import, so composition and that minimal cleanup must precede fresh exact-head gates and independent re-review |
+| #387 | `ab5cf345` | channel evidence plus Ask reconstruction-profile preservation is mergeable on the current head, but a current changes-requested decision remains; resolve valid findings and obtain independent exact-head re-review before enabling auto-merge |
 
 No row above is merge evidence. Immediately before any lifecycle action,
 re-fetch the head, unresolved threads, formal reviews, rulesets, and same-head
@@ -291,7 +291,7 @@ this file per §3.5 of the prior snapshot).
 
 | Gap | Current evidence | Acceptance requirement |
 | --- | --- | --- |
-| Protected release | 3 open PRs at snapshot; #612 and #579 are mergeable while #387 requires conflict composition and review cleanup | Terminal exact-head checks, no unresolved threads, independent exact-head approvals, protected squash-merge SHA |
+| Protected release | 3 open PRs at snapshot; #612 and #579 are mergeable while #387 retains changes requested | Terminal exact-head checks, no unresolved threads, independent exact-head approvals, protected squash-merge SHA |
 | Evidence-grounded operations workspace | Protected-main #606 delivers persisted operational cases, an authenticated dashboard, citation-first actions, report/alert delivery metadata, tokens, Storybook, and regression coverage; authenticated production backfill and the similar-VOC live endpoint remain unavailable | Perform authenticated desktop/mobile acceptance with aggregate evidence and deliver the live similar-VOC endpoint before claiming that subfeature |
 | Shared frontend gate | The ADR 0109 login repair is on protected `main`; eight older branches carried the defect and received the same verified repair this loop (#521–#560) | Keep every future branch cut from post-repair bases; re-verify with frontend lint/test/build before push |
 | Identifying baseline regression | `main` gap file listed real post identifiers; separately, closed #506 and pre-existing public history contain a private runtime source-table identifier, while current `main` and #507 trees are clean | Land this non-identifying rewrite, then coordinate ADR 0001 history remediation with security/privacy owners; do not reproduce the value, force-push, or delete evidence ad hoc |
