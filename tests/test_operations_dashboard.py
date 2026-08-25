@@ -235,6 +235,9 @@ async def test_external_information_projects_a_typed_prov_o_relation() -> None:
     assert statement["http://www.w3.org/ns/prov#wasDerivedFrom"]["@id"].endswith(
         "00000000-0000-0000-0000-000000000002"
     )
+    target = statement["http://www.w3.org/1999/02/22-rdf-syntax-ns#object"]
+    assert target["@id"].endswith(":fact:0:target")
+    assert target["@type"].endswith("#Project")
 
 
 @pytest.fixture

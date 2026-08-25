@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import hashlib
 from datetime import date
 from typing import Any, Protocol
 
@@ -65,15 +64,13 @@ def _operations_case_jsonld(
             str(LW.factTypeCode): fact["fact_type_code"],
             str(LW.factValue): fact["value_text"],
             PROV_WAS_DERIVED_FROM: {
-                "@id": f"urn:lineageweave:post:{fact['evidence_post_id']}"
+                "@id": f"urn:lineageweave:post:{fact['evidence_post_id']}",
+                "@type": [str(LW.Post), "http://www.w3.org/ns/prov#Entity"],
             },
         }
         predicate = fact.get("relation_predicate_iri")
         target_class = fact.get("relation_target_class_iri")
         if predicate and target_class:
-            target_digest = hashlib.sha256(
-                f"{fact['relation_target_kind_code']}\0{fact['value_text']}".encode()
-            ).hexdigest()
             statement.update(
                 {
                     "http://www.w3.org/1999/02/22-rdf-syntax-ns#subject": {
@@ -83,7 +80,7 @@ def _operations_case_jsonld(
                         "@id": predicate
                     },
                     "http://www.w3.org/1999/02/22-rdf-syntax-ns#object": {
-                        "@id": f"urn:lineageweave:operations-target:{target_digest}",
+                        "@id": f"{case_id}:fact:{ordinal}:target",
                         "@type": target_class,
                         "http://www.w3.org/2000/01/rdf-schema#label": fact["value_text"],
                     },
@@ -99,7 +96,8 @@ def _operations_case_jsonld(
         "@id": case_id,
         "@type": [CASE_KIND_ONTOLOGY_CLASSES[case_kind_code], "prov:Entity"],
         "prov:wasDerivedFrom": {
-            "@id": f"urn:lineageweave:post:{evidence_post_id}"
+            "@id": f"urn:lineageweave:post:{evidence_post_id}",
+            "@type": [str(LW.Post), "prov:Entity"],
         },
         str(LW.hasOperationsFact): statements,
     }
