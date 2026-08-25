@@ -1,4 +1,4 @@
--- ADR 0183: persist leftover complete-case coverage (map used N of M
+-- ADR 0202: persist leftover complete-case coverage (map used N of M
 -- scored posts). CREATE IF NOT EXISTS so a volume that already ran
 -- 0001 still upgrades. Incomplete rows stay excluded; missing cells
 -- are never stored as zero.
