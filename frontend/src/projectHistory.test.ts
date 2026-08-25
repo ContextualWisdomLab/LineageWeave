@@ -7,8 +7,8 @@ describe("projectHistoryKeys", () => {
     expect(
       projectHistoryKeys(
         [
-          { project_key: "Ｐ-100", project_name: "Project", evidence: "source", confidence: null, ontology_iri: null, extraction_method: "source_field_hint", resolution_status: "hint_only", provenance: "test" },
-          { project_key: "p-100", project_name: "Project", evidence: "semantic", confidence: null, ontology_iri: null, extraction_method: "semantic", resolution_status: "resolved", provenance: "test" },
+          { project_key: "Ｐ-100", project_name: "Project", evidence: "source", confidence: null, ontology_iri: "", extraction_method: "source_field_hint", resolution_status: "hint_only", provenance: "test" },
+          { project_key: "p-100", project_name: "Project", evidence: "semantic", confidence: null, ontology_iri: "", extraction_method: "semantic", resolution_status: "resolved", provenance: "test" },
         ],
         null,
         null,
