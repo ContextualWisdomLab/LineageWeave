@@ -20,7 +20,7 @@ context only.
 | #606 | `f40ecef4` | retires the internally anchored channel-weight vector and activates only an exact persisted TEPP criterion-validity anchor; the consumer preserves fractional cutoff precision, rejects non-canonical UUID representations, and matches the TEPP-owned contract on upstream TEPP#237; 59 combined TEPP/ingestion/seed tests and the updated 26-test persistence slice pass; auto-merge awaits hosted gates and independent review |
 | #605 | `1098f6ba` | exact-main follow-up for post-navigation refocus, visibility-aware modal focus order including native disclosure summaries, readable evidence separators, and validated OIDC return context; 12 shared/component tests, focused app tests, lint/build/Storybook, and 1440×900 plus 390×844 screenshot audits passed; auto-merge awaits hosted gates and independent review |
 | #604 | `063d7257` | independently restores the protected-main OIDC return-context/build regression; auto-merge awaits hosted gates and independent review, and overlap with #605 must be composed without dropping either focus/evidence repair |
-| #600 | `236569f9` | this baseline's pre-amendment head; the current refresh supersedes the queue snapshot, so exact-head checks and review restart |
+| #600 | `f1b4ff62` | this baseline's pre-amendment head also restores the ADR 0109 OIDC return helper at login; the current refresh supersedes the queue snapshot, so exact-head checks and review restart |
 | #579 | `acd44dfe` | interaction-map coordinates now compose protected main, return no false axes or criteria-only map, preserve the validated OIDC return path, and retain successful backend/frontend/build plus desktop/mobile Storybook evidence; auto-merge awaits hosted gates and independent review |
 | #493 | `cc3080c6` | ADR 0143 empty-DAG reasons are composed with the batched Ask graph: hidden posts cannot bridge authorized components, multi-post Ask omits the single-post reason, conflict-marker regression coverage is present, and focused backend/frontend/build checks pass; a concurrent exact-head update restarted hosted checks, and auto-merge awaits those gates plus independent review |
 | #490 | `73413d0b` | broad historical workspace branch is conflicting with failing checks; decompose/restack rather than replaying its 931-commit merge wholesale |
@@ -52,7 +52,7 @@ protected `main` as `241be2dddf657f854cb8be54fe11d4ef48d37976`.
 
 Protected main currently imports the ADR 0109 OIDC return helpers but bypasses
 them at login, dropping the URL fragment and failing the production build on
-unused imports. Exact-main PRs #604 and #605 restore
+unused imports. Exact-main PRs #600, #604, and #605 restore
 `returnUrlFromLocation()` then `rememberOidcReturnUrl()` before
 `signinRedirect`; this is branch evidence only until one passes the protected
 gate. The authenticated-only `accessToken` narrowing remains present.
