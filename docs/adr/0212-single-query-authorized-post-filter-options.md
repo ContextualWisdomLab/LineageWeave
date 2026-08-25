@@ -1,4 +1,4 @@
-# ADR 0212: Single-scan authorized post-filter options
+# ADR 0212: Single-query authorized post-filter options
 
 - Status: Accepted
 - Date: 2026-08-25
@@ -29,9 +29,9 @@ property of a named environment and workload.
 
 ## Consequences
 
-- Each post-list request performs one database round trip and one authorized
-  source relation scan for both option dimensions instead of two sequential
-  round trips and scans.
+- Each post-list request performs one database query and round trip for both
+  option dimensions instead of two sequential queries and round trips. The
+  physical scan plan is not asserted until an exact-head `EXPLAIN` is recorded.
 - Filter completeness and ABAC semantics remain unchanged.
 - A focused unit test guards the one-query contract and bound ABAC parameters;
   the existing authenticated integration test continues to guard visible

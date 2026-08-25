@@ -73,6 +73,7 @@ within 30 seconds, `/api/lineage` took 12.152 seconds, and Ask polling took
 
 The backend image was from an older branch, not the current or ADR 0212 change
 head. These aggregate, non-identifying values support investigating the
-duplicate filter-option scan; they do not demonstrate current-head latency,
-causality, capacity, or an SLO. ADR 0212 removes that duplicate source scan.
+duplicate filter-option query; they do not demonstrate current-head latency,
+causality, capacity, or an SLO. ADR 0212 combines the two option projections
+into one database query; its physical plan remains to be measured exact-head.
 Repeat the synthetic k6 run on an exact-head image before comparing effects.
