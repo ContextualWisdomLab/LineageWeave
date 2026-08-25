@@ -28,10 +28,11 @@ The ecosystem product boundaries are already sufficient:
   CPU/GPU implementation before LineageWeave treats a new result as governed
   numerical evidence.
 
-LineageWeave has no standalone canonical PRD file on this exact head. Until
-one lands, `ARCHITECTURE.md` and the accepted ADR set are the product baseline;
-this absence remains a product-documentation gap, not permission to infer a
-different responsibility.
+LineageWeave's supporting PRD (`docs/product-requirements.md`) explicitly says
+that this product reconstructs and presents evidence but does not perform
+psychometric or statistical estimation. Accepted ADRs remain normative for
+architecture and policy, so the PRD and this decision express the same
+consumer-only responsibility.
 
 ## Decision
 
@@ -113,4 +114,3 @@ https://doi.org/10.1007/s11336-021-09762-5
 Roberts, M. E., Stewart, B. M., & Tingley, D. (2019). stm: An R package for
 structural topic models. *Journal of Statistical Software, 91*(2), 1–40.
 https://doi.org/10.18637/jss.v091.i02
-

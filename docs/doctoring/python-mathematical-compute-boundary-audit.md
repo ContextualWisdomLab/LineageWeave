@@ -8,8 +8,9 @@ Python paths satisfy the Rust/GPU requirement.
 
 ## Product-boundary sources read
 
-- LineageWeave `ARCHITECTURE.md` and accepted ADRs 0003, 0132, 0145,
-  0200, 0201, and 0205. This exact head has no standalone canonical PRD.
+- LineageWeave `docs/product-requirements.md`, `ARCHITECTURE.md`, and accepted
+  ADRs 0003, 0132, 0145, 0200, 0201, and 0205. The supporting PRD makes the
+  consumer-only measurement boundary explicit while ADRs remain normative.
 - TEPP `docs/product/prd-v0.4-approved.md`, whose approved TRSL-TM scope
   owns temporal, relational, multilingual, topic, event, and trajectory
   measurement.
