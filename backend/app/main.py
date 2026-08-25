@@ -170,6 +170,7 @@ from backend.app.knowledge_graph import (
     visible_team_mention_post_ids,
 )
 from backend.app.lineage_ingestion import (
+    ChannelWeightsNotEstimated,
     rebuild_lineage,
     visible_lineage_graph,
 )
@@ -368,12 +369,11 @@ def _post_summary_client():
 def _adjudication_client():
     """Live orchestrator client when configured; otherwise the unavailable null.
 
-    reconstruct.py's DEFAULT_CHANNEL_WEIGHTS gives this channel the most
-    weight (0.40) of the four -- it is the only one that reasons about
-    content instead of approximating it (ADR 0064) -- but nothing ever
-    passed a real client through lineage_edge_specs() to reconstruct(),
-    so every lineage reconstruction had silently run on the weaker
-    3-channel fallback since the feature was built.
+    The llm channel is the only one that reasons about content instead
+    of approximating it (ADR 0064). Its fusion weight -- like every
+    channel's -- is a fast-mlsirm estimate (ADR 0200): with this client
+    available, a four-channel run uses the persisted
+    `channel_set_with_llm` estimate and fails closed until one exists.
     """
     settings = load_settings()
     if not (settings.orchestrator_base_url and settings.orchestrator_api_key):
@@ -1169,7 +1169,14 @@ async def rebuild_lineage_graph(
     _require_post_admin(account)
     async with pool.acquire() as conn:
         async with conn.transaction():
-            edges = await rebuild_lineage(conn)
+            try:
+                edges = await rebuild_lineage(conn)
+            except ChannelWeightsNotEstimated:
+                raise HTTPException(
+                    status.HTTP_503_SERVICE_UNAVAILABLE,
+                    "Channel weights are not estimated yet. Run "
+                    "scripts/estimate_channel_weights.py, then rebuild again.",
+                )
     return {"edge_count": len(edges)}
 
 

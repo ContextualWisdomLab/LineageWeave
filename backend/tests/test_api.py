@@ -122,6 +122,16 @@ _CHANNEL_WEIGHT_MIGRATION = (
     / "migrations"
     / "0135_lineage_channel_weight.sql"
 )
+_CHANNEL_WEIGHT_UNION_MIGRATION = (
+    Path(__file__).resolve().parents[2]
+    / "migrations"
+    / "0200_channel_weight_schema_union.sql"
+)
+_PAIR_JUDGMENT_MIGRATION = (
+    Path(__file__).resolve().parents[2]
+    / "migrations"
+    / "0201_lineage_pair_judgment.sql"
+)
 _LEFTOVER_OBSERVED_EXPECTED_MIGRATION = (
     Path(__file__).resolve().parents[2]
     / "migrations"
@@ -272,6 +282,28 @@ def seeded_db(demo_analyst_token):
             cur.execute(_PROJECT_BOUND_EVENT_MIGRATION.read_text())
             cur.execute(_TENANT_SETTINGS_MIGRATION.read_text())
             cur.execute(_CHANNEL_WEIGHT_MIGRATION.read_text())
+            cur.execute(_CHANNEL_WEIGHT_UNION_MIGRATION.read_text())
+            cur.execute(_PAIR_JUDGMENT_MIGRATION.read_text())
+            # Product reconstruction fails closed without an ACTIVATED
+            # estimate (ADR 0200 points 1+3); this synthetic fixture set
+            # under the authorized anchor stands in for a fast-mlsirm
+            # estimate in unit tests.
+            cur.execute(
+                "insert into lineage_channel_weight "
+                "(channel_set_code, channel_code, weight_value, "
+                " estimation_run_id, estimation_method_code, estimator_version, "
+                " anchor_method_code, source_snapshot_sha256, sample_pair_count, "
+                " knowledge_cutoff) values "
+                "('channel_set_deterministic', 'temporal', 0.5, "
+                " '00000000-0000-0000-0000-000000000001', 'test_fixture', 'test', "
+                " 'unanchored_internal_structure', repeat('a', 64), 600, now()), "
+                "('channel_set_deterministic', 'secondary_key', 0.34, "
+                " '00000000-0000-0000-0000-000000000001', 'test_fixture', 'test', "
+                " 'unanchored_internal_structure', repeat('a', 64), 600, now()), "
+                "('channel_set_deterministic', 'text', 0.16, "
+                " '00000000-0000-0000-0000-000000000001', 'test_fixture', 'test', "
+                " 'unanchored_internal_structure', repeat('a', 64), 600, now())"
+            )
             cur.execute(_LEFTOVER_OBSERVED_EXPECTED_MIGRATION.read_text())
             cur.execute(_LEFTOVER_MAP_RANK_MIGRATION.read_text())
             cur.execute(_LEFTOVER_MAP_COVERAGE_MIGRATION.read_text())

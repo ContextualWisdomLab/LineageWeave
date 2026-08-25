@@ -20,7 +20,7 @@ import {
 export type LeftoverPairListProps = {
   pairs: LeftoverPair[];
   criterionLabel: (criterionCode: string) => string;
-  onSelectPost: (postId: string) => void;
+  onSelectPost: (pair: LeftoverPair) => void;
 };
 
 /**
@@ -123,7 +123,8 @@ export function LeftoverPairList({
                 title: pair.post_title,
                 criterion,
               })}
-              onClick={() => onSelectPost(pair.post_id)}
+              title={t("Open this post so the leftover criterion is current in Post quality.")}
+              onClick={() => onSelectPost(pair)}
             >
               <span className="ticket-title">
                 {kindLabel}: {pair.post_title} · {criterion}

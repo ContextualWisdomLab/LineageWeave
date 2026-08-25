@@ -6,6 +6,7 @@
 [ADR 0163](0163-leftover-observed-expected.md) (observed Y and expected E);
 [ADR 0164](0164-leftover-map-rank.md) (full map rank);
 [ADR 0182](0182-leftover-map-unexplained.md) (unexplained leftover U);
+[ADR 0158](0158-leftover-criterion-evaluation-landing.md) (criterion evaluation landing);
 [ADR 0201](0201-leftover-map-reconstruction.md) (two-axis reconstruction R̂)
 
 ## Context
@@ -33,15 +34,17 @@ criterion" when present, and unexplained leftover names "leftover map
 leaves unexplained `U` after IRT main effects; open this post to read
 the named criterion" when reconstruction is missing. A missing
 reconstruction keeps the unexplained leftover next action.
-Clicking the button opens that post with the same handler as a member
-row. Residual naming is [ADR 0162](0162-leftover-residual-disclosure.md),
+Clicking the button opens that post with leftover focus so Post quality
+marks the named criterion current (ADR 0158). Residual naming is
+[ADR 0162](0162-leftover-residual-disclosure.md),
 observed/expected naming is [ADR 0163](0163-leftover-observed-expected.md),
 rank naming is [ADR 0164](0164-leftover-map-rank.md), unexplained
 leftover naming is [ADR 0182](0182-leftover-map-unexplained.md),
 reconstruction naming is [ADR 0201](0201-leftover-map-reconstruction.md).
 
 After `make seed`, closest and farthest leftover pairs sit above the
-member list. Click a pair to open that post.
+member list. Click a pair to open that post with the leftover
+criterion current in Post quality.
 
 Missing leftover rows render nothing — never a placeholder pair.
 A hidden post never appears as a leftover pair.
