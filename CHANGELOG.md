@@ -70,9 +70,6 @@ All notable changes to this project are documented here. Format follows
   retrieval, multi-thread Event Lineage answers, persisted image-evidence
   citations, and the focused evidence popup. Their implementations remain
   active-PR evidence until protected merge.
-- ADR 0157 and its exact-head inventory choose the existing lowercase public
-  ontology namespace as canonical and define the compatibility, publication,
-  and migration evidence required by issue #372 without rewriting identifiers.
 - The ontology Pages artifact now publishes the deprecated repository-case
   compatibility vocabulary after validating every mapping's term kind.
 - The PROV-O support profile now mints its product class mappings only in the
