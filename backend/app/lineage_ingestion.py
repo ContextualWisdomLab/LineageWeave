@@ -17,7 +17,6 @@ from collections import defaultdict
 from collections.abc import Mapping, Sequence
 from datetime import datetime
 from typing import Any
-from uuid import UUID
 
 import asyncpg
 
@@ -42,14 +41,6 @@ MAXIMUM_LIVE_LLM_PAIR_EVALUATIONS = 5_000
 
 ISOLATION_NO_COMPARISON_GROUP = "no_comparison_group"
 ISOLATION_COMPARISON_CANDIDATES_AVAILABLE = "comparison_candidates_available"
-
-
-def _post_id_sort_key(post_id: object) -> tuple[int, int | str]:
-    """Match PostgreSQL UUID ordering while retaining synthetic fixture IDs."""
-    try:
-        return (0, UUID(str(post_id)).int)
-    except (ValueError, AttributeError):
-        return (1, str(post_id))
 
 # ADR 0205 authorizes only a completed, persisted TEPP criterion anchor.
 _SUPPORTED_ANCHOR_METHOD_CODES: frozenset[str] = frozenset(
@@ -722,10 +713,7 @@ async def visible_lineage_graph(
     if focus_post_id is None and corporate_entity_ids is None:
         visible = sorted(
             visible_all,
-            key=lambda row: (
-                row["created_at"],
-                *_post_id_sort_key(row["post_id"]),
-            ),
+            key=lambda row: (row["created_at"], str(row["post_id"])),
             reverse=True,
         )[:limit]
         truncated = len(visible_all) > len(visible)

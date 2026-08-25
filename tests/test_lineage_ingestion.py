@@ -12,7 +12,6 @@ import pytest
 import backend.app.lineage_ingestion as ingestion
 from backend.app.lineage_ingestion import (
     _budgeted_llm,
-    _post_id_sort_key,
     interval_relations_for_post,
     lineage_graphs_for_posts,
     persist_lineage_edges,
@@ -50,14 +49,6 @@ def test_missing_weight_table_is_detected_without_an_aborting_query() -> None:
             MissingTableConnection(), {"temporal", "secondary_key", "text"}
         )
     ) is None
-
-
-def test_post_id_sort_key_matches_uuid_order_and_keeps_fixture_ids() -> None:
-    """Landing tie-breaks use database UUID order without rejecting fixtures."""
-    assert _post_id_sort_key("00000000-0000-0000-0000-000000000002") > _post_id_sort_key(
-        "00000000-0000-0000-0000-000000000001"
-    )
-    assert _post_id_sort_key("post-b") > _post_id_sort_key("post-a")
 
 
 def test_unapproved_weight_provenance_is_never_activated() -> None:
