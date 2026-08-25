@@ -109,6 +109,9 @@ theta, weight vector, or completed-measurement claim.
 - Keyverse owns identity; Naruon owns calendar/email projections; RankWeave
   owns ranking fusion; ThreadWeave owns reference threading; TEPP and
   fast-mlsirm own measurement.
+- LineageWeave publishes a bounded external lineage contract for authorized
+  Naruon evidence, while requiring host-supplied calibrated channel weights
+  and preserving observed, inferred, and proposed truth states.
 - LineageWeave remains independently runnable and importable.
 
 Acceptance: provider failure is visible at the owning boundary; no local
