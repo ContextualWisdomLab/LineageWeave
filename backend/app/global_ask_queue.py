@@ -202,15 +202,8 @@ async def _verify_public_claims(
                 *(asyncio.to_thread(client.verify, claim) for claim in claims)
             )
         )
-    except (
-        AttributeError,
-        HttpClientError,
-        IndexError,
-        KeyError,
-        OSError,
-        TypeError,
-        ValueError,
-    ):
+    except Exception:
+        _logger.exception("public claim verification is unavailable")
         return VERIFICATION_UNAVAILABLE, ()
     return VERIFICATION_COMPLETED, tuple(
         result

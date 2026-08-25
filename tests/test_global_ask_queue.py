@@ -146,7 +146,11 @@ def test_malformed_public_verification_is_unavailable() -> None:
         external_claim_facts=("project: Apollo | evidence: public",),
     )
 
-    for error in (IndexError("empty choices"), AttributeError("invalid search body")):
+    for error in (
+        IndexError("empty choices"),
+        AttributeError("invalid search body"),
+        RuntimeError("provider adapter failed"),
+    ):
         class MalformedClient:
             available = True
 
