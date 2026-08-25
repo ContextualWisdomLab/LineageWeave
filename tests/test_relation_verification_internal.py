@@ -175,3 +175,20 @@ def test_pool_verification_persists_completed_rows_before_provider_failure() -> 
 
     assert conn.persisted_names == ["Example Partner"]
     assert not pool.acquired
+
+
+def test_pool_verification_omits_relation_completed_by_concurrent_run() -> None:
+    class ConcurrentConnection(_Connection):
+        async def execute(self, query: str, *args: object):
+            assert "verification_status_code = 'verify_pending'" in query
+            return "UPDATE 0"
+
+    conn = ConcurrentConnection(None)
+    pool = _Pool(conn)
+
+    verified = asyncio.run(
+        verify_post_relations_from_pool(pool, _Verifier(pool), "origin-post")
+    )
+
+    assert verified == []
+    assert not pool.acquired

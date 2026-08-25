@@ -210,7 +210,7 @@ async def verify_post_relations_from_pool(
             relation.internal_evidence_post_id,
         )
         async with pool.acquire() as conn:
-            await conn.execute(
+            update_status = await conn.execute(
                 """
                 update post_counterparty_entity
                 set verification_status_code = $3,
@@ -226,5 +226,6 @@ async def verify_post_relations_from_pool(
                 completed.verification_evidence_url,
                 completed.verification_evidence_post_id,
             )
-        verified.append(completed)
+        if update_status == "UPDATE 1":
+            verified.append(completed)
     return verified
