@@ -989,6 +989,28 @@ async def fetch_period_comparison(
     members_by_key: dict[tuple[str, str], list[asyncpg.Record]] = defaultdict(list)
     for row in members:
         members_by_key[(row["grouping_kind"], row["grouping_key"])].append(row)
+    # Safe SQL: the source-context expression is an immutable schema fragment; grouping filters are bound.
+    leftover = await conn.fetch(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
+        f"""
+        select lp.grouping_kind, lp.grouping_key, lp.pair_kind, lp.post_id,
+               lp.criterion_code, lp.leftover_distance, lp.leftover_residual,
+               p.post_title, p.visibility_code, p.corporate_entity_id,
+               ({_SOURCE_CONTEXT_PRESENT_SQL}) as has_real_source_context
+        from report_leftover_pair lp
+        join source_post p on p.post_id = lp.post_id
+        where lp.period_code = $1 and lp.rubric_version = $2
+          and lp.grouping_kind = any($3::text[])
+        order by lp.grouping_kind, lp.grouping_key,
+                 case lp.pair_kind when 'closest' then 0 else 1 end,
+                 p.post_title
+        """,
+        period_code,
+        RUBRIC_VERSION,
+        list(GROUPING_KINDS),
+    )
+    leftover_by_key: dict[tuple[str, str], list[asyncpg.Record]] = defaultdict(list)
+    for row in leftover:
+        leftover_by_key[(row["grouping_kind"], row["grouping_key"])].append(row)
     payload: list[dict[str, Any]] = []
     for row in rows:
         label = await resolve_grouping_label(conn, row["grouping_kind"], row["grouping_key"])
@@ -1012,6 +1034,20 @@ async def fetch_period_comparison(
                         "has_real_source_context": bool(member["has_real_source_context"]),
                     }
                     for member in members_by_key.get((row["grouping_kind"], row["grouping_key"]), [])
+                ],
+                "leftover_pairs": [
+                    {
+                        "pair_kind": str(pair["pair_kind"]),
+                        "post_id": str(pair["post_id"]),
+                        "post_title": pair["post_title"],
+                        "criterion_code": str(pair["criterion_code"]),
+                        "leftover_distance": float(pair["leftover_distance"]),
+                        "leftover_residual": float(pair["leftover_residual"]),
+                        "visibility_code": pair["visibility_code"],
+                        "corporate_entity_id": str(pair["corporate_entity_id"]),
+                        "has_real_source_context": bool(pair["has_real_source_context"]),
+                    }
+                    for pair in leftover_by_key.get((row["grouping_kind"], row["grouping_key"]), [])
                 ],
             }
         )

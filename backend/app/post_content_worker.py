@@ -37,6 +37,7 @@ _logger = logging.getLogger(__name__)
 _RECOVERY_INTERVAL_SECONDS = 30.0
 _INCOMPLETE_FAILURE_CODE = "post_content_ingestion_incomplete"
 _ATTEMPT_LIMIT_FAILURE_CODE = "post_content_ingestion_attempt_limit"
+_SOURCE_BODY_MISSING_FAILURE_CODE = "post_content_source_body_missing"
 _UNEXPECTED_FAILURE_DETAIL = "post-content provider operation failed; retry the ingestion job"
 
 
@@ -232,10 +233,22 @@ async def process_post_content_job(
     if row is None:
         return
     attempt_count = int(row["job_attempt_count"]) + 1
+    raw_body = row["post_body"]
+    if not isinstance(raw_body, str) or not raw_body.strip():
+        _logger.warning(
+            "post content ingestion skipped: source post has no body",
+            extra={"post_id": post_id},
+        )
+        await _finish_job(
+            pool,
+            post_id,
+            FAILED,
+            failure_code=_SOURCE_BODY_MISSING_FAILURE_CODE,
+            detail_text="source post has no body",
+            expected_attempt_count=attempt_count,
+        )
+        return
     try:
-        raw_body = row["post_body"]
-        if not isinstance(raw_body, str) or not raw_body.strip():
-            raise ValueError("source post has no body")
         metadata = build_post_llm_metadata(post_id, row)
         embedding_client = embedding_factory()
         structure_client = structure_factory()
