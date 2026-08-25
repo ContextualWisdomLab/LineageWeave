@@ -238,6 +238,7 @@ async def test_dashboard_uses_abac_event_clock_and_persisted_evidence() -> None:
         "coalesce(nullif(btrim(post.source_project_name), ''), project.primary_project_name)"
         in case_query
     )
+    assert "observed_at nulls last" in conn.queries[4][0]
     for evidence_query in (
         conn.queries[0][0],
         conn.queries[1][0],

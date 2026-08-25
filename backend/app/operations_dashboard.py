@@ -299,7 +299,8 @@ async def fetch_operations_dashboard(
           join source_post post on post.post_id = missing.post_id
          where {visible}
            and ($5::boolean is false or missing.case_kind_code = 'external_information')
-         order by post_id, case_kind_code, milestone_type_code
+         order by post_id, case_kind_code, observed_at nulls last,
+                  milestone_type_code
         """,
         *args,
     )

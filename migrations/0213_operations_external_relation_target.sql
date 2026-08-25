@@ -9,7 +9,7 @@ alter table operations_case_fact
          and (relation_target_kind_code is null or relation_target_kind_code in
               ('order', 'project', 'sales', 'business_management')))
         or (fact_type_code <> 'external_relation' and relation_target_kind_code is null)
-    );
+    ) not valid;
 
 comment on column operations_case_fact.relation_target_kind_code is
     'Semantic target type supplied with cited external_relation evidence; null legacy rows are not projected as typed relations.';

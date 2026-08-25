@@ -58,7 +58,7 @@ Figma and screenshot review do not apply: this is a non-UI HTTP load harness.
 
 ## Dashboard candidate verification record
 
-On 2026-08-26, the synthetic 27-post Compose dataset at candidate head
+On 2026-08-26 KST (2026-08-25 UTC), the synthetic 27-post Compose dataset at candidate head
 `b045a6e5` ran with 4 VUs for 30 seconds on alternate local ports. It completed
 1,240 iterations and 4,962 authenticated HTTP requests with zero failed
 requests and 4,960/4,960 successful checks across posts, Event Lineage,

@@ -131,7 +131,10 @@ provenance.
 17. Claim investigation pairs `claim_received` with `cause_confirmed`.
    Rebid/handover independently pairs `rebid_response_requested` with
    `rebid_decision_recorded`, and `handover_started` with
-   `handover_accepted`. Contextual-orchestrator identifies the supported
+   `handover_accepted`. The database rejects a claim milestone on a
+   rebid/handover case, a rebid/handover milestone on a claim case, and every
+   milestone on the other case kinds; the same invariant applies to observed
+   and explicitly missing endpoints. Contextual-orchestrator identifies the supported
    milestone semantics; LineageWeave assigns the instant only from that cited
    `source_post`: `event_occurred_at` when present, otherwise the explicitly
    labeled `created_at` fallback from ADR 0202. The model never emits a date.

@@ -1,6 +1,6 @@
 # Product & Technical Gap Baseline
 
-> Dashboard delivery snapshot: 2026-08-26 (latest exact-head fetch). Protected `main` was
+> Dashboard delivery snapshot: 2026-08-26 KST (2026-08-25 UTC; latest exact-head fetch). Protected `main` was
 > `04e6b610655d0db91d5f7ba9486bdda1440e0b19`. Dashboard candidate head
 > `b045a6e5` has local synthetic runtime evidence; this is not
 > protected-main release evidence.

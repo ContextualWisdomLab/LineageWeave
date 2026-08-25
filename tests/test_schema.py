@@ -112,8 +112,16 @@ _OPERATIONS_CASE_MILESTONE_MIGRATION = (
     / "migrations"
     / "0215_operations_case_milestone.sql"
 )
+_OPERATIONS_CASE_CONSTRAINT_VALIDATION_MIGRATION = (
+    Path(__file__).resolve().parents[1]
+    / "migrations"
+    / "0216_validate_operations_case_constraints.sql"
+)
 _ANALYSIS_RUN_REGISTRY_MIGRATION = (
     Path(__file__).resolve().parents[1] / "migrations" / "0018_analysis_run_registry.sql"
+)
+_PROV_O_MIGRATION = (
+    Path(__file__).resolve().parents[1] / "migrations" / "0017_prov_o_standard_relations.sql"
 )
 _TOPIC_CONTEXT_INFLUENCE_MIGRATION = (
     Path(__file__).resolve().parents[1]
@@ -160,6 +168,7 @@ def schema_db():
         try:
             with conn.cursor() as cur:
                 cur.execute(_MIGRATION_PATH.read_text())
+                cur.execute(_PROV_O_MIGRATION.read_text())
                 cur.execute(_ANALYSIS_RUN_REGISTRY_MIGRATION.read_text())
                 cur.execute(_TOPIC_LINEAGE_KIND_MIGRATION.read_text())
                 cur.execute(_PROJECT_MENTION_MIGRATION.read_text())
@@ -180,6 +189,8 @@ def schema_db():
                 cur.execute(_OPERATIONS_CASE_MISSING_MIGRATION.read_text())
                 cur.execute(_TOPIC_CONTEXT_INFLUENCE_MIGRATION.read_text())
                 cur.execute(_OPERATIONS_EXTERNAL_RELATION_MIGRATION.read_text())
+                cur.execute(_OPERATIONS_CASE_MILESTONE_MIGRATION.read_text())
+                cur.execute(_OPERATIONS_CASE_CONSTRAINT_VALIDATION_MIGRATION.read_text())
             conn.commit()
             yield conn
         finally:
@@ -238,16 +249,155 @@ def test_migration_applies_cleanly(schema_db) -> None:
         "operations_case_classification",
         "operations_case_fact",
         "operations_case_missing_fact",
+        "operations_case_milestone",
+        "operations_case_missing_milestone",
         "topic_model_run",
         "topic_definition",
         "topic_activity_interval",
         "topic_lineage_relation",
+        "topic_post_coordinate",
         "topic_context_definition",
         "topic_context_membership",
         "topic_influence_run",
         "topic_post_context_influence",
     }
     assert expected <= tables
+
+
+def test_operations_case_constraints_are_validated(schema_db) -> None:
+    """Deferred dashboard checks finish validated after the follow-up migration."""
+    names = {
+        "operations_case_fact_relation_target_kind_check",
+        "operations_case_milestone_kind_type_check",
+        "operations_case_missing_milestone_kind_type_check",
+    }
+    with schema_db.cursor() as cur:
+        cur.execute(
+            "select conname, convalidated from pg_constraint where conname = any(%s)",
+            (list(names),),
+        )
+        constraints = dict(cur.fetchall())
+    assert constraints == {name: True for name in names}
+
+
+def test_operations_case_milestones_reject_cross_kind_types(schema_db) -> None:
+    """Observed and missing endpoints accept only the activity set for their case."""
+    post_id = uuid.uuid4()
+    account_id = uuid.uuid4()
+    with schema_db.cursor() as cur:
+        cur.execute(
+            """
+            insert into common_lookup_value
+                (lookup_category, lookup_code, lookup_label)
+            values ('corporate_entity_level', 'synthetic_level', 'Synthetic level'),
+                   ('voc_type', 'synthetic_voc', 'Synthetic VOC'),
+                   ('post_visibility', 'synthetic_visibility', 'Synthetic visibility')
+            """,
+        )
+        cur.execute(
+            "insert into corporate_entity "
+            "(corporate_entity_code, entity_name, entity_level_code) "
+            "values ('SYNTHETIC-CASE', 'Synthetic Case Entity', 'synthetic_level') "
+            "returning corporate_entity_id"
+        )
+        entity_id = cur.fetchone()[0]
+        cur.execute(
+            "insert into user_account "
+            "(user_account_id, external_subject_id, display_name, email_address) "
+            "values (%s, %s, 'Synthetic Author', %s)",
+            (str(account_id), f"synthetic-{account_id}", f"synthetic-{account_id}@example.invalid"),
+        )
+        cur.execute(
+            """
+            insert into source_post
+                (post_id, author_account_id, corporate_entity_id, post_title,
+                 post_body, voc_type_code, visibility_code, created_at)
+            values (%s, %s, %s, 'Synthetic claim', 'Synthetic claim evidence',
+                    'synthetic_voc', 'synthetic_visibility', '2026-08-01T00:00:00Z')
+            """,
+            (str(post_id), str(account_id), str(entity_id)),
+        )
+        cur.execute(
+            """
+            insert into operations_case_analysis
+                (post_id, source_body_sha256, orchestrator_session_id)
+            values (%s, %s, 'synthetic-session')
+            """,
+            (str(post_id), "a" * 64),
+        )
+        cur.execute(
+            """
+            insert into operations_case_classification
+                (post_id, case_kind_code, summary_text, evidence_text,
+                 evidence_post_id, evidence_input_sha256)
+            values (%s, 'claim_investigation', 'Synthetic summary',
+                    'Synthetic claim evidence', %s, %s)
+            """,
+            (str(post_id), str(post_id), "a" * 64),
+        )
+        invalid_statements = (
+            """
+            insert into operations_case_milestone
+                (post_id, case_kind_code, milestone_type_code, evidence_text,
+                 evidence_post_id, evidence_input_sha256, observed_at, time_axis_code)
+            values (%s, 'claim_investigation', 'handover_started',
+                    'Synthetic claim evidence', %s, %s,
+                    '2026-08-01T00:00:00Z', 'created_at')
+            """,
+            """
+            insert into operations_case_missing_milestone
+                (post_id, case_kind_code, milestone_type_code)
+            values (%s, 'claim_investigation', 'handover_started')
+            """,
+        )
+        parameters = (
+            (str(post_id), str(post_id), "a" * 64),
+            (str(post_id),),
+        )
+        for index, (statement, values) in enumerate(zip(invalid_statements, parameters)):
+            savepoint = f"invalid_milestone_kind_{index}"
+            cur.execute(f"savepoint {savepoint}")
+            with pytest.raises(psycopg2.errors.CheckViolation):
+                cur.execute(statement, values)
+            cur.execute(f"rollback to savepoint {savepoint}")
+    schema_db.rollback()
+
+
+def test_operations_case_constraint_migrations_replay(schema_db) -> None:
+    """Constraint installation and validation remain safe under startup replay."""
+    with schema_db.cursor() as cur:
+        cur.execute(_OPERATIONS_EXTERNAL_RELATION_MIGRATION.read_text())
+        cur.execute(_OPERATIONS_CASE_MILESTONE_MIGRATION.read_text())
+        cur.execute(
+            """
+            select conname, convalidated
+              from pg_constraint
+             where conname in (
+                 'operations_case_fact_relation_target_kind_check',
+                 'operations_case_milestone_kind_type_check',
+                 'operations_case_missing_milestone_kind_type_check'
+             )
+            """
+        )
+        assert dict(cur.fetchall()) == {
+            "operations_case_fact_relation_target_kind_check": False,
+            "operations_case_milestone_kind_type_check": False,
+            "operations_case_missing_milestone_kind_type_check": False,
+        }
+        cur.execute(_OPERATIONS_CASE_CONSTRAINT_VALIDATION_MIGRATION.read_text())
+        cur.execute(
+            """
+            select bool_and(convalidated)
+              from pg_constraint
+             where conname in (
+                 'operations_case_fact_relation_target_kind_check',
+                 'operations_case_milestone_kind_type_check',
+                 'operations_case_missing_milestone_kind_type_check'
+             )
+            """
+        )
+        assert cur.fetchone()[0] is True
+    schema_db.commit()
 
 
 def test_topic_influence_schema_binds_exact_producer_provenance(schema_db) -> None:
@@ -281,6 +431,48 @@ def test_topic_influence_schema_binds_exact_producer_provenance(schema_db) -> No
         )
         foreign_keys = {row[0] for row in cur.fetchall()}
     assert len(foreign_keys) == 3
+
+    with schema_db.cursor() as cur:
+        cur.execute(
+            """
+            select column_name, is_nullable
+              from information_schema.columns
+             where table_name in ('topic_lineage_relation', 'topic_context_membership')
+               and column_name = 'provenance_assertion_id'
+            """
+        )
+        assert cur.fetchall() == [
+            ("provenance_assertion_id", "NO"),
+            ("provenance_assertion_id", "NO"),
+        ]
+        cur.execute(
+            """
+            select count(*)
+              from pg_constraint
+             where conrelid = 'topic_post_coordinate'::regclass
+               and contype = 'f'
+            """
+        )
+        assert cur.fetchone() == (3,)
+        cur.execute(
+            """
+            select tgname
+              from pg_trigger
+             where tgname in (
+                 'topic_post_coordinate_draw_check',
+                 'topic_lineage_relation_provenance_check',
+                 'topic_context_membership_provenance_check',
+                 'topic_evidence_provenance_relation_protect'
+             )
+               and not tgisinternal
+            """
+        )
+        assert {row[0] for row in cur.fetchall()} == {
+            "topic_post_coordinate_draw_check",
+            "topic_lineage_relation_provenance_check",
+            "topic_context_membership_provenance_check",
+            "topic_evidence_provenance_relation_protect",
+        }
 
     account_id = uuid.uuid4()
     snapshot_id = uuid.uuid4()
@@ -322,10 +514,12 @@ def test_topic_influence_schema_binds_exact_producer_provenance(schema_db) -> No
                      tepp_schema_version, tepp_model_contract_version,
                      tepp_artifact_sha256, reported_source_snapshot_sha256,
                      reported_knowledge_cutoff, posterior_draw_set_id,
-                     posterior_draw_count, topic_count, inference_status_code)
+                     posterior_draw_count, topic_count, coordinate_kind_code,
+                     inference_status_code)
                 values (%s, 'tepp-mismatch', 'snapshot-mismatch',
                         'tepp.topic_context_posterior.v1', 'trsl-tm-v1', %s, %s,
                         '2026-08-01T00:00:00Z', 'draws-1', 8, 2,
+                        'logistic_normal_coordinate',
                         'posterior_topic_coordinates_not_importance')
                 """,
                 (str(run_id), "d" * 64, "e" * 64),
@@ -338,10 +532,12 @@ def test_topic_influence_schema_binds_exact_producer_provenance(schema_db) -> No
                  tepp_schema_version, tepp_model_contract_version,
                  tepp_artifact_sha256, reported_source_snapshot_sha256,
                  reported_knowledge_cutoff, posterior_draw_set_id,
-                 posterior_draw_count, topic_count, inference_status_code)
+                 posterior_draw_count, topic_count, coordinate_kind_code,
+                 inference_status_code)
             values (%s, 'tepp-accepted', 'snapshot-accepted',
                     'tepp.topic_context_posterior.v1', 'trsl-tm-v1', %s, %s,
                     '2026-08-01T00:00:00Z', 'draws-1', 8, 2,
+                    'logistic_normal_coordinate',
                     'posterior_topic_coordinates_not_importance')
             returning topic_model_run_id
             """,

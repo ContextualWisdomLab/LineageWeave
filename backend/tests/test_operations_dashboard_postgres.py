@@ -24,10 +24,19 @@ async def test_operations_dashboard_sql_binds_against_postgres() -> None:
     except (OSError, asyncpg.PostgresError):
         pytest.skip("requires the migrated local Compose database")
     try:
-        if await connection.fetchval(
-            "select to_regclass('public.operations_case_classification')"
-        ) is None:
-            pytest.skip("requires migration 0209 on the local Compose database")
+        required_tables = (
+            "operations_case_classification",
+            "operations_case_missing_fact",
+            "operations_case_milestone",
+            "operations_case_missing_milestone",
+            "topic_context_membership",
+            "topic_post_context_influence",
+        )
+        for table_name in required_tables:
+            if await connection.fetchval(
+                "select to_regclass($1)", f"public.{table_name}"
+            ) is None:
+                pytest.skip(f"requires the migration that creates {table_name}")
         result = await fetch_operations_dashboard(connection, [])
     finally:
         await connection.close()

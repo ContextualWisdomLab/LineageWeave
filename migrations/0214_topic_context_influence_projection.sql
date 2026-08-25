@@ -14,6 +14,9 @@ create table if not exists topic_model_run (
     posterior_draw_set_id text not null check (length(btrim(posterior_draw_set_id)) between 1 and 256),
     posterior_draw_count integer not null check (posterior_draw_count > 0),
     topic_count integer not null check (topic_count >= 2),
+    coordinate_kind_code text not null check (
+        coordinate_kind_code in ('logistic_normal_coordinate', 'plausible_value')
+    ),
     inference_status_code text not null check (inference_status_code = 'posterior_topic_coordinates_not_importance'),
     accepted_at timestamptz not null default now()
 );
@@ -22,6 +25,20 @@ create table if not exists topic_definition (
     topic_model_run_id uuid not null references topic_model_run (topic_model_run_id) on delete cascade,
     topic_index integer not null check (topic_index >= 0),
     primary key (topic_model_run_id, topic_index)
+);
+
+create table if not exists topic_post_coordinate (
+    topic_model_run_id uuid not null references topic_model_run (topic_model_run_id) on delete cascade,
+    source_post_id uuid not null references source_post (post_id) on delete restrict,
+    topic_index integer not null,
+    posterior_draw_ordinal integer not null check (posterior_draw_ordinal >= 0),
+    coordinate_value double precision not null check (
+        coordinate_value > '-Infinity'::double precision
+        and coordinate_value < 'Infinity'::double precision
+    ),
+    primary key (topic_model_run_id, source_post_id, topic_index, posterior_draw_ordinal),
+    foreign key (topic_model_run_id, topic_index)
+        references topic_definition (topic_model_run_id, topic_index) on delete cascade
 );
 
 create table if not exists topic_activity_interval (
@@ -44,6 +61,7 @@ create table if not exists topic_lineage_relation (
     target_topic_index integer,
     event_time timestamptz not null,
     evidence_sha256 text not null check (evidence_sha256 ~ '^[0-9a-f]{64}$'),
+    provenance_assertion_id uuid not null references provenance_assertion (assertion_id),
     primary key (topic_model_run_id, relation_ordinal),
     foreign key (topic_model_run_id, source_topic_index)
         references topic_definition (topic_model_run_id, topic_index) on delete cascade,
@@ -75,6 +93,7 @@ create table if not exists topic_context_membership (
     valid_from timestamptz not null,
     valid_to timestamptz not null,
     evidence_sha256 text not null check (evidence_sha256 ~ '^[0-9a-f]{64}$'),
+    provenance_assertion_id uuid not null references provenance_assertion (assertion_id),
     primary key (topic_model_run_id, topic_context_membership_id),
     unique (topic_model_run_id, source_post_id, dimension_code, context_id, valid_from),
     foreign key (topic_model_run_id, dimension_code, context_id)
@@ -135,12 +154,111 @@ create table if not exists topic_post_context_influence (
         references topic_definition (topic_model_run_id, topic_index) on delete cascade
 );
 
+-- Preserve sorted replay when an earlier 0214 projection already exists.
+alter table topic_model_run
+    add column if not exists coordinate_kind_code text
+    check (coordinate_kind_code in ('logistic_normal_coordinate', 'plausible_value'));
+alter table topic_model_run alter column coordinate_kind_code set not null;
+alter table topic_lineage_relation
+    add column if not exists provenance_assertion_id uuid
+    references provenance_assertion (assertion_id);
+alter table topic_lineage_relation alter column provenance_assertion_id set not null;
+alter table topic_context_membership
+    add column if not exists provenance_assertion_id uuid
+    references provenance_assertion (assertion_id);
+alter table topic_context_membership alter column provenance_assertion_id set not null;
+
 create index if not exists topic_activity_interval_time_idx
     on topic_activity_interval (valid_from, valid_to, topic_model_run_id, topic_index);
 create index if not exists topic_context_membership_post_time_idx
     on topic_context_membership (source_post_id, valid_from, valid_to, topic_model_run_id);
 create index if not exists topic_post_context_influence_read_idx
     on topic_post_context_influence (topic_model_run_id, topic_index, influence_value desc);
+
+create index if not exists topic_lineage_relation_provenance_idx
+    on topic_lineage_relation (provenance_assertion_id);
+create index if not exists topic_context_membership_provenance_idx
+    on topic_context_membership (provenance_assertion_id);
+
+create or replace function validate_topic_post_coordinate_draw()
+returns trigger
+language plpgsql
+as $$
+declare
+    canonical_draw_count integer;
+begin
+    select posterior_draw_count
+      into canonical_draw_count
+      from topic_model_run
+     where topic_model_run_id = new.topic_model_run_id;
+
+    if new.posterior_draw_ordinal >= canonical_draw_count then
+        raise exception 'topic_post_coordinate_draw_out_of_range';
+    end if;
+    return new;
+end
+$$;
+
+drop trigger if exists topic_post_coordinate_draw_check on topic_post_coordinate;
+create trigger topic_post_coordinate_draw_check
+before insert or update on topic_post_coordinate
+for each row execute function validate_topic_post_coordinate_draw();
+
+create or replace function validate_topic_evidence_provenance()
+returns trigger
+language plpgsql
+as $$
+declare
+    canonical_relation_code text;
+begin
+    select relation_code
+      into canonical_relation_code
+      from provenance_assertion
+     where assertion_id = new.provenance_assertion_id;
+
+    if canonical_relation_code is distinct from 'prov_was_derived_from' then
+        raise exception 'topic_evidence_requires_prov_was_derived_from';
+    end if;
+    return new;
+end
+$$;
+
+drop trigger if exists topic_lineage_relation_provenance_check on topic_lineage_relation;
+create trigger topic_lineage_relation_provenance_check
+before insert or update on topic_lineage_relation
+for each row execute function validate_topic_evidence_provenance();
+
+drop trigger if exists topic_context_membership_provenance_check on topic_context_membership;
+create trigger topic_context_membership_provenance_check
+before insert or update on topic_context_membership
+for each row execute function validate_topic_evidence_provenance();
+
+create or replace function protect_topic_evidence_provenance_relation()
+returns trigger
+language plpgsql
+as $$
+begin
+    if new.relation_code is distinct from old.relation_code
+       and (
+           exists (
+               select 1 from topic_lineage_relation
+                where provenance_assertion_id = old.assertion_id
+           )
+           or exists (
+               select 1 from topic_context_membership
+                where provenance_assertion_id = old.assertion_id
+           )
+       ) then
+        raise exception 'topic_evidence_provenance_relation_is_immutable';
+    end if;
+    return new;
+end
+$$;
+
+drop trigger if exists topic_evidence_provenance_relation_protect on provenance_assertion;
+create trigger topic_evidence_provenance_relation_protect
+before update of relation_code on provenance_assertion
+for each row execute function protect_topic_evidence_provenance_relation();
 
 create or replace function validate_topic_model_run_binding()
 returns trigger

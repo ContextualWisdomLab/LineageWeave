@@ -87,7 +87,15 @@ The accepted TEPP result schema must include:
 
 LineageWeave verifies the exact snapshot and cutoff before persisting a 3NF
 projection. It does not inspect TEPP's private tables or reinterpret posterior
-coordinates.
+coordinates. `topic_model_run.coordinate_kind_code` fixes one representation
+for the run; `topic_post_coordinate` stores one finite value per run, post,
+topic, and posterior-draw ordinal, and the ordinal must belong to the run's
+declared draw set. Topic-lineage and context-membership evidence
+each references a normalized `provenance_assertion` whose canonical relation is
+`prov:wasDerivedFrom`; its SHA-256 remains an integrity field rather than a
+substitute for provenance. Import materializes that assertion through
+`lineageweave.prov_o.ProvGraph` so PROV-O hierarchy and qualified-relation
+implications remain the shared standard projection.
 
 TEPP protected main currently exposes `tepp.trsl_topic_lineage.v1`, a
 digest-bound CPU-`f64` artifact containing fitted forward sequence edges and

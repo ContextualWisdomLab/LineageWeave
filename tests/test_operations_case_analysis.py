@@ -222,6 +222,28 @@ def test_accepts_additional_grounded_fact_beyond_required_questions() -> None:
     assert parse_operations_case_response(json.dumps(payload), body) is None
 
 
+def test_rejects_duplicate_required_facts() -> None:
+    """Each required question has exactly one supported or missing answer."""
+    body = "Two notices linked the same external opportunity."
+    fact = {
+        "fact_type_code": "external_relation",
+        "value_text": "Synthetic opportunity",
+        "evidence_text": body,
+        "relation_target_kind_code": "sales",
+    }
+    payload = [{
+        "case_kind_code": "external_information",
+        "summary_text": "External opportunity",
+        "evidence_text": body,
+        "facts": [fact, fact],
+        "missing_fact_type_codes": [],
+        "milestones": [],
+        "missing_milestone_type_codes": [],
+    }]
+
+    assert parse_operations_case_response(json.dumps(payload), body) is None
+
+
 def test_accepts_grounded_nonrequired_fact_after_required_questions_are_complete() -> None:
     """A cited optional fact must not invalidate complete required answers."""
     body = "A public notice was published and assigned to the sales team."
