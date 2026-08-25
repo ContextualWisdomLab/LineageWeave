@@ -387,8 +387,9 @@ this file per §3.5 of the prior snapshot).
 
 ### 5.1 Closed PR #490 decomposition (issue #611)
 
-Protected `main` at `04e6b610` and the three-PR live queue were rechecked for
-this decomposition; protected `main` contains none of PR #490. That PR remains
+Protected `main` at `04e6b610` and the three open PRs present during the initial
+decomposition were rechecked; the later audit snapshot above includes #631
+itself as the fourth open PR. Protected `main` contains none of PR #490. That PR remains
 closed, unmerged branch evidence; its ADR 0133–0137 files are not normative and
 its 321-file tree must not be replayed. Current-main code and schema searches
 give this delivery matrix:
