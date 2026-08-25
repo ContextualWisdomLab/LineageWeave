@@ -142,7 +142,7 @@ def test_visible_neighbor_evidence_keeps_final_depth_endpoint_authorized(monkeyp
     async def fake_exists(*_args: object) -> bool:
         return True
 
-    async def fake_focus_posts(*_args: object) -> list[str]:
+    async def fake_focus_posts(*_args: object, **_kwargs: object) -> list[str]:
         return [POST_ID]
 
     async def fake_load_facts(
@@ -162,6 +162,7 @@ def test_visible_neighbor_evidence_keeps_final_depth_endpoint_authorized(monkeyp
         _conn: object,
         keys: set[tuple[str, str]],
         _can_see_post: object,
+        **_kwargs: object,
     ) -> dict[tuple[str, str], list[str]]:
         return {
             key: [THIRD_POST_ID]
@@ -178,7 +179,9 @@ def test_visible_neighbor_evidence_keeps_final_depth_endpoint_authorized(monkeyp
     async def fake_no_skos(*_args: object) -> list[object]:
         return []
 
-    async def fake_labels(*_args: object) -> dict[tuple[str, str], str]:
+    async def fake_labels(
+        *_args: object, **_kwargs: object
+    ) -> dict[tuple[str, str], str]:
         return {
             (NODE_POST, POST_ID): "Focus",
             (NODE_PERSON, PERSON_ID): "Person",
@@ -242,7 +245,7 @@ def test_skos_parent_requires_own_visible_post_evidence(monkeypatch: Any) -> Non
     async def fake_exists(*_args: object) -> bool:
         return True
 
-    async def fake_focus_posts(*_args: object) -> list[str]:
+    async def fake_focus_posts(*_args: object, **_kwargs: object) -> list[str]:
         return [POST_ID]
 
     async def fake_load_facts(*_args: object, **_kwargs: object) -> ingestion._LoadedFactWindow:
@@ -252,6 +255,7 @@ def test_skos_parent_requires_own_visible_post_evidence(monkeypatch: Any) -> Non
         _conn: object,
         keys: set[tuple[str, str]],
         _can_see_post: object,
+        **_kwargs: object,
     ) -> dict[tuple[str, str], list[str]]:
         parent_queries.append(set(keys))
         return {
@@ -268,7 +272,9 @@ def test_skos_parent_requires_own_visible_post_evidence(monkeypatch: Any) -> Non
             )
         ]
 
-    async def fake_labels(*_args: object) -> dict[tuple[str, str], str]:
+    async def fake_labels(
+        *_args: object, **_kwargs: object
+    ) -> dict[tuple[str, str], str]:
         return {
             (NODE_POST, POST_ID): "Focus",
             (NODE_PERSON, PERSON_ID): "Person",
