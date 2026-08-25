@@ -56,7 +56,7 @@ backend = [
   # yet; pinned to a specific commit, same pattern as rankweave. Ships a
   # PyO3/maturin Rust core with no fallback wheel, so building this from
   # source needs a Rust toolchain -- see backend/Dockerfile.
-  "fast-mlsirm @ git+https://github.com/ContextualWisdomLab/fast-mlsirm.git@d025b7d237d8db7ca97a5611606c6285d5870895",
+  "fast-mlsirm @ git+https://github.com/ContextualWisdomLab/fast-mlsirm.git@256470c7d1df4910a018841499a74d88b751a774",
 ]
 
 [tool.setuptools.packages.find]
