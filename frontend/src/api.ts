@@ -123,7 +123,7 @@ export interface OperationsDashboardResponse {
 }
 
 export interface TopicContextDashboard {
-  status_code: "accepted" | "unavailable";
+  status_code: "accepted" | "unavailable" | "not_applicable";
   reason_code: string | null;
   next_action: string;
   required_contracts: Array<{

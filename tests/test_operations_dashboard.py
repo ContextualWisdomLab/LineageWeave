@@ -16,6 +16,7 @@ class _Connection:
     async def fetchrow(self, query: str, *args: object) -> dict[str, int]:
         self.queries.append((query, args))
         if "tepp_posterior_persisted" in query:
+            assert len(args) == 4
             return {
                 "tepp_posterior_persisted": False,
                 "fast_mlsirm_influence_persisted": False,
@@ -73,6 +74,7 @@ class _Connection:
                 },
             ]
         if "from topic_post_context_influence influence" in query:
+            assert len(args) == 4
             return []
         return [
             {
@@ -223,12 +225,13 @@ async def test_dashboard_uses_abac_event_clock_and_persisted_evidence() -> None:
         assert "corporate_entity_id::text = any($1::text[])" in query
         assert "process_unit_id::text = any($2::text[])" in query
         assert "coalesce(post.event_occurred_at, post.created_at)" in query
-        assert args[1:] == (
+        assert args[:4] == (
+            ["00000000-0000-0000-0000-000000000009"],
             ["00000000-0000-0000-0000-000000000008"],
             date(2026, 8, 1),
             date(2026, 8, 31),
-            False,
         )
+        assert args[4:] == ((False,) if "$5" in query else ())
     case_query = conn.queries[1][0]
     assert "order by primary_mention.confidence desc" in case_query
     assert (

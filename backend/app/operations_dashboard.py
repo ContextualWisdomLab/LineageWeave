@@ -314,7 +314,7 @@ async def fetch_operations_dashboard(
             "topics": [],
         }
         if external_only
-        else await _fetch_topic_context_dashboard(conn, visible, args)
+        else await _fetch_topic_context_dashboard(conn, visible, args[:4])
     )
     facts: dict[tuple[str, str], list[dict[str, str]]] = {}
     for row in fact_rows:

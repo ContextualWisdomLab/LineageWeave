@@ -73,6 +73,20 @@ def test_rejects_uncited_model_claim() -> None:
     assert parse_operations_case_response(json.dumps(payload), "source body") is None
 
 
+def test_rejects_unhashable_missing_fact_code() -> None:
+    """Malformed provider arrays are rejected without escaping the parser."""
+    payload = [{
+        "case_kind_code": "external_information",
+        "summary_text": "Market note",
+        "evidence_text": "source body",
+        "facts": [],
+        "missing_fact_type_codes": [{}],
+        "milestones": [],
+        "missing_milestone_type_codes": [],
+    }]
+    assert parse_operations_case_response(json.dumps(payload), "source body") is None
+
+
 def test_accepts_supported_no_case_result() -> None:
     """An empty semantic result remains distinct from malformed output."""
     assert parse_operations_case_response("[]", "ordinary status") == ()

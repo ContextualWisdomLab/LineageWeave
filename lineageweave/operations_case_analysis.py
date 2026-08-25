@@ -263,11 +263,15 @@ def parse_operations_case_response(
                 )
             )
         supported_types = {fact.fact_type_code for fact in parsed_facts}
+        if any(
+            not isinstance(code, str) or code not in FACT_TYPES
+            for code in missing_fact_types
+        ):
+            return None
         missing_types = set(missing_fact_types)
         required_types = REQUIRED_FACT_TYPES[item["case_kind_code"]]
         if (
-            any(not isinstance(code, str) or code not in FACT_TYPES for code in missing_fact_types)
-            or len(missing_types) != len(missing_fact_types)
+            len(missing_types) != len(missing_fact_types)
             or not missing_types.issubset(required_types)
             or supported_types.intersection(missing_types)
             or not required_types.issubset(supported_types.union(missing_types))

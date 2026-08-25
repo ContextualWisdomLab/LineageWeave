@@ -7,6 +7,8 @@ from contextlib import asynccontextmanager
 from datetime import UTC, datetime
 from types import SimpleNamespace
 
+import pytest
+
 from backend.app import post_content_worker
 from backend.app.post_content_queue import (
     FAILED,
@@ -141,6 +143,31 @@ def test_operations_sources_bind_milestones_to_source_owned_clocks(monkeypatch) 
 
     assert sources[0].observed_at == observed_at
     assert sources[0].time_axis_code == "event_occurred_at"
+
+
+def test_operations_sources_retry_when_a_source_clock_disappears(monkeypatch) -> None:
+    """A source deleted during assembly fails explicitly instead of inventing time."""
+
+    async def gather(*_args):
+        return [SimpleNamespace(
+            post_id="00000000-0000-0000-0000-000000000001",
+            post_title="Synthetic claim",
+            post_body="A claim was received.",
+            evidence_facts=(),
+        )]
+
+    class MissingClockConnection(_Connection):
+        async def fetch(self, *_args: object):
+            return []
+
+    monkeypatch.setattr(post_content_worker, "gather_chat_sources", gather)
+    with pytest.raises(RuntimeError, match="source clock unavailable"):
+        asyncio.run(post_content_worker._operations_evidence_sources(
+            _Pool(MissingClockConnection()),
+            "00000000-0000-0000-0000-000000000001",
+            {"corporate_entity_id": "corp", "process_unit_id": "pu"},
+            SimpleNamespace(available=False),
+        ))
 
 
 def test_terminal_failed_job_ignores_a_stale_duplicate_wakeup() -> None:

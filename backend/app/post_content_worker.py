@@ -86,6 +86,8 @@ async def _operations_evidence_sources(
                 [source.post_id for source in sources],
             )
         }
+    if any(source.post_id not in source_times for source in sources):
+        raise RuntimeError("authorized evidence source clock unavailable")
     return tuple(
         OperationsEvidenceSource(
             source.post_id,
