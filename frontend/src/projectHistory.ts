@@ -82,6 +82,24 @@ function normalizeProjectIdentity(value: string): string {
   return value.normalize("NFKC").trim().toLocaleLowerCase("en-US");
 }
 
+/** Return one display key per exact normalized project identity. */
+export function projectHistoryKeys(
+  evidence: ProjectEvidence[] | undefined,
+  sourceProjectCode: string | null | undefined,
+  sourceProjectName: string | null | undefined,
+): string[] {
+  const candidates = evidence?.length
+    ? evidence.map((project) => project.project_key)
+    : [sourceProjectCode ?? sourceProjectName ?? ""];
+  const seen = new Set<string>();
+  return candidates.filter((candidate) => {
+    const normalized = normalizeProjectIdentity(candidate);
+    if (!normalized || seen.has(normalized)) return false;
+    seen.add(normalized);
+    return true;
+  });
+}
+
 function evidenceOrder(evidence: ProjectEvidence): number {
   if (evidence.extraction_method === "source_field_hint") return 0;
   if (evidence.resolution_status === "hint_only") return 1;

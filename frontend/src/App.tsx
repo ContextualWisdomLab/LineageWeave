@@ -90,6 +90,7 @@ import {
 } from "./api";
 import { CitationChip } from "./components/CitationChip";
 import { ProjectHistoryTimeline } from "./components/ProjectHistoryTimeline";
+import { projectHistoryKeys } from "./projectHistory";
 import type { ProjectHistoryProjection } from "./projectHistory";
 import { OrganizationAliasChip } from "./components/OrganizationAliasChip";
 import { organizationAliasCaption } from "./components/organizationAliasCaption";
@@ -2345,12 +2346,11 @@ function PostDetailPopup({
               <section className="popup-section" aria-label={t("Project history")}>
                 <h3>{t("Project history")}</h3>
                 <div className="post-actions">
-                  {(post.project_evidence?.map((project) => project.project_key) ?? [
-                    post.source_project_code ?? post.source_project_name ?? "",
-                  ])
-                    .filter((projectKey, index, values) =>
-                      Boolean(projectKey) && values.indexOf(projectKey) === index,
-                    )
+                  {projectHistoryKeys(
+                    post.project_evidence,
+                    post.source_project_code,
+                    post.source_project_name,
+                  )
                     .map((projectKey) => (
                       <button
                         key={projectKey}
