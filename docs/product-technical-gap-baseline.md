@@ -55,9 +55,9 @@ card overflow. Narrow inspection showed two-column metrics, readable cards and
 scrollable. No identifying runtime record or screenshot is committed. The
 `EvidenceReady`, `NarrowViewport`, `AnalysisPendingAndMissingEvidence`,
 `AnalysisFailed`, and `LoadError` scenes cover the ADR 0206 state inventory.
-The exact #640 head `4677052c` adds `ExternalInformationEmpty`; its Storybook
+The current #640 candidate adds `ExternalInformationEmpty`; its Storybook
 build was inspected at 1440×1000 and 390×844 and exposes neither corpus-wide
-pending/failed counts nor a misleading corpus failure alert in that scoped
+total/pending/failed counts nor a misleading corpus failure alert in that scoped
 destination. Screenshots remain local synthetic audit evidence and are not
 committed.
 Authenticated authorized-corpus acceptance remains separate and may return
@@ -66,7 +66,7 @@ only aggregate, non-identifying evidence to this repository.
 ### Exact open-PR boundary
 
 At this snapshot there were 7 open PRs and 10 open issues. Exact observed heads
-were `#640 41527fa9`, `#639 aee02dca`, `#636 eeeb23c6`, `#632 bfeaecd9`,
+were `#640 41527fa9` (this branch's observed parent), `#639 aee02dca`, `#636 eeeb23c6`, `#632 bfeaecd9`,
 `#631 c0022c97`, `#629 0f4665b5`, and `#579 689a21b6`. All remain blocked on
 hosted gates and/or independent review. These
 observations are not merge readiness. Re-fetch exact heads,
@@ -90,10 +90,10 @@ context only.
 
 | PR | Exact observed head | Merge/check state at this snapshot |
 | ---: | --- | --- |
-| #640 | `41527fa9` | quantifies dashboard case metrics, preserves confidence-ranked project labels, and keeps scoped external evidence honest; hosted gates and independent review remain required |
+| #640 | `41527fa9` (observed parent) | this row is updated by #640 itself, so its exact head advances after the snapshot is encoded; it quantifies dashboard case metrics, preserves confidence-ranked project labels, and keeps scoped external evidence honest; hosted gates and independent review remain required |
 | #639 | `aee02dca` | repairs Running-action, Compose, and TEPP configuration contracts; hosted gates and independent review remain required |
 | #636 | `eeeb23c6` | publishes the calibrated external-lineage contract without a redundant explicit-child filter; hosted gates and independent review remain required |
-| #632 | `bfeaecd9` | preserves graph-fact source provenance and authorization with a static landing-query contract; hosted gates and independent review remain required |
+| #632 | `bfeaecd9` | preserves graph-fact source provenance and authorization with a static landing-query contract and shared RankWeave disable switch; hosted gates and independent review remain required |
 | #631 | `c0022c97` | decomposes ADR gaps and queue baseline; hosted gates and independent review remain required |
 | #629 | `0f4665b5` | releases provider work from database leases and bounds landing reads; hosted gates and independent review remain required |
 | #579 | `689a21b6` | delegates leftover interaction-map arithmetic to fast-mlsirm and persists only the consumer projection; hosted gates and independent review remain required |

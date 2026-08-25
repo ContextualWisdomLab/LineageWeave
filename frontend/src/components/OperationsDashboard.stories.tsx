@@ -47,6 +47,8 @@ export const ExternalInformationEmpty: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     await expect(canvas.getByRole("status")).toHaveTextContent("분류된 외부 정보가 없습니다");
+    await expect(canvas.queryByText("전체 글")).not.toBeInTheDocument();
+    await expect(canvas.queryByText("분류 Event")).not.toBeInTheDocument();
     await expect(canvas.queryByText("분석 대기")).not.toBeInTheDocument();
     await expect(canvas.queryByText("분석 실패")).not.toBeInTheDocument();
   },
