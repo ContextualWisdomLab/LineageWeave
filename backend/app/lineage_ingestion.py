@@ -432,10 +432,7 @@ class ChannelWeightsNotEstimated(RuntimeError):
 
 async def _load_lineage_records(conn: asyncpg.Connection) -> list[Record]:
     """Load the eligible source snapshot used by one reconstruction."""
-    # The SQL constant interpolates only the module-owned eligibility fragment.
-    rows = await conn.fetch(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
-        _RECONSTRUCTION_SOURCE_SQL
-    )
+    rows = await conn.fetch(_RECONSTRUCTION_SOURCE_SQL)
     return records_from_source_posts(rows)
 
 
@@ -532,10 +529,7 @@ def _interval_payload(row: Mapping[str, Any]) -> dict[str, Any]:
 
 async def _fetch_visible_lineage_rows(conn: asyncpg.Connection, can_see_post):
     """One ABAC-filtered ``source_post`` scan plus one edge-table read."""
-    # The SQL constant interpolates only the module-owned eligibility fragment.
-    posts = await conn.fetch(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
-        _VISIBLE_LINEAGE_SOURCE_SQL
-    )
+    posts = await conn.fetch(_VISIBLE_LINEAGE_SOURCE_SQL)
     visible_all = [row for row in posts if can_see_post(row)]
     edge_rows = await conn.fetch(
         "select parent_post_id, child_post_id, fused_score, "
@@ -551,9 +545,7 @@ async def _fetch_lineage_landing_rows(
     limit: int,
 ):
     """Fetch only the authorized, bounded landing projection in PostgreSQL."""
-    # ``_LINEAGE_LANDING_SQL`` only interpolates the module-owned eligibility
-    # fragment; all caller values below remain asyncpg bind parameters.
-    posts = await conn.fetch(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
+    posts = await conn.fetch(
         _LINEAGE_LANDING_SQL,
         list(corporate_entity_ids),
         list(process_unit_ids),
