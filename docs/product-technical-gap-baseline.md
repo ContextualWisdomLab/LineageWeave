@@ -60,10 +60,11 @@ only aggregate, non-identifying evidence to this repository.
 
 ### Exact open-PR boundary
 
-At this snapshot there were 13 open PRs and 10 open issues. Exact observed
-heads are recorded in section 1. PR #666 is stacked on #663 and therefore
-cannot be retargeted or treated as protected-main evidence until #663 first
-passes the protected gate. Every open head remains blocked on hosted gates
+At this snapshot there were 12 open PRs and 10 open issues. Exact observed
+heads are recorded in section 1. PR #666 was merged into #663's non-default
+branch before the parent reached protected `main`; its checks and merge commit
+are stack composition evidence only, while #663 now carries the combined
+candidate. Every open head remains blocked on hosted gates
 and/or independent review; normal auto-merge is enabled on each main-targeted
 PR. These
 observations are not merge readiness. Re-fetch exact heads,
@@ -80,15 +81,14 @@ lifecycle claim.
 ## 1. Exact-head and governance evidence
 
 The protected default branch was `04e6b610655d0db91d5f7ba9486bdda1440e0b19`
-when this baseline was refreshed. The live queue contained 13 open PRs and 10
+when this baseline was refreshed. The live queue contained 12 open PRs and 10
 open issues. The exact-head inventory below supersedes older per-PR snapshots
 elsewhere in this document; those older rows remain useful historical delivery
 context only.
 
 | PR | Exact observed head | Merge/check state at this snapshot |
 | ---: | --- | --- |
-| #666 | `f369ca0b` | stacked repair removes sampled region-coverage arithmetic; parent #663 must merge first, then this PR must be retargeted to `main` and re-prove every gate |
-| #663 | `2488f0f0` | largest current buyer-facing slice: evidence-backed Project nodes in the bounded ontology explorer; all review threads resolved, some checks running, independent review required, auto-merge enabled |
+| #663 | `db11629e` | combined parent candidate: evidence-backed Project nodes plus #666's non-default-branch removal of sampled region-coverage arithmetic; checks are running, independent review required, auto-merge enabled |
 | #660 | `24fda085` | restores backend runtime/integration contracts; exact-head checks passed, independent review required, auto-merge enabled |
 | #659 | `0739b9d7` | token-backed ontology node readability; exact-head checks passed, independent review required, auto-merge enabled |
 | #658 | `fe830b0a` | evidence-honest Global Ask knowledge cutoff; exact-head checks passed, independent review required, auto-merge enabled |
@@ -366,7 +366,7 @@ this file per §3.5 of the prior snapshot).
 
 | Gap | Current evidence | Acceptance requirement |
 | --- | --- | --- |
-| Protected release | 13 open PRs at snapshot. Twelve target `main` with normal auto-merge enabled; stacked #666 targets #663. None has the required independent approval, and running checks on #632/#663/#666 are not treated as blockers for safe work on other PRs | Terminal exact-head checks, no unresolved threads, two independent approvals including last-push approval, protected squash-merge SHA |
+| Protected release | 12 open PRs at snapshot, all targeting `main` with normal auto-merge enabled. None has the required independent approval, and running checks on #631/#632/#663 are not treated as blockers for safe work on other PRs. #666's merge into the non-default #663 branch is not protected-main delivery | Terminal exact-head checks, no unresolved threads, two independent approvals including last-push approval, protected squash-merge SHA |
 | CI queue release latency | Two Tests runs for already merged PRs occupied the available runner slots while 54 newer runs remained queued. Manual cancellation released the stale work, but the central close workflow was itself queued behind those runs. #634 merged into #631's non-default branch and reuses the repository's existing per-PR concurrency group so a jobless close event can cancel obsolete Tests work before runner allocation; this is not protected-main delivery | Merge #631 through its refreshed protected gate; close a synthetic PR while its Tests run is active and verify the old run becomes cancelled, the close-event jobs remain skipped, and a newer exact-head run starts without manual intervention |
 | Evidence-grounded operations workspace | Protected-main #614 delivers governed semantic Ask, live Similar VOC, disjoint pending/failed analysis metrics, full Storybook state inventory, and current desktop/mobile screenshot evidence. Authorized-corpus backfill acceptance remains unavailable | Perform authenticated authorized-corpus acceptance with aggregate evidence and retain fail-closed no-match behavior |
 | Shared frontend gate | The ADR 0109 login repair is on protected `main`; eight older branches carried the defect and received the same verified repair this loop (#521–#560) | Keep every future branch cut from post-repair bases; re-verify with frontend lint/test/build before push |
@@ -375,7 +375,7 @@ this file per §3.5 of the prior snapshot).
 | Concurrent web responsiveness | ADR 0204 releases pooled transactions during provider work, and the synthetic Compose boundary has an authenticated k6 E2E harness for Ask enqueue, concurrent reads, and job polling. PR #633's measured landing-query and event-loop work merged into open parent #629 rather than protected `main`; its aggregate observation improved 25-VU throughput but did not establish a latency SLO. The current exact #629 also persists each completed relation verification before propagating a later provider failure | Land #629 through its refreshed protected gate, rebuild that exact-head application image, and repeat `make load-http` with declared environment concurrency/window and retained raw distributions/resource configuration; set no SLO until representative capacity evidence is approved |
 | Image understanding | Region, OCR, and description work exists across active heads (#405, #419), but current runtime acceptance has not yet proved table-image structure, complete region coverage, or summary/image readiness together | Orchestrator-backed rendered workflow, original/derived asset provenance, region-before-OCR processing, and honest unsupported states; reconcile ADR 0052's image-bearing summary readiness with ADR 0098 before changing sequencing |
 | Semantic source rendering | Paragraph, table, list, formula, and indentation work exists across stacks (#394, #427, #448–#450); #515 adds synthetic backend/frontend parity for deterministic rows/cells, footnote boundaries, and encoded scripts | Land the #427 → #515 stack, then gather authenticated browser evidence that list nesting, continuation alignment, and formula units render without authoring-layout artifacts |
-| Event and project semantics | #663 is the largest current user-visible gap slice: evidence-backed Project nodes, bounded traversal, cutoff/snapshot fencing, exact-value table parity, and localized graph labels. Focus visibility and label-bound review defects are repaired with regressions. It remains unmerged; #640 separately adds project journeys without claiming authoritative lifecycle status | Parent #663 must pass exact-head checks and independent approval before protected merge; only then retarget #666 to `main`. Aggregate authenticated evidence must still prove distinct projects/events and handover intervals without promoting co-occurrence |
+| Event and project semantics | #663 is the largest current user-visible gap slice: evidence-backed Project nodes, bounded traversal, cutoff/snapshot fencing, exact-value table parity, and localized graph labels. Focus visibility, label-bound, and temporal test-double regressions are repaired. #666's heuristic removal is composed into this parent but is not separately protected-main evidence. #640 separately adds project journeys without claiming authoritative lifecycle status | Combined #663 must pass exact-head checks and independent approval before protected merge. Aggregate authenticated evidence must still prove distinct projects/events and handover intervals without promoting co-occurrence |
 | Knowledge Graph readability | #659 recreates the token-backed node-type repair on current `main`, including regression coverage; it is open and therefore not protected-main evidence | Merge #659 normally, then verify light/dark contrast, keyboard graph navigation, full labels, and evidence tables in the authenticated rendered surface |
 | Source-code lookup UX | Source state/detail codes remain evidence-bearing machine values and current detail presentation is dense | Catalog-backed display labels with raw-code provenance, compact 5W1H/source-detail hierarchy, keyboard access, and no unsupported customer/project binding |
 | Calendar / Naruon | #355 delivered the projection contract; v2.17.0 wires operator consumption without forwarding the end-user token. Naruon producer, provider/consumer fixtures, and protected merge remain open (#336) | Verify observed events against the published schema without invented events; keep commitments available when the channel is unwired |
@@ -492,9 +492,9 @@ review latency are never blockers — keep working while they settle.
    .github#1288 only through their protected gates.
 2. Process main-targeted PRs #629, #631, #632, #639, #640, #643, #644, #657,
    #658, #659, #660, and #663 only after each exact head shows terminal green
-   required checks plus current-head independent approval. Merge parent #663
-   before retargeting stacked child #666 to `main`; collect new exact-head
-   evidence after the retarget.
+   required checks plus current-head independent approval. Treat #666's
+   non-default-branch merge only as part of #663's combined candidate and
+   collect all protected evidence on #663's exact head.
 3. While hosted checks or independent reviews wait, resume user-visible gaps
    from §5 in leverage order:
    external semantic verification (#272), Naruon calendar (#355/#336), and
