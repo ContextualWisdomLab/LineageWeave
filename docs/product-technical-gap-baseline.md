@@ -67,7 +67,7 @@ are not merge readiness. Re-fetch exact heads,
 unresolved threads, checks, approvals, rulesets, and merge SHA before any
 lifecycle claim.
 
-> Audit snapshot: 2026-08-26 05:31 KST (refreshed by the autonomous merge
+> Audit snapshot: 2026-08-26 05:36 KST (refreshed by the autonomous merge
 > loop). This repository records synthetic fixtures and aggregate,
 > non-identifying runtime evidence only. Open PRs and local checks are not
 > protected-default-branch release evidence. Identifying post identifiers,
@@ -84,9 +84,9 @@ context only.
 
 | PR | Exact observed head | Merge/check state at this snapshot |
 | ---: | --- | --- |
-| #663 | `1a0f65f5` | project ontology traversal plus complete RDFS/SKOS lookup-label invariant; replacement hosted checks and independent approvals are required |
+| #663 | `020a0e88` | project ontology traversal plus complete RDFS/SKOS lookup-label invariant; replacement hosted checks and independent approvals are required |
 | #660 | `24fda085` | backend runtime and integration contract repairs; hosted checks still active |
-| #659 | `e948bd27` | ontology node readability and tokenized UI fills |
+| #659 | `0739b9d7` | ontology node readability and tokenized UI fills; 402 px Storybook audit repaired the Exact values table as a named keyboard-scrollable region and independently verified the Node evidence drawer |
 | #658 | `fe830b0a` | evidence-honest Global Ask knowledge cutoff with client validation; hosted checks still active |
 | #657 | `64f48679` | persisted TEPP asynchronous lifecycle evidence |
 | #644 | `d9ff9980` | native-surface code splitting with modal-focus regression coverage |
@@ -405,7 +405,7 @@ this file per §3.5 of the prior snapshot).
 | Semantic source rendering | Paragraph, table, list, formula, and indentation work exists across stacks (#394, #427, #448–#450); #515 adds synthetic backend/frontend parity for deterministic rows/cells, footnote boundaries, and encoded scripts | Land the #427 → #515 stack, then gather authenticated browser evidence that list nesting, continuation alignment, and formula units render without authoring-layout artifacts |
 | Event and project semantics | Multi-project mentions, project-bound actions, 5W1H, requester/processor, and semantic relations exist in ADR 0036/0052/0100/0111/0129 and active stacks | Aggregate authenticated evidence must show distinct projects and events, explicit requester/processor and real R&R, normalized relative time, and product/entity relations without promoting attendance or co-occurrence |
 | Project ontology traversal | Protected `main` publishes `Project`/`mentionsProject` and persists evidence-bearing `post_project_mention`, but its bounded ontology API recognizes only Post, Person, CorporateEntity, and Team. ADR 0222's candidate projects canonical project keys as proposed, cutoff-safe, authorization-gated nodes without a duplicate project store. Observed parent `f138b2d9` also binds `edge_mention_project` to the canonical `mentions project` RDF label so API, graph, exact-value table, CSV, and JSON-LD do not diverge on a camel-case fallback; ontology/neighborhood/SHACL/publication verification passed 69 tests. Earlier exact-head `82deea00` replayed migration 0220 and passed a live isolated synthetic PostgreSQL Project-focus traversal; desktop/mobile Storybook screenshots were inspected locally | Land the candidate through protected `main`; repeat authenticated aggregate acceptance without identifying artifacts and retain the canonical namespace/SHACL publication checks |
-| Knowledge Graph readability | The black evidence-node root cause is an undefined-token fallback; the design-token repair and long-label/evidence-table coverage remain only on closed, unmerged #490, not protected `main` | Recreate the token repair on a current base and deliver it through protected `main`, then verify light/dark contrast, keyboard graph navigation, full labels, and evidence tables in the authenticated rendered surface |
+| Knowledge Graph readability | PR #659 recreates the undefined-token fallback repair on current `main`. Exact head `0739b9d7` also makes the horizontally scrollable Exact values table a named keyboard-focusable region using the existing DAG viewport pattern. Focused Vitest passed 11/11, lint passed, Storybook rebuilt, and 402x1200 plus 1440x1100 screenshots were inspected outside git, including an independently clicked Node evidence drawer | Land #659 through protected `main`, then repeat authenticated light/dark contrast, keyboard graph navigation, full-label, and evidence-table acceptance on the release head |
 | Source-code lookup UX | Source state/detail codes remain evidence-bearing machine values and current detail presentation is dense | Catalog-backed display labels with raw-code provenance, compact 5W1H/source-detail hierarchy, keyboard access, and no unsupported customer/project binding |
 | Calendar / Naruon | #355 delivered the projection contract; v2.17.0 wires operator consumption without forwarding the end-user token. Naruon producer, provider/consumer fixtures, and protected merge remain open (#336) | Verify observed events against the published schema without invented events; keep commitments available when the channel is unwired |
 | SKOS organization aliases | Catalog binding and chip caption live on #480 / #482 | One catalog row per corroborated org; companion caption is hint-only until bound |
