@@ -39,7 +39,6 @@ from lineageweave.http_client import HttpClientError, post_json
 from lineageweave.lineage_persistence import lineage_edge_specs
 from lineageweave.models import Edge
 from lineageweave.tepp_client import (
-    ANALYSIS_RUN_CONTRACT_VERSION,
     AnalysisRunRequest,
     TeppClient,
     TeppNotAvailable,
