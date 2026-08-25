@@ -271,8 +271,25 @@ def test_shapes_validation_rejects_dangling_targets_and_outside_namespace() -> N
     dangling_path.add((shape, RDF.type, SH.NodeShape))
     dangling_path.add((shape, SH.targetClass, URIRef(f"{publisher.CANONICAL_NAMESPACE}Post")))
     dangling_path.add((shape, SH.path, URIRef(f"{publisher.CANONICAL_NAMESPACE}ghostColumn")))
-    with pytest.raises(ValueError, match="not an ontology term"):
+    with pytest.raises(ValueError, match="not an ontology property"):
         publisher.validate_shapes_graph(dangling_path, canonical)
+
+    wrong_kind_target = Graph()
+    wrong_kind_target.add((shape, RDF.type, SH.NodeShape))
+    wrong_kind_target.add(
+        (shape, SH.targetClass, URIRef(f"{publisher.CANONICAL_NAMESPACE}postTitle"))
+    )
+    with pytest.raises(ValueError, match="not an ontology class"):
+        publisher.validate_shapes_graph(wrong_kind_target, canonical)
+
+    wrong_kind_path = Graph()
+    wrong_kind_path.add((shape, RDF.type, SH.NodeShape))
+    wrong_kind_path.add(
+        (shape, SH.targetClass, URIRef(f"{publisher.CANONICAL_NAMESPACE}Post"))
+    )
+    wrong_kind_path.add((shape, SH.path, URIRef(f"{publisher.CANONICAL_NAMESPACE}Post")))
+    with pytest.raises(ValueError, match="not an ontology property"):
+        publisher.validate_shapes_graph(wrong_kind_path, canonical)
 
     publisher.validate_shapes_graph(
         Graph().parse(ROOT / "docs" / "ontology" / "lineageweave-kg-shapes.ttl", format="turtle"),

@@ -19,6 +19,10 @@ This is a **demo prototype**: it ships with synthetic sample data only
 (`lineageweave/fixtures.py`) and no connection to any real dataset or
 organization.
 
+The supporting [product requirements](docs/product-requirements.md) define
+the product outcomes, non-goals, ecosystem boundaries, and release evidence;
+ADRs remain normative for architecture and policy.
+
 ## Why
 
 Given a pile of records with no native cross-record link, no single cheap
