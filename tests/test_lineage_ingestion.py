@@ -366,6 +366,21 @@ def test_rebuild_passes_the_configured_adjudication_client(monkeypatch) -> None:
     assert events == ["fetch", "reconstruct", "transaction_enter", "persist", "transaction_exit"]
 
 
+def test_estimated_weight_channels_include_only_an_available_llm() -> None:
+    """Weight lookup must match the exact channel set reconstruction can use."""
+    assert ingestion.estimated_weight_channels(None) == {
+        "temporal",
+        "secondary_key",
+        "text",
+    }
+    assert ingestion.estimated_weight_channels(type("LLM", (), {"available": True})()) == {
+        "temporal",
+        "secondary_key",
+        "text",
+        "llm",
+    }
+
+
 def test_rebuild_drops_llm_before_candidate_pair_budget_is_exceeded(monkeypatch) -> None:
     """Keep a large live rebuild from issuing unbounded provider calls."""
 

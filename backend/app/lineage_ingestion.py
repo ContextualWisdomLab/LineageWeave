@@ -38,6 +38,14 @@ MAXIMUM_LIVE_LLM_PAIR_EVALUATIONS = 5_000
 _SUPPORTED_ANCHOR_METHOD_CODES: frozenset[str] = frozenset()
 
 
+def estimated_weight_channels(llm: AdjudicationClient | None) -> set[str]:
+    """Return the channels that one live reconstruction can actually use."""
+    channels = {"temporal", "secondary_key", "text"}
+    if getattr(llm, "available", False):
+        channels.add("llm")
+    return channels
+
+
 def _occurred_at(value: datetime) -> datetime:
     """Reconstruct expects naive datetimes; asyncpg returns timestamptz."""
     return value.replace(tzinfo=None) if value.tzinfo is not None else value
@@ -281,9 +289,7 @@ async def rebuild_lineage(
     back to the default channel weights until one is.
     """
     records = await _load_lineage_records(conn)
-    weights = await load_estimated_channel_weights(
-        conn, {"temporal", "secondary_key", "text"}
-    )
+    weights = await load_estimated_channel_weights(conn, estimated_weight_channels(llm))
     edges = await _reconstruct_lineage_records(records, llm, weights)
     async with conn.transaction():
         await persist_lineage_edges(conn, edges, weights)
@@ -303,9 +309,7 @@ async def rebuild_lineage_from_pool(
     """
     async with pool.acquire() as conn:
         records = await _load_lineage_records(conn)
-        weights = await load_estimated_channel_weights(
-            conn, {"temporal", "secondary_key", "text"}
-        )
+        weights = await load_estimated_channel_weights(conn, estimated_weight_channels(llm))
     edges = await _reconstruct_lineage_records(records, llm, weights)
     async with pool.acquire() as conn, conn.transaction():
         await persist_lineage_edges(conn, edges, weights)
