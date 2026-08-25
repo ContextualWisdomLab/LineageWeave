@@ -382,6 +382,7 @@ this file per §3.5 of the prior snapshot).
 | Accessibility and responsive UX | #602 delivered base post-detail modal semantics; #605 adds selected-post refocus, collapsed/hidden/inert/CSS-invisible focus exclusion across both modal types, readable evidence separators, focused tests, and desktop/mobile Storybook screenshots | Land #605 through the protected gate, then complete screen-reader and authenticated Playwright acceptance on the exact release head |
 | Design tokens and repeated objects | Token extraction started; sanitized Figma Event Lineage desktop/mobile frames exist, while other repeated product surfaces remain incomplete | Tokens in CSS + Storybook stories for board, popup, DAG, Ask, calendar, forms, charts; same-viewport Figma/runtime visual comparison before release |
 | Frontend delivery performance | A current production build succeeds but emits Vite's >500 kB chunk warning (`539.27 kB` minified); raising the warning limit would conceal rather than reduce delivery cost | Measure module contribution on an exact head, split one real route/surface boundary with native dynamic import, then prove the warning is absent and loading/error states remain accessible |
+| Concurrent web capacity | Rebuild and analysis-run paths expose asynchronous state, but the repository has no current end-to-end k6 workload, measured saturation point, or exact-head capacity envelope | Add an authenticated, synthetic-only k6 scenario covering reads plus asynchronous job submission/polling; measure latency/error/throughput and PostgreSQL, worker, Valkey, and gateway saturation before tuning the observed bottleneck |
 | External integrations | Search, Zotero, calendar, Keyverse, orchestrator, RankWeave, ThreadWeave, TEPP, DiskSage, wardnet | Provider conformance, failure/reconciliation behavior, and provenance-bearing integration evidence |
 | MSA / modular reuse | LineageWeave must run standalone and as a consumer of org packages | Do not reimplement RankWeave/TEPP/orchestrator/ThreadWeave/Keyverse; fix upstream and PR there |
 | Product contract authority | This branch recreates the first LineageWeave PRD after superseded #613 closed without merge and records an exact-case ecosystem authority register; TEPP, fast-mlsirm, keyverse, and ThreadWeave have standalone PRDs, while contextual-orchestrator, RankWeave, DiskSage, and wardnet currently rely on product-planning/architecture documents and naruon has only a scoped Topic Intelligence PRD | Land the LineageWeave PRD, keep ADRs normative, and add standalone PRDs in each owning repository before making cross-product release claims beyond its documented boundary |
@@ -466,16 +467,17 @@ review latency are never blockers — keep working while they settle.
 3. After the queue drains, resume user-visible gaps from §5 in leverage order:
    Event Lineage evidence (#387/#274), Naruon calendar (#355/#336), and
    authenticated operations/ontology publication acceptance.
-5. Rename remaining `[Buyer Gap]` issue titles to neutral product-object
+4. Rename remaining `[Buyer Gap]` issue titles to neutral product-object
    naming per repository convention (no "Buyer" for internal objects).
-6. Keep psychometric tests as true-parameter recovery (RMSE); never fixture
+5. Keep psychometric tests as true-parameter recovery (RMSE); never fixture
    tautologies, invented theta, or hand-authored numeric weights. Remove
    weights from tests that do not exercise fusion; fusion tests must consume
    provenance-bearing fast-mlsirm estimates over synthetic fixtures.
-7. Run frontend lint/test/build/Storybook, backend tests, and authenticated
-   browser/accessibility checks on the exact candidate release head.
-8. Fix only evidence-backed failures and repeat the protected merge gate.
-9. Refresh this file each loop with the exact queue state.
+6. Run frontend lint/test/build/Storybook, backend tests, authenticated
+   browser/accessibility checks, and the synthetic authenticated k6 workload
+   on the exact candidate release head.
+7. Fix only evidence-backed failures and repeat the protected merge gate.
+8. Refresh this file each loop with the exact queue state.
 
 ## 11. Spec pointers (derive, do not fork)
 

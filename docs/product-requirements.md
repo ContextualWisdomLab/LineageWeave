@@ -123,6 +123,10 @@ vendor selector, duplicate identity store, or psychometric substitute appears.
   migrations, short transactions, and hot-partition-aware access paths.
 - Public APIs have bounded inputs, stable typed responses, and provenance-
   preserving failure states.
+- Long-running web work executes asynchronously with observable job state;
+  release evidence includes an end-to-end k6 concurrency test, measured
+  bottlenecks, and a capacity envelope rather than an unmeasured concurrency
+  claim.
 - WCAG 2.2 AA, keyboard/touch parity, responsive layouts, reduced motion,
   design tokens, Storybook edge states, and screenshot review apply to every
   customer-facing surface.
