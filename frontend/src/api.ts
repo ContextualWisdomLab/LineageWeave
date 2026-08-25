@@ -897,6 +897,7 @@ export interface LeftoverPair {
   expected_response?: number | null;
   leftover_map_rank?: number | null;
   leftover_map_unexplained?: number | null;
+  leftover_map_cross_share?: number | null;
 }
 
 export interface LeftoverMapAxis {
@@ -1125,11 +1126,12 @@ export interface AnalysisRunCount {
   count_value: number;
 }
 
-/** Registry kinds from `analysis_run.run_kind_code` (migration 0018). */
+/** Registry kinds from `analysis_run.run_kind_code` (migration 0018, extended 0131). */
 export type AnalysisRunKindCode =
   | "analysis_run_lineage"
   | "analysis_run_report"
-  | "analysis_run_tepp";
+  | "analysis_run_tepp"
+  | "analysis_run_topic_lineage";
 
 /** Registry statuses from `analysis_run_status_event.status_code`. */
 export type AnalysisRunStatusCode =
@@ -1189,6 +1191,8 @@ export interface AnalysisRun {
   visible_posts?: AnalysisRunVisiblePost[];
   reconstructed_edges?: AnalysisRunReconstructedEdge[];
   reconstruction_result_sha256?: string;
+  topic_lineage_result?: Record<string, unknown>;
+  topic_lineage_result_sha256?: string;
   code_revision_sha?: string;
   configuration_sha256?: string;
 }

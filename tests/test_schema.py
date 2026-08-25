@@ -53,6 +53,11 @@ _LEFTOVER_MAP_RANK_MIGRATION = (
     / "migrations"
     / "0164_report_leftover_map_rank.sql"
 )
+_LEFTOVER_MAP_CROSS_SHARE_MIGRATION = (
+    Path(__file__).resolve().parents[1]
+    / "migrations"
+    / "0185_report_leftover_map_cross_share.sql"
+)
 _LEFTOVER_MAP_AXIS_MIGRATION = (
     Path(__file__).resolve().parents[1]
     / "migrations"
@@ -113,6 +118,7 @@ def schema_db():
                 cur.execute(_LEFTOVER_MAP_AXIS_MIGRATION.read_text())
                 cur.execute(_CHANNEL_EVIDENCE_MIGRATION.read_text())
                 cur.execute(_LEFTOVER_MAP_UNEXPLAINED_MIGRATION.read_text())
+                cur.execute(_LEFTOVER_MAP_CROSS_SHARE_MIGRATION.read_text())
             conn.commit()
             yield conn
         finally:
@@ -364,6 +370,35 @@ def test_leftover_pair_names_nullable_unexplained_column(schema_db) -> None:
     assert columns["leftover_residual"] == "NO"
     assert columns["leftover_distance"] == "NO"
     assert "leftover_map_reconstruction" not in columns
+
+
+def test_leftover_pair_names_nullable_cross_share_column(schema_db) -> None:
+    """Every install path preserves legacy pairs while naming leftover-map cross share."""
+    with schema_db.cursor() as cur:
+        cur.execute(
+            """
+            select column_name, is_nullable
+            from information_schema.columns
+            where table_name = 'report_leftover_pair'
+            """
+        )
+        columns = dict(cur.fetchall())
+    assert columns["leftover_map_cross_share"] == "YES"
+    assert columns["leftover_residual"] == "NO"
+    assert columns["leftover_distance"] == "NO"
+    assert "leftover_map_explained_share" not in columns
+    assert "leftover_map_unexplained_share" not in columns
+    assert "leftover_map_reconstruction" not in columns
+    with schema_db.cursor() as cur:
+        cur.execute(
+            """
+            select conname
+            from pg_constraint
+            where conrelid = 'report_leftover_pair'::regclass
+              and conname like '%share%chk'
+            """
+        )
+        assert cur.fetchall() == []
 
 
 def test_leftover_map_axis_references_period_score(schema_db) -> None:

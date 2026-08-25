@@ -10,6 +10,7 @@ const meta = {
     facts: [
       { kind: "semantic_project", text: "project: Checkout revamp | evidence: Body evidence" },
       { kind: "semantic_keyman", text: "Keyman mention: Ada West | context: account lead" },
+      { kind: "time_axis", text: "time axis: event occurred at" },
     ],
     images: [
       {
@@ -27,6 +28,20 @@ const meta = {
 export default meta;
 
 type Story = StoryObj<typeof meta>;
+
+export const EventTimeAxis: Story = {
+  args: {
+    facts: [{ kind: "time_axis", text: "time axis: event occurred at" }],
+    images: [],
+  },
+};
+
+export const IngestionTimeAxisFallback: Story = {
+  args: {
+    facts: [{ kind: "time_axis", text: "time axis: record created at" }],
+    images: [],
+  },
+};
 
 export const Default: Story = {};
 

@@ -29,7 +29,7 @@ def test_live_hierarchy_client_uses_adaptive_orchestrator_mode(monkeypatch) -> N
 
     monkeypatch.setattr("lineageweave.corporate_hierarchy_inference.post_json", fake_post_json)
     client = ContextualOrchestratorHierarchyInferenceClient(
-        "http://orchestrator", "secret", reasoning_effort="high", timeout=13.0
+        "http://orchestrator", "secret", reasoning_effort="high"
     )
 
     assert client.infer("Aurora Grid Power South Plant", "synthetic plant context") == HierarchyProposal(
@@ -38,7 +38,7 @@ def test_live_hierarchy_client_uses_adaptive_orchestrator_mode(monkeypatch) -> N
     assert seen["url"] == "http://orchestrator/v1/chat/completions"
     assert seen["body"]["mode"] == "auto"
     assert seen["body"]["reasoning_effort"] == "high"
-    assert seen["timeout"] == 13.0
+    assert seen["timeout"] == 600.0
 
 
 def test_parses_a_plant_with_a_parent() -> None:
