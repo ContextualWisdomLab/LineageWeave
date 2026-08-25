@@ -1,6 +1,6 @@
 # Product & Technical Gap Baseline
 
-> Dashboard delivery snapshot: 2026-08-26 05:22 KST. Protected `main` was
+> Dashboard delivery snapshot: 2026-08-26 05:24 KST. Protected `main` was
 > `04e6b610655d0db91d5f7ba9486bdda1440e0b19`. This local branch is not
 > protected-main release evidence.
 
@@ -77,16 +77,14 @@ lifecycle claim.
 ## 1. Exact-head and governance evidence
 
 The protected default branch was `04e6b610655d0db91d5f7ba9486bdda1440e0b19`
-when this baseline was refreshed. The live queue contained 16 open PRs and 10
+when this baseline was refreshed. The live queue contained 14 open PRs and 10
 open issues. The exact-head inventory below supersedes older per-PR snapshots
 elsewhere in this document; those older rows remain useful historical delivery
 context only.
 
 | PR | Exact observed head | Merge/check state at this snapshot |
 | ---: | --- | --- |
-| #663 | `62873004` | project ontology traversal and explicit project-mention relation label; replacement hosted checks and independent approvals are required |
-| #662 | `92534118` | fail-closed injectable TEPP status/read boundary; the owning executable HTTP route remains unavailable |
-| #661 | `6baaeb3d` | Rust-estimated reconstruction fixture weights replace hand-authored reconstruction-test dictionaries; replacement checks are active |
+| #663 | `e1f24762` (observed parent) | project ontology traversal plus RDFS/SKOS label alignment; this baseline commit advances the head, after which replacement hosted checks and independent approvals are required |
 | #660 | `24fda085` | backend runtime and integration contract repairs; hosted checks still active |
 | #659 | `e948bd27` | ontology node readability and tokenized UI fills |
 | #658 | `fe830b0a` | evidence-honest Global Ask knowledge cutoff with client validation; hosted checks still active |
@@ -105,6 +103,11 @@ No row above is merge evidence. Immediately before any lifecycle action,
 re-fetch the head, unresolved threads, formal reviews, rulesets, and same-head
 check conclusions. In particular, queued checks are infrastructure state and
 do not transfer evidence from an earlier SHA.
+
+PR #661 closed unmerged because its synthetic candidate-pair fit lacked the
+independent TEPP anchor required by ADR 0145/0205. PR #662 closed unmerged
+because #657 owns the stronger request/snapshot/cutoff/output-bound TEPP
+lifecycle contract. Neither closure is protected-main delivery evidence.
 
 The open-path collision audit found overlapping Global Ask migrations and
 ADRs across #629/#632/#639/#640/#658; those branches require reconciliation in
