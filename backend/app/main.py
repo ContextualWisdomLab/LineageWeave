@@ -1170,7 +1170,9 @@ async def rebuild_lineage_graph(
     async with pool.acquire() as conn:
         async with conn.transaction():
             try:
-                edges = await rebuild_lineage(conn)
+                edges = await rebuild_lineage(
+                    conn, adjudication_client=_adjudication_client()
+                )
             except ChannelWeightsNotEstimated:
                 raise HTTPException(
                     status.HTTP_503_SERVICE_UNAVAILABLE,

@@ -19,6 +19,7 @@ from typing import Any
 import asyncpg
 
 from backend.app.post_eligibility import SOURCE_POST_ELIGIBILITY_SQL
+from lineageweave.adjudication_client import AdjudicationClient
 from lineageweave.lineage_persistence import lineage_edge_specs
 from lineageweave.models import Edge, Record
 
@@ -212,26 +213,45 @@ class ChannelWeightsNotEstimated(RuntimeError):
         self.active_channels = active_channels
 
 
-async def rebuild_lineage(conn: asyncpg.Connection) -> list[Edge]:
+async def rebuild_lineage(
+    conn: asyncpg.Connection,
+    adjudication_client: AdjudicationClient | None = None,
+) -> list[Edge]:
     """Reconstruct lineage for every ``source_post`` and persist the edges.
 
-    Raises :class:`ChannelWeightsNotEstimated` when no activated
-    estimate matches this path's active channels -- run
+    Pass a live :class:`~lineageweave.adjudication_client.AdjudicationClient`
+    to include the optional LLM channel (issue #289); omit it (the
+    default) to reconstruct on the three deterministic channels only.
+    Either way, raises :class:`ChannelWeightsNotEstimated` when no
+    activated estimate matches this path's active channels -- run
     ``scripts/estimate_channel_weights.py`` first (ADR 0200 point 1).
+    A missing client drops the llm channel and renormalizes; it never
+    fabricates an adjudication.
     """
     rows = await conn.fetch(
         "select post_id, post_title, voc_type_code, created_at, corporate_entity_id, "
         "process_unit_id, thread_group_key, secondary_grouping_key "
         f"from source_post where {SOURCE_POST_ELIGIBILITY_SQL.format(alias='source_post')}"
     )
-    # No adjudication client is wired on this path, so the active channel
-    # set is the three deterministic channels (reconstruct drops llm when
-    # unavailable rather than faking it).
+    # With no adjudication client — or an unavailable one — the active
+    # channel set is the three deterministic channels (reconstruct drops
+    # llm when unavailable rather than faking it). A wired, *available*
+    # client adds the reasoning channel, and the weight lookup fails
+    # closed until a four-channel estimate exists -- never renormalizing
+    # a three-channel vector onto it.
     active_channels = {"temporal", "secondary_key", "text"}
+    wired_llm: AdjudicationClient | None = None
+    if adjudication_client is not None and getattr(adjudication_client, "available", False):
+        active_channels.add("llm")
+        wired_llm = adjudication_client
     weights = await load_estimated_channel_weights(conn, active_channels)
     if weights is None:
         raise ChannelWeightsNotEstimated(active_channels)
-    edges = lineage_edge_specs(records_from_source_posts(rows), weights=weights)
+    edges = lineage_edge_specs(
+        records_from_source_posts(rows),
+        llm=wired_llm,
+        weights=weights,
+    )
     await persist_lineage_edges(conn, edges)
     return edges
 

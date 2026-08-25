@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 import math
 from datetime import UTC, datetime, timezone
+from unittest import mock
 
 import pytest
 
@@ -675,3 +676,101 @@ def test_lineage_graphs_for_posts_with_no_citations_is_empty() -> None:
 
     merged = asyncio.run(lineage_graphs_for_posts(FakeConnection(), lambda row: True, []))
     assert merged == {"nodes": [], "edges": [], "truncated": False}
+
+
+def test_rebuild_wires_available_adjudication_client_into_llm_channel() -> None:
+    """An available client adds the llm channel; a null one leaves it out.
+
+    Issue #289: the corpus-wide rebuild path must pass a wired
+    adjudication client through to ``reconstruct`` so the optional LLM
+    channel actually contributes when (and only when) it is available.
+    The weight lookup must see the four-channel set -- failing closed,
+    never renormalizing a three-channel vector onto an llm run.
+    """
+    rows = [
+        {
+            "post_id": rec.record_id,
+            "process_unit_id": "shared-pu",
+            "corporate_entity_id": "shared-corp",
+            "post_title": rec.label,
+            "voc_type_code": "voc" if rec.secondary_key else "vom",
+            "thread_group_key": rec.group_key,
+            "secondary_grouping_key": rec.secondary_key,
+            "created_at": rec.occurred_at,
+        }
+        for rec in sample_records()
+    ]
+    four_channel_rows = [
+        {
+            "channel_set_code": channel_set,
+            "channel_code": channel,
+            "weight_value": weight,
+            "estimation_run_id": "00000000-0000-0000-0000-000000000001",
+            "estimation_method_code": "mls2plm_expected_information",
+            "estimator_version": "1.0.0",
+            "anchor_method_code": "unanchored_internal_structure",
+            "source_snapshot_sha256": "a" * 64,
+            "sample_pair_count": 600,
+            "knowledge_cutoff": datetime(2026, 1, 1, tzinfo=UTC),
+        }
+        for channel_set, channel, weight in (
+            ("channel_set_deterministic", "temporal", 0.49),
+            ("channel_set_deterministic", "secondary_key", 0.34),
+            ("channel_set_deterministic", "text", 0.17),
+            ("channel_set_with_llm", "temporal", 0.35),
+            ("channel_set_with_llm", "secondary_key", 0.24),
+            ("channel_set_with_llm", "text", 0.14),
+            ("channel_set_with_llm", "llm", 0.27),
+        )
+    ]
+
+    class FakeConnection:
+        async def fetch(self, query: str):
+            if "lineage_channel_weight" in query:
+                # The loader fetches every row and matches one persisted
+                # set against the active-channel set exactly.
+                return four_channel_rows
+            assert "from source_post" in query
+            return rows
+
+        async def fetchval(self, _query: str):
+            return True
+
+        async def execute(self, query: str, *args: object) -> None:
+            pass
+
+    class AvailableClient:
+        available = True
+
+        def judge(self, candidate_label: str, record_label: str) -> float:
+            return 0.9
+
+    class UnavailableClient:
+        available = False
+
+    connection = FakeConnection()
+    captured: dict[str, object] = {}
+
+    real_specs = ingestion.lineage_edge_specs
+
+    def capturing_specs(records, *, llm=None, weights):
+        captured["llm"] = llm
+        return real_specs(records, llm=llm, weights=weights)
+
+    with mock.patch.object(ingestion, "lineage_edge_specs", capturing_specs):
+        edges = asyncio.run(
+            ingestion.rebuild_lineage(connection, adjudication_client=AvailableClient())
+        )
+    assert edges
+    assert isinstance(captured["llm"], AvailableClient), (
+        "an available client must reach reconstruct as the llm channel"
+    )
+
+    # An unavailable client must leave the llm channel out entirely --
+    # reconstruct receives None and renormalizes onto three channels.
+    captured.clear()
+    with mock.patch.object(ingestion, "lineage_edge_specs", capturing_specs):
+        asyncio.run(
+            ingestion.rebuild_lineage(connection, adjudication_client=UnavailableClient())
+        )
+    assert captured["llm"] is None
