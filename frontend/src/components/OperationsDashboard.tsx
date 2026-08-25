@@ -69,6 +69,7 @@ export function OperationsDashboardView({ data, externalOnly = false, onOpenPost
         <div><dt>분류 Event</dt><dd>{data.total_event_count}</dd></div>
         <div><dt>외부 정보</dt><dd>{data.external_post_count}건 · {data.external_percent.toFixed(1)}%</dd></div>
         <div><dt>분석 대기</dt><dd>{data.pending_analysis_count}</dd></div>
+        <div><dt>분석 실패</dt><dd>{data.failed_analysis_count}</dd></div>
       </dl>
       {!externalOnly && journeys.length ? (
         <section className="dashboard-journeys" aria-labelledby="project-journey-heading">
@@ -102,6 +103,7 @@ export function OperationsDashboardView({ data, externalOnly = false, onOpenPost
         ))}
       </div>
       {cases.length === 0 ? <p role="status">선택 기간에 분석 완료된 근거가 없습니다. 분석 대기 건부터 처리하세요.</p> : null}
+      {data.failed_analysis_count > 0 ? <p role="alert">분석 실패 {data.failed_analysis_count}건을 재처리한 뒤 근거 누락 여부를 다시 확인하세요.</p> : null}
     </section>
   );
 }

@@ -16,6 +16,7 @@ const data = {
   external_post_count: 5,
   external_percent: 25,
   pending_analysis_count: 2,
+  failed_analysis_count: 0,
   cases: [{
     post_id: "post-1", case_kind_code: "claim_investigation", case_kind_label: "클레임 원인 역추적",
     project_name: "Synthetic Grid Upgrade", summary_text: "사양 변경 이후 원인 수주를 확인했습니다.", evidence_text: "Revision B changed the enclosure.", occurred_at: "2026-08-12T00:00:00Z",
@@ -36,6 +37,12 @@ describe("OperationsDashboardView", () => {
   it("shows an actionable empty external-information state", () => {
     render(<OperationsDashboardView data={data} externalOnly onOpenPost={() => undefined} />);
     expect(screen.getByRole("status")).toHaveTextContent("분석 대기 건부터 처리하세요");
+  });
+
+  it("separates failed analysis from pending work and gives the next action", () => {
+    render(<OperationsDashboardView data={{ ...data, failed_analysis_count: 2 }} onOpenPost={() => undefined} />);
+    expect(screen.getByText("분석 실패").nextElementSibling).toHaveTextContent("2");
+    expect(screen.getByRole("alert")).toHaveTextContent("재처리한 뒤 근거 누락 여부를 다시 확인하세요");
   });
 
   it("keeps period controls mounted while a changed period loads", async () => {

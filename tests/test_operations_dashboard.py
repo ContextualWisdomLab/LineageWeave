@@ -20,6 +20,7 @@ class _Connection:
             "total_event_count": 3,
             "external_post_count": 1,
             "pending_analysis_count": 1,
+            "failed_analysis_count": 2,
         }
 
     async def fetch(self, query: str, *args: object) -> list[dict[str, object]]:
@@ -62,6 +63,7 @@ async def test_dashboard_uses_abac_event_clock_and_persisted_evidence() -> None:
 
     assert result["period_label"] == "2026-08-01 ~ 2026-08-31 · Event 발생일"
     assert result["external_percent"] == 25.0
+    assert result["failed_analysis_count"] == 2
     assert result["cases"] == [
         {
             "post_id": "00000000-0000-0000-0000-000000000001",
@@ -98,7 +100,7 @@ async def test_dashboard_zero_denominator_and_invalid_period() -> None:
         async def fetchrow(self, query: str, *args: object) -> dict[str, int]:
             self.queries.append((query, args))
             return dict.fromkeys(
-                ("total_post_count", "total_event_count", "external_post_count", "pending_analysis_count"),
+                ("total_post_count", "total_event_count", "external_post_count", "pending_analysis_count", "failed_analysis_count"),
                 0,
             )
 

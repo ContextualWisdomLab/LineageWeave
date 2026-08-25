@@ -85,7 +85,17 @@ async def fetch_operations_dashboard(
                  where not exists (
                      select 1 from operations_case_analysis analysis
                       where analysis.post_id = visible_post.post_id
-                 )) as pending_analysis_count
+                 ) and not exists (
+                     select 1 from post_content_ingestion_job job
+                      where job.post_id = visible_post.post_id
+                        and job.status_code = 'post_content_ingestion_failed'
+                 )) as pending_analysis_count,
+               (select count(*) from visible_post
+                  where exists (
+                      select 1 from post_content_ingestion_job job
+                       where job.post_id = visible_post.post_id
+                         and job.status_code = 'post_content_ingestion_failed'
+                  )) as failed_analysis_count
         """,
         *args,
     )
@@ -142,6 +152,7 @@ async def fetch_operations_dashboard(
         "external_post_count": external,
         "external_percent": external * 100 / total if total else 0.0,
         "pending_analysis_count": int(metrics["pending_analysis_count"]),
+        "failed_analysis_count": int(metrics["failed_analysis_count"]),
         "cases": [
             {
                 "post_id": str(row["post_id"]),

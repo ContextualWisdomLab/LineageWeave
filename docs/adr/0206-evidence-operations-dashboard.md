@@ -30,6 +30,9 @@ provenance.
    explicit fallback, matching ADR 0202. The response names that clock.
 3. Every count is authorization-filtered before aggregation. The API returns
    both event count and distinct post count; neither substitutes for the other.
+   Analysis-pending and ingestion-failed post counts are disjoint: a failed
+   current job is shown as retryable failure, never hidden inside the pending
+   count or interpreted as a negative classification.
 4. Extend the existing post-summary semantic workflow through
    contextual-orchestrator with a schema-validated case analysis. It classifies
    zero or more case kinds (`claim_investigation`, `rebid_handover`,

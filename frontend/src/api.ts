@@ -66,6 +66,7 @@ export interface OperationsDashboardResponse {
   external_post_count: number;
   external_percent: number;
   pending_analysis_count: number;
+  failed_analysis_count: number;
   cases: OperationsDashboardCase[];
 }
 
