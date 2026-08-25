@@ -45,8 +45,9 @@ _PENDING = "analysis_status_pending"
 _RUNNING = "analysis_status_running"
 _SUCCEEDED = "analysis_status_succeeded"
 _FAILED = "analysis_status_failed"
-_TEPP_MODEL_CONTRACT = "tepp-analysis-run-v1"
-_TEPP_OUTPUT_PROFILE = "calibrated_event_measurement"
+_TEPP_MODEL_CONTRACT = "tepp-lineage-criterion-v1"
+_TEPP_OUTPUT_PROFILE = "lineage_pair_criterion_anchor"
+_TEPP_LINEAGE_ANCHOR_SCHEMA = "tepp.lineage_criterion_anchor.v1"
 _TOPIC_LINEAGE_MODEL_CONTRACT = "tepp-topic-lineage-v1"
 _TOPIC_LINEAGE_OUTPUT_PROFILE = "topic_identity_lineage"
 
@@ -286,8 +287,10 @@ async def _persist_tepp_result(
     *,
     analysis_run_id: str,
     envelope: dict[str, Any],
+    expected_snapshot_sha256: str,
+    expected_knowledge_cutoff: datetime,
 ) -> bool:
-    """Persist only a validated, remote-completed TEPP envelope."""
+    """Persist a completed TEPP envelope and any exact lineage anchor projection."""
     remote_run_id = envelope.get("analysis_run_id") or envelope.get("run_id")
     if not isinstance(remote_run_id, str) or not remote_run_id.strip():
         return False
@@ -307,6 +310,51 @@ async def _persist_tepp_result(
                 result_json,
                 result_sha256,
             )
+            anchor = envelope.get("result")
+            if (
+                envelope.get("result_schema_version") == _TEPP_LINEAGE_ANCHOR_SCHEMA
+                and isinstance(anchor, dict)
+            ):
+                try:
+                    estimation_run_id = str(UUID(str(anchor["estimation_run_id"])))
+                    anchor_cutoff = datetime.fromisoformat(
+                        str(anchor["knowledge_cutoff"]).replace("Z", "+00:00")
+                    )
+                except (KeyError, TypeError, ValueError):
+                    anchor = None
+                expected_cutoff = expected_knowledge_cutoff
+                if expected_cutoff.tzinfo is None:
+                    expected_cutoff = expected_cutoff.replace(tzinfo=timezone.utc)
+                if anchor is not None and (
+                    anchor.get("anchor_kind_code") != "lineage_pair_criterion"
+                    or anchor.get("contract_version") != 1
+                    or anchor.get("source_snapshot_sha256") != expected_snapshot_sha256
+                    or anchor_cutoff != expected_cutoff
+                    or anchor.get("criterion_validity_status") != "accepted"
+                    or type(anchor.get("validated_pair_count")) is not int
+                    or anchor["validated_pair_count"] <= 0
+                ):
+                    anchor = None
+                if anchor is not None:
+                    await conn.execute(
+                        """
+                        insert into lineage_weight_tepp_anchor
+                            (estimation_run_id, tepp_analysis_run_id,
+                             anchor_kind_code, anchor_contract_version,
+                             source_snapshot_sha256, knowledge_cutoff,
+                             criterion_validity_status_code, validated_pair_count)
+                        values ($1, $2, $3, $4, $5, $6, $7, $8)
+                        on conflict (estimation_run_id) do nothing
+                        """,
+                        estimation_run_id,
+                        analysis_run_id,
+                        anchor["anchor_kind_code"],
+                        anchor["contract_version"],
+                        anchor["source_snapshot_sha256"],
+                        anchor_cutoff,
+                        anchor["criterion_validity_status"],
+                        anchor["validated_pair_count"],
+                    )
     except (asyncpg.PostgresError, TypeError, ValueError):
         return False
     return True
@@ -966,6 +1014,8 @@ async def _deliver_tepp_measurement(
             conn,
             analysis_run_id=analysis_run_id,
             envelope=envelope,
+            expected_snapshot_sha256=str(locked["snapshot_sha256"]),
+            expected_knowledge_cutoff=locked["knowledge_cutoff"],
         ):
             status_code = _FAILED
             failure_code = "tepp_result_not_persisted"

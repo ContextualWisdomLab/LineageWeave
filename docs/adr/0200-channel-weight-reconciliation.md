@@ -1,6 +1,6 @@
 # ADR 0200 — Reconciling channel-weight measurement across the two active lines
 
-**Decision status:** Proposed
+**Decision status:** Accepted, point 3 superseded by [ADR 0205](0205-tepp-lineage-anchor.md)
 **Date:** 2026-08-24
 **Amends:** [ADR 0003](0003-fast-mlsirm-report-integration.md) (scope
 boundary), both lines' ADR 0145 (each in part — see Context)
@@ -91,7 +91,7 @@ argument.
    `mls2plm_expected_information`. Every fit must pass fast-mlsirm's
    official diagnostics; any non-converged fit is rejected outright
    (`convergence_status`, per the pinned contract).
-3. **Anchor honesty**, answering critique (1): estimation activates, but
+3. **Superseded anchor transition**, answering critique (1): estimation originally activated, but
    every persisted set carries `anchor_method_code =
    'unanchored_internal_structure'` until an independent anchor exists,
    and provenance (method, estimator version, sample size, snapshot
@@ -99,8 +99,9 @@ argument.
    When TEPP reaches production, a criterion-validity gate correlates
    fused scores with TEPP's event measurement on a frozen snapshot; a
    set that fails the gate is retired and reconstruction fails closed
-   again. This amends ADR 0003 to authorize the lineage-weights path
-   explicitly under these conditions.
+   again. ADR 0205 completed that gate: internally anchored vectors are now
+   inactive and only an exact accepted, persisted TEPP criterion anchor may
+   activate a vector.
 4. **Schema merge.** `lineage_channel_weight` takes the union of both
    lines: primary key `(channel_set_code, channel_code)` from the scope
    line — one persisted set per active-channel combination — plus the
