@@ -116,6 +116,7 @@ describe("App, authenticated", () => {
     customerEntityHierarchy?: boolean;
     staleSummary?: boolean;
     contentAfterSummary?: boolean;
+    organizationAliases?: boolean;
     askLineageGraph?: boolean;
     askImageCitation?: boolean;
   }): ReturnType<typeof vi.fn> & { releaseMe: () => void; releasePostOne: () => void } {
@@ -145,6 +146,7 @@ describe("App, authenticated", () => {
     let contentRequests = 0;
 
     let releaseMe = () => {};
+    const demoOrgAlias = options?.organizationAliases ? { organization_alias: "DC" } : {};
     const meReady = options?.deferMe
       ? new Promise<void>((resolve) => {
           releaseMe = resolve;
@@ -1301,7 +1303,14 @@ describe("App, authenticated", () => {
                 person_side_label: "Our side",
                 last_known_job_title: "Account manager",
                 mention_context: null,
-                affiliations: [{ organization_name: "Demo Corp", corporate_entity_id: "corp-1", role_title: null }],
+                affiliations: [
+                  {
+                    organization_name: "Demo Corp",
+                    corporate_entity_id: "corp-1",
+                    role_title: null,
+                    ...demoOrgAlias,
+                  },
+                ],
               },
             ],
           }),
@@ -1403,6 +1412,7 @@ describe("App, authenticated", () => {
                 ontology_label: "Organization",
                 label: "Demo Corp",
                 relevance: 0.2,
+                ...demoOrgAlias,
               },
               {
                 node_id: "team-1",
@@ -1530,6 +1540,7 @@ describe("App, authenticated", () => {
                     entity_level_code: "company",
                     entity_level_label: "Company",
                     resolved: true,
+                    ...demoOrgAlias,
                     people: [
                       {
                         person_id: "person-ada",
@@ -1596,6 +1607,7 @@ describe("App, authenticated", () => {
                 verification_status_code: "verify_pending",
                 verification_evidence_url: null,
                 corporate_entity_id: "corp-1",
+                ...demoOrgAlias,
               },
               {
                 counterparty_entity_name: "Northridge Grid",
@@ -2638,6 +2650,30 @@ describe("App, authenticated", () => {
     );
   });
 
+  it("shows the corroborated SKOS companion on organization chips", async () => {
+    stubBackend({ organizationAliases: true });
+    render(<App showLabPanels />);
+
+    fireEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
+
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "Affiliate org: Demo Corp (DC)" })).toBeInTheDocument(),
+    );
+    expect(screen.getByRole("button", { name: "Counterparty org: Demo Corp (DC)" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Keyman affiliation: Demo Corp (DC)" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Affiliate org: Demo Corp" })).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Related nodes for Ada West" }));
+    await waitFor(() => expect(screen.getByText("Related to Ada West")).toBeInTheDocument());
+    expect(screen.getByRole("button", { name: "Related nodes for Demo Corp (DC)" })).toBeInTheDocument();
+    expect(screen.getByText("Related to Ada West").closest(".related-keymen")).toHaveTextContent(
+      "Demo Corp (DC)",
+    );
+    expect(screen.getByText("Related to Ada West").closest(".related-keymen")).not.toHaveTextContent(
+      "Demo Corp (Organization)",
+    );
+  }, 10_000);
+
   it("opens related Keyman nodes from an R&R person", async () => {
     stubBackend();
     render(<App showLabPanels />);
@@ -2683,7 +2719,7 @@ describe("App, authenticated", () => {
     await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
     await userEvent.click(screen.getByRole("button", { name: "Related nodes for Ada West" }));
     await waitFor(() => expect(screen.getByText("Related to Ada West")).toBeInTheDocument());
-    await userEvent.click(screen.getByRole("button", { name: "Related nodes for 설계팀" }));
+    await userEvent.click(screen.getByRole("button", { name: "Related nodes for 설계팀 (Team)" }));
     await waitFor(() => expect(screen.getByText("Related to 설계팀")).toBeInTheDocument());
     expect(screen.getByText("Related to 설계팀").closest(".related-keymen")).toHaveTextContent(
       "Linked post",
@@ -2696,7 +2732,9 @@ describe("App, authenticated", () => {
     await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
     await userEvent.click(screen.getByRole("button", { name: "Related nodes for Ada West" }));
     await waitFor(() => expect(screen.getByText("Related to Ada West")).toBeInTheDocument());
-    await userEvent.click(screen.getByRole("button", { name: "Related nodes for Demo Corp" }));
+    await userEvent.click(
+      screen.getByRole("button", { name: "Related nodes for Demo Corp (Organization)" }),
+    );
     await waitFor(() => expect(screen.getByText("Related to Demo Corp")).toBeInTheDocument());
     expect(screen.getByText("Related to Demo Corp").closest(".related-keymen")).toHaveTextContent(
       "Ada West (Our side)",

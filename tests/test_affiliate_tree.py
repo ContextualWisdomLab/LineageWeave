@@ -2,11 +2,16 @@
 
 from __future__ import annotations
 
+import asyncio
+from unittest.mock import AsyncMock
+
+import backend.app.affiliate_tree_ingestion as ingestion
 from lineageweave.affiliate_tree import (
     AffiliationLeaf,
     CorporateEntityRow,
     build_affiliate_forest,
 )
+from lineageweave.organization_alias import OrganizationNameAlias
 
 _ENTITIES = (
     CorporateEntityRow("group-id", None, "Demo Group", "group"),
@@ -105,3 +110,38 @@ def test_to_dict_is_the_api_shape() -> None:
     assert payload["entity_name"] == "Demo Group"
     assert payload["resolved"] is True
     assert payload["children"][0]["people"][0]["person_name"] == "Ada West"
+
+
+def test_affiliate_forest_reuses_one_corroborated_alias_load(monkeypatch) -> None:
+    """One request shares its alias snapshot with Keyman and forest hydration."""
+    aliases = (OrganizationNameAlias("DC", "Demo Corp", "demo-id"),)
+
+    class _Connection:
+        async def fetch(self, query: str, *_args: object):
+            assert "from corporate_entity" in query
+            return []
+
+    conn = _Connection()
+    fetch_aliases = AsyncMock(return_value=aliases)
+    fetch_keymen = AsyncMock(return_value=[])
+    monkeypatch.setattr(ingestion, "fetch_corroborated_organization_aliases", fetch_aliases)
+    monkeypatch.setattr(ingestion, "fetch_post_keymen", fetch_keymen)
+
+    assert asyncio.run(ingestion.fetch_affiliate_forest(conn, "post-1")) == []
+    fetch_aliases.assert_awaited_once_with(conn)
+    fetch_keymen.assert_awaited_once_with(conn, "post-1", organization_aliases=aliases)
+
+
+def test_voc_evidence_skips_unused_organization_aliases(monkeypatch) -> None:
+    """VOC excerpts need affiliation names, not alias decoration or its query."""
+
+    conn = AsyncMock()
+    conn.fetchrow.side_effect = [{"lookup_label": "VOC"}, {"post_body": "Demo Corp update."}]
+    conn.fetch.return_value = []
+    fetch_keymen = AsyncMock(return_value=[])
+    monkeypatch.setattr(ingestion, "fetch_post_keymen", fetch_keymen)
+
+    payload = asyncio.run(ingestion.fetch_voc_evidence(conn, "post-1", "voc"))
+
+    assert payload["voc_type_label"] == "VOC"
+    fetch_keymen.assert_awaited_once_with(conn, "post-1", organization_aliases=())
