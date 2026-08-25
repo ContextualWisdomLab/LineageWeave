@@ -5,26 +5,12 @@ from datetime import datetime
 from lineageweave import Record, reconstruct
 from lineageweave.fixtures import sample_records
 
-# Synthetic unit-test fusion weights (org policy allows synthetic data
-# in unit tests): shaped like the demo design's discrimination ordering
-# so the designed fixture tree keeps the shape under test. Product
-# paths never see these -- they load persisted fast-mlsirm estimates
-# and fail closed otherwise (ADR 0145, second amendment).
-_SYNTHETIC_WEIGHTS = {"temporal": 0.5, "secondary_key": 0.34, "text": 0.16}
-_SYNTHETIC_WEIGHTS_WITH_LLM = {
-    "temporal": 0.3,
-    "secondary_key": 0.2,
-    "text": 0.1,
-    "llm": 0.4,
-}
-
-
-def test_reconstruct_finds_the_designed_branch_point() -> None:
+def test_reconstruct_finds_the_designed_branch_point(estimated_fixture_weights) -> None:
     """fixtures.sample_records() deliberately makes rec-002 fork into two
     threads (the revised quote, and the delivery question) -- the
     reconstruction must recover that shape without being told about it.
     """
-    trees = reconstruct(sample_records(), weights=_SYNTHETIC_WEIGHTS)
+    trees = reconstruct(sample_records(), weights=estimated_fixture_weights)
     tree_a = next(t for t in trees if t.group_key == "A-100")
 
     assert "rec-001" in tree_a.roots
@@ -32,26 +18,30 @@ def test_reconstruct_finds_the_designed_branch_point() -> None:
     assert set(tree_a.children_of["rec-002"]) >= {"rec-003", "rec-004"}
 
 
-def test_reconstruct_leaves_unrelated_records_as_their_own_root() -> None:
+def test_reconstruct_leaves_unrelated_records_as_their_own_root(
+    estimated_fixture_weights,
+) -> None:
     """rec-006 shares no topic or project code with anything in A-100 and
     should not be force-attached to the best of a set of weak candidates.
     """
-    trees = reconstruct(sample_records(), weights=_SYNTHETIC_WEIGHTS)
+    trees = reconstruct(sample_records(), weights=estimated_fixture_weights)
     tree_a = next(t for t in trees if t.group_key == "A-100")
 
     assert "rec-006" in tree_a.roots
 
 
-def test_reconstruct_groups_are_independent() -> None:
-    trees = reconstruct(sample_records(), weights=_SYNTHETIC_WEIGHTS)
+def test_reconstruct_groups_are_independent(estimated_fixture_weights) -> None:
+    trees = reconstruct(sample_records(), weights=estimated_fixture_weights)
     tree_b = next(t for t in trees if t.group_key == "B-200")
 
     assert set(tree_b.records.keys()) == {"rec-101", "rec-102", "rec-103"}
     assert "rec-101" in tree_b.roots
 
 
-def test_llm_channel_is_dropped_not_faked_when_unavailable() -> None:
-    trees = reconstruct(sample_records(), weights=_SYNTHETIC_WEIGHTS)
+def test_llm_channel_is_dropped_not_faked_when_unavailable(
+    estimated_fixture_weights,
+) -> None:
+    trees = reconstruct(sample_records(), weights=estimated_fixture_weights)
     tree_a = next(t for t in trees if t.group_key == "A-100")
 
     for edge in tree_a.edges:
@@ -66,13 +56,18 @@ class _StubAdjudicationClient:
 
     def judge(self, candidate_label: str, record_label: str) -> float:
         self.calls += 1
-        return 0.9 if candidate_label == record_label else 0.1
+        return float(candidate_label == record_label)
 
 
-def test_llm_channel_is_used_and_scored_when_a_client_is_supplied() -> None:
+def test_llm_channel_is_scored_during_zero_weight_ablation(
+    estimated_fixture_weights,
+) -> None:
     stub = _StubAdjudicationClient()
+    # Zero is an exact exclusion ablation, not a guessed relative weight:
+    # fast-mlsirm supplies every active fusion coefficient under test.
+    weights = {**estimated_fixture_weights, "llm": 0.0}
     trees = reconstruct(
-        sample_records(), llm=stub, weights=_SYNTHETIC_WEIGHTS_WITH_LLM
+        sample_records(), llm=stub, weights=weights
     )
     tree_a = next(t for t in trees if t.group_key == "A-100")
 
@@ -80,11 +75,13 @@ def test_llm_channel_is_used_and_scored_when_a_client_is_supplied() -> None:
     assert all("llm" in edge.channel_scores for edge in tree_a.edges)
 
 
-def test_candidate_window_bounds_which_priors_are_considered() -> None:
+def test_candidate_window_bounds_which_priors_are_considered(
+    estimated_fixture_weights,
+) -> None:
     records = [
         Record(f"r{i}", "G", f"record {i}", datetime(2026, 1, 1, i), "") for i in range(5)
     ]
-    trees = reconstruct(records, weights=_SYNTHETIC_WEIGHTS, candidate_window=1)
+    trees = reconstruct(records, weights=estimated_fixture_weights, candidate_window=1)
     tree = trees[0]
 
     for edge in tree.edges:

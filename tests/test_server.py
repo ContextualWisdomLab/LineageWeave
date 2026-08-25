@@ -9,15 +9,10 @@ import urllib.request
 
 from lineageweave.server import build_server
 
-# Synthetic unit-test fusion weights injected so this smoke test runs
-# without fast-mlsirm (org policy allows synthetic data in unit tests);
-# the demo binary itself estimates its weights and refuses to start
-# otherwise (ADR 0145, second amendment).
-_SYNTHETIC_WEIGHTS = {"temporal": 0.5, "secondary_key": 0.34, "text": 0.16}
-
-
-def test_lineage_endpoint_serves_the_reconstructed_graph_with_a_branch_point() -> None:
-    server = build_server(port=0, weights=_SYNTHETIC_WEIGHTS)
+def test_lineage_endpoint_serves_the_reconstructed_graph_with_a_branch_point(
+    estimated_fixture_weights,
+) -> None:
+    server = build_server(port=0, weights=estimated_fixture_weights)
     thread = threading.Thread(target=server.serve_forever, daemon=True)
     thread.start()
     port = server.server_address[1]
@@ -36,8 +31,8 @@ def test_lineage_endpoint_serves_the_reconstructed_graph_with_a_branch_point() -
     assert any(node["is_branch_point"] for node in body["nodes"])
 
 
-def test_root_serves_the_static_viewer() -> None:
-    server = build_server(port=0, weights=_SYNTHETIC_WEIGHTS)
+def test_root_serves_the_static_viewer(estimated_fixture_weights) -> None:
+    server = build_server(port=0, weights=estimated_fixture_weights)
     thread = threading.Thread(target=server.serve_forever, daemon=True)
     thread.start()
     port = server.server_address[1]
@@ -54,8 +49,8 @@ def test_root_serves_the_static_viewer() -> None:
     assert "LineageWeave" in body
 
 
-def test_path_traversal_is_rejected() -> None:
-    server = build_server(port=0, weights=_SYNTHETIC_WEIGHTS)
+def test_path_traversal_is_rejected(estimated_fixture_weights) -> None:
+    server = build_server(port=0, weights=estimated_fixture_weights)
     thread = threading.Thread(target=server.serve_forever, daemon=True)
     thread.start()
     port = server.server_address[1]
