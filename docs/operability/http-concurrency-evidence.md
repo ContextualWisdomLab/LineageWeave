@@ -63,6 +63,37 @@ Figma and screenshot review do not apply: this is a non-UI HTTP load harness.
 
 ## Current-main verification record
 
+On 2026-08-25, the follow-up change at `a700374e` was exercised against the
+authorized local Compose PostgreSQL/Keycloak/Valkey/orchestrator stack after
+all schema migrations and index builds had completed. Only aggregate evidence
+was retained: the database held 43,189 source posts. Ten-second authenticated
+observations used the same endpoint mix and reported zero HTTP errors at 1,
+10, and 25 VUs. Before the bounded-lineage query, HTTP median/p95/p99 and
+throughput were 809.03 ms/6.18 s/6.22 s and 0.618 requests/s at 1 VU;
+4.63 s/20.10 s/20.46 s and 1.531 requests/s at 10 VUs; and
+25.35 s/33.59 s/36.30 s and 1.046 requests/s at 25 VUs. The 25-VU observation
+completed six iterations.
+
+The same observations after moving the landing lineage ABAC, ordering, node
+bound, and edge bound into PostgreSQL were 179.52 ms/3.43 s/4.17 s and 1.067
+requests/s at 1 VU; 1.88 s/20.80 s/21.04 s and 1.487 requests/s at 10 VUs;
+and 22.03 s/29.78 s/31.38 s and 2.411 requests/s at 25 VUs. The 25-VU
+observation completed 25 iterations. The 10-VU tail did not improve, so this
+evidence does not establish a latency SLO or a product capacity ceiling. It
+does establish that repeatedly loading all visible posts and all lineage edges
+before applying the 500-node contract was avoidable work; the remaining tail
+requires endpoint-tagged traces and database-pool telemetry before another
+cause is assigned.
+
+An exact-code-head 4-VU, 60-second confirmation at `a700374e` completed 36
+iterations and 110 HTTP requests with zero failed checks or requests. Overall
+HTTP median/p95/p99 were 392.15 ms/8.82 s/9.68 s at 1.644 requests/s. The
+combined posts/lineage read median/p95/p99 were 3.21 s/9.14 s/9.89 s; Ask poll
+median/p95/p99 were 41.39 ms/413.16 ms/462.65 ms. All 36 iterations observed
+the Ask lifecycle state. This confirms asynchronous Ask polling remained
+responsive in that observation while also preserving the remaining reader-tail
+gap; it is not a deployment SLO.
+
 On 2026-08-25, a worktree based on protected-main commit `48f013a2` passed
 `k6 inspect` for this script. A fresh Compose project did not reach an
 application-ready state: the build was stopped

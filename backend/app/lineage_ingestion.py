@@ -14,7 +14,7 @@ import asyncio
 import math
 import re
 from collections import defaultdict
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from datetime import datetime
 from typing import Any
 
@@ -525,6 +525,40 @@ async def _fetch_visible_lineage_rows(conn: asyncpg.Connection, can_see_post):
     return visible_all, edge_rows
 
 
+async def _fetch_lineage_landing_rows(
+    conn: asyncpg.Connection,
+    corporate_entity_ids: Sequence[str],
+    process_unit_ids: Sequence[str],
+    limit: int,
+):
+    """Fetch only the authorized, bounded landing projection in PostgreSQL."""
+    posts = await conn.fetch(
+        "select post_id, post_title, voc_type_code, visibility_code, "
+        "corporate_entity_id, process_unit_id, thread_group_key, created_at "
+        "from source_post where "
+        f"{SOURCE_POST_ELIGIBILITY_SQL.format(alias='source_post')} and "
+        "(visibility_code = 'public' or (corporate_entity_id::text = any($1::text[]) "
+        "and (cardinality($2::text[]) = 0 or process_unit_id::text = any($2::text[])))) "
+        "order by created_at desc, post_id desc limit $3",
+        list(corporate_entity_ids),
+        list(process_unit_ids),
+        limit + 1,
+    )
+    visible = list(posts[:limit])
+    visible_ids = [str(row["post_id"]) for row in visible]
+    edge_rows = (
+        await conn.fetch(
+            "select parent_post_id, child_post_id, fused_score, interval_relation_code "
+            "from post_lineage_edge where parent_post_id = any($1::uuid[]) "
+            "and child_post_id = any($1::uuid[])",
+            visible_ids,
+        )
+        if visible_ids
+        else []
+    )
+    return visible, edge_rows, len(posts) > limit
+
+
 def _undirected_neighbors(edge_rows) -> dict[str, set[str]]:
     neighbors: dict[str, set[str]] = {}
     for edge in edge_rows:
@@ -658,6 +692,8 @@ async def visible_lineage_graph(
     limit: int = _LINEAGE_GRAPH_NODE_LIMIT,
     focus_post_id: str | None = None,
     include_isolated: bool = False,
+    corporate_entity_ids: Sequence[str] | None = None,
+    process_unit_ids: Sequence[str] = (),
 ) -> dict[str, Any]:
     """ABAC-filtered graph bounded for the browser's initial viewport.
 
@@ -665,16 +701,22 @@ async def visible_lineage_graph(
     individual posts for complete lineage, while this landing projection keeps
     only the newest ``limit`` visible nodes and edges between them.
     """
-    visible_all, edge_rows = await _fetch_visible_lineage_rows(conn, can_see_post)
+    if focus_post_id is None and corporate_entity_ids is not None:
+        visible, edge_rows, truncated = await _fetch_lineage_landing_rows(
+            conn, corporate_entity_ids, process_unit_ids, limit
+        )
+        visible_all = visible
+    else:
+        visible_all, edge_rows = await _fetch_visible_lineage_rows(conn, can_see_post)
 
-    if focus_post_id is None:
+    if focus_post_id is None and corporate_entity_ids is None:
         visible = sorted(
             visible_all,
             key=lambda row: (row["created_at"], str(row["post_id"])),
             reverse=True,
         )[:limit]
         truncated = len(visible_all) > len(visible)
-    else:
+    elif focus_post_id is not None:
         focus_id = str(focus_post_id)
         neighbors = _undirected_neighbors(edge_rows)
         allowed = {str(row["post_id"]) for row in visible_all}
