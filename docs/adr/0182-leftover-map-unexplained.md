@@ -3,6 +3,9 @@
 **Decision status:** Accepted
 **Date:** 2026-08-24
 
+**Amended by:** [ADR 0201](0201-leftover-map-reconstruction.md)
+(two-axis reconstruction R̂)
+
 Amends [ADR 0048](0048-persist-lsirm-leftover-pairs.md) and
 [ADR 0049](0049-leftover-pair-report-ui.md).
 
@@ -21,15 +24,17 @@ shows. Hiding unexplained leftover `U = R − R̂` lets a buyer read
 leftover residual `R` or leftover-map distance `d` as the leftover
 the two-axis map does not reconstruct.
 
-This increment does not persist leftover-map reconstruction `R̂`, does
+At ADR 0182's initial acceptance, this increment did not persist
+leftover-map reconstruction `R̂`; ADR 0201 now persists that value so
+`U + R̂ = R` remains directly auditable. It still does
 not persist leftover-map coordinates, does not name leftover-map inner
 product as a separate full-rank column, does not name leftover-map
 cosine, does not name leftover-map length, does not name observed `Y` /
 expected `E`, does not name leftover-map rank, does not split leftover-map
 distance onto two axes, and does not land Post quality on the leftover
 criterion. Leftover-map distance stays full-rank Euclidean.
-Reconstruction `R̂` is computed internally so `U` is honest, then
-discarded.
+Reconstruction `R̂` is computed internally so `U` is honest and is now
+retained under ADR 0201.
 
 The unprotected-stack reconstructions for neighbouring leftover facts
 use 0162–0181. This protected-main increment uses **0182** so it does
@@ -53,8 +58,8 @@ without fabricating unexplained leftover. Fallback pairs that have no
 complete-case leftover map omit the value rather than inventing one.
 A rank-0 origin map stores `0.0` (`R = 0` and `R̂ = 0`), not a
 missing value. A non-finite unexplained leftover stores null rather
-than inventing a leftover score. Do not persist
-`leftover_map_reconstruction`.
+than inventing a leftover score. Persist
+`leftover_map_reconstruction` so `U + R̂ = R` stays auditable.
 
 The pair button shows `U {signed}` next to leftover-map distance `d`
 when the value is finite. Next action: leftover map leaves unexplained

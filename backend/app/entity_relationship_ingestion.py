@@ -21,6 +21,9 @@ from lineageweave.entity_relationship_classification import (
     EntityRelationshipClient,
     OrganizationRelationship,
 )
+from lineageweave.organization_alias import attach_organization_aliases
+
+from .organization_name_resolution_ingestion import fetch_corroborated_organization_aliases
 
 
 async def ingest_post_entity_relationships(
@@ -94,7 +97,8 @@ async def fetch_post_counterparties(conn: asyncpg.Connection, post_id: str) -> l
     """Classified counterparties with a cataloged org id when the name resolves.
 
     Unresolved names keep ``corporate_entity_id`` null -- a missing
-    hierarchy match is not a guessed neighborhood.
+    hierarchy match is not a guessed neighborhood. A unique corroborated
+    SKOS companion is attached when one exists.
     """
     rows = await conn.fetch(
         """
@@ -113,7 +117,13 @@ async def fetch_post_counterparties(conn: asyncpg.Connection, post_id: str) -> l
         CorporateEntityCandidate(str(row["corporate_entity_id"]), row["entity_name"])
         for row in candidate_rows
     ]
-    return attach_resolved_entity_ids(rows, candidates)
+    payload = attach_resolved_entity_ids(rows, candidates)
+    attach_organization_aliases(
+        payload,
+        await fetch_corroborated_organization_aliases(conn),
+        name_key="counterparty_entity_name",
+    )
+    return payload
 
 
 async def fetch_relationship_network(
