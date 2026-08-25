@@ -78,11 +78,19 @@ stories were re-rendered locally with synthetic data at desktop and iPhone
 actions; the narrow view preserves readable cards and 44px-class actions while
 keeping the multi-step project journey horizontally scrollable. These images
 remain local audit evidence and are not committed.
+An authenticated synthetic OIDC audit then found that the mobile breakpoint
+hid the entire GNB despite having no drawer implementation. Candidate
+`6b195171` keeps the same semantic navigation in a keyboard-accessible
+horizontal viewport. The 390×844 rerender showed the GNB, one `main`, zero
+unnamed controls, no document-level horizontal overflow, and visible keyboard
+focus. The isolated frontend/backend issuer mismatch returned Dashboard 401,
+so populated authenticated data remains a separate acceptance item; the k6
+API run independently proved the Dashboard endpoint with the isolated issuer.
 
 ### Exact open-PR boundary
 
 At this snapshot there were 9 open PRs and 10 open issues. Exact observed heads
-were `#644 c1018a0a`, `#643 041ec13b`, `#640 8750638c`,
+were `#644 c1018a0a`, `#643 041ec13b`, `#640 6b195171`,
 `#639 aee02dca`, `#636 f7b9a65f`, `#632 a946f879`, `#631 c0022c97`,
 `#629 4b4d6707`, and `#579 689a21b6`. All remain blocked on
 hosted gates and/or independent review. These
@@ -109,7 +117,7 @@ context only.
 | ---: | --- | --- |
 | #644 | `c1018a0a` | splits conditional frontend surfaces and preserves keyed recovery; hosted gates and independent review remain required |
 | #643 | `041ec13b` | shares token-backed success/unavailable/retry status notices for the Calendar surface; hosted gates and independent review remain required |
-| #640 | `8750638c` | quantifies dashboard cases, persists explicit missing facts and observed lifecycle milestones, consumes producer-owned topic influence without local arithmetic, and repairs runtime evidence-query joins/bind arity; hosted gates and independent review must run on this exact head |
+| #640 | `6b195171` | quantifies dashboard cases, persists explicit missing facts and observed lifecycle milestones, consumes producer-owned topic influence without local arithmetic, repairs runtime evidence-query joins/bind arity, and restores mobile GNB reachability; hosted gates and independent review must run on this exact head |
 | #639 | `aee02dca` | repairs Running-action, Compose, and TEPP configuration contracts; hosted gates and independent review remain required |
 | #636 | `f7b9a65f` | publishes the calibrated external-lineage contract without a redundant explicit-child filter and repairs test import hygiene; hosted gates and independent review remain required |
 | #632 | `a946f879` | preserves graph-fact source provenance and authorization with a static landing-query contract and shared RankWeave disable switch; hosted gates and independent review remain required |
