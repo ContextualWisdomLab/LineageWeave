@@ -98,7 +98,7 @@ _OPERATIONS_CASE_MISSING_MIGRATION = (
 _OPERATIONS_EXTERNAL_RELATION_MIGRATION = (
     Path(__file__).resolve().parents[1]
     / "migrations"
-    / "0212_operations_external_relation_target.sql"
+    / "0213_operations_external_relation_target.sql"
 )
 
 
