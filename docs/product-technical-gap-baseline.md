@@ -1,6 +1,6 @@
 # Product & Technical Gap Baseline
 
-> Audit snapshot: 2026-08-25 15:45 KST (refreshed by the autonomous merge
+> Audit snapshot: 2026-08-25 15:49 KST (refreshed by the autonomous merge
 > loop). This repository records synthetic fixtures and aggregate,
 > non-identifying runtime evidence only. Open PRs and local checks are not
 > protected-default-branch release evidence. Identifying post identifiers,
@@ -9,17 +9,16 @@
 
 ## 1. Exact-head and governance evidence
 
-The protected default branch was `c168ad0016de9aa42a7a6f4136972e80121ef981`
-when this baseline was refreshed. The live queue contained 11 open PRs and 20
+The protected default branch was `ea71d9ca9adda1c4c8f82ed295d2202a8a2f5c1f`
+when this baseline was refreshed. The live queue contained 10 open PRs and 20
 open issues. The exact-head inventory below supersedes older per-PR snapshots
 elsewhere in this document; those older rows remain useful historical delivery
 context only.
 
 | PR | Exact observed head | Merge/check state at this snapshot |
 | ---: | --- | --- |
-| #602 | `36f05476` | Post-detail modal semantics, focus containment/restoration, and Escape close are mergeable; the valid rerender focus-steal review was repaired with a mount-only focus lifecycle and regression test, all threads are resolved, and auto-merge remains armed pending exact-head hosted checks and independent review |
-| #601 | `5ce88969` | draft PROV-O ADR APA 7th references are mergeable and checks are progressing, but the PR's explicit owner contract says not to mark Ready or merge |
-| #600 | `5ff2cf77` | this baseline's pre-amendment observed head; mergeable with review/check evidence pending |
+| #602 | `a1e4dc8f` | Post-detail modal semantics, focus containment/restoration, and Escape close are composed with current main; the valid rerender focus-steal review was repaired with a mount-only focus lifecycle and regression test, all threads are resolved, and auto-merge remains armed pending exact-head hosted checks and independent review |
+| #600 | `1cb63dae` | this baseline's pre-amendment observed head; composed with current main and awaiting exact-head review/check evidence |
 | #588 | `6185f2ae` | raw-residual reconstruction, rank-zero identity, API presence, and comparison-strip contracts reconciled with current main; focused backend/frontend/schema checks passed, all review threads are resolved, and auto-merge is armed |
 | #582 | `cab04063` | batched cited-lineage fetch was semantically composed with current main while retaining ADR 0161 interval relations; 27 focused lineage/documentation checks passed, no review threads remain, and auto-merge is armed pending hosted checks and independent review |
 | #579 | `bfefe98e` | interaction-map coordinates were semantically composed with current main's cross-share and interval work; the ADR 0168/0202 collision was repaired, all threads are resolved, 69 focused scientific/schema checks plus the focused live API contract passed, and 163 frontend tests, lint, app/Storybook builds, and desktop/mobile rendered audits passed; auto-merge is armed pending hosted checks and independent review |
@@ -87,6 +86,7 @@ Recent protected-default-branch delivery evidence (squash merges onto
 
 | PR | Merged (UTC) | Delivered |
 | ---: | --- | --- |
+| #601 | 2026-08-25 06:38 | APA 7th PROV-O and PROV-DM references for ADRs 0011 and 0065 |
 | #595 | 2026-08-25 04:39 | audited no-draft import door, nullable updated-at fallback, and event-time import |
 | #484 | 2026-08-25 04:39 | Allen interval relations with deferred FK validation |
 | #383 | 2026-08-25 04:39 | reader-safe OTel diagnostics and service-peer-bounded session metadata |
