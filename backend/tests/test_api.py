@@ -199,7 +199,7 @@ _GLOBAL_ASK_EVIDENCE_SEARCH_MIGRATION = (
 _GLOBAL_ASK_PUBLIC_VERIFICATION_MIGRATION = (
     Path(__file__).resolve().parents[2]
     / "migrations"
-    / "0211_global_ask_public_verification.sql"
+    / "0218_global_ask_public_verification.sql"
 )
 _GLOBAL_ASK_KNOWLEDGE_CUTOFF_MIGRATION = (
     Path(__file__).resolve().parents[2]
