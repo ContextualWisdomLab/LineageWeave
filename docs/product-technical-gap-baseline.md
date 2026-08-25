@@ -84,7 +84,7 @@ context only.
 
 | PR | Exact observed head | Merge/check state at this snapshot |
 | ---: | --- | --- |
-| #664 | `a18cfe65` (observed parent) | explicit persisted semantic unit kinds from source boundaries; this documentation commit advances the head after capture |
+| #664 | `b2e48d5b` (observed parent) | explicit persisted semantic unit kinds from source boundaries, stacked on #660's runtime-contract repair; this documentation commit advances the head after capture |
 | #663 | `b39cf5f9` | project ontology traversal plus cutoff/snapshot-frozen project focus and labels |
 | #662 | `92534118` | fail-closed injectable TEPP status/read boundary; the owning executable HTTP route remains unavailable |
 | #661 | `11206c58` | Rust-estimated reconstruction fixture weights replace hand-authored reconstruction-test dictionaries |
@@ -395,7 +395,7 @@ this file per §3.5 of the prior snapshot).
 | External integrations | Search, Zotero, calendar, Keyverse, orchestrator, RankWeave, ThreadWeave, TEPP, DiskSage, wardnet | Provider conformance, failure/reconciliation behavior, and provenance-bearing integration evidence |
 | MSA / modular reuse | LineageWeave must run standalone and as a consumer of org packages | Do not reimplement RankWeave/TEPP/orchestrator/ThreadWeave/Keyverse; fix upstream and PR there |
 | Product contract authority | This branch recreates the first LineageWeave PRD after superseded #613 closed without merge and records an exact-case ecosystem authority register; TEPP, fast-mlsirm, keyverse, and ThreadWeave have standalone PRDs, while contextual-orchestrator, RankWeave, DiskSage, and wardnet currently rely on product-planning/architecture documents and naruon has only a scoped Topic Intelligence PRD | Land the LineageWeave PRD, keep ADRs normative, and add standalone PRDs in each owning repository before making cross-product release claims beyond its documented boundary |
-| Release quality | Local focused/full suites have passed on individual PR heads | Repository-wide coverage, docstrings, Storybook, security, browser, and release evidence on one exact head |
+| Release quality | The #664/#660 stacked tree passed the complete Python suite (1,352 passed, 17 skipped) after #660 removed a duplicate synthetic snapshot digest and restored the TEPP settings contract. This is local candidate evidence, not protected-main delivery | Repository-wide coverage, frontend/Storybook, security, browser, and protected merge evidence on one exact head |
 | PII | Masking would paralyze the product; ADR 0001 forbids identifying artifacts in git | ABAC + authorized runtime; synthetic fixtures in git; no mask-in-place that drops names the operator must read |
 | Database | PostgreSQL, 3NF, snake_case ≥ two words, hot-partition and lock policy | No file DBs; read/write split if lock management fails; whitelist every migration |
 
