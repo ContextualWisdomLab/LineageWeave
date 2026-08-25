@@ -99,16 +99,15 @@ context only.
 | #659 | `2e3c6f1e` | this ontology-node readability and baseline branch; current-head checks and independent approvals required |
 | #660 | `1f1bc3e9` | backend runtime/integration contract repair candidate; current-head checks and independent approvals required |
 
-The open queue also has allocation conflicts that prevent order-independent
-merges: #636 and #643 both add ADR 0214; #632 and #644 both add ADR 0215; and
-#632 and #640 both add migration 0211 for different schema objects. #657's
-migration 0210 collides with #632, while #658 reuses #632's ADR 0216 and
-#640's migration 0216 for different work. Shared
-0165/0203 migrations in #629, #632, #639, and #640 are inherited stack content,
-not four independent allocations. Parent content must reach protected `main`
-first; each child then needs a `main` retarget/synchronization and fresh
-exact-head evidence. No conflicting child is release-ready merely because its
-current standalone checks pass.
+Current heads repair the independently introduced allocation conflicts: #643
+uses ADR 0220 while #636 retains ADR 0214; #644 uses ADR 0221 while #632
+retains ADR 0215; and #632 moved public verification to migration 0218 while
+#640 retains operations migration 0211. #657 uses migration 0217. #658 and
+#632 intentionally publish the same ADR 0216 decision and the byte-identical
+0212 cutoff migration, so merge order cannot create two cutoff schemas. Shared
+0165/0203 migrations in #629, #632, #639, and #640 remain inherited stack
+content, not four independent allocations. Every repaired head still requires
+fresh checks, review, and protected-main merge evidence.
 
 No row above is merge evidence. Immediately before any lifecycle action,
 re-fetch the head, unresolved threads, formal reviews, rulesets, and same-head
