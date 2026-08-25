@@ -183,6 +183,22 @@ type Story = StoryObj<typeof meta>;
 
 export const DesktopNeighborhood: Story = {};
 
+export const LongLabelsAndEvidenceTable: Story = {
+  args: {
+    neighborhood: {
+      ...demoNeighborhood,
+      nodes: demoNeighborhood.nodes.map((node, index) => index === 0 ? {
+        ...node,
+        display_label: "Synthetic multilingual procurement governance decision with complete provenance",
+      } : node),
+      exact_value_rows: demoNeighborhood.exact_value_rows.map((row, index) => index === 0 ? {
+        ...row,
+        source_label: "Synthetic multilingual procurement governance decision with complete provenance",
+      } : row),
+    },
+  },
+};
+
 export const NarrowExactValue: Story = {
   globals: {
     viewport: { value: "mobile1", isRotated: false },
