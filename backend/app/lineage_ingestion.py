@@ -56,19 +56,6 @@ _LINEAGE_LANDING_SQL = (
     "order by created_at desc, post_id desc limit $3"
 ).format(eligibility=SOURCE_POST_ELIGIBILITY_SQL.format(alias="source_post"))
 
-_RECONSTRUCTION_SOURCE_SQL = (
-    "select post_id, post_title, voc_type_code, created_at, corporate_entity_id, "
-    "process_unit_id, thread_group_key, secondary_grouping_key "
-    "from source_post where {eligibility}"
-).format(eligibility=SOURCE_POST_ELIGIBILITY_SQL.format(alias="source_post"))
-
-_VISIBLE_LINEAGE_SOURCE_SQL = (
-    "select post_id, post_title, voc_type_code, visibility_code, "
-    "corporate_entity_id, process_unit_id, thread_group_key, created_at "
-    "from source_post where {eligibility}"
-).format(eligibility=SOURCE_POST_ELIGIBILITY_SQL.format(alias="source_post"))
-
-
 def estimated_weight_channels(llm: AdjudicationClient | None) -> set[str]:
     """Return the channels that one live reconstruction can actually use."""
     channels = {"temporal", "secondary_key", "text"}
@@ -432,7 +419,11 @@ class ChannelWeightsNotEstimated(RuntimeError):
 
 async def _load_lineage_records(conn: asyncpg.Connection) -> list[Record]:
     """Load the eligible source snapshot used by one reconstruction."""
-    rows = await conn.fetch(_RECONSTRUCTION_SOURCE_SQL)
+    rows = await conn.fetch(
+        "select post_id, post_title, voc_type_code, created_at, corporate_entity_id, "
+        "process_unit_id, thread_group_key, secondary_grouping_key "
+        f"from source_post where {SOURCE_POST_ELIGIBILITY_SQL.format(alias='source_post')}"
+    )
     return records_from_source_posts(rows)
 
 
@@ -529,7 +520,11 @@ def _interval_payload(row: Mapping[str, Any]) -> dict[str, Any]:
 
 async def _fetch_visible_lineage_rows(conn: asyncpg.Connection, can_see_post):
     """One ABAC-filtered ``source_post`` scan plus one edge-table read."""
-    posts = await conn.fetch(_VISIBLE_LINEAGE_SOURCE_SQL)
+    posts = await conn.fetch(
+        "select post_id, post_title, voc_type_code, visibility_code, "
+        "corporate_entity_id, process_unit_id, thread_group_key, created_at "
+        f"from source_post where {SOURCE_POST_ELIGIBILITY_SQL.format(alias='source_post')}"
+    )
     visible_all = [row for row in posts if can_see_post(row)]
     edge_rows = await conn.fetch(
         "select parent_post_id, child_post_id, fused_score, "
@@ -545,6 +540,9 @@ async def _fetch_lineage_landing_rows(
     limit: int,
 ):
     """Fetch only the authorized, bounded landing projection in PostgreSQL."""
+    # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
+    # `_LINEAGE_LANDING_SQL` is a module constant; all runtime values below
+    # use asyncpg bind parameters. No caller-controlled SQL is interpolated.
     posts = await conn.fetch(
         _LINEAGE_LANDING_SQL,
         list(corporate_entity_ids),
