@@ -1,6 +1,13 @@
 import { useEffect, useState } from "react";
 import { fetchOperationsDashboard, type OperationsDashboardResponse } from "../api";
 
+function formatElapsed(seconds: number): string {
+  const days = Math.floor(seconds / 86_400);
+  const hours = Math.floor((seconds % 86_400) / 3_600);
+  const minutes = Math.floor((seconds % 3_600) / 60);
+  return `${days}일 ${hours}시간 ${minutes}분 ${seconds % 60}초`;
+}
+
 const dimensionLabels = {
   business_unit: "사업부",
   process_unit: "PU",
@@ -99,6 +106,20 @@ export function OperationsDashboardView({ data, externalOnly = false, onOpenPost
         </section>
       ) : null}
       {!externalOnly ? (
+        <section className="dashboard-lifecycle-summary" aria-labelledby="lifecycle-summary-heading">
+          <h3 id="lifecycle-summary-heading">관측된 처리 구간</h3>
+          <p>임의 지연 기준 없이, 시작·종료 Event가 모두 확인된 구간만 경과 시간을 계산합니다.</p>
+          <dl className="dashboard-lifecycle-metrics">
+            {data.lifecycle_metrics.map((metric) => (
+              <div key={metric.lifecycle_kind_code}>
+                <dt>{metric.lifecycle_kind_label}</dt>
+                <dd>진행 중 {metric.open_case_count}건 · 종료 확인 {metric.resolved_case_count}건 · 측정 근거 부족 {metric.evidence_missing_case_count}건</dd>
+              </div>
+            ))}
+          </dl>
+        </section>
+      ) : null}
+      {!externalOnly ? (
         <TopicContextInfluence data={data} onOpenPost={onOpenPost} />
       ) : null}
       {!externalOnly && journeys.length ? (
@@ -127,6 +148,26 @@ export function OperationsDashboardView({ data, externalOnly = false, onOpenPost
             <div className="dashboard-case-title"><span>{item.case_kind_label}</span><strong>{item.project_name ?? "프로젝트 연결 분석 중"}</strong></div>
             <h3>{item.summary_text}</h3>
             <blockquote>{item.evidence_text}</blockquote>
+            {item.lifecycles.length ? (
+              <section className="dashboard-case-lifecycles" aria-label="관측된 처리 구간">
+                {item.lifecycles.map((lifecycle) => (
+                  <article key={lifecycle.lifecycle_kind_code} className="dashboard-lifecycle-row">
+                    <header><h4>{lifecycle.lifecycle_kind_label}</h4><strong>{lifecycle.status_label}</strong></header>
+                    {lifecycle.elapsed_seconds !== null ? <p>확정 경과 시간 <b>{formatElapsed(lifecycle.elapsed_seconds)}</b></p> : <p>경과 시간은 종료 Event가 관측될 때 계산됩니다.</p>}
+                    <ol>
+                      {[lifecycle.start_milestone, lifecycle.end_milestone].filter((milestone) => milestone !== null).map((milestone) => (
+                        <li key={milestone.milestone_type_code}>
+                          <time dateTime={milestone.observed_at}>{milestone.observed_at}</time>
+                          <span>{milestone.milestone_type_label} · {milestone.time_axis_label}</span>
+                          <button type="button" className="btn-link" onClick={() => onOpenPost(milestone.evidence_post_id)}>{milestone.milestone_type_label} 근거 열기</button>
+                        </li>
+                      ))}
+                    </ol>
+                    <p className="dashboard-next-action">다음 조치: {lifecycle.next_action_text}</p>
+                  </article>
+                ))}
+              </section>
+            ) : null}
             <dl>{item.facts.map((fact) => <div key={`${fact.fact_type_code}-${fact.value_text}`}><dt>{fact.fact_type_label}{fact.relation_target_kind_label ? ` · ${fact.relation_target_kind_label}` : ""}</dt><dd>{fact.value_text} <button type="button" className="btn-link" onClick={() => onOpenPost(fact.evidence_post_id)}>{fact.fact_type_label} 근거 열기</button></dd></div>)}</dl>
             {item.missing_facts.length ? (
               <section className="dashboard-missing-facts" aria-label="추가 확인이 필요한 항목">

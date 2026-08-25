@@ -190,6 +190,8 @@ def test_accepts_additional_grounded_fact_beyond_required_questions() -> None:
             {"fact_type_code": "discussion", "value_text": "Claim discussion", "evidence_text": "claim changed"},
         ],
         "missing_fact_type_codes": ["order", "originating_order"],
+        "milestones": [],
+        "missing_milestone_type_codes": ["claim_received", "cause_confirmed"],
     }]
     result = parse_operations_case_response(json.dumps(payload), body)
     assert result is not None
@@ -227,6 +229,8 @@ def test_accepts_grounded_nonrequired_fact_after_required_questions_are_complete
             },
         ],
         "missing_fact_type_codes": [],
+        "milestones": [],
+        "missing_milestone_type_codes": [],
     }]
 
     assert parse_operations_case_response(json.dumps(payload), body) is not None
@@ -246,6 +250,8 @@ def test_external_relation_requires_a_semantic_target_type() -> None:
         "evidence_text": body,
         "facts": [fact],
         "missing_fact_type_codes": [],
+        "milestones": [],
+        "missing_milestone_type_codes": [],
     }]
 
     result = parse_operations_case_response(json.dumps(payload), body)

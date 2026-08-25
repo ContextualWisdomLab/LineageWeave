@@ -90,6 +90,8 @@ export interface OperationsDashboardCase {
   occurred_at: string;
   facts: OperationsDashboardFact[];
   missing_facts: Array<{ fact_type_code: string; fact_type_label: string }>;
+  milestones: OperationsDashboardMilestone[];
+  lifecycles: OperationsDashboardLifecycle[];
   ontology_class_iri?: string;
   provenance_relation_iri?: string;
   semantic_projection?: Record<string, unknown>;
@@ -108,6 +110,13 @@ export interface OperationsDashboardResponse {
     case_kind_label: string;
     event_count: number;
     post_count: number;
+  }>;
+  lifecycle_metrics: Array<{
+    lifecycle_kind_code: string;
+    lifecycle_kind_label: string;
+    open_case_count: number;
+    resolved_case_count: number;
+    evidence_missing_case_count: number;
   }>;
   topic_context: TopicContextDashboard;
   cases: OperationsDashboardCase[];

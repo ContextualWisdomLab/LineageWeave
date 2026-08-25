@@ -110,7 +110,7 @@ _OPERATIONS_CASE_MISSING_MIGRATION = (
 _OPERATIONS_CASE_MILESTONE_MIGRATION = (
     Path(__file__).resolve().parents[1]
     / "migrations"
-    / "0214_operations_case_milestone.sql"
+    / "0215_operations_case_milestone.sql"
 )
 _ANALYSIS_RUN_REGISTRY_MIGRATION = (
     Path(__file__).resolve().parents[1] / "migrations" / "0018_analysis_run_registry.sql"

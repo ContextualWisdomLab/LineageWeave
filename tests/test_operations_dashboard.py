@@ -1,6 +1,6 @@
 """Focused tests for the operational dashboard evidence projection."""
 
-from datetime import UTC, date, datetime
+from datetime import UTC, date, datetime, timezone
 
 import pytest
 
@@ -49,6 +49,29 @@ class _Connection:
                 "case_kind_code": "claim_investigation",
                 "fact_type_code": "sales_pool",
             }]
+        if "operations_case_milestone milestone" in query:
+            return [
+                {
+                    "post_id": "00000000-0000-0000-0000-000000000001",
+                    "case_kind_code": "claim_investigation",
+                    "milestone_type_code": "claim_received",
+                    "evidence_text": "The claim was received",
+                    "evidence_post_id": "00000000-0000-0000-0000-000000000001",
+                    "observed_at": datetime(2026, 8, 1, 9, tzinfo=timezone.utc),
+                    "time_axis_code": "event_occurred_at",
+                    "is_missing": False,
+                },
+                {
+                    "post_id": "00000000-0000-0000-0000-000000000001",
+                    "case_kind_code": "claim_investigation",
+                    "milestone_type_code": "cause_confirmed",
+                    "evidence_text": "The cause was confirmed",
+                    "evidence_post_id": "00000000-0000-0000-0000-000000000002",
+                    "observed_at": datetime(2026, 8, 3, 12, 30, tzinfo=timezone.utc),
+                    "time_axis_code": "created_at",
+                    "is_missing": False,
+                },
+            ]
         if "from topic_post_context_influence influence" in query:
             return []
         return [
@@ -194,7 +217,7 @@ async def test_dashboard_uses_abac_event_clock_and_persisted_evidence() -> None:
     ]
     assert result["topic_context"]["status_code"] == "unavailable"
     assert result["topic_context"]["reason_code"] == "tepp_topic_posterior_not_persisted"
-    assert len(conn.queries) == 6
+    assert len(conn.queries) == 7
     for query, args in conn.queries:
         assert "visibility_code = 'public'" in query
         assert "corporate_entity_id::text = any($1::text[])" in query
@@ -380,6 +403,8 @@ async def test_external_information_projects_a_typed_prov_o_relation() -> None:
 
         async def fetch(self, query: str, *args: object) -> list[dict[str, object]]:
             self.queries.append((query, args))
+            if "operations_case_milestone milestone" in query:
+                return []
             if "from topic_post_context_influence influence" in query:
                 return []
             if "operations_case_fact fact" in query:

@@ -21,6 +21,9 @@ const data: OperationsDashboardResponse = {
     { case_kind_code: "claim_investigation", case_kind_label: "클레임 원인 규명", event_count: 3, post_count: 2 },
     { case_kind_code: "rebid_handover", case_kind_label: "재입찰 · 인수인계", event_count: 2, post_count: 2 },
   ],
+  lifecycle_metrics: [
+    { lifecycle_kind_code: "claim_investigation", lifecycle_kind_label: "클레임 원인 규명", open_case_count: 1, resolved_case_count: 0, evidence_missing_case_count: 0 },
+  ],
   topic_context: {
     status_code: "unavailable",
     reason_code: "tepp_topic_posterior_not_persisted",
