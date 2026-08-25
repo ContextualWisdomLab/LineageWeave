@@ -1,6 +1,6 @@
 # Product & Technical Gap Baseline
 
-> Dashboard delivery snapshot: 2026-08-25 21:57 KST. Protected `main` was
+> Dashboard delivery snapshot: 2026-08-26 06:20 KST. Protected `main` was
 > `04e6b610655d0db91d5f7ba9486bdda1440e0b19`. This local branch is not
 > protected-main release evidence.
 
@@ -60,7 +60,7 @@ only aggregate, non-identifying evidence to this repository.
 
 ### Exact open-PR boundary
 
-At this snapshot there were 12 open PRs and 10 open issues. Exact observed
+At this snapshot there were 11 open PRs and 10 open issues. Exact observed
 heads are recorded in section 1. PR #666 was merged into #663's non-default
 branch before the parent reached protected `main`; its checks and merge commit
 are stack composition evidence only, while #663 now carries the combined
@@ -71,7 +71,7 @@ observations are not merge readiness. Re-fetch exact heads,
 unresolved threads, checks, approvals, rulesets, and merge SHA before any
 lifecycle claim.
 
-> Audit snapshot: 2026-08-26 07:31 KST (refreshed by the autonomous merge
+> Audit snapshot: 2026-08-26 06:20 KST (refreshed by the autonomous merge
 > loop). This repository records synthetic fixtures and aggregate,
 > non-identifying runtime evidence only. Open PRs and local checks are not
 > protected-default-branch release evidence. Identifying post identifiers,
@@ -81,16 +81,16 @@ lifecycle claim.
 ## 1. Exact-head and governance evidence
 
 The protected default branch was `04e6b610655d0db91d5f7ba9486bdda1440e0b19`
-when this baseline was refreshed. The live queue contained 12 open PRs and 10
+when this baseline was refreshed. The live queue contained 11 open PRs and 10
 open issues. The exact-head inventory below supersedes older per-PR snapshots
 elsewhere in this document; those older rows remain useful historical delivery
 context only.
 
 | PR | Exact observed head | Merge/check state at this snapshot |
 | ---: | --- | --- |
-| #663 | `db11629e` | combined parent candidate: evidence-backed Project nodes plus #666's non-default-branch removal of sampled region-coverage arithmetic; checks are running, independent review required, auto-merge enabled |
-| #660 | `24fda085` | restores backend runtime/integration contracts; exact-head checks passed, independent review required, auto-merge enabled |
-| #659 | `0739b9d7` | token-backed ontology node readability; exact-head checks passed, independent review required, auto-merge enabled |
+| #663 | `ab330a0f` | combined parent candidate: evidence-backed Project nodes plus #666's non-default-branch removal of sampled region-coverage arithmetic; exact-head checks/review required |
+| #660 | `24fda085` | restores backend runtime/integration contracts; exact-head checks/review required |
+| #659 | `ccdfc6f1` | token-backed ontology node readability after current-main conflict repair; hosted checks/review required |
 | #658 | `fe830b0a` | evidence-honest Global Ask knowledge cutoff; exact-head checks passed, independent review required, auto-merge enabled |
 | #657 | `64f48679` | TEPP asynchronous lifecycle persistence while unpublished producer work stays unavailable; exact-head checks passed, independent review required, auto-merge enabled |
 | #644 | `d9ff9980` | native frontend surface code splitting; exact-head checks passed, independent review required, auto-merge enabled |
@@ -98,8 +98,8 @@ context only.
 | #640 | `2d50fa01` | dashboard case metrics and project journeys; exact-head checks passed, independent review required, auto-merge enabled |
 | #639 | `aee02dca` | restores Running action and Compose contracts; exact-head checks passed, independent review required, auto-merge enabled |
 | #632 | `702adf2d` | preserves graph-fact source provenance; some checks running, independent review required, auto-merge enabled |
-| #631 | `c0022c97` (observed parent) | decomposes closed PR #490 and refreshes the exact queue; exact-head checks passed before this documentation update, independent review required, auto-merge enabled |
-| #629 | `4b4d6707` | releases provider work and bounds landing reads; exact-head checks passed, independent review required, auto-merge enabled |
+| #631 | `1d9ac825` (observed parent) | decomposes closed PR #490 and refreshes the exact queue; branch is DIRTY against current main and needs baseline conflict repair |
+| #629 | `6d2fb7b3` | releases provider work and bounds landing reads; exact-head checks/review required |
 
 No row above is merge evidence. Immediately before any lifecycle action,
 re-fetch the head, unresolved threads, formal reviews, rulesets, and same-head

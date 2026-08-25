@@ -28,6 +28,7 @@ import redis
 
 from lineageweave.http_client import HttpClientError, get_json, post_form
 from lineageweave.knowledge_graph import knowledge_graph_edges_for_post
+from lineageweave.post_chat import ChatSourceDocument
 from lineageweave.post_summary import POST_SUMMARY_CONTRACT_VERSION
 
 _POSTGRES_ADMIN_DSN = os.environ.get(
@@ -568,7 +569,7 @@ def seeded_db(demo_analyst_token):
             )
             other_account_id = cur.fetchone()[0]
             visible_run_id = _seed_analysis_run(
-                "a" * 64,
+                "0" * 64,
                 "visible-own-corp",
                 account_id,
                 "analysis_scope_corporate_entity",
@@ -3900,7 +3901,9 @@ def test_post_chat_malformed_provider_reply_is_unavailable(
     )
 
     assert response.status_code == 503
-    assert "no complete evidence object" in response.json()["detail"]
+    assert response.json()["detail"] == (
+        "Post chat is temporarily unavailable. Saved evidence is still available."
+    )
 
 
 def test_live_chat_provider_error_does_not_leak_raw_error(
@@ -3943,6 +3946,14 @@ def test_global_ask_provider_error_does_not_leak_raw_error(
         def answer(self, question: str, sources) -> object:
             raise Exception("raw-global-provider-secret")
 
+    async def _source(*_args, **_kwargs):
+        return [
+            ChatSourceDocument(
+                seeded_db["own_private_post_id"], "Authorized source", "Evidence"
+            )
+        ]
+
+    monkeypatch.setattr("backend.app.global_ask_queue.gather_global_chat_sources", _source)
     monkeypatch.setattr("backend.app.main._post_chat_client", lambda **_kwargs: _FailingAskClient())
     headers = {"Authorization": f"Bearer {demo_analyst_token}"}
 
@@ -5093,6 +5104,14 @@ def test_ask_queues_a_job_and_polls_it_to_a_settled_answer(
                 cited_post_ids=(sources[0].post_id,),
             )
 
+    async def _source(*_args, **_kwargs):
+        return [
+            ChatSourceDocument(
+                seeded_db["own_private_post_id"], "Authorized source", "Evidence"
+            )
+        ]
+
+    monkeypatch.setattr("backend.app.global_ask_queue.gather_global_chat_sources", _source)
     monkeypatch.setattr("backend.app.main._post_chat_client", lambda **_kwargs: _FakeChatClient())
     headers = {"Authorization": f"Bearer {demo_analyst_token}"}
     submitted = client.post(
