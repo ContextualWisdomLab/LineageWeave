@@ -596,7 +596,9 @@ def test_leftover_map_rank_rejects_negative_rank() -> None:
     with pytest.raises(ValueError, match="non-negative integer"):
         leftover._pair_from_candidate(
             PAIR_KIND_CLOSEST,
-            (0.0, "public-post", "sales_lead_specificity", 0.0, 1.0, 1.0, None),
+            # Full 8-element candidate row: the guard must fire on the rank,
+            # not survive by short-circuiting before row[7] is read.
+            (0.0, "public-post", "sales_lead_specificity", 0.0, 1.0, 1.0, None, None),
             -1,
         )
 
