@@ -54,7 +54,8 @@ export function OperationsDashboardView({ data, externalOnly = false, onOpenPost
   const cases = externalOnly ? data.cases.filter((item) => item.case_kind_code === "external_information") : data.cases;
   const journeys = Object.entries(
     cases.reduce<Record<string, typeof cases>>((groups, item) => {
-      if (item.project_name) (groups[item.project_name] ??= []).push(item);
+      const projects = item.project_names ?? (item.project_name ? [item.project_name] : []);
+      projects.forEach((project) => (groups[project] ??= []).push(item));
       return groups;
     }, {}),
   );
@@ -71,6 +72,19 @@ export function OperationsDashboardView({ data, externalOnly = false, onOpenPost
         <div><dt>분석 대기</dt><dd>{data.pending_analysis_count}</dd></div>
         <div><dt>분석 실패</dt><dd>{data.failed_analysis_count}</dd></div>
       </dl>
+      {!externalOnly ? (
+        <section className="dashboard-case-metrics" aria-labelledby="case-metrics-heading">
+          <h3 id="case-metrics-heading">업무 유형별 현황</h3>
+          <dl className="dashboard-metrics">
+            {data.case_metrics.map((metric) => (
+              <div key={metric.case_kind_code}>
+                <dt>{metric.case_kind_label}</dt>
+                <dd>{metric.event_count} Event · {metric.post_count}글</dd>
+              </div>
+            ))}
+          </dl>
+        </section>
+      ) : null}
       {!externalOnly && journeys.length ? (
         <section className="dashboard-journeys" aria-labelledby="project-journey-heading">
           <h3 id="project-journey-heading">프로젝트 여정</h3>
@@ -78,7 +92,7 @@ export function OperationsDashboardView({ data, externalOnly = false, onOpenPost
             <div key={project} className="dashboard-journey">
               <h4>{project}</h4>
               <ol>
-                {(events ?? []).map((event) => (
+                {[...(events ?? [])].sort((left, right) => left.occurred_at.localeCompare(right.occurred_at)).map((event) => (
                   <li key={`${event.post_id}-${event.case_kind_code}`}>
                     <button type="button" onClick={() => onOpenPost(event.post_id)}>
                       <time dateTime={event.occurred_at}>{event.occurred_at.slice(0, 10)}</time>

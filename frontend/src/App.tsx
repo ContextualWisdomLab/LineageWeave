@@ -5070,6 +5070,16 @@ export default function App({ showLabPanels = false }: { showLabPanels?: boolean
             }}
           />
         ) : null}
+        {destination === "external" ? (
+          <OperationsDashboard
+            accessToken={accessToken}
+            externalOnly
+            onOpenPost={(postId) => {
+              setPostToOpen(postId);
+              setDestination("board");
+            }}
+          />
+        ) : null}
         {destination === "board" ? (
           <PostList
             accessToken={accessToken}

@@ -105,16 +105,21 @@ async def fetch_operations_dashboard(
                classification.summary_text, classification.evidence_text,
                classification.evidence_post_id,
                coalesce(post.event_occurred_at, post.created_at) as occurred_at,
-               coalesce(nullif(btrim(post.source_project_name), ''), project.project_name)
-                   as project_name
+               coalesce(nullif(btrim(post.source_project_name), ''), project.project_names[1])
+                   as project_name,
+               coalesce(project.project_names, array[]::text[]) as project_names
           from operations_case_classification classification
           join source_post post on post.post_id = classification.post_id
           left join lateral (
-              select mention.project_name
-                from post_project_mention mention
-               where mention.post_id = post.post_id
-               order by mention.confidence desc, mention.project_name, mention.project_key
-               limit 1
+              select array_agg(names.project_name order by names.project_name) as project_names
+                from (
+                    select nullif(btrim(post.source_project_name), '') as project_name
+                    union
+                    select nullif(btrim(mention.project_name), '')
+                      from post_project_mention mention
+                     where mention.post_id = post.post_id
+                ) names
+               where names.project_name is not null
           ) project on true
          where {visible}
          order by coalesce(post.event_occurred_at, post.created_at) desc,
@@ -148,6 +153,12 @@ async def fetch_operations_dashboard(
         )
     total = int(metrics["total_post_count"])
     external = int(metrics["external_post_count"])
+    case_post_ids: dict[str, set[str]] = {}
+    case_event_counts: dict[str, int] = {}
+    for row in case_rows:
+        kind = row["case_kind_code"]
+        case_post_ids.setdefault(kind, set()).add(str(row["post_id"]))
+        case_event_counts[kind] = case_event_counts.get(kind, 0) + 1
     return {
         "period_label": _period_label(period_start, period_end),
         "total_post_count": total,
@@ -156,12 +167,22 @@ async def fetch_operations_dashboard(
         "external_percent": external * 100 / total if total else 0.0,
         "pending_analysis_count": int(metrics["pending_analysis_count"]),
         "failed_analysis_count": int(metrics["failed_analysis_count"]),
+        "case_metrics": [
+            {
+                "case_kind_code": kind,
+                "case_kind_label": label,
+                "event_count": case_event_counts.get(kind, 0),
+                "post_count": len(case_post_ids.get(kind, set())),
+            }
+            for kind, label in CASE_KIND_LABELS.items()
+        ],
         "cases": [
             {
                 "post_id": str(row["post_id"]),
                 "case_kind_code": row["case_kind_code"],
                 "case_kind_label": CASE_KIND_LABELS[row["case_kind_code"]],
                 "project_name": row["project_name"],
+                "project_names": list(row["project_names"]),
                 "summary_text": row["summary_text"],
                 "evidence_text": row["evidence_text"],
                 "evidence_post_id": str(row["evidence_post_id"]),

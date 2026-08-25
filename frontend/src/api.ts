@@ -54,6 +54,7 @@ export interface OperationsDashboardCase {
   case_kind_code: string;
   case_kind_label: string;
   project_name: string | null;
+  project_names?: string[];
   summary_text: string;
   evidence_text: string;
   evidence_post_id: string;
@@ -69,6 +70,12 @@ export interface OperationsDashboardResponse {
   external_percent: number;
   pending_analysis_count: number;
   failed_analysis_count: number;
+  case_metrics: Array<{
+    case_kind_code: string;
+    case_kind_label: string;
+    event_count: number;
+    post_count: number;
+  }>;
   cases: OperationsDashboardCase[];
 }
 

@@ -12,6 +12,12 @@ export const EvidenceReady: Story = {
     data: {
       period_label: "2026-08-01–2026-08-25 · Event time", total_post_count: 40, total_event_count: 17,
       external_post_count: 9, external_percent: 22.5, pending_analysis_count: 3,
+      case_metrics: [
+        { case_kind_code: "claim_investigation", case_kind_label: "클레임 원인 규명", event_count: 7, post_count: 5 },
+        { case_kind_code: "rebid_handover", case_kind_label: "재입찰 · 인수인계", event_count: 4, post_count: 3 },
+        { case_kind_code: "external_information", case_kind_label: "발주 공고 · 시장 동향", event_count: 9, post_count: 9 },
+        { case_kind_code: "repeat_issue", case_kind_label: "반복 이슈", event_count: 2, post_count: 2 },
+      ],
       failed_analysis_count: 0,
       cases: [
         { post_id: "synthetic-post-1", case_kind_code: "claim_investigation", case_kind_label: "클레임 원인 역추적", project_name: "Synthetic Transformer Renewal", summary_text: "사양 변경 이후 원인 수주와 Pool을 확인", evidence_text: "Revision B originated in order SO-100 from pool SP-20.", evidence_post_id: "synthetic-post-1", occurred_at: "2026-08-04T00:00:00Z", facts: [{ fact_type_code: "originating_order", fact_type_label: "원인 수주", value_text: "SO-100 · SP-20", evidence_text: "order SO-100 from pool SP-20", evidence_post_id: "synthetic-post-1" }] },
@@ -25,6 +31,7 @@ export const EvidenceReady: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     await expect(canvas.getByText("9건 · 22.5%")).toBeInTheDocument();
+    await expect(canvas.getByText("7 Event · 5글")).toBeVisible();
     await expect(canvas.getAllByRole("button", { name: "분류 근거 글 열기" })[0]).toBeVisible();
   },
 };

@@ -45,6 +45,7 @@ class _Connection:
                 "evidence_text": "Synthetic cited sentence",
                 "evidence_post_id": "00000000-0000-0000-0000-000000000002",
                 "project_name": "Synthetic Project",
+                "project_names": ["Synthetic Project", "Synthetic Secondary Project"],
                 "occurred_at": datetime(2026, 8, 12, tzinfo=timezone.utc),
             }
         ]
@@ -66,12 +67,39 @@ async def test_dashboard_uses_abac_event_clock_and_persisted_evidence() -> None:
     assert result["period_label"] == "2026-08-01 ~ 2026-08-31 · Event 발생일"
     assert result["external_percent"] == 25.0
     assert result["failed_analysis_count"] == 2
+    assert result["case_metrics"] == [
+        {
+            "case_kind_code": "claim_investigation",
+            "case_kind_label": "클레임 원인 규명",
+            "event_count": 1,
+            "post_count": 1,
+        },
+        {
+            "case_kind_code": "rebid_handover",
+            "case_kind_label": "재입찰 · 인수인계",
+            "event_count": 0,
+            "post_count": 0,
+        },
+        {
+            "case_kind_code": "external_information",
+            "case_kind_label": "발주 공고 · 시장 동향",
+            "event_count": 0,
+            "post_count": 0,
+        },
+        {
+            "case_kind_code": "repeat_issue",
+            "case_kind_label": "반복 이슈",
+            "event_count": 0,
+            "post_count": 0,
+        },
+    ]
     assert result["cases"] == [
         {
             "post_id": "00000000-0000-0000-0000-000000000001",
             "case_kind_code": "claim_investigation",
             "case_kind_label": "클레임 원인 규명",
             "project_name": "Synthetic Project",
+            "project_names": ["Synthetic Project", "Synthetic Secondary Project"],
             "summary_text": "원인 수주가 연결됨",
             "evidence_text": "Synthetic cited sentence",
             "evidence_post_id": "00000000-0000-0000-0000-000000000002",
@@ -112,7 +140,9 @@ async def test_dashboard_zero_denominator_and_invalid_period() -> None:
             self.queries.append((query, args))
             return []
 
-    assert (await fetch_operations_dashboard(EmptyConnection(), []))["external_percent"] == 0.0
+    empty = await fetch_operations_dashboard(EmptyConnection(), [])
+    assert empty["external_percent"] == 0.0
+    assert all(metric["event_count"] == metric["post_count"] == 0 for metric in empty["case_metrics"])
     with pytest.raises(ValueError, match="period_start"):
         await fetch_operations_dashboard(
             EmptyConnection(), [], [], date(2026, 9, 1), date(2026, 8, 31)

@@ -4198,6 +4198,7 @@ describe("App, authenticated", () => {
     expect(screen.getByRole("button", { name: "게시판" })).toHaveAttribute("aria-current", "page");
     expect(within(nav).getAllByRole("button").map((button) => button.textContent)).toEqual([
       "Dashboard",
+      "외부 정보",
       "게시판",
       "고객 마스터",
       "달력",
