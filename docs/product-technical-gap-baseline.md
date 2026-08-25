@@ -20,7 +20,7 @@ context only.
 | #593 | `e6d74efd` | blocked; exact-head checks and independent review pending |
 | #592 | `f33e64ee` | blocked; ADR 0200 fail-closed weight delivery checks pending |
 | #590 | `2f033ba3` | blocked; required checks running |
-| #588 | `74ed95d8` | blocked; Full test suite failed |
+| #588 | `2f5e197e` | ADR collision repaired as 0201; auto-merge armed, checks and independent review pending |
 | #585 | `235cd6d7` | blocked; core suite green, review gates running |
 | #584 | `bd28a91b` | dirty; Full suite and Strix failed |
 | #582 | `f062acd4` | current-main reconciliation pushed; checks restarted |
