@@ -117,3 +117,14 @@ duplicate filter-option query; they do not demonstrate current-head latency,
 causality, capacity, or an SLO. ADR 0212 combines the two option projections
 into one database query; its physical plan remains to be measured exact-head.
 Repeat the synthetic k6 run on an exact-head image before comparing effects.
+
+## Operations Dashboard exact-head observation
+
+On 2026-08-26 KST, candidate `361641ec` ran from a freshly built, isolated
+Compose project with the repository's 27-post synthetic dataset, 4 VUs, and a
+30-second observation window. It completed 974 iterations and 3,898 HTTP
+requests with zero failed requests and 3,896/3,896 successful reader checks.
+HTTP p95 was 194.70 ms; ordinary-reader p95 was 204.06 ms; Ask enqueue was
+104.90 ms. This local synthetic observation is not a capacity guarantee or an
+approved SLO; repeat it on the protected merge SHA and representative declared
+deployment capacity.

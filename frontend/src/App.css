@@ -225,6 +225,12 @@
   background: var(--color-btn-secondary-hover);
 }
 
+.btn-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--size-control-min);
+}
+
 /* Language Switcher */
 .language-switcher {
   display: inline-flex;

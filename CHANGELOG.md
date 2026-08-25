@@ -8,6 +8,8 @@ All notable changes to this project are documented here. Format follows
 
 ### Changed
 
+- Dashboard evidence-link hit areas now honor the shared minimum control-size token on touch layouts.
+
 - Async Ask queue tests now isolate queue settlement from semantic retrieval,
   and the development test stack follows Starlette's maintained `httpx2`
   `TestClient` contract. FastAPI 422 responses use the RFC 9110 constant, so

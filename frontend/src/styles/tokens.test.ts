@@ -174,6 +174,14 @@ describe("design tokens", () => {
     expect(citationChipBlock).toContain("display: inline-flex");
     expect(citationChipBlock).toContain("align-items: center");
   });
+
+  it("gives Dashboard evidence links the shared minimum touch target", () => {
+    const rule = appCss.match(/\.btn-link\s*\{[^}]*\}/)?.[0] ?? "";
+    expect(rule, ".btn-link rule not found in App.css").not.toBe("");
+    expect(rule).toContain("min-height: var(--size-control-min)");
+    expect(rule).toContain("display: inline-flex");
+    expect(rule).toContain("align-items: center");
+  });
 });
 
 describe("secondary disclosure toggle touch targets", () => {
