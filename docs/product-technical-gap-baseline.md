@@ -351,14 +351,7 @@ this file per §3.5 of the prior snapshot).
 | #277 | TEPP: persist accepted receipts, poll completed results, keep measurement authority distinct | #468, #417 |
 | #280 | Full project-lifecycle history and handover intervals | Tracked with issue #284; no active delivery PR confirmed |
 | #284 | Authoritative lifecycle ingestion and idempotent reconciliation | No active delivery PR confirmed |
-| #289 | Activate the optional lineage LLM channel through a bounded asynchronous rebuild | #434 |
-| #336 | Replace pseudo-CalDAV feed with a Naruon-owned calendar projection | Contract on `main` (#355); operator consume wiring in historical branch `feat/naruon-calendar-buyer-wiring-v2170` |
 | #338 | Evidence-bounded email/project lineage contract for Naruon consumption | Missing on protected `main`; #343 merged only into a non-default stack, while #355 is a distinct calendar-consumer contract and is not delivery evidence for email/project lineage |
-| #341 | Heterogeneous ontology and provenance explorer separate from Event Lineage | Protected `main` via #349; issue closed |
-| #358 | Batch reauthorize persisted post-Ask evidence without N+1 queries | Closed as obsolete: protected `main` has no persisted project-history Ask exchange path to reauthorize; any future ADR 0136 session delivery must include bounded batch reauthorization |
-| #359 | Centralize Global Ask session storage access | Ask stack |
-| #363 | Continue ontology neighborhoods beyond the bounded source window | Protected `main` via #349; issue closed |
-| #372 | Reconcile lowercase and repository-case public namespace IRIs | Protected `main` via #616; issue closed, with term-kind hardening on #618 |
 | #611 | Decompose closed PR #490 ADR 0133–0137 evidence without transferring stale branch state | #631 supplies the current-main inventory only; focused implementation PRs and tests for every unmet criterion are still required |
 
 ## 5. Open product and technical gaps
