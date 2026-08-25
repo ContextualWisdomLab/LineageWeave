@@ -3972,6 +3972,7 @@ function PostList({
       setFocusedGraph(null);
       return;
     }
+    setFocusedGraph(null);
     let active = true;
     fetchLineageGraph(accessToken, selectedPostId)
       .then((nextGraph) => {
