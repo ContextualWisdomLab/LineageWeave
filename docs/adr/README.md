@@ -23,6 +23,7 @@ decision from them.
 | [`GLOBAL_ASK_QUERY_REWRITE_REFERENCES.md`](../doctoring/GLOBAL_ASK_QUERY_REWRITE_REFERENCES.md) | [0217](0217-evidence-constrained-semantic-query-rewrite.md) |
 | [`MCP_GLOBAL_ASK_REFERENCES.md`](../doctoring/MCP_GLOBAL_ASK_REFERENCES.md) | [0218](0218-current-contract-mcp-global-ask.md) |
 | [`operability/http-concurrency-evidence.md`](../operability/http-concurrency-evidence.md) | [0204](0204-analysis-run-short-transaction-delivery.md), [0212](0212-single-query-authorized-post-filter-options.md), [0213](0213-global-ask-embedding-pool-release.md) |
+| [`operability/mcp-concurrency-evidence.md`](../operability/mcp-concurrency-evidence.md) | [0218](0218-current-contract-mcp-global-ask.md) |
 | Evidence operations Dashboard (`/`) | [0206](0206-evidence-operations-dashboard.md) |
 | [`temporal-topic-context-influence-research.md`](../temporal-topic-context-influence-research.md) | [0210](0210-temporal-topic-context-influence-dashboard.md) |
 | [`python-mathematical-compute-boundary-audit.md`](../doctoring/python-mathematical-compute-boundary-audit.md) | [0208](0208-externalize-local-mathematical-compute.md) |
