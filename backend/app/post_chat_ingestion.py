@@ -329,6 +329,7 @@ async def gather_chat_sources(
         return []
     source_id = str(this_post["post_id"])
     semantic_facts = await _semantic_facts_for_posts(conn, [source_id])
+    graph_facts = await _graph_facts_for_posts(conn, [source_id])
     normalized_body = await _normalize_post_body_text(
         this_post["post_body"],
         vision_client,
@@ -338,6 +339,7 @@ async def gather_chat_sources(
             source_id,
             this_post["post_title"],
             normalized_body,
+            graph_facts=graph_facts.get(source_id, ()),
             evidence_facts=_source_hint_facts(this_post) + semantic_facts.get(source_id, ()),
         )
     ]
@@ -373,13 +375,8 @@ async def gather_chat_sources(
             break
 
     semantic_facts = await _semantic_facts_for_posts(conn, visible_source_ids)
-    graph_facts = await _graph_facts_for_posts(conn, visible_source_ids)
-    sources[0] = ChatSourceDocument(
-        sources[0].post_id,
-        sources[0].post_title,
-        sources[0].post_body,
-        graph_facts=graph_facts.get(post_id, ()),
-        evidence_facts=sources[0].evidence_facts,
+    graph_facts = await _graph_facts_for_posts(
+        conn, [str(row["post_id"]) for row in visible_rows]
     )
     for row in visible_rows:
         normalized_body = await _normalize_post_body_text(row["post_body"], vision_client)
