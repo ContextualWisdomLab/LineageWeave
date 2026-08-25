@@ -168,6 +168,7 @@ def test_import_rows_persists_raw_and_derived_grouping_values(
         "",
         "project-1",
     )
+    assert source_post_args[-1] is None
     assert result == {
         "source_rows": 1,
         "imported_rows": 1,
@@ -326,6 +327,49 @@ def test_importer_always_requires_verified_publication_state() -> None:
 def test_importer_has_no_unknown_publication_state_bypass() -> None:
     with pytest.raises(SystemExit):
         _parser().parse_args(["--allow-unknown-publication-state"])
+
+
+def test_no_draft_dimension_evidence_is_an_explicit_audited_door() -> None:
+    """An export with no authorship-draft dimension passes only with the
+    operator's written evidence; the note cannot be a placeholder and
+    cannot be combined with a mapped draft column.
+    """
+    no_draft_mapping = SimpleNamespace(
+        record_key="record_key", body="body", draft=None, deleted=None
+    )
+    evidence = (
+        "every candidate draft column is NULL across the export and the "
+        "prior full-corpus pipeline treated every lifecycle stage as a "
+        "real document"
+    )
+    _validate_source_rows(
+        [{"record_key": "one", "body": "body"}],
+        no_draft_mapping,
+        [],
+        [],
+        evidence,
+    )
+
+    with pytest.raises(ValueError, match="at least 40 characters"):
+        _validate_source_rows(
+            [{"record_key": "one", "body": "body"}],
+            no_draft_mapping,
+            [],
+            [],
+            "no drafts",
+        )
+
+    draft_mapping = SimpleNamespace(
+        record_key="record_key", body="body", draft="draft_state", deleted=None
+    )
+    with pytest.raises(ValueError, match="pick one publication-state door"):
+        _validate_source_rows(
+            [{"record_key": "one", "body": "body", "draft_state": "N"}],
+            draft_mapping,
+            ["Y"],
+            [],
+            evidence,
+        )
 
 
 def test_importer_rejects_demo_scope_without_explicit_test_override() -> None:

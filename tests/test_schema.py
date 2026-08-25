@@ -43,6 +43,11 @@ _PROJECT_BOUND_EVENT_MIGRATION = (
     / "migrations"
     / "0102_project_bound_summary_event.sql"
 )
+_INTERVAL_RELATION_MIGRATION = (
+    Path(__file__).resolve().parents[1]
+    / "migrations"
+    / "0140_post_lineage_interval_relation.sql"
+)
 _LEFTOVER_OBSERVED_EXPECTED_MIGRATION = (
     Path(__file__).resolve().parents[1]
     / "migrations"
@@ -52,6 +57,11 @@ _LEFTOVER_MAP_RANK_MIGRATION = (
     Path(__file__).resolve().parents[1]
     / "migrations"
     / "0164_report_leftover_map_rank.sql"
+)
+_LEFTOVER_MAP_CROSS_SHARE_MIGRATION = (
+    Path(__file__).resolve().parents[1]
+    / "migrations"
+    / "0185_report_leftover_map_cross_share.sql"
 )
 _LEFTOVER_MAP_AXIS_MIGRATION = (
     Path(__file__).resolve().parents[1]
@@ -109,12 +119,14 @@ def schema_db():
                 cur.execute(_MAJOR_EVENT_ACTION_MIGRATION.read_text())
                 cur.execute(_PROJECT_BOUND_ACTION_MIGRATION.read_text())
                 cur.execute(_PROJECT_BOUND_EVENT_MIGRATION.read_text())
+                cur.execute(_INTERVAL_RELATION_MIGRATION.read_text())
                 cur.execute(_LEFTOVER_OBSERVED_EXPECTED_MIGRATION.read_text())
                 cur.execute(_LEFTOVER_MAP_RANK_MIGRATION.read_text())
                 cur.execute(_LEFTOVER_MAP_COVERAGE_MIGRATION.read_text())
                 cur.execute(_LEFTOVER_MAP_AXIS_MIGRATION.read_text())
                 cur.execute(_LEFTOVER_INTERACTION_MAP_MIGRATION.read_text())
                 cur.execute(_LEFTOVER_MAP_UNEXPLAINED_MIGRATION.read_text())
+                cur.execute(_LEFTOVER_MAP_CROSS_SHARE_MIGRATION.read_text())
             conn.commit()
             yield conn
         finally:
@@ -170,6 +182,27 @@ def test_migration_applies_cleanly(schema_db) -> None:
         "post_chat_citation",
     }
     assert expected <= tables
+
+
+def test_post_lineage_edge_requires_an_allen_interval_code(schema_db) -> None:
+    with schema_db.cursor() as cur:
+        cur.execute(
+            """
+            select is_nullable
+              from information_schema.columns
+             where table_name = 'post_lineage_edge'
+               and column_name = 'interval_relation_code'
+            """
+        )
+        assert cur.fetchone()[0] == "NO"
+        cur.execute(
+            "select lookup_code from common_lookup_value "
+            "where lookup_category = 'interval_relation' order by display_order"
+        )
+        codes = [row[0] for row in cur.fetchall()]
+    assert "interval_contains" in codes
+    assert "interval_overlaps" in codes
+    assert len(codes) == 13
 
 
 def test_major_event_action_project_reference_is_normalized(schema_db) -> None:
@@ -285,6 +318,35 @@ def test_leftover_pair_names_nullable_unexplained_column(schema_db) -> None:
     assert columns["leftover_residual"] == "NO"
     assert columns["leftover_distance"] == "NO"
     assert "leftover_map_reconstruction" not in columns
+
+
+def test_leftover_pair_names_nullable_cross_share_column(schema_db) -> None:
+    """Every install path preserves legacy pairs while naming leftover-map cross share."""
+    with schema_db.cursor() as cur:
+        cur.execute(
+            """
+            select column_name, is_nullable
+            from information_schema.columns
+            where table_name = 'report_leftover_pair'
+            """
+        )
+        columns = dict(cur.fetchall())
+    assert columns["leftover_map_cross_share"] == "YES"
+    assert columns["leftover_residual"] == "NO"
+    assert columns["leftover_distance"] == "NO"
+    assert "leftover_map_explained_share" not in columns
+    assert "leftover_map_unexplained_share" not in columns
+    assert "leftover_map_reconstruction" not in columns
+    with schema_db.cursor() as cur:
+        cur.execute(
+            """
+            select conname
+            from pg_constraint
+            where conrelid = 'report_leftover_pair'::regclass
+              and conname like '%share%chk'
+            """
+        )
+        assert cur.fetchall() == []
 
 
 def test_leftover_map_axis_references_period_score(schema_db) -> None:

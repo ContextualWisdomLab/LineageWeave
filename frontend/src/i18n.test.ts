@@ -53,12 +53,16 @@ describe("i18n", () => {
     "Open this post to read the criterion it sat closest to after main effects.",
     "Open this post to read the criterion it sat farthest from after main effects.",
     "Leftover map leaves unexplained U {value} after IRT main effects. Open this post to read {criterion}.",
+    "Two leftover-map axes leave identity remainder {value} of raw residual after IRT main effects. Open this post to read {criterion}.",
     "Read observed Y {observed} and expected E {expected} after IRT main effects, then open this post.",
     "Leftover map has no leftover structure after IRT main effects. Open this post.",
     "Leftover map rank {rank} after IRT main effects. Open this post.",
     "Read leftover map rank {rank}, observed Y {observed}, and expected E {expected} after IRT main effects, then open this post.",
     "Leftover map rank 0 means no leftover structure after IRT main effects. Read observed Y {observed} and expected E {expected}, then open this post.",
     "Showing the first {shown} of {total} posts known at this cutoff.",
+    "Contains",
+    "Overlaps",
+    "Interval relations",
     "Inspect ontology neighborhood",
     "Ontology neighborhood",
     "This is an ontology neighborhood, not Event Lineage.",
@@ -148,6 +152,23 @@ describe("i18n", () => {
   });
 
   it.each([
+    ["ko", "부모", "자식", "부모의 자식에 대한 관계: 포함; 부모 열기"],
+    ["zh", "父", "子", "父 与 子 的关系：包含；打开 父"],
+    ["ja", "親", "子", "親から子への関係: 含む; 親を開く"],
+    ["vi", "cha", "con", "Quan hệ từ cha đến con: Chứa; mở cha"],
+  ] as const)("formats directed interval evidence in %s", (locale, from, to, expected) => {
+    setLocale(locale);
+    expect(
+      tf("{from} relates to {to} as {relation}; open {label}", {
+        from,
+        to,
+        relation: t("Contains"),
+        label: from,
+      }),
+    ).toBe(expected);
+  });
+
+  it.each([
     ["ko", "영역 위치"],
     ["zh", "区域位置"],
     ["ja", "領域の位置"],
@@ -168,6 +189,33 @@ describe("i18n", () => {
       tf(
         "Leftover residual R {residual} after IRT main effects. Open this post to read {criterion}.",
         { residual: "+0.40", criterion: "sales-lead" },
+      ),
+    ).toBe(expected);
+  });
+
+  it.each([
+    [
+      "ko",
+      "잔여 지도의 두 축이 IRT 주효과 이후 원시 잔차의 항등식 나머지 -0.24을(를) 남깁니다. sales-lead 기준을 읽으려면 이 글을 여세요.",
+    ],
+    [
+      "zh",
+      "残差图的两个轴在 IRT 主效应后留下原始残差的恒等式余项 -0.24。打开这篇帖子阅读 sales-lead。",
+    ],
+    [
+      "ja",
+      "残差マップの2軸はIRT主効果後の生の残差の恒等式の余り -0.24 を残します。この投稿を開いて sales-lead を読んでください。",
+    ],
+    [
+      "vi",
+      "Hai trục của bản đồ phần dư để lại phần giao -0.24 của phần dư thô sau hiệu ứng chính IRT. Mở bài viết này để đọc sales-lead.",
+    ],
+  ] as const)("formats leftover-map cross share next action in %s", (locale, expected) => {
+    setLocale(locale);
+    expect(
+      tf(
+        "Two leftover-map axes leave identity remainder {value} of raw residual after IRT main effects. Open this post to read {criterion}.",
+        { value: "-0.24", criterion: "sales-lead" },
       ),
     ).toBe(expected);
   });

@@ -71,6 +71,7 @@ class ColumnMapping:
     body: str
     created_at: str
     updated_at: str | None
+    event_occurred_at: str | None
     voc_type: str | None
     visibility: str | None
     stage: str | None
@@ -111,6 +112,10 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument("--body-column", required=True)
     parser.add_argument("--created-at-column", required=True)
     parser.add_argument("--updated-at-column")
+    parser.add_argument(
+        "--event-occurred-at-column",
+        help="optional source-system event instant; Global Ask falls back to created_at when omitted",
+    )
     parser.add_argument("--voc-type-column")
     parser.add_argument("--visibility-column")
     parser.add_argument("--stage-column")
@@ -128,6 +133,15 @@ def _parser() -> argparse.ArgumentParser:
         action="append",
         default=[],
         help="authoritative source deletion value to skip; repeat for multiple values",
+    )
+    parser.add_argument(
+        "--no-draft-dimension-evidence",
+        default="",
+        help=(
+            "written evidence that this export has no authorship-draft "
+            "dimension at all (mutually exclusive with --draft-column); "
+            "surfaced verbatim in the import summary for audit"
+        ),
     )
     parser.add_argument("--source-author-code-column")
     parser.add_argument("--source-author-name-column")
@@ -266,8 +280,32 @@ def _validate_publication_state(
     rows: list[Any],
     mapping: ColumnMapping,
     excluded_draft_values: list[str],
+    no_draft_dimension_evidence: str = "",
 ) -> None:
-    """Require evidence that imported rows have a known publication state."""
+    """Require evidence that imported rows have a known publication state.
+
+    Two doors, both explicit: either a mapped draft column with excluded
+    values, or ``--no-draft-dimension-evidence`` carrying the operator's
+    written evidence that the export has no authorship-draft dimension
+    at all (e.g. every candidate draft column is NULL across the export
+    and a prior full-corpus pipeline treated every lifecycle stage as a
+    real document). The evidence note is surfaced in the import summary
+    so the claim is auditable, never implicit.
+    """
+    evidence = no_draft_dimension_evidence.strip()
+    if evidence:
+        if mapping.draft is not None or excluded_draft_values:
+            raise ValueError(
+                "--no-draft-dimension-evidence cannot be combined with a "
+                "mapped draft column or --exclude-draft-value; pick one "
+                "publication-state door"
+            )
+        if len(evidence) < 40:
+            raise ValueError(
+                "--no-draft-dimension-evidence must actually state the "
+                "evidence (at least 40 characters), not a placeholder"
+            )
+        return
     if mapping.draft is None:
         raise ValueError("source draft status column is required for publication-state preflight")
     if not excluded_draft_values:
@@ -281,9 +319,12 @@ def _validate_source_rows(
     mapping: ColumnMapping,
     excluded_draft_values: list[str],
     excluded_deleted_values: list[str],
+    no_draft_dimension_evidence: str = "",
 ) -> None:
     """Reject incomplete source evidence before the target is mutated."""
-    _validate_publication_state(rows, mapping, excluded_draft_values)
+    _validate_publication_state(
+        rows, mapping, excluded_draft_values, no_draft_dimension_evidence
+    )
     seen_record_keys: dict[str, int] = {}
     seen_post_ids: dict[uuid.UUID, int] = {}
     post_id_column = getattr(mapping, "post_id", None)
@@ -368,7 +409,7 @@ async def _ensure_scope(conn: asyncpg.Connection, args: argparse.Namespace) -> t
     return str(account_id), str(corporate_id), str(process_unit_id)
 
 
-async def import_rows(args: argparse.Namespace) -> dict[str, int]:
+async def import_rows(args: argparse.Namespace) -> dict[str, object]:
     """Import rows and return aggregate evidence only."""
     _validate_corporate_entity_scope(
         args.corporate_entity_code,
@@ -381,6 +422,7 @@ async def import_rows(args: argparse.Namespace) -> dict[str, int]:
         body=args.body_column,
         created_at=args.created_at_column,
         updated_at=args.updated_at_column,
+        event_occurred_at=args.event_occurred_at_column,
         voc_type=args.voc_type_column,
         visibility=args.visibility_column,
         stage=args.stage_column,
@@ -415,6 +457,7 @@ async def import_rows(args: argparse.Namespace) -> dict[str, int]:
             mapping,
             args.exclude_draft_value,
             args.exclude_deleted_value,
+            args.no_draft_dimension_evidence,
         )
         account_id, corporate_id, process_unit_id = await _ensure_scope(target, args)
         vision_client = orchestrator_vision_client(
@@ -441,7 +484,17 @@ async def import_rows(args: argparse.Namespace) -> dict[str, int]:
                 continue
             record_key = str(_value(row, mapping.record_key)).strip()
             created_at = _timestamp(_value(row, mapping.created_at))
-            updated_at = _timestamp(_value(row, mapping.updated_at, created_at))
+            # A mapped updated column that is NULL means "never updated",
+            # not missing evidence: fall back to created_at instead of
+            # rejecting the row.
+            raw_updated_at = _value(row, mapping.updated_at, created_at)
+            updated_at = (
+                created_at if raw_updated_at is None else _timestamp(raw_updated_at)
+            )
+            event_raw = (
+                _value(row, mapping.event_occurred_at) if mapping.event_occurred_at else None
+            )
+            event_occurred_at = _timestamp(event_raw) if event_raw is not None else None
             post_id = _source_post_id(row, mapping, args.source_system_code, record_key)
             title = str(_value(row, mapping.title, "") or "")
             body = str(_value(row, mapping.body, "") or "")
@@ -474,8 +527,9 @@ async def import_rows(args: argparse.Namespace) -> dict[str, int]:
                      source_project_code, source_project_name,
                      source_system_code, source_record_key,
                      source_thread_group_key, source_secondary_grouping_key,
-                     thread_group_key, secondary_grouping_key, created_at, updated_at)
-                values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32)
+                     thread_group_key, secondary_grouping_key, created_at, updated_at,
+                     event_occurred_at)
+                values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33)
                 on conflict (post_id) do update set
                     author_account_id = excluded.author_account_id,
                     corporate_entity_id = excluded.corporate_entity_id,
@@ -508,7 +562,8 @@ async def import_rows(args: argparse.Namespace) -> dict[str, int]:
                     thread_group_key = excluded.thread_group_key,
                     secondary_grouping_key = excluded.secondary_grouping_key,
                     created_at = excluded.created_at,
-                    updated_at = excluded.updated_at
+                    updated_at = excluded.updated_at,
+                    event_occurred_at = excluded.event_occurred_at
                 """,
                 post_id,
                 account_id,
@@ -542,6 +597,7 @@ async def import_rows(args: argparse.Namespace) -> dict[str, int]:
                 secondary_grouping_key,
                 created_at,
                 updated_at,
+                event_occurred_at,
             )
             await target.execute(
                 """
@@ -599,13 +655,18 @@ async def import_rows(args: argparse.Namespace) -> dict[str, int]:
                     "POST /api/lineage/rebuild"
                 ),
             }
-        return {
+        summary: dict[str, object] = {
             "source_rows": len(rows),
             "imported_rows": imported,
             "skipped_rows": skipped,
             **lineage_summary,
             **cleanup,
         }
+        if args.no_draft_dimension_evidence.strip():
+            summary["no_draft_dimension_evidence"] = (
+                args.no_draft_dimension_evidence.strip()
+            )
+        return summary
     finally:
         await source.close()
         await target.close()

@@ -46,10 +46,11 @@ DEMO_SOURCE_SNAPSHOT_MATERIAL = b"lineageweave-synthetic-demo-snapshot-v1"
 DEMO_SOURCE_CONTRACT_VERSION = "demo-source-contract-v1"
 DEMO_LINEAGE_IDEMPOTENCY_KEY = "demo-lineage-seed-2026-w02"
 DEMO_TEPP_IDEMPOTENCY_KEY = "demo-tepp-seed-2026-w02"
+DEMO_TOPIC_LINEAGE_IDEMPOTENCY_KEY = "demo-topic-lineage-seed-2026-w02"
 DEMO_REPORT_IDEMPOTENCY_KEY = "demo-report-seed-2026-w02"
 
-# (post_title, ticket_title, due_date) -- Event Lineage fixtures a report
-# member click opens. Activity seed uses the same titles so Valkey matches.
+# (post_title, ticket_title, due_date) -- report/calendar fixture tickets.
+# Activity seed uses the same titles so Valkey matches.
 FIXTURE_TICKET_SPECS = (
     (
         "Pricing renegotiation follow-up",
@@ -90,6 +91,7 @@ def _fetch_demo_user_subjects(base_url: str, admin_user: str, admin_password: st
             f"{base_url}/admin/realms/{REALM}/users?{query}",
             headers={"Authorization": f"Bearer {admin_token}"},
             timeout=10,
+            service_peer_name="oidc",
         )
         if not users:
             raise SystemExit(f"Keycloak user '{username}' not found in realm '{REALM}' -- did the realm import run?")
@@ -124,6 +126,7 @@ def seed(
             cur.execute((migrations / "0169_report_leftover_map_axis.sql").read_text())
             cur.execute((migrations / "0172_report_leftover_interaction_map.sql").read_text())
             cur.execute((migrations / "0182_report_leftover_map_unexplained.sql").read_text())
+            cur.execute((migrations / "0185_report_leftover_map_cross_share.sql").read_text())
             cur.execute((migrations / "0060_role_responsibility_agent_type.sql").read_text())
             cur.execute((migrations / "0013_person_job_title.sql").read_text())
             cur.execute((migrations / "0014_role_responsibility_team_actor_type.sql").read_text())
@@ -135,8 +138,10 @@ def seed(
             cur.execute((migrations / "0021_analysis_run_reconstruction.sql").read_text())
             cur.execute((migrations / "0022_analysis_source_snapshot_member.sql").read_text())
             cur.execute((migrations / "0023_analysis_run_outbox.sql").read_text())
+            cur.execute((migrations / "0131_analysis_run_topic_lineage_kind.sql").read_text())
             cur.execute((migrations / "0024_source_post_revision.sql").read_text())
             cur.execute((migrations / "0025_role_person_catalog_identity.sql").read_text())
+            cur.execute((migrations / "0140_post_lineage_interval_relation.sql").read_text())
             cur.execute(
                 """
                 insert into common_lookup_value (lookup_category, lookup_code, lookup_label, display_order) values
@@ -168,7 +173,20 @@ def seed(
                     ('entity_relationship_type', 'rel_vos', 'Voice of Supplier', 5),
                     ('ticket_status', 'open', 'Open', 0),
                     ('ticket_status', 'in_progress', 'In progress', 1),
-                    ('ticket_status', 'closed', 'Closed', 2)
+                    ('ticket_status', 'closed', 'Closed', 2),
+                    ('interval_relation', 'interval_before', 'Before', 0),
+                    ('interval_relation', 'interval_after', 'After', 1),
+                    ('interval_relation', 'interval_meets', 'Meets', 2),
+                    ('interval_relation', 'interval_met_by', 'Met by', 3),
+                    ('interval_relation', 'interval_overlaps', 'Overlaps', 4),
+                    ('interval_relation', 'interval_overlapped_by', 'Overlapped by', 5),
+                    ('interval_relation', 'interval_starts', 'Starts', 6),
+                    ('interval_relation', 'interval_started_by', 'Started by', 7),
+                    ('interval_relation', 'interval_during', 'During', 8),
+                    ('interval_relation', 'interval_contains', 'Contains', 9),
+                    ('interval_relation', 'interval_finishes', 'Finishes', 10),
+                    ('interval_relation', 'interval_finished_by', 'Finished by', 11),
+                    ('interval_relation', 'interval_equals', 'Equals', 12)
                 on conflict (lookup_code) do nothing
                 """
             )
@@ -429,6 +447,7 @@ def seed(
             _seed_fixture_chats(cur)
             _seed_fixture_evaluations(cur)
             _seed_fixture_tickets(cur)
+            _seed_lineage_interval_relations(cur)
             _seed_fixture_ticket_activity(cur, account_ids["demo.analyst"], valkey_url)
             _seed_demo_period_report(
                 cur,
@@ -446,10 +465,22 @@ def seed(
                 account_ids["demo.analyst"],
                 corporate_entity_id,
             )
+            _seed_demo_topic_lineage_run(
+                cur,
+                account_ids["demo.analyst"],
+                corporate_entity_id,
+            )
             _seed_demo_report_run(
                 cur,
                 account_ids["demo.analyst"],
                 corporate_entity_id,
+            )
+            # Fixture occurred_at was stored as created_at. Name that instant
+            # as the event clock so Global Ask can disclose the event axis
+            # without inventing a second date (ADR 0202).
+            cur.execute(
+                "update source_post set event_occurred_at = created_at "
+                "where event_occurred_at is null"
             )
 
         conn.commit()
@@ -460,9 +491,11 @@ def seed(
 def insert_fixture_source_posts(cur, author_account_id, corporate_entity_id, process_unit_id):
     """Insert ``sample_records()`` as ``source_post`` rows seed and rebuild share.
 
-    Writes ``thread_group_key``, ``secondary_grouping_key``, and
-    ``created_at = occurred_at`` so a later ``POST /api/lineage/rebuild``
-    sees the same grouping and timeline reconstruct() was designed on.
+    Writes ``thread_group_key``, ``secondary_grouping_key``,
+    ``created_at = occurred_at``, and ``event_occurred_at = occurred_at``
+    so a later ``POST /api/lineage/rebuild`` sees the same grouping and
+    timeline reconstruct() was designed on, and Global Ask relative-time
+    filters can name the event clock (ADR 0202).
     Returns persisted ``Record``s whose ids are the new post UUIDs.
     """
     from datetime import timezone
@@ -480,8 +513,9 @@ def insert_fixture_source_posts(cur, author_account_id, corporate_entity_id, pro
             "insert into source_post "
             "(author_account_id, corporate_entity_id, process_unit_id, "
             " post_title, post_body, voc_type_code, visibility_code, "
-            " thread_group_key, secondary_grouping_key, created_at, updated_at) "
-            "values (%s, %s, %s, %s, %s, %s, 'public', %s, %s, %s, %s) returning post_id",
+            " thread_group_key, secondary_grouping_key, created_at, updated_at, "
+            " event_occurred_at) "
+            "values (%s, %s, %s, %s, %s, %s, 'public', %s, %s, %s, %s, %s) returning post_id",
             (
                 author_account_id,
                 corporate_entity_id,
@@ -491,6 +525,7 @@ def insert_fixture_source_posts(cur, author_account_id, corporate_entity_id, pro
                 voc_type,
                 rec.group_key,
                 rec.secondary_key,
+                occurred,
                 occurred,
                 occurred,
             ),
@@ -606,8 +641,9 @@ def _seed_reconstructed_lineage(cur, author_account_id, corporate_entity_id, pro
     )
     for edge in lineage_edge_specs(persisted, weights=estimate.weights):
         cur.execute(
-            "insert into post_lineage_edge (parent_post_id, child_post_id, fused_score) "
-            "values (%s, %s, %s) on conflict do nothing",
+            "insert into post_lineage_edge "
+            "(parent_post_id, child_post_id, fused_score, interval_relation_code) "
+            "values (%s, %s, %s, 'interval_before') on conflict do nothing",
             (edge.parent_id, edge.child_id, edge.fused_score),
         )
 
@@ -1043,6 +1079,36 @@ def _seed_fixture_tickets(cur) -> None:
         )
 
 
+def _seed_lineage_interval_relations(cur) -> None:
+    """Name Allen relations from observed post creation-day points (ADR 0161)."""
+    from lineageweave.interval_relation import (
+        allen_interval_relation,
+        interval_from_post,
+    )
+
+    cur.execute(
+        """
+        select edge.parent_post_id, edge.child_post_id,
+               parent_post.created_at, child_post.created_at
+          from post_lineage_edge as edge
+          join source_post as parent_post on parent_post.post_id = edge.parent_post_id
+          join source_post as child_post on child_post.post_id = edge.child_post_id
+        """
+    )
+    rows = list(cur.fetchall())
+    for parent_id, child_id, parent_created, child_created in rows:
+        code = allen_interval_relation(
+            interval_from_post(parent_created),
+            interval_from_post(child_created),
+        )
+        cur.execute(
+            "update post_lineage_edge set interval_relation_code = %s "
+            "where parent_post_id = %s and child_post_id = %s",
+            (code, parent_id, child_id),
+        )
+
+
+
 def _seed_fixture_ticket_activity(cur, actor_account_id, valkey_url: str) -> None:
     """``XADD`` ticket_created onto each seeded ticket's post stream.
 
@@ -1288,8 +1354,8 @@ def _persist_seed_period_report(
             "grouping_kind, grouping_key, period_code, rubric_version, "
             "pair_kind, post_id, criterion_code, leftover_distance, leftover_residual, "
             "observed_response, expected_response, leftover_map_rank, "
-            "leftover_map_unexplained"
-            ") values (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)",
+            "leftover_map_unexplained, leftover_map_cross_share"
+            ") values (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)",
             (
                 grouping_kind,
                 grouping_key,
@@ -1304,6 +1370,7 @@ def _persist_seed_period_report(
                 pair.expected_response,
                 pair.leftover_map_rank,
                 pair.leftover_map_unexplained,
+                pair.leftover_map_cross_share,
             ),
         )
     for person in report.leftover_map_persons:
@@ -1843,6 +1910,115 @@ def _seed_demo_tepp_run(cur, requested_by_account_id, corporate_entity_id) -> No
     _seed_demo_run_outbox(cur, run_id)
 
 
+def topic_lineage_seed_request() -> AnalysisRunRequest:
+    """Build the Demo Corp topic-lineage request against the shared snapshot digest.
+
+    Same wire shape as :func:`tepp_seed_request` (ADR 0132) -- only the
+    model contract and output profile select TRSL-TM topic identity plus
+    CHRONOS/TDT event-intelligence status instead of calibrated
+    psychometric measurement.
+    """
+    return AnalysisRunRequest(
+        idempotency_key=DEMO_TOPIC_LINEAGE_IDEMPOTENCY_KEY,
+        tenant_workspace_id="demo-workspace",
+        snapshot_id=demo_source_snapshot_sha256(),
+        knowledge_cutoff="2026-01-12T12:00:00Z",
+        model_contract_version="tepp-topic-lineage-v1",
+        output_profile="topic_identity_lineage",
+    )
+
+
+def topic_lineage_seed_outcome(client: TeppClient | None = None) -> tuple[str, str | None]:
+    """Ask TEPP through the published client. A missing transport is Failed.
+
+    Never invents a topic identity or CHRONOS/TDT event prediction.
+    ``tepp_not_available`` means the channel was dropped, not an abstained
+    measurement. A live envelope is also not yet a persistable result in
+    this seed, so the run is not stamped Succeeded.
+    """
+    request = topic_lineage_seed_request()
+    try:
+        (client or TeppClient()).submit_analysis_run(request)
+    except TeppNotAvailable:
+        return "analysis_status_failed", "tepp_not_available"
+    return "analysis_status_failed", "tepp_result_not_persisted"
+
+
+def _seed_demo_topic_lineage_run(cur, requested_by_account_id, corporate_entity_id) -> None:
+    """Insert one Demo-Corp topic-lineage run so the kind is visible without a live TEPP.
+
+    Mirrors :func:`_seed_demo_tepp_run` (ADR 0132). Default transport is
+    unavailable, so the run ends Failed / ``tepp_not_available`` -- never
+    a fabricated topic model.
+    """
+    snapshot_id = _ensure_demo_source_snapshot(cur)
+    _ensure_demo_source_counts(cur, snapshot_id)
+    _ensure_demo_source_snapshot_members(cur, snapshot_id, corporate_entity_id)
+    cur.execute(
+        """
+        select analysis_run_id from analysis_run
+        where requested_by_account_id = %s
+          and idempotency_key = %s
+        """,
+        (requested_by_account_id, DEMO_TOPIC_LINEAGE_IDEMPOTENCY_KEY),
+    )
+    run_row = cur.fetchone()
+    if run_row is None:
+        cur.execute(
+            """
+            insert into analysis_run
+                (analysis_source_snapshot_id, run_kind_code, idempotency_key,
+                 requested_by_account_id, knowledge_cutoff,
+                 configuration_schema_version, configuration_sha256,
+                 code_revision_sha, requested_at)
+            values (%s, 'analysis_run_topic_lineage', %s,
+                    %s, '2026-01-12T12:00:00Z', 'topic-lineage-run-v1', %s, %s,
+                    '2026-01-12T12:34:00Z')
+            returning analysis_run_id
+            """,
+            (
+                snapshot_id,
+                DEMO_TOPIC_LINEAGE_IDEMPOTENCY_KEY,
+                requested_by_account_id,
+                "d" * 64,
+                "e" * 40,
+            ),
+        )
+        run_id = cur.fetchone()[0]
+    else:
+        run_id = run_row[0]
+    cur.execute(
+        """
+        insert into analysis_run_scope
+            (analysis_run_id, scope_kind_code, corporate_entity_id)
+        values (%s, 'analysis_scope_corporate_entity', %s)
+        on conflict (analysis_run_id) do nothing
+        """,
+        (run_id, corporate_entity_id),
+    )
+    final_status, failure_code = topic_lineage_seed_outcome()
+    events = [
+        (1, "analysis_status_pending", "2026-01-12T12:35:00Z", None),
+        (2, "analysis_status_running", "2026-01-12T12:36:00Z", None),
+        (3, final_status, "2026-01-12T12:37:00Z", failure_code),
+    ]
+    cur.execute(
+        "select 1 from analysis_run_status_event where analysis_run_id = %s limit 1",
+        (run_id,),
+    )
+    if cur.fetchone() is None:
+        for ordinal, status, occurred, fail in events:
+            cur.execute(
+                """
+                insert into analysis_run_status_event
+                    (analysis_run_id, status_ordinal, status_code, occurred_at, failure_code)
+                values (%s, %s, %s, %s, %s)
+                """,
+                (run_id, ordinal, status, occurred, fail),
+            )
+    _seed_demo_run_outbox(cur, run_id)
+
+
 def _seed_demo_report_run(cur, requested_by_account_id, corporate_entity_id) -> None:
     """Record the already-built Demo Corp period report on the shared snapshot.
 
@@ -1953,7 +2129,7 @@ def _seed_demo_run_outbox(cur, analysis_run_id) -> None:
         snapshot_sha256=snapshot_sha256,
         knowledge_cutoff=knowledge_cutoff,
     )
-    if work_kind_code == "analysis_run_tepp":
+    if work_kind_code in ("analysis_run_tepp", "analysis_run_topic_lineage"):
         claimed = datetime(2026, 1, 12, 12, 36, tzinfo=timezone.utc)
         delivered = datetime(2026, 1, 12, 12, 37, tzinfo=timezone.utc)
     else:

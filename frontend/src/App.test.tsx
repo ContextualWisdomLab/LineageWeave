@@ -981,6 +981,7 @@ describe("App, authenticated", () => {
                     observed_response: 2.4,
                     expected_response: 2.0,
                     leftover_map_rank: 1,
+                    leftover_map_cross_share: 0.12,
                   },
                   {
                     pair_kind: "farthest",
@@ -993,6 +994,7 @@ describe("App, authenticated", () => {
                     observed_response: 0.9,
                     expected_response: 2.0,
                     leftover_map_rank: 1,
+                    leftover_map_cross_share: -0.24,
                   },
                 ],
                 leftover_map_persons: [
@@ -1493,6 +1495,36 @@ describe("App, authenticated", () => {
           }),
         );
       }
+      if (url.endsWith("/api/corporate-entities/corp-demo/related")) {
+        return Promise.resolve(
+          jsonResponse({
+            corporate_entity_id: "corp-demo",
+            entity_name: "Demo Corp",
+            related: [
+              {
+                node_id: "person-ada",
+                node_type_code: "node_person",
+                ontology_iri: "https://contextualwisdomlab.github.io/lineageweave/ontology#Person",
+                ontology_label: "Person",
+                label: "Ada West",
+                person_side_code: "our_side",
+                person_side_label: "Our side",
+                relevance: 0.5,
+              },
+              {
+                node_id: "post-1",
+                node_type_code: "node_post",
+                ontology_iri: "https://contextualwisdomlab.github.io/lineageweave/ontology#Post",
+                ontology_label: "Post",
+                label: "Linked post",
+                relevance: 0.6,
+                post_body_excerpt: "A linked body preview.",
+                post_body_truncated: false,
+              },
+            ],
+          }),
+        );
+      }
       if (url.endsWith("/api/posts/post-1/affiliate-tree")) {
         return Promise.resolve(
           jsonResponse({
@@ -1605,7 +1637,15 @@ describe("App, authenticated", () => {
         return Promise.resolve(
           jsonResponse({
             post_id: "post-1",
-            direct: [],
+            direct: [
+              {
+                post_id: "rec-003",
+                post_title: "Pricing renegotiation: revised quote sent",
+                interval_relation_code: "interval_contains",
+                interval_relation_label: "Contains",
+                interval_is_parent: true,
+              },
+            ],
             indirect: [{ post_id: "post-2", post_title: "Linked post" }],
           }),
         );
@@ -1999,6 +2039,32 @@ describe("App, authenticated", () => {
     expect(parentRow?.contains(subsidiaryRow)).toBe(true);
   });
 
+  it("opens a customer's related post in place instead of jumping to the Board", async () => {
+    // Live bug (2026-08-19): opening a related post from Customer
+    // Master swapped the whole workspace to the Board and opened the
+    // popup there, so the customer context the reader was standing in
+    // was gone. The popup must open inside the Customer Master panel.
+    stubBackend();
+    render(<App />);
+    expect(await screen.findByRole("button", { name: "View post: Public post" })).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "고객 마스터" }));
+
+    const entityButton = (await screen.findByText("DEMO-CORP-01 · Company")).closest("button");
+    expect(entityButton).not.toBeNull();
+    await userEvent.click(entityButton as HTMLElement);
+    await userEvent.click(await screen.findByRole("button", { name: "Open related post: Linked post" }));
+
+    // The popup shows the post body without leaving Customer Master:
+    // the Board never mounts and the customer heading stays on screen.
+    expect(await screen.findByText("The full body text.")).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "Board" })).not.toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Customer master" })).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("button", { name: "Close" }));
+    expect(screen.queryByText("The full body text.")).not.toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Customer master" })).toBeInTheDocument();
+  }, 15000);
+
   it("shows every observed relationship role for a counterparty, flagging multi-role names", async () => {
     // Feature request (2026-08-19): a real counterparty is not limited
     // to one role -- a customer in one post can be a competitor,
@@ -2301,6 +2367,8 @@ describe("App, authenticated", () => {
     );
     expect(relatedPosts).not.toBeNull();
     expect(within(relatedPosts as HTMLElement).getByText("Indirect relation")).toBeInTheDocument();
+    expect(within(relatedPosts as HTMLElement).getByText("Direct relation")).toBeInTheDocument();
+    expect(within(relatedPosts as HTMLElement).getByText("Contains")).toBeInTheDocument();
     expect(relatedPosts).toHaveTextContent("Linked post");
     // The Event Lineage DAG belongs to the opened post, not the list surface.
     expect(screen.getAllByLabelText("A-100 lineage")).toHaveLength(1);
@@ -3739,23 +3807,27 @@ describe("App, authenticated", () => {
       name: /open leftover farthest pair: specification revision requested/i,
     });
     expect(closestPair).toHaveTextContent("Closest leftover: Public post · sales-lead");
+    // Leftover-map cross share is present, so it names the next action
+    // instead of the rank/observed-expected chain (ADR 0185).
     expect(closestPair).toHaveTextContent(
-      "Leftover map leaves unexplained U +0.05 after IRT main effects. Open this post to read sales-lead.",
+      "Two leftover-map axes leave identity remainder 0.12 of raw residual after IRT main effects. Open this post to read sales-lead.",
     );
     expect(closestPair).toHaveTextContent("R +0.40");
     expect(closestPair).toHaveTextContent("Y 2.40 · E 2.00");
     expect(closestPair).toHaveTextContent("rank 1");
     expect(closestPair).toHaveTextContent("U +0.05");
+    expect(closestPair).toHaveTextContent("2R̂U/R² 0.12");
     expect(closestPair).toHaveTextContent("d 0.12");
     expect(closestPair).toHaveAccessibleName("Open leftover closest pair: Public post · sales-lead");
     expect(farthestPair).toHaveTextContent("Farthest leftover: Specification revision requested · negative");
     expect(farthestPair).toHaveTextContent(
-      "Leftover map leaves unexplained U −0.25 after IRT main effects. Open this post to read negative.",
+      "Two leftover-map axes leave identity remainder -0.24 of raw residual after IRT main effects. Open this post to read negative.",
     );
     expect(farthestPair).toHaveTextContent("R −1.10");
     expect(farthestPair).toHaveTextContent("Y 0.90 · E 2.00");
     expect(farthestPair).toHaveTextContent("rank 1");
     expect(farthestPair).toHaveTextContent("U −0.25");
+    expect(farthestPair).toHaveTextContent("2R̂U/R² -0.24");
     expect(farthestPair).toHaveTextContent("d 1.84");
     const memberButton = screen.getByRole("button", { name: /open report post: public post/i });
     expect(mapPost.compareDocumentPosition(closestPair) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();

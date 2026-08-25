@@ -103,6 +103,14 @@ describe("LeftoverInteractionMap", () => {
     );
 
     expect(screen.getByRole("group", { name: "Leftover interaction map" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Open post: Specification revision requested" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", {
+        name: "Open this leftover map criterion to read the leftover pair post: general_sentiment_negative",
+      }),
+    ).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Open leftover map post: Public post" })).toBeInTheDocument();
     await userEvent.click(screen.getByRole("button", { name: "Open leftover map post: Public post" }));
     expect(onSelectPost).toHaveBeenCalledWith("post-1");

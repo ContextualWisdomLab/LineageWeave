@@ -8,7 +8,7 @@
 ADR 0121 persists leftover interaction-map coordinates and renders a
 2D Gabriel biplot above leftover pairs. Person (post) nodes are
 buttons that open that post. Criterion (item) nodes are diamonds
-without a next action: a buyer who sees a highlighted closest or
+without a next action: a reader who sees a highlighted closest or
 farthest criterion cannot act on it.
 
 ADR 0125 lands leftover-pair *list* clicks on Post quality with a
@@ -16,7 +16,7 @@ leftover-focus flag. This increment is independent of that landing.
 The map criterion node opens the leftover-pair post only. It does
 not set leftover focus or `aria-current` on Post quality.
 
-A criterion that is not a leftover-pair member has no buyer next
+A criterion that is not a leftover-pair member has no reader next
 action. Inventing a click that opens an arbitrary post would
 fabricate a pair.
 
@@ -37,7 +37,7 @@ the pair's `post_id` is already ABAC-filtered with leftover pairs.
 
 ## Consequences
 
-Buyers can click a highlighted leftover-map criterion and read the
+Readers can click a highlighted leftover-map criterion and read the
 post that sat closest (or farthest) from it after IRT main effects.
 Non-pair criteria remain visual context on the Gabriel biplot.
 

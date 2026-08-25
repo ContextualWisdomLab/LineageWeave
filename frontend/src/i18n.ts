@@ -189,6 +189,7 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Semantic project": "의미 기반 프로젝트",
     "Semantic role": "의미 기반 역할",
     "Semantic Keyman": "의미 기반 핵심 담당자",
+    "Time axis": "시간 축",
     "No authorized source posts are available for this question.": "이 질문에 사용할 수 있는 권한 있는 원문이 없습니다.",
     "Choose an authorized post before asking a question.": "질문하기 전에 권한이 있는 글을 선택하세요.",
     "Loading source posts...": "질문할 원문을 불러오는 중...",
@@ -327,6 +328,23 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Open evidence: {title}": "근거 열기: {title}",
     "Open post: {label}": "글 열기: {label}",
     "{from} follows {to} ({score})": "{from}이(가) {to}을(를) 따름 ({score})",
+    "{from} follows {to} ({score}) — {relation}": "{from}이(가) {to}을(를) 따름 ({score}) — {relation}",
+    "Interval relations": "시간 구간 관계",
+    "{from} relates to {to} as {relation}; open {label}":
+      "{from}의 {to}에 대한 관계: {relation}; {label} 열기",
+    Before: "이전",
+    After: "이후",
+    Meets: "바로 이음",
+    "Met by": "바로 이어짐",
+    Overlaps: "겹침",
+    "Overlapped by": "겹침됨",
+    Starts: "함께 시작",
+    "Started by": "시작 포함",
+    During: "동안",
+    Contains: "포함",
+    Finishes: "함께 끝",
+    "Finished by": "끝 포함",
+    Equals: "같은 구간",
     "{label} — {date}": "{label} — {date}",
     "Corporate entity to reconstruct": "재구성할 법인",
     "Next action": "다음 작업",
@@ -471,6 +489,8 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
       "주효과 이후 가장 멀리 앉은 기준을 읽으려면 이 글을 여세요.",
     "Leftover map leaves unexplained U {value} after IRT main effects. Open this post to read {criterion}.":
       "잔여 지도가 IRT 주효과 이후 설명되지 않은 U {value}을(를) 남깁니다. {criterion} 기준을 읽으려면 이 글을 여세요.",
+    "Two leftover-map axes leave identity remainder {value} of raw residual after IRT main effects. Open this post to read {criterion}.":
+      "잔여 지도의 두 축이 IRT 주효과 이후 원시 잔차의 항등식 나머지 {value}을(를) 남깁니다. {criterion} 기준을 읽으려면 이 글을 여세요.",
     "Read observed Y {observed} and expected E {expected} after IRT main effects, then open this post.":
       "IRT 주효과 이후 관측 Y {observed}와 기대 E {expected}를 읽은 다음, 이 글을 여세요.",
     "Leftover map has no leftover structure after IRT main effects. Open this post.":
@@ -653,6 +673,7 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Semantic project": "语义项目",
     "Semantic role": "语义角色",
     "Semantic Keyman": "语义关键人员",
+    "Time axis": "时间轴",
     "No authorized source posts are available for this question.": "没有可用于此问题的已授权来源文章。",
     "Choose an authorized post before asking a question.": "提问前请选择有权限查看的文章。",
     "Loading source posts...": "正在加载问题来源文章...",
@@ -790,6 +811,23 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Open evidence: {title}": "打开证据：{title}",
     "Open post: {label}": "打开文章：{label}",
     "{from} follows {to} ({score})": "{from} 接续 {to}（{score}）",
+    "{from} follows {to} ({score}) — {relation}": "{from} 接续 {to}（{score}）— {relation}",
+    "Interval relations": "时间区间关系",
+    "{from} relates to {to} as {relation}; open {label}":
+      "{from} 与 {to} 的关系：{relation}；打开 {label}",
+    Before: "早于",
+    After: "晚于",
+    Meets: "相接",
+    "Met by": "被相接",
+    Overlaps: "重叠",
+    "Overlapped by": "被重叠",
+    Starts: "同时开始",
+    "Started by": "开始包含",
+    During: "期间",
+    Contains: "包含",
+    Finishes: "同时结束",
+    "Finished by": "结束包含",
+    Equals: "相同区间",
     "{label} — {date}": "{label} — {date}",
     "Corporate entity to reconstruct": "要重建的法人实体",
     "Next action": "下一步操作",
@@ -933,6 +971,8 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
       "打开这篇帖子，阅读主效应后距离最远的准则。",
     "Leftover map leaves unexplained U {value} after IRT main effects. Open this post to read {criterion}.":
       "残差图在 IRT 主效应后留下未解释的 U {value}。打开这篇帖子阅读 {criterion}。",
+    "Two leftover-map axes leave identity remainder {value} of raw residual after IRT main effects. Open this post to read {criterion}.":
+      "残差图的两个轴在 IRT 主效应后留下原始残差的恒等式余项 {value}。打开这篇帖子阅读 {criterion}。",
     "Read observed Y {observed} and expected E {expected} after IRT main effects, then open this post.":
       "阅读 IRT 主效应后的观测 Y {observed} 与期望 E {expected}，然后打开这篇帖子。",
     "Leftover map has no leftover structure after IRT main effects. Open this post.":
@@ -1139,6 +1179,7 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Semantic project": "意味的なプロジェクト",
     "Semantic role": "意味的な役割",
     "Semantic Keyman": "意味的なキーパーソン",
+    "Time axis": "時間軸",
     "No authorized source posts are available for this question.": "この質問に利用できる許可済みの原文投稿はありません。",
     "Choose an authorized post before asking a question.": "質問する前に閲覧権限のある投稿を選択してください。",
     "Loading source posts...": "質問の原文を読み込んでいます...",
@@ -1252,6 +1293,23 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "{group} lineage": "{group}の系譜",
     "Open post: {label}": "投稿を開く: {label}",
     "{from} follows {to} ({score})": "{from}は{to}に続く（{score}）",
+    "{from} follows {to} ({score}) — {relation}": "{from}は{to}に続く（{score}）— {relation}",
+    "Interval relations": "時間区間の関係",
+    "{from} relates to {to} as {relation}; open {label}":
+      "{from}から{to}への関係: {relation}; {label}を開く",
+    Before: "前",
+    After: "後",
+    Meets: "直後",
+    "Met by": "直前",
+    Overlaps: "重なる",
+    "Overlapped by": "重ねられる",
+    Starts: "同時開始",
+    "Started by": "開始を含む",
+    During: "期間内",
+    Contains: "含む",
+    Finishes: "同時終了",
+    "Finished by": "終了を含む",
+    Equals: "同じ区間",
     "{label} — {date}": "{label} — {date}",
     "Corporate entity to reconstruct": "再構成する法人",
     "Next action": "次の操作",
@@ -1396,6 +1454,8 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
       "主効果後に最も遠くなった基準を読むには、この投稿を開いてください。",
     "Leftover map leaves unexplained U {value} after IRT main effects. Open this post to read {criterion}.":
       "残差マップはIRT主効果後の未説明 U {value} を残します。この投稿を開いて {criterion} を読んでください。",
+    "Two leftover-map axes leave identity remainder {value} of raw residual after IRT main effects. Open this post to read {criterion}.":
+      "残差マップの2軸はIRT主効果後の生の残差の恒等式の余り {value} を残します。この投稿を開いて {criterion} を読んでください。",
     "Read observed Y {observed} and expected E {expected} after IRT main effects, then open this post.":
       "IRT主効果後の観測 Y {observed} と期待 E {expected} を読んでから、この投稿を開いてください。",
     "Leftover map has no leftover structure after IRT main effects. Open this post.":
@@ -1602,6 +1662,7 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Semantic project": "Dự án ngữ nghĩa",
     "Semantic role": "Vai trò ngữ nghĩa",
     "Semantic Keyman": "Keyman ngữ nghĩa",
+    "Time axis": "Trục thời gian",
     "No authorized source posts are available for this question.": "Không có bài viết nguồn được cấp quyền cho câu hỏi này.",
     "Choose an authorized post before asking a question.": "Hãy chọn một bài viết được cấp quyền trước khi đặt câu hỏi.",
     "Loading source posts...": "Đang tải bài viết nguồn cho câu hỏi...",
@@ -1715,6 +1776,23 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "{group} lineage": "Dòng sự kiện {group}",
     "Open post: {label}": "Mở bài viết: {label}",
     "{from} follows {to} ({score})": "{from} tiếp nối {to} ({score})",
+    "{from} follows {to} ({score}) — {relation}": "{from} tiếp nối {to} ({score}) — {relation}",
+    "Interval relations": "Quan hệ khoảng thời gian",
+    "{from} relates to {to} as {relation}; open {label}":
+      "Quan hệ từ {from} đến {to}: {relation}; mở {label}",
+    Before: "Trước",
+    After: "Sau",
+    Meets: "Kề ngay",
+    "Met by": "Được kề ngay",
+    Overlaps: "Chồng lấp",
+    "Overlapped by": "Bị chồng lấp",
+    Starts: "Bắt đầu cùng",
+    "Started by": "Bắt đầu chứa",
+    During: "Trong khoảng",
+    Contains: "Chứa",
+    Finishes: "Kết thúc cùng",
+    "Finished by": "Kết thúc chứa",
+    Equals: "Cùng khoảng",
     "{label} — {date}": "{label} — {date}",
     "Corporate entity to reconstruct": "Pháp nhân cần tái dựng",
     "Next action": "Thao tác tiếp theo",
@@ -1859,6 +1937,8 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
       "Mở bài viết này để đọc tiêu chí nằm xa nhất sau hiệu ứng chính.",
     "Leftover map leaves unexplained U {value} after IRT main effects. Open this post to read {criterion}.":
       "Bản đồ phần dư để lại U {value} chưa giải thích sau hiệu ứng chính IRT. Mở bài viết này để đọc {criterion}.",
+    "Two leftover-map axes leave identity remainder {value} of raw residual after IRT main effects. Open this post to read {criterion}.":
+      "Hai trục của bản đồ phần dư để lại phần giao {value} của phần dư thô sau hiệu ứng chính IRT. Mở bài viết này để đọc {criterion}.",
     "Read observed Y {observed} and expected E {expected} after IRT main effects, then open this post.":
       "Đọc Y quan sát {observed} và E kỳ vọng {expected} sau hiệu ứng chính IRT, rồi mở bài viết này.",
     "Leftover map has no leftover structure after IRT main effects. Open this post.":

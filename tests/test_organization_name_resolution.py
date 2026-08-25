@@ -28,14 +28,14 @@ def test_live_resolution_client_uses_adaptive_orchestrator_mode(monkeypatch) -> 
 
     monkeypatch.setattr("lineageweave.organization_name_resolution.post_json", fake_post_json)
     client = ContextualOrchestratorOrganizationNameResolutionClient(
-        "http://orchestrator", "secret", reasoning_effort="high", timeout=11.0
+        "http://orchestrator", "secret", reasoning_effort="high"
     )
 
     assert client.resolve("AGP", "AGP joined the synthetic meeting") == "Aurora Grid Power"
     assert seen["url"] == "http://orchestrator/v1/chat/completions"
     assert seen["body"]["mode"] == "auto"
     assert seen["body"]["reasoning_effort"] == "high"
-    assert seen["timeout"] == 11.0
+    assert seen["timeout"] == 600.0
 from lineageweave.relation_verification import (
     STATUS_CORROBORATED,
     STATUS_PENDING,

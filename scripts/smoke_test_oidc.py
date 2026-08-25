@@ -42,7 +42,7 @@ def _wait_for_realm(issuer: str) -> None:
     last_error: Exception | None = None
     for _ in range(POLL_ATTEMPTS):
         try:
-            get_json(discovery_url, timeout=5)
+            get_json(discovery_url, timeout=5, service_peer_name="oidc")
             return
         except (HttpClientError, OSError, ValueError) as exc:
             last_error = exc
@@ -84,7 +84,7 @@ def run(base_url: str) -> int:
     access_token = token_response["access_token"]
 
     print(f"Fetching live JWKS from {jwks_uri} and verifying the token's RS256 signature...")
-    jwks = get_json(jwks_uri, timeout=10)
+    jwks = get_json(jwks_uri, timeout=10, service_peer_name="oidc")
     signing_key = _signing_key_from_jwks(jwks, access_token)
     claims = jwt.decode(
         access_token,

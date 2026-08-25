@@ -111,10 +111,6 @@ export function projectLeftoverMap(
   };
 }
 
-function truncateLabel(label: string): string {
-  return label.length > 22 ? `${label.slice(0, 21)}…` : label;
-}
-
 function activateLeftoverMapNode(
   event: { key: string; preventDefault: () => void },
   postId: string,
@@ -193,9 +189,6 @@ export function LeftoverInteractionMap({
                 onKeyDown={(event) => activateLeftoverMapNode(event, pair.post_id, onSelectPost)}
               >
                 <rect x={-6} y={-6} width={12} height={12} transform="rotate(45)" />
-                <text x={10} y={4}>
-                  {truncateLabel(point.label)}
-                </text>
                 <title>
                   {tf("Open this leftover map criterion to read the leftover pair post: {label}", {
                     label: point.label,
@@ -211,9 +204,6 @@ export function LeftoverInteractionMap({
               transform={`translate(${point.x}, ${point.y})`}
             >
               <rect x={-6} y={-6} width={12} height={12} transform="rotate(45)" />
-              <text x={10} y={4}>
-                {truncateLabel(point.label)}
-              </text>
               <title>{tf("Criterion: {label}", { label: point.label })}</title>
             </g>
           );
@@ -230,13 +220,35 @@ export function LeftoverInteractionMap({
             onKeyDown={(event) => activateLeftoverMapNode(event, point.id, onSelectPost)}
           >
             <circle r={7} />
-            <text x={10} y={4}>
-              {truncateLabel(point.label)}
-            </text>
             <title>{tf("Open this post on the leftover map: {label}", { label: point.label })}</title>
           </g>
         ))}
       </svg>
+      <ul className="leftover-map-key">
+        {projected.persons.map((point) => (
+          <li key={`person-key:${point.id}`}>
+            <button type="button" onClick={() => onSelectPost(point.id)}>
+              {tf("Open post: {label}", { label: point.label })}
+            </button>
+          </li>
+        ))}
+        {projected.items.map((point) => {
+          const pair = leftoverPairForCriterion(pairs, point.id);
+          return (
+            <li key={`item-key:${point.id}`}>
+              {pair ? (
+                <button type="button" onClick={() => onSelectPost(pair.post_id)}>
+                  {tf("Open this leftover map criterion to read the leftover pair post: {label}", {
+                    label: point.label,
+                  })}
+                </button>
+              ) : (
+                tf("Criterion: {label}", { label: point.label })
+              )}
+            </li>
+          );
+        })}
+      </ul>
     </figure>
   );
 }

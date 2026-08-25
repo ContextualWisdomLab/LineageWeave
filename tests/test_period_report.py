@@ -272,6 +272,10 @@ def test_calibrated_report_attaches_leftover_pairs() -> None:
         assert pair.leftover_map_rank >= 0
         if pair.leftover_map_unexplained is not None:
             assert np.isfinite(pair.leftover_map_unexplained)
+        if pair.leftover_map_cross_share is not None:
+            assert np.isfinite(pair.leftover_map_cross_share)
+        assert not hasattr(pair, "leftover_map_explained_share")
+        assert not hasattr(pair, "leftover_map_unexplained_share")
         assert not hasattr(pair, "leftover_map_reconstruction")
     assert {person.post_id for person in report.leftover_map_persons} <= member_ids
     assert {item.criterion_code for item in report.leftover_map_items} <= set(items)

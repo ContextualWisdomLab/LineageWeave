@@ -20,26 +20,31 @@ from __future__ import annotations
 import asyncio
 import logging
 import time
+from collections.abc import Callable
 from datetime import date
-from typing import Any, Callable
+from typing import Any
 
 import asyncpg
 import redis.asyncio as redis
 from fastapi import HTTPException, status
 
 from lineageweave.http_client import HttpClientError
+from lineageweave.observability import record_server_failure
 from lineageweave.post_chat import (
     PostChatClient,
     cited_post_evidence,
     cited_post_summaries,
 )
-
 from lineageweave.temporal_expressions import resolve_korean_relative_time
 
 from .config import GLOBAL_ASK_JOB_DEADLINE_SECONDS
 from .lineage_ingestion import lineage_graphs_for_posts
 from .operability import log_internal_fault, log_provider_unavailable
-from .post_chat_ingestion import _seoul_today, cited_post_images, gather_global_chat_sources
+from .post_chat_ingestion import (
+    _seoul_today,
+    cited_post_images,
+    gather_global_chat_sources,
+)
 
 GLOBAL_ASK_STREAM_KEY = "global_ask_request_stream"
 
@@ -73,6 +78,10 @@ _STREAM_MAX_LENGTH = 1000
 _WORKER_CONCURRENCY = 4
 
 _logger = logging.getLogger(__name__)
+
+
+class _SafeJobError(Exception):
+    """Failure whose bounded message is safe to persist for the requester."""
 
 
 async def enqueue_global_ask_job(
@@ -163,14 +172,22 @@ async def compute_global_ask_answer(
         return str(row["corporate_entity_id"]) in corporate_entity_ids
 
     today = _seoul_today()
-    async with pool.acquire() as conn:
-        sources = await gather_global_chat_sources(
-            conn,
-            can_see,
-            corporate_entity_ids,
-            question=question_text,
-            today=today,
-        )
+    try:
+        async with pool.acquire() as conn:
+            sources = await gather_global_chat_sources(
+                conn,
+                can_see,
+                corporate_entity_ids,
+                question=question_text,
+                today=today,
+            )
+    except Exception as exc:
+        log_internal_fault("global_ask", exc)
+        record_server_failure("global_ask", exc, outcome="internal_error")
+        raise HTTPException(
+            status.HTTP_503_SERVICE_UNAVAILABLE,
+            "Ask Agent is unavailable: authorized evidence could not be assembled",
+        ) from exc
     if not sources:
         return {
             "answer_text": "",
@@ -191,6 +208,7 @@ async def compute_global_ask_answer(
         # failure path so callers cannot probe which internal classifier
         # fired; the event_type distinction lives only in server logs.
         log_provider_unavailable("global_ask", exc)
+        record_server_failure("global_ask", exc, outcome="provider_unavailable")
         raise HTTPException(
             status.HTTP_503_SERVICE_UNAVAILABLE,
             "Ask Agent is unavailable: contextual-orchestrator could not complete the answer",
@@ -199,6 +217,7 @@ async def compute_global_ask_answer(
         # Contract/schema fault: the orchestrator responded but its payload
         # did not match the evidence-object contract.
         log_internal_fault("global_ask", exc)
+        record_server_failure("global_ask", exc, outcome="provider_unavailable")
         raise HTTPException(
             status.HTTP_503_SERVICE_UNAVAILABLE,
             "Ask Agent is unavailable: contextual-orchestrator could not complete the answer",
@@ -207,6 +226,7 @@ async def compute_global_ask_answer(
         # Unexpected defect. Keep the customer boundary and emit a full
         # structured internal-fault diagnostic (message-redacted).
         log_internal_fault("global_ask", exc)
+        record_server_failure("global_ask", exc, outcome="internal_error")
         raise HTTPException(
             status.HTTP_503_SERVICE_UNAVAILABLE,
             "Ask Agent is unavailable: contextual-orchestrator could not complete the answer",
@@ -285,10 +305,10 @@ async def process_global_ask_job(
                 conn, str(row["requesting_account_id"])
             )
         if not has_post_read:
-            raise PermissionError("account lacks the post_read permission")
+            raise _SafeJobError("account lacks the post_read permission")
         chat_client = chat_factory()
         if not chat_client.available:
-            raise ConnectionError(
+            raise _SafeJobError(
                 "Ask Agent is unavailable: set ORCHESTRATOR_BASE_URL / ORCHESTRATOR_API_KEY"
             )
         payload = await asyncio.wait_for(
@@ -304,12 +324,16 @@ async def process_global_ask_job(
         # Shutdown: leave the row `running`; the recovery sweep re-queues
         # it after the orphan window on the next process start.
         raise
-    except Exception as exc:  # noqa: BLE001 - settlement must be fail-closed
+    except Exception as exc:
         # A narrow exception tuple here once let an unexpected error kill
         # the task silently and strand the row `running` until orphan
         # recovery (observed live) — every failure settles the job.
+        # Full exception is logged internally for operators; the reader
+        # only ever sees a generic, bounded message, never the raw
+        # exception text (issue #361 -- a leaked orchestrator/provider
+        # exception once exposed internals straight to a client).
         _logger.exception("global ask job failed for job_id=%s", job_id)
-        if isinstance(exc, (PermissionError, ConnectionError)):
+        if isinstance(exc, _SafeJobError):
             # Raised locally with a pre-authored, safe message (permission
             # state / missing config) — never a provider-boundary leak.
             detail = str(exc)
@@ -492,7 +516,7 @@ async def run_global_ask_worker(
                 )
             except asyncio.CancelledError:
                 raise
-            except Exception:  # noqa: BLE001 - one bad round must not stop Ask
+            except Exception:
                 _logger.exception("global ask worker round failed; retrying")
                 await asyncio.sleep(5)
     finally:

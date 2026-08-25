@@ -23,7 +23,7 @@ A Gabriel biplot of ``R`` supplies person and item leftover-map
 positions. Closest / farthest pairs are the min / max Euclidean
 distances on that map (Jeon et al., 2021, eq. 3). Leftover-map axis
 share is Gabriel inertia ``σ_k² / Σ_j σ_j²`` of residual SVD axes 1
-and 2 (ADR 0148). Complete-case coverage (ADR 0202) names how many
+and 2 (ADR 0148). Complete-case coverage (ADR 0168) names how many
 scored posts entered the factorization; incomplete rows are excluded,
 never filled with zero. ``fast-mlsirm`` has no leftover-pair API; this
 module does not invent a second IRT fit and does not fork LSIRM.

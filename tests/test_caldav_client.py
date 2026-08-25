@@ -21,8 +21,8 @@ def test_missing_base_url_drops_only_the_optional_caldav_channel() -> None:
 def test_http_client_reads_valid_events_and_ignores_malformed_rows(monkeypatch) -> None:
     received = {}
 
-    def fake_get_json(url: str, *, timeout: float) -> dict:
-        received.update(url=url, timeout=timeout)
+    def fake_get_json(url: str, *, timeout: float, **kwargs) -> dict:
+        received.update(url=url, timeout=timeout, **kwargs)
         return {
             "events": [
                 {
@@ -46,7 +46,11 @@ def test_http_client_reads_valid_events_and_ignores_malformed_rows(monkeypatch) 
     assert client.list_events() == [
         CalDavEvent("event-1", "Review", "2026-08-19T09:00:00Z")
     ]
-    assert received == {"url": "https://calendar.example/caldav/events", "timeout": 10}
+    assert received == {
+        "url": "https://calendar.example/caldav/events",
+        "timeout": 10,
+        "service_peer_name": "caldav",
+    }
 
 
 def test_invalid_caldav_url_is_rejected() -> None:

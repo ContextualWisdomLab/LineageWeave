@@ -9,7 +9,7 @@ ADR 0048 persists the closest and farthest leftover post–criterion
 pairs after IRT main effects. Those pairs are two cells on the Jeon
 et al. (2021, eq. 3) leftover interaction map `−γ‖ξ_p − ζ_i‖`. The
 Gabriel (1971) biplot that produces the pairs already computes person
-positions `ξ` and item positions `ζ`, then discards them. A buyer
+positions `ξ` and item positions `ζ`, then discards them. A reader
 who sees only two named pairs cannot see *why* those cells sat
 closest or farthest, or where the other complete-case posts and
 criteria sit on the same leftover map.
@@ -26,7 +26,7 @@ case post as `report_leftover_map_person` (`axis_one`, `axis_two`)
 and every complete-case criterion as `report_leftover_map_item`.
 Pad unused axes with zero when residual rank is below two. Do not
 invent a second component. Closest/farthest selection and persisted
-distance use those same two buyer-visible axes; unpersisted higher
+distance use those same two reader-visible axes; unpersisted higher
 components never silently change a highlighted map pair. Incomplete
 rows and columns stay out of the factorization.
 

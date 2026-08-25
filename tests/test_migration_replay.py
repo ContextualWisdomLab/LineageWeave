@@ -61,6 +61,31 @@ def test_migrate_sh_generic_pattern_covers_leftover_interaction_map_migration() 
     assert not fnmatch.fnmatchcase(name, "001[01]_*")
 
 
+def test_interval_relation_backfill_uses_utc_created_day() -> None:
+    sql = (
+        Path(__file__).resolve().parents[1]
+        / "migrations"
+        / "0140_post_lineage_interval_relation.sql"
+    ).read_text(encoding="utf-8")
+
+    assert "created_at at time zone 'UTC'" in sql
+
+
+def test_interval_relation_foreign_key_validation_is_separate() -> None:
+    """Installing the FK must not scan a large existing edge table."""
+
+    migrations = Path(__file__).resolve().parents[1] / "migrations"
+    install_sql = (migrations / "0140_post_lineage_interval_relation.sql").read_text(
+        encoding="utf-8"
+    )
+    validate_sql = (
+        migrations / "0205_validate_post_lineage_interval_relation.sql"
+    ).read_text(encoding="utf-8")
+
+    assert "not valid" in install_sql.lower()
+    assert "validate constraint post_lineage_edge_interval_relation_code_fkey" in validate_sql
+
+
 def test_migrate_sh_replays_leftover_map_axis_migration_on_existing_volumes() -> None:
     """migrate.sh's replay window must cover 0169 (report_leftover_map_axis).
 
@@ -124,3 +149,47 @@ def test_channel_weight_migration_enforces_integrity_and_provenance() -> None:
     assert "weight_value > 0 and weight_value <= 1" in migration
     assert "sample_pair_count >= 200" in migration
     assert "source_snapshot_sha256 ~ '^[0-9a-f]{64}$'" in migration
+
+
+def test_migrate_sh_replays_topic_lineage_migrations_on_existing_volumes() -> None:
+    """Existing Compose volumes must receive the topic-lineage kind and result table.
+
+    ADR 0166's general four-digit filename boundary covers 0131/0132 without a
+    per-migration allowlist entry, so this asserts both migration files' own
+    names still match that boundary shape rather than a stale literal
+    `migrate.sh` no longer contains.
+    """
+    for migration_name in (
+        "0131_analysis_run_topic_lineage_kind.sql",
+        "0132_analysis_run_topic_lineage_result.sql",
+        "0204_validate_topic_lineage_kind.sql",
+    ):
+        migration_path = Path(__file__).resolve().parents[1] / "migrations" / migration_name
+        assert migration_path.exists()
+        assert re.fullmatch(r"[0-9]{4}_.+\.sql", migration_name)
+        assert int(migration_name[:4]) >= 12
+
+
+def test_topic_lineage_kind_migration_is_idempotent_for_replay() -> None:
+    """The kind-widening migration must not fail after a second apply."""
+    migration = (
+        Path(__file__).resolve().parents[1]
+        / "migrations"
+        / "0131_analysis_run_topic_lineage_kind.sql"
+    ).read_text(encoding="utf-8")
+
+    assert "on conflict (lookup_code) do nothing" in migration
+    assert "drop constraint if exists analysis_run_kind_check" in migration
+    assert "analysis_run_topic_lineage" in migration
+
+
+def test_topic_lineage_result_migration_is_idempotent_for_replay() -> None:
+    """The result-table migration must not fail after a second apply."""
+    migration = (
+        Path(__file__).resolve().parents[1]
+        / "migrations"
+        / "0132_analysis_run_topic_lineage_result.sql"
+    ).read_text(encoding="utf-8")
+
+    assert "create table if not exists analysis_run_topic_lineage_result" in migration
+    assert "create index if not exists" in migration

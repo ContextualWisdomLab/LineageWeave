@@ -174,6 +174,7 @@ def test_cited_post_evidence_hides_prompt_metadata_but_keeps_semantic_facts() ->
         evidence_facts=(
             "project: Semantic project | evidence: Body evidence | ontology_iri: https://example.test/ontology#Project | extraction_method: contextual_orchestrator_semantic | confidence: 0.9 [provenance=post_project_mention]",
             "Keyman mention: Ada West | context: account lead [provenance=post_person_mention]",
+            "time axis: event occurred at",
         ),
     )
 
@@ -185,6 +186,7 @@ def test_cited_post_evidence_hides_prompt_metadata_but_keeps_semantic_facts() ->
             "facts": [
                 {"kind": "semantic_project", "text": "project: Semantic project | evidence: Body evidence"},
                 {"kind": "semantic_keyman", "text": "Keyman mention: Ada West | context: account lead"},
+                {"kind": "time_axis", "text": "time axis: event occurred at"},
             ],
         }
     ]

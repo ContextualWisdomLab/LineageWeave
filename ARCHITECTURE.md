@@ -69,6 +69,7 @@ flowchart LR
 | `rankweave_client.py` | Fail-closed RankWeave ranking port (`weighted_reciprocal_rank_fuse` in-process; never invent a fused score or a theta) |
 | `reconstruct.py` | The pipeline: group → candidate window → score → fuse → thread |
 | `lineage_persistence.py` | Flattens reconstruct trees into `post_lineage_edge` row specs (parent, child, fused_score) |
+| `interval_relation.py` | Allen (1983) closed interval relations for those edges. Each post is a point interval on its observed UTC `created_at` day; mutable ticket dates are not Event Lineage evidence. |
 | `knowledge_graph.py` | Random-walk-with-restart relevance + per-node adaptive related-node cutoff (Tong et al., 2006) -- pure graph math, no Postgres |
 | `keyman_extraction.py` | Pluggable LLM extraction of two-sided (our-side/counterparty) person mentions + N:N org affiliations from a post |
 | `entity_relationship_classification.py` | Pluggable LLM classification of a named organization's relationship to the post author (`rel_voc`/`rel_vom`/`rel_vop`/`rel_vocc`/`rel_voco`/`rel_vos`) |
@@ -78,6 +79,8 @@ flowchart LR
 | `post_summary.py` | Pluggable LLM Korean summary + key events + R&R derivation for a post |
 | `post_chat.py` | Pluggable in-popup chat's reason-and-cite step (retrieve step lives in `backend/app/post_chat_ingestion.py`) |
 | `commitment_extraction.py` | Pluggable LLM derivation of a customer commitment (promise + deadline) from a post; `Null` default, `ContextualOrchestrator` real impl |
+| `temporal_expressions.py` | Pure Korean relative-time resolver for Global Ask (ADR 0150) |
+| `ask_time_axis.py` | Event-time vs ingestion-time clock choice for that window (ADR 0202) |
 | `ontology.py` | Loads `docs/ontology/lineageweave-kg.ttl`, the formal OWL 2/RDFS/SKOS vocabulary for the Knowledge Graph's node/edge types (ADR 0004) |
 | `ontology_neighborhood.py` | Bounded typed ontology/provenance neighborhood (ADR 0184); PostgreSQL stays authoritative, OWL subclass is not an instance edge |
 | `ontology_source_cursor.py` | Opaque HMAC source-window continuation (ADR 0124); keyset pagination, never OFFSET |
@@ -222,9 +225,12 @@ contextual-orchestrator; persist is `backend/app/keyman_ingestion.py`.
 `GET /api/lineage` returns the ABAC-filtered reconstruct graph
 (`{nodes, edges}`) from persisted `post_lineage_edge` rows. Each node
 includes `group` from the same `reconstruct_group_key()` rebuild uses
-(persisted `thread_group_key`, else process unit, else corp).
+(persisted `thread_group_key`, else process unit, else corp). Each
+direct edge includes `interval_relation_code` / `interval_relation_label`
+(Allen, 1983; ADR 0161) computed from the two posts' observed windows.
 `POST /api/lineage/rebuild` (`post_admin`) re-runs `reconstruct()` over
-every `source_post` and rewrites those edges. Reconstruct grouping is
+every `source_post` and rewrites those edges, then names the interval
+relation in the same transaction. Reconstruct grouping is
 stored on the post as `thread_group_key` / `secondary_grouping_key`
 (not derived from process unit or voc type).
 
@@ -596,15 +602,16 @@ on those same fixed parameters (Kim, 2006 FIPC). After scoring,
 information at the group's mean θ (Lord, 1980 max-info CAT). Rankings
 persist to `report_item_information`. After those IRT main effects,
 residual SVD leftover pairs on two Gabriel axes (Jeon et al., 2021;
-ADR 0017 / 0048 / 0049 / 0119 / 0126 / 0158 / 0162 / 0163 / 0164 / 0182)
-persist to `report_leftover_pair` with signed residual `R`, observed `Y`,
-expected `E[Y|θ, item]`, full leftover-map rank, and unexplained leftover
-`U = R − R̂` named on the pair row. Complete-case leftover-map
-coordinates persist to `report_leftover_map_person` /
-`report_leftover_map_item` (ADR 0121). Leftover-map axis share (Gabriel
-inertia of residual SVD axes 1 and 2; ADR 0148) persists to
+ADR 0017 / 0048 / 0049 / 0119 / 0121 / 0126 / 0148 / 0158 / 0162 / 0163 /
+0164 / 0168 / 0182 / 0185) persist to `report_leftover_pair` with signed
+residual `R`, observed `Y`, expected `E[Y|θ, item]`, full leftover-map rank,
+unexplained leftover `U = R − R̂`, and leftover-map cross share
+`x = 2 R̂ U / R²`. Complete-case coordinates persist to
+`report_leftover_map_person` / `report_leftover_map_item` (ADR 0121).
+Leftover-map axis share (Gabriel inertia of residual SVD axes 1 and 2;
+ADR 0148) persists to
 `report_leftover_map_axis`. Complete-case leftover-map coverage (ADR
-0202) persists to `report_leftover_map_coverage` so readers see how
+0168) persists to `report_leftover_map_coverage` so readers see how
 many scored posts entered the factorization -- without a complete-case
 rectangle neither a pair nor a coordinate is persisted either. Results
 persist to

@@ -553,6 +553,9 @@ function RelatedPostsSection({
                 const cardContent = (
                   <>
                     <span className="related-post-kind">{t(kind)}</span>
+                    {kind === "Direct relation" && post.interval_relation_label ? (
+                      <span className="related-post-interval">{t(post.interval_relation_label)}</span>
+                    ) : null}
                     <span className="related-post-content">
                       <strong>{post.post_title}</strong>
                       <span className="post-body-excerpt" aria-label={t("Post body preview")}>
@@ -2524,6 +2527,8 @@ function analysisRunNextAction(run: AnalysisRun): string | null {
           return "Open this run, then start reconstruction. Reconstruction has not started yet.";
         case "analysis_run_tepp":
           return "Open this run to confirm which posts TEPP will measure. Measurement has not started yet — this is not a calibrated result.";
+        case "analysis_run_topic_lineage":
+          return "Open this run to confirm which posts TEPP will thread into topic lineage. Topic-lineage analysis has not started yet — this is not a calibrated topic result.";
         case "analysis_run_report":
           return "Open this run to confirm which posts the period report will use. The report has not been built yet.";
         default: {
@@ -2535,6 +2540,8 @@ function analysisRunNextAction(run: AnalysisRun): string | null {
       switch (run.run_kind_code) {
         case "analysis_run_tepp":
           return "Open this run to see why it failed, then connect the measurement service and re-run.";
+        case "analysis_run_topic_lineage":
+          return "Open this run to see why it failed, then connect the TEPP transport and re-run.";
         case "analysis_run_lineage":
           return "Open this run to see why it failed, then retry reconstruction from a current snapshot.";
         case "analysis_run_report":
@@ -2567,6 +2574,11 @@ function analysisRunEmptyPostsHint(run: AnalysisRun): string {
         "No posts were available at this cutoff for TEPP to measure. " +
         "Open a later run, or ask an administrator to capture a newer snapshot."
       );
+    case "analysis_run_topic_lineage":
+      return (
+        "No posts were available at this cutoff for topic-lineage analysis. " +
+        "Open a later run, or ask an administrator to capture a newer snapshot."
+      );
     case "analysis_run_lineage":
       return (
         "No posts were available at this cutoff for reconstruction. " +
@@ -2585,31 +2597,36 @@ function analysisRunEmptyPostsHint(run: AnalysisRun): string {
 }
 
 /**
- * Corpus copy for a TEPP run that already has cutoff posts.
+ * Corpus copy for a TEPP or topic-lineage run that already has cutoff posts.
  *
  * Those titles are the measurement bag, not a reconstruction result.
- * Pending or running must not claim a calibrated measurement.
+ * Pending or running must not claim a calibrated measurement or topic.
  */
 function analysisRunCorpusHint(run: AnalysisRun): string | null {
-  if (run.run_kind_code !== "analysis_run_tepp") return null;
+  const isTopicLineage = run.run_kind_code === "analysis_run_topic_lineage";
+  if (run.run_kind_code !== "analysis_run_tepp" && !isTopicLineage) return null;
+  const service = isTopicLineage ? "topic-lineage" : "TEPP";
+  const result = isTopicLineage ? "a topic-identity result" : "a calibrated result";
+  const verb = isTopicLineage ? "thread" : "measure";
+  const verbPast = isTopicLineage ? "threaded" : "measured";
   switch (run.status_code) {
     case "analysis_status_failed":
       return (
-        "These posts are the cutoff corpus TEPP would measure. Connect a TEPP " +
-        "transport, then re-run, to replace Failed with a calibrated result."
+        `These posts are the cutoff corpus ${service} would ${verb}. Connect a TEPP ` +
+        `transport, then re-run, to replace Failed with ${result}.`
       );
     case "analysis_status_succeeded":
-      return "These posts are the cutoff corpus this TEPP run measured.";
+      return `These posts are the cutoff corpus this ${service} run ${verbPast}.`;
     case "analysis_status_pending":
     case "analysis_status_running":
-      return "These posts are the cutoff corpus TEPP will measure once this run finishes.";
+      return `These posts are the cutoff corpus ${service} will ${verb} once this run finishes.`;
     case "analysis_status_cancelled":
       return (
-        "These posts are the cutoff corpus this TEPP run would have measured. " +
-        "The run was cancelled before a calibrated result."
+        `These posts are the cutoff corpus this ${service} run would have ${verbPast}. ` +
+        `The run was cancelled before ${result}.`
       );
     case null:
-      return "These posts are the cutoff corpus attached to this TEPP run.";
+      return `These posts are the cutoff corpus attached to this ${service} run.`;
     default: {
       const unexpected: never = run.status_code;
       return unexpected;
@@ -2725,21 +2742,31 @@ function AnalysisRunReproducibilityDigests({
  */
 function analysisRunCanStart(run: AnalysisRun): boolean {
   return (
-    (run.run_kind_code === "analysis_run_lineage" || run.run_kind_code === "analysis_run_tepp") &&
+    (run.run_kind_code === "analysis_run_lineage" ||
+      run.run_kind_code === "analysis_run_tepp" ||
+      run.run_kind_code === "analysis_run_topic_lineage") &&
     (run.status_code === "analysis_status_pending" ||
       run.status_code === "analysis_status_running")
   );
 }
 
 function analysisRunStartLabel(run: AnalysisRun): string {
-  return run.run_kind_code === "analysis_run_tepp"
-    ? "Start TEPP measurement"
-    : "Start reconstruction";
+  if (run.run_kind_code === "analysis_run_tepp") {
+    return "Start TEPP measurement";
+  }
+  if (run.run_kind_code === "analysis_run_topic_lineage") {
+    return "Start topic lineage";
+  }
+  return "Start reconstruction";
 }
 
-/** Failed TEPP is terminal. Create cannot invent a Pending TEPP row. */
+/** Failed TEPP/topic-lineage is terminal. Create cannot invent a Pending row. */
 function analysisRunCanRequestTeppRetry(run: AnalysisRun): boolean {
-  return run.run_kind_code === "analysis_run_tepp" && run.status_code === "analysis_status_failed";
+  return (
+    (run.run_kind_code === "analysis_run_tepp" ||
+      run.run_kind_code === "analysis_run_topic_lineage") &&
+    run.status_code === "analysis_status_failed"
+  );
 }
 
 const REPORT_PERIOD_KEY = /^\d{4}-W\d{2}$/;
@@ -3018,14 +3045,19 @@ function AnalysisRunsPanel({
               {starting
                 ? selected.run_kind_code === "analysis_run_tepp"
                   ? "Submitting the TEPP request..."
-                  : "Reconstructing the cutoff bag..."
+                  : selected.run_kind_code === "analysis_run_topic_lineage"
+                    ? "Submitting the topic-lineage request..."
+                    : "Reconstructing the cutoff bag..."
                 : analysisRunStartLabel(selected)}
             </button>
           )}
           {analysisRunCanRequestTeppRetry(selected) && (
             <p className="post-meta">
-              Connect a TEPP transport from this Failed row. Request a lineage
-              reconstruction does not invent a measurement.
+              {selected.run_kind_code === "analysis_run_topic_lineage"
+                ? "Connect a TEPP transport from this Failed row. Request a " +
+                  "lineage reconstruction does not invent a topic model."
+                : "Connect a TEPP transport from this Failed row. Request a lineage " +
+                  "reconstruction does not invent a measurement."}
             </p>
           )}
           {analysisRunReportPeriod(selected) && onSelectReportPeriod && (
@@ -4403,16 +4435,19 @@ function CustomerRelatedPostCard({
 
 function CustomerMasterPanel({
   accessToken,
-  onOpenPost,
 }: {
   accessToken: string;
-  onOpenPost: (postId: string) => void;
 }) {
   const [master, setMaster] = useState<CustomerMasterResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [expandedEntityId, setExpandedEntityId] = useState<string | null>(null);
   const [relatedByEntity, setRelatedByEntity] = useState<Record<string, RelatedNode[]>>({});
   const [relatedLoading, setRelatedLoading] = useState<string | null>(null);
+  // Opening a customer's related post stays IN this panel (the Board
+  // hand-off was the reported bug: clicking a customer's post jumped the
+  // whole workspace to the Board instead of showing the post here).
+  const [selectedPostId, setSelectedPostId] = useState<string | null>(null);
+  const [selectedPostGraph, setSelectedPostGraph] = useState<LineageGraph | null>(null);
   const [resolvingHint, setResolvingHint] = useState<string | null>(null);
   const [resolveError, setResolveError] = useState<string | null>(null);
   // Fetched independently, same pattern as PostList's own canRebuild --
@@ -4445,6 +4480,29 @@ function CustomerMasterPanel({
     setMaster(null);
     void loadMaster();
   }, [loadMaster]);
+
+  useEffect(() => {
+    if (!selectedPostId) {
+      setSelectedPostGraph(null);
+      return;
+    }
+    let active = true;
+    fetchLineageGraph(accessToken, selectedPostId)
+      .then((nextGraph) => {
+        if (active) setSelectedPostGraph(nextGraph);
+      })
+      .catch(() => {
+        if (active) setSelectedPostGraph({ nodes: [], edges: [] });
+      });
+    return () => {
+      active = false;
+    };
+  }, [accessToken, selectedPostId]);
+
+  function openPost(postId: string) {
+    setSelectedPostGraph(null);
+    setSelectedPostId(postId);
+  }
 
   async function handleResolveHint(hintCode: string) {
     setResolvingHint(hintCode);
@@ -4498,7 +4556,7 @@ function CustomerMasterPanel({
               relatedByEntity={relatedByEntity}
               relatedLoading={relatedLoading}
               onToggle={toggleEntity}
-              onOpenPost={onOpenPost}
+              onOpenPost={openPost}
             />
           ))}
         </ul>
@@ -4568,7 +4626,7 @@ function CustomerMasterPanel({
                             postTitle={post.post_title}
                             postBodyExcerpt={post.post_body_excerpt}
                             postBodyTruncated={post.post_body_truncated}
-                            onOpenPost={onOpenPost}
+                            onOpenPost={openPost}
                           />
                         </li>
                       ))}
@@ -4621,7 +4679,7 @@ function CustomerMasterPanel({
                             postTitle={post.post_title}
                             postBodyExcerpt={post.post_body_excerpt}
                             postBodyTruncated={post.post_body_truncated}
-                            onOpenPost={onOpenPost}
+                            onOpenPost={openPost}
                           />
                         </li>
                       ))}
@@ -4647,6 +4705,16 @@ function CustomerMasterPanel({
           </ul>
         </section>
       ) : null}
+      {selectedPostId && (
+        <PostDetailPopup
+          postId={selectedPostId}
+          accessToken={accessToken}
+          canExtract={canResolveHints}
+          graph={selectedPostGraph}
+          onClose={() => setSelectedPostId(null)}
+          onSelectPost={openPost}
+        />
+      )}
     </section>
   );
 }
@@ -4889,13 +4957,7 @@ export default function App({ showLabPanels = false }: { showLabPanels?: boolean
           />
         ) : null}
         {destination === "customers" ? (
-          <CustomerMasterPanel
-            accessToken={accessToken}
-            onOpenPost={(postId) => {
-              setPostToOpen(postId);
-              setDestination("board");
-            }}
-          />
+          <CustomerMasterPanel accessToken={accessToken} />
         ) : null}
         {destination === "calendar" ? (
           <section className="workspace-destination" aria-labelledby="calendar-heading">
