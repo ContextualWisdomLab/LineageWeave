@@ -3,6 +3,8 @@
 **Status:** Accepted
 **Date:** 2026-08-21
 **Issue:** [#274](https://github.com/ContextualWisdomLab/LineageWeave/issues/274)
+**Amended by:** [ADR 0200](0200-channel-weight-reconciliation.md) and
+[ADR 0205](0205-tepp-lineage-anchor.md)
 
 ## Context
 
@@ -33,8 +35,9 @@ authoritative; PROV-O/RDF export is a projection.
    `lineage_signal_temporal`, `lineage_signal_secondary_key`,
    `lineage_signal_text`, `lineage_signal_llm`. The LLM row is omitted
    when the adjudication client is unavailable; it is never fabricated.
-3. Weights are the normalized active weights actually used
-   (`reconstruct.active_weights`). Contribution is `weight * score` and
+3. Weights are the exact calibrated active-channel vector validated by
+   `reconstruct.active_weights`; no different channel set is renormalized into
+   it. Contribution is `weight * score` and
    must reconcile with `fused_score` within
    `CHANNEL_EVIDENCE_TOLERANCE` (`1e-6`).
 4. Live Event Lineage is replaced atomically. A singleton
@@ -46,10 +49,10 @@ authoritative; PROV-O/RDF export is a projection.
    The administrator-triggered live rebuild and PostgreSQL import pass the
    configured contextual-orchestrator adjudication client through the same
    reconstruction boundary only when the exact candidate-pair count is at
-   most 5,000. Larger snapshots drop the LLM channel before any provider call
-   and renormalize the remaining weights. This is an operational work bound,
-   not a model-quality or provider-ranking heuristic. One rebuild never mixes
-   LLM and non-LLM weight profiles across edges.
+   most 5,000. Larger snapshots drop the LLM channel before loading the
+   separately calibrated three-channel profile. This is an operational work
+   bound, not a model-quality or provider-ranking heuristic. One rebuild never
+   mixes LLM and non-LLM weight profiles across edges.
 5. `GET /api/lineage` returns an additive `channel_evidence` collection
    on each visible edge (`signal_code`, `signal_label`, `score`,
    `weight`, `contribution`, `rank`) ordered by contribution, then
@@ -67,8 +70,9 @@ authoritative; PROV-O/RDF export is a projection.
   inference from source evidence.
 - A later rebuild rewrites live Event Lineage as a whole; historic
   meaning is not silently mutated in place.
-- Completeness is lower when the LLM channel is unavailable, matching
-  ADR 0064: missing channels are dropped and weights renormalize.
+- Completeness is lower when the LLM channel is unavailable; the exact
+  three-channel profile is loaded instead of renormalizing a four-channel
+  estimate.
 
 ## References
 

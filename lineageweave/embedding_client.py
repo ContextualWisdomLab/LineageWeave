@@ -1,8 +1,8 @@
 """Pluggable embedding channel.
 
 The default :class:`NullEmbeddingClient` makes the channel unavailable
-rather than faking a score -- ``reconstruct.active_weights`` drops and
-renormalizes around any channel whose client reports ``available = False``.
+rather than faking a vector; callers must use the calibrated profile for the
+channels they actually execute.
 :class:`ContextualOrchestratorEmbeddingClient` calls the authenticated
 contextual-orchestrator ``/v1/batch/embeddings`` boundary once a credential is
 set. No client in this repository calls a provider embedding endpoint directly.

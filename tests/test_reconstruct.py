@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from datetime import datetime
 
+import pytest
+
 from lineageweave import Record, reconstruct
 from lineageweave.fixtures import sample_records
 
@@ -78,6 +80,22 @@ def test_llm_channel_is_used_and_scored_when_a_client_is_supplied() -> None:
 
     assert stub.calls > 0
     assert all("llm" in edge.channel_scores for edge in tree_a.edges)
+
+
+def test_llm_weight_is_rejected_when_the_channel_is_unavailable() -> None:
+    """A four-channel estimate is not repaired into a three-channel vector."""
+
+    with pytest.raises(ValueError, match="exactly match"):
+        reconstruct(sample_records(), weights=_SYNTHETIC_WEIGHTS_WITH_LLM)
+
+
+def test_missing_llm_weight_is_rejected_when_the_channel_is_available() -> None:
+    """An active channel requires its own exact calibrated profile."""
+
+    with pytest.raises(ValueError, match="exactly match"):
+        reconstruct(
+            sample_records(), llm=_StubAdjudicationClient(), weights=_SYNTHETIC_WEIGHTS
+        )
 
 
 def test_candidate_window_bounds_which_priors_are_considered() -> None:
