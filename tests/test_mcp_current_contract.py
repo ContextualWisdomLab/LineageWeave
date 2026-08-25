@@ -2,11 +2,15 @@
 
 from __future__ import annotations
 
+import json
 from dataclasses import replace
+from pathlib import Path
 
 import pytest
 
 from backend.app.config import load_settings
+
+ROOT = Path(__file__).resolve().parents[1]
 
 
 def test_mcp_quota_has_no_library_default(monkeypatch) -> None:
@@ -76,3 +80,20 @@ def test_mcp_quota_inputs_must_be_positive_integers(monkeypatch, name) -> None:
     monkeypatch.setenv(name, "0")
     with pytest.raises(ValueError, match="positive"):
         load_settings()
+
+
+def test_local_keycloak_and_mcp_service_share_exact_fixed_audience() -> None:
+    """The demo token mapper cannot drift from the local resource identifier."""
+    realm = json.loads((ROOT / "docker/keycloak/realm-export.json").read_text())
+    client = realm["clients"][0]
+    mapper = next(
+        item
+        for item in client["protocolMappers"]
+        if item["name"] == "lineageweave-mcp-audience"
+    )
+    audience = mapper["config"]["included.custom.audience"]
+    compose = (ROOT / "docker-compose.yml").read_text()
+    assert audience == "http://localhost:18001/mcp"
+    assert f"MCP_RESOURCE_URL: {audience}" in compose
+    assert f"MCP_AUDIENCE: {audience}" in compose
+    assert '"18001:8001"' in compose

@@ -224,8 +224,10 @@ services:
       VALKEY_URL: redis://valkey:6379/0
       ORCHESTRATOR_BASE_URL: ${ORCHESTRATOR_BASE_URL:-http://orchestrator:8000}
       ORCHESTRATOR_API_KEY: ${ORCHESTRATOR_API_KEY:-${CONTEXTUAL_ORCHESTRATOR_TOKEN:-lineageweave-orchestrator-dev-only}}
-      MCP_RESOURCE_URL: http://localhost:${MCP_PORT:-18001}/mcp
-      MCP_AUDIENCE: http://localhost:${MCP_PORT:-18001}/mcp
+      # Local Keycloak mints this exact fixed audience. Production Keyverse
+      # deployments configure both values together outside this demo stack.
+      MCP_RESOURCE_URL: http://localhost:18001/mcp
+      MCP_AUDIENCE: http://localhost:18001/mcp
       MCP_ALLOWED_HOSTS: localhost:*,127.0.0.1:*,mcp:8001
       MCP_ALLOWED_ORIGINS: ${MCP_ALLOWED_ORIGINS:-}
       MCP_MAX_REQUEST_BYTES: ${MCP_MAX_REQUEST_BYTES:-65536}
@@ -234,7 +236,7 @@ services:
       MCP_RATE_LIMIT_REQUESTS: ${MCP_RATE_LIMIT_REQUESTS:-}
       MCP_RATE_LIMIT_WINDOW_SECONDS: ${MCP_RATE_LIMIT_WINDOW_SECONDS:-}
     ports:
-      - "${MCP_PORT:-18001}:8001"
+      - "18001:8001"
     depends_on:
       postgres:
         condition: service_healthy
