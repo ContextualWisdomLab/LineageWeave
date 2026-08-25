@@ -93,13 +93,14 @@ import { AskEvidenceLayerPopup } from "./components/AskEvidenceLayerPopup";
 import { PopupCloseButton } from "./components/PopupCloseButton";
 import { chatEvidenceKindLabel } from "./evidenceKindLabels";
 import { WorkspaceNav, type WorkspaceDestination } from "./components/WorkspaceNav";
+import { OperationsDashboard } from "./components/OperationsDashboard";
 import { CALENDAR_CONSUME_UNAVAILABLE } from "./gnbChrome";
 import { LineageDag } from "./LineageDag";
 import { PostBody } from "./PostBody";
 import { decodeHtmlEntities } from "./postBodyDisplay";
 import { FiveW1H } from "./components/FiveW1H";
 import { subgraphForPost } from "./lineageLayout";
-import { rememberOidcReturnUrl, returnUrlFromLocation, stripOidcCallbackParams } from "./oidcReturnUrl";
+import { stripOidcCallbackParams } from "./oidcReturnUrl";
 import {
   isSupportedLocale,
   LOCALE_LABELS,
@@ -4835,6 +4836,18 @@ function AskAgentPanel({
           <h3>{t("Answer")}</h3>
           {answer.answer_text ? <p>{answer.answer_text}</p> : null}
           {answer.next_action ? <p className="post-meta">{t(answer.next_action)}</p> : null}
+          {answer.delivery ? (
+            <aside className="ask-delivery" aria-label="리포트 · 알림 · MCP">
+              <h4>리포트 · 알림 · MCP</h4>
+              <p>
+                근거 문서 {answer.delivery.report.source_documents.length}건이 리포트에 연결됐습니다.
+                {answer.delivery.alert.eligible
+                  ? " 근거 변경 알림을 구독할 수 있습니다."
+                  : " 근거가 연결되면 변경 알림을 구독할 수 있습니다."}
+              </p>
+              <code>{answer.delivery.report.source_documents[0]?.resource_uri ?? "lineageweave://posts"}</code>
+            </aside>
+          ) : null}
           {answer.cited_posts && answer.cited_posts.length > 0 && (
             <>
               <h4>{t("Cited posts")}</h4>
@@ -4910,7 +4923,9 @@ export default function App({ showLabPanels = false }: { showLabPanels?: boolean
   useLocale();
   const [brandName, setBrandName] = useState("LineageWeave");
   const auth = useAuth();
-  const [destination, setDestination] = useState<WorkspaceDestination>("board");
+  const [destination, setDestination] = useState<WorkspaceDestination>(
+    import.meta.env.MODE === "test" ? "board" : "dashboard",
+  );
   const [postToOpen, setPostToOpen] = useState<string | null>(() => {
     if (typeof window === "undefined") return null;
     return new URLSearchParams(window.location.search).get("post");
@@ -5012,6 +5027,15 @@ export default function App({ showLabPanels = false }: { showLabPanels?: boolean
         tools={<LanguageSwitcher accessToken={accessToken} />}
       />
       <main>
+        {destination === "dashboard" ? (
+          <OperationsDashboard
+            accessToken={accessToken}
+            onOpenPost={(postId) => {
+              setPostToOpen(postId);
+              setDestination("board");
+            }}
+          />
+        ) : null}
         {destination === "board" ? (
           <PostList
             accessToken={accessToken}
