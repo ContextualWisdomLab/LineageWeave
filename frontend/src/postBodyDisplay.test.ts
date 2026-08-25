@@ -65,6 +65,109 @@ describe("splitPostBody", () => {
     ]);
   });
 
+  it("preserves nested HTML list depth as semantic indentation", () => {
+    expect(
+      splitPostBody("<ol><li>Parent<ol><li>Child</li></ol></li><li>Sibling</li></ol>"),
+    ).toEqual([
+      { kind: "text", text: "Parent" },
+      { kind: "text", text: "Child", indentLevel: 1 },
+      { kind: "text", text: "Sibling" },
+    ]);
+  });
+
+  it("preserves nested list depth when item text is wrapped in a block child", () => {
+    expect(
+      splitPostBody(
+        "<ol><li><p>Parent</p><ol><li><p>Child</p></li></ol></li><li><p>Sibling</p></li></ol>",
+      ),
+    ).toEqual([
+      { kind: "text", text: "Parent" },
+      { kind: "text", text: "Child", indentLevel: 1 },
+      { kind: "text", text: "Sibling" },
+    ]);
+  });
+
+  it("labels HTML, Word, and OOXML footnotes in the fallback renderer", () => {
+    expect(
+      splitPostBody(
+        '<p>Body text</p>' +
+          '<ol class="footnotes"><li id="fn1"><p>HTML footnote body</p></li></ol>' +
+          '<p class="MsoFootnoteText"><a href="#_ftnref1"><sup>1</sup></a> Word footnote body</p>' +
+          "<w:footnote w:id='1'><w:p>OOXML footnote body</w:p></w:footnote>",
+      ),
+    ).toEqual([
+      { kind: "text", text: "Body text" },
+      { kind: "text", text: "HTML footnote body", role: "footnote" },
+      { kind: "text", text: "¹ Word footnote body", role: "footnote" },
+      { kind: "text", text: "OOXML footnote body", role: "footnote" },
+    ]);
+  });
+
+  it("labels unquoted HTML footnote attributes", () => {
+    expect(splitPostBody("<ol class=footnotes><li>Unquoted footnote</li></ol>")).toEqual([
+      { kind: "text", text: "Unquoted footnote", role: "footnote" },
+    ]);
+  });
+
+  it("stops labeling ordinary content after an HTML footnote list", () => {
+    expect(
+      splitPostBody(
+        '<ol class="footnotes"><li>HTML footnote body</li></ol><p>Ordinary body after footnotes</p>',
+      ),
+    ).toEqual([
+      { kind: "text", text: "HTML footnote body", role: "footnote" },
+      { kind: "text", text: "Ordinary body after footnotes" },
+    ]);
+  });
+
+  it("labels footnotes inside a labeled wrapper around an HTML list", () => {
+    expect(
+      splitPostBody(
+        '<p>Body text</p>' +
+          '<div class="footnotes"><ol><li><p>Wrapped footnote body</p></li></ol></div>' +
+          "<p>Ordinary body after footnotes</p>",
+      ),
+    ).toEqual([
+      { kind: "text", text: "Body text" },
+      { kind: "text", text: "Wrapped footnote body", role: "footnote" },
+      { kind: "text", text: "Ordinary body after footnotes" },
+    ]);
+  });
+
+  it("does not expose control markers for an empty footnote container", () => {
+    expect(splitPostBody('<ol class="footnotes"></ol>')).toEqual([{ kind: "text", text: "" }]);
+  });
+
+  it("does not infer footnotes from unrelated attribute values", () => {
+    expect(
+      splitPostBody(
+        '<ol data-purpose="footnotes"><li>Ordinary list</li></ol>' +
+          '<p data-purpose="footnote">Ordinary paragraph</p>',
+      ),
+    ).toEqual([
+      { kind: "text", text: "Ordinary list" },
+      { kind: "text", text: "Ordinary paragraph" },
+    ]);
+  });
+
+  it("keeps text boundaries for tags whose names start with a", () => {
+    expect(splitPostBody('<p>Alpha<abbr title="expanded">Beta</abbr>Gamma</p>')).toEqual([
+      { kind: "text", text: "Alpha Beta Gamma" },
+    ]);
+  });
+
+  it("keeps a stray pipe line inside its surrounding paragraph", () => {
+    expect(splitPostBody("<p>Before<br>ratio A | B<br>After</p>")).toEqual([
+      { kind: "text", text: "Before ratio A | B After" },
+    ]);
+  });
+
+  it("space-joins consecutive pipe prose when no Markdown separator exists", () => {
+    expect(splitPostBody("Alice | manager\nBob | engineer")).toEqual([
+      { kind: "text", text: "Alice | manager Bob | engineer" },
+    ]);
+  });
+
   it("leaves a plain-text post unchanged so existing popups keep their wording", () => {
     expect(splitPostBody("The full body text.")).toEqual([
       { kind: "text", text: "The full body text." },

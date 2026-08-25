@@ -638,7 +638,7 @@ def _seed_reconstructed_lineage(cur, author_account_id, corporate_entity_id, pro
     reconstruct() already knows the A-100 fork.
     """
     from lineageweave.fixtures import sample_records
-    from lineageweave.lineage_persistence import lineage_edge_specs
+    from lineageweave.lineage_persistence import lineage_edge_specs, lineage_rebuild_spec
 
     # Idempotency first: a re-seed of an already-seeded database (whose
     # estimate was persisted on the first pass) must not abort just
@@ -654,12 +654,41 @@ def _seed_reconstructed_lineage(cur, author_account_id, corporate_entity_id, pro
     persisted = insert_fixture_source_posts(
         cur, author_account_id, corporate_entity_id, process_unit_id
     )
-    for edge in lineage_edge_specs(persisted, weights=estimate.weights):
+    edges = lineage_edge_specs(persisted, weights=estimate.weights)
+    spec = lineage_rebuild_spec(edges, weights=estimate.weights)
+    cur.execute("delete from event_lineage_rebuild")
+    cur.execute(
+        "insert into event_lineage_rebuild "
+        "(rebuild_lock, reconstruction_version, generated_at, min_fused_score, candidate_window) "
+        "values (true, %s, now(), %s, %s)",
+        (spec.reconstruction_version, spec.min_fused_score, spec.candidate_window),
+    )
+    for signal_code, signal_weight in spec.channel_weights:
+        cur.execute(
+            "insert into event_lineage_rebuild_channel "
+            "(rebuild_lock, signal_code, signal_weight) values (true, %s, %s)",
+            (signal_code, signal_weight),
+        )
+    for edge in edges:
         cur.execute(
             "insert into post_lineage_edge "
             "(parent_post_id, child_post_id, fused_score, interval_relation_code) "
             "values (%s, %s, %s, 'interval_before') on conflict do nothing",
             (edge.parent_id, edge.child_id, edge.fused_score),
+        )
+    for row in spec.signal_rows:
+        cur.execute(
+            "insert into post_lineage_edge_signal "
+            "(parent_post_id, child_post_id, signal_code, signal_score, signal_weight, signal_contribution) "
+            "values (%s, %s, %s, %s, %s, %s) on conflict do nothing",
+            (
+                row["parent_post_id"],
+                row["child_post_id"],
+                row["signal_code"],
+                row["signal_score"],
+                row["signal_weight"],
+                row["signal_contribution"],
+            ),
         )
 
 

@@ -183,6 +183,13 @@ def estimate_channel_weights(
         [dichotomize(scores[channel]) for channel in channels]
         for scores in pair_channel_scores
     ]
+    distinct_columns = {
+        tuple(row[column] for row in responses) for column in range(len(channels))
+    }
+    if len(distinct_columns) != len(channels):
+        # Identical channels are one signal copied twice, not independent
+        # measurement evidence. Refuse instead of double-counting it.
+        return None
     for column, channel in enumerate(channels):
         observed = {row[column] for row in responses}
         if len(observed) < 2:

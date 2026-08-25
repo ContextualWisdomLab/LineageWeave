@@ -21,37 +21,59 @@ function renderStyledText(text: string): ReactNode {
   });
 }
 
-function parsePipeDelimitedTable(text: string): string[][] | null {
-  const rows = text
+function parsePipeDelimitedTable(text: string, requireSeparator = true): string[][] | null {
+  const rawRows = text
     .split(/\r?\n/)
     .map((row) => {
       const cells = row.split("|").map((cell) => cell.trim());
       if (cells[0] === "") cells.shift();
       if (cells[cells.length - 1] === "") cells.pop();
       return cells;
-    })
-    .filter((row) => !row.every((cell) => /^:?-{3,}:?$/.test(cell)))
+    });
+  const separatorIndex = rawRows.findIndex(
+    (row) => row.length > 1 && row.every((cell) => /^:?-{3,}:?$/.test(cell)),
+  );
+  if (requireSeparator && separatorIndex !== 1) return null;
+  const rows = rawRows
+    .filter((_row, rowIndex) => rowIndex !== separatorIndex)
     .filter((row) => row.length > 1 && row.some(Boolean));
   if (rows.length < 2 || rows.some((row) => row.length !== rows[0].length)) return null;
   if (rows[0].length < 2) return null;
   return rows;
 }
 
-function renderImageText(text: string) {
-  const rows = parsePipeDelimitedTable(text);
-  if (!rows) return <p>{renderStyledText(text)}</p>;
+function renderPipeTable(
+  text: string,
+  className: string,
+  keyPrefix: string,
+  requireSeparator = true,
+): ReactNode | null {
+  const rows = parsePipeDelimitedTable(text, requireSeparator);
+  if (!rows) return null;
   return (
-    <table className="post-body-table post-image-text-table">
+    <table
+      key={`${keyPrefix}-table`}
+      className={className}
+      data-content-kind="table"
+    >
       <tbody>
         {rows.map((row, rowIndex) => (
-          <tr key={`post-image-text-row-${rowIndex}`}>
+          <tr key={`${keyPrefix}-row-${rowIndex}`}>
             {row.map((cell, cellIndex) => (
-              <td key={`post-image-text-cell-${rowIndex}-${cellIndex}`}>{renderStyledText(cell)}</td>
+              <td key={`${keyPrefix}-cell-${rowIndex}-${cellIndex}`}>{renderStyledText(cell)}</td>
             ))}
           </tr>
         ))}
       </tbody>
     </table>
+  );
+}
+
+function renderImageText(text: string) {
+  return (
+    renderPipeTable(text, "post-body-table post-image-text-table", "post-image-text", false) ?? (
+      <p>{renderStyledText(text)}</p>
+    )
   );
 }
 
@@ -159,6 +181,13 @@ function renderSegment(segment: PostBodySegment, index: number, imageContent?: P
       throw new Error(`unexpected post body segment: ${JSON.stringify(_exhaustive)}`);
     }
   }
+}
+
+function renderTextSegment(segment: Extract<PostBodySegment, { kind: "text" }>, index: number) {
+  return (
+    renderPipeTable(segment.text, "post-body-table post-markdown-table", `post-markdown-${index}`) ??
+    renderSegment(segment, index)
+  );
 }
 
 function isStructuredTableRow(unit: PostContentUnit): boolean {
@@ -289,7 +318,7 @@ function renderStructuredUnits(
         ? unit.indent_level
         : undefined;
     rendered.push(
-      renderSegment(
+      renderTextSegment(
         {
           kind: "text",
           text: displayUnitText(unit.unit_text),
@@ -327,7 +356,7 @@ export function PostBody({
       {splitPostBody(body).map((segment, index) => {
         const content = segment.kind === "image" ? imageContent[imageOrdinal++] : undefined;
         if (segment.kind !== "text") return renderSegment(segment, index, content);
-        return renderSegment(segment, index, content);
+        return renderTextSegment(segment, index);
       })}
     </div>
   );

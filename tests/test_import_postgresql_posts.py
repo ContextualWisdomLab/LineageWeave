@@ -101,7 +101,7 @@ def test_import_rows_persists_raw_and_derived_grouping_values(
     async def no_cleanup(*_args, **_kwargs) -> dict[str, int]:
         return {"synthetic_rows_removed": 0}
 
-    async def no_edges(_conn) -> list[object]:
+    async def no_edges(_conn, *, llm=None) -> list[object]:
         return []
 
     monkeypatch.setattr("scripts.import_postgresql_posts.asyncpg.connect", fake_connect)
