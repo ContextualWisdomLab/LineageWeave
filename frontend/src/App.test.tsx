@@ -3094,7 +3094,10 @@ describe("App, authenticated", () => {
 
   it("drops a prior post's in-flight similar-VOC page after navigation", async () => {
     const backend = stubBackend();
-    const original = backend.getMockImplementation()!;
+    const original = backend.getMockImplementation() as (
+      input: RequestInfo | URL,
+      init?: RequestInit,
+    ) => Promise<Response>;
     let releasePage!: (response: Response) => void;
     const deferredPage = new Promise<Response>((resolve) => { releasePage = resolve; });
     backend.mockImplementation((...args) => {
@@ -3110,7 +3113,7 @@ describe("App, authenticated", () => {
           next_offset: 50,
         }));
       }
-      return original(...args);
+      return original(args[0] as RequestInfo | URL, args[1] as RequestInit | undefined);
     });
     render(<App showLabPanels />);
     await userEvent.click(await screen.findByRole("button", { name: /open report post: public post/i }));
