@@ -22,9 +22,15 @@ from backend.app.post_eligibility import SOURCE_POST_ELIGIBILITY_SQL
 from lineageweave.lineage_persistence import lineage_edge_specs
 from lineageweave.models import Edge, Record
 
-# ADR 0145 rejected the unanchored estimator. A future accepted ADR must add
-# its independently validated method code here before persisted weights can run.
-_SUPPORTED_ANCHOR_METHOD_CODES: frozenset[str] = frozenset()
+# Accepted ADR 0200 (points 2-3) authorizes exactly one anchor method:
+# expected-information estimates honestly labeled as validated by the
+# channels' internal response structure only, pending the TEPP
+# criterion-validity gate. When that gate exists, a set that fails it is
+# retired and this stays the only place an anchor method is ever added
+# -- ADR-first, per ADR 0145's original condition.
+_SUPPORTED_ANCHOR_METHOD_CODES: frozenset[str] = frozenset(
+    {"unanchored_internal_structure"}
+)
 
 
 def _occurred_at(value: datetime) -> datetime:
@@ -84,21 +90,54 @@ async def load_estimated_channel_weights(
 ) -> dict[str, float] | None:
     """Load only a complete vector from an independently anchored method.
 
-    ADR 0145 currently authorizes no anchor method. A partial or invalid vector
-    returns ``None`` rather than being repaired. A database that has not applied
-    migration 0135 is likewise an unavailable state, detected without issuing a
-    statement that would abort the caller's outer PostgreSQL transaction.
+    No anchor method is currently authorized (ADR 0200 point 3 names the
+    conditions under which one becomes authorized). A partial or invalid
+    vector returns ``None`` rather than being repaired. A database that has
+    not applied migration 0135 is likewise an unavailable state, detected
+    without issuing a statement that would abort the caller's outer
+    PostgreSQL transaction.
+
+    Since migration 0200 one weight set is persisted per active-channel
+    combination (``channel_set_code``): the corpus-wide rebuild's three
+    deterministic channels and a scoped analysis run's four each match
+    their own set without regressing the other. Anything other than an
+    exact match of one set falls through to ``None`` -- a partial overlap
+    would mix estimation runs into a vector that grounds nothing.
     """
     table_exists = await conn.fetchval(
         "select to_regclass('public.lineage_channel_weight') is not null"
     )
     if not table_exists:
         return None
-    rows = await conn.fetch(
-        "select channel_code, weight_value, estimation_run_id, "
+    # Pre-0200 schemas lack channel_set_code; probe via the catalog (never
+    # a failing statement, which would abort the caller's transaction).
+    # Pre-0200 rows form one implicit deterministic set.
+    set_column_exists = await conn.fetchval(
+        "select exists (select from information_schema.columns "
+        "where table_schema = 'public' "
+        "  and table_name = 'lineage_channel_weight' "
+        "  and column_name = 'channel_set_code')"
+    )
+    set_column_sql = (
+        "channel_set_code" if set_column_exists else "'channel_set_deterministic'"
+    )
+    all_rows = await conn.fetch(
+        f"select {set_column_sql} as channel_set_code, "
+        "channel_code, weight_value, estimation_run_id, "
         "estimation_method_code, estimator_version, anchor_method_code, "
         "source_snapshot_sha256, sample_pair_count, knowledge_cutoff "
         "from lineage_channel_weight"
+    )
+    sets: dict[str, list] = {}
+    for row in all_rows:
+        sets.setdefault(row["channel_set_code"], []).append(row)
+    rows = next(
+        (
+            candidate
+            for candidate in sets.values()
+            if {row["channel_code"] for row in candidate} == active_channels
+        ),
+        [],
     )
     persisted = {row["channel_code"]: float(row["weight_value"]) for row in rows}
     if not persisted or set(persisted) != active_channels:
@@ -153,8 +192,33 @@ async def load_estimated_channel_weights(
     return persisted
 
 
+class ChannelWeightsNotEstimated(RuntimeError):
+    """No activated estimated weight set exists for the active channels.
+
+    Product reconstruction treats fusion weights as measurement output
+    only (ADR 0200 point 1): estimated by fast-mlsirm, provenance-gated,
+    never hand-picked constants. No hand-picked default exists anywhere
+    -- the library demo estimates its weights from its declared design,
+    and unit tests inject synthetic weights explicitly.
+    """
+
+    def __init__(self, active_channels: set[str]) -> None:
+        super().__init__(
+            "no activated fast-mlsirm channel weight estimate exists for "
+            f"active channels {sorted(active_channels)}; run "
+            "scripts/estimate_channel_weights.py first -- product "
+            "reconstruction never falls back to hand-picked weights"
+        )
+        self.active_channels = active_channels
+
+
 async def rebuild_lineage(conn: asyncpg.Connection) -> list[Edge]:
-    """Reconstruct lineage for every ``source_post`` and persist the edges."""
+    """Reconstruct lineage for every ``source_post`` and persist the edges.
+
+    Raises :class:`ChannelWeightsNotEstimated` when no activated
+    estimate matches this path's active channels -- run
+    ``scripts/estimate_channel_weights.py`` first (ADR 0200 point 1).
+    """
     rows = await conn.fetch(
         "select post_id, post_title, voc_type_code, created_at, corporate_entity_id, "
         "process_unit_id, thread_group_key, secondary_grouping_key "
@@ -163,9 +227,10 @@ async def rebuild_lineage(conn: asyncpg.Connection) -> list[Edge]:
     # No adjudication client is wired on this path, so the active channel
     # set is the three deterministic channels (reconstruct drops llm when
     # unavailable rather than faking it).
-    weights = await load_estimated_channel_weights(
-        conn, {"temporal", "secondary_key", "text"}
-    )
+    active_channels = {"temporal", "secondary_key", "text"}
+    weights = await load_estimated_channel_weights(conn, active_channels)
+    if weights is None:
+        raise ChannelWeightsNotEstimated(active_channels)
     edges = lineage_edge_specs(records_from_source_posts(rows), weights=weights)
     await persist_lineage_edges(conn, edges)
     return edges

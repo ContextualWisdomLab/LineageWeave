@@ -27,7 +27,6 @@ from typing import Any, Callable, Mapping, Sequence
 # Cormack et al. (2009) reciprocal-rank fusion constant.
 DEFAULT_RANK_CONSTANT_ETA = 60
 DEFAULT_RANKING_LIMIT = 20
-DEFAULT_CHANNEL_WEIGHTS = {"temporal": 0.25, "lexical": 0.75}
 # Seeded A-100 titles mention pricing, quote, and delivery. This is a
 # synthetic demo query, not a customer string.
 DEFAULT_RANKING_QUERY = "pricing quote delivery"
@@ -247,7 +246,9 @@ def project_ranking_list(
     items: list[RankedPost] = []
     seen: set[str] = set()
     owned_channels = channels or {}
-    owned_weights = weights or DEFAULT_CHANNEL_WEIGHTS
+    # Parameter-free classic RRF default (ADR 0200 point 1): every
+    # channel weighs 1.0 unless the caller passes an estimated set.
+    owned_weights = weights or {name: 1.0 for name in owned_channels}
     for hit in raw:
         post_id = _item_id_from_hit(hit)
         title = str(titles_by_id.get(post_id) or "").strip()
@@ -312,11 +313,11 @@ class LibraryRankWeaveTransport:
                 )
             except Exception as exc:
                 raise RankWeaveNotAvailable(
-                    f"rankweave_not_available: weighted_reciprocal_rank_fuse failed ({exc})"
+                    "rankweave_not_available: weighted_reciprocal_rank_fuse failed"
                 ) from exc
         except Exception as exc:
             raise RankWeaveNotAvailable(
-                f"rankweave_not_available: weighted_reciprocal_rank_fuse failed ({exc})"
+                "rankweave_not_available: weighted_reciprocal_rank_fuse failed"
             ) from exc
         projected: list[dict[str, Any]] = []
         for hit in hits:
@@ -350,15 +351,26 @@ class RankWeaveClient:
         titles_by_id: Mapping[str, str],
         weights: dict[str, float] | None = None,
     ) -> RankingList:
-        """Fuse the given per-channel id lists into one weighted RankingList."""
-        active_weights = weights or DEFAULT_CHANNEL_WEIGHTS
+        """Fuse the channels; parameter-free classic RRF by default.
+
+        No hand-picked weight exists (ADR 0200 point 1): without an
+        explicit ``weights`` argument every channel gets weight 1.0,
+        which reduces weighted RRF to Cormack et al.'s (2009)
+        parameter-free reciprocal rank fusion -- the paper's own
+        finding is that the unweighted form outperforms trained
+        alternatives, so there is no arbitrary number to justify.
+        Callers holding a psychometrically estimated set may still pass
+        it explicitly; the disclosed per-channel evidence carries
+        whichever weights actually fused.
+        """
+        active_weights = weights or {name: 1.0 for name in channels}
         try:
             raw = self._transport(channels, active_weights)
         except RankWeaveNotAvailable:
             raise
         except Exception as exc:
             raise RankWeaveNotAvailable(
-                f"rankweave_not_available: ranking transport failed ({exc})"
+                "rankweave_not_available: ranking transport failed"
             ) from exc
         return project_ranking_list(
             raw, titles_by_id, channels=channels, weights=active_weights

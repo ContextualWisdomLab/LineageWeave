@@ -43,6 +43,13 @@ All notable changes to this project are documented here. Format follows
   (complete-case)”; incomplete rows stay excluded, never filled with
   zero.
 
+- The grouping comparison strip now names leftover post–criterion
+  pairs on each visible row (ADR 0149). After `make seed`, open a
+  leftover pair on A-100 from the strip to read that post. A leftover
+  pair for a hidden post is omitted. Distances come from the same
+  authorized leftover store as the period-report list; they do not
+  invent a leftover score.
+
 ### Fixed
 
 - Structure adjudication now rejects malformed or duplicate unit indexes before
@@ -74,6 +81,11 @@ All notable changes to this project are documented here. Format follows
 - `make smoke` and `make seed` now run through the locked project `uv`
   environment, so local OIDC and synthetic-data workflows resolve the same
   pinned dependencies as CI.
+- Provider response parsing now rejects malformed chat envelopes without
+  exposing provider response bodies, exception text, or secrets through
+  buyer-facing APIs and persisted ingestion failure details. RankWeave, OIDC,
+  TEPP, structured VISION, summaries, chat, and extraction channels now retain
+  stable next-action-safe failure messages.
 - Ontology neighborhoods now enforce request bounds before database access,
   apply node-level ABAC, omit unlabeled endpoints, preserve catalog-owned node
   metadata, and keep typed endpoint IDs unambiguous. Workspace CSV and JSON-LD
@@ -180,6 +192,17 @@ All notable changes to this project are documented here. Format follows
   Rank-0 and rank-1 maps still pad unused axes with zero, so seed
   leftover pairs above the member list still open that post. Never
   invent a leftover score or a theta.
+
+## [2.12.8] - 2026-08-23
+
+### Changed
+
+- Clicking a leftover closest or farthest pair now opens that post with
+  the leftover criterion current in Post quality (IRT). The Post quality
+  heading is focused, the named criterion row is `aria-current`, and the
+  next action names the leftover score to read (Jeon leftover map,
+  ADR 0158). Home-list and report-member opens do not carry leftover
+  focus.
 
 ## [2.12.6] - 2026-08-20
 

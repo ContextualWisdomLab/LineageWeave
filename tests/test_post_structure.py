@@ -2,7 +2,10 @@ import json
 
 import pytest
 
-from lineageweave.post_structure import ContextualOrchestratorPostStructureClient
+from lineageweave.post_structure import (
+    ContextualOrchestratorPostStructureClient,
+    _response_content,
+)
 
 
 def test_structure_client_validates_complete_decisions(monkeypatch) -> None:
@@ -88,3 +91,13 @@ def test_structure_client_rejects_invalid_unit_indexes_before_transport(
 
     with pytest.raises(ValueError, match="unique non-negative integer indexes"):
         client.infer("Title", units)
+
+
+@pytest.mark.parametrize(
+    "response",
+    [{"choices": ["provider secret"]}, {"choices": [{"message": "provider secret"}]}],
+)
+def test_structure_response_rejects_raw_provider_shapes(response: object) -> None:
+    with pytest.raises(ValueError, match="structure adjudication response") as error:
+        _response_content(response)
+    assert "provider secret" not in str(error.value)
