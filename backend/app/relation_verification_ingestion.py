@@ -228,6 +228,10 @@ async def verify_post_relations_from_pool(
                 where post_id = $1 and counterparty_entity_name = $2
                   and verification_status_code = 'verify_pending'
                   and relationship_type_code = $6
+                  and ($5::uuid is null or exists (
+                      select 1 from source_post evidence
+                      where evidence.post_id = $5::uuid
+                  ))
                 """,
                 post_id,
                 completed.counterparty_entity_name,

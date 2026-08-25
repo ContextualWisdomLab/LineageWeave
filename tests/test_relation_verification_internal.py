@@ -198,6 +198,7 @@ def test_pool_verification_omits_relation_completed_by_concurrent_run() -> None:
     class ConcurrentConnection(_Connection):
         async def execute(self, query: str, *args: object):
             assert "verification_status_code = 'verify_pending'" in query
+            assert "where evidence.post_id = $5::uuid" in query
             return "UPDATE 0"
 
     conn = ConcurrentConnection(None)
