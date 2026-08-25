@@ -79,7 +79,7 @@ lifecycle claim.
 ## 1. Exact-head and governance evidence
 
 The protected default branch was `04e6b610655d0db91d5f7ba9486bdda1440e0b19`
-when this baseline was refreshed. The live queue contained 6 open PRs and 10
+when this baseline was refreshed. The live queue contained 5 open PRs and 10
 open issues. The exact-head inventory below supersedes older per-PR snapshots
 elsewhere in this document; those older rows remain useful historical delivery
 context only.
