@@ -27,7 +27,8 @@ as transport evidence, persists only fully request-bound terminal results,
 and rejects changed digests. It does not guess a provider URL, polling cadence,
 backoff coefficient, theta, or score. Focused exact-source evidence is
 `64 passed`; the full Python suite passed `1087` with `16` live-stack skips.
-TEPP issue #249 now owns the executable HTTP status-service gap. The unrelated
+PR #656 carries this stacked consumer at exact head `5f8613e3`; TEPP issue #249
+now owns the executable HTTP status-service gap. The unrelated
 Starlette `httpx2` migration and short synthetic JWT-test key warnings remain
 pre-existing dependency/test-fixture gaps and are not suppressed in this
 TEPP-scoped continuation. Protected checks and independent review remain
