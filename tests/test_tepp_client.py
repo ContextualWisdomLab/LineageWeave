@@ -103,11 +103,11 @@ def test_configured_transport_reads_opaque_remote_run_status(
         api_key="runtime-only",
     )
 
-    status = client.get_analysis_run_status("remote/run 1")
+    status = client.get_analysis_run_status(" remote/run 1 ")
 
     assert status["run_state"] == "running"
     assert received == {
-        "url": "https://tepp.example/v1/analysis-runs/remote%2Frun%201",
+        "url": "https://tepp.example/v1/analysis-runs/%20remote%2Frun%201%20",
         "headers": {
             "tepp-consumer": "lineageweave",
             "tepp-contract-version": "1",

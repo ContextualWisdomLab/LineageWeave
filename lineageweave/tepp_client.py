@@ -87,4 +87,4 @@ class TeppClient:
         """Read TEPP's status envelope for one opaque remote run id."""
         if not isinstance(run_id, str) or not run_id.strip():
             raise ValueError("run_id must be a non-empty string")
-        return self._status_transport(run_id.strip())
+        return self._status_transport(run_id)
