@@ -403,7 +403,7 @@ async def _ensure_scope(conn: asyncpg.Connection, args: argparse.Namespace) -> t
     return str(account_id), str(corporate_id), str(process_unit_id)
 
 
-async def import_rows(args: argparse.Namespace) -> dict[str, int]:
+async def import_rows(args: argparse.Namespace) -> dict[str, object]:
     """Import rows and return aggregate evidence only."""
     _validate_corporate_entity_scope(
         args.corporate_entity_code,
