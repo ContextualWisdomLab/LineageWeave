@@ -2,6 +2,7 @@ import { fireEvent, render, screen, waitFor, within } from "@testing-library/rea
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import App from "./App";
+import type { AnalysisRunKindCode } from "./api";
 import { setLocale } from "./i18n";
 import { OIDC_RETURN_URL_STORAGE_KEY } from "./oidcReturnUrl";
 
@@ -106,6 +107,7 @@ describe("App, authenticated", () => {
     succeededReportRun?: boolean;
     succeededTeppRun?: boolean;
     pendingTeppRun?: boolean;
+    cancelledRunKind?: AnalysisRunKindCode;
     pluralAffiliations?: boolean;
     deferMe?: boolean;
     deferPostOne?: boolean;
@@ -161,6 +163,27 @@ describe("App, authenticated", () => {
           releasePostOne = resolve;
         })
       : Promise.resolve();
+    const cancelledRun = options?.cancelledRunKind
+      ? {
+          analysis_run_id: "run-demo-cancelled",
+          run_kind_code: options.cancelledRunKind,
+          run_kind_label: {
+            analysis_run_lineage: "Lineage reconstruction",
+            analysis_run_tepp: "TEPP measurement",
+            analysis_run_topic_lineage: "Topic lineage",
+            analysis_run_report: "Period report",
+          }[options.cancelledRunKind],
+          scope_kind_code: "analysis_scope_corporate_entity",
+          scope_kind_label: "Corporate entity",
+          scope_entity_name: "Demo Corp",
+          status_code: "analysis_status_cancelled" as const,
+          status_label: "Cancelled",
+          knowledge_cutoff: "2026-01-12T12:00:00Z",
+          requested_at: "2026-01-12T12:42:00Z",
+          source_counts: [],
+          visible_posts: [],
+        }
+      : null;
 
     const fetchMock = vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
       const url = String(input);
@@ -268,6 +291,9 @@ describe("App, authenticated", () => {
         return Promise.resolve(
           jsonResponse({ post_id: "post-1", has_commitment: true, ticket }),
         );
+      }
+      if (url.endsWith("/api/analysis-runs/run-demo-cancelled") && cancelledRun) {
+        return Promise.resolve(jsonResponse(cancelledRun));
       }
       if (url.endsWith("/api/analysis-runs/run-demo-report")) {
         const reportSucceeded = !options?.failedReportRun;
@@ -686,6 +712,7 @@ describe("App, authenticated", () => {
         return Promise.resolve(
           jsonResponse({
             analysis_runs: [
+              ...(cancelledRun ? [cancelledRun] : []),
               ...(createdPendingLineage ? [createdPendingLineage] : []),
               ...(createdPendingTepp ? [createdPendingTepp] : []),
               {
@@ -3398,6 +3425,33 @@ describe("App, authenticated", () => {
     expect(screen.queryByRole("status", { name: "Live body warning" })).not.toBeInTheDocument();
     expect(screen.queryByRole("heading", { name: "Body this run knew" })).not.toBeInTheDocument();
   });
+
+  it.each([
+    ["analysis_run_lineage", "Request a new lineage reconstruction from a current snapshot."],
+    [
+      "analysis_run_tepp",
+      "Connect the measurement service, then ask an administrator to submit a new TEPP run from a current snapshot.",
+    ],
+    [
+      "analysis_run_topic_lineage",
+      "Connect the TEPP transport, then ask an administrator to submit new topic-lineage analysis from a current snapshot.",
+    ],
+    ["analysis_run_report", "Rebuild the period report from a current snapshot."],
+  ] satisfies [AnalysisRunKindCode, string][])(
+    "gives a cancelled %s run its kind-exact next action",
+    async (runKindCode, nextAction) => {
+      stubBackend({ cancelledRunKind: runKindCode });
+      render(<App showLabPanels />);
+
+      const cancelledRunButton = await screen.findByRole("button", {
+        name: /Open analysis run: .* · Cancelled · Demo Corp/,
+      });
+      expect(cancelledRunButton).toHaveTextContent(`This run was cancelled. ${nextAction}`);
+      await userEvent.click(cancelledRunButton);
+      expect(screen.getAllByText(`This run was cancelled. ${nextAction}`)).not.toHaveLength(0);
+      expect(screen.queryByRole("button", { name: /Start/ })).not.toBeInTheDocument();
+    },
+  );
 
   it("tells a running lineage run to refresh the durable outbox", async () => {
     stubBackend({ runningLineageRun: true });

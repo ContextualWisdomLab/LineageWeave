@@ -936,6 +936,27 @@
   gap: 0.5rem;
 }
 
+.analysis-run-item {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.analysis-run-item.has-document-count.has-next-action {
+  grid-template-columns: minmax(12rem, 1fr) auto minmax(18rem, 2fr);
+}
+
+.analysis-run-item.has-document-count:not(.has-next-action) {
+  grid-template-columns: minmax(12rem, 1fr) auto;
+}
+
+.analysis-run-item.has-next-action:not(.has-document-count) {
+  grid-template-columns: minmax(12rem, 1fr) minmax(18rem, 2fr);
+}
+
+.analysis-run-item:not(.has-document-count):not(.has-next-action) {
+  grid-template-columns: 1fr;
+}
+
 .ranking-hit {
   flex-direction: column;
   align-items: stretch;
@@ -1114,6 +1135,14 @@
     flex-direction: column;
     align-items: flex-start;
     gap: 0.5rem;
+  }
+
+  .analysis-run-item,
+  .analysis-run-item.has-document-count.has-next-action,
+  .analysis-run-item.has-document-count:not(.has-next-action),
+  .analysis-run-item.has-next-action:not(.has-document-count),
+  .analysis-run-item:not(.has-document-count):not(.has-next-action) {
+    grid-template-columns: 1fr;
   }
 }
 

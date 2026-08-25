@@ -2701,8 +2701,22 @@ function analysisRunNextAction(run: AnalysisRun): string | null {
       }
     case "analysis_status_running":
       return "Refresh this run. Start already queued the work on the durable outbox.";
-    case "analysis_status_succeeded":
     case "analysis_status_cancelled":
+      switch (run.run_kind_code) {
+        case "analysis_run_lineage":
+          return "This run was cancelled. Request a new lineage reconstruction from a current snapshot.";
+        case "analysis_run_tepp":
+          return "This run was cancelled. Connect the measurement service, then ask an administrator to submit a new TEPP run from a current snapshot.";
+        case "analysis_run_topic_lineage":
+          return "This run was cancelled. Connect the TEPP transport, then ask an administrator to submit new topic-lineage analysis from a current snapshot.";
+        case "analysis_run_report":
+          return "This run was cancelled. Rebuild the period report from a current snapshot.";
+        default: {
+          const unexpected: never = run.run_kind_code;
+          return unexpected;
+        }
+      }
+    case "analysis_status_succeeded":
     case null:
       return null;
     default: {
@@ -3152,7 +3166,7 @@ function AnalysisRunsPanel({
             return (
               <li key={run.analysis_run_id} className="ticket-list-item">
                 <button
-                  className="post-list-item"
+                  className={`post-list-item analysis-run-item${documentCount ? " has-document-count" : ""}${nextAction ? " has-next-action" : ""}`}
                   aria-label={`Open analysis run: ${caption}`}
                   onClick={() => void handleOpen(run.analysis_run_id)}
                 >
