@@ -84,13 +84,13 @@ context only.
 
 | PR | Exact observed head | Merge/check state at this snapshot |
 | ---: | --- | --- |
-| #667 | `e353d376` | baseline refresh branch observed before this review repair; this documentation commit advances that head, so re-fetch before lifecycle action |
+| #667 | `5335011a` | baseline refresh branch exact head at this snapshot; BLOCKED with review required |
 | #663 | `d5edd2b9` | project ontology traversal plus cutoff-snapshot project focus, labels, and explicit MCP admission bounds; BLOCKED with review required |
 | #658 | `f497a6e8` | evidence-honest Global Ask cutoff with robust revision timestamps; BLOCKED with review required |
 | #657 | `a59a2023` | TEPP lifecycle persistence; BLOCKED with review required |
 | #644 | `ed8d97f3` | native-surface code splitting; BLOCKED with review required |
 | #643 | `7fb4d18c` | accessible status notices; BLOCKED with review required |
-| #640 | `dd134e77` | operations-dashboard contract alignment; BLOCKED with review required |
+| #640 | `361641ec` | operations-dashboard contract alignment; BLOCKED with review required |
 | #639 | `8da485d3` | running-action/config repair; BLOCKED with review required |
 | #632 | `cad4debf` | graph-fact provenance repair; BLOCKED with review required |
 | #631 | `e6b4f0c4` | ADR decomposition documentation; BLOCKED with review required |
