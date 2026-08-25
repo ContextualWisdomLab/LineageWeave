@@ -329,20 +329,10 @@ async def gather_chat_sources(
         return []
     source_id = str(this_post["post_id"])
     semantic_facts = await _semantic_facts_for_posts(conn, [source_id])
-    graph_facts = await _graph_facts_for_posts(conn, [source_id])
     normalized_body = await _normalize_post_body_text(
         this_post["post_body"],
         vision_client,
     )
-    sources = [
-        ChatSourceDocument(
-            source_id,
-            this_post["post_title"],
-            normalized_body,
-            graph_facts=graph_facts.get(source_id, ()),
-            evidence_facts=_source_hint_facts(this_post) + semantic_facts.get(source_id, ()),
-        )
-    ]
 
     linked = await find_linked_post_ids(conn, post_id)
     candidate_ids = [
@@ -350,7 +340,17 @@ async def gather_chat_sources(
         *sorted(linked.indirect),
     ][:_POST_CHAT_CANDIDATE_LIMIT]
     if not candidate_ids:
-        return sources
+        graph_facts = await _graph_facts_for_posts(conn, [source_id])
+        return [
+            ChatSourceDocument(
+                source_id,
+                this_post["post_title"],
+                normalized_body,
+                graph_facts=graph_facts.get(source_id, ()),
+                evidence_facts=_source_hint_facts(this_post)
+                + semantic_facts.get(source_id, ()),
+            )
+        ]
 
     rows = await conn.fetch(
         "select post_id, post_title, post_body, visibility_code, corporate_entity_id, process_unit_id, "
@@ -375,9 +375,16 @@ async def gather_chat_sources(
             break
 
     semantic_facts = await _semantic_facts_for_posts(conn, visible_source_ids)
-    graph_facts = await _graph_facts_for_posts(
-        conn, [str(row["post_id"]) for row in visible_rows]
-    )
+    graph_facts = await _graph_facts_for_posts(conn, visible_source_ids)
+    sources = [
+        ChatSourceDocument(
+            source_id,
+            this_post["post_title"],
+            normalized_body,
+            graph_facts=graph_facts.get(source_id, ()),
+            evidence_facts=_source_hint_facts(this_post) + semantic_facts.get(source_id, ()),
+        )
+    ]
     for row in visible_rows:
         normalized_body = await _normalize_post_body_text(row["post_body"], vision_client)
         sources.append(

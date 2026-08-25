@@ -145,6 +145,15 @@ def test_gather_chat_sources_bounds_and_orders_linked_context(
         "backend.app.post_chat_ingestion.find_linked_post_ids",
         fake_find_linked_post_ids,
     )
+    graph_fact_calls: list[list[str]] = []
+
+    async def fake_graph_facts(_conn: object, post_ids: list[str]):
+        graph_fact_calls.append(post_ids)
+        return {}
+
+    monkeypatch.setattr(
+        "backend.app.post_chat_ingestion._graph_facts_for_posts", fake_graph_facts
+    )
 
     class SourceBudgetConnection:
         def __init__(self) -> None:
@@ -222,6 +231,7 @@ def test_gather_chat_sources_bounds_and_orders_linked_context(
     assert "array_position" in conn.candidate_query
     assert [source.post_id for source in sources] == [root_id, *expected_candidates[:7]]
     assert len(sources) == 8
+    assert graph_fact_calls == [[root_id, *expected_candidates[:7]]]
 
 
 def test_normalize_question_rejects_empty_and_collapses_whitespace() -> None:
