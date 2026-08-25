@@ -42,6 +42,7 @@ def _queued_row() -> dict[str, object]:
         "requesting_account_id": "00000000-0000-0000-0000-000000000001",
         "question_text": "What happened last week?",
         "verify_external_requested": False,
+        "knowledge_cutoff": None,
     }
 
 

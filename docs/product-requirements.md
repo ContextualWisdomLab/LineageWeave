@@ -106,6 +106,20 @@ Acceptance: leaving the control off causes no public request; hidden or
 uncited facts cause no public request; unavailable services fail closed; and
 each displayed public judgment retains its originating internal evidence IDs.
 
+### PRD-FR-5B — Knowledge-cutoff Global Ask
+
+- Persist the optional cutoff with the asynchronous request and reject a future
+  instant against the database clock.
+- Apply authorization, eligibility, and cutoff filters before candidate limits,
+  then cite the retained source revision available at that instant.
+- Never replace a missing historical body or semantic channel with current
+  state; expose the limitation and later-live-change status.
+- Preserve the live contract when no cutoff is supplied.
+
+Acceptance: a later rewrite never appears in a cutoff answer; an uncovered
+revision is explicitly unavailable; and API and rendered citations identify
+the retained revision and full/partial grounding state.
+
 ### PRD-FR-6 — Measurement boundary
 
 - Consume TEPP accepted/completed wire contracts and fast-mlsirm outputs; do

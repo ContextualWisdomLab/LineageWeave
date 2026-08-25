@@ -8,7 +8,7 @@ describe("AskAgentPanel public verification", () => {
     vi.unstubAllGlobals();
   });
 
-  it("requires explicit consent and keeps public evidence separate", async () => {
+  it("keeps public verification separate and renders cutoff provenance", async () => {
     const fetchMock = vi
       .fn()
       .mockResolvedValueOnce(
@@ -25,7 +25,15 @@ describe("AskAgentPanel public verification", () => {
             answer: {
               answer_text: "Apollo is described by the internal cited post.",
               cited_post_ids: ["post-1"],
-              cited_posts: [{ post_id: "post-1", post_title: "Internal Apollo post" }],
+              cited_posts: [{
+                post_id: "post-1",
+                post_title: "Internal Apollo post",
+                source_post_revision_id: "revision-1",
+                evidence_available_at: "2026-01-10T00:00:00Z",
+                knowledge_cutoff: "2026-01-15T03:00:00Z",
+                live_changed_after_cutoff: true,
+                unavailable_channels: ["knowledge_graph"],
+              }],
               cited_post_evidence: [],
               source_post_ids: ["post-1"],
               external_verification_status: "external_verification_completed",
@@ -46,6 +54,9 @@ describe("AskAgentPanel public verification", () => {
                 },
               ],
               next_action: "Inspect public evidence separately before any governed graph review.",
+              knowledge_cutoff: "2026-01-15T03:00:00Z",
+              grounding_status: "fully_cutoff_grounded",
+              limitations: [],
             },
           }),
           { status: 200, headers: { "Content-Type": "application/json" } },
@@ -59,12 +70,17 @@ describe("AskAgentPanel public verification", () => {
     await userEvent.click(
       screen.getByRole("checkbox", { name: "Check eligible public claims" }),
     );
+    await userEvent.type(
+      screen.getByLabelText("Knowledge cutoff (optional)"),
+      "2026-01-15T12:00",
+    );
     await userEvent.click(screen.getByRole("button", { name: "Ask" }));
 
     await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
     expect(JSON.parse(String(fetchMock.mock.calls[0][1]?.body))).toEqual({
       question: "What is Apollo?",
       verify_external: true,
+      knowledge_cutoff: new Date("2026-01-15T12:00").toISOString(),
     });
     expect(screen.getByRole("region", { name: "Public verification" })).toBeInTheDocument();
     expect(screen.getByText("Supported by public evidence")).toBeInTheDocument();
@@ -73,5 +89,9 @@ describe("AskAgentPanel public verification", () => {
       "https://example.com/apollo",
     );
     expect(screen.getByText("Internal Apollo post")).toBeInTheDocument();
+    expect(screen.getByText(/Fully cutoff-grounded/)).toBeInTheDocument();
+    expect(screen.getByText(/Retained revision/)).toHaveTextContent(
+      "Live source changed later",
+    );
   });
 });

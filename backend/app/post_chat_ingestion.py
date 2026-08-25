@@ -53,6 +53,7 @@ from lineageweave.temporal_expressions import resolve_korean_relative_time
 from .config import load_settings
 from .knowledge_graph import hydrate_related_nodes, load_visible_subgraph
 from .post_eligibility import SOURCE_POST_ELIGIBILITY_SQL
+from .source_post_revision import fetch_known_at_revisions
 
 
 @dataclass(frozen=True)
@@ -82,6 +83,7 @@ async def _normalize_post_body_text(
 async def _graph_facts_for_posts(
     conn: asyncpg.Connection,
     visible_post_ids: list[str],
+    knowledge_cutoff: datetime | None = None,
 ) -> dict[str, tuple[str, ...]]:
     """Render graph facts under each visible post that evidences them.
 
@@ -91,7 +93,7 @@ async def _graph_facts_for_posts(
     also prevents a fact evidenced by one source from being rendered beneath a
     different source and then cited as though that source supported it.
     """
-    if not visible_post_ids:
+    if not visible_post_ids or knowledge_cutoff is not None:
         return {}
     edge_rows = await conn.fetch(
         """
@@ -228,7 +230,9 @@ def _source_hint_facts(row: Any) -> tuple[str, ...]:
 
 
 async def _semantic_facts_for_posts(
-    conn: asyncpg.Connection, post_ids: list[str]
+    conn: asyncpg.Connection,
+    post_ids: list[str],
+    knowledge_cutoff: datetime | None = None,
 ) -> dict[str, tuple[str, ...]]:
     """Load persisted project/role/Keyman facts for already-visible posts."""
     if not post_ids:
@@ -244,6 +248,7 @@ async def _semantic_facts_for_posts(
                    || ' [provenance=post_project_mention]' as fact
           from post_project_mention
          where post_id = any($1::uuid[])
+           and ($2::timestamptz is null or created_at <= $2)
         union all
         select post_id::text as post_id,
                'actor: ' || left(actor_name, 200)
@@ -252,6 +257,7 @@ async def _semantic_facts_for_posts(
                    || ' [provenance=post_summary_role]' as fact
           from post_summary_role
          where post_id = any($1::uuid[])
+           and $2::timestamptz is null
         union all
         select mention.post_id::text as post_id,
                'Keyman mention: ' || left(person.person_name, 200)
@@ -260,9 +266,11 @@ async def _semantic_facts_for_posts(
           from post_person_mention mention
           join cataloged_person person on person.person_id = mention.person_id
          where mention.post_id = any($1::uuid[])
+           and $2::timestamptz is null
          order by post_id, fact
         """,
         post_ids,
+        knowledge_cutoff,
     )
     facts: dict[str, list[str]] = {}
     for row in rows:
@@ -498,6 +506,7 @@ async def gather_global_chat_sources(
     question_embedding: tuple[list[float], str, float] | None = None,
     limit: int = 4,
     today: date | None = None,
+    knowledge_cutoff: datetime | None = None,
 ) -> list[ChatSourceDocument]:
     """Assemble a bounded, ABAC-filtered source set for Global Ask.
 
@@ -517,6 +526,10 @@ async def gather_global_chat_sources(
     Embedding candidates use maximum cosine similarity with exact model and
     dimension agreement. Persisted semantic/KG evidence remains available
     when that channel is unavailable; title/body lexical fallback does not.
+    A cutoff instead retrieves retained revisions plus timestamped project and
+    ontology-edge evidence. Current-only embeddings, roles, Keymen, graph
+    labels, lineage, images, and source hints are excluded rather than
+    back-projected into history.
     """
     if limit <= 0:
         return []
@@ -530,7 +543,10 @@ async def gather_global_chat_sources(
     if not (question and question.strip()):
         return []
     supplied_question_embedding = question_embedding is not None
-    if question_embedding is None:
+    if knowledge_cutoff is not None:
+        question_embedding = None
+        supplied_question_embedding = False
+    if question_embedding is None and knowledge_cutoff is None:
         question_embedding = await prepare_global_question_embedding(
             question, embedding_client
         )
@@ -549,7 +565,68 @@ async def gather_global_chat_sources(
     )
     # Safe SQL: the only interpolation is the repository-owned eligibility
     # expression; all request and model values remain asyncpg parameters.
-    candidate_rows = await conn.fetch(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
+    if knowledge_cutoff is not None:
+        candidate_rows = await conn.fetch(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
+            f"""
+            with evidence_query as (
+                select websearch_to_tsquery('simple', $1) as terms
+            ), evidence_post_candidates as (
+                select revision.post_id
+                  from source_post_revision revision, evidence_query query
+                 where revision.written_at <= $2
+                   and (revision.superseded_at is null or revision.superseded_at > $2)
+                   and to_tsvector(
+                           'simple',
+                           coalesce(revision.post_title, '') || ' ' ||
+                           coalesce(revision.post_body, '')
+                       ) @@ query.terms
+                union
+                select project.post_id
+                  from post_project_mention project, evidence_query query
+                 where project.created_at <= $2
+                   and to_tsvector(
+                           'simple',
+                           coalesce(project.project_name, '') || ' ' ||
+                           coalesce(project.evidence_text, '') || ' ' ||
+                           coalesce(project.ontology_iri, '')
+                       ) @@ query.terms
+                union
+                select evidence.evidence_post_id
+                  from knowledge_graph_edge edge
+                  join knowledge_graph_edge_evidence evidence
+                    on evidence.knowledge_graph_edge_id = edge.knowledge_graph_edge_id
+                 where edge.created_at <= $2
+                   and edge.edge_type_code = any($3::text[])
+            )
+            select 'evidence'::text as candidate_channel, candidate.post_id,
+                   row_number() over (
+                       order by coalesce(post.event_occurred_at, post.created_at) desc,
+                                candidate.post_id desc
+                   ) as channel_rank
+              from evidence_post_candidates candidate
+              join source_post post on post.post_id = candidate.post_id
+             where post.created_at <= $2
+               and (post.visibility_code = 'public'
+                    or (post.corporate_entity_id::text = any($4::text[])
+                        and (cardinality($5::text[]) = 0
+                             or post.process_unit_id::text = any($5::text[]))))
+               and {SOURCE_POST_ELIGIBILITY_SQL.format(alias='post')}
+               and ($6::date is null or (coalesce(post.event_occurred_at, post.created_at) at time zone 'Asia/Seoul')::date >= $6)
+               and ($7::date is null or (coalesce(post.event_occurred_at, post.created_at) at time zone 'Asia/Seoul')::date <= $7)
+             order by channel_rank
+             limit $8
+            """,
+            question,
+            knowledge_cutoff,
+            _ontology_lookup_codes_in_question(question),
+            list(authorized_corporate_entity_ids),
+            list(authorized_process_unit_ids),
+            resolved_time_range[0] if resolved_time_range else None,
+            resolved_time_range[1] if resolved_time_range else None,
+            limit,
+        )
+    else:
+        candidate_rows = await conn.fetch(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
         f"""
         with question_vector as (
             select ordinality - 1 as dimension_index, dimension_value
@@ -755,7 +832,7 @@ async def gather_global_chat_sources(
     # cannot each pull a separate lineage chain into the bounded context.
     lineage_neighbor_ids: list[str] = []
     lineage_anchor_id = candidate_ids[0] if candidate_ids else None
-    if lineage_anchor_id:
+    if lineage_anchor_id and knowledge_cutoff is None:
         lineage_rows = await conn.fetch(
             "select child_post_id as other_id from post_lineage_edge where parent_post_id = $1 "
             "union select parent_post_id as other_id from post_lineage_edge where child_post_id = $1",
@@ -771,7 +848,7 @@ async def gather_global_chat_sources(
         candidate_ids = list(
             dict.fromkeys([lineage_anchor_id, *lineage_neighbor_ids, *candidate_ids[1:]])
         )[:limit]
-    else:
+    elif not lineage_anchor_id:
         candidate_ids = []
     lineage_neighbor_id_set = frozenset(lineage_neighbor_ids)
 
@@ -785,7 +862,7 @@ async def gather_global_chat_sources(
                source_process_unit_name, source_sales_pool_code, source_sales_pool_name,
                source_customer_code, source_customer_name,
                source_project_code, source_project_name,
-               created_at, event_occurred_at
+               created_at, updated_at, event_occurred_at
           from source_post
          where (visibility_code = 'public'
             or (corporate_entity_id::text = any($1::text[])
@@ -793,6 +870,7 @@ async def gather_global_chat_sources(
                      or process_unit_id::text = any($2::text[]))))
            and source_post.post_id = any($3::uuid[])
            and {SOURCE_POST_ELIGIBILITY_SQL.format(alias='source_post')}
+           and ($7::timestamptz is null or source_post.created_at <= $7)
            and ($5::date is null or (coalesce(event_occurred_at, created_at) at time zone 'Asia/Seoul')::date >= $5)
            and ($6::date is null or (coalesce(event_occurred_at, created_at) at time zone 'Asia/Seoul')::date <= $6)
          order by array_position($3::uuid[], post_id) nulls last,
@@ -805,6 +883,7 @@ async def gather_global_chat_sources(
         limit,
         resolved_time_range[0] if resolved_time_range else None,
         resolved_time_range[1] if resolved_time_range else None,
+        knowledge_cutoff,
     )
     visible_rows = [
         row
@@ -813,19 +892,30 @@ async def gather_global_chat_sources(
     ][:limit]
     visible_ids = [str(row["post_id"]) for row in visible_rows]
     anchor_is_visible = lineage_anchor_id in visible_ids
-    semantic_facts = await _semantic_facts_for_posts(conn, visible_ids)
-    graph_facts = await _graph_facts_for_posts(conn, visible_ids)
+    revisions = await fetch_known_at_revisions(conn, visible_ids, knowledge_cutoff) if knowledge_cutoff else {}
+    semantic_facts = await _semantic_facts_for_posts(conn, visible_ids, knowledge_cutoff)
+    graph_facts = await _graph_facts_for_posts(conn, visible_ids, knowledge_cutoff)
     remaining_graph_facts = 16
     time_filter_active = resolved_time_range is not None
     sources: list[ChatSourceDocument] = []
     for index, row in enumerate(visible_rows):
-        normalized_body = await _normalize_post_body_text(row["post_body"], vision_client)
+        post_id = str(row["post_id"])
+        revision = revisions.get(post_id) if knowledge_cutoff else None
+        historical_body_unavailable = knowledge_cutoff is not None and revision is None
+        source_title = (
+            revision["post_title"]
+            if revision is not None
+            else ("Historical body unavailable" if historical_body_unavailable else row["post_title"])
+        )
+        source_body = revision["post_body"] if revision is not None else (
+            "" if historical_body_unavailable else row["post_body"]
+        )
+        normalized_body = await _normalize_post_body_text(source_body, vision_client)
         if len(normalized_body) > 4000:
             normalized_body = (
                 normalized_body[:4000]
                 + "\n[Source body truncated for Global Ask; open the cited post for the full body.]"
             )
-        post_id = str(row["post_id"])
         lineage_fact = (
             (f"Event Lineage: reconstructed timeline neighbor of post_id={lineage_anchor_id}",)
             if post_id in lineage_neighbor_id_set and anchor_is_visible
@@ -846,13 +936,29 @@ async def gather_global_chat_sources(
         sources.append(
             source_type(
                 post_id,
-                row["post_title"],
+                source_title,
                 normalized_body,
                 graph_facts=post_graph_facts,
-                evidence_facts=_source_hint_facts(row)
+                evidence_facts=(
+                    () if knowledge_cutoff is not None else _source_hint_facts(row)
+                )
                 + semantic_facts.get(post_id, ())
                 + lineage_fact
                 + time_axis_evidence_fact(row, time_filter_active=time_filter_active),
+                source_post_revision_id=(
+                    revision["source_post_revision_id"] if revision is not None else None
+                ),
+                evidence_available_at=(revision["written_at"] if revision is not None else None),
+                knowledge_cutoff=(knowledge_cutoff.isoformat() if knowledge_cutoff else None),
+                live_changed_after_cutoff=(
+                    knowledge_cutoff is not None and row["updated_at"] > knowledge_cutoff
+                ),
+                historical_body_unavailable=historical_body_unavailable,
+                unavailable_channels=(
+                    ("historical_body", "semantic_role", "semantic_keyman", "knowledge_graph", "lineage", "image")
+                    if historical_body_unavailable
+                    else (("semantic_role", "semantic_keyman", "knowledge_graph", "lineage", "image") if knowledge_cutoff else ())
+                ),
                 **source_arguments,
             )
         )
