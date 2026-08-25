@@ -2893,8 +2893,7 @@ function analysisRunCanStart(run: AnalysisRun): boolean {
     (run.run_kind_code === "analysis_run_lineage" ||
       run.run_kind_code === "analysis_run_tepp" ||
       run.run_kind_code === "analysis_run_topic_lineage") &&
-    (run.status_code === "analysis_status_pending" ||
-      run.status_code === "analysis_status_running")
+    run.status_code === "analysis_status_pending"
   );
 }
 

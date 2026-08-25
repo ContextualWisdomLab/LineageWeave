@@ -44,6 +44,14 @@ def test_tepp_transport_url_defaults_empty_and_is_not_a_score(monkeypatch) -> No
     assert load_settings().tepp_transport_url == "https://tepp.example/v1/analysis-runs"
 
 
+def test_tepp_api_key_stays_in_the_process_environment(monkeypatch) -> None:
+    """The optional TEPP credential is transported, never inferred or persisted."""
+    monkeypatch.delenv("TEPP_API_KEY", raising=False)
+    assert load_settings().tepp_api_key == ""
+    monkeypatch.setenv("TEPP_API_KEY", " tepp-transport-secret ")
+    assert load_settings().tepp_api_key == "tepp-transport-secret"
+
+
 def test_keyverse_issuer_overrides_local_keycloak_and_uses_oidc_discovery(monkeypatch) -> None:
     """Production Keyverse configuration is standard OIDC, not a local mock."""
     monkeypatch.setenv("KEYVERSE_ISSUER", "https://keyverse.example/tenant/acme")

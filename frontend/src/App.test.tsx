@@ -3410,7 +3410,9 @@ describe("App, authenticated", () => {
       "Refresh this run. Start already queued the work on the durable outbox.",
     );
     await userEvent.click(lineageButton);
-    expect(screen.getByRole("button", { name: "Start reconstruction" })).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Start reconstruction" }),
+    ).not.toBeInTheDocument();
     expect(
       screen.getAllByText("Refresh this run. Start already queued the work on the durable outbox."),
     ).not.toHaveLength(0);

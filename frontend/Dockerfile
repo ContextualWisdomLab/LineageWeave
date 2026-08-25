@@ -1,16 +1,16 @@
 FROM node:24-slim@sha256:3638d9a6fe4030bd716be989438248074489337ba3275657f93595428be4fc03 AS build
 WORKDIR /app
 RUN corepack enable
-COPY package.json pnpm-lock.yaml ./
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 RUN pnpm install --frozen-lockfile
 COPY . .
 # Vite bakes VITE_* vars in at build time, not runtime -- build args let
 # docker-compose pass through its own (possibly operator-overridden) ports.
-ARG VITE_KEYCLOAK_ISSUER
-ARG VITE_KEYCLOAK_CLIENT_ID
+ARG VITE_KEYVERSE_ISSUER
+ARG VITE_KEYVERSE_CLIENT_ID
 ARG VITE_BACKEND_BASE_URL
-ENV VITE_KEYCLOAK_ISSUER=${VITE_KEYCLOAK_ISSUER} \
-    VITE_KEYCLOAK_CLIENT_ID=${VITE_KEYCLOAK_CLIENT_ID} \
+ENV VITE_KEYVERSE_ISSUER=${VITE_KEYVERSE_ISSUER} \
+    VITE_KEYVERSE_CLIENT_ID=${VITE_KEYVERSE_CLIENT_ID} \
     VITE_BACKEND_BASE_URL=${VITE_BACKEND_BASE_URL}
 RUN pnpm run build
 
