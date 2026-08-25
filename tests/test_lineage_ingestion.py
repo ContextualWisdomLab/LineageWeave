@@ -343,7 +343,7 @@ def test_rebuild_passes_the_configured_adjudication_client(monkeypatch) -> None:
         captured["llm"] = llm
         return []
 
-    async def fake_persist_lineage_edges(_conn, _edges):
+    async def fake_persist_lineage_edges(_conn, _edges, _weights=None):
         events.append("persist")
         return None
 
@@ -441,7 +441,7 @@ def test_pooled_rebuild_releases_the_connection_during_reconstruction(monkeypatc
         events.append("reconstruct")
         return function(*args, **kwargs)
 
-    async def fake_persist(_conn, _edges):
+    async def fake_persist(_conn, _edges, _weights=None):
         assert pool.active == 1
         assert events[-1] == "transaction-enter"
         events.append("persist")
@@ -883,7 +883,7 @@ def test_persist_lineage_edges_replaces_signals_atomically_without_llm() -> None
         scores,
     )
     connection = _RecordingConnection()
-    asyncio.run(persist_lineage_edges(connection, [edge]))
+    asyncio.run(persist_lineage_edges(connection, [edge], weights))
     statements = [sql.casefold() for sql, _args in connection.statements]
     assert statements[0].startswith("delete from post_lineage_edge")
     assert any("delete from event_lineage_rebuild" in sql for sql in statements)
@@ -899,6 +899,11 @@ def test_persist_lineage_edges_replaces_signals_atomically_without_llm() -> None
         "lineage_signal_text",
     ]
     assert [len(rows) for _query, rows in connection.batches] == [3, 1, 3]
+    assert connection.batches[0][1] == [
+        ("lineage_signal_temporal", 0.25),
+        ("lineage_signal_secondary_key", 0.25),
+        ("lineage_signal_text", 0.5),
+    ]
     spec = lineage_rebuild_spec([edge], package_version="2.14.0")
     assert spec.reconstruction_version == "lineageweave.reconstruct/2.14.0"
 

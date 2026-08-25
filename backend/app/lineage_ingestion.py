@@ -77,7 +77,11 @@ def records_from_source_posts(rows: list[Mapping[str, Any]]) -> list[Record]:
     return records
 
 
-async def persist_lineage_edges(conn: asyncpg.Connection, edges: list[Edge]) -> None:
+async def persist_lineage_edges(
+    conn: asyncpg.Connection,
+    edges: list[Edge],
+    weights: dict[str, float] | None = None,
+) -> None:
     """Replace live Event Lineage with ``edges`` and their channel evidence.
 
     Reconstruct is the source of truth. The delete is cascaded onto
@@ -86,7 +90,7 @@ async def persist_lineage_edges(conn: asyncpg.Connection, edges: list[Edge]) -> 
     connection so version, weights, and generated-at stay aligned with
     the new graph.
     """
-    spec = lineage_rebuild_spec(edges)
+    spec = lineage_rebuild_spec(edges, weights=weights)
     await conn.execute("delete from post_lineage_edge")
     await conn.execute("delete from event_lineage_rebuild")
     await conn.execute(
@@ -282,7 +286,7 @@ async def rebuild_lineage(
     )
     edges = await _reconstruct_lineage_records(records, llm, weights)
     async with conn.transaction():
-        await persist_lineage_edges(conn, edges)
+        await persist_lineage_edges(conn, edges, weights)
     return edges
 
 
@@ -304,7 +308,7 @@ async def rebuild_lineage_from_pool(
         )
     edges = await _reconstruct_lineage_records(records, llm, weights)
     async with pool.acquire() as conn, conn.transaction():
-        await persist_lineage_edges(conn, edges)
+        await persist_lineage_edges(conn, edges, weights)
     return edges
 
 
