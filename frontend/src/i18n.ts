@@ -219,6 +219,8 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "The linked records are listed above. The graph is not available for this view.":
       "연결된 기록은 위 목록에 있습니다. 이 화면에서는 그래프를 사용할 수 없습니다.",
     "No linked posts yet.": "아직 연결된 글이 없습니다.",
+    "Other visible posts share this comparison group, but no Event Lineage link is available. Read Keyman and evaluation next.": "다른 표시 가능한 글이 이 비교 그룹에 있지만 Event Lineage 연결은 없습니다. 다음으로 핵심 담당자와 평가를 확인하세요.",
+    "No other visible posts share this comparison group yet. Request reconstruction after more posts arrive, or read Keyman and evaluation.": "아직 이 비교 그룹을 공유하는 다른 표시 가능한 글이 없습니다. 글이 더 들어온 뒤 재구성을 요청하거나 핵심 담당자와 평가를 확인하세요.",
     "VOC evidence": "VOC 근거",
     "Affiliate tree": "소속 트리",
     Keymen: "핵심 담당자",
@@ -698,6 +700,8 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "The linked records are listed above. The graph is not available for this view.":
       "关联记录列在上方。此视图暂时无法显示图谱。",
     "No linked posts yet.": "暂时没有关联文章。",
+    "Other visible posts share this comparison group, but no Event Lineage link is available. Read Keyman and evaluation next.": "此比较组中还有其他可见文章，但目前没有 Event Lineage 连接。接下来请查看关键人员和评估。",
+    "No other visible posts share this comparison group yet. Request reconstruction after more posts arrive, or read Keyman and evaluation.": "此比较组中暂时没有其他可见文章。请在更多文章到达后请求重建，或查看关键人员和评估。",
     "VOC evidence": "客户之声证据",
     "Affiliate tree": "关联组织树",
     Keymen: "关键联系人",
@@ -1199,6 +1203,8 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "The linked records are listed above. The graph is not available for this view.":
       "関連記録は上に表示されています。この表示ではグラフを利用できません。",
     "No linked posts yet.": "関連する投稿はまだありません。",
+    "Other visible posts share this comparison group, but no Event Lineage link is available. Read Keyman and evaluation next.": "この比較グループには他の表示可能な投稿がありますが、Event Lineage のリンクはありません。次にキーパーソンと評価を確認してください。",
+    "No other visible posts share this comparison group yet. Request reconstruction after more posts arrive, or read Keyman and evaluation.": "この比較グループを共有する他の表示可能な投稿はまだありません。投稿が増えた後に再構築を依頼するか、キーパーソンと評価を確認してください。",
     "VOC evidence": "VOCの証拠",
     "Affiliate tree": "所属ツリー",
     Keymen: "キーパーソン",
@@ -1677,6 +1683,8 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "The linked records are listed above. The graph is not available for this view.":
       "Các bản ghi liên quan nằm ở trên. Đồ thị không khả dụng trong chế độ xem này.",
     "No linked posts yet.": "Chưa có bài viết liên quan.",
+    "Other visible posts share this comparison group, but no Event Lineage link is available. Read Keyman and evaluation next.": "Có bài viết hiển thị khác trong nhóm so sánh này nhưng chưa có liên kết Event Lineage. Tiếp theo, hãy xem Keyman và phần đánh giá.",
+    "No other visible posts share this comparison group yet. Request reconstruction after more posts arrive, or read Keyman and evaluation.": "Chưa có bài viết hiển thị nào khác trong nhóm so sánh này. Hãy yêu cầu tái dựng sau khi có thêm bài viết, hoặc xem Keyman và phần đánh giá.",
     "VOC evidence": "Bằng chứng VOC",
     "Affiliate tree": "Cây liên kết",
     Keymen: "Người liên hệ chính",
