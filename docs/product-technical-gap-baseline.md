@@ -1,6 +1,6 @@
 # Product & Technical Gap Baseline
 
-> Audit snapshot: 2026-08-25 15:49 KST (refreshed by the autonomous merge
+> Audit snapshot: 2026-08-25 15:52 KST (refreshed by the autonomous merge
 > loop). This repository records synthetic fixtures and aggregate,
 > non-identifying runtime evidence only. Open PRs and local checks are not
 > protected-default-branch release evidence. Identifying post identifiers,
@@ -18,15 +18,15 @@ context only.
 | PR | Exact observed head | Merge/check state at this snapshot |
 | ---: | --- | --- |
 | #602 | `a1e4dc8f` | Post-detail modal semantics, focus containment/restoration, and Escape close are composed with current main; the valid rerender focus-steal review was repaired with a mount-only focus lifecycle and regression test, all threads are resolved, and auto-merge remains armed pending exact-head hosted checks and independent review |
-| #600 | `1cb63dae` | this baseline's pre-amendment observed head; composed with current main and awaiting exact-head review/check evidence |
-| #588 | `6185f2ae` | raw-residual reconstruction, rank-zero identity, API presence, and comparison-strip contracts reconciled with current main; focused backend/frontend/schema checks passed, all review threads are resolved, and auto-merge is armed |
-| #582 | `cab04063` | batched cited-lineage fetch was semantically composed with current main while retaining ADR 0161 interval relations; 27 focused lineage/documentation checks passed, no review threads remain, and auto-merge is armed pending hosted checks and independent review |
-| #579 | `bfefe98e` | interaction-map coordinates were semantically composed with current main's cross-share and interval work; the ADR 0168/0202 collision was repaired, all threads are resolved, 69 focused scientific/schema checks plus the focused live API contract passed, and 163 frontend tests, lint, app/Storybook builds, and desktop/mobile rendered audits passed; auto-merge is armed pending hosted checks and independent review |
-| #493 | `6fbc8660` | ADR 0143 empty-DAG reasons were stacked on #387 channel evidence while retaining ADR 0161 interval labels; 36 focused backend checks, 175 focused frontend checks, lint, production/Storybook builds, and desktop/mobile rendered screenshots passed; no review threads remain and auto-merge is armed pending hosted exact-head gates and independent review |
+| #600 | `ae6e8cbc` | this baseline's pre-amendment observed head; composed with current main and awaiting exact-head review/check evidence |
+| #588 | `e9b29f11` | raw-residual reconstruction, rank-zero identity, API presence, and comparison-strip contracts are composed with current main; focused backend/frontend/schema checks passed, all review threads are resolved, and auto-merge is armed |
+| #582 | `d7cf4072` | batched cited-lineage fetch is composed with current main while retaining ADR 0161 interval relations; 27 focused lineage/documentation checks passed, no review threads remain, and auto-merge is armed pending hosted checks and independent review |
+| #579 | `dac509f9` | interaction-map coordinates are composed with current main's cross-share and interval work; the ADR 0168/0202 collision was repaired, all threads are resolved, 69 focused scientific/schema checks plus the focused live API contract passed, and 163 frontend tests, lint, app/Storybook builds, and desktop/mobile rendered audits passed; auto-merge is armed pending hosted checks and independent review |
+| #493 | `415890a9` | ADR 0143 empty-DAG reasons are composed with current main and #387 channel evidence while retaining ADR 0161 interval labels; 36 focused backend checks, 175 focused frontend checks, lint, production/Storybook builds, and desktop/mobile rendered screenshots passed; no review threads remain and auto-merge is armed pending hosted exact-head gates and independent review |
 | #490 | `73413d0b` | broad historical workspace branch is conflicting with failing checks; decompose/restack rather than replaying its 931-commit merge wholesale |
-| #482 | `6b9084b9` | ADR 0170 organization-alias captions were composed with current main; 44 backend/docs and 93 frontend tests, lint, app/Storybook builds, plus desktop/mobile rendered screenshot audits passed; auto-merge is armed pending hosted exact-head gates and independent review |
-| #468 | `a1952e5e` | fast-mlsirm v0.8.0, exact Keyverse scope, orchestrator, and TEPP boundaries were composed with current main; TEPP contract/auth headers and telemetry-safe startup were retained, 74 focused integration tests plus 37 TEPP/start/config tests and the live authorization-scope contract passed, no review threads remain, and auto-merge is armed pending hosted exact-head gates and independent review |
-| #387 | `3fab1f6a` | channel evidence plus Ask reconstruction-profile preservation is mergeable with no unresolved threads; only changes-requested decisions from obsolete heads remain, so auto-merge is armed pending current-head checks and independent re-review |
+| #482 | `35f5b0fb` | ADR 0170 organization-alias captions are composed with current main; 44 backend/docs and 93 frontend tests, lint, app/Storybook builds, plus desktop/mobile rendered screenshot audits passed; auto-merge is armed pending hosted exact-head gates and independent review |
+| #468 | `0f15d1bd` | fast-mlsirm v0.8.0, exact Keyverse scope, orchestrator, and TEPP boundaries are composed with current main; TEPP contract/auth headers and telemetry-safe startup were retained, 74 focused integration tests plus 37 TEPP/start/config tests and the live authorization-scope contract passed, no review threads remain, and auto-merge is armed pending hosted exact-head gates and independent review |
+| #387 | `728125c1` | channel evidence plus Ask reconstruction-profile preservation is composed with current main and has no unresolved threads; only changes-requested decisions from obsolete heads remain, so auto-merge is armed pending current-head checks and independent re-review |
 
 No row above is merge evidence. Immediately before any lifecycle action,
 re-fetch the head, unresolved threads, formal reviews, rulesets, and same-head
