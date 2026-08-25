@@ -1,6 +1,6 @@
 # Product & Technical Gap Baseline
 
-> Audit snapshot: 2026-08-25 17:18 KST (refreshed by the autonomous merge
+> Audit snapshot: 2026-08-25 17:25 KST (refreshed by the autonomous merge
 > loop). This repository records synthetic fixtures and aggregate,
 > non-identifying runtime evidence only. Open PRs and local checks are not
 > protected-default-branch release evidence. Identifying post identifiers,
@@ -10,21 +10,21 @@
 ## 1. Exact-head and governance evidence
 
 The protected default branch was `4f53190bf5baf5e2ab1c7f944aac474b8deae77a`
-when this baseline was refreshed. The live queue contained 8 open PRs and 17
+when this baseline was refreshed. The live queue contained 9 open PRs and 17
 open issues. The exact-head inventory below supersedes older per-PR snapshots
 elsewhere in this document; those older rows remain useful historical delivery
 context only.
 
 | PR | Exact observed head | Merge/check state at this snapshot |
 | ---: | --- | --- |
+| #607 | `e9ca1d0c` | operations-dashboard implementation stacked on #606 rather than `main`; branch-reported focused backend/frontend, lint/build/Storybook, and desktop/mobile audits passed, while hosted tests are running and the similar-VOC live endpoint plus authenticated production backfill remain explicitly unavailable |
 | #606 | `f40ecef4` | retires the internally anchored channel-weight vector and activates only an exact persisted TEPP criterion-validity anchor; the consumer preserves fractional cutoff precision, rejects non-canonical UUID representations, and matches the TEPP-owned contract on upstream TEPP#237; 59 combined TEPP/ingestion/seed tests and the updated 26-test persistence slice pass; auto-merge awaits hosted gates and independent review |
-| #605 | `1098f6ba` | exact-main follow-up for post-navigation refocus, visibility-aware modal focus order including native disclosure summaries, readable evidence separators, and validated OIDC return context; 12 shared/component tests, focused app tests, lint/build/Storybook, and 1440×900 plus 390×844 screenshot audits passed; auto-merge awaits hosted gates and independent review |
-| #604 | `063d7257` | independently restores the protected-main OIDC return-context/build regression; auto-merge awaits hosted gates and independent review, and overlap with #605 must be composed without dropping either focus/evidence repair |
-| #600 | `f1b4ff62` | this baseline's pre-amendment head also restores the ADR 0109 OIDC return helper at login; the current refresh supersedes the queue snapshot, so exact-head checks and review restart |
+| #605 | `9460af9c` | exact-main follow-up for post-navigation refocus, cross-browser visibility-aware modal focus order including native disclosure summaries, readable evidence separators, and validated OIDC return context; focused regressions, lint, build, Storybook, and desktop/mobile screenshot audits passed locally; auto-merge awaits hosted gates and independent review |
+| #600 | `f1b4ff62` | this baseline's pre-amendment head also restores the ADR 0109 OIDC return helper at login; the current documentation commit necessarily supersedes its own observed SHA, so checks and review restart on the resulting head |
 | #579 | `acd44dfe` | interaction-map coordinates now compose protected main, return no false axes or criteria-only map, preserve the validated OIDC return path, and retain successful backend/frontend/build plus desktop/mobile Storybook evidence; auto-merge awaits hosted gates and independent review |
-| #493 | `cc3080c6` | ADR 0143 empty-DAG reasons are composed with the batched Ask graph: hidden posts cannot bridge authorized components, multi-post Ask omits the single-post reason, conflict-marker regression coverage is present, and focused backend/frontend/build checks pass; a concurrent exact-head update restarted hosted checks, and auto-merge awaits those gates plus independent review |
+| #493 | `cc3080c6` | ADR 0143 empty-DAG reasons are composed with the batched Ask graph: hidden posts cannot bridge authorized components, multi-post Ask omits the single-post reason, conflict-marker regression coverage is present, and focused backend/frontend/build checks pass; auto-merge awaits hosted gates and independent review |
 | #490 | `73413d0b` | broad historical workspace branch is conflicting with failing checks; decompose/restack rather than replaying its 931-commit merge wholesale |
-| #468 | `0f15d1bd` | fast-mlsirm v0.8.0, exact Keyverse scope, orchestrator, and TEPP boundaries are composed with current main; TEPP contract/auth headers and telemetry-safe startup were retained, 74 focused integration tests plus 37 TEPP/start/config tests and the live authorization-scope contract passed, no review threads remain, and auto-merge is armed pending hosted exact-head gates and independent review |
+| #468 | `5c6bc014` | fast-mlsirm v0.8.0, exact Keyverse scope, orchestrator, and TEPP boundaries are composed with current main; TEPP contract/auth headers and telemetry-safe startup were retained, but protected delivery still requires terminal hosted gates and independent exact-head approval |
 | #387 | `728125c1` | channel evidence plus Ask reconstruction-profile preservation is composed with current main and has no unresolved threads; only changes-requested decisions from obsolete heads remain, so auto-merge is armed pending current-head checks and independent re-review |
 
 No row above is merge evidence. Immediately before any lifecycle action,
@@ -32,7 +32,9 @@ re-fetch the head, unresolved threads, formal reviews, rulesets, and same-head
 check conclusions. In particular, queued checks are infrastructure state and
 do not transfer evidence from an earlier SHA.
 
-PR #482 merged as protected-main commit `464ff25002044b9d933c8eefd36c8def7ca0ffd8`
+PR #604 was closed unmerged after its exact OIDC repair was composed into #605;
+its green or pending checks are not delivery evidence. PR #482 merged as
+protected-main commit `464ff25002044b9d933c8eefd36c8def7ca0ffd8`
 with package conflict markers, identifying baseline records, and an OIDC
 return-context regression. PR #603 repaired the package/privacy and
 analysis-run transaction defects through protected main at `4f53190b`; the
@@ -52,7 +54,7 @@ protected `main` as `241be2dddf657f854cb8be54fe11d4ef48d37976`.
 
 Protected main currently imports the ADR 0109 OIDC return helpers but bypasses
 them at login, dropping the URL fragment and failing the production build on
-unused imports. Exact-main PRs #600, #604, and #605 restore
+unused imports. Exact-main PRs #600 and #605 restore
 `returnUrlFromLocation()` then `rememberOidcReturnUrl()` before
 `signinRedirect`; this is branch evidence only until one passes the protected
 gate. The authenticated-only `accessToken` narrowing remains present.
@@ -101,8 +103,8 @@ Recent protected-default-branch delivery evidence (squash merges onto
 | ---: | --- | --- |
 | #603 | 2026-08-25 07:24 | short analysis-run transactions, session advisory locking, package-marker/privacy repair, and provider-work lease release |
 | #602 | 2026-08-25 07:24 | post-detail modal semantics, Escape close, initial focus, and opener restoration; navigation-refocus edge case continues on #605 |
-| #588 | 2026-08-25 07:23 | named two-axis leftover-map reconstruction and raw-residual identity |
 | #582 | 2026-08-25 07:24 | bounded batched cited-lineage graph fetch |
+| #588 | 2026-08-25 07:23 | named two-axis leftover-map reconstruction and raw-residual identity |
 | #482 | 2026-08-25 07:03 | corroborated SKOS companion organization chips; regressions subsequently tracked above |
 | #601 | 2026-08-25 06:38 | APA 7th PROV-O and PROV-DM references for ADRs 0011 and 0065 |
 | #595 | 2026-08-25 04:39 | audited no-draft import door, nullable updated-at fallback, and event-time import |
@@ -279,17 +281,15 @@ this file per §3.5 of the prior snapshot).
 | #341 | Heterogeneous ontology and provenance explorer separate from Event Lineage | #349 |
 | #358 | Batch reauthorize persisted post-Ask evidence without N+1 queries | Ask stack |
 | #359 | Centralize Global Ask session storage access | Ask stack |
-| #362 | Roll back rejected Global Ask turn atomically instead of poisoning the session | Ask stack |
 | #363 | Continue ontology neighborhoods beyond the bounded source window | Ask / ontology |
 | #372 | Reconcile lowercase and repository-case public namespace IRIs | #426 Pages stack; #492 is merged into that branch, not protected `main` |
-| #566 | Release the run-start outbox transaction before adjudication provider latency | No active delivery PR confirmed |
-| #568 | Batch cited-post lineage fetch and bound merged Global Ask graph payload | #582 |
 
 ## 5. Open product and technical gaps
 
 | Gap | Current evidence | Acceptance requirement |
 | --- | --- | --- |
-| Protected release | 12 open PRs at snapshot; the queue is split between mergeable heads awaiting independent review/checks and older conflicting stacks | Terminal exact-head checks, no unresolved threads, independent exact-head approvals, protected squash-merge SHA |
+| Protected release | 9 open PRs at snapshot; the queue is split between exact-main heads, #607 stacked on #606, and older conflicting work | Terminal exact-head checks, no unresolved threads, independent exact-head approvals, protected squash-merge SHA |
+| Evidence-grounded operations workspace | #607 implements persisted operational cases, an authenticated dashboard, citation-first actions, report/alert delivery metadata, tokens, Storybook, and regression coverage on a non-default stack; authenticated production backfill and the similar-VOC live endpoint remain unavailable | First clear #606 normally, restack #607 onto protected `main`, re-run exact-head gates and authenticated desktop/mobile acceptance with aggregate evidence, then confirm a protected merge SHA |
 | Shared frontend gate | The ADR 0109 login repair is on protected `main`; eight older branches carried the defect and received the same verified repair this loop (#521–#560) | Keep every future branch cut from post-repair bases; re-verify with frontend lint/test/build before push |
 | Identifying baseline regression | `main` gap file listed real post identifiers; separately, closed #506 and pre-existing public history contain a private runtime source-table identifier, while current `main` and #507 trees are clean | Land this non-identifying rewrite, then coordinate ADR 0001 history remediation with security/privacy owners; do not reproduce the value, force-push, or delete evidence ad hoc |
 | Authorized-corpus runtime | Repository tests use synthetic fixtures; private records remain outside git | Authenticated runtime validation returning only aggregate, non-identifying evidence |
