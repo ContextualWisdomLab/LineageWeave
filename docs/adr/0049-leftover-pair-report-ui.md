@@ -6,7 +6,8 @@
 [ADR 0163](0163-leftover-observed-expected.md) (observed Y and expected E);
 [ADR 0164](0164-leftover-map-rank.md) (full map rank);
 [ADR 0182](0182-leftover-map-unexplained.md) (unexplained leftover U);
-[ADR 0185](0185-leftover-map-explained-share.md) (explained leftover share)
+[ADR 0185](0185-leftover-map-explained-share.md) (explained leftover share);
+[ADR 0158](0158-leftover-criterion-evaluation-landing.md) (criterion evaluation landing)
 
 ## Context
 
@@ -36,15 +37,16 @@ measurement) leads when present, then unexplained leftover names
 post to read the named criterion", then the residual/observed-expected/
 rank fallbacks. A missing share or missing unexplained leftover falls
 through to the next entry in that order.
-Clicking the button opens that post with the same handler as a member
-row. Residual naming is [ADR 0162](0162-leftover-residual-disclosure.md),
+Clicking the button opens that post with leftover focus so Post
+quality marks the named criterion current (ADR 0158). Residual naming is [ADR 0162](0162-leftover-residual-disclosure.md),
 observed/expected naming is [ADR 0163](0163-leftover-observed-expected.md),
 rank naming is [ADR 0164](0164-leftover-map-rank.md), unexplained
 leftover naming is [ADR 0182](0182-leftover-map-unexplained.md),
 explained-share naming is [ADR 0185](0185-leftover-map-explained-share.md).
 
 After `make seed`, closest and farthest leftover pairs sit above the
-member list. Click a pair to open that post.
+member list. Click a pair to open that post with the leftover
+criterion current in Post quality.
 
 Missing leftover rows render nothing — never a placeholder pair.
 A hidden post never appears as a leftover pair.

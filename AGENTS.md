@@ -258,8 +258,8 @@ Each accepted file runs with `psql -X -v ON_ERROR_STOP=1`, so a failure
 stops startup instead of leaving a healthy-looking partial schema, and
 application code must not compensate for a missing table.
 
-Period leftover pairs (ADR 0017 / 0018 / 0048 / 0049 / 0119 / 0162 / 0163 /
-0164 / 0182 / 0185) are computed in `lineageweave/leftover_pairs.py` from the
+Period leftover pairs (ADR 0017 / 0018 / 0048 / 0049 / 0119 / 0158 / 0162 /
+0163 / 0164 / 0182 / 0185) are computed in `lineageweave/leftover_pairs.py` from the
 residual after a real GRM/GPCM score, never invented. Distances are
 Euclidean on the two-dimensional Gabriel leftover map; missing cells
 stay out of the factorization. Closest and farthest post–criterion
@@ -270,7 +270,9 @@ plus unexplained leftover `U = R − R̂` after two-axis Gabriel
 reconstruction, plus explained leftover share `e = R̂_c² / R̃²` of
 centered leftover, next to leftover-map distance `d`. Two-axis
 reconstruction `R̂` / `R̂_c` is computed internally and is not
-persisted. They sit above the member list so a click opens that post.
+persisted. They sit above the member
+list so a click opens that post with the leftover criterion current
+in Post quality (ADR 0158).
 Leftover-map axis share (ADR 0148) is Gabriel inertia of residual SVD
 axes 1 and 2 and persists to `report_leftover_map_axis`. Rank-0
 residuals emit two zero-share axes; the shares are report-level and
