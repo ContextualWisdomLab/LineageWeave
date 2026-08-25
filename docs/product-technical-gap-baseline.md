@@ -1,6 +1,6 @@
 # Product & Technical Gap Baseline
 
-> Dashboard delivery snapshot: 2026-08-25 23:02 KST. Protected `main` was
+> Dashboard delivery snapshot: 2026-08-25 23:05 KST. Protected `main` was
 > `04e6b610655d0db91d5f7ba9486bdda1440e0b19`. This local branch is not
 > protected-main release evidence.
 
@@ -60,8 +60,8 @@ only aggregate, non-identifying evidence to this repository.
 
 ### Exact open-PR boundary
 
-At this snapshot there were 6 open PRs and 10 open issues. Exact observed heads
-are listed below. PRs #579, #629, #631, #632, #635, and #636 all target
+At this snapshot there were 5 open PRs and 10 open issues. Exact observed heads
+are listed below. PRs #579, #629, #631, #632, and #636 all target
 protected `main`; each had zero unresolved review threads, `REVIEW_REQUIRED`,
 and queued required workflows. The open heads remain blocked on hosted gates
 and independent review. These
@@ -69,7 +69,7 @@ observations are not merge readiness. Re-fetch exact heads,
 unresolved threads, checks, approvals, rulesets, and merge SHA before any
 lifecycle claim.
 
-> Audit snapshot: 2026-08-25 23:02 KST (refreshed by the autonomous merge
+> Audit snapshot: 2026-08-25 23:05 KST (refreshed by the autonomous merge
 > loop). This repository records synthetic fixtures and aggregate,
 > non-identifying runtime evidence only. Open PRs and local checks are not
 > protected-default-branch release evidence. Identifying post identifiers,
@@ -87,10 +87,9 @@ context only.
 | PR | Exact observed head | Merge/check state at this snapshot |
 | ---: | --- | --- |
 | #636 | `e031de0b` | publishes the calibrated external lineage contract; zero unresolved threads; queued checks and independent review remain required |
-| #635 | `b63f1e39` | retains completed relation-verification results; zero unresolved threads; queued checks and independent review remain required |
-| #632 | `fb6aa44d` | preserves graph-fact source provenance; zero unresolved threads; queued checks and independent review remain required |
+| #632 | `6b99489e` | preserves graph-fact source provenance; zero unresolved threads; queued checks and independent review remain required |
 | #631 | `c0022c97` | refreshes product-gap and CI lifecycle governance; zero unresolved threads; queued checks and independent review remain required |
-| #629 | `143a6a3f` | releases provider work and bounds landing reads; zero unresolved threads; queued checks and independent review remain required |
+| #629 | `238a6cdb` | releases provider work and bounds landing reads; zero unresolved threads; queued checks and independent review remain required |
 | #579 | `689a21b6` | persists leftover interaction-map coordinates and owns ADR 0211; zero unresolved threads; queued checks and independent review remain required |
 
 No row above is merge evidence. Immediately before any lifecycle action,
@@ -363,7 +362,7 @@ this file per §3.5 of the prior snapshot).
 
 | Gap | Current evidence | Acceptance requirement |
 | --- | --- | --- |
-| Protected release | 6 open PRs at the 2026-08-25 exact-head snapshot: #579, #629, #631, #632, #635, and #636. All target `main`; each retains hosted checks and independent-review gates | Terminal exact-head checks, no unresolved threads, independent exact-head approvals, protected squash-merge SHA |
+| Protected release | 5 open PRs at the 2026-08-25 exact-head snapshot: #579, #629, #631, #632, and #636. All target `main`; each retains hosted checks and independent-review gates | Terminal exact-head checks, no unresolved threads, independent exact-head approvals, protected squash-merge SHA |
 | Evidence-grounded operations workspace | Protected-main #614 delivers governed semantic Ask, live Similar VOC, disjoint pending/failed analysis metrics, full Storybook state inventory, and current desktop/mobile screenshot evidence. Authorized-corpus backfill acceptance remains unavailable | Perform authenticated authorized-corpus acceptance with aggregate evidence and retain fail-closed no-match behavior |
 | Shared frontend gate | The ADR 0109 login repair is on protected `main`; eight older branches carried the defect and received the same verified repair this loop (#521–#560) | Keep every future branch cut from post-repair bases; re-verify with frontend lint/test/build before push |
 | Identifying baseline regression | `main` gap file listed real post identifiers; separately, closed #506 and pre-existing public history contain a private runtime source-table identifier, while current `main` and #507 trees are clean | Land this non-identifying rewrite, then coordinate ADR 0001 history remediation with security/privacy owners; do not reproduce the value, force-push, or delete evidence ad hoc |
