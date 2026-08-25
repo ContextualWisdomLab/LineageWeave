@@ -16,7 +16,6 @@ import pytest
 from rdflib import Graph, Literal, URIRef
 from rdflib.namespace import OWL, RDF, RDFS, SKOS, XSD
 
-import lineageweave.ontology as ontology_module
 from lineageweave.knowledge_graph import (
     EDGE_AFFILIATION,
     EDGE_CO_MENTION,
@@ -189,7 +188,7 @@ def test_ontology_annotations_fail_closed_when_declared_term_has_no_label(
     graph = Graph()
     subject = URIRef("https://example.invalid/Unlabelled")
     graph.add((subject, LOOKUP_CODE, Literal("unlabelled")))
-    monkeypatch.setattr(ontology_module, "ONTOLOGY", graph)
+    monkeypatch.setattr("lineageweave.ontology.ONTOLOGY", graph)
 
     with pytest.raises(ValueError, match="has no readable label"):
         ontology_annotations("unlabelled")
