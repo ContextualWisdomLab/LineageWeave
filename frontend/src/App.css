@@ -1346,7 +1346,7 @@
 }
 
 .dashboard-case-card dl { margin: 0; }
-.dashboard-case-card dl div { display: grid; grid-template-columns: 8rem 1fr; padding: 0.5rem 0; border-top: 1px solid var(--color-border); }
+.dashboard-case-card dl div { display: grid; grid-template-columns: 8rem 1fr; gap: var(--space-control-gap); padding: 0.5rem 0; border-top: 1px solid var(--color-border); }
 .dashboard-case-card dd { margin: 0; font-weight: 600; }
 .dashboard-case-card button { margin-top: auto; }
 
