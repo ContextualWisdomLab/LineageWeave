@@ -12,3 +12,5 @@ def test_k6_harness_renews_expired_auth_and_discloses_job_state() -> None:
     assert source.count("responses = readBatch(vuToken, data.askJobId)") == 2
     assert "lineageweave_ask_state_observations" in source
     assert 'job_status: String(responses[2].json("job_status_code")' in source
+    assert "unitlessDuration.test(requestTimeout)" in source
+    assert "REQUEST_TIMEOUT must include a duration unit" in source

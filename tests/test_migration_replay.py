@@ -182,3 +182,16 @@ def test_topic_lineage_result_migration_is_idempotent_for_replay() -> None:
 
     assert "create table if not exists analysis_run_topic_lineage_result" in migration
     assert "create index if not exists" in migration
+
+
+def test_global_ask_job_migrations_are_idempotent_for_replay() -> None:
+    """Existing volumes must replay the queue and authorization scope safely."""
+    migrations = Path(__file__).resolve().parents[1] / "migrations"
+    job_sql = (migrations / "0165_global_ask_job.sql").read_text(encoding="utf-8")
+    scope_sql = (migrations / "0203_global_ask_authorization_scope.sql").read_text(
+        encoding="utf-8"
+    )
+
+    assert "create table if not exists global_ask_job" in job_sql
+    assert job_sql.count("create index if not exists") == 2
+    assert scope_sql.count("create table if not exists") == 2

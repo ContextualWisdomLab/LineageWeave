@@ -1,9 +1,13 @@
 from __future__ import annotations
 
 import asyncio
+import math
 from datetime import date, datetime, timezone
 
-from backend.app.post_chat_ingestion import gather_global_chat_sources as _gather_global_chat_sources
+from backend.app.post_chat_ingestion import (
+    gather_global_chat_sources as _gather_global_chat_sources,
+    prepare_global_question_embedding,
+)
 from lineageweave.ask_time_axis import TIME_AXIS_CREATED, TIME_AXIS_EVENT
 
 
@@ -13,6 +17,50 @@ class _EmbeddingClient:
 
     def embed(self, _text: str) -> list[float]:
         return [1.0, 0.0]
+
+
+def test_prepare_global_question_embedding_rejects_blank_input_before_provider() -> None:
+    """A blank question must fail closed without crossing the provider boundary."""
+
+    class RejectCallsEmbedding:
+        resolved_model = "synthetic-embedding"
+
+        def embed(self, _text: str) -> list[float]:
+            raise AssertionError("blank question must not call the embedding provider")
+
+    assert (
+        asyncio.run(
+            prepare_global_question_embedding(" \t\n", RejectCallsEmbedding())
+        )
+        is None
+    )
+
+
+def test_nonfinite_embeddings_fail_closed_before_database_access() -> None:
+    """Provider and precomputed vectors must remain finite."""
+
+    class NonfiniteEmbedding:
+        available = True
+        resolved_model = "synthetic-embedding"
+
+        def embed(self, _text: str) -> list[float]:
+            return [math.nan, math.inf]
+
+    class RejectDatabase:
+        async def fetch(self, _query: str, *_args):
+            raise AssertionError("nonfinite embeddings must not reach PostgreSQL")
+
+    assert asyncio.run(
+        prepare_global_question_embedding("question", NonfiniteEmbedding())
+    ) is None
+    assert asyncio.run(
+        _gather_global_chat_sources(
+            RejectDatabase(),
+            lambda _row: True,
+            question="question",
+            question_embedding=([math.inf, 0.0], "synthetic-embedding", math.inf),
+        )
+    ) == []
 
 
 def gather_global_chat_sources(*args, **kwargs):
@@ -323,6 +371,39 @@ def test_global_sources_fail_closed_when_embedding_is_unavailable() -> None:
     )
 
     assert sources == []
+
+
+def test_global_sources_accept_valid_precomputed_embedding_without_provider() -> None:
+    """A validated embedding envelope must not depend on provider availability."""
+
+    class UnavailableEmbedding:
+        available = False
+        resolved_model = None
+
+        def embed(self, _text: str) -> list[float]:
+            raise AssertionError("precomputed embedding must not call the provider")
+
+    calls: list[tuple[str, tuple[object, ...]]] = []
+
+    class FakeConnection:
+        async def fetch(self, query: str, *args):
+            calls.append((query, args))
+            return []
+
+    sources = asyncio.run(
+        _gather_global_chat_sources(
+            FakeConnection(),
+            lambda _row: True,
+            question="semantic question",
+            question_embedding=([1.0, 0.0], "synthetic-embedding", 1.0),
+            embedding_client=UnavailableEmbedding(),
+        )
+    )
+
+    assert sources == []
+    candidate_calls = [(query, args) for query, args in calls if "unit_similarity" in query]
+    assert len(candidate_calls) == 1
+    assert candidate_calls[0][1][:3] == ([1.0, 0.0], 1.0, "synthetic-embedding")
 
 
 def test_global_sources_fail_closed_without_a_resolved_embedding_model() -> None:
