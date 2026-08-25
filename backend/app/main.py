@@ -1816,7 +1816,7 @@ async def read_similar_voc(
         )
     async with pool.acquire() as conn:
         rows = await conn.fetch(
-            """
+            f"""
             select post.post_id, post.post_title, post.post_body,
                    post.visibility_code, post.corporate_entity_id, post.process_unit_id,
                    coalesce(post.event_occurred_at, post.created_at) as occurred_at
@@ -1829,10 +1829,10 @@ async def read_similar_voc(
                     or (post.corporate_entity_id::text = any($2::text[])
                         and (cardinality($3::text[]) = 0
                              or post.process_unit_id::text = any($3::text[]))))
-               and """
-            f"{SOURCE_POST_ELIGIBILITY_SQL.format(alias='post')} "
-            "order by coalesce(post.event_occurred_at, post.created_at) desc, post.post_id "
-            "offset $4 limit $5",
+               and {SOURCE_POST_ELIGIBILITY_SQL.format(alias='post')}
+             order by coalesce(post.event_occurred_at, post.created_at) desc, post.post_id
+            offset $4 limit $5
+            """,
             post_id,
             list(account.corporate_entity_ids),
             list(account.process_unit_ids),
