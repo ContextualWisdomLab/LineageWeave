@@ -1226,7 +1226,17 @@
 
 .ontology-exact-values {
   margin-top: 1rem;
+  max-width: 100%;
   overflow-x: auto;
+  overscroll-behavior-inline: contain;
+  scrollbar-gutter: stable;
+  -webkit-overflow-scrolling: touch;
+}
+
+.ontology-exact-values:focus-visible {
+  outline: 2px solid var(--color-focus-border);
+  outline-offset: 2px;
+  border-radius: var(--radius-control);
 }
 
 .ontology-exact-values table {
