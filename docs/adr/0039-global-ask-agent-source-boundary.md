@@ -16,7 +16,10 @@ control as the product feature.
 `source_post` rows. Each row is rechecked with the requesting account's
 `post_read` RBAC and post ABAC predicate before its normalized body enters the
 context. Persisted Knowledge Graph facts and embedded image normalization use
-the existing chat pipeline. The answer is produced only by
+the existing chat pipeline. Each Knowledge Graph fact remains attached only
+to the visible source post recorded as its evidence; facts are never collected
+under the first candidate merely because that post appears first in the prompt.
+The answer is produced only by
 `ContextualOrchestratorPostChatClient`, and citations resolve to the returned
 source post ids and titles.
 

@@ -78,21 +78,24 @@ async def _normalize_post_body_text(
 async def _graph_facts_for_posts(
     conn: asyncpg.Connection,
     visible_post_ids: list[str],
-) -> tuple[str, ...]:
-    """Render persisted, ontology-annotated graph facts for visible posts.
+) -> dict[str, tuple[str, ...]]:
+    """Render graph facts under each visible post that evidences them.
 
     The evidence join is deliberate: a graph edge without a visible evidence
     post must never enter an LLM prompt. This is the chat-side trust boundary
-    in addition to the post-level ABAC check.
+    in addition to the post-level ABAC check. Keeping the evidence-post mapping
+    also prevents a fact evidenced by one source from being rendered beneath a
+    different source and then cited as though that source supported it.
     """
     if not visible_post_ids:
-        return ()
+        return {}
     edge_rows = await conn.fetch(
         """
         select edge.source_node_type_code, edge.source_node_id,
                edge.target_node_type_code, edge.target_node_id,
                edge.edge_type_code, edge.edge_weight,
-               array_agg(distinct evidence.evidence_post_id::text) as evidence_post_ids
+               array_agg(distinct evidence.evidence_post_id::text
+                         order by evidence.evidence_post_id::text) as evidence_post_ids
           from knowledge_graph_edge edge
           join knowledge_graph_edge_evidence evidence
             on evidence.knowledge_graph_edge_id = edge.knowledge_graph_edge_id
@@ -107,7 +110,7 @@ async def _graph_facts_for_posts(
         visible_post_ids,
     )
     if not edge_rows:
-        return ()
+        return {}
 
     endpoint_keys = {
         node_key(row["source_node_type_code"], str(row["source_node_id"]))
@@ -125,7 +128,8 @@ async def _graph_facts_for_posts(
         for item in hydrated
     }
 
-    facts: list[str] = []
+    facts_by_post: dict[str, list[str]] = {}
+    fact_count = 0
     for row in edge_rows:
         source_type = row["source_node_type_code"]
         source_id = str(row["source_node_id"])
@@ -140,13 +144,20 @@ async def _graph_facts_for_posts(
         edge_name = row["edge_type_code"]
         if ontology_iri:
             edge_name = f"{edge_name} ({ontology_iri})"
-        evidence_ids = ",".join(sorted(str(value) for value in row["evidence_post_ids"]))
-        facts.append(
+        fact_prefix = (
             f'{source_type} "{source["label"]}" '
             f'--{edge_name}--> {target_type} "{target["label"]}" '
-            f"[evidence_post_id={evidence_ids}]"
         )
-    return tuple(dict.fromkeys(facts))
+        for evidence_post_id in row["evidence_post_ids"]:
+            post_id = str(evidence_post_id)
+            post_facts = facts_by_post.setdefault(post_id, [])
+            fact = f"{fact_prefix}[evidence_post_id={post_id}]"
+            if fact not in post_facts:
+                post_facts.append(fact)
+                fact_count += 1
+            if fact_count >= 64:
+                return {key: tuple(value) for key, value in facts_by_post.items()}
+    return {key: tuple(value) for key, value in facts_by_post.items()}
 
 
 _SOURCE_HINT_FIELDS = (
@@ -367,7 +378,7 @@ async def gather_chat_sources(
         sources[0].post_id,
         sources[0].post_title,
         sources[0].post_body,
-        graph_facts=graph_facts,
+        graph_facts=graph_facts.get(post_id, ()),
         evidence_facts=sources[0].evidence_facts,
     )
     for row in visible_rows:
@@ -377,6 +388,7 @@ async def gather_chat_sources(
                 str(row["post_id"]),
                 row["post_title"],
                 normalized_body,
+                graph_facts=graph_facts.get(str(row["post_id"]), ()),
                 evidence_facts=_source_hint_facts(row)
                 + semantic_facts.get(str(row["post_id"]), ()),
             )
@@ -563,7 +575,8 @@ async def gather_global_chat_sources(
     visible_ids = [str(row["post_id"]) for row in visible_rows]
     anchor_is_visible = lineage_anchor_id in visible_ids
     semantic_facts = await _semantic_facts_for_posts(conn, visible_ids)
-    graph_facts = (await _graph_facts_for_posts(conn, visible_ids))[:16]
+    graph_facts = await _graph_facts_for_posts(conn, visible_ids)
+    remaining_graph_facts = 16
     time_filter_active = resolved_time_range is not None
     sources: list[ChatSourceDocument] = []
     for index, row in enumerate(visible_rows):
@@ -579,12 +592,14 @@ async def gather_global_chat_sources(
             if post_id in lineage_neighbor_id_set and anchor_is_visible
             else ()
         )
+        post_graph_facts = graph_facts.get(post_id, ())[:remaining_graph_facts]
+        remaining_graph_facts -= len(post_graph_facts)
         sources.append(
             ChatSourceDocument(
                 post_id,
                 row["post_title"],
                 normalized_body,
-                graph_facts=graph_facts if index == 0 else (),
+                graph_facts=post_graph_facts,
                 evidence_facts=_source_hint_facts(row)
                 + semantic_facts.get(post_id, ())
                 + lineage_fact

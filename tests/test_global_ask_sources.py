@@ -181,6 +181,42 @@ def test_global_sources_carry_source_and_semantic_evidence() -> None:
     assert sources[0].evidence_facts[-1].startswith("project: semantic project")
 
 
+def test_global_sources_keep_graph_facts_with_their_evidence_source(monkeypatch) -> None:
+    """Graph provenance cannot move from one visible post to another."""
+    rows = [
+        {
+            "post_id": post_id,
+            "post_title": f"Evidence {post_id}",
+            "post_body": f"body {post_id}",
+            "visibility_code": "public",
+            "corporate_entity_id": None,
+        }
+        for post_id in ("post-a", "post-b")
+    ]
+
+    class FakeConnection:
+        async def fetch(self, query: str, *args):
+            return rows if "from source_post" in query else []
+
+    async def fake_graph_facts(_conn, _visible_post_ids):
+        return {"post-b": ("fact evidenced by post-b",)}
+
+    monkeypatch.setattr(
+        "backend.app.post_chat_ingestion._graph_facts_for_posts", fake_graph_facts
+    )
+
+    sources = asyncio.run(
+        gather_global_chat_sources(
+            FakeConnection(), lambda _row: True, question="evidence", limit=2
+        )
+    )
+
+    assert sources[0].post_id == "post-a"
+    assert sources[0].graph_facts == ()
+    assert sources[1].post_id == "post-b"
+    assert sources[1].graph_facts == ("fact evidenced by post-b",)
+
+
 def test_global_sources_embed_identifier_question_without_tokenizing() -> None:
     calls: list[tuple[str, tuple[object, ...]]] = []
 
