@@ -7,13 +7,16 @@ from typing import Any
 import asyncpg
 
 from lineageweave.affiliate_tree import AffiliationLeaf, CorporateEntityRow, build_affiliate_forest
+from lineageweave.organization_alias import attach_organization_aliases
 from lineageweave.voc_evidence import first_excerpt_for, sentence_excerpts
 
 from .knowledge_graph import fetch_post_keymen, labels_for_codes
+from .organization_name_resolution_ingestion import fetch_corroborated_organization_aliases
 
 
 async def fetch_affiliate_forest(conn: asyncpg.Connection, post_id: str) -> list[dict[str, Any]]:
     """Ancestor forest of every organization this post's Keymen touch."""
+    aliases = await fetch_corroborated_organization_aliases(conn)
     entity_rows = await conn.fetch(
         """
         select corporate_entity_id, parent_entity_id, entity_name, entity_level_code
@@ -30,7 +33,7 @@ async def fetch_affiliate_forest(conn: asyncpg.Connection, post_id: str) -> list
         for row in entity_rows
     )
     leaves: list[AffiliationLeaf] = []
-    for person in await fetch_post_keymen(conn, post_id):
+    for person in await fetch_post_keymen(conn, post_id, organization_aliases=aliases):
         for affiliation in person["affiliations"]:
             leaves.append(
                 AffiliationLeaf(
@@ -43,6 +46,11 @@ async def fetch_affiliate_forest(conn: asyncpg.Connection, post_id: str) -> list
             )
     forest = [node.to_dict() for node in build_affiliate_forest(entities, tuple(leaves))]
     await _attach_lookup_labels(conn, forest)
+    attach_organization_aliases(
+        forest,
+        aliases,
+        entity_id_key="entity_id",
+    )
     return forest
 
 
@@ -94,7 +102,7 @@ async def fetch_voc_evidence(conn: asyncpg.Connection, post_id: str, voc_type_co
         post_id,
     )
     names: list[str] = [row["counterparty_entity_name"] for row in counterparties]
-    for person in await fetch_post_keymen(conn, post_id):
+    for person in await fetch_post_keymen(conn, post_id, organization_aliases=()):
         names.extend(affiliation["organization_name"] for affiliation in person["affiliations"])
     return {
         "post_id": post_id,

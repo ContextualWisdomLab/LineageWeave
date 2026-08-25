@@ -208,6 +208,20 @@ def seed(
                 (group_entity_id,),
             )
             corporate_entity_id = cur.fetchone()[0]
+            cur.execute(
+                """
+                insert into organization_name_resolution
+                    (raw_organization_name, resolved_organization_name,
+                     verification_status_code, verification_evidence_url)
+                values ('DC', 'Demo Corp', 'verify_corroborated',
+                        'https://example.test/searxng?q=Demo+Corp+DC')
+                on conflict (raw_organization_name) do update set
+                    resolved_organization_name = excluded.resolved_organization_name,
+                    verification_status_code = excluded.verification_status_code,
+                    verification_evidence_url = excluded.verification_evidence_url,
+                    resolved_at = now()
+                """
+            )
 
             cur.execute(
                 "insert into process_unit (corporate_entity_id, process_unit_code, process_unit_name) values "
