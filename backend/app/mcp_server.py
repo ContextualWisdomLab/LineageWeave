@@ -1,0 +1,296 @@
+"""Authenticated Streamable HTTP MCP adapter for durable Global Ask."""
+
+from __future__ import annotations
+
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
+from dataclasses import dataclass
+from typing import Any
+from urllib.parse import urlsplit
+from uuid import UUID
+
+from mcp.server import MCPServer
+from mcp.server.auth.middleware.auth_context import get_access_token
+from mcp.server.auth.settings import AuthSettings
+from mcp.server.mcpserver import Context
+from mcp.server.transport_security import (
+    TransportSecurityMiddleware,
+    TransportSecuritySettings,
+)
+from mcp.shared.exceptions import MCPError
+from mcp.types import ToolAnnotations
+from pydantic import AnyHttpUrl
+from starlette.middleware.cors import CORSMiddleware
+from starlette.requests import Request
+from starlette.types import ASGIApp, Message, Receive, Scope, Send
+
+from backend.app.activity_stream import create_valkey_client
+from backend.app.auth import CurrentAccount, resolve_current_account
+from backend.app.config import Settings, load_settings
+from backend.app.db import create_pool
+from backend.app.global_ask_service import (
+    read_global_ask_job as read_global_ask_job_service,
+)
+from backend.app.global_ask_service import (
+    submit_global_ask as submit_global_ask_service,
+)
+from backend.app.mcp_admission import BoundedRequestBodyApp
+from backend.app.mcp_auth import KeyverseMcpTokenVerifier
+from backend.app.mcp_rate_limit import (
+    McpRateLimiterUnavailable,
+    McpRateLimitExceeded,
+    ValkeyMcpRateLimiter,
+)
+from lineageweave.post_chat import (
+    ContextualOrchestratorPostChatClient,
+    NullPostChatClient,
+)
+
+_RETRY_AFTER_STATE_KEY = "lineageweave.mcp_retry_after_seconds"
+
+
+@dataclass
+class McpAppContext:
+    """Long-lived dependencies shared by MCP tool calls."""
+
+    pool: Any
+    valkey: Any
+    limiter: ValkeyMcpRateLimiter
+    service_available: bool
+    settings: Settings
+
+
+class PreAuthTransportSecurityApp:
+    """Reject hostile Host and Origin metadata before OAuth processing."""
+
+    def __init__(self, app: ASGIApp, settings: TransportSecuritySettings) -> None:
+        """Wrap an ASGI app with the SDK transport validator."""
+        self._app = app
+        self._security = TransportSecurityMiddleware(settings)
+
+    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+        """Validate HTTP transport metadata and pass non-HTTP traffic through."""
+        if scope["type"] != "http":
+            await self._app(scope, receive, send)
+            return
+        request = Request(scope, receive=receive)
+        rejection = await self._security.validate_request(
+            request, is_post=request.method == "POST"
+        )
+        if rejection is not None:
+            if request.headers.get("origin") is not None:
+                rejection.headers.add_vary_header("Origin")
+            await rejection(scope, receive, send)
+            return
+        await self._app(scope, receive, send)
+
+
+class McpRetryAfterHeaderApp:
+    """Expose a bounded retry delay only for exhausted authenticated quota."""
+
+    def __init__(self, app: ASGIApp) -> None:
+        """Wrap the SDK response serializer."""
+        self._app = app
+
+    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+        """Add Retry-After when a tool call marked the current request."""
+
+        async def send_with_retry(message: Message) -> None:
+            """Attach the request-scoped quota delay to the response start."""
+            retry_after = scope.get("state", {}).get(_RETRY_AFTER_STATE_KEY)
+            if message.get("type") == "http.response.start" and isinstance(
+                retry_after, int
+            ):
+                headers = [
+                    (name, value)
+                    for name, value in message.get("headers", [])
+                    if name.lower() != b"retry-after"
+                ]
+                headers.append((b"retry-after", str(retry_after).encode("ascii")))
+                message = {**message, "headers": headers}
+            await send(message)
+
+        await self._app(scope, receive, send_with_retry)
+
+
+def _validate_mcp_settings(settings: Settings) -> tuple[int, int]:
+    """Require exact origins and measured deployment quota parameters."""
+    for origin in settings.mcp_allowed_origins:
+        parsed = urlsplit(origin)
+        if (
+            origin in {"*", "null"}
+            or parsed.scheme not in {"http", "https"}
+            or not parsed.netloc
+            or parsed.username is not None
+            or parsed.password is not None
+            or parsed.path
+            or parsed.query
+            or parsed.fragment
+        ):
+            raise ValueError(
+                "MCP_ALLOWED_ORIGINS entries must be exact HTTP(S) origins"
+            )
+    if (
+        settings.mcp_rate_limit_requests is None
+        or settings.mcp_rate_limit_window_seconds is None
+    ):
+        raise ValueError(
+            "MCP_RATE_LIMIT_REQUESTS and MCP_RATE_LIMIT_WINDOW_SECONDS must be set from measured capacity"
+        )
+    return settings.mcp_rate_limit_requests, settings.mcp_rate_limit_window_seconds
+
+
+async def _account(ctx: Context[McpAppContext, Any]) -> CurrentAccount:
+    """Resolve the authenticated token to one provisioned database account."""
+    token = get_access_token()
+    if token is None or not token.subject or not isinstance(token.claims, dict):
+        raise PermissionError("authenticated MCP principal is unavailable")
+    dependencies = ctx.request_context.lifespan_context
+    account = await resolve_current_account(
+        dependencies.pool, token.claims, dependencies.settings
+    )
+    if not account.has_permission("post_read"):
+        raise PermissionError("post_read permission required")
+    try:
+        await dependencies.limiter.consume(account.user_account_id)
+    except McpRateLimitExceeded as exc:
+        request = ctx.request_context.request
+        if isinstance(request, Request):
+            request.scope.setdefault("state", {})[_RETRY_AFTER_STATE_KEY] = (
+                exc.retry_after_seconds
+            )
+        raise MCPError(
+            -31929,
+            "mcp_rate_limit_exceeded",
+            {"retry_after_seconds": exc.retry_after_seconds},
+        ) from exc
+    except McpRateLimiterUnavailable as exc:
+        raise MCPError(-31930, "mcp_rate_limiter_unavailable") from exc
+    return account
+
+
+def build_mcp_server(settings: Settings | None = None) -> MCPServer[McpAppContext]:
+    """Build the authenticated MCP server over the current durable Ask contract."""
+    resolved = settings or load_settings()
+    request_limit, window_seconds = _validate_mcp_settings(resolved)
+
+    @asynccontextmanager
+    async def lifespan(_: MCPServer) -> AsyncIterator[McpAppContext]:
+        """Open and close process-wide database and quota clients."""
+        pool = await create_pool(resolved.database_url)
+        valkey = create_valkey_client(resolved.valkey_url)
+        limiter = ValkeyMcpRateLimiter(
+            valkey, request_limit=request_limit, window_seconds=window_seconds
+        )
+        chat_client = (
+            ContextualOrchestratorPostChatClient(
+                base_url=resolved.orchestrator_base_url,
+                api_key=resolved.orchestrator_api_key,
+            )
+            if resolved.orchestrator_base_url and resolved.orchestrator_api_key
+            else NullPostChatClient()
+        )
+        try:
+            yield McpAppContext(pool, valkey, limiter, chat_client.available, resolved)
+        finally:
+            await limiter.close()
+            await pool.close()
+
+    server = MCPServer(
+        "lineageweave",
+        title="LineageWeave",
+        description="Authenticated provenance-bearing lineage intelligence.",
+        version="2.18.0",
+        lifespan=lifespan,
+        token_verifier=KeyverseMcpTokenVerifier(resolved),
+        auth=AuthSettings(
+            issuer_url=AnyHttpUrl(resolved.oidc_issuer),
+            resource_server_url=AnyHttpUrl(resolved.mcp_resource_url),
+            required_scopes=resolved.mcp_required_scopes,
+        ),
+    )
+
+    @server.tool(
+        title="Submit Global Ask",
+        description="Queue a question against the caller's authorized LineageWeave evidence.",
+        annotations=ToolAnnotations(
+            read_only_hint=False, idempotent_hint=False, open_world_hint=True
+        ),
+    )
+    async def submit_global_ask(
+        question: str,
+        ctx: Context[McpAppContext, Any],
+        verify_external: bool = False,
+        knowledge_cutoff: str | None = None,
+    ) -> dict[str, Any]:
+        """Queue one current-contract Global Ask job without blocking transport."""
+        dependencies = ctx.request_context.lifespan_context
+        account = await _account(ctx)
+        return await submit_global_ask_service(
+            pool=dependencies.pool,
+            valkey=dependencies.valkey,
+            account=account,
+            question=question,
+            verify_external=verify_external,
+            knowledge_cutoff=knowledge_cutoff,
+            service_available=dependencies.service_available,
+        )
+
+    @server.tool(
+        title="Read Global Ask Job",
+        description="Read a queued Global Ask job owned by the authenticated caller.",
+        annotations=ToolAnnotations(
+            read_only_hint=True, idempotent_hint=True, open_world_hint=False
+        ),
+    )
+    async def read_global_ask_job(
+        ask_job_id: str, ctx: Context[McpAppContext, Any]
+    ) -> dict[str, Any]:
+        """Read one current-contract Global Ask job and its persisted answer."""
+        account = await _account(ctx)
+        try:
+            parsed_job_id = UUID(ask_job_id)
+        except ValueError as exc:
+            raise ValueError("ask_job_id must be a UUID") from exc
+        return await read_global_ask_job_service(
+            pool=ctx.request_context.lifespan_context.pool,
+            account=account,
+            ask_job_id=parsed_job_id,
+        )
+
+    return server
+
+
+def build_mcp_http_app(server: MCPServer[McpAppContext], settings: Settings) -> ASGIApp:
+    """Build exact-origin, byte-bounded Streamable HTTP outside OAuth."""
+    _validate_mcp_settings(settings)
+    security = TransportSecuritySettings(
+        enable_dns_rebinding_protection=True,
+        allowed_hosts=settings.mcp_allowed_hosts,
+        allowed_origins=settings.mcp_allowed_origins,
+    )
+    sdk_app = server.streamable_http_app(transport_security=security)
+    cors_app = CORSMiddleware(
+        McpRetryAfterHeaderApp(sdk_app),
+        allow_origins=settings.mcp_allowed_origins,
+        allow_methods=["GET", "POST", "DELETE"],
+        allow_headers=[
+            "Accept",
+            "Authorization",
+            "Content-Type",
+            "Last-Event-ID",
+            "MCP-Protocol-Version",
+            "Mcp-Session-Id",
+        ],
+        expose_headers=["MCP-Protocol-Version", "Mcp-Session-Id", "WWW-Authenticate"],
+        allow_credentials=False,
+    )
+    return PreAuthTransportSecurityApp(
+        BoundedRequestBodyApp(cors_app, maximum_bytes=settings.mcp_max_request_bytes),
+        security,
+    )
+
+
+_settings = load_settings()
+mcp = build_mcp_server(_settings)
+app = build_mcp_http_app(mcp, _settings)

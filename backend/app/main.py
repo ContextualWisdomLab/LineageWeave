@@ -86,9 +86,9 @@ from backend.app.entity_relationship_ingestion import (
 )
 from backend.app.five_w1h_ingestion import load_five_w1h_slots
 from backend.app.global_ask_queue import (
-    enqueue_global_ask_job,
     run_global_ask_worker,
 )
+from backend.app.global_ask_service import read_global_ask_job, submit_global_ask
 from backend.app.issue_ticket_ingestion import (
     create_ticket,
     fetch_ticket_post_id,
@@ -1267,7 +1267,7 @@ async def resolve_customer_master_hint(
             ) from exc
     if resolution is None:
         raise HTTPException(
-            status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status.HTTP_422_UNPROCESSABLE_CONTENT,
             "this hint could not be resolved to a corroborated organization name",
         )
     return resolution
@@ -1628,7 +1628,7 @@ async def read_post(
             as_of_clock = parse_as_of_clock(as_of)
         except ValueError as exc:
             raise HTTPException(
-                status.HTTP_422_UNPROCESSABLE_ENTITY,
+                status.HTTP_422_UNPROCESSABLE_CONTENT,
                 "as_of must be an ISO-8601 timestamp. Use the run cutoff, "
                 "then compare the known body with the live body.",
             ) from exc
@@ -2252,7 +2252,7 @@ async def read_ontology_neighborhood(
         try:
             cutoff_clock = parse_as_of_clock(knowledge_cutoff)
         except ValueError as exc:
-            raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, str(exc)) from exc
+            raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, str(exc)) from exc
     try:
         async with pool.acquire() as conn:
             neighborhood = await visible_ontology_neighborhood(
@@ -2665,7 +2665,7 @@ async def compare_period_groupings(
     try:
         parse_period_code(period_code)
     except ValueError as exc:
-        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, str(exc)) from exc
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, str(exc)) from exc
     async with pool.acquire() as conn:
         rows = await fetch_period_comparison(conn, period_code)
         demo_entity_ids: set[str] = set()
@@ -2721,7 +2721,7 @@ async def list_period_reports(
     """Available calibrated periods for one grouping kind (FIPC trend)."""
     _require_post_read(account)
     if grouping_kind not in GROUPING_KINDS:
-        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, "unknown grouping_kind")
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, "unknown grouping_kind")
     async with pool.acquire() as conn:
         summaries = await list_period_report_summaries(conn, grouping_kind)
         demo_entity_ids: set[str] = set()
@@ -2751,11 +2751,11 @@ async def read_period_reports(
     """Calibrated IRT scores for one grouping kind and calendar period."""
     _require_post_read(account)
     if grouping_kind not in GROUPING_KINDS:
-        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, "unknown grouping_kind")
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, "unknown grouping_kind")
     try:
         parse_period_code(period_code)
     except ValueError as exc:
-        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, str(exc)) from exc
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, str(exc)) from exc
     async with pool.acquire() as conn:
         reports = await fetch_period_reports(conn, grouping_kind, period_code)
         demo_entity_ids: set[str] = set()
@@ -2828,11 +2828,11 @@ async def rebuild_period_report_endpoint(
     """Refit or FIPC-score every group in the period. post_admin only."""
     _require_post_admin(account)
     if grouping_kind not in GROUPING_KINDS:
-        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, "unknown grouping_kind")
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, "unknown grouping_kind")
     try:
         parse_period_code(period_code)
     except ValueError as exc:
-        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, str(exc)) from exc
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, str(exc)) from exc
     async with pool.acquire() as conn:
         async with conn.transaction():
             reports = await rebuild_period_reports(conn, grouping_kind, period_code)
@@ -3039,7 +3039,7 @@ async def chat_about_post(
     question = request.question.strip()
     if not question:
         raise HTTPException(
-            status.HTTP_422_UNPROCESSABLE_ENTITY, "question is required"
+            status.HTTP_422_UNPROCESSABLE_CONTENT, "question is required"
         )
     post = await _load_visible_post(post_id, account, pool)
     post_metadata = build_post_llm_metadata(post_id, post)
@@ -3139,44 +3139,15 @@ async def ask_agent(
     still fails fast on the states that cannot ever succeed (blank
     question, missing permission, unconfigured orchestrator).
     """
-    question = request.question.strip()
-    if not question:
-        raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, "question is required")
-    _require_post_read(account)
-    knowledge_cutoff = None
-    if request.knowledge_cutoff is not None:
-        try:
-            knowledge_cutoff = parse_as_of_clock(request.knowledge_cutoff)
-        except ValueError as exc:
-            raise HTTPException(
-                status.HTTP_422_UNPROCESSABLE_CONTENT,
-                "knowledge_cutoff must be an ISO-8601 timestamp",
-            ) from exc
-    async with pool.acquire() as conn:
-        if knowledge_cutoff is not None and knowledge_cutoff > await conn.fetchval(
-            "select now()"
-        ):
-            raise HTTPException(
-                status.HTTP_422_UNPROCESSABLE_CONTENT,
-                "knowledge_cutoff must be at or before the database clock",
-            )
-        if not _post_chat_client().available:
-            raise HTTPException(
-                status.HTTP_503_SERVICE_UNAVAILABLE,
-                "Ask Agent is unavailable. Ask an administrator to configure the analysis service, "
-                "then retry.",
-            )
-        job_id = await enqueue_global_ask_job(
-            conn,
-            valkey,
-            requesting_account_id=account.user_account_id,
-            question_text=question,
-            verify_external_requested=request.verify_external,
-            knowledge_cutoff=knowledge_cutoff,
-            corporate_entity_ids=account.corporate_entity_ids,
-            process_unit_ids=account.process_unit_ids,
-        )
-    return {"ask_job_id": job_id, "job_status_code": "queued"}
+    return await submit_global_ask(
+        pool=pool,
+        valkey=valkey,
+        account=account,
+        question=request.question,
+        verify_external=request.verify_external,
+        knowledge_cutoff=request.knowledge_cutoff,
+        service_available=_post_chat_client().available,
+    )
 
 
 @app.get("/api/ask/jobs/{ask_job_id}")
@@ -3190,25 +3161,7 @@ async def read_ask_job(
     Owner-scoped: another account's job id reads as absent (404, not
     403) so job ids do not leak their existence across accounts.
     """
-    _require_post_read(account)
-    async with pool.acquire() as conn:
-        row = await conn.fetchrow(
-            "select requesting_account_id, job_status_code, answer_payload,"
-            " failure_detail from global_ask_job where global_ask_job_id = $1",
-            ask_job_id,
-        )
-    if row is None or str(row["requesting_account_id"]) != account.user_account_id:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "ask job not found")
-    body: dict[str, Any] = {
-        "ask_job_id": str(ask_job_id),
-        "job_status_code": row["job_status_code"],
-    }
-    if row["job_status_code"] == "succeeded" and row["answer_payload"] is not None:
-        payload = row["answer_payload"]
-        body["answer"] = json.loads(payload) if isinstance(payload, str) else payload
-    if row["job_status_code"] == "failed":
-        body["failure_detail"] = row["failure_detail"]
-    return body
+    return await read_global_ask_job(pool=pool, account=account, ask_job_id=ask_job_id)
 
 
 class PostBookmarkRequest(BaseModel):
@@ -3655,7 +3608,7 @@ async def read_calendar(
     _require_post_read(account)
     if (window_start is None) ^ (window_end is None):
         raise HTTPException(
-            status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status.HTTP_422_UNPROCESSABLE_CONTENT,
             "window_start and window_end must be supplied together",
         )
     settings = load_settings()

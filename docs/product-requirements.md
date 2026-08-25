@@ -125,6 +125,21 @@ Acceptance: a later rewrite never appears in a cutoff answer; an uncovered
 revision is explicitly unavailable; and API and rendered citations identify
 the retained revision and full/partial grounding state.
 
+### PRD-FR-5C — Authenticated MCP Global Ask
+
+- Expose asynchronous submission and owner-scoped job reading over MCP while
+  reusing the REST application service and persisted answer payload.
+- Validate the exact MCP resource audience, provisioned account, permission,
+  affiliation scope, Host, Origin, and bounded request body before a tool runs.
+- Consume one distributed quota unit only for an admitted authenticated tool
+  call; preflight and rejected admission consume none.
+- Require deployment-supplied, load-evidence-backed quota parameters and fail
+  closed when shared Valkey cannot decide.
+
+Acceptance: MCP and REST produce the same scope snapshot, verification opt-in,
+knowledge cutoff, status, citations, and limitations; cross-account reads are
+404-equivalent; and exhaustion returns the bounded actual retry interval.
+
 ### PRD-FR-6 — Measurement boundary
 
 - Consume TEPP accepted/completed wire contracts and fast-mlsirm outputs; do
