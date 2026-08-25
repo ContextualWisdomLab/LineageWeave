@@ -1,6 +1,6 @@
 # Product & Technical Gap Baseline
 
-> Audit snapshot: 2026-08-25 15:52 KST (refreshed by the autonomous merge
+> Audit snapshot: 2026-08-25 16:22 KST (refreshed by the autonomous merge
 > loop). This repository records synthetic fixtures and aggregate,
 > non-identifying runtime evidence only. Open PRs and local checks are not
 > protected-default-branch release evidence. Identifying post identifiers,
@@ -9,7 +9,7 @@
 
 ## 1. Exact-head and governance evidence
 
-The protected default branch was `ea71d9ca9adda1c4c8f82ed295d2202a8a2f5c1f`
+The protected default branch was `464ff25002044b9d933c8eefd36c8def7ca0ffd8`
 when this baseline was refreshed. The live queue contained 10 open PRs and 20
 open issues. The exact-head inventory below supersedes older per-PR snapshots
 elsewhere in this document; those older rows remain useful historical delivery
@@ -17,14 +17,14 @@ context only.
 
 | PR | Exact observed head | Merge/check state at this snapshot |
 | ---: | --- | --- |
+| #603 | `2b4d74b8` | releases pooled connections and transactions during analysis-run provider work using PostgreSQL session advisory locks and two short transactions; also removes package-metadata conflict markers and identifying baseline records delivered by #482; 67 analysis-run tests and the aggregate documentation-hygiene contract passed, auto-merge is armed pending exact-head hosted checks and independent review |
 | #602 | `a1e4dc8f` | Post-detail modal semantics, focus containment/restoration, and Escape close are composed with current main; the valid rerender focus-steal review was repaired with a mount-only focus lifecycle and regression test, all threads are resolved, and auto-merge remains armed pending exact-head hosted checks and independent review |
-| #600 | `ae6e8cbc` | this baseline's pre-amendment observed head; composed with current main and awaiting exact-head review/check evidence |
-| #588 | `e9b29f11` | raw-residual reconstruction, rank-zero identity, API presence, and comparison-strip contracts are composed with current main; focused backend/frontend/schema checks passed, all review threads are resolved, and auto-merge is armed |
-| #582 | `d7cf4072` | batched cited-lineage fetch is composed with current main while retaining ADR 0161 interval relations; 27 focused lineage/documentation checks passed, no review threads remain, and auto-merge is armed pending hosted checks and independent review |
-| #579 | `dac509f9` | interaction-map coordinates are composed with current main's cross-share and interval work; the ADR 0168/0202 collision was repaired, all threads are resolved, 69 focused scientific/schema checks plus the focused live API contract passed, and 163 frontend tests, lint, app/Storybook builds, and desktop/mobile rendered audits passed; auto-merge is armed pending hosted checks and independent review |
-| #493 | `415890a9` | ADR 0143 empty-DAG reasons are composed with current main and #387 channel evidence while retaining ADR 0161 interval labels; 36 focused backend checks, 175 focused frontend checks, lint, production/Storybook builds, and desktop/mobile rendered screenshots passed; no review threads remain and auto-merge is armed pending hosted exact-head gates and independent review |
+| #600 | `51f8b4c0` | this baseline's pre-amendment stack head, composed on #603 so protected main's package-marker/privacy regression cannot return; awaiting exact-head review/check evidence |
+| #588 | `c33e777e` | raw-residual reconstruction, rank-zero identity, API presence, and comparison-strip contracts are composed with current main; the concurrent exact-head update resets hosted evidence, while auto-merge remains armed |
+| #582 | `63dd0d06` | batched cited-lineage fetch is composed with current main while retaining ADR 0161 interval relations; the concurrent exact-head update resets hosted evidence, while auto-merge remains armed |
+| #579 | `96b8896a` | interaction-map coordinates preserve the scientific/schema/UI contracts, but the concurrent exact head is currently dirty against main and must be composed again before hosted gates can settle |
+| #493 | `2ce959cb` | ADR 0143 empty-DAG reasons preserve channel and interval evidence, but the concurrent exact head is currently dirty against main and must be composed again before hosted gates can settle |
 | #490 | `73413d0b` | broad historical workspace branch is conflicting with failing checks; decompose/restack rather than replaying its 931-commit merge wholesale |
-| #482 | `35f5b0fb` | ADR 0170 organization-alias captions are composed with current main; 44 backend/docs and 93 frontend tests, lint, app/Storybook builds, plus desktop/mobile rendered screenshot audits passed; auto-merge is armed pending hosted exact-head gates and independent review |
 | #468 | `0f15d1bd` | fast-mlsirm v0.8.0, exact Keyverse scope, orchestrator, and TEPP boundaries are composed with current main; TEPP contract/auth headers and telemetry-safe startup were retained, 74 focused integration tests plus 37 TEPP/start/config tests and the live authorization-scope contract passed, no review threads remain, and auto-merge is armed pending hosted exact-head gates and independent review |
 | #387 | `728125c1` | channel evidence plus Ask reconstruction-profile preservation is composed with current main and has no unresolved threads; only changes-requested decisions from obsolete heads remain, so auto-merge is armed pending current-head checks and independent re-review |
 
@@ -32,6 +32,13 @@ No row above is merge evidence. Immediately before any lifecycle action,
 re-fetch the head, unresolved threads, formal reviews, rulesets, and same-head
 check conclusions. In particular, queued checks are infrastructure state and
 do not transfer evidence from an earlier SHA.
+
+PR #482 merged as protected-main commit `464ff25002044b9d933c8eefd36c8def7ca0ffd8`,
+but that tree contains unresolved conflict markers in `uv.lock` and
+`frontend/package.json` and replaced this aggregate baseline with identifying
+runtime post keys. Those are delivered regressions, not merely branch gaps;
+#603 contains the root repair and privacy regression test evidence. Until #603
+lands, protected main is not releaseable.
 
 PR #592 first merged as `3b3af3b4fe9c439354433a43444e05f37ab24ea3`
 into #590's non-default stack base at `2f033ba3`. The complete stack then
