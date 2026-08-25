@@ -236,13 +236,22 @@ def test_get_json_session_header_stays_on_orchestrator_peers(monkeypatch) -> Non
             get_json(f"{base}/search", timeout=2.0, service_peer_name="searxng")
             searxng = dict(_JsonHandler.received)
             _JsonHandler.received = {}
-            get_json(f"{base}/v1/models", timeout=2.0)
+            get_json(f"{base}/generic", timeout=2.0)
+            generic = dict(_JsonHandler.received)
+            _JsonHandler.received = {}
+            get_json(
+                f"{base}/v1/models",
+                timeout=2.0,
+                service_peer_name="contextual-orchestrator",
+            )
             orchestrator = dict(_JsonHandler.received)
     finally:
         server.shutdown()
 
     assert searxng.get("session") is None
     assert searxng.get("traceparent")
+    assert generic.get("session") is None
+    assert generic.get("traceparent")
     assert orchestrator.get("session") == "post-session-1"
     assert orchestrator.get("traceparent")
 

@@ -2386,7 +2386,8 @@ async def evaluate_post(
         if not client.available:
             raise HTTPException(
                 status.HTTP_503_SERVICE_UNAVAILABLE,
-                "Post evaluation is unavailable: set ORCHESTRATOR_BASE_URL / ORCHESTRATOR_API_KEY",
+                "Post evaluation is unavailable. Ask an administrator to configure the "
+                "analysis service, then retry.",
             )
         async with pool.acquire() as conn:
             body_row = await conn.fetchrow("select post_body from source_post where post_id = $1", post_id)

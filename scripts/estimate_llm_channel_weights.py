@@ -274,6 +274,7 @@ async def _collect(args: argparse.Namespace) -> dict[str, object]:
         f"{base_url}/api/v1/batch_routing_jobs/{run['batch_job_id']}",
         headers={"authorization": f"Bearer {api_key}"},
         timeout=_BATCH_TIMEOUT_SECONDS,
+        service_peer_name="contextual-orchestrator",
     )
     if not _is_complete(polled):
         return {

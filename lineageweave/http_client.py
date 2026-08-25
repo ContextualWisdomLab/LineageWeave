@@ -259,20 +259,6 @@ def post_json(
 
     ``service_peer_name`` is a bounded service name used for the request span.
     """
-    request_payload = payload
-    request_metadata = current_llm_metadata()
-    if request_metadata:
-        request_payload = dict(payload)
-        existing_metadata = request_payload.get("metadata")
-        if existing_metadata is None:
-            request_payload["metadata"] = request_metadata
-        elif isinstance(existing_metadata, dict):
-            request_payload["metadata"] = {
-                **existing_metadata,
-                **request_metadata,
-            }
-        else:
-            raise ValueError("metadata must be an object")
     hostname = urlparse(url).hostname or url
     request_headers = {"content-type": "application/json", **headers}
     session_id = current_session_id()
@@ -290,7 +276,7 @@ def post_json(
         status, raw = _request(
             "POST",
             url,
-            body=json_request_body(request_payload),
+            body=json_request_body(payload),
             headers=request_headers,
             timeout=timeout,
         )
@@ -392,7 +378,7 @@ def get_json(
     *,
     headers: dict[str, str] | None = None,
     timeout: float,
-    service_peer_name: str = "contextual-orchestrator",
+    service_peer_name: str = "http-service",
     maximum_response_bytes: int | None = None,
     expected_response_media_type: str | None = None,
 ) -> dict:
