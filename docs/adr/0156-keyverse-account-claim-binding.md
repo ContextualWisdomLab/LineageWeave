@@ -36,6 +36,10 @@ When `KEYVERSE_ISSUER` selects the production Keyverse profile:
 5. Keep local Compose Keycloak compatible with its synthetic development claim
    profile; the stricter account-derived contract activates only for an
    explicitly configured Keyverse issuer.
+6. Persist the exact corporate-entity and process-unit scope in normalized
+   child tables when asynchronous work is queued. Workers intersect that scope
+   with current affiliations; they never reconstruct it from every affiliation
+   on the account after the bearer token leaves the request boundary.
 
 Missing, malformed, ambiguous, or unprovisioned scope is denied. No claim is
 used to create an affiliation, process unit, role, or permission.

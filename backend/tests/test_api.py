@@ -140,6 +140,11 @@ _GLOBAL_ASK_JOB_MIGRATION = (
     / "migrations"
     / "0165_global_ask_job.sql"
 )
+_GLOBAL_ASK_SCOPE_MIGRATION = (
+    Path(__file__).resolve().parents[2]
+    / "migrations"
+    / "0203_global_ask_authorization_scope.sql"
+)
 _LEFTOVER_MAP_AXIS_MIGRATION = (
     Path(__file__).resolve().parents[2]
     / "migrations"
@@ -274,6 +279,7 @@ def seeded_db(demo_analyst_token):
             cur.execute(_LEFTOVER_MAP_RANK_MIGRATION.read_text())
             cur.execute(_LEFTOVER_MAP_COVERAGE_MIGRATION.read_text())
             cur.execute(_GLOBAL_ASK_JOB_MIGRATION.read_text())
+            cur.execute(_GLOBAL_ASK_SCOPE_MIGRATION.read_text())
             cur.execute(_LEFTOVER_MAP_AXIS_MIGRATION.read_text())
             cur.execute(_LEFTOVER_MAP_UNEXPLAINED_MIGRATION.read_text())
             cur.execute(

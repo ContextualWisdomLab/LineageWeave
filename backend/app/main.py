@@ -2870,6 +2870,8 @@ async def ask_agent(
             valkey,
             requesting_account_id=account.user_account_id,
             question_text=question,
+            corporate_entity_ids=account.corporate_entity_ids,
+            process_unit_ids=account.process_unit_ids,
         )
     return {"ask_job_id": job_id, "job_status_code": "queued"}
 
