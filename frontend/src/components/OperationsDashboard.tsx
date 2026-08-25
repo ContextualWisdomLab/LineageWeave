@@ -66,11 +66,11 @@ export function OperationsDashboardView({ data, externalOnly = false, onOpenPost
         <p>수치를 선택하면 근거 글에서 다음 조치를 확인할 수 있습니다.</p>
       </header>
       <dl className="dashboard-metrics">
-        <div><dt>전체 글</dt><dd>{data.total_post_count}</dd></div>
-        <div><dt>분류 Event</dt><dd>{data.total_event_count}</dd></div>
+        {!externalOnly ? <div><dt>전체 글</dt><dd>{data.total_post_count}</dd></div> : null}
+        {!externalOnly ? <div><dt>분류 Event</dt><dd>{data.total_event_count}</dd></div> : null}
         <div><dt>외부 정보</dt><dd>{data.external_post_count}건 · {data.external_percent.toFixed(1)}%</dd></div>
-        <div><dt>분석 대기</dt><dd>{data.pending_analysis_count}</dd></div>
-        <div><dt>분석 실패</dt><dd>{data.failed_analysis_count}</dd></div>
+        {!externalOnly ? <div><dt>분석 대기</dt><dd>{data.pending_analysis_count}</dd></div> : null}
+        {!externalOnly ? <div><dt>분석 실패</dt><dd>{data.failed_analysis_count}</dd></div> : null}
       </dl>
       {!externalOnly ? (
         <section className="dashboard-case-metrics" aria-labelledby="case-metrics-heading">
@@ -122,10 +122,10 @@ export function OperationsDashboardView({ data, externalOnly = false, onOpenPost
           </article>
         ))}
       </div>
-      {cases.length === 0 && data.failed_analysis_count === 0 ? (
-        <p role="status">{data.pending_analysis_count > 0 ? "선택 기간에 분석 완료된 근거가 없습니다. 분석 대기 건부터 처리하세요." : "선택 기간에 분석할 수 있는 근거가 없습니다. 기간이나 접근 범위를 확인하세요."}</p>
+      {cases.length === 0 && (externalOnly || data.failed_analysis_count === 0) ? (
+        <p role="status">{externalOnly ? "선택 기간에 분류된 외부 정보가 없습니다. 기간이나 접근 범위를 확인하세요." : data.pending_analysis_count > 0 ? "선택 기간에 분석 완료된 근거가 없습니다. 분석 대기 건부터 처리하세요." : "선택 기간에 분석할 수 있는 근거가 없습니다. 기간이나 접근 범위를 확인하세요."}</p>
       ) : null}
-      {data.failed_analysis_count > 0 ? <p role="alert">분석 실패 {data.failed_analysis_count}건을 재처리한 뒤 근거 누락 여부를 다시 확인하세요.</p> : null}
+      {!externalOnly && data.failed_analysis_count > 0 ? <p role="alert">분석 실패 {data.failed_analysis_count}건을 재처리한 뒤 근거 누락 여부를 다시 확인하세요.</p> : null}
     </section>
   );
 }

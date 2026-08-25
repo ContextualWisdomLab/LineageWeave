@@ -38,6 +38,22 @@ export const EvidenceReady: Story = {
 
 export const NarrowViewport: Story = { ...EvidenceReady, parameters: { viewport: { defaultViewport: "mobile1" } } };
 
+export const ExternalInformationEmpty: Story = {
+  args: {
+    data: { ...EvidenceReady.args!.data!, cases: EvidenceReady.args!.data!.cases.filter((item) => item.case_kind_code !== "external_information") },
+    externalOnly: true,
+    onOpenPost: () => undefined,
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(canvas.getByRole("status")).toHaveTextContent("분류된 외부 정보가 없습니다");
+    await expect(canvas.queryByText("전체 글")).not.toBeInTheDocument();
+    await expect(canvas.queryByText("분류 Event")).not.toBeInTheDocument();
+    await expect(canvas.queryByText("분석 대기")).not.toBeInTheDocument();
+    await expect(canvas.queryByText("분석 실패")).not.toBeInTheDocument();
+  },
+};
+
 export const RequiredFactMissing: Story = {
   args: {
     data: { ...EvidenceReady.args!.data!, cases: [EvidenceReady.args!.data!.cases[0]] },
