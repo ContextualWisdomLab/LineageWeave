@@ -68,6 +68,7 @@ JSONLD_CONTEXT = {
     "skos": "http://www.w3.org/2004/02/skos/core#",
     "owl": "http://www.w3.org/2002/07/owl#",
     "prov": "http://www.w3.org/ns/prov#",
+    "rdf": "http://www.w3.org/1999/02/22-rdf-syntax-ns#",
     "rdfs": "http://www.w3.org/2000/01/rdf-schema#",
     "time": "http://www.w3.org/2006/time#",
     "xsd": "http://www.w3.org/2001/XMLSchema#",
@@ -261,33 +262,38 @@ class OntologyNeighborhood:
             if node.truth_status_code is not None:
                 graph[-1]["lw:truthStatus"] = node.truth_status_code
         for edge in self.edges:
+            source_iri = ontology_node_iri(
+                _node_type_for(
+                    self.nodes,
+                    edge.source_node_type_code,
+                    edge.source_node_id,
+                ),
+                edge.source_node_id,
+            )
+            target_iri = ontology_node_iri(
+                _node_type_for(
+                    self.nodes,
+                    edge.target_node_type_code,
+                    edge.target_node_id,
+                ),
+                edge.target_node_id,
+            )
+            graph.append(
+                {
+                    "@id": source_iri,
+                    edge.ontology_property_iri: {"@id": target_iri},
+                }
+            )
             item: dict[str, object] = {
                 "@id": f"lw:edge/{edge.edge_id}",
-                "@type": "prov:Entity",
-                edge.ontology_property_iri: {
-                    "@id": ontology_node_iri(
-                        _node_type_for(
-                            self.nodes,
-                            edge.target_node_type_code,
-                            edge.target_node_id,
-                        ),
-                        edge.target_node_id,
-                    )
-                },
+                "@type": ["rdf:Statement", "prov:Entity"],
+                "rdf:subject": {"@id": source_iri},
+                "rdf:predicate": {"@id": edge.ontology_property_iri},
+                "rdf:object": {"@id": target_iri},
                 "prov:wasDerivedFrom": [
                     {"@id": f"lw:evidence/{reference}"} for reference in edge.evidence_references
                 ],
                 "lw:truthStatus": edge.truth_status_code,
-                "lw:source": {
-                    "@id": ontology_node_iri(
-                        _node_type_for(
-                            self.nodes,
-                            edge.source_node_type_code,
-                            edge.source_node_id,
-                        ),
-                        edge.source_node_id,
-                    )
-                },
             }
             _add_jsonld_times(item, edge.recorded_at, edge.valid_from, edge.valid_to)
             graph.append(item)

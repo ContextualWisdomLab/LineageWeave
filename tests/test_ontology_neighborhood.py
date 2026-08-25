@@ -225,7 +225,34 @@ def test_jsonld_keeps_colliding_identifiers_typed() -> None:
         if str(item["@id"]).startswith("lw:edge/")
     }
     mentions = next(item for key, item in edge_ids.items() if "/mentions:" in str(key))
-    assert mentions["lw:source"]["@id"] == ontology_node_iri(NODE_POST, POST_ID)
+    assert mentions["rdf:subject"]["@id"] == ontology_node_iri(NODE_POST, POST_ID)
+
+
+def test_jsonld_emits_direct_and_reified_edge_semantics() -> None:
+    """A typed edge denotes the same assertion directly and by reification."""
+    neighborhood = assemble_ontology_neighborhood(
+        focus_node_type_code=NODE_POST,
+        focus_node_id=POST_ID,
+        facts=_mention_affiliation(),
+        labels=_labels(),
+        maximum_depth=2,
+    )
+    items = neighborhood.jsonld_document()["@graph"]
+    post_iri = ontology_node_iri(NODE_POST, POST_ID)
+    person_iri = ontology_node_iri(NODE_PERSON, PERSON_ID)
+    direct = next(
+        item
+        for item in items
+        if item.get("@id") == post_iri and str(LW.mentions) in item
+    )
+    statement = next(
+        item for item in items if "rdf:Statement" in item.get("@type", [])
+    )
+
+    assert direct[str(LW.mentions)]["@id"] == person_iri
+    assert statement["rdf:subject"]["@id"] == post_iri
+    assert statement["rdf:predicate"]["@id"] == str(LW.mentions)
+    assert statement["rdf:object"]["@id"] == person_iri
 
 
 def test_jsonld_percent_encodes_project_iri_like_the_rdf_projection() -> None:
