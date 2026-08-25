@@ -3,7 +3,7 @@ import { LeftoverPairList } from "./components/LeftoverPairList";
 import { WorkspaceCalendar } from "./components/WorkspaceCalendar";
 import { focusedGraphMustReset } from "./focusedGraphSelection";
 
-import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useEffectEvent, useRef, useState, type ReactNode } from "react";
 import { useAuth } from "react-oidc-context";
 import {
   askPostChat,
@@ -3952,11 +3952,15 @@ function PostList({
     setOpenedLeftoverPair(options?.fromLeftoverPair ?? null);
   }
 
+  const openRequestedPost = useEffectEvent((postId: string) => {
+    selectPost(postId);
+    onPostOpened?.();
+  });
+
   useEffect(() => {
     if (!postIdToOpen) return;
-    selectPost(postIdToOpen);
-    onPostOpened?.();
-  }, [onPostOpened, postIdToOpen]);
+    openRequestedPost(postIdToOpen);
+  }, [postIdToOpen]);
 
   function closeSelectedPost() {
     setSelectedPostId(null);
