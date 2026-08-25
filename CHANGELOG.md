@@ -147,6 +147,15 @@ All notable changes to this project are documented here. Format follows
   is unwired, with `이 범위의 일정을 아직 받을 수 없습니다`. Weekly VOC and
   newspaper stay on the board.
 
+## [2.13.2] - 2026-08-24
+
+### Added
+
+- Reader-safe Global Ask and post-chat failures now carry bounded
+  OpenTelemetry metrics, traces, and structured server diagnostics for
+  GRC consumption. Failure logs carry the active TraceId and SpanId so
+  another agent can join the Error span to the audit record.
+
 ## [2.12.26] - 2026-08-24
 
 ### Added
@@ -156,15 +165,6 @@ All notable changes to this project are documented here. Format follows
   Jeon et al., 2021, eq. 3; ADR 0182). A missing unexplained leftover
   omits the badge rather than inventing a leftover score. Two-axis
   reconstruction `R̂` stays internal and is not persisted.
-
-## [2.13.2] - 2026-08-24
-
-### Added
-
-- Reader-safe Global Ask and post-chat failures now carry bounded
-  OpenTelemetry metrics, traces, and structured server diagnostics for
-  GRC consumption. Failure logs carry the active TraceId and SpanId so
-  another agent can join the Error span to the audit record.
 
 ## [2.12.19] - 2026-08-24
 
