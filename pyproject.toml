@@ -51,6 +51,8 @@ backend = [
   # Speaks RESP; works against Valkey (a Redis-protocol-compatible fork)
   # as well as real Redis. Used for the post-activity event stream.
   "redis>=5.0.0",
+  # Authenticated Streamable HTTP resource server (ADR 0218).
+  "mcp==2.0.0",
   # LLM-as-a-Judge -> IRT -> Fixed-Item Parameter Calibration for the
   # weekly/monthly PU/team/project reports (ADR 0003). No PyPI release
   # yet; pinned to a specific commit, same pattern as rankweave. Ships a
