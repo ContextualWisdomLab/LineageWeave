@@ -28,6 +28,12 @@ const BADGE_AND_ACCENT_TOKENS = [
   "--badge-status-success-text",
   "--badge-status-danger-bg",
   "--badge-status-danger-text",
+  "--badge-status-evidence-bg",
+  "--badge-status-evidence-text",
+  "--badge-status-inference-bg",
+  "--badge-status-inference-text",
+  "--badge-status-prediction-bg",
+  "--badge-status-prediction-text",
 ];
 
 // Colors this file's dark-mode block replaced -- a regression here would

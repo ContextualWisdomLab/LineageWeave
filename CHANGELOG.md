@@ -8,6 +8,22 @@ All notable changes to this project are documented here. Format follows
 
 ### Added
 
+- Registered the `analysis_run_topic_lineage` analysis-run kind (migrations
+  0131/0132, ADR 0132), the LineageWeave-side consumption boundary for
+  TEPP's Temporal Relational Shared-Latent Topic Measurement (TRSL-TM,
+  TEPP ADR 0012) and CHRONOS/TDT event-intelligence status (TEPP ADR 0016).
+  It mirrors the existing TEPP measurement path exactly: submits through
+  `tepp_client`, fails closed (`tepp_not_available` /
+  `tepp_result_not_persisted`) until TEPP publishes a completed envelope,
+  and never computes a topic identity or event prediction locally.
+  `make seed` now also writes a Demo Corp topic-lineage run alongside the
+  existing lineage/TEPP/period-report rows.
+- `EvidenceStatusMark`, a reusable evidence/inference/prediction status
+  badge (ADR 0132 decision 5, TEPP ADR 0016) distinguishing status by label
+  text and glyph shape, not color alone. Ships ahead of the Event Lineage
+  DAG topic-thread wiring it is designed for, so review and Storybook
+  coverage (`Analysis/EvidenceStatusMark`) are available now; it is
+  presentational only and never infers a status itself.
 - Opening a post with persisted image-region evidence now shows each region's
   bounding range beside its caption, OCR, and tags (ADR 0155). After
   `make seed`, a synthetic process-diagram region reads **Region location:
@@ -42,6 +58,14 @@ All notable changes to this project are documented here. Format follows
   list is captioned “Leftover map used N of M scored posts
   (complete-case)”; incomplete rows stay excluded, never filled with
   zero.
+- Period leftover pair rows now name leftover-map cross share
+  `x = 2 R̂ U / R²` of raw residual next to leftover-map
+  distance `d`, then open that post (Gabriel, 1971; Jeon et al., 2021,
+  eq. 3; ADR 0185). A missing share omits the badge rather than
+  inventing a leftover score. A signed remainder is shown, never
+  clamped. Two-axis reconstruction `R̂` stays internal; unexplained
+  leftover remains the ADR 0182 value `U = R − R̂`. Explained leftover share
+  `e` and unexplained leftover share `s` are not persisted here.
 
 - The grouping comparison strip now names leftover post–criterion
   pairs on each visible row (ADR 0149). After `make seed`, open a
@@ -52,6 +76,8 @@ All notable changes to this project are documented here. Format follows
 
 ### Fixed
 
+- Structure adjudication now rejects malformed or duplicate unit indexes before
+  calling the orchestrator.
 - Event Lineage's DAG no longer leaves a linear (no-branch) reconstruct
   chain unexplained. `is_branch_point` is only `true` when a post has 2+
   children -- correct reconstruct behavior, not a bug -- but the graph
@@ -95,6 +121,15 @@ All notable changes to this project are documented here. Format follows
   session token is removed, hides live refocus on static catalog snapshots,
   and looks up corporate-parent visibility independently of the child. OWL-Time
   is cited as a W3C Candidate Recommendation Draft.
+- Global Ask relative-time filters bind to `event_occurred_at` (the
+  source-system event instant) and fall back to `created_at` only when
+  that event clock is missing (ADR 0202 / #569). After `make seed`,
+  leftover closest/farthest pairs still sit above the member list; a
+  click still opens that post. Ask **어제 무슨 일이 있었나요?** on
+  bulk-imported fixtures that share one ingest day keeps the post whose
+  event fell yesterday, drops last week's event, and names **Time axis**
+  on the cited evidence. Open that cited post to read which clock
+  matched. Never invent a theta or an event date.
 
 ## [2.15.0] - 2026-08-25
 

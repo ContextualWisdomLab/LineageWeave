@@ -34,6 +34,22 @@ class HttpClientError(RuntimeError):
     """The remote endpoint failed, returned a non-success status, or invalid JSON."""
 
 
+def json_request_body(payload: dict) -> bytes:
+    """Serialize the exact JSON body sent by :func:`post_json`."""
+    request_payload = payload
+    request_metadata = current_llm_metadata()
+    if request_metadata:
+        request_payload = dict(payload)
+        existing_metadata = request_payload.get("metadata")
+        if existing_metadata is None:
+            request_payload["metadata"] = request_metadata
+        elif isinstance(existing_metadata, dict):
+            request_payload["metadata"] = {**existing_metadata, **request_metadata}
+        else:
+            raise ValueError("metadata must be an object")
+    return json.dumps(request_payload).encode("utf-8")
+
+
 def _validated_response_limit(value: int | None) -> int | None:
     """Return a positive byte limit or reject ambiguous numeric values."""
 
@@ -243,7 +259,6 @@ def post_json(
 
     ``service_peer_name`` is a bounded service name used for the request span.
     """
-
     request_payload = payload
     request_metadata = current_llm_metadata()
     if request_metadata:
@@ -275,7 +290,7 @@ def post_json(
         status, raw = _request(
             "POST",
             url,
-            body=json.dumps(request_payload).encode("utf-8"),
+            body=json_request_body(request_payload),
             headers=request_headers,
             timeout=timeout,
         )

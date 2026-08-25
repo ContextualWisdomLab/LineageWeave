@@ -80,6 +80,10 @@ _WORKER_CONCURRENCY = 4
 _logger = logging.getLogger(__name__)
 
 
+class _SafeJobError(Exception):
+    """Failure whose bounded message is safe to persist for the requester."""
+
+
 async def enqueue_global_ask_job(
     conn: asyncpg.Connection,
     client: redis.Redis,
@@ -301,10 +305,10 @@ async def process_global_ask_job(
                 conn, str(row["requesting_account_id"])
             )
         if not has_post_read:
-            raise PermissionError("account lacks the post_read permission")
+            raise _SafeJobError("account lacks the post_read permission")
         chat_client = chat_factory()
         if not chat_client.available:
-            raise ConnectionError(
+            raise _SafeJobError(
                 "Ask Agent is unavailable: set ORCHESTRATOR_BASE_URL / ORCHESTRATOR_API_KEY"
             )
         payload = await asyncio.wait_for(
@@ -324,8 +328,12 @@ async def process_global_ask_job(
         # A narrow exception tuple here once let an unexpected error kill
         # the task silently and strand the row `running` until orphan
         # recovery (observed live) — every failure settles the job.
+        # Full exception is logged internally for operators; the reader
+        # only ever sees a generic, bounded message, never the raw
+        # exception text (issue #361 -- a leaked orchestrator/provider
+        # exception once exposed internals straight to a client).
         _logger.exception("global ask job failed for job_id=%s", job_id)
-        if isinstance(exc, (PermissionError, ConnectionError)):
+        if isinstance(exc, _SafeJobError):
             # Raised locally with a pre-authored, safe message (permission
             # state / missing config) — never a provider-boundary leak.
             detail = str(exc)
