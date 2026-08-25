@@ -2,17 +2,17 @@
 
 > Dashboard delivery snapshot: 2026-08-26 KST (2026-08-25 UTC; latest exact-head fetch). Protected `main` was
 > `04e6b610655d0db91d5f7ba9486bdda1440e0b19`. Dashboard candidate head
-> `b045a6e5` has local synthetic runtime evidence; this is not
+> `1fb65c2e` (observed parent) has local synthetic runtime evidence; this is not
 > protected-main release evidence.
 
 ## Operations Dashboard PRD/TRD traceability
 
 | Requirement | Evidence contract | Delivery state |
 |---|---|---|
-| Claim cause delay: order, specification change, originating order, sales pool, Event/post counts | ADR 0206; contextual-orchestrator case classification and `claim_received` → `cause_confirmed` milestones with cited spans and observed source clocks | Stacked candidate reports open/resolved/evidence-missing counts and exact elapsed time only for paired observed endpoints; every required answer and endpoint is cited or explicitly missing; authenticated runtime acceptance and corpus re-analysis pending |
-| Rebid/handover: discussion, counterparties, our owner, decisions, Event/post counts | ADR 0206; normalized case facts plus separate rebid-response and handover milestone pairs | Stacked candidate reports open/resolved/evidence-missing rebid and handover lifecycles without a delay threshold or invented elapsed endpoint; authenticated runtime acceptance and corpus re-analysis pending |
-| External information count/rate and sales/project relation | ADR 0206; semantic `external_information` classification inside Dashboard GNB | Candidate GNB destination filters the Dashboard to external evidence; no separate Board by product decision; authenticated runtime acceptance pending |
-| Project-specific journey | Explicit source/semantic project membership plus event-time ordering | Candidate API preserves every explicit project membership and the UI orders each journey chronologically; authenticated runtime acceptance pending |
+| Claim cause delay: order, specification change, originating order, sales pool, Event/post counts | ADR 0206; contextual-orchestrator case classification and `claim_received` → `cause_confirmed` milestones with cited spans and observed source clocks | Stacked candidate reports open/resolved/evidence-missing counts and exact elapsed time only for paired observed endpoints; every required answer and endpoint is cited or explicitly missing; authenticated synthetic runtime passed, while authorized-corpus re-analysis remains pending |
+| Rebid/handover: discussion, counterparties, our owner, decisions, Event/post counts | ADR 0206; normalized case facts plus separate rebid-response and handover milestone pairs | Stacked candidate reports open/resolved/evidence-missing rebid and handover lifecycles without a delay threshold or invented elapsed endpoint; authenticated synthetic runtime passed, while authorized-corpus re-analysis remains pending |
+| External information count/rate and sales/project relation | ADR 0206; semantic `external_information` classification inside Dashboard GNB | Candidate GNB destination filters the Dashboard to external evidence; no separate Board by product decision; authenticated synthetic runtime passed with the honest zero-result state |
+| Project-specific journey | Explicit source/semantic project membership plus event-time ordering | Candidate API preserves every explicit project membership and the UI orders each journey chronologically; authenticated synthetic runtime passed |
 | Repeat issue to design improvement | `repeat_issue`, `issue_pattern`, and `improvement_action` cited facts | Candidate semantic contract; design-system connector acceptance pending |
 | Natural-language Ask with evidence, report, alert, MCP | Persisted semantic-unit embeddings plus versioned delivery/resource contract | Candidate implementation uses whole-question embedding retrieval with no lexical fallback; authenticated runtime acceptance pending |
 | Similar VOC, customer cohort, prior action | Persisted repeat-issue candidate semantics plus orchestrator pair adjudication and extractive evidence | Candidate live post endpoint and post-detail UI implemented; authenticated runtime acceptance pending |
@@ -83,15 +83,22 @@ hid the entire GNB despite having no drawer implementation. Candidate
 `6b195171` keeps the same semantic navigation in a keyboard-accessible
 horizontal viewport. The 390×844 rerender showed the GNB, one `main`, zero
 unnamed controls, no document-level horizontal overflow, and visible keyboard
-focus. The isolated frontend/backend issuer mismatch returned Dashboard 401,
-so populated authenticated data remains a separate acceptance item; the k6
-API run independently proved the Dashboard endpoint with the isolated issuer.
+focus. Candidate `1fb65c2e` fixed the root cause of the isolated 401: Compose
+passed canonical `VITE_KEYVERSE_*` build arguments while the frontend image
+consumed different names and silently compiled the default issuer. A fresh OIDC
+browser context then rendered the authenticated synthetic Dashboard at
+1440×1000 and 390×844 with 27 total posts, one classified Event/post, 24
+pending analyses, zero failures, and honest unavailable TEPP/fast-mlsirm
+producer contracts. Both viewports had one `main`, one navigation landmark,
+zero unnamed controls, visible first-tab focus, no document horizontal
+overflow, no console errors, and no HTTP 4xx/5xx. Screenshots remain local and
+uncommitted.
 
 ### Exact open-PR boundary
 
 At this snapshot there were 9 open PRs and 10 open issues. Exact observed heads
-were `#644 c1018a0a`, `#643 041ec13b`, `#640 90995cea` (observed parent),
-`#639 aee02dca`, `#636 f7b9a65f`, `#632 a946f879`, `#631 c0022c97`,
+were `#644 c1018a0a`, `#643 041ec13b`, `#640 1fb65c2e`,
+`#639 aee02dca`, `#636 f7b9a65f`, `#632 8b322992`, `#631 c0022c97`,
 `#629 4b4d6707`, and `#579 689a21b6`. All remain blocked on
 hosted gates and/or independent review. These
 observations are not merge readiness. Re-fetch exact heads,
@@ -117,10 +124,10 @@ context only.
 | ---: | --- | --- |
 | #644 | `c1018a0a` | splits conditional frontend surfaces and preserves keyed recovery; hosted gates and independent review remain required |
 | #643 | `041ec13b` | shares token-backed success/unavailable/retry status notices for the Calendar surface; hosted gates and independent review remain required |
-| #640 | `90995cea` (observed parent) | quantifies dashboard cases, persists explicit missing facts and observed lifecycle milestones, consumes producer-owned topic influence without local arithmetic, repairs runtime evidence-query joins/bind arity, restores mobile GNB reachability, and enforces coordinate/provenance/lifecycle contracts; this baseline refresh advances the head, so hosted gates and independent review must run again |
+| #640 | `1fb65c2e` | quantifies dashboard cases, persists explicit missing facts and observed lifecycle milestones, consumes producer-owned topic influence without local arithmetic, repairs runtime evidence-query joins/bind arity and canonical Keyverse image build arguments, restores mobile GNB reachability, and enforces coordinate/provenance/lifecycle contracts; authenticated synthetic desktop/mobile acceptance passed, while hosted gates and independent review remain required |
 | #639 | `aee02dca` | repairs Running-action, Compose, and TEPP configuration contracts; hosted gates and independent review remain required |
 | #636 | `f7b9a65f` | publishes the calibrated external-lineage contract without a redundant explicit-child filter and repairs test import hygiene; hosted gates and independent review remain required |
-| #632 | `a946f879` | preserves graph-fact source provenance and authorization with a static landing-query contract and shared RankWeave disable switch; hosted gates and independent review remain required |
+| #632 | `8b322992` | preserves graph-fact source provenance and authorization with a static landing-query contract and shared RankWeave disable switch; hosted gates and independent review remain required |
 | #631 | `c0022c97` | decomposes ADR gaps and queue baseline; hosted gates and independent review remain required |
 | #629 | `4b4d6707` | releases provider work from database leases and bounds landing reads; hosted gates and independent review remain required |
 | #579 | `689a21b6` | delegates leftover interaction-map arithmetic to fast-mlsirm and persists only the consumer projection; hosted gates and independent review remain required |
@@ -408,7 +415,7 @@ this file per §3.5 of the prior snapshot).
 | Shared frontend gate | The ADR 0109 login repair is on protected `main`; eight older branches carried the defect and received the same verified repair this loop (#521–#560) | Keep every future branch cut from post-repair bases; re-verify with frontend lint/test/build before push |
 | Identifying baseline regression | `main` gap file listed real post identifiers; separately, closed #506 and pre-existing public history contain a private runtime source-table identifier, while current `main` and #507 trees are clean | Land this non-identifying rewrite, then coordinate ADR 0001 history remediation with security/privacy owners; do not reproduce the value, force-push, or delete evidence ad hoc |
 | Authorized-corpus runtime | Repository tests use synthetic fixtures; private records remain outside git | Authenticated runtime validation returning only aggregate, non-identifying evidence |
-| Concurrent web responsiveness | ADR 0204 releases pooled transactions during provider work. Candidate `b045a6e5` completed a synthetic authenticated 4-VU/30-second k6 run with 4,962 requests and zero failures. After schema/lifecycle repairs, `7e63d8c2` replayed through migration 0216, passed the real-PostgreSQL Dashboard contract, and completed 1,382 requests with zero failures (HTTP p95 593.53 ms; reader p95 637.94 ms) while the host remained cold-start loaded. These are local correctness/concurrency observations, not a product guarantee | Repeat on the protected merge SHA and a representative deployment/corpus with declared CPU, memory, database pool, worker concurrency, and raw output; approve an SLO only from that capacity evidence |
+| Concurrent web responsiveness | ADR 0204 releases pooled transactions during provider work. Candidate `b045a6e5` completed a synthetic authenticated 4-VU/30-second k6 run with 4,962 requests and zero failures. After schema/lifecycle repairs, `7e63d8c2` replayed through migration 0216, passed the real-PostgreSQL Dashboard contract, and completed 1,382 requests with zero failures (HTTP p95 593.53 ms; reader p95 637.94 ms) while the host remained cold-start loaded. Candidate `1fb65c2e` additionally passed fresh authenticated desktop/mobile browser acceptance without HTTP or console failures. These are local correctness/concurrency observations, not a product guarantee | Repeat on the protected merge SHA and a representative deployment/corpus with declared CPU, memory, database pool, worker concurrency, and raw output; approve an SLO only from that capacity evidence |
 | Image understanding | Region, OCR, and description work exists across active heads (#405, #419), but current runtime acceptance has not yet proved table-image structure, complete region coverage, or summary/image readiness together | Orchestrator-backed rendered workflow, original/derived asset provenance, region-before-OCR processing, and honest unsupported states; reconcile ADR 0052's image-bearing summary readiness with ADR 0098 before changing sequencing |
 | Semantic source rendering | Paragraph, table, list, formula, and indentation work exists across stacks (#394, #427, #448–#450); #515 adds synthetic backend/frontend parity for deterministic rows/cells, footnote boundaries, and encoded scripts | Land the #427 → #515 stack, then gather authenticated browser evidence that list nesting, continuation alignment, and formula units render without authoring-layout artifacts |
 | Event and project semantics | Multi-project mentions, project-bound actions, 5W1H, requester/processor, and semantic relations exist in ADR 0036/0052/0100/0111/0129 and active stacks | Aggregate authenticated evidence must show distinct projects and events, explicit requester/processor and real R&R, normalized relative time, and product/entity relations without promoting attendance or co-occurrence |
