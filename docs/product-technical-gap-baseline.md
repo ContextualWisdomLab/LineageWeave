@@ -365,7 +365,7 @@ this file per §3.5 of the prior snapshot).
 | #280 | Full project-lifecycle history and handover intervals | Tracked with issue #284; no active delivery PR confirmed |
 | #284 | Authoritative lifecycle ingestion and idempotent reconciliation | No active delivery PR confirmed |
 | #338 | Evidence-bounded email/project lineage contract for Naruon consumption | #355 |
-| #611 | Decompose unshipped ADR 0133–0137 acceptance evidence from PR #490 | This stacked current-base audit; focused delivery PRs remain separate |
+| #611 | Decompose unshipped ADR 0133–0137 acceptance evidence from PR #490 | #671 audits the current base; focused delivery PRs remain separate |
 
 ### 4.1 ADR 0133–0137 current-main decomposition
 
