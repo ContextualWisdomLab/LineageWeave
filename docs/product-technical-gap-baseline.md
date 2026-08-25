@@ -42,7 +42,7 @@ context only.
 | #434 | `d7766b39` | current-main reconciliation pushed; checks restarted |
 | #394 | `1f1667f2` | blocked; required checks pending |
 | #387 | `2a6c520a` | changes requested; Strix failed |
-| #355 | `83145dd3` | current-main reconciliation pushed; auto-merge armed, exact-head checks and independent review pending |
+| #355 | `0a2a72c5` | deterministic empty-body failure repaired; auto-merge armed, exact-head checks and independent review pending |
 
 No row above is merge evidence. Immediately before any lifecycle action,
 re-fetch the head, unresolved threads, formal reviews, rulesets, and same-head
