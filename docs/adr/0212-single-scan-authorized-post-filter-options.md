@@ -1,4 +1,4 @@
-# ADR 0211: Single-scan authorized post-filter options
+# ADR 0212: Single-scan authorized post-filter options
 
 - Status: Accepted
 - Date: 2026-08-25
