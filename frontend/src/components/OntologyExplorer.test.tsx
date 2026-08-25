@@ -294,6 +294,35 @@ describe("OntologyExplorer", () => {
     expect(screen.getByRole("button", { name: `Select node: Post ${longLabel}` })).toBeInTheDocument();
   });
 
+  it("maps known ontology node types to token-backed visual classes", () => {
+    const payload = neighborhood();
+    const projectNode = {
+      ...payload.nodes[0],
+      node_id: "demo-project",
+      node_type_code: "node_project",
+      ontology_class_iri: "https://example.test/Project",
+      display_label: "Demo Project",
+      truth_status_code: "truth_proposed",
+      shape_code: "diamond",
+    };
+    render(
+      <OntologyExplorer
+        focusNodeType="node_post"
+        focusNodeId={POST_ID}
+        neighborhood={{ ...payload, nodes: [...payload.nodes, projectNode] }}
+      />,
+    );
+
+    expect(screen.getByRole("button", { name: "Select node: Post Demo public post" }))
+      .toHaveClass("ontology-node-post");
+    expect(screen.getByRole("button", { name: "Select node: Person Test Person" }))
+      .toHaveClass("ontology-node-person");
+    expect(screen.getByRole("button", { name: "Select node: Organization Demo Corp" }))
+      .toHaveClass("ontology-node-organization");
+    expect(screen.getByRole("button", { name: "Select node: Project Demo Project" }))
+      .toHaveClass("ontology-node-project");
+  });
+
   it("names empty, truncated, denied, and rejected next actions", () => {
     const { rerender } = render(
       <OntologyExplorer
