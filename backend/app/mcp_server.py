@@ -107,16 +107,17 @@ class McpRetryAfterHeaderApp:
                 return
             if response_start is not None:
                 retry_after = _quota_retry_after(message.get("body", b""))
-                headers = [
-                    (name, value)
-                    for name, value in response_start.get("headers", [])
-                    if name.lower() != b"retry-after"
-                ]
                 if retry_after is not None:
+                    headers = [
+                        (name, value)
+                        for name, value in response_start.get("headers", [])
+                        if name.lower() != b"retry-after"
+                    ]
                     headers.append(
                         (b"retry-after", str(retry_after).encode("ascii"))
                     )
-                await send({**response_start, "headers": headers})
+                    response_start = {**response_start, "headers": headers}
+                await send(response_start)
                 response_start = None
             await send(message)
 
