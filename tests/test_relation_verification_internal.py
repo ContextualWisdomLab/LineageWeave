@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import asyncio
 
+import pytest
+
 from backend.app.relation_verification_ingestion import (
     verify_post_relations,
     verify_post_relations_from_pool,
@@ -125,4 +127,51 @@ def test_pool_connection_is_released_during_external_verification() -> None:
     )
 
     assert verified[0].verification_status_code == STATUS_CORROBORATED
+    assert not pool.acquired
+
+
+def test_pool_verification_persists_completed_rows_before_provider_failure() -> None:
+    class MultiConnection(_Connection):
+        def __init__(self) -> None:
+            super().__init__(None)
+            self.persisted_names: list[str] = []
+
+        async def fetch(self, query: str, post_id: str):
+            assert "verification_status_code = 'verify_pending'" in query
+            return [
+                {
+                    "counterparty_entity_name": "Example Partner",
+                    "relationship_label": "Partner",
+                },
+                {
+                    "counterparty_entity_name": "Unavailable Partner",
+                    "relationship_label": "Partner",
+                },
+            ]
+
+        async def execute(self, query: str, *args: object):
+            assert "verification_evidence_post_id = $5" in query
+            self.persisted_names.append(str(args[1]))
+            return "UPDATE 1"
+
+    class FailingVerifier:
+        def verify(
+            self, organization_name: str, relationship_label: str
+        ) -> RelationVerificationResult:
+            assert relationship_label == "Partner"
+            if organization_name == "Unavailable Partner":
+                raise OSError("synthetic provider failure")
+            return RelationVerificationResult(
+                STATUS_CORROBORATED, "https://example.test/evidence"
+            )
+
+    conn = MultiConnection()
+    pool = _Pool(conn)
+
+    with pytest.raises(OSError, match="synthetic provider failure"):
+        asyncio.run(
+            verify_post_relations_from_pool(pool, FailingVerifier(), "origin-post")
+        )
+
+    assert conn.persisted_names == ["Example Partner"]
     assert not pool.acquired
