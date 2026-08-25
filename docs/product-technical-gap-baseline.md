@@ -1,6 +1,6 @@
 # Product & Technical Gap Baseline
 
-> Audit snapshot: 2026-08-25 17:00 KST (refreshed by the autonomous merge
+> Audit snapshot: 2026-08-25 17:18 KST (refreshed by the autonomous merge
 > loop). This repository records synthetic fixtures and aggregate,
 > non-identifying runtime evidence only. Open PRs and local checks are not
 > protected-default-branch release evidence. Identifying post identifiers,
@@ -17,11 +17,12 @@ context only.
 
 | PR | Exact observed head | Merge/check state at this snapshot |
 | ---: | --- | --- |
+| #606 | `f40ecef4` | retires the internally anchored channel-weight vector and activates only an exact persisted TEPP criterion-validity anchor; the consumer preserves fractional cutoff precision, rejects non-canonical UUID representations, and matches the TEPP-owned contract on upstream TEPP#237; 59 combined TEPP/ingestion/seed tests and the updated 26-test persistence slice pass; auto-merge awaits hosted gates and independent review |
 | #605 | `1098f6ba` | exact-main follow-up for post-navigation refocus, visibility-aware modal focus order including native disclosure summaries, readable evidence separators, and validated OIDC return context; 12 shared/component tests, focused app tests, lint/build/Storybook, and 1440×900 plus 390×844 screenshot audits passed; auto-merge awaits hosted gates and independent review |
 | #604 | `063d7257` | independently restores the protected-main OIDC return-context/build regression; auto-merge awaits hosted gates and independent review, and overlap with #605 must be composed without dropping either focus/evidence repair |
-| #600 | `f60cff01` | this baseline's pre-amendment head; the current refresh composes protected main and supersedes the queue snapshot, so exact-head checks and review restart |
+| #600 | `236569f9` | this baseline's pre-amendment head; the current refresh supersedes the queue snapshot, so exact-head checks and review restart |
 | #579 | `acd44dfe` | interaction-map coordinates now compose protected main, return no false axes or criteria-only map, preserve the validated OIDC return path, and retain successful backend/frontend/build plus desktop/mobile Storybook evidence; auto-merge awaits hosted gates and independent review |
-| #493 | `eb6c9793` | ADR 0143 empty-DAG reasons are composed with the batched Ask graph: hidden posts cannot bridge authorized components, multi-post Ask omits the single-post reason, conflict-marker regression coverage is present, and focused backend/frontend/build checks pass; auto-merge awaits hosted gates and independent review |
+| #493 | `cc3080c6` | ADR 0143 empty-DAG reasons are composed with the batched Ask graph: hidden posts cannot bridge authorized components, multi-post Ask omits the single-post reason, conflict-marker regression coverage is present, and focused backend/frontend/build checks pass; a concurrent exact-head update restarted hosted checks, and auto-merge awaits those gates plus independent review |
 | #490 | `73413d0b` | broad historical workspace branch is conflicting with failing checks; decompose/restack rather than replaying its 931-commit merge wholesale |
 | #468 | `0f15d1bd` | fast-mlsirm v0.8.0, exact Keyverse scope, orchestrator, and TEPP boundaries are composed with current main; TEPP contract/auth headers and telemetry-safe startup were retained, 74 focused integration tests plus 37 TEPP/start/config tests and the live authorization-scope contract passed, no review threads remain, and auto-merge is armed pending hosted exact-head gates and independent review |
 | #387 | `728125c1` | channel evidence plus Ask reconstruction-profile preservation is composed with current main and has no unresolved threads; only changes-requested decisions from obsolete heads remain, so auto-merge is armed pending current-head checks and independent re-review |
@@ -61,22 +62,31 @@ Three systemic gates currently dominate the queue:
 1. **Strix visibility lookup failure (org control plane).** PR #600 exact head
    `7580bdc9` failed before scanning because the required-workflow token could
    not resolve this public repository after six API retries. The root repair is
-   ContextualWisdomLab/.github#1320 at `5f00b765`: ordinary PR, push, and
+   ContextualWisdomLab/.github#1320 at `3b9b2380`: ordinary PR, push, and
    schedule runs use trusted event visibility; cross-repository dispatch keeps
    authoritative public/private/internal visibility; private and internal
    repositories remain on private-capable providers. The exact head also
    composes the executable fallback contract and classifies bounded NVIDIA
    `ServiceUnavailableError` overload evidence as retryable across configured
    distinct models without weakening exhaustion or vulnerability fail-close.
-   The full Strix quick-gate harness passed, and the composed head passed the
-   overload path plus 12 visibility-contract tests. It remains blocked on
+   A hosted fallback then completed with zero vulnerabilities but was rejected
+   because the generic warning gate treated Strix's fallback-model banner and
+   a Hugging Face unauthenticated-download notice as provider failures. The
+   current head removes only those two exact scanner notices before the
+   existing general warning and explicit 429/provider failure checks. The
+   current head also clears a foreign NVIDIA/OpenRouter endpoint before a
+   direct-OpenAI fallback while retaining an explicitly configured
+   direct-OpenAI primary endpoint. The prior full quick-gate harness, overload
+   path, 12 visibility-contract tests, and the focused cross-provider endpoint
+   contract passed; exact-head hosted revalidation remains pending. It is blocked on
    hosted exact-head gates and independent review, so no repaired
    protected-main Strix runtime evidence exists yet.
 2. **Strix provider unavailability (org control plane).** The central required
    Strix scan on .github#1320 failed when NVIDIA returned `Service temporarily
    overloaded`; the gate correctly failed closed but did not try its configured
    distinct fallbacks because the service-unavailable classifier excluded the
-   NVIDIA provider. Exact head `5f00b765` repairs that execution path and keeps
+   NVIDIA provider. Exact head `3b9b2380` composes that execution repair and the
+   two exact non-fatal scanner-notice exclusions while keeping
    incomplete exhaustion non-passing. This is still an unmerged control-plane
    proposal, not protected-main or downstream runtime evidence.
 3. **Current-head independent approval.** The org merge scheduler requires
@@ -291,7 +301,7 @@ this file per §3.5 of the prior snapshot).
 | Calendar / Naruon | #355 delivered the Naruon-owned projection contract and conformance fixture to protected `main`; live consumer acceptance is not yet evidenced | Verify Naruon consumption against the published schema and issues #336/#338 without invented events |
 | SKOS organization aliases | Catalog binding and chip caption live on #480 / #482 | One catalog row per corroborated org; companion caption is hint-only until bound |
 | Event Lineage evidence | Channel evidence and Allen relations live on #387 / #484 | Persist channel scores, explain them in the popup, never invent a fused score |
-| Scientific measurement | Durable accepted TEPP receipts and fail-closed production weighting are protected (`main`); #468 binds fast-mlsirm/Keyverse/orchestrator/TEPP integration tests and now fails closed on upstream probability-axis drift. #387 removes inferred/default persistence weights and converts its 3/4-channel evidence tests to fast-mlsirm estimates, but several older reconstruction tests still pass hand-authored numeric weight dictionaries; those constants are not estimator evidence | Continue replacing remaining reconstruction-test constants with provenance-bearing fast-mlsirm estimates over synthetic fixtures; tests unrelated to fusion must bypass weighting entirely, as #484 does. Land #387/#468/#417 through the standard gate and retain true-parameter RMSE recovery as the acceptance bar |
+| Scientific measurement | Durable accepted TEPP receipts are protected (`main`); #606 replaces the internally anchored channel-weight activation with the exact TEPP-owned criterion-validity contract from TEPP#237, while #468 binds fast-mlsirm/Keyverse/orchestrator/TEPP integration tests and fails closed on upstream probability-axis drift. Neither cross-repository PR is protected delivery yet. #387 removes inferred/default persistence weights, but several older reconstruction tests still pass hand-authored numeric weight dictionaries; those constants are not estimator evidence | Land TEPP#237 before or together with #606 through their protected gates, then continue replacing remaining reconstruction-test constants with provenance-bearing fast-mlsirm estimates over synthetic fixtures; tests unrelated to fusion must bypass weighting entirely, as #484 does. Retain true-parameter RMSE recovery as the acceptance bar |
 | Asynchronous authorization | Protected `main` rebuilds Global Ask worker scope after the bearer token leaves the request; #468 now persists exact Keyverse organization/process-unit scope in 3NF child tables and intersects it with current affiliations | Land #468 through the protected gate; prove a second affiliation and a revoked process unit cannot widen delayed-job evidence |
 | Planned-facility intent | Planned-facility relationship intent rides on open #490 (`d0cad030`), whose earlier stack-only merges were not protected delivery | Settle #490 exact-head checks plus independent approval, then land through protected `main` before a release claim |
 | Accessibility and responsive UX | #602 delivered base post-detail modal semantics; #605 adds selected-post refocus, collapsed/hidden/inert/CSS-invisible focus exclusion across both modal types, readable evidence separators, focused tests, and desktop/mobile Storybook screenshots | Land #605 through the protected gate, then complete screen-reader and authenticated Playwright acceptance on the exact release head |
