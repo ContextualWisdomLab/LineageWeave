@@ -3886,12 +3886,10 @@ function PostList({
   }
 
   function selectPost(postId: string, options?: SelectPostOptions) {
-    setSelectedPostId((currentPostId) => {
-      if (focusedGraphMustReset(currentPostId, postId)) {
-        setFocusedGraph(null);
-      }
-      return postId;
-    });
+    if (focusedGraphMustReset(selectedPostId, postId)) {
+      setFocusedGraph(null);
+    }
+    setSelectedPostId(postId);
     setOpenedAfterCutoff(Boolean(options?.liveAfterCutoff));
     setOpenedCutoffIso(options?.knowledgeCutoff ?? null);
     setOpenedFromReportMember(Boolean(options?.fromReportMember));
