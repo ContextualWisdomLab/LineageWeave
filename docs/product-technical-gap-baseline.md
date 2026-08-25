@@ -86,6 +86,7 @@ context only.
 | ---: | --- | --- |
 | #667 | `a9731d52` | baseline refresh branch exact head at this snapshot; BLOCKED with review required |
 | #668 | `f272f4b0` | evidence-bound project history projection with request guards and normalized keys; BLOCKED with review required |
+| #669 | `1b5bea33` | cancelled-analysis next-action guidance and responsive audit evidence; UNSTABLE with hosted checks pending |
 | #663 | `7ac1483e` | project ontology traversal, cutoff-snapshot project focus, bounded MCP admission, and migration-fixture/worker startup repair; BLOCKED with review required |
 | #658 | `f497a6e8` | evidence-honest Global Ask cutoff with robust revision timestamps; BLOCKED with review required |
 | #657 | `a59a2023` | TEPP lifecycle persistence; BLOCKED with review required |
