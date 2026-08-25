@@ -272,6 +272,10 @@ def test_calibrated_report_attaches_leftover_pairs() -> None:
         assert pair.leftover_map_rank >= 0
         if pair.leftover_map_unexplained is not None:
             assert np.isfinite(pair.leftover_map_unexplained)
+        if pair.leftover_map_cross_share is not None:
+            assert np.isfinite(pair.leftover_map_cross_share)
+        assert not hasattr(pair, "leftover_map_explained_share")
+        assert not hasattr(pair, "leftover_map_unexplained_share")
         assert not hasattr(pair, "leftover_map_reconstruction")
     assert [axis.axis_index for axis in report.leftover_map_axes] == [1, 2]
     for axis in report.leftover_map_axes:

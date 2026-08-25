@@ -1,6 +1,10 @@
 import type { LeftoverPair } from "../api";
 import { t, tf } from "../i18n";
 import {
+  formatLeftoverMapCrossShare,
+  LEFTOVER_MAP_CROSS_SHARE_ACTION,
+} from "../leftoverMapCrossShare";
+import {
   formatLeftoverMapRank,
   LEFTOVER_RANK_STRUCTURE_ACTION,
   LEFTOVER_RANK_ZERO_ACTION,
@@ -26,8 +30,12 @@ export type LeftoverPairListProps = {
  * ``R = Y − E[Y|θ, item]`` (Jeon et al., 2021, eq. 3 input). Unexplained
  * leftover ``U = R − R̂`` after two-axis Gabriel reconstruction (ADR 0182)
  * takes priority over the residual/observed-expected/rank next action
- * when finite; every badge still renders together before opening the
- * named post.
+ * when finite. When leftover-map cross share ``x = 2 R̂ U / R²`` of
+ * raw residual is also present (ADR 0185), it names the next action
+ * instead of unexplained leftover; a missing or non-finite value falls
+ * back in order — cross share, then unexplained leftover, then the
+ * existing residual/rank/observed-expected next action. Every badge
+ * still renders together before opening the named post.
  */
 export function LeftoverPairList({
   pairs,
@@ -50,8 +58,18 @@ export function LeftoverPairList({
         );
         const rankBadge = formatLeftoverMapRank(pair.leftover_map_rank);
         const unexplained = formatLeftoverMapUnexplained(pair.leftover_map_unexplained);
+        const crossShareBadge = formatLeftoverMapCrossShare(pair.leftover_map_cross_share);
+        const crossShareValue =
+          pair.leftover_map_cross_share != null && Number.isFinite(pair.leftover_map_cross_share)
+            ? pair.leftover_map_cross_share.toFixed(2)
+            : "—";
         let nextAction: string;
-        if (unexplained !== null) {
+        if (crossShareBadge !== null) {
+          nextAction = tf(LEFTOVER_MAP_CROSS_SHARE_ACTION, {
+            value: crossShareValue,
+            criterion,
+          });
+        } else if (unexplained !== null) {
           const signedUnexplained =
             formatSignedLeftoverValue(pair.leftover_map_unexplained ?? Number.NaN) ?? "—";
           nextAction = tf(LEFTOVER_MAP_UNEXPLAINED_ACTION, {
@@ -121,6 +139,7 @@ export function LeftoverPairList({
               {observedExpected ? <span className="post-badge">{observedExpected}</span> : null}
               {rankBadge ? <span className="post-badge">{rankBadge}</span> : null}
               {unexplained ? <span className="post-badge">{unexplained}</span> : null}
+              {crossShareBadge ? <span className="post-badge">{crossShareBadge}</span> : null}
               <span className="post-badge">d {pair.leftover_distance.toFixed(2)}</span>
             </button>
           </li>

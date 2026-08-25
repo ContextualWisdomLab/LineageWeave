@@ -878,6 +878,7 @@ export interface LeftoverPair {
   expected_response?: number | null;
   leftover_map_rank?: number | null;
   leftover_map_unexplained?: number | null;
+  leftover_map_cross_share?: number | null;
 }
 
 export interface LeftoverMapAxis {
