@@ -109,6 +109,32 @@ provenance.
    authorized, and that rank is never a psychometric measure or substitute for
    TEPP. Missing estimates remain unavailable; no hand-picked weight is
    introduced.
+15. Claim investigation and rebid/handover use an observed event-log contract
+   aligned with IEEE 1849-2023 (XES). A classification is the local analysis
+   case identifier; a milestone has a closed activity code, an exact cited
+   evidence span, its evidence post, source digest, observed instant, and named
+   clock. Cross-post business-case identity is not inferred from project,
+   similarity, proximity, or text.
+16. Claim investigation pairs `claim_received` with `cause_confirmed`.
+   Rebid/handover independently pairs `rebid_response_requested` with
+   `rebid_decision_recorded`, and `handover_started` with
+   `handover_accepted`. Contextual-orchestrator identifies the supported
+   milestone semantics; LineageWeave assigns the instant only from that cited
+   `source_post`: `event_occurred_at` when present, otherwise the explicitly
+   labeled `created_at` fallback from ADR 0202. The model never emits a date.
+17. Each required endpoint is exactly one cited milestone or one normalized
+   missing-milestone row. Both observed endpoints produce the exact duration
+   `end − start`; start plus an explicitly missing end is `open`; a missing
+   start is `evidence_missing`. An open case has no elapsed duration because
+   no end instant was observed. Reversed observed endpoints reject the entire
+   provider result. No delay threshold, severity band, current-time endpoint,
+   imputed date, average, score, or arbitrary weight is introduced.
+18. The API rechecks the reader's current ABAC and source eligibility for each
+   classification, fact, and milestone evidence post before returning its
+   span. The UI reports open, resolved, and evidence-missing counts separately,
+   shows exact elapsed seconds in a lossless human-readable form, names each
+   milestone's clock, and links the reader to both endpoint sources. State and
+   next action are conveyed in text rather than color alone.
 
 ## Consequences
 
@@ -124,8 +150,28 @@ treated as a negative case.
   responses, source-digest invalidation, and unavailable orchestrator states.
 - Backend integration tests cover ABAC filtering, event-time fallback, event
   versus post counts, external-information percentage, multi-project
-  membership, and explicit missing facts.
+  membership, explicit missing facts, observed lifecycle endpoints, exact
+  elapsed duration, open cases with nullable elapsed time, reversed endpoint
+  rejection, and evidence-post authorization.
 - Frontend tests cover period submission, navigation, empty/error states,
   evidence links, keyboard semantics, and non-color status copy.
 - Storybook interaction tests and authenticated browser screenshots audit the
   rendered desktop and narrow layouts.
+
+## References
+
+Institute of Electrical and Electronics Engineers. (2023). *IEEE standard for
+eXtensible Event Stream (XES) for achieving interoperability in event logs and
+event streams* (IEEE Std 1849-2023). IEEE Standards Association.
+https://standards.ieee.org/ieee/1849/10907/
+
+van der Aalst, W. M. P., Adriansyah, A., de Medeiros, A. K. A., Arcieri, F.,
+Baier, T., Blickle, T., Bose, J. C., van den Brand, P., Brandtjen, R., Buijs,
+J., Burattin, A., Carmona, J., Castellanos, M., Claes, J., Cook, J., Costantini,
+N., Curbera, F., Damiani, E., de Leoni, M., ... Wynn, M. (2012). Process mining
+manifesto. In F. Daniel, K. Barkaoui, & S. Dustdar (Eds.), *Business process
+management workshops* (pp. 169–194). Springer.
+https://doi.org/10.1007/978-3-642-28108-2_19
+
+World Wide Web Consortium. (2022). *Time ontology in OWL*.
+https://www.w3.org/TR/owl-time/

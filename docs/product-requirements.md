@@ -83,12 +83,18 @@ content never becomes an external query or citation.
 
 - Show persisted operational cases, actions, commitments, delivery status,
   and similar-VOC evidence with extractive citations.
+- For claim investigation, rebid response, and handover, persist closed-vocabulary
+  milestones only when an authorized source span supports them. Report
+  open/resolved/evidence-missing counts and exact elapsed time only between two
+  observed endpoints; never invent an endpoint or delay threshold.
 - Preserve controls during loading and retry; discard responses from an
   earlier navigation scope.
 - Distinguish pending, unavailable, failed, incomplete, and succeeded states.
 
 Acceptance: each state tells the user the next valid action and never displays
-stale evidence from a previously opened post.
+stale evidence from a previously opened post. An open lifecycle has a cited
+start, a missing end, and nullable elapsed time; a resolved lifecycle links both
+endpoint sources and names the source clock used for each instant.
 
 ### PRD-FR-6 — Measurement boundary
 

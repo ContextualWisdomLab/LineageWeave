@@ -1,25 +1,75 @@
 """Operational case semantic-response contract tests."""
 
 import json
+from datetime import UTC, datetime
 
-from lineageweave.operations_case_analysis import OperationsEvidenceSource, parse_operations_case_response
+from lineageweave.operations_case_analysis import (
+    OperationsEvidenceSource,
+    parse_operations_case_response,
+)
 
 
 def test_parses_multiple_cases_and_grounded_facts() -> None:
     """One record may support multiple case kinds without losing evidence."""
     body = "The revised specification caused the claim. Mina agreed with Alex to rebid."
     payload = [
-        {"case_kind_code": "claim_investigation", "summary_text": "Specification-linked claim", "evidence_text": "The revised specification caused the claim.", "facts": [{"fact_type_code": "specification_change", "value_text": "revised specification", "evidence_text": "The revised specification caused the claim."}], "missing_fact_type_codes": ["order", "originating_order", "sales_pool"]},
-        {"case_kind_code": "rebid_handover", "summary_text": "Rebid agreement", "evidence_text": "Mina agreed with Alex to rebid.", "facts": [{"fact_type_code": "counterparty", "value_text": "Mina and Alex", "evidence_text": "Mina agreed with Alex to rebid."}], "missing_fact_type_codes": ["discussion", "our_owner", "decision"]},
+        {
+            "case_kind_code": "claim_investigation",
+            "summary_text": "Specification-linked claim",
+            "evidence_text": "The revised specification caused the claim.",
+            "facts": [
+                {
+                    "fact_type_code": "specification_change",
+                    "value_text": "revised specification",
+                    "evidence_text": "The revised specification caused the claim.",
+                }
+            ],
+            "missing_fact_type_codes": ["order", "originating_order", "sales_pool"],
+            "milestones": [],
+            "missing_milestone_type_codes": ["claim_received", "cause_confirmed"],
+        },
+        {
+            "case_kind_code": "rebid_handover",
+            "summary_text": "Rebid agreement",
+            "evidence_text": "Mina agreed with Alex to rebid.",
+            "facts": [
+                {
+                    "fact_type_code": "counterparty",
+                    "value_text": "Mina and Alex",
+                    "evidence_text": "Mina agreed with Alex to rebid.",
+                }
+            ],
+            "missing_fact_type_codes": ["discussion", "our_owner", "decision"],
+            "milestones": [],
+            "missing_milestone_type_codes": [
+                "rebid_response_requested",
+                "rebid_decision_recorded",
+                "handover_started",
+                "handover_accepted",
+            ],
+        },
     ]
     result = parse_operations_case_response(json.dumps(payload), body)
     assert result is not None
-    assert [case.case_kind_code for case in result] == ["claim_investigation", "rebid_handover"]
+    assert [case.case_kind_code for case in result] == [
+        "claim_investigation",
+        "rebid_handover",
+    ]
 
 
 def test_rejects_uncited_model_claim() -> None:
     """A plausible answer absent from the source is not persisted."""
-    payload = [{"case_kind_code": "external_information", "summary_text": "Market note", "evidence_text": "invented", "facts": [], "missing_fact_type_codes": ["external_relation"]}]
+    payload = [
+        {
+            "case_kind_code": "external_information",
+            "summary_text": "Market note",
+            "evidence_text": "invented",
+            "facts": [],
+            "missing_fact_type_codes": ["external_relation"],
+            "milestones": [],
+            "missing_milestone_type_codes": [],
+        }
+    ]
     assert parse_operations_case_response(json.dumps(payload), "source body") is None
 
 
@@ -31,17 +81,43 @@ def test_accepts_supported_no_case_result() -> None:
 def test_rejects_unknown_codes_and_malformed_json() -> None:
     """Closed vocabularies prevent provider prose from entering persistence."""
     assert parse_operations_case_response("not json", "body") is None
-    assert parse_operations_case_response('[{"case_kind_code":"other"}]', "body") is None
+    assert (
+        parse_operations_case_response('[{"case_kind_code":"other"}]', "body") is None
+    )
 
 
 def test_rejects_duplicate_case_kinds_and_blank_evidence() -> None:
     """One normalized key has one grounded classification, never an empty span."""
     duplicate = [
-        {"case_kind_code": "repeat_issue", "summary_text": "First", "evidence_text": "body", "facts": [], "missing_fact_type_codes": ["issue_pattern", "improvement_action"]},
-        {"case_kind_code": "repeat_issue", "summary_text": "Second", "evidence_text": "body", "facts": [], "missing_fact_type_codes": ["issue_pattern", "improvement_action"]},
+        {
+            "case_kind_code": "repeat_issue",
+            "summary_text": "First",
+            "evidence_text": "body",
+            "facts": [],
+            "missing_fact_type_codes": ["issue_pattern", "improvement_action"],
+            "milestones": [],
+            "missing_milestone_type_codes": [],
+        },
+        {
+            "case_kind_code": "repeat_issue",
+            "summary_text": "Second",
+            "evidence_text": "body",
+            "facts": [],
+            "missing_fact_type_codes": ["issue_pattern", "improvement_action"],
+            "milestones": [],
+            "missing_milestone_type_codes": [],
+        },
     ]
     blank = [
-        {"case_kind_code": "repeat_issue", "summary_text": "Blank", "evidence_text": "", "facts": [], "missing_fact_type_codes": ["issue_pattern", "improvement_action"]}
+        {
+            "case_kind_code": "repeat_issue",
+            "summary_text": "Blank",
+            "evidence_text": "",
+            "facts": [],
+            "missing_fact_type_codes": ["issue_pattern", "improvement_action"],
+            "milestones": [],
+            "missing_milestone_type_codes": [],
+        }
     ]
     assert parse_operations_case_response(json.dumps(duplicate), "body") is None
     assert parse_operations_case_response(json.dumps(blank), "body") is None
@@ -51,21 +127,29 @@ def test_linked_fact_retains_its_authorized_source_post_and_input_digest() -> No
     """A linked specification fact is never attributed to the focal record."""
     sources = (
         OperationsEvidenceSource("focal", "Claim", "A claim was received."),
-        OperationsEvidenceSource("linked", "Specification", "Specification S2 replaced S1."),
+        OperationsEvidenceSource(
+            "linked", "Specification", "Specification S2 replaced S1."
+        ),
     )
-    payload = [{
-        "case_kind_code": "claim_investigation",
-        "summary_text": "Specification changed before the claim",
-        "evidence_post_id": "focal",
-        "evidence_text": "A claim was received.",
-        "facts": [{
-            "fact_type_code": "specification_change",
-            "value_text": "S2 replaced S1",
-            "evidence_post_id": "linked",
-            "evidence_text": "Specification S2 replaced S1.",
-        }],
-        "missing_fact_type_codes": ["order", "originating_order", "sales_pool"],
-    }]
+    payload = [
+        {
+            "case_kind_code": "claim_investigation",
+            "summary_text": "Specification changed before the claim",
+            "evidence_post_id": "focal",
+            "evidence_text": "A claim was received.",
+            "facts": [
+                {
+                    "fact_type_code": "specification_change",
+                    "value_text": "S2 replaced S1",
+                    "evidence_post_id": "linked",
+                    "evidence_text": "Specification S2 replaced S1.",
+                }
+            ],
+            "missing_fact_type_codes": ["order", "originating_order", "sales_pool"],
+            "milestones": [],
+            "missing_milestone_type_codes": ["claim_received", "cause_confirmed"],
+        }
+    ]
 
     result = parse_operations_case_response(json.dumps(payload), sources)
 
@@ -78,20 +162,89 @@ def test_linked_fact_retains_its_authorized_source_post_and_input_digest() -> No
 
 def test_requires_each_case_question_to_be_supported_or_explicitly_missing() -> None:
     """The provider cannot silently omit or both support and miss a required answer."""
-    payload = [{
-        "case_kind_code": "external_information",
-        "summary_text": "External notice",
-        "evidence_text": "A public notice was published.",
-        "facts": [],
-        "missing_fact_type_codes": [],
-    }]
+    payload = [
+        {
+            "case_kind_code": "external_information",
+            "summary_text": "External notice",
+            "evidence_text": "A public notice was published.",
+            "facts": [],
+            "missing_fact_type_codes": [],
+            "milestones": [],
+            "missing_milestone_type_codes": [],
+        }
+    ]
     body = "A public notice was published."
     assert parse_operations_case_response(json.dumps(payload), body) is None
 
-    payload[0]["facts"] = [{
-        "fact_type_code": "external_relation",
-        "value_text": "Sales opportunity",
-        "evidence_text": body,
-    }]
+    payload[0]["facts"] = [
+        {
+            "fact_type_code": "external_relation",
+            "value_text": "Sales opportunity",
+            "evidence_text": body,
+        }
+    ]
     payload[0]["missing_fact_type_codes"] = ["external_relation"]
     assert parse_operations_case_response(json.dumps(payload), body) is None
+
+
+def test_milestones_use_source_instants_and_reject_reversed_observations() -> None:
+    """The model cites milestone semantics; source records own their instants."""
+    received_at = datetime(2026, 8, 1, 9, tzinfo=UTC)
+    confirmed_at = datetime(2026, 8, 3, 12, 30, tzinfo=UTC)
+    sources = (
+        OperationsEvidenceSource(
+            "received",
+            "Claim",
+            "The claim was received.",
+            received_at,
+            "event_occurred_at",
+        ),
+        OperationsEvidenceSource(
+            "confirmed", "Cause", "The cause was confirmed.", confirmed_at, "created_at"
+        ),
+    )
+    payload = [
+        {
+            "case_kind_code": "claim_investigation",
+            "summary_text": "Observed claim cycle",
+            "evidence_post_id": "received",
+            "evidence_text": "The claim was received.",
+            "facts": [],
+            "missing_fact_type_codes": [
+                "order",
+                "specification_change",
+                "originating_order",
+                "sales_pool",
+            ],
+            "milestones": [
+                {
+                    "milestone_type_code": "claim_received",
+                    "evidence_post_id": "received",
+                    "evidence_text": "The claim was received.",
+                },
+                {
+                    "milestone_type_code": "cause_confirmed",
+                    "evidence_post_id": "confirmed",
+                    "evidence_text": "The cause was confirmed.",
+                },
+            ],
+            "missing_milestone_type_codes": [],
+        }
+    ]
+
+    parsed = parse_operations_case_response(json.dumps(payload), sources)
+
+    assert parsed is not None
+    assert parsed[0].milestones[0].observed_at == received_at
+    assert parsed[0].milestones[1].time_axis_code == "created_at"
+    reversed_sources = (
+        sources[0],
+        OperationsEvidenceSource(
+            "confirmed",
+            "Cause",
+            "The cause was confirmed.",
+            datetime(2026, 7, 31, tzinfo=UTC),
+            "created_at",
+        ),
+    )
+    assert parse_operations_case_response(json.dumps(payload), reversed_sources) is None

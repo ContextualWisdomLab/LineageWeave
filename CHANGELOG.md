@@ -8,6 +8,11 @@ All notable changes to this project are documented here. Format follows
 
 ### Added
 
+- The operations Dashboard now reports observed claim-investigation,
+  rebid-response, and handover lifecycles as open, resolved, or evidence
+  missing. Resolved rows show exact elapsed time between cited source
+  milestones; open rows keep elapsed time unavailable instead of inventing an
+  endpoint or delay threshold (ADR 0206).
 - Event Lineage now persists each reconstructed connection's independent
   channel scores, the normalized weights actually used, and their
   contributions. The Event Lineage DAG discloses those exact values as inferred

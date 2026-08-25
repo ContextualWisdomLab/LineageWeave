@@ -751,6 +751,18 @@ HTML-wrapped, base64-image-embedded version of the existing
 people through the live `/extract-keymen` endpoint
 (`test_extract_keymen_normalizes_html_and_embedded_image_content`).
 
+## Evidence-operations lifecycle projection
+
+ADR 0206's Dashboard persists a semantic classification separately from its
+facts and observed milestones. `operations_case_milestone` binds a closed XES-
+style activity code to an exact evidence span, evidence-post digest, observed
+instant, and named source clock; `operations_case_missing_milestone` records an
+unsupported required endpoint without fabricating one. The Dashboard pairs
+only the three declared start/end definitions for claim investigation, rebid
+response, and handover. Both endpoints yield `end - start`; a cited start plus
+a missing end is open with nullable elapsed time. API projection rechecks
+current ABAC for focal and evidence posts before returning either span.
+
 ## Phase 6d: external search verification for Ontology relation inferences
 
 The brief requires an external web/internal search agent to check the
