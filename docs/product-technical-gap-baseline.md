@@ -60,9 +60,9 @@ only aggregate, non-identifying evidence to this repository.
 
 ### Exact open-PR boundary
 
-At this snapshot there were 3 open PRs and 10 open issues. Exact observed heads
-were `#631 ffc1f5a9` (this branch's observed parent), `#629 fee4d76a`, and
-`#579 f079ff1c`. PR #579 is open; its ADR 0211 reservation is why protected
+At this snapshot there were 4 open PRs and 10 open issues. Exact observed heads
+were `#632 476d761d`, `#631 7a641cb1` (this branch's observed parent),
+`#629 49675283`, and `#579 762ad6de`. PR #579 is open; its ADR 0211 reservation is why protected
 main's filter-option decision is ADR 0212. PRs #627 and #628 reached protected
 `main`; #629 remains an open asynchronous-pool follow-up and is not release
 evidence. The open heads remain blocked on hosted gates and/or independent
@@ -71,7 +71,7 @@ observations are not merge readiness. Re-fetch exact heads,
 unresolved threads, checks, approvals, rulesets, and merge SHA before any
 lifecycle claim.
 
-> Audit snapshot: 2026-08-25 21:57 KST (refreshed by the autonomous merge
+> Audit snapshot: 2026-08-25 22:17 KST (refreshed by the autonomous merge
 > loop). This repository records synthetic fixtures and aggregate,
 > non-identifying runtime evidence only. Open PRs and local checks are not
 > protected-default-branch release evidence. Identifying post identifiers,
@@ -81,16 +81,17 @@ lifecycle claim.
 ## 1. Exact-head and governance evidence
 
 The protected default branch was `04e6b610655d0db91d5f7ba9486bdda1440e0b19`
-when this baseline was refreshed. The live queue contained 3 open PRs and 10
+when this baseline was refreshed. The live queue contained 4 open PRs and 10
 open issues. The exact-head inventory below supersedes older per-PR snapshots
 elsewhere in this document; those older rows remain useful historical delivery
 context only.
 
 | PR | Exact observed head | Merge/check state at this snapshot |
 | ---: | --- | --- |
-| #631 | `ffc1f5a9` (observed parent) | decomposes closed PR #490 without replaying it; this row advances when the snapshot correction is committed, and hosted gates plus independent review remain required |
-| #629 | `fee4d76a` | releases the Global Ask pool before embedding-provider work; hosted gates and independent review remain required |
-| #579 | `f079ff1c` | persists leftover interaction-map coordinates through the fast-mlsirm owner contract and owns ADR 0211; hosted gates and independent review remain required |
+| #632 | `476d761d` | preserves the source-post provenance of ontology-annotated prompt facts; hosted gates and independent review remain required |
+| #631 | `7a641cb1` (observed parent) | decomposes closed PR #490 without replaying it; this row advances when the snapshot correction is committed, and hosted gates plus independent review remain required |
+| #629 | `49675283` | releases the Global Ask pool before embedding-provider work and records repaired replay/load evidence; hosted gates and independent review remain required |
+| #579 | `762ad6de` | persists leftover interaction-map coordinates through the fast-mlsirm owner contract and owns ADR 0211; hosted gates and independent review remain required |
 
 No row above is merge evidence. Immediately before any lifecycle action,
 re-fetch the head, unresolved threads, formal reviews, rulesets, and same-head
@@ -358,7 +359,7 @@ this file per §3.5 of the prior snapshot).
 
 | Gap | Current evidence | Acceptance requirement |
 | --- | --- | --- |
-| Protected release | 3 open PRs at snapshot: #631 is this current-main decomposition, #629 is the asynchronous pool follow-up, and reopened #579 consumes the fast-mlsirm interaction-map contract; all retain hosted and independent-review gates | Terminal exact-head checks, no unresolved threads, independent exact-head approvals, protected squash-merge SHA |
+| Protected release | 4 open PRs at snapshot: #632 preserves graph-fact provenance, #631 is this current-main decomposition, #629 is the asynchronous pool follow-up, and reopened #579 consumes the fast-mlsirm interaction-map contract; all retain hosted and independent-review gates | Terminal exact-head checks, no unresolved threads, independent exact-head approvals, protected squash-merge SHA |
 | Evidence-grounded operations workspace | Protected-main #614 delivers governed semantic Ask, live Similar VOC, disjoint pending/failed analysis metrics, full Storybook state inventory, and current desktop/mobile screenshot evidence. Authorized-corpus backfill acceptance remains unavailable | Perform authenticated authorized-corpus acceptance with aggregate evidence and retain fail-closed no-match behavior |
 | Shared frontend gate | The ADR 0109 login repair is on protected `main`; eight older branches carried the defect and received the same verified repair this loop (#521–#560) | Keep every future branch cut from post-repair bases; re-verify with frontend lint/test/build before push |
 | Identifying baseline regression | `main` gap file listed real post identifiers; separately, closed #506 and pre-existing public history contain a private runtime source-table identifier, while current `main` and #507 trees are clean | Land this non-identifying rewrite, then coordinate ADR 0001 history remediation with security/privacy owners; do not reproduce the value, force-push, or delete evidence ad hoc |
