@@ -173,7 +173,9 @@ async def visible_post_ids_for_focus(
         admitted = {str(row["post_id"]) for row in rows}
         return [post_id for post_id in candidate_post_ids if post_id in admitted]
     if focus_node_type_code == NODE_PROJECT:
-        rows = await conn.fetch(
+        # Safe SQL: eligibility is an immutable schema fragment and the alias is
+        # fixed here; all request-derived values remain asyncpg parameters.
+        rows = await conn.fetch(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
             f"""
             select post.post_id, post.visibility_code, post.corporate_entity_id,
                    post.process_unit_id
