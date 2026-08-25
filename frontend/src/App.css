@@ -1062,7 +1062,9 @@
 
 .ontology-node text {
   fill: var(--color-text-heading);
-  stroke: none;
+  stroke: var(--color-background);
+  stroke-width: 4px;
+  paint-order: stroke;
   font-size: 0.8rem;
 }
 
