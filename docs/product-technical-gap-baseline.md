@@ -67,7 +67,7 @@ are not merge readiness. Re-fetch exact heads,
 unresolved threads, checks, approvals, rulesets, and merge SHA before any
 lifecycle claim.
 
-> Audit snapshot: 2026-08-26 06:20 KST (refreshed by the autonomous merge
+> Audit snapshot: 2026-08-26 08:42 KST (refreshed by the autonomous merge
 > loop). This repository records synthetic fixtures and aggregate,
 > non-identifying runtime evidence only. Open PRs and local checks are not
 > protected-default-branch release evidence. Identifying post identifiers,
@@ -76,26 +76,27 @@ lifecycle claim.
 
 ## 1. Exact-head and governance evidence
 
-The protected default branch was `04e6b610655d0db91d5f7ba9486bdda1440e0b19`
-when this baseline was refreshed. The live queue contained 11 open PRs and 10
+The protected default branch was `494b54e2245040bcf02b45376f221c37cd437e76`
+when this baseline was refreshed. The live queue contained 13 open PRs and 10
 open issues. The exact-head inventory below supersedes older per-PR snapshots
 elsewhere in this document; those older rows remain useful historical delivery
 context only.
 
 | PR | Exact observed head | Merge/check state at this snapshot |
 | ---: | --- | --- |
-| #663 | `ab330a0f` | project ontology traversal plus cutoff/snapshot-frozen project focus and labels; exact-head checks/review required |
-| #660 | `24fda085` | backend runtime repair plus semantic-unit stack; exact-head checks/review required |
-| #659 | `0739b9d7` | ontology node readability and tokenized UI fills; branch is DIRTY against current main and requires conflict repair |
-| #658 | `fe830b0a` | evidence-honest Global Ask cutoff with revision-interval live-after semantics; exact-head checks/review required |
-| #657 | `64f48679` | Dashboard case-metric contract work; exact-head checks/review required |
-| #644 | `d9ff9980` | native-surface code splitting with modal-focus regression coverage; exact-head checks/review required |
-| #643 | `0a1f8ec1` | accessible status-notice surfaces; exact-head checks/review required |
-| #640 | `2d50fa01` | operations-dashboard contract alignment; exact-head checks/review required |
-| #639 | `aee02dca` | exact-head checks/review required |
-| #632 | `a4059113` | active semantic provenance repair head; exact-head checks/review required |
-| #631 | `1d9ac825` | documentation decomposition; branch is DIRTY against current main and requires conflict repair |
-| #629 | `4b4d6707` | exact-head checks/review required |
+| #672 | `5387acb4` | indexed persisted semantic/KG candidate nomination (ADR 0225); exact-head checks/review required |
+| #668 | `f272f4b0` | evidence-bound project history in post detail; exact-head checks/review required |
+| #667 | `6d680a17` | current baseline refresh plus stacked cancelled-run guidance; exact-head checks/review required |
+| #663 | `7ac1483e` | project ontology traversal plus cutoff/snapshot-frozen project focus and labels; exact-head checks/review required |
+| #658 | `f497a6e8` | evidence-honest Global Ask cutoff with revision-interval live-after semantics; exact-head checks/review required |
+| #657 | `a59a2023` | TEPP asynchronous lifecycle evidence; exact-head checks/review required |
+| #644 | `ed8d97f3` | native-surface code splitting with modal-focus regression coverage; exact-head checks/review required |
+| #643 | `3453ab08` | accessible token-backed status notices; exact-head checks/review required |
+| #640 | `fa604e79` | operations-dashboard contract alignment; exact-head checks/review required |
+| #639 | `8da485d3` | Running action and Compose contracts; exact-head checks/review required |
+| #632 | `cad4debf` | active semantic provenance repair head; exact-head checks/review required |
+| #631 | `e6b4f0c4` | documentation decomposition; exact-head checks/review required |
+| #629 | `48496ff6` | web provider release and bounded landing reads; exact-head checks/review required |
 
 No row above is merge evidence. Immediately before any lifecycle action,
 re-fetch the head, unresolved threads, formal reviews, rulesets, and same-head
