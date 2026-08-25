@@ -1978,10 +1978,12 @@ function PostDetailPopup({
     fetchPostVocEvidence(accessToken, postId).then(setVocEvidence).catch(() => setVocEvidence(null));
     fetchSimilarVoc(accessToken, postId)
       .then((result) => {
+        if (disposed) return;
         setSimilarVoc(result.items);
         setSimilarVocNextOffset(result.next_offset);
       })
       .catch(() => {
+        if (disposed) return;
         setSimilarVoc([]);
         setSimilarVocError("유사 VOC 판정을 사용할 수 없습니다. 잠시 후 다시 확인하세요.");
       });

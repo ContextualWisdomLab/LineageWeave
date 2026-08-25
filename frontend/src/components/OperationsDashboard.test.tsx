@@ -1,7 +1,13 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
-import { OperationsDashboardView } from "./OperationsDashboard";
+import { fetchOperationsDashboard } from "../api";
+import { OperationsDashboard, OperationsDashboardView } from "./OperationsDashboard";
+
+vi.mock("../api", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("../api")>()),
+  fetchOperationsDashboard: vi.fn(),
+}));
 
 const data = {
   period_label: "2026-08-01–2026-08-25 · Event time",
@@ -30,5 +36,17 @@ describe("OperationsDashboardView", () => {
   it("shows an actionable empty external-information state", () => {
     render(<OperationsDashboardView data={data} externalOnly onOpenPost={() => undefined} />);
     expect(screen.getByRole("status")).toHaveTextContent("분석 대기 건부터 처리하세요");
+  });
+
+  it("keeps period controls mounted while a changed period loads", async () => {
+    vi.mocked(fetchOperationsDashboard)
+      .mockResolvedValueOnce(data)
+      .mockImplementationOnce(() => new Promise(() => undefined));
+    render(<OperationsDashboard accessToken="synthetic-token" onOpenPost={() => undefined} />);
+    await screen.findByText("5건 · 25.0%");
+    await userEvent.type(screen.getByLabelText("시작일"), "2026-08-01");
+    await userEvent.click(screen.getByRole("button", { name: "기간 적용" }));
+    expect(screen.getByLabelText("시작일")).toHaveValue("2026-08-01");
+    expect(screen.getByRole("status")).toHaveTextContent("불러오는 중");
   });
 });

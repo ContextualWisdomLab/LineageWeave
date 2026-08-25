@@ -14,6 +14,7 @@ export function OperationsDashboard({ accessToken, externalOnly = false, onOpenP
   const [periodStart, setPeriodStart] = useState("");
   const [periodEnd, setPeriodEnd] = useState("");
   const [submittedPeriod, setSubmittedPeriod] = useState<[string, string]>(["", ""]);
+  const [retryCount, setRetryCount] = useState(0);
 
   useEffect(() => {
     let active = true;
@@ -23,10 +24,8 @@ export function OperationsDashboard({ accessToken, externalOnly = false, onOpenP
       .then((value) => active && setData(value))
       .catch(() => active && setError(true));
     return () => { active = false; };
-  }, [accessToken, submittedPeriod]);
+  }, [accessToken, submittedPeriod, retryCount]);
 
-  if (error) return <section className="operations-dashboard" aria-labelledby="dashboard-heading"><h2 id="dashboard-heading">운영 근거 Dashboard</h2><p role="alert">Dashboard 근거를 불러오지 못했습니다.</p><button type="button" className="btn-secondary" onClick={() => setSubmittedPeriod([periodStart, periodEnd])}>다시 시도</button></section>;
-  if (!data) return <p role="status">Dashboard 근거를 불러오는 중입니다.</p>;
   return <>
     <form className="dashboard-period-form" onSubmit={(event) => {
       event.preventDefault();
@@ -36,7 +35,17 @@ export function OperationsDashboard({ accessToken, externalOnly = false, onOpenP
       <label>종료일<input type="date" value={periodEnd} min={periodStart || undefined} onChange={(event) => setPeriodEnd(event.target.value)} /></label>
       <button type="submit" className="btn-secondary">기간 적용</button>
     </form>
-    <OperationsDashboardView data={data} externalOnly={externalOnly} onOpenPost={onOpenPost} />
+    {error ? (
+      <section className="operations-dashboard" aria-labelledby="dashboard-heading">
+        <h2 id="dashboard-heading">운영 근거 Dashboard</h2>
+        <p role="alert">Dashboard 근거를 불러오지 못했습니다.</p>
+        <button type="button" className="btn-secondary" onClick={() => setRetryCount((count) => count + 1)}>다시 시도</button>
+      </section>
+    ) : data ? (
+      <OperationsDashboardView data={data} externalOnly={externalOnly} onOpenPost={onOpenPost} />
+    ) : (
+      <p role="status">Dashboard 근거를 불러오는 중입니다.</p>
+    )}
   </>;
 }
 
