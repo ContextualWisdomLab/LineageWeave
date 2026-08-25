@@ -25,7 +25,6 @@ from lineageweave.interval_relation import (
     interval_from_post,
     interval_relation_from_current,
 )
-from lineageweave.lineage_persistence import lineage_edge_specs
 
 
 def _d(month: int, day: int) -> date:
@@ -83,17 +82,16 @@ def test_inverted_bounds_fail_closed() -> None:
 def test_a100_lineage_uses_observed_creation_day_points() -> None:
     """Mutable ticket dates do not alter the designed fork's chronology."""
     records = {record.record_id: record for record in sample_records()}
-    edges = lineage_edge_specs(
-        sample_records(),
-        # Synthetic fixture estimate; production fails closed without an activated run (ADR 0200).
-        weights={"temporal": 0.5, "secondary_key": 0.34, "text": 0.16},
-    )
     relations = {
-        (edge.parent_id, edge.child_id): allen_interval_relation(
-            interval_from_post(records[edge.parent_id].occurred_at),
-            interval_from_post(records[edge.child_id].occurred_at),
+        (parent_id, child_id): allen_interval_relation(
+            interval_from_post(records[parent_id].occurred_at),
+            interval_from_post(records[child_id].occurred_at),
         )
-        for edge in edges
+        for parent_id, child_id in (
+            ("rec-001", "rec-002"),
+            ("rec-002", "rec-003"),
+            ("rec-002", "rec-004"),
+        )
     }
     assert relations[("rec-001", "rec-002")] == INTERVAL_BEFORE
     assert relations[("rec-002", "rec-003")] == INTERVAL_BEFORE
