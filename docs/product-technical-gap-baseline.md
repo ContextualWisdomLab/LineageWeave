@@ -19,7 +19,7 @@ context only.
 | ---: | --- | --- |
 | #591 | `1186ae9f` | canonical current-queue baseline; exact-head checks and independent review pending |
 | #590 | `3b3af3b4` | #592 stack merge included; auto-merge armed, exact-head checks and independent review pending |
-| #588 | `2f5e197e` | ADR collision repaired as 0201; auto-merge armed, checks and independent review pending |
+| #588 | `dc60a08e` | ADR 0201 repair reconciled with current main; auto-merge armed, checks restarted |
 | #585 | `235cd6d7` | blocked; core suite green, review gates running |
 | #584 | `17068ec3` | current-main ADR collision repaired; auto-merge armed, checks restarted |
 | #582 | `f062acd4` | current-main reconciliation pushed; checks restarted |
