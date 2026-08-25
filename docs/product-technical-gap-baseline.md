@@ -1,6 +1,6 @@
 # Product & Technical Gap Baseline
 
-> Audit snapshot: 2026-08-25 14:32 KST (refreshed by the autonomous merge
+> Audit snapshot: 2026-08-25 14:42 KST (refreshed by the autonomous merge
 > loop). This repository records synthetic fixtures and aggregate,
 > non-identifying runtime evidence only. Open PRs and local checks are not
 > protected-default-branch release evidence. Identifying post identifiers,
@@ -17,16 +17,16 @@ context only.
 
 | PR | Exact observed head | Merge/check state at this snapshot |
 | ---: | --- | --- |
-| #601 | `5ce88969` | PROV-O ADR APA 7th references are mergeable; exact-head checks and independent review remain pending |
-| #600 | `df645d3a` | this baseline's pre-amendment observed head; mergeable with review/check evidence pending |
-| #588 | `6185f2ae` | raw-residual reconstruction, rank-zero identity, API presence, and comparison-strip contracts reconciled with current main; focused backend/frontend/schema checks passed; auto-merge armed |
+| #601 | `5ce88969` | draft PROV-O ADR APA 7th references are mergeable and checks are progressing, but the PR's explicit owner contract says not to mark Ready or merge |
+| #600 | `ef30e8d5` | this baseline's pre-amendment observed head; mergeable with review/check evidence pending |
+| #588 | `6185f2ae` | raw-residual reconstruction, rank-zero identity, API presence, and comparison-strip contracts reconciled with current main; focused backend/frontend/schema checks passed, all review threads are resolved, and auto-merge is armed |
 | #582 | `cab04063` | batched cited-lineage fetch was semantically composed with current main while retaining ADR 0161 interval relations; 27 focused lineage/documentation checks passed, no review threads remain, and auto-merge is armed pending hosted checks and independent review |
 | #579 | `08554951` | interaction-map coordinate branch is conflicting; ADR 0202 traceability was repaired, 20 focused documentation/schema checks passed, and all review threads are resolved; semantic composition with current main remains |
 | #493 | `a7a050ef` | empty-DAG reasons and explicit double-failure alert previously passed focused frontend/lint/build/docs checks but now conflicts with advanced main |
 | #490 | `73413d0b` | broad historical workspace branch is conflicting with failing checks; decompose/restack rather than replaying its 931-commit merge wholesale |
 | #482 | `43bb8ba1` | corroborated SKOS companion has no unresolved threads but conflicts with advanced main |
 | #468 | `4f8305a8` | integration boundaries, event-time import, and comparison-response ABAC stripping have no unresolved threads but conflict with advanced main |
-| #387 | `2620e0ae` | channel evidence plus Ask reconstruction-profile preservation conflicts with advanced main; two new threads and the stale formal changes-requested decision require settlement |
+| #387 | `3fab1f6a` | channel evidence plus Ask reconstruction-profile preservation is mergeable with no unresolved threads; only changes-requested decisions from obsolete heads remain, so auto-merge is armed pending current-head checks and independent re-review |
 
 No row above is merge evidence. Immediately before any lifecycle action,
 re-fetch the head, unresolved threads, formal reviews, rulesets, and same-head
