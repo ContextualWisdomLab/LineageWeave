@@ -20,7 +20,7 @@ import {
 export type LeftoverPairListProps = {
   pairs: LeftoverPair[];
   criterionLabel: (criterionCode: string) => string;
-  onSelectPost: (postId: string) => void;
+  onSelectPost: (pair: LeftoverPair) => void;
 };
 
 /**
@@ -28,7 +28,7 @@ export type LeftoverPairListProps = {
  *
  * Distance is the two-axis leftover-map Euclidean gap. Residual is
  * ``R = Y − E[Y|θ, item]`` (Jeon et al., 2021, eq. 3 input). Unexplained
- * leftover share ``s = U_c² / R̃²`` of centered leftover (ADR 0202) takes
+ * leftover share ``s = U_c² / R̃²`` of centered leftover (ADR 0203) takes
  * priority over unexplained leftover ``U = R − R̂`` (ADR 0182), which in
  * turn takes priority over the residual/observed-expected/rank next
  * action, whenever finite; every badge still renders together before
@@ -124,7 +124,8 @@ export function LeftoverPairList({
                 title: pair.post_title,
                 criterion,
               })}
-              onClick={() => onSelectPost(pair.post_id)}
+              title={t("Open this post so the leftover criterion is current in Post quality.")}
+              onClick={() => onSelectPost(pair)}
             >
               <span className="ticket-title">
                 {kindLabel}: {pair.post_title} · {criterion}

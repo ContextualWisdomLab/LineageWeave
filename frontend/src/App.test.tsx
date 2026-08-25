@@ -846,6 +846,16 @@ describe("App, authenticated", () => {
                 mean_theta: 0.81,
                 post_count: 4,
                 link_method: "fipc",
+                leftover_pairs: [
+                  {
+                    pair_kind: "closest",
+                    post_id: "post-1",
+                    post_title: "Public post",
+                    criterion_code: "sales_lead_specificity",
+                    leftover_distance: 0.12,
+                    leftover_residual: 0.4,
+                  },
+                ],
               },
             ],
           }),
@@ -3725,6 +3735,7 @@ describe("App, authenticated", () => {
     expect(closestPair).toHaveTextContent("U +0.05");
     expect(closestPair).toHaveTextContent("U²/R̃² 0.12");
     expect(closestPair).toHaveTextContent("d 0.12");
+    expect(closestPair).toHaveAccessibleName("Open leftover closest pair: Public post · sales-lead");
     expect(farthestPair).toHaveTextContent("Farthest leftover: Specification revision requested · negative");
     expect(farthestPair).toHaveTextContent(
       "Leftover map leaves unexplained share 0.45 of centered leftover after IRT main effects. Open this post to read negative.",
@@ -3769,6 +3780,11 @@ describe("App, authenticated", () => {
     expect(screen.getByRole("status")).toHaveTextContent(
       "A-100 is the opened grouping. Read its mean θ and member posts below, then open a post.",
     );
+    expect(
+      screen.getByRole("button", {
+        name: /open leftover closest pair from comparison: public post/i,
+      }),
+    ).toHaveTextContent("Closest leftover: Public post · sales-lead");
     await waitFor(() =>
       expect(fetchMock).toHaveBeenCalledWith(
         expect.stringContaining("/api/reports/thread_group/2026-W02"),
@@ -3786,6 +3802,18 @@ describe("App, authenticated", () => {
     expect(periodInput).toHaveValue("2026-W03");
   });
 
+  it("opens a leftover pair post from the comparison strip", async () => {
+    stubBackend();
+    render(<App showLabPanels />);
+
+    await userEvent.click(
+      await screen.findByRole("button", {
+        name: /open leftover closest pair from comparison: public post/i,
+      }),
+    );
+    await waitFor(() => expect(screen.getByText("The full body text.")).toBeInTheDocument());
+  });
+
   it("opens a leftover pair post from the report panel", async () => {
     stubBackend();
     render(<App showLabPanels />);
@@ -3794,6 +3822,37 @@ describe("App, authenticated", () => {
       await screen.findByRole("button", { name: /open leftover closest pair: public post/i }),
     );
     await waitFor(() => expect(screen.getByText("The full body text.")).toBeInTheDocument());
+    expect(await screen.findByRole("heading", { name: "Post quality (IRT)" })).toHaveFocus();
+    expect(await screen.findByRole("status", { name: "Leftover criterion next action" })).toHaveTextContent(
+      "sales-lead is the leftover criterion this post sat closest to after main effects. Read that Post quality score next.",
+    );
+    expect((await screen.findByText("Sales-lead specificity: 3")).closest("li")).toHaveAttribute(
+      "aria-current",
+      "true",
+    );
+    expect(screen.getByText("Constructive stance: 2").closest("li")).not.toHaveAttribute("aria-current");
+
+    await userEvent.click(screen.getByRole("button", { name: "Close" }));
+    await userEvent.click(
+      await screen.findByRole("button", {
+        name: /open leftover farthest pair: specification revision requested/i,
+      }),
+    );
+    await waitFor(() =>
+      expect(screen.getByText("The evidence panel should show exactly this text.")).toBeInTheDocument(),
+    );
+    expect(await screen.findByRole("heading", { name: "Post quality (IRT)" })).toHaveFocus();
+    expect(await screen.findByRole("status", { name: "Leftover criterion next action" })).toHaveTextContent(
+      "negative is the leftover criterion this post sat farthest from after main effects. Read that Post quality score next.",
+    );
+
+    await userEvent.click(screen.getByRole("button", { name: "Close" }));
+    await userEvent.click(await screen.findByRole("button", { name: /open report post: public post/i }));
+    await waitFor(() => expect(screen.getByText("The full body text.")).toBeInTheDocument());
+    expect(screen.queryByRole("status", { name: "Leftover criterion next action" })).not.toBeInTheDocument();
+    expect((await screen.findByText("Sales-lead specificity: 3")).closest("li")).not.toHaveAttribute(
+      "aria-current",
+    );
   });
 
   it("opens Event Lineage, Keyman, and evaluation from a report member click", async () => {
@@ -3803,6 +3862,7 @@ describe("App, authenticated", () => {
     await userEvent.click(await screen.findByRole("button", { name: /open report post: public post/i }));
     await waitFor(() => expect(screen.getByText("The full body text.")).toBeInTheDocument());
     expect(screen.getByText("Constructive stance: 2")).toBeInTheDocument();
+    expect(screen.queryByRole("status", { name: "Leftover criterion next action" })).not.toBeInTheDocument();
     expect(screen.getAllByText(/Ada West/).length).toBeGreaterThan(0);
     expect(screen.getAllByLabelText("A-100 lineage")).toHaveLength(1);
     expect(screen.getByRole("status", { name: "Event Lineage next action" })).toHaveTextContent(

@@ -6,7 +6,8 @@
 [ADR 0163](0163-leftover-observed-expected.md) (observed Y and expected E);
 [ADR 0164](0164-leftover-map-rank.md) (full map rank);
 [ADR 0182](0182-leftover-map-unexplained.md) (unexplained leftover U);
-[ADR 0202](0202-leftover-map-unexplained-share.md) (unexplained leftover share s)
+[ADR 0158](0158-leftover-criterion-evaluation-landing.md) (criterion evaluation landing);
+[ADR 0203](0203-leftover-map-unexplained-share.md) (unexplained leftover share s)
 
 ## Context
 
@@ -33,16 +34,18 @@ leftover structure, and unexplained leftover names "leftover map leaves
 unexplained `U` after IRT main effects; open this post to read the
 named criterion" when present. A missing unexplained leftover or a
 missing share keeps the existing next action.
-Clicking the button opens that post with the same handler as a member
-row. Residual naming is [ADR 0162](0162-leftover-residual-disclosure.md),
-observed/expected naming is [ADR 0163](0163-leftover-observed-expected.md),
-rank naming is [ADR 0164](0164-leftover-map-rank.md), unexplained
-leftover naming is [ADR 0182](0182-leftover-map-unexplained.md), and
-unexplained leftover share naming is
-[ADR 0202](0202-leftover-map-unexplained-share.md).
+Clicking the button opens that post with leftover focus so Post
+quality marks the named criterion current (ADR 0158). Residual naming
+is [ADR 0162](0162-leftover-residual-disclosure.md), observed/expected
+naming is [ADR 0163](0163-leftover-observed-expected.md), rank naming
+is [ADR 0164](0164-leftover-map-rank.md), unexplained leftover naming
+is [ADR 0182](0182-leftover-map-unexplained.md), and unexplained
+leftover share naming is
+[ADR 0203](0203-leftover-map-unexplained-share.md).
 
 After `make seed`, closest and farthest leftover pairs sit above the
-member list. Click a pair to open that post.
+member list. Click a pair to open that post with the leftover
+criterion current in Post quality.
 
 Missing leftover rows render nothing — never a placeholder pair.
 A hidden post never appears as a leftover pair.
@@ -60,3 +63,6 @@ next action, not only the distance.
 Depends on [ADR 0048](0048-persist-lsirm-leftover-pairs.md) and
 [ADR 0003](0003-fast-mlsirm-report-integration.md). Complete-case
 coverage of the leftover map is [ADR 0168](0168-leftover-map-complete-case-coverage.md).
+
+[ADR 0003](0003-fast-mlsirm-report-integration.md). The grouping
+comparison strip reuses this leftover store ([ADR 0149](0149-leftover-pairs-on-comparison-strip.md)).

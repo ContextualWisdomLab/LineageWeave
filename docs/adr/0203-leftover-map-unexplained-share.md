@@ -1,4 +1,4 @@
-# ADR 0202 — Name unexplained leftover share on period-report pair rows
+# ADR 0203 — Name unexplained leftover share on period-report pair rows
 
 **Decision status:** Accepted
 **Date:** 2026-08-24
@@ -39,7 +39,7 @@ The unprotected-stack reconstructions for neighbouring leftover facts
 use 0162–0182. This increment originally claimed **0183**, but that
 number collided with an unrelated, already-merged GNB navigation ADR
 (`0183-gnb-four-korean-chrome.md`) by the time this branch reached
-`main`, so it renumbers to **0202** at merge -- above every ADR number
+`main`, so it renumbers to **0203** at merge -- above every ADR number
 in use on `main` (≤ 0201) so it cannot collide again. It does not
 collide with leftover-map unexplained leftover (0182), leftover-map
 reconstruction (0181), leftover-map length (0181 on the length stack),

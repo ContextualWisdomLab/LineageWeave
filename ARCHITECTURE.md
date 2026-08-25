@@ -596,7 +596,8 @@ on those same fixed parameters (Kim, 2006 FIPC). After scoring,
 information at the group's mean θ (Lord, 1980 max-info CAT). Rankings
 persist to `report_item_information`. After those IRT main effects,
 residual SVD leftover pairs on two Gabriel axes (Jeon et al., 2021;
-ADR 0017 / 0048 / 0119 / 0162 / 0163 / 0164 / 0168 / 0182 / 0202) persist to
+ADR 0017 / 0048 / 0049 / 0119 / 0158 / 0162 / 0163 / 0164 / 0182 /
+0203) persist to
 `report_leftover_pair` with signed residual `R`, observed `Y`, expected
 `E[Y|θ, item]`, full leftover-map rank, unexplained leftover
 `U = R − R̂`, and unexplained leftover share `s = U_c² / R̃²` of
@@ -608,7 +609,8 @@ many scored posts entered the factorization. Results persist to
 `report_period_score` / `report_member_score`.
 `GET /api/reports/{grouping}` lists the trend;
 `GET /api/reports/{grouping}/{period}` is ABAC-filtered;
-`GET /api/reports/compare/{period}` is the home-page grouping strip;
+`GET /api/reports/compare/{period}` is the home-page grouping strip
+and carries the same ABAC-filtered leftover pairs (ADR 0149);
 `POST .../rebuild` scores every grouping kind (post_admin). `make seed`
 folds A-100/B-200 Event Lineage fixtures (and the Riverbend calendar
 post) that already have constructed IRT cells into the same shared
@@ -621,6 +623,9 @@ closest/farthest pairs (signed residual `R`, observed `Y`, expected
 effects) above the member list, leftover-map axis share for residual
 SVD axes 1 and 2, and complete-case coverage captions (map used N of M
 scored posts), plus the
+
+closest/farthest pairs above the member list, leftover pairs on the
+grouping comparison strip, and the
 PU / corp / thread comparison -- never a placeholder. TEPP is unchanged.
 
 ## Phase 6b: Knowledge Graph as a real Ontology + Semantic Layer

@@ -14,12 +14,23 @@ supporting literature and aggregate evidence. Event Lineage (reconstructed
 post-to-post parents) is distinct from the typed ontology neighborhood
 (ADR 0184); source-window continuation is ADR 0124. Do not mix those graphs.
 
+ADRs are the normative source. Research notes, implementation matrices,
+runtime-evidence files, and Storybook inventories stay supporting
+documents unless an ADR explicitly promotes a decision from them --
+[`docs/adr/README.md`](docs/adr/README.md) maps each supporting document
+to its governing ADR. Update research notes as literature changes; never
+use them to introduce an untracked architecture decision.
+
 ## Hard rule: no real data in repository artifacts
 
 This repository ships **synthetic fixtures only** (`lineageweave/fixtures.py`)
 and must never commit or expose, by name or otherwise identifiably, any real
 organization's records. Never add a real record to a fixture, test case,
-screenshot, example, log, benchmark artifact, or documentation.
+screenshot, example, log, benchmark artifact, or documentation. This includes
+audit snapshots, gap baselines, PR/issue inventories, and runtime-evidence
+documents (for example `docs/product-technical-gap-baseline.md`): aggregate
+counts and PR numbers are fine; identifying post identifiers, organization
+names, and production record keys are not (ADR 0001).
 
 The private runtime is different: the product is expected to read an
 authorized real PostgreSQL source through its configured import/data boundary.
@@ -179,6 +190,39 @@ adjudication does -- never a raw LLM API. Demo TEPP seed goes through
 envelope is Failed (`tepp_not_available` / `tepp_result_not_persisted`),
 never a fabricated theta or a local psychometric substitute.
 
+The lineage `text` channel follows [ADR 0190](docs/adr/0190-lineage-text-channel-embedding-swap.md):
+when an embedding provider is configured, `reconstruct()` precomputes
+batched label embeddings once per reconstruction and scores cosine
+similarity; `difflib` character overlap is only the fallback for a pair
+whose vector is missing. Clamp the raw cosine into `[0, 1]` -- do not
+remap it from `[-1, 1]`, because real sentence embeddings occupy an
+anisotropic cone (unrelated pairs already score a modestly positive
+cosine) and the remap manufactures false weak positives. A missing
+vector degrades that pair back to difflib; it never fabricates a score.
+
+## Measurement boundary
+
+- Channel-weight estimation stays unavailable until an independent
+  lineage anchor exists ([ADR 0145](docs/adr/0145-psychometric-channel-weight-estimation.md)).
+  Do not fit an unanchored IRT model over candidate pairs and promote its
+  latent factor to "relatedness"; `scripts/estimate_channel_weights.py`
+  must keep exiting without writing. The hand-picked constants in
+  `DEFAULT_CHANNEL_WEIGHTS` are an explicitly ungrounded compatibility
+  fallback -- never present them as calibrated or paper-grounded
+  measurement.
+- Persisted channel-weight vectors fail closed: malformed,
+  mixed-provenance, or unsupported-anchor rows are ignored, not
+  renormalized or repaired.
+- Caller-mapped grouping values stay raw in their source-provenance
+  columns across backfill and re-import; normalization happens only in
+  derived reconstruction fields.
+- Per-edge channel breakdowns persist to nullable
+  `post_lineage_edge.channel_scores` jsonb ([ADR 0195](docs/adr/0195-lineage-edge-channel-scores-persistence.md)):
+  a missing breakdown means the edge predates the column -- an honest
+  unknown, never zero-filled or reconstructed. It exists for direct
+  database diagnosis only; exposing it through an API or UI needs its own
+  decision first.
+
 ## Tests
 
 ```bash
@@ -195,8 +239,27 @@ in the same spirit) -- never against real data, per the hard rule above.
 against a live local stack (`make up`) and self-skip without one -- see
 [README.md](README.md#local-product-stack-docker-compose).
 
-Period leftover pairs (ADR 0017 / 0018 / 0048 / 0049 / 0119 / 0162 / 0163 /
-0164 / 0168 / 0182 / 0202) are computed in `lineageweave/leftover_pairs.py` from the
+`tests/test_public_docstrings.py` enforces repository-wide docstring
+coverage: every public function and class under `lineageweave/` and
+`backend/app/` (non-underscore names, `__init__.py` excluded) carries a
+docstring. Ship new public definitions documented; the gate fails the PR
+otherwise.
+
+### Schema migrations
+
+Migrations 0001–0011 are the non-idempotent image bootstrap and replay
+only on an empty data directory. Everything numbered 0012 or later must be
+safe to replay and is applied automatically by
+`docker/postgres-init/migrate.sh` in sorted filename order -- one fixed
+lower-bound pattern, no per-file allowlist ([ADR 0166](docs/adr/0166-idempotent-migration-replay-window.md)).
+Prefer native idempotency (`IF NOT EXISTS`, `ON CONFLICT`); a migration
+that cannot be made idempotent requires a migration-ledger ADR first.
+Each accepted file runs with `psql -X -v ON_ERROR_STOP=1`, so a failure
+stops startup instead of leaving a healthy-looking partial schema, and
+application code must not compensate for a missing table.
+
+Period leftover pairs (ADR 0017 / 0018 / 0048 / 0049 / 0119 / 0158 / 0162 /
+0163 / 0164 / 0182 / 0203) are computed in `lineageweave/leftover_pairs.py` from the
 residual after a real GRM/GPCM score, never invented. Distances are
 Euclidean on the two-dimensional Gabriel leftover map; missing cells stay
 out of the factorization. Closest and farthest post–criterion pairs
@@ -205,15 +268,24 @@ persist to `report_leftover_pair` with signed residual `R`, observed
 plus leftover-map rank so rank 0 is not read as structure, and
 unexplained leftover `U = R − R̂` next to leftover-map distance `d`
 after two-axis Gabriel reconstruction, plus unexplained leftover share
-`s = U_c² / R̃²` of centered leftover. Two-axis reconstruction `R̂` /
-`R̂_c` and centered leftover `U_c` are not persisted. They sit above
-the member list so a click opens that post. Leftover-map axis share
-(ADR 0148) is Gabriel inertia of residual SVD axes 1 and 2 and persists
-to `report_leftover_map_axis`. Rank-0 residuals emit two zero-share
-axes; the shares are report-level and are not a leftover score.
+`s = U_c² / R̃²` of centered leftover ([ADR 0203](docs/adr/0203-leftover-map-unexplained-share.md)).
+Two-axis reconstruction `R̂` / `R̂_c` and centered leftover `U_c` are not
+persisted. They sit above the member list so a click opens that post with
+the leftover criterion current in Post quality (ADR 0158). Leftover-map
+axis share (ADR 0148) is Gabriel inertia of residual SVD axes 1 and 2 and
+persists to `report_leftover_map_axis`. Rank-0 residuals emit two
+zero-share axes; the shares are report-level and are not a leftover score.
 Complete-case coverage (ADR 0168) persists to
 `report_leftover_map_coverage` and captions the pair list with how
 many scored posts entered the map.
+
+Period leftover pairs (ADR 0017 / 0018 / 0048 / 0049 / 0149) are computed in
+`lineageweave/leftover_pairs.py` from the residual after a real
+GRM/GPCM score, never invented. Missing cells stay out of the
+Gabriel factorization. Closest and farthest post–criterion pairs
+persist to `report_leftover_pair` and sit above the member list so
+a click opens that post. The grouping comparison strip reuses that
+authorized leftover store; a leftover pair for a hidden post is omitted.
 
 `frontend/` has its own toolchain (Node pinned via `frontend/mise.toml`,
 pnpm via Corepack -- do not add a second Node package manager or a
@@ -222,8 +294,13 @@ floating Node version):
 ```bash
 cd frontend && pnpm install
 pnpm run lint && pnpm run test && pnpm run build
-# Storybook inventory (ADR 0020 tokens): pnpm run build-storybook
+# Storybook inventory: pnpm run build-storybook
 ```
+
+Repeated web objects use `frontend/src/styles/tokens.css`, not inline hex
+(ADR 0099 badge/accent tokens, with dark-mode overrides guarded by
+`tokens.test.ts`); new stories belong in the inventory at
+`docs/storybook-inventory.md`.
 
 A run-bearing analysis-run registry empties only after an unrevoked
 `analysis_run_retention_grant` and `GRANT analysis_run_retention_admin`
@@ -258,6 +335,7 @@ exist on the post.
 Do not weaken, skip, or `continue-on-error` a failing check -- fix the
 underlying cause or, for a genuine false positive in a third-party scanner,
 add a narrow, documented suppression referencing the specific finding.
+
 ## W3C PROV-O boundary
 
 - Add standard provenance through `lineageweave.prov_o` and the
@@ -268,3 +346,16 @@ add a narrow, documented suppression referencing the specific finding.
 - Appendix B inverse names normalize to the preferred W3C direction;
   do not proliferate private inverse vocabulary.
 - Keep `knowledge_graph_edge` an explicit navigation projection.
+
+## Ontology publication boundary
+
+The ontology namespace publishes as a deterministic GitHub Pages artifact
+([ADR 0159](docs/adr/0159-published-ontology-pages.md)): render through
+`scripts/build_ontology_site.py` (same source tree produces the same
+bytes -- no build timestamps, source SHA-256 manifest) and deploy only
+through the fail-closed `scripts/publish_ontology_site.py` from `main`.
+A manual dispatch from another ref is not a publication path. The
+lowercase and repository-case public namespace IRIs remain a tracked
+interoperability gap ([ADR 0157](docs/adr/0157-public-ontology-namespace-identity.md),
+issue #372): do not silently rewrite either form; any namespace migration
+is a versioned ADR with compatibility mappings first.

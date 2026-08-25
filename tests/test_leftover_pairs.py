@@ -1,7 +1,7 @@
 """Leftover post–criterion pairs after the main-effect IRT.
 
 Covers ADR 0048 as amended by ADR 0119, ADR 0148, ADR 0163, ADR 0164,
-ADR 0168, ADR 0182, and ADR 0202.
+ADR 0168, ADR 0182, and ADR 0203.
 
 Uses a constructed residual matrix so the closest and farthest pair
 are known without calling ``fit_polytomous``. Loads
@@ -219,7 +219,7 @@ def test_rank_one_nonzero_center_still_has_zero_unexplained_share() -> None:
     """Share uses centered leftover, so a reconstructed rank-1 cell stays s=0 when mean(R) ≠ 0.
 
     Uncentered unexplained ``U = R − R̂`` still equals the grand mean in
-    this same cell (ADR 0202 context): that is exactly why share, not U,
+    this same cell (ADR 0203 context): that is exactly why share, not U,
     is the honest "fully reconstructed" signal when ``center ≠ 0``.
     """
     post_ids = ["post-a", "post-b", "post-c"]
