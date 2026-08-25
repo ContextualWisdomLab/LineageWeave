@@ -60,11 +60,9 @@ only aggregate, non-identifying evidence to this repository.
 
 ### Exact open-PR boundary
 
-At this snapshot there were 8 open PRs and 10 open issues. Exact observed heads
-were `#641 2eac0a26` (this stacked candidate), `#640 41527fa9`,
-`#639 aee02dca`, `#636 eeeb23c6`, `#632 bfeaecd9`, `#631 c0022c97`,
-`#629 0f4665b5`, and `#579 689a21b6`. PR #641 targets #632's provenance
-branch; a stack merge is not protected-main delivery. The open heads remain
+At this snapshot there were 10 open PRs and 10 open issues. Exact observed
+heads are listed in §1. PR #652 targets #632's provenance branch; a stack
+merge is not protected-main delivery. The open heads remain
 blocked on hosted gates and/or independent review. These
 observations are not merge readiness. Re-fetch exact heads,
 unresolved threads, checks, approvals, rulesets, and merge SHA before any
@@ -80,19 +78,17 @@ lifecycle claim.
 ## 1. Exact-head and governance evidence
 
 The protected default branch was `04e6b610655d0db91d5f7ba9486bdda1440e0b19`
-when this baseline was refreshed. The live queue contained 12 open PRs and 10
+when this baseline was refreshed. The live queue contained 10 open PRs and 10
 open issues. The exact-head inventory below supersedes older per-PR snapshots
 elsewhere in this document; those older rows remain useful historical delivery
 context only.
 
 | PR | Exact observed head | Merge/check state at this snapshot |
 | ---: | --- | --- |
-| #652 | `7847d10e` (observed parent) | evidence-constrained Global Ask query rewriting; this row records the parent before the latest #632 merge and this baseline follow-up, while checks and independent review remain required |
-| #651 | `d6d43cb9` | dashboard row pagination follow-up stacked on #640; checks and independent review remain required |
-| #650 | `d4b9c9c6` | dashboard chart accessibility follow-up stacked on #640; checks and independent review remain required |
+| #652 | `1ab8503a` | evidence-constrained Global Ask query rewriting stacked on #632; checks and independent review remain required |
 | #644 | `c1018a0a` | frontend conditional workspace splitting; checks and independent review remain required |
 | #643 | `041ec13b` | shared token-backed status notice; checks and independent review remain required |
-| #640 | `2165a5d1` | dashboard case metrics, project journeys, and restored TEPP API-key setting; checks and independent review remain required |
+| #640 | `a249efd6` | dashboard case metrics plus merged topic-influence and semantic-label follow-ups; checks and independent review remain required |
 | #639 | `aee02dca` | Running action and Compose contract repair; checks and independent review remain required |
 | #636 | `f7b9a65f` | calibrated external lineage contract; checks and independent review remain required |
 | #632 | `be51f2f1` | Global Ask provenance, semantic nomination, public verification, knowledge-cutoff stack, and static-SQL/frontend review repairs; checks and independent review remain required |
@@ -385,7 +381,7 @@ this file per §3.5 of the prior snapshot).
 
 | Gap | Current evidence | Acceptance requirement |
 | --- | --- | --- |
-| Protected release | 3 open PRs at snapshot: #627 and #628 are current-main performance follow-ups, while reopened #579 retains hosted and independent-review gates | Terminal exact-head checks, no unresolved threads, independent exact-head approvals, protected squash-merge SHA |
+| Protected release (historical pre-refresh snapshot) | 3 open PRs were observed before the current §1 refresh: #627 and #628 were current-main performance follow-ups, while reopened #579 retained hosted and independent-review gates | Terminal exact-head checks, no unresolved threads, independent exact-head approvals, protected squash-merge SHA |
 | Evidence-grounded operations workspace | Protected-main #614 delivers governed semantic Ask, live Similar VOC, disjoint pending/failed analysis metrics, full Storybook state inventory, and current desktop/mobile screenshot evidence. Authorized-corpus backfill acceptance remains unavailable | Perform authenticated authorized-corpus acceptance with aggregate evidence and retain fail-closed no-match behavior |
 | Shared frontend gate | The ADR 0109 login repair is on protected `main`; eight older branches carried the defect and received the same verified repair this loop (#521–#560) | Keep every future branch cut from post-repair bases; re-verify with frontend lint/test/build before push |
 | Identifying baseline regression | `main` gap file listed real post identifiers; separately, closed #506 and pre-existing public history contain a private runtime source-table identifier, while current `main` and #507 trees are clean | Land this non-identifying rewrite, then coordinate ADR 0001 history remediation with security/privacy owners; do not reproduce the value, force-push, or delete evidence ad hoc |
