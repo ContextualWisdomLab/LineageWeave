@@ -446,21 +446,26 @@ of leverage; open connector PRs there when the defect is upstream:
 6. **ThreadWeave** — tree assembly.
 7. **Naruon** — calendar and email/project lineage projection (#336, #338, #355).
 8. **DiskSage / wardnet** — storage and network policy as needed.
-9. **ContextualWisdomLab/.github** — required review workflows (OpenCode, Strix, Noema) and the LineageWeave hourly caller (#1259). If stacked PRs miss central review or coverage-evidence fails on pnpm 9 (`--trust-lockfile` is pnpm 11.3) or a missing Vitest coverage provider, fix the org workflow (#1258), not a local bypass.
+9. **ContextualWisdomLab/.github** — required review workflows (OpenCode, Strix, Noema) and the atomic LineageWeave hourly caller (#1288, still awaiting a current-head OpenCode decision). If stacked PRs miss central review or coverage-evidence fails on pnpm 9 (`--trust-lockfile` is pnpm 11.3) or a missing Vitest coverage provider, fix the org workflow (#1258), not a local bypass.
 
 ## 8. Public ontology publication boundary
 
-- PR #426 publishes fragment-addressable HTML, byte-identical Turtle,
-  isomorphic JSON-LD and N-Triples, the PROV-O support profile, and a
-  source-digest manifest from the authoritative ontology.
+- The protected Pages deployment is live at
+  `https://contextualwisdomlab.github.io/LineageWeave/ontology/`. A 2026-08-26
+  external fetch returned HTTP 200 with the expected media types for
+  `ontology.ttl`, `ontology.jsonld`, `ontology.nt`, the PROV-O support profile,
+  namespace compatibility vocabulary, SHACL shapes, and `manifest.json`.
+- The published manifest reports 243 ontology triples and source SHA-256
+  `c5a8c147e4df6e2da31bd88d8f7441bece1f40b17e3a4a3b12baf91e9175d245`.
+  Downloaded Turtle, PROV-O profile, compatibility vocabulary, and SHACL bytes
+  match the corresponding repository sources exactly at this snapshot.
 - Pull requests validate only. Only protected `main` may publish, and the
   generated-directory marker, linked-IRI, duplicate-fragment, symlink, and
   source-overlap checks fail closed.
-- The lowercase knowledge-graph namespace and repository-case support-profile
-  namespace remain distinct until issue #372 delivers a versioned migration
-  and compatibility decision; this publication PR rewrites neither identity.
-- Until the protected deployment and exact URL checks succeed, the public
-  ontology endpoint remains unavailable and must not be represented as live.
+- ADR 0205 and protected-main #616 make the repository-case namespace
+  canonical; the lowercase namespace remains only the published compatibility
+  vocabulary with validated term-kind mappings. New runtime values mint only
+  repository-case IRIs.
 
 ## 9. Evidence boundaries
 
