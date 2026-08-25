@@ -36,3 +36,9 @@ literal provenance indistinguishable from a navigational edge.
 - The database and materializer are more extensive than a flat edge table.
 - Navigation consumers get a compact projection while provenance consumers get
   the full standards contract.
+
+## References (APA 7th)
+
+Lebo, T., Sahoo, S., & McGuinness, D. (Eds.). (2013, April 30). *PROV-O: The PROV Ontology* [W3C Recommendation]. World Wide Web Consortium. https://www.w3.org/TR/2013/REC-prov-o-20130430/
+
+Moreau, L., & Missier, P. (Eds.). (2013, April 30). *PROV-DM: The PROV Data Model* [W3C Recommendation]. World Wide Web Consortium. https://www.w3.org/TR/2013/REC-prov-dm-20130430/

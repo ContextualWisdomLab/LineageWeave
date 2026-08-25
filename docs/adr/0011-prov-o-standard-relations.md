@@ -77,3 +77,9 @@ erDiagram
 - Exact registry tests for 30 classes, 50 properties, 6 datatype properties, 14 qualification mappings, and all 44 object-property inverse names.
 - Behavior-sensitive tests for validation, subclass domains, every qualification implication, superproperty closure, inverse/symmetry, direct time inference, RDF serialization, SQL seed completeness, support-profile mapping, and public docstrings.
 - Owned production module statement and branch coverage: 100%.
+
+## References (APA 7th)
+
+Lebo, T., Sahoo, S., & McGuinness, D. (Eds.). (2013, April 30). *PROV-O: The PROV Ontology* [W3C Recommendation]. World Wide Web Consortium. https://www.w3.org/TR/2013/REC-prov-o-20130430/
+
+Moreau, L., & Missier, P. (Eds.). (2013, April 30). *PROV-DM: The PROV Data Model* [W3C Recommendation]. World Wide Web Consortium. https://www.w3.org/TR/2013/REC-prov-dm-20130430/
