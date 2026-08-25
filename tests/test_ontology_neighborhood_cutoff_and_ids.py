@@ -3,14 +3,14 @@
 from __future__ import annotations
 
 import asyncio
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 import backend.app.ontology_neighborhood_ingestion as ingestion
 from lineageweave.knowledge_graph import NODE_POST
 
 POST_ID = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa1"
-CUTOFF = datetime(2026, 1, 15, 12, 0, tzinfo=timezone.utc)
+CUTOFF = datetime(2026, 1, 15, 12, 0, tzinfo=UTC)
 
 
 class CapturingConnection:

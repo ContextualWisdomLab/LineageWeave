@@ -12,6 +12,11 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
+import pytest
+from rdflib import Graph, Literal, URIRef
+from rdflib.namespace import OWL, RDF, RDFS, SKOS, XSD
+
+import lineageweave.ontology as ontology_module
 from lineageweave.knowledge_graph import (
     EDGE_AFFILIATION,
     EDGE_CO_MENTION,
@@ -30,8 +35,6 @@ from lineageweave.ontology import (
     load_ontology,
     ontology_annotations,
 )
-from rdflib import Literal, URIRef
-from rdflib.namespace import OWL, RDF, RDFS, SKOS, XSD
 
 _SEED_SCRIPT_PATH = Path(__file__).resolve().parents[1] / "scripts" / "seed_demo_data.py"
 
@@ -178,6 +181,18 @@ def test_every_declared_lookup_term_has_one_runtime_label() -> None:
 
 def test_ontology_annotations_are_empty_for_an_undeclared_code() -> None:
     assert ontology_annotations("not_a_real_lookup_code") == {}
+
+
+def test_ontology_annotations_fail_closed_when_declared_term_has_no_label(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    graph = Graph()
+    subject = URIRef("https://example.invalid/Unlabelled")
+    graph.add((subject, LOOKUP_CODE, Literal("unlabelled")))
+    monkeypatch.setattr(ontology_module, "ONTOLOGY", graph)
+
+    with pytest.raises(ValueError, match="has no readable label"):
+        ontology_annotations("unlabelled")
     # `open` is a real ticket_status lookup code this ontology
     # deliberately does not cover -- missing, not a fake label.
     assert ontology_annotations("open") == {}
