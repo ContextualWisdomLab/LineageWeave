@@ -187,7 +187,7 @@ async def fetch_operations_dashboard(
                        and classified.case_kind_code = 'external_information'
                 )
         )
-        select (select count(*) from scoped_post) as total_post_count,
+        select (select count(*) from visible_post) as total_post_count,
                (select count(*)
                   from post_summary_event summary_event
                  where exists (

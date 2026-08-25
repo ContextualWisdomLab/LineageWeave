@@ -38,10 +38,12 @@ async def test_operations_dashboard_sql_binds_against_postgres() -> None:
             ) is None:
                 pytest.skip(f"requires the migration that creates {table_name}")
         result = await fetch_operations_dashboard(connection, [])
+        external_result = await fetch_operations_dashboard(connection, [], external_only=True)
     finally:
         await connection.close()
 
     assert result["total_post_count"] >= 0
+    assert external_result["total_post_count"] == result["total_post_count"]
     assert result["topic_context"]["status_code"] in {"accepted", "unavailable"}
 
 
