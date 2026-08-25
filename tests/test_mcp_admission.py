@@ -131,15 +131,20 @@ async def test_non_post_traffic_passes_through() -> None:
 
 
 @pytest.mark.anyio
-async def test_replay_reports_disconnect_after_one_body() -> None:
-    """The SDK cannot re-read or duplicate an admitted request body."""
+async def test_replay_preserves_client_disconnect_after_one_body() -> None:
+    """The SDK sees the real client lifecycle after the replayed request body."""
     downstream = Recorder(read_twice=True)
     app = BoundedRequestBodyApp(downstream, maximum_bytes=8)
     sent = []
 
+    messages = [
+        {"type": "http.request", "body": b"123", "more_body": False},
+        {"type": "http.disconnect"},
+    ]
+
     async def receive():
-        """Supply one admitted body."""
-        return {"type": "http.request", "body": b"123", "more_body": False}
+        """Supply one admitted body followed by the real disconnect."""
+        return messages.pop(0)
 
     async def send(message):
         """Capture the response."""

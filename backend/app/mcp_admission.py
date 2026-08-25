@@ -62,10 +62,10 @@ class BoundedRequestBodyApp:
         replayed = False
 
         async def replay_receive() -> Message:
-            """Replay the admitted body once, then report disconnect."""
+            """Replay the admitted body once, then preserve client lifecycle events."""
             nonlocal replayed
             if replayed:
-                return {"type": "http.disconnect"}
+                return await receive()
             replayed = True
             return {"type": "http.request", "body": bytes(body), "more_body": False}
 
