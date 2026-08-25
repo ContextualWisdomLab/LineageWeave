@@ -60,7 +60,7 @@ only aggregate, non-identifying evidence to this repository.
 ### Exact open-PR boundary
 
 At this snapshot there were 5 open PRs and 14 open issues. Exact observed heads
-were `#621 cca022a8` (this PR's observed parent), `#620 4bc7aeac`,
+were `#621 efcfb39d` (this PR's observed parent), `#620 9c1d5998`,
 `#619 29e01dc2`, `#618 df9d6cb1`, and `#387 ceb2c1d4`. PR #579 closed without
 merge and is not protected delivery.
 PRs #612, #614, #615, and #616 reached protected `main`; the superseded baseline
@@ -87,8 +87,8 @@ context only.
 
 | PR | Exact observed head | Merge/check state at this snapshot |
 | ---: | --- | --- |
-| #621 | `cca022a8` (observed parent) | this row is written by #621 itself, so its commit necessarily advances after the snapshot is encoded; re-fetch the live head before governance use |
-| #620 | `4bc7aeac` | refreshes temporal-topic and capacity gaps; hosted gates and independent review remain required |
+| #621 | `efcfb39d` (observed parent) | this row is written by #621 itself, so its commit necessarily advances after the snapshot is encoded; re-fetch the live head before governance use |
+| #620 | `9c1d5998` | refreshes temporal-topic and capacity gaps; hosted gates and independent review remain required |
 | #619 | `29e01dc2` | documents the fixed-alias, repository-owned Similar-VOC eligibility fragment for the narrow Semgrep rule; focused tests and Semgrep passed, while hosted gates and independent review remain required |
 | #618 | `df9d6cb1` | separates SHACL class/property term kinds and corrects the corporate-entity UI fixture; current `main` is composed, while hosted gates and independent review remain required |
 | #387 | `ceb2c1d4` | channel evidence is composed with protected main and focused tests pass, but independent exact-head review remains required |
@@ -466,16 +466,16 @@ review latency are never blockers — keep working while they settle.
 3. After the queue drains, resume user-visible gaps from §5 in leverage order:
    Event Lineage evidence (#387/#274), Naruon calendar (#355/#336), and
    authenticated operations/ontology publication acceptance.
-5. Rename remaining `[Buyer Gap]` issue titles to neutral product-object
-   naming per repository convention (no "Buyer" for internal objects).
-6. Keep psychometric tests as true-parameter recovery (RMSE); never fixture
+4. Rename remaining sales-context-prefixed issue titles to neutral
+   product-object naming per repository convention.
+5. Keep psychometric tests as true-parameter recovery (RMSE); never fixture
    tautologies, invented theta, or hand-authored numeric weights. Remove
    weights from tests that do not exercise fusion; fusion tests must consume
    provenance-bearing fast-mlsirm estimates over synthetic fixtures.
-7. Run frontend lint/test/build/Storybook, backend tests, and authenticated
+6. Run frontend lint/test/build/Storybook, backend tests, and authenticated
    browser/accessibility checks on the exact candidate release head.
-8. Fix only evidence-backed failures and repeat the protected merge gate.
-9. Refresh this file each loop with the exact queue state.
+7. Fix only evidence-backed failures and repeat the protected merge gate.
+8. Refresh this file each loop with the exact queue state.
 
 ## 11. Spec pointers (derive, do not fork)
 
