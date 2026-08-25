@@ -3,8 +3,22 @@ from __future__ import annotations
 import asyncio
 from datetime import date, datetime, timezone
 
-from backend.app.post_chat_ingestion import gather_global_chat_sources
+from backend.app.post_chat_ingestion import gather_global_chat_sources as _gather_global_chat_sources
 from lineageweave.ask_time_axis import TIME_AXIS_CREATED, TIME_AXIS_EVENT
+
+
+class _EmbeddingClient:
+    available = True
+    resolved_model = "test-embedding"
+
+    def embed(self, _text: str) -> list[float]:
+        return [1.0, 0.0]
+
+
+def gather_global_chat_sources(*args, **kwargs):
+    """Exercise Global Ask with an available deterministic semantic channel."""
+    kwargs.setdefault("embedding_client", _EmbeddingClient())
+    return _gather_global_chat_sources(*args, **kwargs)
 
 
 def test_global_sources_apply_visibility_before_normalization() -> None:
@@ -42,6 +56,7 @@ def test_global_sources_apply_visibility_before_normalization() -> None:
             lambda row: row["visibility_code"] == "public"
             or row["corporate_entity_id"] == "corp-demo",
             {"corp-demo"},
+            question="public evidence",
         )
     )
 
@@ -60,7 +75,11 @@ def test_global_sources_apply_process_scope_before_sql_limit() -> None:
 
     asyncio.run(
         gather_global_chat_sources(
-            FakeConnection(), lambda _row: True, {"corp-demo"}, {"process-demo"}
+            FakeConnection(),
+            lambda _row: True,
+            {"corp-demo"},
+            {"process-demo"},
+            question="synthetic process evidence",
         )
     )
 
@@ -69,7 +88,7 @@ def test_global_sources_apply_process_scope_before_sql_limit() -> None:
     assert source_args[:2] == (["corp-demo"], ["process-demo"])
 
 
-def test_global_sources_prioritize_question_terms_and_bound_long_bodies() -> None:
+def test_global_sources_use_semantic_rank_order_and_bound_long_bodies() -> None:
     rows = [
         {
             "post_id": "newest-post",
@@ -108,16 +127,16 @@ def test_global_sources_prioritize_question_terms_and_bound_long_bodies() -> Non
     source_query, source_args = next(
         (query, args) for query, args in calls if "array_position($3::uuid[], post_id)" in query
     )
-    assert "to_tsvector('simple'" in candidate_query
-    assert candidate_args[0] == "mention"
+    assert "unit_similarity" in candidate_query
+    assert "to_tsvector" not in candidate_query
+    assert candidate_args[0] == [1.0, 0.0]
+    assert candidate_args[2] == "test-embedding"
     assert "array_position($3::uuid[], post_id)" in source_query
+    assert "source_post.post_id = any($3::uuid[])" in source_query
     assert source_args[3] == 8
-    # Live bug (2026-08-19): a title match must outrank a body/source-field
-    # match regardless of discovery order -- "uam-post" matched in the
-    # title (higher weight) but was appended to candidate_rows after
-    # "newest-post" (a body match); the final candidate_ids array passed
-    # as $2 must still rank uam-post first.
-    assert list(source_args[2]) == ["uam-post", "newest-post"]
+    # The database returns candidates in cosine-rank order; no local lexical
+    # weights or reranking may alter that order.
+    assert list(source_args[2]) == ["newest-post", "uam-post"]
     assert sources[1].post_body.startswith("x" * 4000)
     assert "Source body truncated for Global Ask" in sources[1].post_body
 
@@ -162,15 +181,7 @@ def test_global_sources_carry_source_and_semantic_evidence() -> None:
     assert sources[0].evidence_facts[-1].startswith("project: semantic project")
 
 
-def test_global_sources_keep_hyphenated_source_codes_atomic() -> None:
-    """Live bug (2026-08-19): a hyphenated ERP-style job code such as
-    ``P41-4182-202405-0015`` used to be shredded into generic numeric
-    fragments (``P41``, ``4182``, ``202405``, ``0015``) by the search-term
-    tokenizer, so unrelated posts sharing only a short fragment (e.g. a
-    ``202405``-dated post from a different project) outranked or crowded
-    out the actual code match. The tokenizer must keep a hyphen-joined
-    code as one atomic search term.
-    """
+def test_global_sources_embed_identifier_question_without_tokenizing() -> None:
     calls: list[tuple[str, tuple[object, ...]]] = []
 
     class FakeConnection:
@@ -187,11 +198,12 @@ def test_global_sources_keep_hyphenated_source_codes_atomic() -> None:
         )
     )
 
-    candidate_terms = [args[0] for query, args in calls if "matched_in" in query]
-    assert candidate_terms == ["p41-4182-202405-0015"]
+    candidate_calls = [(query, args) for query, args in calls if "unit_similarity" in query]
+    assert len(candidate_calls) == 1
+    assert candidate_calls[0][1][0] == [1.0, 0.0]
 
 
-def test_global_sources_keep_unicode_search_terms_for_localized_buyers() -> None:
+def test_global_sources_embed_localized_question_once() -> None:
     calls: list[tuple[str, tuple[object, ...]]] = []
 
     class FakeConnection:
@@ -208,8 +220,8 @@ def test_global_sources_keep_unicode_search_terms_for_localized_buyers() -> None
         )
     )
 
-    candidate_terms = [args[0] for query, args in calls if "matched_in" in query]
-    assert candidate_terms == ["无人机", "ドローン", "dự-án"]
+    candidate_calls = [(query, args) for query, args in calls if "unit_similarity" in query]
+    assert len(candidate_calls) == 1
 
 
 def test_global_sources_keep_lineage_expansion_within_requested_limit() -> None:
@@ -227,7 +239,7 @@ def test_global_sources_keep_lineage_expansion_within_requested_limit() -> None:
     class FakeConnection:
         async def fetch(self, query: str, *args):
             nonlocal source_call
-            if "matched_in" in query:
+            if "unit_similarity" in query:
                 return [matched_row]
             if "post_lineage_edge" in query:
                 return [{"other_id": post_id} for post_id in reversed(neighbor_ids)]
@@ -289,9 +301,59 @@ def test_global_sources_return_no_evidence_for_zero_limit() -> None:
     )
 
 
+def test_global_sources_fail_closed_when_embedding_is_unavailable() -> None:
+    class UnavailableEmbedding:
+        available = False
+        resolved_model = None
+
+        def embed(self, _text: str) -> list[float]:
+            raise AssertionError("unavailable embedding must not be called")
+
+    class FakeConnection:
+        async def fetch(self, _query: str, *_args):
+            raise AssertionError("lexical fallback must not query the corpus")
+
+    sources = asyncio.run(
+        _gather_global_chat_sources(
+            FakeConnection(),
+            lambda _row: True,
+            question="semantic question",
+            embedding_client=UnavailableEmbedding(),
+        )
+    )
+
+    assert sources == []
+
+
+def test_global_sources_fail_closed_without_a_resolved_embedding_model() -> None:
+    """A vector without its orchestrator-resolved model cannot match persisted rows."""
+
+    class UnboundEmbedding:
+        available = True
+        resolved_model = None
+
+        def embed(self, _text: str) -> list[float]:
+            return [1.0, 0.0]
+
+    class FakeConnection:
+        async def fetch(self, _query: str, *_args):
+            raise AssertionError("an unbound vector must not query persisted embeddings")
+
+    sources = asyncio.run(
+        _gather_global_chat_sources(
+            FakeConnection(),
+            lambda _row: True,
+            question="semantic question",
+            embedding_client=UnboundEmbedding(),
+        )
+    )
+
+    assert sources == []
+
+
 def test_global_sources_expand_top_match_through_event_lineage() -> None:
     """Global Ask must speak to a connected timeline, not an isolated
-    snapshot -- expand the single top-ranked keyword match through its
+        snapshot -- expand the single top-ranked semantic match through its
     direct `post_lineage_edge` neighbors (`lineageweave.reconstruct`'s
     output), mirroring the post-scoped chat flow's `find_linked_post_ids`.
     """
@@ -313,7 +375,7 @@ def test_global_sources_expand_top_match_through_event_lineage() -> None:
 
     class FakeConnection:
         async def fetch(self, query: str, *args):
-            if "matched_in" in query:
+            if "unit_similarity" in query:
                 return [matched_row]
             if "post_lineage_edge" in query:
                 return [{"other_id": "event-1"}]
@@ -360,7 +422,7 @@ def test_global_sources_do_not_leak_lineage_anchor_id_when_anchor_is_invisible()
 
     class FakeConnection:
         async def fetch(self, query: str, *args):
-            if "matched_in" in query:
+            if "unit_similarity" in query:
                 return [matched_row]
             if "post_lineage_edge" in query:
                 return [{"other_id": "visible-neighbor"}]
@@ -415,20 +477,15 @@ def test_global_sources_resolve_relative_time_against_seoul_calendar_day(
     assert "at time zone 'Asia/Seoul'" in source_query
     assert source_args[4] == date(2026, 8, 21)
     assert source_args[5] == date(2026, 8, 21)
-    candidate_calls = [(query, args) for query, args in calls if "matched_in" in query]
+    candidate_calls = [(query, args) for query, args in calls if "unit_similarity" in query]
     assert all("event_clock" in query for query, _args in candidate_calls)
     assert all(
-        args[1:] == (date(2026, 8, 21), date(2026, 8, 21))
+        args[5:7] == (date(2026, 8, 21), date(2026, 8, 21))
         for _query, args in candidate_calls
     )
 
 
-def test_global_sources_drop_particle_attached_temporal_words_from_search_terms() -> None:
-    """Live bug: the temporal-stopword filter used exact match, so a Korean
-    particle attached directly to a time word ("어제는") tokenized as one
-    token and survived into keyword search, even though this is the
-    ordinary way to phrase the question (not an edge case).
-    """
+def test_global_sources_do_not_run_lexical_search_for_relative_time_question() -> None:
     calls: list[tuple[str, tuple[object, ...]]] = []
 
     class FakeConnection:
@@ -445,8 +502,10 @@ def test_global_sources_drop_particle_attached_temporal_words_from_search_terms(
         )
     )
 
-    candidate_terms = [args[0] for query, args in calls if "matched_in" in query]
-    assert candidate_terms == ["무슨", "일이", "있었나요"]
+    candidate_queries = [query for query, _args in calls if "unit_similarity" in query]
+    assert len(candidate_queries) == 1
+    assert "ilike" not in candidate_queries[0].lower()
+    assert "to_tsvector" not in candidate_queries[0].lower()
 
 
 def test_global_sources_bind_relative_time_to_event_clock_not_ingest_cluster(

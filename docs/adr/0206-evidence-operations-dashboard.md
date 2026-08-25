@@ -30,6 +30,9 @@ provenance.
    explicit fallback, matching ADR 0202. The response names that clock.
 3. Every count is authorization-filtered before aggregation. The API returns
    both event count and distinct post count; neither substitutes for the other.
+   Analysis-pending and ingestion-failed post counts are disjoint: a failed
+   current job is shown as retryable failure, never hidden inside the pending
+   count or interpreted as a negative classification.
 4. Extend the existing post-summary semantic workflow through
    contextual-orchestrator with a schema-validated case analysis. It classifies
    zero or more case kinds (`claim_investigation`, `rebid_handover`,
@@ -53,6 +56,13 @@ provenance.
    When the focal post lacks an answer, the orchestrator follows authorized
    Event Lineage and semantic project evidence before concluding the fact is
    absent from the authorized corpus.
+   The analysis input reuses the post-chat source assembler: focal post first,
+   then bounded Event Lineage and semantic-neighborhood posts after the same
+   corporate-entity/process-unit ABAC check. Every classification and fact
+   persists its evidence post id and the SHA-256 of the exact numbered input
+   document. A span that does not occur in that identified document rejects
+   the whole provider response; linked evidence is never rewritten as focal
+   post evidence.
 8. Claim-investigation and rebid/handover panels include positively classified
    cases and show extracted answers plus cited spans. A required answer that
    the source does not support is stored as an explicit missing fact, so the
@@ -65,7 +75,16 @@ provenance.
    source-supported improvement action. Its Dashboard flow is As-Is evidence
    to To-Be action: rebid history retrieval, originating-order/specification
    reverse tracing, repeated-issue grouping, and design-improvement return.
-   Similarity alone never establishes that two issues are the same type.
+   Similarity alone never establishes that two issues are the same type. The
+   per-post Similar VOC view uses visible `repeat_issue` classifications only
+   as a semantic candidate pool, then requires contextual-orchestrator to
+   adjudicate each pair with verbatim evidence from both records. Results are
+   displayed by source event time, not a similarity score. It does not reuse
+   Event Lineage channel weights, and it does not invoke RankWeave without a
+   separately authorized Similar-VOC measurement contract. Candidate
+   adjudication is paged in eight-record resource batches with an explicit
+   continuation offset; the page boundary caps request fan-out but does not
+   discard older candidates or become a relevance threshold.
 11. The Dashboard uses existing design tokens and native HTML controls. Tables
    and ordered journey steps remain usable without color, with visible focus,
    keyboard activation, responsive overflow, and reduced-motion support.

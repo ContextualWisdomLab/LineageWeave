@@ -20,6 +20,7 @@ class _Connection:
             "total_event_count": 3,
             "external_post_count": 1,
             "pending_analysis_count": 1,
+            "failed_analysis_count": 2,
         }
 
     async def fetch(self, query: str, *args: object) -> list[dict[str, object]]:
@@ -32,6 +33,7 @@ class _Connection:
                     "fact_type_code": "originating_order",
                     "value_text": "Synthetic order 7",
                     "evidence_text": "Synthetic cited sentence",
+                    "evidence_post_id": "00000000-0000-0000-0000-000000000002",
                     "fact_ordinal": 0,
                 }
             ]
@@ -41,6 +43,7 @@ class _Connection:
                 "case_kind_code": "claim_investigation",
                 "summary_text": "원인 수주가 연결됨",
                 "evidence_text": "Synthetic cited sentence",
+                "evidence_post_id": "00000000-0000-0000-0000-000000000002",
                 "project_name": "Synthetic Project",
                 "occurred_at": datetime(2026, 8, 12, tzinfo=timezone.utc),
             }
@@ -55,12 +58,14 @@ async def test_dashboard_uses_abac_event_clock_and_persisted_evidence() -> None:
     result = await fetch_operations_dashboard(
         conn,
         ["00000000-0000-0000-0000-000000000009"],
+        ["00000000-0000-0000-0000-000000000008"],
         date(2026, 8, 1),
         date(2026, 8, 31),
     )
 
     assert result["period_label"] == "2026-08-01 ~ 2026-08-31 · Event 발생일"
     assert result["external_percent"] == 25.0
+    assert result["failed_analysis_count"] == 2
     assert result["cases"] == [
         {
             "post_id": "00000000-0000-0000-0000-000000000001",
@@ -69,6 +74,7 @@ async def test_dashboard_uses_abac_event_clock_and_persisted_evidence() -> None:
             "project_name": "Synthetic Project",
             "summary_text": "원인 수주가 연결됨",
             "evidence_text": "Synthetic cited sentence",
+            "evidence_post_id": "00000000-0000-0000-0000-000000000002",
             "occurred_at": "2026-08-12T00:00:00+00:00",
             "facts": [
                 {
@@ -76,6 +82,7 @@ async def test_dashboard_uses_abac_event_clock_and_persisted_evidence() -> None:
                     "fact_type_label": "원인 수주",
                     "value_text": "Synthetic order 7",
                     "evidence_text": "Synthetic cited sentence",
+                    "evidence_post_id": "00000000-0000-0000-0000-000000000002",
                 }
             ],
         }
@@ -84,8 +91,9 @@ async def test_dashboard_uses_abac_event_clock_and_persisted_evidence() -> None:
     for query, args in conn.queries:
         assert "visibility_code = 'public'" in query
         assert "corporate_entity_id::text = any($1::text[])" in query
+        assert "process_unit_id::text = any($2::text[])" in query
         assert "coalesce(post.event_occurred_at, post.created_at)" in query
-        assert args[1:] == (date(2026, 8, 1), date(2026, 8, 31))
+        assert args[1:] == (["00000000-0000-0000-0000-000000000008"], date(2026, 8, 1), date(2026, 8, 31))
 
 
 @pytest.mark.anyio
@@ -96,7 +104,7 @@ async def test_dashboard_zero_denominator_and_invalid_period() -> None:
         async def fetchrow(self, query: str, *args: object) -> dict[str, int]:
             self.queries.append((query, args))
             return dict.fromkeys(
-                ("total_post_count", "total_event_count", "external_post_count", "pending_analysis_count"),
+                ("total_post_count", "total_event_count", "external_post_count", "pending_analysis_count", "failed_analysis_count"),
                 0,
             )
 
@@ -107,7 +115,7 @@ async def test_dashboard_zero_denominator_and_invalid_period() -> None:
     assert (await fetch_operations_dashboard(EmptyConnection(), []))["external_percent"] == 0.0
     with pytest.raises(ValueError, match="period_start"):
         await fetch_operations_dashboard(
-            EmptyConnection(), [], date(2026, 9, 1), date(2026, 8, 31)
+            EmptyConnection(), [], [], date(2026, 9, 1), date(2026, 8, 31)
         )
 
 

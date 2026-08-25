@@ -1,6 +1,73 @@
 # Product & Technical Gap Baseline
 
-> Audit snapshot: 2026-08-25 18:00 KST (refreshed by the autonomous merge
+> Dashboard delivery snapshot: 2026-08-25 19:55 KST. Protected `main` was
+> `3f4734806bdc7ef5843f36c7dbbcceb62cd51b9e`. This local branch is not
+> protected-main release evidence.
+
+## Operations Dashboard PRD/TRD traceability
+
+| Requirement | Evidence contract | Delivery state |
+|---|---|---|
+| Claim cause delay: order, specification change, originating order, sales pool, Event/post counts | ADR 0206; contextual-orchestrator case classification with cited spans; Event Lineage context | Candidate implementation; authenticated runtime acceptance pending |
+| Rebid/handover: discussion, counterparties, our owner, decisions, Event/post counts | ADR 0206; normalized case facts plus persisted summary actions/roles | Candidate implementation; corpus backfill pending |
+| External information count/rate and sales/project relation | ADR 0206; semantic `external_information` classification inside Dashboard GNB | Candidate implementation; no separate Board by product decision |
+| Project-specific journey | Explicit source/semantic project membership plus event-time ordering | Candidate API and ordered journey UI implemented; authenticated runtime acceptance pending |
+| Repeat issue to design improvement | `repeat_issue`, `issue_pattern`, and `improvement_action` cited facts | Candidate semantic contract; design-system connector acceptance pending |
+| Natural-language Ask with evidence, report, alert, MCP | Persisted semantic-unit embeddings plus versioned delivery/resource contract | Candidate implementation uses whole-question embedding retrieval with no lexical fallback; authenticated runtime acceptance pending |
+| Similar VOC, customer cohort, prior action | Persisted repeat-issue candidate semantics plus orchestrator pair adjudication and extractive evidence | Candidate live post endpoint and post-detail UI implemented; authenticated runtime acceptance pending |
+| TEPP independent Event Lineage anchor | Accepted, persisted TEPP criterion bound to exact snapshot/cutoff before fast-mlsirm activation | Consumer PR #606 is on protected main; TEPP producer PR #237 remains open, so no end-to-end accepted artifact is release evidence yet |
+
+### Technical contract and flow
+
+```mermaid
+sequenceDiagram
+  participant Source as Authorized source_post
+  participant CO as contextual-orchestrator
+  participant Case as operations_case_* (3NF)
+  participant TEPP as TEPP criterion run
+  participant MLS as fast-mlsirm
+  participant API as Dashboard/Ask API
+  Source->>CO: semantic units + lineage + ontology context
+  CO-->>Case: cases, cited facts, session provenance
+  Source->>TEPP: versioned snapshot and independent criterion
+  TEPP-->>MLS: exact accepted anchor only
+  MLS-->>API: anchored vector or unavailable
+  Case-->>API: ABAC-filtered evidence and counts
+```
+
+Security/operability: every aggregation applies `post_read` plus row-level
+corporate-entity visibility before counting; source-body digests invalidate
+stale inference; provider errors persist no positive/negative result; PII
+remains authorized at the UI boundary and is excluded from telemetry. The
+tables use composite keys and bounded kind-first indexes; production hot-path
+acceptance still requires `EXPLAIN (ANALYZE, BUFFERS)` on an anonymized runtime
+snapshot.
+
+### Exact-head UI audit
+
+The `f0b96029` Storybook build was rendered at 1440×1100 and 402×1200 with
+synthetic evidence; `416fd19d` changes only post-navigation request isolation.
+Desktop inspection showed all four case kinds, five non-conflated metrics,
+project-journey ordering, cited facts, and evidence actions without horizontal
+card overflow. Narrow inspection showed two-column metrics, readable cards and
+44px-class actions; the project journey remains intentionally horizontally
+scrollable. No identifying runtime record or screenshot is committed. The
+`EvidenceReady`, `NarrowViewport`, `AnalysisPendingAndMissingEvidence`,
+`AnalysisFailed`, and `LoadError` scenes cover the ADR 0206 state inventory.
+Authenticated authorized-corpus acceptance remains separate and may return
+only aggregate, non-identifying evidence to this repository.
+
+### Exact open-PR boundary
+
+At this snapshot there were 7 open PRs and 17 open issues. Exact observed heads
+were `#616 10d289cd`, `#615 dadf2ccd`, `#614 416fd19d`, `#613 024fb6ab`,
+`#612 2c50d8b6`, `#579 b782e5f7`, and `#387 d6b74f53`. All were blocked on
+hosted gates and/or independent review. These observations are not merge
+readiness. Re-fetch exact heads,
+unresolved threads, checks, approvals, rulesets, and merge SHA before any
+lifecycle claim.
+
+> Audit snapshot: 2026-08-25 19:55 KST (refreshed by the autonomous merge
 > loop). This repository records synthetic fixtures and aggregate,
 > non-identifying runtime evidence only. Open PRs and local checks are not
 > protected-default-branch release evidence. Identifying post identifiers,
@@ -9,29 +76,32 @@
 
 ## 1. Exact-head and governance evidence
 
-The protected default branch was `3d6d7188a3ae299ffef77eb991032268a4c2160d`
-when this baseline was refreshed. The live queue contained 5 open PRs and 17
+The protected default branch was `3f4734806bdc7ef5843f36c7dbbcceb62cd51b9e`
+when this baseline was refreshed. The live queue contained 7 open PRs and 17
 open issues. The exact-head inventory below supersedes older per-PR snapshots
 elsewhere in this document; those older rows remain useful historical delivery
 context only.
 
 | PR | Exact observed head | Merge/check state at this snapshot |
 | ---: | --- | --- |
-| #609 | `820fe648` | exact-main follow-up that renders #493's focused isolation reasons with localized next actions and an accepted ADR; backend/documentation, focused UI, i18n, lint, and build checks passed locally, auto-merge is enabled, and hosted gates plus independent review remain outstanding |
-| #606 | `61fd631c` | retires the internally anchored channel-weight vector in favor of the exact TEPP#237 criterion-validity contract and contains the former #607 operations-dashboard stack; the head now conflicts with protected `main` and must be composed without losing either capability |
-| #579 | `a8e9ef9e` | interaction-map coordinates remain open and now conflict with protected `main`; prior branch tests and screenshot audits do not transfer across the required composition |
-| #490 | `73413d0b` | broad historical workspace branch is conflicting with failing checks; decompose/restack rather than replaying its 931-commit merge wholesale |
-| #387 | `ab5cf345` | channel evidence plus Ask reconstruction-profile preservation is mergeable on the current head, but a current changes-requested decision remains; resolve valid findings and obtain independent exact-head re-review before enabling auto-merge |
+| #616 | `10d289cd` | narrows global Ask to exact resolved embedding identity; hosted gates and independent review remain required |
+| #615 | `dadf2ccd` | removes a resolved calendar placeholder's duplicate live-region role; hosted gates and independent review remain required |
+| #614 | `416fd19d` | Dashboard/Ask/Similar-VOC, disjoint failed-analysis metrics, and post-isolated pagination are composed with current main; same-head hosted gates and independent review remain required |
+| #613 | `024fb6ab` | exact-head baseline refresh awaits hosted gates and independent review; its snapshot does not supersede this later live inventory |
+| #612 | `2c50d8b6` | focused graph navigation no longer falls back to stale global graph state; hosted gates and independent review remain required |
+| #579 | `b782e5f7` | interaction-map coordinate persistence is composed with protected main; hosted gates and independent review remain required |
+| #387 | `d6b74f53` | channel evidence and delivery repairs are composed, but independent exact-head review remains required |
 
 No row above is merge evidence. Immediately before any lifecycle action,
 re-fetch the head, unresolved threads, formal reviews, rulesets, and same-head
 check conclusions. In particular, queued checks are infrastructure state and
 do not transfer evidence from an earlier SHA.
 
-PR #607 merged as `61fd631c7bb3c57113fd19763c2c43161eeb2824`
-into #606's non-default branch. That stack merge preserves its implementation
-but is not protected-`main` evidence; only #606's eventual protected merge can
-deliver the combined TEPP-anchor and operations-dashboard work.
+PR #607 first merged as `61fd631c7bb3c57113fd19763c2c43161eeb2824`
+into #606's non-default branch. PR #606 subsequently passed the protected gate,
+so the combined TEPP-consumer and operations-dashboard implementation is now
+on `main`; the still-open TEPP producer PR #237 keeps end-to-end anchor
+acceptance unavailable.
 
 PR #604 was closed unmerged after its exact OIDC repair was composed into #605;
 its green or pending checks are not delivery evidence. PR #482 merged as
@@ -53,9 +123,10 @@ longer part of the open queue. That merge also left a standalone conflict
 marker and duplicated stale tail in `CLAUDE.md`; #594 repaired it through
 protected `main` as `241be2dddf657f854cb8be54fe11d4ef48d37976`.
 
-Protected main now calls the ADR 0109 OIDC return helpers before
-`signinRedirect`; #600 and #605 delivered the repair through the protected
-gate. The authenticated-only `accessToken` narrowing remains present.
+Protected main now contains the ADR 0109 OIDC return restoration from #605,
+including fragment preservation and storage fallback. The #606 dashboard
+landing must additionally route `?post=` deep links to the Board; that focused
+regression is part of the current candidate and is not delivery evidence yet.
 
 Three systemic gates currently dominate the queue:
 
@@ -99,11 +170,11 @@ Recent protected-default-branch delivery evidence (squash merges onto
 
 | PR | Merged (UTC) | Delivered |
 | ---: | --- | --- |
-| #468 | 2026-08-25 08:44 | fast-mlsirm, Keyverse, orchestrator, and TEPP integration boundaries |
-| #493 | 2026-08-25 08:44 | ABAC-safe focused Event Lineage isolation reasons in the backend; buyer copy continues on #609 |
-| #600 | 2026-08-25 08:44 | non-identifying live gap baseline and ADR 0109 login-helper repair |
-| #605 | 2026-08-25 08:44 | modal focus containment/refocus, readable evidence labels, and OIDC return context |
-| #608 | 2026-08-25 08:43 | Naruon projection wired into Workspace Calendar |
+| #468 | 2026-08-25 08:44 | fast-mlsirm, Keyverse, contextual-orchestrator, and TEPP integration boundaries |
+| #493 | 2026-08-25 08:44 | evidence-grounded Event Lineage isolation reasons |
+| #600 | 2026-08-25 08:44 | then-current exact-head product/technical baseline |
+| #605 | 2026-08-25 08:44 | dialog focus order, evidence readability, and OIDC return-context restoration |
+| #608 | 2026-08-25 08:43 | Naruon projection consumed by Workspace Calendar |
 | #603 | 2026-08-25 07:24 | short analysis-run transactions, session advisory locking, package-marker/privacy repair, and provider-work lease release |
 | #602 | 2026-08-25 07:24 | post-detail modal semantics, Escape close, initial focus, and opener restoration; navigation-refocus edge case continues on #605 |
 | #582 | 2026-08-25 07:24 | bounded batched cited-lineage graph fetch |
@@ -279,7 +350,7 @@ this file per §3.5 of the prior snapshot).
 | #280 | Full project-lifecycle history and handover intervals | Tracked with issue #284; no active delivery PR confirmed |
 | #284 | Authoritative lifecycle ingestion and idempotent reconciliation | No active delivery PR confirmed |
 | #289 | Activate the optional lineage LLM channel through a bounded asynchronous rebuild | #434 |
-| #336 | Replace pseudo-CalDAV feed with a Naruon-owned calendar projection | Contract on `main` (#355); Buyer consume wiring in `feat/naruon-calendar-buyer-wiring-v2170` |
+| #336 | Replace pseudo-CalDAV feed with a Naruon-owned calendar projection | Contract on `main` (#355); operator consume wiring in historical branch `feat/naruon-calendar-buyer-wiring-v2170` |
 | #338 | Evidence-bounded email/project lineage contract for Naruon consumption | #355 |
 | #341 | Heterogeneous ontology and provenance explorer separate from Event Lineage | #349 |
 | #358 | Batch reauthorize persisted post-Ask evidence without N+1 queries | Ask stack |
@@ -291,8 +362,8 @@ this file per §3.5 of the prior snapshot).
 
 | Gap | Current evidence | Acceptance requirement |
 | --- | --- | --- |
-| Protected release | 5 open PRs at snapshot; #609 is mergeable with auto-merge, #606/#579/#490 conflict, and #387 retains changes requested | Terminal exact-head checks, no unresolved threads, independent exact-head approvals, protected squash-merge SHA |
-| Evidence-grounded operations workspace | The former #607 implements persisted operational cases, an authenticated dashboard, citation-first actions, report/alert delivery metadata, tokens, Storybook, and regression coverage inside #606; authenticated production backfill and the similar-VOC live endpoint remain unavailable | Clear #606 normally on its exact combined head, perform authenticated desktop/mobile acceptance with aggregate evidence, and confirm a protected merge SHA |
+| Protected release | 8 open PRs at snapshot; the queue is split between mergeable exact-main heads and older conflicting work, while the former #607 is preserved inside #606 | Terminal exact-head checks, no unresolved threads, independent exact-head approvals, protected squash-merge SHA |
+| Evidence-grounded operations workspace | #606 delivered the initial consumer and Dashboard to protected `main`; #614 adds governed semantic Ask, live Similar VOC, disjoint pending/failed analysis metrics, full Storybook state inventory, and current desktop/mobile screenshot evidence. Authorized-corpus backfill acceptance remains unavailable | Clear #614 normally on its exact head, perform authenticated authorized-corpus acceptance with aggregate evidence, and confirm a protected merge SHA |
 | Shared frontend gate | The ADR 0109 login repair is on protected `main`; eight older branches carried the defect and received the same verified repair this loop (#521–#560) | Keep every future branch cut from post-repair bases; re-verify with frontend lint/test/build before push |
 | Identifying baseline regression | `main` gap file listed real post identifiers; separately, closed #506 and pre-existing public history contain a private runtime source-table identifier, while current `main` and #507 trees are clean | Land this non-identifying rewrite, then coordinate ADR 0001 history remediation with security/privacy owners; do not reproduce the value, force-push, or delete evidence ad hoc |
 | Authorized-corpus runtime | Repository tests use synthetic fixtures; private records remain outside git | Authenticated runtime validation returning only aggregate, non-identifying evidence |
@@ -301,13 +372,13 @@ this file per §3.5 of the prior snapshot).
 | Event and project semantics | Multi-project mentions, project-bound actions, 5W1H, requester/processor, and semantic relations exist in ADR 0036/0052/0100/0111/0129 and active stacks | Aggregate authenticated evidence must show distinct projects and events, explicit requester/processor and real R&R, normalized relative time, and product/entity relations without promoting attendance or co-occurrence |
 | Knowledge Graph readability | The black evidence-node root cause is an undefined-token fallback; the design-token repair and long-label/evidence-table coverage are present on #490, not protected `main` | Deliver the token repair through protected `main`, then verify light/dark contrast, keyboard graph navigation, full labels, and evidence tables in the authenticated rendered surface |
 | Source-code lookup UX | Source state/detail codes remain evidence-bearing machine values and current detail presentation is dense | Catalog-backed display labels with raw-code provenance, compact 5W1H/source-detail hierarchy, keyboard access, and no unsupported customer/project binding |
-| Calendar / Naruon | #355 delivered the projection contract; v2.17.0 wires Buyer consume without forwarding the end-user token. Naruon producer, provider/consumer fixtures, and protected merge remain open (#336) | Verify observed events against the published schema without invented events; keep commitments available when the channel is unwired |
+| Calendar / Naruon | #355 delivered the projection contract; v2.17.0 wires operator consumption without forwarding the end-user token. Naruon producer, provider/consumer fixtures, and protected merge remain open (#336) | Verify observed events against the published schema without invented events; keep commitments available when the channel is unwired |
 | SKOS organization aliases | Catalog binding and chip caption live on #480 / #482 | One catalog row per corroborated org; companion caption is hint-only until bound |
 | Event Lineage evidence | Channel evidence and Allen relations live on #387 / #484 | Persist channel scores, explain them in the popup, never invent a fused score |
-| Scientific measurement | Durable accepted TEPP receipts are protected (`main`); #606 replaces the internally anchored channel-weight activation with the exact TEPP-owned criterion-validity contract from TEPP#237, while #468 binds fast-mlsirm/Keyverse/orchestrator/TEPP integration tests and fails closed on upstream probability-axis drift. Neither cross-repository PR is protected delivery yet. #387 removes inferred/default persistence weights, but several older reconstruction tests still pass hand-authored numeric weight dictionaries; those constants are not estimator evidence | Land TEPP#237 before or together with #606 through their protected gates, then continue replacing remaining reconstruction-test constants with provenance-bearing fast-mlsirm estimates over synthetic fixtures; tests unrelated to fusion must bypass weighting entirely, as #484 does. Retain true-parameter RMSE recovery as the acceptance bar |
+| Scientific measurement | Durable accepted TEPP receipts are protected; TEPP #237 head `9b96c1ae` publishes the strict independent criterion-anchor contract, while LineageWeave #614 accepts only an exact accepted snapshot/cutoff/run/pair-count match and fails closed on duplicate sets. Neither current head is protected delivery yet. #387 removes inferred/default persistence weights, but several older reconstruction tests still pass hand-authored numeric dictionaries that are not estimator evidence | Land TEPP #237 before #614 through their protected gates, then replace remaining reconstruction-test constants with provenance-bearing fast-mlsirm estimates over synthetic fixtures. Retain true-parameter RMSE recovery as the acceptance bar |
 | Asynchronous authorization | Protected `main` rebuilds Global Ask worker scope after the bearer token leaves the request; #468 now persists exact Keyverse organization/process-unit scope in 3NF child tables and intersects it with current affiliations | Land #468 through the protected gate; prove a second affiliation and a revoked process unit cannot widen delayed-job evidence |
 | Planned-facility intent | Planned-facility relationship intent rides on open #490 (`d0cad030`), whose earlier stack-only merges were not protected delivery | Settle #490 exact-head checks plus independent approval, then land through protected `main` before a release claim |
-| Accessibility and responsive UX | #602 and protected-main #605 deliver modal semantics, selected-post refocus, collapsed/hidden/inert/CSS-invisible focus exclusion, and readable evidence separators | Complete screen-reader and authenticated Playwright acceptance on one exact release head |
+| Accessibility and responsive UX | #602 delivered base post-detail modal semantics; #605 adds selected-post refocus, collapsed/hidden/inert/CSS-invisible focus exclusion across both modal types, readable evidence separators, focused tests, and desktop/mobile Storybook screenshots | Land #605 through the protected gate, then complete screen-reader and authenticated Playwright acceptance on the exact release head |
 | Design tokens and repeated objects | Token extraction started; sanitized Figma Event Lineage desktop/mobile frames exist, while other repeated product surfaces remain incomplete | Tokens in CSS + Storybook stories for board, popup, DAG, Ask, calendar, forms, charts; same-viewport Figma/runtime visual comparison before release |
 | External integrations | Search, Zotero, calendar, Keyverse, orchestrator, RankWeave, ThreadWeave, TEPP, disksage, wardnet | Provider conformance, failure/reconciliation behavior, and provenance-bearing integration evidence |
 | MSA / modular reuse | LineageWeave must run standalone and as a consumer of org packages | Do not reimplement RankWeave/TEPP/orchestrator/ThreadWeave/Keyverse; fix upstream and PR there |
@@ -393,7 +464,7 @@ review latency are never blockers — keep working while they settle.
    (#518–#564) merges in ascending order.
 3. Keep the shared ADR 0109 repair verified on #521–#560 heads (done this
    loop; frontend lint/test/build passed locally before each push).
-4. After PRs drain below a handful, resume buyer-visible gaps from §5 in
+4. After PRs drain below a handful, resume operator-visible gaps from §5 in
    leverage order: Event Lineage evidence (#387/#274), Naruon calendar
    (#355/#336), SKOS aliases (#480/#482), ontology explorer (#349/#341).
 5. Rename remaining `[Buyer Gap]` issue titles to neutral product-object
@@ -416,7 +487,7 @@ review latency are never blockers — keep working while they settle.
 - Orchestrator / paper-grounded models: ADR 0015, ADR 0076 (Fugu, TRINITY, Conductor)
 - Ontology / PROV-O / SKOS: ADR 0004, ADR 0011, issue #372
 - Analysis runs / TEPP: ADR 0013–0023, issue #79 / #277
-- Calendar / Naruon: issues #336 / #338, PR #355, Buyer consume v2.17.0
+- Calendar / Naruon: issues #336 / #338, PR #355, operator consumption v2.17.0
 - Ask Agent: issues #269–#272, #358–#363
 
 Citations in doctoring and ADRs use APA 7th. Do not invent a heuristic where

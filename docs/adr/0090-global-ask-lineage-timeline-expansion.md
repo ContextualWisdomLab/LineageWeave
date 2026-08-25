@@ -8,7 +8,8 @@
 
 ADR 0047 gave Global Ask's retrieve step the same source-context search
 surface as the board (raw source hints, project mentions, roles, Keyman
-mentions, title, body). That step ranks and returns keyword-matched posts,
+mentions, title, body). The current ADR 0047 revision ranks persisted
+semantic-unit embeddings against the complete question,
 but it never touches `post_lineage_edge` -- the Event-Lineage relation
 `lineageweave.reconstruct` already persists, and the same relation the
 post-scoped chat flow (`gather_chat_sources`) already expands through for a
@@ -16,30 +17,28 @@ single known starting post.
 
 A relevance-correct top match is still one snapshot. A live reproduction
 asking about a specific real event got an accurate answer about that one
-post and nothing about what led up to it or what happened next, even after
-match-specificity ranking (title/body/source-field weighting) was already
-fixed to stop recency from crowding out the right post. The account asking
+post and nothing about what led up to it or what happened next. The account asking
 almost always wants the event's place in a sequence, not an isolated
 record.
 
 ## Decision
 
-After `gather_global_chat_sources` ranks candidates by match specificity,
+After `gather_global_chat_sources` ranks candidates by persisted semantic-unit
+embedding similarity,
 it expands only the single top-ranked match through its direct
 `post_lineage_edge` neighbors (parent and child), mirroring the `.direct`
 set `find_linked_post_ids` already computes for the post-scoped flow. The
 expansion:
 
-- Is bounded to the top match only. Expanding every keyword hit was
+- Is bounded to the top match only. Expanding every semantic candidate was
   rejected -- a loosely related term matching a second post would drag an
   unrelated lineage chain into the model's context for no benefit.
 - Never bypasses ABAC. Lineage-neighbor ids are merged into the same
   candidate set the existing visibility filter (`can_see_post`) already
   runs over; nothing lineage-adjacent is shown without passing that check.
-- Is additive to the existing bounded source `limit`, not a replacement
-  for it -- the limit grows by exactly the number of lineage neighbors
-  found, so lineage expansion cannot silently starve the keyword-matched
-  candidates of their own slots.
+- Shares the existing bounded source `limit`. The anchor and its direct
+  neighbors take the first slots and lower-ranked semantic candidates fill
+  any remaining slots; the returned source count never exceeds `limit`.
 - Tags each expanded source with an explicit `Event Lineage: reconstructed
   timeline neighbor of post_id=...` evidence fact, and only when the
   anchor post itself is visible -- an expanded neighbor must never cite an
@@ -52,12 +51,12 @@ sequence around it.
 
 ## Considered alternatives
 
-- Expand every keyword-matched candidate's lineage neighbors, not just the
+- Expand every semantically ranked candidate's lineage neighbors, not just the
   top one: rejected for the reason above -- unbounded relevance drift into
   the prompt.
-- Increase `limit` and let the ranking naturally surface neighbors if they
-  also match the search terms: rejected -- a genuine lineage predecessor or
-  successor frequently shares no keyword with the question at all (a
+- Increase `limit` and let the ranking naturally surface neighbors: rejected
+  -- a genuine lineage predecessor or successor can express a different event
+  in the sequence (a
   Kick-off Meeting and its follow-up rarely repeat the same terms), so
   ranking alone cannot be relied on to surface it.
 
@@ -65,9 +64,7 @@ sequence around it.
 
 - Global Ask answers can now speak to a connected sequence of records
   around its best match, not only that match's own content.
-- The source budget is no longer a fixed constant per request; callers
-  reading `limit` as an upper bound on retrieved posts must account for the
-  lineage-expansion addition.
+- `limit` remains the hard upper bound after lineage expansion.
 - Global Ask still has no persisted multi-turn conversation state, so
   there is no long-context-compression problem yet. Recursive dialogue
   summarization (Wang et al., 2023) is recorded in
