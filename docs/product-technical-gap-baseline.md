@@ -1,6 +1,6 @@
 # Product & Technical Gap Baseline
 
-> Dashboard delivery snapshot: 2026-08-26 03:37 KST. Protected `main` was
+> Dashboard delivery snapshot: 2026-08-26 03:49 KST. Protected `main` was
 > `04e6b610655d0db91d5f7ba9486bdda1440e0b19`. This local branch is not
 > protected-main release evidence.
 
@@ -60,16 +60,15 @@ only aggregate, non-identifying evidence to this repository.
 
 ### Exact open-PR boundary
 
-At this snapshot there were 11 open PRs and 10 open issues. Exact observed heads
+At this snapshot there were 13 open PRs and 10 open issues. Exact observed heads
 are recorded in §1. Every PR targets `main` and retains normal auto-merge;
-none has the two independent approvals required by ruleset 18156473. #657
-also has unresolved review threads, and
-new heads on #632 and #640 invalidate earlier check evidence. These
+none has the two independent approvals required by ruleset 18156473. New heads
+on #632, #640, #657, and #658 invalidate earlier check evidence. These
 observations are not merge readiness. Re-fetch exact
 heads, unresolved threads, checks, approvals, rulesets, and merge SHA before
 any lifecycle claim.
 
-> Audit snapshot: 2026-08-26 03:37 KST (refreshed by the autonomous merge
+> Audit snapshot: 2026-08-26 03:49 KST (refreshed by the autonomous merge
 > loop). This repository records synthetic fixtures and aggregate,
 > non-identifying runtime evidence only. Open PRs and local checks are not
 > protected-default-branch release evidence. Identifying post identifiers,
@@ -79,7 +78,7 @@ any lifecycle claim.
 ## 1. Exact-head and governance evidence
 
 The protected default branch was `04e6b610655d0db91d5f7ba9486bdda1440e0b19`
-when this baseline was refreshed. The live queue contained 11 open PRs and 10
+when this baseline was refreshed. The live queue contained 13 open PRs and 10
 open issues. The exact-head inventory below supersedes older per-PR snapshots
 elsewhere in this document; those older rows remain useful historical delivery
 context only.
@@ -89,14 +88,16 @@ context only.
 | #579 | `689a21b6` | required checks terminal-success; auto-merge enabled; two independent approvals and last-push approval absent |
 | #629 | `4b4d6707` | required checks terminal-success; auto-merge enabled; two independent approvals and last-push approval absent |
 | #631 | `c0022c97` | required checks terminal-success; auto-merge enabled; two independent approvals and last-push approval absent |
-| #632 | `05b640a4` | new exact head invalidates earlier checks/reviews; auto-merge enabled; independent approvals absent |
+| #632 | `dfd2f8b7` | new exact head invalidates earlier checks/reviews; auto-merge enabled; independent approvals absent |
 | #636 | `f7b9a65f` | required checks terminal-success; auto-merge enabled; two independent approvals and last-push approval absent |
 | #639 | `aee02dca` | required checks terminal-success; auto-merge enabled; two independent approvals and last-push approval absent |
-| #640 | `31d05313` | new exact head invalidates earlier checks/reviews; auto-merge enabled; independent approvals absent |
+| #640 | `4bed57a7` | new exact head invalidates earlier checks/reviews; auto-merge enabled; independent approvals absent |
 | #643 | `041ec13b` | required checks terminal-success; auto-merge enabled; two independent approvals and last-push approval absent |
 | #644 | `c1018a0a` | required checks terminal-success; auto-merge enabled; two independent approvals and last-push approval absent |
-| #657 | `f4f7f185` | TEPP lifecycle candidate; three unresolved review threads; checks and independent approvals require exact-head revalidation |
-| #658 | `bf98ac8a` | Global Ask cutoff candidate; review threads resolved on this new head; checks and independent approvals require exact-head revalidation |
+| #657 | `64f48679` | receipt-schema review repair and migration-allocation repair pushed; checks and independent approvals require exact-head revalidation |
+| #658 | `cd7bee58` | Global Ask cutoff candidate advanced after review repair; checks and independent approvals require exact-head revalidation |
+| #659 | `2e3c6f1e` | this ontology-node readability and baseline branch; current-head checks and independent approvals required |
+| #660 | `1f1bc3e9` | backend runtime/integration contract repair candidate; current-head checks and independent approvals required |
 
 The open queue also has allocation conflicts that prevent order-independent
 merges: #636 and #643 both add ADR 0214; #632 and #644 both add ADR 0215; and
