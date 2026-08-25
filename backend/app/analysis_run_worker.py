@@ -7,7 +7,10 @@ supplies the internal visibility scope, and no event body is trusted.
 
 from __future__ import annotations
 
+<<<<<<< HEAD
 import asyncio
+=======
+>>>>>>> origin/main
 import logging
 
 import asyncpg
@@ -18,11 +21,16 @@ from lineageweave.adjudication_client import AdjudicationClient
 from lineageweave.observability import traced
 from lineageweave.tepp_client import TeppClient
 
+from backend.app.analysis_run_ingestion import AnalysisRunCreateError
 from backend.app.analysis_run_outbox import OUTBOX_STREAM_KEY
 from backend.app.analysis_run_start import deliver_queued_analysis_run
 
+<<<<<<< HEAD
 _BROKER_RECOVERY_DELAY_SECONDS = 1.0
 _worker_logger = logging.getLogger(__name__)
+=======
+logger = logging.getLogger(__name__)
+>>>>>>> origin/main
 
 
 async def consume_analysis_run_stream_once(
@@ -38,6 +46,7 @@ async def consume_analysis_run_stream_once(
     Invalid or stale entries are acknowledged by advancing the cursor; the
     durable PostgreSQL outbox remains available for a later explicit retry.
     """
+<<<<<<< HEAD
     try:
         batches = await client.xread({OUTBOX_STREAM_KEY: last_id}, count=10, block=1000)
     except Exception:
@@ -69,6 +78,24 @@ async def consume_analysis_run_stream_once(
                 except ValueError:
                     analysis_run_id = ""
                 if analysis_run_id:
+=======
+    batches = await client.xread({OUTBOX_STREAM_KEY: last_id}, count=10, block=1000)
+    for _stream_name, entries in batches:
+        for entry_id, fields in entries:
+            analysis_run_id = str(fields.get("analysis_run_id", "")).strip()
+            try:
+                UUID(analysis_run_id)
+            except ValueError:
+                analysis_run_id = ""
+            if analysis_run_id:
+                # One run's fail-closed refusal (404/409/503, e.g. channel
+                # weights not estimated yet, ADR 0145) must not end the
+                # worker task and halt every later run's delivery. The
+                # transaction rolls back, the durable outbox row stays
+                # available, and an explicit HTTP start retries the run
+                # once the operator resolves the named next action.
+                try:
+>>>>>>> origin/main
                     async with pool.acquire() as conn:
                         async with conn.transaction():
                             owner = await conn.fetchrow(
@@ -89,7 +116,18 @@ async def consume_analysis_run_stream_once(
                                     adjudication_client=adjudication_client,
                                     valkey_stream_entry_id=str(entry_id),
                                 )
+<<<<<<< HEAD
                 last_id = str(entry_id)
+=======
+                except AnalysisRunCreateError as exc:
+                    logger.warning(
+                        "analysis-run %s delivery refused (%s): %s",
+                        analysis_run_id,
+                        exc.status_code,
+                        exc.detail,
+                    )
+            last_id = str(entry_id)
+>>>>>>> origin/main
     return last_id
 
 

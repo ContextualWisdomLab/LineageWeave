@@ -27,7 +27,10 @@ from backend.app.analysis_run_outbox import (
     latest_outbox_delivery_is_delivered,
     outbox_request_digest,
 )
-from backend.app.lineage_ingestion import records_from_source_posts
+from backend.app.lineage_ingestion import (
+    load_estimated_channel_weights,
+    records_from_source_posts,
+)
 from lineageweave.adjudication_client import AdjudicationClient
 from lineageweave.http_client import HttpClientError, post_json
 from lineageweave.lineage_persistence import lineage_edge_specs
@@ -47,6 +50,34 @@ _TEPP_OUTPUT_PROFILE = "calibrated_event_measurement"
 
 class AnalysisRunStartError(AnalysisRunCreateError):
     """Fail-closed start: HTTP status plus a next-action detail string."""
+
+
+class _AdjudicationProviderError(RuntimeError):
+    """The adjudication provider (not our code) failed during a judge call."""
+
+
+class _ProviderBoundaryAdjudication:
+    """Convert judge-call provider failures into a typed boundary error.
+
+    ``post_json`` raises ``HttpClientError``/``OSError`` on transport and
+    HTTP failures and the content extraction raises
+    ``ValueError``/``TypeError`` on malformed provider envelopes; those
+    same builtin types raised by our reconstruction code would be real
+    bugs, so the conversion happens only inside ``judge`` -- the one
+    place a provider is actually on the line.
+    """
+
+    available = True
+
+    def __init__(self, inner) -> None:
+        self._inner = inner
+
+    def judge(self, candidate_label: str, record_label: str) -> float:
+        """Score one candidate pair, typing provider failures as such."""
+        try:
+            return self._inner.judge(candidate_label, record_label)
+        except (HttpClientError, OSError, ValueError, TypeError) as exc:
+            raise _AdjudicationProviderError(str(exc)) from exc
 
 
 def reconstruction_result_digest(edges: list[Edge]) -> str:
@@ -722,7 +753,42 @@ async def _deliver_lineage_reconstruction(
             knowledge_cutoff=locked["knowledge_cutoff"],
             affiliated_entity_ids=affiliated_entity_ids,
         )
-    edges = lineage_edge_specs(records_from_source_posts(rows), llm=adjudication_client)
+    # ADR 0200 point 1: weights are measurement output only -- the
+    # activated fast-mlsirm set matching this run's active channels
+    # (four when the adjudication client is available, three
+    # deterministic otherwise). A missing set fails the start with a
+    # next-action message instead of reconstructing on constants.
+    active_channels = {"temporal", "secondary_key", "text"}
+    if adjudication_client is not None and getattr(adjudication_client, "available", False):
+        active_channels = active_channels | {"llm"}
+    weights = await load_estimated_channel_weights(conn, active_channels)
+    if weights is None:
+        raise AnalysisRunStartError(
+            503,
+            "Channel weights are not estimated yet for this run's active "
+            f"channels ({', '.join(sorted(active_channels))}). Run "
+            "scripts/estimate_channel_weights.py, then start this run again.",
+        )
+    # The provider boundary is exactly llm.judge() -- wrapping the whole
+    # pipeline would disguise a reconstruction code bug as a retryable
+    # provider outage. The enclosing transaction rolls back either way,
+    # so no partial graph persists (issue #289 RED 4/6).
+    guarded_client = (
+        _ProviderBoundaryAdjudication(adjudication_client)
+        if "llm" in active_channels
+        else adjudication_client
+    )
+    try:
+        edges = lineage_edge_specs(
+            records_from_source_posts(rows), llm=guarded_client, weights=weights
+        )
+    except _AdjudicationProviderError as exc:
+        raise AnalysisRunStartError(
+            503,
+            "The adjudication provider failed mid-reconstruction; nothing "
+            "was persisted. Check the contextual-orchestrator transport, "
+            "then start this run again.",
+        ) from exc
     digest = reconstruction_result_digest(edges)
     finished = datetime.now(timezone.utc)
     if finished < now:

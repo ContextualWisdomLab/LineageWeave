@@ -10,6 +10,7 @@ import json
 import os
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
+from .channel_weight_estimation import estimate_fixture_channel_weights
 from .fixtures import sample_records
 from .models import Tree
 from .reconstruct import reconstruct
@@ -45,16 +46,38 @@ def trees_to_graph(trees: list[Tree]) -> dict:
     return {"nodes": nodes, "edges": edges}
 
 
-def build_server(host: str = "127.0.0.1", port: int = 8420) -> ThreadingHTTPServer:
-    """Build, but do not start, the demo server."""
+def build_server(
+    host: str = "127.0.0.1",
+    port: int = 8420,
+    *,
+    weights: dict[str, float] | None = None,
+) -> ThreadingHTTPServer:
+    """Build, but do not start, the demo server.
+
+    ``weights`` defaults to the demo-design estimate (ADR 0145, second
+    amendment: no hand-picked fusion weight exists anywhere). When no
+    estimate can be produced -- fast-mlsirm not importable -- the
+    server refuses to build and names the next action, rather than
+    fusing on invented weights. Tests inject synthetic weights here.
+    """
+    if weights is None:
+        estimate = estimate_fixture_channel_weights()
+        if estimate is None:
+            raise RuntimeError(
+                "the demo estimates its fusion weights with fast-mlsirm and "
+                "none could be produced; install fast-mlsirm from the "
+                "organization repository, then start the demo server again"
+            )
+        weights = estimate.weights
+    demo_weights = weights
 
     class Handler(BaseHTTPRequestHandler):
-        """Serves the demo lineage-graph JSON endpoint and the static DAG viewer."""
+        """Serve the demo lineage graph JSON and the static DAG viewer."""
 
         def do_GET(self) -> None:  # noqa: N802
             """Handle a GET request using the server's health endpoint contract."""
             if self.path == "/api/lineage":
-                trees = reconstruct(sample_records())
+                trees = reconstruct(sample_records(), weights=demo_weights)
                 self._send_json(trees_to_graph(trees))
                 return
             self._send_static()
