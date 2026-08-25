@@ -1,6 +1,6 @@
 # Product & Technical Gap Baseline
 
-> Audit snapshot: 2026-08-25 10:24 KST (refreshed by the autonomous merge
+> Audit snapshot: 2026-08-25 10:25 KST (refreshed by the autonomous merge
 > loop). This repository records synthetic fixtures and aggregate,
 > non-identifying runtime evidence only. Open PRs and local checks are not
 > protected-default-branch release evidence. Identifying post identifiers,
@@ -9,7 +9,7 @@
 
 ## 1. Exact-head and governance evidence
 
-The protected default branch was `1d1379fc59d9dac6e9c8bfa4812313e3b9e8f3c8`
+The protected default branch was `241be2dddf657f854cb8be54fe11d4ef48d37976`
 when this baseline was refreshed. The live queue contained 24 open PRs and 22
 open issues. The exact-head inventory below supersedes older per-PR snapshots
 elsewhere in this document; those older rows remain useful historical delivery
@@ -17,8 +17,8 @@ context only.
 
 | PR | Exact observed head | Merge/check state at this snapshot |
 | ---: | --- | --- |
-| #594 | `b90d3074` | removes the standalone conflict marker and duplicated stale tail introduced by #521; auto-merge armed, checks running |
-| #591 | `18f8825c` | canonical current-queue baseline; exact-head checks and independent review pending |
+| #595 | `1ce5fca7` | restores the audited no-draft-dimension import door and nullable updated-at fallback orphaned by the prior stack race; auto-merge armed, full suite running |
+| #591 | `2616faea` | canonical current-queue baseline reconciled with protected main; exact-head checks and independent review pending |
 | #588 | `dc60a08e` | ADR 0201 repair reconciled with current main; auto-merge armed, checks restarted |
 | #585 | `ffe1290b` | only locally-authored bounded job errors may persist; transport errors remain generic; auto-merge armed, checks restarted |
 | #584 | `17068ec3` | current-main ADR collision repaired; auto-merge armed, checks restarted |
@@ -55,8 +55,8 @@ passed the protected gate and #590 merged to `main` as
 PR #521 merged through protected `main` as
 `3797f063b1a7396972a749aa81f23745acccbee1`; it is release evidence and no
 longer part of the open queue. That merge also left a standalone conflict
-marker and duplicated stale tail in `CLAUDE.md`; #594 is the exact-head repair,
-so the documentation defect remains a protected-main gap until it merges.
+marker and duplicated stale tail in `CLAUDE.md`; #594 repaired it through
+protected `main` as `241be2dddf657f854cb8be54fe11d4ef48d37976`.
 
 The former protected-`main` login defect (unauthenticated `AdminPanel` render
 plus unused OIDC return-url helpers failing `tsc -b`) is repaired on
