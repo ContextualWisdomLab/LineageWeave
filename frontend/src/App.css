@@ -328,8 +328,10 @@
 }
 
 /* Posts & Evidence */
+/* No opacity dimming here: this class also carries the app's role="status"
+   next-action announcements, and opacity: 0.7 dropped their contrast below
+   WCAG AA (~3.03:1 light / ~4.09:1 dark) against --bg in both themes. */
 .post-meta {
-  opacity: 0.7;
   font-size: 0.85rem;
 }
 
