@@ -228,6 +228,17 @@ def test_tepp_run_request_is_the_published_wire_shape() -> None:
     assert "theta" not in str(payload).casefold()
 
 
+def test_tepp_run_request_preserves_exact_cutoff_precision() -> None:
+    """The echoed TEPP anchor must match a microsecond database cutoff exactly."""
+    request = tepp_run_request(
+        idempotency_key="exact-cutoff",
+        snapshot_sha256="ab" * 32,
+        knowledge_cutoff=datetime(2026, 1, 12, 12, 0, 0, 123456, tzinfo=timezone.utc),
+        corporate_entity_id="11111111-1111-1111-1111-111111111111",
+    )
+    assert request.knowledge_cutoff == "2026-01-12T12:00:00.123456Z"
+
+
 def test_tepp_submit_outcome_drops_a_missing_transport() -> None:
     """A missing TEPP transport is Failed, never a fabricated score."""
     status, failure = tepp_submit_outcome(TeppClient(), _tepp_request())

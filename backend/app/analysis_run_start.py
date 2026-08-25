@@ -196,7 +196,7 @@ def tepp_run_request(
         idempotency_key=idempotency_key,
         tenant_workspace_id=str(corporate_entity_id),
         snapshot_id=snapshot_sha256,
-        knowledge_cutoff=cutoff.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+        knowledge_cutoff=cutoff.astimezone(timezone.utc).isoformat().replace("+00:00", "Z"),
         model_contract_version=_TEPP_MODEL_CONTRACT,
         output_profile=_TEPP_OUTPUT_PROFILE,
     )
@@ -224,7 +224,7 @@ def topic_lineage_run_request(
         idempotency_key=idempotency_key,
         tenant_workspace_id=str(corporate_entity_id),
         snapshot_id=snapshot_sha256,
-        knowledge_cutoff=cutoff.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+        knowledge_cutoff=cutoff.astimezone(timezone.utc).isoformat().replace("+00:00", "Z"),
         model_contract_version=_TOPIC_LINEAGE_MODEL_CONTRACT,
         output_profile=_TOPIC_LINEAGE_OUTPUT_PROFILE,
     )
