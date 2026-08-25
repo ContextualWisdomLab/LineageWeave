@@ -2891,7 +2891,8 @@ async def ask_agent(
     if not _post_chat_client().available:
         raise HTTPException(
             status.HTTP_503_SERVICE_UNAVAILABLE,
-            "Ask Agent is unavailable: set ORCHESTRATOR_BASE_URL / ORCHESTRATOR_API_KEY",
+            "Ask Agent is unavailable. Ask an administrator to configure the analysis service, "
+            "then retry.",
         )
     async with pool.acquire() as conn:
         job_id = await enqueue_global_ask_job(
