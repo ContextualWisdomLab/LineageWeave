@@ -1,11 +1,10 @@
 # Product & Technical Gap Baseline
 
 > TEPP lifecycle continuation snapshot: 2026-08-26. Protected `main` is
-> `04e6b610655d0db91d5f7ba9486bdda1440e0b19`; the nine open main-target PRs
-> are #644, #643, #640, #639, #636, #632, #631, #629, and #579. Eight were
-> auto-merge armed; updated #632 (`679df1d7`) had fresh checks queued and no
-> auto-merge request at the exact-head refresh. None had the required
-> independent exact-head approval. ADR 0213 now carries
+> `04e6b610655d0db91d5f7ba9486bdda1440e0b19`; the eleven open main-target PRs
+> are #658, #657, #644, #643, #640, #639, #636, #632, #631, #629, and #579.
+> All were auto-merge armed after fresh review-thread repair; none had the
+> required independent exact-head approval. ADR 0213 now carries
 > the current-main implementation of issue #277 after TEPP PR #157 published
 > the terminal DTO. TEPP issue #249 owns the still-missing executable HTTP
 > status service. No protected merge or live measurement is claimed here.
