@@ -1,0 +1,84 @@
+import { useEffect, useState } from "react";
+import { fetchOperationsDashboard, type OperationsDashboardResponse } from "../api";
+
+type Props = {
+  accessToken: string;
+  externalOnly?: boolean;
+  onOpenPost: (postId: string) => void;
+};
+
+/** Shows quantified operational cases and opens their cited source posts. */
+export function OperationsDashboard({ accessToken, externalOnly = false, onOpenPost }: Props) {
+  const [data, setData] = useState<OperationsDashboardResponse | null>(null);
+  const [error, setError] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    setError(false);
+    fetchOperationsDashboard(accessToken)
+      .then((value) => active && setData(value))
+      .catch(() => active && setError(true));
+    return () => { active = false; };
+  }, [accessToken]);
+
+  if (error) return <section className="operations-dashboard" aria-labelledby="dashboard-heading"><h2 id="dashboard-heading">운영 근거 Dashboard</h2><p role="alert">Dashboard 근거를 불러오지 못했습니다. 잠시 후 다시 시도하세요.</p></section>;
+  if (!data) return <p role="status">Dashboard 근거를 불러오는 중입니다.</p>;
+  return <OperationsDashboardView data={data} externalOnly={externalOnly} onOpenPost={onOpenPost} />;
+}
+
+/** Renders a completed Dashboard response for runtime and Storybook scenes. */
+export function OperationsDashboardView({ data, externalOnly = false, onOpenPost }: { data: OperationsDashboardResponse; externalOnly?: boolean; onOpenPost: (postId: string) => void }) {
+  const cases = externalOnly ? data.cases.filter((item) => item.case_kind_code === "external_information") : data.cases;
+  const journeys = Object.entries(
+    cases.reduce<Record<string, typeof cases>>((groups, item) => {
+      if (item.project_name) (groups[item.project_name] ??= []).push(item);
+      return groups;
+    }, {}),
+  );
+  return (
+    <section className="operations-dashboard" aria-labelledby="dashboard-heading">
+      <header className="operations-dashboard-heading">
+        <div><p className="dashboard-eyebrow">{data.period_label}</p><h2 id="dashboard-heading">{externalOnly ? "외부 정보" : "운영 근거 Dashboard"}</h2></div>
+        <p>수치를 선택하면 근거 글에서 다음 조치를 확인할 수 있습니다.</p>
+      </header>
+      <dl className="dashboard-metrics">
+        <div><dt>전체 글</dt><dd>{data.total_post_count}</dd></div>
+        <div><dt>분류 Event</dt><dd>{data.total_event_count}</dd></div>
+        <div><dt>외부 정보</dt><dd>{data.external_post_count}건 · {data.external_percent.toFixed(1)}%</dd></div>
+        <div><dt>분석 대기</dt><dd>{data.pending_analysis_count}</dd></div>
+      </dl>
+      {!externalOnly && journeys.length ? (
+        <section className="dashboard-journeys" aria-labelledby="project-journey-heading">
+          <h3 id="project-journey-heading">프로젝트 여정</h3>
+          {journeys.map(([project, events]) => (
+            <div key={project} className="dashboard-journey">
+              <h4>{project}</h4>
+              <ol>
+                {(events ?? []).map((event) => (
+                  <li key={`${event.post_id}-${event.case_kind_code}`}>
+                    <button type="button" onClick={() => onOpenPost(event.post_id)}>
+                      <time dateTime={event.occurred_at}>{event.occurred_at.slice(0, 10)}</time>
+                      <span>{event.case_kind_label}</span>
+                    </button>
+                  </li>
+                ))}
+              </ol>
+            </div>
+          ))}
+        </section>
+      ) : null}
+      <div className="dashboard-case-grid">
+        {cases.map((item) => (
+          <article key={`${item.post_id}-${item.case_kind_code}`} className="dashboard-case-card">
+            <div className="dashboard-case-title"><span>{item.case_kind_label}</span><strong>{item.project_name ?? "프로젝트 연결 분석 중"}</strong></div>
+            <h3>{item.summary_text}</h3>
+            <blockquote>{item.evidence_text}</blockquote>
+            <dl>{item.facts.map((fact) => <div key={`${fact.fact_type_code}-${fact.value_text}`}><dt>{fact.fact_type_label}</dt><dd>{fact.value_text}</dd></div>)}</dl>
+            <button type="button" className="btn-secondary" onClick={() => onOpenPost(item.post_id)}>근거 글 열기</button>
+          </article>
+        ))}
+      </div>
+      {cases.length === 0 ? <p role="status">선택 기간에 분석 완료된 근거가 없습니다. 분석 대기 건부터 처리하세요.</p> : null}
+    </section>
+  );
+}

@@ -100,6 +100,9 @@
   --font-size-badge: 0.75rem;
   --space-panel-block: 0.75rem;
   --radius-panel: 0.5rem;
+  --color-dashboard-ink: #14264a;
+  --color-dashboard-positive: #426b45;
+  --color-dashboard-surface: #f4f6fa;
 
   /* Layout & Breakpoint Tokens (§2.1 – 화면 해상도 / 반응형) */
   --breakpoint-phone: 768px;

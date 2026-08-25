@@ -16,6 +16,7 @@ decision from them.
 | [`ONTOLOGY_NAMESPACE_INVENTORY.md`](../doctoring/ONTOLOGY_NAMESPACE_INVENTORY.md) | [0157](0157-public-ontology-namespace-identity.md) |
 | [`image-content-schema.md`](../image-content-schema.md) | [0066](0066-position-preserving-image-content.md) |
 | [`storybook-inventory.md`](../storybook-inventory.md) | [0118](0118-uiux-standard-guide-v3-design-overhaul.md), [0184](0184-ontology-provenance-explorer.md) |
+| Evidence operations Dashboard (`/`) | [0204](0204-evidence-operations-dashboard.md) |
 
 Files under `docs/doctoring/` remain non-normative supporting evidence even
 when this map links them to an ADR. Runtime-evidence files record observed

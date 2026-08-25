@@ -5,6 +5,8 @@ buyer-facing control you can click before changing product CSS.
 
 | Story | Buyer next action | Token / module |
 |---|---|---|
+| `Workspace/OperationsDashboard` | Compare Event and post counts, inspect external-information coverage, then open the cited source behind a claim, handover, or repeat-issue fact. Evidence-ready and narrow-viewport scenes are required. | `--color-dashboard-*`, `OperationsDashboard` |
+| `Post/SimilarVocPanel` | Compare ontology/semantic similar VOC and prior action evidence, then open the source; unavailable states show no fabricated TEPP theta or weight. | `SimilarVocPanel.css`, `SimilarVocPanel` |
 | `Evidence/CitationChip` | Click a cited title to open that source post. | `--color-chip-border`, `--radius-chip`, `CitationChip` |
 | `Evidence/PostBody` | Open Image regions and read each bounding range beside its caption; inspect the whitespace-caption state to confirm the image keeps a usable fallback name. | `--text-muted`, `PostBody` |
 | `Evidence/AskEvidenceLayerPopup` | Inspect one citation without leaving the answer; close to continue the answer or open the complete source post. Stories cover text/image evidence, no-evidence, missing OCR, null caption, and blank-caption fallback states. | shared popup tokens through `App.css`, `PopupCloseButton`, `AskEvidenceLayerPopup` |
