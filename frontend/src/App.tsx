@@ -4938,7 +4938,8 @@ export function AskAgentPanel({
                       <strong>{post.post_title}</strong>
                       {post.source_post_revision_id ? (
                         <span className="post-meta">
-                          {t("Retained revision")} · {post.evidence_available_at}
+                          {t("Retained revision")}
+                          {post.evidence_available_at ? ` · ${post.evidence_available_at}` : ""}
                           {post.live_changed_after_cutoff ? ` · ${t("Live source changed later")}` : ""}
                         </span>
                       ) : null}

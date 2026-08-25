@@ -41,6 +41,8 @@ def test_mcp_server_requires_measured_quota_and_exact_origins(monkeypatch) -> No
     }
     with pytest.raises(ValueError, match="measured capacity"):
         mcp_server.build_mcp_server(replace(configured, mcp_rate_limit_requests=None))
+    with pytest.raises(ValueError, match="MCP_AUDIENCE"):
+        mcp_server.build_mcp_server(replace(configured, mcp_audience=""))
     with pytest.raises(ValueError, match="exact HTTP"):
         mcp_server.build_mcp_http_app(
             mcp_server.build_mcp_server(configured),
@@ -91,6 +93,12 @@ async def test_mcp_verifier_rejects_invalid_or_unbound_claims(monkeypatch) -> No
         lambda *_args, **_kwargs: (_ for _ in ()).throw(HTTPException(401)),
     )
     assert await mcp_auth.KeyverseMcpTokenVerifier(settings).verify_token("bad") is None
+    assert (
+        await mcp_auth.KeyverseMcpTokenVerifier(
+            replace(settings, mcp_audience="")
+        ).verify_token("bad")
+        is None
+    )
     monkeypatch.setattr(
         mcp_auth, "decode_access_token", lambda *_args, **_kwargs: {"sub": "subject"}
     )
@@ -154,6 +162,30 @@ class FakeLimiter:
     async def close(self) -> None:
         """Record limiter closure."""
         self.closed = True
+
+
+@pytest.mark.anyio
+async def test_mcp_lifespan_closes_pool_when_limiter_close_fails(monkeypatch) -> None:
+    """A limiter shutdown defect cannot leak the database pool."""
+    monkeypatch.setenv("MCP_RATE_LIMIT_REQUESTS", "10")
+    monkeypatch.setenv("MCP_RATE_LIMIT_WINDOW_SECONDS", "60")
+    from backend.app import mcp_server
+
+    class BrokenCloseLimiter(FakeLimiter):
+        async def close(self) -> None:
+            raise RuntimeError("limiter close failed")
+
+    pool = FakePool()
+    server = mcp_server.build_mcp_server(
+        load_settings(),
+        pool_factory=lambda _url: _return(pool),
+        valkey_factory=lambda _url: object(),
+        limiter_factory=lambda *_args: BrokenCloseLimiter(),
+    )
+    with pytest.raises(RuntimeError, match="limiter close failed"):
+        async with Client(server):
+            pass
+    assert pool.closed
 
 
 @pytest.mark.anyio
