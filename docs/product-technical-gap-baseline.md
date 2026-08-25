@@ -1,6 +1,6 @@
 # Product & Technical Gap Baseline
 
-> Dashboard delivery snapshot: 2026-08-25 23:47 KST. Protected `main` was
+> Dashboard delivery snapshot: 2026-08-26 05:01 KST. Protected `main` was
 > `04e6b610655d0db91d5f7ba9486bdda1440e0b19`. This local branch is not
 > protected-main release evidence.
 
@@ -60,20 +60,14 @@ only aggregate, non-identifying evidence to this repository.
 
 ### Exact open-PR boundary
 
-At this snapshot there were 6 open PRs. Exact observed heads were
-`#639 b62b061c`, `#636 575891a7`, `#632 bb680329`, `#631 c0022c97`,
-`#629 ac38c652`, and `#579 689a21b6`. PR #639 removes the duplicate Running
-Start action required by ADR 0021 and repairs exact-path Compose blockers found
-during its authenticated synthetic screenshot audit: pinned pnpm policy was
-not copied before install, Keyverse build arguments did not match the browser
-bundle, two Global Ask migrations could not survive required replay, and the
-backend read a TEPP transport credential absent from immutable settings. The
-open heads remain blocked on hosted gates and/or independent review. These
-observations are not merge readiness. Re-fetch exact heads,
+At this snapshot there were 16 open PRs and 10 open issues. The exact-head
+inventory in section 1 is authoritative for this snapshot. Every open head
+remained blocked on hosted gates and/or independent review. These observations
+are not merge readiness. Re-fetch exact heads,
 unresolved threads, checks, approvals, rulesets, and merge SHA before any
 lifecycle claim.
 
-> Audit snapshot: 2026-08-25 23:47 KST (refreshed by the autonomous merge
+> Audit snapshot: 2026-08-26 05:01 KST (refreshed by the autonomous merge
 > loop). This repository records synthetic fixtures and aggregate,
 > non-identifying runtime evidence only. Open PRs and local checks are not
 > protected-default-branch release evidence. Identifying post identifiers,
@@ -83,24 +77,38 @@ lifecycle claim.
 ## 1. Exact-head and governance evidence
 
 The protected default branch was `04e6b610655d0db91d5f7ba9486bdda1440e0b19`
-when this baseline was refreshed. The live queue contained 6 open PRs. The
-exact-head inventory below supersedes older per-PR snapshots
+when this baseline was refreshed. The live queue contained 16 open PRs and 10
+open issues. The exact-head inventory below supersedes older per-PR snapshots
 elsewhere in this document; those older rows remain useful historical delivery
 context only.
 
 | PR | Exact observed head | Merge/check state at this snapshot |
 | ---: | --- | --- |
-| #639 | `b62b061c` (observed parent) | removes the duplicate Running Start action and repairs the Compose path proven by an authenticated synthetic screenshot; a 25-VU, 30-second k6 E2E observation completed 1,561 iterations (50.90/s) with zero failed checks/HTTP requests and read p50/p90/p95/max 302.72/655.43/852.50/1,987.85 ms; no invented SLO is claimed; this row advances when this baseline commit is pushed |
-| #636 | `575891a7` | publishes the calibrated external-lineage contract; hosted gates and independent review remain required |
-| #632 | `bb680329` | preserves graph-fact source provenance and authorization; hosted gates and independent review remain required |
-| #631 | `c0022c97` | current-main gap decomposition and queue baseline; hosted gates and independent review remain required |
-| #629 | `ac38c652` | releases provider work from database leases and bounds landing reads; hosted gates and independent review remain required |
-| #579 | `689a21b6` | delegates leftover interaction-map arithmetic to fast-mlsirm and persists only the consumer projection; hosted gates and independent review remain required |
+| #663 | `be361f10` | project ontology traversal plus cutoff/snapshot-frozen project focus and labels |
+| #662 | `92534118` | fail-closed injectable TEPP status/read boundary; the owning executable HTTP route remains unavailable |
+| #661 | `11206c58` | Rust-estimated reconstruction fixture weights replace hand-authored reconstruction-test dictionaries |
+| #660 | `c10cae01` (observed parent) | backend runtime repair plus the #664 semantic-unit stack; this documentation commit advances the head after capture |
+| #659 | `e948bd27` | ontology node readability and tokenized UI fills |
+| #658 | `fe830b0a` | evidence-honest Global Ask cutoff with revision-interval live-after semantics |
+| #657 | `64f48679` | Dashboard case-metric contract work |
+| #644 | `d9ff9980` | native-surface code splitting with modal-focus regression coverage |
+| #643 | `0a1f8ec1` | accessible status-notice surfaces |
+| #640 | `2d50fa01` | operations-dashboard contract alignment |
+| #639 | `aee02dca` | terminal checks observed; exact-head independent approval still required |
+| #636 | `f7b9a65f` | terminal checks observed; exact-head independent approval still required |
+| #632 | `32c7d359` | active semantic provenance repair head; hosted checks and independent review required |
+| #631 | `c0022c97` | terminal checks observed; exact-head independent approval still required |
+| #629 | `4b4d6707` | terminal checks observed; exact-head independent approval still required |
+| #579 | `689a21b6` | leftover interaction-map coordinate persistence; exact-head independent approval still required |
 
 No row above is merge evidence. Immediately before any lifecycle action,
 re-fetch the head, unresolved threads, formal reviews, rulesets, and same-head
 check conclusions. In particular, queued checks are infrastructure state and
 do not transfer evidence from an earlier SHA.
+
+PR #664 merged as `b2e48d5b0db59f5aa434e2a293cd182ee810c019`
+into #660's non-default branch. Its semantic-unit implementation is therefore
+stack evidence only until #660 passes the protected-`main` gate.
 
 PR #607 first merged as `61fd631c7bb3c57113fd19763c2c43161eeb2824`
 into #606's non-default branch. PR #606 subsequently passed the protected gate,
@@ -374,7 +382,7 @@ this file per §3.5 of the prior snapshot).
 | Authorized-corpus runtime | Repository tests use synthetic fixtures; private records remain outside git | Authenticated runtime validation returning only aggregate, non-identifying evidence |
 | Concurrent web responsiveness | ADR 0204 releases pooled transactions during provider work, and the synthetic Compose boundary has an authenticated k6 E2E harness for Ask enqueue, concurrent reads, and job polling. An older-image local observation found repeated post-filter queries while `/api/posts` exceeded 30 seconds; ADR 0212 combines two authorized filter-option queries into one round trip without narrowing ABAC-visible options. The observation is not exact-head evidence or a product guarantee, and no physical scan reduction is claimed without an exact-head plan | Rebuild an exact-head application image, run `make load-http` with declared environment concurrency/window, and retain raw distributions and resource configuration. Compare the post-list database plan and latency with ADR 0212 while preserving the complete authorized filter set; set no SLO until representative capacity evidence is approved |
 | Image understanding | Region, OCR, and description work exists across active heads (#405, #419), but current runtime acceptance has not yet proved table-image structure, complete region coverage, or summary/image readiness together | Orchestrator-backed rendered workflow, original/derived asset provenance, region-before-OCR processing, and honest unsupported states; reconcile ADR 0052's image-bearing summary readiness with ADR 0098 before changing sequencing |
-| Semantic source rendering | Paragraph, table, list, formula, and indentation work exists across stacks (#394, #427, #448–#450); #515 adds synthetic backend/frontend parity for deterministic rows/cells, footnote boundaries, and encoded scripts | Land the #427 → #515 stack, then gather authenticated browser evidence that list nesting, continuation alignment, and formula units render without authoring-layout artifacts |
+| Semantic source rendering | ADR 0223 and migration 0221 give new paragraph, list, table, MathML formula, and caller-parsed conversation-turn units explicit persisted kinds without rewriting historical rows; image regions remain ordered normalized children under ADR 0091. This branch is candidate evidence, not protected-main delivery | Land the exact-head candidate, then prove an authorized semantic-only query retrieves each persisted unit kind and gather authenticated browser evidence that nesting, continuation alignment, formula units, and image regions retain source order |
 | Event and project semantics | Multi-project mentions, project-bound actions, 5W1H, requester/processor, and semantic relations exist in ADR 0036/0052/0100/0111/0129 and active stacks | Aggregate authenticated evidence must show distinct projects and events, explicit requester/processor and real R&R, normalized relative time, and product/entity relations without promoting attendance or co-occurrence |
 | Knowledge Graph readability | The black evidence-node root cause is an undefined-token fallback; the design-token repair and long-label/evidence-table coverage remain only on closed, unmerged #490, not protected `main` | Recreate the token repair on a current base and deliver it through protected `main`, then verify light/dark contrast, keyboard graph navigation, full labels, and evidence tables in the authenticated rendered surface |
 | Source-code lookup UX | Source state/detail codes remain evidence-bearing machine values and current detail presentation is dense | Catalog-backed display labels with raw-code provenance, compact 5W1H/source-detail hierarchy, keyboard access, and no unsupported customer/project binding |
@@ -390,7 +398,7 @@ this file per §3.5 of the prior snapshot).
 | External integrations | Search, Zotero, calendar, Keyverse, orchestrator, RankWeave, ThreadWeave, TEPP, DiskSage, wardnet | Provider conformance, failure/reconciliation behavior, and provenance-bearing integration evidence |
 | MSA / modular reuse | LineageWeave must run standalone and as a consumer of org packages | Do not reimplement RankWeave/TEPP/orchestrator/ThreadWeave/Keyverse; fix upstream and PR there |
 | Product contract authority | This branch recreates the first LineageWeave PRD after superseded #613 closed without merge and records an exact-case ecosystem authority register; TEPP, fast-mlsirm, keyverse, and ThreadWeave have standalone PRDs, while contextual-orchestrator, RankWeave, DiskSage, and wardnet currently rely on product-planning/architecture documents and naruon has only a scoped Topic Intelligence PRD | Land the LineageWeave PRD, keep ADRs normative, and add standalone PRDs in each owning repository before making cross-product release claims beyond its documented boundary |
-| Release quality | Local focused/full suites have passed on individual PR heads | Repository-wide coverage, docstrings, Storybook, security, browser, and release evidence on one exact head |
+| Release quality | The #664/#660 stacked tree passed the complete Python suite (1,352 passed, 17 skipped) after #660 removed a duplicate synthetic snapshot digest and restored the TEPP settings contract. This is local candidate evidence, not protected-main delivery | Repository-wide coverage, frontend/Storybook, security, browser, and protected merge evidence on one exact head |
 | PII | Masking would paralyze the product; ADR 0001 forbids identifying artifacts in git | ABAC + authorized runtime; synthetic fixtures in git; no mask-in-place that drops names the operator must read |
 | Database | PostgreSQL, 3NF, snake_case ≥ two words, hot-partition and lock policy | No file DBs; read/write split if lock management fails; whitelist every migration |
 

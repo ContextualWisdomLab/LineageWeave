@@ -6,7 +6,7 @@ from types import SimpleNamespace
 
 import pytest
 
-from lineageweave.chunking import chunk_by_dom
+from lineageweave.chunking import Chunk, chunk_by_dom
 from lineageweave.image_content import ImageRegion
 from lineageweave.post_content_normalization import (
     FormattingHint,
@@ -17,6 +17,7 @@ from lineageweave.post_content_normalization import (
 from lineageweave.post_content_persistence import (
     _bounded_structure_batches,
     _bounded_unit_batches,
+    _persisted_unit_kind,
     _render_image_text,
     persist_post_content,
 )
@@ -176,6 +177,29 @@ def test_render_image_text_preserves_unavailable_and_caption_variants() -> None:
         )
         == "[image: no caption available | text: OCR]"
     )
+
+
+def test_persisted_unit_kind_uses_explicit_source_boundaries() -> None:
+    assert _persisted_unit_kind(Chunk("Paragraph", "plain_text", 0)) == "paragraph"
+    assert _persisted_unit_kind(Chunk("Item", "dom", 0, label="li")) == "list"
+    assert _persisted_unit_kind(Chunk("A | B", "dom", 0, label="tr")) == "table"
+    assert _persisted_unit_kind(Chunk("x + y", "dom", 0, label="math")) == "formula"
+    assert (
+        _persisted_unit_kind(Chunk("Reply", "conversation_turn", 0, label="sender"))
+        == "conversation_turn"
+    )
+
+
+def test_persists_explicit_conversation_turn_units() -> None:
+    conn = _Connection()
+    units = [
+        Chunk("Question", "conversation_turn", 0, label="sender-a"),
+        Chunk("Answer", "conversation_turn", 1, label="sender-b"),
+    ]
+
+    assert _persist(conn, "post-id", "source body", semantic_units=units) == 2
+    inserted = [args for query, args in conn.fetchvals if "insert into post_content_unit" in query]
+    assert [args[2] for args in inserted] == ["conversation_turn", "conversation_turn"]
 
 
 def test_persists_image_tags_formatting_and_embeddings() -> None:

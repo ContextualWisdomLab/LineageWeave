@@ -73,6 +73,18 @@ def test_chunk_by_dom_nested_blocks_do_not_duplicate_text() -> None:
     assert chunks[0].label == "p"
 
 
+def test_chunk_by_dom_keeps_mathml_as_a_formula_boundary() -> None:
+    chunks = chunk_by_dom(
+        "<p>Before.</p><math><mi>x</mi><mo>+</mo><mn>1</mn></math><p>After.</p>"
+    )
+
+    assert [(chunk.label, chunk.text) for chunk in chunks] == [
+        ("p", "Before."),
+        ("math", "x+1"),
+        ("p", "After."),
+    ]
+
+
 def test_chunk_by_dom_groups_table_cells_by_row_instead_of_flattening() -> None:
     """Live bug (2026-08-19): each <td> used to push its own independent
     chunk with no row grouping, so a real table (headers + N data rows)
