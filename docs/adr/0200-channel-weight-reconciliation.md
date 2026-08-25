@@ -109,9 +109,8 @@ argument.
    `estimation_method_code`, `estimator_version`, `anchor_method_code`,
    `source_snapshot_sha256`, `sample_pair_count`, `knowledge_cutoff`).
    The loader requires an exact active-channel match AND single-run
-   provenance integrity AND an authorized anchor method code
-   (`unanchored_internal_structure` joins the authorized set under
-   point 3's labeling duty). One migration with rollbacks lands the
+   provenance integrity AND the sole authorized anchor method code
+   (`tepp_lineage_criterion_v1`, per ADR 0205). One migration with rollbacks lands the
    union on whichever predecessor schema a database has.
 5. **Queued judge scoring.** The llm channel's pair scoring moves to the
    repository's durable queue idiom (`post_content_queue` /

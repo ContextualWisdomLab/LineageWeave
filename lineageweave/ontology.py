@@ -25,8 +25,11 @@ from rdflib.namespace import OWL, RDF, RDFS, SKOS
 from rdflib.term import Identifier
 
 #: The ontology's own namespace -- every class/property IRI below is
-#: this prefix plus the term's local name (e.g. LW.Post).
-LW = Namespace("https://contextualwisdomlab.github.io/lineageweave/ontology#")
+#: this prefix plus the term's local name (e.g. LW.Post). ADR 0207 made
+#: the repository-case spelling canonical (it is the exact path GitHub
+#: Pages serves) and demoted the lowercase form to a deprecated
+#: compatibility vocabulary.
+LW = Namespace("https://contextualwisdomlab.github.io/LineageWeave/ontology#")
 
 #: The custom annotation property linking an ontology term to the exact
 #: `common_lookup_value.lookup_code` string it corresponds to.

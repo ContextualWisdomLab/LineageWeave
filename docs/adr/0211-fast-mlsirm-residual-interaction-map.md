@@ -1,4 +1,4 @@
-# ADR 0207 — Consume fast-mlsirm residual interaction maps
+# ADR 0211 — Consume fast-mlsirm residual interaction maps
 
 **Decision status:** Accepted
 **Date:** 2026-08-25

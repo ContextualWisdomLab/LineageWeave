@@ -170,6 +170,37 @@ def test_nullable_cross_share_remains_unavailable(
     assert interaction_map.pairs[0].leftover_map_cross_share is None
 
 
+def test_non_finite_upstream_values_never_enter_selection_or_map_points(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Non-finite provider evidence remains unavailable instead of persisting."""
+    result = _upstream_result()
+    result.distance[0, 0] = np.nan
+    result.residual[1, 1] = np.inf
+    result.unexplained[0, 1] = np.nan
+    result.reconstruction[0, 1] = np.inf
+    monkeypatch.setattr(
+        leftover, "residual_interaction_map", lambda *_args, **_kwargs: result
+    )
+    interaction_map = leftover.leftover_map_from_residual(
+        ["post-a", "post-b"],
+        ("item-a", "item-b"),
+        np.ones((2, 2)),
+        np.zeros((2, 2)),
+    )
+    assert [pair.leftover_distance for pair in interaction_map.pairs] == [1.0, 1.9]
+    assert interaction_map.pairs[0].leftover_map_unexplained is None
+    assert interaction_map.pairs[0].leftover_map_reconstruction is None
+
+    result.person_coordinates[0, 0] = np.nan
+    assert leftover.leftover_map_from_residual(
+        ["post-a", "post-b"],
+        ("item-a", "item-b"),
+        np.ones((2, 2)),
+        np.zeros((2, 2)),
+    ) == leftover.LeftoverInteractionMap(pairs=(), persons=(), items=(), axes=())
+
+
 def test_rejects_identifier_shape_mismatch_before_provider_call(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

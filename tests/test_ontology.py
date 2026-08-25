@@ -21,6 +21,7 @@ from lineageweave.knowledge_graph import (
     NODE_POST,
 )
 from lineageweave.ontology import (
+    LOOKUP_CODE,
     LW,
     all_declared_lookup_codes,
     iri_for_lookup_code,
@@ -37,17 +38,20 @@ _SEED_SCRIPT_PATH = Path(__file__).resolve().parents[1] / "scripts" / "seed_demo
 # text -- read alongside it below so the round-trip still sees them:
 # 0012 (ADR 0006: prov_person/prov_organization), 0014 (ADR 0007:
 # prov_team), 0016 (ADR 0009: node_team/edge_mention_team/
-# edge_team_affiliation/edge_mention_organization).
+# edge_team_affiliation/edge_mention_organization), and 0042 (ADR 0207:
+# the five governed voc_type post-type codes).
 _ADDITIONAL_LOOKUP_MIGRATION_PATHS = (
     Path(__file__).resolve().parents[1] / "migrations" / "0060_role_responsibility_agent_type.sql",
     Path(__file__).resolve().parents[1] / "migrations" / "0014_role_responsibility_team_actor_type.sql",
     Path(__file__).resolve().parents[1] / "migrations" / "0016_cross_post_actor_identity.sql",
+    Path(__file__).resolve().parents[1] / "migrations" / "0042_voc_type_vocabulary.sql",
 )
 
-# The categories this ontology covers (ADR 0004's scope). seed_demo_data.py
-# also seeds categories this ontology deliberately does not model yet
-# (post_visibility, voc_type, permission, ticket_status) -- those are
-# real, expected gaps, not a test bug.
+# The categories this ontology covers (ADR 0004's scope, extended by
+# ADR 0207 with voc_type's post-type scheme). seed_demo_data.py also
+# seeds categories this ontology deliberately does not model yet
+# (post_visibility, permission, ticket_status) -- those are real,
+# expected gaps, not a test bug.
 _ONTOLOGY_COVERED_CATEGORIES = frozenset(
     {
         "node_type",
@@ -56,6 +60,7 @@ _ONTOLOGY_COVERED_CATEGORIES = frozenset(
         "person_side",
         "corporate_entity_level",
         "prov_agent_type",
+        "voc_type",
     }
 )
 
@@ -205,7 +210,7 @@ def test_actor_mentions_follow_stored_edge_direction() -> None:
 def test_semantic_project_terms_preserve_post_evidence_and_confidence() -> None:
     """ADR 0036's project vocabulary must remain machine-checkable."""
     graph = load_ontology()
-    ontology = URIRef("https://contextualwisdomlab.github.io/lineageweave/ontology")
+    ontology = URIRef("https://contextualwisdomlab.github.io/LineageWeave/ontology")
     assert "OWL 2 Full" in str(graph.value(ontology, RDFS.comment))
     assert (LW.Project, RDF.type, OWL.Class) in graph
     assert (LW.ProjectMention, RDF.type, OWL.Class) in graph
@@ -231,3 +236,104 @@ def test_semantic_project_terms_preserve_post_evidence_and_confidence() -> None:
     assert (LW.projectEvidence, RDFS.range, XSD.string) in graph
     assert (LW.semanticConfidence, RDFS.range, XSD.decimal) in graph
     assert (LW.semanticConfidence, RDFS.domain, LW.ProjectMention) in graph
+
+
+def test_ontology_iri_is_repository_case_canonical() -> None:
+    """ADR 0207: the ontology IRI and every term IRI use the
+    repository-case namespace -- the exact path GitHub Pages serves --
+    and the lowercase spelling never appears as a minted subject.
+    """
+    canonical = "https://contextualwisdomlab.github.io/LineageWeave/ontology#"
+    lowercase = "https://contextualwisdomlab.github.io/lineageweave/ontology#"
+    graph = load_ontology()
+    assert (
+        URIRef("https://contextualwisdomlab.github.io/LineageWeave/ontology"),
+        RDF.type,
+        OWL.Ontology,
+    ) in graph
+    assert str(LW) == canonical
+    for subject in set(graph.subjects()):
+        if isinstance(subject, URIRef):
+            assert not str(subject).startswith(lowercase), str(subject)
+
+
+def test_person_sides_are_declared_disjoint() -> None:
+    """ADR 0207 decision 9: a person side is our-side or counterparty,
+    never both -- stated with owl:disjointWith so reasoners refuse a row
+    that projects both codes.
+    """
+    graph = load_ontology()
+    assert (LW.OurSidePerson, OWL.disjointWith, LW.CounterpartyPerson) in graph
+
+
+def test_has_affiliate_is_the_stored_affiliation_inverse() -> None:
+    """Bidirectional affiliation queries resolve through :hasAffiliate;
+    like :mentions it carries no lookup code so one code keeps naming
+    exactly one stored property.
+    """
+    graph = load_ontology()
+    assert (LW.hasAffiliate, OWL.inverseOf, LW.affiliatedWith) in graph
+    assert (LW.hasAffiliate, RDFS.domain, LW.CorporateEntity) in graph
+    assert (LW.hasAffiliate, RDFS.range, LW.Person) in graph
+    declared_codes = all_declared_lookup_codes()
+    for value in graph.objects(LW.hasAffiliate, LOOKUP_CODE):
+        raise AssertionError(f":hasAffiliate must stay un-coded; found {value}")
+    assert "edge_affiliation" in declared_codes
+
+
+def test_node_attribute_datatype_properties_project_real_columns() -> None:
+    """ADR 0207 decision 7: attribute properties exist exactly for real
+    schema columns, with correct domains/ranges, and no property is
+    invented for a column that does not exist.
+    """
+    graph = load_ontology()
+    expected = {
+        (LW.postTitle, LW.Post, XSD.string),
+        (LW.postBody, LW.Post, XSD.string),
+        (LW.eventOccurredAt, LW.Post, XSD.dateTime),
+        (LW.personName, LW.Person, XSD.string),
+        (LW.lastKnownJobTitle, LW.Person, XSD.string),
+        (LW.entityName, LW.CorporateEntity, XSD.string),
+        (LW.entityCode, LW.CorporateEntity, XSD.string),
+    }
+    for prop, domain, datatype_range in expected:
+        assert (prop, RDF.type, OWL.DatatypeProperty) in graph, str(prop)
+        assert (prop, RDFS.domain, domain) in graph, str(prop)
+        assert (prop, RDFS.range, datatype_range) in graph, str(prop)
+
+
+def test_shared_timestamps_declare_no_domain_to_avoid_multi_domain_entailment() -> None:
+    """Two rdfs:domain statements would entail every subject belongs to
+    both classes -- the trap the cross-post edges already avoid. Shared
+    timestamps therefore carry no domain; SHACL pins them per class.
+    """
+    graph = load_ontology()
+    for prop in (LW.createdAt, LW.updatedAt):
+        assert (prop, RDF.type, OWL.DatatypeProperty) in graph
+        assert (prop, RDFS.range, XSD.dateTime) in graph
+        domains = list(graph.objects(prop, RDFS.domain))
+        assert domains == [], f"{prop} unexpectedly declares domains: {domains}"
+
+
+def test_post_type_scheme_covers_the_governed_voc_vocabulary() -> None:
+    """ADR 0207 decision 8: the five seeded voc_type codes become SKOS
+    concepts; vos exists only as rel_vos and must NOT appear here.
+    """
+    graph = load_ontology()
+    scheme_members = {
+        subject for subject in graph.subjects(SKOS.inScheme, LW.postTypeScheme)
+    }
+    expected = {
+        (LW.voiceOfCustomerType, "voc"),
+        (LW.voiceOfCustomersCustomerType, "vocc"),
+        (LW.voiceOfCompetitorType, "voco"),
+        (LW.voiceOfMarketType, "vom"),
+        (LW.voiceOfPartnerType, "vop"),
+    }
+    for concept, code in expected:
+        assert concept in scheme_members, str(concept)
+        assert iri_for_lookup_code(code) == str(concept)
+    assert len(scheme_members) == len(expected)
+    seeded = _seeded_lookup_codes_for_covered_categories()
+    assert {"voc", "vocc", "voco", "vom", "vop"} <= seeded
+    assert iri_for_lookup_code("vos") is None  # relationship type only

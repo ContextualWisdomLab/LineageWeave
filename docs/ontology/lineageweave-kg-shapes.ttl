@@ -1,0 +1,185 @@
+@prefix : <https://contextualwisdomlab.github.io/LineageWeave/ontology#> .
+@prefix dcterms: <http://purl.org/dc/terms/> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix sh: <http://www.w3.org/ns/shacl#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+#################################################################
+# LineageWeave Knowledge Graph SHACL shapes
+#
+# Closed-world data validation over the OWL vocabulary above. OWL's
+# open-world semantics infers; it does not verify that projected data
+# arrived complete and in range (Knublauch & Kontokostas, 2017). These
+# shapes carry exactly that verification for DB-to-RDF projections:
+#
+# - required post title/body/creation timestamp;
+# - single-valued project-mention evidence with confidence bounded to
+#   [0.0, 1.0] inclusive;
+# - required person and entity names, optional bounded job title;
+# - the closed-world complement of :OurSidePerson
+#   owl:disjointWith :CounterpartyPerson.
+#
+# Every sh:targetClass must live in the canonical repository-case namespace;
+# sh:path may additionally use RDF's subject/predicate/object reification
+# predicates. scripts/publish_ontology_site.py fails closed on every other
+# external or dangling target so a renamed term cannot silently orphan its
+# shape. tests/test_ontology_shapes.py validates this graph against the
+# ontology source with pyshacl, plus negative violation tests.
+#################################################################
+
+<https://contextualwisdomlab.github.io/LineageWeave/ontology/lineageweave-kg-shapes.ttl>
+    a owl:Ontology ;
+    dcterms:title "LineageWeave Knowledge Graph SHACL shapes"@en ;
+    dcterms:description "Closed-world validation shapes over the LineageWeave knowledge-graph ontology: required attributes, confidence bounds, and side disjointness."@en ;
+    owl:imports <https://contextualwisdomlab.github.io/LineageWeave/ontology> ;
+    owl:versionInfo "1.0.0" .
+
+:PostShape a sh:NodeShape ;
+    rdfs:label "Post shape" ;
+    sh:targetClass :Post ;
+    sh:property [
+        sh:path :postTitle ;
+        sh:name "post title" ;
+        sh:description "Every post projects a non-empty source_post.post_title." ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:datatype xsd:string ;
+        sh:minLength 1 ;
+    ] ;
+    sh:property [
+        sh:path :postBody ;
+        sh:name "post body" ;
+        sh:description "The preserved source representation is never absent." ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:datatype xsd:string ;
+        sh:minLength 1 ;
+    ] ;
+    sh:property [
+        sh:path :createdAt ;
+        sh:name "created at" ;
+        sh:description "A post carries at least one record-creation instant; Global Ask falls back to it only when event_occurred_at is missing (ADR 0150)." ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:datatype xsd:dateTime ;
+    ] ;
+    sh:property [
+        sh:path :updatedAt ;
+        sh:name "updated at" ;
+        sh:description "Optional last-write instant; importers fall back to created_at when null." ;
+        sh:maxCount 1 ;
+        sh:datatype xsd:dateTime ;
+    ] ;
+    sh:property [
+        sh:path :eventOccurredAt ;
+        sh:name "event occurred at" ;
+        sh:description "Optional business-event instant bound by ADR 0150/0202 time filters." ;
+        sh:maxCount 1 ;
+        sh:datatype xsd:dateTime ;
+    ] .
+
+:PersonShape a sh:NodeShape ;
+    rdfs:label "Person shape" ;
+    sh:targetClass :Person ;
+    sh:property [
+        sh:path :personName ;
+        sh:name "person name" ;
+        sh:description "cataloged_person.person_name is not null." ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:datatype xsd:string ;
+        sh:minLength 1 ;
+    ] ;
+    sh:property [
+        sh:path :lastKnownJobTitle ;
+        sh:name "last known job title" ;
+        sh:description "Nullable disambiguation signal; at most one." ;
+        sh:maxCount 1 ;
+        sh:datatype xsd:string ;
+    ] .
+
+:CorporateEntityShape a sh:NodeShape ;
+    rdfs:label "Corporate entity shape" ;
+    sh:targetClass :CorporateEntity ;
+    sh:property [
+        sh:path :entityName ;
+        sh:name "entity name" ;
+        sh:description "The human-readable hierarchy label is not null." ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:datatype xsd:string ;
+        sh:minLength 1 ;
+    ] ;
+    sh:property [
+        sh:path :entityCode ;
+        sh:name "entity code" ;
+        sh:description "The login corp code is unique and not null." ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:datatype xsd:string ;
+        sh:minLength 1 ;
+    ] .
+
+:ProjectMentionShape a sh:NodeShape ;
+    rdfs:label "Project mention shape" ;
+    sh:targetClass :ProjectMention ;
+    sh:property [
+        sh:path rdf:subject ;
+        sh:name "mentioned by post" ;
+        sh:description "Every reified project mention identifies exactly one source post." ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:class :Post ;
+    ] ;
+    sh:property [
+        sh:path rdf:predicate ;
+        sh:name "project mention predicate" ;
+        sh:description "The reified statement is specifically a :mentionsProject assertion." ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:hasValue :mentionsProject ;
+    ] ;
+    sh:property [
+        sh:path rdf:object ;
+        sh:name "mentioned project" ;
+        sh:description "Every reified project mention identifies exactly one project." ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:class :Project ;
+    ] ;
+    sh:property [
+        sh:path :semanticConfidence ;
+        sh:name "semantic confidence" ;
+        sh:description "Extraction confidence stays inside [0.0, 1.0] inclusive." ;
+        sh:maxCount 1 ;
+        sh:datatype xsd:decimal ;
+        sh:minInclusive 0.0 ;
+        sh:maxInclusive 1.0 ;
+    ] ;
+    sh:property [
+        sh:path :projectEvidence ;
+        sh:name "project evidence" ;
+        sh:description "At most one verbatim evidence span per mention; missing evidence is an honest unknown, never zero-filled." ;
+        sh:maxCount 1 ;
+        sh:datatype xsd:string ;
+    ] .
+
+:OurSidePersonShape a sh:NodeShape ;
+    rdfs:label "Our-side person shape" ;
+    sh:comment "Closed-world complement of :OurSidePerson owl:disjointWith :CounterpartyPerson: an instance of one can never be typed as the other." ;
+    sh:targetClass :OurSidePerson ;
+    sh:not [
+        a sh:NodeShape ;
+        sh:class :CounterpartyPerson ;
+    ] .
+
+:CounterpartyPersonShape a sh:NodeShape ;
+    rdfs:label "Counterparty person shape" ;
+    sh:comment "Mirror direction of the disjointness complement." ;
+    sh:targetClass :CounterpartyPerson ;
+    sh:not [
+        a sh:NodeShape ;
+        sh:class :OurSidePerson ;
+    ] .

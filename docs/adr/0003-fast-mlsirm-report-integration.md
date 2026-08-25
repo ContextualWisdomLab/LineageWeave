@@ -104,7 +104,7 @@ than one large PR:
    0049): after IRT main effects, persist closest and farthest
    post–criterion pairs from the residual leftover map. Consume fast-mlsirm's
    Rust-backed residual interaction-map contract and keep only identifier
-   mapping, authorization, persistence, and pair selection here (ADR 0207).
+   mapping, authorization, persistence, and pair selection here (ADR 0211).
    Category probabilities and expected responses must use `fast-mlsirm`'s
    public Rust-backed prediction API (upstream PR #1279); LineageWeave must
    not reproduce GRM/GPCM parameter conventions locally.

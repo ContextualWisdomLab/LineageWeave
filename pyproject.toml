@@ -1,6 +1,6 @@
 [project]
 name = "lineageweave"
-version = "2.17.0"
+version = "2.18.0"
 description = "Reconstructs git-branch-style lineage DAGs from scattered short records using multi-channel score fusion and LLM adjudication."
 readme = "README.md"
 license = { text = "MIT" }
@@ -38,6 +38,10 @@ dev = [
   "pyjwt[crypto]>=2.8.0",
   "pytest>=8.0",
   "httpx>=0.27.0",
+  # Closed-world SHACL validation of docs/ontology/lineageweave-kg.ttl
+  # against lineageweave-kg-shapes.ttl (ADR 0207 decision 10). Pure
+  # Python; OWL-RL reasoning included.
+  "pyshacl>=0.26.0",
 ]
 backend = [
   "fastapi>=0.115.0",

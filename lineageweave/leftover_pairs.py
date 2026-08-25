@@ -9,6 +9,7 @@ closest/farthest selection persisted by ADR 0048.
 from __future__ import annotations
 
 from dataclasses import dataclass, replace
+from typing import Any
 
 import numpy as np
 from fast_mlsirm import residual_interaction_map
@@ -101,6 +102,19 @@ def _optional_finite(value: float) -> float | None:
     return float(value) if np.isfinite(value) else None
 
 
+def _upstream_map_coordinates_are_finite(result: Any) -> bool:
+    """Return whether every required upstream map coordinate is persistable."""
+    return all(
+        np.isfinite(values).all()
+        for values in (
+            result.person_coordinates,
+            result.item_coordinates,
+            result.singular_values,
+            result.axis_shares,
+        )
+    )
+
+
 def leftover_pairs_from_residual(
     post_ids: list[str],
     item_codes: tuple[str, ...],
@@ -121,6 +135,8 @@ def leftover_map_from_residual(
     _validate_identifiers(post_ids, item_codes, matrix)
     result = residual_interaction_map(matrix, expected, axis_count=_LEFTOVER_MAP_AXES)
     if result.person_indices.size == 0 or result.item_indices.size == 0:
+        return LeftoverInteractionMap(pairs=(), persons=(), items=(), axes=())
+    if not _upstream_map_coordinates_are_finite(result):
         return LeftoverInteractionMap(pairs=(), persons=(), items=(), axes=())
 
     persons = tuple(
@@ -158,6 +174,14 @@ def leftover_map_from_residual(
         for local_item, item in enumerate(result.item_indices):
             item_index = int(item)
             distance = float(result.distance[local_person, local_item])
+            residual = float(result.residual[local_person, local_item])
+            observed = float(matrix[person_index, item_index])
+            expected_value = float(expected[person_index, item_index])
+            if not all(
+                np.isfinite(value)
+                for value in (distance, residual, observed, expected_value)
+            ):
+                continue
             candidates.append(
                 (
                     distance,
@@ -168,31 +192,32 @@ def leftover_map_from_residual(
                         post_id=post_ids[person_index],
                         criterion_code=item_codes[item_index],
                         leftover_distance=distance,
-                        leftover_residual=float(
-                            result.residual[local_person, local_item]
-                        ),
-                        observed_response=float(matrix[person_index, item_index]),
-                        expected_response=float(expected[person_index, item_index]),
+                        leftover_residual=residual,
+                        observed_response=observed,
+                        expected_response=expected_value,
                         leftover_map_rank=rank,
-                        leftover_map_unexplained=float(
+                        leftover_map_unexplained=_optional_finite(
                             result.unexplained[local_person, local_item]
                         ),
                         leftover_map_cross_share=_optional_finite(
                             result.cross_share[local_person, local_item]
                         ),
-                        leftover_map_reconstruction=float(
+                        leftover_map_reconstruction=_optional_finite(
                             result.reconstruction[local_person, local_item]
                         ),
                     ),
                 )
             )
-    closest = min(candidates, key=lambda row: row[:3])[3]
-    farthest = max(candidates, key=lambda row: row[:3])[3]
-    return LeftoverInteractionMap(
-        pairs=(
+    pairs: tuple[LeftoverPair, ...] = ()
+    if candidates:
+        closest = min(candidates, key=lambda row: row[:3])[3]
+        farthest = max(candidates, key=lambda row: row[:3])[3]
+        pairs = (
             replace(closest, pair_kind=PAIR_KIND_CLOSEST),
             replace(farthest, pair_kind=PAIR_KIND_FARTHEST),
-        ),
+        )
+    return LeftoverInteractionMap(
+        pairs=pairs,
         persons=persons,
         items=items,
         axes=axes,
