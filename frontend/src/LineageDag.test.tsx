@@ -105,6 +105,7 @@ describe("LineageDag channel evidence", () => {
   it("discloses exact inferred values without hover-only interaction", async () => {
     render(<LineageDag graph={graph} onSelectPost={vi.fn()} />);
     const disclosure = screen.getByText(/fused score 0.700000/).closest("details");
+    expect(disclosure).toHaveTextContent("Pricing follow-up follows Kickoff recap");
     const edgeButton = screen.getByRole("button", {
       name: "Open connection evidence: Kickoff recap to Pricing follow-up",
     });
