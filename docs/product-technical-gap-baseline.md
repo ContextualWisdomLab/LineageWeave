@@ -77,15 +77,16 @@ lifecycle claim.
 ## 1. Exact-head and governance evidence
 
 The protected default branch is `494b54e2245040bcf02b45376f221c37cd437e76`
-at this refresh. The live queue contains 11 open PRs and 10
+at this refresh. The live queue contains 12 open PRs and 10
 open issues. The exact-head inventory below supersedes older per-PR snapshots
 elsewhere in this document; those older rows remain useful historical delivery
 context only.
 
 | PR | Exact observed head | Merge/check state at this snapshot |
 | ---: | --- | --- |
-| #667 | `5335011a` | baseline refresh branch exact head at this snapshot; BLOCKED with review required |
-| #663 | `d5edd2b9` | project ontology traversal plus cutoff-snapshot project focus, labels, and explicit MCP admission bounds; BLOCKED with review required |
+| #667 | `3bf57fed` | baseline refresh branch exact head observed before this documentation update; BLOCKED with review required |
+| #668 | `5ef8db83` | evidence-bound project history projection; BLOCKED with review required |
+| #663 | `7ac1483e` | project ontology traversal, cutoff-snapshot project focus, bounded MCP admission, and migration-fixture/worker startup repair; BLOCKED with review required |
 | #658 | `f497a6e8` | evidence-honest Global Ask cutoff with robust revision timestamps; BLOCKED with review required |
 | #657 | `a59a2023` | TEPP lifecycle persistence; BLOCKED with review required |
 | #644 | `ed8d97f3` | native-surface code splitting; BLOCKED with review required |
