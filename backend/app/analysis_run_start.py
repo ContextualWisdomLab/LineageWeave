@@ -391,6 +391,21 @@ async def _persist_tepp_result(
                         anchor["criterion_validity_status"],
                         anchor["validated_pair_count"],
                     )
+                    await conn.execute(
+                        """
+                        update lineage_channel_weight
+                           set anchor_method_code = 'tepp_lineage_criterion_v1'
+                         where estimation_run_id = $1
+                           and estimation_method_code = 'mls2plm_expected_information'
+                           and source_snapshot_sha256 = $2
+                           and knowledge_cutoff = $3
+                           and sample_pair_count = $4
+                        """,
+                        estimation_run_id,
+                        anchor["source_snapshot_sha256"],
+                        anchor_cutoff,
+                        anchor["validated_pair_count"],
+                    )
     except (asyncpg.PostgresError, TypeError, ValueError):
         return False
     return True
