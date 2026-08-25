@@ -60,14 +60,14 @@ only aggregate, non-identifying evidence to this repository.
 
 ### Exact open-PR boundary
 
-At this snapshot there were 14 open PRs and 10 open issues. The exact-head
+At this snapshot there were 12 open PRs and 10 open issues. The exact-head
 inventory in section 1 is authoritative for this snapshot. Every open head
 remained blocked on hosted gates and/or independent review. These observations
 are not merge readiness. Re-fetch exact heads,
 unresolved threads, checks, approvals, rulesets, and merge SHA before any
 lifecycle claim.
 
-> Audit snapshot: 2026-08-26 08:00 KST (refreshed by the autonomous merge
+> Audit snapshot: 2026-08-26 08:30 KST (refreshed by the autonomous merge
 > loop). This repository records synthetic fixtures and aggregate,
 > non-identifying runtime evidence only. Open PRs and local checks are not
 > protected-default-branch release evidence. Identifying post identifiers,
@@ -77,17 +77,15 @@ lifecycle claim.
 ## 1. Exact-head and governance evidence
 
 The protected default branch is `494b54e2245040bcf02b45376f221c37cd437e76`
-at this refresh. The live queue contains 14 open PRs and 10
+at this refresh. The live queue contains 12 open PRs and 10
 open issues. The exact-head inventory below supersedes older per-PR snapshots
 elsewhere in this document; those older rows remain useful historical delivery
 context only.
 
 | PR | Exact observed head | Merge/check state at this snapshot |
 | ---: | --- | --- |
-| #667 | `c7e93196` | baseline refresh branch exact head at this snapshot; BLOCKED with review required |
-| #671 | `ee660510` | ADR 0133–0137 gap decomposition; UNSTABLE with hosted checks pending |
+| #667 | `d1af00dd` | baseline refresh branch exact head at this snapshot; BLOCKED with review required; stacked #669 and #671 are merged into this non-default branch |
 | #668 | `f272f4b0` | evidence-bound project history projection with request guards and normalized keys; BLOCKED with review required |
-| #669 | `21bb799c` | cancelled-analysis next-action guidance, responsive audit evidence, and responsive grid repair; UNSTABLE with hosted checks pending |
 | #663 | `7ac1483e` | project ontology traversal, cutoff-snapshot project focus, bounded MCP admission, and migration-fixture/worker startup repair; BLOCKED with review required |
 | #658 | `f497a6e8` | evidence-honest Global Ask cutoff with robust revision timestamps; BLOCKED with review required |
 | #657 | `a59a2023` | TEPP lifecycle persistence; BLOCKED with review required |
@@ -366,7 +364,7 @@ this file per §3.5 of the prior snapshot).
 | #280 | Full project-lifecycle history and handover intervals | Tracked with issue #284; no active delivery PR confirmed |
 | #284 | Authoritative lifecycle ingestion and idempotent reconciliation | No active delivery PR confirmed |
 | #338 | Evidence-bounded email/project lineage contract for Naruon consumption | No active delivery PR; #355 is merged historical consumer work |
-| #611 | Decompose unshipped ADR 0133–0137 acceptance evidence from PR #490 | #671 audits the current base; focused delivery PRs remain separate |
+| #611 | Decompose unshipped ADR 0133–0137 acceptance evidence from PR #490 | Decomposition is stacked in #667's non-default branch; no separate open delivery PR |
 
 ### 4.1 ADR 0133–0137 current-main decomposition
 
@@ -382,11 +380,11 @@ feature is equivalent.
 | --- | --- | --- | --- |
 | ADR 0133 — source-reference research | No `source_reference_research` persistence, post-admin action, or reader contract exists. The existing relation-verification client verifies an already extracted organization and is not the cited-resource discovery workflow | Missing | Add the ADR first, then one bounded SearXNG → contextual-orchestrator judgment slice with public-host/redirect rejection, normalized provenance, synthetic SSRF tests, and no entity binding from a search hit alone |
 | ADR 0134 — token-backed exception messages | Protected main has no shared `StatusNotice`; #643 (`3453ab08`) is the active current-main implementation candidate | In progress, not protected delivery | Land #643 only after exact-head checks and independent approval; then migrate remaining raw/color-only exception surfaces with Storybook unavailable/retry scenes |
-| ADR 0135 — analysis-kind exact next actions | Protected main has no `analysisRunGuidance`; stacked #669 (`21bb799c`) adds cancelled-run guidance and responsive layout on top of the baseline branch | In progress, not protected delivery | Land #667 then #669 with exact-head UI tests and desktop/mobile screenshot evidence; follow with the remaining kind × status Storybook interaction matrix without inventing TEPP or report actions |
+| ADR 0135 — analysis-kind exact next actions | Protected main has no `analysisRunGuidance`; merged stack #669 (`21bb799c`) is included in #667's non-default branch with cancelled-run guidance and responsive layout | In progress, not protected delivery | Land #667 with exact-head UI tests and desktop/mobile screenshot evidence; follow with the remaining kind × status Storybook interaction matrix without inventing TEPP or report actions |
 | ADR 0136 — per-post Ask history | No `post_ask_session` or `post_ask_turn` schema/API exists on protected main | Missing | Add the ADR and normalized account + post scoped tables, hot-post-safe index, batched visibility reauthorization, list/select/new UI, cross-account/post rejection tests, and citation-revocation evidence |
 | ADR 0137 — cross-post customer identity | No `customer_identity_judgment`, `customer_identity_binding`, or `corporate_entity_name_history` schema exists on protected main | Missing | Add the ADR before implementation; retain `(source_system_code, source_customer_code)` identity, require multiple eligible posts and external cited corroboration, persist abstention/tie states, and consume owning-library judgment evidence without local scoring |
 
-The next implementation order is ADR 0134/#643 and ADR 0135/#669 because
+The next implementation order is ADR 0134/#643 and the stacked ADR 0135 work because
 their focused current-base heads already exist. ADR 0133, ADR 0136, and ADR
 0137 must each start from a new ADR-first current-main PR; none is authorized
 for wholesale replay from #490.
@@ -395,7 +393,7 @@ for wholesale replay from #490.
 
 | Gap | Current evidence | Acceptance requirement |
 | --- | --- | --- |
-| Protected release | Protected `main@494b54e2` includes the #660/#664 semantic-unit/backend stack and #659 ontology readability/token repair. Fourteen PRs remain open; every candidate still requires exact-head checks, unresolved-thread review, and independent approval before merge | Terminal exact-head checks, no unresolved threads, two independent exact-head approvals including last-push approval, protected squash-merge SHA |
+| Protected release | Protected `main@494b54e2` includes the #660/#664 semantic-unit/backend stack and #659 ontology readability/token repair. Twelve PRs remain open; every candidate still requires exact-head checks, unresolved-thread review, and independent approval before merge | Terminal exact-head checks, no unresolved threads, two independent exact-head approvals including last-push approval, protected squash-merge SHA |
 | Evidence-grounded operations workspace | Protected-main #614 delivers governed semantic Ask, live Similar VOC, disjoint pending/failed analysis metrics, full Storybook state inventory, and current desktop/mobile screenshot evidence. Authorized-corpus backfill acceptance remains unavailable | Perform authenticated authorized-corpus acceptance with aggregate evidence and retain fail-closed no-match behavior |
 | Cancelled analysis guidance | PRD-FR-5 requires every lifecycle state to identify a valid next action, while ADR 0013 makes Cancelled terminal. Protected `main@494b54e2` rendered Cancelled without a next action. This stacked candidate adds kind-specific guidance for lineage, TEPP, topic lineage, and period reports; 390×844 and 1440×1000 authenticated synthetic-runtime audits are retained in `docs/screenshots/cancelled-analysis-runs-{mobile,desktop}.png`. The audit also found and repaired attached count/action text and the three-column mobile squeeze | Land through the protected gate, then repeat authenticated keyboard and screen-reader acceptance on the exact release head; no cancelled run may imply that it can resume or that a measurement exists |
 | Shared frontend gate | The ADR 0109 login repair is on protected `main`; eight older branches carried the defect and received the same verified repair this loop (#521–#560) | Keep every future branch cut from post-repair bases; re-verify with frontend lint/test/build before push |
