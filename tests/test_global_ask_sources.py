@@ -79,6 +79,15 @@ def test_parameter_free_rrf_combines_embedding_and_evidence_rank_lists() -> None
     )[0] == "shared"
 
 
+def test_disabled_rankweave_keeps_embedding_order(monkeypatch) -> None:
+    """The shared runtime switch disables Global Ask fusion as well."""
+    monkeypatch.setenv("RANKWEAVE_DISABLED", "1")
+
+    assert _fuse_global_candidate_ids(
+        ["embedding-only", "shared"], ["shared", "evidence-only"], 3
+    ) == ["embedding-only", "shared"]
+
+
 def test_complete_canonical_ontology_iri_maps_to_its_lookup_code() -> None:
     """Ontology nomination uses the published full IRI, not substring guessing."""
 
