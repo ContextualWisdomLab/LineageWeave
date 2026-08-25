@@ -1,6 +1,6 @@
 # Product & Technical Gap Baseline
 
-> Audit snapshot: 2026-08-25 11:33 KST (refreshed by the autonomous merge
+> Audit snapshot: 2026-08-25 12:07 KST (refreshed by the autonomous merge
 > loop). This repository records synthetic fixtures and aggregate,
 > non-identifying runtime evidence only. Open PRs and local checks are not
 > protected-default-branch release evidence. Identifying post identifiers,
@@ -9,7 +9,7 @@
 
 ## 1. Exact-head and governance evidence
 
-The protected default branch was `1e72636dcb3807b5ce129001f189791df6ed2194`
+The protected default branch was `965c798de5f789db245625e06e03c1563163051f`
 when this baseline was refreshed. The live queue contained 24 open PRs and 22
 open issues. The exact-head inventory below supersedes older per-PR snapshots
 elsewhere in this document; those older rows remain useful historical delivery
@@ -17,30 +17,30 @@ context only.
 
 | PR | Exact observed head | Merge/check state at this snapshot |
 | ---: | --- | --- |
-| #597 | `8b6b7f4c` | keeps Customer Master related-post detail in the customer's current workspace instead of routing to Board; exact-head checks and independent review pending |
+| #598 | `63db0854` | reads 5W1H roles/events across a stale summary contract version; exact-head checks and independent review pending |
+| #597 | `8e132b5b` | clears stale related-post graph state before opening Customer Master detail in place; auto-merge armed, exact-head checks and independent review pending |
 | #596 | `edb24472` | aligns the two orchestrator-backed hierarchy/name-resolution clients with the existing bounded 600-second deep-work window and verifies both defaults; exact-head checks and independent review pending |
 | #595 | `9378c04f` | restores the audited no-draft-dimension import door and nullable updated-at fallback orphaned by the prior stack race; result typing repaired, 24 focused tests passed, auto-merge armed |
-| #591 | `8c6da209` | canonical current-queue baseline reconciled with protected main; arbitrary test-weight gap disclosed, exact-head checks and independent review pending |
-| #588 | `91d8e4f5` | ADR 0201 repair reconciled with current main; auto-merge armed, checks restarted |
+| #591 | `ea5e72f5` | canonical current-queue baseline; this refresh supersedes the observed head, so checks and review restart |
+| #588 | `3a67a802` | reconstruction naming reconciled with current main; auto-merge armed, checks pending |
 | #585 | `ffe1290b` | only locally-authored bounded job errors may persist; transport errors remain generic; auto-merge armed, checks restarted |
 | #584 | `17068ec3` | current-main ADR collision repaired; auto-merge armed, checks restarted |
 | #582 | `3992302f` | batched Ask lineage graph reconciled with current main and the conflict-tail repair; auto-merge armed, checks restarted |
 | #581 | `c1b424eb` | concurrent exact-head update observed after event-time Ask reconciliation; checks and review pending |
-| #579 | `380944d6` | SQL-suppression inventory repaired after the interaction-map merge; focused contract tests passed, current-main reconciliation pending |
+| #579 | `69c05078` | interaction-map migration and hosted SQL-suppression inventory reconciled; auto-merge armed |
 | #564 | `212b55a9` | concurrent exact-head update observed; checks and review pending |
 | #563 | `353b7470` | concurrent exact-head update observed after raw-residual identity repair; checks and review pending |
 | #539 | `e4dffe63` | concurrent exact-head update observed; checks and review pending |
-| #537 | `ebfd712b` | current-main reconciliation pushed; checks restarted |
-| #493 | `64e5f1b8` | concurrent exact-head update observed; checks and review pending |
+| #537 | `d5ac65d8` | current-main reconciliation pushed; checks restarted |
+| #493 | `e9c63d56` | concurrent exact-head update observed; checks and review pending |
 | #490 | `73413d0b` | code-quality findings repaired; current-main reconciliation remains before checks can settle |
 | #484 | `fa898bc5` | concurrent exact-head update observed after Allen interval reconciliation; checks and review pending |
 | #482 | `b0e737d3` | concurrent exact-head update observed after the corroborated-SKOS reconciliation; exact-head checks and review pending |
-| #468 | `d8e255d0` | concurrent exact-head update observed; integration and required checks restarted |
-| #434 | `d7766b39` | current-main reconciliation pushed; checks restarted |
-| #394 | `1f1667f2` | blocked; required checks pending |
-| #387 | `754f8c22` | budgeted LLM selection now precedes exact-channel weight lookup; persistence tests use fast-mlsirm estimates, merged Ask evidence is grouped by thread, 37 backend tests plus frontend interaction/lint/build passed; auto-merge armed |
-| #383 | `d1a4ff24` | concurrent exact-head update observed on reader-safe OTel diagnostics; checks and independent review pending |
-| #355 | `761fdfeb` | Naruon ADR allocated as 0203 after empty-body repair; auto-merge armed, checks and independent review pending |
+| #468 | `a14093a3` | exact Keyverse org/PU scope persists in 3NF job child tables and is intersected with current grants; provider-shape, completeness-gate, role-intersection, and TEPP-contract reviews repaired; current main merged, 52 focused tests passed, auto-merge armed |
+| #434 | `ff34c9b6` | stacked on #387; review findings repaired, but the stack remains conflicting until its parent delivery boundary settles |
+| #394 | `ec74eedd` | indentation evidence composed with current HTTP response-boundary protections; 56 focused tests passed, auto-merge armed |
+| #387 | `462b41fb` | budgeted LLM selection precedes exact-channel weight lookup; persistence evidence uses fast-mlsirm estimates, 37 backend tests plus frontend interaction/lint/build passed; auto-merge armed, stale changes-requested state awaits exact-head rereview |
+| #383 | `138eaad4` | reader-safe OTel diagnostics composed with current HTTP response bounds; 76 focused tests passed, auto-merge armed |
 
 No row above is merge evidence. Immediately before any lifecycle action,
 re-fetch the head, unresolved threads, formal reviews, rulesets, and same-head
@@ -92,6 +92,7 @@ Recent protected-default-branch delivery evidence (squash merges onto
 
 | PR | Merged (UTC) | Delivered |
 | ---: | --- | --- |
+| #355 | 2026-08-25 02:38 | Naruon calendar projection contract and conformance fixture |
 | #562 | 2026-08-24 02:05 | parameter-free classic RRF; deleted the last hand-picked fused score |
 | #561 | 2026-08-24 01:47 | knowledge-graph precedence/hierarchy relation classification and layout order |
 | #555 | 2026-08-24 01:29 | per-channel score breakdown persisted on `post_lineage_edge.channel_scores` (ADR 0195) |
@@ -150,7 +151,7 @@ Substantially present on protected `main`:
 These statements describe source capability, not authenticated production
 corpus acceptance or protected release.
 
-## 3. Snapshot open PR inventory (37 open at snapshot)
+## 3. Historical open-PR inventory (superseded by §1)
 
 Heads below are queue evidence captured at snapshot time; recheck SHA,
 checks, unresolved threads, and independent approval immediately before any
@@ -263,7 +264,7 @@ this file per §3.5 of the prior snapshot).
 
 | Gap | Current evidence | Acceptance requirement |
 | --- | --- | --- |
-| Protected release | 37 open PRs at snapshot; the queue is gated mainly by the org-wide Strix provider failure and per-head independent approvals; #496/#507/#515 landed during the previous window | Terminal exact-head checks, no unresolved threads, independent exact-head approvals, protected squash-merge SHA |
+| Protected release | 24 open PRs at snapshot; the queue is gated mainly by per-head independent approvals and pending hosted checks; #355 landed during this window | Terminal exact-head checks, no unresolved threads, independent exact-head approvals, protected squash-merge SHA |
 | Shared frontend gate | The ADR 0109 login repair is on protected `main`; eight older branches carried the defect and received the same verified repair this loop (#521–#560) | Keep every future branch cut from post-repair bases; re-verify with frontend lint/test/build before push |
 | Identifying baseline regression | `main` gap file listed real post identifiers; separately, closed #506 and pre-existing public history contain a private runtime source-table identifier, while current `main` and #507 trees are clean | Land this non-identifying rewrite, then coordinate ADR 0001 history remediation with security/privacy owners; do not reproduce the value, force-push, or delete evidence ad hoc |
 | Authorized-corpus runtime | Repository tests use synthetic fixtures; private records remain outside git | Authenticated runtime validation returning only aggregate, non-identifying evidence |
@@ -272,10 +273,11 @@ this file per §3.5 of the prior snapshot).
 | Event and project semantics | Multi-project mentions, project-bound actions, 5W1H, requester/processor, and semantic relations exist in ADR 0036/0052/0100/0111/0129 and active stacks | Aggregate authenticated evidence must show distinct projects and events, explicit requester/processor and real R&R, normalized relative time, and product/entity relations without promoting attendance or co-occurrence |
 | Knowledge Graph readability | The black evidence-node root cause is an undefined-token fallback; the design-token repair and long-label/evidence-table coverage are present on #490, not protected `main` | Deliver the token repair through protected `main`, then verify light/dark contrast, keyboard graph navigation, full labels, and evidence tables in the authenticated rendered surface |
 | Source-code lookup UX | Source state/detail codes remain evidence-bearing machine values and current detail presentation is dense | Catalog-backed display labels with raw-code provenance, compact 5W1H/source-detail hierarchy, keyboard access, and no unsupported customer/project binding |
-| Calendar / Naruon | Pseudo-CalDAV remains on `main`; #355 carries the projection contract | Naruon-owned projection, issue #336/#338 acceptance, no invented events |
+| Calendar / Naruon | #355 delivered the Naruon-owned projection contract and conformance fixture to protected `main`; live consumer acceptance is not yet evidenced | Verify Naruon consumption against the published schema and issues #336/#338 without invented events |
 | SKOS organization aliases | Catalog binding and chip caption live on #480 / #482 | One catalog row per corroborated org; companion caption is hint-only until bound |
 | Event Lineage evidence | Channel evidence and Allen relations live on #387 / #484 | Persist channel scores, explain them in the popup, never invent a fused score |
-| Scientific measurement | Durable accepted TEPP receipts and fail-closed production weighting are protected (`main`); #468 binds fast-mlsirm/Keyverse/orchestrator/TEPP integration tests and remains open pending gates. #387 removes inferred/default persistence weights and converts its 3/4-channel evidence tests to fast-mlsirm estimates, but several older reconstruction tests still pass hand-authored numeric weight dictionaries; those constants are not estimator evidence | Continue replacing remaining reconstruction-test constants with provenance-bearing fast-mlsirm estimates over synthetic fixtures; tests unrelated to fusion must bypass weighting entirely, as #484 does. Land #387/#468/#417 through the standard gate and retain true-parameter RMSE recovery as the acceptance bar |
+| Scientific measurement | Durable accepted TEPP receipts and fail-closed production weighting are protected (`main`); #468 binds fast-mlsirm/Keyverse/orchestrator/TEPP integration tests and now fails closed on upstream probability-axis drift. #387 removes inferred/default persistence weights and converts its 3/4-channel evidence tests to fast-mlsirm estimates, but several older reconstruction tests still pass hand-authored numeric weight dictionaries; those constants are not estimator evidence | Continue replacing remaining reconstruction-test constants with provenance-bearing fast-mlsirm estimates over synthetic fixtures; tests unrelated to fusion must bypass weighting entirely, as #484 does. Land #387/#468/#417 through the standard gate and retain true-parameter RMSE recovery as the acceptance bar |
+| Asynchronous authorization | Protected `main` rebuilds Global Ask worker scope after the bearer token leaves the request; #468 now persists exact Keyverse organization/process-unit scope in 3NF child tables and intersects it with current affiliations | Land #468 through the protected gate; prove a second affiliation and a revoked process unit cannot widen delayed-job evidence |
 | Planned-facility intent | Planned-facility relationship intent rides on open #490 (`d0cad030`), whose earlier stack-only merges were not protected delivery | Settle #490 exact-head checks plus independent approval, then land through protected `main` before a release claim |
 | Accessibility and responsive UX | Unit coverage exists for major surfaces; Storybook inventory incomplete | Keyboard, screen-reader, mobile, and authenticated Playwright acceptance on the exact release head |
 | Design tokens and repeated objects | Token extraction started; sanitized Figma Event Lineage desktop/mobile frames exist, while other repeated product surfaces remain incomplete | Tokens in CSS + Storybook stories for board, popup, DAG, Ask, calendar, forms, charts; same-viewport Figma/runtime visual comparison before release |
