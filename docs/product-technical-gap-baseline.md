@@ -221,10 +221,12 @@ public history. Do not reproduce or hint at its value. Historical remediation
 requires the ADR 0001 incident process and security/privacy-owner coordination;
 never force-push or delete evidence ad hoc.
 
-The Grok durable hourly loop and the central thin GitHub Actions caller
-ContextualWisdomLab/.github#1259 (minute 4, `pr-review-fix-scheduler.yml`)
-both target this repository. Do not add a LineageWeave-local duplicate
-workflow. ContextualWisdomLab/.github#1258 merged at exact head `897819c4` to
+The Grok durable hourly loop targets this repository. The first proposed
+central caller, ContextualWisdomLab/.github#1259, closed unmerged; its checks
+and source are not scheduler evidence. ContextualWisdomLab/.github#1288 now
+proposes the minute-4 `pr-review-fix-scheduler.yml` caller and remains blocked
+on exact-head hosted gates plus independent approval. Do not add a
+LineageWeave-local duplicate workflow. ContextualWisdomLab/.github#1258 merged at exact head `897819c4` to
 repair the pnpm/coverage-evidence workflow; newly created exact PR heads must
 still prove the runtime behavior because merged workflow source alone is not
 check evidence.
@@ -430,7 +432,7 @@ of leverage; open connector PRs there when the defect is upstream:
 6. **ThreadWeave** — tree assembly.
 7. **Naruon** — calendar and email/project lineage projection (#336, #338, #355).
 8. **DiskSage / wardnet** — storage and network policy as needed.
-9. **ContextualWisdomLab/.github** — required review workflows (OpenCode, Strix, Noema) and the LineageWeave hourly caller (#1259). If stacked PRs miss central review or coverage-evidence fails on pnpm 9 (`--trust-lockfile` is pnpm 11.3) or a missing Vitest coverage provider, fix the org workflow (#1258), not a local bypass.
+9. **ContextualWisdomLab/.github** — required review workflows (OpenCode, Strix, Noema) and the candidate LineageWeave hourly caller (ContextualWisdomLab/.github#1288). The earlier ContextualWisdomLab/.github#1259 closed unmerged. If stacked PRs miss central review or coverage-evidence fails on pnpm 9 (`--trust-lockfile` is pnpm 11.3) or a missing Vitest coverage provider, fix the org workflow (#1258), not a local bypass.
 
 ## 8. Public ontology publication boundary
 
