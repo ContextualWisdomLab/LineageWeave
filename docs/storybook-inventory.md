@@ -5,7 +5,7 @@ operator-facing control you can click before changing product CSS.
 
 | Story | Operator next action | Token / module |
 |---|---|---|
-| `Workspace/OperationsDashboard` | Compare Event and post counts, inspect external-information coverage, then open the cited source behind a claim, handover, or repeat-issue fact. `EvidenceReady`, `NarrowViewport`, `RequiredFactMissing`, `AnalysisPendingAndMissingEvidence`, `AnalysisFailed`, and `LoadError` cover populated, mobile, explicit evidence-absence, analysis-pending, retryable failure, and transport-error states. | `--color-dashboard-*`, `OperationsDashboard` |
+| `Workspace/OperationsDashboard` | Compare Event and post counts, inspect external-information coverage, then open the cited source behind a claim, handover, or repeat-issue fact. `EvidenceReady`, `NarrowViewport`, `ExternalInformationEmpty`, `RequiredFactMissing`, `AnalysisPendingAndMissingEvidence`, `AnalysisFailed`, and `LoadError` cover populated, mobile, scoped-empty, explicit evidence-absence, analysis-pending, retryable failure, and transport-error states. | `--color-dashboard-*`, `OperationsDashboard` |
 | `Post/SimilarVocPanel` | Compare ontology/semantic similar VOC and prior action evidence, then open the source; unavailable states show no fabricated TEPP theta or weight. | `SimilarVocPanel.css`, `SimilarVocPanel` |
 | `Evidence/CitationChip` | Click a cited title to open that source post. | `--color-chip-border`, `--radius-chip`, `CitationChip` |
 | `Evidence/OrganizationAliasChip` | Click a cataloged org; the parenthetical is the unique corroborated SKOS companion. | `--color-chip-border`, `--radius-chip`, `OrganizationAliasChip` |
