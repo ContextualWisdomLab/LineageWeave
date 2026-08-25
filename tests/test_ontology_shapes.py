@@ -14,12 +14,16 @@ verification, and this module proves it works in both directions:
 
 from __future__ import annotations
 
+from datetime import datetime, timezone
+from decimal import Decimal
 from pathlib import Path
 
 import pytest
 from rdflib import Graph, Literal, Namespace, URIRef
 from rdflib.namespace import RDF, XSD
 from pyshacl import validate as shacl_validate
+
+from lineageweave.ontology import project_project_mention_rdf
 
 ROOT = Path(__file__).resolve().parents[1]
 KG_PATH = ROOT / "docs" / "ontology" / "lineageweave-kg.ttl"
@@ -112,6 +116,64 @@ def test_representative_db_projection_passes_validation() -> None:
     """A realistic projection of real schema rows validates cleanly."""
     conforms, report_text = _conforms(_representative_projection())
     assert conforms, report_text
+
+
+def test_schema_shaped_project_row_projection_passes_validation() -> None:
+    """The production projector emits the complete SHACL-governed chain."""
+    data = project_project_mention_rdf(
+        post_id="aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa1",
+        post_title="Synthetic commissioning review",
+        post_body="The synthetic source names the grid-upgrade project.",
+        post_created_at=datetime(2026, 8, 25, 1, 23, 45, tzinfo=timezone.utc),
+        project_key="grid-upgrade",
+        project_name="Grid Upgrade",
+        evidence_text="grid-upgrade project",
+        confidence=Decimal("0.870"),
+        mention_created_at=datetime(2026, 8, 25, 1, 24, tzinfo=timezone.utc),
+    )
+    conforms, report_text = _conforms(data)
+    assert conforms, report_text
+    LWn = Namespace(LW)
+    mention = URIRef(
+        LW + "statement/project-mention/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa1/grid-upgrade"
+    )
+    assert (mention, RDF.subject, None) in data
+    assert (mention, RDF.predicate, LWn.mentionsProject) in data
+    assert (mention, RDF.object, None) in data
+
+
+@pytest.mark.parametrize(
+    ("override", "message"),
+    [
+        ({"post_id": "not-a-uuid"}, "badly formed"),
+        ({"project_key": "Grid Upgrade"}, "already be canonical"),
+        ({"evidence_text": " "}, "evidence_text must be non-empty"),
+        (
+            {"post_created_at": datetime(2026, 8, 25, 1, 23, 45)},
+            "post_created_at must be timezone-aware",
+        ),
+        ({"confidence": "not-a-number"}, "confidence must be a decimal"),
+        ({"confidence": "1.001"}, "confidence must be a decimal"),
+    ],
+)
+def test_project_row_projection_rejects_invalid_source_values(
+    override: dict[str, object], message: str
+) -> None:
+    """Malformed DB-shaped values fail before an RDF assertion is emitted."""
+    values: dict[str, object] = {
+        "post_id": "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa1",
+        "post_title": "Synthetic commissioning review",
+        "post_body": "The synthetic source names the grid-upgrade project.",
+        "post_created_at": datetime(2026, 8, 25, 1, 23, 45, tzinfo=timezone.utc),
+        "project_key": "grid-upgrade",
+        "project_name": "Grid Upgrade",
+        "evidence_text": "grid-upgrade project",
+        "confidence": Decimal("0.870"),
+        "mention_created_at": datetime(2026, 8, 25, 1, 24, tzinfo=timezone.utc),
+    }
+    values.update(override)
+    with pytest.raises(ValueError, match=message):
+        project_project_mention_rdf(**values)  # type: ignore[arg-type]
 
 
 @pytest.mark.parametrize(

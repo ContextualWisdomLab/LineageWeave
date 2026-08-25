@@ -61,7 +61,7 @@ only aggregate, non-identifying evidence to this repository.
 ### Exact open-PR boundary
 
 At this snapshot there were 12 open PRs and 10 open issues. Exact observed heads
-were `#663 72e0ad34`, `#660 24fda085`, `#659 0739b9d7`, `#658 fe830b0a`, `#657 64f48679`, `#644 d9ff9980`, `#643 0a1f8ec1`, `#640 2d50fa01`,
+were `#663 93a0a232`, `#660 24fda085`, `#659 0739b9d7`, `#658 fe830b0a`, `#657 64f48679`, `#644 d9ff9980`, `#643 0a1f8ec1`, `#640 2d50fa01`,
 `#639 aee02dca`, `#632 78f3f71e`, `#631 c0022c97`,
 `#629 4b4d6707`. PR #654 merged its ontology-label
 readability slice into #632's provenance branch as `6c0c4370`; that stack
@@ -71,7 +71,7 @@ observations are not merge readiness. Re-fetch exact heads,
 unresolved threads, checks, approvals, rulesets, and merge SHA before any
 lifecycle claim.
 
-> Audit snapshot: 2026-08-26 05:46 KST (refreshed by the autonomous merge
+> Audit snapshot: 2026-08-26 05:51 KST (refreshed by the autonomous merge
 > loop). This repository records synthetic fixtures and aggregate,
 > non-identifying runtime evidence only. Open PRs and local checks are not
 > protected-default-branch release evidence. Identifying post identifiers,
@@ -92,7 +92,7 @@ context only.
 | #661 | `6baaeb3d` (closed unmerged) | reconstruction fixture seam passed focused tests, but the final review found no independent `tepp_lineage_criterion_v1` anchor and an ungrounded candidate-pair weight fit, contrary to ADR 0145/0205; closed without protected-main delivery |
 | #662 | `92534118` (closed unmerged) | TEPP terminal status/read transport boundary remained blocked and was closed as superseded by #657's stronger request/snapshot/cutoff/output lifecycle contract; retain its ADR/client-test evidence as historical gap context, with no protected-main delivery |
 | #664 | `be3e28cc` (merged into #660 branch) | explicit semantic content-unit kinds for paragraph, list, table, formula, and caller-parsed conversation turns; ADR 0223 and migration 0221 are now part of the non-default #660 stack; protected-main delivery is not implied |
-| #663 | `72e0ad34` (observed parent) | evidence-backed Post → Project ontology neighborhood with canonical project keys, proposed truth status, project diamond/text labels, cutoff/snapshot-bounded project evidence, process-unit-complete Post-focus ABAC, migration replay hardening, canonical `mentions project` labeling, live ontology-publication evidence, and the complete #632 semantic/provenance stack through `78f3f71e`; combined ontology tests passed 73, semantic/API tests passed 209 with 5 live-stack skips, frontend passed 386 tests plus lint/build, and the ABAC review repair passed 28 focused tests; this stack refresh advances the head, after which hosted checks and independent review remain required |
+| #663 | `93a0a232` (observed parent) | evidence-backed Post → Project ontology neighborhood with canonical project keys, proposed truth status, project diamond/text labels, cutoff/snapshot-bounded project evidence, process-unit-complete Post-focus ABAC, migration replay hardening, canonical `mentions project` labeling, live ontology-publication evidence, and the complete #632 semantic/provenance stack through `78f3f71e`; the joined-row RDF projector now emits the direct and reified ProjectMention chains with evidence, confidence, time, and PROV derivation, and validates through shipped SHACL; combined ontology tests passed 73, semantic/API tests passed 209 with 5 live-stack skips, frontend passed 386 tests plus lint/build, the ABAC review repair passed 28 focused tests, and the projector module reached 100% statement/branch coverage; this stack refresh advances the head, after which hosted checks and independent review remain required |
 | #659 | `0739b9d7` | ontology node-type readability, tokenized surfaces, contrast measurement, keyboard-scrollable exact values, and resolved cross-PR allocation documentation; frontend lint, 41 Vitest files/386 tests, and production build passed; Vite emitted only the existing >500 kB advisory; hosted checks and independent review remain required |
 | #658 | `fe830b0a` | optional Global Ask knowledge cutoff; empty-cutoff answers no longer overclaim grounding, live answers expose `live_only`, local cutoff input is converted to UTC, content-change evidence now comes from revision intervals rather than unrelated live-row touches, current-only lineage/images are gated off, ADR rollback instructions name the actual migration, and unused live-update selection was removed; cutoff/source-revision suites passed 20 tests; hosted checks and independent review remain required |
 | #657 | `64f48679` | TEPP asynchronous lifecycle evidence; terminal-status persistence, receipt-conflict isolation, migration reservation, and fail-closed schema handling repaired, with 57 focused tests passed; hosted checks and independent review remain required |

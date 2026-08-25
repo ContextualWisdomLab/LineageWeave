@@ -40,6 +40,12 @@ API, and UI.
    or alter the label.
 6. The UI uses a text-labeled diamond and exposes the same assertion through
    the graph, exact-value table, CSV, JSON-LD, print, and evidence drawer.
+7. `project_project_mention_rdf` is the deterministic DB-row projection for a
+   joined `source_post` / `post_project_mention` record. It emits the direct
+   `mentionsProject` triple and the complete reified `ProjectMention`
+   subject/predicate/object chain, evidence, confidence, creation time, and
+   PROV derivation. It performs no database access and creates no mutable RDF
+   store; callers must still apply authorization before supplying a row.
 
 ## Consequences
 
@@ -49,6 +55,8 @@ API, and UI.
 - Confidence and evidence text remain on `post_project_mention` and its
   summary projection. Adding them to the neighborhood edge needs a separate
   typed API decision; this change does not invent edge scores.
+- SHACL acceptance now exercises the production row projector rather than a
+  hand-authored ProjectMention graph that could drift from application IRIs.
 
 ## Verification
 
