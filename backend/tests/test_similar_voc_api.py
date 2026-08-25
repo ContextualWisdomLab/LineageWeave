@@ -110,3 +110,39 @@ def test_similar_voc_pages_orchestrator_work(monkeypatch) -> None:
 
     assert len(calls) == 8
     assert payload["next_offset"] == 24
+
+
+def test_similar_voc_keeps_success_when_one_adjudication_fails(monkeypatch) -> None:
+    """One provider failure does not discard evidence from sibling candidates."""
+    focal = {"post_id": "focal", "post_title": "Current", "post_body": "Current issue."}
+
+    async def load_visible_post(*_args):
+        return focal
+
+    class Client:
+        def analyze(self, _title, _body, candidate_id, _candidate_title, candidate_body):
+            if candidate_id == "failed":
+                raise OSError("synthetic provider failure")
+            return SimilarVocEvidence(
+                candidate_id, "Equivalent issue", "Current issue.", candidate_body, None, ()
+            )
+
+    rows = [
+        {
+            "post_id": candidate_id,
+            "post_title": candidate_id,
+            "post_body": f"{candidate_id} issue.",
+            "visibility_code": "public",
+            "corporate_entity_id": "corp-a",
+            "process_unit_id": "unit-a",
+            "occurred_at": datetime(2026, 8, 20, tzinfo=timezone.utc),
+        }
+        for candidate_id in ("failed", "succeeded")
+    ]
+    monkeypatch.setattr(main, "_load_visible_post", load_visible_post)
+    monkeypatch.setattr(main, "_similar_voc_client", Client)
+    account = SimpleNamespace(corporate_entity_ids={"corp-a"}, process_unit_ids={"unit-a"})
+
+    payload = asyncio.run(main.read_similar_voc("focal", 0, account, _Pool(rows)))
+
+    assert [item["post_id"] for item in payload["items"]] == ["succeeded"]

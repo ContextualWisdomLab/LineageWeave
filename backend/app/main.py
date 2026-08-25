@@ -222,6 +222,7 @@ from lineageweave.http_client import HttpClientError
 _POST_READ = "post_read"
 _POST_ADMIN = "post_admin"
 _SIMILAR_VOC_PAGE_SIZE = 8
+_SIMILAR_VOC_REQUEST_TIMEOUT_SECONDS = 180.0
 
 
 @asynccontextmanager
@@ -491,7 +492,9 @@ def _similar_voc_client():
     if not (settings.orchestrator_base_url and settings.orchestrator_api_key):
         return None
     return ContextualOrchestratorSimilarVocAnalysisClient(
-        base_url=settings.orchestrator_base_url, api_key=settings.orchestrator_api_key
+        base_url=settings.orchestrator_base_url,
+        api_key=settings.orchestrator_api_key,
+        timeout=_SIMILAR_VOC_REQUEST_TIMEOUT_SECONDS,
     )
 
 
@@ -1852,10 +1855,16 @@ async def read_similar_voc(
                 candidate["post_body"],
             )
 
+    try:
+        results = await asyncio.wait_for(
+            asyncio.gather(*(_adjudicate(candidate) for candidate in candidates), return_exceptions=True),
+            timeout=_SIMILAR_VOC_REQUEST_TIMEOUT_SECONDS,
+        )
+    except TimeoutError:
+        results = ()
     items = []
-    for candidate in candidates:
-        evidence = await _adjudicate(candidate)
-        if evidence is None:
+    for candidate, evidence in zip(candidates, results):
+        if evidence is None or isinstance(evidence, BaseException):
             continue
         items.append(
             {
