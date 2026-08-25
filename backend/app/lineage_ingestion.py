@@ -283,14 +283,14 @@ async def load_estimated_channel_weights(
     sets: dict[str, list] = {}
     for row in all_rows:
         sets.setdefault(row["channel_set_code"], []).append(row)
-    rows = next(
-        (
-            candidate
-            for candidate in sets.values()
-            if {row["channel_code"] for row in candidate} == active_channels
-        ),
-        [],
-    )
+    matching_sets = [
+        candidate
+        for candidate in sets.values()
+        if {row["channel_code"] for row in candidate} == active_channels
+    ]
+    if len(matching_sets) != 1:
+        return None
+    rows = matching_sets[0]
     persisted = {row["channel_code"]: float(row["weight_value"]) for row in rows}
     if not persisted or set(persisted) != active_channels:
         return None

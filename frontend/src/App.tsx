@@ -1,6 +1,7 @@
 import { AdminPanel } from "./components/AdminPanel";
 import { LeftoverPairList } from "./components/LeftoverPairList";
 import { WorkspaceCalendar } from "./components/WorkspaceCalendar";
+import { focusedGraphMustReset } from "./focusedGraphSelection";
 
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { useAuth } from "react-oidc-context";
@@ -35,6 +36,7 @@ import {
   fetchPostSummary,
   fetchPostTickets,
   fetchPostVocEvidence,
+  fetchSimilarVoc,
   fetchPeriodComparison,
   fetchPeriodReportIndex,
   fetchPeriodReports,
@@ -82,6 +84,7 @@ import {
   type RelatedNode,
   type RelatedNodeType,
   type VocEvidence,
+  type SimilarVocItem,
   fetchTenantConfig,
 } from "./api";
 import { CitationChip } from "./components/CitationChip";
@@ -92,6 +95,7 @@ import { LineageEntityPicker } from "./components/LineageEntityPicker";
 import { OntologyExplorer } from "./components/OntologyExplorer";
 import { AskEvidenceLayerPopup } from "./components/AskEvidenceLayerPopup";
 import { PopupCloseButton } from "./components/PopupCloseButton";
+import { SimilarVocPanel } from "./components/SimilarVocPanel";
 import { chatEvidenceKindLabel } from "./evidenceKindLabels";
 import { WorkspaceNav, type WorkspaceDestination } from "./components/WorkspaceNav";
 import { OperationsDashboard } from "./components/OperationsDashboard";
@@ -1813,6 +1817,13 @@ function PostDetailPopup({
   const [lineage, setLineage] = useState<PostLineage | null>(null);
   const [affiliateTrees, setAffiliateTrees] = useState<AffiliateNode[] | null>(null);
   const [vocEvidence, setVocEvidence] = useState<VocEvidence | null>(null);
+  const [similarVoc, setSimilarVoc] = useState<SimilarVocItem[] | null>(null);
+  const [similarVocError, setSimilarVocError] = useState<string | null>(null);
+  const [similarVocNextOffset, setSimilarVocNextOffset] = useState<number | null>(null);
+  const [similarVocLoadingMore, setSimilarVocLoadingMore] = useState(false);
+  const similarVocLoadingMoreRef = useRef(false);
+  const similarVocScopeRef = useRef({ postId });
+  if (similarVocScopeRef.current.postId !== postId) similarVocScopeRef.current = { postId };
   const [evaluation, setEvaluation] = useState<EvaluationResponse[] | null>(null);
   const [focusPerson, setFocusPerson] = useState<{ personId: string; personName: string } | null>(null);
   const [focusEntity, setFocusEntity] = useState<{ entityId: string; entityName: string } | null>(null);
@@ -1911,6 +1922,11 @@ function PostDetailPopup({
     setLineage(null);
     setAffiliateTrees(null);
     setVocEvidence(null);
+    setSimilarVoc(null);
+    setSimilarVocError(null);
+    setSimilarVocNextOffset(null);
+    setSimilarVocLoadingMore(false);
+    similarVocLoadingMoreRef.current = false;
     setEvaluation(null);
     setFocusPerson(null);
     setFocusEntity(null);
@@ -1967,6 +1983,17 @@ function PostDetailPopup({
       .then((r) => setAffiliateTrees(r.trees))
       .catch(() => setAffiliateTrees([]));
     fetchPostVocEvidence(accessToken, postId).then(setVocEvidence).catch(() => setVocEvidence(null));
+    fetchSimilarVoc(accessToken, postId)
+      .then((result) => {
+        if (disposed) return;
+        setSimilarVoc(result.items);
+        setSimilarVocNextOffset(result.next_offset);
+      })
+      .catch(() => {
+        if (disposed) return;
+        setSimilarVoc([]);
+        setSimilarVocError("유사 VOC 판정을 사용할 수 없습니다. 잠시 후 다시 확인하세요.");
+      });
     return () => {
       disposed = true;
       if (contentPollTimer !== undefined) window.clearTimeout(contentPollTimer);
@@ -2469,6 +2496,36 @@ function PostDetailPopup({
                 setFocusEntity(null);
                 setFocusTeam(null);
                 setFocusPerson({ personId, personName });
+              }}
+            />
+
+            <SimilarVocPanel
+              items={similarVoc}
+              error={similarVocError}
+              onOpenPost={(candidatePostId) => onSelectPost?.(candidatePostId)}
+              loadingMore={similarVocLoadingMore}
+              onLoadMore={similarVocNextOffset === null ? null : () => {
+                if (similarVocLoadingMoreRef.current) return;
+                const requestScope = similarVocScopeRef.current;
+                similarVocLoadingMoreRef.current = true;
+                setSimilarVocLoadingMore(true);
+                setSimilarVocError(null);
+                fetchSimilarVoc(accessToken, postId, similarVocNextOffset)
+                  .then((result) => {
+                    if (similarVocScopeRef.current !== requestScope) return;
+                    setSimilarVoc((current) => [...(current ?? []), ...result.items]);
+                    setSimilarVocNextOffset(result.next_offset);
+                  })
+                  .catch(() => {
+                    if (similarVocScopeRef.current === requestScope) {
+                      setSimilarVocError("이전 VOC를 더 불러오지 못했습니다. 다시 시도하세요.");
+                    }
+                  })
+                  .finally(() => {
+                    if (similarVocScopeRef.current !== requestScope) return;
+                    similarVocLoadingMoreRef.current = false;
+                    setSimilarVocLoadingMore(false);
+                  });
               }}
             />
 
@@ -3827,7 +3884,6 @@ function PostList({
   onPostOpened?: () => void;
 }) {
   const [posts, setPosts] = useState<PostSummary[] | null>(null);
-  const [graph, setGraph] = useState<LineageGraph | null>(null);
   const [focusedGraph, setFocusedGraph] = useState<LineageGraph | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [selectedPostId, setSelectedPostId] = useState<string | null>(null);
@@ -3890,8 +3946,10 @@ function PostList({
   }
 
   function selectPost(postId: string, options?: SelectPostOptions) {
+    if (focusedGraphMustReset(selectedPostId, postId)) {
+      setFocusedGraph(null);
+    }
     setSelectedPostId(postId);
-    setFocusedGraph(null);
     setOpenedAfterCutoff(Boolean(options?.liveAfterCutoff));
     setOpenedCutoffIso(options?.knowledgeCutoff ?? null);
     setOpenedFromReportMember(Boolean(options?.fromReportMember));
@@ -3959,7 +4017,6 @@ function PostList({
   }, [loadPostPage]);
 
   useEffect(() => {
-    fetchLineageGraph(accessToken).then(setGraph).catch(() => setGraph({ nodes: [], edges: [] }));
     fetchMe(accessToken)
       .then((me) => {
         setCanRebuild(me.permission_codes.includes("post_admin"));
@@ -3978,6 +4035,7 @@ function PostList({
       setFocusedGraph(null);
       return;
     }
+    setFocusedGraph(null);
     let active = true;
     fetchLineageGraph(accessToken, selectedPostId)
       .then((nextGraph) => {
@@ -3996,7 +4054,6 @@ function PostList({
     setRebuildError(null);
     try {
       await rebuildLineage(accessToken);
-      setGraph(await fetchLineageGraph(accessToken));
     } catch (err) {
       setRebuildError(String(err));
     } finally {
@@ -4308,7 +4365,7 @@ function PostList({
           postId={selectedPostId}
           accessToken={accessToken}
           canExtract={canRebuild}
-          graph={focusedGraph ?? graph}
+          graph={focusedGraph}
           liveBodyWarning={
             openedAfterCutoff ? analysisRunOpenedBodyWarning(openedCutoffIso) : null
           }
@@ -4804,13 +4861,15 @@ function AskAgentPanel({
           {answer.answer_text ? <p>{answer.answer_text}</p> : null}
           {answer.next_action ? <p className="post-meta">{t(answer.next_action)}</p> : null}
           {answer.delivery ? (
-            <aside className="ask-delivery" aria-label="리포트 · 알림 · MCP">
-              <h4>리포트 · 알림 · MCP</h4>
+            <aside className="ask-delivery" aria-label={t("Report · alert · MCP")}>
+              <h4>{t("Report · alert · MCP")}</h4>
               <p>
-                근거 문서 {answer.delivery.report.source_documents.length}건이 리포트에 연결됐습니다.
+                {tf("{count} evidence documents are linked to this report.", {
+                  count: answer.delivery.report.source_documents.length,
+                })}
                 {answer.delivery.alert.eligible
-                  ? " 근거 변경 알림을 구독할 수 있습니다."
-                  : " 근거가 연결되면 변경 알림을 구독할 수 있습니다."}
+                  ? ` ${t("You can subscribe to evidence-change alerts.")}`
+                  : ` ${t("Connect evidence to enable change-alert subscriptions.")}`}
               </p>
               <code>{answer.delivery.report.source_documents[0]?.resource_uri ?? "lineageweave://posts"}</code>
             </aside>

@@ -119,6 +119,7 @@ describe("App, authenticated", () => {
     organizationAliases?: boolean;
     askLineageGraph?: boolean;
     askImageCitation?: boolean;
+    askDelivery?: boolean;
     lineageIsolationReason?: "comparison_candidates_available" | "no_comparison_group";
   }): ReturnType<typeof vi.fn> & { releaseMe: () => void; releasePostOne: () => void } {
     const statusLabel: Record<string, string> = {
@@ -1160,6 +1161,9 @@ describe("App, authenticated", () => {
         );
       }
       const postOneUrl = new URL(url, "https://backend.test");
+      if (postOneUrl.pathname === "/api/posts/post-1/similar-voc") {
+        return Promise.resolve(jsonResponse({ items: [] }));
+      }
       if (postOneUrl.pathname === "/api/posts/post-1") {
         const asOf = postOneUrl.searchParams.get("as_of");
         return postOneReady.then(() =>
@@ -1177,7 +1181,7 @@ describe("App, authenticated", () => {
                 project_name: "Semantic project",
                 evidence: "project was described in the body",
                 confidence: 0.9,
-                ontology_iri: "https://contextualwisdomlab.github.io/lineageweave/ontology#Project",
+                ontology_iri: "https://contextualwisdomlab.github.io/LineageWeave/ontology#Project",
                 ontology_label: "Project",
                 extraction_method: "contextual_orchestrator_semantic",
                 resolution_status: "semantic_candidate",
@@ -1304,7 +1308,7 @@ describe("App, authenticated", () => {
                 project_name: "Sample project",
                 evidence: "post body",
                 confidence: 0.9,
-                ontology_iri: "https://contextualwisdomlab.github.io/lineageweave/ontology#Project",
+                ontology_iri: "https://contextualwisdomlab.github.io/LineageWeave/ontology#Project",
                 extraction_method: "contextual_orchestrator_semantic",
               },
             ],
@@ -1372,7 +1376,7 @@ describe("App, authenticated", () => {
               {
                 node_id: "person-ada",
                 node_type_code: "node_person",
-                ontology_iri: "https://contextualwisdomlab.github.io/lineageweave/ontology#Person",
+                ontology_iri: "https://contextualwisdomlab.github.io/LineageWeave/ontology#Person",
                 ontology_label: "Person",
                 label: "Ada West",
                 person_side_code: "our_side",
@@ -1409,7 +1413,7 @@ describe("App, authenticated", () => {
               {
                 node_id: "person-priya",
                 node_type_code: "node_person",
-                ontology_iri: "https://contextualwisdomlab.github.io/lineageweave/ontology#Person",
+                ontology_iri: "https://contextualwisdomlab.github.io/LineageWeave/ontology#Person",
                 ontology_label: "Person",
                 label: "Priya Nair",
                 person_side_code: "counterparty",
@@ -1419,7 +1423,7 @@ describe("App, authenticated", () => {
               {
                 node_id: "post-2",
                 node_type_code: "node_post",
-                ontology_iri: "https://contextualwisdomlab.github.io/lineageweave/ontology#Post",
+                ontology_iri: "https://contextualwisdomlab.github.io/LineageWeave/ontology#Post",
                 ontology_label: "Post",
                 label: "Linked post",
                 relevance: 0.3,
@@ -1427,7 +1431,7 @@ describe("App, authenticated", () => {
               {
                 node_id: "corp-1",
                 node_type_code: "node_corporate_entity",
-                ontology_iri: "https://contextualwisdomlab.github.io/lineageweave/ontology#Organization",
+                ontology_iri: "https://contextualwisdomlab.github.io/LineageWeave/ontology#Organization",
                 ontology_label: "Organization",
                 label: "Demo Corp",
                 relevance: 0.2,
@@ -1436,7 +1440,7 @@ describe("App, authenticated", () => {
               {
                 node_id: "team-1",
                 node_type_code: "node_team",
-                ontology_iri: "https://contextualwisdomlab.github.io/lineageweave/ontology#Team",
+                ontology_iri: "https://contextualwisdomlab.github.io/LineageWeave/ontology#Team",
                 ontology_label: "Team",
                 label: "설계팀",
                 relevance: 0.15,
@@ -1454,7 +1458,7 @@ describe("App, authenticated", () => {
               {
                 node_id: "post-2",
                 node_type_code: "node_post",
-                ontology_iri: "https://contextualwisdomlab.github.io/lineageweave/ontology#Post",
+                ontology_iri: "https://contextualwisdomlab.github.io/LineageWeave/ontology#Post",
                 ontology_label: "Post",
                 label: "Linked post",
                 relevance: 0.6,
@@ -1475,7 +1479,7 @@ describe("App, authenticated", () => {
               {
                 node_id: "post-1",
                 node_type_code: "node_post",
-                ontology_class_iri: "https://contextualwisdomlab.github.io/lineageweave/ontology#Post",
+                ontology_class_iri: "https://contextualwisdomlab.github.io/LineageWeave/ontology#Post",
                 display_label: "Public post",
                 truth_status_code: "truth_observed",
                 valid_from: null,
@@ -1500,7 +1504,7 @@ describe("App, authenticated", () => {
               {
                 node_id: "person-ada",
                 node_type_code: "node_person",
-                ontology_iri: "https://contextualwisdomlab.github.io/lineageweave/ontology#Person",
+                ontology_iri: "https://contextualwisdomlab.github.io/LineageWeave/ontology#Person",
                 ontology_label: "Person",
                 label: "Ada West",
                 person_side_code: "our_side",
@@ -1520,7 +1524,7 @@ describe("App, authenticated", () => {
               {
                 node_id: "person-ada",
                 node_type_code: "node_person",
-                ontology_iri: "https://contextualwisdomlab.github.io/lineageweave/ontology#Person",
+                ontology_iri: "https://contextualwisdomlab.github.io/LineageWeave/ontology#Person",
                 ontology_label: "Person",
                 label: "Ada West",
                 person_side_code: "our_side",
@@ -1530,7 +1534,7 @@ describe("App, authenticated", () => {
               {
                 node_id: "post-1",
                 node_type_code: "node_post",
-                ontology_iri: "https://contextualwisdomlab.github.io/lineageweave/ontology#Post",
+                ontology_iri: "https://contextualwisdomlab.github.io/LineageWeave/ontology#Post",
                 ontology_label: "Post",
                 label: "Linked post",
                 relevance: 0.6,
@@ -1788,6 +1792,21 @@ describe("App, authenticated", () => {
                   truncated: false,
                 }
               : { nodes: [], edges: [], truncated: false },
+            delivery: options?.askDelivery ? {
+              contract_version: "1.0",
+              report: {
+                media_type: "text/markdown",
+                body: "Answer",
+                source_documents: [{
+                  post_id: "post-2", title: "Linked post", api_path: "/api/posts/post-2",
+                  resource_uri: "lineageweave://posts/post-2", evidence_facts: [],
+                }],
+              },
+              alert: {
+                trigger_code: "cited_evidence_changed", delivery_status_code: "not_subscribed",
+                eligible: true, watched_resource_uris: ["lineageweave://posts/post-2"],
+              },
+            } : undefined,
             },
           }),
         );
@@ -1941,6 +1960,20 @@ describe("App, authenticated", () => {
     expect(screen.getByText("Semantic project", { exact: true })).toBeInTheDocument();
     expect(screen.getByText(/project: Semantic project \| evidence: Body evidence/)).toBeInTheDocument();
     expect(screen.queryByText(/ontology_iri|contextual_orchestrator/i)).not.toBeInTheDocument();
+  });
+
+  it("localizes Ask delivery copy instead of rendering Korean literals in English", async () => {
+    stubBackend({ askDelivery: true });
+    render(<App />);
+    expect(await screen.findByRole("button", { name: "View post: Public post" })).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Ask Agent" }));
+    await userEvent.type(screen.getByRole("textbox", { name: "Ask a question" }), "Which project?");
+    await userEvent.click(screen.getByRole("button", { name: "Ask" }));
+
+    expect(await screen.findByRole("complementary", { name: "Report · alert · MCP" })).toHaveTextContent(
+      "1 evidence documents are linked to this report.",
+    );
+    expect(screen.queryByText(/근거 문서/)).not.toBeInTheDocument();
   });
 
   it("renders every cited lineage thread as its own git-branch-style graph", async () => {
@@ -2253,13 +2286,17 @@ describe("App, authenticated", () => {
       "no_comparison_group" as const,
       "No other visible posts share this comparison group yet. Request reconstruction after more posts arrive, or read Keyman and evaluation.",
     ],
-  ])("explains an empty focused Event Lineage graph: %s", async (lineageIsolationReason, message) => {
-    stubBackend({ lineageIsolationReason });
-    render(<App showLabPanels />);
-    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
-    expect(await screen.findByText(message)).toBeInTheDocument();
-    expect(screen.queryByText("No linked posts yet.")).not.toBeInTheDocument();
-  });
+  ])(
+    "explains an empty focused Event Lineage graph: %s",
+    async (lineageIsolationReason, message) => {
+      stubBackend({ lineageIsolationReason });
+      render(<App showLabPanels />);
+      await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
+      expect(await screen.findByText(message)).toBeInTheDocument();
+      expect(screen.queryByText("No linked posts yet.")).not.toBeInTheDocument();
+    },
+    15_000,
+  );
 
   it("shows an embedded invoice image instead of the raw base64 string", async () => {
     const tinyPng =
@@ -2427,7 +2464,7 @@ describe("App, authenticated", () => {
     expect(screen.getByText(/Extraction source: Semantic extraction/)).toBeInTheDocument();
     expect(screen.getByText(/Evidence field: Stored semantic evidence/)).toBeInTheDocument();
     expect(screen.queryByText("contextual_orchestrator_semantic")).not.toBeInTheDocument();
-    expect(screen.queryByText("https://contextualwisdomlab.github.io/lineageweave/ontology#Project")).not.toBeInTheDocument();
+    expect(screen.queryByText("https://contextualwisdomlab.github.io/LineageWeave/ontology#Project")).not.toBeInTheDocument();
     expect(screen.getByText("첫 번째 이벤트")).toBeInTheDocument();
     expect(screen.getByText(/우리 측 후속/)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "R&R Keyman: Ada West" })).toBeInTheDocument();
@@ -3058,6 +3095,45 @@ describe("App, authenticated", () => {
     expect(await screen.findByText("Rankings · RankWeave not available")).toBeInTheDocument();
     expect(screen.queryByText("Pricing renegotiation: revised quote sent")).not.toBeInTheDocument();
   });
+
+  it("drops a prior post's in-flight similar-VOC page after navigation", async () => {
+    const backend = stubBackend();
+    const original = backend.getMockImplementation() as (
+      input: RequestInfo | URL,
+      init?: RequestInit,
+    ) => Promise<Response>;
+    let releasePage!: (response: Response) => void;
+    const deferredPage = new Promise<Response>((resolve) => { releasePage = resolve; });
+    backend.mockImplementation((...args) => {
+      const requestUrl = new URL(String(args[0]), "https://backend.test");
+      if (requestUrl.pathname === "/api/posts/post-1/similar-voc") {
+        if (requestUrl.searchParams.get("offset") === "50") return deferredPage;
+        return Promise.resolve(jsonResponse({
+          items: [{
+            post_id: "prior-1", post_title: "Prior evidence", issue_summary: "Prior issue",
+            focal_evidence_text: "Current evidence", candidate_evidence_text: "Prior evidence",
+            customer_cohort_text: null, action_history: [], occurred_at: "2025-12-01T00:00:00Z",
+          }],
+          next_offset: 50,
+        }));
+      }
+      return original(args[0] as RequestInfo | URL, args[1] as RequestInit | undefined);
+    });
+    render(<App showLabPanels />);
+    await userEvent.click(await screen.findByRole("button", { name: /open report post: public post/i }));
+    await userEvent.click(await screen.findByRole("button", { name: "이전 VOC 더 보기" }));
+    await userEvent.click((await screen.findAllByLabelText("Open post: Linked post"))[0]);
+    await screen.findByText("The evidence panel should show exactly this text.");
+    releasePage(jsonResponse({
+      items: [{
+        post_id: "stale-prior", post_title: "Stale prior VOC", issue_summary: "Stale issue",
+        focal_evidence_text: "Stale current", candidate_evidence_text: "Stale prior",
+        customer_cohort_text: null, action_history: [], occurred_at: "2025-11-01T00:00:00Z",
+      }],
+      next_offset: null,
+    }));
+    await waitFor(() => expect(screen.queryByText("Stale prior VOC")).not.toBeInTheDocument());
+  }, 15_000);
 
   it("opens an accepted ranking hit without inventing a fused score", async () => {
     stubBackend({

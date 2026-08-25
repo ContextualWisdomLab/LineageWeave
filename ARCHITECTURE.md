@@ -15,17 +15,15 @@ repos in the ecosystem:
   trajectories, uncertainty-quantified estimates) is
   [TEPP](https://github.com/ContextualWisdomLab/TEPP)'s job.
 
-This is why the org-wide rule that mathematical/psychometrics computation
-layers must be Rust with GPU + CPU multithreading does not apply to this
-repo: LineageWeave does no such computation. Its heaviest per-request work
-is fusing a handful of `[0, 1]` channel scores over a bounded candidate
-window (`reconstruct.DEFAULT_CANDIDATE_WINDOW`, default 50) -- a scheduling
-and orchestration problem, not a numerical-estimation one. If a future
-version added real statistical inference (e.g. estimating thread-assignment
-uncertainty), that layer would move into TEPP rather than being built here,
-consistent with the dependency direction the ecosystem's own architecture
-docs already establish (`psychometrics-commons`'s TRD explicitly forbids a
-downstream product from reimplementing a measurement engine's model).
+ADR 0208 fixes the end state: LineageWeave retains wire validation,
+authorization, provenance persistence, and UI projection only. The current
+Python IRT/report, residual-map, similarity, graph-ranking, and fusion paths
+are explicitly inventoried migration debt rather than evidence that this
+repository owns their mathematics. They move by construct to TEPP,
+fast-mlsirm, or RankWeave after versioned Rust CPU/GPU owner contracts pass
+recovery/equivalence checks; affected product paths fail closed during each
+cutover rather than substituting a local estimate. See
+`docs/doctoring/python-mathematical-compute-boundary-audit.md`.
 
 ## Data flow
 
