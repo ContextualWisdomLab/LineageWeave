@@ -63,6 +63,13 @@ committed.
 Authenticated authorized-corpus acceptance remains separate and may return
 only aggregate, non-identifying evidence to this repository.
 
+At the repaired dashboard head, the `EvidenceReady` and `NarrowViewport`
+stories were re-rendered locally with synthetic data at desktop and iPhone
+13 viewports. The desktop shows separate Event/post values and evidence
+actions; the narrow view preserves readable cards and 44px-class actions while
+keeping the multi-step project journey horizontally scrollable. These images
+remain local audit evidence and are not committed.
+
 ### Exact open-PR boundary
 
 At this snapshot there were 8 open PRs and 10 open issues. Exact observed heads
