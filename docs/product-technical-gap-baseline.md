@@ -80,18 +80,19 @@ lifecycle claim.
 ## 1. Exact-head and governance evidence
 
 The protected default branch was `04e6b610655d0db91d5f7ba9486bdda1440e0b19`
-when this baseline was refreshed. The live queue contained 8 open PRs and 10
+when this baseline was refreshed. The live queue contained 9 open PRs and 10
 open issues. The exact-head inventory below supersedes older per-PR snapshots
 elsewhere in this document; those older rows remain useful historical delivery
 context only.
 
 | PR | Exact observed head | Merge/check state at this snapshot |
 | ---: | --- | --- |
+| #644 | `f631060d` | frontend conditional workspace splitting; checks and independent review remain required |
 | #643 | `041ec13b` | shared token-backed status notice; checks and independent review remain required |
-| #640 | `97c85794` | dashboard case metrics and project journeys; checks and independent review remain required |
+| #640 | `4678be28` | dashboard case metrics and project journeys; checks and independent review remain required |
 | #639 | `aee02dca` | Running action and Compose contract repair; checks and independent review remain required |
-| #636 | `20d25fe6` | calibrated external lineage contract; checks and independent review remain required |
-| #632 | `e1ebe50a` | Global Ask fact provenance, semantic nomination, and public verification stack; checks and independent review remain required |
+| #636 | `f7b9a65f` | calibrated external lineage contract; checks and independent review remain required |
+| #632 | `76ddb3f3` | Global Ask provenance, semantic nomination, public verification, and knowledge-cutoff stack; checks and independent review remain required |
 | #631 | `c0022c97` | current-main ADR stack decomposition; checks and independent review remain required |
 | #629 | `74823e99` | provider pool release and bounded landing reads; checks and independent review remain required |
 | #579 | `689a21b6` | leftover interaction-map persistence; checks and independent review remain required |
