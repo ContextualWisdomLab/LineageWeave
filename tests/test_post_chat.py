@@ -285,6 +285,35 @@ def test_graph_facts_remain_attached_to_their_evidence_post(monkeypatch) -> None
     assert facts["post-b"][0].endswith("[evidence_post_id=post-b]")
 
 
+def test_graph_facts_drop_post_endpoints_outside_visible_sources(monkeypatch) -> None:
+    """A visible evidence post cannot reveal a hidden endpoint post label."""
+
+    class _Connection:
+        async def fetch(self, _query, _visible_post_ids):
+            return [
+                {
+                    "source_node_type_code": "node_post",
+                    "source_node_id": "post-hidden",
+                    "target_node_type_code": "node_corporate_entity",
+                    "target_node_id": "corp-demo",
+                    "edge_type_code": "edge_mention_organization",
+                    "edge_weight": 1.0,
+                    "evidence_post_ids": ["post-visible"],
+                }
+            ]
+
+    async def fail_if_hydrated(_conn, _node_keys):
+        raise AssertionError("hidden endpoint must be filtered before hydration")
+
+    monkeypatch.setattr(
+        "backend.app.post_chat_ingestion.hydrate_related_nodes", fail_if_hydrated
+    )
+
+    facts = asyncio.run(_graph_facts_for_posts(_Connection(), ["post-visible"]))
+
+    assert facts == {}
+
+
 def test_parses_a_well_formed_json_object() -> None:
     content = '{"answer_text": "The bid was submitted then revised.", "cited_source_numbers": [1, 2]}'
     answer = parse_chat_response(content, _SOURCES)
