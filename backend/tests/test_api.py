@@ -568,7 +568,7 @@ def seeded_db(demo_analyst_token):
             )
             other_account_id = cur.fetchone()[0]
             visible_run_id = _seed_analysis_run(
-                "a" * 64,
+                "f" * 64,
                 "visible-own-corp",
                 account_id,
                 "analysis_scope_corporate_entity",
