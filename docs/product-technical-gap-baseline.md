@@ -212,13 +212,15 @@ public history. Do not reproduce or hint at its value. Historical remediation
 requires the ADR 0001 incident process and security/privacy-owner coordination;
 never force-push or delete evidence ad hoc.
 
-The Grok durable hourly loop and the central thin GitHub Actions caller
-ContextualWisdomLab/.github#1259 (minute 4, `pr-review-fix-scheduler.yml`)
-both target this repository. Do not add a LineageWeave-local duplicate
-workflow. ContextualWisdomLab/.github#1258 merged at exact head `897819c4` to
-repair the pnpm/coverage-evidence workflow; newly created exact PR heads must
-still prove the runtime behavior because merged workflow source alone is not
-check evidence.
+The Grok durable hourly loop targets this repository. The central thin GitHub
+Actions caller is not yet on `.github` protected `main`: replacement PR
+ContextualWisdomLab/.github#1288 at exact head `2f795bda` reserves minute 4 and
+calls `pr-review-fix-scheduler.yml`, but remains changes-requested with hosted
+Checks pending. Do not add a LineageWeave-local duplicate workflow and do not
+describe the hourly caller as deployed until #1288 has an independently
+approved, terminal-green protected-main merge SHA. The shared repair worker's
+direct provider/model selection also remains a separate central orchestration
+gap; the caller alone does not prove the contextual-orchestrator boundary.
 
 Figma design-system boundary (ADR 0002): File ID `1Su3lDRmiZdcUs47t1QwIX`.
 The sanitized file now contains synthetic Event Lineage desktop (`5:14`) and
@@ -460,12 +462,15 @@ Process every open PR in ascending number order, considering leverage; for
 each: check reviews → repair → re-verify Checks → merge → continue. Checks and
 review latency are never blockers — keep working while they settle.
 
-1. Revalidate Strix after protected ContextualWisdomLab/.github#1320, reconcile
-   .github#1263, and land the atomic hourly LineageWeave caller in .github#1288.
-2. Merge #387 and #618–#621 only after each exact head shows terminal
-   green required checks plus current-head independent approval.
+1. Land the atomic hourly LineageWeave caller in ContextualWisdomLab/.github#1288
+   only after its current exact head has terminal green required Checks and
+   independent approval; then verify the workflow exists on central protected
+   `main` rather than inferring deployment from the PR branch.
+2. Process the current LineageWeave queue #579, #629, #631, and #632 against
+   each newly fetched exact head. #632 is the ontology graph-fact provenance
+   fix; none is merge-authorized by auto-merge or local tests alone.
 3. After the queue drains, resume user-visible gaps from §5 in leverage order:
-   Event Lineage evidence (#387/#274), Naruon calendar (#355/#336), and
+   issue #272 external semantic verification, Naruon calendar (#355/#336), and
    authenticated operations/ontology publication acceptance.
 5. Rename remaining `[Buyer Gap]` issue titles to neutral product-object
    naming per repository convention (no "Buyer" for internal objects).
