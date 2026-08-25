@@ -102,6 +102,20 @@ stale evidence from a previously opened post.
 Acceptance: missing/mismatched authority produces an unavailable state and no
 theta, weight vector, or completed-measurement claim.
 
+### PRD-FR-6A — Lineage arithmetic boundary
+
+- Keep authorization, evidence admission, provenance, orchestration,
+  persistence, and UI in LineageWeave.
+- Delegate temporal/psychometric measurement to TEPP, multilevel weight
+  estimation to fast-mlsirm, fusion/evaluation/policy selection to RankWeave,
+  and deterministic reference threading to ThreadWeave.
+- Do not calculate or renormalize scores or weights locally, and do not select
+  a candidate window or decision threshold from a fixed default or heuristic.
+
+Acceptance: every production numeric lineage result names an immutable owning
+implementation and evidence envelope. Missing authority is unavailable; no
+Python or local fallback emits a score, threshold, weight, or ranking.
+
 ### PRD-FR-7 — Ecosystem contracts
 
 - contextual-orchestrator owns model discovery, protocol translation,
