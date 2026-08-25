@@ -1185,7 +1185,14 @@ def test_lineage_graphs_for_posts_merges_distinct_threads_without_duplicates() -
             if "event_lineage_rebuild_channel" in query:
                 return []
             if "event_lineage_rebuild" in query:
-                return []
+                return [
+                    {
+                        "reconstruction_version": "lineageweave.reconstruct/2.14.0",
+                        "generated_at": datetime(2026, 1, 5),
+                        "min_fused_score": 0.5,
+                        "candidate_window": 6,
+                    }
+                ]
             return self.edges if "post_lineage_edge" in query else self.posts
 
     connection = FakeConnection()
@@ -1213,6 +1220,9 @@ def test_lineage_graphs_for_posts_merges_distinct_threads_without_duplicates() -
     }
     assert len(merged["edges"]) == 2
     assert merged["truncated"] is False
+    assert merged["reconstruction"]["reconstruction_version"] == (
+        "lineageweave.reconstruct/2.14.0"
+    )
 
 
 def test_lineage_graphs_for_posts_with_no_citations_is_empty() -> None:
@@ -1221,4 +1231,9 @@ def test_lineage_graphs_for_posts_with_no_citations_is_empty() -> None:
             return []
 
     merged = asyncio.run(lineage_graphs_for_posts(FakeConnection(), lambda row: True, []))
-    assert merged == {"nodes": [], "edges": [], "truncated": False}
+    assert merged == {
+        "nodes": [],
+        "edges": [],
+        "truncated": False,
+        "reconstruction": None,
+    }

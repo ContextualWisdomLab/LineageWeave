@@ -523,11 +523,13 @@ async def lineage_graphs_for_posts(
     nodes_by_id: dict[str, dict[str, Any]] = {}
     edges_by_key: dict[tuple[str, str], dict[str, Any]] = {}
     truncated = False
+    reconstruction = None
     for post_id in dict.fromkeys(post_ids):
         graph = await visible_lineage_graph(
             conn, can_see_post, focus_post_id=post_id, include_isolated=True
         )
         truncated = truncated or graph["truncated"]
+        reconstruction = reconstruction or graph["reconstruction"]
         for node in graph["nodes"]:
             nodes_by_id[node["id"]] = node
         for edge in graph["edges"]:
@@ -536,4 +538,5 @@ async def lineage_graphs_for_posts(
         "nodes": list(nodes_by_id.values()),
         "edges": list(edges_by_key.values()),
         "truncated": truncated,
+        "reconstruction": reconstruction,
     }
