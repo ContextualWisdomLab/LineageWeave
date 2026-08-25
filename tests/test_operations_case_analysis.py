@@ -95,3 +95,28 @@ def test_requires_each_case_question_to_be_supported_or_explicitly_missing() -> 
     }]
     payload[0]["missing_fact_type_codes"] = ["external_relation"]
     assert parse_operations_case_response(json.dumps(payload), body) is None
+
+
+def test_accepts_grounded_nonrequired_fact_after_required_questions_are_complete() -> None:
+    """A cited optional fact must not invalidate complete required answers."""
+    body = "A public notice was published and assigned to the sales team."
+    payload = [{
+        "case_kind_code": "external_information",
+        "summary_text": "External notice",
+        "evidence_text": "A public notice was published",
+        "facts": [
+            {
+                "fact_type_code": "external_relation",
+                "value_text": "Sales opportunity",
+                "evidence_text": body,
+            },
+            {
+                "fact_type_code": "our_owner",
+                "value_text": "Sales team",
+                "evidence_text": "assigned to the sales team",
+            },
+        ],
+        "missing_fact_type_codes": [],
+    }]
+
+    assert parse_operations_case_response(json.dumps(payload), body) is not None
