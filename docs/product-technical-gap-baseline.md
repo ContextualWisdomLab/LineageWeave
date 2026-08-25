@@ -67,7 +67,7 @@ are not merge readiness. Re-fetch exact heads,
 unresolved threads, checks, approvals, rulesets, and merge SHA before any
 lifecycle claim.
 
-> Audit snapshot: 2026-08-26 09:30 KST (refreshed by the autonomous merge
+> Audit snapshot: 2026-08-26 10:00 KST (refreshed by the autonomous merge
 > loop). This repository records synthetic fixtures and aggregate,
 > non-identifying runtime evidence only. Open PRs and local checks are not
 > protected-default-branch release evidence. Identifying post identifiers,
@@ -89,7 +89,7 @@ context only.
 | #668 | `f272f4b0` | evidence-bound project history projection with request guards and normalized keys; BLOCKED with review required |
 | #663 | `7ac1483e` | project ontology traversal, cutoff-snapshot project focus, bounded MCP admission, and migration-fixture/worker startup repair; BLOCKED with review required |
 | #658 | `f497a6e8` | evidence-honest Global Ask cutoff with robust revision timestamps; BLOCKED with review required |
-| #657 | `a59a2023` | TEPP lifecycle persistence; BLOCKED with review required |
+| #657 | `709df1b9` | TEPP lifecycle persistence and fail-closed topic acceptance; BLOCKED with hosted checks queued and review required |
 | #644 | `ed8d97f3` | native-surface code splitting; BLOCKED with review required |
 | #643 | `3453ab08` | accessible status notices; BLOCKED with review required |
 | #640 | `dda5cf48` | operations-dashboard evidence touch-target, scoped metrics, changelog repair, Rust residual interaction-map consumption, and ABAC/UUID contract repairs; BLOCKED with hosted checks queued and no independent approval |
