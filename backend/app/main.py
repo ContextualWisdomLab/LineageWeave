@@ -2833,6 +2833,7 @@ async def chat_about_post(
                 TimeoutError,
                 KeyError,
                 OSError,
+                TypeError,
                 ValueError,
             ) as exc:
                 record_server_failure("post_chat", exc, outcome="provider_unavailable")

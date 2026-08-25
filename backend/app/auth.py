@@ -60,7 +60,7 @@ def _jwks(settings: Settings, *, force_refresh: bool = False) -> dict:
         except (HttpClientError, OSError, ValueError) as exc:
             raise HTTPException(
                 status.HTTP_503_SERVICE_UNAVAILABLE,
-                f"could not fetch OIDC JWKS for {settings.oidc_issuer}: {exc}",
+                "could not fetch OIDC JWKS: identity provider unavailable",
             ) from exc
         _jwks_cache[cache_key] = cached
     return cached
@@ -138,7 +138,7 @@ def _decode_access_token(token: str, settings: Settings) -> dict:
     except HTTPException:
         raise
     except jwt.PyJWTError as exc:
-        raise HTTPException(status.HTTP_401_UNAUTHORIZED, f"invalid token: {exc}") from exc
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "invalid access token") from exc
     subject = claims.get("sub")
     if not isinstance(subject, str) or not subject.strip():
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "access token has no subject")
