@@ -30,7 +30,13 @@ describe("AskEvidenceLayerPopup", () => {
     expect(screen.getByRole("dialog", { name: "Checkout error follow-up" })).toBeInTheDocument();
     expect(screen.getByText(/project: Checkout revamp/)).toBeInTheDocument();
     expect(screen.getByText("Screenshot of the checkout error")).toBeInTheDocument();
-    expect(screen.getByText("Error code 500 on checkout")).toBeInTheDocument();
+    expect(screen.getByText(/Error code 500 on checkout/)).toBeInTheDocument();
+    expect(screen.getByText(/Semantic project:/).closest("li")).toHaveTextContent(
+      "Semantic project: project: Checkout revamp | evidence: Body evidence",
+    );
+    expect(screen.getByText("Screenshot of the checkout error").closest("li")).toHaveTextContent(
+      "Screenshot of the checkout error · Error code 500 on checkout · Image tags: screenshot, error",
+    );
     expect(
       screen.getByRole("list", { name: "Checkout error follow-up Evidence facts" }),
     ).toBeInTheDocument();
@@ -47,7 +53,7 @@ describe("AskEvidenceLayerPopup", () => {
       />,
     );
 
-    expect(screen.getByText("Time axis")).toBeInTheDocument();
+    expect(screen.getByText(/^Time axis:/)).toBeInTheDocument();
     expect(screen.getByText("time axis: event occurred at")).toBeInTheDocument();
     expect(
       screen.getByRole("button", { name: "Open post: Checkout error follow-up" }),
@@ -135,6 +141,23 @@ describe("AskEvidenceLayerPopup", () => {
     closeButton.focus();
     await userEvent.tab({ shift: true });
     expect(openPostButton).toHaveFocus();
+  });
+
+  it("excludes collapsed controls from the modal focus order", async () => {
+    render(
+      <AskEvidenceLayerPopup {...baseProps} facts={[]} images={[]} onClose={vi.fn()} onOpenPost={vi.fn()} />,
+    );
+    const panel = screen.getByRole("dialog");
+    const collapsed = document.createElement("details");
+    const collapsedButton = document.createElement("button");
+    collapsedButton.textContent = "Collapsed action";
+    collapsed.append(collapsedButton);
+    panel.append(collapsed);
+
+    panel.focus();
+    await userEvent.tab({ shift: true });
+    expect(screen.getByRole("button", { name: "Open post: Checkout error follow-up" })).toHaveFocus();
+    expect(collapsedButton).not.toHaveFocus();
   });
 
   it("returns focus to the element that invoked the modal when the layer unmounts", () => {

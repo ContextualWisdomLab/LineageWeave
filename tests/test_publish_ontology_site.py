@@ -209,7 +209,7 @@ def test_compatibility_validation_is_term_kind_safe() -> None:
 
 
 def test_shapes_validation_rejects_dangling_targets_and_outside_namespace() -> None:
-    """ADR 0205 decision 10: a shape targeting an undeclared class or
+    """ADR 0207 decision 10: a shape targeting an undeclared class or
     path validates nothing silently, so publication refuses it; only
     canonical-namespace targets are allowed.
     """

@@ -34,6 +34,7 @@ class _Connection:
 
 class _EmbeddingClient:
     available = True
+    resolved_model = "resolved-embedding"
 
     def embed_many(self, texts: list[str]) -> list[list[float]]:
         return [[0.1, 0.2] for _ in texts]
@@ -41,6 +42,7 @@ class _EmbeddingClient:
 
 class _FailingEmbeddingClient:
     available = True
+    resolved_model = None
 
     def embed_many(self, texts: list[str]) -> list[list[float]]:
         raise RuntimeError("synthetic provider outage")
@@ -55,7 +57,6 @@ def test_persist_post_content_writes_units_and_validated_vectors() -> None:
             "post-1",
             "A paragraph with a meaningful retrieval unit.",
             embedding_client=_EmbeddingClient(),
-            embedding_model_code="text-embedding-3-large",
         )
     )
 
@@ -74,7 +75,6 @@ def test_persist_post_content_keeps_units_when_embedding_provider_fails() -> Non
             "post-1",
             "A paragraph that remains searchable without a vector.",
             embedding_client=_FailingEmbeddingClient(),
-            embedding_model_code="text-embedding-3-large",
         )
     )
 

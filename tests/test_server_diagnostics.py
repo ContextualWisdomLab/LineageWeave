@@ -50,6 +50,8 @@ def _call_ask(monkeypatch: pytest.MonkeyPatch, exc: BaseException) -> None:
                 _Pool(),
                 question_text="synthetic question",
                 corporate_entity_ids=set(),
+                process_unit_ids=set(),
+                process_scope_limited=False,
                 chat_client=_FailingClient(exc),
             )
         )
@@ -145,6 +147,8 @@ def test_global_ask_source_gather_failure_is_classified(
                 _Pool(),
                 question_text="synthetic question",
                 corporate_entity_ids=set(),
+                process_unit_ids=set(),
+                process_scope_limited=False,
                 chat_client=_FailingClient(RuntimeError("unused")),
             )
         )

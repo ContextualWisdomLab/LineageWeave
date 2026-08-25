@@ -42,6 +42,7 @@ from fast_mlsirm import (
     fit_polytomous,
     fixed_item_calibration_diagnostics,
     information_polytomous,
+    polytomous_category_probabilities,
     score_polytomous,
     validate_irt_response_matrix,
 )
@@ -123,55 +124,6 @@ class PeriodReport:
     leftover_pairs: tuple[LeftoverPair, ...] = ()
     leftover_map_axes: tuple[LeftoverMapAxis, ...] = ()
     leftover_map_coverage: LeftoverMapCoverage | None = None
-
-
-def _sigmoid(value: np.ndarray) -> np.ndarray:
-    """Numerically stable logistic."""
-    return 1.0 / (1.0 + np.exp(-np.clip(value, -40.0, 40.0)))
-
-
-def grm_category_probabilities(theta: np.ndarray, slope: np.ndarray, cat_params: np.ndarray) -> np.ndarray:
-    """Samejima GRM P(Y=k | theta) from a ``PolytomousFit``.
-
-    ``cat_params[i, k]`` is the cumulative threshold ``beta_{i,k+1}``.
-    ``P(Y >= k) = sigmoid(a_i * theta - beta_{i,k})``.
-    """
-    n_persons = theta.shape[0]
-    n_items, n_steps = cat_params.shape
-    n_cat = n_steps + 1
-    probs = np.empty((n_persons, n_items, n_cat), dtype=np.float64)
-    for item in range(n_items):
-        cumul = np.empty((n_persons, n_cat + 1), dtype=np.float64)
-        cumul[:, 0] = 1.0
-        for step in range(n_steps):
-            cumul[:, step + 1] = _sigmoid(slope[item] * theta - cat_params[item, step])
-        cumul[:, n_cat] = 0.0
-        # Thresholds must yield a decreasing survival curve; enforce that
-        # so category probabilities stay non-negative and sum to 1.
-        for step in range(1, n_cat):
-            cumul[:, step] = np.minimum(cumul[:, step], cumul[:, step - 1])
-        probs[:, item, :] = np.maximum(cumul[:, :-1] - cumul[:, 1:], 0.0)
-        row_sum = probs[:, item, :].sum(axis=1, keepdims=True)
-        probs[:, item, :] /= np.maximum(row_sum, 1e-12)
-    return probs
-
-
-def gpcm_category_probabilities(theta: np.ndarray, slope: np.ndarray, cat_params: np.ndarray) -> np.ndarray:
-    """Muraki GPCM P(Y=k | theta) from additive category intercepts."""
-    n_persons = theta.shape[0]
-    n_items, n_steps = cat_params.shape
-    n_cat = n_steps + 1
-    probs = np.empty((n_persons, n_items, n_cat), dtype=np.float64)
-    for item in range(n_items):
-        logits = np.zeros((n_persons, n_cat), dtype=np.float64)
-        running = np.zeros(n_persons, dtype=np.float64)
-        for step in range(n_steps):
-            running = running + slope[item] * theta + cat_params[item, step]
-            logits[:, step + 1] = running
-        logits -= logits.max(axis=1, keepdims=True)
-        exp = np.exp(logits)
-        probs[:, item, :] = exp / exp.sum(axis=1, keepdims=True)
-    return np.clip(probs, 1e-12, 1.0)
 
 
 def assemble_response_matrix(
@@ -307,10 +259,19 @@ def _member_scores(post_ids: list[str], scores: dict[str, np.ndarray]) -> tuple[
 
 
 def _category_probabilities(model: str, theta: np.ndarray, fit: PolytomousFit) -> np.ndarray:
-    """Implement the _category_probabilities operation for this channel."""
-    if model == "grm":
-        return grm_category_probabilities(theta, fit.slope, fit.cat_params)
-    return gpcm_category_probabilities(theta, fit.slope, fit.cat_params)
+    """Delegate fitted-model predictions to fast-mlsirm's Rust authority."""
+    if model != fit.model:
+        raise ValueError("model must match the fitted item bank")
+    probabilities = np.asarray(
+        polytomous_category_probabilities(fit, theta), dtype=np.float64
+    )
+    expected_shape = (len(theta), len(fit.slope), fit.cat_params.shape[1] + 1)
+    if probabilities.shape != expected_shape:
+        raise ValueError(
+            "fast-mlsirm category probabilities must have shape "
+            f"{expected_shape}, got {probabilities.shape}"
+        )
+    return probabilities
 
 
 def calibrate_period_report(

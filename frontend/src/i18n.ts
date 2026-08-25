@@ -50,9 +50,10 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Ranking evidence for {title}": "{title}의 순위 근거",
     "{label} rank {rank}, contribution {contribution}":
       "{label} 순위 {rank}, 기여 {contribution}",
-    "CalDAV events": "CalDAV 이벤트",
-    "No CalDAV events are available.": "사용할 수 있는 CalDAV 이벤트가 없습니다.",
-    "CalDAV is not connected.": "CalDAV가 연결되지 않았습니다.",
+    "Observed calendar events": "관측된 달력 일정",
+    "No observed calendar events are available.": "관측된 달력 일정이 없습니다.",
+    "Open this observed occurrence. It is not a LineageWeave commitment.":
+      "이 관측 일정을 확인하세요. LineageWeave 약속이 아닙니다.",
     "Upcoming commitments": "예정된 약속",
     "No upcoming commitments.": "예정된 약속이 없습니다.",
     "No upcoming commitments. Derive one from a post, or create a ticket with a due date.":
@@ -218,6 +219,8 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "The linked records are listed above. The graph is not available for this view.":
       "연결된 기록은 위 목록에 있습니다. 이 화면에서는 그래프를 사용할 수 없습니다.",
     "No linked posts yet.": "아직 연결된 글이 없습니다.",
+    "Other visible posts share this comparison group, but no Event Lineage link is available. Read Keyman and evaluation next.": "다른 표시 가능한 글이 이 비교 그룹에 있지만 Event Lineage 연결은 없습니다. 다음으로 핵심 담당자와 평가를 확인하세요.",
+    "No other visible posts share this comparison group yet. Request reconstruction after more posts arrive, or read Keyman and evaluation.": "아직 이 비교 그룹을 공유하는 다른 표시 가능한 글이 없습니다. 글이 더 들어온 뒤 재구성을 요청하거나 핵심 담당자와 평가를 확인하세요.",
     "VOC evidence": "VOC 근거",
     "Affiliate tree": "소속 트리",
     Keymen: "핵심 담당자",
@@ -528,9 +531,10 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Ranking evidence for {title}": "{title} 的排名证据",
     "{label} rank {rank}, contribution {contribution}":
       "{label} 排名 {rank}，贡献 {contribution}",
-    "CalDAV events": "CalDAV 事件",
-    "No CalDAV events are available.": "没有可用的 CalDAV 事件。",
-    "CalDAV is not connected.": "CalDAV 尚未连接。",
+    "Observed calendar events": "已观察的日历事件",
+    "No observed calendar events are available.": "没有可用的已观察日历事件。",
+    "Open this observed occurrence. It is not a LineageWeave commitment.":
+      "打开此已观察事件。它不是 LineageWeave 承诺。",
     "Upcoming commitments": "即将到来的承诺",
     "No upcoming commitments.": "没有即将到来的承诺。",
     "No upcoming commitments. Derive one from a post, or create a ticket with a due date.":
@@ -696,6 +700,8 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "The linked records are listed above. The graph is not available for this view.":
       "关联记录列在上方。此视图暂时无法显示图谱。",
     "No linked posts yet.": "暂时没有关联文章。",
+    "Other visible posts share this comparison group, but no Event Lineage link is available. Read Keyman and evaluation next.": "此比较组中还有其他可见文章，但目前没有 Event Lineage 连接。接下来请查看关键人员和评估。",
+    "No other visible posts share this comparison group yet. Request reconstruction after more posts arrive, or read Keyman and evaluation.": "此比较组中暂时没有其他可见文章。请在更多文章到达后请求重建，或查看关键人员和评估。",
     "VOC evidence": "客户之声证据",
     "Affiliate tree": "关联组织树",
     Keymen: "关键联系人",
@@ -1028,9 +1034,10 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Ranking evidence for {title}": "{title} の順位根拠",
     "{label} rank {rank}, contribution {contribution}":
       "{label} 順位 {rank}、寄与 {contribution}",
-    "CalDAV events": "CalDAV イベント",
-    "No CalDAV events are available.": "利用できる CalDAV イベントはありません。",
-    "CalDAV is not connected.": "CalDAV が接続されていません。",
+    "Observed calendar events": "観測されたカレンダー予定",
+    "No observed calendar events are available.": "利用できる観測カレンダー予定はありません。",
+    "Open this observed occurrence. It is not a LineageWeave commitment.":
+      "この観測予定を開きます。LineageWeave のコミットメントではありません。",
     "Upcoming commitments": "今後のコミットメント",
     "No upcoming commitments.": "今後のコミットメントはありません。",
     "No upcoming commitments. Derive one from a post, or create a ticket with a due date.":
@@ -1196,6 +1203,8 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "The linked records are listed above. The graph is not available for this view.":
       "関連記録は上に表示されています。この表示ではグラフを利用できません。",
     "No linked posts yet.": "関連する投稿はまだありません。",
+    "Other visible posts share this comparison group, but no Event Lineage link is available. Read Keyman and evaluation next.": "この比較グループには他の表示可能な投稿がありますが、Event Lineage のリンクはありません。次にキーパーソンと評価を確認してください。",
+    "No other visible posts share this comparison group yet. Request reconstruction after more posts arrive, or read Keyman and evaluation.": "この比較グループを共有する他の表示可能な投稿はまだありません。投稿が増えた後に再構築を依頼するか、キーパーソンと評価を確認してください。",
     "VOC evidence": "VOCの証拠",
     "Affiliate tree": "所属ツリー",
     Keymen: "キーパーソン",
@@ -1505,9 +1514,10 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Ranking evidence for {title}": "Bằng chứng xếp hạng cho {title}",
     "{label} rank {rank}, contribution {contribution}":
       "{label} hạng {rank}, đóng góp {contribution}",
-    "CalDAV events": "Sự kiện CalDAV",
-    "No CalDAV events are available.": "Không có sự kiện CalDAV nào khả dụng.",
-    "CalDAV is not connected.": "CalDAV chưa được kết nối.",
+    "Observed calendar events": "Sự kiện lịch đã quan sát",
+    "No observed calendar events are available.": "Không có sự kiện lịch đã quan sát nào khả dụng.",
+    "Open this observed occurrence. It is not a LineageWeave commitment.":
+      "Mở lần xuất hiện đã quan sát này. Đây không phải cam kết LineageWeave.",
     "Upcoming commitments": "Cam kết sắp tới",
     "No upcoming commitments.": "Không có cam kết sắp tới.",
     "No upcoming commitments. Derive one from a post, or create a ticket with a due date.":
@@ -1673,6 +1683,8 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "The linked records are listed above. The graph is not available for this view.":
       "Các bản ghi liên quan nằm ở trên. Đồ thị không khả dụng trong chế độ xem này.",
     "No linked posts yet.": "Chưa có bài viết liên quan.",
+    "Other visible posts share this comparison group, but no Event Lineage link is available. Read Keyman and evaluation next.": "Có bài viết hiển thị khác trong nhóm so sánh này nhưng chưa có liên kết Event Lineage. Tiếp theo, hãy xem Keyman và phần đánh giá.",
+    "No other visible posts share this comparison group yet. Request reconstruction after more posts arrive, or read Keyman and evaluation.": "Chưa có bài viết hiển thị nào khác trong nhóm so sánh này. Hãy yêu cầu tái dựng sau khi có thêm bài viết, hoặc xem Keyman và phần đánh giá.",
     "VOC evidence": "Bằng chứng VOC",
     "Affiliate tree": "Cây liên kết",
     Keymen: "Người liên hệ chính",

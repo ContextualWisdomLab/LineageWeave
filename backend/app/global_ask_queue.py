@@ -28,6 +28,7 @@ import asyncpg
 import redis.asyncio as redis
 from fastapi import HTTPException, status
 
+from lineageweave.ask_delivery import build_ask_delivery
 from lineageweave.http_client import HttpClientError
 from lineageweave.observability import record_server_failure
 from lineageweave.post_chat import (
@@ -90,6 +91,8 @@ async def enqueue_global_ask_job(
     *,
     requesting_account_id: str,
     question_text: str,
+    corporate_entity_ids: frozenset[str],
+    process_unit_ids: frozenset[str],
 ) -> str:
     """Persist one Ask job and wake the worker; return the new job id.
 
@@ -97,14 +100,31 @@ async def enqueue_global_ask_job(
     two leaves a recoverable ``queued`` row rather than a stream entry
     pointing at nothing.
     """
-    job_id = await conn.fetchval(
-        """
-        insert into global_ask_job (requesting_account_id, question_text)
-        values ($1, $2) returning global_ask_job_id
-        """,
-        requesting_account_id,
-        question_text,
-    )
+    async with conn.transaction():
+        job_id = await conn.fetchval(
+            """
+            insert into global_ask_job (requesting_account_id, question_text)
+            values ($1, $2) returning global_ask_job_id
+            """,
+            requesting_account_id,
+            question_text,
+        )
+        await conn.executemany(
+            """
+            insert into global_ask_job_corporate_entity_scope
+                (global_ask_job_id, corporate_entity_id)
+            values ($1, $2)
+            """,
+            [(job_id, entity_id) for entity_id in sorted(corporate_entity_ids)],
+        )
+        await conn.executemany(
+            """
+            insert into global_ask_job_process_unit_scope
+                (global_ask_job_id, process_unit_id)
+            values ($1, $2)
+            """,
+            [(job_id, process_unit_id) for process_unit_id in sorted(process_unit_ids)],
+        )
     try:
         await client.xadd(
             GLOBAL_ASK_STREAM_KEY,
@@ -120,20 +140,49 @@ async def enqueue_global_ask_job(
     return str(job_id)
 
 
-async def load_account_visibility(
-    conn: asyncpg.Connection, account_id: str
-) -> tuple[set[str], bool]:
-    """Reload an account's ABAC inputs from the database for worker-side use.
+async def load_job_visibility(
+    conn: asyncpg.Connection, job_id: str, account_id: str
+) -> tuple[set[str], set[str], bool, bool]:
+    """Reload the queued scope, intersected with current account grants.
 
-    The worker has no bearer token, so it rebuilds the two facts the
-    endpoint's ``CurrentAccount`` carried: the corporate entities the
-    account is affiliated with, and whether any assigned role grants
-    ``post_read``. Reading them fresh at processing time means a
-    revocation between submit and processing is honored.
+    The worker has no bearer token. It therefore reads the scope captured
+    at enqueue time and intersects it with current affiliations, while also
+    rechecking ``post_read``. A revocation can narrow a delayed job, but a
+    second account affiliation can never widen it.
     """
     entity_rows = await conn.fetch(
-        "select corporate_entity_id from account_affiliation where user_account_id = $1",
+        """
+        select distinct scope.corporate_entity_id
+          from global_ask_job_corporate_entity_scope scope
+          join account_affiliation affiliation
+            on affiliation.corporate_entity_id = scope.corporate_entity_id
+           and affiliation.user_account_id = $2
+         where scope.global_ask_job_id = $1
+        """,
+        job_id,
         account_id,
+    )
+    process_rows = await conn.fetch(
+        """
+        select distinct scope.process_unit_id
+          from global_ask_job_process_unit_scope scope
+          join account_affiliation affiliation
+            on affiliation.process_unit_id = scope.process_unit_id
+           and affiliation.user_account_id = $2
+         where scope.global_ask_job_id = $1
+        """,
+        job_id,
+        account_id,
+    )
+    process_scope_limited = bool(
+        await conn.fetchval(
+            """
+            select exists (
+                select 1 from global_ask_job_process_unit_scope
+                 where global_ask_job_id = $1)
+            """,
+            job_id,
+        )
     )
     has_post_read = bool(
         await conn.fetchval(
@@ -148,7 +197,12 @@ async def load_account_visibility(
             account_id,
         )
     )
-    return {str(row["corporate_entity_id"]) for row in entity_rows}, has_post_read
+    return (
+        {str(row["corporate_entity_id"]) for row in entity_rows},
+        {str(row["process_unit_id"]) for row in process_rows},
+        process_scope_limited,
+        has_post_read,
+    )
 
 
 async def compute_global_ask_answer(
@@ -156,6 +210,8 @@ async def compute_global_ask_answer(
     *,
     question_text: str,
     corporate_entity_ids: set[str],
+    process_unit_ids: set[str],
+    process_scope_limited: bool,
     chat_client: PostChatClient,
 ) -> dict[str, Any]:
     """Assemble one complete Ask answer payload from authorized evidence.
@@ -169,7 +225,13 @@ async def compute_global_ask_answer(
         """Apply the requester's ABAC rule: public, or an affiliated entity's post."""
         if row["visibility_code"] == "public":
             return True
-        return str(row["corporate_entity_id"]) in corporate_entity_ids
+        return (
+            str(row["corporate_entity_id"]) in corporate_entity_ids
+            and (
+                not process_scope_limited
+                or str(row["process_unit_id"]) in process_unit_ids
+            )
+        )
 
     today = _seoul_today()
     try:
@@ -178,6 +240,7 @@ async def compute_global_ask_answer(
                 conn,
                 can_see,
                 corporate_entity_ids,
+                process_unit_ids,
                 question=question_text,
                 today=today,
             )
@@ -189,6 +252,7 @@ async def compute_global_ask_answer(
             "Ask Agent is unavailable: authorized evidence could not be assembled",
         ) from exc
     if not sources:
+        delivery = build_ask_delivery("", (), ())
         return {
             "answer_text": "",
             "cited_post_ids": [],
@@ -198,6 +262,7 @@ async def compute_global_ask_answer(
             "lineage_graph": {"nodes": [], "edges": [], "truncated": False},
             "cited_post_images": [],
             "next_action": "No authorized source posts are available for this question.",
+            "delivery": delivery,
         }
     try:
         answer = await asyncio.to_thread(
@@ -235,14 +300,17 @@ async def compute_global_ask_answer(
     async with pool.acquire() as conn:
         lineage_graph = await lineage_graphs_for_posts(conn, can_see, cited_ids)
         images = await cited_post_images(conn, cited_ids)
+    cited_posts = cited_post_summaries(sources, cited_ids)
+    cited_evidence = cited_post_evidence(sources, cited_ids)
     return {
         "answer_text": answer.answer_text,
         "cited_post_ids": cited_ids,
-        "cited_posts": cited_post_summaries(sources, cited_ids),
-        "cited_post_evidence": cited_post_evidence(sources, cited_ids),
+        "cited_posts": cited_posts,
+        "cited_post_evidence": cited_evidence,
         "cited_post_images": images,
         "source_post_ids": [source.post_id for source in sources],
         "lineage_graph": lineage_graph,
+        "delivery": build_ask_delivery(answer.answer_text, cited_posts, cited_evidence),
     }
 
 
@@ -301,8 +369,13 @@ async def process_global_ask_job(
         return
     try:
         async with pool.acquire() as conn:
-            entity_ids, has_post_read = await load_account_visibility(
-                conn, str(row["requesting_account_id"])
+            (
+                entity_ids,
+                process_unit_ids,
+                process_scope_limited,
+                has_post_read,
+            ) = await load_job_visibility(
+                conn, job_id, str(row["requesting_account_id"])
             )
         if not has_post_read:
             raise _SafeJobError("account lacks the post_read permission")
@@ -316,6 +389,8 @@ async def process_global_ask_job(
                 pool,
                 question_text=str(row["question_text"]),
                 corporate_entity_ids=entity_ids,
+                process_unit_ids=process_unit_ids,
+                process_scope_limited=process_scope_limited,
                 chat_client=chat_client,
             ),
             timeout=JOB_DEADLINE_SECONDS,

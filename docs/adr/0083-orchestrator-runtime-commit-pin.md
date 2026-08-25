@@ -35,6 +35,8 @@ The runtime contract is:
   successful empty semantic result.
 - An empty seed model is expanded from the configured gateway `/v1/models`
   endpoint; embedding-only rows are not added to the chat agent pool.
+- A batch embedding request may omit `model`; contextual-orchestrator selects
+  an embedding-capable model and returns its identity for subsequent batches.
 - `json_object`, `json_schema`, and Responses JSON formats run conduct plus
   synthesis. Tool requests never silently fall back to one agent.
 

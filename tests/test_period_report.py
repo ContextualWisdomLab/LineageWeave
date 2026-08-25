@@ -10,6 +10,8 @@ from __future__ import annotations
 import numpy as np
 import pytest
 
+from lineageweave import period_report as period_report_module
+
 from lineageweave.period_report import (
     LINK_METHOD_FIPC,
     LINK_METHOD_FREE,
@@ -23,28 +25,26 @@ from lineageweave.period_report import (
     rank_items_by_information,
     score_groups_on_shared_metric,
     score_period_on_bank,
-    gpcm_category_probabilities,
-    grm_category_probabilities,
 )
 from lineageweave.fixtures import fixture_titles_in_iso_week
 from lineageweave.post_evaluation import CRITERION_CODES, IRT_CATEGORY_COUNT
 
 
-def test_grm_category_probabilities_sum_to_one() -> None:
-    theta = np.linspace(-2.0, 2.0, 5)
-    slope = np.array([1.1, 0.8, 1.3])
-    cat_params = np.array([[1.0, 0.3, -0.4, -1.2], [0.8, 0.1, -0.5, -1.0], [1.2, 0.4, -0.2, -0.9]])
-    probs = grm_category_probabilities(theta, slope, cat_params)
-    assert probs.shape == (5, 3, 5)
-    np.testing.assert_allclose(probs.sum(axis=2), 1.0, atol=1e-6)
+def test_category_probability_axis_drift_fails_closed(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Upstream prediction axes cannot silently corrupt report residuals."""
+    bank = _location_shifted_bank()
+    monkeypatch.setattr(
+        period_report_module,
+        "polytomous_category_probabilities",
+        lambda _fit, _theta: np.zeros((3, 2, 5)),
+    )
 
-
-def test_gpcm_category_probabilities_sum_to_one() -> None:
-    theta = np.linspace(-2.0, 2.0, 5)
-    slope = np.array([1.0, 0.9, 1.2])
-    cat_params = np.array([[0.2, -0.1, 0.0, 0.1], [0.1, 0.0, -0.2, 0.05], [0.0, 0.15, -0.1, 0.0]])
-    probs = gpcm_category_probabilities(theta, slope, cat_params)
-    np.testing.assert_allclose(probs.sum(axis=2), 1.0, atol=1e-6)
+    with pytest.raises(ValueError, match="must have shape"):
+        period_report_module._category_probabilities(
+            "grm", np.asarray([0.0, 1.0]), bank.as_fit()
+        )
 
 
 def test_high_category_posts_outrank_low_category_posts() -> None:

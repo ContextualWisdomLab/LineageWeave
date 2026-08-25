@@ -86,7 +86,7 @@ def test_terminal_failed_job_ignores_a_stale_duplicate_wakeup() -> None:
             _Pool(connection),
             "00000000-0000-0000-0000-000000000001",
             "a" * 64,
-            embedding_model_code="",
+            require_embedding=False,
         )
     )
 
@@ -102,7 +102,7 @@ def test_duplicate_wakeup_before_retry_delay_is_not_claimable() -> None:
             _Pool(connection),
             "00000000-0000-0000-0000-000000000001",
             "a" * 64,
-            embedding_model_code="",
+            require_embedding=False,
         )
     )
 
@@ -118,7 +118,7 @@ def test_due_retry_is_claimed_and_attempt_is_incremented() -> None:
             _Pool(connection),
             "00000000-0000-0000-0000-000000000001",
             "a" * 64,
-            embedding_model_code="",
+            require_embedding=False,
         )
     )
 
@@ -141,7 +141,7 @@ def test_successful_job_reclaims_when_configured_evidence_is_incomplete(monkeypa
             _Pool(connection),
             "00000000-0000-0000-0000-000000000001",
             "a" * 64,
-            embedding_model_code="embedding-model",
+            require_embedding=True,
             require_structure=True,
         )
     )
@@ -170,12 +170,21 @@ def test_incomplete_provider_output_is_requeued_with_a_failure_code(monkeypatch)
         post_content_worker,
         "load_settings",
         lambda: SimpleNamespace(
-            embedding_model="embedding-model",
             orchestrator_base_url="gateway",
             orchestrator_api_key="key",
         ),
     )
-    monkeypatch.setattr(post_content_worker, "normalize_post_body", lambda *_args: object())
+    monkeypatch.setattr(
+        post_content_worker,
+        "normalize_post_body",
+        lambda *_args: SimpleNamespace(text="synthetic source body"),
+    )
+    monkeypatch.setattr(
+        post_content_worker,
+        "ContextualOrchestratorOperationsCaseAnalysisClient",
+        lambda *_args: SimpleNamespace(analyze=lambda *_values: ()),
+    )
+    monkeypatch.setattr(post_content_worker, "persist_operations_cases", persist)
     client = SimpleNamespace(available=True)
 
     asyncio.run(
@@ -253,7 +262,6 @@ def test_transient_provider_error_is_requeued_before_attempt_limit(monkeypatch, 
         post_content_worker,
         "load_settings",
         lambda: SimpleNamespace(
-            embedding_model="embedding-model",
             orchestrator_base_url="",
             orchestrator_api_key="",
         ),

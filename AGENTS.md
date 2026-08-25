@@ -374,7 +374,7 @@ through the fail-closed `scripts/publish_ontology_site.py` from `main`.
 A manual dispatch from another ref is not a publication path. The
 repository-case public namespace
 `https://contextualwisdomlab.github.io/LineageWeave/ontology#` is
-canonical ([ADR 0205](docs/adr/0205-repository-case-ontology-namespace-canonical.md),
+canonical ([ADR 0207](docs/adr/0207-repository-case-ontology-namespace-canonical.md),
 superseding ADR 0157, resolving issue #372); the lowercase form is a
 deprecated compatibility vocabulary with validated term-kind mappings.
 New runtime values, exports, fixtures, and database rows mint only

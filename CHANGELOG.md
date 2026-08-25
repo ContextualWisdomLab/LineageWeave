@@ -10,7 +10,7 @@ All notable changes to this project are documented here. Format follows
 
 - The repository-case public ontology namespace
   `https://contextualwisdomlab.github.io/LineageWeave/ontology#` is canonical
-  (ADR 0205, superseding ADR 0157, resolving issue #372); the lowercase form
+  (ADR 0207, superseding ADR 0157, resolving issue #372); the lowercase form
   is a deprecated compatibility vocabulary with validated mappings and a
   dry-run migration tool for stored values.
 - Closed-world SHACL validation (`docs/ontology/lineageweave-kg-shapes.ttl`,
@@ -24,12 +24,13 @@ All notable changes to this project are documented here. Format follows
   `createdAt`/`updatedAt`), a SKOS post-type scheme formalizing the governed
   five-value `voc_type` vocabulary under the round-trip check, and logical
   constraints: `OurSidePerson owl:disjointWith CounterpartyPerson` plus the
-  `hasAffiliate` inverse of `affiliatedWith` (ADR 0205).
+  `hasAffiliate` inverse of `affiliatedWith` (ADR 0207).
 
-### Changed
-
-- Ontology publication artifacts now include the SHACL shapes graph; the
-  manifest lists it deterministically and the documentation page links it.
+- Buyer Calendar now consumes the Naruon calendar projection beside
+  post-grounded commitments (ADR 0203 step 2 / #336). Observed occurrences
+  stay evidence-only; a commitment still opens that post. The 달력
+  destination fail-closes with `이 범위의 일정을 아직 받을 수 없습니다`
+  when the Naruon audience is missing. `CALDAV_BASE_URL` is not a fallback.
 
 - Registered the `analysis_run_topic_lineage` analysis-run kind (migrations
   0131/0132, ADR 0132), the LineageWeave-side consumption boundary for

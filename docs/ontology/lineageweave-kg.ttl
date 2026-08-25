@@ -16,7 +16,7 @@
 # / `voc_type` controlled vocabularies in migrations/, and
 # `post_summary_role.actor_type_code` (migrations/0012).
 #
-# ADR 0205 supersedes ADR 0157: the canonical namespace is the
+# ADR 0207 supersedes ADR 0157: the canonical namespace is the
 # repository-case spelling above -- the exact path GitHub Pages serves.
 # The lowercase namespace is a deprecated compatibility vocabulary
 # published beside this file as namespace-compatibility.ttl with
@@ -28,7 +28,7 @@
 # already an RDF triple in shape (Cyganiak, Wood, & Lanthaler, 2014);
 # this file is the formal semantic layer over it -- PostgreSQL stays
 # the source of record. See docs/adr/0004-knowledge-graph-ontology.md
-# for the KG design rationale, docs/adr/0205-repository-case-ontology-namespace-canonical.md
+# for the KG design rationale, docs/adr/0207-repository-case-ontology-namespace-canonical.md
 # for the namespace decision and SHACL boundary, and tests/test_ontology.py
 # for the round-trip check that every lookup code below actually exists
 # as a common_lookup_value row, and vice versa.
@@ -369,7 +369,7 @@
 #
 # Keyman job titles and industry sectors remain free-text columns with
 # no governed lookup category, so no SKOS scheme is invented for them
-# here (ADR 0205 decision 8 tracks that gap rather than fabricating
+# here (ADR 0207 decision 8 tracks that gap rather than fabricating
 # vocabulary).
 #################################################################
 

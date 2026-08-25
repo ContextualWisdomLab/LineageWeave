@@ -82,12 +82,12 @@ file uses `0159`, so the publication decision in this stack uses ADR 0159.
 Recheck immediately before integration; neither number is a global allocator
 reservation.
 
-## Resolution (ADR 0205, 2026-08-25)
+## Resolution (ADR 0207, 2026-08-25)
 
 The product owner directed the opposite canonicalization: the
 repository-case namespace
 `https://contextualwisdomlab.github.io/LineageWeave/ontology#` is now
-canonical ([ADR 0205](../adr/0205-repository-case-ontology-namespace-canonical.md),
+canonical ([ADR 0207](../adr/0207-repository-case-ontology-namespace-canonical.md),
 superseding [ADR 0157](../adr/0157-public-ontology-namespace-identity.md),
 resolving issue #372). The lowercase form is a deprecated compatibility
 vocabulary; both documents stay dereferenceable through the published

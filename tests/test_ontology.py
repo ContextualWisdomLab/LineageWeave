@@ -38,7 +38,7 @@ _SEED_SCRIPT_PATH = Path(__file__).resolve().parents[1] / "scripts" / "seed_demo
 # text -- read alongside it below so the round-trip still sees them:
 # 0012 (ADR 0006: prov_person/prov_organization), 0014 (ADR 0007:
 # prov_team), 0016 (ADR 0009: node_team/edge_mention_team/
-# edge_team_affiliation/edge_mention_organization), and 0042 (ADR 0205:
+# edge_team_affiliation/edge_mention_organization), and 0042 (ADR 0207:
 # the five governed voc_type post-type codes).
 _ADDITIONAL_LOOKUP_MIGRATION_PATHS = (
     Path(__file__).resolve().parents[1] / "migrations" / "0060_role_responsibility_agent_type.sql",
@@ -48,7 +48,7 @@ _ADDITIONAL_LOOKUP_MIGRATION_PATHS = (
 )
 
 # The categories this ontology covers (ADR 0004's scope, extended by
-# ADR 0205 with voc_type's post-type scheme). seed_demo_data.py also
+# ADR 0207 with voc_type's post-type scheme). seed_demo_data.py also
 # seeds categories this ontology deliberately does not model yet
 # (post_visibility, permission, ticket_status) -- those are real,
 # expected gaps, not a test bug.
@@ -239,7 +239,7 @@ def test_semantic_project_terms_preserve_post_evidence_and_confidence() -> None:
 
 
 def test_ontology_iri_is_repository_case_canonical() -> None:
-    """ADR 0205: the ontology IRI and every term IRI use the
+    """ADR 0207: the ontology IRI and every term IRI use the
     repository-case namespace -- the exact path GitHub Pages serves --
     and the lowercase spelling never appears as a minted subject.
     """
@@ -258,7 +258,7 @@ def test_ontology_iri_is_repository_case_canonical() -> None:
 
 
 def test_person_sides_are_declared_disjoint() -> None:
-    """ADR 0205 decision 9: a person side is our-side or counterparty,
+    """ADR 0207 decision 9: a person side is our-side or counterparty,
     never both -- stated with owl:disjointWith so reasoners refuse a row
     that projects both codes.
     """
@@ -282,7 +282,7 @@ def test_has_affiliate_is_the_stored_affiliation_inverse() -> None:
 
 
 def test_node_attribute_datatype_properties_project_real_columns() -> None:
-    """ADR 0205 decision 7: attribute properties exist exactly for real
+    """ADR 0207 decision 7: attribute properties exist exactly for real
     schema columns, with correct domains/ranges, and no property is
     invented for a column that does not exist.
     """
@@ -316,7 +316,7 @@ def test_shared_timestamps_declare_no_domain_to_avoid_multi_domain_entailment() 
 
 
 def test_post_type_scheme_covers_the_governed_voc_vocabulary() -> None:
-    """ADR 0205 decision 8: the five seeded voc_type codes become SKOS
+    """ADR 0207 decision 8: the five seeded voc_type codes become SKOS
     concepts; vos exists only as rel_vos and must NOT appear here.
     """
     graph = load_ontology()

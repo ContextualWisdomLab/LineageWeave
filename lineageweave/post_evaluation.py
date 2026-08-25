@@ -12,7 +12,12 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any, Protocol
 
-from fast_mlsirm import ContextualOrchestratorJudge, JudgeCriterion, LLMJudgeResult
+from fast_mlsirm import (
+    CONTEXTUAL_ORCHESTRATOR_CONTRACT_V1,
+    ContextualOrchestratorJudge,
+    JudgeCriterion,
+    LLMJudgeResult,
+)
 
 from .http_client import chat_completion_content, post_json
 
@@ -80,6 +85,8 @@ class _OrchestratorCompleteAdapter:
     """Maps contextual-orchestrator's chat completions onto fast-mlsirm's
     ``complete(messages, mode=...)`` contract.
     """
+
+    contextual_orchestrator_contract = CONTEXTUAL_ORCHESTRATOR_CONTRACT_V1
 
     def __init__(self, base_url: str, api_key: str, *, timeout: float = 180.0) -> None:
         self._base_url = base_url.rstrip("/")

@@ -67,13 +67,8 @@ def test_unapproved_weight_provenance_is_never_activated() -> None:
     ) is None
 
 
-def test_adr_0200_authorized_anchor_activates_a_complete_vector() -> None:
-    """Accepted ADR 0200: 'unanchored_internal_structure' is the one
-    authorized anchor method -- a complete, single-run,
-    integrity-passing vector under it activates, with no monkeypatching
-    of the authorized set. The rejected estimator's code
-    ('unanchored_channel_covariance', previous test) stays refused.
-    """
+def test_tepp_criterion_anchor_activates_an_exact_complete_vector() -> None:
+    """ADR 0205 activates only an exact persisted TEPP criterion anchor."""
 
     class StoredWeightConnection:
         async def fetchval(self, _query: str):
@@ -85,10 +80,20 @@ def test_adr_0200_authorized_anchor_activates_a_complete_vector() -> None:
                 "estimation_run_id": "00000000-0000-0000-0000-000000000001",
                 "estimation_method_code": "mls2plm_expected_information",
                 "estimator_version": "1.0.0",
-                "anchor_method_code": "unanchored_internal_structure",
+                "anchor_method_code": "tepp_lineage_criterion_v1",
                 "source_snapshot_sha256": "a" * 64,
                 "sample_pair_count": 600,
                 "knowledge_cutoff": datetime(2026, 1, 1, tzinfo=UTC),
+                "anchor_kind_code": "lineage_pair_criterion",
+                "anchor_contract_version": 1,
+                "anchor_snapshot_sha256": "a" * 64,
+                "anchor_knowledge_cutoff": datetime(2026, 1, 1, tzinfo=UTC),
+                "criterion_validity_status_code": "accepted",
+                "validated_pair_count": 600,
+                "tepp_result_sha256": "b" * 64,
+                "tepp_run_kind_code": "analysis_run_tepp",
+                "tepp_snapshot_sha256": "a" * 64,
+                "tepp_knowledge_cutoff": datetime(2026, 1, 1, tzinfo=UTC),
             }
             return [
                 {**provenance, "channel_code": "temporal", "weight_value": 0.5},
@@ -101,6 +106,57 @@ def test_adr_0200_authorized_anchor_activates_a_complete_vector() -> None:
             StoredWeightConnection(), {"temporal", "secondary_key", "text"}
         )
     ) == {"temporal": 0.5, "secondary_key": 0.3, "text": 0.2}
+
+
+@pytest.mark.parametrize(
+    ("field", "value"),
+    (
+        ("criterion_validity_status_code", "rejected"),
+        ("anchor_snapshot_sha256", "b" * 64),
+        ("tepp_knowledge_cutoff", datetime(2026, 1, 2, tzinfo=UTC)),
+        ("validated_pair_count", 599),
+    ),
+)
+def test_tepp_anchor_mismatch_disables_the_whole_vector(field: str, value: object) -> None:
+    """No TEPP identity or validity mismatch is repaired or inferred."""
+
+    class StoredWeightConnection:
+        async def fetchval(self, _query: str):
+            return True
+
+        async def fetch(self, _query: str):
+            cutoff = datetime(2026, 1, 1, tzinfo=UTC)
+            provenance = {
+                "channel_set_code": "channel_set_deterministic",
+                "estimation_run_id": "00000000-0000-0000-0000-000000000001",
+                "estimation_method_code": "mls2plm_expected_information",
+                "estimator_version": "1.0.0",
+                "anchor_method_code": "tepp_lineage_criterion_v1",
+                "source_snapshot_sha256": "a" * 64,
+                "sample_pair_count": 600,
+                "knowledge_cutoff": cutoff,
+                "anchor_kind_code": "lineage_pair_criterion",
+                "anchor_contract_version": 1,
+                "anchor_snapshot_sha256": "a" * 64,
+                "anchor_knowledge_cutoff": cutoff,
+                "criterion_validity_status_code": "accepted",
+                "validated_pair_count": 600,
+                "tepp_result_sha256": "b" * 64,
+                "tepp_run_kind_code": "analysis_run_tepp",
+                "tepp_snapshot_sha256": "a" * 64,
+                "tepp_knowledge_cutoff": cutoff,
+                field: value,
+            }
+            return [
+                {**provenance, "channel_code": channel, "weight_value": weight}
+                for channel, weight in (("temporal", 0.5), ("secondary_key", 0.3), ("text", 0.2))
+            ]
+
+    assert asyncio.run(
+        ingestion.load_estimated_channel_weights(
+            StoredWeightConnection(), {"temporal", "secondary_key", "text"}
+        )
+    ) is None
 
 
 def test_incomplete_persisted_weight_vector_is_unavailable() -> None:
@@ -501,10 +557,20 @@ def test_rebuild_reconstructs_with_an_activated_estimate() -> None:
             "estimation_run_id": "00000000-0000-0000-0000-000000000001",
             "estimation_method_code": "mls2plm_expected_information",
             "estimator_version": "1.0.0",
-            "anchor_method_code": "unanchored_internal_structure",
+            "anchor_method_code": "tepp_lineage_criterion_v1",
             "source_snapshot_sha256": "a" * 64,
             "sample_pair_count": 600,
             "knowledge_cutoff": datetime(2026, 1, 1, tzinfo=UTC),
+            "anchor_kind_code": "lineage_pair_criterion",
+            "anchor_contract_version": 1,
+            "anchor_snapshot_sha256": "a" * 64,
+            "anchor_knowledge_cutoff": datetime(2026, 1, 1, tzinfo=UTC),
+            "criterion_validity_status_code": "accepted",
+            "validated_pair_count": 600,
+            "tepp_result_sha256": "b" * 64,
+            "tepp_run_kind_code": "analysis_run_tepp",
+            "tepp_snapshot_sha256": "a" * 64,
+            "tepp_knowledge_cutoff": datetime(2026, 1, 1, tzinfo=UTC),
         }
         for channel, weight in (
             ("temporal", 0.5),
@@ -606,7 +672,12 @@ def test_focused_lineage_graph_includes_a_post_outside_landing_limit() -> None:
     assert {node["id"] for node in focused["nodes"]} == {"post-a", "post-b"}
     assert len(focused["edges"]) == 1
     assert focused["truncated"] is False
-    assert isolated == {"nodes": [], "edges": [], "truncated": False}
+    assert isolated == {
+        "nodes": [],
+        "edges": [],
+        "truncated": False,
+        "isolation_reason": "no_comparison_group",
+    }
     assert [node["id"] for node in hidden_neighbor["nodes"]] == ["post-a"]
     assert hidden_neighbor["edges"] == []
 
@@ -875,3 +946,107 @@ def test_lineage_graphs_for_posts_names_truncation_and_keeps_cited_posts() -> No
         edge["source"] in node_ids and edge["target"] in node_ids
         for edge in merged["edges"]
     )
+
+
+def _post(
+    post_id: str,
+    title: str,
+    thread_group_key: str,
+    created_at: datetime,
+) -> dict[str, object]:
+    return {
+        "post_id": post_id,
+        "post_title": title,
+        "voc_type_code": "voc",
+        "visibility_code": "public",
+        "corporate_entity_id": "corp",
+        "process_unit_id": "pu",
+        "thread_group_key": thread_group_key,
+        "created_at": created_at,
+    }
+
+
+class FakeConnection:
+    def __init__(self, posts: list[dict[str, object]], edges: list[dict[str, object]]) -> None:
+        self.posts = posts
+        self.edges = edges
+        self.executions: list[tuple[object, ...]] = []
+
+    async def fetch(self, query: str):
+        return self.edges if "post_lineage_edge" in query else self.posts
+
+    async def fetchval(self, query: str):
+        assert "to_regclass('public.lineage_channel_weight')" in query
+        return False
+
+    async def execute(self, *args: object) -> None:
+        self.executions.append(args)
+
+
+def test_two_visible_group_members_report_comparison_candidates_available() -> None:
+    connection = FakeConnection(
+        [
+            _post("post-a", "A", "thread-a", datetime(2026, 1, 1)),
+            _post("post-b", "B", "thread-a", datetime(2026, 1, 2)),
+        ],
+        [],
+    )
+    focused = asyncio.run(
+        visible_lineage_graph(connection, lambda row: True, focus_post_id="post-a")
+    )
+    assert focused == {
+        "nodes": [],
+        "edges": [],
+        "truncated": False,
+        "isolation_reason": "comparison_candidates_available",
+    }
+
+
+def test_hidden_sibling_does_not_flip_isolation_to_candidates_available() -> None:
+    """ABAC-hidden siblings must not leak through candidate availability."""
+    connection = FakeConnection(
+        [
+            _post("post-c", "C", "thread-c", datetime(2026, 1, 3)),
+            _post("post-d", "D", "thread-c", datetime(2026, 1, 4)),
+        ],
+        [],
+    )
+    isolated = asyncio.run(
+        visible_lineage_graph(
+            connection,
+            lambda row: str(row["post_id"]) != "post-d",
+            focus_post_id="post-c",
+        )
+    )
+    assert isolated["isolation_reason"] == "no_comparison_group"
+    assert isolated["nodes"] == []
+
+
+def test_inaccessible_focus_does_not_report_an_isolation_reason() -> None:
+    connection = FakeConnection(
+        [_post("post-a", "A", "thread-a", datetime(2026, 1, 1))],
+        [],
+    )
+    hidden = asyncio.run(
+        visible_lineage_graph(
+            connection,
+            lambda row: False,
+            focus_post_id="post-a",
+        )
+    )
+    assert hidden == {
+        "nodes": [],
+        "edges": [],
+        "truncated": False,
+        "isolation_reason": None,
+    }
+
+
+def test_landing_graph_never_reports_an_isolation_reason() -> None:
+    connection = FakeConnection(
+        [_post("post-c", "C", "thread-c", datetime(2026, 1, 3))],
+        [],
+    )
+    landing = asyncio.run(visible_lineage_graph(connection, lambda row: True))
+    assert landing["isolation_reason"] is None
+    assert [node["id"] for node in landing["nodes"]] == ["post-c"]

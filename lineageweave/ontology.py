@@ -25,7 +25,7 @@ from rdflib.namespace import OWL, RDF, RDFS, SKOS
 from rdflib.term import Identifier
 
 #: The ontology's own namespace -- every class/property IRI below is
-#: this prefix plus the term's local name (e.g. LW.Post). ADR 0205 made
+#: this prefix plus the term's local name (e.g. LW.Post). ADR 0207 made
 #: the repository-case spelling canonical (it is the exact path GitHub
 #: Pages serves) and demoted the lowercase form to a deprecated
 #: compatibility vocabulary.

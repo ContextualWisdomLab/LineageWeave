@@ -4,7 +4,7 @@
 @prefix legacy: <https://contextualwisdomlab.github.io/lineageweave/ontology#> .
 @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
 
-# ADR 0205 supersedes ADR 0157: the repository-case namespace above is
+# ADR 0207 supersedes ADR 0157: the repository-case namespace above is
 # canonical and the lowercase namespace below is the deprecated
 # compatibility vocabulary. Both documents stay dereferenceable with
 # validated mappings; scripts/publish_ontology_site.py verifies local-

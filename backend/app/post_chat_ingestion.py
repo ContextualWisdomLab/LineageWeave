@@ -343,7 +343,7 @@ async def gather_chat_sources(
         return sources
 
     rows = await conn.fetch(
-        "select post_id, post_title, post_body, visibility_code, corporate_entity_id, "
+        "select post_id, post_title, post_body, visibility_code, corporate_entity_id, process_unit_id, "
         "source_system_code, source_record_key, source_author_code, source_author_name, "
         "source_company_code, source_company_name, source_process_unit_code, "
         "source_process_unit_name, source_sales_pool_code, source_sales_pool_name, "
@@ -392,6 +392,7 @@ async def gather_global_chat_sources(
     conn: asyncpg.Connection,
     can_see_post: Callable[[asyncpg.Record], bool],
     authorized_corporate_entity_ids: Iterable[str] = (),
+    authorized_process_unit_ids: Iterable[str] = (),
     vision_client: ImageContentClient | None = None,
     *,
     question: str | None = None,
@@ -564,7 +565,7 @@ async def gather_global_chat_sources(
 
     rows = await conn.fetch(
         """
-        select post_id, post_title, post_body, visibility_code, corporate_entity_id,
+        select post_id, post_title, post_body, visibility_code, corporate_entity_id, process_unit_id,
                source_system_code, source_record_key, source_author_code, source_author_name,
                source_company_code, source_company_name, source_process_unit_code,
                source_process_unit_name, source_sales_pool_code, source_sales_pool_name,
@@ -573,14 +574,17 @@ async def gather_global_chat_sources(
                created_at, event_occurred_at
           from source_post
          where (visibility_code = 'public'
-            or corporate_entity_id::text = any($1::text[]))
-           and ($4::date is null or (coalesce(event_occurred_at, created_at) at time zone 'Asia/Seoul')::date >= $4)
-           and ($5::date is null or (coalesce(event_occurred_at, created_at) at time zone 'Asia/Seoul')::date <= $5)
-         order by array_position($2::uuid[], post_id) nulls last,
+            or (corporate_entity_id::text = any($1::text[])
+                and (cardinality($2::text[]) = 0
+                     or process_unit_id::text = any($2::text[]))))
+           and ($5::date is null or (coalesce(event_occurred_at, created_at) at time zone 'Asia/Seoul')::date >= $5)
+           and ($6::date is null or (coalesce(event_occurred_at, created_at) at time zone 'Asia/Seoul')::date <= $6)
+         order by array_position($3::uuid[], post_id) nulls last,
                   coalesce(event_occurred_at, created_at) desc, post_id desc
-         limit $3
+         limit $4
         """,
         list(authorized_corporate_entity_ids),
+        list(authorized_process_unit_ids),
         candidate_ids,
         limit,
         resolved_time_range[0] if resolved_time_range else None,

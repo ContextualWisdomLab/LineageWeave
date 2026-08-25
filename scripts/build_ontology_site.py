@@ -28,7 +28,7 @@ from rdflib.namespace import OWL, RDF, RDFS, SKOS
 
 PUBLIC_BASE_URL = "https://contextualwisdomlab.github.io/LineageWeave"
 DOCUMENTATION_URL = f"{PUBLIC_BASE_URL}/ontology"
-#: ADR 0205: the canonical namespace is the repository-case spelling --
+#: ADR 0207: the canonical namespace is the repository-case spelling --
 #: the exact project path GitHub Pages serves. The lowercase form is a
 #: deprecated compatibility vocabulary published beside the ontology.
 CANONICAL_LOOKUP_PREDICATE = (
@@ -365,7 +365,7 @@ def _render_ontology_page(graph: Graph, source_sha256: str) -> tuple[str, int]:
         f'<div class="summary-card"><strong>{len(graph)}</strong><br>RDF triples</div>'
         f'<div class="summary-card"><strong><code>{html.escape(source_sha256[:12])}</code></strong><br>Source SHA-256 prefix</div>'
         "</section>"
-        '<p class="notice"><strong>Identity boundary:</strong> this project page is the stable documentation endpoint requested for the repository. Per ADR 0205 the repository-case ontology IRI shown above is the canonical semantic identifier; the lowercase namespace remains a deprecated compatibility vocabulary with validated mappings.</p>'
+        '<p class="notice"><strong>Identity boundary:</strong> this project page is the stable documentation endpoint requested for the repository. Per ADR 0207 the repository-case ontology IRI shown above is the canonical semantic identifier; the lowercase namespace remains a deprecated compatibility vocabulary with validated mappings.</p>'
         '<nav class="on-this-page" aria-label="Ontology term categories"><strong>Term categories</strong><ul>'
         f"{nav}</ul></nav>"
         f"{term_sections}"

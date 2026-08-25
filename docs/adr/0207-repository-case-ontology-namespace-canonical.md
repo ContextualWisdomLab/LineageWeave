@@ -1,4 +1,4 @@
-# ADR 0205 — Make the repository-case public ontology namespace canonical
+# ADR 0207 — Make the repository-case public ontology namespace canonical
 
 **Decision status:** Accepted
 **Date:** 2026-08-25

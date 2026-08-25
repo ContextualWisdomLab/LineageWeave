@@ -41,6 +41,38 @@ export interface PostPage {
   visibility_options?: PostFilterOption[];
 }
 
+export interface OperationsDashboardFact {
+  fact_type_code: string;
+  fact_type_label: string;
+  value_text: string;
+  evidence_text: string;
+}
+
+export interface OperationsDashboardCase {
+  post_id: string;
+  case_kind_code: string;
+  case_kind_label: string;
+  project_name: string | null;
+  summary_text: string;
+  evidence_text: string;
+  occurred_at: string;
+  facts: OperationsDashboardFact[];
+}
+
+export interface OperationsDashboardResponse {
+  period_label: string;
+  total_post_count: number;
+  total_event_count: number;
+  external_post_count: number;
+  external_percent: number;
+  pending_analysis_count: number;
+  cases: OperationsDashboardCase[];
+}
+
+export function fetchOperationsDashboard(accessToken: string): Promise<OperationsDashboardResponse> {
+  return backendFetch("/api/dashboard", accessToken);
+}
+
 export interface PostFilterOption {
   code: string;
   label: string;
@@ -327,6 +359,20 @@ export interface AskAgentResponse {
   source_post_ids: string[];
   next_action?: string;
   lineage_graph?: LineageGraph;
+  delivery?: {
+    contract_version: string;
+    report: {
+      media_type: string;
+      body: string;
+      source_documents: Array<{ post_id: string; title: string; api_path: string; resource_uri: string }>;
+    };
+    alert: {
+      trigger_code: string;
+      delivery_status_code: string;
+      eligible: boolean;
+      watched_resource_uris: string[];
+    };
+  };
 }
 
 export interface IssueTicket {
@@ -346,18 +392,28 @@ export interface CalendarEntry extends IssueTicket {
   post_title: string;
 }
 
-export interface CalDavEvent {
-  event_id: string;
-  summary: string;
+export interface NaruonCalendarEvent {
+  occurrence_reference: string;
+  event_reference: string;
+  source_reference: string;
+  display_text: string;
   starts_at: string;
+  ends_at: string;
+  all_day: boolean;
+  time_zone: string;
+  status_code: string;
+  disclosure_code: string;
+  truth_status_code: string;
+  observed_at: string;
+  provider_revision: string;
 }
 
 export interface CalendarResponse {
-  events: CalDavEvent[];
+  events: NaruonCalendarEvent[];
   commitments: CalendarEntry[];
   calendar_sources: {
-    caldav_available: boolean;
-    caldav_next_action: string | null;
+    naruon_available: boolean;
+    naruon_next_action: string | null;
   };
 }
 
@@ -446,6 +502,7 @@ export interface LineageGraph {
   nodes: LineageGraphNode[];
   edges: LineageGraphEdge[];
   truncated?: boolean;
+  isolation_reason?: "comparison_candidates_available" | "no_comparison_group" | null;
 }
 
 export function fetchLineageGraph(accessToken: string, postId?: string): Promise<LineageGraph> {

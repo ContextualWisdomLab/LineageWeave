@@ -29,7 +29,7 @@ SOURCE_RELATIVE_PATH = Path("docs/ontology/lineageweave-kg.ttl")
 PROV_PROFILE_RELATIVE_PATH = Path("docs/ontology/prov-o-support-profile.ttl")
 COMPATIBILITY_RELATIVE_PATH = Path("docs/ontology/namespace-compatibility.ttl")
 SHAPES_RELATIVE_PATH = Path("docs/ontology/lineageweave-kg-shapes.ttl")
-#: ADR 0205: the repository-case namespace is canonical and the
+#: ADR 0207: the repository-case namespace is canonical and the
 #: lowercase form is the deprecated compatibility vocabulary.
 CANONICAL_NAMESPACE = "https://contextualwisdomlab.github.io/LineageWeave/ontology#"
 DEPRECATED_NAMESPACE = "https://contextualwisdomlab.github.io/lineageweave/ontology#"
@@ -139,7 +139,7 @@ def validate_shapes_graph(shapes: Graph, canonical: Graph) -> None:
 
     A shape that targets a class absent from the canonical graph, or
     constrains a path never declared there, would silently validate
-    nothing -- the publication boundary refuses it instead (ADR 0205
+    nothing -- the publication boundary refuses it instead (ADR 0207
     decision 10). Only URI-valued targets and paths are checked;
     literal sh:path values are not part of this contract.
     """

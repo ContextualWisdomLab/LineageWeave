@@ -2,7 +2,7 @@
 """Migrate stored ``post_project_mention.ontology_iri`` values onto the
 canonical repository-case namespace.
 
-ADR 0205 supersedes ADR 0157 and makes
+ADR 0207 supersedes ADR 0157 and makes
 ``https://contextualwisdomlab.github.io/LineageWeave/ontology#`` canonical
 -- the exact project path GitHub Pages serves -- while demoting
 ``https://contextualwisdomlab.github.io/lineageweave/ontology#`` to a
@@ -18,7 +18,7 @@ This tool is deliberately *not* silent:
 - ``--apply`` performs exactly the printed rewrites inside one transaction;
 - the extraction provenance columns (``extraction_method``, confidence,
   evidence text) are never touched -- only the IRI spelling moves, so the
-  evidence chain of who extracted what remains intact per ADR 0205's
+  evidence chain of who extracted what remains intact per ADR 0207's
   "do not silently rewrite historical evidence" rule;
 - any IRI outside the two known namespaces is reported and left alone so an
   unexpected third spelling cannot be bulk-mangled;

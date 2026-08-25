@@ -1,6 +1,6 @@
 # Product & Technical Gap Baseline
 
-> Audit snapshot: 2026-08-25 12:07 KST (refreshed by the autonomous merge
+> Audit snapshot: 2026-08-25 18:00 KST (refreshed by the autonomous merge
 > loop). This repository records synthetic fixtures and aggregate,
 > non-identifying runtime evidence only. Open PRs and local checks are not
 > protected-default-branch release evidence. Identifying post identifiers,
@@ -9,43 +9,38 @@
 
 ## 1. Exact-head and governance evidence
 
-The protected default branch was `965c798de5f789db245625e06e03c1563163051f`
-when this baseline was refreshed. The live queue contained 24 open PRs and 22
+The protected default branch was `3d6d7188a3ae299ffef77eb991032268a4c2160d`
+when this baseline was refreshed. The live queue contained 5 open PRs and 17
 open issues. The exact-head inventory below supersedes older per-PR snapshots
 elsewhere in this document; those older rows remain useful historical delivery
 context only.
 
 | PR | Exact observed head | Merge/check state at this snapshot |
 | ---: | --- | --- |
-| #598 | `63db0854` | reads 5W1H roles/events across a stale summary contract version; exact-head checks and independent review pending |
-| #597 | `8e132b5b` | clears stale related-post graph state before opening Customer Master detail in place; auto-merge armed, exact-head checks and independent review pending |
-| #596 | `edb24472` | aligns the two orchestrator-backed hierarchy/name-resolution clients with the existing bounded 600-second deep-work window and verifies both defaults; exact-head checks and independent review pending |
-| #595 | `9378c04f` | restores the audited no-draft-dimension import door and nullable updated-at fallback orphaned by the prior stack race; result typing repaired, 24 focused tests passed, auto-merge armed |
-| #591 | `ea5e72f5` | canonical current-queue baseline; this refresh supersedes the observed head, so checks and review restart |
-| #588 | `3a67a802` | reconstruction naming reconciled with current main; auto-merge armed, checks pending |
-| #585 | `ffe1290b` | only locally-authored bounded job errors may persist; transport errors remain generic; auto-merge armed, checks restarted |
-| #584 | `17068ec3` | current-main ADR collision repaired; auto-merge armed, checks restarted |
-| #582 | `3992302f` | batched Ask lineage graph reconciled with current main and the conflict-tail repair; auto-merge armed, checks restarted |
-| #581 | `c1b424eb` | concurrent exact-head update observed after event-time Ask reconciliation; checks and review pending |
-| #579 | `69c05078` | interaction-map migration and hosted SQL-suppression inventory reconciled; auto-merge armed |
-| #564 | `212b55a9` | concurrent exact-head update observed; checks and review pending |
-| #563 | `353b7470` | concurrent exact-head update observed after raw-residual identity repair; checks and review pending |
-| #539 | `e4dffe63` | concurrent exact-head update observed; checks and review pending |
-| #537 | `d5ac65d8` | current-main reconciliation pushed; checks restarted |
-| #493 | `e9c63d56` | concurrent exact-head update observed; checks and review pending |
-| #490 | `73413d0b` | code-quality findings repaired; current-main reconciliation remains before checks can settle |
-| #484 | `fa898bc5` | concurrent exact-head update observed after Allen interval reconciliation; checks and review pending |
-| #482 | `b0e737d3` | concurrent exact-head update observed after the corroborated-SKOS reconciliation; exact-head checks and review pending |
-| #468 | `a14093a3` | exact Keyverse org/PU scope persists in 3NF job child tables and is intersected with current grants; provider-shape, completeness-gate, role-intersection, and TEPP-contract reviews repaired; current main merged, 52 focused tests passed, auto-merge armed |
-| #434 | `ff34c9b6` | stacked on #387; review findings repaired, but the stack remains conflicting until its parent delivery boundary settles |
-| #394 | `ec74eedd` | indentation evidence composed with current HTTP response-boundary protections; 56 focused tests passed, auto-merge armed |
-| #387 | `462b41fb` | budgeted LLM selection precedes exact-channel weight lookup; persistence evidence uses fast-mlsirm estimates, 37 backend tests plus frontend interaction/lint/build passed; auto-merge armed, stale changes-requested state awaits exact-head rereview |
-| #383 | `138eaad4` | reader-safe OTel diagnostics composed with current HTTP response bounds; 76 focused tests passed, auto-merge armed |
+| #609 | `820fe648` | exact-main follow-up that renders #493's focused isolation reasons with localized next actions and an accepted ADR; backend/documentation, focused UI, i18n, lint, and build checks passed locally, auto-merge is enabled, and hosted gates plus independent review remain outstanding |
+| #606 | `61fd631c` | retires the internally anchored channel-weight vector in favor of the exact TEPP#237 criterion-validity contract and contains the former #607 operations-dashboard stack; the head now conflicts with protected `main` and must be composed without losing either capability |
+| #579 | `a8e9ef9e` | interaction-map coordinates remain open and now conflict with protected `main`; prior branch tests and screenshot audits do not transfer across the required composition |
+| #490 | `73413d0b` | broad historical workspace branch is conflicting with failing checks; decompose/restack rather than replaying its 931-commit merge wholesale |
+| #387 | `ab5cf345` | channel evidence plus Ask reconstruction-profile preservation is mergeable on the current head, but a current changes-requested decision remains; resolve valid findings and obtain independent exact-head re-review before enabling auto-merge |
 
 No row above is merge evidence. Immediately before any lifecycle action,
 re-fetch the head, unresolved threads, formal reviews, rulesets, and same-head
 check conclusions. In particular, queued checks are infrastructure state and
 do not transfer evidence from an earlier SHA.
+
+PR #607 merged as `61fd631c7bb3c57113fd19763c2c43161eeb2824`
+into #606's non-default branch. That stack merge preserves its implementation
+but is not protected-`main` evidence; only #606's eventual protected merge can
+deliver the combined TEPP-anchor and operations-dashboard work.
+
+PR #604 was closed unmerged after its exact OIDC repair was composed into #605;
+its green or pending checks are not delivery evidence. PR #482 merged as
+protected-main commit `464ff25002044b9d933c8eefd36c8def7ca0ffd8`
+with package conflict markers, identifying baseline records, and an OIDC
+return-context regression. PR #603 repaired the package/privacy and
+analysis-run transaction defects through protected main at `4f53190b`; the
+OIDC defect remains delivered until #604 or the composed #605 passes the
+protected gate. Protected main is therefore not yet a release candidate.
 
 PR #592 first merged as `3b3af3b4fe9c439354433a43444e05f37ab24ea3`
 into #590's non-default stack base at `2f033ba3`. The complete stack then
@@ -58,31 +53,43 @@ longer part of the open queue. That merge also left a standalone conflict
 marker and duplicated stale tail in `CLAUDE.md`; #594 repaired it through
 protected `main` as `241be2dddf657f854cb8be54fe11d4ef48d37976`.
 
-The former protected-`main` login defect (unauthenticated `AdminPanel` render
-plus unused OIDC return-url helpers failing `tsc -b`) is repaired on
-protected `main`; the ADR 0109 pattern (`returnUrlFromLocation()` then
-`rememberOidcReturnUrl()` before `signinRedirect`, and an authenticated-only
-`accessToken` narrowing before `AdminPanel`) is present at
-`frontend/src/App.tsx` on the current head. Eight branches cut from the older
-broken base still carried the defect; the shared repair was applied to each of
-them during this loop (see §3.1).
+Protected main now calls the ADR 0109 OIDC return helpers before
+`signinRedirect`; #600 and #605 delivered the repair through the protected
+gate. The authenticated-only `accessToken` narrowing remains present.
 
-Two systemic gates currently dominate the queue:
+Three systemic gates currently dominate the queue:
 
-1. **Strix provider unavailability (org control plane).** The central required
-   Strix scan fails across ~28 unrelated LineageWeave PRs with "could not
-   complete authoritative vulnerability analysis because its provider/backend
-   was unavailable": `nvidia_nim/nvidia/nemotron-3-super-120b-a12b` exits
-   after ~70 s and `openai-direct/gpt-5.6-luna` after ~5 s. This is an
-   infrastructure failure, not a code finding. The durable repair is
-   ContextualWisdomLab/.github#1263 (executable Azure and cross-provider
-   fallbacks), whose first push was itself blocked by the same replay guard it
-   fixes because its prior merge commit reverted ten base-merged paths; that
-   branch was re-based over current `.github` main restoring the reverted work
-   (vulnerability-location boundary filtering, internal-warning filter,
-   requirements lock refresh, changed-path workflow state) while preserving
-   the PR's own failover changes.
-2. **Current-head independent approval.** The org merge scheduler requires
+1. **Strix visibility lookup failure (org control plane).** PR #600 exact head
+   `7580bdc9` failed before scanning because the required-workflow token could
+   not resolve this public repository after six API retries. The root repair is
+   ContextualWisdomLab/.github#1320 at `3b9b2380`: ordinary PR, push, and
+   schedule runs use trusted event visibility; cross-repository dispatch keeps
+   authoritative public/private/internal visibility; private and internal
+   repositories remain on private-capable providers. The exact head also
+   composes the executable fallback contract and classifies bounded NVIDIA
+   `ServiceUnavailableError` overload evidence as retryable across configured
+   distinct models without weakening exhaustion or vulnerability fail-close.
+   A hosted fallback then completed with zero vulnerabilities but was rejected
+   because the generic warning gate treated Strix's fallback-model banner and
+   a Hugging Face unauthenticated-download notice as provider failures. The
+   current head removes only those two exact scanner notices before the
+   existing general warning and explicit 429/provider failure checks. The
+   current head also clears a foreign NVIDIA/OpenRouter endpoint before a
+   direct-OpenAI fallback while retaining an explicitly configured
+   direct-OpenAI primary endpoint. The prior full quick-gate harness, overload
+   path, 12 visibility-contract tests, and the focused cross-provider endpoint
+   contract passed; exact-head hosted revalidation remains pending. It is blocked on
+   hosted exact-head gates and independent review, so no repaired
+   protected-main Strix runtime evidence exists yet.
+2. **Strix provider unavailability (org control plane).** The central required
+   Strix scan on .github#1320 failed when NVIDIA returned `Service temporarily
+   overloaded`; the gate correctly failed closed but did not try its configured
+   distinct fallbacks because the service-unavailable classifier excluded the
+   NVIDIA provider. Exact head `3b9b2380` composes that execution repair and the
+   two exact non-fatal scanner-notice exclusions while keeping
+   incomplete exhaustion non-passing. This is still an unmerged control-plane
+   proposal, not protected-main or downstream runtime evidence.
+3. **Current-head independent approval.** The org merge scheduler requires
    `reviewDecision == APPROVED` plus complete Strix evidence on the exact
    head. Bot review evidence regenerates per push, so any repair push resets
    the review clock by design; this is expected and not a bypass target.
@@ -92,6 +99,28 @@ Recent protected-default-branch delivery evidence (squash merges onto
 
 | PR | Merged (UTC) | Delivered |
 | ---: | --- | --- |
+| #468 | 2026-08-25 08:44 | fast-mlsirm, Keyverse, orchestrator, and TEPP integration boundaries |
+| #493 | 2026-08-25 08:44 | ABAC-safe focused Event Lineage isolation reasons in the backend; buyer copy continues on #609 |
+| #600 | 2026-08-25 08:44 | non-identifying live gap baseline and ADR 0109 login-helper repair |
+| #605 | 2026-08-25 08:44 | modal focus containment/refocus, readable evidence labels, and OIDC return context |
+| #608 | 2026-08-25 08:43 | Naruon projection wired into Workspace Calendar |
+| #603 | 2026-08-25 07:24 | short analysis-run transactions, session advisory locking, package-marker/privacy repair, and provider-work lease release |
+| #602 | 2026-08-25 07:24 | post-detail modal semantics, Escape close, initial focus, and opener restoration; navigation-refocus edge case continues on #605 |
+| #582 | 2026-08-25 07:24 | bounded batched cited-lineage graph fetch |
+| #588 | 2026-08-25 07:23 | named two-axis leftover-map reconstruction and raw-residual identity |
+| #482 | 2026-08-25 07:03 | corroborated SKOS companion organization chips; regressions subsequently tracked above |
+| #601 | 2026-08-25 06:38 | APA 7th PROV-O and PROV-DM references for ADRs 0011 and 0065 |
+| #595 | 2026-08-25 04:39 | audited no-draft import door, nullable updated-at fallback, and event-time import |
+| #484 | 2026-08-25 04:39 | Allen interval relations with deferred FK validation |
+| #383 | 2026-08-25 04:39 | reader-safe OTel diagnostics and service-peer-bounded session metadata |
+| #599 | 2026-08-25 04:28 | raw-residual leftover-map cross-share identity aligned without arbitrary weighting |
+| #598 | 2026-08-25 03:32 | 5W1H roles/events remain readable across a stale summary contract version |
+| #597 | 2026-08-25 03:32 | related posts open Customer Master detail in place without stale graph state |
+| #591 | 2026-08-25 03:32 | prior exact-head product-gap baseline snapshot |
+| #584 | 2026-08-25 03:32 | TEPP topic-lineage consumption boundary grounded in cited temporal models |
+| #581 | 2026-08-25 03:32 | relative-time Ask filtering bound to event time |
+| #596 | 2026-08-25 03:27 | hierarchy/name-resolution deep-work timeouts aligned at 600 seconds |
+| #585 | 2026-08-25 03:27 | raw Global Ask transport exceptions replaced by bounded client-safe detail |
 | #355 | 2026-08-25 02:38 | Naruon calendar projection contract and conformance fixture |
 | #562 | 2026-08-24 02:05 | parameter-free classic RRF; deleted the last hand-picked fused score |
 | #561 | 2026-08-24 01:47 | knowledge-graph precedence/hierarchy relation classification and layout order |
@@ -115,10 +144,10 @@ never force-push or delete evidence ad hoc.
 The Grok durable hourly loop and the central thin GitHub Actions caller
 ContextualWisdomLab/.github#1259 (minute 4, `pr-review-fix-scheduler.yml`)
 both target this repository. Do not add a LineageWeave-local duplicate
-workflow. OpenCode coverage-evidence currently fails pnpm 9.15.9 heads on
-`--trust-lockfile` (a pnpm 11.3 flag) and on a synthesized Vitest `--coverage`
-flag; ContextualWisdomLab/.github#1258 (`9b5dba9`) is the exact-head repair
-and has auto-merge armed pending independent OpenCode / Strix / Noema.
+workflow. ContextualWisdomLab/.github#1258 merged at exact head `897819c4` to
+repair the pnpm/coverage-evidence workflow; newly created exact PR heads must
+still prove the runtime behavior because merged workflow source alone is not
+check evidence.
 
 Figma design-system boundary (ADR 0002): File ID `1Su3lDRmiZdcUs47t1QwIX`.
 The sanitized file now contains synthetic Event Lineage desktop (`5:14`) and
@@ -163,7 +192,7 @@ evidence across heads. The org merge scheduler merges only when
 
 | Gate | Evidence | Durable repair |
 | --- | --- | --- |
-| Strix provider unavailability | `nvidia_nim/nemotron-3-super-120b-a12b` exits ~70 s, `openai-direct/gpt-5.6-luna` exits ~5 s on ~28 unrelated heads ("provider/backend was unavailable") | ContextualWisdomLab/.github#1263 — executable Azure/cross-provider fallbacks; its prior merge commit reverted ten base-merged paths, now restored over current `.github` main |
+| Strix provider unavailability | `nvidia_nim/nvidia/nemotron-3-super-120b-a12b` and `openai-direct/gpt-5.6-luna` failed authoritatively across unrelated heads | ContextualWisdomLab/.github#1263 at `ab3d7645` proposes executable Azure/cross-provider fallbacks but remains open/conflicting; repair that branch without weakening the required gate |
 | ADR 0109 login repair debt | Eight branches cut from the pre-repair base carried the unauthenticated `AdminPanel` + unused-OIDC-helper `tsc -b` failure | Same verified two-line repair applied to #521, #522, #552, #553, #554, #556, #558, #560 during this loop; frontend lint/test/build verified locally |
 
 ### 3.1 Workspace root and product surfaces
@@ -236,7 +265,7 @@ head clears gates.
 Closed as superseded during this loop: #368 (baseline rewrite superseded by
 this file per §3.5 of the prior snapshot).
 
-## 4. Open issues (product acceptance remaining on `main`)
+## 4. Open issues (complete live queue; product acceptance remaining on `main`)
 
 | Issue | User-visible gap | Active PR |
 | ---: | --- | --- |
@@ -250,13 +279,11 @@ this file per §3.5 of the prior snapshot).
 | #280 | Full project-lifecycle history and handover intervals | Tracked with issue #284; no active delivery PR confirmed |
 | #284 | Authoritative lifecycle ingestion and idempotent reconciliation | No active delivery PR confirmed |
 | #289 | Activate the optional lineage LLM channel through a bounded asynchronous rebuild | #434 |
-| #336 | Replace pseudo-CalDAV feed with a Naruon-owned calendar projection | #355 |
+| #336 | Replace pseudo-CalDAV feed with a Naruon-owned calendar projection | Contract on `main` (#355); Buyer consume wiring in `feat/naruon-calendar-buyer-wiring-v2170` |
 | #338 | Evidence-bounded email/project lineage contract for Naruon consumption | #355 |
 | #341 | Heterogeneous ontology and provenance explorer separate from Event Lineage | #349 |
 | #358 | Batch reauthorize persisted post-Ask evidence without N+1 queries | Ask stack |
 | #359 | Centralize Global Ask session storage access | Ask stack |
-| #361 | Preserve server diagnostics behind generic orchestrator 503 responses | #383 |
-| #362 | Roll back rejected Global Ask turn atomically instead of poisoning the session | Ask stack |
 | #363 | Continue ontology neighborhoods beyond the bounded source window | Ask / ontology |
 | #372 | Reconcile lowercase and repository-case public namespace IRIs | #426 Pages stack; #492 is merged into that branch, not protected `main` |
 
@@ -264,7 +291,8 @@ this file per §3.5 of the prior snapshot).
 
 | Gap | Current evidence | Acceptance requirement |
 | --- | --- | --- |
-| Protected release | 24 open PRs at snapshot; the queue is gated mainly by per-head independent approvals and pending hosted checks; #355 landed during this window | Terminal exact-head checks, no unresolved threads, independent exact-head approvals, protected squash-merge SHA |
+| Protected release | 5 open PRs at snapshot; #609 is mergeable with auto-merge, #606/#579/#490 conflict, and #387 retains changes requested | Terminal exact-head checks, no unresolved threads, independent exact-head approvals, protected squash-merge SHA |
+| Evidence-grounded operations workspace | The former #607 implements persisted operational cases, an authenticated dashboard, citation-first actions, report/alert delivery metadata, tokens, Storybook, and regression coverage inside #606; authenticated production backfill and the similar-VOC live endpoint remain unavailable | Clear #606 normally on its exact combined head, perform authenticated desktop/mobile acceptance with aggregate evidence, and confirm a protected merge SHA |
 | Shared frontend gate | The ADR 0109 login repair is on protected `main`; eight older branches carried the defect and received the same verified repair this loop (#521–#560) | Keep every future branch cut from post-repair bases; re-verify with frontend lint/test/build before push |
 | Identifying baseline regression | `main` gap file listed real post identifiers; separately, closed #506 and pre-existing public history contain a private runtime source-table identifier, while current `main` and #507 trees are clean | Land this non-identifying rewrite, then coordinate ADR 0001 history remediation with security/privacy owners; do not reproduce the value, force-push, or delete evidence ad hoc |
 | Authorized-corpus runtime | Repository tests use synthetic fixtures; private records remain outside git | Authenticated runtime validation returning only aggregate, non-identifying evidence |
@@ -273,13 +301,13 @@ this file per §3.5 of the prior snapshot).
 | Event and project semantics | Multi-project mentions, project-bound actions, 5W1H, requester/processor, and semantic relations exist in ADR 0036/0052/0100/0111/0129 and active stacks | Aggregate authenticated evidence must show distinct projects and events, explicit requester/processor and real R&R, normalized relative time, and product/entity relations without promoting attendance or co-occurrence |
 | Knowledge Graph readability | The black evidence-node root cause is an undefined-token fallback; the design-token repair and long-label/evidence-table coverage are present on #490, not protected `main` | Deliver the token repair through protected `main`, then verify light/dark contrast, keyboard graph navigation, full labels, and evidence tables in the authenticated rendered surface |
 | Source-code lookup UX | Source state/detail codes remain evidence-bearing machine values and current detail presentation is dense | Catalog-backed display labels with raw-code provenance, compact 5W1H/source-detail hierarchy, keyboard access, and no unsupported customer/project binding |
-| Calendar / Naruon | #355 delivered the Naruon-owned projection contract and conformance fixture to protected `main`; live consumer acceptance is not yet evidenced | Verify Naruon consumption against the published schema and issues #336/#338 without invented events |
+| Calendar / Naruon | #355 delivered the projection contract; v2.17.0 wires Buyer consume without forwarding the end-user token. Naruon producer, provider/consumer fixtures, and protected merge remain open (#336) | Verify observed events against the published schema without invented events; keep commitments available when the channel is unwired |
 | SKOS organization aliases | Catalog binding and chip caption live on #480 / #482 | One catalog row per corroborated org; companion caption is hint-only until bound |
 | Event Lineage evidence | Channel evidence and Allen relations live on #387 / #484 | Persist channel scores, explain them in the popup, never invent a fused score |
-| Scientific measurement | Durable accepted TEPP receipts and fail-closed production weighting are protected (`main`); #468 binds fast-mlsirm/Keyverse/orchestrator/TEPP integration tests and now fails closed on upstream probability-axis drift. #387 removes inferred/default persistence weights and converts its 3/4-channel evidence tests to fast-mlsirm estimates, but several older reconstruction tests still pass hand-authored numeric weight dictionaries; those constants are not estimator evidence | Continue replacing remaining reconstruction-test constants with provenance-bearing fast-mlsirm estimates over synthetic fixtures; tests unrelated to fusion must bypass weighting entirely, as #484 does. Land #387/#468/#417 through the standard gate and retain true-parameter RMSE recovery as the acceptance bar |
+| Scientific measurement | Durable accepted TEPP receipts are protected (`main`); #606 replaces the internally anchored channel-weight activation with the exact TEPP-owned criterion-validity contract from TEPP#237, while #468 binds fast-mlsirm/Keyverse/orchestrator/TEPP integration tests and fails closed on upstream probability-axis drift. Neither cross-repository PR is protected delivery yet. #387 removes inferred/default persistence weights, but several older reconstruction tests still pass hand-authored numeric weight dictionaries; those constants are not estimator evidence | Land TEPP#237 before or together with #606 through their protected gates, then continue replacing remaining reconstruction-test constants with provenance-bearing fast-mlsirm estimates over synthetic fixtures; tests unrelated to fusion must bypass weighting entirely, as #484 does. Retain true-parameter RMSE recovery as the acceptance bar |
 | Asynchronous authorization | Protected `main` rebuilds Global Ask worker scope after the bearer token leaves the request; #468 now persists exact Keyverse organization/process-unit scope in 3NF child tables and intersects it with current affiliations | Land #468 through the protected gate; prove a second affiliation and a revoked process unit cannot widen delayed-job evidence |
 | Planned-facility intent | Planned-facility relationship intent rides on open #490 (`d0cad030`), whose earlier stack-only merges were not protected delivery | Settle #490 exact-head checks plus independent approval, then land through protected `main` before a release claim |
-| Accessibility and responsive UX | Unit coverage exists for major surfaces; Storybook inventory incomplete | Keyboard, screen-reader, mobile, and authenticated Playwright acceptance on the exact release head |
+| Accessibility and responsive UX | #602 and protected-main #605 deliver modal semantics, selected-post refocus, collapsed/hidden/inert/CSS-invisible focus exclusion, and readable evidence separators | Complete screen-reader and authenticated Playwright acceptance on one exact release head |
 | Design tokens and repeated objects | Token extraction started; sanitized Figma Event Lineage desktop/mobile frames exist, while other repeated product surfaces remain incomplete | Tokens in CSS + Storybook stories for board, popup, DAG, Ask, calendar, forms, charts; same-viewport Figma/runtime visual comparison before release |
 | External integrations | Search, Zotero, calendar, Keyverse, orchestrator, RankWeave, ThreadWeave, TEPP, disksage, wardnet | Provider conformance, failure/reconciliation behavior, and provenance-bearing integration evidence |
 | MSA / modular reuse | LineageWeave must run standalone and as a consumer of org packages | Do not reimplement RankWeave/TEPP/orchestrator/ThreadWeave/Keyverse; fix upstream and PR there |
@@ -357,8 +385,9 @@ Process every open PR in ascending number order, considering leverage; for
 each: check reviews → repair → re-verify Checks → merge → continue. Checks and
 review latency are never blockers — keep working while they settle.
 
-1. **Unblock Strix org-wide** by landing ContextualWisdomLab/.github#1263
-   (fallbacks executable), then rerun failed strix jobs across the queue.
+1. **Unblock Strix org-wide** by landing ContextualWisdomLab/.github#1320
+   (trusted event visibility), then reconciling ContextualWisdomLab/.github#1263
+   (fallbacks executable), and rerun failed Strix jobs across the queue.
 2. Merge ascending from #258 once each head shows terminal green required
    checks plus current-head independent approval. The leftover-map ladder
    (#518–#564) merges in ascending order.
@@ -387,7 +416,7 @@ review latency are never blockers — keep working while they settle.
 - Orchestrator / paper-grounded models: ADR 0015, ADR 0076 (Fugu, TRINITY, Conductor)
 - Ontology / PROV-O / SKOS: ADR 0004, ADR 0011, issue #372
 - Analysis runs / TEPP: ADR 0013–0023, issue #79 / #277
-- Calendar / Naruon: issues #336 / #338, PR #355
+- Calendar / Naruon: issues #336 / #338, PR #355, Buyer consume v2.17.0
 - Ask Agent: issues #269–#272, #358–#363
 
 Citations in doctoring and ADRs use APA 7th. Do not invent a heuristic where

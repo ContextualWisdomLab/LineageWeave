@@ -1,5 +1,5 @@
 """Closed-world SHACL validation of the LineageWeave knowledge-graph
-ontology (ADR 0205 decision 10).
+ontology (ADR 0207 decision 10).
 
 OWL's open-world semantics infers; it does not verify that projected
 data arrived complete and in range (Knublauch & Kontokostas, 2017).
@@ -174,7 +174,7 @@ def test_violations_are_rejected_with_the_right_constraint_name(
 
 def test_confidence_boundary_values_are_inclusive() -> None:
     """Exactly 0.0 and 1.0 are legal -- the bound is [0.0, 1.0]
-    inclusive per ADR 0205 decision 10.
+    inclusive per ADR 0207 decision 10.
     """
     for value in ("0.0", "1.0"):
         data = _representative_projection()

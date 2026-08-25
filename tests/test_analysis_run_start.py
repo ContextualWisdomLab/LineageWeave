@@ -1,5 +1,6 @@
 """Start-reconstruction contracts: digest, freeze, 422/409, designed tree."""
 
+import asyncio
 from datetime import datetime, timezone
 from functools import lru_cache
 
@@ -9,6 +10,7 @@ from backend.app import analysis_run_start
 from backend.app.analysis_run_ingestion import reconstructed_edge_is_visible
 from backend.app.analysis_run_start import (
     AnalysisRunStartError,
+    _persist_tepp_result,
     configured_tepp_client,
     reconstruction_member_ids,
     reconstruction_result_digest,
@@ -68,9 +70,10 @@ async def test_delivery_releases_pool_during_provider_work_and_closes_run_lock(m
     class LockConnection:
         closed = False
 
-        async def fetchval(self, query, lock_key):
+        async def fetchval(self, query, run_id):
             assert "pg_try_advisory_lock" in query
-            assert lock_key.endswith("00000000-0000-0000-0000-000000000001")
+            assert "lineageweave:analysis-run:" in query
+            assert run_id == "00000000-0000-0000-0000-000000000001"
             return True
 
         async def close(self):
@@ -221,9 +224,20 @@ def test_tepp_run_request_is_the_published_wire_shape() -> None:
     assert payload["idempotency_key"] == "buyer-tepp-2026-w07"
     assert payload["snapshot_id"] == "ab" * 32
     assert payload["knowledge_cutoff"] == "2026-01-12T12:00:00Z"
-    assert payload["model_contract_version"] == "tepp-analysis-run-v1"
-    assert payload["output_profile"] == "calibrated_event_measurement"
+    assert payload["model_contract_version"] == "tepp-lineage-criterion-v1"
+    assert payload["output_profile"] == "lineage_pair_criterion_anchor"
     assert "theta" not in str(payload).casefold()
+
+
+def test_tepp_run_request_preserves_exact_cutoff_precision() -> None:
+    """The echoed TEPP anchor must match a microsecond database cutoff exactly."""
+    request = tepp_run_request(
+        idempotency_key="exact-cutoff",
+        snapshot_sha256="ab" * 32,
+        knowledge_cutoff=datetime(2026, 1, 12, 12, 0, 0, 123456, tzinfo=timezone.utc),
+        corporate_entity_id="11111111-1111-1111-1111-111111111111",
+    )
+    assert request.knowledge_cutoff == "2026-01-12T12:00:00.123456Z"
 
 
 def test_tepp_submit_outcome_drops_a_missing_transport() -> None:
@@ -243,6 +257,81 @@ def test_tepp_submit_outcome_does_not_persist_an_empty_envelope() -> None:
     status, failure = tepp_submit_outcome(_Accepting(), _tepp_request())
     assert status == "analysis_status_failed"
     assert failure == "tepp_result_not_persisted"
+
+
+def test_tepp_anchor_projection_accepts_only_the_published_result_contract() -> None:
+    """The consumer persists TEPP's exact v1 artifact, not an ad hoc nested flag."""
+
+    class _Transaction:
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *_args):
+            return False
+
+    class _Connection:
+        def __init__(self) -> None:
+            self.queries: list[tuple[str, tuple[object, ...]]] = []
+
+        def transaction(self):
+            return _Transaction()
+
+        async def execute(self, query: str, *args: object):
+            self.queries.append((query, args))
+
+    cutoff = datetime(2026, 1, 12, 12, 0, tzinfo=timezone.utc)
+    conn = _Connection()
+    envelope = {
+        "status": "succeeded",
+        "run_id": "tepp-run-1",
+        "result_schema_version": "tepp.lineage_criterion_anchor.v1",
+        "result": {
+            "contract_version": 1,
+            "anchor_kind_code": "lineage_pair_criterion",
+            "estimation_run_id": "018f47e7-7b5b-7cc0-98c6-15fdf9e3d9b1",
+            "source_snapshot_sha256": "ab" * 32,
+            "knowledge_cutoff": cutoff.isoformat(),
+            "criterion_validity_status": "accepted",
+            "validated_pair_count": 600,
+        },
+    }
+    assert asyncio.run(
+        _persist_tepp_result(
+            conn,
+            analysis_run_id="11111111-1111-1111-1111-111111111111",
+            envelope=envelope,
+            expected_snapshot_sha256="ab" * 32,
+            expected_knowledge_cutoff=cutoff,
+        )
+    )
+    assert sum("lineage_weight_tepp_anchor" in query for query, _ in conn.queries) == 1
+
+    conn = _Connection()
+    envelope["result_schema_version"] = "consumer.private.v1"
+    assert asyncio.run(
+        _persist_tepp_result(
+            conn,
+            analysis_run_id="11111111-1111-1111-1111-111111111111",
+            envelope=envelope,
+            expected_snapshot_sha256="ab" * 32,
+            expected_knowledge_cutoff=cutoff,
+        )
+    )
+    assert not any("lineage_weight_tepp_anchor" in query for query, _ in conn.queries)
+
+    conn = _Connection()
+    envelope["result_schema_version"] = "tepp.lineage_criterion_anchor.v1"
+    envelope["result"]["estimation_run_id"] = "018f47e77b5b7cc098c615fdf9e3d9b1"
+    assert asyncio.run(
+        _persist_tepp_result(
+            conn,
+            analysis_run_id="11111111-1111-1111-1111-111111111111",
+            envelope=envelope,
+            expected_snapshot_sha256="ab" * 32,
+            expected_knowledge_cutoff=cutoff,
+        )
+    )
+    assert not any("lineage_weight_tepp_anchor" in query for query, _ in conn.queries)
 
 
 def _topic_lineage_request() -> AnalysisRunRequest:
