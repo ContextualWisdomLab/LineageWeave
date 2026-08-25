@@ -22,6 +22,12 @@ import asyncpg
 
 from backend.app.post_eligibility import SOURCE_POST_ELIGIBILITY_SQL
 from lineageweave.adjudication_client import AdjudicationClient
+from lineageweave.interval_relation import (
+    INTERVAL_RELATION_LABELS,
+    allen_interval_relation,
+    interval_from_post,
+    interval_relation_from_current,
+)
 from lineageweave.lineage_persistence import (
     LOOKUP_CODE_TO_SIGNAL,
     lineage_edge_specs,
@@ -91,12 +97,23 @@ def records_from_source_posts(rows: list[Mapping[str, Any]]) -> list[Record]:
     return records
 
 
+def interval_relation_code_for_edge(
+    parent_row: Mapping[str, Any], child_row: Mapping[str, Any]
+) -> str:
+    """Allen relation of the parent creation-day point toward the child."""
+    return allen_interval_relation(
+        interval_from_post(parent_row["created_at"]),
+        interval_from_post(child_row["created_at"]),
+    )
+
+
 async def persist_lineage_edges(
     conn: asyncpg.Connection,
     edges: list[Edge],
     weights: dict[str, float] | None = None,
+    points_by_post_id: Mapping[str, Mapping[str, Any]] | None = None,
 ) -> None:
-    """Replace live Event Lineage with ``edges`` and their channel evidence.
+    """Replace live Event Lineage with edges, channel evidence, and intervals.
 
     Reconstruct is the source of truth. The delete is cascaded onto
     ``post_lineage_edge_signal`` so a rebuild cannot leave orphan or
@@ -104,6 +121,18 @@ async def persist_lineage_edges(
     connection so version, weights, and generated-at stay aligned with
     the new graph.
     """
+    points = points_by_post_id or {}
+    missing_point_ids = {
+        post_id
+        for edge in edges
+        for post_id in (edge.parent_id, edge.child_id)
+        if post_id not in points
+    }
+    if missing_point_ids:
+        raise ValueError(
+            "missing observed interval point for post ids: "
+            + ", ".join(sorted(missing_point_ids))
+        )
     spec = lineage_rebuild_spec(edges, weights=weights)
     await conn.execute("delete from post_lineage_edge")
     await conn.execute("delete from event_lineage_rebuild")
@@ -121,9 +150,20 @@ async def persist_lineage_edges(
         spec.channel_weights,
     )
     await conn.executemany(
-        "insert into post_lineage_edge (parent_post_id, child_post_id, fused_score) "
-        "values ($1::uuid, $2::uuid, $3)",
-        [(edge.parent_id, edge.child_id, edge.fused_score) for edge in edges],
+        "insert into post_lineage_edge "
+        "(parent_post_id, child_post_id, fused_score, interval_relation_code) "
+        "values ($1::uuid, $2::uuid, $3, $4)",
+        [
+            (
+                edge.parent_id,
+                edge.child_id,
+                edge.fused_score,
+                interval_relation_code_for_edge(
+                    points[edge.parent_id], points[edge.child_id]
+                ),
+            )
+            for edge in edges
+        ],
     )
     await conn.executemany(
         "insert into post_lineage_edge_signal "
@@ -323,8 +363,9 @@ async def rebuild_lineage(
     if weights is None:
         raise ChannelWeightsNotEstimated(active_channels)
     edges = await _reconstruct_lineage_records(records, llm, weights)
+    points = {record.record_id: {"created_at": record.occurred_at} for record in records}
     async with conn.transaction():
-        await persist_lineage_edges(conn, edges, weights)
+        await persist_lineage_edges(conn, edges, weights, points)
     return edges
 
 
@@ -347,9 +388,21 @@ async def rebuild_lineage_from_pool(
         if weights is None:
             raise ChannelWeightsNotEstimated(active_channels)
     edges = await _reconstruct_lineage_records(records, llm, weights)
+    points = {record.record_id: {"created_at": record.occurred_at} for record in records}
     async with pool.acquire() as conn, conn.transaction():
-        await persist_lineage_edges(conn, edges, weights)
+        await persist_lineage_edges(conn, edges, weights, points)
     return edges
+
+
+def _interval_payload(row: Mapping[str, Any]) -> dict[str, Any]:
+    code = row.get("interval_relation_code")
+    if not code:
+        return {}
+    label = row.get("interval_relation_label") or INTERVAL_RELATION_LABELS.get(str(code))
+    payload = {"interval_relation_code": str(code)}
+    if label:
+        payload["interval_relation_label"] = str(label)
+    return payload
 
 
 async def visible_lineage_graph(
@@ -374,7 +427,8 @@ async def visible_lineage_graph(
     visible_all = [row for row in posts if can_see_post(row)]
     visible_all_ids = {str(row["post_id"]) for row in visible_all}
     edge_rows = await conn.fetch(
-        "select parent_post_id, child_post_id, fused_score from post_lineage_edge"
+        "select parent_post_id, child_post_id, fused_score, "
+        "interval_relation_code from post_lineage_edge"
     )
     rebuild_rows = await conn.fetch(
         "select reconstruction_version, generated_at, min_fused_score, candidate_window "
@@ -473,6 +527,7 @@ async def visible_lineage_graph(
             "channel_evidence": rank_channel_evidence(
                 signals_by_edge[(str(row["parent_post_id"]), str(row["child_post_id"]))]
             ),
+            **_interval_payload(row),
         }
         for row in visible_edges
     ]
@@ -498,6 +553,38 @@ async def visible_lineage_graph(
         "truncated": truncated,
         "reconstruction": reconstruction,
     }
+
+
+async def interval_relations_for_post(
+    conn: asyncpg.Connection, post_id: str
+) -> dict[str, dict[str, Any]]:
+    """Allen labels on direct reconstructed neighbors of ``post_id``."""
+    rows = await conn.fetch(
+        "select parent_post_id, child_post_id, interval_relation_code "
+        "from post_lineage_edge "
+        "where parent_post_id = $1::uuid or child_post_id = $1::uuid",
+        post_id,
+    )
+    current = str(post_id)
+    relations: dict[str, dict[str, Any]] = {}
+    for row in rows:
+        parent_id = str(row["parent_post_id"])
+        child_id = str(row["child_post_id"])
+        other_id = child_id if parent_id == current else parent_id
+        current_is_parent = parent_id == current
+        stored = _interval_payload(row)
+        code = stored.get("interval_relation_code")
+        if not code:
+            continue
+        oriented = interval_relation_from_current(str(code), current_is_parent)
+        relations[other_id] = {
+            "interval_relation_code": oriented,
+            "interval_relation_label": INTERVAL_RELATION_LABELS.get(
+                oriented, stored.get("interval_relation_label")
+            ),
+            "interval_is_parent": current_is_parent,
+        }
+    return relations
 
 
 async def lineage_graphs_for_posts(

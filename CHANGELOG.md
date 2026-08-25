@@ -140,6 +140,15 @@ All notable changes to this project are documented here. Format follows
   on the cited evidence. Open that cited post to read which clock
   matched. Never invent a theta or an event date.
 
+## [2.15.1] - 2026-08-25
+
+### Added
+
+- Event Lineage edges now name the Allen (1983) interval relation between
+  posts' observed UTC creation-day points. Mutable ticket due dates do not
+  rewrite Event Lineage evidence; directed relation rows open the other post,
+  while indirect Keyman links remain unlabeled (ADR 0161).
+
 ## [2.15.0] - 2026-08-25
 
 ### Changed
@@ -155,6 +164,15 @@ All notable changes to this project are documented here. Format follows
 - The 달력 destination fail-closes when CalendarWeave / Naruon CalDAV consume
   is unwired, with `이 범위의 일정을 아직 받을 수 없습니다`. Weekly VOC and
   newspaper stay on the board.
+
+## [2.13.2] - 2026-08-24
+
+### Added
+
+- Reader-safe Global Ask and post-chat failures now carry bounded
+  OpenTelemetry metrics, traces, and structured server diagnostics for
+  GRC consumption. Failure logs carry the active TraceId and SpanId so
+  another agent can join the Error span to the audit record.
 
 ## [2.12.26] - 2026-08-24
 

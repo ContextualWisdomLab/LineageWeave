@@ -20,6 +20,17 @@ function llmParticipated(evidence: LineageChannelEvidence[]): boolean {
   return evidence.some((item) => item.signal_code === "llm");
 }
 
+function intervalLabel(edge: LineageGraphEdge): string | undefined {
+  const label = edge.interval_relation_label?.trim();
+  return label || undefined;
+}
+
+function otherPostId(edge: LineageGraphEdge, currentPostId?: string): string {
+  if (currentPostId === edge.source) return edge.target;
+  if (currentPostId === edge.target) return edge.source;
+  return edge.target;
+}
+
 // Mirrors --size-control-min (24px, styles/tokens.css). One SVG user unit is
 // ~1px here (see lineageLayout ROW_H/COL_W/PAD), so this radius gives the
 // visible 7px node mark a 24x24px minimum hit area without CSS scale-up.
@@ -50,6 +61,7 @@ export function LineageDag({
     <div className="lineage-dag" aria-label={t("Reconstructed lineage")}>
       {groups.map((group) => {
         const byId = Object.fromEntries(group.nodes.map((node) => [node.id, node]));
+        const labeledEdges = group.edges.filter((edge) => intervalLabel(edge) && byId[edge.source] && byId[edge.target]);
         const hasBranchPoint = group.nodes.some((node) => node.is_branch_point);
         return (
           <figure key={group.group} className="lineage-dag-group">
@@ -89,34 +101,43 @@ export function LineageDag({
                   const midX = (from.x + to.x) / 2;
                   const key = edgeKey(edge);
                   const selected = selectedEdge === key;
+                  const relation = intervalLabel(edge);
                   return (
-                    <path
-                      key={key}
-                      className={selected ? "lineage-dag-edge lineage-dag-edge-selected" : "lineage-dag-edge"}
-                      d={`M ${from.x} ${from.y} C ${midX} ${from.y}, ${midX} ${to.y}, ${to.x} ${to.y}`}
-                      role="button"
-                      tabIndex={0}
-                      aria-pressed={selected}
-                      aria-label={tf("Open connection evidence: {from} to {to}", {
-                        from: from.label,
-                        to: to.label,
-                      })}
-                      onClick={() => setSelectedEdge(key)}
-                      onKeyDown={(event) => {
-                        if (event.key === "Enter" || event.key === " ") {
-                          event.preventDefault();
-                          setSelectedEdge(key);
-                        }
-                      }}
-                    >
-                      <title>
-                        {tf("{from} follows {to} ({score})", {
+                    <g key={key}>
+                      <path
+                        className={selected ? "lineage-dag-edge lineage-dag-edge-selected" : "lineage-dag-edge"}
+                        d={`M ${from.x} ${from.y} C ${midX} ${from.y}, ${midX} ${to.y}, ${to.x} ${to.y}`}
+                        role="button"
+                        tabIndex={0}
+                        aria-pressed={selected}
+                        aria-label={tf("Open connection evidence: {from} to {to}", {
                           from: from.label,
                           to: to.label,
-                          score: edge.fused_score.toFixed(2),
                         })}
-                      </title>
-                    </path>
+                        onClick={() => setSelectedEdge(key)}
+                        onKeyDown={(event) => {
+                          if (event.key === "Enter" || event.key === " ") {
+                            event.preventDefault();
+                            setSelectedEdge(key);
+                          }
+                        }}
+                      >
+                        <title>
+                          {relation
+                            ? tf("{from} follows {to} ({score}) — {relation}", {
+                                from: to.label,
+                                to: from.label,
+                                score: edge.fused_score.toFixed(2),
+                                relation: t(relation),
+                              })
+                            : tf("{from} follows {to} ({score})", {
+                                from: to.label,
+                                to: from.label,
+                                score: edge.fused_score.toFixed(2),
+                              })}
+                        </title>
+                      </path>
+                    </g>
                   );
                 })}
                 {group.nodes.map((node) => {
@@ -160,6 +181,36 @@ export function LineageDag({
                 })}
               </svg>
             </div>
+            {labeledEdges.length > 0 ? (
+              <ul className="lineage-interval-list" aria-label={t("Interval relations")}>
+                {labeledEdges.map((edge) => {
+                  const from = byId[edge.source];
+                  const to = byId[edge.target];
+                  const openId = otherPostId(edge, currentPostId);
+                  const openNode = byId[openId];
+                  const relation = intervalLabel(edge);
+                  if (!from || !to || !openNode || !relation) return null;
+                  return (
+                    <li key={`${edge.source}-${edge.target}`}>
+                      <button
+                        type="button"
+                        className="lineage-interval-button"
+                        onClick={() => onSelectPost(openNode.id)}
+                        aria-label={tf("{from} relates to {to} as {relation}; open {label}", {
+                          from: from.label,
+                          to: to.label,
+                          relation: t(relation),
+                          label: openNode.label,
+                        })}
+                      >
+                        <span className="lineage-interval-code">{t(relation)}</span>
+                        <span>{tf("Open post: {label}", { label: openNode.label })}</span>
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+            ) : null}
           </figure>
         );
       })}

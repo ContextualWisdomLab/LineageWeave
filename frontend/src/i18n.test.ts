@@ -64,6 +64,9 @@ describe("i18n", () => {
     "Each connection is inferred from independent signals. It is not a causal claim.",
     "No LLM adjudication participated in this connection.",
     "Temporal proximity",
+    "Contains",
+    "Overlaps",
+    "Interval relations",
     "Inspect ontology neighborhood",
     "Ontology neighborhood",
     "This is an ontology neighborhood, not Event Lineage.",
@@ -137,6 +140,23 @@ describe("i18n", () => {
   ] as const)("formats dynamic reader guidance in %s", (locale, expected) => {
     setLocale(locale);
     expect(tf("{post} is current in Event Lineage. Read Keyman and evaluation next.", { post: "DEMO" })).toBe(expected);
+  });
+
+  it.each([
+    ["ko", "부모", "자식", "부모의 자식에 대한 관계: 포함; 부모 열기"],
+    ["zh", "父", "子", "父 与 子 的关系：包含；打开 父"],
+    ["ja", "親", "子", "親から子への関係: 含む; 親を開く"],
+    ["vi", "cha", "con", "Quan hệ từ cha đến con: Chứa; mở cha"],
+  ] as const)("formats directed interval evidence in %s", (locale, from, to, expected) => {
+    setLocale(locale);
+    expect(
+      tf("{from} relates to {to} as {relation}; open {label}", {
+        from,
+        to,
+        relation: t("Contains"),
+        label: from,
+      }),
+    ).toBe(expected);
   });
 
   it.each([

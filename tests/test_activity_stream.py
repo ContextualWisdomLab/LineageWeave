@@ -12,6 +12,8 @@ from backend.app.activity_stream import (
     ticket_created_summary,
     ticket_status_changed_summary,
 )
+from lineageweave.observability import traced
+from tests.test_observability import attach_inmemory_tracer
 
 
 class _FakeStream:
@@ -63,3 +65,35 @@ def test_publish_activity_event_sync_skips_a_matching_summary() -> None:
     assert len(client.entries) == 1
     assert client.entries[0][1]["event_type"] == "ticket_created"
     assert "Send Northridge Grid the revised quote" in client.entries[0][1]["summary"]
+
+
+def test_valkey_child_span_shares_parent_trace_id(monkeypatch) -> None:
+    """Same-process Valkey work inherits the parent TraceId."""
+    from opentelemetry import trace
+
+    attach_inmemory_tracer(monkeypatch)
+    captured: dict[str, str] = {}
+
+    class _Client(_FakeStream):
+        def xadd(self, key: str, fields: dict[str, str], maxlen=None, approximate=None):
+            span = trace.get_current_span()
+            captured["trace_id"] = format(span.get_span_context().trace_id, "032x")
+            captured["span_id"] = format(span.get_span_context().span_id, "016x")
+            return super().xadd(key, fields, maxlen=maxlen, approximate=approximate)
+
+    with traced("lineageweave.test.parent"):
+        parent_context = trace.get_current_span().get_span_context()
+        parent_trace_id = format(parent_context.trace_id, "032x")
+        parent_span_id = format(parent_context.span_id, "016x")
+        publish_activity_event_sync(
+            _Client(),
+            "post-1",
+            "ticket_created",
+            "acct-1",
+            ticket_created_summary("Send Northridge Grid the revised quote"),
+        )
+
+    assert parent_trace_id != "0" * 32
+    assert captured["trace_id"] == parent_trace_id
+    assert captured["span_id"] != "0" * 16
+    assert captured["span_id"] != parent_span_id

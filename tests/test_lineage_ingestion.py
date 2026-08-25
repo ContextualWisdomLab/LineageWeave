@@ -12,6 +12,7 @@ import pytest
 import backend.app.lineage_ingestion as ingestion
 from backend.app.lineage_ingestion import (
     _budgeted_llm,
+    interval_relations_for_post,
     lineage_graphs_for_posts,
     persist_lineage_edges,
     rebuild_lineage,
@@ -23,7 +24,7 @@ from backend.app.lineage_ingestion import (
 from lineageweave.channel_weight_estimation import estimate_fixture_channel_weights
 from lineageweave.fixtures import sample_records
 from lineageweave.lineage_persistence import lineage_edge_specs, quantize_signal_value
-from lineageweave.models import Record
+from lineageweave.models import Edge, Record
 
 
 @lru_cache(maxsize=1)
@@ -32,8 +33,6 @@ def _fixture_weights() -> dict[str, float]:
     estimate = estimate_fixture_channel_weights()
     assert estimate is not None
     return estimate.weights
-
-
 def test_missing_weight_table_is_detected_without_an_aborting_query() -> None:
     class MissingTableConnection:
         async def fetchval(self, query: str):
@@ -393,7 +392,7 @@ def test_rebuild_passes_the_configured_adjudication_client(monkeypatch) -> None:
     async def fake_load_weights(_conn, _channels):
         return _fixture_weights()
 
-    async def fake_persist_lineage_edges(_conn, _edges, _weights=None):
+    async def fake_persist_lineage_edges(_conn, _edges, _weights=None, _points=None):
         events.append("persist")
         return None
 
@@ -480,7 +479,7 @@ def test_rebuild_drops_llm_before_estimated_weight_lookup(monkeypatch) -> None:
         captured["llm"] = llm
         return []
 
-    async def fake_persist(_conn, _edges, _weights):
+    async def fake_persist(_conn, _edges, _weights, _points):
         return None
 
     monkeypatch.setattr(ingestion, "MAXIMUM_LIVE_LLM_PAIR_EVALUATIONS", 1)
@@ -547,7 +546,7 @@ def test_pooled_rebuild_releases_the_connection_during_reconstruction(monkeypatc
         events.append("reconstruct")
         return function(*args, **kwargs)
 
-    async def fake_persist(_conn, _edges, _weights=None):
+    async def fake_persist(_conn, _edges, _weights=None, _points=None):
         assert pool.active == 1
         assert events[-1] == "transaction-enter"
         events.append("persist")
@@ -641,6 +640,27 @@ def test_seed_shaped_rows_rebuild_to_the_designed_a100_fork() -> None:
     assert ("rec-002", "rec-003") in pairs
     assert ("rec-002", "rec-004") in pairs
     assert "rec-006" not in {edge.child_id for edge in edges}
+
+
+def test_persist_requires_observed_points_before_replacing_edges() -> None:
+    class FakeConnection:
+        calls: list[str] = []
+
+        async def execute(self, query: str, *_args):
+            self.calls.append(query)
+
+    connection = FakeConnection()
+    edge = Edge("parent", "child", 0.8, {})
+
+    with pytest.raises(ValueError, match="child"):
+        asyncio.run(
+            persist_lineage_edges(
+                connection,
+                [edge],
+                points_by_post_id={"parent": {"created_at": datetime(2026, 1, 1)}},
+            )
+        )
+    assert connection.calls == []
 
 
 def test_rebuild_fails_closed_without_an_activated_weight_estimate() -> None:
@@ -1071,7 +1091,11 @@ def test_persist_lineage_edges_replaces_signals_atomically_without_llm() -> None
         scores,
     )
     connection = _RecordingConnection()
-    asyncio.run(persist_lineage_edges(connection, [edge], weights))
+    points = {
+        edge.parent_id: {"created_at": datetime(2026, 1, 1)},
+        edge.child_id: {"created_at": datetime(2026, 1, 2)},
+    }
+    asyncio.run(persist_lineage_edges(connection, [edge], weights, points))
     statements = [sql.casefold() for sql, _args in connection.statements]
     assert statements[0].startswith("delete from post_lineage_edge")
     assert any("delete from event_lineage_rebuild" in sql for sql in statements)
@@ -1109,10 +1133,83 @@ def test_duplicate_rebuild_replays_the_same_delete_insert_sequence() -> None:
     )
     first = _RecordingConnection()
     second = _RecordingConnection()
-    asyncio.run(persist_lineage_edges(first, [edge], weights))
-    asyncio.run(persist_lineage_edges(second, [edge], weights))
+    points = {
+        edge.parent_id: {"created_at": datetime(2026, 1, 1)},
+        edge.child_id: {"created_at": datetime(2026, 1, 2)},
+    }
+    asyncio.run(persist_lineage_edges(first, [edge], weights, points))
+    asyncio.run(persist_lineage_edges(second, [edge], weights, points))
     assert [sql for sql, _args in first.statements] == [sql for sql, _args in second.statements]
     assert [args for _sql, args in first.statements] == [args for _sql, args in second.statements]
+
+
+def test_visible_lineage_graph_attaches_allen_labels() -> None:
+    class FakeConnection:
+        posts = [
+            {
+                "post_id": "rec-002",
+                "post_title": "Pricing renegotiation follow-up",
+                "voc_type_code": "voc",
+                "visibility_code": "public",
+                "corporate_entity_id": "corp",
+                "process_unit_id": "pu",
+                "thread_group_key": "A-100",
+                "created_at": datetime(2026, 1, 6),
+            },
+            {
+                "post_id": "rec-003",
+                "post_title": "Pricing renegotiation: revised quote sent",
+                "voc_type_code": "voc",
+                "visibility_code": "public",
+                "corporate_entity_id": "corp",
+                "process_unit_id": "pu",
+                "thread_group_key": "A-100",
+                "created_at": datetime(2026, 1, 10),
+            },
+        ]
+        edges = [
+            {
+                "parent_post_id": "rec-002",
+                "child_post_id": "rec-003",
+                "fused_score": 0.9,
+                "interval_relation_code": "interval_contains",
+            }
+        ]
+
+        async def fetch(self, query: str, *_args):
+            if "post_lineage_edge_signal" in query:
+                return []
+            if "event_lineage_rebuild" in query:
+                return []
+            return self.edges if "post_lineage_edge" in query else self.posts
+
+    graph = asyncio.run(
+        visible_lineage_graph(FakeConnection(), lambda row: True, focus_post_id="rec-002")
+    )
+    assert graph["edges"][0]["interval_relation_code"] == "interval_contains"
+    assert graph["edges"][0]["interval_relation_label"] == "Contains"
+
+
+def test_interval_relations_for_post_orient_from_the_opened_child() -> None:
+    class FakeConnection:
+        edges = [
+            {
+                "parent_post_id": "rec-002",
+                "child_post_id": "rec-003",
+                "interval_relation_code": "interval_contains",
+            }
+        ]
+
+        async def fetch(self, query: str, *_args):
+            return self.edges
+
+    from_parent = asyncio.run(interval_relations_for_post(FakeConnection(), "rec-002"))
+    from_child = asyncio.run(interval_relations_for_post(FakeConnection(), "rec-003"))
+    assert from_parent["rec-003"]["interval_relation_code"] == "interval_contains"
+    assert from_parent["rec-003"]["interval_is_parent"] is True
+    assert from_child["rec-002"]["interval_relation_code"] == "interval_during"
+    assert from_child["rec-002"]["interval_relation_label"] == "During"
+    assert from_child["rec-002"]["interval_is_parent"] is False
 
 
 def test_lineage_graphs_for_posts_merges_distinct_threads_without_duplicates() -> None:
