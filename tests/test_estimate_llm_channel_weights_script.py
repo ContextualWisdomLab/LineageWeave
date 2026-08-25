@@ -8,7 +8,10 @@ result order), and must fit exclusively over a complete run.
 
 from __future__ import annotations
 
+import pytest
+
 from lineageweave.adjudication_client import judge_prompt, parse_confidence
+from lineageweave.http_client import HttpClientError
 
 import scripts.estimate_llm_channel_weights as script
 
@@ -31,7 +34,8 @@ def test_shared_judge_prompt_and_confidence_parse_round_trip() -> None:
     assert "Record B: Follow-up record" in prompt
     assert parse_confidence("0.85") == 0.85
     assert parse_confidence("confidence: 0.4 maybe") == 0.4
-    assert parse_confidence("no number here") == 0.0
+    with pytest.raises(HttpClientError):
+        parse_confidence("no number here")
     assert parse_confidence("1.7") == 1.0
 
 
