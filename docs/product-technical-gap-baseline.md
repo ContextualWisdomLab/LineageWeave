@@ -97,7 +97,7 @@ context only.
 | #636 | `f7b9a65f` | calibrated external lineage contract; checks and independent review remain required |
 | #632 | `be51f2f1` | Global Ask provenance, semantic nomination, public verification, knowledge-cutoff stack, and static-SQL/frontend review repairs; checks and independent review remain required |
 | #631 | `c0022c97` | current-main ADR stack decomposition; checks and independent review remain required |
-| #629 | `74823e99` | provider pool release and bounded landing reads; checks and independent review remain required |
+| #629 | `4b4d6707` | provider pool release and bounded landing reads; checks and independent review remain required |
 | #579 | `689a21b6` | leftover interaction-map persistence; checks and independent review remain required |
 
 No row above is merge evidence. Immediately before any lifecycle action,
