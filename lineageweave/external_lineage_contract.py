@@ -28,14 +28,14 @@ SourceKindCode = Literal["email", "task", "commitment", "project_event", "generi
 CallerTruthStatusCode = Literal["observed", "authoritative_in_caller"]
 ExplicitRelationCode = Literal["rfc_reply", "provider_reply", "manual_parent"]
 ResultTruthStatusCode = Literal["observed", "inferred", "proposed"]
-LlmStatusCode = Literal["not_requested", "unavailable", "completed"]
+LlmStatusCode = Literal["not_requested", "unavailable", "not_used", "completed"]
 
 _ANALYSIS_SCOPES = frozenset({"email_lineage", "project_history", "generic_lineage"})
 _SOURCE_KINDS = frozenset({"email", "task", "commitment", "project_event", "generic"})
 _CALLER_TRUTH_STATUSES = frozenset({"observed", "authoritative_in_caller"})
 _EXPLICIT_RELATIONS = frozenset({"rfc_reply", "provider_reply", "manual_parent"})
 _EDGE_TRUTH_STATUSES = frozenset({"observed", "inferred"})
-_LLM_STATUSES = frozenset({"not_requested", "unavailable", "completed"})
+_LLM_STATUSES = frozenset({"not_requested", "unavailable", "not_used", "completed"})
 _OPAQUE_REFERENCE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._:@+\-]*$")
 _RESULT_DIGEST = re.compile(r"^sha256:[0-9a-f]{64}$")
 _SCORE_TOLERANCE: Final = 1e-9

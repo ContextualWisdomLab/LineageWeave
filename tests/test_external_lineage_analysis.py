@@ -23,6 +23,14 @@ from lineageweave.external_lineage_contract import (
 _FIXTURE_ESTIMATE = estimate_fixture_channel_weights()
 assert _FIXTURE_ESTIMATE is not None
 _FIXTURE_WEIGHTS = dict(_FIXTURE_ESTIMATE.weights)
+# Four identical-information synthetic items have equal normalized expected
+# information; this vector is test truth, never a production fallback.
+_EQUAL_INFORMATION_WEIGHTS = {
+    "temporal": 0.25,
+    "secondary_key": 0.25,
+    "text": 0.25,
+    "llm": 0.25,
+}
 
 
 def analyze_external_lineage(request, *, llm=None):
@@ -134,15 +142,46 @@ def test_bounded_llm_rejects_unusable_scores(client, code: str) -> None:
     assert captured.value.code == code
 
 
-def test_selected_llm_marks_an_admitted_calibrated_channel_completed() -> None:
-    """A permitted, available, calibrated LLM channel is wrapped explicitly."""
+def test_selected_llm_marks_an_admitted_calibrated_channel_not_used() -> None:
+    """Admission alone is not reported as a completed provider call."""
     request = _request(
         [_record("email:001", "Same parent", "2026-08-20T09:00:00Z")],
         allow_llm=True,
     )
     client, status = _selected_llm(request, AvailableLlm(), {"llm": 1.0})
     assert client.judge("Same parent", "Same child") == 0.9
-    assert status == "completed"
+    assert status == "not_used"
+
+
+def test_analysis_distinguishes_admitted_not_used_from_completed_llm() -> None:
+    """Completion requires at least one actual adjudicator call."""
+    single = _request(
+        [_record("email:001", "Same parent", "2026-08-20T09:00:00Z")],
+        allow_llm=True,
+    )
+    unused = _analyze_external_lineage(
+        single,
+        channel_weights=_EQUAL_INFORMATION_WEIGHTS,
+        llm=AvailableLlm(),
+    )
+    assert unused.llm_status_code == "not_used"
+
+    pair = _request(
+        [
+            _record("email:001", "Same parent", "2026-08-20T09:00:00Z"),
+            _record("email:002", "Same child", "2026-08-20T09:01:00Z"),
+        ],
+        allow_llm=True,
+    )
+    completed = _analyze_external_lineage(
+        pair,
+        channel_weights=_EQUAL_INFORMATION_WEIGHTS,
+        llm=AvailableLlm(),
+    )
+    assert completed.llm_status_code == "completed"
+    assert "llm" in {
+        channel.channel_code for channel in completed.edges[0].channel_evidence
+    }
 
 
 def _record(

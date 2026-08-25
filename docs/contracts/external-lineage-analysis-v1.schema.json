@@ -231,7 +231,7 @@
         },
         "llm_status_code": {
           "type": "string",
-          "enum": ["not_requested", "unavailable", "completed"]
+          "enum": ["not_requested", "unavailable", "not_used", "completed"]
         },
         "edges": {
           "type": "array",

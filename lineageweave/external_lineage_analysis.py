@@ -77,11 +77,13 @@ class _BoundedAdjudicationClient:
         """Wrap one available client without changing its provider behavior."""
 
         self._client = client
+        self.call_count = 0
 
     def judge(self, candidate_label: str, record_label: str) -> float:
         """Return one finite unit-interval score or fail with a stable code."""
 
         try:
+            self.call_count += 1
             score = self._client.judge(candidate_label, record_label)
         except Exception as exc:
             raise LineageContractError(
@@ -179,7 +181,7 @@ def _selected_llm(
         return NullAdjudicationClient(), "not_requested"
     if "llm" not in channel_weights or llm is None or not getattr(llm, "available", False):
         return NullAdjudicationClient(), "unavailable"
-    return _BoundedAdjudicationClient(llm), "completed"
+    return _BoundedAdjudicationClient(llm), "not_used"
 
 
 def _included_records(
@@ -449,6 +451,8 @@ def analyze_external_lineage(
         validated,
         validated_weights,
     )
+    if isinstance(selected_llm, _BoundedAdjudicationClient) and selected_llm.call_count:
+        llm_status = "completed"
     explicit, explicit_children, explicit_limitations = _explicit_edges(
         included
     )
