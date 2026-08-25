@@ -98,6 +98,7 @@ import { LineageDag } from "./LineageDag";
 import { PostBody } from "./PostBody";
 import { decodeHtmlEntities } from "./postBodyDisplay";
 import { FiveW1H } from "./components/FiveW1H";
+import { isFocusableVisible } from "./focusVisibility";
 import { subgraphForPost } from "./lineageLayout";
 import { rememberOidcReturnUrl, returnUrlFromLocation, stripOidcCallbackParams } from "./oidcReturnUrl";
 import {
@@ -1809,11 +1810,14 @@ function PostDetailPopup({
 
   useEffect(() => {
     const previouslyFocused = document.activeElement instanceof HTMLElement ? document.activeElement : null;
-    dialogRef.current?.focus();
     return () => {
       if (previouslyFocused?.isConnected) previouslyFocused.focus();
     };
   }, []);
+
+  useEffect(() => {
+    dialogRef.current?.focus();
+  }, [postId]);
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -1828,9 +1832,9 @@ function PostDetailPopup({
       if (!dialog) return;
       const focusable = Array.from(
         dialog.querySelectorAll<HTMLElement>(
-          'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+          'a[href], button:not([disabled]), summary, input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
         ),
-      ).filter((element) => !element.hasAttribute("hidden") && element.getAttribute("aria-hidden") !== "true");
+      ).filter(isFocusableVisible);
       if (focusable.length === 0) {
         event.preventDefault();
         dialog.focus();
@@ -4920,7 +4924,8 @@ export default function App({ showLabPanels = false }: { showLabPanels?: boolean
             </div>
             <div className="login-controls">
               <button className="btn-primary" onClick={() => {
-                const returnUrl = window.location.pathname + window.location.search;
+                const returnUrl = returnUrlFromLocation();
+                rememberOidcReturnUrl(returnUrl);
                 void auth.signinRedirect({ state: { returnUrl } });
               }}>
                 {t("Log in")}
