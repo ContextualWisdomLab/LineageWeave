@@ -12,6 +12,7 @@ from urllib.parse import unquote
 
 from rdflib import Graph
 from rdflib.compare import isomorphic
+from rdflib.plugins.parsers.jsonld import to_rdf
 
 ROOT = Path(__file__).resolve().parents[1]
 SCRIPT = ROOT / "scripts" / "build_ontology_site.py"
@@ -163,7 +164,8 @@ def test_serializations_round_trip_to_the_source_graph(tmp_path: Path) -> None:
     builder.build_site(ROOT, output)
 
     source = Graph().parse(ROOT / "docs" / "ontology" / "lineageweave-kg.ttl", format="turtle")
-    jsonld = Graph().parse(output / "ontology" / "ontology.jsonld", format="json-ld")
+    jsonld = Graph()
+    to_rdf(json.loads((output / "ontology" / "ontology.jsonld").read_text()), jsonld)
     ntriples = Graph().parse(output / "ontology" / "ontology.nt", format="nt")
     compatibility_source = Graph().parse(
         ROOT / "docs" / "ontology" / "namespace-compatibility.ttl", format="turtle"
