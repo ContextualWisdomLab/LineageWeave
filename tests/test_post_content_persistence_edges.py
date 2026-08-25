@@ -49,6 +49,7 @@ class _Connection:
 
 class _EmbedMany:
     available = True
+    resolved_model = "embedding-model"
 
     async_calls = 0
 
@@ -63,6 +64,7 @@ class _EmbedMany:
 
 class _LegacyEmbed:
     available = True
+    resolved_model = "embedding-model"
 
     def __init__(self, vector: list[float]) -> None:
         self.vector = vector
@@ -75,6 +77,7 @@ class _LegacyEmbed:
 
 class _UnavailableEmbed:
     available = False
+    resolved_model = None
 
     def embed(self, _text: str) -> list[float]:
         raise AssertionError("unavailable channel must not be called")
@@ -214,7 +217,6 @@ def test_persists_image_tags_formatting_and_embeddings() -> None:
         "post-1",
         body,
         embedding_client=embedder,
-        embedding_model_code="embedding-model",
         normalized_result=normalized,
     )
 
@@ -237,7 +239,6 @@ def test_legacy_embed_and_malformed_vectors_never_write_vectors() -> None:
         "post-2",
         "plain text",
         embedding_client=legacy,
-        embedding_model_code="embedding-model",
     )
 
     assert count == 1
@@ -253,7 +254,6 @@ def test_unavailable_embedding_channel_is_skipped_and_empty_body_is_safe() -> No
             "post-3",
             "",
             embedding_client=_UnavailableEmbed(),
-            embedding_model_code="embedding-model",
         )
         == 0
     )
@@ -304,7 +304,6 @@ def test_expected_structure_failure_remains_unresolved_for_retry() -> None:
     (
         {
             "embedding_client": _UnexpectedChannelFailure(),
-            "embedding_model_code": "embedding-model",
         },
         {"structure_client": _UnexpectedChannelFailure()},
     ),

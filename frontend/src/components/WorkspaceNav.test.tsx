@@ -1,6 +1,6 @@
 import { fireEvent, render, screen, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { ANALYST_GNB_LABELS } from "../gnbChrome";
+import { ANALYST_GNB_LABELS, initialWorkspaceDestination } from "../gnbChrome";
 import { SUPPORTED_LOCALES, setLocale } from "../i18n";
 import { WorkspaceNav } from "./WorkspaceNav";
 
@@ -9,6 +9,11 @@ afterEach(() => {
 });
 
 describe("WorkspaceNav", () => {
+  it("opens shared post links on the board before rendering the dashboard", () => {
+    expect(initialWorkspaceDestination("?post=synthetic-post", false)).toBe("board");
+    expect(initialWorkspaceDestination("", false)).toBe("dashboard");
+  });
+
   it("renders the Dashboard and four analyst destinations and marks the current page", () => {
     render(<WorkspaceNav destination="board" onChange={vi.fn()} />);
 

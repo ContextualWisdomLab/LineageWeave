@@ -378,7 +378,7 @@ def test_importer_rejects_demo_scope_without_explicit_test_override() -> None:
     _validate_corporate_entity_scope("DEMO-CORP-01", allow_demo=True)
 
 
-def test_importer_prefers_canonical_gateway_embedding_model(monkeypatch) -> None:
+def test_importer_does_not_select_a_provider_embedding_model(monkeypatch) -> None:
     monkeypatch.setenv("LLM_GATEWAY_EMBEDDING_MODEL", "gateway-embedding")
     monkeypatch.setenv("EMBEDDING_MODEL", "legacy-embedding")
 
@@ -398,7 +398,7 @@ def test_importer_prefers_canonical_gateway_embedding_model(monkeypatch) -> None
         ]
     )
 
-    assert args.embedding_model == "gateway-embedding"
+    assert not hasattr(args, "embedding_model")
 
 
 def test_importer_accepts_explicit_source_name_mappings() -> None:

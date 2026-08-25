@@ -22,9 +22,9 @@ boundary; the second is the provider credential.
 
 The backend must not load `~/.env` wholesale. Compose injects the provider
 credential and URL only into contextual-orchestrator; the backend receives
-only its internal orchestrator credential and the non-secret embedding model
-identifier. This prevents an unrelated application process from holding the
-provider secret while preserving the single LLM/Vision boundary.
+only its internal orchestrator credential. This prevents an unrelated
+application process from holding the provider secret while preserving the
+single LLM/Vision/embedding boundary.
 
 ## Decision
 
@@ -75,9 +75,12 @@ must never be returned through a buyer-facing API or persisted failure detail.
   When they are blank, contextual-orchestrator resolves the registered agent
   model, so a local or provider-specific model name cannot leak into this
   application or be assumed available on an external gateway.
-- `LLM_GATEWAY_EMBEDDING_MODEL` is the explicit allowlisted semantic embedding
-  model. If it is absent, contextual-orchestrator rejects embedding work
-  instead of returning its standalone eight-dimensional heuristic vector.
+- LineageWeave does not configure an embedding model. Its first batch request
+  omits `model`; contextual-orchestrator selects a provider-neutral embedding
+  model and returns that identity on submission and polling responses.
+  LineageWeave binds that identity for later batches and persists it with every
+  vector. A missing or changed identity, or an incomplete vector batch, fails
+  closed and cannot make post content complete.
 - `LLM_API_KEY`, `LLM_API_GATEWAY`, and `LLM_GATEWAY_URL` are compatibility
   aliases only; `LLM_GATEWAY_API_KEY` and `LLM_GATEWAY_API_URL` are the
   canonical names for

@@ -22,6 +22,7 @@ class EmbeddingClient(Protocol):
     """Turns text into a vector, for the cosine-similarity lineage channel."""
 
     available: bool
+    resolved_model: str | None
 
     def embed(self, text: str) -> list[float]:
         """Return an embedding for the supplied text."""
@@ -32,6 +33,7 @@ class NullEmbeddingClient:
     """No embedding provider configured -- the embedding channel is skipped."""
 
     available = False
+    resolved_model = None
 
     def embed(self, text: str) -> list[float]:  # pragma: no cover
         """Return an embedding for the supplied text."""
@@ -43,7 +45,7 @@ class OpenAiCompatibleEmbeddingClient:
 
     available = True
 
-    def __init__(self, base_url: str, api_key: str, model: str, *, timeout: float = 30.0) -> None:
+    def __init__(self, base_url: str, api_key: str, model: str | None = None, *, timeout: float = 30.0) -> None:
         self._delegate = ContextualOrchestratorEmbeddingClient(
             base_url, api_key, model, timeout=timeout
         )
@@ -51,6 +53,11 @@ class OpenAiCompatibleEmbeddingClient:
     def embed(self, text: str) -> list[float]:
         """Return an embedding for the supplied text."""
         return self._delegate.embed(text)
+
+    @property
+    def resolved_model(self) -> str | None:
+        """Return the provider-neutral model identity selected upstream."""
+        return self._delegate.resolved_model
 
 
 class ContextualOrchestratorEmbeddingClient:
@@ -62,7 +69,7 @@ class ContextualOrchestratorEmbeddingClient:
         self,
         base_url: str,
         api_key: str,
-        model: str,
+        model: str | None = None,
         *,
         timeout: float = 60.0,
         poll_interval: float = 0.25,
@@ -71,7 +78,7 @@ class ContextualOrchestratorEmbeddingClient:
         if not self._base_url.endswith("/v1"):
             self._base_url = f"{self._base_url}/v1"
         self._api_key = api_key
-        self._model = model
+        self._model = model or None
         self._timeout = timeout
         self._poll_interval = poll_interval
 
@@ -84,17 +91,20 @@ class ContextualOrchestratorEmbeddingClient:
         if not texts:
             return []
         headers = {"authorization": f"Bearer {self._api_key}"}
+        payload = {
+            "inputs": texts,
+            "endpoint": "/v1/embeddings",
+            "metadata": {"service": "lineageweave", "channel": "post_content_embedding"},
+        }
+        if self._model is not None:
+            payload["model"] = self._model
         response = post_json(
             f"{self._base_url}/batch/embeddings",
-            {
-                "model": self._model,
-                "inputs": texts,
-                "endpoint": "/v1/embeddings",
-                "metadata": {"service": "lineageweave", "channel": "post_content_embedding"},
-            },
+            payload,
             headers=headers,
             timeout=self._timeout,
         )
+        self._bind_model(response)
         batch_id = response.get("batch_id")
         if isinstance(batch_id, str) and batch_id:
             deadline = time.monotonic() + self._timeout
@@ -113,11 +123,26 @@ class ContextualOrchestratorEmbeddingClient:
                     timeout=self._timeout,
                     service_peer_name="contextual-orchestrator",
                 )
+                self._bind_model(response)
 
         vectors = self._vectors(response, len(texts))
         if vectors is None:
             raise ValueError("embedding response did not contain a complete vector batch")
         return vectors
+
+    @property
+    def resolved_model(self) -> str | None:
+        """Return the provider-neutral model identity selected upstream."""
+        return self._model
+
+    def _bind_model(self, response: dict) -> None:
+        model = response.get("model")
+        if not isinstance(model, str) or not model.strip():
+            raise ValueError("embedding response did not identify its resolved model")
+        model = model.strip()
+        if self._model is not None and model != self._model:
+            raise ValueError("embedding batch changed its resolved model")
+        self._model = model
 
     @staticmethod
     def _vectors(response: dict, expected_count: int) -> list[list[float]] | None:
@@ -141,11 +166,11 @@ class ContextualOrchestratorEmbeddingClient:
         return [vector for vector in ordered if vector is not None]
 
 
-def orchestrator_embedding_client(base_url: str, api_key: str, model: str):
+def orchestrator_embedding_client(base_url: str, api_key: str):
     """Build the batch embedding channel, or the unavailable null client."""
-    if not (base_url and api_key and model):
+    if not (base_url and api_key):
         return NullEmbeddingClient()
-    return ContextualOrchestratorEmbeddingClient(base_url, api_key, model)
+    return ContextualOrchestratorEmbeddingClient(base_url, api_key)
 
 
 def cosine_similarity(a: list[float], b: list[float]) -> float:
