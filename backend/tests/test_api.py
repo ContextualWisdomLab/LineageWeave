@@ -168,6 +168,11 @@ _LEFTOVER_MAP_CROSS_SHARE_MIGRATION = (
     / "migrations"
     / "0185_report_leftover_map_cross_share.sql"
 )
+_LEFTOVER_MAP_RECONSTRUCTION_MIGRATION = (
+    Path(__file__).resolve().parents[2]
+    / "migrations"
+    / "0206_report_leftover_map_reconstruction.sql"
+)
 _GLOBAL_ASK_JOB_MIGRATION = (
     Path(__file__).resolve().parents[2]
     / "migrations"
@@ -350,6 +355,7 @@ def seeded_db(demo_analyst_token):
             cur.execute(_CHANNEL_EVIDENCE_MIGRATION.read_text())
             cur.execute(_LEFTOVER_MAP_UNEXPLAINED_MIGRATION.read_text())
             cur.execute(_LEFTOVER_MAP_CROSS_SHARE_MIGRATION.read_text())
+            cur.execute(_LEFTOVER_MAP_RECONSTRUCTION_MIGRATION.read_text())
             cur.execute(
                 "insert into common_lookup_value (lookup_category, lookup_code, lookup_label) values "
                 "('corporate_entity_level', 'group', 'Group'), "
@@ -5379,11 +5385,20 @@ def test_seed_period_report_surfaces_on_get_reports(client, demo_analyst_token, 
     assert leftover_kinds <= {"closest", "farthest"}
     assert all(pair["post_title"] for pair in high_report.get("leftover_pairs", []))
     assert all(pair["leftover_distance"] >= 0 for pair in high_report.get("leftover_pairs", []))
+    assert all(
+        "leftover_map_reconstruction" in pair
+        for pair in high_report.get("leftover_pairs", [])
+    )
+    assert any(
+        pair["leftover_map_reconstruction"] is not None
+        for pair in high_report.get("leftover_pairs", [])
+    )
     for pair in high_report.get("leftover_pairs", []):
         assert pair["leftover_map_rank"] >= 0
         unexplained = pair.get("leftover_map_unexplained")
         assert unexplained is None or isinstance(unexplained, (int, float))
-        assert "leftover_map_reconstruction" not in pair
+        reconstruction = pair["leftover_map_reconstruction"]
+        assert reconstruction is None or isinstance(reconstruction, (int, float))
         observed = pair.get("observed_response")
         expected = pair.get("expected_response")
         if observed is not None and expected is not None:
@@ -5393,9 +5408,10 @@ def test_seed_period_report_surfaces_on_get_reports(client, demo_analyst_token, 
         if share is not None:
             assert not math.isnan(share)
             assert not math.isinf(share)
+        if unexplained is not None and reconstruction is not None:
+            assert unexplained + reconstruction == pytest.approx(pair["leftover_residual"])
         assert "leftover_map_explained_share" not in pair
         assert "leftover_map_unexplained_share" not in pair
-        assert "leftover_map_reconstruction" not in pair
     leftover_axes = high_report.get("leftover_map_axes", [])
     assert [axis["axis_index"] for axis in leftover_axes] == [1, 2]
     assert all(axis["leftover_singular_value"] >= 0 for axis in leftover_axes)
@@ -5449,6 +5465,11 @@ def test_seed_period_report_surfaces_on_get_reports(client, demo_analyst_token, 
     assert leftover_kinds <= {"closest", "farthest"}
     assert all(pair["post_title"] for pair in leftover_thread.get("leftover_pairs", []))
     assert all(pair["leftover_distance"] >= 0 for pair in leftover_thread.get("leftover_pairs", []))
+    assert all(
+        pair.get("leftover_map_reconstruction") is None
+        or isinstance(pair["leftover_map_reconstruction"], (int, float))
+        for pair in leftover_thread.get("leftover_pairs", [])
+    )
 
 
 def test_seed_period_report_includes_fixture_event_lineage_posts(

@@ -29,6 +29,7 @@ async def consume_analysis_run_stream_once(
     client: redis.Redis,
     pool: asyncpg.Pool,
     *,
+    database_url: str,
     last_id: str,
     tepp_client: TeppClient,
     adjudication_client: AdjudicationClient,
@@ -77,25 +78,25 @@ async def consume_analysis_run_stream_once(
                     # once the operator resolves the named next action.
                     try:
                         async with pool.acquire() as conn:
-                            async with conn.transaction():
-                                owner = await conn.fetchrow(
-                                    """
-                                    select requested_by_account_id
-                                    from analysis_run
-                                    where analysis_run_id = $1::uuid
-                                    """,
-                                    analysis_run_id,
-                                )
-                                if owner is not None:
-                                    await deliver_queued_analysis_run(
-                                        conn,
-                                        analysis_run_id=analysis_run_id,
-                                        account_id=str(owner["requested_by_account_id"]),
-                                        affiliated_entity_ids=[],
-                                        tepp_client=tepp_client,
-                                        adjudication_client=adjudication_client,
-                                        valkey_stream_entry_id=str(entry_id),
-                                    )
+                            owner = await conn.fetchrow(
+                                """
+                                select requested_by_account_id
+                                from analysis_run
+                                where analysis_run_id = $1::uuid
+                                """,
+                                analysis_run_id,
+                            )
+                        if owner is not None:
+                            await deliver_queued_analysis_run(
+                                pool,
+                                database_url=database_url,
+                                analysis_run_id=analysis_run_id,
+                                account_id=str(owner["requested_by_account_id"]),
+                                affiliated_entity_ids=[],
+                                tepp_client=tepp_client,
+                                adjudication_client=adjudication_client,
+                                valkey_stream_entry_id=str(entry_id),
+                            )
                     except AnalysisRunCreateError as exc:
                         _worker_logger.warning(
                             "analysis-run %s delivery refused (%s): %s",
@@ -115,6 +116,7 @@ async def run_analysis_run_worker(
     client: redis.Redis,
     pool: asyncpg.Pool,
     *,
+    database_url: str,
     tepp_client: TeppClient,
     adjudication_client: AdjudicationClient,
 ) -> None:
@@ -126,6 +128,7 @@ async def run_analysis_run_worker(
                 client,
                 pool,
                 last_id=last_id,
+                database_url=database_url,
                 tepp_client=tepp_client,
                 adjudication_client=adjudication_client,
             )

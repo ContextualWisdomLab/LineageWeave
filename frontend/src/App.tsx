@@ -84,6 +84,8 @@ import {
   fetchTenantConfig,
 } from "./api";
 import { CitationChip } from "./components/CitationChip";
+import { OrganizationAliasChip } from "./components/OrganizationAliasChip";
+import { organizationAliasCaption } from "./components/organizationAliasCaption";
 import { CutoffKnownBody } from "./components/CutoffKnownBody";
 import { LineageEntityPicker } from "./components/LineageEntityPicker";
 import { OntologyExplorer } from "./components/OntologyExplorer";
@@ -97,7 +99,7 @@ import { PostBody } from "./PostBody";
 import { decodeHtmlEntities } from "./postBodyDisplay";
 import { FiveW1H } from "./components/FiveW1H";
 import { subgraphForPost } from "./lineageLayout";
-import { rememberOidcReturnUrl, returnUrlFromLocation, stripOidcCallbackParams } from "./oidcReturnUrl";
+import { rememberOidcReturnUrl, stripOidcCallbackParams } from "./oidcReturnUrl";
 import {
   isSupportedLocale,
   LOCALE_LABELS,
@@ -601,17 +603,18 @@ function AffiliateTreeNode({
     <li>
       <span className={node.resolved ? "affiliate-resolved" : "affiliate-unresolved"}>
         {node.resolved && node.entity_id && onSelectEntity ? (
-          <button
-            className="keyman-select"
-            aria-label={tf("Affiliate org: {name}", { name: node.entity_name })}
-            onClick={() => {
+          <OrganizationAliasChip
+            displayName={node.entity_name}
+            organizationAlias={node.organization_alias}
+            ariaLabel={tf("Affiliate org: {name}", {
+              name: organizationAliasCaption(node.entity_name, node.organization_alias),
+            })}
+            onSelect={() => {
               if (node.entity_id) onSelectEntity(node.entity_id, node.entity_name);
             }}
-          >
-            {node.entity_name}
-          </button>
+          />
         ) : (
-          node.entity_name
+          organizationAliasCaption(node.entity_name, node.organization_alias)
         )}
       </span>
       {(node.entity_level_label || node.entity_level_code) && (
@@ -761,6 +764,12 @@ function relatedNodeCaption(node: RelatedNode): string {
     const side = node.person_side_label ?? node.person_side_code;
     if (side) {
       return `${name} (${side})`;
+    }
+  }
+  if (node.node_type_code === NODE_CORPORATE_ENTITY) {
+    const aliased = organizationAliasCaption(name, node.organization_alias);
+    if (aliased !== name) {
+      return aliased;
     }
   }
   return `${name} (${node.ontology_label ?? node.node_type_code})`;
@@ -1149,7 +1158,7 @@ function KeymanPanel({
                   <li key={key}>
                     <button
                       className="keyman-select"
-                      aria-label={tf("Related nodes for {name}", { name: node.label ?? node.node_id })}
+                      aria-label={tf("Related nodes for {name}", { name: caption })}
                       onClick={() => handleSelectEntity(node.node_id, node.label ?? node.node_id)}
                     >
                       {caption}
@@ -1161,7 +1170,7 @@ function KeymanPanel({
                   <li key={key}>
                     <button
                       className="keyman-select"
-                      aria-label={tf("Related nodes for {name}", { name: node.label ?? node.node_id })}
+                      aria-label={tf("Related nodes for {name}", { name: caption })}
                       onClick={() => handleSelectTeam(node.node_id, node.label ?? node.node_id)}
                     >
                       {caption}
@@ -1256,20 +1265,27 @@ function KeymanPanel({
                     <span key={`${affiliation.organization_name}:${affiliation.corporate_entity_id ?? index}`}>
                       {index > 0 ? ", " : null}
                       {affiliation.corporate_entity_id ? (
-                        <button
-                          className="keyman-select"
-                          aria-label={tf("Keyman affiliation: {name}", { name: affiliation.organization_name })}
-                          onClick={() =>
+                        <OrganizationAliasChip
+                          displayName={affiliation.organization_name}
+                          organizationAlias={affiliation.organization_alias}
+                          ariaLabel={tf("Keyman affiliation: {name}", {
+                            name: organizationAliasCaption(
+                              affiliation.organization_name,
+                              affiliation.organization_alias,
+                            ),
+                          })}
+                          onSelect={() =>
                             handleSelectEntity(
                               affiliation.corporate_entity_id as string,
                               affiliation.organization_name,
                             )
                           }
-                        >
-                          {affiliation.organization_name}
-                        </button>
+                        />
                       ) : (
-                        affiliation.organization_name
+                        organizationAliasCaption(
+                          affiliation.organization_name,
+                          affiliation.organization_alias,
+                        )
                       )}
                       {affiliation.role_title && (
                         <span className="keyman-role-title"> ({affiliation.role_title})</span>
@@ -1496,17 +1512,18 @@ function CounterpartyPanel({
         {counterparties.map((c) => (
           <li key={c.counterparty_entity_name}>
             {c.corporate_entity_id && onSelectEntity ? (
-              <button
-                className="keyman-select"
-                aria-label={tf("Counterparty org: {name}", { name: c.counterparty_entity_name })}
-                onClick={() => {
+              <OrganizationAliasChip
+                displayName={c.counterparty_entity_name}
+                organizationAlias={c.organization_alias}
+                ariaLabel={tf("Counterparty org: {name}", {
+                  name: organizationAliasCaption(c.counterparty_entity_name, c.organization_alias),
+                })}
+                onSelect={() => {
                   if (c.corporate_entity_id) onSelectEntity(c.corporate_entity_id, c.counterparty_entity_name);
                 }}
-              >
-                {c.counterparty_entity_name}
-              </button>
+              />
             ) : (
-              c.counterparty_entity_name
+              organizationAliasCaption(c.counterparty_entity_name, c.organization_alias)
             )}{" "}
             -- {c.relationship_label ?? c.relationship_type_code}
             {" -- "}
@@ -1788,6 +1805,56 @@ function PostDetailPopup({
   const [focusEntity, setFocusEntity] = useState<{ entityId: string; entityName: string } | null>(null);
   const [focusTeam, setFocusTeam] = useState<{ teamId: string; teamName: string } | null>(null);
   const contentReloadRef = useRef<() => void>(() => undefined);
+  const dialogRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const previouslyFocused = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    dialogRef.current?.focus();
+    return () => {
+      if (previouslyFocused?.isConnected) previouslyFocused.focus();
+    };
+  }, []);
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        onClose();
+        return;
+      }
+      if (event.key !== "Tab") return;
+
+      const dialog = dialogRef.current;
+      if (!dialog) return;
+      const focusable = Array.from(
+        dialog.querySelectorAll<HTMLElement>(
+          'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+        ),
+      ).filter((element) => !element.hasAttribute("hidden") && element.getAttribute("aria-hidden") !== "true");
+      if (focusable.length === 0) {
+        event.preventDefault();
+        dialog.focus();
+        return;
+      }
+
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      const active = document.activeElement;
+      if (active === dialog || !dialog.contains(active)) {
+        event.preventDefault();
+        (event.shiftKey ? last : first).focus();
+      } else if (event.shiftKey && active === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && active === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [onClose]);
 
   function reloadKeymen() {
     fetchPostKeymen(accessToken, postId)
@@ -1973,13 +2040,22 @@ function PostDetailPopup({
 
   return (
     <div className="popup-backdrop" onClick={onClose}>
-      <div className="popup-panel" onClick={(event) => event.stopPropagation()}>
+      <div
+        ref={dialogRef}
+        className="popup-panel"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={post ? "post-detail-title" : undefined}
+        aria-label={post ? undefined : t("Post details")}
+        tabIndex={-1}
+        onClick={(event) => event.stopPropagation()}
+      >
         <PopupCloseButton onClose={onClose} label={t("Close")} />
         {error && <p className="error">{error}</p>}
         {!post && !error && <p role="status">{t("Loading...")}</p>}
         {post && (
           <>
-            <h2>{post.post_title}</h2>
+            <h2 id="post-detail-title">{post.post_title}</h2>
             <p className="post-meta">
               {post.voc_type_label ?? post.voc_type_code} &middot;{" "}
               {post.visibility_label ?? post.visibility_code} &middot;{" "}
@@ -4892,7 +4968,8 @@ export default function App({ showLabPanels = false }: { showLabPanels?: boolean
             </div>
             <div className="login-controls">
               <button className="btn-primary" onClick={() => {
-                const returnUrl = returnUrlFromLocation();
+                const returnUrl =
+                  window.location.pathname + window.location.search + window.location.hash;
                 rememberOidcReturnUrl(returnUrl);
                 void auth.signinRedirect({ state: { returnUrl } });
               }}>

@@ -100,18 +100,15 @@ than one large PR:
    `information_polytomous` (Lord, 1980 max-info). Persist the ranking
    (`report_item_information`) and show the rank-1 item on the Period
    reports panel. Do not reimplement an information function here.
-7. **Leftover-pair slice** (shipped in 0.71.2; ADR 0017 / 0018 / 0048 / 0049 /
-   0182 / 0185): after IRT main effects, persist closest and farthest
-   post–criterion pairs from the residual leftover map, and name
-   unexplained leftover `U = R − R̂` and leftover-map cross share
-   `x = 2 R̂ U / R²` of raw residual when Gabriel coordinates
-   exist so the identity remainder after two-axis reconstruction is not
-   read as leftover residual, leftover-map distance, explained leftover
-   share, or unexplained leftover share. Do not persist leftover-map
-   explained leftover share `e`, unexplained leftover share `s`, or any other
-   unsupported share alias in this slice. Do not fork LSIRM; do not invent a
-   leftover-pair API inside `fast-mlsirm` in this slice.
-8. **Leftover-map axis-share slice** (ADR 0148): persist Gabriel inertia
+7. **Leftover-pair slice** (shipped in 0.71.2; ADR 0017 / 0018 / 0048 /
+   0049): after IRT main effects, persist closest and farthest
+   post–criterion pairs from the residual leftover map. Do not fork LSIRM or
+   invent a leftover-pair API inside `fast-mlsirm` in this slice.
+8. **Leftover evidence extensions:** unexplained leftover shipped in 2.12.26
+   (ADR 0182), cross-share evidence shipped in 2.12.29 (ADR 0185), and
+   reconstruction evidence is Unreleased for 2.12.31 (ADR 0201). Do not
+   persist explained share, unexplained share, or another unsupported alias.
+9. **Leftover-map axis-share slice** (ADR 0148): persist Gabriel inertia
    `σ_k² / Σ_j σ_j²` of leftover-map axes 1 and 2 on the same residual
    SVD. Rank-0 residuals emit two zero-share axes. Do not invent a
    leftover score.

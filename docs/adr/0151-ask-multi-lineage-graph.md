@@ -2,7 +2,7 @@
 
 - Status: Accepted
 - Date: 2026-08-22
-- Related: [0090](0090-global-ask-lineage-timeline-expansion.md), [0064](0064-lineage-evidence-and-tree-assembly.md)
+- Related: [0090](0090-global-ask-lineage-timeline-expansion.md), [0064](0064-lineage-evidence-and-tree-assembly.md), [0169](0169-ask-batched-lineage-graph.md)
 
 ## Context
 
@@ -51,11 +51,9 @@ independent branch-tree figures with no new frontend layout code.
 
 - An Ask answer's lineage evidence is now visually traceable per cited
   thread, not summarized as prose for one anchor post only.
-- `lineage_graphs_for_posts` issues one `visible_lineage_graph` call per
-  cited post (each a bounded `source_post` scan plus a full
-  `post_lineage_edge` table read); acceptable at the current citation cap
-  (`_POST_CHAT_SOURCE_LIMIT` = 8) and the existing `visible_lineage_graph`
-  precedent for the post-detail popup, revisit with a single batched query
-  if the citation cap grows materially.
+- `lineage_graphs_for_posts` loads visible posts and lineage edges
+  once, then slices per-citation subgraphs in memory (ADR 0169). The
+  merged payload is bounded; `truncated` names that bound. Cited
+  posts stay first so every cited thread still appears.
 - The response payload grows by one field (`lineage_graph`); existing
   consumers that ignore unknown fields are unaffected.

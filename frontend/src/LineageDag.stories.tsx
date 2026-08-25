@@ -48,12 +48,13 @@ const a100Graph: LineageGraph = {
     {
       source: "rec-002",
       target: "rec-003",
-      fused_score: 0.9,
+      fused_score: 0.7976237922187373,
       interval_relation_code: "interval_contains",
       interval_relation_label: "Contains",
       channel_evidence: [
-        { signal_code: "text", signal_label: "Text similarity", score: 0.5, weight: 0.5, contribution: 0.25, rank: 1 },
-        { signal_code: "temporal", signal_label: "Temporal proximity", score: 0.8, weight: 0.25, contribution: 0.2, rank: 2 },
+        { signal_code: "temporal", signal_label: "Temporal proximity", score: 0.8, weight: 0.5306114573429468, contribution: 0.4244891658743575, rank: 1 },
+        { signal_code: "secondary_key", signal_label: "Secondary key", score: 1, weight: 0.27688071002092646, contribution: 0.27688071002092646, rank: 2 },
+        { signal_code: "text", signal_label: "Text similarity", score: 0.5, weight: 0.1925078326361269, contribution: 0.09625391631806345, rank: 3 },
       ],
     },
     {
@@ -70,8 +71,10 @@ const a100Graph: LineageGraph = {
     min_fused_score: 0.3,
     candidate_window: 50,
     active_weights: [
-      { signal_code: "temporal", signal_weight: 0.25 },
-      { signal_code: "text", signal_weight: 0.5 },
+      // fast-mlsirm estimate_fixture_channel_weights(), not hand-picked UI weights.
+      { signal_code: "secondary_key", signal_weight: 0.27688071002092646 },
+      { signal_code: "temporal", signal_weight: 0.5306114573429468 },
+      { signal_code: "text", signal_weight: 0.1925078326361269 },
     ],
   },
 };

@@ -846,7 +846,6 @@ def test_focused_lineage_graph_includes_a_post_outside_landing_limit() -> None:
     isolated = asyncio.run(
         visible_lineage_graph(connection, lambda row: True, limit=1, focus_post_id="post-c")
     )
-
     assert [node["id"] for node in landing["nodes"]] == ["post-c"]
     assert {node["id"] for node in focused["nodes"]} == {"post-a", "post-b"}
     assert len(focused["edges"]) == 1
@@ -1334,3 +1333,111 @@ def test_lineage_graphs_for_posts_with_no_citations_is_empty() -> None:
         "truncated": False,
         "reconstruction": None,
     }
+def test_lineage_graphs_for_posts_fetches_posts_and_edges_once_for_n_citations() -> None:
+    """N citations must not refetch source_post / post_lineage_edge per cite."""
+
+    class FakeConnection:
+        posts = [
+            {
+                "post_id": f"post-{index}",
+                "post_title": f"P{index}",
+                "voc_type_code": "voc",
+                "visibility_code": "public",
+                "corporate_entity_id": "corp",
+                "process_unit_id": "pu",
+                "thread_group_key": f"thread-{index}",
+                "created_at": datetime(2026, 1, index),
+            }
+            for index in range(1, 5)
+        ]
+        edges = [
+            {
+                "parent_post_id": "post-1",
+                "child_post_id": "post-2",
+                "fused_score": 0.5,
+            }
+        ]
+        queries: list[str] = []
+
+        async def fetch(self, query: str, *_args):
+            self.queries.append(query)
+            if "post_lineage_edge_signal" in query:
+                return []
+            if "event_lineage_rebuild_channel" in query:
+                return []
+            if "event_lineage_rebuild" in query:
+                return []
+            return self.edges if "post_lineage_edge" in query else self.posts
+
+    connection = FakeConnection()
+    merged = asyncio.run(
+        lineage_graphs_for_posts(
+            connection,
+            lambda row: True,
+            ["post-1", "post-3", "post-4", "post-1"],
+        )
+    )
+
+    post_queries = [query for query in connection.queries if "from source_post" in query]
+    edge_queries = [query for query in connection.queries if "from post_lineage_edge" in query and "post_lineage_edge_signal" not in query]
+    assert len(post_queries) == 1
+    assert len(edge_queries) == 1
+    assert {node["id"] for node in merged["nodes"]} == {
+        "post-1",
+        "post-2",
+        "post-3",
+        "post-4",
+    }
+    assert merged["truncated"] is False
+
+
+def test_lineage_graphs_for_posts_names_truncation_and_keeps_cited_posts() -> None:
+    posts = [
+        {
+            "post_id": f"post-{index}",
+            "post_title": f"P{index}",
+            "voc_type_code": "voc",
+            "visibility_code": "public",
+            "corporate_entity_id": "corp",
+            "process_unit_id": "pu",
+            "thread_group_key": "thread-chain",
+            "created_at": datetime(2026, 1, index),
+        }
+        for index in range(1, 7)
+    ]
+    edges = [
+        {
+            "parent_post_id": f"post-{index}",
+            "child_post_id": f"post-{index + 1}",
+            "fused_score": 0.4,
+        }
+        for index in range(1, 6)
+    ]
+
+    class FakeConnection:
+        async def fetch(self, query: str, *_args):
+            if "post_lineage_edge_signal" in query:
+                return []
+            if "event_lineage_rebuild_channel" in query:
+                return []
+            if "event_lineage_rebuild" in query:
+                return []
+            return edges if "post_lineage_edge" in query else posts
+
+    merged = asyncio.run(
+        lineage_graphs_for_posts(
+            FakeConnection(),
+            lambda row: True,
+            ["post-1", "post-6"],
+            node_limit=3,
+        )
+    )
+
+    node_ids = [node["id"] for node in merged["nodes"]]
+    assert node_ids[:2] == ["post-1", "post-6"]
+    assert len(node_ids) == 3
+    assert merged["truncated"] is True
+    assert all(
+        edge["source"] in node_ids and edge["target"] in node_ids
+        for edge in merged["edges"]
+    )

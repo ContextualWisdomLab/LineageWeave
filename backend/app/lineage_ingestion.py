@@ -394,6 +394,12 @@ async def rebuild_lineage_from_pool(
     return edges
 
 
+# Browser landing viewport and Global Ask merged-graph payload share this
+# bound. Ask keeps cited posts first, then newest remaining nodes, and
+# names truncation instead of shipping an unbounded component (ADR 0169).
+_LINEAGE_GRAPH_NODE_LIMIT = 500
+
+
 def _interval_payload(row: Mapping[str, Any]) -> dict[str, Any]:
     code = row.get("interval_relation_code")
     if not code:
@@ -405,77 +411,57 @@ def _interval_payload(row: Mapping[str, Any]) -> dict[str, Any]:
     return payload
 
 
-async def visible_lineage_graph(
-    conn: asyncpg.Connection,
-    can_see_post,
-    limit: int = 500,
-    focus_post_id: str | None = None,
-    include_isolated: bool = False,
-) -> dict[str, Any]:
-    """ABAC-filtered graph bounded for the browser's initial viewport.
-
-    The persisted graph can contain tens of thousands of posts. The UI opens
-    individual posts for complete lineage, while this landing projection keeps
-    only the newest ``limit`` visible nodes and edges between them. Channel
-    evidence is attached only after both endpoints are visible.
-    """
+async def _fetch_visible_lineage_rows(conn: asyncpg.Connection, can_see_post):
+    """One ABAC-filtered ``source_post`` scan plus one edge-table read."""
     posts = await conn.fetch(
         "select post_id, post_title, voc_type_code, visibility_code, "
         "corporate_entity_id, process_unit_id, thread_group_key, created_at "
         f"from source_post where {SOURCE_POST_ELIGIBILITY_SQL.format(alias='source_post')}"
     )
     visible_all = [row for row in posts if can_see_post(row)]
-    visible_all_ids = {str(row["post_id"]) for row in visible_all}
     edge_rows = await conn.fetch(
         "select parent_post_id, child_post_id, fused_score, "
         "interval_relation_code from post_lineage_edge"
     )
-    rebuild_rows = await conn.fetch(
-        "select reconstruction_version, generated_at, min_fused_score, candidate_window "
-        "from event_lineage_rebuild"
-    )
-    weight_rows = await conn.fetch(
-        "select channel.signal_code, channel.signal_weight "
-        "from event_lineage_rebuild_channel as channel "
-        "join common_lookup_value as lookup "
-        "on lookup.lookup_code = channel.signal_code "
-        "where channel.rebuild_lock = true "
-        "order by lookup.display_order, channel.signal_code"
-    )
+    return visible_all, edge_rows
 
-    if focus_post_id is None:
-        visible = sorted(
-            visible_all,
-            key=lambda row: (row["created_at"], str(row["post_id"])),
-            reverse=True,
-        )[:limit]
-        truncated = len(visible_all) > len(visible)
-    else:
-        focus_id = str(focus_post_id)
-        focus_visible = any(str(row["post_id"]) == focus_id for row in visible_all)
-        neighbors: dict[str, set[str]] = {}
-        for edge in edge_rows:
-            parent_id = str(edge["parent_post_id"])
-            child_id = str(edge["child_post_id"])
-            if parent_id not in visible_all_ids or child_id not in visible_all_ids:
-                continue
-            neighbors.setdefault(parent_id, set()).add(child_id)
-            neighbors.setdefault(child_id, set()).add(parent_id)
 
-        component_ids: set[str] = set()
-        frontier = {focus_id} if focus_visible else set()
-        while frontier:
-            current_id = frontier.pop()
-            component_ids.add(current_id)
-            frontier.update(neighbors.get(current_id, set()) - component_ids)
+def _undirected_neighbors(edge_rows) -> dict[str, set[str]]:
+    neighbors: dict[str, set[str]] = {}
+    for edge in edge_rows:
+        parent_id = str(edge["parent_post_id"])
+        child_id = str(edge["child_post_id"])
+        neighbors.setdefault(parent_id, set()).add(child_id)
+        neighbors.setdefault(child_id, set()).add(parent_id)
+    return neighbors
 
-        visible = (
-            [row for row in visible_all if str(row["post_id"]) in component_ids]
-            if include_isolated or len(component_ids) > 1
-            else []
-        )
-        truncated = False
 
+def _connected_visible_component(
+    focus_id: str,
+    neighbors: dict[str, set[str]],
+    allowed: set[str],
+) -> set[str]:
+    """Walk the undirected reconstruct graph; return visible posts only.
+
+    Invisible posts cannot bridge visible posts across the ABAC boundary.
+    """
+    if focus_id not in allowed:
+        return set()
+    component_ids: set[str] = set()
+    frontier = [focus_id]
+    while frontier:
+        current_id = frontier.pop()
+        if current_id in component_ids:
+            continue
+        component_ids.add(current_id)
+        frontier.extend((neighbors.get(current_id, set()) & allowed) - component_ids)
+    return component_ids
+
+
+async def _lineage_graph_payload(
+    conn: asyncpg.Connection, visible, edge_rows, truncated: bool
+) -> dict[str, Any]:
+    """Build a channel-auditable graph from already authorized rows."""
     visible_ids = {str(row["post_id"]) for row in visible}
     visible_edges = [
         row
@@ -490,6 +476,18 @@ async def visible_lineage_graph(
         "and child_post_id = any($2::uuid[])",
         visible_id_list,
         visible_id_list,
+    )
+    rebuild_rows = await conn.fetch(
+        "select reconstruction_version, generated_at, min_fused_score, candidate_window "
+        "from event_lineage_rebuild"
+    )
+    weight_rows = await conn.fetch(
+        "select channel.signal_code, channel.signal_weight "
+        "from event_lineage_rebuild_channel as channel "
+        "join common_lookup_value as lookup "
+        "on lookup.lookup_code = channel.signal_code "
+        "where channel.rebuild_lock = true "
+        "order by lookup.display_order, channel.signal_code"
     )
     children_of: dict[str, list[str]] = {}
     for row in visible_edges:
@@ -555,6 +553,43 @@ async def visible_lineage_graph(
     }
 
 
+async def visible_lineage_graph(
+    conn: asyncpg.Connection,
+    can_see_post,
+    limit: int = _LINEAGE_GRAPH_NODE_LIMIT,
+    focus_post_id: str | None = None,
+    include_isolated: bool = False,
+) -> dict[str, Any]:
+    """ABAC-filtered graph bounded for the browser's initial viewport.
+
+    The persisted graph can contain tens of thousands of posts. The UI opens
+    individual posts for complete lineage, while this landing projection keeps
+    only the newest ``limit`` visible nodes and edges between them.
+    """
+    visible_all, edge_rows = await _fetch_visible_lineage_rows(conn, can_see_post)
+
+    if focus_post_id is None:
+        visible = sorted(
+            visible_all,
+            key=lambda row: (row["created_at"], str(row["post_id"])),
+            reverse=True,
+        )[:limit]
+        truncated = len(visible_all) > len(visible)
+    else:
+        focus_id = str(focus_post_id)
+        neighbors = _undirected_neighbors(edge_rows)
+        allowed = {str(row["post_id"]) for row in visible_all}
+        component_ids = _connected_visible_component(focus_id, neighbors, allowed)
+        visible = (
+            [row for row in visible_all if str(row["post_id"]) in component_ids]
+            if include_isolated or len(component_ids) > 1
+            else []
+        )
+        truncated = False
+
+    return await _lineage_graph_payload(conn, visible, edge_rows, truncated)
+
+
 async def interval_relations_for_post(
     conn: asyncpg.Connection, post_id: str
 ) -> dict[str, dict[str, Any]]:
@@ -591,39 +626,41 @@ async def lineage_graphs_for_posts(
     conn: asyncpg.Connection,
     can_see_post,
     post_ids: list[str],
+    node_limit: int = _LINEAGE_GRAPH_NODE_LIMIT,
 ) -> dict[str, Any]:
-    """Merge each post's full reconstructed thread into one ``LineageGraph``.
+    """Merge each cited post's reconstructed thread into one ``LineageGraph``.
 
-    An Ask Agent answer can cite several posts from unrelated reconstruct
-    threads -- e.g. two separate customer complaints that happen to share a
-    keyword. The frontend's ``LineageDag`` already renders one ``LineageGraph``
-    as several independent git-branch-style figures, one per
-    ``reconstruct_group_key`` (see ``lineageLayout.ts``'s ``layoutLineageDag``);
-    merging every cited post's thread into a single graph is enough to get
-    that multi-graph rendering for free, no new frontend layout needed.
-
-    ponytail: one ``visible_lineage_graph`` call per post (each a bounded
-    ``source_post`` + full ``post_lineage_edge`` scan) -- fine for the
-    existing citation cap (``_POST_CHAT_SOURCE_LIMIT`` = 8), revisit with a
-    single batched query if that cap grows materially.
+    One ``source_post`` scan and one ``post_lineage_edge`` read cover every
+    citation. Cited posts stay first when the merged graph is larger than
+    ``node_limit``; ``truncated`` is then true so Ask can name the bound
+    (ADR 0151 / 0169). Isolated cited posts still appear.
     """
-    nodes_by_id: dict[str, dict[str, Any]] = {}
-    edges_by_key: dict[tuple[str, str], dict[str, Any]] = {}
-    truncated = False
-    reconstruction = None
-    for post_id in dict.fromkeys(post_ids):
-        graph = await visible_lineage_graph(
-            conn, can_see_post, focus_post_id=post_id, include_isolated=True
-        )
-        truncated = truncated or graph["truncated"]
-        reconstruction = reconstruction or graph["reconstruction"]
-        for node in graph["nodes"]:
-            nodes_by_id[node["id"]] = node
-        for edge in graph["edges"]:
-            edges_by_key[(edge["source"], edge["target"])] = edge
-    return {
-        "nodes": list(nodes_by_id.values()),
-        "edges": list(edges_by_key.values()),
-        "truncated": truncated,
-        "reconstruction": reconstruction,
-    }
+    unique_ids = list(dict.fromkeys(str(post_id) for post_id in post_ids))
+    if not unique_ids:
+        return {
+            "nodes": [],
+            "edges": [],
+            "truncated": False,
+            "reconstruction": None,
+        }
+    visible_all, edge_rows = await _fetch_visible_lineage_rows(conn, can_see_post)
+    neighbors = _undirected_neighbors(edge_rows)
+    allowed = {str(row["post_id"]) for row in visible_all}
+    keep_ids: set[str] = set()
+    cited_visible: list[str] = []
+    for post_id in unique_ids:
+        component = _connected_visible_component(post_id, neighbors, allowed)
+        if not component:
+            continue
+        keep_ids.update(component)
+        cited_visible.append(post_id)
+    rows_by_id = {str(row["post_id"]): row for row in visible_all}
+    newest_ids = sorted(
+        keep_ids,
+        key=lambda pid: (rows_by_id[pid]["created_at"], pid),
+        reverse=True,
+    )
+    ordered_ids = list(dict.fromkeys([*cited_visible, *newest_ids]))
+    truncated = len(ordered_ids) > node_limit
+    visible = [rows_by_id[post_id] for post_id in ordered_ids[:node_limit]]
+    return await _lineage_graph_payload(conn, visible, edge_rows, truncated)

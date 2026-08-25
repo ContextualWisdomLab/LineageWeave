@@ -79,6 +79,7 @@ async def test_idle_worker_reads_do_not_emit_empty_spans(monkeypatch):
         _IdleValkey(),
         _Pool(),
         last_id="0-0",
+        database_url="postgresql://synthetic",
         tepp_client=TeppClient(),
         adjudication_client=NullAdjudicationClient(),
     ) == "0-0"
@@ -123,6 +124,7 @@ async def test_xread_failures_emit_diagnostic_spans_but_preserve_errors(monkeypa
             FailingValkey(),
             _Pool(),
             last_id="0-0",
+            database_url="postgresql://synthetic",
             tepp_client=TeppClient(),
             adjudication_client=NullAdjudicationClient(),
         )
@@ -179,6 +181,7 @@ async def test_workers_retry_transient_broker_errors_without_dropping_the_task(m
         await analysis_run_worker.run_analysis_run_worker(
             RecoveringAnalysisValkey(),
             _Pool(),
+            database_url="postgresql://synthetic",
             tepp_client=TeppClient(),
             adjudication_client=NullAdjudicationClient(),
         )
@@ -240,16 +243,19 @@ async def test_post_content_batch_advances_past_a_malformed_event(monkeypatch):
 async def test_consumer_forwards_valid_event_and_skips_malformed_event(monkeypatch):
     calls = []
 
-    async def fake_deliver(conn, **kwargs):
-        del conn
+    pool = _Pool()
+
+    async def fake_deliver(delivery_pool, **kwargs):
+        assert delivery_pool is pool
         calls.append(kwargs)
 
     monkeypatch.setattr(analysis_run_worker, "deliver_queued_analysis_run", fake_deliver)
 
     last_id = await analysis_run_worker.consume_analysis_run_stream_once(
         _Valkey(),
-        _Pool(),
+        pool,
         last_id="0-0",
+        database_url="postgresql://synthetic",
         tepp_client=TeppClient(),
         adjudication_client=NullAdjudicationClient(),
     )
@@ -258,6 +264,7 @@ async def test_consumer_forwards_valid_event_and_skips_malformed_event(monkeypat
     assert calls == [
         {
             "analysis_run_id": "00000000-0000-0000-0000-000000000001",
+            "database_url": "postgresql://synthetic",
             "account_id": "synthetic-account",
             "affiliated_entity_ids": [],
             "tepp_client": calls[0]["tepp_client"],
@@ -290,8 +297,7 @@ async def test_one_refused_delivery_does_not_end_the_worker(monkeypatch):
     """
     delivered = []
 
-    async def fake_deliver(conn, **kwargs):
-        del conn
+    async def fake_deliver(_pool, **kwargs):
         if kwargs["analysis_run_id"].endswith("1"):
             raise AnalysisRunStartError(
                 503, "Channel weights are not estimated yet."
@@ -304,6 +310,7 @@ async def test_one_refused_delivery_does_not_end_the_worker(monkeypatch):
         _TwoRunsValkey(),
         _Pool(),
         last_id="0-0",
+        database_url="postgresql://synthetic",
         tepp_client=TeppClient(),
         adjudication_client=NullAdjudicationClient(),
     )
