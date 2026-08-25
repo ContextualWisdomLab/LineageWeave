@@ -28,7 +28,7 @@ SQL_REVIEW_PATHS = (
 )
 ASYNC_STATEMENT_METHODS = {"execute", "fetch", "fetchrow", "fetchval"}
 SQL_REVIEW_RULE = "python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli"
-EXPECTED_SQL_SUPPRESSION_COUNT = 36
+EXPECTED_SQL_SUPPRESSION_COUNT = 37
 
 
 @pytest.mark.parametrize("relative_path", SQL_REVIEW_PATHS)
