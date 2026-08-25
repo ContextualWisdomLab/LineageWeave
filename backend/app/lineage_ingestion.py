@@ -47,7 +47,6 @@ _SUPPORTED_ANCHOR_METHOD_CODES: frozenset[str] = frozenset(
     {"tepp_lineage_criterion_v1"}
 )
 
-
 def estimated_weight_channels(llm: AdjudicationClient | None) -> set[str]:
     """Return the channels that one live reconstruction can actually use."""
     channels = {"temporal", "secondary_key", "text"}
@@ -532,7 +531,9 @@ async def _fetch_lineage_landing_rows(
     limit: int,
 ):
     """Fetch only the authorized, bounded landing projection in PostgreSQL."""
-    posts = await conn.fetch(
+    # The only formatted value is the module-owned literal alias ``source_post``;
+    # every caller value remains an asyncpg bind parameter.
+    posts = await conn.fetch(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
         "select post_id, post_title, voc_type_code, visibility_code, "
         "corporate_entity_id, process_unit_id, thread_group_key, created_at "
         "from source_post where "
