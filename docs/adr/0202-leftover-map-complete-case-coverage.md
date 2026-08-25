@@ -1,4 +1,4 @@
-# ADR 0183 — Name leftover complete-case coverage
+# ADR 0202 — Name leftover complete-case coverage
 
 **Decision status:** Accepted
 **Date:** 2026-08-24

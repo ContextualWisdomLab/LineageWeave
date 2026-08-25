@@ -54,4 +54,4 @@ next action, not only the distance.
 
 Depends on [ADR 0048](0048-persist-lsirm-leftover-pairs.md) and
 [ADR 0003](0003-fast-mlsirm-report-integration.md). Complete-case
-coverage of the leftover map is [ADR 0183](0183-leftover-map-complete-case-coverage.md).
+coverage of the leftover map is [ADR 0202](0202-leftover-map-complete-case-coverage.md).

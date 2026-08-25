@@ -38,7 +38,7 @@ All notable changes to this project are documented here. Format follows
 - The PROV-O support profile now mints its product class mappings only in the
   canonical lowercase namespace while importing the legacy compatibility map.
 - Period leftover maps now persist how many scored posts entered the
-  complete-case Gabriel factorization (ADR 0183). The leftover pair
+  complete-case Gabriel factorization (ADR 0202). The leftover pair
   list is captioned “Leftover map used N of M scored posts
   (complete-case)”; incomplete rows stay excluded, never filled with
   zero.
