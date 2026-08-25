@@ -142,7 +142,7 @@
 }
 
 /* GNB Navigation (§2.3.1) */
-.buyer-gnb {
+.workspace-gnb {
   display: flex;
   align-items: center;
   height: var(--gnb-height);
@@ -155,7 +155,7 @@
   z-index: var(--z-gnb-pulldown);
 }
 
-.buyer-gnb-item {
+.workspace-gnb-item {
   display: flex;
   align-items: center;
   height: 100%;
@@ -170,15 +170,15 @@
   transition: color 0.15s ease;
 }
 
-.buyer-gnb-item:hover {
+.workspace-gnb-item:hover {
   color: var(--color-text-heading);
 }
 
-.buyer-gnb-item[aria-current="page"] {
+.workspace-gnb-item[aria-current="page"] {
   color: var(--color-primary);
 }
 
-.buyer-gnb-item[aria-current="page"]::after {
+.workspace-gnb-item[aria-current="page"]::after {
   content: "";
   position: absolute;
   bottom: 0;
@@ -188,7 +188,7 @@
   background-color: var(--gnb-active-indicator-color);
 }
 
-.buyer-gnb-tools {
+.workspace-gnb-tools {
   margin-left: auto;
   display: flex;
   align-items: center;
@@ -999,7 +999,7 @@
   .app-header {
     padding: 0 1rem;
   }
-  .buyer-gnb {
+  .workspace-gnb {
     padding: 0 1rem;
   }
 }
@@ -1007,7 +1007,7 @@
 @media (max-width: 768px) {
   /* Phone Breakpoint (<768px) */
   
-  .buyer-gnb {
+  .workspace-gnb {
     display: none; /* Replaced by drawer on mobile */
   }
 

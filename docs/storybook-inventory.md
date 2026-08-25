@@ -13,6 +13,7 @@ buyer-facing control you can click before changing product CSS.
 | `Admin/AdminPanel` | Change the tenant brand name, then verify the saved or failed state before leaving settings. | `--surface`, `--border`, `--space-panel-block`, `AdminPanel` |
 | `Lineage/LineageDag` | Open a reconstructed connection and read the inferred channel scores, or open the current branch node; compare empty, grouped/forked, mobile-scroll, ungrouped, and long-title states before changing graph CSS. On narrow viewports, swipe the named viewport or focus it and use arrow keys to inspect the full lineage. | `--surface`, `--border`, `--color-border`, `--color-focus-border`, `--radius-control`, `--size-control-min`, `LineageDag` |
 | `Chrome/PopupCloseButton` | Close the evidence panel or post popup. | `--space-close-inset`, `--font-size-close`, `PopupCloseButton` |
+| `Navigation/WorkspaceNav` | Open 게시판, 고객 마스터, 달력, or Ask Agent. Admin is not a GNB tab. | `--gnb-height`, `--gnb-active-indicator-color`, `WorkspaceNav` |
 | `Evidence/OntologyExplorer` | Inspect typed people/orgs/posts, then open authorized evidence. Distinct from Event Lineage. | `--color-primary`, `--color-table-border`, `OntologyExplorer` |
 | `Reports/LeftoverPairList` | Read residual R, observed Y, expected E, map rank, and distance after IRT main effects, then open the named post. | `--color-chip-border`, `LeftoverPairList` |
 
