@@ -1,6 +1,6 @@
 # Product & Technical Gap Baseline
 
-> Audit snapshot: 2026-08-25 14:01 KST (refreshed by the autonomous merge
+> Audit snapshot: 2026-08-25 14:18 KST (refreshed by the autonomous merge
 > loop). This repository records synthetic fixtures and aggregate,
 > non-identifying runtime evidence only. Open PRs and local checks are not
 > protected-default-branch release evidence. Identifying post identifiers,
@@ -18,7 +18,7 @@ context only.
 | PR | Exact observed head | Merge/check state at this snapshot |
 | ---: | --- | --- |
 | #601 | `5ce88969` | PROV-O ADR APA 7th references are mergeable; exact-head checks and independent review remain pending |
-| #600 | `3e7de670` | this baseline's pre-amendment observed head; mergeable with review/check evidence pending |
+| #600 | `df645d3a` | this baseline's pre-amendment observed head; mergeable with review/check evidence pending |
 | #588 | `6185f2ae` | raw-residual reconstruction, rank-zero identity, API presence, and comparison-strip contracts reconciled with current main; focused backend/frontend/schema checks passed; auto-merge armed |
 | #582 | `edca49bb` | batched cited-lineage fetch previously passed 37 focused tests but now conflicts with advanced main; restack semantically before re-arming |
 | #579 | `69c05078` | interaction-map coordinate branch is conflicting; nine unresolved review threads remain |
@@ -58,11 +58,14 @@ Three systemic gates currently dominate the queue:
 1. **Strix visibility lookup failure (org control plane).** PR #600 exact head
    `7580bdc9` failed before scanning because the required-workflow token could
    not resolve this public repository after six API retries. The root repair is
-   ContextualWisdomLab/.github#1320 at `e704343d`: ordinary PR, push, and
+   ContextualWisdomLab/.github#1320 at `92bb94c5`: ordinary PR, push, and
    schedule runs use trusted event visibility; cross-repository dispatch keeps
    bounded API validation; private and internal repositories remain on
-   private-capable providers. It is mergeable with auto-merge armed, so no repaired
-   Strix runtime evidence exists yet.
+   private-capable providers. The exact head also composes the previously
+   separate executable fallback-contract repair; 1,406 central tests, the
+   full Strix quick gate, actionlint, shell syntax, and diff checks passed
+   locally. It is blocked on hosted exact-head gates and independent review,
+   so no repaired protected-main Strix runtime evidence exists yet.
 2. **Strix provider unavailability (org control plane).** The central required
    Strix scan fails across ~28 unrelated LineageWeave PRs with "could not
    complete authoritative vulnerability analysis because its provider/backend
