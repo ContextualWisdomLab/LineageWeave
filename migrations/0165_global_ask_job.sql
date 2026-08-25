@@ -11,7 +11,12 @@
 -- `IF NOT EXISTS` is idempotent only when the existing object is compatible;
 -- fail before any insert path can observe a partial schema.
 do $$
+declare
+    account_index regclass;
+    queued_index regclass;
 begin
+    account_index := to_regclass('public.global_ask_job_account_idx');
+    queued_index := to_regclass('public.global_ask_job_queued_idx');
     if to_regclass('public.global_ask_job') is not null
        and exists (
            select 1
@@ -36,13 +41,13 @@ begin
        ) then
         raise exception 'global_ask_job exists with an incompatible schema';
     end if;
-    if to_regclass('public.global_ask_job_account_idx') is not null
-       and pg_get_indexdef('public.global_ask_job_account_idx'::regclass)
+    if account_index is not null
+       and pg_get_indexdef(account_index)
            not ilike '%(requesting_account_id, created_at DESC)%' then
         raise exception 'global_ask_job_account_idx exists with an incompatible definition';
     end if;
-    if to_regclass('public.global_ask_job_queued_idx') is not null
-       and pg_get_indexdef('public.global_ask_job_queued_idx'::regclass)
+    if queued_index is not null
+       and pg_get_indexdef(queued_index)
            not ilike '%(created_at)%where%job_status_code%' then
         raise exception 'global_ask_job_queued_idx exists with an incompatible definition';
     end if;
