@@ -58,3 +58,21 @@ steps ranged up to 292.3 seconds. No containers were running afterward, so no
 HTTP latency distribution was produced and no application bottleneck is
 claimed. This is local build-environment evidence only. Re-run the command
 above on an application-ready stack to obtain the product measurement.
+
+## Older-image diagnostic observation
+
+On 2026-08-25, an application-ready local Compose stack configured with four
+worker VUs completed zero full iterations in two observations. In the second
+30-second observation, Ask enqueue took 2.69 seconds, the maximum completed
+HTTP request took 45.26 seconds, and k6 recorded no failures among requests
+that completed. Isolated observations were: `/api/posts` did not complete
+within 30 seconds, `/api/lineage` took 12.152 seconds, and Ask polling took
+0.456 seconds. The database contained 43,189 aggregate `source_post` rows;
+`pg_stat_activity` showed repeated post-filter `DISTINCT` queries active with
+`MessageQueueSend` waits.
+
+The backend image was from an older branch, not the current or ADR 0211 change
+head. These aggregate, non-identifying values support investigating the
+duplicate filter-option scan; they do not demonstrate current-head latency,
+causality, capacity, or an SLO. ADR 0211 removes that duplicate source scan.
+Repeat the synthetic k6 run on an exact-head image before comparing effects.
