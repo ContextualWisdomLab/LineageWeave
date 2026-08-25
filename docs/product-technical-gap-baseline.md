@@ -1,6 +1,6 @@
 # Product & Technical Gap Baseline
 
-> Audit snapshot: 2026-08-25 12:47 KST (refreshed by the autonomous merge
+> Audit snapshot: 2026-08-25 13:33 KST (refreshed by the autonomous merge
 > loop). This repository records synthetic fixtures and aggregate,
 > non-identifying runtime evidence only. Open PRs and local checks are not
 > protected-default-branch release evidence. Identifying post identifiers,
@@ -9,30 +9,29 @@
 
 ## 1. Exact-head and governance evidence
 
-The protected default branch was `b7714c5520b0e6c7f8e73af9adfc62e7841a0362`
-when this baseline was refreshed. The live queue contained 16 open PRs and 21
+The protected default branch was `3ac4ff1e7387b8f243cbb0fb20e7ff3ed80f3716`
+when this baseline was refreshed. The live queue contained 15 open PRs and 21
 open issues. The exact-head inventory below supersedes older per-PR snapshots
 elsewhere in this document; those older rows remain useful historical delivery
 context only.
 
 | PR | Exact observed head | Merge/check state at this snapshot |
 | ---: | --- | --- |
-| #599 | `205b8a51` | raw-residual cross-share documentation aligned with the implementation; no arbitrary weighting introduced; mergeable, auto-merge armed, exact-head checks/review pending |
+| #600 | `7580bdc9` | this baseline's pre-amendment observed head; mergeable and auto-merge armed, but its exact-head check rollup failed and must be revalidated after this refresh |
 | #595 | `153127f0` | audited no-draft import door, nullable updated-at fallback, and event-time import composed on current main; 24 focused tests passed; mergeable, auto-merge armed |
 | #588 | `3a67a802` | reconstruction naming branch is conflicting; six unresolved review threads remain |
 | #582 | `edca49bb` | batched cited-lineage fetch composed with current main; 37 focused tests passed; mergeable, auto-merge armed |
 | #579 | `69c05078` | interaction-map coordinate branch is conflicting; nine unresolved review threads remain |
-| #564 | `78afd5b8` | reconstruction naming branch is conflicting; review is required on its exact head |
+| #564 | `78afd5b8` | reconstruction naming branch is conflicting; exact-head checks fail and review is required |
 | #539 | `e4dffe63` | explained-share branch is conflicting and its exact-head check rollup is failing |
 | #537 | `d5ac65d8` | unexplained-share branch is conflicting; six unresolved review threads and failing exact-head checks remain |
-| #493 | `d2ef6b20` | empty-DAG reasons and explicit double-failure alert composed with current main; focused frontend test, lint/build, and docs tests passed; mergeable, auto-merge armed |
+| #493 | `a7a050ef` | empty-DAG reasons and explicit double-failure alert composed with current main; focused frontend test, lint/build, and docs tests passed; mergeable, auto-merge armed |
 | #490 | `73413d0b` | broad historical workspace branch is conflicting with failing checks; decompose/restack rather than replaying its 931-commit merge wholesale |
-| #484 | `5a61c5f7` | Allen interval semantics and deferred FK validation are mergeable; two newly opened review threads require settlement |
-| #482 | `b0e737d3` | corroborated SKOS companion branch is conflicting; four unresolved review threads remain |
-| #468 | `49f8231a` | exact Keyverse org/PU scope, fast-mlsirm/orchestrator/TEPP boundaries, and event-time import were composed with current main; 46 focused tests passed; mergeable, auto-merge armed |
-| #434 | `ff34c9b6` | stacked on #387 and conflicting; checks fail although its review threads are settled |
-| #387 | `462b41fb` | channel-evidence branch is conflicting with five unresolved threads, failing checks, and a stale changes-requested decision |
-| #383 | `138eaad4` | reader-safe OTel branch is conflicting with six unresolved threads and failing checks |
+| #484 | `c12b3b17` | Allen interval semantics and deferred FK validation are mergeable with no unresolved threads; auto-merge armed |
+| #482 | `43bb8ba1` | corroborated SKOS companion is mergeable with no unresolved threads; auto-merge armed |
+| #468 | `4f8305a8` | integration boundaries, event-time import, and comparison-response ABAC stripping are composed with current main; no unresolved threads; auto-merge armed |
+| #387 | `2620e0ae` | channel evidence plus Ask reconstruction-profile preservation is mergeable with no unresolved threads; the stale formal changes-requested decision still gates merge |
+| #383 | `7ff6b945` | reader-safe OTel diagnostics and service-peer-bounded session metadata are mergeable with no unresolved threads; auto-merge armed |
 
 No row above is merge evidence. Immediately before any lifecycle action,
 re-fetch the head, unresolved threads, formal reviews, rulesets, and same-head
@@ -80,6 +79,7 @@ Recent protected-default-branch delivery evidence (squash merges onto
 
 | PR | Merged (UTC) | Delivered |
 | ---: | --- | --- |
+| #599 | 2026-08-25 04:28 | raw-residual leftover-map cross-share identity aligned without arbitrary weighting |
 | #598 | 2026-08-25 03:32 | 5W1H roles/events remain readable across a stale summary contract version |
 | #597 | 2026-08-25 03:32 | related posts open Customer Master detail in place without stale graph state |
 | #591 | 2026-08-25 03:32 | prior exact-head product-gap baseline snapshot |
