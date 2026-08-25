@@ -14,7 +14,6 @@ from types import SimpleNamespace
 import pytest
 
 from lineageweave.rankweave_client import (
-    DEFAULT_CHANNEL_WEIGHTS,
     LibraryRankWeaveTransport,
     RankWeaveClient,
     RankWeaveNotAvailable,
@@ -43,14 +42,16 @@ HIDDEN = {
 
 
 def _lexical_then_temporal(post_id: str, channel_rank: int) -> list[dict[str, object]]:
-    lexical = 0.75 / (60 + channel_rank)
-    temporal = 0.25 / (60 + channel_rank)
+    # Parameter-free classic RRF (Cormack et al., 2009): every channel
+    # weighs 1.0 -- no hand-picked weight exists (ADR 0200 point 1).
+    lexical = 1.0 / (60 + channel_rank)
+    temporal = 1.0 / (60 + channel_rank)
     return [
         {
             "signal_code": "lexical",
             "signal_label": "Title overlap",
             "channel_rank": channel_rank,
-            "weight": 0.75,
+            "weight": 1.0,
             "contribution": lexical,
             "rank": 1,
         },
@@ -58,7 +59,7 @@ def _lexical_then_temporal(post_id: str, channel_rank: int) -> list[dict[str, ob
             "signal_code": "temporal",
             "signal_label": "Newest first",
             "channel_rank": channel_rank,
-            "weight": 0.25,
+            "weight": 1.0,
             "contribution": temporal,
             "rank": 2,
         },
@@ -198,7 +199,7 @@ def test_library_transport_projects_monkeypatched_rrf(
     )
 
     assert captured["eta"] == 60
-    assert captured["weights"]["lexical"] == 0.75
+    assert set(captured["weights"].values()) == {1.0}
     assert payload["rankings"][0]["post_title"] == (
         "Pricing renegotiation: revised quote sent"
     )
@@ -252,12 +253,12 @@ def test_ranking_channel_evidence_uses_cormack_weighted_rrf() -> None:
     evidence = ranking_channel_evidence(
         "post-1",
         {"temporal": ["post-1"], "lexical": ["post-1"]},
-        DEFAULT_CHANNEL_WEIGHTS,
+        {"temporal": 1.0, "lexical": 1.0},
         eta=60,
     )
     by_code = {item.signal_code: item for item in evidence}
-    assert by_code["lexical"].contribution == 0.75 / 61
-    assert by_code["temporal"].contribution == 0.25 / 61
+    assert by_code["lexical"].contribution == 1.0 / 61
+    assert by_code["temporal"].contribution == 1.0 / 61
     assert by_code["lexical"].channel_rank == 1
     assert by_code["temporal"].channel_rank == 1
     assert by_code["lexical"].rank == 1
@@ -297,7 +298,7 @@ def test_project_ranking_list_ignores_transport_extra_fields() -> None:
         ],
         {"post-1": "Public post"},
         channels={"temporal": ["post-1"], "lexical": ["post-2"]},
-        weights=DEFAULT_CHANNEL_WEIGHTS,
+        weights={"temporal": 1.0, "lexical": 1.0},
     )
     payload = ranking.to_json()
     assert payload[0]["channel_evidence"] == [
@@ -305,8 +306,8 @@ def test_project_ranking_list_ignores_transport_extra_fields() -> None:
             "signal_code": "temporal",
             "signal_label": "Newest first",
             "channel_rank": 1,
-            "weight": 0.25,
-            "contribution": 0.25 / 61,
+            "weight": 1.0,
+            "contribution": 1.0 / 61,
             "rank": 1,
         }
     ]

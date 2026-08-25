@@ -6,6 +6,8 @@ import asyncio
 import math
 from datetime import UTC, datetime, timezone
 
+import pytest
+
 import backend.app.lineage_ingestion as ingestion
 from backend.app.lineage_ingestion import lineage_graphs_for_posts
 from lineageweave.fixtures import sample_records
@@ -396,15 +398,23 @@ def test_seed_shaped_rows_rebuild_to_the_designed_a100_fork() -> None:
                 "created_at": rec.occurred_at,
             }
         )
-    edges = lineage_edge_specs(ingestion.records_from_source_posts(rows))
+    edges = lineage_edge_specs(
+        ingestion.records_from_source_posts(rows),
+        # Synthetic unit-test weights (ADR 0200 point 1: no library default).
+        weights={"temporal": 0.5, "secondary_key": 0.34, "text": 0.16},
+    )
     pairs = {(edge.parent_id, edge.child_id) for edge in edges}
     assert ("rec-002", "rec-003") in pairs
     assert ("rec-002", "rec-004") in pairs
     assert "rec-006" not in {edge.child_id for edge in edges}
 
 
-def test_rebuild_persists_the_synthetic_fork_without_estimated_weights() -> None:
-    """A missing weight table keeps deterministic reconstruction operational."""
+def test_rebuild_fails_closed_without_an_activated_weight_estimate() -> None:
+    """ADR 0200 point 1: no activated estimate -> no reconstruction on
+    constants. The raised message names the next action (run the
+    estimation script) so the operator is never left guessing, and
+    nothing is written.
+    """
     rows = [
         {
             "post_id": rec.record_id,
@@ -430,6 +440,64 @@ def test_rebuild_persists_the_synthetic_fork_without_estimated_weights() -> None
         async def fetchval(self, query: str):
             assert "to_regclass('public.lineage_channel_weight')" in query
             return False
+
+        async def execute(self, query: str, *args: object) -> None:
+            self.executions.append((query, args))
+
+    connection = FakeConnection()
+    with pytest.raises(ingestion.ChannelWeightsNotEstimated) as raised:
+        asyncio.run(ingestion.rebuild_lineage(connection))
+    assert "estimate_channel_weights" in str(raised.value)
+    assert connection.executions == []
+
+
+def test_rebuild_reconstructs_with_an_activated_estimate() -> None:
+    """With an activated estimate the designed fork persists as before."""
+    rows = [
+        {
+            "post_id": rec.record_id,
+            "process_unit_id": "shared-pu",
+            "corporate_entity_id": "shared-corp",
+            "post_title": rec.label,
+            "voc_type_code": "voc" if rec.secondary_key else "vom",
+            "thread_group_key": rec.group_key,
+            "secondary_grouping_key": rec.secondary_key,
+            "created_at": rec.occurred_at,
+        }
+        for rec in sample_records()
+    ]
+    weight_rows = [
+        {
+            "channel_set_code": "channel_set_deterministic",
+            "channel_code": channel,
+            "weight_value": weight,
+            "estimation_run_id": "00000000-0000-0000-0000-000000000001",
+            "estimation_method_code": "mls2plm_expected_information",
+            "estimator_version": "1.0.0",
+            "anchor_method_code": "unanchored_internal_structure",
+            "source_snapshot_sha256": "a" * 64,
+            "sample_pair_count": 600,
+            "knowledge_cutoff": datetime(2026, 1, 1, tzinfo=UTC),
+        }
+        for channel, weight in (
+            ("temporal", 0.5),
+            ("secondary_key", 0.34),
+            ("text", 0.16),
+        )
+    ]
+
+    class FakeConnection:
+        def __init__(self) -> None:
+            self.executions: list[tuple[str, tuple[object, ...]]] = []
+
+        async def fetch(self, query: str):
+            if "lineage_channel_weight" in query:
+                return weight_rows
+            assert "from source_post" in query
+            return rows
+
+        async def fetchval(self, _query: str):
+            return True
 
         async def execute(self, query: str, *args: object) -> None:
             self.executions.append((query, args))

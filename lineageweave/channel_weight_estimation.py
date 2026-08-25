@@ -57,6 +57,29 @@ _FIXTURE_PAIR_COUNT = 900
 _FIXTURE_SIMULATION_SEED = 20260824
 
 
+def fixture_design_digest() -> str:
+    """Reproducible SHA-256 of the demo's declared generative design.
+
+    Plays the role the corpus snapshot digest plays for production
+    estimates: the provenance row names exactly which design supported
+    the demo estimate. Deterministic by construction.
+    """
+    import hashlib
+
+    material = "\n".join(
+        [
+            *(
+                f"{channel}\t{probability}"
+                for channel, probability in sorted(_FIXTURE_FOLLOW_PROBABILITY.items())
+            ),
+            f"groups\t{_FIXTURE_GROUP_COUNT}",
+            f"pairs\t{_FIXTURE_PAIR_COUNT}",
+            f"seed\t{_FIXTURE_SIMULATION_SEED}",
+        ]
+    )
+    return hashlib.sha256(material.encode("utf-8")).hexdigest()
+
+
 def simulate_fixture_pair_scores() -> tuple[list[dict[str, float]], list[int]]:
     """Simulate the demo design's channel responses, deterministically.
 

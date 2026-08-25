@@ -192,8 +192,33 @@ async def load_estimated_channel_weights(
     return persisted
 
 
+class ChannelWeightsNotEstimated(RuntimeError):
+    """No activated estimated weight set exists for the active channels.
+
+    Product reconstruction treats fusion weights as measurement output
+    only (ADR 0200 point 1): estimated by fast-mlsirm, provenance-gated,
+    never hand-picked constants. No hand-picked default exists anywhere
+    -- the library demo estimates its weights from its declared design,
+    and unit tests inject synthetic weights explicitly.
+    """
+
+    def __init__(self, active_channels: set[str]) -> None:
+        super().__init__(
+            "no activated fast-mlsirm channel weight estimate exists for "
+            f"active channels {sorted(active_channels)}; run "
+            "scripts/estimate_channel_weights.py first -- product "
+            "reconstruction never falls back to hand-picked weights"
+        )
+        self.active_channels = active_channels
+
+
 async def rebuild_lineage(conn: asyncpg.Connection) -> list[Edge]:
-    """Reconstruct lineage for every ``source_post`` and persist the edges."""
+    """Reconstruct lineage for every ``source_post`` and persist the edges.
+
+    Raises :class:`ChannelWeightsNotEstimated` when no activated
+    estimate matches this path's active channels -- run
+    ``scripts/estimate_channel_weights.py`` first (ADR 0200 point 1).
+    """
     rows = await conn.fetch(
         "select post_id, post_title, voc_type_code, created_at, corporate_entity_id, "
         "process_unit_id, thread_group_key, secondary_grouping_key "
@@ -202,9 +227,10 @@ async def rebuild_lineage(conn: asyncpg.Connection) -> list[Edge]:
     # No adjudication client is wired on this path, so the active channel
     # set is the three deterministic channels (reconstruct drops llm when
     # unavailable rather than faking it).
-    weights = await load_estimated_channel_weights(
-        conn, {"temporal", "secondary_key", "text"}
-    )
+    active_channels = {"temporal", "secondary_key", "text"}
+    weights = await load_estimated_channel_weights(conn, active_channels)
+    if weights is None:
+        raise ChannelWeightsNotEstimated(active_channels)
     edges = lineage_edge_specs(records_from_source_posts(rows), weights=weights)
     await persist_lineage_edges(conn, edges)
     return edges
