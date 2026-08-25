@@ -165,13 +165,7 @@ def configured_tepp_client(transport_url: str = "", api_key: str = "") -> TeppCl
     def transport(payload: dict[str, Any]) -> dict[str, Any]:
         """POST the TEPP wire payload to `url`, raising TeppNotAvailable on any transport failure."""
         try:
-            headers = {
-                "idempotency-key": str(payload["idempotency_key"]),
-                "tepp-consumer": "lineageweave",
-                "tepp-contract-version": str(payload["contract_version"]),
-            }
-            if api_key.strip():
-                headers["authorization"] = f"Bearer {api_key}"
+            headers = {"authorization": f"Bearer {api_key}"} if api_key.strip() else {}
             return post_json(
                 url,
                 payload,
@@ -389,6 +383,21 @@ async def _persist_tepp_result(
                         anchor["source_snapshot_sha256"],
                         anchor_cutoff,
                         anchor["criterion_validity_status"],
+                        anchor["validated_pair_count"],
+                    )
+                    await conn.execute(
+                        """
+                        update lineage_channel_weight
+                           set anchor_method_code = 'tepp_lineage_criterion_v1'
+                         where estimation_run_id = $1
+                           and estimation_method_code = 'mls2plm_expected_information'
+                           and source_snapshot_sha256 = $2
+                           and knowledge_cutoff = $3
+                           and sample_pair_count = $4
+                        """,
+                        estimation_run_id,
+                        anchor["source_snapshot_sha256"],
+                        anchor_cutoff,
                         anchor["validated_pair_count"],
                     )
     except (asyncpg.PostgresError, TypeError, ValueError):
@@ -813,9 +822,8 @@ async def deliver_queued_analysis_run(
     lock_conn = await asyncpg.connect(database_url)
     try:
         acquired = await lock_conn.fetchval(
-            "select pg_try_advisory_lock("
-            "hashtextextended('lineageweave:analysis-run:' || $1, 0))",
-            analysis_run_id,
+            "select pg_try_advisory_lock(hashtextextended($1, 0))",
+            f"lineageweave:analysis-run:{analysis_run_id}",
         )
         if not acquired:
             async with pool.acquire() as conn:

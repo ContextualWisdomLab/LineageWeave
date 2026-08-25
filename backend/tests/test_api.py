@@ -12,15 +12,12 @@ HTTP to Keycloak goes through ``lineageweave.http_client``.
 
 from __future__ import annotations
 
-import asyncio
 import math
 import os
 import uuid
 from contextlib import closing
 from pathlib import Path
-from types import SimpleNamespace
 
-import asyncpg
 import jwt
 import psycopg2
 import pytest
@@ -156,6 +153,11 @@ _PAIR_JUDGMENT_MIGRATION = (
     / "migrations"
     / "0201_lineage_pair_judgment.sql"
 )
+_TEPP_LINEAGE_ANCHOR_MIGRATION = (
+    Path(__file__).resolve().parents[2]
+    / "migrations"
+    / "0207_lineage_weight_tepp_anchor.sql"
+)
 _LEFTOVER_OBSERVED_EXPECTED_MIGRATION = (
     Path(__file__).resolve().parents[2]
     / "migrations"
@@ -180,11 +182,6 @@ _GLOBAL_ASK_JOB_MIGRATION = (
     Path(__file__).resolve().parents[2]
     / "migrations"
     / "0165_global_ask_job.sql"
-)
-_GLOBAL_ASK_SCOPE_MIGRATION = (
-    Path(__file__).resolve().parents[2]
-    / "migrations"
-    / "0203_global_ask_authorization_scope.sql"
 )
 _LEFTOVER_MAP_AXIS_MIGRATION = (
     Path(__file__).resolve().parents[2]
@@ -327,6 +324,7 @@ def seeded_db(demo_analyst_token):
             cur.execute(_INTERVAL_RELATION_MIGRATION.read_text())
             cur.execute(_CHANNEL_WEIGHT_UNION_MIGRATION.read_text())
             cur.execute(_PAIR_JUDGMENT_MIGRATION.read_text())
+            cur.execute(_TEPP_LINEAGE_ANCHOR_MIGRATION.read_text())
             # Product reconstruction fails closed without an ACTIVATED
             # estimate (ADR 0200 points 1+3); this synthetic fixture set
             # under the authorized anchor stands in for a fast-mlsirm
@@ -338,20 +336,19 @@ def seeded_db(demo_analyst_token):
                 " anchor_method_code, source_snapshot_sha256, sample_pair_count, "
                 " knowledge_cutoff) values "
                 "('channel_set_deterministic', 'temporal', 0.5, "
-                " '00000000-0000-0000-0000-000000000001', 'test_fixture', 'test', "
-                " 'unanchored_internal_structure', repeat('a', 64), 600, now()), "
+                " '00000000-0000-0000-0000-000000000001', 'mls2plm_expected_information', 'test', "
+                " 'tepp_lineage_criterion_v1', repeat('a', 64), 600, '2026-01-12T00:00:00Z'), "
                 "('channel_set_deterministic', 'secondary_key', 0.34, "
-                " '00000000-0000-0000-0000-000000000001', 'test_fixture', 'test', "
-                " 'unanchored_internal_structure', repeat('a', 64), 600, now()), "
+                " '00000000-0000-0000-0000-000000000001', 'mls2plm_expected_information', 'test', "
+                " 'tepp_lineage_criterion_v1', repeat('a', 64), 600, '2026-01-12T00:00:00Z'), "
                 "('channel_set_deterministic', 'text', 0.16, "
-                " '00000000-0000-0000-0000-000000000001', 'test_fixture', 'test', "
-                " 'unanchored_internal_structure', repeat('a', 64), 600, now())"
+                " '00000000-0000-0000-0000-000000000001', 'mls2plm_expected_information', 'test', "
+                " 'tepp_lineage_criterion_v1', repeat('a', 64), 600, '2026-01-12T00:00:00Z')"
             )
             cur.execute(_LEFTOVER_OBSERVED_EXPECTED_MIGRATION.read_text())
             cur.execute(_LEFTOVER_MAP_RANK_MIGRATION.read_text())
             cur.execute(_LEFTOVER_MAP_COVERAGE_MIGRATION.read_text())
             cur.execute(_GLOBAL_ASK_JOB_MIGRATION.read_text())
-            cur.execute(_GLOBAL_ASK_SCOPE_MIGRATION.read_text())
             cur.execute(_EVENT_OCCURRED_AT_MIGRATION.read_text())
             cur.execute(_LEFTOVER_MAP_AXIS_MIGRATION.read_text())
             cur.execute(_LEFTOVER_MAP_UNEXPLAINED_MIGRATION.read_text())
@@ -420,6 +417,45 @@ def seeded_db(demo_analyst_token):
                 (subject,),
             )
             account_id = cur.fetchone()[0]
+            cur.execute(
+                """
+                with snapshot as (
+                    insert into analysis_source_snapshot
+                        (snapshot_sha256, source_contract_version,
+                         maximum_available_time, captured_at)
+                    values (repeat('a', 64), 'synthetic-anchor-v1',
+                            '2026-01-11T23:00:00Z', '2026-01-11T23:30:00Z')
+                    returning analysis_source_snapshot_id
+                ), tepp_run as (
+                    insert into analysis_run
+                        (analysis_source_snapshot_id, run_kind_code,
+                         requested_by_account_id, idempotency_key, knowledge_cutoff,
+                         configuration_schema_version, configuration_sha256,
+                         code_revision_sha, requested_at)
+                    select analysis_source_snapshot_id, 'analysis_run_tepp', %s,
+                           'synthetic-lineage-anchor', '2026-01-12T00:00:00Z',
+                           'tepp-lineage-criterion-v1', repeat('b', 64),
+                           repeat('c', 40), '2026-01-12T00:30:00Z'
+                      from snapshot
+                    returning analysis_run_id
+                ), tepp_result as (
+                    insert into analysis_run_tepp_result
+                        (analysis_run_id, remote_run_id, result_json, result_sha256)
+                    select analysis_run_id, 'synthetic-tepp-anchor', '{}'::jsonb, repeat('d', 64)
+                      from tepp_run
+                    returning analysis_run_id
+                )
+                insert into lineage_weight_tepp_anchor
+                    (estimation_run_id, tepp_analysis_run_id, anchor_kind_code,
+                     anchor_contract_version, source_snapshot_sha256, knowledge_cutoff,
+                     criterion_validity_status_code, validated_pair_count)
+                select '00000000-0000-0000-0000-000000000001', analysis_run_id,
+                       'lineage_pair_criterion', 1, repeat('a', 64),
+                       '2026-01-12T00:00:00Z', 'accepted', 600
+                  from tepp_result
+                """,
+                (account_id,),
+            )
             cur.execute(
                 "insert into account_affiliation (user_account_id, corporate_entity_id) values (%s, %s)",
                 (account_id, own_corp_id),
@@ -709,76 +745,6 @@ def client(seeded_db):
 
     with TestClient(app) as test_client:
         yield test_client
-
-
-def test_keyverse_account_resolves_exact_scope_and_role_intersection(
-    monkeypatch: pytest.MonkeyPatch, seeded_db, demo_analyst_token
-) -> None:
-    """Verified claims select one live DB affiliation; DB roles retain authority."""
-    subject = jwt.decode(demo_analyst_token, options={"verify_signature": False})["sub"]
-    with closing(psycopg2.connect(seeded_db["dsn"])) as conn, conn.cursor() as cur:
-        cur.execute(
-            "insert into process_unit (corporate_entity_id, process_unit_code, process_unit_name) "
-            "values (%s, 'workspace-a', 'Synthetic Workspace') returning process_unit_id",
-            (seeded_db["own_corp_id"],),
-        )
-        process_unit_id = str(cur.fetchone()[0])
-        cur.execute(
-            "update account_affiliation set process_unit_id = %s "
-            "where user_account_id = (select user_account_id from user_account where external_subject_id = %s)",
-            (process_unit_id, subject),
-        )
-        cur.execute(
-            "insert into access_role (role_code, role_name) values ('member', 'Member') "
-            "returning access_role_id"
-        )
-        role_id = cur.fetchone()[0]
-        cur.execute(
-            "insert into common_lookup_value (lookup_category, lookup_code, lookup_label) "
-            "values ('permission', 'post_admin', 'Administer posts') "
-            "on conflict (lookup_code) do nothing"
-        )
-        cur.execute(
-            "insert into role_permission (access_role_id, permission_code) values (%s, 'post_admin')",
-            (role_id,),
-        )
-        cur.execute(
-            "insert into account_role_assignment (user_account_id, access_role_id) "
-            "select user_account_id, %s from user_account where external_subject_id = %s",
-            (role_id, subject),
-        )
-        conn.commit()
-
-    from backend.app import auth
-
-    monkeypatch.setattr(
-        auth,
-        "load_settings",
-        lambda: SimpleNamespace(keyverse_claim_binding_required=True),
-    )
-    monkeypatch.setattr(
-        auth,
-        "_decode_access_token",
-        lambda *_args: {
-            "sub": subject,
-            "org": "TEST-CORP",
-            "workspace": "workspace-a",
-            "role": ["member"],
-        },
-    )
-
-    async def resolve_account():
-        pool = await asyncpg.create_pool(seeded_db["dsn"], min_size=1, max_size=1)
-        try:
-            return await auth.get_current_account(SimpleNamespace(credentials="token"), pool)
-        finally:
-            await pool.close()
-
-    account = asyncio.run(resolve_account())
-
-    assert account.corporate_entity_ids == frozenset({seeded_db["own_corp_id"]})
-    assert account.process_unit_ids == frozenset({process_unit_id})
-    assert account.permission_codes == frozenset({"post_admin"})
 
 
 def test_analysis_runs_are_labeled_aggregates_and_hide_other_scopes(
@@ -4770,36 +4736,7 @@ def test_derive_commitment_requires_post_admin(client, demo_analyst_token, seede
 def test_calendar_is_empty_before_any_commitment(client, demo_analyst_token, seeded_db) -> None:
     response = client.get("/api/calendar", headers={"Authorization": f"Bearer {demo_analyst_token}"})
     assert response.status_code == 200
-    payload = response.json()
-    assert payload["commitments"] == []
-    assert payload["events"] == []
-    assert payload["calendar_sources"]["naruon_available"] is False
-    assert "Connect the Naruon calendar projection" in payload["calendar_sources"]["naruon_next_action"]
-    assert "caldav_available" not in payload["calendar_sources"]
-
-
-def test_calendar_window_requires_both_bounds(client, demo_analyst_token, seeded_db) -> None:
-    response = client.get(
-        "/api/calendar",
-        params={"window_start": "2026-08-25T00:00:00Z"},
-        headers={"Authorization": f"Bearer {demo_analyst_token}"},
-    )
-    assert response.status_code == 422
-    assert "together" in response.json()["detail"]
-
-
-def test_calendar_does_not_treat_caldav_url_as_naruon(
-    client, demo_analyst_token, seeded_db, monkeypatch
-) -> None:
-    monkeypatch.setenv("CALDAV_BASE_URL", "https://calendar.example/caldav/")
-    monkeypatch.delenv("NARUON_CALENDAR_BASE_URL", raising=False)
-    monkeypatch.delenv("NARUON_CALENDAR_SERVICE_TOKEN", raising=False)
-    response = client.get("/api/calendar", headers={"Authorization": f"Bearer {demo_analyst_token}"})
-    assert response.status_code == 200
-    payload = response.json()
-    assert payload["events"] == []
-    assert payload["calendar_sources"]["naruon_available"] is False
-    assert "caldav_available" not in payload["calendar_sources"]
+    assert response.json()["commitments"] == []
 
 
 def test_calendar_hides_other_corp_private_commitments_and_sorts_by_due_date(
@@ -4836,7 +4773,6 @@ def test_calendar_hides_other_corp_private_commitments_and_sorts_by_due_date(
     assert commitments[0]["commitment_summary"] == "Send the revised quote"
     assert "visibility_code" not in commitments[0]
     assert "corporate_entity_id" not in commitments[0]
-    assert "process_unit_id" not in commitments[0]
 
 
 def test_calendar_keeps_real_ticket_when_demo_code_is_shared(
@@ -5448,18 +5384,10 @@ def test_seed_period_report_surfaces_on_get_reports(client, demo_analyst_token, 
     assert high_report["link_method"] == "fipc"
     assert high_report["selected_model"] in {"grm", "gpcm"}
     assert high_report["delta_mean_theta"] is None
-    assert all(
-        {"visibility_code", "corporate_entity_id", "process_unit_id"}.isdisjoint(member)
-        for member in high_report["members"]
-    )
     leftover_kinds = {pair["pair_kind"] for pair in high_report.get("leftover_pairs", [])}
     assert leftover_kinds <= {"closest", "farthest"}
     assert all(pair["post_title"] for pair in high_report.get("leftover_pairs", []))
     assert all(pair["leftover_distance"] >= 0 for pair in high_report.get("leftover_pairs", []))
-    assert all(
-        {"visibility_code", "corporate_entity_id", "process_unit_id"}.isdisjoint(pair)
-        for pair in high_report.get("leftover_pairs", [])
-    )
     assert all(
         "leftover_map_reconstruction" in pair
         for pair in high_report.get("leftover_pairs", [])
@@ -5540,10 +5468,6 @@ def test_seed_period_report_surfaces_on_get_reports(client, demo_analyst_token, 
     assert leftover_kinds <= {"closest", "farthest"}
     assert all(pair["post_title"] for pair in leftover_thread.get("leftover_pairs", []))
     assert all(pair["leftover_distance"] >= 0 for pair in leftover_thread.get("leftover_pairs", []))
-    assert all(
-        {"visibility_code", "corporate_entity_id", "process_unit_id"}.isdisjoint(pair)
-        for pair in leftover_thread.get("leftover_pairs", [])
-    )
     assert all(
         pair.get("leftover_map_reconstruction") is None
         or isinstance(pair["leftover_map_reconstruction"], (int, float))

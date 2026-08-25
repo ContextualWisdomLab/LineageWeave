@@ -33,6 +33,12 @@ vector activates only when one normalized `lineage_weight_tepp_anchor` row:
    cutoff, and validated pair count as every weight in the vector; and
 4. matches the TEPP analysis run's immutable snapshot and cutoff exactly.
 
+When that accepted artifact is persisted, the same transaction promotes only
+the fast-mlsirm rows whose estimation-run identity, expected-information
+method, snapshot, cutoff, and pair count exactly match the artifact. A partial
+or mismatched candidate remains inactive; there is no operator-authored anchor
+label or second promotion path.
+
 The RFC 3339 request preserves the database cutoff's fractional-second
 precision; truncating it would make an otherwise valid exact anchor
 permanently unavailable.

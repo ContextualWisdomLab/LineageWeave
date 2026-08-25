@@ -70,10 +70,9 @@ async def test_delivery_releases_pool_during_provider_work_and_closes_run_lock(m
     class LockConnection:
         closed = False
 
-        async def fetchval(self, query, run_id):
+        async def fetchval(self, query, lock_key):
             assert "pg_try_advisory_lock" in query
-            assert "lineageweave:analysis-run:" in query
-            assert run_id == "00000000-0000-0000-0000-000000000001"
+            assert lock_key.endswith("00000000-0000-0000-0000-000000000001")
             return True
 
         async def close(self):
@@ -305,6 +304,16 @@ def test_tepp_anchor_projection_accepts_only_the_published_result_contract() -> 
         )
     )
     assert sum("lineage_weight_tepp_anchor" in query for query, _ in conn.queries) == 1
+    promotion = next(
+        (args for query, args in conn.queries if "update lineage_channel_weight" in query),
+        None,
+    )
+    assert promotion == (
+        "018f47e7-7b5b-7cc0-98c6-15fdf9e3d9b1",
+        "ab" * 32,
+        cutoff,
+        600,
+    )
 
     conn = _Connection()
     envelope["result_schema_version"] = "consumer.private.v1"
@@ -318,6 +327,7 @@ def test_tepp_anchor_projection_accepts_only_the_published_result_contract() -> 
         )
     )
     assert not any("lineage_weight_tepp_anchor" in query for query, _ in conn.queries)
+    assert not any("update lineage_channel_weight" in query for query, _ in conn.queries)
 
     conn = _Connection()
     envelope["result_schema_version"] = "tepp.lineage_criterion_anchor.v1"
