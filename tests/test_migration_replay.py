@@ -60,6 +60,18 @@ def test_interval_relation_backfill_uses_utc_created_day() -> None:
     assert "created_at at time zone 'UTC'" in sql
 
 
+def test_semantic_content_unit_kind_migration_is_replay_safe() -> None:
+    sql = (
+        Path(__file__).resolve().parents[1]
+        / "migrations"
+        / "0221_semantic_content_unit_kinds.sql"
+    ).read_text(encoding="utf-8").lower()
+
+    assert "on conflict (lookup_code) do nothing" in sql
+    for unit_kind in ("paragraph", "list", "table", "formula", "conversation_turn"):
+        assert f"'{unit_kind}'" in sql
+
+
 def test_interval_relation_foreign_key_validation_is_separate() -> None:
     """Installing the FK must not scan a large existing edge table."""
 
