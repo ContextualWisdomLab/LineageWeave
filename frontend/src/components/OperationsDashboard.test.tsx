@@ -40,9 +40,10 @@ describe("OperationsDashboardView", () => {
   });
 
   it("separates failed analysis from pending work and gives the next action", () => {
-    render(<OperationsDashboardView data={{ ...data, failed_analysis_count: 2 }} onOpenPost={() => undefined} />);
+    render(<OperationsDashboardView data={{ ...data, failed_analysis_count: 2, cases: [] }} onOpenPost={() => undefined} />);
     expect(screen.getByText("분석 실패").nextElementSibling).toHaveTextContent("2");
     expect(screen.getByRole("alert")).toHaveTextContent("재처리한 뒤 근거 누락 여부를 다시 확인하세요");
+    expect(screen.queryByText("분석 대기 건부터 처리하세요")).not.toBeInTheDocument();
   });
 
   it("keeps period controls mounted while a changed period loads", async () => {

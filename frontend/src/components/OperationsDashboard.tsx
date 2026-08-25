@@ -102,7 +102,9 @@ export function OperationsDashboardView({ data, externalOnly = false, onOpenPost
           </article>
         ))}
       </div>
-      {cases.length === 0 ? <p role="status">선택 기간에 분석 완료된 근거가 없습니다. 분석 대기 건부터 처리하세요.</p> : null}
+      {cases.length === 0 && data.failed_analysis_count === 0 ? (
+        <p role="status">{data.pending_analysis_count > 0 ? "선택 기간에 분석 완료된 근거가 없습니다. 분석 대기 건부터 처리하세요." : "선택 기간에 분석할 수 있는 근거가 없습니다. 기간이나 접근 범위를 확인하세요."}</p>
+      ) : null}
       {data.failed_analysis_count > 0 ? <p role="alert">분석 실패 {data.failed_analysis_count}건을 재처리한 뒤 근거 누락 여부를 다시 확인하세요.</p> : null}
     </section>
   );
