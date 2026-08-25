@@ -65,3 +65,8 @@ include = ["lineageweave*", "backend*"]
 [tool.pytest.ini_options]
 testpaths = ["tests", "backend/tests"]
 pythonpath = ["."]
+
+[dependency-groups]
+dev = [
+    "httpx2>=2.12.0",
+]
