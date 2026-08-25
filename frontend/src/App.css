@@ -1137,7 +1137,11 @@
     gap: 0.5rem;
   }
 
-  .analysis-run-item {
+  .analysis-run-item,
+  .analysis-run-item.has-document-count.has-next-action,
+  .analysis-run-item.has-document-count:not(.has-next-action),
+  .analysis-run-item.has-next-action:not(.has-document-count),
+  .analysis-run-item:not(.has-document-count):not(.has-next-action) {
     grid-template-columns: 1fr;
   }
 }
