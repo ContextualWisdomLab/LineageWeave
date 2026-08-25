@@ -115,6 +115,30 @@ def _upstream_map_coordinates_are_finite(result: Any) -> bool:
     )
 
 
+def _upstream_map_has_expected_shape(result: Any) -> bool:
+    """Return whether the provider envelope matches the pinned two-axis contract."""
+    person_count = result.person_indices.size
+    item_count = result.item_indices.size
+    return (
+        result.person_indices.ndim == 1
+        and result.item_indices.ndim == 1
+        and result.person_coordinates.shape == (person_count, _LEFTOVER_MAP_AXES)
+        and result.item_coordinates.shape == (item_count, _LEFTOVER_MAP_AXES)
+        and result.axis_shares.shape == (_LEFTOVER_MAP_AXES,)
+        and result.singular_values.ndim == 1
+        and all(
+            values.shape == (person_count, item_count)
+            for values in (
+                result.residual,
+                result.distance,
+                result.reconstruction,
+                result.unexplained,
+                result.cross_share,
+            )
+        )
+    )
+
+
 def leftover_pairs_from_residual(
     post_ids: list[str],
     item_codes: tuple[str, ...],
@@ -135,6 +159,8 @@ def leftover_map_from_residual(
     _validate_identifiers(post_ids, item_codes, matrix)
     result = residual_interaction_map(matrix, expected, axis_count=_LEFTOVER_MAP_AXES)
     if result.person_indices.size == 0 or result.item_indices.size == 0:
+        return LeftoverInteractionMap(pairs=(), persons=(), items=(), axes=())
+    if not _upstream_map_has_expected_shape(result):
         return LeftoverInteractionMap(pairs=(), persons=(), items=(), axes=())
     if not _upstream_map_coordinates_are_finite(result):
         return LeftoverInteractionMap(pairs=(), persons=(), items=(), axes=())
@@ -181,6 +207,8 @@ def leftover_map_from_residual(
                 np.isfinite(value)
                 for value in (distance, residual, observed, expected_value)
             ):
+                continue
+            if residual != observed - expected_value:
                 continue
             candidates.append(
                 (

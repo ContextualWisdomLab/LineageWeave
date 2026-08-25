@@ -21,12 +21,19 @@ def _upstream_result() -> SimpleNamespace:
         item_coordinates=np.array([[0.1, 0.0], [-1.0, 0.0]]),
         singular_values=np.array([3.0]),
         axis_shares=np.array([1.0, 0.0]),
-        residual=np.array([[0.4, 0.2], [-0.3, -1.1]]),
+        residual=np.array([[0.5, 0.25], [-0.5, -1.0]]),
         distance=np.array([[0.1, 1.0], [1.9, 3.0]]),
-        reconstruction=np.array([[0.35, 0.1], [-0.2, -0.85]]),
-        unexplained=np.array([[0.05, 0.1], [-0.1, -0.25]]),
-        cross_share=np.array([[0.21875, 0.5], [-0.444, 0.3512396694214876]]),
+        reconstruction=np.array([[0.375, 0.125], [-0.25, -0.75]]),
+        unexplained=np.array([[0.125, 0.125], [-0.25, -0.25]]),
+        cross_share=np.array([[0.375, 0.5], [0.5, 0.375]]),
     )
+
+
+def _matching_inputs() -> tuple[np.ndarray, np.ndarray]:
+    """Return observed and expected arrays consistent with provider residuals."""
+    expected = np.full((2, 2), 2.0)
+    observed = expected + _upstream_result().residual
+    return observed, expected
 
 
 def test_maps_upstream_evidence_and_selects_closest_and_farthest(
@@ -40,7 +47,7 @@ def test_maps_upstream_evidence_and_selects_closest_and_farthest(
         return _upstream_result()
 
     monkeypatch.setattr(leftover, "residual_interaction_map", provider)
-    matrix = np.array([[2.4, 2.2], [1.7, 0.9], [1.0, np.nan]])
+    matrix = np.array([[2.5, 2.25], [1.5, 1.0], [1.0, np.nan]])
     expected = np.array([[2.0, 2.0], [2.0, 2.0], [1.0, 1.0]])
 
     interaction_map = leftover.leftover_map_from_residual(
@@ -72,10 +79,10 @@ def test_maps_upstream_evidence_and_selects_closest_and_farthest(
         "sales_lead_specificity",
     )
     assert closest.leftover_distance == pytest.approx(0.1)
-    assert closest.leftover_residual == pytest.approx(0.4)
-    assert closest.leftover_map_reconstruction == pytest.approx(0.35)
-    assert closest.leftover_map_unexplained == pytest.approx(0.05)
-    assert closest.leftover_map_cross_share == pytest.approx(0.21875)
+    assert closest.leftover_residual == pytest.approx(0.5)
+    assert closest.leftover_map_reconstruction == pytest.approx(0.375)
+    assert closest.leftover_map_unexplained == pytest.approx(0.125)
+    assert closest.leftover_map_cross_share == pytest.approx(0.375)
     assert farthest.pair_kind == leftover.PAIR_KIND_FARTHEST
     assert (farthest.post_id, farthest.criterion_code) == (
         "spec-post",
@@ -83,9 +90,9 @@ def test_maps_upstream_evidence_and_selects_closest_and_farthest(
     )
     assert farthest.leftover_distance == pytest.approx(3.0)
     assert farthest.leftover_map_rank == 1
-    assert farthest.observed_response == pytest.approx(0.9)
+    assert farthest.observed_response == pytest.approx(1.0)
     assert farthest.expected_response == pytest.approx(2.0)
-    assert farthest.leftover_map_cross_share == pytest.approx(0.3512396694214876)
+    assert farthest.leftover_map_cross_share == pytest.approx(0.375)
 
 
 def test_pair_projection_reuses_the_mapped_result(
@@ -97,11 +104,12 @@ def test_pair_projection_reuses_the_mapped_result(
         "residual_interaction_map",
         lambda *_args, **_kwargs: _upstream_result(),
     )
+    observed, expected = _matching_inputs()
     pairs = leftover.leftover_pairs_from_residual(
         ["post-a", "post-b"],
         ("item-a", "item-b"),
-        np.ones((2, 2)),
-        np.zeros((2, 2)),
+        observed,
+        expected,
     )
     assert [pair.pair_kind for pair in pairs] == [
         leftover.PAIR_KIND_CLOSEST,
@@ -161,11 +169,12 @@ def test_nullable_cross_share_remains_unavailable(
     monkeypatch.setattr(
         leftover, "residual_interaction_map", lambda *_args, **_kwargs: result
     )
+    observed, expected = _matching_inputs()
     interaction_map = leftover.leftover_map_from_residual(
         ["post-a", "post-b"],
         ("item-a", "item-b"),
-        np.ones((2, 2)),
-        np.zeros((2, 2)),
+        observed,
+        expected,
     )
     assert interaction_map.pairs[0].leftover_map_cross_share is None
 
@@ -182,11 +191,12 @@ def test_non_finite_upstream_values_never_enter_selection_or_map_points(
     monkeypatch.setattr(
         leftover, "residual_interaction_map", lambda *_args, **_kwargs: result
     )
+    observed, expected = _matching_inputs()
     interaction_map = leftover.leftover_map_from_residual(
         ["post-a", "post-b"],
         ("item-a", "item-b"),
-        np.ones((2, 2)),
-        np.zeros((2, 2)),
+        observed,
+        expected,
     )
     assert [pair.leftover_distance for pair in interaction_map.pairs] == [1.0, 1.9]
     assert interaction_map.pairs[0].leftover_map_unexplained is None
@@ -196,9 +206,44 @@ def test_non_finite_upstream_values_never_enter_selection_or_map_points(
     assert leftover.leftover_map_from_residual(
         ["post-a", "post-b"],
         ("item-a", "item-b"),
-        np.ones((2, 2)),
-        np.zeros((2, 2)),
+        observed,
+        expected,
     ) == leftover.LeftoverInteractionMap(pairs=(), persons=(), items=(), axes=())
+
+
+def test_malformed_rank_one_provider_shape_fails_closed(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A non-padded rank-one envelope cannot reach two-axis indexing."""
+    result = _upstream_result()
+    result.person_coordinates = result.person_coordinates[:, :1]
+    result.item_coordinates = result.item_coordinates[:, :1]
+    result.axis_shares = result.axis_shares[:1]
+    monkeypatch.setattr(
+        leftover, "residual_interaction_map", lambda *_args, **_kwargs: result
+    )
+    observed, expected = _matching_inputs()
+    assert leftover.leftover_map_from_residual(
+        ["post-a", "post-b"], ("item-a", "item-b"), observed, expected
+    ) == leftover.LeftoverInteractionMap(pairs=(), persons=(), items=(), axes=())
+
+
+def test_inconsistent_provider_residual_is_excluded_before_selection(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Only cells satisfying the auditable R equals Y minus E identity persist."""
+    result = _upstream_result()
+    result.residual[0, 0] = 0.75
+    monkeypatch.setattr(
+        leftover, "residual_interaction_map", lambda *_args, **_kwargs: result
+    )
+    observed, expected = _matching_inputs()
+    interaction_map = leftover.leftover_map_from_residual(
+        ["post-a", "post-b"], ("item-a", "item-b"), observed, expected
+    )
+    assert [
+        (pair.post_id, pair.criterion_code) for pair in interaction_map.pairs
+    ] == [("post-a", "item-b"), ("post-b", "item-b")]
 
 
 def test_rejects_identifier_shape_mismatch_before_provider_call(
