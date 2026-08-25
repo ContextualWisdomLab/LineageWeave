@@ -1,12 +1,37 @@
 # Product & Technical Gap Baseline
 
-> Audit scope: the current LineageWeave reader/source-context worktree and all
-> 56 open PRs, compared with protected `main`, the UI/UX Standard Guide v3.0,
+> Audit scope: the current LineageWeave TEPP terminal-result continuation and
+> all 9 open PRs, compared with protected `main`, the UI/UX Standard Guide v3.0,
 > ADR 0118, the accepted TEPP contracts, and contextual-orchestrator. Real
 > source identifiers are deliberately replaced with case labels; they must not
 > enter repository artifacts.
 
 ## 1. Exact-head evidence
+
+### 1.0 Current TEPP continuation
+
+Observed at `2026-08-26`: protected `main` is
+`04e6b610655d0db91d5f7ba9486bdda1440e0b19`. Nine PRs target `main`:
+#644 `c1018a0a`, #643 `041ec13b`, #640 `2fad1fe6`, #639 `aee02dca`,
+#636 `f7b9a65f`, #632 `3e3f0ead`, #631 `c0022c97`, #629 `4b4d6707`, and
+#579 `689a21b6`. All have auto-merge armed and zero unresolved review threads;
+none has the independent exact-head approval required by protected rules, so
+no protected merge is claimed. The older snapshots below remain historical.
+
+TEPP PR #157 merged as `7ce87c305981819f5333c7eb90ea0feafc0f7bf6`
+and closed TEPP issue #156 by publishing `AnalysisRunStatus` and
+`AnalysisRunTerminalResult` v1. The provider explicitly did not deploy a
+production HTTP status service. This continuation therefore consumes the
+strict contract through a pluggable status-read port, retains accepted/running
+as transport evidence, persists only fully request-bound terminal results,
+and rejects changed digests. It does not guess a provider URL, polling cadence,
+backoff coefficient, theta, or score. Focused exact-source evidence is
+`64 passed`; the full Python suite passed `1087` with `16` live-stack skips.
+TEPP issue #249 now owns the executable HTTP status-service gap. The unrelated
+Starlette `httpx2` migration and short synthetic JWT-test key warnings remain
+pre-existing dependency/test-fixture gaps and are not suppressed in this
+TEPP-scoped continuation. Protected checks and independent review remain
+required.
 
 ### 1.1 Current continuation head
 
@@ -551,7 +576,7 @@ adapter, fixture, or HTTP-shaped test double never upgrades a row to
 | Evidence-grounded chat and source navigation | `/chat`, `/ask`, citation/evidence UI | source + unit; synthetic orchestrator judge route verified, corpus chat/runtime evidence open |
 | OpenTelemetry across LineageWeave, contextual-orchestrator, Valkey, and GRC | LineageWeave PR #383 adds API/Valkey/session spans; contextual-orchestrator PR #818 carries session/provider telemetry; governance-risk-compliance PR #51 adds request telemetry, W3C trace context, OTLP export, and ADR 0009 | source + PR; protected merge and end-to-end collector evidence open |
 | PU/team/project weekly/monthly reports | report API/UI and grouping controls | source + unit; TEPP-backed live report open |
-| TEPP calibrated measurement, dichotomous items, multilevel/MMM/time model | published import/REST boundary and TEPP ADR/PRD references | boundary-only; live-external open |
+| TEPP calibrated measurement, dichotomous items, multilevel/MMM/time model | accepted receipt parent #496 plus TEPP terminal-result v1 consumer (ADR 0178); arithmetic remains TEPP-owned | strict contract consumer source + focused unit; provider HTTP status service and live-external evidence open |
 | contextual-orchestrator routing, VISION, embedding, schema repair | clients and provenance/session boundary; synthetic authenticated route returned a judge score of `0.98`, OCR succeeded, and region location returned five regions | source + local-integration partial; corpus backfill, capability/readiness evidence, and schema-repair workflow open |
 | HTML semantic units, tables, indentation, footnotes, formulas | parser modules and synthetic tests; adjacent open PR #367 at exact head `b628722cb000717b0198e4337d12306d4306922d` adds numbered-footnote, leading-empty-cell, and short-ID regressions; 11-case authenticated popup sweep had no popup errors and rendered the supplied footnote/table cases; bounded metric superscript/subscript normalization has backend/frontend focused coverage | source + unit + local-integration partial; PR #367 protected checks, arbitrary formula/semantic correctness, and corpus re-backfill remain open |
 | Base64/file image regions and multimodal evidence | image-region schema and VISION client boundary; live aggregate has 12,823 images, 25 described images, 421 failed images, 12,377 unavailable images, and 19 persisted regions; the bounded real-data queue run published three Valkey wake-ups and the worker claimed one | source + local-integration partial; supplied image-table case re-backfill and complete corpus coverage open |
@@ -780,21 +805,22 @@ or an explicit unavailable result.
   digest mismatches before writes. The remaining acceptance work is to mount
   the authorized raw artifacts and run the real import/backfill; do not map an
   unrelated metadata column as body.
-- **TEPP measurement — boundary accepted, runtime open:** LineageWeave must
+- **TEPP measurement — terminal consumer implemented, runtime open:** LineageWeave must
   call TEPP through its published import/REST contract and must not implement a
   local theta, psychometric calibration, CAT, or judge score. TEPP owns the
   Rust numerical/psychometric layer and its multilevel/multiple-membership/time
   model. Live inspection on 2026-08-23 found that the upstream TEPP repository
-  currently publishes strict `AnalysisRunRequest` / `AnalysisRunAccepted` DTOs
-  and outbound HTTP exchange builders, but no executable HTTP server, completed
-  measurement response contract, snapshot-evidence ingest, or production
+  now publishes strict `AnalysisRunRequest`, `AnalysisRunAccepted`,
+  `AnalysisRunStatus`, and `AnalysisRunTerminalResult` v1 DTOs and outbound HTTP
+  exchange builders, but no production HTTP status server, snapshot-evidence
+  ingest, or production
   estimator entrypoint. The current request carries only a snapshot digest, so
   a service cannot calibrate the underlying observations without a new
   purpose-bound evidence artifact/API. `TEPP_TRANSPORT_URL` alone therefore
   cannot make measurement available. Close this in TEPP first with an ADR and
   PRD update covering authorized evidence transfer, Rust estimator authority,
-  durable lifecycle/idempotency, completed-result provenance, and CPU/GPU
-  parity; then pin that service in Compose and prove a persisted
+  durable lifecycle/idempotency, provider HTTP status route, and CPU/GPU parity;
+  then pin that service in Compose and prove a persisted
   `analysis_run_tepp_result`. An accepted-envelope shim is explicitly not an
   acceptable substitute.
 - **TEPP temporal context — source-connected, local runtime proven:** TEPP's

@@ -8,6 +8,7 @@ from lineageweave.tepp_client import (
     TemporalContextEvent,
     TemporalContextRequest,
     TeppClient,
+    TeppInvalidResponse,
     TeppNotAvailable,
 )
 
@@ -41,6 +42,8 @@ def test_default_transport_fails_closed_until_tepp_ships_http() -> None:
     client = TeppClient()
     with pytest.raises(TeppNotAvailable):
         client.submit_analysis_run(_sample_request())
+    with pytest.raises(TeppNotAvailable):
+        client.read_analysis_run_status("tepp-run-1", _sample_request())
 
 
 def test_custom_transport_receives_the_exact_wire_payload() -> None:
@@ -56,6 +59,98 @@ def test_custom_transport_receives_the_exact_wire_payload() -> None:
     assert result == {"status": "accepted"}
     assert received["contract_version"] == 1
     assert received["snapshot_id"] == "demo-snapshot-1"
+
+
+def _succeeded_status() -> dict:
+    """Return TEPP's identity-free terminal status v1 fixture."""
+    request = _sample_request()
+    return {
+        "contract_version": 1,
+        "run_id": "tepp-run-1",
+        "run_state": "succeeded",
+        "idempotency_key": request.idempotency_key,
+        "terminal_result": {
+            "contract_version": 1,
+            "run_id": "tepp-run-1",
+            "run_state": "succeeded",
+            "idempotency_key": request.idempotency_key,
+            "tenant_workspace_id": request.tenant_workspace_id,
+            "snapshot_id": request.snapshot_id,
+            "knowledge_cutoff": request.knowledge_cutoff,
+            "model_contract_version": request.model_contract_version,
+            "output_profile": request.output_profile,
+            "result_artifact_id": "artifact-1",
+            "result_sha256": "ab" * 32,
+            "result_schema_version": "tepp-result-v1",
+            "completed_at": "2026-01-02T03:04:05Z",
+            "summary": {
+                "analysis_family": "temporal_topic_measurement",
+                "evidence_count": 12,
+                "statistic_count": 4,
+                "validation_status": "validated",
+            },
+            "failure_code": None,
+        },
+    }
+
+
+def test_status_reader_accepts_only_the_request_bound_terminal_contract() -> None:
+    status = _succeeded_status()
+    client = TeppClient(status_transport=lambda _run_id: status)
+
+    assert client.read_analysis_run_status("tepp-run-1", _sample_request()) == status
+
+
+@pytest.mark.parametrize(
+    "mutate",
+    [
+        lambda status: status.clear(),
+        lambda status: status.update(run_id="other-run"),
+        lambda status: status["terminal_result"].update(snapshot_id="other-snapshot"),
+        lambda status: status["terminal_result"].update(result_sha256="not-a-digest"),
+        lambda status: status["terminal_result"].update(completed_at="2026-01-02"),
+        lambda status: status["terminal_result"].update(completed_at=None),
+        lambda status: status["terminal_result"].update(completed_at="not-a-time"),
+        lambda status: status["terminal_result"].update(summary={}),
+        lambda status: status["terminal_result"]["summary"].update(
+            analysis_family="family\u001fhidden"
+        ),
+        lambda status: status["terminal_result"].update(
+            result_artifact_id="x" * (64 * 1024)
+        ),
+        lambda status: status.update(extra=True),
+        lambda status: status.update(run_state="unknown", terminal_result=None),
+        lambda status: status.update(run_state="succeeded", terminal_result=[]),
+    ],
+)
+def test_status_reader_fails_closed_on_identity_shape_and_digest_mismatch(mutate) -> None:
+    status = _succeeded_status()
+    mutate(status)
+    client = TeppClient(status_transport=lambda _run_id: status)
+
+    with pytest.raises(TeppInvalidResponse):
+        client.read_analysis_run_status("tepp-run-1", _sample_request())
+
+
+@pytest.mark.parametrize("invalid", [None, {"unencodable": {1, 2}}])
+def test_status_reader_rejects_non_object_and_non_json_payloads(invalid) -> None:
+    client = TeppClient(status_transport=lambda _run_id: invalid)
+
+    with pytest.raises(TeppInvalidResponse):
+        client.read_analysis_run_status("tepp-run-1", _sample_request())
+
+
+def test_status_reader_keeps_nonterminal_receipts_measurement_free() -> None:
+    status = {
+        "contract_version": 1,
+        "run_id": "tepp-run-1",
+        "run_state": "running",
+        "idempotency_key": _sample_request().idempotency_key,
+        "terminal_result": None,
+    }
+    client = TeppClient(status_transport=lambda _run_id: status)
+
+    assert client.read_analysis_run_status("tepp-run-1", _sample_request()) == status
 
 
 def test_configured_transport_sends_optional_bearer_key(monkeypatch: pytest.MonkeyPatch) -> None:
