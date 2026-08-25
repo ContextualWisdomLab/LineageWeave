@@ -1,6 +1,6 @@
 # Product & Technical Gap Baseline
 
-> Audit snapshot: 2026-08-25 09:59 KST (refreshed by the autonomous merge
+> Audit snapshot: 2026-08-25 10:05 KST (refreshed by the autonomous merge
 > loop). This repository records synthetic fixtures and aggregate,
 > non-identifying runtime evidence only. Open PRs and local checks are not
 > protected-default-branch release evidence. Identifying post identifiers,
@@ -10,18 +10,19 @@
 ## 1. Exact-head and governance evidence
 
 The protected default branch was `1d1379fc59d9dac6e9c8bfa4812313e3b9e8f3c8`
-when this baseline was refreshed. The live queue contained 23 open PRs and 22
+when this baseline was refreshed. The live queue contained 24 open PRs and 22
 open issues. The exact-head inventory below supersedes older per-PR snapshots
 elsewhere in this document; those older rows remain useful historical delivery
 context only.
 
 | PR | Exact observed head | Merge/check state at this snapshot |
 | ---: | --- | --- |
-| #591 | `84c1289d` | canonical current-queue baseline; exact-head checks and independent review pending |
+| #594 | `b90d3074` | removes the standalone conflict marker and duplicated stale tail introduced by #521; auto-merge armed, checks running |
+| #591 | `f0ca4bda` | canonical current-queue baseline; exact-head checks and independent review pending |
 | #588 | `dc60a08e` | ADR 0201 repair reconciled with current main; auto-merge armed, checks restarted |
 | #585 | `ffe1290b` | only locally-authored bounded job errors may persist; transport errors remain generic; auto-merge armed, checks restarted |
 | #584 | `17068ec3` | current-main ADR collision repaired; auto-merge armed, checks restarted |
-| #582 | `f062acd4` | current-main reconciliation pushed; checks restarted |
+| #582 | `3992302f` | batched Ask lineage graph reconciled with current main and the conflict-tail repair; auto-merge armed, checks restarted |
 | #581 | `c4f41dc0` | current-main reconciliation pushed; checks restarted |
 | #579 | `769095b2` | complete-case coverage ADR allocated as 0202; auto-merge armed, checks restarted |
 | #564 | `62d3e124` | current-main reconciliation pushed; checks restarted |
@@ -53,7 +54,9 @@ passed the protected gate and #590 merged to `main` as
 
 PR #521 merged through protected `main` as
 `3797f063b1a7396972a749aa81f23745acccbee1`; it is release evidence and no
-longer part of the open queue.
+longer part of the open queue. That merge also left a standalone conflict
+marker and duplicated stale tail in `CLAUDE.md`; #594 is the exact-head repair,
+so the documentation defect remains a protected-main gap until it merges.
 
 The former protected-`main` login defect (unauthenticated `AdminPanel` render
 plus unused OIDC return-url helpers failing `tsc -b`) is repaired on
