@@ -53,6 +53,16 @@ _LEFTOVER_MAP_RANK_MIGRATION = (
     / "migrations"
     / "0164_report_leftover_map_rank.sql"
 )
+_LEFTOVER_MAP_CROSS_SHARE_MIGRATION = (
+    Path(__file__).resolve().parents[1]
+    / "migrations"
+    / "0185_report_leftover_map_cross_share.sql"
+)
+_LEFTOVER_MAP_RECONSTRUCTION_MIGRATION = (
+    Path(__file__).resolve().parents[1]
+    / "migrations"
+    / "0206_report_leftover_map_reconstruction.sql"
+)
 _LEFTOVER_MAP_AXIS_MIGRATION = (
     Path(__file__).resolve().parents[1]
     / "migrations"
@@ -67,11 +77,6 @@ _LEFTOVER_MAP_UNEXPLAINED_MIGRATION = (
     Path(__file__).resolve().parents[1]
     / "migrations"
     / "0182_report_leftover_map_unexplained.sql"
-)
-_LEFTOVER_MAP_RECONSTRUCTION_MIGRATION = (
-    Path(__file__).resolve().parents[1]
-    / "migrations"
-    / "0183_report_leftover_map_reconstruction.sql"
 )
 
 
@@ -114,6 +119,7 @@ def schema_db():
                 cur.execute(_LEFTOVER_MAP_COVERAGE_MIGRATION.read_text())
                 cur.execute(_LEFTOVER_MAP_AXIS_MIGRATION.read_text())
                 cur.execute(_LEFTOVER_MAP_UNEXPLAINED_MIGRATION.read_text())
+                cur.execute(_LEFTOVER_MAP_CROSS_SHARE_MIGRATION.read_text())
                 cur.execute(_LEFTOVER_MAP_RECONSTRUCTION_MIGRATION.read_text())
             conn.commit()
             yield conn
@@ -260,10 +266,11 @@ def test_leftover_pair_names_nullable_unexplained_column(schema_db) -> None:
     assert columns["leftover_map_unexplained"] == "YES"
     assert columns["leftover_residual"] == "NO"
     assert columns["leftover_distance"] == "NO"
+    assert columns["leftover_map_reconstruction"] == "YES"
 
 
-def test_leftover_pair_names_nullable_reconstruction_column(schema_db) -> None:
-    """Every install path preserves legacy pairs while naming reconstruction R̂."""
+def test_leftover_pair_names_nullable_cross_share_column(schema_db) -> None:
+    """Every install path preserves legacy pairs while naming leftover-map cross share."""
     with schema_db.cursor() as cur:
         cur.execute(
             """
@@ -273,8 +280,22 @@ def test_leftover_pair_names_nullable_reconstruction_column(schema_db) -> None:
             """
         )
         columns = dict(cur.fetchall())
+    assert columns["leftover_map_cross_share"] == "YES"
+    assert columns["leftover_residual"] == "NO"
+    assert columns["leftover_distance"] == "NO"
+    assert "leftover_map_explained_share" not in columns
+    assert "leftover_map_unexplained_share" not in columns
     assert columns["leftover_map_reconstruction"] == "YES"
-    assert columns["leftover_map_unexplained"] == "YES"
+    with schema_db.cursor() as cur:
+        cur.execute(
+            """
+            select conname
+            from pg_constraint
+            where conrelid = 'report_leftover_pair'::regclass
+              and conname like '%share%chk'
+            """
+        )
+        assert cur.fetchall() == []
 
 
 def test_leftover_map_axis_references_period_score(schema_db) -> None:

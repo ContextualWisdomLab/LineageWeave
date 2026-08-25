@@ -189,6 +189,7 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Semantic project": "의미 기반 프로젝트",
     "Semantic role": "의미 기반 역할",
     "Semantic Keyman": "의미 기반 핵심 담당자",
+    "Time axis": "시간 축",
     "No authorized source posts are available for this question.": "이 질문에 사용할 수 있는 권한 있는 원문이 없습니다.",
     "Choose an authorized post before asking a question.": "질문하기 전에 권한이 있는 글을 선택하세요.",
     "Loading source posts...": "질문할 원문을 불러오는 중...",
@@ -465,6 +466,8 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
       "잔여 지도가 IRT 주효과 이후 설명되지 않은 U {value}을(를) 남깁니다. {criterion} 기준을 읽으려면 이 글을 여세요.",
     "Leftover map reconstructs R̂ {value} after IRT main effects. Open this post to read {criterion}.":
       "잔여 지도가 IRT 주효과 이후 R̂ {value}을(를) 재구성합니다. {criterion} 기준을 읽으려면 이 글을 여세요.",
+    "Two leftover-map axes leave identity remainder {value} of raw residual after IRT main effects. Open this post to read {criterion}.":
+      "잔여 지도의 두 축이 IRT 주효과 이후 원시 잔차의 항등식 나머지 {value}을(를) 남깁니다. {criterion} 기준을 읽으려면 이 글을 여세요.",
     "Read observed Y {observed} and expected E {expected} after IRT main effects, then open this post.":
       "IRT 주효과 이후 관측 Y {observed}와 기대 E {expected}를 읽은 다음, 이 글을 여세요.",
     "Leftover map has no leftover structure after IRT main effects. Open this post.":
@@ -647,6 +650,7 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Semantic project": "语义项目",
     "Semantic role": "语义角色",
     "Semantic Keyman": "语义关键人员",
+    "Time axis": "时间轴",
     "No authorized source posts are available for this question.": "没有可用于此问题的已授权来源文章。",
     "Choose an authorized post before asking a question.": "提问前请选择有权限查看的文章。",
     "Loading source posts...": "正在加载问题来源文章...",
@@ -921,6 +925,8 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
       "残差图在 IRT 主效应后留下未解释的 U {value}。打开这篇帖子阅读 {criterion}。",
     "Leftover map reconstructs R̂ {value} after IRT main effects. Open this post to read {criterion}.":
       "残差图在 IRT 主效应后重建 R̂ {value}。打开这篇帖子阅读 {criterion}。",
+    "Two leftover-map axes leave identity remainder {value} of raw residual after IRT main effects. Open this post to read {criterion}.":
+      "残差图的两个轴在 IRT 主效应后留下原始残差的恒等式余项 {value}。打开这篇帖子阅读 {criterion}。",
     "Read observed Y {observed} and expected E {expected} after IRT main effects, then open this post.":
       "阅读 IRT 主效应后的观测 Y {observed} 与期望 E {expected}，然后打开这篇帖子。",
     "Leftover map has no leftover structure after IRT main effects. Open this post.":
@@ -1127,6 +1133,7 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Semantic project": "意味的なプロジェクト",
     "Semantic role": "意味的な役割",
     "Semantic Keyman": "意味的なキーパーソン",
+    "Time axis": "時間軸",
     "No authorized source posts are available for this question.": "この質問に利用できる許可済みの原文投稿はありません。",
     "Choose an authorized post before asking a question.": "質問する前に閲覧権限のある投稿を選択してください。",
     "Loading source posts...": "質問の原文を読み込んでいます...",
@@ -1378,6 +1385,8 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
       "残差マップはIRT主効果後の未説明 U {value} を残します。この投稿を開いて {criterion} を読んでください。",
     "Leftover map reconstructs R̂ {value} after IRT main effects. Open this post to read {criterion}.":
       "残差マップはIRT主効果後の R̂ {value} を再構成します。この投稿を開いて {criterion} を読んでください。",
+    "Two leftover-map axes leave identity remainder {value} of raw residual after IRT main effects. Open this post to read {criterion}.":
+      "残差マップの2軸はIRT主効果後の生の残差の恒等式の余り {value} を残します。この投稿を開いて {criterion} を読んでください。",
     "Read observed Y {observed} and expected E {expected} after IRT main effects, then open this post.":
       "IRT主効果後の観測 Y {observed} と期待 E {expected} を読んでから、この投稿を開いてください。",
     "Leftover map has no leftover structure after IRT main effects. Open this post.":
@@ -1584,6 +1593,7 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Semantic project": "Dự án ngữ nghĩa",
     "Semantic role": "Vai trò ngữ nghĩa",
     "Semantic Keyman": "Keyman ngữ nghĩa",
+    "Time axis": "Trục thời gian",
     "No authorized source posts are available for this question.": "Không có bài viết nguồn được cấp quyền cho câu hỏi này.",
     "Choose an authorized post before asking a question.": "Hãy chọn một bài viết được cấp quyền trước khi đặt câu hỏi.",
     "Loading source posts...": "Đang tải bài viết nguồn cho câu hỏi...",
@@ -1835,6 +1845,8 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
       "Bản đồ phần dư để lại U {value} chưa giải thích sau hiệu ứng chính IRT. Mở bài viết này để đọc {criterion}.",
     "Leftover map reconstructs R̂ {value} after IRT main effects. Open this post to read {criterion}.":
       "Bản đồ phần dư tái dựng R̂ {value} sau hiệu ứng chính IRT. Mở bài viết này để đọc {criterion}.",
+    "Two leftover-map axes leave identity remainder {value} of raw residual after IRT main effects. Open this post to read {criterion}.":
+      "Hai trục của bản đồ phần dư để lại phần giao {value} của phần dư thô sau hiệu ứng chính IRT. Mở bài viết này để đọc {criterion}.",
     "Read observed Y {observed} and expected E {expected} after IRT main effects, then open this post.":
       "Đọc Y quan sát {observed} và E kỳ vọng {expected} sau hiệu ứng chính IRT, rồi mở bài viết này.",
     "Leftover map has no leftover structure after IRT main effects. Open this post.":

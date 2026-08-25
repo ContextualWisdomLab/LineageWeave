@@ -54,6 +54,7 @@ describe("i18n", () => {
     "Open this post to read the criterion it sat farthest from after main effects.",
     "Leftover map leaves unexplained U {value} after IRT main effects. Open this post to read {criterion}.",
     "Leftover map reconstructs R̂ {value} after IRT main effects. Open this post to read {criterion}.",
+    "Two leftover-map axes leave identity remainder {value} of raw residual after IRT main effects. Open this post to read {criterion}.",
     "Read observed Y {observed} and expected E {expected} after IRT main effects, then open this post.",
     "Leftover map has no leftover structure after IRT main effects. Open this post.",
     "Leftover map rank {rank} after IRT main effects. Open this post.",
@@ -161,6 +162,33 @@ describe("i18n", () => {
   });
 
   it.each([
+    [
+      "ko",
+      "잔여 지도의 두 축이 IRT 주효과 이후 원시 잔차의 항등식 나머지 -0.24을(를) 남깁니다. sales-lead 기준을 읽으려면 이 글을 여세요.",
+    ],
+    [
+      "zh",
+      "残差图的两个轴在 IRT 主效应后留下原始残差的恒等式余项 -0.24。打开这篇帖子阅读 sales-lead。",
+    ],
+    [
+      "ja",
+      "残差マップの2軸はIRT主効果後の生の残差の恒等式の余り -0.24 を残します。この投稿を開いて sales-lead を読んでください。",
+    ],
+    [
+      "vi",
+      "Hai trục của bản đồ phần dư để lại phần giao -0.24 của phần dư thô sau hiệu ứng chính IRT. Mở bài viết này để đọc sales-lead.",
+    ],
+  ] as const)("formats leftover-map cross share next action in %s", (locale, expected) => {
+    setLocale(locale);
+    expect(
+      tf(
+        "Two leftover-map axes leave identity remainder {value} of raw residual after IRT main effects. Open this post to read {criterion}.",
+        { value: "-0.24", criterion: "sales-lead" },
+      ),
+    ).toBe(expected);
+  });
+
+  it.each([
     ["ko", "IRT 주효과 이후 관측 Y 2.40와 기대 E 2.00를 읽은 다음, 이 글을 여세요."],
     ["zh", "阅读 IRT 主效应后的观测 Y 2.40 与期望 E 2.00，然后打开这篇帖子。"],
     ["ja", "IRT主効果後の観測 Y 2.40 と期待 E 2.00 を読んでから、この投稿を開いてください。"],
@@ -230,22 +258,10 @@ describe("i18n", () => {
   });
 
   it.each([
-    [
-      "ko",
-      "잔여 지도가 IRT 주효과 이후 R̂ +0.35을(를) 재구성합니다. sales-lead 기준을 읽으려면 이 글을 여세요.",
-    ],
-    [
-      "zh",
-      "残差图在 IRT 主效应后重建 R̂ +0.35。打开这篇帖子阅读 sales-lead。",
-    ],
-    [
-      "ja",
-      "残差マップはIRT主効果後の R̂ +0.35 を再構成します。この投稿を開いて sales-lead を読んでください。",
-    ],
-    [
-      "vi",
-      "Bản đồ phần dư tái dựng R̂ +0.35 sau hiệu ứng chính IRT. Mở bài viết này để đọc sales-lead.",
-    ],
+    ["ko", "잔여 지도가 IRT 주효과 이후 R̂ +0.35을(를) 재구성합니다. sales-lead 기준을 읽으려면 이 글을 여세요."],
+    ["zh", "残差图在 IRT 主效应后重建 R̂ +0.35。打开这篇帖子阅读 sales-lead。"],
+    ["ja", "残差マップはIRT主効果後の R̂ +0.35 を再構成します。この投稿を開いて sales-lead を読んでください。"],
+    ["vi", "Bản đồ phần dư tái dựng R̂ +0.35 sau hiệu ứng chính IRT. Mở bài viết này để đọc sales-lead."],
   ] as const)("formats leftover-map reconstruction next action in %s", (locale, expected) => {
     setLocale(locale);
     expect(

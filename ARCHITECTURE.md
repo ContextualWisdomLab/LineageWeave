@@ -78,6 +78,8 @@ flowchart LR
 | `post_summary.py` | Pluggable LLM Korean summary + key events + R&R derivation for a post |
 | `post_chat.py` | Pluggable in-popup chat's reason-and-cite step (retrieve step lives in `backend/app/post_chat_ingestion.py`) |
 | `commitment_extraction.py` | Pluggable LLM derivation of a customer commitment (promise + deadline) from a post; `Null` default, `ContextualOrchestrator` real impl |
+| `temporal_expressions.py` | Pure Korean relative-time resolver for Global Ask (ADR 0150) |
+| `ask_time_axis.py` | Event-time vs ingestion-time clock choice for that window (ADR 0202) |
 | `ontology.py` | Loads `docs/ontology/lineageweave-kg.ttl`, the formal OWL 2/RDFS/SKOS vocabulary for the Knowledge Graph's node/edge types (ADR 0004) |
 | `ontology_neighborhood.py` | Bounded typed ontology/provenance neighborhood (ADR 0184); PostgreSQL stays authoritative, OWL subclass is not an instance edge |
 | `ontology_source_cursor.py` | Opaque HMAC source-window continuation (ADR 0124); keyset pagination, never OFFSET |
@@ -596,13 +598,12 @@ on those same fixed parameters (Kim, 2006 FIPC). After scoring,
 information at the group's mean θ (Lord, 1980 max-info CAT). Rankings
 persist to `report_item_information`. After those IRT main effects,
 residual SVD leftover pairs on two Gabriel axes (Jeon et al., 2021;
-ADR 0017 / 0048 / 0049 / 0119 / 0158 / 0162 / 0163 / 0164 / 0182 /
-0201) persist to
-`report_leftover_pair` with signed residual `R`, observed `Y`, expected
-`E[Y|θ, item]`, full leftover-map rank, unexplained leftover
-`U = R − R̂`, and two-axis reconstruction `R̂ = ξ_{1:2} · ζ_{1:2}` so
-`U + R̂ = R` stays auditable. Leftover-map axis share (Gabriel
-inertia of residual SVD axes 1 and 2; ADR 0148) persists to
+ADR 0017 / 0048 / 0049 / 0119 / 0148 / 0158 / 0162 / 0163 / 0164 / 0168 /
+0182 / 0185 / 0201) persist to `report_leftover_pair` with signed residual `R`,
+observed `Y`, expected `E[Y|θ, item]`, full leftover-map rank, unexplained
+leftover `U = R − R̂`, signed two-axis reconstruction `R̂`, and leftover-map
+cross share `x = 2 R̂ U / R²` of raw residual. Leftover-map axis share
+(Gabriel inertia of residual SVD axes 1 and 2; ADR 0148) persists to
 `report_leftover_map_axis`. Complete-case leftover-map coverage (ADR
 0168) persists to `report_leftover_map_coverage` so readers see how
 many scored posts entered the factorization. Results persist to

@@ -6,7 +6,7 @@
 [ADR 0163](0163-leftover-observed-expected.md) (observed Y and expected E);
 [ADR 0164](0164-leftover-map-rank.md) (full map rank);
 [ADR 0182](0182-leftover-map-unexplained.md) (unexplained leftover U);
-[ADR 0201](0201-leftover-map-reconstruction.md) (two-axis reconstruction R̂)
+[ADR 0185](0185-leftover-map-cross-share.md) (leftover-map cross share)
 
 ## Context
 
@@ -42,9 +42,14 @@ rank while distance remains on the first two axes (ADR 0164). Each
 leftover row also names unexplained leftover `U = R − R̂` when
 Gabriel coordinates exist so the leftover cell the two-axis map does
 not reconstruct is not read as leftover residual `R` or leftover-map
-distance `d` (ADR 0182). Two-axis reconstruction `R̂ = ξ_{1:2} · ζ_{1:2}`
-is persisted so `U + R̂ = R` stays auditable (ADR 0201). Do not
-substitute a separately centered reconstruction.
+distance `d` (ADR 0182), and names leftover-map cross share
+`x = 2 R̂ U / R²` of raw residual when Gabriel coordinates
+exist so the identity remainder after two-axis reconstruction is not
+read as leftover residual `R`, leftover-map distance `d`, explained
+leftover share `e`, or unexplained leftover share `s` (ADR 0185).
+ADR 0201 now persists that same signed reconstruction on the pair row so
+`U + R̂ = R` remains directly auditable; it does not change this selection or
+distance contract.
 
 Cascade the rows with `report_period_score`. A leftover post must
 also be a `report_member_score` row, and the leftover criterion

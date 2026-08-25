@@ -22,17 +22,19 @@ This increment persists leftover-map reconstruction `R̂`. It does not
 persist leftover-map coordinates, does not name leftover-map inner
 product as a separate full-rank column, does not name leftover-map
 cosine, does not name leftover-map length, does not name leftover-map
-explained share, unexplained share, or cross share, and does not land
+explained share or unexplained share, and does not land
 Post quality on the leftover criterion. Leftover-map distance stays
 two-axis Euclidean. Reconstruction is the same internal two-axis inner
 product already used for `U`, so `U + R̂ = R` remains true. Do not
 substitute a separately centered reconstruction `R̃` that would break
-that identity.
+that identity. ADR 0185 independently persists the raw-residual cross
+share derived from this same `R̂` and `U`; this decision exposes `R̂`
+without changing that formula.
 
 The unprotected-stack reconstructions for neighbouring leftover facts
 use 0162–0181 and 0184–0186. This protected-main increment uses
-**0183** so it does not collide with leftover-map unexplained leftover
-(0182), leftover-map reconstruction on the centered stack (0186),
+**0206** so it does not collide with source-post event time
+(0183), leftover-map reconstruction on the centered stack (0186),
 leftover-map unexplained share (0184 on that stack), leftover-map
 explained share, leftover-map cross share, leftover residual
 disclosure, leftover observed `Y` / expected `E`, leftover-map rank,
@@ -43,7 +45,7 @@ share (0148), or leftover interaction-map persistence.
 
 Each leftover pair names `leftover_map_reconstruction` — two-axis
 Gabriel reconstruction `R̂ = ξ_{1:2} · ζ_{1:2}`. Unused axes pad with
-zero. Hidden SVD axes after the second are dropped. Migration `0183`
+zero. Hidden SVD axes after the second are dropped. Migration `0206`
 is the single source of the column on every install path, fresh or
 existing -- shipped migrations (`0001` / `0012`) are never edited after
 the fact. The column is nullable so older leftover rows keep distance,

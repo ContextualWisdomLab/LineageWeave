@@ -1,6 +1,14 @@
 import type { LeftoverPair } from "../api";
 import { t, tf } from "../i18n";
 import {
+  formatLeftoverMapCrossShare,
+  LEFTOVER_MAP_CROSS_SHARE_ACTION,
+} from "../leftoverMapCrossShare";
+import {
+  formatLeftoverMapReconstruction,
+  LEFTOVER_MAP_RECONSTRUCTION_ACTION,
+} from "../leftoverMapReconstruction";
+import {
   formatLeftoverMapRank,
   LEFTOVER_RANK_STRUCTURE_ACTION,
   LEFTOVER_RANK_ZERO_ACTION,
@@ -12,10 +20,6 @@ import {
   formatSignedLeftoverValue,
   LEFTOVER_MAP_UNEXPLAINED_ACTION,
 } from "../leftoverMapUnexplained";
-import {
-  formatLeftoverMapReconstruction,
-  LEFTOVER_MAP_RECONSTRUCTION_ACTION,
-} from "../leftoverMapReconstruction";
 
 export type LeftoverPairListProps = {
   pairs: LeftoverPair[];
@@ -29,10 +33,13 @@ export type LeftoverPairListProps = {
  * Distance is the two-axis leftover-map Euclidean gap. Residual is
  * ``R = Y − E[Y|θ, item]`` (Jeon et al., 2021, eq. 3 input). Unexplained
  * leftover ``U = R − R̂`` after two-axis Gabriel reconstruction (ADR 0182)
- * and reconstruction ``R̂ = ξ_{1:2} · ζ_{1:2}`` (ADR 0201) so
- * ``U + R̂ = R`` stays auditable. Reconstruction takes priority over the
- * unexplained/residual/observed-expected/rank next action when finite;
- * every badge still renders together before opening the named post.
+ * takes priority over the residual/observed-expected/rank next action
+ * when finite. When leftover-map cross share ``x = 2 R̂ U / R²`` of
+ * raw residual is also present (ADR 0185), it names the next action
+ * instead of unexplained leftover; a missing or non-finite value falls
+ * back in order — cross share, reconstruction, unexplained leftover, then the
+ * existing residual/rank/observed-expected next action. Every badge
+ * still renders together before opening the named post.
  */
 export function LeftoverPairList({
   pairs,
@@ -55,9 +62,21 @@ export function LeftoverPairList({
         );
         const rankBadge = formatLeftoverMapRank(pair.leftover_map_rank);
         const unexplained = formatLeftoverMapUnexplained(pair.leftover_map_unexplained);
-        const reconstruction = formatLeftoverMapReconstruction(pair.leftover_map_reconstruction);
+        const crossShareBadge = formatLeftoverMapCrossShare(pair.leftover_map_cross_share);
+        const reconstruction = formatLeftoverMapReconstruction(
+          pair.leftover_map_reconstruction,
+        );
+        const crossShareValue =
+          pair.leftover_map_cross_share != null && Number.isFinite(pair.leftover_map_cross_share)
+            ? pair.leftover_map_cross_share.toFixed(2)
+            : "—";
         let nextAction: string;
-        if (reconstruction !== null) {
+        if (crossShareBadge !== null) {
+          nextAction = tf(LEFTOVER_MAP_CROSS_SHARE_ACTION, {
+            value: crossShareValue,
+            criterion,
+          });
+        } else if (reconstruction !== null) {
           const signedReconstruction =
             formatSignedLeftoverValue(pair.leftover_map_reconstruction ?? Number.NaN) ?? "—";
           nextAction = tf(LEFTOVER_MAP_RECONSTRUCTION_ACTION, {
@@ -134,6 +153,7 @@ export function LeftoverPairList({
               {observedExpected ? <span className="post-badge">{observedExpected}</span> : null}
               {rankBadge ? <span className="post-badge">{rankBadge}</span> : null}
               {unexplained ? <span className="post-badge">{unexplained}</span> : null}
+              {crossShareBadge ? <span className="post-badge">{crossShareBadge}</span> : null}
               {reconstruction ? <span className="post-badge">{reconstruction}</span> : null}
               <span className="post-badge">d {pair.leftover_distance.toFixed(2)}</span>
             </button>
