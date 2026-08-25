@@ -397,7 +397,7 @@ def test_source_continuation_uses_sealed_snapshot_and_rechecks_page_endpoints(mo
     async def fake_focus_exists(*_args, **_kwargs):
         return True
 
-    async def fake_visible_by_nodes(_conn, endpoint_keys, _can_see_post):
+    async def fake_visible_by_nodes(_conn, endpoint_keys, _can_see_post, **_kwargs):
         assert (NODE_PERSON, PERSON_ID) in endpoint_keys
         return {(NODE_PERSON, PERSON_ID): [POST_ID]}
 
@@ -524,7 +524,7 @@ def test_skos_overflow_mints_source_cursor_for_continuation(monkeypatch) -> None
     async def fake_focus_exists(*_args, **_kwargs):
         return True
 
-    async def fake_visible_by_nodes(_conn, endpoint_keys, _can_see_post):
+    async def fake_visible_by_nodes(_conn, endpoint_keys, _can_see_post, **_kwargs):
         return {key: [POST_ID] for key in endpoint_keys}
 
     async def fake_skos(*_args, **_kwargs):

@@ -271,6 +271,29 @@ describe("OntologyExplorer", () => {
     expect(screen.queryByRole("img")).not.toBeInTheDocument();
   });
 
+  it("keeps complete long node labels in the rendered graph and exact-value table", () => {
+    const longLabel =
+      "Synthetic multilingual procurement governance decision with complete provenance";
+    const payload = neighborhood({
+      nodes: neighborhood().nodes.map((node, index) =>
+        index === 0 ? { ...node, display_label: longLabel } : node,
+      ),
+      exact_value_rows: neighborhood().exact_value_rows.map((row, index) =>
+        index === 0 ? { ...row, source_label: longLabel } : row,
+      ),
+    });
+    render(
+      <OntologyExplorer
+        focusNodeType="node_post"
+        focusNodeId={POST_ID}
+        neighborhood={payload}
+      />,
+    );
+
+    expect(screen.getAllByText(longLabel)).toHaveLength(2);
+    expect(screen.getByRole("button", { name: `Select node: Post ${longLabel}` })).toBeInTheDocument();
+  });
+
   it("names empty, truncated, denied, and rejected next actions", () => {
     const { rerender } = render(
       <OntologyExplorer

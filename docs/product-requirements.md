@@ -75,9 +75,14 @@ dangling endpoints fail closed; fixed input produces stable page boundaries.
 - Apply authorization/time/process scope before ranking and again before
   response delivery.
 - Keep internal post citations separate from external public citations.
+- Interpret natural-language retrieval through contextual-orchestrator while
+  accepting only literal question phrases; do not invent local stop-word,
+  expansion, scoring, or weighting rules.
 
 Acceptance: a semantic-only term can retrieve an authorized unit; private
-content never becomes an external query or citation.
+content never becomes an external query or citation; and multilingual
+conversational framing cannot suppress a persisted fact named by an exact
+question phrase.
 
 ### PRD-FR-5 — Evidence operations
 
@@ -90,6 +95,51 @@ content never becomes an external query or citation.
 Acceptance: each state tells the user the next valid action and never displays
 stale evidence from a previously opened post.
 
+### PRD-FR-5A — Opt-in public claim verification
+
+- Persist an explicit per-question opt-in before any external search begins.
+- Nominate only cited, public semantic/KG facts; source bodies, private facts,
+  personal facts, and measurement outputs never become external queries.
+- Retrieve bounded public evidence through SearXNG and adjudicate through
+  contextual-orchestrator's verification mode.
+- Report supported, refuted, and not-enough-information outcomes without
+  promoting public pages to internal ontology authority.
+- Keep external URLs visually and structurally separate from authorized
+  internal post citations.
+
+Acceptance: leaving the control off causes no public request; hidden or
+uncited facts cause no public request; unavailable services fail closed; and
+each displayed public judgment retains its originating internal evidence IDs.
+
+### PRD-FR-5B — Knowledge-cutoff Global Ask
+
+- Persist the optional cutoff with the asynchronous request and reject a future
+  instant against the database clock.
+- Apply authorization, eligibility, and cutoff filters before candidate limits,
+  then cite the retained source revision available at that instant.
+- Never replace a missing historical body or semantic channel with current
+  state; expose the limitation and later-live-change status.
+- Preserve the live contract when no cutoff is supplied.
+
+Acceptance: a later rewrite never appears in a cutoff answer; an uncovered
+revision is explicitly unavailable; and API and rendered citations identify
+the retained revision and full/partial grounding state.
+
+### PRD-FR-5C — Authenticated MCP Global Ask
+
+- Expose asynchronous submission and owner-scoped job reading over MCP while
+  reusing the REST application service and persisted answer payload.
+- Validate the exact MCP resource audience, provisioned account, permission,
+  affiliation scope, Host, Origin, and bounded request body before a tool runs.
+- Consume one distributed quota unit only for an admitted authenticated tool
+  call; preflight and rejected admission consume none.
+- Require deployment-supplied, load-evidence-backed quota parameters and fail
+  closed when shared Valkey cannot decide.
+
+Acceptance: MCP and REST produce the same scope snapshot, verification opt-in,
+knowledge cutoff, status, citations, and limitations; cross-account reads are
+404-equivalent; and exhaustion returns the bounded actual retry interval.
+
 ### PRD-FR-6 — Measurement boundary
 
 - Consume TEPP accepted/completed wire contracts and fast-mlsirm outputs; do
@@ -101,20 +151,6 @@ stale evidence from a previously opened post.
 
 Acceptance: missing/mismatched authority produces an unavailable state and no
 theta, weight vector, or completed-measurement claim.
-
-### PRD-FR-6A — Lineage arithmetic boundary
-
-- Keep authorization, evidence admission, provenance, orchestration,
-  persistence, and UI in LineageWeave.
-- Delegate temporal/psychometric measurement to TEPP, multilevel weight
-  estimation to fast-mlsirm, fusion/evaluation/policy selection to RankWeave,
-  and deterministic reference threading to ThreadWeave.
-- Do not calculate or renormalize scores or weights locally, and do not select
-  a candidate window or decision threshold from a fixed default or heuristic.
-
-Acceptance: every production numeric lineage result names an immutable owning
-implementation and evidence envelope. Missing authority is unavailable; no
-Python or local fallback emits a score, threshold, weight, or ranking.
 
 ### PRD-FR-7 — Ecosystem contracts
 
@@ -180,10 +216,10 @@ A release claim requires one exact protected-main head that proves:
 ## 7. Traceability
 
 - Product/data boundary: ADR 0001, ADR 0089.
-- Asynchronous delivery and database-pool isolation: ADR 0204.
+- Asynchronous delivery and database-pool isolation: ADR 0204, ADR 0213.
 - Knowledge Graph, ontology, and provenance: ADR 0004, ADR 0011, ADR 0065,
   ADR 0184, ADR 0207, ADR 0222.
-- Semantic units and retrieval: ADR 0047, ADR 0062, ADR 0102.
+- Semantic units and retrieval: ADR 0047, ADR 0062, ADR 0102, ADR 0217.
 - LLM/model boundary: ADR 0070, ADR 0072, ADR 0076, ADR 0079.
 - Measurement: ADR 0003, ADR 0145, ADR 0200, ADR 0205.
 - UX and publication: ADR 0118, ADR 0159.
@@ -204,7 +240,7 @@ current boundary until that repository adopts one.
 | `ContextualWisdomLab/keyverse` | `docs/PRD.md` | Production OIDC/JWKS/identity control plane; local demo Keycloak is not Keyverse |
 | `ContextualWisdomLab/RankWeave` | No standalone PRD; `README.md`, `ARCHITECTURE.md` | Store-agnostic ranking/fusion dependency; caller owns channels and authorization |
 | `ContextualWisdomLab/ThreadWeave` | `docs/PRD.md` | Deterministic reference-thread assembly dependency; LineageWeave owns records and persistence |
-| `ContextualWisdomLab/disksage` | No standalone PRD; `docs/superpowers/specs/2026-07-10-disksage-design.md` | Prospective storage-policy boundary; no current runtime integration |
+| `ContextualWisdomLab/DiskSage` | No standalone PRD; `docs/superpowers/specs/2026-07-10-disksage-design.md` | Prospective storage-policy boundary; no current runtime integration |
 | `ContextualWisdomLab/wardnet` | No standalone PRD; `README.md`, `docs/architecture.md` | Prospective gateway/network-policy boundary; no current runtime integration |
 | `ContextualWisdomLab/naruon` | Scoped `docs/topic-intelligence/PRD.md` only | Owns observed calendar/email projections; LineageWeave owns commitments and combined display |
 | `ContextualWisdomLab/LineageWeave` | This PRD, with ADRs normative | Evidence BI/orchestration, lineage, semantic projection, API, and UI owner |

@@ -125,8 +125,10 @@ class CurrentAccount:
         return permission_code in self.permission_codes
 
 
-def _decode_access_token(token: str, settings: Settings) -> dict:
-    """Validate signature, issuer, resource audience, time claims, and subject."""
+def decode_access_token(
+    token: str, settings: Settings, *, audience: str | None = None
+) -> dict:
+    """Validate a token for the REST or an explicit resource audience."""
     required_claims = ["exp", "sub"]
     if settings.keyverse_claim_binding_required:
         required_claims.insert(1, "iat")
@@ -136,7 +138,7 @@ def _decode_access_token(token: str, settings: Settings) -> dict:
             key=_signing_key(settings, token),
             algorithms=["RS256"],
             issuer=settings.oidc_issuer,
-            audience=settings.oidc_audience,
+            audience=audience or settings.oidc_audience,
             leeway=settings.oidc_clock_skew_seconds,
             options={"require": required_claims},
         )
@@ -148,6 +150,11 @@ def _decode_access_token(token: str, settings: Settings) -> dict:
     if not isinstance(subject, str) or not subject.strip():
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "access token has no subject")
     return claims
+
+
+def _decode_access_token(token: str, settings: Settings) -> dict:
+    """Validate a REST bearer token against the configured API audience."""
+    return decode_access_token(token, settings)
 
 
 def _keyverse_account_claims(claims: dict) -> tuple[str, str, list[str]]:
@@ -177,13 +184,10 @@ def _keyverse_account_claims(claims: dict) -> tuple[str, str, list[str]]:
     return organization, workspace, [role.strip() for role in roles]
 
 
-async def get_current_account(
-    credentials: HTTPAuthorizationCredentials = Depends(_bearer_scheme),
-    pool: asyncpg.Pool = Depends(get_pool),
+async def resolve_current_account(
+    pool: asyncpg.Pool, claims: dict, settings: Settings
 ) -> CurrentAccount:
-    """Resolve the bearer token to a provisioned ``user_account`` row."""
-    settings = load_settings()
-    claims = _decode_access_token(credentials.credentials, settings)
+    """Resolve verified claims to database-owned scope and permissions."""
     subject = claims["sub"]
     keyverse_scope = (
         _keyverse_account_claims(claims)
@@ -269,3 +273,13 @@ async def get_current_account(
         process_unit_ids=frozenset(str(row["process_unit_id"]) for row in process_rows),
         permission_codes=frozenset(row["permission_code"] for row in permission_rows),
     )
+
+
+async def get_current_account(
+    credentials: HTTPAuthorizationCredentials = Depends(_bearer_scheme),
+    pool: asyncpg.Pool = Depends(get_pool),
+) -> CurrentAccount:
+    """Resolve the bearer token to a provisioned ``user_account`` row."""
+    settings = load_settings()
+    claims = _decode_access_token(credentials.credentials, settings)
+    return await resolve_current_account(pool, claims, settings)
