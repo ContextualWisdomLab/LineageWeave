@@ -117,6 +117,7 @@ class _DeliveryOutcome:
     knowledge_cutoff: datetime | None = None
     request: AnalysisRunRequest | None = None
     persist_receipt: bool = False
+    persist_terminal_result: bool = False
 
 
 def reconstruction_result_digest(edges: list[Edge]) -> str:
@@ -297,8 +298,50 @@ def _tepp_status(
         return _RUNNING, "", response
     terminal = response["terminal_result"]
     if response["run_state"] == "failed":
-        return _FAILED, str(terminal["failure_code"]), terminal
-    return _SUCCEEDED, "", terminal
+        return _FAILED, str(terminal["failure_code"]), response
+    return _SUCCEEDED, "", response
+
+
+async def _persist_tepp_terminal_result(
+    conn: asyncpg.Connection,
+    *,
+    analysis_run_id: str,
+    envelope: dict[str, Any],
+) -> bool:
+    """Persist a validated TEPP status envelope without reshaping its evidence."""
+    remote_run_id = envelope.get("run_id")
+    if envelope.get("run_state") != "succeeded" or not isinstance(remote_run_id, str):
+        return False
+    result_json = json.dumps(envelope, separators=(",", ":"), sort_keys=True)
+    result_sha256 = hashlib.sha256(result_json.encode("utf-8")).hexdigest()
+    existing = await conn.fetchrow(
+        """
+        select remote_run_id, result_sha256
+        from analysis_run_tepp_result
+        where analysis_run_id = $1
+        """,
+        analysis_run_id,
+    )
+    if existing is not None:
+        return (
+            str(existing["remote_run_id"]) == remote_run_id
+            and str(existing["result_sha256"]) == result_sha256
+        )
+    try:
+        await conn.execute(
+            """
+            insert into analysis_run_tepp_result
+                (analysis_run_id, remote_run_id, result_json, result_sha256)
+            values ($1, $2, $3::jsonb, $4)
+            """,
+            analysis_run_id,
+            remote_run_id,
+            result_json,
+            result_sha256,
+        )
+    except (asyncpg.PostgresError, TypeError, ValueError):
+        return False
+    return True
 
 
 async def _persist_tepp_receipt(
@@ -1104,6 +1147,7 @@ def _execute_delivery_plan(
         corporate_entity_id=str(plan.locked["corporate_entity_id"]),
     )
     persist_receipt = False
+    persist_terminal_result = False
     if plan.work_kind_code == _TOPIC_LINEAGE_KIND:
         status_code, failure_code, envelope = topic_lineage_submit_outcome(
             tepp_client, request
@@ -1112,6 +1156,7 @@ def _execute_delivery_plan(
         status_code, failure_code, envelope = _tepp_status(
             tepp_client, request, str(plan.locked["remote_run_id"])
         )
+        persist_terminal_result = status_code == _SUCCEEDED and envelope is not None
     else:
         status_code, failure_code, envelope = _tepp_submission(tepp_client, request)
         persist_receipt = status_code == _RUNNING and envelope is not None
@@ -1125,6 +1170,7 @@ def _execute_delivery_plan(
         knowledge_cutoff=plan.locked["knowledge_cutoff"],
         request=request,
         persist_receipt=persist_receipt,
+        persist_terminal_result=persist_terminal_result,
     )
 
 
@@ -1180,7 +1226,13 @@ async def _persist_delivery_outcome(
             conn, analysis_run_id=analysis_run_id, edges=outcome.edges, finished=finished
         )
     elif outcome.status_code == _SUCCEEDED and outcome.envelope is not None:
-        if outcome.work_kind_code == _TOPIC_LINEAGE_KIND:
+        if outcome.persist_terminal_result:
+            persisted = await _persist_tepp_terminal_result(
+                conn,
+                analysis_run_id=analysis_run_id,
+                envelope=outcome.envelope,
+            )
+        elif outcome.work_kind_code == _TOPIC_LINEAGE_KIND:
             persisted = await _persist_topic_lineage_result(
                 conn, analysis_run_id=analysis_run_id, envelope=outcome.envelope
             )
