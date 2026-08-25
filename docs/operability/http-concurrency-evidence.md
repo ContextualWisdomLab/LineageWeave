@@ -56,6 +56,24 @@ or shared-runner result to a product guarantee.
 
 Figma and screenshot review do not apply: this is a non-UI HTTP load harness.
 
+## Exact-head synthetic verification record
+
+On 2026-08-26, an isolated Compose stack built from PR #663 commit
+`be361f10` completed an authenticated 4-VU, 30-second run against 27 synthetic
+`source_post` rows. The run completed 5,537 iterations and 16,613 HTTP
+requests; all 16,611 endpoint checks passed and k6 recorded no HTTP failures.
+Ask enqueue averaged 11.88 ms. Ask polling averaged 13.61 ms, with 21.46 ms
+p95 and 156.69 ms maximum. The combined post/lineage reader metric averaged
+19.57 ms, with 31.39 ms p95 and 198.64 ms maximum. Overall HTTP duration
+averaged 17.59 ms with 29.25 ms p95, at 183.44 iterations and 550.39 requests
+per second.
+
+The host exposed 10 logical CPUs and 32 GiB RAM; Compose imposed no explicit
+backend CPU or memory limit. This exact-head observation verifies concurrent
+responsiveness for the small synthetic fixture and the asynchronous Ask
+enqueue/poll path. It does not represent authorized production volume,
+establish capacity, isolate a causal bottleneck, or establish an SLO.
+
 ## Current-main verification record
 
 On 2026-08-25, a worktree based on protected-main commit `48f013a2` passed

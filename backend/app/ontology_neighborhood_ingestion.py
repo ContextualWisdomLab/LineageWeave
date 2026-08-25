@@ -175,8 +175,7 @@ async def visible_post_ids_for_focus(
     if focus_node_type_code == NODE_PROJECT:
         # Safe SQL: eligibility is an immutable schema fragment and the alias is
         # fixed here; all request-derived values remain asyncpg parameters.
-        rows = await conn.fetch(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
-            f"""
+        project_posts_sql = f"""
             select post.post_id, post.visibility_code, post.corporate_entity_id,
                    post.process_unit_id
               from post_project_mention mention
@@ -187,7 +186,9 @@ async def visible_post_ids_for_focus(
                     or greatest(post.created_at, mention.created_at) <= $2::timestamptz)
                and ($3::timestamptz is null
                     or greatest(post.created_at, mention.created_at) <= $3::timestamptz)
-            """,
+            """
+        rows = await conn.fetch(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
+            project_posts_sql,
             focus_node_id,
             knowledge_cutoff,
             snapshot_at,
