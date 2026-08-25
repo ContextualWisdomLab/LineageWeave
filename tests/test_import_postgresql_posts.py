@@ -328,6 +328,49 @@ def test_importer_has_no_unknown_publication_state_bypass() -> None:
         _parser().parse_args(["--allow-unknown-publication-state"])
 
 
+def test_no_draft_dimension_evidence_is_an_explicit_audited_door() -> None:
+    """An export with no authorship-draft dimension passes only with the
+    operator's written evidence; the note cannot be a placeholder and
+    cannot be combined with a mapped draft column.
+    """
+    no_draft_mapping = SimpleNamespace(
+        record_key="record_key", body="body", draft=None, deleted=None
+    )
+    evidence = (
+        "every candidate draft column is NULL across the export and the "
+        "prior full-corpus pipeline treated every lifecycle stage as a "
+        "real document"
+    )
+    _validate_source_rows(
+        [{"record_key": "one", "body": "body"}],
+        no_draft_mapping,
+        [],
+        [],
+        evidence,
+    )
+
+    with pytest.raises(ValueError, match="at least 40 characters"):
+        _validate_source_rows(
+            [{"record_key": "one", "body": "body"}],
+            no_draft_mapping,
+            [],
+            [],
+            "no drafts",
+        )
+
+    draft_mapping = SimpleNamespace(
+        record_key="record_key", body="body", draft="draft_state", deleted=None
+    )
+    with pytest.raises(ValueError, match="pick one publication-state door"):
+        _validate_source_rows(
+            [{"record_key": "one", "body": "body", "draft_state": "N"}],
+            draft_mapping,
+            ["Y"],
+            [],
+            evidence,
+        )
+
+
 def test_importer_rejects_demo_scope_without_explicit_test_override() -> None:
     with pytest.raises(ValueError, match="non-DEMO corporate entity code"):
         _validate_corporate_entity_scope("DEMO-CORP-01", allow_demo=False)
