@@ -203,17 +203,13 @@ async def verify_post_relations_from_pool(
             relation.counterparty_entity_name,
             relation.relationship_label,
         )
-        verified.append(
-            VerifiedRelation(
-                relation.counterparty_entity_name,
-                result.status_code,
-                result.evidence_url,
-                relation.internal_evidence_post_id,
-            )
+        completed = VerifiedRelation(
+            relation.counterparty_entity_name,
+            result.status_code,
+            result.evidence_url,
+            relation.internal_evidence_post_id,
         )
-
-    async with pool.acquire() as conn, conn.transaction():
-        for relation in verified:
+        async with pool.acquire() as conn:
             await conn.execute(
                 """
                 update post_counterparty_entity
@@ -225,9 +221,10 @@ async def verify_post_relations_from_pool(
                   and verification_status_code = 'verify_pending'
                 """,
                 post_id,
-                relation.counterparty_entity_name,
-                relation.verification_status_code,
-                relation.verification_evidence_url,
-                relation.verification_evidence_post_id,
+                completed.counterparty_entity_name,
+                completed.verification_status_code,
+                completed.verification_evidence_url,
+                completed.verification_evidence_post_id,
             )
+        verified.append(completed)
     return verified
