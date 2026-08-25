@@ -1,7 +1,7 @@
 # Product & Technical Gap Baseline
 
-> Dashboard delivery snapshot: 2026-08-26 07:04 KST. Protected `main` is
-> `7e9030c9a8ee2684e680c63013b304b435ba646e`. This local branch is not
+> Dashboard delivery snapshot: 2026-08-26 07:18 KST. Protected `main` is
+> `494b54e2245040bcf02b45376f221c37cd437e76`. This local branch is not
 > protected-main release evidence.
 
 ## Operations Dashboard PRD/TRD traceability
@@ -67,7 +67,7 @@ are not merge readiness. Re-fetch exact heads,
 unresolved threads, checks, approvals, rulesets, and merge SHA before any
 lifecycle claim.
 
-> Audit snapshot: 2026-08-26 07:04 KST (refreshed by the autonomous merge
+> Audit snapshot: 2026-08-26 07:18 KST (refreshed by the autonomous merge
 > loop). This repository records synthetic fixtures and aggregate,
 > non-identifying runtime evidence only. Open PRs and local checks are not
 > protected-default-branch release evidence. Identifying post identifiers,
@@ -76,7 +76,7 @@ lifecycle claim.
 
 ## 1. Exact-head and governance evidence
 
-The protected default branch is `7e9030c9a8ee2684e680c63013b304b435ba646e`
+The protected default branch is `494b54e2245040bcf02b45376f221c37cd437e76`
 at this refresh. The live queue contains 11 open PRs and 10
 open issues. The exact-head inventory below supersedes older per-PR snapshots
 elsewhere in this document; those older rows remain useful historical delivery
@@ -84,18 +84,17 @@ context only.
 
 | PR | Exact observed head | Merge/check state at this snapshot |
 | ---: | --- | --- |
-| #663 | `81bb8295` | project ontology traversal plus cutoff/snapshot-frozen project focus and labels; DIRTY and review-required |
-| #660 | `7e9030c9` | protected-main merge completed; backend runtime and semantic-unit stack now delivered |
-| #659 | `ccdfc6f1` | ontology node readability and tokenized UI fills; checks pending and review-required |
-| #658 | `fe830b0a` | evidence-honest Global Ask cutoff with revision-interval live-after semantics |
-| #657 | `64f48679` | Dashboard case-metric contract work |
-| #644 | `d9ff9980` | native-surface code splitting with modal-focus regression coverage |
-| #643 | `0a1f8ec1` | accessible status-notice surfaces |
-| #640 | `2d50fa01` | operations-dashboard contract alignment |
-| #639 | `aee02dca` | terminal checks observed; exact-head independent approval still required |
-| #632 | `a4059113` | active semantic provenance repair head; DIRTY with one stale Scorecard failure and pending checks |
-| #631 | `665046dc` | ADR decomposition documentation; blocked on review and hosted checks |
-| #629 | `6d2fb7b3` | provider-work release and bounded reads; blocked on review and hosted checks |
+| #667 | `3bc662d7` | baseline refresh; DIRTY and review-required |
+| #663 | `6fd2f701` | project ontology traversal plus cutoff/snapshot-frozen project focus and labels; DIRTY and review-required |
+| #658 | `f007a5ed` | evidence-honest Global Ask cutoff; BLOCKED with review required |
+| #657 | `2d9b43b7` | TEPP lifecycle persistence; BLOCKED with review required |
+| #644 | `ed8d97f3` | native-surface code splitting; BLOCKED with review required |
+| #643 | `7fb4d18c` | accessible status notices; BLOCKED with review required |
+| #640 | `2d50fa01` | operations-dashboard contract alignment; DIRTY and review-required |
+| #639 | `48065ad1` | running-action/config repair; BLOCKED with review required |
+| #632 | `29aee18d` | graph-fact provenance repair; BLOCKED and fresh checks required |
+| #631 | `665046dc` | ADR decomposition documentation; DIRTY and review-required |
+| #629 | `6d2fb7b3` | provider-work release and bounded reads; BLOCKED with review required |
 
 No row above is merge evidence. Immediately before any lifecycle action,
 re-fetch the head, unresolved threads, formal reviews, rulesets, and same-head
@@ -104,8 +103,9 @@ do not transfer evidence from an earlier SHA.
 
 PR #664 first merged into #660's non-default stack as
 `b2e48d5b0db59f5aa434e2a293cd182ee810c019`; PR #660 then passed the protected
-gate as merge commit `7e9030c9a8ee2684e680c63013b304b435ba646e`. The combined
-semantic-unit and backend contract implementation is now protected-main
+gate, followed by PR #659, with current protected merge commit
+`494b54e2245040bcf02b45376f221c37cd437e76`. The combined semantic-unit,
+backend-contract, and ontology-token implementation is now protected-main
 delivery evidence, while downstream authorized-runtime acceptance remains
 open.
 
@@ -374,7 +374,7 @@ this file per §3.5 of the prior snapshot).
 
 | Gap | Current evidence | Acceptance requirement |
 | --- | --- | --- |
-| Protected release | Protected `main@7e9030c9` includes the #660/#664 semantic-unit and backend contract stack. Eleven PRs remain open; every candidate still requires exact-head checks, unresolved-thread review, and independent approval before merge | Terminal exact-head checks, no unresolved threads, two independent exact-head approvals including last-push approval, protected squash-merge SHA |
+| Protected release | Protected `main@494b54e2` includes the #660/#664 semantic-unit/backend stack and #659 ontology readability/token repair. Eleven PRs remain open; every candidate still requires exact-head checks, unresolved-thread review, and independent approval before merge | Terminal exact-head checks, no unresolved threads, two independent exact-head approvals including last-push approval, protected squash-merge SHA |
 | Evidence-grounded operations workspace | Protected-main #614 delivers governed semantic Ask, live Similar VOC, disjoint pending/failed analysis metrics, full Storybook state inventory, and current desktop/mobile screenshot evidence. Authorized-corpus backfill acceptance remains unavailable | Perform authenticated authorized-corpus acceptance with aggregate evidence and retain fail-closed no-match behavior |
 | Shared frontend gate | The ADR 0109 login repair is on protected `main`; eight older branches carried the defect and received the same verified repair this loop (#521–#560) | Keep every future branch cut from post-repair bases; re-verify with frontend lint/test/build before push |
 | Identifying baseline regression | `main` gap file listed real post identifiers; separately, closed #506 and pre-existing public history contain a private runtime source-table identifier, while current `main` and #507 trees are clean | Land this non-identifying rewrite, then coordinate ADR 0001 history remediation with security/privacy owners; do not reproduce the value, force-push, or delete evidence ad hoc |
@@ -383,7 +383,7 @@ this file per §3.5 of the prior snapshot).
 | Image understanding | Region, OCR, and description work exists across active heads (#405, #419), but current runtime acceptance has not yet proved table-image structure, complete region coverage, or summary/image readiness together | Orchestrator-backed rendered workflow, original/derived asset provenance, region-before-OCR processing, and honest unsupported states; reconcile ADR 0052's image-bearing summary readiness with ADR 0098 before changing sequencing |
 | Semantic source rendering | ADR 0223 and migration 0221 are now delivered through protected `main@7e9030c9` via #664/#660; persisted paragraph, list, table, MathML formula, and caller-parsed conversation-turn kinds remain explicit and image regions remain ordered normalized children | Prove an authorized semantic-only query retrieves each persisted unit kind and gather authenticated browser evidence that nesting, continuation alignment, formula units, and image regions retain source order |
 | Event and project semantics | Multi-project mentions, project-bound actions, 5W1H, requester/processor, and semantic relations exist in ADR 0036/0052/0100/0111/0129 and active stacks | Aggregate authenticated evidence must show distinct projects and events, explicit requester/processor and real R&R, normalized relative time, and product/entity relations without promoting attendance or co-occurrence |
-| Knowledge Graph readability | The black evidence-node root cause is an undefined-token fallback; the design-token repair and long-label/evidence-table coverage remain only on closed, unmerged #490, not protected `main` | Recreate the token repair on a current base and deliver it through protected `main`, then verify light/dark contrast, keyboard graph navigation, full labels, and evidence tables in the authenticated rendered surface |
+| Knowledge Graph readability | PR #659 is protected-main delivery in `main@494b54e2`: ontology node types use semantic-family light/dark tokens while shape and text remain non-color channels; exact-value tables retain full labels | Complete authenticated rendered acceptance for light/dark contrast, keyboard graph navigation, full labels, and evidence tables |
 | Source-code lookup UX | Source state/detail codes remain evidence-bearing machine values and current detail presentation is dense | Catalog-backed display labels with raw-code provenance, compact 5W1H/source-detail hierarchy, keyboard access, and no unsupported customer/project binding |
 | Calendar / Naruon | #355 delivered the projection contract; v2.17.0 wires operator consumption without forwarding the end-user token. Naruon producer, provider/consumer fixtures, and protected merge remain open (#336) | Verify observed events against the published schema without invented events; keep commitments available when the channel is unwired |
 | SKOS organization aliases | Catalog binding and chip caption live on #480 / #482 | One catalog row per corroborated org; companion caption is hint-only until bound |
@@ -397,7 +397,7 @@ this file per §3.5 of the prior snapshot).
 | External integrations | Search, Zotero, calendar, Keyverse, orchestrator, RankWeave, ThreadWeave, TEPP, DiskSage, wardnet | Provider conformance, failure/reconciliation behavior, and provenance-bearing integration evidence |
 | MSA / modular reuse | LineageWeave must run standalone and as a consumer of org packages | Do not reimplement RankWeave/TEPP/orchestrator/ThreadWeave/Keyverse; fix upstream and PR there |
 | Product contract authority | This branch recreates the first LineageWeave PRD after superseded #613 closed without merge and records an exact-case ecosystem authority register; TEPP, fast-mlsirm, keyverse, and ThreadWeave have standalone PRDs, while contextual-orchestrator, RankWeave, DiskSage, and wardnet currently rely on product-planning/architecture documents and naruon has only a scoped Topic Intelligence PRD | Land the LineageWeave PRD, keep ADRs normative, and add standalone PRDs in each owning repository before making cross-product release claims beyond its documented boundary |
-| Release quality | Protected merge #660 is `7e9030c9`; the stacked tree passed the complete Python suite (1,352 passed, 17 skipped) before protected delivery. Frontend/Storybook, security, browser, and authorized-runtime evidence remain separate gaps | Repository-wide coverage, frontend/Storybook, security, browser, and authorized-runtime evidence on one exact head |
+| Release quality | Protected merges #660 and #659 are represented by `main@494b54e2`; the #660 stacked tree passed the complete Python suite (1,352 passed, 17 skipped) before protected delivery. Frontend/Storybook, security, browser, and authorized-runtime evidence remain separate gaps | Repository-wide coverage, frontend/Storybook, security, browser, and authorized-runtime evidence on one exact head |
 | PII | Masking would paralyze the product; ADR 0001 forbids identifying artifacts in git | ABAC + authorized runtime; synthetic fixtures in git; no mask-in-place that drops names the operator must read |
 | Database | PostgreSQL, 3NF, snake_case ≥ two words, hot-partition and lock policy | No file DBs; read/write split if lock management fails; whitelist every migration |
 
