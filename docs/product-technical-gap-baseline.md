@@ -84,17 +84,17 @@ context only.
 
 | PR | Exact observed head | Merge/check state at this snapshot |
 | ---: | --- | --- |
-| #667 | `3bc662d7` | baseline refresh; DIRTY and review-required |
-| #663 | `6fd2f701` | project ontology traversal plus cutoff/snapshot-frozen project focus and labels; DIRTY and review-required |
+| #667 | `89df50a3` | baseline refresh plus semantic delivery evidence; BLOCKED with review required |
+| #663 | `d3bb9348` | project ontology traversal plus cutoff/snapshot-frozen project focus and labels; BLOCKED with review required |
 | #658 | `f007a5ed` | evidence-honest Global Ask cutoff; BLOCKED with review required |
 | #657 | `2d9b43b7` | TEPP lifecycle persistence; BLOCKED with review required |
 | #644 | `ed8d97f3` | native-surface code splitting; BLOCKED with review required |
 | #643 | `7fb4d18c` | accessible status notices; BLOCKED with review required |
-| #640 | `2d50fa01` | operations-dashboard contract alignment; DIRTY and review-required |
-| #639 | `48065ad1` | running-action/config repair; BLOCKED with review required |
-| #632 | `29aee18d` | graph-fact provenance repair; BLOCKED and fresh checks required |
-| #631 | `665046dc` | ADR decomposition documentation; DIRTY and review-required |
-| #629 | `6d2fb7b3` | provider-work release and bounded reads; BLOCKED with review required |
+| #640 | `dd134e77` | operations-dashboard contract alignment; BLOCKED with review required |
+| #639 | `8da485d3` | running-action/config repair; BLOCKED with review required |
+| #632 | `4e3c6272` | graph-fact provenance repair; BLOCKED with review required |
+| #631 | `e6b4f0c4` | ADR decomposition documentation; BLOCKED with review required |
+| #629 | `0138db5f` | provider-work release and bounded reads; BLOCKED with review required |
 
 No row above is merge evidence. Immediately before any lifecycle action,
 re-fetch the head, unresolved threads, formal reviews, rulesets, and same-head
