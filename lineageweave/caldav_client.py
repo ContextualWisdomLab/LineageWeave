@@ -44,7 +44,9 @@ class HttpCalDavClient:
 
     def list_events(self) -> list[CalDavEvent]:
         """Fetch and parse events from the configured CalDAV endpoint."""
-        payload = get_json(self._events_url, timeout=10)
+        payload = get_json(
+            self._events_url, timeout=10, service_peer_name="caldav"
+        )
         rows = payload.get("events")
         if not isinstance(rows, list):
             return []

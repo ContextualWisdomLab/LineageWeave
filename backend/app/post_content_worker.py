@@ -11,13 +11,6 @@ from uuid import UUID
 import asyncpg
 import redis.asyncio as redis
 
-from lineageweave.embedding_client import EmbeddingClient
-from lineageweave.image_content import ImageContentClient
-from lineageweave.llm_context import build_post_llm_metadata, use_llm_metadata
-from lineageweave.post_content_normalization import normalize_post_body
-from lineageweave.post_content_persistence import persist_post_content
-from lineageweave.post_structure import PostStructureClient
-
 from backend.app.config import load_settings
 from backend.app.post_content_queue import (
     FAILED,
@@ -29,12 +22,21 @@ from backend.app.post_content_queue import (
     STALE_RUNNING_INTERVAL,
     SUCCEEDED,
     post_content_is_complete,
-    transition_post_content_job,
     republish_queued_post_content_jobs,
+    transition_post_content_job,
 )
+from lineageweave.embedding_client import EmbeddingClient
+from lineageweave.http_client import HttpClientError
+from lineageweave.image_content import ImageContentClient
+from lineageweave.llm_context import build_post_llm_metadata, use_llm_metadata
+from lineageweave.observability import record_server_failure, traced
+from lineageweave.post_content_normalization import normalize_post_body
+from lineageweave.post_content_persistence import persist_post_content
+from lineageweave.post_structure import PostStructureClient
 
 _logger = logging.getLogger(__name__)
 _RECOVERY_INTERVAL_SECONDS = 30.0
+_BROKER_RECOVERY_DELAY_SECONDS = 1.0
 _INCOMPLETE_FAILURE_CODE = "post_content_ingestion_incomplete"
 _ATTEMPT_LIMIT_FAILURE_CODE = "post_content_ingestion_attempt_limit"
 _SOURCE_BODY_MISSING_FAILURE_CODE = "post_content_source_body_missing"
@@ -43,7 +45,15 @@ _UNEXPECTED_FAILURE_DETAIL = "post-content provider operation failed; retry the 
 
 async def _stream_tail(client: redis.Redis) -> str:
     """Start after historical wake-ups; the normalized ledger drives recovery."""
-    rows = await client.xrevrange(POST_CONTENT_STREAM_KEY, count=1)
+    with traced(
+        "lineageweave.valkey.post_content_xrevrange",
+        {
+            "db.system": "redis",
+            "db.operation.name": "xrevrange",
+            "lineageweave.stream.kind": "post_content",
+        },
+    ):
+        rows = await client.xrevrange(POST_CONTENT_STREAM_KEY, count=1)
     return str(rows[0][0]) if rows else "0-0"
 
 
@@ -58,7 +68,7 @@ async def _claim_job(
     async with pool.acquire() as conn:
         async with conn.transaction():
             row = await conn.fetchrow(
-                f"""
+                """
                 select p.*, j.source_body_sha256 as job_source_body_sha256,
                        j.status_code as job_status_code,
                        j.attempt_count as job_attempt_count,
@@ -282,8 +292,16 @@ async def process_post_content_job(
                     expected_attempt_count=attempt_count,
                 )
                 return
-    except Exception:  # noqa: BLE001 - durable failure is recorded for retry.
-        _logger.exception("post content ingestion failed for post_id=%s", post_id)
+    except Exception as exc:  # noqa: BLE001 - durable failure is recorded for retry.
+        _logger.error("post content ingestion failed for post_id=%s", post_id)
+        outcome = (
+            "provider_unavailable"
+            if isinstance(
+                exc, (HttpClientError, TimeoutError, KeyError, OSError, ValueError)
+            )
+            else "internal_error"
+        )
+        record_server_failure("post_content_ingestion", exc, outcome=outcome)
         await _finish_failed_job(
             pool,
             post_id,
@@ -310,25 +328,47 @@ async def consume_post_content_stream_once(
     for each, and returns the last-seen entry id so the caller can resume
     from there on the next poll.
     """
-    batches = await client.xread({POST_CONTENT_STREAM_KEY: last_id}, count=10, block=1000)
-    for _stream_name, entries in batches:
-        for entry_id, fields in entries:
-            post_id = str(fields.get("post_id", "")).strip()
-            digest = str(fields.get("source_body_sha256", "")).strip()
-            try:
-                UUID(post_id)
-            except ValueError:
-                post_id = ""
-            if post_id and len(digest) == 64:
-                await process_post_content_job(
-                    pool,
-                    post_id=post_id,
-                    source_body_digest=digest,
-                    vision_factory=vision_factory,
-                    embedding_factory=embedding_factory,
-                    structure_factory=structure_factory,
-                )
-            last_id = str(entry_id)
+    try:
+        batches = await client.xread({POST_CONTENT_STREAM_KEY: last_id}, count=10, block=1000)
+    except Exception:
+        # Keep idle polls silent, but retain a diagnostic span for broker failures.
+        with traced(
+            "lineageweave.valkey.post_content_xread",
+            {
+                "db.system": "redis",
+                "db.operation.name": "xread",
+                "lineageweave.stream.kind": "post_content",
+            },
+        ):
+            raise
+    if not batches:
+        return last_id
+    with traced(
+        "lineageweave.valkey.post_content_batch",
+        {
+            "db.system": "redis",
+            "db.operation.name": "xread",
+            "lineageweave.stream.kind": "post_content",
+        },
+    ):
+        for _stream_name, entries in batches:
+            for entry_id, fields in entries:
+                post_id = str(fields.get("post_id", "")).strip()
+                digest = str(fields.get("source_body_sha256", "")).strip()
+                try:
+                    UUID(post_id)
+                except ValueError:
+                    post_id = ""
+                if post_id and len(digest) == 64:
+                    await process_post_content_job(
+                        pool,
+                        post_id=post_id,
+                        source_body_digest=digest,
+                        vision_factory=vision_factory,
+                        embedding_factory=embedding_factory,
+                        structure_factory=structure_factory,
+                    )
+                last_id = str(entry_id)
     return last_id
 
 
@@ -348,11 +388,17 @@ async def run_post_content_worker(
         if now - last_recovery >= _RECOVERY_INTERVAL_SECONDS:
             await republish_queued_post_content_jobs(client, pool)
             last_recovery = now
-        last_id = await consume_post_content_stream_once(
-            client,
-            pool,
-            last_id=last_id,
-            vision_factory=vision_factory,
-            embedding_factory=embedding_factory,
-            structure_factory=structure_factory,
-        )
+        try:
+            last_id = await consume_post_content_stream_once(
+                client,
+                pool,
+                last_id=last_id,
+                vision_factory=vision_factory,
+                embedding_factory=embedding_factory,
+                structure_factory=structure_factory,
+            )
+        except (redis.RedisError, OSError) as exc:
+            _logger.warning(
+                "post-content Valkey poll failed; retrying (error_type=%s)", type(exc).__name__
+            )
+            await asyncio.sleep(_BROKER_RECOVERY_DELAY_SECONDS)

@@ -145,6 +145,18 @@ contextual-orchestrator owns model discovery and selection.
   caption and OCR (ADR 0155); never show an internal LLM instruction such as
   `This post is an image` to a buyer.
 
+## Observability boundary
+
+- Follow governance-risk-compliance ADR 0009 and LineageWeave ADR 0122 for
+  OpenTelemetry. Use `OTEL_SERVICE_NAME` and
+  `OTEL_EXPORTER_OTLP_ENDPOINT`; exporting is opt-in and provider-neutral.
+- Correlate one post's HTTP, contextual-orchestrator, and Valkey work with the
+  existing post-scoped session metadata. Do not create an ad hoc session table.
+- Telemetry may contain bounded operation, route-template, service-peer, and
+  correlation attributes, but never post body, prompt, answer, source content,
+  actor or tenant identifiers, credentials, raw stream keys, or provider
+  responses. GRC remains the control/evidence owner.
+
 ## Source parsing and semantic units
 
 - Preserve the source representation and provenance, then derive semantic

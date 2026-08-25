@@ -69,6 +69,7 @@ flowchart LR
 | `rankweave_client.py` | Fail-closed RankWeave ranking port (`weighted_reciprocal_rank_fuse` in-process; never invent a fused score or a theta) |
 | `reconstruct.py` | The pipeline: group → candidate window → score → fuse → thread |
 | `lineage_persistence.py` | Flattens reconstruct trees into `post_lineage_edge` row specs (parent, child, fused_score) |
+| `interval_relation.py` | Allen (1983) closed interval relations for those edges. Each post is a point interval on its observed UTC `created_at` day; mutable ticket dates are not Event Lineage evidence. |
 | `knowledge_graph.py` | Random-walk-with-restart relevance + per-node adaptive related-node cutoff (Tong et al., 2006) -- pure graph math, no Postgres |
 | `keyman_extraction.py` | Pluggable LLM extraction of two-sided (our-side/counterparty) person mentions + N:N org affiliations from a post |
 | `entity_relationship_classification.py` | Pluggable LLM classification of a named organization's relationship to the post author (`rel_voc`/`rel_vom`/`rel_vop`/`rel_vocc`/`rel_voco`/`rel_vos`) |
@@ -224,9 +225,12 @@ contextual-orchestrator; persist is `backend/app/keyman_ingestion.py`.
 `GET /api/lineage` returns the ABAC-filtered reconstruct graph
 (`{nodes, edges}`) from persisted `post_lineage_edge` rows. Each node
 includes `group` from the same `reconstruct_group_key()` rebuild uses
-(persisted `thread_group_key`, else process unit, else corp).
+(persisted `thread_group_key`, else process unit, else corp). Each
+direct edge includes `interval_relation_code` / `interval_relation_label`
+(Allen, 1983; ADR 0161) computed from the two posts' observed windows.
 `POST /api/lineage/rebuild` (`post_admin`) re-runs `reconstruct()` over
-every `source_post` and rewrites those edges. Reconstruct grouping is
+every `source_post` and rewrites those edges, then names the interval
+relation in the same transaction. Reconstruct grouping is
 stored on the post as `thread_group_key` / `secondary_grouping_key`
 (not derived from process unit or voc type).
 

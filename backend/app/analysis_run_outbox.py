@@ -13,6 +13,8 @@ from datetime import datetime, timezone
 
 import redis.asyncio as redis
 
+from lineageweave.observability import traced
+
 OUTBOX_STREAM_KEY = "analysis-run-outbox"
 _CLAIMED = "analysis_outbox_claimed"
 _DELIVERED = "analysis_outbox_delivered"
@@ -69,16 +71,20 @@ async def publish_outbox_event(
     if client is None:
         return None
     try:
-        entry_id = await client.xadd(
-            OUTBOX_STREAM_KEY,
-            outbox_stream_fields(
-                analysis_run_id=analysis_run_id,
-                work_kind_code=work_kind_code,
-                request_sha256=request_sha256,
-            ),
-            maxlen=1000,
-            approximate=True,
-        )
+        with traced(
+            "lineageweave.valkey.analysis_outbox_xadd",
+            {"db.system": "redis", "db.operation.name": "xadd", "lineageweave.stream.kind": "analysis_outbox"},
+        ):
+            entry_id = await client.xadd(
+                OUTBOX_STREAM_KEY,
+                outbox_stream_fields(
+                    analysis_run_id=analysis_run_id,
+                    work_kind_code=work_kind_code,
+                    request_sha256=request_sha256,
+                ),
+                maxlen=1000,
+                approximate=True,
+            )
     except redis.RedisError:
         return None
     return str(entry_id)

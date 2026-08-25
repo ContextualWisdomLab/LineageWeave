@@ -1626,7 +1626,15 @@ describe("App, authenticated", () => {
         return Promise.resolve(
           jsonResponse({
             post_id: "post-1",
-            direct: [],
+            direct: [
+              {
+                post_id: "rec-003",
+                post_title: "Pricing renegotiation: revised quote sent",
+                interval_relation_code: "interval_contains",
+                interval_relation_label: "Contains",
+                interval_is_parent: true,
+              },
+            ],
             indirect: [{ post_id: "post-2", post_title: "Linked post" }],
           }),
         );
@@ -2348,6 +2356,8 @@ describe("App, authenticated", () => {
     );
     expect(relatedPosts).not.toBeNull();
     expect(within(relatedPosts as HTMLElement).getByText("Indirect relation")).toBeInTheDocument();
+    expect(within(relatedPosts as HTMLElement).getByText("Direct relation")).toBeInTheDocument();
+    expect(within(relatedPosts as HTMLElement).getByText("Contains")).toBeInTheDocument();
     expect(relatedPosts).toHaveTextContent("Linked post");
     // The Event Lineage DAG belongs to the opened post, not the list surface.
     expect(screen.getAllByLabelText("A-100 lineage")).toHaveLength(1);
