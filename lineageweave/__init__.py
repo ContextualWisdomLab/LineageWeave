@@ -1,10 +1,9 @@
-"""LineageWeave: reconstructs git-branch-style lineage DAGs from scattered
-short records by fusing independent, individually-weak signals (temporal
-proximity, shared grouping keys, text similarity, and optional LLM
-adjudication) into a single per-record parent choice.
+"""LineageWeave: reconstruct evidence-bounded lineage DAGs.
 
-See ARCHITECTURE.md for the design and docs/lineage-bi-research-notes.md
-for the literature this design is grounded in.
+LineageWeave fuses independent signals such as temporal proximity, shared
+keys, text similarity, and optional adjudication into per-record parent choices.
+See ``ARCHITECTURE.md`` and ``docs/lineage-bi-research-notes.md`` for the
+product and research boundaries.
 """
 
 from .affiliate_tree import build_affiliate_forest
@@ -13,6 +12,15 @@ from .entity_relationship_classification import OrganizationRelationship
 from .knowledge_graph import random_walk_with_restart, select_related_nodes
 from .lineage_persistence import lineage_edge_specs
 from .models import Edge, Record, Tree
+from .naruon_calendar_projection import (
+    NARUON_CALENDAR_MEDIA_TYPE,
+    NARUON_CALENDAR_SCHEMA_VERSION,
+    NaruonCalendarContractError,
+    NaruonCalendarOccurrence,
+    NaruonCalendarPage,
+    NaruonCalendarProjectionClient,
+    parse_naruon_calendar_page,
+)
 from .post_chat import ChatAnswer, cited_post_summaries
 from .post_summary import PostSummary
 from .prov_o import (
@@ -32,6 +40,12 @@ from .voc_evidence import sentence_excerpts
 __all__ = [
     "ChatAnswer",
     "Edge",
+    "NARUON_CALENDAR_MEDIA_TYPE",
+    "NARUON_CALENDAR_SCHEMA_VERSION",
+    "NaruonCalendarContractError",
+    "NaruonCalendarOccurrence",
+    "NaruonCalendarPage",
+    "NaruonCalendarProjectionClient",
     "OrganizationRelationship",
     "PROV",
     "PROV_CLASSES",
@@ -48,6 +62,7 @@ __all__ = [
     "build_affiliate_forest",
     "cited_post_summaries",
     "lineage_edge_specs",
+    "parse_naruon_calendar_page",
     "random_walk_with_restart",
     "reconstruct",
     "resolve_corporate_entity",

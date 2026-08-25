@@ -128,11 +128,13 @@ def test_library_transport_fails_closed_when_fuse_raises(
         "lineageweave.rankweave_client._import_rankweave", lambda: FakeRw
     )
     client = RankWeaveClient(transport=LibraryRankWeaveTransport())
-    with pytest.raises(RankWeaveNotAvailable, match="rankweave_not_available"):
+    with pytest.raises(RankWeaveNotAvailable) as error:
         client.fuse_rankings(
             {"temporal": ["post-1"], "lexical": ["post-1"]},
             {"post-1": "Public post"},
         )
+    assert "rankweave_not_available" in str(error.value)
+    assert "duplicate identifiers" not in str(error.value)
 
 
 def test_injected_transport_returns_accepted_hits() -> None:
