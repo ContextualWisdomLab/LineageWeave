@@ -154,6 +154,15 @@ def _upstream_map_indices_are_valid(
     )
 
 
+def _upstream_map_is_valid(result: Any, post_count: int, item_count: int) -> bool:
+    """Apply one fail-closed envelope contract to map rows and coverage."""
+    return (
+        _upstream_map_has_expected_shape(result)
+        and _upstream_map_indices_are_valid(result, post_count, item_count)
+        and _upstream_map_coordinates_are_finite(result)
+    )
+
+
 def leftover_pairs_from_residual(
     post_ids: list[str],
     item_codes: tuple[str, ...],
@@ -175,11 +184,7 @@ def leftover_map_from_residual(
     result = residual_interaction_map(matrix, expected, axis_count=_LEFTOVER_MAP_AXES)
     if result.person_indices.size == 0 or result.item_indices.size == 0:
         return LeftoverInteractionMap(pairs=(), persons=(), items=(), axes=())
-    if not _upstream_map_has_expected_shape(result):
-        return LeftoverInteractionMap(pairs=(), persons=(), items=(), axes=())
-    if not _upstream_map_indices_are_valid(result, len(post_ids), len(item_codes)):
-        return LeftoverInteractionMap(pairs=(), persons=(), items=(), axes=())
-    if not _upstream_map_coordinates_are_finite(result):
+    if not _upstream_map_is_valid(result, len(post_ids), len(item_codes)):
         return LeftoverInteractionMap(pairs=(), persons=(), items=(), axes=())
 
     persons = tuple(
@@ -278,8 +283,9 @@ def leftover_map_coverage_from_residual(
     """Map fast-mlsirm's scored and complete-case coverage counts."""
     _validate_identifiers(post_ids, item_codes, matrix)
     result = residual_interaction_map(matrix, expected, axis_count=_LEFTOVER_MAP_AXES)
-    map_post_count = int(result.person_indices.size)
-    map_item_count = int(result.item_indices.size)
+    map_is_valid = _upstream_map_is_valid(result, len(post_ids), len(item_codes))
+    map_post_count = int(result.person_indices.size) if map_is_valid else 0
+    map_item_count = int(result.item_indices.size) if map_is_valid else 0
     return LeftoverMapCoverage(
         map_post_count=map_post_count,
         scored_post_count=result.scored_person_count,

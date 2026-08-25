@@ -243,6 +243,14 @@ def test_out_of_range_provider_indices_fail_closed(
         ["post-a", "post-b"], ("item-a", "item-b"), observed, expected
     ) == leftover.LeftoverInteractionMap(pairs=(), persons=(), items=(), axes=())
 
+    coverage = leftover.leftover_map_coverage_from_residual(
+        ["post-a", "post-b"], ("item-a", "item-b"), observed, expected
+    )
+    assert coverage.map_post_count == 0
+    assert coverage.map_item_count == 0
+    assert coverage.incomplete_post_count == coverage.scored_post_count
+    assert coverage.incomplete_item_count == coverage.scored_item_count
+
 
 def test_inconsistent_provider_residual_is_excluded_before_selection(
     monkeypatch: pytest.MonkeyPatch,
