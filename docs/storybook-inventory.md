@@ -17,6 +17,7 @@ operator-facing control you can click before changing product CSS.
 | `Workspace/WorkspaceCalendar` | Read observed Naruon events, or open a commitment to land on that post. Fail-closed copy stays `이 범위의 일정을 아직 받을 수 없습니다`. | `--color-chip-border`, `WorkspaceCalendar`, `EvidenceStatusMark` |
 | `Ask Agent/Public claim verification` | Compare supported, refuted, and not-enough-information states; open only the external evidence link, then review the separate internal citation before changing governed graph state. | `--space-panel-block`, `--space-control-gap`, `--color-border`, `--size-control-min`, `PublicClaimVerification` |
 | `Ask Agent/Knowledge cutoff` | Exercise partial historical grounding, retained-revision provenance, later-live-change disclosure, and the narrow viewport before relying on a historical answer. | Native `datetime-local`, `--space-panel-block`, `--space-control-gap`, `--color-border`, `--size-control-min` |
+| `Evidence/OntologyExplorer` | Inspect the typed graph and the same authorized exact-value evidence. `LongLabelsAndEvidenceTable` proves complete labels wrap without character-count truncation; narrow, drawer, legend/filter, empty, truncated, partial, denied, stale, and rejected scenes cover the remaining decision states. | `--color-background`, `--color-text-heading`, `--color-table-border`, `OntologyExplorer` |
 
 Repeated web objects must use `frontend/src/styles/tokens.css` and a module
 under `frontend/src/components/`. Do not add a second Node package manager;
