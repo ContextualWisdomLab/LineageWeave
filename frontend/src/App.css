@@ -1157,9 +1157,28 @@
 
 .ontology-node {
   cursor: pointer;
-  fill: var(--color-background);
   stroke: var(--color-text-heading);
   stroke-width: 1.5;
+}
+
+.ontology-node-post {
+  fill: var(--ontology-node-post-fill);
+}
+
+.ontology-node-person {
+  fill: var(--ontology-node-person-fill);
+}
+
+.ontology-node-organization {
+  fill: var(--ontology-node-organization-fill);
+}
+
+.ontology-node-team {
+  fill: var(--ontology-node-team-fill);
+}
+
+.ontology-node-generic {
+  fill: var(--ontology-node-generic-fill);
 }
 
 .ontology-node text {
@@ -1170,7 +1189,7 @@
   font-size: 0.8rem;
 }
 
-.ontology-node-type {
+.ontology-node text.ontology-node-type {
   font-size: 0.7rem;
   fill: var(--color-text);
 }
@@ -1216,7 +1235,17 @@
 
 .ontology-exact-values {
   margin-top: 1rem;
+  max-width: 100%;
   overflow-x: auto;
+  overscroll-behavior-inline: contain;
+  scrollbar-gutter: stable;
+  -webkit-overflow-scrolling: touch;
+}
+
+.ontology-exact-values:focus-visible {
+  outline: 2px solid var(--color-focus-border);
+  outline-offset: 2px;
+  border-radius: var(--radius-control);
 }
 
 .ontology-exact-values table {
