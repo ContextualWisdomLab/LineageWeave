@@ -57,8 +57,18 @@ export function setup() {
 export default function (data) {
   const params = { headers: { Authorization: `Bearer ${data.token}` } };
   const responses = http.batch([
-    ["GET", `${backendUrl}/api/posts`, null, { ...params, tags: { endpoint: "posts" }, timeout: requestTimeout }],
-    ["GET", `${backendUrl}/api/lineage`, null, { ...params, tags: { endpoint: "lineage" }, timeout: requestTimeout }],
+    [
+      "GET",
+      `${backendUrl}/api/posts`,
+      null,
+      { ...params, tags: { endpoint: "posts" }, timeout: requestTimeout },
+    ],
+    [
+      "GET",
+      `${backendUrl}/api/lineage`,
+      null,
+      { ...params, tags: { endpoint: "lineage" }, timeout: requestTimeout },
+    ],
     [
       "GET",
       `${backendUrl}/api/ask/jobs/${data.askJobId}`,

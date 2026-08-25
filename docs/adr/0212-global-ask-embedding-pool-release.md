@@ -1,7 +1,7 @@
 # ADR 0212 — Global Ask embeds before acquiring a pooled connection
 
-**Decision status:** Accepted  
-**Date:** 2026-08-25  
+**Decision status:** Accepted
+**Date:** 2026-08-25
 **Related:** [0204](0204-analysis-run-short-transaction-delivery.md)
 
 ## Context
