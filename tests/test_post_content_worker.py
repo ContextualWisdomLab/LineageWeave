@@ -6,6 +6,7 @@ import asyncio
 from contextlib import asynccontextmanager
 from datetime import UTC, datetime
 from types import SimpleNamespace
+from uuid import UUID
 
 import pytest
 
@@ -127,6 +128,7 @@ def test_operations_sources_bind_milestones_to_source_owned_clocks(monkeypatch) 
     class SourceConnection(_Connection):
         async def fetch(self, query: str, *_args: object):
             assert "coalesce(event_occurred_at, created_at) as observed_at" in query
+            assert isinstance(_args[0][0], UUID)
             return [{
                 "post_id": "00000000-0000-0000-0000-000000000001",
                 "event_occurred_at": observed_at,

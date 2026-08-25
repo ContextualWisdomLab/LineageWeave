@@ -282,7 +282,15 @@ async def fetch_operations_dashboard(
           join source_post post on post.post_id = missing.post_id
          where {visible}
            and ($5::boolean is false or missing.case_kind_code = 'external_information')
-         order by missing.post_id, missing.case_kind_code, missing.fact_type_code
+        union all
+        select fact.post_id, fact.case_kind_code, fact.fact_type_code
+          from operations_case_fact fact
+          join source_post post on post.post_id = fact.post_id
+          join source_post evidence_post on evidence_post.post_id = fact.evidence_post_id
+         where {visible}
+           and not ({visible_evidence})
+           and ($5::boolean is false or fact.case_kind_code = 'external_information')
+         order by post_id, case_kind_code, fact_type_code
         """,
         *args,
     )

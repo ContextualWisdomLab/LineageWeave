@@ -72,6 +72,7 @@ async def _operations_evidence_sources(
         sources = await gather_chat_sources(conn, post_id, can_see, vision_client)
         if not sources:
             return ()
+        source_post_ids = [UUID(source.post_id) for source in sources]
         source_times = {
             str(row["post_id"]): (
                 row["observed_at"],
@@ -83,7 +84,7 @@ async def _operations_evidence_sources(
                 "select post_id, event_occurred_at, "
                 "coalesce(event_occurred_at, created_at) as observed_at "
                 "from source_post where post_id = any($1::uuid[])",
-                [source.post_id for source in sources],
+                source_post_ids,
             )
         }
     if any(source.post_id not in source_times for source in sources):

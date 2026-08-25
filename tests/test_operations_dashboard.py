@@ -31,6 +31,12 @@ class _Connection:
 
     async def fetch(self, query: str, *args: object) -> list[dict[str, object]]:
         self.queries.append((query, args))
+        if "operations_case_missing_fact missing" in query:
+            return [{
+                "post_id": "00000000-0000-0000-0000-000000000001",
+                "case_kind_code": "claim_investigation",
+                "fact_type_code": "sales_pool",
+            }]
         if "operations_case_fact fact" in query:
             return [
                 {
@@ -44,12 +50,6 @@ class _Connection:
                     "relation_target_kind_code": None,
                 }
             ]
-        if "operations_case_missing_fact missing" in query:
-            return [{
-                "post_id": "00000000-0000-0000-0000-000000000001",
-                "case_kind_code": "claim_investigation",
-                "fact_type_code": "sales_pool",
-            }]
         if "operations_case_milestone milestone" in query:
             return [
                 {

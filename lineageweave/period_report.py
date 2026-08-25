@@ -127,6 +127,14 @@ class PeriodReport:
     leftover_map_coverage: LeftoverMapCoverage | None = None
 
 
+def _diagnostic_float(diagnostics: object, key: str) -> float:
+    """Read a required fast-mlsirm diagnostic without inventing a fallback."""
+    best = getattr(diagnostics, "best", None)
+    if not isinstance(best, dict) or key not in best:
+        raise RuntimeError(f"fast-mlsirm diagnostic contract missing {key!r}")
+    return float(best[key])
+
+
 def assemble_response_matrix(
     post_ids: list[str],
     rows: list[tuple[str, str, int]],
@@ -297,7 +305,7 @@ def calibrate_period_report(
         item_count=len(item_codes),
         fit_loglik=float(fit.loglik),
         fit_converged=bool(fit.converged),
-        calibration_score=float(diagnostics.best["calibration_score"]),
+        calibration_score=_diagnostic_float(diagnostics, "calibration_score"),
         member_scores=_member_scores(post_ids, scores),
         item_bank=item_bank,
         link_method=LINK_METHOD_FREE,
@@ -345,9 +353,9 @@ def score_period_on_bank(
         mean_theta_sd=float(theta.std(ddof=0)),
         post_count=len(post_ids),
         item_count=len(item_bank.item_codes),
-        fit_loglik=float(diagnostics.best["heldout_loglik"]),
+        fit_loglik=_diagnostic_float(diagnostics, "heldout_loglik"),
         fit_converged=True,
-        calibration_score=float(diagnostics.best["calibration_score"]),
+        calibration_score=_diagnostic_float(diagnostics, "calibration_score"),
         member_scores=_member_scores(post_ids, scores),
         item_bank=item_bank,
         link_method=LINK_METHOD_FIPC,
