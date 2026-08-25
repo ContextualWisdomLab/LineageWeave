@@ -634,6 +634,11 @@ async def _fetch_topic_context_dashboard(
     )
     if not rows:
         tepp_ready = bool(readiness and readiness["tepp_posterior_persisted"])
+        # The readiness query can see an accepted influence row from a
+        # different selected run than the projection query.  In an empty
+        # projection, report fast-mlsirm as unavailable for this exact
+        # visible/time window rather than claiming a persisted contract.
+        fast_mlsirm_ready = False
         return {
             "status_code": "unavailable",
             "reason_code": (
@@ -657,7 +662,7 @@ async def _fetch_topic_context_dashboard(
                     "schema_version": "fast_mlsirm.topic_context_influence.v1",
                     "state_code": (
                         "persisted"
-                        if readiness and readiness["fast_mlsirm_influence_persisted"]
+                        if fast_mlsirm_ready
                         else "not_persisted"
                     ),
                 },

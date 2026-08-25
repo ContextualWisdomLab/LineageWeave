@@ -362,6 +362,26 @@ async def test_dashboard_names_missing_fast_result_after_tepp_persistence() -> N
 
 
 @pytest.mark.anyio
+async def test_empty_projection_does_not_claim_fast_result_persisted() -> None:
+    """An empty visible projection must not contradict its contract state."""
+
+    class ReadyButEmptyConnection(_Connection):
+        async def fetchrow(self, query: str, *args: object) -> dict[str, object]:
+            if "tepp_posterior_persisted" in query:
+                self.queries.append((query, args))
+                return {
+                    "tepp_posterior_persisted": True,
+                    "fast_mlsirm_influence_persisted": True,
+                }
+            return await super().fetchrow(query, *args)
+
+    result = await fetch_operations_dashboard(ReadyButEmptyConnection(), [])
+    contracts = result["topic_context"]["required_contracts"]
+    assert contracts[0]["state_code"] == "persisted"
+    assert contracts[1]["state_code"] == "not_persisted"
+
+
+@pytest.mark.anyio
 async def test_topic_readiness_uses_projection_temporal_windows() -> None:
     """Readiness cannot count influence rows the projection must reject by time."""
     conn = _Connection()
