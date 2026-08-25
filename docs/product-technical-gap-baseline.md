@@ -41,7 +41,7 @@ context only.
 | #394 | `1f1667f2` | blocked; required checks pending |
 | #387 | `519d0e63` | estimated fusion-weight persistence repaired; auto-merge armed, checks and independent review pending |
 | #383 | `17341fe8` | queued Ask diagnostics composed into the canonical OTel PR; auto-merge armed, checks and independent review pending |
-| #355 | `0a2a72c5` | deterministic empty-body failure repaired; auto-merge armed, exact-head checks and independent review pending |
+| #355 | `761fdfeb` | Naruon ADR allocated as 0203 after empty-body repair; auto-merge armed, checks and independent review pending |
 
 No row above is merge evidence. Immediately before any lifecycle action,
 re-fetch the head, unresolved threads, formal reviews, rulesets, and same-head
