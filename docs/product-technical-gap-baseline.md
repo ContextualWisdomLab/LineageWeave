@@ -39,7 +39,7 @@ context only.
 | #468 | `f7886575` | dirty; Strix failed |
 | #434 | `d7766b39` | current-main reconciliation pushed; checks restarted |
 | #394 | `1f1667f2` | blocked; required checks pending |
-| #387 | `519d0e63` | estimated fusion-weight persistence repaired; auto-merge armed, checks and independent review pending |
+| #387 | `2b95a8be` | persistence and active-channel weight lookup repaired; auto-merge armed, checks and independent review pending |
 | #383 | `17341fe8` | queued Ask diagnostics composed into the canonical OTel PR; auto-merge armed, checks and independent review pending |
 | #355 | `761fdfeb` | Naruon ADR allocated as 0203 after empty-body repair; auto-merge armed, checks and independent review pending |
 
