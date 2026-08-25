@@ -305,7 +305,7 @@ async def lifespan(app: FastAPI):
                 ),
                 embedding_factory=_embedding_client,
                 semantic_query_factory=_semantic_query_client,
-                claim_verification_factory=_claim_verification_client,
+                claim_verification_factory=_claim_verification_client_factory,
             )
         )
         app.state.global_ask_worker = global_ask_worker
@@ -397,6 +397,11 @@ def _claim_verification_client():
         settings.orchestrator_base_url,
         settings.orchestrator_api_key,
     )
+
+
+def _claim_verification_client_factory():
+    """Resolve the verifier late so runtime overrides reach the worker."""
+    return _claim_verification_client()
 
 
 def _organization_name_resolution_client():
