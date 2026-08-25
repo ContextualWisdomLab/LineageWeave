@@ -60,14 +60,14 @@ only aggregate, non-identifying evidence to this repository.
 
 ### Exact open-PR boundary
 
-At this snapshot there were 13 open PRs and 10 open issues. The exact-head
+At this snapshot there were 14 open PRs and 10 open issues. The exact-head
 inventory in section 1 is authoritative for this snapshot. Every open head
 remained blocked on hosted gates and/or independent review. These observations
 are not merge readiness. Re-fetch exact heads,
 unresolved threads, checks, approvals, rulesets, and merge SHA before any
 lifecycle claim.
 
-> Audit snapshot: 2026-08-26 07:32 KST (refreshed by the autonomous merge
+> Audit snapshot: 2026-08-26 08:00 KST (refreshed by the autonomous merge
 > loop). This repository records synthetic fixtures and aggregate,
 > non-identifying runtime evidence only. Open PRs and local checks are not
 > protected-default-branch release evidence. Identifying post identifiers,
@@ -77,14 +77,15 @@ lifecycle claim.
 ## 1. Exact-head and governance evidence
 
 The protected default branch is `494b54e2245040bcf02b45376f221c37cd437e76`
-at this refresh. The live queue contains 13 open PRs and 10
+at this refresh. The live queue contains 14 open PRs and 10
 open issues. The exact-head inventory below supersedes older per-PR snapshots
 elsewhere in this document; those older rows remain useful historical delivery
 context only.
 
 | PR | Exact observed head | Merge/check state at this snapshot |
 | ---: | --- | --- |
-| #667 | `76e999c2` | baseline refresh branch exact head at this snapshot; BLOCKED with review required |
+| #667 | `c7e93196` | baseline refresh branch exact head at this snapshot; BLOCKED with review required |
+| #671 | `ee660510` | ADR 0133–0137 gap decomposition; UNSTABLE with hosted checks pending |
 | #668 | `f272f4b0` | evidence-bound project history projection with request guards and normalized keys; BLOCKED with review required |
 | #669 | `21bb799c` | cancelled-analysis next-action guidance, responsive audit evidence, and responsive grid repair; UNSTABLE with hosted checks pending |
 | #663 | `7ac1483e` | project ontology traversal, cutoff-snapshot project focus, bounded MCP admission, and migration-fixture/worker startup repair; BLOCKED with review required |
