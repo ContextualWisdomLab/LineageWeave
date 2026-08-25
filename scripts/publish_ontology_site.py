@@ -159,36 +159,34 @@ def validate_shapes_graph(shapes: Graph, canonical: Graph) -> None:
             raise ValueError(
                 f"SHACL {kind} target outside the canonical namespace: {value}"
             )
-    declared = {
+    declared_classes = {
         subject
         for subject in canonical.subjects(RDF.type, OWL.Class)
         if isinstance(subject, URIRef)
     }
-    declared.update(
+    # Entailed classes: anything with a subclass assertion is a class.
+    declared_classes.update(
         subject
-        for subject in canonical.subjects(RDF.type, SKOS.Concept)
+        for subject, _ in canonical.subject_objects(RDFS.subClassOf)
         if isinstance(subject, URIRef)
     )
-    declared.update(
+    declared_properties = {
         subject
         for subject in canonical.subjects(RDF.type, OWL.ObjectProperty)
         if isinstance(subject, URIRef)
-    )
-    declared.update(
+    }
+    declared_properties.update(
         subject
         for subject in canonical.subjects(RDF.type, OWL.DatatypeProperty)
         if isinstance(subject, URIRef)
     )
-    # Entailed classes: anything with a subclass assertion is a class.
-    declared.update(str(subject) for subject, _ in canonical.subject_objects(RDFS.subClassOf))
-    declared = {str(subject) for subject in declared}
-    declared.update(map(str, STANDARD_SHACL_PATHS))
+    declared_properties.update(STANDARD_SHACL_PATHS)
     for target in shapes.objects(None, SH.targetClass):
-        if str(target) not in declared:
+        if target not in declared_classes:
             raise ValueError(f"SHACL targetClass is not an ontology class: {target}")
     for path in shapes.objects(None, SH.path):
-        if str(path) not in declared:
-            raise ValueError(f"SHACL property path is not an ontology term: {path}")
+        if path not in declared_properties:
+            raise ValueError(f"SHACL property path is not an ontology property: {path}")
 
 
 def _validate_output_directory(output_dir: Path, source: Path, profile: Path) -> Path:
