@@ -104,12 +104,12 @@ than one large PR:
    0182 / 0185): after IRT main effects, persist closest and farthest
    post–criterion pairs from the residual leftover map, and name
    unexplained leftover `U = R − R̂` and leftover-map cross share
-   `x = 2 R̂_c U_c / R̃²` of centered leftover when Gabriel coordinates
+   `x = 2 R̂ U / R²` of raw residual when Gabriel coordinates
    exist so the identity remainder after two-axis reconstruction is not
    read as leftover residual, leftover-map distance, explained leftover
    share, or unexplained leftover share. Do not persist leftover-map
-   explained leftover share `e`, unexplained leftover share `s`, or
-   two-axis reconstruction `R̂`. Do not fork LSIRM; do not invent a
+   explained leftover share `e`, unexplained leftover share `s`, or any other
+   unsupported share alias in this slice. Do not fork LSIRM; do not invent a
    leftover-pair API inside `fast-mlsirm` in this slice.
 8. **Leftover-map axis-share slice** (ADR 0148): persist Gabriel inertia
    `σ_k² / Σ_j σ_j²` of leftover-map axes 1 and 2 on the same residual
