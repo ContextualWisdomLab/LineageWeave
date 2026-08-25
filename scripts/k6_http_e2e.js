@@ -8,7 +8,7 @@
 
 import http from "k6/http";
 import { check, fail } from "k6";
-import { Trend } from "k6/metrics";
+import { Counter, Trend } from "k6/metrics";
 
 const backendUrl = (__ENV.BACKEND_URL || "http://localhost:18420").replace(/\/$/, "");
 const keycloakUrl = (__ENV.KEYCLOAK_URL || "http://localhost:18080").replace(/\/$/, "");
@@ -21,12 +21,12 @@ const requestTimeout = __ENV.REQUEST_TIMEOUT;
 const askEnqueueDuration = new Trend("lineageweave_ask_enqueue_duration", true);
 const readDuration = new Trend("lineageweave_read_duration", true);
 const askPollDuration = new Trend("lineageweave_ask_poll_duration", true);
+const askStateObservations = new Counter("lineageweave_ask_state_observations");
 
-export function setup() {
-  if (!requestTimeout) {
-    fail("REQUEST_TIMEOUT is required");
-  }
-  const tokenResponse = http.post(
+let vuToken;
+
+function authenticate() {
+  const response = http.post(
     `${keycloakUrl}/realms/${realm}/protocol/openid-connect/token`,
     {
       grant_type: "password",
@@ -36,27 +36,15 @@ export function setup() {
     },
     { tags: { endpoint: "oidc_token" }, timeout: requestTimeout },
   );
-  if (tokenResponse.status !== 200) {
-    fail(`synthetic OIDC login failed with HTTP ${tokenResponse.status}`);
+  if (response.status !== 200) {
+    fail(`synthetic OIDC login failed with HTTP ${response.status}`);
   }
-
-  const token = tokenResponse.json("access_token");
-  const headers = { Authorization: `Bearer ${token}`, "Content-Type": "application/json" };
-  const submitted = http.post(
-    `${backendUrl}/api/ask`,
-    JSON.stringify({ question: "Summarize the synthetic demo lineage evidence." }),
-    { headers, tags: { endpoint: "ask_enqueue" }, timeout: requestTimeout },
-  );
-  askEnqueueDuration.add(submitted.timings.duration);
-  if (submitted.status !== 202) {
-    fail(`synthetic Ask enqueue failed with HTTP ${submitted.status}: ${submitted.body}`);
-  }
-  return { token, askJobId: submitted.json("ask_job_id") };
+  return response.json("access_token");
 }
 
-export default function (data) {
-  const params = { headers: { Authorization: `Bearer ${data.token}` } };
-  const responses = http.batch([
+function readBatch(token, askJobId) {
+  const params = { headers: { Authorization: `Bearer ${token}` } };
+  return http.batch([
     [
       "GET",
       `${backendUrl}/api/posts`,
@@ -71,15 +59,47 @@ export default function (data) {
     ],
     [
       "GET",
-      `${backendUrl}/api/ask/jobs/${data.askJobId}`,
+      `${backendUrl}/api/ask/jobs/${askJobId}`,
       null,
       { ...params, tags: { endpoint: "ask_poll" }, timeout: requestTimeout },
     ],
   ]);
+}
+
+export function setup() {
+  if (!requestTimeout) {
+    fail("REQUEST_TIMEOUT is required");
+  }
+  const token = authenticate();
+  const headers = { Authorization: `Bearer ${token}`, "Content-Type": "application/json" };
+  const submitted = http.post(
+    `${backendUrl}/api/ask`,
+    JSON.stringify({ question: "Summarize the synthetic demo lineage evidence." }),
+    { headers, tags: { endpoint: "ask_enqueue" }, timeout: requestTimeout },
+  );
+  askEnqueueDuration.add(submitted.timings.duration);
+  if (submitted.status !== 202) {
+    fail(`synthetic Ask enqueue failed with HTTP ${submitted.status}: ${submitted.body}`);
+  }
+  return { token, askJobId: submitted.json("ask_job_id") };
+}
+
+export default function (data) {
+  vuToken ||= data.token;
+  let responses = readBatch(vuToken, data.askJobId);
+  if (responses.some((response) => response.status === 401)) {
+    vuToken = authenticate();
+    responses = readBatch(vuToken, data.askJobId);
+  }
 
   readDuration.add(responses[0].timings.duration, { endpoint: "posts" });
   readDuration.add(responses[1].timings.duration, { endpoint: "lineage" });
   askPollDuration.add(responses[2].timings.duration);
+  if (responses[2].status === 200) {
+    askStateObservations.add(1, {
+      job_status: String(responses[2].json("job_status_code") || "unknown"),
+    });
+  }
   check(responses[0], { "posts read succeeds": (response) => response.status === 200 });
   check(responses[1], { "lineage read succeeds": (response) => response.status === 200 });
   check(responses[2], { "Ask poll succeeds": (response) => response.status === 200 });

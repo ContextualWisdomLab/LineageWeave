@@ -42,6 +42,15 @@ The custom metrics separate:
 - `lineageweave_ask_enqueue_duration`: time to persist and acknowledge the job;
 - `lineageweave_read_duration{endpoint:posts|lineage}`: ordinary reader paths;
 - `lineageweave_ask_poll_duration`: owner-scoped status polling.
+- `lineageweave_ask_state_observations{job_status:...}`: how many observations
+  occurred while the one queued job was queued, running, or settled.
+
+The harness observes one Ask job's real lifecycle; it does not keep provider
+work running artificially. Report reader distributions with the state counts
+so a long settled tail is not misrepresented as contended capacity. Per-VU
+authentication is renewed after an HTTP 401 and the failed batch is retried
+once, so observation windows longer than the realm access-token lifetime do
+not silently become rejection measurements.
 
 There are deliberately no pass/fail thresholds. A latency or concurrency SLO
 requires a named deployment, representative workload, capacity evidence, and
@@ -76,7 +85,7 @@ its absent interval column. This run therefore cannot attribute read latency to
 Global Ask and is not a valid steady-state capacity exercise.
 
 Independent code-path diagnosis did confirm that Global Ask resolved its
-external question embedding inside `pool.acquire()`. ADR 0212 moves that call
+external question embedding inside `pool.acquire()`. ADR 0213 moves that call
 before acquisition and adds a regression check that observes zero held pool
 slots during embedding. With one virtual user, a 10-second observation, and a
 declared 20-second request window, the post-fix branch then observed Ask enqueue
@@ -85,3 +94,22 @@ that incomplete migration state (one reached the 20-second request boundary;
 combined read duration averaged 14.13 seconds). This is replay-in-progress
 failure evidence, not a steady-state capacity result or product latency claim.
 Re-run only after migration replay completes.
+
+## Older-image diagnostic observation
+
+On 2026-08-25, an application-ready local Compose stack configured with four
+worker VUs completed zero full iterations in two observations. In the second
+30-second observation, Ask enqueue took 2.69 seconds, the maximum completed
+HTTP request took 45.26 seconds, and k6 recorded no failures among requests
+that completed. Isolated observations were: `/api/posts` did not complete
+within 30 seconds, `/api/lineage` took 12.152 seconds, and Ask polling took
+0.456 seconds. The database contained 43,189 aggregate `source_post` rows;
+`pg_stat_activity` showed repeated post-filter `DISTINCT` queries active with
+`MessageQueueSend` waits.
+
+The backend image was from an older branch, not the current or ADR 0212 change
+head. These aggregate, non-identifying values support investigating the
+duplicate filter-option query; they do not demonstrate current-head latency,
+causality, capacity, or an SLO. ADR 0212 combines the two option projections
+into one database query; its physical plan remains to be measured exact-head.
+Repeat the synthetic k6 run on an exact-head image before comparing effects.

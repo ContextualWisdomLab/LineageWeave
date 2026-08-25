@@ -17,8 +17,8 @@ decision from them.
 | [`ONTOLOGY_NAMESPACE_INVENTORY.md`](../doctoring/ONTOLOGY_NAMESPACE_INVENTORY.md) | [0207](0207-repository-case-ontology-namespace-canonical.md), [0157](0157-public-ontology-namespace-identity.md) |
 | [`image-content-schema.md`](../image-content-schema.md) | [0066](0066-position-preserving-image-content.md) |
 | [`storybook-inventory.md`](../storybook-inventory.md) | [0118](0118-uiux-standard-guide-v3-design-overhaul.md), [0184](0184-ontology-provenance-explorer.md) |
-| [`POSTGRESQL_CONCURRENCY_REFERENCES.md`](../doctoring/POSTGRESQL_CONCURRENCY_REFERENCES.md) | [0204](0204-analysis-run-short-transaction-delivery.md), [0212](0212-global-ask-embedding-pool-release.md) |
-| [`http-concurrency-evidence.md`](../operability/http-concurrency-evidence.md) | [0212](0212-global-ask-embedding-pool-release.md) |
+| [`POSTGRESQL_CONCURRENCY_REFERENCES.md`](../doctoring/POSTGRESQL_CONCURRENCY_REFERENCES.md) | [0204](0204-analysis-run-short-transaction-delivery.md), [0213](0213-global-ask-embedding-pool-release.md) |
+| [`operability/http-concurrency-evidence.md`](../operability/http-concurrency-evidence.md) | [0204](0204-analysis-run-short-transaction-delivery.md), [0212](0212-single-query-authorized-post-filter-options.md), [0213](0213-global-ask-embedding-pool-release.md) |
 | Evidence operations Dashboard (`/`) | [0206](0206-evidence-operations-dashboard.md) |
 | [`temporal-topic-context-influence-research.md`](../temporal-topic-context-influence-research.md) | [0210](0210-temporal-topic-context-influence-dashboard.md) |
 | [`python-mathematical-compute-boundary-audit.md`](../doctoring/python-mathematical-compute-boundary-audit.md) | [0208](0208-externalize-local-mathematical-compute.md) |

@@ -1,4 +1,4 @@
-# ADR 0212 — Global Ask embeds before acquiring a pooled connection
+# ADR 0213 — Global Ask embeds before acquiring a pooled connection
 
 **Decision status:** Accepted
 **Date:** 2026-08-25

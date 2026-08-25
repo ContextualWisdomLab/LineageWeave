@@ -1,7 +1,7 @@
 # Product & Technical Gap Baseline
 
-> Dashboard delivery snapshot: 2026-08-25 20:41 KST. Protected `main` was
-> `48f013a28e0b0fe51951d4df9bf3f9a3532df173`. This local branch is not
+> Dashboard delivery snapshot: 2026-08-25 21:34 KST. Protected `main` was
+> `d7d5eeb310b055b5e138060cf2dfb929b03090a6`. This local branch is not
 > protected-main release evidence.
 
 ## Operations Dashboard PRD/TRD traceability
@@ -44,7 +44,7 @@ tables use composite keys and bounded kind-first indexes; production hot-path
 acceptance still requires `EXPLAIN (ANALYZE, BUFFERS)` on an anonymized runtime
 snapshot.
 
-### Exact-head UI audit
+### Historical UI audit evidence
 
 The `f0b96029` Storybook build was rendered at 1440×1100 and 402×1200 with
 synthetic evidence; `416fd19d` changes only post-navigation request isolation.
@@ -60,18 +60,18 @@ only aggregate, non-identifying evidence to this repository.
 
 ### Exact open-PR boundary
 
-At this snapshot there were 5 open PRs and 14 open issues. Exact observed heads
-were `#621 cca022a8` (this PR's observed parent), `#620 4bc7aeac`,
-`#619 29e01dc2`, `#618 df9d6cb1`, and `#387 ceb2c1d4`. PR #579 closed without
-merge and is not protected delivery.
-PRs #612, #614, #615, and #616 reached protected `main`; the superseded baseline
-PR #613 closed without merge and its PRD is recreated by this branch. The open
-heads remain blocked on hosted gates and/or independent review. These
+At this snapshot there were 3 open PRs and 11 open issues. Exact observed heads
+were `#628 d07d212f` (this branch's observed parent), `#627 9e0528a6`, and
+`#579 1c209c85`. PR #579 is open; its ADR 0211 reservation is why this branch's
+filter-option decision is ADR 0212. PRs #612, #614, #615, #616, and #626
+reached protected `main`; the superseded baseline PR #613 closed without merge
+and its PRD was recreated on protected main. The open heads remain blocked on
+hosted gates and/or independent review. These
 observations are not merge readiness. Re-fetch exact heads,
 unresolved threads, checks, approvals, rulesets, and merge SHA before any
 lifecycle claim.
 
-> Audit snapshot: 2026-08-25 20:41 KST (refreshed by the autonomous merge
+> Audit snapshot: 2026-08-25 21:34 KST (refreshed by the autonomous merge
 > loop). This repository records synthetic fixtures and aggregate,
 > non-identifying runtime evidence only. Open PRs and local checks are not
 > protected-default-branch release evidence. Identifying post identifiers,
@@ -80,19 +80,17 @@ lifecycle claim.
 
 ## 1. Exact-head and governance evidence
 
-The protected default branch was `48f013a28e0b0fe51951d4df9bf3f9a3532df173`
-when this baseline was refreshed. The live queue contained 5 open PRs and 14
+The protected default branch was `d7d5eeb310b055b5e138060cf2dfb929b03090a6`
+when this baseline was refreshed. The live queue contained 3 open PRs and 11
 open issues. The exact-head inventory below supersedes older per-PR snapshots
 elsewhere in this document; those older rows remain useful historical delivery
 context only.
 
 | PR | Exact observed head | Merge/check state at this snapshot |
 | ---: | --- | --- |
-| #621 | `cca022a8` (observed parent) | this row is written by #621 itself, so its commit necessarily advances after the snapshot is encoded; re-fetch the live head before governance use |
-| #620 | `4bc7aeac` | refreshes temporal-topic and capacity gaps; hosted gates and independent review remain required |
-| #619 | `29e01dc2` | documents the fixed-alias, repository-owned Similar-VOC eligibility fragment for the narrow Semgrep rule; focused tests and Semgrep passed, while hosted gates and independent review remain required |
-| #618 | `df9d6cb1` | separates SHACL class/property term kinds and corrects the corporate-entity UI fixture; current `main` is composed, while hosted gates and independent review remain required |
-| #387 | `ceb2c1d4` | channel evidence is composed with protected main and focused tests pass, but independent exact-head review remains required |
+| #628 | `d07d212f` (observed parent) | this row is updated by #628 itself, so its exact head advances after the snapshot is encoded; ADR 0212 combines complete ABAC-visible filter options into one database round trip, while hosted gates and independent review remain required |
+| #627 | `9e0528a6` | repairs k6 lifecycle evidence preservation; hosted gates remain required |
+| #579 | `1c209c85` | persists leftover interaction-map coordinates and owns ADR 0211; hosted gates and independent review remain required |
 
 No row above is merge evidence. Immediately before any lifecycle action,
 re-fetch the head, unresolved threads, formal reviews, rulesets, and same-head
@@ -364,12 +362,12 @@ this file per §3.5 of the prior snapshot).
 
 | Gap | Current evidence | Acceptance requirement |
 | --- | --- | --- |
-| Protected release | 5 open PRs at snapshot; #618–#621 are current-main follow-ups, while #387 retains independent-review gates and #579 closed without merge | Terminal exact-head checks, no unresolved threads, independent exact-head approvals, protected squash-merge SHA |
+| Protected release | 3 open PRs at snapshot: #627 and #628 are current-main performance follow-ups, while reopened #579 retains hosted and independent-review gates | Terminal exact-head checks, no unresolved threads, independent exact-head approvals, protected squash-merge SHA |
 | Evidence-grounded operations workspace | Protected-main #614 delivers governed semantic Ask, live Similar VOC, disjoint pending/failed analysis metrics, full Storybook state inventory, and current desktop/mobile screenshot evidence. Authorized-corpus backfill acceptance remains unavailable | Perform authenticated authorized-corpus acceptance with aggregate evidence and retain fail-closed no-match behavior |
 | Shared frontend gate | The ADR 0109 login repair is on protected `main`; eight older branches carried the defect and received the same verified repair this loop (#521–#560) | Keep every future branch cut from post-repair bases; re-verify with frontend lint/test/build before push |
 | Identifying baseline regression | `main` gap file listed real post identifiers; separately, closed #506 and pre-existing public history contain a private runtime source-table identifier, while current `main` and #507 trees are clean | Land this non-identifying rewrite, then coordinate ADR 0001 history remediation with security/privacy owners; do not reproduce the value, force-push, or delete evidence ad hoc |
 | Authorized-corpus runtime | Repository tests use synthetic fixtures; private records remain outside git | Authenticated runtime validation returning only aggregate, non-identifying evidence |
-| Concurrent web responsiveness | ADR 0204 releases analysis-run transactions; the first application-ready k6 exercise then found Global Ask embedding still inside `pool.acquire()`. ADR 0212 moves it before acquisition. The post-fix read batch ran while replay was still building migration 0035 and before schema migration 0140, so no steady-state capacity distribution is accepted | Re-run `make load-http` with declared concurrency, request window, and observation window after migration replay completes; retain raw distributions and resource configuration, then diagnose any remaining bottleneck before setting an approved SLO |
+| Concurrent web responsiveness | ADR 0204 releases analysis-run transactions. An older-image observation found repeated post-filter queries, so ADR 0212 combines the authorized filter-option query without narrowing ABAC. The next application-ready exercise found Global Ask embedding inside `pool.acquire()`, so ADR 0213 moves it before acquisition. Its post-fix batch ran during incomplete migration replay, so no steady-state capacity result is accepted | Rebuild an exact-head image after migration replay, run `make load-http` with declared concurrency, request window, and observation window, retain raw distributions and resource configuration, and compare the post-list plan while verifying zero pool slots are held during embedding; set no SLO until representative evidence is approved |
 | Image understanding | Region, OCR, and description work exists across active heads (#405, #419), but current runtime acceptance has not yet proved table-image structure, complete region coverage, or summary/image readiness together | Orchestrator-backed rendered workflow, original/derived asset provenance, region-before-OCR processing, and honest unsupported states; reconcile ADR 0052's image-bearing summary readiness with ADR 0098 before changing sequencing |
 | Semantic source rendering | Paragraph, table, list, formula, and indentation work exists across stacks (#394, #427, #448–#450); #515 adds synthetic backend/frontend parity for deterministic rows/cells, footnote boundaries, and encoded scripts | Land the #427 → #515 stack, then gather authenticated browser evidence that list nesting, continuation alignment, and formula units render without authoring-layout artifacts |
 | Event and project semantics | Multi-project mentions, project-bound actions, 5W1H, requester/processor, and semantic relations exist in ADR 0036/0052/0100/0111/0129 and active stacks | Aggregate authenticated evidence must show distinct projects and events, explicit requester/processor and real R&R, normalized relative time, and product/entity relations without promoting attendance or co-occurrence |
