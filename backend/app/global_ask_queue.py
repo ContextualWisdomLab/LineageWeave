@@ -51,6 +51,7 @@ from lineageweave.post_chat import (
     cited_post_summaries,
     historical_body_limitations,
 )
+from lineageweave.semantic_query import NullSemanticQueryClient, SemanticQueryClient
 from lineageweave.temporal_expressions import resolve_korean_relative_time
 
 from .config import GLOBAL_ASK_JOB_DEADLINE_SECONDS
@@ -210,7 +211,8 @@ async def _verify_public_claims(
         OSError,
         TypeError,
         ValueError,
-    ):
+    ) as exc:
+        log_provider_unavailable("global_ask_public_verification", exc)
         return VERIFICATION_UNAVAILABLE, ()
     return VERIFICATION_COMPLETED, tuple(
         result
@@ -293,6 +295,7 @@ async def compute_global_ask_answer(
     process_scope_limited: bool,
     chat_client: PostChatClient,
     embedding_client: EmbeddingClient | None = None,
+    semantic_query_client: SemanticQueryClient | None = None,
     verify_external: bool = False,
     claim_verification_client: ClaimVerificationClient | None = None,
     knowledge_cutoff: datetime | None = None,
@@ -318,6 +321,13 @@ async def compute_global_ask_answer(
 
     today = _seoul_today()
     try:
+        search_phrases = (question_text,)
+        rewriter = semantic_query_client or NullSemanticQueryClient()
+        if rewriter.available:
+            try:
+                search_phrases = await asyncio.to_thread(rewriter.rewrite, question_text)
+            except (HttpClientError, OSError, TypeError, ValueError) as exc:
+                log_provider_unavailable("global_ask_query_rewrite", exc)
         question_embedding = await prepare_global_question_embedding(
             question_text, embedding_client or NullEmbeddingClient()
         )
@@ -328,6 +338,7 @@ async def compute_global_ask_answer(
                 corporate_entity_ids,
                 process_unit_ids,
                 question=question_text,
+                search_phrases=search_phrases,
                 question_embedding=question_embedding,
                 today=today,
                 embedding_client=NullEmbeddingClient(),
@@ -501,6 +512,7 @@ async def process_global_ask_job(
     job_id: str,
     chat_factory: Callable[[], PostChatClient],
     embedding_factory: Callable[[], EmbeddingClient] = NullEmbeddingClient,
+    semantic_query_factory: Callable[[], SemanticQueryClient] = NullSemanticQueryClient,
     claim_verification_factory: Callable[
         [], ClaimVerificationClient
     ] = NullClaimVerificationClient,
@@ -552,6 +564,7 @@ async def process_global_ask_job(
                 process_scope_limited=process_scope_limited,
                 chat_client=chat_client,
                 embedding_client=embedding_factory(),
+                semantic_query_client=semantic_query_factory(),
                 verify_external=bool(row["verify_external_requested"]),
                 claim_verification_client=claim_verification_factory(),
                 knowledge_cutoff=row["knowledge_cutoff"],
@@ -669,6 +682,7 @@ async def consume_global_ask_stream_once(
     last_id: str,
     chat_factory: Callable[[], PostChatClient],
     embedding_factory: Callable[[], EmbeddingClient] = NullEmbeddingClient,
+    semantic_query_factory: Callable[[], SemanticQueryClient] = NullSemanticQueryClient,
     claim_verification_factory: Callable[[], ClaimVerificationClient] = NullClaimVerificationClient,
     limiter: asyncio.Semaphore | None = None,
     tasks: set[asyncio.Task] | None = None,
@@ -694,6 +708,7 @@ async def consume_global_ask_stream_once(
                         job_id=job_id,
                         chat_factory=chat_factory,
                         embedding_factory=embedding_factory,
+                        semantic_query_factory=semantic_query_factory,
                         claim_verification_factory=claim_verification_factory,
                     )
                 else:
@@ -704,6 +719,7 @@ async def consume_global_ask_stream_once(
                             job_id=job_id,
                             chat_factory=chat_factory,
                             embedding_factory=embedding_factory,
+                            semantic_query_factory=semantic_query_factory,
                             claim_verification_factory=claim_verification_factory,
                             limiter=limiter,
                         )
@@ -721,6 +737,7 @@ async def _process_and_release(
     job_id: str,
     chat_factory: Callable[[], PostChatClient],
     embedding_factory: Callable[[], EmbeddingClient],
+    semantic_query_factory: Callable[[], SemanticQueryClient],
     claim_verification_factory: Callable[[], ClaimVerificationClient],
     limiter: asyncio.Semaphore,
 ) -> None:
@@ -731,6 +748,7 @@ async def _process_and_release(
             job_id=job_id,
             chat_factory=chat_factory,
             embedding_factory=embedding_factory,
+            semantic_query_factory=semantic_query_factory,
             claim_verification_factory=claim_verification_factory,
         )
     finally:
@@ -753,6 +771,7 @@ async def run_global_ask_worker(
     *,
     chat_factory: Callable[[], PostChatClient],
     embedding_factory: Callable[[], EmbeddingClient] = NullEmbeddingClient,
+    semantic_query_factory: Callable[[], SemanticQueryClient] = NullSemanticQueryClient,
     claim_verification_factory: Callable[[], ClaimVerificationClient] = NullClaimVerificationClient,
 ) -> None:
     """Run the at-least-once Ask consumer with periodic queued-row recovery."""
@@ -773,6 +792,7 @@ async def run_global_ask_worker(
                     last_id=last_id,
                     chat_factory=chat_factory,
                     embedding_factory=embedding_factory,
+                    semantic_query_factory=semantic_query_factory,
                     claim_verification_factory=claim_verification_factory,
                     limiter=limiter,
                     tasks=tasks,
