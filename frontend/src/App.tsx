@@ -3666,7 +3666,18 @@ function ReportsPanel({
                         <button
                           className="post-list-item"
                           aria-label={`Open leftover ${pair.pair_kind} pair from comparison: ${pair.post_title} · ${criterion}`}
-                          onClick={() => onSelectPost(pair.post_id)}
+                          onClick={() =>
+                            // Same promise, same landing: the badge tells the
+                            // reader the criterion will be current in Post
+                            // quality, exactly like the report-panel pairs
+                            // (ADR 0158), so the strip carries the same focus.
+                            onSelectPost(pair.post_id, {
+                              fromLeftoverPair: {
+                                pairKind: pair.pair_kind === "farthest" ? "farthest" : "closest",
+                                criterionCode: pair.criterion_code,
+                              },
+                            })
+                          }
                         >
                           <span className="ticket-title">
                             {kindLabel}: {pair.post_title} · {criterion}
