@@ -15,8 +15,9 @@ All notable changes to this project are documented here. Format follows
   dry-run migration tool for stored values.
 - Closed-world SHACL validation (`docs/ontology/lineageweave-kg-shapes.ttl`,
   pyshacl in tests): required post title/body/timestamp, project-mention
-  confidence bounded to `[0.0, 1.0]`, required person/entity names and entity
-  code, and the our-side/counterparty disjointness complement; published with
+  RDF subject/predicate/object chain, decimal confidence bounded to
+  `[0.0, 1.0]`, required person/entity names and entity code, and the
+  our-side/counterparty disjointness complement; published with
   the ontology site and guarded against dangling shape targets.
 - Node-attribute datatype properties grounded only in real schema columns
   (`postTitle`, `postBody`, `eventOccurredAt`, `personName`,

@@ -95,9 +95,11 @@ fail loudly instead of silently polluting downstream graphs.
    relational lookup code, mirroring the existing `:mentions` /
    `:mentionedIn` pair.
 10. A separate SHACL shapes graph validates projected data:
-    required post title/body/timestamps, single-valued confidence within
-    `[0.0, 1.0]`, required names on persons and entities, and the closed-world
-    complement of the our-side/counterparty disjointness. Publication copies
+    required post title/body/timestamps, a complete single-valued RDF
+    `subject`/`predicate`/`object` chain for every `ProjectMention`,
+    single-valued decimal confidence within `[0.0, 1.0]`, required names on
+    persons and entities, and the closed-world complement of the
+    our-side/counterparty disjointness. Publication copies
     the shapes artifact beside the ontology and refuses dangling shape targets
     outside the canonical namespace.
 

@@ -33,6 +33,7 @@ SHAPES_RELATIVE_PATH = Path("docs/ontology/lineageweave-kg-shapes.ttl")
 #: lowercase form is the deprecated compatibility vocabulary.
 CANONICAL_NAMESPACE = "https://contextualwisdomlab.github.io/LineageWeave/ontology#"
 DEPRECATED_NAMESPACE = "https://contextualwisdomlab.github.io/lineageweave/ontology#"
+STANDARD_SHACL_PATHS = frozenset({RDF.subject, RDF.predicate, RDF.object})
 
 _MAPPING_FOR_KIND = {
     OWL.Class: OWL.equivalentClass,
@@ -138,17 +139,20 @@ def validate_shapes_graph(shapes: Graph, canonical: Graph) -> None:
     """Reject SHACL shapes whose targets dangle outside the ontology.
 
     A shape that targets a class absent from the canonical graph, or
-    constrains a path never declared there, would silently validate
-    nothing -- the publication boundary refuses it instead (ADR 0207
-    decision 10). Only URI-valued targets and paths are checked;
-    literal sh:path values are not part of this contract.
+    constrains a path neither declared there nor one of RDF's three
+    reification predicates, would silently validate nothing -- the
+    publication boundary refuses it instead (ADR 0207 decision 10).
+    Only URI-valued targets and paths are checked; literal sh:path values
+    are not part of this contract.
     """
     if not any(shapes.triples((None, RDF.type, SH.NodeShape))):
         raise ValueError("SHACL shapes graph declares no sh:NodeShape")
     for predicate in (SH.targetClass, SH.path):
         for value in shapes.objects(None, predicate):
-            if not isinstance(value, URIRef) or str(value).startswith(
-                CANONICAL_NAMESPACE
+            if (
+                not isinstance(value, URIRef)
+                or str(value).startswith(CANONICAL_NAMESPACE)
+                or (predicate == SH.path and value in STANDARD_SHACL_PATHS)
             ):
                 continue
             kind = "targetClass" if predicate == SH.targetClass else "path"
@@ -178,6 +182,7 @@ def validate_shapes_graph(shapes: Graph, canonical: Graph) -> None:
     # Entailed classes: anything with a subclass assertion is a class.
     declared.update(str(subject) for subject, _ in canonical.subject_objects(RDFS.subClassOf))
     declared = {str(subject) for subject in declared}
+    declared.update(map(str, STANDARD_SHACL_PATHS))
     for target in shapes.objects(None, SH.targetClass):
         if str(target) not in declared:
             raise ValueError(f"SHACL targetClass is not an ontology class: {target}")

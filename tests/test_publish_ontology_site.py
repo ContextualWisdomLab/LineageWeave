@@ -235,6 +235,25 @@ def test_shapes_validation_rejects_dangling_targets_and_outside_namespace() -> N
     with pytest.raises(ValueError, match="outside the canonical namespace"):
         publisher.validate_shapes_graph(outside_target, canonical)
 
+    outside_path = Graph()
+    outside_path.add((URIRef(f"{publisher.CANONICAL_NAMESPACE}S"), RDF.type, SH.NodeShape))
+    outside_path.add(
+        (
+            URIRef(f"{publisher.CANONICAL_NAMESPACE}S"),
+            SH.targetClass,
+            URIRef(f"{publisher.CANONICAL_NAMESPACE}Post"),
+        )
+    )
+    outside_path.add(
+        (
+            URIRef(f"{publisher.CANONICAL_NAMESPACE}S"),
+            SH.path,
+            URIRef("https://example.test/ontology#ghostProperty"),
+        )
+    )
+    with pytest.raises(ValueError, match="outside the canonical namespace"):
+        publisher.validate_shapes_graph(outside_path, canonical)
+
     dangling_class = Graph()
     dangling_class.add((URIRef(f"{publisher.CANONICAL_NAMESPACE}S"), RDF.type, SH.NodeShape))
     dangling_class.add(

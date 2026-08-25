@@ -1,6 +1,7 @@
 @prefix : <https://contextualwisdomlab.github.io/LineageWeave/ontology#> .
 @prefix dcterms: <http://purl.org/dc/terms/> .
 @prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
 @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
 @prefix sh: <http://www.w3.org/ns/shacl#> .
 @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
@@ -20,11 +21,12 @@
 # - the closed-world complement of :OurSidePerson
 #   owl:disjointWith :CounterpartyPerson.
 #
-# Every sh:targetClass / sh:path IRI must live in the canonical
-# repository-case namespace -- scripts/publish_ontology_site.py fails
-# closed on dangling targets so a renamed term cannot silently orphan
-# its shape. tests/test_ontology_shapes.py validates this graph against
-# the ontology source with pyshacl, plus a negative violation test.
+# Every sh:targetClass must live in the canonical repository-case namespace;
+# sh:path may additionally use RDF's subject/predicate/object reification
+# predicates. scripts/publish_ontology_site.py fails closed on every other
+# external or dangling target so a renamed term cannot silently orphan its
+# shape. tests/test_ontology_shapes.py validates this graph against the
+# ontology source with pyshacl, plus negative violation tests.
 #################################################################
 
 <https://contextualwisdomlab.github.io/LineageWeave/ontology/lineageweave-kg-shapes.ttl>
@@ -124,10 +126,35 @@
     rdfs:label "Project mention shape" ;
     sh:targetClass :ProjectMention ;
     sh:property [
+        sh:path rdf:subject ;
+        sh:name "mentioned by post" ;
+        sh:description "Every reified project mention identifies exactly one source post." ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:class :Post ;
+    ] ;
+    sh:property [
+        sh:path rdf:predicate ;
+        sh:name "project mention predicate" ;
+        sh:description "The reified statement is specifically a :mentionsProject assertion." ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:hasValue :mentionsProject ;
+    ] ;
+    sh:property [
+        sh:path rdf:object ;
+        sh:name "mentioned project" ;
+        sh:description "Every reified project mention identifies exactly one project." ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:class :Project ;
+    ] ;
+    sh:property [
         sh:path :semanticConfidence ;
         sh:name "semantic confidence" ;
         sh:description "Extraction confidence stays inside [0.0, 1.0] inclusive." ;
         sh:maxCount 1 ;
+        sh:datatype xsd:decimal ;
         sh:minInclusive 0.0 ;
         sh:maxInclusive 1.0 ;
     ] ;

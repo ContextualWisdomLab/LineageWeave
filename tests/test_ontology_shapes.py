@@ -83,7 +83,12 @@ def _representative_projection() -> Graph:
     # exactly like cataloged_person.person_name's NOT NULL.
     data.add((our_side, LWn.personName, Literal("Dana Whitfield")))
     mention = URIRef(LW + "mention-alpha")
+    project = URIRef(LW + "project-alpha")
+    data.add((project, RDF.type, LWn.Project))
     data.add((mention, RDF.type, LWn.ProjectMention))
+    data.add((mention, RDF.subject, post))
+    data.add((mention, RDF.predicate, LWn.mentionsProject))
+    data.add((mention, RDF.object, project))
     data.add(
         (
             mention,
@@ -122,6 +127,28 @@ def test_representative_db_projection_passes_validation() -> None:
             ),
             "postTitle",
             id="missing-required-post-title",
+        ),
+        pytest.param(
+            lambda g: g.remove(
+                (
+                    URIRef(LW + "mention-alpha"),
+                    RDF.subject,
+                    None,
+                )
+            ),
+            "mentioned by post",
+            id="missing-project-mention-subject",
+        ),
+        pytest.param(
+            lambda g: g.set(
+                (
+                    URIRef(LW + "mention-alpha"),
+                    RDF.predicate,
+                    URIRef(LW + "mentionsTeam"),
+                )
+            ),
+            "project mention predicate",
+            id="wrong-project-mention-predicate",
         ),
         pytest.param(
             lambda g: g.set(
