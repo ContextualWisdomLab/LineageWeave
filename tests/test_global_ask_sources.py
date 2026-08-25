@@ -50,6 +50,25 @@ def test_global_sources_apply_visibility_before_normalization() -> None:
     assert sources[1].post_body == "affiliated body"
 
 
+def test_global_sources_apply_process_scope_before_sql_limit() -> None:
+    calls: list[tuple[str, tuple[object, ...]]] = []
+
+    class FakeConnection:
+        async def fetch(self, query: str, *args):
+            calls.append((query, args))
+            return []
+
+    asyncio.run(
+        gather_global_chat_sources(
+            FakeConnection(), lambda _row: True, {"corp-demo"}, {"process-demo"}
+        )
+    )
+
+    source_query, source_args = calls[-1]
+    assert "process_unit_id::text = any($2::text[])" in source_query
+    assert source_args[:2] == (["corp-demo"], ["process-demo"])
+
+
 def test_global_sources_prioritize_question_terms_and_bound_long_bodies() -> None:
     rows = [
         {
@@ -87,18 +106,18 @@ def test_global_sources_prioritize_question_terms_and_bound_long_bodies() -> Non
 
     candidate_query, candidate_args = calls[0]
     source_query, source_args = next(
-        (query, args) for query, args in calls if "array_position($2::uuid[], post_id)" in query
+        (query, args) for query, args in calls if "array_position($3::uuid[], post_id)" in query
     )
     assert "to_tsvector('simple'" in candidate_query
     assert candidate_args[0] == "mention"
-    assert "array_position($2::uuid[], post_id)" in source_query
-    assert source_args[2] == 8
+    assert "array_position($3::uuid[], post_id)" in source_query
+    assert source_args[3] == 8
     # Live bug (2026-08-19): a title match must outrank a body/source-field
     # match regardless of discovery order -- "uam-post" matched in the
     # title (higher weight) but was appended to candidate_rows after
     # "newest-post" (a body match); the final candidate_ids array passed
     # as $2 must still rank uam-post first.
-    assert list(source_args[1]) == ["uam-post", "newest-post"]
+    assert list(source_args[2]) == ["uam-post", "newest-post"]
     assert sources[1].post_body.startswith("x" * 4000)
     assert "Source body truncated for Global Ask" in sources[1].post_body
 
@@ -212,7 +231,7 @@ def test_global_sources_keep_lineage_expansion_within_requested_limit() -> None:
                 return [matched_row]
             if "post_lineage_edge" in query:
                 return [{"other_id": post_id} for post_id in reversed(neighbor_ids)]
-            if "array_position($2::uuid[], post_id)" in query:
+            if "array_position($3::uuid[], post_id)" in query:
                 source_call = (query, args)
                 rows = {
                     "anchor-post": matched_row,
@@ -227,7 +246,7 @@ def test_global_sources_keep_lineage_expansion_within_requested_limit() -> None:
                         for post_id in neighbor_ids
                     },
                 }
-                return [rows[post_id] for post_id in args[1]]
+                return [rows[post_id] for post_id in args[2]]
             return []
 
     sources = asyncio.run(
@@ -241,14 +260,14 @@ def test_global_sources_keep_lineage_expansion_within_requested_limit() -> None:
 
     assert source_call is not None
     _query, source_args = source_call
-    assert source_args[2] == 4
-    assert list(source_args[1]) == [
+    assert source_args[3] == 4
+    assert list(source_args[2]) == [
         "anchor-post",
         "neighbor-00",
         "neighbor-01",
         "neighbor-02",
     ]
-    assert [source.post_id for source in sources] == list(source_args[1])
+    assert [source.post_id for source in sources] == list(source_args[2])
     assert len(sources) == 4
 
 
@@ -298,7 +317,7 @@ def test_global_sources_expand_top_match_through_event_lineage() -> None:
                 return [matched_row]
             if "post_lineage_edge" in query:
                 return [{"other_id": "event-1"}]
-            if "array_position($2::uuid[], post_id)" in query:
+            if "array_position($3::uuid[], post_id)" in query:
                 return [matched_row, lineage_row]
             return []
 
@@ -345,7 +364,7 @@ def test_global_sources_do_not_leak_lineage_anchor_id_when_anchor_is_invisible()
                 return [matched_row]
             if "post_lineage_edge" in query:
                 return [{"other_id": "visible-neighbor"}]
-            if "array_position($2::uuid[], post_id)" in query:
+            if "array_position($3::uuid[], post_id)" in query:
                 return [matched_row, lineage_row]
             return []
 
@@ -387,15 +406,15 @@ def test_global_sources_resolve_relative_time_against_seoul_calendar_day(
     )
 
     source_query, source_args = next(
-        (query, args) for query, args in calls if "array_position($2::uuid[], post_id)" in query
+        (query, args) for query, args in calls if "array_position($3::uuid[], post_id)" in query
     )
     # Both sides of the day-boundary comparison must read the same zone --
     # asserting the SQL cast pins that the event-time side is never left on
     # the connection's plain UTC/session default while `today` moves to KST.
     assert "coalesce(event_occurred_at, created_at)" in source_query
     assert "at time zone 'Asia/Seoul'" in source_query
-    assert source_args[3] == date(2026, 8, 21)
     assert source_args[4] == date(2026, 8, 21)
+    assert source_args[5] == date(2026, 8, 21)
     candidate_calls = [(query, args) for query, args in calls if "matched_in" in query]
     assert all("event_clock" in query for query, _args in candidate_calls)
     assert all(

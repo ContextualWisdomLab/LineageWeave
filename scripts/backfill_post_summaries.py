@@ -222,8 +222,7 @@ async def backfill_post_summaries(
     if not vision_client.available:
         raise RuntimeError("VISION is unavailable; configure contextual-orchestrator before backfill")
     summary_client = ContextualOrchestratorPostSummaryClient(base_url, api_key, timeout=180.0)
-    embedding_model = os.environ.get("LLM_GATEWAY_EMBEDDING_MODEL", "").strip()
-    embedding_client = orchestrator_embedding_client(base_url, api_key, embedding_model)
+    embedding_client = orchestrator_embedding_client(base_url, api_key)
     structure_client = (
         ContextualOrchestratorPostStructureClient(base_url, api_key)
         if base_url and api_key
@@ -252,7 +251,6 @@ async def backfill_post_summaries(
                         row["post_body"],
                         vision_client=vision_client,
                         embedding_client=embedding_client,
-                        embedding_model_code=embedding_model or None,
                         normalized_result=normalized,
                         structure_client=structure_client,
                         post_title=row["post_title"],

@@ -109,7 +109,6 @@ async def persist_post_content(
     *,
     vision_client: ImageContentClient | None = None,
     embedding_client: EmbeddingClient | None = None,
-    embedding_model_code: str | None = None,
     normalized_result: Any | None = None,
     structure_client: PostStructureClient | None = None,
     post_title: str = "",
@@ -243,7 +242,7 @@ async def persist_post_content(
         )
 
     vectors: dict[str, list[float]] = {}
-    if embedding_client is not None and embedding_client.available and embedding_model_code:
+    if embedding_client is not None and embedding_client.available:
         embeddable = [
             (f"unit:{chunk.index}", unit_text)
             for chunk, unit_text, _style in prepared
@@ -275,6 +274,18 @@ async def persist_post_content(
                         "exception_type": type(exc).__name__,
                     },
                 )
+
+    embedding_model_code = (
+        getattr(embedding_client, "resolved_model", None)
+        if embedding_client is not None
+        else None
+    )
+    if vectors and not embedding_model_code:
+        _LOGGER.warning(
+            "post content embeddings omitted because the orchestrator returned no model identity",
+            extra={"post_id": post_id},
+        )
+        vectors.clear()
 
     async with conn.transaction():
         await conn.execute("delete from post_content_unit where post_id = $1", post_id)

@@ -46,9 +46,13 @@ better than another.
 5. `LLM_GATEWAY_MODEL`, `VISION_MODEL`, and other provider-specific chat or
    vision model selectors remain unset. Runtime credentials come from `~/.env`
    through Compose `env_file`; the file and its values are never copied into a
-   repository or image. If the paper-grounded policy or required capability is
-   unavailable, the system reports an unavailable channel rather than making a
-   guessed selection.
+   repository or image. The bootstrap removes and registers each available
+   canonical provider credential (`OPENAI_API_KEY`, `OPENROUTER_API_KEY`,
+   `NVIDIA_NIM_API_KEY`, `NVIDIA_NIM_API_KEY_SUB`, and `BYTEZ_API_KEY`) in the
+   orchestrator credential store; it does not alias one provider credential as
+   another or choose a provider locally. If the paper-grounded policy or
+   required capability is unavailable, the system reports an unavailable
+   channel rather than making a guessed selection.
 6. Any change to this policy requires an ADR update before implementation and
    focused tests plus runtime evidence at the orchestrator boundary.
 7. The gateway endpoint is opaque and OpenAI-compatible at this boundary.

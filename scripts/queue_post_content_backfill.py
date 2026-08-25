@@ -37,10 +37,6 @@ def _parser() -> argparse.ArgumentParser:
         "--valkey-url",
         default=os.environ.get("VALKEY_URL", "redis://localhost:16379/0"),
     )
-    parser.add_argument(
-        "--embedding-model",
-        default=os.environ.get("LLM_GATEWAY_EMBEDDING_MODEL", "text-embedding-3-large"),
-    )
     parser.add_argument("--limit", type=int, default=100)
     parser.add_argument("--all", action="store_true", help="scan the complete real corpus")
     return parser
@@ -49,17 +45,15 @@ def _parser() -> argparse.ArgumentParser:
 async def queue_post_content_backfill(
     target_dsn: str,
     valkey_url: str,
-    embedding_model: str,
     *,
     limit: int | None,
 ) -> dict[str, int]:
-    model = embedding_model.strip()
-    if not model:
-        raise ValueError("embedding model is required for completeness-aware queueing")
     if limit is not None and limit < 1:
         raise ValueError("limit must be positive")
     settings = load_settings()
-    require_structure = bool(settings.orchestrator_base_url and settings.orchestrator_api_key)
+    require_orchestrator_evidence = bool(
+        settings.orchestrator_base_url and settings.orchestrator_api_key
+    )
 
     connection = await asyncpg.connect(target_dsn)
     client = redis.from_url(valkey_url, decode_responses=True)
@@ -91,16 +85,15 @@ async def queue_post_content_backfill(
                          from post_content_unit unit
                         where unit.post_id = post.post_id
                    )
-                   or exists (
+                   or ($1::boolean and exists (
                        select 1
                          from post_content_unit unit
                          left join post_content_embedding embedding
                            on embedding.post_content_unit_id = unit.post_content_unit_id
-                          and embedding.embedding_model_code = $1
                         where unit.post_id = post.post_id
                           and embedding.post_content_embedding_id is null
-                   )
-                   or exists (
+                   ))
+                   or ($1::boolean and exists (
                        select 1
                          from post_content_unit unit
                          join post_content_image image
@@ -109,11 +102,10 @@ async def queue_post_content_backfill(
                            on region.post_content_image_id = image.post_content_image_id
                          left join post_content_image_region_embedding embedding
                            on embedding.post_content_image_region_id = region.post_content_image_region_id
-                          and embedding.embedding_model_code = $1
                         where unit.post_id = post.post_id
                           and region.description_status_code = 'described'
                            and embedding.post_content_image_region_embedding_id is null
-                   )
+                   ))
                    or ($2::boolean and exists (
                        select 1
                          from post_content_unit unit
@@ -130,8 +122,8 @@ async def queue_post_content_backfill(
              order by post.created_at, post.post_id
              limit $3::bigint
             """,
-            model,
-            require_structure,
+            require_orchestrator_evidence,
+            require_orchestrator_evidence,
             limit if limit is not None else 9223372036854775807,
         )
         for row in rows:
@@ -141,8 +133,8 @@ async def queue_post_content_backfill(
                 complete = await post_content_is_complete(
                     connection,
                     post_id,
-                    embedding_model_code=model,
-                    require_structure=require_structure,
+                    require_embedding=require_orchestrator_evidence,
+                    require_structure=require_orchestrator_evidence,
                 )
                 request = await ensure_post_content_job(
                     connection,
@@ -175,7 +167,6 @@ def main() -> None:
         queue_post_content_backfill(
             args.target_dsn,
             args.valkey_url,
-            args.embedding_model,
             limit=None if args.all else args.limit,
         )
     )

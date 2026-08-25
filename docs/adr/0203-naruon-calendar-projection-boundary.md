@@ -117,6 +117,16 @@ Until Naruon ships the matching read endpoint and service-audience contract,
 LineageWeave runtime wiring remains disabled and fail-closed. Existing internal
 commitments remain available even when the external event channel is absent.
 
+LineageWeave v2.17.0 implements activation gate step 2: `GET /api/calendar`
+and the 달력 destination consume `NARUON_CALENDAR_BASE_URL` /
+`NARUON_CALENDAR_SERVICE_TOKEN` through
+`lineageweave.naruon_calendar_workspace`. A missing audience, malformed
+token, transport failure, or contract rejection returns `events: []` with
+`naruon_available: false` and never invents an occurrence. Steps 3–5
+(provider/consumer fixtures against a released Naruon artifact, degraded
+behavior, and protected merge) remain open. Do not treat this wiring as a
+completed Naruon connector.
+
 ## Consequences
 
 ### Positive

@@ -48,7 +48,7 @@ const a100Graph: LineageGraph = {
     {
       source: "rec-002",
       target: "rec-003",
-      fused_score: 0.7976237922187373,
+      fused_score: 0.797623792218737,
       interval_relation_code: "interval_contains",
       interval_relation_label: "Contains",
       channel_evidence: [

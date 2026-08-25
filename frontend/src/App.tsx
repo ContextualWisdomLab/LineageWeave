@@ -1,5 +1,6 @@
 import { AdminPanel } from "./components/AdminPanel";
 import { LeftoverPairList } from "./components/LeftoverPairList";
+import { WorkspaceCalendar } from "./components/WorkspaceCalendar";
 
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { useAuth } from "react-oidc-context";
@@ -93,13 +94,17 @@ import { AskEvidenceLayerPopup } from "./components/AskEvidenceLayerPopup";
 import { PopupCloseButton } from "./components/PopupCloseButton";
 import { chatEvidenceKindLabel } from "./evidenceKindLabels";
 import { WorkspaceNav, type WorkspaceDestination } from "./components/WorkspaceNav";
-import { CALENDAR_CONSUME_UNAVAILABLE } from "./gnbChrome";
 import { LineageDag } from "./LineageDag";
 import { PostBody } from "./PostBody";
 import { decodeHtmlEntities } from "./postBodyDisplay";
 import { FiveW1H } from "./components/FiveW1H";
+import { isFocusableVisible } from "./focusVisibility";
 import { subgraphForPost } from "./lineageLayout";
-import { rememberOidcReturnUrl, stripOidcCallbackParams } from "./oidcReturnUrl";
+import {
+  rememberOidcReturnUrl,
+  returnUrlFromLocation,
+  stripOidcCallbackParams,
+} from "./oidcReturnUrl";
 import {
   isSupportedLocale,
   LOCALE_LABELS,
@@ -1809,11 +1814,14 @@ function PostDetailPopup({
 
   useEffect(() => {
     const previouslyFocused = document.activeElement instanceof HTMLElement ? document.activeElement : null;
-    dialogRef.current?.focus();
     return () => {
       if (previouslyFocused?.isConnected) previouslyFocused.focus();
     };
   }, []);
+
+  useEffect(() => {
+    dialogRef.current?.focus();
+  }, [postId]);
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -1828,9 +1836,9 @@ function PostDetailPopup({
       if (!dialog) return;
       const focusable = Array.from(
         dialog.querySelectorAll<HTMLElement>(
-          'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+          'a[href], button:not([disabled]), summary, input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
         ),
-      ).filter((element) => !element.hasAttribute("hidden") && element.getAttribute("aria-hidden") !== "true");
+      ).filter(isFocusableVisible);
       if (focusable.length === 0) {
         event.preventDefault();
         dialog.focus();
@@ -3348,9 +3356,13 @@ function RankingsPanel({
 function CalendarPanel({
   accessToken,
   onSelectPost,
+  headingId = "lab-calendar-heading",
+  heading,
 }: {
   accessToken: string;
   onSelectPost: (postId: string) => void;
+  headingId?: string;
+  heading?: string;
 }) {
   const [calendar, setCalendar] = useState<CalendarResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -3364,65 +3376,13 @@ function CalendarPanel({
   if (error) return <p className="error">{error}</p>;
   if (calendar === null) return <p role="status">{t("Loading calendar...")}</p>;
 
-  const events = calendar.events ?? [];
-  const commitments = calendar.commitments ?? [];
-  const caldavAvailable = calendar.calendar_sources?.caldav_available ?? false;
-  const caldavNextAction = calendar.calendar_sources?.caldav_next_action;
-
   return (
-    <section className="popup-section lineage-home">
-      <h2>{t("Calendar")}</h2>
-      <section className="popup-section">
-        <h3>{t("CalDAV events")}</h3>
-        {events.length === 0 ? (
-          <p className="popup-placeholder">
-            {caldavAvailable
-              ? t("No CalDAV events are available.")
-              : caldavNextAction ?? t("CalDAV is not connected.")}
-          </p>
-        ) : (
-          <ul className="ticket-list">
-            {events.map((event) => (
-              <li key={event.event_id} className="ticket-list-item">
-                <div className="post-list-item">
-                  <span className="ticket-title">{event.summary}</span>
-                  <span className="post-badge">{event.starts_at}</span>
-                </div>
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
-      <section className="popup-section">
-        <h3>{t("Upcoming commitments")}</h3>
-        {commitments.length === 0 ? (
-          <p className="popup-placeholder">
-            {t("No upcoming commitments. Derive one from a post, or create a ticket with a due date.")}
-          </p>
-        ) : (
-          <ul className="ticket-list">
-            {commitments.map((entry) => (
-              <li key={entry.issue_ticket_id} className="ticket-list-item">
-                <button
-                  className="post-list-item"
-                  aria-label={`${t("Open commitment for:")} ${entry.post_title}`}
-                  onClick={() => onSelectPost(entry.post_id)}
-                >
-                  <span className="ticket-title">
-                    {entry.commitment_summary ?? entry.ticket_title}
-                  </span>
-                  <span className="post-badge">{entry.post_title}</span>
-                  <span className="post-badge">
-                    {entry.ticket_status_label ?? entry.ticket_status_code}
-                  </span>
-                  <span className="post-badge">{t("due")} {entry.due_date}</span>
-                </button>
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
-    </section>
+    <WorkspaceCalendar
+      calendar={calendar}
+      onSelectPost={onSelectPost}
+      headingId={headingId}
+      heading={heading ?? t("Calendar")}
+    />
   );
 }
 
@@ -4968,8 +4928,7 @@ export default function App({ showLabPanels = false }: { showLabPanels?: boolean
             </div>
             <div className="login-controls">
               <button className="btn-primary" onClick={() => {
-                const returnUrl =
-                  window.location.pathname + window.location.search + window.location.hash;
+                const returnUrl = returnUrlFromLocation();
                 rememberOidcReturnUrl(returnUrl);
                 void auth.signinRedirect({ state: { returnUrl } });
               }}>
@@ -5027,8 +4986,15 @@ export default function App({ showLabPanels = false }: { showLabPanels?: boolean
         ) : null}
         {destination === "calendar" ? (
           <section className="workspace-destination" aria-labelledby="calendar-heading">
-            <h2 id="calendar-heading">달력</h2>
-            <p role="status">{CALENDAR_CONSUME_UNAVAILABLE}</p>
+            <CalendarPanel
+              accessToken={accessToken}
+              headingId="calendar-heading"
+              heading="달력"
+              onSelectPost={(postId) => {
+                setPostToOpen(postId);
+                setDestination("board");
+              }}
+            />
           </section>
         ) : null}
         {destination === "ask" ? (

@@ -6,6 +6,7 @@ import asyncio
 from contextlib import asynccontextmanager
 
 from backend.app import global_ask_queue
+from backend.app.global_ask_queue import load_job_visibility
 
 
 class _AvailableClient:
@@ -53,13 +54,13 @@ def test_unexpected_job_failure_settles_with_a_generic_detail_not_the_raw_except
     pool = _Pool(connection)
     secret_bearing_message = "upstream said: Bearer sk-super-secret-token-abc123 is invalid"
 
-    async def _fake_load_account_visibility(_conn, _account_id):
-        return {"corp-1"}, True
+    async def _fake_load_job_visibility(_conn, _job_id, _account_id):
+        return {"corp-1"}, set(), False, True
 
     async def _fake_compute_global_ask_answer(*_args, **_kwargs):
         raise ConnectionResetError(secret_bearing_message)
 
-    monkeypatch.setattr(global_ask_queue, "load_account_visibility", _fake_load_account_visibility)
+    monkeypatch.setattr(global_ask_queue, "load_job_visibility", _fake_load_job_visibility)
     monkeypatch.setattr(
         global_ask_queue, "compute_global_ask_answer", _fake_compute_global_ask_answer
     )
@@ -90,13 +91,13 @@ def test_permission_and_connection_errors_keep_their_pre_authored_safe_message(
     connection = _Connection(_queued_row())
     pool = _Pool(connection)
 
-    async def _fake_load_account_visibility(_conn, _account_id):
-        return {"corp-1"}, True
+    async def _fake_load_job_visibility(_conn, _job_id, _account_id):
+        return {"corp-1"}, set(), False, True
 
     async def _fake_compute_global_ask_answer(*_args, **_kwargs):
         raise global_ask_queue._SafeJobError("account lacks the post_read permission")
 
-    monkeypatch.setattr(global_ask_queue, "load_account_visibility", _fake_load_account_visibility)
+    monkeypatch.setattr(global_ask_queue, "load_job_visibility", _fake_load_job_visibility)
     monkeypatch.setattr(
         global_ask_queue, "compute_global_ask_answer", _fake_compute_global_ask_answer
     )
@@ -121,13 +122,13 @@ def test_job_deadline_timeout_settles_with_a_specific_but_still_generic_detail(
     connection = _Connection(_queued_row())
     pool = _Pool(connection)
 
-    async def _fake_load_account_visibility(_conn, _account_id):
-        return {"corp-1"}, True
+    async def _fake_load_job_visibility(_conn, _job_id, _account_id):
+        return {"corp-1"}, set(), False, True
 
     async def _fake_compute_global_ask_answer(*_args, **_kwargs):
         raise asyncio.TimeoutError()
 
-    monkeypatch.setattr(global_ask_queue, "load_account_visibility", _fake_load_account_visibility)
+    monkeypatch.setattr(global_ask_queue, "load_job_visibility", _fake_load_job_visibility)
     monkeypatch.setattr(
         global_ask_queue, "compute_global_ask_answer", _fake_compute_global_ask_answer
     )
@@ -142,3 +143,33 @@ def test_job_deadline_timeout_settles_with_a_specific_but_still_generic_detail(
 
     _settle_query, settle_args = connection.executed[-1]
     assert settle_args[-1] == f"job exceeded the {global_ask_queue.JOB_DEADLINE_SECONDS}s deadline"
+
+
+def test_job_visibility_never_expands_past_queued_scope() -> None:
+    """The worker uses stored scope rows, not every account affiliation."""
+
+    class FakeConnection:
+        async def fetch(self, query: str, *args):
+            assert args == ("job-1", "account-1")
+            if "corporate_entity_scope" in query:
+                return [{"corporate_entity_id": "queued-entity"}]
+            if "process_unit_scope" in query:
+                return [{"process_unit_id": "queued-process"}]
+            raise AssertionError(query)
+
+        async def fetchval(self, query: str, *args):
+            if "global_ask_job_process_unit_scope" in query:
+                assert args == ("job-1",)
+                return True
+            assert "permission_code = 'post_read'" in query
+            assert args == ("account-1",)
+            return True
+
+    entities, processes, process_scope_limited, has_post_read = asyncio.run(
+        load_job_visibility(FakeConnection(), "job-1", "account-1")
+    )
+
+    assert entities == {"queued-entity"}
+    assert processes == {"queued-process"}
+    assert process_scope_limited is True
+    assert has_post_read is True
