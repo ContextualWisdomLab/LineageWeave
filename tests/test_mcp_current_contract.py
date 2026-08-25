@@ -5,7 +5,6 @@ from __future__ import annotations
 import json
 from dataclasses import replace
 from pathlib import Path
-from types import SimpleNamespace
 
 import pytest
 from mcp.client import Client
@@ -305,6 +304,102 @@ def test_http_boundary_rejects_origin_and_challenges_trusted_host(monkeypatch) -
     assert challenged.status_code == 401
 
 
+def test_exhausted_http_tool_emits_retry_after(monkeypatch) -> None:
+    """The complete Streamable HTTP path returns the measured quota delay."""
+    monkeypatch.setenv("MCP_RATE_LIMIT_REQUESTS", "10")
+    monkeypatch.setenv("MCP_RATE_LIMIT_WINDOW_SECONDS", "60")
+    from backend.app import mcp_server
+    from backend.app.auth import CurrentAccount
+    from backend.app.mcp_rate_limit import McpRateLimitExceeded
+
+    settings = replace(load_settings(), mcp_allowed_hosts=["testserver"])
+    token = AccessToken(
+        token="token",
+        client_id="client",
+        scopes=["lineageweave:ask"],
+        subject="subject-1",
+        resource=settings.mcp_audience,
+        claims={"sub": "subject-1"},
+    )
+
+    class TokenVerifier:
+        async def verify_token(self, _token):
+            return token
+
+    account = CurrentAccount(
+        "account-1",
+        "subject-1",
+        "Analyst",
+        None,
+        frozenset(),
+        frozenset(),
+        frozenset({"post_read"}),
+    )
+
+    async def resolve(*_args):
+        return account
+
+    server = mcp_server.build_mcp_server(
+        settings,
+        pool_factory=lambda _url: _return(FakePool()),
+        valkey_factory=lambda _url: object(),
+        limiter_factory=lambda *_args: FakeLimiter(McpRateLimitExceeded(7)),
+        token_verifier=TokenVerifier(),
+        account_resolver=resolve,
+        access_token_provider=lambda: token,
+    )
+    headers = {
+        "Authorization": "Bearer token",
+        "Accept": "application/json, text/event-stream",
+    }
+    with TestClient(mcp_server.build_mcp_http_app(server, settings)) as client:
+        initialized = client.post(
+            "/mcp",
+            headers=headers,
+            json={
+                "jsonrpc": "2.0",
+                "id": 1,
+                "method": "initialize",
+                "params": {
+                    "protocolVersion": "2025-11-25",
+                    "capabilities": {},
+                    "clientInfo": {"name": "test", "version": "1"},
+                },
+            },
+        )
+        headers.update(
+            {
+                "Mcp-Session-Id": initialized.headers["mcp-session-id"],
+                "MCP-Protocol-Version": "2025-11-25",
+            }
+        )
+        client.post(
+            "/mcp",
+            headers=headers,
+            json={
+                "jsonrpc": "2.0",
+                "method": "notifications/initialized",
+                "params": {},
+            },
+        )
+        exhausted = client.post(
+            "/mcp",
+            headers=headers,
+            json={
+                "jsonrpc": "2.0",
+                "id": 2,
+                "method": "tools/call",
+                "params": {
+                    "name": "submit_global_ask",
+                    "arguments": {"question": "question"},
+                },
+            },
+        )
+
+    assert exhausted.headers["retry-after"] == "7"
+    assert '"code":-31929' in exhausted.text
+
+
 @pytest.mark.anyio
 async def test_retry_after_wrapper_replaces_existing_header(monkeypatch) -> None:
     """Quota exhaustion exposes only the bounded current retry interval."""
@@ -320,10 +415,19 @@ async def test_retry_after_wrapper_replaces_existing_header(monkeypatch) -> None
                 "headers": [(b"retry-after", b"999")],
             }
         )
-        await send({"type": "http.response.body", "body": b""})
+        await send(
+            {
+                "type": "http.response.body",
+                "body": (
+                    b'event: message\r\ndata: {"jsonrpc":"2.0","id":2,'
+                    b'"error":{"code":-31929,"message":"quota","data":'
+                    b'{"retry_after_seconds":7}}}\r\n\r\n'
+                ),
+            }
+        )
 
     sent = []
-    scope = {"type": "http", "state": {mcp_server._RETRY_AFTER_STATE_KEY: 7}}
+    scope = {"type": "http"}
 
     async def send(message):
         """Capture one wrapped ASGI response message."""
@@ -414,57 +518,6 @@ def test_production_limiter_factory_uses_validated_values(monkeypatch) -> None:
     assert limiter._client is client
     assert limiter._request_limit == 3
     assert limiter._window_seconds == 17
-
-
-@pytest.mark.anyio
-async def test_exhausted_http_tool_marks_request_retry_state(monkeypatch) -> None:
-    """HTTP quota exhaustion carries its bounded delay to response middleware."""
-    monkeypatch.setenv("MCP_RATE_LIMIT_REQUESTS", "10")
-    monkeypatch.setenv("MCP_RATE_LIMIT_WINDOW_SECONDS", "60")
-    from mcp.shared.exceptions import MCPError
-    from starlette.requests import Request
-
-    from backend.app import mcp_server
-    from backend.app.auth import CurrentAccount
-    from backend.app.mcp_rate_limit import McpRateLimitExceeded
-
-    settings = load_settings()
-    account = CurrentAccount(
-        "account-1",
-        "subject-1",
-        "Analyst",
-        None,
-        frozenset(),
-        frozenset(),
-        frozenset({"post_read"}),
-    )
-    limiter = FakeLimiter(McpRateLimitExceeded(7))
-    request = Request({"type": "http", "method": "POST", "path": "/mcp", "headers": []})
-    context = SimpleNamespace(
-        request_context=SimpleNamespace(
-            lifespan_context=SimpleNamespace(
-                pool=object(), limiter=limiter, settings=settings
-            ),
-            request=request,
-        )
-    )
-
-    async def resolve(*_args):
-        return account
-
-    token = AccessToken(
-        token="token",
-        client_id="client",
-        scopes=[],
-        subject="subject-1",
-        resource=settings.mcp_audience,
-        claims={"sub": "subject-1"},
-    )
-    with pytest.raises(MCPError):
-        await mcp_server._account(
-            context, access_token_provider=lambda: token, account_resolver=resolve
-        )
-    assert request.scope["state"][mcp_server._RETRY_AFTER_STATE_KEY] == 7
 
 
 async def _return(value):

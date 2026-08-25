@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 from collections.abc import AsyncIterator, Awaitable, Callable
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
@@ -46,8 +47,6 @@ from lineageweave.post_chat import (
     ContextualOrchestratorPostChatClient,
     NullPostChatClient,
 )
-
-_RETRY_AFTER_STATE_KEY = "lineageweave.mcp_retry_after_seconds"
 
 
 @dataclass
@@ -94,24 +93,47 @@ class McpRetryAfterHeaderApp:
         self._app = app
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
-        """Add Retry-After when a tool call marked the current request."""
+        """Add Retry-After from the serialized quota error before headers commit."""
+        response_start: Message | None = None
 
         async def send_with_retry(message: Message) -> None:
-            """Attach the request-scoped quota delay to the response start."""
-            retry_after = scope.get("state", {}).get(_RETRY_AFTER_STATE_KEY)
-            if message.get("type") == "http.response.start" and isinstance(
-                retry_after, int
-            ):
+            """Hold response start until the first MCP event reveals its status."""
+            nonlocal response_start
+            if message.get("type") == "http.response.start":
+                response_start = message
+                return
+            if response_start is not None:
+                retry_after = _quota_retry_after(message.get("body", b""))
                 headers = [
                     (name, value)
-                    for name, value in message.get("headers", [])
+                    for name, value in response_start.get("headers", [])
                     if name.lower() != b"retry-after"
                 ]
-                headers.append((b"retry-after", str(retry_after).encode("ascii")))
-                message = {**message, "headers": headers}
+                if retry_after is not None:
+                    headers.append(
+                        (b"retry-after", str(retry_after).encode("ascii"))
+                    )
+                await send({**response_start, "headers": headers})
+                response_start = None
             await send(message)
 
         await self._app(scope, receive, send_with_retry)
+
+
+def _quota_retry_after(body: bytes) -> int | None:
+    """Read the bounded retry delay from an exact MCP JSON-RPC error event."""
+    for line in body.splitlines():
+        if not line.startswith(b"data:"):
+            continue
+        try:
+            payload = json.loads(line.removeprefix(b"data:").strip())
+            error = payload["error"]
+            retry_after = error["data"]["retry_after_seconds"]
+        except (json.JSONDecodeError, KeyError, TypeError):
+            continue
+        if error.get("code") == -31929 and type(retry_after) is int and retry_after > 0:
+            return retry_after
+    return None
 
 
 def _validate_mcp_settings(settings: Settings) -> tuple[int, int]:
@@ -172,11 +194,6 @@ async def _account(
     try:
         await dependencies.limiter.consume(account.user_account_id)
     except McpRateLimitExceeded as exc:
-        request = ctx.request_context.request
-        if isinstance(request, Request):
-            request.scope.setdefault("state", {})[_RETRY_AFTER_STATE_KEY] = (
-                exc.retry_after_seconds
-            )
         raise MCPError(
             -31929,
             "mcp_rate_limit_exceeded",
