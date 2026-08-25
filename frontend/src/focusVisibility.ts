@@ -5,6 +5,11 @@ export function isFocusableVisible(element: HTMLElement): boolean {
   if (element.closest('[hidden], [aria-hidden="true"], [inert]')) return false;
   return (
     typeof element.checkVisibility !== "function" ||
-    element.checkVisibility({ opacityProperty: true, visibilityProperty: true })
+    element.checkVisibility({
+      opacityProperty: true,
+      visibilityProperty: true,
+      checkOpacity: true,
+      checkVisibilityCSS: true,
+    })
   );
 }

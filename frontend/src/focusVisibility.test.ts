@@ -11,6 +11,8 @@ describe("isFocusableVisible", () => {
     expect(checkVisibility).toHaveBeenCalledWith({
       opacityProperty: true,
       visibilityProperty: true,
+      checkOpacity: true,
+      checkVisibilityCSS: true,
     });
   });
 
