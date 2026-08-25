@@ -113,6 +113,22 @@ async def _graph_facts_for_posts(
     if not edge_rows:
         return {}
 
+    visible_post_id_set = frozenset(visible_post_ids)
+    edge_rows = [
+        row
+        for row in edge_rows
+        if not (
+            row["source_node_type_code"] == NODE_POST
+            and str(row["source_node_id"]) not in visible_post_id_set
+        )
+        and not (
+            row["target_node_type_code"] == NODE_POST
+            and str(row["target_node_id"]) not in visible_post_id_set
+        )
+    ]
+    if not edge_rows:
+        return {}
+
     endpoint_keys = {
         node_key(row["source_node_type_code"], str(row["source_node_id"]))
         for row in edge_rows
