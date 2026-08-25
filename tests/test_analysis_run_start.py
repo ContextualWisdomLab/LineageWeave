@@ -331,10 +331,20 @@ def test_tepp_delivery_keeps_the_full_terminal_status_for_persistence() -> None:
 
 
 def test_tepp_terminal_result_replay_must_match() -> None:
+    class _Transaction:
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *_args):
+            return False
+
     class _Connection:
         def __init__(self) -> None:
             self.existing = None
             self.inserted: tuple[object, ...] | None = None
+
+        def transaction(self):
+            return _Transaction()
 
         async def fetchrow(self, _query: str, *_args: object):
             return self.existing
@@ -381,10 +391,20 @@ def test_tepp_terminal_result_replay_must_match() -> None:
 def test_tepp_acceptance_receipt_replay_must_match() -> None:
     """A provider replay cannot replace the remote identity or evidence digest."""
 
+    class _Transaction:
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *_args):
+            return False
+
     class _Connection:
         def __init__(self) -> None:
             self.existing = None
             self.inserted: tuple[object, ...] | None = None
+
+        def transaction(self):
+            return _Transaction()
 
         async def fetchrow(self, _query: str, *_args: object):
             return self.existing
@@ -429,6 +449,44 @@ def test_tepp_acceptance_receipt_replay_must_match() -> None:
             analysis_run_id="11111111-1111-1111-1111-111111111111",
             request=request,
             envelope=receipt,
+        )
+    )
+
+
+def test_tepp_persistence_conflict_rolls_back_savepoint() -> None:
+    """A provider identity conflict fails closed without aborting its caller."""
+
+    class _Transaction:
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *_args):
+            return False
+
+    class _Connection:
+        def transaction(self):
+            return _Transaction()
+
+        async def fetchrow(self, _query: str, *_args: object):
+            return None
+
+        async def execute(self, _query: str, *_args: object):
+            raise analysis_run_start.asyncpg.UniqueViolationError("duplicate remote run")
+
+    request = _tepp_request()
+    assert not asyncio.run(
+        _persist_tepp_receipt(
+            _Connection(),
+            analysis_run_id="11111111-1111-1111-1111-111111111111",
+            request=request,
+            envelope={"run_id": "remote-run-1", "run_state": "accepted"},
+        )
+    )
+    assert not asyncio.run(
+        _persist_tepp_terminal_result(
+            _Connection(),
+            analysis_run_id="11111111-1111-1111-1111-111111111111",
+            envelope={"run_id": "remote-run-1", "run_state": "succeeded"},
         )
     )
 

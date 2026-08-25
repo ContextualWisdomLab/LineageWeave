@@ -316,31 +316,32 @@ async def _persist_tepp_terminal_result(
         return False
     result_json = json.dumps(envelope, separators=(",", ":"), sort_keys=True)
     result_sha256 = hashlib.sha256(result_json.encode("utf-8")).hexdigest()
-    existing = await conn.fetchrow(
-        """
-        select remote_run_id, result_sha256
-        from analysis_run_tepp_result
-        where analysis_run_id = $1
-        """,
-        analysis_run_id,
-    )
-    if existing is not None:
-        return (
-            str(existing["remote_run_id"]) == remote_run_id
-            and str(existing["result_sha256"]) == result_sha256
-        )
     try:
-        await conn.execute(
-            """
-            insert into analysis_run_tepp_result
-                (analysis_run_id, remote_run_id, result_json, result_sha256)
-            values ($1, $2, $3::jsonb, $4)
-            """,
-            analysis_run_id,
-            remote_run_id,
-            result_json,
-            result_sha256,
-        )
+        async with conn.transaction():
+            existing = await conn.fetchrow(
+                """
+                select remote_run_id, result_sha256
+                from analysis_run_tepp_result
+                where analysis_run_id = $1
+                """,
+                analysis_run_id,
+            )
+            if existing is not None:
+                return (
+                    str(existing["remote_run_id"]) == remote_run_id
+                    and str(existing["result_sha256"]) == result_sha256
+                )
+            await conn.execute(
+                """
+                insert into analysis_run_tepp_result
+                    (analysis_run_id, remote_run_id, result_json, result_sha256)
+                values ($1, $2, $3::jsonb, $4)
+                """,
+                analysis_run_id,
+                remote_run_id,
+                result_json,
+                result_sha256,
+            )
     except (asyncpg.PostgresError, TypeError, ValueError):
         return False
     return True
@@ -362,33 +363,37 @@ async def _persist_tepp_receipt(
     receipt_json = json.dumps(envelope, separators=(",", ":"), sort_keys=True)
     request_sha256 = hashlib.sha256(request_json.encode()).hexdigest()
     receipt_sha256 = hashlib.sha256(receipt_json.encode()).hexdigest()
-    existing = await conn.fetchrow(
-        """
-        select remote_run_id, request_sha256, receipt_sha256
-        from analysis_run_tepp_receipt
-        where analysis_run_id = $1
-        """,
-        analysis_run_id,
-    )
-    if existing is not None:
-        return (
-            str(existing["remote_run_id"]) == remote_run_id
-            and str(existing["request_sha256"]) == request_sha256
-            and str(existing["receipt_sha256"]) == receipt_sha256
-        )
-    await conn.execute(
-        """
-        insert into analysis_run_tepp_receipt
-            (analysis_run_id, remote_run_id, request_sha256, receipt_sha256,
-             accepted_status_code)
-        values ($1, $2, $3, $4, $5)
-        """,
-        analysis_run_id,
-        remote_run_id,
-        request_sha256,
-        receipt_sha256,
-        state,
-    )
+    try:
+        async with conn.transaction():
+            existing = await conn.fetchrow(
+                """
+                select remote_run_id, request_sha256, receipt_sha256
+                from analysis_run_tepp_receipt
+                where analysis_run_id = $1
+                """,
+                analysis_run_id,
+            )
+            if existing is not None:
+                return (
+                    str(existing["remote_run_id"]) == remote_run_id
+                    and str(existing["request_sha256"]) == request_sha256
+                    and str(existing["receipt_sha256"]) == receipt_sha256
+                )
+            await conn.execute(
+                """
+                insert into analysis_run_tepp_receipt
+                    (analysis_run_id, remote_run_id, request_sha256, receipt_sha256,
+                     accepted_status_code)
+                values ($1, $2, $3, $4, $5)
+                """,
+                analysis_run_id,
+                remote_run_id,
+                request_sha256,
+                receipt_sha256,
+                state,
+            )
+    except (asyncpg.PostgresError, TypeError, ValueError):
+        return False
     return True
 
 

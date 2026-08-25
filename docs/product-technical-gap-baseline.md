@@ -1,5 +1,7 @@
 # Product & Technical Gap Baseline
 
+## Current TEPP lifecycle continuation snapshot
+
 > TEPP lifecycle continuation snapshot: 2026-08-26. Protected `main` is
 > `04e6b610655d0db91d5f7ba9486bdda1440e0b19`; the eleven open main-target PRs
 > are #658, #657, #644, #643, #640, #639, #636, #632, #631, #629, and #579.
@@ -13,6 +15,8 @@
 > broader backend run reached 1,195 passed and 17 skipped before 127 existing
 > live-PostgreSQL fixture errors (duplicate seeded snapshot digest) prevented a
 > green full-suite claim.
+
+## Historical dashboard delivery snapshot
 
 > Dashboard delivery snapshot: 2026-08-25 21:34 KST. Protected `main` was
 > `d7d5eeb310b055b5e138060cf2dfb929b03090a6`. This local branch is not

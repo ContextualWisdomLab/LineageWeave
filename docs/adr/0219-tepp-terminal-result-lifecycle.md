@@ -7,8 +7,8 @@
 
 ## Context
 
-TEPP's `AnalysisRunAccepted` is transport evidence, not measurement. TEPP PR
-#157 merged strict `AnalysisRunStatus` and `AnalysisRunTerminalResult` v1 Rust
+TEPP's `AnalysisRunAccepted` is transport evidence, not measurement. TEPP
+PR #157 merged strict `AnalysisRunStatus` and `AnalysisRunTerminalResult` v1 Rust
 contracts, but deliberately did not deploy a production HTTP status service.
 LineageWeave must retain accepted asynchronous work and consume a future
 provider result without guessing a URL, retry interval, score, or theta.
