@@ -1,4 +1,4 @@
-# ADR 0213 — Persist TEPP acceptance and consume terminal results
+# ADR 0219 — Persist TEPP acceptance and consume terminal results
 
 **Decision status:** Accepted on this active PR; not protected-main truth until merge  
 **Date:** 2026-08-26  

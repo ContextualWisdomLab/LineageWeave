@@ -4,7 +4,7 @@
 > `04e6b610655d0db91d5f7ba9486bdda1440e0b19`; the eleven open main-target PRs
 > are #658, #657, #644, #643, #640, #639, #636, #632, #631, #629, and #579.
 > All were auto-merge armed after fresh review-thread repair; none had the
-> required independent exact-head approval. ADR 0213 now carries
+> required independent exact-head approval. ADR 0219 now carries
 > the current-main implementation of issue #277 after TEPP PR #157 published
 > the terminal DTO. TEPP issue #249 owns the still-missing executable HTTP
 > status service. No protected merge or live measurement is claimed here.
@@ -360,7 +360,7 @@ this file per §3.5 of the prior snapshot).
 | #271 | Evidence-honest knowledge-cutoff scope on Global Ask | Ask stack |
 | #272 | Verify Global Ask KG/ontology/semantic claims with public SearXNG evidence | Ask stack |
 | #274 | Persist and explain Event Lineage channel evidence | #387 |
-| #277 | TEPP: persist accepted receipts, read completed results, keep measurement authority distinct | ADR 0213 current-main continuation; provider HTTP route tracked by TEPP #249 |
+| #277 | TEPP: persist accepted receipts, read completed results, keep measurement authority distinct | ADR 0219 current-main continuation; provider HTTP route tracked by TEPP #249 |
 | #280 | Full project-lifecycle history and handover intervals | Tracked with issue #284; no active delivery PR confirmed |
 | #284 | Authoritative lifecycle ingestion and idempotent reconciliation | No active delivery PR confirmed |
 | #289 | Activate the optional lineage LLM channel through a bounded asynchronous rebuild | #434 |
