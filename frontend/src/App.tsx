@@ -1809,11 +1809,14 @@ function PostDetailPopup({
 
   useEffect(() => {
     const previouslyFocused = document.activeElement instanceof HTMLElement ? document.activeElement : null;
-    dialogRef.current?.focus();
     return () => {
       if (previouslyFocused?.isConnected) previouslyFocused.focus();
     };
   }, []);
+
+  useEffect(() => {
+    dialogRef.current?.focus();
+  }, [postId]);
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -1830,7 +1833,12 @@ function PostDetailPopup({
         dialog.querySelectorAll<HTMLElement>(
           'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
         ),
-      ).filter((element) => !element.hasAttribute("hidden") && element.getAttribute("aria-hidden") !== "true");
+      ).filter(
+        (element) =>
+          element.closest('details:not([open]), [hidden], [aria-hidden="true"], [inert]') === null &&
+          (typeof element.checkVisibility !== "function" ||
+            element.checkVisibility({ checkOpacity: true, checkVisibilityCSS: true })),
+      );
       if (focusable.length === 0) {
         event.preventDefault();
         dialog.focus();

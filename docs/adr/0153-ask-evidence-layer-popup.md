@@ -58,5 +58,7 @@ could drift.
   piece of evidence) is now precedent for future evidence surfaces that
   don't warrant a full post detail popup.
 - The follow-up now applies the same dialog semantics, Escape-to-close,
-  initial focus, and focus restoration to `PostDetailPopup`; both popup
+  initial focus, focus restoration, focus containment, and selected-post
+  navigation refocus to `PostDetailPopup`. Collapsed, hidden, inert, and
+  CSS-invisible descendants are excluded from its focus order; both popup
   variants retain their separate content and data-fetching boundaries.

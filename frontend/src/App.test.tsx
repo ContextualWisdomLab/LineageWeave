@@ -2291,9 +2291,17 @@ describe("App, authenticated", () => {
     const dialog = await screen.findByRole("dialog", { name: "Public post" });
     expect(dialog).toHaveFocus();
 
+    const collapsed = document.createElement("details");
+    const collapsedButton = document.createElement("button");
+    collapsedButton.textContent = "Collapsed action";
+    collapsed.append(collapsedButton);
+    dialog.append(collapsed);
     await userEvent.tab({ shift: true });
-    const focusable = within(dialog).getAllByRole("button").filter((button) => !button.hasAttribute("disabled"));
+    const focusable = within(dialog)
+      .getAllByRole("button")
+      .filter((button) => !button.hasAttribute("disabled") && !button.closest("details:not([open])"));
     expect(focusable.at(-1)).toHaveFocus();
+    expect(collapsedButton).not.toHaveFocus();
     await userEvent.tab();
     const closeButton = within(dialog).getByRole("button", { name: "Close" });
     expect(closeButton).toHaveFocus();
@@ -2518,6 +2526,7 @@ describe("App, authenticated", () => {
     await waitFor(() =>
       expect(screen.getByText("The evidence panel should show exactly this text.")).toBeInTheDocument(),
     );
+    expect(screen.getByRole("dialog", { name: "Linked post" })).toHaveFocus();
   });
 
   it("stops loading and gives the buyer a next action when cited evidence is unavailable", async () => {
