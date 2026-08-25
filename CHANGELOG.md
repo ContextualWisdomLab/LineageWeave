@@ -79,6 +79,12 @@ All notable changes to this project are documented here. Format follows
   authorized leftover store as the period-report list; they do not
   invent a leftover score.
 
+### Changed
+
+- ADRs 0011 and 0065 now include APA 7th References for the dated W3C
+  PROV-O and PROV-DM Recommendations (30 April 2013). Decisions are
+  unchanged.
+
 ### Fixed
 
 - Full-corpus Event Lineage rebuilds now count candidate pairs before provider
