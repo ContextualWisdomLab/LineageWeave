@@ -1,6 +1,6 @@
 # Product & Technical Gap Baseline
 
-> Dashboard delivery snapshot: 2026-08-25 21:57 KST. Protected `main` was
+> Dashboard delivery snapshot: 2026-08-26 06:58 KST. Protected `main` was
 > `04e6b610655d0db91d5f7ba9486bdda1440e0b19`. This local branch is not
 > protected-main release evidence.
 
@@ -60,18 +60,14 @@ only aggregate, non-identifying evidence to this repository.
 
 ### Exact open-PR boundary
 
-At this snapshot there were 12 open PRs and 10 open issues. Exact observed
-heads are recorded in section 1. PR #666 was merged into #663's non-default
-branch before the parent reached protected `main`; its checks and merge commit
-are stack composition evidence only, while #663 now carries the combined
-candidate. Every open head remains blocked on hosted gates
-and/or independent review; normal auto-merge is enabled on each main-targeted
-PR. These
-observations are not merge readiness. Re-fetch exact heads,
-unresolved threads, checks, approvals, rulesets, and merge SHA before any
-lifecycle claim.
+At this snapshot there were 11 open PRs and 10 open issues. PR #660 merged to
+protected `main` as `7e9030c9`; PR #666 remains only non-default-branch stack
+composition inside #663. Every remaining open head required refreshed hosted
+gates and/or independent review after the base changed. These observations are
+not merge readiness. Re-fetch exact heads, unresolved threads, checks,
+approvals, rulesets, and merge SHA before any lifecycle claim.
 
-> Audit snapshot: 2026-08-26 07:31 KST (refreshed by the autonomous merge
+> Audit snapshot: 2026-08-26 06:58 KST (refreshed by the autonomous merge
 > loop). This repository records synthetic fixtures and aggregate,
 > non-identifying runtime evidence only. Open PRs and local checks are not
 > protected-default-branch release evidence. Identifying post identifiers,
@@ -81,30 +77,33 @@ lifecycle claim.
 ## 1. Exact-head and governance evidence
 
 The protected default branch was `04e6b610655d0db91d5f7ba9486bdda1440e0b19`
-when this baseline was refreshed. The live queue contained 12 open PRs and 10
+when this baseline was refreshed. The live queue contained 11 open PRs and 10
 open issues. The exact-head inventory below supersedes older per-PR snapshots
 elsewhere in this document; those older rows remain useful historical delivery
 context only.
 
 | PR | Exact observed head | Merge/check state at this snapshot |
 | ---: | --- | --- |
-| #663 | `db11629e` | combined parent candidate: evidence-backed Project nodes plus #666's non-default-branch removal of sampled region-coverage arithmetic; checks are running, independent review required, auto-merge enabled |
-| #660 | `24fda085` | restores backend runtime/integration contracts; exact-head checks passed, independent review required, auto-merge enabled |
-| #659 | `0739b9d7` | token-backed ontology node readability; exact-head checks passed, independent review required, auto-merge enabled |
-| #658 | `fe830b0a` | evidence-honest Global Ask knowledge cutoff; exact-head checks passed, independent review required, auto-merge enabled |
-| #657 | `64f48679` | TEPP asynchronous lifecycle persistence while unpublished producer work stays unavailable; exact-head checks passed, independent review required, auto-merge enabled |
-| #644 | `d9ff9980` | native frontend surface code splitting; exact-head checks passed, independent review required, auto-merge enabled |
-| #643 | `0a1f8ec1` | shared token-backed status notice; exact-head checks passed, independent review required, auto-merge enabled |
-| #640 | `2d50fa01` | dashboard case metrics and project journeys; exact-head checks passed, independent review required, auto-merge enabled |
-| #639 | `aee02dca` | restores Running action and Compose contracts; exact-head checks passed, independent review required, auto-merge enabled |
-| #632 | `702adf2d` | preserves graph-fact source provenance; some checks running, independent review required, auto-merge enabled |
-| #631 | `c0022c97` (observed parent) | decomposes closed PR #490 and refreshes the exact queue; exact-head checks passed before this documentation update, independent review required, auto-merge enabled |
-| #629 | `4b4d6707` | releases provider work and bounds landing reads; exact-head checks passed, independent review required, auto-merge enabled |
+| #663 | `ab330a0f` | combined Project ontology candidate plus #666's non-default-branch removal of sampled region-coverage arithmetic; refreshed hosted checks and independent review required |
+| #659 | `ccdfc6f1` | token-backed ontology node readability refreshed after #660 merged; hosted checks and independent review required |
+| #658 | `fe830b0a` | evidence-honest Global Ask cutoff; base conflict remains to be repaired |
+| #657 | `64f48679` | TEPP asynchronous lifecycle persistence while unpublished producer work stays unavailable; base conflict remains to be repaired |
+| #644 | `d9ff9980` | native frontend surface code splitting; base conflict remains to be repaired |
+| #643 | `0a1f8ec1` | shared token-backed status notice; base conflict remains to be repaired |
+| #640 | `2d50fa01` | dashboard case metrics and project journeys; base conflict remains to be repaired |
+| #639 | `aee02dca` | restores Running action and Compose contracts; base conflict remains to be repaired |
+| #632 | `a4059113` | graph-fact provenance, public verification, MCP admission, and k6 evidence; base conflict remains to be repaired |
+| #631 | `1d9ac825` (observed parent) | decomposes closed PR #490; this merge refresh advances its head and restarts hosted review evidence |
+| #629 | `6d2fb7b3` | provider-work release and bounded landing reads refreshed onto protected `main`; hosted checks and independent review restarted |
 
 No row above is merge evidence. Immediately before any lifecycle action,
 re-fetch the head, unresolved threads, formal reviews, rulesets, and same-head
 check conclusions. In particular, queued checks are infrastructure state and
 do not transfer evidence from an earlier SHA.
+
+PR #664 merged as `b2e48d5b0db59f5aa434e2a293cd182ee810c019`
+into #660's non-default branch. Its semantic-unit implementation is therefore
+stack evidence only until #660 passes the protected-`main` gate.
 
 PR #607 first merged as `61fd631c7bb3c57113fd19763c2c43161eeb2824`
 into #606's non-default branch. PR #606 subsequently passed the protected gate,
@@ -389,8 +388,8 @@ this file per §3.5 of the prior snapshot).
 | Frontend delivery performance | #644 implements a native dynamic-import boundary for conditional workspace surfaces and retains accessible loading/error states; exact-head checks passed but the PR is not protected-main evidence | Merge #644 normally, rebuild the protected-main production bundle, and retain the measured chunk inventory rather than raising the warning limit |
 | External integrations | Search, Zotero, calendar, Keyverse, orchestrator, RankWeave, ThreadWeave, TEPP, DiskSage, wardnet | Provider conformance, failure/reconciliation behavior, and provenance-bearing integration evidence |
 | MSA / modular reuse | LineageWeave must run standalone and as a consumer of org packages | Do not reimplement RankWeave/TEPP/orchestrator/ThreadWeave/Keyverse; fix upstream and PR there |
-| Product contract authority | The current LineageWeave PRD and linked ecosystem authorities were re-read before this loop. Remote canonical names are `LineageWeave`, `RankWeave`, `ThreadWeave`, `TEPP`, and lowercase `disksage`; `DiskSage` is a product brand/local-directory spelling, not the canonical GitHub repository name. contextual-orchestrator and RankWeave still rely on product/architecture authority rather than standalone PRDs | Keep ADRs normative, preserve remote canonical repository case in machine references, and add standalone PRDs in each owning repository before cross-product release claims exceed its documented boundary |
-| Release quality | Local focused/full suites have passed on individual PR heads | Repository-wide coverage, docstrings, Storybook, security, browser, and release evidence on one exact head |
+| Product contract authority | The current LineageWeave PRD records exact-case ecosystem authorities. TEPP, fast-mlsirm, keyverse, ThreadWeave, and RankWeave PR #41 have standalone PRDs; RankWeave's remains unmerged. contextual-orchestrator, disksage, and wardnet still rely on product/architecture documents, and naruon has only a scoped Topic Intelligence PRD | Keep ADRs normative, preserve canonical repository case in machine references, land the pending PRDs, and add standalone PRDs in each remaining owning repository before cross-product release claims exceed its documented boundary |
+| Release quality | PR #660 is now on protected `main`; its pre-merge full Python suite passed 1,352 tests with 17 skips, but release-wide frontend, Storybook, security, browser, and runtime acceptance remain unproven on one exact protected head | Repository-wide coverage, docstrings, Storybook, security, browser, and release evidence on one exact head |
 | PII | Masking would paralyze the product; ADR 0001 forbids identifying artifacts in git | ABAC + authorized runtime; synthetic fixtures in git; no mask-in-place that drops names the operator must read |
 | Database | PostgreSQL, 3NF, snake_case ≥ two words, hot-partition and lock policy | No file DBs; read/write split if lock management fails; whitelist every migration |
 
