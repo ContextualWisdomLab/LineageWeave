@@ -42,14 +42,9 @@ MAXIMUM_LIVE_LLM_PAIR_EVALUATIONS = 5_000
 ISOLATION_NO_COMPARISON_GROUP = "no_comparison_group"
 ISOLATION_COMPARISON_CANDIDATES_AVAILABLE = "comparison_candidates_available"
 
-# Accepted ADR 0200 (points 2-3) authorizes exactly one anchor method:
-# expected-information estimates honestly labeled as validated by the
-# channels' internal response structure only, pending the TEPP
-# criterion-validity gate. When that gate exists, a set that fails it is
-# retired and this stays the only place an anchor method is ever added
-# -- ADR-first, per ADR 0145's original condition.
+# ADR 0205 authorizes only a completed, persisted TEPP criterion anchor.
 _SUPPORTED_ANCHOR_METHOD_CODES: frozenset[str] = frozenset(
-    {"unanchored_internal_structure"}
+    {"tepp_lineage_criterion_v1"}
 )
 
 
@@ -227,12 +222,11 @@ async def load_estimated_channel_weights(
 ) -> dict[str, float] | None:
     """Load only a complete vector from an independently anchored method.
 
-    No anchor method is currently authorized (ADR 0200 point 3 names the
-    conditions under which one becomes authorized). A partial or invalid
-    vector returns ``None`` rather than being repaired. A database that has
-    not applied migration 0135 is likewise an unavailable state, detected
-    without issuing a statement that would abort the caller's outer
-    PostgreSQL transaction.
+    ADR 0205 authorizes only the exact persisted TEPP lineage-criterion
+    contract. A partial, internally anchored, or identity-mismatched vector
+    returns ``None`` rather than being repaired. A database missing either
+    persistence table is likewise an unavailable state, detected without an
+    aborting query inside the caller's transaction.
 
     Since migration 0200 one weight set is persisted per active-channel
     combination (``channel_set_code``): the corpus-wide rebuild's three
@@ -246,6 +240,11 @@ async def load_estimated_channel_weights(
     )
     if not table_exists:
         return None
+    anchor_table_exists = await conn.fetchval(
+        "select to_regclass('public.lineage_weight_tepp_anchor') is not null"
+    )
+    if not anchor_table_exists:
+        return None
     # Pre-0200 schemas lack channel_set_code; probe via the catalog (never
     # a failing statement, which would abort the caller's transaction).
     # Pre-0200 rows form one implicit deterministic set.
@@ -256,14 +255,30 @@ async def load_estimated_channel_weights(
         "  and column_name = 'channel_set_code')"
     )
     set_column_sql = (
-        "channel_set_code" if set_column_exists else "'channel_set_deterministic'"
+        "weight.channel_set_code" if set_column_exists else "'channel_set_deterministic'"
     )
     all_rows = await conn.fetch(
         f"select {set_column_sql} as channel_set_code, "
-        "channel_code, weight_value, estimation_run_id, "
-        "estimation_method_code, estimator_version, anchor_method_code, "
-        "source_snapshot_sha256, sample_pair_count, knowledge_cutoff "
-        "from lineage_channel_weight"
+        "weight.channel_code, weight.weight_value, weight.estimation_run_id, "
+        "weight.estimation_method_code, weight.estimator_version, weight.anchor_method_code, "
+        "weight.source_snapshot_sha256, weight.sample_pair_count, weight.knowledge_cutoff, "
+        "anchor.anchor_kind_code, anchor.anchor_contract_version, "
+        "anchor.source_snapshot_sha256 as anchor_snapshot_sha256, "
+        "anchor.knowledge_cutoff as anchor_knowledge_cutoff, "
+        "anchor.criterion_validity_status_code, anchor.validated_pair_count, "
+        "tepp_result.result_sha256 as tepp_result_sha256, "
+        "tepp_run.run_kind_code as tepp_run_kind_code, "
+        "tepp_snapshot.snapshot_sha256 as tepp_snapshot_sha256, "
+        "tepp_run.knowledge_cutoff as tepp_knowledge_cutoff "
+        "from lineage_channel_weight weight "
+        "left join lineage_weight_tepp_anchor anchor "
+        "on anchor.estimation_run_id = weight.estimation_run_id "
+        "left join analysis_run_tepp_result tepp_result "
+        "on tepp_result.analysis_run_id = anchor.tepp_analysis_run_id "
+        "left join analysis_run tepp_run "
+        "on tepp_run.analysis_run_id = tepp_result.analysis_run_id "
+        "left join analysis_source_snapshot tepp_snapshot "
+        "on tepp_snapshot.analysis_source_snapshot_id = tepp_run.analysis_source_snapshot_id"
     )
     sets: dict[str, list] = {}
     for row in all_rows:
@@ -326,6 +341,51 @@ async def load_estimated_channel_weights(
         or not isinstance(knowledge_cutoff, datetime)
     ):
         return None
+    if anchor_method == "tepp_lineage_criterion_v1":
+        anchor_values = {
+            (
+                row.get("anchor_kind_code"),
+                row.get("anchor_contract_version"),
+                row.get("anchor_snapshot_sha256"),
+                row.get("anchor_knowledge_cutoff"),
+                row.get("criterion_validity_status_code"),
+                row.get("validated_pair_count"),
+                row.get("tepp_result_sha256"),
+                row.get("tepp_run_kind_code"),
+                row.get("tepp_snapshot_sha256"),
+                row.get("tepp_knowledge_cutoff"),
+            )
+            for row in rows
+        }
+        if len(anchor_values) != 1:
+            return None
+        (
+            anchor_kind,
+            anchor_version,
+            anchor_snapshot,
+            anchor_cutoff,
+            validity_status,
+            validated_pairs,
+            tepp_digest,
+            tepp_run_kind,
+            tepp_snapshot,
+            tepp_cutoff,
+        ) = next(iter(anchor_values))
+        if (
+            estimation_method != "mls2plm_expected_information"
+            or anchor_kind != "lineage_pair_criterion"
+            or anchor_version != 1
+            or validity_status != "accepted"
+            or validated_pairs != sample_pair_count
+            or anchor_snapshot != snapshot_digest
+            or tepp_snapshot != snapshot_digest
+            or anchor_cutoff != knowledge_cutoff
+            or tepp_cutoff != knowledge_cutoff
+            or tepp_run_kind != "analysis_run_tepp"
+            or not isinstance(tepp_digest, str)
+            or re.fullmatch(r"[0-9a-f]{64}", tepp_digest) is None
+        ):
+            return None
     return persisted
 
 

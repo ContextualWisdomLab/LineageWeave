@@ -79,13 +79,8 @@ def test_unapproved_weight_provenance_is_never_activated() -> None:
     ) is None
 
 
-def test_adr_0200_authorized_anchor_activates_a_complete_vector() -> None:
-    """Accepted ADR 0200: 'unanchored_internal_structure' is the one
-    authorized anchor method -- a complete, single-run,
-    integrity-passing vector under it activates, with no monkeypatching
-    of the authorized set. The rejected estimator's code
-    ('unanchored_channel_covariance', previous test) stays refused.
-    """
+def test_tepp_criterion_anchor_activates_an_exact_complete_vector() -> None:
+    """ADR 0205 activates only an exact persisted TEPP criterion anchor."""
 
     class StoredWeightConnection:
         async def fetchval(self, _query: str):
@@ -97,10 +92,20 @@ def test_adr_0200_authorized_anchor_activates_a_complete_vector() -> None:
                 "estimation_run_id": "00000000-0000-0000-0000-000000000001",
                 "estimation_method_code": "mls2plm_expected_information",
                 "estimator_version": "1.0.0",
-                "anchor_method_code": "unanchored_internal_structure",
+                "anchor_method_code": "tepp_lineage_criterion_v1",
                 "source_snapshot_sha256": "a" * 64,
                 "sample_pair_count": 600,
                 "knowledge_cutoff": datetime(2026, 1, 1, tzinfo=UTC),
+                "anchor_kind_code": "lineage_pair_criterion",
+                "anchor_contract_version": 1,
+                "anchor_snapshot_sha256": "a" * 64,
+                "anchor_knowledge_cutoff": datetime(2026, 1, 1, tzinfo=UTC),
+                "criterion_validity_status_code": "accepted",
+                "validated_pair_count": 600,
+                "tepp_result_sha256": "b" * 64,
+                "tepp_run_kind_code": "analysis_run_tepp",
+                "tepp_snapshot_sha256": "a" * 64,
+                "tepp_knowledge_cutoff": datetime(2026, 1, 1, tzinfo=UTC),
             }
             return [
                 {**provenance, "channel_code": channel, "weight_value": weight}
@@ -112,6 +117,57 @@ def test_adr_0200_authorized_anchor_activates_a_complete_vector() -> None:
             StoredWeightConnection(), {"temporal", "secondary_key", "text"}
         )
     ) == _fixture_weights()
+
+
+@pytest.mark.parametrize(
+    ("field", "value"),
+    (
+        ("criterion_validity_status_code", "rejected"),
+        ("anchor_snapshot_sha256", "b" * 64),
+        ("tepp_knowledge_cutoff", datetime(2026, 1, 2, tzinfo=UTC)),
+        ("validated_pair_count", 599),
+    ),
+)
+def test_tepp_anchor_mismatch_disables_the_whole_vector(field: str, value: object) -> None:
+    """No TEPP identity or validity mismatch is repaired or inferred."""
+
+    class StoredWeightConnection:
+        async def fetchval(self, _query: str):
+            return True
+
+        async def fetch(self, _query: str):
+            cutoff = datetime(2026, 1, 1, tzinfo=UTC)
+            provenance = {
+                "channel_set_code": "channel_set_deterministic",
+                "estimation_run_id": "00000000-0000-0000-0000-000000000001",
+                "estimation_method_code": "mls2plm_expected_information",
+                "estimator_version": "1.0.0",
+                "anchor_method_code": "tepp_lineage_criterion_v1",
+                "source_snapshot_sha256": "a" * 64,
+                "sample_pair_count": 600,
+                "knowledge_cutoff": cutoff,
+                "anchor_kind_code": "lineage_pair_criterion",
+                "anchor_contract_version": 1,
+                "anchor_snapshot_sha256": "a" * 64,
+                "anchor_knowledge_cutoff": cutoff,
+                "criterion_validity_status_code": "accepted",
+                "validated_pair_count": 600,
+                "tepp_result_sha256": "b" * 64,
+                "tepp_run_kind_code": "analysis_run_tepp",
+                "tepp_snapshot_sha256": "a" * 64,
+                "tepp_knowledge_cutoff": cutoff,
+                field: value,
+            }
+            return [
+                {**provenance, "channel_code": channel, "weight_value": weight}
+                for channel, weight in (("temporal", 0.5), ("secondary_key", 0.3), ("text", 0.2))
+            ]
+
+    assert asyncio.run(
+        ingestion.load_estimated_channel_weights(
+            StoredWeightConnection(), {"temporal", "secondary_key", "text"}
+        )
+    ) is None
 
 
 def test_incomplete_persisted_weight_vector_is_unavailable() -> None:
@@ -740,10 +796,20 @@ def test_rebuild_reconstructs_with_an_activated_estimate() -> None:
             "estimation_run_id": "00000000-0000-0000-0000-000000000001",
             "estimation_method_code": "mls2plm_expected_information",
             "estimator_version": "1.0.0",
-            "anchor_method_code": "unanchored_internal_structure",
+            "anchor_method_code": "tepp_lineage_criterion_v1",
             "source_snapshot_sha256": "a" * 64,
             "sample_pair_count": 600,
             "knowledge_cutoff": datetime(2026, 1, 1, tzinfo=UTC),
+            "anchor_kind_code": "lineage_pair_criterion",
+            "anchor_contract_version": 1,
+            "anchor_snapshot_sha256": "a" * 64,
+            "anchor_knowledge_cutoff": datetime(2026, 1, 1, tzinfo=UTC),
+            "criterion_validity_status_code": "accepted",
+            "validated_pair_count": 600,
+            "tepp_result_sha256": "b" * 64,
+            "tepp_run_kind_code": "analysis_run_tepp",
+            "tepp_snapshot_sha256": "a" * 64,
+            "tepp_knowledge_cutoff": datetime(2026, 1, 1, tzinfo=UTC),
         }
         for channel, weight in _fixture_weights().items()
     ]

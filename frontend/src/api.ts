@@ -41,6 +41,38 @@ export interface PostPage {
   visibility_options?: PostFilterOption[];
 }
 
+export interface OperationsDashboardFact {
+  fact_type_code: string;
+  fact_type_label: string;
+  value_text: string;
+  evidence_text: string;
+}
+
+export interface OperationsDashboardCase {
+  post_id: string;
+  case_kind_code: string;
+  case_kind_label: string;
+  project_name: string | null;
+  summary_text: string;
+  evidence_text: string;
+  occurred_at: string;
+  facts: OperationsDashboardFact[];
+}
+
+export interface OperationsDashboardResponse {
+  period_label: string;
+  total_post_count: number;
+  total_event_count: number;
+  external_post_count: number;
+  external_percent: number;
+  pending_analysis_count: number;
+  cases: OperationsDashboardCase[];
+}
+
+export function fetchOperationsDashboard(accessToken: string): Promise<OperationsDashboardResponse> {
+  return backendFetch("/api/dashboard", accessToken);
+}
+
 export interface PostFilterOption {
   code: string;
   label: string;
@@ -327,6 +359,20 @@ export interface AskAgentResponse {
   source_post_ids: string[];
   next_action?: string;
   lineage_graph?: LineageGraph;
+  delivery?: {
+    contract_version: string;
+    report: {
+      media_type: string;
+      body: string;
+      source_documents: Array<{ post_id: string; title: string; api_path: string; resource_uri: string }>;
+    };
+    alert: {
+      trigger_code: string;
+      delivery_status_code: string;
+      eligible: boolean;
+      watched_resource_uris: string[];
+    };
+  };
 }
 
 export interface IssueTicket {
@@ -475,6 +521,7 @@ export interface LineageGraph {
   edges: LineageGraphEdge[];
   truncated?: boolean;
   reconstruction?: LineageRebuildProfile | null;
+  isolation_reason?: "comparison_candidates_available" | "no_comparison_group" | null;
 }
 
 export function fetchLineageGraph(accessToken: string, postId?: string): Promise<LineageGraph> {
