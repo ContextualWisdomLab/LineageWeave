@@ -1160,6 +1160,9 @@ describe("App, authenticated", () => {
         );
       }
       const postOneUrl = new URL(url, "https://backend.test");
+      if (postOneUrl.pathname === "/api/posts/post-1/similar-voc") {
+        return Promise.resolve(jsonResponse({ items: [] }));
+      }
       if (postOneUrl.pathname === "/api/posts/post-1") {
         const asOf = postOneUrl.searchParams.get("as_of");
         return postOneReady.then(() =>

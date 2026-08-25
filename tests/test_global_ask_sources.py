@@ -303,6 +303,7 @@ def test_global_sources_return_no_evidence_for_zero_limit() -> None:
 def test_global_sources_fail_closed_when_embedding_is_unavailable() -> None:
     class UnavailableEmbedding:
         available = False
+        resolved_model = None
 
         def embed(self, _text: str) -> list[float]:
             raise AssertionError("unavailable embedding must not be called")
@@ -317,6 +318,32 @@ def test_global_sources_fail_closed_when_embedding_is_unavailable() -> None:
             lambda _row: True,
             question="semantic question",
             embedding_client=UnavailableEmbedding(),
+        )
+    )
+
+    assert sources == []
+
+
+def test_global_sources_fail_closed_without_a_resolved_embedding_model() -> None:
+    """A vector without its orchestrator-resolved model cannot match persisted rows."""
+
+    class UnboundEmbedding:
+        available = True
+        resolved_model = None
+
+        def embed(self, _text: str) -> list[float]:
+            return [1.0, 0.0]
+
+    class FakeConnection:
+        async def fetch(self, _query: str, *_args):
+            raise AssertionError("an unbound vector must not query persisted embeddings")
+
+    sources = asyncio.run(
+        _gather_global_chat_sources(
+            FakeConnection(),
+            lambda _row: True,
+            question="semantic question",
+            embedding_client=UnboundEmbedding(),
         )
     )
 

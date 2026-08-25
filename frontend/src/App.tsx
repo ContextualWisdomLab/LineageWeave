@@ -4912,16 +4912,16 @@ export default function App({ showLabPanels = false }: { showLabPanels?: boolean
   useLocale();
   const [brandName, setBrandName] = useState("LineageWeave");
   const auth = useAuth();
-  const initialPostId = typeof window === "undefined"
-    ? null
-    : new URLSearchParams(window.location.search).get("post");
   const [destination, setDestination] = useState<WorkspaceDestination>(() =>
     initialWorkspaceDestination(
       typeof window === "undefined" ? "" : window.location.search,
       import.meta.env.MODE === "test",
     ),
   );
-  const [postToOpen, setPostToOpen] = useState<string | null>(initialPostId);
+  const [postToOpen, setPostToOpen] = useState<string | null>(() => {
+    if (typeof window === "undefined") return null;
+    return new URLSearchParams(window.location.search).get("post");
+  });
   // Test-only compatibility for legacy analysis-panel coverage; this prop
   // never forces the panels open outside Vitest. In a real build the
   // advanced-review section (ADR 0037) is gated on PostList's own
