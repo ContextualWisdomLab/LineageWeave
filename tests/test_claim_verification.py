@@ -185,6 +185,39 @@ def test_searxng_orchestrated_client_returns_nei_when_search_has_no_usable_evide
     assert result.evidence == ()
 
 
+@pytest.mark.parametrize(
+    "response",
+    (
+        {},
+        {"choices": []},
+        {"choices": [None]},
+        {"choices": [{}]},
+        {"choices": [{"message": {"content": None}}]},
+    ),
+)
+def test_searxng_orchestrated_client_rejects_malformed_adjudication_envelopes(
+    monkeypatch, response: dict
+) -> None:
+    """Malformed provider envelopes fail closed through the public client contract."""
+
+    monkeypatch.setattr(
+        cv,
+        "get_json",
+        lambda url, *, timeout, service_peer_name: {
+            "results": [{"url": "https://example.com/evidence", "title": "Evidence"}]
+        },
+    )
+    monkeypatch.setattr(cv, "post_json", lambda *args, **kwargs: response)
+    client = cv.SearxngOrchestratedClaimVerificationClient(
+        "https://search.example",
+        "https://orchestrator.example",
+        "secret",
+    )
+
+    with pytest.raises(ValueError):
+        client.verify(cv.PublicClaimCandidate("claim", "semantic_project"))
+
+
 def test_client_configuration_fails_closed() -> None:
     with pytest.raises(ValueError):
         cv.SearxngOrchestratedClaimVerificationClient(

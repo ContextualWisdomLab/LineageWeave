@@ -424,7 +424,13 @@ class SearxngOrchestratedClaimVerificationClient:
             headers={"authorization": f"Bearer {self._api_key}"},
             timeout=self._adjudication_timeout,
         )
-        content = body["choices"][0]["message"]["content"]
+        choices = body.get("choices")
+        if not isinstance(choices, list) or not choices or not isinstance(choices[0], dict):
+            raise ValueError("claim adjudication choices must contain one object")
+        message = choices[0].get("message")
+        if not isinstance(message, dict):
+            raise ValueError("claim adjudication choice must contain a message object")
+        content = message.get("content")
         if not isinstance(content, str):
             raise ValueError("claim adjudication content must be text")
         return _parse_adjudication(content, claim, documents)
