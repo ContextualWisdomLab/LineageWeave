@@ -33,7 +33,7 @@ export function WorkspaceCalendar({
       <section className="popup-section" aria-labelledby={`${headingId}-observed`}>
         <h3 id={`${headingId}-observed`}>{t("Observed calendar events")}</h3>
         {events.length === 0 ? (
-          <p className="popup-placeholder" role="status">
+          <p className="popup-placeholder">
             {naruonAvailable
               ? t("No observed calendar events are available.")
               : failClosedCopy}
