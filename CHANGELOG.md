@@ -8,6 +8,8 @@ All notable changes to this project are documented here. Format follows
 
 ### Added
 
+- Persist explicit paragraph, list, table, MathML formula, and caller-parsed
+  conversation-turn semantic-unit kinds without inferring absent boundaries.
 - Event Lineage now persists each reconstructed connection's independent
   channel scores, the normalized weights actually used, and their
   contributions. The Event Lineage DAG discloses those exact values as inferred

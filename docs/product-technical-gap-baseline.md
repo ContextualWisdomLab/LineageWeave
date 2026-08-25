@@ -1,7 +1,7 @@
 # Product & Technical Gap Baseline
 
-> Dashboard delivery snapshot: 2026-08-26 KST. Protected `main` was
-> `04e6b610655d0db91d5f7ba9486bdda1440e0b19`. This local branch is not
+> Dashboard delivery snapshot: 2026-08-26 07:01 KST. Protected `main` was
+> `7e9030c9a8ee2684e680c63013b304b435ba646e`. This local branch is not
 > protected-main release evidence.
 
 ## Operations Dashboard PRD/TRD traceability
@@ -67,19 +67,14 @@ keyboard-focusable horizontal exact-values region; no label was truncated.
 
 ### Exact open-PR boundary
 
-At this snapshot there were 12 open PRs and 10 open issues. Exact observed heads
-were `#663 efbfb5df`, `#660 24fda085`, `#659 0739b9d7`, `#658 fe830b0a`,
-`#657 64f48679`, `#644 d9ff9980`, `#643 0a1f8ec1`, `#640 2d50fa01`,
-`#639 aee02dca`, `#632 a4059113`, `#631 1d9ac825`, and `#629 4b4d6707`.
-PR #654 merged its ontology-label
-readability slice into #632's provenance branch as `6c0c4370`; that stack
-merge is not protected-main delivery. The open heads remain
-blocked on hosted gates and/or independent review. These
-observations are not merge readiness. Re-fetch exact heads,
+At this snapshot there were 11 open PRs and 10 open issues. The exact-head
+inventory in section 1 is authoritative for this snapshot. The open heads
+remain blocked on hosted gates and/or independent review. These observations
+are not merge readiness. Re-fetch exact heads,
 unresolved threads, checks, approvals, rulesets, and merge SHA before any
 lifecycle claim.
 
-> Audit snapshot: 2026-08-26 06:52 KST (refreshed by the autonomous merge
+> Audit snapshot: 2026-08-26 07:01 KST (refreshed by the autonomous merge
 > loop). This repository records synthetic fixtures and aggregate,
 > non-identifying runtime evidence only. Open PRs and local checks are not
 > protected-default-branch release evidence. Identifying post identifiers,
@@ -88,21 +83,21 @@ lifecycle claim.
 
 ## 1. Exact-head and governance evidence
 
-The protected default branch was `04e6b610655d0db91d5f7ba9486bdda1440e0b19`
-when this baseline was refreshed. The live queue contained 12 open PRs and 10
+The protected default branch was `7e9030c9a8ee2684e680c63013b304b435ba646e`
+when this baseline was refreshed. The live queue contained 11 open PRs and 10
 open issues. The exact-head inventory below supersedes older per-PR snapshots
 elsewhere in this document; those older rows remain useful historical delivery
 context only.
 
 | PR | Exact observed head | Merge/check state at this snapshot |
 | ---: | --- | --- |
-| #660 | `24fda085` | backend runtime/integration contract restoration with FastAPI status API, `tepp_api_key` settings wiring, httpx2 transport contract, semantic-unit stack from #664, and synthetic snapshot-digest repair; config/API suite passed 138 tests with 5 skips; latest head is documentation-only over the tested runtime; hosted checks and independent review remain required |
+| #660 | `24fda085` (merged as protected-main `7e9030c9`) | backend runtime/integration contract restoration with FastAPI status API, `tepp_api_key` settings wiring, the #664 semantic-unit stack, and synthetic snapshot-digest repair; this is protected delivery, while runtime acceptance remains separate |
 | #661 | `6baaeb3d` (closed unmerged) | reconstruction fixture seam passed focused tests, but the final review found no independent `tepp_lineage_criterion_v1` anchor and an ungrounded candidate-pair weight fit, contrary to ADR 0145/0205; closed without protected-main delivery |
 | #662 | `92534118` (closed unmerged) | TEPP terminal status/read transport boundary remained blocked and was closed as superseded by #657's stronger request/snapshot/cutoff/output lifecycle contract; retain its ADR/client-test evidence as historical gap context, with no protected-main delivery |
-| #664 | `be3e28cc` (merged into #660 branch) | explicit semantic content-unit kinds for paragraph, list, table, formula, and caller-parsed conversation turns; ADR 0223 and migration 0221 are now part of the non-default #660 stack; protected-main delivery is not implied |
-| #663 | `efbfb5df` (observed parent) | evidence-backed Post → Project-candidate ontology neighborhood, proposed truth status, cutoff/snapshot-bounded evidence, process-unit-complete Post-focus ABAC, lookup-label enforcement under optimized Python, #666's removal of sampled VISION-region coverage inference, and the current #632 stack; unresolved lexical project keys are scoped to their evidence post so same-named projects cannot collapse across records, JSON-LD preserves available PROV-O system time and OWL-Time validity bounds, and the keyboard-scrollable exact-value table exposes validity/evidence fields; the local successor uses one canonical percent-encoded node IRI in RDF and JSON-LD and emits every relationship as both the direct assertion and an evidence-bearing RDF reified statement; focused ontology/docstring/SHACL tests pass, while hosted checks and independent review remain required after the head refresh |
+| #664 | `be3e28cc` (delivered through #660) | explicit semantic content-unit kinds for paragraph, list, table, formula, and caller-parsed conversation turns; ADR 0223 and migration 0221 are on protected `main` through #660 |
+| #663 | `81bb8295` (observed parent) | evidence-backed Post → Project-candidate ontology neighborhood, proposed truth status, cutoff/snapshot-bounded evidence, process-unit-complete Post-focus ABAC, lookup-label enforcement under optimized Python, #666's removal of sampled VISION-region coverage inference, and the current #632 stack; unresolved lexical project keys are scoped to their evidence post so same-named projects cannot collapse across records, JSON-LD preserves available PROV-O system time and OWL-Time validity bounds, and the keyboard-scrollable exact-value table exposes validity/evidence fields; the local successor uses one canonical percent-encoded node IRI in RDF and JSON-LD and emits every relationship as both the direct assertion and an evidence-bearing RDF reified statement; focused ontology/docstring/SHACL tests pass, while hosted checks and independent review remain required after synchronizing protected `main` |
 | #666 | `f0727f84` (merged into #663 branch) | removes sampled region-coverage inference from VISION ingestion and retains parent evidence only under the ADR-defined region contract; this non-default stack merge is not protected-main delivery |
-| #659 | `0739b9d7` | ontology node-type readability, tokenized surfaces, contrast measurement, keyboard-scrollable exact values, and resolved cross-PR allocation documentation; its exact head is an ancestor of the #663 candidate, but remains open until replacement delivery is protected; hosted checks and independent review remain required |
+| #659 | `ccdfc6f1` | ontology node-type readability, tokenized surfaces, contrast measurement, keyboard-scrollable exact values, and resolved cross-PR allocation documentation; its implementation is an ancestor of #663, but independent exact-head delivery is not yet proven |
 | #658 | `fe830b0a` | optional Global Ask knowledge cutoff; empty-cutoff answers no longer overclaim grounding, live answers expose `live_only`, local cutoff input is converted to UTC, content-change evidence now comes from revision intervals rather than unrelated live-row touches, current-only lineage/images are gated off, ADR rollback instructions name the actual migration, and unused live-update selection was removed; cutoff/source-revision suites passed 20 tests; hosted checks and independent review remain required |
 | #657 | `64f48679` | TEPP asynchronous lifecycle evidence; terminal-status persistence, receipt-conflict isolation, migration reservation, and fail-closed schema handling repaired, with 57 focused tests passed; hosted checks and independent review remain required |
 | #644 | `d9ff9980` | frontend conditional workspace splitting with reserved surface-splitting ADR identity; checks and independent review remain required |
@@ -111,14 +106,19 @@ context only.
 | #639 | `aee02dca` | Running action and Compose contract repair; checks and independent review remain required |
 | #636 | `f7b9a65f` (closed unmerged) | closed because it reintroduced a Python lineage calculation path contrary to ADR 0225 and the external arithmetic ownership boundary; retain its review evidence for the replacement adapter gap, with no protected-main delivery |
 | #632 | `a4059113` | Global Ask provenance, public verification, knowledge cutoff, evidence-constrained query rewriting, shared ABAC/rewrite-failure review repair, #654 ontology-label readability, Semgrep static-SQL repair, #655 authenticated durable MCP stack with live Streamable HTTP lifecycle and k6 evidence, and elimination of the unused live embedding call from cutoff retrieval; checks and independent review remain required |
-| #631 | `1d9ac825` | current-main ADR stack decomposition; checks and independent review remain required |
-| #629 | `4b4d6707` | provider pool release and bounded landing reads; checks and independent review remain required |
+| #631 | `665046dc` | current-main ADR stack decomposition; checks and independent review remain required |
+| #629 | `6d2fb7b3` | provider pool release and bounded landing reads; checks and independent review remain required |
 | #579 | `689a21b6` (closed unmerged) | closed because Python still derived residual-map identity, pair selection, rank, coverage, and fixed two-axis policy rather than acting as a pure fail-closed adapter to a complete Rust envelope; retain UI/persistence evidence for the replacement adapter Gap, with no protected-main delivery |
 
 No row above is merge evidence. Immediately before any lifecycle action,
 re-fetch the head, unresolved threads, formal reviews, rulesets, and same-head
 check conclusions. In particular, queued checks are infrastructure state and
 do not transfer evidence from an earlier SHA.
+
+PR #664 merged as `b2e48d5b0db59f5aa434e2a293cd182ee810c019`
+into #660's branch; #660 subsequently passed the protected gate as
+`7e9030c9a8ee2684e680c63013b304b435ba646e`, so the semantic-unit
+implementation is now protected-main delivery.
 
 PR #607 first merged as `61fd631c7bb3c57113fd19763c2c43161eeb2824`
 into #606's non-default branch. PR #606 subsequently passed the protected gate,
@@ -408,7 +408,7 @@ this file per §3.5 of the prior snapshot).
 | Authorized-corpus runtime | Repository tests use synthetic fixtures; private records remain outside git | Authenticated runtime validation returning only aggregate, non-identifying evidence |
 | Concurrent web responsiveness | ADR 0204 releases analysis-run transactions. ADR 0212 combines the authorized filter-option query, and ADR 0213 releases the pool before external embedding. Migration 0165 now follows ADR 0166 replay safety after it stopped replay before the 0174 edge-signal table. After repaired replay, a four-VU 30-second exact-branch observation completed all 39 endpoint checks; combined reads averaged 5.75 seconds with p95 11.88 seconds. Concurrent database samples repeatedly observed filter-option, post-list, and lineage-page work active, but do not establish causality or an SLO | Capture exact plans and resource telemetry for the three observed query families, remove measured database bottlenecks without narrowing ABAC, then repeat the declared k6 workload on representative capacity; set no SLO until that evidence is approved |
 | Image understanding | Region, OCR, and description work exists across active heads (#405, #419), but current runtime acceptance has not yet proved table-image structure, complete region coverage, or summary/image readiness together | Orchestrator-backed rendered workflow, original/derived asset provenance, region-before-OCR processing, and honest unsupported states; reconcile ADR 0052's image-bearing summary readiness with ADR 0098 before changing sequencing |
-| Semantic source rendering | Paragraph, table, list, formula, and indentation work exists across stacks (#394, #427, #448–#450); #515 adds synthetic backend/frontend parity for deterministic rows/cells, footnote boundaries, and encoded scripts | Land the #427 → #515 stack, then gather authenticated browser evidence that list nesting, continuation alignment, and formula units render without authoring-layout artifacts |
+| Semantic source rendering | ADR 0223 and migration 0221 give new paragraph, list, table, MathML formula, and caller-parsed conversation-turn units explicit persisted kinds without rewriting historical rows; image regions remain ordered normalized children under ADR 0091. This branch is candidate evidence, not protected-main delivery | Land the exact-head candidate, then prove an authorized semantic-only query retrieves each persisted unit kind and gather authenticated browser evidence that nesting, continuation alignment, formula units, and image regions retain source order |
 | Event and project semantics | Multi-project mentions, project-bound actions, 5W1H, requester/processor, and semantic relations exist in ADR 0036/0052/0100/0111/0129 and active stacks | Aggregate authenticated evidence must show distinct projects and events, explicit requester/processor and real R&R, normalized relative time, and product/entity relations without promoting attendance or co-occurrence |
 | Resolved Project identity | #663 now keeps each name-derived Project candidate post-scoped and proposed, preventing false cross-post identity merges. There is no authoritative Project catalog or evidence-backed candidate-resolution lifecycle yet | Add a normalized source/tenant-scoped Project catalog with explicit external identifiers and unique/miss/tie resolution evidence; only a uniquely resolved candidate may converge across posts, while unresolved and tied candidates remain separate |
 | TEPP Project-membership connector | LineageWeave preserves Project candidate evidence but exports no versioned TEPP document-covariate/multiple-membership envelope; TEPP remains the temporal and measurement owner | Publish and consumer-test a versioned DTO carrying scoped project reference, exact semantic-unit/span evidence, confidence, validity/availability clocks, source digest, and provenance; TEPP must not read LineageWeave tables directly and LineageWeave must not implement TEPP arithmetic |
@@ -436,7 +436,7 @@ this file per §3.5 of the prior snapshot).
 | External integrations | Search, Zotero, calendar, Keyverse, orchestrator, RankWeave, ThreadWeave, TEPP, DiskSage, wardnet | Provider conformance, failure/reconciliation behavior, and provenance-bearing integration evidence |
 | MSA / modular reuse | LineageWeave must run standalone and as a consumer of org packages | Do not reimplement RankWeave/TEPP/orchestrator/ThreadWeave/Keyverse; fix upstream and PR there |
 | Product contract authority | This branch recreates the first LineageWeave PRD after superseded #613 closed without merge and records an exact-case ecosystem authority register. TEPP, fast-mlsirm, keyverse, ThreadWeave, and RankWeave PR #41 now have standalone PRDs; RankWeave's remains unmerged exact-head evidence. contextual-orchestrator, DiskSage, and wardnet currently rely on product-planning/architecture documents, and naruon has only a scoped Topic Intelligence PRD | Land the LineageWeave and RankWeave PRDs, keep ADRs normative, and add standalone PRDs in each remaining owning repository before making cross-product release claims beyond its documented boundary |
-| Release quality | Local focused/full suites have passed on individual PR heads | Repository-wide coverage, docstrings, Storybook, security, browser, and release evidence on one exact head |
+| Release quality | The #664/#660 stacked tree passed the complete Python suite (1,352 passed, 17 skipped), and #660 is protected-main delivery as `7e9030c9`; authenticated browser/runtime acceptance remains separate | Repository-wide coverage, frontend/Storybook, security, browser, and runtime evidence on one protected release head |
 | PII | Masking would paralyze the product; ADR 0001 forbids identifying artifacts in git | ABAC + authorized runtime; synthetic fixtures in git; no mask-in-place that drops names the operator must read |
 | Database | PostgreSQL, 3NF, snake_case ≥ two words, hot-partition and lock policy | No file DBs; read/write split if lock management fails; whitelist every migration |
 
