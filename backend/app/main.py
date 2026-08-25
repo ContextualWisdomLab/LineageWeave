@@ -1818,7 +1818,10 @@ async def read_similar_voc(
             "similar VOC inference is unavailable; configure contextual-orchestrator and retry",
         )
     async with pool.acquire() as conn:
-        rows = await conn.fetch(
+        # Safe SQL: the sole interpolation is a repository-owned eligibility
+        # expression rendered with the fixed ``post`` alias; every request and
+        # identity value remains an asyncpg parameter.
+        rows = await conn.fetch(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
             f"""
             select post.post_id, post.post_title, post.post_body,
                    post.visibility_code, post.corporate_entity_id, post.process_unit_id,
