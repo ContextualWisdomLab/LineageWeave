@@ -47,8 +47,8 @@ distance `d` (ADR 0182), and names leftover-map cross share
 exist so the identity remainder after two-axis reconstruction is not
 read as leftover residual `R`, leftover-map distance `d`, explained
 leftover share `e`, or unexplained leftover share `s` (ADR 0185).
-This ADR does not add a persisted reconstruction column; later ADR 0186
-governs that separate field.
+This ADR does not add a persisted reconstruction column; persisting that
+separate field requires its own accepted decision record.
 
 Cascade the rows with `report_period_score`. A leftover post must
 also be a `report_member_score` row, and the leftover criterion
