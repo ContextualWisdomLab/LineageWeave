@@ -134,7 +134,7 @@ async def visible_post_ids_for_focus(
         # Safe SQL: eligibility is an immutable schema fragment; id is bound.
         row = await conn.fetchrow(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
             f"""
-            select post_id, visibility_code, corporate_entity_id
+            select post_id, visibility_code, corporate_entity_id, process_unit_id
               from source_post
              where post_id = $1
                and {SOURCE_POST_ELIGIBILITY_SQL.format(alias='source_post')}

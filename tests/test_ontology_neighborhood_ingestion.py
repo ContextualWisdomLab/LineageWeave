@@ -163,9 +163,22 @@ def test_focus_catalog_exists_rejects_unknown_and_non_uuid() -> None:
 
 
 def test_visible_post_ids_for_each_focus_type() -> None:
-    post_row = {"post_id": POST_ID, "visibility_code": "public", "corporate_entity_id": CORP_ID}
+    post_row = {
+        "post_id": POST_ID,
+        "visibility_code": "public",
+        "corporate_entity_id": CORP_ID,
+        "process_unit_id": TEAM_ID,
+    }
     conn = ScriptedConn({"select post_id, visibility_code": post_row})
-    assert asyncio.run(visible_post_ids_for_focus(conn, NODE_POST, POST_ID, lambda row: True)) == [POST_ID]
+    assert asyncio.run(
+        visible_post_ids_for_focus(
+            conn,
+            NODE_POST,
+            POST_ID,
+            lambda row: row["process_unit_id"] == TEAM_ID,
+        )
+    ) == [POST_ID]
+    assert "process_unit_id" in conn.calls[0][0]
     assert asyncio.run(visible_post_ids_for_focus(conn, NODE_POST, POST_ID, lambda row: False)) == []
     assert asyncio.run(visible_post_ids_for_focus(ScriptedConn({}), NODE_POST, POST_ID, lambda row: True)) == []
     assert asyncio.run(
