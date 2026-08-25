@@ -78,16 +78,16 @@ export function projectLeftoverMap(
   const maxY = Math.max(...ys);
   const spanX = maxX - minX;
   const spanY = maxY - minY;
-  const scales = [
-    ...(spanX === 0 ? [] : [(width - 2 * pad) / spanX]),
-    ...(spanY === 0 ? [] : [(height - 2 * pad) / spanY]),
-  ];
-  const scale = scales.length === 0 ? 0 : Math.min(...scales);
+  const scale = Math.min(
+    spanX === 0 ? Number.POSITIVE_INFINITY : (width - 2 * pad) / spanX,
+    spanY === 0 ? Number.POSITIVE_INFINITY : (height - 2 * pad) / spanY,
+  );
+  const boundedScale = Number.isFinite(scale) ? scale : 0;
   const centerX = (minX + maxX) / 2;
   const centerY = (minY + maxY) / 2;
   const toSvg = (axisOne: number, axisTwo: number) => ({
-    x: width / 2 + (axisOne - centerX) * scale,
-    y: height / 2 - (axisTwo - centerY) * scale,
+    x: width / 2 + (axisOne - centerX) * boundedScale,
+    y: height / 2 - (axisTwo - centerY) * boundedScale,
   });
   return {
     persons: raw

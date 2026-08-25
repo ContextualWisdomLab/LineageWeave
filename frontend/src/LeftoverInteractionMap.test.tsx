@@ -79,17 +79,23 @@ describe("LeftoverInteractionMap", () => {
     expect(projected.items[0]).toMatchObject({ x: 180, y: 120 });
   });
 
-  it("uses one common scale for both Gabriel axes", () => {
+  it("uses one scale for both Gabriel axes", () => {
     const projected = projectLeftoverMap(
+      [{ post_id: "post-1", post_title: "Public post", axis_one: 0, axis_two: 0 }],
       [
-        { post_id: "origin", post_title: "Origin", axis_one: 0, axis_two: 0 },
-        { post_id: "x", post_title: "X", axis_one: 1, axis_two: 0 },
+        { criterion_code: "item-x", axis_one: 2, axis_two: 0 },
+        { criterion_code: "item-y", axis_one: 0, axis_two: 1 },
       ],
-      [{ criterion_code: "y", axis_one: 0, axis_two: 1 }],
       itemLabel,
+      [],
+      360,
+      240,
+      36,
     );
     const origin = projected.persons[0];
-    expect(projected.persons[1].x - origin.x).toBeCloseTo(origin.y - projected.items[0].y);
+    const deltaX = Math.abs(projected.items[0].x - origin.x);
+    const deltaY = Math.abs(projected.items[1].y - origin.y);
+    expect(deltaX).toBeCloseTo(deltaY * 2);
   });
 
   it("renders closest and farthest leftover-map nodes and opens a post", async () => {

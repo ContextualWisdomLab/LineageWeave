@@ -3958,14 +3958,14 @@ describe("App, authenticated", () => {
     );
   });
 
-  it("hides leftover-map metadata when no authorized map points remain", async () => {
+  it("keeps report-level leftover metadata when no authorized map points remain", async () => {
     stubBackend({ emptyLeftoverMap: true });
     render(<App showLabPanels />);
 
     await screen.findAllByText(/mean θ 0.42/);
-    expect(screen.queryByLabelText("Leftover map coverage")).not.toBeInTheDocument();
-    expect(screen.queryByLabelText("Leftover-map axis share")).not.toBeInTheDocument();
-    expect(screen.queryByText(/leftover axis 1 82%/)).not.toBeInTheDocument();
+    expect(screen.getByLabelText("Leftover map coverage")).toBeInTheDocument();
+    expect(screen.getByLabelText("Leftover-map axis share")).toBeInTheDocument();
+    expect(screen.getByText(/leftover axis 1 82%/)).toBeInTheDocument();
   });
 
   it("shows the grouping comparison strip and switches grouping on click", async () => {
