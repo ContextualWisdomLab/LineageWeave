@@ -86,13 +86,13 @@ context only.
 | ---: | --- | --- |
 | #667 | `448d794b` | baseline refresh branch exact head at this snapshot; BLOCKED with review required |
 | #668 | `f272f4b0` | evidence-bound project history projection with request guards and normalized keys; BLOCKED with review required |
-| #669 | `1b5bea33` | cancelled-analysis next-action guidance and responsive audit evidence; UNSTABLE with hosted checks pending |
+| #669 | `a1597b6c` | cancelled-analysis next-action guidance, responsive audit evidence, and layout repair; UNSTABLE with hosted checks pending |
 | #663 | `7ac1483e` | project ontology traversal, cutoff-snapshot project focus, bounded MCP admission, and migration-fixture/worker startup repair; BLOCKED with review required |
 | #658 | `f497a6e8` | evidence-honest Global Ask cutoff with robust revision timestamps; BLOCKED with review required |
 | #657 | `a59a2023` | TEPP lifecycle persistence; BLOCKED with review required |
 | #644 | `ed8d97f3` | native-surface code splitting; BLOCKED with review required |
 | #643 | `3453ab08` | accessible status notices; BLOCKED with review required |
-| #640 | `88c0632f` | operations-dashboard evidence touch-target and scoped external headline metrics; BLOCKED with review required |
+| #640 | `ab435903` | operations-dashboard evidence touch-target and scoped external headline metrics; BLOCKED with review required |
 | #639 | `8da485d3` | running-action/config repair; BLOCKED with review required |
 | #632 | `cad4debf` | graph-fact provenance repair; BLOCKED with review required |
 | #631 | `e6b4f0c4` | ADR decomposition documentation; BLOCKED with review required |
