@@ -9,7 +9,7 @@
 > the current-main implementation of issue #277 after TEPP PR #157 published
 > the terminal DTO. TEPP issue #249 owns the still-missing executable HTTP
 > status service. No protected merge or live measurement is claimed here.
-> Focused backend lifecycle/authorization/schema verification is 76 passed;
+> Focused backend lifecycle/authorization/schema verification is 78 passed;
 > frontend verification is 382 passed plus lint and production build. The
 > broader backend run reached 1,195 passed and 17 skipped before 127 existing
 > live-PostgreSQL fixture errors (duplicate seeded snapshot digest) prevented a
