@@ -540,6 +540,7 @@ async def gather_global_chat_sources(
             or (corporate_entity_id::text = any($1::text[])
                 and (cardinality($2::text[]) = 0
                      or process_unit_id::text = any($2::text[]))))
+           and source_post.post_id = any($3::uuid[])
            and {SOURCE_POST_ELIGIBILITY_SQL.format(alias='source_post')}
            and ($5::date is null or (coalesce(event_occurred_at, created_at) at time zone 'Asia/Seoul')::date >= $5)
            and ($6::date is null or (coalesce(event_occurred_at, created_at) at time zone 'Asia/Seoul')::date <= $6)

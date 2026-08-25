@@ -132,6 +132,7 @@ def test_global_sources_use_semantic_rank_order_and_bound_long_bodies() -> None:
     assert candidate_args[0] == [1.0, 0.0]
     assert candidate_args[2] == "test-embedding"
     assert "array_position($3::uuid[], post_id)" in source_query
+    assert "source_post.post_id = any($3::uuid[])" in source_query
     assert source_args[3] == 8
     # The database returns candidates in cosine-rank order; no local lexical
     # weights or reranking may alter that order.
