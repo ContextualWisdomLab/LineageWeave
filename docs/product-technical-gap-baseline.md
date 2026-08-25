@@ -80,15 +80,16 @@ remain local audit evidence and are not committed.
 
 ### Exact open-PR boundary
 
-At this snapshot there were 8 open PRs and 10 open issues. Exact observed heads
-were `#643 041ec13b`, `#640 985b4492`, `#639 aee02dca`, `#636 f7b9a65f`, `#632 e1ebe50a`,
-`#631 c0022c97`, `#629 74823e99`, and `#579 689a21b6`. All remain blocked on
+At this snapshot there were 10 open PRs and 10 open issues. Exact observed heads
+were `#654 ff096c18`, `#644 c1018a0a`, `#643 041ec13b`, `#640 6f421191`,
+`#639 aee02dca`, `#636 f7b9a65f`, `#632 d227edce`, `#631 c0022c97`,
+`#629 4b4d6707`, and `#579 689a21b6`. All remain blocked on
 hosted gates and/or independent review. These
 observations are not merge readiness. Re-fetch exact heads,
 unresolved threads, checks, approvals, rulesets, and merge SHA before any
 lifecycle claim.
 
-> Audit snapshot: 2026-08-26 (refreshed by the autonomous merge
+> Audit snapshot: 2026-08-26 01:50 KST (refreshed by the autonomous merge
 > loop). This repository records synthetic fixtures and aggregate,
 > non-identifying runtime evidence only. Open PRs and local checks are not
 > protected-default-branch release evidence. Identifying post identifiers,
@@ -98,20 +99,22 @@ lifecycle claim.
 ## 1. Exact-head and governance evidence
 
 The protected default branch was `04e6b610655d0db91d5f7ba9486bdda1440e0b19`
-when this baseline was refreshed. The live queue contained 8 open PRs and 10
+when this baseline was refreshed. The live queue contained 10 open PRs and 10
 open issues. The exact-head inventory below supersedes older per-PR snapshots
 elsewhere in this document; those older rows remain useful historical delivery
 context only.
 
 | PR | Exact observed head | Merge/check state at this snapshot |
 | ---: | --- | --- |
+| #654 | `ff096c18` | repairs long ontology labels; hosted gates and independent review remain required |
+| #644 | `c1018a0a` | splits conditional frontend surfaces and preserves keyed recovery; hosted gates and independent review remain required |
 | #643 | `041ec13b` | shares token-backed success/unavailable/retry status notices for the Calendar surface; hosted gates and independent review remain required |
-| #640 | `985b4492` | quantifies dashboard case metrics, preserves confidence-ranked project labels, persists explicit missing required facts, and enforces distinct event counts plus SQL-level external scoping; hosted gates and independent review remain required |
+| #640 | `6f421191` (observed parent) | quantifies dashboard cases, persists explicit missing facts and observed lifecycle milestones, and consumes producer-owned topic influence without local arithmetic; this documentation repair advances the head, so hosted gates and independent review must run again |
 | #639 | `aee02dca` | repairs Running-action, Compose, and TEPP configuration contracts; hosted gates and independent review remain required |
 | #636 | `f7b9a65f` | publishes the calibrated external-lineage contract without a redundant explicit-child filter and repairs test import hygiene; hosted gates and independent review remain required |
-| #632 | `e1ebe50a` | preserves graph-fact source provenance and authorization with a static landing-query contract and shared RankWeave disable switch; hosted gates and independent review remain required |
+| #632 | `d227edce` | preserves graph-fact source provenance and authorization with a static landing-query contract and shared RankWeave disable switch; hosted gates and independent review remain required |
 | #631 | `c0022c97` | decomposes ADR gaps and queue baseline; hosted gates and independent review remain required |
-| #629 | `74823e99` | releases provider work from database leases and bounds landing reads; hosted gates and independent review remain required |
+| #629 | `4b4d6707` | releases provider work from database leases and bounds landing reads; hosted gates and independent review remain required |
 | #579 | `689a21b6` | delegates leftover interaction-map arithmetic to fast-mlsirm and persists only the consumer projection; hosted gates and independent review remain required |
 
 No row above is merge evidence. Immediately before any lifecycle action,

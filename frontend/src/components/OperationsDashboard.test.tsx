@@ -66,6 +66,21 @@ describe("OperationsDashboardView", () => {
     expect(onOpenPost).toHaveBeenCalledWith("evidence-post-1");
   });
 
+  it("does not imply that only the end evidence is missing", () => {
+    const openLifecycle = {
+      ...data.cases[0].lifecycles[0],
+      status_code: "evidence_missing" as const,
+      status_label: "측정 근거 부족",
+      started_at: null,
+      resolved_at: null,
+      elapsed_seconds: null,
+      start_milestone: null,
+      end_milestone: null,
+    };
+    render(<OperationsDashboardView data={{ ...data, cases: [{ ...data.cases[0], lifecycles: [openLifecycle] }] }} onOpenPost={() => undefined} />);
+    expect(screen.getByText("경과 시간은 필요한 시작·종료 Event 근거가 모두 관측될 때 계산됩니다.")).toBeInTheDocument();
+  });
+
   it("shows an actionable empty external-information state", () => {
     render(<OperationsDashboardView data={data} externalOnly onOpenPost={() => undefined} />);
     expect(screen.getByRole("status")).toHaveTextContent("기간이나 접근 범위를 확인하세요");

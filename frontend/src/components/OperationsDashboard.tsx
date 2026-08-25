@@ -153,7 +153,7 @@ export function OperationsDashboardView({ data, externalOnly = false, onOpenPost
                 {item.lifecycles.map((lifecycle) => (
                   <article key={lifecycle.lifecycle_kind_code} className="dashboard-lifecycle-row">
                     <header><h4>{lifecycle.lifecycle_kind_label}</h4><strong>{lifecycle.status_label}</strong></header>
-                    {lifecycle.elapsed_seconds !== null ? <p>확정 경과 시간 <b>{formatElapsed(lifecycle.elapsed_seconds)}</b></p> : <p>경과 시간은 종료 Event가 관측될 때 계산됩니다.</p>}
+                    {lifecycle.elapsed_seconds !== null ? <p>확정 경과 시간 <b>{formatElapsed(lifecycle.elapsed_seconds)}</b></p> : <p>경과 시간은 필요한 시작·종료 Event 근거가 모두 관측될 때 계산됩니다.</p>}
                     <ol>
                       {[lifecycle.start_milestone, lifecycle.end_milestone].filter((milestone) => milestone !== null).map((milestone) => (
                         <li key={milestone.milestone_type_code}>
