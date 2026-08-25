@@ -93,7 +93,7 @@ context only.
 | #640 | `06ddcc10` | dashboard case metrics, project journeys, restored TEPP API-key setting, and semantic-label spacing; checks and independent review remain required |
 | #639 | `aee02dca` | Running action and Compose contract repair; checks and independent review remain required |
 | #636 | `f7b9a65f` | calibrated external lineage contract; checks and independent review remain required |
-| #632 | `22ad71dd` | Global Ask provenance, public verification, knowledge cutoff, evidence-constrained query rewriting, shared ABAC/rewrite-failure review repair, and #654 ontology-label readability; checks and independent review remain required |
+| #632 | `a0d4eb71` | Global Ask provenance, public verification, knowledge cutoff, evidence-constrained query rewriting, shared ABAC/rewrite-failure review repair, #654 ontology-label readability, and exact-call Semgrep static-SQL suppression; checks and independent review remain required |
 | #631 | `c0022c97` | current-main ADR stack decomposition; checks and independent review remain required |
 | #629 | `4b4d6707` | provider pool release and bounded landing reads; checks and independent review remain required |
 | #579 | `689a21b6` | leftover interaction-map persistence; checks and independent review remain required |
