@@ -20,9 +20,11 @@ export type OntologyLayout = {
   edges: LaidOutOntologyEdge[];
 };
 
-const COLUMN_GAP = 220;
+export const ONTOLOGY_NODE_LABEL_WIDTH = 184;
+
+const COLUMN_GAP = 260;
 const ROW_GAP = 88;
-const LEFT = 72;
+const LEFT = ONTOLOGY_NODE_LABEL_WIDTH / 2 + 20;
 const TOP = 48;
 
 function nodeKey(nodeTypeCode: string, nodeId: string): string {

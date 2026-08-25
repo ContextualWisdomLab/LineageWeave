@@ -8,7 +8,13 @@ import {
 } from "../api";
 import { t, tf } from "../i18n";
 import { ontologyExplorerText } from "../ontologyExplorerI18n";
-import { accumulateNeighborhoodPages, filterNeighborhood, layoutOntologyNeighborhood, neighborhoodCsv } from "../ontologyLayout";
+import {
+  accumulateNeighborhoodPages,
+  filterNeighborhood,
+  layoutOntologyNeighborhood,
+  neighborhoodCsv,
+  ONTOLOGY_NODE_LABEL_WIDTH,
+} from "../ontologyLayout";
 
 export type OntologyExplorerStatus =
   | "ready"
@@ -433,12 +439,18 @@ function OntologyGraph({
           }}
         >
           <OntologyShape shape={node.shape_code} />
-          <text x={28} y={4}>
-            {node.display_label}
-          </text>
-          <text className="ontology-node-type" x={28} y={18}>
-            {t(NODE_TYPE_LABEL[node.node_type_code] ?? node.node_type_code)}
-          </text>
+          <foreignObject
+            className="ontology-node-label"
+            x={-ONTOLOGY_NODE_LABEL_WIDTH / 2}
+            y={18}
+            width={ONTOLOGY_NODE_LABEL_WIDTH}
+            height={56}
+          >
+            <div aria-hidden="true">
+              <span>{node.display_label}</span>
+              <small>{t(NODE_TYPE_LABEL[node.node_type_code] ?? node.node_type_code)}</small>
+            </div>
+          </foreignObject>
         </g>
       ))}
     </svg>
