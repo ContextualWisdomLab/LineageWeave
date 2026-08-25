@@ -568,7 +568,7 @@ def seeded_db(demo_analyst_token):
             )
             other_account_id = cur.fetchone()[0]
             visible_run_id = _seed_analysis_run(
-                "f" * 64,
+                "0" * 64,
                 "visible-own-corp",
                 account_id,
                 "analysis_scope_corporate_entity",
@@ -3900,7 +3900,9 @@ def test_post_chat_malformed_provider_reply_is_unavailable(
     )
 
     assert response.status_code == 503
-    assert "no complete evidence object" in response.json()["detail"]
+    assert response.json()["detail"] == (
+        "Post chat is temporarily unavailable. Saved evidence is still available."
+    )
 
 
 def test_live_chat_provider_error_does_not_leak_raw_error(
@@ -3943,7 +3945,11 @@ def test_global_ask_provider_error_does_not_leak_raw_error(
         def answer(self, question: str, sources) -> object:
             raise Exception("raw-global-provider-secret")
 
+    async def _sources(*_args, **_kwargs):
+        return [SimpleNamespace(post_id=seeded_db["own_private_post_id"])]
+
     monkeypatch.setattr("backend.app.main._post_chat_client", lambda **_kwargs: _FailingAskClient())
+    monkeypatch.setattr("backend.app.global_ask_queue.gather_global_chat_sources", _sources)
     headers = {"Authorization": f"Bearer {demo_analyst_token}"}
 
     submitted = client.post(
