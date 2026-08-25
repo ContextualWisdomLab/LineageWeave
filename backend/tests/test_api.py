@@ -5470,6 +5470,10 @@ def test_seed_period_report_surfaces_on_get_reports(client, demo_analyst_token, 
     assert leftover_map_items
     assert all(person["post_title"] for person in leftover_map_persons)
     assert {person["post_id"] for person in leftover_map_persons} <= member_ids
+    assert all(
+        {"visibility_code", "corporate_entity_id", "process_unit_id"}.isdisjoint(person)
+        for person in leftover_map_persons
+    )
     assert {item["criterion_code"] for item in leftover_map_items} <= item_codes
     for point in leftover_map_persons + leftover_map_items:
         assert isinstance(point["axis_one"], (int, float))

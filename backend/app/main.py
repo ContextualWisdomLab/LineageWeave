@@ -2626,7 +2626,17 @@ async def read_period_reports(
             for pair in leftover_pairs
         ]
         leftover_map_persons = [
-            {key: value for key, value in person.items() if key != "has_real_source_context"}
+            {
+                key: value
+                for key, value in person.items()
+                if key
+                not in {
+                    "has_real_source_context",
+                    "visibility_code",
+                    "corporate_entity_id",
+                    "process_unit_id",
+                }
+            }
             for person in leftover_map_persons
         ]
         leftover_map_items = list(report.get("leftover_map_items", []))

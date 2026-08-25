@@ -3586,7 +3586,9 @@ function ReportsPanel({
                 onSelectPost={onSelectPost}
               />
             )}
-            {report.leftover_map_coverage && report.leftover_map_coverage.scored_post_count > 0 && (
+            {report.leftover_map_persons && report.leftover_map_persons.length > 0 &&
+              report.leftover_map_items && report.leftover_map_items.length > 0 &&
+              report.leftover_map_coverage && report.leftover_map_coverage.scored_post_count > 0 && (
               <p className="post-meta" role="note" aria-label={t("Leftover map coverage")}>
                 {tf("Leftover map used {used} of {scored} scored posts (complete-case)", {
                   used: report.leftover_map_coverage.map_post_count,
@@ -3594,7 +3596,9 @@ function ReportsPanel({
                 })}
               </p>
             )}
-            {report.leftover_map_axes?.map((axis) => (
+            {report.leftover_map_persons && report.leftover_map_persons.length > 0 &&
+              report.leftover_map_items && report.leftover_map_items.length > 0 &&
+              report.leftover_map_axes?.map((axis) => (
               <span key={axis.axis_index} className="post-badge">
                 {tf("leftover axis {axis} {share}%", {
                   axis: axis.axis_index,
@@ -3602,7 +3606,9 @@ function ReportsPanel({
                 })}
               </span>
             ))}
-            {report.leftover_map_axes && report.leftover_map_axes.length > 0 && (
+            {report.leftover_map_persons && report.leftover_map_persons.length > 0 &&
+              report.leftover_map_items && report.leftover_map_items.length > 0 &&
+              report.leftover_map_axes && report.leftover_map_axes.length > 0 && (
               <p aria-label={t("Leftover-map axis share")}>
                 {t(
                   "Leftover-map axis share is Gabriel inertia of residual SVD axes 1 and 2. Open a leftover pair to read the post–criterion cell. The shares do not invent a leftover score.",

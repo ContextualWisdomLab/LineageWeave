@@ -103,6 +103,7 @@ describe("App, authenticated", () => {
     failedLineageRun?: boolean;
     runningLineageRun?: boolean;
     failedReportRun?: boolean;
+    emptyLeftoverMap?: boolean;
     succeededReportRun?: boolean;
     succeededTeppRun?: boolean;
     pendingTeppRun?: boolean;
@@ -1007,6 +1008,16 @@ describe("App, authenticated", () => {
                     leftover_map_reconstruction: -0.85,
                   },
                 ],
+                leftover_map_persons: options?.emptyLeftoverMap
+                  ? []
+                  : [
+                      { post_id: "post-1", post_title: "Public post", axis_one: 0.2, axis_two: 0.4 },
+                    ],
+                leftover_map_items: options?.emptyLeftoverMap
+                  ? []
+                  : [
+                      { criterion_code: "sales_lead_specificity", axis_one: -0.1, axis_two: 0.3 },
+                    ],
                 leftover_map_axes: [
                   {
                     axis_index: 1,
@@ -3915,6 +3926,16 @@ describe("App, authenticated", () => {
     expect(screen.getByRole("button", { name: /open commitment for: public post/i })).toHaveTextContent(
       "due 2026-01-12",
     );
+  });
+
+  it("hides leftover-map metadata when no authorized map points remain", async () => {
+    stubBackend({ emptyLeftoverMap: true });
+    render(<App showLabPanels />);
+
+    await screen.findAllByText(/mean θ 0.42/);
+    expect(screen.queryByLabelText("Leftover map coverage")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Leftover-map axis share")).not.toBeInTheDocument();
+    expect(screen.queryByText(/leftover axis 1 82%/)).not.toBeInTheDocument();
   });
 
   it("shows the grouping comparison strip and switches grouping on click", async () => {
