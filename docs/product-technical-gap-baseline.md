@@ -84,7 +84,7 @@ context only.
 
 | PR | Exact observed head | Merge/check state at this snapshot |
 | ---: | --- | --- |
-| #667 | `425de329` | baseline refresh plus semantic delivery evidence; BLOCKED with review required |
+| #667 | `e353d376` | baseline refresh branch observed before this review repair; this documentation commit advances that head, so re-fetch before lifecycle action |
 | #663 | `d5edd2b9` | project ontology traversal plus cutoff-snapshot project focus, labels, and explicit MCP admission bounds; BLOCKED with review required |
 | #658 | `f497a6e8` | evidence-honest Global Ask cutoff with robust revision timestamps; BLOCKED with review required |
 | #657 | `a59a2023` | TEPP lifecycle persistence; BLOCKED with review required |
@@ -182,6 +182,8 @@ Recent protected-default-branch delivery evidence (squash merges onto
 
 | PR | Merged (UTC) | Delivered |
 | ---: | --- | --- |
+| #659 | 2026-08-25 22:04 | ontology node readability, semantic-family design tokens, and exact-value evidence tables |
+| #660 | 2026-08-25 21:54 | backend runtime contracts and the #664 semantic-unit stack |
 | #468 | 2026-08-25 08:44 | fast-mlsirm, Keyverse, contextual-orchestrator, and TEPP integration boundaries |
 | #493 | 2026-08-25 08:44 | evidence-grounded Event Lineage isolation reasons |
 | #600 | 2026-08-25 08:44 | then-current exact-head product/technical baseline |
