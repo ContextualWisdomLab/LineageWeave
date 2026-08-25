@@ -1,6 +1,6 @@
 # Product & Technical Gap Baseline
 
-> Audit snapshot: 2026-08-25 10:05 KST (refreshed by the autonomous merge
+> Audit snapshot: 2026-08-25 10:10 KST (refreshed by the autonomous merge
 > loop). This repository records synthetic fixtures and aggregate,
 > non-identifying runtime evidence only. Open PRs and local checks are not
 > protected-default-branch release evidence. Identifying post identifiers,
@@ -18,12 +18,12 @@ context only.
 | PR | Exact observed head | Merge/check state at this snapshot |
 | ---: | --- | --- |
 | #594 | `b90d3074` | removes the standalone conflict marker and duplicated stale tail introduced by #521; auto-merge armed, checks running |
-| #591 | `f0ca4bda` | canonical current-queue baseline; exact-head checks and independent review pending |
+| #591 | `7a24f3eb` | canonical current-queue baseline; exact-head checks and independent review pending |
 | #588 | `dc60a08e` | ADR 0201 repair reconciled with current main; auto-merge armed, checks restarted |
 | #585 | `ffe1290b` | only locally-authored bounded job errors may persist; transport errors remain generic; auto-merge armed, checks restarted |
 | #584 | `17068ec3` | current-main ADR collision repaired; auto-merge armed, checks restarted |
 | #582 | `3992302f` | batched Ask lineage graph reconciled with current main and the conflict-tail repair; auto-merge armed, checks restarted |
-| #581 | `c4f41dc0` | current-main reconciliation pushed; checks restarted |
+| #581 | `bc70e4bf` | event-time Ask filtering reconciled with current main; 90 backend tests and 10 frontend interaction/story tests passed; auto-merge armed |
 | #579 | `769095b2` | complete-case coverage ADR allocated as 0202; auto-merge armed, checks restarted |
 | #564 | `62d3e124` | current-main reconciliation pushed; checks restarted |
 | #563 | `0b599ad0` | current-main reconciliation pushed; auto-merge armed, checks restarted |
@@ -32,10 +32,10 @@ context only.
 | #537 | `ebfd712b` | current-main reconciliation pushed; checks restarted |
 | #493 | `d2c08295` | concurrent exact-head update observed; dirty against current main, required checks running |
 | #490 | `73413d0b` | code-quality findings repaired; current-main reconciliation remains before checks can settle |
-| #485 | `66916c97` | blocked; Strix failed |
+| #485 | `0291e89a` | concurrent exact-head update observed; checks restarted |
 | #484 | `586b1eb0` | blocked; required checks pending |
 | #482 | `f5f3703f` | current-main reconciliation pushed; checks restarted |
-| #468 | `f7886575` | dirty; Strix failed |
+| #468 | `d8e255d0` | concurrent exact-head update observed; integration and required checks restarted |
 | #434 | `d7766b39` | current-main reconciliation pushed; checks restarted |
 | #394 | `1f1667f2` | blocked; required checks pending |
 | #387 | `2b95a8be` | persistence and active-channel weight lookup repaired; auto-merge armed, checks and independent review pending |
