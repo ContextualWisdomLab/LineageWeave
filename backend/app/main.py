@@ -660,47 +660,40 @@ async def _post_filter_options(
     process_unit_ids: frozenset[str],
 ) -> tuple[list[dict[str, str]], list[dict[str, str]]]:
     """Return every authorized filter value, not only values on the current page."""
-    visibility_sql = f"""
-        select distinct post.visibility_code as code,
-               coalesce(lookup.lookup_label, post.visibility_code) as label,
+    options_sql = f"""
+        select distinct option.lookup_category, option.code,
+               coalesce(lookup.lookup_label, option.code) as label,
                coalesce(lookup.display_order, 2147483647) as display_order
           from source_post post
+         cross join lateral (
+               values ('post_visibility', post.visibility_code),
+                      ('voc_type', post.voc_type_code)
+         ) as option(lookup_category, code)
           left join common_lookup_value lookup
-            on lookup.lookup_category = 'post_visibility'
-           and lookup.lookup_code = post.visibility_code
+            on lookup.lookup_category = option.lookup_category
+           and lookup.lookup_code = option.code
          where (post.visibility_code = 'public'
             or (post.corporate_entity_id::text = any($1::text[])
                 and (cardinality($2::text[]) = 0
                      or post.process_unit_id::text = any($2::text[]))))
            and {SOURCE_POST_ELIGIBILITY_SQL.format(alias='post')}
-         order by display_order, code
+         order by option.lookup_category, display_order, option.code
     """
-    type_sql = f"""
-        select distinct post.voc_type_code as code,
-               coalesce(lookup.lookup_label, post.voc_type_code) as label,
-               coalesce(lookup.display_order, 2147483647) as display_order
-          from source_post post
-          left join common_lookup_value lookup
-            on lookup.lookup_category = 'voc_type'
-           and lookup.lookup_code = post.voc_type_code
-         where (post.visibility_code = 'public'
-            or (post.corporate_entity_id::text = any($1::text[])
-                and (cardinality($2::text[]) = 0
-                     or post.process_unit_id::text = any($2::text[]))))
-           and {SOURCE_POST_ELIGIBILITY_SQL.format(alias='post')}
-         order by display_order, code
-    """
-    # Safe SQL: both query strings are closed lookup statements; entity ids remain asyncpg parameters.
-    visibility_rows = await conn.fetch(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
-        visibility_sql, list(corporate_entity_ids), list(process_unit_ids)
-    )
-    # Safe SQL: both query strings are closed lookup statements; entity ids remain asyncpg parameters.
-    type_rows = await conn.fetch(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
-        type_sql, list(corporate_entity_ids), list(process_unit_ids)
+    # Safe SQL: this is a closed lookup statement; entity ids remain asyncpg parameters.
+    option_rows = await conn.fetch(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
+        options_sql, list(corporate_entity_ids), list(process_unit_ids)
     )
     return (
-        [{"code": row["code"], "label": row["label"]} for row in type_rows],
-        [{"code": row["code"], "label": row["label"]} for row in visibility_rows],
+        [
+            {"code": row["code"], "label": row["label"]}
+            for row in option_rows
+            if row["lookup_category"] == "voc_type"
+        ],
+        [
+            {"code": row["code"], "label": row["label"]}
+            for row in option_rows
+            if row["lookup_category"] == "post_visibility"
+        ],
     )
 
 
