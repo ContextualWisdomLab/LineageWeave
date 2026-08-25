@@ -63,6 +63,29 @@ describe("OperationsDashboardView", () => {
     expect(screen.queryByText("분류 Event")).not.toBeInTheDocument();
   });
 
+  it("does not label a scoped external count with a corpus-wide rate", () => {
+    render(<OperationsDashboardView data={data} externalOnly onOpenPost={() => undefined} />);
+    expect(screen.getByText("5건")).toBeInTheDocument();
+    expect(screen.queryByText("5건 · 25.0%")).not.toBeInTheDocument();
+  });
+
+  it("labels a source-backed external relation by its semantic target", () => {
+    const externalCase = {
+      ...data.cases[0],
+      case_kind_code: "external_information",
+      facts: [{
+        ...data.cases[0].facts[0],
+        fact_type_code: "external_relation",
+        fact_type_label: "업무 관계",
+        relation_target_kind_code: "project" as const,
+        relation_target_kind_label: "프로젝트",
+      }],
+      missing_facts: [],
+    };
+    render(<OperationsDashboardView data={{ ...data, cases: [externalCase] }} onOpenPost={() => undefined} />);
+    expect(screen.getByText("업무 관계 · 프로젝트")).toBeInTheDocument();
+  });
+
   it("places multi-project evidence in every explicit journey and orders events oldest first", () => {
     const later = { ...data.cases[0], post_id: "post-later", occurred_at: "2026-08-20T00:00:00Z", project_names: ["Synthetic Grid Upgrade", "Synthetic Relay Renewal"] };
     const earlier = { ...data.cases[0], post_id: "post-earlier", occurred_at: "2026-08-01T00:00:00Z", project_names: ["Synthetic Grid Upgrade"] };
@@ -134,5 +157,12 @@ describe("OperationsDashboardView", () => {
     await userEvent.click(screen.getByRole("button", { name: "기간 적용" }));
     expect(screen.getByLabelText("시작일")).toHaveValue("2026-08-01");
     expect(screen.getByRole("status")).toHaveTextContent("불러오는 중");
+  });
+
+  it("requests the external scope at the API boundary", async () => {
+    vi.mocked(fetchOperationsDashboard).mockResolvedValue(data);
+    render(<OperationsDashboard accessToken="synthetic-token" externalOnly onOpenPost={() => undefined} />);
+    await screen.findByText("5건");
+    expect(fetchOperationsDashboard).toHaveBeenCalledWith("synthetic-token", "", "", true);
   });
 });

@@ -19,6 +19,9 @@ FACT_TYPES = frozenset(
         "issue_pattern", "improvement_action",
     }
 )
+EXTERNAL_RELATION_TARGET_KINDS = frozenset(
+    {"order", "project", "sales", "business_management"}
+)
 REQUIRED_FACT_TYPES = {
     "claim_investigation": frozenset({"order", "specification_change", "originating_order", "sales_pool"}),
     "rebid_handover": frozenset({"discussion", "counterparty", "our_owner", "decision"}),
@@ -36,6 +39,7 @@ class OperationsCaseFact:
     evidence_text: str
     evidence_post_id: str = ""
     evidence_input_sha256: str = ""
+    relation_target_kind_code: str | None = None
 
 
 @dataclass(frozen=True)
@@ -96,6 +100,9 @@ evidence_post_id, evidence_text (a verbatim span from that numbered source), and
 fact_type_code (one of order, specification_change, originating_order,
 sales_pool, discussion, counterparty, our_owner, decision, external_relation,
 issue_pattern, improvement_action), value_text, evidence_post_id, and evidence_text (a verbatim span from that source).
+An external_relation fact must also have relation_target_kind_code (one of order,
+project, sales, business_management). Other facts must use null. Classify this
+semantically from the cited span; never infer it from keywords.
 Each item must also have missing_fact_type_codes. Put every required fact type for that case
 that is not supported anywhere in the authorized sources in this array; never invent a value or
 evidence span for it. Required types are: claim_investigation = order,
@@ -148,15 +155,43 @@ def parse_operations_case_response(
             fact_evidence = fact.get("evidence_text")
             fact_post_id = fact.get("evidence_post_id") or ("focal" if legacy_focal else None)
             fact_source = sources_by_id.get(fact_post_id)
-            if not isinstance(value, str) or not value.strip() or not isinstance(fact_evidence, str) or not fact_evidence.strip() or fact_source is None or fact_evidence not in fact_source.text:
+            relation_target_kind = fact.get("relation_target_kind_code")
+            if (
+                not isinstance(value, str)
+                or not value.strip()
+                or not isinstance(fact_evidence, str)
+                or not fact_evidence.strip()
+                or fact_source is None
+                or fact_evidence not in fact_source.text
+                or (
+                    fact["fact_type_code"] == "external_relation"
+                    and relation_target_kind not in EXTERNAL_RELATION_TARGET_KINDS
+                )
+                or (
+                    fact["fact_type_code"] != "external_relation"
+                    and relation_target_kind is not None
+                )
+            ):
                 return None
-            parsed_facts.append(OperationsCaseFact(fact["fact_type_code"], value.strip(), fact_evidence, fact_source.post_id, fact_source.input_sha256))
+            parsed_facts.append(
+                OperationsCaseFact(
+                    fact["fact_type_code"],
+                    value.strip(),
+                    fact_evidence,
+                    fact_source.post_id,
+                    fact_source.input_sha256,
+                    relation_target_kind,
+                )
+            )
         supported_types = {fact.fact_type_code for fact in parsed_facts}
+        missing_types = set(missing_fact_types)
+        required_types = REQUIRED_FACT_TYPES[item["case_kind_code"]]
         if (
             any(not isinstance(code, str) or code not in FACT_TYPES for code in missing_fact_types)
-            or len(set(missing_fact_types)) != len(missing_fact_types)
-            or supported_types.intersection(missing_fact_types)
-            or supported_types.union(missing_fact_types) != REQUIRED_FACT_TYPES[item["case_kind_code"]]
+            or len(missing_types) != len(missing_fact_types)
+            or not missing_types.issubset(required_types)
+            or supported_types.intersection(missing_types)
+            or not required_types.issubset(supported_types.union(missing_types))
         ):
             return None
         cases.append(OperationsCase(item["case_kind_code"], summary.strip(), evidence, tuple(parsed_facts), evidence_source.post_id, evidence_source.input_sha256, tuple(missing_fact_types)))

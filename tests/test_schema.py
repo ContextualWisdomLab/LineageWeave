@@ -101,10 +101,15 @@ _ANALYSIS_RUN_REGISTRY_MIGRATION = (
 _TOPIC_CONTEXT_INFLUENCE_MIGRATION = (
     Path(__file__).resolve().parents[1]
     / "migrations"
-    / "0212_topic_context_influence_projection.sql"
+    / "0214_topic_context_influence_projection.sql"
 )
 _TOPIC_LINEAGE_KIND_MIGRATION = (
     Path(__file__).resolve().parents[1] / "migrations" / "0131_analysis_run_topic_lineage_kind.sql"
+)
+_OPERATIONS_EXTERNAL_RELATION_MIGRATION = (
+    Path(__file__).resolve().parents[1]
+    / "migrations"
+    / "0213_operations_external_relation_target.sql"
 )
 
 
@@ -157,6 +162,7 @@ def schema_db():
                 cur.execute(_OPERATIONS_CASE_EVIDENCE_MIGRATION.read_text())
                 cur.execute(_OPERATIONS_CASE_MISSING_MIGRATION.read_text())
                 cur.execute(_TOPIC_CONTEXT_INFLUENCE_MIGRATION.read_text())
+                cur.execute(_OPERATIONS_EXTERNAL_RELATION_MIGRATION.read_text())
             conn.commit()
             yield conn
         finally:

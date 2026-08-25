@@ -88,10 +88,105 @@ def test_requires_each_case_question_to_be_supported_or_explicitly_missing() -> 
     body = "A public notice was published."
     assert parse_operations_case_response(json.dumps(payload), body) is None
 
+
+def test_accepts_additional_grounded_fact_beyond_required_questions() -> None:
+    """Optional grounded facts do not invalidate a complete required answer set."""
+    body = "The claim changed after specification S2; the sales pool was North."
+    payload = [{
+        "case_kind_code": "claim_investigation",
+        "summary_text": "Specification-linked claim",
+        "evidence_text": body,
+        "facts": [
+            {"fact_type_code": "specification_change", "value_text": "S2", "evidence_text": "specification S2"},
+            {"fact_type_code": "sales_pool", "value_text": "North", "evidence_text": "sales pool was North"},
+            {"fact_type_code": "discussion", "value_text": "Claim discussion", "evidence_text": "claim changed"},
+        ],
+        "missing_fact_type_codes": ["order", "originating_order"],
+    }]
+    result = parse_operations_case_response(json.dumps(payload), body)
+    assert result is not None
+    assert [fact.fact_type_code for fact in result[0].facts] == [
+        "specification_change", "sales_pool", "discussion"
+    ]
+
     payload[0]["facts"] = [{
         "fact_type_code": "external_relation",
         "value_text": "Sales opportunity",
         "evidence_text": body,
     }]
     payload[0]["missing_fact_type_codes"] = ["external_relation"]
+    assert parse_operations_case_response(json.dumps(payload), body) is None
+
+
+def test_accepts_grounded_nonrequired_fact_after_required_questions_are_complete() -> None:
+    """A cited optional fact must not invalidate complete required answers."""
+    body = "A public notice was published and assigned to the sales team."
+    payload = [{
+        "case_kind_code": "external_information",
+        "summary_text": "External notice",
+        "evidence_text": "A public notice was published",
+        "facts": [
+            {
+                "fact_type_code": "external_relation",
+                "value_text": "Sales opportunity",
+                "evidence_text": body,
+                "relation_target_kind_code": "sales",
+            },
+            {
+                "fact_type_code": "our_owner",
+                "value_text": "Sales team",
+                "evidence_text": "assigned to the sales team",
+            },
+        ],
+        "missing_fact_type_codes": [],
+    }]
+
+    assert parse_operations_case_response(json.dumps(payload), body) is not None
+
+def test_external_relation_requires_a_semantic_target_type() -> None:
+    """Only source-backed typed external links enter the ontology projection."""
+    body = "The public tender applies to Synthetic Project A."
+    fact = {
+        "fact_type_code": "external_relation",
+        "value_text": "Synthetic Project A",
+        "evidence_text": body,
+        "relation_target_kind_code": "project",
+    }
+    payload = [{
+        "case_kind_code": "external_information",
+        "summary_text": "Tender relates to a project",
+        "evidence_text": body,
+        "facts": [fact],
+        "missing_fact_type_codes": [],
+    }]
+
+    result = parse_operations_case_response(json.dumps(payload), body)
+
+    assert result is not None
+    assert result[0].facts[0].relation_target_kind_code == "project"
+    del fact["relation_target_kind_code"]
+    assert parse_operations_case_response(json.dumps(payload), body) is None
+    fact["relation_target_kind_code"] = "guessed"
+    assert parse_operations_case_response(json.dumps(payload), body) is None
+
+
+def test_optional_fact_cannot_be_marked_missing() -> None:
+    """A cited optional fact cannot simultaneously be declared missing."""
+    body = "A public notice was published and assigned to the sales team."
+    payload = [{
+        "case_kind_code": "external_information",
+        "summary_text": "External notice",
+        "evidence_text": "A public notice was published",
+        "facts": [{
+            "fact_type_code": "external_relation",
+            "value_text": "Sales opportunity",
+            "evidence_text": body,
+            "relation_target_kind_code": "sales",
+        }, {
+            "fact_type_code": "our_owner",
+            "value_text": "Sales team",
+            "evidence_text": "assigned to the sales team",
+        }],
+        "missing_fact_type_codes": ["our_owner"],
+    }]
     assert parse_operations_case_response(json.dumps(payload), body) is None

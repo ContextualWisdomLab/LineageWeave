@@ -7,6 +7,8 @@ import json
 from typing import Any, Protocol
 
 from backend.app.post_eligibility import SOURCE_POST_ELIGIBILITY_SQL
+from lineageweave.ontology import LW
+from lineageweave.prov_o import PROV_RELATIONS
 
 
 CASE_KIND_LABELS = {
@@ -28,6 +30,78 @@ FACT_TYPE_LABELS = {
     "issue_pattern": "반복 유형",
     "improvement_action": "개선 조치",
 }
+CASE_KIND_ONTOLOGY_CLASSES = {
+    "claim_investigation": str(LW.ClaimInvestigation),
+    "rebid_handover": str(LW.RebidHandover),
+    "external_information": str(LW.ExternalInformation),
+    "repeat_issue": str(LW.RepeatIssue),
+}
+EXTERNAL_RELATION_TARGETS = {
+    "order": ("수주", str(LW.Order), str(LW.relatesToOrder)),
+    "project": ("프로젝트", str(LW.Project), str(LW.relatesToProject)),
+    "sales": ("영업", str(LW.SalesContext), str(LW.relatesToSales)),
+    "business_management": (
+        "사업 관리",
+        str(LW.BusinessManagementContext),
+        str(LW.relatesToBusinessManagement),
+    ),
+}
+PROV_WAS_DERIVED_FROM = PROV_RELATIONS["wasDerivedFrom"].iri
+
+
+def _operations_case_jsonld(
+    post_id: str,
+    case_kind_code: str,
+    evidence_post_id: str,
+    case_facts: list[dict[str, str]],
+) -> dict[str, Any]:
+    """Project one persisted case and its cited facts as bounded JSON-LD."""
+    case_id = f"urn:lineageweave:operations-case:{post_id}:{case_kind_code}"
+    statements: list[dict[str, Any]] = []
+    for ordinal, fact in enumerate(case_facts):
+        statement: dict[str, Any] = {
+            "@id": f"{case_id}:fact:{ordinal}",
+            "@type": [str(LW.OperationsCaseFact), "http://www.w3.org/ns/prov#Entity"],
+            str(LW.factTypeCode): fact["fact_type_code"],
+            str(LW.factValue): fact["value_text"],
+            PROV_WAS_DERIVED_FROM: {
+                "@id": f"urn:lineageweave:post:{fact['evidence_post_id']}",
+                "@type": [str(LW.Post), "http://www.w3.org/ns/prov#Entity"],
+            },
+        }
+        predicate = fact.get("relation_predicate_iri")
+        target_class = fact.get("relation_target_class_iri")
+        if predicate and target_class:
+            statement.update(
+                {
+                    "http://www.w3.org/1999/02/22-rdf-syntax-ns#subject": {
+                        "@id": case_id
+                    },
+                    "http://www.w3.org/1999/02/22-rdf-syntax-ns#predicate": {
+                        "@id": predicate
+                    },
+                    "http://www.w3.org/1999/02/22-rdf-syntax-ns#object": {
+                        "@id": f"{case_id}:fact:{ordinal}:target",
+                        "@type": target_class,
+                        "http://www.w3.org/2000/01/rdf-schema#label": fact["value_text"],
+                    },
+                }
+            )
+        statements.append(statement)
+    return {
+        "@context": {
+            "lw": str(LW),
+            "prov": "http://www.w3.org/ns/prov#",
+            "rdf": "http://www.w3.org/1999/02/22-rdf-syntax-ns#",
+        },
+        "@id": case_id,
+        "@type": [CASE_KIND_ONTOLOGY_CLASSES[case_kind_code], "prov:Entity"],
+        "prov:wasDerivedFrom": {
+            "@id": f"urn:lineageweave:post:{evidence_post_id}",
+            "@type": [str(LW.Post), "prov:Entity"],
+        },
+        str(LW.hasOperationsFact): statements,
+    }
 
 
 class _Connection(Protocol):
@@ -61,11 +135,12 @@ async def fetch_operations_dashboard(
     process_unit_ids: tuple[str, ...] | list[str] = (),
     period_start: date | None = None,
     period_end: date | None = None,
+    external_only: bool = False,
 ) -> dict[str, Any]:
     """Return quantified cases and their persisted source evidence."""
     if period_start and period_end and period_start > period_end:
         raise ValueError("period_start must not be after period_end")
-    args = (list(corporate_entity_ids), list(process_unit_ids), period_start, period_end)
+    args = (list(corporate_entity_ids), list(process_unit_ids), period_start, period_end, external_only)
     visible = _visible_period_sql()
     metrics = await conn.fetchrow(
         f"""
@@ -73,13 +148,24 @@ async def fetch_operations_dashboard(
             select post.post_id
               from source_post post
              where {visible}
+               and ($5::boolean is false or exists (
+                   select 1
+                     from operations_case_classification scoped_classification
+                    where scoped_classification.post_id = post.post_id
+                      and scoped_classification.case_kind_code = 'external_information'
+               ))
         ), classified as (
             select classification.post_id, classification.case_kind_code
               from operations_case_classification classification
               join visible_post on visible_post.post_id = classification.post_id
         )
         select (select count(*) from visible_post) as total_post_count,
-               (select count(*) from classified) as total_event_count,
+               (select count(*)
+                  from post_summary_event summary_event
+                 where exists (
+                     select 1 from classified
+                      where classified.post_id = summary_event.post_id
+                 )) as total_event_count,
                (select count(distinct post_id) from classified
                  where case_kind_code = 'external_information') as external_post_count,
                (select count(*) from visible_post
@@ -108,7 +194,10 @@ async def fetch_operations_dashboard(
                coalesce(post.event_occurred_at, post.created_at) as occurred_at,
                coalesce(nullif(btrim(post.source_project_name), ''), project.primary_project_name)
                    as project_name,
-               coalesce(project.project_names, array[]::text[]) as project_names
+               coalesce(project.project_names, array[]::text[]) as project_names,
+               (select count(*)::int
+                  from post_summary_event summary_event
+                 where summary_event.post_id = classification.post_id) as event_count
           from operations_case_classification classification
           join source_post post on post.post_id = classification.post_id
           left join lateral (
@@ -132,6 +221,7 @@ async def fetch_operations_dashboard(
                where names.project_name is not null
           ) project on true
          where {visible}
+           and ($5::boolean is false or classification.case_kind_code = 'external_information')
          order by coalesce(post.event_occurred_at, post.created_at) desc,
                   classification.post_id, classification.case_kind_code
         """,
@@ -141,10 +231,11 @@ async def fetch_operations_dashboard(
         f"""
         select fact.post_id, fact.case_kind_code, fact.fact_type_code,
                fact.value_text, fact.evidence_text, fact.evidence_post_id,
-               fact.fact_ordinal
+               fact.fact_ordinal, fact.relation_target_kind_code
           from operations_case_fact fact
           join source_post post on post.post_id = fact.post_id
          where {visible}
+           and ($5::boolean is false or fact.case_kind_code = 'external_information')
          order by fact.post_id, fact.case_kind_code, fact.fact_ordinal
         """,
         *args,
@@ -155,6 +246,7 @@ async def fetch_operations_dashboard(
           from operations_case_missing_fact missing
           join source_post post on post.post_id = missing.post_id
          where {visible}
+           and ($5::boolean is false or missing.case_kind_code = 'external_information')
          order by missing.post_id, missing.case_kind_code, missing.fact_type_code
         """,
         *args,
@@ -163,15 +255,23 @@ async def fetch_operations_dashboard(
     facts: dict[tuple[str, str], list[dict[str, str]]] = {}
     for row in fact_rows:
         key = (str(row["post_id"]), row["case_kind_code"])
-        facts.setdefault(key, []).append(
-            {
-                "fact_type_code": row["fact_type_code"],
-                "fact_type_label": FACT_TYPE_LABELS[row["fact_type_code"]],
-                "value_text": row["value_text"],
-                "evidence_text": row["evidence_text"],
-                "evidence_post_id": str(row["evidence_post_id"]),
-            }
-        )
+        projected_fact = {
+            "fact_type_code": row["fact_type_code"],
+            "fact_type_label": FACT_TYPE_LABELS[row["fact_type_code"]],
+            "value_text": row["value_text"],
+            "evidence_text": row["evidence_text"],
+            "evidence_post_id": str(row["evidence_post_id"]),
+            "ontology_class_iri": str(LW.OperationsCaseFact),
+            "provenance_relation_iri": PROV_WAS_DERIVED_FROM,
+        }
+        target_kind = row["relation_target_kind_code"]
+        if target_kind in EXTERNAL_RELATION_TARGETS:
+            target_label, target_class, predicate = EXTERNAL_RELATION_TARGETS[target_kind]
+            projected_fact["relation_target_kind_code"] = target_kind
+            projected_fact["relation_target_kind_label"] = target_label
+            projected_fact["relation_target_class_iri"] = target_class
+            projected_fact["relation_predicate_iri"] = predicate
+        facts.setdefault(key, []).append(projected_fact)
     missing_facts: dict[tuple[str, str], list[dict[str, str]]] = {}
     for row in missing_rows:
         key = (str(row["post_id"]), row["case_kind_code"])
@@ -188,7 +288,7 @@ async def fetch_operations_dashboard(
     for row in case_rows:
         kind = row["case_kind_code"]
         case_post_ids.setdefault(kind, set()).add(str(row["post_id"]))
-        case_event_counts[kind] = case_event_counts.get(kind, 0) + 1
+        case_event_counts[kind] = case_event_counts.get(kind, 0) + int(row["event_count"])
     return {
         "period_label": _period_label(period_start, period_end),
         "total_post_count": total,
@@ -217,9 +317,17 @@ async def fetch_operations_dashboard(
                 "summary_text": row["summary_text"],
                 "evidence_text": row["evidence_text"],
                 "evidence_post_id": str(row["evidence_post_id"]),
+                "ontology_class_iri": CASE_KIND_ONTOLOGY_CLASSES[row["case_kind_code"]],
+                "provenance_relation_iri": PROV_WAS_DERIVED_FROM,
                 "occurred_at": row["occurred_at"].isoformat(),
                 "facts": facts.get((str(row["post_id"]), row["case_kind_code"]), []),
                 "missing_facts": missing_facts.get((str(row["post_id"]), row["case_kind_code"]), []),
+                "semantic_projection": _operations_case_jsonld(
+                    str(row["post_id"]),
+                    row["case_kind_code"],
+                    str(row["evidence_post_id"]),
+                    facts.get((str(row["post_id"]), row["case_kind_code"]), []),
+                ),
             }
             for row in case_rows
         ],

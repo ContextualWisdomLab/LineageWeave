@@ -33,11 +33,11 @@ export function OperationsDashboard({ accessToken, externalOnly = false, onOpenP
     let active = true;
     setError(false);
     setData(null);
-    fetchOperationsDashboard(accessToken, ...submittedPeriod)
+    fetchOperationsDashboard(accessToken, ...submittedPeriod, externalOnly)
       .then((value) => active && setData(value))
       .catch(() => active && setError(true));
     return () => { active = false; };
-  }, [accessToken, submittedPeriod, retryCount]);
+  }, [accessToken, externalOnly, submittedPeriod, retryCount]);
 
   return <>
     <form className="dashboard-period-form" onSubmit={(event) => {
@@ -81,7 +81,7 @@ export function OperationsDashboardView({ data, externalOnly = false, onOpenPost
       <dl className="dashboard-metrics">
         {!externalOnly ? <div><dt>전체 글</dt><dd>{data.total_post_count}</dd></div> : null}
         {!externalOnly ? <div><dt>분류 Event</dt><dd>{data.total_event_count}</dd></div> : null}
-        <div><dt>외부 정보</dt><dd>{data.external_post_count}건 · {data.external_percent.toFixed(1)}%</dd></div>
+        <div><dt>외부 정보</dt><dd>{data.external_post_count}건{externalOnly ? "" : ` · ${data.external_percent.toFixed(1)}%`}</dd></div>
         {!externalOnly ? <div><dt>분석 대기</dt><dd>{data.pending_analysis_count}</dd></div> : null}
         {!externalOnly ? <div><dt>분석 실패</dt><dd>{data.failed_analysis_count}</dd></div> : null}
       </dl>
@@ -127,7 +127,7 @@ export function OperationsDashboardView({ data, externalOnly = false, onOpenPost
             <div className="dashboard-case-title"><span>{item.case_kind_label}</span><strong>{item.project_name ?? "프로젝트 연결 분석 중"}</strong></div>
             <h3>{item.summary_text}</h3>
             <blockquote>{item.evidence_text}</blockquote>
-            <dl>{item.facts.map((fact) => <div key={`${fact.fact_type_code}-${fact.value_text}`}><dt>{fact.fact_type_label}</dt><dd>{fact.value_text} <button type="button" className="btn-link" onClick={() => onOpenPost(fact.evidence_post_id)}>{fact.fact_type_label} 근거 열기</button></dd></div>)}</dl>
+            <dl>{item.facts.map((fact) => <div key={`${fact.fact_type_code}-${fact.value_text}`}><dt>{fact.fact_type_label}{fact.relation_target_kind_label ? ` · ${fact.relation_target_kind_label}` : ""}</dt><dd>{fact.value_text} <button type="button" className="btn-link" onClick={() => onOpenPost(fact.evidence_post_id)}>{fact.fact_type_label} 근거 열기</button></dd></div>)}</dl>
             {item.missing_facts.length ? (
               <section className="dashboard-missing-facts" aria-label="추가 확인이 필요한 항목">
                 <h4>추가 확인 필요</h4>

@@ -71,11 +71,18 @@ required before protected delivery can be claimed.
 Authenticated authorized-corpus acceptance remains separate and may return
 only aggregate, non-identifying evidence to this repository.
 
+At the repaired dashboard head, the `EvidenceReady` and `NarrowViewport`
+stories were re-rendered locally with synthetic data at desktop and iPhone
+13 viewports. The desktop shows separate Event/post values and evidence
+actions; the narrow view preserves readable cards and 44px-class actions while
+keeping the multi-step project journey horizontally scrollable. These images
+remain local audit evidence and are not committed.
+
 ### Exact open-PR boundary
 
 At this snapshot there were 8 open PRs and 10 open issues. Exact observed heads
-were `#643 041ec13b`, `#640 f9a7a783`, `#639 aee02dca`, `#636 20d25fe6`, `#632 f3b5acfe`,
-`#631 c0022c97`, `#629 0f4665b5`, and `#579 689a21b6`. All remain blocked on
+were `#643 041ec13b`, `#640 985b4492`, `#639 aee02dca`, `#636 f7b9a65f`, `#632 e1ebe50a`,
+`#631 c0022c97`, `#629 74823e99`, and `#579 689a21b6`. All remain blocked on
 hosted gates and/or independent review. These
 observations are not merge readiness. Re-fetch exact heads,
 unresolved threads, checks, approvals, rulesets, and merge SHA before any
@@ -99,18 +106,26 @@ context only.
 | PR | Exact observed head | Merge/check state at this snapshot |
 | ---: | --- | --- |
 | #643 | `041ec13b` | shares token-backed success/unavailable/retry status notices for the Calendar surface; hosted gates and independent review remain required |
-| #640 | `f9a7a783` | quantifies dashboard case metrics, preserves confidence-ranked project labels, and persists explicit missing required facts; hosted gates and independent review remain required |
+| #640 | `985b4492` | quantifies dashboard case metrics, preserves confidence-ranked project labels, persists explicit missing required facts, and enforces distinct event counts plus SQL-level external scoping; hosted gates and independent review remain required |
 | #639 | `aee02dca` | repairs Running-action, Compose, and TEPP configuration contracts; hosted gates and independent review remain required |
-| #636 | `20d25fe6` | publishes the calibrated external-lineage contract without a redundant explicit-child filter; hosted gates and independent review remain required |
-| #632 | `f3b5acfe` | preserves graph-fact source provenance and authorization with a static landing-query contract and shared RankWeave disable switch; hosted gates and independent review remain required |
+| #636 | `f7b9a65f` | publishes the calibrated external-lineage contract without a redundant explicit-child filter and repairs test import hygiene; hosted gates and independent review remain required |
+| #632 | `e1ebe50a` | preserves graph-fact source provenance and authorization with a static landing-query contract and shared RankWeave disable switch; hosted gates and independent review remain required |
 | #631 | `c0022c97` | decomposes ADR gaps and queue baseline; hosted gates and independent review remain required |
-| #629 | `0f4665b5` | releases provider work from database leases and bounds landing reads; hosted gates and independent review remain required |
+| #629 | `74823e99` | releases provider work from database leases and bounds landing reads; hosted gates and independent review remain required |
 | #579 | `689a21b6` | delegates leftover interaction-map arithmetic to fast-mlsirm and persists only the consumer projection; hosted gates and independent review remain required |
 
 No row above is merge evidence. Immediately before any lifecycle action,
 re-fetch the head, unresolved threads, formal reviews, rulesets, and same-head
 check conclusions. In particular, queued checks are infrastructure state and
 do not transfer evidence from an earlier SHA.
+
+The exact-head Strix check for PR #631 (`c0022c97`) failed at run
+`32855289561` with `STRIX_PROVIDER_UNAVAILABLE`; the check annotation reports
+provider/backend unavailability rather than a repository vulnerability. The
+historical workflow run is no longer retrievable through the Actions API, so it
+cannot be rerun from that run id. This remains an unresolved hosted-gate
+condition, not evidence that the PR is merge-ready; re-fetch a new exact-head
+run before any merge claim.
 
 PR #607 first merged as `61fd631c7bb3c57113fd19763c2c43161eeb2824`
 into #606's non-default branch. PR #606 subsequently passed the protected gate,

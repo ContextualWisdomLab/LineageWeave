@@ -55,9 +55,9 @@ async def persist_operations_cases(
             )
             if case.facts:
                 await conn.executemany(
-                    "insert into operations_case_fact (post_id, case_kind_code, fact_ordinal, fact_type_code, value_text, evidence_text, evidence_post_id, evidence_input_sha256) values ($1, $2, $3, $4, $5, $6, $7, $8)",
+                    "insert into operations_case_fact (post_id, case_kind_code, fact_ordinal, fact_type_code, value_text, evidence_text, evidence_post_id, evidence_input_sha256, relation_target_kind_code) values ($1, $2, $3, $4, $5, $6, $7, $8, $9)",
                     [
-                        (post_id, case.case_kind_code, ordinal, fact.fact_type_code, fact.value_text, fact.evidence_text, fact.evidence_post_id, fact.evidence_input_sha256)
+                        (post_id, case.case_kind_code, ordinal, fact.fact_type_code, fact.value_text, fact.evidence_text, fact.evidence_post_id, fact.evidence_input_sha256, fact.relation_target_kind_code)
                         for ordinal, fact in enumerate(case.facts)
                     ],
                 )
