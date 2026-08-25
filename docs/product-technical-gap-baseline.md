@@ -1,6 +1,6 @@
 # Product & Technical Gap Baseline
 
-> Audit snapshot: 2026-08-25 15:18 KST (refreshed by the autonomous merge
+> Audit snapshot: 2026-08-25 15:21 KST (refreshed by the autonomous merge
 > loop). This repository records synthetic fixtures and aggregate,
 > non-identifying runtime evidence only. Open PRs and local checks are not
 > protected-default-branch release evidence. Identifying post identifiers,
@@ -19,11 +19,11 @@ context only.
 | ---: | --- | --- |
 | #602 | `b286d883` | Post-detail modal semantics, focus containment/restoration, and Escape close are mergeable; focused tests, lint, production build, and authenticated desktop/mobile rendering passed locally, while exact-head hosted checks and independent review remain pending; auto-merge is armed |
 | #601 | `5ce88969` | draft PROV-O ADR APA 7th references are mergeable and checks are progressing, but the PR's explicit owner contract says not to mark Ready or merge |
-| #600 | `a4117f52` | this baseline's pre-amendment observed head; mergeable with review/check evidence pending |
+| #600 | `928512e4` | this baseline's pre-amendment observed head; mergeable with review/check evidence pending |
 | #588 | `6185f2ae` | raw-residual reconstruction, rank-zero identity, API presence, and comparison-strip contracts reconciled with current main; focused backend/frontend/schema checks passed, all review threads are resolved, and auto-merge is armed |
 | #582 | `cab04063` | batched cited-lineage fetch was semantically composed with current main while retaining ADR 0161 interval relations; 27 focused lineage/documentation checks passed, no review threads remain, and auto-merge is armed pending hosted checks and independent review |
 | #579 | `08554951` | interaction-map coordinate branch is conflicting; ADR 0202 traceability was repaired, 20 focused documentation/schema checks passed, and all review threads are resolved; semantic composition with current main remains |
-| #493 | `ff960f3a` | ADR 0143 empty-DAG reasons were stacked on #387 channel evidence while retaining ADR 0161 interval labels; 36 focused backend checks, 175 focused frontend checks, lint, production/Storybook builds, and desktop/mobile rendered screenshots passed; no review threads remain and auto-merge is armed pending hosted exact-head gates and independent review |
+| #493 | `6fbc8660` | ADR 0143 empty-DAG reasons were stacked on #387 channel evidence while retaining ADR 0161 interval labels; 36 focused backend checks, 175 focused frontend checks, lint, production/Storybook builds, and desktop/mobile rendered screenshots passed; no review threads remain and auto-merge is armed pending hosted exact-head gates and independent review |
 | #490 | `73413d0b` | broad historical workspace branch is conflicting with failing checks; decompose/restack rather than replaying its 931-commit merge wholesale |
 | #482 | `6b9084b9` | ADR 0170 organization-alias captions were composed with current main; 44 backend/docs and 93 frontend tests, lint, app/Storybook builds, plus desktop/mobile rendered screenshot audits passed; auto-merge is armed pending hosted exact-head gates and independent review |
 | #468 | `4f8305a8` | integration boundaries, event-time import, and comparison-response ABAC stripping have no unresolved threads but conflict with advanced main |
