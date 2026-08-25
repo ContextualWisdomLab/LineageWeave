@@ -1,30 +1,61 @@
 # Product & Technical Gap Baseline
 
-> Audit snapshot: 2026-08-25 17:30 KST (refreshed by the autonomous merge
+> Audit snapshot: 2026-08-25 17:58 KST (refreshed by the autonomous merge
 > loop). This repository records synthetic fixtures and aggregate,
 > non-identifying runtime evidence only. Open PRs and local checks are not
 > protected-default-branch release evidence. Identifying post identifiers,
 > organization names, and production record keys must never appear in this
 > file.
 
+## Operations Dashboard PRD/TRD traceability
+
+| Requirement | Evidence contract | Delivery state |
+|---|---|---|
+| Claim cause delay: order, specification change, originating order, sales pool, Event/post counts | ADR 0206; contextual-orchestrator case classification with cited spans; Event Lineage context | Candidate implementation; authenticated runtime acceptance pending |
+| Rebid/handover: discussion, counterparties, our owner, decisions, Event/post counts | ADR 0206; normalized case facts plus persisted summary actions/roles | Candidate implementation; corpus backfill pending |
+| External information count/rate and sales/project relation | ADR 0206; semantic `external_information` classification inside Dashboard GNB | Candidate implementation; no separate Board by product decision |
+| Project-specific journey | Explicit source/semantic project membership plus event-time ordering | API projection pending full journey UI |
+| Repeat issue to design improvement | `repeat_issue`, `issue_pattern`, and `improvement_action` cited facts | Candidate semantic contract; design-system connector acceptance pending |
+| Natural-language Ask with evidence, report, alert, MCP | Existing Global Ask retrieval plus versioned delivery/resource contract | Candidate implementation; lexical retrieval replacement remains open |
+| Similar VOC, customer cohort, prior action | Ontology/semantic evidence and governed similarity; source links | Candidate component; post-detail integration pending |
+| TEPP independent Event Lineage anchor | Accepted TEPP criterion bound to the exact estimation run, snapshot, cutoff, and pair count before fast-mlsirm activation | Candidate consumer is fail-closed; TEPP#237 producer delivery and runtime acceptance pending |
+
+```mermaid
+sequenceDiagram
+  participant Source as Authorized source_post
+  participant CO as contextual-orchestrator
+  participant Case as operations_case_* (3NF)
+  participant TEPP as TEPP criterion run
+  participant MLS as fast-mlsirm
+  participant API as Dashboard/Ask API
+  Source->>CO: semantic units + lineage + ontology context
+  CO-->>Case: cases, cited facts, session provenance
+  Source->>TEPP: versioned snapshot and independent criterion
+  TEPP-->>MLS: exact accepted anchor only
+  MLS-->>API: anchored vector or unavailable
+  Case-->>API: ABAC-filtered evidence and counts
+```
+
+Every aggregate applies `post_read` and row-level corporate-entity visibility;
+source-body digests invalidate stale inference; provider errors persist no
+positive or negative result; PII stays inside the authorized UI boundary and
+out of telemetry. Production hot-path acceptance still requires anonymized
+`EXPLAIN (ANALYZE, BUFFERS)` evidence.
+
 ## 1. Exact-head and governance evidence
 
-The protected default branch was `4f53190bf5baf5e2ab1c7f944aac474b8deae77a`
-when this baseline was refreshed. The live queue contained 8 open PRs and 17
+The protected default branch was `3d6d7188a3ae299ffef77eb991032268a4c2160d`
+when this baseline was refreshed. The live queue contained 4 open PRs and 16
 open issues. The exact-head inventory below supersedes older per-PR snapshots
 elsewhere in this document; those older rows remain useful historical delivery
 context only.
 
 | PR | Exact observed head | Merge/check state at this snapshot |
 | ---: | --- | --- |
-| #606 | `61fd631c` | retires the internally anchored channel-weight vector in favor of the exact TEPP#237 criterion-validity contract and now contains the former #607 operations-dashboard stack; fractional cutoffs and canonical UUIDs remain enforced, while the similar-VOC endpoint and authenticated production backfill remain unavailable; the combined non-default head awaits hosted gates and two independent approvals before protected delivery |
-| #605 | `9460af9c` | exact-main follow-up for post-navigation refocus, cross-browser visibility-aware modal focus order including native disclosure summaries, readable evidence separators, and validated OIDC return context; focused regressions, lint, build, Storybook, and desktop/mobile screenshot audits passed locally; auto-merge awaits hosted gates and independent review |
-| #600 | `f1b4ff62` | this baseline's pre-amendment head also restores the ADR 0109 OIDC return helper at login; the current documentation commit necessarily supersedes its own observed SHA, so checks and review restart on the resulting head |
-| #579 | `acd44dfe` | interaction-map coordinates now compose protected main, return no false axes or criteria-only map, preserve the validated OIDC return path, and retain successful backend/frontend/build plus desktop/mobile Storybook evidence; auto-merge awaits hosted gates and independent review |
-| #493 | `cc3080c6` | ADR 0143 empty-DAG reasons are composed with the batched Ask graph: hidden posts cannot bridge authorized components, multi-post Ask omits the single-post reason, conflict-marker regression coverage is present, and focused backend/frontend/build checks pass; auto-merge awaits hosted gates and independent review |
+| #606 | `61fd631c` | pre-amendment head combines the exact TEPP#237 criterion-anchor consumer and former #607 operations dashboard; current local composition adds protected main, fixes production deep-link landing and static-analysis findings, and necessarily supersedes this SHA when pushed |
+| #579 | `a8e9ef9e` | interaction-map coordinate persistence moved after its prior validated head and is conflicting with current main; recompose and repeat exact-head scientific/UI evidence before any merge claim |
 | #490 | `73413d0b` | broad historical workspace branch is conflicting with failing checks; decompose/restack rather than replaying its 931-commit merge wholesale |
-| #468 | `5c6bc014` | fast-mlsirm v0.8.0, exact Keyverse scope, orchestrator, and TEPP boundaries are composed with current main; TEPP contract/auth headers and telemetry-safe startup were retained, but protected delivery still requires terminal hosted gates and independent exact-head approval |
-| #387 | `728125c1` | channel evidence plus Ask reconstruction-profile preservation is composed with current main and has no unresolved threads; only changes-requested decisions from obsolete heads remain, so auto-merge is armed pending current-head checks and independent re-review |
+| #387 | `ab5cf345` | channel evidence, current main, Ask reconstruction profile, isolation reasons, psychometrically estimated Storybook weights, and desktop/mobile screenshot evidence are composed; auto-merge awaits same-head hosted gates and independent re-review |
 
 No row above is merge evidence. Immediately before any lifecycle action,
 re-fetch the head, unresolved threads, formal reviews, rulesets, and same-head
@@ -56,12 +87,10 @@ longer part of the open queue. That merge also left a standalone conflict
 marker and duplicated stale tail in `CLAUDE.md`; #594 repaired it through
 protected `main` as `241be2dddf657f854cb8be54fe11d4ef48d37976`.
 
-Protected main currently imports the ADR 0109 OIDC return helpers but bypasses
-them at login, dropping the URL fragment and failing the production build on
-unused imports. Exact-main PRs #600 and #605 restore
-`returnUrlFromLocation()` then `rememberOidcReturnUrl()` before
-`signinRedirect`; this is branch evidence only until one passes the protected
-gate. The authenticated-only `accessToken` narrowing remains present.
+Protected main now contains the ADR 0109 OIDC return restoration from #605,
+including fragment preservation and storage fallback. The #606 dashboard
+landing must additionally route `?post=` deep links to the Board; that focused
+regression is part of the current candidate and is not delivery evidence yet.
 
 Three systemic gates currently dominate the queue:
 
@@ -105,6 +134,11 @@ Recent protected-default-branch delivery evidence (squash merges onto
 
 | PR | Merged (UTC) | Delivered |
 | ---: | --- | --- |
+| #468 | 2026-08-25 08:44 | fast-mlsirm, Keyverse, contextual-orchestrator, and TEPP integration boundaries |
+| #493 | 2026-08-25 08:44 | evidence-grounded Event Lineage isolation reasons |
+| #600 | 2026-08-25 08:44 | then-current exact-head product/technical baseline |
+| #605 | 2026-08-25 08:44 | dialog focus order, evidence readability, and OIDC return-context restoration |
+| #608 | 2026-08-25 08:43 | Naruon projection consumed by Workspace Calendar |
 | #603 | 2026-08-25 07:24 | short analysis-run transactions, session advisory locking, package-marker/privacy repair, and provider-work lease release |
 | #602 | 2026-08-25 07:24 | post-detail modal semantics, Escape close, initial focus, and opener restoration; navigation-refocus edge case continues on #605 |
 | #582 | 2026-08-25 07:24 | bounded batched cited-lineage graph fetch |
