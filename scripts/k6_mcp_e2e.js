@@ -50,9 +50,12 @@ function request(token, session, id, method, params) {
     "MCP-Protocol-Version": protocolVersion,
   };
   if (session) headers["Mcp-Session-Id"] = session;
+  const envelope = id === null
+    ? { jsonrpc: "2.0", method, params }
+    : { jsonrpc: "2.0", id, method, params };
   return http.post(
     mcpUrl,
-    JSON.stringify({ jsonrpc: "2.0", id, method, params }),
+    JSON.stringify(envelope),
     { headers, tags: { endpoint: method }, timeout: requestTimeout },
   );
 }

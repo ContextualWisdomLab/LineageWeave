@@ -58,5 +58,5 @@ export const PartialHistoricalEvidence: Story = {
 
 export const NarrowViewport: Story = {
   ...PartialHistoricalEvidence,
-  parameters: { viewport: { defaultViewport: "mobile1" } },
+  globals: { viewport: { value: "mobile1", isRotated: false } },
 };

@@ -138,6 +138,8 @@ def _quota_retry_after(body: bytes) -> int | None:
 
 def _validate_mcp_settings(settings: Settings) -> tuple[int, int]:
     """Require exact origins and measured deployment quota parameters."""
+    if not settings.mcp_audience.strip():
+        raise ValueError("MCP_AUDIENCE must name the exact MCP resource")
     for origin in settings.mcp_allowed_origins:
         parsed = urlsplit(origin)
         if (
@@ -235,8 +237,10 @@ def build_mcp_server(
         try:
             yield McpAppContext(pool, valkey, limiter, chat_client.available, resolved)
         finally:
-            await limiter.close()
-            await pool.close()
+            try:
+                await limiter.close()
+            finally:
+                await pool.close()
 
     server = MCPServer(
         "lineageweave",

@@ -31,6 +31,8 @@ class KeyverseMcpTokenVerifier(TokenVerifier):
 
     async def verify_token(self, token: str) -> AccessToken | None:
         """Return MCP access metadata for a valid token; otherwise fail closed."""
+        if not self._settings.mcp_audience.strip():
+            return None
         try:
             claims = await asyncio.to_thread(
                 partial(

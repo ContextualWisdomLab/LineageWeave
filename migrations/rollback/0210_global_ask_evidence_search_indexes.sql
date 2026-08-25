@@ -1,9 +1,9 @@
-drop index if exists knowledge_graph_edge_type_search_idx;
-drop index if exists common_lookup_value_evidence_search_idx;
-drop index if exists source_post_title_evidence_search_idx;
-drop index if exists cataloged_team_evidence_search_idx;
-drop index if exists corporate_entity_evidence_search_idx;
-drop index if exists person_affiliation_evidence_search_idx;
-drop index if exists cataloged_person_evidence_search_idx;
-drop index if exists post_summary_role_evidence_search_idx;
-drop index if exists post_project_mention_evidence_search_idx;
+drop index concurrently if exists knowledge_graph_edge_type_search_idx;
+drop index concurrently if exists common_lookup_value_evidence_search_idx;
+drop index concurrently if exists source_post_title_evidence_search_idx;
+drop index concurrently if exists cataloged_team_evidence_search_idx;
+drop index concurrently if exists corporate_entity_evidence_search_idx;
+drop index concurrently if exists person_affiliation_evidence_search_idx;
+drop index concurrently if exists cataloged_person_evidence_search_idx;
+drop index concurrently if exists post_summary_role_evidence_search_idx;
+drop index concurrently if exists post_project_mention_evidence_search_idx;
