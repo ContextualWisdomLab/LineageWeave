@@ -1,11 +1,24 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { BackendError, fetchMe, updateTenantConfig } from "./api";
+import { BackendError, fetchMe, fetchOperationsDashboard, updateTenantConfig } from "./api";
 
 afterEach(() => {
   vi.unstubAllGlobals();
 });
 
 describe("backendFetch provider-error boundary", () => {
+  it("binds the selected Dashboard period as inclusive API dates", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify({ cases: [] }), { headers: { "Content-Type": "application/json" } }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    await fetchOperationsDashboard("access-token", "2026-08-01", "2026-08-25");
+
+    expect(fetchMock.mock.calls[0][0]).toContain(
+      "/api/dashboard?period_start=2026-08-01&period_end=2026-08-25",
+    );
+  });
+
   it("does not expose provider details from server failures", async () => {
     vi.stubGlobal(
       "fetch",

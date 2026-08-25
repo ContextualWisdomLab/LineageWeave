@@ -34,6 +34,7 @@ import {
   fetchPostSummary,
   fetchPostTickets,
   fetchPostVocEvidence,
+  fetchSimilarVoc,
   fetchPeriodComparison,
   fetchPeriodReportIndex,
   fetchPeriodReports,
@@ -81,6 +82,7 @@ import {
   type RelatedNode,
   type RelatedNodeType,
   type VocEvidence,
+  type SimilarVocItem,
   fetchTenantConfig,
 } from "./api";
 import { CitationChip } from "./components/CitationChip";
@@ -91,6 +93,7 @@ import { LineageEntityPicker } from "./components/LineageEntityPicker";
 import { OntologyExplorer } from "./components/OntologyExplorer";
 import { AskEvidenceLayerPopup } from "./components/AskEvidenceLayerPopup";
 import { PopupCloseButton } from "./components/PopupCloseButton";
+import { SimilarVocPanel } from "./components/SimilarVocPanel";
 import { chatEvidenceKindLabel } from "./evidenceKindLabels";
 import { WorkspaceNav, type WorkspaceDestination } from "./components/WorkspaceNav";
 import { OperationsDashboard } from "./components/OperationsDashboard";
@@ -1801,6 +1804,8 @@ function PostDetailPopup({
   const [lineage, setLineage] = useState<PostLineage | null>(null);
   const [affiliateTrees, setAffiliateTrees] = useState<AffiliateNode[] | null>(null);
   const [vocEvidence, setVocEvidence] = useState<VocEvidence | null>(null);
+  const [similarVoc, setSimilarVoc] = useState<SimilarVocItem[] | null>(null);
+  const [similarVocError, setSimilarVocError] = useState<string | null>(null);
   const [evaluation, setEvaluation] = useState<EvaluationResponse[] | null>(null);
   const [focusPerson, setFocusPerson] = useState<{ personId: string; personName: string } | null>(null);
   const [focusEntity, setFocusEntity] = useState<{ entityId: string; entityName: string } | null>(null);
@@ -1896,6 +1901,8 @@ function PostDetailPopup({
     setLineage(null);
     setAffiliateTrees(null);
     setVocEvidence(null);
+    setSimilarVoc(null);
+    setSimilarVocError(null);
     setEvaluation(null);
     setFocusPerson(null);
     setFocusEntity(null);
@@ -1952,6 +1959,12 @@ function PostDetailPopup({
       .then((r) => setAffiliateTrees(r.trees))
       .catch(() => setAffiliateTrees([]));
     fetchPostVocEvidence(accessToken, postId).then(setVocEvidence).catch(() => setVocEvidence(null));
+    fetchSimilarVoc(accessToken, postId)
+      .then((result) => setSimilarVoc(result.items))
+      .catch(() => {
+        setSimilarVoc([]);
+        setSimilarVocError("유사 VOC 판정을 사용할 수 없습니다. 잠시 후 다시 확인하세요.");
+      });
     return () => {
       disposed = true;
       if (contentPollTimer !== undefined) window.clearTimeout(contentPollTimer);
@@ -2455,6 +2468,12 @@ function PostDetailPopup({
                 setFocusTeam(null);
                 setFocusPerson({ personId, personName });
               }}
+            />
+
+            <SimilarVocPanel
+              items={similarVoc}
+              error={similarVocError}
+              onOpenPost={(candidatePostId) => onSelectPost?.(candidatePostId)}
             />
 
             <RelatedPostsSection lineage={lineage} onSelectPost={onSelectPost} />
@@ -4923,13 +4942,13 @@ export default function App({ showLabPanels = false }: { showLabPanels?: boolean
   useLocale();
   const [brandName, setBrandName] = useState("LineageWeave");
   const auth = useAuth();
+  const initialPostId = typeof window === "undefined"
+    ? null
+    : new URLSearchParams(window.location.search).get("post");
   const [destination, setDestination] = useState<WorkspaceDestination>(
-    import.meta.env.MODE === "test" ? "board" : "dashboard",
+    import.meta.env.MODE === "test" || initialPostId ? "board" : "dashboard",
   );
-  const [postToOpen, setPostToOpen] = useState<string | null>(() => {
-    if (typeof window === "undefined") return null;
-    return new URLSearchParams(window.location.search).get("post");
-  });
+  const [postToOpen, setPostToOpen] = useState<string | null>(initialPostId);
   // Test-only compatibility for legacy analysis-panel coverage; this prop
   // never forces the panels open outside Vitest. In a real build the
   // advanced-review section (ADR 0037) is gated on PostList's own

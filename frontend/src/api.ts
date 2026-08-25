@@ -69,8 +69,16 @@ export interface OperationsDashboardResponse {
   cases: OperationsDashboardCase[];
 }
 
-export function fetchOperationsDashboard(accessToken: string): Promise<OperationsDashboardResponse> {
-  return backendFetch("/api/dashboard", accessToken);
+export function fetchOperationsDashboard(
+  accessToken: string,
+  periodStart = "",
+  periodEnd = "",
+): Promise<OperationsDashboardResponse> {
+  const query = new URLSearchParams();
+  if (periodStart) query.set("period_start", periodStart);
+  if (periodEnd) query.set("period_end", periodEnd);
+  const suffix = query.size ? `?${query}` : "";
+  return backendFetch(`/api/dashboard${suffix}`, accessToken);
 }
 
 export interface PostFilterOption {
@@ -736,6 +744,24 @@ export function fetchPostAffiliateTree(
 
 export function fetchPostVocEvidence(accessToken: string, postId: string): Promise<VocEvidence> {
   return backendFetch(`/api/posts/${postId}/voc-evidence`, accessToken);
+}
+
+export interface SimilarVocItem {
+  post_id: string;
+  post_title: string;
+  issue_summary: string;
+  focal_evidence_text: string;
+  candidate_evidence_text: string;
+  customer_cohort_text: string | null;
+  action_history: string[];
+  occurred_at: string;
+}
+
+export function fetchSimilarVoc(
+  accessToken: string,
+  postId: string,
+): Promise<{ items: SimilarVocItem[] }> {
+  return backendFetch(`/api/posts/${postId}/similar-voc`, accessToken);
 }
 
 export interface PersonRoleHistoryEntry {

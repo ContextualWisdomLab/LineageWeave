@@ -8,7 +8,8 @@
 
 ADR 0047 gave Global Ask's retrieve step the same source-context search
 surface as the board (raw source hints, project mentions, roles, Keyman
-mentions, title, body). That step ranks and returns keyword-matched posts,
+mentions, title, body). The current ADR 0047 revision ranks persisted
+semantic-unit embeddings against the complete question,
 but it never touches `post_lineage_edge` -- the Event-Lineage relation
 `lineageweave.reconstruct` already persists, and the same relation the
 post-scoped chat flow (`gather_chat_sources`) already expands through for a
@@ -30,7 +31,7 @@ it expands only the single top-ranked match through its direct
 set `find_linked_post_ids` already computes for the post-scoped flow. The
 expansion:
 
-- Is bounded to the top match only. Expanding every keyword hit was
+- Is bounded to the top match only. Expanding every semantic candidate was
   rejected -- a loosely related term matching a second post would drag an
   unrelated lineage chain into the model's context for no benefit.
 - Never bypasses ABAC. Lineage-neighbor ids are merged into the same
@@ -38,7 +39,7 @@ expansion:
   runs over; nothing lineage-adjacent is shown without passing that check.
 - Is additive to the existing bounded source `limit`, not a replacement
   for it -- the limit grows by exactly the number of lineage neighbors
-  found, so lineage expansion cannot silently starve the keyword-matched
+  found, so lineage expansion cannot silently starve the semantically ranked
   candidates of their own slots.
 - Tags each expanded source with an explicit `Event Lineage: reconstructed
   timeline neighbor of post_id=...` evidence fact, and only when the
@@ -52,12 +53,12 @@ sequence around it.
 
 ## Considered alternatives
 
-- Expand every keyword-matched candidate's lineage neighbors, not just the
+- Expand every semantically ranked candidate's lineage neighbors, not just the
   top one: rejected for the reason above -- unbounded relevance drift into
   the prompt.
-- Increase `limit` and let the ranking naturally surface neighbors if they
-  also match the search terms: rejected -- a genuine lineage predecessor or
-  successor frequently shares no keyword with the question at all (a
+- Increase `limit` and let the ranking naturally surface neighbors: rejected
+  -- a genuine lineage predecessor or successor can express a different event
+  in the sequence (a
   Kick-off Meeting and its follow-up rarely repeat the same terms), so
   ranking alone cannot be relied on to surface it.
 

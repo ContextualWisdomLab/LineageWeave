@@ -11,19 +11,33 @@ type Props = {
 export function OperationsDashboard({ accessToken, externalOnly = false, onOpenPost }: Props) {
   const [data, setData] = useState<OperationsDashboardResponse | null>(null);
   const [error, setError] = useState(false);
+  const [periodStart, setPeriodStart] = useState("");
+  const [periodEnd, setPeriodEnd] = useState("");
+  const [submittedPeriod, setSubmittedPeriod] = useState<[string, string]>(["", ""]);
 
   useEffect(() => {
     let active = true;
     setError(false);
-    fetchOperationsDashboard(accessToken)
+    setData(null);
+    fetchOperationsDashboard(accessToken, ...submittedPeriod)
       .then((value) => active && setData(value))
       .catch(() => active && setError(true));
     return () => { active = false; };
-  }, [accessToken]);
+  }, [accessToken, submittedPeriod]);
 
-  if (error) return <section className="operations-dashboard" aria-labelledby="dashboard-heading"><h2 id="dashboard-heading">운영 근거 Dashboard</h2><p role="alert">Dashboard 근거를 불러오지 못했습니다. 잠시 후 다시 시도하세요.</p></section>;
+  if (error) return <section className="operations-dashboard" aria-labelledby="dashboard-heading"><h2 id="dashboard-heading">운영 근거 Dashboard</h2><p role="alert">Dashboard 근거를 불러오지 못했습니다.</p><button type="button" className="btn-secondary" onClick={() => setSubmittedPeriod([periodStart, periodEnd])}>다시 시도</button></section>;
   if (!data) return <p role="status">Dashboard 근거를 불러오는 중입니다.</p>;
-  return <OperationsDashboardView data={data} externalOnly={externalOnly} onOpenPost={onOpenPost} />;
+  return <>
+    <form className="dashboard-period-form" onSubmit={(event) => {
+      event.preventDefault();
+      setSubmittedPeriod([periodStart, periodEnd]);
+    }}>
+      <label>시작일<input type="date" value={periodStart} max={periodEnd || undefined} onChange={(event) => setPeriodStart(event.target.value)} /></label>
+      <label>종료일<input type="date" value={periodEnd} min={periodStart || undefined} onChange={(event) => setPeriodEnd(event.target.value)} /></label>
+      <button type="submit" className="btn-secondary">기간 적용</button>
+    </form>
+    <OperationsDashboardView data={data} externalOnly={externalOnly} onOpenPost={onOpenPost} />
+  </>;
 }
 
 /** Renders a completed Dashboard response for runtime and Storybook scenes. */

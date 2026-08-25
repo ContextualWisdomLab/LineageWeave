@@ -1159,6 +1159,22 @@
   color: var(--color-text-heading);
 }
 
+.dashboard-period-form {
+  align-items: end;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-control-gap);
+  padding: var(--space-panel-block);
+}
+
+.dashboard-period-form label {
+  display: grid;
+  gap: var(--space-control-gap);
+  font-weight: 700;
+}
+
+.dashboard-period-form input { min-height: 44px; }
+
 .operations-dashboard-heading {
   display: flex;
   align-items: end;

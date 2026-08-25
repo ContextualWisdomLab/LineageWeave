@@ -27,6 +27,23 @@ def test_positive_similarity_requires_extractable_evidence() -> None:
     assert parse_similar_voc_response(json.dumps(payload), "post-2", focal, candidate) is None
 
 
+def test_customer_cohort_must_be_extractable() -> None:
+    """A customer cohort label cannot be invented outside either source body."""
+    focal = "Customer cohort Alpha reported a seal failure."
+    candidate = "A seal failed during trial."
+    payload = {
+        "similar": True,
+        "issue_summary": "Equivalent seal failure",
+        "focal_evidence_text": focal,
+        "candidate_evidence_text": candidate,
+        "customer_cohort_text": "invented cohort",
+        "action_history": [],
+    }
+    assert parse_similar_voc_response(json.dumps(payload), "post-2", focal, candidate) is None
+    payload["customer_cohort_text"] = "Customer cohort Alpha"
+    assert parse_similar_voc_response(json.dumps(payload), "post-2", focal, candidate) is not None
+
+
 def test_ranking_uses_only_complete_supplied_measurement_weights() -> None:
     """RankWeave receives the exact persisted estimate and rejects a partial vector."""
     captured = {}

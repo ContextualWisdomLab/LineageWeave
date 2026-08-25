@@ -29,6 +29,7 @@ import redis.asyncio as redis
 from fastapi import HTTPException, status
 
 from lineageweave.ask_delivery import build_ask_delivery
+from lineageweave.embedding_client import EmbeddingClient, NullEmbeddingClient
 from lineageweave.http_client import HttpClientError
 from lineageweave.observability import record_server_failure
 from lineageweave.post_chat import (
@@ -158,6 +159,8 @@ async def compute_global_ask_answer(
     question_text: str,
     corporate_entity_ids: set[str],
     chat_client: PostChatClient,
+    embedding_client: EmbeddingClient | None = None,
+    embedding_model_code: str = "",
 ) -> dict[str, Any]:
     """Assemble one complete Ask answer payload from authorized evidence.
 
@@ -181,6 +184,8 @@ async def compute_global_ask_answer(
                 corporate_entity_ids,
                 question=question_text,
                 today=today,
+                embedding_client=embedding_client,
+                embedding_model_code=embedding_model_code,
             )
     except Exception as exc:
         log_internal_fault("global_ask", exc)
@@ -284,6 +289,8 @@ async def process_global_ask_job(
     *,
     job_id: str,
     chat_factory: Callable[[], PostChatClient],
+    embedding_factory: Callable[[], EmbeddingClient] = NullEmbeddingClient,
+    embedding_model_code: str = "",
 ) -> None:
     """Claim, answer, and settle one Ask job.
 
@@ -323,6 +330,8 @@ async def process_global_ask_job(
                 question_text=str(row["question_text"]),
                 corporate_entity_ids=entity_ids,
                 chat_client=chat_client,
+                embedding_client=embedding_factory(),
+                embedding_model_code=embedding_model_code,
             ),
             timeout=JOB_DEADLINE_SECONDS,
         )
@@ -436,6 +445,8 @@ async def consume_global_ask_stream_once(
     *,
     last_id: str,
     chat_factory: Callable[[], PostChatClient],
+    embedding_factory: Callable[[], EmbeddingClient] = NullEmbeddingClient,
+    embedding_model_code: str = "",
     limiter: asyncio.Semaphore | None = None,
     tasks: set[asyncio.Task] | None = None,
 ) -> str:
@@ -455,12 +466,23 @@ async def consume_global_ask_stream_once(
             job_id = str(fields.get("global_ask_job_id", "")).strip()
             if job_id:
                 if limiter is None:
-                    await process_global_ask_job(pool, job_id=job_id, chat_factory=chat_factory)
+                    await process_global_ask_job(
+                        pool,
+                        job_id=job_id,
+                        chat_factory=chat_factory,
+                        embedding_factory=embedding_factory,
+                        embedding_model_code=embedding_model_code,
+                    )
                 else:
                     await limiter.acquire()
                     task = asyncio.create_task(
                         _process_and_release(
-                            pool, job_id=job_id, chat_factory=chat_factory, limiter=limiter
+                            pool,
+                            job_id=job_id,
+                            chat_factory=chat_factory,
+                            embedding_factory=embedding_factory,
+                            embedding_model_code=embedding_model_code,
+                            limiter=limiter,
                         )
                     )
                     if tasks is not None:
@@ -475,11 +497,19 @@ async def _process_and_release(
     *,
     job_id: str,
     chat_factory: Callable[[], PostChatClient],
+    embedding_factory: Callable[[], EmbeddingClient],
+    embedding_model_code: str,
     limiter: asyncio.Semaphore,
 ) -> None:
     """Run one dispatched job and free its concurrency slot afterwards."""
     try:
-        await process_global_ask_job(pool, job_id=job_id, chat_factory=chat_factory)
+        await process_global_ask_job(
+            pool,
+            job_id=job_id,
+            chat_factory=chat_factory,
+            embedding_factory=embedding_factory,
+            embedding_model_code=embedding_model_code,
+        )
     finally:
         limiter.release()
 
@@ -499,6 +529,8 @@ async def run_global_ask_worker(
     pool: asyncpg.Pool,
     *,
     chat_factory: Callable[[], PostChatClient],
+    embedding_factory: Callable[[], EmbeddingClient] = NullEmbeddingClient,
+    embedding_model_code: str = "",
 ) -> None:
     """Run the at-least-once Ask consumer with periodic queued-row recovery."""
     last_id = await _stream_tail(client)
@@ -517,6 +549,8 @@ async def run_global_ask_worker(
                     pool,
                     last_id=last_id,
                     chat_factory=chat_factory,
+                    embedding_factory=embedding_factory,
+                    embedding_model_code=embedding_model_code,
                     limiter=limiter,
                     tasks=tasks,
                 )

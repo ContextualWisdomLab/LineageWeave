@@ -1,8 +1,9 @@
 # Product & Technical Gap Baseline
 
-> Dashboard delivery snapshot: 2026-08-25 15:40 KST. Candidate base is
-> protected `main` `c168ad0016de9aa42a7a6f4136972e80121ef981`; this local
-> branch is not release evidence.
+> Dashboard delivery snapshot: 2026-08-25 18:00 KST. Protected `main` was
+> `3d6d7188a3ae299ffef77eb991032268a4c2160d`; the stacked TEPP consumer base
+> was `61fd631c7bb3c57113fd19763c2c43161eeb2824`. This local branch is not
+> protected-main release evidence.
 
 ## Operations Dashboard PRD/TRD traceability
 
@@ -13,11 +14,11 @@
 | Claim cause delay: order, specification change, originating order, sales pool, Event/post counts | ADR 0206; contextual-orchestrator case classification with cited spans; Event Lineage context | Candidate implementation; authenticated runtime acceptance pending |
 | Rebid/handover: discussion, counterparties, our owner, decisions, Event/post counts | ADR 0206; normalized case facts plus persisted summary actions/roles | Candidate implementation; corpus backfill pending |
 | External information count/rate and sales/project relation | ADR 0206; semantic `external_information` classification inside Dashboard GNB | Candidate implementation; no separate Board by product decision |
-| Project-specific journey | Explicit source/semantic project membership plus event-time ordering | API projection pending full journey UI |
+| Project-specific journey | Explicit source/semantic project membership plus event-time ordering | Candidate API and ordered journey UI implemented; authenticated runtime acceptance pending |
 | Repeat issue to design improvement | `repeat_issue`, `issue_pattern`, and `improvement_action` cited facts | Candidate semantic contract; design-system connector acceptance pending |
-| Natural-language Ask with evidence, report, alert, MCP | Existing Global Ask retrieval plus versioned delivery/resource contract | Candidate implementation; lexical retrieval replacement remains open |
-| Similar VOC, customer cohort, prior action | Ontology/semantic evidence and governed similarity; source links | Candidate component; post-detail integration pending |
-| TEPP independent Event Lineage anchor | Accepted, persisted TEPP criterion bound to exact snapshot/cutoff before fast-mlsirm activation | In development; current unanchored vectors MUST remain inactive |
+| Natural-language Ask with evidence, report, alert, MCP | Persisted semantic-unit embeddings plus versioned delivery/resource contract | Candidate implementation uses whole-question embedding retrieval with no lexical fallback; authenticated runtime acceptance pending |
+| Similar VOC, customer cohort, prior action | Persisted repeat-issue candidate semantics plus orchestrator pair adjudication and extractive evidence | Candidate live post endpoint and post-detail UI implemented; authenticated runtime acceptance pending |
+| TEPP independent Event Lineage anchor | Accepted, persisted TEPP criterion bound to exact snapshot/cutoff before fast-mlsirm activation | TEPP PR #237 and consumer PR #606 define the contract; only exact accepted artifacts promote matching vectors; protected merge pending |
 
 ### Technical contract and flow
 
@@ -48,13 +49,12 @@ snapshot.
 
 ### Exact open-PR boundary
 
-At this snapshot there were 10 open PRs and 20 open issues. Exact heads:
-`#602 36f05476`, `#600 cb5eff38`, `#588 6185f2ae`, `#582 cab04063`,
-`#579 bfefe98e`, `#493 6fbc8660`, `#490 73413d0b`, `#482 6b9084b9`,
-`#468 4f8305a8`, and `#387 3fab1f6a`. PR #387 retained a changes-requested
-review; #600/#588/#582/#490/#482/#468 required review. These observations are
-not merge readiness. Re-fetch exact heads, unresolved threads, checks,
-approvals, rulesets, and merge SHA before any lifecycle claim.
+At this snapshot there were 4 open PRs and 16 open issues. Exact heads were
+`#606 61fd631c`, `#579 a8e9ef9e`, `#490 73413d0b`, and `#387 ab5cf345`.
+PRs #606/#579/#490 were reported `DIRTY` against the advancing main branch;
+#387 was `BLOCKED`. These observations are not merge readiness. Re-fetch exact
+heads, unresolved threads, checks, approvals, rulesets, and merge SHA before
+any lifecycle claim.
 
 > Audit snapshot: 2026-08-25 12:07 KST (refreshed by the autonomous merge
 > loop). This repository records synthetic fixtures and aggregate,

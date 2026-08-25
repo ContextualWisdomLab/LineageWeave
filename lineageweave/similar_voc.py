@@ -41,8 +41,8 @@ and outcome. Return ONLY JSON with `similar` (boolean). If false, return only th
 If true, also return issue_summary, focal_evidence_text (verbatim from focal body),
 candidate_evidence_text (verbatim from candidate body), customer_cohort_text (string or null),
 and action_history (an array containing only source-supported past actions, each verbatim from
-the candidate body). Customer cohort may be stated only when the records explicitly identify
-the same cataloged or source customer; otherwise use null.
+the candidate body). Customer cohort must be a verbatim span from either body and may be stated
+only when both records explicitly identify the same source customer; otherwise use null.
 
 Focal title: {focal_title}
 Focal body: {focal_body}
@@ -70,7 +70,14 @@ def parse_similar_voc_response(
         not isinstance(summary, str) or not summary.strip()
         or not isinstance(focal_evidence, str) or focal_evidence not in focal_body
         or not isinstance(candidate_evidence, str) or candidate_evidence not in candidate_body
-        or (cohort is not None and (not isinstance(cohort, str) or not cohort.strip()))
+        or (
+            cohort is not None
+            and (
+                not isinstance(cohort, str)
+                or not cohort.strip()
+                or (cohort not in focal_body and cohort not in candidate_body)
+            )
+        )
         or not isinstance(actions, list)
         or any(not isinstance(action, str) or action not in candidate_body for action in actions)
     ):

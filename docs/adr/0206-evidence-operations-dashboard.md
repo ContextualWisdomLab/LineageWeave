@@ -65,7 +65,13 @@ provenance.
    source-supported improvement action. Its Dashboard flow is As-Is evidence
    to To-Be action: rebid history retrieval, originating-order/specification
    reverse tracing, repeated-issue grouping, and design-improvement return.
-   Similarity alone never establishes that two issues are the same type.
+   Similarity alone never establishes that two issues are the same type. The
+   per-post Similar VOC view uses visible `repeat_issue` classifications only
+   as a semantic candidate pool, then requires contextual-orchestrator to
+   adjudicate each pair with verbatim evidence from both records. Results are
+   displayed by source event time, not a similarity score. It does not reuse
+   Event Lineage channel weights, and it does not invoke RankWeave without a
+   separately authorized Similar-VOC measurement contract.
 11. The Dashboard uses existing design tokens and native HTML controls. Tables
    and ordered journey steps remain usable without color, with visible focus,
    keyboard activation, responsive overflow, and reduced-motion support.

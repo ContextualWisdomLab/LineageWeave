@@ -91,6 +91,7 @@ from lineageweave.post_structure import ContextualOrchestratorPostStructureClien
 from lineageweave.post_summary import ContextualOrchestratorPostSummaryClient, NullPostSummaryClient
 from lineageweave.relation_verification import NullRelationVerificationClient, SearxngRelationVerificationClient
 from lineageweave.semantic_hints import customer_hint_trust, format_semantic_hints
+from lineageweave.similar_voc import ContextualOrchestratorSimilarVocAnalysisClient
 from lineageweave.ontology import LW
 from lineageweave.rankweave_client import build_rankweave_client
 
@@ -271,6 +272,8 @@ async def lifespan(app: FastAPI):
                 chat_factory=lambda: _post_chat_client(
                     timeout=load_settings().orchestrator_answer_timeout_seconds
                 ),
+                embedding_factory=_embedding_client,
+                embedding_model_code=settings.embedding_model,
             )
         )
         app.state.global_ask_worker = global_ask_worker
@@ -478,6 +481,16 @@ def _post_evaluation_client():
     if not (settings.orchestrator_base_url and settings.orchestrator_api_key):
         return NullPostEvaluationClient()
     return ContextualOrchestratorPostEvaluationClient(
+        base_url=settings.orchestrator_base_url, api_key=settings.orchestrator_api_key
+    )
+
+
+def _similar_voc_client():
+    """Live semantic-pair client, or ``None`` when inference is unavailable."""
+    settings = load_settings()
+    if not (settings.orchestrator_base_url and settings.orchestrator_api_key):
+        return None
+    return ContextualOrchestratorSimilarVocAnalysisClient(
         base_url=settings.orchestrator_base_url, api_key=settings.orchestrator_api_key
     )
 
@@ -1728,7 +1741,8 @@ async def _load_visible_post(
         # Safe SQL: the eligibility predicate is an immutable schema fragment; post id is bound.
         row = await conn.fetchrow(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
             """
-            select source_post.post_id, source_post.post_title, source_post.voc_type_code,
+            select source_post.post_id, source_post.post_title, source_post.post_body,
+                   source_post.voc_type_code,
                    source_post.visibility_code, source_post.corporate_entity_id,
                    source_post.created_at, source_post.author_account_id,
                    source_post.source_process_unit_code, source_post.source_author_code,
@@ -1748,6 +1762,74 @@ async def _load_visible_post(
     if not _can_see_post(account, row):
         raise HTTPException(status.HTTP_403_FORBIDDEN, "not authorized to view this post")
     return row
+
+
+@app.get("/api/posts/{post_id}/similar-voc")
+async def read_similar_voc(
+    post_id: str,
+    account: CurrentAccount = Depends(get_current_account),
+    pool: asyncpg.Pool = Depends(get_pool),
+) -> dict[str, Any]:
+    """Return authorized, semantically adjudicated prior VOC evidence.
+
+    Persisted ``repeat_issue`` classifications narrow the candidate corpus
+    without lexical matching. contextual-orchestrator then establishes each
+    pair; event time orders the display and is not a relevance score.
+    """
+    focal = await _load_visible_post(post_id, account, pool)
+    client = _similar_voc_client()
+    if client is None:
+        raise HTTPException(
+            status.HTTP_503_SERVICE_UNAVAILABLE,
+            "similar VOC inference is unavailable; configure contextual-orchestrator and retry",
+        )
+    async with pool.acquire() as conn:
+        rows = await conn.fetch(
+            """
+            select post.post_id, post.post_title, post.post_body,
+                   post.visibility_code, post.corporate_entity_id,
+                   coalesce(post.event_occurred_at, post.created_at) as occurred_at
+              from operations_case_classification classification
+              join source_post post on post.post_id = classification.post_id
+             where classification.case_kind_code = 'repeat_issue'
+               and post.post_id <> $1
+               and post.post_body <> ''
+               and """
+            f"{SOURCE_POST_ELIGIBILITY_SQL.format(alias='post')} "
+            "order by coalesce(post.event_occurred_at, post.created_at) desc, post.post_id",
+            post_id,
+        )
+    candidates = [row for row in rows if _can_see_post(account, row)]
+
+    async def _adjudicate(candidate: asyncpg.Record):
+        with use_llm_metadata(build_post_llm_metadata(post_id, focal)):
+            return await asyncio.to_thread(
+                client.analyze,
+                focal["post_title"],
+                focal["post_body"],
+                str(candidate["post_id"]),
+                candidate["post_title"],
+                candidate["post_body"],
+            )
+
+    items = []
+    for candidate in candidates:
+        evidence = await _adjudicate(candidate)
+        if evidence is None:
+            continue
+        items.append(
+            {
+                "post_id": evidence.candidate_post_id,
+                "post_title": candidate["post_title"],
+                "issue_summary": evidence.issue_summary,
+                "focal_evidence_text": evidence.focal_evidence_text,
+                "candidate_evidence_text": evidence.candidate_evidence_text,
+                "customer_cohort_text": evidence.customer_cohort_text,
+                "action_history": evidence.action_history,
+                "occurred_at": candidate["occurred_at"].isoformat(),
+            }
+        )
+    return {"items": items}
 
 
 async def _load_post_semantic_hints(conn: asyncpg.Connection, post_id: str) -> str:
