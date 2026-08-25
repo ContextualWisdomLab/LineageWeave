@@ -65,8 +65,8 @@ def lineage_edge_specs(
 
     ``llm`` defaults to ``None``, which ``reconstruct()`` treats as the
     unavailable :class:`~lineageweave.adjudication_client.NullAdjudicationClient`
-    (the llm channel is then dropped and the rest renormalized, not
-    faked) -- callers that want the highest-weighted reasoning channel
+    (the supplied calibrated vector must omit the llm channel) -- callers that
+    want the reasoning channel
     actually contributing to real reconstructions must pass a real one.
 
     ``weights`` is required and always a psychometric estimate (ADR

@@ -31,7 +31,8 @@ invented facts, scores, weights, or identities.
 - Reconstruct bounded post-to-post parentage from independent channels.
 - Keep Event Lineage separate from ontology/KG edges.
 - Persist reconstruction profile and participating channel evidence.
-- Drop unavailable channels and fail closed on malformed calibrated weights.
+- Resolve unavailable channels before loading the exact calibrated active-set
+  vector; never renormalize a vector calibrated for a different channel set.
 - Never label an inferred lineage edge causal or authoritative without
   separate evidence.
 

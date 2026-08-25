@@ -11,6 +11,7 @@ channels instead of trusting any single one.
 
 from __future__ import annotations
 
+import math
 from collections import defaultdict
 
 import rankweave as rw
@@ -25,8 +26,10 @@ from .models import Edge, Record, Tree
 # today, TEPP when integrated) -- product paths load the persisted
 # corpus estimate, and the library demo estimates from its declared
 # generative design (channel_weight_estimation.estimate_fixture_channel_weights).
-# Every reconstruct() caller passes weights explicitly; the llm entry
-# renormalizes away when no client is configured (see active_weights()).
+# Every reconstruct() caller passes weights for the exact channel set it can
+# execute; a vector estimated for another set is never repaired or renormalized.
+
+_CORE_WEIGHT_CHANNELS = frozenset({"temporal", "secondary_key", "text"})
 
 # ponytail: only the most recent WINDOW prior records in a group are
 # considered as candidate parents, bounding per-group cost to O(n*window)
@@ -47,12 +50,23 @@ DEFAULT_MIN_FUSED_SCORE = 0.3
 def active_weights(
     llm: AdjudicationClient, weights: dict[str, float]
 ) -> dict[str, float]:
-    """Drop and renormalize the llm channel's weight when no client is configured."""
-    active = dict(weights)
-    if not getattr(llm, "available", False):
-        active.pop("llm", None)
-    total = sum(active.values())
-    return {channel: weight / total for channel, weight in active.items()}
+    """Validate and return the calibrated vector for the exact active channels."""
+
+    expected = set(_CORE_WEIGHT_CHANNELS)
+    if getattr(llm, "available", False):
+        expected.add("llm")
+    if set(weights) != expected:
+        raise ValueError("weights must exactly match the active lineage channels")
+    values = tuple(weights.values())
+    if any(
+        isinstance(value, bool)
+        or not isinstance(value, (int, float))
+        or not math.isfinite(float(value))
+        or float(value) <= 0.0
+        for value in values
+    ) or not math.isclose(sum(values), 1.0, abs_tol=1e-9):
+        raise ValueError("active lineage weights must be finite, positive, and sum to one")
+    return dict(weights)
 
 
 def _group_by(records: list[Record]) -> dict[str, list[Record]]:
@@ -159,10 +173,10 @@ def reconstruct(
         records: every record across every group; grouping happens here.
         llm: adjudication channel client; defaults to
             :class:`~lineageweave.adjudication_client.NullAdjudicationClient`
-            (the llm channel is then dropped, not faked).
-        weights: per-channel fusion weights before llm-availability
-            renormalization. Required, and always a psychometric
-            estimate (ADR 0145, second amendment): the persisted
+            (the supplied vector must therefore omit the llm channel).
+        weights: fusion weights calibrated for exactly the channels this call
+            executes. Required, and always a psychometric estimate (ADR 0145,
+            second amendment): the persisted
             fast-mlsirm corpus estimate on product paths, or
             :func:`~lineageweave.channel_weight_estimation.estimate_fixture_channel_weights`
             for the library demo. No hand-picked default exists.

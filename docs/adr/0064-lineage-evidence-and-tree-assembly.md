@@ -2,6 +2,8 @@
 
 - Status: Accepted
 - Date: 2026-08-19
+- Amended by: [ADR 0200](0200-channel-weight-reconciliation.md) and
+  [ADR 0205](0205-tepp-lineage-anchor.md)
 
 ## Context
 
@@ -16,9 +18,10 @@ or promoting an inferred relation to fact.
 - Treat every input record as a fallible mention and every accepted edge as a
   lineage instance supported by evidence, not as a proven business fact.
 - Fuse independent temporal, secondary-key, text/embedding, and optional LLM
-  channels through the RankWeave weighted convex fusion contract. A missing
-  channel is dropped and weights are renormalized; it is never replaced with a
-  fabricated negative or score.
+  channels through the RankWeave weighted convex fusion contract. Resolve a
+  missing channel before loading the exact calibrated active-channel vector;
+  never repair or renormalize a vector estimated for another channel set, and
+  never replace a missing channel with a fabricated negative or score.
 - Keep the channel-score breakdown and provenance on every candidate decision.
   Candidates below the minimum fused-score floor remain roots rather than being
   force-attached.
