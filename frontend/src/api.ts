@@ -84,10 +84,12 @@ export function fetchOperationsDashboard(
   accessToken: string,
   periodStart = "",
   periodEnd = "",
+  externalOnly = false,
 ): Promise<OperationsDashboardResponse> {
   const query = new URLSearchParams();
   if (periodStart) query.set("period_start", periodStart);
   if (periodEnd) query.set("period_end", periodEnd);
+  if (externalOnly) query.set("external_only", "true");
   const suffix = query.size ? `?${query}` : "";
   return backendFetch(`/api/dashboard${suffix}`, accessToken);
 }

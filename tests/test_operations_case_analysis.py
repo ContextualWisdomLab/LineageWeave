@@ -88,6 +88,27 @@ def test_requires_each_case_question_to_be_supported_or_explicitly_missing() -> 
     body = "A public notice was published."
     assert parse_operations_case_response(json.dumps(payload), body) is None
 
+
+def test_accepts_additional_grounded_fact_beyond_required_questions() -> None:
+    """Optional grounded facts do not invalidate a complete required answer set."""
+    body = "The claim changed after specification S2; the sales pool was North."
+    payload = [{
+        "case_kind_code": "claim_investigation",
+        "summary_text": "Specification-linked claim",
+        "evidence_text": body,
+        "facts": [
+            {"fact_type_code": "specification_change", "value_text": "S2", "evidence_text": "specification S2"},
+            {"fact_type_code": "sales_pool", "value_text": "North", "evidence_text": "sales pool was North"},
+            {"fact_type_code": "discussion", "value_text": "Claim discussion", "evidence_text": "claim changed"},
+        ],
+        "missing_fact_type_codes": ["order", "originating_order"],
+    }]
+    result = parse_operations_case_response(json.dumps(payload), body)
+    assert result is not None
+    assert [fact.fact_type_code for fact in result[0].facts] == [
+        "specification_change", "sales_pool", "discussion"
+    ]
+
     payload[0]["facts"] = [{
         "fact_type_code": "external_relation",
         "value_text": "Sales opportunity",

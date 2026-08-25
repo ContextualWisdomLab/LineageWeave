@@ -60,11 +60,12 @@ async def fetch_operations_dashboard(
     process_unit_ids: tuple[str, ...] | list[str] = (),
     period_start: date | None = None,
     period_end: date | None = None,
+    external_only: bool = False,
 ) -> dict[str, Any]:
     """Return quantified cases and their persisted source evidence."""
     if period_start and period_end and period_start > period_end:
         raise ValueError("period_start must not be after period_end")
-    args = (list(corporate_entity_ids), list(process_unit_ids), period_start, period_end)
+    args = (list(corporate_entity_ids), list(process_unit_ids), period_start, period_end, external_only)
     visible = _visible_period_sql()
     metrics = await conn.fetchrow(
         f"""
@@ -72,13 +73,24 @@ async def fetch_operations_dashboard(
             select post.post_id
               from source_post post
              where {visible}
+               and ($5::boolean is false or exists (
+                   select 1
+                     from operations_case_classification scoped_classification
+                    where scoped_classification.post_id = post.post_id
+                      and scoped_classification.case_kind_code = 'external_information'
+               ))
         ), classified as (
             select classification.post_id, classification.case_kind_code
               from operations_case_classification classification
               join visible_post on visible_post.post_id = classification.post_id
         )
         select (select count(*) from visible_post) as total_post_count,
-               (select count(*) from classified) as total_event_count,
+               (select count(*)
+                  from post_summary_event summary_event
+                 where exists (
+                     select 1 from classified
+                      where classified.post_id = summary_event.post_id
+                 )) as total_event_count,
                (select count(distinct post_id) from classified
                  where case_kind_code = 'external_information') as external_post_count,
                (select count(*) from visible_post
@@ -107,7 +119,10 @@ async def fetch_operations_dashboard(
                coalesce(post.event_occurred_at, post.created_at) as occurred_at,
                coalesce(nullif(btrim(post.source_project_name), ''), project.primary_project_name)
                    as project_name,
-               coalesce(project.project_names, array[]::text[]) as project_names
+               coalesce(project.project_names, array[]::text[]) as project_names,
+               (select count(*)::int
+                  from post_summary_event summary_event
+                 where summary_event.post_id = classification.post_id) as event_count
           from operations_case_classification classification
           join source_post post on post.post_id = classification.post_id
           left join lateral (
@@ -131,6 +146,7 @@ async def fetch_operations_dashboard(
                where names.project_name is not null
           ) project on true
          where {visible}
+           and ($5::boolean is false or classification.case_kind_code = 'external_information')
          order by coalesce(post.event_occurred_at, post.created_at) desc,
                   classification.post_id, classification.case_kind_code
         """,
@@ -144,6 +160,7 @@ async def fetch_operations_dashboard(
           from operations_case_fact fact
           join source_post post on post.post_id = fact.post_id
          where {visible}
+           and ($5::boolean is false or fact.case_kind_code = 'external_information')
          order by fact.post_id, fact.case_kind_code, fact.fact_ordinal
         """,
         *args,
@@ -154,6 +171,7 @@ async def fetch_operations_dashboard(
           from operations_case_missing_fact missing
           join source_post post on post.post_id = missing.post_id
          where {visible}
+           and ($5::boolean is false or missing.case_kind_code = 'external_information')
          order by missing.post_id, missing.case_kind_code, missing.fact_type_code
         """,
         *args,
@@ -186,7 +204,7 @@ async def fetch_operations_dashboard(
     for row in case_rows:
         kind = row["case_kind_code"]
         case_post_ids.setdefault(kind, set()).add(str(row["post_id"]))
-        case_event_counts[kind] = case_event_counts.get(kind, 0) + 1
+        case_event_counts[kind] = case_event_counts.get(kind, 0) + int(row["event_count"])
     return {
         "period_label": _period_label(period_start, period_end),
         "total_post_count": total,
