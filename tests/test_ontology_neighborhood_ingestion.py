@@ -675,6 +675,30 @@ def test_visible_neighborhood_focus_variants_and_fail_closed() -> None:
     )
     assert team_neighborhood.nodes[0].display_label == "Demo Team"
 
+    project_conn = ScriptedConn(
+        {
+            "with recursive candidate_facts as ( select edge.source_node_type_code": [],
+            "from post_project_mention": {"ignored": 1},
+            "from post_project_mention mention": [
+                {
+                    "post_id": POST_ID,
+                    "visibility_code": "public",
+                    "corporate_entity_id": CORP_ID,
+                }
+            ],
+        }
+    )
+    project_neighborhood = asyncio.run(
+        visible_ontology_neighborhood(
+            project_conn,
+            focus_node_type_code=NODE_PROJECT,
+            focus_node_id=PROJECT_ID,
+            can_see_post=lambda row: True,
+        )
+    )
+    assert project_neighborhood.nodes[0].display_label == PROJECT_ID
+    assert all("cataloged_team" not in query for query, _args in project_conn.calls)
+
 
 def test_hidden_non_focus_node_is_removed_before_label_loading() -> None:
     conn = ScriptedConn(

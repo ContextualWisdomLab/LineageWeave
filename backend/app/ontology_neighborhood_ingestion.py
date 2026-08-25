@@ -950,7 +950,7 @@ async def visible_ontology_neighborhood(
             )
             if name:
                 labels[(NODE_CORPORATE_ENTITY, focus_node_id)] = name
-        else:
+        elif focus_node_type_code == NODE_TEAM:
             name = await conn.fetchval(
                 "select team_name from cataloged_team where team_id = $1", focus_node_id
             )
