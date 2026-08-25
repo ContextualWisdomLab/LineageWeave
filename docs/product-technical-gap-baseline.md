@@ -1,6 +1,6 @@
 # Product & Technical Gap Baseline
 
-> Audit snapshot: 2026-08-25 10:28 KST (refreshed by the autonomous merge
+> Audit snapshot: 2026-08-25 10:38 KST (refreshed by the autonomous merge
 > loop). This repository records synthetic fixtures and aggregate,
 > non-identifying runtime evidence only. Open PRs and local checks are not
 > protected-default-branch release evidence. Identifying post identifiers,
@@ -18,7 +18,7 @@ context only.
 | PR | Exact observed head | Merge/check state at this snapshot |
 | ---: | --- | --- |
 | #595 | `9378c04f` | restores the audited no-draft-dimension import door and nullable updated-at fallback orphaned by the prior stack race; result typing repaired, 24 focused tests passed, auto-merge armed |
-| #591 | `98443003` | canonical current-queue baseline reconciled with protected main; exact-head checks and independent review pending |
+| #591 | `9f985c55` | canonical current-queue baseline reconciled with protected main; exact-head checks and independent review pending |
 | #588 | `dc60a08e` | ADR 0201 repair reconciled with current main; auto-merge armed, checks restarted |
 | #585 | `ffe1290b` | only locally-authored bounded job errors may persist; transport errors remain generic; auto-merge armed, checks restarted |
 | #584 | `17068ec3` | current-main ADR collision repaired; auto-merge armed, checks restarted |
@@ -34,7 +34,7 @@ context only.
 | #490 | `73413d0b` | code-quality findings repaired; current-main reconciliation remains before checks can settle |
 | #485 | `0291e89a` | concurrent exact-head update observed; checks restarted |
 | #484 | `586b1eb0` | blocked; required checks pending |
-| #482 | `f5f3703f` | current-main reconciliation pushed; checks restarted |
+| #482 | `42da35fe` | corroborated SKOS captions reconciled with current main; 44 backend tests, focused App/chip interactions, and frontend lint passed; auto-merge armed |
 | #468 | `d8e255d0` | concurrent exact-head update observed; integration and required checks restarted |
 | #434 | `d7766b39` | current-main reconciliation pushed; checks restarted |
 | #394 | `1f1667f2` | blocked; required checks pending |
