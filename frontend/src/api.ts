@@ -103,6 +103,7 @@ export interface Affiliation {
   organization_name: string;
   corporate_entity_id: string | null;
   role_title: string | null;
+  organization_alias?: string;
 }
 
 export interface Keyman {
@@ -123,6 +124,7 @@ export interface Counterparty {
   verification_evidence_url: string | null;
   verification_evidence_post_id: string | null;
   corporate_entity_id: string | null;
+  organization_alias?: string;
 }
 
 export interface AffiliatePersonRef {
@@ -138,6 +140,7 @@ export interface AffiliateNode {
   entity_level_code: string | null;
   entity_level_label?: string | null;
   resolved: boolean;
+  organization_alias?: string;
   people: AffiliatePersonRef[];
   children: AffiliateNode[];
 }
@@ -170,6 +173,7 @@ export interface RelatedNode {
   node_type_code: RelatedNodeType | string;
   relevance: number;
   label?: string;
+  organization_alias?: string;
   post_body_excerpt?: string | null;
   post_body_truncated?: boolean;
   person_side_code?: string;
