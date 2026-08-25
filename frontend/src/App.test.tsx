@@ -2222,6 +2222,7 @@ describe("App, authenticated", () => {
     await waitFor(() =>
       expect(screen.getByText("The evidence panel should show exactly this text.")).toBeInTheDocument(),
     );
+    expect(screen.getByRole("dialog", { name: "Linked post" })).toHaveFocus();
   });
 
   it("shows an embedded invoice image instead of the raw base64 string", async () => {
@@ -2526,7 +2527,6 @@ describe("App, authenticated", () => {
     await waitFor(() =>
       expect(screen.getByText("The evidence panel should show exactly this text.")).toBeInTheDocument(),
     );
-    expect(screen.getByRole("dialog", { name: "Linked post" })).toHaveFocus();
   });
 
   it("stops loading and gives the buyer a next action when cited evidence is unavailable", async () => {
