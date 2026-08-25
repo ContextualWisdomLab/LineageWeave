@@ -80,22 +80,19 @@ lifecycle claim.
 ## 1. Exact-head and governance evidence
 
 The protected default branch was `04e6b610655d0db91d5f7ba9486bdda1440e0b19`
-when this baseline was refreshed. The live queue contained 12 open PRs and 10
+when this baseline was refreshed. The live queue contained 9 open PRs and 10
 open issues. The exact-head inventory below supersedes older per-PR snapshots
 elsewhere in this document; those older rows remain useful historical delivery
 context only.
 
 | PR | Exact observed head | Merge/check state at this snapshot |
 | ---: | --- | --- |
-| #652 | `7847d10e` (observed parent) | evidence-constrained Global Ask query rewriting; this row records the parent before the latest #632 merge and this baseline follow-up, while checks and independent review remain required |
-| #651 | `d6d43cb9` | dashboard row pagination follow-up stacked on #640; checks and independent review remain required |
-| #650 | `d4b9c9c6` | dashboard chart accessibility follow-up stacked on #640; checks and independent review remain required |
 | #644 | `c1018a0a` | frontend conditional workspace splitting; checks and independent review remain required |
 | #643 | `041ec13b` | shared token-backed status notice; checks and independent review remain required |
-| #640 | `2165a5d1` | dashboard case metrics, project journeys, and restored TEPP API-key setting; checks and independent review remain required |
+| #640 | `a249efd6` | dashboard case metrics, project journeys, restored TEPP API-key setting, and semantic-label spacing; checks and independent review remain required |
 | #639 | `aee02dca` | Running action and Compose contract repair; checks and independent review remain required |
 | #636 | `f7b9a65f` | calibrated external lineage contract; checks and independent review remain required |
-| #632 | `be51f2f1` | Global Ask provenance, semantic nomination, public verification, knowledge-cutoff stack, and static-SQL/frontend review repairs; checks and independent review remain required |
+| #632 | `05b7cf82` (observed parent) | Global Ask provenance, public verification, knowledge-cutoff stack, static-SQL/frontend review repairs, and evidence-constrained query rewriting; this row records the parent before this baseline follow-up, while checks and independent review remain required |
 | #631 | `c0022c97` | current-main ADR stack decomposition; checks and independent review remain required |
 | #629 | `4b4d6707` | provider pool release and bounded landing reads; checks and independent review remain required |
 | #579 | `689a21b6` | leftover interaction-map persistence; checks and independent review remain required |
