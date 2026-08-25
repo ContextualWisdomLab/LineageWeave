@@ -1834,18 +1834,21 @@ function PostDetailPopup({
   const [focusTeam, setFocusTeam] = useState<{ teamId: string; teamName: string } | null>(null);
   const [projectHistory, setProjectHistory] = useState<ProjectHistoryProjection | null>(null);
   const [projectHistoryError, setProjectHistoryError] = useState<string | null>(null);
+  const projectHistoryRequestRef = useRef(0);
   const contentReloadRef = useRef<() => void>(() => undefined);
   const dialogRef = useRef<HTMLDivElement>(null);
 
   async function openProjectHistory(projectKey: string) {
+    const requestId = projectHistoryRequestRef.current + 1;
+    projectHistoryRequestRef.current = requestId;
+    const requestedPostId = postId;
     setProjectHistory(null);
     setProjectHistoryError(null);
     try {
-      setProjectHistory(
-        await fetchProjectHistory(accessToken, projectKey, postId, knowledgeCutoff),
-      );
+      const projection = await fetchProjectHistory(accessToken, projectKey, requestedPostId, knowledgeCutoff);
+      if (projectHistoryRequestRef.current === requestId) setProjectHistory(projection);
     } catch (historyError) {
-      setProjectHistoryError(String(historyError));
+      if (projectHistoryRequestRef.current === requestId) setProjectHistoryError(String(historyError));
     }
   }
 
@@ -1860,7 +1863,8 @@ function PostDetailPopup({
     dialogRef.current?.focus();
     setProjectHistory(null);
     setProjectHistoryError(null);
-  }, [postId]);
+    projectHistoryRequestRef.current += 1;
+  }, [postId, knowledgeCutoff]);
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {

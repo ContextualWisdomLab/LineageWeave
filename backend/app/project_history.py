@@ -25,15 +25,15 @@ class ProjectHistoryConnection(Protocol):
 _ELIGIBILITY = SOURCE_POST_ELIGIBILITY_SQL.format(alias="post")
 _PROJECT_MATCH = """
 (
-    lower(normalize(btrim(coalesce(post.source_project_code, '')), NFKC)) = $1
-    or lower(normalize(btrim(coalesce(post.source_project_name, '')), NFKC)) = $1
+    lower(btrim(normalize(coalesce(post.source_project_code, ''), NFKC))) = $1
+    or lower(btrim(normalize(coalesce(post.source_project_name, ''), NFKC))) = $1
     or exists (
         select 1
           from post_project_mention mention
          where mention.post_id = post.post_id
            and (
-                lower(normalize(btrim(mention.project_key), NFKC)) = $1
-                or lower(normalize(btrim(mention.project_name), NFKC)) = $1
+                lower(btrim(normalize(mention.project_key, NFKC))) = $1
+                or lower(btrim(normalize(mention.project_name, NFKC))) = $1
            )
     )
 )
@@ -83,7 +83,7 @@ select post.post_id,
        'source_post.source_project_code'::text as provenance
   from source_post post
  where post.post_id = any($1::uuid[])
-   and lower(normalize(btrim(coalesce(post.source_project_code, '')), NFKC)) = $2
+   and lower(btrim(normalize(coalesce(post.source_project_code, ''), NFKC))) = $2
 union all
 select post.post_id,
        'source_project_name'::text,
@@ -93,7 +93,7 @@ select post.post_id,
        'source_post.source_project_name'::text
   from source_post post
  where post.post_id = any($1::uuid[])
-   and lower(normalize(btrim(coalesce(post.source_project_name, '')), NFKC)) = $2
+   and lower(btrim(normalize(coalesce(post.source_project_name, ''), NFKC))) = $2
 union all
 select mention.post_id,
        'semantic_project_key'::text,
@@ -103,7 +103,7 @@ select mention.post_id,
        'post_project_mention.project_key'::text
   from post_project_mention mention
  where mention.post_id = any($1::uuid[])
-   and lower(normalize(btrim(mention.project_key), NFKC)) = $2
+   and lower(btrim(normalize(mention.project_key, NFKC))) = $2
 union all
 select mention.post_id,
        'semantic_project_name'::text,
@@ -113,7 +113,7 @@ select mention.post_id,
        'post_project_mention.project_name'::text
   from post_project_mention mention
  where mention.post_id = any($1::uuid[])
-   and lower(normalize(btrim(mention.project_name), NFKC)) = $2
+   and lower(btrim(normalize(mention.project_name, NFKC))) = $2
 order by post_id, match_kind_code, matched_value
 """
 _ROLE_SQL = """
