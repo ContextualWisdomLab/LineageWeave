@@ -346,7 +346,7 @@ this file per §3.5 of the prior snapshot).
 | #271 | Evidence-honest knowledge-cutoff scope on Global Ask | Ask stack |
 | #272 | Verify Global Ask KG/ontology/semantic claims with public SearXNG evidence | Ask stack |
 | #274 | Persist and explain Event Lineage channel evidence | #387 |
-| #277 | TEPP: persist accepted receipts, poll completed results, keep measurement authority distinct | #468, #417 |
+| #277 | TEPP: persist accepted receipts, poll completed results, keep measurement authority distinct; TEPP PR #157 is merged and this exact head adds the fail-closed status/read client boundary, while durable polling and terminal persistence remain open | #468, #417, ADR 0217 |
 | #280 | Full project-lifecycle history and handover intervals | Tracked with issue #284; no active delivery PR confirmed |
 | #284 | Authoritative lifecycle ingestion and idempotent reconciliation | No active delivery PR confirmed |
 | #289 | Activate the optional lineage LLM channel through a bounded asynchronous rebuild | #434 |

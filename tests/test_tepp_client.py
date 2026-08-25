@@ -35,6 +35,8 @@ def test_default_transport_fails_closed_until_tepp_ships_http() -> None:
     client = TeppClient()
     with pytest.raises(TeppNotAvailable):
         client.submit_analysis_run(_sample_request())
+    with pytest.raises(TeppNotAvailable, match="status transport unavailable"):
+        client.get_analysis_run_status("remote-run-1")
 
 
 def test_custom_transport_receives_the_exact_wire_payload() -> None:
@@ -84,6 +86,42 @@ def test_configured_transport_sends_tepp_consumer_contract_headers(monkeypatch: 
     }
     assert received["payload"] == _sample_request().to_json()
     assert received["service_peer_name"] == "tepp"
+
+
+def test_configured_transport_reads_opaque_remote_run_status(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    received = {}
+
+    def fake_get_json(url: str, **kwargs) -> dict:
+        received.update(url=url, **kwargs)
+        return {"contract_version": 1, "run_state": "running"}
+
+    monkeypatch.setattr("backend.app.analysis_run_start.get_json", fake_get_json)
+    client = configured_tepp_client(
+        "https://tepp.example/v1/analysis-runs",
+        api_key="runtime-only",
+    )
+
+    status = client.get_analysis_run_status("remote/run 1")
+
+    assert status["run_state"] == "running"
+    assert received == {
+        "url": "https://tepp.example/v1/analysis-runs/remote%2Frun%201",
+        "headers": {
+            "tepp-consumer": "lineageweave",
+            "tepp-contract-version": "1",
+            "authorization": "Bearer runtime-only",
+        },
+        "timeout": 30.0,
+        "service_peer_name": "tepp",
+    }
+
+
+@pytest.mark.parametrize("run_id", ["", "   ", None])
+def test_status_read_rejects_missing_remote_run_identity(run_id) -> None:
+    with pytest.raises(ValueError, match="run_id must be a non-empty string"):
+        TeppClient().get_analysis_run_status(run_id)
 
 
 def test_configured_transport_hides_raw_provider_exception_chain(

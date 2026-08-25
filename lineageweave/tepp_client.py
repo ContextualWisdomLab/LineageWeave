@@ -8,12 +8,9 @@ database tables directly, and never present this repo's own heuristic
 lineage scores as TEPP's calibrated psychometric measurement (they answer
 different questions -- see docs/lineage-bi-research-notes.md).
 
-TEPP does not expose a live HTTP endpoint yet (as of this writing it is
-Rust-crate-only; see ``docs/API_CONTRACT.md`` in that repo). This client
-builds and validates the exact wire shape TEPP has published
-(``schemas/analysis_run_request_v1.json``) so wiring in a real transport is
-a one-line change (:meth:`TeppClient.__init__`'s ``transport`` argument) once
-that endpoint exists, instead of a redesign.
+TEPP publishes versioned submit and status/read contracts. This client keeps
+those transports separate so an accepted receipt cannot be mistaken for a
+terminal measurement result.
 """
 
 from __future__ import annotations
@@ -33,6 +30,11 @@ def _no_transport(request: dict[str, Any]) -> dict[str, Any]:
         "Pass a transport= callable to TeppClient once one exists, or consume TEPP "
         "as a Rust crate directly per its own docs/API_CONTRACT.md."
     )
+
+
+def _no_status_transport(run_id: str) -> dict[str, Any]:
+    """Fail closed when no TEPP status/read transport is configured."""
+    raise TeppNotAvailable("TEPP status transport unavailable")
 
 
 @dataclass(frozen=True)
@@ -65,19 +67,22 @@ class AnalysisRunRequest:
 
 
 class TeppClient:
-    """Submits :class:`AnalysisRunRequest` through a pluggable transport.
+    """Submit and read TEPP analysis runs through separate transports."""
 
-    The default transport always raises :class:`TeppNotAvailable` -- this
-    class exists so the rest of LineageWeave can be written against a
-    stable interface today, and gains a real TEPP integration by supplying
-    a ``transport`` (an HTTP POST to TEPP's future ``/v1/analysis-runs``, or
-    an in-process call into the ``tepp_api`` Rust crate via FFI) without
-    touching any other module.
-    """
-
-    def __init__(self, transport: Callable[[dict[str, Any]], dict[str, Any]] = _no_transport) -> None:
+    def __init__(
+        self,
+        transport: Callable[[dict[str, Any]], dict[str, Any]] = _no_transport,
+        status_transport: Callable[[str], dict[str, Any]] = _no_status_transport,
+    ) -> None:
         self._transport = transport
+        self._status_transport = status_transport
 
     def submit_analysis_run(self, request: AnalysisRunRequest) -> dict[str, Any]:
         """Submit a request; returns TEPP's ``AnalysisRunAccepted`` envelope."""
         return self._transport(request.to_json())
+
+    def get_analysis_run_status(self, run_id: str) -> dict[str, Any]:
+        """Read TEPP's status envelope for one opaque remote run id."""
+        if not isinstance(run_id, str) or not run_id.strip():
+            raise ValueError("run_id must be a non-empty string")
+        return self._status_transport(run_id.strip())
