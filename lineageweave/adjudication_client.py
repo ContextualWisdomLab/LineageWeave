@@ -25,7 +25,7 @@ class AdjudicationClient(Protocol):
 
     def judge(self, candidate_label: str, record_label: str) -> float:
         """Score the candidate and record labels for semantic adjudication."""
-        raise NotImplementedError
+        raise NotImplementedError  # pragma: no cover - Protocol contract
 
 
 class AdjudicationClientError(HttpClientError):

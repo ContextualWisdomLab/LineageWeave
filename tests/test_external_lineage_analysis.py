@@ -6,7 +6,9 @@ import pytest
 
 from lineageweave.channel_weight_estimation import estimate_fixture_channel_weights
 from lineageweave.external_lineage_analysis import (
+    _BoundedAdjudicationClient,
     _channel_evidence,
+    _selected_llm,
 )
 from lineageweave.external_lineage_analysis import (
     analyze_external_lineage as _analyze_external_lineage,
@@ -98,6 +100,49 @@ class CountingLlm:
 
         self.call_count += 1
         return 0.5
+
+
+@pytest.mark.parametrize(
+    "weights",
+    [
+        {"temporal": 0.5, "secondary_key": 0.25, "text": 0.25, "unknown": 0.1},
+        {"temporal": True, "secondary_key": 0.5, "text": 0.5},
+        {"temporal": float("nan"), "secondary_key": 0.5, "text": 0.5},
+        {"temporal": 0.0, "secondary_key": 0.5, "text": 0.5},
+        {"temporal": 0.2, "secondary_key": 0.2, "text": 0.2},
+    ],
+)
+def test_external_analysis_rejects_malformed_calibrated_weights(weights) -> None:
+    """Malformed host vectors fail closed without repair or renormalization."""
+    request = _request([_record("email:001", "One", "2026-08-20T09:00:00Z")])
+    with pytest.raises(LineageContractError, match="channel_weights"):
+        _analyze_external_lineage(request, channel_weights=weights)
+
+
+@pytest.mark.parametrize(
+    ("client", "code"),
+    [
+        (InvalidLlm(), "channel_score_out_of_bounds"),
+        (TextLlm(), "channel_score_out_of_bounds"),
+        (BrokenProviderLlm(), "llm_channel_error"),
+    ],
+)
+def test_bounded_llm_rejects_unusable_scores(client, code: str) -> None:
+    """The calibrated-channel wrapper exposes only stable contract errors."""
+    with pytest.raises(LineageContractError) as captured:
+        _BoundedAdjudicationClient(client).judge("Parent", "Child")
+    assert captured.value.code == code
+
+
+def test_selected_llm_marks_an_admitted_calibrated_channel_completed() -> None:
+    """A permitted, available, calibrated LLM channel is wrapped explicitly."""
+    request = _request(
+        [_record("email:001", "Same parent", "2026-08-20T09:00:00Z")],
+        allow_llm=True,
+    )
+    client, status = _selected_llm(request, AvailableLlm(), {"llm": 1.0})
+    assert client.judge("Same parent", "Same child") == 0.9
+    assert status == "completed"
 
 
 def _record(
