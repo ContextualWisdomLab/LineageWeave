@@ -37,6 +37,15 @@ The custom metrics separate:
 - `lineageweave_ask_enqueue_duration`: time to persist and acknowledge the job;
 - `lineageweave_read_duration{endpoint:posts|lineage}`: ordinary reader paths;
 - `lineageweave_ask_poll_duration`: owner-scoped status polling.
+- `lineageweave_ask_state_observations{job_status:...}`: how many observations
+  occurred while the one queued job was queued, running, or settled.
+
+The harness observes one Ask job's real lifecycle; it does not keep provider
+work running artificially. Report reader distributions with the state counts
+so a long settled tail is not misrepresented as contended capacity. Per-VU
+authentication is renewed after an HTTP 401 and the failed batch is retried
+once, so observation windows longer than the realm access-token lifetime do
+not silently become rejection measurements.
 
 There are deliberately no pass/fail thresholds. A latency or concurrency SLO
 requires a named deployment, representative workload, capacity evidence, and

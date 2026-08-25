@@ -8,7 +8,7 @@
 
 import http from "k6/http";
 import { check, fail } from "k6";
-import { Trend } from "k6/metrics";
+import { Counter, Trend } from "k6/metrics";
 
 const backendUrl = (__ENV.BACKEND_URL || "http://localhost:18420").replace(/\/$/, "");
 const keycloakUrl = (__ENV.KEYCLOAK_URL || "http://localhost:18080").replace(/\/$/, "");
@@ -20,9 +20,12 @@ const password = __ENV.K6_PASSWORD || "lineageweave-demo-only";
 const askEnqueueDuration = new Trend("lineageweave_ask_enqueue_duration", true);
 const readDuration = new Trend("lineageweave_read_duration", true);
 const askPollDuration = new Trend("lineageweave_ask_poll_duration", true);
+const askStateObservations = new Counter("lineageweave_ask_state_observations");
 
-export function setup() {
-  const tokenResponse = http.post(
+let vuToken;
+
+function authenticate() {
+  const response = http.post(
     `${keycloakUrl}/realms/${realm}/protocol/openid-connect/token`,
     {
       grant_type: "password",
@@ -32,11 +35,28 @@ export function setup() {
     },
     { tags: { endpoint: "oidc_token" } },
   );
-  if (tokenResponse.status !== 200) {
-    fail(`synthetic OIDC login failed with HTTP ${tokenResponse.status}`);
+  if (response.status !== 200) {
+    fail(`synthetic OIDC login failed with HTTP ${response.status}`);
   }
+  return response.json("access_token");
+}
 
-  const token = tokenResponse.json("access_token");
+function readBatch(token, askJobId) {
+  const params = { headers: { Authorization: `Bearer ${token}` } };
+  return http.batch([
+    ["GET", `${backendUrl}/api/posts`, null, { ...params, tags: { endpoint: "posts" } }],
+    ["GET", `${backendUrl}/api/lineage`, null, { ...params, tags: { endpoint: "lineage" } }],
+    [
+      "GET",
+      `${backendUrl}/api/ask/jobs/${askJobId}`,
+      null,
+      { ...params, tags: { endpoint: "ask_poll" } },
+    ],
+  ]);
+}
+
+export function setup() {
+  const token = authenticate();
   const headers = { Authorization: `Bearer ${token}`, "Content-Type": "application/json" };
   const submitted = http.post(
     `${backendUrl}/api/ask`,
@@ -51,21 +71,21 @@ export function setup() {
 }
 
 export default function (data) {
-  const params = { headers: { Authorization: `Bearer ${data.token}` } };
-  const responses = http.batch([
-    ["GET", `${backendUrl}/api/posts`, null, { ...params, tags: { endpoint: "posts" } }],
-    ["GET", `${backendUrl}/api/lineage`, null, { ...params, tags: { endpoint: "lineage" } }],
-    [
-      "GET",
-      `${backendUrl}/api/ask/jobs/${data.askJobId}`,
-      null,
-      { ...params, tags: { endpoint: "ask_poll" } },
-    ],
-  ]);
+  vuToken ||= data.token;
+  let responses = readBatch(vuToken, data.askJobId);
+  if (responses.some((response) => response.status === 401)) {
+    vuToken = authenticate();
+    responses = readBatch(vuToken, data.askJobId);
+  }
 
   readDuration.add(responses[0].timings.duration, { endpoint: "posts" });
   readDuration.add(responses[1].timings.duration, { endpoint: "lineage" });
   askPollDuration.add(responses[2].timings.duration);
+  if (responses[2].status === 200) {
+    askStateObservations.add(1, {
+      job_status: String(responses[2].json("job_status_code") || "unknown"),
+    });
+  }
   check(responses[0], { "posts read succeeds": (response) => response.status === 200 });
   check(responses[1], { "lineage read succeeds": (response) => response.status === 200 });
   check(responses[2], { "Ask poll succeeds": (response) => response.status === 200 });
