@@ -33,11 +33,39 @@ from .external_lineage_contract import (
 from .models import Record
 from .reconstruct import _best_parent, active_weights
 
+_WEIGHT_CHANNELS = frozenset({"temporal", "secondary_key", "text", "llm"})
+_REQUIRED_WEIGHT_CHANNELS = frozenset({"temporal", "secondary_key", "text"})
+
 
 def _contract_error(code: str, message: str, field: str | None = None) -> None:
     """Raise a stable execution-time contract error."""
 
     raise LineageContractError(code, message, field=field)
+
+
+def _validated_channel_weights(weights: dict[str, float]) -> dict[str, float]:
+    """Validate a calibrated convex weight vector without repairing it."""
+    channels = set(weights)
+    if not _REQUIRED_WEIGHT_CHANNELS <= channels or not channels <= _WEIGHT_CHANNELS:
+        _contract_error(
+            "invalid_channel_weights",
+            "weights must contain the three core channels and only supported channels",
+            "channel_weights",
+        )
+    values = tuple(weights.values())
+    if any(
+        isinstance(value, bool)
+        or not isinstance(value, (int, float))
+        or not math.isfinite(float(value))
+        or float(value) <= 0.0
+        for value in values
+    ) or not math.isclose(sum(values), 1.0, abs_tol=1e-9):
+        _contract_error(
+            "invalid_channel_weights",
+            "weights must be positive finite values summing to one",
+            "channel_weights",
+        )
+    return {channel: float(weight) for channel, weight in weights.items()}
 
 
 class _BoundedAdjudicationClient:
@@ -143,12 +171,13 @@ def _validate_explicit_parent_relations(
 def _selected_llm(
     request: LineageAnalysisRequest,
     llm: AdjudicationClient | None,
+    channel_weights: dict[str, float],
 ) -> tuple[AdjudicationClient, str]:
     """Apply the explicit LLM admission policy and return its result status."""
 
     if not request.policy.allow_llm:
         return NullAdjudicationClient(), "not_requested"
-    if llm is None or not getattr(llm, "available", False):
+    if "llm" not in channel_weights or llm is None or not getattr(llm, "available", False):
         return NullAdjudicationClient(), "unavailable"
     return _BoundedAdjudicationClient(llm), "completed"
 
@@ -276,12 +305,13 @@ def _inferred_edges(
     records: tuple[LineageEvidenceRecord, ...],
     llm: AdjudicationClient,
     request: LineageAnalysisRequest,
+    channel_weights: dict[str, float],
 ) -> list[LineageEdgeResult]:
     """Select inferred parents without rescoring explicit observed children."""
 
     if not records:
         return []
-    weights = active_weights(llm)
+    weights = active_weights(llm, channel_weights)
     edges: list[LineageEdgeResult] = []
     for group_records in _ordered_contract_groups(records):
         core_records = [_core_record(record) for record in group_records]
@@ -394,25 +424,30 @@ def _project_groups(
 def analyze_external_lineage(
     request: LineageAnalysisRequest,
     *,
+    channel_weights: dict[str, float],
     llm: AdjudicationClient | None = None,
 ) -> LineageAnalysisResult:
     """Analyze bounded caller evidence and return a deterministic result.
 
     The function performs no persistence or network access itself. An optional
     client is used only when ``request.policy.allow_llm`` is true and the
-    supplied client explicitly reports availability.
+    supplied client explicitly reports availability. ``channel_weights`` must
+    come from the caller's ADR-governed calibrated weight loader; this adapter
+    deliberately has no invented fallback.
     """
 
     validated = _validated_request(request)
+    validated_weights = _validated_channel_weights(channel_weights)
     _validate_explicit_parent_relations(validated.records)
     included, excluded = _included_records(validated)
     _enforce_pair_budget(included, validated)
-    selected_llm, llm_status = _selected_llm(validated, llm)
+    selected_llm, llm_status = _selected_llm(validated, llm, validated_weights)
 
     inferred = _inferred_edges(
         included,
         selected_llm,
         validated,
+        validated_weights,
     )
     explicit, explicit_children, explicit_limitations = _explicit_edges(
         included

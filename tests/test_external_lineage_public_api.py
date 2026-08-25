@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-import lineageweave.external_lineage as external_lineage
+from lineageweave import external_lineage
 
 
 def test_external_lineage_module_exports_the_versioned_contract() -> None:

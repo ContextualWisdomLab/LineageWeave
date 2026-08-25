@@ -18,6 +18,13 @@ LineageWeave publishes contract version `1.0.0` through:
 
 The initial implementation is a store-agnostic Python package boundary. It performs no database, mailbox, provider, or network operation. A later service or Naruon plugin adapter must preserve the same JSON Schema and truth boundaries.
 
+Execution requires an explicit calibrated convex channel-weight vector. The
+adapter validates but never estimates, repairs, or invents that vector. The
+three core channels are mandatory; the optional LLM channel is admitted only
+when both a calibrated LLM weight and an available orchestrator client exist.
+Weight estimation and provenance remain governed by ADR 0200 and the owning
+product loader.
+
 The caller supplies opaque evidence references, bounded text labels, occurrence and availability clocks, an optional secondary key, an optional project reference, and an optional caller-observed parent relation. Explicit observed parent relations replace an inferred parent for the same child and must form an acyclic graph. Reconstructed continuation remains `inferred`. Project groupings remain `proposed`.
 
 An admitted child with an explicit observed parent is not rescored for an alternative inferred parent and consumes no optional LLM/provider call or inferred-pair budget. The record remains in temporal history and may still be an eligible candidate parent for a later record. This preserves observed authority without weakening downstream lineage reconstruction.
@@ -38,6 +45,7 @@ Evidence becoming available after the cutoff is excluded even when it describes 
 - RFC reply/thread evidence stays distinguishable from semantic lineage.
 - Caller-observed children are never disclosed to an optional model merely to calculate an inferred edge that would be discarded.
 - The optional LLM channel is explicit as `not_requested`, `unavailable`, or `completed`; missing output is never zero.
+- A missing or malformed calibrated weight vector fails closed before scoring.
 - Canonical serialization and SHA-256 digesting are deterministic for a given request or result. Repeatability of model-backed scores additionally requires a pinned LineageWeave release, adjudicator implementation, provider/model revision, and model-side determinism policy.
 - Explicit parent cycles and analysis work above the caller-approved pair budget fail closed before inference.
 - Project evidence can inform Naruon without mutating authoritative project/task/provider state.

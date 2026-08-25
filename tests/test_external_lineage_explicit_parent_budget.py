@@ -2,8 +2,20 @@
 
 from __future__ import annotations
 
-from lineageweave.external_lineage_analysis import analyze_external_lineage
+from lineageweave.channel_weight_estimation import estimate_fixture_channel_weights
+from lineageweave.external_lineage_analysis import (
+    analyze_external_lineage as _analyze_external_lineage,
+)
 from lineageweave.external_lineage_contract import parse_lineage_analysis_request
+
+_FIXTURE_ESTIMATE = estimate_fixture_channel_weights()
+assert _FIXTURE_ESTIMATE is not None
+_FIXTURE_WEIGHTS = dict(_FIXTURE_ESTIMATE.weights)
+
+
+def analyze_external_lineage(request, *, llm=None):
+    """Run the adapter with psychometrically estimated synthetic-fixture weights."""
+    return _analyze_external_lineage(request, channel_weights=_FIXTURE_WEIGHTS, llm=llm)
 
 
 class CountingLlm:

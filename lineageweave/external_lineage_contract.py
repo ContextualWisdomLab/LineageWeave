@@ -13,7 +13,7 @@ import json
 import math
 import re
 from dataclasses import dataclass, replace
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Final, Literal, cast
 
 CONTRACT_VERSION: Final = "1.0.0"
@@ -246,7 +246,7 @@ def _timestamp(value: object, *, field: str, optional: bool = False) -> datetime
             "timestamp must carry an offset",
             field,
         )
-    return parsed.astimezone(timezone.utc)
+    return parsed.astimezone(UTC)
 
 
 def _enum(
@@ -556,7 +556,7 @@ def _time_text(value: datetime | None) -> str | None:
             "timestamp_must_be_offset_aware",
             "result timestamp must carry an offset",
         )
-    utc = value.astimezone(timezone.utc)
+    utc = value.astimezone(UTC)
     text = utc.isoformat(timespec="microseconds").replace(
         ".000000+00:00",
         "Z",

@@ -4,9 +4,12 @@ from __future__ import annotations
 
 import pytest
 
+from lineageweave.channel_weight_estimation import estimate_fixture_channel_weights
 from lineageweave.external_lineage_analysis import (
     _channel_evidence,
-    analyze_external_lineage,
+)
+from lineageweave.external_lineage_analysis import (
+    analyze_external_lineage as _analyze_external_lineage,
 )
 from lineageweave.external_lineage_contract import (
     LineageContractError,
@@ -14,6 +17,22 @@ from lineageweave.external_lineage_contract import (
     request_digest,
     result_digest,
 )
+
+_FIXTURE_ESTIMATE = estimate_fixture_channel_weights()
+assert _FIXTURE_ESTIMATE is not None
+_FIXTURE_WEIGHTS = dict(_FIXTURE_ESTIMATE.weights)
+
+
+def analyze_external_lineage(request, *, llm=None):
+    """Run the adapter with psychometrically estimated synthetic-fixture weights."""
+    return _analyze_external_lineage(request, channel_weights=_FIXTURE_WEIGHTS, llm=llm)
+
+
+def test_external_analysis_rejects_missing_calibrated_weights() -> None:
+    """The public adapter never supplies compatibility weights."""
+    request = _request([_record("email:001", "One", "2026-08-20T09:00:00Z")])
+    with pytest.raises(LineageContractError, match="channel_weights"):
+        _analyze_external_lineage(request, channel_weights={})
 
 
 class AvailableLlm:
@@ -242,7 +261,7 @@ def test_inferred_edge_exposes_active_channel_weights_and_contributions() -> Non
     [
         (False, AvailableLlm(), "not_requested", False),
         (True, None, "unavailable", False),
-        (True, AvailableLlm(), "completed", True),
+        (True, AvailableLlm(), "unavailable", False),
     ],
 )
 def test_llm_policy_is_explicit_and_never_fabricates_absent_scores(
@@ -508,7 +527,7 @@ def test_all_evidence_after_cutoff_returns_empty_bounded_result() -> None:
     assert result.project_projections == ()
 
 
-def test_invalid_llm_score_fails_closed_before_result_projection() -> None:
+def test_uncalibrated_llm_channel_is_not_invoked() -> None:
     request = _request(
         [
             _record(
@@ -525,14 +544,12 @@ def test_invalid_llm_score_fails_closed_before_result_projection() -> None:
         allow_llm=True,
     )
 
-    with pytest.raises(LineageContractError) as captured:
-        analyze_external_lineage(request, llm=InvalidLlm())
-
-    assert captured.value.code == "channel_score_out_of_bounds"
+    result = analyze_external_lineage(request, llm=InvalidLlm())
+    assert result.llm_status_code == "unavailable"
 
 
-def test_non_numeric_llm_score_fails_closed_at_the_contract_boundary() -> None:
-    """A provider score with the wrong type becomes a stable contract error."""
+def test_uncalibrated_text_llm_channel_is_not_invoked() -> None:
+    """An uncalibrated optional channel stays unavailable."""
 
     request = _request(
         [
@@ -542,14 +559,12 @@ def test_non_numeric_llm_score_fails_closed_at_the_contract_boundary() -> None:
         allow_llm=True,
     )
 
-    with pytest.raises(LineageContractError) as captured:
-        analyze_external_lineage(request, llm=TextLlm())
-
-    assert captured.value.code == "channel_score_out_of_bounds"
+    result = analyze_external_lineage(request, llm=TextLlm())
+    assert result.llm_status_code == "unavailable"
 
 
-def test_raw_provider_response_error_is_stable_at_the_contract_boundary() -> None:
-    """A raw provider failure is not exposed as an arbitrary exception."""
+def test_uncalibrated_broken_provider_is_not_invoked() -> None:
+    """A provider is not called until its channel has calibrated weight."""
 
     request = _request(
         [
@@ -559,11 +574,8 @@ def test_raw_provider_response_error_is_stable_at_the_contract_boundary() -> Non
         allow_llm=True,
     )
 
-    with pytest.raises(LineageContractError) as captured:
-        analyze_external_lineage(request, llm=BrokenProviderLlm())
-
-    assert captured.value.code == "llm_channel_error"
-    assert "provider secret" not in str(captured.value)
+    result = analyze_external_lineage(request, llm=BrokenProviderLlm())
+    assert result.llm_status_code == "unavailable"
 
 
 def test_channel_evidence_rejects_invalid_score_before_serialization() -> None:

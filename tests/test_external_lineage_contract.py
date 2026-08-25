@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import json
 from dataclasses import replace
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 import pytest
@@ -104,7 +104,7 @@ def test_parse_request_is_strict_immutable_and_canonicalizes_timestamps() -> Non
         20,
         9,
         0,
-        tzinfo=timezone.utc,
+        tzinfo=UTC,
     )
     assert request.records[1].explicit_parent == ExplicitParent(
         evidence_ref="email:001",
@@ -281,7 +281,7 @@ def test_result_serialization_is_deterministic_and_digest_is_external() -> None:
             20,
             9,
             0,
-            tzinfo=timezone.utc,
+            tzinfo=UTC,
         ),
         included_evidence_refs=("email:001", "email:002"),
         excluded_evidence_refs=(),
@@ -405,7 +405,7 @@ def test_optional_references_may_be_omitted() -> None:
 def test_result_serializer_rejects_naive_timestamp_and_invalid_scores() -> None:
     result = replace(
         _result_fixture(),
-        knowledge_cutoff=datetime(2026, 8, 20, 9, 0),
+        knowledge_cutoff=datetime(2026, 8, 20, 9, 0),  # noqa: DTZ001 - invalid fixture
     )
     with pytest.raises(LineageContractError) as naive:
         serialize_lineage_analysis_result(result)

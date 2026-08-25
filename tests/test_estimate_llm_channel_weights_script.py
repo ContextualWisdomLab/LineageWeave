@@ -10,10 +10,9 @@ from __future__ import annotations
 
 import pytest
 
+import scripts.estimate_llm_channel_weights as script
 from lineageweave.adjudication_client import judge_prompt, parse_confidence
 from lineageweave.http_client import HttpClientError
-
-import scripts.estimate_llm_channel_weights as script
 
 
 def test_batch_requests_carry_caller_custom_ids_for_every_pair() -> None:

@@ -11,3 +11,5 @@ LineageWeave publishes strict, versioned contracts for separately governed consu
 - Decision record: `docs/adr/0214-external-email-project-lineage-contract.md`
 
 A consumer must submit only bounded evidence it is already authorized to disclose. Outputs retain opaque caller references and explicit `observed`, `inferred`, or `proposed` truth boundaries. The contract performs no source-system access or provider mutation.
+The execution adapter additionally requires an ADR-0200-compliant calibrated
+channel-weight vector supplied by the host; it has no default weights.
