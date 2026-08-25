@@ -137,8 +137,28 @@ treated as a negative case.
   responses, source-digest invalidation, and unavailable orchestrator states.
 - Backend integration tests cover ABAC filtering, event-time fallback, event
   versus post counts, external-information percentage, multi-project
-  membership, and explicit missing facts.
+  membership, explicit missing facts, observed lifecycle endpoints, exact
+  elapsed duration, open cases with nullable elapsed time, reversed endpoint
+  rejection, and evidence-post authorization.
 - Frontend tests cover period submission, navigation, empty/error states,
   evidence links, keyboard semantics, and non-color status copy.
 - Storybook interaction tests and authenticated browser screenshots audit the
   rendered desktop and narrow layouts.
+
+## References
+
+Institute of Electrical and Electronics Engineers. (2023). *IEEE standard for
+eXtensible Event Stream (XES) for achieving interoperability in event logs and
+event streams* (IEEE Std 1849-2023). IEEE Standards Association.
+https://standards.ieee.org/ieee/1849/10907/
+
+van der Aalst, W. M. P., Adriansyah, A., de Medeiros, A. K. A., Arcieri, F.,
+Baier, T., Blickle, T., Bose, J. C., van den Brand, P., Brandtjen, R., Buijs,
+J., Burattin, A., Carmona, J., Castellanos, M., Claes, J., Cook, J., Costantini,
+N., Curbera, F., Damiani, E., de Leoni, M., ... Wynn, M. (2012). Process mining
+manifesto. In F. Daniel, K. Barkaoui, & S. Dustdar (Eds.), *Business process
+management workshops* (pp. 169–194). Springer.
+https://doi.org/10.1007/978-3-642-28108-2_19
+
+World Wide Web Consortium. (2022). *Time ontology in OWL*.
+https://www.w3.org/TR/owl-time/

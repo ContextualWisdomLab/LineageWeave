@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 from contextlib import asynccontextmanager
+from datetime import UTC, datetime
 from types import SimpleNamespace
 
 from backend.app import post_content_worker
@@ -107,6 +108,39 @@ def test_operations_sources_apply_focal_entity_and_process_scope(monkeypatch) ->
 
     assert sources == ()
     assert decisions == [True, False, False, True]
+
+
+def test_operations_sources_bind_milestones_to_source_owned_clocks(monkeypatch) -> None:
+    """The source row, not model output, supplies each milestone instant."""
+    observed_at = datetime(2026, 8, 1, 9, tzinfo=UTC)
+
+    async def gather(*_args):
+        return [SimpleNamespace(
+            post_id="00000000-0000-0000-0000-000000000001",
+            post_title="Synthetic claim",
+            post_body="A claim was received.",
+            evidence_facts=(),
+        )]
+
+    class SourceConnection(_Connection):
+        async def fetch(self, query: str, *_args: object):
+            assert "coalesce(event_occurred_at, created_at) as observed_at" in query
+            return [{
+                "post_id": "00000000-0000-0000-0000-000000000001",
+                "event_occurred_at": observed_at,
+                "observed_at": observed_at,
+            }]
+
+    monkeypatch.setattr(post_content_worker, "gather_chat_sources", gather)
+    sources = asyncio.run(post_content_worker._operations_evidence_sources(
+        _Pool(SourceConnection()),
+        "00000000-0000-0000-0000-000000000001",
+        {"corporate_entity_id": "corp", "process_unit_id": "pu"},
+        SimpleNamespace(available=False),
+    ))
+
+    assert sources[0].observed_at == observed_at
+    assert sources[0].time_axis_code == "event_occurred_at"
 
 
 def test_terminal_failed_job_ignores_a_stale_duplicate_wakeup() -> None:

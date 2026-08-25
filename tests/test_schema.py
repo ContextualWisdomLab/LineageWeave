@@ -26,12 +26,16 @@ import pytest
 _ADMIN_DSN = os.environ.get(
     "LINEAGEWEAVE_TEST_POSTGRES_ADMIN_DSN", "postgresql://localhost/postgres"
 )
-_MIGRATION_PATH = Path(__file__).resolve().parents[1] / "migrations" / "0001_initial_schema.sql"
+_MIGRATION_PATH = (
+    Path(__file__).resolve().parents[1] / "migrations" / "0001_initial_schema.sql"
+)
 _MAJOR_EVENT_ACTION_MIGRATION = (
     Path(__file__).resolve().parents[1] / "migrations" / "0100_major_event_action.sql"
 )
 _PROJECT_MENTION_MIGRATION = (
-    Path(__file__).resolve().parents[1] / "migrations" / "0031_semantic_project_mentions.sql"
+    Path(__file__).resolve().parents[1]
+    / "migrations"
+    / "0031_semantic_project_mentions.sql"
 )
 _PROJECT_BOUND_ACTION_MIGRATION = (
     Path(__file__).resolve().parents[1]
@@ -74,7 +78,9 @@ _LEFTOVER_MAP_AXIS_MIGRATION = (
     / "0169_report_leftover_map_axis.sql"
 )
 _CHANNEL_EVIDENCE_MIGRATION = (
-    Path(__file__).resolve().parents[1] / "migrations" / "0174_post_lineage_edge_signal.sql"
+    Path(__file__).resolve().parents[1]
+    / "migrations"
+    / "0174_post_lineage_edge_signal.sql"
 )
 _LEFTOVER_MAP_COVERAGE_MIGRATION = (
     Path(__file__).resolve().parents[1]
@@ -87,13 +93,24 @@ _LEFTOVER_MAP_UNEXPLAINED_MIGRATION = (
     / "0182_report_leftover_map_unexplained.sql"
 )
 _OPERATIONS_CASE_MIGRATION = (
-    Path(__file__).resolve().parents[1] / "migrations" / "0208_operations_case_analysis.sql"
+    Path(__file__).resolve().parents[1]
+    / "migrations"
+    / "0208_operations_case_analysis.sql"
 )
 _OPERATIONS_CASE_EVIDENCE_MIGRATION = (
-    Path(__file__).resolve().parents[1] / "migrations" / "0209_operations_case_evidence_source.sql"
+    Path(__file__).resolve().parents[1]
+    / "migrations"
+    / "0209_operations_case_evidence_source.sql"
 )
 _OPERATIONS_CASE_MISSING_MIGRATION = (
-    Path(__file__).resolve().parents[1] / "migrations" / "0211_operations_case_missing_fact.sql"
+    Path(__file__).resolve().parents[1]
+    / "migrations"
+    / "0211_operations_case_missing_fact.sql"
+)
+_OPERATIONS_CASE_MILESTONE_MIGRATION = (
+    Path(__file__).resolve().parents[1]
+    / "migrations"
+    / "0215_operations_case_milestone.sql"
 )
 _ANALYSIS_RUN_REGISTRY_MIGRATION = (
     Path(__file__).resolve().parents[1] / "migrations" / "0018_analysis_run_registry.sql"

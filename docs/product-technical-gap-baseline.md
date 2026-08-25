@@ -8,8 +8,8 @@
 
 | Requirement | Evidence contract | Delivery state |
 |---|---|---|
-| Claim cause delay: order, specification change, originating order, sales pool, Event/post counts | ADR 0206; contextual-orchestrator case classification with cited spans; Event Lineage context | Candidate API/UI reports separate per-kind Event and distinct-post counts; every required answer is cited or stored as an explicit missing fact with a collection action; authenticated runtime acceptance pending |
-| Rebid/handover: discussion, counterparties, our owner, decisions, Event/post counts | ADR 0206; normalized case facts plus persisted summary actions/roles | Candidate API/UI reports separate per-kind Event and distinct-post counts; every required answer is cited or stored as an explicit missing fact; corpus backfill pending |
+| Claim cause delay: order, specification change, originating order, sales pool, Event/post counts | ADR 0206; contextual-orchestrator case classification and `claim_received` → `cause_confirmed` milestones with cited spans and observed source clocks | Stacked candidate reports open/resolved/evidence-missing counts and exact elapsed time only for paired observed endpoints; every required answer and endpoint is cited or explicitly missing; authenticated runtime acceptance and corpus re-analysis pending |
+| Rebid/handover: discussion, counterparties, our owner, decisions, Event/post counts | ADR 0206; normalized case facts plus separate rebid-response and handover milestone pairs | Stacked candidate reports open/resolved/evidence-missing rebid and handover lifecycles without a delay threshold or invented elapsed endpoint; authenticated runtime acceptance and corpus re-analysis pending |
 | External information count/rate and sales/project relation | ADR 0206; semantic `external_information` classification inside Dashboard GNB | Candidate GNB destination filters the Dashboard to external evidence; no separate Board by product decision; authenticated runtime acceptance pending |
 | Project-specific journey | Explicit source/semantic project membership plus event-time ordering | Candidate API preserves every explicit project membership and the UI orders each journey chronologically; authenticated runtime acceptance pending |
 | Repeat issue to design improvement | `repeat_issue`, `issue_pattern`, and `improvement_action` cited facts | Candidate semantic contract; design-system connector acceptance pending |
@@ -377,7 +377,7 @@ this file per §3.5 of the prior snapshot).
 | #272 | Verify Global Ask KG/ontology/semantic claims with public SearXNG evidence | Ask stack |
 | #274 | Persist and explain Event Lineage channel evidence | #387 |
 | #277 | TEPP: persist accepted receipts, poll completed results, keep measurement authority distinct | #468, #417 |
-| #280 | Full project-lifecycle history and handover intervals | Tracked with issue #284; no active delivery PR confirmed |
+| #280 | Full project-lifecycle history and handover intervals | The current stacked candidate covers observed claim, rebid-response, and handover endpoint pairs; cross-record business-case identity remains unavailable unless an explicit source identifier is persisted, so project/similarity proximity is not used as a substitute |
 | #284 | Authoritative lifecycle ingestion and idempotent reconciliation | No active delivery PR confirmed |
 | #289 | Activate the optional lineage LLM channel through a bounded asynchronous rebuild | #434 |
 | #336 | Replace pseudo-CalDAV feed with a Naruon-owned calendar projection | Contract on `main` (#355); operator consume wiring in historical branch `feat/naruon-calendar-buyer-wiring-v2170` |

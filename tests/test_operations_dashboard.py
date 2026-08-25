@@ -1,6 +1,6 @@
 """Focused tests for the operational dashboard evidence projection."""
 
-from datetime import date, datetime, timezone
+from datetime import UTC, date, datetime, timezone
 
 import pytest
 
@@ -49,6 +49,29 @@ class _Connection:
                 "case_kind_code": "claim_investigation",
                 "fact_type_code": "sales_pool",
             }]
+        if "operations_case_milestone milestone" in query:
+            return [
+                {
+                    "post_id": "00000000-0000-0000-0000-000000000001",
+                    "case_kind_code": "claim_investigation",
+                    "milestone_type_code": "claim_received",
+                    "evidence_text": "The claim was received",
+                    "evidence_post_id": "00000000-0000-0000-0000-000000000001",
+                    "observed_at": datetime(2026, 8, 1, 9, tzinfo=timezone.utc),
+                    "time_axis_code": "event_occurred_at",
+                    "is_missing": False,
+                },
+                {
+                    "post_id": "00000000-0000-0000-0000-000000000001",
+                    "case_kind_code": "claim_investigation",
+                    "milestone_type_code": "cause_confirmed",
+                    "evidence_text": "The cause was confirmed",
+                    "evidence_post_id": "00000000-0000-0000-0000-000000000002",
+                    "observed_at": datetime(2026, 8, 3, 12, 30, tzinfo=timezone.utc),
+                    "time_axis_code": "created_at",
+                    "is_missing": False,
+                },
+            ]
         if "from topic_post_context_influence influence" in query:
             return []
         return [
@@ -140,11 +163,61 @@ async def test_dashboard_uses_abac_event_clock_and_persisted_evidence() -> None:
             "missing_facts": [
                 {"fact_type_code": "sales_pool", "fact_type_label": "수주 Pool"}
             ],
+            "milestones": [
+                {
+                    "milestone_type_code": "claim_received",
+                    "milestone_type_label": "클레임 접수",
+                    "evidence_text": "The claim was received",
+                    "evidence_post_id": "00000000-0000-0000-0000-000000000001",
+                    "observed_at": "2026-08-01T09:00:00+00:00",
+                    "time_axis_code": "event_occurred_at",
+                    "time_axis_label": "Event 발생일",
+                },
+                {
+                    "milestone_type_code": "cause_confirmed",
+                    "milestone_type_label": "원인 확정",
+                    "evidence_text": "The cause was confirmed",
+                    "evidence_post_id": "00000000-0000-0000-0000-000000000002",
+                    "observed_at": "2026-08-03T12:30:00+00:00",
+                    "time_axis_code": "created_at",
+                    "time_axis_label": "기록 생성일",
+                },
+            ],
+            "lifecycles": [
+                {
+                    "lifecycle_kind_code": "claim_investigation",
+                    "lifecycle_kind_label": "클레임 원인 규명",
+                    "status_code": "resolved",
+                    "status_label": "종료 확인",
+                    "started_at": "2026-08-01T09:00:00+00:00",
+                    "resolved_at": "2026-08-03T12:30:00+00:00",
+                    "elapsed_seconds": 185400,
+                    "start_milestone": {
+                        "milestone_type_code": "claim_received",
+                        "milestone_type_label": "클레임 접수",
+                        "evidence_text": "The claim was received",
+                        "evidence_post_id": "00000000-0000-0000-0000-000000000001",
+                        "observed_at": "2026-08-01T09:00:00+00:00",
+                        "time_axis_code": "event_occurred_at",
+                        "time_axis_label": "Event 발생일",
+                    },
+                    "end_milestone": {
+                        "milestone_type_code": "cause_confirmed",
+                        "milestone_type_label": "원인 확정",
+                        "evidence_text": "The cause was confirmed",
+                        "evidence_post_id": "00000000-0000-0000-0000-000000000002",
+                        "observed_at": "2026-08-03T12:30:00+00:00",
+                        "time_axis_code": "created_at",
+                        "time_axis_label": "기록 생성일",
+                    },
+                    "next_action_text": "시작·종료 Event 근거를 열어 경과 시간을 검토하세요.",
+                }
+            ],
         }
     ]
     assert result["topic_context"]["status_code"] == "unavailable"
     assert result["topic_context"]["reason_code"] == "tepp_topic_posterior_not_persisted"
-    assert len(conn.queries) == 6
+    assert len(conn.queries) == 7
     for query, args in conn.queries:
         assert "visibility_code = 'public'" in query
         assert "corporate_entity_id::text = any($1::text[])" in query
@@ -158,7 +231,18 @@ async def test_dashboard_uses_abac_event_clock_and_persisted_evidence() -> None:
         )
     case_query = conn.queries[1][0]
     assert "order by primary_mention.confidence desc" in case_query
-    assert "coalesce(nullif(btrim(post.source_project_name), ''), project.primary_project_name)" in case_query
+    assert (
+        "coalesce(nullif(btrim(post.source_project_name), ''), project.primary_project_name)"
+        in case_query
+    )
+    for evidence_query in (
+        conn.queries[0][0],
+        conn.queries[1][0],
+        conn.queries[2][0],
+        conn.queries[4][0],
+    ):
+        assert "join source_post evidence_post" in evidence_query
+        assert "evidence_post.corporate_entity_id::text = any($1::text[])" in evidence_query
 
 
 @pytest.mark.anyio
@@ -278,7 +362,13 @@ async def test_dashboard_zero_denominator_and_invalid_period() -> None:
                     "fast_mlsirm_influence_persisted": False,
                 }
             return dict.fromkeys(
-                ("total_post_count", "total_event_count", "external_post_count", "pending_analysis_count", "failed_analysis_count"),
+                (
+                    "total_post_count",
+                    "total_event_count",
+                    "external_post_count",
+                    "pending_analysis_count",
+                    "failed_analysis_count",
+                ),
                 0,
             )
 
@@ -313,6 +403,8 @@ async def test_external_information_projects_a_typed_prov_o_relation() -> None:
 
         async def fetch(self, query: str, *args: object) -> list[dict[str, object]]:
             self.queries.append((query, args))
+            if "operations_case_milestone milestone" in query:
+                return []
             if "from topic_post_context_influence influence" in query:
                 return []
             if "operations_case_fact fact" in query:

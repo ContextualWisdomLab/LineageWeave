@@ -46,7 +46,9 @@ _BROKER_RECOVERY_DELAY_SECONDS = 1.0
 _INCOMPLETE_FAILURE_CODE = "post_content_ingestion_incomplete"
 _ATTEMPT_LIMIT_FAILURE_CODE = "post_content_ingestion_attempt_limit"
 _SOURCE_BODY_MISSING_FAILURE_CODE = "post_content_source_body_missing"
-_UNEXPECTED_FAILURE_DETAIL = "post-content provider operation failed; retry the ingestion job"
+_UNEXPECTED_FAILURE_DETAIL = (
+    "post-content provider operation failed; retry the ingestion job"
+)
 
 
 async def _operations_evidence_sources(
@@ -68,6 +70,22 @@ async def _operations_evidence_sources(
 
     async with pool.acquire() as conn:
         sources = await gather_chat_sources(conn, post_id, can_see, vision_client)
+        if not sources:
+            return ()
+        source_times = {
+            str(row["post_id"]): (
+                row["observed_at"],
+                "event_occurred_at"
+                if row["event_occurred_at"] is not None
+                else "created_at",
+            )
+            for row in await conn.fetch(
+                "select post_id, event_occurred_at, "
+                "coalesce(event_occurred_at, created_at) as observed_at "
+                "from source_post where post_id = any($1::uuid[])",
+                [source.post_id for source in sources],
+            )
+        }
     return tuple(
         OperationsEvidenceSource(
             source.post_id,
@@ -78,6 +96,8 @@ async def _operations_evidence_sources(
                 if source.evidence_facts
                 else ""
             ),
+            source_times[source.post_id][0],
+            source_times[source.post_id][1],
         )
         for source in sources
     )
@@ -312,7 +332,9 @@ async def process_post_content_job(
         structure_client = structure_factory()
         with use_llm_metadata(metadata):
             vision_client = vision_factory()
-            normalized = await asyncio.to_thread(normalize_post_body, raw_body, vision_client)
+            normalized = await asyncio.to_thread(
+                normalize_post_body, raw_body, vision_client
+            )
             async with pool.acquire() as conn:
                 await persist_post_content(
                     conn,
@@ -360,7 +382,9 @@ async def process_post_content_job(
                 complete = await post_content_is_complete(
                     conn,
                     post_id,
-                    embedding_model_code=getattr(embedding_client, "resolved_model", None),
+                    embedding_model_code=getattr(
+                        embedding_client, "resolved_model", None
+                    ),
                     require_embedding=require_orchestrator_evidence,
                     require_structure=require_orchestrator_evidence,
                 )
@@ -410,7 +434,9 @@ async def consume_post_content_stream_once(
     from there on the next poll.
     """
     try:
-        batches = await client.xread({POST_CONTENT_STREAM_KEY: last_id}, count=10, block=1000)
+        batches = await client.xread(
+            {POST_CONTENT_STREAM_KEY: last_id}, count=10, block=1000
+        )
     except Exception:
         # Keep idle polls silent, but retain a diagnostic span for broker failures.
         with traced(
@@ -480,6 +506,7 @@ async def run_post_content_worker(
             )
         except (redis.RedisError, OSError) as exc:
             _logger.warning(
-                "post-content Valkey poll failed; retrying (error_type=%s)", type(exc).__name__
+                "post-content Valkey poll failed; retrying (error_type=%s)",
+                type(exc).__name__,
             )
             await asyncio.sleep(_BROKER_RECOVERY_DELAY_SECONDS)

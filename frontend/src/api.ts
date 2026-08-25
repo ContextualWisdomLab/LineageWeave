@@ -55,6 +55,29 @@ export interface OperationsDashboardFact {
   relation_predicate_iri?: string;
 }
 
+export interface OperationsDashboardMilestone {
+  milestone_type_code: string;
+  milestone_type_label: string;
+  evidence_text: string;
+  evidence_post_id: string;
+  observed_at: string;
+  time_axis_code: "event_occurred_at" | "created_at";
+  time_axis_label: string;
+}
+
+export interface OperationsDashboardLifecycle {
+  lifecycle_kind_code: string;
+  lifecycle_kind_label: string;
+  status_code: "resolved" | "open" | "evidence_missing";
+  status_label: string;
+  started_at: string | null;
+  resolved_at: string | null;
+  elapsed_seconds: number | null;
+  start_milestone: OperationsDashboardMilestone | null;
+  end_milestone: OperationsDashboardMilestone | null;
+  next_action_text: string;
+}
+
 export interface OperationsDashboardCase {
   post_id: string;
   case_kind_code: string;
@@ -67,6 +90,8 @@ export interface OperationsDashboardCase {
   occurred_at: string;
   facts: OperationsDashboardFact[];
   missing_facts: Array<{ fact_type_code: string; fact_type_label: string }>;
+  milestones: OperationsDashboardMilestone[];
+  lifecycles: OperationsDashboardLifecycle[];
   ontology_class_iri?: string;
   provenance_relation_iri?: string;
   semantic_projection?: Record<string, unknown>;
@@ -85,6 +110,13 @@ export interface OperationsDashboardResponse {
     case_kind_label: string;
     event_count: number;
     post_count: number;
+  }>;
+  lifecycle_metrics: Array<{
+    lifecycle_kind_code: string;
+    lifecycle_kind_label: string;
+    open_case_count: number;
+    resolved_case_count: number;
+    evidence_missing_case_count: number;
   }>;
   topic_context: TopicContextDashboard;
   cases: OperationsDashboardCase[];
