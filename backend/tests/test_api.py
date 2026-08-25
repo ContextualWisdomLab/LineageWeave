@@ -12,6 +12,7 @@ HTTP to Keycloak goes through ``lineageweave.http_client``.
 
 from __future__ import annotations
 
+import math
 import os
 import uuid
 from contextlib import closing
@@ -141,6 +142,11 @@ _LEFTOVER_MAP_RANK_MIGRATION = (
     Path(__file__).resolve().parents[2]
     / "migrations"
     / "0164_report_leftover_map_rank.sql"
+)
+_LEFTOVER_MAP_CROSS_SHARE_MIGRATION = (
+    Path(__file__).resolve().parents[2]
+    / "migrations"
+    / "0185_report_leftover_map_cross_share.sql"
 )
 _GLOBAL_ASK_JOB_MIGRATION = (
     Path(__file__).resolve().parents[2]
@@ -305,6 +311,7 @@ def seeded_db(demo_analyst_token):
             cur.execute(_GLOBAL_ASK_JOB_MIGRATION.read_text())
             cur.execute(_LEFTOVER_MAP_AXIS_MIGRATION.read_text())
             cur.execute(_LEFTOVER_MAP_UNEXPLAINED_MIGRATION.read_text())
+            cur.execute(_LEFTOVER_MAP_CROSS_SHARE_MIGRATION.read_text())
             cur.execute(
                 "insert into common_lookup_value (lookup_category, lookup_code, lookup_label) values "
                 "('corporate_entity_level', 'group', 'Group'), "
@@ -5072,9 +5079,16 @@ def test_seed_period_report_surfaces_on_get_reports(client, demo_analyst_token, 
         assert "leftover_map_reconstruction" not in pair
         observed = pair.get("observed_response")
         expected = pair.get("expected_response")
-        if observed is None or expected is None:
-            continue
-        assert abs(pair["leftover_residual"] - (observed - expected)) < 1e-6
+        if observed is not None and expected is not None:
+            assert abs(pair["leftover_residual"] - (observed - expected)) < 1e-6
+        share = pair.get("leftover_map_cross_share")
+        assert share is None or isinstance(share, (int, float))
+        if share is not None:
+            assert not math.isnan(share)
+            assert not math.isinf(share)
+        assert "leftover_map_explained_share" not in pair
+        assert "leftover_map_unexplained_share" not in pair
+        assert "leftover_map_reconstruction" not in pair
     leftover_axes = high_report.get("leftover_map_axes", [])
     assert [axis["axis_index"] for axis in leftover_axes] == [1, 2]
     assert all(axis["leftover_singular_value"] >= 0 for axis in leftover_axes)
