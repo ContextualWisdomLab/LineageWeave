@@ -1,9 +1,10 @@
 from __future__ import annotations
 
 import asyncio
-from datetime import date
+from datetime import date, datetime, timezone
 
 from backend.app.post_chat_ingestion import gather_global_chat_sources
+from lineageweave.ask_time_axis import TIME_AXIS_CREATED, TIME_AXIS_EVENT
 
 
 def test_global_sources_apply_visibility_before_normalization() -> None:
@@ -389,11 +390,18 @@ def test_global_sources_resolve_relative_time_against_seoul_calendar_day(
         (query, args) for query, args in calls if "array_position($2::uuid[], post_id)" in query
     )
     # Both sides of the day-boundary comparison must read the same zone --
-    # asserting the SQL cast pins that the created_at side is never left on
+    # asserting the SQL cast pins that the event-time side is never left on
     # the connection's plain UTC/session default while `today` moves to KST.
+    assert "coalesce(event_occurred_at, created_at)" in source_query
     assert "at time zone 'Asia/Seoul'" in source_query
     assert source_args[3] == date(2026, 8, 21)
     assert source_args[4] == date(2026, 8, 21)
+    candidate_calls = [(query, args) for query, args in calls if "matched_in" in query]
+    assert all("event_clock" in query for query, _args in candidate_calls)
+    assert all(
+        args[1:] == (date(2026, 8, 21), date(2026, 8, 21))
+        for _query, args in candidate_calls
+    )
 
 
 def test_global_sources_drop_particle_attached_temporal_words_from_search_terms() -> None:
@@ -420,3 +428,105 @@ def test_global_sources_drop_particle_attached_temporal_words_from_search_terms(
 
     candidate_terms = [args[0] for query, args in calls if "matched_in" in query]
     assert candidate_terms == ["무슨", "일이", "있었나요"]
+
+
+def test_global_sources_bind_relative_time_to_event_clock_not_ingest_cluster(
+    monkeypatch,
+) -> None:
+    """Bulk-imported posts share one created_at. Ask '어제' must keep the
+    post whose event fell yesterday and drop the one whose event fell
+    last week, then name the event axis on the cited source.
+    """
+    monkeypatch.setattr(
+        "backend.app.post_chat_ingestion._seoul_today", lambda: date(2026, 8, 22)
+    )
+    import_cluster = datetime(2026, 8, 22, 6, 0, tzinfo=timezone.utc)
+    rows = [
+        {
+            "post_id": "yesterday-event",
+            "post_title": "Synthetic follow-up that happened yesterday",
+            "post_body": "<p>yesterday event body</p>",
+            "visibility_code": "public",
+            "corporate_entity_id": None,
+            "created_at": import_cluster,
+            "event_occurred_at": datetime(2026, 8, 21, 3, 0, tzinfo=timezone.utc),
+            "matched_in": "title",
+        },
+        {
+            "post_id": "last-week-event",
+            "post_title": "Synthetic follow-up from last week",
+            "post_body": "<p>last week event body</p>",
+            "visibility_code": "public",
+            "corporate_entity_id": None,
+            "created_at": import_cluster,
+            "event_occurred_at": datetime(2026, 8, 12, 3, 0, tzinfo=timezone.utc),
+            "matched_in": "title",
+        },
+        {
+            "post_id": "ingest-only",
+            "post_title": "Synthetic ingest-only cluster row",
+            "post_body": "<p>no event clock</p>",
+            "visibility_code": "public",
+            "corporate_entity_id": None,
+            "created_at": import_cluster,
+            "event_occurred_at": None,
+            "matched_in": "title",
+        },
+    ]
+
+    class FakeConnection:
+        async def fetch(self, query: str, *args):
+            if "from post_lineage_edge" in query:
+                return []
+            return rows if "from source_post" in query else []
+
+    sources = asyncio.run(
+        gather_global_chat_sources(
+            FakeConnection(),
+            lambda _row: True,
+            question="어제 무슨 일이 있었나요?",
+            limit=4,
+        )
+    )
+
+    assert [source.post_id for source in sources] == ["yesterday-event"]
+    assert TIME_AXIS_EVENT in sources[0].evidence_facts
+    assert TIME_AXIS_CREATED not in sources[0].evidence_facts
+
+
+def test_global_sources_name_created_at_fallback_when_event_clock_is_missing(
+    monkeypatch,
+) -> None:
+    monkeypatch.setattr(
+        "backend.app.post_chat_ingestion._seoul_today", lambda: date(2026, 8, 22)
+    )
+    rows = [
+        {
+            "post_id": "ingest-yesterday",
+            "post_title": "Synthetic ingest-clock post",
+            "post_body": "<p>ingested yesterday</p>",
+            "visibility_code": "public",
+            "corporate_entity_id": None,
+            "created_at": datetime(2026, 8, 21, 3, 0, tzinfo=timezone.utc),
+            "event_occurred_at": None,
+            "matched_in": "title",
+        }
+    ]
+
+    class FakeConnection:
+        async def fetch(self, query: str, *args):
+            if "from post_lineage_edge" in query:
+                return []
+            return rows if "from source_post" in query else []
+
+    sources = asyncio.run(
+        gather_global_chat_sources(
+            FakeConnection(),
+            lambda _row: True,
+            question="어제 무슨 일이 있었나요?",
+            limit=4,
+        )
+    )
+
+    assert [source.post_id for source in sources] == ["ingest-yesterday"]
+    assert TIME_AXIS_CREATED in sources[0].evidence_facts

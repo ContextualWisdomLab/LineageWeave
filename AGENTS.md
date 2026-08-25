@@ -277,6 +277,12 @@ and are not a leftover score. Complete-case coverage (ADR 0168) persists to
 `report_leftover_map_coverage` and captions the pair list with how
 many scored posts entered the map.
 
+Global Ask relative-time filters (ADR 0150 / 0202) bind to
+`source_post.event_occurred_at` and fall back to `created_at` only
+when the event instant is missing. Cited evidence names **Time
+axis** so the reader can open that post and see which clock
+matched. Do not invent an event date or a theta.
+
 Period leftover pairs (ADR 0017 / 0018 / 0048 / 0049 / 0149) are computed in
 `lineageweave/leftover_pairs.py` from the residual after a real
 GRM/GPCM score, never invented. Missing cells stay out of the

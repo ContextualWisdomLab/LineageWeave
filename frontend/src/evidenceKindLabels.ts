@@ -5,6 +5,7 @@ const CHAT_EVIDENCE_KIND_LABELS: Record<string, string> = {
   semantic_project: "Semantic project",
   semantic_role: "Semantic role",
   semantic_keyman: "Semantic Keyman",
+  time_axis: "Time axis",
 };
 
 export function chatEvidenceKindLabel(kind: string): string {
