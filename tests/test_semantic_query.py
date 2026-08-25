@@ -15,13 +15,22 @@ def test_rewriter_keeps_literal_multilingual_phrases(monkeypatch) -> None:
         "lineageweave.semantic_query.post_json",
         lambda *_args, **_kwargs: {
             "choices": [
-                {"message": {"content": '{"search_phrases":["Apollo", "책임자", "Apollo"]}'}}
+                {
+                    "message": {
+                        "content": '{"search_phrases":["Apollo", "책임자", "Apollo"]}'
+                    }
+                }
             ]
         },
     )
-    client = ContextualOrchestratorSemanticQueryClient("https://orchestrator.test", "secret")
+    client = ContextualOrchestratorSemanticQueryClient(
+        "https://orchestrator.test", "secret"
+    )
 
-    assert client.rewrite("Apollo 프로젝트의 책임자는 누구입니까?") == ("Apollo", "책임자")
+    assert client.rewrite("Apollo 프로젝트의 책임자는 누구입니까?") == (
+        "Apollo",
+        "책임자",
+    )
 
 
 @pytest.mark.parametrize(
@@ -34,16 +43,20 @@ def test_rewriter_keeps_literal_multilingual_phrases(monkeypatch) -> None:
         "[]",
     ],
 )
-def test_rewriter_rejects_invented_or_malformed_phrases(monkeypatch, content: str) -> None:
+def test_rewriter_rejects_invented_or_malformed_phrases(
+    monkeypatch, content: str
+) -> None:
     """Provider output cannot introduce a term absent from the question."""
 
     monkeypatch.setattr(
         "lineageweave.semantic_query.post_json",
         lambda *_args, **_kwargs: {"choices": [{"message": {"content": content}}]},
     )
-    client = ContextualOrchestratorSemanticQueryClient("https://orchestrator.test", "secret")
+    client = ContextualOrchestratorSemanticQueryClient(
+        "https://orchestrator.test", "secret"
+    )
 
-    with pytest.raises(ValueError):
+    with pytest.raises((TypeError, ValueError)):
         client.rewrite("What is known about Apollo?")
 
 

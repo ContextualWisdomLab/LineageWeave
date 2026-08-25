@@ -96,16 +96,18 @@ class ContextualOrchestratorSemanticQueryClient:
         parsed = json.loads(chat_completion_content(response))
         raw_phrases = parsed.get("search_phrases") if isinstance(parsed, dict) else None
         if not isinstance(raw_phrases, list):
-            raise ValueError("semantic query response has no search_phrases array")
+            raise TypeError("semantic query response has no search_phrases array")
         phrases: list[str] = []
         seen: set[str] = set()
         for value in raw_phrases:
             if not isinstance(value, str):
-                raise ValueError("semantic query phrase is not text")
+                raise TypeError("semantic query phrase is not text")
             phrase = value.strip()
             key = phrase.casefold()
             if not phrase or phrase not in normalized_question:
-                raise ValueError("semantic query phrase is not a literal question substring")
+                raise ValueError(
+                    "semantic query phrase is not a literal question substring"
+                )
             if key not in seen:
                 phrases.append(phrase)
                 seen.add(key)
