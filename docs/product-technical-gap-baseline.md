@@ -60,9 +60,9 @@ only aggregate, non-identifying evidence to this repository.
 
 ### Exact open-PR boundary
 
-At this snapshot there were 9 open PRs and 10 open issues. Exact observed heads
-were `#644 c1018a0a`, `#643 041ec13b`, `#640 175db369`,
-`#639 aee02dca`, `#636 f7b9a65f`, `#632 c51e2729`, `#631 c0022c97`,
+At this snapshot there were 10 open PRs and 10 open issues. Exact observed heads
+were `#657 c7d81213`, `#644 c1018a0a`, `#643 041ec13b`, `#640 175db369`,
+`#639 aee02dca`, `#636 f7b9a65f`, `#632 e41476c7`, `#631 c0022c97`,
 `#629 4b4d6707`, and `#579 689a21b6`. PR #654 merged its ontology-label
 readability slice into #632's provenance branch as `6c0c4370`; that stack
 merge is not protected-main delivery. The open heads remain
@@ -81,19 +81,20 @@ lifecycle claim.
 ## 1. Exact-head and governance evidence
 
 The protected default branch was `04e6b610655d0db91d5f7ba9486bdda1440e0b19`
-when this baseline was refreshed. The live queue contained 9 open PRs and 10
+when this baseline was refreshed. The live queue contained 10 open PRs and 10
 open issues. The exact-head inventory below supersedes older per-PR snapshots
 elsewhere in this document; those older rows remain useful historical delivery
 context only.
 
 | PR | Exact observed head | Merge/check state at this snapshot |
 | ---: | --- | --- |
+| #657 | `c7d81213` | persisted TEPP asynchronous lifecycle evidence; checks and independent review remain required |
 | #644 | `c1018a0a` | frontend conditional workspace splitting; checks and independent review remain required |
 | #643 | `041ec13b` | shared token-backed status notice; checks and independent review remain required |
 | #640 | `175db369` | dashboard case metrics, project journeys, restored TEPP API-key setting, and semantic-label spacing; focused exact-head PostgreSQL contract passed; hosted checks and independent review remain required |
 | #639 | `aee02dca` | Running action and Compose contract repair; checks and independent review remain required |
 | #636 | `f7b9a65f` | calibrated external lineage contract; checks and independent review remain required |
-| #632 | `c51e2729` | Global Ask provenance, public verification, knowledge cutoff, evidence-constrained query rewriting, shared ABAC/rewrite-failure review repair, #654 ontology-label readability, Semgrep static-SQL repair, and #655 authenticated durable MCP stack with the live Streamable HTTP lifecycle repair; checks and independent review remain required |
+| #632 | `e41476c7` | Global Ask provenance, public verification, knowledge cutoff, evidence-constrained query rewriting, shared ABAC/rewrite-failure review repair, #654 ontology-label readability, Semgrep static-SQL repair, and #655 authenticated durable MCP stack with live Streamable HTTP lifecycle and k6 evidence; checks and independent review remain required |
 | #631 | `c0022c97` | current-main ADR stack decomposition; checks and independent review remain required |
 | #629 | `4b4d6707` | provider pool release and bounded landing reads; checks and independent review remain required |
 | #579 | `689a21b6` | leftover interaction-map persistence; checks and independent review remain required |
@@ -384,7 +385,7 @@ this file per §3.5 of the prior snapshot).
 
 | Gap | Current evidence | Acceptance requirement |
 | --- | --- | --- |
-| Protected release | 9 open PRs at snapshot: #579, #629, #631, #632, #636, #639, #640, #643, and #644. All retain hosted and/or independent-review gates; no stack merge is protected-main evidence | Terminal exact-head checks, no unresolved threads, independent exact-head approvals, protected squash-merge SHA |
+| Protected release | 10 open PRs at snapshot: #579, #629, #631, #632, #636, #639, #640, #643, #644, and #657. All retain hosted and/or independent-review gates; no stack merge is protected-main evidence | Terminal exact-head checks, no unresolved threads, independent exact-head approvals, protected squash-merge SHA |
 | Evidence-grounded operations workspace | Protected-main #614 delivers governed semantic Ask, live Similar VOC, disjoint pending/failed analysis metrics, full Storybook state inventory, and current desktop/mobile screenshot evidence. Authorized-corpus backfill acceptance remains unavailable | Perform authenticated authorized-corpus acceptance with aggregate evidence and retain fail-closed no-match behavior |
 | Shared frontend gate | The ADR 0109 login repair is on protected `main`; eight older branches carried the defect and received the same verified repair this loop (#521–#560) | Keep every future branch cut from post-repair bases; re-verify with frontend lint/test/build before push |
 | Identifying baseline regression | `main` gap file listed real post identifiers; separately, closed #506 and pre-existing public history contain a private runtime source-table identifier, while current `main` and #507 trees are clean | Land this non-identifying rewrite, then coordinate ADR 0001 history remediation with security/privacy owners; do not reproduce the value, force-push, or delete evidence ad hoc |
@@ -497,7 +498,7 @@ review latency are never blockers — keep working while they settle.
    independent approval; then verify the workflow exists on central protected
    `main` rather than inferring deployment from the PR branch.
 2. Process the current LineageWeave queue #579, #629, #631, #632, #636, #639,
-   #640, #643, and #644 against each newly fetched exact head. #632 composes
+   #640, #643, #644, and #657 against each newly fetched exact head. #632 composes
    ontology graph-fact provenance and #654 readability; none is merge-authorized
    by a stack merge, auto-merge, or local tests alone.
 3. After the queue drains, resume user-visible gaps from §5 in leverage order:
