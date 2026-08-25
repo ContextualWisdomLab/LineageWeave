@@ -75,7 +75,7 @@ def iri_for_lookup_code(lookup_code: str) -> str | None:
 
 
 def ontology_annotations(lookup_code: str) -> dict[str, str]:
-    """IRI + ``rdfs:label`` for a lookup code, or empty if undeclared.
+    """IRI plus its RDFS or SKOS preferred label, or empty if undeclared.
 
     Empty (not a fabricated label) when the ontology does not cover
     this code -- the same missing-vs-negative discipline as Null
@@ -85,7 +85,7 @@ def ontology_annotations(lookup_code: str) -> dict[str, str]:
     if subject is None:
         return {}
     fields = {"ontology_iri": str(subject)}
-    label = ONTOLOGY.value(subject, RDFS.label)
+    label = ONTOLOGY.value(subject, RDFS.label) or ONTOLOGY.value(subject, SKOS.prefLabel)
     if label is not None:
         fields["ontology_label"] = str(label)
     return fields

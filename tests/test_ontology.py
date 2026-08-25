@@ -147,6 +147,21 @@ def test_ontology_annotations_carry_iri_and_label_for_a_node_type() -> None:
     assert ontology_annotations("node_corporate_entity")["ontology_label"] == "Corporate entity"
 
 
+def test_ontology_annotations_use_skos_preferred_labels_for_concepts() -> None:
+    """Controlled concepts expose their authored SKOS labels to API callers."""
+    expected = {
+        "group": "Group",
+        "company": "Company",
+        "plant": "Plant",
+        "voc": "Voice of Customer",
+        "vocc": "Voice of Customer's Customer",
+        "voco": "Voice of Competitor",
+        "vom": "Voice of Market",
+        "vop": "Voice of Partner",
+    }
+    assert {code: ontology_annotations(code)["ontology_label"] for code in expected} == expected
+
+
 def test_ontology_annotations_are_empty_for_an_undeclared_code() -> None:
     assert ontology_annotations("not_a_real_lookup_code") == {}
     # `open` is a real ticket_status lookup code this ontology

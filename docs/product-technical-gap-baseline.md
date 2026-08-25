@@ -1,6 +1,6 @@
 # Product & Technical Gap Baseline
 
-> Dashboard delivery snapshot: 2026-08-26 05:17 KST. Protected `main` was
+> Dashboard delivery snapshot: 2026-08-26 05:22 KST. Protected `main` was
 > `04e6b610655d0db91d5f7ba9486bdda1440e0b19`. This local branch is not
 > protected-main release evidence.
 
@@ -454,6 +454,10 @@ of leverage; open connector PRs there when the defect is upstream:
   and compatibility decision; this publication PR rewrites neither identity.
 - Until the protected deployment and exact URL checks succeed, the public
   ontology endpoint remains unavailable and must not be represented as live.
+- The #663 candidate resolves runtime labels from authored `rdfs:label` and,
+  for SKOS concepts, `skos:prefLabel`. This keeps the eight governed VOC and
+  corporate-level lookup concepts aligned across RDF and API payloads without
+  duplicating labels or fabricating a fallback.
 
 ## 9. Evidence boundaries
 
