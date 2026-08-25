@@ -88,34 +88,19 @@ def test_configured_transport_sends_tepp_consumer_contract_headers(monkeypatch: 
     assert received["service_peer_name"] == "tepp"
 
 
-def test_configured_transport_reads_opaque_remote_run_status(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    received = {}
+def test_injected_status_transport_receives_opaque_remote_run_id_unchanged() -> None:
+    received: list[str] = []
 
-    def fake_get_json(url: str, **kwargs) -> dict:
-        received.update(url=url, **kwargs)
+    def fake_status_transport(run_id: str) -> dict:
+        received.append(run_id)
         return {"contract_version": 1, "run_state": "running"}
 
-    monkeypatch.setattr("backend.app.analysis_run_start.get_json", fake_get_json)
-    client = configured_tepp_client(
-        "https://tepp.example/v1/analysis-runs",
-        api_key="runtime-only",
-    )
+    client = TeppClient(status_transport=fake_status_transport)
 
     status = client.get_analysis_run_status(" remote/run 1 ")
 
     assert status["run_state"] == "running"
-    assert received == {
-        "url": "https://tepp.example/v1/analysis-runs/%20remote%2Frun%201%20",
-        "headers": {
-            "tepp-consumer": "lineageweave",
-            "tepp-contract-version": "1",
-            "authorization": "Bearer runtime-only",
-        },
-        "timeout": 30.0,
-        "service_peer_name": "tepp",
-    }
+    assert received == [" remote/run 1 "]
 
 
 @pytest.mark.parametrize("run_id", ["", "   ", None])

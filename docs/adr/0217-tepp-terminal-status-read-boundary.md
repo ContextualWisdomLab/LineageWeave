@@ -14,10 +14,11 @@ bypassing the existing provider boundary.
 ## Decision
 
 TeppClient.get_analysis_run_status reads one opaque remote run identity
-through a separately injected status transport. The configured HTTP client
-derives the item URL from TEPP_TRANSPORT_URL, percent-encodes the opaque
-identity, reuses the TEPP consumer/version headers, and fails closed behind
-TeppNotAvailable.
+through a separately injected status transport. TEPP PR #157 publishes wire
+types but no executable HTTP status route. The configured HTTP client therefore
+keeps status reads unavailable instead of deriving an item URL from the submit
+collection URL. A later owning-repository route contract may inject a transport
+without changing or locally interpreting the opaque identity.
 
 The method returns the unmodified status envelope. This slice does not poll,
 persist, validate a terminal digest, append Succeeded, or interpret any
@@ -28,6 +29,6 @@ accepted receipt in one transaction.
 ## Consequences
 
 The later durable worker can reuse the same client instead of introducing a
-second HTTP path. Missing transport, malformed identity, and provider errors
-cannot manufacture a result.
-
+second client abstraction. Missing transport and malformed identity cannot
+manufacture a result; route construction remains unavailable until TEPP owns
+and publishes it.

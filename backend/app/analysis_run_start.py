@@ -16,7 +16,6 @@ import json
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import Any
-from urllib.parse import quote
 from uuid import UUID
 
 import asyncpg
@@ -36,7 +35,7 @@ from backend.app.lineage_ingestion import (
     records_from_source_posts,
 )
 from lineageweave.adjudication_client import AdjudicationClient
-from lineageweave.http_client import HttpClientError, get_json, post_json
+from lineageweave.http_client import HttpClientError, post_json
 from lineageweave.lineage_persistence import lineage_edge_specs
 from lineageweave.models import Edge
 from lineageweave.tepp_client import (
@@ -190,25 +189,7 @@ def configured_tepp_client(transport_url: str = "", api_key: str = "") -> TeppCl
             # message stays generic, never the raw provider exception text.
             raise TeppNotAvailable("TEPP transport unavailable") from exc
 
-    def status_transport(run_id: str) -> dict[str, Any]:
-        """GET TEPP's request-bound status envelope without interpreting it."""
-        try:
-            headers = {
-                "tepp-consumer": "lineageweave",
-                "tepp-contract-version": str(ANALYSIS_RUN_CONTRACT_VERSION),
-            }
-            if api_key.strip():
-                headers["authorization"] = f"Bearer {api_key}"
-            return get_json(
-                f"{url.rstrip('/')}/{quote(run_id, safe='')}",
-                headers=headers,
-                timeout=30.0,
-                service_peer_name="tepp",
-            )
-        except (HttpClientError, OSError, ValueError, TypeError) as exc:
-            raise TeppNotAvailable("TEPP status transport unavailable") from exc
-
-    return TeppClient(transport=transport, status_transport=status_transport)
+    return TeppClient(transport=transport)
 
 
 def tepp_run_request(
