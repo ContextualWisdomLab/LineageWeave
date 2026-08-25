@@ -241,20 +241,17 @@ async def compute_global_ask_answer(
         question_embedding = await prepare_global_question_embedding(
             question_text, embedding_client or NullEmbeddingClient()
         )
-        if question_embedding is None:
-            sources = []
-        else:
-            async with pool.acquire() as conn:
-                sources = await gather_global_chat_sources(
-                    conn,
-                    can_see,
-                    corporate_entity_ids,
-                    process_unit_ids,
-                    question=question_text,
-                    question_embedding=question_embedding,
-                    today=today,
-                    embedding_client=embedding_client,
-                )
+        async with pool.acquire() as conn:
+            sources = await gather_global_chat_sources(
+                conn,
+                can_see,
+                corporate_entity_ids,
+                process_unit_ids,
+                question=question_text,
+                question_embedding=question_embedding,
+                today=today,
+                embedding_client=NullEmbeddingClient(),
+            )
     except Exception as exc:
         log_internal_fault("global_ask", exc)
         record_server_failure("global_ask", exc, outcome="internal_error")

@@ -97,7 +97,7 @@ def test_question_embedding_finishes_before_global_ask_acquires_a_pool_slot(
 
 
 def test_unavailable_question_embedding_is_not_called(monkeypatch) -> None:
-    """An unavailable channel is dropped without invoking its transport."""
+    """An unavailable embedding is dropped while persisted evidence still runs."""
     connection = _Connection(None)
     pool = _Pool(connection)
 
@@ -107,6 +107,13 @@ def test_unavailable_question_embedding_is_not_called(monkeypatch) -> None:
 
         def embed(self, _text: str) -> list[float]:
             raise AssertionError("unavailable embedding must not be called")
+
+    async def fake_gather(_conn, *_args, **kwargs):
+        assert kwargs["question_embedding"] is None
+        assert kwargs["embedding_client"].available is False
+        return []
+
+    monkeypatch.setattr(global_ask_queue, "gather_global_chat_sources", fake_gather)
 
     payload = asyncio.run(
         global_ask_queue.compute_global_ask_answer(

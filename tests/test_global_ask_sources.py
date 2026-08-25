@@ -5,6 +5,8 @@ import math
 from datetime import date, datetime, timezone
 
 from backend.app.post_chat_ingestion import (
+    _fuse_global_candidate_ids,
+    _ontology_lookup_codes_in_question,
     gather_global_chat_sources as _gather_global_chat_sources,
     prepare_global_question_embedding,
 )
@@ -67,6 +69,70 @@ def gather_global_chat_sources(*args, **kwargs):
     """Exercise Global Ask with an available deterministic semantic channel."""
     kwargs.setdefault("embedding_client", _EmbeddingClient())
     return _gather_global_chat_sources(*args, **kwargs)
+
+
+def test_parameter_free_rrf_combines_embedding_and_evidence_rank_lists() -> None:
+    """A post supported by both owned channels outranks one-channel hits."""
+
+    assert _fuse_global_candidate_ids(
+        ["embedding-only", "shared"], ["shared", "evidence-only"], 3
+    )[0] == "shared"
+
+
+def test_complete_canonical_ontology_iri_maps_to_its_lookup_code() -> None:
+    """Ontology nomination uses the published full IRI, not substring guessing."""
+
+    codes = _ontology_lookup_codes_in_question(
+        "Explain https://contextualwisdomlab.github.io/LineageWeave/ontology#affiliatedWith"
+    )
+
+    assert codes == ["edge_affiliation"]
+    assert _ontology_lookup_codes_in_question("affiliatedWith") == []
+
+
+def test_evidence_only_term_nominates_its_authorized_source() -> None:
+    """A persisted semantic hit works even when no body embedding nominates it."""
+
+    source_row = {
+        "post_id": "semantic-only",
+        "post_title": "Neutral source title",
+        "post_body": "Neutral source body",
+        "visibility_code": "public",
+        "corporate_entity_id": None,
+        "process_unit_id": None,
+        "created_at": datetime(2026, 8, 25, tzinfo=timezone.utc),
+        "event_occurred_at": None,
+    }
+
+    class FakeConnection:
+        async def fetch(self, query: str, *args):
+            if "unit_similarity" in query:
+                assert "authorized_evidence_candidates" in query
+                assert query.index("authorized_evidence_candidates") < query.rindex("limit $8")
+                assert args[8] == "exclusive responsibility"
+                return [
+                    {
+                        "candidate_channel": "evidence",
+                        "post_id": "semantic-only",
+                        "channel_rank": 1,
+                    }
+                ]
+            if "from post_lineage_edge" in query:
+                return []
+            if "array_position($3::uuid[], post_id)" in query:
+                return [source_row]
+            return []
+
+    sources = asyncio.run(
+        gather_global_chat_sources(
+            FakeConnection(),
+            lambda row: row["visibility_code"] == "public",
+            question="exclusive responsibility",
+            limit=4,
+        )
+    )
+
+    assert [source.post_id for source in sources] == ["semantic-only"]
 
 
 def test_global_sources_apply_visibility_before_normalization() -> None:
@@ -176,14 +242,17 @@ def test_global_sources_use_semantic_rank_order_and_bound_long_bodies() -> None:
         (query, args) for query, args in calls if "array_position($3::uuid[], post_id)" in query
     )
     assert "unit_similarity" in candidate_query
-    assert "to_tsvector" not in candidate_query
+    assert "websearch_to_tsquery('simple', $9)" in candidate_query
+    assert "post_project_mention" in candidate_query
+    assert "knowledge_graph_edge_evidence" in candidate_query
+    assert "ilike" not in candidate_query.lower()
     assert candidate_args[0] == [1.0, 0.0]
     assert candidate_args[2] == "test-embedding"
     assert "array_position($3::uuid[], post_id)" in source_query
     assert "source_post.post_id = any($3::uuid[])" in source_query
     assert source_args[3] == 8
-    # The database returns candidates in cosine-rank order; no local lexical
-    # weights or reranking may alter that order.
+    # A test row without a channel marker is the legacy embedding-channel
+    # fixture and retains its database rank order.
     assert list(source_args[2]) == ["newest-post", "uam-post"]
     assert sources[1].post_body.startswith("x" * 4000)
     assert "Source body truncated for Global Ask" in sources[1].post_body
@@ -394,8 +463,10 @@ def test_global_sources_fail_closed_when_embedding_is_unavailable() -> None:
             raise AssertionError("unavailable embedding must not be called")
 
     class FakeConnection:
-        async def fetch(self, _query: str, *_args):
-            raise AssertionError("lexical fallback must not query the corpus")
+        async def fetch(self, query: str, *args):
+            if "authorized_evidence_candidates" in query:
+                assert args[10] is False
+            return []
 
     sources = asyncio.run(
         _gather_global_chat_sources(
@@ -442,8 +513,8 @@ def test_global_sources_accept_valid_precomputed_embedding_without_provider() ->
     assert candidate_calls[0][1][:3] == ([1.0, 0.0], 1.0, "synthetic-embedding")
 
 
-def test_global_sources_fail_closed_without_a_resolved_embedding_model() -> None:
-    """A vector without its orchestrator-resolved model cannot match persisted rows."""
+def test_global_sources_disable_an_embedding_without_a_resolved_model() -> None:
+    """An unbound vector cannot match persisted rows but evidence remains available."""
 
     class UnboundEmbedding:
         available = True
@@ -453,8 +524,10 @@ def test_global_sources_fail_closed_without_a_resolved_embedding_model() -> None
             return [1.0, 0.0]
 
     class FakeConnection:
-        async def fetch(self, _query: str, *_args):
-            raise AssertionError("an unbound vector must not query persisted embeddings")
+        async def fetch(self, query: str, *args):
+            if "authorized_evidence_candidates" in query:
+                assert args[10] is False
+            return []
 
     sources = asyncio.run(
         _gather_global_chat_sources(
@@ -602,7 +675,7 @@ def test_global_sources_resolve_relative_time_against_seoul_calendar_day(
     )
 
 
-def test_global_sources_do_not_run_lexical_search_for_relative_time_question() -> None:
+def test_global_sources_keep_body_and_title_lexical_fallback_disabled() -> None:
     calls: list[tuple[str, tuple[object, ...]]] = []
 
     class FakeConnection:
@@ -622,7 +695,8 @@ def test_global_sources_do_not_run_lexical_search_for_relative_time_question() -
     candidate_queries = [query for query, _args in calls if "unit_similarity" in query]
     assert len(candidate_queries) == 1
     assert "ilike" not in candidate_queries[0].lower()
-    assert "to_tsvector" not in candidate_queries[0].lower()
+    assert "source_post_search_text" not in candidate_queries[0]
+    assert "websearch_to_tsquery('simple', $9)" in candidate_queries[0]
 
 
 def test_global_sources_bind_relative_time_to_event_clock_not_ingest_cluster(
