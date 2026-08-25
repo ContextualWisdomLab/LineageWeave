@@ -258,6 +258,8 @@ def _tepp_submission(
         response = client.submit_analysis_run(request)
     except TeppNotAvailable:
         return _FAILED, "tepp_not_available", None
+    except TeppInvalidResponse:
+        return _FAILED, "tepp_result_not_persisted", None
     if not isinstance(response, dict):
         return _FAILED, "tepp_result_not_persisted", None
     state = response.get("status") or response.get("run_state")

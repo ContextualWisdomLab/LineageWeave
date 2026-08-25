@@ -99,7 +99,14 @@ class TeppClient:
 
     def submit_analysis_run(self, request: AnalysisRunRequest) -> dict[str, Any]:
         """Submit a request; returns TEPP's ``AnalysisRunAccepted`` envelope."""
-        return self._transport(request.to_json())
+        response = self._transport(request.to_json())
+        if (
+            isinstance(response, dict)
+            and response.get("run_state") == "accepted"
+            and not _valid_analysis_run_accepted(request, response)
+        ):
+            raise TeppInvalidResponse("TEPP analysis-run accepted response was invalid")
+        return response
 
     def read_analysis_run_status(
         self, remote_run_id: str, request: AnalysisRunRequest
@@ -116,6 +123,31 @@ _FAILURE_CODE = re.compile(r"[a-z][a-z0-9_]{0,63}")
 _RFC3339 = re.compile(
     r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})"
 )
+
+
+def _valid_analysis_run_accepted(
+    request: AnalysisRunRequest, response: object
+) -> bool:
+    """Mirror TEPP's bounded, strict accepted-response v1 contract."""
+    if not isinstance(response, dict) or set(response) != {
+        "contract_version",
+        "run_id",
+        "run_state",
+        "idempotency_key",
+    }:
+        return False
+    try:
+        encoded = json.dumps(response, separators=(",", ":"), ensure_ascii=False).encode()
+    except (TypeError, ValueError):
+        return False
+    return (
+        len(encoded) <= 64 * 1024
+        and response["contract_version"] == 1
+        and response["run_state"] == "accepted"
+        and response["idempotency_key"] == request.idempotency_key
+        and _nonempty(response["run_id"])
+        and _nonempty(response["idempotency_key"])
+    )
 
 
 def _nonempty(value: object) -> bool:

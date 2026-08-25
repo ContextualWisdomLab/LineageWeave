@@ -119,6 +119,20 @@ def test_custom_transport_receives_the_exact_wire_payload() -> None:
     assert received["snapshot_id"] == "demo-snapshot-1"
 
 
+def test_accepted_response_rejects_oversized_provider_identity() -> None:
+    client = TeppClient(
+        transport=lambda _payload: {
+            "contract_version": 1,
+            "run_id": "x" * (64 * 1024),
+            "run_state": "accepted",
+            "idempotency_key": _sample_request().idempotency_key,
+        }
+    )
+
+    with pytest.raises(TeppInvalidResponse):
+        client.submit_analysis_run(_sample_request())
+
+
 def test_configured_transport_sends_tepp_consumer_contract_headers(monkeypatch: pytest.MonkeyPatch) -> None:
     received = {}
 
