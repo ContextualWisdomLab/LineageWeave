@@ -1,6 +1,6 @@
 # Product & Technical Gap Baseline
 
-> Dashboard delivery snapshot: 2026-08-26 01:10 KST. Protected `main` was
+> Dashboard delivery snapshot: 2026-08-26 (latest exact-head fetch). Protected `main` was
 > `04e6b610655d0db91d5f7ba9486bdda1440e0b19`. This local branch is not
 > protected-main release evidence.
 
@@ -65,15 +65,15 @@ only aggregate, non-identifying evidence to this repository.
 
 ### Exact open-PR boundary
 
-At this snapshot there were 7 open PRs and 10 open issues. Exact observed heads
-were `#640 41527fa9` (this branch's observed parent), `#639 aee02dca`, `#636 eeeb23c6`, `#632 bfeaecd9`,
+At this snapshot there were 8 open PRs and 10 open issues. Exact observed heads
+were `#643 041ec13b`, `#640 f9a7a783`, `#639 aee02dca`, `#636 20d25fe6`, `#632 f3b5acfe`,
 `#631 c0022c97`, `#629 0f4665b5`, and `#579 689a21b6`. All remain blocked on
 hosted gates and/or independent review. These
 observations are not merge readiness. Re-fetch exact heads,
 unresolved threads, checks, approvals, rulesets, and merge SHA before any
 lifecycle claim.
 
-> Audit snapshot: 2026-08-26 01:10 KST (refreshed by the autonomous merge
+> Audit snapshot: 2026-08-26 (refreshed by the autonomous merge
 > loop). This repository records synthetic fixtures and aggregate,
 > non-identifying runtime evidence only. Open PRs and local checks are not
 > protected-default-branch release evidence. Identifying post identifiers,
@@ -83,17 +83,18 @@ lifecycle claim.
 ## 1. Exact-head and governance evidence
 
 The protected default branch was `04e6b610655d0db91d5f7ba9486bdda1440e0b19`
-when this baseline was refreshed. The live queue contained 7 open PRs and 10
+when this baseline was refreshed. The live queue contained 8 open PRs and 10
 open issues. The exact-head inventory below supersedes older per-PR snapshots
 elsewhere in this document; those older rows remain useful historical delivery
 context only.
 
 | PR | Exact observed head | Merge/check state at this snapshot |
 | ---: | --- | --- |
-| #640 | `41527fa9` (observed parent) | this row is updated by #640 itself, so its exact head advances after the snapshot is encoded; it quantifies dashboard case metrics, preserves confidence-ranked project labels, and keeps scoped external evidence honest; hosted gates and independent review remain required |
+| #643 | `041ec13b` | shares token-backed success/unavailable/retry status notices for the Calendar surface; hosted gates and independent review remain required |
+| #640 | `f9a7a783` | quantifies dashboard case metrics, preserves confidence-ranked project labels, and persists explicit missing required facts; hosted gates and independent review remain required |
 | #639 | `aee02dca` | repairs Running-action, Compose, and TEPP configuration contracts; hosted gates and independent review remain required |
-| #636 | `eeeb23c6` | publishes the calibrated external-lineage contract without a redundant explicit-child filter; hosted gates and independent review remain required |
-| #632 | `bfeaecd9` | preserves graph-fact source provenance and authorization with a static landing-query contract and shared RankWeave disable switch; hosted gates and independent review remain required |
+| #636 | `20d25fe6` | publishes the calibrated external-lineage contract without a redundant explicit-child filter; hosted gates and independent review remain required |
+| #632 | `f3b5acfe` | preserves graph-fact source provenance and authorization with a static landing-query contract and shared RankWeave disable switch; hosted gates and independent review remain required |
 | #631 | `c0022c97` | decomposes ADR gaps and queue baseline; hosted gates and independent review remain required |
 | #629 | `0f4665b5` | releases provider work from database leases and bounds landing reads; hosted gates and independent review remain required |
 | #579 | `689a21b6` | delegates leftover interaction-map arithmetic to fast-mlsirm and persists only the consumer projection; hosted gates and independent review remain required |
