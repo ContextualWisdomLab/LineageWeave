@@ -84,7 +84,7 @@ context only.
 
 | PR | Exact observed head | Merge/check state at this snapshot |
 | ---: | --- | --- |
-| #663 | `1a0f65f5` | project ontology traversal plus complete RDFS/SKOS lookup-label invariant; replacement hosted checks and independent approvals are required |
+| #663 | `1a0f65f5` (observed parent) | project ontology traversal plus complete RDFS/SKOS lookup-label invariant; this baseline commit advances the head, after which replacement hosted checks and independent approvals are required |
 | #660 | `24fda085` | backend runtime and integration contract repairs; hosted checks still active |
 | #659 | `e948bd27` | ontology node readability and tokenized UI fills |
 | #658 | `fe830b0a` | evidence-honest Global Ask knowledge cutoff with client validation; hosted checks still active |
