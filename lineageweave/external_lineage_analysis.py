@@ -366,20 +366,17 @@ def _explicit_edges(
     included: tuple[LineageEvidenceRecord, ...],
 ) -> tuple[
     list[LineageEdgeResult],
-    set[str],
     list[LineageLimitation],
 ]:
     """Project included caller-observed parent relations ahead of inference."""
 
     included_refs = {record.evidence_ref for record in included}
     edges: list[LineageEdgeResult] = []
-    explicit_children: set[str] = set()
     limitations: list[LineageLimitation] = []
     for child in included:
         explicit = child.explicit_parent
         if explicit is None:
             continue
-        explicit_children.add(child.evidence_ref)
         if explicit.evidence_ref not in included_refs:
             limitations.append(
                 LineageLimitation(
@@ -409,7 +406,7 @@ def _explicit_edges(
                 ),
             )
         )
-    return edges, explicit_children, limitations
+    return edges, limitations
 
 
 def _project_groups(
@@ -467,14 +464,8 @@ def analyze_external_lineage(
     )
     if isinstance(selected_llm, _BoundedAdjudicationClient) and selected_llm.call_count:
         llm_status = "completed"
-    explicit, explicit_children, explicit_limitations = _explicit_edges(
-        included
-    )
-    edges = [
-        edge
-        for edge in inferred
-        if edge.child_evidence_ref not in explicit_children
-    ]
+    explicit, explicit_limitations = _explicit_edges(included)
+    edges = inferred
     edges.extend(explicit)
 
     limitations = [
