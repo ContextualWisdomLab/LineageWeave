@@ -61,8 +61,8 @@ only aggregate, non-identifying evidence to this repository.
 ### Exact open-PR boundary
 
 At this snapshot there were 4 open PRs and 10 open issues. Exact observed heads
-were `#632 476d761d`, `#631 7a641cb1` (this branch's observed parent),
-`#629 49675283`, and `#579 762ad6de`. PR #579 is open; its ADR 0211 reservation is why protected
+were `#632 c5193532`, `#631 62deb34a` (this branch's observed parent),
+`#629 49675283`, and `#579 45769b0d`. PR #579 is open; its ADR 0211 reservation is why protected
 main's filter-option decision is ADR 0212. PRs #627 and #628 reached protected
 `main`; #629 remains an open asynchronous-pool follow-up and is not release
 evidence. The open heads remain blocked on hosted gates and/or independent
@@ -71,7 +71,7 @@ observations are not merge readiness. Re-fetch exact heads,
 unresolved threads, checks, approvals, rulesets, and merge SHA before any
 lifecycle claim.
 
-> Audit snapshot: 2026-08-25 22:17 KST (refreshed by the autonomous merge
+> Audit snapshot: 2026-08-25 22:25 KST (refreshed by the autonomous merge
 > loop). This repository records synthetic fixtures and aggregate,
 > non-identifying runtime evidence only. Open PRs and local checks are not
 > protected-default-branch release evidence. Identifying post identifiers,
@@ -88,10 +88,10 @@ context only.
 
 | PR | Exact observed head | Merge/check state at this snapshot |
 | ---: | --- | --- |
-| #632 | `476d761d` | preserves the source-post provenance of ontology-annotated prompt facts; hosted gates and independent review remain required |
-| #631 | `7a641cb1` (observed parent) | decomposes closed PR #490 without replaying it; this row advances when the snapshot correction is committed, and hosted gates plus independent review remain required |
+| #632 | `c5193532` | preserves the source-post provenance of ontology-annotated prompt facts; hosted gates and independent review remain required |
+| #631 | `62deb34a` (observed parent) | decomposes closed PR #490 without replaying it; this row advances when the snapshot correction is committed, and hosted gates plus independent review remain required |
 | #629 | `49675283` | releases the Global Ask pool before embedding-provider work and records repaired replay/load evidence; hosted gates and independent review remain required |
-| #579 | `762ad6de` | persists leftover interaction-map coordinates through the fast-mlsirm owner contract and owns ADR 0211; hosted gates and independent review remain required |
+| #579 | `45769b0d` | persists leftover interaction-map coordinates through the fast-mlsirm owner contract and fails coverage closed with rejected maps; hosted gates and independent review remain required |
 
 No row above is merge evidence. Immediately before any lifecycle action,
 re-fetch the head, unresolved threads, formal reviews, rulesets, and same-head
