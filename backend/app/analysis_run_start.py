@@ -444,6 +444,8 @@ def topic_lineage_submit_outcome(
     item 3), not silently persisted as a topic-lineage result.
     """
     status_code, failure_code, envelope = _tepp_submission(client, request)
+    if status_code == _RUNNING:
+        return _FAILED, "tepp_result_not_persisted", None
     if status_code == _SUCCEEDED and not (
         envelope is not None and _topic_lineage_envelope_is_valid(envelope)
     ):

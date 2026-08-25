@@ -671,6 +671,28 @@ def test_topic_lineage_submit_outcome_does_not_persist_an_empty_envelope() -> No
     assert failure == "tepp_result_not_persisted"
 
 
+def test_topic_lineage_submit_outcome_rejects_strict_async_acceptance() -> None:
+    """Topic lineage has no receipt/resume path, so acceptance fails closed."""
+
+    class _Accepting(TeppClient):
+        def __init__(self) -> None:
+            super().__init__(
+                transport=lambda payload: {
+                    "contract_version": 1,
+                    "run_id": "topic-run-1",
+                    "run_state": "accepted",
+                    "idempotency_key": payload["idempotency_key"],
+                }
+            )
+
+    status, failure, envelope = topic_lineage_submit_outcome(
+        _Accepting(), _topic_lineage_request()
+    )
+    assert status == "analysis_status_failed"
+    assert failure == "tepp_result_not_persisted"
+    assert envelope is None
+
+
 def test_topic_lineage_submit_outcome_rejects_a_contentless_completed_envelope() -> None:
     """A 'completed' envelope missing the topic-identity/CHRONOS contract is Failed.
 
