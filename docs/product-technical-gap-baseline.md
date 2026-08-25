@@ -62,7 +62,7 @@ only aggregate, non-identifying evidence to this repository.
 
 At this snapshot there were 16 open PRs and 10 open issues. Exact observed heads
 were `#663 a7ab4426`, `#662 92534118`, `#661 11206c58`, `#660 7d0d3ef7`, `#659 e948bd27`, `#658 fe830b0a`, `#657 64f48679`, `#644 d9ff9980`, `#643 0a1f8ec1`, `#640 2d50fa01`,
-`#639 aee02dca`, `#636 f7b9a65f`, `#632 a41c9a42`, `#631 c0022c97`,
+`#639 aee02dca`, `#636 f7b9a65f`, `#632 026086fb`, `#631 c0022c97`,
 `#629 4b4d6707`, and `#579 689a21b6`. PR #654 merged its ontology-label
 readability slice into #632's provenance branch as `6c0c4370`; that stack
 merge is not protected-main delivery. The open heads remain
@@ -100,7 +100,7 @@ context only.
 | #640 | `2d50fa01` | dashboard case metrics, project journeys, restored TEPP API-key setting, semantic-label spacing, topic-dashboard argument-boundary repair, async Ask queue settlement isolation, consistent empty-projection fast-mlsirm contract state, and Starlette/httpx2 test transport alignment; focused operations suite passed 27 tests; hosted checks and independent review remain required |
 | #639 | `aee02dca` | Running action and Compose contract repair; checks and independent review remain required |
 | #636 | `f7b9a65f` | calibrated external lineage contract; checks and independent review remain required |
-| #632 | `a41c9a42` | Global Ask provenance, public verification, knowledge cutoff, evidence-constrained query rewriting, shared ABAC/rewrite-failure review repair, #654 ontology-label readability, Semgrep static-SQL repair, and #655 authenticated durable MCP stack with live Streamable HTTP lifecycle and k6 evidence; this baseline refresh also records the current #663 and #658 heads; checks and independent review remain required |
+| #632 | `026086fb` | Global Ask provenance, public verification, knowledge cutoff, evidence-constrained query rewriting, shared ABAC/rewrite-failure review repair, #654 ontology-label readability, Semgrep static-SQL repair, and #655 authenticated durable MCP stack with live Streamable HTTP lifecycle and k6 evidence; this baseline refresh also records the current #663 and #658 heads; checks and independent review remain required |
 | #631 | `c0022c97` | current-main ADR stack decomposition; checks and independent review remain required |
 | #629 | `4b4d6707` | provider pool release and bounded landing reads; checks and independent review remain required |
 | #579 | `689a21b6` | leftover interaction-map persistence; checks and independent review remain required |
