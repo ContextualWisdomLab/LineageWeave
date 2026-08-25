@@ -122,7 +122,7 @@ def start_kind_rejection(run_kind_code: str) -> AnalysisRunStartError | None:
     )
 
 
-def configured_tepp_client(transport_url: str = "") -> TeppClient:
+def configured_tepp_client(transport_url: str = "", api_key: str = "") -> TeppClient:
     """Build a TEPP client from an optional HTTP transport URL.
 
     An empty URL keeps the default unavailable transport. A set URL
@@ -141,7 +141,15 @@ def configured_tepp_client(transport_url: str = "") -> TeppClient:
                 "tepp-consumer": "lineageweave",
                 "tepp-contract-version": str(payload["contract_version"]),
             }
-            return post_json(url, payload, headers=headers, timeout=30.0)
+            if api_key.strip():
+                headers["authorization"] = f"Bearer {api_key}"
+            return post_json(
+                url,
+                payload,
+                headers=headers,
+                timeout=30.0,
+                service_peer_name="tepp",
+            )
         except (HttpClientError, OSError, ValueError, TypeError) as exc:
             # Chain internally for operator logging; the exposed
             # message stays generic, never the raw provider exception text.

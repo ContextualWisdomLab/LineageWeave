@@ -43,6 +43,11 @@ _PROJECT_BOUND_EVENT_MIGRATION = (
     / "migrations"
     / "0102_project_bound_summary_event.sql"
 )
+_INTERVAL_RELATION_MIGRATION = (
+    Path(__file__).resolve().parents[1]
+    / "migrations"
+    / "0140_post_lineage_interval_relation.sql"
+)
 _LEFTOVER_OBSERVED_EXPECTED_MIGRATION = (
     Path(__file__).resolve().parents[1]
     / "migrations"
@@ -109,6 +114,7 @@ def schema_db():
                 cur.execute(_MAJOR_EVENT_ACTION_MIGRATION.read_text())
                 cur.execute(_PROJECT_BOUND_ACTION_MIGRATION.read_text())
                 cur.execute(_PROJECT_BOUND_EVENT_MIGRATION.read_text())
+                cur.execute(_INTERVAL_RELATION_MIGRATION.read_text())
                 cur.execute(_LEFTOVER_OBSERVED_EXPECTED_MIGRATION.read_text())
                 cur.execute(_LEFTOVER_MAP_RANK_MIGRATION.read_text())
                 cur.execute(_LEFTOVER_MAP_COVERAGE_MIGRATION.read_text())
@@ -168,6 +174,27 @@ def test_migration_applies_cleanly(schema_db) -> None:
         "post_chat_citation",
     }
     assert expected <= tables
+
+
+def test_post_lineage_edge_requires_an_allen_interval_code(schema_db) -> None:
+    with schema_db.cursor() as cur:
+        cur.execute(
+            """
+            select is_nullable
+              from information_schema.columns
+             where table_name = 'post_lineage_edge'
+               and column_name = 'interval_relation_code'
+            """
+        )
+        assert cur.fetchone()[0] == "NO"
+        cur.execute(
+            "select lookup_code from common_lookup_value "
+            "where lookup_category = 'interval_relation' order by display_order"
+        )
+        codes = [row[0] for row in cur.fetchall()]
+    assert "interval_contains" in codes
+    assert "interval_overlaps" in codes
+    assert len(codes) == 13
 
 
 def test_major_event_action_project_reference_is_normalized(schema_db) -> None:

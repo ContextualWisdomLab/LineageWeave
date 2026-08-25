@@ -235,7 +235,8 @@ def test_missing_source_body_is_not_reported_as_a_provider_failure(monkeypatch, 
     ), "empty-body skip must still emit a diagnostic log line"
 
 
-def test_transient_provider_error_is_requeued_before_attempt_limit(monkeypatch) -> None:
+def test_transient_provider_error_is_requeued_before_attempt_limit(monkeypatch, caplog) -> None:
+    caplog.set_level("WARNING", logger="lineageweave.observability")
     connection = _Connection(values=[2])
     pool = _Pool(connection)
 
@@ -270,8 +271,62 @@ def test_transient_provider_error_is_requeued_before_attempt_limit(monkeypatch) 
     )
 
     updates = [args for query, args in connection.executed if "set status_code" in query]
-    assert any(args[1] == QUEUED and args[6] == "post_content_ingestion_failed" for args in updates)
-    assert "provider timeout" not in str(connection.executed)
+    assert any(
+        args[1] == QUEUED
+        and args[6] == "post_content_ingestion_failed"
+        and args[7] == post_content_worker._UNEXPECTED_FAILURE_DETAIL
+        for args in updates
+    )
+    assert all("provider timeout" not in str(args) for args in updates)
+    assert "provider timeout" not in caplog.text
+    record = next(
+        item for item in caplog.records if item.msg == "lineageweave.server_failure"
+    )
+    assert record.failure_outcome == "provider_unavailable"
+
+
+def test_unexpected_worker_error_is_classified_as_internal(monkeypatch, caplog) -> None:
+    """Unexpected worker defects stay internal while their value remains private."""
+    caplog.set_level("ERROR", logger="lineageweave.observability")
+    connection = _Connection(values=[2])
+    pool = _Pool(connection)
+
+    async def claim(*_args, **_kwargs):
+        return _row(RUNNING, 1)
+
+    async def persist(*_args, **_kwargs):
+        raise TypeError("internal worker detail")
+
+    monkeypatch.setattr(post_content_worker, "_claim_job", claim)
+    monkeypatch.setattr(post_content_worker, "persist_post_content", persist)
+    monkeypatch.setattr(
+        post_content_worker,
+        "load_settings",
+        lambda: SimpleNamespace(
+            embedding_model="embedding-model",
+            orchestrator_base_url="",
+            orchestrator_api_key="",
+        ),
+    )
+    monkeypatch.setattr(post_content_worker, "normalize_post_body", lambda *_args: object())
+    client = SimpleNamespace(available=True)
+
+    asyncio.run(
+        post_content_worker.process_post_content_job(
+            pool,
+            post_id="00000000-0000-0000-0000-000000000001",
+            source_body_digest="a" * 64,
+            vision_factory=lambda: client,
+            embedding_factory=lambda: client,
+            structure_factory=lambda: client,
+        )
+    )
+
+    record = next(
+        item for item in caplog.records if item.msg == "lineageweave.server_failure"
+    )
+    assert record.failure_outcome == "internal_error"
+    assert "internal worker detail" not in caplog.text
 
 
 def test_failure_at_attempt_limit_is_terminal_and_visible() -> None:

@@ -121,6 +121,7 @@ class ContextualOrchestratorEmbeddingClient:
                     f"{self._base_url}/batch/embeddings/{batch_id}",
                     headers=headers,
                     timeout=self._timeout,
+                    service_peer_name="contextual-orchestrator",
                 )
                 self._bind_model(response)
 

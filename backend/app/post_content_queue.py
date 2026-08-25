@@ -10,6 +10,8 @@ from typing import Any
 import asyncpg
 import redis.asyncio as redis
 
+from lineageweave.observability import traced
+
 POST_CONTENT_STREAM_KEY = "post-content-ingestion"
 QUEUED = "post_content_ingestion_queued"
 RUNNING = "post_content_ingestion_running"
@@ -131,15 +133,19 @@ async def publish_post_content_event(
     if client is None:
         return None
     try:
-        entry_id = await client.xadd(
-            POST_CONTENT_STREAM_KEY,
-            post_content_stream_fields(
-                post_id=post_id,
-                source_body_digest=source_body_digest,
-            ),
-            maxlen=1000,
-            approximate=True,
-        )
+        with traced(
+            "lineageweave.valkey.post_content_xadd",
+            {"db.system": "redis", "db.operation.name": "xadd", "lineageweave.stream.kind": "post_content"},
+        ):
+            entry_id = await client.xadd(
+                POST_CONTENT_STREAM_KEY,
+                post_content_stream_fields(
+                    post_id=post_id,
+                    source_body_digest=source_body_digest,
+                ),
+                maxlen=1000,
+                approximate=True,
+            )
     except redis.RedisError:
         return None
     return str(entry_id)
