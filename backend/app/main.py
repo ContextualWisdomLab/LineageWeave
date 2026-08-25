@@ -2983,6 +2983,7 @@ class GlobalAskRequest(BaseModel):
 
     question: str
     verify_external: bool = False
+    knowledge_cutoff: str | None = None
 
 
 @app.get("/api/posts/{post_id}/chat")
@@ -3128,19 +3129,36 @@ async def ask_agent(
     if not question:
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, "question is required")
     _require_post_read(account)
-    if not _post_chat_client().available:
-        raise HTTPException(
-            status.HTTP_503_SERVICE_UNAVAILABLE,
-            "Ask Agent is unavailable. Ask an administrator to configure the analysis service, "
-            "then retry.",
-        )
+    knowledge_cutoff = None
+    if request.knowledge_cutoff is not None:
+        try:
+            knowledge_cutoff = parse_as_of_clock(request.knowledge_cutoff)
+        except ValueError as exc:
+            raise HTTPException(
+                status.HTTP_422_UNPROCESSABLE_CONTENT,
+                "knowledge_cutoff must be an ISO-8601 timestamp",
+            ) from exc
     async with pool.acquire() as conn:
+        if knowledge_cutoff is not None and knowledge_cutoff > await conn.fetchval(
+            "select now()"
+        ):
+            raise HTTPException(
+                status.HTTP_422_UNPROCESSABLE_CONTENT,
+                "knowledge_cutoff must be at or before the database clock",
+            )
+        if not _post_chat_client().available:
+            raise HTTPException(
+                status.HTTP_503_SERVICE_UNAVAILABLE,
+                "Ask Agent is unavailable. Ask an administrator to configure the analysis service, "
+                "then retry.",
+            )
         job_id = await enqueue_global_ask_job(
             conn,
             valkey,
             requesting_account_id=account.user_account_id,
             question_text=question,
             verify_external_requested=request.verify_external,
+            knowledge_cutoff=knowledge_cutoff,
             corporate_entity_ids=account.corporate_entity_ids,
             process_unit_ids=account.process_unit_ids,
         )

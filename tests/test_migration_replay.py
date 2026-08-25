@@ -209,3 +209,17 @@ def test_global_ask_public_verification_opt_in_is_replay_safe() -> None:
     assert "verify_external_requested boolean not null default false" in sql
     assert "add column if not exists" in sql
     assert "data_type <> 'boolean'" in sql
+
+
+def test_global_ask_knowledge_cutoff_is_replay_safe() -> None:
+    """Existing queue tables accept the optional as-of clock on every restart."""
+
+    sql = (
+        Path(__file__).resolve().parents[1]
+        / "migrations"
+        / "0212_global_ask_knowledge_cutoff.sql"
+    ).read_text(encoding="utf-8")
+
+    assert "knowledge_cutoff timestamptz" in sql
+    assert "add column if not exists" in sql
+    assert "data_type <> 'timestamp with time zone'" in sql

@@ -196,6 +196,11 @@ _GLOBAL_ASK_PUBLIC_VERIFICATION_MIGRATION = (
     / "migrations"
     / "0211_global_ask_public_verification.sql"
 )
+_GLOBAL_ASK_KNOWLEDGE_CUTOFF_MIGRATION = (
+    Path(__file__).resolve().parents[2]
+    / "migrations"
+    / "0212_global_ask_knowledge_cutoff.sql"
+)
 _LEFTOVER_MAP_AXIS_MIGRATION = (
     Path(__file__).resolve().parents[2]
     / "migrations"
@@ -371,6 +376,8 @@ def seeded_db(demo_analyst_token):
             cur.execute(_GLOBAL_ASK_JOB_MIGRATION.read_text())
             cur.execute(_GLOBAL_ASK_SCOPE_MIGRATION.read_text())
             cur.execute(_GLOBAL_ASK_PUBLIC_VERIFICATION_MIGRATION.read_text())
+            cur.execute(_GLOBAL_ASK_KNOWLEDGE_CUTOFF_MIGRATION.read_text())
+            cur.execute(_GLOBAL_ASK_KNOWLEDGE_CUTOFF_MIGRATION.read_text())
             cur.execute(_EVENT_OCCURRED_AT_MIGRATION.read_text())
             cur.execute(_LEFTOVER_MAP_AXIS_MIGRATION.read_text())
             cur.execute(_CHANNEL_EVIDENCE_MIGRATION.read_text())
@@ -5059,6 +5066,27 @@ def test_ask_rejects_an_empty_question(client, demo_analyst_token, seeded_db) ->
         headers={"Authorization": f"Bearer {demo_analyst_token}"},
     )
     assert response.status_code == 422
+
+
+def test_ask_rejects_invalid_or_future_knowledge_cutoffs(
+    client, demo_analyst_token, seeded_db
+) -> None:
+    """The HTTP trust boundary accepts only a valid clock no later than DB now."""
+
+    headers = {"Authorization": f"Bearer {demo_analyst_token}"}
+    invalid = client.post(
+        "/api/ask",
+        json={"question": "What was known?", "knowledge_cutoff": "not-a-clock"},
+        headers=headers,
+    )
+    future = client.post(
+        "/api/ask",
+        json={"question": "What was known?", "knowledge_cutoff": "2999-01-01T00:00:00Z"},
+        headers=headers,
+    )
+
+    assert invalid.status_code == 422
+    assert future.status_code == 422
 
 
 def test_ask_is_unavailable_without_orchestrator_credentials(

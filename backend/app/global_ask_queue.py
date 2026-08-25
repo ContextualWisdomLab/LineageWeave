@@ -21,7 +21,7 @@ import asyncio
 import logging
 import time
 from collections.abc import Callable
-from datetime import date
+from datetime import date, datetime
 from typing import Any
 
 import asyncpg
@@ -46,8 +46,10 @@ from lineageweave.observability import record_server_failure
 from lineageweave.post_chat import (
     ChatSourceDocument,
     PostChatClient,
+    ask_grounding_status,
     cited_post_evidence,
     cited_post_summaries,
+    historical_body_limitations,
 )
 from lineageweave.temporal_expressions import resolve_korean_relative_time
 
@@ -106,6 +108,7 @@ async def enqueue_global_ask_job(
     requesting_account_id: str,
     question_text: str,
     verify_external_requested: bool,
+    knowledge_cutoff: datetime | None,
     corporate_entity_ids: frozenset[str],
     process_unit_ids: frozenset[str],
 ) -> str:
@@ -119,12 +122,14 @@ async def enqueue_global_ask_job(
         job_id = await conn.fetchval(
             """
             insert into global_ask_job
-                (requesting_account_id, question_text, verify_external_requested)
-            values ($1, $2, $3) returning global_ask_job_id
+                (requesting_account_id, question_text, verify_external_requested,
+                 knowledge_cutoff)
+            values ($1, $2, $3, $4) returning global_ask_job_id
             """,
             requesting_account_id,
             question_text,
             verify_external_requested,
+            knowledge_cutoff,
         )
         await conn.executemany(
             """
@@ -290,6 +295,7 @@ async def compute_global_ask_answer(
     embedding_client: EmbeddingClient | None = None,
     verify_external: bool = False,
     claim_verification_client: ClaimVerificationClient | None = None,
+    knowledge_cutoff: datetime | None = None,
 ) -> dict[str, Any]:
     """Assemble one complete Ask answer payload from authorized evidence.
 
@@ -325,6 +331,7 @@ async def compute_global_ask_answer(
                 question_embedding=question_embedding,
                 today=today,
                 embedding_client=NullEmbeddingClient(),
+                knowledge_cutoff=knowledge_cutoff,
             )
     except Exception as exc:
         log_internal_fault("global_ask", exc)
@@ -333,11 +340,19 @@ async def compute_global_ask_answer(
             status.HTTP_503_SERVICE_UNAVAILABLE,
             "Ask Agent is unavailable: authorized evidence could not be assembled",
         ) from exc
+    cutoff_text = knowledge_cutoff.isoformat() if knowledge_cutoff else None
+    grounding_status = ask_grounding_status(sources, cutoff_text)
+    limitations = historical_body_limitations(sources) if knowledge_cutoff else []
+    usable_sources = (
+        [source for source in sources if not source.historical_body_unavailable]
+        if knowledge_cutoff
+        else sources
+    )
     verification_client = claim_verification_client or NullClaimVerificationClient()
-    if not sources:
+    if not usable_sources:
         verification_status, external_claims = await _verify_public_claims(
             question_text,
-            sources,
+            usable_sources,
             [],
             verify_external=verify_external,
             client=verification_client,
@@ -347,18 +362,29 @@ async def compute_global_ask_answer(
             "answer_text": "",
             "cited_post_ids": [],
             "cited_posts": [],
-            "source_post_ids": [],
+            "source_post_ids": [source.post_id for source in sources],
             "cited_post_evidence": [],
             "lineage_graph": {"nodes": [], "edges": [], "truncated": False},
             "cited_post_images": [],
             "external_verification_status": verification_status,
             "external_claims": [claim.to_payload() for claim in external_claims],
-            "next_action": "No authorized source posts are available for this question.",
+            "next_action": (
+                "Review unavailable historical channels before relying on this cutoff answer."
+                if limitations
+                else "No authorized source posts are available for this question."
+            ),
             "delivery": delivery,
+            "knowledge_cutoff": cutoff_text,
+            "grounding_status": grounding_status,
+            "limitations": limitations,
         }
     try:
         answer = await asyncio.to_thread(
-            chat_client.answer, _temporally_grounded_question(question_text, today=today), sources
+            chat_client.answer,
+            _temporally_grounded_question(
+                question_text, today=today, knowledge_cutoff=knowledge_cutoff
+            ),
+            usable_sources,
         )
     except (HttpClientError, OSError) as exc:
         # Known transport/provider failure. Same generic 503 text on every
@@ -391,16 +417,27 @@ async def compute_global_ask_answer(
     cited_ids = list(answer.cited_post_ids)
     verification_status, external_claims = await _verify_public_claims(
         question_text,
-        sources,
+        usable_sources,
         cited_ids,
         verify_external=verify_external,
         client=verification_client,
     )
-    async with pool.acquire() as conn:
-        lineage_graph = await lineage_graphs_for_posts(conn, can_see, cited_ids)
-        images = await cited_post_images(conn, cited_ids)
-    cited_posts = cited_post_summaries(sources, cited_ids)
-    cited_evidence = cited_post_evidence(sources, cited_ids)
+    if knowledge_cutoff is None:
+        async with pool.acquire() as conn:
+            lineage_graph = await lineage_graphs_for_posts(conn, can_see, cited_ids)
+            images = await cited_post_images(conn, cited_ids)
+    else:
+        lineage_graph = {"nodes": [], "edges": [], "truncated": False}
+        images = []
+    cited_posts = cited_post_summaries(usable_sources, cited_ids)
+    cited_evidence = cited_post_evidence(usable_sources, cited_ids)
+    next_action = _verification_next_action(verification_status)
+    if knowledge_cutoff is not None:
+        next_action = (
+            "Review unavailable historical channels before relying on this cutoff answer."
+            if limitations
+            else "Compare these cutoff-grounded citations with live evidence next."
+        )
     return {
         "answer_text": answer.answer_text,
         "cited_post_ids": cited_ids,
@@ -412,11 +449,19 @@ async def compute_global_ask_answer(
         "delivery": build_ask_delivery(answer.answer_text, cited_posts, cited_evidence),
         "external_verification_status": verification_status,
         "external_claims": [claim.to_payload() for claim in external_claims],
-        "next_action": _verification_next_action(verification_status),
+        "next_action": next_action,
+        "knowledge_cutoff": cutoff_text,
+        "grounding_status": grounding_status,
+        "limitations": limitations,
     }
 
 
-def _temporally_grounded_question(question_text: str, *, today: date | None = None) -> str:
+def _temporally_grounded_question(
+    question_text: str,
+    *,
+    today: date | None = None,
+    knowledge_cutoff: datetime | None = None,
+) -> str:
     """Restate a resolved relative-time window inside the question.
 
     Retrieval already scopes sources to the resolved window, but the
@@ -428,19 +473,26 @@ def _temporally_grounded_question(question_text: str, *, today: date | None = No
     """
     today = today or _seoul_today()
     window = resolve_korean_relative_time(question_text, today=today)
-    if window is None:
-        return question_text
-    start_date, end_date = window
-    # Phrasing matters: an earlier clause that only named the window was
-    # read by the model as the reference point ("now"), which re-subtracted
-    # the offset and looked for events seven further months back. Anchor
-    # today's date and equate the expression to the window outright.
-    return (
-        f"{question_text}\n(오늘은 {today.isoformat()}입니다. 질문의 상대 시점 표현은 "
-        f"{start_date.isoformat()}부터 {end_date.isoformat()}까지의 기간을 가리킵니다. "
-        "제공된 소스 게시물은 모두 이 기간에 작성된 것이므로, 이 기간의 일을 "
-        "이 소스들로 답하십시오.)"
-    )
+    grounded = question_text
+    if window is not None:
+        start_date, end_date = window
+        # Phrasing matters: an earlier clause that only named the window was
+        # read by the model as the reference point ("now"), which re-subtracted
+        # the offset and looked for events seven further months back. Anchor
+        # today's date and equate the expression to the window outright.
+        grounded = (
+            f"{question_text}\n(오늘은 {today.isoformat()}입니다. 질문의 상대 시점 표현은 "
+            f"{start_date.isoformat()}부터 {end_date.isoformat()}까지의 기간을 가리킵니다. "
+            "제공된 소스 게시물은 모두 이 기간에 작성된 것이므로, 이 기간의 일을 "
+            "이 소스들로 답하십시오.)"
+        )
+    if knowledge_cutoff is not None:
+        grounded += (
+            f"\n(Knowledge cutoff: {knowledge_cutoff.isoformat()}. Every numbered "
+            "source body is the retained revision available by this cutoff. Do not "
+            "claim that later evidence was known at the cutoff.)"
+        )
+    return grounded
 
 
 async def process_global_ask_job(
@@ -465,7 +517,8 @@ async def process_global_ask_job(
             """
             update global_ask_job set job_status_code = $2, updated_at = now()
             where global_ask_job_id = $1 and job_status_code = $3
-            returning requesting_account_id, question_text, verify_external_requested
+            returning requesting_account_id, question_text, verify_external_requested,
+                      knowledge_cutoff
             """,
             job_id,
             RUNNING,
@@ -501,6 +554,7 @@ async def process_global_ask_job(
                 embedding_client=embedding_factory(),
                 verify_external=bool(row["verify_external_requested"]),
                 claim_verification_client=claim_verification_factory(),
+                knowledge_cutoff=row["knowledge_cutoff"],
             ),
             timeout=JOB_DEADLINE_SECONDS,
         )

@@ -324,7 +324,7 @@ def test_global_sources_keep_graph_facts_with_their_evidence_source(monkeypatch)
         async def fetch(self, query: str, *args):
             return rows if "from source_post" in query else []
 
-    async def fake_graph_facts(_conn, _visible_post_ids):
+    async def fake_graph_facts(_conn, _visible_post_ids, _knowledge_cutoff=None):
         return {"post-b": ("fact evidenced by post-b",)}
 
     monkeypatch.setattr(
