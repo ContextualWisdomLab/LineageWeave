@@ -262,7 +262,16 @@ def _category_probabilities(model: str, theta: np.ndarray, fit: PolytomousFit) -
     """Delegate fitted-model predictions to fast-mlsirm's Rust authority."""
     if model != fit.model:
         raise ValueError("model must match the fitted item bank")
-    return np.asarray(polytomous_category_probabilities(fit, theta), dtype=np.float64)
+    probabilities = np.asarray(
+        polytomous_category_probabilities(fit, theta), dtype=np.float64
+    )
+    expected_shape = (len(theta), len(fit.slope), fit.cat_params.shape[1] + 1)
+    if probabilities.shape != expected_shape:
+        raise ValueError(
+            "fast-mlsirm category probabilities must have shape "
+            f"{expected_shape}, got {probabilities.shape}"
+        )
+    return probabilities
 
 
 def calibrate_period_report(

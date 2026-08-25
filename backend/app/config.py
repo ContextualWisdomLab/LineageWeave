@@ -56,7 +56,6 @@ class Settings:
     # call — hanging up earlier discards an answer the orchestrator has
     # already paid to generate (observed live as a BrokenPipe on its side).
     orchestrator_answer_timeout_seconds: float
-    embedding_model: str
     valkey_url: str
     searxng_base_url: str
     tepp_transport_url: str
@@ -167,7 +166,6 @@ def load_settings() -> Settings:
         orchestrator_answer_timeout_seconds=_validated_answer_timeout(
             os.environ.get("ORCHESTRATOR_ANSWER_TIMEOUT_SECONDS", "570")
         ),
-        embedding_model=os.environ.get("LLM_GATEWAY_EMBEDDING_MODEL", "").strip(),
         valkey_url=os.environ.get("VALKEY_URL", "redis://localhost:16379/0"),
         searxng_base_url=os.environ.get("SEARXNG_BASE_URL", ""),
         tepp_transport_url=os.environ.get("TEPP_TRANSPORT_URL", ""),

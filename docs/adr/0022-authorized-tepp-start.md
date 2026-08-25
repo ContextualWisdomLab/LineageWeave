@@ -26,7 +26,7 @@ missing or the envelope is not a persistable measurement.
 TEPP PR #155 publishes the LineageWeave modular-consumer exchange. Its
 analysis-run listener requires `tepp-consumer: lineageweave`,
 `tepp-contract-version: 1`, and an `idempotency-key` equal to the request
-body. The loopback service rejects authorization, cookie, and API-key
+body's `idempotency_key` field. The loopback service rejects authorization, cookie, and API-key
 headers. A plain JSON POST therefore cannot interoperate with that boundary.
 
 ## Decision

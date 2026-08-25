@@ -659,7 +659,12 @@ def test_keyverse_account_resolves_exact_scope_and_role_intersection(
         )
         role_id = cur.fetchone()[0]
         cur.execute(
-            "insert into role_permission (access_role_id, permission_code) values (%s, 'post_read')",
+            "insert into common_lookup_value (lookup_category, lookup_code, lookup_label) "
+            "values ('permission', 'post_admin', 'Administer posts') "
+            "on conflict (lookup_code) do nothing"
+        )
+        cur.execute(
+            "insert into role_permission (access_role_id, permission_code) values (%s, 'post_admin')",
             (role_id,),
         )
         cur.execute(
@@ -698,7 +703,7 @@ def test_keyverse_account_resolves_exact_scope_and_role_intersection(
 
     assert account.corporate_entity_ids == frozenset({seeded_db["own_corp_id"]})
     assert account.process_unit_ids == frozenset({process_unit_id})
-    assert account.permission_codes == frozenset({"post_read"})
+    assert account.permission_codes == frozenset({"post_admin"})
 
 
 def test_analysis_runs_are_labeled_aggregates_and_hide_other_scopes(

@@ -10,6 +10,8 @@ from __future__ import annotations
 import numpy as np
 import pytest
 
+import lineageweave.period_report as period_report_module
+
 from lineageweave.period_report import (
     LINK_METHOD_FIPC,
     LINK_METHOD_FREE,
@@ -26,6 +28,23 @@ from lineageweave.period_report import (
 )
 from lineageweave.fixtures import fixture_titles_in_iso_week
 from lineageweave.post_evaluation import CRITERION_CODES, IRT_CATEGORY_COUNT
+
+
+def test_category_probability_axis_drift_fails_closed(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Upstream prediction axes cannot silently corrupt report residuals."""
+    bank = _location_shifted_bank()
+    monkeypatch.setattr(
+        period_report_module,
+        "polytomous_category_probabilities",
+        lambda _fit, _theta: np.zeros((3, 2, 5)),
+    )
+
+    with pytest.raises(ValueError, match="must have shape"):
+        period_report_module._category_probabilities(
+            "grm", np.asarray([0.0, 1.0]), bank.as_fit()
+        )
 
 
 def test_high_category_posts_outrank_low_category_posts() -> None:

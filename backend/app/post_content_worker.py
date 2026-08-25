@@ -219,12 +219,15 @@ async def process_post_content_job(
     succeeded or durably failed for retry.
     """
     settings = load_settings()
+    require_orchestrator_evidence = bool(
+        settings.orchestrator_base_url and settings.orchestrator_api_key
+    )
     row = await _claim_job(
         pool,
         post_id,
         source_body_digest,
-        require_embedding=bool(settings.orchestrator_base_url and settings.orchestrator_api_key),
-        require_structure=bool(settings.orchestrator_base_url and settings.orchestrator_api_key),
+        require_embedding=require_orchestrator_evidence,
+        require_structure=require_orchestrator_evidence,
     )
     if row is None:
         return
@@ -255,10 +258,8 @@ async def process_post_content_job(
                     conn,
                     post_id,
                     embedding_model_code=getattr(embedding_client, "resolved_model", None),
-                    require_embedding=True,
-                    require_structure=bool(
-                        settings.orchestrator_base_url and settings.orchestrator_api_key
-                    ),
+                    require_embedding=require_orchestrator_evidence,
+                    require_structure=require_orchestrator_evidence,
                 )
             if not complete:
                 await _finish_failed_job(

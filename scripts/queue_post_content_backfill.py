@@ -51,7 +51,9 @@ async def queue_post_content_backfill(
     if limit is not None and limit < 1:
         raise ValueError("limit must be positive")
     settings = load_settings()
-    require_structure = bool(settings.orchestrator_base_url and settings.orchestrator_api_key)
+    require_orchestrator_evidence = bool(
+        settings.orchestrator_base_url and settings.orchestrator_api_key
+    )
 
     connection = await asyncpg.connect(target_dsn)
     client = redis.from_url(valkey_url, decode_responses=True)
@@ -83,15 +85,15 @@ async def queue_post_content_backfill(
                          from post_content_unit unit
                         where unit.post_id = post.post_id
                    )
-                   or exists (
+                   or ($1::boolean and exists (
                        select 1
                          from post_content_unit unit
                          left join post_content_embedding embedding
                            on embedding.post_content_unit_id = unit.post_content_unit_id
                         where unit.post_id = post.post_id
                           and embedding.post_content_embedding_id is null
-                   )
-                   or exists (
+                   ))
+                   or ($1::boolean and exists (
                        select 1
                          from post_content_unit unit
                          join post_content_image image
@@ -103,8 +105,8 @@ async def queue_post_content_backfill(
                         where unit.post_id = post.post_id
                           and region.description_status_code = 'described'
                            and embedding.post_content_image_region_embedding_id is null
-                   )
-                   or ($1::boolean and exists (
+                   ))
+                   or ($2::boolean and exists (
                        select 1
                          from post_content_unit unit
                          left join post_content_unit_structure structure
@@ -118,9 +120,10 @@ async def queue_post_content_backfill(
                    ))
                )
              order by post.created_at, post.post_id
-             limit $2::bigint
+             limit $3::bigint
             """,
-            require_structure,
+            require_orchestrator_evidence,
+            require_orchestrator_evidence,
             limit if limit is not None else 9223372036854775807,
         )
         for row in rows:
@@ -130,8 +133,8 @@ async def queue_post_content_backfill(
                 complete = await post_content_is_complete(
                     connection,
                     post_id,
-                    require_embedding=True,
-                    require_structure=require_structure,
+                    require_embedding=require_orchestrator_evidence,
+                    require_structure=require_orchestrator_evidence,
                 )
                 request = await ensure_post_content_job(
                     connection,
