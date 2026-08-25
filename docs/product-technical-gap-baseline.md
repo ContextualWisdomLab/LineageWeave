@@ -1,6 +1,6 @@
 # Product & Technical Gap Baseline
 
-> Audit snapshot: 2026-08-25 10:13 KST (refreshed by the autonomous merge
+> Audit snapshot: 2026-08-25 10:24 KST (refreshed by the autonomous merge
 > loop). This repository records synthetic fixtures and aggregate,
 > non-identifying runtime evidence only. Open PRs and local checks are not
 > protected-default-branch release evidence. Identifying post identifiers,
@@ -18,7 +18,7 @@ context only.
 | PR | Exact observed head | Merge/check state at this snapshot |
 | ---: | --- | --- |
 | #594 | `b90d3074` | removes the standalone conflict marker and duplicated stale tail introduced by #521; auto-merge armed, checks running |
-| #591 | `e2477ec5` | canonical current-queue baseline; exact-head checks and independent review pending |
+| #591 | `18f8825c` | canonical current-queue baseline; exact-head checks and independent review pending |
 | #588 | `dc60a08e` | ADR 0201 repair reconciled with current main; auto-merge armed, checks restarted |
 | #585 | `ffe1290b` | only locally-authored bounded job errors may persist; transport errors remain generic; auto-merge armed, checks restarted |
 | #584 | `17068ec3` | current-main ADR collision repaired; auto-merge armed, checks restarted |
@@ -26,7 +26,7 @@ context only.
 | #581 | `bc70e4bf` | event-time Ask filtering reconciled with current main; 90 backend tests and 10 frontend interaction/story tests passed; auto-merge armed |
 | #579 | `1aa69d29` | interaction-map and ADR 0202 coverage composed with the grouping strip; 41 backend and 7 frontend tests passed; auto-merge armed |
 | #564 | `62d3e124` | current-main reconciliation pushed; checks restarted |
-| #563 | `0b599ad0` | current-main reconciliation pushed; auto-merge armed, checks restarted |
+| #563 | `47c1f593` | cross share reconciled to the ADR 0182 raw-residual identity `R² = R̂² + U² + 2R̂U`; 54 backend and 58 targeted frontend tests plus lint passed; auto-merge armed |
 | #553 | `04969132` | blocked; auto-merge armed, review/checks pending |
 | #539 | `53c91cae` | current-main reconciliation pushed; checks restarted |
 | #537 | `ebfd712b` | current-main reconciliation pushed; checks restarted |
