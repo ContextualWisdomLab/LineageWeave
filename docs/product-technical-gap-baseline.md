@@ -16,7 +16,7 @@
 | Natural-language Ask with evidence, report, alert, MCP | Persisted semantic-unit embeddings plus versioned delivery/resource contract | Candidate implementation uses whole-question embedding retrieval with no lexical fallback; authenticated runtime acceptance pending |
 | Similar VOC, customer cohort, prior action | Persisted repeat-issue candidate semantics plus orchestrator pair adjudication and extractive evidence | Candidate live post endpoint and post-detail UI implemented; authenticated runtime acceptance pending |
 | TEPP independent Event Lineage anchor | Accepted, persisted TEPP criterion bound to exact snapshot/cutoff before fast-mlsirm activation | Consumer PR #606 is on protected main; TEPP producer PR #237 remains open, so no end-to-end accepted artifact is release evidence yet |
-| Temporal Lineage topics and multilevel important posts | ADR 0210; TEPP posterior topic/plausible-value contract followed by fast-mlsirm observed-information case-deletion influence | Product/technical contract is protected on `main`; neither required Rust CPU/GPU producer envelope is shipped, so the Dashboard surface remains unavailable (ADR 0208: no local Python substitute) |
+| Temporal Lineage topics and multilevel important posts | ADR 0210; TEPP posterior topic/plausible-value contract followed by fast-mlsirm observed-information case-deletion influence | This stacked candidate adds normalized persistence, exact run/snapshot/cutoff binding, pre-aggregation scope authorization, API diagnostics, and populated/unavailable Storybook surfaces. TEPP PR #247 remains open, #248 exports Laplace moments explicitly short of plausible values, and fast-mlsirm #1395 closed unmerged without a result envelope; runtime therefore remains honestly unavailable with no local Python or fallback score. |
 
 ### Technical contract and flow
 
@@ -60,6 +60,14 @@ build was inspected at 1440×1000 and 390×844 and exposes neither corpus-wide
 total/pending/failed counts nor a misleading corpus failure alert in that scoped
 destination. Screenshots remain local synthetic audit evidence and are not
 committed.
+The stacked topic-context consumer adds `TopicInfluenceAccepted` and the
+unavailable topic section in `EvidenceReady`. Synthetic screenshots were
+inspected at 1440×1200 and 390×844. At 390px the page had zero document-level
+horizontal overflow while each exact-value table retained its named,
+keyboard-focusable 332px viewport over 784px of table content. The new source
+actions measured 54px high; sampled heading, caption, and table-header contrast
+was 20.15:1, 5.73:1, and 18.62:1. Authenticated runtime evidence remains
+required before protected delivery can be claimed.
 Authenticated authorized-corpus acceptance remains separate and may return
 only aggregate, non-identifying evidence to this repository.
 
