@@ -88,7 +88,7 @@ context only.
 
 | PR | Exact observed head | Merge/check state at this snapshot |
 | ---: | --- | --- |
-| #657 | `c7d81213` | persisted TEPP asynchronous lifecycle evidence; checks and independent review remain required |
+| #657 | `c7d81213` | TEPP asynchronous lifecycle evidence; terminal-status persistence repaired and focused tests passed; hosted checks and independent review remain required |
 | #644 | `c1018a0a` | frontend conditional workspace splitting; checks and independent review remain required |
 | #643 | `041ec13b` | shared token-backed status notice; checks and independent review remain required |
 | #640 | `175db369` | dashboard case metrics, project journeys, restored TEPP API-key setting, and semantic-label spacing; focused exact-head PostgreSQL contract passed; hosted checks and independent review remain required |
