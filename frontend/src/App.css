@@ -1180,7 +1180,7 @@
   font-size: 0.8rem;
 }
 
-.ontology-node-type {
+.ontology-node text.ontology-node-type {
   font-size: 0.7rem;
   fill: var(--color-text);
 }

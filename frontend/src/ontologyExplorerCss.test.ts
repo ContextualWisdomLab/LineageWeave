@@ -11,4 +11,8 @@ describe("Ontology Explorer CSS contracts", () => {
   it("defines the ontology node focus-visible rule exactly once", () => {
     expect(appCss.match(/\.ontology-node:focus-visible\s*\{/g)).toHaveLength(1);
   });
+
+  it("lets the node-type label override the shared node text color", () => {
+    expect(appCss).toContain(".ontology-node text.ontology-node-type {");
+  });
 });
