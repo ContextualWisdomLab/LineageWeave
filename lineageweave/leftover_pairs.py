@@ -251,7 +251,7 @@ def leftover_map_from_residual(
         # ADR 0168: without a complete-case Gabriel map there is no
         # leftover pair to name. The report carries coverage counts
         # instead of a center-distance stand-in pair.
-        return LeftoverInteractionMap(pairs=(), persons=persons, items=items, axes=axes)
+        return LeftoverInteractionMap(pairs=(), persons=persons, items=items, axes=())
     closest = min(candidates, key=lambda row: (row[0], row[1], row[2]))
     farthest = max(candidates, key=lambda row: (row[0], row[1], row[2]))
     return LeftoverInteractionMap(

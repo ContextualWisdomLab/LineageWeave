@@ -118,6 +118,7 @@ describe("App, authenticated", () => {
     contentAfterSummary?: boolean;
     askLineageGraph?: boolean;
     askImageCitation?: boolean;
+    criteriaOnlyLeftoverMap?: boolean;
   }): ReturnType<typeof vi.fn> & { releaseMe: () => void; releasePostOne: () => void } {
     const statusLabel: Record<string, string> = {
       open: "Open",
@@ -997,7 +998,7 @@ describe("App, authenticated", () => {
                     leftover_map_cross_share: -0.24,
                   },
                 ],
-                leftover_map_persons: [
+                leftover_map_persons: options?.criteriaOnlyLeftoverMap ? [] : [
                   { post_id: "post-1", post_title: "Public post", axis_one: -0.5, axis_two: 0.1 },
                   {
                     post_id: "post-2",
@@ -3957,6 +3958,14 @@ describe("App, authenticated", () => {
       await screen.findByRole("button", { name: "Open leftover map criterion: sales-lead" }),
     );
     await waitFor(() => expect(screen.getByText("The full body text.")).toBeInTheDocument());
+  });
+
+  it("does not render a leftover map without authorized post coordinates", async () => {
+    stubBackend({ criteriaOnlyLeftoverMap: true });
+    render(<App showLabPanels />);
+
+    expect(await screen.findByLabelText("Leftover map coverage")).toBeInTheDocument();
+    expect(screen.queryByLabelText("Leftover interaction map")).not.toBeInTheDocument();
   });
 
   it("opens Event Lineage, Keyman, and evaluation from a report member click", async () => {

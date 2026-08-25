@@ -38,7 +38,7 @@ length (0181 on the length stack), leftover-map cosine (0180),
 leftover-map inner product (0179), leftover residual disclosure
 (0178), leftover observed `Y` / expected `E` (0177), leftover-map
 rank (0172), two-axis leftover-map distance (0166), leftover coverage
-(0183), leftover-map axis share (0148), or leftover interaction-map
+(0168), leftover-map axis share (0148), or leftover interaction-map
 persistence (0121).
 
 ## Decision

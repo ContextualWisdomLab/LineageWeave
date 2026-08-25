@@ -235,6 +235,7 @@ def test_disconnected_observations_emit_no_pairs_and_no_coordinates() -> None:
     assert leftover_map.persons == ()
     assert leftover_map.items == ()
     assert leftover_map.pairs == ()
+    assert leftover_map.axes == ()
 
 
 def test_leftover_map_pads_rank_one_axis_two_to_zero() -> None:

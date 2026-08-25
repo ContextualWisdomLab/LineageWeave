@@ -3544,8 +3544,8 @@ function ReportsPanel({
                 {report.selected_items[0].information.toFixed(2)}
               </span>
             )}
-            {((report.leftover_map_persons && report.leftover_map_persons.length > 0) ||
-              (report.leftover_map_items && report.leftover_map_items.length > 0)) && (
+            {report.leftover_map_persons && report.leftover_map_persons.length > 0 &&
+              report.leftover_map_items && report.leftover_map_items.length > 0 && (
               <LeftoverInteractionMap
                 persons={report.leftover_map_persons ?? []}
                 items={report.leftover_map_items ?? []}
