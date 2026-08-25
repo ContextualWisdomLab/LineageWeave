@@ -101,10 +101,6 @@ re-fetch the head, unresolved threads, formal reviews, rulesets, and same-head
 check conclusions. In particular, queued checks are infrastructure state and
 do not transfer evidence from an earlier SHA.
 
-PR #664 merged as `b2e48d5b0db59f5aa434e2a293cd182ee810c019`
-into #660's non-default branch. Its semantic-unit implementation is therefore
-stack evidence only until #660 passes the protected-`main` gate.
-
 PR #607 first merged as `61fd631c7bb3c57113fd19763c2c43161eeb2824`
 into #606's non-default branch. PR #606 subsequently passed the protected gate,
 so the combined TEPP-consumer and operations-dashboard implementation is now
