@@ -24,7 +24,7 @@ context only.
 | #584 | `17068ec3` | current-main ADR collision repaired; auto-merge armed, checks restarted |
 | #582 | `f062acd4` | current-main reconciliation pushed; checks restarted |
 | #581 | `c4f41dc0` | current-main reconciliation pushed; checks restarted |
-| #579 | `57b6ae83` | blocked; Full suite and Strix failed |
+| #579 | `769095b2` | complete-case coverage ADR allocated as 0202; auto-merge armed, checks restarted |
 | #564 | `62d3e124` | current-main reconciliation pushed; checks restarted |
 | #563 | `0b599ad0` | current-main reconciliation pushed; auto-merge armed, checks restarted |
 | #553 | `04969132` | blocked; auto-merge armed, review/checks pending |
