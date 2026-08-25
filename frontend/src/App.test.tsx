@@ -846,6 +846,16 @@ describe("App, authenticated", () => {
                 mean_theta: 0.81,
                 post_count: 4,
                 link_method: "fipc",
+                leftover_pairs: [
+                  {
+                    pair_kind: "closest",
+                    post_id: "post-1",
+                    post_title: "Public post",
+                    criterion_code: "sales_lead_specificity",
+                    leftover_distance: 0.12,
+                    leftover_residual: 0.4,
+                  },
+                ],
               },
             ],
           }),
@@ -3765,6 +3775,11 @@ describe("App, authenticated", () => {
     expect(screen.getByRole("status")).toHaveTextContent(
       "A-100 is the opened grouping. Read its mean θ and member posts below, then open a post.",
     );
+    expect(
+      screen.getByRole("button", {
+        name: /open leftover closest pair from comparison: public post/i,
+      }),
+    ).toHaveTextContent("Closest leftover: Public post · sales-lead");
     await waitFor(() =>
       expect(fetchMock).toHaveBeenCalledWith(
         expect.stringContaining("/api/reports/thread_group/2026-W02"),
@@ -3780,6 +3795,18 @@ describe("App, authenticated", () => {
     await userEvent.click(await screen.findByRole("button", { name: /open report period 2026-W03/i }));
     const periodInput = screen.getByLabelText("Report period");
     expect(periodInput).toHaveValue("2026-W03");
+  });
+
+  it("opens a leftover pair post from the comparison strip", async () => {
+    stubBackend();
+    render(<App showLabPanels />);
+
+    await userEvent.click(
+      await screen.findByRole("button", {
+        name: /open leftover closest pair from comparison: public post/i,
+      }),
+    );
+    await waitFor(() => expect(screen.getByText("The full body text.")).toBeInTheDocument());
   });
 
   it("opens a leftover pair post from the report panel", async () => {
