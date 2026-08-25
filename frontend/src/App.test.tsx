@@ -2258,12 +2258,34 @@ describe("App, authenticated", () => {
 
     await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
 
-    const popup = document.querySelector(".popup-panel") as HTMLElement;
+    const popup = screen.getByRole("dialog", { name: "Post details" });
+    expect(popup).toHaveFocus();
     expect(within(popup).getByRole("status")).toHaveTextContent("Loading...");
 
     fetchMock.releasePostOne();
     await waitFor(() => expect(screen.getByText("The full body text.")).toBeInTheDocument());
     expect(within(popup).queryByText("Loading...")).not.toBeInTheDocument();
+    expect(popup).toHaveAccessibleName("Public post");
+  });
+
+  it("closes the post-detail dialog with Escape and restores focus to its opener", async () => {
+    stubBackend();
+    render(<App showLabPanels />);
+
+    const opener = await screen.findByRole("button", { name: "View post: Public post" });
+    await userEvent.click(opener);
+    const dialog = await screen.findByRole("dialog", { name: "Public post" });
+    expect(dialog).toHaveFocus();
+
+    await userEvent.tab({ shift: true });
+    const focusable = within(dialog).getAllByRole("button").filter((button) => !button.hasAttribute("disabled"));
+    expect(focusable.at(-1)).toHaveFocus();
+    await userEvent.tab();
+    expect(within(dialog).getByRole("button", { name: "Close" })).toHaveFocus();
+
+    await userEvent.keyboard("{Escape}");
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(opener).toHaveFocus();
   });
 
   it("switches the product surface between supported languages", async () => {

@@ -1788,6 +1788,53 @@ function PostDetailPopup({
   const [focusEntity, setFocusEntity] = useState<{ entityId: string; entityName: string } | null>(null);
   const [focusTeam, setFocusTeam] = useState<{ teamId: string; teamName: string } | null>(null);
   const contentReloadRef = useRef<() => void>(() => undefined);
+  const dialogRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const previouslyFocused = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        onClose();
+        return;
+      }
+      if (event.key !== "Tab") return;
+
+      const dialog = dialogRef.current;
+      if (!dialog) return;
+      const focusable = Array.from(
+        dialog.querySelectorAll<HTMLElement>(
+          'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+        ),
+      ).filter((element) => !element.hasAttribute("hidden") && element.getAttribute("aria-hidden") !== "true");
+      if (focusable.length === 0) {
+        event.preventDefault();
+        dialog.focus();
+        return;
+      }
+
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      const active = document.activeElement;
+      if (active === dialog || !dialog.contains(active)) {
+        event.preventDefault();
+        (event.shiftKey ? last : first).focus();
+      } else if (event.shiftKey && active === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && active === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+    dialogRef.current?.focus();
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+      if (previouslyFocused?.isConnected) previouslyFocused.focus();
+    };
+  }, [onClose]);
 
   function reloadKeymen() {
     fetchPostKeymen(accessToken, postId)
@@ -1973,13 +2020,22 @@ function PostDetailPopup({
 
   return (
     <div className="popup-backdrop" onClick={onClose}>
-      <div className="popup-panel" onClick={(event) => event.stopPropagation()}>
+      <div
+        ref={dialogRef}
+        className="popup-panel"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={post ? "post-detail-title" : undefined}
+        aria-label={post ? undefined : t("Post details")}
+        tabIndex={-1}
+        onClick={(event) => event.stopPropagation()}
+      >
         <PopupCloseButton onClose={onClose} label={t("Close")} />
         {error && <p className="error">{error}</p>}
         {!post && !error && <p role="status">{t("Loading...")}</p>}
         {post && (
           <>
-            <h2>{post.post_title}</h2>
+            <h2 id="post-detail-title">{post.post_title}</h2>
             <p className="post-meta">
               {post.voc_type_label ?? post.voc_type_code} &middot;{" "}
               {post.visibility_label ?? post.visibility_code} &middot;{" "}
