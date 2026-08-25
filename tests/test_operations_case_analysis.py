@@ -141,3 +141,6 @@ def test_accepts_grounded_nonrequired_fact_after_required_questions_are_complete
     }]
 
     assert parse_operations_case_response(json.dumps(payload), body) is not None
+
+    payload[0]["missing_fact_type_codes"] = ["our_owner"]
+    assert parse_operations_case_response(json.dumps(payload), body) is None
