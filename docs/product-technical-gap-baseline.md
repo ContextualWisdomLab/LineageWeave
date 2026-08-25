@@ -61,7 +61,7 @@ only aggregate, non-identifying evidence to this repository.
 ### Exact open-PR boundary
 
 At this snapshot there were 13 open PRs and 10 open issues. Exact observed heads
-were `#660 7d0d3ef7`, `#659 0d3a345b`, `#658 09d5bd05`, `#657 64f48679`, `#644 d9ff9980`, `#643 dc47a19f`, `#640 4bed57a7`,
+were `#660 7d0d3ef7`, `#659 0d3a345b`, `#658 3e47cf9c`, `#657 64f48679`, `#644 d9ff9980`, `#643 dc47a19f`, `#640 4bed57a7`,
 `#639 aee02dca`, `#636 f7b9a65f`, `#632 9332b921`, `#631 c0022c97`,
 `#629 4b4d6707`, and `#579 689a21b6`. PR #654 merged its ontology-label
 readability slice into #632's provenance branch as `6c0c4370`; that stack
@@ -90,7 +90,7 @@ context only.
 | ---: | --- | --- |
 | #660 | `7d0d3ef7` | backend runtime/integration contract restoration with FastAPI status API and existing httpx2 test extra preserved; architecture documentation now matches the dev-only Starlette transport; config tests passed 10; hosted checks and independent review remain required |
 | #659 | `0d3a345b` | ontology node-type readability, tokenized surfaces, contrast measurement, and resolved cross-PR allocation documentation; focused UI/token tests and lint passed; hosted checks and independent review remain required |
-| #658 | `09d5bd05` | optional Global Ask knowledge cutoff; empty-cutoff answers no longer overclaim grounding, live answers expose `live_only`, local cutoff input is converted to UTC, guidance localized, cutoff clocks normalized, and current-only lineage/images are gated off; backend 23-test and frontend 96-test suites passed; hosted checks and independent review remain required |
+| #658 | `3e47cf9c` | optional Global Ask knowledge cutoff; empty-cutoff answers no longer overclaim grounding, live answers expose `live_only`, local cutoff input is converted to UTC, content-change evidence now comes from revision intervals rather than unrelated live-row touches, and current-only lineage/images are gated off; cutoff/source-revision suites passed 20 tests; hosted checks and independent review remain required |
 | #657 | `64f48679` | TEPP asynchronous lifecycle evidence; terminal-status persistence, receipt-conflict isolation, migration reservation, and fail-closed schema handling repaired, with 57 focused tests passed; hosted checks and independent review remain required |
 | #644 | `d9ff9980` | frontend conditional workspace splitting with reserved surface-splitting ADR identity; checks and independent review remain required |
 | #643 | `dc47a19f` | shared token-backed status notice with reserved ADR identity; checks and independent review remain required |
