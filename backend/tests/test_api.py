@@ -191,6 +191,11 @@ _GLOBAL_ASK_SCOPE_MIGRATION = (
     / "migrations"
     / "0203_global_ask_authorization_scope.sql"
 )
+_GLOBAL_ASK_PUBLIC_VERIFICATION_MIGRATION = (
+    Path(__file__).resolve().parents[2]
+    / "migrations"
+    / "0211_global_ask_public_verification.sql"
+)
 _LEFTOVER_MAP_AXIS_MIGRATION = (
     Path(__file__).resolve().parents[2]
     / "migrations"
@@ -365,6 +370,7 @@ def seeded_db(demo_analyst_token):
             cur.execute(_LEFTOVER_MAP_COVERAGE_MIGRATION.read_text())
             cur.execute(_GLOBAL_ASK_JOB_MIGRATION.read_text())
             cur.execute(_GLOBAL_ASK_SCOPE_MIGRATION.read_text())
+            cur.execute(_GLOBAL_ASK_PUBLIC_VERIFICATION_MIGRATION.read_text())
             cur.execute(_EVENT_OCCURRED_AT_MIGRATION.read_text())
             cur.execute(_LEFTOVER_MAP_AXIS_MIGRATION.read_text())
             cur.execute(_CHANNEL_EVIDENCE_MIGRATION.read_text())
@@ -5122,6 +5128,86 @@ def test_ask_queues_a_job_and_polls_it_to_a_settled_answer(
     assert answer["answer_text"] == "A settled asynchronous answer."
     assert answer["cited_post_ids"], "the fake client cited one source"
     assert "lineage_graph" in answer and "cited_post_images" in answer
+
+
+def test_ask_public_verification_is_opt_in_and_separate_from_post_citations(
+    client, demo_analyst_token, seeded_db, monkeypatch
+) -> None:
+    """A cited public semantic claim can be refuted without changing its post id."""
+
+    import time as _time
+
+    from lineageweave import claim_verification as cv
+    from lineageweave.post_chat import ChatAnswer
+
+    class _FakeChatClient:
+        available = True
+
+        def answer(self, question, sources):  # noqa: ARG002 - contract shape
+            return ChatAnswer("Internal answer.", (sources[0].post_id,))
+
+    class _FakeVerificationClient:
+        available = True
+
+        def verify(self, claim):
+            return cv.ClaimVerificationResult(
+                claim.claim_text,
+                claim.claim_kind,
+                cv.CLAIM_REFUTED,
+                "The selected public evidence conflicts with the claim.",
+                claim.source_post_ids,
+                (
+                    cv.ExternalEvidenceDocument(
+                        "Public evidence",
+                        "https://example.com/public-evidence",
+                        "The published record describes a conflicting state.",
+                    ),
+                ),
+            )
+
+    with closing(psycopg2.connect(seeded_db["dsn"])) as conn, conn.cursor() as cur:
+        cur.execute(
+            """
+            insert into post_project_mention
+                (post_id, project_key, project_name, evidence_text, confidence,
+                 ontology_iri, extraction_method)
+            values (%s, 'synthetic-apollo', 'Apollo', 'Public project evidence',
+                    1.0, 'https://contextualwisdomlab.github.io/LineageWeave/ontology#Project',
+                    'synthetic_test')
+            """,
+            (seeded_db["public_post_id"],),
+        )
+        conn.commit()
+
+    monkeypatch.setattr("backend.app.main._post_chat_client", lambda **_kwargs: _FakeChatClient())
+    monkeypatch.setattr(
+        "backend.app.main._claim_verification_client",
+        lambda: _FakeVerificationClient(),
+    )
+    headers = {"Authorization": f"Bearer {demo_analyst_token}"}
+    submitted = client.post(
+        "/api/ask",
+        json={"question": "Apollo", "verify_external": True},
+        headers=headers,
+    )
+    assert submitted.status_code == 202
+    job_id = submitted.json()["ask_job_id"]
+
+    deadline = _time.monotonic() + 30
+    body: dict = {}
+    while _time.monotonic() < deadline:
+        body = client.get(f"/api/ask/jobs/{job_id}", headers=headers).json()
+        if body["job_status_code"] in ("succeeded", "failed"):
+            break
+        _time.sleep(0.25)
+
+    assert body.get("job_status_code") == "succeeded", body
+    answer = body["answer"]
+    assert answer["source_post_ids"] == [seeded_db["public_post_id"]]
+    assert answer["external_verification_status"] == cv.VERIFICATION_COMPLETED
+    assert answer["external_claims"][0]["status_code"] == cv.CLAIM_REFUTED
+    assert answer["cited_post_ids"] == [seeded_db["public_post_id"]]
+    assert "https://example.com/public-evidence" not in answer["cited_post_ids"]
 
 
 def test_ask_job_reads_are_owner_scoped(

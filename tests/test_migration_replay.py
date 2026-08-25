@@ -195,3 +195,17 @@ def test_global_ask_job_migrations_are_idempotent_for_replay() -> None:
     assert "create table if not exists global_ask_job" in job_sql
     assert job_sql.count("create index if not exists") == 2
     assert scope_sql.count("create table if not exists") == 2
+
+
+def test_global_ask_public_verification_opt_in_is_replay_safe() -> None:
+    """The durable worker receives explicit consent on old and new volumes."""
+
+    sql = (
+        Path(__file__).resolve().parents[1]
+        / "migrations"
+        / "0211_global_ask_public_verification.sql"
+    ).read_text(encoding="utf-8")
+
+    assert "verify_external_requested boolean not null default false" in sql
+    assert "add column if not exists" in sql
+    assert "data_type <> 'boolean'" in sql

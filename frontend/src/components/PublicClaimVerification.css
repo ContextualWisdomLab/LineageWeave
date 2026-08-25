@@ -1,0 +1,30 @@
+.public-claim-verification {
+  display: grid;
+  gap: var(--space-panel-block);
+}
+
+.public-claim-card {
+  display: grid;
+  gap: var(--space-control-gap);
+}
+
+.public-claim-card + .public-claim-card {
+  border-block-start: 1px solid var(--color-border);
+  padding-block-start: var(--space-panel-block);
+}
+
+.public-claim-evidence {
+  display: grid;
+  gap: var(--space-control-gap);
+  margin-block: 0;
+}
+
+.public-claim-evidence li {
+  display: grid;
+  gap: var(--space-control-gap);
+}
+
+.public-claim-evidence a {
+  width: fit-content;
+  min-height: var(--size-control-min);
+}
