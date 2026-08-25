@@ -14,14 +14,18 @@ with a real Postgres, same spirit as the real-provider LLM tests.
 
 from __future__ import annotations
 
+import asyncio
 import os
 import uuid
 from pathlib import Path
 from urllib.parse import urlsplit, urlunsplit
 
+import asyncpg
 import psycopg2
 import psycopg2.errors
 import pytest
+
+from backend.app.post_chat_ingestion import gather_global_chat_sources
 
 _ADMIN_DSN = os.environ.get(
     "LINEAGEWEAVE_TEST_POSTGRES_ADMIN_DSN", "postgresql://localhost/postgres"
@@ -36,6 +40,27 @@ _PROJECT_MENTION_MIGRATION = (
     Path(__file__).resolve().parents[1]
     / "migrations"
     / "0031_semantic_project_mentions.sql"
+)
+_POST_CONTENT_MIGRATION = (
+    Path(__file__).resolve().parents[1] / "migrations" / "0026_post_content_artifacts.sql"
+)
+_SOURCE_STATE_MIGRATION = (
+    Path(__file__).resolve().parents[1] / "migrations" / "0033_source_state_provenance.sql"
+)
+_SOURCE_CONTEXT_MIGRATION = (
+    Path(__file__).resolve().parents[1] / "migrations" / "0034_source_context_provenance.sql"
+)
+_SOURCE_IDENTITY_MIGRATION = (
+    Path(__file__).resolve().parents[1] / "migrations" / "0037_source_record_identity.sql"
+)
+_SOURCE_NAMED_HINTS_MIGRATION = (
+    Path(__file__).resolve().parents[1] / "migrations" / "0038_source_named_hints.sql"
+)
+_SOURCE_ORG_HINTS_MIGRATION = (
+    Path(__file__).resolve().parents[1] / "migrations" / "0039_source_org_named_hints.sql"
+)
+_SOURCE_EVENT_TIME_MIGRATION = (
+    Path(__file__).resolve().parents[1] / "migrations" / "0183_source_post_event_occurred_at.sql"
 )
 _PROJECT_BOUND_ACTION_MIGRATION = (
     Path(__file__).resolve().parents[1]
@@ -76,6 +101,11 @@ _LEFTOVER_MAP_AXIS_MIGRATION = (
     Path(__file__).resolve().parents[1]
     / "migrations"
     / "0169_report_leftover_map_axis.sql"
+)
+_GLOBAL_ASK_EVIDENCE_SEARCH_MIGRATION = (
+    Path(__file__).resolve().parents[1]
+    / "migrations"
+    / "0210_global_ask_evidence_search_indexes.sql"
 )
 _CHANNEL_EVIDENCE_MIGRATION = (
     Path(__file__).resolve().parents[1]
@@ -160,9 +190,14 @@ def schema_db():
         try:
             with conn.cursor() as cur:
                 cur.execute(_MIGRATION_PATH.read_text())
-                cur.execute(_ANALYSIS_RUN_REGISTRY_MIGRATION.read_text())
-                cur.execute(_TOPIC_LINEAGE_KIND_MIGRATION.read_text())
+                cur.execute(_POST_CONTENT_MIGRATION.read_text())
                 cur.execute(_PROJECT_MENTION_MIGRATION.read_text())
+                cur.execute(_SOURCE_STATE_MIGRATION.read_text())
+                cur.execute(_SOURCE_CONTEXT_MIGRATION.read_text())
+                cur.execute("create extension if not exists pg_trgm")
+                cur.execute(_SOURCE_IDENTITY_MIGRATION.read_text())
+                cur.execute(_SOURCE_NAMED_HINTS_MIGRATION.read_text())
+                cur.execute(_SOURCE_ORG_HINTS_MIGRATION.read_text())
                 cur.execute(_MAJOR_EVENT_ACTION_MIGRATION.read_text())
                 cur.execute(_PROJECT_BOUND_ACTION_MIGRATION.read_text())
                 cur.execute(_PROJECT_BOUND_EVENT_MIGRATION.read_text())
@@ -175,11 +210,8 @@ def schema_db():
                 cur.execute(_LEFTOVER_MAP_UNEXPLAINED_MIGRATION.read_text())
                 cur.execute(_LEFTOVER_MAP_CROSS_SHARE_MIGRATION.read_text())
                 cur.execute(_LEFTOVER_MAP_RECONSTRUCTION_MIGRATION.read_text())
-                cur.execute(_OPERATIONS_CASE_MIGRATION.read_text())
-                cur.execute(_OPERATIONS_CASE_EVIDENCE_MIGRATION.read_text())
-                cur.execute(_OPERATIONS_CASE_MISSING_MIGRATION.read_text())
-                cur.execute(_TOPIC_CONTEXT_INFLUENCE_MIGRATION.read_text())
-                cur.execute(_OPERATIONS_EXTERNAL_RELATION_MIGRATION.read_text())
+                cur.execute(_SOURCE_EVENT_TIME_MIGRATION.read_text())
+                cur.execute(_GLOBAL_ASK_EVIDENCE_SEARCH_MIGRATION.read_text())
             conn.commit()
             yield conn
         finally:
@@ -250,132 +282,172 @@ def test_migration_applies_cleanly(schema_db) -> None:
     assert expected <= tables
 
 
-def test_topic_influence_schema_binds_exact_producer_provenance(schema_db) -> None:
-    """Accepted influence runs cannot cross a TEPP run, snapshot, or cutoff."""
+def test_global_ask_evidence_search_indexes_exist_on_normalized_tables(schema_db) -> None:
+    """The real PostgreSQL schema owns all nine evidence-search indexes."""
     with schema_db.cursor() as cur:
         cur.execute(
             """
-            select tgname
-              from pg_trigger
-             where tgname = 'topic_influence_run_binding_check'
-               and not tgisinternal
+            select indexname
+              from pg_indexes
+             where schemaname = 'public'
+               and (indexname like '%_evidence_search_idx'
+                    or indexname = 'knowledge_graph_edge_type_search_idx')
+             order by indexname
             """
         )
-        assert cur.fetchone() == ("topic_influence_run_binding_check",)
-        cur.execute(
-            """
-            select tgname
-              from pg_trigger
-             where tgname = 'topic_model_run_binding_check'
-               and not tgisinternal
-            """
-        )
-        assert cur.fetchone() == ("topic_model_run_binding_check",)
-        cur.execute(
-            """
-            select conname
-              from pg_constraint
-             where conrelid = 'topic_post_context_influence'::regclass
-               and contype = 'f'
-            """
-        )
-        foreign_keys = {row[0] for row in cur.fetchall()}
-    assert len(foreign_keys) == 3
+        index_names = [row[0] for row in cur.fetchall()]
 
-    account_id = uuid.uuid4()
-    snapshot_id = uuid.uuid4()
-    run_id = uuid.uuid4()
+    assert index_names == [
+        "cataloged_person_evidence_search_idx",
+        "cataloged_team_evidence_search_idx",
+        "common_lookup_value_evidence_search_idx",
+        "corporate_entity_evidence_search_idx",
+        "knowledge_graph_edge_type_search_idx",
+        "person_affiliation_evidence_search_idx",
+        "post_project_mention_evidence_search_idx",
+        "post_summary_role_evidence_search_idx",
+        "source_post_title_evidence_search_idx",
+    ]
+
+
+def test_global_ask_nominates_a_live_semantic_only_post(schema_db) -> None:
+    """Real PostgreSQL retrieves a post whose query term exists only in evidence."""
+    post_id = "30000000-0000-0000-0000-000000000001"
     with schema_db.cursor() as cur:
         cur.execute(
-            "insert into user_account (user_account_id, external_subject_id, display_name, email_address) values (%s, %s, %s, %s)",
-            (str(account_id), f"synthetic-{account_id}", "Synthetic Reviewer", f"synthetic-{account_id}@example.invalid"),
+            """
+            insert into common_lookup_value
+                (lookup_category, lookup_code, lookup_label)
+            values
+                ('corporate_entity_level', 'semantic_test_level', 'Synthetic level'),
+                ('voc_type', 'semantic_test_voc', 'Synthetic VOC'),
+                ('post_visibility', 'semantic_test_public', 'Synthetic public'),
+                ('person_side', 'semantic_test_person_side', 'Synthetic person side'),
+                ('node_type', 'node_person', 'Person'),
+                ('node_type', 'node_corporate_entity', 'Corporate entity'),
+                ('edge_type', 'edge_affiliation', 'Affiliated with')
+            """
         )
         cur.execute(
             """
-            insert into analysis_source_snapshot
-                (analysis_source_snapshot_id, snapshot_sha256, source_contract_version,
-                 maximum_available_time, captured_at, created_at)
-            values (%s, %s, 'synthetic-v1', '2026-08-01T00:00:00Z',
-                    '2026-08-02T00:00:00Z', '2026-08-03T00:00:00Z')
-            """,
-            (str(snapshot_id), "a" * 64),
+            insert into corporate_entity
+                (corporate_entity_id, corporate_entity_code, entity_name,
+                 entity_level_code)
+            values
+                ('10000000-0000-0000-0000-000000000001', 'SYNTH-CORP',
+                 'Synthetic Corp', 'semantic_test_level')
+            """
         )
         cur.execute(
             """
-            insert into analysis_run
-                (analysis_run_id, analysis_source_snapshot_id, run_kind_code,
-                 requested_by_account_id, idempotency_key, knowledge_cutoff,
-                 configuration_schema_version, configuration_sha256,
-                 code_revision_sha, requested_at)
-            values (%s, %s, 'analysis_run_topic_lineage', %s, 'synthetic-topic-run',
-                    '2026-08-01T00:00:00Z', 'synthetic-v1', %s, %s,
-                    '2026-08-04T00:00:00Z')
-            """,
-            (str(run_id), str(snapshot_id), str(account_id), "b" * 64, "c" * 40),
+            insert into user_account
+                (user_account_id, external_subject_id, display_name, email_address)
+            values
+                ('20000000-0000-0000-0000-000000000001', 'synthetic-subject',
+                 'Synthetic User', 'synthetic@example.invalid')
+            """
         )
-        cur.execute("savepoint topic_model_mismatch")
-        with pytest.raises(psycopg2.errors.RaiseException, match="topic_model_run_provenance_binding_mismatch"):
-            cur.execute(
-                """
-                insert into topic_model_run
-                    (analysis_run_id, tepp_run_id, tepp_snapshot_id,
-                     tepp_schema_version, tepp_model_contract_version,
-                     tepp_artifact_sha256, reported_source_snapshot_sha256,
-                     reported_knowledge_cutoff, posterior_draw_set_id,
-                     posterior_draw_count, topic_count, inference_status_code)
-                values (%s, 'tepp-mismatch', 'snapshot-mismatch',
-                        'tepp.topic_context_posterior.v1', 'trsl-tm-v1', %s, %s,
-                        '2026-08-01T00:00:00Z', 'draws-1', 8, 2,
-                        'posterior_topic_coordinates_not_importance')
-                """,
-                (str(run_id), "d" * 64, "e" * 64),
-            )
-        cur.execute("rollback to savepoint topic_model_mismatch")
         cur.execute(
             """
-            insert into topic_model_run
-                (analysis_run_id, tepp_run_id, tepp_snapshot_id,
-                 tepp_schema_version, tepp_model_contract_version,
-                 tepp_artifact_sha256, reported_source_snapshot_sha256,
-                 reported_knowledge_cutoff, posterior_draw_set_id,
-                 posterior_draw_count, topic_count, inference_status_code)
-            values (%s, 'tepp-accepted', 'snapshot-accepted',
-                    'tepp.topic_context_posterior.v1', 'trsl-tm-v1', %s, %s,
-                    '2026-08-01T00:00:00Z', 'draws-1', 8, 2,
-                    'posterior_topic_coordinates_not_importance')
-            returning topic_model_run_id
+            insert into source_post
+                (post_id, author_account_id, corporate_entity_id, post_title,
+                 post_body, voc_type_code, visibility_code)
+            values
+                (%s, '20000000-0000-0000-0000-000000000001',
+                 '10000000-0000-0000-0000-000000000001', 'Neutral title',
+                 'Neutral body', 'semantic_test_voc', 'semantic_test_public')
             """,
-            (str(run_id), "d" * 64, "a" * 64),
+            (post_id,),
         )
-        model_id = cur.fetchone()[0]
-        cur.execute("savepoint topic_influence_mismatch")
-        with pytest.raises(psycopg2.errors.RaiseException, match="topic_influence_provenance_binding_mismatch"):
-            cur.execute(
-                """
-                insert into topic_influence_run
-                    (topic_model_run_id, fast_mlsirm_schema_version,
-                     fast_mlsirm_version, fast_mlsirm_code_revision,
-                     fast_mlsirm_artifact_sha256, reported_tepp_run_id,
-                     reported_snapshot_sha256, reported_knowledge_cutoff,
-                     membership_fingerprint_sha256, compute_backend_code,
-                     precision_code, posterior_draw_coverage,
-                     convergence_status_code, identification_status_code,
-                     parity_status_code)
-                values (%s, 'fast_mlsirm.topic_context_influence.v1', '0.1.0',
-                        %s, %s, 'different-tepp-run', %s,
-                        '2026-08-01T00:00:00Z', %s, 'rust_cpu', 'f64', 8,
-                        'converged', 'identified', 'passed')
-                """,
-                (model_id, "f" * 40, "1" * 64, "a" * 64, "2" * 64),
-            )
-        cur.execute("rollback to savepoint topic_influence_mismatch")
-
-
-def test_topic_influence_projection_migration_replays(schema_db) -> None:
-    """The additive topic projection remains safe under sorted startup replay."""
-    with schema_db.cursor() as cur:
-        cur.execute(_TOPIC_CONTEXT_INFLUENCE_MIGRATION.read_text())
+        cur.execute(
+            """
+            insert into post_project_mention
+                (post_id, project_key, project_name, evidence_text, confidence,
+                 ontology_iri, extraction_method)
+            values
+                (%s, 'semantic-project', 'Exclusive Semantic Project',
+                 'Synthetic project evidence', 1.000,
+                 'https://contextualwisdomlab.github.io/LineageWeave/ontology#Project',
+                 'synthetic_test')
+            """,
+            (post_id,),
+        )
+        cur.execute(
+            """
+            insert into cataloged_person
+                (person_id, person_name, person_side_code, last_known_job_title)
+            values
+                ('40000000-0000-0000-0000-000000000001', 'Synthetic Expert',
+                 'semantic_test_person_side', 'Synthetic Reviewer')
+            """
+        )
+        cur.execute(
+            """
+            insert into person_affiliation
+                (person_id, affiliated_organization_name,
+                 affiliated_corporate_entity_id, role_title)
+            values
+                ('40000000-0000-0000-0000-000000000001', 'Synthetic Corp',
+                 '10000000-0000-0000-0000-000000000001', 'Synthetic Reviewer')
+            """
+        )
+        cur.execute(
+            """
+            insert into post_person_mention (post_id, person_id, mention_context)
+            values (%s, '40000000-0000-0000-0000-000000000001', 'Synthetic evidence')
+            """,
+            (post_id,),
+        )
+        cur.execute(
+            """
+            insert into knowledge_graph_edge
+                (knowledge_graph_edge_id, source_node_type_code, source_node_id,
+                 target_node_type_code, target_node_id, edge_type_code)
+            values
+                ('50000000-0000-0000-0000-000000000001', 'node_person',
+                 '40000000-0000-0000-0000-000000000001',
+                 'node_corporate_entity',
+                 '10000000-0000-0000-0000-000000000001', 'edge_affiliation')
+            """
+        )
     schema_db.commit()
+
+    async def retrieve(question: str) -> list:
+        conn = await asyncpg.connect(
+            database=schema_db.info.dbname,
+            host=schema_db.info.host or "localhost",
+            port=schema_db.info.port,
+            user=schema_db.info.user,
+        )
+        try:
+            return await gather_global_chat_sources(
+                conn,
+                lambda row: row["visibility_code"] == "semantic_test_public",
+                ["10000000-0000-0000-0000-000000000001"],
+                question=question,
+                question_embedding=([1.0, 0.0], "synthetic-model", 1.0),
+                limit=4,
+            )
+        finally:
+            await conn.close()
+
+    sources = asyncio.run(retrieve("Exclusive Semantic Project"))
+
+    assert [source.post_id for source in sources] == [post_id]
+    assert any(
+        "Exclusive Semantic Project" in fact for fact in sources[0].evidence_facts
+    )
+    assert [source.post_id for source in asyncio.run(retrieve("Synthetic Expert"))] == [
+        post_id
+    ]
+    assert [
+        source.post_id
+        for source in asyncio.run(
+            retrieve(
+                "https://contextualwisdomlab.github.io/LineageWeave/ontology#affiliatedWith"
+            )
+        )
+    ] == [post_id]
 
 
 def test_post_lineage_edge_requires_an_allen_interval_code(schema_db) -> None:

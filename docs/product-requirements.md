@@ -75,9 +75,14 @@ dangling endpoints fail closed; fixed input produces stable page boundaries.
 - Apply authorization/time/process scope before ranking and again before
   response delivery.
 - Keep internal post citations separate from external public citations.
+- Interpret natural-language retrieval through contextual-orchestrator while
+  accepting only literal question phrases; do not invent local stop-word,
+  expansion, scoring, or weighting rules.
 
 Acceptance: a semantic-only term can retrieve an authorized unit; private
-content never becomes an external query or citation.
+content never becomes an external query or citation; and multilingual
+conversational framing cannot suppress a persisted fact named by an exact
+question phrase.
 
 ### PRD-FR-5 — Evidence operations
 
@@ -95,6 +100,36 @@ Acceptance: each state tells the user the next valid action and never displays
 stale evidence from a previously opened post. An open lifecycle has a cited
 start, a missing end, and nullable elapsed time; a resolved lifecycle links both
 endpoint sources and names the source clock used for each instant.
+
+### PRD-FR-5A — Opt-in public claim verification
+
+- Persist an explicit per-question opt-in before any external search begins.
+- Nominate only cited, public semantic/KG facts; source bodies, private facts,
+  personal facts, and measurement outputs never become external queries.
+- Retrieve bounded public evidence through SearXNG and adjudicate through
+  contextual-orchestrator's verification mode.
+- Report supported, refuted, and not-enough-information outcomes without
+  promoting public pages to internal ontology authority.
+- Keep external URLs visually and structurally separate from authorized
+  internal post citations.
+
+Acceptance: leaving the control off causes no public request; hidden or
+uncited facts cause no public request; unavailable services fail closed; and
+each displayed public judgment retains its originating internal evidence IDs.
+
+### PRD-FR-5B — Knowledge-cutoff Global Ask
+
+- Persist the optional cutoff with the asynchronous request and reject a future
+  instant against the database clock.
+- Apply authorization, eligibility, and cutoff filters before candidate limits,
+  then cite the retained source revision available at that instant.
+- Never replace a missing historical body or semantic channel with current
+  state; expose the limitation and later-live-change status.
+- Preserve the live contract when no cutoff is supplied.
+
+Acceptance: a later rewrite never appears in a cutoff answer; an uncovered
+revision is explicitly unavailable; and API and rendered citations identify
+the retained revision and full/partial grounding state.
 
 ### PRD-FR-6 — Measurement boundary
 
@@ -172,10 +207,10 @@ A release claim requires one exact protected-main head that proves:
 ## 7. Traceability
 
 - Product/data boundary: ADR 0001, ADR 0089.
-- Asynchronous delivery and database-pool isolation: ADR 0204.
+- Asynchronous delivery and database-pool isolation: ADR 0204, ADR 0213.
 - Knowledge Graph, ontology, and provenance: ADR 0004, ADR 0011, ADR 0065,
   ADR 0184, ADR 0207.
-- Semantic units and retrieval: ADR 0047, ADR 0062, ADR 0102.
+- Semantic units and retrieval: ADR 0047, ADR 0062, ADR 0102, ADR 0217.
 - LLM/model boundary: ADR 0070, ADR 0072, ADR 0076, ADR 0079.
 - Measurement: ADR 0003, ADR 0145, ADR 0200, ADR 0205.
 - UX and publication: ADR 0118, ADR 0159.
