@@ -67,7 +67,7 @@ are not merge readiness. Re-fetch exact heads,
 unresolved threads, checks, approvals, rulesets, and merge SHA before any
 lifecycle claim.
 
-> Audit snapshot: 2026-08-26 05:27 KST (refreshed by the autonomous merge
+> Audit snapshot: 2026-08-26 05:31 KST (refreshed by the autonomous merge
 > loop). This repository records synthetic fixtures and aggregate,
 > non-identifying runtime evidence only. Open PRs and local checks are not
 > protected-default-branch release evidence. Identifying post identifiers,
@@ -84,7 +84,7 @@ context only.
 
 | PR | Exact observed head | Merge/check state at this snapshot |
 | ---: | --- | --- |
-| #663 | `e0cf4a20` (observed parent) | project ontology traversal plus complete RDFS/SKOS lookup-label invariant; this baseline commit advances the head, after which replacement hosted checks and independent approvals are required |
+| #663 | `1a0f65f5` | project ontology traversal plus complete RDFS/SKOS lookup-label invariant; replacement hosted checks and independent approvals are required |
 | #660 | `24fda085` | backend runtime and integration contract repairs; hosted checks still active |
 | #659 | `e948bd27` | ontology node readability and tokenized UI fills |
 | #658 | `fe830b0a` | evidence-honest Global Ask knowledge cutoff with client validation; hosted checks still active |
@@ -93,7 +93,7 @@ context only.
 | #643 | `0a1f8ec1` | accessible status-notice surfaces |
 | #640 | `2d50fa01` | operations-dashboard contract alignment |
 | #639 | `aee02dca` | terminal checks observed; exact-head independent approval still required |
-| #632 | `3584340c` | graph-fact provenance repair; replacement hosted checks and independent review required |
+| #632 | `cdd9df14` | graph-fact provenance repair; replacement hosted checks and independent review required |
 | #631 | `c0022c97` | terminal checks observed; exact-head independent approval still required |
 | #629 | `4b4d6707` | terminal checks observed; exact-head independent approval still required |
 
