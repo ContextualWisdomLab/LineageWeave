@@ -162,6 +162,20 @@ def test_ontology_annotations_use_skos_preferred_labels_for_concepts() -> None:
     assert {code: ontology_annotations(code)["ontology_label"] for code in expected} == expected
 
 
+def test_every_declared_lookup_term_has_one_runtime_label() -> None:
+    """Every governed lookup term is readable wherever its IRI is exposed."""
+    graph = load_ontology()
+    for code in all_declared_lookup_codes():
+        annotation = ontology_annotations(code)
+        assert annotation["ontology_iri"]
+        assert annotation["ontology_label"]
+        subject = URIRef(annotation["ontology_iri"])
+        labels = list(graph.objects(subject, RDFS.label)) or list(
+            graph.objects(subject, SKOS.prefLabel)
+        )
+        assert [str(label) for label in labels] == [annotation["ontology_label"]]
+
+
 def test_ontology_annotations_are_empty_for_an_undeclared_code() -> None:
     assert ontology_annotations("not_a_real_lookup_code") == {}
     # `open` is a real ticket_status lookup code this ontology
