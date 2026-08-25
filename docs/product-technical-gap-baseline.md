@@ -67,9 +67,9 @@ keyboard-focusable horizontal exact-values region; no label was truncated.
 
 ### Exact open-PR boundary
 
-At this snapshot there were 12 open PRs and 10 open issues. Exact observed heads
-were `#663 aa521abb`, `#660 24fda085`, `#659 0739b9d7`, `#658 fe830b0a`, `#657 64f48679`, `#644 d9ff9980`, `#643 0a1f8ec1`, `#640 2d50fa01`,
-`#639 aee02dca`, `#632 ff0c217a`, `#631 c0022c97`,
+At this snapshot there were 13 open PRs and 10 open issues. Exact observed heads
+were `#666 f369ca0b`, `#663 2488f0f0`, `#660 24fda085`, `#659 0739b9d7`, `#658 fe830b0a`, `#657 64f48679`, `#644 d9ff9980`, `#643 0a1f8ec1`, `#640 2d50fa01`,
+`#639 aee02dca`, `#632 702adf2d`, `#631 c0022c97`,
 `#629 4b4d6707`. PR #654 merged its ontology-label
 readability slice into #632's provenance branch as `6c0c4370`; that stack
 merge is not protected-main delivery. The open heads remain
@@ -88,7 +88,7 @@ lifecycle claim.
 ## 1. Exact-head and governance evidence
 
 The protected default branch was `04e6b610655d0db91d5f7ba9486bdda1440e0b19`
-when this baseline was refreshed. The live queue contained 12 open PRs and 10
+when this baseline was refreshed. The live queue contained 13 open PRs and 10
 open issues. The exact-head inventory below supersedes older per-PR snapshots
 elsewhere in this document; those older rows remain useful historical delivery
 context only.
@@ -100,6 +100,7 @@ context only.
 | #662 | `92534118` (closed unmerged) | TEPP terminal status/read transport boundary remained blocked and was closed as superseded by #657's stronger request/snapshot/cutoff/output lifecycle contract; retain its ADR/client-test evidence as historical gap context, with no protected-main delivery |
 | #664 | `be3e28cc` (merged into #660 branch) | explicit semantic content-unit kinds for paragraph, list, table, formula, and caller-parsed conversation turns; ADR 0223 and migration 0221 are now part of the non-default #660 stack; protected-main delivery is not implied |
 | #663 | `aa521abb` (observed parent) | evidence-backed Post → Project ontology neighborhood with canonical project keys, proposed truth status, project diamond/text labels, cutoff/snapshot-bounded project evidence, process-unit-complete Post-focus ABAC, migration replay hardening, canonical `mentions project` labeling, live ontology-publication evidence, and the complete #632 semantic/provenance stack through `ff0c217a`; the joined-row RDF projector emits the direct and reified ProjectMention chains with evidence, confidence, time, and PROV derivation and validates through shipped SHACL; the local candidate also composes #659's token-backed node surfaces and keyboard-focusable exact-value region, including a Project token reused from the design system; ontology/docstring tests passed 66, frontend passed 42 files/390 tests plus lint/build/Storybook, and synthetic desktop/mobile screenshot inspection passed; this stack refresh advances the head, after which hosted checks and independent review remain required |
+| #666 | `f369ca0b` | removes sampled region-coverage inference from VISION ingestion; any proper subregion now retains parent-image evidence without local rectangle-union arithmetic, with a tiled-region regression and ADR 0067 locator contract; image/normalization/ontology focused tests passed 56 with backend extras and documentation/docstring gates passed 7; this stacked PR targets #663, so hosted checks and independent review remain required and no protected-main delivery is implied |
 | #659 | `0739b9d7` | ontology node-type readability, tokenized surfaces, contrast measurement, keyboard-scrollable exact values, and resolved cross-PR allocation documentation; its exact head is now an ancestor of the local #663 candidate, but remains open until replacement delivery is protected; hosted checks and independent review remain required |
 | #658 | `fe830b0a` | optional Global Ask knowledge cutoff; empty-cutoff answers no longer overclaim grounding, live answers expose `live_only`, local cutoff input is converted to UTC, content-change evidence now comes from revision intervals rather than unrelated live-row touches, current-only lineage/images are gated off, ADR rollback instructions name the actual migration, and unused live-update selection was removed; cutoff/source-revision suites passed 20 tests; hosted checks and independent review remain required |
 | #657 | `64f48679` | TEPP asynchronous lifecycle evidence; terminal-status persistence, receipt-conflict isolation, migration reservation, and fail-closed schema handling repaired, with 57 focused tests passed; hosted checks and independent review remain required |
@@ -399,7 +400,7 @@ this file per §3.5 of the prior snapshot).
 
 | Gap | Current evidence | Acceptance requirement |
 | --- | --- | --- |
-| Protected release | 12 open PRs at snapshot: #629, #631, #632, #639, #640, #643, #644, #657, #658, #659, #660, and #663. #579, #636, #661, and #662 closed unmerged; #664 merged only into the non-default #660 stack. All protected delivery retains hosted and/or independent-review gates | Terminal exact-head checks, no unresolved threads, independent exact-head approvals, protected squash-merge SHA |
+| Protected release | 13 open PRs at snapshot: #629, #631, #632, #639, #640, #643, #644, #657, #658, #659, #660, #663, and #666. #579, #636, #661, and #662 closed unmerged; #664 merged only into the non-default #660 stack. All protected delivery retains hosted and/or independent-review gates | Terminal exact-head checks, no unresolved threads, independent exact-head approvals, protected squash-merge SHA |
 | Evidence-grounded operations workspace | Protected-main #614 delivers governed semantic Ask, live Similar VOC, disjoint pending/failed analysis metrics, full Storybook state inventory, and current desktop/mobile screenshot evidence. Authorized-corpus backfill acceptance remains unavailable | Perform authenticated authorized-corpus acceptance with aggregate evidence and retain fail-closed no-match behavior |
 | Shared frontend gate | The ADR 0109 login repair is on protected `main`; eight older branches carried the defect and received the same verified repair this loop (#521–#560) | Keep every future branch cut from post-repair bases; re-verify with frontend lint/test/build before push |
 | Identifying baseline regression | `main` gap file listed real post identifiers; separately, closed #506 and pre-existing public history contain a private runtime source-table identifier, while current `main` and #507 trees are clean | Land this non-identifying rewrite, then coordinate ADR 0001 history remediation with security/privacy owners; do not reproduce the value, force-push, or delete evidence ad hoc |
