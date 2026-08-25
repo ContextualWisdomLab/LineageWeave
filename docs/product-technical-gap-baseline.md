@@ -1,6 +1,6 @@
 # Product & Technical Gap Baseline
 
-> Audit snapshot: 2026-08-25 13:46 KST (refreshed by the autonomous merge
+> Audit snapshot: 2026-08-25 14:01 KST (refreshed by the autonomous merge
 > loop). This repository records synthetic fixtures and aggregate,
 > non-identifying runtime evidence only. Open PRs and local checks are not
 > protected-default-branch release evidence. Identifying post identifiers,
@@ -9,26 +9,24 @@
 
 ## 1. Exact-head and governance evidence
 
-The protected default branch was `3ac4ff1e7387b8f243cbb0fb20e7ff3ed80f3716`
-when this baseline was refreshed. The live queue contained 12 open PRs and 21
+The protected default branch was `c168ad0016de9aa42a7a6f4136972e80121ef981`
+when this baseline was refreshed. The live queue contained 10 open PRs and 20
 open issues. The exact-head inventory below supersedes older per-PR snapshots
 elsewhere in this document; those older rows remain useful historical delivery
 context only.
 
 | PR | Exact observed head | Merge/check state at this snapshot |
 | ---: | --- | --- |
-| #600 | `fb825b97` | this baseline's pre-amendment observed head; auto-merge armed, with exact-head required checks queued |
-| #595 | `153127f0` | audited no-draft import door, nullable updated-at fallback, and event-time import composed on current main; 24 focused tests passed; mergeable, auto-merge armed |
-| #588 | `e4234bce` | ADR 0182/0201 context reconciled and all six review threads resolved; the later leftover-map ladder still conflicts with current main and needs semantic composition |
-| #582 | `edca49bb` | batched cited-lineage fetch composed with current main; 37 focused tests passed; mergeable, auto-merge armed |
+| #601 | `5ce88969` | PROV-O ADR APA 7th references are mergeable; exact-head checks and independent review remain pending |
+| #600 | `3e7de670` | this baseline's pre-amendment observed head; mergeable with review/check evidence pending |
+| #588 | `6185f2ae` | raw-residual reconstruction, rank-zero identity, API presence, and comparison-strip contracts reconciled with current main; focused backend/frontend/schema checks passed; auto-merge armed |
+| #582 | `edca49bb` | batched cited-lineage fetch previously passed 37 focused tests but now conflicts with advanced main; restack semantically before re-arming |
 | #579 | `69c05078` | interaction-map coordinate branch is conflicting; nine unresolved review threads remain |
-| #493 | `a7a050ef` | empty-DAG reasons and explicit double-failure alert composed with current main; focused frontend test, lint/build, and docs tests passed; mergeable, auto-merge armed |
+| #493 | `a7a050ef` | empty-DAG reasons and explicit double-failure alert previously passed focused frontend/lint/build/docs checks but now conflicts with advanced main |
 | #490 | `73413d0b` | broad historical workspace branch is conflicting with failing checks; decompose/restack rather than replaying its 931-commit merge wholesale |
-| #484 | `c12b3b17` | Allen interval semantics and deferred FK validation are mergeable with no unresolved threads; auto-merge armed |
-| #482 | `43bb8ba1` | corroborated SKOS companion is mergeable with no unresolved threads; auto-merge armed |
-| #468 | `4f8305a8` | integration boundaries, event-time import, and comparison-response ABAC stripping are composed with current main; no unresolved threads; auto-merge armed |
-| #387 | `2620e0ae` | channel evidence plus Ask reconstruction-profile preservation is mergeable with no unresolved threads; the stale formal changes-requested decision still gates merge |
-| #383 | `7ff6b945` | reader-safe OTel diagnostics and service-peer-bounded session metadata are mergeable with no unresolved threads; auto-merge armed |
+| #482 | `43bb8ba1` | corroborated SKOS companion has no unresolved threads but conflicts with advanced main |
+| #468 | `4f8305a8` | integration boundaries, event-time import, and comparison-response ABAC stripping have no unresolved threads but conflict with advanced main |
+| #387 | `2620e0ae` | channel evidence plus Ask reconstruction-profile preservation conflicts with advanced main; two new threads and the stale formal changes-requested decision require settlement |
 
 No row above is merge evidence. Immediately before any lifecycle action,
 re-fetch the head, unresolved threads, formal reviews, rulesets, and same-head
@@ -60,10 +58,10 @@ Three systemic gates currently dominate the queue:
 1. **Strix visibility lookup failure (org control plane).** PR #600 exact head
    `7580bdc9` failed before scanning because the required-workflow token could
    not resolve this public repository after six API retries. The root repair is
-   ContextualWisdomLab/.github#1320 at `de7c8344`: ordinary PR, push, and
+   ContextualWisdomLab/.github#1320 at `e704343d`: ordinary PR, push, and
    schedule runs use trusted event visibility; cross-repository dispatch keeps
    bounded API validation; private and internal repositories remain on
-   private-capable providers. It is open with auto-merge armed, so no repaired
+   private-capable providers. It is mergeable with auto-merge armed, so no repaired
    Strix runtime evidence exists yet.
 2. **Strix provider unavailability (org control plane).** The central required
    Strix scan fails across ~28 unrelated LineageWeave PRs with "could not
@@ -84,6 +82,9 @@ Recent protected-default-branch delivery evidence (squash merges onto
 
 | PR | Merged (UTC) | Delivered |
 | ---: | --- | --- |
+| #595 | 2026-08-25 04:39 | audited no-draft import door, nullable updated-at fallback, and event-time import |
+| #484 | 2026-08-25 04:39 | Allen interval relations with deferred FK validation |
+| #383 | 2026-08-25 04:39 | reader-safe OTel diagnostics and service-peer-bounded session metadata |
 | #599 | 2026-08-25 04:28 | raw-residual leftover-map cross-share identity aligned without arbitrary weighting |
 | #598 | 2026-08-25 03:32 | 5W1H roles/events remain readable across a stale summary contract version |
 | #597 | 2026-08-25 03:32 | related posts open Customer Master detail in place without stale graph state |
