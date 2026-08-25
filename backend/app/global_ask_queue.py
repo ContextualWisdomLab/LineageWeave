@@ -318,7 +318,10 @@ async def compute_global_ask_answer(
         if rewriter.available:
             try:
                 search_phrases = await asyncio.to_thread(rewriter.rewrite, question_text)
-            except (HttpClientError, OSError, TypeError, ValueError) as exc:
+            except Exception as exc:
+                # Query rewriting is an optional recall channel. Any provider
+                # or envelope defect retains the original authorized query;
+                # cancellation remains outside Exception and still propagates.
                 log_provider_unavailable("global_ask_query_rewrite", exc)
         question_embedding = await prepare_global_question_embedding(
             question_text, embedding_client or NullEmbeddingClient()
