@@ -53,6 +53,12 @@ from lineageweave.entity_relationship_classification import (
 from lineageweave.image_content import orchestrator_vision_client
 from lineageweave.embedding_client import orchestrator_embedding_client
 from lineageweave.llm_context import build_post_llm_metadata, use_llm_metadata
+from lineageweave.observability import (
+    configure_telemetry,
+    record_server_failure,
+    shutdown_telemetry,
+    traced,
+)
 from lineageweave.corporate_hierarchy_inference import (
     ContextualOrchestratorHierarchyInferenceClient,
     NullCorporateHierarchyInferenceClient,
@@ -217,56 +223,74 @@ _POST_ADMIN = "post_admin"
 async def lifespan(app: FastAPI):
     """Open one asyncpg pool and one Valkey client for the process, and
     close both on shutdown."""
-    settings = load_settings()
-    app.state.pool = await create_pool(settings.database_url)
-    app.state.valkey = create_valkey_client(settings.valkey_url)
-    app.state.analysis_run_worker = asyncio.create_task(
-        run_analysis_run_worker(
-            app.state.valkey,
-            app.state.pool,
-            tepp_client=configured_tepp_client(
-                settings.tepp_transport_url,
-                settings.tepp_api_key,
-            ),
-            adjudication_client=_adjudication_client(),
-        )
-    )
-    app.state.post_content_worker = asyncio.create_task(
-        run_post_content_worker(
-            app.state.valkey,
-            app.state.pool,
-            vision_factory=_vision_client,
-            embedding_factory=_embedding_client,
-            structure_factory=_post_structure_client,
-        )
-    )
-    # Late-bound lambda so tests that monkeypatch _post_chat_client reach
-    # the worker too (the name resolves in module globals at call time).
-    # Only this worker gets the long answer timeout; the per-post chat
-    # endpoint keeps the client's interactive default.
-    app.state.global_ask_worker = asyncio.create_task(
-        run_global_ask_worker(
-            app.state.valkey,
-            app.state.pool,
-            chat_factory=lambda: _post_chat_client(
-                timeout=load_settings().orchestrator_answer_timeout_seconds
-            ),
-        )
-    )
+    configure_telemetry("lineageweave")
+    pool = None
+    valkey = None
+    analysis_worker = None
+    content_worker = None
+    global_ask_worker = None
     try:
+        settings = load_settings()
+        pool = await create_pool(settings.database_url)
+        app.state.pool = pool
+        valkey = create_valkey_client(settings.valkey_url)
+        app.state.valkey = valkey
+        analysis_worker = asyncio.create_task(
+            run_analysis_run_worker(
+                valkey,
+                pool,
+                tepp_client=configured_tepp_client(
+                    settings.tepp_transport_url,
+                    settings.tepp_api_key,
+                ),
+                adjudication_client=_adjudication_client(),
+            )
+        )
+        app.state.analysis_run_worker = analysis_worker
+        content_worker = asyncio.create_task(
+            run_post_content_worker(
+                valkey,
+                pool,
+                vision_factory=_vision_client,
+                embedding_factory=_embedding_client,
+                structure_factory=_post_structure_client,
+            )
+        )
+        app.state.post_content_worker = content_worker
+        # Late-bound lambda so tests that monkeypatch _post_chat_client reach
+        # the worker too (the name resolves in module globals at call time).
+        # Only this worker gets the long answer timeout; the per-post chat
+        # endpoint keeps the client's interactive default.
+        global_ask_worker = asyncio.create_task(
+            run_global_ask_worker(
+                valkey,
+                pool,
+                chat_factory=lambda: _post_chat_client(
+                    timeout=load_settings().orchestrator_answer_timeout_seconds
+                ),
+            )
+        )
+        app.state.global_ask_worker = global_ask_worker
         yield
     finally:
-        app.state.analysis_run_worker.cancel()
-        app.state.post_content_worker.cancel()
-        app.state.global_ask_worker.cancel()
-        await asyncio.gather(
-            app.state.analysis_run_worker,
-            app.state.post_content_worker,
-            app.state.global_ask_worker,
-            return_exceptions=True,
+        workers = tuple(
+            worker
+            for worker in (analysis_worker, content_worker, global_ask_worker)
+            if worker is not None
         )
-        await app.state.pool.close()
-        await app.state.valkey.aclose()
+        for worker in workers:
+            worker.cancel()
+        if workers:
+            await asyncio.gather(*workers, return_exceptions=True)
+        try:
+            if pool is not None:
+                await pool.close()
+        finally:
+            try:
+                if valkey is not None:
+                    await valkey.aclose()
+            finally:
+                shutdown_telemetry()
 
 
 logger = logging.getLogger(__name__)
@@ -2362,7 +2386,8 @@ async def evaluate_post(
         if not client.available:
             raise HTTPException(
                 status.HTTP_503_SERVICE_UNAVAILABLE,
-                "Post evaluation is unavailable: set ORCHESTRATOR_BASE_URL / ORCHESTRATOR_API_KEY",
+                "Post evaluation is unavailable. Ask an administrator to configure the "
+                "analysis service, then retry.",
             )
         async with pool.acquire() as conn:
             body_row = await conn.fetchrow("select post_body from source_post where post_id = $1", post_id)
@@ -2759,7 +2784,9 @@ async def chat_about_post(
     """
     question = request.question.strip()
     if not question:
-        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, "question is required")
+        raise HTTPException(
+            status.HTTP_422_UNPROCESSABLE_ENTITY, "question is required"
+        )
     post = await _load_visible_post(post_id, account, pool)
     post_metadata = build_post_llm_metadata(post_id, post)
     async with pool.acquire() as conn:
@@ -2774,29 +2801,55 @@ async def chat_about_post(
                 "cited_posts": stored["cited_posts"],
                 "source_post_ids": source_ids,
             }
-        with use_llm_metadata(post_metadata):
-            client = _post_chat_client()
-            if not client.available:
+    with use_llm_metadata(post_metadata):
+        with traced(
+            "lineageweave.api.post_chat",
+            {"lineageweave.operation_code": "post_chat"},
+        ):
+            try:
+                client = _post_chat_client()
+                if not client.available:
+                    record_server_failure(
+                        "post_chat",
+                        RuntimeError("orchestrator unavailable"),
+                        outcome="provider_unavailable",
+                    )
+                    raise HTTPException(
+                        status.HTTP_503_SERVICE_UNAVAILABLE,
+                        "Post chat is temporarily unavailable. "
+                        "Saved evidence is still available.",
+                    )
+                async with pool.acquire() as conn:
+                    sources = await gather_chat_sources(
+                        conn,
+                        post_id,
+                        lambda row: _can_see_post(account, row),
+                        vision_client=_vision_client(),
+                    )
+                answer = await asyncio.to_thread(client.answer, question, sources)
+            except HTTPException:
+                raise
+            except (
+                HttpClientError,
+                TimeoutError,
+                KeyError,
+                OSError,
+                TypeError,
+                ValueError,
+            ) as exc:
+                record_server_failure("post_chat", exc, outcome="provider_unavailable")
                 raise HTTPException(
                     status.HTTP_503_SERVICE_UNAVAILABLE,
-                    "Post chat is unavailable: set ORCHESTRATOR_BASE_URL / ORCHESTRATOR_API_KEY",
-                )
-            sources = await gather_chat_sources(
-                conn, post_id, lambda row: _can_see_post(account, row), vision_client=_vision_client()
-            )
-    try:
-        with use_llm_metadata(post_metadata):
-            answer = await asyncio.to_thread(client.answer, question, sources)
-    except (HttpClientError, KeyError, OSError, TypeError, ValueError) as exc:
-        raise HTTPException(
-            status.HTTP_503_SERVICE_UNAVAILABLE,
-            "Post chat is unavailable: contextual-orchestrator returned no complete evidence object",
-        ) from exc
-    except Exception as exc:  # noqa: BLE001 - provider boundary is fail-closed.
-        raise HTTPException(
-            status.HTTP_503_SERVICE_UNAVAILABLE,
-            "Post chat is unavailable: contextual-orchestrator returned no complete evidence object",
-        ) from exc
+                    "Post chat is temporarily unavailable. "
+                    "Saved evidence is still available.",
+                ) from exc
+            except Exception as exc:
+                record_server_failure("post_chat", exc, outcome="internal_error")
+                raise HTTPException(
+                    status.HTTP_503_SERVICE_UNAVAILABLE,
+                    "Post chat is temporarily unavailable. "
+                    "Saved evidence is still available.",
+                ) from exc
     cited_ids = list(answer.cited_post_ids)
     async with pool.acquire() as conn:
         await persist_post_chat(conn, post_id, question, answer.answer_text, cited_ids)
@@ -2839,7 +2892,8 @@ async def ask_agent(
     if not _post_chat_client().available:
         raise HTTPException(
             status.HTTP_503_SERVICE_UNAVAILABLE,
-            "Ask Agent is unavailable: set ORCHESTRATOR_BASE_URL / ORCHESTRATOR_API_KEY",
+            "Ask Agent is unavailable. Ask an administrator to configure the analysis service, "
+            "then retry.",
         )
     async with pool.acquire() as conn:
         job_id = await enqueue_global_ask_job(

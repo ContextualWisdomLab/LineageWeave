@@ -3948,6 +3948,11 @@ def test_evaluate_is_unavailable_without_orchestrator(client, demo_analyst_token
         headers={"Authorization": f"Bearer {demo_analyst_token}"},
     )
     assert response.status_code == 503
+    assert response.json()["detail"] == (
+        "Post evaluation is unavailable. Ask an administrator to configure the analysis service, "
+        "then retry."
+    )
+    assert "ORCHESTRATOR_" not in response.text
 
 
 @pytest.mark.skipif(

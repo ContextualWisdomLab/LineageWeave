@@ -22,6 +22,9 @@ dependencies = [
   # docs/ontology/lineageweave-kg.ttl and the standards-complete PROV-O
   # support profile (ADR 0011). Pure Python, no Rust/C toolchain.
   "rdflib>=7.0.0",
+  "opentelemetry-api>=1.30.0",
+  "opentelemetry-sdk>=1.30.0",
+  "opentelemetry-exporter-otlp-proto-http>=1.30.0",
 ]
 
 [build-system]
