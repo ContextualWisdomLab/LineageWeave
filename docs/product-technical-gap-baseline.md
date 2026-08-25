@@ -62,7 +62,7 @@ only aggregate, non-identifying evidence to this repository.
 
 At this snapshot there were 12 open PRs and 10 open issues. Exact observed heads
 were `#663 2488f0f0`, `#660 24fda085`, `#659 0739b9d7`, `#658 fe830b0a`, `#657 64f48679`, `#644 d9ff9980`, `#643 0a1f8ec1`, `#640 2d50fa01`,
-`#639 aee02dca`, `#632 30f7e6b7`, `#631 c0022c97`,
+`#639 aee02dca`, `#632 31461709`, `#631 c0022c97`,
 `#629 4b4d6707`. PR #654 merged its ontology-label
 readability slice into #632's provenance branch as `6c0c4370`; that stack
 merge is not protected-main delivery. The open heads remain
@@ -101,7 +101,7 @@ context only.
 | #640 | `2d50fa01` | dashboard case metrics, project journeys, restored TEPP API-key setting, semantic-label spacing, topic-dashboard argument-boundary repair, async Ask queue settlement isolation, consistent empty-projection fast-mlsirm contract state, and Starlette/httpx2 test transport alignment; focused operations suite passed 27 tests; hosted checks and independent review remain required |
 | #639 | `aee02dca` | Running action and Compose contract repair; checks and independent review remain required |
 | #636 | `f7b9a65f` (closed unmerged) | closed because it reintroduced a Python lineage calculation path contrary to ADR 0225 and the external arithmetic ownership boundary; retain its review evidence for the replacement adapter gap, with no protected-main delivery |
-| #632 | `56d1b4e4` | Global Ask provenance, public verification, knowledge cutoff, evidence-constrained query rewriting, shared ABAC/rewrite-failure review repair, #654 ontology-label readability, Semgrep static-SQL repair, and #655 authenticated durable MCP stack with live Streamable HTTP lifecycle and k6 evidence; this baseline refresh records the current queue and stack movement; checks and independent review remain required |
+| #632 | `31461709` | Global Ask provenance, public verification, knowledge cutoff, evidence-constrained query rewriting, shared ABAC/rewrite-failure review repair, #654 ontology-label readability, Semgrep static-SQL repair, and #655 authenticated durable MCP stack with live Streamable HTTP lifecycle and k6 evidence; this baseline refresh records the current queue and stack movement; checks and independent review remain required |
 | #631 | `c0022c97` | current-main ADR stack decomposition; checks and independent review remain required |
 | #629 | `4b4d6707` | provider pool release and bounded landing reads; checks and independent review remain required |
 | #579 | `689a21b6` (closed unmerged) | closed because Python still derived residual-map identity, pair selection, rank, coverage, and fixed two-axis policy rather than acting as a pure fail-closed adapter to a complete Rust envelope; retain UI/persistence evidence for the replacement adapter Gap, with no protected-main delivery |
