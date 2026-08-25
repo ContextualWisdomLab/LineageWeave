@@ -32,7 +32,7 @@ from lineageweave.knowledge_graph import (
     NODE_PROJECT,
     NODE_TEAM,
 )
-from lineageweave.ontology import LW, ontology_annotations
+from lineageweave.ontology import LW, ontology_annotations, ontology_node_iri
 
 TRUTH_AUTHORITATIVE = "truth_authoritative"
 TRUTH_OBSERVED = "truth_observed"
@@ -251,7 +251,7 @@ class OntologyNeighborhood:
         graph: list[dict[str, object]] = []
         for node in self.nodes:
             item: dict[str, object] = {
-                "@id": f"lw:node/{node.node_type_code}/{node.node_id}",
+                "@id": ontology_node_iri(node.node_type_code, node.node_id),
                 "@type": node.ontology_class_iri,
                 "rdfs:label": node.display_label,
                 "lw:nodeType": node.node_type_code,
@@ -265,14 +265,28 @@ class OntologyNeighborhood:
                 "@id": f"lw:edge/{edge.edge_id}",
                 "@type": "prov:Entity",
                 edge.ontology_property_iri: {
-                    "@id": f"lw:node/{_node_type_for(self.nodes, edge.target_node_type_code, edge.target_node_id)}/{edge.target_node_id}"
+                    "@id": ontology_node_iri(
+                        _node_type_for(
+                            self.nodes,
+                            edge.target_node_type_code,
+                            edge.target_node_id,
+                        ),
+                        edge.target_node_id,
+                    )
                 },
                 "prov:wasDerivedFrom": [
                     {"@id": f"lw:evidence/{reference}"} for reference in edge.evidence_references
                 ],
                 "lw:truthStatus": edge.truth_status_code,
                 "lw:source": {
-                    "@id": f"lw:node/{_node_type_for(self.nodes, edge.source_node_type_code, edge.source_node_id)}/{edge.source_node_id}"
+                    "@id": ontology_node_iri(
+                        _node_type_for(
+                            self.nodes,
+                            edge.source_node_type_code,
+                            edge.source_node_id,
+                        ),
+                        edge.source_node_id,
+                    )
                 },
             }
             _add_jsonld_times(item, edge.recorded_at, edge.valid_from, edge.valid_to)

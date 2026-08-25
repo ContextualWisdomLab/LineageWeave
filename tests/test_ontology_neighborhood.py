@@ -20,7 +20,7 @@ from lineageweave.knowledge_graph import (
     NODE_PROJECT,
     NODE_TEAM,
 )
-from lineageweave.ontology import LW
+from lineageweave.ontology import LW, ontology_node_iri
 from lineageweave.ontology_neighborhood import (
     PROPERTY_AFFILIATED_WITH,
     PROPERTY_CO_MENTIONED_WITH,
@@ -225,7 +225,39 @@ def test_jsonld_keeps_colliding_identifiers_typed() -> None:
         if str(item["@id"]).startswith("lw:edge/")
     }
     mentions = next(item for key, item in edge_ids.items() if "/mentions:" in str(key))
-    assert mentions["lw:source"]["@id"] == f"lw:node/{NODE_POST}/{POST_ID}"
+    assert mentions["lw:source"]["@id"] == ontology_node_iri(NODE_POST, POST_ID)
+
+
+def test_jsonld_percent_encodes_project_iri_like_the_rdf_projection() -> None:
+    """Unicode candidate ids denote one resource in JSON-LD and RDF."""
+    project_id = f"{POST_ID}/설비-개선"
+    fact = fact_from_knowledge_graph_edge(
+        source_node_type_code=NODE_POST,
+        source_node_id=POST_ID,
+        target_node_type_code=NODE_PROJECT,
+        target_node_id=project_id,
+        edge_type_code=EDGE_MENTION_PROJECT,
+        recorded_at=T0,
+        evidence_references=(POST_ID,),
+        truth_status_code=TRUTH_PROPOSED,
+    )
+    neighborhood = assemble_ontology_neighborhood(
+        focus_node_type_code=NODE_POST,
+        focus_node_id=POST_ID,
+        facts=[fact],
+        labels={
+            (NODE_POST, POST_ID): "Synthetic source",
+            (NODE_PROJECT, project_id): "설비 개선",
+        },
+    )
+
+    project = next(
+        item
+        for item in neighborhood.jsonld_document()["@graph"]
+        if item.get("@type") == str(LW.Project)
+    )
+    assert project["@id"] == ontology_node_iri(NODE_PROJECT, project_id)
+    assert "%EC%84%A4%EB%B9%84-%EA%B0%9C%EC%84%A0" in project["@id"]
 
 
 def test_skos_broader_is_distinct_from_owl_class_subsumption() -> None:

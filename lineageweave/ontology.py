@@ -106,6 +106,19 @@ def all_declared_lookup_codes() -> set[str]:
     return {str(value) for value in ONTOLOGY.objects(None, LOOKUP_CODE)}
 
 
+def ontology_node_iri(node_type_code: str, node_id: str) -> str:
+    """Return the canonical percent-encoded IRI for one ontology node."""
+
+    if not node_type_code or not node_id:
+        raise ValueError("ontology node type and id must be non-empty")
+    return str(
+        LW[
+            f"node/{quote(node_type_code, safe='')}/"
+            f"{quote(node_id, safe='/')}"
+        ]
+    )
+
+
 def project_project_mention_rdf(
     *,
     post_id: str,
@@ -148,9 +161,9 @@ def project_project_mention_rdf(
     if not confidence_value.is_finite() or not Decimal(0) <= confidence_value <= Decimal(1):
         raise ValueError("confidence must be a decimal between zero and one")
 
-    post = URIRef(LW[f"node/node_post/{canonical_post_id}"])
+    post = URIRef(ontology_node_iri("node_post", canonical_post_id))
     candidate_id = project_candidate_node_id(canonical_post_id, project_key)
-    project = URIRef(LW[f"node/node_project/{quote(candidate_id, safe='/')}"])
+    project = URIRef(ontology_node_iri("node_project", candidate_id))
     mention = URIRef(
         LW[f"statement/project-mention/{canonical_post_id}/{quote(project_key, safe='')}"]
     )
@@ -186,6 +199,7 @@ __all__ = [
     "all_declared_lookup_codes",
     "iri_for_lookup_code",
     "load_ontology",
+    "ontology_node_iri",
     "ontology_annotations",
     "project_project_mention_rdf",
 ]

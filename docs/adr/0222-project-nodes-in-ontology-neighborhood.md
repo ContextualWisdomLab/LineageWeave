@@ -29,6 +29,9 @@ API, and UI.
    source/tenant-scoped Project catalog may resolve multiple candidates to one
    identity through a separate evidence-backed decision; this projection does
    not perform that resolution or mint a cross-post identity.
+   RDF and JSON-LD serialize the pair through the same UTF-8 percent-encoded
+   canonical node IRI, so multilingual keys cannot denote two resources across
+   export formats.
 3. Each visible `post_project_mention` projects one Post `mentionsProject`
    Project fact. Its availability time is the later of source-post creation
    and mention persistence. The fact is `truth_proposed`, never observed or
