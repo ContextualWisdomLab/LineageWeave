@@ -16,8 +16,11 @@ constant anyone hardcoded, and (3) the algorithm is symmetric-graph-fair
 
 from __future__ import annotations
 
+import asyncio
+
 import pytest
 
+from backend.app.knowledge_graph import hydrate_related_nodes
 from lineageweave.knowledge_graph import (
     EDGE_AFFILIATION,
     EDGE_CO_MENTION,
@@ -141,3 +144,29 @@ def test_rwr_from_a_keyman_reaches_co_mentioned_person_and_affiliated_org() -> N
     assert f"{NODE_POST}:post-1" in related
     assert f"{NODE_CORPORATE_ENTITY}:corp-1" in related
     assert related[f"{NODE_PERSON}:person-b"] > 0
+
+
+def test_related_corporate_node_uses_its_catalog_id_for_alias() -> None:
+    class FakeConnection:
+        async def fetch(self, query: str, *_args):
+            if "from corporate_entity where" in query:
+                return [
+                    {"corporate_entity_id": "demo-id", "entity_name": "Demo Corp"}
+                ]
+            if "from organization_name_resolution" in query:
+                return [
+                    {
+                        "raw_organization_name": "DC",
+                        "resolved_organization_name": "Demo Corp",
+                        "corporate_entity_id": "demo-id",
+                    }
+                ]
+            raise AssertionError(query)
+
+    payload = asyncio.run(
+        hydrate_related_nodes(
+            FakeConnection(),
+            [(f"{NODE_CORPORATE_ENTITY}:demo-id", 0.8)],
+        )
+    )
+    assert payload[0]["organization_alias"] == "DC"

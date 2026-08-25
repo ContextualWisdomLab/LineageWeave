@@ -5,6 +5,10 @@ import {
   LEFTOVER_MAP_CROSS_SHARE_ACTION,
 } from "../leftoverMapCrossShare";
 import {
+  formatLeftoverMapReconstruction,
+  LEFTOVER_MAP_RECONSTRUCTION_ACTION,
+} from "../leftoverMapReconstruction";
+import {
   formatLeftoverMapRank,
   LEFTOVER_RANK_STRUCTURE_ACTION,
   LEFTOVER_RANK_ZERO_ACTION,
@@ -33,7 +37,7 @@ export type LeftoverPairListProps = {
  * when finite. When leftover-map cross share ``x = 2 R̂ U / R²`` of
  * raw residual is also present (ADR 0185), it names the next action
  * instead of unexplained leftover; a missing or non-finite value falls
- * back in order — cross share, then unexplained leftover, then the
+ * back in order — cross share, reconstruction, unexplained leftover, then the
  * existing residual/rank/observed-expected next action. Every badge
  * still renders together before opening the named post.
  */
@@ -59,6 +63,9 @@ export function LeftoverPairList({
         const rankBadge = formatLeftoverMapRank(pair.leftover_map_rank);
         const unexplained = formatLeftoverMapUnexplained(pair.leftover_map_unexplained);
         const crossShareBadge = formatLeftoverMapCrossShare(pair.leftover_map_cross_share);
+        const reconstruction = formatLeftoverMapReconstruction(
+          pair.leftover_map_reconstruction,
+        );
         const crossShareValue =
           pair.leftover_map_cross_share != null && Number.isFinite(pair.leftover_map_cross_share)
             ? pair.leftover_map_cross_share.toFixed(2)
@@ -67,6 +74,13 @@ export function LeftoverPairList({
         if (crossShareBadge !== null) {
           nextAction = tf(LEFTOVER_MAP_CROSS_SHARE_ACTION, {
             value: crossShareValue,
+            criterion,
+          });
+        } else if (reconstruction !== null) {
+          const signedReconstruction =
+            formatSignedLeftoverValue(pair.leftover_map_reconstruction ?? Number.NaN) ?? "—";
+          nextAction = tf(LEFTOVER_MAP_RECONSTRUCTION_ACTION, {
+            value: signedReconstruction,
             criterion,
           });
         } else if (unexplained !== null) {
@@ -140,6 +154,7 @@ export function LeftoverPairList({
               {rankBadge ? <span className="post-badge">{rankBadge}</span> : null}
               {unexplained ? <span className="post-badge">{unexplained}</span> : null}
               {crossShareBadge ? <span className="post-badge">{crossShareBadge}</span> : null}
+              {reconstruction ? <span className="post-badge">{reconstruction}</span> : null}
               <span className="post-badge">d {pair.leftover_distance.toFixed(2)}</span>
             </button>
           </li>

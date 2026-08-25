@@ -116,6 +116,7 @@ describe("App, authenticated", () => {
     customerEntityHierarchy?: boolean;
     staleSummary?: boolean;
     contentAfterSummary?: boolean;
+    organizationAliases?: boolean;
     askLineageGraph?: boolean;
     askImageCitation?: boolean;
     criteriaOnlyLeftoverMap?: boolean;
@@ -146,6 +147,7 @@ describe("App, authenticated", () => {
     let contentRequests = 0;
 
     let releaseMe = () => {};
+    const demoOrgAlias = options?.organizationAliases ? { organization_alias: "DC" } : {};
     const meReady = options?.deferMe
       ? new Promise<void>((resolve) => {
           releaseMe = resolve;
@@ -983,6 +985,7 @@ describe("App, authenticated", () => {
                     expected_response: 2.0,
                     leftover_map_rank: 1,
                     leftover_map_cross_share: 0.12,
+                    leftover_map_reconstruction: 0.35,
                   },
                   {
                     pair_kind: "farthest",
@@ -996,6 +999,7 @@ describe("App, authenticated", () => {
                     expected_response: 2.0,
                     leftover_map_rank: 1,
                     leftover_map_cross_share: -0.24,
+                    leftover_map_reconstruction: -0.85,
                   },
                 ],
                 leftover_map_persons: options?.criteriaOnlyLeftoverMap ? [] : [
@@ -1315,7 +1319,14 @@ describe("App, authenticated", () => {
                 person_side_label: "Our side",
                 last_known_job_title: "Account manager",
                 mention_context: null,
-                affiliations: [{ organization_name: "Demo Corp", corporate_entity_id: "corp-1", role_title: null }],
+                affiliations: [
+                  {
+                    organization_name: "Demo Corp",
+                    corporate_entity_id: "corp-1",
+                    role_title: null,
+                    ...demoOrgAlias,
+                  },
+                ],
               },
             ],
           }),
@@ -1417,6 +1428,7 @@ describe("App, authenticated", () => {
                 ontology_label: "Organization",
                 label: "Demo Corp",
                 relevance: 0.2,
+                ...demoOrgAlias,
               },
               {
                 node_id: "team-1",
@@ -1544,6 +1556,7 @@ describe("App, authenticated", () => {
                     entity_level_code: "company",
                     entity_level_label: "Company",
                     resolved: true,
+                    ...demoOrgAlias,
                     people: [
                       {
                         person_id: "person-ada",
@@ -1610,6 +1623,7 @@ describe("App, authenticated", () => {
                 verification_status_code: "verify_pending",
                 verification_evidence_url: null,
                 corporate_entity_id: "corp-1",
+                ...demoOrgAlias,
               },
               {
                 counterparty_entity_name: "Northridge Grid",
@@ -2272,12 +2286,38 @@ describe("App, authenticated", () => {
 
     await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
 
-    const popup = document.querySelector(".popup-panel") as HTMLElement;
+    const popup = screen.getByRole("dialog", { name: "Post details" });
+    expect(popup).toHaveFocus();
     expect(within(popup).getByRole("status")).toHaveTextContent("Loading...");
 
     fetchMock.releasePostOne();
     await waitFor(() => expect(screen.getByText("The full body text.")).toBeInTheDocument());
     expect(within(popup).queryByText("Loading...")).not.toBeInTheDocument();
+    expect(popup).toHaveAccessibleName("Public post");
+  });
+
+  it("closes the post-detail dialog with Escape and restores focus to its opener", async () => {
+    stubBackend();
+    const { rerender } = render(<App showLabPanels />);
+
+    const opener = await screen.findByRole("button", { name: "View post: Public post" });
+    await userEvent.click(opener);
+    const dialog = await screen.findByRole("dialog", { name: "Public post" });
+    expect(dialog).toHaveFocus();
+
+    await userEvent.tab({ shift: true });
+    const focusable = within(dialog).getAllByRole("button").filter((button) => !button.hasAttribute("disabled"));
+    expect(focusable.at(-1)).toHaveFocus();
+    await userEvent.tab();
+    const closeButton = within(dialog).getByRole("button", { name: "Close" });
+    expect(closeButton).toHaveFocus();
+
+    rerender(<App showLabPanels />);
+    expect(closeButton).toHaveFocus();
+
+    await userEvent.keyboard("{Escape}");
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(opener).toHaveFocus();
   });
 
   it("switches the product surface between supported languages", async () => {
@@ -2652,6 +2692,30 @@ describe("App, authenticated", () => {
     );
   });
 
+  it("shows the corroborated SKOS companion on organization chips", async () => {
+    stubBackend({ organizationAliases: true });
+    render(<App showLabPanels />);
+
+    fireEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
+
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "Affiliate org: Demo Corp (DC)" })).toBeInTheDocument(),
+    );
+    expect(screen.getByRole("button", { name: "Counterparty org: Demo Corp (DC)" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Keyman affiliation: Demo Corp (DC)" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Affiliate org: Demo Corp" })).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Related nodes for Ada West" }));
+    await waitFor(() => expect(screen.getByText("Related to Ada West")).toBeInTheDocument());
+    expect(screen.getByRole("button", { name: "Related nodes for Demo Corp (DC)" })).toBeInTheDocument();
+    expect(screen.getByText("Related to Ada West").closest(".related-keymen")).toHaveTextContent(
+      "Demo Corp (DC)",
+    );
+    expect(screen.getByText("Related to Ada West").closest(".related-keymen")).not.toHaveTextContent(
+      "Demo Corp (Organization)",
+    );
+  }, 10_000);
+
   it("opens related Keyman nodes from an R&R person", async () => {
     stubBackend();
     render(<App showLabPanels />);
@@ -2697,7 +2761,7 @@ describe("App, authenticated", () => {
     await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
     await userEvent.click(screen.getByRole("button", { name: "Related nodes for Ada West" }));
     await waitFor(() => expect(screen.getByText("Related to Ada West")).toBeInTheDocument());
-    await userEvent.click(screen.getByRole("button", { name: "Related nodes for 설계팀" }));
+    await userEvent.click(screen.getByRole("button", { name: "Related nodes for 설계팀 (Team)" }));
     await waitFor(() => expect(screen.getByText("Related to 설계팀")).toBeInTheDocument());
     expect(screen.getByText("Related to 설계팀").closest(".related-keymen")).toHaveTextContent(
       "Linked post",
@@ -2710,7 +2774,9 @@ describe("App, authenticated", () => {
     await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
     await userEvent.click(screen.getByRole("button", { name: "Related nodes for Ada West" }));
     await waitFor(() => expect(screen.getByText("Related to Ada West")).toBeInTheDocument());
-    await userEvent.click(screen.getByRole("button", { name: "Related nodes for Demo Corp" }));
+    await userEvent.click(
+      screen.getByRole("button", { name: "Related nodes for Demo Corp (Organization)" }),
+    );
     await waitFor(() => expect(screen.getByText("Related to Demo Corp")).toBeInTheDocument());
     expect(screen.getByText("Related to Demo Corp").closest(".related-keymen")).toHaveTextContent(
       "Ada West (Our side)",
@@ -3818,6 +3884,7 @@ describe("App, authenticated", () => {
     expect(closestPair).toHaveTextContent("rank 1");
     expect(closestPair).toHaveTextContent("U +0.05");
     expect(closestPair).toHaveTextContent("2R̂U/R² 0.12");
+    expect(closestPair).toHaveTextContent("R̂ +0.35");
     expect(closestPair).toHaveTextContent("d 0.12");
     expect(closestPair).toHaveAccessibleName("Open leftover closest pair: Public post · sales-lead");
     expect(farthestPair).toHaveTextContent("Farthest leftover: Specification revision requested · negative");
@@ -3829,6 +3896,7 @@ describe("App, authenticated", () => {
     expect(farthestPair).toHaveTextContent("rank 1");
     expect(farthestPair).toHaveTextContent("U −0.25");
     expect(farthestPair).toHaveTextContent("2R̂U/R² -0.24");
+    expect(farthestPair).toHaveTextContent("R̂ −0.85");
     expect(farthestPair).toHaveTextContent("d 1.84");
     const memberButton = screen.getByRole("button", { name: /open report post: public post/i });
     expect(mapPost.compareDocumentPosition(closestPair) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();

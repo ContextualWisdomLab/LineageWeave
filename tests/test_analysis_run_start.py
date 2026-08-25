@@ -1,9 +1,11 @@
 """Start-reconstruction contracts: digest, freeze, 422/409, designed tree."""
 
 from datetime import datetime, timezone
+from functools import lru_cache
 
 import pytest
 
+from backend.app import analysis_run_start
 from backend.app.analysis_run_ingestion import reconstructed_edge_is_visible
 from backend.app.analysis_run_start import (
     AnalysisRunStartError,
@@ -18,20 +20,107 @@ from backend.app.analysis_run_start import (
     topic_lineage_submit_outcome,
 )
 from backend.app.lineage_ingestion import records_from_source_posts
+from lineageweave.channel_weight_estimation import estimate_fixture_channel_weights
 from lineageweave.fixtures import sample_records
 from lineageweave.http_client import HttpClientError
 from lineageweave.lineage_persistence import lineage_edge_specs
 from lineageweave.tepp_client import AnalysisRunRequest, TeppClient, TeppNotAvailable
 
-# Synthetic unit-test fusion weights (org policy allows synthetic data
-# in unit tests); product paths load persisted fast-mlsirm estimates
-# and fail closed otherwise (ADR 0200 point 1).
-_SYNTHETIC_WEIGHTS = {"temporal": 0.5, "secondary_key": 0.34, "text": 0.16}
+@lru_cache(maxsize=1)
+def _estimated_fixture_weights() -> dict[str, float]:
+    """Return the fast-mlsirm estimate or fail the test closed."""
+    estimate = estimate_fixture_channel_weights()
+    assert estimate is not None
+    return estimate.weights
+
+
+@pytest.mark.anyio
+async def test_delivery_releases_pool_during_provider_work_and_closes_run_lock(monkeypatch):
+    """ADR 0204: provider latency owns neither a transaction nor a pool slot."""
+    active_pool_leases = 0
+
+    class Transaction:
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *_args):
+            return False
+
+    class Connection:
+        def transaction(self):
+            return Transaction()
+
+    class Acquire:
+        async def __aenter__(self):
+            nonlocal active_pool_leases
+            active_pool_leases += 1
+            return Connection()
+
+        async def __aexit__(self, *_args):
+            nonlocal active_pool_leases
+            active_pool_leases -= 1
+            return False
+
+    class Pool:
+        def acquire(self):
+            return Acquire()
+
+    class LockConnection:
+        closed = False
+
+        async def fetchval(self, query, lock_key):
+            assert "pg_try_advisory_lock" in query
+            assert lock_key.endswith("00000000-0000-0000-0000-000000000001")
+            return True
+
+        async def close(self):
+            self.closed = True
+
+    lock_connection = LockConnection()
+    plan = analysis_run_start._DeliveryPlan(
+        "analysis_run_tepp",
+        datetime(2026, 8, 25, tzinfo=timezone.utc),
+        {},
+    )
+
+    async def fake_claim(*_args, **_kwargs):
+        assert active_pool_leases == 1
+        return plan
+
+    def fake_execute(*_args):
+        assert active_pool_leases == 0
+        return analysis_run_start._DeliveryOutcome(
+            "analysis_run_tepp", plan.started_at, status_code="analysis_status_failed"
+        )
+
+    async def fake_persist(*_args, **_kwargs):
+        assert active_pool_leases == 1
+        return {"status_code": "analysis_status_failed"}
+
+    async def fake_connect(_database_url):
+        return lock_connection
+
+    monkeypatch.setattr(analysis_run_start.asyncpg, "connect", fake_connect)
+    monkeypatch.setattr(analysis_run_start, "_claim_delivery_plan", fake_claim)
+    monkeypatch.setattr(analysis_run_start, "_execute_delivery_plan", fake_execute)
+    monkeypatch.setattr(analysis_run_start, "_persist_delivery_outcome", fake_persist)
+
+    result = await analysis_run_start.deliver_queued_analysis_run(
+        Pool(),
+        database_url="postgresql://synthetic",
+        analysis_run_id="00000000-0000-0000-0000-000000000001",
+        account_id="synthetic-account",
+        affiliated_entity_ids=[],
+    )
+
+    assert result == {"status_code": "analysis_status_failed"}
+    assert active_pool_leases == 0
+    assert lock_connection.closed
 
 
 def test_reconstruction_digest_is_stable_and_ignores_edge_order() -> None:
     """The same parent choices hash the same way regardless of insert order."""
-    edges = lineage_edge_specs(sample_records(), weights=_SYNTHETIC_WEIGHTS)
+    edges = lineage_edge_specs(sample_records(), weights=_estimated_fixture_weights())
     reversed_edges = list(reversed(edges))
     assert reconstruction_result_digest(edges) == reconstruction_result_digest(reversed_edges)
     assert reconstruction_result_digest([]) == reconstruction_result_digest([])
@@ -45,7 +134,8 @@ def test_start_uses_the_same_parent_choices_as_library_reconstruct() -> None:
     branch point for the revised quote and the delivery question. A start
     that dropped an edge or invented a parent would fail this check.
     """
-    edges = lineage_edge_specs(sample_records(), weights=_SYNTHETIC_WEIGHTS)
+    weights = _estimated_fixture_weights()
+    edges = lineage_edge_specs(sample_records(), weights=weights)
     children = {edge.child_id for edge in edges if edge.parent_id == "rec-002"}
     assert children >= {"rec-003", "rec-004"}
     assert all(0.0 <= edge.fused_score <= 1.0 for edge in edges)
@@ -66,11 +156,12 @@ def test_start_wiring_recovers_a100_from_source_post_rows() -> None:
         }
         for record in sample_records()
     ]
-    edges = lineage_edge_specs(records_from_source_posts(rows), weights=_SYNTHETIC_WEIGHTS)
+    weights = _estimated_fixture_weights()
+    edges = lineage_edge_specs(records_from_source_posts(rows), weights=weights)
     children = {edge.child_id for edge in edges if edge.parent_id == "rec-002"}
     assert children >= {"rec-003", "rec-004"}
     assert reconstruction_result_digest(edges) == reconstruction_result_digest(
-        lineage_edge_specs(sample_records(), weights=_SYNTHETIC_WEIGHTS)
+        lineage_edge_specs(sample_records(), weights=weights)
     )
 
 

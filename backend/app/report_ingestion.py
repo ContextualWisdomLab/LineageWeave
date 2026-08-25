@@ -445,8 +445,9 @@ async def persist_period_report(
                 grouping_kind, grouping_key, period_code, rubric_version,
                 pair_kind, post_id, criterion_code, leftover_distance, leftover_residual,
                 observed_response, expected_response, leftover_map_rank,
-                leftover_map_unexplained, leftover_map_cross_share
-            ) values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)
+                leftover_map_unexplained, leftover_map_cross_share,
+                leftover_map_reconstruction
+            ) values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15)
             """,
             grouping_kind,
             grouping_key,
@@ -462,6 +463,7 @@ async def persist_period_report(
             pair.leftover_map_rank,
             pair.leftover_map_unexplained,
             pair.leftover_map_cross_share,
+            pair.leftover_map_reconstruction,
         )
     for person in report.leftover_map_persons:
         await conn.execute(
@@ -679,7 +681,8 @@ async def fetch_period_reports(
         select lp.grouping_key, lp.pair_kind, lp.post_id, lp.criterion_code,
                lp.leftover_distance, lp.leftover_residual,
                lp.observed_response, lp.expected_response, lp.leftover_map_rank,
-               lp.leftover_map_unexplained, lp.leftover_map_cross_share, p.post_title,
+               lp.leftover_map_unexplained, lp.leftover_map_cross_share,
+               lp.leftover_map_reconstruction, p.post_title,
                p.visibility_code, p.corporate_entity_id,
                ({_SOURCE_CONTEXT_PRESENT_SQL}) as has_real_source_context
         from report_leftover_pair lp
@@ -859,6 +862,11 @@ async def fetch_period_reports(
                             None
                             if row["leftover_map_cross_share"] is None
                             else float(row["leftover_map_cross_share"])
+                        ),
+                        "leftover_map_reconstruction": (
+                            None
+                            if row["leftover_map_reconstruction"] is None
+                            else float(row["leftover_map_reconstruction"])
                         ),
                         "visibility_code": row["visibility_code"],
                         "corporate_entity_id": str(row["corporate_entity_id"]),
@@ -1073,6 +1081,7 @@ async def fetch_period_comparison(
         f"""
         select lp.grouping_kind, lp.grouping_key, lp.pair_kind, lp.post_id,
                lp.criterion_code, lp.leftover_distance, lp.leftover_residual,
+               lp.leftover_map_reconstruction,
                p.post_title, p.visibility_code, p.corporate_entity_id,
                ({_SOURCE_CONTEXT_PRESENT_SQL}) as has_real_source_context
         from report_leftover_pair lp
@@ -1117,6 +1126,11 @@ async def fetch_period_comparison(
                         "criterion_code": str(pair["criterion_code"]),
                         "leftover_distance": float(pair["leftover_distance"]),
                         "leftover_residual": float(pair["leftover_residual"]),
+                        "leftover_map_reconstruction": (
+                            None
+                            if pair["leftover_map_reconstruction"] is None
+                            else float(pair["leftover_map_reconstruction"])
+                        ),
                         "visibility_code": pair["visibility_code"],
                         "corporate_entity_id": str(pair["corporate_entity_id"]),
                         "has_real_source_context": bool(pair["has_real_source_context"]),

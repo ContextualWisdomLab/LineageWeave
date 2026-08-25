@@ -60,10 +60,9 @@ def _assert_residual_reconciles(pair) -> None:
 
 
 def _assert_never_persists_hidden_shares(pair) -> None:
-    """The cross-share increment never persists these adjacent facts (ADR 0185)."""
+    """The cross-share/reconstruction path never persists unsupported shares."""
     assert not hasattr(pair, "leftover_map_explained_share")
     assert not hasattr(pair, "leftover_map_unexplained_share")
-    assert not hasattr(pair, "leftover_map_reconstruction")
 
 
 def _gabriel_positions(filled: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
@@ -114,7 +113,8 @@ def test_leftover_residual_biplot_separates_aligned_and_opposed_cells() -> None:
     assert closest.leftover_map_cross_share == pytest.approx(0.0, abs=1e-6)
     # Rank-1 reconstructed opposed cell: U = 0 so x = 0.
     assert farthest.leftover_map_cross_share == pytest.approx(0.0, abs=1e-6)
-    assert not hasattr(closest, "leftover_map_reconstruction")
+    assert closest.leftover_map_reconstruction == pytest.approx(0.0, abs=1e-6)
+    assert farthest.leftover_map_reconstruction == pytest.approx(-2.0, abs=1e-6)
     for pair in pairs:
         _assert_residual_reconciles(pair)
         _assert_never_persists_hidden_shares(pair)
@@ -147,6 +147,8 @@ def test_zero_residual_still_emits_stable_leftover_pairs() -> None:
     assert pairs[1].leftover_map_unexplained == pytest.approx(0.0)
     assert pairs[0].leftover_map_cross_share == pytest.approx(0.0)
     assert pairs[1].leftover_map_cross_share == pytest.approx(0.0)
+    assert pairs[0].leftover_map_reconstruction == pytest.approx(0.0)
+    assert pairs[1].leftover_map_reconstruction == pytest.approx(0.0)
     for pair in pairs:
         _assert_residual_reconciles(pair)
         assert pair.leftover_map_rank == 0
@@ -154,6 +156,27 @@ def test_zero_residual_still_emits_stable_leftover_pairs() -> None:
     assert coverage.map_post_count == 2
     assert coverage.scored_post_count == 2
     assert coverage.incomplete_post_count == 0
+
+
+def test_rank_zero_nonzero_constant_residual_keeps_raw_identity() -> None:
+    """Centering a constant nonzero residual gives R̂=0 while U remains R."""
+    matrix = np.ones((2, 2), dtype=np.float64)
+    pairs = leftover_pairs_from_residual(
+        ["post-a", "post-b"],
+        ("item-a", "item-b"),
+        matrix,
+        np.zeros_like(matrix),
+    )
+
+    assert pairs
+    for pair in pairs:
+        assert pair.leftover_map_rank == 0
+        assert pair.leftover_residual == pytest.approx(1.0)
+        assert pair.leftover_map_reconstruction == pytest.approx(0.0)
+        assert pair.leftover_map_unexplained == pytest.approx(1.0)
+        assert pair.leftover_map_unexplained + pair.leftover_map_reconstruction == pytest.approx(
+            pair.leftover_residual
+        )
 
 
 def test_partial_observation_does_not_treat_missing_as_zero_residual() -> None:
@@ -375,6 +398,7 @@ def test_leftover_residual_rejects_database_tolerance_boundary() -> None:
             0.0,
             None,
             None,
+            None,
         )
 
 
@@ -580,7 +604,10 @@ def test_unexplained_and_cross_share_are_identity_remainder_terms() -> None:
         assert pair.leftover_map_unexplained == pytest.approx(expected_unexplained)
         assert pair.leftover_map_unexplained != pytest.approx(pair.leftover_residual)
         assert pair.leftover_map_unexplained != pytest.approx(pair.leftover_distance)
-        assert not hasattr(pair, "leftover_map_reconstruction")
+        assert pair.leftover_map_reconstruction == pytest.approx(recon)
+        assert pair.leftover_map_unexplained + pair.leftover_map_reconstruction == pytest.approx(
+            pair.leftover_residual
+        )
         # Raw-residual cross share x = 2 R̂ U / R² (ADR 0185).
         residual = float(pair.leftover_residual)
         expected_share = (2.0 * recon * expected_unexplained) / (residual * residual)

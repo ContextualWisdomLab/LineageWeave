@@ -127,6 +127,7 @@ def seed(
             cur.execute((migrations / "0172_report_leftover_interaction_map.sql").read_text())
             cur.execute((migrations / "0182_report_leftover_map_unexplained.sql").read_text())
             cur.execute((migrations / "0185_report_leftover_map_cross_share.sql").read_text())
+            cur.execute((migrations / "0206_report_leftover_map_reconstruction.sql").read_text())
             cur.execute((migrations / "0060_role_responsibility_agent_type.sql").read_text())
             cur.execute((migrations / "0013_person_job_title.sql").read_text())
             cur.execute((migrations / "0014_role_responsibility_team_actor_type.sql").read_text())
@@ -209,6 +210,20 @@ def seed(
                 (group_entity_id,),
             )
             corporate_entity_id = cur.fetchone()[0]
+            cur.execute(
+                """
+                insert into organization_name_resolution
+                    (raw_organization_name, resolved_organization_name,
+                     verification_status_code, verification_evidence_url)
+                values ('DC', 'Demo Corp', 'verify_corroborated',
+                        'https://example.test/searxng?q=Demo+Corp+DC')
+                on conflict (raw_organization_name) do update set
+                    resolved_organization_name = excluded.resolved_organization_name,
+                    verification_status_code = excluded.verification_status_code,
+                    verification_evidence_url = excluded.verification_evidence_url,
+                    resolved_at = now()
+                """
+            )
 
             cur.execute(
                 "insert into process_unit (corporate_entity_id, process_unit_code, process_unit_name) values "
@@ -1354,8 +1369,9 @@ def _persist_seed_period_report(
             "grouping_kind, grouping_key, period_code, rubric_version, "
             "pair_kind, post_id, criterion_code, leftover_distance, leftover_residual, "
             "observed_response, expected_response, leftover_map_rank, "
-            "leftover_map_unexplained, leftover_map_cross_share"
-            ") values (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)",
+            "leftover_map_unexplained, leftover_map_cross_share, "
+            "leftover_map_reconstruction"
+            ") values (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)",
             (
                 grouping_kind,
                 grouping_key,
@@ -1371,6 +1387,7 @@ def _persist_seed_period_report(
                 pair.leftover_map_rank,
                 pair.leftover_map_unexplained,
                 pair.leftover_map_cross_share,
+                pair.leftover_map_reconstruction,
             ),
         )
     for person in report.leftover_map_persons:
