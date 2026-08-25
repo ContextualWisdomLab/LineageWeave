@@ -220,7 +220,11 @@ Checks pending. Do not add a LineageWeave-local duplicate workflow and do not
 describe the hourly caller as deployed until #1288 has an independently
 approved, terminal-green protected-main merge SHA. The shared repair worker's
 direct provider/model selection also remains a separate central orchestration
-gap; the caller alone does not prove the contextual-orchestrator boundary.
+gap. ContextualWisdomLab/.github#1170 at exact head `ba6fdec4` now pins the
+merged contextual-orchestrator review gateway, isolates its import path, and
+retains provider fallbacks, but it is not deployed evidence until protected
+central `main` contains its merge SHA. The caller alone does not prove the
+contextual-orchestrator boundary.
 
 Figma design-system boundary (ADR 0002): File ID `1Su3lDRmiZdcUs47t1QwIX`.
 The sanitized file now contains synthetic Event Lineage desktop (`5:14`) and
