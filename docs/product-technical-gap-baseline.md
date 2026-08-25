@@ -1,6 +1,15 @@
 # Product & Technical Gap Baseline
 
-> Audit snapshot: 2026-08-25 17:30 KST (refreshed by the autonomous merge
+Status: **Authoritative combined PRD, TRD, and product-gap baseline**
+
+LineageWeave reconstructs evidence-bearing lineage and presents it to an
+authorized operator. It owns product identity, authorization, provenance,
+persistence, navigation, and presentation. It does **not** own mathematical or
+psychometric computation: those kernels must cross a versioned ecosystem
+library contract, with `fast-mlsirm` owning the residual interaction-map
+arithmetic used by period reports.
+
+> Audit snapshot: 2026-08-25 20:40 KST (refreshed by the autonomous merge
 > loop). This repository records synthetic fixtures and aggregate,
 > non-identifying runtime evidence only. Open PRs and local checks are not
 > protected-default-branch release evidence. Identifying post identifiers,
@@ -9,22 +18,18 @@
 
 ## 1. Exact-head and governance evidence
 
-The protected default branch was `4f53190bf5baf5e2ab1c7f944aac474b8deae77a`
-when this baseline was refreshed. The live queue contained 8 open PRs and 17
+The protected default branch was `61f7981efd5fc9b0bcb2b66a31daa88d84733285`
+when this baseline was refreshed. The live queue contained 4 open PRs and 14
 open issues. The exact-head inventory below supersedes older per-PR snapshots
 elsewhere in this document; those older rows remain useful historical delivery
 context only.
 
 | PR | Exact observed head | Merge/check state at this snapshot |
 | ---: | --- | --- |
-| #606 | `61fd631c` | retires the internally anchored channel-weight vector in favor of the exact TEPP#237 criterion-validity contract and now contains the former #607 operations-dashboard stack; fractional cutoffs and canonical UUIDs remain enforced, while the similar-VOC endpoint and authenticated production backfill remain unavailable; the combined non-default head awaits hosted gates and two independent approvals before protected delivery |
-| #605 | `9460af9c` | exact-main follow-up for post-navigation refocus, cross-browser visibility-aware modal focus order including native disclosure summaries, readable evidence separators, and validated OIDC return context; focused regressions, lint, build, Storybook, and desktop/mobile screenshot audits passed locally; auto-merge awaits hosted gates and independent review |
-| #600 | `f1b4ff62` | this baseline's pre-amendment head also restores the ADR 0109 OIDC return helper at login; the current documentation commit necessarily supersedes its own observed SHA, so checks and review restart on the resulting head |
-| #579 | `acd44dfe` | interaction-map coordinates now compose protected main, return no false axes or criteria-only map, preserve the validated OIDC return path, and retain successful backend/frontend/build plus desktop/mobile Storybook evidence; auto-merge awaits hosted gates and independent review |
-| #493 | `cc3080c6` | ADR 0143 empty-DAG reasons are composed with the batched Ask graph: hidden posts cannot bridge authorized components, multi-post Ask omits the single-post reason, conflict-marker regression coverage is present, and focused backend/frontend/build checks pass; auto-merge awaits hosted gates and independent review |
-| #490 | `73413d0b` | broad historical workspace branch is conflicting with failing checks; decompose/restack rather than replaying its 931-commit merge wholesale |
-| #468 | `5c6bc014` | fast-mlsirm v0.8.0, exact Keyverse scope, orchestrator, and TEPP boundaries are composed with current main; TEPP contract/auth headers and telemetry-safe startup were retained, but protected delivery still requires terminal hosted gates and independent exact-head approval |
-| #387 | `728125c1` | channel evidence plus Ask reconstruction-profile preservation is composed with current main and has no unresolved threads; only changes-requested decisions from obsolete heads remain, so auto-merge is armed pending current-head checks and independent re-review |
+| #618 | `9d1aecaf` | validates ontology shape term kinds; protected delivery still requires terminal same-head checks and independent approval |
+| #613 | `cee3b38e` | refreshes this product baseline on a separate exact head; reconcile its evidence with later product branches rather than transferring its review state |
+| #579 | `b782e5f7` | persists the leftover interaction map; the pending amendment moves every numerical operation to the Rust-backed `fast-mlsirm` contract and retains only identifier mapping, persistence, selection, and presentation in LineageWeave |
+| #387 | `d6b74f53` | persists and explains Event Lineage channel evidence; protected delivery still requires terminal same-head checks and independent approval |
 
 No row above is merge evidence. Immediately before any lifecycle action,
 re-fetch the head, unresolved threads, formal reviews, rulesets, and same-head
@@ -305,13 +310,14 @@ this file per §3.5 of the prior snapshot).
 | Calendar / Naruon | #355 delivered the projection contract; v2.17.0 wires Buyer consume without forwarding the end-user token. Naruon producer, provider/consumer fixtures, and protected merge remain open (#336) | Verify observed events against the published schema without invented events; keep commitments available when the channel is unwired |
 | SKOS organization aliases | Catalog binding and chip caption live on #480 / #482 | One catalog row per corroborated org; companion caption is hint-only until bound |
 | Event Lineage evidence | Channel evidence and Allen relations live on #387 / #484 | Persist channel scores, explain them in the popup, never invent a fused score |
-| Scientific measurement | Durable accepted TEPP receipts are protected (`main`); #606 replaces the internally anchored channel-weight activation with the exact TEPP-owned criterion-validity contract from TEPP#237, while #468 binds fast-mlsirm/Keyverse/orchestrator/TEPP integration tests and fails closed on upstream probability-axis drift. Neither cross-repository PR is protected delivery yet. #387 removes inferred/default persistence weights, but several older reconstruction tests still pass hand-authored numeric weight dictionaries; those constants are not estimator evidence | Land TEPP#237 before or together with #606 through their protected gates, then continue replacing remaining reconstruction-test constants with provenance-bearing fast-mlsirm estimates over synthetic fixtures; tests unrelated to fusion must bypass weighting entirely, as #484 does. Retain true-parameter RMSE recovery as the acceptance bar |
+| Scientific measurement | Durable accepted TEPP receipts are protected (`main`). `fast-mlsirm` PR #1387 was merged into the non-default #1279 stack, whose exact head `4495aa4f` now owns residual, complete-case, Gabriel factorization, coordinates, inertia, distance, reconstruction, unexplained-residual, and cross-share arithmetic in Rust. The pending #579 amendment consumes that immutable head and deletes the duplicate NumPy implementation. Neither the upstream stack nor #579 is protected delivery yet. #387 removes inferred/default persistence weights, but older reconstruction tests still pass hand-authored numeric weight dictionaries; those constants are not estimator evidence | Land `ContextualWisdomLab/fast-mlsirm` #1279 through its protected gate before #579. Keep LineageWeave limited to IDs, authorization, persistence, deterministic product selection, and presentation. Continue replacing remaining fusion-test constants with provenance-bearing upstream estimates over synthetic fixtures; unrelated tests bypass weighting. Retain true-parameter RMSE recovery as the upstream acceptance bar |
 | Asynchronous authorization | Protected `main` rebuilds Global Ask worker scope after the bearer token leaves the request; #468 now persists exact Keyverse organization/process-unit scope in 3NF child tables and intersects it with current affiliations | Land #468 through the protected gate; prove a second affiliation and a revoked process unit cannot widen delayed-job evidence |
 | Planned-facility intent | Planned-facility relationship intent rides on open #490 (`d0cad030`), whose earlier stack-only merges were not protected delivery | Settle #490 exact-head checks plus independent approval, then land through protected `main` before a release claim |
 | Accessibility and responsive UX | #602 delivered base post-detail modal semantics; #605 adds selected-post refocus, collapsed/hidden/inert/CSS-invisible focus exclusion across both modal types, readable evidence separators, focused tests, and desktop/mobile Storybook screenshots | Land #605 through the protected gate, then complete screen-reader and authenticated Playwright acceptance on the exact release head |
 | Design tokens and repeated objects | Token extraction started; sanitized Figma Event Lineage desktop/mobile frames exist, while other repeated product surfaces remain incomplete | Tokens in CSS + Storybook stories for board, popup, DAG, Ask, calendar, forms, charts; same-viewport Figma/runtime visual comparison before release |
 | External integrations | Search, Zotero, calendar, Keyverse, orchestrator, RankWeave, ThreadWeave, TEPP, disksage, wardnet | Provider conformance, failure/reconciliation behavior, and provenance-bearing integration evidence |
 | MSA / modular reuse | LineageWeave must run standalone and as a consumer of org packages | Do not reimplement RankWeave/TEPP/orchestrator/ThreadWeave/Keyverse; fix upstream and PR there |
+| Concurrent web responsiveness | Async workers and short database transactions exist for several long-running paths, but one exact release head has not yet demonstrated the complete authenticated workflow under concurrent traffic | Add a reproducible k6 end-to-end scenario against the Compose stack, publish only aggregate non-identifying latency/error/throughput evidence, identify the measured bottleneck, and require event-loop responsiveness plus bounded database-pool wait under the documented workload before release |
 | Release quality | Local focused/full suites have passed on individual PR heads | Repository-wide coverage, docstrings, Storybook, security, browser, and release evidence on one exact head |
 | PII | Masking would paralyze the product; ADR 0001 forbids identifying artifacts in git | ABAC + authorized runtime; synthetic fixtures in git; no mask-in-place that drops names the operator must read |
 | Database | PostgreSQL, 3NF, snake_case ≥ two words, hot-partition and lock policy | No file DBs; read/write split if lock management fails; whitelist every migration |
@@ -343,7 +349,10 @@ of leverage; open connector PRs there when the defect is upstream:
 2. **Keyverse** — OIDC issuer, JWKS, tenant principals.
 3. **RankWeave** — fused scores and rankings; never invent a fused score or theta.
 4. **TEPP** — calibrated measurement; persist receipts; no local reimplementation.
-5. **fast-mlsirm** — GRM/GPCM/CAT/FIPC recovery tests (#451–#454) must stay true-parameter RMSE.
+5. **fast-mlsirm** — reusable psychometric and numerical authority, including
+   residual interaction maps; GRM/GPCM/CAT/FIPC recovery tests (#451–#454)
+   must stay true-parameter RMSE. Its PRD explicitly excludes downstream
+   product IDs, persistence, authorization, and UI.
 6. **ThreadWeave** — tree assembly.
 7. **Naruon** — calendar and email/project lineage projection (#336, #338, #355).
 8. **disksage / wardnet** — storage and network policy as needed.

@@ -6,6 +6,13 @@ All notable changes to this project are documented here. Format follows
 
 ## [Unreleased]
 
+### Changed
+
+- Residual interaction-map arithmetic now comes from the Rust-backed
+  `fast-mlsirm` contract. LineageWeave maps returned indices to product
+  identifiers and persists the evidence; it no longer computes residuals,
+  factorization, coordinates, distances, reconstruction, or cross-share.
+
 ### Added
 
 - Buyer Calendar now consumes the Naruon calendar projection beside

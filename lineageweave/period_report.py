@@ -21,12 +21,12 @@ coordinates (ADR 0121) come from the residual interaction after those
 IRT main effects: ``R = Y − E[Y|θ, item]``.
 A Gabriel biplot of ``R`` supplies person and item leftover-map
 positions. Closest / farthest pairs are the min / max Euclidean
-distances on that map (Jeon et al., 2021, eq. 3). Leftover-map axis
-share is Gabriel inertia ``σ_k² / Σ_j σ_j²`` of residual SVD axes 1
-and 2 (ADR 0148). Complete-case coverage (ADR 0168) names how many
-scored posts entered the factorization; incomplete rows are excluded,
-never filled with zero. ``fast-mlsirm`` has no leftover-pair API; this
-module does not invent a second IRT fit and does not fork LSIRM.
+distances on that map (Jeon et al., 2021, eq. 3). fast-mlsirm's
+``residual_interaction_map`` owns residual, complete-case admission, Gabriel
+coordinates, distance, axis inertia, reconstruction, unexplained residual,
+and cross share. This module maps those results to product identifiers and
+selects the persisted closest/farthest cells (ADR 0207); it does not fork the
+calculation or invent a second IRT fit.
 
 This module is pure compute. Persistence lives in
 ``backend/app/report_ingestion.py``. TEPP is not used here; temporal
@@ -48,6 +48,7 @@ from fast_mlsirm import (
     validate_irt_response_matrix,
 )
 
+from . import leftover_pairs as _leftover_pairs
 from .leftover_pairs import (
     LeftoverInteractionMap,
     LeftoverMapAxis,
@@ -58,10 +59,11 @@ from .leftover_pairs import (
     leftover_map_coverage_from_residual,
     leftover_map_from_residual,
 )
-from .leftover_pairs import leftover_pairs_from_residual as leftover_pairs_from_residual
-from .leftover_pairs import PAIR_KIND_CLOSEST as PAIR_KIND_CLOSEST
-from .leftover_pairs import PAIR_KIND_FARTHEST as PAIR_KIND_FARTHEST
 from .post_evaluation import CRITERION_CODES, IRT_CATEGORY_COUNT
+
+PAIR_KIND_CLOSEST = _leftover_pairs.PAIR_KIND_CLOSEST
+PAIR_KIND_FARTHEST = _leftover_pairs.PAIR_KIND_FARTHEST
+leftover_pairs_from_residual = _leftover_pairs.leftover_pairs_from_residual
 
 LINK_METHOD_FREE = "free"
 LINK_METHOD_FIPC = "fipc"

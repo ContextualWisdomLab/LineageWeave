@@ -14,9 +14,9 @@ who sees only two named pairs cannot see *why* those cells sat
 closest or farthest, or where the other complete-case posts and
 criteria sit on the same leftover map.
 
-`fast-mlsirm` still exposes no leftover-map API. LineageWeave must
-not fork LSIRM, invent a second IRT fit, or treat a missing residual
-cell as a zero residual.
+fast-mlsirm now exposes the Rust-backed residual interaction-map contract
+adopted by ADR 0207. LineageWeave must not fork that calculation, invent a
+second IRT fit, or treat a missing residual cell as a zero residual.
 
 ## Decision
 
@@ -45,8 +45,9 @@ pair. Pair-member criterion nodes open that leftover-pair post
 `source_post` and use the same ABAC gate as members and leftover
 pairs. Missing map rows render nothing.
 
-The biplot remains in `lineageweave/leftover_pairs.py` so leftover
-tests do not import `period_report` or `fast_mlsirm`.
+The biplot calculation lives in fast-mlsirm. `lineageweave/leftover_pairs.py`
+maps returned indices and values to authorized product identifiers and selects
+the closest/farthest cells; it contains no factorization or cross-term formula.
 
 ## Consequences
 

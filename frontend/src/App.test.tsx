@@ -989,7 +989,7 @@ describe("App, authenticated", () => {
                     observed_response: 2.4,
                     expected_response: 2.0,
                     leftover_map_rank: 1,
-                    leftover_map_cross_share: 0.12,
+                    leftover_map_cross_share: 0.21875,
                     leftover_map_reconstruction: 0.35,
                   },
                   {
@@ -1003,7 +1003,7 @@ describe("App, authenticated", () => {
                     observed_response: 0.9,
                     expected_response: 2.0,
                     leftover_map_rank: 1,
-                    leftover_map_cross_share: -0.24,
+                    leftover_map_cross_share: 0.3512396694214876,
                     leftover_map_reconstruction: -0.85,
                   },
                 ],
@@ -2215,7 +2215,10 @@ describe("App, authenticated", () => {
 
     await userEvent.type(within(board).getByLabelText("Search semantic evidence"), "not found");
     await userEvent.click(within(board).getByRole("button", { name: "Search" }));
-    expect(within(board).getByRole("status")).toHaveTextContent("No posts match the current filters.");
+    expect(within(board).getByText("No posts match the current filters.")).toHaveAttribute(
+      "role",
+      "status",
+    );
     await userEvent.click(within(board).getByRole("button", { name: "Reset filters" }));
     expect(within(board).getByRole("button", { name: "View post: Public post" })).toBeInTheDocument();
   });
@@ -3375,9 +3378,10 @@ describe("App, authenticated", () => {
     expect(
       screen.getByRole("button", { name: "Compare Business unit (PU): Demo Report High, mean θ 0.81" }),
     ).not.toHaveAttribute("aria-current");
-    expect(screen.getByRole("status")).toHaveTextContent(
+    const groupingStatus = screen.getByText(
       "Demo Corp is the opened grouping. Read its mean θ and member posts below, then open a post.",
     );
+    expect(groupingStatus).toHaveAttribute("role", "status");
     expect(await screen.findByText(/Demo Corp: mean θ 0\.42/)).toBeInTheDocument();
     expect(screen.queryByText(/corp-1: mean θ/)).not.toBeInTheDocument();
     const openedReport = screen.getByRole("list", { name: "Opened grouping report" });
@@ -3385,7 +3389,7 @@ describe("App, authenticated", () => {
     expect(
       within(openedReport).getByRole("button", { name: /open report post: public post/i }),
     ).toBeInTheDocument();
-    const status = screen.getByRole("status");
+    const status = groupingStatus;
     const demoMean = screen.getByText(/Demo Corp: mean θ 0\.42/);
     const weekChip = screen.getByRole("button", { name: /open report period 2026-W03/i });
     expect(status.compareDocumentPosition(demoMean) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(0);
@@ -3422,9 +3426,10 @@ describe("App, authenticated", () => {
       expect(demoChip).toHaveAccessibleName(/mean θ 0\.42/);
       expect(scrollIntoView).toHaveBeenCalled();
       expect(periodInput).not.toHaveFocus();
-      expect(screen.getByRole("status")).toHaveTextContent(
+      const groupingStatus = screen.getByText(
         "Demo Corp is the opened grouping. Read its mean θ and member posts below, then open a post.",
       );
+      expect(groupingStatus).toHaveAttribute("role", "status");
       expect(await screen.findByText(/Demo Corp: mean θ 0\.42/)).toBeInTheDocument();
       const openedReport = screen.getByRole("list", { name: "Opened grouping report" });
       expect(within(openedReport).getByText(/Demo Corp: mean θ 0\.42/).closest("li")).toHaveAttribute(
@@ -3438,7 +3443,7 @@ describe("App, authenticated", () => {
       });
       expect(member).toHaveTextContent("θ 0.91");
       expect(member).not.toHaveAttribute("aria-current");
-      const status = screen.getByRole("status");
+      const status = groupingStatus;
       const demoMean = screen.getByText(/Demo Corp: mean θ 0\.42/);
       const weekChip = screen.getByRole("button", { name: /open report period 2026-W03/i });
       expect(status.compareDocumentPosition(demoMean) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(0);
@@ -3876,25 +3881,25 @@ describe("App, authenticated", () => {
     // Leftover-map cross share is present, so it names the next action
     // instead of the rank/observed-expected chain (ADR 0185).
     expect(closestPair).toHaveTextContent(
-      "Two leftover-map axes leave identity remainder 0.12 of raw residual after IRT main effects. Open this post to read sales-lead.",
+      "Two leftover-map axes leave identity remainder 0.22 of raw residual after IRT main effects. Open this post to read sales-lead.",
     );
     expect(closestPair).toHaveTextContent("R +0.40");
     expect(closestPair).toHaveTextContent("Y 2.40 · E 2.00");
     expect(closestPair).toHaveTextContent("rank 1");
     expect(closestPair).toHaveTextContent("U +0.05");
-    expect(closestPair).toHaveTextContent("2R̂U/R² 0.12");
+    expect(closestPair).toHaveTextContent("2R̂U/R² 0.22");
     expect(closestPair).toHaveTextContent("R̂ +0.35");
     expect(closestPair).toHaveTextContent("d 0.12");
     expect(closestPair).toHaveAccessibleName("Open leftover closest pair: Public post · sales-lead");
     expect(farthestPair).toHaveTextContent("Farthest leftover: Specification revision requested · negative");
     expect(farthestPair).toHaveTextContent(
-      "Two leftover-map axes leave identity remainder -0.24 of raw residual after IRT main effects. Open this post to read negative.",
+      "Two leftover-map axes leave identity remainder 0.35 of raw residual after IRT main effects. Open this post to read negative.",
     );
     expect(farthestPair).toHaveTextContent("R −1.10");
     expect(farthestPair).toHaveTextContent("Y 0.90 · E 2.00");
     expect(farthestPair).toHaveTextContent("rank 1");
     expect(farthestPair).toHaveTextContent("U −0.25");
-    expect(farthestPair).toHaveTextContent("2R̂U/R² -0.24");
+    expect(farthestPair).toHaveTextContent("2R̂U/R² 0.35");
     expect(farthestPair).toHaveTextContent("R̂ −0.85");
     expect(farthestPair).toHaveTextContent("d 1.84");
     const memberButton = screen.getByRole("button", { name: /open report post: public post/i });
@@ -3928,9 +3933,11 @@ describe("App, authenticated", () => {
     await userEvent.click(
       screen.getByRole("button", { name: "Compare Thread group: A-100, mean θ 0.81" }),
     );
-    expect(screen.getByRole("status")).toHaveTextContent(
-      "A-100 is the opened grouping. Read its mean θ and member posts below, then open a post.",
-    );
+    expect(
+      screen.getByText(
+        "A-100 is the opened grouping. Read its mean θ and member posts below, then open a post.",
+      ),
+    ).toHaveAttribute("role", "status");
     expect(
       screen.getByRole("button", {
         name: /open leftover closest pair from comparison: public post/i,
