@@ -162,6 +162,16 @@ All notable changes to this project are documented here. Format follows
   is unwired, with `이 범위의 일정을 아직 받을 수 없습니다`. Weekly VOC and
   newspaper stay on the board.
 
+## [2.14.0] - 2026-08-24
+
+### Changed
+
+- Global Ask now builds the merged cited Event Lineage graph from one
+  `source_post` scan and one `post_lineage_edge` read, keeps cited posts
+  first when the graph exceeds the landing node bound, and names
+  **truncated** so a click still opens that cited post (ADR 0169 / #568).
+  Do not invent a theta.
+
 ## [2.13.2] - 2026-08-24
 
 ### Added

@@ -223,11 +223,14 @@ lives in `lineageweave/keyman_extraction.py` and talks to
 contextual-orchestrator; persist is `backend/app/keyman_ingestion.py`.
 
 `GET /api/lineage` returns the ABAC-filtered reconstruct graph
-(`{nodes, edges}`) from persisted `post_lineage_edge` rows. Each node
+(`{nodes, edges, truncated}`) from persisted `post_lineage_edge` rows. Each node
 includes `group` from the same `reconstruct_group_key()` rebuild uses
 (persisted `thread_group_key`, else process unit, else corp). Each
 direct edge includes `interval_relation_code` / `interval_relation_label`
 (Allen, 1983; ADR 0161) computed from the two posts' observed windows.
+Global Ask merges cited threads from one post/edge fetch pair and
+caps the payload at the landing node bound, keeping cited posts first
+(ADR 0169). Open a cited post to read the focused thread.
 `POST /api/lineage/rebuild` (`post_admin`) re-runs `reconstruct()` over
 every `source_post` and rewrites those edges, then names the interval
 relation in the same transaction. Reconstruct grouping is
@@ -603,10 +606,10 @@ information at the group's mean θ (Lord, 1980 max-info CAT). Rankings
 persist to `report_item_information`. After those IRT main effects,
 residual SVD leftover pairs on two Gabriel axes (Jeon et al., 2021;
 ADR 0017 / 0048 / 0049 / 0119 / 0148 / 0158 / 0162 / 0163 / 0164 / 0168 /
-0182 / 0185) persist to `report_leftover_pair` with signed residual `R`,
+0182 / 0185 / 0201) persist to `report_leftover_pair` with signed residual `R`,
 observed `Y`, expected `E[Y|θ, item]`, full leftover-map rank, unexplained
-leftover `U = R − R̂` named on the pair row, and leftover-map cross share
-`x = 2 R̂ U / R²` of raw residual. Leftover-map axis share
+leftover, ADR 0201 reconstruction evidence, and ADR 0185 cross-share evidence.
+Those ADRs are the normative mathematical and storage contracts. Leftover-map axis share
 (Gabriel inertia of residual SVD axes 1 and 2; ADR 0148) persists to
 `report_leftover_map_axis`. Complete-case leftover-map coverage (ADR
 0168) persists to `report_leftover_map_coverage` so readers see how
