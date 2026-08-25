@@ -16,9 +16,11 @@ from lineageweave.knowledge_graph import (
     EDGE_AFFILIATION,
     EDGE_CO_MENTION,
     EDGE_MENTION,
+    EDGE_MENTION_PROJECT,
     NODE_CORPORATE_ENTITY,
     NODE_PERSON,
     NODE_POST,
+    NODE_PROJECT,
 )
 from lineageweave.ontology import (
     LOOKUP_CODE,
@@ -39,12 +41,14 @@ _SEED_SCRIPT_PATH = Path(__file__).resolve().parents[1] / "scripts" / "seed_demo
 # 0012 (ADR 0006: prov_person/prov_organization), 0014 (ADR 0007:
 # prov_team), 0016 (ADR 0009: node_team/edge_mention_team/
 # edge_team_affiliation/edge_mention_organization), and 0042 (ADR 0207:
-# the five governed voc_type post-type codes).
+# the five governed voc_type post-type codes), and 0220 (ADR 0222:
+# node_project/edge_mention_project).
 _ADDITIONAL_LOOKUP_MIGRATION_PATHS = (
     Path(__file__).resolve().parents[1] / "migrations" / "0060_role_responsibility_agent_type.sql",
     Path(__file__).resolve().parents[1] / "migrations" / "0014_role_responsibility_team_actor_type.sql",
     Path(__file__).resolve().parents[1] / "migrations" / "0016_cross_post_actor_identity.sql",
     Path(__file__).resolve().parents[1] / "migrations" / "0042_voc_type_vocabulary.sql",
+    Path(__file__).resolve().parents[1] / "migrations" / "0220_ontology_project_node.sql",
 )
 
 # The categories this ontology covers (ADR 0004's scope, extended by
@@ -116,8 +120,10 @@ def test_knowledge_graph_lookup_constants_are_declared_in_the_ontology() -> None
         NODE_PERSON,
         NODE_CORPORATE_ENTITY,
         NODE_POST,
+        NODE_PROJECT,
         EDGE_MENTION,
         EDGE_AFFILIATION,
+        EDGE_MENTION_PROJECT,
         EDGE_CO_MENTION,
     ):
         assert code in declared, f"{code} is written by knowledge_graph.py but missing from lineageweave-kg.ttl"

@@ -136,6 +136,29 @@ function neighborhood(overrides: Partial<OntologyNeighborhoodPayload> = {}): Ont
 }
 
 describe("OntologyExplorer", () => {
+  it("renders a project node with a text-labeled diamond", () => {
+    const payload = neighborhood();
+    const projectNode = {
+      ...payload.nodes[0],
+      node_id: "demo-project",
+      node_type_code: "node_project",
+      ontology_class_iri: "https://example.test/Project",
+      display_label: "Demo Project",
+      truth_status_code: "truth_proposed",
+      shape_code: "diamond",
+    };
+    const { container } = render(
+      <OntologyExplorer
+        focusNodeType="node_project"
+        focusNodeId="demo-project"
+        neighborhood={{ ...payload, nodes: [projectNode], edges: [], exact_value_rows: [] }}
+      />,
+    );
+
+    expect(screen.getByLabelText("Select node: Project Demo Project")).toBeVisible();
+    expect(container.querySelector('polygon[points="0,-16 20,0 0,16 -20,0"]')).not.toBeNull();
+  });
+
   it("keeps loaded pages visible when a continuation page fails", async () => {
     const fetchNeighborhood = vi.mocked(fetchOntologyNeighborhood);
     let rejectContinuation!: (error: BackendError) => void;

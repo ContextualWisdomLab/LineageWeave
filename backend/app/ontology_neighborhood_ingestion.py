@@ -18,11 +18,14 @@ from backend.app.knowledge_graph import (
     visible_team_mention_post_ids,
 )
 from backend.app.post_eligibility import SOURCE_POST_ELIGIBILITY_SQL
+from lineageweave.post_summary import normalize_project_key
 from lineageweave.knowledge_graph import (
     NODE_CORPORATE_ENTITY,
     NODE_PERSON,
     NODE_POST,
+    NODE_PROJECT,
     NODE_TEAM,
+    EDGE_MENTION_PROJECT,
 )
 from lineageweave.ontology_neighborhood import (
     DEFAULT_MAXIMUM_DEPTH,
@@ -144,6 +147,19 @@ async def visible_post_ids_for_focus(
         return await visible_affiliation_post_ids(conn, focus_node_id, can_see_post)
     if focus_node_type_code == NODE_TEAM:
         return await visible_team_mention_post_ids(conn, focus_node_id, can_see_post)
+    if focus_node_type_code == NODE_PROJECT:
+        rows = await conn.fetch(
+            f"""
+            select post.post_id, post.visibility_code, post.corporate_entity_id,
+                   post.process_unit_id
+              from post_project_mention mention
+              join source_post post on post.post_id = mention.post_id
+             where mention.project_key = $1
+               and {SOURCE_POST_ELIGIBILITY_SQL.format(alias='post')}
+            """,
+            focus_node_id,
+        )
+        return [str(row["post_id"]) for row in rows if can_see_post(row)]
     raise OntologyNeighborhoodError("unknown_node_type", f"unknown node type {focus_node_type_code!r}")
 
 
@@ -152,7 +168,7 @@ async def _visible_post_ids_by_nodes(
     node_keys: set[tuple[str, str]],
     can_see_post: Callable[[asyncpg.Record], bool],
 ) -> dict[tuple[str, str], list[str]]:
-    """Load evidence visibility for all endpoint nodes in four bounded queries.
+    """Load evidence visibility for all endpoint nodes in five bounded queries.
 
     The neighborhood can contain many endpoints. Grouping ids by node type
     preserves the same ABAC predicate as the single-node readers while
@@ -168,7 +184,8 @@ async def _visible_post_ids_by_nodes(
             NODE_POST,
             """
             select post.post_id, post.visibility_code,
-                   post.corporate_entity_id, post.post_id as node_id
+                   post.corporate_entity_id, post.process_unit_id,
+                   post.post_id as node_id
               from source_post post
              where post.post_id = any($1::uuid[])
                and {eligibility}
@@ -178,7 +195,8 @@ async def _visible_post_ids_by_nodes(
             NODE_PERSON,
             """
             select post.post_id, post.visibility_code,
-                   post.corporate_entity_id, mention.person_id as node_id
+                   post.corporate_entity_id, post.process_unit_id,
+                   mention.person_id as node_id
               from combined_post_person_mention mention
               join source_post post on post.post_id = mention.post_id
              where mention.person_id = any($1::uuid[])
@@ -189,7 +207,7 @@ async def _visible_post_ids_by_nodes(
             NODE_CORPORATE_ENTITY,
             """
             select distinct post.post_id, post.visibility_code,
-                   post.corporate_entity_id,
+                   post.corporate_entity_id, post.process_unit_id,
                    affiliation.affiliated_corporate_entity_id as node_id
               from person_affiliation affiliation
               join combined_post_person_mention mention
@@ -199,7 +217,7 @@ async def _visible_post_ids_by_nodes(
                and {eligibility}
             union
             select distinct post.post_id, post.visibility_code,
-                   post.corporate_entity_id,
+                   post.corporate_entity_id, post.process_unit_id,
                    org_mention.corporate_entity_id as node_id
               from post_organization_mention org_mention
               join source_post post on post.post_id = org_mention.post_id
@@ -211,10 +229,23 @@ async def _visible_post_ids_by_nodes(
             NODE_TEAM,
             """
             select post.post_id, post.visibility_code,
-                   post.corporate_entity_id, mention.team_id as node_id
+                   post.corporate_entity_id, post.process_unit_id,
+                   mention.team_id as node_id
               from post_team_mention mention
               join source_post post on post.post_id = mention.post_id
              where mention.team_id = any($1::uuid[])
+               and {eligibility}
+            """,
+        ),
+        (
+            NODE_PROJECT,
+            """
+            select post.post_id, post.visibility_code,
+                   post.corporate_entity_id, post.process_unit_id,
+                   mention.project_key as node_id
+              from post_project_mention mention
+              join source_post post on post.post_id = mention.post_id
+             where mention.project_key = any($1::text[])
                and {eligibility}
             """,
         ),
@@ -248,7 +279,13 @@ async def _visible_post_ids_by_nodes(
 async def focus_catalog_exists(
     conn: asyncpg.Connection, focus_node_type_code: str, focus_node_id: str
 ) -> bool:
-    """True when the focus id exists in the governed catalog."""
+    """True when the focus id exists in its governed relational source."""
+    if focus_node_type_code == NODE_PROJECT:
+        row = await conn.fetchrow(
+            "select 1 from post_project_mention where project_key = $1 limit 1",
+            focus_node_id,
+        )
+        return row is not None
     if not _is_uuid(focus_node_id):
         return False
     if focus_node_type_code == NODE_POST:
@@ -286,6 +323,7 @@ async def _load_facts(
                    edge.target_node_type_code,
                    edge.target_node_id::text as target_node_id,
                    edge.edge_type_code,
+                   'truth_observed'::text as truth_status_code,
                    min(post.created_at) as available_at,
                    array_agg(evidence.evidence_post_id::text order by evidence.evidence_post_id)
                        as evidence_ids
@@ -301,6 +339,22 @@ async def _load_facts(
              group by edge.source_node_type_code, edge.source_node_id,
                       edge.target_node_type_code, edge.target_node_id,
                       edge.edge_type_code
+            union all
+            select 'node_post'::text as source_node_type_code,
+                   mention.post_id::text as source_node_id,
+                   'node_project'::text as target_node_type_code,
+                   mention.project_key as target_node_id,
+                   'edge_mention_project'::text as edge_type_code,
+                   'truth_proposed'::text as truth_status_code,
+                   greatest(post.created_at, mention.created_at) as available_at,
+                   array[mention.post_id::text] as evidence_ids
+              from post_project_mention mention
+              join source_post post on post.post_id = mention.post_id
+             where mention.post_id = any($1::uuid[])
+               and ($6::timestamptz is null
+                    or greatest(post.created_at, mention.created_at) <= $6::timestamptz)
+               and ($7::timestamptz is null
+                    or greatest(post.created_at, mention.created_at) <= $7::timestamptz)
         ), reachable(node_type_code, node_id, depth) as (
             values ($2::text, $3::text, 0)
             union
@@ -326,6 +380,7 @@ async def _load_facts(
                    candidate.target_node_type_code,
                    candidate.target_node_id,
                    candidate.edge_type_code,
+                   candidate.truth_status_code,
                    candidate.available_at,
                    candidate.evidence_ids,
                    min(reachable.depth) as hop_depth
@@ -341,6 +396,7 @@ async def _load_facts(
                       candidate.target_node_type_code,
                       candidate.target_node_id,
                       candidate.edge_type_code,
+                      candidate.truth_status_code,
                       candidate.available_at,
                       candidate.evidence_ids
         )
@@ -349,6 +405,7 @@ async def _load_facts(
                target_node_type_code,
                target_node_id,
                edge_type_code,
+               truth_status_code,
                available_at,
                evidence_ids,
                hop_depth
@@ -386,6 +443,10 @@ async def _load_facts(
     facts: list[NeighborhoodFact] = []
     source_keys_by_edge: dict[tuple[str, str, str, str, str], OntologySourceKey] = {}
     for row in page_rows:
+        try:
+            truth_status_code = row["truth_status_code"]
+        except (KeyError, IndexError):
+            truth_status_code = "truth_observed"
         fact = fact_from_knowledge_graph_edge(
                 source_node_type_code=row["source_node_type_code"],
                 source_node_id=str(row["source_node_id"]),
@@ -394,7 +455,12 @@ async def _load_facts(
                 edge_type_code=row["edge_type_code"],
                 recorded_at=row["available_at"],
                 evidence_references=tuple(row["evidence_ids"] or ()),
-                provenance_reference="knowledge_graph_edge",
+                provenance_reference=(
+                    "post_project_mention"
+                    if row["edge_type_code"] == EDGE_MENTION_PROJECT
+                    else "knowledge_graph_edge"
+                ),
+                truth_status_code=truth_status_code,
             )
         try:
             hop_depth = row["hop_depth"]
@@ -469,6 +535,7 @@ async def _load_labels(
     post_ids = ids_by_type[NODE_POST]
     corp_ids = ids_by_type[NODE_CORPORATE_ENTITY]
     team_ids = ids_by_type[NODE_TEAM]
+    project_ids = ids_by_type[NODE_PROJECT]
     labels: dict[tuple[str, str], str] = {}
     if person_ids:
         for row in await conn.fetch(
@@ -499,6 +566,35 @@ async def _load_labels(
         ):
             if row["team_name"]:
                 labels[(NODE_TEAM, str(row["team_id"]))] = str(row["team_name"])
+    if project_ids:
+        evidence_post_ids = sorted(
+            {
+                post_id
+                for fact in facts
+                for post_id in fact.evidence_references
+                if fact.source_node_type_code == NODE_PROJECT
+                or fact.target_node_type_code == NODE_PROJECT
+            }
+        )
+        if evidence_post_ids:
+            for row in await conn.fetch(
+                """
+                select project_key,
+                       case when count(distinct project_name) = 1
+                            then min(project_name)
+                            else project_key end as display_label
+                  from post_project_mention
+                 where project_key = any($1::text[])
+                   and post_id = any($2::uuid[])
+                 group by project_key
+                """,
+                project_ids,
+                evidence_post_ids,
+            ):
+                if row["display_label"]:
+                    labels[(NODE_PROJECT, str(row["project_key"]))] = str(
+                        row["display_label"]
+                    )
     return labels
 
 
@@ -623,9 +719,15 @@ async def visible_ontology_neighborhood(
         )
     if not focus_node_id or focus_node_id.strip() != focus_node_id:
         raise OntologyNeighborhoodError("invalid_focus_id", "focus node id is empty or malformed")
-    if not _is_uuid(focus_node_id):
-        raise OntologyNeighborhoodError("invalid_focus_id", "focus node id is not a UUID")
-    focus_node_id = str(UUID(focus_node_id))
+    if focus_node_type_code == NODE_PROJECT:
+        if normalize_project_key(focus_node_id) != focus_node_id:
+            raise OntologyNeighborhoodError(
+                "invalid_focus_id", "project focus id is not a canonical project key"
+            )
+    else:
+        if not _is_uuid(focus_node_id):
+            raise OntologyNeighborhoodError("invalid_focus_id", "focus node id is not a UUID")
+        focus_node_id = str(UUID(focus_node_id))
     if not await focus_catalog_exists(conn, focus_node_type_code, focus_node_id):
         raise OntologyNeighborhoodError("unknown_node_type", "focus node not found")
     visible_post_ids = await visible_post_ids_for_focus(

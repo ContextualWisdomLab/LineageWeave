@@ -36,6 +36,7 @@ const NODE_TYPE_LABEL: Record<string, string> = {
   node_person: "Person",
   node_corporate_entity: "Organization",
   node_team: "Team",
+  node_project: "Project",
 };
 
 const TRUTH_LABEL: Record<string, string> = {
@@ -339,6 +340,7 @@ function OntologyLegend() {
         <li>{t("Person")} — {t("ellipse")}</li>
         <li>{t("Organization")} — {t("hexagon")}</li>
         <li>{t("Team")} — {t("rounded rectangle")}</li>
+        <li>{t("Project")} — {t("diamond")}</li>
       </ul>
       <ul>
         <li>{t("Authoritative")}</li>
@@ -454,6 +456,9 @@ function OntologyShape({ shape }: { shape: string }) {
   }
   if (shape === "rounded-rectangle") {
     return <rect x={-18} y={-12} width={36} height={24} rx={8} />;
+  }
+  if (shape === "diamond") {
+    return <polygon points="0,-16 20,0 0,16 -20,0" />;
   }
   return <rect x={-18} y={-12} width={36} height={24} />;
 }

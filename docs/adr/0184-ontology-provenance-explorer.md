@@ -5,7 +5,7 @@
 **Figma:** File ID `1Su3lDRmiZdcUs47t1QwIX`
 **Issue:** [#341](https://github.com/ContextualWisdomLab/LineageWeave/issues/341)
 
-**Context:** The workspace DAG is reconstructed Event Lineage (post/record nodes and inferred parent-to-child links). The formal LineageWeave ontology also defines heterogeneous instance types (`Post`, `Person`, `CorporateEntity`, `Team`) and properties (`mentions`, `affiliatedWith`, `coMentionedWith`, SKOS broader). Calling Event Lineage an ontology graph overstates what that surface renders. PR #330 remains the Event Lineage readability slice and must not become a mixed lineage/ontology graph.
+**Context:** The workspace DAG is reconstructed Event Lineage (post/record nodes and inferred parent-to-child links). The formal LineageWeave ontology also defines heterogeneous instance types (`Post`, `Person`, `CorporateEntity`, `Team`, `Project`) and properties (`mentions`, `mentionsProject`, `affiliatedWith`, `coMentionedWith`, SKOS broader). Calling Event Lineage an ontology graph overstates what that surface renders. PR #330 remains the Event Lineage readability slice and must not become a mixed lineage/ontology graph. Project projection is completed by [ADR 0222](0222-project-nodes-in-ontology-neighborhood.md).
 
 **Decision:**
 

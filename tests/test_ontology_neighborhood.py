@@ -11,11 +11,13 @@ from lineageweave.knowledge_graph import (
     EDGE_CO_MENTION,
     EDGE_MENTION,
     EDGE_MENTION_ORGANIZATION,
+    EDGE_MENTION_PROJECT,
     EDGE_MENTION_TEAM,
     EDGE_TEAM_AFFILIATION,
     NODE_CORPORATE_ENTITY,
     NODE_PERSON,
     NODE_POST,
+    NODE_PROJECT,
     NODE_TEAM,
 )
 from lineageweave.ontology import LW
@@ -24,6 +26,7 @@ from lineageweave.ontology_neighborhood import (
     PROPERTY_CO_MENTIONED_WITH,
     PROPERTY_MENTIONS,
     PROPERTY_MENTIONS_ORGANIZATION,
+    PROPERTY_MENTIONS_PROJECT,
     PROPERTY_MENTIONS_TEAM,
     PROPERTY_OWL_SUBCLASS_OF,
     PROPERTY_SKOS_BROADER,
@@ -32,6 +35,7 @@ from lineageweave.ontology_neighborhood import (
     TRUTH_AUTHORITATIVE,
     TRUTH_INFERRED,
     TRUTH_OBSERVED,
+    TRUTH_PROPOSED,
     HARD_MAXIMUM_NODES,
     NeighborhoodFact,
     OntologyGraphEdge,
@@ -50,6 +54,7 @@ CORP_ID = "cccccccc-cccc-cccc-cccc-ccccccccccc1"
 GROUP_ID = "dddddddd-dddd-dddd-dddd-ddddddddddd1"
 HIDDEN_PERSON = "eeeeeeee-eeee-eeee-eeee-eeeeeeeeeee1"
 TEAM_ID = "ffffffff-ffff-ffff-ffff-fffffffffff1"
+PROJECT_ID = "demo-project"
 TZ = timezone.utc
 T0 = datetime(2026, 1, 10, 12, 0, tzinfo=TZ)
 T_LATE = datetime(2026, 1, 20, 12, 0, tzinfo=TZ)
@@ -64,6 +69,7 @@ def _labels() -> dict[tuple[str, str], str]:
         (NODE_CORPORATE_ENTITY, GROUP_ID): "Demo Group",
         (NODE_PERSON, HIDDEN_PERSON): "Hidden Person",
         (NODE_TEAM, TEAM_ID): "Demo Team",
+        (NODE_PROJECT, PROJECT_ID): "Demo Project",
     }
 
 
@@ -116,6 +122,34 @@ def test_post_mentions_person_affiliated_with_corporate_entity_round_trips() -> 
     rows = neighborhood.exact_value_rows()
     assert {row["property_code"] for row in rows} == {PROPERTY_MENTIONS, PROPERTY_AFFILIATED_WITH}
     assert all(row["source_label"] and row["target_label"] for row in rows)
+
+
+def test_post_mentions_project_round_trips_as_proposed_evidence() -> None:
+    fact = fact_from_knowledge_graph_edge(
+        source_node_type_code=NODE_POST,
+        source_node_id=POST_ID,
+        target_node_type_code=NODE_PROJECT,
+        target_node_id=PROJECT_ID,
+        edge_type_code=EDGE_MENTION_PROJECT,
+        recorded_at=T0,
+        evidence_references=(POST_ID,),
+        provenance_reference="post_project_mention",
+        truth_status_code=TRUTH_PROPOSED,
+    )
+    neighborhood = assemble_ontology_neighborhood(
+        focus_node_type_code=NODE_POST,
+        focus_node_id=POST_ID,
+        facts=[fact],
+        labels=_labels(),
+    )
+
+    edge = neighborhood.edges[0]
+    project = next(node for node in neighborhood.nodes if node.node_type_code == NODE_PROJECT)
+    assert edge.property_code == PROPERTY_MENTIONS_PROJECT
+    assert edge.ontology_property_iri == str(LW.mentionsProject)
+    assert edge.truth_status_code == TRUTH_PROPOSED
+    assert project.ontology_class_iri == str(LW.Project)
+    assert project.shape_code == "diamond"
 
 
 def test_jsonld_keeps_colliding_identifiers_typed() -> None:

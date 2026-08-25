@@ -411,6 +411,7 @@
 # imported grouping fields: a post may mention a project without carrying a
 # project field, and the mention keeps evidence/confidence for review.
 :Project a owl:Class ;
+    :lookupCode "node_project" ;
     rdfs:label "Project"@en ;
     rdfs:comment "A business project referred to by a source post."@en .
 
@@ -423,6 +424,7 @@
     rdfs:comment "An evidence-backed, RDF-reified assertion that a post refers to a project; rdf:subject identifies the post, rdf:predicate is :mentionsProject, and rdf:object identifies the project."@en .
 
 :mentionsProject a owl:ObjectProperty ;
+    :lookupCode "edge_mention_project" ;
     rdfs:domain :Post ;
     rdfs:range :Project .
 

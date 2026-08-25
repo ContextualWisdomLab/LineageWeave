@@ -5,6 +5,7 @@ import { OntologyExplorer } from "./OntologyExplorer";
 const POST_ID = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa1";
 const PERSON_ID = "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbb1";
 const CORP_ID = "cccccccc-cccc-cccc-cccc-ccccccccccc1";
+const PROJECT_ID = "demo-project";
 
 const demoNeighborhood: OntologyNeighborhoodPayload = {
   focus_node_id: POST_ID,
@@ -49,6 +50,18 @@ const demoNeighborhood: OntologyNeighborhoodPayload = {
       evidence_count: 1,
       shape_code: "hexagon",
     },
+    {
+      node_id: PROJECT_ID,
+      node_type_code: "node_project",
+      ontology_class_iri: "https://contextualwisdomlab.github.io/LineageWeave/ontology#Project",
+      display_label: "Demo Project",
+      truth_status_code: "truth_proposed",
+      valid_from: null,
+      valid_to: null,
+      recorded_at: "2026-01-10T12:00:00+00:00",
+      evidence_count: 1,
+      shape_code: "diamond",
+    },
   ],
   edges: [
     {
@@ -83,6 +96,22 @@ const demoNeighborhood: OntologyNeighborhoodPayload = {
       provenance_reference: "knowledge_graph_edge",
       evidence_references: [POST_ID],
     },
+    {
+      edge_id: `mentionsProject:node_post:${POST_ID}:node_project:${PROJECT_ID}`,
+      source_node_type_code: "node_post",
+      source_node_id: POST_ID,
+      target_node_type_code: "node_project",
+      target_node_id: PROJECT_ID,
+      property_code: "mentionsProject",
+      ontology_property_iri: "https://contextualwisdomlab.github.io/LineageWeave/ontology#mentionsProject",
+      property_label: "mentions project",
+      truth_status_code: "truth_proposed",
+      valid_from: null,
+      valid_to: null,
+      recorded_at: "2026-01-10T12:00:00+00:00",
+      provenance_reference: "post_project_mention",
+      evidence_references: [POST_ID],
+    },
   ],
   exact_value_rows: [
     {
@@ -114,6 +143,23 @@ const demoNeighborhood: OntologyNeighborhoodPayload = {
       target_label: "Demo Corp",
       target_type_code: "node_corporate_entity",
       truth_status_code: "truth_observed",
+      recorded_at: "2026-01-10T12:00:00+00:00",
+      valid_from: "",
+      valid_to: "",
+      evidence_count: "1",
+    },
+    {
+      edge_id: `mentionsProject:node_post:${POST_ID}:node_project:${PROJECT_ID}`,
+      source_node_id: POST_ID,
+      source_label: "Demo public post",
+      source_type_code: "node_post",
+      property_code: "mentionsProject",
+      property_label: "mentions project",
+      ontology_property_iri: "https://contextualwisdomlab.github.io/LineageWeave/ontology#mentionsProject",
+      target_node_id: PROJECT_ID,
+      target_label: "Demo Project",
+      target_type_code: "node_project",
+      truth_status_code: "truth_proposed",
       recorded_at: "2026-01-10T12:00:00+00:00",
       valid_from: "",
       valid_to: "",
