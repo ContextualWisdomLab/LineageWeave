@@ -67,7 +67,7 @@ are not merge readiness. Re-fetch exact heads,
 unresolved threads, checks, approvals, rulesets, and merge SHA before any
 lifecycle claim.
 
-> Audit snapshot: 2026-08-26 05:02 KST (refreshed by the autonomous merge
+> Audit snapshot: 2026-08-26 05:19 KST (refreshed by the autonomous merge
 > loop). This repository records synthetic fixtures and aggregate,
 > non-identifying runtime evidence only. Open PRs and local checks are not
 > protected-default-branch release evidence. Identifying post identifiers,
@@ -84,10 +84,10 @@ context only.
 
 | PR | Exact observed head | Merge/check state at this snapshot |
 | ---: | --- | --- |
-| #663 | `ab6bd80f` (observed parent) | project ontology traversal; review findings resolved; this baseline/collision commit advances the head, after which replacement checks and two independent approvals are required |
+| #663 | `62873004` | project ontology traversal and explicit project-mention relation label; replacement hosted checks and independent approvals are required |
 | #662 | `92534118` | fail-closed injectable TEPP status/read boundary; the owning executable HTTP route remains unavailable |
-| #661 | `11206c58` | Rust-estimated reconstruction fixture weights replace hand-authored reconstruction-test dictionaries |
-| #660 | `be3e28cc` | backend runtime and integration contract repairs; hosted checks still active |
+| #661 | `6baaeb3d` | Rust-estimated reconstruction fixture weights replace hand-authored reconstruction-test dictionaries; replacement checks are active |
+| #660 | `24fda085` | backend runtime and integration contract repairs; hosted checks still active |
 | #659 | `e948bd27` | ontology node readability and tokenized UI fills |
 | #658 | `fe830b0a` | evidence-honest Global Ask knowledge cutoff with client validation; hosted checks still active |
 | #657 | `64f48679` | persisted TEPP asynchronous lifecycle evidence |
@@ -96,7 +96,7 @@ context only.
 | #640 | `2d50fa01` | operations-dashboard contract alignment |
 | #639 | `aee02dca` | terminal checks observed; exact-head independent approval still required |
 | #636 | `f7b9a65f` | terminal checks observed; exact-head independent approval still required |
-| #632 | `32c7d359` | graph-fact provenance repair; hosted checks and independent review required |
+| #632 | `ff32571f` | graph-fact provenance repair; replacement hosted checks and independent review required |
 | #631 | `c0022c97` | terminal checks observed; exact-head independent approval still required |
 | #629 | `4b4d6707` | terminal checks observed; exact-head independent approval still required |
 | #579 | `689a21b6` | leftover interaction-map coordinate persistence; exact-head independent approval still required |
