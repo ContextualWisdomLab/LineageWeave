@@ -176,6 +176,16 @@ async def fetch_operations_dashboard(
               join source_post evidence_post
                 on evidence_post.post_id = classification.evidence_post_id
              where {visible_evidence}
+        ), scoped_post as (
+            select visible_post.post_id
+              from visible_post
+             where $5::boolean is false
+                or exists (
+                    select 1
+                      from classified
+                     where classified.post_id = visible_post.post_id
+                       and classified.case_kind_code = 'external_information'
+                )
         )
         select (select count(*) from visible_post) as total_post_count,
                (select count(*)
@@ -183,26 +193,28 @@ async def fetch_operations_dashboard(
                  where exists (
                      select 1 from classified
                       where classified.post_id = summary_event.post_id
+                        and ($5::boolean is false
+                             or classified.case_kind_code = 'external_information')
                  )) as total_event_count,
                (select count(distinct post_id) from classified
                  where case_kind_code = 'external_information') as external_post_count,
-               (select count(*) from visible_post
+               (select count(*) from scoped_post
                  where not exists (
                      select 1 from operations_case_analysis analysis
-                      where analysis.post_id = visible_post.post_id
+                      where analysis.post_id = scoped_post.post_id
                  ) and not exists (
                      select 1 from post_content_ingestion_job job
-                      where job.post_id = visible_post.post_id
+                      where job.post_id = scoped_post.post_id
                         and job.status_code = 'post_content_ingestion_failed'
                  )) as pending_analysis_count,
-               (select count(*) from visible_post
+               (select count(*) from scoped_post
                   where exists (
                       select 1 from post_content_ingestion_job job
-                       where job.post_id = visible_post.post_id
+                       where job.post_id = scoped_post.post_id
                          and job.status_code = 'post_content_ingestion_failed'
                   )) as failed_analysis_count
         """,
-        *args[:4],
+        *args,
     )
     case_rows = await conn.fetch(
         f"""

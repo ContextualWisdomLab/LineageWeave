@@ -15,6 +15,7 @@ All notable changes to this project are documented here. Format follows
   triggering a local substitute.
 
 - Dashboard evidence-link hit areas now honor the shared minimum control-size token on touch layouts.
+- The external-information GNB keeps all authorized in-period posts as its coverage denominator while filtering the displayed case rows.
 
 - Async Ask queue tests now isolate queue settlement from semantic retrieval,
   and the development test stack follows Starlette's maintained `httpx2`
@@ -123,8 +124,6 @@ All notable changes to this project are documented here. Format follows
   pair for a hidden post is omitted. Distances come from the same
   authorized leftover store as the period-report list; they do not
   invent a leftover score.
-
-### Changed
 
 - ADRs 0011 and 0065 now include APA 7th References for the dated W3C
   PROV-O and PROV-DM Recommendations (30 April 2013). Decisions are
