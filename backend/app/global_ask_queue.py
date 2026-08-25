@@ -28,6 +28,7 @@ import asyncpg
 import redis.asyncio as redis
 from fastapi import HTTPException, status
 
+from lineageweave.ask_delivery import build_ask_delivery
 from lineageweave.http_client import HttpClientError
 from lineageweave.observability import record_server_failure
 from lineageweave.post_chat import (
@@ -251,6 +252,7 @@ async def compute_global_ask_answer(
             "Ask Agent is unavailable: authorized evidence could not be assembled",
         ) from exc
     if not sources:
+        delivery = build_ask_delivery("", (), ())
         return {
             "answer_text": "",
             "cited_post_ids": [],
@@ -260,6 +262,7 @@ async def compute_global_ask_answer(
             "lineage_graph": {"nodes": [], "edges": [], "truncated": False},
             "cited_post_images": [],
             "next_action": "No authorized source posts are available for this question.",
+            "delivery": delivery,
         }
     try:
         answer = await asyncio.to_thread(
@@ -297,14 +300,17 @@ async def compute_global_ask_answer(
     async with pool.acquire() as conn:
         lineage_graph = await lineage_graphs_for_posts(conn, can_see, cited_ids)
         images = await cited_post_images(conn, cited_ids)
+    cited_posts = cited_post_summaries(sources, cited_ids)
+    cited_evidence = cited_post_evidence(sources, cited_ids)
     return {
         "answer_text": answer.answer_text,
         "cited_post_ids": cited_ids,
-        "cited_posts": cited_post_summaries(sources, cited_ids),
-        "cited_post_evidence": cited_post_evidence(sources, cited_ids),
+        "cited_posts": cited_posts,
+        "cited_post_evidence": cited_evidence,
         "cited_post_images": images,
         "source_post_ids": [source.post_id for source in sources],
         "lineage_graph": lineage_graph,
+        "delivery": build_ask_delivery(answer.answer_text, cited_posts, cited_evidence),
     }
 
 
