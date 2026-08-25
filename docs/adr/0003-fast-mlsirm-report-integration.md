@@ -104,16 +104,16 @@ than one large PR:
    0182 / 0185): after IRT main effects, persist closest and farthest
    post–criterion pairs from the residual leftover map, and name
    unexplained leftover `U = R − R̂` and leftover-map cross share
-   `x = 2 R̂ U / R²` when Gabriel coordinates
+   `x = 2 R̂ U / R²` of raw residual when Gabriel coordinates
    exist so the identity remainder after two-axis reconstruction is not
    read as leftover residual, leftover-map distance, explained leftover
    share, or unexplained leftover share. Do not persist leftover-map
-   explained leftover share `e` or unexplained leftover share `s`.
+   explained leftover share `e`, unexplained leftover share `s`, or any other
+   unsupported share alias in this slice.
    Category probabilities and expected responses must use `fast-mlsirm`'s
    public Rust-backed prediction API (upstream PR #1279); LineageWeave must
-   not reproduce GRM/GPCM parameter conventions locally. ADR 0186 owns any
-   reconstruction persistence. Do not fork LSIRM or invent a leftover-pair
-   API inside `fast-mlsirm` in this slice.
+   not reproduce GRM/GPCM parameter conventions locally. Do not fork LSIRM or
+   invent a leftover-pair API inside `fast-mlsirm` in this slice.
 8. **Leftover-map axis-share slice** (ADR 0148): persist Gabriel inertia
    `σ_k² / Σ_j σ_j²` of leftover-map axes 1 and 2 on the same residual
    SVD. Rank-0 residuals emit two zero-share axes. Do not invent a
