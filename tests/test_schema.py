@@ -169,17 +169,6 @@ def schema_db():
                 cur.execute(_LEFTOVER_MAP_CROSS_SHARE_MIGRATION.read_text())
                 cur.execute(_LEFTOVER_MAP_RECONSTRUCTION_MIGRATION.read_text())
                 cur.execute(_SOURCE_EVENT_TIME_MIGRATION.read_text())
-                # Keep the throwaway schema aligned with the replay window: the
-                # dashboard and topic projections are real migrations, not
-                # test-only table declarations.
-                cur.execute(_ANALYSIS_RUN_REGISTRY_MIGRATION.read_text())
-                cur.execute(_TOPIC_LINEAGE_KIND_MIGRATION.read_text())
-                cur.execute(_OPERATIONS_CASE_MIGRATION.read_text())
-                cur.execute(_OPERATIONS_CASE_EVIDENCE_MIGRATION.read_text())
-                cur.execute(_OPERATIONS_CASE_MISSING_MIGRATION.read_text())
-                cur.execute(_OPERATIONS_EXTERNAL_RELATION_MIGRATION.read_text())
-                cur.execute(_TOPIC_CONTEXT_INFLUENCE_MIGRATION.read_text())
-                cur.execute(_OPERATIONS_CASE_MILESTONE_MIGRATION.read_text())
                 cur.execute(_GLOBAL_ASK_EVIDENCE_SEARCH_MIGRATION.read_text())
             conn.commit()
             yield conn
