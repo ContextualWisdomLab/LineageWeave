@@ -208,7 +208,7 @@ _HTML_SUB = re.compile(r"<sub\b[^>]*>(.*?)</sub>", re.IGNORECASE | re.DOTALL)
 _INNER_TAG = re.compile(r"<[^>]+>")
 # Quantity caret after a unit/digit, not a leading footnote marker such as `^1`.
 _CARET_EXPONENT = re.compile(
-    r"(?<=[A-Za-z0-9µμ°ΩÅåÅ)])\^(?:\{([+\-]?\d{1,3}|[nNiI])\}|([+\-]?\d{1,3}|[nNiI]))"
+    r"(?<=[A-Za-z0-9µμ°ΩÅå)])\^(?:\{([+\-]?\d{1,3}|[nNiI])\}|([+\-]?\d{1,3}|[nNiI]))"
 )
 _ENCODED_CARET = re.compile(r"&(?:amp;)*(?:#0*94|#x0*5e);", re.IGNORECASE)
 _ENCODED_LT = r"&(?:amp;)*(?:lt|#0*60|#x0*3c);"

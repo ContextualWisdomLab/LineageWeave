@@ -623,7 +623,7 @@ def test_chunk_by_dom_splits_on_heading_boundaries_and_labels_the_level() -> Non
     assert [(c.label, c.text) for c in chunks] == [
         ("h1", "Title"),
         ("h2", "Subtitle"),
-        ("h3", "Body.") if False else ("p", "Body."),
+        ("p", "Body."),
     ]
 
 
@@ -631,4 +631,4 @@ def test_chunk_by_dom_preserves_style_per_block_independently() -> None:
     html = '<p style="color:red">Red text.</p><p>Plain text.</p>'
     chunks = chunk_by_dom(html)
 
-    assert [c.style for c in chunks] == ["color:red", "color:red"] if False else [c.style for c in chunks] == ["color:red", None]
+    assert [c.style for c in chunks] == ["color:red", None]
