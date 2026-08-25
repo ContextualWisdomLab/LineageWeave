@@ -57,6 +57,6 @@ could drift.
 - The Layer Popup pattern (a small, dialog-semantic overlay scoped to one
   piece of evidence) is now precedent for future evidence surfaces that
   don't warrant a full post detail popup.
-- `PostDetailPopup`'s missing dialog semantics (no `role="dialog"`, no
-  Escape-to-close) remain an open accessibility gap, tracked here as a
-  known follow-up rather than fixed by this decision.
+- The follow-up now applies the same dialog semantics, Escape-to-close,
+  initial focus, and focus restoration to `PostDetailPopup`; both popup
+  variants retain their separate content and data-fetching boundaries.
