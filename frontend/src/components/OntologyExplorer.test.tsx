@@ -236,6 +236,7 @@ describe("OntologyExplorer", () => {
     expect(
       screen.getByText(/This is an ontology neighborhood, not Event Lineage/),
     ).toBeInTheDocument();
+    expect(screen.getByRole("region", { name: "Exact values" })).toHaveAttribute("tabindex", "0");
     await userEvent.click(screen.getByRole("button", { name: "Select node: Post Demo public post" }));
     expect(screen.getByRole("heading", { name: "Demo public post" })).toBeInTheDocument();
     await userEvent.click(screen.getByRole("button", { name: "Open evidence post" }));
@@ -246,6 +247,23 @@ describe("OntologyExplorer", () => {
     await userEvent.click(screen.getByRole("button", { name: `Open evidence: ${POST_ID}` }));
     expect(onOpenEvidence).toHaveBeenCalledWith(POST_ID);
     expect(screen.queryByRole("img")).not.toBeInTheDocument();
+  });
+
+  it("maps known ontology node types to token-backed visual classes", () => {
+    render(
+      <OntologyExplorer
+        focusNodeType="node_post"
+        focusNodeId={POST_ID}
+        neighborhood={neighborhood()}
+      />,
+    );
+
+    expect(screen.getByRole("button", { name: "Select node: Post Demo public post" }))
+      .toHaveClass("ontology-node-post");
+    expect(screen.getByRole("button", { name: "Select node: Person Test Person" }))
+      .toHaveClass("ontology-node-person");
+    expect(screen.getByRole("button", { name: "Select node: Organization Demo Corp" }))
+      .toHaveClass("ontology-node-organization");
   });
 
   it("names empty, truncated, denied, and rejected next actions", () => {
