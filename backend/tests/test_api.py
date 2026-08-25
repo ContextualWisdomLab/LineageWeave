@@ -5380,6 +5380,10 @@ def test_seed_period_report_surfaces_on_get_reports(client, demo_analyst_token, 
     assert leftover_kinds <= {"closest", "farthest"}
     assert all(pair["post_title"] for pair in leftover_thread.get("leftover_pairs", []))
     assert all(pair["leftover_distance"] >= 0 for pair in leftover_thread.get("leftover_pairs", []))
+    assert all(
+        {"visibility_code", "corporate_entity_id", "process_unit_id"}.isdisjoint(pair)
+        for pair in leftover_thread.get("leftover_pairs", [])
+    )
 
 
 def test_seed_period_report_includes_fixture_event_lineage_posts(
