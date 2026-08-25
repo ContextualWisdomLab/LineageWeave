@@ -95,6 +95,28 @@ combined read duration averaged 14.13 seconds). This is replay-in-progress
 failure evidence, not a steady-state capacity result or product latency claim.
 Re-run only after migration replay completes.
 
+A subsequent exact-head run reached the 0140 interval migration but still was
+not steady state: replay stopped at migration 0165 because its queue table and
+indexes lacked the ADR 0166 replay guards, so migration 0174's edge-signal
+table was absent. With one virtual user, a 15-second observation, and the same
+20-second request window, Ask enqueue averaged 125.05 milliseconds, Ask polls
+averaged 123.41 milliseconds, and posts succeeded, but all four Event Lineage
+reads failed on that absent table. The branch now makes migration 0165
+idempotent and regression-checks both Global Ask migrations. These values are
+diagnostic evidence only.
+
+After replaying the repaired 0165–0205 range to completion, a four-VU,
+30-second observation with the declared 20-second request window completed 13
+iterations and all 39 endpoint checks without an HTTP failure. Ask enqueue was
+57.32 milliseconds, Ask polling averaged 359.91 milliseconds (p95 969.66
+milliseconds), and the combined posts/Event-Lineage read distribution averaged
+5.75 seconds (p95 11.88 seconds, maximum 12.36 seconds). A second four-VU,
+15-second diagnostic run also completed every endpoint check; concurrent
+`pg_stat_activity` samples repeatedly observed the authorized filter-option,
+post-list, and lineage-page queries as active, including `MessageQueueSend` and
+one temporary-buffer write. This identifies the measured database work to
+profile next; it does not by itself assign causality or establish an SLO.
+
 ## Older-image diagnostic observation
 
 On 2026-08-25, an application-ready local Compose stack configured with four
