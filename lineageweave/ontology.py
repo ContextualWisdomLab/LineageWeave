@@ -92,7 +92,8 @@ def ontology_annotations(lookup_code: str) -> dict[str, str]:
         return {}
     fields = {"ontology_iri": str(subject)}
     label = ONTOLOGY.value(subject, RDFS.label) or ONTOLOGY.value(subject, SKOS.prefLabel)
-    assert label is not None  # every declared lookup term is label-gated by the ontology invariant
+    if label is None:
+        raise ValueError(f"ontology term for {lookup_code!r} has no readable label")
     fields["ontology_label"] = str(label)
     return fields
 
@@ -144,7 +145,7 @@ def project_project_mention_rdf(
         confidence_value = Decimal(str(confidence))
     except InvalidOperation as exc:
         raise ValueError("confidence must be a decimal between zero and one") from exc
-    if not confidence_value.is_finite() or not Decimal("0") <= confidence_value <= Decimal("1"):
+    if not confidence_value.is_finite() or not Decimal(0) <= confidence_value <= Decimal(1):
         raise ValueError("confidence must be a decimal between zero and one")
 
     post = URIRef(LW[f"node/node_post/{canonical_post_id}"])
