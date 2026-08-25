@@ -1,6 +1,6 @@
 # Product & Technical Gap Baseline
 
-> Audit snapshot: 2026-08-25 13:42 KST (refreshed by the autonomous merge
+> Audit snapshot: 2026-08-25 13:46 KST (refreshed by the autonomous merge
 > loop). This repository records synthetic fixtures and aggregate,
 > non-identifying runtime evidence only. Open PRs and local checks are not
 > protected-default-branch release evidence. Identifying post identifiers,
@@ -17,9 +17,9 @@ context only.
 
 | PR | Exact observed head | Merge/check state at this snapshot |
 | ---: | --- | --- |
-| #600 | `6982bf4e` | this baseline's pre-amendment observed head; auto-merge armed, with exact-head required checks queued |
+| #600 | `fb825b97` | this baseline's pre-amendment observed head; auto-merge armed, with exact-head required checks queued |
 | #595 | `153127f0` | audited no-draft import door, nullable updated-at fallback, and event-time import composed on current main; 24 focused tests passed; mergeable, auto-merge armed |
-| #588 | `3a67a802` | reconstruction naming branch is conflicting; six unresolved review threads remain |
+| #588 | `e4234bce` | ADR 0182/0201 context reconciled and all six review threads resolved; the later leftover-map ladder still conflicts with current main and needs semantic composition |
 | #582 | `edca49bb` | batched cited-lineage fetch composed with current main; 37 focused tests passed; mergeable, auto-merge armed |
 | #579 | `69c05078` | interaction-map coordinate branch is conflicting; nine unresolved review threads remain |
 | #493 | `a7a050ef` | empty-DAG reasons and explicit double-failure alert composed with current main; focused frontend test, lint/build, and docs tests passed; mergeable, auto-merge armed |
