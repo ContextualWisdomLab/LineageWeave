@@ -1,6 +1,11 @@
 import json
 
-from lineageweave.post_structure import ContextualOrchestratorPostStructureClient
+import pytest
+
+from lineageweave.post_structure import (
+    ContextualOrchestratorPostStructureClient,
+    _response_content,
+)
 
 
 def test_structure_client_validates_complete_decisions(monkeypatch) -> None:
@@ -43,3 +48,13 @@ def test_structure_client_validates_complete_decisions(monkeypatch) -> None:
     assert response_format["json_schema"]["strict"] is True
     assert response_format["json_schema"]["schema"]["required"] == ["decisions"]
     assert captured[0]["max_tokens"] == 4096
+
+
+@pytest.mark.parametrize(
+    "response",
+    [{"choices": ["provider secret"]}, {"choices": [{"message": "provider secret"}]}],
+)
+def test_structure_response_rejects_raw_provider_shapes(response: object) -> None:
+    with pytest.raises(ValueError, match="structure adjudication response") as error:
+        _response_content(response)
+    assert "provider secret" not in str(error.value)

@@ -158,8 +158,13 @@ def _response_content(response: Any) -> str:
     choices = response.get("choices") if isinstance(response, dict) else None
     if not isinstance(choices, list) or not choices:
         raise ValueError("structure adjudication response has no choices")
-    message = choices[0].get("message")
-    content = message.get("content") if isinstance(message, dict) else None
+    first_choice = choices[0]
+    if not isinstance(first_choice, dict):
+        raise ValueError("structure adjudication response has no choice object")
+    message = first_choice.get("message")
+    if not isinstance(message, dict):
+        raise ValueError("structure adjudication response has no message object")
+    content = message.get("content")
     if isinstance(content, str):
         return content.strip()
     if isinstance(content, list):

@@ -90,6 +90,22 @@ class _ErrorHandler(BaseHTTPRequestHandler):
         return
 
 
+class _LargeJsonHandler(BaseHTTPRequestHandler):
+    include_length = True
+
+    def do_GET(self) -> None:  # noqa: N802 -- BaseHTTPRequestHandler API
+        body = json.dumps({"payload": "x" * 512}).encode("utf-8")
+        self.send_response(200)
+        self.send_header("content-type", "application/json")
+        if type(self).include_length:
+            self.send_header("content-length", str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
+
+    def log_message(self, format: str, *args) -> None:  # noqa: A002 -- stdlib signature
+        return
+
+
 def _serve(handler: type[BaseHTTPRequestHandler]) -> tuple[HTTPServer, str]:
     server = HTTPServer(("127.0.0.1", 0), handler)
     thread = threading.Thread(target=server.serve_forever, daemon=True)
@@ -121,7 +137,10 @@ def test_post_json_posts_json_to_http_endpoint() -> None:
     finally:
         server.shutdown()
 
-    assert body == {"ok": True, "echo": {"model": "demo", "input": "hello"}}
+    assert body == {
+        "ok": True,
+        "echo": {"model": "demo", "input": "hello"},
+    }
     assert _JsonHandler.received["path"] == "/v1/embeddings"
     assert _JsonHandler.received["authorization"] == "Bearer test-token"
 
@@ -138,8 +157,37 @@ def test_get_json_fetches_json_from_http_endpoint() -> None:
     finally:
         server.shutdown()
 
-    assert body == {"ok": True, "path": "/.well-known/openid-configuration"}
+    assert body == {
+        "ok": True,
+        "path": "/.well-known/openid-configuration",
+    }
     assert _JsonHandler.received["authorization"] == "Bearer test-token"
+
+
+@pytest.mark.parametrize("include_length", [True, False])
+def test_get_json_rejects_responses_over_explicit_byte_limit(
+    include_length: bool,
+) -> None:
+    _LargeJsonHandler.include_length = include_length
+    server, base = _serve(_LargeJsonHandler)
+    try:
+        with pytest.raises(HttpClientError, match="response exceeds"):
+            get_json(
+                f"{base}/large",
+                timeout=2.0,
+                maximum_response_bytes=128,
+            )
+    finally:
+        server.shutdown()
+
+
+def test_get_json_rejects_invalid_response_byte_limit() -> None:
+    with pytest.raises(ValueError, match="maximum_response_bytes"):
+        get_json(
+            "https://gateway.example/health",
+            timeout=1.0,
+            maximum_response_bytes=0,
+        )
 
 
 def test_post_form_posts_urlencoded_fields() -> None:
@@ -156,7 +204,9 @@ def test_post_form_posts_urlencoded_fields() -> None:
 
     assert body["ok"] is True
     assert "grant_type=password" in _JsonHandler.received["payload"]
-    assert _JsonHandler.received["content_type"] == "application/x-www-form-urlencoded"
+    assert _JsonHandler.received["content_type"] == (
+        "application/x-www-form-urlencoded"
+    )
 
 
 def test_get_json_refuses_file_scheme() -> None:
@@ -197,8 +247,12 @@ def test_dockerfiles_pin_digest_and_declare_non_root_user() -> None:
         "frontend/Dockerfile",
     ):
         text = (root / relative).read_text()
-        assert "@sha256:" in text, f"{relative} must pin the base image by digest"
-        assert "USER " in text, f"{relative} must declare a non-root USER"
+        assert "@sha256:" in text, (
+            f"{relative} must pin the base image by digest"
+        )
+        assert "USER " in text, (
+            f"{relative} must declare a non-root USER"
+        )
 
 
 def test_post_json_https_negotiates_tls_instead_of_plaintext() -> None:
