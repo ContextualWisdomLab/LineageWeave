@@ -33,7 +33,14 @@ SHAPES_RELATIVE_PATH = Path("docs/ontology/lineageweave-kg-shapes.ttl")
 #: lowercase form is the deprecated compatibility vocabulary.
 CANONICAL_NAMESPACE = "https://contextualwisdomlab.github.io/LineageWeave/ontology#"
 DEPRECATED_NAMESPACE = "https://contextualwisdomlab.github.io/lineageweave/ontology#"
-STANDARD_SHACL_PATHS = frozenset({RDF.subject, RDF.predicate, RDF.object})
+STANDARD_SHACL_PATHS = frozenset(
+    {
+        RDF.subject,
+        RDF.predicate,
+        RDF.object,
+        URIRef("http://www.w3.org/ns/prov#wasDerivedFrom"),
+    }
+)
 
 _MAPPING_FOR_KIND = {
     OWL.Class: OWL.equivalentClass,

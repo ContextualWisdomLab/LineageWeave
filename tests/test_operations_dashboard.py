@@ -15,6 +15,11 @@ class _Connection:
 
     async def fetchrow(self, query: str, *args: object) -> dict[str, int]:
         self.queries.append((query, args))
+        if "tepp_posterior_persisted" in query:
+            return {
+                "tepp_posterior_persisted": False,
+                "fast_mlsirm_influence_persisted": False,
+            }
         return {
             "total_post_count": 4,
             "total_event_count": 3,
@@ -35,39 +40,17 @@ class _Connection:
                     "evidence_text": "Synthetic cited sentence",
                     "evidence_post_id": "00000000-0000-0000-0000-000000000002",
                     "fact_ordinal": 0,
+                    "relation_target_kind_code": None,
                 }
             ]
         if "operations_case_missing_fact missing" in query:
-            return [
-                {
-                    "post_id": "00000000-0000-0000-0000-000000000001",
-                    "case_kind_code": "claim_investigation",
-                    "fact_type_code": "sales_pool",
-                }
-            ]
-        if "operations_case_milestone milestone" in query:
-            return [
-                {
-                    "post_id": "00000000-0000-0000-0000-000000000001",
-                    "case_kind_code": "claim_investigation",
-                    "milestone_type_code": "claim_received",
-                    "evidence_text": "The claim was received",
-                    "evidence_post_id": "00000000-0000-0000-0000-000000000001",
-                    "observed_at": datetime(2026, 8, 1, 9, tzinfo=UTC),
-                    "time_axis_code": "event_occurred_at",
-                    "is_missing": False,
-                },
-                {
-                    "post_id": "00000000-0000-0000-0000-000000000001",
-                    "case_kind_code": "claim_investigation",
-                    "milestone_type_code": "cause_confirmed",
-                    "evidence_text": "The cause was confirmed",
-                    "evidence_post_id": "00000000-0000-0000-0000-000000000002",
-                    "observed_at": datetime(2026, 8, 3, 12, 30, tzinfo=UTC),
-                    "time_axis_code": "created_at",
-                    "is_missing": False,
-                },
-            ]
+            return [{
+                "post_id": "00000000-0000-0000-0000-000000000001",
+                "case_kind_code": "claim_investigation",
+                "fact_type_code": "sales_pool",
+            }]
+        if "from topic_post_context_influence influence" in query:
+            return []
         return [
             {
                 "post_id": "00000000-0000-0000-0000-000000000001",
@@ -76,8 +59,9 @@ class _Connection:
                 "evidence_text": "Synthetic cited sentence",
                 "evidence_post_id": "00000000-0000-0000-0000-000000000002",
                 "project_name": "Synthetic Project",
-                "project_names": ["Synthetic Project", "Synthetic Secondary Project"],
-                "occurred_at": datetime(2026, 8, 12, tzinfo=UTC),
+                    "project_names": ["Synthetic Project", "Synthetic Secondary Project"],
+                    "occurred_at": datetime(2026, 8, 12, tzinfo=timezone.utc),
+                    "event_count": 2,
             }
         ]
 
@@ -102,7 +86,7 @@ async def test_dashboard_uses_abac_event_clock_and_persisted_evidence() -> None:
         {
             "case_kind_code": "claim_investigation",
             "case_kind_label": "클레임 원인 규명",
-            "event_count": 1,
+            "event_count": 2,
             "post_count": 1,
         },
         {
@@ -124,29 +108,11 @@ async def test_dashboard_uses_abac_event_clock_and_persisted_evidence() -> None:
             "post_count": 0,
         },
     ]
-    assert result["lifecycle_metrics"] == [
-        {
-            "lifecycle_kind_code": "claim_investigation",
-            "lifecycle_kind_label": "클레임 원인 규명",
-            "open_case_count": 0,
-            "resolved_case_count": 1,
-            "evidence_missing_case_count": 0,
-        },
-        {
-            "lifecycle_kind_code": "rebid_response",
-            "lifecycle_kind_label": "재입찰 대응",
-            "open_case_count": 0,
-            "resolved_case_count": 0,
-            "evidence_missing_case_count": 0,
-        },
-        {
-            "lifecycle_kind_code": "handover_gap",
-            "lifecycle_kind_label": "인수인계 공백",
-            "open_case_count": 0,
-            "resolved_case_count": 0,
-            "evidence_missing_case_count": 0,
-        },
-    ]
+    semantic_projection = result["cases"][0].pop("semantic_projection")
+    assert semantic_projection["@type"][0].endswith("#ClaimInvestigation")
+    assert semantic_projection["prov:wasDerivedFrom"]["@id"].endswith(
+        "00000000-0000-0000-0000-000000000002"
+    )
     assert result["cases"] == [
         {
             "post_id": "00000000-0000-0000-0000-000000000001",
@@ -157,6 +123,8 @@ async def test_dashboard_uses_abac_event_clock_and_persisted_evidence() -> None:
             "summary_text": "원인 수주가 연결됨",
             "evidence_text": "Synthetic cited sentence",
             "evidence_post_id": "00000000-0000-0000-0000-000000000002",
+            "ontology_class_iri": "https://contextualwisdomlab.github.io/LineageWeave/ontology#ClaimInvestigation",
+            "provenance_relation_iri": "http://www.w3.org/ns/prov#wasDerivedFrom",
             "occurred_at": "2026-08-12T00:00:00+00:00",
             "facts": [
                 {
@@ -165,6 +133,8 @@ async def test_dashboard_uses_abac_event_clock_and_persisted_evidence() -> None:
                     "value_text": "Synthetic order 7",
                     "evidence_text": "Synthetic cited sentence",
                     "evidence_post_id": "00000000-0000-0000-0000-000000000002",
+                    "ontology_class_iri": "https://contextualwisdomlab.github.io/LineageWeave/ontology#OperationsCaseFact",
+                    "provenance_relation_iri": "http://www.w3.org/ns/prov#wasDerivedFrom",
                 }
             ],
             "missing_facts": [
@@ -222,7 +192,9 @@ async def test_dashboard_uses_abac_event_clock_and_persisted_evidence() -> None:
             ],
         }
     ]
-    assert len(conn.queries) == 5
+    assert result["topic_context"]["status_code"] == "unavailable"
+    assert result["topic_context"]["reason_code"] == "tepp_topic_posterior_not_persisted"
+    assert len(conn.queries) == 6
     for query, args in conn.queries:
         assert "visibility_code = 'public'" in query
         assert "corporate_entity_id::text = any($1::text[])" in query
@@ -232,6 +204,7 @@ async def test_dashboard_uses_abac_event_clock_and_persisted_evidence() -> None:
             ["00000000-0000-0000-0000-000000000008"],
             date(2026, 8, 1),
             date(2026, 8, 31),
+            False,
         )
     case_query = conn.queries[1][0]
     assert "order by primary_mention.confidence desc" in case_query
@@ -250,12 +223,121 @@ async def test_dashboard_uses_abac_event_clock_and_persisted_evidence() -> None:
 
 
 @pytest.mark.anyio
+async def test_dashboard_projects_exact_topic_influence_without_local_scoring() -> None:
+    """Accepted rows retain ties, membership evidence, and producer identity."""
+
+    class TopicConnection(_Connection):
+        async def fetchrow(self, query: str, *args: object) -> dict[str, object]:
+            if "tepp_posterior_persisted" in query:
+                self.queries.append((query, args))
+                return {
+                    "tepp_posterior_persisted": True,
+                    "fast_mlsirm_influence_persisted": True,
+                }
+            return await super().fetchrow(query, *args)
+
+        async def fetch(self, query: str, *args: object) -> list[dict[str, object]]:
+            if "from topic_post_context_influence influence" not in query:
+                return await super().fetch(query, *args)
+            self.queries.append((query, args))
+            common = {
+                "topic_model_run_id": "model-1",
+                "tepp_run_id": "tepp-1",
+                "tepp_snapshot_id": "tepp-snapshot-1",
+                "tepp_schema_version": "tepp.topic_context_posterior.v1",
+                "tepp_model_contract_version": "trsl-tm-1",
+                "tepp_artifact_sha256": "a" * 64,
+                "posterior_draw_set_id": "draws-1",
+                "posterior_draw_count": 32,
+                "topic_count": 2,
+                "source_snapshot_sha256": "b" * 64,
+                "knowledge_cutoff": datetime(2026, 8, 20, tzinfo=timezone.utc),
+                "topic_influence_run_id": "influence-1",
+                "fast_mlsirm_schema_version": "fast_mlsirm.topic_context_influence.v1",
+                "fast_mlsirm_version": "0.1.0",
+                "fast_mlsirm_code_revision": "c" * 40,
+                "fast_mlsirm_artifact_sha256": "d" * 64,
+                "compute_backend_code": "rust_gpu",
+                "precision_code": "f64",
+                "membership_fingerprint_sha256": "e" * 64,
+                "topic_index": 0,
+                "state_code": "reactivated",
+                "activity_valid_from": datetime(2026, 8, 1, tzinfo=timezone.utc),
+                "activity_valid_to": datetime(2026, 9, 1, tzinfo=timezone.utc),
+                "dimension_code": "team",
+                "context_id": "team-synthetic",
+                "context_label": "Synthetic Service Team",
+                "membership_weight": 0.5,
+                "membership_evidence_sha256": "f" * 64,
+                "occurred_at": datetime(2026, 8, 12, tzinfo=timezone.utc),
+                "influence_value": 4.25,
+                "uncertainty_method_code": "posterior_interval",
+                "uncertainty_lower_value": 3.5,
+                "uncertainty_upper_value": 5.0,
+                "diagnostic_status_code": "accepted",
+                "lineage_events": '[{"event_code":"birth","source_topic_index":0,"target_topic_index":null,"event_time":"2026-08-01T00:00:00+00:00","evidence_sha256":"' + "1" * 64 + '"}]',
+            }
+            return [
+                {**common, "source_post_id": "00000000-0000-0000-0000-000000000001"},
+                {
+                    **common,
+                    "source_post_id": "00000000-0000-0000-0000-000000000002",
+                    "lineage_events": [{"event_code": "birth"}],
+                },
+            ]
+
+    result = await fetch_operations_dashboard(TopicConnection(), [])
+    topic_context = result["topic_context"]
+    assert topic_context["status_code"] == "accepted"
+    assert topic_context["model_run"]["compute_backend_code"] == "rust_gpu"
+    influences = topic_context["topics"][0]["contexts"][0]["influences"]
+    assert [item["model_influence"] for item in influences] == [4.25, 4.25]
+    assert influences[0]["membership_weight"] == 0.5
+    assert topic_context["topics"][0]["lineage_events"][0]["event_code"] == "birth"
+
+
+@pytest.mark.anyio
+async def test_dashboard_names_missing_fast_result_after_tepp_persistence() -> None:
+    """A persisted TEPP membership never becomes a fabricated influence value."""
+
+    class TeppOnlyConnection(_Connection):
+        async def fetchrow(self, query: str, *args: object) -> dict[str, object]:
+            if "tepp_posterior_persisted" in query:
+                self.queries.append((query, args))
+                return {
+                    "tepp_posterior_persisted": True,
+                    "fast_mlsirm_influence_persisted": False,
+                }
+            return await super().fetchrow(query, *args)
+
+    result = await fetch_operations_dashboard(TeppOnlyConnection(), [])
+    assert result["topic_context"]["reason_code"] == "fast_mlsirm_influence_not_persisted"
+    assert result["topic_context"]["topics"] == []
+
+@pytest.mark.anyio
+async def test_external_scope_is_bound_in_every_dashboard_query() -> None:
+    """The external destination restricts data at the API query boundary."""
+    conn = _Connection()
+    await fetch_operations_dashboard(
+        conn, ["corp"], ["pu"], date(2026, 8, 1), date(2026, 8, 31), external_only=True
+    )
+    assert conn.queries
+    assert all("$5::boolean" in query for query, _ in conn.queries)
+    assert all(args[-1] is True for _, args in conn.queries)
+
+
+@pytest.mark.anyio
 async def test_dashboard_zero_denominator_and_invalid_period() -> None:
     """An empty corpus has 0%, while an inverted interval fails closed."""
 
     class EmptyConnection(_Connection):
         async def fetchrow(self, query: str, *args: object) -> dict[str, int]:
             self.queries.append((query, args))
+            if "tepp_posterior_persisted" in query:
+                return {
+                    "tepp_posterior_persisted": False,
+                    "fast_mlsirm_influence_persisted": False,
+                }
             return dict.fromkeys(
                 (
                     "total_post_count",
@@ -273,10 +355,9 @@ async def test_dashboard_zero_denominator_and_invalid_period() -> None:
 
     empty = await fetch_operations_dashboard(EmptyConnection(), [])
     assert empty["external_percent"] == 0.0
-    assert all(
-        metric["event_count"] == metric["post_count"] == 0
-        for metric in empty["case_metrics"]
-    )
+    assert all(metric["event_count"] == metric["post_count"] == 0 for metric in empty["case_metrics"])
+    assert (await fetch_operations_dashboard(EmptyConnection(), [], [], date(2026, 8, 1)))["period_label"] == "2026-08-01 이후 · Event 발생일"
+    assert (await fetch_operations_dashboard(EmptyConnection(), [], [], None, date(2026, 8, 31)))["period_label"] == "2026-08-31 이전 · Event 발생일"
     with pytest.raises(ValueError, match="period_start"):
         await fetch_operations_dashboard(
             EmptyConnection(), [], [], date(2026, 9, 1), date(2026, 8, 31)
@@ -284,42 +365,65 @@ async def test_dashboard_zero_denominator_and_invalid_period() -> None:
 
 
 @pytest.mark.anyio
-async def test_open_lifecycle_has_no_fabricated_elapsed_endpoint() -> None:
-    """A known start plus a missing finish is open with nullable elapsed time."""
+async def test_external_information_projects_a_typed_prov_o_relation() -> None:
+    """A cited semantic target becomes RDF reification, never a KG alias."""
 
-    class OpenConnection(_Connection):
+    class ExternalConnection(_Connection):
+        async def fetchrow(self, query: str, *args: object) -> dict[str, object]:
+            if "tepp_posterior_persisted" in query:
+                self.queries.append((query, args))
+                return {
+                    "tepp_posterior_persisted": False,
+                    "fast_mlsirm_influence_persisted": False,
+                }
+            return await super().fetchrow(query, *args)
+
         async def fetch(self, query: str, *args: object) -> list[dict[str, object]]:
-            if "operations_case_milestone milestone" in query:
-                return [
-                    {
-                        "post_id": "00000000-0000-0000-0000-000000000001",
-                        "case_kind_code": "claim_investigation",
-                        "milestone_type_code": "claim_received",
-                        "evidence_text": "The claim was received",
-                        "evidence_post_id": "00000000-0000-0000-0000-000000000001",
-                        "observed_at": datetime(2026, 8, 1, 9, tzinfo=UTC),
-                        "time_axis_code": "event_occurred_at",
-                        "is_missing": False,
-                    },
-                    {
-                        "post_id": "00000000-0000-0000-0000-000000000001",
-                        "case_kind_code": "claim_investigation",
-                        "milestone_type_code": "cause_confirmed",
-                        "evidence_text": None,
-                        "evidence_post_id": None,
-                        "observed_at": None,
-                        "time_axis_code": None,
-                        "is_missing": True,
-                    },
-                ]
-            return await super().fetch(query, *args)
+            self.queries.append((query, args))
+            if "from topic_post_context_influence influence" in query:
+                return []
+            if "operations_case_fact fact" in query:
+                return [{
+                    "post_id": "00000000-0000-0000-0000-000000000001",
+                    "case_kind_code": "external_information",
+                    "fact_type_code": "external_relation",
+                    "value_text": "Synthetic Project",
+                    "evidence_text": "Synthetic tender evidence",
+                    "evidence_post_id": "00000000-0000-0000-0000-000000000002",
+                    "fact_ordinal": 0,
+                    "relation_target_kind_code": "project",
+                }]
+            if "operations_case_missing_fact missing" in query:
+                return []
+            return [{
+                "post_id": "00000000-0000-0000-0000-000000000001",
+                "case_kind_code": "external_information",
+                "summary_text": "External tender",
+                "evidence_text": "Synthetic tender evidence",
+                "evidence_post_id": "00000000-0000-0000-0000-000000000002",
+                "project_name": "Synthetic Project",
+                "project_names": ["Synthetic Project"],
+                "occurred_at": datetime(2026, 8, 12, tzinfo=timezone.utc),
+                "event_count": 1,
+            }]
 
-    result = await fetch_operations_dashboard(OpenConnection(), [])
+    result = await fetch_operations_dashboard(ExternalConnection(), [])
 
-    lifecycle = result["cases"][0]["lifecycles"][0]
-    assert lifecycle["status_code"] == "open"
-    assert lifecycle["elapsed_seconds"] is None
-    assert result["lifecycle_metrics"][0]["open_case_count"] == 1
+    fact = result["cases"][0]["facts"][0]
+    assert fact["relation_target_kind_code"] == "project"
+    assert fact["relation_predicate_iri"].endswith("#relatesToProject")
+    statement = result["cases"][0]["semantic_projection"][
+        "https://contextualwisdomlab.github.io/LineageWeave/ontology#hasOperationsFact"
+    ][0]
+    assert statement["http://www.w3.org/1999/02/22-rdf-syntax-ns#predicate"] == {
+        "@id": fact["relation_predicate_iri"]
+    }
+    assert statement["http://www.w3.org/ns/prov#wasDerivedFrom"]["@id"].endswith(
+        "00000000-0000-0000-0000-000000000002"
+    )
+    target = statement["http://www.w3.org/1999/02/22-rdf-syntax-ns#object"]
+    assert target["@id"].endswith(":fact:0:target")
+    assert target["@type"].endswith("#Project")
 
 
 @pytest.fixture

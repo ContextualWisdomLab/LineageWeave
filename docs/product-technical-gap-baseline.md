@@ -1,6 +1,6 @@
 # Product & Technical Gap Baseline
 
-> Dashboard delivery snapshot: 2026-08-26 01:10 KST. Protected `main` was
+> Dashboard delivery snapshot: 2026-08-26 (latest exact-head fetch). Protected `main` was
 > `04e6b610655d0db91d5f7ba9486bdda1440e0b19`. This local branch is not
 > protected-main release evidence.
 
@@ -16,7 +16,7 @@
 | Natural-language Ask with evidence, report, alert, MCP | Persisted semantic-unit embeddings plus versioned delivery/resource contract | Candidate implementation uses whole-question embedding retrieval with no lexical fallback; authenticated runtime acceptance pending |
 | Similar VOC, customer cohort, prior action | Persisted repeat-issue candidate semantics plus orchestrator pair adjudication and extractive evidence | Candidate live post endpoint and post-detail UI implemented; authenticated runtime acceptance pending |
 | TEPP independent Event Lineage anchor | Accepted, persisted TEPP criterion bound to exact snapshot/cutoff before fast-mlsirm activation | Consumer PR #606 is on protected main; TEPP producer PR #237 remains open, so no end-to-end accepted artifact is release evidence yet |
-| Temporal Lineage topics and multilevel important posts | ADR 0210; TEPP posterior topic/plausible-value contract followed by fast-mlsirm observed-information case-deletion influence | Product/technical contract is protected on `main`; neither required Rust CPU/GPU producer envelope is shipped, so the Dashboard surface remains unavailable (ADR 0208: no local Python substitute) |
+| Temporal Lineage topics and multilevel important posts | ADR 0210; TEPP posterior topic/plausible-value contract followed by fast-mlsirm observed-information case-deletion influence | This stacked candidate adds normalized persistence, exact run/snapshot/cutoff binding, pre-aggregation scope authorization, API diagnostics, and populated/unavailable Storybook surfaces. TEPP PR #247 remains open, #248 exports Laplace moments explicitly short of plausible values, and fast-mlsirm #1395 closed unmerged without a result envelope; runtime therefore remains honestly unavailable with no local Python or fallback score. |
 
 ### Technical contract and flow
 
@@ -60,29 +60,35 @@ build was inspected at 1440×1000 and 390×844 and exposes neither corpus-wide
 total/pending/failed counts nor a misleading corpus failure alert in that scoped
 destination. Screenshots remain local synthetic audit evidence and are not
 committed.
-The stacked milestone candidate adds source-clock labels, endpoint evidence
-actions, exact resolved duration, open cases with no fabricated elapsed value,
-and evidence-missing next actions. Its focused tests and Storybook build are
-local candidate evidence until the stack receives current-head review, hosted
-checks, and protected delivery. The synthetic `EvidenceReady` story was
-inspected at 1440×1100 and 390×844: endpoint labels no longer collapse inside
-desktop cards, mobile actions remain full-width and keyboard-native, and the
-horizontal project journey retains its named scroll behavior. Screenshots are
-local audit evidence and are not committed.
+The stacked topic-context consumer adds `TopicInfluenceAccepted` and the
+unavailable topic section in `EvidenceReady`. Synthetic screenshots were
+inspected at 1440×1200 and 390×844. At 390px the page had zero document-level
+horizontal overflow while each exact-value table retained its named,
+keyboard-focusable 332px viewport over 784px of table content. The new source
+actions measured 54px high; sampled heading, caption, and table-header contrast
+was 20.15:1, 5.73:1, and 18.62:1. Authenticated runtime evidence remains
+required before protected delivery can be claimed.
 Authenticated authorized-corpus acceptance remains separate and may return
 only aggregate, non-identifying evidence to this repository.
 
+At the repaired dashboard head, the `EvidenceReady` and `NarrowViewport`
+stories were re-rendered locally with synthetic data at desktop and iPhone
+13 viewports. The desktop shows separate Event/post values and evidence
+actions; the narrow view preserves readable cards and 44px-class actions while
+keeping the multi-step project journey horizontally scrollable. These images
+remain local audit evidence and are not committed.
+
 ### Exact open-PR boundary
 
-At this snapshot there were 7 open PRs and 10 open issues. Exact observed heads
-were `#640 41527fa9` (this branch's observed parent), `#639 aee02dca`, `#636 eeeb23c6`, `#632 bfeaecd9`,
-`#631 c0022c97`, `#629 0f4665b5`, and `#579 689a21b6`. All remain blocked on
+At this snapshot there were 8 open PRs and 10 open issues. Exact observed heads
+were `#643 041ec13b`, `#640 985b4492`, `#639 aee02dca`, `#636 f7b9a65f`, `#632 e1ebe50a`,
+`#631 c0022c97`, `#629 74823e99`, and `#579 689a21b6`. All remain blocked on
 hosted gates and/or independent review. These
 observations are not merge readiness. Re-fetch exact heads,
 unresolved threads, checks, approvals, rulesets, and merge SHA before any
 lifecycle claim.
 
-> Audit snapshot: 2026-08-26 01:10 KST (refreshed by the autonomous merge
+> Audit snapshot: 2026-08-26 (refreshed by the autonomous merge
 > loop). This repository records synthetic fixtures and aggregate,
 > non-identifying runtime evidence only. Open PRs and local checks are not
 > protected-default-branch release evidence. Identifying post identifiers,
@@ -92,25 +98,34 @@ lifecycle claim.
 ## 1. Exact-head and governance evidence
 
 The protected default branch was `04e6b610655d0db91d5f7ba9486bdda1440e0b19`
-when this baseline was refreshed. The live queue contained 7 open PRs and 10
+when this baseline was refreshed. The live queue contained 8 open PRs and 10
 open issues. The exact-head inventory below supersedes older per-PR snapshots
 elsewhere in this document; those older rows remain useful historical delivery
 context only.
 
 | PR | Exact observed head | Merge/check state at this snapshot |
 | ---: | --- | --- |
-| #640 | `41527fa9` (observed parent) | this row is updated by #640 itself, so its exact head advances after the snapshot is encoded; it quantifies dashboard case metrics, preserves confidence-ranked project labels, and keeps scoped external evidence honest; hosted gates and independent review remain required |
+| #643 | `041ec13b` | shares token-backed success/unavailable/retry status notices for the Calendar surface; hosted gates and independent review remain required |
+| #640 | `985b4492` | quantifies dashboard case metrics, preserves confidence-ranked project labels, persists explicit missing required facts, and enforces distinct event counts plus SQL-level external scoping; hosted gates and independent review remain required |
 | #639 | `aee02dca` | repairs Running-action, Compose, and TEPP configuration contracts; hosted gates and independent review remain required |
-| #636 | `eeeb23c6` | publishes the calibrated external-lineage contract without a redundant explicit-child filter; hosted gates and independent review remain required |
-| #632 | `bfeaecd9` | preserves graph-fact source provenance and authorization with a static landing-query contract and shared RankWeave disable switch; hosted gates and independent review remain required |
+| #636 | `f7b9a65f` | publishes the calibrated external-lineage contract without a redundant explicit-child filter and repairs test import hygiene; hosted gates and independent review remain required |
+| #632 | `e1ebe50a` | preserves graph-fact source provenance and authorization with a static landing-query contract and shared RankWeave disable switch; hosted gates and independent review remain required |
 | #631 | `c0022c97` | decomposes ADR gaps and queue baseline; hosted gates and independent review remain required |
-| #629 | `0f4665b5` | releases provider work from database leases and bounds landing reads; hosted gates and independent review remain required |
+| #629 | `74823e99` | releases provider work from database leases and bounds landing reads; hosted gates and independent review remain required |
 | #579 | `689a21b6` | delegates leftover interaction-map arithmetic to fast-mlsirm and persists only the consumer projection; hosted gates and independent review remain required |
 
 No row above is merge evidence. Immediately before any lifecycle action,
 re-fetch the head, unresolved threads, formal reviews, rulesets, and same-head
 check conclusions. In particular, queued checks are infrastructure state and
 do not transfer evidence from an earlier SHA.
+
+The exact-head Strix check for PR #631 (`c0022c97`) failed at run
+`32855289561` with `STRIX_PROVIDER_UNAVAILABLE`; the check annotation reports
+provider/backend unavailability rather than a repository vulnerability. The
+historical workflow run is no longer retrievable through the Actions API, so it
+cannot be rerun from that run id. This remains an unresolved hosted-gate
+condition, not evidence that the PR is merge-ready; re-fetch a new exact-head
+run before any merge claim.
 
 PR #607 first merged as `61fd631c7bb3c57113fd19763c2c43161eeb2824`
 into #606's non-default branch. PR #606 subsequently passed the protected gate,

@@ -1,6 +1,7 @@
 @prefix : <https://contextualwisdomlab.github.io/LineageWeave/ontology#> .
 @prefix dcterms: <http://purl.org/dc/terms/> .
 @prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix prov: <http://www.w3.org/ns/prov#> .
 @prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
 @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
 @prefix sh: <http://www.w3.org/ns/shacl#> .
@@ -164,6 +165,25 @@
         sh:description "At most one verbatim evidence span per mention; missing evidence is an honest unknown, never zero-filled." ;
         sh:maxCount 1 ;
         sh:datatype xsd:string ;
+    ] .
+
+:OperationsCaseFactShape a sh:NodeShape ;
+    rdfs:label "Operations case fact shape" ;
+    sh:targetClass :OperationsCaseFact ;
+    sh:property [
+        sh:path :factTypeCode ;
+        sh:minCount 1 ; sh:maxCount 1 ;
+        sh:datatype xsd:string ; sh:minLength 1 ;
+    ] ;
+    sh:property [
+        sh:path :factValue ;
+        sh:minCount 1 ; sh:maxCount 1 ;
+        sh:datatype xsd:string ; sh:minLength 1 ;
+    ] ;
+    sh:property [
+        sh:path prov:wasDerivedFrom ;
+        sh:minCount 1 ; sh:maxCount 1 ;
+        sh:class :Post ;
     ] .
 
 :OurSidePersonShape a sh:NodeShape ;

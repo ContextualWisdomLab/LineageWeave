@@ -28,8 +28,11 @@ provenance.
 2. Dashboard requests are bounded by an inclusive event-time period.
    `source_post.event_occurred_at` is the primary clock and `created_at` is the
    explicit fallback, matching ADR 0202. The response names that clock.
-3. Every count is authorization-filtered before aggregation. The API returns
-   both event count and distinct post count; neither substitutes for the other.
+3. Every count is authorization-filtered before aggregation. Event count is
+   the number of persisted `post_summary_event` rows for the classified,
+   visible posts; post count is the distinct count of those posts. Neither
+   substitutes for the other, and no event is invented when a summary event
+   row is absent.
    Analysis-pending and ingestion-failed post counts are disjoint: a failed
    current job is shown as retryable failure, never hidden inside the pending
    count or interpreted as a negative classification.
@@ -50,6 +53,8 @@ provenance.
    visible posts in the same period. The stored `vom` source code is supplied
    to the orchestrator as labeled evidence, but does not replace semantic
    analysis. Zero total posts yields `0`.
+   The external destination passes an API scope so non-external counts and
+   case rows are excluded at the SQL boundary, not merely hidden in the UI.
 7. Qualitative rows project only persisted evidence:
    project names and evidence spans, source sales-pool code/name, summary
    events, requester/processor action evidence, roles, and Event Lineage links.
@@ -109,32 +114,14 @@ provenance.
    authorized, and that rank is never a psychometric measure or substitute for
    TEPP. Missing estimates remain unavailable; no hand-picked weight is
    introduced.
-15. Claim investigation and rebid/handover use an observed event-log contract
-   aligned with IEEE 1849-2023 (XES). A classification is the local analysis
-   case identifier; a milestone has a closed activity code, an exact cited
-   evidence span, its evidence post, source digest, observed instant, and named
-   clock. Cross-post business-case identity is not inferred from project,
-   similarity, proximity, or text.
-16. Claim investigation pairs `claim_received` with `cause_confirmed`.
-   Rebid/handover independently pairs `rebid_response_requested` with
-   `rebid_decision_recorded`, and `handover_started` with
-   `handover_accepted`. Contextual-orchestrator identifies the supported
-   milestone semantics; LineageWeave assigns the instant only from that cited
-   `source_post`: `event_occurred_at` when present, otherwise the explicitly
-   labeled `created_at` fallback from ADR 0202. The model never emits a date.
-17. Each required endpoint is exactly one cited milestone or one normalized
-   missing-milestone row. Both observed endpoints produce the exact duration
-   `end − start`; start plus an explicitly missing end is `open`; a missing
-   start is `evidence_missing`. An open case has no elapsed duration because
-   no end instant was observed. Reversed observed endpoints reject the entire
-   provider result. No delay threshold, severity band, current-time endpoint,
-   imputed date, average, score, or arbitrary weight is introduced.
-18. The API rechecks the reader's current ABAC and source eligibility for each
-   classification, fact, and milestone evidence post before returning its
-   span. The UI reports open, resolved, and evidence-missing counts separately,
-   shows exact elapsed seconds in a lossless human-readable form, names each
-   milestone's clock, and links the reader to both endpoint sources. State and
-   next action are conveyed in text rather than color alone.
+15. Operations classifications and facts have a governed OWL/JSON-LD read
+   projection. Each case is a `prov:Entity`; each fact is an RDF-reified
+   `prov:Entity` linked to its exact cited Post by `prov:wasDerivedFrom`.
+   External-information relations carry a provider-returned, closed semantic
+   target type (`order`, `project`, `sales`, or `business_management`) and map
+   to typed ontology properties. This is not a `knowledge_graph_edge` alias:
+   PostgreSQL operations tables remain authoritative, and an older untyped
+   relation remains absent from the typed projection until re-analysis.
 
 ## Consequences
 

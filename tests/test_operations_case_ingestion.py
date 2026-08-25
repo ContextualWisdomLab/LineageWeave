@@ -55,18 +55,7 @@ def test_digest_and_atomic_normalized_persistence() -> None:
     assert len(source_body_digest("source")) == 64
     assert "delete from operations_case_analysis" in conn.calls[0][0]
     assert conn.batches == [
-        [
-            (
-                "post-1",
-                "claim_investigation",
-                0,
-                "order",
-                "A-1",
-                "source",
-                "post-1",
-                digest,
-            )
-        ]
+        [("post-1", "claim_investigation", 0, "order", "A-1", "source", "post-1", digest, None)]
     ]
 
 

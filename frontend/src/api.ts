@@ -47,6 +47,12 @@ export interface OperationsDashboardFact {
   value_text: string;
   evidence_text: string;
   evidence_post_id: string;
+  ontology_class_iri?: string;
+  provenance_relation_iri?: string;
+  relation_target_kind_code?: "order" | "project" | "sales" | "business_management";
+  relation_target_kind_label?: string;
+  relation_target_class_iri?: string;
+  relation_predicate_iri?: string;
 }
 
 export interface OperationsDashboardMilestone {
@@ -84,8 +90,9 @@ export interface OperationsDashboardCase {
   occurred_at: string;
   facts: OperationsDashboardFact[];
   missing_facts: Array<{ fact_type_code: string; fact_type_label: string }>;
-  milestones: OperationsDashboardMilestone[];
-  lifecycles: OperationsDashboardLifecycle[];
+  ontology_class_iri?: string;
+  provenance_relation_iri?: string;
+  semantic_projection?: Record<string, unknown>;
 }
 
 export interface OperationsDashboardResponse {
@@ -102,24 +109,80 @@ export interface OperationsDashboardResponse {
     event_count: number;
     post_count: number;
   }>;
-  lifecycle_metrics: Array<{
-    lifecycle_kind_code: string;
-    lifecycle_kind_label: string;
-    open_case_count: number;
-    resolved_case_count: number;
-    evidence_missing_case_count: number;
-  }>;
+  topic_context: TopicContextDashboard;
   cases: OperationsDashboardCase[];
+}
+
+export interface TopicContextDashboard {
+  status_code: "accepted" | "unavailable";
+  reason_code: string | null;
+  next_action: string;
+  required_contracts: Array<{
+    authority: "TEPP" | "fast-mlsirm";
+    schema_version: string;
+    state_code: "persisted" | "not_persisted";
+  }>;
+  model_run: null | {
+    tepp_run_id: string;
+    tepp_snapshot_id: string;
+    source_snapshot_sha256: string;
+    knowledge_cutoff: string;
+    tepp_model_contract_version: string;
+    tepp_artifact_sha256: string;
+    posterior_draw_set_id: string;
+    posterior_draw_count: number;
+    topic_count: number;
+    fast_mlsirm_version: string;
+    fast_mlsirm_code_revision: string;
+    fast_mlsirm_artifact_sha256: string;
+    compute_backend_code: "rust_cpu" | "rust_gpu";
+    precision_code: "f64" | "f32";
+    membership_fingerprint_sha256: string;
+  };
+  topics: Array<{
+    topic_index: number;
+    activity_intervals: Array<{
+      state_code: "active" | "dormant" | "reactivated";
+      valid_from: string;
+      valid_to: string;
+    }>;
+    lineage_events: Array<{
+      event_code: "birth" | "split" | "merge" | "retirement";
+      source_topic_index: number;
+      target_topic_index: number | null;
+      event_time: string;
+      evidence_sha256: string;
+    }>;
+    contexts: Array<{
+      dimension_code: "business_unit" | "process_unit" | "team" | "person";
+      context_id: string;
+      context_label: string;
+      influences: Array<{
+        post_id: string;
+        occurred_at: string;
+        topic_state_code: "active" | "dormant" | "reactivated";
+        model_influence: number;
+        uncertainty_method_code: string;
+        uncertainty_lower_value: number;
+        uncertainty_upper_value: number;
+        diagnostic_status_code: "accepted";
+        membership_weight: number;
+        membership_evidence_sha256: string;
+      }>;
+    }>;
+  }>;
 }
 
 export function fetchOperationsDashboard(
   accessToken: string,
   periodStart = "",
   periodEnd = "",
+  externalOnly = false,
 ): Promise<OperationsDashboardResponse> {
   const query = new URLSearchParams();
   if (periodStart) query.set("period_start", periodStart);
   if (periodEnd) query.set("period_end", periodEnd);
+  if (externalOnly) query.set("external_only", "true");
   const suffix = query.size ? `?${query}` : "";
   return backendFetch(`/api/dashboard${suffix}`, accessToken);
 }
