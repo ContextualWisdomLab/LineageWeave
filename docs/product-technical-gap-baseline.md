@@ -387,7 +387,7 @@ this file per §3.5 of the prior snapshot).
 
 ### 5.1 Closed PR #490 decomposition (issue #611)
 
-Protected `main` at `7403a452` has no open PR. PR #490 remains closed,
+Protected `main` at `7403a452` contains none of PR #490. That PR remains closed,
 unmerged branch evidence; its ADR 0133–0137 files are not normative and its
 321-file tree must not be replayed. Current-main code and schema searches give
 this delivery matrix:
