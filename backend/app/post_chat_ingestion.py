@@ -8,7 +8,7 @@ Knowledge Graph traversal alone -- a KG edge says two posts are related,
 not that the requesting account may see both.
 
 `gather_global_chat_sources` (Global Ask, no starting post) also expands
-its single best keyword match through the same `post_lineage_edge`
+its single best persisted-embedding match through the same `post_lineage_edge`
 neighbors, so an answer speaks to a connected timeline rather than one
 isolated snapshot -- it does not have a starting post to run the
 Knowledge Graph's indirect random-walk expansion from, only the lineage
@@ -18,7 +18,6 @@ chain of its own top match.
 from __future__ import annotations
 
 import asyncio
-import re
 from dataclasses import dataclass
 from datetime import date, datetime
 from typing import Any, Callable, Iterable
@@ -27,6 +26,7 @@ from zoneinfo import ZoneInfo
 import asyncpg
 
 from lineageweave.ask_time_axis import row_matches_time_range, time_axis_evidence_fact
+from lineageweave.embedding_client import EmbeddingClient, NullEmbeddingClient
 from lineageweave.image_content import ImageContentClient, NullImageContentClient
 from lineageweave.knowledge_graph import (
     NODE_POST,
@@ -44,12 +44,10 @@ from lineageweave.post_chat import (
     normalize_chat_question,
 )
 from lineageweave.post_content_normalization import normalize_post_body
-from lineageweave.temporal_expressions import (
-    TEMPORAL_STOPWORDS,
-    resolve_korean_relative_time,
-)
+from lineageweave.temporal_expressions import resolve_korean_relative_time
 
 from .knowledge_graph import hydrate_related_nodes, load_visible_subgraph
+from .post_eligibility import SOURCE_POST_ELIGIBILITY_SQL
 from lineageweave.ontology import ontology_annotations
 
 
@@ -168,7 +166,6 @@ _SOURCE_HINT_FIELDS = (
     ("source_project_name", "source project name"),
 )
 
-_GLOBAL_ASK_TERM_PATTERN = re.compile(r"[^\W_]+(?:-[^\W_]+)*", re.UNICODE)
 _POST_CHAT_SOURCE_LIMIT = 8
 
 # Korean relative-time words ("어제", "오늘", ...) name a KST calendar day,
@@ -394,6 +391,7 @@ async def gather_global_chat_sources(
     authorized_corporate_entity_ids: Iterable[str] = (),
     authorized_process_unit_ids: Iterable[str] = (),
     vision_client: ImageContentClient | None = None,
+    embedding_client: EmbeddingClient | None = None,
     *,
     question: str | None = None,
     limit: int = 4,
@@ -414,133 +412,96 @@ async def gather_global_chat_sources(
     or no expression at all applies no date filter. Cited sources name
     which clock matched (ADR 0202).
 
-    The source set is intentionally bounded until retrieval/reranking is
-    needed for a much larger corpus; every selected body still uses the same
-    image normalization and persisted graph evidence as post-scoped chat.
+    Candidates are ranked by the maximum cosine similarity between the
+    question embedding and each post's persisted semantic-unit embeddings.
+    The embedding model and dimension must match exactly.  An unavailable
+    channel or incomplete persisted vectors returns no source instead of
+    falling back to lexical matching.
     """
     if limit <= 0:
         return []
     if vision_client is None:
         vision_client = NullImageContentClient()
-    # A relative-time expression ("어제", "작년 이맘때쯤", ...) narrows the
-    # candidate window by event time (fallback: created_at) below; it must
-    # not also become a near-meaningless literal keyword search term
-    # (see TEMPORAL_STOPWORDS).
+    if embedding_client is None:
+        embedding_client = NullEmbeddingClient()
     resolved_time_range = resolve_korean_relative_time(
         question or "", today=today or _seoul_today()
     )
-    search_terms = tuple(
-        dict.fromkeys(
-            token.casefold()
-            for token in _GLOBAL_ASK_TERM_PATTERN.findall(question or "")
-            if len(token) >= 2
-            and token.casefold()
-            not in {
-                "which",
-                "what",
-                "where",
-                "when",
-                "who",
-                "why",
-                "how",
-                "the",
-                "this",
-                "that",
-                "posts",
-                "post",
-                "글",
-                "게시글",
-                "질문",
-                "관련",
-                "확인되는",
-                "핵심",
-                "사실",
-                "무엇",
-                "무엇인가요",
-                "인가요",
-            }
-            # A Korean particle (은/는/이/가/에/의/도/쯤/...) attaches directly
-            # to a time word with no space ("어제는", "지난주에"), so the
-            # tokenizer above yields one token that a bare `in` check against
-            # TEMPORAL_STOPWORDS never matches -- check by prefix instead.
-            and not any(token.startswith(stopword) for stopword in TEMPORAL_STOPWORDS)
+    if not (question and question.strip() and embedding_client.available):
+        return []
+    try:
+        question_vector = await asyncio.to_thread(embedding_client.embed, question)
+    except (OSError, RuntimeError, ValueError):
+        return []
+    if not question_vector:
+        return []
+    embedding_model_code = embedding_client.resolved_model
+    if not embedding_model_code:
+        return []
+    question_norm = sum(value * value for value in question_vector) ** 0.5
+    if question_norm == 0.0:
+        return []
+    # Safe SQL: the only interpolation is the repository-owned eligibility
+    # expression; all request and model values remain asyncpg parameters.
+    candidate_rows = await conn.fetch(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
+        f"""
+        with question_vector as (
+            select ordinality - 1 as dimension_index, dimension_value
+              from unnest($1::double precision[]) with ordinality
+                   as vector(dimension_value, ordinality)
+        ), unit_similarity as (
+            select unit.post_id, embedding.post_content_embedding_id,
+                   sum(value.dimension_value * question.dimension_value)
+                       / nullif(
+                           sqrt(sum(value.dimension_value * value.dimension_value)) * $2,
+                           0
+                       ) as cosine_similarity
+              from source_post post
+              join post_content_unit unit on unit.post_id = post.post_id
+              join post_content_embedding embedding
+                on embedding.post_content_unit_id = unit.post_content_unit_id
+              join post_content_embedding_value value
+                on value.post_content_embedding_id = embedding.post_content_embedding_id
+              join question_vector question
+                on question.dimension_index = value.dimension_index
+             where embedding.embedding_model_code = $3
+               and embedding.embedding_dimension_count = cardinality($1::double precision[])
+               and (post.visibility_code = 'public'
+                    or (post.corporate_entity_id::text = any($4::text[])
+                        and (cardinality($5::text[]) = 0
+                             or post.process_unit_id::text = any($5::text[]))))
+               and {SOURCE_POST_ELIGIBILITY_SQL.format(alias='post')}
+               and ($6::date is null or (coalesce(post.event_occurred_at, post.created_at) at time zone 'Asia/Seoul')::date >= $6)
+               and ($7::date is null or (coalesce(post.event_occurred_at, post.created_at) at time zone 'Asia/Seoul')::date <= $7)
+             group by unit.post_id, embedding.post_content_embedding_id
+            having count(*) = cardinality($1::double precision[])
         )
-    )[:8]
-    # A post whose title names the exact thing asked about is a far more
-    # specific match than one that only shares a generic term (a common
-    # word, or a hit buried in a 16KB body prefix); weighting every match
-    # equally and then falling back on created_at desc as the only
-    # tiebreak let recency crowd out relevance -- a year-old post whose
-    # title is an exact company-name match lost to four newer, only
-    # loosely related posts in a live reproduction of this bug.
-    _MATCH_WEIGHT = {"title": 3.0, "body": 1.0, "source_field": 1.0}
-    candidate_scores: dict[str, float] = {}
-    for term in search_terms:
-        candidate_rows = await conn.fetch(
-            """
-            select post_id, matched_in
-              from (
-                   (select post_id, coalesce(event_occurred_at, created_at) as event_clock,
-                           'title' as matched_in
-                      from source_post
-                     where post_title ilike '%' || $1 || '%'
-                       and ($2::date is null or (coalesce(event_occurred_at, created_at) at time zone 'Asia/Seoul')::date >= $2)
-                       and ($3::date is null or (coalesce(event_occurred_at, created_at) at time zone 'Asia/Seoul')::date <= $3)
-                     limit 32)
-                    union all
-                   (select post_id, coalesce(event_occurred_at, created_at) as event_clock,
-                           'body' as matched_in
-                      from source_post
-                     where lower(left(source_post_search_text(post_body), 16384))
-                               like '%' || lower($1) || '%'
-                       and ($2::date is null or (coalesce(event_occurred_at, created_at) at time zone 'Asia/Seoul')::date >= $2)
-                       and ($3::date is null or (coalesce(event_occurred_at, created_at) at time zone 'Asia/Seoul')::date <= $3)
-                     limit 32)
-                    union all
-                   (select post_id, coalesce(event_occurred_at, created_at) as event_clock,
-                           'body' as matched_in
-                      from source_post
-                     where to_tsvector('simple', source_post_search_text(post_body))
-                               @@ plainto_tsquery('simple', $1)
-                       and ($2::date is null or (coalesce(event_occurred_at, created_at) at time zone 'Asia/Seoul')::date >= $2)
-                       and ($3::date is null or (coalesce(event_occurred_at, created_at) at time zone 'Asia/Seoul')::date <= $3)
-                     limit 32)
-                    union all
-                   (select post_id, coalesce(event_occurred_at, created_at) as event_clock,
-                           'source_field' as matched_in
-                      from source_post
-                     where concat_ws(' ', source_system_code, source_record_key,
-                                      source_author_code, source_author_name,
-                                      source_company_code, source_company_name,
-                                      source_process_unit_code, source_process_unit_name,
-                                      source_sales_pool_code, source_sales_pool_name,
-                                      source_customer_code, source_customer_name,
-                                      source_project_code, source_project_name)
-                               ilike '%' || $1 || '%'
-                       and ($2::date is null or (coalesce(event_occurred_at, created_at) at time zone 'Asia/Seoul')::date >= $2)
-                       and ($3::date is null or (coalesce(event_occurred_at, created_at) at time zone 'Asia/Seoul')::date <= $3)
-                     limit 32)
-                   ) matches
-             order by event_clock desc, post_id desc
-            limit 32
-            """,
-            term,
-            resolved_time_range[0] if resolved_time_range else None,
-            resolved_time_range[1] if resolved_time_range else None,
-        )
-        for row in candidate_rows:
-            post_id = str(row["post_id"])
-            candidate_scores[post_id] = candidate_scores.get(post_id, 0.0) + _MATCH_WEIGHT[row["matched_in"]]
-    candidate_ids = sorted(candidate_scores, key=lambda post_id: candidate_scores[post_id], reverse=True)
+        select similarity.post_id, max(similarity.cosine_similarity) as semantic_score,
+               max(coalesce(post.event_occurred_at, post.created_at)) as event_clock
+          from unit_similarity similarity
+          join source_post post on post.post_id = similarity.post_id
+         group by similarity.post_id
+         order by semantic_score desc, event_clock desc, similarity.post_id desc
+         limit $8
+        """,
+        question_vector,
+        question_norm,
+        embedding_model_code,
+        list(authorized_corporate_entity_ids),
+        list(authorized_process_unit_ids),
+        resolved_time_range[0] if resolved_time_range else None,
+        resolved_time_range[1] if resolved_time_range else None,
+        limit,
+    )
+    candidate_ids = [str(row["post_id"]) for row in candidate_rows]
+    candidate_id_set = frozenset(candidate_ids)
 
-    # A keyword match only proves one post's text is relevant -- the
-    # account asking almost always wants to know what happened before and
-    # after that event too, not just this one snapshot. Expand the single
-    # best match through its direct Event Lineage neighbors
+    # One semantic match is still only one event snapshot. Expand the
+    # best-matching post through its direct Event Lineage neighbors
     # (`post_lineage_edge`, `lineageweave.reconstruct`'s output), mirroring
     # `find_linked_post_ids`'s `.direct` set used by the post-scoped chat
-    # flow. Only the top match is expanded -- expanding every keyword hit
-    # would let a loosely related term drag in an unrelated lineage chain.
+    # flow. Only the top match is expanded so lower-ranked semantic candidates
+    # cannot each pull a separate lineage chain into the bounded context.
     lineage_neighbor_ids: list[str] = []
     lineage_anchor_id = candidate_ids[0] if candidate_ids else None
     if lineage_anchor_id:
@@ -553,7 +514,7 @@ async def gather_global_chat_sources(
             {
                 str(row["other_id"])
                 for row in lineage_rows
-                if str(row["other_id"]) not in candidate_scores
+                if str(row["other_id"]) not in candidate_id_set
             }
         )
         candidate_ids = list(
@@ -563,8 +524,10 @@ async def gather_global_chat_sources(
         candidate_ids = []
     lineage_neighbor_id_set = frozenset(lineage_neighbor_ids)
 
-    rows = await conn.fetch(
-        """
+    # Safe SQL: the only interpolation is the repository-owned eligibility
+    # expression; all request and identity values remain asyncpg parameters.
+    rows = await conn.fetch(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
+        f"""
         select post_id, post_title, post_body, visibility_code, corporate_entity_id, process_unit_id,
                source_system_code, source_record_key, source_author_code, source_author_name,
                source_company_code, source_company_name, source_process_unit_code,
@@ -577,6 +540,8 @@ async def gather_global_chat_sources(
             or (corporate_entity_id::text = any($1::text[])
                 and (cardinality($2::text[]) = 0
                      or process_unit_id::text = any($2::text[]))))
+           and source_post.post_id = any($3::uuid[])
+           and {SOURCE_POST_ELIGIBILITY_SQL.format(alias='source_post')}
            and ($5::date is null or (coalesce(event_occurred_at, created_at) at time zone 'Asia/Seoul')::date >= $5)
            and ($6::date is null or (coalesce(event_occurred_at, created_at) at time zone 'Asia/Seoul')::date <= $6)
          order by array_position($3::uuid[], post_id) nulls last,
