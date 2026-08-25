@@ -1,6 +1,6 @@
 import { t } from "../i18n";
 
-/** Shared token-backed next-action notice (ADR 0214). */
+/** Shared token-backed next-action notice (ADR 0220). */
 export type StatusNoticeKind = "success" | "unavailable" | "retry";
 
 const KIND_GLYPH: Record<StatusNoticeKind, string> = {

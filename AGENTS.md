@@ -328,7 +328,7 @@ Repeated web objects use `frontend/src/styles/tokens.css`, not inline hex
 (ADR 0099 badge/accent tokens, with dark-mode overrides guarded by
 `tokens.test.ts`); new stories belong in the inventory at
 `docs/storybook-inventory.md`. Success, unavailable, and retry copy share
-`StatusNotice` (ADR 0214): Calendar's missing Naruon projection is the first
+`StatusNotice` (ADR 0220): Calendar's missing Naruon projection is the first
 migrated flow. Success and unavailable stay a named region (not live
 `role="status"`); retry stays `role="alert"`. Do not add a second placeholder
 or interpolate provider payloads into that notice.

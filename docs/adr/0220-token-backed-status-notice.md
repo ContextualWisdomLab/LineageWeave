@@ -1,4 +1,4 @@
-# ADR 0214: Share one token-backed status notice
+# ADR 0220: Share one token-backed status notice
 
 - Status: Accepted
 - Date: 2026-08-25

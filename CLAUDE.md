@@ -52,7 +52,7 @@ Create/start endpoint rules (ADR 0017 / 0021), tie-vs-miss similarity
 (ADR 0048–0164 / 0182 / 0185 / 0201 / 0233), occupational construct catalog search
 (ADR 0257), the text-channel embedding swap and cosine
 clamp (ADR 0190), per-edge channel-score persistence (ADR 0195),
-token-backed status notices (ADR 0214),
+token-backed status notices (ADR 0220),
 migration replay (ADR 0166), docstring coverage, and the measurement
 boundary are all stated in [AGENTS.md](AGENTS.md) -- read it before
 changing code, tests, or runtime policy rather than restating anything
