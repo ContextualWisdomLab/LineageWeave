@@ -21,6 +21,15 @@ from .naruon_calendar_projection import (
     NaruonCalendarProjectionClient,
     parse_naruon_calendar_page,
 )
+from .naruon_calendar_workspace import (
+    NARUON_CALENDAR_UNAVAILABLE_NEXT_ACTION,
+    NaruonCalendarWorkspaceEvent,
+    NaruonCalendarWorkspaceResult,
+    build_workspace_naruon_client,
+    default_calendar_window,
+    load_observed_calendar_events,
+    occurrence_to_workspace_event,
+)
 from .post_chat import ChatAnswer, cited_post_summaries
 from .post_summary import PostSummary
 from .prov_o import (
@@ -42,10 +51,13 @@ __all__ = [
     "Edge",
     "NARUON_CALENDAR_MEDIA_TYPE",
     "NARUON_CALENDAR_SCHEMA_VERSION",
+    "NARUON_CALENDAR_UNAVAILABLE_NEXT_ACTION",
     "NaruonCalendarContractError",
     "NaruonCalendarOccurrence",
     "NaruonCalendarPage",
     "NaruonCalendarProjectionClient",
+    "NaruonCalendarWorkspaceEvent",
+    "NaruonCalendarWorkspaceResult",
     "OrganizationRelationship",
     "PROV",
     "PROV_CLASSES",
@@ -60,8 +72,12 @@ __all__ = [
     "Record",
     "Tree",
     "build_affiliate_forest",
+    "build_workspace_naruon_client",
     "cited_post_summaries",
+    "default_calendar_window",
     "lineage_edge_specs",
+    "load_observed_calendar_events",
+    "occurrence_to_workspace_event",
     "parse_naruon_calendar_page",
     "random_walk_with_restart",
     "reconstruct",
@@ -70,4 +86,4 @@ __all__ = [
     "sentence_excerpts",
 ]
 
-__version__ = "2.15.0"
+__version__ = "2.17.0"

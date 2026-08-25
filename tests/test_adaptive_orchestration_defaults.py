@@ -15,7 +15,11 @@ from lineageweave.entity_relationship_classification import (
 from lineageweave.keyman_extraction import (
     ContextualOrchestratorKeymanExtractionClient,
 )
-from lineageweave.post_evaluation import ContextualOrchestratorPostEvaluationClient
+from lineageweave.post_evaluation import (
+    ContextualOrchestratorPostEvaluationClient,
+    CriterionResponse,
+    irt_responses_from_result,
+)
 from lineageweave.post_summary import ContextualOrchestratorPostSummaryClient
 
 
@@ -117,14 +121,8 @@ def test_post_evaluation_judge_defaults_to_auto(monkeypatch) -> None:
                     "message": {
                         "content": json.dumps(
                             {
-                                "score": 1.0,
-                                "accepted": True,
-                                "rationale": "Evidence supports each criterion.",
-                                "criterion_categories": {
-                                    "general_sentiment_negative": 4,
-                                    "general_sentiment_positive": 4,
-                                    "sales_lead_specificity": 4,
-                                },
+                                "meets_threshold": True,
+                                "rationale": "Evidence meets this boundary.",
                             }
                         )
                     }
@@ -139,7 +137,12 @@ def test_post_evaluation_judge_defaults_to_auto(monkeypatch) -> None:
         "https://orchestrator.test", "token"
     )
 
-    client.evaluate("Title", "Body")
+    result = client.evaluate("Title", "Body")
 
     assert observed["payload"]["mode"] == "auto"
     assert observed["payload"]["reasoning_effort"] == "auto"
+    assert result.category_method == "binary_threshold"
+    assert irt_responses_from_result(result) == tuple(
+        CriterionResponse(criterion_code=criterion_id, response_category=4)
+        for criterion_id in sorted(result.criterion_scores)
+    )

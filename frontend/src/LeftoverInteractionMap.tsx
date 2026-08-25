@@ -1,3 +1,4 @@
+/* oxlint-disable react/only-export-components -- deterministic stateless projection helpers are tested directly */
 import type { LeftoverMapItem, LeftoverMapPerson, LeftoverPair } from "./api";
 import { t, tf } from "./i18n";
 

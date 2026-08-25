@@ -71,6 +71,9 @@ describe("i18n", () => {
     "Title overlap",
     "RankWeave fused newest-first and title-overlap ranks. This is not a calibrated score.",
     "Workspace navigation",
+    "Observed calendar events",
+    "No observed calendar events are available.",
+    "Open this observed occurrence. It is not a LineageWeave commitment.",
   ] as const;
 
   it("supports the five product locales", () => {
