@@ -3,7 +3,7 @@ name = "lineageweave"
 version = "2.18.0"
 description = "Reconstructs git-branch-style lineage DAGs from scattered short records using multi-channel score fusion and LLM adjudication."
 readme = "README.md"
-license = { text = "MIT" }
+license = "MIT"
 # Was >=3.10; fast-mlsirm (see [project.optional-dependencies].backend)
 # declares >=3.12 itself, so this floor must match or `uv`'s resolver
 # reports the whole project unsatisfiable.
