@@ -1,6 +1,6 @@
 # Product & Technical Gap Baseline
 
-> Dashboard delivery snapshot: 2026-08-26 05:22 KST. Protected `main` was
+> Dashboard delivery snapshot: 2026-08-26 05:24 KST. Protected `main` was
 > `04e6b610655d0db91d5f7ba9486bdda1440e0b19`. This local branch is not
 > protected-main release evidence.
 
@@ -84,7 +84,7 @@ context only.
 
 | PR | Exact observed head | Merge/check state at this snapshot |
 | ---: | --- | --- |
-| #663 | `e1f24762` | project ontology traversal, explicit project-mention relation label, and SKOS preferred labels; replacement hosted checks and independent approvals are required |
+| #663 | `e1f24762` (observed parent) | project ontology traversal plus RDFS/SKOS label alignment; this baseline commit advances the head, after which replacement hosted checks and independent approvals are required |
 | #660 | `24fda085` | backend runtime and integration contract repairs; hosted checks still active |
 | #659 | `e948bd27` | ontology node readability and tokenized UI fills |
 | #658 | `fe830b0a` | evidence-honest Global Ask knowledge cutoff with client validation; hosted checks still active |
