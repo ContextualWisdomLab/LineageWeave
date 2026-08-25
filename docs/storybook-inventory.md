@@ -37,4 +37,4 @@ World Wide Web Consortium. (2024). *Web Content Accessibility Guidelines
 `ProjectHistoryTimeline.stories.tsx` covers the evidence-bearing default
 timeline and its exact-value table. Keyboard roving focus, the current event,
 responsibility-evidence gaps, non-causal lineage paths, and source-record
-actions are executable component-test states governed by ADR 0224.
+actions are executable component-test states governed by ADR 0226.
