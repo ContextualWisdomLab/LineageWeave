@@ -61,7 +61,7 @@ only aggregate, non-identifying evidence to this repository.
 ### Exact open-PR boundary
 
 At this snapshot there were 16 open PRs and 10 open issues. Exact observed heads
-were `#663 95fe2f8f`, `#662 4158da86`, `#661 11206c58`, `#660 7d0d3ef7`, `#659 e948bd27`, `#658 b681bd53`, `#657 64f48679`, `#644 d9ff9980`, `#643 0a1f8ec1`, `#640 2d50fa01`,
+were `#663 55bd4b04`, `#662 92534118`, `#661 11206c58`, `#660 7d0d3ef7`, `#659 e948bd27`, `#658 b681bd53`, `#657 64f48679`, `#644 d9ff9980`, `#643 0a1f8ec1`, `#640 2d50fa01`,
 `#639 aee02dca`, `#636 f7b9a65f`, `#632 9332b921`, `#631 c0022c97`,
 `#629 4b4d6707`, and `#579 689a21b6`. PR #654 merged its ontology-label
 readability slice into #632's provenance branch as `6c0c4370`; that stack
@@ -90,8 +90,8 @@ context only.
 | ---: | --- | --- |
 | #660 | `7d0d3ef7` | backend runtime/integration contract restoration with FastAPI status API and existing httpx2 test extra preserved; architecture documentation now matches the dev-only Starlette transport; config tests passed 10; hosted checks and independent review remain required |
 | #661 | `11206c58` | reconstruction, persistence, seed, graph-separation, and HTTP acceptance tests now use one session-scoped Rust-backed fast-mlsirm fixture estimate instead of hand-authored fusion dictionaries; unavailable Rust dependency now skips honestly; focused regression suite passed 14 tests; hosted checks and independent review remain required |
-| #662 | `4158da86` | TEPP terminal status/read transport boundary with opaque run-id encoding, shared published contract-version headers, fail-closed provider errors, ADR 0217, and 9 client tests; configured status route remains unavailable until the upstream route is published; hosted checks and independent review remain required |
-| #663 | `95fe2f8f` | evidence-backed Post → Project ontology neighborhood with canonical project keys, proposed truth status, project diamond/text labels, ADR 0222, backend ontology suite 102 passed, focused frontend tests 19 passed, lint, Storybook build, and runtime evidence recorded; hosted checks and independent review remain required |
+| #662 | `92534118` | TEPP terminal status/read transport boundary with opaque run-id encoding, shared published contract-version headers, fail-closed provider errors, ADR 0217, and 9 client tests; configured status route remains unavailable until the upstream route is published; hosted checks and independent review remain required |
+| #663 | `55bd4b04` | evidence-backed Post → Project ontology neighborhood with canonical project keys, proposed truth status, project diamond/text labels, cutoff/snapshot-bounded project evidence, ADR 0222, backend ontology suite 102 passed, focused frontend tests 19 passed, lint, Storybook build, and runtime evidence recorded; hosted checks and independent review remain required |
 | #659 | `e948bd27` | ontology node-type readability, tokenized surfaces, contrast measurement, and resolved cross-PR allocation documentation; focused UI/token tests and lint passed; hosted checks and independent review remain required |
 | #658 | `b681bd53` | optional Global Ask knowledge cutoff; empty-cutoff answers no longer overclaim grounding, live answers expose `live_only`, local cutoff input is converted to UTC, content-change evidence now comes from revision intervals rather than unrelated live-row touches, current-only lineage/images are gated off, ADR rollback instructions name the actual migration, and unused live-update selection was removed; cutoff/source-revision suites passed 20 tests; hosted checks and independent review remain required |
 | #657 | `64f48679` | TEPP asynchronous lifecycle evidence; terminal-status persistence, receipt-conflict isolation, migration reservation, and fail-closed schema handling repaired, with 57 focused tests passed; hosted checks and independent review remain required |
