@@ -1170,7 +1170,7 @@ function KeymanPanel({
                   <li key={key}>
                     <button
                       className="keyman-select"
-                      aria-label={tf("Related nodes for {name}", { name: node.label ?? node.node_id })}
+                      aria-label={tf("Related nodes for {name}", { name: caption })}
                       onClick={() => handleSelectTeam(node.node_id, node.label ?? node.node_id)}
                     >
                       {caption}

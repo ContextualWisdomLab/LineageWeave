@@ -116,14 +116,10 @@ describe("App, authenticated", () => {
     customerEntityHierarchy?: boolean;
     staleSummary?: boolean;
     contentAfterSummary?: boolean;
-<<<<<<< HEAD
+    organizationAliases?: boolean;
     askLineageGraph?: boolean;
     askImageCitation?: boolean;
   }): ReturnType<typeof vi.fn> & { releaseMe: () => void; releasePostOne: () => void } {
-=======
-    organizationAliases?: boolean;
-  }): ReturnType<typeof vi.fn> & { releaseMe: () => void } {
->>>>>>> 5ef5bf66 (feat: show corroborated SKOS companion on organization chips)
     const statusLabel: Record<string, string> = {
       open: "Open",
       in_progress: "In progress",
@@ -2723,7 +2719,7 @@ describe("App, authenticated", () => {
     await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
     await userEvent.click(screen.getByRole("button", { name: "Related nodes for Ada West" }));
     await waitFor(() => expect(screen.getByText("Related to Ada West")).toBeInTheDocument());
-    await userEvent.click(screen.getByRole("button", { name: "Related nodes for 설계팀" }));
+    await userEvent.click(screen.getByRole("button", { name: "Related nodes for 설계팀 (Team)" }));
     await waitFor(() => expect(screen.getByText("Related to 설계팀")).toBeInTheDocument());
     expect(screen.getByText("Related to 설계팀").closest(".related-keymen")).toHaveTextContent(
       "Linked post",

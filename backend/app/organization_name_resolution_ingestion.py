@@ -12,7 +12,9 @@ from lineageweave.organization_name_resolution import (
     OrganizationNameResolutionClient,
     resolve_and_verify_organization_name,
 )
-from lineageweave.corporate_hierarchy_resolution import OrganizationNameAlias
+from lineageweave.corporate_hierarchy_resolution import (
+    OrganizationNameAlias as CorporateHierarchyOrganizationNameAlias,
+)
 from lineageweave.relation_verification import (
     STATUS_CORROBORATED,
     RelationVerificationClient,
@@ -27,7 +29,7 @@ _CORROBORATED_ALIAS_SQL = (
 
 async def load_corroborated_organization_name_aliases(
     conn: asyncpg.Connection,
-) -> list[OrganizationNameAlias]:
+) -> list[CorporateHierarchyOrganizationNameAlias]:
     """Return search-corroborated SKOS alt/pref pairs, or an empty list.
 
     Callers with a stub connection that has no ``fetch`` (the early-return
@@ -39,10 +41,10 @@ async def load_corroborated_organization_name_aliases(
     if not callable(fetch):
         return []
     rows = await fetch(_CORROBORATED_ALIAS_SQL, STATUS_CORROBORATED)
-    aliases: list[OrganizationNameAlias] = []
+    aliases: list[CorporateHierarchyOrganizationNameAlias] = []
     for row in rows:
         aliases.append(
-            OrganizationNameAlias(
+            CorporateHierarchyOrganizationNameAlias(
                 alt_label=row["raw_organization_name"],
                 pref_label=row["resolved_organization_name"],
             )

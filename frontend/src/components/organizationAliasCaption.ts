@@ -6,7 +6,7 @@ export function organizationAliasCaption(
   organizationAlias?: string | null,
 ): string {
   const alias = (organizationAlias ?? "").trim();
-  if (!alias) {
+  if (!alias || alias === displayName.trim()) {
     return displayName;
   }
   return `${displayName} (${alias})`;

@@ -9,6 +9,7 @@ describe("organizationAliasCaption", () => {
     expect(organizationAliasCaption("Demo Corp", "DC")).toBe("Demo Corp (DC)");
     expect(organizationAliasCaption("Demo Corp", null)).toBe("Demo Corp");
     expect(organizationAliasCaption("Demo Corp", "  ")).toBe("Demo Corp");
+    expect(organizationAliasCaption("Demo Corp", " Demo Corp ")).toBe("Demo Corp");
   });
 });
 
