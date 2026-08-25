@@ -62,14 +62,14 @@ only aggregate, non-identifying evidence to this repository.
 
 At this snapshot there were 5 open PRs and 10 open issues. Exact observed heads
 are listed below. PRs #579, #629, #631, #632, and #636 all target
-protected `main`; each had zero unresolved review threads, `REVIEW_REQUIRED`,
-and queued required workflows. The open heads remain blocked on hosted gates
-and independent review. These
+protected `main`; each had zero unresolved review threads. Four were
+`REVIEW_REQUIRED`; #629 had no formal review decision. All had queued required
+workflows and remain blocked on hosted gates and independent review. These
 observations are not merge readiness. Re-fetch exact heads,
 unresolved threads, checks, approvals, rulesets, and merge SHA before any
 lifecycle claim.
 
-> Audit snapshot: 2026-08-25 23:05 KST (refreshed by the autonomous merge
+> Audit snapshot: 2026-08-25 23:21 KST (refreshed by the autonomous merge
 > loop). This repository records synthetic fixtures and aggregate,
 > non-identifying runtime evidence only. Open PRs and local checks are not
 > protected-default-branch release evidence. Identifying post identifiers,
@@ -86,10 +86,10 @@ context only.
 
 | PR | Exact observed head | Merge/check state at this snapshot |
 | ---: | --- | --- |
-| #636 | `e031de0b` | publishes the calibrated external lineage contract; zero unresolved threads; queued checks and independent review remain required |
-| #632 | `6b99489e` | preserves graph-fact source provenance; zero unresolved threads; queued checks and independent review remain required |
+| #636 | `78d87a18` | publishes the calibrated external lineage contract and fails closed when calibrated weights do not exactly match active channels; zero unresolved threads; queued checks and independent review remain required |
+| #632 | `bb680329` | preserves graph-fact source provenance; zero unresolved threads; queued checks and independent review remain required |
 | #631 | `c0022c97` | refreshes product-gap and CI lifecycle governance; zero unresolved threads; queued checks and independent review remain required |
-| #629 | `238a6cdb` | releases provider work and bounds landing reads; zero unresolved threads; queued checks and independent review remain required |
+| #629 | `883d1ff7` | releases provider work and bounds landing reads; zero unresolved threads, no formal review decision, and queued checks remain |
 | #579 | `689a21b6` | persists leftover interaction-map coordinates and owns ADR 0211; zero unresolved threads; queued checks and independent review remain required |
 
 No row above is merge evidence. Immediately before any lifecycle action,
