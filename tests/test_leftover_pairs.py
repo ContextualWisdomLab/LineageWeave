@@ -158,6 +158,27 @@ def test_zero_residual_still_emits_stable_leftover_pairs() -> None:
     assert coverage.incomplete_post_count == 0
 
 
+def test_rank_zero_nonzero_constant_residual_keeps_raw_identity() -> None:
+    """Centering a constant nonzero residual gives R̂=0 while U remains R."""
+    matrix = np.ones((2, 2), dtype=np.float64)
+    pairs = leftover_pairs_from_residual(
+        ["post-a", "post-b"],
+        ("item-a", "item-b"),
+        matrix,
+        np.zeros_like(matrix),
+    )
+
+    assert pairs
+    for pair in pairs:
+        assert pair.leftover_map_rank == 0
+        assert pair.leftover_residual == pytest.approx(1.0)
+        assert pair.leftover_map_reconstruction == pytest.approx(0.0)
+        assert pair.leftover_map_unexplained == pytest.approx(1.0)
+        assert pair.leftover_map_unexplained + pair.leftover_map_reconstruction == pytest.approx(
+            pair.leftover_residual
+        )
+
+
 def test_partial_observation_does_not_treat_missing_as_zero_residual() -> None:
     """A missing cell must not enter the Gabriel factorization as 0."""
     post_ids = ["aligned-post", "opposed-post", "sparse-post"]

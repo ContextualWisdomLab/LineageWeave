@@ -5343,11 +5343,19 @@ def test_seed_period_report_surfaces_on_get_reports(client, demo_analyst_token, 
     assert leftover_kinds <= {"closest", "farthest"}
     assert all(pair["post_title"] for pair in high_report.get("leftover_pairs", []))
     assert all(pair["leftover_distance"] >= 0 for pair in high_report.get("leftover_pairs", []))
+    assert all(
+        "leftover_map_reconstruction" in pair
+        for pair in high_report.get("leftover_pairs", [])
+    )
+    assert any(
+        pair["leftover_map_reconstruction"] is not None
+        for pair in high_report.get("leftover_pairs", [])
+    )
     for pair in high_report.get("leftover_pairs", []):
         assert pair["leftover_map_rank"] >= 0
         unexplained = pair.get("leftover_map_unexplained")
         assert unexplained is None or isinstance(unexplained, (int, float))
-        reconstruction = pair.get("leftover_map_reconstruction")
+        reconstruction = pair["leftover_map_reconstruction"]
         assert reconstruction is None or isinstance(reconstruction, (int, float))
         observed = pair.get("observed_response")
         expected = pair.get("expected_response")

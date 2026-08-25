@@ -51,8 +51,9 @@ existing -- shipped migrations (`0001` / `0012`) are never edited after
 the fact. The column is nullable so older leftover rows keep distance,
 residual, and unexplained leftover without fabricating reconstruction.
 Fallback pairs that have no complete-case leftover map omit the value
-rather than inventing one. A rank-0 origin map stores `0.0` (`R = 0`
-and `R̂ = 0`), not a missing value. A non-finite reconstruction stores
+rather than inventing one. A rank-0 map stores `0.0` for `R̂`; raw residual
+`R` may be a nonzero constant after centering, in which case `U = R` and
+`U + R̂ = R` still holds. A non-finite reconstruction stores
 null rather than inventing a leftover score. A signed reconstruction
 is stored, never clamped. Do not add a nonnegative CHECK.
 
