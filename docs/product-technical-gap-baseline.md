@@ -60,14 +60,14 @@ only aggregate, non-identifying evidence to this repository.
 
 ### Exact open-PR boundary
 
-At this snapshot there were 13 open PRs and 10 open issues. The exact-head
+At this snapshot there were 12 open PRs and 10 open issues. The exact-head
 inventory in section 1 is authoritative for this snapshot. Every open head
 remained blocked on hosted gates and/or independent review. These observations
 are not merge readiness. Re-fetch exact heads,
 unresolved threads, checks, approvals, rulesets, and merge SHA before any
 lifecycle claim.
 
-> Audit snapshot: 2026-08-26 05:24 KST (refreshed by the autonomous merge
+> Audit snapshot: 2026-08-26 05:27 KST (refreshed by the autonomous merge
 > loop). This repository records synthetic fixtures and aggregate,
 > non-identifying runtime evidence only. Open PRs and local checks are not
 > protected-default-branch release evidence. Identifying post identifiers,
@@ -77,7 +77,7 @@ lifecycle claim.
 ## 1. Exact-head and governance evidence
 
 The protected default branch was `04e6b610655d0db91d5f7ba9486bdda1440e0b19`
-when this baseline was refreshed. The live queue contained 13 open PRs and 10
+when this baseline was refreshed. The live queue contained 12 open PRs and 10
 open issues. The exact-head inventory below supersedes older per-PR snapshots
 elsewhere in this document; those older rows remain useful historical delivery
 context only.
@@ -96,7 +96,6 @@ context only.
 | #632 | `f6a487a8` | graph-fact provenance repair; replacement hosted checks and independent review required |
 | #631 | `c0022c97` | terminal checks observed; exact-head independent approval still required |
 | #629 | `4b4d6707` | terminal checks observed; exact-head independent approval still required |
-| #579 | `689a21b6` | leftover interaction-map coordinate persistence; exact-head independent approval still required |
 
 No row above is merge evidence. Immediately before any lifecycle action,
 re-fetch the head, unresolved threads, formal reviews, rulesets, and same-head
@@ -115,6 +114,12 @@ calculation path. Requiring caller-supplied calibrated weights did not remove
 its local channel-score, candidate-budget, and fusion-input calculations. A
 replacement remains unavailable until the owning Rust-backed libraries publish
 versioned contracts; only a fail-closed, non-calculating adapter belongs here.
+
+PR #579 closed unmerged because its Python adapter still derived residual
+equality, closest/farthest cells, numerical rank, coverage differences, and the
+fixed-axis payload after calling fast-mlsirm. The upstream completion contract
+is tracked by fast-mlsirm #1412; the validated UI and persistence branch remains
+recoverable for a later non-calculating consumer PR.
 
 The open-path collision audit found overlapping Global Ask migrations and
 ADRs across #629/#632/#639/#640/#658; those branches require reconciliation in
@@ -389,7 +394,7 @@ this file per §3.5 of the prior snapshot).
 
 | Gap | Current evidence | Acceptance requirement |
 | --- | --- | --- |
-| Protected release | 13 open PRs at this snapshot; all lack the two required independent approvals, while several replacement heads still have active hosted checks | Terminal exact-head checks, no unresolved threads, two independent exact-head approvals including last-push approval, protected squash-merge SHA |
+| Protected release | 12 open PRs at this snapshot; all lack the two required independent approvals, while several replacement heads still have active hosted checks | Terminal exact-head checks, no unresolved threads, two independent exact-head approvals including last-push approval, protected squash-merge SHA |
 | Evidence-grounded operations workspace | Protected-main #614 delivers governed semantic Ask, live Similar VOC, disjoint pending/failed analysis metrics, full Storybook state inventory, and current desktop/mobile screenshot evidence. Authorized-corpus backfill acceptance remains unavailable | Perform authenticated authorized-corpus acceptance with aggregate evidence and retain fail-closed no-match behavior |
 | Shared frontend gate | The ADR 0109 login repair is on protected `main`; eight older branches carried the defect and received the same verified repair this loop (#521–#560) | Keep every future branch cut from post-repair bases; re-verify with frontend lint/test/build before push |
 | Identifying baseline regression | `main` gap file listed real post identifiers; separately, closed #506 and pre-existing public history contain a private runtime source-table identifier, while current `main` and #507 trees are clean | Land this non-identifying rewrite, then coordinate ADR 0001 history remediation with security/privacy owners; do not reproduce the value, force-push, or delete evidence ad hoc |
