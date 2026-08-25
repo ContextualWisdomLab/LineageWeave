@@ -1,6 +1,6 @@
 # Product & Technical Gap Baseline
 
-> Audit snapshot: 2026-08-25 09:56 KST (refreshed by the autonomous merge
+> Audit snapshot: 2026-08-25 09:59 KST (refreshed by the autonomous merge
 > loop). This repository records synthetic fixtures and aggregate,
 > non-identifying runtime evidence only. Open PRs and local checks are not
 > protected-default-branch release evidence. Identifying post identifiers,
@@ -9,16 +9,15 @@
 
 ## 1. Exact-head and governance evidence
 
-The protected default branch was `3797f063b1a7396972a749aa81f23745acccbee1`
-when this baseline was refreshed. The live queue contained 24 open PRs and 22
+The protected default branch was `1d1379fc59d9dac6e9c8bfa4812313e3b9e8f3c8`
+when this baseline was refreshed. The live queue contained 23 open PRs and 22
 open issues. The exact-head inventory below supersedes older per-PR snapshots
 elsewhere in this document; those older rows remain useful historical delivery
 context only.
 
 | PR | Exact observed head | Merge/check state at this snapshot |
 | ---: | --- | --- |
-| #591 | `7c53c47b` | canonical current-queue baseline; exact-head checks and independent review pending |
-| #590 | `3b3af3b4` | #592 stack merge included; auto-merge armed, exact-head checks and independent review pending |
+| #591 | `84c1289d` | canonical current-queue baseline; exact-head checks and independent review pending |
 | #588 | `dc60a08e` | ADR 0201 repair reconciled with current main; auto-merge armed, checks restarted |
 | #585 | `ffe1290b` | only locally-authored bounded job errors may persist; transport errors remain generic; auto-merge armed, checks restarted |
 | #584 | `17068ec3` | current-main ADR collision repaired; auto-merge armed, checks restarted |
@@ -30,7 +29,7 @@ context only.
 | #553 | `04969132` | blocked; auto-merge armed, review/checks pending |
 | #539 | `53c91cae` | current-main reconciliation pushed; checks restarted |
 | #537 | `ebfd712b` | current-main reconciliation pushed; checks restarted |
-| #493 | `38018908` | dirty; required checks running |
+| #493 | `d2c08295` | concurrent exact-head update observed; dirty against current main, required checks running |
 | #490 | `73413d0b` | code-quality findings repaired; current-main reconciliation remains before checks can settle |
 | #485 | `66916c97` | blocked; Strix failed |
 | #484 | `586b1eb0` | blocked; required checks pending |
@@ -47,9 +46,10 @@ re-fetch the head, unresolved threads, formal reviews, rulesets, and same-head
 check conclusions. In particular, queued checks are infrastructure state and
 do not transfer evidence from an earlier SHA.
 
-PR #592 merged as `3b3af3b4fe9c439354433a43444e05f37ab24ea3`
-into #590's non-default stack base at `2f033ba3`; it is not protected-`main`
-delivery until #590 itself passes the protected gate and merges.
+PR #592 first merged as `3b3af3b4fe9c439354433a43444e05f37ab24ea3`
+into #590's non-default stack base at `2f033ba3`. The complete stack then
+passed the protected gate and #590 merged to `main` as
+`1d1379fc59d9dac6e9c8bfa4812313e3b9e8f3c8`.
 
 PR #521 merged through protected `main` as
 `3797f063b1a7396972a749aa81f23745acccbee1`; it is release evidence and no
