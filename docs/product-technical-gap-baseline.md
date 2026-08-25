@@ -365,7 +365,7 @@ this file per §3.5 of the prior snapshot).
 | #277 | TEPP: persist accepted receipts, poll completed results, keep measurement authority distinct | #468, #417 |
 | #280 | Full project-lifecycle history and handover intervals | Tracked with issue #284; no active delivery PR confirmed |
 | #284 | Authoritative lifecycle ingestion and idempotent reconciliation | No active delivery PR confirmed |
-| #338 | Evidence-bounded email/project lineage contract for Naruon consumption | #355 |
+| #338 | Evidence-bounded email/project lineage contract for Naruon consumption | No active delivery PR; #355 is merged historical consumer work |
 | #611 | Decompose unshipped ADR 0133–0137 acceptance evidence from PR #490 | #671 audits the current base; focused delivery PRs remain separate |
 
 ### 4.1 ADR 0133–0137 current-main decomposition
@@ -395,7 +395,7 @@ for wholesale replay from #490.
 
 | Gap | Current evidence | Acceptance requirement |
 | --- | --- | --- |
-| Protected release | Protected `main@494b54e2` includes the #660/#664 semantic-unit/backend stack and #659 ontology readability/token repair. Thirteen PRs remain open; every candidate still requires exact-head checks, unresolved-thread review, and independent approval before merge | Terminal exact-head checks, no unresolved threads, two independent exact-head approvals including last-push approval, protected squash-merge SHA |
+| Protected release | Protected `main@494b54e2` includes the #660/#664 semantic-unit/backend stack and #659 ontology readability/token repair. Fourteen PRs remain open; every candidate still requires exact-head checks, unresolved-thread review, and independent approval before merge | Terminal exact-head checks, no unresolved threads, two independent exact-head approvals including last-push approval, protected squash-merge SHA |
 | Evidence-grounded operations workspace | Protected-main #614 delivers governed semantic Ask, live Similar VOC, disjoint pending/failed analysis metrics, full Storybook state inventory, and current desktop/mobile screenshot evidence. Authorized-corpus backfill acceptance remains unavailable | Perform authenticated authorized-corpus acceptance with aggregate evidence and retain fail-closed no-match behavior |
 | Cancelled analysis guidance | PRD-FR-5 requires every lifecycle state to identify a valid next action, while ADR 0013 makes Cancelled terminal. Protected `main@494b54e2` rendered Cancelled without a next action. This stacked candidate adds kind-specific guidance for lineage, TEPP, topic lineage, and period reports; 390×844 and 1440×1000 authenticated synthetic-runtime audits are retained in `docs/screenshots/cancelled-analysis-runs-{mobile,desktop}.png`. The audit also found and repaired attached count/action text and the three-column mobile squeeze | Land through the protected gate, then repeat authenticated keyboard and screen-reader acceptance on the exact release head; no cancelled run may imply that it can resume or that a measurement exists |
 | Shared frontend gate | The ADR 0109 login repair is on protected `main`; eight older branches carried the defect and received the same verified repair this loop (#521–#560) | Keep every future branch cut from post-repair bases; re-verify with frontend lint/test/build before push |
@@ -452,7 +452,7 @@ of leverage; open connector PRs there when the defect is upstream:
 4. **TEPP** — calibrated measurement; persist receipts; no local reimplementation.
 5. **fast-mlsirm** — GRM/GPCM/CAT/FIPC recovery tests (#451–#454) must stay true-parameter RMSE.
 6. **ThreadWeave** — tree assembly.
-7. **Naruon** — calendar projection delivered through #355/closed #336; email/project lineage projection remains open as #338.
+7. **Naruon** — calendar projection delivered through merged #355/closed #336; email/project lineage projection remains open as #338.
 8. **DiskSage / wardnet** — storage and network policy as needed.
 9. **ContextualWisdomLab/.github** — required review workflows (OpenCode, Strix, Noema) and the LineageWeave hourly caller (#1259). If stacked PRs miss central review or coverage-evidence fails on pnpm 9 (`--trust-lockfile` is pnpm 11.3) or a missing Vitest coverage provider, fix the org workflow (#1258), not a local bypass.
 
@@ -520,7 +520,7 @@ review latency are never blockers — keep working while they settle.
 - Orchestrator / paper-grounded models: ADR 0015, ADR 0076 (Fugu, TRINITY, Conductor)
 - Ontology / PROV-O / SKOS: ADR 0004, ADR 0011, issue #372
 - Analysis runs / TEPP: ADR 0013–0023, issue #79 / #277
-- Calendar / Naruon: closed issue #336, open issue #338, PR #355, operator consumption v2.17.0
+- Calendar / Naruon: closed issue #336, open issue #338, merged PR #355, operator consumption v2.17.0
 - Ask Agent: open issues #269–#272; closed performance/ontology issues #358 and #363 are delivery history, not active work
 
 Citations in doctoring and ADRs use APA 7th. Do not invent a heuristic where
