@@ -8,6 +8,22 @@ All notable changes to this project are documented here. Format follows
 
 ### Added
 
+- Registered the `analysis_run_topic_lineage` analysis-run kind (migrations
+  0131/0132, ADR 0132), the LineageWeave-side consumption boundary for
+  TEPP's Temporal Relational Shared-Latent Topic Measurement (TRSL-TM,
+  TEPP ADR 0012) and CHRONOS/TDT event-intelligence status (TEPP ADR 0016).
+  It mirrors the existing TEPP measurement path exactly: submits through
+  `tepp_client`, fails closed (`tepp_not_available` /
+  `tepp_result_not_persisted`) until TEPP publishes a completed envelope,
+  and never computes a topic identity or event prediction locally.
+  `make seed` now also writes a Demo Corp topic-lineage run alongside the
+  existing lineage/TEPP/period-report rows.
+- `EvidenceStatusMark`, a reusable evidence/inference/prediction status
+  badge (ADR 0132 decision 5, TEPP ADR 0016) distinguishing status by label
+  text and glyph shape, not color alone. Ships ahead of the Event Lineage
+  DAG topic-thread wiring it is designed for, so review and Storybook
+  coverage (`Analysis/EvidenceStatusMark`) are available now; it is
+  presentational only and never infers a status itself.
 - Opening a post with persisted image-region evidence now shows each region's
   bounding range beside its caption, OCR, and tags (ADR 0155). After
   `make seed`, a synthetic process-diagram region reads **Region location:
