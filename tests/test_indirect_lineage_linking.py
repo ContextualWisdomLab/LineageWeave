@@ -53,15 +53,15 @@ def _unrelated_posts() -> list[Record]:
     ]
 
 
-def test_reconstruct_never_links_posts_in_different_groups(
-    estimated_fixture_weights,
-) -> None:
+def test_reconstruct_never_links_posts_in_different_groups() -> None:
     """Not a weak link, no probabilistic near-miss -- reconstruct.py's
     grouping means posts in different groups are structurally never
     compared, so there is categorically no edge between them, by design.
     """
     records = _unrelated_posts()
-    trees = reconstruct(records, weights=estimated_fixture_weights)
+    # Each group has one record, so fusion is structurally unreachable and no
+    # numeric weight is needed or invented for this boundary test.
+    trees = reconstruct(records, weights={})
 
     tree_by_group = {tree.group_key: tree for tree in trees}
     assert set(tree_by_group) == {"group-transformers", "group-switchgear"}

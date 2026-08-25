@@ -31,8 +31,9 @@ def test_lineage_endpoint_serves_the_reconstructed_graph_with_a_branch_point(
     assert any(node["is_branch_point"] for node in body["nodes"])
 
 
-def test_root_serves_the_static_viewer(estimated_fixture_weights) -> None:
-    server = build_server(port=0, weights=estimated_fixture_weights)
+def test_root_serves_the_static_viewer() -> None:
+    # This route performs no reconstruction, so no fusion weights participate.
+    server = build_server(port=0, weights={})
     thread = threading.Thread(target=server.serve_forever, daemon=True)
     thread.start()
     port = server.server_address[1]
@@ -49,8 +50,9 @@ def test_root_serves_the_static_viewer(estimated_fixture_weights) -> None:
     assert "LineageWeave" in body
 
 
-def test_path_traversal_is_rejected(estimated_fixture_weights) -> None:
-    server = build_server(port=0, weights=estimated_fixture_weights)
+def test_path_traversal_is_rejected() -> None:
+    # Security routing must remain testable without the optional math backend.
+    server = build_server(port=0, weights={})
     thread = threading.Thread(target=server.serve_forever, daemon=True)
     thread.start()
     port = server.server_address[1]
