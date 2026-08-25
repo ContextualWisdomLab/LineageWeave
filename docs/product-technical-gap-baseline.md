@@ -87,12 +87,12 @@ context only.
 
 | PR | Exact observed head | Merge/check state at this snapshot |
 | ---: | --- | --- |
-| #645 | `d991bfba` | stacked knowledge-cutoff Global Ask candidate; checks and independent review remain required |
+| #644 | `f631060d` | frontend conditional workspace splitting; checks and independent review remain required |
 | #643 | `041ec13b` | shared token-backed status notice; checks and independent review remain required |
-| #640 | `97c85794` | dashboard case metrics and project journeys; checks and independent review remain required |
+| #640 | `4678be28` | dashboard case metrics and project journeys; checks and independent review remain required |
 | #639 | `aee02dca` | Running action and Compose contract repair; checks and independent review remain required |
-| #636 | `20d25fe6` | calibrated external lineage contract; checks and independent review remain required |
-| #632 | `e1ebe50a` | Global Ask fact provenance, semantic nomination, and public verification stack; checks and independent review remain required |
+| #636 | `f7b9a65f` | calibrated external lineage contract; checks and independent review remain required |
+| #632 | `76ddb3f3` | Global Ask provenance, semantic nomination, public verification, and knowledge-cutoff stack; checks and independent review remain required |
 | #631 | `c0022c97` | current-main ADR stack decomposition; checks and independent review remain required |
 | #629 | `74823e99` | provider pool release and bounded landing reads; checks and independent review remain required |
 | #579 | `689a21b6` | leftover interaction-map persistence; checks and independent review remain required |
