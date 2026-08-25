@@ -3166,7 +3166,7 @@ function AnalysisRunsPanel({
             return (
               <li key={run.analysis_run_id} className="ticket-list-item">
                 <button
-                  className={`post-list-item analysis-run-item${nextAction ? " has-next-action" : ""}`}
+                  className={`post-list-item analysis-run-item${documentCount ? " has-document-count" : ""}${nextAction ? " has-next-action" : ""}`}
                   aria-label={`Open analysis run: ${caption}`}
                   onClick={() => void handleOpen(run.analysis_run_id)}
                 >
