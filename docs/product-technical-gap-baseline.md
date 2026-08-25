@@ -353,7 +353,7 @@ this file per §3.5 of the prior snapshot).
 | #336 | Replace pseudo-CalDAV feed with a Naruon-owned calendar projection | Contract on `main` (#355); operator consume wiring in historical branch `feat/naruon-calendar-buyer-wiring-v2170` |
 | #338 | Evidence-bounded email/project lineage contract for Naruon consumption | Missing on protected `main`; #343 merged only into a non-default stack, while #355 is a distinct calendar-consumer contract and is not delivery evidence for email/project lineage |
 | #341 | Heterogeneous ontology and provenance explorer separate from Event Lineage | Protected `main` via #349; issue closed |
-| #358 | Batch reauthorize persisted post-Ask evidence without N+1 queries | Ask stack |
+| #358 | Batch reauthorize persisted post-Ask evidence without N+1 queries | Closed as obsolete: protected `main` has no persisted project-history Ask exchange path to reauthorize; any future ADR 0136 session delivery must include bounded batch reauthorization |
 | #359 | Centralize Global Ask session storage access | Ask stack |
 | #363 | Continue ontology neighborhoods beyond the bounded source window | Protected `main` via #349; issue closed |
 | #372 | Reconcile lowercase and repository-case public namespace IRIs | Protected `main` via #616; issue closed, with term-kind hardening on #618 |
@@ -363,7 +363,7 @@ this file per §3.5 of the prior snapshot).
 
 | Gap | Current evidence | Acceptance requirement |
 | --- | --- | --- |
-| Protected release | 3 open PRs at snapshot: #627 and #628 are current-main performance follow-ups, while reopened #579 retains hosted and independent-review gates | Terminal exact-head checks, no unresolved threads, independent exact-head approvals, protected squash-merge SHA |
+| Protected release | 3 open PRs at snapshot: #631 is this current-main decomposition, #629 is the asynchronous pool follow-up, and reopened #579 consumes the fast-mlsirm interaction-map contract; all retain hosted and independent-review gates | Terminal exact-head checks, no unresolved threads, independent exact-head approvals, protected squash-merge SHA |
 | Evidence-grounded operations workspace | Protected-main #614 delivers governed semantic Ask, live Similar VOC, disjoint pending/failed analysis metrics, full Storybook state inventory, and current desktop/mobile screenshot evidence. Authorized-corpus backfill acceptance remains unavailable | Perform authenticated authorized-corpus acceptance with aggregate evidence and retain fail-closed no-match behavior |
 | Shared frontend gate | The ADR 0109 login repair is on protected `main`; eight older branches carried the defect and received the same verified repair this loop (#521–#560) | Keep every future branch cut from post-repair bases; re-verify with frontend lint/test/build before push |
 | Identifying baseline regression | `main` gap file listed real post identifiers; separately, closed #506 and pre-existing public history contain a private runtime source-table identifier, while current `main` and #507 trees are clean | Land this non-identifying rewrite, then coordinate ADR 0001 history remediation with security/privacy owners; do not reproduce the value, force-push, or delete evidence ad hoc |
