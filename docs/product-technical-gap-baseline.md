@@ -1,6 +1,6 @@
 # Product & Technical Gap Baseline
 
-> Audit snapshot: 2026-08-25 10:25 KST (refreshed by the autonomous merge
+> Audit snapshot: 2026-08-25 10:28 KST (refreshed by the autonomous merge
 > loop). This repository records synthetic fixtures and aggregate,
 > non-identifying runtime evidence only. Open PRs and local checks are not
 > protected-default-branch release evidence. Identifying post identifiers,
@@ -17,8 +17,8 @@ context only.
 
 | PR | Exact observed head | Merge/check state at this snapshot |
 | ---: | --- | --- |
-| #595 | `1ce5fca7` | restores the audited no-draft-dimension import door and nullable updated-at fallback orphaned by the prior stack race; auto-merge armed, full suite running |
-| #591 | `2616faea` | canonical current-queue baseline reconciled with protected main; exact-head checks and independent review pending |
+| #595 | `9378c04f` | restores the audited no-draft-dimension import door and nullable updated-at fallback orphaned by the prior stack race; result typing repaired, 24 focused tests passed, auto-merge armed |
+| #591 | `98443003` | canonical current-queue baseline reconciled with protected main; exact-head checks and independent review pending |
 | #588 | `dc60a08e` | ADR 0201 repair reconciled with current main; auto-merge armed, checks restarted |
 | #585 | `ffe1290b` | only locally-authored bounded job errors may persist; transport errors remain generic; auto-merge armed, checks restarted |
 | #584 | `17068ec3` | current-main ADR collision repaired; auto-merge armed, checks restarted |
