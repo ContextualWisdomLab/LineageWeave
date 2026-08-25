@@ -50,6 +50,7 @@ from lineageweave.post_content_normalization import normalize_post_body
 from lineageweave.rankweave_client import RankWeaveNotAvailable, build_rankweave_client
 from lineageweave.temporal_expressions import resolve_korean_relative_time
 
+from .config import load_settings
 from .knowledge_graph import hydrate_related_nodes, load_visible_subgraph
 from .post_eligibility import SOURCE_POST_ELIGIBILITY_SQL
 
@@ -477,7 +478,9 @@ def _fuse_global_candidate_ids(
         for post_id in dict.fromkeys([*embedding_ids, *evidence_ids])
     }
     try:
-        fused = build_rankweave_client().fuse_rankings(channels, titles_by_id)
+        fused = build_rankweave_client(
+            disabled=load_settings().rankweave_disabled
+        ).fuse_rankings(channels, titles_by_id)
     except RankWeaveNotAvailable:
         return embedding_ids[:limit]
     return [item.post_id for item in fused.items[:limit]]
