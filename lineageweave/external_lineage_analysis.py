@@ -31,7 +31,7 @@ from .external_lineage_contract import (
     serialize_lineage_analysis_request,
 )
 from .models import Record
-from .reconstruct import _best_parent, active_weights
+from .reconstruct import _best_parent
 
 _WEIGHT_CHANNELS = frozenset({"temporal", "secondary_key", "text", "llm"})
 _REQUIRED_WEIGHT_CHANNELS = frozenset({"temporal", "secondary_key", "text"})
@@ -182,6 +182,19 @@ def _selected_llm(
     return _BoundedAdjudicationClient(llm), "completed"
 
 
+def _validate_active_channel_weights(
+    llm: AdjudicationClient, channel_weights: dict[str, float]
+) -> None:
+    """Require the calibrated vector to match the channels actually executed."""
+
+    if ("llm" in channel_weights) != bool(getattr(llm, "available", False)):
+        _contract_error(
+            "channel_weight_set_mismatch",
+            "calibrated weights must exactly match the active channels",
+            "channel_weights",
+        )
+
+
 def _included_records(
     request: LineageAnalysisRequest,
 ) -> tuple[
@@ -311,7 +324,7 @@ def _inferred_edges(
 
     if not records:
         return []
-    weights = active_weights(llm, channel_weights)
+    weights = channel_weights
     edges: list[LineageEdgeResult] = []
     for group_records in _ordered_contract_groups(records):
         core_records = [_core_record(record) for record in group_records]
@@ -442,6 +455,7 @@ def analyze_external_lineage(
     included, excluded = _included_records(validated)
     _enforce_pair_budget(included, validated)
     selected_llm, llm_status = _selected_llm(validated, llm, validated_weights)
+    _validate_active_channel_weights(selected_llm, validated_weights)
 
     inferred = _inferred_edges(
         included,

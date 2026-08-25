@@ -22,6 +22,9 @@ Execution requires an explicit calibrated convex channel-weight vector. The
 adapter validates but never estimates, repairs, or invents that vector. The
 three core channels are mandatory; the optional LLM channel is admitted only
 when both a calibrated LLM weight and an available orchestrator client exist.
+The calibrated vector must exactly match the channels executed for the request;
+an inactive LLM channel makes a four-channel vector invalid rather than causing
+the core weights to be silently renormalized.
 Weight estimation and provenance remain governed by ADR 0200 and the owning
 product loader.
 
@@ -46,6 +49,8 @@ Evidence becoming available after the cutoff is excluded even when it describes 
 - Caller-observed children are never disclosed to an optional model merely to calculate an inferred edge that would be discarded.
 - The optional LLM channel is explicit as `not_requested`, `unavailable`, or `completed`; missing output is never zero.
 - A missing or malformed calibrated weight vector fails closed before scoring.
+- A calibrated vector containing an inactive channel fails closed instead of
+  being repaired or renormalized into a different measurement.
 - Canonical serialization and SHA-256 digesting are deterministic for a given request or result. Repeatability of model-backed scores additionally requires a pinned LineageWeave release, adjudicator implementation, provider/model revision, and model-side determinism policy.
 - Explicit parent cycles and analysis work above the caller-approved pair budget fail closed before inference.
 - Project evidence can inform Naruon without mutating authoritative project/task/provider state.

@@ -296,6 +296,39 @@ def test_llm_policy_is_explicit_and_never_fabricates_absent_scores(
     assert ("llm" in channels) is llm_present
 
 
+@pytest.mark.parametrize(
+    ("allow_llm", "client"),
+    [(False, AvailableLlm()), (True, None)],
+)
+def test_calibrated_llm_weight_fails_closed_when_llm_is_inactive(
+    allow_llm: bool, client, monkeypatch
+) -> None:
+    """A four-channel estimate is never repaired into a three-channel vector."""
+
+    weights_with_llm = dict(_FIXTURE_WEIGHTS)
+    weights_with_llm["llm"] = _FIXTURE_WEIGHTS["text"]
+    monkeypatch.setattr(
+        "lineageweave.external_lineage_analysis._validated_channel_weights",
+        lambda _weights: weights_with_llm,
+    )
+    request = _request(
+        [
+            _record("email:001", "Phoenix one", "2026-08-20T09:00:00Z"),
+            _record("email:002", "Phoenix two", "2026-08-20T09:01:00Z"),
+        ],
+        allow_llm=allow_llm,
+    )
+
+    with pytest.raises(LineageContractError) as captured:
+        _analyze_external_lineage(
+            request,
+            channel_weights=weights_with_llm,
+            llm=client,
+        )
+
+    assert captured.value.code == "channel_weight_set_mismatch"
+
+
 def test_project_projection_is_proposed_and_uses_only_included_evidence() -> None:
     request = _request(
         [
