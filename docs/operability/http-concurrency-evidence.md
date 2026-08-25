@@ -4,7 +4,7 @@ LineageWeave provides `scripts/k6_http_e2e.js` to measure the real Compose
 HTTP boundary while a synthetic Global Ask job is queued or running. It logs
 in through the seeded Keycloak realm, submits one non-identifying question to
 `POST /api/ask`, then drives concurrent authenticated requests to posts,
-Event Lineage, and the Ask-status projection.
+Event Lineage, the evidence Dashboard, and the Ask-status projection.
 
 This implements the measurement side of ADR 0204's resource-release decision:
 provider work is asynchronous, so ordinary readers should remain observable
@@ -35,7 +35,7 @@ k6 reports observed request counts, failure rate, and duration distributions.
 The custom metrics separate:
 
 - `lineageweave_ask_enqueue_duration`: time to persist and acknowledge the job;
-- `lineageweave_read_duration{endpoint:posts|lineage}`: ordinary reader paths;
+- `lineageweave_read_duration{endpoint:posts|lineage|dashboard}`: ordinary reader paths;
 - `lineageweave_ask_poll_duration`: owner-scoped status polling.
 - `lineageweave_ask_state_observations{job_status:...}`: how many observations
   occurred while the one queued job was queued, running, or settled.

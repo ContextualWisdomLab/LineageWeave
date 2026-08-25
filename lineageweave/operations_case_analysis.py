@@ -152,11 +152,14 @@ def parse_operations_case_response(
                 return None
             parsed_facts.append(OperationsCaseFact(fact["fact_type_code"], value.strip(), fact_evidence, fact_source.post_id, fact_source.input_sha256))
         supported_types = {fact.fact_type_code for fact in parsed_facts}
+        missing_types = set(missing_fact_types)
+        required_types = REQUIRED_FACT_TYPES[item["case_kind_code"]]
         if (
             any(not isinstance(code, str) or code not in FACT_TYPES for code in missing_fact_types)
-            or len(set(missing_fact_types)) != len(missing_fact_types)
-            or supported_types.intersection(missing_fact_types)
-            or supported_types.union(missing_fact_types) != REQUIRED_FACT_TYPES[item["case_kind_code"]]
+            or len(missing_types) != len(missing_fact_types)
+            or not missing_types.issubset(required_types)
+            or supported_types.intersection(missing_types)
+            or not required_types.issubset(supported_types.union(missing_types))
         ):
             return None
         cases.append(OperationsCase(item["case_kind_code"], summary.strip(), evidence, tuple(parsed_facts), evidence_source.post_id, evidence_source.input_sha256, tuple(missing_fact_types)))

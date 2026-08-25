@@ -776,6 +776,7 @@ async def read_me(
 async def operations_dashboard(
     period_start: date | None = Query(None),
     period_end: date | None = Query(None),
+    external_only: bool = Query(False),
     account: CurrentAccount = Depends(get_current_account),
     pool: asyncpg.Pool = Depends(get_pool),
 ) -> dict[str, Any]:
@@ -789,6 +790,7 @@ async def operations_dashboard(
                 account.process_unit_ids,
                 period_start,
                 period_end,
+                external_only,
             )
         except ValueError as exc:
             raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, str(exc)) from exc

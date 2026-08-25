@@ -58,8 +58,9 @@ class _Connection:
                 "evidence_text": "Synthetic cited sentence",
                 "evidence_post_id": "00000000-0000-0000-0000-000000000002",
                 "project_name": "Synthetic Project",
-                "project_names": ["Synthetic Project", "Synthetic Secondary Project"],
-                "occurred_at": datetime(2026, 8, 12, tzinfo=timezone.utc),
+                    "project_names": ["Synthetic Project", "Synthetic Secondary Project"],
+                    "occurred_at": datetime(2026, 8, 12, tzinfo=timezone.utc),
+                    "event_count": 2,
             }
         ]
 
@@ -84,7 +85,7 @@ async def test_dashboard_uses_abac_event_clock_and_persisted_evidence() -> None:
         {
             "case_kind_code": "claim_investigation",
             "case_kind_label": "클레임 원인 규명",
-            "event_count": 1,
+            "event_count": 2,
             "post_count": 1,
         },
         {
@@ -139,7 +140,12 @@ async def test_dashboard_uses_abac_event_clock_and_persisted_evidence() -> None:
         assert "corporate_entity_id::text = any($1::text[])" in query
         assert "process_unit_id::text = any($2::text[])" in query
         assert "coalesce(post.event_occurred_at, post.created_at)" in query
-        assert args[1:] == (["00000000-0000-0000-0000-000000000008"], date(2026, 8, 1), date(2026, 8, 31))
+        assert args[1:] == (
+            ["00000000-0000-0000-0000-000000000008"],
+            date(2026, 8, 1),
+            date(2026, 8, 31),
+            False,
+        )
     case_query = conn.queries[1][0]
     assert "order by primary_mention.confidence desc" in case_query
     assert "coalesce(nullif(btrim(post.source_project_name), ''), project.primary_project_name)" in case_query
@@ -236,6 +242,18 @@ async def test_dashboard_names_missing_fast_result_after_tepp_persistence() -> N
     result = await fetch_operations_dashboard(TeppOnlyConnection(), [])
     assert result["topic_context"]["reason_code"] == "fast_mlsirm_influence_not_persisted"
     assert result["topic_context"]["topics"] == []
+
+
+@pytest.mark.anyio
+async def test_external_scope_is_bound_in_every_dashboard_query() -> None:
+    """The external destination restricts data at the API query boundary."""
+    conn = _Connection()
+    await fetch_operations_dashboard(
+        conn, ["corp"], ["pu"], date(2026, 8, 1), date(2026, 8, 31), external_only=True
+    )
+    assert conn.queries
+    assert all("$5::boolean" in query for query, _ in conn.queries)
+    assert all(args[-1] is True for _, args in conn.queries)
 
 
 @pytest.mark.anyio

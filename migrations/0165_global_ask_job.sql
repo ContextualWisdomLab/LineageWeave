@@ -7,7 +7,7 @@
 -- Mirrors the durable-row-plus-stream design post_content_job already
 -- uses, so a lost stream entry is recovered from the queued rows.
 
-create table global_ask_job (
+create table if not exists global_ask_job (
     global_ask_job_id uuid primary key default uuid_generate_v4(),
     requesting_account_id uuid not null references user_account (user_account_id),
     question_text text not null,
@@ -23,9 +23,9 @@ comment on table global_ask_job is
     'One asynchronous Global Ask request: queued by POST /api/ask, '
     'processed by the Valkey-stream worker, polled by the reader.';
 
-create index global_ask_job_account_idx
+create index if not exists global_ask_job_account_idx
     on global_ask_job (requesting_account_id, created_at desc);
 
-create index global_ask_job_queued_idx
+create index if not exists global_ask_job_queued_idx
     on global_ask_job (created_at)
     where job_status_code = 'queued';

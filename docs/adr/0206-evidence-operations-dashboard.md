@@ -28,8 +28,11 @@ provenance.
 2. Dashboard requests are bounded by an inclusive event-time period.
    `source_post.event_occurred_at` is the primary clock and `created_at` is the
    explicit fallback, matching ADR 0202. The response names that clock.
-3. Every count is authorization-filtered before aggregation. The API returns
-   both event count and distinct post count; neither substitutes for the other.
+3. Every count is authorization-filtered before aggregation. Event count is
+   the number of persisted `post_summary_event` rows for the classified,
+   visible posts; post count is the distinct count of those posts. Neither
+   substitutes for the other, and no event is invented when a summary event
+   row is absent.
    Analysis-pending and ingestion-failed post counts are disjoint: a failed
    current job is shown as retryable failure, never hidden inside the pending
    count or interpreted as a negative classification.
@@ -50,6 +53,8 @@ provenance.
    visible posts in the same period. The stored `vom` source code is supplied
    to the orchestrator as labeled evidence, but does not replace semantic
    analysis. Zero total posts yields `0`.
+   The external destination passes an API scope so non-external counts and
+   case rows are excluded at the SQL boundary, not merely hidden in the UI.
 7. Qualitative rows project only persisted evidence:
    project names and evidence spans, source sales-pool code/name, summary
    events, requester/processor action evidence, roles, and Event Lineage links.
