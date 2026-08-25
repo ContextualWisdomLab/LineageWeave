@@ -5,8 +5,8 @@
 **Depends on:** ADR 0022 authorized TEPP start; ADR 0023 analysis-run outbox
 **Amends:** ADR 0022 (accepted envelopes are no longer Failed /
 `tepp_result_not_persisted` when they carry a remote run id)
-**Refs:** Issue #277; blocked completed-result poll remains
-[TEPP#156](https://github.com/ContextualWisdomLab/TEPP/issues/156)
+**Refs:** Issue #277; terminal-result consumption continues in ADR 0178 after
+[TEPP#156](https://github.com/ContextualWisdomLab/TEPP/issues/156) closed
 
 ## Context
 
@@ -65,9 +65,10 @@ empty attachment, not a 500; list rows load receipts in one bounded
 query rather than one query per run. Global Ask must not promote this
 receipt into an answer claim.
 
-Completed-result polling, bounded backoff, and request-binding
-revalidation remain TEPP#156. This ADR does not invent a local
-psychometric substitute while waiting.
+Completed-result request-binding revalidation is ADR 0178. Automatic polling
+and backoff remain unavailable until TEPP publishes a provider-owned HTTP
+status service and evidence-based retry policy. This ADR does not invent a
+local psychometric substitute while waiting.
 
 ```mermaid
 sequenceDiagram

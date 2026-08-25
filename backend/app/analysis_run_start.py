@@ -36,7 +36,12 @@ from lineageweave.adjudication_client import AdjudicationClient
 from lineageweave.http_client import HttpClientError, post_json
 from lineageweave.lineage_persistence import lineage_edge_specs
 from lineageweave.models import Edge
-from lineageweave.tepp_client import AnalysisRunRequest, TeppClient, TeppNotAvailable
+from lineageweave.tepp_client import (
+    AnalysisRunRequest,
+    TeppClient,
+    TeppInvalidResponse,
+    TeppNotAvailable,
+)
 
 _LINEAGE_KIND = "analysis_run_lineage"
 _TEPP_KIND = "analysis_run_tepp"
@@ -277,6 +282,32 @@ def classify_tepp_submission(
     return TeppSubmissionOutcome(_FAILED, "tepp_result_not_persisted", None, "")
 
 
+def classify_tepp_status(
+    client: TeppClient,
+    request: AnalysisRunRequest,
+    remote_run_id: str,
+) -> TeppSubmissionOutcome:
+    """Read one bounded, request-bound TEPP status without resubmitting work."""
+    try:
+        response = client.read_analysis_run_status(remote_run_id, request)
+    except TeppNotAvailable:
+        return TeppSubmissionOutcome(_RUNNING, "", None, "")
+    except TeppInvalidResponse:
+        return TeppSubmissionOutcome(_FAILED, "tepp_result_not_persisted", None, "")
+    state = response["run_state"]
+    if state in {"accepted", "running"}:
+        return TeppSubmissionOutcome(_RUNNING, "", response, "")
+    terminal = response["terminal_result"]
+    if state == "failed":
+        return TeppSubmissionOutcome(
+            _FAILED,
+            str(terminal["failure_code"]),
+            terminal,
+            "",
+        )
+    return TeppSubmissionOutcome(_SUCCEEDED, "", terminal, _PERSIST_RESULT)
+
+
 def _tepp_submission(
     client: TeppClient,
     request: AnalysisRunRequest,
@@ -309,6 +340,19 @@ async def _persist_tepp_result(
     result_sha256 = hashlib.sha256(result_json.encode("utf-8")).hexdigest()
     try:
         async with conn.transaction():
+            existing = await conn.fetchrow(
+                """
+                select remote_run_id, result_sha256
+                from analysis_run_tepp_result
+                where analysis_run_id = $1
+                """,
+                analysis_run_id,
+            )
+            if existing is not None:
+                return (
+                    str(existing["remote_run_id"]) == remote_run_id
+                    and str(existing["result_sha256"]) == result_sha256
+                )
             await conn.execute(
                 """
                 insert into analysis_run_tepp_result
@@ -973,10 +1017,13 @@ async def _deliver_tepp_measurement(
         knowledge_cutoff=locked["knowledge_cutoff"],
         corporate_entity_id=str(locked["corporate_entity_id"]),
     )
-    outcome = classify_tepp_submission(tepp_client, request)
-    if not outcome.persist_kind and await fetch_tepp_accepted_receipt(
-        conn, analysis_run_id
-    ) is not None:
+    receipt = await fetch_tepp_accepted_receipt(conn, analysis_run_id)
+    outcome = (
+        classify_tepp_status(tepp_client, request, str(receipt["remote_run_id"]))
+        if receipt is not None
+        else classify_tepp_submission(tepp_client, request)
+    )
+    if receipt is not None and outcome.status_code == _RUNNING:
         return False
     status_code = outcome.status_code
     failure_code = outcome.failure_code

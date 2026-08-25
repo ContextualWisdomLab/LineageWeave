@@ -27,9 +27,10 @@ class _Transaction:
 
 
 class _ReceiptConnection:
-    def __init__(self, *, rows=None, row=None, error=None) -> None:
+    def __init__(self, *, rows=None, row=None, result_row=None, error=None) -> None:
         self.rows = [] if rows is None else rows
         self.row = row
+        self.result_row = result_row
         self.error = error
         self.transactions = 0
         self.executions: list[tuple[object, ...]] = []
@@ -46,6 +47,8 @@ class _ReceiptConnection:
     async def fetchrow(self, query, analysis_run_id):
         if self.error is not None:
             raise self.error
+        if "from analysis_run_tepp_result" in query:
+            return self.result_row
         return self.row
 
     async def execute(self, *args):
@@ -229,6 +232,153 @@ def test_completed_result_is_the_only_measurement_persist() -> None:
     assert outcome.failure_code == ""
 
 
+def _terminal_status(state: str = "succeeded") -> dict:
+    request = _request()
+    failed = state == "failed"
+    terminal = {
+        "contract_version": 1,
+        "run_id": "remote-run-1",
+        "run_state": state,
+        "idempotency_key": request.idempotency_key,
+        "tenant_workspace_id": request.tenant_workspace_id,
+        "snapshot_id": request.snapshot_id,
+        "knowledge_cutoff": request.knowledge_cutoff,
+        "model_contract_version": request.model_contract_version,
+        "output_profile": request.output_profile,
+        "result_artifact_id": None if failed else "artifact-1",
+        "result_sha256": None if failed else "ab" * 32,
+        "result_schema_version": None if failed else "tepp-result-v1",
+        "completed_at": "2026-01-12T13:00:00Z",
+        "summary": None
+        if failed
+        else {
+            "analysis_family": "temporal_event_measurement",
+            "evidence_count": 4,
+            "statistic_count": 2,
+            "validation_status": "validated",
+        },
+        "failure_code": "estimation_failed" if failed else None,
+    }
+    return {
+        "contract_version": 1,
+        "run_id": "remote-run-1",
+        "run_state": state,
+        "idempotency_key": request.idempotency_key,
+        "terminal_result": terminal,
+    }
+
+
+def test_status_read_promotes_only_validated_terminal_result() -> None:
+    status = _terminal_status()
+    client = TeppClient(status_transport=lambda _run_id: status)
+
+    outcome = analysis_run_start_module.classify_tepp_status(
+        client, _request(), "remote-run-1"
+    )
+
+    assert outcome.status_code == "analysis_status_succeeded"
+    assert outcome.persist_kind == "result"
+    assert outcome.envelope == status["terminal_result"]
+
+
+def test_status_read_maps_provider_terminal_failure_without_result() -> None:
+    status = _terminal_status("failed")
+    client = TeppClient(status_transport=lambda _run_id: status)
+
+    outcome = analysis_run_start_module.classify_tepp_status(
+        client, _request(), "remote-run-1"
+    )
+
+    assert outcome.status_code == "analysis_status_failed"
+    assert outcome.failure_code == "estimation_failed"
+    assert outcome.persist_kind == ""
+
+
+def test_status_read_keeps_provider_running_and_fails_closed_on_invalid() -> None:
+    request = _request()
+    running = {
+        "contract_version": 1,
+        "run_id": "remote-run-1",
+        "run_state": "running",
+        "idempotency_key": request.idempotency_key,
+        "terminal_result": None,
+    }
+    running_outcome = analysis_run_start_module.classify_tepp_status(
+        TeppClient(status_transport=lambda _run_id: running),
+        request,
+        "remote-run-1",
+    )
+    invalid_outcome = analysis_run_start_module.classify_tepp_status(
+        TeppClient(status_transport=lambda _run_id: {}),
+        request,
+        "remote-run-1",
+    )
+
+    assert running_outcome.status_code == "analysis_status_running"
+    assert running_outcome.persist_kind == ""
+    assert invalid_outcome.status_code == "analysis_status_failed"
+    assert invalid_outcome.failure_code == "tepp_result_not_persisted"
+
+
+def test_running_delivery_reads_and_persists_terminal_status(monkeypatch) -> None:
+    analysis_run_id = "11111111-1111-1111-1111-111111111111"
+    visible_calls = 0
+
+    async def fetch_visible(*_args, **_kwargs):
+        nonlocal visible_calls
+        visible_calls += 1
+        return {
+            "analysis_run_id": analysis_run_id,
+            "status_code": (
+                "analysis_status_running"
+                if visible_calls == 1
+                else "analysis_status_succeeded"
+            ),
+        }
+
+    monkeypatch.setattr(analysis_run_start_module, "fetch_visible_analysis_run", fetch_visible)
+    connection = _ReceiptConnection(
+        row={
+            "analysis_run_id": analysis_run_id,
+            "work_kind_code": "analysis_run_tepp",
+            "knowledge_cutoff": datetime(2026, 1, 12, 12, 0, tzinfo=timezone.utc),
+            "idempotency_key": "buyer-tepp-2026-w07",
+            "analysis_source_snapshot_id": "snapshot-1",
+            "snapshot_sha256": "ab" * 32,
+            "corporate_entity_id": "11111111-1111-1111-1111-111111111111",
+        },
+        rows=[
+            {
+                "analysis_run_id": analysis_run_id,
+                "remote_run_id": "remote-run-1",
+                "accepted_status_code": "accepted",
+                "received_at": datetime(2026, 1, 12, tzinfo=timezone.utc),
+            }
+        ],
+    )
+    status = _terminal_status()
+    client = TeppClient(status_transport=lambda _run_id: status)
+
+    result = asyncio.run(
+        analysis_run_start_module.deliver_queued_analysis_run(
+            connection,
+            analysis_run_id=analysis_run_id,
+            account_id="account-1",
+            affiliated_entity_ids=[],
+            tepp_client=client,
+        )
+    )
+
+    assert result["status_code"] == "analysis_status_succeeded"
+    assert any(
+        "insert into analysis_run_tepp_result" in str(execution[0])
+        for execution in connection.executions
+    )
+    assert any(
+        "analysis_outbox_delivered" in execution for execution in connection.executions
+    )
+
+
 def test_completed_remote_run_id_alias_persists_the_result() -> None:
     connection = _ReceiptConnection()
     persisted = asyncio.run(
@@ -244,6 +394,26 @@ def test_completed_remote_run_id_alias_persists_the_result() -> None:
     )
     assert persisted is True
     assert connection.executions[0][2] == "remote-run"
+
+
+def test_completed_result_replay_rejects_changed_digest() -> None:
+    connection = _ReceiptConnection(
+        result_row={"remote_run_id": "remote-run", "result_sha256": "0" * 64}
+    )
+    persisted = asyncio.run(
+        analysis_run_start_module._persist_tepp_result(
+            connection,
+            analysis_run_id="local-run",
+            envelope={
+                "contract_version": 1,
+                "run_id": "remote-run",
+                "run_state": "succeeded",
+            },
+        )
+    )
+
+    assert persisted is False
+    assert connection.executions == []
 
 
 def test_receipt_insert_error_is_rolled_back_by_a_savepoint() -> None:
