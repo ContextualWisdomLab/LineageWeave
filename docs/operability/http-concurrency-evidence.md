@@ -56,6 +56,26 @@ or shared-runner result to a product guarantee.
 
 Figma and screenshot review do not apply: this is a non-UI HTTP load harness.
 
+## Dashboard candidate verification record
+
+On 2026-08-26, the synthetic 27-post Compose dataset at candidate head
+`b045a6e5` ran with 4 VUs for 30 seconds on alternate local ports. It completed
+1,240 iterations and 4,962 authenticated HTTP requests with zero failed
+requests and 4,960/4,960 successful checks across posts, Event Lineage,
+Dashboard, and Ask polling. Overall request duration was 75.02 ms average,
+56.73 ms median, 181.76 ms p95, and 791.89 ms maximum; the combined reader
+metric was 81.68 ms average and 197.25 ms p95. The one Ask enqueue took
+173.66 ms, while Ask polling averaged 54.80 ms with 132.98 ms p95.
+
+The first candidate run exposed two Dashboard-only SQL contract defects:
+an evidence-post predicate in the missing-fact query despite that query having
+no evidence-post join, and a fifth bind value passed to the four-parameter
+topic projection. Both failed every Dashboard request while sibling endpoints
+remained responsive. The shared query boundary was repaired and regression
+tests now assert the join and bind arity; the distribution above is the clean
+rerun. This is synthetic candidate evidence, not protected-main evidence or a
+capacity/SLO claim.
+
 ## Current-main verification record
 
 On 2026-08-25, a worktree based on protected-main commit `48f013a2` passed

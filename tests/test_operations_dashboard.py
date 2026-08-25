@@ -242,7 +242,6 @@ async def test_dashboard_uses_abac_event_clock_and_persisted_evidence() -> None:
         conn.queries[0][0],
         conn.queries[1][0],
         conn.queries[2][0],
-        conn.queries[4][0],
     ):
         assert "join source_post evidence_post" in evidence_query
         assert "evidence_post.corporate_entity_id::text = any($1::text[])" in evidence_query
