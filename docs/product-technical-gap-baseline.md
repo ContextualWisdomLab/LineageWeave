@@ -1,7 +1,7 @@
 # Product & Technical Gap Baseline
 
-> Dashboard delivery snapshot: 2026-08-26 06:58 KST. Protected `main` was
-> `04e6b610655d0db91d5f7ba9486bdda1440e0b19`. This local branch is not
+> Dashboard delivery snapshot: 2026-08-26 07:15 KST. Protected `main` was
+> `494b54e2245040bcf02b45376f221c37cd437e76`. This local branch is not
 > protected-main release evidence.
 
 ## Operations Dashboard PRD/TRD traceability
@@ -60,14 +60,14 @@ only aggregate, non-identifying evidence to this repository.
 
 ### Exact open-PR boundary
 
-At this snapshot there were 11 open PRs and 10 open issues. PR #660 merged to
-protected `main` as `7e9030c9`; PR #666 remains only non-default-branch stack
+At this snapshot there were 11 open PRs and 10 open issues. PRs #660 and #659
+merged to protected `main`; PR #666 remains only non-default-branch stack
 composition inside #663. Every remaining open head required refreshed hosted
 gates and/or independent review after the base changed. These observations are
 not merge readiness. Re-fetch exact heads, unresolved threads, checks,
 approvals, rulesets, and merge SHA before any lifecycle claim.
 
-> Audit snapshot: 2026-08-26 06:58 KST (refreshed by the autonomous merge
+> Audit snapshot: 2026-08-26 07:15 KST (refreshed by the autonomous merge
 > loop). This repository records synthetic fixtures and aggregate,
 > non-identifying runtime evidence only. Open PRs and local checks are not
 > protected-default-branch release evidence. Identifying post identifiers,
@@ -76,7 +76,7 @@ approvals, rulesets, and merge SHA before any lifecycle claim.
 
 ## 1. Exact-head and governance evidence
 
-The protected default branch was `04e6b610655d0db91d5f7ba9486bdda1440e0b19`
+The protected default branch was `494b54e2245040bcf02b45376f221c37cd437e76`
 when this baseline was refreshed. The live queue contained 11 open PRs and 10
 open issues. The exact-head inventory below supersedes older per-PR snapshots
 elsewhere in this document; those older rows remain useful historical delivery
@@ -84,17 +84,17 @@ context only.
 
 | PR | Exact observed head | Merge/check state at this snapshot |
 | ---: | --- | --- |
-| #663 | `ab330a0f` | combined Project ontology candidate plus #666's non-default-branch removal of sampled region-coverage arithmetic; refreshed hosted checks and independent review required |
-| #659 | `ccdfc6f1` | token-backed ontology node readability refreshed after #660 merged; hosted checks and independent review required |
-| #658 | `fe830b0a` | evidence-honest Global Ask cutoff; base conflict remains to be repaired |
-| #657 | `64f48679` | TEPP asynchronous lifecycle persistence while unpublished producer work stays unavailable; base conflict remains to be repaired |
-| #644 | `d9ff9980` | native frontend surface code splitting; base conflict remains to be repaired |
-| #643 | `0a1f8ec1` | shared token-backed status notice; base conflict remains to be repaired |
+| #667 | `3bc662d7` | refreshes protected-main and open-queue documentation evidence; base conflict remains to be repaired |
+| #663 | `6fd2f701` | combined Project ontology candidate plus #666's non-default-branch removal of sampled region-coverage arithmetic; base conflict remains to be repaired |
+| #658 | `f007a5ed` | evidence-honest Global Ask cutoff; hosted checks and independent review required |
+| #657 | `2d9b43b7` | TEPP asynchronous lifecycle persistence while unpublished producer work stays unavailable; hosted checks and independent review required |
+| #644 | `ed8d97f3` | native frontend surface code splitting; hosted checks and independent review required |
+| #643 | `7fb4d18c` | shared token-backed status notice; hosted checks and independent review required |
 | #640 | `2d50fa01` | dashboard case metrics and project journeys; base conflict remains to be repaired |
-| #639 | `aee02dca` | restores Running action and Compose contracts; base conflict remains to be repaired |
-| #632 | `a4059113` | graph-fact provenance, public verification, MCP admission, and k6 evidence; base conflict remains to be repaired |
-| #631 | `1d9ac825` (observed parent) | decomposes closed PR #490; this merge refresh advances its head and restarts hosted review evidence |
-| #629 | `6d2fb7b3` | provider-work release and bounded landing reads refreshed onto protected `main`; hosted checks and independent review restarted |
+| #639 | `48065ad1` | restores Running action and Compose contracts; hosted checks and independent review required |
+| #632 | `29aee18d` | graph-fact provenance, public verification, MCP admission, and k6 evidence; hosted checks and independent review required |
+| #631 | `665046dc` (observed parent) | decomposes closed PR #490; this merge refresh advances its head and restarts hosted review evidence |
+| #629 | `0138db5f` | provider-work release and bounded landing reads refreshed onto protected `main`; hosted checks and independent review restarted |
 
 No row above is merge evidence. Immediately before any lifecycle action,
 re-fetch the head, unresolved threads, formal reviews, rulesets, and same-head
