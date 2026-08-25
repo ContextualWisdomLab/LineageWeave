@@ -737,11 +737,7 @@ async def gather_global_chat_sources(
     embedding_candidate_ids: list[str] = []
     evidence_candidate_ids: list[str] = []
     for row in candidate_rows:
-        channel = (
-            str(row["candidate_channel"])
-            if "candidate_channel" in row
-            else "embedding"
-        )
+        channel = str(row.get("candidate_channel") or "embedding")
         target = (
             evidence_candidate_ids if channel == "evidence" else embedding_candidate_ids
         )

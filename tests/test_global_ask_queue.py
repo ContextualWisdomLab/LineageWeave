@@ -136,6 +136,36 @@ def test_public_verification_keeps_external_urls_out_of_internal_citations() -> 
     assert results[0].evidence[0].url not in results[0].source_post_ids
 
 
+def test_malformed_public_verification_is_unavailable() -> None:
+    """Malformed provider/search envelopes do not discard a completed answer."""
+    source = cv.GlobalAskSourceDocument(
+        "public-post",
+        "Public",
+        "Public body",
+        external_claim_facts=("project: Apollo | evidence: public",),
+    )
+
+    for error in (IndexError("empty choices"), AttributeError("invalid search body")):
+        class MalformedClient:
+            available = True
+
+            def verify(self, _claim):
+                raise error
+
+        status_code, results = asyncio.run(
+            global_ask_queue._verify_public_claims(
+                "Apollo",
+                [source],
+                ["public-post"],
+                verify_external=True,
+                client=MalformedClient(),
+            )
+        )
+
+        assert status_code == cv.VERIFICATION_UNAVAILABLE
+        assert results == ()
+
+
 def test_question_embedding_finishes_before_global_ask_acquires_a_pool_slot(
     monkeypatch,
 ) -> None:
