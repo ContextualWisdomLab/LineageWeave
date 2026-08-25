@@ -139,6 +139,21 @@ def _upstream_map_has_expected_shape(result: Any) -> bool:
     )
 
 
+def _upstream_map_indices_are_valid(
+    result: Any, post_count: int, item_count: int
+) -> bool:
+    """Require unique integer indices inside the supplied identifier bounds."""
+    return all(
+        np.issubdtype(indices.dtype, np.integer)
+        and np.unique(indices).size == indices.size
+        and (indices.size == 0 or (indices.min() >= 0 and indices.max() < bound))
+        for indices, bound in (
+            (result.person_indices, post_count),
+            (result.item_indices, item_count),
+        )
+    )
+
+
 def leftover_pairs_from_residual(
     post_ids: list[str],
     item_codes: tuple[str, ...],
@@ -161,6 +176,8 @@ def leftover_map_from_residual(
     if result.person_indices.size == 0 or result.item_indices.size == 0:
         return LeftoverInteractionMap(pairs=(), persons=(), items=(), axes=())
     if not _upstream_map_has_expected_shape(result):
+        return LeftoverInteractionMap(pairs=(), persons=(), items=(), axes=())
+    if not _upstream_map_indices_are_valid(result, len(post_ids), len(item_codes)):
         return LeftoverInteractionMap(pairs=(), persons=(), items=(), axes=())
     if not _upstream_map_coordinates_are_finite(result):
         return LeftoverInteractionMap(pairs=(), persons=(), items=(), axes=())

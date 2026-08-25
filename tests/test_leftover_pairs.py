@@ -228,6 +228,22 @@ def test_malformed_rank_one_provider_shape_fails_closed(
     ) == leftover.LeftoverInteractionMap(pairs=(), persons=(), items=(), axes=())
 
 
+def test_out_of_range_provider_indices_fail_closed(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A malformed owner envelope cannot index beyond product identifiers."""
+    result = _upstream_result()
+    result.person_indices = np.array([0, 2], dtype=np.int64)
+    monkeypatch.setattr(
+        leftover, "residual_interaction_map", lambda *_args, **_kwargs: result
+    )
+    observed, expected = _matching_inputs()
+
+    assert leftover.leftover_map_from_residual(
+        ["post-a", "post-b"], ("item-a", "item-b"), observed, expected
+    ) == leftover.LeftoverInteractionMap(pairs=(), persons=(), items=(), axes=())
+
+
 def test_inconsistent_provider_residual_is_excluded_before_selection(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
