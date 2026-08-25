@@ -29,7 +29,7 @@ from lineageweave.ontology import (
     ontology_annotations,
 )
 from rdflib import URIRef
-from rdflib.namespace import OWL, RDF, RDFS, SKOS, XSD
+from rdflib.namespace import OWL, PROV, RDF, RDFS, SKOS, XSD
 
 _SEED_SCRIPT_PATH = Path(__file__).resolve().parents[1] / "scripts" / "seed_demo_data.py"
 
@@ -236,6 +236,24 @@ def test_semantic_project_terms_preserve_post_evidence_and_confidence() -> None:
     assert (LW.projectEvidence, RDFS.range, XSD.string) in graph
     assert (LW.semanticConfidence, RDFS.range, XSD.decimal) in graph
     assert (LW.semanticConfidence, RDFS.domain, LW.ProjectMention) in graph
+
+
+def test_operations_relations_are_typed_reified_projections() -> None:
+    """Dashboard facts reuse RDF reification and PROV-O, never KG aliases."""
+    graph = load_ontology()
+    assert (LW.ExternalInformation, RDFS.subClassOf, LW.OperationsCase) in graph
+    assert (LW.OperationsCase, RDFS.subClassOf, PROV.Entity) in graph
+    assert (LW.OperationsCaseFact, RDFS.subClassOf, RDF.Statement) in graph
+    assert (LW.OperationsCaseFact, RDFS.subClassOf, PROV.Entity) in graph
+    assert (LW.relatesToOrder, RDFS.range, LW.Order) in graph
+    assert (LW.relatesToProject, RDFS.range, LW.Project) in graph
+    assert (LW.relatesToSales, RDFS.range, LW.SalesContext) in graph
+    assert (
+        LW.relatesToBusinessManagement,
+        RDFS.range,
+        LW.BusinessManagementContext,
+    ) in graph
+    assert graph.value(LW.relatesToProject, LW.lookupCode) is None
 
 
 def test_ontology_iri_is_repository_case_canonical() -> None:

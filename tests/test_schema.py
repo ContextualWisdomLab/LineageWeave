@@ -95,6 +95,11 @@ _OPERATIONS_CASE_EVIDENCE_MIGRATION = (
 _OPERATIONS_CASE_MISSING_MIGRATION = (
     Path(__file__).resolve().parents[1] / "migrations" / "0211_operations_case_missing_fact.sql"
 )
+_OPERATIONS_EXTERNAL_RELATION_MIGRATION = (
+    Path(__file__).resolve().parents[1]
+    / "migrations"
+    / "0212_operations_external_relation_target.sql"
+)
 
 
 def _postgres_available() -> bool:
@@ -143,6 +148,7 @@ def schema_db():
                 cur.execute(_OPERATIONS_CASE_MIGRATION.read_text())
                 cur.execute(_OPERATIONS_CASE_EVIDENCE_MIGRATION.read_text())
                 cur.execute(_OPERATIONS_CASE_MISSING_MIGRATION.read_text())
+                cur.execute(_OPERATIONS_EXTERNAL_RELATION_MIGRATION.read_text())
             conn.commit()
             yield conn
         finally:

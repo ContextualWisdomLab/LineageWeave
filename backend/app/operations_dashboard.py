@@ -2,10 +2,13 @@
 
 from __future__ import annotations
 
+import hashlib
 from datetime import date
 from typing import Any, Protocol
 
 from backend.app.post_eligibility import SOURCE_POST_ELIGIBILITY_SQL
+from lineageweave.ontology import LW
+from lineageweave.prov_o import PROV_RELATIONS
 
 
 CASE_KIND_LABELS = {
@@ -27,6 +30,79 @@ FACT_TYPE_LABELS = {
     "issue_pattern": "반복 유형",
     "improvement_action": "개선 조치",
 }
+CASE_KIND_ONTOLOGY_CLASSES = {
+    "claim_investigation": str(LW.ClaimInvestigation),
+    "rebid_handover": str(LW.RebidHandover),
+    "external_information": str(LW.ExternalInformation),
+    "repeat_issue": str(LW.RepeatIssue),
+}
+EXTERNAL_RELATION_TARGETS = {
+    "order": ("수주", str(LW.Order), str(LW.relatesToOrder)),
+    "project": ("프로젝트", str(LW.Project), str(LW.relatesToProject)),
+    "sales": ("영업", str(LW.SalesContext), str(LW.relatesToSales)),
+    "business_management": (
+        "사업 관리",
+        str(LW.BusinessManagementContext),
+        str(LW.relatesToBusinessManagement),
+    ),
+}
+PROV_WAS_DERIVED_FROM = PROV_RELATIONS["wasDerivedFrom"].iri
+
+
+def _operations_case_jsonld(
+    post_id: str,
+    case_kind_code: str,
+    evidence_post_id: str,
+    case_facts: list[dict[str, str]],
+) -> dict[str, Any]:
+    """Project one persisted case and its cited facts as bounded JSON-LD."""
+    case_id = f"urn:lineageweave:operations-case:{post_id}:{case_kind_code}"
+    statements: list[dict[str, Any]] = []
+    for ordinal, fact in enumerate(case_facts):
+        statement: dict[str, Any] = {
+            "@id": f"{case_id}:fact:{ordinal}",
+            "@type": [str(LW.OperationsCaseFact), "http://www.w3.org/ns/prov#Entity"],
+            str(LW.factTypeCode): fact["fact_type_code"],
+            str(LW.factValue): fact["value_text"],
+            PROV_WAS_DERIVED_FROM: {
+                "@id": f"urn:lineageweave:post:{fact['evidence_post_id']}"
+            },
+        }
+        predicate = fact.get("relation_predicate_iri")
+        target_class = fact.get("relation_target_class_iri")
+        if predicate and target_class:
+            target_digest = hashlib.sha256(
+                f"{fact['relation_target_kind_code']}\0{fact['value_text']}".encode()
+            ).hexdigest()
+            statement.update(
+                {
+                    "http://www.w3.org/1999/02/22-rdf-syntax-ns#subject": {
+                        "@id": case_id
+                    },
+                    "http://www.w3.org/1999/02/22-rdf-syntax-ns#predicate": {
+                        "@id": predicate
+                    },
+                    "http://www.w3.org/1999/02/22-rdf-syntax-ns#object": {
+                        "@id": f"urn:lineageweave:operations-target:{target_digest}",
+                        "@type": target_class,
+                        "http://www.w3.org/2000/01/rdf-schema#label": fact["value_text"],
+                    },
+                }
+            )
+        statements.append(statement)
+    return {
+        "@context": {
+            "lw": str(LW),
+            "prov": "http://www.w3.org/ns/prov#",
+            "rdf": "http://www.w3.org/1999/02/22-rdf-syntax-ns#",
+        },
+        "@id": case_id,
+        "@type": [CASE_KIND_ONTOLOGY_CLASSES[case_kind_code], "prov:Entity"],
+        "prov:wasDerivedFrom": {
+            "@id": f"urn:lineageweave:post:{evidence_post_id}"
+        },
+        str(LW.hasOperationsFact): statements,
+    }
 
 
 class _Connection(Protocol):
@@ -156,7 +232,7 @@ async def fetch_operations_dashboard(
         f"""
         select fact.post_id, fact.case_kind_code, fact.fact_type_code,
                fact.value_text, fact.evidence_text, fact.evidence_post_id,
-               fact.fact_ordinal
+               fact.fact_ordinal, fact.relation_target_kind_code
           from operations_case_fact fact
           join source_post post on post.post_id = fact.post_id
          where {visible}
@@ -179,15 +255,23 @@ async def fetch_operations_dashboard(
     facts: dict[tuple[str, str], list[dict[str, str]]] = {}
     for row in fact_rows:
         key = (str(row["post_id"]), row["case_kind_code"])
-        facts.setdefault(key, []).append(
-            {
-                "fact_type_code": row["fact_type_code"],
-                "fact_type_label": FACT_TYPE_LABELS[row["fact_type_code"]],
-                "value_text": row["value_text"],
-                "evidence_text": row["evidence_text"],
-                "evidence_post_id": str(row["evidence_post_id"]),
-            }
-        )
+        projected_fact = {
+            "fact_type_code": row["fact_type_code"],
+            "fact_type_label": FACT_TYPE_LABELS[row["fact_type_code"]],
+            "value_text": row["value_text"],
+            "evidence_text": row["evidence_text"],
+            "evidence_post_id": str(row["evidence_post_id"]),
+            "ontology_class_iri": str(LW.OperationsCaseFact),
+            "provenance_relation_iri": PROV_WAS_DERIVED_FROM,
+        }
+        target_kind = row["relation_target_kind_code"]
+        if target_kind in EXTERNAL_RELATION_TARGETS:
+            target_label, target_class, predicate = EXTERNAL_RELATION_TARGETS[target_kind]
+            projected_fact["relation_target_kind_code"] = target_kind
+            projected_fact["relation_target_kind_label"] = target_label
+            projected_fact["relation_target_class_iri"] = target_class
+            projected_fact["relation_predicate_iri"] = predicate
+        facts.setdefault(key, []).append(projected_fact)
     missing_facts: dict[tuple[str, str], list[dict[str, str]]] = {}
     for row in missing_rows:
         key = (str(row["post_id"]), row["case_kind_code"])
@@ -232,9 +316,17 @@ async def fetch_operations_dashboard(
                 "summary_text": row["summary_text"],
                 "evidence_text": row["evidence_text"],
                 "evidence_post_id": str(row["evidence_post_id"]),
+                "ontology_class_iri": CASE_KIND_ONTOLOGY_CLASSES[row["case_kind_code"]],
+                "provenance_relation_iri": PROV_WAS_DERIVED_FROM,
                 "occurred_at": row["occurred_at"].isoformat(),
                 "facts": facts.get((str(row["post_id"]), row["case_kind_code"]), []),
                 "missing_facts": missing_facts.get((str(row["post_id"]), row["case_kind_code"]), []),
+                "semantic_projection": _operations_case_jsonld(
+                    str(row["post_id"]),
+                    row["case_kind_code"],
+                    str(row["evidence_post_id"]),
+                    facts.get((str(row["post_id"]), row["case_kind_code"]), []),
+                ),
             }
             for row in case_rows
         ],

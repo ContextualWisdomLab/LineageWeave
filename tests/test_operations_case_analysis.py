@@ -130,6 +130,7 @@ def test_accepts_grounded_nonrequired_fact_after_required_questions_are_complete
                 "fact_type_code": "external_relation",
                 "value_text": "Sales opportunity",
                 "evidence_text": body,
+                "relation_target_kind_code": "sales",
             },
             {
                 "fact_type_code": "our_owner",
@@ -141,3 +142,30 @@ def test_accepts_grounded_nonrequired_fact_after_required_questions_are_complete
     }]
 
     assert parse_operations_case_response(json.dumps(payload), body) is not None
+
+
+def test_external_relation_requires_a_semantic_target_type() -> None:
+    """Only source-backed typed external links enter the ontology projection."""
+    body = "The public tender applies to Synthetic Project A."
+    fact = {
+        "fact_type_code": "external_relation",
+        "value_text": "Synthetic Project A",
+        "evidence_text": body,
+        "relation_target_kind_code": "project",
+    }
+    payload = [{
+        "case_kind_code": "external_information",
+        "summary_text": "Tender relates to a project",
+        "evidence_text": body,
+        "facts": [fact],
+        "missing_fact_type_codes": [],
+    }]
+
+    result = parse_operations_case_response(json.dumps(payload), body)
+
+    assert result is not None
+    assert result[0].facts[0].relation_target_kind_code == "project"
+    del fact["relation_target_kind_code"]
+    assert parse_operations_case_response(json.dumps(payload), body) is None
+    fact["relation_target_kind_code"] = "guessed"
+    assert parse_operations_case_response(json.dumps(payload), body) is None

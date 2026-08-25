@@ -35,6 +35,7 @@ class _Connection:
                     "evidence_text": "Synthetic cited sentence",
                     "evidence_post_id": "00000000-0000-0000-0000-000000000002",
                     "fact_ordinal": 0,
+                    "relation_target_kind_code": None,
                 }
             ]
         if "operations_case_missing_fact missing" in query:
@@ -100,6 +101,11 @@ async def test_dashboard_uses_abac_event_clock_and_persisted_evidence() -> None:
             "post_count": 0,
         },
     ]
+    semantic_projection = result["cases"][0].pop("semantic_projection")
+    assert semantic_projection["@type"][0].endswith("#ClaimInvestigation")
+    assert semantic_projection["prov:wasDerivedFrom"]["@id"].endswith(
+        "00000000-0000-0000-0000-000000000002"
+    )
     assert result["cases"] == [
         {
             "post_id": "00000000-0000-0000-0000-000000000001",
@@ -110,6 +116,8 @@ async def test_dashboard_uses_abac_event_clock_and_persisted_evidence() -> None:
             "summary_text": "원인 수주가 연결됨",
             "evidence_text": "Synthetic cited sentence",
             "evidence_post_id": "00000000-0000-0000-0000-000000000002",
+            "ontology_class_iri": "https://contextualwisdomlab.github.io/LineageWeave/ontology#ClaimInvestigation",
+            "provenance_relation_iri": "http://www.w3.org/ns/prov#wasDerivedFrom",
             "occurred_at": "2026-08-12T00:00:00+00:00",
             "facts": [
                 {
@@ -118,6 +126,8 @@ async def test_dashboard_uses_abac_event_clock_and_persisted_evidence() -> None:
                     "value_text": "Synthetic order 7",
                     "evidence_text": "Synthetic cited sentence",
                     "evidence_post_id": "00000000-0000-0000-0000-000000000002",
+                    "ontology_class_iri": "https://contextualwisdomlab.github.io/LineageWeave/ontology#OperationsCaseFact",
+                    "provenance_relation_iri": "http://www.w3.org/ns/prov#wasDerivedFrom",
                 }
             ],
             "missing_facts": [
@@ -177,6 +187,54 @@ async def test_dashboard_zero_denominator_and_invalid_period() -> None:
         await fetch_operations_dashboard(
             EmptyConnection(), [], [], date(2026, 9, 1), date(2026, 8, 31)
         )
+
+
+@pytest.mark.anyio
+async def test_external_information_projects_a_typed_prov_o_relation() -> None:
+    """A cited semantic target becomes RDF reification, never a KG alias."""
+
+    class ExternalConnection(_Connection):
+        async def fetch(self, query: str, *args: object) -> list[dict[str, object]]:
+            self.queries.append((query, args))
+            if "operations_case_fact fact" in query:
+                return [{
+                    "post_id": "00000000-0000-0000-0000-000000000001",
+                    "case_kind_code": "external_information",
+                    "fact_type_code": "external_relation",
+                    "value_text": "Synthetic Project",
+                    "evidence_text": "Synthetic tender evidence",
+                    "evidence_post_id": "00000000-0000-0000-0000-000000000002",
+                    "fact_ordinal": 0,
+                    "relation_target_kind_code": "project",
+                }]
+            if "operations_case_missing_fact missing" in query:
+                return []
+            return [{
+                "post_id": "00000000-0000-0000-0000-000000000001",
+                "case_kind_code": "external_information",
+                "summary_text": "External tender",
+                "evidence_text": "Synthetic tender evidence",
+                "evidence_post_id": "00000000-0000-0000-0000-000000000002",
+                "project_name": "Synthetic Project",
+                "project_names": ["Synthetic Project"],
+                "occurred_at": datetime(2026, 8, 12, tzinfo=timezone.utc),
+                "event_count": 1,
+            }]
+
+    result = await fetch_operations_dashboard(ExternalConnection(), [])
+
+    fact = result["cases"][0]["facts"][0]
+    assert fact["relation_target_kind_code"] == "project"
+    assert fact["relation_predicate_iri"].endswith("#relatesToProject")
+    statement = result["cases"][0]["semantic_projection"][
+        "https://contextualwisdomlab.github.io/LineageWeave/ontology#hasOperationsFact"
+    ][0]
+    assert statement["http://www.w3.org/1999/02/22-rdf-syntax-ns#predicate"] == {
+        "@id": fact["relation_predicate_iri"]
+    }
+    assert statement["http://www.w3.org/ns/prov#wasDerivedFrom"]["@id"].endswith(
+        "00000000-0000-0000-0000-000000000002"
+    )
 
 
 @pytest.fixture
