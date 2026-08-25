@@ -1,7 +1,7 @@
 # Product & Technical Gap Baseline
 
-> Dashboard delivery snapshot: 2026-08-25 21:51 KST. Protected `main` was
-> `7403a4528c4a68a4e2636449b9497d0619c47c82`. This local branch is not
+> Dashboard delivery snapshot: 2026-08-25 21:57 KST. Protected `main` was
+> `04e6b610655d0db91d5f7ba9486bdda1440e0b19`. This local branch is not
 > protected-main release evidence.
 
 ## Operations Dashboard PRD/TRD traceability
@@ -61,7 +61,7 @@ only aggregate, non-identifying evidence to this repository.
 ### Exact open-PR boundary
 
 At this snapshot there were 3 open PRs and 10 open issues. Exact observed heads
-were `#631 a048adf0` (this branch's observed parent), `#629 8797605b`, and
+were `#631 ffc1f5a9` (this branch's observed parent), `#629 fee4d76a`, and
 `#579 f079ff1c`. PR #579 is open; its ADR 0211 reservation is why protected
 main's filter-option decision is ADR 0212. PRs #627 and #628 reached protected
 `main`; #629 remains an open asynchronous-pool follow-up and is not release
@@ -71,7 +71,7 @@ observations are not merge readiness. Re-fetch exact heads,
 unresolved threads, checks, approvals, rulesets, and merge SHA before any
 lifecycle claim.
 
-> Audit snapshot: 2026-08-25 21:51 KST (refreshed by the autonomous merge
+> Audit snapshot: 2026-08-25 21:57 KST (refreshed by the autonomous merge
 > loop). This repository records synthetic fixtures and aggregate,
 > non-identifying runtime evidence only. Open PRs and local checks are not
 > protected-default-branch release evidence. Identifying post identifiers,
@@ -80,7 +80,7 @@ lifecycle claim.
 
 ## 1. Exact-head and governance evidence
 
-The protected default branch was `7403a4528c4a68a4e2636449b9497d0619c47c82`
+The protected default branch was `04e6b610655d0db91d5f7ba9486bdda1440e0b19`
 when this baseline was refreshed. The live queue contained 3 open PRs and 10
 open issues. The exact-head inventory below supersedes older per-PR snapshots
 elsewhere in this document; those older rows remain useful historical delivery
@@ -88,8 +88,8 @@ context only.
 
 | PR | Exact observed head | Merge/check state at this snapshot |
 | ---: | --- | --- |
-| #631 | `a048adf0` (observed parent) | decomposes closed PR #490 without replaying it; this row advances when the snapshot correction is committed, and hosted gates plus independent review remain required |
-| #629 | `8797605b` | releases the Global Ask pool before embedding-provider work; hosted gates and independent review remain required |
+| #631 | `ffc1f5a9` (observed parent) | decomposes closed PR #490 without replaying it; this row advances when the snapshot correction is committed, and hosted gates plus independent review remain required |
+| #629 | `fee4d76a` | releases the Global Ask pool before embedding-provider work; hosted gates and independent review remain required |
 | #579 | `f079ff1c` | persists leftover interaction-map coordinates through the fast-mlsirm owner contract and owns ADR 0211; hosted gates and independent review remain required |
 
 No row above is merge evidence. Immediately before any lifecycle action,
@@ -387,10 +387,11 @@ this file per §3.5 of the prior snapshot).
 
 ### 5.1 Closed PR #490 decomposition (issue #611)
 
-Protected `main` at `7403a452` contains none of PR #490. That PR remains closed,
-unmerged branch evidence; its ADR 0133–0137 files are not normative and its
-321-file tree must not be replayed. Current-main code and schema searches give
-this delivery matrix:
+Protected `main` at `04e6b610` and the three-PR live queue were rechecked for
+this decomposition; protected `main` contains none of PR #490. That PR remains
+closed, unmerged branch evidence; its ADR 0133–0137 files are not normative and
+its 321-file tree must not be replayed. Current-main code and schema searches
+give this delivery matrix:
 
 | Closed-branch decision | Current-main classification | Smallest remaining delivery |
 | --- | --- | --- |
