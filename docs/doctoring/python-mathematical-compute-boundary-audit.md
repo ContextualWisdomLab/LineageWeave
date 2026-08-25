@@ -3,8 +3,8 @@
 **Exact-head audit date:** 2026-08-25  
 **Normative decision:** [ADR 0208](../adr/0208-externalize-local-mathematical-compute.md)
 
-This inventory names migration debt; it is not evidence that the current
-Python paths satisfy the Rust/GPU requirement.
+This inventory names remaining migration debt and completed owner slices; it
+does not relabel still-local Python paths as Rust/GPU compliant.
 
 ## Product-boundary sources read
 
@@ -23,8 +23,8 @@ Python paths satisfy the Rust/GPU requirement.
 | Current LineageWeave path | Local computation | Owner | Consumer replacement | Principal callers / tests |
 |---|---|---|---|---|
 | `lineageweave/channel_weight_estimation.py` | dichotomization, synthetic simulation, MLS2PLM input construction, expected item information and normalization | fast-mlsirm, conditional on TEPP anchor | versioned anchored-weight artifact; strict digest/convergence validation | estimation scripts, seed/server/rebuild paths; `tests/test_channel_weight_estimation.py`, estimator-script tests |
-| `lineageweave/period_report.py` | response matrix, GRM/GPCM fit/FIPC/EAP, likelihood, category expectation, information ordering | fast-mlsirm | period-measurement artifact with item bank, scores, uncertainty, diagnostics | report ingestion and demo seed; period-report and report API tests |
-| `lineageweave/leftover_pairs.py` | residual matrix, complete-case selection, SVD/Gabriel coordinates, distances, reconstruction, axis shares | fast-mlsirm | residual-interaction artifact with observed/expected identity and coverage | `period_report.py`, report ingestion/seed; `tests/test_leftover_pairs.py`, report tests |
+| `lineageweave/period_report.py` | response matrix and owner-call orchestration remain; local category expectation and duplicate likelihood arithmetic removed | fast-mlsirm | `polytomous_expected_response`; diagnostics-owned held-out log likelihood; full period artifact remains debt | report ingestion and demo seed; period-report and report API tests |
+| `lineageweave/leftover_pairs.py` | **migrated:** identifier projection and closest/farthest selection only | fast-mlsirm | protected-main Rust `residual_interaction_map` with residual, coverage, SVD/Gabriel coordinates, distances, reconstruction and shares | `period_report.py`, report ingestion/seed; owner contract and consumer projection tests |
 | `lineageweave/embedding_client.py` and `backend/app/post_chat_ingestion.py` | cosine similarity, vector norms, maximum semantic score | RankWeave retrieval-score contract | ranked evidence envelope over ABAC-visible semantic units | reconstruction text channel and Global Ask retrieval; embedding/post-chat tests |
 | `lineageweave/knowledge_graph.py` | random walk with restart, convergence delta, adaptive relevance cutoff | RankWeave graph-ranking contract | ranked-node artifact with contribution and convergence evidence | related-person/entity API paths; knowledge-graph tests |
 | `lineageweave/reconstruct.py` | channel-weight renormalization, candidate-score fusion and minimum-score decision | RankWeave fusion; TEPP supplies independent lineage criterion | accepted edge-ranking artifact; LineageWeave persists selected edge and channel provenance | lineage rebuild/start/seed/server; reconstruct, persistence, API tests |

@@ -54,7 +54,7 @@ different responsibility.
    Missing, malformed, non-converged, mixed-snapshot, or unsupported results
    fail closed. It never repairs, normalizes, estimates, or substitutes a
    numerical result.
-5. **No big-bang rewrite.** Existing local computation is frozen as named
+5. **No big-bang rewrite.** Remaining local computation is frozen as named
    migration debt in
    `docs/doctoring/python-mathematical-compute-boundary-audit.md`. Each owner
    contract lands and proves recovery/equivalence before the corresponding
@@ -68,6 +68,14 @@ different responsibility.
    string similarity, or equal weights are not promoted to measurement.
    Operational bounds may remain only as disclosed resource limits and may
    not determine a scientific score or ground truth.
+
+## Implemented migration slices
+
+- The residual interaction map consumes fast-mlsirm's protected-main
+  `residual_interaction_map` and `polytomous_expected_response` contracts.
+  Gabriel SVD, axis inertia, distance, reconstruction, unexplained residual,
+  cross share, and coverage arithmetic were deleted from LineageWeave Python.
+  Product-side identifier attachment and closest/farthest selection remain.
 
 ## Stacked delivery order
 
@@ -113,4 +121,3 @@ https://doi.org/10.1007/s11336-021-09762-5
 Roberts, M. E., Stewart, B. M., & Tingley, D. (2019). stm: An R package for
 structural topic models. *Journal of Statistical Software, 91*(2), 1–40.
 https://doi.org/10.18637/jss.v091.i02
-

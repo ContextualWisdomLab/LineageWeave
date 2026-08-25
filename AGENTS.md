@@ -271,8 +271,9 @@ stops startup instead of leaving a healthy-looking partial schema, and
 application code must not compensate for a missing table.
 
 Period leftover pairs (ADR 0017 / 0018 / 0048 / 0049 / 0119 / 0158 / 0162 /
-0163 / 0164 / 0182 / 0201) are computed in `lineageweave/leftover_pairs.py` from the
-residual after a real GRM/GPCM score, never invented. Distances are
+0163 / 0164 / 0182 / 0201 / 0208) consume fast-mlsirm's Rust-owned residual
+interaction map after a real GRM/GPCM score, never invented. LineageWeave only
+attaches product identifiers and selects returned cells. Distances are
 Euclidean on the two-dimensional Gabriel leftover map; missing cells stay
 out of the factorization. Closest and farthest post–criterion pairs
 persist to `report_leftover_pair` with signed residual `R`, observed
