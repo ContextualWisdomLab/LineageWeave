@@ -45,6 +45,7 @@ def test_get_json_accepts_expected_media_type_with_parameters() -> None:
         )
     finally:
         server.shutdown()
+        server.server_close()
 
     assert result == {"ok": True}
 
@@ -64,6 +65,7 @@ def test_get_json_rejects_unexpected_media_type_before_json_decode() -> None:
             )
     finally:
         server.shutdown()
+        server.server_close()
 
 
 def test_get_json_rejects_invalid_expected_media_type_configuration() -> None:

@@ -21,7 +21,8 @@ All notable changes to this project are documented here. Format follows
   rows; the UI preserves ties, multiple membership, uncertainty, time states,
   and source links, and otherwise names the missing producer contract without
   calculating a local score.
-
+- Persist explicit paragraph, list, table, MathML formula, and caller-parsed
+  conversation-turn semantic-unit kinds without inferring absent boundaries.
 - Event Lineage now persists each reconstructed connection's independent
   channel scores, the normalized weights actually used, and their
   contributions. The Event Lineage DAG discloses those exact values as inferred

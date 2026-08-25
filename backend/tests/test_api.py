@@ -28,6 +28,7 @@ import redis
 
 from lineageweave.http_client import HttpClientError, get_json, post_form
 from lineageweave.knowledge_graph import knowledge_graph_edges_for_post
+from lineageweave.post_chat import ChatSourceDocument
 from lineageweave.post_summary import POST_SUMMARY_CONTRACT_VERSION
 
 _POSTGRES_ADMIN_DSN = os.environ.get(
@@ -3945,11 +3946,15 @@ def test_global_ask_provider_error_does_not_leak_raw_error(
         def answer(self, question: str, sources) -> object:
             raise Exception("raw-global-provider-secret")
 
-    async def _sources(*_args, **_kwargs):
-        return [SimpleNamespace(post_id=seeded_db["own_private_post_id"])]
+    async def _source(*_args, **_kwargs):
+        return [
+            ChatSourceDocument(
+                seeded_db["own_private_post_id"], "Authorized source", "Evidence"
+            )
+        ]
 
+    monkeypatch.setattr("backend.app.global_ask_queue.gather_global_chat_sources", _source)
     monkeypatch.setattr("backend.app.main._post_chat_client", lambda **_kwargs: _FailingAskClient())
-    monkeypatch.setattr("backend.app.global_ask_queue.gather_global_chat_sources", _sources)
     headers = {"Authorization": f"Bearer {demo_analyst_token}"}
 
     submitted = client.post(
@@ -5099,6 +5104,14 @@ def test_ask_queues_a_job_and_polls_it_to_a_settled_answer(
             "cited_post_images": [],
         }
 
+    async def _source(*_args, **_kwargs):
+        return [
+            ChatSourceDocument(
+                seeded_db["own_private_post_id"], "Authorized source", "Evidence"
+            )
+        ]
+
+    monkeypatch.setattr("backend.app.global_ask_queue.gather_global_chat_sources", _source)
     monkeypatch.setattr("backend.app.main._post_chat_client", lambda **_kwargs: _FakeChatClient())
     monkeypatch.setattr(
         "backend.app.global_ask_queue.compute_global_ask_answer", _fake_compute_answer

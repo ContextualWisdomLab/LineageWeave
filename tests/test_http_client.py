@@ -142,6 +142,7 @@ def test_post_json_posts_json_to_http_endpoint() -> None:
         )
     finally:
         server.shutdown()
+        server.server_close()
 
     assert body == {
         "ok": True,
@@ -162,6 +163,7 @@ def test_get_json_fetches_json_from_http_endpoint() -> None:
         )
     finally:
         server.shutdown()
+        server.server_close()
 
     assert body == {
         "ok": True,
@@ -217,6 +219,7 @@ def test_post_json_and_get_json_inject_parent_traceparent(monkeypatch) -> None:
             captured["list"] = _JsonHandler.received.get("traceparent")
     finally:
         server.shutdown()
+        server.server_close()
 
     assert parent_trace_id != "0" * 32
     assert _traceparent_trace_id(captured["post"]) == parent_trace_id
@@ -247,6 +250,7 @@ def test_get_json_session_header_stays_on_orchestrator_peers(monkeypatch) -> Non
             orchestrator = dict(_JsonHandler.received)
     finally:
         server.shutdown()
+        server.server_close()
 
     assert searxng.get("session") is None
     assert searxng.get("traceparent")
@@ -271,6 +275,7 @@ def test_get_json_rejects_responses_over_explicit_byte_limit(
             )
     finally:
         server.shutdown()
+        server.server_close()
 
 
 def test_get_json_rejects_invalid_response_byte_limit() -> None:
@@ -293,6 +298,7 @@ def test_post_form_posts_urlencoded_fields() -> None:
         )
     finally:
         server.shutdown()
+        server.server_close()
 
     assert body["ok"] is True
     assert "grant_type=password" in _JsonHandler.received["payload"]
@@ -356,6 +362,7 @@ def test_post_json_https_negotiates_tls_instead_of_plaintext() -> None:
         assert error.value.__cause__ is not None
     finally:
         server.shutdown()
+        server.server_close()
 
 
 def test_post_json_raises_on_http_error() -> None:
@@ -365,3 +372,4 @@ def test_post_json_raises_on_http_error() -> None:
             post_json(f"{base}/fail", {}, headers={}, timeout=2.0)
     finally:
         server.shutdown()
+        server.server_close()

@@ -79,6 +79,7 @@ def test_searxng_client_reports_corroborated_with_evidence_url() -> None:
         result = client.verify("Acme Corp", "Voice of Customer")
     finally:
         server.shutdown()
+        server.server_close()
 
     assert result.status_code == STATUS_CORROBORATED
     assert result.evidence_url == "https://acme.example.com/about"
@@ -93,6 +94,7 @@ def test_searxng_client_reports_uncorroborated_with_no_evidence_url_when_search_
         result = client.verify("Totally Fictitious Nonexistent Org", "Voice of Customer")
     finally:
         server.shutdown()
+        server.server_close()
 
     assert result.status_code == STATUS_UNCORROBORATED
     assert result.evidence_url is None
