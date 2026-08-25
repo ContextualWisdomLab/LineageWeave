@@ -426,7 +426,8 @@
 :mentionsProject a owl:ObjectProperty ;
     :lookupCode "edge_mention_project" ;
     rdfs:domain :Post ;
-    rdfs:range :Project .
+    rdfs:range :Project ;
+    rdfs:label "mentions project"@en .
 
 :projectEvidence a owl:DatatypeProperty ;
     rdfs:domain :ProjectMention ;

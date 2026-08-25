@@ -30,7 +30,7 @@ from lineageweave.ontology import (
     load_ontology,
     ontology_annotations,
 )
-from rdflib import URIRef
+from rdflib import Literal, URIRef
 from rdflib.namespace import OWL, RDF, RDFS, SKOS, XSD
 
 _SEED_SCRIPT_PATH = Path(__file__).resolve().parents[1] / "scripts" / "seed_demo_data.py"
@@ -238,6 +238,7 @@ def test_semantic_project_terms_preserve_post_evidence_and_confidence() -> None:
     )
     assert (LW.mentionsProject, RDFS.domain, LW.Post) in graph
     assert (LW.mentionsProject, RDFS.range, LW.Project) in graph
+    assert (LW.mentionsProject, RDFS.label, Literal("mentions project", lang="en")) in graph
     assert (LW.projectEvidence, RDFS.domain, LW.ProjectMention) in graph
     assert (LW.projectEvidence, RDFS.range, XSD.string) in graph
     assert (LW.semanticConfidence, RDFS.range, XSD.decimal) in graph

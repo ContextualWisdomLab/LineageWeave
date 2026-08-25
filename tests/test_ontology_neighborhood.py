@@ -147,6 +147,7 @@ def test_post_mentions_project_round_trips_as_proposed_evidence() -> None:
     project = next(node for node in neighborhood.nodes if node.node_type_code == NODE_PROJECT)
     assert edge.property_code == PROPERTY_MENTIONS_PROJECT
     assert edge.ontology_property_iri == str(LW.mentionsProject)
+    assert edge.property_label == "mentions project"
     assert edge.truth_status_code == TRUTH_PROPOSED
     assert project.ontology_class_iri == str(LW.Project)
     assert project.shape_code == "diamond"
