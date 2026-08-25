@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import asyncio
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 import backend.app.ontology_neighborhood_ingestion as ingestion
@@ -29,7 +29,7 @@ THIRD_POST_ID = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa3"
 PERSON_ID = "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbb1"
 CORP_ID = "cccccccc-cccc-cccc-cccc-ccccccccccc1"
 TEAM_ID = "dddddddd-dddd-dddd-dddd-ddddddddddd1"
-T0 = datetime(2026, 1, 10, 12, 0, tzinfo=timezone.utc)
+T0 = datetime(2026, 1, 10, 12, 0, tzinfo=UTC)
 
 
 class BatchConnection:
