@@ -14,6 +14,7 @@ export const ANALYST_GNB_LABELS = ANALYST_GNB_ITEMS.map((item) => item.label);
 
 export const CALENDAR_CONSUME_UNAVAILABLE = "이 범위의 일정을 아직 받을 수 없습니다";
 
-export function initialAnalystDestination(mode: string, search: string): AnalystGnbId {
-  return new URLSearchParams(search).has("post") || mode === "test" ? "board" : "dashboard";
+/** Keep shared post links on the board; otherwise use the product landing page. */
+export function initialWorkspaceDestination(search: string, testMode: boolean): "board" | "dashboard" {
+  return testMode || new URLSearchParams(search).has("post") ? "board" : "dashboard";
 }

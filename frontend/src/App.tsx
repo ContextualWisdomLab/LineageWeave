@@ -95,18 +95,14 @@ import { PopupCloseButton } from "./components/PopupCloseButton";
 import { chatEvidenceKindLabel } from "./evidenceKindLabels";
 import { WorkspaceNav, type WorkspaceDestination } from "./components/WorkspaceNav";
 import { OperationsDashboard } from "./components/OperationsDashboard";
-import { initialAnalystDestination } from "./gnbChrome";
+import { initialWorkspaceDestination } from "./gnbChrome";
 import { LineageDag } from "./LineageDag";
 import { PostBody } from "./PostBody";
 import { decodeHtmlEntities } from "./postBodyDisplay";
 import { FiveW1H } from "./components/FiveW1H";
 import { isFocusableVisible } from "./focusVisibility";
 import { subgraphForPost } from "./lineageLayout";
-import {
-  rememberOidcReturnUrl,
-  returnUrlFromLocation,
-  stripOidcCallbackParams,
-} from "./oidcReturnUrl";
+import { rememberOidcReturnUrl, returnUrlFromLocation, stripOidcCallbackParams } from "./oidcReturnUrl";
 import {
   isSupportedLocale,
   LOCALE_LABELS,
@@ -4884,10 +4880,10 @@ export default function App({ showLabPanels = false }: { showLabPanels?: boolean
   useLocale();
   const [brandName, setBrandName] = useState("LineageWeave");
   const auth = useAuth();
-  const [destination, setDestination] = useState<WorkspaceDestination>(
-    initialAnalystDestination(
-      import.meta.env.MODE,
+  const [destination, setDestination] = useState<WorkspaceDestination>(() =>
+    initialWorkspaceDestination(
       typeof window === "undefined" ? "" : window.location.search,
+      import.meta.env.MODE === "test",
     ),
   );
   const [postToOpen, setPostToOpen] = useState<string | null>(() => {
