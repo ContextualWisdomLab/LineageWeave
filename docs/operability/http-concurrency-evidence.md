@@ -76,6 +76,17 @@ tests now assert the join and bind arity; the distribution above is the clean
 rerun. This is synthetic candidate evidence, not protected-main evidence or a
 capacity/SLO claim.
 
+After the normalized topic-coordinate/provenance and lifecycle constraints were
+added, candidate `7e63d8c2` replayed migrations through `0216` on the retained
+synthetic volume and passed the real-PostgreSQL Dashboard contract. Its clean
+4-VU/30-second rerun completed 345 iterations, 1,382 requests, and 1,380/1,380
+checks with zero request failures. HTTP duration was 255.55 ms average,
+187.54 ms median, and 593.53 ms p95; the reader metric was 275.26 ms average
+and 637.94 ms p95. Ask enqueue took 791.12 ms and polling p95 was 425.66 ms.
+The host was still completing the Keycloak/Quarkus cold start immediately
+before this run, so the distribution is retained as correctness/concurrency
+evidence and is not compared as a performance regression or SLO.
+
 ## Current-main verification record
 
 On 2026-08-25, a worktree based on protected-main commit `48f013a2` passed
