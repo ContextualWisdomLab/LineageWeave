@@ -6,6 +6,7 @@
 [ADR 0163](0163-leftover-observed-expected.md) (observed Y and expected E);
 [ADR 0164](0164-leftover-map-rank.md) (full map rank);
 [ADR 0182](0182-leftover-map-unexplained.md) (unexplained leftover U);
+[ADR 0158](0158-leftover-criterion-evaluation-landing.md) (criterion evaluation landing);
 [ADR 0185](0185-leftover-map-cross-share.md) (leftover-map cross share)
 
 ## Context
@@ -35,7 +36,8 @@ remainder `x` two leftover-map axes leave of centered leftover after
 IRT main effects. A missing or non-finite value falls back in order —
 cross share, then unexplained leftover, then the existing
 closest/farthest next action. Clicking the button opens that post with
-the same handler as a member row. Residual naming is
+leftover focus so Post quality marks the named criterion current
+(ADR 0158). Residual naming is
 [ADR 0162](0162-leftover-residual-disclosure.md), observed/expected
 naming is [ADR 0163](0163-leftover-observed-expected.md), rank naming
 is [ADR 0164](0164-leftover-map-rank.md), unexplained leftover naming
@@ -43,7 +45,8 @@ is [ADR 0182](0182-leftover-map-unexplained.md), leftover-map cross
 share naming is [ADR 0185](0185-leftover-map-cross-share.md).
 
 After `make seed`, closest and farthest leftover pairs sit above the
-member list. Click a pair to open that post.
+member list. Click a pair to open that post with the leftover
+criterion current in Post quality.
 
 Missing leftover rows render nothing — never a placeholder pair.
 A hidden post never appears as a leftover pair.
