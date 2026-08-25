@@ -26,9 +26,14 @@ class BoundedRequestBodyApp:
 
         content_lengths = _header_values(scope, b"content-length")
         transfer_encodings = _header_values(scope, b"transfer-encoding")
-        declared_length = _parse_content_length(content_lengths, transfer_encodings)
+        declared_length = _parse_content_length(
+            content_lengths, transfer_encodings, maximum_bytes=self._maximum_bytes
+        )
         if declared_length is _INVALID_LENGTH:
             await _send_error(send, 400, "mcp_invalid_content_length")
+            return
+        if declared_length is _TOO_LARGE:
+            await _send_error(send, 413, "mcp_request_too_large")
             return
         if isinstance(declared_length, int) and declared_length > self._maximum_bytes:
             await _send_error(send, 413, "mcp_request_too_large")
@@ -79,6 +84,13 @@ class _InvalidLength:
 _INVALID_LENGTH = _InvalidLength()
 
 
+class _TooLarge:
+    """Sentinel for a decimal length known to exceed the body limit."""
+
+
+_TOO_LARGE = _TooLarge()
+
+
 def _header_values(scope: Scope, name: bytes) -> tuple[bytes, ...]:
     """Return every raw value for one case-insensitive request header."""
     return tuple(
@@ -91,7 +103,9 @@ def _header_values(scope: Scope, name: bytes) -> tuple[bytes, ...]:
 def _parse_content_length(
     content_lengths: Sequence[bytes],
     transfer_encodings: Sequence[bytes],
-) -> int | None | _InvalidLength:
+    *,
+    maximum_bytes: int | None = None,
+) -> int | None | _InvalidLength | _TooLarge:
     """Return an unambiguous nonnegative length, absence, or invalid sentinel."""
     if len(content_lengths) > 1 or (content_lengths and transfer_encodings):
         return _INVALID_LENGTH
@@ -103,6 +117,9 @@ def _parse_content_length(
         return _INVALID_LENGTH
     if not decoded or not decoded.isdecimal():
         return _INVALID_LENGTH
+    normalized = decoded.lstrip("0") or "0"
+    if maximum_bytes is not None and len(normalized) > len(str(maximum_bytes)):
+        return _TOO_LARGE
     try:
         return int(decoded, 10)
     except ValueError:
