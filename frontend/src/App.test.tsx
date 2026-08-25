@@ -2270,7 +2270,7 @@ describe("App, authenticated", () => {
 
   it("closes the post-detail dialog with Escape and restores focus to its opener", async () => {
     stubBackend();
-    render(<App showLabPanels />);
+    const { rerender } = render(<App showLabPanels />);
 
     const opener = await screen.findByRole("button", { name: "View post: Public post" });
     await userEvent.click(opener);
@@ -2281,7 +2281,11 @@ describe("App, authenticated", () => {
     const focusable = within(dialog).getAllByRole("button").filter((button) => !button.hasAttribute("disabled"));
     expect(focusable.at(-1)).toHaveFocus();
     await userEvent.tab();
-    expect(within(dialog).getByRole("button", { name: "Close" })).toHaveFocus();
+    const closeButton = within(dialog).getByRole("button", { name: "Close" });
+    expect(closeButton).toHaveFocus();
+
+    rerender(<App showLabPanels />);
+    expect(closeButton).toHaveFocus();
 
     await userEvent.keyboard("{Escape}");
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
