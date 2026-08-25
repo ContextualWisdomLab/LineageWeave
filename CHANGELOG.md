@@ -8,6 +8,13 @@ All notable changes to this project are documented here. Format follows
 
 ### Added
 
+- ADR 0210's Dashboard consumer now persists a normalized, exact-provenance
+  projection for TEPP temporal topics and fast-mlsirm case-deletion model
+  influence. The API authorizes the fitted analysis scope before returning
+  rows; the UI preserves ties, multiple membership, uncertainty, time states,
+  and source links, and otherwise names the missing producer contract without
+  calculating a local score.
+
 - Event Lineage now persists each reconstructed connection's independent
   channel scores, the normalized weights actually used, and their
   contributions. The Event Lineage DAG discloses those exact values as inferred

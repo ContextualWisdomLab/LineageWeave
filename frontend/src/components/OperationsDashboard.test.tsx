@@ -1,7 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
-import { fetchOperationsDashboard } from "../api";
+import { fetchOperationsDashboard, type OperationsDashboardResponse } from "../api";
 import { OperationsDashboard, OperationsDashboardView } from "./OperationsDashboard";
 
 vi.mock("../api", async (importOriginal) => ({
@@ -9,7 +9,7 @@ vi.mock("../api", async (importOriginal) => ({
   fetchOperationsDashboard: vi.fn(),
 }));
 
-const data = {
+const data: OperationsDashboardResponse = {
   period_label: "2026-08-01–2026-08-25 · Event time",
   total_post_count: 20,
   total_event_count: 8,
@@ -21,6 +21,17 @@ const data = {
     { case_kind_code: "claim_investigation", case_kind_label: "클레임 원인 규명", event_count: 3, post_count: 2 },
     { case_kind_code: "rebid_handover", case_kind_label: "재입찰 · 인수인계", event_count: 2, post_count: 2 },
   ],
+  topic_context: {
+    status_code: "unavailable",
+    reason_code: "tepp_topic_posterior_not_persisted",
+    next_action: "TEPP posterior topic 계약 결과를 먼저 완료하세요.",
+    required_contracts: [
+      { authority: "TEPP", schema_version: "tepp.topic_context_posterior.v1", state_code: "not_persisted" },
+      { authority: "fast-mlsirm", schema_version: "fast_mlsirm.topic_context_influence.v1", state_code: "not_persisted" },
+    ],
+    model_run: null,
+    topics: [],
+  },
   cases: [{
     post_id: "post-1", case_kind_code: "claim_investigation", case_kind_label: "클레임 원인 역추적",
     project_name: "Synthetic Grid Upgrade", summary_text: "사양 변경 이후 원인 수주를 확인했습니다.", evidence_text: "Revision B changed the enclosure.", evidence_post_id: "evidence-post-1", occurred_at: "2026-08-12T00:00:00Z",
@@ -91,6 +102,49 @@ describe("OperationsDashboardView", () => {
     expect(screen.getByText("분석 실패").nextElementSibling).toHaveTextContent("2");
     expect(screen.getByRole("alert")).toHaveTextContent("재처리한 뒤 근거 누락 여부를 다시 확인하세요");
     expect(screen.queryByText("분석 대기 건부터 처리하세요")).not.toBeInTheDocument();
+  });
+
+  it("keeps unavailable topic measurement actionable without a fallback score", () => {
+    render(<OperationsDashboardView data={data} onOpenPost={() => undefined} />);
+    expect(screen.getByText("Topic model influence를 아직 표시할 수 없습니다.")).toBeInTheDocument();
+    expect(screen.getByText("TEPP posterior topic 계약 결과를 먼저 완료하세요.")).toBeInTheDocument();
+    expect(screen.queryByText(/추정 점수/)).not.toBeInTheDocument();
+  });
+
+  it("opens accepted exact influence evidence and retains equal values", async () => {
+    const onOpenPost = vi.fn();
+    const influence = {
+      post_id: "post-1", occurred_at: "2026-08-12T00:00:00Z", topic_state_code: "active" as const,
+      model_influence: 4.25, uncertainty_method_code: "posterior_interval",
+      uncertainty_lower_value: 3.5, uncertainty_upper_value: 5,
+      diagnostic_status_code: "accepted" as const, membership_weight: 0.5,
+      membership_evidence_sha256: "a".repeat(64),
+    };
+    const accepted: OperationsDashboardResponse = {
+      ...data,
+      topic_context: {
+        status_code: "accepted", reason_code: null, next_action: "근거 글을 확인하세요.",
+        required_contracts: [
+          { authority: "TEPP", schema_version: "tepp.topic_context_posterior.v1", state_code: "persisted" },
+          { authority: "fast-mlsirm", schema_version: "fast_mlsirm.topic_context_influence.v1", state_code: "persisted" },
+        ],
+        model_run: {
+          tepp_run_id: "tepp-run", tepp_snapshot_id: "tepp-snapshot", source_snapshot_sha256: "b".repeat(64),
+          knowledge_cutoff: "2026-08-20T00:00:00Z", tepp_model_contract_version: "trsl-tm-1",
+          tepp_artifact_sha256: "c".repeat(64), posterior_draw_set_id: "draws-1", posterior_draw_count: 32,
+          topic_count: 2, fast_mlsirm_version: "0.1.0", fast_mlsirm_code_revision: "d".repeat(40),
+          fast_mlsirm_artifact_sha256: "e".repeat(64), compute_backend_code: "rust_cpu", precision_code: "f64",
+          membership_fingerprint_sha256: "f".repeat(64),
+        },
+        topics: [{ topic_index: 0, activity_intervals: [{ state_code: "active", valid_from: "2026-08-01T00:00:00Z", valid_to: "2026-09-01T00:00:00Z" }], lineage_events: [{ event_code: "birth", source_topic_index: 0, target_topic_index: null, event_time: "2026-08-01T00:00:00Z", evidence_sha256: "1".repeat(64) }], contexts: [{ dimension_code: "team", context_id: "team-1", context_label: "Synthetic Team", influences: [influence, { ...influence, post_id: "post-2" }] }] }],
+      },
+    };
+    render(<OperationsDashboardView data={accepted} onOpenPost={onOpenPost} />);
+    expect(screen.getAllByText("4.25")).toHaveLength(2);
+    expect(screen.getByText((_, element) => element?.tagName === "LI" && element.textContent === "2026-08-01 · birth")).toBeInTheDocument();
+    expect(screen.getByText("tepp-snapshot")).toBeInTheDocument();
+    await userEvent.click(screen.getAllByRole("button", { name: "근거 글 열기" })[1]);
+    expect(onOpenPost).toHaveBeenCalledWith("post-2");
   });
 
   it("keeps period controls mounted while a changed period loads", async () => {

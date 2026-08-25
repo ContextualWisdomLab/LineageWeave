@@ -95,6 +95,17 @@ _OPERATIONS_CASE_EVIDENCE_MIGRATION = (
 _OPERATIONS_CASE_MISSING_MIGRATION = (
     Path(__file__).resolve().parents[1] / "migrations" / "0211_operations_case_missing_fact.sql"
 )
+_ANALYSIS_RUN_REGISTRY_MIGRATION = (
+    Path(__file__).resolve().parents[1] / "migrations" / "0018_analysis_run_registry.sql"
+)
+_TOPIC_CONTEXT_INFLUENCE_MIGRATION = (
+    Path(__file__).resolve().parents[1]
+    / "migrations"
+    / "0214_topic_context_influence_projection.sql"
+)
+_TOPIC_LINEAGE_KIND_MIGRATION = (
+    Path(__file__).resolve().parents[1] / "migrations" / "0131_analysis_run_topic_lineage_kind.sql"
+)
 _OPERATIONS_EXTERNAL_RELATION_MIGRATION = (
     Path(__file__).resolve().parents[1]
     / "migrations"
@@ -132,6 +143,8 @@ def schema_db():
         try:
             with conn.cursor() as cur:
                 cur.execute(_MIGRATION_PATH.read_text())
+                cur.execute(_ANALYSIS_RUN_REGISTRY_MIGRATION.read_text())
+                cur.execute(_TOPIC_LINEAGE_KIND_MIGRATION.read_text())
                 cur.execute(_PROJECT_MENTION_MIGRATION.read_text())
                 cur.execute(_MAJOR_EVENT_ACTION_MIGRATION.read_text())
                 cur.execute(_PROJECT_BOUND_ACTION_MIGRATION.read_text())
@@ -148,6 +161,7 @@ def schema_db():
                 cur.execute(_OPERATIONS_CASE_MIGRATION.read_text())
                 cur.execute(_OPERATIONS_CASE_EVIDENCE_MIGRATION.read_text())
                 cur.execute(_OPERATIONS_CASE_MISSING_MIGRATION.read_text())
+                cur.execute(_TOPIC_CONTEXT_INFLUENCE_MIGRATION.read_text())
                 cur.execute(_OPERATIONS_EXTERNAL_RELATION_MIGRATION.read_text())
             conn.commit()
             yield conn
@@ -207,8 +221,144 @@ def test_migration_applies_cleanly(schema_db) -> None:
         "operations_case_classification",
         "operations_case_fact",
         "operations_case_missing_fact",
+        "topic_model_run",
+        "topic_definition",
+        "topic_activity_interval",
+        "topic_lineage_relation",
+        "topic_context_definition",
+        "topic_context_membership",
+        "topic_influence_run",
+        "topic_post_context_influence",
     }
     assert expected <= tables
+
+
+def test_topic_influence_schema_binds_exact_producer_provenance(schema_db) -> None:
+    """Accepted influence runs cannot cross a TEPP run, snapshot, or cutoff."""
+    with schema_db.cursor() as cur:
+        cur.execute(
+            """
+            select tgname
+              from pg_trigger
+             where tgname = 'topic_influence_run_binding_check'
+               and not tgisinternal
+            """
+        )
+        assert cur.fetchone() == ("topic_influence_run_binding_check",)
+        cur.execute(
+            """
+            select tgname
+              from pg_trigger
+             where tgname = 'topic_model_run_binding_check'
+               and not tgisinternal
+            """
+        )
+        assert cur.fetchone() == ("topic_model_run_binding_check",)
+        cur.execute(
+            """
+            select conname
+              from pg_constraint
+             where conrelid = 'topic_post_context_influence'::regclass
+               and contype = 'f'
+            """
+        )
+        foreign_keys = {row[0] for row in cur.fetchall()}
+    assert len(foreign_keys) == 3
+
+    account_id = uuid.uuid4()
+    snapshot_id = uuid.uuid4()
+    run_id = uuid.uuid4()
+    with schema_db.cursor() as cur:
+        cur.execute(
+            "insert into user_account (user_account_id, external_subject_id, display_name, email_address) values (%s, %s, %s, %s)",
+            (str(account_id), f"synthetic-{account_id}", "Synthetic Reviewer", f"synthetic-{account_id}@example.invalid"),
+        )
+        cur.execute(
+            """
+            insert into analysis_source_snapshot
+                (analysis_source_snapshot_id, snapshot_sha256, source_contract_version,
+                 maximum_available_time, captured_at, created_at)
+            values (%s, %s, 'synthetic-v1', '2026-08-01T00:00:00Z',
+                    '2026-08-02T00:00:00Z', '2026-08-03T00:00:00Z')
+            """,
+            (str(snapshot_id), "a" * 64),
+        )
+        cur.execute(
+            """
+            insert into analysis_run
+                (analysis_run_id, analysis_source_snapshot_id, run_kind_code,
+                 requested_by_account_id, idempotency_key, knowledge_cutoff,
+                 configuration_schema_version, configuration_sha256,
+                 code_revision_sha, requested_at)
+            values (%s, %s, 'analysis_run_topic_lineage', %s, 'synthetic-topic-run',
+                    '2026-08-01T00:00:00Z', 'synthetic-v1', %s, %s,
+                    '2026-08-04T00:00:00Z')
+            """,
+            (str(run_id), str(snapshot_id), str(account_id), "b" * 64, "c" * 40),
+        )
+        cur.execute("savepoint topic_model_mismatch")
+        with pytest.raises(psycopg2.errors.RaiseException, match="topic_model_run_provenance_binding_mismatch"):
+            cur.execute(
+                """
+                insert into topic_model_run
+                    (analysis_run_id, tepp_run_id, tepp_snapshot_id,
+                     tepp_schema_version, tepp_model_contract_version,
+                     tepp_artifact_sha256, reported_source_snapshot_sha256,
+                     reported_knowledge_cutoff, posterior_draw_set_id,
+                     posterior_draw_count, topic_count, inference_status_code)
+                values (%s, 'tepp-mismatch', 'snapshot-mismatch',
+                        'tepp.topic_context_posterior.v1', 'trsl-tm-v1', %s, %s,
+                        '2026-08-01T00:00:00Z', 'draws-1', 8, 2,
+                        'posterior_topic_coordinates_not_importance')
+                """,
+                (str(run_id), "d" * 64, "e" * 64),
+            )
+        cur.execute("rollback to savepoint topic_model_mismatch")
+        cur.execute(
+            """
+            insert into topic_model_run
+                (analysis_run_id, tepp_run_id, tepp_snapshot_id,
+                 tepp_schema_version, tepp_model_contract_version,
+                 tepp_artifact_sha256, reported_source_snapshot_sha256,
+                 reported_knowledge_cutoff, posterior_draw_set_id,
+                 posterior_draw_count, topic_count, inference_status_code)
+            values (%s, 'tepp-accepted', 'snapshot-accepted',
+                    'tepp.topic_context_posterior.v1', 'trsl-tm-v1', %s, %s,
+                    '2026-08-01T00:00:00Z', 'draws-1', 8, 2,
+                    'posterior_topic_coordinates_not_importance')
+            returning topic_model_run_id
+            """,
+            (str(run_id), "d" * 64, "a" * 64),
+        )
+        model_id = cur.fetchone()[0]
+        cur.execute("savepoint topic_influence_mismatch")
+        with pytest.raises(psycopg2.errors.RaiseException, match="topic_influence_provenance_binding_mismatch"):
+            cur.execute(
+                """
+                insert into topic_influence_run
+                    (topic_model_run_id, fast_mlsirm_schema_version,
+                     fast_mlsirm_version, fast_mlsirm_code_revision,
+                     fast_mlsirm_artifact_sha256, reported_tepp_run_id,
+                     reported_snapshot_sha256, reported_knowledge_cutoff,
+                     membership_fingerprint_sha256, compute_backend_code,
+                     precision_code, posterior_draw_coverage,
+                     convergence_status_code, identification_status_code,
+                     parity_status_code)
+                values (%s, 'fast_mlsirm.topic_context_influence.v1', '0.1.0',
+                        %s, %s, 'different-tepp-run', %s,
+                        '2026-08-01T00:00:00Z', %s, 'rust_cpu', 'f64', 8,
+                        'converged', 'identified', 'passed')
+                """,
+                (model_id, "f" * 40, "1" * 64, "a" * 64, "2" * 64),
+            )
+        cur.execute("rollback to savepoint topic_influence_mismatch")
+
+
+def test_topic_influence_projection_migration_replays(schema_db) -> None:
+    """The additive topic projection remains safe under sorted startup replay."""
+    with schema_db.cursor() as cur:
+        cur.execute(_TOPIC_CONTEXT_INFLUENCE_MIGRATION.read_text())
+    schema_db.commit()
 
 
 def test_post_lineage_edge_requires_an_allen_interval_code(schema_db) -> None:
