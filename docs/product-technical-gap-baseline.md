@@ -1,6 +1,6 @@
 # Product & Technical Gap Baseline
 
-> Audit snapshot: 2026-08-25 14:18 KST (refreshed by the autonomous merge
+> Audit snapshot: 2026-08-25 14:25 KST (refreshed by the autonomous merge
 > loop). This repository records synthetic fixtures and aggregate,
 > non-identifying runtime evidence only. Open PRs and local checks are not
 > protected-default-branch release evidence. Identifying post identifiers,
@@ -21,7 +21,7 @@ context only.
 | #600 | `df645d3a` | this baseline's pre-amendment observed head; mergeable with review/check evidence pending |
 | #588 | `6185f2ae` | raw-residual reconstruction, rank-zero identity, API presence, and comparison-strip contracts reconciled with current main; focused backend/frontend/schema checks passed; auto-merge armed |
 | #582 | `edca49bb` | batched cited-lineage fetch previously passed 37 focused tests but now conflicts with advanced main; restack semantically before re-arming |
-| #579 | `69c05078` | interaction-map coordinate branch is conflicting; nine unresolved review threads remain |
+| #579 | `08554951` | interaction-map coordinate branch is conflicting; ADR 0202 traceability was repaired, 20 focused documentation/schema checks passed, and all review threads are resolved; semantic composition with current main remains |
 | #493 | `a7a050ef` | empty-DAG reasons and explicit double-failure alert previously passed focused frontend/lint/build/docs checks but now conflicts with advanced main |
 | #490 | `73413d0b` | broad historical workspace branch is conflicting with failing checks; decompose/restack rather than replaying its 931-commit merge wholesale |
 | #482 | `43bb8ba1` | corroborated SKOS companion has no unresolved threads but conflicts with advanced main |
