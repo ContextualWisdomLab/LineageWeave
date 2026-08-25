@@ -78,9 +78,16 @@ export function projectLeftoverMap(
   const maxY = Math.max(...ys);
   const spanX = maxX - minX;
   const spanY = maxY - minY;
+  const scales = [
+    ...(spanX === 0 ? [] : [(width - 2 * pad) / spanX]),
+    ...(spanY === 0 ? [] : [(height - 2 * pad) / spanY]),
+  ];
+  const scale = scales.length === 0 ? 0 : Math.min(...scales);
+  const centerX = (minX + maxX) / 2;
+  const centerY = (minY + maxY) / 2;
   const toSvg = (axisOne: number, axisTwo: number) => ({
-    x: spanX === 0 ? width / 2 : pad + ((axisOne - minX) / spanX) * (width - 2 * pad),
-    y: spanY === 0 ? height / 2 : pad + ((maxY - axisTwo) / spanY) * (height - 2 * pad),
+    x: width / 2 + (axisOne - centerX) * scale,
+    y: height / 2 - (axisTwo - centerY) * scale,
   });
   return {
     persons: raw
