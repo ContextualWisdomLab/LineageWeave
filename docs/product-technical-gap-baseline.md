@@ -61,7 +61,7 @@ only aggregate, non-identifying evidence to this repository.
 ### Exact open-PR boundary
 
 At this snapshot there were 11 open PRs and 10 open issues. Exact observed heads
-were `#658 12791b1c`, `#657 41ff3ead`, `#644 c1018a0a`, `#643 041ec13b`, `#640 175db369`,
+were `#658 12791b1c`, `#657 49773728`, `#644 c1018a0a`, `#643 041ec13b`, `#640 175db369`,
 `#639 aee02dca`, `#636 f7b9a65f`, `#632 e41476c7`, `#631 c0022c97`,
 `#629 4b4d6707`, and `#579 689a21b6`. PR #654 merged its ontology-label
 readability slice into #632's provenance branch as `6c0c4370`; that stack
@@ -89,7 +89,7 @@ context only.
 | PR | Exact observed head | Merge/check state at this snapshot |
 | ---: | --- | --- |
 | #658 | `12791b1c` | optional Global Ask knowledge cutoff; checks and independent review remain required |
-| #657 | `41ff3ead` | TEPP asynchronous lifecycle evidence; terminal-status persistence repaired and focused tests passed; hosted checks and independent review remain required |
+| #657 | `49773728` | TEPP asynchronous lifecycle evidence; terminal-status persistence repaired and bounded acceptance evidence validated with 55 focused tests; hosted checks and independent review remain required |
 | #644 | `c1018a0a` | frontend conditional workspace splitting; checks and independent review remain required |
 | #643 | `041ec13b` | shared token-backed status notice; checks and independent review remain required |
 | #640 | `175db369` | dashboard case metrics, project journeys, restored TEPP API-key setting, and semantic-label spacing; focused exact-head PostgreSQL contract passed; hosted checks and independent review remain required |
