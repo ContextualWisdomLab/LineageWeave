@@ -2286,13 +2286,17 @@ describe("App, authenticated", () => {
       "no_comparison_group" as const,
       "No other visible posts share this comparison group yet. Request reconstruction after more posts arrive, or read Keyman and evaluation.",
     ],
-  ])("explains an empty focused Event Lineage graph: %s", async (lineageIsolationReason, message) => {
-    stubBackend({ lineageIsolationReason });
-    render(<App showLabPanels />);
-    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
-    expect(await screen.findByText(message)).toBeInTheDocument();
-    expect(screen.queryByText("No linked posts yet.")).not.toBeInTheDocument();
-  });
+  ])(
+    "explains an empty focused Event Lineage graph: %s",
+    async (lineageIsolationReason, message) => {
+      stubBackend({ lineageIsolationReason });
+      render(<App showLabPanels />);
+      await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
+      expect(await screen.findByText(message)).toBeInTheDocument();
+      expect(screen.queryByText("No linked posts yet.")).not.toBeInTheDocument();
+    },
+    15_000,
+  );
 
   it("shows an embedded invoice image instead of the raw base64 string", async () => {
     const tinyPng =

@@ -1,6 +1,7 @@
 import { AdminPanel } from "./components/AdminPanel";
 import { LeftoverPairList } from "./components/LeftoverPairList";
 import { WorkspaceCalendar } from "./components/WorkspaceCalendar";
+import { focusedGraphMustReset } from "./focusedGraphSelection";
 
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { useAuth } from "react-oidc-context";
@@ -3879,7 +3880,6 @@ function PostList({
   onPostOpened?: () => void;
 }) {
   const [posts, setPosts] = useState<PostSummary[] | null>(null);
-  const [graph, setGraph] = useState<LineageGraph | null>(null);
   const [focusedGraph, setFocusedGraph] = useState<LineageGraph | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [selectedPostId, setSelectedPostId] = useState<string | null>(null);
@@ -3942,8 +3942,10 @@ function PostList({
   }
 
   function selectPost(postId: string, options?: SelectPostOptions) {
+    if (focusedGraphMustReset(selectedPostId, postId)) {
+      setFocusedGraph(null);
+    }
     setSelectedPostId(postId);
-    setFocusedGraph(null);
     setOpenedAfterCutoff(Boolean(options?.liveAfterCutoff));
     setOpenedCutoffIso(options?.knowledgeCutoff ?? null);
     setOpenedFromReportMember(Boolean(options?.fromReportMember));
@@ -4011,7 +4013,6 @@ function PostList({
   }, [loadPostPage]);
 
   useEffect(() => {
-    fetchLineageGraph(accessToken).then(setGraph).catch(() => setGraph({ nodes: [], edges: [] }));
     fetchMe(accessToken)
       .then((me) => {
         setCanRebuild(me.permission_codes.includes("post_admin"));
@@ -4030,6 +4031,7 @@ function PostList({
       setFocusedGraph(null);
       return;
     }
+    setFocusedGraph(null);
     let active = true;
     fetchLineageGraph(accessToken, selectedPostId)
       .then((nextGraph) => {
@@ -4048,7 +4050,6 @@ function PostList({
     setRebuildError(null);
     try {
       await rebuildLineage(accessToken);
-      setGraph(await fetchLineageGraph(accessToken));
     } catch (err) {
       setRebuildError(String(err));
     } finally {
@@ -4360,7 +4361,7 @@ function PostList({
           postId={selectedPostId}
           accessToken={accessToken}
           canExtract={canRebuild}
-          graph={focusedGraph ?? graph}
+          graph={focusedGraph}
           liveBodyWarning={
             openedAfterCutoff ? analysisRunOpenedBodyWarning(openedCutoffIso) : null
           }
