@@ -761,8 +761,9 @@ async def deliver_queued_analysis_run(
     lock_conn = await asyncpg.connect(database_url)
     try:
         acquired = await lock_conn.fetchval(
-            "select pg_try_advisory_lock(hashtextextended($1, 0))",
-            f"lineageweave:analysis-run:{analysis_run_id}",
+            "select pg_try_advisory_lock("
+            "hashtextextended('lineageweave:analysis-run:' || $1, 0))",
+            analysis_run_id,
         )
         if not acquired:
             async with pool.acquire() as conn:
