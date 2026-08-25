@@ -484,11 +484,17 @@ function EventLineageSection({
   const scoped = graph ? subgraphForPost(graph, postId) : { nodes: [], edges: [] };
   const hasLinks = lineage.direct.length > 0 || lineage.indirect.length > 0;
   if (scoped.nodes.length === 0) {
+    const isolationMessage =
+      graph.isolation_reason === "comparison_candidates_available"
+        ? t("Other visible posts share this comparison group, but no Event Lineage link is available. Read Keyman and evaluation next.")
+        : graph.isolation_reason === "no_comparison_group"
+          ? t("No other visible posts share this comparison group yet. Request reconstruction after more posts arrive, or read Keyman and evaluation.")
+          : t("No linked posts yet.");
     return (
       <p className="lineage-empty">
         {hasLinks
           ? t("The linked records are listed above. The graph is not available for this view.")
-          : t("No linked posts yet.")}
+          : isolationMessage}
       </p>
     );
   }
