@@ -131,6 +131,17 @@ async def test_non_post_traffic_passes_through() -> None:
 
 
 @pytest.mark.anyio
+async def test_leading_zero_length_uses_the_declared_numeric_value() -> None:
+    """A valid zero-padded length is compared without unbounded integer parsing."""
+    status, payload, downstream = await invoke(
+        [(b"content-length", b"0005")],
+        [{"type": "http.request", "body": b"12345", "more_body": False}],
+    )
+    assert (status, payload) == (204, {})
+    assert downstream.body["body"] == b"12345"
+
+
+@pytest.mark.anyio
 async def test_replay_preserves_client_disconnect_after_one_body() -> None:
     """The SDK sees the real client lifecycle after the replayed request body."""
     downstream = Recorder(read_twice=True)
