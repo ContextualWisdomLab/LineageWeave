@@ -1004,6 +1004,20 @@ def test_landing_lineage_applies_abac_and_limit_in_database() -> None:
     assert graph["truncated"] is False
 
 
+def test_landing_lineage_does_not_optimize_with_incomplete_abac_scope() -> None:
+    """A future caller cannot make corporate scope imply every process unit."""
+    connection = _RecordingConnection()
+    asyncio.run(
+        visible_lineage_graph(
+            connection,
+            lambda row: True,
+            corporate_entity_ids=("corp-a",),
+        )
+    )
+
+    assert not any("any($1::text[])" in query for query, _ in connection.statements)
+
+
 class _RecordingConnection:
     def __init__(self) -> None:
         self.statements: list[tuple[str, tuple]] = []

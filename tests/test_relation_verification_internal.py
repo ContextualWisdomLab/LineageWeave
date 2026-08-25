@@ -13,8 +13,9 @@ from lineageweave.relation_verification import (
 
 
 class _Connection:
-    def __init__(self, evidence_post_id: str | None) -> None:
+    def __init__(self, evidence_post_id: str | None, update_status: str = "UPDATE 1") -> None:
         self.evidence_post_id = evidence_post_id
+        self.update_status = update_status
         self.fetchrow_args: tuple[object, ...] | None = None
         self.execute_args: tuple[object, ...] | None = None
 
@@ -36,7 +37,7 @@ class _Connection:
     async def execute(self, query: str, *args: object):
         assert "verification_evidence_post_id = $5" in query
         self.execute_args = args
-        return "UPDATE 1"
+        return self.update_status
 
     def transaction(self):
         return _Transaction()
@@ -126,3 +127,15 @@ def test_pool_connection_is_released_during_external_verification() -> None:
 
     assert verified[0].verification_status_code == STATUS_CORROBORATED
     assert not pool.acquired
+
+
+def test_pool_verification_counts_only_rows_settled_by_this_worker() -> None:
+    """A concurrent winner is not reported as work persisted by this request."""
+    conn = _Connection("internal-post", update_status="UPDATE 0")
+    pool = _Pool(conn)
+
+    verified = asyncio.run(
+        verify_post_relations_from_pool(pool, _Verifier(pool), "origin-post")
+    )
+
+    assert verified == []
