@@ -385,6 +385,24 @@ async def gather_chat_sources(
     return sources
 
 
+async def prepare_global_question_embedding(
+    question: str,
+    embedding_client: EmbeddingClient,
+) -> tuple[list[float], str, float] | None:
+    """Resolve one question embedding without holding a database connection."""
+    try:
+        question_vector = await asyncio.to_thread(embedding_client.embed, question)
+    except (OSError, RuntimeError, ValueError):
+        return None
+    embedding_model_code = embedding_client.resolved_model
+    if not question_vector or not embedding_model_code:
+        return None
+    question_norm = sum(value * value for value in question_vector) ** 0.5
+    if question_norm == 0.0:
+        return None
+    return question_vector, embedding_model_code, question_norm
+
+
 async def gather_global_chat_sources(
     conn: asyncpg.Connection,
     can_see_post: Callable[[asyncpg.Record], bool],
@@ -394,6 +412,7 @@ async def gather_global_chat_sources(
     embedding_client: EmbeddingClient | None = None,
     *,
     question: str | None = None,
+    question_embedding: tuple[list[float], str, float] | None = None,
     limit: int = 4,
     today: date | None = None,
 ) -> list[ChatSourceDocument]:
@@ -429,18 +448,13 @@ async def gather_global_chat_sources(
     )
     if not (question and question.strip() and embedding_client.available):
         return []
-    try:
-        question_vector = await asyncio.to_thread(embedding_client.embed, question)
-    except (OSError, RuntimeError, ValueError):
+    if question_embedding is None:
+        question_embedding = await prepare_global_question_embedding(
+            question, embedding_client
+        )
+    if question_embedding is None:
         return []
-    if not question_vector:
-        return []
-    embedding_model_code = embedding_client.resolved_model
-    if not embedding_model_code:
-        return []
-    question_norm = sum(value * value for value in question_vector) ** 0.5
-    if question_norm == 0.0:
-        return []
+    question_vector, embedding_model_code, question_norm = question_embedding
     # Safe SQL: the only interpolation is the repository-owned eligibility
     # expression; all request and model values remain asyncpg parameters.
     candidate_rows = await conn.fetch(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli

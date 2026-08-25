@@ -20,7 +20,8 @@ window that match the environment under review:
 ```bash
 make up
 KEYCLOAK_ADMIN_PASSWORD=admin_dev_only make seed
-k6 run --vus <measured-concurrency> --duration <observation-window> \
+k6 run -e REQUEST_TIMEOUT=<declared-request-window> \
+  --vus <measured-concurrency> --duration <observation-window> \
   scripts/k6_http_e2e.js
 ```
 
@@ -28,6 +29,10 @@ Pass `BACKEND_URL`, `KEYCLOAK_URL`, `KEYCLOAK_REALM`, `KEYCLOAK_CLIENT_ID`,
 `K6_USERNAME`, and `K6_PASSWORD` with k6's `-e NAME=value` option to point the
 harness at another authorized synthetic environment. Never run repository
 performance evidence against identifying production records.
+
+`REQUEST_TIMEOUT` is mandatory because an unbounded request hid the first
+observed saturation behind k6's graceful-stop window. It is an operator-declared
+observation boundary, not a product latency threshold.
 
 ## Interpret the output
 
@@ -58,3 +63,25 @@ steps ranged up to 292.3 seconds. No containers were running afterward, so no
 HTTP latency distribution was produced and no application bottleneck is
 claimed. This is local build-environment evidence only. Re-run the command
 above on an application-ready stack to obtain the product measurement.
+
+The next application-ready exercise on protected-main `d7d5eeb3` exposed two
+failures before a capacity distribution could be accepted. A clean backend
+process could not start because `Settings` omitted the already-consumed
+`tepp_api_key`, and the replay database lacked the non-idempotent 0203 Global
+Ask scope tables. After repairing those startup and replay contracts, the k6
+setup completed, but its authenticated read batch overlapped migration replay:
+PostgreSQL was still building the 0035 trigram index with a `DataFileRead` wait,
+and the not-yet-reached 0140 migration meant Event Lineage correctly failed on
+its absent interval column. This run therefore cannot attribute read latency to
+Global Ask and is not a valid steady-state capacity exercise.
+
+Independent code-path diagnosis did confirm that Global Ask resolved its
+external question embedding inside `pool.acquire()`. ADR 0212 moves that call
+before acquisition and adds a regression check that observes zero held pool
+slots during embedding. With one virtual user, a 10-second observation, and a
+declared 20-second request window, the post-fix branch then observed Ask enqueue
+at 3.11 seconds and Ask polling at 1.31 seconds while both reads failed under
+that incomplete migration state (one reached the 20-second request boundary;
+combined read duration averaged 14.13 seconds). This is replay-in-progress
+failure evidence, not a steady-state capacity result or product latency claim.
+Re-run only after migration replay completes.
