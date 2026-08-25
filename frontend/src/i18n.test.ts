@@ -104,8 +104,8 @@ describe("i18n", () => {
     },
   );
 
-  it("keeps analyst GNB chrome on the four Korean labels", () => {
-    expect(ANALYST_GNB_LABELS).toEqual(["게시판", "고객 마스터", "달력", "Ask Agent"]);
+  it("keeps analyst GNB chrome on the Dashboard and four Korean labels", () => {
+    expect(ANALYST_GNB_LABELS).toEqual(["Dashboard", "게시판", "고객 마스터", "달력", "Ask Agent"]);
     expect(ANALYST_GNB_LABELS.join(" ")).not.toMatch(/Buyer|Cubee|Board|Customer master/);
     expect(CALENDAR_CONSUME_UNAVAILABLE).toBe("이 범위의 일정을 아직 받을 수 없습니다");
   });

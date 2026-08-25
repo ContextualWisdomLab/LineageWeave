@@ -1,6 +1,6 @@
 import { fireEvent, render, screen, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { ANALYST_GNB_LABELS } from "../gnbChrome";
+import { ANALYST_GNB_LABELS, initialWorkspaceDestination } from "../gnbChrome";
 import { SUPPORTED_LOCALES, setLocale } from "../i18n";
 import { WorkspaceNav } from "./WorkspaceNav";
 
@@ -9,7 +9,12 @@ afterEach(() => {
 });
 
 describe("WorkspaceNav", () => {
-  it("renders exactly the four Korean analyst destinations and marks the current page", () => {
+  it("opens shared post links on the board before rendering the dashboard", () => {
+    expect(initialWorkspaceDestination("?post=synthetic-post", false)).toBe("board");
+    expect(initialWorkspaceDestination("", false)).toBe("dashboard");
+  });
+
+  it("renders the Dashboard and four analyst destinations and marks the current page", () => {
     render(<WorkspaceNav destination="board" onChange={vi.fn()} />);
 
     const nav = screen.getByRole("navigation");
@@ -21,7 +26,7 @@ describe("WorkspaceNav", () => {
     expect(screen.getByRole("button", { name: "달력" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Ask Agent" })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Admin" })).not.toBeInTheDocument();
-    expect(nav.textContent).not.toMatch(/Buyer|Cubee|Board|Customer master/i);
+    expect(nav.textContent).not.toMatch(/Buyer|Cubee|Customer master/i);
   });
 
   it.each(SUPPORTED_LOCALES)("keeps the four Korean GNB labels in %s", (locale) => {
@@ -30,6 +35,7 @@ describe("WorkspaceNav", () => {
 
     const nav = screen.getByRole("navigation");
     expect(within(nav).getAllByRole("button").map((button) => button.textContent)).toEqual([
+      "Dashboard",
       "게시판",
       "고객 마스터",
       "달력",

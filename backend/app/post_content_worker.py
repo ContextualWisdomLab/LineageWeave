@@ -25,11 +25,13 @@ from backend.app.post_content_queue import (
     republish_queued_post_content_jobs,
     transition_post_content_job,
 )
+from backend.app.operations_case_ingestion import persist_operations_cases
 from lineageweave.embedding_client import EmbeddingClient
 from lineageweave.http_client import HttpClientError
 from lineageweave.image_content import ImageContentClient
 from lineageweave.llm_context import build_post_llm_metadata, use_llm_metadata
 from lineageweave.observability import record_server_failure, traced
+from lineageweave.operations_case_analysis import ContextualOrchestratorOperationsCaseAnalysisClient
 from lineageweave.post_content_normalization import normalize_post_body
 from lineageweave.post_content_persistence import persist_post_content
 from lineageweave.post_structure import PostStructureClient
@@ -122,7 +124,15 @@ async def _claim_job(
                     require_embedding=require_embedding,
                     require_structure=require_structure,
                 )
-                if content_complete:
+                case_complete = not require_structure or bool(
+                    await conn.fetchval(
+                        "select exists (select 1 from operations_case_analysis "
+                        "where post_id = $1 and source_body_sha256 = $2)",
+                        post_id,
+                        source_body_digest,
+                    )
+                )
+                if content_complete and case_complete:
                     return None
             if status_code == RUNNING and row["job_started_at"] is not None:
                 stale = await conn.fetchval(
@@ -276,6 +286,36 @@ async def process_post_content_job(
                     structure_client=structure_client,
                     post_title=str(row["post_title"]),
                 )
+            if settings.orchestrator_base_url and settings.orchestrator_api_key:
+                case_client = ContextualOrchestratorOperationsCaseAnalysisClient(
+                    settings.orchestrator_base_url,
+                    settings.orchestrator_api_key,
+                )
+                context = " | ".join(
+                    f"{name}={row[name]}"
+                    for name in (
+                        "source_project_code",
+                        "source_project_name",
+                        "source_sales_pool_code",
+                        "source_sales_pool_name",
+                        "voc_type_code",
+                    )
+                    if row.get(name) is not None and str(row[name]).strip()
+                )
+                cases = await asyncio.to_thread(
+                    case_client.analyze,
+                    str(row["post_title"]),
+                    normalized.text,
+                    context,
+                )
+                async with pool.acquire() as conn:
+                    await persist_operations_cases(
+                        conn,
+                        post_id,
+                        raw_body,
+                        metadata["lineageweave_post_session_id"],
+                        cases,
+                    )
             async with pool.acquire() as conn:
                 complete = await post_content_is_complete(
                     conn,

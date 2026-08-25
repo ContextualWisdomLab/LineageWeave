@@ -48,8 +48,9 @@ _PENDING = "analysis_status_pending"
 _RUNNING = "analysis_status_running"
 _SUCCEEDED = "analysis_status_succeeded"
 _FAILED = "analysis_status_failed"
-_TEPP_MODEL_CONTRACT = "tepp-analysis-run-v1"
-_TEPP_OUTPUT_PROFILE = "calibrated_event_measurement"
+_TEPP_MODEL_CONTRACT = "tepp-lineage-criterion-v1"
+_TEPP_OUTPUT_PROFILE = "lineage_pair_criterion_anchor"
+_TEPP_LINEAGE_ANCHOR_SCHEMA = "tepp.lineage_criterion_anchor.v1"
 _TOPIC_LINEAGE_MODEL_CONTRACT = "tepp-topic-lineage-v1"
 _TOPIC_LINEAGE_OUTPUT_PROFILE = "topic_identity_lineage"
 
@@ -107,6 +108,8 @@ class _DeliveryOutcome:
     status_code: str = _SUCCEEDED
     failure_code: str = ""
     envelope: dict[str, Any] | None = None
+    source_snapshot_sha256: str | None = None
+    knowledge_cutoff: datetime | None = None
 
 
 def reconstruction_result_digest(edges: list[Edge]) -> str:
@@ -199,7 +202,7 @@ def tepp_run_request(
         idempotency_key=idempotency_key,
         tenant_workspace_id=str(corporate_entity_id),
         snapshot_id=snapshot_sha256,
-        knowledge_cutoff=cutoff.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+        knowledge_cutoff=cutoff.astimezone(timezone.utc).isoformat().replace("+00:00", "Z"),
         model_contract_version=_TEPP_MODEL_CONTRACT,
         output_profile=_TEPP_OUTPUT_PROFILE,
     )
@@ -227,7 +230,7 @@ def topic_lineage_run_request(
         idempotency_key=idempotency_key,
         tenant_workspace_id=str(corporate_entity_id),
         snapshot_id=snapshot_sha256,
-        knowledge_cutoff=cutoff.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+        knowledge_cutoff=cutoff.astimezone(timezone.utc).isoformat().replace("+00:00", "Z"),
         model_contract_version=_TOPIC_LINEAGE_MODEL_CONTRACT,
         output_profile=_TOPIC_LINEAGE_OUTPUT_PROFILE,
     )
@@ -318,8 +321,10 @@ async def _persist_tepp_result(
     *,
     analysis_run_id: str,
     envelope: dict[str, Any],
+    expected_snapshot_sha256: str,
+    expected_knowledge_cutoff: datetime,
 ) -> bool:
-    """Persist only a validated, remote-completed TEPP envelope."""
+    """Persist a completed TEPP envelope and any exact lineage anchor projection."""
     remote_run_id = envelope.get("analysis_run_id") or envelope.get("run_id")
     if not isinstance(remote_run_id, str) or not remote_run_id.strip():
         return False
@@ -339,6 +344,53 @@ async def _persist_tepp_result(
                 result_json,
                 result_sha256,
             )
+            anchor = envelope.get("result")
+            if (
+                envelope.get("result_schema_version") == _TEPP_LINEAGE_ANCHOR_SCHEMA
+                and isinstance(anchor, dict)
+            ):
+                try:
+                    raw_estimation_run_id = str(anchor["estimation_run_id"])
+                    estimation_run_id = str(UUID(raw_estimation_run_id))
+                    anchor_cutoff = datetime.fromisoformat(
+                        str(anchor["knowledge_cutoff"]).replace("Z", "+00:00")
+                    )
+                except (KeyError, TypeError, ValueError):
+                    anchor = None
+                expected_cutoff = expected_knowledge_cutoff
+                if expected_cutoff.tzinfo is None:
+                    expected_cutoff = expected_cutoff.replace(tzinfo=timezone.utc)
+                if anchor is not None and (
+                    anchor.get("anchor_kind_code") != "lineage_pair_criterion"
+                    or anchor.get("contract_version") != 1
+                    or raw_estimation_run_id != estimation_run_id
+                    or anchor.get("source_snapshot_sha256") != expected_snapshot_sha256
+                    or anchor_cutoff != expected_cutoff
+                    or anchor.get("criterion_validity_status") != "accepted"
+                    or type(anchor.get("validated_pair_count")) is not int
+                    or anchor["validated_pair_count"] <= 0
+                ):
+                    anchor = None
+                if anchor is not None:
+                    await conn.execute(
+                        """
+                        insert into lineage_weight_tepp_anchor
+                            (estimation_run_id, tepp_analysis_run_id,
+                             anchor_kind_code, anchor_contract_version,
+                             source_snapshot_sha256, knowledge_cutoff,
+                             criterion_validity_status_code, validated_pair_count)
+                        values ($1, $2, $3, $4, $5, $6, $7, $8)
+                        on conflict (estimation_run_id) do nothing
+                        """,
+                        estimation_run_id,
+                        analysis_run_id,
+                        anchor["anchor_kind_code"],
+                        anchor["contract_version"],
+                        anchor["source_snapshot_sha256"],
+                        anchor_cutoff,
+                        anchor["criterion_validity_status"],
+                        anchor["validated_pair_count"],
+                    )
     except (asyncpg.PostgresError, TypeError, ValueError):
         return False
     return True
@@ -948,6 +1000,8 @@ def _execute_delivery_plan(
         status_code=status_code,
         failure_code=failure_code,
         envelope=envelope,
+        source_snapshot_sha256=str(plan.locked["snapshot_sha256"]),
+        knowledge_cutoff=plan.locked["knowledge_cutoff"],
     )
 
 
@@ -980,14 +1034,24 @@ async def _persist_delivery_outcome(
             conn, analysis_run_id=analysis_run_id, edges=outcome.edges, finished=finished
         )
     elif outcome.status_code == _SUCCEEDED and outcome.envelope is not None:
-        persist = (
-            _persist_topic_lineage_result
-            if outcome.work_kind_code == _TOPIC_LINEAGE_KIND
-            else _persist_tepp_result
-        )
-        if not await persist(
-            conn, analysis_run_id=analysis_run_id, envelope=outcome.envelope
+        if outcome.work_kind_code == _TOPIC_LINEAGE_KIND:
+            persisted = await _persist_topic_lineage_result(
+                conn, analysis_run_id=analysis_run_id, envelope=outcome.envelope
+            )
+        elif (
+            outcome.source_snapshot_sha256 is not None
+            and outcome.knowledge_cutoff is not None
         ):
+            persisted = await _persist_tepp_result(
+                conn,
+                analysis_run_id=analysis_run_id,
+                envelope=outcome.envelope,
+                expected_snapshot_sha256=outcome.source_snapshot_sha256,
+                expected_knowledge_cutoff=outcome.knowledge_cutoff,
+            )
+        else:
+            persisted = False
+        if not persisted:
             status_code = _FAILED
             failure_code = "tepp_result_not_persisted"
     if outcome.work_kind_code != _LINEAGE_KIND:

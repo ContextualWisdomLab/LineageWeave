@@ -4121,12 +4121,13 @@ describe("App, authenticated", () => {
     expect(nav).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "게시판" })).toHaveAttribute("aria-current", "page");
     expect(within(nav).getAllByRole("button").map((button) => button.textContent)).toEqual([
+      "Dashboard",
       "게시판",
       "고객 마스터",
       "달력",
       "Ask Agent",
     ]);
-    expect(nav.textContent).not.toMatch(/Buyer|Cubee|Board|Customer master/i);
+    expect(nav.textContent).not.toMatch(/Buyer|Cubee|\bBoard\b|Customer master/i);
     expect(within(nav).queryByRole("button", { name: /Admin|관리자/i })).not.toBeInTheDocument();
     expect(screen.queryByText("Advanced review tools")).not.toBeInTheDocument();
   });

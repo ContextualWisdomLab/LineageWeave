@@ -174,7 +174,17 @@ def test_incomplete_provider_output_is_requeued_with_a_failure_code(monkeypatch)
             orchestrator_api_key="key",
         ),
     )
-    monkeypatch.setattr(post_content_worker, "normalize_post_body", lambda *_args: object())
+    monkeypatch.setattr(
+        post_content_worker,
+        "normalize_post_body",
+        lambda *_args: SimpleNamespace(text="synthetic source body"),
+    )
+    monkeypatch.setattr(
+        post_content_worker,
+        "ContextualOrchestratorOperationsCaseAnalysisClient",
+        lambda *_args: SimpleNamespace(analyze=lambda *_values: ()),
+    )
+    monkeypatch.setattr(post_content_worker, "persist_operations_cases", persist)
     client = SimpleNamespace(available=True)
 
     asyncio.run(

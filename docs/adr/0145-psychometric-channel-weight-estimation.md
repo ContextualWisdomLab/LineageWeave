@@ -3,6 +3,7 @@
 **Decision status:** Rejected proposal
 **Date:** 2026-08-23
 **Reconciles with:** [ADR 0003](0003-fast-mlsirm-report-integration.md)
+**Implemented activation boundary:** [ADR 0205](0205-tepp-lineage-anchor.md)
 
 ## Context
 
