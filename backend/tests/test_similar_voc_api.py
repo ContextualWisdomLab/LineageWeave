@@ -12,8 +12,12 @@ from lineageweave.similar_voc import SimilarVocEvidence
 class _Connection:
     def __init__(self, rows):
         self.rows = rows
+        self.query = ""
+        self.args = ()
 
-    async def fetch(self, *_args):
+    async def fetch(self, query, *args):
+        self.query = query
+        self.args = args
         return self.rows
 
 
@@ -37,8 +41,9 @@ def test_similar_voc_adjudicates_visible_semantic_candidates(monkeypatch) -> Non
         "post_id": "prior",
         "post_title": "Prior VOC",
         "post_body": "Prior seal failed. Replaced gasket.",
-        "visibility_code": "public",
+        "visibility_code": "private",
         "corporate_entity_id": "corp-a",
+        "process_unit_id": "process-a",
         "occurred_at": datetime(2026, 8, 20, tzinfo=timezone.utc),
     }
     hidden = {**visible, "post_id": "hidden", "visibility_code": "private", "corporate_entity_id": "corp-b"}
@@ -55,10 +60,15 @@ def test_similar_voc_adjudicates_visible_semantic_candidates(monkeypatch) -> Non
 
     monkeypatch.setattr(main, "_load_visible_post", load_visible_post)
     monkeypatch.setattr(main, "_similar_voc_client", Client)
-    account = SimpleNamespace(corporate_entity_ids={"corp-a"})
+    account = SimpleNamespace(
+        corporate_entity_ids={"corp-a"}, process_unit_ids={"process-a"}
+    )
 
-    payload = asyncio.run(main.read_similar_voc("focal", account, _Pool([visible, hidden])))
+    pool = _Pool([visible, hidden])
+    payload = asyncio.run(main.read_similar_voc("focal", account, pool))
 
     assert [item["post_id"] for item in payload["items"]] == ["prior"]
     assert "score" not in payload["items"][0]
     assert payload["items"][0]["action_history"] == ("Replaced gasket.",)
+    assert "process_unit_id::text = any($3::text[])" in pool.connection.query
+    assert pool.connection.args == ("focal", ["corp-a"], ["process-a"])
