@@ -61,7 +61,7 @@ only aggregate, non-identifying evidence to this repository.
 ### Exact open-PR boundary
 
 At this snapshot there were 16 open PRs and 10 open issues. Exact observed heads
-were `#663 5ac296c8`, `#662 92534118`, `#661 f505d322`, `#660 24fda085`, `#659 e948bd27`, `#658 fe830b0a`, `#657 64f48679`, `#644 d9ff9980`, `#643 0a1f8ec1`, `#640 2d50fa01`,
+were `#663 5ac296c8`, `#662 92534118`, `#661 6baaeb3d`, `#660 24fda085`, `#659 e948bd27`, `#658 fe830b0a`, `#657 64f48679`, `#644 d9ff9980`, `#643 0a1f8ec1`, `#640 2d50fa01`,
 `#639 aee02dca`, `#636 f7b9a65f`, `#632 856febbb`, `#631 c0022c97`,
 `#629 4b4d6707`, and `#579 689a21b6`. PR #654 merged its ontology-label
 readability slice into #632's provenance branch as `6c0c4370`; that stack
@@ -89,7 +89,7 @@ context only.
 | PR | Exact observed head | Merge/check state at this snapshot |
 | ---: | --- | --- |
 | #660 | `24fda085` | backend runtime/integration contract restoration with FastAPI status API, `tepp_api_key` settings wiring, httpx2 transport contract, semantic-unit stack from #664, and synthetic snapshot-digest repair; config/API suite passed 138 tests with 5 skips; latest head is documentation-only over the tested runtime; hosted checks and independent review remain required |
-| #661 | `f505d322` | reconstruction, persistence, seed, graph-separation, and HTTP acceptance tests use one session-scoped Rust-backed fast-mlsirm fixture estimate; the root collection hook no longer shadows the shared fixture; focused regression suite passed 55 tests; hosted checks and independent review remain required |
+| #661 | `6baaeb3d` | reconstruction, persistence, seed, graph-separation, and HTTP acceptance tests use one session-scoped Rust-backed fast-mlsirm fixture estimate; the root collection hook no longer shadows the shared fixture; non-fusion boundaries remain backend-independent; focused regression suite passed 57 tests; hosted checks and independent review remain required |
 | #662 | `92534118` | TEPP terminal status/read transport boundary with opaque run-id encoding, shared published contract-version headers, fail-closed provider errors, ADR 0217, and 9 client tests; configured status route remains unavailable until the upstream route is published; hosted checks and independent review remain required |
 | #664 | `be3e28cc` (merged into #660 branch) | explicit semantic content-unit kinds for paragraph, list, table, formula, and caller-parsed conversation turns; ADR 0223 and migration 0221 are now part of the non-default #660 stack; protected-main delivery is not implied |
 | #663 | `5ac296c8` | evidence-backed Post → Project ontology neighborhood with canonical project keys, proposed truth status, project diamond/text labels, cutoff/snapshot-bounded project evidence, migration replay hardening, static-SQL scanner repair, ecosystem authority/ADR allocation reconciliation, and ADR 0225 external arithmetic ownership; documentation/docstring suite 7 passed; stacked pnpm build-policy and semantic-unit changes retained; hosted checks and independent review remain required |
