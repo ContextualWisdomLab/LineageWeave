@@ -138,18 +138,40 @@ async def visible_post_ids_for_focus(
               from source_post
              where post_id = $1
                and {SOURCE_POST_ELIGIBILITY_SQL.format(alias='source_post')}
+               and ($2::timestamptz is null or created_at <= $2::timestamptz)
+               and ($3::timestamptz is null or created_at <= $3::timestamptz)
             """,
             focus_node_id,
+            knowledge_cutoff,
+            snapshot_at,
         )
         if row is None:
             return []
         return [str(row["post_id"])] if can_see_post(row) else []
+    candidate_post_ids: list[str] | None = None
     if focus_node_type_code == NODE_PERSON:
-        return await visible_mention_post_ids(conn, focus_node_id, can_see_post)
-    if focus_node_type_code == NODE_CORPORATE_ENTITY:
-        return await visible_affiliation_post_ids(conn, focus_node_id, can_see_post)
-    if focus_node_type_code == NODE_TEAM:
-        return await visible_team_mention_post_ids(conn, focus_node_id, can_see_post)
+        candidate_post_ids = await visible_mention_post_ids(conn, focus_node_id, can_see_post)
+    elif focus_node_type_code == NODE_CORPORATE_ENTITY:
+        candidate_post_ids = await visible_affiliation_post_ids(conn, focus_node_id, can_see_post)
+    elif focus_node_type_code == NODE_TEAM:
+        candidate_post_ids = await visible_team_mention_post_ids(conn, focus_node_id, can_see_post)
+    if candidate_post_ids is not None:
+        if knowledge_cutoff is None and snapshot_at is None:
+            return candidate_post_ids
+        rows = await conn.fetch(
+            """
+            select post_id
+              from source_post
+             where post_id = any($1::uuid[])
+               and ($2::timestamptz is null or created_at <= $2::timestamptz)
+               and ($3::timestamptz is null or created_at <= $3::timestamptz)
+            """,
+            candidate_post_ids,
+            knowledge_cutoff,
+            snapshot_at,
+        )
+        admitted = {str(row["post_id"]) for row in rows}
+        return [post_id for post_id in candidate_post_ids if post_id in admitted]
     if focus_node_type_code == NODE_PROJECT:
         rows = await conn.fetch(
             f"""
@@ -176,6 +198,9 @@ async def _visible_post_ids_by_nodes(
     conn: asyncpg.Connection,
     node_keys: set[tuple[str, str]],
     can_see_post: Callable[[asyncpg.Record], bool],
+    *,
+    knowledge_cutoff: datetime | None = None,
+    snapshot_at: datetime | None = None,
 ) -> dict[tuple[str, str], list[str]]:
     """Load evidence visibility for all endpoint nodes in five bounded queries.
 
@@ -198,6 +223,8 @@ async def _visible_post_ids_by_nodes(
               from source_post post
              where post.post_id = any($1::uuid[])
                and {eligibility}
+               and ($2::timestamptz is null or post.created_at <= $2::timestamptz)
+               and ($3::timestamptz is null or post.created_at <= $3::timestamptz)
             """,
         ),
         (
@@ -210,6 +237,8 @@ async def _visible_post_ids_by_nodes(
               join source_post post on post.post_id = mention.post_id
              where mention.person_id = any($1::uuid[])
                and {eligibility}
+               and ($2::timestamptz is null or post.created_at <= $2::timestamptz)
+               and ($3::timestamptz is null or post.created_at <= $3::timestamptz)
             """,
         ),
         (
@@ -224,6 +253,8 @@ async def _visible_post_ids_by_nodes(
               join source_post post on post.post_id = mention.post_id
              where affiliation.affiliated_corporate_entity_id = any($1::uuid[])
                and {eligibility}
+               and ($2::timestamptz is null or post.created_at <= $2::timestamptz)
+               and ($3::timestamptz is null or post.created_at <= $3::timestamptz)
             union
             select distinct post.post_id, post.visibility_code,
                    post.corporate_entity_id, post.process_unit_id,
@@ -232,6 +263,8 @@ async def _visible_post_ids_by_nodes(
               join source_post post on post.post_id = org_mention.post_id
              where org_mention.corporate_entity_id = any($1::uuid[])
                and {eligibility}
+               and ($2::timestamptz is null or post.created_at <= $2::timestamptz)
+               and ($3::timestamptz is null or post.created_at <= $3::timestamptz)
             """,
         ),
         (
@@ -244,6 +277,8 @@ async def _visible_post_ids_by_nodes(
               join source_post post on post.post_id = mention.post_id
              where mention.team_id = any($1::uuid[])
                and {eligibility}
+               and ($2::timestamptz is null or post.created_at <= $2::timestamptz)
+               and ($3::timestamptz is null or post.created_at <= $3::timestamptz)
             """,
         ),
         (
@@ -256,6 +291,10 @@ async def _visible_post_ids_by_nodes(
               join source_post post on post.post_id = mention.post_id
              where mention.project_key = any($1::text[])
                and {eligibility}
+               and ($2::timestamptz is null
+                    or greatest(post.created_at, mention.created_at) <= $2::timestamptz)
+               and ($3::timestamptz is null
+                    or greatest(post.created_at, mention.created_at) <= $3::timestamptz)
             """,
         ),
     )
@@ -264,7 +303,7 @@ async def _visible_post_ids_by_nodes(
         if not ids:
             continue
         query = template.format(eligibility=SOURCE_POST_ELIGIBILITY_SQL.format(alias="post"))
-        rows = await conn.fetch(query, ids)
+        rows = await conn.fetch(query, ids, knowledge_cutoff, snapshot_at)
         for row in rows:
             try:
                 raw_node_id = row["node_id"]
@@ -596,12 +635,15 @@ async def _load_labels(
                        case when count(distinct project_name) = 1
                             then min(project_name)
                             else project_key end as display_label
-                 from post_project_mention
-                 where project_key = any($1::text[])
-                   and post_id = any($2::uuid[])
-                   and ($3::timestamptz is null or created_at <= $3::timestamptz)
-                   and ($4::timestamptz is null or created_at <= $4::timestamptz)
-                 group by project_key
+                  from post_project_mention mention
+                  join source_post post on post.post_id = mention.post_id
+                 where mention.project_key = any($1::text[])
+                   and mention.post_id = any($2::uuid[])
+                   and ($3::timestamptz is null
+                        or greatest(post.created_at, mention.created_at) <= $3::timestamptz)
+                   and ($4::timestamptz is null
+                        or greatest(post.created_at, mention.created_at) <= $4::timestamptz)
+                 group by mention.project_key
                 """,
                 project_ids,
                 evidence_post_ids,
@@ -780,7 +822,7 @@ async def visible_ontology_neighborhood(
         focus_node_id,
         can_see_post,
         knowledge_cutoff=knowledge_cutoff,
-        snapshot_at=snapshot_at,
+        snapshot_at=snapshot_at if focus_node_type_code == NODE_PROJECT else None,
     )
     if not visible_post_ids:
         raise OntologyNeighborhoodError("focus_not_visible", "focus node is not visible")
@@ -810,7 +852,8 @@ async def visible_ontology_neighborhood(
         if not endpoint_keys:
             break
         visible_by_node = await _visible_post_ids_by_nodes(
-            conn, endpoint_keys, can_see_post
+            conn, endpoint_keys, can_see_post,
+            knowledge_cutoff=knowledge_cutoff, snapshot_at=snapshot_at,
         )
         candidate_post_ids = loaded_post_ids | {
             post_id
@@ -848,7 +891,8 @@ async def visible_ontology_neighborhood(
         }
         if endpoint_keys:
             visible_by_node = await _visible_post_ids_by_nodes(
-                conn, endpoint_keys, can_see_post
+                conn, endpoint_keys, can_see_post,
+                knowledge_cutoff=knowledge_cutoff, snapshot_at=snapshot_at,
             )
     frozen_posts = sorted(loaded_post_ids)
     if source_cursor_claims is not None:
@@ -905,7 +949,10 @@ async def visible_ontology_neighborhood(
         # Continuation pages can introduce endpoints absent from the first
         # window. Rebuild the authorization cache for the actual page before
         # discarding unseen relations.
-        visible_by_node = await _visible_post_ids_by_nodes(conn, endpoint_keys, can_see_post)
+        visible_by_node = await _visible_post_ids_by_nodes(
+            conn, endpoint_keys, can_see_post,
+            knowledge_cutoff=knowledge_cutoff, snapshot_at=snapshot_at,
+        )
     corp_ids = [
         fact.source_node_id if fact.source_node_type_code == NODE_CORPORATE_ENTITY else fact.target_node_id
         for fact in facts
@@ -923,7 +970,10 @@ async def visible_ontology_neighborhood(
     }
     missing_parent_keys = {key for key in parent_keys if key not in visible_by_node}
     if missing_parent_keys:
-        parent_visible = await _visible_post_ids_by_nodes(conn, missing_parent_keys, can_see_post)
+        parent_visible = await _visible_post_ids_by_nodes(
+            conn, missing_parent_keys, can_see_post,
+            knowledge_cutoff=knowledge_cutoff, snapshot_at=snapshot_at,
+        )
         visible_by_node.update(parent_visible)
     hidden_node_keys: set[str] = set()
     authorized_facts: list[NeighborhoodFact] = []

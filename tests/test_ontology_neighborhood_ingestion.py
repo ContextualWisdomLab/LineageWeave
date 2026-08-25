@@ -188,6 +188,7 @@ def test_visible_post_ids_for_each_focus_type() -> None:
         )
     ) == [POST_ID]
     assert project_focus_conn.calls[-1][1] == (PROJECT_ID, T0, T0)
+    assert "greatest(post.created_at, mention.created_at)" in project_focus_conn.calls[-1][0]
     assert asyncio.run(
         visible_post_ids_for_focus(
             ScriptedConn({"person_affiliation affiliation": [post_row]}),
@@ -317,7 +318,7 @@ def test_load_facts_skos_and_labels() -> None:
                         {"corporate_entity_id": CORP_ID, "entity_name": "Demo Corp"}
                     ],
                     "from cataloged_team": [{"team_id": TEAM_ID, "team_name": "Demo Team"}],
-                    "group by project_key": [
+                        "group by mention.project_key": [
                         {"project_key": PROJECT_ID, "display_label": "Demo Project"}
                     ],
                 }
