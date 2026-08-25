@@ -1,6 +1,6 @@
 # Product & Technical Gap Baseline
 
-> Audit snapshot: 2026-08-25 15:10 KST (refreshed by the autonomous merge
+> Audit snapshot: 2026-08-25 15:18 KST (refreshed by the autonomous merge
 > loop). This repository records synthetic fixtures and aggregate,
 > non-identifying runtime evidence only. Open PRs and local checks are not
 > protected-default-branch release evidence. Identifying post identifiers,
@@ -10,15 +10,16 @@
 ## 1. Exact-head and governance evidence
 
 The protected default branch was `c168ad0016de9aa42a7a6f4136972e80121ef981`
-when this baseline was refreshed. The live queue contained 10 open PRs and 20
+when this baseline was refreshed. The live queue contained 11 open PRs and 20
 open issues. The exact-head inventory below supersedes older per-PR snapshots
 elsewhere in this document; those older rows remain useful historical delivery
 context only.
 
 | PR | Exact observed head | Merge/check state at this snapshot |
 | ---: | --- | --- |
+| #602 | `b286d883` | Post-detail modal semantics, focus containment/restoration, and Escape close are mergeable; focused tests, lint, production build, and authenticated desktop/mobile rendering passed locally, while exact-head hosted checks and independent review remain pending; auto-merge is armed |
 | #601 | `5ce88969` | draft PROV-O ADR APA 7th references are mergeable and checks are progressing, but the PR's explicit owner contract says not to mark Ready or merge |
-| #600 | `bc86ad7e` | this baseline's pre-amendment observed head; mergeable with review/check evidence pending |
+| #600 | `a4117f52` | this baseline's pre-amendment observed head; mergeable with review/check evidence pending |
 | #588 | `6185f2ae` | raw-residual reconstruction, rank-zero identity, API presence, and comparison-strip contracts reconciled with current main; focused backend/frontend/schema checks passed, all review threads are resolved, and auto-merge is armed |
 | #582 | `cab04063` | batched cited-lineage fetch was semantically composed with current main while retaining ADR 0161 interval relations; 27 focused lineage/documentation checks passed, no review threads remain, and auto-merge is armed pending hosted checks and independent review |
 | #579 | `08554951` | interaction-map coordinate branch is conflicting; ADR 0202 traceability was repaired, 20 focused documentation/schema checks passed, and all review threads are resolved; semantic composition with current main remains |
@@ -284,7 +285,7 @@ this file per §3.5 of the prior snapshot).
 | Scientific measurement | Durable accepted TEPP receipts and fail-closed production weighting are protected (`main`); #468 binds fast-mlsirm/Keyverse/orchestrator/TEPP integration tests and now fails closed on upstream probability-axis drift. #387 removes inferred/default persistence weights and converts its 3/4-channel evidence tests to fast-mlsirm estimates, but several older reconstruction tests still pass hand-authored numeric weight dictionaries; those constants are not estimator evidence | Continue replacing remaining reconstruction-test constants with provenance-bearing fast-mlsirm estimates over synthetic fixtures; tests unrelated to fusion must bypass weighting entirely, as #484 does. Land #387/#468/#417 through the standard gate and retain true-parameter RMSE recovery as the acceptance bar |
 | Asynchronous authorization | Protected `main` rebuilds Global Ask worker scope after the bearer token leaves the request; #468 now persists exact Keyverse organization/process-unit scope in 3NF child tables and intersects it with current affiliations | Land #468 through the protected gate; prove a second affiliation and a revoked process unit cannot widen delayed-job evidence |
 | Planned-facility intent | Planned-facility relationship intent rides on open #490 (`d0cad030`), whose earlier stack-only merges were not protected delivery | Settle #490 exact-head checks plus independent approval, then land through protected `main` before a release claim |
-| Accessibility and responsive UX | Unit coverage exists for major surfaces; Storybook inventory incomplete | Keyboard, screen-reader, mobile, and authenticated Playwright acceptance on the exact release head |
+| Accessibility and responsive UX | Unit coverage exists for major surfaces; #602 closes the ADR 0153 post-detail dialog semantics/focus follow-up and has authenticated desktop/mobile rendered evidence, but it is not protected-main delivery; Storybook inventory remains incomplete | Land #602 through the protected gate, then complete keyboard, screen-reader, mobile, and authenticated Playwright acceptance on the exact release head |
 | Design tokens and repeated objects | Token extraction started; sanitized Figma Event Lineage desktop/mobile frames exist, while other repeated product surfaces remain incomplete | Tokens in CSS + Storybook stories for board, popup, DAG, Ask, calendar, forms, charts; same-viewport Figma/runtime visual comparison before release |
 | External integrations | Search, Zotero, calendar, Keyverse, orchestrator, RankWeave, ThreadWeave, TEPP, disksage, wardnet | Provider conformance, failure/reconciliation behavior, and provenance-bearing integration evidence |
 | MSA / modular reuse | LineageWeave must run standalone and as a consumer of org packages | Do not reimplement RankWeave/TEPP/orchestrator/ThreadWeave/Keyverse; fix upstream and PR there |
