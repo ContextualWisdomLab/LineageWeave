@@ -6,10 +6,11 @@ type Props = {
   items: SimilarVocItem[] | null;
   error?: string | null;
   onOpenPost: (postId: string) => void;
+  onLoadMore?: (() => void) | null;
 };
 
 /** Shows semantically adjudicated prior VOCs and their source-supported actions. */
-export function SimilarVocPanel({ items, error, onOpenPost }: Props) {
+export function SimilarVocPanel({ items, error, onOpenPost, onLoadMore }: Props) {
   return (
     <section className="similar-voc" aria-labelledby="similar-voc-heading">
       <header>
@@ -44,6 +45,7 @@ export function SimilarVocPanel({ items, error, onOpenPost }: Props) {
           ))}
         </ol>
       )}
+      {items?.length && onLoadMore ? <button type="button" onClick={onLoadMore}>이전 VOC 더 보기</button> : null}
     </section>
   );
 }

@@ -771,8 +771,10 @@ export interface SimilarVocItem {
 export function fetchSimilarVoc(
   accessToken: string,
   postId: string,
-): Promise<{ items: SimilarVocItem[] }> {
-  return backendFetch(`/api/posts/${postId}/similar-voc`, accessToken);
+  offset = 0,
+): Promise<{ items: SimilarVocItem[]; next_offset: number | null }> {
+  const query = offset ? `?offset=${offset}` : "";
+  return backendFetch(`/api/posts/${postId}/similar-voc${query}`, accessToken);
 }
 
 export interface PersonRoleHistoryEntry {

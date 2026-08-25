@@ -71,7 +71,10 @@ provenance.
    adjudicate each pair with verbatim evidence from both records. Results are
    displayed by source event time, not a similarity score. It does not reuse
    Event Lineage channel weights, and it does not invoke RankWeave without a
-   separately authorized Similar-VOC measurement contract.
+   separately authorized Similar-VOC measurement contract. Candidate
+   adjudication is paged in eight-record resource batches with an explicit
+   continuation offset; the page boundary caps request fan-out but does not
+   discard older candidates or become a relevance threshold.
 11. The Dashboard uses existing design tokens and native HTML controls. Tables
    and ordered journey steps remain usable without color, with visible focus,
    keyboard activation, responsive overflow, and reduced-motion support.

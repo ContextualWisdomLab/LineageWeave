@@ -1814,6 +1814,7 @@ function PostDetailPopup({
   const [vocEvidence, setVocEvidence] = useState<VocEvidence | null>(null);
   const [similarVoc, setSimilarVoc] = useState<SimilarVocItem[] | null>(null);
   const [similarVocError, setSimilarVocError] = useState<string | null>(null);
+  const [similarVocNextOffset, setSimilarVocNextOffset] = useState<number | null>(null);
   const [evaluation, setEvaluation] = useState<EvaluationResponse[] | null>(null);
   const [focusPerson, setFocusPerson] = useState<{ personId: string; personName: string } | null>(null);
   const [focusEntity, setFocusEntity] = useState<{ entityId: string; entityName: string } | null>(null);
@@ -1914,6 +1915,7 @@ function PostDetailPopup({
     setVocEvidence(null);
     setSimilarVoc(null);
     setSimilarVocError(null);
+    setSimilarVocNextOffset(null);
     setEvaluation(null);
     setFocusPerson(null);
     setFocusEntity(null);
@@ -1971,7 +1973,10 @@ function PostDetailPopup({
       .catch(() => setAffiliateTrees([]));
     fetchPostVocEvidence(accessToken, postId).then(setVocEvidence).catch(() => setVocEvidence(null));
     fetchSimilarVoc(accessToken, postId)
-      .then((result) => setSimilarVoc(result.items))
+      .then((result) => {
+        setSimilarVoc(result.items);
+        setSimilarVocNextOffset(result.next_offset);
+      })
       .catch(() => {
         setSimilarVoc([]);
         setSimilarVocError("유사 VOC 판정을 사용할 수 없습니다. 잠시 후 다시 확인하세요.");
@@ -2485,6 +2490,14 @@ function PostDetailPopup({
               items={similarVoc}
               error={similarVocError}
               onOpenPost={(candidatePostId) => onSelectPost?.(candidatePostId)}
+              onLoadMore={similarVocNextOffset === null ? null : () => {
+                fetchSimilarVoc(accessToken, postId, similarVocNextOffset)
+                  .then((result) => {
+                    setSimilarVoc((current) => [...(current ?? []), ...result.items]);
+                    setSimilarVocNextOffset(result.next_offset);
+                  })
+                  .catch(() => setSimilarVocError("이전 VOC를 더 불러오지 못했습니다. 다시 시도하세요."));
+              }}
             />
 
             <RelatedPostsSection lineage={lineage} onSelectPost={onSelectPost} />
