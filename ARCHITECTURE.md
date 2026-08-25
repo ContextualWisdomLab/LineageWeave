@@ -597,7 +597,7 @@ information at the group's mean θ (Lord, 1980 max-info CAT). Rankings
 persist to `report_item_information`. After those IRT main effects,
 residual SVD leftover pairs on two Gabriel axes (Jeon et al., 2021;
 ADR 0017 / 0048 / 0049 / 0119 / 0158 / 0162 / 0163 / 0164 / 0182 /
-0183 / 0201) persist to
+0201) persist to
 `report_leftover_pair` with signed residual `R`, observed `Y`, expected
 `E[Y|θ, item]`, full leftover-map rank, unexplained leftover
 `U = R − R̂`, and two-axis reconstruction `R̂ = ξ_{1:2} · ζ_{1:2}` so
