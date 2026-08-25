@@ -92,7 +92,7 @@ context only.
 | #640 | `6d4a0b76` | dashboard case metrics, project journeys, and restored TEPP API-key setting; checks and independent review remain required |
 | #639 | `aee02dca` | Running action and Compose contract repair; checks and independent review remain required |
 | #636 | `f7b9a65f` | calibrated external lineage contract; checks and independent review remain required |
-| #632 | `55b0d88c` (observed parent) | Global Ask provenance, semantic nomination, public verification, knowledge-cutoff stack, and stacked baseline refresh; this row advances when the parent branch receives the follow-up commit, while checks and independent review remain required |
+| #632 | `3a0014c1` (observed parent) | Global Ask provenance, semantic nomination, public verification, knowledge-cutoff stack, and static-SQL scanner repair; this row records the parent before this baseline follow-up, while checks and independent review remain required |
 | #631 | `c0022c97` | current-main ADR stack decomposition; checks and independent review remain required |
 | #629 | `74823e99` | provider pool release and bounded landing reads; checks and independent review remain required |
 | #579 | `689a21b6` | leftover interaction-map persistence; checks and independent review remain required |
