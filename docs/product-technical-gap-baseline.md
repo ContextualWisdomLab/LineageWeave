@@ -92,7 +92,7 @@ context only.
 | #640 | `4678be28` | dashboard case metrics and project journeys; checks and independent review remain required |
 | #639 | `aee02dca` | Running action and Compose contract repair; checks and independent review remain required |
 | #636 | `f7b9a65f` | calibrated external lineage contract; checks and independent review remain required |
-| #632 | `76ddb3f3` | Global Ask provenance, semantic nomination, public verification, and knowledge-cutoff stack; checks and independent review remain required |
+| #632 | `55b0d88c` (observed parent) | Global Ask provenance, semantic nomination, public verification, knowledge-cutoff stack, and stacked baseline refresh; this row advances when the parent branch receives the follow-up commit, while checks and independent review remain required |
 | #631 | `c0022c97` | current-main ADR stack decomposition; checks and independent review remain required |
 | #629 | `74823e99` | provider pool release and bounded landing reads; checks and independent review remain required |
 | #579 | `689a21b6` | leftover interaction-map persistence; checks and independent review remain required |
