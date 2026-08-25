@@ -1,6 +1,6 @@
 # Product & Technical Gap Baseline
 
-> Dashboard delivery snapshot: 2026-08-25 23:33 KST. Protected `main` was
+> Dashboard delivery snapshot: 2026-08-25 23:34 KST. Protected `main` was
 > `04e6b610655d0db91d5f7ba9486bdda1440e0b19`. This local branch is not
 > protected-main release evidence.
 
@@ -60,17 +60,17 @@ only aggregate, non-identifying evidence to this repository.
 
 ### Exact open-PR boundary
 
-At this snapshot there were 6 open PRs and 10 open issues. Exact observed heads
+At this snapshot there were 5 open PRs and 10 open issues. Exact observed heads
 are listed below. PRs #579, #629, #631, #632, and #636 target protected
-`main`; stacked PR #638 targets #636's branch. The five protected-main PRs had
-zero unresolved review threads. PRs #579, #631, and #632 were
-`REVIEW_REQUIRED`; #629, #636, and new #638 had no formal review decision.
-Hosted gates and independent review remain required. These
+`main`; stacked PR #638 merged into #636's branch and is not protected-main
+delivery evidence. The five protected-main PRs had zero unresolved review
+threads. PRs #579, #631, and #632 were `REVIEW_REQUIRED`; #629 and #636 had no
+formal review decision. Hosted gates and independent review remain required. These
 observations are not merge readiness. Re-fetch exact heads,
 unresolved threads, checks, approvals, rulesets, and merge SHA before any
 lifecycle claim.
 
-> Audit snapshot: 2026-08-25 23:33 KST (refreshed by the autonomous merge
+> Audit snapshot: 2026-08-25 23:34 KST (refreshed by the autonomous merge
 > loop). This repository records synthetic fixtures and aggregate,
 > non-identifying runtime evidence only. Open PRs and local checks are not
 > protected-default-branch release evidence. Identifying post identifiers,
@@ -80,15 +80,14 @@ lifecycle claim.
 ## 1. Exact-head and governance evidence
 
 The protected default branch was `04e6b610655d0db91d5f7ba9486bdda1440e0b19`
-when this baseline was refreshed. The live queue contained 6 open PRs and 10
+when this baseline was refreshed. The live queue contained 5 open PRs and 10
 open issues. The exact-head inventory below supersedes older per-PR snapshots
 elsewhere in this document; those older rows remain useful historical delivery
 context only.
 
 | PR | Exact observed head | Merge/check state at this snapshot |
 | ---: | --- | --- |
-| #638 | `51c2be9d` | stacked on #636; makes the shared reconstruction boundary reject mismatched active-channel profiles instead of dropping and renormalizing calibrated weights; hosted checks and independent review remain required |
-| #636 | `cc6d64a0` | publishes the calibrated external lineage contract and fails closed when calibrated weights do not exactly match active channels; zero unresolved threads; queued checks and independent review remain required |
+| #636 | `3609d63f` | publishes the calibrated external lineage contract; merged stack #638 makes the shared reconstruction boundary reject mismatched active-channel profiles instead of dropping and renormalizing calibrated weights; zero unresolved threads, while hosted checks and independent review remain required |
 | #632 | `bb680329` | preserves graph-fact source provenance; zero unresolved threads; queued checks and independent review remain required |
 | #631 | `c0022c97` | refreshes product-gap and CI lifecycle governance; zero unresolved threads; queued checks and independent review remain required |
 | #629 | `ac38c652` | releases provider work and bounds landing reads; zero unresolved threads, no formal review decision, and queued checks remain |
@@ -364,7 +363,7 @@ this file per §3.5 of the prior snapshot).
 
 | Gap | Current evidence | Acceptance requirement |
 | --- | --- | --- |
-| Protected release | 6 open PRs at the 2026-08-25 exact-head snapshot: #579, #629, #631, #632, #636, and stacked #638. The first five target `main`; each retains hosted checks and independent-review gates | Terminal exact-head checks, no unresolved threads, independent exact-head approvals, protected squash-merge SHA |
+| Protected release | 5 open PRs at the 2026-08-25 exact-head snapshot: #579, #629, #631, #632, and #636. All target `main`; each retains hosted checks and independent-review gates. #638 merged only into #636's branch | Terminal exact-head checks, no unresolved threads, independent exact-head approvals, protected squash-merge SHA |
 | Evidence-grounded operations workspace | Protected-main #614 delivers governed semantic Ask, live Similar VOC, disjoint pending/failed analysis metrics, full Storybook state inventory, and current desktop/mobile screenshot evidence. Authorized-corpus backfill acceptance remains unavailable | Perform authenticated authorized-corpus acceptance with aggregate evidence and retain fail-closed no-match behavior |
 | Shared frontend gate | The ADR 0109 login repair is on protected `main`; eight older branches carried the defect and received the same verified repair this loop (#521–#560) | Keep every future branch cut from post-repair bases; re-verify with frontend lint/test/build before push |
 | Identifying baseline regression | `main` gap file listed real post identifiers; separately, closed #506 and pre-existing public history contain a private runtime source-table identifier, while current `main` and #507 trees are clean | Land this non-identifying rewrite, then coordinate ADR 0001 history remediation with security/privacy owners; do not reproduce the value, force-push, or delete evidence ad hoc |
@@ -376,10 +375,10 @@ this file per §3.5 of the prior snapshot).
 | Knowledge Graph readability | The black evidence-node root cause is an undefined-token fallback; the design-token repair and long-label/evidence-table coverage remain only on closed, unmerged #490, not protected `main` | Recreate the token repair on a current base and deliver it through protected `main`, then verify light/dark contrast, keyboard graph navigation, full labels, and evidence tables in the authenticated rendered surface |
 | Source-code lookup UX | Source state/detail codes remain evidence-bearing machine values and current detail presentation is dense | Catalog-backed display labels with raw-code provenance, compact 5W1H/source-detail hierarchy, keyboard access, and no unsupported customer/project binding |
 | Calendar / Naruon | #355 delivered the projection contract; v2.17.0 wires operator consumption without forwarding the end-user token. Naruon producer, provider/consumer fixtures, and protected merge remain open (#336) | Verify observed events against the published schema without invented events; keep commitments available when the channel is unwired |
-| External email/project lineage | #636 recreates the historical non-main #343 work on current `main` as a bounded store-agnostic contract. It separates observed reply facts, inferred continuation, and proposed project projection; requires calibrated host weights that exactly match active channels without silent renormalization; and leaves the Naruon consumer disabled pending immutable release. Stacked #638 applies the same exact-set rule to the shared reconstruction boundary | Land #638 into #636, then land #636 through protected gates, publish an immutable LineageWeave artifact, and add Naruon conformance and failure-path fixtures without transferring source credentials or stale stack evidence |
+| External email/project lineage | #636 recreates the historical non-main #343 work on current `main` as a bounded store-agnostic contract. It separates observed reply facts, inferred continuation, and proposed project projection; requires calibrated host weights that exactly match active channels without silent renormalization; and leaves the Naruon consumer disabled pending immutable release. Merged stack #638 applies the same exact-set rule to the shared reconstruction boundary | Land #636 through protected gates, publish an immutable LineageWeave artifact, and add Naruon conformance and failure-path fixtures without transferring source credentials or stale stack evidence |
 | SKOS organization aliases | Catalog binding and chip caption live on #480 / #482 | One catalog row per corroborated org; companion caption is hint-only until bound |
 | Event Lineage evidence | Channel evidence and Allen relations live on #387 / #484 | Persist channel scores, explain them in the popup, never invent a fused score |
-| Scientific measurement | Durable accepted TEPP receipts and LineageWeave #614's exact accepted snapshot/cutoff/run/pair-count consumer are protected; TEPP #237 remains open, so no registered producer artifact exists yet. Stacked #638 removes shared-runtime dropping and renormalization of a vector calibrated for a different active channel set. Several older reconstruction tests still pass hand-authored numeric dictionaries that are not estimator evidence | Land TEPP #237 and #638 through their protected dependency gates, then replace remaining reconstruction-test constants with provenance-bearing fast-mlsirm estimates over synthetic fixtures. Retain true-parameter RMSE recovery as the acceptance bar |
+| Scientific measurement | Durable accepted TEPP receipts and LineageWeave #614's exact accepted snapshot/cutoff/run/pair-count consumer are protected; TEPP #237 remains open, so no registered producer artifact exists yet. #638 merged into #636 and removes shared-runtime dropping and renormalization of a vector calibrated for a different active channel set. Several older reconstruction tests still pass hand-authored numeric dictionaries that are not estimator evidence | Land TEPP #237 and #636 through their protected gates, then replace remaining reconstruction-test constants with provenance-bearing fast-mlsirm estimates over synthetic fixtures. Retain true-parameter RMSE recovery as the acceptance bar |
 | Asynchronous authorization | Protected `main` rebuilds Global Ask worker scope after the bearer token leaves the request; #468 now persists exact Keyverse organization/process-unit scope in 3NF child tables and intersects it with current affiliations | Land #468 through the protected gate; prove a second affiliation and a revoked process unit cannot widen delayed-job evidence |
 | Planned-facility intent | Planned-facility relationship intent remains only on closed, unmerged #490; earlier stack-only merges were not protected delivery | Recreate the evidence-backed slice on a current base and land through protected `main` before a release claim |
 | Accessibility and responsive UX | #602 delivered base post-detail modal semantics; #605 adds selected-post refocus, collapsed/hidden/inert/CSS-invisible focus exclusion across both modal types, readable evidence separators, focused tests, and desktop/mobile Storybook screenshots | Land #605 through the protected gate, then complete screen-reader and authenticated Playwright acceptance on the exact release head |
