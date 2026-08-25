@@ -61,7 +61,7 @@ only aggregate, non-identifying evidence to this repository.
 ### Exact open-PR boundary
 
 At this snapshot there were 12 open PRs and 10 open issues. Exact observed heads
-were `#659 3537948a`, `#658 6138073e`, `#657 f4f7f185`, `#644 c1018a0a`, `#643 041ec13b`, `#640 31d05313`,
+were `#659 3537948a`, `#658 cd7bee58`, `#657 f4f7f185`, `#644 c1018a0a`, `#643 041ec13b`, `#640 31d05313`,
 `#639 aee02dca`, `#636 f7b9a65f`, `#632 9332b921`, `#631 c0022c97`,
 `#629 4b4d6707`, and `#579 689a21b6`. PR #654 merged its ontology-label
 readability slice into #632's provenance branch as `6c0c4370`; that stack
@@ -89,7 +89,7 @@ context only.
 | PR | Exact observed head | Merge/check state at this snapshot |
 | ---: | --- | --- |
 | #659 | `3537948a` | ontology node-type readability and tokenized surfaces; focused UI/token tests and lint passed; hosted checks and independent review remain required |
-| #658 | `6138073e` | optional Global Ask knowledge cutoff; empty-cutoff answers no longer overclaim grounding, live answers expose `live_only`, and local cutoff input is converted to UTC; backend 22-test and frontend 96-test suites passed; hosted checks and independent review remain required |
+| #658 | `cd7bee58` | optional Global Ask knowledge cutoff; empty-cutoff answers no longer overclaim grounding, live answers expose `live_only`, local cutoff input is converted to UTC, and guidance is localized; backend 22-test and frontend 96-test suites passed; hosted checks and independent review remain required |
 | #657 | `f4f7f185` | TEPP asynchronous lifecycle evidence; terminal-status persistence and receipt-conflict isolation repaired, with 56 focused tests passed; hosted checks and independent review remain required |
 | #644 | `c1018a0a` | frontend conditional workspace splitting; checks and independent review remain required |
 | #643 | `041ec13b` | shared token-backed status notice; checks and independent review remain required |
