@@ -6,8 +6,11 @@ from types import SimpleNamespace
 import pytest
 
 import backend.app.organization_name_resolution_ingestion as ingestion
+from lineageweave.corporate_hierarchy_resolution import (
+    OrganizationNameAlias as CorporateHierarchyOrganizationNameAlias,
+)
+from lineageweave.organization_alias import OrganizationNameAlias
 from lineageweave.relation_verification import STATUS_CORROBORATED, STATUS_UNCORROBORATED
-from lineageweave.corporate_hierarchy_resolution import OrganizationNameAlias
 
 
 class _Connection:
@@ -95,5 +98,54 @@ def test_load_corroborated_aliases_returns_search_verified_pairs() -> None:
     ]
     aliases = asyncio.run(ingestion.load_corroborated_organization_name_aliases(conn))
     assert aliases == [
-        OrganizationNameAlias(alt_label="AGP", pref_label="Aurora Grid Power")
+        CorporateHierarchyOrganizationNameAlias(
+            alt_label="AGP", pref_label="Aurora Grid Power"
+        )
     ]
+
+
+class _AliasConnection:
+    def __init__(self, rows: list[dict[str, str | None]]) -> None:
+        self.rows = rows
+        self.bound_status: object | None = None
+        self.query = ""
+
+    async def fetch(self, query: str, status: object):
+        self.query = query
+        self.bound_status = status
+        return self.rows
+
+
+def test_fetch_corroborated_aliases_binds_verified_status() -> None:
+    conn = _AliasConnection(
+        [
+            {
+                "raw_organization_name": "DC",
+                "resolved_organization_name": "Demo Corp",
+                "corporate_entity_id": "demo-id",
+            }
+        ]
+    )
+    aliases = asyncio.run(ingestion.fetch_corroborated_organization_aliases(conn))
+    assert conn.bound_status == STATUS_CORROBORATED
+    assert aliases == (
+        OrganizationNameAlias(
+            alt_label="DC", pref_label="Demo Corp", corporate_entity_id="demo-id"
+        ),
+    )
+    assert "count(distinct entity.corporate_entity_id) = 1" in conn.query
+    assert aliases == (OrganizationNameAlias("DC", "Demo Corp", "demo-id"),)
+
+
+def test_fetch_corroborated_aliases_keeps_catalog_ties_unbound() -> None:
+    conn = _AliasConnection(
+        [
+            {
+                "raw_organization_name": "DC",
+                "resolved_organization_name": "Demo Corp",
+                "corporate_entity_id": None,
+            }
+        ]
+    )
+    aliases = asyncio.run(ingestion.fetch_corroborated_organization_aliases(conn))
+    assert aliases == (OrganizationNameAlias("DC", "Demo Corp", None),)

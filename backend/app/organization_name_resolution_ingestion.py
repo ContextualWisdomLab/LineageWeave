@@ -7,11 +7,14 @@ import asyncio
 
 import asyncpg
 
+from lineageweave.organization_alias import OrganizationNameAlias
 from lineageweave.organization_name_resolution import (
     OrganizationNameResolutionClient,
     resolve_and_verify_organization_name,
 )
-from lineageweave.corporate_hierarchy_resolution import OrganizationNameAlias
+from lineageweave.corporate_hierarchy_resolution import (
+    OrganizationNameAlias as CorporateHierarchyOrganizationNameAlias,
+)
 from lineageweave.relation_verification import (
     STATUS_CORROBORATED,
     RelationVerificationClient,
@@ -26,7 +29,7 @@ _CORROBORATED_ALIAS_SQL = (
 
 async def load_corroborated_organization_name_aliases(
     conn: asyncpg.Connection,
-) -> list[OrganizationNameAlias]:
+) -> list[CorporateHierarchyOrganizationNameAlias]:
     """Return search-corroborated SKOS alt/pref pairs, or an empty list.
 
     Callers with a stub connection that has no ``fetch`` (the early-return
@@ -38,10 +41,10 @@ async def load_corroborated_organization_name_aliases(
     if not callable(fetch):
         return []
     rows = await fetch(_CORROBORATED_ALIAS_SQL, STATUS_CORROBORATED)
-    aliases: list[OrganizationNameAlias] = []
+    aliases: list[CorporateHierarchyOrganizationNameAlias] = []
     for row in rows:
         aliases.append(
-            OrganizationNameAlias(
+            CorporateHierarchyOrganizationNameAlias(
                 alt_label=row["raw_organization_name"],
                 pref_label=row["resolved_organization_name"],
             )
@@ -103,3 +106,44 @@ async def resolve_organization_name(
     if resolution.verification_status_code == STATUS_CORROBORATED:
         return resolution.resolved_organization_name
     return raw_name
+
+
+async def fetch_corroborated_organization_aliases(
+    conn: asyncpg.Connection,
+) -> tuple[OrganizationNameAlias, ...]:
+    """Load corroborated pairs with a unique current catalog target, if any.
+
+    Pending and uncorroborated rows stay out. The statement is a static
+    literal; only the status code is bound. Same-named catalog rows fail
+    closed with a null target id.
+    """
+    rows = await conn.fetch(
+        """
+        select resolution.raw_organization_name,
+               resolution.resolved_organization_name,
+               case when count(distinct entity.corporate_entity_id) = 1
+                    then min(entity.corporate_entity_id::text)
+                    else null
+               end as corporate_entity_id
+        from organization_name_resolution as resolution
+        left join corporate_entity as entity
+          on entity.entity_name = resolution.raw_organization_name
+          or entity.entity_name = resolution.resolved_organization_name
+        where resolution.verification_status_code = $1
+        group by resolution.raw_organization_name,
+                 resolution.resolved_organization_name
+        """,
+        STATUS_CORROBORATED,
+    )
+    return tuple(
+        OrganizationNameAlias(
+            alt_label=row["raw_organization_name"],
+            pref_label=row["resolved_organization_name"],
+            corporate_entity_id=(
+                str(row["corporate_entity_id"])
+                if row["corporate_entity_id"] is not None
+                else None
+            ),
+        )
+        for row in rows
+    )
