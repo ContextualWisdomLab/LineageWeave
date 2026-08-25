@@ -121,6 +121,12 @@ vendor selector, duplicate identity store, or psychometric substitute appears.
   than destructive mask-in-place behavior.
 - PostgreSQL objects use normalized multiword names, idempotent replayable
   migrations, short transactions, and hot-partition-aware access paths.
+- Provider-bound work that can outlive an interactive request uses a durable
+  asynchronous job boundary and does not retain a pooled database transaction
+  during provider execution. Authenticated concurrent HTTP behavior is
+  measured end to end against synthetic Compose data; latency and concurrency
+  become release thresholds only after a named deployment and representative
+  workload establish an approved capacity/SLO contract.
 - Public APIs have bounded inputs, stable typed responses, and provenance-
   preserving failure states.
 - WCAG 2.2 AA, keyboard/touch parity, responsive layouts, reduced motion,
@@ -158,6 +164,7 @@ A release claim requires one exact protected-main head that proves:
 ## 7. Traceability
 
 - Product/data boundary: ADR 0001, ADR 0089.
+- Asynchronous delivery and database-pool isolation: ADR 0204.
 - Knowledge Graph, ontology, and provenance: ADR 0004, ADR 0011, ADR 0065,
   ADR 0184, ADR 0207.
 - Semantic units and retrieval: ADR 0047, ADR 0062, ADR 0102.
