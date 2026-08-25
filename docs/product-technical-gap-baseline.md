@@ -60,8 +60,8 @@ only aggregate, non-identifying evidence to this repository.
 
 ### Exact open-PR boundary
 
-At this snapshot there were 13 open PRs and 10 open issues. Exact observed heads
-were `#660 7d0d3ef7`, `#659 0d3a345b`, `#658 3e47cf9c`, `#657 64f48679`, `#644 d9ff9980`, `#643 dc47a19f`, `#640 4bed57a7`,
+At this snapshot there were 14 open PRs and 10 open issues. Exact observed heads
+were `#661 bf02215a`, `#660 7d0d3ef7`, `#659 0d3a345b`, `#658 3e47cf9c`, `#657 64f48679`, `#644 d9ff9980`, `#643 dc47a19f`, `#640 4bed57a7`,
 `#639 aee02dca`, `#636 f7b9a65f`, `#632 9332b921`, `#631 c0022c97`,
 `#629 4b4d6707`, and `#579 689a21b6`. PR #654 merged its ontology-label
 readability slice into #632's provenance branch as `6c0c4370`; that stack
@@ -81,7 +81,7 @@ lifecycle claim.
 ## 1. Exact-head and governance evidence
 
 The protected default branch was `04e6b610655d0db91d5f7ba9486bdda1440e0b19`
-when this baseline was refreshed. The live queue contained 13 open PRs and 10
+when this baseline was refreshed. The live queue contained 14 open PRs and 10
 open issues. The exact-head inventory below supersedes older per-PR snapshots
 elsewhere in this document; those older rows remain useful historical delivery
 context only.
@@ -89,6 +89,7 @@ context only.
 | PR | Exact observed head | Merge/check state at this snapshot |
 | ---: | --- | --- |
 | #660 | `7d0d3ef7` | backend runtime/integration contract restoration with FastAPI status API and existing httpx2 test extra preserved; architecture documentation now matches the dev-only Starlette transport; config tests passed 10; hosted checks and independent review remain required |
+| #661 | `bf02215a` | reconstruction, persistence, seed, graph-separation, and HTTP acceptance tests now use one session-scoped Rust-backed fast-mlsirm fixture estimate instead of hand-authored fusion dictionaries; focused regression suite passed 14 tests; hosted checks and independent review remain required |
 | #659 | `0d3a345b` | ontology node-type readability, tokenized surfaces, contrast measurement, and resolved cross-PR allocation documentation; focused UI/token tests and lint passed; hosted checks and independent review remain required |
 | #658 | `3e47cf9c` | optional Global Ask knowledge cutoff; empty-cutoff answers no longer overclaim grounding, live answers expose `live_only`, local cutoff input is converted to UTC, content-change evidence now comes from revision intervals rather than unrelated live-row touches, and current-only lineage/images are gated off; cutoff/source-revision suites passed 20 tests; hosted checks and independent review remain required |
 | #657 | `64f48679` | TEPP asynchronous lifecycle evidence; terminal-status persistence, receipt-conflict isolation, migration reservation, and fail-closed schema handling repaired, with 57 focused tests passed; hosted checks and independent review remain required |
@@ -388,7 +389,7 @@ this file per §3.5 of the prior snapshot).
 
 | Gap | Current evidence | Acceptance requirement |
 | --- | --- | --- |
-| Protected release | 13 open PRs at snapshot: #579, #629, #631, #632, #636, #639, #640, #643, #644, #657, #658, #659, and #660. All retain hosted and/or independent-review gates; no stack merge is protected-main evidence | Terminal exact-head checks, no unresolved threads, independent exact-head approvals, protected squash-merge SHA |
+| Protected release | 14 open PRs at snapshot: #579, #629, #631, #632, #636, #639, #640, #643, #644, #657, #658, #659, #660, and #661. All retain hosted and/or independent-review gates; no stack merge is protected-main evidence | Terminal exact-head checks, no unresolved threads, independent exact-head approvals, protected squash-merge SHA |
 | Evidence-grounded operations workspace | Protected-main #614 delivers governed semantic Ask, live Similar VOC, disjoint pending/failed analysis metrics, full Storybook state inventory, and current desktop/mobile screenshot evidence. Authorized-corpus backfill acceptance remains unavailable | Perform authenticated authorized-corpus acceptance with aggregate evidence and retain fail-closed no-match behavior |
 | Shared frontend gate | The ADR 0109 login repair is on protected `main`; eight older branches carried the defect and received the same verified repair this loop (#521–#560) | Keep every future branch cut from post-repair bases; re-verify with frontend lint/test/build before push |
 | Identifying baseline regression | `main` gap file listed real post identifiers; separately, closed #506 and pre-existing public history contain a private runtime source-table identifier, while current `main` and #507 trees are clean | Land this non-identifying rewrite, then coordinate ADR 0001 history remediation with security/privacy owners; do not reproduce the value, force-push, or delete evidence ad hoc |
