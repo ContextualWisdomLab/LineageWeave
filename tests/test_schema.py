@@ -86,6 +86,14 @@ _LEFTOVER_MAP_UNEXPLAINED_MIGRATION = (
     / "migrations"
     / "0182_report_leftover_map_unexplained.sql"
 )
+_GLOBAL_ASK_JOB_MIGRATION = (
+    Path(__file__).resolve().parents[1] / "migrations" / "0165_global_ask_job.sql"
+)
+_GLOBAL_ASK_SCOPE_MIGRATION = (
+    Path(__file__).resolve().parents[1]
+    / "migrations"
+    / "0203_global_ask_authorization_scope.sql"
+)
 
 
 def _postgres_available() -> bool:
@@ -187,6 +195,33 @@ def test_migration_applies_cleanly(schema_db) -> None:
         "post_chat_citation",
     }
     assert expected <= tables
+
+
+def test_global_ask_migrations_replay_against_the_same_database(schema_db) -> None:
+    """Queue and authorization migrations execute twice on one real schema."""
+    job_sql = _GLOBAL_ASK_JOB_MIGRATION.read_text(encoding="utf-8")
+    scope_sql = _GLOBAL_ASK_SCOPE_MIGRATION.read_text(encoding="utf-8")
+    with schema_db.cursor() as cur:
+        cur.execute(job_sql)
+        cur.execute(scope_sql)
+        cur.execute(job_sql)
+        cur.execute(scope_sql)
+        cur.execute(
+            """
+            select column_name
+            from information_schema.columns
+            where table_schema = 'public' and table_name = 'global_ask_job'
+            order by ordinal_position
+            """
+        )
+        columns = {row[0] for row in cur.fetchall()}
+    schema_db.commit()
+    assert {
+        "global_ask_job_id",
+        "requesting_account_id",
+        "question_text",
+        "job_status_code",
+    } <= columns
 
 
 def test_post_lineage_edge_requires_an_allen_interval_code(schema_db) -> None:

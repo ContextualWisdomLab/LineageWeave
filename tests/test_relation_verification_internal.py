@@ -25,6 +25,7 @@ class _Connection:
         return [
             {
                 "counterparty_entity_name": "Example Partner",
+                "relationship_type_code": "partner",
                 "relationship_label": "Partner",
             }
         ]
@@ -53,7 +54,7 @@ class _Transaction:
 
 
 class _Acquire:
-    def __init__(self, pool: "_Pool") -> None:
+    def __init__(self, pool: _Pool) -> None:
         self.pool = pool
 
     async def __aenter__(self):
@@ -100,6 +101,7 @@ def test_relation_verification_persists_authorized_internal_evidence() -> None:
         STATUS_CORROBORATED,
         "https://example.test/evidence",
         "internal-post",
+        "partner",
     )
 
 
@@ -110,7 +112,20 @@ def test_relation_verification_keeps_external_result_when_internal_search_misses
 
     assert verified[0].verification_evidence_post_id is None
     assert conn.execute_args is not None
-    assert conn.execute_args[-1] is None
+    assert conn.execute_args[-2] is None
+    assert conn.execute_args[-1] == "partner"
+
+
+def test_relation_verification_omits_row_changed_during_provider_call() -> None:
+    """A re-extracted relationship cannot receive an older provider result."""
+
+    class ChangedConnection(_Connection):
+        async def execute(self, query: str, *args: object):
+            assert "relationship_type_code = $6" in query
+            return "UPDATE 0"
+
+    verified = asyncio.run(verify_post_relations(ChangedConnection(None), _Verifier(), "origin-post"))
+    assert verified == []
 
 
 def test_pool_connection_is_released_during_external_verification() -> None:
@@ -141,10 +156,12 @@ def test_pool_verification_persists_completed_rows_before_provider_failure() -> 
             return [
                 {
                     "counterparty_entity_name": "Example Partner",
+                    "relationship_type_code": "partner",
                     "relationship_label": "Partner",
                 },
                 {
                     "counterparty_entity_name": "Unavailable Partner",
+                    "relationship_type_code": "partner",
                     "relationship_label": "Partner",
                 },
             ]

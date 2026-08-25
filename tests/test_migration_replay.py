@@ -194,4 +194,6 @@ def test_global_ask_job_migrations_are_idempotent_for_replay() -> None:
 
     assert "create table if not exists global_ask_job" in job_sql
     assert job_sql.count("create index if not exists") == 2
+    assert "global_ask_job exists with an incompatible schema" in job_sql
+    assert "pg_get_indexdef" in job_sql
     assert scope_sql.count("create table if not exists") == 2
