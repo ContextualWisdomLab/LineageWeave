@@ -3092,6 +3092,42 @@ describe("App, authenticated", () => {
     expect(screen.queryByText("Pricing renegotiation: revised quote sent")).not.toBeInTheDocument();
   });
 
+  it("drops a prior post's in-flight similar-VOC page after navigation", async () => {
+    const backend = stubBackend();
+    const original = backend.getMockImplementation()!;
+    let releasePage!: (response: Response) => void;
+    const deferredPage = new Promise<Response>((resolve) => { releasePage = resolve; });
+    backend.mockImplementation((...args) => {
+      const requestUrl = new URL(String(args[0]), "https://backend.test");
+      if (requestUrl.pathname === "/api/posts/post-1/similar-voc") {
+        if (requestUrl.searchParams.get("offset") === "50") return deferredPage;
+        return Promise.resolve(jsonResponse({
+          items: [{
+            post_id: "prior-1", post_title: "Prior evidence", issue_summary: "Prior issue",
+            focal_evidence_text: "Current evidence", candidate_evidence_text: "Prior evidence",
+            customer_cohort_text: null, action_history: [], occurred_at: "2025-12-01T00:00:00Z",
+          }],
+          next_offset: 50,
+        }));
+      }
+      return original(...args);
+    });
+    render(<App showLabPanels />);
+    await userEvent.click(await screen.findByRole("button", { name: /open report post: public post/i }));
+    await userEvent.click(await screen.findByRole("button", { name: "이전 VOC 더 보기" }));
+    await userEvent.click((await screen.findAllByLabelText("Open post: Linked post"))[0]);
+    await screen.findByText("The evidence panel should show exactly this text.");
+    releasePage(jsonResponse({
+      items: [{
+        post_id: "stale-prior", post_title: "Stale prior VOC", issue_summary: "Stale issue",
+        focal_evidence_text: "Stale current", candidate_evidence_text: "Stale prior",
+        customer_cohort_text: null, action_history: [], occurred_at: "2025-11-01T00:00:00Z",
+      }],
+      next_offset: null,
+    }));
+    await waitFor(() => expect(screen.queryByText("Stale prior VOC")).not.toBeInTheDocument());
+  }, 15_000);
+
   it("opens an accepted ranking hit without inventing a fused score", async () => {
     stubBackend({
       rankings: {

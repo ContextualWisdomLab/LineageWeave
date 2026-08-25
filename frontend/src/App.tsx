@@ -1817,6 +1817,8 @@ function PostDetailPopup({
   const [similarVocNextOffset, setSimilarVocNextOffset] = useState<number | null>(null);
   const [similarVocLoadingMore, setSimilarVocLoadingMore] = useState(false);
   const similarVocLoadingMoreRef = useRef(false);
+  const similarVocScopeRef = useRef({ postId });
+  if (similarVocScopeRef.current.postId !== postId) similarVocScopeRef.current = { postId };
   const [evaluation, setEvaluation] = useState<EvaluationResponse[] | null>(null);
   const [focusPerson, setFocusPerson] = useState<{ personId: string; personName: string } | null>(null);
   const [focusEntity, setFocusEntity] = useState<{ entityId: string; entityName: string } | null>(null);
@@ -2499,16 +2501,23 @@ function PostDetailPopup({
               loadingMore={similarVocLoadingMore}
               onLoadMore={similarVocNextOffset === null ? null : () => {
                 if (similarVocLoadingMoreRef.current) return;
+                const requestScope = similarVocScopeRef.current;
                 similarVocLoadingMoreRef.current = true;
                 setSimilarVocLoadingMore(true);
                 setSimilarVocError(null);
                 fetchSimilarVoc(accessToken, postId, similarVocNextOffset)
                   .then((result) => {
+                    if (similarVocScopeRef.current !== requestScope) return;
                     setSimilarVoc((current) => [...(current ?? []), ...result.items]);
                     setSimilarVocNextOffset(result.next_offset);
                   })
-                  .catch(() => setSimilarVocError("이전 VOC를 더 불러오지 못했습니다. 다시 시도하세요."))
+                  .catch(() => {
+                    if (similarVocScopeRef.current === requestScope) {
+                      setSimilarVocError("이전 VOC를 더 불러오지 못했습니다. 다시 시도하세요.");
+                    }
+                  })
                   .finally(() => {
+                    if (similarVocScopeRef.current !== requestScope) return;
                     similarVocLoadingMoreRef.current = false;
                     setSimilarVocLoadingMore(false);
                   });
