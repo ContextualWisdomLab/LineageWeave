@@ -243,7 +243,7 @@ def test_graph_facts_are_hydrated_from_visible_evidence_posts(monkeypatch) -> No
 
     assert facts == (
         'node_person "Ada West" --edge_affiliation '
-        '(https://contextualwisdomlab.github.io/lineageweave/ontology#affiliatedWith)--> '
+        '(https://contextualwisdomlab.github.io/LineageWeave/ontology#affiliatedWith)--> '
         'node_corporate_entity "Demo Corp" [evidence_post_id=post-graph]',
     )
 

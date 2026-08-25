@@ -386,7 +386,7 @@ function OntologyGraph({
             <text
               className="ontology-edge-label"
               x={midX}
-              y={midY - 6}
+              y={midY - 18}
               textAnchor="middle"
             >
               {edge.property_label} · {t(TRUTH_LABEL[edge.truth_status_code] ?? edge.truth_status_code)}

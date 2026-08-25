@@ -1833,7 +1833,7 @@ def test_post_detail_exposes_explicit_and_semantic_project_evidence(
                     "Semantic project",
                     "project was described in the body",
                     0.82,
-                    "https://contextualwisdomlab.github.io/lineageweave/ontology#Project",
+                    "https://contextualwisdomlab.github.io/LineageWeave/ontology#Project",
                     "contextual_orchestrator_semantic",
                 ),
             )

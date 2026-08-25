@@ -1177,7 +1177,7 @@ describe("App, authenticated", () => {
                 project_name: "Semantic project",
                 evidence: "project was described in the body",
                 confidence: 0.9,
-                ontology_iri: "https://contextualwisdomlab.github.io/lineageweave/ontology#Project",
+                ontology_iri: "https://contextualwisdomlab.github.io/LineageWeave/ontology#Project",
                 ontology_label: "Project",
                 extraction_method: "contextual_orchestrator_semantic",
                 resolution_status: "semantic_candidate",
@@ -1304,7 +1304,7 @@ describe("App, authenticated", () => {
                 project_name: "Sample project",
                 evidence: "post body",
                 confidence: 0.9,
-                ontology_iri: "https://contextualwisdomlab.github.io/lineageweave/ontology#Project",
+                ontology_iri: "https://contextualwisdomlab.github.io/LineageWeave/ontology#Project",
                 extraction_method: "contextual_orchestrator_semantic",
               },
             ],
@@ -1372,7 +1372,7 @@ describe("App, authenticated", () => {
               {
                 node_id: "person-ada",
                 node_type_code: "node_person",
-                ontology_iri: "https://contextualwisdomlab.github.io/lineageweave/ontology#Person",
+                ontology_iri: "https://contextualwisdomlab.github.io/LineageWeave/ontology#Person",
                 ontology_label: "Person",
                 label: "Ada West",
                 person_side_code: "our_side",
@@ -1409,7 +1409,7 @@ describe("App, authenticated", () => {
               {
                 node_id: "person-priya",
                 node_type_code: "node_person",
-                ontology_iri: "https://contextualwisdomlab.github.io/lineageweave/ontology#Person",
+                ontology_iri: "https://contextualwisdomlab.github.io/LineageWeave/ontology#Person",
                 ontology_label: "Person",
                 label: "Priya Nair",
                 person_side_code: "counterparty",
@@ -1419,7 +1419,7 @@ describe("App, authenticated", () => {
               {
                 node_id: "post-2",
                 node_type_code: "node_post",
-                ontology_iri: "https://contextualwisdomlab.github.io/lineageweave/ontology#Post",
+                ontology_iri: "https://contextualwisdomlab.github.io/LineageWeave/ontology#Post",
                 ontology_label: "Post",
                 label: "Linked post",
                 relevance: 0.3,
@@ -1427,7 +1427,7 @@ describe("App, authenticated", () => {
               {
                 node_id: "corp-1",
                 node_type_code: "node_corporate_entity",
-                ontology_iri: "https://contextualwisdomlab.github.io/lineageweave/ontology#Organization",
+                ontology_iri: "https://contextualwisdomlab.github.io/LineageWeave/ontology#Organization",
                 ontology_label: "Organization",
                 label: "Demo Corp",
                 relevance: 0.2,
@@ -1436,7 +1436,7 @@ describe("App, authenticated", () => {
               {
                 node_id: "team-1",
                 node_type_code: "node_team",
-                ontology_iri: "https://contextualwisdomlab.github.io/lineageweave/ontology#Team",
+                ontology_iri: "https://contextualwisdomlab.github.io/LineageWeave/ontology#Team",
                 ontology_label: "Team",
                 label: "설계팀",
                 relevance: 0.15,
@@ -1454,7 +1454,7 @@ describe("App, authenticated", () => {
               {
                 node_id: "post-2",
                 node_type_code: "node_post",
-                ontology_iri: "https://contextualwisdomlab.github.io/lineageweave/ontology#Post",
+                ontology_iri: "https://contextualwisdomlab.github.io/LineageWeave/ontology#Post",
                 ontology_label: "Post",
                 label: "Linked post",
                 relevance: 0.6,
@@ -1475,7 +1475,7 @@ describe("App, authenticated", () => {
               {
                 node_id: "post-1",
                 node_type_code: "node_post",
-                ontology_class_iri: "https://contextualwisdomlab.github.io/lineageweave/ontology#Post",
+                ontology_class_iri: "https://contextualwisdomlab.github.io/LineageWeave/ontology#Post",
                 display_label: "Public post",
                 truth_status_code: "truth_observed",
                 valid_from: null,
@@ -1500,7 +1500,7 @@ describe("App, authenticated", () => {
               {
                 node_id: "person-ada",
                 node_type_code: "node_person",
-                ontology_iri: "https://contextualwisdomlab.github.io/lineageweave/ontology#Person",
+                ontology_iri: "https://contextualwisdomlab.github.io/LineageWeave/ontology#Person",
                 ontology_label: "Person",
                 label: "Ada West",
                 person_side_code: "our_side",
@@ -1520,7 +1520,7 @@ describe("App, authenticated", () => {
               {
                 node_id: "person-ada",
                 node_type_code: "node_person",
-                ontology_iri: "https://contextualwisdomlab.github.io/lineageweave/ontology#Person",
+                ontology_iri: "https://contextualwisdomlab.github.io/LineageWeave/ontology#Person",
                 ontology_label: "Person",
                 label: "Ada West",
                 person_side_code: "our_side",
@@ -1530,7 +1530,7 @@ describe("App, authenticated", () => {
               {
                 node_id: "post-1",
                 node_type_code: "node_post",
-                ontology_iri: "https://contextualwisdomlab.github.io/lineageweave/ontology#Post",
+                ontology_iri: "https://contextualwisdomlab.github.io/LineageWeave/ontology#Post",
                 ontology_label: "Post",
                 label: "Linked post",
                 relevance: 0.6,
@@ -2427,7 +2427,7 @@ describe("App, authenticated", () => {
     expect(screen.getByText(/Extraction source: Semantic extraction/)).toBeInTheDocument();
     expect(screen.getByText(/Evidence field: Stored semantic evidence/)).toBeInTheDocument();
     expect(screen.queryByText("contextual_orchestrator_semantic")).not.toBeInTheDocument();
-    expect(screen.queryByText("https://contextualwisdomlab.github.io/lineageweave/ontology#Project")).not.toBeInTheDocument();
+    expect(screen.queryByText("https://contextualwisdomlab.github.io/LineageWeave/ontology#Project")).not.toBeInTheDocument();
     expect(screen.getByText("첫 번째 이벤트")).toBeInTheDocument();
     expect(screen.getByText(/우리 측 후속/)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "R&R Keyman: Ada West" })).toBeInTheDocument();

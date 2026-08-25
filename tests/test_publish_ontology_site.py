@@ -51,6 +51,7 @@ def _repository_fixture(tmp_path: Path) -> Path:
         "lineageweave-kg.ttl",
         "prov-o-support-profile.ttl",
         "namespace-compatibility.ttl",
+        "lineageweave-kg-shapes.ttl",
     ):
         (ontology_dir / name).write_bytes((ROOT / "docs" / "ontology" / name).read_bytes())
     (scripts_dir / "build_ontology_site.py").write_bytes(
@@ -207,6 +208,78 @@ def test_compatibility_validation_is_term_kind_safe() -> None:
     assert publisher._term_kind(ambiguous, post) is None
 
 
+def test_shapes_validation_rejects_dangling_targets_and_outside_namespace() -> None:
+    """ADR 0207 decision 10: a shape targeting an undeclared class or
+    path validates nothing silently, so publication refuses it; only
+    canonical-namespace targets are allowed.
+    """
+    from rdflib.namespace import SH
+
+    publisher = _load_publisher()
+    canonical = Graph().parse(
+        ROOT / "docs" / "ontology" / "lineageweave-kg.ttl", format="turtle"
+    )
+
+    with pytest.raises(ValueError, match="declares no sh:NodeShape"):
+        publisher.validate_shapes_graph(Graph(), canonical)
+
+    outside_target = Graph()
+    outside_target.add((URIRef(f"{publisher.CANONICAL_NAMESPACE}PostShape"), RDF.type, SH.NodeShape))
+    outside_target.add(
+        (
+            URIRef(f"{publisher.CANONICAL_NAMESPACE}PostShape"),
+            SH.targetClass,
+            URIRef("https://example.test/ontology#Ghost"),
+        )
+    )
+    with pytest.raises(ValueError, match="outside the canonical namespace"):
+        publisher.validate_shapes_graph(outside_target, canonical)
+
+    outside_path = Graph()
+    outside_path.add((URIRef(f"{publisher.CANONICAL_NAMESPACE}S"), RDF.type, SH.NodeShape))
+    outside_path.add(
+        (
+            URIRef(f"{publisher.CANONICAL_NAMESPACE}S"),
+            SH.targetClass,
+            URIRef(f"{publisher.CANONICAL_NAMESPACE}Post"),
+        )
+    )
+    outside_path.add(
+        (
+            URIRef(f"{publisher.CANONICAL_NAMESPACE}S"),
+            SH.path,
+            URIRef("https://example.test/ontology#ghostProperty"),
+        )
+    )
+    with pytest.raises(ValueError, match="outside the canonical namespace"):
+        publisher.validate_shapes_graph(outside_path, canonical)
+
+    dangling_class = Graph()
+    dangling_class.add((URIRef(f"{publisher.CANONICAL_NAMESPACE}S"), RDF.type, SH.NodeShape))
+    dangling_class.add(
+        (
+            URIRef(f"{publisher.CANONICAL_NAMESPACE}S"),
+            SH.targetClass,
+            URIRef(f"{publisher.CANONICAL_NAMESPACE}NotAClass"),
+        )
+    )
+    with pytest.raises(ValueError, match="not an ontology class"):
+        publisher.validate_shapes_graph(dangling_class, canonical)
+
+    dangling_path = Graph()
+    shape = URIRef(f"{publisher.CANONICAL_NAMESPACE}PostShape")
+    dangling_path.add((shape, RDF.type, SH.NodeShape))
+    dangling_path.add((shape, SH.targetClass, URIRef(f"{publisher.CANONICAL_NAMESPACE}Post")))
+    dangling_path.add((shape, SH.path, URIRef(f"{publisher.CANONICAL_NAMESPACE}ghostColumn")))
+    with pytest.raises(ValueError, match="not an ontology term"):
+        publisher.validate_shapes_graph(dangling_path, canonical)
+
+    publisher.validate_shapes_graph(
+        Graph().parse(ROOT / "docs" / "ontology" / "lineageweave-kg-shapes.ttl", format="turtle"),
+        canonical,
+    )
+
+
 def test_main_publishes_site(tmp_path: Path) -> None:
     publisher = _load_publisher()
     repository = _repository_fixture(tmp_path)
@@ -266,6 +339,12 @@ def test_publication_fails_closed_for_missing_sources(tmp_path: Path) -> None:
         (ROOT / "docs" / "ontology" / "prov-o-support-profile.ttl").read_bytes()
     )
     with pytest.raises(FileNotFoundError, match="namespace compatibility"):
+        publisher.publish_site(repository, output)
+
+    (ontology_dir / "namespace-compatibility.ttl").write_bytes(
+        (ROOT / "docs" / "ontology" / "namespace-compatibility.ttl").read_bytes()
+    )
+    with pytest.raises(FileNotFoundError, match="SHACL shapes graph"):
         publisher.publish_site(repository, output)
 
 

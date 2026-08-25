@@ -8,6 +8,25 @@ All notable changes to this project are documented here. Format follows
 
 ### Added
 
+- The repository-case public ontology namespace
+  `https://contextualwisdomlab.github.io/LineageWeave/ontology#` is canonical
+  (ADR 0207, superseding ADR 0157, resolving issue #372); the lowercase form
+  is a deprecated compatibility vocabulary with validated mappings and a
+  dry-run migration tool for stored values.
+- Closed-world SHACL validation (`docs/ontology/lineageweave-kg-shapes.ttl`,
+  pyshacl in tests): required post title/body/timestamp, project-mention
+  RDF subject/predicate/object chain, decimal confidence bounded to
+  `[0.0, 1.0]`, required person/entity names and entity code, and the
+  our-side/counterparty disjointness complement; published with
+  the ontology site and guarded against dangling shape targets.
+- Node-attribute datatype properties grounded only in real schema columns
+  (`postTitle`, `postBody`, `eventOccurredAt`, `personName`,
+  `lastKnownJobTitle`, `entityName`, `entityCode`, shared domain-free
+  `createdAt`/`updatedAt`), a SKOS post-type scheme formalizing the governed
+  five-value `voc_type` vocabulary under the round-trip check, and logical
+  constraints: `OurSidePerson owl:disjointWith CounterpartyPerson` plus the
+  `hasAffiliate` inverse of `affiliatedWith` (ADR 0207).
+
 - Buyer Calendar now consumes the Naruon calendar projection beside
   post-grounded commitments (ADR 0203 step 2 / #336). Observed occurrences
   stay evidence-only; a commitment still opens that post. The 달력
@@ -52,9 +71,6 @@ All notable changes to this project are documented here. Format follows
   retrieval, multi-thread Event Lineage answers, persisted image-evidence
   citations, and the focused evidence popup. Their implementations remain
   active-PR evidence until protected merge.
-- ADR 0157 and its exact-head inventory choose the existing lowercase public
-  ontology namespace as canonical and define the compatibility, publication,
-  and migration evidence required by issue #372 without rewriting identifiers.
 - The ontology Pages artifact now publishes the deprecated repository-case
   compatibility vocabulary after validating every mapping's term kind.
 - The PROV-O support profile now mints its product class mappings only in the
