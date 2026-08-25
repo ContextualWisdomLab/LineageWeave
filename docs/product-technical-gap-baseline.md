@@ -89,7 +89,7 @@ context only.
 | ---: | --- | --- |
 | #644 | `f631060d` | frontend conditional workspace splitting; checks and independent review remain required |
 | #643 | `041ec13b` | shared token-backed status notice; checks and independent review remain required |
-| #640 | `4678be28` | dashboard case metrics and project journeys; checks and independent review remain required |
+| #640 | `6d4a0b76` | dashboard case metrics, project journeys, and restored TEPP API-key setting; checks and independent review remain required |
 | #639 | `aee02dca` | Running action and Compose contract repair; checks and independent review remain required |
 | #636 | `f7b9a65f` | calibrated external lineage contract; checks and independent review remain required |
 | #632 | `55b0d88c` (observed parent) | Global Ask provenance, semantic nomination, public verification, knowledge-cutoff stack, and stacked baseline refresh; this row advances when the parent branch receives the follow-up commit, while checks and independent review remain required |
