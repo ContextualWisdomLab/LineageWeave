@@ -4457,6 +4457,7 @@ function CustomerMasterPanel({
   }, [accessToken, selectedPostId]);
 
   function openPost(postId: string) {
+    setSelectedPostGraph(null);
     setSelectedPostId(postId);
   }
 
