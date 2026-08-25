@@ -566,12 +566,22 @@ def test_focused_lineage_graph_includes_a_post_outside_landing_limit() -> None:
             connection, lambda row: True, limit=1, focus_post_id="post-c"
         )
     )
+    hidden_neighbor = asyncio.run(
+        ingestion.visible_lineage_graph(
+            connection,
+            lambda row: row["post_id"] != "post-b",
+            limit=1,
+            focus_post_id="post-a",
+        )
+    )
 
     assert [node["id"] for node in landing["nodes"]] == ["post-c"]
     assert {node["id"] for node in focused["nodes"]} == {"post-a", "post-b"}
     assert len(focused["edges"]) == 1
     assert focused["truncated"] is False
     assert isolated == {"nodes": [], "edges": [], "truncated": False}
+    assert [node["id"] for node in hidden_neighbor["nodes"]] == ["post-a"]
+    assert hidden_neighbor["edges"] == []
 
 
 def test_lineage_graphs_for_posts_merges_distinct_threads_without_duplicates() -> None:

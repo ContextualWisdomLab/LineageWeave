@@ -353,7 +353,7 @@ async def visible_lineage_graph(
         component_ids = _connected_visible_component(focus_id, neighbors, allowed)
         visible = (
             [row for row in visible_all if str(row["post_id"]) in component_ids]
-            if include_isolated or len(component_ids) > 1
+            if include_isolated or len(component_ids) > 1 or focus_id in neighbors
             else []
         )
         truncated = False
