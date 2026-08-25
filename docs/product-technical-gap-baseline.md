@@ -59,8 +59,9 @@ only aggregate, non-identifying evidence to this repository.
 
 ### Exact open-PR boundary
 
-At this snapshot there were 4 open PRs and 14 open issues. Exact observed heads
-were `#619 29e01dc2`, `#618 df9d6cb1`, `#579 b782e5f7`, and `#387 d6b74f53`.
+At this snapshot there were 6 open PRs and 14 open issues. Exact observed heads
+were `#621 e294aafa` (this PR's observed parent), `#620 aa184885`,
+`#619 29e01dc2`, `#618 df9d6cb1`, `#579 b782e5f7`, and `#387 d6b74f53`.
 PRs #612, #614, #615, and #616 reached protected `main`; the superseded baseline
 PR #613 closed without merge and its PRD is recreated by this branch. The open
 heads remain blocked on hosted gates and/or independent review. These
@@ -78,13 +79,15 @@ lifecycle claim.
 ## 1. Exact-head and governance evidence
 
 The protected default branch was `48f013a28e0b0fe51951d4df9bf3f9a3532df173`
-when this baseline was refreshed. The live queue contained 4 open PRs and 14
+when this baseline was refreshed. The live queue contained 6 open PRs and 14
 open issues. The exact-head inventory below supersedes older per-PR snapshots
 elsewhere in this document; those older rows remain useful historical delivery
 context only.
 
 | PR | Exact observed head | Merge/check state at this snapshot |
 | ---: | --- | --- |
+| #621 | `e294aafa` (observed parent) | this row is written by #621 itself, so its commit necessarily advances after the snapshot is encoded; re-fetch the live head before governance use |
+| #620 | `aa184885` | refreshes temporal-topic and capacity gaps; hosted gates and independent review remain required |
 | #619 | `29e01dc2` | documents the fixed-alias, repository-owned Similar-VOC eligibility fragment for the narrow Semgrep rule; focused tests and Semgrep passed, while hosted gates and independent review remain required |
 | #618 | `df9d6cb1` | separates SHACL class/property term kinds and corrects the corporate-entity UI fixture; current `main` is composed, while hosted gates and independent review remain required |
 | #579 | `b782e5f7` | interaction-map coordinate persistence is composed with protected main; hosted gates and independent review remain required |
@@ -360,7 +363,7 @@ this file per §3.5 of the prior snapshot).
 
 | Gap | Current evidence | Acceptance requirement |
 | --- | --- | --- |
-| Protected release | 4 open PRs at snapshot; #618/#619 are current-main follow-ups, while #387/#579 retain independent-review gates | Terminal exact-head checks, no unresolved threads, independent exact-head approvals, protected squash-merge SHA |
+| Protected release | 6 open PRs at snapshot; #618–#621 are current-main follow-ups, while #387/#579 retain independent-review gates | Terminal exact-head checks, no unresolved threads, independent exact-head approvals, protected squash-merge SHA |
 | Evidence-grounded operations workspace | Protected-main #614 delivers governed semantic Ask, live Similar VOC, disjoint pending/failed analysis metrics, full Storybook state inventory, and current desktop/mobile screenshot evidence. Authorized-corpus backfill acceptance remains unavailable | Perform authenticated authorized-corpus acceptance with aggregate evidence and retain fail-closed no-match behavior |
 | Shared frontend gate | The ADR 0109 login repair is on protected `main`; eight older branches carried the defect and received the same verified repair this loop (#521–#560) | Keep every future branch cut from post-repair bases; re-verify with frontend lint/test/build before push |
 | Identifying baseline regression | `main` gap file listed real post identifiers; separately, closed #506 and pre-existing public history contain a private runtime source-table identifier, while current `main` and #507 trees are clean | Land this non-identifying rewrite, then coordinate ADR 0001 history remediation with security/privacy owners; do not reproduce the value, force-push, or delete evidence ad hoc |
@@ -457,7 +460,7 @@ review latency are never blockers — keep working while they settle.
 
 1. Revalidate Strix after protected ContextualWisdomLab/.github#1320, reconcile
    .github#1263, and land the atomic hourly LineageWeave caller in .github#1288.
-2. Merge #387, #579, #618, and #619 only after each exact head shows terminal
+2. Merge #387, #579, and #618–#621 only after each exact head shows terminal
    green required checks plus current-head independent approval.
 3. After the queue drains, resume user-visible gaps from §5 in leverage order:
    Event Lineage evidence (#387/#274), Naruon calendar (#355/#336), and
