@@ -2,16 +2,21 @@
 
 > Dashboard delivery snapshot: 2026-08-27. Protected `main` was
 > `ff7431bd1851c03e737808d22c6a2d43968582f9`. Dashboard PR #640 exact
-> observed head was `c142c4eaa3581a969fc5b9a78020149df24ba70a`; this branch is not
-> protected-main release evidence. The queue contained 30 open PRs (22
-> `BLOCKED`, six `UNSTABLE`, two `CLEAN`) and no exact-head approval. PR #715
+> observed head is `b3befa8bec8dd2807994444299df7eafdd1c7781`; this branch is not
+> protected-main release evidence. The queue contained 35 open PRs (23
+> `BLOCKED`, six `UNSTABLE`, four `CLEAN`, and two `UNKNOWN`) and no exact-head
+> approval. PR #715
 > merged normally into #640 and repaired the four stale HTTP transport test
 > doubles plus one Python-before-3.7 Semgrep false positive that contradicted
 > the repository's Python >=3.12 contract. PR #722 also merged normally into
 > #640, restoring semantic-query and opt-in public-verification factories in
 > the dedicated Ask worker and the production-equivalent concurrent-migration
-> fixture path. Current #640 CodeQL, CodeRabbit, and Devin checks succeeded;
-> independent approval remains absent, so the candidate stays blocked.
+> fixture path. PR #727 merged normally as `353dfd01`, replacing general-reader
+> implementation wording with evidence actions. Worker evidence PR #725 is at
+> exact head `40283c9b`; its fresh hosted gates are pending. Storybook follow-up
+> #730 is at exact head `2c20a7fe`; its fresh hosted gates are also pending.
+> Current #640 required checks are queued and independent approval remains
+> absent, so the candidate stays blocked.
 
 ## Operations Dashboard PRD/TRD traceability
 
@@ -47,7 +52,8 @@ named volumes.
 | Temporal Lineage topics and multilevel important posts | ADR 0210; TEPP posterior topic/plausible-value contract followed by fast-mlsirm observed-information case-deletion influence | This stacked candidate adds normalized persistence, exact run/snapshot/cutoff binding, pre-aggregation scope authorization, API diagnostics, and populated/unavailable Storybook surfaces. TEPP PR #247 remains open at `063f10f3`; stacked #251–#254 provide fail-closed input validation, full joint precision, deterministic joint plausible-value draws, and the canonical research register, while complete provenance assembly remains gated. fast-mlsirm PR #1418 validates the Rust consumer envelope but intentionally returns `EstimatorUnavailable` until the scientific estimator lands. Runtime therefore remains honestly unavailable with no local Python or fallback score. |
 | PostgreSQL WAL/checkpoint and worker memory pressure | ADR 0227 and ADR 0247; aligned PostgreSQL counter deltas plus unchanged-container Docker/cgroup v2 evidence | Candidate PostgreSQL procedure emits a content-authenticated restart/rollback plan while retaining unmeasured settings and durability. The current cumulative counters establish sustained historical WAL/checkpoint pressure but do not replace a representative aligned apply window. A prior worker exit 137 is not attributable after container recreation: the current healthy worker has no configured service memory limit/reservation, and a one-second non-identifying observation showed an approximately 109 MiB cgroup lifetime peak with no new local pressure/OOM event. That idle window is not capacity acceptance. Capture the declared representative workload before recreation; do not add a limit or headroom multiplier until that evidence supports a separately accepted capacity boundary. |
 
-Customer-copy audit at #640 exact `c142c4ea` retained the ADR-required
+Customer-copy audit began at #640 exact `c142c4ea` and was delivered by #727
+at merge `353dfd01`; it retained the ADR-required
 measurement-administrator terms and explicit ontology/provenance inspection
 labels. Two general-reader gaps were isolated: Customer Master explained the
 ontology/semantic implementation boundary instead of the evidence action, and
@@ -55,7 +61,9 @@ Global Ask called authorized workspace evidence "internal" posts. The stacked
 copy repair tells the reader to compare the source identifier with related
 posts and organization evidence, and reuses the authorized-citation action.
 Five-locale consistency, rendered component tests, and desktop/narrow
-Storybook scenes cover the repair. `프로젝트별 관측 Event` and ADR 0210's exact
+Storybook scenes cover the Customer Master repair. Follow-up #730 renders the
+Global Ask no-public-claim result and its next action in desktop and narrow
+scenes at exact head `2c20a7fe`. `프로젝트별 관측 Event` and ADR 0210's exact
 `model influence` estimand name remain unchanged.
 
 ### Technical contract and flow
