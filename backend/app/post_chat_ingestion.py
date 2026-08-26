@@ -315,9 +315,11 @@ async def gather_chat_sources(
 ) -> list[ChatSourceDocument]:
     """Post `post_id` plus a bounded, deterministic linked-source window.
 
-    Direct Event Lineage neighbors precede indirect Knowledge Graph
-    neighbors; both groups are identifier-sorted before ABAC filtering. The
-    current post plus at most seven visible linked posts become the numbered
+    Persisted semantic-project siblings precede direct Event Lineage and
+    indirect Knowledge Graph neighbors; each group is identifier-sorted before
+    ABAC filtering. This gives exact project membership a bounded opportunity
+    to supply the missing original even when graph neighborhoods are dense.
+    The current post plus at most seven visible linked posts become the numbered
     source set that `post_chat` citations refer back to. Every source's body
     is normalized (HTML tags/base64 images never reach the reason-and-cite
     LLM call raw) before becoming a `ChatSourceDocument` -- see
@@ -358,9 +360,9 @@ async def gather_chat_sources(
     linked = await find_linked_post_ids(conn, post_id)
     project_sibling_ids = await find_project_sibling_post_ids(conn, post_id)
     candidate_ids = [
+        *sorted(project_sibling_ids - linked.direct - linked.indirect),
         *sorted(linked.direct),
         *sorted(linked.indirect),
-        *sorted(project_sibling_ids - linked.direct - linked.indirect),
     ][:_POST_CHAT_CANDIDATE_LIMIT]
     if not candidate_ids:
         return sources

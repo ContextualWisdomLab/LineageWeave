@@ -7,6 +7,7 @@ from types import SimpleNamespace
 import pytest
 
 from backend.app.post_chat_ingestion import (
+    _POST_CHAT_CANDIDATE_LIMIT,
     LinkedPostIds,
     cited_post_images,
     fetch_persisted_chat,
@@ -105,6 +106,47 @@ def test_project_siblings_are_separate_from_event_lineage(
     assert linked == LinkedPostIds(direct=frozenset(), indirect=frozenset())
     assert siblings == frozenset({"post-2"})
     assert connection.project_queries == 1
+
+
+def test_project_sibling_precedes_a_dense_graph_candidate_window(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Exact project evidence is not crowded out by a dense graph window."""
+
+    root_id = "00000000-0000-0000-0000-000000000001"
+    project_id = "00000000-0000-0000-0000-000000000002"
+    direct_ids = {
+        f"00000000-0000-0000-0001-{index:012d}" for index in range(40)
+    }
+
+    class DenseConnection(_SourceConnection):
+        candidate_ids: list[str] = []
+
+        async def fetch(self, query: str, *args: object):
+            if "select post_id, post_title, post_body, visibility_code" in query:
+                self.candidate_ids = list(args[0])
+                return []
+            return []
+
+    async def dense_links(_conn: object, _post_id: str) -> LinkedPostIds:
+        return LinkedPostIds(frozenset(direct_ids), frozenset())
+
+    async def project_link(_conn: object, _post_id: str) -> frozenset[str]:
+        return frozenset({project_id})
+
+    monkeypatch.setattr(
+        "backend.app.post_chat_ingestion.find_linked_post_ids", dense_links
+    )
+    monkeypatch.setattr(
+        "backend.app.post_chat_ingestion.find_project_sibling_post_ids",
+        project_link,
+    )
+    connection = DenseConnection()
+
+    asyncio.run(gather_chat_sources(connection, root_id, lambda _row: True))
+
+    assert connection.candidate_ids[0] == project_id
+    assert len(connection.candidate_ids) == _POST_CHAT_CANDIDATE_LIMIT
 
 
 def test_gather_chat_sources_keeps_the_event_loop_responsive_during_body_normalization(
