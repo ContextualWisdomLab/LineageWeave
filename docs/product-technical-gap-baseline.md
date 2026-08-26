@@ -60,15 +60,6 @@ only aggregate, non-identifying evidence to this repository.
 
 ### Exact open-PR boundary
 
-At this snapshot there were 13 open PRs and 10 open issues. The exact-head
-inventory in section 1 is authoritative for this snapshot. Every open head
-remained blocked on hosted gates and/or independent review. These observations
-are not merge readiness. Re-fetch exact heads,
-unresolved threads, checks, approvals, rulesets, and merge SHA before any
-lifecycle claim.
-
-> Audit snapshot: 2026-08-26 09:00 KST (refreshed by the autonomous merge
-
 At this snapshot there were 11 open PRs and 10 open issues. PRs #660 and #659
 merged to protected `main`; PR #666 remains only non-default-branch stack
 composition inside #663. Every remaining open head required refreshed hosted
@@ -86,8 +77,6 @@ approvals, rulesets, and merge SHA before any lifecycle claim.
 ## 1. Exact-head and governance evidence
 
 The protected default branch was `494b54e2245040bcf02b45376f221c37cd437e76`
-when this baseline was refreshed. The live queue contained 13 open PRs and 10
-
 when this baseline was refreshed. The live queue contained 11 open PRs and 10
 open issues. The exact-head inventory below supersedes older per-PR snapshots
 elsewhere in this document; those older rows remain useful historical delivery
@@ -95,20 +84,6 @@ context only.
 
 | PR | Exact observed head | Merge/check state at this snapshot |
 | ---: | --- | --- |
-| #672 | `5387acb4` | indexed persisted semantic/KG candidate nomination (ADR 0233); exact-head checks/review required |
-| #668 | `f272f4b0` | evidence-bound project history in post detail; exact-head checks/review required |
-| #667 | `e05d138c` | current baseline refresh plus stacked cancelled-run guidance; exact-head checks/review required |
-| #663 | `7ac1483e` | project ontology traversal plus cutoff/snapshot-frozen project focus and labels; exact-head checks/review required |
-| #658 | `f497a6e8` | evidence-honest Global Ask cutoff with revision-interval live-after semantics; exact-head checks/review required |
-| #657 | `a59a2023` | TEPP asynchronous lifecycle evidence; exact-head checks/review required |
-| #644 | `ed8d97f3` | native-surface code splitting with modal-focus regression coverage; exact-head checks/review required |
-| #643 | `3453ab08` | accessible token-backed status notices; exact-head checks/review required |
-| #640 | `dda5cf48` | operations-dashboard contract alignment and ABAC/UUID repairs; exact-head checks/review required |
-| #639 | `8da485d3` | Running action and Compose contracts; exact-head checks/review required |
-| #632 | `cad4debf` | active semantic provenance repair head; exact-head checks/review required |
-| #631 | `e6b4f0c4` | documentation decomposition; exact-head checks/review required |
-| #629 | `48496ff6` | web provider release and bounded landing reads; exact-head checks/review required |
-
 | #667 | `3bc662d7` | refreshes protected-main and open-queue documentation evidence; base conflict remains to be repaired |
 | #663 | `6fd2f701` | combined Project ontology candidate plus #666's non-default-branch removal of sampled region-coverage arithmetic; base conflict remains to be repaired |
 | #658 | `f007a5ed` | evidence-honest Global Ask cutoff; hosted checks and independent review required |
@@ -374,10 +349,7 @@ this file per §3.5 of the prior snapshot).
 | #79 | Milestone 2: port verified direct-PostgreSQL analysis into the protected architecture | analysis-run registry on `main`; remaining runtime bridge |
 | #87 | Milestone 2.1 normalized runtime-analysis schema bridge | related analysis-run work |
 | #269 | Authenticated Global Ask MCP browser-safe and admission-bounded | Ask stack |
-| #271 | Evidence-honest knowledge-cutoff scope on Global Ask | Ask stack |
-| #272 | Verify Global Ask KG/ontology/semantic claims with public SearXNG evidence; stacked PR #682 exact head `b9cf3f01` adds the ADR 0234 opt-in candidate and keeps internal post provenance out of the public evidence payload | #682 is in progress, not protected delivery; require terminal exact-head checks, independent review, and authenticated egress/runtime evidence before closing |
 | #274 | Persist and explain Event Lineage channel evidence | #387 |
-| #277 | TEPP: persist accepted receipts, poll completed results, keep measurement authority distinct | #468, #417 |
 | #280 | Full project-lifecycle history and handover intervals | Tracked with issue #284; no active delivery PR confirmed |
 
 | #271 | Evidence-honest knowledge-cutoff scope on Global Ask | #658; still open and not protected-main evidence |
@@ -404,9 +376,6 @@ this file per §3.5 of the prior snapshot).
 | Event and project semantics | Multi-project mentions, project-bound actions, 5W1H, requester/processor, and semantic relations exist in ADR 0036/0052/0100/0111/0129 and active stacks | Aggregate authenticated evidence must show distinct projects and events, explicit requester/processor and real R&R, normalized relative time, and product/entity relations without promoting attendance or co-occurrence |
 | Knowledge Graph readability | The black evidence-node root cause is an undefined-token fallback; the design-token repair and long-label/evidence-table coverage remain only on closed, unmerged #490, not protected `main` | Recreate the token repair on a current base and deliver it through protected `main`, then verify light/dark contrast, keyboard graph navigation, full labels, and evidence tables in the authenticated rendered surface |
 
-| Semantic source rendering | Paragraph, table, list, formula, and indentation work exists across stacks (#394, #427, #448–#450); #515 adds synthetic backend/frontend parity for deterministic rows/cells, footnote boundaries, and encoded scripts | Land the #427 → #515 stack, then gather authenticated browser evidence that list nesting, continuation alignment, and formula units render without authoring-layout artifacts |
-| Event and project semantics | #663 is the largest current user-visible gap slice: evidence-backed Project nodes, bounded traversal, cutoff/snapshot fencing, exact-value table parity, and localized graph labels. Focus visibility, label-bound, and temporal test-double regressions are repaired. #666's heuristic removal is composed into this parent but is not separately protected-main evidence. #640 separately adds project journeys without claiming authoritative lifecycle status | Combined #663 must pass exact-head checks and independent approval before protected merge. Aggregate authenticated evidence must still prove distinct projects/events and handover intervals without promoting co-occurrence |
-| Knowledge Graph readability | #659 recreates the token-backed node-type repair on current `main`, including regression coverage; it is open and therefore not protected-main evidence | Merge #659 normally, then verify light/dark contrast, keyboard graph navigation, full labels, and evidence tables in the authenticated rendered surface |
 | Source-code lookup UX | Source state/detail codes remain evidence-bearing machine values and current detail presentation is dense | Catalog-backed display labels with raw-code provenance, compact 5W1H/source-detail hierarchy, keyboard access, and no unsupported customer/project binding |
 | Calendar / Naruon | #355 delivered the projection contract; v2.17.0 wires operator consumption without forwarding the end-user token. Naruon producer, provider/consumer fixtures, and protected merge remain open (#336) | Verify observed events against the published schema without invented events; keep commitments available when the channel is unwired |
 | SKOS organization aliases | Catalog binding and chip caption live on #480 / #482 | One catalog row per corroborated org; companion caption is hint-only until bound |
