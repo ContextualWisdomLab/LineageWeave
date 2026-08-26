@@ -410,19 +410,20 @@ export function ChatPanel({
   const firstCitedTitle =
     exchanges[0]?.cited_posts?.[0]?.post_title ??
     (firstCitedPostId ? firstCitedPostId.slice(0, 8) : null);
-  const landedEvidencePostId = nameFirstAsk ? (evidencePostId ?? firstCitedPostId) : null;
+  const showNamedSeed = Boolean(nameFirstAsk && conversationId === null && exchanges[0]);
+  const landedEvidencePostId = showNamedSeed ? (evidencePostId ?? firstCitedPostId) : null;
 
   return (
     <section className="popup-section chat-section">
       <h3 id="post-ask" tabIndex={-1}>
         {t("Ask about this lineage")}
       </h3>
-      {nameFirstAsk && exchanges[0] ? (
+      {showNamedSeed ? (
         <p className="post-meta" role="status" aria-label={t("Ask seed next action")}>
           {firstAskNextAction(exchanges[0].question_text)}
         </p>
       ) : null}
-      {nameFirstAsk && exchanges[0] ? (
+      {showNamedSeed ? (
         <div key={`seeded-${exchanges[0].question_text}`} className="chat-answer">
           <p className="chat-question">{exchanges[0].question_text}</p>
           <p>{exchanges[0].answer_text}</p>
@@ -436,12 +437,12 @@ export function ChatPanel({
           />
         </div>
       ) : null}
-      {nameFirstAsk && firstCitedTitle ? (
+      {showNamedSeed && firstCitedTitle ? (
         <p className="post-meta" role="status" aria-label={t("Ask citation next action")}>
           {firstCitedNextAction(firstCitedTitle)}
         </p>
       ) : null}
-      {nameFirstAsk && landedEvidencePostId ? (
+      {showNamedSeed && landedEvidencePostId ? (
         <EvidencePanel
           postId={landedEvidencePostId}
           accessToken={accessToken}
@@ -452,7 +453,7 @@ export function ChatPanel({
           }
         />
       ) : null}
-      {nameFirstAsk && firstCitedTitle && landedEvidencePostId ? (
+      {showNamedSeed && firstCitedTitle && landedEvidencePostId ? (
         <p className="post-meta" role="status" aria-label={t("Evidence next action")}>
           {landedEvidenceNextAction(firstCitedTitle)}
         </p>
@@ -538,7 +539,7 @@ export function ChatPanel({
               className="chat-suggestion-chip"
               aria-label={tf("Ask seeded question: {question}", { question: exchange.question_text })}
               aria-current={
-                nameFirstAsk && index === 0
+                showNamedSeed && index === 0
                   ? "true"
                   : undefined
               }
@@ -555,7 +556,7 @@ export function ChatPanel({
       )}
       {error && <p className="error">{error}</p>}
       {exchanges
-        .slice(nameFirstAsk ? 1 : 0)
+        .slice(showNamedSeed ? 1 : 0)
         .map((exchange, index) => (
         <div key={exchange.turn_id ?? `answer-${index}`} className="chat-answer">
           <p className="chat-question">{exchange.question_text}</p>

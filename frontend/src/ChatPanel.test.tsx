@@ -45,6 +45,7 @@ describe("ChatPanel conversation history", () => {
 
     expect(await screen.findAllByText("First answer")).toHaveLength(1);
     expect(screen.getByText("Second answer")).toBeInTheDocument();
+    expect(screen.queryByLabelText("Ask seed next action")).not.toBeInTheDocument();
     expect(screen.getAllByRole("button", { name: "Ask seeded question: What changed?" })).toHaveLength(2);
   });
 
