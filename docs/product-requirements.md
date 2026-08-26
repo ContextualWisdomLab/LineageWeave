@@ -157,12 +157,16 @@ the retained revision and full/partial grounding state.
   affiliation scope, Host, Origin, and bounded request body before a tool runs.
 - Consume one distributed quota unit only for an admitted authenticated tool
   call; preflight and rejected admission consume none.
+- Preserve each cited post's determinate persisted related-public-source links
+  in the shared answer, while rechecking publication eligibility and the
+  requested knowledge cutoff; never invent a missing title or URL.
 - Require deployment-supplied, load-evidence-backed quota parameters and fail
   closed when shared Valkey cannot decide.
 
 Acceptance: MCP and REST produce the same scope snapshot, verification opt-in,
-knowledge cutoff, status, citations, and limitations; cross-account reads are
-404-equivalent; and exhaustion returns the bounded actual retry interval.
+knowledge cutoff, status, citations, related public sources, and limitations;
+cross-account reads are 404-equivalent; and exhaustion returns the bounded
+actual retry interval.
 
 ### PRD-FR-6 — Measurement boundary
 

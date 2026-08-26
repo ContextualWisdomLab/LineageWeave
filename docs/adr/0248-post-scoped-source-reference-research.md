@@ -60,11 +60,20 @@ its own public-target SSRF and redirect rejection.
    both a semantic-unit stream and an image-region stream a place whenever the
    supplied budget can contain both, without an inferred score, weight, or
    content-ranking heuristic. Each stream retains its persisted source order.
+10. A settled Global Ask answer may attach only the determinate persisted
+    references belonging to its already-authorized cited posts. Delivery
+    rechecks current publication eligibility, limits historical answers to
+    references checked by the requested cutoff, and returns the same reference
+    fields through REST, UI, report, and MCP's shared durable answer. Missing
+    references remain absent; no title or URL is synthesized.
 
 ## Consequences
 
 - Readers can research a public post's own source unit or image region without
   mixing Global Ask snippet verification into the same table.
+- A reader can move from an Ask citation to its event card, internal post, and
+  persisted related public document without treating that document as Event
+  Lineage or ontology state.
 - Private posts remain inside the authorization boundary.
 - Redirect-based SSRF and DNS rebinding are rejected at the retrieval client,
   not compensated later in UI copy.

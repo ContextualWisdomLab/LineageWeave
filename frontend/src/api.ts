@@ -525,6 +525,17 @@ export interface CitedPostImage {
   tags: string[];
 }
 
+export interface AskSourceReference {
+  post_id: string;
+  lead_kind_code: string;
+  evidence_url: string;
+  evidence_title_text: string | null;
+  evidence_excerpt_text: string | null;
+  judgment_code: "research_supported" | "research_refuted";
+  next_action_text: string;
+  checked_at: string;
+}
+
 export interface AskAgentResponse {
   answer_text: string;
   cited_post_ids: string[];
@@ -532,6 +543,7 @@ export interface AskAgentResponse {
   cited_events?: CitedPostEvent[];
   cited_post_evidence?: CitedPostEvidence[];
   cited_post_images?: CitedPostImage[];
+  cited_source_references?: AskSourceReference[];
   source_post_ids: string[];
   external_verification_status?: string;
   external_claims?: ExternalClaim[];
@@ -555,6 +567,14 @@ export interface AskAgentResponse {
         api_path: string;
         resource_uri: string;
         evidence_facts: CitedPostEvidenceFact[];
+        source_references: Array<{
+          url: string;
+          title: string | null;
+          excerpt: string | null;
+          judgment_code: string;
+          lead_kind_code: string;
+          next_action: string;
+        }>;
       }>;
     };
     alert: {

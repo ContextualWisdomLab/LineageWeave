@@ -102,7 +102,6 @@ import { PublicClaimVerification } from "./components/PublicClaimVerification";
 import { PopupCloseButton } from "./components/PopupCloseButton";
 import { SimilarVocPanel } from "./components/SimilarVocPanel";
 import { SourceResearchPanel } from "./components/SourceResearchPanel";
-import { chatEvidenceKindLabel } from "./evidenceKindLabels";
 import { WorkspaceNav, type WorkspaceDestination } from "./components/WorkspaceNav";
 import { OperationsDashboard } from "./components/OperationsDashboard";
 import { initialWorkspaceDestination } from "./gnbChrome";

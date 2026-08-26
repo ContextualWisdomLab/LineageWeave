@@ -307,6 +307,7 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Post quality (IRT)": "게시글 품질 (IRT)",
     Counterparties: "관련 주체",
     "Source research": "출처 조사",
+    "Related public sources": "관련 공개 원문",
     "Research public sources": "공개 출처 조사",
     "Researching...": "조사하는 중...",
     "Open the cited public resource, then compare it with the highlighted passage or image detail from this post.":
@@ -881,6 +882,7 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Post quality (IRT)": "文章质量（IRT）",
     Counterparties: "相关方",
     "Source research": "来源核查",
+    "Related public sources": "相关公开原文",
     "Research public sources": "核查公开来源",
     "Researching...": "正在核查…",
     "Open the cited public resource, then compare it with the highlighted passage or image detail from this post.":
@@ -1466,6 +1468,7 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Post quality (IRT)": "投稿品質（IRT）",
     Counterparties: "関係者",
     "Source research": "出典調査",
+    "Related public sources": "関連する公開原文",
     "Research public sources": "公開出典を調査",
     "Researching...": "調査中...",
     "Open the cited public resource, then compare it with the highlighted passage or image detail from this post.":
@@ -2039,6 +2042,7 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Post quality (IRT)": "Chất lượng bài viết (IRT)",
     Counterparties: "Các bên liên quan",
     "Source research": "Nghiên cứu nguồn",
+    "Related public sources": "Nguồn công khai liên quan",
     "Research public sources": "Nghiên cứu nguồn công khai",
     "Researching...": "Đang nghiên cứu...",
     "Open the cited public resource, then compare it with the highlighted passage or image detail from this post.":

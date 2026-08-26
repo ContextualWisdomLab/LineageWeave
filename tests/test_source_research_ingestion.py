@@ -4,6 +4,7 @@ import asyncio
 
 from backend.app import main
 from backend.app.source_research_ingestion import (
+    list_ask_source_references,
     list_source_research_citations,
     persist_source_research_citation,
     research_post_sources_from_pool,
@@ -236,3 +237,36 @@ def test_citation_reads_preserve_source_order_for_same_run() -> None:
     assert "unit.unit_index" in query
     assert "image_unit.unit_index" in query
     assert "region.region_index" in query
+
+
+def test_ask_references_recheck_publication_without_inventing_urls() -> None:
+    """Ask reads only determinate persisted URLs through shared eligibility."""
+
+    class AskReferenceConnection:
+        def __init__(self) -> None:
+            self.query = ""
+            self.args: tuple[object, ...] = ()
+
+        async def fetch(self, query: str, *args: object):
+            self.query = query
+            self.args = args
+            return [{
+                "post_id": "00000000-0000-0000-0000-000000000001",
+                "evidence_url": "https://example.com/source",
+            }]
+
+    conn = AskReferenceConnection()
+    rows = asyncio.run(
+        list_ask_source_references(
+            conn,
+            ["00000000-0000-0000-0000-000000000001"],
+        )
+    )
+
+    assert rows[0]["evidence_url"] == "https://example.com/source"
+    assert "post.visibility_code = 'public'" in conn.query
+    assert "post.source_draft_code" in conn.query
+    assert "post.source_deleted_flag" in conn.query
+    assert "citation.judgment_code in ('research_supported', 'research_refuted')" in conn.query
+    assert "citation.evidence_url is not null" in conn.query
+    assert conn.args[1] is None

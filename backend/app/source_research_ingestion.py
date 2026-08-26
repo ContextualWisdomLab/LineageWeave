@@ -9,9 +9,11 @@ from __future__ import annotations
 
 import asyncio
 from dataclasses import dataclass
+from datetime import datetime
 
 import asyncpg
 
+from backend.app.post_eligibility import SOURCE_POST_ELIGIBILITY_SQL
 from lineageweave.http_client import HttpClientError
 from lineageweave.source_reference_research import (
     NO_LEAD_UNAVAILABLE,
@@ -117,6 +119,51 @@ async def list_source_research_citations(
                   citation.source_research_citation_id
         """,
         post_id,
+    )
+    return [dict(row) for row in rows]
+
+
+async def list_ask_source_references(
+    conn: asyncpg.Connection,
+    post_ids: list[str],
+    *,
+    checked_by: datetime | None = None,
+) -> list[dict[str, object]]:
+    """Return persisted, publication-eligible public references for cited posts.
+
+    ``post_ids`` has already crossed the Ask authorization boundary.  The
+    query rechecks current publication eligibility so a visibility or source
+    lifecycle change cannot leak a citation between retrieval and delivery.
+    A cutoff answer receives only citations that already existed by its
+    cutoff; absent determinate evidence remains absent rather than invented.
+    """
+
+    if not post_ids:
+        return []
+    rows = await conn.fetch(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
+        f"""
+        select citation.post_id::text as post_id,
+               citation.lead_kind_code,
+               citation.evidence_url,
+               citation.evidence_title_text,
+               citation.evidence_excerpt_text,
+               citation.judgment_code,
+               citation.next_action_text,
+               citation.checked_at
+          from source_research_citation citation
+          join source_post post on post.post_id = citation.post_id
+         where citation.post_id = any($1::uuid[])
+           and post.visibility_code = 'public'
+           and {SOURCE_POST_ELIGIBILITY_SQL.format(alias='post')}
+           and citation.judgment_code in ('research_supported', 'research_refuted')
+           and citation.evidence_url is not null
+           and ($2::timestamptz is null or citation.checked_at <= $2)
+         order by array_position($1::uuid[], citation.post_id),
+                  citation.checked_at desc,
+                  citation.source_research_citation_id
+        """,
+        post_ids,
+        checked_by,
     )
     return [dict(row) for row in rows]
 
