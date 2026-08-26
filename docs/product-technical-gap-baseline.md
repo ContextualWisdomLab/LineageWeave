@@ -61,14 +61,14 @@ only aggregate, non-identifying evidence to this repository.
 
 ### Exact open-PR boundary
 
-At this snapshot there were 16 open PRs and 10 open issues. The exact-head
+At this snapshot there were 17 open PRs and 10 open issues. The exact-head
 inventory in section 1 is authoritative for this snapshot. Every open head
 remained blocked on hosted gates and/or independent review. These observations
 are not merge readiness. Re-fetch exact heads,
 unresolved threads, checks, approvals, rulesets, and merge SHA before any
 lifecycle claim.
 
-> Audit snapshot: 2026-08-26 18:51 KST (refreshed by the autonomous merge
+> Audit snapshot: 2026-08-26 20:05 KST (refreshed by the autonomous merge
 > loop). This repository records synthetic fixtures and aggregate,
 > non-identifying runtime evidence only. Open PRs and local checks are not
 > protected-default-branch release evidence. Identifying post identifiers,
@@ -78,29 +78,29 @@ lifecycle claim.
 ## 1. Exact-head and governance evidence
 
 The protected default branch is `ff7431bd1851c03e737808d22c6a2d43968582f9`
-at this refresh. The live queue contains 16 open PRs and 10
+at this refresh. The live queue contains 17 open PRs and 10
 open issues. The exact-head inventory below supersedes older per-PR snapshots
 elsewhere in this document; those older rows remain useful historical delivery
 context only.
 
 | PR | Exact observed head | Merge/check state at this snapshot |
 | ---: | --- | --- |
-| #702 | `e8fd06cc` | makes missing source-body evidence explicit, carries governed source classifications through semantic hints and RDF/SHACL, and fails closed unless a caller-supplied probability-sample manifest binds every selected opaque membership token to a stratum and to the digest-bound Rust owner artifact. Provider/transport/item failures remain in the declared denominator and invalidate the whole sample; failed members cannot be dropped or replaced. The observed 80-record deterministic-window run is pipeline acceptance only, not corpus inference, and corpus coverage therefore remains unavailable. The current head removes evidence-length heuristics and refreshes this evidence ledger; protected hosted checks, three informational review threads, and independent review remain open |
+| #704 | `6fcf03df` | publishes the bounded external-lineage contract with union-free ADR 0239, fail-closed structured adjudication, and exact same-group inference eligibility for the weights-unavailable disclosure. The current head also converts malformed adjudication output into the governed provider-failure boundary instead of leaking a raw 500; all review threads are resolved, while protected hosted checks and independent review remain required |
+| #702 | `51331843` | makes missing source-body evidence explicit, carries governed source classifications through semantic hints and RDF/SHACL, and fails closed unless a caller-supplied probability-sample manifest binds every selected opaque membership token to a stratum and to the digest-bound Rust owner artifact. Provider/transport/item failures remain in the declared denominator and invalidate the whole sample; failed members cannot be dropped or replaced. The observed 80-record deterministic-window run is pipeline acceptance only, not corpus inference, and corpus coverage therefore remains unavailable. The current head aligns Unicode body-availability semantics across RDF and SHACL, uses the internal orchestrator credential boundary, validates declared stratum cardinality without taking over Rust-owned sample arithmetic, and assigns union-free ADR 0240/0241/0242; protected hosted checks and independent review remain required |
 | #701 | `cc3351a9` | repairs both integration fixtures by invoking `psql -X -v ON_ERROR_STOP=1 -f` exactly like the ADR 0166 production runner, so concurrent indexes remain outside a transaction without a fixture-owned SQL parser; no migration is skipped or suppressed. Forty schema/replay/backend checks pass; protected hosted checks and independent review remain required |
 | #700 | `495b4504` | adds ADR 0238's bounded versioned caller-parsed conversation-turn envelope, fail-closed whole-result preflight, ordered semantic-unit persistence, and opaque caller evidence references without body-pattern speaker inference. Caller units cannot inherit opaque-body metadata, trigger unused vision work, or admit text the database cannot persist. Focused import/persistence/chunking/docstring/documentation tests and Ruff pass; protected hosted checks and independent review remain required |
 | #680 | `ff4d9eaf` | customer-facing ranking and related-concept copy removes the remaining rendered internal ontology label while preserving the Event Lineage distinction and protected-main's Project node additions. Orphaned-source and unavailable-ranking guidance now direct the reader to the valid workspace-admin action across locales; lint and 159 App/i18n checks pass. Fresh exact-head hosted checks and independent review are required |
 | #679 | `e26a7208` | ADR 0229 public-claim envelope, async verification, locale-aware next actions, opt-in search setup, and rollback protection for truth-owned fields. The current head reuses the shared source-publication eligibility boundary, validates claim/truth lookup categories, revokes egress after visibility becomes non-public, and locks translated next-action and migration contracts. Customer guidance remains present on plain answers, renders once, and prevents uncorroborated unavailable/NEI candidates from appearing as external evidence. Focused backend/frontend/lint checks pass locally; fresh exact-head hosted checks and independent review remain required |
-| #672 | `f78f036c` | persisted semantic-evidence nomination for Global Ask uses unique ADR 0233/0234 and migration 0225/0226 identities; production nominee wiring includes organization/team evidence and typed public claims, removes duplicate embedding and token-overlap inference, and separates visible from all KG evidence so hidden identifiers cannot render. Hosted checks and independent review remain required |
-| #668 | `f9c4bd65` | evidence-bound project history orders by recorded event time, retains explicit source identity alongside NFKC-deduplicated semantic keys, suppresses false direct handovers, localizes action/loading guidance, and carries one non-conflicting evidence snapshot. Focused documentation/project-history and existing desktop/mobile screenshot evidence pass; hosted checks and independent review remain required |
-| #667 | pre-documentation parent `657dda0d` | this refresh branch prevents stale conversation pagination, recovery, and delayed answers from contaminating a replacement post or conversation; enforces both-or-neither cursor validation; applies the shared source-eligibility boundary; includes ADR 0237's accelerator boundary; and uses the shared workflow contract to run Tests on product-affecting documentation. The row records the parent observed immediately before this documentation commit because a commit cannot contain its own SHA; re-fetch the resulting PR head for lifecycle use. Hosted checks and independent approval remain pending |
+| #672 | `a3e87a89` | persisted semantic-evidence nomination for Global Ask uses unique ADR 0233/0234 and migration 0225/0226 identities; production nominee wiring includes organization/team evidence and typed public claims, removes duplicate embedding and token-overlap inference, and separates visible from all KG evidence so hidden identifiers cannot render. The current head repairs the server-diagnostics fixture to follow the configured Global Ask embedding contract after the prior exact head failed; fresh hosted checks and independent review remain required |
+| #668 | `1194f44d` | evidence-bound project history orders by recorded event time, retains explicit source identity alongside NFKC-deduplicated semantic keys, suppresses false direct handovers, localizes action/loading guidance, and carries one non-conflicting evidence snapshot. The current head reserves union-free ADR 0243 across its changelog, decision index, product baseline, and Storybook inventory; hosted checks and independent review remain required |
+| #667 | pre-documentation parent `958eb2af` | this refresh branch prevents stale conversation pagination, recovery, and delayed answers from contaminating a replacement post or conversation; enforces both-or-neither cursor validation; applies the shared source-eligibility boundary; includes ADR 0237's accelerator boundary; and uses the shared workflow contract to run Tests on product-affecting documentation. The row records the parent observed immediately before this documentation commit because a commit cannot contain its own SHA; re-fetch the resulting PR head for lifecycle use. Hosted checks and independent approval remain pending |
 | #658 | `15d670f0` | sends the validated UTC cutoff directly, removes duplicate/unreachable cutoff state and SQL parameter conflicts, aligns blank/live and cutoff-error guidance across five locales, and includes `verify_external` in the request contract. The current head restores the exact documented missing-cover contract and removes a cited-post badge branch that the source-eligibility API can never reach, so the screen does not imply unavailable historical evidence. The focused frontend test and lint pass locally; review threads are resolved, while exact-head hosted checks and independent review remain required |
 | #657 | `9f71681c` | TEPP lifecycle persistence and fail-closed topic acceptance; BLOCKED with hosted checks queued and review required |
 | #644 | `f53dd28e` | current-main reconciliation preserves all existing workspace surfaces and adds Public Claim Verification as the ninth lazy boundary; a subsequent normal merge reconciles concurrent ADR/baseline evidence without deleting either implementation path. Frontend 42 files/391 tests, lint, production build, and Storybook build pass; refreshed desktop loading and mobile error screenshots confirm the actionable alert/Refresh states. The observed 509.58 kB app chunk still triggers Vite's warning and remains measured performance debt; hosted checks and independent review remain required |
 | #643 | `42ba340e` | accessible status notices; BLOCKED with review required |
 | #640 | `b08c4f05` | dashboard ranking and topic-influence stack now preserves Ask service imports and evidence contracts, restores the shared `source_post_visible` authorization dependency used by post reads, retains ontology imports and packaged-Turtle parity, transactional schema fixtures, the backend-worker plus MCP Compose profile, and one cutoff/public-verification and retained-revision presentation in the current timeline UI. The current head keeps the durable worker as the owner while health-gating canonical API startup, adds structured operations-case validation evidence, and binds incomplete-evidence failures to the content-persistence stage and existing post session. Twenty-seven focused worker tests pass; exact-head hosted checks and independent review remain required |
-| #703 | merged into #640 as `4ecb4983` | preserves bounded post-content failure provenance without copying provider payloads or source content. The merged exact head passed 131 focused worker, HTTP, schema, Compose, migration, and documentation tests. A post-merge review found missing stage/session binding on incomplete evidence; the correction is carried by current parent #640 rather than by later commits on the already-merged source branch |
 | #639 | `f1d7aaaa` | running-action/config repair now also makes the documented `make seed` contract install its declared script/runtime extras and documents the canonical Keyverse frontend variables with a container-contract regression. The current-main merge preserves both host-artifact exclusions and both frontend container contract tests; fresh exact-head hosted checks and independent review remain required |
-| #632 | `24262a99` | graph-fact provenance repair also carries the current bounded MCP request contract, token-backed Ask layout, ontology-label wrapping, and normalized-table evidence-search index repair. Both live migration fixtures now execute the production-equivalent `psql -X -v ON_ERROR_STOP=1 -f` path; 38 schema/replay/contract checks pass. Hosted checks and independent review remain required |
+| #632 | `24262a99` | graph-fact provenance repair also carries the current bounded MCP request contract, token-backed Ask layout, ontology-label wrapping, and normalized-table evidence-search index repair. Both live migration fixtures execute the production-equivalent `psql -X -v ON_ERROR_STOP=1 -f` path; 38 schema/replay/contract checks pass locally. The exact head currently has a failed Strix conclusion and pending test/security coverage, so root-cause review and exact-head revalidation remain required |
 | #629 | `b721b0f2` | provider-work release and bounded reads now preserve relationship type, capture update status, remove a shadowed legacy verifier, persist each completed result before a later provider failure, fence deleted evidence, and execute both Global Ask migrations twice in the real PostgreSQL fixture. Focused migration/schema tests pass; hosted checks and independent review remain required |
 
 PRs #687, #688, and #689 merged into the non-default #640 stack as merge
@@ -132,11 +132,12 @@ PR #686 was closed without merge at `fbca05d9`; its customer-copy work is not
 protected-main delivery and any still-required behavior must travel through an
 open current-main candidate rather than relying on that closed head.
 
-The exact-head check-run scan at 18:51 KST found no failed conclusion on any
-current head. Every head still had queued or in-progress gates; #702 had one
-unresolved review threads while the other fifteen had none. No current head
-had an exact-head independent approval. Queued checks and bot success statuses
-are not merge evidence.
+The exact-head check-run scan at 20:05 KST found a failed Strix conclusion on
+#632. Every head still had queued or in-progress gates;
+#702 and #704 had zero unresolved review threads after evidence replies and
+repairs. No current head had an exact-head independent approval. Queued checks
+and bot success statuses are not merge evidence, and #632 requires root-cause
+repair rather than a rerun-only or bypass response.
 
 ### Ecosystem owner-boundary evidence
 
@@ -182,15 +183,19 @@ ontology publication decision now uses ADR 0236, leaving #679's public-claim
 ADR 0229 unambiguous. #672's Semantic Ask migrations now use 0225/0226,
 separate from #640's 0211/0222 and #679's 0224. The former #640/#663 ADR
 0224 and 0225 collisions are resolved on #663 by unique ADR 0230/0231
-identities. A current-head inventory found no ADR or migration number assigned
-to divergent filenames across the 16 open PRs. The
+identities. A current-head inventory confirms that #702's semantic-coverage
+decisions moved to ADR 0240/0241/0242 and #704's external-lineage decision
+moved to ADR 0239. #668's evidence-bound project-history projection moved from
+the remaining shared 0232 identifier to ADR 0243, leaving #640's
+source-preserving voice semantic taxonomy as the sole 0232 decision. The
 `0212_global_ask_knowledge_cutoff.sql` blobs in
 PR #658 and #663 are byte-identical, so that overlap is duplicated delivery rather
 than a semantic divergence. Release metadata also diverges: the observed
 `pyproject.toml` versions are 2.18.0 on #632/#640/#663, 2.19.0 on #643,
 and 2.22.0 on #679. Release-version and duplicated-delivery overlaps still
 require ordered parent landing, child retargeting, and exact-head
-revalidation; identifier collision is no longer the blocker.
+revalidation; ADR identifier collision is no longer the blocker at this
+snapshot.
 
 PR #680 and closed-unmerged #686 independently edited the same ranking,
 ontology, and locale surfaces. Before #680 can land, compare it with #686 and
