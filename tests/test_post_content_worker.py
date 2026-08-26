@@ -305,7 +305,7 @@ def test_successful_job_reclaims_when_configured_evidence_is_incomplete(monkeypa
 
 
 def test_incomplete_provider_output_is_requeued_with_a_failure_code(monkeypatch) -> None:
-    connection = _Connection(values=[2])
+    connection = _Connection(values=[False, 2])
     pool = _Pool(connection)
 
     async def claim(*_args, **_kwargs):
@@ -362,6 +362,96 @@ def test_incomplete_provider_output_is_requeued_with_a_failure_code(monkeypatch)
     updates = [args for query, args in connection.executed if "set status_code" in query]
     assert any(args[1] == QUEUED and args[6] == "post_content_ingestion_incomplete" for args in updates)
     assert analyzed_bodies == ["A synthetic post body with a retrieval unit."]
+
+
+def test_existing_case_analysis_skips_duplicate_orchestrator_call(monkeypatch) -> None:
+    """A retry preserves same-digest analysis instead of spending another call."""
+    connection = _Connection(values=[True])
+    called: list[str] = []
+    monkeypatch.setattr(
+        post_content_worker,
+        "ContextualOrchestratorOperationsCaseAnalysisClient",
+        lambda *_args: called.append("client") or SimpleNamespace(),
+    )
+
+    asyncio.run(
+        post_content_worker._persist_operations_case_analysis_if_needed(
+            _Pool(connection),
+            "00000000-0000-0000-0000-000000000001",
+            "a" * 64,
+            "Synthetic source body",
+            _row(RUNNING, 1),
+            SimpleNamespace(available=True),
+            "synthetic-session",
+            "gateway",
+            "key",
+        )
+    )
+
+    assert called == []
+
+
+def test_case_analysis_persists_before_content_provider_failure(monkeypatch) -> None:
+    """Independent case evidence survives a later structure or embedding outage."""
+    connection = _Connection(values=[False, 2])
+    pool = _Pool(connection)
+    persisted: list[str] = []
+
+    async def claim(*_args, **_kwargs):
+        return _row(RUNNING, 1)
+
+    async def fail_content(*_args, **_kwargs):
+        raise TimeoutError("synthetic provider timeout")
+
+    async def evidence_sources(*_args, **_kwargs):
+        return (
+            OperationsEvidenceSource(
+                "post-1", "Synthetic", "A synthetic source body."
+            ),
+        )
+
+    async def persist_cases(_conn, _post_id, *_args):
+        persisted.append("cases")
+
+    monkeypatch.setattr(post_content_worker, "_claim_job", claim)
+    monkeypatch.setattr(post_content_worker, "persist_post_content", fail_content)
+    monkeypatch.setattr(
+        post_content_worker,
+        "load_settings",
+        lambda: SimpleNamespace(
+            orchestrator_base_url="gateway", orchestrator_api_key="key"
+        ),
+    )
+    monkeypatch.setattr(
+        post_content_worker, "_operations_evidence_sources", evidence_sources
+    )
+    monkeypatch.setattr(
+        post_content_worker,
+        "ContextualOrchestratorOperationsCaseAnalysisClient",
+        lambda *_args: SimpleNamespace(analyze=lambda *_args: ()),
+    )
+    monkeypatch.setattr(post_content_worker, "persist_operations_cases", persist_cases)
+    monkeypatch.setattr(
+        post_content_worker, "normalize_post_body", lambda *_args: object()
+    )
+    client = SimpleNamespace(available=True)
+
+    asyncio.run(
+        post_content_worker.process_post_content_job(
+            pool,
+            post_id="00000000-0000-0000-0000-000000000001",
+            source_body_digest="a" * 64,
+            vision_factory=lambda: client,
+            embedding_factory=lambda: client,
+            structure_factory=lambda: client,
+        )
+    )
+
+    assert persisted == ["cases"]
+    updates = [
+        args for query, args in connection.executed if "set status_code" in query
+    ]
+    assert any(args[1] == QUEUED for args in updates)
 
 
 def test_missing_source_body_is_not_reported_as_a_provider_failure(monkeypatch, caplog) -> None:
