@@ -4085,7 +4085,11 @@ function PostList({
         }));
   const filteredPosts = loadedPosts
     .filter((post) => {
-      const matchesType = typeFilter.length === 0 || typeFilter.includes(post.voc_type_code);
+      const matchesType =
+        typeFilter.length === 0 ||
+        (post.voice_types?.length
+          ? post.voice_types.some((voice) => typeFilter.includes(voice.code))
+          : typeFilter.includes(post.voc_type_code));
       const matchesVisibility = visibilityFilter === "all" || post.visibility_code === visibilityFilter;
       return matchesType && matchesVisibility;
     })
@@ -4275,8 +4279,8 @@ function PostList({
                       <span className="post-card-badges">
                         <span className="post-badge">
                           {(post.voice_types?.length
-                            ? post.voice_types.map((voice) => voice.label)
-                            : [post.voc_type_label ?? post.voc_type_code]
+                            ? post.voice_types.map((voice) => t(voice.label))
+                            : [t(post.voc_type_label ?? post.voc_type_code)]
                           ).join(" + ")}
                         </span>
                         <span className="post-badge">{t(post.visibility_label ?? post.visibility_code)}</span>

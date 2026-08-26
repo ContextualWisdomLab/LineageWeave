@@ -54,13 +54,14 @@ before insert or update of voice_type_code, truth_status_code on source_post_voi
 for each row execute function validate_source_post_voice_codes();
 
 insert into source_post_voice
-    (post_id, voice_type_code, is_primary, truth_status_code)
-select post_id, voc_type_code, true, 'truth_observed'
+    (post_id, voice_type_code, is_primary, truth_status_code, recorded_at)
+select post_id, voc_type_code, true, 'truth_observed', created_at
 from source_post
 on conflict (post_id, voice_type_code) do update
 set is_primary = true,
     truth_status_code = 'truth_observed',
-    provenance_assertion_id = null;
+    provenance_assertion_id = null,
+    recorded_at = least(source_post_voice.recorded_at, excluded.recorded_at);
 
 create or replace function synchronize_source_post_primary_voice()
 returns trigger

@@ -1175,6 +1175,9 @@ describe("App, authenticated", () => {
                   voc_type_options: [
                     { code: "voc", label: "Voice of Customer" },
                     { code: "vop", label: "Voice of Partner" },
+                    ...(options?.combinedVoices
+                      ? [{ code: "vops", label: "Voice of Process" }]
+                      : []),
                   ],
                   visibility_options: [{ code: "public", label: "Public" }],
                 },
@@ -1974,6 +1977,15 @@ describe("App, authenticated", () => {
     render(<App />);
 
     expect(await screen.findByText("Voice of Customer + Voice of Process")).toBeInTheDocument();
+  });
+
+  it("keeps a post whose additional voice matches the board filter", async () => {
+    stubBackend({ combinedVoices: true });
+    render(<App />);
+
+    await screen.findByRole("button", { name: "View post: Public post" });
+    await userEvent.click(screen.getByRole("checkbox", { name: "Voice of Process" }));
+    expect(screen.getByRole("button", { name: "View post: Public post" })).toBeInTheDocument();
   });
 
   it("renders safe Ask Agent evidence under each cited post", async () => {
