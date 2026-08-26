@@ -118,7 +118,7 @@ def test_role_catalog_identity_migration_is_wired() -> None:
 
 def test_orchestrator_runtime_pin_matches_adr() -> None:
     """The image pin and ADR must describe the same immutable upstream commit."""
-    expected_embedding_contract_commit = "dadf843a974e40da4badf262a62598d475a96edf"
+    expected_embedding_contract_commit = "5ef299de0d4736723157b3c1cb1dd4de12a4c125"
     dockerfile = (
         _ROOT / "docker" / "contextual-orchestrator" / "Dockerfile"
     ).read_text(encoding="utf-8")
@@ -134,10 +134,9 @@ def test_orchestrator_runtime_pin_matches_adr() -> None:
 
 
 def test_embedding_bootstrap_contract_keeps_request_model_free() -> None:
-    """ADR distinguishes remote-agent registration from request selection."""
+    """ADR assigns embedding discovery and selection to the orchestrator."""
     adr = (_ADR_DIRECTORY / "0030-external-llm-gateway-environment.md").read_text(
         encoding="utf-8"
     )
-    assert "LineageWeave embedding requests do not select a model" in adr
-    assert "LLM_GATEWAY_EMBEDDING_MODEL" in adr
-    assert "application code never reads it" in adr
+    assert "does not configure an embedding model" in adr
+    assert "discovered provider catalog" in adr

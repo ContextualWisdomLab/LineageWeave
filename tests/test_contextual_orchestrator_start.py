@@ -65,10 +65,7 @@ def test_provider_key_is_not_aliased_as_gateway_transport(monkeypatch) -> None:
         module.main()
 
 
-@pytest.mark.parametrize("embedding_model", ["embedding-model", "text-embedding-3-large", ""])
-def test_bootstrap_registers_configured_remote_embedding_agent(
-    monkeypatch, embedding_model: str
-) -> None:
+def test_bootstrap_leaves_embedding_selection_to_the_orchestrator(monkeypatch) -> None:
     module = _load_start_module()
     captured: dict[str, object] = {}
 
@@ -115,10 +112,7 @@ def test_bootstrap_registers_configured_remote_embedding_agent(
     monkeypatch.setenv("CONTEXTUAL_ORCHESTRATOR_TOKEN", "orchestrator-token")
     monkeypatch.setenv("LLM_GATEWAY_API_URL", "https://gateway.example")
     monkeypatch.setenv("BATCH_JOB_REGISTRY_VALKEY_URL", "redis://valkey:6379/1")
-    if embedding_model:
-        monkeypatch.setenv("LLM_GATEWAY_EMBEDDING_MODEL", embedding_model)
-    else:
-        monkeypatch.delenv("LLM_GATEWAY_EMBEDDING_MODEL", raising=False)
+    monkeypatch.setenv("LLM_GATEWAY_EMBEDDING_MODEL", "text-embedding-3-large")
 
     module.main()
 
@@ -147,22 +141,5 @@ def test_bootstrap_registers_configured_remote_embedding_agent(
     } & os.environ.keys()
     agents = captured["agents"]
     assert isinstance(agents, dict)
-    embedding_agents = [
-        agent for agent in agents["agents"] if "embedding" in agent.get("tags", [])
-    ]
-    if embedding_model:
-        expected = {
-                "id": "gateway_embedding_agent",
-                "model": embedding_model,
-                "provider_protocol": "auto",
-                "base_url": "https://gateway.example/v1",
-                "credential_key": "LLM_GATEWAY_API_KEY",
-                "tags": ["embedding"],
-                "priority": 1,
-            }
-        if embedding_model == "text-embedding-3-large":
-            expected["provider_name"] = "openai"
-        assert embedding_agents == [expected]
-    else:
-        assert embedding_agents == []
+    assert not [agent for agent in agents["agents"] if "embedding" in agent.get("tags", [])]
     assert "LLM_GATEWAY_EMBEDDING_MODEL" not in os.environ
