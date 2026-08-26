@@ -464,6 +464,7 @@ async def enqueue_post_content_backfill(
                             where project.post_id = post.post_id
                               and nullif(btrim(project.ontology_iri), '') is not null
                        )
+                       and job.source_body_sha256 is not null
                        and not exists (
                            select 1
                              from operations_case_analysis analysis

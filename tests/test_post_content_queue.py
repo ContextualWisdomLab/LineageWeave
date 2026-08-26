@@ -69,6 +69,7 @@ def test_bounded_backfill_is_idempotent_and_broker_loss_stays_recoverable(
             assert "from post_product_analysis analysis" in query
             assert "from post_project_mention project" in query
             assert "nullif(btrim(project.ontology_iri), '') is not null" in query
+            assert "job.source_body_sha256 is not null" in query
             assert query.count("from post_project_mention project") == 1
             assert "when $3::boolean" in query
             assert "then 0 else 1" in query

@@ -1,14 +1,15 @@
 # Product & Technical Gap Baseline
 
-> Dashboard delivery snapshot: 2026-08-27 00:50 KST. Protected `main` was
+> Dashboard delivery snapshot: 2026-08-27 01:11 KST. Protected `main` was
 > `ff7431bd1851c03e737808d22c6a2d43968582f9`. Dashboard PR #640 exact
-> observed head was `fa9f0aeb5225035264ebc0579c127d1f283c0b17`; this branch is not
-> protected-main release evidence. The queue contained 23 open PRs (21
-> `BLOCKED`, one `UNSTABLE`, one `CLEAN`) and no exact-head approval. Stacked
-> repair PR #715 was based exactly on #640 and its pre-documentation head
-> `5746c57d` passed 44 focused tests; it repairs the four stale HTTP transport
-> test doubles and narrowly excludes one Python-before-3.7 Semgrep rule that
-> contradicts the repository's Python >=3.12 contract.
+> observed head was `5594029c801263a7f629c287ce41580ecf4e0739`; this branch is not
+> protected-main release evidence. The queue contained 25 open PRs (21
+> `BLOCKED`, one `UNSTABLE`, three `CLEAN`) and 10 open issues, with no
+> exact-head approval. Repair PR #715 merged normally into #640. Structured
+> runtime pin PR #711 (`8902e37f`) and operations acceptance PR #716
+> (`33cd926b`) remain stacked; #711 intentionally retains an unresolved
+> upstream-delivery thread until contextual-orchestrator readiness-lease PR
+> #857 lands and the immutable pin is advanced to its delivered exact head.
 
 ## Operations Dashboard PRD/TRD traceability
 
@@ -143,14 +144,13 @@ regression evidence, not hosted-gate or protected-main evidence.
 
 ### Exact open-PR boundary
 
-At this snapshot there were 11 open PRs and 10 open issues. PRs #660 and #659
-merged to protected `main`; PR #666 remains only non-default-branch stack
-composition inside #663. Every remaining open head required refreshed hosted
+At this snapshot there were 25 open PRs and 10 open issues. Every open head
+required refreshed hosted
 gates and/or independent review after the base changed. These observations are
 not merge readiness. Re-fetch exact heads, unresolved threads, checks,
 approvals, rulesets, and merge SHA before any lifecycle claim.
 
-> Audit snapshot: 2026-08-26 07:26 KST (refreshed by the autonomous merge
+> Audit snapshot: 2026-08-27 01:11 KST (refreshed by the autonomous merge
 > loop). This repository records synthetic fixtures and aggregate,
 > non-identifying runtime evidence only. Open PRs and local checks are not
 > protected-default-branch release evidence. Identifying post identifiers,
@@ -159,26 +159,39 @@ approvals, rulesets, and merge SHA before any lifecycle claim.
 
 ## 1. Exact-head and governance evidence
 
-The protected default branch was `494b54e2245040bcf02b45376f221c37cd437e76`
-when this baseline was refreshed. The live queue contained 11 open PRs and 10
+The protected default branch was `ff7431bd1851c03e737808d22c6a2d43968582f9`
+when this baseline was refreshed. The live queue contained 25 open PRs and 10
 open issues. The exact-head inventory below supersedes older per-PR snapshots
 elsewhere in this document; those older rows remain useful historical delivery
 context only.
 
 | PR | Exact observed head | Merge/check state at this snapshot |
 | ---: | --- | --- |
-| #681 | `3e0fa644` | stacked fast-mlsirm pair-posterior contract pin; exact-head checks queued and independent review required |
-| #667 | `425de329` | current governance/gap evidence refresh; exact-head checks and independent review required |
-| #663 | `e65fd29c` | consolidates project ontology traversal and #632 content; exact-head checks and independent review required |
-| #658 | `f497a6e8` | evidence-honest Global Ask cutoff with revision-interval live-after semantics |
-| #657 | `a59a2023` | fail-closed TEPP asynchronous lifecycle persistence; executable producer evidence remains required |
-| #644 | `ed8d97f3` | native-surface code splitting with modal-focus regression coverage |
-| #643 | `7fb4d18c` | accessible status-notice surfaces |
-| #640 | `d314855c` | operations-dashboard contract alignment; exact-head checks queued and independent review required |
-| #639 | `8da485d3` | exact-head checks and independent review required |
-| #632 | `cad4debf` | semantic provenance repair structurally included by #663 |
-| #631 | `e6b4f0c4` | documentation-only queue snapshot requires current-main refresh or closure |
-| #629 | `c95f931d` | exact-head checks and independent review required |
+| #718 | `a3fb32bb` | `CLEAN`: evidence-bound occupational constructs |
+| #717 | `461a4d12` | `CLEAN`: evidence-bearing Voice-of-X combinations |
+| #716 | `33cd926b` | `UNSTABLE`: evidence-bound operations backfill and exact runtime acceptance preparation |
+| #714 | `aa93318f` | `BLOCKED`: post-unit public-source research |
+| #713 | `cc3dfc14` | `BLOCKED`: expanded source-post Voice-of-X taxonomy |
+| #711 | `8902e37f` | `CLEAN`: structured-workflow runtime pin; upstream #857 delivery and pin advance remain required |
+| #710 | `8df04b68` | `BLOCKED`: sourced worker-taxonomy delivery gap evidence |
+| #709 | `8ef4090c` | `BLOCKED`: DOT/FJA worker-function ontology |
+| #704 | `027323cf` | `BLOCKED`: current-main external-lineage contract |
+| #702 | `3d9e3593` | `BLOCKED`: source semantic-coverage evidence |
+| #701 | `cc3351a9` | `BLOCKED`: concurrent migration test fixture |
+| #700 | `1bc99eca` | `BLOCKED`: evidence-bound conversation turns |
+| #680 | `efe864e5` | `BLOCKED`: customer-actionable ranking guidance |
+| #679 | `13ecf41d` | `BLOCKED`: Global Ask public-claim envelopes |
+| #672 | `a3e87a89` | `BLOCKED`: persisted semantic evidence nomination |
+| #668 | `1194f44d` | `BLOCKED`: evidence-bound project history |
+| #667 | `4855c380` | `BLOCKED`: per-post Ask history and gap evidence |
+| #658 | `15d670f0` | `BLOCKED`: Global Ask knowledge cutoff |
+| #657 | `9f71681c` | `BLOCKED`: TEPP asynchronous lifecycle evidence |
+| #644 | `f53dd28e` | `BLOCKED`: native workspace code splitting |
+| #643 | `8767de1b` | `BLOCKED`: shared accessible status notice |
+| #640 | `5594029c` | `BLOCKED`: operations Dashboard; exact-head hosted workflows and independent approval pending |
+| #639 | `2f4b1bff` | `BLOCKED`: Running action and Compose contracts |
+| #632 | `24262a99` | `BLOCKED`: semantic graph-fact provenance |
+| #629 | `b721b0f2` | `BLOCKED`: provider-work release and bounded landing reads |
 
 No row above is merge evidence. Immediately before any lifecycle action,
 re-fetch the head, unresolved threads, formal reviews, rulesets, and same-head
