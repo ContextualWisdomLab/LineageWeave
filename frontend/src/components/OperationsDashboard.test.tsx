@@ -204,6 +204,17 @@ describe("OperationsDashboardView", () => {
     expect(screen.getByRole("status")).toHaveTextContent("불러오는 중");
   });
 
+  it("announces concurrent dashboard and voice loading once", () => {
+    vi.mocked(fetchOperationsDashboard).mockReset().mockImplementation(() => new Promise(() => undefined));
+    vi.mocked(fetchVoiceTaxonomySummary).mockReset().mockImplementation(() => new Promise(() => undefined));
+
+    render(<OperationsDashboard accessToken="synthetic-token" onOpenPost={() => undefined} />);
+
+    expect(screen.getAllByRole("status")).toHaveLength(1);
+    expect(screen.getByRole("status")).toHaveTextContent("Dashboard 근거를 불러오는 중입니다.");
+    expect(screen.getByRole("status")).toHaveTextContent("Loading voice evidence...");
+  });
+
   it("requests the external scope at the API boundary", async () => {
     vi.mocked(fetchVoiceTaxonomySummary).mockClear();
     vi.mocked(fetchOperationsDashboard).mockReset().mockResolvedValue(data);

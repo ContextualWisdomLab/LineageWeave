@@ -80,7 +80,10 @@ export function OperationsDashboard({ accessToken, externalOnly = false, onOpenP
     ) : data ? (
       <OperationsDashboardView data={data} externalOnly={externalOnly} onOpenPost={onOpenPost} />
     ) : (
-      <p role="status">Dashboard 근거를 불러오는 중입니다.</p>
+      <p role="status">
+        Dashboard 근거를 불러오는 중입니다.
+        {!externalOnly && !voiceSummary && !voiceSummaryError ? ` ${t("Loading voice evidence...")}` : ""}
+      </p>
     )}
     {!externalOnly && voiceSummary ? <VoiceTaxonomySummary data={voiceSummary} /> : null}
     {!externalOnly && voiceSummaryError ? (
@@ -90,7 +93,7 @@ export function OperationsDashboard({ accessToken, externalOnly = false, onOpenP
         <button type="button" className="btn-secondary" onClick={() => setVoiceRetryCount((count) => count + 1)}>{t("Retry voice evidence")}</button>
       </section>
     ) : null}
-    {!externalOnly && !voiceSummary && !voiceSummaryError ? <p role="status">{t("Loading voice evidence...")}</p> : null}
+    {!externalOnly && (data !== null || error) && !voiceSummary && !voiceSummaryError ? <p role="status">{t("Loading voice evidence...")}</p> : null}
   </>;
 }
 
