@@ -140,7 +140,7 @@ from backend.app.post_content_queue import (
     post_content_is_complete,
     publish_post_content_event,
 )
-from backend.app.post_eligibility import SOURCE_POST_ELIGIBILITY_SQL
+from backend.app.post_eligibility import SOURCE_POST_ELIGIBILITY_SQL, source_post_visible
 from backend.app.post_evaluation_ingestion import (
     fetch_post_evaluation,
     ingest_post_evaluation,
