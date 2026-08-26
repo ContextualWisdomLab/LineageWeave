@@ -19,6 +19,15 @@ TABLES = {
     "work_styles_to_work_context": (266, "relevantWorkContext", "sourceOnet310WorkStylesToWorkContext"),
 }
 
+DOMAIN_ROOTS = {
+    "abilities": "1.A",
+    "essential_skills": "2.A",
+    "transferable_skills": "2.B",
+    "work_styles": "1.D",
+    "work_activities": "4.A",
+    "work_context": "4.C",
+}
+
 
 def _term(element_id: str) -> str:
     return "onet31_" + element_id.replace(".", "_")
@@ -79,6 +88,10 @@ def render(content_model: Path, sources: tuple[Path, ...]) -> str:
         for row in rows:
             source_id = row[f"{source_prefix}_element_id"]
             target_id = row[f"{target_prefix}_element_id"]
+            if not source_id.startswith(f"{DOMAIN_ROOTS[source_prefix]}."):
+                raise ValueError(f"{table_id} source endpoint has wrong domain: {source_id}")
+            if not target_id.startswith(f"{DOMAIN_ROOTS[target_prefix]}."):
+                raise ValueError(f"{table_id} target endpoint has wrong domain: {target_id}")
             if row[f"{source_prefix}_element_name"] != content.get(source_id):
                 raise ValueError(f"{table_id} source endpoint mismatch for {source_id}")
             if row[f"{target_prefix}_element_name"] != content.get(target_id):

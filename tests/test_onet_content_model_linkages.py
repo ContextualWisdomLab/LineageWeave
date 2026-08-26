@@ -100,3 +100,20 @@ def test_renderer_rejects_a_duplicate_source_pair(tmp_path: Path) -> None:
 
     with pytest.raises(ValueError, match="duplicate pair"):
         renderer.render(DATA / "onet-31-content-model-reference.json", sources)
+
+
+def test_renderer_rejects_an_endpoint_from_the_wrong_domain(tmp_path: Path) -> None:
+    spec = importlib.util.spec_from_file_location("render_onet_linkages_wrong_domain", RENDERER)
+    assert spec is not None and spec.loader is not None
+    renderer = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(renderer)
+    table_id = "abilities_to_work_activities"
+    payload = json.loads(_path(table_id).read_text(encoding="utf-8"))
+    payload["row"][0]["abilities_element_id"] = "4.A.1.a.1"
+    payload["row"][0]["abilities_element_name"] = "Getting Information"
+    invalid = tmp_path / f"{table_id}.json"
+    invalid.write_text(json.dumps(payload), encoding="utf-8")
+    sources = tuple(invalid if name == table_id else _path(name) for name in TABLES)
+
+    with pytest.raises(ValueError, match="wrong domain"):
+        renderer.render(DATA / "onet-31-content-model-reference.json", sources)
