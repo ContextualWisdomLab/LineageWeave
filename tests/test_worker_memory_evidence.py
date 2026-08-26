@@ -159,6 +159,32 @@ def test_integer_and_event_validation_fail_closed() -> None:
         )
 
 
+def test_compare_preserves_unavailable_optional_group_oom_counter() -> None:
+    before_events = dict(_snapshot()["memory_events_local"])
+    after_events = dict(_snapshot()["memory_events_local"])
+    del before_events["oom_group_kill"]
+    del after_events["oom_group_kill"]
+
+    evidence = worker_memory.compare_snapshots(
+        _snapshot(memory_events_local=before_events),
+        _snapshot(memory_events_local=after_events),
+        elapsed_seconds=1,
+    )
+
+    assert evidence["classification"] == "observed_without_memory_pressure"
+    assert evidence["event_deltas"]["oom_group_kill"] is None
+
+    decreasing_before = dict(_snapshot()["memory_events_local"])
+    decreasing_before["oom_group_kill"] = 1
+    after_events["oom_group_kill"] = 0
+    with pytest.raises(worker_memory.MemoryEvidenceError, match="decreased"):
+        worker_memory.compare_snapshots(
+            _snapshot(memory_events_local=decreasing_before),
+            _snapshot(memory_events_local=after_events),
+            elapsed_seconds=1,
+        )
+
+
 def test_compare_reports_pressure_without_claiming_oom() -> None:
     after = _snapshot(
         memory_events_local={

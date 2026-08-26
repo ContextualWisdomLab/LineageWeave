@@ -34,6 +34,11 @@ confirmed only when Docker records `OOMKilled` or the kernel's local
 `sigkill_unattributed`. `high`, `max`, or `oom` deltas establish memory
 pressure without inventing an OOM kill.
 
+The core `low`, `high`, `max`, `oom`, and `oom_kill` counters are required.
+`oom_group_kill` is recorded when the host exposes it, but its absence remains
+an explicit `null` delta because neither OOM confirmation nor pressure
+classification depends on that optional group counter.
+
 If the unchanged worker exits during the window, Compose discovery includes
 stopped containers and Docker inspection preserves its terminal state. The
 terminated cgroup is no longer readable, so ending current usage and event

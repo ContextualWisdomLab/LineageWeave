@@ -14,7 +14,8 @@ from typing import Any
 
 SERVICE = "backend-worker"
 PROJECT = "lineageweave"
-EVENT_KEYS = ("low", "high", "max", "oom", "oom_kill", "oom_group_kill")
+REQUIRED_EVENT_KEYS = ("low", "high", "max", "oom", "oom_kill")
+OPTIONAL_EVENT_KEYS = ("oom_group_kill",)
 
 
 class MemoryEvidenceError(ValueError):
@@ -51,7 +52,7 @@ def _events(snapshot: Mapping[str, Any]) -> Mapping[str, Any]:
     events = snapshot.get("memory_events_local")
     if not isinstance(events, Mapping):
         raise MemoryEvidenceError("memory.events.local is unavailable")
-    missing = [key for key in EVENT_KEYS if key not in events]
+    missing = [key for key in REQUIRED_EVENT_KEYS if key not in events]
     if missing:
         raise MemoryEvidenceError(
             "memory.events.local is missing required keys: " + ", ".join(missing)
@@ -85,11 +86,20 @@ def compare_snapshots(
     docker_oom_killed = bool(after.get("container_oom_killed"))
     exit_code = _integer(after.get("container_exit_code", 0), "container_exit_code")
     before_events = _events(before)
-    deltas: dict[str, int] | None = None
+    deltas: dict[str, int | None] | None = None
     if after.get("memory_events_local") is not None:
         after_events = _events(after)
         deltas = {}
-        for key in EVENT_KEYS:
+        for key in REQUIRED_EVENT_KEYS:
+            earlier = _integer(before_events[key], f"memory.events.local.{key}")
+            later = _integer(after_events[key], f"memory.events.local.{key}")
+            if later < earlier:
+                raise MemoryEvidenceError(f"memory.events.local.{key} decreased")
+            deltas[key] = later - earlier
+        for key in OPTIONAL_EVENT_KEYS:
+            if key not in before_events or key not in after_events:
+                deltas[key] = None
+                continue
             earlier = _integer(before_events[key], f"memory.events.local.{key}")
             later = _integer(after_events[key], f"memory.events.local.{key}")
             if later < earlier:
