@@ -192,15 +192,16 @@ listed while its supporting scale artifact is not.
 
 - Populate the occupation selector with exact stored code/title pairs that
   have observations in the selected imported source (ADR 0261).
-- Clear the current occupation and profile when the source changes; never mix
-  continuation rows across occupations or sources.
+- Clear the current occupation and profile when the source changes, and clear
+  the profile when the occupation changes; never mix continuation rows across
+  occupations or sources.
 - Keep unavailable source, available-empty source, loading, and transport
   failure distinct and actionable.
 
 Acceptance: a user selects a stored title rather than typing an internal code;
 the PostgreSQL integration test proves the source membership predicate; and
-component tests prove source changes clear prior evidence and pagination stays
-bound to the loaded profile identifiers.
+component tests prove selector changes clear prior evidence and pagination
+stays bound to the loaded profile identifiers.
 
 ### PRD-FR-3 — Bounded ontology exploration
 

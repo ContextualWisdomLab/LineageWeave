@@ -26,7 +26,8 @@ not sufficient evidence that a profile exists for the selected source.
    cutoff that makes valid occupations disappear.
 4. Replace free-text occupation-code entry with a native select whose visible
    label begins with the stored title and retains the exact code. Changing the
-   rating source clears both occupation selection and displayed evidence.
+   rating source clears both occupation selection and displayed evidence;
+   changing the occupation clears displayed evidence.
 5. While the occupation catalog is loading, empty, or unavailable, disable
    profile submission and state the next action. Pagination remains bound to
    the identifiers returned by the loaded profile under ADR 0259.

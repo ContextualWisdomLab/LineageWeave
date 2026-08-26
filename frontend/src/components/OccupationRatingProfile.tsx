@@ -133,7 +133,12 @@ export function OccupationRatingProfile({ accessToken }: Props) {
           <select
             required
             value={onetsocCode}
-            onChange={(event) => setOnetsocCode(event.target.value)}
+            onChange={(event) => {
+              requestSequence.current += 1;
+              setOnetsocCode(event.target.value);
+              setProfile(null);
+              setStatus("idle");
+            }}
             disabled={occupations === null || occupations.length === 0}
           >
             <option value="">직업 선택</option>
