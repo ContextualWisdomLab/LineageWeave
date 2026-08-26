@@ -629,6 +629,10 @@ async def process_post_content_job(
                     failure_code=_INCOMPLETE_FAILURE_CODE,
                     detail_text="post-content providers did not produce complete persisted evidence",
                     expected_attempt_count=attempt_count,
+                    channel_stage_code=channel_stage_code,
+                    session_correlation_id=metadata.get(
+                        "lineageweave_post_session_id"
+                    ),
                 )
                 return
             if (
