@@ -304,6 +304,12 @@ async def compute_global_ask_answer(
         )
 
     today = _seoul_today()
+    question_vector: list[float] = []
+    if embedding_client is not None and embedding_client.available and question_text.strip():
+        try:
+            question_vector = await asyncio.to_thread(embedding_client.embed, question_text)
+        except (OSError, RuntimeError, ValueError):
+            question_vector = []
     try:
         async with pool.acquire() as conn:
             sources = await gather_global_chat_sources(
@@ -314,6 +320,7 @@ async def compute_global_ask_answer(
                 question=question_text,
                 today=today,
                 embedding_client=embedding_client,
+                question_vector=question_vector,
             )
     except Exception as exc:
         log_internal_fault("global_ask", exc)

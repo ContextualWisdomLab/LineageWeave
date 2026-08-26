@@ -487,6 +487,7 @@ async def gather_global_chat_sources(
     question: str | None = None,
     limit: int = 4,
     today: date | None = None,
+    question_vector: list[float] | None = None,
 ) -> list[ChatSourceDocument]:
     """Assemble a bounded, ABAC-filtered source set for Global Ask.
 
@@ -532,8 +533,10 @@ async def gather_global_chat_sources(
         date_from=resolved_time_range[0] if resolved_time_range else None,
         date_to=resolved_time_range[1] if resolved_time_range else None,
     )
-    question_vector: list[float] = []
-    if embedding_client.available:
+    question_vector_provided = question_vector is not None
+    if question_vector is None:
+        question_vector = []
+    if not question_vector_provided and embedding_client.available:
         try:
             question_vector = await asyncio.to_thread(embedding_client.embed, question)
         except (OSError, RuntimeError, ValueError):
