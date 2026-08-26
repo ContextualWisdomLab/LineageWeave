@@ -86,9 +86,9 @@ context only.
 | PR | Exact observed head | Merge/check state at this snapshot |
 | ---: | --- | --- |
 | #680 | `9f841cc1` | customer-facing ranking copy removes internal engine names and provides localized retry/search-next-action guidance; BLOCKED with hosted checks and independent review required |
-| #681 | `a99bf374` | fail-closed lineage-weight owner contract pin; UNSTABLE stack with hosted checks pending |
+| #681 | `3e0fa644` | fail-closed lineage-weight owner contract pin; lockfile parity verified; UNSTABLE stack with hosted checks pending |
 | #680 | `fbc0987f` | customer-facing ranking copy with localized retry/search guidance and explicit non-calibrated interpretation; BLOCKED with hosted checks and independent review required |
-| #679 | `194f5a3f` | ADR 0229 public-claim envelope, async verification, locale-aware next actions, and opt-in search setup; BLOCKED with exact-head checks and independent review required |
+| #679 | `67706ef5` | ADR 0229 public-claim envelope, async verification, locale-aware next actions, and opt-in search setup; BLOCKED with exact-head checks and independent review required |
 | #678 | `da98de07` | canonical Compose-stack consolidation stacked on #640; parent protected merge and `main` retarget precede fresh exact-head evidence |
 | #677 | `27835005` | ADR 0228 account-owned per-post Ask conversation history with localized titles, full conversation/transcript pagination, stale-response guards, repeated-turn preservation, and eligibility recheck; hosted checks and independent review required |
 | #667 | `10c4e1d6` | baseline refresh branch current head; BLOCKED with review required; stacked #669 and #671 are merged into this non-default branch |
