@@ -100,7 +100,7 @@ context only.
 | #643 | `42ba340e` | accessible status notices; BLOCKED with review required |
 | #640 | `b08c4f05` | dashboard ranking and topic-influence stack now preserves Ask service imports and evidence contracts, restores the shared `source_post_visible` authorization dependency used by post reads, retains ontology imports and packaged-Turtle parity, transactional schema fixtures, the backend-worker plus MCP Compose profile, and one cutoff/public-verification and retained-revision presentation in the current timeline UI. The current head keeps the durable worker as the owner while health-gating canonical API startup, adds structured operations-case validation evidence, and binds incomplete-evidence failures to the content-persistence stage and existing post session. Twenty-seven focused worker tests pass; exact-head hosted checks and independent review remain required |
 | #639 | `f1d7aaaa` | running-action/config repair now also makes the documented `make seed` contract install its declared script/runtime extras and documents the canonical Keyverse frontend variables with a container-contract regression. The current-main merge preserves both host-artifact exclusions and both frontend container contract tests; fresh exact-head hosted checks and independent review remain required |
-| #632 | `24262a99` | graph-fact provenance repair also carries the current bounded MCP request contract, token-backed Ask layout, ontology-label wrapping, and normalized-table evidence-search index repair. Both live migration fixtures execute the production-equivalent `psql -X -v ON_ERROR_STOP=1 -f` path; 38 schema/replay/contract checks pass locally. The exact head currently has a failed Strix conclusion and pending test/security coverage, so root-cause review and exact-head revalidation remain required |
+| #632 | `24262a99` | graph-fact provenance repair also carries the current bounded MCP request contract, token-backed Ask layout, ontology-label wrapping, and normalized-table evidence-search index repair. Both live migration fixtures execute the production-equivalent `psql -X -v ON_ERROR_STOP=1 -f` path; 38 schema/replay/contract checks pass locally. A normal Strix rerun request was accepted with HTTP 201 and the replacement exact-head job is queued; acceptance is not a passing scan. Full tests remain in progress and coverage-source-tree is queued, so exact-head terminal revalidation and independent approval remain required |
 | #629 | `b721b0f2` | provider-work release and bounded reads now preserve relationship type, capture update status, remove a shadowed legacy verifier, persist each completed result before a later provider failure, fence deleted evidence, and execute both Global Ask migrations twice in the real PostgreSQL fixture. Focused migration/schema tests pass; hosted checks and independent review remain required |
 
 PRs #687, #688, and #689 merged into the non-default #640 stack as merge
@@ -132,12 +132,12 @@ PR #686 was closed without merge at `fbca05d9`; its customer-copy work is not
 protected-main delivery and any still-required behavior must travel through an
 open current-main candidate rather than relying on that closed head.
 
-The exact-head check-run scan at 20:05 KST found a failed Strix conclusion on
-#632. Every head still had queued or in-progress gates;
-#702 and #704 had zero unresolved review threads after evidence replies and
-repairs. No current head had an exact-head independent approval. Queued checks
-and bot success statuses are not merge evidence, and #632 requires root-cause
-repair rather than a rerun-only or bypass response.
+The exact-head check-run scan at 20:10 KST found no terminal failure on an open
+head, but every head still had queued or in-progress gates. #632's previously
+failed Strix run has a normal rerun accepted with HTTP 201 and its replacement
+job is queued; that transport acknowledgement is not completed scan evidence.
+No current head had an exact-head independent approval. Queued checks and bot
+success statuses are not merge evidence.
 
 ### Ecosystem owner-boundary evidence
 
@@ -155,11 +155,13 @@ repair rather than a rerun-only or bypass response.
   protected-main merge evidence. LineageWeave may consume the owner contract
   only after that composed head passes its protected gate; it may not retain
   Python vector arithmetic.
-- `ContextualWisdomLab/fast-mlsirm` draft PR #1445 exact head `a0131c02`
+- `ContextualWisdomLab/fast-mlsirm` draft PR #1445 exact head `74f7c902`
   supplies current owner evidence for the Rust-owned, content-addressed
   polytomous period artifact: four Rust-core tests, seven Python-boundary tests,
   and 25 documentation/governance tests pass alongside `cargo check`, wheel
-  build, and Ruff. The PR remains Draft with hosted checks queued, so this is
+  build, and Ruff. The head advance changes only governed changelog evidence;
+  it does not add released runtime or corpus evidence. The PR remains Draft
+  with hosted checks queued and zero unresolved threads, so this is
   owner-candidate evidence rather than a protected released artifact; corpus
   inference remains unavailable until that artifact passes its protected gate.
 - `ContextualWisdomLab/TEPP` PR #237 merged to protected `main` as
@@ -528,7 +530,7 @@ for wholesale replay from #490.
 | SKOS organization aliases | Catalog binding and chip caption live on #480 / #482 | One catalog row per corroborated org; companion caption is hint-only until bound |
 | Event Lineage evidence | Channel evidence and Allen relations were delivered by merged #387 / #484 | Persist channel scores, explain them in the popup, never invent a fused score |
 | Scientific measurement | Durable accepted TEPP receipts, LineageWeave #614's exact accepted snapshot/cutoff/run/pair-count consumer, and TEPP #237's criterion-anchor wire contract are protected. #237 intentionally does not implement the estimator, so no emitted digest-bound terminal artifact exists yet. Merged #387 removes inferred/default persistence weights, but several older reconstruction tests still pass hand-authored numeric dictionaries that are not estimator evidence | Implement and verify the TEPP estimator behind the protected #237 contract, then replace remaining reconstruction-test constants with provenance-bearing fast-mlsirm estimates over synthetic fixtures. Retain true-parameter RMSE recovery as the acceptance bar |
-| Python mathematical-compute boundary | ADR 0208's first deletion slice moved leftover residual/SVD/Gabriel arithmetic to fast-mlsirm, and #697 merged only into #693's non-default composition after deleting unused local cosine helpers. Active debt remains in period-report GRM/GPCM matrix construction and theta summaries, Knowledge Graph random-walk vector iteration, channel-weight estimation, fusion normalization/contribution recomputation, and lexical overlap ranking. The Global Ask SQL cosine path is separately frozen. fast-mlsirm Draft #1445 exact head `a0131c02` supplies four Rust-core, seven Python-boundary, and 25 documentation/governance passing tests plus `cargo check`, wheel-build, and Ruff evidence for its relation-safe content-addressed owner artifact, but queued hosted checks and Draft status make it unavailable for corpus inference. RankWeave #41 (`e95ed46f`) composes the shared Rust/PyO3 calculation boundary with #48's deterministic semantic-unit cosine ranking, winning-unit evidence, and no local model/provider/weight selection. Its required hosted gates remain queued, so it is not protected delivery | Land composed RankWeave #41 before LineageWeave consumes it; replace the LineageWeave text-vector path with request/validation/persistence only. Land fast-mlsirm #1445 through its protected gate before replacing period arithmetic or claiming corpus inference. Add graph-ranking and fusion-contribution Rust artifacts at the owning boundary before deleting remaining local paths; require CPU/GPU parity and true-parameter recovery where applicable |
+| Python mathematical-compute boundary | ADR 0208's first deletion slice moved leftover residual/SVD/Gabriel arithmetic to fast-mlsirm, and #697 merged only into #693's non-default composition after deleting unused local cosine helpers. Active debt remains in period-report GRM/GPCM matrix construction and theta summaries, Knowledge Graph random-walk vector iteration, channel-weight estimation, fusion normalization/contribution recomputation, and lexical overlap ranking. The Global Ask SQL cosine path is separately frozen. fast-mlsirm Draft #1445 exact head `74f7c902` supplies four Rust-core, seven Python-boundary, and 25 documentation/governance passing tests plus `cargo check`, wheel-build, and Ruff evidence for its relation-safe content-addressed owner artifact; its latest change is governed changelog evidence only, and queued hosted checks plus Draft status make it unavailable for corpus inference. RankWeave #41 (`e95ed46f`) composes the shared Rust/PyO3 calculation boundary with #48's deterministic semantic-unit cosine ranking, winning-unit evidence, and no local model/provider/weight selection. Its required hosted gates remain queued, so it is not protected delivery | Land composed RankWeave #41 before LineageWeave consumes it; replace the LineageWeave text-vector path with request/validation/persistence only. Land fast-mlsirm #1445 through its protected gate before replacing period arithmetic or claiming corpus inference. Add graph-ranking and fusion-contribution Rust artifacts at the owning boundary before deleting remaining local paths; require CPU/GPU parity and true-parameter recovery where applicable |
 | Failed measurement recovery | A Failed measurement/topic-lineage run is immutable, but the prior UI delegated recovery and exposed no product retry action | Request a new authorized current-snapshot run, submit it through the existing outbox/TEPP boundary, retain the Failed history, and expose the action in all five locales |
 | Asynchronous authorization | Protected `main` includes #468's 3NF Keyverse organization/process-unit scope and rebuilds Global Ask worker authorization after the bearer token leaves the request | Prove on the exact release head that a second affiliation and a revoked process unit cannot widen delayed-job evidence |
 | Planned-facility intent | Planned-facility relationship intent remains only on closed, unmerged #490; earlier stack-only merges were not protected delivery | Recreate the evidence-backed slice on a current base and land through protected `main` before a release claim |
