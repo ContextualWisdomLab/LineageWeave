@@ -270,27 +270,6 @@ async def find_linked_post_ids(conn: asyncpg.Connection, post_id: str) -> Linked
         )
         sibling_post_ids = list({str(row["post_id"]) for row in sibling_rows} | {post_id})
 
-    project_rows = await conn.fetch(
-        "select distinct project_key from post_project_mention where post_id = $1",
-        post_id,
-    )
-    project_keys = [str(row["project_key"]) for row in project_rows]
-    project_sibling_ids: set[str] = set()
-    if project_keys:
-        project_sibling_rows = await conn.fetch(
-            "select distinct ppm.post_id from post_project_mention ppm "
-            "join source_post sp on sp.post_id = ppm.post_id "
-            "where ppm.project_key = any($1::text[]) "
-            f"and {SOURCE_POST_ELIGIBILITY_SQL.format(alias='sp')} "
-            "order by ppm.post_id limit $2",
-            project_keys,
-            _POST_CHAT_CANDIDATE_LIMIT,
-        )
-        project_sibling_ids = {
-            str(row["post_id"]) for row in project_sibling_rows
-        } - {post_id}
-        sibling_post_ids = list(set(sibling_post_ids) | project_sibling_ids)
-
     edges = await load_visible_subgraph(conn, sibling_post_ids)
     start = node_key(NODE_POST, post_id)
     scores = random_walk_with_restart(adjacency_from_edges(edges), start_node=start)
@@ -299,9 +278,33 @@ async def find_linked_post_ids(conn: asyncpg.Connection, post_id: str) -> Linked
         node_id
         for key, _ in related
         if (node_id := parse_node_key(key)[1]) and parse_node_key(key)[0] == NODE_POST
-    ).union(project_sibling_ids) - {post_id}
+    ) - {post_id}
 
     return LinkedPostIds(direct=direct_ids - {post_id}, indirect=indirect_ids - direct_ids)
+
+
+async def find_project_sibling_post_ids(
+    conn: asyncpg.Connection, post_id: str
+) -> frozenset[str]:
+    """Published posts sharing a persisted project key, for Ask context only."""
+    project_rows = await conn.fetch(
+        "select distinct project_key from post_project_mention where post_id = $1",
+        post_id,
+    )
+    project_keys = [str(row["project_key"]) for row in project_rows]
+    if not project_keys:
+        return frozenset()
+    rows = await conn.fetch(
+        "select distinct ppm.post_id from post_project_mention ppm "
+        "join source_post sp on sp.post_id = ppm.post_id "
+        "where ppm.project_key = any($1::text[]) and ppm.post_id <> $2 "
+        f"and {SOURCE_POST_ELIGIBILITY_SQL.format(alias='sp')} "
+        "order by ppm.post_id limit $3",
+        project_keys,
+        post_id,
+        _POST_CHAT_CANDIDATE_LIMIT,
+    )
+    return frozenset(str(row["post_id"]) for row in rows)
 
 
 async def gather_chat_sources(
@@ -353,9 +356,11 @@ async def gather_chat_sources(
     ]
 
     linked = await find_linked_post_ids(conn, post_id)
+    project_sibling_ids = await find_project_sibling_post_ids(conn, post_id)
     candidate_ids = [
         *sorted(linked.direct),
         *sorted(linked.indirect),
+        *sorted(project_sibling_ids - linked.direct - linked.indirect),
     ][:_POST_CHAT_CANDIDATE_LIMIT]
     if not candidate_ids:
         return sources

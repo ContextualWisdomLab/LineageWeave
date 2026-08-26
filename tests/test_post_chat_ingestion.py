@@ -12,6 +12,7 @@ from backend.app.post_chat_ingestion import (
     fetch_persisted_chat,
     fetch_persisted_chats,
     find_linked_post_ids,
+    find_project_sibling_post_ids,
     gather_chat_sources,
     normalize_chat_question,
     persist_post_chat,
@@ -71,35 +72,20 @@ class _SourceConnection:
         return []
 
 
-def test_find_linked_posts_includes_persisted_project_key_siblings(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
+def test_project_siblings_are_separate_from_event_lineage() -> None:
     class ProjectConnection:
         async def fetch(self, query: str, *_args: object):
-            if "post_lineage_edge" in query:
-                return []
-            if "select distinct person_id" in query:
-                return []
             if "select distinct project_key" in query:
                 return [{"project_key": "project-synthetic"}]
             if "where ppm.project_key = any" in query:
                 assert SOURCE_POST_ELIGIBILITY_SQL.format(alias="sp") in query
-                return [{"post_id": "post-1"}, {"post_id": "post-2"}]
+                assert _args[1] == "post-1"
+                return [{"post_id": "post-2"}]
             return []
 
-    async def no_graph(_conn: object, post_ids: list[str]):
-        assert set(post_ids) == {"post-1", "post-2"}
-        return []
+    siblings = asyncio.run(find_project_sibling_post_ids(ProjectConnection(), "post-1"))
 
-    monkeypatch.setattr(
-        "backend.app.post_chat_ingestion.load_visible_subgraph",
-        no_graph,
-    )
-
-    linked = asyncio.run(find_linked_post_ids(ProjectConnection(), "post-1"))
-
-    assert linked.direct == frozenset()
-    assert linked.indirect == frozenset({"post-2"})
+    assert siblings == frozenset({"post-2"})
 
 
 def test_gather_chat_sources_keeps_the_event_loop_responsive_during_body_normalization(
