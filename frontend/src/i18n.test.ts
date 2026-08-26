@@ -55,6 +55,7 @@ describe("i18n", () => {
     "Leftover map leaves unexplained U {value} after IRT main effects. Open this post to read {criterion}.",
     "Leftover map reconstructs R̂ {value} after IRT main effects. Open this post to read {criterion}.",
     "Two leftover-map axes leave identity remainder {value} of raw residual after IRT main effects. Open this post to read {criterion}.",
+    "Leftover map explains {value} of raw residual after IRT main effects. Open this post to read {criterion}.",
     "Read observed Y {observed} and expected E {expected} after IRT main effects, then open this post.",
     "Leftover map has no leftover structure after IRT main effects. Open this post.",
     "Leftover map rank {rank} after IRT main effects. Open this post.",
@@ -299,6 +300,33 @@ describe("i18n", () => {
       tf(
         "Leftover map reconstructs R̂ {value} after IRT main effects. Open this post to read {criterion}.",
         { value: "+0.35", criterion: "sales-lead" },
+      ),
+    ).toBe(expected);
+  });
+
+  it.each([
+    [
+      "ko",
+      "잔여 지도가 IRT 주효과 이후 원잔차의 0.76를 설명합니다. sales-lead 기준을 읽으려면 이 글을 여세요.",
+    ],
+    [
+      "zh",
+      "残差图解释 IRT 主效应后原始残差的 0.76。打开这篇帖子阅读 sales-lead。",
+    ],
+    [
+      "ja",
+      "残差マップはIRT主効果後の生の残差の 0.76 を説明します。この投稿を開いて sales-lead を読んでください。",
+    ],
+    [
+      "vi",
+      "Bản đồ phần dư giải thích 0.76 của phần dư thô sau hiệu ứng chính IRT. Mở bài viết này để đọc sales-lead.",
+    ],
+  ] as const)("formats leftover-map explained share next action in %s", (locale, expected) => {
+    setLocale(locale);
+    expect(
+      tf(
+        "Leftover map explains {value} of raw residual after IRT main effects. Open this post to read {criterion}.",
+        { value: "0.76", criterion: "sales-lead" },
       ),
     ).toBe(expected);
   });

@@ -534,6 +534,8 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
       "잔여 지도가 IRT 주효과 이후 R̂ {value}을(를) 재구성합니다. {criterion} 기준을 읽으려면 이 글을 여세요.",
     "Two leftover-map axes leave identity remainder {value} of raw residual after IRT main effects. Open this post to read {criterion}.":
       "잔여 지도의 두 축이 IRT 주효과 이후 원시 잔차의 항등식 나머지 {value}을(를) 남깁니다. {criterion} 기준을 읽으려면 이 글을 여세요.",
+    "Leftover map explains {value} of raw residual after IRT main effects. Open this post to read {criterion}.":
+      "잔여 지도가 IRT 주효과 이후 원잔차의 {value}를 설명합니다. {criterion} 기준을 읽으려면 이 글을 여세요.",
     "Read observed Y {observed} and expected E {expected} after IRT main effects, then open this post.":
       "IRT 주효과 이후 관측 Y {observed}와 기대 E {expected}를 읽은 다음, 이 글을 여세요.",
     "Leftover map has no leftover structure after IRT main effects. Open this post.":
@@ -1053,6 +1055,8 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
       "残差图在 IRT 主效应后重建 R̂ {value}。打开这篇帖子阅读 {criterion}。",
     "Two leftover-map axes leave identity remainder {value} of raw residual after IRT main effects. Open this post to read {criterion}.":
       "残差图的两个轴在 IRT 主效应后留下原始残差的恒等式余项 {value}。打开这篇帖子阅读 {criterion}。",
+    "Leftover map explains {value} of raw residual after IRT main effects. Open this post to read {criterion}.":
+      "残差图解释 IRT 主效应后原始残差的 {value}。打开这篇帖子阅读 {criterion}。",
     "Read observed Y {observed} and expected E {expected} after IRT main effects, then open this post.":
       "阅读 IRT 主效应后的观测 Y {observed} 与期望 E {expected}，然后打开这篇帖子。",
     "Leftover map has no leftover structure after IRT main effects. Open this post.":
@@ -1575,6 +1579,8 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
       "残差マップはIRT主効果後の R̂ {value} を再構成します。この投稿を開いて {criterion} を読んでください。",
     "Two leftover-map axes leave identity remainder {value} of raw residual after IRT main effects. Open this post to read {criterion}.":
       "残差マップの2軸はIRT主効果後の生の残差の恒等式の余り {value} を残します。この投稿を開いて {criterion} を読んでください。",
+    "Leftover map explains {value} of raw residual after IRT main effects. Open this post to read {criterion}.":
+      "残差マップはIRT主効果後の生の残差の {value} を説明します。この投稿を開いて {criterion} を読んでください。",
     "Read observed Y {observed} and expected E {expected} after IRT main effects, then open this post.":
       "IRT主効果後の観測 Y {observed} と期待 E {expected} を読んでから、この投稿を開いてください。",
     "Leftover map has no leftover structure after IRT main effects. Open this post.":
@@ -2097,6 +2103,8 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
       "Bản đồ phần dư tái dựng R̂ {value} sau hiệu ứng chính IRT. Mở bài viết này để đọc {criterion}.",
     "Two leftover-map axes leave identity remainder {value} of raw residual after IRT main effects. Open this post to read {criterion}.":
       "Hai trục của bản đồ phần dư để lại phần giao {value} của phần dư thô sau hiệu ứng chính IRT. Mở bài viết này để đọc {criterion}.",
+    "Leftover map explains {value} of raw residual after IRT main effects. Open this post to read {criterion}.":
+      "Bản đồ phần dư giải thích {value} của phần dư thô sau hiệu ứng chính IRT. Mở bài viết này để đọc {criterion}.",
     "Read observed Y {observed} and expected E {expected} after IRT main effects, then open this post.":
       "Đọc Y quan sát {observed} và E kỳ vọng {expected} sau hiệu ứng chính IRT, rồi mở bài viết này.",
     "Leftover map has no leftover structure after IRT main effects. Open this post.":

@@ -8,6 +8,14 @@ All notable changes to this project are documented here. Format follows
 
 ### Added
 
+- Period leftover pair rows now name leftover-map explained share
+  `e = R̂² / R²` of raw residual after two-axis Gabriel reconstruction
+  next to leftover-map distance `d`, then open that post (Gabriel, 1971;
+  Jeon et al., 2021, eq. 3; ADR 0232). A missing share omits the badge
+  rather than inventing a leftover score. A finite share greater than 1
+  is stored and shown, never clamped. Unexplained leftover share `s` is
+  not persisted.
+
 - Persist explicit paragraph, list, table, MathML formula, and caller-parsed
   conversation-turn semantic-unit kinds without inferring absent boundaries.
 - Event Lineage now persists each reconstructed connection's independent
