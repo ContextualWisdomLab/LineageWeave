@@ -36,6 +36,7 @@ SEMANTIC_DIMENSIONS = frozenset(
 )
 _CODE_FENCE = re.compile(r"^```(?:json)?\s*|\s*```$", re.DOTALL)
 _PROBABILITY = re.compile(r"0\.(?:0*[1-9]\d*)$")
+_INCLUSION_PROBABILITY = re.compile(r"(?:0\.(?:0*[1-9]\d*)|1(?:\.0+)?)$")
 _SHA256 = re.compile(r"[0-9a-f]{64}$")
 _SAMPLE_DESIGNS = {
     "simple_random_without_replacement",
@@ -114,6 +115,14 @@ def validate_probability_sample_manifest(
     strata = payload["strata"]
     if not isinstance(strata, list) or not strata:
         raise ValueError("sample manifest requires at least one probability stratum")
+    if (
+        payload["design_code"] == "simple_random_without_replacement"
+        and len(strata) != 1
+    ) or (
+        payload["design_code"] == "stratified_random_without_replacement"
+        and len(strata) < 2
+    ):
+        raise ValueError("sample manifest strata do not match its probability design")
     stratum_fields = {
         "stratum_code",
         "population_size",
@@ -143,7 +152,8 @@ def validate_probability_sample_manifest(
             raise ValueError("sample manifest stratum sizes are invalid")
         if (
             not isinstance(stratum["inclusion_probability"], str)
-            or _PROBABILITY.fullmatch(stratum["inclusion_probability"]) is None
+            or _INCLUSION_PROBABILITY.fullmatch(stratum["inclusion_probability"])
+            is None
         ):
             raise ValueError(
                 "sample manifest requires a known inclusion probability per stratum"

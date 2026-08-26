@@ -48,8 +48,8 @@ complete non-identifying aggregates. It additionally fails closed unless the
 caller supplies a probability-sample manifest with known per-stratum inclusion
 probabilities, explicit confidence/margin targets, prior evidence for the
 expected proportion, ordered owner-token membership digests, retained provider
-failures, and the SHA-256-bound output
-of the NIST proportion/FPC calculation owned by a versioned fast-mlsirm Rust
+failures, and the SHA-256-bound output of the NIST proportion/FPC calculation
+owned by a versioned fast-mlsirm Rust
 artifact. LineageWeave validates that contract but performs no sample-size,
 finite-population, allocation, or weight arithmetic in Python.
 The advertised deployment alias needed by this multi-agent path is repaired in

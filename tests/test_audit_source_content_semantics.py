@@ -28,11 +28,18 @@ def _probability_manifest() -> dict[str, object]:
         "strata": [
             {
                 "stratum_code": "synthetic-a",
-                "population_size": 1000,
-                "sample_size": 80,
+                "population_size": 600,
+                "sample_size": 48,
                 "inclusion_probability": "0.08",
                 "selection_frame_sha256": digest,
-            }
+            },
+            {
+                "stratum_code": "synthetic-b",
+                "population_size": 400,
+                "sample_size": 32,
+                "inclusion_probability": "0.08",
+                "selection_frame_sha256": "b" * 64,
+            },
         ],
         "selected_units": [
             {
@@ -40,7 +47,7 @@ def _probability_manifest() -> dict[str, object]:
                 "selection_token_sha256": hashlib.sha256(
                     f"synthetic-token-{ordinal}".encode()
                 ).hexdigest(),
-                "stratum_code": "synthetic-a",
+                "stratum_code": "synthetic-a" if ordinal < 48 else "synthetic-b",
             }
             for ordinal in range(80)
         ],
@@ -130,7 +137,7 @@ def test_probability_sample_manifest_preserves_design_evidence() -> None:
         "sample_size": 80,
         "target_confidence_level": "0.95",
         "target_margin_of_error": "0.05",
-        "stratum_count": 1,
+        "stratum_count": 2,
         "rust_owner_artifact_sha256": artifact["output_sha256"],
     }
     assert len(membership) == 80
@@ -161,15 +168,9 @@ def test_probability_sample_manifest_requires_known_stratum_inclusion_probabilit
 ):
     """Every stratum retains a known inclusion probability and frame digest."""
     manifest = _probability_manifest()
-    manifest["strata"] = [
-        {
-            "stratum_code": "synthetic-a",
-            "population_size": 1000,
-            "sample_size": 80,
-            "inclusion_probability": "unknown",
-            "selection_frame_sha256": "a" * 64,
-        }
-    ]
+    strata = manifest["strata"]
+    assert isinstance(strata, list) and isinstance(strata[0], dict)
+    strata[0]["inclusion_probability"] = "unknown"
 
     with pytest.raises(ValueError, match="known inclusion probability"):
         validate_probability_sample_manifest(manifest, 80)
