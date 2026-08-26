@@ -248,6 +248,44 @@ describe("ChatPanel conversation history", () => {
     expect(screen.getByText("Second answer")).toBeInTheDocument();
   });
 
+  it("does not show an error from a superseded conversation selection", async () => {
+    let rejectFirst!: (reason?: unknown) => void;
+    vi.stubGlobal("fetch", vi.fn(async (input: RequestInfo | URL) => {
+      const url = input instanceof Request ? input.url : String(input);
+      if (url.endsWith("/chat/conversations/conversation-1")) {
+        return new Promise<Response>((_resolve, reject) => { rejectFirst = reject; });
+      }
+      if (url.endsWith("/chat/conversations/conversation-2")) {
+        return jsonResponse({
+          conversation_id: "conversation-2",
+          title: "Second conversation",
+          older_cursor: null,
+          exchanges: [{ turn_id: "turn-2", question_text: "Second?", answer_text: "Second answer", cited_post_ids: [] }],
+        });
+      }
+      if (url.endsWith("/chat/conversations")) {
+        return jsonResponse({
+          conversations: [
+            { conversation_id: "conversation-1", title: "First conversation", updated_at: "2026-08-26T00:00:00Z", turn_count: 1 },
+            { conversation_id: "conversation-2", title: "Second conversation", updated_at: "2026-08-26T00:01:00Z", turn_count: 1 },
+          ],
+          next_cursor: null,
+        });
+      }
+      return jsonResponse({ post_id: "post-1", exchanges: [] });
+    }));
+
+    render(<ChatPanel postId="post-1" accessToken="synthetic-token" />);
+    const history = await screen.findByLabelText("Conversation history");
+    await userEvent.selectOptions(history, "conversation-1");
+    await userEvent.selectOptions(history, "conversation-2");
+    await screen.findByText("Second answer");
+    rejectFirst(new TypeError("network unavailable"));
+
+    await waitFor(() => expect(screen.queryByRole("alert")).toBeNull());
+    expect(screen.getByText("Second answer")).toBeInTheDocument();
+  });
+
   it("offers a next action when another history page cannot be loaded", async () => {
     vi.stubGlobal("fetch", vi.fn(async (input: RequestInfo | URL) => {
       const url = input instanceof Request ? input.url : String(input);

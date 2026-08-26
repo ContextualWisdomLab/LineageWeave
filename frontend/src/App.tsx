@@ -336,6 +336,7 @@ export function ChatPanel({
       setExchanges(conversation.exchanges);
       setConversationOlderCursor(conversation.older_cursor ?? null);
     } catch {
+      if (requestId !== conversationRequest.current) return;
       setHistoryError(t("Conversation history could not be loaded. Start a new conversation or try again later."));
     }
   }
