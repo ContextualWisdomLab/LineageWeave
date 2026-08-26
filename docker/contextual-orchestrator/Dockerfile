@@ -5,7 +5,7 @@ WORKDIR /app
 # Reuse the upstream implementation without copying it into LineageWeave.
 # Pin the runtime to a reviewed immutable upstream commit; model selection,
 # structured synthesis, and reasoning policy stay in contextual-orchestrator.
-ADD https://github.com/ContextualWisdomLab/contextual-orchestrator/archive/2b11707e828c8d3f2e6cdf4b532172bf1797f786.tar.gz /tmp/contextual-orchestrator.tar.gz
+ADD https://github.com/ContextualWisdomLab/contextual-orchestrator/archive/d078ce6bc42b7ec37308bfded6adbe1d700c069c.tar.gz /tmp/contextual-orchestrator.tar.gz
 RUN mkdir /tmp/contextual-orchestrator \
     && tar -xzf /tmp/contextual-orchestrator.tar.gz --strip-components=1 -C /tmp/contextual-orchestrator \
     && cp -R /tmp/contextual-orchestrator/contextual_orchestrator /app/contextual_orchestrator \
