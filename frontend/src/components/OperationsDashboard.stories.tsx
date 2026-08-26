@@ -184,7 +184,7 @@ export const VoiceSummaryLoadError: Story = {
   },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    await expect(canvas.findByRole("alert")).resolves.toHaveTextContent("External relationship evidence could not be loaded");
-    await expect(canvas.getByRole("button", { name: "Retry external relationship evidence" })).toBeVisible();
+    await expect(canvas.findByRole("alert")).resolves.toHaveTextContent("Voice evidence could not be loaded");
+    await expect(canvas.getByRole("button", { name: "Retry voice evidence" })).toBeVisible();
   },
 };

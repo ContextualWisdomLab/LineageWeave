@@ -60,7 +60,7 @@ export function OperationsDashboard({ accessToken, externalOnly = false, onOpenP
       .then((value) => active && setVoiceSummary(value))
       .catch(() => active && setVoiceSummaryError(true));
     return () => { active = false; };
-  }, [accessToken, externalOnly, submittedPeriod, retryCount, voiceRetryCount]);
+  }, [accessToken, externalOnly, submittedPeriod, voiceRetryCount]);
 
   return <>
     <form className="dashboard-period-form" onSubmit={(event) => {
@@ -83,12 +83,12 @@ export function OperationsDashboard({ accessToken, externalOnly = false, onOpenP
         {!externalOnly && voiceSummary ? <VoiceTaxonomySummary data={voiceSummary} /> : null}
         {!externalOnly && voiceSummaryError ? (
           <section className="operations-dashboard" aria-labelledby="voice-summary-error-heading">
-            <h2 id="voice-summary-error-heading">{t("External voice overview")}</h2>
-            <p role="alert">{t("External relationship evidence could not be loaded.")}</p>
-            <button type="button" className="btn-secondary" onClick={() => setVoiceRetryCount((count) => count + 1)}>{t("Retry external relationship evidence")}</button>
+            <h2 id="voice-summary-error-heading">{t("Voice evidence overview")}</h2>
+            <p role="alert">{t("Voice evidence could not be loaded.")}</p>
+            <button type="button" className="btn-secondary" onClick={() => setVoiceRetryCount((count) => count + 1)}>{t("Retry voice evidence")}</button>
           </section>
         ) : null}
-        {!externalOnly && !voiceSummary && !voiceSummaryError ? <p role="status">{t("Loading external relationship evidence...")}</p> : null}
+        {!externalOnly && !voiceSummary && !voiceSummaryError ? <p role="status">{t("Loading voice evidence...")}</p> : null}
       </>
     ) : (
       <p role="status">Dashboard 근거를 불러오는 중입니다.</p>

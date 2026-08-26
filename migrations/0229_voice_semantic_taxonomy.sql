@@ -47,18 +47,32 @@ create unique index if not exists post_voice_assertion_idempotency_idx
 
 insert into post_voice_classification_assertion (
     post_id, voice_concept_code, assertion_status_code,
-    evidence_sha256, source_revision_digest, valid_from
+    evidence_sha256, source_revision_digest
 )
 select post.post_id,
        lower(post.voc_type_code),
        'source',
        encode(sha256(convert_to(post.voc_type_code, 'UTF8')), 'hex'),
-       encode(sha256(convert_to(coalesce(post.post_body, ''), 'UTF8')), 'hex'),
-       coalesce(post.event_occurred_at, post.created_at)
+       encode(sha256(convert_to(coalesce(post.post_body, ''), 'UTF8')), 'hex')
   from source_post post
  where lower(post.voc_type_code) in ('voc', 'vocc', 'voco', 'vom', 'vop')
 on conflict (post_id, assertion_status_code, voice_concept_code, source_revision_digest)
 do nothing;
+
+-- Source labels are recorded provenance, not future business-event claims.
+-- Repair rows written by an earlier replay of this migration without changing
+-- a separately sourced assertion that happens to share the post and concept.
+update post_voice_classification_assertion assertion
+   set valid_from = null
+  from source_post post
+ where assertion.post_id = post.post_id
+   and assertion.assertion_status_code = 'source'
+   and assertion.voice_concept_code = lower(post.voc_type_code)
+   and assertion.evidence_sha256 =
+       encode(sha256(convert_to(post.voc_type_code, 'UTF8')), 'hex')
+   and assertion.source_revision_digest =
+       encode(sha256(convert_to(coalesce(post.post_body, ''), 'UTF8')), 'hex')
+   and assertion.valid_from is not null;
 
 create table if not exists organization_voice_relationship_assertion (
     relationship_assertion_id uuid primary key default gen_random_uuid(),

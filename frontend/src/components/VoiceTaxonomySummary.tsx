@@ -12,8 +12,8 @@ const voiceLabels = {
 export function VoiceTaxonomySummary({ data }: { data: Summary }) {
   return (
     <section className="operations-dashboard" aria-labelledby="voice-summary-heading">
-      <h2 id="voice-summary-heading">{t("External voice overview")}</h2>
-      <p>{tf("Compare evidence across {count} visible records.", { count: data.total_eligible.toLocaleString() })}</p>
+      <h2 id="voice-summary-heading">{t("Voice evidence overview")}</h2>
+      <p>{tf("Compare voice classifications across {count} visible records.", { count: data.total_eligible.toLocaleString() })}</p>
       <dl className="dashboard-metrics-grid">
         <div><dt>{t("Recorded evidence")}</dt><dd>{data.source_count.toLocaleString()}</dd></div>
         <div><dt>{t("Stored semantic evidence")}</dt><dd>{data.derived_count.toLocaleString()}</dd></div>
@@ -29,8 +29,8 @@ export function VoiceTaxonomySummary({ data }: { data: Summary }) {
           </li>
         ))}
       </ul>
-      {data.counts_overlap ? <p>{t("One record may support several relationships, so category counts can overlap.")}</p> : null}
-      <p className="dashboard-next-action">{t("Review disagreements and records without evidence before using these relationships.")}</p>
+      {data.counts_overlap ? <p>{t("One record may support several voice categories, so category counts can overlap.")}</p> : null}
+      <p className="dashboard-next-action">{t("Review disagreements and records without voice evidence before using these classifications.")}</p>
     </section>
   );
 }

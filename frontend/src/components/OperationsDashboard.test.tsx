@@ -217,9 +217,9 @@ describe("OperationsDashboardView", () => {
       });
     render(<OperationsDashboard accessToken="synthetic-token" onOpenPost={() => undefined} />);
 
-    expect(await screen.findByRole("alert")).toHaveTextContent("External relationship evidence could not be loaded.");
-    await userEvent.click(screen.getByRole("button", { name: "Retry external relationship evidence" }));
-    expect(await screen.findByRole("heading", { name: "External voice overview" })).toBeInTheDocument();
+    expect(await screen.findByRole("alert")).toHaveTextContent("Voice evidence could not be loaded.");
+    await userEvent.click(screen.getByRole("button", { name: "Retry voice evidence" }));
+    expect(await screen.findByRole("heading", { name: "Voice evidence overview" })).toBeInTheDocument();
     expect(fetchVoiceTaxonomySummary).toHaveBeenCalledTimes(2);
     expect(fetchOperationsDashboard).toHaveBeenCalledTimes(1);
   });

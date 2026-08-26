@@ -10,7 +10,8 @@ describe("VoiceTaxonomySummary", () => {
       counts_overlap: true,
       category_memberships: [{ voice_concept_code: "voc", post_count: 1, eligible_percentage: 50 }],
     }} />);
-    expect(screen.getByText(/category counts can overlap/)).toBeInTheDocument();
-    expect(screen.getByText(/Review disagreements and records without evidence/)).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Voice evidence overview" })).toBeInTheDocument();
+    expect(screen.getByText(/voice categories, so category counts can overlap/)).toBeInTheDocument();
+    expect(screen.getByText(/Review disagreements and records without voice evidence/)).toBeInTheDocument();
   });
 });

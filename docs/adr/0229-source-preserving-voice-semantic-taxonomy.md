@@ -22,9 +22,12 @@ or organization may have multiple simultaneous memberships. Conflicting
 source and derived concept sets remain disagreement evidence; matching
 multi-membership sets are agreement, not a pairwise mismatch. A summary admits
 an assertion only while its optional validity interval contains the query
-instant. No threshold, weight, keyword, alias rule, or forced winner is
-permitted. A replacement or retraction names the superseded assertion and
-closes validity with provenance.
+instant. Imported source labels have no business-event validity interval: they
+are available as provenance as soon as recorded, even when the post describes
+a future event. Optional validity intervals describe derived or explicitly
+time-scoped relationship claims, not ingestion availability. No threshold,
+weight, keyword, alias rule, or forced winner is permitted. A replacement or
+retraction names the superseded assertion and closes validity with provenance.
 
 Counts use the same authorized eligible-post denominator at the same cutoff and
 filters. They report source, derived, multi-membership, disagreement, and

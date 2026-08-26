@@ -2045,6 +2045,35 @@ def test_voice_taxonomy_summary_uses_visible_post_denominator(
     assert "category_post_counts" not in payload
 
 
+def test_voice_source_backfill_is_available_for_future_business_event(
+    seeded_db,
+) -> None:
+    """An imported source label is available when recorded, not at event time."""
+    conn = psycopg2.connect(seeded_db["dsn"])
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                "delete from post_voice_classification_assertion where post_id = %s",
+                (seeded_db["public_post_id"],),
+            )
+            cur.execute(
+                "update source_post set voc_type_code = 'voc', "
+                "event_occurred_at = '2999-01-01T00:00:00Z' where post_id = %s",
+                (seeded_db["public_post_id"],),
+            )
+            cur.execute(_PRODUCT_SEMANTIC_MIGRATIONS[-1].read_text(encoding="utf-8"))
+            cur.execute(
+                "select valid_from from post_voice_classification_assertion "
+                "where post_id = %s and assertion_status_code = 'source' "
+                "and voice_concept_code = 'voc'",
+                (seeded_db["public_post_id"],),
+            )
+            assert cur.fetchone() == (None,)
+        conn.commit()
+    finally:
+        conn.close()
+
+
 def test_derived_voice_assertion_requires_model_receipt(seeded_db) -> None:
     """A derived classification cannot persist without its model receipt."""
     conn = psycopg2.connect(seeded_db["dsn"])
