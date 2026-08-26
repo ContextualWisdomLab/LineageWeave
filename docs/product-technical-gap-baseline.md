@@ -61,7 +61,7 @@ only aggregate, non-identifying evidence to this repository.
 
 ### Exact open-PR boundary
 
-At this snapshot there were 18 open PRs and 10 open issues. The exact-head
+At this snapshot there were 19 open PRs and 10 open issues. The exact-head
 inventory in section 1 is authoritative for this snapshot. Every open head
 remained blocked on hosted gates and/or independent review. These observations
 are not merge readiness. Re-fetch exact heads,
@@ -78,13 +78,14 @@ lifecycle claim.
 ## 1. Exact-head and governance evidence
 
 The protected default branch is `ff7431bd1851c03e737808d22c6a2d43968582f9`
-at this refresh. The live queue contains 18 open PRs and 10
+at this refresh. The live queue contains 19 open PRs and 10
 open issues. The exact-head inventory below supersedes older per-PR snapshots
 elsewhere in this document; those older rows remain useful historical delivery
 context only.
 
 | PR | Exact observed head | Merge/check state at this snapshot |
 | ---: | --- | --- |
+| #701 | `5eae0e05` | repairs the backend integration fixture so PostgreSQL concurrent-index migrations execute with the same per-statement autocommit boundary as production `psql`; no migration is skipped or suppressed. The formerly failing fixture and 38 schema/replay/backend checks pass; protected hosted checks and independent review remain required |
 | #700 | `fe1836f5` | adds ADR 0238's bounded versioned caller-parsed conversation-turn envelope, fail-closed whole-result preflight, ordered semantic-unit persistence, and opaque caller evidence references without body-pattern speaker inference. Focused import/persistence/chunking/docstring/documentation tests and Ruff pass; protected hosted checks and independent review remain required |
 | #699 | `2fc467c6` | audits the dashboard stack against the Rust ownership boundary: TEPP and fast-mlsirm are the accepted scientific-compute owners, RankWeave remains the current Python retrieval contract, and no future Rust vector/graph scoring owner is invented. It is stacked on #694 pending parent delivery, hosted checks, and independent review |
 | #697 | `4003ed27` | deletes unused Python vector helpers without inventing a replacement. The active Global Ask vector arithmetic remains explicit migration debt until an accepted Rust retrieval-scoring owner contract exists; it is stacked on #692 pending parent delivery, hosted checks, and independent review |
@@ -145,7 +146,7 @@ ADR 0229 unambiguous. #672's Semantic Ask migrations now use 0225/0226,
 separate from #640's 0211/0222 and #679's 0224. The former #640/#663 ADR
 0224 and 0225 collisions are resolved on #663 by unique ADR 0230/0231
 identities. A current-head inventory found no ADR or migration number assigned
-to divergent filenames across the 18 open PRs. The
+to divergent filenames across the 19 open PRs. The
 `0212_global_ask_knowledge_cutoff.sql` blobs in
 PR #658 and #663 are byte-identical, so that overlap is duplicated delivery rather
 than a semantic divergence. Release metadata also diverges: the observed
@@ -460,7 +461,7 @@ for wholesale replay from #490.
 
 | Gap | Current evidence | Acceptance requirement |
 | --- | --- | --- |
-| Protected release | Protected `main@ff7431bd` includes #631's ADR-decomposition documentation and #663's project-ontology/caller-parsed semantic-unit seam in addition to the #660/#664 semantic-unit/backend stack and #659 ontology readability/token repair. Eighteen PRs remain open at the 16:48 KST snapshot; every candidate still requires exact-head checks, unresolved-thread review, and independent approval before merge | Terminal exact-head checks, no unresolved threads, one independent approval under active ruleset `18156473`, and a protected merge SHA; re-fetch the ruleset before every lifecycle claim |
+| Protected release | Protected `main@ff7431bd` includes #631's ADR-decomposition documentation and #663's project-ontology/caller-parsed semantic-unit seam in addition to the #660/#664 semantic-unit/backend stack and #659 ontology readability/token repair. Nineteen PRs remain open at the 16:48 KST snapshot; every candidate still requires exact-head checks, unresolved-thread review, and independent approval before merge | Terminal exact-head checks, no unresolved threads, one independent approval under active ruleset `18156473`, and a protected merge SHA; re-fetch the ruleset before every lifecycle claim |
 | Evidence-grounded operations workspace | Protected-main #614 delivers governed semantic Ask, live Similar VOC, disjoint pending/failed analysis metrics, full Storybook state inventory, and current desktop/mobile screenshot evidence. Authorized-corpus backfill acceptance remains unavailable | Perform authenticated authorized-corpus acceptance with aggregate evidence and retain fail-closed no-match behavior |
 | Cancelled analysis guidance | PRD-FR-5 requires every lifecycle state to identify a valid next action, while ADR 0013 makes Cancelled terminal. Protected `main@494b54e2` rendered Cancelled without a next action. This stacked candidate adds kind-specific guidance for lineage, TEPP, topic lineage, and period reports; 390×844 and 1440×1000 authenticated synthetic-runtime audits are retained in `docs/screenshots/cancelled-analysis-runs-{mobile,desktop}.png`. The audit also found and repaired attached count/action text and the three-column mobile squeeze | Land through the protected gate, then repeat authenticated keyboard and screen-reader acceptance on the exact release head; no cancelled run may imply that it can resume or that a measurement exists |
 | Shared frontend gate | The ADR 0109 login repair is on protected `main`; eight older branches carried the defect and received the same verified repair this loop (#521–#560) | Keep every future branch cut from post-repair bases; re-verify with frontend lint/test/build before push |
