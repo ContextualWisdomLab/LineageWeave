@@ -1,3 +1,14 @@
+FROM python:3.12-slim@sha256:423ed6ab25b1921a477529254bfeeabf5855151dc2c3141699a1bfc852199fbf AS token-builder
+RUN apt-get update && apt-get install -y --no-install-recommends curl build-essential ca-certificates \
+    && rm -rf /var/lib/apt/lists/* \
+    && curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | \
+       sh -s -- -y --profile minimal --default-toolchain 1.97.1
+ENV PATH=/root/.cargo/bin:$PATH
+ADD https://github.com/ContextualWisdomLab/contextual-orchestrator/archive/2c1a1fb5234d89a8dbbe59672358f6dd4c3e8691.tar.gz /tmp/contextual-orchestrator.tar.gz
+RUN mkdir /tmp/contextual-orchestrator \
+    && tar -xzf /tmp/contextual-orchestrator.tar.gz --strip-components=1 -C /tmp/contextual-orchestrator \
+    && cargo build --locked --release --manifest-path /tmp/contextual-orchestrator/rust/token_counter/Cargo.toml
+
 FROM python:3.12-slim@sha256:423ed6ab25b1921a477529254bfeeabf5855151dc2c3141699a1bfc852199fbf
 
 WORKDIR /app
@@ -5,7 +16,7 @@ WORKDIR /app
 # Reuse the upstream implementation without copying it into LineageWeave.
 # Pin the runtime to a reviewed immutable upstream commit; model selection,
 # structured synthesis, and reasoning policy stay in contextual-orchestrator.
-ADD https://github.com/ContextualWisdomLab/contextual-orchestrator/archive/d078ce6bc42b7ec37308bfded6adbe1d700c069c.tar.gz /tmp/contextual-orchestrator.tar.gz
+ADD https://github.com/ContextualWisdomLab/contextual-orchestrator/archive/2c1a1fb5234d89a8dbbe59672358f6dd4c3e8691.tar.gz /tmp/contextual-orchestrator.tar.gz
 RUN mkdir /tmp/contextual-orchestrator \
     && tar -xzf /tmp/contextual-orchestrator.tar.gz --strip-components=1 -C /tmp/contextual-orchestrator \
     && cp -R /tmp/contextual-orchestrator/contextual_orchestrator /app/contextual_orchestrator \
@@ -16,8 +27,9 @@ RUN mkdir /tmp/contextual-orchestrator \
         'opentelemetry-api>=1.30.0' \
         'opentelemetry-sdk>=1.30.0' \
         'opentelemetry-exporter-otlp-proto-http>=1.30.0' \
-        'tiktoken>=0.11.0' \
     && useradd --uid 10001 --no-create-home orchestrator
+
+COPY --from=token-builder /tmp/contextual-orchestrator/rust/token_counter/target/release/contextual-token-counter /usr/local/bin/contextual-token-counter
 
 COPY agents.json /app/agents.json
 COPY start.py /app/start.py

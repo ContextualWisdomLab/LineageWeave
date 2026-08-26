@@ -209,6 +209,9 @@ class ContextualOrchestratorEmbeddingClient:
         )
         if any(type(response.get(key)) is not int or response[key] < 1 for key in required):
             raise ValueError("embedding batch capabilities are incomplete")
+        model = response.get("model")
+        if isinstance(model, str) and model.strip():
+            self._bind_model(response)
         return {key: int(response[key]) for key in required}
 
     @property
