@@ -391,3 +391,20 @@ def test_post_json_preserves_only_bounded_remote_failure_fields(monkeypatch) -> 
     assert caught.value.remote_error_code == "request_deadline_exceeded"
     assert caught.value.retryable is True
     assert "private" not in str(caught.value)
+
+
+def test_post_json_rejects_malformed_remote_failure_provenance(monkeypatch) -> None:
+    """Untrusted error metadata is unavailable rather than normalized or guessed."""
+
+    monkeypatch.setattr(
+        "lineageweave.http_client._request",
+        lambda *_args, **_kwargs: (
+            400,
+            b'{"error":{"code":"bad code/secret","retryable":"yes"}}',
+        ),
+    )
+    with pytest.raises(HttpClientError) as caught:
+        post_json("https://orchestrator.example/v1/chat/completions", {}, headers={}, timeout=2.0)
+    assert caught.value.http_status == 400
+    assert caught.value.remote_error_code is None
+    assert caught.value.retryable is None
