@@ -113,11 +113,13 @@ describe("OperationsDashboardView", () => {
     expect(screen.getByText("업무 관계 · 프로젝트")).toBeInTheDocument();
   });
 
-  it("places multi-project evidence in every explicit journey and orders events oldest first", () => {
+  it("places multi-project evidence in every observed-event group without calling it a journey", () => {
     const later = { ...data.cases[0], post_id: "post-later", occurred_at: "2026-08-20T00:00:00Z", project_names: ["Synthetic Grid Upgrade", "Synthetic Relay Renewal"] };
     const earlier = { ...data.cases[0], post_id: "post-earlier", occurred_at: "2026-08-01T00:00:00Z", project_names: ["Synthetic Grid Upgrade"] };
     render(<OperationsDashboardView data={{ ...data, cases: [later, earlier] }} onOpenPost={() => undefined} />);
 
+    expect(screen.getByRole("heading", { name: "프로젝트별 관측 Event" })).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "프로젝트 여정" })).not.toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Synthetic Relay Renewal" })).toBeInTheDocument();
     const primaryJourney = screen.getByRole("heading", { name: "Synthetic Grid Upgrade" }).parentElement;
     expect(primaryJourney?.querySelectorAll("time")[0]).toHaveAttribute("datetime", earlier.occurred_at);
@@ -133,8 +135,9 @@ describe("OperationsDashboardView", () => {
 
   it("keeps unavailable topic measurement actionable without a fallback score", () => {
     render(<OperationsDashboardView data={data} onOpenPost={() => undefined} />);
-    expect(screen.getByText("Topic model influence를 아직 표시할 수 없습니다.")).toBeInTheDocument();
-    expect(screen.getByText("TEPP posterior topic 계약 결과를 먼저 완료하세요.")).toBeInTheDocument();
+    expect(screen.getByText("글 영향도를 아직 확인할 수 없습니다.")).toBeInTheDocument();
+    expect(screen.getByText("분석 대상 글의 사건 시점과 조직 소속을 확인한 뒤 다시 분석하세요.")).toBeInTheDocument();
+    expect(screen.queryByText(/TEPP|fast-mlsirm|topic_context_posterior/)).not.toBeInTheDocument();
     expect(screen.queryByText(/추정 점수/)).not.toBeInTheDocument();
   });
 
@@ -169,7 +172,8 @@ describe("OperationsDashboardView", () => {
     render(<OperationsDashboardView data={accepted} onOpenPost={onOpenPost} />);
     expect(screen.getAllByText("4.25")).toHaveLength(2);
     expect(screen.getByText((_, element) => element?.tagName === "LI" && element.textContent === "2026-08-01 · birth")).toBeInTheDocument();
-    expect(screen.getByText("tepp-snapshot")).toBeInTheDocument();
+    expect(screen.getByText("분석 기준 확인")).toBeInTheDocument();
+    expect(screen.queryByText(/tepp-snapshot|fast-mlsirm|rust_gpu/)).not.toBeInTheDocument();
     await userEvent.click(screen.getAllByRole("button", { name: "근거 글 열기" })[1]);
     expect(onOpenPost).toHaveBeenCalledWith("post-2");
   });

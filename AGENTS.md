@@ -21,6 +21,14 @@ documents unless an ADR explicitly promotes a decision from them --
 to its governing ADR. Update research notes as literature changes; never
 use them to introduce an untracked architecture decision.
 
+Customer-facing copy must help the reader take the next product action. Do
+not expose implementation boundaries, provider or package names, schema
+versions, internal status/reason codes, environment variables, transport
+setup, hashes, or developer remediation instructions as explanatory UI copy.
+Keep that evidence in governed audit/admin surfaces and logs; translate a
+customer-visible state into the source, decision, retry, or administrator
+action the reader can actually take.
+
 ## Hard rule: no real data in repository artifacts
 
 This repository ships **synthetic fixtures only** (`lineageweave/fixtures.py`)

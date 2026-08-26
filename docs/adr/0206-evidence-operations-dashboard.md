@@ -78,10 +78,17 @@ provenance.
    a fact cannot be both. Missing facts carry no invented value or evidence
    span and inherit the analysis run and authorized-source boundary through
    their classification parent.
-9. Project journeys group events only by an explicit source project or stored
-   semantic project mention. A multi-project post may appear in multiple
-   journeys. Unbound events remain visible as unassigned evidence and are not
-   attached to the nearest project.
+9. Project membership uses only an explicit source project or stored semantic
+   project mention. A multi-project post may appear in multiple groups;
+   unbound events remain unassigned. A chronological sort of those records is
+   only a **project-observed-event list**, not a Project Journey. Project
+   Journey starts, predecessors, branches, and transitions consume a
+   provenance-bearing TEPP TDT/CHRONOS result. Previous projects, customer
+   requests, procurement notices, negotiated/direct bidding, external
+   sensing, internal discussions, and sales leads are all admissible starts or
+   predecessors when the accepted TEPP artifact and source evidence connect
+   them. LineageWeave never chooses a fixed first stage or promotes nearest-date
+   ordering to a lineage edge.
 10. A repeat-issue result carries both the issue-pattern evidence and any
    source-supported improvement action. Its Dashboard flow is As-Is evidence
    to To-Be action: rebid history retrieval, originating-order/specification

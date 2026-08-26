@@ -72,7 +72,7 @@ export function OperationsDashboard({ accessToken, externalOnly = false, onOpenP
 /** Renders a completed Dashboard response for runtime and Storybook scenes. */
 export function OperationsDashboardView({ data, externalOnly = false, onOpenPost }: { data: OperationsDashboardResponse; externalOnly?: boolean; onOpenPost: (postId: string) => void }) {
   const cases = externalOnly ? data.cases.filter((item) => item.case_kind_code === "external_information") : data.cases;
-  const journeys = Object.entries(
+  const observedProjectEvents = Object.entries(
     cases.reduce<Record<string, typeof cases>>((groups, item) => {
       const projects = item.project_names ?? (item.project_name ? [item.project_name] : []);
       projects.forEach((project) => (groups[project] ??= []).push(item));
@@ -122,10 +122,10 @@ export function OperationsDashboardView({ data, externalOnly = false, onOpenPost
       {!externalOnly ? (
         <TopicContextInfluence data={data} onOpenPost={onOpenPost} />
       ) : null}
-      {!externalOnly && journeys.length ? (
-        <section className="dashboard-journeys" aria-labelledby="project-journey-heading">
-          <h3 id="project-journey-heading">프로젝트 여정</h3>
-          {journeys.map(([project, events]) => (
+      {!externalOnly && observedProjectEvents.length ? (
+        <section className="dashboard-journeys" aria-labelledby="project-observed-events-heading">
+          <h3 id="project-observed-events-heading">프로젝트별 관측 Event</h3>
+          {observedProjectEvents.map(([project, events]) => (
             <div key={project} className="dashboard-journey">
               <h4>{project}</h4>
               <ol>
@@ -193,20 +193,17 @@ export function TopicContextInfluence({ data, onOpenPost }: { data: OperationsDa
   return (
     <section className="dashboard-topic-context" aria-labelledby="topic-context-heading">
       <header>
-        <div><p className="dashboard-eyebrow">TEPP · fast-mlsirm</p><h3 id="topic-context-heading">시간 흐름별 Topic model influence</h3></div>
+        <div><p className="dashboard-eyebrow">글 영향도</p><h3 id="topic-context-heading">시간 흐름별 Topic model influence</h3></div>
         <p>사업 가치가 아닌, 해당 글을 제외했을 때 Topic·조직 수준 모형이 변하는 정도입니다.</p>
       </header>
       {topicContext.status_code === "unavailable" ? (
         <div className="dashboard-topic-unavailable" role="status">
-          <strong>Topic model influence를 아직 표시할 수 없습니다.</strong>
-          <p>{topicContext.next_action}</p>
-          <ul>{topicContext.required_contracts.map((contract) => (
-            <li key={contract.authority}>{contract.authority} · <code>{contract.schema_version}</code> · {contract.state_code === "persisted" ? "저장 완료" : "승인 결과 없음"}</li>
-          ))}</ul>
+          <strong>글 영향도를 아직 확인할 수 없습니다.</strong>
+          <p>분석 대상 글의 사건 시점과 조직 소속을 확인한 뒤 다시 분석하세요.</p>
         </div>
       ) : (
         <>
-          <p>{topicContext.next_action}</p>
+          <p>각 글의 영향도와 불확실성을 비교하고 원문 근거를 확인하세요.</p>
           <div className="dashboard-topic-list">
             {topicContext.topics.map((topic) => (
               <details key={topic.topic_index} className="dashboard-topic" open>
@@ -247,14 +244,10 @@ export function TopicContextInfluence({ data, onOpenPost }: { data: OperationsDa
           </div>
           {topicContext.model_run ? (
             <details className="dashboard-topic-provenance">
-              <summary>모형·실행 근거</summary>
+              <summary>분석 기준 확인</summary>
               <dl>
-                <div><dt>TEPP run</dt><dd><code>{topicContext.model_run.tepp_run_id}</code></dd></div>
-                <div><dt>TEPP snapshot</dt><dd><code>{topicContext.model_run.tepp_snapshot_id}</code></dd></div>
-                <div><dt>Snapshot</dt><dd><code>{topicContext.model_run.source_snapshot_sha256}</code></dd></div>
-                <div><dt>Knowledge cutoff</dt><dd><time dateTime={topicContext.model_run.knowledge_cutoff}>{topicContext.model_run.knowledge_cutoff}</time></dd></div>
-                <div><dt>Posterior draws</dt><dd>{topicContext.model_run.posterior_draw_count} · <code>{topicContext.model_run.posterior_draw_set_id}</code></dd></div>
-                <div><dt>fast-mlsirm</dt><dd>{topicContext.model_run.fast_mlsirm_version} · {topicContext.model_run.compute_backend_code} · {topicContext.model_run.precision_code}</dd></div>
+                <div><dt>반영 기준 시각</dt><dd><time dateTime={topicContext.model_run.knowledge_cutoff}>{topicContext.model_run.knowledge_cutoff}</time></dd></div>
+                <div><dt>Topic 수</dt><dd>{topicContext.model_run.topic_count}</dd></div>
               </dl>
             </details>
           ) : null}

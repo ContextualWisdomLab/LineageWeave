@@ -12,7 +12,7 @@
 | Claim cause delay: order, specification change, originating order, sales pool, Event/post counts | ADR 0206; contextual-orchestrator case classification and `claim_received` → `cause_confirmed` milestones with cited spans and observed source clocks | Stacked candidate reports open/resolved/evidence-missing counts and exact elapsed time only for paired observed endpoints; every required answer and endpoint is cited or explicitly missing; authenticated synthetic runtime passed, while authorized-corpus re-analysis remains pending |
 | Rebid/handover: discussion, counterparties, our owner, decisions, Event/post counts | ADR 0206; normalized case facts plus separate rebid-response and handover milestone pairs | Stacked candidate reports open/resolved/evidence-missing rebid and handover lifecycles without a delay threshold or invented elapsed endpoint; authenticated synthetic runtime passed, while authorized-corpus re-analysis remains pending |
 | External information count/rate and sales/project relation | ADR 0206; semantic `external_information` classification inside Dashboard GNB | Candidate GNB destination filters the Dashboard to external evidence; no separate Board by product decision; authenticated synthetic runtime passed with the honest zero-result state |
-| Project-specific journey | Explicit source/semantic project membership plus event-time ordering | Candidate API preserves every explicit project membership and the UI orders each journey chronologically; authenticated synthetic runtime passed |
+| Project-specific journey | Explicit source/semantic project membership plus provenance-bearing TEPP TDT/CHRONOS predecessor, branch, and transition results | Candidate API preserves every explicit project membership, but its local event-time sort is only an observed-event list. It is no longer labeled as a Project Journey. Full journey delivery remains open until the accepted TEPP producer artifact is persisted and rendered; no fixed sales/order start or nearest-date edge is accepted. |
 | Repeat issue to design improvement | `repeat_issue`, `issue_pattern`, and `improvement_action` cited facts | Candidate semantic contract; design-system connector acceptance pending |
 | Natural-language Ask with evidence, report, alert, MCP | Persisted semantic-unit embeddings plus versioned delivery/resource contract | Candidate implementation uses whole-question embedding retrieval with no lexical fallback; authenticated runtime acceptance pending |
 | Similar VOC, customer cohort, prior action | Persisted repeat-issue candidate semantics plus orchestrator pair adjudication and extractive evidence | Candidate live post endpoint and post-detail UI implemented; authenticated runtime acceptance pending |
@@ -50,9 +50,9 @@ snapshot.
 The `f0b96029` Storybook build was rendered at 1440×1100 and 402×1200 with
 synthetic evidence; `416fd19d` changes only post-navigation request isolation.
 Desktop inspection showed all four case kinds, five non-conflated metrics,
-project-journey ordering, cited facts, and evidence actions without horizontal
+project-observed-event ordering, cited facts, and evidence actions without horizontal
 card overflow. Narrow inspection showed two-column metrics, readable cards and
-44px-class actions; the project journey remains intentionally horizontally
+44px-class actions; the project event list remains intentionally horizontally
 scrollable. No identifying runtime record or screenshot is committed. The
 `EvidenceReady`, `NarrowViewport`, `AnalysisPendingAndMissingEvidence`,
 `AnalysisFailed`, and `LoadError` scenes cover the ADR 0206 state inventory.
@@ -82,7 +82,7 @@ At the repaired dashboard head, the `EvidenceReady` and `NarrowViewport`
 stories were re-rendered locally with synthetic data at desktop and iPhone
 13 viewports. The desktop shows separate Event/post values and evidence
 actions; the narrow view preserves readable cards and 44px-class actions while
-keeping the multi-step project journey horizontally scrollable. These images
+keeping the multi-step project event list horizontally scrollable. These images
 remain local audit evidence and are not committed.
 An authenticated synthetic OIDC audit then found that the mobile breakpoint
 hid the entire GNB despite having no drawer implementation. Candidate
