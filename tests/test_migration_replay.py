@@ -211,3 +211,25 @@ def test_public_claim_envelope_migration_is_replay_safe() -> None:
     assert "claim_organization_presence" in sql
     assert "claim_public_event" in sql
     assert "claim_public_relationship" in sql
+
+
+def test_public_claim_rollback_preserves_shared_truth_statuses() -> None:
+    """Rollback 0224 must not delete ontology statuses owned by migration 0175."""
+    root = Path(__file__).resolve().parents[1]
+    truth_status_owner = (root / "migrations/0175_ontology_truth_status.sql").read_text(
+        encoding="utf-8"
+    )
+    rollback = (
+        root / "migrations/rollback/0224_public_claim_envelope.sql"
+    ).read_text(encoding="utf-8")
+
+    for code in (
+        "truth_authoritative",
+        "truth_observed",
+        "truth_inferred",
+        "truth_proposed",
+        "truth_superseded",
+        "truth_rejected",
+    ):
+        assert code in truth_status_owner
+        assert code not in rollback
