@@ -1,4 +1,4 @@
-# ADR 0224: Explicit missing-body import boundary
+# ADR 0240: Explicit missing-body import boundary
 
 **Status:** Accepted
 **Date:** 2026-08-26

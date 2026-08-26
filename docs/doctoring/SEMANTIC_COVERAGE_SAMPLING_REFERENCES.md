@@ -1,6 +1,6 @@
 # Semantic coverage sampling references
 
-This supporting register documents the authorities used by ADR 0226. It does
+This supporting register documents the authorities used by ADR 0242. It does
 not make a product decision independently of that ADR.
 
 Australian Bureau of Statistics. (2022). *Basic survey design: Sample design*.
@@ -17,6 +17,6 @@ https://www.itl.nist.gov/div898/handbook/prc/section2/old.prc271.htm
 NIST supplies the proportion sample-size relationship and finite-population
 correction; ABS defines probability sampling as requiring determinable
 selection probabilities and stratified sampling as independent random
-selection within strata. ADR 0226 assigns all numeric evaluation and allocation
+selection within strata. ADR 0242 assigns all numeric evaluation and allocation
 to a versioned Rust owner artifact and keeps LineageWeave at structural
 manifest validation only.

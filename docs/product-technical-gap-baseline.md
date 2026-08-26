@@ -17,17 +17,17 @@ content as a whole**. It covers typed Post, Person, CorporateEntity, Team,
 Project candidates, raw source context hints, lineage keys, and temporal
 provenance, but it cannot derive body semantic units, embeddings, summaries,
 VISION evidence, or body-grounded ontology assertions from this export.
-ADR 0224 and the PostgreSQL importer now accept an explicitly evidenced
+ADR 0240 and the PostgreSQL importer now accept an explicitly evidenced
 missing-body dimension without copying titles into bodies. This makes the
 structured records importable while keeping body-derived capabilities
 unavailable instead of fabricated.
-ADR 0225 additionally carries the governed VOC type and raw source stage/detail
+ADR 0241 additionally carries the governed VOC type and raw source stage/detail
 state into contextual-orchestrator hints with exact column provenance. The
 available reference catalog contains examples rather than complete code-system
 definitions, so raw stage/detail values are retained only as source-code RDF
 literals and hints; they are not minted as classified ontology concepts.
 
-An ADR 0226 private-content audit then validated eight disjoint deterministic
+An ADR 0242 private-content audit then validated eight disjoint deterministic
 windows of ten titles (80/80 ordered outputs, four orchestration trace steps
 per window). This is pipeline acceptance evidence only: the windows were not a
 probability sample, had no known inclusion probabilities, and had no declared

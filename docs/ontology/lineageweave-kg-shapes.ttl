@@ -94,7 +94,7 @@
     sh:property [
         sh:path :postBody ;
         sh:name "post body" ;
-        sh:description "The preserved source representation is present as a literal; empty means the body dimension is unavailable (ADR 0224)." ;
+        sh:description "The preserved source representation is present as a literal; empty means the body dimension is unavailable (ADR 0240)." ;
         sh:minCount 1 ;
         sh:maxCount 1 ;
         sh:datatype xsd:string ;

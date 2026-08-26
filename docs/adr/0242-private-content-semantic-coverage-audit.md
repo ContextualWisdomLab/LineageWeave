@@ -1,4 +1,4 @@
-# ADR 0226: Private content semantic-coverage audit
+# ADR 0242: Private content semantic-coverage audit
 
 **Status:** Accepted
 **Date:** 2026-08-26

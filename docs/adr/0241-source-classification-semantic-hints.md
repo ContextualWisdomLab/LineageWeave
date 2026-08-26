@@ -1,4 +1,4 @@
-# ADR 0225: Source classification semantic hints
+# ADR 0241: Source classification semantic hints
 
 **Status:** Accepted
 **Date:** 2026-08-26
