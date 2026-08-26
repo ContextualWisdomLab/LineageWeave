@@ -31,15 +31,19 @@ Repository artifacts must not retain the private titles.
    names alone are not semantic evidence. Coverage evaluates schema
    expressibility: source-specific names and values are instance data when a
    supplied class/property represents them, not missing private vocabulary.
-3. The caller accepts a batch only when JSON, input count, item count, ordered
-   indexes, booleans, unique governed missing-dimension codes, and supporting
-   ontology IRIs all validate. The contract parses the published PROV-O support
+3. The model classifies only governed semantic dimensions; it does not decide
+   coverage or select ontology IRIs. The caller accepts a batch only when JSON,
+   input count, item count, ordered indexes, and non-empty unique governed
+   dimension codes validate. It then deterministically resolves each dimension
+   against the current ontology contract: present governed class/property IRIs
+   become supporting evidence, while a dimension with no current term remains
+   missing. The contract parses the published PROV-O support
    profile with the primary ontology and includes `rdfs:subClassOf` and
    `rdfs:subPropertyOf`. It also reuses the runtime's canonical 30 PROV-O class,
    50 property, and qualification-table registries, so standard semantics are
    present in the audit rather than reduced to imports or local mappings.
-   A covered verdict requires at least one supplied
-   ontology IRI; an uncovered verdict requires at least one missing dimension.
+   This separation prevents an invented abbreviation or near-match from
+   becoming a new ontology term while retaining IRI evidence after validation.
    Person/actor meaning is a governed dimension distinct from organization role;
    collapsing the two would hide whether the ontology identifies an actor or only
    an organizational function. Project/initiative meaning is likewise distinct
