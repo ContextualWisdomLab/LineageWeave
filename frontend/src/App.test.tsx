@@ -3217,6 +3217,9 @@ describe("App, authenticated", () => {
       ),
     ).toBeInTheDocument();
     expect(
+      screen.getByText("Use these values to compare ordering signals, not as calibrated scores."),
+    ).toBeInTheDocument();
+    expect(
       screen.getByRole("list", { name: "Ranking evidence for Public post" }),
     ).toHaveTextContent("Title overlap rank 2, contribution 0.012097");
     expect(

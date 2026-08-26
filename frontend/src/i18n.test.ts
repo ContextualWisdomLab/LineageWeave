@@ -83,6 +83,7 @@ describe("i18n", () => {
     "Related-record ranking",
     "Ranking is unavailable",
     "Records are ordered by recent and related activity. Open a record to review its evidence.",
+    "Use these values to compare ordering signals, not as calibrated scores.",
     "Related item",
     "No related records are available yet.",
     "Explore related records",

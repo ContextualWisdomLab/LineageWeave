@@ -3301,6 +3301,9 @@ function RankingsPanel({
               "Records are ordered by recent and related activity. Open a record to review its evidence.",
             )}
           </p>
+          <p className="ranking-channel-evidence-copy">
+            {t("Use these values to compare ordering signals, not as calibrated scores.")}
+          </p>
           <ul className="ticket-list" aria-label={t("Ranked posts")}>
             {ranking.rankings.map((hit) => (
               <li key={hit.post_id} className="ticket-list-item ranking-hit">
