@@ -29,6 +29,11 @@ evidence and falsely imply semantic-unit coverage.
    only.
 6. `scripts/audit_source_semantic_coverage.py` reproduces availability counts
    from caller-mapped columns and emits no source values.
+7. RDF `bodyAvailable` and its published SHACL constraint use the same
+   whitespace predicate as the Python projector, including Unicode separator,
+   next-line, and legacy information-separator characters. A body containing
+   only those characters is unavailable; validators must not reinterpret it as
+   semantic evidence.
 
 ## Consequences
 

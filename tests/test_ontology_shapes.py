@@ -178,6 +178,30 @@ def test_missing_body_source_post_projection_passes_without_fabricated_text() ->
     assert (post, LWn.hasPostType, LWn.voiceOfCustomerType) in data
 
 
+@pytest.mark.parametrize("post_body", ["\u00a0", "\u202f", "\u0085"])
+def test_unicode_whitespace_body_matches_explicit_unavailable_state(
+    post_body: str,
+) -> None:
+    """Unicode separators and NEL remain unavailable in RDF and SHACL."""
+    data = project_source_post_rdf(
+        post_id="aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa3",
+        post_title="Synthetic whitespace record",
+        post_body=post_body,
+        post_created_at=datetime(2026, 8, 25, 1, 23, 45, tzinfo=timezone.utc),
+        voc_type_code="voc",
+    )
+
+    conforms, report_text = _conforms(data)
+
+    assert conforms, report_text
+    post = URIRef(LW + "node/node_post/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa3")
+    assert (
+        post,
+        Namespace(LW).bodyAvailable,
+        Literal(False, datatype=XSD.boolean),
+    ) in data
+
+
 @pytest.mark.parametrize(
     ("override", "message"),
     [
