@@ -19,6 +19,19 @@ const STATUS_LABELS: Record<string, string> = {
   claim_unavailable: "Unavailable",
 };
 
+function nextActionLabel(claim: PublicClaimVerdict): string {
+  if (
+    claim.status_code === "claim_unavailable" &&
+    (claim.claim_kind_code === "claim_public_event" ||
+      claim.claim_kind_code === "claim_public_relationship")
+  ) {
+    return tf("Public claim is on {title}. Open that post.", {
+      title: claim.source_post_title,
+    });
+  }
+  return t(claim.next_action);
+}
+
 /**
  * Authorized public-claim verdicts for an opted-in Global Ask.
  *
@@ -49,7 +62,7 @@ export function PublicClaimList({ claims, onSelectPost }: PublicClaimListProps) 
                 {kindLabel}: {claim.source_post_title} · {claim.subject_label}
               </span>
               <span className="post-badge">{statusLabel}</span>
-              <span className="post-badge">{t(claim.next_action)}</span>
+              <span className="post-badge">{nextActionLabel(claim)}</span>
             </button>
             {claim.external_evidence_urls.length > 0 ? (
               <ul aria-label={t("Public web evidence")}>
