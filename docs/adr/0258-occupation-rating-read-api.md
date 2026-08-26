@@ -1,7 +1,8 @@
 # ADR 0258: Authenticated occupation-rating source read API
 
-**Status:** Accepted  
-**Date:** 2026-08-27  
+**Status:** Accepted
+
+**Date:** 2026-08-27
 **Extends:** ADR 0120, ADR 0184, ADR 0257
 
 ## Context
