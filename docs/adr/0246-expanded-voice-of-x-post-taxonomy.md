@@ -65,6 +65,13 @@ Codes remain globally unique lowercase literals in
 
 ## References
 
+AccountAbility. (2015). *AA1000 stakeholder engagement standard*.
+https://www.accountability.org/standards/aa1000-stakeholder-engagement
+
+AccountAbility. (2025). *AccountAbility launches public consultation for the
+AA1000 Stakeholder Engagement Standard (AA1000SES v3)*.
+https://www.accountability.org/insights/accountability-launches-public-consultation-for-the-aa1000-stakeholder-engagement-standard-aa1000ses-v3
+
 Freeman, R. E. (1984). *Strategic management: A stakeholder approach*.
 Pitman.
 
@@ -77,6 +84,14 @@ statistical and related methods to new technology and product development
 process—Part 4: Analysis of non-quantitative and quantitative Voice of
 Customer and Voice of Stakeholder* (ISO Standard No. 16355-4:2017).
 https://www.iso.org/standard/62607.html
+
+International Organization for Standardization. (2023, December 19).
+*Global Directory stakeholder categories*.
+https://helpdesk-docs.iso.org/article/331-gd-stakeholders-categories
+
+International Organization for Standardization. (2010). *Guidance on social
+responsibility* (ISO Standard No. 26000:2010).
+https://www.iso.org/standard/42546.html
 
 Mitchell, R. K., Agle, B. R., & Wood, D. J. (1997). Toward a theory of
 stakeholder identification and salience: Defining the principle of who and
