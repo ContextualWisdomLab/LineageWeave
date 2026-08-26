@@ -32,6 +32,10 @@ source database currently has zero of the 14 normalized PROV-O tables required
 by ADR 0011. These edges therefore remain an explicit provenance gap: do not
 present them as source-backed facts or qualified derivations until a normalized
 resource, activity, assertion, and qualification reference is persisted.
+The export names 117 distinct opaque source-artifact references, but none is a
+locally resolvable file, directory, absolute path, or URI in the authorized
+runtime. Those references therefore cannot substitute for an authoritative
+body/file connector or prove body semantic coverage.
 
 The current semantic layer is therefore **not sufficient for the source
 content as a whole**. It covers typed Post, Person, CorporateEntity, Team,
