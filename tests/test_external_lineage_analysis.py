@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import random
+from dataclasses import replace
 from functools import lru_cache
 
 import pytest
@@ -561,6 +562,32 @@ def test_inference_cannot_reverse_an_observed_edge_on_tied_timestamps() -> None:
         )
         for edge in result.edges
     ] == [("email:z-parent", "email:a-child", "observed")]
+
+
+def test_pair_budget_excludes_observed_descendants_never_sent_to_provider() -> None:
+    """The declared budget counts the exact cycle-safe provider work."""
+
+    request = _request(
+        [
+            _record(
+                "email:a-child",
+                "Observed child",
+                "2026-08-20T09:00:00Z",
+                explicit_parent={
+                    "evidence_ref": "email:z-parent",
+                    "relation_code": "rfc_reply",
+                },
+            ),
+            _record("email:m-other", "Other", "2026-08-20T09:00:00Z"),
+            _record("email:z-parent", "Parent", "2026-08-20T09:00:00Z"),
+        ]
+    )
+    request = replace(
+        request,
+        policy=replace(request.policy, maximum_pair_evaluations=2),
+    )
+
+    _analyze(request)
 
 
 def test_cutoff_excluded_explicit_parent_creates_limitation_not_edge() -> None:

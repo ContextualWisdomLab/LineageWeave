@@ -6,8 +6,10 @@ from types import SimpleNamespace
 
 import pytest
 
+from lineageweave.adjudication_client import AdjudicationClientError
 from scripts.import_postgresql_posts import (
     _lineage_grouping_values,
+    _lineage_rebuild_summary,
     _normalize_voc_type,
     _parser,
     _source_code_matches,
@@ -17,6 +19,26 @@ from scripts.import_postgresql_posts import (
     _validate_source_rows,
     import_rows,
 )
+
+
+def test_importer_keeps_rows_when_adjudication_response_is_unusable(
+    monkeypatch,
+) -> None:
+    """A malformed optional score makes lineage unavailable, not the import lost."""
+
+    async def malformed_provider(_target, *, llm=None):
+        raise AdjudicationClientError("synthetic malformed confidence")
+
+    monkeypatch.setattr(
+        "scripts.import_postgresql_posts.rebuild_lineage", malformed_provider
+    )
+
+    summary = asyncio.run(_lineage_rebuild_summary(object(), object()))
+
+    assert summary["lineage_edges"] is None
+    assert "imported source rows remain persisted" in str(
+        summary["lineage_rebuild_unavailable"]
+    )
 
 
 def test_placeholder_grouping_is_derived_without_losing_raw_source_values() -> None:

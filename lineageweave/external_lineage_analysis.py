@@ -220,12 +220,40 @@ def _pair_evaluation_count(
 ) -> int:
     """Count only candidate pairs that require inferred parent selection."""
 
-    return sum(
-        min(index, candidate_window)
-        for group_records in _ordered_contract_groups(records)
-        for index, record in enumerate(group_records)
-        if record.explicit_parent is None
-    )
+    included_refs = {record.evidence_ref for record in records}
+    explicit_children_by_parent: dict[str, set[str]] = defaultdict(set)
+    for record in records:
+        if (
+            record.explicit_parent is not None
+            and record.explicit_parent.evidence_ref in included_refs
+        ):
+            explicit_children_by_parent[
+                record.explicit_parent.evidence_ref
+            ].add(record.evidence_ref)
+
+    def explicit_descendants(evidence_ref: str) -> set[str]:
+        descendants: set[str] = set()
+        pending = list(explicit_children_by_parent.get(evidence_ref, ()))
+        while pending:
+            descendant = pending.pop()
+            if descendant in descendants:
+                continue
+            descendants.add(descendant)
+            pending.extend(explicit_children_by_parent.get(descendant, ()))
+        return descendants
+
+    pair_count = 0
+    for group_records in _ordered_contract_groups(records):
+        for index, record in enumerate(group_records):
+            if record.explicit_parent is not None:
+                continue
+            candidates = group_records[max(0, index - candidate_window) : index]
+            descendants = explicit_descendants(record.evidence_ref)
+            pair_count += sum(
+                candidate.evidence_ref not in descendants
+                for candidate in candidates
+            )
+    return pair_count
 
 
 def _enforce_pair_budget(
