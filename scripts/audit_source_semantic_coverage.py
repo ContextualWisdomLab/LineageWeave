@@ -43,6 +43,9 @@ async def audit_source_semantic_coverage(
         value is not None for value in coverage_options
     ):
         raise ValueError("source_key, coverage_table, and coverage_key are all required")
+    source_key_column = _identifier(source_key) if source_key else None
+    coverage_table_sql = _table(coverage_table) if coverage_table else None
+    coverage_key_column = _identifier(coverage_key) if coverage_key else None
     projections = ["count(*)::bigint as row_count"]
     for role, column in columns.items():
         if not _IDENTIFIER.fullmatch(role):
@@ -55,6 +58,9 @@ async def audit_source_semantic_coverage(
     query = f"select {', '.join(projections)} from {_table(table)}"
     connection = await asyncpg.connect(dsn)
     try:
+        # SQL identifiers cannot be bind parameters; every interpolated token
+        # passed _identifier/_table's strict ASCII identifier grammar above.
+        # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
         row = await connection.fetchrow(query)
         result: dict[str, object] = {
             "row_count": row["row_count"],
@@ -63,8 +69,10 @@ async def audit_source_semantic_coverage(
             },
         }
         if source_key and coverage_table and coverage_key:
-            source_key_column = _identifier(source_key)
-            coverage_key_column = _identifier(coverage_key)
+            assert source_key_column and coverage_table_sql and coverage_key_column
+            # Same identifier-only boundary as the aggregate query; no source
+            # value is interpolated into this statement.
+            # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
             key_row = await connection.fetchrow(
                 f"""
             with source_keys as (
@@ -73,7 +81,7 @@ async def audit_source_semantic_coverage(
                  where nullif(btrim({source_key_column}::text), '') is not null
             ), coverage_keys as (
                 select distinct {coverage_key_column}::text as key_value
-                  from {_table(coverage_table)}
+                  from {coverage_table_sql}
                  where nullif(btrim({coverage_key_column}::text), '') is not null
             )
             select count(source_keys.key_value)::bigint as source_key_count,

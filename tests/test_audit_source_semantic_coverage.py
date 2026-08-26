@@ -47,6 +47,24 @@ def test_audit_rejects_sql_syntax_in_identifiers() -> None:
         _identifier('source_rows; select secret')
 
 
+@pytest.mark.parametrize(
+    "value",
+    ["document_key; select secret", 'document_key" from private_table --'],
+)
+def test_key_coverage_rejects_sql_syntax_in_identifiers(value: str) -> None:
+    with pytest.raises(ValueError, match="invalid PostgreSQL identifier"):
+        asyncio.run(
+            audit_source_semantic_coverage(
+                "postgresql://synthetic",
+                "source_schema.source_rows",
+                {},
+                source_key=value,
+                coverage_table="semantic_schema.document_nodes",
+                coverage_key="document_key",
+            )
+        )
+
+
 def test_audit_reports_distinct_semantic_key_coverage(monkeypatch) -> None:
     """Coverage compares normalized keys and emits counts, never source values."""
     class Connection:

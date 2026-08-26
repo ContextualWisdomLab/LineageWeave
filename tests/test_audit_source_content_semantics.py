@@ -123,8 +123,6 @@ def test_parser_rejects_the_observed_100_to_60_cardinality_mismatch() -> None:
         ],
     }
 
-    import json
-
     with pytest.raises(ValueError, match="input_count"):
         parse_batch_result(json.dumps(payload), 100, _SUPPORTING_TERMS)
 
