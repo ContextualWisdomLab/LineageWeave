@@ -101,6 +101,7 @@ export interface PostKnownAt {
 export interface PostDetail extends PostSummary {
   post_body: string;
   occupational_construct_assertions: OccupationalConstructAssertion[];
+  occupational_construct_evidence_status: "complete" | "processing" | "unavailable";
   known_at?: PostKnownAt;
 }
 

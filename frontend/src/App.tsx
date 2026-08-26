@@ -100,6 +100,7 @@ import { SimilarVocPanel } from "./components/SimilarVocPanel";
 import { chatEvidenceKindLabel } from "./evidenceKindLabels";
 import { WorkspaceNav, type WorkspaceDestination } from "./components/WorkspaceNav";
 import { OperationsDashboard } from "./components/OperationsDashboard";
+import { OccupationalConstructEvidence } from "./components/OccupationalConstructEvidence";
 import { initialWorkspaceDestination } from "./gnbChrome";
 import { LineageDag } from "./LineageDag";
 import { PostBody } from "./PostBody";
@@ -2322,6 +2323,11 @@ function PostDetailPopup({
                 </ul>
               </section>
             ) : null}
+
+            <OccupationalConstructEvidence
+              assertions={post.occupational_construct_assertions ?? []}
+              status={post.occupational_construct_evidence_status ?? "unavailable"}
+            />
 
             <section className="popup-section">
               <h3>{t("Summary")}</h3>

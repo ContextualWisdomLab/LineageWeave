@@ -13,6 +13,7 @@ from backend.app.occupational_construct_ingestion import (
     OccupationalConstruct,
     OccupationalConstructAssertion,
     load_occupational_construct_assertions,
+    load_occupational_construct_evidence_status,
     persist_occupational_construct_assertions,
 )
 
@@ -213,3 +214,26 @@ def test_authorized_projection_omits_internal_ids_and_preserves_provenance() -> 
         "post_occupational_construct_assertion.evidence_text"
     )
     assert "construct_id" not in result[0]
+
+
+@pytest.mark.parametrize(
+    ("stored", "expected"),
+    (("complete", "complete"), ("processing", "processing"), (None, "unavailable")),
+)
+def test_evidence_status_preserves_missing_vs_empty(stored, expected) -> None:
+    """Only a matching run is complete; active work and absence remain distinct."""
+
+    class StatusConnection:
+        async def fetchval(self, query: str, post_id: str):
+            assert "extraction.source_body_sha256 = job.source_body_sha256" in query
+            assert post_id == "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"
+            return stored
+
+    assert (
+        asyncio.run(
+            load_occupational_construct_evidence_status(
+                StatusConnection(), "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"
+            )
+        )
+        == expected
+    )

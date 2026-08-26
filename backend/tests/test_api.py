@@ -2016,6 +2016,16 @@ def test_post_detail_exposes_evidence_bound_occupational_construct(
                 """,
                 (seeded_db["public_post_id"], unit_id, construct_id),
             )
+            cur.execute(
+                """
+                insert into post_occupational_construct_extraction
+                    (post_id, source_body_sha256, orchestrator_session_id)
+                select post_id, source_body_sha256, 'synthetic-session'
+                  from post_content_ingestion_job
+                 where post_id = %s
+                """,
+                (seeded_db["public_post_id"],),
+            )
         conn.commit()
     finally:
         conn.close()
@@ -2026,6 +2036,7 @@ def test_post_detail_exposes_evidence_bound_occupational_construct(
     )
     assert response.status_code == 200
     assertions = response.json()["occupational_construct_assertions"]
+    assert response.json()["occupational_construct_evidence_status"] == "complete"
     assert assertions[0]["preferred_label"] == "Oral Comprehension"
     assert assertions[0]["evidence_text"] == "oral comprehension"
     assert assertions[0]["provenance"] == (

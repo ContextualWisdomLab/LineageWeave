@@ -143,6 +143,7 @@ from backend.app.post_content_queue import (
 )
 from backend.app.occupational_construct_ingestion import (
     load_occupational_construct_assertions,
+    load_occupational_construct_evidence_status,
 )
 from backend.app.post_content_worker import run_post_content_worker
 from backend.app.post_eligibility import SOURCE_POST_ELIGIBILITY_SQL, source_post_visible
@@ -1660,6 +1661,9 @@ async def read_post(
         occupational_construct_assertions = await load_occupational_construct_assertions(
             conn, post_id
         )
+        occupational_construct_evidence_status = (
+            await load_occupational_construct_evidence_status(conn, post_id)
+        )
         known_at = None
         if as_of_clock is not None:
             known_at = await fetch_known_at_revision(conn, post_id, as_of_clock)
@@ -1668,6 +1672,7 @@ async def read_post(
         "post_body": row["post_body"],
         "project_evidence": project_evidence,
         "occupational_construct_assertions": occupational_construct_assertions,
+        "occupational_construct_evidence_status": occupational_construct_evidence_status,
     }
     if known_at is not None:
         payload["known_at"] = known_at

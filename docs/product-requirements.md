@@ -93,7 +93,9 @@ UI remain unavailable until their separate ADR acceptance. ADR 0251 adds
 catalog-bound semantic-unit extraction through contextual-orchestrator's
 multi-agent conduct path; exact offered IRIs and verbatim spans are required,
 and a digest-bound run record distinguishes a supported empty result from an
-unavailable provider. Search, graph navigation, and UI remain unavailable.
+unavailable provider. ADR 0254 adds the authorized Post-detail evidence review
+surface and honest complete, processing, and unavailable states. Search and
+graph navigation remain unavailable.
 
 ### PRD-FR-3 — Bounded ontology exploration
 
