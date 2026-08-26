@@ -193,13 +193,13 @@ export function OntologyExplorer({
   }
 
   return (
-    <section className="ontology-explorer" aria-label={t("Related concepts")}>
+    <section className="ontology-explorer" aria-label={t("Ontology neighborhood")}>
       <header className="ontology-explorer-header">
         <div>
-          <p className="section-eyebrow">{t("Related concepts")}</p>
+          <p className="section-eyebrow">{t("Ontology neighborhood")}</p>
           <h3>{t("Typed relations, not Event Lineage")}</h3>
           <p>
-            {t("This view is separate from Event Lineage.")}{" "}
+            {t("This is an ontology neighborhood, not Event Lineage.")}{" "}
             {t("Event Lineage shows reconstructed post-to-post parents. This graph shows typed people, organizations, teams, projects, and posts.")}
           </p>
         </div>
@@ -333,7 +333,7 @@ function statusMessage(
     denied: t("Access denied for this ontology neighborhood. Open a visible post next."),
     stale: t("This neighborhood is bound to a knowledge cutoff. Compare with live evidence next."),
     rejected: t("Rejected proposal. Open the evidence and do not treat it as authoritative."),
-    error: t("Related concepts are unavailable. Open a visible post next."),
+    error: t("Ontology neighborhood is unavailable. Open a visible post next."),
   };
   const text = messages[status];
   if (!text) return null;
@@ -388,7 +388,7 @@ function OntologyGraph({
       width="100%"
       height={Math.max(180, layout.height)}
     >
-      <title>{t("Related concepts")}</title>
+      <title>{t("Ontology neighborhood")}</title>
       {layout.edges.map((edge) => {
         const midX = (edge.fromX + edge.toX) / 2;
         const midY = (edge.fromY + edge.toY) / 2;

@@ -978,6 +978,15 @@
   justify-content: flex-start;
 }
 
+.ranking-hit > button {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-control-gap);
+  width: 100%;
+  text-align: left;
+}
+
 .ranking-channel-evidence-copy {
   margin: 0 0 0.75rem;
 }

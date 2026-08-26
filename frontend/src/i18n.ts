@@ -37,7 +37,6 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Log out": "로그아웃",
     Calendar: "캘린더",
     Rankings: "순위",
-    "Rankings · rankweave": "순위 · rankweave",
     "Ranked result": "순위 결과",
     "Rankings temporarily unavailable": "순위를 잠시 사용할 수 없습니다",
     "Rankings are temporarily unavailable. Try again later.": "순위를 잠시 사용할 수 없습니다. 나중에 다시 시도하세요.",
@@ -169,7 +168,6 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Weak source hint": "신뢰도가 낮은 원본 힌트",
     "Source hint": "원본 힌트",
     "Source author evidence": "원본 작성자 증거",
-    "Author context": "작성자 맥락",
     "Hint only": "힌트 전용",
     "Authorization context": "권한 계정 맥락",
     "Our-side Keymen hints": "우리측 Keymen 힌트",
@@ -458,11 +456,10 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
       "대화형 질문을 지금 사용할 수 없습니다. 저장된 근거는 계속 확인할 수 있습니다.",
     "Inspect ontology neighborhood": "온톨로지 이웃 검사",
     "Ontology neighborhood": "온톨로지 이웃",
-    "Related concepts": "관련 개념",
     Post: "글",
     "Typed relations, not Event Lineage": "유형 관계이며 이벤트 계보가 아닙니다",
-    "This view is separate from Event Lineage.":
-      "이 보기는 이벤트 계보와 구분됩니다.",
+    "This is an ontology neighborhood, not Event Lineage.":
+      "이벤트 계보가 아니라 온톨로지 이웃입니다.",
     "Event Lineage shows reconstructed post-to-post parents. This graph shows typed people, organizations, teams, projects, and posts.":
       "이벤트 계보는 복원된 글-글 부모 링크입니다. 이 그래프는 유형이 있는 사람, 조직, 팀, 프로젝트, 글을 보여 줍니다.",
     "Loading ontology neighborhood...": "온톨로지 이웃을 불러오는 중...",
@@ -478,8 +475,6 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
       "거절된 제안입니다. 근거를 열고 권위 있는 사실로 다루지 마세요.",
     "Ontology neighborhood is unavailable. Open a visible post next.":
       "온톨로지 이웃을 사용할 수 없습니다. 다음으로 볼 수 있는 글을 여세요.",
-    "Related concepts are unavailable. Open a visible post next.":
-      "관련 개념을 사용할 수 없습니다. 다음으로 볼 수 있는 글을 여세요.",
     "Search within this neighborhood": "이 이웃에서 검색",
     "Reset focus": "초점 재설정",
     "Export CSV": "CSV 내보내기",
@@ -570,7 +565,6 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Log out": "退出登录",
     Calendar: "日历",
     Rankings: "排名",
-    "Rankings · rankweave": "排名 · rankweave",
     "Ranked result": "排名结果",
     "Rankings temporarily unavailable": "排名暂时不可用",
     "Rankings are temporarily unavailable. Try again later.": "排名暂时不可用。请稍后再试。",
@@ -702,7 +696,6 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Weak source hint": "低可信源提示",
     "Source hint": "源提示",
     "Source author evidence": "源作者证据",
-    "Author context": "作者背景",
     "Hint only": "仅作提示",
     "Authorization context": "授权账户上下文",
     "Our-side Keymen hints": "我方关键联系人提示",
@@ -984,10 +977,9 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
       "交互式提问暂不可用；已保存的证据仍可查看。",
     "Inspect ontology neighborhood": "检查本体邻域",
     "Ontology neighborhood": "本体邻域",
-    "Related concepts": "相关概念",
     Post: "文章",
     "Typed relations, not Event Lineage": "这是类型化关系，不是事件谱系",
-    "This view is separate from Event Lineage.": "此视图与事件谱系相互独立。",
+    "This is an ontology neighborhood, not Event Lineage.": "这是本体邻域，不是事件谱系。",
     "Event Lineage shows reconstructed post-to-post parents. This graph shows typed people, organizations, teams, projects, and posts.":
       "事件谱系显示重建的文章父子链接。此图显示带类型的人员、组织、团队、项目和文章。",
     "Loading ontology neighborhood...": "正在加载本体邻域...",
@@ -1003,8 +995,6 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
       "提案已被拒绝。打开证据，不要将其视为权威事实。",
     "Ontology neighborhood is unavailable. Open a visible post next.":
       "无法使用本体邻域。接下来打开一篇可见文章。",
-    "Related concepts are unavailable. Open a visible post next.":
-      "相关概念不可用。接下来打开一篇可见文章。",
     "Search within this neighborhood": "在此邻域中搜索",
     "Reset focus": "重置焦点",
     "Export CSV": "导出 CSV",
@@ -1119,7 +1109,6 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Log out": "ログアウト",
     Calendar: "カレンダー",
     Rankings: "ランキング",
-    "Rankings · rankweave": "ランキング · rankweave",
     "Ranked result": "ランキング結果",
     "Rankings temporarily unavailable": "ランキングは一時的に利用できません",
     "Rankings are temporarily unavailable. Try again later.": "ランキングは一時的に利用できません。後でもう一度お試しください。",
@@ -1251,7 +1240,6 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Weak source hint": "信頼度の低いソースヒント",
     "Source hint": "ソースヒント",
     "Source author evidence": "ソース作成者の証拠",
-    "Author context": "作成者の背景",
     "Hint only": "ヒントのみ",
     "Authorization context": "認証アカウントのコンテキスト",
     "Our-side Keymen hints": "自社側キーパーソンのヒント",
@@ -1511,11 +1499,10 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
       "対話形式の質問は現在利用できません。保存された証拠は確認できます。",
     "Inspect ontology neighborhood": "オントロジー近傍を調べる",
     "Ontology neighborhood": "オントロジー近傍",
-    "Related concepts": "関連する概念",
     Post: "投稿",
     "Typed relations, not Event Lineage": "型付き関係であり、イベント系譜ではありません",
-    "This view is separate from Event Lineage.":
-      "このビューはイベント系譜とは別のものです。",
+    "This is an ontology neighborhood, not Event Lineage.":
+      "これはイベント系譜ではなく、オントロジー近傍です。",
     "Event Lineage shows reconstructed post-to-post parents. This graph shows typed people, organizations, teams, projects, and posts.":
       "イベント系譜は復元された投稿間の親子リンクです。このグラフは型付きの人・組織・チーム・プロジェクト・投稿を示します。",
     "Loading ontology neighborhood...": "オントロジー近傍を読み込んでいます...",
@@ -1531,8 +1518,6 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
       "却下された提案です。証拠を開き、権威ある事実として扱わないでください。",
     "Ontology neighborhood is unavailable. Open a visible post next.":
       "オントロジー近傍を利用できません。次に表示可能な投稿を開いてください。",
-    "Related concepts are unavailable. Open a visible post next.":
-      "関連する概念を利用できません。次に表示可能な投稿を開いてください。",
     "Search within this neighborhood": "この近傍内を検索",
     "Reset focus": "焦点をリセット",
     "Export CSV": "CSV を書き出す",
@@ -1647,7 +1632,6 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Log out": "Đăng xuất",
     Calendar: "Lịch",
     Rankings: "Xếp hạng",
-    "Rankings · rankweave": "Xếp hạng · rankweave",
     "Ranked result": "Kết quả xếp hạng",
     "Rankings temporarily unavailable": "Xếp hạng tạm thời không khả dụng",
     "Rankings are temporarily unavailable. Try again later.": "Xếp hạng tạm thời không khả dụng. Hãy thử lại sau.",
@@ -1779,7 +1763,6 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Weak source hint": "Gợi ý nguồn có độ tin cậy thấp",
     "Source hint": "Gợi ý nguồn",
     "Source author evidence": "Bằng chứng tác giả nguồn",
-    "Author context": "Bối cảnh tác giả",
     "Hint only": "Chỉ là gợi ý",
     "Authorization context": "Ngữ cảnh tài khoản quyền hạn",
     "Our-side Keymen hints": "Gợi ý người liên hệ chính phía chúng ta",
@@ -2039,11 +2022,10 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
       "Câu hỏi tương tác hiện không khả dụng; bằng chứng đã lưu vẫn có thể xem.",
     "Inspect ontology neighborhood": "Kiểm tra lân cận bản thể",
     "Ontology neighborhood": "Lân cận bản thể",
-    "Related concepts": "Các khái niệm liên quan",
     Post: "Bài viết",
     "Typed relations, not Event Lineage": "Quan hệ có kiểu, không phải Dòng sự kiện",
-    "This view is separate from Event Lineage.":
-      "Chế độ xem này tách biệt với Dòng sự kiện.",
+    "This is an ontology neighborhood, not Event Lineage.":
+      "Đây là lân cận bản thể, không phải Dòng sự kiện.",
     "Event Lineage shows reconstructed post-to-post parents. This graph shows typed people, organizations, teams, projects, and posts.":
       "Dòng sự kiện hiện liên kết cha-con đã tái tạo giữa các bài viết. Đồ thị này hiện người, tổ chức, nhóm, dự án và bài viết có kiểu.",
     "Loading ontology neighborhood...": "Đang tải lân cận bản thể...",
@@ -2059,8 +2041,6 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
       "Đề xuất đã bị từ chối. Mở bằng chứng và đừng coi đó là sự thật có thẩm quyền.",
     "Ontology neighborhood is unavailable. Open a visible post next.":
       "Không dùng được lân cận bản thể. Hãy mở một bài viết hiển thị tiếp theo.",
-    "Related concepts are unavailable. Open a visible post next.":
-      "Các khái niệm liên quan không khả dụng. Hãy mở một bài viết hiển thị tiếp theo.",
     "Search within this neighborhood": "Tìm trong lân cận này",
     "Reset focus": "Đặt lại tiêu điểm",
     "Export CSV": "Xuất CSV",
