@@ -23,7 +23,7 @@ const STATUS_LABELS: Record<string, string> = {
  * Authorized public-claim verdicts for an opted-in Global Ask.
  *
  * Each row opens the exact source post. External URLs stay links and
- * never become cited post ids (ADR 0224).
+ * never become cited post ids (ADR 0229).
  */
 export function PublicClaimList({ claims, onSelectPost }: PublicClaimListProps) {
   if (claims.length === 0) {

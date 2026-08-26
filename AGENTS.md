@@ -295,7 +295,7 @@ when the event instant is missing. Cited evidence names **Time
 axis** so the reader can open that post and see which clock
 matched. Do not invent an event date or a theta.
 
-Public-claim verification (ADR 0224 / issue #272) is opt-in
+Public-claim verification (ADR 0229 / issue #272) is opt-in
 (`verify_external`). Admission is a persisted `public_claim_envelope`
 bound to a public post. Question-token overlap is not admission.
 Person, Keyman, TEPP, and fast-mlsirm kinds cannot be stored.

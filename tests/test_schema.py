@@ -594,7 +594,7 @@ def test_cataloged_team_null_affiliation_is_unique(schema_db) -> None:
 
 
 def test_public_claim_envelope_requires_a_public_post_for_egress(schema_db) -> None:
-    """Private posts cannot be marked egress-eligible (ADR 0224)."""
+    """Private posts cannot be marked egress-eligible (ADR 0229)."""
     with schema_db.cursor() as cur:
         cur.execute(
             "select lookup_code from common_lookup_value "

@@ -9,7 +9,7 @@ All notable changes to this project are documented here. Format follows
 ### Added
 
 - Persist typed public-claim envelopes for Global Ask web verification
-  (issue #272 / ADR 0224). Ask Agent can opt into `verify_external`;
+  (issue #272 / ADR 0229). Ask Agent can opt into `verify_external`;
   only egress-eligible public organization-presence, public-event, and
   public-relationship claims are admitted. Person, Keyman, TEPP, and
   fast-mlsirm evidence stay inside the workspace. SearXNG URLs never

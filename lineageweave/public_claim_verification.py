@@ -1,6 +1,6 @@
 """Typed public-claim envelopes for Global Ask external verification.
 
-Implements ADR 0224 / issue #272. A claim is admitted only when a
+Implements ADR 0229 / issue #272. A claim is admitted only when a
 persisted envelope names a public post, a governed claim kind, and
 egress eligibility. Question-token overlap is not admission. Person,
 Keyman, TEPP, and fast-mlsirm evidence cannot be stored or dispatched.

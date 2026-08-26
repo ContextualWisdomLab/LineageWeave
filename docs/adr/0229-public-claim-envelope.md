@@ -1,4 +1,4 @@
-# ADR 0224: Persisted public-claim envelope for Global Ask verification
+# ADR 0229: Persisted public-claim envelope for Global Ask verification
 
 **Status:** Accepted
 **Date:** 2026-08-26

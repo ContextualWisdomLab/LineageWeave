@@ -1,4 +1,4 @@
-"""Unit tests for ADR 0224 public-claim envelopes. Synthetic fixtures only."""
+"""Unit tests for ADR 0229 public-claim envelopes. Synthetic fixtures only."""
 
 from __future__ import annotations
 

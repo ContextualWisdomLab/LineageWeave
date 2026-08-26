@@ -48,7 +48,7 @@ cutoff.
 
 Create/start endpoint rules (ADR 0017 / 0021), tie-vs-miss similarity
 (ADR 0026), R&R catalog ids (ADR 0019 / 0027), leftover pairs
-(ADR 0048–0164 / 0182 / 0201), public-claim envelopes (ADR 0224), the text-channel embedding swap and cosine
+(ADR 0048–0164 / 0182 / 0201), public-claim envelopes (ADR 0229), the text-channel embedding swap and cosine
 clamp (ADR 0190), per-edge channel-score persistence (ADR 0195),
 migration replay (ADR 0166), docstring coverage, and the measurement
 boundary are all stated in [AGENTS.md](AGENTS.md) -- read it before

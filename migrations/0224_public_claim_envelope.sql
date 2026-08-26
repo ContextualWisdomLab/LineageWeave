@@ -1,4 +1,4 @@
--- ADR 0224: typed public-claim envelope for Global Ask verification.
+-- ADR 0229: typed public-claim envelope for Global Ask verification.
 -- Replay-safe (ADR 0166). Lookup rows and the envelope table are the
 -- owning contract; private posts cannot be marked egress-eligible.
 
