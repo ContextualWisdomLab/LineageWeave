@@ -24,13 +24,18 @@ from backend.app.post_chat_ingestion import (
     seeded_fixture_exchanges,
     seeded_fixture_involved_chat,
 )
-from lineageweave.fixtures import ambiguous_commitment_post, fixture_thread_cast, sample_records
+from lineageweave.fixtures import (
+    ambiguous_commitment_post,
+    fixture_thread_cast,
+    sample_records,
+)
 from lineageweave.post_chat import (
     CANONICAL_CHAT_QUESTION,
     CANONICAL_COMMITMENT_QUESTION,
     CANONICAL_INVOLVED_QUESTION,
     ChatSourceDocument,
     ContextualOrchestratorPostChatClient,
+    EvidenceOpenAction,
     NullPostChatClient,
     _render_sources_block,
     cited_post_evidence,
@@ -164,6 +169,48 @@ def test_cited_post_summaries_keep_citation_order_and_drop_unknown_ids() -> None
         {"post_id": "post-2", "post_title": "Bid revision"},
         {"post_id": "post-1", "post_title": "Bid workshop"},
     ]
+
+
+def test_cited_post_summary_exposes_only_typed_evidence_open_action() -> None:
+    """A cited unit capability must not reveal its caller-owned locator."""
+    source = ChatSourceDocument(
+        "post-1",
+        "Bid workshop",
+        "Synthetic body",
+        evidence_open_action=EvidenceOpenAction(post_id="post-1", unit_index=3),
+    )
+
+    citation = cited_post_summaries((source,), ("post-1",))[0]
+
+    assert citation["evidence_open_action"] == {
+        "action_kind": "open_cited_content_unit",
+        "post_id": "post-1",
+        "unit_index": 3,
+    }
+    assert "source_evidence_reference" not in citation
+    assert "message-part:" not in repr(citation)
+
+
+def test_cited_post_summary_drops_invalid_evidence_open_action() -> None:
+    """A mismatched or negative locator cannot cross the citation boundary."""
+    sources = (
+        ChatSourceDocument(
+            "post-1",
+            "First source",
+            "Synthetic body",
+            evidence_open_action=EvidenceOpenAction(post_id="post-2", unit_index=3),
+        ),
+        ChatSourceDocument(
+            "post-2",
+            "Second source",
+            "Synthetic body",
+            evidence_open_action=EvidenceOpenAction(post_id="post-2", unit_index=-1),
+        ),
+    )
+
+    citations = cited_post_summaries(sources, ("post-1", "post-2"))
+
+    assert all("evidence_open_action" not in citation for citation in citations)
 
 
 def test_cited_post_evidence_hides_prompt_metadata_but_keeps_semantic_facts() -> None:

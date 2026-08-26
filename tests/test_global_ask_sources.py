@@ -7,10 +7,13 @@ from datetime import date, datetime, timezone
 from backend.app.post_chat_ingestion import (
     _fuse_global_candidate_ids,
     _ontology_lookup_codes_in_question,
-    gather_global_chat_sources as _gather_global_chat_sources,
     prepare_global_question_embedding,
 )
+from backend.app.post_chat_ingestion import (
+    gather_global_chat_sources as _gather_global_chat_sources,
+)
 from lineageweave.ask_time_axis import TIME_AXIS_CREATED, TIME_AXIS_EVENT
+from lineageweave.post_chat import EvidenceOpenAction, cited_post_summaries
 
 
 class _EmbeddingClient:
@@ -143,6 +146,112 @@ def test_evidence_only_term_nominates_its_authorized_source() -> None:
     )
 
     assert [source.post_id for source in sources] == ["semantic-only"]
+    assert sources[0].evidence_open_action is None
+
+
+def test_embedding_match_issues_authorized_unit_action_without_opaque_reference() -> None:
+    """Only an authorized live unit match receives the non-secret open action."""
+    source_row = {
+        "post_id": "matched-post",
+        "post_title": "Matched source",
+        "post_body": "Synthetic source body",
+        "visibility_code": "public",
+        "corporate_entity_id": None,
+        "process_unit_id": None,
+        "created_at": datetime(2026, 8, 25, tzinfo=timezone.utc),
+        "updated_at": datetime(2026, 8, 25, tzinfo=timezone.utc),
+        "event_occurred_at": None,
+    }
+
+    class FakeConnection:
+        async def fetch(self, query: str, *_args):
+            if "unit_similarity" in query:
+                assert (
+                    "unit.source_evidence_reference is not null "
+                    "as evidence_open_available"
+                ) in query
+                assert "as source_evidence_reference" not in query
+                assert "select 'embedding'::text as candidate_channel, post_id," in query
+                return [
+                    {
+                        "candidate_channel": "embedding",
+                        "post_id": "matched-post",
+                        "unit_index": 3,
+                        "evidence_open_available": True,
+                        "channel_rank": 1,
+                    }
+                ]
+            if "from post_lineage_edge" in query:
+                return []
+            if "array_position($3::uuid[], post_id)" in query:
+                return [source_row]
+            return []
+
+    sources = asyncio.run(
+        gather_global_chat_sources(
+            FakeConnection(),
+            lambda row: row["visibility_code"] == "public",
+            question="Open the matching evidence",
+            limit=1,
+        )
+    )
+
+    assert sources[0].evidence_open_action == EvidenceOpenAction(
+        post_id="matched-post", unit_index=3
+    )
+    citation = cited_post_summaries(sources, ("matched-post",))[0]
+    assert citation["evidence_open_action"] == {
+        "action_kind": "open_cited_content_unit",
+        "post_id": "matched-post",
+        "unit_index": 3,
+    }
+    assert "source_evidence_reference" not in citation
+    assert "message-part:" not in repr(citation)
+
+
+def test_hidden_embedding_match_cannot_leak_unit_action() -> None:
+    """Authorization denial removes both the source and its open capability."""
+    hidden_row = {
+        "post_id": "hidden-post",
+        "post_title": "Hidden source",
+        "post_body": "Private synthetic body",
+        "visibility_code": "private",
+        "corporate_entity_id": "other-corp",
+        "process_unit_id": None,
+        "created_at": datetime(2026, 8, 25, tzinfo=timezone.utc),
+        "updated_at": datetime(2026, 8, 25, tzinfo=timezone.utc),
+        "event_occurred_at": None,
+    }
+
+    class FakeConnection:
+        async def fetch(self, query: str, *_args):
+            if "unit_similarity" in query:
+                return [
+                    {
+                        "candidate_channel": "embedding",
+                        "post_id": "hidden-post",
+                        "unit_index": 2,
+                        "evidence_open_available": True,
+                        "channel_rank": 1,
+                    }
+                ]
+            if "from post_lineage_edge" in query:
+                return []
+            if "array_position($3::uuid[], post_id)" in query:
+                return [hidden_row]
+            return []
+
+    sources = asyncio.run(
+        gather_global_chat_sources(
+            FakeConnection(),
+            lambda _row: False,
+            question="Open hidden evidence",
+            limit=1,
+        )
+    )
+
+    assert sources == []
+    assert cited_post_summaries(sources, ("hidden-post",)) == []
 
 
 def test_global_sources_apply_visibility_before_normalization() -> None:

@@ -38,6 +38,18 @@ provenance.
 6. An absent or SQL `NULL` envelope keeps the existing source-body unit path.
    An explicitly supplied empty or malformed envelope is rejected rather than
    treated as absence.
+7. `source_evidence_reference` is a private adapter locator. It is never
+   returned by a customer API, included in an LLM prompt, rendered in the UI,
+   or copied to telemetry. For a live Global Ask request, the highest-scoring
+   eligible semantic unit may instead attach the typed capability
+   `open_cited_content_unit(post_id, unit_index)` after source eligibility and
+   caller authorization have both succeeded. The capability identifies an
+   already-authorized product unit; it does not reveal or resolve the opaque
+   adapter locator.
+8. No evidence-open capability is issued for a missing reference, an
+   evidence-only or Event Lineage expansion candidate, a hidden source, or a
+   historical-cutoff result. A future direct source-system resolver requires a
+   separately governed authorization and audit contract.
 
 The version 1 envelope is:
 
@@ -59,7 +71,8 @@ The version 1 envelope is:
 ## Consequences
 
 - Authorized adapters can preserve who supplied each searchable passage and
-  link a match back to caller-owned evidence without database coupling.
+  let an authorized citation open the matched semantic unit without exposing
+  caller-owned locator data.
 - ThreadWeave's message-to-message reference tree remains separate from turns
   inside one imported record.
 - Re-import replaces the post's derived units transactionally, so the same

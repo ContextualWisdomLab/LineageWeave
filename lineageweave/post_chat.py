@@ -56,6 +56,22 @@ def normalize_chat_question(question: str) -> str:
 
 
 @dataclass(frozen=True)
+class EvidenceOpenAction:
+    """Authorized locator for opening one cited unit without source internals."""
+
+    post_id: str
+    unit_index: int
+
+    def to_payload(self) -> dict[str, str | int]:
+        """Return a stable API action without the caller's opaque reference."""
+        return {
+            "action_kind": "open_cited_content_unit",
+            "post_id": self.post_id,
+            "unit_index": self.unit_index,
+        }
+
+
+@dataclass(frozen=True)
 class ChatSourceDocument:
     """One numbered post and its persisted evidence for chat reasoning."""
 
@@ -70,6 +86,7 @@ class ChatSourceDocument:
     live_changed_after_cutoff: bool = False
     historical_body_unavailable: bool = False
     unavailable_channels: tuple[str, ...] = field(default_factory=tuple)
+    evidence_open_action: EvidenceOpenAction | None = None
 
 
 @dataclass(frozen=True)
@@ -85,22 +102,28 @@ class ChatAnswer:
 def cited_post_summaries(
     sources: list[ChatSourceDocument] | tuple[ChatSourceDocument, ...],
     cited_post_ids: tuple[str, ...] | list[str],
-) -> list[dict[str, str | bool | list[str] | None]]:
+) -> list[dict[str, object]]:
     """Titles for cited ids, in citation order. Unknown ids are dropped.
 
     The sliding evidence chip must show the source post's title, not a
     truncated UUID -- a missing title is omitted, never invented.
     """
     by_id = {source.post_id: source for source in sources}
-    citations: list[dict[str, str | bool | list[str] | None]] = []
+    citations: list[dict[str, object]] = []
     for post_id in cited_post_ids:
         source = by_id.get(post_id)
         if source is None:
             continue
-        citation: dict[str, str | bool | list[str] | None] = {
+        citation: dict[str, object] = {
             "post_id": post_id,
             "post_title": source.post_title,
         }
+        if (
+            source.evidence_open_action is not None
+            and source.evidence_open_action.post_id == post_id
+            and source.evidence_open_action.unit_index >= 0
+        ):
+            citation["evidence_open_action"] = source.evidence_open_action.to_payload()
         if source.knowledge_cutoff is not None:
             citation.update(
                 {
