@@ -40,8 +40,9 @@ edge exposes the same authorized endpoints and evidence through API and UI.
 
 ### PRD-FR-2 — Ontology and semantic layer
 
-- Publish one canonical repository-case OWL/RDFS/SKOS vocabulary with a
-  dereferenceable lowercase compatibility vocabulary.
+- Publish one dereferenceable canonical repository-case OWL/RDFS/SKOS
+  vocabulary plus a public term-kind-safe mapping document for deprecated
+  lowercase compatibility identifiers.
 - Project typed Post, Person, CorporateEntity, Team, Project, and governed
   relationship evidence from PostgreSQL without creating a second mutable
   source of truth.

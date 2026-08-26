@@ -89,9 +89,10 @@ repository-case namespace
 `https://contextualwisdomlab.github.io/LineageWeave/ontology#` is now
 canonical ([ADR 0207](../adr/0207-repository-case-ontology-namespace-canonical.md),
 superseding [ADR 0157](../adr/0157-public-ontology-namespace-identity.md),
-resolving issue #372). The lowercase form is a deprecated compatibility
-vocabulary; both documents stay dereferenceable through the published
-site with validated term-kind mappings, and stored values migrate via
+resolving issue #372 and amended by [ADR 0229](../adr/0229-legacy-ontology-namespace-publication.md)).
+The lowercase form is a deprecated compatibility identifier whose own path is
+not served; the repository-case site publishes a dereferenceable compatibility
+document with validated term-kind mappings, and stored values migrate via
 `scripts/migrate_legacy_namespace.py` with its dry-run/refusal
 discipline (direction reversed: lowercase rows rewrite to
 repository-case). The inventory above remains the historical evidence

@@ -107,6 +107,10 @@ All notable changes to this project are documented here. Format follows
 
 ### Changed
 
+- Ontology documentation now distinguishes the canonical dereferenceable
+  namespace from the published mapping document for legacy lowercase IRIs;
+  no customer or consumer is directed to a lowercase path that returns 404.
+
 - ADRs 0011 and 0065 now include APA 7th References for the dated W3C
   PROV-O and PROV-DM Recommendations (30 April 2013). Decisions are
   unchanged.

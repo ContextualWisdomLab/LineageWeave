@@ -70,6 +70,27 @@ def test_product_gap_baseline_contains_no_private_post_identifiers() -> None:
     assert match is None, f"private post identifier in product-gap baseline: {match.group(0)!r}"
 
 
+def test_legacy_ontology_namespace_is_not_documented_as_served() -> None:
+    """ADR 0229 keeps the 404 legacy identifier distinct from its live mapping."""
+    current_contracts = "\n".join(
+        path.read_text(encoding="utf-8")
+        for path in (
+            _ROOT / "AGENTS.md",
+            _ROOT / "docs" / "product-requirements.md",
+            _ADR_DIRECTORY / "0207-repository-case-ontology-namespace-canonical.md",
+            _ADR_DIRECTORY / "0229-legacy-ontology-namespace-publication.md",
+            _ROOT / "docs" / "doctoring" / "ONTOLOGY_NAMESPACE_INVENTORY.md",
+        )
+    )
+
+    assert "dereferenceable lowercase compatibility vocabulary" not in current_contracts
+    assert "both namespace documents with `200 OK`" not in current_contracts
+    assert "namespace-compatibility.ttl" in current_contracts
+    assert "lowercase namespace paths return HTTP 404" in _PRODUCT_GAP_BASELINE.read_text(
+        encoding="utf-8"
+    )
+
+
 def test_fetch_persisted_summary_reads_stored_catalog_ids() -> None:
     """ADR 0019 / 0027: fetch must not rejoin the catalog by a non-unique name."""
 

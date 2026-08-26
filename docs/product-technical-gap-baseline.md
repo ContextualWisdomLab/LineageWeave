@@ -497,8 +497,9 @@ of leverage; open connector PRs there when the defect is upstream:
   generated-directory marker, linked-IRI, duplicate-fragment, symlink, and
   source-overlap checks fail closed.
 - ADR 0207 and closed issue #372 make the repository-case namespace canonical;
-  the lowercase namespace is a deprecated compatibility vocabulary with
-  term-kind-safe mappings and an explicit migration path.
+  ADR 0229 records that the lowercase namespace paths return HTTP 404. They are
+  deprecated compatibility identifiers mapped by the term-kind-safe public
+  `namespace-compatibility.ttl` artifact, not a second served namespace.
 - The public index, `ontology.ttl`, SHACL graph, and manifest return HTTP 200.
   Their Turtle SHA-256 values match protected `main@494b54e2` exactly
   (`c5a8c147…` ontology; `a57f274e…` shapes), and no ontology publication input
