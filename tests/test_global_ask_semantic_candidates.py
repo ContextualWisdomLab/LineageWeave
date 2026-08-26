@@ -84,6 +84,8 @@ def test_semantic_candidate_indexes_match_query_evidence_families() -> None:
     """The replay-safe migration indexes every persisted nomination family."""
     sql = _MIGRATION.read_text(encoding="utf-8")
 
+    assert "not index_state.indisvalid" in sql
+    assert sql.index("\\gexec") < sql.index("create index concurrently if not exists")
     assert sql.count("create index concurrently if not exists") == 7
     for table_name in (
         "post_project_mention",

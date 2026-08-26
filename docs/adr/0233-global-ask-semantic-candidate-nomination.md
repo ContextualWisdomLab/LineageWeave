@@ -20,6 +20,9 @@ responsibility, affiliation, person, organization, team, and Knowledge Graph
 type evidence. Matching expression GIN indexes make this a database-native
 search boundary. No local stopword list, score, threshold, or channel weight is
 introduced.
+Migration 0225 removes only an INVALID catalog entry left by an interrupted
+concurrent build before replay. Healthy indexes remain in place, while `IF NOT
+EXISTS` cannot mistake a failed build for a usable index.
 
 Nomination returns IDs only and grants no access. The existing final source
 query repeats corporate-entity/process-unit scope, publication eligibility,
