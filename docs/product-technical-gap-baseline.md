@@ -61,7 +61,7 @@ only aggregate, non-identifying evidence to this repository.
 
 ### Exact open-PR boundary
 
-At this snapshot there were 15 open PRs and 10 open issues. The exact-head
+At this snapshot there were 16 open PRs and 10 open issues. The exact-head
 inventory in section 1 is authoritative for this snapshot. Every open head
 remained blocked on hosted gates and/or independent review. These observations
 are not merge readiness. Re-fetch exact heads,
@@ -78,16 +78,17 @@ lifecycle claim.
 ## 1. Exact-head and governance evidence
 
 The protected default branch is `494b54e2245040bcf02b45376f221c37cd437e76`
-at this refresh. The live queue contains 15 open PRs and 10
+at this refresh. The live queue contains 16 open PRs and 10
 open issues. The exact-head inventory below supersedes older per-PR snapshots
 elsewhere in this document; those older rows remain useful historical delivery
 context only.
 
 | PR | Exact observed head | Merge/check state at this snapshot |
 | ---: | --- | --- |
+| #679 | `c60dcb3a` | ADR 0229 persisted public-claim envelope with unique ADR numbering; BLOCKED with exact-head checks and independent review required; normal squash auto-merge enabled |
 | #678 | `662a62fb` | canonical Compose-stack consolidation stacked on #640; parent protected merge and `main` retarget precede fresh exact-head evidence |
 | #677 | `51b9dfaf` | ADR 0228 account-owned per-post Ask conversation history; stacked on #667, so parent protected merge and `main` retarget precede fresh exact-head review/check evidence |
-| #667 | `ac7eb4e6` | baseline refresh branch pre-refresh head; BLOCKED with review required; stacked #669 and #671 are merged into this non-default branch |
+| #667 | `10c4e1d6` | baseline refresh branch pre-refresh head; BLOCKED with review required; stacked #669 and #671 are merged into this non-default branch |
 | #672 | `5468c04d` | persisted semantic-evidence nomination for Global Ask with ADR renumbering; BLOCKED with hosted checks queued and review required |
 | #668 | `1b8e1a99` | evidence-bound project history projection with ADR renumbering, request guards, and source-code/time-basis display repair; BLOCKED with review required |
 | #663 | `7ac1483e` | project ontology traversal, cutoff-snapshot project focus, bounded MCP admission, and migration-fixture/worker startup repair; BLOCKED with review required |
@@ -95,7 +96,7 @@ context only.
 | #657 | `709df1b9` | TEPP lifecycle persistence and fail-closed topic acceptance; BLOCKED with hosted checks queued and review required |
 | #644 | `ed8d97f3` | native-surface code splitting; BLOCKED with review required |
 | #643 | `3453ab08` | accessible status notices; BLOCKED with review required |
-| #640 | `0f0cf4a8` | operations-dashboard evidence touch-target, scoped metrics, Rust residual interaction-map consumption, ABAC/UUID repairs, and RankWeave-owned RRF evidence; BLOCKED with hosted checks queued and no independent approval |
+| #640 | `72ef6dd6` | operations-dashboard evidence touch-target, scoped metrics, Rust residual interaction-map consumption, ABAC/UUID repairs, and fail-closed legacy RankWeave evidence; BLOCKED with hosted checks queued and no independent approval |
 | #639 | `8da485d3` | running-action/config repair; BLOCKED with review required |
 | #632 | `811026cc` | graph-fact provenance repair with current baseline evidence; BLOCKED with hosted checks queued and review required |
 | #631 | `e6b4f0c4` | ADR decomposition documentation; BLOCKED with review required |
