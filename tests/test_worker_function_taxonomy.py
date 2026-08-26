@@ -13,8 +13,11 @@ from __future__ import annotations
 import hashlib
 
 import pytest
+from rdflib import Graph, Literal
+from rdflib.namespace import RDF, SKOS
 
-from lineageweave.ontology import all_declared_lookup_codes
+from lineageweave.ontology import LW, all_declared_lookup_codes
+from lineageweave import worker_function_taxonomy as taxonomy
 from lineageweave.worker_function_taxonomy import (
     WORKER_FUNCTION_DOMAINS,
     worker_function,
@@ -121,3 +124,29 @@ def test_worker_function_raises_on_an_unknown_domain() -> None:
     """An unrecognized domain is caller error, not missing evidence."""
     with pytest.raises(ValueError, match="unknown worker-function domain"):
         worker_function("machines", 0)
+
+
+@pytest.mark.parametrize("defect", ["duplicate_domain", "bad_rank", "bad_type"])
+def test_malformed_worker_function_declarations_fail_closed(
+    monkeypatch: pytest.MonkeyPatch, defect: str
+) -> None:
+    """Ambiguous, out-of-range, and wrongly typed concepts are rejected."""
+    graph = Graph()
+    subject = LW.testWorkerFunction
+    graph.add((subject, RDF.type, LW.WorkerFunction))
+    graph.add((subject, SKOS.inScheme, LW.workerFunctionScheme))
+    graph.add((subject, LW.fjaDomain, Literal("data")))
+    graph.add((subject, LW.fjaRank, Literal(2 if defect != "bad_rank" else 99)))
+    graph.add((subject, SKOS.prefLabel, Literal("Test")))
+    graph.add((subject, SKOS.definition, Literal("Synthetic test definition.")))
+    if defect == "duplicate_domain":
+        graph.add((subject, LW.fjaDomain, Literal("people")))
+    elif defect == "bad_type":
+        graph.remove((subject, RDF.type, LW.WorkerFunction))
+    monkeypatch.setattr(taxonomy, "ONTOLOGY", graph)
+    taxonomy.worker_function_records.cache_clear()
+
+    with pytest.raises(ValueError):
+        taxonomy.worker_function_records()
+
+    taxonomy.worker_function_records.cache_clear()

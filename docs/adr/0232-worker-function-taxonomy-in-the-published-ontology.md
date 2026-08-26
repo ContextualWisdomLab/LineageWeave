@@ -1,7 +1,7 @@
 # ADR 0232: Worker-function taxonomy in the published ontology
 
-**Status:** Accepted  
-**Date:** 2026-08-26  
+**Status:** Accepted
+**Date:** 2026-08-26
 **Extends:** [ADR 0004](0004-knowledge-graph-ontology.md), [ADR 0145](0145-psychometric-channel-weight-estimation.md), [ADR 0207](0207-repository-case-ontology-namespace-canonical.md)
 
 ## Context

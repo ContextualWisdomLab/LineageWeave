@@ -38,7 +38,7 @@ from dataclasses import dataclass
 from functools import lru_cache
 
 from rdflib import URIRef
-from rdflib.namespace import SKOS
+from rdflib.namespace import RDF, SKOS
 
 from .ontology import LW, ONTOLOGY
 
@@ -54,6 +54,7 @@ WORKER_FUNCTION_DOMAINS: dict[str, tuple[int, int]] = {
 #: Canonical DOT digit order -- Data is the 4th code digit, People the
 #: 5th, Things the 6th -- used for deterministic sorting.
 _DOMAIN_ORDER: tuple[str, ...] = ("data", "people", "things")
+
 
 @dataclass(frozen=True)
 class WorkerFunctionRecord:
@@ -90,35 +91,48 @@ def _record_for(subject: URIRef) -> WorkerFunctionRecord:
     malformed declaration must surface loudly rather than degrade into
     an invented default, matching the repository's fail-closed rule.
     """
-    domain_literal = ONTOLOGY.value(subject, LW.fjaDomain)
-    rank_literal = ONTOLOGY.value(subject, LW.fjaRank)
-    label_literal = ONTOLOGY.value(subject, SKOS.prefLabel)
-    definition_literal = ONTOLOGY.value(subject, SKOS.definition)
-    missing = [
-        name
-        for name, literal in (
-            (":fjaDomain", domain_literal),
-            (":fjaRank", rank_literal),
-            ("skos:prefLabel", label_literal),
-            ("skos:definition", definition_literal),
+    if (subject, RDF.type, LW.WorkerFunction) not in ONTOLOGY or not str(subject).startswith(
+        str(LW)
+    ):
+        raise ValueError(f"worker-function term {subject} has invalid type or namespace")
+    values = {
+        name: tuple(ONTOLOGY.objects(subject, predicate))
+        for name, predicate in (
+            (":fjaDomain", LW.fjaDomain),
+            (":fjaRank", LW.fjaRank),
+            ("skos:prefLabel", SKOS.prefLabel),
+            ("skos:definition", SKOS.definition),
         )
-        if literal is None
-    ]
-    if missing:
+    }
+    invalid = [name for name, declared in values.items() if len(declared) != 1]
+    if invalid:
         raise ValueError(
-            f"worker-function term {subject} is missing required "
-            f"annotations: {', '.join(missing)}"
+            f"worker-function term {subject} must declare exactly one of: "
+            f"{', '.join(invalid)}"
         )
+    domain_literal, rank_literal, label_literal, definition_literal = (
+        values[name][0]
+        for name in (":fjaDomain", ":fjaRank", "skos:prefLabel", "skos:definition")
+    )
     domain = str(domain_literal)
     if domain not in WORKER_FUNCTION_DOMAINS:
         raise ValueError(
             f"worker-function term {subject} declares unknown :fjaDomain "
             f"{domain!r}"
         )
+    try:
+        rank = int(rank_literal)
+    except (TypeError, ValueError) as exc:
+        raise ValueError(f"worker-function term {subject} has invalid :fjaRank") from exc
+    low, high = WORKER_FUNCTION_DOMAINS[domain]
+    if rank not in range(low, high + 1):
+        raise ValueError(
+            f"worker-function term {subject} declares out-of-range :fjaRank {rank}"
+        )
     return WorkerFunctionRecord(
         iri=str(subject),
         domain=domain,
-        rank=int(rank_literal),
+        rank=rank,
         label=str(label_literal),
         definition=str(definition_literal),
     )
@@ -137,6 +151,9 @@ def worker_function_records() -> tuple[WorkerFunctionRecord, ...]:
         _record_for(subject)
         for subject in ONTOLOGY.subjects(SKOS.inScheme, LW.workerFunctionScheme)
     ]
+    keys = {(record.domain, record.rank) for record in records}
+    if len(keys) != len(records):
+        raise ValueError("worker-function terms declare a duplicate domain/rank pair")
     domain_index = {name: index for index, name in enumerate(_DOMAIN_ORDER)}
     records.sort(key=lambda record: (domain_index[record.domain], record.rank))
     return tuple(records)

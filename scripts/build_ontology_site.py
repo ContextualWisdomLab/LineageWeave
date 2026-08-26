@@ -34,6 +34,12 @@ DOCUMENTATION_URL = f"{PUBLIC_BASE_URL}/ontology"
 CANONICAL_LOOKUP_PREDICATE = (
     "https://contextualwisdomlab.github.io/LineageWeave/ontology#lookupCode"
 )
+CANONICAL_FJA_DOMAIN_PREDICATE = URIRef(
+    "https://contextualwisdomlab.github.io/LineageWeave/ontology#fjaDomain"
+)
+CANONICAL_FJA_RANK_PREDICATE = URIRef(
+    "https://contextualwisdomlab.github.io/LineageWeave/ontology#fjaRank"
+)
 SHAPES_RELATIVE_PATH = Path("docs/ontology/lineageweave-kg-shapes.ttl")
 CANONICAL_LINK_SUPPRESSION = (
     "<!-- nosemgrep: html.security.audit.missing-integrity.missing-integrity "
@@ -180,6 +186,14 @@ def _render_term(graph: Graph, subject: URIRef, ontology_subjects: set[URIRef]) 
         if lookup_codes
         else ""
     )
+    fja_rows = "".join(
+        f"<dt>{heading}</dt><dd><code>{html.escape(value)}</code></dd>"
+        for heading, predicate in (
+            ("FJA domain", CANONICAL_FJA_DOMAIN_PREDICATE),
+            ("FJA rank", CANONICAL_FJA_RANK_PREDICATE),
+        )
+        if (value := _preferred_literal(graph, subject, predicate)) is not None
+    )
     comment_html = (
         f'<p class="term-comment">{html.escape(comment)}</p>' if comment else ""
     )
@@ -193,6 +207,7 @@ def _render_term(graph: Graph, subject: URIRef, ontology_subjects: set[URIRef]) 
         '<dl class="term-facts">'
         f"<dt>RDF type</dt><dd>{type_links or '<span>Unspecified</span>'}</dd>"
         f"{lookup_row}"
+        f"{fja_rows}"
         f"{relation_rows}"
         "</dl>"
         "</article>"
