@@ -53,6 +53,13 @@ failed closed with `STRIX_PROVIDER_UNAVAILABLE`; and an independent approval
 was still required. Auto-merge remains enabled. No self-approval, admin bypass,
 or stale-head check transfer is permitted.
 
+Stacked PR #717 at `dce623a1` carries ADR 0247, migration 0237, qualified
+ontology terms, and focused contract tests. It targets #713's branch, not
+protected `main`; its checks and review are candidate evidence only. After
+#713 reaches protected main, #717 must be synchronized, retargeted to `main`,
+and revalidated on its then-current head. Creating #717 raised the live queue
+to 24 open PRs after the snapshot above.
+
 References for this gap use the APA 7 entries in ADR 0246. Current supporting
 standards pages were rechecked on 2026-08-27: ISO 26000:2010 remains applicable
 to all organization types and AA1000SES v3 is under development for a planned
