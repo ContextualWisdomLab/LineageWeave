@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 from contextlib import asynccontextmanager
+from datetime import UTC, datetime
 
 from backend.app import global_ask_queue
 from backend.app.global_ask_queue import load_job_visibility
@@ -42,6 +43,7 @@ def _queued_row() -> dict[str, object]:
         "requesting_account_id": "00000000-0000-0000-0000-000000000001",
         "question_text": "What happened last week?",
         "verify_external_requested": False,
+        "knowledge_cutoff": None,
     }
 
 
@@ -67,20 +69,6 @@ class _VerificationClient:
         )
 
 
-class _MalformedVerificationClient(_VerificationClient):
-    def verify(self, claim: cv.PublicClaimCandidate) -> cv.ClaimVerificationResult:
-        raise IndexError("empty provider choices")
-
-
-class _UnexpectedVerificationClient(_VerificationClient):
-    def verify(self, claim: cv.PublicClaimCandidate) -> cv.ClaimVerificationResult:
-        raise RuntimeError("provider adapter failed")
-
-
-def test_skipped_public_verification_does_not_nudge_the_reader() -> None:
-    assert global_ask_queue._verification_next_action(cv.VERIFICATION_SKIPPED) is None
-
-
 def test_public_verification_requires_public_capability_and_internal_citation() -> None:
     """Private facts and uncited public facts never reach external search."""
 
@@ -95,17 +83,12 @@ def test_public_verification_requires_public_capability_and_internal_citation() 
         "public-post",
         "Public",
         "Public body",
-        external_claims=(
-            cv.PublicClaimCandidate(
-                "Project Apollo is public",
-                "semantic_project",
-                ("public-post",),
-            ),
-        ),
+        external_claim_facts=("project: Apollo | evidence: public",),
     )
 
     private_status, private_results = asyncio.run(
         global_ask_queue._verify_public_claims(
+            "Apollo",
             [private_source],
             ["private-post"],
             verify_external=True,
@@ -114,6 +97,7 @@ def test_public_verification_requires_public_capability_and_internal_citation() 
     )
     uncited_status, uncited_results = asyncio.run(
         global_ask_queue._verify_public_claims(
+            "Apollo",
             [public_source],
             [],
             verify_external=True,
@@ -135,17 +119,12 @@ def test_public_verification_keeps_external_urls_out_of_internal_citations() -> 
         "public-post",
         "Public",
         "Public body",
-        external_claims=(
-            cv.PublicClaimCandidate(
-                "Project Apollo is public",
-                "semantic_project",
-                ("public-post",),
-            ),
-        ),
+        external_claim_facts=("project: Apollo | evidence: public",),
     )
 
     status_code, results = asyncio.run(
         global_ask_queue._verify_public_claims(
+            "Apollo",
             [source],
             ["public-post"],
             verify_external=True,
@@ -159,46 +138,229 @@ def test_public_verification_keeps_external_urls_out_of_internal_citations() -> 
     assert results[0].evidence[0].url not in results[0].source_post_ids
 
 
-def test_malformed_provider_response_degrades_to_unavailable() -> None:
+def test_malformed_public_verification_is_unavailable() -> None:
+    """Malformed provider/search envelopes do not discard a completed answer."""
     source = cv.GlobalAskSourceDocument(
         "public-post",
         "Public",
         "Public body",
-        external_claims=(
-            cv.PublicClaimCandidate("A public claim", "semantic_project", ("public-post",)),
-        ),
+        external_claim_facts=("project: Apollo | evidence: public",),
     )
-    status_code, results = asyncio.run(
-        global_ask_queue._verify_public_claims(
-            [source],
-            ["public-post"],
-            verify_external=True,
-            client=_MalformedVerificationClient(),
+
+    for error in (
+        IndexError("empty choices"),
+        AttributeError("invalid search body"),
+        RuntimeError("provider adapter failed"),
+    ):
+        class MalformedClient:
+            available = True
+
+            def verify(self, _claim):
+                raise error
+
+        status_code, results = asyncio.run(
+            global_ask_queue._verify_public_claims(
+                "Apollo",
+                [source],
+                ["public-post"],
+                verify_external=True,
+                client=MalformedClient(),
+            )
         )
-    )
-    assert status_code == cv.VERIFICATION_UNAVAILABLE
-    assert results == ()
+
+        assert status_code == cv.VERIFICATION_UNAVAILABLE
+        assert results == ()
 
 
-def test_unexpected_provider_failure_degrades_to_unavailable() -> None:
-    source = cv.GlobalAskSourceDocument(
-        "public-post",
-        "Public",
-        "Public body",
-        external_claims=(
-            cv.PublicClaimCandidate("A public claim", "semantic_project", ("public-post",)),
-        ),
-    )
-    status_code, results = asyncio.run(
-        global_ask_queue._verify_public_claims(
-            [source],
-            ["public-post"],
-            verify_external=True,
-            client=_UnexpectedVerificationClient(),
+def test_question_embedding_finishes_before_global_ask_acquires_a_pool_slot(
+    monkeypatch,
+) -> None:
+    """Provider latency must not consume the shared database pool."""
+    connection = _Connection(None)
+
+    class TrackingPool(_Pool):
+        active = 0
+
+        @asynccontextmanager
+        async def acquire(self):
+            self.active += 1
+            try:
+                yield self.connection
+            finally:
+                self.active -= 1
+
+    pool = TrackingPool(connection)
+
+    class EmbeddingClient:
+        available = True
+        resolved_model = "synthetic-embedding"
+
+        def embed(self, _text: str) -> list[float]:
+            assert pool.active == 0
+            return [1.0, 0.0]
+
+    class SemanticQueryClient:
+        available = True
+
+        def rewrite(self, _question: str) -> tuple[str, ...]:
+            assert pool.active == 0
+            return ("changed",)
+
+    async def fake_gather(_conn, *_args, **kwargs):
+        assert pool.active == 1
+        assert kwargs["question_embedding"] == (
+            [1.0, 0.0],
+            "synthetic-embedding",
+            1.0,
+        )
+        assert kwargs["search_phrases"] == ("changed",)
+        return []
+
+    monkeypatch.setattr(global_ask_queue, "gather_global_chat_sources", fake_gather)
+
+    payload = asyncio.run(
+        global_ask_queue.compute_global_ask_answer(
+            pool,
+            question_text="What changed?",
+            corporate_entity_ids=set(),
+            process_unit_ids=set(),
+            process_scope_limited=False,
+            chat_client=_AvailableClient(),
+            embedding_client=EmbeddingClient(),
+            semantic_query_client=SemanticQueryClient(),
         )
     )
-    assert status_code == cv.VERIFICATION_UNAVAILABLE
-    assert results == ()
+
+    assert payload["source_post_ids"] == []
+    assert pool.active == 0
+
+
+def test_cutoff_global_ask_does_not_request_a_live_embedding(monkeypatch) -> None:
+    """Cutoff retrieval must not call a channel it cannot use."""
+    pool = _Pool(_Connection(None))
+
+    class RejectEmbedding:
+        available = True
+
+        def embed(self, _text: str) -> list[float]:
+            raise AssertionError("cutoff retrieval must not request an embedding")
+
+    async def fake_gather(_conn, *_args, **kwargs):
+        assert kwargs["question_embedding"] is None
+        return []
+
+    monkeypatch.setattr(global_ask_queue, "gather_global_chat_sources", fake_gather)
+
+    payload = asyncio.run(
+        global_ask_queue.compute_global_ask_answer(
+            pool,
+            question_text="What was known?",
+            corporate_entity_ids=set(),
+            process_unit_ids=set(),
+            process_scope_limited=False,
+            chat_client=_AvailableClient(),
+            embedding_client=RejectEmbedding(),
+            knowledge_cutoff=datetime(2026, 1, 15, tzinfo=UTC),
+        )
+    )
+
+    assert payload["source_post_ids"] == []
+
+
+def test_invalid_semantic_rewrite_retains_the_original_question(monkeypatch) -> None:
+    """Malformed provider output degrades to the honest database query."""
+    pool = _Pool(_Connection(None))
+
+    class InvalidSemanticQueryClient:
+        available = True
+
+        def rewrite(self, _question: str) -> tuple[str, ...]:
+            raise ValueError("invalid structured output")
+
+    async def fake_gather(_conn, *_args, **kwargs):
+        assert kwargs["search_phrases"] == ("What changed?",)
+        return []
+
+    monkeypatch.setattr(global_ask_queue, "gather_global_chat_sources", fake_gather)
+
+    payload = asyncio.run(
+        global_ask_queue.compute_global_ask_answer(
+            pool,
+            question_text="What changed?",
+            corporate_entity_ids=set(),
+            process_unit_ids=set(),
+            process_scope_limited=False,
+            chat_client=_AvailableClient(),
+            semantic_query_client=InvalidSemanticQueryClient(),
+        )
+    )
+
+    assert payload["source_post_ids"] == []
+
+
+def test_unexpected_semantic_rewrite_error_retains_the_original_question(monkeypatch) -> None:
+    """An unexpected optional-rewriter defect cannot fail the Ask job."""
+    pool = _Pool(_Connection(None))
+
+    class BrokenSemanticQueryClient:
+        available = True
+
+        def rewrite(self, _question: str) -> tuple[str, ...]:
+            raise RuntimeError("unexpected provider envelope")
+
+    async def fake_gather(_conn, *_args, **kwargs):
+        assert kwargs["search_phrases"] == ("What changed?",)
+        return []
+
+    monkeypatch.setattr(global_ask_queue, "gather_global_chat_sources", fake_gather)
+
+    payload = asyncio.run(
+        global_ask_queue.compute_global_ask_answer(
+            pool,
+            question_text="What changed?",
+            corporate_entity_ids=set(),
+            process_unit_ids=set(),
+            process_scope_limited=False,
+            chat_client=_AvailableClient(),
+            semantic_query_client=BrokenSemanticQueryClient(),
+        )
+    )
+
+    assert payload["source_post_ids"] == []
+
+
+def test_unavailable_question_embedding_is_not_called(monkeypatch) -> None:
+    """An unavailable embedding is dropped while persisted evidence still runs."""
+    connection = _Connection(None)
+    pool = _Pool(connection)
+
+    class UnavailableEmbedding:
+        available = False
+        resolved_model = None
+
+        def embed(self, _text: str) -> list[float]:
+            raise AssertionError("unavailable embedding must not be called")
+
+    async def fake_gather(_conn, *_args, **kwargs):
+        assert kwargs["question_embedding"] is None
+        assert kwargs["embedding_client"].available is False
+        return []
+
+    monkeypatch.setattr(global_ask_queue, "gather_global_chat_sources", fake_gather)
+
+    payload = asyncio.run(
+        global_ask_queue.compute_global_ask_answer(
+            pool,
+            question_text="What changed?",
+            corporate_entity_ids=set(),
+            process_unit_ids=set(),
+            process_scope_limited=False,
+            chat_client=_AvailableClient(),
+            embedding_client=UnavailableEmbedding(),
+        )
+    )
+
+    assert payload["source_post_ids"] == []
 
 
 def test_unexpected_job_failure_settles_with_a_generic_detail_not_the_raw_exception(

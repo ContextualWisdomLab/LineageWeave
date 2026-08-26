@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { AskAgentPanel } from "./App";
 
@@ -8,7 +8,7 @@ describe("AskAgentPanel public verification", () => {
     vi.unstubAllGlobals();
   });
 
-  it("requires explicit consent and keeps public evidence separate", async () => {
+  it("keeps public verification separate and renders cutoff provenance", async () => {
     const fetchMock = vi
       .fn()
       .mockResolvedValueOnce(
@@ -24,8 +24,24 @@ describe("AskAgentPanel public verification", () => {
             job_status_code: "succeeded",
             answer: {
               answer_text: "Apollo is described by the internal cited post.",
-              cited_post_ids: ["post-1"],
-              cited_posts: [{ post_id: "post-1", post_title: "Internal Apollo post" }],
+              cited_post_ids: ["post-1", "post-2"],
+              cited_posts: [{
+                post_id: "post-1",
+                post_title: "Internal Apollo post",
+                source_post_revision_id: "revision-1",
+                evidence_available_at: "2026-01-10T00:00:00Z",
+                knowledge_cutoff: "2026-01-15T03:00:00Z",
+                live_changed_after_cutoff: true,
+                unavailable_channels: ["knowledge_graph"],
+              }, {
+                post_id: "post-2",
+                post_title: "Retained post without timestamp",
+                source_post_revision_id: "revision-2",
+                evidence_available_at: null,
+                knowledge_cutoff: "2026-01-15T03:00:00Z",
+                live_changed_after_cutoff: false,
+                unavailable_channels: [],
+              }],
               cited_post_evidence: [],
               source_post_ids: ["post-1"],
               external_verification_status: "external_verification_completed",
@@ -45,7 +61,10 @@ describe("AskAgentPanel public verification", () => {
                   ],
                 },
               ],
-              next_action: "Compare the public sources with the cited posts before deciding what to do next.",
+              next_action: "Inspect public evidence separately before any governed graph review.",
+              knowledge_cutoff: "2026-01-15T03:00:00Z",
+              grounding_status: "fully_cutoff_grounded",
+              limitations: [],
             },
           }),
           { status: 200, headers: { "Content-Type": "application/json" } },
@@ -59,12 +78,17 @@ describe("AskAgentPanel public verification", () => {
     await userEvent.click(
       screen.getByRole("checkbox", { name: "Check eligible public claims" }),
     );
+    await userEvent.type(
+      screen.getByLabelText("Knowledge cutoff (optional)"),
+      "2026-01-15T12:00",
+    );
     await userEvent.click(screen.getByRole("button", { name: "Ask" }));
 
     await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
     expect(JSON.parse(String(fetchMock.mock.calls[0][1]?.body))).toEqual({
       question: "What is Apollo?",
       verify_external: true,
+      knowledge_cutoff: new Date("2026-01-15T12:00").toISOString(),
     });
     expect(screen.getByRole("region", { name: "Public verification" })).toBeInTheDocument();
     expect(screen.getByText("Supported by public evidence")).toBeInTheDocument();
@@ -72,48 +96,18 @@ describe("AskAgentPanel public verification", () => {
       "href",
       "https://example.com/apollo",
     );
-    expect(screen.getByText("Internal Apollo post")).toBeInTheDocument();
-  });
-
-  it("shows an unavailable public-verification result", async () => {
-    const fetchMock = vi
-      .fn()
-      .mockResolvedValueOnce(
-        new Response(JSON.stringify({ ask_job_id: "job-2", job_status_code: "queued" }), {
-          status: 202,
-          headers: { "Content-Type": "application/json" },
-        }),
-      )
-      .mockResolvedValueOnce(
-        new Response(
-          JSON.stringify({
-            ask_job_id: "job-2",
-            job_status_code: "succeeded",
-            answer: {
-              answer_text: "No external judgment was available.",
-              cited_post_ids: [],
-              cited_posts: [],
-              cited_post_evidence: [],
-              source_post_ids: [],
-              external_verification_status: "external_verification_unavailable",
-              external_claims: [],
-              next_action: "Retry after the public verification service is available.",
-            },
-          }),
-          { status: 200, headers: { "Content-Type": "application/json" } },
-        ),
-      );
-    vi.stubGlobal("fetch", fetchMock);
-
-    render(<AskAgentPanel accessToken="access-token" onOpenPost={vi.fn()} />);
-    await userEvent.type(screen.getByLabelText("Ask a question"), "Verify Apollo");
-    await userEvent.click(screen.getByRole("checkbox", { name: "Check eligible public claims" }));
-    await userEvent.click(screen.getByRole("button", { name: "Ask" }));
-
-    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
-    expect(screen.getByText("Public verification is unavailable. Try again later.")).toBeInTheDocument();
-    expect(
-      screen.getByText("Retry after the public verification service is available."),
-    ).toBeInTheDocument();
+    const timestampedPost = screen.getByText("Internal Apollo post").closest("li");
+    expect(timestampedPost).not.toBeNull();
+    expect(screen.getByText(/Fully cutoff-grounded/)).toBeInTheDocument();
+    expect(within(timestampedPost!).getByText(/Retained revision/)).toHaveTextContent(
+      "Live source changed later",
+    );
+    const missingTimestampPost = screen
+      .getByText("Retained post without timestamp")
+      .closest("li");
+    expect(missingTimestampPost).not.toBeNull();
+    expect(within(missingTimestampPost!).getByText("Retained revision").textContent).toBe(
+      "Retained revision",
+    );
   });
 });

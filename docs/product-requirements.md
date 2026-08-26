@@ -45,6 +45,8 @@ edge exposes the same authorized endpoints and evidence through API and UI.
 - Project typed Post, Person, CorporateEntity, Team, Project, and governed
   relationship evidence from PostgreSQL without creating a second mutable
   source of truth.
+- Keep name-derived Project candidates scoped to their evidence Post until a
+  governed catalog resolution supplies a stable cross-record identity.
 - Preserve truth status, valid/system time, provenance, and evidence
   references.
 - Validate DB-to-RDF projections with SHACL, including complete reified
@@ -75,9 +77,14 @@ dangling endpoints fail closed; fixed input produces stable page boundaries.
 - Apply authorization/time/process scope before ranking and again before
   response delivery.
 - Keep internal post citations separate from external public citations.
+- Interpret natural-language retrieval through contextual-orchestrator while
+  accepting only literal question phrases; do not invent local stop-word,
+  expansion, scoring, or weighting rules.
 
 Acceptance: a semantic-only term can retrieve an authorized unit; private
-content never becomes an external query or citation.
+content never becomes an external query or citation; and multilingual
+conversational framing cannot suppress a persisted fact named by an exact
+question phrase.
 
 ### PRD-FR-5 — Evidence operations
 
@@ -97,6 +104,8 @@ stale evidence from a previously opened post.
   personal facts, and measurement outputs never become external queries.
 - Retrieve bounded public evidence through SearXNG and adjudicate through
   contextual-orchestrator's adaptive orchestration boundary.
+
+  contextual-orchestrator's verification mode.
 - Report supported, refuted, and not-enough-information outcomes without
   promoting public pages to internal ontology authority.
 - Keep external URLs visually and structurally separate from authorized
@@ -105,6 +114,35 @@ stale evidence from a previously opened post.
 Acceptance: leaving the control off causes no public request; hidden or
 uncited facts cause no public request; unavailable services fail closed; and
 each displayed public judgment retains its originating internal evidence IDs.
+
+### PRD-FR-5B — Knowledge-cutoff Global Ask
+
+- Persist the optional cutoff with the asynchronous request and reject a future
+  instant against the database clock.
+- Apply authorization, eligibility, and cutoff filters before candidate limits,
+  then cite the retained source revision available at that instant.
+- Never replace a missing historical body or semantic channel with current
+  state; expose the limitation and later-live-change status.
+- Preserve the live contract when no cutoff is supplied.
+
+Acceptance: a later rewrite never appears in a cutoff answer; an uncovered
+revision is explicitly unavailable; and API and rendered citations identify
+the retained revision and full/partial grounding state.
+
+### PRD-FR-5C — Authenticated MCP Global Ask
+
+- Expose asynchronous submission and owner-scoped job reading over MCP while
+  reusing the REST application service and persisted answer payload.
+- Validate the exact MCP resource audience, provisioned account, permission,
+  affiliation scope, Host, Origin, and bounded request body before a tool runs.
+- Consume one distributed quota unit only for an admitted authenticated tool
+  call; preflight and rejected admission consume none.
+- Require deployment-supplied, load-evidence-backed quota parameters and fail
+  closed when shared Valkey cannot decide.
+
+Acceptance: MCP and REST produce the same scope snapshot, verification opt-in,
+knowledge cutoff, status, citations, and limitations; cross-account reads are
+404-equivalent; and exhaustion returns the bounded actual retry interval.
 
 ### PRD-FR-6 — Measurement boundary
 
@@ -182,10 +220,10 @@ A release claim requires one exact protected-main head that proves:
 ## 7. Traceability
 
 - Product/data boundary: ADR 0001, ADR 0089.
-- Asynchronous delivery and database-pool isolation: ADR 0204.
+- Asynchronous delivery and database-pool isolation: ADR 0204, ADR 0213.
 - Knowledge Graph, ontology, and provenance: ADR 0004, ADR 0011, ADR 0065,
-  ADR 0184, ADR 0207.
-- Semantic units and retrieval: ADR 0047, ADR 0062, ADR 0102.
+  ADR 0184, ADR 0207, ADR 0222.
+- Semantic units and retrieval: ADR 0047, ADR 0062, ADR 0102, ADR 0217.
 - LLM/model boundary: ADR 0070, ADR 0072, ADR 0076, ADR 0079.
 - Measurement: ADR 0003, ADR 0145, ADR 0200, ADR 0205.
 - UX and publication: ADR 0118, ADR 0159.

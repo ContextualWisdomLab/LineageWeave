@@ -3,33 +3,11 @@ import { t } from "../i18n";
 import "./PublicClaimVerification.css";
 
 /** Keep public web evidence separate from authorized internal citations. */
-export function PublicClaimVerification({
-  claims,
-  statusCode,
-}: {
-  claims: ExternalClaim[];
-  statusCode?: string;
-}) {
-  if (
-    claims.length === 0
-    && statusCode !== "external_verification_completed"
-    && statusCode !== "external_verification_no_public_claims"
-    && statusCode !== "external_verification_unavailable"
-  ) return null;
+export function PublicClaimVerification({ claims }: { claims: ExternalClaim[] }) {
+  if (claims.length === 0) return null;
   return (
     <section className="popup-section public-claim-verification" aria-label={t("Public verification")}>
       <h4>{t("Public verification")}</h4>
-      {claims.length === 0 && (
-        <p>
-          {t(
-            statusCode === "external_verification_unavailable"
-              ? "Public verification is unavailable. Try again later."
-              : statusCode === "external_verification_no_public_claims"
-                ? "No eligible cited public claims were found. Review the cited posts."
-              : "Not enough public information",
-          )}
-        </p>
-      )}
       {claims.map((claim) => (
         <article className="public-claim-card" key={`${claim.claim_kind}:${claim.claim_text}`}>
           <p>

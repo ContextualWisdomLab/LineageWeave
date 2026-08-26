@@ -45,6 +45,7 @@ const ONTOLOGY_NODE_TOKENS = [
   "--ontology-node-person-fill",
   "--ontology-node-organization-fill",
   "--ontology-node-team-fill",
+  "--ontology-node-project-fill",
   "--ontology-node-generic-fill",
 ];
 

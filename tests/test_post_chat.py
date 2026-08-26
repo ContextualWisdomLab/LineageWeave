@@ -245,11 +245,77 @@ def test_graph_facts_are_hydrated_from_visible_evidence_posts(monkeypatch) -> No
     monkeypatch.setattr("backend.app.post_chat_ingestion.hydrate_related_nodes", fake_hydrate)
     facts = asyncio.run(_graph_facts_for_posts(_Connection(), ["post-graph"]))
 
-    assert facts == (
-        'node_person "Ada West" --edge_affiliation '
-        '(https://contextualwisdomlab.github.io/LineageWeave/ontology#affiliatedWith)--> '
-        'node_corporate_entity "Demo Corp" [evidence_post_id=post-graph]',
+    assert facts == {
+        "post-graph": (
+            'node_person "Ada West" --edge_affiliation '
+            '(https://contextualwisdomlab.github.io/LineageWeave/ontology#affiliatedWith)--> '
+            'node_corporate_entity "Demo Corp" [evidence_post_id=post-graph]',
+        )
+    }
+
+
+def test_graph_facts_remain_attached_to_their_evidence_post(monkeypatch) -> None:
+    """One graph edge cannot be cited under a different visible source."""
+
+    class _Connection:
+        async def fetch(self, _query, _visible_post_ids):
+            return [
+                {
+                    "source_node_type_code": "node_person",
+                    "source_node_id": "person-ada",
+                    "target_node_type_code": "node_corporate_entity",
+                    "target_node_id": "corp-demo",
+                    "edge_type_code": "edge_affiliation",
+                    "edge_weight": 1.0,
+                    "evidence_post_ids": ["post-b"],
+                }
+            ]
+
+    async def fake_hydrate(_conn, _node_keys):
+        return [
+            {"node_type_code": "node_person", "node_id": "person-ada", "label": "Ada West"},
+            {
+                "node_type_code": "node_corporate_entity",
+                "node_id": "corp-demo",
+                "label": "Demo Corp",
+            },
+        ]
+
+    monkeypatch.setattr("backend.app.post_chat_ingestion.hydrate_related_nodes", fake_hydrate)
+
+    facts = asyncio.run(_graph_facts_for_posts(_Connection(), ["post-a", "post-b"]))
+
+    assert "post-a" not in facts
+    assert facts["post-b"][0].endswith("[evidence_post_id=post-b]")
+
+
+def test_graph_facts_drop_post_endpoints_outside_visible_sources(monkeypatch) -> None:
+    """A visible evidence post cannot reveal a hidden endpoint post label."""
+
+    class _Connection:
+        async def fetch(self, _query, _visible_post_ids):
+            return [
+                {
+                    "source_node_type_code": "node_post",
+                    "source_node_id": "post-hidden",
+                    "target_node_type_code": "node_corporate_entity",
+                    "target_node_id": "corp-demo",
+                    "edge_type_code": "edge_mention_organization",
+                    "edge_weight": 1.0,
+                    "evidence_post_ids": ["post-visible"],
+                }
+            ]
+
+    async def fail_if_hydrated(_conn, _node_keys):
+        raise AssertionError("hidden endpoint must be filtered before hydration")
+
+    monkeypatch.setattr(
+        "backend.app.post_chat_ingestion.hydrate_related_nodes", fail_if_hydrated
     )
+
+    facts = asyncio.run(_graph_facts_for_posts(_Connection(), ["post-visible"]))
+
+    assert facts == {}
 
 
 def test_typed_graph_claim_requires_non_person_public_evidence(monkeypatch) -> None:

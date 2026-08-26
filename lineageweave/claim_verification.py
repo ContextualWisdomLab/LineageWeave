@@ -4,7 +4,7 @@ Global Ask answers remain grounded in authorized LineageWeave posts. This
 module adds an explicitly opt-in public verification lane for claims that the
 retrieval layer has already marked safe for public egress. SearXNG retrieves
 bounded public snippets and contextual-orchestrator adjudicates those snippets
-through its provider-neutral adaptive orchestration boundary.
+in ``mode="verify"``.
 
 External corroboration is evidence, never graph authority. TEPP and fast-mlsirm
 artifacts remain measurement evidence and are intentionally ineligible for this
@@ -15,12 +15,15 @@ from __future__ import annotations
 
 import ipaddress
 import json
-import math
+import re
 from dataclasses import dataclass, field
 from typing import Any, Protocol
 from urllib.parse import quote, urlparse
 
+from rdflib.namespace import RDFS
+
 from .http_client import get_json, post_json
+from .ontology import LOOKUP_CODE, ONTOLOGY
 from .post_chat import ChatSourceDocument
 
 CLAIM_SUPPORTED = "claim_supported"
@@ -35,7 +38,31 @@ VERIFICATION_COMPLETED = "external_verification_completed"
 _ALLOWED_CLAIM_STATUSES = frozenset(
     {CLAIM_SUPPORTED, CLAIM_REFUTED, CLAIM_NOT_ENOUGH_INFORMATION}
 )
-_CODE_FENCE_PREFIXES = ("```json", "```")
+_SEARCH_HOST_MARKERS = (
+    "google.",
+    "bing.",
+    "yahoo.",
+    "duckduckgo.",
+    "baidu.",
+    "yandex.",
+    "searx",
+)
+_PROVENANCE_SUFFIX = re.compile(
+    r"\s*\[(?:evidence_post_id|provenance)=[^]]+\]\s*$"
+)
+_METADATA_SEGMENT = re.compile(
+    r"\s*\|\s*(?:extraction_method|confidence):\s*[^|\[]+"
+)
+_TOKEN = re.compile(r"[0-9A-Za-z가-힣_:/#.-]{2,}")
+_CODE_FENCE = re.compile(r"```(?:json)?\s*(.*?)\s*```", re.DOTALL)
+_EVIDENCE_POST_IDS = re.compile(r"\[evidence_post_id=([^]]+)\]")
+
+
+@dataclass(frozen=True)
+class GlobalAskSourceDocument(ChatSourceDocument):
+    """Authorized Global Ask source plus facts explicitly safe for web egress."""
+
+    external_claim_facts: tuple[str, ...] = field(default_factory=tuple)
 
 
 @dataclass(frozen=True)
@@ -57,13 +84,6 @@ class PublicClaimCandidate:
 
 
 @dataclass(frozen=True)
-class GlobalAskSourceDocument(ChatSourceDocument):
-    """Authorized public source plus typed persisted claims safe for egress."""
-
-    external_claims: tuple[PublicClaimCandidate, ...] = field(default_factory=tuple)
-
-
-@dataclass(frozen=True)
 class ClaimVerificationResult:
     """One three-way public claim judgment with selected web evidence."""
 
@@ -75,13 +95,14 @@ class ClaimVerificationResult:
     evidence: tuple[ExternalEvidenceDocument, ...] = field(default_factory=tuple)
 
     def to_payload(self) -> dict[str, object]:
-        """Serialize public evidence without exposing internal provenance keys."""
+        """Serialize without mixing internal post identifiers and external URLs."""
 
         return {
             "claim_text": self.claim_text,
             "claim_kind": self.claim_kind,
             "status_code": self.status_code,
             "rationale": self.rationale,
+            "source_post_ids": list(self.source_post_ids),
             "evidence": [
                 {"title": item.title, "url": item.url, "snippet": item.snippet}
                 for item in self.evidence
@@ -111,49 +132,130 @@ class NullClaimVerificationClient:
         raise RuntimeError("public claim verification is not configured")
 
 
+def _clean_fact(fact: str) -> str:
+    """Remove storage and extraction metadata while preserving the assertion."""
+
+    cleaned = _PROVENANCE_SUFFIX.sub("", fact)
+    cleaned = _METADATA_SEGMENT.sub("", cleaned)
+    cleaned = re.split(r"\s*\|\s*evidence:", cleaned, maxsplit=1)[0]
+    return " ".join(cleaned.split())
+
+
+def _claim_kind(fact: str) -> str | None:
+    """Return the externally verifiable claim family, or ``None``."""
+
+    if "node_person" in fact or fact.startswith(("Keyman mention:", "actor:")):
+        return None
+    if "--" in fact and "-->" in fact:
+        return "knowledge_graph_relation"
+    if fact.startswith("project:"):
+        return "semantic_project"
+    if "ontology_iri:" in fact or "/ontology#" in fact:
+        return "ontology_reference"
+    return None
+
+
+def _question_tokens(question: str) -> frozenset[str]:
+    return frozenset(token.casefold() for token in _TOKEN.findall(question))
+
+
 def public_claim_candidates(
     sources: list[ChatSourceDocument] | tuple[ChatSourceDocument, ...],
+    question: str,
     *,
     maximum_claims: int = 4,
-    allowed_source_post_ids: frozenset[str] | None = None,
 ) -> tuple[PublicClaimCandidate, ...]:
-    """Return bounded typed claims from already-authorized public sources.
+    """Select bounded public claims relevant to ``question``.
 
     Only :class:`GlobalAskSourceDocument` instances can contribute facts. This
-    makes public egress explicit. Claim family and provenance come from typed
-    persisted rows at assembly time; this function performs no token-overlap
-    ranking or string-pattern classification.
+    makes the public-egress capability explicit instead of adding an egress
+    field to every post-scoped chat source. Person and Keyman claims are still
+    excluded even when an upstream caller constructs a malformed subclass.
     """
 
     if maximum_claims <= 0:
         return ()
-    merged: dict[tuple[str, str], PublicClaimCandidate] = {}
+    query_tokens = _question_tokens(question)
+    merged: dict[tuple[str, str], list[str]] = {}
     for source in sources:
         if not isinstance(source, GlobalAskSourceDocument):
             continue
-        for claim in source.external_claims:
-            if (
-                allowed_source_post_ids is not None
-                and (
-                    not claim.source_post_ids
-                    or not set(claim.source_post_ids).issubset(allowed_source_post_ids)
-                )
-            ):
+        for raw_fact in source.external_claim_facts:
+            kind = _claim_kind(raw_fact)
+            if kind is None:
                 continue
-            if not claim.claim_text.strip() or len(claim.claim_text) > 800:
+            claim_text = _clean_fact(raw_fact)
+            if not claim_text or len(claim_text) > 800:
                 continue
-            key = (claim.claim_kind, claim.claim_text)
-            merged.setdefault(key, claim)
-            if len(merged) >= maximum_claims:
-                return tuple(merged.values())
-    return tuple(merged.values())
+            claim_tokens = _question_tokens(claim_text)
+            if query_tokens and not query_tokens.intersection(claim_tokens):
+                continue
+            key = (kind, claim_text)
+            post_ids = merged.setdefault(key, [])
+            evidence_match = _EVIDENCE_POST_IDS.search(raw_fact)
+            evidence_ids = (
+                [value.strip() for value in evidence_match.group(1).split(",")]
+                if evidence_match is not None
+                else [source.post_id]
+            )
+            for post_id in evidence_ids:
+                if post_id and post_id not in post_ids:
+                    post_ids.append(post_id)
+
+    ranked = sorted(
+        merged.items(),
+        key=lambda item: (
+            -len(query_tokens.intersection(_question_tokens(item[0][1]))),
+            item[0][0],
+            item[0][1].casefold(),
+        ),
+    )
+    return tuple(
+        PublicClaimCandidate(
+            claim_text=claim_text,
+            claim_kind=kind,
+            source_post_ids=tuple(post_ids),
+        )
+        for (kind, claim_text), post_ids in ranked[:maximum_claims]
+    )
 
 
-def _safe_external_document(
-    raw: Any,
-    *,
-    search_host: str | None = None,
-) -> ExternalEvidenceDocument | None:
+def ontology_lookup_codes_for_question(
+    question: str, *, maximum_codes: int = 16
+) -> tuple[str, ...]:
+    """Map an ontology IRI, label, local name, or lookup code in a question.
+
+    This nominates candidates only. A later source-post visibility gate remains
+    mandatory and no ontology match becomes an authoritative graph fact.
+    """
+
+    if maximum_codes <= 0:
+        return ()
+    normalized = question.casefold()
+    if not normalized.strip():
+        return ()
+    matches: list[str] = []
+    for subject in ONTOLOGY.subjects(LOOKUP_CODE, None):
+        lookup_value = ONTOLOGY.value(subject, LOOKUP_CODE)
+        if lookup_value is None:
+            continue
+        code = str(lookup_value)
+        label = ONTOLOGY.value(subject, RDFS.label)
+        candidates = {
+            code.casefold(),
+            str(subject).casefold(),
+            str(subject).rsplit("#", 1)[-1].casefold(),
+        }
+        if label is not None:
+            candidates.add(str(label).casefold())
+        if any(candidate and candidate in normalized for candidate in candidates):
+            matches.append(code)
+            if len(matches) >= maximum_codes:
+                break
+    return tuple(dict.fromkeys(matches))
+
+
+def _safe_external_document(raw: Any) -> ExternalEvidenceDocument | None:
     """Validate and bound one SearXNG result without fetching its target URL."""
 
     if not isinstance(raw, dict):
@@ -167,9 +269,7 @@ def _safe_external_document(
     host = parsed.hostname.casefold().rstrip(".")
     if host == "localhost" or host.endswith(".local"):
         return None
-    if search_host is not None and host == search_host.casefold().rstrip("."):
-        return None
-    if any(segment.casefold() == "search" for segment in parsed.path.split("/")):
+    if any(marker in host for marker in _SEARCH_HOST_MARKERS):
         return None
     try:
         address = ipaddress.ip_address(host)
@@ -192,11 +292,8 @@ def _safe_external_document(
 
 
 def _strip_code_fence(content: str) -> str:
-    stripped = content.strip()
-    for prefix in _CODE_FENCE_PREFIXES:
-        if stripped.startswith(prefix) and stripped.endswith("```"):
-            return stripped[len(prefix) : -3].strip()
-    return stripped
+    match = _CODE_FENCE.search(content)
+    return match.group(1) if match else content
 
 
 def _parse_adjudication(
@@ -256,33 +353,13 @@ class SearxngOrchestratedClaimVerificationClient:
     ) -> None:
         search_url = urlparse(searxng_base_url)
         orchestrator_url = urlparse(orchestrator_base_url)
-        if search_url.scheme not in {"http", "https"} or not search_url.hostname:
+        if search_url.scheme not in {"http", "https"}:
             raise ValueError("unsupported SearXNG base URL")
-        if search_url.username or search_url.password or search_url.query or search_url.fragment:
-            raise ValueError("SearXNG base URL must not contain userinfo, query, or fragment")
-        if orchestrator_url.scheme not in {"http", "https"} or not orchestrator_url.hostname:
+        if orchestrator_url.scheme not in {"http", "https"}:
             raise ValueError("unsupported contextual-orchestrator base URL")
-        if (
-            orchestrator_url.username
-            or orchestrator_url.password
-            or orchestrator_url.query
-            or orchestrator_url.fragment
-        ):
-            raise ValueError(
-                "contextual-orchestrator base URL must not contain userinfo, query, or fragment"
-            )
-        if not 1 <= maximum_results <= 5:
-            raise ValueError("maximum_results must be between 1 and 5")
-        if not all(
-            isinstance(value, (int, float))
-            and not isinstance(value, bool)
-            and math.isfinite(float(value))
-            and float(value) > 0
-            for value in (search_timeout, adjudication_timeout)
-        ):
-            raise ValueError("verification timeouts must be finite positive numbers")
+        if maximum_results <= 0:
+            raise ValueError("maximum_results must be positive")
         self._searxng_base_url = searxng_base_url.rstrip("/")
-        self._searxng_host = str(search_url.hostname).casefold().rstrip(".")
         self._orchestrator_base_url = orchestrator_base_url.rstrip("/")
         self._api_key = api_key
         self._search_timeout = search_timeout
@@ -302,7 +379,7 @@ class SearxngOrchestratedClaimVerificationClient:
             return ()
         documents: list[ExternalEvidenceDocument] = []
         for raw in raw_results:
-            document = _safe_external_document(raw, search_host=self._searxng_host)
+            document = _safe_external_document(raw)
             if document is None or document in documents:
                 continue
             documents.append(document)
@@ -341,18 +418,18 @@ class SearxngOrchestratedClaimVerificationClient:
             f"{self._orchestrator_base_url}/v1/chat/completions",
             {
                 "messages": [{"role": "user", "content": prompt}],
-                "mode": "auto",
+                "mode": "verify",
                 "reasoning_effort": self._reasoning_effort,
             },
             headers={"authorization": f"Bearer {self._api_key}"},
             timeout=self._adjudication_timeout,
         )
-        choices = body.get("choices") if isinstance(body, dict) else None
+        choices = body.get("choices")
         if not isinstance(choices, list) or not choices or not isinstance(choices[0], dict):
-            raise ValueError("claim adjudication returned no choice")
+            raise ValueError("claim adjudication choices must contain one object")
         message = choices[0].get("message")
         if not isinstance(message, dict):
-            raise TypeError("claim adjudication returned no message")
+            raise ValueError("claim adjudication choice must contain a message object")
         content = message.get("content")
         if not isinstance(content, str):
             raise ValueError("claim adjudication content must be text")
@@ -374,5 +451,6 @@ __all__ = [
     "NullClaimVerificationClient",
     "PublicClaimCandidate",
     "SearxngOrchestratedClaimVerificationClient",
+    "ontology_lookup_codes_for_question",
     "public_claim_candidates",
 ]

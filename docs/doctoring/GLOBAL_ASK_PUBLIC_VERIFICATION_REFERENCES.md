@@ -2,6 +2,8 @@
 
 ADR 0234 adopts three distinct contracts:
 
+ADR 0215 adopts three distinct contracts:
+
 - FEVER supplies the evidence-dependent `supported`, `refuted`, and
   `not_enough_information` outcome model.
 - W3C PROV-O keeps internal source evidence, external web evidence, and the
@@ -15,6 +17,8 @@ The implementation does not infer claim eligibility from question-token
 overlap or rendered-string patterns. It projects typed project and non-person
 graph claims from normalized PostgreSQL evidence after authorization. Model
 and orchestration selection remains contextual-orchestrator authority.
+
+  instance defaults are not assumed.
 
 ## APA 7 references
 

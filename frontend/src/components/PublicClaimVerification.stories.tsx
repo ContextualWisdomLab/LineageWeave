@@ -38,8 +38,8 @@ export const ThreeWayStatus: Story = {
         }],
       },
       {
-        claim_text: "project: Example",
-        claim_kind: "semantic_project",
+        claim_text: "ontology_reference: Example",
+        claim_kind: "ontology_reference",
         status_code: "claim_not_enough_information",
         rationale: "No selected source establishes the claim.",
         source_post_ids: ["synthetic-post-3"],
@@ -56,43 +56,5 @@ export const ThreeWayStatus: Story = {
       "rel",
       "noreferrer",
     );
-  },
-};
-
-export const Unavailable: Story = {
-  args: {
-    claims: [],
-    statusCode: "external_verification_unavailable",
-  },
-  play: async ({ canvasElement }) => {
-    await expect(
-      within(canvasElement).getByText("Public verification is unavailable. Try again later."),
-    ).toBeVisible();
-  },
-};
-
-export const CompletedWithoutEligibleClaims: Story = {
-  args: {
-    claims: [],
-    statusCode: "external_verification_completed",
-  },
-  play: async ({ canvasElement }) => {
-    await expect(
-      within(canvasElement).getByText("Not enough public information"),
-    ).toBeVisible();
-  },
-};
-
-export const NoEligibleCitedClaims: Story = {
-  args: {
-    claims: [],
-    statusCode: "external_verification_no_public_claims",
-  },
-  play: async ({ canvasElement }) => {
-    await expect(
-      within(canvasElement).getByText(
-        "No eligible cited public claims were found. Review the cited posts.",
-      ),
-    ).toBeVisible();
   },
 };
