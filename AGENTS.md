@@ -375,7 +375,7 @@ A manual dispatch from another ref is not a publication path. The
 repository-case public namespace
 `https://contextualwisdomlab.github.io/LineageWeave/ontology#` is
 canonical ([ADR 0207](docs/adr/0207-repository-case-ontology-namespace-canonical.md),
-superseding ADR 0157 and amended by ADR 0229); the lowercase form is a
+superseding ADR 0157 and amended by ADR 0236); the lowercase form is a
 deprecated compatibility identifier mapped by a published compatibility
 vocabulary, not a separately served namespace.
 New runtime values, exports, fixtures, and database rows mint only

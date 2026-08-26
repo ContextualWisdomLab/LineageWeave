@@ -1,6 +1,6 @@
 """Account-owned persistence for Ask conversations on one visible post.
 
-ADR 0228 reuses the ADR 0126 list/select/new contract with a required
+ADR 0235 reuses the ADR 0126 list/select/new contract with a required
 post_id scope. Conversation ids are never Global Ask session ids.
 """
 

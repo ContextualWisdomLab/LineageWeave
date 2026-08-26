@@ -71,14 +71,14 @@ def test_product_gap_baseline_contains_no_private_post_identifiers() -> None:
 
 
 def test_legacy_ontology_namespace_is_not_documented_as_served() -> None:
-    """ADR 0229 keeps the 404 legacy identifier distinct from its live mapping."""
+    """ADR 0236 keeps the 404 legacy identifier distinct from its live mapping."""
     current_contracts = "\n".join(
         path.read_text(encoding="utf-8")
         for path in (
             _ROOT / "AGENTS.md",
             _ROOT / "docs" / "product-requirements.md",
             _ADR_DIRECTORY / "0207-repository-case-ontology-namespace-canonical.md",
-            _ADR_DIRECTORY / "0229-legacy-ontology-namespace-publication.md",
+            _ADR_DIRECTORY / "0236-legacy-ontology-namespace-publication.md",
             _ROOT / "docs" / "doctoring" / "ONTOLOGY_NAMESPACE_INVENTORY.md",
         )
     )

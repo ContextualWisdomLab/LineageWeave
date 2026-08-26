@@ -77,7 +77,7 @@ posts/lineage reads averaged 34.53 seconds (p95 43.26 seconds). The run used
 the stack's deployed image rather than this candidate head, so it proves only
 that the existing HTTP boundary remains responsive without request failures
 while also exposing unacceptable reader latency for investigation. It is not
-an ADR 0228 capacity result or an SLO. Rebuild the exact candidate image and
+an ADR 0235 capacity result or an SLO. Rebuild the exact candidate image and
 repeat with resource and query-plan telemetry before attributing the delay.
 
 On 2026-08-25, an application-ready local Compose stack configured with four

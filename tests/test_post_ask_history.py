@@ -9,6 +9,7 @@ from uuid import UUID
 import pytest
 
 from backend.app.post_ask_history import (
+    PostAskConversationNotFound,
     PostAskEvidenceChanged,
     _visible_post_ids_batch,
     conversation_exists,
@@ -244,6 +245,33 @@ def test_persist_turn_creates_a_new_session_then_writes_the_turn() -> None:
     )
     assert session_arguments[0] == conversation_id
     assert session_arguments[1:] == ("post-1", "account-1")
+
+
+def test_persist_turn_rejects_a_conversation_outside_the_account_post_scope() -> None:
+    """An existing conversation must belong to both the caller and post."""
+
+    class _MissingConversationConnection(_Connection):
+        async def fetchrow(self, query: str, *arguments: object) -> None:
+            self.calls.append((query, arguments))
+            return None
+
+    connection = _MissingConversationConnection()
+
+    with pytest.raises(PostAskConversationNotFound):
+        asyncio.run(
+            persist_turn(
+                connection,
+                "account-1",
+                "post-1",
+                UUID("00000000-0000-0000-0000-000000000005"),
+                "What changed?",
+                "An answer.",
+                ["post-1"],
+                [],
+            )
+        )
+
+    assert not any("insert into post_ask_turn" in query for query, _ in connection.calls)
 
 
 def test_persist_turn_aborts_when_a_citation_loses_authorization() -> None:

@@ -1,4 +1,4 @@
-# ADR 0229 — Separate the legacy ontology identifier from its compatibility document
+# ADR 0236 — Separate the legacy ontology identifier from its compatibility document
 
 **Decision status:** Accepted
 **Date:** 2026-08-26
@@ -44,6 +44,19 @@ namespace itself dereferenceable.
 - ADR 0207 remains authoritative for canonical identity, mappings, migration,
   OWL/SKOS term kinds, and SHACL; only its lowercase dereferenceability claim
   is amended.
+
+## Release evidence
+
+The 2026-08-26 publication audit observed these responses after redirects:
+
+- `404` — `https://contextualwisdomlab.github.io/lineageweave/ontology`
+- `404` — `https://contextualwisdomlab.github.io/lineageweave/ontology/ontology.ttl`
+- `404` — `https://contextualwisdomlab.github.io/lineageweave/ontology/namespace-compatibility.ttl`
+- `200` — `https://contextualwisdomlab.github.io/LineageWeave/ontology/ontology.ttl`
+- `200` — `https://contextualwisdomlab.github.io/LineageWeave/ontology/namespace-compatibility.ttl`
+
+Recheck these URLs on every publication release; this dated observation is
+release evidence, not a permanent availability guarantee.
 
 ## References
 
