@@ -1,4 +1,4 @@
--- ADR 0251: distinguish successful empty extraction from unavailable evidence.
+-- ADR 0253: distinguish successful empty extraction from unavailable evidence.
 
 create table if not exists post_occupational_construct_extraction (
     post_id uuid primary key references source_post(post_id) on delete cascade,
