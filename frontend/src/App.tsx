@@ -3334,10 +3334,8 @@ function AnalysisRunsPanel({
           {analysisRunCanRequestTeppRetry(selected) && (
             <p className="post-meta">
               {selected.run_kind_code === "analysis_run_topic_lineage"
-                ? "Connect a TEPP transport from this Failed row. Request a " +
-                  "lineage reconstruction does not invent a topic model."
-                : "Connect a TEPP transport from this Failed row. Request a lineage " +
-                  "reconstruction does not invent a measurement."}
+                ? "Ask an administrator to enable topic-lineage analysis, then retry from this failed run."
+                : "Ask an administrator to enable measurement, then retry from this failed run."}
             </p>
           )}
           {analysisRunReportPeriod(selected) && onSelectReportPeriod && (

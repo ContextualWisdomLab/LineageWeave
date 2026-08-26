@@ -675,7 +675,7 @@ describe("App, authenticated", () => {
               JSON.stringify({
                 detail:
                   payload.run_kind_code === "analysis_run_tepp"
-                    ? "Connect a TEPP transport from a Failed TEPP row; this endpoint does not invent a measurement."
+                    ? "Ask an administrator to enable measurement, then retry from the failed measurement run."
                     : "Rebuild the period report from the Reports panel.",
               }),
               { status: 422, headers: { "Content-Type": "application/json" } },
@@ -3832,7 +3832,7 @@ describe("App, authenticated", () => {
     );
     expect(
       await screen.findByText(
-        "Connect a TEPP transport from this Failed row. Request a lineage reconstruction does not invent a measurement.",
+        "Ask an administrator to enable measurement, then retry from this failed run.",
       ),
     ).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Request a new TEPP measurement" })).not.toBeInTheDocument();
