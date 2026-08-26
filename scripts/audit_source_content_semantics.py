@@ -721,7 +721,10 @@ def _ontology_terms(path: Path) -> list[dict[str, object]]:
     return sorted(terms, key=lambda term: str(term["iri"]))
 
 
-def _prompt(terms: Sequence[Mapping[str, object]], contents: Sequence[str]) -> str:
+def _prompt(
+    supporting_terms_by_dimension: Mapping[str, Sequence[str]],
+    contents: Sequence[str],
+) -> str:
     """Build a privacy-constrained exact-cardinality audit request."""
     items = [
         {"item_index": index, "source_content": content}
@@ -742,11 +745,56 @@ def _prompt(terms: Sequence[Mapping[str, object]], contents: Sequence[str]) -> s
         "Do not return a dimension merely because the item is a Post or text. "
         "Semantic dimensions may use only: "
         + ", ".join(sorted(SEMANTIC_DIMENSIONS))
-        + ". If uncertain, use other_unmodeled_meaning.\nONTOLOGY TERMS:\n"
-        + json.dumps(list(terms), ensure_ascii=False)
+        + ". If uncertain, use other_unmodeled_meaning.\nPUBLIC SUPPORT PROFILE:\n"
+        + json.dumps(supporting_terms_by_dimension, ensure_ascii=False, sort_keys=True)
         + "\nPRIVATE INPUT (never repeat):\n"
         + json.dumps(items, ensure_ascii=False)
     )
+
+
+def _response_format(expected_count: int) -> dict[str, object]:
+    """Return the strict structured-output contract for one complete batch."""
+    return {
+        "type": "json_schema",
+        "json_schema": {
+            "name": "semantic_coverage_batch",
+            "strict": True,
+            "schema": {
+                "type": "object",
+                "properties": {
+                    "input_count": {"const": expected_count},
+                    "items": {
+                        "type": "array",
+                        "minItems": expected_count,
+                        "maxItems": expected_count,
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "item_index": {
+                                    "type": "integer",
+                                    "minimum": 0,
+                                    "maximum": expected_count - 1,
+                                },
+                                "semantic_dimensions": {
+                                    "type": "array",
+                                    "minItems": 1,
+                                    "uniqueItems": True,
+                                    "items": {
+                                        "type": "string",
+                                        "enum": sorted(SEMANTIC_DIMENSIONS),
+                                    },
+                                },
+                            },
+                            "required": ["item_index", "semantic_dimensions"],
+                            "additionalProperties": False,
+                        },
+                    },
+                },
+                "required": ["input_count", "items"],
+                "additionalProperties": False,
+            },
+        },
+    }
 
 
 async def audit_source_content(
@@ -797,16 +845,20 @@ async def audit_source_content(
             post_json,
             endpoint,
             {
-                "model": "contextual-orchestrator",
+                "model": "orchestrator/auto",
                 "messages": [
                     {
                         "role": "developer",
                         "content": "Preserve privacy and exact cardinality. Output JSON only.",
                     },
-                    {"role": "user", "content": _prompt(terms, window)},
+                    {
+                        "role": "user",
+                        "content": _prompt(supporting_terms_by_dimension, window),
+                    },
                 ],
                 "orchestration_mode": "conduct",
                 "include_orchestration_trace": True,
+                "response_format": _response_format(len(window)),
             },
             headers={"authorization": f"Bearer {gateway_api_key}"},
             timeout=timeout,

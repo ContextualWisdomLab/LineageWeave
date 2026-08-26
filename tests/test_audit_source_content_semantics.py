@@ -14,6 +14,7 @@ from scripts.audit_source_content_semantics import (
     _ontology_terms,
     _parser,
     _prompt,
+    _response_format,
     aggregate_results,
     parse_batch_result,
     selected_contents,
@@ -46,13 +47,41 @@ def test_cli_defaults_to_the_internal_orchestrator_credential() -> None:
     assert design_action.required is True
 
 
+def test_audit_uses_the_orchestrator_owned_auto_route() -> None:
+    """The audit names no provider model and leaves discovery upstream."""
+    source = Path("scripts/audit_source_content_semantics.py").read_text()
+
+    assert '"model": "orchestrator/auto"' in source
+    assert '"model": "contextual-orchestrator"' not in source
+
+
 def test_audit_contract_distinguishes_instance_data_from_schema_gaps() -> None:
     """Private names and values do not require private ontology vocabulary."""
-    prompt = _prompt([], ["Synthetic event at a synthetic facility"])
+    prompt = _prompt(
+        {"event_or_activity": (_TERM_IRI,)},
+        ["Synthetic event at a synthetic facility"],
+    )
 
     assert "as instance data, not missing schema terms" in prompt
     assert "no supplied class/property can represent it" in prompt
     assert "do not select ontology terms or decide coverage" in prompt
+    assert "PUBLIC SUPPORT PROFILE" in prompt
+    assert "ONTOLOGY TERMS" not in prompt
+
+
+def test_audit_structured_output_binds_the_exact_batch_cardinality() -> None:
+    """Schema validation and the parser both retain every submitted item."""
+    response_format = _response_format(10)
+    schema = response_format["json_schema"]["schema"]
+
+    assert schema["properties"]["input_count"] == {"const": 10}
+    items = schema["properties"]["items"]
+    assert items["minItems"] == items["maxItems"] == 10
+    assert items["items"]["properties"]["item_index"] == {
+        "type": "integer",
+        "minimum": 0,
+        "maximum": 9,
+    }
 
 
 def _probability_manifest() -> dict[str, object]:

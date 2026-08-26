@@ -112,6 +112,28 @@ Repository artifacts must not retain the private titles.
    declared probability sample. The selected item remains in the denominator
    and must be retried in place; it is never dropped or replaced by another
    record. Only a zero-failure complete run emits a coverage aggregate.
+10. The model receives the locally validated semantic-dimension support
+    profile, not the entire ontology inventory. It classifies source meaning
+    into governed dimensions but never selects terms or decides coverage.
+    LineageWeave retains the complete ontology/PROV registry validation and
+    binds the complete ontology bytes by SHA-256. This keeps each request below
+    gateway payload limits without weakening the ontology evidence boundary.
+11. Requests use contextual-orchestrator's provider-neutral
+    `orchestrator/auto` route. LineageWeave does not name or rank a provider
+    model; discovery, agent-pool construction, and routing remain upstream as
+    required by ADR 0076.
+12. Every request supplies a strict JSON Schema whose `input_count`, item-array
+    minimum/maximum length, index bounds, allowed dimensions, and closed object
+    fields are bound to that batch. contextual-orchestrator retains
+    multi-agent synthesis, schema validation, and repair; LineageWeave still
+    revalidates exact ordered indexes and discards the whole declared sample on
+    any transport, schema, trace, or cardinality failure.
+13. The current corpus acceptance audit declares a two-sided 95% confidence
+    level, 5-percentage-point margin, and the NIST conservative unknown-
+    proportion input `p=0.5` before selection. For the current 43,814-record
+    eligible frame, the Rust finite-population design yields 381 SRSWOR units.
+    These are explicit audit acceptance inputs, not estimated channel weights;
+    changing them requires a new design artifact and a new selection manifest.
 
 ## Consequences
 

@@ -107,6 +107,21 @@ This capability is not runtime evidence for the historical samples and is not
 protected-integrated while prerequisite fast-mlsirm PR #1445 and stacked PR
 #1458 remain open.
 
+The next runtime-only acceptance frame contains 43,814 eligible titles. With
+the ADR 0242 predeclared 95% confidence, five-percentage-point margin, and NIST
+conservative unknown-proportion input `p=0.5`, the pinned Rust design artifact
+selected 381 SRSWOR units. The ordered selection tokens and source query remain
+outside git. Early executions were correctly rejected rather than partially
+persisted: one credential boundary returned 401, an old local orchestrator
+exceeded its request-body contract, and the then-current structured path first
+omitted the multi-agent trace and later accepted a provider response that
+violated the exact batch cardinality schema. contextual-orchestrator PR #891
+now carries the upstream candidate repairs: structured trace disclosure through
+the audited trace-read boundary, removal of mock seed agents after successful
+provider discovery, and response-format capability selection from explicit
+provider catalog evidence. No 381-unit coverage estimate is accepted until all
+39 batches complete against one unchanged manifest.
+
 A runtime-only simple random sample without replacement then selected 100 new
 records from an eligible frame of 43,714. The pre-augmentation audit accepted
 all 100 ordered outputs in ten batches, with four contextual-orchestrator trace
