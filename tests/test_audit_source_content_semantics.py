@@ -4,11 +4,23 @@ import json
 import pytest
 
 from scripts.audit_source_content_semantics import (
+    _parser,
     aggregate_results,
     parse_batch_result,
     selected_contents,
     validate_probability_sample_manifest,
 )
+
+
+def test_cli_defaults_to_the_internal_orchestrator_credential() -> None:
+    """The audit must not send a provider credential to the internal service."""
+    action = next(
+        action
+        for action in _parser()._actions
+        if action.dest == "gateway_api_key_env"
+    )
+
+    assert action.default == "CONTEXTUAL_ORCHESTRATOR_TOKEN"
 
 
 def _probability_manifest() -> dict[str, object]:

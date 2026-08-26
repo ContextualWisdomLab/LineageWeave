@@ -450,7 +450,9 @@ def _parser() -> argparse.ArgumentParser:
         default=Path("docs/ontology/lineageweave-kg.ttl"),
     )
     parser.add_argument("--gateway-url", required=True)
-    parser.add_argument("--gateway-api-key-env", default="LLM_GATEWAY_API_KEY")
+    parser.add_argument(
+        "--gateway-api-key-env", default="CONTEXTUAL_ORCHESTRATOR_TOKEN"
+    )
     parser.add_argument("--timeout", type=float, default=300.0)
     return parser
 

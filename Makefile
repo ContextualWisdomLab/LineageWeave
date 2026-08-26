@@ -2,7 +2,7 @@
 
 # Keep provider credentials outside the repository. Compose interpolation must
 # read the same home env file as the orchestrator container's env_file.
-COMPOSE := docker compose --env-file "$$HOME/.env"
+COMPOSE := docker compose --env-file "$$HOME/.env" -p lineageweave
 
 up:
 	$(COMPOSE) up -d
