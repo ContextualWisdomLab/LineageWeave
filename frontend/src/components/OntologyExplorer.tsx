@@ -499,7 +499,7 @@ function OntologyExactValueTable({
     >
       <h4>{t("Exact values")}</h4>
       {payload.exact_value_rows.length === 0 ? (
-        <p>{t("No related records are available here. Open a Keyman or organization next.")}</p>
+        <p>{t("No related records are available here. Open a record or organization next.")}</p>
       ) : (
         <table>
           <caption>{t("Exact values")}</caption>
