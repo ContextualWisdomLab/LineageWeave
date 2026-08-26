@@ -45,7 +45,11 @@ also violate LineageWeave's externalized-compute boundary.
    to zero. Missing `n`, error, or interval values remain null.
 7. Range and uncertainty constraints reject negative sample/error values,
    inverted confidence intervals, malformed or future source update months, malformed source
-   digests, and values outside their declared scale bounds before persistence.
+   digests, and values outside their declared scale bounds before persistence. Scale bounds
+   govern the published `Data Value`, not the optional response-category code. In particular,
+   O*NET's `CXP` rows store a category in `Category` while `Data Value` is the percentage that
+   endorsed it, so the authoritative `CXP` bounds are 0 through 100 (National Center for
+   O*NET Development, 2026b).
 8. This content-model-element store excludes Task Ratings, whose integer Task
    IDs and task-statement identity require a separate normalized target table;
    it does not reinterpret a Task ID as a content-model element.

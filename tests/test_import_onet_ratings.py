@@ -205,6 +205,12 @@ def test_scales_digest_fails_before_database_connection(
         ratings_file=ratings,
     )
 
+    args.source_url = "https://:secret@example.test/abilities.csv"
+    with pytest.raises(ValueError, match="without userinfo"):
+        asyncio.run(import_ratings(args))
+    assert connected is False
+
+    args.source_url = "https://example.test/abilities.csv"
     with pytest.raises(ValueError, match="scales artifact SHA-256 mismatch"):
         asyncio.run(import_ratings(args))
     assert connected is False

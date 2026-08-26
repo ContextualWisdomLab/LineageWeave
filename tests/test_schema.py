@@ -289,10 +289,29 @@ def test_onet_rating_store_partitions_upserts_and_rejects_invalid_error(schema_d
         )
         cur.execute(
             """
+            insert into occupational_source_table
+                (data_release_code, source_table_code, source_table_name,
+                 source_artifact_url, source_artifact_sha256, source_row_count)
+            values ('onet-31.0', 'work_context', 'Work Context',
+                    'https://example.test/work-context.json', %s, 305389)
+            """,
+            ("c" * 64,),
+        )
+        cur.execute(
+            """
             insert into occupational_scale_definition
                 (data_release_code, source_table_code, scale_id, scale_name,
                  minimum_value, maximum_value)
             values ('onet-31.0', 'scales_reference', 'IM', 'Importance', 1, 5)
+            """
+        )
+        cur.execute(
+            """
+            insert into occupational_scale_definition
+                (data_release_code, source_table_code, scale_id, scale_name,
+                 minimum_value, maximum_value)
+            values ('onet-31.0', 'scales_reference', 'CXP',
+                    'Context (Categories 1-5)', 0, 100)
             """
         )
         cur.execute(
@@ -307,6 +326,13 @@ def test_onet_rating_store_partitions_upserts_and_rejects_invalid_error(schema_d
             insert into occupational_element_definition
                 (data_release_code, element_id, element_name)
             values ('onet-31.0', '1.A.1.a.1', 'Oral Comprehension')
+            """
+        )
+        cur.execute(
+            """
+            insert into occupational_element_definition
+                (data_release_code, element_id, element_name)
+            values ('onet-31.0', '4.C.1.a.2.f', 'Telephone Conversations')
             """
         )
         cur.execute("savepoint missing_partition")
@@ -335,6 +361,44 @@ def test_onet_rating_store_partitions_upserts_and_rejects_invalid_error(schema_d
                 for values in ('abilities')
             """
         )
+        cur.execute(
+            """
+            create table occupational_rating_observation_onet_31_work_context
+                partition of occupational_rating_observation_onet_31
+                for values in ('work_context')
+            """
+        )
+        cur.execute(
+            """
+            insert into occupational_rating_observation
+                (data_release_code, source_table_code, onetsoc_code, element_id,
+                 scale_id, category_value, data_value, source_updated_month,
+                 domain_source_code)
+            values ('onet-31.0', 'work_context', '15-1252.00', '4.C.1.a.2.f',
+                    'CXP', 5, 63.25, '08/2026', 'Incumbent')
+            """
+        )
+        cur.execute(
+            """
+            select category_value, data_value
+              from occupational_rating_observation
+             where scale_id = 'CXP'
+            """
+        )
+        assert cur.fetchone() == (5, Decimal("63.25"))
+        cur.execute("savepoint cxp_outside_percentage")
+        with pytest.raises(psycopg2.errors.CheckViolation):
+            cur.execute(
+                """
+                insert into occupational_rating_observation
+                    (data_release_code, source_table_code, onetsoc_code, element_id,
+                     scale_id, category_value, data_value, source_updated_month,
+                     domain_source_code)
+                values ('onet-31.0', 'work_context', '15-1252.00', '4.C.1.a.2.f',
+                        'CXP', 4, 100.01, '08/2026', 'Incumbent')
+                """
+            )
+        cur.execute("rollback to savepoint cxp_outside_percentage")
         statement = """
             insert into occupational_rating_observation
                 (data_release_code, source_table_code, onetsoc_code, element_id,
@@ -357,7 +421,7 @@ def test_onet_rating_store_partitions_upserts_and_rejects_invalid_error(schema_d
             """
             select count(*), max(data_value), max(source_updated_month)
             from occupational_rating_observation
-            where data_release_code = 'onet-31.0'
+            where data_release_code = 'onet-31.0' and scale_id = 'IM'
             """
         )
         assert cur.fetchone() == (1, Decimal("4.10"), "08/2026")

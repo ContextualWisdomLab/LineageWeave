@@ -276,7 +276,12 @@ def _validate_args(args: argparse.Namespace) -> None:
             raise ValueError(f"{field} must be positive")
     for field in ("source_url", "scales_url", "license_url"):
         parsed = urlsplit(str(getattr(args, field)))
-        if parsed.scheme != "https" or not parsed.hostname or parsed.username:
+        if (
+            parsed.scheme != "https"
+            or not parsed.hostname
+            or parsed.username is not None
+            or parsed.password is not None
+        ):
             raise ValueError(f"{field} must be an HTTPS URL without userinfo")
     for field in ("ratings_file", "scales_file"):
         if not getattr(args, field).is_file():
