@@ -79,3 +79,19 @@ def test_construct_assertion_shape_requires_evidence_and_provenance() -> None:
     )
     conforms, _, report = validate(data, shacl_graph=shapes)
     assert conforms, report
+
+    other_post = URIRef("https://example.test/post/other-synthetic")
+    data.add((other_post, RDF.type, LW.Post))
+    data.add((other_post, LW.postTitle, Literal("Other synthetic post")))
+    data.add((other_post, LW.postBody, Literal("Other synthetic body.")))
+    data.add(
+        (
+            other_post,
+            LW.createdAt,
+            Literal("2026-08-27T00:00:00Z", datatype=XSD.dateTime),
+        )
+    )
+    data.remove((assertion, PROV.wasDerivedFrom, post))
+    data.add((assertion, PROV.wasDerivedFrom, other_post))
+    conforms, _, _ = validate(data, shacl_graph=shapes)
+    assert not conforms
