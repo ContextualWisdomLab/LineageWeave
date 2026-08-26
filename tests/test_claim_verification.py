@@ -233,6 +233,27 @@ def test_searxng_orchestrated_client_returns_nei_when_search_has_no_usable_evide
     assert result.evidence == ()
 
 
+def test_searxng_orchestrated_client_rejects_an_empty_adjudication(monkeypatch) -> None:
+    monkeypatch.setattr(
+        cv,
+        "get_json",
+        lambda url, *, timeout, service_peer_name: {
+            "results": [{"url": "https://example.com/a", "title": "Evidence"}]
+        },
+    )
+    monkeypatch.setattr(
+        cv,
+        "post_json",
+        lambda url, payload, *, headers, timeout: {"choices": []},
+    )
+    client = cv.SearxngOrchestratedClaimVerificationClient(
+        "https://search.example", "https://orchestrator.example", "secret"
+    )
+
+    with pytest.raises(ValueError, match="no choice"):
+        client.verify(cv.PublicClaimCandidate("claim", "semantic_project"))
+
+
 def test_client_configuration_fails_closed() -> None:
     with pytest.raises(ValueError):
         cv.SearxngOrchestratedClaimVerificationClient(

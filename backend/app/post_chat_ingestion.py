@@ -106,7 +106,10 @@ async def _graph_evidence_projection(
         select edge.source_node_type_code, edge.source_node_id,
                edge.target_node_type_code, edge.target_node_id,
                edge.edge_type_code, edge.edge_weight,
-               array_agg(distinct evidence.evidence_post_id::text) as evidence_post_ids
+               array_agg(distinct evidence.evidence_post_id::text)
+                 filter (where evidence.evidence_post_id = any($1::uuid[]))
+                 as visible_evidence_post_ids,
+               array_agg(distinct evidence.evidence_post_id::text) as all_evidence_post_ids
           from knowledge_graph_edge edge
           join knowledge_graph_edge_evidence evidence
             on evidence.knowledge_graph_edge_id = edge.knowledge_graph_edge_id
@@ -160,10 +163,13 @@ async def _graph_evidence_projection(
         edge_name = row["edge_type_code"]
         if ontology_iri:
             edge_name = f"{edge_name} ({ontology_iri})"
-        evidence_post_ids = tuple(
-            sorted(str(value) for value in row["evidence_post_ids"])
+        visible_evidence_post_ids = tuple(
+            sorted(str(value) for value in row["visible_evidence_post_ids"])
         )
-        evidence_ids = ",".join(evidence_post_ids)
+        all_evidence_post_ids = tuple(
+            sorted(str(value) for value in row["all_evidence_post_ids"])
+        )
+        evidence_ids = ",".join(visible_evidence_post_ids)
         claim_text = (
             f'{source_type} "{source["label"]}" '
             f'--{edge_name}--> {target_type} "{target["label"]}"'
@@ -172,14 +178,14 @@ async def _graph_evidence_projection(
         if (
             source_type != "node_person"
             and target_type != "node_person"
-            and evidence_post_ids
-            and set(evidence_post_ids).issubset(public_post_ids)
+            and all_evidence_post_ids
+            and set(all_evidence_post_ids).issubset(public_post_ids)
         ):
             public_claims.append(
                 PublicClaimCandidate(
                     claim_text=claim_text,
                     claim_kind="knowledge_graph_relation",
-                    source_post_ids=evidence_post_ids,
+                    source_post_ids=all_evidence_post_ids,
                 )
             )
     return _GraphEvidenceProjection(

@@ -72,6 +72,10 @@ class _MalformedVerificationClient(_VerificationClient):
         raise IndexError("empty provider choices")
 
 
+def test_skipped_public_verification_does_not_nudge_the_reader() -> None:
+    assert global_ask_queue._verification_next_action(cv.VERIFICATION_SKIPPED) is None
+
+
 def test_public_verification_requires_public_capability_and_internal_citation() -> None:
     """Private facts and uncited public facts never reach external search."""
 

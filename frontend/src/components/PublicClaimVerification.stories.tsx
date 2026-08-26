@@ -65,6 +65,8 @@ export const Unavailable: Story = {
     statusCode: "external_verification_unavailable",
   },
   play: async ({ canvasElement }) => {
-    await expect(within(canvasElement).getByText("Not enough public information")).toBeVisible();
+    await expect(
+      within(canvasElement).getByText("Public verification is unavailable. Try again later."),
+    ).toBeVisible();
   },
 };

@@ -227,7 +227,8 @@ def test_graph_facts_are_hydrated_from_visible_evidence_posts(monkeypatch) -> No
                     "target_node_id": "corp-demo",
                     "edge_type_code": "edge_affiliation",
                     "edge_weight": 1.0,
-                    "evidence_post_ids": ["post-graph"],
+                    "visible_evidence_post_ids": ["post-graph"],
+                    "all_evidence_post_ids": ["post-graph"],
                 }
             ]
 
@@ -262,7 +263,8 @@ def test_typed_graph_claim_requires_non_person_public_evidence(monkeypatch) -> N
                     "target_node_id": "corp-demo",
                     "edge_type_code": "edge_team_affiliation",
                     "edge_weight": 1.0,
-                    "evidence_post_ids": ["public-post"],
+                    "visible_evidence_post_ids": ["public-post"],
+                    "all_evidence_post_ids": ["public-post"],
                 }
             ]
 
@@ -289,6 +291,43 @@ def test_typed_graph_claim_requires_non_person_public_evidence(monkeypatch) -> N
     assert public.public_claims[0].claim_kind == "knowledge_graph_relation"
     assert public.public_claims[0].source_post_ids == ("public-post",)
     assert private.public_claims == ()
+
+
+def test_typed_graph_claim_rejects_hidden_evidence_without_leaking_it(monkeypatch) -> None:
+    class _Connection:
+        async def fetch(self, _query, _visible_post_ids):
+            return [
+                {
+                    "source_node_type_code": "node_team",
+                    "source_node_id": "team-demo",
+                    "target_node_type_code": "node_corporate_entity",
+                    "target_node_id": "corp-demo",
+                    "edge_type_code": "edge_team_affiliation",
+                    "edge_weight": 1.0,
+                    "visible_evidence_post_ids": ["public-post"],
+                    "all_evidence_post_ids": ["hidden-post", "public-post"],
+                }
+            ]
+
+    async def fake_hydrate(_conn, _node_keys):
+        return [
+            {"node_type_code": "node_team", "node_id": "team-demo", "label": "Demo Team"},
+            {
+                "node_type_code": "node_corporate_entity",
+                "node_id": "corp-demo",
+                "label": "Demo Corp",
+            },
+        ]
+
+    monkeypatch.setattr("backend.app.post_chat_ingestion.hydrate_related_nodes", fake_hydrate)
+    projection = asyncio.run(
+        _graph_evidence_projection(
+            _Connection(), ["public-post"], frozenset({"public-post"})
+        )
+    )
+
+    assert projection.public_claims == ()
+    assert "hidden-post" not in projection.facts[0]
 
 
 def test_typed_project_claim_comes_from_explicit_persisted_columns() -> None:
