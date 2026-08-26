@@ -39,6 +39,25 @@ Relations to operational facts and project mentions use foreign keys to the
 existing normalized stores. These typed relations are an ontology navigation
 projection, not Event Lineage.
 
+The extraction request enumerates the request-scoped normalized target IDs
+that the authorized focal post may relate to. contextual-orchestrator returns
+one structured object containing mentions and relations; each relation names
+one supplied target ID, one target-kind-specific closed relation code, and a
+verbatim evidence span with its source post. LineageWeave rejects the entire
+object when a target is absent from that request, a relation code is open or
+wrong for the target kind, an ordinal is invalid, or evidence/provenance does
+not match the authorized source. Mentions and accepted relations replace the
+prior projection in one transaction. No lexical overlap between mention and
+fact/project evidence creates a relation.
+
+Post and Dashboard reads re-apply source eligibility and ABAC to every
+relation evidence post. RDF projection uses the same normalized target and
+closed predicate and must conform to the published ProductRelationAssertion
+SHACL shape. Until the contextual-orchestrator revision providing the owned
+structured-output transport is merged to its protected main and pinned by
+exact merge SHA, provider-backed relation production remains unavailable;
+local code and a branch head are not release authority.
+
 ```mermaid
 flowchart LR
   S[source_post] -->|authorized span and digest| M[post_product_mention]
@@ -64,6 +83,8 @@ cannot reveal a product span cited only by evidence the reader cannot access.
 - Catalog ambiguity remains visible and cannot silently become identity.
 - Operational and project relations reuse their existing evidence-bearing
   normalized objects instead of duplicating unstructured values.
+- A malformed or unauthorized relation invalidates the whole extraction
+  response, so one acceptable mention cannot conceal an unsafe edge.
 - Catalog stewardship is required before missing or tied mentions can become
   linked products.
 - High-volume deployments can partition mention and relation tables by a

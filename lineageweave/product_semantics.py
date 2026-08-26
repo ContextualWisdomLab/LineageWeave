@@ -230,42 +230,49 @@ class ContextualOrchestratorProductExtractionClient:
         self,
         sources: tuple[ProductEvidenceSource, ...],
         targets: tuple[ProductRelationTarget, ...] = (),
+        *,
+        session_id: str | None = None,
     ) -> ProductExtraction:
         """Return only fully validated, source-bound product mentions."""
+        if session_id is not None and not session_id.strip():
+            raise ValueError("session_id must be non-empty when provided")
+        payload = {
+            "model": "orchestrator/auto",
+            "messages": [
+                {
+                    "role": "user",
+                    "content": _PROMPT.format(
+                        sources="\n\n".join(
+                            f"post_id={source.post_id}\n{source.text}"
+                            for source in sources
+                        ),
+                        targets=json.dumps(
+                            [
+                                {
+                                    "target_id": target.target_id,
+                                    "target_kind_code": target.target_kind_code,
+                                    "label": target.label,
+                                    "allowed_relation_type_codes": sorted(
+                                        _RELATION_TYPES[target.target_kind_code]
+                                    ),
+                                }
+                                for target in targets
+                            ],
+                            ensure_ascii=False,
+                            separators=(",", ":"),
+                        ),
+                    ),
+                }
+            ],
+            "mode": "auto",
+            "reasoning_effort": "auto",
+            "response_format": {"type": "json_object"},
+        }
+        if session_id is not None:
+            payload["session_id"] = session_id
         response = post_json(
             f"{self._base_url}/v1/chat/completions",
-            {
-                "model": "orchestrator/auto",
-                "messages": [
-                    {
-                        "role": "user",
-                        "content": _PROMPT.format(
-                            sources="\n\n".join(
-                                f"post_id={source.post_id}\n{source.text}"
-                                for source in sources
-                            ),
-                            targets=json.dumps(
-                                [
-                                    {
-                                        "target_id": target.target_id,
-                                        "target_kind_code": target.target_kind_code,
-                                        "label": target.label,
-                                        "allowed_relation_type_codes": sorted(
-                                            _RELATION_TYPES[target.target_kind_code]
-                                        ),
-                                    }
-                                    for target in targets
-                                ],
-                                ensure_ascii=False,
-                                separators=(",", ":"),
-                            ),
-                        ),
-                    }
-                ],
-                "mode": "auto",
-                "reasoning_effort": "auto",
-                "response_format": {"type": "json_object"},
-            },
+            payload,
             timeout=self._timeout,
             headers={
                 "authorization": f"Bearer {self._api_key}",

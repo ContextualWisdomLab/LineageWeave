@@ -114,11 +114,12 @@ def test_orchestrator_product_client_uses_auto_and_timeout(monkeypatch) -> None:
     source = ProductEvidenceSource("post-a", "Synthetic Model Q")
     result = ContextualOrchestratorProductExtractionClient(
         "https://orchestrator.invalid/", "secret", timeout=12.5
-    ).extract((source,))
+    ).extract((source,), session_id="post-session-a")
     assert result.mentions[0].evidence_post_id == "post-a"
     assert captured["url"] == "https://orchestrator.invalid/v1/chat/completions"
     assert captured["payload"]["model"] == "orchestrator/auto"
     assert captured["payload"]["response_format"] == {"type": "json_object"}
+    assert captured["payload"]["session_id"] == "post-session-a"
     assert captured["headers"] == {
         "authorization": "Bearer secret",
         "x-request-timeout-ms": "12500",

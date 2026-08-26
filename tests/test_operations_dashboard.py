@@ -112,6 +112,35 @@ def test_projected_start_with_unavailable_end_remains_open() -> None:
 
 
 @pytest.mark.anyio
+async def test_dashboard_reads_evidence_bound_product_relation() -> None:
+    """A visible relation is attached to its exact persisted fact target."""
+
+    class ProductRelationConnection(_Connection):
+        async def fetch(self, query: str, *args: object) -> list[dict[str, object]]:
+            if "from product_operations_fact_relation relation" in query:
+                self.queries.append((query, args))
+                return [{
+                    "post_id": "00000000-0000-0000-0000-000000000001",
+                    "case_kind_code": "claim_investigation",
+                    "fact_ordinal": 0,
+                    "relation_type_code": "concerns_product",
+                    "extracted_product_name": "Synthetic Product",
+                    "canonical_product_name": None,
+                    "evidence_text": "Synthetic cited sentence",
+                    "evidence_post_id": "00000000-0000-0000-0000-000000000002",
+                }]
+            return await super().fetch(query, *args)
+
+    result = await fetch_operations_dashboard(ProductRelationConnection(), [])
+    assert result["cases"][0]["facts"][0]["product_relations"] == [{
+        "relation_type_code": "concerns_product",
+        "product_name": "Synthetic Product",
+        "evidence_text": "Synthetic cited sentence",
+        "evidence_post_id": "00000000-0000-0000-0000-000000000002",
+    }]
+
+
+@pytest.mark.anyio
 async def test_dashboard_uses_abac_event_clock_and_persisted_evidence() -> None:
     """Counts and cases share the exact authorized event-time population."""
     conn = _Connection()
@@ -239,7 +268,7 @@ async def test_dashboard_uses_abac_event_clock_and_persisted_evidence() -> None:
     ]
     assert result["topic_context"]["status_code"] == "unavailable"
     assert result["topic_context"]["reason_code"] == "tepp_topic_posterior_not_persisted"
-    assert len(conn.queries) == 7
+    assert len(conn.queries) == 8
     for query, args in conn.queries:
         assert "visibility_code = 'public'" in query
         assert "corporate_entity_id::text = any($1::text[])" in query
@@ -258,11 +287,12 @@ async def test_dashboard_uses_abac_event_clock_and_persisted_evidence() -> None:
         "coalesce(nullif(btrim(post.source_project_name), ''), project.primary_project_name)"
         in case_query
     )
-    assert "observed_at nulls last" in conn.queries[4][0]
+    assert "observed_at nulls last" in conn.queries[5][0]
     for evidence_query in (
         conn.queries[0][0],
         conn.queries[1][0],
         conn.queries[2][0],
+        conn.queries[3][0],
     ):
         assert "join source_post evidence_post" in evidence_query
         assert "evidence_post.corporate_entity_id::text = any($1::text[])" in evidence_query

@@ -381,11 +381,13 @@ async def fetch_operations_dashboard(
             "evidence_post_id": str(row["evidence_post_id"]),
             "ontology_class_iri": str(LW.OperationsCaseFact),
             "provenance_relation_iri": PROV_WAS_DERIVED_FROM,
-            "product_relations": product_relations.get(
-                (str(row["post_id"]), row["case_kind_code"], int(row["fact_ordinal"])),
-                [],
-            ),
         }
+        related_products = product_relations.get(
+            (str(row["post_id"]), row["case_kind_code"], int(row["fact_ordinal"])),
+            [],
+        )
+        if related_products:
+            projected_fact["product_relations"] = related_products
         target_kind = row["relation_target_kind_code"]
         if target_kind in EXTERNAL_RELATION_TARGETS:
             target_label, target_class, predicate = EXTERNAL_RELATION_TARGETS[target_kind]

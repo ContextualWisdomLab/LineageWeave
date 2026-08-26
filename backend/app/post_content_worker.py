@@ -270,7 +270,9 @@ async def _persist_product_analysis_if_needed(
         )
         for row in project_rows
     )
-    extraction = await asyncio.to_thread(client.extract, sources, targets)
+    extraction = await asyncio.to_thread(
+        client.extract, sources, targets, session_id=session_id
+    )
     async with pool.acquire() as conn:
         resolved = await resolve_product_mentions(conn, extraction.mentions)
         await persist_product_mentions(
