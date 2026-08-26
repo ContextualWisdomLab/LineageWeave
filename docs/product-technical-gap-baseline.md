@@ -1,6 +1,6 @@
 # Product & Technical Gap Baseline
 
-> Dashboard delivery snapshot: 2026-08-26 10:50 KST. Protected `main` is
+> Dashboard delivery snapshot: 2026-08-26 11:05 KST. Protected `main` is
 > `494b54e2245040bcf02b45376f221c37cd437e76`. This local branch is not
 > protected-main release evidence.
 
@@ -87,7 +87,7 @@ context only.
 | ---: | --- | --- |
 | #682 | `bf86f740` | typed public-claim verification filters cited claims before the bounded candidate budget and rejects generic `/search` result URLs; hosted checks queued and independent review required |
 | #681 | `3e0fa644` | fail-closed lineage-weight owner contract pin; lockfile parity verified; UNSTABLE stack with hosted checks pending |
-| #680 | `9efe21d0` | customer-facing ranking copy with localized retry/search guidance, explicit non-calibrated interpretation, and no fused-ranking implementation label; hosted checks requeued and independent review required |
+| #680 | `b0e4d2c9` | customer-facing ranking copy with localized retry/search guidance, no fused-ranking implementation label, and related-concepts/author-context/earlier-source-version labels; hosted checks requeued and independent review required |
 | #679 | `67706ef5` | ADR 0229 public-claim envelope, async verification, locale-aware next actions, and opt-in search setup; BLOCKED with exact-head checks and independent review required |
 | #678 | `da98de07` | canonical Compose-stack consolidation stacked on #640; parent protected merge and `main` retarget precede fresh exact-head evidence |
 | #677 | `aede5911` | ADR 0228 account-owned per-post Ask conversation history with localized titles, full conversation/transcript pagination, stale-response guards, repeated-turn preservation, and eligibility recheck; hosted checks and independent review required |
@@ -99,7 +99,7 @@ context only.
 | #657 | `709df1b9` | TEPP lifecycle persistence and fail-closed topic acceptance; BLOCKED with hosted checks queued and review required |
 | #644 | `ed8d97f3` | native-surface code splitting; BLOCKED with review required |
 | #643 | `3453ab08` | accessible status notices; BLOCKED with review required |
-| #640 | `c77acc77` | dashboard ranking and topic-influence surfaces no longer expose provider, hash, or uncertainty-code implementation labels; residual-map axis-share drift is handled fail-closed; hosted checks requeued and independent review required |
+| #640 | `c5555ce4` | dashboard ranking and topic-influence surfaces no longer expose provider, hash, or uncertainty-code implementation labels; residual-map axis-share drift is handled fail-closed; current head includes merged Ask evidence-timeline stack; hosted checks requeued and independent review required |
 | #639 | `8da485d3` | running-action/config repair; BLOCKED with review required |
 | #632 | `811026cc` | graph-fact provenance repair with current baseline evidence; BLOCKED with hosted checks queued and review required |
 | #631 | `e6b4f0c4` | ADR decomposition documentation; BLOCKED with review required |
