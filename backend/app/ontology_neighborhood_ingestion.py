@@ -831,7 +831,7 @@ async def visible_ontology_neighborhood(
         focus_node_id,
         can_see_post,
         knowledge_cutoff=knowledge_cutoff,
-        snapshot_at=snapshot_at if focus_node_type_code == NODE_PROJECT else None,
+        snapshot_at=snapshot_at,
     )
     if not visible_post_ids:
         raise OntologyNeighborhoodError("focus_not_visible", "focus node is not visible")

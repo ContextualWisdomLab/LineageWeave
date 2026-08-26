@@ -390,6 +390,7 @@ def test_source_continuation_uses_sealed_snapshot_and_rechecks_page_endpoints(mo
         expires_at=T0,
     )
     load_snapshots: list[datetime | None] = []
+    focus_visibility_snapshots: list[datetime | None] = []
     load_after_keys: list[OntologySourceKey | None] = []
     verify_modes: list[bool] = []
     minted_keys: list[OntologySourceKey] = []
@@ -411,7 +412,8 @@ def test_source_continuation_uses_sealed_snapshot_and_rechecks_page_endpoints(mo
             source_keys_by_edge={display_edge_key: last_key},
         )
 
-    async def fake_visible_post_ids(*_args, **_kwargs):
+    async def fake_visible_post_ids(*_args, snapshot_at=None, **_kwargs):
+        focus_visibility_snapshots.append(snapshot_at)
         return [POST_ID]
 
     async def fake_focus_exists(*_args, **_kwargs):
@@ -464,6 +466,7 @@ def test_source_continuation_uses_sealed_snapshot_and_rechecks_page_endpoints(mo
     )
 
     assert verify_modes == [False, True]
+    assert focus_visibility_snapshots == [T0]
     assert load_snapshots == [T0, T0]
     assert load_after_keys == [None, last_key]
     assert minted_keys == [last_key]

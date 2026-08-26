@@ -646,6 +646,7 @@ def test_visible_neighborhood_focus_variants_and_fail_closed() -> None:
                             "corporate_entity_id": CORP_ID,
                         }
                     ],
+                    "select post_id from source_post where post_id = any": [{"post_id": POST_ID}],
                     "select person_name from cataloged_person": "Test Person",
                 }
             ),
@@ -669,6 +670,7 @@ def test_visible_neighborhood_focus_variants_and_fail_closed() -> None:
                             "corporate_entity_id": CORP_ID,
                         }
                     ],
+                    "select post_id from source_post where post_id = any": [{"post_id": POST_ID}],
                     "parent_entity_id": [
                         {
                             "corporate_entity_id": CORP_ID,
@@ -702,6 +704,7 @@ def test_visible_neighborhood_focus_variants_and_fail_closed() -> None:
                             "corporate_entity_id": CORP_ID,
                         }
                     ],
+                    "select post_id from source_post where post_id = any": [{"post_id": POST_ID}],
                     "select team_name from cataloged_team": "Demo Team",
                 }
             ),
@@ -819,6 +822,7 @@ def test_focus_label_fetch_may_be_empty_when_facts_already_labeled() -> None:
         "combined_post_person_mention": [post_row],
         "person_affiliation affiliation": [post_row],
         "post_team_mention": [post_row],
+        "select post_id from source_post where post_id = any": [{"post_id": POST_ID}],
     }
     post_neighborhood = asyncio.run(
         visible_ontology_neighborhood(
