@@ -84,7 +84,6 @@ context only.
 
 | PR | Exact observed head | Merge/check state at this snapshot |
 | ---: | --- | --- |
-| #704 | `bc2e5cbb` | recreates the external email/project lineage contract on current protected `main`; hosted checks and independent review required |
 | #667 | `3bc662d7` | refreshes protected-main and open-queue documentation evidence; base conflict remains to be repaired |
 | #663 | `6fd2f701` | combined Project ontology candidate plus #666's non-default-branch removal of sampled region-coverage arithmetic; base conflict remains to be repaired |
 | #658 | `f007a5ed` | evidence-honest Global Ask cutoff; hosted checks and independent review required |
