@@ -41,6 +41,9 @@ class _Connection:
     async def fetchrow(self, *_args: object):
         return self.row
 
+    async def fetch(self, *_args: object):
+        return []
+
     async def fetchval(self, query: str, *_args: object):
         if self.values:
             return self.values.pop(0)
@@ -170,6 +173,63 @@ def test_operations_sources_retry_when_a_source_clock_disappears(monkeypatch) ->
             {"corporate_entity_id": "corp", "process_unit_id": "pu"},
             SimpleNamespace(available=False),
         ))
+
+
+def test_new_project_evidence_requeues_siblings_with_missing_facts(monkeypatch) -> None:
+    """A newly analyzed project post wakes completed missing-fact analyses."""
+    sibling_id = "00000000-0000-0000-0000-000000000002"
+
+    class MissingFactConnection(_Connection):
+        async def fetch(self, query: str, *_args: object):
+            if "operations_case_missing_fact" in query:
+                assert _args[1] == SUCCEEDED
+                return [{"post_id": sibling_id, "post_body": "Synthetic sibling body"}]
+            return []
+
+    async def siblings(_conn, _post_id):
+        return frozenset({sibling_id})
+
+    queued: list[tuple[str, str, bool]] = []
+
+    async def ensure(_conn, post_id, body, *, content_complete):
+        queued.append((post_id, body, content_complete))
+        return SimpleNamespace(should_publish=True)
+
+    monkeypatch.setattr(post_content_worker, "find_project_sibling_post_ids", siblings)
+    monkeypatch.setattr(post_content_worker, "ensure_post_content_job", ensure)
+
+    count = asyncio.run(
+        post_content_worker._requeue_project_missing_case_jobs(
+            _Pool(MissingFactConnection()),
+            "00000000-0000-0000-0000-000000000001",
+        )
+    )
+
+    assert count == 1
+    assert queued == [(sibling_id, "Synthetic sibling body", False)]
+
+
+def test_missing_fact_requeue_stops_without_project_siblings(monkeypatch) -> None:
+    """An unlinked post does not create speculative retry work."""
+
+    async def no_siblings(_conn, _post_id):
+        return frozenset()
+
+    monkeypatch.setattr(
+        post_content_worker,
+        "find_project_sibling_post_ids",
+        no_siblings,
+    )
+
+    assert (
+        asyncio.run(
+            post_content_worker._requeue_project_missing_case_jobs(
+                _Pool(_Connection()),
+                "00000000-0000-0000-0000-000000000001",
+            )
+        )
+        == 0
+    )
 
 
 def test_terminal_failed_job_ignores_a_stale_duplicate_wakeup() -> None:
