@@ -95,6 +95,8 @@ stale evidence from a previously opened post.
 
 - Consume TEPP accepted/completed wire contracts and fast-mlsirm outputs; do
   not reimplement their arithmetic.
+- Let an authorized user request and start a new current-snapshot measurement
+  after a Failed run without mutating the terminal run history.
 - Use only provenance-bearing estimated weights anchored by independent
   lineage evidence.
 - Keep calibrated measurement, reconstruction relevance, and external truth

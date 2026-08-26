@@ -1329,6 +1329,7 @@ export interface AnalysisRun {
   scope_kind_code: string;
   scope_kind_label: string;
   scope_entity_name?: string;
+  scope_corporate_entity_id?: string;
   scope_key?: string;
   scope_grouping_key?: string;
   status_code: AnalysisRunStatusCode | null;

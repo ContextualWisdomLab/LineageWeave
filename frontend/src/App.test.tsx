@@ -407,6 +407,7 @@ describe("App, authenticated", () => {
             scope_kind_code: "analysis_scope_corporate_entity",
             scope_kind_label: "Corporate entity",
             scope_entity_name: "Demo Corp",
+            scope_corporate_entity_id: "corp-demo",
             status_code: teppStatus,
             status_label: teppLabel,
             knowledge_cutoff: "2026-01-12T12:00:00Z",
@@ -630,6 +631,7 @@ describe("App, authenticated", () => {
             scope_kind_code: "analysis_scope_corporate_entity",
             scope_kind_label: "Corporate entity",
             scope_entity_name: "Demo Corp",
+            scope_corporate_entity_id: "corp-demo",
             status_code: "analysis_status_failed",
             status_label: "Failed",
             failure_code: "tepp_not_available",
@@ -667,20 +669,54 @@ describe("App, authenticated", () => {
           }),
         );
       }
+      if (url.endsWith("/api/analysis-runs/run-demo-tepp-retry/start") && method === "POST") {
+        createdPendingTepp = {
+          analysis_run_id: "run-demo-tepp-retry",
+          run_kind_code: "analysis_run_tepp",
+          run_kind_label: "TEPP measurement",
+          scope_kind_code: "analysis_scope_corporate_entity",
+          scope_kind_label: "Corporate entity",
+          scope_entity_name: "Demo Corp",
+          scope_corporate_entity_id: "corp-demo",
+          status_code: "analysis_status_failed",
+          status_label: "Failed",
+          failure_code: "tepp_not_available",
+          knowledge_cutoff: "2026-01-13T12:00:00Z",
+          requested_at: "2026-01-13T12:01:00Z",
+          source_counts: [],
+          visible_posts: [],
+        };
+        return Promise.resolve(jsonResponse(createdPendingTepp));
+      }
       if (url.endsWith("/api/analysis-runs") && method === "POST") {
         const payload = init?.body ? JSON.parse(String(init.body)) : {};
-        if (payload.run_kind_code === "analysis_run_tepp" || payload.run_kind_code === "analysis_run_report") {
+        if (payload.run_kind_code === "analysis_run_report") {
           return Promise.resolve(
             new Response(
               JSON.stringify({
-                detail:
-                  payload.run_kind_code === "analysis_run_tepp"
-                    ? "Ask an administrator to enable measurement, then retry from the failed measurement run."
-                    : "Rebuild the period report from the Reports panel.",
+                detail: "Rebuild the period report from the Reports panel.",
               }),
               { status: 422, headers: { "Content-Type": "application/json" } },
             ),
           );
+        }
+        if (payload.run_kind_code === "analysis_run_tepp") {
+          createdPendingTepp = {
+            analysis_run_id: "run-demo-tepp-retry",
+            run_kind_code: "analysis_run_tepp",
+            run_kind_label: "TEPP measurement",
+            scope_kind_code: "analysis_scope_corporate_entity",
+            scope_kind_label: "Corporate entity",
+            scope_entity_name: "Demo Corp",
+            scope_corporate_entity_id: "corp-demo",
+            status_code: "analysis_status_pending",
+            status_label: "Pending",
+            knowledge_cutoff: "2026-01-13T12:00:00Z",
+            requested_at: "2026-01-13T12:01:00Z",
+            source_counts: [],
+            visible_posts: [],
+          };
+          return Promise.resolve(new Response(JSON.stringify(createdPendingTepp), { status: 201 }));
         }
         const created = {
           analysis_run_id: "run-demo-lineage-pending",
@@ -752,6 +788,7 @@ describe("App, authenticated", () => {
                 scope_kind_code: "analysis_scope_corporate_entity",
                 scope_kind_label: "Corporate entity",
                 scope_entity_name: "Demo Corp",
+                scope_corporate_entity_id: "corp-demo",
                 status_code: options?.succeededTeppRun
                   ? "analysis_status_succeeded"
                   : options?.pendingTeppRun
@@ -3276,7 +3313,7 @@ describe("App, authenticated", () => {
     expect(list).toHaveTextContent("TEPP measurement · Failed · Demo Corp");
     expect(list).toHaveTextContent("Period report · Succeeded · Demo Corp");
     expect(list).toHaveTextContent(
-      "Open this run to see why it failed. Ask an administrator to restore measurement, then run it again.",
+      "Open this run to see why it failed, then choose Retry measurement.",
     );
     expect(list).toHaveTextContent("3 documents");
     expect(list).not.toHaveTextContent("postgresql://");
@@ -3496,7 +3533,7 @@ describe("App, authenticated", () => {
     );
     expect(lineageButton).not.toHaveTextContent("measurement service");
     expect(teppButton).toHaveTextContent(
-      "Open this run to see why it failed. Ask an administrator to restore measurement, then run it again.",
+      "Open this run to see why it failed, then choose Retry measurement.",
     );
     expect(teppButton).not.toHaveTextContent("reconstruction");
   });
@@ -3831,7 +3868,7 @@ describe("App, authenticated", () => {
     expect(startCall?.[1]?.method).toBe("POST");
   });
 
-  it("does not invent a Pending TEPP row from a Failed TEPP run", async () => {
+  it("requests and starts a new measurement from a Failed run", async () => {
     const fetchMock = stubBackend();
     render(<App showLabPanels />);
 
@@ -3840,13 +3877,28 @@ describe("App, authenticated", () => {
         name: "Open analysis run: TEPP measurement · Failed · Demo Corp",
       }),
     );
-    expect(screen.queryByRole("button", { name: "Request a new TEPP measurement" })).not.toBeInTheDocument();
-    expect(screen.queryByRole("heading", { name: "TEPP measurement · Pending · Demo Corp" })).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Retry measurement" }));
+    await waitFor(() =>
+      expect(
+        fetchMock.mock.calls.some((call) =>
+          String(call[0]).endsWith("/api/analysis-runs/run-demo-tepp-retry/start"),
+        ),
+      ).toBe(true),
+    );
+    const createCall = fetchMock.mock.calls.find(
+      (call) => String(call[0]).endsWith("/api/analysis-runs") && call[1]?.method === "POST",
+    );
+    expect(JSON.parse(String(createCall?.[1]?.body))).toMatchObject({
+      run_kind_code: "analysis_run_tepp",
+      corporate_entity_id: "corp-demo",
+    });
     expect(
       fetchMock.mock.calls.some(
-        (call) => String(call[0]).endsWith("/api/analysis-runs") && call[1]?.method === "POST",
+        (call) =>
+          String(call[0]).endsWith("/api/analysis-runs/run-demo-tepp-retry/start") &&
+          call[1]?.method === "POST",
       ),
-    ).toBe(false);
+    ).toBe(true);
   });
 
   it("does not tell a succeeded TEPP run to replace Failed", async () => {

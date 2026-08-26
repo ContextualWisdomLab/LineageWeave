@@ -1,4 +1,4 @@
-# ADR 0017 — Operators request a pending lineage run on an authorized capture
+# ADR 0017 — Operators request a pending analysis run on an authorized capture
 
 **Decision status:** Accepted on this active PR; not protected-main truth until merge
 **Date:** 2026-08-16
@@ -14,9 +14,10 @@ ADR 0013 already required a transaction that creates snapshot, counts,
 run, scope, and the first status atomically. Follow-up 3 (outbox / worker)
 still owns reconstruction and live TEPP execution.
 
-`#125` landed that write and also accepted a TEPP kind. A Pending TEPP
-row that never called `tepp_client` is a fabricated measurement request.
-This decision keeps the live cutoff capture and closes that hole.
+`#125` landed the write before the durable TEPP start path existed. ADR 0022
+now submits Pending measurement work through `tepp_client`, so refusing to
+record the request no longer protects the measurement boundary; it only leaves
+the customer without a recovery action.
 
 ## Decision
 
@@ -24,9 +25,10 @@ This decision keeps the live cutoff capture and closes that hole.
 
 - `post_read` is enough. The caller may only cover a corporate entity
   they already walk. An unaffiliated corp is 404, not 403.
-- Only `analysis_run_lineage` is accepted. TEPP stays a `tepp_client`
-  wire path (`tepp_not_available` / `tepp_result_not_persisted`). Period
-  reports stay on the Reports panel rebuild.
+- Lineage, TEPP measurement, and topic-lineage requests are accepted. Their
+  first status is Pending; TEPP execution remains a `tepp_client` wire path
+  (`tepp_not_available` / `tepp_result_not_persisted`). Period reports stay on
+  the Reports panel rebuild.
 - The capture digest hashes scope, entity, cutoff, and authorized post
   ids — never a post body, DSN, source SQL, or a theta.
 - The write inserts snapshot, aggregate counts, frozen
@@ -47,7 +49,7 @@ sequenceDiagram
     participant API
     participant Registry
     Operator->>API: POST /api/analysis-runs
-    alt TEPP, report, or unknown kind
+    alt report or unknown kind
         API-->>Operator: 422 next-action (no registry write)
     else same account+key+digest
         API->>Registry: compare configuration digest
@@ -55,7 +57,7 @@ sequenceDiagram
         API-->>Operator: 201 replay
     else same key, different digest
         API-->>Operator: 409 conflict
-    else lineage kind, new key
+    else supported kind, new key
         API->>Registry: capture authorized cutoff bag
         Registry->>Registry: snapshot + counts + run + scope + pending
         API-->>Operator: 201 Pending row
@@ -64,14 +66,14 @@ sequenceDiagram
 
 The home panel's **Request a lineage reconstruction** button stays
 disabled until `GET /api/me` returns affiliated corps, then records
-that Pending row for the chosen entity. Only a failed TEPP row
-mentions the measurement service. Failed TEPP is terminal on this
-write: create does not invent a Pending TEPP row.
+that Pending row for the chosen entity. A Failed measurement remains terminal;
+its retry action creates a new current-snapshot Pending row and starts it
+through ADR 0022 rather than mutating history.
 
 ## Consequences
 
-- Demo Analyst can request a new Pending Demo Corp lineage run after
-  `make seed` without inventing a measurement.
+- An authorized analyst can request a new Pending lineage, measurement, or
+  topic-lineage run without claiming a result.
 - A multi-affiliation account sees the corp picker before the Request
   button enables, then chooses the corp before clicking.
 - `POST /api/analysis-runs/{id}/start` then reconstructs that frozen bag

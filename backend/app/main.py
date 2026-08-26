@@ -3577,8 +3577,8 @@ class CreateAnalysisRunRequest(BaseModel):
     """JSON body for ``POST /api/analysis-runs``.
 
     Omitting ``corporate_entity_id`` uses the account's sole affiliation.
-    Only ``analysis_run_lineage`` is accepted. Reconstruction and TEPP
-    execution stay later slices; this write records Pending lineage only.
+    Lineage, measurement, and topic-lineage requests are accepted. Execution
+    stays on the start/outbox path; this write records Pending only.
     """
 
     run_kind_code: str = "analysis_run_lineage"
@@ -3594,12 +3594,12 @@ async def create_analysis_run(
     account: CurrentAccount = Depends(get_current_account),
     pool: asyncpg.Pool = Depends(get_pool),
 ) -> dict[str, Any]:
-    """Record a Pending lineage run on an authorized cutoff capture.
+    """Record a Pending analysis request on an authorized cutoff capture.
 
     post_read is enough: the caller requests a run of a corp they
-    already walk. TEPP and period-report kinds are 422 so this path
-    cannot invent a measurement. Hidden scopes 404. A matching
-    idempotent retry returns the same run.
+    already walk. Measurement work remains Pending until the TEPP start
+    path submits it; period-report stays on its rebuild path. Hidden scopes
+    404. A matching idempotent retry returns the same run.
     """
     _require_post_read(account)
     async with pool.acquire() as conn:

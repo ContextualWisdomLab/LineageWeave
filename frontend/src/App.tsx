@@ -3033,6 +3033,15 @@ function analysisRunStartLabel(run: AnalysisRun): string {
   return "Start reconstruction";
 }
 
+function analysisRunCanRetryMeasurement(run: AnalysisRun): boolean {
+  return (
+    (run.run_kind_code === "analysis_run_tepp" ||
+      run.run_kind_code === "analysis_run_topic_lineage") &&
+    run.status_code === "analysis_status_failed" &&
+    Boolean(run.scope_corporate_entity_id)
+  );
+}
+
 const REPORT_PERIOD_KEY = /^\d{4}-W\d{2}$/;
 
 /**
@@ -3182,7 +3191,7 @@ function AnalysisRunsPanel({
       if (err instanceof BackendError && err.status === 409) {
         inFlightKeyRef.current = null;
         setError(
-          "This request key already names a different reconstruction. Request again to start a new run.",
+          "This request key already names a different analysis. Request again to start a new run.",
         );
       } else {
         setError(err instanceof BackendError ? err.message : String(err));
@@ -3202,6 +3211,30 @@ function AnalysisRunsPanel({
       setRuns(listed.analysis_runs);
       setSelected(started);
     } catch (err) {
+      setError(err instanceof BackendError ? err.message : String(err));
+    } finally {
+      setStarting(false);
+    }
+  }
+
+  async function handleRetryMeasurement() {
+    if (!selected || !analysisRunCanRetryMeasurement(selected)) return;
+    setError(null);
+    setStarting(true);
+    if (inFlightKeyRef.current === null) inFlightKeyRef.current = crypto.randomUUID();
+    try {
+      const created = await createAnalysisRun(accessToken, {
+        run_kind_code: selected.run_kind_code,
+        corporate_entity_id: selected.scope_corporate_entity_id,
+        idempotency_key: inFlightKeyRef.current,
+      });
+      const started = await startAnalysisRun(accessToken, created.analysis_run_id);
+      const listed = await fetchAnalysisRuns(accessToken);
+      setRuns(listed.analysis_runs);
+      setSelected(started);
+      inFlightKeyRef.current = null;
+    } catch (err) {
+      if (err instanceof BackendError && err.status === 409) inFlightKeyRef.current = null;
       setError(err instanceof BackendError ? err.message : String(err));
     } finally {
       setStarting(false);
@@ -3313,6 +3346,25 @@ function AnalysisRunsPanel({
                     ? "Submitting the topic-lineage request..."
                     : "Reconstructing the cutoff bag..."
                 : analysisRunStartLabel(selected)}
+            </button>
+          )}
+          {analysisRunCanRetryMeasurement(selected) && (
+            <button
+              className="keyman-select"
+              disabled={starting}
+              onClick={() => void handleRetryMeasurement()}
+            >
+              {starting
+                ? analysisRunText(
+                    selected.run_kind_code === "analysis_run_topic_lineage"
+                      ? "retryingTopicLineage"
+                      : "retryingMeasurement",
+                  )
+                : analysisRunText(
+                    selected.run_kind_code === "analysis_run_topic_lineage"
+                      ? "retryTopicLineage"
+                      : "retryMeasurement",
+                  )}
             </button>
           )}
           {analysisRunReportPeriod(selected) && onSelectReportPeriod && (
