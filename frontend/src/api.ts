@@ -354,7 +354,7 @@ export interface ChatHistory {
 
 export interface PostAskConversationSummary {
   conversation_id: string;
-  title: string;
+  title: string | null;
   updated_at: string;
   turn_count: number;
 }
@@ -1160,16 +1160,22 @@ export function askPostChat(
 export function fetchPostChatConversations(
   accessToken: string,
   postId: string,
+  cursor?: { updated_at: string; conversation_id: string },
 ): Promise<PostAskConversationPage> {
-  return backendFetch(`/api/posts/${postId}/chat/conversations`, accessToken);
+  const query = cursor
+    ? `?before_updated_at=${encodeURIComponent(cursor.updated_at)}&before_conversation_id=${encodeURIComponent(cursor.conversation_id)}`
+    : "";
+  return backendFetch(`/api/posts/${postId}/chat/conversations${query}`, accessToken);
 }
 
 export function fetchPostChatConversation(
   accessToken: string,
   postId: string,
   conversationId: string,
+  beforeTurn?: number,
 ): Promise<PostAskConversation> {
-  return backendFetch(`/api/posts/${postId}/chat/conversations/${conversationId}`, accessToken);
+  const query = beforeTurn === undefined ? "" : `?before_turn=${beforeTurn}`;
+  return backendFetch(`/api/posts/${postId}/chat/conversations/${conversationId}${query}`, accessToken);
 }
 
 /** How often the queued Ask job is polled, and for how long overall.
