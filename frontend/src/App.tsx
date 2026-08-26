@@ -3200,7 +3200,7 @@ function AnalysisRunsPanel({
                 ? selected.run_kind_code === "analysis_run_tepp"
                   ? "Starting temporal measurement..."
                   : selected.run_kind_code === "analysis_run_topic_lineage"
-                    ? "Submitting the topic journey analysis..."
+                    ? "Starting topic journey analysis..."
                     : "Reconstructing the cutoff bag..."
                 : analysisRunStartLabel(selected)}
             </button>
