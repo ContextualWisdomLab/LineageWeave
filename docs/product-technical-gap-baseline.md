@@ -1,5 +1,62 @@
 # Product & Technical Gap Baseline
 
+> Current queue overlay: 2026-08-27 KST. Protected `main` was
+> `ff7431bd1851c03e737808d22c6a2d43968582f9`; 25 PRs and 10 issues were
+> open. This overlay supersedes the older queue count and exact-head table
+> below, which remain historical evidence. Re-fetch the head, checks, reviews,
+> threads, applicable rulesets, and merge SHA immediately before any lifecycle
+> claim. No local branch or stacked-branch result is protected-main evidence.
+
+## Current occupational semantic-layer gap
+
+ADR 0245's candidate branch publishes only a provenance-safe classification
+foundation: 23 2018 SOC major groups, four O*NET 31.0 Job Zone categories, six RIASEC interest
+types and their published adjacency, six explicitly legacy work-value clusters, seven
+revised work-style dimensions, and four ability domains. It asserts no
+occupation-to-characteristic instance profile and therefore does **not** yet
+satisfy the requested job-family, job-series, and occupation-level coverage of
+work cognition, affect, behavior, or their empirical relations. This is an
+explicit unavailable state, not a reason to infer mappings from labels.
+
+| Gap | Current evidence | Acceptance requirement |
+|---|---|---|
+| Classification depth | ADR 0245 and `lineageweave/io_taxonomy.py` expose SOC major groups only | Import a versioned authoritative classification release with provenance-preserving major, minor, broad, and detailed occupation identifiers; add ISCO/ESCO crosswalks only where the publishing authority supplies them |
+| Construct granularity | The candidate ontology exposes 23 high-level characteristic concepts | Publish source-versioned O*NET abilities, skills, knowledge, work activities, work context, interests, and work styles without collapsing cognition, affect, and behavior into one dimension; preserve removed Work Values only as versioned legacy content |
+| Occupation-to-construct relations | ADR 0245 deliberately declares relation properties without instance assertions | Persist released source observations with source version, occupation code, element identifier, scale identifier, value, sample/error metadata when supplied, and provenance; never invent or locally normalize a weight |
+| Job-family and job-series semantics | No authoritative employer-specific job architecture is present | Define an organization-neutral import contract that preserves the authorized source hierarchy and distinguishes standard occupation codes from employer job families/series; no label-based binding |
+| Temporal and multilevel interpretation | Static vocabulary only; no person-level inference is asserted | Version valid and transaction time, preserve occupation/organization/unit nesting and multiple membership, and require TEPP or the owning Rust psychometric service before any calibrated temporal or multilevel result |
+| Product consumption | The read model has no persisted semantic-layer consumer or authenticated UI evidence | Add a provenance-bearing API and accessible ontology exploration flow, then verify synthetic Storybook edge states plus authenticated aggregate runtime evidence without exposing identifying records |
+
+### Current exact-head PR queue
+
+| PR | Exact observed head | Base | Observed gate state |
+|---:|---|---|---|
+| #717 | `461a4d12` | `feat/voice-of-x-complete-taxonomy` | unstable stacked repair; one pending check |
+| #716 | `5d2a26dc` | `fix/structured-workflow-exact-pin` | unstable stacked repair; one pending check |
+| #715 | `3cc44e89` | `feat/dashboard-case-metrics` | stacked repair; Checks observed successful, independent approval not observed |
+| #714 | `5f294c72` | `main` | blocked; one pending check |
+| #713 | `cc3dfc14` | `main` | blocked; review required; one pending check |
+| #711 | `33fd146e` | `feat/dashboard-case-metrics` | unstable; one failed check |
+| #710 | `8df04b68` | `main` | blocked; review required; one pending check |
+| #709 | `8ef4090c` | `main` | blocked; review required; one pending check |
+| #704 | `027323cf` | `main` | blocked; review required; two failed and one pending check |
+| #702 | `ff22ca22` | `main` | blocked; review required; two pending checks |
+| #701 | `cc3351a9` | `main` | blocked; review required; one failed check |
+| #700 | `1bc99eca` | `main` | blocked; review required; one failed check |
+| #680 | `efe864e5` | `main` | blocked; one failed and one pending check |
+| #679 | `13ecf41d` | `main` | blocked; two pending checks |
+| #672 | `a3e87a89` | `main` | blocked; review required; one failed check |
+| #668 | `1194f44d` | `main` | blocked; review required; one failed check |
+| #667 | `4855c380` | `main` | blocked; review required; one failed and one pending check |
+| #658 | `15d670f0` | `main` | blocked; review required; one failed check |
+| #657 | `9f71681c` | `main` | blocked; review required; one failed check |
+| #644 | `f53dd28e` | `main` | blocked; review required; one failed check |
+| #643 | `8767de1b` | `main` | blocked; review required; one failed and two pending checks |
+| #640 | `fa9f0aeb` | `main` | blocked; four failed and one pending check; #715 is its stacked repair |
+| #639 | `2f4b1bff` | `main` | blocked; review required; one failed check |
+| #632 | `24262a99` | `main` | blocked; review required; one failed check |
+| #629 | `b721b0f2` | `main` | blocked; review required; one failed check |
+
 > Dashboard delivery snapshot: 2026-08-26 07:15 KST. Protected `main` was
 > `494b54e2245040bcf02b45376f221c37cd437e76`. This local branch is not
 > protected-main release evidence.

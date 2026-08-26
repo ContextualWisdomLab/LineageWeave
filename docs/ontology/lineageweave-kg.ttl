@@ -625,3 +625,376 @@
     skos:prefLabel "Handling"@en ;
     :fjaDomain "things" ; :fjaRank 7 ;
     skos:definition "Using body members, handtools, and/or special devices to work, move, or carry objects or materials. Involves little or no latitude for judgment with regard to attainment of standards or in selecting appropriate tool, object, or materials."@en .
+#################################################################
+# I-O occupational classification, job-zone preparation, and
+# worker-characteristic taxonomy (ADR 0245).
+#
+# The 2018 Standard Occupational Classification major groups -- the
+# same 23 groupings the O*NET program publishes as its job families --
+# give stored evidence an addressable occupational-classification
+# vocabulary. The O*NET job zones carry published preparation levels;
+# the Holland RIASEC interest types, O*NET work-value clusters,
+# personality-linked work-style families (Hogan & Holland, 2003), and
+# Fleishman ability domains carry the worker-characteristic constructs
+# that the O*NET content model organizes under every occupation
+# (Peterson et al., 1999; Peterson et al., 2001).
+#
+# Provenance discipline mirrors ADR 0232:
+# - Titles and names are copied from the published tables; nothing is
+#   paraphrased into an official definition.
+# - No numeric importance or level rating from any occupational profile
+#   is imported here; measurement stays governed by ADR 0145.
+# - The four typed derivation properties below are declared but assert
+#   no instance binding yet: binding a classification to a
+#   characteristic requires importing a versioned released source
+#   profile with provenance in its own decision.
+#
+# Like the worker functions above, these concepts deliberately do NOT
+# carry :lookupCode: they are not common_lookup_value rows.
+#################################################################
+
+# ---- Occupational classification: classes, scheme, code property ----
+
+:OccupationalClassification a owl:Class ;
+    rdfs:label "Occupational classification"@en ;
+    rdfs:comment "A source-versioned node in an authoritative occupational classification hierarchy."@en .
+
+:OccupationalMajorGroup a owl:Class ;
+    rdfs:subClassOf :OccupationalClassification ;
+    rdfs:label "Occupational major group"@en ;
+    rdfs:comment "One of the 23 major groups of the 2018 Standard Occupational Classification, which the O*NET program publishes as its job-family grouping of detailed occupations."@en .
+
+:socMajorGroupScheme a skos:ConceptScheme ;
+    skos:prefLabel "O*NET job families (2018 SOC major groups)"@en ;
+    skos:definition "The 23 major groups of the 2018 Standard Occupational Classification, adopted as the O*NET job-family grouping."@en ;
+    rdfs:seeAlso <https://www.bls.gov/soc/> , <https://www.onetcenter.org/taxonomy.html> , :workerFunctionScheme .
+
+:socCode a owl:DatatypeProperty ;
+    rdfs:domain :OccupationalMajorGroup ;
+    rdfs:range xsd:string ;
+    rdfs:label "SOC code"@en ;
+    rdfs:comment "The official major-group code from the published 2018 SOC table, in the form \"NN-0000\"."@en .
+
+:majorGroupManagement a skos:Concept , :OccupationalMajorGroup ;
+    skos:inScheme :socMajorGroupScheme ;
+    skos:prefLabel "Management Occupations"@en ;
+    :socCode "11-0000" .
+
+:majorGroupBusinessFinancialOperations a skos:Concept , :OccupationalMajorGroup ;
+    skos:inScheme :socMajorGroupScheme ;
+    skos:prefLabel "Business and Financial Operations Occupations"@en ;
+    :socCode "13-0000" .
+
+:majorGroupComputerMathematical a skos:Concept , :OccupationalMajorGroup ;
+    skos:inScheme :socMajorGroupScheme ;
+    skos:prefLabel "Computer and Mathematical Occupations"@en ;
+    :socCode "15-0000" .
+
+:majorGroupArchitectureEngineering a skos:Concept , :OccupationalMajorGroup ;
+    skos:inScheme :socMajorGroupScheme ;
+    skos:prefLabel "Architecture and Engineering Occupations"@en ;
+    :socCode "17-0000" .
+
+:majorGroupLifePhysicalSocialScience a skos:Concept , :OccupationalMajorGroup ;
+    skos:inScheme :socMajorGroupScheme ;
+    skos:prefLabel "Life, Physical, and Social Science Occupations"@en ;
+    :socCode "19-0000" .
+
+:majorGroupCommunitySocialService a skos:Concept , :OccupationalMajorGroup ;
+    skos:inScheme :socMajorGroupScheme ;
+    skos:prefLabel "Community and Social Service Occupations"@en ;
+    :socCode "21-0000" .
+
+:majorGroupLegal a skos:Concept , :OccupationalMajorGroup ;
+    skos:inScheme :socMajorGroupScheme ;
+    skos:prefLabel "Legal Occupations"@en ;
+    :socCode "23-0000" .
+
+:majorGroupEducationTrainingLibrary a skos:Concept , :OccupationalMajorGroup ;
+    skos:inScheme :socMajorGroupScheme ;
+    skos:prefLabel "Educational Instruction and Library Occupations"@en ;
+    :socCode "25-0000" .
+
+:majorGroupArtsDesignEntertainmentSportsMedia a skos:Concept , :OccupationalMajorGroup ;
+    skos:inScheme :socMajorGroupScheme ;
+    skos:prefLabel "Arts, Design, Entertainment, Sports, and Media Occupations"@en ;
+    :socCode "27-0000" .
+
+:majorGroupHealthcarePractitionersTechnical a skos:Concept , :OccupationalMajorGroup ;
+    skos:inScheme :socMajorGroupScheme ;
+    skos:prefLabel "Healthcare Practitioners and Technical Occupations"@en ;
+    :socCode "29-0000" .
+
+:majorGroupHealthcareSupport a skos:Concept , :OccupationalMajorGroup ;
+    skos:inScheme :socMajorGroupScheme ;
+    skos:prefLabel "Healthcare Support Occupations"@en ;
+    :socCode "31-0000" .
+
+:majorGroupProtectiveService a skos:Concept , :OccupationalMajorGroup ;
+    skos:inScheme :socMajorGroupScheme ;
+    skos:prefLabel "Protective Service Occupations"@en ;
+    :socCode "33-0000" .
+
+:majorGroupFoodPreparationServingRelated a skos:Concept , :OccupationalMajorGroup ;
+    skos:inScheme :socMajorGroupScheme ;
+    skos:prefLabel "Food Preparation and Serving Related Occupations"@en ;
+    :socCode "35-0000" .
+
+:majorGroupBuildingGroundsCleaningMaintenance a skos:Concept , :OccupationalMajorGroup ;
+    skos:inScheme :socMajorGroupScheme ;
+    skos:prefLabel "Building and Grounds Cleaning and Maintenance Occupations"@en ;
+    :socCode "37-0000" .
+
+:majorGroupPersonalCareService a skos:Concept , :OccupationalMajorGroup ;
+    skos:inScheme :socMajorGroupScheme ;
+    skos:prefLabel "Personal Care and Service Occupations"@en ;
+    :socCode "39-0000" .
+
+:majorGroupSalesRelated a skos:Concept , :OccupationalMajorGroup ;
+    skos:inScheme :socMajorGroupScheme ;
+    skos:prefLabel "Sales and Related Occupations"@en ;
+    :socCode "41-0000" .
+
+:majorGroupOfficeAdministrativeSupport a skos:Concept , :OccupationalMajorGroup ;
+    skos:inScheme :socMajorGroupScheme ;
+    skos:prefLabel "Office and Administrative Support Occupations"@en ;
+    :socCode "43-0000" .
+
+:majorGroupFarmingFishingForestry a skos:Concept , :OccupationalMajorGroup ;
+    skos:inScheme :socMajorGroupScheme ;
+    skos:prefLabel "Farming, Fishing, and Forestry Occupations"@en ;
+    :socCode "45-0000" .
+
+:majorGroupConstructionExtraction a skos:Concept , :OccupationalMajorGroup ;
+    skos:inScheme :socMajorGroupScheme ;
+    skos:prefLabel "Construction and Extraction Occupations"@en ;
+    :socCode "47-0000" .
+
+:majorGroupInstallationMaintenanceRepair a skos:Concept , :OccupationalMajorGroup ;
+    skos:inScheme :socMajorGroupScheme ;
+    skos:prefLabel "Installation, Maintenance, and Repair Occupations"@en ;
+    :socCode "49-0000" .
+
+:majorGroupProduction a skos:Concept , :OccupationalMajorGroup ;
+    skos:inScheme :socMajorGroupScheme ;
+    skos:prefLabel "Production Occupations"@en ;
+    :socCode "51-0000" .
+
+:majorGroupTransportationMaterialMoving a skos:Concept , :OccupationalMajorGroup ;
+    skos:inScheme :socMajorGroupScheme ;
+    skos:prefLabel "Transportation and Material Moving Occupations"@en ;
+    :socCode "53-0000" .
+
+:majorGroupMilitarySpecialties a skos:Concept , :OccupationalMajorGroup ;
+    skos:inScheme :socMajorGroupScheme ;
+    skos:prefLabel "Military Specific Occupations"@en ;
+    :socCode "55-0000" .
+
+# ---- Job zones: published preparation-level ordering ----
+
+:JobZone a owl:Class ;
+    rdfs:label "Job zone"@en ;
+    rdfs:comment "One of the four O*NET 31.0 job-zone categories: groups of occupations by the education, experience, and training usually needed to perform them."@en .
+
+:jobZoneScheme a skos:ConceptScheme ;
+    skos:prefLabel "O*NET job zones"@en ;
+    skos:definition "The four O*NET 31.0 preparation categories, using published zone values 2 through 5; the first category combines former zones 1 and 2."@en ;
+    rdfs:seeAlso <https://www.onetcenter.org/dictionary/31.0/json/job_zone_reference.html> .
+
+:jobZoneLevel a owl:DatatypeProperty ;
+    rdfs:domain :JobZone ;
+    rdfs:range xsd:integer ;
+    rdfs:label "job zone level"@en ;
+    rdfs:comment "The published O*NET 31.0 zone value, 2 through 5. It is a source code, not a fitted weight."@en .
+
+:jobZoneVeryLittleToSomePreparation a skos:Concept , :JobZone ;
+    skos:inScheme :jobZoneScheme ;
+    skos:prefLabel "Job Zone 1-2: Very Little to Some Preparation Needed"@en ;
+    :jobZoneLevel 2 .
+
+:jobZoneMediumPreparation a skos:Concept , :JobZone ;
+    skos:inScheme :jobZoneScheme ;
+    skos:prefLabel "Job Zone Three: Medium Preparation Needed"@en ;
+    :jobZoneLevel 3 .
+
+:jobZoneConsiderablePreparation a skos:Concept , :JobZone ;
+    skos:inScheme :jobZoneScheme ;
+    skos:prefLabel "Job Zone Four: Considerable Preparation Needed"@en ;
+    :jobZoneLevel 4 .
+
+:jobZoneExtensivePreparation a skos:Concept , :JobZone ;
+    skos:inScheme :jobZoneScheme ;
+    skos:prefLabel "Job Zone Five: Extensive Preparation Needed"@en ;
+    :jobZoneLevel 5 .
+
+# ---- Worker characteristics: shared class and typed derivation ----
+
+:WorkerCharacteristic a owl:Class ;
+    rdfs:label "Worker characteristic"@en ;
+    rdfs:comment "A published worker-characteristic construct family that the O*NET content model organizes under occupations: ability domains, interest types, work-value clusters, and personality-linked work-style families (Peterson et al., 1999)."@en .
+
+:AbilityDomain a owl:Class ;
+    rdfs:subClassOf :WorkerCharacteristic ;
+    rdfs:label "Ability domain"@en ;
+    rdfs:comment "One of four broad human-performance ability domains used here as a source taxonomy: cognitive, psychomotor, physical, and sensory."@en .
+
+:InterestType a owl:Class ;
+    rdfs:subClassOf :WorkerCharacteristic ;
+    rdfs:label "Interest type"@en ;
+    rdfs:comment "One of Holland's six RIASEC vocational interest types as adopted by the O*NET Interest Profiler (Holland, 1997)."@en .
+
+:WorkValueCluster a owl:Class ;
+    rdfs:subClassOf :WorkerCharacteristic ;
+    rdfs:label "Work value cluster"@en ;
+    rdfs:comment "One of six legacy O*NET work-value clusters retained as an explicitly historical vocabulary, not a current O*NET 31.0 profile assertion."@en .
+
+:WorkStyleFamily a owl:Class ;
+    rdfs:subClassOf :WorkerCharacteristic ;
+    rdfs:label "Work style family"@en ;
+    rdfs:comment "One of the seven higher-order dimensions in the revised O*NET Work Styles structure published for the current content model."@en .
+
+:abilityDomainCognitive a skos:Concept , :AbilityDomain ;
+    skos:inScheme :workerCharacteristicScheme ;
+    skos:prefLabel "Cognitive Abilities"@en ;
+    rdfs:seeAlso :workerFunctionScheme ;
+    rdfs:comment "The Fleishman domain covering reasoning, idea generation, memory, verbal, and quantitative abilities exercised when a worker processes information (Fleishman & Quaintance, 1984)."@en .
+
+:abilityDomainPsychomotor a skos:Concept , :AbilityDomain ;
+    skos:inScheme :workerCharacteristicScheme ;
+    skos:prefLabel "Psychomotor Abilities"@en ;
+    rdfs:comment "The Fleishman domain covering coordinated movement and reaction abilities such as control precision, rate control, and multilimb coordination (Fleishman & Quaintance, 1984)."@en .
+
+:abilityDomainPhysical a skos:Concept , :AbilityDomain ;
+    skos:inScheme :workerCharacteristicScheme ;
+    skos:prefLabel "Physical Abilities"@en ;
+    rdfs:comment "The Fleishman domain covering strength, endurance, flexibility, balance, and stamina (Fleishman & Quaintance, 1984)."@en .
+
+:abilityDomainSensoryPerceptual a skos:Concept , :AbilityDomain ;
+    skos:inScheme :workerCharacteristicScheme ;
+    skos:prefLabel "Sensory Abilities"@en ;
+    rdfs:comment "The Fleishman domain covering visual, auditory, and other sensory discrimination and perceptual-speed abilities (Fleishman & Quaintance, 1984)."@en .
+
+:interestRealistic a skos:Concept , :InterestType ;
+    skos:inScheme :workerCharacteristicScheme ;
+    skos:prefLabel "Realistic"@en ;
+    :riasecAdjacentTo :interestInvestigative , :interestConventional ;
+    rdfs:comment "Realistic occupations frequently involve work activities that include practical, hands-on problems and solutions. They often deal with plants, animals, and real-world materials like wood, tools, and machinery."@en .
+
+:interestInvestigative a skos:Concept , :InterestType ;
+    skos:inScheme :workerCharacteristicScheme ;
+    skos:prefLabel "Investigative"@en ;
+    :riasecAdjacentTo :interestArtistic , :interestRealistic ;
+    rdfs:comment "Investigative occupations frequently involve working with ideas, and require an extensive amount of thinking. These occupations can involve searching for facts and figuring out problems mentally."@en .
+
+:interestArtistic a skos:Concept , :InterestType ;
+    skos:inScheme :workerCharacteristicScheme ;
+    skos:prefLabel "Artistic"@en ;
+    :riasecAdjacentTo :interestSocial , :interestInvestigative ;
+    rdfs:comment "Artistic occupations frequently involve working with forms, designs and patterns. They often require self-expression and the work can be done without following a clear set of rules."@en .
+
+:interestSocial a skos:Concept , :InterestType ;
+    skos:inScheme :workerCharacteristicScheme ;
+    skos:prefLabel "Social"@en ;
+    :riasecAdjacentTo :interestEnterprising , :interestArtistic ;
+    rdfs:comment "Social occupations frequently involve working with, communicating with, and teaching people. These occupations often involve helping or providing service to others."@en .
+
+:interestEnterprising a skos:Concept , :InterestType ;
+    skos:inScheme :workerCharacteristicScheme ;
+    skos:prefLabel "Enterprising"@en ;
+    :riasecAdjacentTo :interestConventional , :interestSocial ;
+    rdfs:comment "Enterprising occupations frequently involve starting up and carrying out projects. These occupations can involve leading people and making many decisions. Sometimes they require risk taking and often deal with business."@en .
+
+:interestConventional a skos:Concept , :InterestType ;
+    skos:inScheme :workerCharacteristicScheme ;
+    skos:prefLabel "Conventional"@en ;
+    :riasecAdjacentTo :interestRealistic , :interestEnterprising ;
+    rdfs:comment "Conventional occupations frequently involve following set procedures and routines. These occupations can include working with data and details more than with ideas. Usually there is a clear line of authority to follow."@en .
+
+:riasecAdjacentTo a owl:ObjectProperty , owl:SymmetricProperty ;
+    rdfs:domain :InterestType ;
+    rdfs:range :InterestType ;
+    rdfs:label "RIASEC adjacent to"@en ;
+    rdfs:comment "Holland's published hexagonal adjacency between two interest types: adjacent types are more alike than alternate or opposite types (Holland, 1997). The six asserted pairs are the ring edges Realistic-Investigative-Artistic-Social-Enterprising-Conventional-Realistic."@en .
+
+:workValueClusterAchievement a skos:Concept , :WorkValueCluster ;
+    skos:inScheme :workerCharacteristicScheme ;
+    skos:prefLabel "Achievement"@en .
+
+:workValueClusterIndependence a skos:Concept , :WorkValueCluster ;
+    skos:inScheme :workerCharacteristicScheme ;
+    skos:prefLabel "Independence"@en .
+
+:workValueClusterRecognition a skos:Concept , :WorkValueCluster ;
+    skos:inScheme :workerCharacteristicScheme ;
+    skos:prefLabel "Recognition"@en .
+
+:workValueClusterRelationships a skos:Concept , :WorkValueCluster ;
+    skos:inScheme :workerCharacteristicScheme ;
+    skos:prefLabel "Relationships"@en .
+
+:workValueClusterSupport a skos:Concept , :WorkValueCluster ;
+    skos:inScheme :workerCharacteristicScheme ;
+    skos:prefLabel "Support"@en .
+
+:workValueClusterWorkingConditions a skos:Concept , :WorkValueCluster ;
+    skos:inScheme :workerCharacteristicScheme ;
+    skos:prefLabel "Working Conditions"@en .
+
+:workStyleFamilyOpenness a skos:Concept , :WorkStyleFamily ;
+    skos:inScheme :workerCharacteristicScheme ;
+    skos:prefLabel "Openness"@en .
+
+:workStyleFamilyConscientiousness a skos:Concept , :WorkStyleFamily ;
+    skos:inScheme :workerCharacteristicScheme ;
+    skos:prefLabel "Conscientiousness"@en .
+
+:workStyleFamilyExtraversion a skos:Concept , :WorkStyleFamily ;
+    skos:inScheme :workerCharacteristicScheme ;
+    skos:prefLabel "Extraversion"@en .
+
+:workStyleFamilyAgreeableness a skos:Concept , :WorkStyleFamily ;
+    skos:inScheme :workerCharacteristicScheme ;
+    skos:prefLabel "Agreeableness"@en .
+
+:workStyleFamilyEmotionalStability a skos:Concept , :WorkStyleFamily ;
+    skos:inScheme :workerCharacteristicScheme ;
+    skos:prefLabel "Emotional Stability"@en .
+
+:workStyleFamilyHonestyHumility a skos:Concept , :WorkStyleFamily ;
+    skos:inScheme :workerCharacteristicScheme ;
+    skos:prefLabel "Honesty-Humility"@en .
+
+:workStyleFamilyCompoundDimensions a skos:Concept , :WorkStyleFamily ;
+    skos:inScheme :workerCharacteristicScheme ;
+    skos:prefLabel "Compound Dimensions"@en .
+
+:workerCharacteristicScheme a skos:ConceptScheme ;
+    skos:prefLabel "O*NET worker-characteristic families"@en ;
+    skos:definition "Published worker-characteristic construct families: Fleishman ability domains, Holland RIASEC interest types, O*NET work-value clusters, and the seven higher-order dimensions of the revised O*NET Work Styles structure."@en ;
+    rdfs:seeAlso <https://www.onetcenter.org/contentmodel/> , <https://www.onetcenter.org/reports/Work_Styles_New.html> .
+
+# ---- Typed derivation properties (declared; no instance asserted) ----
+
+:occupationalAbilityDemand a owl:ObjectProperty ;
+    rdfs:domain :OccupationalClassification ;
+    rdfs:range :AbilityDomain ;
+    rdfs:label "occupational ability demand"@en ;
+    rdfs:comment "Declares that a versioned, released occupational profile requires the referenced ability domain. This ontology asserts no such binding yet; instance assertions must be imported with provenance from a released source database in their own decision."@en .
+
+:occupationalInterestProfile a owl:ObjectProperty ;
+    rdfs:domain :OccupationalClassification ;
+    rdfs:range :InterestType ;
+    rdfs:label "occupational interest profile"@en ;
+    rdfs:comment "Declares that a versioned, released occupational profile aligns the referenced interest type with the occupation. This ontology asserts no such binding yet; instance assertions must be imported with provenance in their own decision."@en .
+
+:occupationalValueOrientation a owl:ObjectProperty ;
+    rdfs:domain :OccupationalClassification ;
+    rdfs:range :WorkValueCluster ;
+    rdfs:label "occupational value orientation"@en ;
+    rdfs:comment "Declares that a versioned, released occupational profile names the referenced work-value cluster among the values its workers find satisfying. This ontology asserts no such binding yet; instance assertions must be imported with provenance in their own decision."@en .
+
+:occupationalWorkStyleNorm a owl:ObjectProperty ;
+    rdfs:domain :OccupationalClassification ;
+    rdfs:range :WorkStyleFamily ;
+    rdfs:label "occupational work style norm"@en ;
+    rdfs:comment "Declares that a versioned, released occupational profile expects the referenced work-style family of its workers. This ontology asserts no such binding yet; instance assertions must be imported with provenance in their own decision."@en .
