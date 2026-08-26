@@ -94,7 +94,13 @@ def content_model_records() -> tuple[OnetContentModelRecord, ...]:
             )
         )
     return tuple(
-        sorted(records, key=lambda record: tuple(record.element_id.split(".")))
+        sorted(
+            records,
+            key=lambda record: tuple(
+                (0, int(part)) if part.isdigit() else (1, part)
+                for part in record.element_id.split(".")
+            ),
+        )
     )
 
 
