@@ -1,6 +1,6 @@
 # Product & Technical Gap Baseline
 
-> Dashboard delivery snapshot: 2026-08-26 11:50 KST. Protected `main` is
+> Dashboard delivery snapshot: 2026-08-26 12:05 KST. Protected `main` is
 > `494b54e2245040bcf02b45376f221c37cd437e76`. This local branch is not
 > protected-main release evidence.
 
@@ -90,7 +90,7 @@ context only.
 | #680 | `4e41bcd1` | customer-facing ranking copy with localized retry/search guidance, no fused-ranking implementation label, related-concepts/author-context/earlier-source-version labels, and complete guidance regression coverage; hosted checks requeued and independent review required |
 | #679 | `67706ef5` | ADR 0229 public-claim envelope, async verification, locale-aware next actions, and opt-in search setup; BLOCKED with exact-head checks and independent review required |
 | #678 | `da98de07` | canonical Compose-stack consolidation stacked on #640; parent protected merge and `main` retarget precede fresh exact-head evidence |
-| #677 | `11f7643c` | ADR 0228 account-owned per-post Ask conversation history with localized titles, full conversation/transcript pagination, stale-response guards, repeated-turn preservation, eligibility recheck, and separation of demo cache rows from saved turns; hosted checks and independent review required |
+| #677 | `d9d14c0c` | ADR 0228 account-owned per-post Ask conversation history rebased onto the current baseline with localized titles, full conversation/transcript pagination, stale-response guards, repeated-turn preservation, eligibility recheck, and separation of demo cache rows from saved turns; hosted checks requeued and independent review required |
 | #667 | `f40816bf` | baseline refresh branch current head; BLOCKED with review required; stacked #669 and #671 are merged into this non-default branch |
 | #672 | `5468c04d` | persisted semantic-evidence nomination for Global Ask with ADR renumbering; BLOCKED with hosted checks queued and review required |
 | #668 | `153add77` | evidence-bound project history projection with ADR renumbering, request guards, source-code/time-basis display repair, and theme-token timeline styling; BLOCKED with review required |
