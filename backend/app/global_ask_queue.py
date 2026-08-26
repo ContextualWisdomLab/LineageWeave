@@ -374,7 +374,7 @@ async def compute_global_ask_answer(
             "cited_post_ids": [],
             "cited_posts": [],
             "cited_events": [],
-            "source_post_ids": [],
+            "source_post_ids": [source.post_id for source in sources],
             "cited_post_evidence": [],
             "lineage_graph": {"nodes": [], "edges": [], "truncated": False},
             "cited_post_images": [],
@@ -427,12 +427,30 @@ async def compute_global_ask_answer(
             "Ask Agent is unavailable: contextual-orchestrator could not complete the answer",
         ) from exc
     cited_ids = list(answer.cited_post_ids)
-    async with pool.acquire() as conn:
-        lineage_graph = await lineage_graphs_for_posts(conn, can_see, cited_ids)
-        images = await cited_post_images(conn, cited_ids)
-    cited_posts = cited_post_summaries(sources, cited_ids)
-    cited_events = cited_post_events(sources, cited_ids)
-    cited_evidence = cited_post_evidence(sources, cited_ids)
+    verification_status, external_claims = await _verify_public_claims(
+        question_text,
+        usable_sources,
+        cited_ids,
+        verify_external=verify_external,
+        client=verification_client,
+    )
+    if knowledge_cutoff is None:
+        async with pool.acquire() as conn:
+            lineage_graph = await lineage_graphs_for_posts(conn, can_see, cited_ids)
+            images = await cited_post_images(conn, cited_ids)
+    else:
+        lineage_graph = {"nodes": [], "edges": [], "truncated": False}
+        images = []
+    cited_posts = cited_post_summaries(usable_sources, cited_ids)
+    cited_events = cited_post_events(usable_sources, cited_ids)
+    cited_evidence = cited_post_evidence(usable_sources, cited_ids)
+    next_action = _verification_next_action(verification_status)
+    if knowledge_cutoff is not None:
+        next_action = (
+            "Review unavailable historical channels before relying on this cutoff answer."
+            if limitations
+            else "Compare these cutoff-grounded citations with live evidence next."
+        )
     return {
         "answer_text": answer.answer_text,
         "cited_post_ids": cited_ids,

@@ -953,6 +953,18 @@ async def gather_global_chat_sources(
             if post_id in lineage_neighbor_id_set and anchor_is_visible
             else ()
         )
+        post_graph_facts = graph_facts.get(post_id, ())[:remaining_graph_facts]
+        remaining_graph_facts -= len(post_graph_facts)
+        source_type = (
+            GlobalAskSourceDocument
+            if row["visibility_code"] == "public"
+            else ChatSourceDocument
+        )
+        source_arguments: dict[str, Any] = {}
+        if source_type is GlobalAskSourceDocument:
+            source_arguments["external_claim_facts"] = (
+                semantic_facts.get(post_id, ()) + post_graph_facts
+            )
         event_occurred_at = row.get("event_occurred_at")
         created_at = row.get("created_at")
         observed_at = event_occurred_at or created_at
@@ -968,12 +980,48 @@ async def gather_global_chat_sources(
                 + semantic_facts.get(post_id, ())
                 + lineage_fact
                 + time_axis_evidence_fact(row, time_filter_active=time_filter_active),
+                source_post_revision_id=(
+                    revision["source_post_revision_id"] if revision is not None else None
+                ),
+                evidence_available_at=(
+                    revision["written_at"] if revision is not None else None
+                ),
+                knowledge_cutoff=(
+                    knowledge_cutoff.isoformat() if knowledge_cutoff else None
+                ),
+                live_changed_after_cutoff=(
+                    knowledge_cutoff is not None and row["updated_at"] > knowledge_cutoff
+                ),
+                historical_body_unavailable=historical_body_unavailable,
+                unavailable_channels=(
+                    (
+                        "historical_body",
+                        "semantic_role",
+                        "semantic_keyman",
+                        "knowledge_graph",
+                        "lineage",
+                        "image",
+                    )
+                    if historical_body_unavailable
+                    else (
+                        (
+                            "semantic_role",
+                            "semantic_keyman",
+                            "knowledge_graph",
+                            "lineage",
+                            "image",
+                        )
+                        if knowledge_cutoff
+                        else ()
+                    )
+                ),
                 observed_at=observed_at.isoformat() if observed_at else None,
                 time_axis_code="event_occurred_at"
                 if event_occurred_at is not None
                 else "created_at"
                 if created_at is not None
                 else None,
+                **source_arguments,
             )
         )
     return sources

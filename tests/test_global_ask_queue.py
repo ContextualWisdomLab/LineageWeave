@@ -8,6 +8,7 @@ from datetime import UTC, datetime
 
 from backend.app import global_ask_queue
 from backend.app.global_ask_queue import load_job_visibility
+from lineageweave import claim_verification as cv
 from lineageweave.post_chat import ChatAnswer, ChatSourceDocument
 
 

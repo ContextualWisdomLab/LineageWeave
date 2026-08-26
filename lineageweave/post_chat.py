@@ -64,6 +64,12 @@ class ChatSourceDocument:
     post_body: str
     graph_facts: tuple[str, ...] = field(default_factory=tuple)
     evidence_facts: tuple[str, ...] = field(default_factory=tuple)
+    source_post_revision_id: str | None = None
+    evidence_available_at: str | None = None
+    knowledge_cutoff: str | None = None
+    live_changed_after_cutoff: bool = False
+    historical_body_unavailable: bool = False
+    unavailable_channels: tuple[str, ...] = field(default_factory=tuple)
     observed_at: str | None = None
     time_axis_code: str | None = None
 
@@ -144,6 +150,19 @@ def cited_post_events(
         for post_id in cited_post_ids
         if (source := by_id.get(post_id)) is not None
     ]
+
+
+def ask_grounding_status(
+    sources: list[ChatSourceDocument] | tuple[ChatSourceDocument, ...],
+    knowledge_cutoff: str | None,
+) -> str:
+    """Classify live, complete-cutoff, or partial-cutoff source grounding."""
+
+    if knowledge_cutoff is None:
+        return "live_only"
+    if not sources or any(source.historical_body_unavailable for source in sources):
+        return "partially_cutoff_grounded"
+    return "fully_cutoff_grounded"
 
 
 def _buyer_evidence_kind(fact: str) -> str:
