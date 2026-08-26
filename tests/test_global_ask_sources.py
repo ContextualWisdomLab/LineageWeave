@@ -710,6 +710,54 @@ def test_global_sources_expand_top_match_through_event_lineage() -> None:
     )
 
 
+def test_lineage_reentry_cannot_inherit_semantic_evidence_open_action() -> None:
+    """A fused-out match re-entering through lineage has no unit capability."""
+    rows = {
+        post_id: {
+            "post_id": post_id,
+            "post_title": f"Synthetic {post_id}",
+            "post_body": "Synthetic body",
+            "visibility_code": "public",
+            "corporate_entity_id": None,
+        }
+        for post_id in ("anchor", "second", "lineage-neighbor")
+    }
+
+    class FakeConnection:
+        async def fetch(self, query: str, *_args):
+            if "unit_similarity" in query:
+                return [
+                    {
+                        "candidate_channel": "embedding",
+                        "post_id": post_id,
+                        "unit_index": index,
+                        "evidence_open_available": True,
+                        "channel_rank": index,
+                    }
+                    for index, post_id in enumerate(rows, start=1)
+                ]
+            if "post_lineage_edge" in query:
+                return [{"other_id": "lineage-neighbor"}]
+            if "array_position($3::uuid[], post_id)" in query:
+                return [rows[post_id] for post_id in ("anchor", "lineage-neighbor")]
+            return []
+
+    sources = asyncio.run(
+        gather_global_chat_sources(
+            FakeConnection(),
+            lambda _row: True,
+            question="Open the matching evidence",
+            limit=2,
+        )
+    )
+
+    assert [source.post_id for source in sources] == ["anchor", "lineage-neighbor"]
+    assert sources[0].evidence_open_action == EvidenceOpenAction(
+        post_id="anchor", unit_index=1
+    )
+    assert sources[1].evidence_open_action is None
+
+
 def test_global_sources_do_not_leak_lineage_anchor_id_when_anchor_is_invisible() -> None:
     """If ABAC hides the top match itself, an expanded neighbor must not
     cite that hidden post's id as its lineage anchor.

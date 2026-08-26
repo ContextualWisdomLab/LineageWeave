@@ -992,7 +992,11 @@ async def gather_global_chat_sources(
                     if historical_body_unavailable
                     else (("semantic_role", "semantic_keyman", "knowledge_graph", "lineage", "image") if knowledge_cutoff else ())
                 ),
-                evidence_open_action=evidence_open_actions.get(post_id),
+                evidence_open_action=(
+                    None
+                    if post_id in lineage_neighbor_id_set
+                    else evidence_open_actions.get(post_id)
+                ),
                 **source_arguments,
             )
         )
