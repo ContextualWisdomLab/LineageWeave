@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 from contextlib import asynccontextmanager
 from datetime import UTC, datetime
+from types import SimpleNamespace
 
 import pytest
 
@@ -236,6 +237,46 @@ def test_unavailable_question_embedding_is_not_called(monkeypatch) -> None:
     )
 
     assert payload["source_post_ids"] == []
+
+
+def test_plain_answer_guides_the_reader_to_its_cited_evidence(monkeypatch) -> None:
+    """A completed ordinary Ask answer always gives a useful next action."""
+    source = SimpleNamespace(post_id="post-demo", historical_body_unavailable=False)
+
+    async def fake_gather(*_args, **_kwargs):
+        return [source]
+
+    class ChatClient:
+        def answer(self, *_args):
+            return SimpleNamespace(
+                answer_text="Synthetic answer", cited_post_ids=("post-demo",)
+            )
+
+    monkeypatch.setattr(global_ask_queue, "gather_global_chat_sources", fake_gather)
+    monkeypatch.setattr(global_ask_queue, "cited_post_summaries", lambda *_args: [])
+    monkeypatch.setattr(global_ask_queue, "cited_post_evidence", lambda *_args: [])
+
+    async def empty_lineage(*_args):
+        return {"nodes": [], "edges": [], "truncated": False}
+
+    async def empty_images(*_args):
+        return []
+
+    monkeypatch.setattr(global_ask_queue, "lineage_graphs_for_posts", empty_lineage)
+    monkeypatch.setattr(global_ask_queue, "cited_post_images", empty_images)
+
+    payload = asyncio.run(
+        global_ask_queue.compute_global_ask_answer(
+            _Pool(_Connection(None)),
+            question_text="What changed?",
+            corporate_entity_ids=set(),
+            process_unit_ids=set(),
+            process_scope_limited=False,
+            chat_client=ChatClient(),
+        )
+    )
+
+    assert payload["next_action"] == "Open a cited post to review the evidence behind this answer."
 
 
 def test_unexpected_job_failure_settles_with_a_generic_detail_not_the_raw_exception(

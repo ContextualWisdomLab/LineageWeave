@@ -380,7 +380,7 @@ async def compute_global_ask_answer(
         images = []
     cited_posts = cited_post_summaries(usable_sources, cited_ids)
     cited_evidence = cited_post_evidence(usable_sources, cited_ids)
-    next_action = None
+    next_action = "Open a cited post to review the evidence behind this answer."
     if knowledge_cutoff is not None:
         next_action = (
             "Review unavailable historical channels before relying on this cutoff answer."
@@ -410,8 +410,6 @@ async def compute_global_ask_answer(
         )
         cited_post_ids_exclude_external(cited_ids, verification)
         payload["public_claim_verification"] = verification
-        if payload["next_action"] is None:
-            payload["next_action"] = verification["next_action"]
     return payload
 
 
