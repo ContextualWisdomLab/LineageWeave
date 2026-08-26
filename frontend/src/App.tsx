@@ -3381,7 +3381,7 @@ function RankingsPanel({
               "Open a result to review the records most relevant to your search. These results are not calibrated measurements.",
             )}
           </p>
-          <ul className="ticket-list" aria-label={t("Fused rankings")}>
+          <ul className="ticket-list" aria-label={t("Ranked records")}>
             {ranking.rankings.map((hit) => (
               <li key={hit.post_id} className="ticket-list-item ranking-hit">
                 <button
