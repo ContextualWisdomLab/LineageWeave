@@ -14,3 +14,4 @@ def test_pull_request_concurrency_survives_closed_ref_change() -> None:
     assert "types: [opened, synchronize, reopened, closed]" in workflow
     assert "group: tests-${{ github.event.pull_request.number || github.ref }}" in workflow
     assert "cancel-in-progress: true" in workflow
+    assert workflow.count("github.event.action != 'closed'") == 2
