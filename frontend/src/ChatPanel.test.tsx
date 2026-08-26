@@ -136,8 +136,8 @@ describe("ChatPanel conversation history", () => {
             turn_count: 1,
           }],
           next_cursor: {
-            before_updated_at: "2026-08-26T00:00:00Z",
-            before_conversation_id: "conversation-1",
+            updated_at: "2026-08-26T00:00:00Z",
+            conversation_id: "conversation-1",
           },
         });
       }
