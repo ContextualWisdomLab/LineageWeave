@@ -37,6 +37,7 @@ create table if not exists occupational_source_table (
 
 create table if not exists occupational_scale_definition (
     data_release_code text not null,
+    source_table_code text not null,
     scale_id text not null,
     scale_name text not null,
     minimum_value numeric not null,
@@ -45,6 +46,9 @@ create table if not exists occupational_scale_definition (
     constraint occupational_scale_release_fkey
         foreign key (data_release_code)
         references occupational_data_release (data_release_code),
+    constraint occupational_scale_source_table_fkey
+        foreign key (data_release_code, source_table_code)
+        references occupational_source_table (data_release_code, source_table_code),
     constraint occupational_scale_id_check check (btrim(scale_id) <> ''),
     constraint occupational_scale_bounds_check
         check (minimum_value <= maximum_value)

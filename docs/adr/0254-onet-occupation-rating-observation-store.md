@@ -34,7 +34,8 @@ also violate LineageWeave's externalized-compute boundary.
    inserting; without them PostgreSQL rejects the row.
 5. Every insert uses the owning release/table artifact digest and idempotent
    UPSERT. Endpoint names and scale names must match their normalized reference
-   rows; the importer rejects disagreement rather than overwriting identity.
+   rows; each scale definition names its owning source-table artifact, and the
+   importer rejects disagreement rather than overwriting identity.
 6. Preserve `recommend_suppress` and `not_relevant` independently. A suppressed
    value remains stored with its warning; a not-relevant value is not converted
    to zero. Missing `n`, error, or interval values remain null.

@@ -274,9 +274,20 @@ def test_onet_rating_store_partitions_upserts_and_rejects_invalid_error(schema_d
         )
         cur.execute(
             """
+            insert into occupational_source_table
+                (data_release_code, source_table_code, source_table_name,
+                 source_artifact_url, source_artifact_sha256, source_row_count)
+            values ('onet-31.0', 'scales_reference', 'Scales Reference',
+                    'https://example.test/scales-reference.json', %s, 33)
+            """,
+            ("b" * 64,),
+        )
+        cur.execute(
+            """
             insert into occupational_scale_definition
-                (data_release_code, scale_id, scale_name, minimum_value, maximum_value)
-            values ('onet-31.0', 'IM', 'Importance', 1, 5)
+                (data_release_code, source_table_code, scale_id, scale_name,
+                 minimum_value, maximum_value)
+            values ('onet-31.0', 'scales_reference', 'IM', 'Importance', 1, 5)
             """
         )
         cur.execute(

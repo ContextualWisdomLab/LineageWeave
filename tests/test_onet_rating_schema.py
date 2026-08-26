@@ -20,6 +20,7 @@ def test_migration_declares_normalized_partitioned_observation_contract() -> Non
         assert f"create table if not exists {table_name}" in sql
     assert "partition by list (data_release_code)" in sql
     assert "unique nulls not distinct" in sql
+    assert "occupational_scale_source_table_fkey" in sql
     assert "recommend_suppress" in sql
     assert "not_relevant" in sql
     assert "standard_error" in sql
