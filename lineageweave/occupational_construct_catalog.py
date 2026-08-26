@@ -79,7 +79,7 @@ def parse_onet_construct_catalog(payload: dict[str, Any]) -> tuple[CatalogConstr
         description_value = row.get("description")
         if description_value is not None and not isinstance(description_value, str):
             raise ValueError("O*NET description must be text or null")
-        description = description_value.strip() if description_value else None
+        description = (description_value or "").strip() or None
         iri = f"https://data.onetcenter.org/element/{element_id}"
         if iri in constructs:
             raise ValueError(f"duplicate O*NET construct IRI: {iri}")

@@ -27,7 +27,7 @@ def _payload() -> dict[str, object]:
             {
                 "element_id": "1.D.1",
                 "element_name": "Achievement Orientation",
-                "description": "",
+                "description": "   ",
             },
             {
                 "element_id": "4.A.1.a.1",
