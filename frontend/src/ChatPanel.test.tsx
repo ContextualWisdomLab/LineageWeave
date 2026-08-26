@@ -40,10 +40,10 @@ describe("ChatPanel conversation history", () => {
       return jsonResponse({ post_id: "post-1", exchanges: [] });
     }));
 
-    render(<ChatPanel postId="post-1" accessToken="synthetic-token" />);
+    render(<ChatPanel postId="post-1" accessToken="synthetic-token" nameFirstAsk />);
     await userEvent.selectOptions(await screen.findByLabelText("Conversation history"), "conversation-1");
 
-    expect(await screen.findByText("First answer")).toBeInTheDocument();
+    expect(await screen.findAllByText("First answer")).toHaveLength(1);
     expect(screen.getByText("Second answer")).toBeInTheDocument();
     expect(screen.getAllByRole("button", { name: "Ask seeded question: What changed?" })).toHaveLength(2);
   });

@@ -2981,7 +2981,7 @@ async def _persist_post_ask_turn(
     source_post_ids: list[str],
     cited_post_ids: list[str],
 ) -> UUID:
-    """Persist a completed turn after reauthorizing every citation."""
+    """Persist a completed turn after reauthorizing every gathered source."""
     try:
         return await persist_post_ask_turn(
             conn,

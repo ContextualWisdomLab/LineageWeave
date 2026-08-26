@@ -21,7 +21,7 @@ class PostAskConversationNotFound(LookupError):
 
 
 class PostAskEvidenceChanged(RuntimeError):
-    """A cited post became unauthorized before the new turn could commit."""
+    """A gathered source became unauthorized before the new turn could commit."""
 
 
 async def conversation_exists(
