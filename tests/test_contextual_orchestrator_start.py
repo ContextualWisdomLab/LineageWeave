@@ -65,7 +65,7 @@ def test_provider_key_is_not_aliased_as_gateway_transport(monkeypatch) -> None:
         module.main()
 
 
-def test_bootstrap_leaves_embedding_selection_to_the_orchestrator(monkeypatch) -> None:
+def test_bootstrap_registers_operator_configured_embedding_capability(monkeypatch) -> None:
     module = _load_start_module()
     captured: dict[str, object] = {}
 
