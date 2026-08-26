@@ -26,6 +26,7 @@ const COLUMN_GAP = 260;
 const ROW_GAP = 88;
 const LEFT = ONTOLOGY_NODE_LABEL_WIDTH / 2 + 20;
 const TOP = 48;
+const ONTOLOGY_NAMESPACE = "https://contextualwisdomlab.github.io/LineageWeave/ontology#";
 
 function nodeKey(nodeTypeCode: string, nodeId: string): string {
   return `${nodeTypeCode}:${nodeId}`;
@@ -202,9 +203,9 @@ export function filterNeighborhood(
     ...nodes.map((node) => `lw:node/${node.node_type_code}/${node.node_id}`),
     ...edges.map((edge) => `lw:edge/${edge.edge_id}`),
   ]);
-  const visibleNodeSuffixes = nodes.map(
-    (node) => `node/${encodeURIComponent(node.node_type_code)}/${node.node_id}`,
-  );
+  const visibleNodeIds = new Set(nodes.map(
+    (node) => `${ONTOLOGY_NAMESPACE}node/${encodeURIComponent(node.node_type_code)}/${encodeURIComponent(node.node_id).replaceAll("%2F", "/")}`,
+  ));
   const visibleVoiceAssignments = (payload.voice_assignments ?? []).filter((assignment) =>
     keep.has(nodeKey("node_post", assignment.post_id)),
   );
@@ -214,7 +215,9 @@ export function filterNeighborhood(
       `voice-assignment/${assignment.post_id}/${assignment.voice_type_code}`,
     ]),
   );
-  const visibleVoiceIdSuffixes = [...visibleVoiceIds];
+  for (const assignment of visibleVoiceAssignments) {
+    visibleVoiceIds.add(`${ONTOLOGY_NAMESPACE}voice-assignment/${assignment.post_id}/${assignment.voice_type_code}`);
+  }
   const graph = payload.jsonld["@graph"];
   const jsonld = Array.isArray(graph)
     ? {
@@ -224,9 +227,8 @@ export function filterNeighborhood(
             typeof item === "object" && item !== null &&
             typeof item["@id"] === "string" &&
             (visibleIds.has(item["@id"]) ||
-              visibleNodeSuffixes.some((suffix) => item["@id"].endsWith(suffix)) ||
-              visibleVoiceIds.has(item["@id"]) ||
-              visibleVoiceIdSuffixes.some((id) => item["@id"].endsWith(id))),
+              visibleNodeIds.has(item["@id"]) ||
+              visibleVoiceIds.has(item["@id"])),
         ),
       }
     : payload.jsonld;

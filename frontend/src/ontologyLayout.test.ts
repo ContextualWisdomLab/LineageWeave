@@ -10,6 +10,7 @@ import {
 const POST_ID = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa1";
 const PERSON_ID = "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbb1";
 const CORP_ID = "cccccccc-cccc-cccc-cccc-ccccccccccc1";
+const ONTOLOGY_NAMESPACE = "https://contextualwisdomlab.github.io/LineageWeave/ontology#";
 
 function payload(): OntologyNeighborhoodPayload {
   return {
@@ -141,7 +142,7 @@ describe("ontologyLayout", () => {
       exact_value_rows: [...source.exact_value_rows, row],
       jsonld: {
         "@graph": [
-          { "@id": `https://example.test/voice-assignment/${POST_ID}/voc_customer` },
+          { "@id": `${ONTOLOGY_NAMESPACE}voice-assignment/${POST_ID}/voc_customer` },
           { "@id": assignment.voice_type_iri },
         ],
       },
@@ -151,6 +152,22 @@ describe("ontologyLayout", () => {
     expect(filterNeighborhood(withVoice, "customer")!.voice_assignments).toEqual([assignment]);
     expect(filterNeighborhood(withVoice, "missing")!.voice_assignments).toEqual([assignment]);
     expect(accumulateNeighborhoodPages(source, withVoice).voice_assignments).toEqual([assignment]);
+  });
+
+  it("keeps only exact canonical JSON-LD node ids when filtering", () => {
+    const source = payload();
+    const postIri = `${ONTOLOGY_NAMESPACE}node/node_post/${POST_ID}`;
+    const filtered = filterNeighborhood({
+      ...source,
+      jsonld: {
+        "@graph": [
+          { "@id": postIri },
+          { "@id": `https://example.test/prefix/${postIri}` },
+        ],
+      },
+    }, "missing")!;
+
+    expect(filtered.jsonld["@graph"]).toEqual([{ "@id": postIri }]);
   });
 
   it("is deterministic for a fixed payload", () => {
