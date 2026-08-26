@@ -166,6 +166,47 @@
         sh:datatype xsd:string ;
     ] .
 
+:OccupationalConstructAssertionShape a sh:NodeShape ;
+    rdfs:label "Occupational construct assertion shape" ;
+    sh:targetClass :OccupationalConstructAssertion ;
+    sh:property [
+        sh:path rdf:subject ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:class :Post ;
+    ] ;
+    sh:property [
+        sh:path rdf:predicate ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:hasValue :supportsOccupationalConstruct ;
+    ] ;
+    sh:property [
+        sh:path rdf:object ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:class :OccupationalConstruct ;
+    ] ;
+    sh:property [
+        sh:path :constructEvidence ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:datatype xsd:string ;
+        sh:minLength 1 ;
+    ] ;
+    sh:property [
+        sh:path <http://www.w3.org/ns/prov#wasDerivedFrom> ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:class :Post ;
+    ] ;
+    sh:property [
+        sh:path <http://www.w3.org/ns/prov#generatedAtTime> ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:datatype xsd:dateTime ;
+    ] .
+
 :OurSidePersonShape a sh:NodeShape ;
     rdfs:label "Our-side person shape" ;
     sh:comment "Closed-world complement of :OurSidePerson owl:disjointWith :CounterpartyPerson: an instance of one can never be typed as the other." ;
