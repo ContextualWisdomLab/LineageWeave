@@ -2696,7 +2696,11 @@ describe("App, authenticated", () => {
     await userEvent.click(await screen.findByRole("button", { name: /verify against web search/i }));
 
     await waitFor(() =>
-      expect(screen.getByText("Verification unavailable (search is not configured).")).toBeInTheDocument(),
+      expect(
+        screen.getByText(
+          "Verification is unavailable because public search is not configured yet. Ask an administrator to enable it, then retry.",
+        ),
+      ).toBeInTheDocument(),
     );
     expect(screen.queryByText(/HTTP 503/)).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /verify against web search/i })).not.toBeInTheDocument();
@@ -3088,11 +3092,15 @@ describe("App, authenticated", () => {
     );
   });
 
-  it("names RankWeave unavailability on home rankings instead of inventing a fused score", async () => {
+  it("names rankings unavailability on home rankings instead of inventing a score", async () => {
     stubBackend();
     render(<App />);
 
-    expect(await screen.findByText("Rankings · RankWeave not available")).toBeInTheDocument();
+    expect(
+      await screen.findByText(
+        "Rankings are not available right now. Reopen this post later to load them.",
+      ),
+    ).toBeInTheDocument();
     expect(screen.queryByText("Pricing renegotiation: revised quote sent")).not.toBeInTheDocument();
   });
 
@@ -3196,11 +3204,11 @@ describe("App, authenticated", () => {
       name: /open ranking: public post/i,
     });
     expect(rankingButton).toHaveTextContent("Public post");
-    expect(rankingButton).toHaveTextContent("Rankings · rankweave");
+    expect(rankingButton).toHaveTextContent("Rankings");
     expect(rankingButton).toHaveTextContent("rank 1");
     expect(
       screen.getByText(
-        "RankWeave fused newest-first and title-overlap ranks. This is not a calibrated score.",
+        "Rankings combine newest-first and title-overlap evidence and are not calibrated scores. Open a ranked post to see its evidence.",
       ),
     ).toBeInTheDocument();
     expect(

@@ -2145,7 +2145,9 @@ function PostDetailPopup({
                 <PostBody body={post.post_body} imageContent={imageContent} structureUnits={structureUnits} />
               ) : (
                 <p className="popup-placeholder" role="status">
-                  {t("Source body was not imported; summary and semantic extraction are unavailable.")}
+                  {t(
+                    "The original text of this post was not imported, so its summary and semantic extraction are unavailable. Open the post directly or ask the source owner to re-import it with its body.",
+                  )}
                 </p>
               )}
             </section>
@@ -2279,7 +2281,7 @@ function PostDetailPopup({
                     </>
                   ) : null}
                 </dl>
-                <p className="post-meta">{t("Raw source codes are shown; no state label was inferred.")}</p>
+                <p className="post-meta">{t("Use these recorded details to confirm the record with your source system.")}</p>
               </section>
             )}
 
@@ -3361,28 +3363,30 @@ function RankingsPanel({
         <h2>{t("Rankings")}</h2>
         {ranking && (
           <span className="post-badge">
-            {ranking.status === "accepted"
-              ? "rankweave"
-              : `rankweave · ${ranking.status_reason ?? "unavailable"}`}
+            {t("Rankings")}
           </span>
         )}
       </div>
       {error && <p className="error">{error}</p>}
       {ranking === null && !error && <p role="status">{t("Loading rankings...")}</p>}
       {ranking && ranking.status === "unavailable" && (
-        <p className="popup-placeholder">{t("Rankings · RankWeave not available")}</p>
+        <p className="popup-placeholder">
+          {t("Rankings are not available right now. Reopen this post later to load them.")}
+        </p>
       )}
       {ranking && ranking.status === "accepted" && ranking.rankings.length === 0 && (
-        <p className="popup-placeholder">{t("No fused rankings from RankWeave.")}</p>
+        <p className="popup-placeholder">
+          {t("No ranked posts yet. Ranked posts appear after the next rankings refresh.")}
+        </p>
       )}
       {ranking && ranking.rankings.length > 0 && (
         <>
           <p className="ranking-channel-evidence-copy">
             {t(
-              "RankWeave fused newest-first and title-overlap ranks. This is not a calibrated score.",
+              "Rankings combine newest-first and title-overlap evidence and are not calibrated scores. Open a ranked post to see its evidence.",
             )}
           </p>
-          <ul className="ticket-list" aria-label={t("Fused rankings")}>
+          <ul className="ticket-list" aria-label={t("Ranked posts")}>
             {ranking.rankings.map((hit) => (
               <li key={hit.post_id} className="ticket-list-item ranking-hit">
                 <button
@@ -3391,7 +3395,7 @@ function RankingsPanel({
                   onClick={() => onSelectPost(hit.post_id)}
                 >
                   <span className="ticket-title">{hit.post_title}</span>
-                  <span className="post-badge">{t("Rankings · rankweave")}</span>
+                  <span className="post-badge">{t("Rankings")}</span>
                   <span className="post-badge">{tf("rank {rank}", { rank: String(hit.fused_rank) })}</span>
                 </button>
                 {(hit.channel_evidence ?? []).length > 0 ? (

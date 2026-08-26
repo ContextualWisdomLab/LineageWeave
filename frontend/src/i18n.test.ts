@@ -73,7 +73,7 @@ describe("i18n", () => {
     "This is an ontology neighborhood, not Event Lineage.",
     "Rankings",
     "Title overlap",
-    "RankWeave fused newest-first and title-overlap ranks. This is not a calibrated score.",
+    "Rankings combine newest-first and title-overlap evidence and are not calibrated scores. Open a ranked post to see its evidence.",
     "Workspace navigation",
     "Observed calendar events",
     "No observed calendar events are available.",
