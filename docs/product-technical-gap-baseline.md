@@ -1,6 +1,6 @@
 # Product & Technical Gap Baseline
 
-> Dashboard delivery snapshot: 2026-08-26 13:43 KST. Protected `main` is
+> Dashboard delivery snapshot: 2026-08-26 13:44 KST. Protected `main` is
 > `494b54e2245040bcf02b45376f221c37cd437e76`. This local branch is not
 > protected-main release evidence.
 
@@ -68,7 +68,7 @@ are not merge readiness. Re-fetch exact heads,
 unresolved threads, checks, approvals, rulesets, and merge SHA before any
 lifecycle claim.
 
-> Audit snapshot: 2026-08-26 13:43 KST (refreshed by the autonomous merge
+> Audit snapshot: 2026-08-26 13:44 KST (refreshed by the autonomous merge
 > loop). This repository records synthetic fixtures and aggregate,
 > non-identifying runtime evidence only. Open PRs and local checks are not
 > protected-default-branch release evidence. Identifying post identifiers,
@@ -88,9 +88,9 @@ context only.
 | #686 | `fbca05d9` | customer-facing copy boundary audit removes implementation labels while retaining Event Lineage distinction and localized actions; current review threads are resolved, ranking guidance has desktop/mobile Storybook screenshot evidence, and hosted checks remain pending |
 | #680 | `5c246a54` | customer-facing ranking copy with localized retry/search guidance and source-record detail copy corrected; BLOCKED with exact-head checks and independent review required |
 | #679 | `29aa69dd` | ADR 0229 public-claim envelope, async verification, locale-aware next actions, opt-in search setup, and aggregate-status guidance repair; BLOCKED with exact-head checks and independent review required |
-| #672 | `b7570c5a` | persisted semantic-evidence nomination for Global Ask now uses unique ADR 0233/0234 identities; unexpected verification failures degrade to unavailable, and embedding work is performed before the pool is acquired; hosted checks and independent review requeued |
+| #672 | `99a0322d` | persisted semantic-evidence nomination for Global Ask now uses unique ADR 0233/0234 and migration 0225/0226 identities; the public verifier factory is late-bound so the async worker uses current configuration, with its formerly failing PostgreSQL verification test and replay checks passing (17 focused tests); hosted checks and independent review requeued |
 | #668 | `1a2fae22` | evidence-bound project history projection now uses unique ADR 0232, with request guards, source-code/time-basis display repair, and theme-token timeline styling; hosted checks and independent review requeued |
-| #667 | `55b5a48f` | baseline refresh plus repeated-turn conversation-key repair, stale-history response fencing, legacy ontology identifier separation, source-lock protection for hard-deleted Ask evidence, protected ontology publication proof, and five-locale analysis-run guidance with desktop/mobile Storybook evidence; exact-head hosted checks and independent approval remain pending |
+| #667 | `026c96f6` | baseline refresh plus repeated-turn conversation-key repair, stale-history response fencing, uniquely numbered conversation/legacy-ontology ADRs, source-lock protection for hard-deleted Ask evidence, protected ontology publication proof, and five-locale analysis-run guidance with desktop/mobile Storybook evidence; exact-head hosted checks and independent approval remain pending |
 | #663 | `4ded3d2d` | project ontology traversal, cutoff-snapshot project focus, bounded MCP admission, and migration-fixture/worker startup repair; its new ADRs were renumbered to unique 0230/0231 identities so the ontology stack no longer contradicts #640's 0224/0225 decisions; hosted checks and independent review requeued on the new exact head |
 | #658 | `f497a6e8` | evidence-honest Global Ask cutoff with robust revision timestamps; BLOCKED with review required |
 | #657 | `709df1b9` | TEPP lifecycle persistence and fail-closed topic acceptance; BLOCKED with hosted checks queued and review required |
@@ -110,7 +110,7 @@ non-default #667 stack as `55b5a48ff997fddbe8fcc47a268d0b02aa835c6a`.
 These are stack-integration evidence only; they are not protected-`main`
 delivery. Their acceptance now travels with the two parent heads above.
 
-The exact-head check-run scan at 13:43 KST found no `failure`, `cancelled`, or
+The exact-head check-run scan at 13:44 KST found no `failure`, `cancelled`, or
 `timed_out` conclusions on the 16 current heads. Several heads, including
 PR #667, #672, and #686 after their repair pushes, are still queued and therefore have
 no terminal gate evidence; review approval is also independently required.
@@ -127,16 +127,18 @@ PR #677 formerly assigned ADR 0228 to per-post conversation history while #672
 used it for public-claim verification. The baseline branch now assigns the
 conversation contract unique ADR 0235, while #672 uses ADR 0234; the legacy
 ontology publication decision now uses ADR 0236, leaving #679's public-claim
-ADR 0229 unambiguous. #640 and #672 introduce different
-`0211_*.sql` migrations. The former #640/#663 ADR 0224 and 0225 collisions are
-resolved on #663 by unique ADR 0230/0231 identities. The
+ADR 0229 unambiguous. #672's Semantic Ask migrations now use 0225/0226,
+separate from #640's 0211/0222 and #679's 0224. The former #640/#663 ADR
+0224 and 0225 collisions are resolved on #663 by unique ADR 0230/0231
+identities. A current-head inventory found no ADR or migration number assigned
+to divergent filenames across the 16 open PRs. The
 `0212_global_ask_knowledge_cutoff.sql` blobs in
 PR #658 and #663 are byte-identical, so that overlap is duplicated delivery rather
 than a semantic divergence. Release metadata also diverges: the observed
 `pyproject.toml` versions are 2.18.0 on #632/#640/#663, 2.19.0 on #643,
-and 2.22.0 on #679. These ADR, migration, and release identities remain merge
-blockers until the parent lands and every surviving child is retargeted to
-`main`, renumbered where needed, and revalidated on its new exact head.
+and 2.22.0 on #679. Release-version and duplicated-delivery overlaps still
+require ordered parent landing, child retargeting, and exact-head
+revalidation; identifier collision is no longer the blocker.
 
 PR #680 and #686 independently edit the same ranking, ontology, and locale
 surfaces, and neither exact head contains the other. Land #686 first because it
