@@ -24,11 +24,6 @@ _RATING_FIELDS = {
     "Scale ID",
     "Scale Name",
     "Data Value",
-    "N",
-    "Standard Error",
-    "Lower CI Bound",
-    "Upper CI Bound",
-    "Recommend Suppress",
     "Date",
     "Domain Source",
 }
@@ -185,12 +180,12 @@ def read_rating_file(
         data_value = _decimal(row["Data Value"], "data value")
         if not scale.minimum_value <= data_value <= scale.maximum_value:  # type: ignore[operator]
             raise ValueError(f"data value outside scale {scale_id}")
-        sample_size = _integer(row["N"], "sample size", optional=True)
+        sample_size = _integer(row.get("N", ""), "sample size", optional=True)
         standard_error = _decimal(
-            row["Standard Error"], "standard error", optional=True
+            row.get("Standard Error", ""), "standard error", optional=True
         )
-        lower = _decimal(row["Lower CI Bound"], "lower CI bound", optional=True)
-        upper = _decimal(row["Upper CI Bound"], "upper CI bound", optional=True)
+        lower = _decimal(row.get("Lower CI Bound", ""), "lower CI bound", optional=True)
+        upper = _decimal(row.get("Upper CI Bound", ""), "upper CI bound", optional=True)
         if sample_size is not None and sample_size <= 0:
             raise ValueError("sample size must be positive")
         if standard_error is not None and standard_error < 0:
@@ -225,7 +220,7 @@ def read_rating_file(
                 lower_ci_bound=lower,
                 upper_ci_bound=upper,
                 recommend_suppress=_flag(
-                    row["Recommend Suppress"], "recommend suppress"
+                    row.get("Recommend Suppress", ""), "recommend suppress"
                 ),
                 not_relevant=_flag(row.get("Not Relevant", ""), "not relevant"),
                 source_updated_date=_updated_month(row["Date"], observed_today),

@@ -138,6 +138,30 @@ def test_category_table_may_omit_not_relevant_without_inventing_false(
     assert rows[0].not_relevant is None
 
 
+def test_machine_generated_profile_keeps_unpublished_uncertainty_missing(
+    tmp_path: Path,
+) -> None:
+    scales = read_scale_file(
+        _write(
+            tmp_path / "scales.csv",
+            "Scale ID,Scale Name,Minimum,Maximum\nDR,Distinctiveness Rank,0,7\n",
+        )
+    )
+    rows = read_rating_file(
+        _write(
+            tmp_path / "work_styles.csv",
+            "O*NET-SOC Code,Title,Element ID,Element Name,Scale ID,Scale Name,Data Value,Date,Domain Source\n"
+            "15-1252.00,Synthetic occupation,1.D.1.a,Innovation,DR,Distinctiveness Rank,7.00,08/2026,AI/Expert\n",
+        ),
+        scales,
+        today=date(2026, 8, 27),
+    )
+
+    assert rows[0].sample_size is None
+    assert rows[0].standard_error is None
+    assert rows[0].recommend_suppress is None
+
+
 def test_scales_digest_fails_before_database_connection(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
