@@ -61,14 +61,14 @@ only aggregate, non-identifying evidence to this repository.
 
 ### Exact open-PR boundary
 
-At this snapshot there were 28 open PRs and 10 open issues. The exact-head
+At this snapshot there were 29 open PRs and 10 open issues. The exact-head
 inventory in section 1 is authoritative for this snapshot. Every open head
 remained blocked on hosted gates and/or independent review. These observations
 are not merge readiness. Re-fetch exact heads,
 unresolved threads, checks, approvals, rulesets, and merge SHA before any
 lifecycle claim.
 
-> Audit snapshot: 2026-08-27 01:40 KST (refreshed by the autonomous merge
+> Audit snapshot: 2026-08-27 01:56 KST (refreshed by the autonomous merge
 > loop). This repository records synthetic fixtures and aggregate,
 > non-identifying runtime evidence only. Open PRs and local checks are not
 > protected-default-branch release evidence. Identifying post identifiers,
@@ -78,20 +78,21 @@ lifecycle claim.
 ## 1. Exact-head and governance evidence
 
 The protected default branch is `ff7431bd1851c03e737808d22c6a2d43968582f9`
-at this refresh. The live queue contains 28 open PRs and 10
+at this refresh. The live queue contains 29 open PRs and 10
 open issues. The exact-head inventory below supersedes older per-PR snapshots
 elsewhere in this document; those older rows remain useful historical delivery
 context only.
 
 | PR | Exact observed head | Merge/check state at this snapshot |
 | ---: | --- | --- |
-| #721 | `e12533e2` | stacked occupational-construct persistence candidate. Its recorded base OID does not match current parent #718, it has three unresolved threads, auto-merge is disabled, and it cannot inherit parent checks or review evidence |
+| #723 | `e2cbca8e` | stacked on exact #721 and synchronizes the official O*NET 31.0 construct catalog under ADR 0250 without importing ratings, scores, crosswalks, affect labels, or person traits. The ancestry is valid, eight focused catalog/schema/docstring checks pass, all threads are resolved, and auto-merge remains disabled pending parent delivery |
+| #721 | `9214c50f` | stacked occupational-construct persistence candidate. The current head synchronizes its parent and removes the duplicate construct-detail field; lint and production build pass, all threads are resolved, and auto-merge remains disabled pending parent delivery |
 | #720 | `dda0531d` | cancels stale test runs after PR closure; normal auto-merge is enabled, but independent review remains required before protected delivery |
-| #719 | `2a353d8d` | stacked on #718 and extends the occupational ontology. One review thread remains unresolved and auto-merge is disabled pending parent delivery |
-| #718 | `6c49b3df` | stacked on #709 and adds evidence-bound occupational constructs. One review thread remains unresolved and auto-merge is disabled pending parent delivery |
-| #717 | `0a8ce31f` | stacked on #713 and persists evidence-bearing Voice-of-X combinations. Three review threads and a pending external review remain; auto-merge is disabled pending parent delivery |
-| #716 | `bee26e53` | stacked on #711 and prioritizes the evidence-bound operations backfill. Two review threads remain unresolved and auto-merge is disabled pending both parent heads |
-| #714 | `f92bc988` | proposes post-scoped public-source research with bounded public-only egress, fail-closed retrieval, contextual-orchestrator verification, normalized citation persistence, API/UI actions, and Storybook evidence. The current repair isolates a malformed URL port instead of aborting all research, preserves customer next actions, and retains synthetic desktop/mobile evidence. Exact-head hosted checks plus independent review remain required |
+| #719 | `6ee2278a` | stacked on current #718, exposes the governed `dcterms:rights` read model, and preserves parent ancestry through a normal merge. Fifty-four focused checks pass, all threads are resolved, and auto-merge remains disabled pending parent delivery |
+| #718 | `2723fea3` | stacked on #709 and adds evidence-bound occupational constructs with governed provenance wording. Eighteen focused checks pass, all threads are resolved, and auto-merge remains disabled pending parent delivery |
+| #717 | `684df3d8` | stacked on #713 and persists evidence-bearing Voice-of-X combinations. The current head preserves combined-voice cutoff semantics, client filtering, localization, and historical primary `recorded_at`; backend and targeted UI checks plus lint pass, all threads are resolved, and auto-merge remains disabled pending parent delivery |
+| #716 | `239b6bab` | stacked on #711 and prioritizes the evidence-bound operations backfill with isolated responsive dashboard acceptance. Two informational threads still require correlated-subquery `EXPLAIN` evidence and tier-eligibility confirmation; auto-merge remains disabled pending both parent heads |
+| #714 | `53a4b8b5` | proposes post-scoped public-source research with bounded public-only egress, fail-closed retrieval, contextual-orchestrator verification, normalized citation persistence, API/UI actions, and Storybook evidence. The current repair isolates a malformed URL port, discards late responses after post switches, blocks private-post execution, and rejects NAT64, 6to4, and Teredo transition addresses before connection while preserving native public IPv6. Thirty-nine backend and two UI checks plus lint pass; all threads are resolved, auto-merge is enabled, and exact-head hosted checks plus independent review remain required |
 | #713 | `cc3dfc14` | proposes a twelve-code stakeholder Voice-of-X post taxonomy. The current audit moved the decision to unique ADR 0246 and migration 0235, removed unsupported named-organization projections, and preserves the independently governed organization-relationship vocabulary. Exact-head hosted checks and independent review remain required |
 | #711 | `8902e37f` | stacked on #640 rather than `main`; pins a candidate contextual-orchestrator structured-workflow revision. One review thread and the full suite remain pending, while auto-merge correctly stays disabled until its parent and dependency contract are delivered |
 | #710 | `47dbd335` | records the worker-function delivery gap against #709. One review thread remains unresolved; exact-head hosted checks and independent review remain required |
@@ -109,7 +110,7 @@ context only.
 | #657 | `9f71681c` | TEPP lifecycle persistence and fail-closed topic acceptance; BLOCKED with hosted checks queued and review required |
 | #644 | `f53dd28e` | current-main reconciliation preserves all existing workspace surfaces and adds Public Claim Verification as the ninth lazy boundary; a subsequent normal merge reconciles concurrent ADR/baseline evidence without deleting either implementation path. Frontend 42 files/391 tests, lint, production build, and Storybook build pass; refreshed desktop loading and mobile error screenshots confirm the actionable alert/Refresh states. The observed 509.58 kB app chunk still triggers Vite's warning and remains measured performance debt; hosted checks and independent review remain required |
 | #643 | `8767de1b` | accessible status notices; hosted checks and independent review remain required |
-| #640 | `5594029c` | dashboard ranking and topic-influence stack preserves Ask service imports, authorization, ontology parity, transactional schema fixtures, the durable worker, bounded structured validation, and atomic voice-backfill completion. The current head composes latest #713 as an ancestor while retaining the independently governed post-by-organization relationship vocabulary; exact-head hosted checks and independent review remain required |
+| #640 | `c142c4ea` | dashboard ranking and topic-influence stack preserves Ask service imports, authorization, ontology parity, transactional schema fixtures, the durable worker, bounded structured validation, and atomic voice-backfill completion. PR #722 merged normally into this non-default parent to restore the dedicated Ask worker's semantic-query and public-verification factories plus the production-equivalent concurrent-migration fixture path; this is stack integration, not protected delivery. Exact-head hosted checks and independent review remain required |
 | #639 | `2f4b1bff` | running-action/config repair now also makes the documented `make seed` contract install its declared script/runtime extras and documents the canonical Keyverse frontend variables with a container-contract regression. The exact-head repair updates the Makefile contract test to require those owned extras; 13 focused Makefile/config tests pass locally. Fresh hosted checks are running, auto-merge remains enabled, and independent review is required |
 | #632 | `24262a99` | graph-fact provenance repair also carries the current bounded MCP request contract, token-backed Ask layout, ontology-label wrapping, and normalized-table evidence-search index repair. Both live migration fixtures execute the production-equivalent `psql -X -v ON_ERROR_STOP=1 -f` path; 38 schema/replay/contract checks pass locally. A normal Strix rerun request was accepted with HTTP 201 and the replacement exact-head job is queued; acceptance is not a passing scan. Full tests remain in progress and coverage-source-tree is queued, so exact-head terminal revalidation and independent approval remain required |
 | #629 | `b721b0f2` | provider-work release and bounded reads now preserve relationship type, capture update status, remove a shadowed legacy verifier, persist each completed result before a later provider failure, fence deleted evidence, and execute both Global Ask migrations twice in the real PostgreSQL fixture. Focused migration/schema tests pass; hosted checks and independent review remain required |
@@ -128,6 +129,12 @@ LineageWeave-local scoring and entity-resolution arithmetic behind ADR 0245
 without inventing a replacement. The whitespace repair for that carried ADR
 is present on the current #702 head. This is stack-integration evidence only,
 not protected-`main` delivery.
+
+PR #722 merged normally into non-default parent #640 as `c142c4ea`; it restores
+the dedicated Ask worker's semantic-query and opt-in public-verification
+factories and the production-equivalent concurrent-migration fixture path.
+This is stack-integration evidence only and cannot substitute for #640's
+protected-`main` delivery.
 
 PRs #692, #697, and #694 merged into the non-default #693 composition as
 `cdd499b161053a9c5439181e8f39e1baa80e68c0` and
@@ -151,9 +158,10 @@ open current-main candidate rather than relying on that closed head.
 
 The exact-head scan at 01:40 KST found 12 of 28 heads with a terminal failure,
 nine with a queued or in-progress context, and nine with unresolved review
-threads. Twenty-one heads had normal squash auto-merge enabled; all seven
-stacked children correctly remained off. All 28 heads lacked a qualifying
-independent exact-head approval, so no candidate is protected delivery.
+threads. The 01:56 follow-up contained 29 open heads after #723 opened; 22
+targeted `main` with normal auto-merge and seven stacked children correctly
+remained off. No current head had a qualifying independent exact-head approval,
+so no candidate is protected delivery.
 Queued checks, `MERGEABLE`, auto-merge, and bot success statuses are not merge
 evidence.
 
@@ -367,6 +375,12 @@ not add a LineageWeave-local duplicate workflow. ContextualWisdomLab/.github#125
 merged at exact head `897819c4` to repair the pnpm/coverage-evidence workflow;
 newly created exact PR heads must still prove the runtime behavior because
 merged workflow source alone is not check evidence.
+The local `com.contextualwisdomlab.lineageweave-hourly` launchd registration
+was live-audited at this snapshot with a 3,600-second interval, 16 recorded
+runs, and last exit code 0; its output log contains completed queue/repair
+iterations. Registration and prior successful exits do not prove the next run
+or transfer protected-head evidence, so every invocation still re-reads live
+PR state.
 
 Figma design-system boundary (ADR 0002): File ID `1Su3lDRmiZdcUs47t1QwIX`.
 The sanitized file now contains synthetic Event Lineage desktop (`5:14`) and
@@ -526,7 +540,7 @@ for wholesale replay from #490.
 
 | Gap | Current evidence | Acceptance requirement |
 | --- | --- | --- |
-| Protected release | Protected `main@ff7431bd` includes #631's ADR-decomposition documentation and #663's project-ontology/caller-parsed semantic-unit seam in addition to the #660/#664 semantic-unit/backend stack and #659 ontology readability/token repair. Twenty-eight PRs remain open at the 01:40 KST snapshot: twenty-one target `main` and seven form four explicit stacks. Every candidate still requires exact-head checks and independent approval before merge | Terminal exact-head checks, no unresolved threads, the current ruleset's independent approval, and a protected merge SHA; re-fetch the ruleset before every lifecycle claim |
+| Protected release | Protected `main@ff7431bd` includes #631's ADR-decomposition documentation and #663's project-ontology/caller-parsed semantic-unit seam in addition to the #660/#664 semantic-unit/backend stack and #659 ontology readability/token repair. Twenty-nine PRs remain open at the 01:56 KST snapshot: twenty-two target `main` and seven form four explicit stacks. Every candidate still requires exact-head checks and independent approval before merge | Terminal exact-head checks, no unresolved threads, the current ruleset's independent approval, and a protected merge SHA; re-fetch the ruleset before every lifecycle claim |
 | Evidence-grounded operations workspace | Protected-main #614 delivers governed semantic Ask, live Similar VOC, disjoint pending/failed analysis metrics, full Storybook state inventory, and current desktop/mobile screenshot evidence. Authorized-corpus backfill acceptance remains unavailable | Perform authenticated authorized-corpus acceptance with aggregate evidence and retain fail-closed no-match behavior |
 | Cancelled analysis guidance | PRD-FR-5 requires every lifecycle state to identify a valid next action, while ADR 0013 makes Cancelled terminal. Protected `main@494b54e2` rendered Cancelled without a next action. This stacked candidate adds kind-specific guidance for lineage, TEPP, topic lineage, and period reports; 390×844 and 1440×1000 authenticated synthetic-runtime audits are retained in `docs/screenshots/cancelled-analysis-runs-{mobile,desktop}.png`. The audit also found and repaired attached count/action text and the three-column mobile squeeze | Land through the protected gate, then repeat authenticated keyboard and screen-reader acceptance on the exact release head; no cancelled run may imply that it can resume or that a measurement exists |
 | Shared frontend gate | The ADR 0109 login repair is on protected `main`; eight older branches carried the defect and received the same verified repair this loop (#521–#560) | Keep every future branch cut from post-repair bases; re-verify with frontend lint/test/build before push |
