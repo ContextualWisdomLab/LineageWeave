@@ -19,7 +19,7 @@ afterEach(() => {
 describe("ChatPanel conversation history", () => {
   it("reopens an owned conversation and returns to the seeded new-conversation state", async () => {
     vi.stubGlobal("fetch", vi.fn(async (input: RequestInfo | URL) => {
-      const url = String(input);
+      const url = input instanceof Request ? input.url : String(input);
       if (url.endsWith("/chat/conversations/conversation-1")) {
         return jsonResponse({
           conversation_id: "conversation-1",
@@ -69,5 +69,34 @@ describe("ChatPanel conversation history", () => {
     await userEvent.click(screen.getByRole("button", { name: "New conversation" }));
     await waitFor(() => expect(screen.getByText("Seed answer")).toBeInTheDocument());
     expect(screen.queryByText("Only authorized saved evidence.")).toBeNull();
+  });
+
+  it("offers a next action when another history page cannot be loaded", async () => {
+    vi.stubGlobal("fetch", vi.fn(async (input: RequestInfo | URL) => {
+      const url = input instanceof Request ? input.url : String(input);
+      if (url.includes("before_updated_at=")) throw new TypeError("network unavailable");
+      if (url.endsWith("/chat/conversations")) {
+        return jsonResponse({
+          conversations: [{
+            conversation_id: "conversation-1",
+            title: "Saved question",
+            updated_at: "2026-08-26T00:00:00Z",
+            turn_count: 1,
+          }],
+          next_cursor: {
+            before_updated_at: "2026-08-26T00:00:00Z",
+            before_conversation_id: "conversation-1",
+          },
+        });
+      }
+      return jsonResponse({ post_id: "post-1", exchanges: [] });
+    }));
+
+    render(<ChatPanel postId="post-1" accessToken="synthetic-token" />);
+
+    await userEvent.click(await screen.findByRole("button", { name: "Load more" }));
+    expect(await screen.findByText(
+      "Conversation history could not be loaded. Start a new conversation or try again later.",
+    )).toBeInTheDocument();
   });
 });
