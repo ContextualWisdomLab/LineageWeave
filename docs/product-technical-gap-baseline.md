@@ -45,7 +45,8 @@ Cartesian-product codes. The remaining acceptance boundary is:
    and UI (candidate API list/detail, filters, combined post-card labels,
    qualified JSON-LD, exact-value CSV, SHACL, and source-post evidence
    navigation implemented; the board re-filter matches every associated voice
-   and restores locale translation for each displayed label); and
+   and all twelve governed atomic labels are localized across English, Korean,
+   Chinese, Japanese, and Vietnamese); and
 5. proves zero-, one-, and multi-voice states with synthetic fixtures,
    migration replay, ontology/SHACL, API, accessibility, and Storybook edge
    tests before any release claim. The candidate `CombinedVoiceEvidence` scene

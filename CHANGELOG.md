@@ -20,7 +20,8 @@ All notable changes to this project are documented here. Format follows
   plus additional Voice evidence state for desktop and narrow-screen audit.
   Board filters match additional as well as primary voices, labels retain the
   active locale, and cutoff reads use assignment-effective time rather than
-  migration recording time.
+  migration recording time. All twelve governed atomic Voice labels are
+  translated across the five supported product locales.
 - Expanded Voice-of-X post taxonomy (ADR 0246): the governed `voc_type`
   scheme adds Voice of Supplier, Employee, Business, Regulator, Investor,
   Society, and Process as source-post categories. Ontology SKOS concepts and
