@@ -7,7 +7,10 @@ import uuid
 
 import pytest
 
-from lineageweave.embedding_backfill import backfill_post_content_embeddings
+from lineageweave.embedding_backfill import (
+    _SELECT_UNITS_SQL,
+    backfill_post_content_embeddings,
+)
 
 
 class _Transaction:
@@ -146,6 +149,26 @@ def test_empty_selection_skips_provider_and_transaction() -> None:
     }
     assert client.calls == []
     assert conn.transaction_entries == 0
+
+
+def test_oversized_first_unit_reaches_the_explicit_failure_guard() -> None:
+    """The SQL cannot hide a blocking unit and silently stall later work."""
+    row = _row(0)
+    row["unit_text"] = "x" * 200
+
+    with pytest.raises(
+        ValueError,
+        match="one semantic unit exceeds the advertised embedding request ceiling",
+    ):
+        asyncio.run(
+            backfill_post_content_embeddings(
+                _Connection([row]),
+                _EmbeddingClient(),
+                max_request_body_bytes=100,
+            )
+        )
+
+    assert "candidate_ordinal = 1 or cumulative_text_bytes <= $1" in _SELECT_UNITS_SQL
 
 
 def test_bulk_backfill_packs_largest_prefix_within_advertised_body_ceiling() -> None:

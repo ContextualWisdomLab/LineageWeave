@@ -51,7 +51,9 @@ flowchart LR
 Historical processing reuses the durable post-content queue boundary, with a
 bounded operator request and digest idempotency. HTTP requests never perform
 the extraction inline. Publication applies the existing authorization filter
-before returning the mention, relation, or evidence link.
+and source eligibility predicate to both the requested post and every evidence
+post before returning the mention, relation, or evidence link. A visible post
+cannot reveal a product span cited only by evidence the reader cannot access.
 
 ## Consequences
 

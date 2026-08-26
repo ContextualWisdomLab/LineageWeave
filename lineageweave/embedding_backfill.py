@@ -16,6 +16,9 @@ with candidates as (
            post.source_author_code, post.source_company_code,
            post.source_customer_code, post.source_project_code,
            post.source_sales_pool_code, entity.corporate_entity_code,
+           row_number() over (
+               order by post.created_at, post.post_id, unit.unit_index
+           ) as candidate_ordinal,
            sum(octet_length(unit.unit_text) + 1) over (
                order by post.created_at, post.post_id, unit.unit_index
            ) as cumulative_text_bytes
@@ -29,7 +32,7 @@ with candidates as (
        )
 )
 select * from candidates
- where cumulative_text_bytes <= $1
+ where candidate_ordinal = 1 or cumulative_text_bytes <= $1
  order by cumulative_text_bytes
 """
 
