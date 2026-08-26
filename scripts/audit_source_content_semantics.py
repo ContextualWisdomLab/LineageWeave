@@ -10,6 +10,7 @@ import os
 import re
 from collections import Counter
 from collections.abc import Mapping, Sequence
+from decimal import Decimal
 from pathlib import Path
 from typing import Any
 
@@ -173,6 +174,15 @@ def validate_probability_sample_manifest(
         raise ValueError("sample manifest stratum populations must match population_size")
     if sum(stratum_samples.values()) != sample_size:
         raise ValueError("sample manifest stratum samples must match sample_size")
+    for stratum in strata:
+        declared_probability = Decimal(stratum["inclusion_probability"])
+        actual_probability = Decimal(stratum["sample_size"]) / Decimal(
+            stratum["population_size"]
+        )
+        if abs(declared_probability - actual_probability) > Decimal("1e-12"):
+            raise ValueError(
+                "sample manifest inclusion probability must match the stratum sampling fraction"
+            )
 
     selected_units = payload["selected_units"]
     selected_unit_fields = {"ordinal", "selection_token_sha256", "stratum_code"}

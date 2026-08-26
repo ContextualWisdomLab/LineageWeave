@@ -188,6 +188,17 @@ def test_probability_sample_manifest_requires_known_stratum_inclusion_probabilit
         validate_probability_sample_manifest(manifest, 80)
 
 
+def test_probability_manifest_inclusion_probability_matches_sampling_fraction() -> None:
+    """A declared probability cannot contradict the selected stratum fraction."""
+    manifest = _probability_manifest()
+    strata = manifest["strata"]
+    assert isinstance(strata, list) and isinstance(strata[0], dict)
+    strata[0]["inclusion_probability"] = "0.5"
+
+    with pytest.raises(ValueError, match="sampling fraction"):
+        validate_probability_sample_manifest(manifest, 80)
+
+
 @pytest.mark.parametrize(
     ("field", "value", "message"),
     [
