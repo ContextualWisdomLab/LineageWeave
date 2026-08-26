@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   fetchOccupationRatingSources,
   fetchOccupationRatings,
@@ -26,6 +26,7 @@ export function OccupationRatingProfile({ accessToken }: Props) {
   const [sourceCatalogError, setSourceCatalogError] = useState(false);
   const [profile, setProfile] = useState<OccupationRatingProfilePayload | null>(null);
   const [status, setStatus] = useState<"idle" | "loading" | "error">("idle");
+  const requestSequence = useRef(0);
 
   useEffect(() => {
     let active = true;
@@ -42,6 +43,8 @@ export function OccupationRatingProfile({ accessToken }: Props) {
   }, [accessToken]);
 
   function load(offset: number | null = null) {
+    const requestId = requestSequence.current + 1;
+    requestSequence.current = requestId;
     const source = sources?.find(
       (item) => `${item.data_release_code}|${item.source_table_code}` === selectedSource,
     );
@@ -66,6 +69,7 @@ export function OccupationRatingProfile({ accessToken }: Props) {
       offset: offset ?? 0,
     })
       .then((payload) => {
+        if (requestSequence.current !== requestId) return;
         setProfile((current) =>
           offset != null && current
             ? { ...payload, items: [...current.items, ...payload.items] }
@@ -73,7 +77,9 @@ export function OccupationRatingProfile({ accessToken }: Props) {
         );
         setStatus("idle");
       })
-      .catch(() => setStatus("error"));
+      .catch(() => {
+        if (requestSequence.current === requestId) setStatus("error");
+      });
   }
 
   return (
