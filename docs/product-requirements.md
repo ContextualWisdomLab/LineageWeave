@@ -124,6 +124,27 @@ prohibit FJA equivalence, require exact Post/evidence/PROV statement structure,
 and reproduce every pinned O*NET linkage with its exact source table. Runtime
 persistence and UI remain unavailable until their separate ADR acceptance.
 
+### PRD-FR-2D — Occupation-rating source observations
+
+- Persist released occupation-to-element ratings as source observations, not
+  ontology weights: release, source table, occupation, element, scale,
+  optional category, value, sample/error/interval, suppression, relevance,
+  exact source update month, and domain source remain independently auditable
+  (ADR 0257); the product must not invent a day for O*NET's `MM/YYYY` field.
+- Keep normalized reference identities in third normal form and partition the
+  observation store by exact release then source table. An unknown partition
+  fails closed instead of entering a catch-all table.
+- Preserve decimals and missingness exactly. No local aggregation,
+  normalization, person inference, or psychometric estimation is permitted.
+- Reject divergent duplicate identities and owner-level truncation. Task
+  Ratings remain unavailable until their integer Task IDs and statements have
+  a separate normalized source-target contract.
+
+Acceptance: the replay-safe migration creates the normalized store; PostgreSQL
+integration proves missing partitions fail closed, null-category UPSERT is
+idempotent, and invalid uncertainty is rejected. Corpus import, API, UI, and
+derived modeling remain unavailable until separate accepted delivery records.
+
 ### PRD-FR-3 — Bounded ontology exploration
 
 - Apply RBAC/ABAC, source eligibility, and knowledge cutoff before graph
