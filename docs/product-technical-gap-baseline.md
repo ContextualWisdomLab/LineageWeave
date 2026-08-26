@@ -1,6 +1,6 @@
 # Product & Technical Gap Baseline
 
-> Dashboard delivery snapshot: 2026-08-26 13:40 KST. Protected `main` is
+> Dashboard delivery snapshot: 2026-08-26 14:55 KST. Protected `main` is
 > `494b54e2245040bcf02b45376f221c37cd437e76`. This local branch is not
 > protected-main release evidence.
 
@@ -61,7 +61,7 @@ only aggregate, non-identifying evidence to this repository.
 
 ### Exact open-PR boundary
 
-At this snapshot there were 16 open PRs and 10 open issues. The exact-head
+At this snapshot there were 17 open PRs and 10 open issues. The exact-head
 inventory in section 1 is authoritative for this snapshot. Every open head
 remained blocked on hosted gates and/or independent review. These observations
 are not merge readiness. Re-fetch exact heads,
@@ -78,20 +78,22 @@ lifecycle claim.
 ## 1. Exact-head and governance evidence
 
 The protected default branch is `494b54e2245040bcf02b45376f221c37cd437e76`
-at this refresh. The live queue contains 16 open PRs and 10
+at this refresh. The live queue contains 17 open PRs and 10
 open issues. The exact-head inventory below supersedes older per-PR snapshots
 elsewhere in this document; those older rows remain useful historical delivery
 context only.
 
 | PR | Exact observed head | Merge/check state at this snapshot |
 | ---: | --- | --- |
+| #686 | `7276df4f` | customer-facing copy boundary audit; BLOCKED with review required and hosted checks pending |
+| #684 | `cb5e7df7` | measured PostgreSQL runtime tuning plan; merge state unknown while hosted checks are pending |
 | #682 | `0aa3113e` | MERGED to stack `feat/global-ask-semantic-public-current` as `fa245483`; typed public-claim verification filters cited claims before the bounded candidate budget, preserves answers when verification is unavailable, rejects hidden evidence from public egress, and validates empty orchestrator choices |
 | #681 | `3e0fa644` | MERGED to stack `feat/dashboard-case-metrics` as `dae28fb2`; fail-closed lineage-weight owner contract pin with lockfile parity |
-| #680 | `be34c335` | customer-facing ranking copy with localized retry/search guidance, no fused-ranking implementation label, related-concepts/author-context/earlier-source-version labels, and source-record detail copy corrected; hosted checks requeued and independent review required |
-| #679 | `7e6e386a` | ADR 0229 public-claim envelope, async verification, locale-aware next actions, opt-in search setup, and aggregate-status guidance repair; BLOCKED with exact-head checks and independent review required |
+| #680 | `5c246a54` | customer-facing ranking copy with localized retry/search guidance and source-record detail copy corrected; BLOCKED with exact-head checks and independent review required |
+| #679 | `c430cfa1` | ADR 0229 public-claim envelope, async verification, locale-aware next actions, opt-in search setup, and aggregate-status guidance repair; BLOCKED with exact-head checks and independent review required |
 | #678 | `676fcc5a` | MERGED to stack `feat/dashboard-case-metrics` as `bec013d8`; canonical Compose-stack consolidation |
 | #677 | `bf7d6b88` | ADR 0228 account-owned per-post Ask conversation history reconciled with the latest baseline; localized titles, full conversation/transcript pagination, stale-response guards, repeated-turn preservation, and eligibility recheck remain intact; hosted checks requeued and independent review required |
-| #667 | `caa656a5` | baseline refresh branch current head; BLOCKED with review required; stacked #669 and #671 are merged into this non-default branch |
+| #667 | `90b0d330` | baseline refresh branch current head; BLOCKED with review required; stacked #669 and #671 are merged into this non-default branch |
 | #672 | `5468c04d` | persisted semantic-evidence nomination for Global Ask with ADR renumbering; BLOCKED with hosted checks queued and review required |
 | #668 | `153add77` | evidence-bound project history projection with ADR renumbering, request guards, source-code/time-basis display repair, and theme-token timeline styling; BLOCKED with review required |
 | #663 | `74b9a1d9` | project ontology traversal, cutoff-snapshot project focus, bounded MCP admission, and migration-fixture/worker startup repair; hosted Full-suite transaction root cause repaired; fresh checks pending and review required |
@@ -99,7 +101,7 @@ context only.
 | #657 | `709df1b9` | TEPP lifecycle persistence and fail-closed topic acceptance; BLOCKED with hosted checks queued and review required |
 | #644 | `ed8d97f3` | native-surface code splitting; BLOCKED with review required |
 | #643 | `3453ab08` | accessible status notices; BLOCKED with review required |
-| #640 | `cb78cd78` | dashboard ranking and topic-influence surfaces no longer expose provider, hash, or uncertainty-code implementation labels; residual-map axis-share drift is handled fail-closed; current head adds the ADR for portable Rust accelerator backends; hosted checks requeued and independent review required |
+| #640 | `4a4acc38` | dashboard ranking and topic-influence surfaces no longer expose provider, hash, or uncertainty-code implementation labels; current head repairs customer copy, migration replay safety, id-only Ask citations, and not-applicable topic state; hosted checks requeued and independent review required |
 | #639 | `8da485d3` | running-action/config repair; BLOCKED with review required |
 | #632 | `811026cc` | graph-fact provenance repair with current baseline evidence; BLOCKED with hosted checks queued and review required |
 | #631 | `e6b4f0c4` | ADR decomposition documentation; BLOCKED with review required |
