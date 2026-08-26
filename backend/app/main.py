@@ -1590,7 +1590,8 @@ async def read_post(
         project_evidence = await _load_project_evidence(
             conn, post_id, row["source_project_code"], row["source_project_name"]
         )
-        product_rows = await conn.fetch(
+        # Safe SQL: the eligibility predicate is an immutable schema fragment; post id is bound.
+        product_rows = await conn.fetch(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
             "select mention.mention_ordinal, mention.extracted_product_name, "
             "mention.resolution_status_code, catalog.canonical_product_name, "
             "catalog.product_level_code, mention.evidence_text, "
