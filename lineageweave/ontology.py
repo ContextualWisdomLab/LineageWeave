@@ -245,7 +245,8 @@ def project_product_relation_rdf(
     assertion = URIRef(
         LW[
             "statement/product-relation/"
-            f"{canonical_post_id}/{mention_ordinal}/{quote(target_id, safe='')}"
+            f"{canonical_post_id}/{mention_ordinal}/{quote(target_id, safe='')}/"
+            f"{quote(relation_type_code, safe='')}/{quote(product_id, safe='')}"
         ]
     )
     source = URIRef(ontology_node_iri("node_post", canonical_post_id))

@@ -178,6 +178,34 @@ def test_product_relation_projection_passes_validation_and_closed_codes() -> Non
         )
 
 
+def test_product_relation_assertion_identity_retains_distinct_predicates() -> None:
+    """Two supported claims for one target remain separate RDF assertions."""
+    kwargs = {
+        "post_id": "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa1",
+        "mention_ordinal": 0,
+        "product_id": "synthetic-product",
+        "target_kind_code": "operations_fact",
+        "target_id": "synthetic-fact",
+        "evidence_text": "Synthetic Product changes the observed fact",
+        "evidence_input_sha256": "a" * 64,
+        "post_title": "Synthetic relation source",
+        "post_body": "Synthetic Product changes the observed fact",
+        "post_created_at": datetime(2026, 8, 27, tzinfo=timezone.utc),
+    }
+    data = project_product_relation_rdf(
+        **kwargs, relation_type_code="concerns_product"
+    ) + project_product_relation_rdf(
+        **kwargs, relation_type_code="changes_product"
+    )
+
+    LWn = Namespace(LW)
+    assertions = set(data.subjects(RDF.type, LWn.ProductRelationAssertion))
+    assert len(assertions) == 2
+    assert {
+        data.value(assertion, RDF.predicate) for assertion in assertions
+    } == {LWn.concernsProduct, LWn.changesProduct}
+
+
 @pytest.mark.parametrize(
     ("override", "message"),
     [

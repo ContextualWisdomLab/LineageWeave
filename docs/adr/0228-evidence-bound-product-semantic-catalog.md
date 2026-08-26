@@ -58,6 +58,11 @@ structured-output transport is merged to its protected main and pinned by
 exact merge SHA, provider-backed relation production remains unavailable;
 local code and a branch head are not release authority.
 
+Each RDF assertion IRI includes the focal post, mention ordinal, target,
+relation code, and product identity. Those fields form the assertion identity:
+two supported predicates between the same normalized target and product remain
+two auditable assertions instead of collapsing into one invalid reification.
+
 ```mermaid
 flowchart LR
   S[source_post] -->|authorized span and digest| M[post_product_mention]
