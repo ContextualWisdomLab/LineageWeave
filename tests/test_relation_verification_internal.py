@@ -40,6 +40,7 @@ class _Connection:
 
     async def execute(self, query: str, *args: object):
         assert "verification_evidence_post_id = $5" in query
+        assert "$5::uuid is null or exists" in query
         self.execute_args = args
         self.execute_calls.append(args)
         return self.update_status
