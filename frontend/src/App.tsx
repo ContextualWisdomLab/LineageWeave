@@ -3363,14 +3363,16 @@ function RankingsPanel({
           <span className="post-badge">
             {ranking.status === "accepted"
               ? t("Ranked result")
-              : t("Rankings temporarily unavailable")}
+              : t("Rankings unavailable")}
           </span>
         )}
       </div>
       {error && <p className="error">{error}</p>}
       {ranking === null && !error && <p role="status">{t("Loading rankings...")}</p>}
       {ranking && ranking.status === "unavailable" && (
-        <p className="popup-placeholder">{t("Rankings are temporarily unavailable. Try again later.")}</p>
+        <p className="popup-placeholder">
+          {t("Rankings are unavailable for this workspace. Ask your workspace administrator to enable rankings.")}
+        </p>
       )}
       {ranking && ranking.status === "accepted" && ranking.rankings.length === 0 && (
         <p className="popup-placeholder">{t("No ranked records are available. Check again after more records are added.")}</p>

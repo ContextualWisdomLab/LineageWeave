@@ -3092,7 +3092,11 @@ describe("App, authenticated", () => {
     stubBackend();
     render(<App />);
 
-    expect(await screen.findByText("Rankings are temporarily unavailable. Try again later.")).toBeInTheDocument();
+    expect(
+      await screen.findByText(
+        "Rankings are unavailable for this workspace. Ask your workspace administrator to enable rankings.",
+      ),
+    ).toBeInTheDocument();
     expect(screen.queryByText("Pricing renegotiation: revised quote sent")).not.toBeInTheDocument();
   });
 
