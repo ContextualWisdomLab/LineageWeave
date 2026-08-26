@@ -107,6 +107,45 @@ def test_provider_deadline_accepts_response_larger_than_queue_pipe() -> None:
     assert len(result["trace"]) == 262_144
 
 
+def test_provider_deadline_preserves_explicit_audit_session() -> None:
+    """A spawned request retains the non-identifying audit correlation id."""
+    received_session_id = ""
+    body = b'{"ok":true}'
+
+    class Handler(BaseHTTPRequestHandler):
+        def do_POST(self) -> None:  # noqa: N802
+            nonlocal received_session_id
+            received_session_id = self.headers.get(
+                "x-lineageweave-session-id", ""
+            )
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+
+        def log_message(self, _format: str, *_args: object) -> None:
+            return
+
+    server = ThreadingHTTPServer(("127.0.0.1", 0), Handler)
+    thread = threading.Thread(target=server.serve_forever)
+    thread.start()
+    try:
+        result = _post_json_with_deadline(
+            f"http://127.0.0.1:{server.server_port}/conduct",
+            {},
+            headers={"x-lineageweave-session-id": "semantic-audit:synthetic"},
+            timeout=5,
+        )
+    finally:
+        server.shutdown()
+        thread.join()
+        server.server_close()
+
+    assert result == {"ok": True}
+    assert received_session_id == "semantic-audit:synthetic"
+
+
 def test_audit_contract_distinguishes_instance_data_from_schema_gaps() -> None:
     """Private names and values do not require private ontology vocabulary."""
     prompt = _prompt(
@@ -511,6 +550,15 @@ def test_rejected_attempt_retains_prov_without_becoming_a_coverage_result() -> N
     assert evidence["status_code"] == "rejected"
     assert evidence["accepted_count"] == 30
     assert evidence["failed_batch_index"] == 3
+    assert evidence["audit_session_id"].startswith("semantic-audit:")
+    completed = audit_attempt_provenance(
+        selection_manifest_sha256="a" * 64,
+        sampling_design_sha256="b" * 64,
+        ontology_sha256="c" * 64,
+        status_code="completed",
+        accepted_count=381,
+    )
+    assert completed["audit_session_id"] == evidence["audit_session_id"]
     assert "corpus_inference_available" not in evidence
     assert len(evidence["prov_o_sha256"]) == 64
     prov_o = evidence["prov_o"]

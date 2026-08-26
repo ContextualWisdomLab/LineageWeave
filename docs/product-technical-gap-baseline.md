@@ -123,7 +123,10 @@ provider catalog evidence. The candidate audit now also retains an owner-only,
 aggregate PROV-O attempt artifact from the start of execution: the activity
 uses the content-addressed selection manifest, Rust design artifact, and
 ontology, while a rejection records only accepted-item count, failed batch,
-and bounded error class. It never promotes partial verdicts to corpus inference
+and bounded error class. A stable non-identifying audit session, derived from
+those same input hashes, now crosses the spawned provider boundary and is
+recorded with the attempt so orchestration trace is not detached from PROV.
+It never promotes partial verdicts to corpus inference
 or exposes source identifiers. No 381-unit coverage estimate is accepted until
 all 39 batches complete against one unchanged manifest.
 

@@ -514,10 +514,18 @@ def audit_attempt_provenance(
         raise ValueError("unsupported audit-attempt status")
     if status_code == "rejected" and not failure_code:
         raise ValueError("a rejected audit attempt requires a failure code")
+    audit_session_id = "semantic-audit:" + _canonical_sha256(
+        {
+            "selection_manifest_sha256": selection_manifest_sha256,
+            "sampling_design_sha256": sampling_design_sha256,
+            "ontology_sha256": ontology_sha256,
+        }
+    )
     identity = {
         "selection_manifest_sha256": selection_manifest_sha256,
         "sampling_design_sha256": sampling_design_sha256,
         "ontology_sha256": ontology_sha256,
+        "audit_session_id": audit_session_id,
         "status_code": status_code,
         "accepted_count": accepted_count,
         "failed_batch_index": failed_batch_index,
@@ -993,7 +1001,8 @@ async def audit_source_content(
             _write_private_json(attempt_evidence_path, evidence)
         return evidence
 
-    retain_attempt("in_progress")
+    initial_attempt = retain_attempt("in_progress")
+    audit_session_id = str(initial_attempt["audit_session_id"])
     try:
         connection = await asyncpg.connect(source_dsn)
         try:
@@ -1033,7 +1042,10 @@ async def audit_source_content(
                 "include_orchestration_trace": True,
                 "response_format": _response_format(len(window)),
             },
-                headers={"authorization": f"Bearer {gateway_api_key}"},
+                headers={
+                    "authorization": f"Bearer {gateway_api_key}",
+                    "x-lineageweave-session-id": audit_session_id,
+                },
                 timeout=timeout,
             )
             orchestration = response.get("orchestration")
