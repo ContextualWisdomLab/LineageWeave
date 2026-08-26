@@ -213,6 +213,48 @@ const rejectedNeighborhood: OntologyNeighborhoodPayload = {
   ],
 };
 
+const combinedVoiceNeighborhood: OntologyNeighborhoodPayload = {
+  ...demoNeighborhood,
+  voice_assignments: [
+    {
+      post_id: POST_ID,
+      voice_type_code: "voc",
+      voice_type_iri: "https://contextualwisdomlab.github.io/LineageWeave/ontology#voiceOfCustomerType",
+      voice_type_label: "Voice of Customer",
+      is_primary: true,
+      truth_status_code: "truth_observed",
+      recorded_at: "2026-01-10T12:00:00+00:00",
+      provenance_reference: "Imported primary voice",
+    },
+    {
+      post_id: POST_ID,
+      voice_type_code: "vops",
+      voice_type_iri: "https://contextualwisdomlab.github.io/LineageWeave/ontology#voiceOfProcessType",
+      voice_type_label: "Voice of Process",
+      is_primary: false,
+      truth_status_code: "truth_observed",
+      recorded_at: "2026-01-10T12:00:00+00:00",
+      provenance_reference: "Evidence-backed additional voice",
+    },
+  ],
+  exact_value_rows: [
+    ...demoNeighborhood.exact_value_rows,
+    ...[
+      ["voc", "Voice of Customer"],
+      ["vops", "Voice of Process"],
+    ].map(([code, label]) => ({
+      ...demoNeighborhood.exact_value_rows[0],
+      edge_id: `voice-assignment:${POST_ID}:${code}`,
+      property_code: "hasVoiceAssignment",
+      property_label: "Voice carried by this post",
+      ontology_property_iri: "https://contextualwisdomlab.github.io/LineageWeave/ontology#hasVoiceAssignment",
+      target_node_id: code,
+      target_label: label,
+      target_type_code: "node_voice_type",
+    })),
+  ],
+};
+
 const meta = {
   title: "Evidence/OntologyExplorer",
   component: OntologyExplorer,
@@ -228,6 +270,17 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 
 export const DesktopNeighborhood: Story = {};
+
+export const CombinedVoiceEvidence: Story = {
+  args: { neighborhood: combinedVoiceNeighborhood },
+  play: ({ canvasElement }) => {
+    const evidence = canvasElement.querySelector<HTMLButtonElement>(
+      'button[aria-label="Open evidence: Demo public post"]',
+    );
+    if (!evidence) throw new Error("Voice assignment evidence control was not rendered");
+    evidence.focus();
+  },
+};
 
 export const LongLabelsAndEvidenceTable: Story = {
   args: {

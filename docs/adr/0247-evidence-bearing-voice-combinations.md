@@ -95,9 +95,10 @@ category and stores no source content or identifying evidence in repository
 artifacts.
 
 The repository candidate projects authorized combinations through JSON-LD,
-SHACL, CSV, and evidence navigation. Authenticated runtime, an authorized write
-workflow for additional assignments, and rendered desktop/mobile acceptance
-remain required before a release claim.
+SHACL, CSV, and evidence navigation. Its synthetic Storybook desktop/mobile
+scene verifies a focused evidence action and a contained horizontally
+scrollable exact-value table. Authenticated runtime and an authorized write
+workflow for additional assignments remain required before a release claim.
 
 ## References
 
