@@ -1,4 +1,4 @@
-# ADR 0225: External lineage arithmetic authority
+# ADR 0231: External lineage arithmetic authority
 
 **Status:** Accepted  
 **Date:** 2026-08-26
@@ -64,4 +64,3 @@ documentation]. https://github.com/ContextualWisdomLab/RankWeave
 
 ContextualWisdomLab. (2026c). *TEPP product requirements* [Software
 documentation]. https://github.com/ContextualWisdomLab/TEPP
-
