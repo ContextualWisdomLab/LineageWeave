@@ -4,7 +4,7 @@
 > `ff7431bd1851c03e737808d22c6a2d43968582f9`; PR #713 was
 > `850494c3861703862a76cfe564381a41243c6c2d`; stacked PR #717 was
 > audited at implementation head
-> `4aab6e556ca5290347699e487cfb0a504a755b39`. This candidate and the
+> `dde0a83a7da5c099bc52d5c447790e42e63a42b6`. This candidate and the
 > historical evidence below are not protected-main release evidence.
 
 ## Voice-of-X product and technical gap
@@ -75,7 +75,7 @@ Cartesian-product codes. The remaining acceptance boundary is:
    a single column, controls meet the 44-pixel touch target, and no horizontal
    overflow was visible.
 
-At this snapshot the repository had 40 open PRs and 10 open issues. PR #713
+At this snapshot the repository had 41 open PRs and 11 open issues. PR #713
 head `850494c3` includes the review-driven localization of all twelve governed
 Voice labels. Its frontend, ontology publication, static-analysis, dependency,
 coverage, full-suite, CodeRabbit, Devin, and OpenCode checks passed. Strix
@@ -85,22 +85,23 @@ reached end of life, and the OpenAI fallback reported exhausted credits. This
 is provider/control-plane unavailability, not a vulnerability result or
 permission to transfer an older success. Auto-merge remains enabled, while an
 independent approval is still required. PR #717 implementation head
-`4aab6e55` merges that
+`dde0a83a` merges that
 parent change without force-pushing and separates the complete governed Voice
 catalog used for authoring from usage-derived Board filters, so an authorized
-administrator can attach a Voice that no visible Post carries yet. Its
-CodeRabbit and hosted Frontend/Storybook checks passed at documentation head
-`bb2eec19`; Devin and the hosted full suite were still running. Focused local
+administrator can attach a Voice that no visible Post carries yet. It also
+labels Voice exact-value navigation as opening the carrying Post rather than
+misrepresenting that Post as the separately recorded derivation evidence. Its
+CodeRabbit and hosted Frontend/Storybook checks passed at exact head
+`dde0a83a`; Devin and the hosted full suite were still pending. Focused local
 backend tests, frontend type checking/lint, and the new unused-Voice authoring
-regression passed. The wider local frontend run had
+regression passed, and the exact-value navigation tests, lint, and type check
+passed after the label repair. The wider local frontend run had
 397 passes and eight five-second timeouts under concurrent machine load; a
 focused rerun of the new App path passed in 5.57 seconds with a 20-second test
-limit, so the timeout run is not promoted to full-suite success. The isolated
-PostgreSQL and Valkey services were healthy, but authenticated integration
-acceptance remained pending because the shared Keycloak token endpoint did not
-respond within its bounded 10-second transport timeout and the isolated
-Keycloak was still initializing. A later retry against the shared synthetic
-stack succeeded in 56.18 seconds and proved the permission, API, PostgreSQL,
+limit, so the timeout run is not promoted to full-suite success. An initial
+authenticated integration attempt was unavailable while Keycloak initialized;
+a later retry against the shared synthetic stack succeeded in 56.18 seconds
+and proved the permission, API, PostgreSQL,
 PROV-O, and primary-preservation assertions; no identifying source data was
 used or retained. No self-approval, admin bypass, or stale-head check transfer
 is permitted.
