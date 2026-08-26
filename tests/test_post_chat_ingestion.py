@@ -72,10 +72,17 @@ class _SourceConnection:
         return []
 
 
-def test_project_siblings_are_separate_from_event_lineage() -> None:
+def test_project_siblings_are_separate_from_event_lineage(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     class ProjectConnection:
+        project_queries = 0
+
         async def fetch(self, query: str, *_args: object):
+            if "post_lineage_edge" in query or "select distinct person_id" in query:
+                return []
             if "select distinct project_key" in query:
+                self.project_queries += 1
                 return [{"project_key": "project-synthetic"}]
             if "where ppm.project_key = any" in query:
                 assert SOURCE_POST_ELIGIBILITY_SQL.format(alias="sp") in query
@@ -83,9 +90,21 @@ def test_project_siblings_are_separate_from_event_lineage() -> None:
                 return [{"post_id": "post-2"}]
             return []
 
-    siblings = asyncio.run(find_project_sibling_post_ids(ProjectConnection(), "post-1"))
+    async def no_graph(_conn: object, post_ids: list[str]):
+        assert post_ids == ["post-1"]
+        return []
 
+    monkeypatch.setattr(
+        "backend.app.post_chat_ingestion.load_visible_subgraph",
+        no_graph,
+    )
+    connection = ProjectConnection()
+    linked = asyncio.run(find_linked_post_ids(connection, "post-1"))
+    siblings = asyncio.run(find_project_sibling_post_ids(connection, "post-1"))
+
+    assert linked == LinkedPostIds(direct=frozenset(), indirect=frozenset())
     assert siblings == frozenset({"post-2"})
+    assert connection.project_queries == 1
 
 
 def test_gather_chat_sources_keeps_the_event_loop_responsive_during_body_normalization(
