@@ -401,6 +401,10 @@ def seeded_db(demo_analyst_token):
             cur.execute(_LEFTOVER_MAP_COVERAGE_MIGRATION.read_text())
             cur.execute(_GLOBAL_ASK_JOB_MIGRATION.read_text())
             cur.execute(_GLOBAL_ASK_SCOPE_MIGRATION.read_text())
+            # psycopg2 sends a multi-statement execute as one transaction even
+            # in autocommit mode. Production psql executes this migration's
+            # CREATE INDEX CONCURRENTLY statements separately (ADR 0166), so
+            # preserve that boundary in the integration fixture as well.
             for statement in _GLOBAL_ASK_EVIDENCE_SEARCH_MIGRATION.read_text().split(";\n\n"):
                 if statement.strip():
                     cur.execute(statement + ";")
