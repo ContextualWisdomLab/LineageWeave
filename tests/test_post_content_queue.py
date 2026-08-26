@@ -66,6 +66,7 @@ def test_bounded_backfill_is_idempotent_and_broker_loss_stays_recoverable(
             assert "from operations_case_analysis analysis" in query
             assert "analysis.post_id = post.post_id" in query
             assert "analysis.source_body_sha256 = job.source_body_sha256" in query
+            assert "from post_product_analysis analysis" in query
             assert "for update of post skip locked" in query.lower()
             assert args == (SUCCEEDED, True, True, 2)
             return [
@@ -203,6 +204,7 @@ def test_backfill_requeues_complete_content_missing_operations_analysis(
 
         async def fetchval(self, query: str, *args: object) -> bool:
             assert "operations_case_analysis" in query
+            assert "post_product_analysis" in query
             assert args == (
                 "00000000-0000-0000-0000-000000000001",
                 source_body_sha256("historical success"),
@@ -714,3 +716,17 @@ def test_migration_replay_window_includes_post_content_queue() -> None:
     # 0050 therefore clears the fixed lower-bound filename gate.
     assert "000[0-9]_*|001[01]_*) continue" in migrate
     assert "[0-9][0-9][0-9][0-9]_*)" in migrate
+
+
+def test_superseded_body_indexes_are_not_rebuilt_before_normalized_search() -> None:
+    """Replay never builds legacy GIN indexes that the successor drops."""
+    migration_0035 = (
+        _ROOT / "migrations" / "0035_body_search_prefix.sql"
+    ).read_text()
+    migration_0036 = (
+        _ROOT / "migrations" / "0036_normalized_body_search.sql"
+    ).read_text()
+    assert "create extension if not exists pg_trgm" in migration_0035
+    assert "create index" not in migration_0035.casefold()
+    assert "create index if not exists source_post_search_prefix_trgm_idx" in migration_0036
+    assert "create index if not exists source_post_search_fts_idx" in migration_0036
