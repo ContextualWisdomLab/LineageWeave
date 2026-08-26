@@ -1231,7 +1231,7 @@ function KeymanPanel({
       {error && <p className="error">{error}</p>}
       {sourceAuthorContext ? (
         <details className="keyman-source-context">
-          <summary>{t("Source author evidence")} · {t("Hint only")}</summary>
+          <summary>{t("Author context")} · {t("Hint only")}</summary>
           <p>
             <strong>
               {sourceAuthorContext.source_author_name || sourceAuthorContext.source_author_code || t("Unknown")}
@@ -2166,8 +2166,8 @@ function PostDetailPopup({
               post.source_project_name ||
               post.source_system_code ||
               post.source_record_key) && (
-              <section className="popup-section" aria-label={t("Original source state")}>
-                <h3>{t("Original source state")}</h3>
+              <section className="popup-section" aria-label={t("Earlier source version")}>
+                <h3>{t("Earlier source version")}</h3>
                 <dl>
                   {post.source_stage_code ? (
                     <>
@@ -4734,7 +4734,7 @@ function CustomerMasterPanel({
       ) : null}
       {master && master.source_author_hints.length > 0 ? (
         <section className="customer-keymen" aria-labelledby="source-author-evidence-heading">
-          <h3 id="source-author-evidence-heading">{t("Source author evidence")}</h3>
+          <h3 id="source-author-evidence-heading">{t("Author context")}</h3>
           {master.source_author_hints.length > HINT_RENDER_LIMIT && (
             <p className="post-meta">
               {tf("Showing the first {shown} of {total} observed source authors, ranked by post count.", {

@@ -2183,7 +2183,7 @@ describe("App, authenticated", () => {
       "hint-disclosure",
     );
 
-    const authorSection = screen.getByRole("region", { name: "Source author evidence" });
+    const authorSection = screen.getByRole("region", { name: "Author context" });
     expect(within(authorSection).getByText("AUTH-HINT · Hint only").closest("details")).toHaveClass(
       "hint-disclosure",
     );

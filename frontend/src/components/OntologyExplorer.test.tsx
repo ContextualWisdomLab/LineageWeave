@@ -161,7 +161,7 @@ describe("OntologyExplorer", () => {
     expect(await screen.findByText("Loading ontology neighborhood...")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Select node: Post Demo public post" })).toBeInTheDocument();
     rejectContinuation(new BackendError("/api/ontology/neighborhood", 500));
-    expect(await screen.findByText("Ontology neighborhood is unavailable. Open a visible post next.")).toBeInTheDocument();
+    expect(await screen.findByText("Related concepts are unavailable. Open a visible post next.")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Select node: Post Demo public post" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Demo public post" })).toBeInTheDocument();
     expect(fetchNeighborhood).toHaveBeenNthCalledWith(
@@ -188,10 +188,10 @@ describe("OntologyExplorer", () => {
     );
 
     await userEvent.click(await screen.findByRole("button", { name: "Load next relation page" }));
-    expect(await screen.findByText("Ontology neighborhood is unavailable. Open a visible post next.")).toBeInTheDocument();
+    expect(await screen.findByText("Related concepts are unavailable. Open a visible post next.")).toBeInTheDocument();
     await userEvent.click(screen.getByRole("button", { name: "Load next relation page" }));
     await waitFor(() => expect(fetchNeighborhood).toHaveBeenCalledTimes(3));
-    expect(screen.queryByText("Ontology neighborhood is unavailable. Open a visible post next.")).not.toBeInTheDocument();
+    expect(screen.queryByText("Related concepts are unavailable. Open a visible post next.")).not.toBeInTheDocument();
     expect(fetchNeighborhood).toHaveBeenNthCalledWith(
       3,
       "synthetic-access-token",

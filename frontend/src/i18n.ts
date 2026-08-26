@@ -112,6 +112,7 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Source draft marker present": "원천 임시저장 표식 있음",
     "Source deletion marker present": "원천 삭제 표식 있음",
     "Original source state": "원천 상태",
+    "Earlier source version": "이전 원문 버전",
     "Source system": "원천 시스템",
     "Source record key": "원천 레코드 키",
     "Source stage": "원천 단계상태",
@@ -172,6 +173,7 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Weak source hint": "신뢰도가 낮은 원본 힌트",
     "Source hint": "원본 힌트",
     "Source author evidence": "원본 작성자 증거",
+    "Author context": "작성자 맥락",
     "Hint only": "힌트 전용",
     "Authorization context": "권한 계정 맥락",
     "Our-side Keymen hints": "우리측 Keymen 힌트",
@@ -439,6 +441,7 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
       "대화형 질문을 지금 사용할 수 없습니다. 저장된 근거는 계속 확인할 수 있습니다.",
     "Inspect ontology neighborhood": "온톨로지 이웃 검사",
     "Ontology neighborhood": "온톨로지 이웃",
+    "Related concepts": "관련 개념",
     Post: "글",
     "Typed relations, not Event Lineage": "유형 관계이며 이벤트 계보가 아닙니다",
     "This is an ontology neighborhood, not Event Lineage.":
@@ -458,6 +461,8 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
       "거절된 제안입니다. 근거를 열고 권위 있는 사실로 다루지 마세요.",
     "Ontology neighborhood is unavailable. Open a visible post next.":
       "온톨로지 이웃을 사용할 수 없습니다. 다음으로 볼 수 있는 글을 여세요.",
+    "Related concepts are unavailable. Open a visible post next.":
+      "관련 개념을 사용할 수 없습니다. 다음으로 볼 수 있는 글을 여세요.",
     "Search within this neighborhood": "이 이웃에서 검색",
     "Reset focus": "초점 재설정",
     "Export CSV": "CSV 내보내기",
@@ -622,6 +627,7 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Source draft marker present": "存在来源草稿标记",
     "Source deletion marker present": "存在来源删除标记",
     "Original source state": "原始来源状态",
+    "Earlier source version": "较早的原文版本",
     "Source system": "来源系统",
     "Source record key": "来源记录键",
     "Source stage": "来源阶段状态",
@@ -682,6 +688,7 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Weak source hint": "低可信源提示",
     "Source hint": "源提示",
     "Source author evidence": "源作者证据",
+    "Author context": "作者背景",
     "Hint only": "仅作提示",
     "Authorization context": "授权账户上下文",
     "Our-side Keymen hints": "我方关键联系人提示",
@@ -942,6 +949,7 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
       "交互式提问暂不可用；已保存的证据仍可查看。",
     "Inspect ontology neighborhood": "检查本体邻域",
     "Ontology neighborhood": "本体邻域",
+    "Related concepts": "相关概念",
     Post: "文章",
     "Typed relations, not Event Lineage": "这是类型化关系，不是事件谱系",
     "This is an ontology neighborhood, not Event Lineage.": "这是本体邻域，不是事件谱系。",
@@ -960,6 +968,8 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
       "提案已被拒绝。打开证据，不要将其视为权威事实。",
     "Ontology neighborhood is unavailable. Open a visible post next.":
       "无法使用本体邻域。接下来打开一篇可见文章。",
+    "Related concepts are unavailable. Open a visible post next.":
+      "相关概念不可用。接下来打开一篇可见文章。",
     "Search within this neighborhood": "在此邻域中搜索",
     "Reset focus": "重置焦点",
     "Export CSV": "导出 CSV",
@@ -1148,6 +1158,7 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Source draft marker present": "原典に下書き標識あり",
     "Source deletion marker present": "原典に削除標識あり",
     "Original source state": "原典の状態",
+    "Earlier source version": "以前の原文バージョン",
     "Source system": "原典システム",
     "Source record key": "原典レコードキー",
     "Source stage": "原典の段階状態",
@@ -1208,6 +1219,7 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Weak source hint": "信頼度の低いソースヒント",
     "Source hint": "ソースヒント",
     "Source author evidence": "ソース作成者の証拠",
+    "Author context": "作成者の背景",
     "Hint only": "ヒントのみ",
     "Authorization context": "認証アカウントのコンテキスト",
     "Our-side Keymen hints": "自社側キーパーソンのヒント",
@@ -1446,6 +1458,7 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
       "対話形式の質問は現在利用できません。保存された証拠は確認できます。",
     "Inspect ontology neighborhood": "オントロジー近傍を調べる",
     "Ontology neighborhood": "オントロジー近傍",
+    "Related concepts": "関連する概念",
     Post: "投稿",
     "Typed relations, not Event Lineage": "型付き関係であり、イベント系譜ではありません",
     "This is an ontology neighborhood, not Event Lineage.":
@@ -1465,6 +1478,8 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
       "却下された提案です。証拠を開き、権威ある事実として扱わないでください。",
     "Ontology neighborhood is unavailable. Open a visible post next.":
       "オントロジー近傍を利用できません。次に表示可能な投稿を開いてください。",
+    "Related concepts are unavailable. Open a visible post next.":
+      "関連する概念を利用できません。次に表示可能な投稿を開いてください。",
     "Search within this neighborhood": "この近傍内を検索",
     "Reset focus": "焦点をリセット",
     "Export CSV": "CSV を書き出す",
@@ -1653,6 +1668,7 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Source draft marker present": "Có dấu hiệu bản nháp nguồn",
     "Source deletion marker present": "Có dấu hiệu xóa nguồn",
     "Original source state": "Trạng thái nguồn gốc",
+    "Earlier source version": "Phiên bản nội dung trước",
     "Source system": "Hệ thống nguồn",
     "Source record key": "Khóa bản ghi nguồn",
     "Source stage": "Trạng thái giai đoạn nguồn",
@@ -1713,6 +1729,7 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Weak source hint": "Gợi ý nguồn có độ tin cậy thấp",
     "Source hint": "Gợi ý nguồn",
     "Source author evidence": "Bằng chứng tác giả nguồn",
+    "Author context": "Bối cảnh tác giả",
     "Hint only": "Chỉ là gợi ý",
     "Authorization context": "Ngữ cảnh tài khoản quyền hạn",
     "Our-side Keymen hints": "Gợi ý người liên hệ chính phía chúng ta",
@@ -1951,6 +1968,7 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
       "Câu hỏi tương tác hiện không khả dụng; bằng chứng đã lưu vẫn có thể xem.",
     "Inspect ontology neighborhood": "Kiểm tra lân cận bản thể",
     "Ontology neighborhood": "Lân cận bản thể",
+    "Related concepts": "Các khái niệm liên quan",
     Post: "Bài viết",
     "Typed relations, not Event Lineage": "Quan hệ có kiểu, không phải Dòng sự kiện",
     "This is an ontology neighborhood, not Event Lineage.":
@@ -1970,6 +1988,8 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
       "Đề xuất đã bị từ chối. Mở bằng chứng và đừng coi đó là sự thật có thẩm quyền.",
     "Ontology neighborhood is unavailable. Open a visible post next.":
       "Không dùng được lân cận bản thể. Hãy mở một bài viết hiển thị tiếp theo.",
+    "Related concepts are unavailable. Open a visible post next.":
+      "Các khái niệm liên quan không khả dụng. Hãy mở một bài viết hiển thị tiếp theo.",
     "Search within this neighborhood": "Tìm trong lân cận này",
     "Reset focus": "Đặt lại tiêu điểm",
     "Export CSV": "Xuất CSV",
