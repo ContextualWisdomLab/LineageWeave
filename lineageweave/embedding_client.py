@@ -15,7 +15,6 @@ import time
 from collections.abc import Mapping
 from typing import Protocol
 
-from .chunking import Chunk, chunk_by_paragraph
 from .http_client import get_json, json_request_body, post_json
 
 
@@ -257,62 +256,3 @@ def orchestrator_embedding_client(base_url: str, api_key: str):
     if not (base_url and api_key):
         return NullEmbeddingClient()
     return ContextualOrchestratorEmbeddingClient(base_url, api_key)
-
-
-def cosine_similarity(a: list[float], b: list[float]) -> float:
-    """Cosine similarity mapped from ``[-1, 1]`` into the ``[0, 1]`` channel range."""
-    dot = sum(x * y for x, y in zip(a, b))
-    norm_a = math.sqrt(sum(x * x for x in a))
-    norm_b = math.sqrt(sum(y * y for y in b))
-    if norm_a == 0.0 or norm_b == 0.0:
-        return 0.0
-    cosine = dot / (norm_a * norm_b)
-    return (cosine + 1.0) / 2.0
-
-
-def chunked_max_similarity(
-    client: EmbeddingClient,
-    text_a: str,
-    text_b: str,
-    *,
-    chunker=chunk_by_paragraph,
-) -> tuple[float, Chunk, Chunk]:
-    """Chunk both documents, embed every chunk, and return the single
-    highest-scoring chunk pair.
-
-    Embedding a whole document as one vector dilutes a short relevant unit
-    with everything else in the same document. Max-pooling over chunk-pair
-    similarity instead asks the right question for lineage matching: "is
-    there ANY unit in A that plausibly matches ANY unit in B?" -- the
-    standard passage-retrieval strategy for exactly this "relevant content
-    is buried in a longer document" shape (see module docstring in
-    ``chunking.py`` for the per-unit-type grounding).
-
-    Falls back to whole-text embedding (a single implicit chunk) for any
-    document that chunks to zero or one pieces, so short records (this
-    project's real dataset's ``title_field``, ~28 characters on average)
-    behave exactly as they did before chunking existed -- one embedding
-    call each, same as :meth:`EmbeddingClient.embed`.
-    """
-    raw_chunks_a = chunker(text_a)
-    raw_chunks_b = chunker(text_b)
-    # Fallback applies for zero OR one chunk, not just zero: a single chunk
-    # still means "nothing to max-pool over," and the chunker's own single
-    # chunk may be normalized (e.g. paragraph-stripped) rather than the
-    # original text, which would silently break the documented "behaves
-    # exactly as it did before chunking existed" whole-text-embedding contract.
-    chunks_a = raw_chunks_a if len(raw_chunks_a) > 1 else [Chunk(text=text_a, unit_type="whole", index=0)]
-    chunks_b = raw_chunks_b if len(raw_chunks_b) > 1 else [Chunk(text=text_b, unit_type="whole", index=0)]
-
-    vectors_a = [(chunk, client.embed(chunk.text)) for chunk in chunks_a]
-    vectors_b = [(chunk, client.embed(chunk.text)) for chunk in chunks_b]
-
-    best_score = 0.0
-    best_pair: tuple[Chunk, Chunk] = (chunks_a[0], chunks_b[0])
-    for chunk_a, vector_a in vectors_a:
-        for chunk_b, vector_b in vectors_b:
-            score = cosine_similarity(vector_a, vector_b)
-            if score > best_score:
-                best_score = score
-                best_pair = (chunk_a, chunk_b)
-    return best_score, best_pair[0], best_pair[1]

@@ -169,7 +169,3 @@ def test_legacy_client_name_delegates(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(embedding_client, "ContextualOrchestratorEmbeddingClient", Delegate)
     client = embedding_client.OpenAiCompatibleEmbeddingClient("http://orchestrator", "key", "model")
     assert client.embed("abc") == [3.0]
-
-
-def test_cosine_similarity_returns_zero_for_zero_vector() -> None:
-    assert embedding_client.cosine_similarity([0.0], [1.0]) == 0.0
