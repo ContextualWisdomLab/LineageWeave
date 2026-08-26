@@ -59,7 +59,7 @@ to all organization types and AA1000SES v3 is under development for a planned
 (2015) contract rather than treating the draft as adopted policy.
 
 > Current queue overlay: 2026-08-27 KST. Protected `main` was
-> `ff7431bd1851c03e737808d22c6a2d43968582f9`; 25 PRs and 10 issues were
+> `ff7431bd1851c03e737808d22c6a2d43968582f9`; 26 PRs and 10 issues were
 > open. This overlay supersedes the older queue count and exact-head table
 > below, which remain historical evidence. Re-fetch the head, checks, reviews,
 > threads, applicable rulesets, and merge SHA immediately before any lifecycle
@@ -89,31 +89,32 @@ explicit unavailable state, not a reason to infer mappings from labels.
 
 | PR | Exact observed head | Base | Observed gate state |
 |---:|---|---|---|
-| #717 | `461a4d12` | `feat/voice-of-x-complete-taxonomy` | unstable stacked repair; one pending check |
-| #716 | `5d2a26dc` | `fix/structured-workflow-exact-pin` | unstable stacked repair; one pending check |
-| #715 | `3cc44e89` | `feat/dashboard-case-metrics` | stacked repair; Checks observed successful, independent approval not observed |
-| #714 | `5f294c72` | `main` | blocked; one pending check |
-| #713 | `cc3dfc14` | `main` | blocked; review required; one pending check |
-| #711 | `33fd146e` | `feat/dashboard-case-metrics` | unstable; one failed check |
-| #710 | `8df04b68` | `main` | blocked; review required; one pending check |
-| #709 | `8ef4090c` | `main` | blocked; review required; one pending check |
-| #704 | `027323cf` | `main` | blocked; review required; two failed and one pending check |
-| #702 | `ff22ca22` | `main` | blocked; review required; two pending checks |
-| #701 | `cc3351a9` | `main` | blocked; review required; one failed check |
-| #700 | `1bc99eca` | `main` | blocked; review required; one failed check |
-| #680 | `efe864e5` | `main` | blocked; one failed and one pending check |
-| #679 | `13ecf41d` | `main` | blocked; two pending checks |
-| #672 | `a3e87a89` | `main` | blocked; review required; one failed check |
-| #668 | `1194f44d` | `main` | blocked; review required; one failed check |
-| #667 | `4855c380` | `main` | blocked; review required; one failed and one pending check |
-| #658 | `15d670f0` | `main` | blocked; review required; one failed check |
-| #657 | `9f71681c` | `main` | blocked; review required; one failed check |
-| #644 | `f53dd28e` | `main` | blocked; review required; one failed check |
-| #643 | `8767de1b` | `main` | blocked; review required; one failed and two pending checks |
-| #640 | `fa9f0aeb` | `main` | blocked; four failed and one pending check; #715 is its stacked repair |
-| #639 | `2f4b1bff` | `main` | blocked; review required; one failed check |
-| #632 | `24262a99` | `main` | blocked; review required; one failed check |
-| #629 | `b721b0f2` | `main` | blocked; review required; one failed check |
+| #719 | `0cea830a` | `feat/fja-worker-function-ontology` | unstable; 1 pending check(s) |
+| #718 | `a3fb32bb` | `feat/fja-worker-function-ontology` | clean; no non-passing check observed |
+| #717 | `771a8edf` | `feat/voice-of-x-complete-taxonomy` | unstable; 1 pending check(s) |
+| #716 | `8b54b2f7` | `fix/structured-workflow-exact-pin` | clean; no non-passing check observed |
+| #714 | `aa93318f` | `main` | blocked; no non-passing check observed |
+| #713 | `cc3dfc14` | `main` | blocked; review required; 13 pending check(s) |
+| #711 | `8902e37f` | `feat/dashboard-case-metrics` | clean; no non-passing check observed |
+| #710 | `8df04b68` | `main` | blocked; review required; no non-passing check observed |
+| #709 | `8ef4090c` | `main` | blocked; review required; 11 pending check(s) |
+| #704 | `027323cf` | `main` | blocked; review required; 2 failed check(s) |
+| #702 | `5de66ab9` | `main` | blocked; review required; 2 pending check(s) |
+| #701 | `cc3351a9` | `main` | blocked; review required; 1 failed check(s) |
+| #700 | `1bc99eca` | `main` | blocked; review required; 1 failed check(s) |
+| #680 | `efe864e5` | `main` | blocked; 1 failed check(s) |
+| #679 | `13ecf41d` | `main` | blocked; no non-passing check observed |
+| #672 | `a3e87a89` | `main` | blocked; review required; 1 failed check(s) |
+| #668 | `1194f44d` | `main` | blocked; review required; 1 failed check(s) |
+| #667 | `c2d11a8a` | `main` | blocked; review required; 2 pending check(s) |
+| #658 | `15d670f0` | `main` | blocked; review required; 1 failed check(s) |
+| #657 | `9f71681c` | `main` | blocked; review required; 1 failed check(s) |
+| #644 | `f53dd28e` | `main` | blocked; review required; 1 failed check(s) |
+| #643 | `8767de1b` | `main` | blocked; review required; 1 failed check(s); 1 pending check(s) |
+| #640 | `5594029c` | `main` | blocked; no non-passing check observed |
+| #639 | `2f4b1bff` | `main` | blocked; review required; 1 failed check(s) |
+| #632 | `24262a99` | `main` | blocked; review required; 1 failed check(s) |
+| #629 | `b721b0f2` | `main` | blocked; review required; 1 failed check(s) |
 
 > Dashboard delivery snapshot: 2026-08-26 07:15 KST. Protected `main` was
 > `494b54e2245040bcf02b45376f221c37cd437e76`. This local branch is not
