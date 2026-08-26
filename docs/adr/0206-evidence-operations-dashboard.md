@@ -207,6 +207,9 @@ treated as a negative case.
   refresh only after operator opt-in, verifies one normalized preferred
   candidate and a positive grounded-case aggregate delta, then exercises the
   authenticated Dashboard API and rendered UI without printing source rows.
+  The same operator-declared run invokes `scripts/k6_operations_dashboard.js`
+  with explicit VUs and duration; it observes Dashboard reads only, defines no
+  performance threshold, and keeps its summary outside the repository.
 
 ## References
 

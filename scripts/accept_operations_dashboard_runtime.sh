@@ -7,6 +7,8 @@ set -euo pipefail
 : "${LINEAGEWEAVE_ACCESS_TOKEN:?Set an authorized post_admin access token}"
 : "${LINEAGEWEAVE_OIDC_ISSUER:?Set the frontend OIDC issuer}"
 : "${LINEAGEWEAVE_OIDC_CLIENT_ID:?Set the frontend OIDC client id}"
+: "${K6_VUS:?Set the declared Dashboard concurrency}"
+: "${K6_DURATION:?Set the declared Dashboard observation duration, including its unit}"
 [[ "$ALLOW_PROVIDER_CALLS" == "1" ]] || { echo "provider calls are not authorized" >&2; exit 2; }
 
 ORCHESTRATOR_URL="${ORCHESTRATOR_URL:-http://localhost:18000}"
@@ -15,6 +17,7 @@ LINEAGEWEAVE_E2E_BASE_URL="${LINEAGEWEAVE_E2E_BASE_URL:-http://localhost:15173}"
 POSTGRES_CONTAINER="${POSTGRES_CONTAINER:-lineageweave-postgres-1}"
 SCREENSHOT_PATH="${SCREENSHOT_PATH:-/tmp/lineageweave-operations-dashboard-runtime.png}"
 E2E_OUTPUT_DIR="${E2E_OUTPUT_DIR:-/tmp/lineageweave-operations-dashboard-e2e}"
+K6_SUMMARY_PATH="${K6_SUMMARY_PATH:-/tmp/lineageweave-operations-dashboard-k6.json}"
 repository_root="$(git rev-parse --show-toplevel)"
 case "$SCREENSHOT_PATH" in
   "$repository_root"/*) echo "runtime screenshots must stay outside the repository" >&2; exit 2 ;;
@@ -22,8 +25,16 @@ esac
 case "$E2E_OUTPUT_DIR" in
   "$repository_root"/*) echo "runtime browser artifacts must stay outside the repository" >&2; exit 2 ;;
 esac
+case "$K6_SUMMARY_PATH" in
+  "$repository_root"/*) echo "runtime load evidence must stay outside the repository" >&2; exit 2 ;;
+esac
+[[ "$K6_VUS" =~ ^[1-9][0-9]*$ ]] || { echo "K6_VUS must be a positive integer" >&2; exit 2; }
+[[ "$K6_DURATION" =~ ^[0-9]+([.][0-9]+)?(ms|s|m|h)$ ]] || {
+  echo "K6_DURATION must include an explicit k6 duration unit" >&2
+  exit 2
+}
 
-for command_name in curl docker jq corepack; do
+for command_name in curl docker jq corepack k6; do
   command -v "$command_name" >/dev/null || { echo "$command_name is required" >&2; exit 2; }
 done
 
@@ -130,6 +141,10 @@ export LINEAGEWEAVE_ACCESS_TOKEN LINEAGEWEAVE_OIDC_ISSUER LINEAGEWEAVE_OIDC_CLIE
 export LINEAGEWEAVE_E2E_BASE_URL SCREENSHOT_PATH
 (cd frontend && corepack pnpm exec playwright test \
   e2e/runtime-operations-dashboard.spec.ts --output "$E2E_OUTPUT_DIR")
+
+export BACKEND_URL LINEAGEWEAVE_ACCESS_TOKEN K6_VUS K6_DURATION
+k6 run --vus "$K6_VUS" --duration "$K6_DURATION" \
+  --summary-export "$K6_SUMMARY_PATH" scripts/k6_operations_dashboard.js
 
 printf 'operations-dashboard-runtime-acceptance-ok preferred=%s analysis_delta=%s grounded_delta=%s\n' \
   "$preferred_after" "$((analysis_after - analysis_before))" "$((grounded_after - grounded_before))"
