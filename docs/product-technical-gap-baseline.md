@@ -2,8 +2,8 @@
 
 > Voice-of-X delivery snapshot: 2026-08-27 KST. Protected `main` was
 > `ff7431bd1851c03e737808d22c6a2d43968582f9`; PR #713 was
-> `cc3dfc144e1b4be1fa8c3a525fb059d4aba91fc3`; stacked PR #717 was
-> `d206fd8f1243d40a68a50be0b2a6ccfa433a1495`. This candidate and the
+> `850494c3861703862a76cfe564381a41243c6c2d`; stacked PR #717 was
+> `021cc75f05c56a032630833eb5ec2c5028d9be11`. This candidate and the
 > historical evidence below are not protected-main release evidence.
 
 ## Voice-of-X product and technical gap
@@ -70,15 +70,21 @@ Cartesian-product codes. The remaining acceptance boundary is:
    a single column, controls meet the 44-pixel touch target, and no horizontal
    overflow was visible.
 
-At this snapshot the repository had 35 open PRs and 10 open issues. PR #713
-was policy-blocked: every reported exact-head check was successful and only
-an independent approval remained; auto-merge remains enabled. PR #717 head
-`9db158c4` passed frontend, Devin, and CodeRabbit but its full suite failed
-three ontology traversal test doubles that had not adopted the new Voice
-loader. The candidate repair supplies the missing seam and passes the 85-test
-ontology/SHACL/docstring slice locally; new exact-head hosted checks are
-required after push. No self-approval, admin bypass, or stale-head check
-transfer is permitted.
+At this snapshot the repository had 38 open PRs and 10 open issues. PR #713
+head `850494c3` includes the review-driven localization of all twelve governed
+Voice labels. Its frontend, ontology publication, static-analysis, dependency,
+coverage, CodeRabbit, Devin, and OpenCode checks passed; the full suite was
+still running. Strix failed closed before producing a vulnerability report:
+the primary NVIDIA NIM model returned HTTP 429, one configured fallback had
+reached end of life, and the OpenAI fallback reported exhausted credits. This
+is provider/control-plane unavailability, not a vulnerability result or
+permission to transfer an older success. Auto-merge remains enabled, while an
+independent approval is still required. PR #717 head `021cc75f` merges that
+parent change without force-pushing. Its pre-merge candidate had passed the
+frontend, Devin, and CodeRabbit checks and was still running the full suite;
+the synchronized head locally passes the 72-test i18n, Voice API, and Voice
+authoring slice and requires fresh hosted evidence. No self-approval, admin
+bypass, or stale-head check transfer is permitted.
 
 Stacked PR #717 carries ADR 0251, migration 0237, qualified
 ontology terms, persistence/API/UI tests, and the category-validation review
@@ -90,8 +96,7 @@ substituting the assigned Post. It targets
 #713's branch, not protected `main`;
 its checks and review are candidate evidence only. After
 #713 reaches protected main, #717 must be synchronized, retargeted to `main`,
-and revalidated on its then-current head. Creating #717 raised the live queue
-to 24 open PRs after the snapshot above.
+and revalidated on its then-current head.
 
 References for this gap use the APA 7 entries in ADR 0246. Current supporting
 standards pages were rechecked on 2026-08-27: ISO 26000:2010 remains applicable
