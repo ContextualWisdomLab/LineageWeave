@@ -2092,6 +2092,7 @@ describe("App, authenticated", () => {
     const claim = screen.getByRole("button", { name: "Open public claim: Public post" });
     expect(claim).toHaveTextContent("Organization presence: Public post · Northridge Grid");
     expect(claim).toHaveTextContent("Supported");
+    expect(screen.getAllByText("Public web evidence supports this claim. Open that post.")).toHaveLength(1);
     await userEvent.click(claim);
     expect(await screen.findByRole("button", { name: "View post: Public post" })).toBeInTheDocument();
   });

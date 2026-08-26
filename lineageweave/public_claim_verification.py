@@ -253,13 +253,13 @@ def classify_public_claim(
         return _verdict(
             envelope,
             STATUS_NOT_ENOUGH_INFORMATION,
-            urls,
+            (),
             "No usable public web evidence. Open that post.",
         )
     return _verdict(
         envelope,
         STATUS_UNAVAILABLE,
-        urls,
+        (),
         f"Public claim is on {envelope.source_post_title}. Open that post.",
     )
 
