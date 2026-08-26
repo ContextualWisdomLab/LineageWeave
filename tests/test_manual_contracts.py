@@ -18,13 +18,39 @@ def _markdown_anchors(content: str) -> set[str]:
     """Return GitHub-style anchors for the headings in one Markdown file."""
     anchors: set[str] = set()
     occurrences: dict[str, int] = {}
-    for heading in re.findall(r"^#{1,6}\s+(.+?)\s*#*$", content, flags=re.MULTILINE):
+    headings: list[str] = []
+    fence_marker: tuple[str, int] | None = None
+    for line in content.splitlines():
+        if fence_marker is not None:
+            marker_character, marker_length = fence_marker
+            closing_fence = re.match(
+                rf"^ {{0,3}}{re.escape(marker_character)}{{{marker_length},}}[ \t]*$",
+                line,
+            )
+            if closing_fence is not None:
+                fence_marker = None
+            continue
+        opening_fence = re.match(r"^ {0,3}(`{3,}|~{3,})(.*)$", line)
+        if opening_fence is not None:
+            marker = opening_fence.group(1)
+            fence_marker = (marker[0], len(marker))
+            continue
+        heading = re.match(r"^ {0,3}#{1,6}\s+(.+?)\s*#*$", line)
+        if heading is not None:
+            headings.append(heading.group(1))
+    for heading in headings:
         base = re.sub(r"[^\w\- ]", "", heading.lower())
         base = re.sub(r"\s+", "-", base.strip())
         occurrence = occurrences.get(base, 0)
         occurrences[base] = occurrence + 1
         anchors.add(base if occurrence == 0 else f"{base}-{occurrence}")
     return anchors
+
+
+def test_markdown_anchor_parser_ignores_fenced_code_comments() -> None:
+    """Do not accept a shell comment as proof that a linked heading exists."""
+    content = "# Real heading\n```bash\n# Not a heading\n```\n~~~sh\n## Also not\n~~~~\n"
+    assert _markdown_anchors(content) == {"real-heading"}
 
 
 def test_manual_cross_links_resolve() -> None:
