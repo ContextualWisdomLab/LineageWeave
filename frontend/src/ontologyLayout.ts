@@ -32,6 +32,14 @@ function nodeKey(nodeTypeCode: string, nodeId: string): string {
   return `${nodeTypeCode}:${nodeId}`;
 }
 
+function ontologyNodeId(nodeTypeCode: string, nodeId: string): string {
+  const encode = (value: string) => encodeURIComponent(value).replace(
+    /[!'()*]/g,
+    (character) => `%${character.charCodeAt(0).toString(16).toUpperCase()}`,
+  );
+  return `${ONTOLOGY_NAMESPACE}node/${encode(nodeTypeCode)}/${encode(nodeId).replaceAll("%2F", "/")}`;
+}
+
 /**
  * Deterministic left-to-right neighborhood layout from the focus node.
  *
@@ -204,7 +212,7 @@ export function filterNeighborhood(
     ...edges.map((edge) => `lw:edge/${edge.edge_id}`),
   ]);
   const visibleNodeIds = new Set(nodes.map(
-    (node) => `${ONTOLOGY_NAMESPACE}node/${encodeURIComponent(node.node_type_code)}/${encodeURIComponent(node.node_id).replaceAll("%2F", "/")}`,
+    (node) => ontologyNodeId(node.node_type_code, node.node_id),
   ));
   const visibleVoiceAssignments = (payload.voice_assignments ?? []).filter((assignment) =>
     keep.has(nodeKey("node_post", assignment.post_id)),

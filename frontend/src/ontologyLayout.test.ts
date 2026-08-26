@@ -170,6 +170,22 @@ describe("ontologyLayout", () => {
     expect(filtered.jsonld["@graph"]).toEqual([{ "@id": postIri }]);
   });
 
+  it("matches the backend's canonical encoding for node ids", () => {
+    const source = payload();
+    const nodeId = `${POST_ID}/operator's-plan`;
+    const nodeIri = `${ONTOLOGY_NAMESPACE}node/node_post/${POST_ID}/operator%27s-plan`;
+    const filtered = filterNeighborhood({
+      ...source,
+      focus_node_id: nodeId,
+      nodes: [{ ...source.nodes[0], node_id: nodeId }],
+      edges: [],
+      exact_value_rows: [],
+      jsonld: { "@graph": [{ "@id": nodeIri }] },
+    }, "missing")!;
+
+    expect(filtered.jsonld["@graph"]).toEqual([{ "@id": nodeIri }]);
+  });
+
   it("is deterministic for a fixed payload", () => {
     const first = layoutOntologyNeighborhood(payload());
     const second = layoutOntologyNeighborhood(payload());
