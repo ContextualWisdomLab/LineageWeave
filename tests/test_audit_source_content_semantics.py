@@ -5,6 +5,8 @@ from pathlib import Path
 import pytest
 
 from scripts.audit_source_content_semantics import (
+    SEMANTIC_DIMENSIONS,
+    SEMANTIC_DIMENSION_TERM_IRIS,
     _ontology_terms,
     _parser,
     _prompt,
@@ -15,7 +17,10 @@ from scripts.audit_source_content_semantics import (
 )
 
 _TERM_IRI = "https://example.test/ontology#Event"
-_ALLOWED_TERMS = frozenset({_TERM_IRI})
+_SUPPORTING_TERMS = {
+    "event_or_activity": (_TERM_IRI,),
+    "other_unmodeled_meaning": (),
+}
 
 
 def test_cli_defaults_to_the_internal_orchestrator_credential() -> None:
@@ -35,6 +40,7 @@ def test_audit_contract_distinguishes_instance_data_from_schema_gaps() -> None:
 
     assert "as instance data, not missing schema terms" in prompt
     assert "no supplied class/property can represent it" in prompt
+    assert "do not select ontology terms or decide coverage" in prompt
 
 
 def _probability_manifest() -> dict[str, object]:
@@ -89,9 +95,7 @@ def test_parser_rejects_the_observed_100_to_60_cardinality_mismatch() -> None:
         "items": [
             {
                 "item_index": index,
-                "covered": True,
-                "missing_semantic_dimensions": [],
-                "supporting_term_iris": [_TERM_IRI],
+                "semantic_dimensions": ["event_or_activity"],
             }
             for index in range(60)
         ],
@@ -100,28 +104,27 @@ def test_parser_rejects_the_observed_100_to_60_cardinality_mismatch() -> None:
     import json
 
     with pytest.raises(ValueError, match="input_count"):
-        parse_batch_result(json.dumps(payload), 100, _ALLOWED_TERMS)
+        parse_batch_result(json.dumps(payload), 100, _SUPPORTING_TERMS)
 
 
 def test_valid_batches_aggregate_without_source_values() -> None:
     rows = parse_batch_result(
         '{"input_count":2,"items":['
-        '{"item_index":0,"covered":false,"missing_semantic_dimensions":["event_or_activity"],'
-        '"supporting_term_iris":[]},'
-        '{"item_index":1,"covered":true,"missing_semantic_dimensions":[],'
-        f'"supporting_term_iris":["{_TERM_IRI}"]}}]}}',
+        '{"item_index":0,"semantic_dimensions":["other_unmodeled_meaning"]},'
+        '{"item_index":1,"semantic_dimensions":["event_or_activity"]}]}',
         expected_count=2,
-        allowed_term_iris=_ALLOWED_TERMS,
+        supporting_terms_by_dimension=_SUPPORTING_TERMS,
     )
 
     result = aggregate_results([rows], [4])
 
+    assert rows[1]["supporting_term_iris"] == [_TERM_IRI]
     assert result == {
         "complete": True,
         "sample_count": 2,
         "covered_count": 1,
         "uncovered_count": 1,
-        "missing_semantic_dimension_counts": {"event_or_activity": 1},
+        "missing_semantic_dimension_counts": {"other_unmodeled_meaning": 1},
         "batch_count": 1,
         "minimum_trace_step_count": 4,
         "maximum_trace_step_count": 4,
@@ -132,43 +135,49 @@ def test_parser_rejects_ungoverned_dimensions() -> None:
     with pytest.raises(ValueError, match="ungoverned"):
         parse_batch_result(
             '{"input_count":1,"items":['
-            '{"item_index":0,"covered":false,"missing_semantic_dimensions":["invented"],'
-            '"supporting_term_iris":[]}]}',
+            '{"item_index":0,"semantic_dimensions":["invented"]}]}',
             expected_count=1,
-            allowed_term_iris=_ALLOWED_TERMS,
+            supporting_terms_by_dimension=_SUPPORTING_TERMS,
         )
 
 
+def test_parser_reports_a_dimension_when_its_ontology_terms_are_absent() -> None:
+    """Classification and deterministic schema support remain separate evidence."""
+    rows = parse_batch_result(
+        '{"input_count":1,"items":['
+        '{"item_index":0,"semantic_dimensions":["event_or_activity"]}]}',
+        expected_count=1,
+        supporting_terms_by_dimension={"event_or_activity": ()},
+    )
+
+    assert rows[0]["covered"] is False
+    assert rows[0]["missing_semantic_dimensions"] == ["event_or_activity"]
+
+
 @pytest.mark.parametrize(
-    ("covered", "dimensions", "supporting_terms", "message"),
+    ("dimensions", "message"),
     [
-        (True, [], [], "requires a supporting"),
-        (False, [], [], "requires a missing"),
-        (False, ["event_or_activity", "event_or_activity"], [], "duplicate missing"),
-        (True, [], ["https://example.test/unknown"], "ungoverned supporting"),
+        ([], "ungoverned dimension"),
+        (["event_or_activity", "event_or_activity"], "duplicate semantic"),
     ],
 )
 def test_parser_requires_auditable_noncontradictory_verdicts(
-    covered: bool,
     dimensions: list[str],
-    supporting_terms: list[str],
     message: str,
 ) -> None:
-    """Bare coverage and empty or duplicated gap verdicts fail closed."""
+    """Empty or duplicated content classifications fail closed."""
     payload = {
         "input_count": 1,
         "items": [
             {
                 "item_index": 0,
-                "covered": covered,
-                "missing_semantic_dimensions": dimensions,
-                "supporting_term_iris": supporting_terms,
+                "semantic_dimensions": dimensions,
             }
         ],
     }
 
     with pytest.raises(ValueError, match=message):
-        parse_batch_result(json.dumps(payload), 1, _ALLOWED_TERMS)
+        parse_batch_result(json.dumps(payload), 1, _SUPPORTING_TERMS)
 
 
 def test_ontology_contract_contains_public_semantics_not_only_local_names() -> None:
@@ -194,6 +203,10 @@ def test_ontology_contract_contains_public_semantics_not_only_local_names() -> N
         "influence_class": "http://www.w3.org/ns/prov#Communication",
         "influencer_relation": "http://www.w3.org/ns/prov#activity",
     }
+    assert set(SEMANTIC_DIMENSION_TERM_IRIS) == SEMANTIC_DIMENSIONS
+    assert SEMANTIC_DIMENSION_TERM_IRIS["other_unmodeled_meaning"] == ()
+    for dimension in SEMANTIC_DIMENSIONS - {"other_unmodeled_meaning"}:
+        assert set(SEMANTIC_DIMENSION_TERM_IRIS[dimension]) <= set(by_iri)
 
 
 def test_probability_sample_manifest_preserves_design_evidence() -> None:

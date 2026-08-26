@@ -40,6 +40,72 @@ SEMANTIC_DIMENSIONS = frozenset(
         "other_unmodeled_meaning",
     }
 )
+_ONTOLOGY_NAMESPACE = "https://contextualwisdomlab.github.io/LineageWeave/ontology#"
+SEMANTIC_DIMENSION_TERM_IRIS: Mapping[str, tuple[str, ...]] = {
+    "event_or_activity": (
+        _ONTOLOGY_NAMESPACE + "BusinessEventActivity",
+        _ONTOLOGY_NAMESPACE + "describesActivity",
+        str(PROV.Activity),
+    ),
+    "location_or_geography": (
+        _ONTOLOGY_NAMESPACE + "Location",
+        _ONTOLOGY_NAMESPACE + "concernsLocation",
+        str(PROV.Location),
+    ),
+    "product_or_service": (
+        _ONTOLOGY_NAMESPACE + "ProductOrService",
+        _ONTOLOGY_NAMESPACE + "concernsProductOrService",
+    ),
+    "project_or_initiative": (
+        _ONTOLOGY_NAMESPACE + "Project",
+        _ONTOLOGY_NAMESPACE + "mentionsProject",
+    ),
+    "facility_asset_or_equipment": (
+        _ONTOLOGY_NAMESPACE + "FacilityAssetEquipment",
+        _ONTOLOGY_NAMESPACE + "concernsFacilityAssetEquipment",
+    ),
+    "topic_or_domain": (
+        _ONTOLOGY_NAMESPACE + "Topic",
+        _ONTOLOGY_NAMESPACE + "concernsTopic",
+    ),
+    "status_or_stage": (
+        _ONTOLOGY_NAMESPACE + "StatusStage",
+        _ONTOLOGY_NAMESPACE + "hasStatusStage",
+    ),
+    "time_interval_or_deadline": (
+        _ONTOLOGY_NAMESPACE + "RelevantTimeInterval",
+        _ONTOLOGY_NAMESPACE + "hasRelevantTimeInterval",
+        str(PROV.atTime),
+    ),
+    "organization_role": (
+        _ONTOLOGY_NAMESPACE + "OrganizationRole",
+        _ONTOLOGY_NAMESPACE + "assignsOrganizationRole",
+        str(PROV.Role),
+    ),
+    "person_or_actor": (
+        _ONTOLOGY_NAMESPACE + "Person",
+        _ONTOLOGY_NAMESPACE + "mentions",
+        str(PROV.Person),
+    ),
+    "communication_or_document_type": (
+        _ONTOLOGY_NAMESPACE + "CommunicationDocument",
+        _ONTOLOGY_NAMESPACE + "hasCommunicationDocument",
+        str(PROV.Communication),
+    ),
+    "commercial_transaction": (
+        _ONTOLOGY_NAMESPACE + "CommercialTransaction",
+        _ONTOLOGY_NAMESPACE + "concernsTransaction",
+    ),
+    "quantity_or_measurement": (
+        _ONTOLOGY_NAMESPACE + "QuantityMeasurement",
+        _ONTOLOGY_NAMESPACE + "hasQuantityMeasurement",
+    ),
+    "requirement_issue_or_risk": (
+        _ONTOLOGY_NAMESPACE + "RequirementIssueRisk",
+        _ONTOLOGY_NAMESPACE + "concernsRequirementIssueRisk",
+    ),
+    "other_unmodeled_meaning": (),
+}
 _CODE_FENCE = re.compile(r"^```(?:json)?\s*|\s*```$", re.DOTALL)
 _INCLUSION_PROBABILITY = re.compile(r"(?:0\.(?:0*[1-9]\d*)|1(?:\.0+)?)$")
 _SHA256 = re.compile(r"[0-9a-f]{64}$")
@@ -216,7 +282,9 @@ def validate_probability_sample_manifest(
 
 
 def parse_batch_result(
-    content: str, expected_count: int, allowed_term_iris: frozenset[str]
+    content: str,
+    expected_count: int,
+    supporting_terms_by_dimension: Mapping[str, tuple[str, ...]],
 ) -> tuple[dict[str, Any], ...]:
     """Require one ordered, governed verdict for every submitted item."""
     candidate = (
@@ -243,38 +311,39 @@ def parse_batch_result(
             "semantic audit item indexes are missing, duplicated, or unordered"
         )
     for item in items:
-        if set(item) != {
-            "item_index",
-            "covered",
-            "missing_semantic_dimensions",
-            "supporting_term_iris",
-        }:
+        if set(item) != {"item_index", "semantic_dimensions"}:
             raise ValueError("semantic audit item has an unsupported field")
-        if type(item["covered"]) is not bool:
-            raise ValueError("semantic audit covered value must be boolean")
-        dimensions = item["missing_semantic_dimensions"]
-        if not isinstance(dimensions, list) or any(
+        dimensions = item["semantic_dimensions"]
+        if not isinstance(dimensions, list) or not dimensions or any(
             not isinstance(value, str) or value not in SEMANTIC_DIMENSIONS
             for value in dimensions
         ):
             raise ValueError("semantic audit returned an ungoverned dimension")
         if len(dimensions) != len(set(dimensions)):
-            raise ValueError("semantic audit returned a duplicate missing dimension")
-        supporting_terms = item["supporting_term_iris"]
-        if not isinstance(supporting_terms, list) or any(
-            not isinstance(value, str) or value not in allowed_term_iris
-            for value in supporting_terms
-        ):
-            raise ValueError("semantic audit returned an ungoverned supporting term")
-        if len(supporting_terms) != len(set(supporting_terms)):
-            raise ValueError("semantic audit returned a duplicate supporting term")
-        if item["covered"] and dimensions:
-            raise ValueError("a covered item cannot report a missing dimension")
-        if item["covered"] and not supporting_terms:
-            raise ValueError("a covered item requires a supporting ontology term")
-        if not item["covered"] and not dimensions:
-            raise ValueError("an uncovered item requires a missing dimension")
-    return tuple(items)
+            raise ValueError("semantic audit returned a duplicate semantic dimension")
+    resolved = []
+    for item in items:
+        dimensions = item["semantic_dimensions"]
+        missing = [
+            dimension
+            for dimension in dimensions
+            if not supporting_terms_by_dimension.get(dimension)
+        ]
+        resolved.append(
+            {
+                "item_index": item["item_index"],
+                "covered": not missing,
+                "missing_semantic_dimensions": missing,
+                "supporting_term_iris": sorted(
+                    {
+                        iri
+                        for dimension in dimensions
+                        for iri in supporting_terms_by_dimension.get(dimension, ())
+                    }
+                ),
+            }
+        )
+    return tuple(resolved)
 
 
 def selected_contents(
@@ -447,12 +516,12 @@ def _prompt(terms: Sequence[Mapping[str, object]], contents: Sequence[str]) -> s
         "Report a missing dimension only when no supplied class/property can represent it without "
         "inventing a new schema term. "
         "Return only JSON with input_count and items. Return exactly one ordered item per item_index. "
-        "Each item has exactly item_index, covered (boolean), missing_semantic_dimensions, "
-        "and supporting_term_iris. Use only supplied ontology IRIs. A covered item requires "
-        "one or more supporting IRIs and no missing dimensions. An uncovered item requires "
-        "one or more missing dimensions; do not duplicate values. Never invent a dimension "
-        "name or synonym; use other_unmodeled_meaning for meaning outside the enum. "
-        "Do not treat Post or an opaque text literal as semantic coverage. Missing dimensions may use only: "
+        "Each item has exactly item_index and semantic_dimensions. Classify every material "
+        "meaning into one or more supplied dimension codes; do not select ontology terms or "
+        "decide coverage. Never invent a dimension name or synonym; use "
+        "other_unmodeled_meaning only for material meaning outside every supplied dimension. "
+        "Do not return a dimension merely because the item is a Post or text. "
+        "Semantic dimensions may use only: "
         + ", ".join(sorted(SEMANTIC_DIMENSIONS))
         + ". If uncertain, use other_unmodeled_meaning.\nONTOLOGY TERMS:\n"
         + json.dumps(list(terms), ensure_ascii=False)
@@ -489,7 +558,13 @@ async def audit_source_content(
     contents = selected_contents(records, selected_membership)
 
     terms = _ontology_terms(ontology_path)
-    allowed_term_iris = frozenset(str(term["iri"]) for term in terms)
+    allowed_term_iris = {str(term["iri"]) for term in terms}
+    supporting_terms_by_dimension = {
+        dimension: tuple(
+            iri for iri in expected_iris if iri in allowed_term_iris
+        )
+        for dimension, expected_iris in SEMANTIC_DIMENSION_TERM_IRIS.items()
+    }
     batches: list[tuple[dict[str, Any], ...]] = []
     trace_counts: list[int] = []
     endpoint = gateway_url.rstrip("/") + "/v1/chat/completions"
@@ -519,7 +594,9 @@ async def audit_source_content(
             raise ValueError("semantic audit did not return multi-agent trace evidence")
         try:
             parsed_batch = parse_batch_result(
-                chat_completion_content(response), len(window), allowed_term_iris
+                chat_completion_content(response),
+                len(window),
+                supporting_terms_by_dimension,
             )
         except ValueError as exc:
             raise ValueError(

@@ -76,10 +76,20 @@ versus 10/100 covered), so neither result is accepted as stable semantic-gap
 evidence. ADR 0242 now distinguishes source-specific instance data from a
 missing public schema term and supplies the audit with the existing canonical
 PROV-O registry rather than only its import/mapping profile. On the exact same
-selection manifest, the revised contract produced 100/100 covered, zero
-failures, ten batches, and four trace steps per batch in two consecutive runs.
-This proves repeatable coverage of this sampled title set only; it is not a
-corpus estimate and does not repair the export's zero-body evidence gap.
+selection manifest, that revision produced 100/100 covered, zero failures, ten
+batches, and four trace steps per batch in two consecutive runs.
+
+An independently selected second 100-record sample then exposed a remaining
+measurement flaw: asking the model to select ontology IRIs yielded 79/100 once,
+then failed closed on an invented near-match; replacing long IRIs with numeric
+ids avoided that syntax error but changed the verdict to 50/100. The accepted
+contract now separates the tasks: contextual-orchestrator classifies only the
+governed semantic dimensions, while LineageWeave deterministically resolves
+those dimensions against present class/property IRIs. On the unchanged second
+manifest, this contract produced 100/100 covered, zero failures, ten batches,
+and four trace steps per batch in two consecutive runs. These results prove
+repeatable coverage of two sampled title sets only; they are not a corpus
+estimate and do not repair the export's zero-body evidence gap.
 
 A separate non-probability diagnostic excluded the first deterministic 100
 records and selected 100 records from each of five event/update-time strata
