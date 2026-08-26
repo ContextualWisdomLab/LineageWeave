@@ -57,6 +57,16 @@ Repository artifacts must not retain the private titles.
    The aggregate source audit may additionally compare distinct caller-selected
    source and semantic-layer keys. It reports matched and one-sided key counts
    only; identifiers and values never enter output or repository artifacts.
+   When a caller supplies a semantic-edge table, the audit also reports only
+   aggregate `observed`, `inferred`, `predicted`, ungoverned-status, and
+   evidence-reference counts. An observed edge without an evidence reference
+   fails the source-evidence boundary. An inferred or predicted edge may lack a
+   direct source evidence reference, but that does not make it provenance-free:
+   its generation or derivation still requires the normalized PROV-O resource,
+   assertion, and qualification schema from ADR 0011. The audit therefore
+   reports deployment of that complete schema separately and never relabels an
+   inference reason, mapping source, confidence, or deterministic identifier as
+   source evidence or qualified provenance.
 6. Missing-dimension counts do not themselves authorize new private ontology
    terms. Event/activity candidates must first reconcile with PROV-O;
    temporal candidates with OWL-Time; and observed property, asset, system,
