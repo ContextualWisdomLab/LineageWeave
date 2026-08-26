@@ -126,6 +126,14 @@ stale worker cannot defer a newer lease. Recovery publishes the row only after
 failures retain the existing three-attempt accounting. Raw upstream error text,
 agent identity, prompt, and response are neither stored nor shown to a reader.
 
+Operations-case analysis is the Dashboard acceptance channel and runs before
+optional product extraction inside a claimed job. Each channel commits through
+its own existing persistence transaction while retaining the same post-scoped
+session and exact body digest. A later product extraction failure therefore
+cannot erase an already committed operations case, and product latency cannot
+delay admission of the case request. This is execution isolation, not a new
+queue or a change to either channel's evidence contract.
+
 ### Operational timeout for structure adjudication
 
 The contextual-orchestrator structure adjudication request uses a 600-second client timeout by default. Structure inference is an accuracy-critical, structured multi-agent operation rather than a user-facing synchronous request; the longer bound prevents a slow but valid workflow from being downgraded to `unresolved` merely because the client abandoned the response. The durable job remains queued until all non-image units have complete structure evidence.

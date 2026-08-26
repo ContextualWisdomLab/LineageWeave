@@ -532,6 +532,18 @@ async def process_post_content_job(
                 evidence_sources = await _operations_evidence_sources(
                     pool, post_id, row, vision_client
                 )
+                await _persist_operations_case_analysis_if_needed(
+                    pool,
+                    post_id,
+                    source_body_digest,
+                    raw_body,
+                    row,
+                    vision_client,
+                    metadata["lineageweave_post_session_id"],
+                    settings.orchestrator_base_url,
+                    settings.orchestrator_api_key,
+                    evidence_sources,
+                )
                 try:
                     await _persist_product_analysis_if_needed(
                         pool,
@@ -553,18 +565,6 @@ async def process_post_content_job(
                         exc,
                         outcome="provider_unavailable",
                     )
-                await _persist_operations_case_analysis_if_needed(
-                    pool,
-                    post_id,
-                    source_body_digest,
-                    raw_body,
-                    row,
-                    vision_client,
-                    metadata["lineageweave_post_session_id"],
-                    settings.orchestrator_base_url,
-                    settings.orchestrator_api_key,
-                    evidence_sources,
-                )
             normalized = await asyncio.to_thread(
                 normalize_post_body, raw_body, vision_client
             )

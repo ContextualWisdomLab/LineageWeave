@@ -634,14 +634,17 @@ def test_invalid_product_output_does_not_block_primary_post_evidence(monkeypatch
     outcomes: list[str] = []
     persisted: list[str] = []
     failures: list[tuple[str, str]] = []
+    channel_order: list[str] = []
 
     async def claim(*_args, **_kwargs):
         return _row(RUNNING, 1)
 
     async def fail_product(*_args, **_kwargs):
+        channel_order.append("product")
         raise RuntimeError("synthetic malformed product response")
 
     async def persist_cases(*_args, **_kwargs):
+        channel_order.append("cases")
         persisted.append("cases")
 
     async def persist_content(*_args, **_kwargs):
@@ -704,6 +707,7 @@ def test_invalid_product_output_does_not_block_primary_post_evidence(monkeypatch
     )
 
     assert persisted == ["cases", "content"]
+    assert channel_order == ["cases", "product"]
     assert outcomes == [SUCCEEDED]
     assert failures == [("product_semantic_ingestion", "provider_unavailable")]
 

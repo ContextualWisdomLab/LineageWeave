@@ -89,6 +89,14 @@ def test_ontology_parses_as_valid_turtle() -> None:
     assert len(graph) > 0
 
 
+def test_packaged_ontology_matches_publication_source() -> None:
+    """The installed runtime resource cannot drift from the published ontology."""
+    root = Path(__file__).resolve().parents[1]
+    packaged = root / "lineageweave" / "data" / "lineageweave-kg.ttl"
+    published = root / "docs" / "ontology" / "lineageweave-kg.ttl"
+    assert packaged.read_bytes() == published.read_bytes()
+
+
 def test_every_seeded_lookup_code_is_declared_in_the_ontology() -> None:
     seeded = _seeded_lookup_codes_for_covered_categories()
     declared = all_declared_lookup_codes()
