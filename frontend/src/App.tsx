@@ -2278,7 +2278,9 @@ function PostDetailPopup({
                     </>
                   ) : null}
                 </dl>
-                <p className="post-meta">{t("Raw source codes are shown; no state label was inferred.")}</p>
+                <p className="post-meta">
+                  {t("Use these recorded details to confirm the record with your source system.")}
+                </p>
               </section>
             )}
 
@@ -3301,7 +3303,7 @@ function RankingsPanel({
               "Records are ordered by recent and related activity. Open a record to review its evidence.",
             )}
           </p>
-          <ul className="ticket-list" aria-label={t("Fused rankings")}>
+          <ul className="ticket-list" aria-label={t("Ranked posts")}>
             {ranking.rankings.map((hit) => (
               <li key={hit.post_id} className="ticket-list-item ranking-hit">
                 <button
