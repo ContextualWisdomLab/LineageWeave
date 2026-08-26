@@ -3008,16 +3008,15 @@ async def _persist_post_ask_turn(
         ) from exc
     except PostAskConversationNotFound as exc:
         if recover_deleted_conversation and conversation_id is not None:
-            return await persist_post_ask_turn(
+            return await _persist_post_ask_turn(
                 conn,
-                account.user_account_id,
+                account,
                 post_id,
                 None,
                 question,
                 answer_text,
                 source_post_ids,
                 cited_post_ids,
-                can_see_post=lambda row: _can_see_post(account, row),
             )
         raise HTTPException(
             status.HTTP_404_NOT_FOUND,

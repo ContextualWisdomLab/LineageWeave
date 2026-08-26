@@ -7,6 +7,7 @@ from datetime import UTC, datetime
 from uuid import UUID
 
 import pytest
+from fastapi import HTTPException
 
 from backend.app.auth import CurrentAccount
 from backend.app import main as post_ask_main
@@ -324,6 +325,53 @@ def test_persist_post_ask_turn_starts_a_new_conversation_if_a_confirmed_one_is_d
 
     assert conversation_id == replacement_conversation_id
     assert calls == [deleted_conversation_id, None]
+
+
+def test_deleted_conversation_recovery_maps_changed_evidence_to_retry_guidance(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Recovery must preserve the normal evidence-change HTTP boundary."""
+    deleted_conversation_id = UUID("00000000-0000-0000-0000-000000000008")
+
+    async def persist(
+        _conn: object,
+        _user_account_id: str,
+        _post_id: str,
+        conversation_id: UUID | None,
+        *_args: object,
+        **_kwargs: object,
+    ) -> UUID:
+        if conversation_id == deleted_conversation_id:
+            raise PostAskConversationNotFound
+        raise PostAskEvidenceChanged
+
+    monkeypatch.setattr(post_ask_main, "persist_post_ask_turn", persist)
+    account = CurrentAccount(
+        user_account_id="account-1",
+        external_subject_id="subject-1",
+        display_name="Synthetic analyst",
+        preferred_locale="en",
+        corporate_entity_ids=frozenset(),
+        process_unit_ids=frozenset(),
+        permission_codes=frozenset({"post_read"}),
+    )
+
+    with pytest.raises(HTTPException) as exc_info:
+        asyncio.run(
+            post_ask_main._persist_post_ask_turn(
+                _Connection(),
+                account,
+                "post-1",
+                deleted_conversation_id,
+                "What changed?",
+                "The completed answer remains available.",
+                ["post-1"],
+                [],
+                recover_deleted_conversation=True,
+            )
+        )
+
+    assert exc_info.value.status_code == 503
 
 
 def test_persist_turn_aborts_when_a_citation_loses_authorization() -> None:
