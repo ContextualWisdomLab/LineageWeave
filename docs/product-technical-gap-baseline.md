@@ -42,8 +42,10 @@ The reusable audit now rejects the previously observed 100-input/60-output
 response, requires every ordered item plus a multi-agent trace, and prints only
 complete non-identifying aggregates.
 The advertised deployment alias needed by this multi-agent path is repaired in
-contextual-orchestrator PR #870; until that exact head passes its protected
-checks and independent review, the runtime path remains candidate evidence.
+the canonical contextual-orchestrator PR #868. PR #870 was closed unmerged
+after its explicit-conduct regression was composed into #868; until #868's
+exact head passes its protected checks and independent review, the runtime path
+remains candidate evidence.
 
 Remaining acceptance gaps:
 
