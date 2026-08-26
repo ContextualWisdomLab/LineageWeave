@@ -237,6 +237,20 @@ vector degrades that pair back to difflib; it never fabricates a score.
 
 ## Tests
 
+### Isolated Compose lifecycle
+
+- The canonical standalone Compose project is `lineageweave` (ADR 0224).
+- A test, review, or stacked-PR environment may use an explicit isolated
+  project name only while that environment is needed. Once its stated test or
+  review objective has succeeded, preserve the relevant evidence and port any
+  required behavior into the canonical Compose contract, then run `docker
+  compose -p <exact-project> down` so its containers and network do not become
+  a second production-looking stack.
+- Never use `down -v` or otherwise delete named volumes without separate,
+  explicit authorization. Resolve the exact project from Compose labels before
+  cleanup; never target a glob, directory root, or another agent's active
+  environment.
+
 ```bash
 # backend extra compiles fast-mlsirm's PyO3 core -- needs rustc 1.97.1
 # (see backend/Dockerfile). Without it, pip falls over at build time.
