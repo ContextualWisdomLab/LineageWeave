@@ -15,6 +15,7 @@ from __future__ import annotations
 import asyncio
 import math
 import os
+import subprocess
 import time
 import uuid
 from contextlib import closing
@@ -192,6 +193,21 @@ _GLOBAL_ASK_SCOPE_MIGRATION = (
     Path(__file__).resolve().parents[2]
     / "migrations"
     / "0203_global_ask_authorization_scope.sql"
+)
+_GLOBAL_ASK_EVIDENCE_SEARCH_MIGRATION = (
+    Path(__file__).resolve().parents[2]
+    / "migrations"
+    / "0210_global_ask_evidence_search_indexes.sql"
+)
+_GLOBAL_ASK_PUBLIC_VERIFICATION_MIGRATION = (
+    Path(__file__).resolve().parents[2]
+    / "migrations"
+    / "0218_global_ask_public_verification.sql"
+)
+_GLOBAL_ASK_KNOWLEDGE_CUTOFF_MIGRATION = (
+    Path(__file__).resolve().parents[2]
+    / "migrations"
+    / "0212_global_ask_knowledge_cutoff.sql"
 )
 _PRODUCT_SEMANTIC_MIGRATIONS = tuple(
     Path(__file__).resolve().parents[2] / "migrations" / name
@@ -420,7 +436,18 @@ def seeded_db(demo_analyst_token):
             cur.execute(_LEFTOVER_MAP_COVERAGE_MIGRATION.read_text())
             cur.execute(_GLOBAL_ASK_JOB_MIGRATION.read_text())
             cur.execute(_GLOBAL_ASK_SCOPE_MIGRATION.read_text())
-            cur.execute(_GLOBAL_ASK_EVIDENCE_SEARCH_MIGRATION.read_text())
+            subprocess.run(
+                [
+                    "psql",
+                    "-X",
+                    "-v",
+                    "ON_ERROR_STOP=1",
+                    db_dsn,
+                    "-f",
+                    str(_GLOBAL_ASK_EVIDENCE_SEARCH_MIGRATION),
+                ],
+                check=True,
+            )
             cur.execute(_GLOBAL_ASK_KNOWLEDGE_CUTOFF_MIGRATION.read_text())
             cur.execute(_GLOBAL_ASK_PUBLIC_VERIFICATION_MIGRATION.read_text())
             cur.execute(_EVENT_OCCURRED_AT_MIGRATION.read_text())
@@ -845,6 +872,8 @@ def client_with_ask_worker(client):
                 timeout=load_settings().orchestrator_answer_timeout_seconds
             ),
             embedding_factory=lambda: main_module._embedding_client(),
+            semantic_query_factory=lambda: main_module._semantic_query_client(),
+            claim_verification_factory=lambda: main_module._claim_verification_client_factory(),
         )
 
     assert client.portal is not None
@@ -5553,7 +5582,7 @@ def test_ask_queues_a_job_and_polls_it_to_a_settled_answer(
 
 
 def test_ask_public_verification_is_opt_in_and_separate_from_post_citations(
-    client, demo_analyst_token, seeded_db, monkeypatch
+    client_with_ask_worker, demo_analyst_token, seeded_db, monkeypatch
 ) -> None:
     """A cited public semantic claim can be refuted without changing its post id."""
 
@@ -5607,7 +5636,7 @@ def test_ask_public_verification_is_opt_in_and_separate_from_post_citations(
         lambda: _FakeVerificationClient(),
     )
     headers = {"Authorization": f"Bearer {demo_analyst_token}"}
-    submitted = client.post(
+    submitted = client_with_ask_worker.post(
         "/api/ask",
         json={"question": "Apollo", "verify_external": True},
         headers=headers,
@@ -5618,7 +5647,7 @@ def test_ask_public_verification_is_opt_in_and_separate_from_post_citations(
     deadline = _time.monotonic() + 30
     body: dict = {}
     while _time.monotonic() < deadline:
-        body = client.get(f"/api/ask/jobs/{job_id}", headers=headers).json()
+        body = client_with_ask_worker.get(f"/api/ask/jobs/{job_id}", headers=headers).json()
         if body["job_status_code"] in ("succeeded", "failed"):
             break
         _time.sleep(0.25)

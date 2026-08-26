@@ -1557,7 +1557,7 @@ function CounterpartyPanel({
                 className="keyman-select"
                 onClick={() => onSelectPost(c.verification_evidence_post_id!)}
               >
-                View internal evidence
+                {t("Open supporting post")}
               </button>
             ) : null}
           </li>
@@ -4688,9 +4688,7 @@ function CustomerMasterPanel({
       {master && master.source_customer_hints.length > 0 ? (
         <section className="customer-keymen" aria-labelledby="observed-customer-evidence-heading">
           <h3 id="observed-customer-evidence-heading">{t("Observed customer evidence")}</h3>
-          <p className="workspace-destination-intro">
-            {t("Source identifiers are hints only; ontology and semantic evidence must resolve them before binding a customer.")}
-          </p>
+          <CustomerLinkingGuidance />
           {master.source_customer_hints.length > HINT_RENDER_LIMIT && (
             <p className="post-meta">
               {tf("Showing the first {shown} of {total} observed customer identifiers, ranked by post count.", {
@@ -4817,6 +4815,15 @@ function CustomerMasterPanel({
         />
       )}
     </section>
+  );
+}
+
+/** Guides a reader from an unresolved source identifier to customer evidence. */
+export function CustomerLinkingGuidance() {
+  return (
+    <p className="workspace-destination-intro">
+      {t("Before linking a customer, compare the source identifier with the related posts and organization evidence.")}
+    </p>
   );
 }
 
