@@ -59,9 +59,15 @@ def test_shell_probe_requires_monotonic_progress(tmp_path: Path) -> None:
     assert missing.returncode != 0
 
     heartbeat.write_text("1\n", encoding="ascii")
-    first = subprocess.run(["/bin/sh", _SHELL_PROBE, heartbeat, state], check=False)
+    first = subprocess.run(
+        ["/bin/sh", _SHELL_PROBE, heartbeat, state],
+        check=False,
+        capture_output=True,
+        text=True,
+    )
     unchanged = subprocess.run(["/bin/sh", _SHELL_PROBE, heartbeat, state], check=False)
     assert first.returncode == 0
+    assert first.stderr == ""
     assert unchanged.returncode != 0
 
     heartbeat.write_text("2\n", encoding="ascii")
