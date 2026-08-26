@@ -2,7 +2,8 @@
 
 > Voice-of-X delivery snapshot: 2026-08-27 KST. Protected `main` was
 > `ff7431bd1851c03e737808d22c6a2d43968582f9`; PR #713 was
-> `cc3dfc144e1b4be1fa8c3a525fb059d4aba91fc3`. This candidate and the
+> `cc3dfc144e1b4be1fa8c3a525fb059d4aba91fc3`; stacked PR #717 was
+> `d206fd8f1243d40a68a50be0b2a6ccfa433a1495`. This candidate and the
 > historical evidence below are not protected-main release evidence.
 
 ## Voice-of-X product and technical gap
@@ -36,7 +37,9 @@ implements the first two requirements below without adding
 Cartesian-product codes. The remaining acceptance boundary is:
 
 1. preserve the imported primary voice without reclassification (implemented
-   in the candidate migration; runtime replay pending);
+   in the candidate migration; migration 0237 replayed twice successfully on
+   an isolated PostgreSQL stack on 2026-08-27, including both primary-sync
+   triggers; authenticated API acceptance remains pending);
 2. record each additional voice with its own source/evidence and truth state
    (schema-enforced and candidate `post_admin` API implemented; authenticated
    PostgreSQL integration and customer-facing authoring UI remain pending);
@@ -62,19 +65,20 @@ Cartesian-product codes. The remaining acceptance boundary is:
    on 2026-08-27; both kept each complete Voice label paired with its imported
    or evidence-connected state without clipping or horizontal overflow.
 
-At this snapshot the repository had 23 open PRs and 10 open issues. PR #713
-was policy-blocked: exact-head frontend, CodeQL, ontology-publication,
-Semgrep, OSV, Trivy, Scorecard, Noema, Devin, and CodeRabbit checks were
-successful; the full suite and Strix were running; `coverage-source-tree` was
-queued; and an independent approval was still required. Auto-merge remains
-enabled. No self-approval, admin bypass, or stale-head check transfer is
-permitted.
+At this snapshot the repository had 35 open PRs and 10 open issues. PR #713
+was policy-blocked: every reported exact-head check was successful and only
+an independent approval remained; auto-merge remains enabled. PR #717's
+exact-head checks restarted after the review repair, with Devin pending and
+CodeRabbit successful at capture time. No self-approval, admin bypass, or
+stale-head check transfer is permitted.
 
 Stacked PR #717 carries ADR 0251, migration 0237, qualified
 ontology terms, persistence/API/UI tests, and the category-validation review
 repairs plus a local candidate admin write path that creates its PROV-O
-derivation from an authorized evidence Post. The remote exact head must be
-refetched after this local slice is pushed. It targets #713's branch, not protected `main`;
+derivation from an authorized evidence Post. Its JSON-LD projection now names
+that evidence Post only when it is in the authorized visible set and otherwise
+omits the reference instead of substituting the assigned Post. It targets
+#713's branch, not protected `main`;
 its checks and review are candidate evidence only. After
 #713 reaches protected main, #717 must be synchronized, retargeted to `main`,
 and revalidated on its then-current head. Creating #717 raised the live queue
