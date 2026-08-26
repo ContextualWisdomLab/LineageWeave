@@ -17,6 +17,37 @@ afterEach(() => {
 });
 
 describe("ChatPanel conversation history", () => {
+  it("renders repeated saved questions as distinct turns", async () => {
+    vi.stubGlobal("fetch", vi.fn(async (input: RequestInfo | URL) => {
+      const url = input instanceof Request ? input.url : String(input);
+      if (url.endsWith("/chat/conversations/conversation-1")) {
+        return jsonResponse({
+          conversation_id: "conversation-1",
+          title: "Repeated question",
+          older_cursor: null,
+          exchanges: [
+            { turn_id: "turn-1", question_text: "What changed?", answer_text: "First answer", cited_post_ids: [] },
+            { turn_id: "turn-2", question_text: "What changed?", answer_text: "Second answer", cited_post_ids: [] },
+          ],
+        });
+      }
+      if (url.endsWith("/chat/conversations")) {
+        return jsonResponse({
+          conversations: [{ conversation_id: "conversation-1", title: "Repeated question", updated_at: "2026-08-26T00:00:00Z", turn_count: 2 }],
+          next_cursor: null,
+        });
+      }
+      return jsonResponse({ post_id: "post-1", exchanges: [] });
+    }));
+
+    render(<ChatPanel postId="post-1" accessToken="synthetic-token" />);
+    await userEvent.selectOptions(await screen.findByLabelText("Conversation history"), "conversation-1");
+
+    expect(await screen.findByText("First answer")).toBeInTheDocument();
+    expect(screen.getByText("Second answer")).toBeInTheDocument();
+    expect(screen.getAllByRole("button", { name: "Ask seeded question: What changed?" })).toHaveLength(2);
+  });
+
   it("replaces demo cache rows when the first saved turn starts", async () => {
     vi.stubGlobal("fetch", vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
       const url = input instanceof Request ? input.url : String(input);

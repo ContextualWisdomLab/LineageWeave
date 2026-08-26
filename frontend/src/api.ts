@@ -341,6 +341,7 @@ export interface ChatAnswer {
 }
 
 export interface ChatExchange {
+  turn_id?: string;
   question_text: string;
   answer_text: string;
   cited_post_ids: string[];

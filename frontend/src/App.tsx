@@ -501,9 +501,9 @@ export function ChatPanel({
       )}
       {exchanges.length > 0 && (
         <div className="chat-suggestions">
-          {exchanges.map((exchange) => (
+          {exchanges.map((exchange, index) => (
             <button
-              key={exchange.question_text}
+              key={exchange.turn_id ?? `suggestion-${index}`}
               className="chat-suggestion-chip"
               aria-label={tf("Ask seeded question: {question}", { question: exchange.question_text })}
               aria-current={
@@ -528,8 +528,8 @@ export function ChatPanel({
           (exchange) =>
             !(nameFirstAsk && exchange.question_text === exchanges[0]?.question_text),
         )
-        .map((exchange) => (
-        <div key={`seeded-${exchange.question_text}`} className="chat-answer">
+        .map((exchange, index) => (
+        <div key={exchange.turn_id ?? `answer-${index}`} className="chat-answer">
           <p className="chat-question">{exchange.question_text}</p>
           <p>{exchange.answer_text}</p>
           <ChatCitations
