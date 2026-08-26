@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
@@ -163,6 +163,26 @@ describe("OccupationRatingProfile", () => {
 
     expect(screen.queryByText("4.10")).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "근거를 불러오는 중" })).toBeDisabled();
+  });
+
+  it("ignores a superseded occupation response that finishes last", async () => {
+    let finishFirst: ((profile: Payload) => void) | undefined;
+    vi.mocked(fetchOccupationRatings)
+      .mockImplementationOnce(() => new Promise((resolve) => { finishFirst = resolve; }))
+      .mockResolvedValueOnce({ ...ready, onetsoc_code: "11-1011.00", items: [{ ...ready.items[0], data_value: "3.20" }] });
+    render(<OccupationRatingProfile accessToken="synthetic-token" />);
+    const occupation = screen.getByLabelText("O*NET-SOC 직업 코드");
+    await userEvent.type(occupation, "15-1252.00");
+    await userEvent.click(screen.getByRole("button", { name: "직업 근거 열기" }));
+
+    await userEvent.clear(occupation);
+    await userEvent.type(occupation, "11-1011.00");
+    fireEvent.submit(occupation.closest("form")!);
+    expect(await screen.findByText("3.20")).toBeInTheDocument();
+
+    finishFirst?.(ready);
+    expect(screen.queryByText("4.10")).not.toBeInTheDocument();
+    expect(screen.getByText("3.20")).toBeInTheDocument();
   });
 
   it("distinguishes an unavailable artifact from an empty occupation profile", () => {
