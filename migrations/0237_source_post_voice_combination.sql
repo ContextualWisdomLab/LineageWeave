@@ -95,8 +95,15 @@ end;
 $$;
 
 drop trigger if exists source_post_primary_voice_sync on source_post;
-create trigger source_post_primary_voice_sync
-after insert or update of voc_type_code on source_post
+drop trigger if exists source_post_primary_voice_sync_insert on source_post;
+create trigger source_post_primary_voice_sync_insert
+after insert on source_post
 for each row execute function synchronize_source_post_primary_voice();
+
+create trigger source_post_primary_voice_sync
+after update of voc_type_code on source_post
+for each row
+when (old.voc_type_code is distinct from new.voc_type_code)
+execute function synchronize_source_post_primary_voice();
 
 commit;

@@ -1728,10 +1728,28 @@ const ACTIVITY_TYPE_LABELS: Record<string, string> = {
   relations_verified: "Relations verified",
   post_evaluated: "Post evaluated",
   chat_answered: "Chat answered",
+  voice_assignment_added: "Voice perspective connected",
 };
 
 function activityTypeLabel(eventType: string): string {
   return t(ACTIVITY_TYPE_LABELS[eventType] ?? eventType);
+}
+
+const VOICE_TRUTH_LABELS: Record<string, string> = {
+  truth_authoritative: "Authoritative",
+  truth_observed: "Observed",
+  truth_inferred: "Inferred",
+  truth_proposed: "Proposed",
+  truth_superseded: "Superseded",
+  truth_rejected: "Rejected",
+};
+
+function voiceTruthLabel(truthStatusCode: string): string {
+  return t(VOICE_TRUTH_LABELS[truthStatusCode] ?? "Status unavailable");
+}
+
+function voiceDisplayLabel(voice: PostVoiceType): string {
+  return `${t(voice.label)} (${voiceTruthLabel(voice.truth_status_code)})`;
 }
 
 function ActivityPanel({ postId, accessToken }: { postId: string; accessToken: string }) {
@@ -1784,7 +1802,7 @@ export function VoicePerspectiveList({ voices }: { voices: PostVoiceType[] }) {
       <ul className="ticket-list">
         {voices.map((voice) => (
           <li key={voice.code} className="ticket-list-item">
-            <span className="ticket-title">{t(voice.label)}</span>
+            <span className="ticket-title">{voiceDisplayLabel(voice)}</span>
             <span className="post-meta">
               {t(voice.is_primary ? "Imported from source" : "Evidence connected")}
             </span>
@@ -4313,7 +4331,7 @@ function PostList({
                       <span className="post-card-badges">
                         <span className="post-badge">
                           {(post.voice_types?.length
-                            ? post.voice_types.map((voice) => t(voice.label))
+                            ? post.voice_types.map(voiceDisplayLabel)
                             : [t(post.voc_type_label ?? post.voc_type_code)]
                           ).join(" + ")}
                         </span>

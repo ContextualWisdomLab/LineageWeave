@@ -22,14 +22,22 @@ describe("VoicePerspectiveList", () => {
             truth_status_code: "truth_observed",
             evidence_available: true,
           },
+          {
+            code: "vreg",
+            label: "Voice of Regulator",
+            is_primary: false,
+            truth_status_code: "truth_rejected",
+            evidence_available: true,
+          },
         ]}
       />,
     );
 
     const perspectives = screen.getByRole("region", { name: "Recorded perspectives" });
-    expect(within(perspectives).getByText("Voice of Customer")).toBeInTheDocument();
-    expect(within(perspectives).getByText("Voice of Process")).toBeInTheDocument();
+    expect(within(perspectives).getByText("Voice of Customer (Observed)")).toBeInTheDocument();
+    expect(within(perspectives).getByText("Voice of Process (Observed)")).toBeInTheDocument();
+    expect(within(perspectives).getByText("Voice of Regulator (Rejected)")).toBeInTheDocument();
     expect(within(perspectives).getByText("Imported from source")).toBeInTheDocument();
-    expect(within(perspectives).getByText("Evidence connected")).toBeInTheDocument();
+    expect(within(perspectives).getAllByText("Evidence connected")).toHaveLength(2);
   });
 });

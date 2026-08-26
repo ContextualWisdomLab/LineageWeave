@@ -41,3 +41,22 @@ export const CombinedEvidence: Story = {
 export const NarrowViewport: Story = {
   parameters: { viewport: { defaultViewport: "mobile1" } },
 };
+
+export const RejectedEvidence: Story = {
+  args: {
+    voices: [
+      ...meta.args.voices,
+      {
+        code: "vreg",
+        label: "Voice of Regulator",
+        is_primary: false,
+        truth_status_code: "truth_rejected",
+        evidence_available: true,
+      },
+    ],
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(canvas.getByText("Voice of Regulator (Rejected)")).toBeVisible();
+  },
+};

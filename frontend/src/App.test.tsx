@@ -1981,7 +1981,9 @@ describe("App, authenticated", () => {
     stubBackend({ combinedVoices: true });
     render(<App />);
 
-    expect(await screen.findByText("Voice of Customer + Voice of Process")).toBeInTheDocument();
+    expect(
+      await screen.findByText("Voice of Customer (Observed) + Voice of Process (Observed)"),
+    ).toBeInTheDocument();
   });
 
   it("keeps a post whose additional voice matches the board filter", async () => {

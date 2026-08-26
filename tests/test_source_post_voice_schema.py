@@ -24,7 +24,9 @@ def test_voice_combination_schema_is_normalized_and_evidence_bearing() -> None:
     assert "where is_primary" in sql
     assert "select post_id, voc_type_code, true, 'truth_observed', created_at" in sql
     assert "case when tg_op = 'insert' then new.created_at else now() end" in sql
-    assert "after insert or update of voc_type_code on source_post" in sql
+    assert "after insert on source_post" in sql
+    assert "after update of voc_type_code on source_post" in sql
+    assert "when (old.voc_type_code is distinct from new.voc_type_code)" in sql
     assert "on conflict (post_id, voice_type_code) do update" in sql
     assert "where lookup_category = 'voc_type'" in sql
     assert "where lookup_category = 'ontology_truth_status'" in sql
