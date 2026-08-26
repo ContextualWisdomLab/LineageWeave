@@ -1564,6 +1564,11 @@ async def read_voice_taxonomy_summary(
             "Choose an end time after the start time, then review the updated scope.",
         )
     async with pool.acquire() as conn:
+        excluded_entity_ids: tuple[str, ...] = ()
+        if await has_real_source_context(conn, list(account.corporate_entity_ids)):
+            excluded_entity_ids = tuple(
+                sorted(await fetch_demo_corporate_entity_ids(conn))
+            )
         summary = await load_voice_taxonomy_summary(
             conn,
             authorized_corporate_entity_ids=tuple(
@@ -1580,6 +1585,7 @@ async def read_voice_taxonomy_summary(
             person_id=str(person_id) if person_id else None,
             product_catalog_id=str(product_catalog_id) if product_catalog_id else None,
             project_key=project_key.strip() if project_key and project_key.strip() else None,
+            excluded_corporate_entity_ids=excluded_entity_ids,
         )
     total = int(summary["total_eligible"])
     raw_category_counts = summary["category_post_counts"]

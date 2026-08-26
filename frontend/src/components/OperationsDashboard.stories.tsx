@@ -166,6 +166,21 @@ export const LoadError: Story = {
   },
 };
 
+export const ConcurrentLoading: Story = {
+  args: EvidenceReady.args,
+  render: () => <OperationsDashboard accessToken="synthetic-token" onOpenPost={() => undefined} />,
+  beforeEach: () => {
+    const fetchBeforeStory = globalThis.fetch;
+    globalThis.fetch = async () => new Promise(() => undefined);
+    return () => { globalThis.fetch = fetchBeforeStory; };
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(canvas.getAllByRole("status")).toHaveLength(1);
+    await expect(canvas.getByRole("status")).toHaveTextContent("Loading voice evidence");
+  },
+};
+
 export const VoiceSummaryLoadError: Story = {
   args: EvidenceReady.args,
   render: () => <OperationsDashboard accessToken="synthetic-token" onOpenPost={() => undefined} />,
