@@ -804,6 +804,31 @@ def client(seeded_db):
         yield test_client
 
 
+@pytest.fixture
+def client_with_ask_worker(client):
+    """Run the production Ask consumer beside API tests that require settlement."""
+    from backend.app import main as main_module
+    from backend.app.config import load_settings
+    from backend.app.global_ask_queue import run_global_ask_worker
+
+    async def run_worker() -> None:
+        await run_global_ask_worker(
+            main_module.app.state.valkey,
+            main_module.app.state.pool,
+            chat_factory=lambda: main_module._post_chat_client(
+                timeout=load_settings().orchestrator_answer_timeout_seconds
+            ),
+            embedding_factory=lambda: main_module._embedding_client(),
+        )
+
+    assert client.portal is not None
+    worker = client.portal.start_task_soon(run_worker)
+    try:
+        yield client
+    finally:
+        worker.cancel()
+
+
 def test_keyverse_account_resolves_exact_scope_and_role_intersection(
     monkeypatch: pytest.MonkeyPatch, seeded_db, demo_analyst_token
 ) -> None:
@@ -3974,7 +3999,7 @@ def test_live_chat_provider_error_does_not_leak_raw_error(
 
 
 def test_global_ask_provider_error_does_not_leak_raw_error(
-    client, demo_analyst_token, seeded_db, monkeypatch
+    client_with_ask_worker, demo_analyst_token, seeded_db, monkeypatch
 ) -> None:
     """The cross-post Ask boundary settles a provider failure with a
     stable message, not the worker's raw exception text (ADR 0123).
@@ -4002,7 +4027,7 @@ def test_global_ask_provider_error_does_not_leak_raw_error(
     monkeypatch.setattr("backend.app.main._post_chat_client", lambda **_kwargs: _FailingAskClient())
     headers = {"Authorization": f"Bearer {demo_analyst_token}"}
 
-    submitted = client.post(
+    submitted = client_with_ask_worker.post(
         "/api/ask",
         json={"question": "What happened in this global failure case?"},
         headers=headers,
@@ -4013,7 +4038,7 @@ def test_global_ask_provider_error_does_not_leak_raw_error(
     deadline = _time.monotonic() + 30
     body: dict = {}
     while _time.monotonic() < deadline:
-        polled = client.get(f"/api/ask/jobs/{job_id}", headers=headers)
+        polled = client_with_ask_worker.get(f"/api/ask/jobs/{job_id}", headers=headers)
         assert polled.status_code == 200
         body = polled.json()
         if body["job_status_code"] in ("succeeded", "failed"):
@@ -5127,7 +5152,7 @@ def test_ask_requires_authentication(client) -> None:
 
 
 def test_ask_queues_a_job_and_polls_it_to_a_settled_answer(
-    client, demo_analyst_token, seeded_db, monkeypatch
+    client_with_ask_worker, demo_analyst_token, seeded_db, monkeypatch
 ) -> None:
     """Submission returns 202 immediately; the worker settles the job.
 
@@ -5162,7 +5187,7 @@ def test_ask_queues_a_job_and_polls_it_to_a_settled_answer(
         "backend.app.global_ask_queue.compute_global_ask_answer", _fake_compute_answer
     )
     headers = {"Authorization": f"Bearer {demo_analyst_token}"}
-    submitted = client.post(
+    submitted = client_with_ask_worker.post(
         "/api/ask", json={"question": "What happened with the public post?"}, headers=headers
     )
     assert submitted.status_code == 202
@@ -5172,7 +5197,7 @@ def test_ask_queues_a_job_and_polls_it_to_a_settled_answer(
     deadline = _time.monotonic() + 30
     body: dict = {}
     while _time.monotonic() < deadline:
-        polled = client.get(f"/api/ask/jobs/{job_id}", headers=headers)
+        polled = client_with_ask_worker.get(f"/api/ask/jobs/{job_id}", headers=headers)
         assert polled.status_code == 200
         body = polled.json()
         if body["job_status_code"] in ("succeeded", "failed"):
