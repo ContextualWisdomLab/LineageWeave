@@ -586,6 +586,85 @@ def test_sibling_requeue_failure_preserves_completed_primary_job(monkeypatch) ->
     assert outcomes == [SUCCEEDED]
 
 
+def test_invalid_product_output_does_not_block_primary_post_evidence(monkeypatch) -> None:
+    """Optional product extraction cannot discard structure, embedding, or cases."""
+    outcomes: list[str] = []
+    persisted: list[str] = []
+    failures: list[tuple[str, str]] = []
+
+    async def claim(*_args, **_kwargs):
+        return _row(RUNNING, 1)
+
+    async def fail_product(*_args, **_kwargs):
+        raise RuntimeError("synthetic non-verbatim product span")
+
+    async def persist_cases(*_args, **_kwargs):
+        persisted.append("cases")
+
+    async def persist_content(*_args, **_kwargs):
+        persisted.append("content")
+
+    async def finish(_pool, _post_id, status, **_kwargs):
+        outcomes.append(status)
+
+    monkeypatch.setattr(post_content_worker, "_claim_job", claim)
+    monkeypatch.setattr(
+        post_content_worker,
+        "load_settings",
+        lambda: SimpleNamespace(
+            orchestrator_base_url="gateway", orchestrator_api_key="key"
+        ),
+    )
+    monkeypatch.setattr(
+        post_content_worker,
+        "_operations_evidence_sources",
+        lambda *_args, **_kwargs: asyncio.sleep(
+            0,
+            result=(OperationsEvidenceSource("post-1", "Synthetic", "Evidence"),),
+        ),
+    )
+    monkeypatch.setattr(
+        post_content_worker, "_persist_product_analysis_if_needed", fail_product
+    )
+    monkeypatch.setattr(
+        post_content_worker,
+        "_persist_operations_case_analysis_if_needed",
+        persist_cases,
+    )
+    monkeypatch.setattr(post_content_worker, "normalize_post_body", lambda *_args: object())
+    monkeypatch.setattr(post_content_worker, "persist_post_content", persist_content)
+    monkeypatch.setattr(
+        post_content_worker,
+        "post_content_is_complete",
+        lambda *_args, **_kwargs: asyncio.sleep(0, result=True),
+    )
+    monkeypatch.setattr(
+        post_content_worker, "_requeue_project_missing_case_jobs", lambda *_args: asyncio.sleep(0)
+    )
+    monkeypatch.setattr(post_content_worker, "_finish_job", finish)
+    monkeypatch.setattr(
+        post_content_worker,
+        "record_server_failure",
+        lambda operation, _exc, *, outcome: failures.append((operation, outcome)),
+    )
+    client = SimpleNamespace(available=True, resolved_model="synthetic-model")
+
+    asyncio.run(
+        post_content_worker.process_post_content_job(
+            _Pool(_Connection()),
+            post_id="00000000-0000-0000-0000-000000000001",
+            source_body_digest="a" * 64,
+            vision_factory=lambda: client,
+            embedding_factory=lambda: client,
+            structure_factory=lambda: client,
+        )
+    )
+
+    assert persisted == ["cases", "content"]
+    assert outcomes == [SUCCEEDED]
+    assert failures == [("product_semantic_ingestion", "provider_unavailable")]
+
+
 def test_case_analysis_persists_before_content_provider_failure(monkeypatch) -> None:
     """Independent case evidence survives a later structure or embedding outage."""
     connection = _Connection(values=[False, 2])
