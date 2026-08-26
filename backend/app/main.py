@@ -30,7 +30,7 @@ from uuid import UUID
 
 import asyncpg
 import redis.asyncio as redis
-from fastapi import Depends, FastAPI, HTTPException, Query, status
+from fastapi import Depends, FastAPI, HTTPException, Path, Query, status
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
@@ -98,6 +98,7 @@ from backend.app.issue_ticket_ingestion import (
     upsert_commitment_ticket,
 )
 from backend.app.operations_dashboard import fetch_operations_dashboard
+from backend.app.occupation_rating_ingestion import fetch_occupation_ratings
 from backend.app.keyman_ingestion import ingest_post_keymen
 from backend.app.knowledge_graph import (
     corporate_entity_exists,
@@ -2273,6 +2274,32 @@ async def read_ontology_neighborhood(
     except OntologyNeighborhoodError as exc:
         raise HTTPException(neighborhood_error_http_status(exc), neighborhood_error_detail(exc)) from None
     return payload
+
+
+@app.get("/api/occupations/{onetsoc_code}/ratings")
+async def read_occupation_ratings(
+    onetsoc_code: str = Path(..., pattern=r"^[0-9]{2}-[0-9]{4}\.[0-9]{2}$"),
+    data_release_code: str = Query(
+        ..., min_length=1, max_length=63, pattern=r"^[a-z0-9][a-z0-9.-]*$"
+    ),
+    source_table_code: str = Query(
+        ..., min_length=1, max_length=63, pattern=r"^[a-z][a-z0-9_]*$"
+    ),
+    limit: int = Query(100, ge=1, le=500),
+    offset: int = Query(0, ge=0, le=10000),
+    _account: CurrentAccount = Depends(get_current_account),
+    pool: asyncpg.Pool = Depends(get_pool),
+) -> dict[str, object]:
+    """Return one authenticated, provenance-bearing occupation source profile."""
+    async with pool.acquire() as conn:
+        return await fetch_occupation_ratings(
+            conn,
+            data_release_code=data_release_code,
+            source_table_code=source_table_code,
+            onetsoc_code=onetsoc_code,
+            limit=limit,
+            offset=offset,
+        )
 
 
 @app.get("/api/posts/{post_id}/counterparties")

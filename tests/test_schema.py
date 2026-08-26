@@ -28,6 +28,7 @@ import psycopg2
 import psycopg2.errors
 import pytest
 
+from backend.app.occupation_rating_ingestion import fetch_occupation_ratings
 from backend.app.post_chat_ingestion import gather_global_chat_sources
 from scripts.import_onet_ratings import import_ratings
 
@@ -462,6 +463,25 @@ def test_onet_rating_importer_is_idempotent_against_postgresql(
                 where data_release_code = 'onet-31.0-synthetic'"""
         )
         assert cur.fetchone() == (1, Decimal("4.10"), True)
+
+    async def read_imported_profile() -> dict[str, object]:
+        conn = await asyncpg.connect(args.target_dsn)
+        try:
+            return await fetch_occupation_ratings(
+                conn,
+                data_release_code=args.release_code,
+                source_table_code=args.source_table_code,
+                onetsoc_code="15-1252.00",
+                limit=100,
+                offset=0,
+            )
+        finally:
+            await conn.close()
+
+    profile = asyncio.run(read_imported_profile())
+    assert profile["source_available"] is True
+    assert profile["items"][0]["data_value"] == "4.10"
+    assert profile["source"]["scale_artifact_sha256"] == args.scales_sha256
 
 
 def test_global_ask_evidence_search_indexes_exist_on_normalized_tables(schema_db) -> None:

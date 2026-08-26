@@ -8,6 +8,11 @@ All notable changes to this project are documented here. Format follows
 
 ### Added
 
+- Authenticated occupation profiles can now read one exact imported
+  release/source with rating and scale artifact provenance, exact decimal
+  strings, uncertainty, suppression/relevance flags, and explicit unavailable
+  versus empty outcomes. The endpoint derives no ranking or recommendation
+  (ADR 0258).
 - O*NET occupation-rating source evidence now has a replay-safe PostgreSQL
   contract with normalized release, source-table, scale, occupation, element,
   and observation tables. Exact release/source LIST partitions fail closed;
