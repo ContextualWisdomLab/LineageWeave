@@ -82,6 +82,25 @@ describe("PublicClaimList", () => {
     );
   });
 
+  it("keeps unknown contract codes out of customer copy", () => {
+    render(
+      <PublicClaimList
+        claims={[{
+          ...SUPPORTED,
+          claim_kind_code: "claim_future_kind",
+          status_code: "claim_future_status",
+        }]}
+        onSelectPost={vi.fn()}
+      />,
+    );
+
+    const row = screen.getByRole("button");
+    expect(row).toHaveTextContent("Recorded claim");
+    expect(row).toHaveTextContent("Status unavailable");
+    expect(row).not.toHaveTextContent("claim_future_kind");
+    expect(row).not.toHaveTextContent("claim_future_status");
+  });
+
   it("renders nothing when no authorized claim is present", () => {
     const { container } = render(<PublicClaimList claims={[]} onSelectPost={vi.fn()} />);
     expect(container).toBeEmptyDOMElement();

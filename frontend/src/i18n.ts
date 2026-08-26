@@ -206,6 +206,8 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Only authorized public claims are sent for web verification. Other workspace evidence is not sent.":
       "권한이 있는 공개 주장만 웹 검증에 전송합니다. 작업공간의 다른 근거는 전송하지 않습니다.",
     "Public claims": "공개 주장",
+    "Recorded claim": "기록된 주장",
+    "Status unavailable": "상태를 확인할 수 없음",
     "Open public claim: {title}": "공개 주장 열기: {title}",
     "Open this post so the public claim is current.": "공개 주장이 현재 글이 되도록 이 글을 여세요.",
     "Organization presence": "조직 존재",
@@ -758,6 +760,8 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Only authorized public claims are sent for web verification. Other workspace evidence is not sent.":
       "仅将已授权的公开主张发送用于网络核验。不会发送工作区中的其他证据。",
     "Public claims": "公开主张",
+    "Recorded claim": "已记录声明",
+    "Status unavailable": "状态不可用",
     "Open public claim: {title}": "打开公开主张：{title}",
     "Open this post so the public claim is current.": "打开这篇文章，使该公开主张成为当前项。",
     "Organization presence": "组织存在",
@@ -1325,6 +1329,8 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Only authorized public claims are sent for web verification. Other workspace evidence is not sent.":
       "権限のある公開主張だけをウェブ検証に送信します。ワークスペース内の他の証拠は送信しません。",
     "Public claims": "公開主張",
+    "Recorded claim": "記録された主張",
+    "Status unavailable": "状態を確認できません",
     "Open public claim: {title}": "公開主張を開く: {title}",
     "Open this post so the public claim is current.": "この公開主張が現在の投稿になるように開いてください。",
     "Organization presence": "組織の存在",
@@ -1872,6 +1878,8 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Only authorized public claims are sent for web verification. Other workspace evidence is not sent.":
       "Chỉ các tuyên bố công khai được cấp quyền mới được gửi để xác minh trên web. Bằng chứng khác trong không gian làm việc không được gửi đi.",
     "Public claims": "Tuyên bố công khai",
+    "Recorded claim": "Tuyên bố đã ghi nhận",
+    "Status unavailable": "Không có trạng thái",
     "Open public claim: {title}": "Mở tuyên bố công khai: {title}",
     "Open this post so the public claim is current.":
       "Mở bài viết này để tuyên bố công khai trở thành mục hiện tại.",

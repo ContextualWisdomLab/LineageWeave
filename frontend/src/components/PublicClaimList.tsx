@@ -41,8 +41,8 @@ export function PublicClaimList({ claims, onSelectPost }: PublicClaimListProps) 
   return (
     <ul className="ticket-list" aria-label={t("Public claims")}>
       {claims.map((claim) => {
-        const kindLabel = t(KIND_LABELS[claim.claim_kind_code] ?? claim.claim_kind_code);
-        const statusLabel = t(STATUS_LABELS[claim.status_code] ?? claim.status_code);
+        const kindLabel = t(KIND_LABELS[claim.claim_kind_code] ?? "Recorded claim");
+        const statusLabel = t(STATUS_LABELS[claim.status_code] ?? "Status unavailable");
         return (
           <li key={claim.public_claim_envelope_id} className="ticket-list-item public-claim-list-item">
             <button
