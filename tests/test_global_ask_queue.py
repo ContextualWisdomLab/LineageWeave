@@ -122,6 +122,19 @@ def test_no_public_claim_next_action_opens_authorized_evidence() -> None:
     assert "internal" not in next_action.lower()
 
 
+def test_unavailable_public_verification_guides_the_reader_without_service_names() -> None:
+    """Unavailable verification names the customer action, not its providers."""
+
+    next_action = global_ask_queue._verification_next_action(
+        cv.VERIFICATION_UNAVAILABLE
+    )
+
+    assert next_action == (
+        "Ask a workspace administrator to enable public verification, then retry."
+    )
+    assert "orchestrator" not in next_action.lower()
+
+
 def test_public_verification_keeps_external_urls_out_of_internal_citations() -> None:
     """A verified URL remains external evidence, never a cited post id."""
 
