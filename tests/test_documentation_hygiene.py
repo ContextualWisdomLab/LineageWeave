@@ -140,3 +140,6 @@ def test_embedding_bootstrap_contract_keeps_request_model_free() -> None:
     )
     assert "does not configure an embedding model" in adr
     assert "discovered provider catalog" in adr
+    assert "LLM_GATEWAY_EMBEDDING_MODEL" not in (_ROOT / ".env.example").read_text(
+        encoding="utf-8"
+    )
