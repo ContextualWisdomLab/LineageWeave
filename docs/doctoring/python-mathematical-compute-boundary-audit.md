@@ -25,8 +25,8 @@ does not relabel still-local Python paths as Rust/GPU compliant.
 | `lineageweave/channel_weight_estimation.py` | dichotomization, synthetic simulation, MLS2PLM input construction, expected item information and normalization | fast-mlsirm, conditional on TEPP anchor | versioned anchored-weight artifact; strict digest/convergence validation | estimation scripts, seed/server/rebuild paths; `tests/test_channel_weight_estimation.py`, estimator-script tests |
 | `lineageweave/period_report.py` | response matrix and owner-call orchestration remain; local category expectation and duplicate likelihood arithmetic removed | fast-mlsirm | `polytomous_expected_response`; diagnostics-owned held-out log likelihood; full period artifact remains debt | report ingestion and demo seed; period-report and report API tests |
 | `lineageweave/leftover_pairs.py` | **migrated:** identifier projection and closest/farthest selection only | fast-mlsirm | protected-main Rust `residual_interaction_map` with residual, coverage, SVD/Gabriel coordinates, distances, reconstruction and shares | `period_report.py`, report ingestion/seed; owner contract and consumer projection tests |
-| `lineageweave/embedding_client.py` and `backend/app/post_chat_ingestion.py` | cosine similarity, vector norms, maximum semantic score | RankWeave retrieval-score contract | ranked evidence envelope over ABAC-visible semantic units | reconstruction text channel and Global Ask retrieval; embedding/post-chat tests |
-| `lineageweave/knowledge_graph.py` | random walk with restart, convergence delta, adaptive relevance cutoff | RankWeave graph-ranking contract | ranked-node artifact with contribution and convergence evidence | related-person/entity API paths; knowledge-graph tests |
+| `lineageweave/embedding_client.py` and `backend/app/post_chat_ingestion.py` | cosine similarity, vector norms, maximum semantic score | Future Rust retrieval-scoring owner is unassigned; RankWeave owns the current Python fusion/evaluation contract only | ranked evidence envelope over ABAC-visible semantic units | reconstruction text channel and Global Ask retrieval; embedding/post-chat tests |
+| `lineageweave/knowledge_graph.py` | random walk with restart, convergence delta, adaptive relevance cutoff | Future Rust graph-ranking owner is unassigned; RankWeave's current contract does not prove this migration | ranked-node artifact with contribution and convergence evidence | related-person/entity API paths; knowledge-graph tests |
 | `lineageweave/reconstruct.py` | channel-weight renormalization, candidate-score fusion and minimum-score decision | RankWeave fusion; TEPP supplies independent lineage criterion | accepted edge-ranking artifact; LineageWeave persists selected edge and channel provenance | lineage rebuild/start/seed/server; reconstruct, persistence, API tests |
 | `lineageweave/rankweave_client.py` | channel construction and token overlap remain; **owner-bound:** classic/weighted RRF and contribution arithmetic now come from RankWeave #47, whose Python core still awaits the required Rust CPU/GPU migration | RankWeave | Rust-backed strict ranking artifact exposing owner-computed contributions and owned channel construction | `/api/rankings`, frontend Rankings; `tests/test_rankweave_client.py` and frontend tests |
 
@@ -48,9 +48,10 @@ validation, and presentation formatting also remain LineageWeave concerns.
   information; Gabriel residual interaction map; and topic-conditional
   multiple-membership multilevel importance for business unit, PU, team, and
   person, with recovery/RMSE and coverage evidence.
-- **RankWeave:** Rust-backed similarity, graph ranking, fusion, contribution,
-  evaluation, and policy-selection artifacts. Its present Python calculation
-  core is the correct product owner but not the final execution architecture.
+- **RankWeave:** current dependency-free Python retrieval fusion, evaluation,
+  comparison, and audit artifacts. A future Rust vector/graph-scoring contract
+  is migration evidence that still needs an accepted owner; this audit does not
+  call the current RankWeave package a Rust owner or require it to adopt MLX.
 
 ## Persistence and UI blast radius
 
