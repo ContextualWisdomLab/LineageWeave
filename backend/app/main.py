@@ -1746,7 +1746,7 @@ async def read_post(
         product_relation_rows = await conn.fetch(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
             "select relation.mention_ordinal, relation.relation_type_code, "
             "'operations_fact' as target_kind_code, "
-            "relation.case_kind_code || ':' || relation.fact_ordinal::text as target_id, "
+            "'operations_fact:' || relation.case_kind_code || ':' || relation.fact_ordinal::text as target_id, "
             "fact.value_text as target_label, relation.evidence_text, "
             "relation.evidence_post_id, evidence_post.visibility_code, "
             "evidence_post.corporate_entity_id, evidence_post.process_unit_id "
@@ -1759,7 +1759,7 @@ async def read_post(
             f"{SOURCE_POST_ELIGIBILITY_SQL.format(alias='evidence_post')} "
             "union all "
             "select relation.mention_ordinal, relation.relation_type_code, "
-            "'project' as target_kind_code, relation.project_key as target_id, "
+            "'project' as target_kind_code, 'project:' || relation.project_key as target_id, "
             "project.project_name as target_label, relation.evidence_text, "
             "relation.evidence_post_id, evidence_post.visibility_code, "
             "evidence_post.corporate_entity_id, evidence_post.process_unit_id "

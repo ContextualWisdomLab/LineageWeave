@@ -50,6 +50,12 @@ not match the authorized source. Mentions and accepted relations replace the
 prior projection in one transaction. No lexical overlap between mention and
 fact/project evidence creates a relation.
 
+Replacing an operations-fact or project target invalidates the post's product
+analysis before the target projection is replaced. The durable content job
+must extract the relationship evidence again even when the replacement keeps
+the same displayed value; a cascade-deleted relation must never be mistaken
+for an already-complete analysis.
+
 Post and Dashboard reads re-apply source eligibility and ABAC to every
 relation evidence post. RDF projection uses the same normalized target and
 closed predicate and must conform to the published ProductRelationAssertion
