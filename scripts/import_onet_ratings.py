@@ -124,7 +124,12 @@ def _rows(path: Path, required: set[str]) -> list[dict[str, str]]:
         missing = sorted(required - fields)
         if missing:
             raise ValueError(f"missing CSV columns: {', '.join(missing)}")
-        return [dict(row) for row in reader]
+        rows = []
+        for line_number, row in enumerate(reader, start=2):
+            if None in row or any(value is None for value in row.values()):
+                raise ValueError(f"malformed CSV row: {line_number}")
+            rows.append(dict(row))
+        return rows
 
 
 def read_scale_file(path: Path) -> dict[str, ScaleDefinition]:

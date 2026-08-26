@@ -120,6 +120,23 @@ def test_conflicting_reference_name_fails_closed(tmp_path: Path) -> None:
         read_rating_file(path, scales, today=date(2026, 8, 27))
 
 
+def test_short_csv_row_fails_with_import_error(tmp_path: Path) -> None:
+    scales = read_scale_file(
+        _write(
+            tmp_path / "scales.csv",
+            "Scale ID,Scale Name,Minimum,Maximum\nIM,Importance,1,5\n",
+        )
+    )
+    path = _write(
+        tmp_path / "short.csv",
+        "O*NET-SOC Code,Title,Element ID,Element Name,Scale ID,Scale Name,Data Value,Date,Domain Source\n"
+        "15-1252.00,Synthetic occupation,1.A.1.a.1\n",
+    )
+
+    with pytest.raises(ValueError, match="malformed CSV row: 2"):
+        read_rating_file(path, scales, today=date(2026, 8, 27))
+
+
 def test_category_table_may_omit_not_relevant_without_inventing_false(
     tmp_path: Path,
 ) -> None:
