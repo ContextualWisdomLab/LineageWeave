@@ -474,6 +474,7 @@ before a commercial release claim. Figma File ID `1Su3lDRmiZdcUs47t1QwIX`.
 | Style Selection | Korean UI standards merged (#347) | Tokenized light/dark; Anti-Slop-UI density; no decorative noise |
 | Layout & Responsive | Desktop popup shell; this candidate stacks analysis-run caption, document count, and next action at 390px and retains explicit grid columns at 1440px | Complete 402px-class phone acceptance for remaining panels; stacked GNB; readable DAG |
 | Typography & Color | Badge tokens extracted | Contrast on badges, links, error/status; no raw hex in components |
+| Localization | Shared and ontology customer actions are checked across English, Korean, Chinese, Japanese, and Vietnamese on #686; analysis-run guidance still returns untranslated English strings | Route every analysis-run status, empty-corpus, and corpus-guidance message through the shared locale catalog and add a five-locale completeness test before claiming locale-complete operations UX |
 | Animation | Minimal | Reduced-motion; no blocking animation on evidence open |
 | Forms & Feedback | Login, Ask, tickets, admin brand; this candidate gives all four Cancelled analysis kinds an evidence-safe next action | Inline validation and unavailable-vs-failed acceptance across remaining workflows |
 | Navigation Patterns | Board / customers / calendar / Ask / admin | Deep-link post + OIDC return URL (#426); bookmarkable Ask |
