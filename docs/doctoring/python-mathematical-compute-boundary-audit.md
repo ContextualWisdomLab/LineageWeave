@@ -66,8 +66,8 @@ multiple-membership cases before UI activation.
 ## 2026-08-26 stacked-PR audit
 
 The exact reviewed heads were PR #692 `583059edcffe994b18a6fbf3cb3b00bf4647c2a3`,
-PR #693 `776eee91e8401df15f86bd60a7448136d4e642c0`, and PR #694
-`7086455e4f8f011ee37710dc3b64c886d894a322`. The review used CodeGraph before
+PR #693 `999063d22e60469227eeea308fee787683952cab`, and PR #694
+`296cbae6c9ac2839b0f5ff150ae02ebf4f726627`. The review used CodeGraph before
 diff inspection.
 
 - PR #692 adds evidence-span normalization, unique/miss/tie catalog binding,
@@ -79,7 +79,8 @@ diff inspection.
   by ADR 0208, not token estimation or vector scoring. Tokenization, token
   ranges, provider-limit packing, checked token totals, and shard construction
   are owned by contextual-orchestrator's Rust/PyO3 extension pinned by the
-  Docker build. The owner follow-up PR #863 fails closed at an undecodable
+  Docker build. The owner follow-up PR #865 is stacked on the current owning
+  #857 branch and fails closed at an undecodable
   token ceiling and preserves complete UTF-8 scalars when a nominal token
   boundary divides their byte representation.
 - PR #694 delegates overlap counts and the shared eligible denominator to one
