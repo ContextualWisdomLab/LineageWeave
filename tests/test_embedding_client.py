@@ -47,6 +47,56 @@ def test_orchestrator_embedding_client_submits_and_polls_batch(monkeypatch) -> N
     assert calls[2][2]["model"] == "resolved-embedding"
 
 
+def test_orchestrator_embedding_client_polls_through_pending_status(monkeypatch) -> None:
+    """A server-declared cadence remains mandatory on each pending poll envelope."""
+    responses = iter(
+        [
+            {
+                "batch_id": "synthetic-batch",
+                "status": "running",
+                "model": "resolved-embedding",
+                "poll_after_ms": 1,
+                "job_retention_ms": 60_000,
+            },
+            {
+                "batch_id": "synthetic-batch",
+                "status": "completed",
+                "model": "resolved-embedding",
+                "poll_after_ms": 1,
+                "job_retention_ms": 60_000,
+                "embeddings": [{"index": 0, "embedding": [1.0, 2.0]}],
+            },
+        ]
+    )
+    get_calls = []
+
+    def fake_post_json(url, payload, *, headers, timeout):
+        return {
+            "batch_id": "synthetic-batch",
+            "status": "queued",
+            "model": "resolved-embedding",
+            "poll_after_ms": 1,
+            "job_retention_ms": 60_000,
+        }
+
+    def fake_get_json(url, *, headers, timeout, service_peer_name):
+        get_calls.append(url)
+        return next(responses)
+
+    monkeypatch.setattr("lineageweave.embedding_client.post_json", fake_post_json)
+    monkeypatch.setattr("lineageweave.embedding_client.get_json", fake_get_json)
+    monkeypatch.setattr("lineageweave.embedding_client.time.sleep", lambda _seconds: None)
+    client = ContextualOrchestratorEmbeddingClient(
+        "http://orchestrator:8000", "synthetic-token"
+    )
+
+    assert client.embed_many(["first"]) == [[1.0, 2.0]]
+    assert get_calls == [
+        "http://orchestrator:8000/v1/batch/embeddings/synthetic-batch",
+        "http://orchestrator:8000/v1/batch/embeddings/synthetic-batch",
+    ]
+
+
 def test_orchestrator_embedding_client_submits_index_aligned_provenance(monkeypatch) -> None:
     """Each bulk input carries its own source metadata and cost attribution."""
     captured = {}
