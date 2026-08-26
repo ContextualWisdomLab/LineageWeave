@@ -41,6 +41,11 @@ _PROJECT_MENTION_MIGRATION = (
 _POST_CONTENT_MIGRATION = (
     Path(__file__).resolve().parents[1] / "migrations" / "0026_post_content_artifacts.sql"
 )
+_POST_CONTENT_QUEUE_MIGRATION = (
+    Path(__file__).resolve().parents[1]
+    / "migrations"
+    / "0050_post_content_ingestion_queue.sql"
+)
 _ONTOLOGY_TRUTH_STATUS_MIGRATION = (
     Path(__file__).resolve().parents[1] / "migrations" / "0175_ontology_truth_status.sql"
 )
@@ -172,6 +177,7 @@ def schema_db():
             with conn.cursor() as cur:
                 cur.execute(_MIGRATION_PATH.read_text())
                 cur.execute(_POST_CONTENT_MIGRATION.read_text())
+                cur.execute(_POST_CONTENT_QUEUE_MIGRATION.read_text())
                 cur.execute(_ONTOLOGY_TRUTH_STATUS_MIGRATION.read_text())
                 cur.execute(_OCCUPATIONAL_CONSTRUCT_MIGRATION.read_text())
                 cur.execute(_OCCUPATIONAL_CATALOG_MIGRATION.read_text())
