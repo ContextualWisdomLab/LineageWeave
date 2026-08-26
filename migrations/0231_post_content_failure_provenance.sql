@@ -5,8 +5,7 @@ alter table post_content_ingestion_job
     add column if not exists failure_http_status integer,
     add column if not exists failure_orchestrator_error_code text,
     add column if not exists failure_retryable boolean,
-    add column if not exists failure_session_correlation_id text,
-    add column if not exists failure_error_type text;
+    add column if not exists failure_session_correlation_id text;
 
 alter table post_content_ingestion_job
     drop constraint if exists post_content_failure_http_status_check;
