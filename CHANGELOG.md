@@ -25,7 +25,7 @@ All notable changes to this project are documented here. Format follows
   through contextual-orchestrator's multi-agent conduct workflow and persists
   only exact catalog IRIs with verbatim semantic-unit evidence. A digest-bound
   run ledger preserves successful empty extraction without inventing a signal
-  (ADR 0251).
+  (ADR 0253).
 - The DOT/FJA Data/People/Things worker-function taxonomy is now published
   in the canonical ontology: all 24 worker functions carry the official
   Dictionary of Occupational Titles Appendix B definitions verbatim, their
