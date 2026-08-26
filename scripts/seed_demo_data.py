@@ -614,8 +614,9 @@ def _persist_demo_channel_weights(cur, estimate) -> None:
                 (channel_set_code, channel_code, weight_value,
                  estimation_run_id, estimation_method_code,
                  estimator_version, anchor_method_code,
-                 source_snapshot_sha256, sample_pair_count, knowledge_cutoff)
-            values ('channel_set_deterministic', %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                 source_snapshot_sha256, sample_pair_count, knowledge_cutoff,
+                 estimated_at)
+            values ('channel_set_deterministic', %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             """,
             (
                 channel,
@@ -626,6 +627,7 @@ def _persist_demo_channel_weights(cur, estimate) -> None:
                 UNANCHORED_METHOD_CODE,
                 design_digest,
                 estimate.sample_pair_count,
+                knowledge_cutoff,
                 knowledge_cutoff,
             ),
         )

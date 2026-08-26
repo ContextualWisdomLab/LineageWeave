@@ -1,7 +1,7 @@
 from pathlib import Path
 
-
 SCRIPT = Path(__file__).resolve().parents[1] / "scripts" / "k6_http_e2e.js"
+MCP_SCRIPT = Path(__file__).resolve().parents[1] / "scripts" / "k6_mcp_e2e.js"
 
 
 def test_k6_harness_renews_expired_auth_and_discloses_job_state() -> None:

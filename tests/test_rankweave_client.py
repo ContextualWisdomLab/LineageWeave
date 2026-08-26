@@ -120,7 +120,7 @@ def test_library_transport_fails_closed_when_fuse_raises(
 ) -> None:
     class FakeRw:
         @staticmethod
-        def weighted_reciprocal_rank_fuse(*_args: object, **_kwargs: object) -> list:
+        def reciprocal_rank_fuse(*_args: object, **_kwargs: object) -> list:
             raise RuntimeError("duplicate identifiers")
 
     monkeypatch.setattr(

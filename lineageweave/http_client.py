@@ -46,7 +46,6 @@ class HttpClientError(RuntimeError):
         self.remote_error_code = remote_error_code
         self.retryable = retryable
 
-
 class HttpAdmissionDeferred(HttpClientError):
     """The orchestrator admitted no provider work and supplied an exact retry delay."""
 

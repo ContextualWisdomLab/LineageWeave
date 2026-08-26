@@ -116,6 +116,7 @@ export function AskAnswerTimeline({ question, answer, onOpenEvidence, onOpenPost
           <p>{t("Select a citation to review the event and open its source.")}</p>
           <ol>
             {chronological.map((citation) => {
+              const post = postDetails.get(citation.postId);
               const facts = answer.cited_post_evidence?.find(
                 (item) => item.post_id === citation.postId,
               )?.facts ?? [];
@@ -149,6 +150,13 @@ export function AskAnswerTimeline({ question, answer, onOpenEvidence, onOpenPost
                         <small>{observedTimeLabel(citation.event)}</small>
                       </span>
                     </button>
+                    {post?.source_post_revision_id ? (
+                      <p className="post-meta">
+                        {t("Retained revision")}
+                        {post.evidence_available_at ? ` · ${post.evidence_available_at}` : ""}
+                        {post.live_changed_after_cutoff ? ` · ${t("Live source changed later")}` : ""}
+                      </p>
+                    ) : null}
                     {facts.length ? (
                       <ul className="post-evidence-list" aria-label={t("Evidence facts")}>
                         {facts.map((fact, index) => (
