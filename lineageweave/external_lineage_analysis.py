@@ -232,6 +232,8 @@ def _pair_evaluation_count(
             ].add(record.evidence_ref)
 
     def explicit_descendants(evidence_ref: str) -> set[str]:
+        """Return observed descendants excluded from the pair-work budget."""
+
         descendants: set[str] = set()
         pending = list(explicit_children_by_parent.get(evidence_ref, ()))
         while pending:

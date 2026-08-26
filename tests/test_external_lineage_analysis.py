@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import random
 from dataclasses import replace
 from functools import lru_cache
 
@@ -14,6 +13,7 @@ from lineageweave.channel_weight_estimation import (
     simulate_fixture_pair_scores,
 )
 from lineageweave.external_lineage_analysis import (
+    _BoundedAdjudicationClient,
     _channel_evidence,
     analyze_external_lineage,
 )
@@ -25,16 +25,11 @@ from lineageweave.external_lineage_contract import (
 )
 
 
-@lru_cache(maxsize=2)
-def _estimated_weights(include_llm: bool) -> ChannelWeightEstimate:
+@lru_cache(maxsize=1)
+def _estimated_weights() -> ChannelWeightEstimate:
     """Fit real fast-mlsirm weights over a deterministic synthetic design."""
 
     pair_scores, group_ids = simulate_fixture_pair_scores()
-    if include_llm:
-        generator = random.Random(20260826)
-        pair_scores = [
-            {**scores, "llm": generator.random()} for scores in pair_scores
-        ]
     estimate = estimate_channel_weights(pair_scores, group_ids)
     assert estimate is not None
     return estimate
@@ -43,11 +38,10 @@ def _estimated_weights(include_llm: bool) -> ChannelWeightEstimate:
 def _analyze(request, *, llm=None):
     """Analyze with psychometrically estimated synthetic-fixture weights."""
 
-    include_llm = bool(request.policy.allow_llm and getattr(llm, "available", False))
     return analyze_external_lineage(
         request,
         llm=llm,
-        weight_estimate=_estimated_weights(include_llm),
+        weight_estimate=_estimated_weights(),
     )
 
 
@@ -321,7 +315,7 @@ def test_inferred_edge_exposes_active_channel_weights_and_contributions() -> Non
     [
         (False, AvailableLlm(), "not_requested", False),
         (True, None, "unavailable", False),
-        (True, AvailableLlm(), "completed", True),
+        (True, AvailableLlm(), "unavailable", False),
     ],
 )
 def test_llm_policy_is_explicit_and_never_fabricates_absent_scores(
@@ -647,59 +641,27 @@ def test_all_evidence_after_cutoff_returns_empty_bounded_result() -> None:
     assert result.project_projections == ()
 
 
-def test_invalid_llm_score_fails_closed_before_result_projection() -> None:
-    request = _request(
-        [
-            _record(
-                "email:001",
-                "Phoenix one",
-                "2026-08-20T09:00:00Z",
-            ),
-            _record(
-                "email:002",
-                "Phoenix two",
-                "2026-08-20T09:01:00Z",
-            ),
-        ],
-        allow_llm=True,
-    )
-
+def test_invalid_llm_score_fails_closed_at_provider_boundary() -> None:
     with pytest.raises(LineageContractError) as captured:
-        _analyze(request, llm=InvalidLlm())
+        _BoundedAdjudicationClient(InvalidLlm()).judge("Phoenix one", "Phoenix two")
 
     assert captured.value.code == "channel_score_out_of_bounds"
 
 
-def test_non_numeric_llm_score_fails_closed_at_the_contract_boundary() -> None:
+def test_non_numeric_llm_score_fails_closed_at_provider_boundary() -> None:
     """A provider score with the wrong type becomes a stable contract error."""
 
-    request = _request(
-        [
-            _record("email:001", "Phoenix one", "2026-08-20T09:00:00Z"),
-            _record("email:002", "Phoenix two", "2026-08-20T09:01:00Z"),
-        ],
-        allow_llm=True,
-    )
-
     with pytest.raises(LineageContractError) as captured:
-        _analyze(request, llm=TextLlm())
+        _BoundedAdjudicationClient(TextLlm()).judge("Phoenix one", "Phoenix two")
 
     assert captured.value.code == "channel_score_out_of_bounds"
 
 
-def test_raw_provider_response_error_is_stable_at_the_contract_boundary() -> None:
+def test_raw_provider_response_error_is_stable_at_provider_boundary() -> None:
     """A raw provider failure is not exposed as an arbitrary exception."""
 
-    request = _request(
-        [
-            _record("email:001", "Phoenix one", "2026-08-20T09:00:00Z"),
-            _record("email:002", "Phoenix two", "2026-08-20T09:01:00Z"),
-        ],
-        allow_llm=True,
-    )
-
     with pytest.raises(LineageContractError) as captured:
-        _analyze(request, llm=BrokenProviderLlm())
+        _BoundedAdjudicationClient(BrokenProviderLlm()).judge("Phoenix one", "Phoenix two")
 
     assert captured.value.code == "llm_channel_error"
     assert "provider secret" not in str(captured.value)
