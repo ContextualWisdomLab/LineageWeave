@@ -12,7 +12,9 @@ work styles, work activities, work context, and adjacent content-model
 domains. A rating is not merely an edge: its meaning depends on the release,
 source table, occupation, element, scale, optional response category, sample
 size, standard error, 95% confidence interval, precision-suppression flag,
-relevance flag, update date, and domain source.
+relevance flag, source update month, and domain source. O*NET publishes that
+field as a seven-character `MM/YYYY` value; coercing it to a database date
+would invent a day (National Center for O*NET Development, 2026b).
 
 Flattening those attributes into ontology predicates would erase measurement
 and provenance boundaries. Loading them into Python mathematical code would
@@ -40,7 +42,7 @@ also violate LineageWeave's externalized-compute boundary.
    value remains stored with its warning; a not-relevant value is not converted
    to zero. Missing `n`, error, or interval values remain null.
 7. Range and uncertainty constraints reject negative sample/error values,
-   inverted confidence intervals, future source update dates, malformed source
+   inverted confidence intervals, malformed or future source update months, malformed source
    digests, and values outside their declared scale bounds before persistence.
 8. This store is immutable source evidence. Any later aggregation, comparison,
    temporal model, multilevel model, or occupational recommendation belongs to
@@ -55,8 +57,11 @@ operations. A separate API/UI ADR is still required before exposing ratings.
 
 ## References
 
-National Center for O*NET Development. (2026). *O*NET 31.0 database* [Data
+National Center for O*NET Development. (2026a). *O*NET 31.0 database* [Data
 set]. https://www.onetcenter.org/database.html
+
+National Center for O*NET Development. (2026b). *Work context: O*NET 31.0 data
+dictionary*. https://www.onetcenter.org/dictionary/31.0/excel/work_context.html
 
 PostgreSQL Global Development Group. (2026). *PostgreSQL 18 documentation:
 Table partitioning*. https://www.postgresql.org/docs/current/ddl-partitioning.html

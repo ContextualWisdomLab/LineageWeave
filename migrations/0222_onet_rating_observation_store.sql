@@ -94,7 +94,7 @@ create table if not exists occupational_rating_observation (
     upper_ci_bound numeric,
     recommend_suppress boolean,
     not_relevant boolean,
-    source_updated_date date not null,
+    source_updated_month text not null,
     domain_source_code text not null,
     constraint occupational_rating_source_table_fkey
         foreign key (data_release_code, source_table_code)
@@ -122,7 +122,9 @@ create table if not exists occupational_rating_observation (
     constraint occupational_rating_data_value_check
         check (data_value::text not in ('NaN', 'Infinity', '-Infinity')),
     constraint occupational_rating_domain_source_check
-        check (btrim(domain_source_code) <> '')
+        check (btrim(domain_source_code) <> ''),
+    constraint occupational_rating_source_updated_month_check
+        check (source_updated_month ~ '^(0[1-9]|1[0-2])/[0-9]{4}$')
 ) partition by list (data_release_code);
 
 create index if not exists occupational_rating_occupation_element_idx
@@ -141,8 +143,12 @@ declare
     declared_minimum numeric;
     declared_maximum numeric;
 begin
-    if new.source_updated_date > current_date then
-        raise check_violation using message = 'source_updated_date must not be in the future';
+    if new.source_updated_month !~ '^(0[1-9]|1[0-2])/[0-9]{4}$' then
+        raise check_violation using message = 'source_updated_month must be MM/YYYY';
+    end if;
+    if to_date('01/' || new.source_updated_month, 'DD/MM/YYYY')
+       > date_trunc('month', current_date)::date then
+        raise check_violation using message = 'source_updated_month must not be in the future';
     end if;
     select minimum_value, maximum_value
       into declared_minimum, declared_maximum

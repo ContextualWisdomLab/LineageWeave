@@ -28,3 +28,5 @@ def test_migration_declares_normalized_partitioned_observation_contract() -> Non
     assert "standard_error" in sql
     assert "lower_ci_bound" in sql
     assert "upper_ci_bound" in sql
+    assert "source_updated_month text not null" in sql
+    assert "source_updated_date" not in sql
