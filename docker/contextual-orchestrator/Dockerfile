@@ -29,7 +29,7 @@ RUN mkdir /tmp/contextual-orchestrator \
     && cd /tmp/contextual-orchestrator \
     && uv export --locked --no-dev --no-emit-project --extra queue --no-hashes --output-file /tmp/runtime-requirements.txt \
     && python -m pip install --no-cache-dir --requirement /tmp/runtime-requirements.txt \
-    && python -c 'import cryptography, jsonschema, opentelemetry, redis' \
+    && python -c 'import cryptography, jsonschema, redis; from opentelemetry.exporter.otlp.proto.http import trace_exporter' \
     && rm -rf /tmp/contextual-orchestrator /tmp/contextual-orchestrator.tar.gz /tmp/runtime-requirements.txt \
     && useradd --uid 10001 --no-create-home orchestrator
 

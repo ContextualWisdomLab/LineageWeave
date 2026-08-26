@@ -142,7 +142,8 @@ def test_orchestrator_runtime_pin_matches_adr() -> None:
     )
     assert "uv export --locked --no-dev --no-emit-project --extra queue" in dockerfile
     assert "--requirement /tmp/runtime-requirements.txt" in dockerfile
-    assert "import cryptography, jsonschema, opentelemetry, redis" in dockerfile
+    assert "import cryptography, jsonschema, redis" in dockerfile
+    assert "opentelemetry.exporter.otlp.proto.http import trace_exporter" in dockerfile
     assert "'jsonschema>=4.23,<5'" not in dockerfile
 
 
