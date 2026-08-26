@@ -186,7 +186,7 @@ export LINEAGEWEAVE_E2E_BASE_URL SCREENSHOT_DESKTOP_PATH SCREENSHOT_MOBILE_PATH
 export BACKEND_URL LINEAGEWEAVE_ACCESS_TOKEN K6_VUS K6_DURATION
 k6 run --vus "$K6_VUS" --duration "$K6_DURATION" \
   --summary-export "$K6_SUMMARY_PATH" scripts/k6_operations_dashboard.js
-jq -e '.metrics.checks.values.fails == 0 and .metrics.http_req_failed.values.rate == 0' \
+jq -e '.metrics.checks.fails == 0 and .metrics.http_req_failed.value == 0' \
   "$K6_SUMMARY_PATH" >/dev/null
 
 printf 'operations-dashboard-runtime-acceptance-ok preferred=%s analysis_delta=%s grounded_delta=%s\n' \

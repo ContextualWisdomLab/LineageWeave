@@ -61,7 +61,7 @@ def test_runtime_runners_require_distinct_desktop_and_mobile_artifacts() -> None
         assert "SCREENSHOT_DESKTOP_PATH" in runner
         assert "SCREENSHOT_MOBILE_PATH" in runner
         assert '"$SCREENSHOT_DESKTOP_PATH" != "$SCREENSHOT_MOBILE_PATH"' in runner
-        assert ".metrics.checks.values.fails == 0" in runner
-        assert ".metrics.http_req_failed.values.rate == 0" in runner
+        assert ".metrics.checks.fails == 0" in runner
+        assert ".metrics.http_req_failed.value == 0" in runner
         assert "BACKEND_READINESS_TIMEOUT_SECONDS" in runner
         assert '"${BACKEND_URL%/}/healthz"' in runner
