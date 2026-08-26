@@ -29,24 +29,39 @@ literals and hints; they are not minted as classified ontology concepts.
 
 An ADR 0226 private-content audit then validated eight disjoint deterministic
 windows of ten titles (80/80 ordered outputs, four orchestration trace steps
-per window). It found zero titles whose material meaning was completely
-expressible by the published ontology. Missing dimensions were observed for
+per window). This is pipeline acceptance evidence only: the windows were not a
+probability sample, had no known inclusion probabilities, and had no declared
+confidence or margin-of-error target. Its observed counts found zero sampled
+titles whose material meaning was completely expressible by the published
+ontology. Missing dimensions in those 80 pipeline items were observed for
 event/activity (55), product/service (37), communication/document type (33),
 organization role (26), topic/domain (26), location/geography (24), commercial
 transaction (18), facility/asset/equipment (17), status/stage (16),
 requirement/issue/risk (15), time interval/deadline (13), and
 quantity/measurement (6); a title may contribute to several dimensions. Two
 remaining ten-title windows were not accepted after provider failures, so this
-is explicitly an 80-record sample result, not a 100-record or corpus claim.
+is explicitly an 80-record pipeline result, not a probability-sample, 100-record,
+or corpus claim.
 The reusable audit now rejects the previously observed 100-input/60-output
 response, requires every ordered item plus a multi-agent trace, and prints only
-complete non-identifying aggregates.
+complete non-identifying aggregates. It additionally fails closed unless the
+caller supplies a probability-sample manifest with known per-stratum inclusion
+probabilities, explicit confidence/margin targets, prior evidence for the
+expected proportion, ordered owner-token membership digests, retained provider
+failures, and the SHA-256-bound output
+of the NIST proportion/FPC calculation owned by a versioned fast-mlsirm Rust
+artifact. LineageWeave validates that contract but performs no sample-size,
+finite-population, allocation, or weight arithmetic in Python.
 The advertised deployment alias needed by this multi-agent path is repaired in
 contextual-orchestrator PR #870; until that exact head passes its protected
 checks and independent review, the runtime path remains candidate evidence.
 
 Remaining acceptance gaps:
 
+- ship the versioned fast-mlsirm Rust probability-sample artifact, select the
+  fixed sample from a complete authorized frame, and complete every selected
+  item without dropping or replacing provider failures before making any
+  corpus coverage estimate;
 - connect an authoritative body/file source and prove non-zero, ordered
   semantic-unit persistence before claiming PRD-FR-4 corpus coverage;
 - obtain governed source definitions before mapping grade, inspection,
