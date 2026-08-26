@@ -116,6 +116,7 @@ def public_claim_candidates(
     sources: list[ChatSourceDocument] | tuple[ChatSourceDocument, ...],
     *,
     maximum_claims: int = 4,
+    allowed_source_post_ids: frozenset[str] | None = None,
 ) -> tuple[PublicClaimCandidate, ...]:
     """Return bounded typed claims from already-authorized public sources.
 
@@ -132,6 +133,11 @@ def public_claim_candidates(
         if not isinstance(source, GlobalAskSourceDocument):
             continue
         for claim in source.external_claims:
+            if (
+                allowed_source_post_ids is not None
+                and not set(claim.source_post_ids).issubset(allowed_source_post_ids)
+            ):
+                continue
             if not claim.claim_text.strip() or len(claim.claim_text) > 800:
                 continue
             key = (claim.claim_kind, claim.claim_text)
@@ -160,6 +166,8 @@ def _safe_external_document(
     if host == "localhost" or host.endswith(".local"):
         return None
     if search_host is not None and host == search_host.casefold().rstrip("."):
+        return None
+    if any(segment.casefold() == "search" for segment in parsed.path.split("/")):
         return None
     try:
         address = ipaddress.ip_address(host)

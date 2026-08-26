@@ -182,8 +182,9 @@ async def _verify_public_claims(
     cited_ids = frozenset(cited_post_ids)
     claims = tuple(
         claim
-        for claim in public_claim_candidates(sources)
-        if set(claim.source_post_ids).issubset(cited_ids)
+        for claim in public_claim_candidates(
+            sources, allowed_source_post_ids=cited_ids
+        )
     )
     if not claims:
         return VERIFICATION_NO_PUBLIC_CLAIMS, ()

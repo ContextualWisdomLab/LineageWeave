@@ -56,12 +56,25 @@ def test_public_claim_candidates_require_positive_budget_without_heuristic_filte
     assert cv.public_claim_candidates([source], maximum_claims=0) == ()
 
 
+def test_public_claim_candidates_filters_citations_before_budget() -> None:
+    source = _public_source(
+        cv.PublicClaimCandidate("uncited", "semantic_project", ("other",)),
+        cv.PublicClaimCandidate("cited", "semantic_project", ("post-1",)),
+    )
+    assert cv.public_claim_candidates(
+        [source], maximum_claims=1, allowed_source_post_ids=frozenset({"post-1"})
+    ) == (source.external_claims[1],)
+
+
 def test_safe_external_document_rejects_search_local_and_private_hosts() -> None:
     assert cv._safe_external_document({"url": "http://localhost/a", "title": "x"}) is None
     assert cv._safe_external_document({"url": "http://127.0.0.1/a", "title": "x"}) is None
     assert cv._safe_external_document(
         {"url": "https://searx.example/search", "title": "x"},
         search_host="searx.example",
+    ) is None
+    assert cv._safe_external_document(
+        {"url": "https://example.com/search?q=claim", "title": "x"}
     ) is None
     assert cv._safe_external_document({"url": "file:///tmp/x", "title": "x"}) is None
     assert cv._safe_external_document({"url": "https://example.com/a"}) is None
