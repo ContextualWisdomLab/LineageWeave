@@ -72,6 +72,11 @@ class _MalformedVerificationClient(_VerificationClient):
         raise IndexError("empty provider choices")
 
 
+class _UnexpectedVerificationClient(_VerificationClient):
+    def verify(self, claim: cv.PublicClaimCandidate) -> cv.ClaimVerificationResult:
+        raise RuntimeError("provider adapter failed")
+
+
 def test_skipped_public_verification_does_not_nudge_the_reader() -> None:
     assert global_ask_queue._verification_next_action(cv.VERIFICATION_SKIPPED) is None
 
@@ -169,6 +174,27 @@ def test_malformed_provider_response_degrades_to_unavailable() -> None:
             ["public-post"],
             verify_external=True,
             client=_MalformedVerificationClient(),
+        )
+    )
+    assert status_code == cv.VERIFICATION_UNAVAILABLE
+    assert results == ()
+
+
+def test_unexpected_provider_failure_degrades_to_unavailable() -> None:
+    source = cv.GlobalAskSourceDocument(
+        "public-post",
+        "Public",
+        "Public body",
+        external_claims=(
+            cv.PublicClaimCandidate("A public claim", "semantic_project", ("public-post",)),
+        ),
+    )
+    status_code, results = asyncio.run(
+        global_ask_queue._verify_public_claims(
+            [source],
+            ["public-post"],
+            verify_external=True,
+            client=_UnexpectedVerificationClient(),
         )
     )
     assert status_code == cv.VERIFICATION_UNAVAILABLE

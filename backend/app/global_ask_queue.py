@@ -194,7 +194,11 @@ async def _verify_public_claims(
                 *(asyncio.to_thread(client.verify, claim) for claim in claims)
             )
         )
-    except (HttpClientError, IndexError, KeyError, OSError, TypeError, ValueError):
+    except Exception:
+        # A provider adapter is an optional evidence channel.  Keep an
+        # unexpected adapter defect from discarding an otherwise valid Ask
+        # answer, while allowing cancellation to propagate (it is a
+        # BaseException, not an Exception).
         return VERIFICATION_UNAVAILABLE, ()
     return VERIFICATION_COMPLETED, tuple(
         result
