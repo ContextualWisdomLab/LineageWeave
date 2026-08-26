@@ -1,4 +1,4 @@
-# ADR 0226: Evidence-bound project history projection
+# ADR 0232: Evidence-bound project history projection
 
 - Status: Accepted
 - Date: 2026-08-26

@@ -9,7 +9,7 @@ All notable changes to this project are documented here. Format follows
 ### Added
 
 - An evidence-bound project-history projection and post-detail timeline
-  (ADR 0226 / #280) reuse normalized project, responsibility, and Event
+  (ADR 0232 / #280) reuse normalized project, responsibility, and Event
   Lineage rows under RBAC/ABAC and cutoff filtering. Free text never creates a
   lifecycle fact; unsupported authoritative ingestion remains issue #284.
 - Persist explicit paragraph, list, table, MathML formula, and caller-parsed

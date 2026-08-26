@@ -11,7 +11,7 @@
 | Claim cause delay: order, specification change, originating order, sales pool, Event/post counts | ADR 0206; contextual-orchestrator case classification with cited spans; Event Lineage context | Candidate implementation; authenticated runtime acceptance pending |
 | Rebid/handover: discussion, counterparties, our owner, decisions, Event/post counts | ADR 0206; normalized case facts plus persisted summary actions/roles | Candidate implementation; corpus backfill pending |
 | External information count/rate and sales/project relation | ADR 0206; semantic `external_information` classification inside Dashboard GNB | Candidate implementation; no separate Board by product decision |
-| Project-specific journey | ADR 0226; exact source/semantic project membership, source-post clock disclosure, responsibility evidence, and non-causal Event Lineage paths | PR #668 candidate API and post-detail timeline; exact-head review, protected merge, and authenticated runtime acceptance pending |
+| Project-specific journey | ADR 0232; exact source/semantic project membership, source-post clock disclosure, responsibility evidence, and non-causal Event Lineage paths | PR #668 candidate API and post-detail timeline; exact-head review, protected merge, and authenticated runtime acceptance pending |
 | Repeat issue to design improvement | `repeat_issue`, `issue_pattern`, and `improvement_action` cited facts | Candidate semantic contract; design-system connector acceptance pending |
 | Natural-language Ask with evidence, report, alert, MCP | Persisted semantic-unit embeddings plus versioned delivery/resource contract | Candidate implementation uses whole-question embedding retrieval with no lexical fallback; authenticated runtime acceptance pending |
 | Similar VOC, customer cohort, prior action | Persisted repeat-issue candidate semantics plus orchestrator pair adjudication and extractive evidence | Candidate live post endpoint and post-detail UI implemented; authenticated runtime acceptance pending |
@@ -84,7 +84,7 @@ context only.
 
 | PR | Exact observed head | Merge/check state at this snapshot |
 | ---: | --- | --- |
-| #668 | `5ef8db83` | ADR 0226 evidence-bound project-history API and post-detail timeline; exact-head checks/review required |
+| #668 | `5ef8db83` | ADR 0232 evidence-bound project-history API and post-detail timeline; exact-head checks/review required |
 | #667 | `3bf57fed` | gap-baseline refresh; exact-head checks/review required |
 | #663 | `d5edd2b9` | project ontology traversal plus cutoff/snapshot-frozen project focus and labels; exact-head checks/review required |
 | #658 | `fe830b0a` | evidence-honest Global Ask cutoff with revision-interval live-after semantics; exact-head checks/review required |
@@ -357,7 +357,7 @@ this file per §3.5 of the prior snapshot).
 | #274 | Persist and explain Event Lineage channel evidence | #387 |
 | #277 | TEPP: persist accepted receipts, poll completed results, keep measurement authority distinct | #468, #417 |
 | #280 | Evidence-bound project history with responsibility changes and related prior paths | #668; read projection only, exact-head protected delivery pending |
-| #284 | Authoritative lifecycle ingestion and idempotent reconciliation | No owned source-adapter contract or active delivery PR; ADR 0226 forbids the read projection from inventing this authority |
+| #284 | Authoritative lifecycle ingestion and idempotent reconciliation | No owned source-adapter contract or active delivery PR; ADR 0232 forbids the read projection from inventing this authority |
 | #289 | Activate the optional lineage LLM channel through a bounded asynchronous rebuild | #434 |
 | #336 | Replace pseudo-CalDAV feed with a Naruon-owned calendar projection | Contract on `main` (#355); operator consume wiring in historical branch `feat/naruon-calendar-buyer-wiring-v2170` |
 | #338 | Evidence-bounded email/project lineage contract for Naruon consumption | #355 |
