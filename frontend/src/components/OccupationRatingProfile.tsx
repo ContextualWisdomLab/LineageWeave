@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import {
   fetchOccupationRatings,
   type OccupationRatingProfile as OccupationRatingProfilePayload,
@@ -23,8 +23,11 @@ export function OccupationRatingProfile({ accessToken }: Props) {
   const [sourceCode, setSourceCode] = useState("abilities");
   const [profile, setProfile] = useState<OccupationRatingProfilePayload | null>(null);
   const [status, setStatus] = useState<"idle" | "loading" | "error">("idle");
+  const requestSequence = useRef(0);
 
   function load(offset: number | null = null) {
+    const requestId = requestSequence.current + 1;
+    requestSequence.current = requestId;
     const request = offset == null
       ? { onetsocCode, dataReleaseCode: releaseCode, sourceTableCode: sourceCode }
       : {
@@ -39,6 +42,7 @@ export function OccupationRatingProfile({ accessToken }: Props) {
       offset: offset ?? 0,
     })
       .then((payload) => {
+        if (requestSequence.current !== requestId) return;
         setProfile((current) =>
           offset != null && current
             ? { ...payload, items: [...current.items, ...payload.items] }
@@ -46,7 +50,9 @@ export function OccupationRatingProfile({ accessToken }: Props) {
         );
         setStatus("idle");
       })
-      .catch(() => setStatus("error"));
+      .catch(() => {
+        if (requestSequence.current === requestId) setStatus("error");
+      });
   }
 
   return (
