@@ -465,6 +465,7 @@ export function ChatPanel({
       </div>
       {conversationId && conversationOlderCursor ? (
         <button type="button" onClick={async () => {
+          const requestId = ++conversationRequest.current;
           try {
             const conversation = await fetchPostChatConversation(
               accessToken,
@@ -472,9 +473,11 @@ export function ChatPanel({
               conversationId,
               Number(conversationOlderCursor),
             );
+            if (requestId !== conversationRequest.current) return;
             setExchanges((current) => [...conversation.exchanges, ...current]);
             setConversationOlderCursor(conversation.older_cursor ?? null);
           } catch {
+            if (requestId !== conversationRequest.current) return;
             setHistoryError(t("Conversation history could not be loaded. Start a new conversation or try again later."));
           }
         }} disabled={loading}>{t("Load earlier messages")}</button>

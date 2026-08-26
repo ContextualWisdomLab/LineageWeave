@@ -28,7 +28,8 @@ post-scoped orchestrator session id.
 
 Normalized tables:
 
-* `post_ask_session` — one conversation per account and post
+* `post_ask_session` — multiple conversations may belong to the same account
+  and post
 * `post_ask_turn` — ordered questions and answers
 * `post_ask_turn_citation` / `post_ask_turn_source` — cited and retrieved
   posts
