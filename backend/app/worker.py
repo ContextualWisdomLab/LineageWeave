@@ -18,6 +18,7 @@ from backend.app.main import (
     _vision_client,
 )
 from backend.app.post_content_worker import run_post_content_worker
+from backend.app.worker_health import run_worker_heartbeat
 from lineageweave.observability import configure_telemetry, shutdown_telemetry
 
 
@@ -28,6 +29,7 @@ async def run_worker_process() -> None:
     pool = await create_pool(settings.database_url)
     valkey = create_valkey_client(settings.valkey_url)
     workers = (
+        asyncio.create_task(run_worker_heartbeat()),
         asyncio.create_task(
             run_analysis_run_worker(
                 valkey,
