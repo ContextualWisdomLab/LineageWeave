@@ -1758,6 +1758,7 @@ describe("App, authenticated", () => {
                 relationship_label: "Voice of Customer",
                 verification_status_code: "verify_pending",
                 verification_evidence_url: null,
+                verification_evidence_post_id: "post-1",
                 corporate_entity_id: "corp-1",
                 ...demoOrgAlias,
               },
@@ -3055,6 +3056,15 @@ describe("App, authenticated", () => {
       "Ada West (Our side)",
     );
     expect(screen.queryByRole("button", { name: "Counterparty org: Northridge Grid" })).not.toBeInTheDocument();
+  });
+
+  it("opens a counterparty supporting post without exposing its storage boundary", async () => {
+    stubBackend();
+    render(<App showLabPanels />);
+    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
+
+    expect(await screen.findByRole("button", { name: "Open supporting post" })).toBeInTheDocument();
+    expect(screen.queryByText(/internal evidence/i)).not.toBeInTheDocument();
   });
 
   it("links a verification badge only for http(s) evidence URLs", async () => {
