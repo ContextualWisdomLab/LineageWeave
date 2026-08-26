@@ -278,9 +278,13 @@ async def find_linked_post_ids(conn: asyncpg.Connection, post_id: str) -> Linked
     project_sibling_ids: set[str] = set()
     if project_keys:
         project_sibling_rows = await conn.fetch(
-            "select distinct post_id from post_project_mention "
-            "where project_key = any($1::text[])",
+            "select distinct ppm.post_id from post_project_mention ppm "
+            "join source_post sp on sp.post_id = ppm.post_id "
+            "where ppm.project_key = any($1::text[]) "
+            f"and {SOURCE_POST_ELIGIBILITY_SQL.format(alias='sp')} "
+            "order by ppm.post_id limit $2",
             project_keys,
+            _POST_CHAT_CANDIDATE_LIMIT,
         )
         project_sibling_ids = {
             str(row["post_id"]) for row in project_sibling_rows

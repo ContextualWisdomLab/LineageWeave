@@ -65,7 +65,9 @@ provenance.
    then bounded Event Lineage and semantic-neighborhood posts after the same
    corporate-entity/process-unit ABAC check. The semantic window includes posts
    carrying the same persisted `post_project_mention.project_key`; display-name
-   similarity and keyword matching do not create that link. Every classification and fact
+   similarity and keyword matching do not create that link. This lookup applies
+   the shared source-post publication eligibility boundary and a deterministic
+   candidate limit before graph loading. Every classification and fact
    persists its evidence post id and the SHA-256 of the exact numbered input
    document. A span that does not occur in that identified document rejects
    the whole provider response; linked evidence is never rewritten as focal

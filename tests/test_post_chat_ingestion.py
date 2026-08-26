@@ -16,6 +16,7 @@ from backend.app.post_chat_ingestion import (
     normalize_chat_question,
     persist_post_chat,
 )
+from backend.app.post_eligibility import SOURCE_POST_ELIGIBILITY_SQL
 from lineageweave.post_chat import (
     ChatSourceDocument,
     ContextualOrchestratorPostChatClient,
@@ -81,7 +82,8 @@ def test_find_linked_posts_includes_persisted_project_key_siblings(
                 return []
             if "select distinct project_key" in query:
                 return [{"project_key": "project-synthetic"}]
-            if "where project_key = any" in query:
+            if "where ppm.project_key = any" in query:
+                assert SOURCE_POST_ELIGIBILITY_SQL.format(alias="sp") in query
                 return [{"post_id": "post-1"}, {"post_id": "post-2"}]
             return []
 
