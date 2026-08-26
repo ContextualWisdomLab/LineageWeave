@@ -55,5 +55,7 @@ def test_extraction_run_distinguishes_empty_success_for_one_body_digest() -> Non
     assert "(source_body_sha256, post_id)" in sql
     assert "job.status_code = 'post_content_ingestion_succeeded'" in sql
     assert "extraction.post_id is null" in sql
+    assert "from post_content_ingestion_job_status_event prior_requeue" in sql
+    assert "prior_requeue.detail_text =" in sql
     assert "set status_code = 'post_content_ingestion_queued'" in sql
     assert "insert into post_content_ingestion_job_status_event" in sql
