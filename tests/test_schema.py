@@ -237,7 +237,10 @@ def schema_db():
                 cur.execute(_OPERATIONS_CASE_MILESTONE_MIGRATION.read_text())
                 cur.execute(_OPERATIONS_CASE_CONSTRAINT_VALIDATION_MIGRATION.read_text())
                 cur.execute(_OPERATIONS_CASE_INPUT_MIGRATION.read_text())
-            conn.commit()
+            # Migrations intentionally run in autocommit mode to match psql
+            # and support concurrent indexes. Tests use savepoints, so return
+            # the connection to transactional mode before yielding it.
+            conn.autocommit = False
             yield conn
         finally:
             conn.close()
