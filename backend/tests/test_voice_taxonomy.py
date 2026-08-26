@@ -2,6 +2,8 @@
 
 import asyncio
 
+from backend.app import main
+from backend.app.auth import CurrentAccount
 from backend.app.voice_taxonomy import load_voice_taxonomy_summary
 
 
@@ -14,6 +16,7 @@ class _Connection:
         assert "post_project_mention" in query
         assert "post.visibility_code = 'public'" in query
         assert "cardinality($2::uuid[]) = 0" in query
+        assert "not (post.corporate_entity_id = any($11::uuid[]))" in query
         assert "source_deleted_flag" in query
         self.args = args
         return {
@@ -43,10 +46,81 @@ def test_voice_summary_binds_authorization_and_every_filter() -> None:
             person_id="person-filter",
             product_catalog_id="product-filter",
             project_key="project-filter",
+            excluded_corporate_entity_ids=("demo-corp",),
         )
     )
     assert summary["total_eligible"] == 4
     assert connection.args == (
         ["corp-a"], ["pu-a"], "from", "to", "corp-filter", "pu-filter",
         "team-filter", "person-filter", "product-filter", "project-filter",
+        ["demo-corp"],
+    )
+
+
+def test_voice_summary_excludes_demo_entities_when_real_context_exists(monkeypatch) -> None:
+    """A real-data account never mixes synthetic seed rows into its denominator."""
+    captured: dict[str, object] = {}
+
+    class Acquire:
+        async def __aenter__(self):
+            return object()
+
+        async def __aexit__(self, *_args: object) -> None:
+            return None
+
+    class Pool:
+        def acquire(self) -> Acquire:
+            return Acquire()
+
+    async def has_real(_conn: object, entity_ids: list[str]) -> bool:
+        assert entity_ids == ["00000000-0000-0000-0000-000000000001"]
+        return True
+
+    async def demo_ids(_conn: object) -> set[str]:
+        return {"00000000-0000-0000-0000-000000000099"}
+
+    async def load(_conn: object, **kwargs: object) -> dict[str, object]:
+        captured.update(kwargs)
+        return {
+            "total_eligible": 0,
+            "classified_unique": 0,
+            "multi_membership": 0,
+            "source_count": 0,
+            "derived_count": 0,
+            "unavailable": 0,
+            "disagreement": 0,
+            "category_post_counts": {},
+        }
+
+    monkeypatch.setattr(main, "has_real_source_context", has_real)
+    monkeypatch.setattr(main, "fetch_demo_corporate_entity_ids", demo_ids)
+    monkeypatch.setattr(main, "load_voice_taxonomy_summary", load)
+    account = CurrentAccount(
+        user_account_id="00000000-0000-0000-0000-000000000010",
+        external_subject_id="synthetic-subject",
+        display_name="Synthetic reader",
+        preferred_locale="en",
+        corporate_entity_ids=frozenset({"00000000-0000-0000-0000-000000000001"}),
+        process_unit_ids=frozenset(),
+        permission_codes=frozenset({"post_read"}),
+    )
+
+    result = asyncio.run(
+        main.read_voice_taxonomy_summary(
+            date_from=None,
+            date_to=None,
+            corporate_entity_id=None,
+            process_unit_id=None,
+            team_id=None,
+            person_id=None,
+            product_catalog_id=None,
+            project_key=None,
+            account=account,
+            pool=Pool(),
+        )
+    )
+
+    assert result["total_eligible"] == 0
+    assert captured["excluded_corporate_entity_ids"] == (
+        "00000000-0000-0000-0000-000000000099",
     )

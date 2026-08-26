@@ -26,6 +26,7 @@ async def load_voice_taxonomy_summary(
     person_id: str | None = None,
     product_catalog_id: str | None = None,
     project_key: str | None = None,
+    excluded_corporate_entity_ids: tuple[str, ...] = (),
 ) -> dict[str, Any]:
     """Count overlapping voice memberships over one authorized denominator."""
     row = await conn.fetchrow(
@@ -54,6 +55,7 @@ async def load_voice_taxonomy_summary(
                and ($10::text is null or exists (
                     select 1 from post_project_mention project
                      where project.post_id = post.post_id and project.project_key = $10))
+               and not (post.corporate_entity_id = any($11::uuid[]))
         ), memberships as (
             select assertion.post_id, assertion.assertion_status_code,
                    assertion.voice_concept_code
@@ -104,5 +106,6 @@ async def load_voice_taxonomy_summary(
         person_id,
         product_catalog_id,
         project_key,
+        list(excluded_corporate_entity_ids),
     )
     return dict(row)
