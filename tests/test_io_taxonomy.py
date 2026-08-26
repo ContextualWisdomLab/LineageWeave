@@ -24,6 +24,7 @@ from lineageweave.io_taxonomy import (
     job_zone_records,
     major_group,
     major_group_records,
+    taxonomy_source_records,
     work_style_family_records,
     work_value_cluster_records,
 )
@@ -347,3 +348,18 @@ class TestSourceProvenance:
             "https://www.dol.gov/general/aboutdol/copyright"
         )
         assert ONTOLOGY.value(source, LW.sourceArtifactSha256) is None
+
+    def test_read_model_exposes_sources_without_invented_metadata(self) -> None:
+        records = taxonomy_source_records()
+        assert [record.iri for record in records] == sorted(
+            record.iri for record in records
+        )
+        by_iri = {record.iri: record for record in records}
+        onet = by_iri[str(LW.sourceOnet310JobZoneReference)]
+        assert onet.version == "31.0"
+        assert onet.license_url == "https://creativecommons.org/licenses/by/4.0/"
+        assert onet.artifact_sha256 == _ONET_310_JOB_ZONE_SHA256
+        soc = by_iri[str(LW.sourceSoc2018)]
+        assert soc.version == "2018"
+        assert soc.license_url is None
+        assert soc.artifact_sha256 is None
