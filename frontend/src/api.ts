@@ -102,7 +102,6 @@ export interface PostDetail extends PostSummary {
   post_body: string;
   occupational_construct_assertions: OccupationalConstructAssertion[];
   known_at?: PostKnownAt;
-  occupational_construct_assertions?: OccupationalConstructAssertion[];
 }
 
 export interface PostImageContent {
