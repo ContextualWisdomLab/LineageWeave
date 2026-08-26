@@ -2,7 +2,7 @@
 
 **Status:** Accepted  
 **Date:** 2026-08-27  
-**Extends:** ADR 0245, ADR 0248, ADR 0249
+**Extends:** ADR 0245, ADR 0248, ADR 0251
 
 ## Context
 

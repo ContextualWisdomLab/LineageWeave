@@ -1,4 +1,4 @@
-# ADR 0249: Complete 2018 SOC hierarchy as a generated ontology fragment
+# ADR 0251: Complete 2018 SOC hierarchy as a generated ontology fragment
 
 **Status:** Accepted  
 **Date:** 2026-08-27

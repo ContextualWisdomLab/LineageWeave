@@ -1,6 +1,6 @@
 # 2018 SOC hierarchy evidence register
 
-ADR 0249 imports only the official four-level 2018 SOC structure. The source
+ADR 0251 imports only the official four-level 2018 SOC structure. The source
 workbook was retrieved from the U.S. Census Bureau's federal mirror of the BLS
 artifact and normalized without changing codes, titles, levels, or parents.
 
