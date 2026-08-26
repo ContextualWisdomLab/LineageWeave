@@ -1,3 +1,4 @@
+-- Migration 0233: persist opaque source evidence for conversation turns.
 begin;
 
 alter table post_content_unit

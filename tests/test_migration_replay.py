@@ -76,7 +76,7 @@ def test_source_conversation_turn_evidence_migration_is_replay_safe() -> None:
     sql = (
         Path(__file__).resolve().parents[1]
         / "migrations"
-        / "0230_source_conversation_turn_evidence.sql"
+        / "0233_source_conversation_turn_evidence.sql"
     ).read_text(encoding="utf-8").lower()
 
     assert "add column if not exists source_evidence_reference" in sql
