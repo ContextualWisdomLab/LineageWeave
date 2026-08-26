@@ -37,7 +37,7 @@ def test_post_json_sends_post_session_header(monkeypatch):
     """One post session reaches the orchestrator as a transport header."""
     captured = {}
 
-    def fake_request(method, url, *, body, headers, timeout):
+    def fake_request(method, url, *, body, headers, timeout, response_control_headers):
         captured.update(method=method, headers=headers)
         return 200, b"{}"
 
