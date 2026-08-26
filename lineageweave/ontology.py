@@ -20,8 +20,10 @@ from __future__ import annotations
 
 from datetime import datetime
 from decimal import Decimal, InvalidOperation
-from pathlib import Path
 from importlib.resources import files
+from pathlib import Path
+from urllib.parse import quote
+from uuid import UUID
 
 from rdflib import Graph, Literal, Namespace, URIRef
 from rdflib.namespace import OWL, PROV, RDF, RDFS, SKOS, XSD

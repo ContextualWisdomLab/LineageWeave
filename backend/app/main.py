@@ -86,6 +86,7 @@ from backend.app.entity_relationship_ingestion import (
 )
 from backend.app.five_w1h_ingestion import load_five_w1h_slots
 from backend.app.global_ask_queue import enqueue_global_ask_job
+from backend.app.global_ask_service import read_global_ask_job, submit_global_ask
 from backend.app.issue_ticket_ingestion import (
     create_ticket,
     fetch_ticket_post_id,

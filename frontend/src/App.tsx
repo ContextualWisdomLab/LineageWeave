@@ -95,6 +95,7 @@ import { LineageEntityPicker } from "./components/LineageEntityPicker";
 import { OntologyExplorer } from "./components/OntologyExplorer";
 import { AskEvidenceLayerPopup } from "./components/AskEvidenceLayerPopup";
 import { AskAnswerTimeline } from "./components/AskAnswerTimeline";
+import { PublicClaimVerification } from "./components/PublicClaimVerification";
 import { PopupCloseButton } from "./components/PopupCloseButton";
 import { SimilarVocPanel } from "./components/SimilarVocPanel";
 import { WorkspaceNav, type WorkspaceDestination } from "./components/WorkspaceNav";
@@ -4915,6 +4916,23 @@ export function AskAgentPanel({
             onOpenEvidence={setEvidenceLayerPostId}
             onOpenPost={onOpenPost}
           />
+          {answer.knowledge_cutoff ? (
+            <aside className="ask-delivery" aria-label={t("Knowledge-cutoff grounding")}>
+              <h4>{t("Knowledge-cutoff grounding")}</h4>
+              <p>
+                {answer.grounding_status === "fully_cutoff_grounded"
+                  ? t("Fully cutoff-grounded")
+                  : t("Partially cutoff-grounded")}
+                {` · ${answer.knowledge_cutoff}`}
+              </p>
+              {answer.limitations?.length ? (
+                <p role="alert">
+                  {t("Some historical bodies or channels are unavailable. Review the cited limitations.")}
+                </p>
+              ) : null}
+            </aside>
+          ) : null}
+          <PublicClaimVerification claims={answer.external_claims ?? []} />
           {answer.delivery ? (
             <aside className="ask-delivery" aria-label={t("Report · alert · MCP")}>
               <h4>{t("Report · alert · MCP")}</h4>
