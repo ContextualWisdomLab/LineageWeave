@@ -8,6 +8,11 @@ All notable changes to this project are documented here. Format follows
 
 ### Added
 
+- Normalized Voice-of-X composition persistence (ADR 0247): every imported
+  primary voice is mirrored into `source_post_voice`; each additional voice
+  requires its own PROV-O assertion and truth status. Compound lookup codes,
+  keyword inference, confidence thresholds, and invented weights remain out of
+  the contract; the ontology publishes qualified `VoiceAssignment` resources.
 - Expanded Voice-of-X post taxonomy (ADR 0246): the governed `voc_type`
   scheme adds Voice of Supplier, Employee, Business, Regulator, Investor,
   Society, and Process as source-post categories. Ontology SKOS concepts and

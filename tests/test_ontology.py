@@ -449,3 +449,20 @@ def test_post_voice_additions_do_not_invent_counterparty_relationships() -> None
     """ADR 0246 keeps source-post voice and named-organization relations distinct."""
     for code in ("rel_voe", "rel_vob", "rel_vor", "rel_voi", "rel_voso", "rel_vops"):
         assert iri_for_lookup_code(code) is None
+
+
+def test_voice_combinations_use_qualified_assignments() -> None:
+    """ADR 0247 composes atomic voices without Cartesian-product terms."""
+    graph = load_ontology()
+
+    assert (LW.VoiceAssignment, RDF.type, OWL.Class) in graph
+    assert (
+        LW.VoiceAssignment,
+        RDFS.subClassOf,
+        URIRef("http://www.w3.org/ns/prov#Entity"),
+    ) in graph
+    assert (LW.hasVoiceAssignment, RDFS.domain, LW.Post) in graph
+    assert (LW.hasVoiceAssignment, RDFS.range, LW.VoiceAssignment) in graph
+    assert (LW.assignedVoiceType, RDFS.domain, LW.VoiceAssignment) in graph
+    assert (LW.assignedVoiceType, RDFS.range, SKOS.Concept) in graph
+    assert (LW.primaryVoiceAssignment, RDFS.range, XSD.boolean) in graph

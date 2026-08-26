@@ -26,16 +26,17 @@ Accordingly, ADR 0246 keeps the controlled vocabulary extensible and refuses
 keyword inference, defaults, invented weights, or an asserted exhaustive
 cross-product.
 
-The remaining user-visible gap is evidence-bearing composition. A post still
-has one source-provided `voc_type_code`; the product cannot yet represent a
-single record that intentionally carries multiple independently evidenced
-voices, nor expose the combination in filters, exports, or the ontology
-neighborhood. Do not solve this by adding every Cartesian-product code. The
-acceptance boundary for a later ADR is a normalized, provenance-bearing
-multi-voice association that:
+ADR 0247 and migration 0237 now define the persistence contract for
+evidence-bearing composition. A post keeps one source-provided
+`voc_type_code`, mirrored as its sole primary association, while every
+additional voice requires a normalized PROV-O assertion and explicit truth
+status. This implements the first two requirements below without adding
+Cartesian-product codes. The remaining acceptance boundary is:
 
-1. preserves the imported primary voice without reclassification;
-2. records each additional voice with its own source/evidence and truth state;
+1. preserve the imported primary voice without reclassification (implemented
+   in the candidate migration; runtime replay pending);
+2. record each additional voice with its own source/evidence and truth state
+   (schema-enforced; no authorized write workflow shipped yet);
 3. keeps post voice distinct from named-counterparty relationship, actor role,
    topic, channel, lifecycle, and stakeholder-salience attributes;
 4. returns only authorized associations through API, JSON-LD, CSV, filters,
