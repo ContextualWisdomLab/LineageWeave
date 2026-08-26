@@ -31,8 +31,8 @@ describe("AskEvidenceLayerPopup", () => {
     expect(screen.getByText(/project: Checkout revamp/)).toBeInTheDocument();
     expect(screen.getByText("Screenshot of the checkout error")).toBeInTheDocument();
     expect(screen.getByText(/Error code 500 on checkout/)).toBeInTheDocument();
-    expect(screen.getByText(/Semantic project:/).closest("li")).toHaveTextContent(
-      "Semantic project: project: Checkout revamp | evidence: Body evidence",
+    expect(screen.getByText(/Project:/).closest("li")).toHaveTextContent(
+      "Project: project: Checkout revamp | evidence: Body evidence",
     );
     expect(screen.getByText("Screenshot of the checkout error").closest("li")).toHaveTextContent(
       "Screenshot of the checkout error · Error code 500 on checkout · Image tags: screenshot, error",
@@ -53,7 +53,7 @@ describe("AskEvidenceLayerPopup", () => {
       />,
     );
 
-    expect(screen.getByText(/^Time axis:/)).toBeInTheDocument();
+    expect(screen.getByText(/^Date:/)).toBeInTheDocument();
     expect(screen.getByText("time axis: event occurred at")).toBeInTheDocument();
     expect(
       screen.getByRole("button", { name: "Open post: Checkout error follow-up" }),
@@ -65,7 +65,7 @@ describe("AskEvidenceLayerPopup", () => {
       <AskEvidenceLayerPopup {...baseProps} facts={[]} images={[]} onClose={vi.fn()} onOpenPost={vi.fn()} />,
     );
     expect(
-      screen.getByText("No persisted evidence is available for this citation."),
+      screen.getByText("No evidence is available here. Open the linked post to review its details."),
     ).toBeInTheDocument();
   });
 

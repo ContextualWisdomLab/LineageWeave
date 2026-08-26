@@ -156,7 +156,7 @@ function LanguageSwitcher({ accessToken }: { accessToken?: string }) {
 
 function searchUnavailableMessage(err: unknown): string {
   if (err instanceof BackendError && err.status === 503) {
-    return t("Verification unavailable (search is not configured).");
+    return t("Public verification is unavailable right now. Review the linked evidence or try again later.");
   }
   return String(err);
 }
@@ -457,7 +457,7 @@ function firstRelatedNextAction(nodeLabel: string): string {
 }
 
 function relatedNodesCurrentNextAction(personName: string): string {
-  return tf("Related nodes for {person} are current. Ask about this lineage next.", {
+  return tf("Related information for {person} is available. Ask about this record next.", {
     person: personName,
   });
 }
@@ -789,18 +789,18 @@ function relatedNodeCaption(node: RelatedNode): string {
       return aliased;
     }
   }
-  return `${name} (${node.ontology_label ?? node.node_type_code})`;
+  return `${name} (${node.ontology_label ?? "Related item"})`;
 }
 
 const PROJECT_EXTRACTION_LABELS: Record<string, string> = {
   source_field_hint: "Explicit source field",
-  contextual_orchestrator_semantic: "Semantic extraction",
+  contextual_orchestrator_semantic: "Reviewed detail",
 };
 
 const PROJECT_PROVENANCE_LABELS: Record<string, string> = {
-  "source_post.source_project_code": "Source project code",
-  "source_post.source_project_name": "Source project name",
-  "post_project_mention.evidence_text": "Stored semantic evidence",
+  "source_post.source_project_code": "Project listed in the record",
+  "source_post.source_project_name": "Project listed in the record",
+  "post_project_mention.evidence_text": "Supporting detail",
 };
 
 function projectExtractionLabel(method: string): string {
@@ -1158,7 +1158,7 @@ function KeymanPanel({
                   <li key={key}>
                     <button
                       className="keyman-select"
-                      aria-label={tf("Related nodes for {name}", { name: caption })}
+                      aria-label={tf("Related information for {name}", { name: caption })}
                       aria-current={
                         landFirstRelated && related[0]?.node_id === node.node_id
                           ? "true"
@@ -1175,7 +1175,7 @@ function KeymanPanel({
                   <li key={key}>
                     <button
                       className="keyman-select"
-                      aria-label={tf("Related nodes for {name}", { name: caption })}
+                      aria-label={tf("Related information for {name}", { name: caption })}
                       onClick={() => handleSelectEntity(node.node_id, node.label ?? node.node_id)}
                     >
                       {caption}
@@ -1187,7 +1187,7 @@ function KeymanPanel({
                   <li key={key}>
                     <button
                       className="keyman-select"
-                      aria-label={tf("Related nodes for {name}", { name: caption })}
+                      aria-label={tf("Related information for {name}", { name: caption })}
                       onClick={() => handleSelectTeam(node.node_id, node.label ?? node.node_id)}
                     >
                       {caption}
@@ -1217,7 +1217,7 @@ function KeymanPanel({
           onClick={() => setOntologyOpen((open) => !open)}
           aria-expanded={ontologyOpen}
         >
-          {t("Inspect ontology neighborhood")}
+          {t("Explore related records")}
         </button>
         {canExtract && !orchestratorOff && (
           <details className="operator-action-tools">
@@ -1264,7 +1264,7 @@ function KeymanPanel({
             <li key={person.person_id}>
               <button
                 className="keyman-select"
-                aria-label={tf("Related nodes for {name}", { name: person.person_name })}
+                aria-label={tf("Related information for {name}", { name: person.person_name })}
                 aria-current={
                   landFirstKeyman && selectedName === person.person_name ? "true" : undefined
                 }
@@ -2305,15 +2305,15 @@ function PostDetailPopup({
                         : `(${Math.round(project.confidence * 100)}%)`}
                       : {project.evidence}
                       <details className="semantic-provenance">
-                        <summary>{t("Evidence provenance")}</summary>
+                        <summary>{t("Supporting details")}</summary>
                         <span className="post-badge">
-                          {t("Ontology class")}: {t(project.ontology_label ?? "Project")}
+                          {t("Related detail")}: {t(project.ontology_label ?? "Project")}
                         </span>
                         <span className="post-badge">
-                          {t("Extraction source")}: {projectExtractionLabel(project.extraction_method)}
+                          {t("How this was found")}: {projectExtractionLabel(project.extraction_method)}
                         </span>
                         <span className="post-badge">
-                          {t("Evidence field")}: {projectProvenanceLabel(project.provenance)}
+                          {t("Supporting detail")}: {projectProvenanceLabel(project.provenance)}
                         </span>
                       </details>
                     </li>
@@ -2674,9 +2674,9 @@ function analysisRunNextAction(run: AnalysisRun): string | null {
         case "analysis_run_lineage":
           return "Open this run, then start reconstruction. Reconstruction has not started yet.";
         case "analysis_run_tepp":
-          return "Open this run to confirm which posts TEPP will measure. Measurement has not started yet — this is not a calibrated result.";
+          return "Open this run to review the selected posts. Measurement has not started yet.";
         case "analysis_run_topic_lineage":
-          return "Open this run to confirm which posts TEPP will thread into topic lineage. Topic-lineage analysis has not started yet — this is not a calibrated topic result.";
+          return "Open this run to review the selected posts. This update has not started yet.";
         case "analysis_run_report":
           return "Open this run to confirm which posts the period report will use. The report has not been built yet.";
         default: {
@@ -2687,9 +2687,9 @@ function analysisRunNextAction(run: AnalysisRun): string | null {
     case "analysis_status_failed":
       switch (run.run_kind_code) {
         case "analysis_run_tepp":
-          return "Open this run to see why it failed, then connect the measurement service and re-run.";
+          return "Open this run to review the available records, then try again later.";
         case "analysis_run_topic_lineage":
-          return "Open this run to see why it failed, then connect the TEPP transport and re-run.";
+          return "Open this run to review the available records, then try again later.";
         case "analysis_run_lineage":
           return "Open this run to see why it failed, then retry reconstruction from a current snapshot.";
         case "analysis_run_report":
@@ -2700,7 +2700,7 @@ function analysisRunNextAction(run: AnalysisRun): string | null {
         }
       }
     case "analysis_status_running":
-      return "Refresh this run. Start already queued the work on the durable outbox.";
+      return "Refresh this run in a moment to see the latest status.";
     case "analysis_status_succeeded":
     case "analysis_status_cancelled":
     case null:
@@ -2719,12 +2719,12 @@ function analysisRunEmptyPostsHint(run: AnalysisRun): string {
   switch (run.run_kind_code) {
     case "analysis_run_tepp":
       return (
-        "No posts were available at this cutoff for TEPP to measure. " +
+        "No posts were available for this measurement. " +
         "Open a later run, or ask an administrator to capture a newer snapshot."
       );
     case "analysis_run_topic_lineage":
       return (
-        "No posts were available at this cutoff for topic-lineage analysis. " +
+        "No posts were available for this update. " +
         "Open a later run, or ask an administrator to capture a newer snapshot."
       );
     case "analysis_run_lineage":
@@ -2753,40 +2753,25 @@ function analysisRunEmptyPostsHint(run: AnalysisRun): string {
 function analysisRunCorpusHint(run: AnalysisRun): string | null {
   const isTopicLineage = run.run_kind_code === "analysis_run_topic_lineage";
   if (run.run_kind_code !== "analysis_run_tepp" && !isTopicLineage) return null;
-  const service = isTopicLineage ? "topic-lineage" : "TEPP";
-  const result = isTopicLineage ? "a topic-identity result" : "a calibrated result";
-  const verb = isTopicLineage ? "thread" : "measure";
-  const verbPast = isTopicLineage ? "threaded" : "measured";
   switch (run.status_code) {
     case "analysis_status_failed":
       return (
-        `These posts are the cutoff corpus ${service} would ${verb}. Connect a TEPP ` +
-        `transport, then re-run, to replace Failed with ${result}.`
+        `These posts are the records selected for this update. Review them, then try again later.`
       );
     case "analysis_status_succeeded":
-      return `These posts are the cutoff corpus this ${service} run ${verbPast}.`;
+      return "These posts were used for this completed update. Open them to review the result.";
     case "analysis_status_pending":
     case "analysis_status_running":
-      return `These posts are the cutoff corpus ${service} will ${verb} once this run finishes.`;
+      return "These posts are selected for this update. Review them while the update is in progress.";
     case "analysis_status_cancelled":
-      return (
-        `These posts are the cutoff corpus this ${service} run would have ${verbPast}. ` +
-        `The run was cancelled before ${result}.`
-      );
+      return "These posts were selected for an update that was cancelled before results were available.";
     case null:
-      return `These posts are the cutoff corpus attached to this ${service} run.`;
+      return "These posts are selected for this update.";
     default: {
       const unexpected: never = run.status_code;
       return unexpected;
     }
   }
-}
-
-/** Git-style prefix. The full digest stays on `title` for verification. */
-const ANALYSIS_RUN_DIGEST_PREFIX_LENGTH = 12;
-
-function analysisRunDigestPrefix(digest: string): string {
-  return digest.slice(0, ANALYSIS_RUN_DIGEST_PREFIX_LENGTH);
 }
 
 type LeftoverPairFocus = {
@@ -2866,15 +2851,15 @@ function AnalysisRunReproducibilityDigests({
     return null;
   }
   return (
-    <div role="group" aria-label="Analysis run reproducibility digests">
+    <div role="group" aria-label="Run audit details">
       <p className="post-meta">
         <span className="visually-hidden">
-          Hover a prefix to read the full digest for verification.{" "}
+          This update includes audit details for administrators.{" "}
         </span>
         {parts.map((part, index) => (
           <span key={part.label}>
             {index > 0 ? " · " : null}
-            <span title={part.digest}>{`${part.label} ${analysisRunDigestPrefix(part.digest)}`}</span>
+            <span>{part.label}</span>
           </span>
         ))}
       </p>
@@ -2900,7 +2885,7 @@ function analysisRunCanStart(run: AnalysisRun): boolean {
 
 function analysisRunStartLabel(run: AnalysisRun): string {
   if (run.run_kind_code === "analysis_run_tepp") {
-    return "Start TEPP measurement";
+    return "Start measurement";
   }
   if (run.run_kind_code === "analysis_run_topic_lineage") {
     return "Start topic lineage";
@@ -3138,8 +3123,7 @@ function AnalysisRunsPanel({
       {(error || entitiesLoadError) && <p className="error">{error ?? entitiesLoadError}</p>}
       {runs.length === 0 ? (
         <p className="popup-placeholder">
-          No analysis runs visible to this account yet. Request a lineage
-          reconstruction, or ask an administrator to run make seed.
+          No updates are available yet. Review related records or ask an administrator for help.
         </p>
       ) : (
         <ul className="ticket-list" aria-label="Analysis runs">
@@ -3190,22 +3174,14 @@ function AnalysisRunsPanel({
               disabled={starting}
               onClick={() => void handleStartReconstruction()}
             >
-              {starting
-                ? selected.run_kind_code === "analysis_run_tepp"
-                  ? "Submitting the TEPP request..."
-                  : selected.run_kind_code === "analysis_run_topic_lineage"
-                    ? "Submitting the topic-lineage request..."
-                    : "Reconstructing the cutoff bag..."
-                : analysisRunStartLabel(selected)}
+              {starting ? "Preparing the update..." : analysisRunStartLabel(selected)}
             </button>
           )}
           {analysisRunCanRequestTeppRetry(selected) && (
             <p className="post-meta">
               {selected.run_kind_code === "analysis_run_topic_lineage"
-                ? "Connect a TEPP transport from this Failed row. Request a " +
-                  "lineage reconstruction does not invent a topic model."
-                : "Connect a TEPP transport from this Failed row. Request a lineage " +
-                  "reconstruction does not invent a measurement."}
+                ? "This update could not be completed. Review the available records and try again later."
+                : "This update could not be completed. Review the available records and try again later."}
             </p>
           )}
           {analysisRunReportPeriod(selected) && onSelectReportPeriod && (
@@ -3276,16 +3252,7 @@ function AnalysisRunsPanel({
               {selected.status_history.map((event) => (
                 <li key={event.status_ordinal}>
                   {event.status_label} {event.occurred_at.slice(0, 16).replace("T", " ")}
-                  {event.failure_code ? ` · ${event.failure_code}` : ""}
-                </li>
-              ))}
-            </ol>
-          )}
-          {selected.outbox_deliveries && selected.outbox_deliveries.length > 0 && (
-            <ol aria-label="Analysis run outbox delivery">
-              {selected.outbox_deliveries.map((event) => (
-                <li key={event.delivery_ordinal}>
-                  {event.delivery_status_label} {event.occurred_at.slice(0, 16).replace("T", " ")}
+                  {event.failure_code ? ` · ${t("Needs attention")}` : ""}
                 </li>
               ))}
             </ol>
@@ -3361,24 +3328,24 @@ function RankingsPanel({
         {ranking && (
           <span className="post-badge">
             {ranking.status === "accepted"
-              ? "rankweave"
-              : `rankweave · ${ranking.status_reason ?? "unavailable"}`}
+              ? t("Related-record ranking")
+              : t("Ranking is unavailable")}
           </span>
         )}
       </div>
       {error && <p className="error">{error}</p>}
       {ranking === null && !error && <p role="status">{t("Loading rankings...")}</p>}
       {ranking && ranking.status === "unavailable" && (
-        <p className="popup-placeholder">{t("Rankings · RankWeave not available")}</p>
+        <p className="popup-placeholder">{t("Ranking is unavailable")}</p>
       )}
       {ranking && ranking.status === "accepted" && ranking.rankings.length === 0 && (
-        <p className="popup-placeholder">{t("No fused rankings from RankWeave.")}</p>
+        <p className="popup-placeholder">{t("No related records are available yet.")}</p>
       )}
       {ranking && ranking.rankings.length > 0 && (
         <>
           <p className="ranking-channel-evidence-copy">
             {t(
-              "RankWeave fused newest-first and title-overlap ranks. This is not a calibrated score.",
+              "Records are ordered by recent and related activity. Open a record to review its evidence.",
             )}
           </p>
           <ul className="ticket-list" aria-label={t("Fused rankings")}>
@@ -3390,7 +3357,7 @@ function RankingsPanel({
                   onClick={() => onSelectPost(hit.post_id)}
                 >
                   <span className="ticket-title">{hit.post_title}</span>
-                  <span className="post-badge">{t("Rankings · rankweave")}</span>
+                  <span className="post-badge">{t("Related-record ranking")}</span>
                   <span className="post-badge">{tf("rank {rank}", { rank: String(hit.fused_rank) })}</span>
                 </button>
                 {(hit.channel_evidence ?? []).length > 0 ? (
@@ -4217,7 +4184,7 @@ function PostList({
             <p className="board-empty" role="status">
               {hasBoardFilters
                 ? t("No posts match the current filters.")
-                : t("No posts visible to this account yet -- try `make seed`.")}
+                : t("No records are available yet. Ask an administrator for help.")}
             </p>
           ) : filteredPosts.length === 0 ? (
             <p className="board-empty" role="status">
@@ -4682,7 +4649,7 @@ function CustomerMasterPanel({
         <section className="customer-keymen" aria-labelledby="observed-customer-evidence-heading">
           <h3 id="observed-customer-evidence-heading">{t("Observed customer evidence")}</h3>
           <p className="workspace-destination-intro">
-            {t("Source identifiers are hints only; ontology and semantic evidence must resolve them before binding a customer.")}
+            {t("Review the related records and evidence before selecting a customer.")}
           </p>
           {master.source_customer_hints.length > HINT_RENDER_LIMIT && (
             <p className="post-meta">
@@ -4865,8 +4832,8 @@ function AskAgentPanel({
           {answer.answer_text ? <p>{answer.answer_text}</p> : null}
           {answer.next_action ? <p className="post-meta">{t(answer.next_action)}</p> : null}
           {answer.delivery ? (
-            <aside className="ask-delivery" aria-label={t("Report · alert · MCP")}>
-              <h4>{t("Report · alert · MCP")}</h4>
+            <aside className="ask-delivery" aria-label={t("Follow-up actions")}>
+              <h4>{t("Follow-up actions")}</h4>
               <p>
                 {tf("{count} evidence documents are linked to this report.", {
                   count: answer.delivery.report.source_documents.length,
@@ -4875,7 +4842,6 @@ function AskAgentPanel({
                   ? ` ${t("You can subscribe to evidence-change alerts.")}`
                   : ` ${t("Connect evidence to enable change-alert subscriptions.")}`}
               </p>
-              <code>{answer.delivery.report.source_documents[0]?.resource_uri ?? "lineageweave://posts"}</code>
             </aside>
           ) : null}
           {answer.cited_posts && answer.cited_posts.length > 0 && (

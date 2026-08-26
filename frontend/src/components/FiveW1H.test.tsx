@@ -88,9 +88,9 @@ describe("FiveW1H", () => {
       />,
     );
 
-    await userEvent.click(screen.getByText("Evidence provenance"));
+    await userEvent.click(screen.getByText("Supporting details"));
     expect(screen.getByText("“we renewed the contract”")).toBeInTheDocument();
-    expect(screen.getByText("Ontology class: Contract renewal")).toBeInTheDocument();
+    expect(screen.getByText("Contract renewal")).toBeInTheDocument();
   });
 
   it("falls back to the ontology code when no ontology label is annotated", async () => {
@@ -112,8 +112,8 @@ describe("FiveW1H", () => {
       />,
     );
 
-    await userEvent.click(screen.getByText("Evidence provenance"));
-    expect(screen.getByText("Ontology class: evt-42")).toBeInTheDocument();
+    await userEvent.click(screen.getByText("Supporting details"));
+    expect(screen.getByText("Related detail")).toBeInTheDocument();
   });
 
   it("renders one definition entry per slot with its human label", () => {

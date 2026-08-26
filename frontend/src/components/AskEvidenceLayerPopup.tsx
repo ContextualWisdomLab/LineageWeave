@@ -129,7 +129,7 @@ export function AskEvidenceLayerPopup({
         <PopupCloseButton onClose={onClose} label={t("Close evidence panel")} />
         <h2 id={headingId}>{postTitle}</h2>
         {facts.length === 0 && images.length === 0 ? (
-          <p className="popup-placeholder">{t("No persisted evidence is available for this citation.")}</p>
+          <p className="popup-placeholder">{t("No evidence is available here. Open the linked post to review its details.")}</p>
         ) : null}
         {facts.length > 0 ? (
           <section className="popup-section">

@@ -1,11 +1,11 @@
 import { t } from "./i18n";
 
 const CHAT_EVIDENCE_KIND_LABELS: Record<string, string> = {
-  source_field: "Source field hint",
-  semantic_project: "Semantic project",
-  semantic_role: "Semantic role",
-  semantic_keyman: "Semantic Keyman",
-  time_axis: "Time axis",
+  source_field: "Record detail",
+  semantic_project: "Project",
+  semantic_role: "Role",
+  semantic_keyman: "Key contact",
+  time_axis: "Date",
 };
 
 export function chatEvidenceKindLabel(kind: string): string {

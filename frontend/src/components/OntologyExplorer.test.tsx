@@ -155,14 +155,14 @@ describe("OntologyExplorer", () => {
       />,
     );
 
-    await userEvent.click(await screen.findByRole("button", { name: "Select node: Post Demo public post" }));
+    await userEvent.click(await screen.findByRole("button", { name: "Open related item: Post Demo public post" }));
     expect(screen.getByRole("heading", { name: "Demo public post" })).toBeInTheDocument();
-    await userEvent.click(screen.getByRole("button", { name: "Load next relation page" }));
-    expect(await screen.findByText("Loading ontology neighborhood...")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Select node: Post Demo public post" })).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Load more related information" }));
+    expect(await screen.findByText("Loading related information...")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Open related item: Post Demo public post" })).toBeInTheDocument();
     rejectContinuation(new BackendError("/api/ontology/neighborhood", 500));
-    expect(await screen.findByText("Ontology neighborhood is unavailable. Open a visible post next.")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Select node: Post Demo public post" })).toBeInTheDocument();
+    expect(await screen.findByText("Related information is unavailable. Open a visible record next.")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Open related item: Post Demo public post" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Demo public post" })).toBeInTheDocument();
     expect(fetchNeighborhood).toHaveBeenNthCalledWith(
       2,
@@ -187,11 +187,11 @@ describe("OntologyExplorer", () => {
       />,
     );
 
-    await userEvent.click(await screen.findByRole("button", { name: "Load next relation page" }));
-    expect(await screen.findByText("Ontology neighborhood is unavailable. Open a visible post next.")).toBeInTheDocument();
-    await userEvent.click(screen.getByRole("button", { name: "Load next relation page" }));
+    await userEvent.click(await screen.findByRole("button", { name: "Load more related information" }));
+    expect(await screen.findByText("Related information is unavailable. Open a visible record next.")).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Load more related information" }));
     await waitFor(() => expect(fetchNeighborhood).toHaveBeenCalledTimes(3));
-    expect(screen.queryByText("Ontology neighborhood is unavailable. Open a visible post next.")).not.toBeInTheDocument();
+    expect(screen.queryByText("Related information is unavailable. Open a visible record next.")).not.toBeInTheDocument();
     expect(fetchNeighborhood).toHaveBeenNthCalledWith(
       3,
       "synthetic-access-token",
@@ -216,7 +216,7 @@ describe("OntologyExplorer", () => {
 
     expect(
       await screen.findByText(
-        "Access denied for this ontology neighborhood. Open a visible post next.",
+        "This information is not available. Open a visible record next.",
       ),
     ).toBeInTheDocument();
   });
@@ -234,17 +234,17 @@ describe("OntologyExplorer", () => {
       />,
     );
     expect(
-      screen.getByText(/This is an ontology neighborhood, not Event Lineage/),
+      screen.getByText(/Select a person, organization, team, or record/),
     ).toBeInTheDocument();
     expect(screen.getByRole("region", { name: "Exact values" })).toHaveAttribute("tabindex", "0");
-    await userEvent.click(screen.getByRole("button", { name: "Select node: Post Demo public post" }));
+    await userEvent.click(screen.getByRole("button", { name: "Open related item: Post Demo public post" }));
     expect(screen.getByRole("heading", { name: "Demo public post" })).toBeInTheDocument();
     await userEvent.click(screen.getByRole("button", { name: "Open evidence post" }));
     expect(onSelectPost).toHaveBeenCalledWith(POST_ID);
     expect(onOpenEvidence).not.toHaveBeenCalled();
-    await userEvent.click(screen.getByRole("button", { name: /Select edge: mentions from/ }));
-    expect(screen.getByText(/Property IRI/)).toBeInTheDocument();
-    await userEvent.click(screen.getByRole("button", { name: `Open evidence: ${POST_ID}` }));
+    await userEvent.click(screen.getByRole("button", { name: /Open relation: mentions from/ }));
+    expect(screen.queryByText(/Property IRI/)).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Open linked record" }));
     expect(onOpenEvidence).toHaveBeenCalledWith(POST_ID);
     expect(screen.queryByRole("img")).not.toBeInTheDocument();
   });
@@ -258,11 +258,11 @@ describe("OntologyExplorer", () => {
       />,
     );
 
-    expect(screen.getByRole("button", { name: "Select node: Post Demo public post" }))
+    expect(screen.getByRole("button", { name: "Open related item: Post Demo public post" }))
       .toHaveClass("ontology-node-post");
-    expect(screen.getByRole("button", { name: "Select node: Person Test Person" }))
+    expect(screen.getByRole("button", { name: "Open related item: Person Test Person" }))
       .toHaveClass("ontology-node-person");
-    expect(screen.getByRole("button", { name: "Select node: Organization Demo Corp" }))
+    expect(screen.getByRole("button", { name: "Open related item: Organization Demo Corp" }))
       .toHaveClass("ontology-node-organization");
   });
 
@@ -276,7 +276,7 @@ describe("OntologyExplorer", () => {
     );
     expect(
       screen.getAllByText(
-        "No visible ontology relations for this focus. Open a Keyman or affiliated organization next.",
+        "No related information is available. Open a record or organization next.",
       ).length,
     ).toBeGreaterThan(0);
     rerender(
@@ -288,7 +288,7 @@ describe("OntologyExplorer", () => {
     );
     expect(
       screen.getByText(
-        "Neighborhood reached the authorized query bound. Narrow the property filter or reduce traversal depth.",
+        "Open a related record to review the available information.",
       ),
     ).toBeInTheDocument();
     rerender(
@@ -299,7 +299,7 @@ describe("OntologyExplorer", () => {
         status="denied"
       />,
     );
-    expect(screen.getByText("Access denied for this ontology neighborhood. Open a visible post next.")).toBeInTheDocument();
+    expect(screen.getByText("This information is not available. Open a visible record next.")).toBeInTheDocument();
     rerender(
       <OntologyExplorer
         focusNodeType="node_post"
@@ -339,7 +339,7 @@ describe("OntologyExplorer", () => {
       />,
     );
     expect(
-      screen.getByText("This neighborhood is bound to a knowledge cutoff. Compare with live evidence next."),
+      screen.getByText("Compare this information with the latest evidence before relying on it."),
     ).toBeInTheDocument();
   });
 
@@ -353,10 +353,10 @@ describe("OntologyExplorer", () => {
     );
     expect(
       screen.getByText(
-        "Neighborhood reached the authorized query bound. Narrow the property filter or reduce traversal depth.",
+        "Open a related record to review the available information.",
       ),
     ).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Load next relation page" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Load more related information" })).not.toBeInTheDocument();
   });
 
   it("searches the loaded graph without inventing omitted counts", async () => {
@@ -367,11 +367,11 @@ describe("OntologyExplorer", () => {
         neighborhood={neighborhood()}
       />,
     );
-    await userEvent.type(screen.getByLabelText("Search within this neighborhood"), "Test");
+    await userEvent.type(screen.getByLabelText("Search related information"), "Test");
     expect(screen.getAllByText("Test Person").length).toBeGreaterThan(0);
     expect(screen.queryByText(/omitted \d/i)).not.toBeInTheDocument();
     await userEvent.click(screen.getByRole("button", { name: "Reset focus" }));
-    expect(screen.getByLabelText("Search within this neighborhood")).toHaveValue("");
+    expect(screen.getByLabelText("Search related information")).toHaveValue("");
   });
 
   it("keeps JSON-LD aligned with the filtered graph", () => {

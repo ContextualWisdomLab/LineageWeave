@@ -209,7 +209,7 @@ export const NodeDrawer: Story = {
 export const EdgeDrawer: Story = {
   play: ({ canvasElement }) => {
     const edge = [...canvasElement.querySelectorAll("[role=button]")].find((element) =>
-      element.getAttribute("aria-label")?.startsWith("Select edge:"),
+      element.getAttribute("aria-label")?.startsWith("Open relation:"),
     );
     if (!edge) throw new Error("Ontology edge control was not rendered");
     edge.dispatchEvent(new MouseEvent("click", { bubbles: true }));
@@ -219,7 +219,7 @@ export const EdgeDrawer: Story = {
 export const LegendAndFilter: Story = {
   play: ({ canvasElement }) => {
     const search = canvasElement.querySelector<HTMLInputElement>(
-      'input[aria-label="Search within this neighborhood"]',
+      'input[aria-label="Search related information"]',
     );
     if (!search) throw new Error("Ontology search control was not rendered");
     const setValue = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")?.set;

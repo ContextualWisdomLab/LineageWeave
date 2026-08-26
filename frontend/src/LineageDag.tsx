@@ -222,10 +222,6 @@ export function LineageDag({
         {graph.reconstruction ? (
           <dl className="lineage-rebuild-profile">
             <div>
-              <dt>{t("Reconstruction version")}</dt>
-              <dd>{graph.reconstruction.reconstruction_version}</dd>
-            </div>
-            <div>
               <dt>{t("Generated at")}</dt>
               <dd>{graph.reconstruction.generated_at}</dd>
             </div>
@@ -269,7 +265,7 @@ export function LineageDag({
                 })}
               </summary>
               {evidence.length > 0 && !llmParticipated(evidence) ? (
-                <p>{t("No LLM adjudication participated in this connection.")}</p>
+                <p>{t("No additional review signal was available for this connection. Open the related records to review the evidence.")}</p>
               ) : null}
               {evidence.length > 0 ? (
                 <table>
@@ -315,7 +311,7 @@ function signalLabel(signalCode: string): string {
     case "text":
       return "Text similarity";
     case "llm":
-      return "LLM adjudication";
+      return "Additional review";
     default:
       return signalCode;
   }

@@ -1957,7 +1957,7 @@ describe("App, authenticated", () => {
     await userEvent.click(screen.getByRole("button", { name: "Ask" }));
 
     expect(await screen.findByRole("list", { name: "Evidence facts" })).toBeInTheDocument();
-    expect(screen.getByText("Semantic project", { exact: true })).toBeInTheDocument();
+    expect(screen.getByText("Project", { exact: true })).toBeInTheDocument();
     expect(screen.getByText(/project: Semantic project \| evidence: Body evidence/)).toBeInTheDocument();
     expect(screen.queryByText(/ontology_iri|contextual_orchestrator/i)).not.toBeInTheDocument();
   });
@@ -1970,7 +1970,7 @@ describe("App, authenticated", () => {
     await userEvent.type(screen.getByRole("textbox", { name: "Ask a question" }), "Which project?");
     await userEvent.click(screen.getByRole("button", { name: "Ask" }));
 
-    expect(await screen.findByRole("complementary", { name: "Report · alert · MCP" })).toHaveTextContent(
+    expect(await screen.findByRole("complementary", { name: "Follow-up actions" })).toHaveTextContent(
       "1 evidence documents are linked to this report.",
     );
     expect(screen.queryByText(/근거 문서/)).not.toBeInTheDocument();
@@ -2456,13 +2456,13 @@ describe("App, authenticated", () => {
     await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
 
     await waitFor(() => expect(screen.getByText("이것은 요약입니다.")).toBeInTheDocument());
-    const provenance = screen.getByText("Evidence provenance").closest("details");
+    const provenance = screen.getByText("Supporting details").closest("details");
     expect(provenance).not.toBeNull();
     expect(provenance).not.toHaveAttribute("open");
-    await userEvent.click(screen.getByText("Evidence provenance"));
-    expect(screen.getByText(/Ontology class:/)).toBeInTheDocument();
-    expect(screen.getByText(/Extraction source: Semantic extraction/)).toBeInTheDocument();
-    expect(screen.getByText(/Evidence field: Stored semantic evidence/)).toBeInTheDocument();
+    await userEvent.click(screen.getByText("Supporting details"));
+    expect(screen.getByText(/Related detail:/)).toBeInTheDocument();
+    expect(screen.getByText(/How this was found: Reviewed detail/)).toBeInTheDocument();
+    expect(screen.getByText(/Supporting detail: Supporting detail/)).toBeInTheDocument();
     expect(screen.queryByText("contextual_orchestrator_semantic")).not.toBeInTheDocument();
     expect(screen.queryByText("https://contextualwisdomlab.github.io/LineageWeave/ontology#Project")).not.toBeInTheDocument();
     expect(screen.getByText("첫 번째 이벤트")).toBeInTheDocument();
@@ -2696,7 +2696,7 @@ describe("App, authenticated", () => {
     await userEvent.click(await screen.findByRole("button", { name: /verify against web search/i }));
 
     await waitFor(() =>
-      expect(screen.getByText("Verification unavailable (search is not configured).")).toBeInTheDocument(),
+      expect(screen.getByText("Public verification is unavailable right now. Review the linked evidence or try again later.")).toBeInTheDocument(),
     );
     expect(screen.queryByText(/HTTP 503/)).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /verify against web search/i })).not.toBeInTheDocument();
@@ -2726,7 +2726,7 @@ describe("App, authenticated", () => {
       ),
     ).toBeInTheDocument();
 
-    await userEvent.click(screen.getByRole("button", { name: "Related nodes for Ada West" }));
+    await userEvent.click(screen.getByRole("button", { name: "Related information for Ada West" }));
     await waitFor(() => expect(screen.getByText("Related to Ada West")).toBeInTheDocument());
     expect(screen.getByText("Related to Ada West").closest(".related-keymen")).toHaveTextContent(
       "Priya Nair (Counterparty)",
@@ -2744,7 +2744,7 @@ describe("App, authenticated", () => {
     expect(historyItems[1]).toHaveTextContent("account lead");
     expect(
       screen.getByRole("button", {
-        name: "Related nodes for Priya Nair (Counterparty)",
+        name: "Related information for Priya Nair (Counterparty)",
       }),
     ).toBeInTheDocument();
     const relatedPosts = screen.getByRole("heading", { name: "Related posts", level: 3 }).closest(
@@ -2773,9 +2773,9 @@ describe("App, authenticated", () => {
     expect(screen.getByRole("button", { name: "Keyman affiliation: Demo Corp (DC)" })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Affiliate org: Demo Corp" })).not.toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole("button", { name: "Related nodes for Ada West" }));
+    fireEvent.click(screen.getByRole("button", { name: "Related information for Ada West" }));
     await waitFor(() => expect(screen.getByText("Related to Ada West")).toBeInTheDocument());
-    expect(screen.getByRole("button", { name: "Related nodes for Demo Corp (DC)" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Related information for Demo Corp (DC)" })).toBeInTheDocument();
     expect(screen.getByText("Related to Ada West").closest(".related-keymen")).toHaveTextContent(
       "Demo Corp (DC)",
     );
@@ -2827,9 +2827,9 @@ describe("App, authenticated", () => {
     stubBackend();
     render(<App showLabPanels />);
     await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
-    await userEvent.click(screen.getByRole("button", { name: "Related nodes for Ada West" }));
+    await userEvent.click(screen.getByRole("button", { name: "Related information for Ada West" }));
     await waitFor(() => expect(screen.getByText("Related to Ada West")).toBeInTheDocument());
-    await userEvent.click(screen.getByRole("button", { name: "Related nodes for 설계팀 (Team)" }));
+    await userEvent.click(screen.getByRole("button", { name: "Related information for 설계팀 (Team)" }));
     await waitFor(() => expect(screen.getByText("Related to 설계팀")).toBeInTheDocument());
     expect(screen.getByText("Related to 설계팀").closest(".related-keymen")).toHaveTextContent(
       "Linked post",
@@ -2840,10 +2840,10 @@ describe("App, authenticated", () => {
     stubBackend();
     render(<App showLabPanels />);
     await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
-    await userEvent.click(screen.getByRole("button", { name: "Related nodes for Ada West" }));
+    await userEvent.click(screen.getByRole("button", { name: "Related information for Ada West" }));
     await waitFor(() => expect(screen.getByText("Related to Ada West")).toBeInTheDocument());
     await userEvent.click(
-      screen.getByRole("button", { name: "Related nodes for Demo Corp (Corporate entity)" }),
+      screen.getByRole("button", { name: "Related information for Demo Corp (Corporate entity)" }),
     );
     await waitFor(() => expect(screen.getByText("Related to Demo Corp")).toBeInTheDocument());
     expect(screen.getByText("Related to Demo Corp").closest(".related-keymen")).toHaveTextContent(
@@ -3092,7 +3092,7 @@ describe("App, authenticated", () => {
     stubBackend();
     render(<App />);
 
-    expect(await screen.findByText("Rankings · RankWeave not available")).toBeInTheDocument();
+    expect((await screen.findAllByText("Ranking is unavailable")).length).toBeGreaterThan(0);
     expect(screen.queryByText("Pricing renegotiation: revised quote sent")).not.toBeInTheDocument();
   });
 
@@ -3196,11 +3196,11 @@ describe("App, authenticated", () => {
       name: /open ranking: public post/i,
     });
     expect(rankingButton).toHaveTextContent("Public post");
-    expect(rankingButton).toHaveTextContent("Rankings · rankweave");
+    expect(rankingButton).toHaveTextContent("Related-record ranking");
     expect(rankingButton).toHaveTextContent("rank 1");
     expect(
       screen.getByText(
-        "RankWeave fused newest-first and title-overlap ranks. This is not a calibrated score.",
+        "Records are ordered by recent and related activity. Open a record to review its evidence.",
       ),
     ).toBeInTheDocument();
     expect(
@@ -3249,7 +3249,7 @@ describe("App, authenticated", () => {
     expect(list).toHaveTextContent("TEPP measurement · Failed · Demo Corp");
     expect(list).toHaveTextContent("Period report · Succeeded · Demo Corp");
     expect(list).toHaveTextContent(
-      "Open this run to see why it failed, then connect the measurement service and re-run.",
+      "Open this run to review the available records, then try again later.",
     );
     expect(list).toHaveTextContent("3 documents");
     expect(list).not.toHaveTextContent("postgresql://");
@@ -3271,27 +3271,21 @@ describe("App, authenticated", () => {
     expect(await screen.findByRole("heading", { name: "Lineage reconstruction · Succeeded · Demo Corp" })).toBeInTheDocument();
     expect(screen.getByText(/Cutoff 2026-01-12/)).toBeInTheDocument();
     expect(screen.getByText(/Requested 2026-01-12/)).toBeInTheDocument();
-    const digests = screen.getByLabelText("Analysis run reproducibility digests");
-    expect(digests).toHaveTextContent("Hover a prefix to read the full digest for verification.");
-    expect(digests).toHaveTextContent("Code abcdef012345");
-    expect(digests).toHaveTextContent("Config 0123456789ab");
+    const digests = screen.getByLabelText("Run audit details");
+    expect(digests).toHaveTextContent("This update includes audit details for administrators.");
+    expect(digests).toHaveTextContent("Code");
+    expect(digests).toHaveTextContent("Config");
     expect(digests).not.toHaveTextContent("abcdef0123456789deadbeefcafebabe");
     expect(digests).not.toHaveTextContent(
       "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
     );
-    expect(screen.getByTitle("abcdef0123456789deadbeefcafebabe")).toHaveTextContent("Code abcdef012345");
-    expect(
-      screen.getByTitle("0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"),
-    ).toHaveTextContent("Config 0123456789ab");
+    expect(screen.queryByTitle("abcdef0123456789deadbeefcafebabe")).not.toBeInTheDocument();
+    expect(screen.queryByTitle("0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef")).not.toBeInTheDocument();
     const history = screen.getByRole("list", { name: "Analysis run status history" });
     expect(history).toHaveTextContent("Pending 2026-01-12 12:31");
     expect(history).toHaveTextContent("Running 2026-01-12 12:32");
     expect(history).toHaveTextContent("Succeeded 2026-01-12 12:33");
-    const outbox = screen.getByRole("list", { name: "Analysis run outbox delivery" });
-    expect(outbox).toHaveTextContent("Claimed 2026-01-12 12:32");
-    expect(outbox).toHaveTextContent("Delivered 2026-01-12 12:33");
-    expect(outbox).not.toHaveTextContent("valkey");
-    expect(outbox).not.toHaveTextContent("stream");
+    expect(screen.queryByRole("list", { name: "Analysis run outbox delivery" })).not.toBeInTheDocument();
     expect(screen.getByRole("list", { name: "Posts known at this run cutoff" })).toBeInTheDocument();
     const seededFork = screen.getByRole("list", { name: "Reconstructed lineage edges" });
     expect(seededFork).toHaveTextContent(
@@ -3346,8 +3340,9 @@ describe("App, authenticated", () => {
       await screen.findByRole("heading", { name: "TEPP measurement · Failed · Demo Corp" }),
     ).toBeInTheDocument();
     const teppHistory = screen.getByRole("list", { name: "Analysis run status history" });
-    expect(teppHistory).toHaveTextContent("Failed 2026-01-12 12:37 · tepp_not_available");
-    expect(screen.getByText(/cutoff corpus TEPP would measure/i)).toBeInTheDocument();
+    expect(teppHistory).toHaveTextContent("Failed 2026-01-12 12:37 · Needs attention");
+    expect(teppHistory).not.toHaveTextContent("tepp_not_available");
+    expect(screen.getByText("These posts are the records selected for this update. Review them, then try again later.")).toBeInTheDocument();
     expect(teppHistory).not.toHaveTextContent("Succeeded");
   });
 
@@ -3407,12 +3402,12 @@ describe("App, authenticated", () => {
       name: "Open analysis run: Lineage reconstruction · Running · Demo Corp",
     });
     expect(lineageButton).toHaveTextContent(
-      "Refresh this run. Start already queued the work on the durable outbox.",
+      "Refresh this run in a moment to see the latest status.",
     );
     await userEvent.click(lineageButton);
     expect(screen.getByRole("button", { name: "Start reconstruction" })).toBeInTheDocument();
     expect(
-      screen.getAllByText("Refresh this run. Start already queued the work on the durable outbox."),
+      screen.getAllByText("Refresh this run in a moment to see the latest status."),
     ).not.toHaveLength(0);
   });
 
@@ -3432,7 +3427,7 @@ describe("App, authenticated", () => {
     );
     expect(lineageButton).not.toHaveTextContent("measurement service");
     expect(teppButton).toHaveTextContent(
-      "Open this run to see why it failed, then connect the measurement service and re-run.",
+      "Open this run to review the available records, then try again later.",
     );
     expect(teppButton).not.toHaveTextContent("reconstruction");
   });
@@ -3592,7 +3587,7 @@ describe("App, authenticated", () => {
       });
       expect(within(related.closest(".related-keymen") as HTMLElement).getByText(/Priya Nair/)).toBeInTheDocument();
       expect(
-        within(popup as HTMLElement).getByRole("button", { name: "Related nodes for Ada West" }),
+        within(popup as HTMLElement).getByRole("button", { name: "Related information for Ada West" }),
       ).toHaveAttribute("aria-current", "true");
       expect(
         evaluation.compareDocumentPosition(keymanNext) & Node.DOCUMENT_POSITION_FOLLOWING,
@@ -3606,7 +3601,7 @@ describe("App, authenticated", () => {
       );
       expect(
         within(popup as HTMLElement).getByRole("button", {
-          name: "Related nodes for Priya Nair (Counterparty)",
+          name: "Related information for Priya Nair (Counterparty)",
         }),
       ).toHaveAttribute("aria-current", "true");
       const landedRelated = await within(popup as HTMLElement).findByRole("heading", {
@@ -3623,7 +3618,7 @@ describe("App, authenticated", () => {
       ).not.toBe(0);
       const askNext = await screen.findByRole("status", { name: "Ask next action" });
       expect(askNext).toHaveTextContent(
-        "Related nodes for Priya Nair are current. Ask about this lineage next.",
+        "Related information for Priya Nair is available. Ask about this record next.",
       );
       expect(
         landedRelated.compareDocumentPosition(askNext) & Node.DOCUMENT_POSITION_FOLLOWING,
@@ -3736,13 +3731,13 @@ describe("App, authenticated", () => {
       }),
     );
     expect(
-      await screen.findByText("These posts are the cutoff corpus TEPP will measure once this run finishes."),
+      await screen.findByText("These posts are selected for this update. Review them while the update is in progress."),
     ).toBeInTheDocument();
     expect(screen.queryByText(/replace Failed/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/this TEPP run measured/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/Reconstruction has not started yet/)).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Start reconstruction" })).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Start TEPP measurement" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Start measurement" })).toBeInTheDocument();
   });
 
   it("starts a pending TEPP run through tepp_client and does not invent a theta", async () => {
@@ -3754,11 +3749,12 @@ describe("App, authenticated", () => {
         name: "Open analysis run: TEPP measurement · Pending · Demo Corp",
       }),
     );
-    await userEvent.click(screen.getByRole("button", { name: "Start TEPP measurement" }));
+    await userEvent.click(screen.getByRole("button", { name: "Start measurement" }));
     expect(
       await screen.findByRole("heading", { name: "TEPP measurement · Failed · Demo Corp" }),
     ).toBeInTheDocument();
-    expect(screen.getByText(/tepp_not_available/)).toBeInTheDocument();
+    expect(screen.getByText(/Needs attention/)).toBeInTheDocument();
+    expect(screen.queryByText(/tepp_not_available/)).not.toBeInTheDocument();
     expect(screen.queryByText(/theta/i)).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Start reconstruction" })).not.toBeInTheDocument();
     const startCall = fetchMock.mock.calls.find((call) =>
@@ -3778,7 +3774,7 @@ describe("App, authenticated", () => {
     );
     expect(
       await screen.findByText(
-        "Connect a TEPP transport from this Failed row. Request a lineage reconstruction does not invent a measurement.",
+        "This update could not be completed. Review the available records and try again later.",
       ),
     ).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Request a new TEPP measurement" })).not.toBeInTheDocument();
@@ -3800,7 +3796,7 @@ describe("App, authenticated", () => {
       }),
     );
     expect(
-      await screen.findByText("These posts are the cutoff corpus this TEPP run measured."),
+      await screen.findByText("These posts were used for this completed update. Open them to review the result."),
     ).toBeInTheDocument();
     expect(screen.queryByText(/replace Failed/i)).not.toBeInTheDocument();
   });
@@ -3917,9 +3913,9 @@ describe("App, authenticated", () => {
     expect(fork).toHaveTextContent(
       "Delivery schedule question raised follows Pricing renegotiation follow-up",
     );
-    const digests = screen.getByLabelText("Analysis run reproducibility digests");
-    expect(digests).toHaveTextContent("Result aaaaaaaaaaaa");
-    expect(screen.getByTitle("aa".repeat(32))).toHaveTextContent("Result aaaaaaaaaaaa");
+    const digests = screen.getByLabelText("Run audit details");
+    expect(digests).toHaveTextContent("Result");
+    expect(screen.queryByTitle("aa".repeat(32))).not.toBeInTheDocument();
     const startCall = fetchMock.mock.calls.find((call) =>
       String(call[0]).endsWith("/api/analysis-runs/run-demo-lineage-pending/start"),
     );
@@ -4134,7 +4130,7 @@ describe("App, authenticated", () => {
     );
     expect(await screen.findByRole("heading", { name: "Related to Priya Nair" })).toBeInTheDocument();
     expect(await screen.findByRole("status", { name: "Ask next action" })).toHaveTextContent(
-      "Related nodes for Priya Nair are current. Ask about this lineage next.",
+      "Related information for Priya Nair is available. Ask about this record next.",
     );
     const popup = document.querySelector(".popup-panel");
     expect(popup).not.toBeNull();

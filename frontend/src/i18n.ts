@@ -338,8 +338,8 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Connection evidence": "연결 근거",
     "Each connection is inferred from independent signals. It is not a causal claim.":
       "각 연결은 독립된 신호로부터 추론된 것이며, 인과 관계가 아닙니다.",
-    "No LLM adjudication participated in this connection.":
-      "이 연결에는 LLM 판정이 참여하지 않았습니다.",
+    "No additional review signal was available for this connection. Open the related records to review the evidence.":
+      "이 연결에는 추가 검토 신호가 없습니다. 관련 기록을 열어 근거를 검토하세요.",
     "Open connection evidence: {from} to {to}": "연결 근거 열기: {from} → {to}",
     "{from} follows {to}, fused score {score}":
       "{from}이(가) {to}을(를) 따름, 융합 점수 {score}",
@@ -398,6 +398,8 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
       "{node}은(는) 첫 번째 관련 노드입니다. 다음으로 해당 대상을 읽으세요.",
     "Related nodes for {person} are current. Ask about this lineage next.":
       "{person} 관련 노드가 현재 표시되어 있습니다. 다음으로 이 계보에 대해 질문하세요.",
+    "Related information for {person} is available. Ask about this record next.":
+      "{person} 관련 정보를 확인할 수 있습니다. 다음으로 이 기록에 관해 질문하세요.",
     "{question} is the first Ask. Read that answer next.":
       "{question}이(가) 첫 번째 Ask입니다. 다음으로 그 답변을 읽으세요.",
     "{post} is the first cited source. Open that evidence next.":
@@ -838,7 +840,8 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Connection evidence": "连接证据",
     "Each connection is inferred from independent signals. It is not a causal claim.":
       "每条连接均由独立信号推断得出，并非因果关系。",
-    "No LLM adjudication participated in this connection.": "此连接未使用 LLM 裁定。",
+    "No additional review signal was available for this connection. Open the related records to review the evidence.":
+      "此连接没有可用的额外审核信号。请打开相关记录查看依据。",
     "Open connection evidence: {from} to {to}": "打开连接证据：{from} 至 {to}",
     "{from} follows {to}, fused score {score}": "{from} 接续 {to}，融合分数 {score}",
     Signal: "信号",
@@ -896,6 +899,8 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
       "{node} 是第一个相关节点。接下来查看该对象。",
     "Related nodes for {person} are current. Ask about this lineage next.":
       "{person} 的相关节点已显示。接下来询问此谱系。",
+    "Related information for {person} is available. Ask about this record next.":
+      "可以查看 {person} 的相关信息。接下来询问这条记录。",
     "{question} is the first Ask. Read that answer next.":
       "{question} 是第一个问题。接下来查看该回答。",
     "{post} is the first cited source. Open that evidence next.":
@@ -1335,8 +1340,8 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Connection evidence": "接続の根拠",
     "Each connection is inferred from independent signals. It is not a causal claim.":
       "各接続は独立した信号から推論されたものであり、因果関係ではありません。",
-    "No LLM adjudication participated in this connection.":
-      "この接続に LLM 判定は関与していません。",
+    "No additional review signal was available for this connection. Open the related records to review the evidence.":
+      "この接続では追加の確認シグナルを利用できませんでした。関連する記録を開いて根拠を確認してください。",
     "Open connection evidence: {from} to {to}": "接続の根拠を開く: {from} → {to}",
     "{from} follows {to}, fused score {score}":
       "{from}は{to}に続く、融合スコア {score}",
@@ -1395,6 +1400,8 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
       "{node}は最初の関連ノードです。次にこの対象を確認してください。",
     "Related nodes for {person} are current. Ask about this lineage next.":
       "{person}の関連ノードが表示されています。次にこの系譜について質問してください。",
+    "Related information for {person} is available. Ask about this record next.":
+      "{person}の関連情報を確認できます。次にこの記録について質問してください。",
     "{question} is the first Ask. Read that answer next.":
       "{question}は最初の質問です。次にその回答を確認してください。",
     "{post} is the first cited source. Open that evidence next.":
@@ -1835,8 +1842,8 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Connection evidence": "Bằng chứng liên kết",
     "Each connection is inferred from independent signals. It is not a causal claim.":
       "Mỗi liên kết được suy ra từ các tín hiệu độc lập. Đây không phải là quan hệ nhân quả.",
-    "No LLM adjudication participated in this connection.":
-      "Kết nối này không có sự tham gia của phán định LLM.",
+    "No additional review signal was available for this connection. Open the related records to review the evidence.":
+      "Không có tín hiệu xem xét bổ sung cho kết nối này. Hãy mở các bản ghi liên quan để xem bằng chứng.",
     "Open connection evidence: {from} to {to}": "Mở bằng chứng liên kết: {from} đến {to}",
     "{from} follows {to}, fused score {score}":
       "{from} tiếp nối {to}, điểm hợp nhất {score}",
@@ -1895,6 +1902,8 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
       "{node} là nút liên quan đầu tiên. Hãy xem đối tượng này tiếp theo.",
     "Related nodes for {person} are current. Ask about this lineage next.":
       "Các nút liên quan đến {person} đang được hiển thị. Hãy hỏi về dòng sự kiện này tiếp theo.",
+    "Related information for {person} is available. Ask about this record next.":
+      "Thông tin liên quan về {person} hiện có sẵn. Hãy hỏi về bản ghi này tiếp theo.",
     "{question} is the first Ask. Read that answer next.":
       "{question} là câu hỏi đầu tiên. Hãy xem câu trả lời đó tiếp theo.",
     "{post} is the first cited source. Open that evidence next.":

@@ -99,7 +99,7 @@ describe("OntologyExplorer stabilization contracts", () => {
 
     expect(
       screen.getByText(
-        "This neighborhood is bound to a knowledge cutoff. Compare with live evidence next.",
+        "Compare this information with the latest evidence before relying on it.",
       ),
     ).toBeInTheDocument();
   });
@@ -150,10 +150,10 @@ describe("OntologyExplorer stabilization contracts", () => {
 
     expect(
       await screen.findByText(
-        "Neighborhood truncated. Load the next relation page or inspect one edge.",
+        "More related information is available. Load more or open a record.",
       ),
     ).toBeInTheDocument();
-    await userEvent.click(screen.getByRole("button", { name: "Load next relation page" }));
+    await userEvent.click(screen.getByRole("button", { name: "Load more related information" }));
 
     await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
     expect(String(fetchMock.mock.calls[1][0])).toContain(
@@ -187,11 +187,11 @@ describe("OntologyExplorer stabilization contracts", () => {
 
     expect(
       screen.getByText(
-        "Neighborhood reached the authorized query bound. Narrow the property filter or reduce traversal depth.",
+        "Open a related record to review the available information.",
       ),
     ).toBeInTheDocument();
     expect(
-      screen.queryByRole("button", { name: "Load next relation page" }),
+      screen.queryByRole("button", { name: "Load more related information" }),
     ).not.toBeInTheDocument();
   });
 
@@ -204,10 +204,10 @@ describe("OntologyExplorer stabilization contracts", () => {
       />,
     );
 
-    await userEvent.click(screen.getByRole("button", { name: /Select edge: mentions from/ }));
+    await userEvent.click(screen.getByRole("button", { name: /Open relation: mentions from/ }));
     expect(
       screen.getByText(
-        "No direct evidence post is attached. Review the provenance reference above.",
+        "No linked record is available. Review the details above.",
       ),
     ).toBeInTheDocument();
     expect(
@@ -224,8 +224,8 @@ describe("OntologyExplorer stabilization contracts", () => {
       />,
     );
 
-    await userEvent.click(screen.getByRole("button", { name: "Select node: Post Demo post" }));
-    expect(screen.queryByRole("button", { name: "Focus this node next" })).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Open related item: Post Demo post" }));
+    expect(screen.queryByRole("button", { name: "Explore related information" })).not.toBeInTheDocument();
   });
 
   it("clears a previously loaded neighborhood when the access token is removed", async () => {
@@ -251,7 +251,7 @@ describe("OntologyExplorer stabilization contracts", () => {
     });
     expect(
       screen.getByText(
-        "No visible ontology relations for this focus. Open a Keyman or affiliated organization next.",
+        "No related information is available. Open a record or organization next.",
       ),
     ).toBeInTheDocument();
   });
@@ -293,8 +293,8 @@ describe("OntologyExplorer stabilization contracts", () => {
       />,
     );
 
-    await userEvent.click(screen.getByRole("button", { name: "Select node: Person Test person" }));
-    await userEvent.click(screen.getByRole("button", { name: "Focus this node next" }));
+    await userEvent.click(screen.getByRole("button", { name: "Open related item: Person Test person" }));
+    await userEvent.click(screen.getByRole("button", { name: "Explore related information" }));
     expect(await screen.findByText("Focused person")).toBeInTheDocument();
     expect(String(fetchMock.mock.calls[0][0])).toContain(`focus_node_id=${PERSON_ID}`);
 
@@ -342,12 +342,12 @@ describe("OntologyExplorer stabilization contracts", () => {
         focusNodeId={POST_ID}
       />,
     );
-    await userEvent.click(await screen.findByRole("button", { name: /Select edge: mentions from/ }));
-    expect(screen.getByLabelText("Edge provenance")).toBeInTheDocument();
-    await userEvent.click(screen.getByRole("button", { name: "Load next relation page" }));
+    await userEvent.click(await screen.findByRole("button", { name: /Open relation: mentions from/ }));
+    expect(screen.getByLabelText("Supporting details")).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Load more related information" }));
     expect(await screen.findByText("Paged person")).toBeInTheDocument();
     expect(screen.getAllByText("Demo post").length).toBeGreaterThan(0);
-    expect(screen.getByLabelText("Edge provenance")).toBeInTheDocument();
+    expect(screen.getByLabelText("Supporting details")).toBeInTheDocument();
     expect(String(fetchMock.mock.calls[1][0])).toContain("cursor=src.v2.opaque-token");
   });
 });

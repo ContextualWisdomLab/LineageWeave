@@ -116,8 +116,8 @@ describe("LineageDag channel evidence", () => {
     expect(
       screen.getByText("Each connection is inferred from independent signals. It is not a causal claim."),
     ).toBeInTheDocument();
-    expect(screen.getByText("No LLM adjudication participated in this connection.")).toBeInTheDocument();
-    expect(screen.getByText("lineageweave.reconstruct/2.14.0")).toBeInTheDocument();
+    expect(screen.getByText("No additional review signal was available for this connection. Open the related records to review the evidence.")).toBeInTheDocument();
+    expect(screen.queryByText("lineageweave.reconstruct/2.14.0")).not.toBeInTheDocument();
     expect(screen.getAllByText("0.250000").length).toBeGreaterThan(0);
     expect(screen.getByText("0.200000")).toBeInTheDocument();
     expect(screen.getByText(/fused score 0.700000/)).toBeInTheDocument();

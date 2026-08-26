@@ -63,7 +63,7 @@ describe("i18n", () => {
     "Showing the first {shown} of {total} posts known at this cutoff.",
     "Connection evidence",
     "Each connection is inferred from independent signals. It is not a causal claim.",
-    "No LLM adjudication participated in this connection.",
+    "No additional review signal was available for this connection. Open the related records to review the evidence.",
     "Temporal proximity",
     "Contains",
     "Overlaps",

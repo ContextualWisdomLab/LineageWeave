@@ -1,7 +1,7 @@
 # Product & Technical Gap Baseline
 
-> Dashboard delivery snapshot: 2026-08-26 06:20 KST. Protected `main` was
-> `04e6b610655d0db91d5f7ba9486bdda1440e0b19`. This local branch is not
+> Dashboard delivery snapshot: 2026-08-26 10:00 KST. Protected `main` was
+> `494b54e2245040bcf02b45376f221c37cd437e76`. This local branch is not
 > protected-main release evidence.
 
 ## Operations Dashboard PRD/TRD traceability
@@ -60,14 +60,14 @@ only aggregate, non-identifying evidence to this repository.
 
 ### Exact open-PR boundary
 
-At this snapshot there were 11 open PRs and 10 open issues. The exact-head
+At this snapshot there were 19 open PRs and 10 open issues. The exact-head
 inventory in section 1 is authoritative for this snapshot. Every open head
 remained blocked on hosted gates and/or independent review. These observations
 are not merge readiness. Re-fetch exact heads,
 unresolved threads, checks, approvals, rulesets, and merge SHA before any
 lifecycle claim.
 
-> Audit snapshot: 2026-08-26 06:20 KST (refreshed by the autonomous merge
+> Audit snapshot: 2026-08-26 10:00 KST (live queue refresh).
 > loop). This repository records synthetic fixtures and aggregate,
 > non-identifying runtime evidence only. Open PRs and local checks are not
 > protected-default-branch release evidence. Identifying post identifiers,
@@ -76,26 +76,33 @@ lifecycle claim.
 
 ## 1. Exact-head and governance evidence
 
-The protected default branch was `04e6b610655d0db91d5f7ba9486bdda1440e0b19`
-when this baseline was refreshed. The live queue contained 11 open PRs and 10
+The protected default branch was `494b54e2245040bcf02b45376f221c37cd437e76`
+when this baseline was refreshed. The live queue contained 19 open PRs and 10
 open issues. The exact-head inventory below supersedes older per-PR snapshots
 elsewhere in this document; those older rows remain useful historical delivery
 context only.
 
 | PR | Exact observed head | Merge/check state at this snapshot |
 | ---: | --- | --- |
-| #663 | `ab330a0f` | project ontology traversal plus cutoff/snapshot-frozen project focus and labels; exact-head checks/review required |
-| #660 | `24fda085` | backend runtime repair plus semantic-unit stack; exact-head checks/review required |
-| #659 | `0739b9d7` | ontology node readability and tokenized UI fills; branch is DIRTY against current main and requires conflict repair |
-| #658 | `fe830b0a` | evidence-honest Global Ask cutoff with revision-interval live-after semantics; exact-head checks/review required |
-| #657 | `64f48679` | Dashboard case-metric contract work; exact-head checks/review required |
-| #644 | `d9ff9980` | native-surface code splitting with modal-focus regression coverage; exact-head checks/review required |
-| #643 | `0a1f8ec1` | accessible status-notice surfaces; exact-head checks/review required |
-| #640 | `2d50fa01` | operations-dashboard contract alignment; exact-head checks/review required |
-| #639 | `aee02dca` | exact-head checks/review required |
-| #632 | `a4059113` | active semantic provenance repair head; exact-head checks/review required |
-| #631 | `1d9ac825` | documentation decomposition; branch is DIRTY against current main and requires conflict repair |
-| #629 | `4b4d6707` | exact-head checks/review required |
+| #682 | `0aa3113e` | typed public semantic-claim verification candidate; stacked on #672, exact-head checks/review required |
+| #681 | `a99bf374` | fail-closed lineage-weight owner adapter; exact-head checks/review required |
+| #680 | `fbc0987f` | customer-facing ranking copy; exact-head checks/review required |
+| #679 | `ee5eb25f` | public-claim envelope for Global Ask; exact-head checks/review required |
+| #678 | `da98de07` | canonical Compose stack consolidation; stacked on #640, exact-head checks/review required |
+| #677 | `27835005` | per-post Ask conversation history; stacked on #667, exact-head checks/review required |
+| #672 | `5468c04d` | persisted semantic evidence for Global Ask; base of #682, exact-head checks/review required |
+| #668 | `1b8e1a99` | project history in post detail; exact-head checks/review required |
+| #667 | `84a9de34` | previous gap-baseline refresh; exact-head checks/review required |
+| #663 | `74b9a1d9` | project-node relation traversal; exact-head checks/review required |
+| #658 | `f497a6e8` | Global Ask knowledge-cutoff handling; exact-head checks/review required |
+| #657 | `709df1b9` | TEPP lifecycle evidence; exact-head checks/review required |
+| #644 | `ed8d97f3` | native-surface code splitting; exact-head checks/review required |
+| #643 | `3453ab08` | shared accessible status notice; exact-head checks/review required |
+| #640 | `169f599f` | Dashboard case metrics; exact-head checks/review required |
+| #639 | `8da485d3` | running analysis action; exact-head checks/review required |
+| #632 | `811026cc` | Global Ask fact provenance; exact-head checks/review required |
+| #631 | `e6b4f0c4` | ADR decomposition documentation; exact-head checks/review required |
+| #629 | `48496ff6` | Global Ask embedding-pool release; exact-head checks/review required |
 
 No row above is merge evidence. Immediately before any lifecycle action,
 re-fetch the head, unresolved threads, formal reviews, rulesets, and same-head
@@ -374,6 +381,7 @@ this file per §3.5 of the prior snapshot).
 | Protected release | 3 open PRs at snapshot: #627 and #628 are current-main performance follow-ups, while reopened #579 retains hosted and independent-review gates | Terminal exact-head checks, no unresolved threads, independent exact-head approvals, protected squash-merge SHA |
 | Evidence-grounded operations workspace | Protected-main #614 delivers governed semantic Ask, live Similar VOC, disjoint pending/failed analysis metrics, full Storybook state inventory, and current desktop/mobile screenshot evidence. Authorized-corpus backfill acceptance remains unavailable | Perform authenticated authorized-corpus acceptance with aggregate evidence and retain fail-closed no-match behavior |
 | Shared frontend gate | The ADR 0109 login repair is on protected `main`; eight older branches carried the defect and received the same verified repair this loop (#521–#560) | Keep every future branch cut from post-repair bases; re-verify with frontend lint/test/build before push |
+| Customer-facing implementation boundary | Customer UI exposed internal provider, queue, transport, ontology, and audit identifiers alongside customer decision evidence | Customer surfaces and accessible names use next-action language; hide internal API/provider/queue/transport detail and raw IRI/URI/SHA values while retaining measurement, relatedness, leftover, and audit status evidence; verify lint, tests, build, and Storybook examples |
 | Identifying baseline regression | `main` gap file listed real post identifiers; separately, closed #506 and pre-existing public history contain a private runtime source-table identifier, while current `main` and #507 trees are clean | Land this non-identifying rewrite, then coordinate ADR 0001 history remediation with security/privacy owners; do not reproduce the value, force-push, or delete evidence ad hoc |
 | Authorized-corpus runtime | Repository tests use synthetic fixtures; private records remain outside git | Authenticated runtime validation returning only aggregate, non-identifying evidence |
 | Concurrent web responsiveness | ADR 0204 releases pooled transactions during provider work, and the synthetic Compose boundary has an authenticated k6 E2E harness for Ask enqueue, concurrent reads, and job polling. An older-image local observation found repeated post-filter queries while `/api/posts` exceeded 30 seconds; ADR 0212 combines two authorized filter-option queries into one round trip without narrowing ABAC-visible options. The observation is not exact-head evidence or a product guarantee, and no physical scan reduction is claimed without an exact-head plan | Rebuild an exact-head application image, run `make load-http` with declared environment concurrency/window, and retain raw distributions and resource configuration. Compare the post-list database plan and latency with ADR 0212 while preserving the complete authorized filter set; set no SLO until representative capacity evidence is approved |
