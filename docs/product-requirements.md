@@ -136,6 +136,9 @@ persistence and UI remain unavailable until their separate ADR acceptance.
   fails closed instead of entering a catch-all table.
 - Preserve decimals and missingness exactly. No local aggregation,
   normalization, person inference, or psychometric estimation is permitted.
+- Reject divergent duplicate identities and owner-level truncation. Task
+  Ratings remain unavailable until their integer Task IDs and statements have
+  a separate normalized source-target contract.
 
 Acceptance: the replay-safe migration creates the normalized store; PostgreSQL
 integration proves missing partitions fail closed, null-category UPSERT is

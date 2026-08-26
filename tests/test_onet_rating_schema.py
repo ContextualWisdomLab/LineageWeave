@@ -23,6 +23,8 @@ def test_migration_declares_normalized_partitioned_observation_contract() -> Non
     assert "occupational_scale_source_table_fkey" in sql
     assert "validate_occupational_rating_insert" in sql
     assert "reject_occupational_rating_mutation" in sql
+    assert "before truncate on occupational_rating_observation" in sql
+    assert "identity conflicts with immutable evidence" in sql
     assert "recommend_suppress" in sql
     assert "not_relevant" in sql
     assert "standard_error" in sql

@@ -6,7 +6,7 @@
 
 ## Context
 
-O*NET 31.0 publishes occupation-specific ratings for abilities, essential and
+O*NET 31.0 publishes occupation-specific ratings for content-model abilities, essential and
 transferable skills, knowledge, education, training and experience, interests,
 work styles, work activities, work context, and adjacent content-model
 domains. A rating is not merely an edge: its meaning depends on the release,
@@ -35,7 +35,9 @@ also violate LineageWeave's externalized-compute boundary.
    hash modulus. An importer must create both exact LIST partitions before
    inserting; without them PostgreSQL rejects the row.
 5. Every insert uses the owning release/table artifact digest and idempotent
-   `ON CONFLICT DO NOTHING`. Endpoint names and scale names must match their normalized reference
+   `ON CONFLICT DO NOTHING`. An exact duplicate is idempotent, while a row with
+   the same identity and different source values fails closed. Endpoint names
+   and scale names must match their normalized reference
    rows; each scale definition names its owning source-table artifact, and the
    importer rejects disagreement rather than overwriting identity.
 6. Preserve `recommend_suppress` and `not_relevant` independently. A suppressed
@@ -44,13 +46,17 @@ also violate LineageWeave's externalized-compute boundary.
 7. Range and uncertainty constraints reject negative sample/error values,
    inverted confidence intervals, malformed or future source update months, malformed source
    digests, and values outside their declared scale bounds before persistence.
-8. This store is immutable source evidence. Any later aggregation, comparison,
+8. This content-model-element store excludes Task Ratings, whose integer Task
+   IDs and task-statement identity require a separate normalized target table;
+   it does not reinterpret a Task ID as a content-model element.
+9. This store is immutable source evidence. Row mutation and whole-store
+   truncation fail closed. Any later aggregation, comparison,
    temporal model, multilevel model, or occupational recommendation belongs to
    TEPP/fast-mlsirm or another owning Rust service and must cite these rows.
 
 ## Consequences
 
-LineageWeave can import the complete public O*NET rating corpus without
+LineageWeave can import the governed public O*NET content-model rating corpus without
 manufacturing semantics or embedding large production datasets in git.
 Release/source partitions localize hot imports and permit exact detach/archive
 operations. A separate API/UI ADR is still required before exposing ratings.

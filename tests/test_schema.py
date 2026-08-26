@@ -344,7 +344,11 @@ def test_onet_rating_store_partitions_upserts_and_rejects_invalid_error(schema_d
             do nothing
         """
         cur.execute(statement, (4.10,))
-        cur.execute(statement, (4.25,))
+        cur.execute("savepoint divergent_duplicate")
+        with pytest.raises(psycopg2.errors.CheckViolation):
+            cur.execute(statement, (4.25,))
+        cur.execute("rollback to savepoint divergent_duplicate")
+        cur.execute(statement, (4.10,))
         cur.execute(
             """
             select count(*), max(data_value), max(source_updated_month)
@@ -369,6 +373,10 @@ def test_onet_rating_store_partitions_upserts_and_rejects_invalid_error(schema_d
                 "delete from occupational_rating_observation where data_release_code = 'onet-31.0'"
             )
         cur.execute("rollback to savepoint immutable_delete")
+        cur.execute("savepoint immutable_truncate")
+        with pytest.raises(psycopg2.errors.CheckViolation):
+            cur.execute("truncate occupational_rating_observation")
+        cur.execute("rollback to savepoint immutable_truncate")
         for savepoint, value_sql, month_sql in (
             ("outside_scale", "6.00", "'08/2026'"),
             (

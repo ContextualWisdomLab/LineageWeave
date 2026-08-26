@@ -142,6 +142,7 @@ as $$
 declare
     declared_minimum numeric;
     declared_maximum numeric;
+    existing_observation occupational_rating_observation%rowtype;
 begin
     if new.source_updated_month !~ '^(0[1-9]|1[0-2])/[0-9]{4}$' then
         raise check_violation using message = 'source_updated_month must be MM/YYYY';
@@ -158,6 +159,38 @@ begin
     if declared_minimum is not null
        and new.data_value not between declared_minimum and declared_maximum then
         raise check_violation using message = 'data_value is outside the declared scale bounds';
+    end if;
+    select observation.*
+      into existing_observation
+      from occupational_rating_observation observation
+     where observation.data_release_code = new.data_release_code
+       and observation.source_table_code = new.source_table_code
+       and observation.onetsoc_code = new.onetsoc_code
+       and observation.element_id = new.element_id
+       and observation.scale_id = new.scale_id
+       and observation.category_value is not distinct from new.category_value;
+    if found and row(
+        existing_observation.data_value,
+        existing_observation.sample_size,
+        existing_observation.standard_error,
+        existing_observation.lower_ci_bound,
+        existing_observation.upper_ci_bound,
+        existing_observation.recommend_suppress,
+        existing_observation.not_relevant,
+        existing_observation.source_updated_month,
+        existing_observation.domain_source_code
+    ) is distinct from row(
+        new.data_value,
+        new.sample_size,
+        new.standard_error,
+        new.lower_ci_bound,
+        new.upper_ci_bound,
+        new.recommend_suppress,
+        new.not_relevant,
+        new.source_updated_month,
+        new.domain_source_code
+    ) then
+        raise check_violation using message = 'occupational rating identity conflicts with immutable evidence';
     end if;
     return new;
 end;
@@ -183,5 +216,11 @@ drop trigger if exists occupational_rating_reject_mutation
 create trigger occupational_rating_reject_mutation
 before update or delete on occupational_rating_observation
 for each row execute function reject_occupational_rating_mutation();
+
+drop trigger if exists occupational_rating_reject_truncate
+    on occupational_rating_observation;
+create trigger occupational_rating_reject_truncate
+before truncate on occupational_rating_observation
+for each statement execute function reject_occupational_rating_mutation();
 
 commit;
