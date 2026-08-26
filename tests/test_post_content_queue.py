@@ -196,6 +196,76 @@ def test_backfill_skips_a_candidate_that_became_complete(
     }
 
 
+def test_backfill_deduplicates_a_candidate_that_changes_tier(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A row observed in both READ COMMITTED tier queries is queued only once."""
+
+    class Transaction:
+        async def __aenter__(self) -> None:
+            return None
+
+        async def __aexit__(self, *_args: object) -> None:
+            return None
+
+    candidate = {
+        "post_id": "00000000-0000-0000-0000-000000000001",
+        "post_body": "tier changed",
+    }
+
+    class Connection:
+        def transaction(self) -> Transaction:
+            return Transaction()
+
+        async def fetch(self, _query: str, *_args: object) -> list[dict[str, str]]:
+            return [candidate]
+
+    class Acquire:
+        async def __aenter__(self) -> Connection:
+            return Connection()
+
+        async def __aexit__(self, *_args: object) -> None:
+            return None
+
+    class Pool:
+        def acquire(self) -> Acquire:
+            return Acquire()
+
+    processed_post_ids: list[str] = []
+
+    async def incomplete(*_args: object, **_kwargs: object) -> bool:
+        return False
+
+    async def ensure(
+        _conn: object, post_id: str, body: str, *, content_complete: bool
+    ) -> PostContentJobRequest:
+        processed_post_ids.append(post_id)
+        return PostContentJobRequest(post_id, source_body_sha256(body), QUEUED, True)
+
+    async def publish(*_args: object, **_kwargs: object) -> str:
+        return "1-0"
+
+    from backend.app import post_content_queue
+
+    monkeypatch.setattr(post_content_queue, "post_content_is_complete", incomplete)
+    monkeypatch.setattr(post_content_queue, "ensure_post_content_job", ensure)
+    monkeypatch.setattr(post_content_queue, "publish_post_content_event", publish)
+
+    result = asyncio.run(
+        enqueue_post_content_backfill(
+            Pool(), object(), limit=2, require_embedding=True, require_structure=True
+        )
+    )
+
+    assert processed_post_ids == [candidate["post_id"]]
+    assert result == {
+        "selected_posts": 1,
+        "queued_posts": 1,
+        "published_events": 1,
+        "recovery_pending": 0,
+    }
+
+
 def test_backfill_requeues_complete_content_missing_operations_analysis(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

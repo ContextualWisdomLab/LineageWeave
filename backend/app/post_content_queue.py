@@ -495,6 +495,15 @@ async def enqueue_post_content_backfill(
                     limit - len(rows),
                     False,
                 )
+            unique_rows = []
+            seen_post_ids: set[str] = set()
+            for row in rows:
+                post_id = str(row["post_id"])
+                if post_id in seen_post_ids:
+                    continue
+                seen_post_ids.add(post_id)
+                unique_rows.append(row)
+            rows = unique_rows
             for row in rows:
                 post_id = str(row["post_id"])
                 body = str(row["post_body"] or "")
