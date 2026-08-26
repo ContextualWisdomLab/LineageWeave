@@ -118,7 +118,7 @@ def test_no_public_claim_next_action_opens_authorized_evidence() -> None:
         cv.VERIFICATION_NO_PUBLIC_CLAIMS
     )
 
-    assert next_action == "Inspect the authorized cited posts and their evidence."
+    assert next_action == "Ask about a specific claim or narrow the time range, then retry."
     assert "internal" not in next_action.lower()
 
 

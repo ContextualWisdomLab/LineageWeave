@@ -29,7 +29,7 @@ const meta = {
               source_post_ids: [],
               external_verification_status: "external_verification_no_public_claims",
               external_claims: [],
-              next_action: "Inspect the authorized cited posts and their evidence.",
+              next_action: "Ask about a specific claim or narrow the time range, then retry.",
               grounding_status: "live_only",
               limitations: [],
             } : {
@@ -81,7 +81,7 @@ export const NoEligiblePublicClaim: Story = {
     await userEvent.type(canvas.getByLabelText("Ask a question"), "Which public claim can I verify?");
     await userEvent.click(canvas.getByRole("checkbox", { name: "Check eligible public claims" }));
     await userEvent.click(canvas.getByRole("button", { name: "Ask" }));
-    await expect(canvas.findByText("Inspect the authorized cited posts and their evidence.")).resolves.toBeVisible();
+    await expect(canvas.findByText("Ask about a specific claim or narrow the time range, then retry.")).resolves.toBeVisible();
     await expect(canvas.queryByText(/internal|transport|provider|worker/i)).not.toBeInTheDocument();
   },
 };
