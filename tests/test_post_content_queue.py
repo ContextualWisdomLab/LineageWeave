@@ -67,6 +67,14 @@ def test_bounded_backfill_is_idempotent_and_broker_loss_stays_recoverable(
             assert "analysis.post_id = post.post_id" in query
             assert "analysis.source_body_sha256 = job.source_body_sha256" in query
             assert "from post_product_analysis analysis" in query
+            assert "from post_project_mention project" in query
+            assert "project.ontology_iri is not null" in query
+            assert query.count("from post_project_mention project") == 1
+            assert "when $3::boolean" in query
+            assert "then 0 else 1" in query
+            assert "coalesce(post.event_occurred_at, post.created_at)" in query
+            assert "post.post_body ilike" not in query.lower()
+            assert "post.post_title ilike" not in query.lower()
             assert "for update of post skip locked" in query.lower()
             assert args == (SUCCEEDED, True, True, 2)
             return [

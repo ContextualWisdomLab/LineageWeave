@@ -456,7 +456,25 @@ async def enqueue_post_content_backfill(
                       and analysis.source_body_sha256 = job.source_body_sha256
                ))
            )
-         order by post.created_at, post.post_id
+         order by case
+                      when $3::boolean
+                       and exists (
+                           select 1
+                             from post_project_mention project
+                            where project.post_id = post.post_id
+                              and project.ontology_iri is not null
+                       )
+                       and not exists (
+                           select 1
+                             from operations_case_analysis analysis
+                            where analysis.post_id = post.post_id
+                              and analysis.source_body_sha256 = job.source_body_sha256
+                       )
+                      then 0 else 1
+                  end,
+                  coalesce(post.event_occurred_at, post.created_at),
+                  post.created_at,
+                  post.post_id
          limit $4
          for update of post skip locked
     """

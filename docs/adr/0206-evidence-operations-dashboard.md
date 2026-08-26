@@ -170,6 +170,15 @@ provenance.
    lossless human-readable form, names each milestone's clock, and links the
    reader to both endpoint sources. State and next action are conveyed in text
    rather than color alone.
+20. The bounded durable content backfill prefers an eligible post with a
+   canonical `post_project_mention.ontology_iri` projection when its exact
+   queued source-body digest lacks operations analysis. `EXISTS` prevents a
+   multi-project mention fan-out from duplicating the post. The remaining
+   incomplete posts stay in the same fallback queue, ordered after that tier by
+   event time (with the ADR 0202 created-time fallback), created time, and post
+   id before the existing bounded `LIMIT` / `SKIP LOCKED` claim. Titles, body
+   keywords, source lifecycle codes, and inferred stages do not affect this
+   priority.
 
 ## Consequences
 
