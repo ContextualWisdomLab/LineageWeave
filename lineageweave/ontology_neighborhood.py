@@ -210,6 +210,44 @@ class OntologyGraphEdge:
 
 
 @dataclass(frozen=True)
+class OntologyVoiceAssignment:
+    """One authorized, qualified Voice-of-X assignment for a visible post."""
+
+    post_id: str
+    voice_type_code: str
+    voice_type_iri: str
+    voice_type_label: str
+    is_primary: bool
+    truth_status_code: str
+    recorded_at: datetime
+    provenance_reference: str
+
+    def __post_init__(self) -> None:
+        """Reject ungoverned or incomplete assignments at the export boundary."""
+        if not all(
+            value.strip()
+            for value in (
+                self.post_id,
+                self.voice_type_code,
+                self.voice_type_iri,
+                self.voice_type_label,
+                self.provenance_reference,
+            )
+        ):
+            raise OntologyNeighborhoodError(
+                "invalid_voice_assignment", "voice assignment fields must be non-empty"
+            )
+        if self.truth_status_code not in TRUTH_STATUS_CODES:
+            raise OntologyNeighborhoodError(
+                "unknown_truth_status", "voice assignment truth status is not governed"
+            )
+        if self.recorded_at.tzinfo is None:
+            raise OntologyNeighborhoodError(
+                "naive_timestamp", "voice assignment recorded_at must be offset-aware"
+            )
+
+
+@dataclass(frozen=True)
 class OntologyNeighborhood:
     """Bounded, deterministic neighborhood payload."""
 
@@ -220,6 +258,7 @@ class OntologyNeighborhood:
     truncated: bool
     next_cursor: str | None
     limitation_code: str | None
+    voice_assignments: tuple[OntologyVoiceAssignment, ...] = ()
 
     def exact_value_rows(self) -> tuple[dict[str, str], ...]:
         """Keyboard/print/CSV rows for the same visible graph."""
@@ -243,6 +282,36 @@ class OntologyNeighborhood:
                     "valid_from": edge.valid_from.isoformat() if edge.valid_from else "",
                     "valid_to": edge.valid_to.isoformat() if edge.valid_to else "",
                     "evidence_count": str(len(edge.evidence_references)),
+                }
+            )
+        post_labels = {
+            node.node_id: node.display_label
+            for node in self.nodes
+            if node.node_type_code == NODE_POST
+        }
+        for assignment in self.voice_assignments:
+            source_label = post_labels.get(assignment.post_id)
+            if source_label is None:
+                raise OntologyNeighborhoodError(
+                    "dangling_endpoint", "voice assignment references a missing post"
+                )
+            rows.append(
+                {
+                    "edge_id": _voice_assignment_id(assignment),
+                    "source_node_id": assignment.post_id,
+                    "source_label": source_label,
+                    "source_type_code": NODE_POST,
+                    "property_code": "hasVoiceAssignment",
+                    "property_label": "Voice carried by this post",
+                    "ontology_property_iri": str(LW.hasVoiceAssignment),
+                    "target_node_id": assignment.voice_type_code,
+                    "target_label": assignment.voice_type_label,
+                    "target_type_code": "node_voice_type",
+                    "truth_status_code": assignment.truth_status_code,
+                    "recorded_at": assignment.recorded_at.isoformat(),
+                    "valid_from": "",
+                    "valid_to": "",
+                    "evidence_count": "1",
                 }
             )
         return tuple(rows)
@@ -297,7 +366,58 @@ class OntologyNeighborhood:
             }
             _add_jsonld_times(item, edge.recorded_at, edge.valid_from, edge.valid_to)
             graph.append(item)
+        assignments_by_post: dict[str, list[OntologyVoiceAssignment]] = {}
+        for assignment in self.voice_assignments:
+            assignments_by_post.setdefault(assignment.post_id, []).append(assignment)
+        for post_id, assignments in assignments_by_post.items():
+            graph.append(
+                {
+                    "@id": ontology_node_iri(NODE_POST, post_id),
+                    str(LW.hasVoiceAssignment): [
+                        {"@id": _voice_assignment_iri(assignment)}
+                        for assignment in assignments
+                    ],
+                }
+            )
+        for assignment in self.voice_assignments:
+            post_iri = ontology_node_iri(NODE_POST, assignment.post_id)
+            assignment_iri = _voice_assignment_iri(assignment)
+            graph.append(
+                {
+                    "@id": assignment_iri,
+                    "@type": str(LW.VoiceAssignment),
+                    str(LW.assignedVoiceType): {"@id": assignment.voice_type_iri},
+                    str(LW.primaryVoiceAssignment): {
+                        "@value": assignment.is_primary,
+                        "@type": "xsd:boolean",
+                    },
+                    str(LW.voiceAssignmentEvidence): {"@id": post_iri},
+                    "prov:wasDerivedFrom": {"@id": post_iri},
+                    "lw:truthStatus": assignment.truth_status_code,
+                    "prov:generatedAtTime": {
+                        "@value": assignment.recorded_at.isoformat(),
+                        "@type": "xsd:dateTimeStamp",
+                    },
+                }
+            )
+            graph.append(
+                {
+                    "@id": assignment.voice_type_iri,
+                    "@type": "skos:Concept",
+                    "skos:prefLabel": assignment.voice_type_label,
+                }
+            )
         return {"@context": JSONLD_CONTEXT, "@graph": graph}
+
+
+def _voice_assignment_id(assignment: OntologyVoiceAssignment) -> str:
+    """Return the deterministic exact-row id for one voice assignment."""
+    return f"voice-assignment:{assignment.post_id}:{assignment.voice_type_code}"
+
+
+def _voice_assignment_iri(assignment: OntologyVoiceAssignment) -> str:
+    """Return the canonical qualified-assignment IRI."""
+    return str(LW[f"voice-assignment/{assignment.post_id}/{assignment.voice_type_code}"])
 
 
 def _add_jsonld_times(
@@ -810,13 +930,7 @@ __all__ = [
     "DEFAULT_MAXIMUM_NODES",
     "INSTANCE_PROPERTY_CODES",
     "JSONLD_CONTEXT",
-    "NeighborhoodFact",
     "NODE_SHAPE",
-    "OntologyGraphEdge",
-    "OntologyGraphNode",
-    "OntologyNodeMetadata",
-    "OntologyNeighborhood",
-    "OntologyNeighborhoodError",
     "PROPERTY_AFFILIATED_WITH",
     "PROPERTY_CO_MENTIONED_WITH",
     "PROPERTY_MENTIONS",
@@ -834,6 +948,13 @@ __all__ = [
     "TRUTH_REJECTED",
     "TRUTH_STATUS_CODES",
     "TRUTH_SUPERSEDED",
+    "NeighborhoodFact",
+    "OntologyGraphEdge",
+    "OntologyGraphNode",
+    "OntologyNeighborhood",
+    "OntologyNeighborhoodError",
+    "OntologyNodeMetadata",
+    "OntologyVoiceAssignment",
     "assemble_ontology_neighborhood",
     "canonicalize_property_code",
     "fact_from_knowledge_graph_edge",

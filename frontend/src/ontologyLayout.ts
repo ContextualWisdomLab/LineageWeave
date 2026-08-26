@@ -191,12 +191,30 @@ export function filterNeighborhood(
   }
   const nodes = payload.nodes.filter((node) => keep.has(nodeKey(node.node_type_code, node.node_id)));
   const exact_value_rows = payload.exact_value_rows.filter((row) =>
-    edges.some((edge) => edge.edge_id === row.edge_id),
+    edges.some((edge) => edge.edge_id === row.edge_id) ||
+    (payload.voice_assignments ?? []).some(
+      (assignment) =>
+        row.edge_id === `voice-assignment:${assignment.post_id}:${assignment.voice_type_code}` &&
+        keep.has(nodeKey("node_post", assignment.post_id)),
+    ),
   );
   const visibleIds = new Set([
     ...nodes.map((node) => `lw:node/${node.node_type_code}/${node.node_id}`),
     ...edges.map((edge) => `lw:edge/${edge.edge_id}`),
   ]);
+  const visibleNodeSuffixes = nodes.map(
+    (node) => `node/${encodeURIComponent(node.node_type_code)}/${node.node_id}`,
+  );
+  const visibleVoiceAssignments = (payload.voice_assignments ?? []).filter((assignment) =>
+    keep.has(nodeKey("node_post", assignment.post_id)),
+  );
+  const visibleVoiceIds = new Set(
+    visibleVoiceAssignments.flatMap((assignment) => [
+      assignment.voice_type_iri,
+      `voice-assignment/${assignment.post_id}/${assignment.voice_type_code}`,
+    ]),
+  );
+  const visibleVoiceIdSuffixes = [...visibleVoiceIds];
   const graph = payload.jsonld["@graph"];
   const jsonld = Array.isArray(graph)
     ? {
@@ -205,11 +223,21 @@ export function filterNeighborhood(
           (item): item is Record<string, unknown> =>
             typeof item === "object" && item !== null &&
             typeof item["@id"] === "string" &&
-            visibleIds.has(item["@id"]),
+            (visibleIds.has(item["@id"]) ||
+              visibleNodeSuffixes.some((suffix) => item["@id"].endsWith(suffix)) ||
+              visibleVoiceIds.has(item["@id"]) ||
+              visibleVoiceIdSuffixes.some((id) => item["@id"].endsWith(id))),
         ),
       }
     : payload.jsonld;
-  return { ...payload, nodes, edges, exact_value_rows, jsonld };
+  return {
+    ...payload,
+    nodes,
+    edges,
+    exact_value_rows,
+    voice_assignments: visibleVoiceAssignments,
+    jsonld,
+  };
 }
 
 /**
@@ -233,6 +261,15 @@ export function accumulateNeighborhoodPages(
   for (const row of next.exact_value_rows) {
     rows.set(row.edge_id, row);
   }
+  const voiceAssignments = new Map(
+    (current.voice_assignments ?? []).map((assignment) => [
+      `${assignment.post_id}:${assignment.voice_type_code}`,
+      assignment,
+    ]),
+  );
+  for (const assignment of next.voice_assignments ?? []) {
+    voiceAssignments.set(`${assignment.post_id}:${assignment.voice_type_code}`, assignment);
+  }
   const graphItems = new Map<string, Record<string, unknown>>();
   for (const payload of [current, next]) {
     const graph = payload.jsonld["@graph"];
@@ -248,6 +285,7 @@ export function accumulateNeighborhoodPages(
     nodes: [...nodes.values()],
     edges: [...edges.values()],
     exact_value_rows: [...rows.values()],
+    voice_assignments: [...voiceAssignments.values()],
     jsonld: {
       ...next.jsonld,
       "@graph": [...graphItems.values()],

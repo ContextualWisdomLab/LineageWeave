@@ -927,6 +927,17 @@ export interface OntologyExactValueRow {
   evidence_count: string;
 }
 
+export interface OntologyVoiceAssignmentPayload {
+  post_id: string;
+  voice_type_code: string;
+  voice_type_iri: string;
+  voice_type_label: string;
+  is_primary: boolean;
+  truth_status_code: string;
+  recorded_at: string;
+  provenance_reference: string;
+}
+
 export interface OntologyNeighborhoodPayload {
   focus_node_id: string;
   focus_node_type_code: string;
@@ -936,6 +947,7 @@ export interface OntologyNeighborhoodPayload {
   nodes: OntologyGraphNodePayload[];
   edges: OntologyGraphEdgePayload[];
   exact_value_rows: OntologyExactValueRow[];
+  voice_assignments?: OntologyVoiceAssignmentPayload[];
   jsonld: Record<string, unknown>;
 }
 

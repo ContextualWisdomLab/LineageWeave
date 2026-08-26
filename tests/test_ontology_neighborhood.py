@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from dataclasses import replace
 from datetime import datetime, timedelta, timezone
 
 import pytest
@@ -22,6 +23,7 @@ from lineageweave.knowledge_graph import (
 )
 from lineageweave.ontology import LW, ontology_node_iri
 from lineageweave.ontology_neighborhood import (
+    HARD_MAXIMUM_NODES,
     PROPERTY_AFFILIATED_WITH,
     PROPERTY_CO_MENTIONED_WITH,
     PROPERTY_MENTIONS,
@@ -36,12 +38,12 @@ from lineageweave.ontology_neighborhood import (
     TRUTH_INFERRED,
     TRUTH_OBSERVED,
     TRUTH_PROPOSED,
-    HARD_MAXIMUM_NODES,
     NeighborhoodFact,
     OntologyGraphEdge,
-    OntologyNodeMetadata,
     OntologyNeighborhood,
     OntologyNeighborhoodError,
+    OntologyNodeMetadata,
+    OntologyVoiceAssignment,
     assemble_ontology_neighborhood,
     canonicalize_property_code,
     fact_from_knowledge_graph_edge,
@@ -853,6 +855,48 @@ def test_node_bound_truncation_drops_cursor_and_jsonld_rejects_dangling() -> Non
     assert exact_values.value.code == "dangling_endpoint"
     rows = neighborhood.exact_value_rows()
     assert rows == ()
+
+
+def test_voice_assignments_join_exact_csv_rows_and_jsonld() -> None:
+    """One authorized post exports the same qualified voice through both projections."""
+    neighborhood = assemble_ontology_neighborhood(
+        focus_node_type_code=NODE_POST,
+        focus_node_id=POST_ID,
+        facts=[],
+        labels=_labels(),
+    )
+    assignment = OntologyVoiceAssignment(
+        post_id=POST_ID,
+        voice_type_code="vops",
+        voice_type_iri=str(LW.voiceOfProcessType),
+        voice_type_label="Voice of Process",
+        is_primary=False,
+        truth_status_code=TRUTH_OBSERVED,
+        recorded_at=T0,
+        provenance_reference="Evidence-backed additional voice",
+    )
+    neighborhood = replace(neighborhood, voice_assignments=(assignment,))
+
+    row = neighborhood.exact_value_rows()[0]
+    assert row["property_code"] == "hasVoiceAssignment"
+    assert row["target_label"] == "Voice of Process"
+    graph = neighborhood.jsonld_document()["@graph"]
+    assignment_iri = str(LW[f"voice-assignment/{POST_ID}/vops"])
+    projected = next(item for item in graph if item.get("@id") == assignment_iri)
+    post_projection = next(
+        item
+        for item in graph
+        if item.get("@id") == ontology_node_iri(NODE_POST, POST_ID)
+        and str(LW.hasVoiceAssignment) in item
+    )
+    assert post_projection[str(LW.hasVoiceAssignment)] == [{"@id": assignment_iri}]
+    assert projected[str(LW.assignedVoiceType)] == {"@id": str(LW.voiceOfProcessType)}
+    assert projected[str(LW.voiceAssignmentEvidence)] == {
+        "@id": ontology_node_iri(NODE_POST, POST_ID)
+    }
+
+    with pytest.raises(OntologyNeighborhoodError, match="offset-aware"):
+        replace(assignment, recorded_at=T0.replace(tzinfo=None))
 
 
 def test_node_bound_truncation_keeps_nearer_hop_over_farther_alphabetically_earlier_type() -> None:

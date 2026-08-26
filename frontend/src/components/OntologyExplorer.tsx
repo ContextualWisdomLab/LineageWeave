@@ -259,6 +259,9 @@ export function OntologyExplorer({
               setSelectedEdgeId(edgeId);
               setSelectedNodeKey(null);
             }}
+            onOpenVoiceEvidence={(postId) =>
+              (onOpenEvidence ?? onSelectPost)?.(postId)
+            }
           />
         </>
       ) : null}
@@ -491,10 +494,12 @@ function OntologyExactValueTable({
   payload,
   selectedEdgeId,
   onSelectEdge,
+  onOpenVoiceEvidence,
 }: {
   payload: OntologyNeighborhoodPayload;
   selectedEdgeId: string | null;
   onSelectEdge: (edgeId: string) => void;
+  onOpenVoiceEvidence: (postId: string) => void;
 }) {
   return (
     <div
@@ -525,7 +530,19 @@ function OntologyExactValueTable({
             {payload.exact_value_rows.map((row) => (
               <tr key={row.edge_id} className={row.edge_id === selectedEdgeId ? "is-selected" : undefined}>
                 <td>
-                  <button type="button" onClick={() => onSelectEdge(row.edge_id)}>
+                  <button
+                    type="button"
+                    aria-label={
+                      row.property_code === "hasVoiceAssignment"
+                        ? tf("Open evidence: {title}", { title: row.source_label })
+                        : undefined
+                    }
+                    onClick={() =>
+                      row.property_code === "hasVoiceAssignment"
+                        ? onOpenVoiceEvidence(row.source_node_id)
+                        : onSelectEdge(row.edge_id)
+                    }
+                  >
                     {row.source_label}
                   </button>
                 </td>

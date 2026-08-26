@@ -2,7 +2,7 @@
 
 > Voice-of-X delivery snapshot: 2026-08-27 KST. Protected `main` was
 > `ff7431bd1851c03e737808d22c6a2d43968582f9`; PR #713 was
-> `fea73e19c8b9662b4e6c3c842f1edaa6a3ef6d63`. This candidate and the
+> `cc3dfc144e1b4be1fa8c3a525fb059d4aba91fc3`. This candidate and the
 > historical evidence below are not protected-main release evidence.
 
 ## Voice-of-X product and technical gap
@@ -40,23 +40,26 @@ Cartesian-product codes. The remaining acceptance boundary is:
 3. keeps post voice distinct from named-counterparty relationship, actor role,
    topic, channel, lifecycle, and stakeholder-salience attributes;
 4. return only authorized associations through API, JSON-LD, CSV, filters,
-   and UI (API list/detail, filters, and combined post-card labels implemented;
-   JSON-LD, CSV, and evidence navigation remain missing); and
+   and UI (candidate API list/detail, filters, combined post-card labels,
+   qualified JSON-LD, exact-value CSV, SHACL, and source-post evidence
+   navigation implemented); and
 5. proves zero-, one-, and multi-voice states with synthetic fixtures,
    migration replay, ontology/SHACL, API, accessibility, and Storybook edge
    tests before any release claim.
 
 At this snapshot the repository had 23 open PRs and 10 open issues. PR #713
-was `MERGEABLE` but policy-blocked: exact-head backend, frontend, CodeQL,
-ontology-publication, Semgrep, OSV, Trivy, Scorecard, Noema, Devin, and
-CodeRabbit checks were successful; `coverage-source-tree` was queued; Strix
-failed closed with `STRIX_PROVIDER_UNAVAILABLE`; and an independent approval
-was still required. Auto-merge remains enabled. No self-approval, admin bypass,
-or stale-head check transfer is permitted.
+was policy-blocked: exact-head frontend, CodeQL, ontology-publication,
+Semgrep, OSV, Trivy, Scorecard, Noema, Devin, and CodeRabbit checks were
+successful; the full suite and Strix were running; `coverage-source-tree` was
+queued; and an independent approval was still required. Auto-merge remains
+enabled. No self-approval, admin bypass, or stale-head check transfer is
+permitted.
 
-Stacked PR #717 at `dce623a1` carries ADR 0247, migration 0237, qualified
-ontology terms, and focused contract tests. It targets #713's branch, not
-protected `main`; its checks and review are candidate evidence only. After
+Stacked PR #717 at `771a8edf` carries ADR 0247, migration 0237, qualified
+ontology terms, persistence/API/UI tests, and the category-validation review
+repairs. CodeRabbit and Devin were successful on that exact remote head before
+this local projection slice. It targets #713's branch, not protected `main`;
+its checks and review are candidate evidence only. After
 #713 reaches protected main, #717 must be synchronized, retargeted to `main`,
 and revalidated on its then-current head. Creating #717 raised the live queue
 to 24 open PRs after the snapshot above.

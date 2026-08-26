@@ -14,7 +14,9 @@ All notable changes to this project are documented here. Format follows
   keyword inference, confidence thresholds, and invented weights remain out of
   the contract; the ontology publishes qualified `VoiceAssignment` resources,
   authorized post responses expose the assignments, filters match any assigned
-  voice, and post cards display combined labels.
+  voice, post cards display combined labels, and the authorized neighborhood
+  carries the assignments through SHACL-validated JSON-LD, exact-value CSV,
+  and source-post evidence navigation.
 - Expanded Voice-of-X post taxonomy (ADR 0246): the governed `voc_type`
   scheme adds Voice of Supplier, Employee, Business, Regulator, Investor,
   Society, and Process as source-post categories. Ontology SKOS concepts and

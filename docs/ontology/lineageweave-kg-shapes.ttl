@@ -166,6 +166,34 @@
         sh:datatype xsd:string ;
     ] .
 
+:VoiceAssignmentShape a sh:NodeShape ;
+    rdfs:label "Voice assignment shape" ;
+    sh:targetClass :VoiceAssignment ;
+    sh:property [
+        sh:path :assignedVoiceType ;
+        sh:name "assigned voice type" ;
+        sh:description "Every qualified assignment names exactly one governed atomic Voice-of-X concept." ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:class <http://www.w3.org/2004/02/skos/core#Concept> ;
+    ] ;
+    sh:property [
+        sh:path :primaryVoiceAssignment ;
+        sh:name "primary voice assignment" ;
+        sh:description "The imported-primary marker is explicit and single-valued." ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:datatype xsd:boolean ;
+    ] ;
+    sh:property [
+        sh:path :voiceAssignmentEvidence ;
+        sh:name "voice assignment evidence" ;
+        sh:description "Every assignment retains exactly one authorized supporting source post." ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:class :Post ;
+    ] .
+
 :OurSidePersonShape a sh:NodeShape ;
     rdfs:label "Our-side person shape" ;
     sh:comment "Closed-world complement of :OurSidePerson owl:disjointWith :CounterpartyPerson: an instance of one can never be typed as the other." ;

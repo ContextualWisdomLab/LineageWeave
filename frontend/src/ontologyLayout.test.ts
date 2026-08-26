@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 import type { OntologyNeighborhoodPayload } from "./api";
-import { accumulateNeighborhoodPages, layoutOntologyNeighborhood, neighborhoodCsv } from "./ontologyLayout";
+import {
+  accumulateNeighborhoodPages,
+  filterNeighborhood,
+  layoutOntologyNeighborhood,
+  neighborhoodCsv,
+} from "./ontologyLayout";
 
 const POST_ID = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa1";
 const PERSON_ID = "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbb1";
@@ -109,6 +114,45 @@ function payload(): OntologyNeighborhoodPayload {
 }
 
 describe("ontologyLayout", () => {
+  it("keeps evidence-bearing voice assignments in CSV, filters, and page accumulation", () => {
+    const source = payload();
+    const assignment = {
+      post_id: POST_ID,
+      voice_type_code: "voc_customer",
+      voice_type_iri: "https://example.test/voice/customer",
+      voice_type_label: "Voice of Customer",
+      is_primary: false,
+      truth_status_code: "truth_observed",
+      recorded_at: "2026-01-10T12:00:00+00:00",
+      provenance_reference: "Evidence-backed additional voice",
+    };
+    const row = {
+      ...source.exact_value_rows[0],
+      edge_id: `voice-assignment:${POST_ID}:voc_customer`,
+      property_code: "hasVoiceAssignment",
+      property_label: "Voice carried by this post",
+      target_node_id: assignment.voice_type_code,
+      target_label: assignment.voice_type_label,
+      target_type_code: "node_voice_type",
+    };
+    const withVoice = {
+      ...source,
+      voice_assignments: [assignment],
+      exact_value_rows: [...source.exact_value_rows, row],
+      jsonld: {
+        "@graph": [
+          { "@id": `https://example.test/voice-assignment/${POST_ID}/voc_customer` },
+          { "@id": assignment.voice_type_iri },
+        ],
+      },
+    } satisfies OntologyNeighborhoodPayload;
+
+    expect(neighborhoodCsv(withVoice)).toContain("Voice of Customer");
+    expect(filterNeighborhood(withVoice, "customer")!.voice_assignments).toEqual([assignment]);
+    expect(filterNeighborhood(withVoice, "missing")!.voice_assignments).toEqual([assignment]);
+    expect(accumulateNeighborhoodPages(source, withVoice).voice_assignments).toEqual([assignment]);
+  });
+
   it("is deterministic for a fixed payload", () => {
     const first = layoutOntologyNeighborhood(payload());
     const second = layoutOntologyNeighborhood(payload());

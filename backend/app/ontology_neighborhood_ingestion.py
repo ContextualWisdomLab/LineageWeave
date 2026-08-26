@@ -18,39 +18,41 @@ from backend.app.knowledge_graph import (
     visible_team_mention_post_ids,
 )
 from backend.app.post_eligibility import SOURCE_POST_ELIGIBILITY_SQL
-from lineageweave.post_summary import parse_project_candidate_node_id
 from lineageweave.knowledge_graph import (
+    EDGE_MENTION_PROJECT,
     NODE_CORPORATE_ENTITY,
     NODE_PERSON,
     NODE_POST,
     NODE_PROJECT,
     NODE_TEAM,
-    EDGE_MENTION_PROJECT,
 )
+from lineageweave.ontology import iri_for_lookup_code
 from lineageweave.ontology_neighborhood import (
     DEFAULT_MAXIMUM_DEPTH,
     DEFAULT_MAXIMUM_EDGES,
     DEFAULT_MAXIMUM_NODES,
     HARD_MAXIMUM_EDGES,
     KNOWN_NODE_TYPES,
+    PROPERTY_SKOS_BROADER,
     NeighborhoodFact,
-    OntologyNodeMetadata,
     OntologyNeighborhood,
     OntologyNeighborhoodError,
-    PROPERTY_SKOS_BROADER,
+    OntologyNodeMetadata,
+    OntologyVoiceAssignment,
     assemble_ontology_neighborhood,
     fact_from_knowledge_graph_edge,
     skos_broader_fact,
 )
 from lineageweave.ontology_source_cursor import (
-    OntologySourceKey,
-    OntologySourceCursor,
     SOURCE_CURSOR_PREFIX,
+    OntologySourceCursor,
+    OntologySourceKey,
     mint_source_cursor,
     source_cursor_secret_from_env,
     source_key_from_row,
     verify_source_cursor,
 )
+from lineageweave.post_summary import parse_project_candidate_node_id
 
 NOT_FOUND_NEIGHBORHOOD_CODES = frozenset(
     {"focus_hidden", "focus_not_visible", "unknown_node_type", "dangling_endpoint"}
@@ -758,9 +760,71 @@ def neighborhood_to_payload(neighborhood: OntologyNeighborhood) -> dict[str, Any
             }
             for edge in neighborhood.edges
         ],
+        "voice_assignments": [
+            {
+                "post_id": assignment.post_id,
+                "voice_type_code": assignment.voice_type_code,
+                "voice_type_iri": assignment.voice_type_iri,
+                "voice_type_label": assignment.voice_type_label,
+                "is_primary": assignment.is_primary,
+                "truth_status_code": assignment.truth_status_code,
+                "recorded_at": assignment.recorded_at.isoformat(),
+                "provenance_reference": assignment.provenance_reference,
+            }
+            for assignment in neighborhood.voice_assignments
+        ],
         "exact_value_rows": list(neighborhood.exact_value_rows()),
         "jsonld": neighborhood.jsonld_document(),
     }
+
+
+async def _load_voice_assignments(
+    conn: asyncpg.Connection,
+    post_id: str,
+    *,
+    knowledge_cutoff: datetime | None,
+) -> tuple[OntologyVoiceAssignment, ...]:
+    """Load qualified voices only after the focus post passed authorization."""
+    rows = await conn.fetch(
+        """
+        select voice.voice_type_code, lookup.lookup_label, voice.is_primary,
+               voice.truth_status_code, voice.recorded_at,
+               voice.provenance_assertion_id is not null as has_assertion
+          from source_post_voice voice
+          join common_lookup_value lookup
+            on lookup.lookup_category = 'voc_type'
+           and lookup.lookup_code = voice.voice_type_code
+         where voice.post_id = $1
+           and ($2::timestamptz is null or voice.recorded_at <= $2)
+         order by voice.is_primary desc, lookup.display_order, voice.voice_type_code
+        """,
+        post_id,
+        knowledge_cutoff,
+    )
+    assignments: list[OntologyVoiceAssignment] = []
+    for row in rows:
+        voice_type_iri = iri_for_lookup_code(row["voice_type_code"])
+        if voice_type_iri is None:
+            raise OntologyNeighborhoodError(
+                "unknown_property", "voice type has no published ontology term"
+            )
+        assignments.append(
+            OntologyVoiceAssignment(
+                post_id=post_id,
+                voice_type_code=row["voice_type_code"],
+                voice_type_iri=voice_type_iri,
+                voice_type_label=row["lookup_label"],
+                is_primary=row["is_primary"],
+                truth_status_code=row["truth_status_code"],
+                recorded_at=row["recorded_at"],
+                provenance_reference=(
+                    "Evidence-backed additional voice"
+                    if row["has_assertion"]
+                    else "Imported primary voice"
+                ),
+            )
+        )
+    return tuple(assignments)
 
 
 async def visible_ontology_neighborhood(
@@ -1074,6 +1138,15 @@ async def visible_ontology_neighborhood(
         cursor=assembler_cursor,
         source_truncated=source_truncated,
     )
+    if focus_node_type_code == NODE_POST:
+        neighborhood = replace(
+            neighborhood,
+            voice_assignments=await _load_voice_assignments(
+                conn,
+                focus_node_id,
+                knowledge_cutoff=knowledge_cutoff,
+            ),
+        )
     last_source_key = None
     neighborhood_edges = getattr(neighborhood, "edges", ())
     for edge in reversed(neighborhood_edges):

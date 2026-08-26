@@ -51,9 +51,12 @@ compound lookup codes.
 - Authorized post list/detail responses expose ordered voice assignments with
   labels, truth state, and evidence availability but never internal assertion
   identifiers. Filters match any associated voice, and repeated post cards show
-  the combined labels. JSON-LD and evidence navigation remain unavailable
-  until a later slice; schema presence alone is not a broader publication
-  claim.
+  the combined labels.
+- The authorized ontology neighborhood projects each association as a
+  qualified assignment in JSON-LD and the exact-value CSV. SHACL requires its
+  atomic voice concept, primary flag, and source-post evidence. The exact-value
+  table opens that already-authorized source post; it does not invent a graph
+  edge or expose an internal assertion identifier.
 
 ## Data model
 
@@ -91,9 +94,10 @@ voice-first index for bounded filtering. It introduces no new Voice-of-X
 category and stores no source content or identifying evidence in repository
 artifacts.
 
-The next product slice must project authorized combinations through JSON-LD,
-SHACL, exports, and evidence navigation. Authenticated runtime and rendered
-desktop/mobile acceptance remain required before a release claim.
+The repository candidate projects authorized combinations through JSON-LD,
+SHACL, CSV, and evidence navigation. Authenticated runtime, an authorized write
+workflow for additional assignments, and rendered desktop/mobile acceptance
+remain required before a release claim.
 
 ## References
 

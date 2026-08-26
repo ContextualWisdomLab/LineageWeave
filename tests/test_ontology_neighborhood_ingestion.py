@@ -12,6 +12,7 @@ from backend.app.ontology_neighborhood_ingestion import (
     _load_labels,
     _load_node_metadata,
     _load_skos_facts,
+    _load_voice_assignments,
     focus_catalog_exists,
     neighborhood_error_detail,
     neighborhood_error_http_status,
@@ -31,11 +32,11 @@ from lineageweave.knowledge_graph import (
     NODE_TEAM,
 )
 from lineageweave.ontology_neighborhood import (
+    PROPERTY_AFFILIATED_WITH,
+    TRUTH_OBSERVED,
     NeighborhoodFact,
     OntologyNeighborhoodError,
     OntologyNodeMetadata,
-    PROPERTY_AFFILIATED_WITH,
-    TRUTH_OBSERVED,
     assemble_ontology_neighborhood,
     fact_from_knowledge_graph_edge,
 )
@@ -874,6 +875,41 @@ def test_load_labels_ignores_unknown_node_types() -> None:
     )
     labels = asyncio.run(_load_labels(ScriptedConn({}), [unknown]))
     assert labels == {}
+
+
+def test_load_voice_assignments_preserves_truth_and_customer_safe_provenance() -> None:
+    """Qualified voices load only from the authorized post and hide assertion ids."""
+    conn = ScriptedConn(
+        {
+            "from source_post_voice voice": [
+                {
+                    "voice_type_code": "voc",
+                    "lookup_label": "Voice of Customer",
+                    "is_primary": True,
+                    "truth_status_code": "truth_observed",
+                    "recorded_at": T0,
+                    "has_assertion": False,
+                },
+                {
+                    "voice_type_code": "vops",
+                    "lookup_label": "Voice of Process",
+                    "is_primary": False,
+                    "truth_status_code": "truth_observed",
+                    "recorded_at": T0,
+                    "has_assertion": True,
+                },
+            ]
+        }
+    )
+
+    assignments = asyncio.run(
+        _load_voice_assignments(conn, POST_ID, knowledge_cutoff=T0)
+    )
+
+    assert [assignment.voice_type_code for assignment in assignments] == ["voc", "vops"]
+    assert assignments[0].provenance_reference == "Imported primary voice"
+    assert assignments[1].provenance_reference == "Evidence-backed additional voice"
+    assert conn.calls[0][1] == (POST_ID, T0)
 
 
 def test_payload_serializes_optional_validity() -> None:

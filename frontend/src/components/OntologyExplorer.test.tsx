@@ -274,6 +274,38 @@ describe("OntologyExplorer", () => {
     expect(screen.queryByRole("img")).not.toBeInTheDocument();
   });
 
+  it("opens the source post for a qualified voice assignment", async () => {
+    const onOpenEvidence = vi.fn();
+    const source = neighborhood();
+    render(
+      <OntologyExplorer
+        focusNodeType="node_post"
+        focusNodeId={POST_ID}
+        neighborhood={{
+          ...source,
+          exact_value_rows: [
+            ...source.exact_value_rows,
+            {
+              ...source.exact_value_rows[0],
+              edge_id: `voice-assignment:${POST_ID}:voc_customer`,
+              property_code: "hasVoiceAssignment",
+              property_label: "Voice carried by this post",
+              target_node_id: "voc_customer",
+              target_label: "Voice of Customer",
+              target_type_code: "node_voice_type",
+            },
+          ],
+        }}
+        onOpenEvidence={onOpenEvidence}
+      />,
+    );
+
+    await userEvent.click(
+      screen.getByRole("button", { name: "Open evidence: Demo public post" }),
+    );
+    expect(onOpenEvidence).toHaveBeenCalledWith(POST_ID);
+  });
+
   it("keeps complete long node labels in the rendered graph and exact-value table", () => {
     const longLabel =
       "Synthetic multilingual procurement governance decision with complete provenance";

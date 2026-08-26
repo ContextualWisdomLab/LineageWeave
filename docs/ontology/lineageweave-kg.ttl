@@ -385,6 +385,13 @@
     rdfs:range xsd:boolean ;
     rdfs:label "primary voice assignment"@en .
 
+:voiceAssignmentEvidence a owl:ObjectProperty ;
+    rdfs:subPropertyOf prov:wasDerivedFrom ;
+    rdfs:domain :VoiceAssignment ;
+    rdfs:range :Post ;
+    rdfs:label "voice assignment evidence"@en ;
+    rdfs:comment "The authorized source post that supports this qualified voice assignment."@en .
+
 #################################################################
 # SKOS -- corporate_entity_level (Group -> Company -> Plant)
 #################################################################
