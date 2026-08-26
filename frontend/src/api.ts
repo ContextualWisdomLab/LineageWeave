@@ -136,7 +136,6 @@ export interface VoiceTaxonomySummary {
     post_count: number;
     eligible_percentage: number;
   }>;
-  next_action_text: string;
 }
 
 export async function fetchVoiceTaxonomySummary(

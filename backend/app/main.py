@@ -1599,9 +1599,6 @@ async def read_voice_taxonomy_summary(
             for code, count in sorted(category_counts.items())
         ],
         "counts_overlap": True,
-        "next_action_text": (
-            "Review disagreements and unavailable records before using these classifications."
-        ),
     }
 
 
