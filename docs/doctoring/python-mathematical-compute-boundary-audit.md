@@ -62,3 +62,36 @@ labels do not replace foreign keys. Dashboard and post detail endpoints read
 only accepted persisted rows and preserve source-post ABAC. Storybook covers
 accepted, pending, failed, stale-digest, non-converged, hidden-evidence, and
 multiple-membership cases before UI activation.
+
+## 2026-08-26 stacked-PR audit
+
+The exact reviewed heads were PR #692 `583059edcffe994b18a6fbf3cb3b00bf4647c2a3`,
+PR #693 `999063d22e60469227eeea308fee787683952cab`, and PR #694
+`296cbae6c9ac2839b0f5ff150ae02ebf4f726627`. The review used CodeGraph before
+diff inspection.
+
+- PR #692 adds evidence-span normalization, unique/miss/tie catalog binding,
+  persistence, and projection. It adds no statistical score, vector algebra,
+  fitted weight, or local model.
+- PR #693's Python code validates vector shape and finiteness, serializes the
+  exact UTF-8 request body, and chooses a prefix under an upstream-advertised
+  byte ceiling. Those are transport and schema-validation operations allowed
+  by ADR 0208, not token estimation or vector scoring. Tokenization, token
+  ranges, provider-limit packing, checked token totals, and shard construction
+  are owned by contextual-orchestrator's Rust/PyO3 extension pinned by the
+  Docker build. The owner follow-up PR #865 is stacked on the current owning
+  #857 branch and fails closed at an undecodable
+  token ceiling and preserves complete UTF-8 scalars when a nominal token
+  boundary divides their byte representation.
+- PR #694 delegates overlap counts and the shared eligible denominator to one
+  authorization-filtered SQL aggregate. Converting those returned counts to a
+  displayed percentage is presentation formatting, explicitly outside the
+  model-ownership inventory. It supplies no threshold, category weight,
+  probability model, or forced winner.
+
+No new Python mathematical or psychometric implementation was found in this
+stack. The highest-leverage newly exercised owner path is therefore the Rust
+token packer rather than a duplicate LineageWeave implementation. Existing
+cosine, graph-ranking, fusion, period-report, and anchored channel-weight debt
+remains frozen under the owner and acceptance criteria above; this audit does
+not reclassify it as complete.
