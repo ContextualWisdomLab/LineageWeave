@@ -2211,7 +2211,8 @@ def _warm_seeded_post_content(
     connection = psycopg2.connect(postgres_dsn)
     try:
         with connection.cursor() as cur:
-            cur.execute(
+            # Safe SQL: eligibility is an immutable schema fragment; no values are interpolated.
+            cur.execute(  # nosemgrep: python.lang.security.audit.sqli.psycopg-sqli.psycopg-sqli, python.sqlalchemy.security.sqlalchemy-execute-raw-query.sqlalchemy-execute-raw-query
                 "select post_id from source_post "
                 "where post_title like 'Demo %post' and "
                 + SOURCE_POST_ELIGIBILITY_SQL.format(alias="source_post")
