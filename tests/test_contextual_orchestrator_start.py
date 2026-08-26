@@ -55,6 +55,16 @@ def test_gateway_api_key_accepts_local_compatibility_alias(monkeypatch) -> None:
     assert module._pop_first_env("LLM_GATEWAY_API_KEY", "LLM_API_KEY") == "compatibility-key"
 
 
+def test_embedding_agent_does_not_infer_provider_from_model_name() -> None:
+    module = _load_start_module()
+
+    agent = module._embedding_agent(
+        "text-embedding-3-large", "", "https://gateway.example/v1"
+    )
+
+    assert "provider_name" not in agent
+
+
 def test_provider_key_is_not_aliased_as_gateway_transport(monkeypatch) -> None:
     module = _load_start_module()
     for name in ("LLM_GATEWAY_API_KEY", "LLM_API_KEY"):
@@ -113,6 +123,7 @@ def test_bootstrap_registers_operator_configured_embedding_capability(monkeypatc
     monkeypatch.setenv("LLM_GATEWAY_API_URL", "https://gateway.example")
     monkeypatch.setenv("BATCH_JOB_REGISTRY_VALKEY_URL", "redis://valkey:6379/1")
     monkeypatch.setenv("LLM_GATEWAY_EMBEDDING_MODEL", "text-embedding-3-large")
+    monkeypatch.setenv("LLM_GATEWAY_EMBEDDING_PROVIDER", "openai")
 
     module.main()
 
@@ -141,5 +152,17 @@ def test_bootstrap_registers_operator_configured_embedding_capability(monkeypatc
     } & os.environ.keys()
     agents = captured["agents"]
     assert isinstance(agents, dict)
-    assert not [agent for agent in agents["agents"] if "embedding" in agent.get("tags", [])]
+    assert [agent for agent in agents["agents"] if "embedding" in agent.get("tags", [])] == [
+        {
+            "id": "gateway_embedding_agent",
+            "model": "text-embedding-3-large",
+            "provider_protocol": "auto",
+            "provider_name": "openai",
+            "base_url": "https://gateway.example/v1",
+            "credential_key": "LLM_GATEWAY_API_KEY",
+            "tags": ["embedding"],
+            "priority": 1,
+        }
+    ]
     assert "LLM_GATEWAY_EMBEDDING_MODEL" not in os.environ
+    assert "LLM_GATEWAY_EMBEDDING_PROVIDER" not in os.environ

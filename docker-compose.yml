@@ -120,6 +120,10 @@ services:
       CONTEXTUAL_ORCHESTRATOR_MAX_BODY_BYTES: ${CONTEXTUAL_ORCHESTRATOR_MAX_BODY_BYTES:-8388608}
       CONTEXTUAL_ORCHESTRATOR_ALLOWED_PROVIDER_HOSTS: ${CONTEXTUAL_ORCHESTRATOR_ALLOWED_PROVIDER_HOSTS:-host.docker.internal}
       BATCH_JOB_REGISTRY_VALKEY_URL: redis://valkey:6379/1
+      # The gateway owns this provider/model binding. LineageWeave clients
+      # remain model-neutral and consume the advertised embedding capability.
+      LLM_GATEWAY_EMBEDDING_MODEL: text-embedding-3-large
+      LLM_GATEWAY_EMBEDDING_PROVIDER: openai
       OTEL_SERVICE_NAME: ${OTEL_ORCHESTRATOR_SERVICE_NAME:-contextual-orchestrator}
       # Do not set OTEL_EXPORTER_OTLP_ENDPOINT here. An empty
       # ${OTEL_EXPORTER_OTLP_ENDPOINT:-} interpolation would wipe a value from
