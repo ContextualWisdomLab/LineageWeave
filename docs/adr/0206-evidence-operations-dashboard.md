@@ -210,6 +210,13 @@ treated as a negative case.
   The same operator-declared run invokes `scripts/k6_operations_dashboard.js`
   with explicit VUs and duration; it observes Dashboard reads only, defines no
   performance threshold, and keeps its summary outside the repository.
+- `scripts/accept_operations_dashboard_synthetic.sh` obtains only the local
+  synthetic Keycloak identity and makes authenticated Dashboard reads without
+  starting content analysis or calling a provider. It rejects backend, worker,
+  or frontend images whose OCI revision label is not the operator-declared
+  exact LineageWeave commit, and keeps screenshot, browser, and k6 evidence
+  outside the repository. An empty synthetic case list remains a valid UI/API
+  shape check; it is not evidence that grounded production cases exist.
 
 ## References
 

@@ -147,6 +147,8 @@ services:
     build:
       context: .
       dockerfile: backend/Dockerfile
+      args:
+        LINEAGEWEAVE_SOURCE_REVISION: ${LINEAGEWEAVE_SOURCE_REVISION:-unknown}
     environment: &backend-environment
       DATABASE_URL: postgresql://${POSTGRES_USER:-lineageweave}:${POSTGRES_PASSWORD:-lineageweave_dev_only}@postgres:5432/${POSTGRES_DB:-lineageweave}
       # Internal DNS name for JWKS fetches (always reachable from inside the
@@ -215,6 +217,8 @@ services:
     build:
       context: .
       dockerfile: backend/Dockerfile
+      args:
+        LINEAGEWEAVE_SOURCE_REVISION: ${LINEAGEWEAVE_SOURCE_REVISION:-unknown}
     command: ["python", "-m", "backend.app.worker"]
     restart: unless-stopped
     environment: *backend-environment
@@ -288,6 +292,7 @@ services:
     build:
       context: ./frontend
       args:
+        LINEAGEWEAVE_SOURCE_REVISION: ${LINEAGEWEAVE_SOURCE_REVISION:-unknown}
         VITE_KEYVERSE_ISSUER: ${KEYVERSE_ISSUER:-http://localhost:${KEYCLOAK_PORT:-18080}/realms/lineageweave-demo}
         VITE_KEYVERSE_CLIENT_ID: ${KEYVERSE_CLIENT_ID:-lineageweave-frontend}
         VITE_BACKEND_BASE_URL: http://localhost:${BACKEND_PORT:-18420}

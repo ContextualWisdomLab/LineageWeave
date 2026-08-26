@@ -40,6 +40,13 @@ that can accept durable jobs while no consumer exists. Non-Compose deployments
 must express the same co-deployment and readiness dependency in their service
 manager; process liveness alone is not durable-job readiness.
 
+Backend, worker, and frontend images carry the
+`org.opencontainers.image.revision` label supplied by the explicit
+`LINEAGEWEAVE_SOURCE_REVISION` build argument. Its default is `unknown`, so an
+acceptance runner cannot mistake an ordinary local build for exact-head
+evidence. Exact-head evidence requires a full commit SHA supplied at build time
+and verified on every participating product container before the run.
+
 ## Consequences
 
 - `make up`, `make ps`, `make logs`, and `make down` address the same project

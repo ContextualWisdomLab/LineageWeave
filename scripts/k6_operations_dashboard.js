@@ -6,6 +6,7 @@ import { Trend } from "k6/metrics";
 
 const backendUrl = (__ENV.BACKEND_URL || "").replace(/\/$/, "");
 const accessToken = __ENV.LINEAGEWEAVE_ACCESS_TOKEN || "";
+const requireGroundedCase = __ENV.REQUIRE_GROUNDED_CASE !== "false";
 const dashboardDuration = new Trend("lineageweave_operations_dashboard_duration", true);
 
 export function setup() {
@@ -22,10 +23,13 @@ export default function () {
   dashboardDuration.add(response.timings.duration);
   check(response, {
     "authenticated Dashboard read succeeds": (value) => value.status === 200,
-    "Dashboard retains a grounded case": (value) => {
+    "Dashboard response has the required case evidence": (value) => {
       if (value.status !== 200) return false;
       const body = value.json();
-      return Array.isArray(body.cases) && body.cases.length > 0;
+      return (
+        Array.isArray(body.cases) &&
+        (!requireGroundedCase || body.cases.length > 0)
+      );
     },
   });
 }

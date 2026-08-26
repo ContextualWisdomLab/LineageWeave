@@ -34,7 +34,7 @@ esac
   exit 2
 }
 
-for command_name in curl docker jq corepack k6; do
+for command_name in curl docker jq corepack k6 uv; do
   command -v "$command_name" >/dev/null || { echo "$command_name is required" >&2; exit 2; }
 done
 
@@ -43,6 +43,9 @@ actual_revision="$(docker inspect lineageweave-orchestrator-1 --format '{{ index
   echo "orchestrator image revision does not match the accepted revision" >&2
   exit 2
 }
+
+source_post_eligibility_sql="$(uv run python -c \
+  'from backend.app.post_eligibility import SOURCE_POST_ELIGIBILITY_SQL; print(SOURCE_POST_ELIGIBILITY_SQL.format(alias="post"))')"
 
 curl_json() {
   local token="$1" method="$2" url="$3" body="${4:-}"
@@ -76,8 +79,7 @@ with preferred as (
     select post.post_id
       from source_post post
       join post_content_ingestion_job job on job.post_id = post.post_id
-     where nullif(btrim(post.source_draft_code), '') is null
-       and nullif(btrim(post.source_deleted_flag), '') is null
+     where ${source_post_eligibility_sql}
        and job.status_code = 'post_content_ingestion_succeeded'
        and exists (
            select 1 from post_project_mention project
