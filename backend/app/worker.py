@@ -12,9 +12,11 @@ from backend.app.db import create_pool
 from backend.app.global_ask_queue import run_global_ask_worker
 from backend.app.main import (
     _adjudication_client,
+    _claim_verification_client_factory,
     _embedding_client,
     _post_chat_client,
     _post_structure_client,
+    _semantic_query_client,
     _vision_client,
 )
 from backend.app.post_content_worker import run_post_content_worker
@@ -59,6 +61,8 @@ async def run_worker_process() -> None:
                     timeout=load_settings().orchestrator_answer_timeout_seconds
                 ),
                 embedding_factory=_embedding_client,
+                semantic_query_factory=_semantic_query_client,
+                claim_verification_factory=_claim_verification_client_factory,
             )
         ),
     )
