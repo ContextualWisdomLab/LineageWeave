@@ -358,11 +358,13 @@ export function ChatPanel({
 
   async function handleAsk(asked = question) {
     if (!asked.trim()) return;
-    const startsConversation = conversationId === null;
+    const requestedConversationId = conversationId;
     setLoading(true);
     setError(null);
     try {
-      const result = await askPostChat(accessToken, postId, asked, conversationId);
+      const result = await askPostChat(accessToken, postId, asked, requestedConversationId);
+      const startsConversation = requestedConversationId === null
+        || (result.conversation_id !== undefined && result.conversation_id !== requestedConversationId);
       setAnswer(result);
       if (result.conversation_id) {
         setConversationId(result.conversation_id);
@@ -373,7 +375,9 @@ export function ChatPanel({
             updated_at: new Date().toISOString(),
             turn_count: (current.find((row) => row.conversation_id === result.conversation_id)?.turn_count ?? 0) + 1,
           },
-          ...current.filter((row) => row.conversation_id !== result.conversation_id),
+          ...current.filter((row) =>
+            row.conversation_id !== result.conversation_id
+            && row.conversation_id !== requestedConversationId),
         ]);
       }
       setExchanges((prev) => {

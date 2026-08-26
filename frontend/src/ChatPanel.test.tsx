@@ -83,6 +83,47 @@ describe("ChatPanel conversation history", () => {
     expect(screen.queryByText("Demo answer")).toBeNull();
   });
 
+  it("replaces a deleted conversation transcript when recovery creates a new one", async () => {
+    vi.stubGlobal("fetch", vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = input instanceof Request ? input.url : String(input);
+      if (url.endsWith("/chat") && init?.method === "POST") {
+        return jsonResponse({
+          answer_text: "Recovered answer",
+          cited_post_ids: [],
+          cited_posts: [],
+          conversation_id: "conversation-new",
+        });
+      }
+      if (url.endsWith("/chat/conversations/conversation-deleted")) {
+        return jsonResponse({
+          conversation_id: "conversation-deleted",
+          title: "Deleted conversation",
+          older_cursor: null,
+          exchanges: [{ turn_id: "turn-old", question_text: "Old?", answer_text: "Deleted transcript", cited_post_ids: [] }],
+        });
+      }
+      if (url.endsWith("/chat/conversations")) {
+        return jsonResponse({
+          conversations: [{ conversation_id: "conversation-deleted", title: "Deleted conversation", updated_at: "2026-08-26T00:00:00Z", turn_count: 1 }],
+          next_cursor: null,
+        });
+      }
+      return jsonResponse({ post_id: "post-1", exchanges: [] });
+    }));
+
+    render(<ChatPanel postId="post-1" accessToken="synthetic-token" />);
+    const history = await screen.findByLabelText("Conversation history");
+    await userEvent.selectOptions(history, "conversation-deleted");
+    await screen.findByText("Deleted transcript");
+    await userEvent.type(screen.getByPlaceholderText("What happened between these events?"), "Recover this");
+    await userEvent.click(screen.getByRole("button", { name: "Ask" }));
+
+    expect(await screen.findByText("Recovered answer")).toBeInTheDocument();
+    expect(screen.queryByText("Deleted transcript")).toBeNull();
+    expect(history).toHaveValue("conversation-new");
+    expect(screen.queryByRole("option", { name: /Deleted conversation/ })).toBeNull();
+  });
+
   it("does not duplicate an answered conversation when loading another page", async () => {
     vi.stubGlobal("fetch", vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
       const url = input instanceof Request ? input.url : String(input);
