@@ -89,7 +89,7 @@ adds normalized, semantic-unit-bound persistence and an authorized Post-detail
 projection. ADR 0250 synchronizes all official O*NET cognitive-ability,
 work-style, and work-activity Content Model elements into that versioned
 registry without importing ratings. Search, graph navigation, extraction, and
-UI remain unavailable until their separate ADR acceptance. ADR 0251 adds
+UI remain unavailable until their separate ADR acceptance. ADR 0253 adds
 catalog-bound semantic-unit extraction through contextual-orchestrator's
 multi-agent conduct path; exact offered IRIs and verbatim spans are required,
 and a digest-bound run record distinguishes a supported empty result from an

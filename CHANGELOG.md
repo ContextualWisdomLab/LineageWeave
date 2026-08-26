@@ -25,7 +25,7 @@ All notable changes to this project are documented here. Format follows
   through contextual-orchestrator's multi-agent conduct workflow and persists
   only exact catalog IRIs with verbatim semantic-unit evidence. A digest-bound
   run ledger preserves successful empty extraction without inventing a signal
-  (ADR 0251).
+  (ADR 0253).
 - Authorized Post detail now shows O*NET work evidence with its verbatim source
   span, explicit inference status, and official definition action. Complete
   empty, processing, and unavailable states stay distinct and localized rather

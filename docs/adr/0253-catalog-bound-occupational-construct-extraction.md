@@ -1,4 +1,4 @@
-# ADR 0251: Catalog-bound occupational construct extraction
+# ADR 0253: Catalog-bound occupational construct extraction
 
 **Status:** Accepted
 **Date:** 2026-08-27
