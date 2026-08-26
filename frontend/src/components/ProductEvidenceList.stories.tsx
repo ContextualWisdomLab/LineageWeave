@@ -19,6 +19,14 @@ export const CatalogLinked: Story = {
       resolution_status_code: "unique",
       evidence_text: "Synthetic Model Q was selected for the trial.",
       evidence_post_id: "synthetic-post",
+      relations: [{
+        relation_type_code: "used_by_project",
+        target_kind_code: "project",
+        target_id: "synthetic-project",
+        target_label: "Synthetic Project",
+        evidence_text: "Synthetic Model Q supports the Synthetic Project trial.",
+        evidence_post_id: "synthetic-post",
+      }],
     }],
   },
 };
