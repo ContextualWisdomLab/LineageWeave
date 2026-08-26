@@ -103,7 +103,10 @@ after the change. Root shared-hit blocks fell from 275,642 to 100,514; both
 plans recorded zero shared reads and zero temporary reads/writes. The former
 plan made 20,000 correlated project probes and 9,927 correlated
 operations-analysis probes, while the semantics-equivalent two-tier query
-scans each relation once.
+removes the corpus-wide priority `CASE` and its extra correlated priority
+subplans. The reproducible summary includes both relation plan-node counts and
+actual scan-loop totals so a single nested-loop node cannot be mislabeled as a
+single execution.
 The plan remains `Limit -> LockRows -> Sort`; `SKIP LOCKED` and the transaction
 boundary therefore remain intact, and the remaining tier runs only when the
 priority tier cannot fill the requested page. A separate remaining-tier

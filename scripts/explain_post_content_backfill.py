@@ -31,6 +31,12 @@ def summarize_plan(document: list[Mapping[str, Any]]) -> dict[str, Any]:
     relation_scans = Counter(
         str(node["Relation Name"]) for node in nodes if "Relation Name" in node
     )
+    relation_scan_loops = Counter()
+    for node in nodes:
+        if "Relation Name" in node:
+            relation_scan_loops[str(node["Relation Name"])] += int(
+                node.get("Actual Loops", 0)
+            )
     return {
         "planning_time_ms": root.get("Planning Time"),
         "execution_time_ms": root.get("Execution Time"),
@@ -41,6 +47,7 @@ def summarize_plan(document: list[Mapping[str, Any]]) -> dict[str, Any]:
         "temp_written_blocks": int(root["Plan"].get("Temp Written Blocks", 0)),
         "node_counts": dict(sorted(node_counts.items())),
         "relation_scans": dict(sorted(relation_scans.items())),
+        "relation_scan_loops": dict(sorted(relation_scan_loops.items())),
     }
 
 
