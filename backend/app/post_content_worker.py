@@ -130,6 +130,7 @@ async def _persist_operations_case_analysis_if_needed(
     session_id: str,
     orchestrator_base_url: str,
     orchestrator_api_key: str,
+    evidence_sources: tuple[OperationsEvidenceSource, ...] | None = None,
 ) -> None:
     """Persist cases once per exact focal body and authorized evidence window."""
     context = " | ".join(
@@ -143,9 +144,10 @@ async def _persist_operations_case_analysis_if_needed(
         )
         if row.get(name) is not None and str(row[name]).strip()
     )
-    evidence_sources = await _operations_evidence_sources(
-        pool, post_id, row, vision_client
-    )
+    if evidence_sources is None:
+        evidence_sources = await _operations_evidence_sources(
+            pool, post_id, row, vision_client
+        )
     analysis_input_digest = operations_analysis_input_sha256(
         evidence_sources, context
     )
@@ -187,11 +189,14 @@ async def _persist_product_analysis_if_needed(
     session_id: str,
     orchestrator_base_url: str,
     orchestrator_api_key: str,
+    evidence_sources: tuple[OperationsEvidenceSource, ...] | None = None,
 ) -> None:
     """Extract and persist products once per exact authorized source window."""
-    operation_sources = await _operations_evidence_sources(
-        pool, post_id, row, vision_client
-    )
+    operation_sources = evidence_sources
+    if operation_sources is None:
+        operation_sources = await _operations_evidence_sources(
+            pool, post_id, row, vision_client
+        )
     sources = tuple(
         ProductEvidenceSource(source.post_id, source.text)
         for source in operation_sources
@@ -497,6 +502,9 @@ async def process_post_content_job(
         with use_llm_metadata(metadata):
             vision_client = vision_factory()
             if settings.orchestrator_base_url and settings.orchestrator_api_key:
+                evidence_sources = await _operations_evidence_sources(
+                    pool, post_id, row, vision_client
+                )
                 await _persist_product_analysis_if_needed(
                     pool,
                     post_id,
@@ -506,6 +514,7 @@ async def process_post_content_job(
                     metadata["lineageweave_post_session_id"],
                     settings.orchestrator_base_url,
                     settings.orchestrator_api_key,
+                    evidence_sources,
                 )
                 await _persist_operations_case_analysis_if_needed(
                     pool,
@@ -517,6 +526,7 @@ async def process_post_content_job(
                     metadata["lineageweave_post_session_id"],
                     settings.orchestrator_base_url,
                     settings.orchestrator_api_key,
+                    evidence_sources,
                 )
             normalized = await asyncio.to_thread(
                 normalize_post_body, raw_body, vision_client

@@ -550,6 +550,14 @@ def test_sibling_requeue_failure_preserves_completed_primary_job(monkeypatch) ->
         "_persist_operations_case_analysis_if_needed",
         lambda *_args, **_kwargs: asyncio.sleep(0),
     )
+    monkeypatch.setattr(
+        post_content_worker,
+        "_operations_evidence_sources",
+        lambda *_args, **_kwargs: asyncio.sleep(
+            0,
+            result=(OperationsEvidenceSource("post-1", "Synthetic", "Evidence"),),
+        ),
+    )
     monkeypatch.setattr(post_content_worker, "normalize_post_body", lambda *_args: object())
     monkeypatch.setattr(
         post_content_worker,
