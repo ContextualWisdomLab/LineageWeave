@@ -109,6 +109,8 @@ describe("App, authenticated", () => {
     pluralAffiliations?: boolean;
     deferMe?: boolean;
     deferPostOne?: boolean;
+    deferResearch?: boolean;
+    postTwoPrivate?: boolean;
     meFailed?: boolean;
     postBody?: string;
     manyCustomerHints?: number;
@@ -121,7 +123,11 @@ describe("App, authenticated", () => {
     askImageCitation?: boolean;
     askDelivery?: boolean;
     lineageIsolationReason?: "comparison_candidates_available" | "no_comparison_group";
-  }): ReturnType<typeof vi.fn> & { releaseMe: () => void; releasePostOne: () => void } {
+  }): ReturnType<typeof vi.fn> & {
+    releaseMe: () => void;
+    releasePostOne: () => void;
+    releaseResearch: () => void;
+  } {
     const statusLabel: Record<string, string> = {
       open: "Open",
       in_progress: "In progress",
@@ -159,6 +165,13 @@ describe("App, authenticated", () => {
     const postOneReady = options?.deferPostOne
       ? new Promise<void>((resolve) => {
           releasePostOne = resolve;
+        })
+      : Promise.resolve();
+
+    let releaseResearch = () => {};
+    const researchReady = options?.deferResearch
+      ? new Promise<void>((resolve) => {
+          releaseResearch = resolve;
         })
       : Promise.resolve();
 
@@ -1236,7 +1249,7 @@ describe("App, authenticated", () => {
             post_title: "Linked post",
             post_body: "The evidence panel should show exactly this text.",
             voc_type_code: "voc",
-            visibility_code: "public",
+            visibility_code: options?.postTwoPrivate ? "private" : "public",
             created_at: "2026-01-02T00:00:00Z",
           }),
         );
@@ -1656,7 +1669,7 @@ describe("App, authenticated", () => {
         return Promise.resolve(jsonResponse({ verified: [] }));
       }
       if (url.endsWith("/api/posts/post-1/research-citations") && method === "POST") {
-        return Promise.resolve(
+        return researchReady.then(() =>
           jsonResponse({
             post_id: "post-1",
             visibility_code: "public",
@@ -1972,7 +1985,7 @@ describe("App, authenticated", () => {
       return Promise.reject(new Error(`unexpected fetch: ${method} ${url}`));
     });
     vi.stubGlobal("fetch", fetchMock);
-    return Object.assign(fetchMock, { releaseMe, releasePostOne });
+    return Object.assign(fetchMock, { releaseMe, releasePostOne, releaseResearch });
   }
 
   it("renders safe Ask Agent evidence under each cited post", async () => {
@@ -3011,6 +3024,32 @@ describe("App, authenticated", () => {
     expect(
       await screen.findByRole("link", { name: "Public Apollo evidence" }),
     ).toHaveAttribute("href", "https://example.com/apollo");
+  });
+
+  it("does not apply a completed research request after switching posts", async () => {
+    const fetchMock = stubBackend({ admin: true, deferResearch: true });
+    render(<App showLabPanels />);
+
+    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
+    await userEvent.click(await screen.findByRole("button", { name: /research public sources/i }));
+    await userEvent.click(screen.getAllByLabelText("Open post: Linked post")[0]);
+    await screen.findByText("The evidence panel should show exactly this text.");
+    fetchMock.releaseResearch();
+
+    await waitFor(() =>
+      expect(screen.queryByRole("link", { name: "Public Apollo evidence" })).not.toBeInTheDocument(),
+    );
+  });
+
+  it("does not offer public-source research for a private post", async () => {
+    stubBackend({ admin: true, postTwoPrivate: true });
+    render(<App showLabPanels />);
+
+    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
+    await userEvent.click(screen.getAllByLabelText("Open post: Linked post")[0]);
+    await screen.findByText("The evidence panel should show exactly this text.");
+
+    expect(screen.queryByRole("button", { name: /research public sources/i })).not.toBeInTheDocument();
   });
 
   it("lets post_admin extract Keymen from the popup", async () => {

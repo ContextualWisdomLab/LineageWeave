@@ -1834,6 +1834,8 @@ function PostDetailPopup({
   const similarVocLoadingMoreRef = useRef(false);
   const similarVocScopeRef = useRef({ postId });
   if (similarVocScopeRef.current.postId !== postId) similarVocScopeRef.current = { postId };
+  const researchScopeRef = useRef({ postId });
+  if (researchScopeRef.current.postId !== postId) researchScopeRef.current = { postId };
   const [evaluation, setEvaluation] = useState<EvaluationResponse[] | null>(null);
   const [focusPerson, setFocusPerson] = useState<{ personId: string; personName: string } | null>(null);
   const [focusEntity, setFocusEntity] = useState<{ entityId: string; entityName: string } | null>(null);
@@ -2557,21 +2559,27 @@ function PostDetailPopup({
             <SourceResearchPanel
               citations={researchCitations}
               unavailableReason={researchUnavailable}
-              canResearch={canExtract}
+              canResearch={canExtract && post.visibility_code === "public"}
               researching={researching}
               error={researchError}
               onResearch={() => {
+                const requestScope = researchScopeRef.current;
                 setResearching(true);
                 setResearchError(null);
                 researchPostSources(accessToken, postId)
                   .then((result) => {
+                    if (researchScopeRef.current !== requestScope) return;
                     setResearchCitations(result.citations);
                     setResearchUnavailable(result.unavailable_reason ?? null);
                   })
                   .catch((err) => {
-                    setResearchError(searchUnavailableMessage(err));
+                    if (researchScopeRef.current === requestScope) {
+                      setResearchError(searchUnavailableMessage(err));
+                    }
                   })
-                  .finally(() => setResearching(false));
+                  .finally(() => {
+                    if (researchScopeRef.current === requestScope) setResearching(false);
+                  });
               }}
             />
 
