@@ -145,6 +145,40 @@ def test_semantic_content_assertion_requires_source_post_provenance() -> None:
     assert "wasDerivedFromPost" in report_text
 
 
+def test_semantic_content_assertion_derives_from_its_subject_post() -> None:
+    """A different valid post cannot be substituted as assertion provenance."""
+    data = _representative_projection()
+    LWn = Namespace(LW)
+    subject_post = URIRef(LW + "post-alpha")
+    other_post = URIRef(LW + "post-beta")
+    assertion = URIRef(LW + "semantic-assertion-alpha")
+    activity = URIRef(LW + "activity-alpha")
+    data += project_source_post_rdf(
+        post_id="bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbb2",
+        post_title="Synthetic alternate post",
+        post_body="Synthetic unrelated source evidence.",
+        post_created_at=datetime(2026, 8, 25, 2, 0, tzinfo=timezone.utc),
+        voc_type_code="vop",
+    )
+    projected_other = URIRef(
+        LW + "node/node_post/bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbb2"
+    )
+    data.add((other_post, RDF.type, LWn.Post))
+    for predicate, value in data.predicate_objects(projected_other):
+        data.add((other_post, predicate, value))
+    data.add((assertion, RDF.type, LWn.SemanticContentAssertion))
+    data.add((assertion, RDF.subject, subject_post))
+    data.add((assertion, RDF.predicate, LWn.describesActivity))
+    data.add((assertion, RDF.object, activity))
+    data.add((assertion, LWn.wasDerivedFromPost, other_post))
+    data.add((assertion, LWn.semanticEvidence, Literal("Synthetic evidence.")))
+
+    conforms, report_text = _conforms(data)
+
+    assert not conforms
+    assert "wasDerivedFromPost must identify the rdf:subject post" in report_text
+
+
 def test_schema_shaped_project_row_projection_passes_validation() -> None:
     """The production projector emits the complete SHACL-governed chain."""
     data = project_project_mention_rdf(

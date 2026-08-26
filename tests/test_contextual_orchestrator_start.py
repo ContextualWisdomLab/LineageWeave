@@ -68,6 +68,29 @@ def test_gateway_api_key_accepts_local_compatibility_alias(monkeypatch) -> None:
     assert module._pop_first_env("LLM_GATEWAY_API_KEY", "LLM_API_KEY") == "compatibility-key"
 
 
+def test_gateway_host_requires_an_explicit_matching_allowlist(monkeypatch) -> None:
+    """The bootstrap cannot inherit upstream's open public-host default."""
+    module = _load_start_module()
+    monkeypatch.delenv("CONTEXTUAL_ORCHESTRATOR_ALLOWED_PROVIDER_HOSTS", raising=False)
+    with pytest.raises(SystemExit, match="ALLOWED_PROVIDER_HOSTS is required"):
+        module._allowed_provider_hosts("https://gateway.example/v1")
+
+    monkeypatch.setenv(
+        "CONTEXTUAL_ORCHESTRATOR_ALLOWED_PROVIDER_HOSTS", "other.example"
+    )
+    with pytest.raises(SystemExit, match="not in the provider allowlist"):
+        module._allowed_provider_hosts("https://gateway.example/v1")
+
+    monkeypatch.setenv(
+        "CONTEXTUAL_ORCHESTRATOR_ALLOWED_PROVIDER_HOSTS",
+        " gateway.example., OTHER.EXAMPLE ",
+    )
+    assert module._allowed_provider_hosts("https://GATEWAY.EXAMPLE/v1") == (
+        "gateway.example",
+        "other.example",
+    )
+
+
 def test_provider_key_is_not_aliased_as_gateway_transport(monkeypatch) -> None:
     module = _load_start_module()
     for name in ("LLM_GATEWAY_API_KEY", "LLM_API_KEY"):

@@ -242,6 +242,18 @@
 :SemanticContentAssertionShape a sh:NodeShape ;
     rdfs:label "Semantic content assertion shape" ;
     sh:targetClass :SemanticContentAssertion ;
+    sh:sparql [
+        a sh:SPARQLConstraint ;
+        sh:prefixes <https://contextualwisdomlab.github.io/LineageWeave/ontology/lineageweave-kg-shapes.ttl> ;
+        sh:message "wasDerivedFromPost must identify the rdf:subject post." ;
+        sh:select """
+            SELECT $this
+            WHERE {
+                $this rdf:subject ?subject ; lw:wasDerivedFromPost ?source .
+                FILTER(?subject != ?source)
+            }
+        """ ;
+    ] ;
     sh:property [
         sh:path rdf:subject ; sh:minCount 1 ; sh:maxCount 1 ; sh:class :Post
     ] ;

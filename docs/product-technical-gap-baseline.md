@@ -104,8 +104,8 @@ It also emits a validated aggregate-only PROV-O graph linking the audit entity
 and activity to the selection manifest, ontology, and terminal Rust entity by
 content-addressed URNs; no source record identifier is exposed.
 This capability is not runtime evidence for the historical samples and is not
-protected-integrated while prerequisite fast-mlsirm PR #1445 and stacked PR
-#1458 remain open.
+protected-integrated while prerequisite fast-mlsirm PR #1445 and stacked
+PR #1458 remain open.
 
 The next runtime-only acceptance frame contains 43,814 eligible titles. With
 the ADR 0242 predeclared 95% confidence, five-percentage-point margin, and NIST
