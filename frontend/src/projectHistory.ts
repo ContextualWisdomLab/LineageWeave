@@ -81,9 +81,8 @@ export function projectHistoryKeys(
   sourceProjectCode: string | null | undefined,
   sourceProjectName: string | null | undefined,
 ): string[] {
-  const candidates = evidence?.length
-    ? evidence.map((project) => project.project_key)
-    : [sourceProjectCode?.trim() ? sourceProjectCode : sourceProjectName ?? ""];
+  const sourceIdentity = sourceProjectCode?.trim() ? sourceProjectCode : sourceProjectName ?? "";
+  const candidates = [...(evidence ?? []).map((project) => project.project_key), sourceIdentity];
   const seen = new Set<string>();
   return candidates.filter((candidate) => {
     const normalized = normalizeProjectIdentity(candidate);

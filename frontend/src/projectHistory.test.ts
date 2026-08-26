@@ -16,7 +16,28 @@ describe("projectHistoryKeys", () => {
     ).toEqual(["Ｐ-100"]);
   });
 
-  it("uses a source fallback only when project evidence is empty", () => {
+  it("uses a source identity when project evidence is empty", () => {
     expect(projectHistoryKeys([], "  ", " P-200 ")).toEqual([" P-200 "]);
+  });
+
+  it("keeps a distinct explicit source identity beside semantic evidence", () => {
+    expect(
+      projectHistoryKeys(
+        [
+          {
+            project_key: "semantic-project",
+            project_name: "Semantic project",
+            evidence: "semantic",
+            confidence: null,
+            ontology_iri: "",
+            extraction_method: "semantic",
+            resolution_status: "resolved",
+            provenance: "test",
+          },
+        ],
+        "SOURCE-200",
+        "Source project",
+      ),
+    ).toEqual(["semantic-project", "SOURCE-200"]);
   });
 });
