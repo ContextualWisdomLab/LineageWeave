@@ -294,11 +294,13 @@ export function ChatPanel({
   const [seededOnly, setSeededOnly] = useState(false);
   const conversationListRequest = useRef(0);
   const conversationRequest = useRef(0);
+  const askRequest = useRef(0);
 
   useEffect(() => {
     let active = true;
     ++conversationListRequest.current;
     ++conversationRequest.current;
+    ++askRequest.current;
     setExchanges([]);
     setSeededExchanges([]);
     setConversations([]);
@@ -308,6 +310,7 @@ export function ChatPanel({
     setConversationOlderCursor(null);
     setAnswer(null);
     setError(null);
+    setLoading(false);
     setSeededOnly(false);
     setEvidencePostId(null);
     fetchPostChat(accessToken, postId)
@@ -358,11 +361,13 @@ export function ChatPanel({
 
   async function handleAsk(asked = question) {
     if (!asked.trim()) return;
+    const requestId = ++askRequest.current;
     const requestedConversationId = conversationId;
     setLoading(true);
     setError(null);
     try {
       const result = await askPostChat(accessToken, postId, asked, requestedConversationId);
+      if (requestId !== askRequest.current) return;
       const startsConversation = requestedConversationId === null
         || (result.conversation_id !== undefined && result.conversation_id !== requestedConversationId);
       setAnswer(result);
@@ -390,12 +395,13 @@ export function ChatPanel({
         return startsConversation ? [next] : [...prev, next];
       });
     } catch (err) {
+      if (requestId !== askRequest.current) return;
       setError(orchestratorUnavailableMessage(err, "Chat"));
       if (err instanceof BackendError && err.status === 503) {
         setSeededOnly(true);
       }
     } finally {
-      setLoading(false);
+      if (requestId === askRequest.current) setLoading(false);
     }
   }
 

@@ -231,6 +231,37 @@ describe("ChatPanel conversation history", () => {
     expect(screen.getByLabelText("Conversation history")).toHaveValue("");
   });
 
+  it("discards an answer response after moving to another post", async () => {
+    let resolveOldAnswer!: (response: Response) => void;
+    vi.stubGlobal("fetch", vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = input instanceof Request ? input.url : String(input);
+      if (url.endsWith("post-1/chat") && init?.method === "POST") {
+        return new Promise<Response>((resolve) => { resolveOldAnswer = resolve; });
+      }
+      if (url.endsWith("/chat/conversations")) {
+        return jsonResponse({ conversations: [], next_cursor: null });
+      }
+      return jsonResponse({ post_id: url.includes("post-2") ? "post-2" : "post-1", exchanges: [] });
+    }));
+
+    const view = render(<ChatPanel postId="post-1" accessToken="synthetic-token" />);
+    await userEvent.type(
+      await screen.findByPlaceholderText("What happened between these events?"),
+      "Old post question",
+    );
+    await userEvent.click(screen.getByRole("button", { name: "Ask" }));
+    view.rerender(<ChatPanel postId="post-2" accessToken="synthetic-token" />);
+    resolveOldAnswer(jsonResponse({
+      answer_text: "Stale old-post answer",
+      cited_post_ids: [],
+      cited_posts: [],
+      conversation_id: "old-post-conversation",
+    }));
+
+    await waitFor(() => expect(screen.queryByText("Stale old-post answer")).toBeNull());
+    expect(screen.getByRole("button", { name: "Ask" })).toBeEnabled();
+  });
+
   it("discards an earlier-page response after moving to another post", async () => {
     let resolveOlder!: (response: Response) => void;
     vi.stubGlobal("fetch", vi.fn(async (input: RequestInfo | URL) => {
