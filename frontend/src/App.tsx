@@ -3134,7 +3134,8 @@ function AnalysisRunsPanel({
   const [requesting, setRequesting] = useState(false);
   const [starting, setStarting] = useState(false);
   const [selectedEntityId, setSelectedEntityId] = useState("");
-  const inFlightKeyRef = useRef<string | null>(null);
+  const lineageRequestKeyRef = useRef<string | null>(null);
+  const measurementRetryKeyRef = useRef<string | null>(null);
   const entitiesReady = corporateEntities !== null && entitiesLoadError === null;
   const requestLabel = requesting
     ? "Recording the run..."
@@ -3170,10 +3171,10 @@ function AnalysisRunsPanel({
     }
     setError(null);
     setRequesting(true);
-    if (inFlightKeyRef.current === null) {
-      inFlightKeyRef.current = crypto.randomUUID();
+    if (lineageRequestKeyRef.current === null) {
+      lineageRequestKeyRef.current = crypto.randomUUID();
     }
-    const idempotencyKey = inFlightKeyRef.current;
+    const idempotencyKey = lineageRequestKeyRef.current;
     try {
       const created = await createAnalysisRun(accessToken, {
         run_kind_code: "analysis_run_lineage",
@@ -3183,10 +3184,10 @@ function AnalysisRunsPanel({
       const listed = await fetchAnalysisRuns(accessToken);
       setRuns(listed.analysis_runs);
       setSelected(created);
-      inFlightKeyRef.current = null;
+      lineageRequestKeyRef.current = null;
     } catch (err) {
       if (err instanceof BackendError && err.status === 409) {
-        inFlightKeyRef.current = null;
+        lineageRequestKeyRef.current = null;
         setError(
           "This request key already names a different analysis. Request again to start a new run.",
         );
@@ -3218,20 +3219,24 @@ function AnalysisRunsPanel({
     if (!selected || !analysisRunCanRetryMeasurement(selected)) return;
     setError(null);
     setStarting(true);
-    if (inFlightKeyRef.current === null) inFlightKeyRef.current = crypto.randomUUID();
+    if (measurementRetryKeyRef.current === null) {
+      measurementRetryKeyRef.current = crypto.randomUUID();
+    }
     try {
       const created = await createAnalysisRun(accessToken, {
         run_kind_code: selected.run_kind_code,
         corporate_entity_id: selected.scope_corporate_entity_id,
-        idempotency_key: inFlightKeyRef.current,
+        idempotency_key: measurementRetryKeyRef.current,
       });
       const started = await startAnalysisRun(accessToken, created.analysis_run_id);
       const listed = await fetchAnalysisRuns(accessToken);
       setRuns(listed.analysis_runs);
       setSelected(started);
-      inFlightKeyRef.current = null;
+      measurementRetryKeyRef.current = null;
     } catch (err) {
-      if (err instanceof BackendError && err.status === 409) inFlightKeyRef.current = null;
+      if (err instanceof BackendError && err.status === 409) {
+        measurementRetryKeyRef.current = null;
+      }
       setError(err instanceof BackendError ? err.message : String(err));
     } finally {
       setStarting(false);

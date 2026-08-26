@@ -102,6 +102,7 @@ describe("App, authenticated", () => {
     searchUnavailable?: boolean;
     verificationEvidenceUrl?: string | null;
     failedLineageRun?: boolean;
+    failLineageCreateOnce?: boolean;
     runningLineageRun?: boolean;
     failedReportRun?: boolean;
     succeededReportRun?: boolean;
@@ -124,6 +125,7 @@ describe("App, authenticated", () => {
     askDelivery?: boolean;
     lineageIsolationReason?: "comparison_candidates_available" | "no_comparison_group";
   }): ReturnType<typeof vi.fn> & { releaseMe: () => void; releasePostOne: () => void } {
+    let lineageCreateFailed = false;
     const statusLabel: Record<string, string> = {
       open: "Open",
       in_progress: "In progress",
@@ -690,6 +692,19 @@ describe("App, authenticated", () => {
       }
       if (url.endsWith("/api/analysis-runs") && method === "POST") {
         const payload = init?.body ? JSON.parse(String(init.body)) : {};
+        if (
+          payload.run_kind_code === "analysis_run_lineage" &&
+          options?.failLineageCreateOnce &&
+          !lineageCreateFailed
+        ) {
+          lineageCreateFailed = true;
+          return Promise.resolve(
+            new Response(JSON.stringify({ detail: "The response was interrupted." }), {
+              status: 503,
+              headers: { "Content-Type": "application/json" },
+            }),
+          );
+        }
         if (payload.run_kind_code === "analysis_run_report") {
           return Promise.resolve(
             new Response(
@@ -3899,6 +3914,34 @@ describe("App, authenticated", () => {
           call[1]?.method === "POST",
       ),
     ).toBe(true);
+  });
+
+  it("does not reuse an interrupted lineage request key for measurement retry", async () => {
+    const fetchMock = stubBackend({ failLineageCreateOnce: true });
+    render(<App showLabPanels />);
+
+    await userEvent.click(
+      await screen.findByRole("button", { name: "Request a lineage reconstruction" }),
+    );
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "Request a lineage reconstruction" })).toBeEnabled(),
+    );
+    await userEvent.click(
+      screen.getByRole("button", {
+        name: "Open analysis run: TEPP measurement · Failed · Demo Corp",
+      }),
+    );
+    await userEvent.click(screen.getByRole("button", { name: "Retry measurement" }));
+
+    const createBodies = fetchMock.mock.calls
+      .filter(
+        (call) => String(call[0]).endsWith("/api/analysis-runs") && call[1]?.method === "POST",
+      )
+      .map((call) => JSON.parse(String(call[1]?.body)));
+    expect(createBodies).toHaveLength(2);
+    expect(createBodies[0].run_kind_code).toBe("analysis_run_lineage");
+    expect(createBodies[1].run_kind_code).toBe("analysis_run_tepp");
+    expect(createBodies[1].idempotency_key).not.toBe(createBodies[0].idempotency_key);
   });
 
   it("does not tell a succeeded TEPP run to replace Failed", async () => {
