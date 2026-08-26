@@ -67,7 +67,7 @@ are not merge readiness. Re-fetch exact heads,
 unresolved threads, checks, approvals, rulesets, and merge SHA before any
 lifecycle claim.
 
-> Audit snapshot: 2026-08-26 10:30 KST (refreshed by the autonomous merge
+> Audit snapshot: 2026-08-26 11:00 KST (refreshed by the autonomous merge
 > loop). This repository records synthetic fixtures and aggregate,
 > non-identifying runtime evidence only. Open PRs and local checks are not
 > protected-default-branch release evidence. Identifying post identifiers,
@@ -92,7 +92,7 @@ context only.
 | #657 | `709df1b9` | TEPP lifecycle persistence and fail-closed topic acceptance; BLOCKED with hosted checks queued and review required |
 | #644 | `ed8d97f3` | native-surface code splitting; BLOCKED with review required |
 | #643 | `3453ab08` | accessible status notices; BLOCKED with review required |
-| #640 | `dda5cf48` | operations-dashboard evidence touch-target, scoped metrics, changelog repair, Rust residual interaction-map consumption, and ABAC/UUID contract repairs; BLOCKED with hosted checks queued and no independent approval |
+| #640 | `d70a7788` | operations-dashboard evidence touch-target, scoped metrics, Rust residual interaction-map consumption, ABAC/UUID repairs, and RankWeave-owned RRF evidence; BLOCKED with hosted checks queued and no independent approval |
 | #639 | `8da485d3` | running-action/config repair; BLOCKED with review required |
 | #632 | `cad4debf` | graph-fact provenance repair; BLOCKED with review required |
 | #631 | `e6b4f0c4` | ADR decomposition documentation; BLOCKED with review required |
