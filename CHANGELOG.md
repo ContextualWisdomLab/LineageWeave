@@ -8,6 +8,8 @@ All notable changes to this project are documented here. Format follows
 
 ### Added
 
+- Failed measurement and topic-lineage views can request and start a new
+  immutable current-snapshot run while retaining the Failed history.
 - Analysis-run next actions, empty-snapshot guidance, and selected-post
   guidance now follow the active English, Korean, Chinese, Japanese, or
   Vietnamese locale. Customer copy describes the next product action without

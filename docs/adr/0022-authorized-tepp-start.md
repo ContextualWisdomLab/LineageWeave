@@ -10,12 +10,10 @@ through the published client; persistable result remains later)
 ## Context
 
 ADR 0021 starts a Pending lineage reconstruction in-process. The same
-`POST /api/analysis-runs/{id}/start` path returned 422 for TEPP so it
-could not invent a theta. Create already records a Pending TEPP run.
-Seed already records a Failed TEPP run through `tepp_client`. The Failed
-row tells the operator to connect the measurement service and re-run,
-but Failed is terminal and there was no start path that called
-`tepp_client`.
+`POST /api/analysis-runs/{id}/start` path originally returned 422 for TEPP so
+it could not invent a theta. Start now submits a Pending request through
+`tepp_client`, but a Failed run remained terminal with no product action that
+could request and start a new measurement after the authority recovered.
 
 A buyer who connects a live TEPP transport still could not submit the
 frozen snapshot. A 422 that says "do not invent a measurement" is
@@ -49,12 +47,16 @@ authorized transaction:
    or refused, or Failed / `tepp_result_not_persisted` when TEPP accepts
    an envelope this product cannot store yet.
 
+`POST /api/analysis-runs` accepts lineage, TEPP measurement, and topic-lineage
+requests. A Pending row is an immutable work request, not a calibrated-result
+claim. Retry measurement creates a new current-snapshot run and submits it
+through the same outbox and `tepp_client` path; the Failed source run remains
+terminal and auditable.
+
 Succeeded TEPP stays later. This slice does not persist a local
 psychometric substitute, does not call contextual-orchestrator as TEPP,
 and does not stamp Succeeded from an `accepted` envelope. Failed remains
-terminal. `POST /api/analysis-runs` is lineage-only (ADR 0017) and does
-not invent a Pending TEPP row. The operator connects a TEPP transport
-from the Failed row, then starts that same measurement.
+terminal and no local theta is created.
 
 ```mermaid
 sequenceDiagram
@@ -84,11 +86,13 @@ item instead of rolling back to Pending.
 
 ## Consequences
 
-Demo Analyst can request a TEPP run, start it, and see Failed /
+An authorized analyst can request a TEPP run, start it, and see Failed /
 `tepp_not_available` until a live transport is configured. Connecting
 `TEPP_TRANSPORT_URL` submits the same published payload and modular-consumer
 headers. TEPP PR #155 must merge and its service must be deployed before this
-transport can accept a run. An accepted
+transport can accept a run. After recovery, Retry measurement creates and
+starts a new immutable current-snapshot run instead of mutating the Failed
+history. An accepted
 envelope still does not become a calibrated result. Do not invent a
 theta.
 

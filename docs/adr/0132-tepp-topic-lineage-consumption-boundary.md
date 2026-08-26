@@ -60,8 +60,8 @@ substitute" ADR 0084 and the tepp-readiness discipline already forbid.
    versioned topic-identity/CHRONOS-status envelope, appends Failed with a
    machine-readable reason (`tepp_not_available` /
    `tepp_topic_contract_unavailable`), mirroring ADR 0022. Failed is
-   terminal; the operator reconnects TEPP and retries the existing Failed row
-   through `POST /api/analysis-runs/{id}/start`.
+   terminal; after the authority recovers, LineageWeave creates a new Pending
+   current-snapshot run and submits it through the normal start/outbox path.
 4. When TEPP does publish the topic-identity and CHRONOS-status envelope,
    LineageWeave persists it into a new topic-identity-thread projection
    (3NF, two-word snake_case, partitioned by corporate-entity + observed
@@ -88,9 +88,8 @@ sequenceDiagram
     participant TeppClient
     participant Registry
     Operator->>API: POST /api/analysis-runs (kind=topic_lineage)
-    API-->>Operator: 422; no Pending topic-lineage row is created
-    Note over Operator,Registry: Existing Failed rows come from the governed seed/import boundary
-    Operator->>API: Connect TEPP; POST /api/analysis-runs/{id}/start
+    API-->>Operator: Pending topic-lineage request
+    Operator->>API: POST /api/analysis-runs/{id}/start
     Registry->>Registry: Running
     API->>TeppClient: TopicLineageRequest v1 (TRSL-TM + CHRONOS/TDT)
     alt TeppNotAvailable
@@ -101,6 +100,7 @@ sequenceDiagram
         Registry->>Registry: Succeeded; persist topic-identity threads + CHRONOS status
     end
     API-->>Operator: run status + evidence/inference/prediction detail
+    Note over Operator,Registry: Failed stays terminal; Retry creates and starts a new run
 ```
 
 ### Implementation note: the status-mark primitive ships ahead of the wiring
