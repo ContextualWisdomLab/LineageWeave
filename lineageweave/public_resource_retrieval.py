@@ -179,7 +179,11 @@ def classify_public_target(url: str) -> PublicTarget | None:
     if literal is not None and not is_public_ip(literal):
         return None
     default_port = _DEFAULT_PORTS[parsed.scheme]
-    port = parsed.port if parsed.port is not None else default_port
+    try:
+        parsed_port = parsed.port
+    except ValueError:
+        return None
+    port = parsed_port if parsed_port is not None else default_port
     if port <= 0 or port > 65535:
         return None
     path = parsed.path or "/"

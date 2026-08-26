@@ -34,6 +34,7 @@ from lineageweave.public_resource_retrieval import (
         "https://searx.example/search",
         "https://www.google.com/search?q=x",
         "http://user:pass@example.com/x",
+        "https://example.com:65536/evidence",
         "",
         "not-a-url",
     ],
