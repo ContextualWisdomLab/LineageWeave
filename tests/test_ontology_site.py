@@ -221,6 +221,10 @@ def test_metadata_manifest_has_source_digest_and_no_build_clock(tmp_path: Path) 
     builder.build_site(ROOT, output)
 
     manifest = json.loads((output / "ontology" / "manifest.json").read_text(encoding="utf-8"))
+    published = output / "ontology" / "ontology.ttl"
+    assert manifest["ontology_ttl_sha256"] == hashlib.sha256(
+        published.read_bytes()
+    ).hexdigest()
     source = ROOT / "docs" / "ontology" / "lineageweave-kg.ttl"
     assert manifest["source_sha256"] == hashlib.sha256(source.read_bytes()).hexdigest()
     fragment = ROOT / "docs" / "ontology" / "soc-2018-structure.ttl"
