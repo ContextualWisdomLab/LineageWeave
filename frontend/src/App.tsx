@@ -3351,7 +3351,7 @@ function RankingsPanel({
     setError(null);
     fetchRankings(accessToken)
       .then(setRanking)
-      .catch((err) => setError(String(err)));
+      .catch(() => setError(t("Rankings could not be loaded. Retry in a moment.")));
   }, [accessToken]);
 
   return (
@@ -3361,24 +3361,24 @@ function RankingsPanel({
         {ranking && (
           <span className="post-badge">
             {ranking.status === "accepted"
-              ? "rankweave"
-              : `rankweave · ${ranking.status_reason ?? "unavailable"}`}
+              ? t("Evidence combined")
+              : t("Evidence needed")}
           </span>
         )}
       </div>
       {error && <p className="error">{error}</p>}
       {ranking === null && !error && <p role="status">{t("Loading rankings...")}</p>}
       {ranking && ranking.status === "unavailable" && (
-        <p className="popup-placeholder">{t("Rankings · RankWeave not available")}</p>
+        <p className="popup-placeholder">{t("Rankings are not ready. Refresh after the source evidence is connected.")}</p>
       )}
       {ranking && ranking.status === "accepted" && ranking.rankings.length === 0 && (
-        <p className="popup-placeholder">{t("No fused rankings from RankWeave.")}</p>
+        <p className="popup-placeholder">{t("No comparable posts are visible. Check the period and access scope.")}</p>
       )}
       {ranking && ranking.rankings.length > 0 && (
         <>
           <p className="ranking-channel-evidence-copy">
             {t(
-              "RankWeave fused newest-first and title-overlap ranks. This is not a calibrated score.",
+              "Compare recency and content-relevance evidence, then open the source post before acting. This rank is not a performance score.",
             )}
           </p>
           <ul className="ticket-list" aria-label={t("Fused rankings")}>
