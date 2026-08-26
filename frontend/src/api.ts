@@ -29,6 +29,7 @@ export interface PostSummary {
   post_body_excerpt?: string | null;
   post_body_truncated?: boolean;
   project_evidence?: ProjectEvidence[];
+  occupational_construct_assertions?: OccupationalConstructAssertion[];
   created_at: string;
 }
 
@@ -261,6 +262,20 @@ export interface ProjectEvidence {
   ontology_label?: string;
   extraction_method: string;
   resolution_status: string;
+  provenance: string;
+}
+
+export interface OccupationalConstructAssertion {
+  construct_iri: string;
+  construct_family_code: string;
+  preferred_label: string;
+  vocabulary_iri: string;
+  vocabulary_version: string;
+  evidence_text: string;
+  truth_status_code: string;
+  extraction_method: string;
+  generated_at: string;
+  unit_index: number;
   provenance: string;
 }
 
