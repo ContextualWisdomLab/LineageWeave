@@ -85,7 +85,7 @@ PROV-O registry rather than only its import/mapping profile. On the exact same
 selection manifest, that revision produced 100/100 covered, zero failures, ten
 batches, and four trace steps per batch in two consecutive runs.
 
-An independently selected second 100-record sample then exposed a remaining
+A further independently selected 100-record sample then exposed a remaining
 measurement flaw: asking the model to select ontology IRIs yielded 79/100 once,
 then failed closed on an invented near-match; replacing long IRIs with numeric
 ids avoided that syntax error but changed the verdict to 50/100. The accepted
@@ -96,6 +96,13 @@ manifest, this contract produced 100/100 covered, zero failures, ten batches,
 and four trace steps per batch in two consecutive runs. These results prove
 repeatable coverage of two sampled title sets only; they are not a corpus
 estimate and do not repair the export's zero-body evidence gap.
+
+A governed-stratum runtime-only audit then used five source-type strata with 20
+records selected without replacement from each stratum (100 total). The exact
+manifest produced 100/100 covered, zero failures, ten batches, and four trace
+steps per batch in two consecutive runs. Balanced allocation here broadens
+type-level diagnostic coverage; it is not a population-weighted estimator and
+still emits `corpus_inference_available=false`.
 
 A separate non-probability diagnostic excluded the first deterministic 100
 records and selected 100 records from each of five event/update-time strata
@@ -121,9 +128,10 @@ Remaining acceptance gaps:
 
 - ship an immutable Rust-owned estimator/variance/interval artifact for the
   declared probability design before making any corpus coverage estimate;
-- repeat the revised contract on independently selected probability samples;
-  reconcile any newly uncovered meaning with public standards before adding a
-  schema term, and never mint source-local codes as public concepts;
+- continue periodic independent and governed-stratum probability samples as
+  the source changes; reconcile any newly uncovered meaning with public
+  standards before adding a schema term, and never mint source-local codes as
+  public concepts;
 - connect an authoritative body/file source and prove non-zero, ordered
   semantic-unit persistence before claiming PRD-FR-4 corpus coverage;
 - obtain governed source definitions before mapping grade, inspection,
