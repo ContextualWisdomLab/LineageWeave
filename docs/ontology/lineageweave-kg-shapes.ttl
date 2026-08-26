@@ -205,6 +205,17 @@
         sh:minCount 1 ;
         sh:maxCount 1 ;
         sh:datatype xsd:dateTime ;
+    ] ;
+    sh:sparql [
+        a sh:SPARQLConstraint ;
+        sh:message "prov:wasDerivedFrom must identify the same Post as rdf:subject." ;
+        sh:select """
+            SELECT $this WHERE {
+                $this <http://www.w3.org/1999/02/22-rdf-syntax-ns#subject> ?post ;
+                      <http://www.w3.org/ns/prov#wasDerivedFrom> ?source .
+                FILTER (?post != ?source)
+            }
+        """ ;
     ] .
 
 :OurSidePersonShape a sh:NodeShape ;
