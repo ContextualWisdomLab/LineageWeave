@@ -257,7 +257,7 @@ describe("OccupationRatingProfile", () => {
     const { rerender } = render(<OccupationRatingProfileView profile={{ ...ready, source_available: false, source: null, items: [] }} />);
     expect(screen.getByRole("status")).toHaveTextContent("아직 준비되지 않았습니다");
     rerender(<OccupationRatingProfileView profile={{ ...ready, items: [] }} />);
-    expect(screen.getByRole("status")).toHaveTextContent("관측값이 없습니다");
+    expect(screen.getByRole("status")).toHaveTextContent("직업이나 근거 표를 바꿔");
   });
 
   it("does not turn a non-http artifact value into a customer link", () => {

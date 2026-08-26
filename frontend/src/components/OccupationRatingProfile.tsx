@@ -258,7 +258,7 @@ export function OccupationRatingProfileView({
   if (profile.items.length === 0) {
     return (
       <p role="status">
-        이 근거 표에는 선택한 직업의 관측값이 없습니다. 직업 코드나 근거 표를 바꿔 확인하세요.
+        이 근거 표에는 선택한 직업의 관측값이 없습니다. 직업이나 근거 표를 바꿔 확인하세요.
       </p>
     );
   }
