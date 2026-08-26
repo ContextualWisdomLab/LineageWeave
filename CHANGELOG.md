@@ -8,6 +8,11 @@ All notable changes to this project are documented here. Format follows
 
 ### Changed
 
+- Embedding transport now validates provider envelopes without retaining
+  production-unused Python cosine and chunk-max arithmetic. Active semantic
+  retrieval remains explicitly unavailable for migration until a versioned
+  Rust owner contract is accepted; no local or database substitute is added.
+
 - Ask Agent now searches posts with the same persisted semantic project key as
   part of its authorized evidence window before re-analysis. Missing evidence
   remains a retry state rather than a request for the reader to attach an

@@ -16,6 +16,7 @@ KNOWN_LOCAL_NUMERICAL_FILES = {
     "lineageweave/rankweave_client.py",
     "lineageweave/reconstruct.py",
 }
+KNOWN_LOCAL_DIRECT_VECTOR_ARITHMETIC = {"backend/app/post_chat_ingestion.py"}
 
 
 def _numerical_import_files() -> set[str]:
@@ -45,3 +46,32 @@ def test_no_new_local_numerical_owner_imports() -> None:
     """Require an ADR 0208 inventory update before local numerical scope grows."""
 
     assert _numerical_import_files() == KNOWN_LOCAL_NUMERICAL_FILES
+
+
+def test_no_new_direct_python_vector_arithmetic() -> None:
+    """Freeze direct dot/norm arithmetic until a Rust owner contract replaces it."""
+
+    found: set[str] = set()
+    for base in (ROOT / "lineageweave", ROOT / "backend" / "app"):
+        for path in base.rglob("*.py"):
+            tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
+            for node in ast.walk(tree):
+                if not isinstance(node, ast.Call):
+                    continue
+                is_sqrt = (
+                    isinstance(node.func, ast.Attribute)
+                    and isinstance(node.func.value, ast.Name)
+                    and node.func.value.id == "math"
+                    and node.func.attr == "sqrt"
+                )
+                is_product_sum = (
+                    isinstance(node.func, ast.Name)
+                    and node.func.id == "sum"
+                    and any(
+                        isinstance(child, ast.BinOp) and isinstance(child.op, ast.Mult)
+                        for child in ast.walk(node)
+                    )
+                )
+                if is_sqrt or is_product_sum:
+                    found.add(path.relative_to(ROOT).as_posix())
+    assert found == KNOWN_LOCAL_DIRECT_VECTOR_ARITHMETIC

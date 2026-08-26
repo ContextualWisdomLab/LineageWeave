@@ -374,6 +374,7 @@ async def enqueue_post_content_backfill(
                    select 1
                      from operations_case_analysis analysis
                     where analysis.post_id = post.post_id
+                      and analysis.source_body_sha256 = job.source_body_sha256
                ))
            )
          order by post.created_at, post.post_id
