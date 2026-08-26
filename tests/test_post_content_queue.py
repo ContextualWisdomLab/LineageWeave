@@ -66,6 +66,7 @@ def test_bounded_backfill_is_idempotent_and_broker_loss_stays_recoverable(
             assert "from operations_case_analysis analysis" in query
             assert "analysis.post_id = post.post_id" in query
             assert "analysis.source_body_sha256 = job.source_body_sha256" in query
+            assert "from post_product_analysis analysis" in query
             assert "for update of post skip locked" in query.lower()
             assert args == (SUCCEEDED, True, True, 2)
             return [
@@ -203,6 +204,7 @@ def test_backfill_requeues_complete_content_missing_operations_analysis(
 
         async def fetchval(self, query: str, *args: object) -> bool:
             assert "operations_case_analysis" in query
+            assert "post_product_analysis" in query
             assert args == (
                 "00000000-0000-0000-0000-000000000001",
                 source_body_sha256("historical success"),

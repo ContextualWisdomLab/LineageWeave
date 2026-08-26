@@ -45,9 +45,9 @@ class OpenAiCompatibleEmbeddingClient:
 
     available = True
 
-    def __init__(self, base_url: str, api_key: str, model: str | None = None, *, timeout: float = 30.0) -> None:
+    def __init__(self, base_url: str, api_key: str, *, timeout: float = 30.0) -> None:
         self._delegate = ContextualOrchestratorEmbeddingClient(
-            base_url, api_key, model, timeout=timeout
+            base_url, api_key, timeout=timeout
         )
 
     def embed(self, text: str) -> list[float]:
@@ -69,7 +69,6 @@ class ContextualOrchestratorEmbeddingClient:
         self,
         base_url: str,
         api_key: str,
-        model: str | None = None,
         *,
         timeout: float = 60.0,
         poll_interval: float = 0.25,
@@ -78,7 +77,7 @@ class ContextualOrchestratorEmbeddingClient:
         if not self._base_url.endswith("/v1"):
             self._base_url = f"{self._base_url}/v1"
         self._api_key = api_key
-        self._model = model or None
+        self._model: str | None = None
         self._timeout = timeout
         self._poll_interval = poll_interval
 

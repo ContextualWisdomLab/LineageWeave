@@ -309,7 +309,12 @@ async def _claim_job(
                            select analysis.source_body_sha256
                              from operations_case_analysis analysis
                             where analysis.post_id = p.post_id
-                       ) as case_analysis_source_body_sha256
+                       ) as case_analysis_source_body_sha256,
+                       (
+                           select analysis.source_body_sha256
+                             from post_product_analysis analysis
+                            where analysis.post_id = p.post_id
+                       ) as product_analysis_source_body_sha256
                 from post_content_ingestion_job j
                 join source_post p on p.post_id = j.post_id
                 where j.post_id = $1::uuid
@@ -373,7 +378,15 @@ async def _claim_job(
                         source_body_digest,
                     )
                 )
-                if content_complete and case_complete:
+                if (
+                    content_complete
+                    and case_complete
+                    and (
+                        not require_structure
+                        or row["product_analysis_source_body_sha256"]
+                        == source_body_digest
+                    )
+                ):
                     return None
             if status_code == RUNNING and row["job_started_at"] is not None:
                 stale = await conn.fetchval(
