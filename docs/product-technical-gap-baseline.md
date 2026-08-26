@@ -1,6 +1,6 @@
 # Product & Technical Gap Baseline
 
-> Dashboard delivery snapshot: 2026-08-27 03:58 KST. Protected `main` was
+> Dashboard delivery snapshot: 2026-08-27 06:38 KST. Protected `main` was
 > `ff7431bd1851c03e737808d22c6a2d43968582f9`. This local branch is not
 > protected-main release evidence.
 
@@ -60,7 +60,7 @@ only aggregate, non-identifying evidence to this repository.
 
 ### Exact open-PR boundary
 
-At this snapshot there were 36 open PRs and 10 open issues. PR #712 merged only
+At this snapshot there were 41 open PRs and 11 open issues. PR #712 merged only
 into #702's non-default branch as `78a14410`; it is part of that combined
 candidate and is not protected-`main` delivery. PR #711 still targets #640 and
 must wait for its protected upstream dependency before it can be retargeted to
@@ -69,7 +69,7 @@ independent review after the base changed. These observations are
 not merge readiness. Re-fetch exact heads, unresolved threads, checks,
 approvals, rulesets, and merge SHA before any lifecycle claim.
 
-> Audit snapshot: 2026-08-27 03:58 KST (refreshed by the autonomous merge
+> Audit snapshot: 2026-08-27 06:38 KST (refreshed by the autonomous merge
 > loop). This repository records synthetic fixtures and aggregate,
 > non-identifying runtime evidence only. Open PRs and local checks are not
 > protected-default-branch release evidence. Identifying post identifiers,
@@ -79,7 +79,7 @@ approvals, rulesets, and merge SHA before any lifecycle claim.
 ## 1. Exact-head and governance evidence
 
 The protected default branch was `ff7431bd1851c03e737808d22c6a2d43968582f9`
-when this baseline was refreshed. The live queue contained 36 open PRs and 10
+when this baseline was refreshed. The live queue contained 41 open PRs and 11
 open issues. The exact-head inventory below supersedes older per-PR snapshots
 elsewhere in this document; those older rows remain useful historical delivery
 context only.
@@ -92,36 +92,41 @@ context only.
 | #640 | `ebfe60af` | dashboard case metrics and project journeys; exact-head hosted review remains incomplete |
 | #643 | `8767de1b` | shared token-backed status notice; exact-head hosted review remains incomplete |
 | #644 | `f53dd28e` | native frontend surface code splitting; exact-head hosted review remains incomplete |
-| #657 | `9f71681c` | TEPP asynchronous lifecycle consumer; exact-head hosted review remains incomplete |
-| #658 | `15d670f0` | evidence-honest Global Ask cutoff; exact-head hosted review remains incomplete |
-| #667 | `bc399e89` | per-post Ask history and baseline evidence; exact-head hosted review remains incomplete |
-| #668 | `1194f44d` | evidence-bound project history; exact-head hosted review remains incomplete |
+| #657 | `355a5796` | TEPP asynchronous lifecycle consumer; exact-head hosted review remains incomplete |
+| #658 | `5f3bc384` | evidence-honest Global Ask cutoff; exact-head hosted review remains incomplete |
+| #667 | `e3f8a895` | per-post Ask history and baseline evidence; exact-head hosted review remains incomplete |
+| #668 | `234f975b` | evidence-bound project history; exact-head hosted review remains incomplete |
 | #672 | `a3e87a89` | persisted semantic evidence nomination; exact-head hosted review remains incomplete |
-| #679 | `01cb291f` | opt-in public-claim envelopes; exact-head hosted review remains incomplete |
-| #680 | `876129e5` | customer-actionable ranking guidance; exact-head hosted review remains incomplete |
+| #679 | `135dfe7c` | opt-in public-claim envelopes; exact-head hosted review remains incomplete |
+| #680 | `b05e3100` | customer-actionable ranking guidance; exact-head hosted review remains incomplete |
 | #700 | `1bc99eca` | evidence-bound conversation turns; exact-head hosted review remains incomplete |
 | #701 | `cc3351a9` | production-equivalent concurrent-migration fixture; exact-head hosted review remains incomplete and independent approval is absent |
-| #702 | `eda7083b` | source-semantic coverage plus non-default #712 composition; exact-head hosted evidence remains incomplete |
+| #702 | `92294223` | source-semantic coverage plus non-default #712 composition; exact-head hosted evidence remains incomplete |
 | #704 | `7b9a70ee` | external lineage contract with exact provider-work budget and fail-closed importer repair; exact-head hosted evidence remains incomplete |
 | #709 | `8ef4090c` | official DOT/FJA worker-function taxonomy; exact-head hosted review remains incomplete |
-| #710 | `2f6b7ae7` | historical snapshot precursor observed before this refresh commit; committing the snapshot necessarily advances the present PR head |
+| #710 | `27a917ee` | historical snapshot precursor observed before this refresh commit; committing the snapshot necessarily advances the present PR head |
 | #711 | `05e5f520` | stacked on #640 and blocked by an unmerged contextual-orchestrator pin; auto-merge remains disabled |
-| #713 | `cc3dfc14` | complete source-post Voice-of-X taxonomy; exact-head hosted review remains incomplete |
-| #714 | `76a602c8` | post-scoped public source research; hosted checks and independent approval remain incomplete |
-| #716 | `c01de078` | stacked on #711; operations backfill priority, with unstable hosted evidence and no protected-main claim |
-| #717 | `9db158c4` | stacked on #713; evidence-bearing Voice-of-X combinations, with unstable hosted evidence and no protected-main claim |
+| #713 | `850494c3` | complete source-post Voice-of-X taxonomy; exact-head hosted review remains incomplete |
+| #716 | `65e1dcdc` | stacked on #711; operations backfill priority, with unstable hosted evidence and no protected-main claim |
+| #717 | `ebb4ef1d` | stacked on #713; evidence-bearing Voice-of-X combinations, with unstable hosted evidence and no protected-main claim |
 | #718 | `2723fea3` | stacked on #709; evidence-bound occupational constructs; terminal hosted checks are green but no protected-main claim exists |
 | #719 | `6ee2278a` | stacked on #718; source-grounded occupational taxonomy, with no protected-main claim |
 | #720 | `dda0531d` | stale-run cancellation workflow; exact-head hosted review remains incomplete |
 | #721 | `9214c50f` | stacked on #718; normalized evidence-bound occupational-construct persistence; terminal hosted checks are green but no protected-main claim exists |
-| #723 | `30ddc8fd` | stacked on #721; official O*NET 31.0 construct catalog sync; terminal hosted checks are green but no protected-main claim exists |
-| #724 | `f5ee37b0` | stacked on #719; complete 2018 SOC hierarchy, with unstable hosted evidence and no protected-main claim |
-| #726 | `6249ba0e` | stacked on #723; catalog-bound extraction plus merged #729 review UI; hosted checks are active and no protected-main claim exists |
-| #728 | `ef7ba0f7` | stacked on #640; leftover-map explained-share persistence, with unstable hosted evidence and no protected-main claim |
-| #731 | `88ae5796` | stacked on #724; complete O*NET 31.0 content model, with unstable hosted evidence and no protected-main claim |
-| #732 | `1c622545` | stacked on #731; O*NET content-model linkages, with a dirty merge state and no protected-main claim |
-| #733 | `7965fe67` | stacked on #726; authorized occupational-construct ontology navigation, with active hosted evidence and no protected-main claim |
-| #734 | `3b0655ad` | stacked on #732; O*NET occupation rating store, with unstable hosted evidence and no protected-main claim |
+| #723 | `316fc190` | stacked on #721; official O*NET 31.0 construct catalog sync; terminal hosted checks are green but no protected-main claim exists |
+| #724 | `1d2f8052` | stacked on #719; complete 2018 SOC hierarchy, with unstable hosted evidence and no protected-main claim |
+| #726 | `d6a12fbb` | stacked on #723; catalog-bound extraction plus merged #729 review UI; hosted checks are active and no protected-main claim exists |
+| #728 | `e52a8272` | stacked on #640; leftover-map explained-share persistence, with unstable hosted evidence and no protected-main claim |
+| #731 | `b3b9b360` | stacked on #724; complete O*NET 31.0 content model, with unstable hosted evidence and no protected-main claim |
+| #732 | `7f60aa8e` | stacked on #731; O*NET content-model linkages, with no protected-main claim |
+| #733 | `17c554a9` | stacked on #726; authorized occupational-construct ontology navigation, with active hosted evidence and no protected-main claim |
+| #734 | `4c3677af` | stacked on #732; O*NET occupation rating store, with no protected-main claim |
+| #735 | `e2042093` | stacked pinned O*NET rating importer; no protected-main claim |
+| #740 | `e6efa6fe` | stacked occupation evidence UI with stale-request fencing; focused UI tests and screenshots are candidate evidence only |
+| #742 | `7e2cef27` | stacked evidence-bound product relations; dirty merge state and no protected-main claim |
+| #743 | `8b420ce5` | stacked authenticated occupation selector; no protected-main claim |
+| #745 | `c8a702ec` | stacked occupation-selector continuation; dirty merge state and no protected-main claim |
+| #746 | `0f3017aa` | stacked O*NET source catalog; no protected-main claim |
 
 No row above is merge evidence. Immediately before any lifecycle action,
 re-fetch the head, unresolved threads, formal reviews, rulesets, and same-head
@@ -139,6 +144,13 @@ declares 2.18.0. These are candidate-branch conflicts, not authority to pick a
 number heuristically. Merge each parent first, retarget its children to
 `main`, allocate the next unused ADR/migration/release identity from that live
 base, and recollect exact-head evidence.
+
+Voice-of-X candidates remain bounded by ADR 0246/0251: twelve atomic classes
+and extensible compositions retain approved Post evidence, qualified PROV-O
+derivation, truth status, and cutoff. A fixed combination enumeration,
+B2B2C-only restriction, or substitution of a hidden evidence Post is not an
+accepted implementation. Authenticated PostgreSQL API and rendered UI evidence
+remain unavailable for any acceptance criterion not proven on that boundary.
 
 PR #607 first merged as `61fd631c7bb3c57113fd19763c2c43161eeb2824`
 into #606's non-default branch. PR #606 subsequently passed the protected gate,
@@ -400,7 +412,7 @@ this file per §3.5 of the prior snapshot).
 
 | Gap | Current evidence | Acceptance requirement |
 | --- | --- | --- |
-| Protected release | 36 open PRs at snapshot. Twenty-two target `main`; fourteen are stacked on unmerged candidates. None of the occupational stack is protected-main delivery. #712's merge into non-default #702 is composition, not protected-main delivery. Queued checks remain infrastructure state and do not block safe work on other PRs. Active ruleset 18156473 currently requires one approval, dismissal on push, approval for unattributed changes, resolved threads, and seven central workflows; it does not currently enable the separate last-push-approval flag | Terminal exact-head checks, no unresolved threads, one eligible independent current-head approval, and a protected squash-merge SHA under the re-fetched active rules |
+| Protected release | 41 open PRs at snapshot. Twenty-one target `main`; twenty are stacked on unmerged candidates. None of the occupational stack is protected-main delivery. #712's merge into non-default #702 is composition, not protected-main delivery. Queued checks remain infrastructure state and do not block safe work on other PRs. Active ruleset 18156473 currently requires one approval, dismissal on push, approval for unattributed changes, resolved threads, and seven central workflows; it does not currently enable the separate last-push-approval flag | Terminal exact-head checks, no unresolved threads, one eligible independent current-head approval, and a protected squash-merge SHA under the re-fetched active rules |
 | CI queue release latency | Two Tests runs for already merged PRs occupied the available runner slots while 54 newer runs remained queued. Manual cancellation released the stale work, but the central close workflow was itself queued behind those runs. #631 delivered #634's reuse of the repository's existing per-PR concurrency group to protected `main`, so a jobless close event can cancel obsolete Tests work before runner allocation | Close a synthetic PR while its Tests run is active and verify the old run becomes cancelled, the close-event jobs remain skipped, and a newer exact-head run starts without manual intervention |
 | Evidence-grounded operations workspace | Protected-main #614 delivers governed semantic Ask, live Similar VOC, disjoint pending/failed analysis metrics, full Storybook state inventory, and current desktop/mobile screenshot evidence. Authorized-corpus backfill acceptance remains unavailable | Perform authenticated authorized-corpus acceptance with aggregate evidence and retain fail-closed no-match behavior |
 | Shared frontend gate | The ADR 0109 login repair is on protected `main`; eight older branches carried the defect and received the same verified repair this loop (#521–#560) | Keep every future branch cut from post-repair bases; re-verify with frontend lint/test/build before push |
