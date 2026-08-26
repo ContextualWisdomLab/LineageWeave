@@ -159,7 +159,12 @@ class ContextualOrchestratorProductExtractionClient:
                 "x-request-timeout-ms": str(round(self._timeout * 1000)),
             },
         )
-        content = chat_completion_content(response)
+        try:
+            content = chat_completion_content(response)
+        except TypeError as exc:
+            raise RuntimeError(
+                "contextual-orchestrator returned invalid product evidence"
+            ) from exc
         parsed = parse_product_mentions(content, sources)
         if parsed is None:
             raise RuntimeError("contextual-orchestrator returned invalid product evidence")

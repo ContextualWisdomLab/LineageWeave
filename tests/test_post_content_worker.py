@@ -425,6 +425,9 @@ def test_product_analysis_persists_one_exact_authorized_window(monkeypatch) -> N
                 "Synthetic Product Q\nPersisted semantic evidence:\nproject: Product Alias",
                 source_text="Synthetic Product Q",
             ),
+            OperationsEvidenceSource(
+                "post-2", "Sibling", "Sibling Product Z", source_text="Sibling Product Z"
+            ),
         )
 
     async def resolve(_conn, mentions):
@@ -464,6 +467,7 @@ def test_product_analysis_persists_one_exact_authorized_window(monkeypatch) -> N
     assert len(events) == 2
     assert len(events[1][3]) == 64
     assert submitted_sources[0].text == "Synthetic Product Q"
+    assert [source.post_id for source in submitted_sources] == ["post-1"]
 
 
 def test_product_analysis_skips_same_digest(monkeypatch) -> None:
@@ -596,10 +600,7 @@ def test_sibling_requeue_failure_preserves_completed_primary_job(monkeypatch) ->
     assert outcomes == [SUCCEEDED]
 
 
-@pytest.mark.parametrize("error_type", [RuntimeError, TypeError])
-def test_invalid_product_output_does_not_block_primary_post_evidence(
-    monkeypatch, error_type
-) -> None:
+def test_invalid_product_output_does_not_block_primary_post_evidence(monkeypatch) -> None:
     """Optional product extraction cannot discard structure, embedding, or cases."""
     outcomes: list[str] = []
     persisted: list[str] = []
@@ -609,7 +610,7 @@ def test_invalid_product_output_does_not_block_primary_post_evidence(
         return _row(RUNNING, 1)
 
     async def fail_product(*_args, **_kwargs):
-        raise error_type("synthetic malformed product response")
+        raise RuntimeError("synthetic malformed product response")
 
     async def persist_cases(*_args, **_kwargs):
         persisted.append("cases")
