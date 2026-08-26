@@ -89,10 +89,24 @@ def normalize_product_alias(value: str) -> str:
 
 def product_analysis_input_sha256(
     sources: tuple[ProductEvidenceSource, ...],
+    targets: tuple[ProductRelationTarget, ...] = (),
 ) -> str:
     """Digest the exact ordered authorized source window used for extraction."""
     encoded = json.dumps(
-        [(source.post_id, source.input_sha256) for source in sources],
+        {
+            "sources": [
+                (source.post_id, source.input_sha256) for source in sources
+            ],
+            "targets": [
+                (
+                    target.target_id,
+                    target.target_kind_code,
+                    target.label,
+                    target.target_locator,
+                )
+                for target in targets
+            ],
+        },
         separators=(",", ":"),
         ensure_ascii=False,
     ).encode("utf-8")

@@ -27,6 +27,10 @@ def test_parse_product_mentions_binds_exact_source_span() -> None:
         ),
     )
     assert len(product_analysis_input_sha256((source,))) == 64
+    target = ProductRelationTarget(
+        "project:synthetic", "project", "Synthetic", ("post-a", "synthetic")
+    )
+    assert product_analysis_input_sha256((source,), (target,)) != product_analysis_input_sha256((source,))
 
 
 def test_parse_product_mentions_rejects_uncited_and_duplicate_output() -> None:

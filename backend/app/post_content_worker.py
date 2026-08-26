@@ -225,18 +225,7 @@ async def _persist_product_analysis_if_needed(
         for source in operation_sources
         if source.post_id == post_id
     )
-    input_digest = product_analysis_input_sha256(sources)
     async with pool.acquire() as conn:
-        already_persisted = bool(
-            await conn.fetchval(
-                "select exists (select 1 from post_product_analysis "
-                "where post_id = $1 and source_body_sha256 = $2 "
-                "and analysis_input_sha256 = $3)",
-                post_id,
-                source_body_digest,
-                input_digest,
-            )
-        )
         operation_rows = await conn.fetch(
             "select case_kind_code, fact_ordinal, fact_type_code, value_text "
             "from operations_case_fact where post_id = $1 "
@@ -248,11 +237,6 @@ async def _persist_product_analysis_if_needed(
             "where post_id = $1 order by project_key",
             post_id,
         )
-    if already_persisted:
-        return
-    client = ContextualOrchestratorProductExtractionClient(
-        orchestrator_base_url, orchestrator_api_key
-    )
     targets = tuple(
         ProductRelationTarget(
             f"operations_fact:{row['case_kind_code']}:{row['fact_ordinal']}",
@@ -269,6 +253,23 @@ async def _persist_product_analysis_if_needed(
             (post_id, str(row["project_key"])),
         )
         for row in project_rows
+    )
+    input_digest = product_analysis_input_sha256(sources, targets)
+    async with pool.acquire() as conn:
+        already_persisted = bool(
+            await conn.fetchval(
+                "select exists (select 1 from post_product_analysis "
+                "where post_id = $1 and source_body_sha256 = $2 "
+                "and analysis_input_sha256 = $3)",
+                post_id,
+                source_body_digest,
+                input_digest,
+            )
+        )
+    if already_persisted:
+        return
+    client = ContextualOrchestratorProductExtractionClient(
+        orchestrator_base_url, orchestrator_api_key
     )
     extraction = await asyncio.to_thread(
         client.extract, sources, targets, session_id=session_id
