@@ -68,6 +68,14 @@ _LEFTOVER_MAP_RECONSTRUCTION_MIGRATION = (
     / "migrations"
     / "0206_report_leftover_map_reconstruction.sql"
 )
+_GLOBAL_ASK_JOB_MIGRATION = (
+    Path(__file__).resolve().parents[1] / "migrations" / "0165_global_ask_job.sql"
+)
+_PUBLIC_CLAIM_ENVELOPE_MIGRATION = (
+    Path(__file__).resolve().parents[1]
+    / "migrations"
+    / "0224_public_claim_envelope.sql"
+)
 _LEFTOVER_MAP_AXIS_MIGRATION = (
     Path(__file__).resolve().parents[1]
     / "migrations"
@@ -131,6 +139,8 @@ def schema_db():
                 cur.execute(_LEFTOVER_MAP_UNEXPLAINED_MIGRATION.read_text())
                 cur.execute(_LEFTOVER_MAP_CROSS_SHARE_MIGRATION.read_text())
                 cur.execute(_LEFTOVER_MAP_RECONSTRUCTION_MIGRATION.read_text())
+                cur.execute(_GLOBAL_ASK_JOB_MIGRATION.read_text())
+                cur.execute(_PUBLIC_CLAIM_ENVELOPE_MIGRATION.read_text())
             conn.commit()
             yield conn
         finally:
@@ -185,6 +195,8 @@ def test_migration_applies_cleanly(schema_db) -> None:
         "post_summary_action",
         "post_chat_result",
         "post_chat_citation",
+        "global_ask_job",
+        "public_claim_envelope",
     }
     assert expected <= tables
 
@@ -579,3 +591,94 @@ def test_cataloged_team_null_affiliation_is_unique(schema_db) -> None:
         count = cursor.fetchone()[0]
     assert ids[0] == ids[1]
     assert count == 1
+
+
+def test_public_claim_envelope_requires_a_public_post_for_egress(schema_db) -> None:
+    """Private posts cannot be marked egress-eligible (ADR 0224)."""
+    with schema_db.cursor() as cur:
+        cur.execute(
+            "select lookup_code from common_lookup_value "
+            "where lookup_category = 'public_claim_kind' order by display_order"
+        )
+        assert [row[0] for row in cur.fetchall()] == [
+            "claim_organization_presence",
+            "claim_public_event",
+            "claim_public_relationship",
+        ]
+        cur.execute(
+            "select column_name from information_schema.columns "
+            "where table_name = 'global_ask_job' and column_name = 'verify_external'"
+        )
+        assert cur.fetchone()[0] == "verify_external"
+        cur.execute(
+            "insert into common_lookup_value "
+            "(lookup_category, lookup_code, lookup_label) values "
+            "('corporate_entity_level', 'company', 'Company'), "
+            "('voc_type', 'vom', 'VOM'), "
+            "('post_visibility', 'public', 'Public'), "
+            "('post_visibility', 'private', 'Private')"
+        )
+        cur.execute(
+            "insert into corporate_entity "
+            "(corporate_entity_code, entity_name, entity_level_code) "
+            "values ('DEMO-CLAIM', 'Demo Claim Corp', 'company') "
+            "returning corporate_entity_id"
+        )
+        entity_id = cur.fetchone()[0]
+        cur.execute(
+            "insert into user_account (external_subject_id, display_name, email_address) "
+            "values ('demo-claim-author', 'Demo Claim Author', 'demo.claim@example.test') "
+            "returning user_account_id"
+        )
+        account_id = cur.fetchone()[0]
+        cur.execute(
+            "insert into source_post ("
+            "author_account_id, corporate_entity_id, post_title, post_body, "
+            "voc_type_code, visibility_code"
+            ") values (%s, %s, 'Demo public post', 'Northridge Grid is named here.', "
+            "'vom', 'public') returning post_id",
+            (account_id, entity_id),
+        )
+        public_post_id = cur.fetchone()[0]
+        cur.execute(
+            "insert into source_post ("
+            "author_account_id, corporate_entity_id, post_title, post_body, "
+            "voc_type_code, visibility_code"
+            ") values (%s, %s, 'Demo private post', 'Internal only.', "
+            "'vom', 'private') returning post_id",
+            (account_id, entity_id),
+        )
+        private_post_id = cur.fetchone()[0]
+        cur.execute(
+            "insert into public_claim_envelope ("
+            "source_post_id, claim_kind_code, subject_label, claim_text, "
+            "truth_status_code, egress_eligible"
+            ") values (%s, 'claim_organization_presence', 'Northridge Grid', "
+            "'Northridge Grid is a power utility named on the Demo public post.', "
+            "'truth_observed', true)",
+            (public_post_id,),
+        )
+        cur.execute("savepoint before_private_egress")
+        with pytest.raises(psycopg2.errors.RaiseError):
+            cur.execute(
+                "insert into public_claim_envelope ("
+                "source_post_id, claim_kind_code, subject_label, claim_text, "
+                "truth_status_code, egress_eligible"
+                ") values (%s, 'claim_organization_presence', 'Northridge Grid', "
+                "'A private claim must not leave the trust boundary.', "
+                "'truth_observed', true)",
+                (private_post_id,),
+            )
+        cur.execute("rollback to savepoint before_private_egress")
+        cur.execute("savepoint before_ineligible_kind")
+        with pytest.raises(psycopg2.errors.ForeignKeyViolation):
+            cur.execute(
+                "insert into public_claim_envelope ("
+                "source_post_id, claim_kind_code, subject_label, claim_text, "
+                "truth_status_code, egress_eligible"
+                ") values (%s, 'keyman', 'Ada West', 'Ada West is a Keyman', "
+                "'truth_observed', false)",
+                (public_post_id,),
+            )
+        cur.execute("rollback to savepoint before_ineligible_kind")
+    schema_db.rollback()

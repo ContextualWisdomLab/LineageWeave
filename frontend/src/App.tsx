@@ -1,5 +1,6 @@
 import { AdminPanel } from "./components/AdminPanel";
 import { LeftoverPairList } from "./components/LeftoverPairList";
+import { PublicClaimList } from "./components/PublicClaimList";
 import { WorkspaceCalendar } from "./components/WorkspaceCalendar";
 import { focusedGraphMustReset } from "./focusedGraphSelection";
 
@@ -4824,6 +4825,7 @@ function AskAgentPanel({
   const [answer, setAnswer] = useState<AskAgentResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [asking, setAsking] = useState(false);
+  const [verifyExternal, setVerifyExternal] = useState(false);
   const [evidenceLayerPostId, setEvidenceLayerPostId] = useState<string | null>(null);
 
   async function handleAsk() {
@@ -4832,7 +4834,7 @@ function AskAgentPanel({
     setAsking(true);
     setError(null);
     try {
-      setAnswer(await askAgent(accessToken, normalized));
+      setAnswer(await askAgent(accessToken, normalized, { verifyExternal }));
     } catch (err) {
       setAnswer(null);
       setError(orchestratorUnavailableMessage(err, t("Ask Agent")));
@@ -4856,12 +4858,32 @@ function AskAgentPanel({
           rows={4}
         />
       </label>
+      <label className="ask-agent-source">
+        <input
+          type="checkbox"
+          checked={verifyExternal}
+          onChange={(event) => setVerifyExternal(event.target.checked)}
+          aria-label={t("Verify public claims on the web")}
+        />
+        <span>{t("Verify public claims on the web")}</span>
+      </label>
+      <p className="post-meta">
+        {t(
+          "Uses authorized public claims only. Person, Keyman, TEPP, and measurement data stay inside the workspace.",
+        )}
+      </p>
       <button className="keyman-select" onClick={() => void handleAsk()} disabled={asking || !question.trim()}>
         {asking ? t("Asking...") : t("Ask")}
       </button>
       {answer && (
         <section className="popup-section" aria-label={t("Answer")}>
           <h3>{t("Answer")}</h3>
+          {answer.public_claim_verification ? (
+            <PublicClaimList
+              claims={answer.public_claim_verification.claims}
+              onSelectPost={onOpenPost}
+            />
+          ) : null}
           {answer.answer_text ? <p>{answer.answer_text}</p> : null}
           {answer.next_action ? <p className="post-meta">{t(answer.next_action)}</p> : null}
           {answer.delivery ? (

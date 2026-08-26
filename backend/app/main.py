@@ -2960,6 +2960,7 @@ class GlobalAskRequest(BaseModel):
     """JSON body for the buyer's source-grounded Global Ask Agent."""
 
     question: str
+    verify_external: bool = False
 
 
 @app.get("/api/posts/{post_id}/chat")
@@ -3119,6 +3120,7 @@ async def ask_agent(
             question_text=question,
             corporate_entity_ids=account.corporate_entity_ids,
             process_unit_ids=account.process_unit_ids,
+            verify_external=request.verify_external,
         )
     return {"ask_job_id": job_id, "job_status_code": "queued"}
 

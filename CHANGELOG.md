@@ -8,6 +8,15 @@ All notable changes to this project are documented here. Format follows
 
 ### Added
 
+- Persist typed public-claim envelopes for Global Ask web verification
+  (issue #272 / ADR 0224). Ask Agent can opt into `verify_external`;
+  only egress-eligible public organization-presence, public-event, and
+  public-relationship claims are admitted. Person, Keyman, TEPP, and
+  fast-mlsirm evidence stay inside the workspace. SearXNG URLs never
+  enter `cited_post_ids`, and this repository does not force
+  `mode="verify"`. After `make seed`, the Demo public post envelope sits
+  above the answer; a click opens that post.
+
 - Persist explicit paragraph, list, table, MathML formula, and caller-parsed
   conversation-turn semantic-unit kinds without inferring absent boundaries.
 - Event Lineage now persists each reconstructed connection's independent

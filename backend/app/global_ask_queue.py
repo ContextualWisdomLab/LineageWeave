@@ -37,6 +37,14 @@ from lineageweave.post_chat import (
     cited_post_evidence,
     cited_post_summaries,
 )
+from lineageweave.public_claim_verification import (
+    NullPublicClaimSearchClient,
+    PublicClaimSearchClient,
+    SearxngPublicClaimSearchClient,
+    cited_post_ids_exclude_external,
+    envelope_from_authorized_row,
+    verify_public_claims,
+)
 from lineageweave.temporal_expressions import resolve_korean_relative_time
 
 from .config import GLOBAL_ASK_JOB_DEADLINE_SECONDS
@@ -94,6 +102,7 @@ async def enqueue_global_ask_job(
     question_text: str,
     corporate_entity_ids: frozenset[str],
     process_unit_ids: frozenset[str],
+    verify_external: bool = False,
 ) -> str:
     """Persist one Ask job and wake the worker; return the new job id.
 
@@ -104,11 +113,14 @@ async def enqueue_global_ask_job(
     async with conn.transaction():
         job_id = await conn.fetchval(
             """
-            insert into global_ask_job (requesting_account_id, question_text)
-            values ($1, $2) returning global_ask_job_id
+            insert into global_ask_job (
+                requesting_account_id, question_text, verify_external
+            )
+            values ($1, $2, $3) returning global_ask_job_id
             """,
             requesting_account_id,
             question_text,
+            verify_external,
         )
         await conn.executemany(
             """
@@ -215,6 +227,8 @@ async def compute_global_ask_answer(
     process_scope_limited: bool,
     chat_client: PostChatClient,
     embedding_client: EmbeddingClient | None = None,
+    verify_external: bool = False,
+    claim_search_client: PublicClaimSearchClient | None = None,
 ) -> dict[str, Any]:
     """Assemble one complete Ask answer payload from authorized evidence.
 
@@ -256,7 +270,7 @@ async def compute_global_ask_answer(
         ) from exc
     if not sources:
         delivery = build_ask_delivery("", (), ())
-        return {
+        payload: dict[str, Any] = {
             "answer_text": "",
             "cited_post_ids": [],
             "cited_posts": [],
@@ -267,6 +281,14 @@ async def compute_global_ask_answer(
             "next_action": "No authorized source posts are available for this question.",
             "delivery": delivery,
         }
+        if verify_external:
+            search_client = claim_search_client or NullPublicClaimSearchClient()
+            async with pool.acquire() as conn:
+                envelopes = await load_authorized_public_claim_envelopes(conn, can_see)
+            verification = verify_public_claims(envelopes, search_client)
+            cited_post_ids_exclude_external([], verification)
+            payload["public_claim_verification"] = verification
+        return payload
     try:
         answer = await asyncio.to_thread(
             chat_client.answer, _temporally_grounded_question(question_text, today=today), sources
@@ -305,7 +327,7 @@ async def compute_global_ask_answer(
         images = await cited_post_images(conn, cited_ids)
     cited_posts = cited_post_summaries(sources, cited_ids)
     cited_evidence = cited_post_evidence(sources, cited_ids)
-    return {
+    payload: dict[str, Any] = {
         "answer_text": answer.answer_text,
         "cited_post_ids": cited_ids,
         "cited_posts": cited_posts,
@@ -315,6 +337,73 @@ async def compute_global_ask_answer(
         "lineage_graph": lineage_graph,
         "delivery": build_ask_delivery(answer.answer_text, cited_posts, cited_evidence),
     }
+    if verify_external:
+        search_client = claim_search_client or NullPublicClaimSearchClient()
+        async with pool.acquire() as conn:
+            envelopes = await load_authorized_public_claim_envelopes(conn, can_see)
+        verification = verify_public_claims(envelopes, search_client)
+        cited_post_ids_exclude_external(cited_ids, verification)
+        payload["public_claim_verification"] = verification
+        if not payload.get("next_action"):
+            payload["next_action"] = verification["next_action"]
+    return payload
+
+
+async def load_authorized_public_claim_envelopes(
+    conn: asyncpg.Connection,
+    can_see: Callable[[asyncpg.Record], bool],
+) -> tuple:
+    """Re-read egress-eligible public envelopes through the current ABAC gate.
+
+    A missing table is unavailable, not an invented claim. Private or
+    ineligible rows never reach SearXNG.
+    """
+    try:
+        rows = await conn.fetch(
+            """
+            select envelope.public_claim_envelope_id,
+                   envelope.source_post_id,
+                   post.post_title as source_post_title,
+                   envelope.claim_kind_code,
+                   envelope.subject_label,
+                   envelope.claim_text,
+                   envelope.truth_status_code,
+                   envelope.event_occurred_at,
+                   envelope.egress_eligible,
+                   post.visibility_code,
+                   post.corporate_entity_id,
+                   post.process_unit_id
+              from public_claim_envelope envelope
+              join source_post post
+                on post.post_id = envelope.source_post_id
+             where envelope.egress_eligible
+               and post.visibility_code = 'public'
+             order by envelope.created_at, envelope.public_claim_envelope_id
+            """
+        )
+    except asyncpg.UndefinedTableError:
+        return ()
+    envelopes = []
+    for row in rows:
+        if not can_see(row):
+            continue
+        envelope = envelope_from_authorized_row(row)
+        if envelope is not None:
+            envelopes.append(envelope)
+    return tuple(envelopes)
+
+
+def _public_claim_search_client() -> PublicClaimSearchClient:
+    """Live SearXNG client when configured; otherwise unavailable."""
+    from backend.app.config import load_settings
+
+    settings = load_settings()
+    if not settings.searxng_base_url:
+        return NullPublicClaimSearchClient()
+    try:
+        return SearxngPublicClaimSearchClient(settings.searxng_base_url)
+    except ValueError:
+        return NullPublicClaimSearchClient()
 
 
 def _temporally_grounded_question(question_text: str, *, today: date | None = None) -> str:
@@ -363,7 +452,7 @@ async def process_global_ask_job(
             """
             update global_ask_job set job_status_code = $2, updated_at = now()
             where global_ask_job_id = $1 and job_status_code = $3
-            returning requesting_account_id, question_text
+            returning requesting_account_id, question_text, verify_external
             """,
             job_id,
             RUNNING,
@@ -397,6 +486,8 @@ async def process_global_ask_job(
                 process_scope_limited=process_scope_limited,
                 chat_client=chat_client,
                 embedding_client=embedding_factory(),
+                verify_external=bool(row.get("verify_external", False)),
+                claim_search_client=_public_claim_search_client(),
             ),
             timeout=JOB_DEADLINE_SECONDS,
         )

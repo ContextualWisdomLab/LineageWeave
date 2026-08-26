@@ -146,6 +146,7 @@ describe("App, authenticated", () => {
     let createdPendingTepp: Record<string, unknown> | null = null;
     let resolvedHintCode: string | null = null;
     let contentRequests = 0;
+    let lastAskVerifyExternal = false;
 
     let releaseMe = () => {};
     const demoOrgAlias = options?.organizationAliases ? { organization_alias: "DC" } : {};
@@ -1724,6 +1725,8 @@ describe("App, authenticated", () => {
         );
       }
       if (url.endsWith("/api/ask") && method === "POST") {
+        const body = JSON.parse(String(init?.body ?? "{}"));
+        lastAskVerifyExternal = Boolean(body.verify_external);
         return Promise.resolve(
           jsonResponse({ ask_job_id: "ask-job-1", job_status_code: "queued" }),
         );
@@ -1807,6 +1810,25 @@ describe("App, authenticated", () => {
                 eligible: true, watched_resource_uris: ["lineageweave://posts/post-2"],
               },
             } : undefined,
+            public_claim_verification: lastAskVerifyExternal
+              ? {
+                  status_code: "claim_supported",
+                  next_action: "Public web evidence supports this claim. Open that post.",
+                  claims: [
+                    {
+                      public_claim_envelope_id: "env-demo-public",
+                      source_post_id: "post-1",
+                      source_post_title: "Public post",
+                      claim_kind_code: "claim_organization_presence",
+                      subject_label: "Northridge Grid",
+                      claim_text: "Northridge Grid is a power utility named on the Demo public post.",
+                      status_code: "claim_supported",
+                      external_evidence_urls: ["https://northridgegrid.example/about"],
+                      next_action: "Public web evidence supports this claim. Open that post.",
+                    },
+                  ],
+                }
+              : undefined,
             },
           }),
         );
@@ -2049,6 +2071,26 @@ describe("App, authenticated", () => {
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
     // The answer itself is still on screen -- the layer never navigated away.
     expect(screen.getByRole("button", { name: "View evidence" })).toBeInTheDocument();
+  });
+
+  it("opts into public-claim verification and opens that source post", async () => {
+    stubBackend();
+    render(<App />);
+    expect(await screen.findByRole("button", { name: "View post: Public post" })).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Ask Agent" }));
+
+    const verify = screen.getByRole("checkbox", { name: "Verify public claims on the web" });
+    expect(verify).not.toBeChecked();
+    await userEvent.click(verify);
+    await userEvent.type(screen.getByRole("textbox", { name: "Ask a question" }), "Does Northridge Grid exist?");
+    await userEvent.click(screen.getByRole("button", { name: "Ask" }));
+
+    expect(await screen.findByLabelText("Public claims")).toBeInTheDocument();
+    const claim = screen.getByRole("button", { name: "Open public claim: Public post" });
+    expect(claim).toHaveTextContent("Organization presence: Public post · Northridge Grid");
+    expect(claim).toHaveTextContent("Supported");
+    await userEvent.click(claim);
+    expect(await screen.findByRole("button", { name: "View post: Public post" })).toBeInTheDocument();
   });
 
   it("labels the Customer Master entity level and Keymen side, never the raw lookup code", async () => {

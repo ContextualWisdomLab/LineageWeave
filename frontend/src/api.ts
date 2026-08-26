@@ -390,6 +390,25 @@ export interface AskAgentResponse {
       watched_resource_uris: string[];
     };
   };
+  public_claim_verification?: PublicClaimVerification;
+}
+
+export interface PublicClaimVerdict {
+  public_claim_envelope_id: string;
+  source_post_id: string;
+  source_post_title: string;
+  claim_kind_code: string;
+  subject_label: string;
+  claim_text: string;
+  status_code: string;
+  external_evidence_urls: string[];
+  next_action: string;
+}
+
+export interface PublicClaimVerification {
+  status_code: string;
+  next_action: string;
+  claims: PublicClaimVerdict[];
 }
 
 export interface IssueTicket {
@@ -1153,10 +1172,17 @@ interface AskJobStatus {
  * The signature and resolved value are unchanged from the old synchronous
  * call, so callers (AskAgentPanel) keep their existing pending/complete
  * states without modification. */
-export async function askAgent(accessToken: string, question: string): Promise<AskAgentResponse> {
+export async function askAgent(
+  accessToken: string,
+  question: string,
+  options?: { verifyExternal?: boolean },
+): Promise<AskAgentResponse> {
   const submitted = await backendFetch<AskJobStatus>("/api/ask", accessToken, {
     method: "POST",
-    body: JSON.stringify({ question }),
+    body: JSON.stringify({
+      question,
+      verify_external: Boolean(options?.verifyExternal),
+    }),
   });
   const deadline = Date.now() + ASK_POLL_CEILING_MS;
   for (;;) {

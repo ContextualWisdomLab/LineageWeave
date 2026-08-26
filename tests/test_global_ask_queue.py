@@ -173,3 +173,156 @@ def test_job_visibility_never_expands_past_queued_scope() -> None:
     assert processes == {"queued-process"}
     assert process_scope_limited is True
     assert has_post_read is True
+
+
+def test_process_global_ask_job_forwards_opt_in_verify_external(monkeypatch) -> None:
+    """Opt-in is persisted on the job row and must reach answer assembly."""
+    connection = _Connection({**_queued_row(), "verify_external": True})
+    pool = _Pool(connection)
+    captured: dict[str, object] = {}
+
+    async def _fake_load_job_visibility(_conn, _job_id, _account_id):
+        return {"corp-1"}, set(), False, True
+
+    async def _fake_compute_global_ask_answer(*_args, **kwargs):
+        captured.update(kwargs)
+        return {
+            "answer_text": "synthetic",
+            "cited_post_ids": [],
+            "cited_posts": [],
+            "source_post_ids": [],
+        }
+
+    monkeypatch.setattr(global_ask_queue, "load_job_visibility", _fake_load_job_visibility)
+    monkeypatch.setattr(
+        global_ask_queue, "compute_global_ask_answer", _fake_compute_global_ask_answer
+    )
+
+    asyncio.run(
+        global_ask_queue.process_global_ask_job(
+            pool,
+            job_id="job-1",
+            chat_factory=_AvailableClient,
+        )
+    )
+
+    assert captured["verify_external"] is True
+    assert captured["claim_search_client"] is not None
+
+
+def test_missing_public_claim_table_is_unavailable_not_an_invented_claim() -> None:
+    """A volume that has not replayed 0224 fails closed."""
+    import asyncpg
+
+    class _MissingTable:
+        async def fetch(self, *_args: object, **_kwargs: object):
+            raise asyncpg.UndefinedTableError("public_claim_envelope")
+
+    envelopes = asyncio.run(
+        global_ask_queue.load_authorized_public_claim_envelopes(
+            _MissingTable(), lambda _row: True
+        )
+    )
+    assert envelopes == ()
+
+
+def test_public_claim_loader_drops_unauthorized_and_ineligible_rows() -> None:
+    class _Rows:
+        async def fetch(self, *_args: object, **_kwargs: object):
+            return [
+                {
+                    "public_claim_envelope_id": "env-1",
+                    "source_post_id": "post-demo-public",
+                    "source_post_title": "Demo public post",
+                    "claim_kind_code": "claim_organization_presence",
+                    "subject_label": "Northridge Grid",
+                    "claim_text": "Northridge Grid is a power utility.",
+                    "truth_status_code": "truth_observed",
+                    "event_occurred_at": None,
+                    "egress_eligible": True,
+                    "visibility_code": "public",
+                    "corporate_entity_id": "corp-1",
+                    "process_unit_id": "pu-1",
+                },
+                {
+                    "public_claim_envelope_id": "env-hidden",
+                    "source_post_id": "post-hidden",
+                    "source_post_title": "Hidden post",
+                    "claim_kind_code": "claim_organization_presence",
+                    "subject_label": "Northridge Grid",
+                    "claim_text": "should not dispatch",
+                    "truth_status_code": "truth_observed",
+                    "event_occurred_at": None,
+                    "egress_eligible": True,
+                    "visibility_code": "public",
+                    "corporate_entity_id": "corp-hidden",
+                    "process_unit_id": "pu-hidden",
+                },
+            ]
+
+    envelopes = asyncio.run(
+        global_ask_queue.load_authorized_public_claim_envelopes(
+            _Rows(),
+            lambda row: row["source_post_id"] == "post-demo-public",
+        )
+    )
+    assert len(envelopes) == 1
+    assert envelopes[0].source_post_id == "post-demo-public"
+
+
+def test_public_claim_search_client_is_null_when_searxng_is_unset(monkeypatch) -> None:
+    monkeypatch.setattr(
+        "backend.app.config.load_settings",
+        lambda: type("Settings", (), {"searxng_base_url": ""})(),
+    )
+    client = global_ask_queue._public_claim_search_client()
+    assert client.available is False
+
+
+def test_empty_sources_still_attach_opt_in_public_claim_verification(monkeypatch) -> None:
+    class _PoolWithConn:
+        @asynccontextmanager
+        async def acquire(self):
+            yield object()
+
+    async def _no_sources(*_args, **_kwargs):
+        return []
+
+    async def _envelopes(*_args, **_kwargs):
+        from lineageweave.public_claim_verification import (
+            KIND_ORGANIZATION_PRESENCE,
+            PublicClaimEnvelope,
+        )
+
+        return (
+            PublicClaimEnvelope(
+                public_claim_envelope_id="env-1",
+                source_post_id="post-demo-public",
+                source_post_title="Demo public post",
+                claim_kind_code=KIND_ORGANIZATION_PRESENCE,
+                subject_label="Northridge Grid",
+                claim_text="Northridge Grid is a power utility named on the Demo public post.",
+                truth_status_code="truth_observed",
+                event_occurred_at=None,
+                egress_eligible=True,
+                visibility_code="public",
+            ),
+        )
+
+    monkeypatch.setattr(global_ask_queue, "gather_global_chat_sources", _no_sources)
+    monkeypatch.setattr(
+        global_ask_queue, "load_authorized_public_claim_envelopes", _envelopes
+    )
+    payload = asyncio.run(
+        global_ask_queue.compute_global_ask_answer(
+            _PoolWithConn(),
+            question_text="Does Northridge Grid exist?",
+            corporate_entity_ids=set(),
+            process_unit_ids=set(),
+            process_scope_limited=False,
+            chat_client=_AvailableClient(),
+            verify_external=True,
+        )
+    )
+    assert payload["public_claim_verification"]["status_code"] == "claim_unavailable"
+    assert payload["public_claim_verification"]["claims"]

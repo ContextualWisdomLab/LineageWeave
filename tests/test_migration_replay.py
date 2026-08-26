@@ -194,3 +194,20 @@ def test_topic_lineage_result_migration_is_idempotent_for_replay() -> None:
 
     assert "create table if not exists analysis_run_topic_lineage_result" in migration
     assert "create index if not exists" in migration
+
+
+def test_public_claim_envelope_migration_is_replay_safe() -> None:
+    """Volumes created before 0224 must survive migrate.sh's every-start replay."""
+    sql = (
+        Path(__file__).resolve().parents[1]
+        / "migrations"
+        / "0224_public_claim_envelope.sql"
+    ).read_text(encoding="utf-8").casefold()
+
+    assert "create table if not exists public_claim_envelope" in sql
+    assert "on conflict (lookup_code) do nothing" in sql
+    assert "create or replace function public_claim_envelope_require_public_post" in sql
+    assert "add column if not exists verify_external" in sql
+    assert "claim_organization_presence" in sql
+    assert "claim_public_event" in sql
+    assert "claim_public_relationship" in sql

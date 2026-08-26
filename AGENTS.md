@@ -295,6 +295,14 @@ when the event instant is missing. Cited evidence names **Time
 axis** so the reader can open that post and see which clock
 matched. Do not invent an event date or a theta.
 
+Public-claim verification (ADR 0224 / issue #272) is opt-in
+(`verify_external`). Admission is a persisted `public_claim_envelope`
+bound to a public post. Question-token overlap is not admission.
+Person, Keyman, TEPP, and fast-mlsirm kinds cannot be stored.
+External URLs stay off `cited_post_ids`. Missing SearXNG is
+unavailable, not a guessed query. Never force
+`contextual-orchestrator` `mode="verify"`.
+
 Organization chips show a unique search-corroborated SKOS companion
 (`Demo Corp (DC)`) and stay unlabeled on a miss or tie (ADR 0008 /
 ADR 0170). Do not invent an abbreviation from letters. Synthetic

@@ -179,6 +179,29 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Asking...": "질의 중...",
     Answer: "답변",
     "Cited posts": "인용된 글",
+    "Verify public claims on the web": "웹에서 공개 주장을 검증",
+    "Uses authorized public claims only. Person, Keyman, TEPP, and measurement data stay inside the workspace.":
+      "권한이 있는 공개 주장만 사용합니다. Person, Keyman, TEPP, 측정 데이터는 작업공간 안에 남습니다.",
+    "Public claims": "공개 주장",
+    "Open public claim: {title}": "공개 주장 열기: {title}",
+    "Open this post so the public claim is current.": "공개 주장이 현재 글이 되도록 이 글을 여세요.",
+    "Organization presence": "조직 존재",
+    "Public event": "공개 사건",
+    "Public relationship": "공개 관계",
+    Supported: "지지됨",
+    Refuted: "반박됨",
+    "Not enough information": "정보 부족",
+    Unavailable: "사용할 수 없음",
+    "Public web evidence": "공개 웹 근거",
+    "Web verification is unavailable until the search service is connected. Open that post.":
+      "검색 서비스가 연결되기 전까지 웹 검증을 사용할 수 없습니다. 그 글을 여세요.",
+    "No usable public web evidence. Open that post.":
+      "사용할 수 있는 공개 웹 근거가 없습니다. 그 글을 여세요.",
+    "Public web evidence supports this claim. Open that post.":
+      "공개 웹 근거가 이 주장을 지지합니다. 그 글을 여세요.",
+    "Public claim is on {title}. Open that post.": "공개 주장은 {title}에 있습니다. 그 글을 여세요.",
+    "Public-claim verification is unavailable: no egress-eligible public claim is authorized.":
+      "공개 주장 검증을 사용할 수 없습니다. 반출 가능한 공개 주장이 없습니다.",
     "Report · alert · MCP": "리포트 · 알림 · MCP",
     "{count} evidence documents are linked to this report.": "근거 문서 {count}건이 리포트에 연결됐습니다.",
     "You can subscribe to evidence-change alerts.": "근거 변경 알림을 구독할 수 있습니다.",
@@ -684,6 +707,28 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Asking...": "正在提问...",
     Answer: "回答",
     "Cited posts": "引用文章",
+    "Verify public claims on the web": "在网上核验公开主张",
+    "Uses authorized public claims only. Person, Keyman, TEPP, and measurement data stay inside the workspace.":
+      "仅使用已授权的公开主张。Person、Keyman、TEPP 和测量数据留在工作区内。",
+    "Public claims": "公开主张",
+    "Open public claim: {title}": "打开公开主张：{title}",
+    "Open this post so the public claim is current.": "打开这篇文章，使该公开主张成为当前项。",
+    "Organization presence": "组织存在",
+    "Public event": "公开事件",
+    "Public relationship": "公开关系",
+    Supported: "支持",
+    Refuted: "反驳",
+    "Not enough information": "信息不足",
+    Unavailable: "不可用",
+    "Public web evidence": "公开网络证据",
+    "Web verification is unavailable until the search service is connected. Open that post.":
+      "在连接搜索服务之前无法进行网络核验。打开那篇文章。",
+    "No usable public web evidence. Open that post.": "没有可用的公开网络证据。打开那篇文章。",
+    "Public web evidence supports this claim. Open that post.":
+      "公开网络证据支持这一主张。打开那篇文章。",
+    "Public claim is on {title}. Open that post.": "公开主张在 {title}。打开那篇文章。",
+    "Public-claim verification is unavailable: no egress-eligible public claim is authorized.":
+      "无法核验公开主张：没有可出境的已授权公开主张。",
     "Search related posts": "搜索相关文章",
     "Search related posts for: {name}": "搜索与{name}相关的文章",
     "Evidence facts": "证据事实",
@@ -1205,6 +1250,29 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Asking...": "質問中...",
     Answer: "回答",
     "Cited posts": "引用された投稿",
+    "Verify public claims on the web": "ウェブで公開主張を検証",
+    "Uses authorized public claims only. Person, Keyman, TEPP, and measurement data stay inside the workspace.":
+      "権限のある公開主張だけを使います。Person、Keyman、TEPP、測定データはワークスペース内に残ります。",
+    "Public claims": "公開主張",
+    "Open public claim: {title}": "公開主張を開く: {title}",
+    "Open this post so the public claim is current.": "この公開主張が現在の投稿になるように開いてください。",
+    "Organization presence": "組織の存在",
+    "Public event": "公開イベント",
+    "Public relationship": "公開関係",
+    Supported: "支持",
+    Refuted: "反駁",
+    "Not enough information": "情報不足",
+    Unavailable: "利用不可",
+    "Public web evidence": "公開ウェブ証拠",
+    "Web verification is unavailable until the search service is connected. Open that post.":
+      "検索サービスが接続されるまでウェブ検証は利用できません。その投稿を開いてください。",
+    "No usable public web evidence. Open that post.":
+      "利用できる公開ウェブ証拠がありません。その投稿を開いてください。",
+    "Public web evidence supports this claim. Open that post.":
+      "公開ウェブ証拠がこの主張を支持します。その投稿を開いてください。",
+    "Public claim is on {title}. Open that post.": "公開主張は {title} にあります。その投稿を開いてください。",
+    "Public-claim verification is unavailable: no egress-eligible public claim is authorized.":
+      "公開主張の検証は利用できません。持ち出せる公開主張がありません。",
     "Search related posts": "関連投稿を検索",
     "Search related posts for: {name}": "{name}の関連投稿を検索",
     "Evidence facts": "証拠の事実",
@@ -1705,6 +1773,30 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Asking...": "Đang hỏi...",
     Answer: "Câu trả lời",
     "Cited posts": "Bài viết được trích dẫn",
+    "Verify public claims on the web": "Xác minh tuyên bố công khai trên web",
+    "Uses authorized public claims only. Person, Keyman, TEPP, and measurement data stay inside the workspace.":
+      "Chỉ dùng tuyên bố công khai được cấp quyền. Person, Keyman, TEPP và dữ liệu đo lường ở lại trong không gian làm việc.",
+    "Public claims": "Tuyên bố công khai",
+    "Open public claim: {title}": "Mở tuyên bố công khai: {title}",
+    "Open this post so the public claim is current.":
+      "Mở bài viết này để tuyên bố công khai trở thành mục hiện tại.",
+    "Organization presence": "Sự hiện diện của tổ chức",
+    "Public event": "Sự kiện công khai",
+    "Public relationship": "Quan hệ công khai",
+    Supported: "Được hỗ trợ",
+    Refuted: "Bị bác bỏ",
+    "Not enough information": "Không đủ thông tin",
+    Unavailable: "Không khả dụng",
+    "Public web evidence": "Bằng chứng web công khai",
+    "Web verification is unavailable until the search service is connected. Open that post.":
+      "Không thể xác minh trên web cho đến khi dịch vụ tìm kiếm được kết nối. Mở bài viết đó.",
+    "No usable public web evidence. Open that post.":
+      "Không có bằng chứng web công khai khả dụng. Mở bài viết đó.",
+    "Public web evidence supports this claim. Open that post.":
+      "Bằng chứng web công khai hỗ trợ tuyên bố này. Mở bài viết đó.",
+    "Public claim is on {title}. Open that post.": "Tuyên bố công khai nằm ở {title}. Mở bài viết đó.",
+    "Public-claim verification is unavailable: no egress-eligible public claim is authorized.":
+      "Không thể xác minh tuyên bố công khai: không có tuyên bố công khai được phép đưa ra ngoài.",
     "Search related posts": "Tìm bài viết liên quan",
     "Search related posts for: {name}": "Tìm bài viết liên quan đến {name}",
     "Evidence facts": "Sự kiện bằng chứng",

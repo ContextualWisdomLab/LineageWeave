@@ -127,6 +127,7 @@ def seed(
             cur.execute((migrations / "0182_report_leftover_map_unexplained.sql").read_text())
             cur.execute((migrations / "0185_report_leftover_map_cross_share.sql").read_text())
             cur.execute((migrations / "0206_report_leftover_map_reconstruction.sql").read_text())
+            cur.execute((migrations / "0224_public_claim_envelope.sql").read_text())
             cur.execute((migrations / "0060_role_responsibility_agent_type.sql").read_text())
             cur.execute((migrations / "0013_person_job_title.sql").read_text())
             cur.execute((migrations / "0014_role_responsibility_team_actor_type.sql").read_text())
@@ -329,6 +330,19 @@ def seed(
                         "where post_id = %s",
                         (demo_public_post_id,),
                     )
+            cur.execute(
+                "insert into public_claim_envelope ("
+                "source_post_id, claim_kind_code, subject_label, claim_text, "
+                "truth_status_code, event_occurred_at, egress_eligible"
+                ") values (%s, 'claim_organization_presence', %s, %s, "
+                "'truth_observed', '2026-01-10T12:00:00Z', true) "
+                "on conflict (source_post_id, claim_kind_code, claim_text) do nothing",
+                (
+                    demo_public_post_id,
+                    "Northridge Grid",
+                    "Northridge Grid is a power utility named on the Demo public post.",
+                ),
+            )
             from base64 import b64encode
             from io import BytesIO
 
