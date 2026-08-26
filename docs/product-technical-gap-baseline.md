@@ -1,6 +1,6 @@
 # Product & Technical Gap Baseline
 
-> Dashboard delivery snapshot: 2026-08-26 13:10 KST. Protected `main` is
+> Dashboard delivery snapshot: 2026-08-26 13:25 KST. Protected `main` is
 > `494b54e2245040bcf02b45376f221c37cd437e76`. This local branch is not
 > protected-main release evidence.
 
@@ -87,7 +87,7 @@ context only.
 | ---: | --- | --- |
 | #682 | `0aa3113e` | MERGED to stack `feat/global-ask-semantic-public-current` as `fa245483`; typed public-claim verification filters cited claims before the bounded candidate budget, preserves answers when verification is unavailable, rejects hidden evidence from public egress, and validates empty orchestrator choices |
 | #681 | `3e0fa644` | MERGED to stack `feat/dashboard-case-metrics` as `dae28fb2`; fail-closed lineage-weight owner contract pin with lockfile parity |
-| #680 | `4e41bcd1` | customer-facing ranking copy with localized retry/search guidance, no fused-ranking implementation label, related-concepts/author-context/earlier-source-version labels, and complete guidance regression coverage; hosted checks requeued and independent review required |
+| #680 | `be34c335` | customer-facing ranking copy with localized retry/search guidance, no fused-ranking implementation label, related-concepts/author-context/earlier-source-version labels, and source-record detail copy corrected; hosted checks requeued and independent review required |
 | #679 | `7e6e386a` | ADR 0229 public-claim envelope, async verification, locale-aware next actions, opt-in search setup, and aggregate-status guidance repair; BLOCKED with exact-head checks and independent review required |
 | #678 | `676fcc5a` | MERGED to stack `feat/dashboard-case-metrics` as `bec013d8`; canonical Compose-stack consolidation |
 | #677 | `bf7d6b88` | ADR 0228 account-owned per-post Ask conversation history reconciled with the latest baseline; localized titles, full conversation/transcript pagination, stale-response guards, repeated-turn preservation, and eligibility recheck remain intact; hosted checks requeued and independent review required |
