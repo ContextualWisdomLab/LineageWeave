@@ -44,10 +44,13 @@ provenance.
    regexes, provider-name ordering, local model selection, and hand-authored
    scoring weights are prohibited.
 5. Persist the result in normalized post case-analysis tables with the source
-   body digest and orchestrator session/run provenance. A changed source body
-   invalidates the old result and queues re-analysis through the existing
-   content-ingestion lifecycle. Schema-invalid or unavailable results fail the
-   job and remain retryable; they are not converted into a negative case.
+   body digest, a SHA-256 fingerprint of the exact ordered authorized evidence
+   window and context, and orchestrator session/run provenance. A changed
+   source body or input fingerprint invalidates reuse and queues re-analysis
+   through the existing content-ingestion lifecycle. Historical rows without
+   an input fingerprint are honest unknowns and re-analyze when next queued.
+   Schema-invalid or unavailable results fail the job and remain retryable;
+   they are not converted into a negative case.
 6. External-information coverage is the distinct count of visible posts with
    a persisted positive `external_information` classification divided by all
    visible posts in the same period. The stored `vom` source code is supplied
@@ -179,7 +182,8 @@ treated as a negative case.
 ## Verification
 
 - Parser and persistence tests cover multi-label output, cited spans, malformed
-  responses, source-digest invalidation, and unavailable orchestrator states.
+  responses, source-body and ordered evidence-window invalidation, replay-safe
+  fingerprint storage, and unavailable orchestrator states.
 - Backend integration tests cover ABAC filtering, event-time fallback, event
   versus post counts, external-information percentage, multi-project
   membership, explicit missing facts, observed lifecycle endpoints, exact

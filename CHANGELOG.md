@@ -12,8 +12,11 @@ All notable changes to this project are documented here. Format follows
   part of its authorized evidence window before re-analysis. Missing evidence
   remains a retry state rather than a request for the reader to attach an
   original; newly analyzed project evidence now requeues completed sibling
-  analyses that still have missing facts. The composer now uses an accessible
-  form with a stable action and separate progress status.
+  analyses that still have missing facts. Case-analysis reuse now binds to a
+  digest of the exact ordered authorized evidence window and context, so an
+  unchanged focal body is re-analyzed when new sibling evidence arrives. The
+  composer now uses an accessible form with a stable action and separate
+  progress status.
 
 - Docker Compose now has one canonical `lineageweave` project containing the
   complete synthetic product stack. The backend receives the existing TEPP API

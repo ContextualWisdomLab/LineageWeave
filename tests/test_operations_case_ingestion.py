@@ -51,9 +51,13 @@ def test_digest_and_atomic_normalized_persistence() -> None:
             digest,
         ),
     )
-    asyncio.run(persist_operations_cases(conn, "post-1", "source", "session-1", cases))
+    asyncio.run(persist_operations_cases(
+        conn, "post-1", "source", "session-1", cases,
+        analysis_input_sha256="b" * 64,
+    ))
     assert len(source_body_digest("source")) == 64
     assert "delete from operations_case_analysis" in conn.calls[0][0]
+    assert conn.calls[1][1][-1] == "b" * 64
     assert conn.batches == [
         [("post-1", "claim_investigation", 0, "order", "A-1", "source", "post-1", digest, None)]
     ]
@@ -62,7 +66,10 @@ def test_digest_and_atomic_normalized_persistence() -> None:
 def test_persists_supported_empty_analysis() -> None:
     """A completed no-case result is recorded without fabricated children."""
     conn = _Connection()
-    asyncio.run(persist_operations_cases(conn, "post-1", "ordinary", "session-1", ()))
+    asyncio.run(persist_operations_cases(
+        conn, "post-1", "ordinary", "session-1", (),
+        analysis_input_sha256="b" * 64,
+    ))
     assert len(conn.calls) == 2
     assert conn.batches == []
 
@@ -81,7 +88,10 @@ def test_persists_missing_required_facts_without_invented_evidence() -> None:
     )
 
     asyncio.run(
-        persist_operations_cases(conn, "post-1", "source", "session-1", (case,))
+        persist_operations_cases(
+            conn, "post-1", "source", "session-1", (case,),
+            analysis_input_sha256="b" * 64,
+        )
     )
 
     assert conn.batches == [
@@ -120,7 +130,10 @@ def test_persists_observed_and_missing_milestones_separately() -> None:
     )
 
     asyncio.run(
-        persist_operations_cases(conn, "post-1", "source", "session-1", (case,))
+        persist_operations_cases(
+            conn, "post-1", "source", "session-1", (case,),
+            analysis_input_sha256="b" * 64,
+        )
     )
 
     assert conn.batches[-2] == [
