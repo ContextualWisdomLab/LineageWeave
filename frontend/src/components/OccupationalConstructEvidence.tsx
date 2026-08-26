@@ -8,7 +8,8 @@ import { EvidenceStatusMark } from "./EvidenceStatusMark";
 export type OccupationalConstructEvidenceStatus =
   | "complete"
   | "processing"
-  | "unavailable";
+  | "unavailable"
+  | "historical_unavailable";
 
 const FAMILY_LABEL: Record<string, OccupationalConstructCopyKey> = {
   cognitive_ability: "Cognitive ability",
@@ -31,6 +32,8 @@ export function OccupationalConstructEvidence({
     statusCopy = "Work evidence is still being prepared. Reopen this record shortly.";
   } else if (status === "unavailable") {
     statusCopy = "Work evidence is unavailable. Ask an administrator to retry record analysis.";
+  } else if (status === "historical_unavailable") {
+    statusCopy = "Work evidence is unavailable for this historical cutoff. Review the known body instead.";
   } else if (assertions.length === 0) {
     statusCopy = "No supported work evidence was found in this record.";
   }

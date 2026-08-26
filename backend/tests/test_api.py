@@ -2059,6 +2059,11 @@ def test_post_detail_as_of_returns_the_cutoff_known_body(
         params={"as_of": "2026-01-12T12:00:00Z"},
         headers=headers,
     )
+    assert known.json()["occupational_construct_assertions"] == []
+    assert (
+        known.json()["occupational_construct_evidence_status"]
+        == "historical_unavailable"
+    )
     assert known.status_code == 200
     body = known.json()
     assert body["post_body"] == "A January post rewritten after the run cutoff."

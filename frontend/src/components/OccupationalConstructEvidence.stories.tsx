@@ -42,6 +42,9 @@ export const EvidenceReady: Story = {
 export const NoSupportedEvidence: Story = { args: { status: "complete", assertions: [] } };
 export const Processing: Story = { args: { status: "processing", assertions: [] } };
 export const Unavailable: Story = { args: { status: "unavailable", assertions: [] } };
+export const HistoricalCutoffUnavailable: Story = {
+  args: { status: "historical_unavailable", assertions: [] },
+};
 export const NarrowViewport: Story = {
   args: { status: "complete", assertions: [assertion] },
   parameters: { viewport: { defaultViewport: "mobile1" } },

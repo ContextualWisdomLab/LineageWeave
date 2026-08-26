@@ -29,7 +29,8 @@ All notable changes to this project are documented here. Format follows
 - Authorized Post detail now shows O*NET work evidence with its verbatim source
   span, explicit inference status, and official definition action. Complete
   empty, processing, and unavailable states stay distinct and localized rather
-  than collapsing into a blank panel (ADR 0254).
+  than collapsing into a blank panel. Historical cutoff reads omit live
+  assertions and direct the reviewer to the cutoff-known body (ADR 0254).
 
 - The DOT/FJA Data/People/Things worker-function taxonomy is now published
   in the canonical ontology: all 24 worker functions carry the official

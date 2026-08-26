@@ -39,6 +39,11 @@ describe("OccupationalConstructEvidence", () => {
     ["complete", [], "No supported work evidence was found in this record."],
     ["processing", [], "Work evidence is still being prepared. Reopen this record shortly."],
     ["unavailable", [], "Work evidence is unavailable. Ask an administrator to retry record analysis."],
+    [
+      "historical_unavailable",
+      [],
+      "Work evidence is unavailable for this historical cutoff. Review the known body instead.",
+    ],
   ] as const)("renders the %s state without invented evidence", (status, assertions, message) => {
     render(<OccupationalConstructEvidence status={status} assertions={[...assertions]} />);
     expect(screen.getByRole("status")).toHaveTextContent(message);
