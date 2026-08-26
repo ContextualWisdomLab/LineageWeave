@@ -96,7 +96,7 @@ context only.
 | #667 | `90b0d330` | baseline refresh branch current head; BLOCKED with review required; stacked #669 and #671 are merged into this non-default branch |
 | #672 | `5468c04d` | persisted semantic-evidence nomination for Global Ask with ADR renumbering; BLOCKED with hosted checks queued and review required |
 | #668 | `153add77` | evidence-bound project history projection with ADR renumbering, request guards, source-code/time-basis display repair, and theme-token timeline styling; BLOCKED with review required |
-| #663 | `74b9a1d9` | project ontology traversal, cutoff-snapshot project focus, bounded MCP admission, and migration-fixture/worker startup repair; hosted Full-suite transaction root cause repaired; fresh checks pending and review required |
+| #663 | `f616887a` | project ontology traversal, cutoff-snapshot project focus, bounded MCP admission, and migration-fixture/worker startup repair; exact-head Full-suite authentication and transaction-fixture failures repaired; fresh checks pending and review required |
 | #658 | `f497a6e8` | evidence-honest Global Ask cutoff with robust revision timestamps; BLOCKED with review required |
 | #657 | `709df1b9` | TEPP lifecycle persistence and fail-closed topic acceptance; BLOCKED with hosted checks queued and review required |
 | #644 | `ed8d97f3` | native-surface code splitting; BLOCKED with review required |
