@@ -1,6 +1,6 @@
 # Product & Technical Gap Baseline
 
-> Dashboard delivery snapshot: 2026-08-26 12:15 KST. Protected `main` is
+> Dashboard delivery snapshot: 2026-08-26 12:22 KST. Protected `main` is
 > `494b54e2245040bcf02b45376f221c37cd437e76`. This local branch is not
 > protected-main release evidence.
 
@@ -68,7 +68,7 @@ are not merge readiness. Re-fetch exact heads,
 unresolved threads, checks, approvals, rulesets, and merge SHA before any
 lifecycle claim.
 
-> Audit snapshot: 2026-08-26 12:15 KST (refreshed by the autonomous merge
+> Audit snapshot: 2026-08-26 12:22 KST (refreshed by the autonomous merge
 > loop). This repository records synthetic fixtures and aggregate,
 > non-identifying runtime evidence only. Open PRs and local checks are not
 > protected-default-branch release evidence. Identifying post identifiers,
@@ -86,14 +86,14 @@ context only.
 | PR | Exact observed head | Merge/check state at this snapshot |
 | ---: | --- | --- |
 | #689 | `81d85a02` | accepted measurement-owner release pin restacked on current #640; hosted checks and independent review pending |
-| #688 | `87753317` | automatic related-source evidence lookup restacked on current #640; UNSTABLE with hosted checks and stack-base delivery pending |
+| #688 | `a18eb200` | automatic related-source evidence lookup restacked on current #640; missing-evidence copy now explains automatic retry and the current head is UNSTABLE with hosted checks pending |
 | #687 | `827978a5` | bounded semantic backfill jobs stacked on #640; UNSTABLE with hosted checks and stack-base delivery pending |
 | #686 | `7f0a6fd1` | customer-facing copy boundary audit removes implementation labels while retaining Event Lineage distinction and localized actions; five locale/accessibility fixes applied, three Devin threads resolved, hosted checks requeued |
 | #680 | `5c246a54` | customer-facing ranking copy with localized retry/search guidance and source-record detail copy corrected; BLOCKED with exact-head checks and independent review required |
 | #679 | `29aa69dd` | ADR 0229 public-claim envelope, async verification, locale-aware next actions, opt-in search setup, and aggregate-status guidance repair; BLOCKED with exact-head checks and independent review required |
 | #672 | `147f208e` | persisted semantic-evidence nomination for Global Ask with ADR renumbering; unexpected verification failures degrade to unavailable, and embedding work is performed before the pool is acquired; hosted checks requeued |
 | #668 | `e452bf38` | evidence-bound project history projection with ADR renumbering, request guards, source-code/time-basis display repair, and theme-token timeline styling; BLOCKED with review required |
-| #667 | `d474e973` | baseline refresh plus repeated-turn conversation-key repair; current head has no unresolved review threads, while hosted checks and independent approval remain pending |
+| #667 | `26b60284` | baseline refresh plus repeated-turn conversation-key repair; current head has no unresolved review threads, while hosted checks and independent approval remain pending |
 | #663 | `f616887a` | project ontology traversal, cutoff-snapshot project focus, bounded MCP admission, and migration-fixture/worker startup repair; exact-head Full-suite authentication and transaction-fixture failures repaired; fresh checks pending and review required |
 | #658 | `f497a6e8` | evidence-honest Global Ask cutoff with robust revision timestamps; BLOCKED with review required |
 | #657 | `709df1b9` | TEPP lifecycle persistence and fail-closed topic acceptance; BLOCKED with hosted checks queued and review required |
@@ -105,7 +105,7 @@ context only.
 | #631 | `e6b4f0c4` | ADR decomposition documentation; BLOCKED with review required |
 | #629 | `48496ff6` | provider-work release, bounded reads, and UUID tie-break ordering; BLOCKED with review required |
 
-The exact-head check-run scan at 12:15 KST found no `failure`, `cancelled`, or
+The exact-head check-run scan at 12:22 KST found no `failure`, `cancelled`, or
 `timed_out` conclusions on the 19 current heads. Several heads, including
 #667, #672, and #686 after their repair pushes, are still queued and therefore have
 no terminal gate evidence; review approval is also independently required.
