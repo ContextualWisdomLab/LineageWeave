@@ -61,14 +61,14 @@ only aggregate, non-identifying evidence to this repository.
 
 ### Exact open-PR boundary
 
-At this snapshot there were 17 open PRs and 10 open issues. The exact-head
+At this snapshot there were 16 open PRs and 10 open issues. The exact-head
 inventory in section 1 is authoritative for this snapshot. Every open head
 remained blocked on hosted gates and/or independent review. These observations
 are not merge readiness. Re-fetch exact heads,
 unresolved threads, checks, approvals, rulesets, and merge SHA before any
 lifecycle claim.
 
-> Audit snapshot: 2026-08-26 17:34 KST (refreshed by the autonomous merge
+> Audit snapshot: 2026-08-26 17:36 KST (refreshed by the autonomous merge
 > loop). This repository records synthetic fixtures and aggregate,
 > non-identifying runtime evidence only. Open PRs and local checks are not
 > protected-default-branch release evidence. Identifying post identifiers,
@@ -78,7 +78,7 @@ lifecycle claim.
 ## 1. Exact-head and governance evidence
 
 The protected default branch is `ff7431bd1851c03e737808d22c6a2d43968582f9`
-at this refresh. The live queue contains 17 open PRs and 10
+at this refresh. The live queue contains 16 open PRs and 10
 open issues. The exact-head inventory below supersedes older per-PR snapshots
 elsewhere in this document; those older rows remain useful historical delivery
 context only.
@@ -87,8 +87,7 @@ context only.
 | ---: | --- | --- |
 | #701 | `cc3351a9` | repairs both integration fixtures by invoking `psql -X -v ON_ERROR_STOP=1 -f` exactly like the ADR 0166 production runner, so concurrent indexes remain outside a transaction without a fixture-owned SQL parser; no migration is skipped or suppressed. Forty schema/replay/backend checks pass; protected hosted checks and independent review remain required |
 | #700 | `28f7ec9d` | adds ADR 0238's bounded versioned caller-parsed conversation-turn envelope, fail-closed whole-result preflight, ordered semantic-unit persistence, and opaque caller evidence references without body-pattern speaker inference. Caller units cannot inherit opaque-body metadata, trigger unused vision work, or admit text the database cannot persist. Focused import/persistence/chunking/docstring/documentation tests and Ruff pass; protected hosted checks and independent review remain required |
-| #694 | `85fe98da` | preserves overlapping voice classifications and authorized aggregate filters; voice evidence and next actions remain visible when the surrounding Dashboard is pending or failed, concurrent loading uses one live region, and synthetic-only Demo identities cannot enter a real-source denominator. Focused backend/frontend, lint/build/Storybook, PostgreSQL constraint, and 1280×720 visual checks pass. It remains stacked on #693's product-catalog composition, so parent delivery, retargeting, fresh hosted checks, and independent review are required |
-| #693 | `ae129154` | restores the missing review/delivery parent for durable semantic embedding and operations-worker changes accumulated after #688 merged into #640; current composition leaves token splitting with the orchestrator's Rust owner, reports event-loop progress instead of PID existence, reclaims stale source-hash product analysis, and pins gateway authentication/cadence in regression. It remains stacked directly on #640 pending protected parent delivery |
+| #693 | `0feb7f72` | restores the missing review/delivery parent for durable semantic embedding and operations-worker changes accumulated after #688 merged into #640. PR #694 is now composed into this head, preserving overlapping voice classifications, authorized aggregates, one concurrent-loading live region, synthetic-row exclusion, and the customer-visible evidence/actions. The composition leaves token splitting with the orchestrator's Rust owner, reports event-loop progress instead of PID existence, reclaims stale source-hash product analysis, and pins gateway authentication/cadence in regression. It remains stacked directly on #640 pending protected parent delivery; fresh exact-head checks are queued |
 | #680 | `95f8feee` | customer-facing ranking and related-concept copy removes the remaining rendered internal ontology label while preserving the Event Lineage distinction and protected-main's Project node additions. The merge-forward head passes 77 focused i18n/component tests and lint; fresh exact-head hosted checks and independent review are required |
 | #679 | `5601fea8` | ADR 0229 public-claim envelope, async verification, locale-aware next actions, opt-in search setup, aggregate-status guidance repair, and rollback protection for truth-owned fields; BLOCKED with exact-head checks and independent review required |
 | #672 | `3f76c189` | persisted semantic-evidence nomination for Global Ask uses unique ADR 0233/0234 and migration 0225/0226 identities; production nominee wiring includes organization/team evidence, removes duplicate embedding work, and separates visible from all KG evidence so hidden identifiers cannot render. Review threads are resolved; hosted checks and independent review remain required |
@@ -112,12 +111,13 @@ and `60b4c6004739a05e63edae8ff160758f8e665919`.
 These are stack-integration evidence only; they are not protected-`main`
 delivery. Their acceptance now travels with the two parent heads above.
 
-PRs #692 and #697 merged into the non-default #693 composition as
+PRs #692, #697, and #694 merged into the non-default #693 composition as
 `cdd499b161053a9c5439181e8f39e1baa80e68c0` and
-`dc3ebb6911187637cf85fcbcc036cf39e571aaec`. PR #699 merged into the
-non-default #694 composition as `d47aae9f77a3f71c7f91929cb258f6e73d1f6d40`.
-Their product-catalog, Python-arithmetic deletion, and Rust-ownership audit
-evidence now travels with those open parents; none is protected-main delivery.
+`dc3ebb6911187637cf85fcbcc036cf39e571aaec`, then protected-stack merge
+`0feb7f72cc34fbd23e8f1bd6355c9a5ee49ded89`. PR #699 had already merged into
+#694 as `d47aae9f77a3f71c7f91929cb258f6e73d1f6d40`. Their product-catalog,
+voice exploration, Python-arithmetic deletion, and Rust-ownership audit
+evidence now travels with open parent #693; none is protected-main delivery.
 
 PR #663 merged to protected `main` as merge commit
 `faff7a32cf9b3c81fefa2814b6f30a0a3ba4e58f`; its project-ontology traversal,
@@ -145,12 +145,12 @@ is also required.
   it must not configure `LLM_GATEWAY_EMBEDDING_MODEL`, infer a provider from a
   model name, or present #857 as delivered before its protected merge.
 - `ContextualWisdomLab/RankWeave` PR #41 exact head `8e75aa11` contains the
-  proposed Rust calculation core and a rebased semantic-unit ranking commit.
-  Stacked PR #48 exact head `f3cd7ed7` contains the same feature intent on a
-  divergent sibling commit and targets #41's branch. Both heads had queued
-  hosted checks and no protected-main merge evidence. Reconcile them to one
-  reviewed exact-head lineage before consumption; neither candidate permits
-  LineageWeave to retain Python vector arithmetic.
+  proposed Rust calculation core and the semantic-unit ranking feature merged
+  from stacked PR #48 (`f3cd7ed7`). PR #48 is therefore stack-integration
+  evidence only; #41's new exact head has queued hosted checks and no
+  protected-main merge evidence. LineageWeave may consume the owner contract
+  only after that composed head passes its protected gate; it may not retain
+  Python vector arithmetic.
 
 No row above is merge evidence. Immediately before any lifecycle action,
 re-fetch the head, unresolved threads, formal reviews, rulesets, and same-head
@@ -494,14 +494,14 @@ for wholesale replay from #490.
 | Semantic source rendering | ADR 0223 and migration 0221 were first delivered via #664/#660 and remain on protected `main@494b54e2`; persisted paragraph, list, table, MathML formula, and caller-parsed conversation-turn kinds remain explicit and image regions remain ordered normalized children | Prove an authorized semantic-only query retrieves each persisted unit kind and gather authenticated browser evidence that nesting, continuation alignment, formula units, and image regions retain source order |
 | Source conversation-turn ingestion | PR #700 adds ADR 0238's bounded versioned PostgreSQL-import envelope, whole-result preflight, ordered turn persistence, and opaque caller evidence references without body-pattern speaker inference. It is a current-main candidate, not protected delivery; Naruon producer consumption, authorized semantic-only retrieval/citation, and runtime ABAC evidence remain absent. Ask conversation history and ThreadWeave message threading remain separate graphs | Land #700 through the protected gate, publish its immutable contract fixture, and add a Naruon consumer that supplies authorized RFC/JMAP-derived turns. Prove ABAC non-disclosure, semantic-only turn retrieval and exact-unit citation, and absence of cross-graph inference on released heads |
 | Event and project semantics | Multi-project mentions, project-bound actions, 5W1H, requester/processor, and semantic relations exist in ADR 0036/0052/0100/0111/0129 and active stacks | Aggregate authenticated evidence must show distinct projects and events, explicit requester/processor and real R&R, normalized relative time, and product/entity relations without promoting attendance or co-occurrence |
-| Product hierarchy and voice exploration | PR #692 merged only into the non-default #693 composition, which carries its evidence-bound product group/model/variant/trade-item catalog. Stacked #694 carries overlapping voice classifications with source eligibility, ABAC, original evidence, and synthetic-row exclusion from real-source summaries. Neither open parent is protected delivery | Land #693 and then #694 through their ordered protected gates, then prove through authenticated aggregate API and rendered acceptance that authorized users can navigate product hierarchy and overlapping voice classes without exposing hidden evidence or implementation ownership |
+| Product hierarchy and voice exploration | PRs #692 and #694 are now composed into non-default parent #693, which carries the evidence-bound product group/model/variant/trade-item catalog plus overlapping voice classifications with source eligibility, ABAC, original evidence, and synthetic-row exclusion from real-source summaries. The open parent is not protected delivery | Land #693 through its ordered parent gate, then prove through authenticated aggregate API and rendered acceptance that authorized users can navigate product hierarchy and overlapping voice classes without exposing hidden evidence or implementation ownership |
 | Knowledge Graph readability | PR #659 is protected-main delivery in `main@494b54e2`: ontology node types use semantic-family light/dark tokens while shape and text remain non-color channels; exact-value tables retain full labels | Complete authenticated rendered acceptance for light/dark contrast, keyboard graph navigation, full labels, and evidence tables |
 | Source-code lookup UX | Source state/detail codes remain evidence-bearing machine values and current detail presentation is dense | Catalog-backed display labels with raw-code provenance, compact 5W1H/source-detail hierarchy, keyboard access, and no unsupported customer/project binding |
 | Calendar / Naruon | #355 and closed issue #336 delivered the consumer projection and v2.17.0 operator wiring without forwarding the end-user token. Cross-repository email/project lineage issue #338 remains open; producer/consumer runtime fixtures are not protected release evidence | Verify observed events against the published schema without invented events; keep commitments available when the channel is unwired |
 | SKOS organization aliases | Catalog binding and chip caption live on #480 / #482 | One catalog row per corroborated org; companion caption is hint-only until bound |
 | Event Lineage evidence | Channel evidence and Allen relations were delivered by merged #387 / #484 | Persist channel scores, explain them in the popup, never invent a fused score |
 | Scientific measurement | Durable accepted TEPP receipts and LineageWeave #614's exact accepted snapshot/cutoff/run/pair-count consumer are protected; TEPP #237 remains open, so no registered producer artifact exists yet. Merged #387 removes inferred/default persistence weights, but several older reconstruction tests still pass hand-authored numeric dictionaries that are not estimator evidence | Land TEPP #237 through its protected gate, then replace remaining reconstruction-test constants with provenance-bearing fast-mlsirm estimates over synthetic fixtures. Retain true-parameter RMSE recovery as the acceptance bar |
-| Python mathematical-compute boundary | ADR 0208's first deletion slice moved leftover residual/SVD/Gabriel arithmetic to fast-mlsirm, and #697 merged only into #693's non-default composition after deleting unused local cosine helpers. Active debt remains in period-report GRM/GPCM matrix construction and theta summaries, Knowledge Graph random-walk vector iteration, channel-weight estimation, fusion normalization/contribution recomputation, and lexical overlap ranking. The Global Ask SQL cosine path is separately frozen. fast-mlsirm #1436 proposes the relation-safe, content-addressed Rust period artifact on #1417. RankWeave #41 (`8e75aa11`) proposes the shared Rust/PyO3 calculation boundary; stacked #48 (`f3cd7ed7`) proposes deterministic semantic-unit cosine ranking with winning-unit evidence and no local model/provider/weight selection. The sibling feature commits currently diverge and all required hosted gates remain queued, so none is protected delivery | Reconcile RankWeave #41/#48 to one reviewed stack and land the Rust owner contract before LineageWeave consumes it; replace the LineageWeave text-vector path with request/validation/persistence only. Land fast-mlsirm #1417/#1436 before replacing period arithmetic. Add graph-ranking and fusion-contribution Rust artifacts at the owning boundary before deleting remaining local paths; require CPU/GPU parity and true-parameter recovery where applicable |
+| Python mathematical-compute boundary | ADR 0208's first deletion slice moved leftover residual/SVD/Gabriel arithmetic to fast-mlsirm, and #697 merged only into #693's non-default composition after deleting unused local cosine helpers. Active debt remains in period-report GRM/GPCM matrix construction and theta summaries, Knowledge Graph random-walk vector iteration, channel-weight estimation, fusion normalization/contribution recomputation, and lexical overlap ranking. The Global Ask SQL cosine path is separately frozen. fast-mlsirm #1436 proposes the relation-safe, content-addressed Rust period artifact on #1417. RankWeave #41 (`8e75aa11`) now composes the shared Rust/PyO3 calculation boundary with #48's deterministic semantic-unit cosine ranking, winning-unit evidence, and no local model/provider/weight selection. Its required hosted gates remain queued, so it is not protected delivery | Land composed RankWeave #41 before LineageWeave consumes it; replace the LineageWeave text-vector path with request/validation/persistence only. Land fast-mlsirm #1417/#1436 before replacing period arithmetic. Add graph-ranking and fusion-contribution Rust artifacts at the owning boundary before deleting remaining local paths; require CPU/GPU parity and true-parameter recovery where applicable |
 | Failed measurement recovery | A Failed measurement/topic-lineage run is immutable, but the prior UI delegated recovery and exposed no product retry action | Request a new authorized current-snapshot run, submit it through the existing outbox/TEPP boundary, retain the Failed history, and expose the action in all five locales |
 | Asynchronous authorization | Protected `main` includes #468's 3NF Keyverse organization/process-unit scope and rebuilds Global Ask worker authorization after the bearer token leaves the request | Prove on the exact release head that a second affiliation and a revoked process unit cannot widen delayed-job evidence |
 | Planned-facility intent | Planned-facility relationship intent remains only on closed, unmerged #490; earlier stack-only merges were not protected delivery | Recreate the evidence-backed slice on a current base and land through protected `main` before a release claim |
@@ -597,10 +597,9 @@ review latency are never blockers — keep working while they settle.
 1. Revalidate Strix after protected ContextualWisdomLab/.github#1320, reconcile
    .github#1263, and land the atomic hourly LineageWeave caller in .github#1288 after its current-head independent approval and checks complete.
 2. Process the current section 1 inventory in ascending PR order after
-   dependency review. #677, #688, #689, #690, #692, #697, and #699 are already
+   dependency review. #677, #688, #689, #690, #692, #694, #697, and #699 are already
    merged only into non-default parent branches; their acceptance travels
-   through #667, #640, #693, or #694 as recorded in section 1. Land #693 before
-   #694. No child head or non-default merge may substitute for protected
+   through #667, #640, or #693 as recorded in section 1. No child head or non-default merge may substitute for protected
    delivery of its base.
    Merge only after each exact head shows terminal green required checks plus
    current-head independent approval.
