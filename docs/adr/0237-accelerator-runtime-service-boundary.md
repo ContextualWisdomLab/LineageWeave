@@ -38,6 +38,10 @@ cannot prove that a compatible device and vendor driver are present.
    of retrieval fusion and evaluation behind its published contract; this ADR
    neither changes its implementation language nor transfers psychometric
    ownership to it. None of these profiles are added to LineageWeave Compose.
+   Podman owners request GPUs through supported GPU/CDI device contracts. A
+   Colima `krunkit` model runner is likewise an inference-owner deployment on
+   supported Apple-silicon hosts, not a reason to expose a device or model
+   selector in LineageWeave.
 4. LineageWeave connectors accept only the owner's provider-neutral envelope.
    Persisted evidence records the owner, contract/model version, input/output
    digest, execution-device class reported by the owner, convergence or
@@ -98,3 +102,9 @@ https://ml-explore.github.io/mlx/build/html/usage/unified_memory.html
 
 NVIDIA Corporation. (2026). *NVIDIA Container Toolkit architecture overview*.
 https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/arch-overview.html
+
+Podman Contributors. (2026). *podman-pod-create*.
+https://docs.podman.io/en/latest/markdown/podman-pod-create.1.html
+
+Suzuki, A. (2026). *Colima: Container runtimes on macOS (and Linux) with
+minimal setup*. GitHub. https://github.com/abiosoft/colima
