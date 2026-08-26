@@ -1455,6 +1455,7 @@
 }
 
 .occupation-rating-form label,
+.occupation-rating-occupation-select,
 .occupation-rating-source {
   display: grid;
   gap: var(--space-control-gap);

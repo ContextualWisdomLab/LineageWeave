@@ -38,6 +38,7 @@ decision from them.
 | Occupation-rating Dashboard evidence view | [0259](0259-occupation-rating-evidence-ui.md) |
 | Imported occupation-rating source catalog | [0260](0260-occupation-rating-source-catalog.md) |
 | Imported occupation catalog for rating evidence | [0261](0261-occupation-rating-occupation-catalog.md) |
+| Occupation catalog title filter | [0262](0262-occupation-catalog-title-filter.md) |
 
 [0011](0011-prov-o-standard-relations.md) and [0065](0065-prov-o-provenance-boundary.md) cite the dated W3C PROV-O and PROV-DM Recommendations (https://www.w3.org/TR/2013/REC-prov-o-20130430/ and https://www.w3.org/TR/2013/REC-prov-dm-20130430/).
 

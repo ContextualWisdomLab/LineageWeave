@@ -108,6 +108,36 @@ describe("OccupationRatingProfile", () => {
     expect(screen.getByRole("button", { name: "직업 근거 열기" })).toBeDisabled();
   });
 
+  it("filters catalog titles without submitting a typed occupation code", async () => {
+    vi.mocked(fetchOccupationRatingSources).mockResolvedValue({ sources: [importedSource] });
+    vi.mocked(fetchOccupationRatingOccupations).mockResolvedValue(observedOccupations);
+    vi.mocked(fetchOccupationRatings).mockResolvedValue(ready);
+    render(<OccupationRatingProfile accessToken="synthetic-token" />);
+    await screen.findByRole("option", { name: "Synthetic occupation (15-1252.00)" });
+
+    await userEvent.type(screen.getByLabelText("직업 찾기"), "15-1252");
+    expect(screen.queryByRole("option", { name: "Synthetic chief occupation (11-1011.00)" })).not.toBeInTheDocument();
+    expect(screen.getByRole("option", { name: "Synthetic occupation (15-1252.00)" })).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "직업 근거 열기" }));
+
+    expect(fetchOccupationRatings).toHaveBeenCalledWith("synthetic-token", {
+      onetsocCode: "15-1252.00", dataReleaseCode: "onet-31.0", sourceTableCode: "abilities", offset: 0,
+    });
+  });
+
+  it("fails closed when the title filter matches no catalog occupation", async () => {
+    vi.mocked(fetchOccupationRatingSources).mockResolvedValue({ sources: [importedSource] });
+    vi.mocked(fetchOccupationRatingOccupations).mockResolvedValue(observedOccupations);
+    render(<OccupationRatingProfile accessToken="synthetic-token" />);
+    await screen.findByRole("option", { name: "Synthetic occupation (15-1252.00)" });
+
+    await userEvent.type(screen.getByLabelText("직업 찾기"), "unknown-occupation");
+
+    expect(await screen.findByText(/입력한 조건에 맞는 직업이 없습니다/)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "직업 근거 열기" })).toBeDisabled();
+    expect(fetchOccupationRatings).not.toHaveBeenCalled();
+  });
+
   it("keeps pagination bound to the loaded profile after form edits", async () => {
     vi.mocked(fetchOccupationRatingSources).mockResolvedValue({ sources: [importedSource] });
     vi.mocked(fetchOccupationRatingOccupations).mockResolvedValue(observedOccupations);

@@ -14,6 +14,18 @@ function sourceKey(source: Pick<OccupationRatingSource, "data_release_code" | "s
   return `${source.data_release_code}|${source.source_table_code}`;
 }
 
+function matchesOccupationCatalogQuery(
+  occupation: OccupationRatingOccupation,
+  query: string,
+): boolean {
+  const needle = query.trim().toLocaleLowerCase("en-US");
+  if (!needle) return true;
+  return (
+    occupation.occupation_title.toLocaleLowerCase("en-US").includes(needle)
+    || occupation.onetsoc_code.toLocaleLowerCase("en-US").includes(needle)
+  );
+}
+
 function safeHttpUrl(value: string | null | undefined): string | null {
   if (!value) return null;
   try {
@@ -31,6 +43,7 @@ export function OccupationRatingProfile({ accessToken }: Props) {
   const [sourceCatalogError, setSourceCatalogError] = useState(false);
   const [occupations, setOccupations] = useState<OccupationRatingOccupation[] | null>(null);
   const [selectedOccupation, setSelectedOccupation] = useState("");
+  const [occupationQuery, setOccupationQuery] = useState("");
   const [occupationCatalogError, setOccupationCatalogError] = useState(false);
   const [profile, setProfile] = useState<OccupationRatingProfilePayload | null>(null);
   const [status, setStatus] = useState<"idle" | "loading" | "error">("idle");
@@ -52,12 +65,14 @@ export function OccupationRatingProfile({ accessToken }: Props) {
     if (!source) {
       setOccupations(null);
       setSelectedOccupation("");
+      setOccupationQuery("");
       setOccupationCatalogError(false);
       return;
     }
     let active = true;
     setOccupations(null);
     setSelectedOccupation("");
+    setOccupationQuery("");
     setOccupationCatalogError(false);
     fetchOccupationRatingOccupations(accessToken, {
       dataReleaseCode: source.data_release_code,
@@ -106,15 +121,28 @@ export function OccupationRatingProfile({ accessToken }: Props) {
       .catch(() => setStatus("error"));
   }
 
+  const visibleOccupations = (occupations ?? []).filter((item) =>
+    matchesOccupationCatalogQuery(item, occupationQuery),
+  );
+
+  useEffect(() => {
+    if (occupations == null) return;
+    if (visibleOccupations.some((item) => item.onetsoc_code === selectedOccupation)) return;
+    setSelectedOccupation(visibleOccupations[0]?.onetsoc_code ?? "");
+  }, [occupations, selectedOccupation, visibleOccupations]);
+
   const occupationCatalogReady = occupations !== null && !occupationCatalogError;
-  const canSubmit = Boolean(selectedSource) && Boolean(selectedOccupation) && occupationCatalogReady && occupations.length > 0;
+  const canSubmit = Boolean(selectedSource)
+    && Boolean(selectedOccupation)
+    && occupationCatalogReady
+    && visibleOccupations.some((item) => item.onetsoc_code === selectedOccupation);
 
   return (
     <section className="occupation-rating-profile" aria-labelledby="occupation-rating-heading">
       <header>
         <p className="dashboard-eyebrow">공개 직업 근거</p>
         <h2 id="occupation-rating-heading">직업별 업무 특성 확인</h2>
-        <p>직업과 근거 표를 선택해 관측값, 오차, 사용 주의사항을 함께 확인하세요.</p>
+        <p>직업 이름과 근거 표를 선택해 관측값, 오차, 사용 주의사항을 함께 확인하세요.</p>
       </header>
       <form
         className="occupation-rating-form"
@@ -140,21 +168,33 @@ export function OccupationRatingProfile({ accessToken }: Props) {
             ))}
           </select>
         </label>
-        <label className="occupation-rating-occupation-select">
-          직업
-          <select
-            required
-            value={selectedOccupation}
-            disabled={!occupationCatalogReady || occupations.length === 0}
-            onChange={(event) => setSelectedOccupation(event.target.value)}
-          >
-            {(occupations ?? []).map((occupation) => (
-              <option key={occupation.onetsoc_code} value={occupation.onetsoc_code}>
-                {occupation.occupation_title} ({occupation.onetsoc_code})
-              </option>
-            ))}
-          </select>
-        </label>
+        <div className="occupation-rating-occupation-select">
+          <label>
+            직업 찾기
+            <input
+              type="search"
+              value={occupationQuery}
+              placeholder="이름이나 코드로 찾기"
+              disabled={!occupationCatalogReady || (occupations?.length ?? 0) === 0}
+              onChange={(event) => setOccupationQuery(event.target.value)}
+            />
+          </label>
+          <label>
+            직업
+            <select
+              required
+              value={selectedOccupation}
+              disabled={!occupationCatalogReady || visibleOccupations.length === 0}
+              onChange={(event) => setSelectedOccupation(event.target.value)}
+            >
+              {visibleOccupations.map((occupation) => (
+                <option key={occupation.onetsoc_code} value={occupation.onetsoc_code}>
+                  {occupation.occupation_title} ({occupation.onetsoc_code})
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
         <button className="btn-secondary" type="submit" disabled={status === "loading" || !canSubmit}>
           {status === "loading" ? "근거를 불러오는 중" : "직업 근거 열기"}
         </button>
@@ -167,6 +207,9 @@ export function OccupationRatingProfile({ accessToken }: Props) {
       ) : null}
       {occupations?.length === 0 && !occupationCatalogError ? (
         <p role="status">이 근거 표에서 확인할 수 있는 직업이 없습니다. 다른 근거 표를 선택하거나 데이터 담당자에게 가져오기를 요청하세요.</p>
+      ) : null}
+      {occupations != null && occupations.length > 0 && visibleOccupations.length === 0 ? (
+        <p role="status">입력한 조건에 맞는 직업이 없습니다. 검색어를 바꾸거나 다른 근거 표를 선택하세요.</p>
       ) : null}
       {occupationCatalogError ? <p role="alert">사용 가능한 직업을 확인하지 못했습니다. 잠시 후 다시 열어 보세요.</p> : null}
       {status === "error" ? (

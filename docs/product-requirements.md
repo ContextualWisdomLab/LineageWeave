@@ -206,6 +206,18 @@ published title then code; and the real PostgreSQL integration test proves an
 imported synthetic occupation is listed for its rating source while a
 classification-only occupation is not.
 
+### PRD-FR-2I — Occupation catalog title filter
+
+- Let an authenticated user filter the imported occupation catalog by
+  published title or retained code without ranking or typed SOC fallback
+  (ADR 0262).
+- Reset the filter when the source changes.
+- Disable profile submission and state the next action when the filter
+  matches no catalog occupation.
+
+Acceptance: submitting still sends only a catalog identity; a non-matching
+filter never creates a request; and Storybook covers a no-match state.
+
 ### PRD-FR-3 — Bounded ontology exploration
 
 - Apply RBAC/ABAC, source eligibility, and knowledge cutoff before graph

@@ -8,6 +8,9 @@ All notable changes to this project are documented here. Format follows
 
 ### Added
 
+- Occupation evidence now filters the imported occupation catalog by published
+  title or retained code without ranking or typed SOC fallback, and fails closed
+  when the filter matches nothing (ADR 0262).
 - Occupation evidence now selects a published occupation title from occupations
   that actually have observations in the chosen imported source, with fail-closed
   empty/unavailable catalog states and the retained title on the opened profile
