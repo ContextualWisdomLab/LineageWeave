@@ -1,5 +1,11 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { BackendError, fetchMe, fetchOperationsDashboard, updateTenantConfig } from "./api";
+import {
+  BackendError,
+  fetchMe,
+  fetchOccupationRatings,
+  fetchOperationsDashboard,
+  updateTenantConfig,
+} from "./api";
 
 afterEach(() => {
   vi.unstubAllGlobals();
@@ -16,6 +22,25 @@ describe("backendFetch provider-error boundary", () => {
 
     expect(fetchMock.mock.calls[0][0]).toContain(
       "/api/dashboard?period_start=2026-08-01&period_end=2026-08-25",
+    );
+  });
+
+  it("encodes an exact occupation rating source request", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify({ source_available: false, items: [] }), {
+        headers: { "Content-Type": "application/json" },
+      }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    await fetchOccupationRatings("access-token", {
+      onetsocCode: "15-1252.00",
+      dataReleaseCode: "onet-31.0",
+      sourceTableCode: "abilities",
+    });
+
+    expect(fetchMock.mock.calls[0][0]).toContain(
+      "/api/occupations/15-1252.00/ratings?data_release_code=onet-31.0&source_table_code=abilities&limit=100&offset=0",
     );
   });
 

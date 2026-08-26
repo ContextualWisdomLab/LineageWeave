@@ -81,6 +81,7 @@ flowchart LR
 | `ask_time_axis.py` | Event-time vs ingestion-time clock choice for that window (ADR 0202) |
 | `ontology.py` | Loads the governed Turtle source tree (`lineageweave-kg.ttl` plus generated fragments), the formal OWL 2/RDFS/SKOS vocabulary for the Knowledge Graph's node/edge types, source taxonomies, and published O*NET linkages (ADR 0004, ADR 0252, ADR 0255, ADR 0256) |
 | `backend/app/occupation_rating_ingestion.py` | Projects authenticated, bounded occupation-rating source evidence with exact decimal and artifact provenance semantics (ADR 0258) |
+| `frontend/src/components/OccupationRatingProfile.tsx` | Reads exact occupation evidence in the existing Dashboard and preserves absence, uncertainty, and warning semantics (ADR 0259) |
 | `ontology_neighborhood.py` | Bounded typed ontology/provenance neighborhood (ADR 0184); PostgreSQL stays authoritative, OWL subclass is not an instance edge |
 | `ontology_source_cursor.py` | Opaque HMAC source-window continuation (ADR 0124); keyset pagination, never OFFSET |
 | `period_report.py` | Fit GRM/GPCM on persisted IRT rows, FIPC-select, EAP-score a period (ADR 0003 slice 3; Bock & Mislevy, 1982) |

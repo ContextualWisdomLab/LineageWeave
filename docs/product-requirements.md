@@ -161,6 +161,20 @@ Acceptance: invalid identifiers and unbounded pages are rejected; an unavailable
 source never appears as a negative profile; pagination is deterministic; and a
 suppressed observation retains its value and warning flag together.
 
+### PRD-FR-2F — Occupation-rating evidence view
+
+- Let an authenticated user submit an exact O*NET-SOC code, release, and source
+  from the existing Dashboard without changing the governed GNB (ADR 0259).
+- Display published values beside bounds, sample/error/interval evidence,
+  source time, and text warnings; link both source artifacts.
+- Give different next actions for unavailable source, empty occupation,
+  transport failure, and additional pages.
+
+Acceptance: keyboard users can operate the form and named horizontally
+scrollable table; narrow layouts retain complete values; suppression remains
+visible beside its value; and Storybook covers populated, narrow, unavailable,
+and empty states using synthetic data.
+
 ### PRD-FR-3 — Bounded ontology exploration
 
 - Apply RBAC/ABAC, source eligibility, and knowledge cutoff before graph

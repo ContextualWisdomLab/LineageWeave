@@ -8,6 +8,10 @@ All notable changes to this project are documented here. Format follows
 
 ### Added
 
+- The existing Dashboard now includes an authenticated occupation-evidence
+  view with exact source selection, sample/error context, textual suppression
+  warnings, artifact links, responsive table access, and distinct unavailable
+  versus empty next actions (ADR 0259).
 - Authenticated occupation profiles can now read one exact imported
   release/source with rating and scale artifact provenance, exact decimal
   strings, uncertainty, suppression/relevance flags, and explicit unavailable
