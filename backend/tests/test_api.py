@@ -273,8 +273,9 @@ def _fetch_demo_analyst_token() -> str:
     return token_response["access_token"]
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture
 def demo_analyst_token() -> str:
+    """Return a fresh token so long-running suites cannot outlive its TTL."""
     return _fetch_demo_analyst_token()
 
 

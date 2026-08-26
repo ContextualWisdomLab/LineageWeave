@@ -42,10 +42,14 @@ class RankWeaveNotAvailable(RuntimeError):
     reason = "rankweave_not_available"
 
 
+class _ClassicWeights(dict[str, float]):
+    """Mark caller-omitted weights selecting classic Cormack RRF."""
+
+
 def _no_transport(
     _channels: dict[str, list[str]],
     _weights: dict[str, float],
-) -> list[dict[str, Any]]:
+) -> object:
     raise RankWeaveNotAvailable(
         "rankweave_not_available: RankWeave ranking port is not configured. "
         "Pass RANKWEAVE_DISABLED=0 (default) or a transport= callable. "
@@ -130,22 +134,25 @@ def ranking_channel_evidence(
 ) -> tuple["RankingChannelEvidence", ...]:
     """Explain one fused hit from owned channel ranks.
 
-    Contribution is Cormack et al. (2009) weighted RRF:
-    ``weight / (η + rank)`` with 1-based rank. A channel the post is
-    missing from, or a non-positive weight, is omitted. RankWeave extra
-    fields are ignored so a missing signal cannot be invented.
+    RankWeave owns the Cormack contribution arithmetic. A channel the post is
+    missing from, or a non-positive weight, is omitted. Transport extra fields
+    are ignored so a missing signal cannot be invented.
     """
-    collected: list[tuple[str, int, float, float]] = []
-    for signal_code, ordered_ids in channels.items():
-        weight = float(weights.get(signal_code) or 0.0)
-        if weight <= 0:
-            continue
-        try:
-            channel_rank = [str(item_id) for item_id in ordered_ids].index(post_id) + 1
-        except ValueError:
-            continue
-        contribution = weight / (eta + channel_rank)
-        collected.append((signal_code, channel_rank, weight, contribution))
+    return _owner_channel_evidence(channels, weights, eta).get(post_id, ())
+
+
+def _evidence_from_owner_hit(hit: object) -> tuple["RankingChannelEvidence", ...]:
+    """Project one RankWeave result without recalculating a contribution."""
+    collected = [
+        (
+            str(contribution.channel_name),
+            int(contribution.rank),
+            float(contribution.weight),
+            float(contribution.contribution),
+        )
+        for contribution in getattr(hit, "channel_contributions", ())
+        if contribution.rank is not None and contribution.weight > 0
+    ]
     collected.sort(key=lambda item: (-item[3], item[0]))
     return tuple(
         RankingChannelEvidence(
@@ -160,6 +167,24 @@ def ranking_channel_evidence(
             collected, start=1
         )
     )
+
+
+def _owner_channel_evidence(
+    channels: Mapping[str, Sequence[str]],
+    weights: Mapping[str, float],
+    eta: int,
+) -> dict[str, tuple["RankingChannelEvidence", ...]]:
+    """Index one RankWeave owner calculation by item identifier."""
+    return {
+        item_id: _evidence_from_owner_hit(hit)
+        for hit in _owner_rrf_hits(
+            channels,
+            weights,
+            eta,
+            classic=isinstance(weights, _ClassicWeights),
+        )
+        if (item_id := _item_id_from_hit(hit))
+    }
 
 
 @dataclass(frozen=True)
@@ -216,6 +241,46 @@ class RankingList:
         return [item.to_json() for item in self.items]
 
 
+@dataclass(frozen=True)
+class _OwnerRankingEnvelope:
+    """RankWeave hits produced by the trusted in-process adapter."""
+
+    hits: tuple[object, ...]
+
+
+def _owner_rrf_hits(
+    channels: Mapping[str, Sequence[str]],
+    weights: Mapping[str, float],
+    eta: int,
+    *,
+    limit: int | None = None,
+    classic: bool = False,
+) -> list[object]:
+    """Return RankWeave-owned classic or convex-weighted RRF results."""
+    try:
+        rw = _import_rankweave()
+        if classic:
+            return list(
+                rw.reciprocal_rank_fuse(
+                    channels,
+                    limit=limit,
+                    rank_constant_eta=eta,
+                )
+            )
+        return list(
+            rw.weighted_reciprocal_rank_fuse(
+                channels,
+                weights,
+                limit=limit,
+                rank_constant_eta=eta,
+            )
+        )
+    except Exception as exc:
+        raise RankWeaveNotAvailable(
+            "rankweave_not_available: reciprocal-rank fusion failed"
+        ) from exc
+
+
 def _item_id_from_hit(hit: object) -> str:
     if isinstance(hit, Mapping):
         return str(hit.get("item_id") or hit.get("post_id") or "").strip()
@@ -239,17 +304,34 @@ def project_ranking_list(
     owns. Transport extra fields are ignored so RankWeave cannot invent
     a missing signal.
     """
-    if not isinstance(raw, list):
+    if isinstance(raw, _OwnerRankingEnvelope):
+        raw_hits = list(raw.hits)
+        evidence_by_post_id = {
+            item_id: _evidence_from_owner_hit(hit)
+            for hit in raw_hits
+            if (item_id := _item_id_from_hit(hit))
+        }
+    elif isinstance(raw, list):
+        raw_hits = raw
+        if not raw_hits:
+            return RankingList(items=())
+        owned_channels = channels or {}
+        evidence_by_post_id = _owner_channel_evidence(
+            owned_channels,
+            (
+                weights
+                if weights is not None
+                else _ClassicWeights({name: 1.0 for name in owned_channels})
+            ),
+            DEFAULT_RANK_CONSTANT_ETA,
+        )
+    else:
         raise RankWeaveNotAvailable(
             "rankweave_not_available: ranking envelope is not a hit list"
         )
     items: list[RankedPost] = []
     seen: set[str] = set()
-    owned_channels = channels or {}
-    # Parameter-free classic RRF default (ADR 0200 point 1): every
-    # channel weighs 1.0 unless the caller passes an estimated set.
-    owned_weights = weights or {name: 1.0 for name in owned_channels}
-    for hit in raw:
+    for hit in raw_hits:
         post_id = _item_id_from_hit(hit)
         title = str(titles_by_id.get(post_id) or "").strip()
         if not post_id or not title or post_id in seen:
@@ -260,9 +342,7 @@ def project_ranking_list(
                 post_id=post_id,
                 post_title=title,
                 fused_rank=len(items) + 1,
-                channel_evidence=ranking_channel_evidence(
-                    post_id, owned_channels, owned_weights
-                ),
+                channel_evidence=evidence_by_post_id.get(post_id, ()),
             )
         )
     return RankingList(items=tuple(items))
@@ -275,21 +355,15 @@ class LibraryRankWeaveTransport:
         self,
         channels: dict[str, list[str]],
         weights: dict[str, float],
-    ) -> list[dict[str, Any]]:
-        try:
-            rw = _import_rankweave()
-        except ImportError as exc:
-            raise RankWeaveNotAvailable(
-                "rankweave_not_available: rankweave package is not installed. "
-                "Never invent a fused score."
-            ) from exc
+    ) -> object:
+        classic = isinstance(weights, _ClassicWeights)
         usable = {
             name: [item_id for item_id in ranks if str(item_id).strip()]
             for name, ranks in channels.items()
             if ranks
         }
         if not usable:
-            return []
+            return _OwnerRankingEnvelope(hits=())
         active_weights = {
             name: weights[name] for name in usable if name in weights and weights[name] > 0
         }
@@ -297,34 +371,15 @@ class LibraryRankWeaveTransport:
             raise RankWeaveNotAvailable(
                 "rankweave_not_available: no positive channel weights remain"
             )
-        try:
-            hits = rw.weighted_reciprocal_rank_fuse(
-                usable,
-                active_weights,
-                limit=DEFAULT_RANKING_LIMIT,
-                rank_constant_eta=DEFAULT_RANK_CONSTANT_ETA,
-            )
-        except TypeError:
-            try:
-                hits = rw.weighted_reciprocal_rank_fuse(
-                    usable,
-                    active_weights,
-                    limit=DEFAULT_RANKING_LIMIT,
-                )
-            except Exception as exc:
-                raise RankWeaveNotAvailable(
-                    "rankweave_not_available: weighted_reciprocal_rank_fuse failed"
-                ) from exc
-        except Exception as exc:
-            raise RankWeaveNotAvailable(
-                "rankweave_not_available: weighted_reciprocal_rank_fuse failed"
-            ) from exc
-        projected: list[dict[str, Any]] = []
-        for hit in hits:
-            item_id = _item_id_from_hit(hit)
-            if item_id:
-                projected.append({"item_id": item_id})
-        return projected
+        usable = {name: ranks for name, ranks in usable.items() if name in active_weights}
+        hits = _owner_rrf_hits(
+            usable,
+            active_weights,
+            DEFAULT_RANK_CONSTANT_ETA,
+            limit=DEFAULT_RANKING_LIMIT,
+            classic=classic,
+        )
+        return _OwnerRankingEnvelope(hits=tuple(hits))
 
 
 def build_rankweave_client(disabled: bool = False) -> "RankWeaveClient":
@@ -340,7 +395,7 @@ class RankWeaveClient:
     def __init__(
         self,
         transport: Callable[
-            [dict[str, list[str]], dict[str, float]], list[dict[str, Any]]
+            [dict[str, list[str]], dict[str, float]], object
         ] = _no_transport,
     ) -> None:
         self._transport = transport
@@ -353,17 +408,24 @@ class RankWeaveClient:
     ) -> RankingList:
         """Fuse the channels; parameter-free classic RRF by default.
 
-        No hand-picked weight exists (ADR 0200 point 1): without an
-        explicit ``weights`` argument every channel gets weight 1.0,
-        which reduces weighted RRF to Cormack et al.'s (2009)
-        parameter-free reciprocal rank fusion -- the paper's own
-        finding is that the unweighted form outperforms trained
-        alternatives, so there is no arbitrary number to justify.
+        No hand-picked weight exists (ADR 0200 point 1): without an explicit
+        ``weights`` argument the adapter calls Cormack et al.'s (2009)
+        parameter-free reciprocal rank fusion. The paper's own finding is
+        that the unweighted form outperforms trained alternatives, so there
+        is no arbitrary number to justify.
         Callers holding a psychometrically estimated set may still pass
         it explicitly; the disclosed per-channel evidence carries
         whichever weights actually fused.
         """
-        active_weights = weights or {name: 1.0 for name in channels}
+        if weights is not None and not weights:
+            raise RankWeaveNotAvailable(
+                "rankweave_not_available: explicit channel weights are empty"
+            )
+        active_weights = (
+            weights
+            if weights is not None
+            else _ClassicWeights({name: 1.0 for name in channels})
+        )
         try:
             raw = self._transport(channels, active_weights)
         except RankWeaveNotAvailable:
@@ -372,9 +434,16 @@ class RankWeaveClient:
             raise RankWeaveNotAvailable(
                 "rankweave_not_available: ranking transport failed"
             ) from exc
-        return project_ranking_list(
-            raw, titles_by_id, channels=channels, weights=active_weights
-        )
+        try:
+            return project_ranking_list(
+                raw, titles_by_id, channels=channels, weights=active_weights
+            )
+        except RankWeaveNotAvailable:
+            raise
+        except Exception as exc:
+            raise RankWeaveNotAvailable(
+                "rankweave_not_available: ranking projection failed"
+            ) from exc
 
     def as_api_payload(
         self,
