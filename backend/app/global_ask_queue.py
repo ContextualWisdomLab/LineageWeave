@@ -112,6 +112,9 @@ _AUTHORIZED_PUBLIC_CLAIM_ENVELOPES_SQL = """
      where envelope.egress_eligible
        and post.visibility_code = 'public'
        and {source_post_eligibility}
+       and ($1::timestamptz is null or (
+            envelope.created_at <= $1 and post.created_at <= $1
+       ))
      order by envelope.created_at, envelope.public_claim_envelope_id
 """.format(
     source_post_eligibility=SOURCE_POST_ELIGIBILITY_SQL.format(alias="post")
@@ -351,7 +354,9 @@ async def compute_global_ask_answer(
         if verify_external:
             search_client = claim_search_client or NullPublicClaimSearchClient()
             async with pool.acquire() as conn:
-                envelopes = await load_authorized_public_claim_envelopes(conn, can_see)
+                envelopes = await load_authorized_public_claim_envelopes(
+                    conn, can_see, knowledge_cutoff=knowledge_cutoff
+                )
             verification = await asyncio.to_thread(
                 verify_public_claims, envelopes, search_client
             )
@@ -428,7 +433,9 @@ async def compute_global_ask_answer(
     if verify_external:
         search_client = claim_search_client or NullPublicClaimSearchClient()
         async with pool.acquire() as conn:
-            envelopes = await load_authorized_public_claim_envelopes(conn, can_see)
+            envelopes = await load_authorized_public_claim_envelopes(
+                conn, can_see, knowledge_cutoff=knowledge_cutoff
+            )
         verification = await asyncio.to_thread(
             verify_public_claims, envelopes, search_client
         )
@@ -440,9 +447,11 @@ async def compute_global_ask_answer(
 async def load_authorized_public_claim_envelopes(
     conn: asyncpg.Connection,
     can_see: Callable[[asyncpg.Record], bool],
+    *,
+    knowledge_cutoff: datetime | None = None,
 ) -> tuple:
-    """Load only currently public, egress-eligible claim envelopes."""
-    rows = await conn.fetch(_AUTHORIZED_PUBLIC_CLAIM_ENVELOPES_SQL)
+    """Load public envelopes that existed within the requested evidence view."""
+    rows = await conn.fetch(_AUTHORIZED_PUBLIC_CLAIM_ENVELOPES_SQL, knowledge_cutoff)
     return tuple(
         envelope
         for row in rows

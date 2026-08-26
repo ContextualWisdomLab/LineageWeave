@@ -31,6 +31,9 @@ question string.
    `global_ask_job.verify_external_requested` consent field from migration
    0218. Off omits the projection. On loads currently authorized
    egress-eligible envelopes and never nominates a claim from question tokens.
+   For a knowledge-cutoff answer, both the source post and envelope must have
+   existed no later than the cutoff; later live claims cannot enter an earlier
+   evidence view.
 5. SearXNG may retrieve a bounded list of public HTTP(S) URLs for the
    persisted claim text. Search pages, localhost, and literal
    private-network hosts are dropped. Those URLs are `external_evidence_urls`

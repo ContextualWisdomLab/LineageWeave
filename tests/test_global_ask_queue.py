@@ -544,6 +544,25 @@ def test_public_claim_loader_drops_unauthorized_and_ineligible_rows() -> None:
     assert envelopes[0].source_post_id == "post-demo-public"
 
 
+def test_public_claim_loader_binds_the_knowledge_cutoff() -> None:
+    """Historical Ask cannot verify envelopes or posts created after its cutoff."""
+    cutoff = datetime(2026, 1, 2, tzinfo=UTC)
+
+    class _Rows:
+        async def fetch(self, query: str, *args: object, **_kwargs: object):
+            assert "envelope.created_at <= $1" in query
+            assert "post.created_at <= $1" in query
+            assert args == (cutoff,)
+            return []
+
+    envelopes = asyncio.run(
+        global_ask_queue.load_authorized_public_claim_envelopes(
+            _Rows(), lambda _row: True, knowledge_cutoff=cutoff
+        )
+    )
+    assert envelopes == ()
+
+
 def test_public_claim_search_client_is_null_when_searxng_is_unset(monkeypatch) -> None:
     monkeypatch.setattr(
         "backend.app.config.load_settings",
