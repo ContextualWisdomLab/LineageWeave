@@ -10,7 +10,7 @@ set -eu
 heartbeat_path=${1:-/tmp/lineageweave-worker-heartbeat}
 state_path=${2:-/tmp/lineageweave-worker-healthcheck-state}
 
-IFS= read -r current_heartbeat 2>/dev/null < "$heartbeat_path" || exit 1
+current_heartbeat=$(cat "$heartbeat_path" 2>/dev/null) || exit 1
 case "$current_heartbeat" in
     ''|*[!0-9]*) exit 1 ;;
 esac
