@@ -392,6 +392,7 @@ def terminal_semantic_coverage_evidence(
     sample_design: Mapping[str, object],
     aggregate: Mapping[str, object],
     ontology_path: Path,
+    completed_attempt: Mapping[str, object],
 ) -> dict[str, object]:
     """Build a Rust-owned terminal SRSWOR result and aggregate audit identity."""
     if sample_design.get("design_code") != "simple_random_without_replacement":
@@ -406,6 +407,18 @@ def terminal_semantic_coverage_evidence(
         finite_population_achieved_proportion,
         finite_population_proportion_design,
     )
+    ontology_sha256 = hashlib.sha256(ontology_path.read_bytes()).hexdigest()
+    if (
+        completed_attempt.get("status_code") != "completed"
+        or completed_attempt.get("accepted_count") != aggregate.get("sample_count")
+        or not isinstance(completed_attempt.get("attempt_sha256"), str)
+        or completed_attempt.get("selection_manifest_sha256")
+        != sample_design.get("selection_manifest_sha256")
+        or completed_attempt.get("sampling_design_sha256")
+        != sample_design_artifact.get("artifact_sha256")
+        or completed_attempt.get("ontology_sha256") != ontology_sha256
+    ):
+        raise ValueError("terminal coverage requires its completed attempt provenance")
 
     strata = sample_design_artifact.get("strata")
     if not isinstance(strata, list) or len(strata) != 1:
@@ -436,7 +449,6 @@ def terminal_semantic_coverage_evidence(
         raise ValueError("terminal coverage requires one complete design-sized audit")
     achieved = finite_population_achieved_proportion(design, covered_count)
     terminal_artifact = json.loads(json.dumps(asdict(achieved), sort_keys=True))
-    ontology_sha256 = hashlib.sha256(ontology_path.read_bytes()).hexdigest()
     audit_identity = {
         "selection_manifest_sha256": sample_design["selection_manifest_sha256"],
         "ontology_sha256": ontology_sha256,
@@ -451,6 +463,7 @@ def terminal_semantic_coverage_evidence(
         "batch_count": aggregate.get("batch_count"),
         "minimum_trace_step_count": aggregate.get("minimum_trace_step_count"),
         "maximum_trace_step_count": aggregate.get("maximum_trace_step_count"),
+        "attempt_sha256": completed_attempt.get("attempt_sha256"),
     }
     audit_artifact_sha256 = _canonical_sha256(audit_identity)
     resource_iris = {
@@ -459,12 +472,14 @@ def terminal_semantic_coverage_evidence(
         "terminal": "urn:sha256:" + str(terminal_artifact["artifact_sha256"]),
         "audit": "urn:sha256:" + audit_artifact_sha256,
         "activity": "urn:lineageweave:semantic-coverage-audit:" + audit_artifact_sha256,
+        "design": "urn:sha256:" + str(sample_design_artifact["artifact_sha256"]),
+        "attempt": "urn:sha256:" + str(completed_attempt["attempt_sha256"]),
     }
     provenance = ProvGraph()
-    for name in ("selection", "ontology", "terminal", "audit"):
+    for name in ("selection", "design", "ontology", "attempt", "terminal", "audit"):
         provenance.add_resource(resource_iris[name], "Entity")
     provenance.add_resource(resource_iris["activity"], "Activity")
-    for name in ("selection", "ontology", "terminal"):
+    for name in ("selection", "design", "ontology", "attempt", "terminal"):
         provenance.add_assertion(resource_iris["activity"], "used", resource_iris[name])
         provenance.add_assertion(resource_iris["audit"], "wasDerivedFrom", resource_iris[name])
     provenance.add_assertion(
@@ -1081,18 +1096,20 @@ async def audit_source_content(
             raise AssertionError(
                 "validated semantic audit total does not match source sample"
             )
+        completed_attempt = retain_attempt("completed")
         sample_design.update(
             terminal_semantic_coverage_evidence(
                 cast(Mapping[str, object], sample_design_artifact),
                 sample_design,
                 result,
                 ontology_path,
+                completed_attempt,
             )
         )
         result["sample_design"] = sample_design
         result["attempted_count"] = sample_size
         result["failed_count"] = 0
-        result["attempt_provenance"] = retain_attempt("completed")
+        result["attempt_provenance"] = completed_attempt
         return result
     except Exception as exc:
         retain_attempt("rejected", type(exc).__name__)

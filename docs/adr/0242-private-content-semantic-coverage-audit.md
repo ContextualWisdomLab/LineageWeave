@@ -98,9 +98,11 @@ Repository artifacts must not retain the private titles.
    binds the terminal artifact, selection-manifest digest, ontology SHA-256,
    aggregate verdict counts, and trace-count bounds into one audit SHA-256.
    The same aggregate-only envelope carries a validated PROV-O graph: the
-   audit activity `prov:used` the selection manifest, ontology, and Rust
-   terminal entity; the audit entity `prov:wasGeneratedBy` that activity and
-   `prov:wasDerivedFrom` all three inputs. Resource IRIs are content-addressed
+   audit activity `prov:used` the selection manifest, Rust design, completed
+   attempt, ontology, and Rust terminal entities; the audit entity
+   `prov:wasGeneratedBy` that activity and `prov:wasDerivedFrom` all five
+   inputs. The completed attempt must match the selection, design, ontology,
+   and accepted sample count before terminal evidence can exist. Resource IRIs are content-addressed
    URNs, so no private source identifier enters the repository artifact.
    Only that complete chain sets `corpus_inference_available=true`.
    Stratified terminal inference remains unavailable rather than receiving an

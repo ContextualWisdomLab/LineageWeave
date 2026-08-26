@@ -511,12 +511,22 @@ def test_terminal_semantic_coverage_binds_exact_interval_and_audit() -> None:
         "minimum_trace_step_count": 2,
         "maximum_trace_step_count": 4,
     }
+    ontology_path = Path("docs/ontology/lineageweave-kg.ttl")
+    ontology_sha256 = hashlib.sha256(ontology_path.read_bytes()).hexdigest()
+    completed_attempt = audit_attempt_provenance(
+        selection_manifest_sha256=sample_design["selection_manifest_sha256"],
+        sampling_design_sha256=artifact["artifact_sha256"],
+        ontology_sha256=ontology_sha256,
+        status_code="completed",
+        accepted_count=sample_count,
+    )
 
     result = terminal_semantic_coverage_evidence(
         artifact,
         sample_design,
         aggregate,
-        Path("docs/ontology/lineageweave-kg.ttl"),
+        ontology_path,
+        completed_attempt,
     )
 
     assert result["corpus_inference_available"] is True
@@ -537,8 +547,8 @@ def test_terminal_semantic_coverage_binds_exact_interval_and_audit() -> None:
         str(PROV.wasDerivedFrom),
         str(PROV.wasGeneratedBy),
     }
-    assert len(prov_o["resource_types"]) == 5
-    assert len(prov_o["assertions"]) == 7
+    assert len(prov_o["resource_types"]) == 7
+    assert len(prov_o["assertions"]) == 11
 
 
 def test_rejected_attempt_retains_prov_without_becoming_a_coverage_result() -> None:
@@ -590,6 +600,7 @@ def test_terminal_semantic_coverage_fails_closed_or_stays_unavailable() -> None:
         stratified_design,
         {"complete": True, "sample_count": 80},
         Path("docs/ontology/lineageweave-kg.ttl"),
+        {},
     )
     assert unavailable == {
         "corpus_inference_available": False,
@@ -604,21 +615,38 @@ def test_terminal_semantic_coverage_fails_closed_or_stays_unavailable() -> None:
     )
     sample_count = manifest["sample_size"]
     assert isinstance(sample_count, int)
+    ontology_path = Path("docs/ontology/lineageweave-kg.ttl")
+    ontology_sha256 = hashlib.sha256(ontology_path.read_bytes()).hexdigest()
     incomplete = {
         "complete": True,
         "sample_count": sample_count - 1,
         "covered_count": sample_count - 1,
         "uncovered_count": 0,
     }
+    incomplete_attempt = audit_attempt_provenance(
+        selection_manifest_sha256=sample_design["selection_manifest_sha256"],
+        sampling_design_sha256=artifact["artifact_sha256"],
+        ontology_sha256=ontology_sha256,
+        status_code="completed",
+        accepted_count=sample_count - 1,
+    )
     with pytest.raises(ValueError, match="complete design-sized"):
         terminal_semantic_coverage_evidence(
             artifact,
             sample_design,
             incomplete,
-            Path("docs/ontology/lineageweave-kg.ttl"),
+            ontology_path,
+            incomplete_attempt,
         )
     tampered = deepcopy(artifact)
     tampered["artifact_sha256"] = "f" * 64
+    complete_attempt = audit_attempt_provenance(
+        selection_manifest_sha256=sample_design["selection_manifest_sha256"],
+        sampling_design_sha256=tampered["artifact_sha256"],
+        ontology_sha256=ontology_sha256,
+        status_code="completed",
+        accepted_count=sample_count,
+    )
     with pytest.raises(ValueError, match="does not match"):
         terminal_semantic_coverage_evidence(
             tampered,
@@ -629,7 +657,8 @@ def test_terminal_semantic_coverage_fails_closed_or_stays_unavailable() -> None:
                 "covered_count": sample_count,
                 "uncovered_count": 0,
             },
-            Path("docs/ontology/lineageweave-kg.ttl"),
+            ontology_path,
+            complete_attempt,
         )
 
 

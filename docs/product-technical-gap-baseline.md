@@ -101,8 +101,10 @@ Wang published-table oracle pass; the complete fast-mlsirm Python suite passed
 binds the terminal artifact, selection-manifest digest, current ontology
 SHA-256, aggregate verdicts, and trace-count bounds into one audit SHA-256.
 It also emits a validated aggregate-only PROV-O graph linking the audit entity
-and activity to the selection manifest, ontology, and terminal Rust entity by
-content-addressed URNs; no source record identifier is exposed.
+and activity to the selection manifest, Rust design, matching completed
+attempt, ontology, and terminal Rust entities by content-addressed URNs; no
+source record identifier is exposed. A terminal result is rejected when that
+attempt does not match the selection, design, ontology, and accepted count.
 This capability is not runtime evidence for the historical samples and is not
 protected-integrated while prerequisite fast-mlsirm PR #1445 remains open;
 stacked PR #1458 is merged into that still-unmerged feature branch, not
