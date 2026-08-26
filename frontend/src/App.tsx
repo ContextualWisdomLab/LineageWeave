@@ -27,6 +27,8 @@ import {
   fetchPostActivity,
   fetchPostBookmark,
   fetchPostChat,
+  fetchPostChatConversation,
+  fetchPostChatConversations,
   fetchPostAffiliateTree,
   fetchPostCounterparties,
   fetchPostEvaluation,
@@ -58,6 +60,7 @@ import {
   type CalendarResponse,
   type ChatAnswer,
   type ChatExchange,
+  type PostAskConversationSummary,
   type CorporateEntityRef,
   type CustomerMasterEntity,
   type CustomerMasterResponse,
@@ -256,7 +259,7 @@ function ChatCitations({
   );
 }
 
-function ChatPanel({
+export function ChatPanel({
   postId,
   accessToken,
   nameFirstAsk,
@@ -267,6 +270,10 @@ function ChatPanel({
 }) {
   const [question, setQuestion] = useState("");
   const [exchanges, setExchanges] = useState<ChatExchange[]>([]);
+  const [seededExchanges, setSeededExchanges] = useState<ChatExchange[]>([]);
+  const [conversations, setConversations] = useState<PostAskConversationSummary[]>([]);
+  const [conversationId, setConversationId] = useState<string | null>(null);
+  const [historyError, setHistoryError] = useState<string | null>(null);
   const [answer, setAnswer] = useState<ChatAnswer | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -275,22 +282,63 @@ function ChatPanel({
 
   useEffect(() => {
     setExchanges([]);
+    setSeededExchanges([]);
+    setConversations([]);
+    setConversationId(null);
+    setHistoryError(null);
     setAnswer(null);
     setError(null);
     setSeededOnly(false);
     setEvidencePostId(null);
     fetchPostChat(accessToken, postId)
-      .then((history) => setExchanges(history.exchanges))
+      .then((history) => {
+        setSeededExchanges(history.exchanges);
+        setExchanges(history.exchanges);
+      })
       .catch(() => setExchanges([]));
+    fetchPostChatConversations(accessToken, postId)
+      .then((page) => setConversations(page.conversations))
+      .catch(() => setHistoryError(t("Conversation history could not be loaded.")));
   }, [postId, accessToken]);
+
+  async function selectConversation(nextId: string) {
+    setHistoryError(null);
+    try {
+      const conversation = await fetchPostChatConversation(accessToken, postId, nextId);
+      setConversationId(conversation.conversation_id);
+      setExchanges(conversation.exchanges);
+    } catch {
+      setHistoryError(t("Conversation history could not be loaded."));
+    }
+  }
+
+  function startNewConversation() {
+    setConversationId(null);
+    setExchanges(seededExchanges);
+    setQuestion("");
+    setAnswer(null);
+    setError(null);
+  }
 
   async function handleAsk(asked = question) {
     if (!asked.trim()) return;
     setLoading(true);
     setError(null);
     try {
-      const result = await askPostChat(accessToken, postId, asked);
+      const result = await askPostChat(accessToken, postId, asked, conversationId);
       setAnswer(result);
+      if (result.conversation_id) {
+        setConversationId(result.conversation_id);
+        setConversations((current) => [
+          {
+            conversation_id: result.conversation_id!,
+            title: current.find((row) => row.conversation_id === result.conversation_id)?.title ?? asked.trim().slice(0, 80),
+            updated_at: new Date().toISOString(),
+            turn_count: (current.find((row) => row.conversation_id === result.conversation_id)?.turn_count ?? 0) + 1,
+          },
+          ...current.filter((row) => row.conversation_id !== result.conversation_id),
+        ]);
+      }
       setExchanges((prev) => {
         const next: ChatExchange = {
           question_text: asked.trim(),
@@ -362,6 +410,27 @@ function ChatPanel({
           {landedEvidenceNextAction(firstCitedTitle)}
         </p>
       ) : null}
+      <div className="chat-history-controls">
+        <label>
+          <span>{t("Conversation history")}</span>
+          <select
+            value={conversationId ?? ""}
+            onChange={(event) => event.target.value && void selectConversation(event.target.value)}
+            disabled={loading}
+          >
+            <option value="">{t("New conversation")}</option>
+            {conversations.map((conversation) => (
+              <option key={conversation.conversation_id} value={conversation.conversation_id}>
+                {conversation.title} ({conversation.turn_count})
+              </option>
+            ))}
+          </select>
+        </label>
+        <button type="button" onClick={startNewConversation} disabled={loading}>
+          {t("New conversation")}
+        </button>
+      </div>
+      {historyError ? <p className="error" role="alert">{historyError}</p> : null}
       {!seededOnly && (
         <div className="chat-input-row">
           <input

@@ -1007,6 +1007,36 @@
   gap: 0.5rem;
 }
 
+.chat-history-controls {
+  display: flex;
+  align-items: end;
+  gap: var(--space-2);
+  margin-bottom: var(--space-3);
+}
+
+.chat-history-controls label {
+  display: grid;
+  flex: 1;
+  gap: var(--space-1);
+}
+
+.chat-history-controls select {
+  min-height: 44px;
+  width: 100%;
+}
+
+.chat-history-controls > button {
+  min-height: 44px;
+  white-space: nowrap;
+}
+
+@media (max-width: 640px) {
+  .chat-history-controls {
+    align-items: stretch;
+    flex-direction: column;
+  }
+}
+
 .chat-input-row input {
   flex: 1;
   padding: 0.5rem;
