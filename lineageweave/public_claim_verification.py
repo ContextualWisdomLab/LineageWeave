@@ -295,10 +295,13 @@ def verify_public_claims(
             )
         )
     overall = _overall_status(tuple(verdict.status_code for verdict in verdicts))
-    first = verdicts[0]
+    next_action = next(
+        (verdict.next_action for verdict in verdicts if verdict.status_code == overall),
+        verdicts[0].next_action,
+    )
     return {
         "status_code": overall,
-        "next_action": first.next_action,
+        "next_action": next_action,
         "claims": [
             {
                 "public_claim_envelope_id": item.public_claim_envelope_id,

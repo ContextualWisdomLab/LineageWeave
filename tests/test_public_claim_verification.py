@@ -9,6 +9,7 @@ from lineageweave.public_claim_verification import (
     KIND_PUBLIC_EVENT,
     NullPublicClaimSearchClient,
     PublicClaimEnvelope,
+    PublicClaimVerdict,
     STATUS_NOT_ENOUGH_INFORMATION,
     STATUS_SUPPORTED,
     STATUS_UNAVAILABLE,
@@ -36,6 +37,30 @@ def _envelope(**overrides: object) -> PublicClaimEnvelope:
     )
     payload.update(overrides)
     return PublicClaimEnvelope(**payload)  # type: ignore[arg-type]
+
+
+def test_mixed_verdicts_use_the_overall_status_action(monkeypatch) -> None:
+    first = _envelope(public_claim_envelope_id="env-1")
+    second = _envelope(public_claim_envelope_id="env-2")
+    verdicts = iter(
+        (
+            PublicClaimVerdict(
+                "env-1", "post-1", "First", KIND_ORGANIZATION_PRESENCE,
+                "First", "claim", STATUS_SUPPORTED, (), "Open the supported post.",
+            ),
+            PublicClaimVerdict(
+                "env-2", "post-2", "Second", KIND_PUBLIC_EVENT,
+                "Second", "claim", STATUS_UNAVAILABLE, (), "Retry public verification.",
+            ),
+        )
+    )
+    monkeypatch.setattr(
+        "lineageweave.public_claim_verification.classify_public_claim",
+        lambda *_args, **_kwargs: next(verdicts),
+    )
+    payload = verify_public_claims((first, second), NullPublicClaimSearchClient())
+    assert payload["status_code"] == STATUS_UNAVAILABLE
+    assert payload["next_action"] == "Retry public verification."
 
 
 def test_private_or_ineligible_rows_are_dropped() -> None:
