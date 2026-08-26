@@ -20,6 +20,18 @@ from backend.app.post_content_queue import (
 )
 from lineageweave.operations_case_analysis import OperationsEvidenceSource
 
+_PRODUCT_ANALYSIS = post_content_worker._persist_product_analysis_if_needed
+
+
+@pytest.fixture(autouse=True)
+def _isolate_product_analysis(monkeypatch):
+    """Keep legacy worker tests focused on their pre-product responsibility."""
+    monkeypatch.setattr(
+        post_content_worker,
+        "_persist_product_analysis_if_needed",
+        lambda *_args, **_kwargs: asyncio.sleep(0),
+    )
+
 
 class _Transaction:
     async def __aenter__(self):
@@ -396,6 +408,74 @@ def test_existing_case_analysis_skips_duplicate_orchestrator_call(monkeypatch) -
     )
 
     assert called == []
+
+
+def test_product_analysis_persists_one_exact_authorized_window(monkeypatch) -> None:
+    """Product extraction reuses authorized sources and persists catalog outcomes."""
+    connection = _Connection(values=[False])
+    events: list[object] = []
+
+    async def evidence_sources(*_args, **_kwargs):
+        return (OperationsEvidenceSource("post-1", "Synthetic", "Synthetic Product Q"),)
+
+    async def resolve(_conn, mentions):
+        events.append(mentions)
+        return (SimpleNamespace(
+            mention=mentions[0], resolution_status_code="missing", product_catalog_id=None
+        ),)
+
+    async def persist(*args):
+        events.append(args)
+
+    monkeypatch.setattr(post_content_worker, "_operations_evidence_sources", evidence_sources)
+    monkeypatch.setattr(
+        post_content_worker,
+        "ContextualOrchestratorProductExtractionClient",
+        lambda *_args: SimpleNamespace(
+            extract=lambda sources: (
+                post_content_worker.ProductEvidenceSource(sources[0].post_id, sources[0].text),
+            )
+        ),
+    )
+    monkeypatch.setattr(post_content_worker, "resolve_product_mentions", resolve)
+    monkeypatch.setattr(post_content_worker, "persist_product_mentions", persist)
+
+    asyncio.run(
+        _PRODUCT_ANALYSIS(
+            _Pool(connection),
+            "post-1",
+            "a" * 64,
+            {"corporate_entity_id": "corp", "process_unit_id": "pu"},
+            SimpleNamespace(available=True),
+            "session-a",
+            "gateway",
+            "key",
+        )
+    )
+    assert len(events) == 2
+    assert len(events[1][3]) == 64
+
+
+def test_product_analysis_skips_same_digest(monkeypatch) -> None:
+    """A durable retry does not repeat product extraction for the same input."""
+    connection = _Connection(values=[True])
+
+    async def evidence_sources(*_args, **_kwargs):
+        return (OperationsEvidenceSource("post-1", "Synthetic", "Synthetic Product Q"),)
+
+    monkeypatch.setattr(post_content_worker, "_operations_evidence_sources", evidence_sources)
+    monkeypatch.setattr(
+        post_content_worker,
+        "ContextualOrchestratorProductExtractionClient",
+        lambda *_args: (_ for _ in ()).throw(AssertionError("must not call provider")),
+    )
+    asyncio.run(
+        _PRODUCT_ANALYSIS(
+            _Pool(connection), "post-1", "a" * 64,
+            {"corporate_entity_id": "corp", "process_unit_id": "pu"},
+            SimpleNamespace(available=True), "session-a", "gateway", "key",
+        )
+    )
 
 
 def test_changed_evidence_window_reanalyzes_unchanged_body(monkeypatch) -> None:

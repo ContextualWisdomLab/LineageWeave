@@ -194,6 +194,18 @@ _GLOBAL_ASK_SCOPE_MIGRATION = (
     / "migrations"
     / "0203_global_ask_authorization_scope.sql"
 )
+_PRODUCT_SEMANTIC_MIGRATIONS = tuple(
+    Path(__file__).resolve().parents[2] / "migrations" / name
+    for name in (
+        "0208_operations_case_analysis.sql",
+        "0209_operations_case_evidence_source.sql",
+        "0211_operations_case_missing_fact.sql",
+        "0213_operations_external_relation_target.sql",
+        "0215_operations_case_milestone.sql",
+        "0222_operations_case_analysis_input.sql",
+        "0228_product_semantic_catalog.sql",
+    )
+)
 _LEFTOVER_MAP_AXIS_MIGRATION = (
     Path(__file__).resolve().parents[2]
     / "migrations"
@@ -405,6 +417,8 @@ def seeded_db(demo_analyst_token):
             cur.execute(_LEFTOVER_MAP_COVERAGE_MIGRATION.read_text())
             cur.execute(_GLOBAL_ASK_JOB_MIGRATION.read_text())
             cur.execute(_GLOBAL_ASK_SCOPE_MIGRATION.read_text())
+            for migration_path in _PRODUCT_SEMANTIC_MIGRATIONS:
+                cur.execute(migration_path.read_text())
             cur.execute(_EVENT_OCCURRED_AT_MIGRATION.read_text())
             cur.execute(_LEFTOVER_MAP_AXIS_MIGRATION.read_text())
             cur.execute(_CHANNEL_EVIDENCE_MIGRATION.read_text())
@@ -1907,6 +1921,55 @@ def test_post_detail_uses_lookup_labels_not_raw_codes(client, demo_analyst_token
     assert body["voc_type_label"] == "Voice of Customer"
     assert body["visibility_code"] == "public"
     assert body["visibility_label"] == "Public"
+
+
+def test_post_detail_returns_authorized_product_evidence(
+    client, demo_analyst_token, seeded_db
+) -> None:
+    """The post response exposes only its persisted evidence-bound product link."""
+    conn = psycopg2.connect(seeded_db["dsn"])
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                "insert into product_catalog "
+                "(canonical_product_name, product_level_code, product_catalog_code) "
+                "values (%s, %s, %s) returning product_catalog_id",
+                ("Synthetic Model Q", "product_model", "SYNTH-Q"),
+            )
+            catalog_id = cur.fetchone()[0]
+            cur.execute(
+                "insert into post_product_analysis "
+                "(post_id, source_body_sha256, analysis_input_sha256, orchestrator_session_id) "
+                "values (%s, %s, %s, %s)",
+                (seeded_db["public_post_id"], "a" * 64, "b" * 64, "session-a"),
+            )
+            cur.execute(
+                "insert into post_product_mention "
+                "(post_id, mention_ordinal, product_catalog_id, extracted_product_name, "
+                "resolution_status_code, evidence_text, evidence_post_id, evidence_input_sha256) "
+                "values (%s, 0, %s, %s, 'unique', %s, %s, %s)",
+                (
+                    seeded_db["public_post_id"], catalog_id, "Synthetic Model Q",
+                    "Synthetic evidence", seeded_db["public_post_id"], "c" * 64,
+                ),
+            )
+        conn.commit()
+    finally:
+        conn.close()
+    response = client.get(
+        f"/api/posts/{seeded_db['public_post_id']}",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert response.status_code == 200
+    assert response.json()["product_evidence"] == [{
+        "mention_ordinal": 0,
+        "extracted_product_name": "Synthetic Model Q",
+        "resolution_status_code": "unique",
+        "canonical_product_name": "Synthetic Model Q",
+        "product_level_code": "product_model",
+        "evidence_text": "Synthetic evidence",
+        "evidence_post_id": seeded_db["public_post_id"],
+    }]
 
 
 def test_post_detail_exposes_explicit_and_semantic_project_evidence(

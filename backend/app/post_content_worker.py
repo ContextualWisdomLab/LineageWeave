@@ -27,6 +27,10 @@ from backend.app.post_content_queue import (
     transition_post_content_job,
 )
 from backend.app.operations_case_ingestion import persist_operations_cases
+from backend.app.product_semantic_ingestion import (
+    persist_product_mentions,
+    resolve_product_mentions,
+)
 from backend.app.post_chat_ingestion import (
     find_project_sibling_post_ids,
     gather_chat_sources,
@@ -44,6 +48,11 @@ from lineageweave.operations_case_analysis import (
 from lineageweave.post_content_normalization import normalize_post_body
 from lineageweave.post_content_persistence import persist_post_content
 from lineageweave.post_structure import PostStructureClient
+from lineageweave.product_semantics import (
+    ContextualOrchestratorProductExtractionClient,
+    ProductEvidenceSource,
+    product_analysis_input_sha256,
+)
 
 _logger = logging.getLogger(__name__)
 _RECOVERY_INTERVAL_SECONDS = 30.0
@@ -166,6 +175,54 @@ async def _persist_operations_case_analysis_if_needed(
             session_id,
             cases,
             analysis_input_sha256=analysis_input_digest,
+        )
+
+
+async def _persist_product_analysis_if_needed(
+    pool: asyncpg.Pool,
+    post_id: str,
+    source_body_digest: str,
+    row: asyncpg.Record,
+    vision_client: ImageContentClient,
+    session_id: str,
+    orchestrator_base_url: str,
+    orchestrator_api_key: str,
+) -> None:
+    """Extract and persist products once per exact authorized source window."""
+    operation_sources = await _operations_evidence_sources(
+        pool, post_id, row, vision_client
+    )
+    sources = tuple(
+        ProductEvidenceSource(source.post_id, source.text)
+        for source in operation_sources
+    )
+    input_digest = product_analysis_input_sha256(sources)
+    async with pool.acquire() as conn:
+        already_persisted = bool(
+            await conn.fetchval(
+                "select exists (select 1 from post_product_analysis "
+                "where post_id = $1 and source_body_sha256 = $2 "
+                "and analysis_input_sha256 = $3)",
+                post_id,
+                source_body_digest,
+                input_digest,
+            )
+        )
+    if already_persisted:
+        return
+    client = ContextualOrchestratorProductExtractionClient(
+        orchestrator_base_url, orchestrator_api_key
+    )
+    mentions = await asyncio.to_thread(client.extract, sources)
+    async with pool.acquire() as conn:
+        resolved = await resolve_product_mentions(conn, mentions)
+        await persist_product_mentions(
+            conn,
+            post_id,
+            source_body_digest,
+            input_digest,
+            session_id,
+            resolved,
         )
 
 
@@ -440,6 +497,16 @@ async def process_post_content_job(
         with use_llm_metadata(metadata):
             vision_client = vision_factory()
             if settings.orchestrator_base_url and settings.orchestrator_api_key:
+                await _persist_product_analysis_if_needed(
+                    pool,
+                    post_id,
+                    source_body_digest,
+                    row,
+                    vision_client,
+                    metadata["lineageweave_post_session_id"],
+                    settings.orchestrator_base_url,
+                    settings.orchestrator_api_key,
+                )
                 await _persist_operations_case_analysis_if_needed(
                     pool,
                     post_id,
