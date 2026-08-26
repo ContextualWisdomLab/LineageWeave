@@ -32,7 +32,6 @@ from .image_content import (
     ImageRegion,
     NullImageContentClient,
     crop_image_region,
-    regions_cover_image,
 )
 
 # Real HTML tags only -- a VOC body like "qty < 50 and price > 10" is
@@ -194,7 +193,7 @@ def _describe_image_chunk(
         except Exception:  # noqa: BLE001 - malformed locator output falls back safely.
             regions = ()
         full_image_region = len(regions) == 1 and regions[0] == ImageRegion(0.0, 0.0, 1.0, 1.0)
-        partial_regions = bool(regions) and not full_image_region and not regions_cover_image(regions)
+        has_subregions = bool(regions) and not full_image_region
         if not regions or full_image_region:
             # Missing or full-image locator output is not a decomposed region.
             # Preserve parent-image evidence below without inventing coordinates.
@@ -216,7 +215,7 @@ def _describe_image_chunk(
         successful_regions = [
             item.description for item in region_results if item.description is not None
         ]
-        if partial_regions:
+        if has_subregions:
             # Keep valid salient panels instead of replacing them with a full-image
             # crop, then ask once more for the uncovered parent image so text outside
             # those panels remains searchable and its original location is preserved.

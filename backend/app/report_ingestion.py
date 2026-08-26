@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import re
 from collections import defaultdict
 from datetime import datetime, timezone
@@ -555,7 +556,8 @@ async def rebuild_period_reports(
             previous = await load_previous_group_mean(conn, kind, grouping_key, period_code)
             if previous is not None:
                 previous_means[grouping_key] = previous
-        bank_report, scored = score_groups_on_shared_metric(
+        bank_report, scored = await asyncio.to_thread(
+            score_groups_on_shared_metric,
             groups,
             item_bank=item_bank,
             previous_means=previous_means,
