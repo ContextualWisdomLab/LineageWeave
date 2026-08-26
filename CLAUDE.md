@@ -27,8 +27,9 @@ period-report run on one snapshot. The TEPP path goes through
 Failed (`tepp_not_available` / `tepp_result_not_persisted`). Never
 invent a theta or a local psychometric substitute.
 
-- Failed TEPP is terminal -- open that row and connect a live TEPP
-  transport from it.
+- Failed TEPP is terminal. Retry creates and starts a new current-snapshot
+  request through the existing outbox and `tepp_client`; it never mutates the
+  failed row or invents a local measurement.
 - A failed lineage row retries reconstruction and does not mention TEPP;
   a failed period-report row rebuilds the report.
 - Pending rows claim nothing: pending TEPP is not a calibrated

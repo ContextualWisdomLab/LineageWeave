@@ -6,10 +6,9 @@ scope they already have ABAC authority to walk. Aggregate counts and
 lookup labels come back; source SQL, DSNs, raw records, and provider
 payloads never do.
 
-``create_pending_analysis_run`` (ADR 0017) writes snapshot, counts, frozen
-membership, run, scope, and the first Pending event atomically. It
-records lineage only. It does not reconstruct lineage, accept a TEPP
-kind, or invent a score. ``enqueue_pending_analysis_run`` then
+``create_pending_analysis_run`` (ADR 0017 / ADR 0022) writes snapshot,
+counts, frozen membership, run, scope, and the first Pending event atomically.
+It records a request, never a result or score. ``enqueue_pending_analysis_run`` then
 ``deliver_queued_analysis_run`` later reconstruct lineage (ADR 0021 /
 ADR 0023) or submit TEPP through ``tepp_client`` (ADR 0022). Neither
 path invents a TEPP score.
@@ -333,6 +332,8 @@ async def _serialize_runs(
         }
         if row["scope_entity_name"]:
             item["scope_entity_name"] = row["scope_entity_name"]
+        if row["corporate_entity_id"]:
+            item["scope_corporate_entity_id"] = str(row["corporate_entity_id"])
         if row["scope_key"]:
             item["scope_key"] = row["scope_key"]
         grouping_key = scope_grouping_key(row)
@@ -629,34 +630,25 @@ class AnalysisRunCreateError(Exception):
         self.detail = detail
 
 
-def _require_lineage_create_kind(run_kind_code: str) -> None:
-    """Reject TEPP, topic-lineage, and report writes so this path cannot fake those products.
+def _require_requestable_run_kind(run_kind_code: str) -> None:
+    """Allow requestable run kinds without claiming that work has completed.
 
-    TEPP and topic-lineage stay ``tepp_client`` wire paths (ADR 0022 /
-    ADR 0132). Period reports stay on the Reports panel rebuild. A Pending
-    TEPP or topic-lineage row that never called the transport is a
-    fabricated measurement request.
+    TEPP and topic-lineage execution still crosses ``tepp_client`` (ADR 0022 /
+    ADR 0132). A Pending row is an immutable request, not a calibrated result.
+    Period reports stay on the Reports panel rebuild path.
     """
-    if run_kind_code == _TEPP_RUN_KIND:
-        raise AnalysisRunCreateError(
-            422,
-            "Ask an administrator to enable measurement, then retry from the failed measurement run.",
-        )
-    if run_kind_code == _TOPIC_LINEAGE_RUN_KIND:
-        raise AnalysisRunCreateError(
-            422,
-            "Ask an administrator to enable topic-lineage analysis, then retry from the failed run.",
-        )
+    if run_kind_code in {
+        _LINEAGE_RUN_KIND,
+        _TEPP_RUN_KIND,
+        _TOPIC_LINEAGE_RUN_KIND,
+    }:
+        return
     if run_kind_code == _REPORT_RUN_KIND:
         raise AnalysisRunCreateError(
             422,
             "Rebuild the period report from the Reports panel.",
         )
-    if run_kind_code != _LINEAGE_RUN_KIND:
-        raise AnalysisRunCreateError(
-            422,
-            "Only lineage reconstruction can be requested here.",
-        )
+    raise AnalysisRunCreateError(422, "Choose a supported analysis run kind.")
 
 
 @dataclass(frozen=True)
@@ -783,11 +775,12 @@ async def create_pending_analysis_run(
 ) -> dict[str, Any]:
     """Insert snapshot, counts, frozen members, run, scope, and Pending.
 
-    Lineage only. Does not reconstruct, call TEPP, or invent a theta.
+    Does not reconstruct, call TEPP, or invent a theta. Pending measurement
+    and topic-lineage rows become work only through the start/outbox path.
     Kind rejection happens before any snapshot or run insert.
     Idempotent retries compare ``configuration_sha256``.
     """
-    _require_lineage_create_kind(run_kind_code)
+    _require_requestable_run_kind(run_kind_code)
     if scope_kind_code != _CORPORATE_SCOPE:
         raise AnalysisRunCreateError(
             422,
