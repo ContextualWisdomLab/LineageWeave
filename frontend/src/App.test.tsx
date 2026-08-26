@@ -3276,7 +3276,7 @@ describe("App, authenticated", () => {
     expect(list).toHaveTextContent("TEPP measurement · Failed · Demo Corp");
     expect(list).toHaveTextContent("Period report · Succeeded · Demo Corp");
     expect(list).toHaveTextContent(
-      "Open this run to see why it failed, then connect the measurement service and re-run.",
+      "Open this run to see why it failed. Ask an administrator to enable measurement, then run it again.",
     );
     expect(list).toHaveTextContent("3 documents");
     expect(list).not.toHaveTextContent("postgresql://");
@@ -3430,11 +3430,11 @@ describe("App, authenticated", () => {
     ["analysis_run_lineage", "Request a new lineage reconstruction from a current snapshot."],
     [
       "analysis_run_tepp",
-      "Connect the measurement service, then ask an administrator to submit a new TEPP run from a current snapshot.",
+      "Ask an administrator to enable measurement and submit a new run from a current snapshot.",
     ],
     [
       "analysis_run_topic_lineage",
-      "Connect the TEPP transport, then ask an administrator to submit new topic-lineage analysis from a current snapshot.",
+      "Ask an administrator to enable topic-lineage analysis and submit a new run from a current snapshot.",
     ],
     ["analysis_run_report", "Rebuild the period report from a current snapshot."],
   ] satisfies [AnalysisRunKindCode, string][])(
@@ -3453,7 +3453,7 @@ describe("App, authenticated", () => {
     },
   );
 
-  it("tells a running lineage run to refresh the durable outbox", async () => {
+  it("tells a running lineage run how to check for results", async () => {
     stubBackend({ runningLineageRun: true });
     render(<App showLabPanels />);
 
@@ -3461,12 +3461,12 @@ describe("App, authenticated", () => {
       name: "Open analysis run: Lineage reconstruction · Running · Demo Corp",
     });
     expect(lineageButton).toHaveTextContent(
-      "Refresh this run. Start already queued the work on the durable outbox.",
+      "This run is in progress. Refresh it to check for results.",
     );
     await userEvent.click(lineageButton);
     expect(screen.getByRole("button", { name: "Start reconstruction" })).toBeInTheDocument();
     expect(
-      screen.getAllByText("Refresh this run. Start already queued the work on the durable outbox."),
+      screen.getAllByText("This run is in progress. Refresh it to check for results."),
     ).not.toHaveLength(0);
   });
 
@@ -3486,7 +3486,7 @@ describe("App, authenticated", () => {
     );
     expect(lineageButton).not.toHaveTextContent("measurement service");
     expect(teppButton).toHaveTextContent(
-      "Open this run to see why it failed, then connect the measurement service and re-run.",
+      "Open this run to see why it failed. Ask an administrator to enable measurement, then run it again.",
     );
     expect(teppButton).not.toHaveTextContent("reconstruction");
   });

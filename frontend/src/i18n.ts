@@ -312,8 +312,9 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Ask about this lineage": "이 계보에 대해 질문",
     "Conversation history": "대화 기록",
     "Load more": "더 보기",
+    "Load earlier messages": "이전 메시지 불러오기",
     "New conversation": "새 대화",
-    "Conversation history could not be loaded.": "대화 기록을 불러올 수 없습니다.",
+    "Conversation history could not be loaded. Start a new conversation or try again later.": "대화 기록을 불러올 수 없습니다. 새 대화를 시작하거나 나중에 다시 시도하세요.",
     "No reconstructed lineage yet. Rebuild after seeding posts.":
       "아직 재구성된 계보가 없습니다. 글을 시드한 뒤 다시 만드세요.",
     "Reconstructed lineage": "재구성된 계보",
@@ -816,8 +817,9 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Ask about this lineage": "询问此谱系",
     "Conversation history": "对话历史",
     "Load more": "加载更多",
+    "Load earlier messages": "加载更早的消息",
     "New conversation": "新对话",
-    "Conversation history could not be loaded.": "无法加载对话历史。",
+    "Conversation history could not be loaded. Start a new conversation or try again later.": "无法加载对话历史。请开始新对话或稍后重试。",
     "No reconstructed lineage yet. Rebuild after seeding posts.":
       "尚未重建事件谱系。生成文章种子后再重建。",
     "Reconstructed lineage": "已重建的事件谱系",
@@ -1332,8 +1334,9 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Ask about this lineage": "この系譜について質問",
     "Conversation history": "会話履歴",
     "Load more": "さらに読み込む",
+    "Load earlier messages": "以前のメッセージを読み込む",
     "New conversation": "新しい会話",
-    "Conversation history could not be loaded.": "会話履歴を読み込めませんでした。",
+    "Conversation history could not be loaded. Start a new conversation or try again later.": "会話履歴を読み込めませんでした。新しい会話を開始するか、後でもう一度お試しください。",
     "No reconstructed lineage yet. Rebuild after seeding posts.":
       "再構成された系譜はまだありません。投稿をシードしてから再構成してください。",
     "Reconstructed lineage": "再構成された系譜",
@@ -1836,8 +1839,9 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Ask about this lineage": "Hỏi về dòng sự kiện này",
     "Conversation history": "Lịch sử hội thoại",
     "Load more": "Tải thêm",
+    "Load earlier messages": "Tải tin nhắn trước đó",
     "New conversation": "Cuộc hội thoại mới",
-    "Conversation history could not be loaded.": "Không thể tải lịch sử hội thoại.",
+    "Conversation history could not be loaded. Start a new conversation or try again later.": "Không thể tải lịch sử hội thoại. Hãy bắt đầu cuộc hội thoại mới hoặc thử lại sau.",
     "No reconstructed lineage yet. Rebuild after seeding posts.":
       "Chưa có dòng sự kiện được tái dựng. Hãy tạo dữ liệu mồi rồi tái dựng lại.",
     "Reconstructed lineage": "Dòng sự kiện đã tái dựng",

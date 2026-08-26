@@ -3000,7 +3000,10 @@ async def _persist_post_ask_turn(
             "Post chat is temporarily unavailable because authorized evidence changed. Retry the question.",
         ) from exc
     except PostAskConversationNotFound as exc:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "conversation not found") from exc
+        raise HTTPException(
+            status.HTTP_404_NOT_FOUND,
+            "This conversation is no longer available. Choose another conversation or start a new one.",
+        ) from exc
 
 
 @app.get("/api/posts/{post_id}/chat")
@@ -3050,7 +3053,10 @@ async def chat_about_post(
         if request.conversation_id is not None and not await post_ask_conversation_exists(
             conn, account.user_account_id, post_id, request.conversation_id
         ):
-            raise HTTPException(status.HTTP_404_NOT_FOUND, "conversation not found")
+            raise HTTPException(
+                status.HTTP_404_NOT_FOUND,
+                "This conversation is no longer available. Choose another conversation or start a new one.",
+            )
         stored = await fetch_persisted_chat(conn, post_id, question)
         if stored is not None:
             source_ids = [post_id]
@@ -3202,7 +3208,10 @@ async def read_post_chat_conversation(
             before_turn_ordinal=before_turn,
         )
     if conversation is None:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "conversation not found")
+        raise HTTPException(
+            status.HTTP_404_NOT_FOUND,
+            "This conversation is no longer available. Choose another conversation or start a new one.",
+        )
     return conversation
 
 

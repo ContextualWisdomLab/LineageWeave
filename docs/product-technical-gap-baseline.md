@@ -90,8 +90,8 @@ context only.
 | #680 | `4e41bcd1` | customer-facing ranking copy with localized retry/search guidance, no fused-ranking implementation label, related-concepts/author-context/earlier-source-version labels, and complete guidance regression coverage; hosted checks requeued and independent review required |
 | #679 | `67706ef5` | ADR 0229 public-claim envelope, async verification, locale-aware next actions, and opt-in search setup; BLOCKED with exact-head checks and independent review required |
 | #678 | `da98de07` | canonical Compose-stack consolidation stacked on #640; parent protected merge and `main` retarget precede fresh exact-head evidence |
-| #677 | `aede5911` | ADR 0228 account-owned per-post Ask conversation history with localized titles, full conversation/transcript pagination, stale-response guards, repeated-turn preservation, and eligibility recheck; hosted checks and independent review required |
-| #667 | `81c0a0d2` | baseline refresh branch current head; BLOCKED with review required; stacked #669 and #671 are merged into this non-default branch |
+| #677 | `11f7643c` | ADR 0228 account-owned per-post Ask conversation history with localized titles, full conversation/transcript pagination, stale-response guards, repeated-turn preservation, eligibility recheck, and separation of demo cache rows from saved turns; hosted checks and independent review required |
+| #667 | `f40816bf` | baseline refresh branch current head; BLOCKED with review required; stacked #669 and #671 are merged into this non-default branch |
 | #672 | `5468c04d` | persisted semantic-evidence nomination for Global Ask with ADR renumbering; BLOCKED with hosted checks queued and review required |
 | #668 | `153add77` | evidence-bound project history projection with ADR renumbering, request guards, source-code/time-basis display repair, and theme-token timeline styling; BLOCKED with review required |
 | #663 | `74b9a1d9` | project ontology traversal, cutoff-snapshot project focus, bounded MCP admission, and migration-fixture/worker startup repair; hosted Full-suite transaction root cause repaired; fresh checks pending and review required |
@@ -395,13 +395,13 @@ feature is equivalent.
 | ADR 0133 — source-reference research | No `source_reference_research` persistence, post-admin action, or reader contract exists. The existing relation-verification client verifies an already extracted organization and is not the cited-resource discovery workflow | Missing | Add the ADR first, then one bounded SearXNG → contextual-orchestrator judgment slice with public-host/redirect rejection, normalized provenance, synthetic SSRF tests, and no entity binding from a search hit alone |
 | ADR 0134 — token-backed exception messages | Protected main has no shared `StatusNotice`; #643 (`3453ab08`) is the active current-main implementation candidate | In progress, not protected delivery | Land #643 only after exact-head checks and independent approval; then migrate remaining raw/color-only exception surfaces with Storybook unavailable/retry scenes |
 | ADR 0135 — analysis-kind exact next actions | Protected main has no `analysisRunGuidance`; merged stack #669 (`21bb799c`) is included in #667's non-default branch with cancelled-run guidance and responsive layout | In progress, not protected delivery | Land #667 with exact-head UI tests and desktop/mobile screenshot evidence; follow with the remaining kind × status Storybook interaction matrix without inventing TEPP or report actions |
-| ADR 0136 — per-post Ask history | No `post_ask_session` or `post_ask_turn` schema/API exists on protected main | Missing | Add the ADR and normalized account + post scoped tables, hot-post-safe index, batched visibility reauthorization, list/select/new UI, cross-account/post rejection tests, and citation-revocation evidence |
+| ADR 0136 — per-post Ask history | Protected main has no `post_ask_session` or `post_ask_turn`; the current stacked candidate records the superseding ADR 0228 and adds normalized account + post scoped tables, an account-leading index, batched visibility reauthorization, list/select/new UI, cross-scope rejection, and citation-revocation rollback | In progress, not protected delivery | Re-fetch the candidate's exact head, complete hosted checks and independent approval, then verify the migration and authenticated UI against an exact-head stack; do not treat local tests or screenshots as release evidence |
 | ADR 0137 — cross-post customer identity | No `customer_identity_judgment`, `customer_identity_binding`, or `corporate_entity_name_history` schema exists on protected main | Missing | Add the ADR before implementation; retain `(source_system_code, source_customer_code)` identity, require multiple eligible posts and external cited corroboration, persist abstention/tie states, and consume owning-library judgment evidence without local scoring |
 
-The next implementation order is ADR 0134/#643 and the stacked ADR 0135 work because
-their focused current-base heads already exist. ADR 0133, ADR 0136, and ADR
-0137 must each start from a new ADR-first current-main PR; none is authorized
-for wholesale replay from #490.
+ADR 0134/#643 and ADR 0135/#669 have focused delivery heads. ADR 0136 is now a
+separate ADR-first candidate reusing only the reviewed persistence contract,
+not #490's 321-file tree. ADR 0133 and ADR 0137 remain missing and each requires
+its own current-main decision and focused PR.
 
 ## 5. Open product and technical gaps
 

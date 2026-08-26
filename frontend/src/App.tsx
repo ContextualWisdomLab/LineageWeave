@@ -274,6 +274,7 @@ export function ChatPanel({
   const [seededExchanges, setSeededExchanges] = useState<ChatExchange[]>([]);
   const [conversations, setConversations] = useState<PostAskConversationSummary[]>([]);
   const [conversationCursor, setConversationCursor] = useState<PostAskConversationPage["next_cursor"]>(null);
+  const [conversationOlderCursor, setConversationOlderCursor] = useState<string | null>(null);
   const [conversationId, setConversationId] = useState<string | null>(null);
   const [historyError, setHistoryError] = useState<string | null>(null);
   const [answer, setAnswer] = useState<ChatAnswer | null>(null);
@@ -289,6 +290,8 @@ export function ChatPanel({
     setConversations([]);
     setConversationId(null);
     setHistoryError(null);
+    setConversationCursor(null);
+    setConversationOlderCursor(null);
     setAnswer(null);
     setError(null);
     setSeededOnly(false);
@@ -308,7 +311,7 @@ export function ChatPanel({
           setConversationCursor(page.next_cursor ?? null);
         }
       })
-      .catch(() => { if (active) setHistoryError(t("Conversation history could not be loaded.")); });
+      .catch(() => { if (active) setHistoryError(t("Conversation history could not be loaded. Start a new conversation or try again later.")); });
     return () => { active = false; };
   }, [postId, accessToken]);
 
@@ -322,14 +325,16 @@ export function ChatPanel({
       if (requestId !== conversationRequest.current) return;
       setConversationId(conversation.conversation_id);
       setExchanges(conversation.exchanges);
+      setConversationOlderCursor(conversation.older_cursor ?? null);
     } catch {
-      setHistoryError(t("Conversation history could not be loaded."));
+      setHistoryError(t("Conversation history could not be loaded. Start a new conversation or try again later."));
     }
   }
 
   function startNewConversation() {
     ++conversationRequest.current;
     setConversationId(null);
+    setConversationOlderCursor(null);
     setExchanges(seededExchanges);
     setQuestion("");
     setAnswer(null);
@@ -338,6 +343,7 @@ export function ChatPanel({
 
   async function handleAsk(asked = question) {
     if (!asked.trim()) return;
+    const startsConversation = conversationId === null;
     setLoading(true);
     setError(null);
     try {
@@ -362,7 +368,7 @@ export function ChatPanel({
           cited_post_ids: result.cited_post_ids,
           cited_posts: result.cited_posts,
         };
-        return [...prev, next];
+        return startsConversation ? [next] : [...prev, next];
       });
     } catch (err) {
       setError(orchestratorUnavailableMessage(err, "Chat"));
@@ -444,15 +450,35 @@ export function ChatPanel({
         </label>
         {conversationCursor ? (
           <button type="button" onClick={async () => {
-            const page = await fetchPostChatConversations(accessToken, postId, conversationCursor);
-            setConversations((current) => [...current, ...page.conversations]);
-            setConversationCursor(page.next_cursor ?? null);
+            try {
+              const page = await fetchPostChatConversations(accessToken, postId, conversationCursor);
+              setConversations((current) => [...current, ...page.conversations]);
+              setConversationCursor(page.next_cursor ?? null);
+            } catch {
+              setHistoryError(t("Conversation history could not be loaded. Start a new conversation or try again later."));
+            }
           }} disabled={loading}>{t("Load more")}</button>
         ) : null}
         <button type="button" onClick={startNewConversation} disabled={loading}>
           {t("New conversation")}
         </button>
       </div>
+      {conversationId && conversationOlderCursor ? (
+        <button type="button" onClick={async () => {
+          try {
+            const conversation = await fetchPostChatConversation(
+              accessToken,
+              postId,
+              conversationId,
+              Number(conversationOlderCursor),
+            );
+            setExchanges((current) => [...conversation.exchanges, ...current]);
+            setConversationOlderCursor(conversation.older_cursor ?? null);
+          } catch {
+            setHistoryError(t("Conversation history could not be loaded. Start a new conversation or try again later."));
+          }
+        }} disabled={loading}>{t("Load earlier messages")}</button>
+      ) : null}
       {historyError ? <p className="error" role="alert">{historyError}</p> : null}
       {!seededOnly && (
         <div className="chat-input-row">
@@ -2779,9 +2805,9 @@ function analysisRunNextAction(run: AnalysisRun): string | null {
     case "analysis_status_failed":
       switch (run.run_kind_code) {
         case "analysis_run_tepp":
-          return "Open this run to see why it failed, then connect the measurement service and re-run.";
+          return "Open this run to see why it failed. Ask an administrator to enable measurement, then run it again.";
         case "analysis_run_topic_lineage":
-          return "Open this run to see why it failed, then connect the TEPP transport and re-run.";
+          return "Open this run to see why it failed. Ask an administrator to enable topic-lineage analysis, then run it again.";
         case "analysis_run_lineage":
           return "Open this run to see why it failed, then retry reconstruction from a current snapshot.";
         case "analysis_run_report":
@@ -2792,15 +2818,15 @@ function analysisRunNextAction(run: AnalysisRun): string | null {
         }
       }
     case "analysis_status_running":
-      return "Refresh this run. Start already queued the work on the durable outbox.";
+      return "This run is in progress. Refresh it to check for results.";
     case "analysis_status_cancelled":
       switch (run.run_kind_code) {
         case "analysis_run_lineage":
           return "This run was cancelled. Request a new lineage reconstruction from a current snapshot.";
         case "analysis_run_tepp":
-          return "This run was cancelled. Connect the measurement service, then ask an administrator to submit a new TEPP run from a current snapshot.";
+          return "This run was cancelled. Ask an administrator to enable measurement and submit a new run from a current snapshot.";
         case "analysis_run_topic_lineage":
-          return "This run was cancelled. Connect the TEPP transport, then ask an administrator to submit new topic-lineage analysis from a current snapshot.";
+          return "This run was cancelled. Ask an administrator to enable topic-lineage analysis and submit a new run from a current snapshot.";
         case "analysis_run_report":
           return "This run was cancelled. Rebuild the period report from a current snapshot.";
         default: {

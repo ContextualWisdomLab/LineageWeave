@@ -151,6 +151,7 @@ def test_visible_post_ids_batch_uses_fixed_source_and_citation_queries() -> None
         assert "relation.{" not in query
         assert "source_draft_code" in query
         assert "source_deleted_flag" in query
+        assert "post.process_unit_id" in query
         assert arguments[1] == [1]
         assert post_ids == ["post-1"]
         assert rows["post-1"]["post_title"] == "Synthetic source"
@@ -274,3 +275,7 @@ def test_persist_turn_aborts_when_a_citation_loses_authorization() -> None:
         )
 
     assert any("for share of post" in query.lower() for query, _ in connection.calls)
+    assert any(
+        "post.process_unit_id" in query and "for share of post" in query.lower()
+        for query, _ in connection.calls
+    )
