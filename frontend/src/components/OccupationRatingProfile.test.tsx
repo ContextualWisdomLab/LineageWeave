@@ -48,6 +48,44 @@ describe("OccupationRatingProfile", () => {
     expect(screen.getByText(/표를 가로로 밀어/)).toBeInTheDocument();
   });
 
+  it("keeps pagination bound to the loaded profile after form edits", async () => {
+    vi.mocked(fetchOccupationRatings)
+      .mockResolvedValueOnce({ ...ready, next_offset: 100 })
+      .mockResolvedValueOnce({ ...ready, items: [{ ...ready.items[0], scale_id: "LV" }] });
+    render(<OccupationRatingProfile accessToken="synthetic-token" />);
+    const occupation = screen.getByLabelText("O*NET-SOC 직업 코드");
+    await userEvent.type(occupation, "15-1252.00");
+    await userEvent.click(screen.getByRole("button", { name: "직업 근거 열기" }));
+    await screen.findByText("4.10");
+
+    await userEvent.clear(occupation);
+    await userEvent.type(occupation, "11-1011.00");
+    await userEvent.click(screen.getByRole("button", { name: "다음 관측값 불러오기" }));
+
+    expect(fetchOccupationRatings).toHaveBeenLastCalledWith("synthetic-token", {
+      onetsocCode: "15-1252.00", dataReleaseCode: "onet-31.0", sourceTableCode: "abilities", offset: 100,
+    });
+    expect(await screen.findAllByText("4.10")).toHaveLength(2);
+  });
+
+  it("removes stale evidence while a fresh occupation loads", async () => {
+    vi.mocked(fetchOccupationRatings)
+      .mockResolvedValueOnce(ready)
+      .mockImplementationOnce(() => new Promise(() => undefined));
+    render(<OccupationRatingProfile accessToken="synthetic-token" />);
+    const occupation = screen.getByLabelText("O*NET-SOC 직업 코드");
+    await userEvent.type(occupation, "15-1252.00");
+    await userEvent.click(screen.getByRole("button", { name: "직업 근거 열기" }));
+    await screen.findByText("4.10");
+
+    await userEvent.clear(occupation);
+    await userEvent.type(occupation, "11-1011.00");
+    await userEvent.click(screen.getByRole("button", { name: "직업 근거 열기" }));
+
+    expect(screen.queryByText("4.10")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "근거를 불러오는 중" })).toBeDisabled();
+  });
+
   it("distinguishes an unavailable artifact from an empty occupation profile", () => {
     const { rerender } = render(<OccupationRatingProfileView profile={{ ...ready, source_available: false, source: null, items: [] }} />);
     expect(screen.getByRole("status")).toHaveTextContent("아직 준비되지 않았습니다");

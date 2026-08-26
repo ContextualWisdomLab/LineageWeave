@@ -14,17 +14,23 @@ export function OccupationRatingProfile({ accessToken }: Props) {
   const [profile, setProfile] = useState<OccupationRatingProfilePayload | null>(null);
   const [status, setStatus] = useState<"idle" | "loading" | "error">("idle");
 
-  function load(offset = 0) {
+  function load(offset: number | null = null) {
+    const request = offset == null
+      ? { onetsocCode, dataReleaseCode: releaseCode, sourceTableCode: sourceCode }
+      : {
+          onetsocCode: profile?.onetsoc_code ?? onetsocCode,
+          dataReleaseCode: profile?.data_release_code ?? releaseCode,
+          sourceTableCode: profile?.source_table_code ?? sourceCode,
+        };
+    if (offset == null) setProfile(null);
     setStatus("loading");
     fetchOccupationRatings(accessToken, {
-      onetsocCode,
-      dataReleaseCode: releaseCode,
-      sourceTableCode: sourceCode,
-      offset,
+      ...request,
+      offset: offset ?? 0,
     })
       .then((payload) => {
         setProfile((current) =>
-          offset && current
+          offset != null && current
             ? { ...payload, items: [...current.items, ...payload.items] }
             : payload,
         );
@@ -78,7 +84,7 @@ export function OccupationRatingProfile({ accessToken }: Props) {
           className="btn-secondary"
           type="button"
           disabled={status === "loading"}
-          onClick={() => load(profile.next_offset ?? 0)}
+          onClick={() => load(profile.next_offset)}
         >
           다음 관측값 불러오기
         </button>
