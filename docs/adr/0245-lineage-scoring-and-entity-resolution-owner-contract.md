@@ -1,7 +1,8 @@
 # ADR 0245 — Lineage scoring and entity resolution require owner artifacts
 
-**Decision status:** Accepted  
-**Date:** 2026-08-26  
+**Decision status:** Accepted
+
+**Date:** 2026-08-26
 **Amends:** ADR 0026, ADR 0064, ADR 0084, and ADR 0208
 
 ## Context
