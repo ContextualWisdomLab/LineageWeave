@@ -1,6 +1,6 @@
 # Product & Technical Gap Baseline
 
-> Dashboard delivery snapshot: 2026-08-26 13:25 KST. Protected `main` is
+> Dashboard delivery snapshot: 2026-08-26 13:40 KST. Protected `main` is
 > `494b54e2245040bcf02b45376f221c37cd437e76`. This local branch is not
 > protected-main release evidence.
 
@@ -99,7 +99,7 @@ context only.
 | #657 | `709df1b9` | TEPP lifecycle persistence and fail-closed topic acceptance; BLOCKED with hosted checks queued and review required |
 | #644 | `ed8d97f3` | native-surface code splitting; BLOCKED with review required |
 | #643 | `3453ab08` | accessible status notices; BLOCKED with review required |
-| #640 | `dae28fb2` | dashboard ranking and topic-influence surfaces no longer expose provider, hash, or uncertainty-code implementation labels; residual-map axis-share drift is handled fail-closed; current head includes merged Ask evidence-timeline and lineage-weight stacks; hosted checks requeued and independent review required |
+| #640 | `cb78cd78` | dashboard ranking and topic-influence surfaces no longer expose provider, hash, or uncertainty-code implementation labels; residual-map axis-share drift is handled fail-closed; current head adds the ADR for portable Rust accelerator backends; hosted checks requeued and independent review required |
 | #639 | `8da485d3` | running-action/config repair; BLOCKED with review required |
 | #632 | `811026cc` | graph-fact provenance repair with current baseline evidence; BLOCKED with hosted checks queued and review required |
 | #631 | `e6b4f0c4` | ADR decomposition documentation; BLOCKED with review required |
