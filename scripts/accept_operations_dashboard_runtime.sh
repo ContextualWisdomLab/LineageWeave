@@ -14,6 +14,14 @@ BACKEND_URL="${BACKEND_URL:-http://localhost:18420}"
 LINEAGEWEAVE_E2E_BASE_URL="${LINEAGEWEAVE_E2E_BASE_URL:-http://localhost:15173}"
 POSTGRES_CONTAINER="${POSTGRES_CONTAINER:-lineageweave-postgres-1}"
 SCREENSHOT_PATH="${SCREENSHOT_PATH:-/tmp/lineageweave-operations-dashboard-runtime.png}"
+E2E_OUTPUT_DIR="${E2E_OUTPUT_DIR:-/tmp/lineageweave-operations-dashboard-e2e}"
+repository_root="$(git rev-parse --show-toplevel)"
+case "$SCREENSHOT_PATH" in
+  "$repository_root"/*) echo "runtime screenshots must stay outside the repository" >&2; exit 2 ;;
+esac
+case "$E2E_OUTPUT_DIR" in
+  "$repository_root"/*) echo "runtime browser artifacts must stay outside the repository" >&2; exit 2 ;;
+esac
 
 for command_name in curl docker jq corepack; do
   command -v "$command_name" >/dev/null || { echo "$command_name is required" >&2; exit 2; }
@@ -120,7 +128,8 @@ curl_json "$LINEAGEWEAVE_ACCESS_TOKEN" GET "$BACKEND_URL/api/dashboard" \
 
 export LINEAGEWEAVE_ACCESS_TOKEN LINEAGEWEAVE_OIDC_ISSUER LINEAGEWEAVE_OIDC_CLIENT_ID
 export LINEAGEWEAVE_E2E_BASE_URL SCREENSHOT_PATH
-corepack pnpm --dir frontend exec playwright test e2e/runtime-operations-dashboard.spec.ts
+(cd frontend && corepack pnpm exec playwright test \
+  e2e/runtime-operations-dashboard.spec.ts --output "$E2E_OUTPUT_DIR")
 
 printf 'operations-dashboard-runtime-acceptance-ok preferred=%s analysis_delta=%s grounded_delta=%s\n' \
   "$preferred_after" "$((analysis_after - analysis_before))" "$((grounded_after - grounded_before))"
