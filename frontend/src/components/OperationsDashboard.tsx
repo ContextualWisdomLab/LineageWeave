@@ -51,11 +51,12 @@ export function OperationsDashboard({ accessToken, externalOnly = false, onOpenP
   useEffect(() => {
     let active = true;
     setVoiceSummary(null);
+    if (externalOnly) return () => { active = false; };
     fetchVoiceTaxonomySummary(accessToken, ...submittedPeriod)
       .then((value) => active && setVoiceSummary(value))
       .catch(() => undefined);
     return () => { active = false; };
-  }, [accessToken, submittedPeriod, retryCount]);
+  }, [accessToken, externalOnly, submittedPeriod, retryCount]);
 
   return <>
     <form className="dashboard-period-form" onSubmit={(event) => {
@@ -75,7 +76,7 @@ export function OperationsDashboard({ accessToken, externalOnly = false, onOpenP
     ) : data ? (
       <>
         <OperationsDashboardView data={data} externalOnly={externalOnly} onOpenPost={onOpenPost} />
-        {voiceSummary ? <VoiceTaxonomySummary data={voiceSummary} /> : null}
+        {!externalOnly && voiceSummary ? <VoiceTaxonomySummary data={voiceSummary} /> : null}
       </>
     ) : (
       <p role="status">Dashboard 근거를 불러오는 중입니다.</p>

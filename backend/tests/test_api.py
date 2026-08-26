@@ -2006,6 +2006,22 @@ def test_voice_taxonomy_summary_uses_visible_post_denominator(
     assert "category_post_counts" not in payload
 
 
+def test_derived_voice_assertion_requires_model_receipt(seeded_db) -> None:
+    """A derived classification cannot persist without its model receipt."""
+    conn = psycopg2.connect(seeded_db["dsn"])
+    try:
+        with conn.cursor() as cur, pytest.raises(psycopg2.errors.CheckViolation):
+            cur.execute(
+                "insert into post_voice_classification_assertion "
+                "(post_id, voice_concept_code, assertion_status_code, evidence_span_start, "
+                "evidence_span_end, evidence_sha256, source_revision_digest) "
+                "values (%s, 'voc', 'derived', 0, 1, repeat('a', 64), repeat('b', 64))",
+                (seeded_db["public_post_id"],),
+            )
+    finally:
+        conn.close()
+
+
 def test_voice_taxonomy_summary_rejects_reversed_period(
     client, demo_analyst_token
 ) -> None:

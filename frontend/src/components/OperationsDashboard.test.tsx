@@ -1,12 +1,13 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
-import { fetchOperationsDashboard, type OperationsDashboardResponse } from "../api";
+import { fetchOperationsDashboard, fetchVoiceTaxonomySummary, type OperationsDashboardResponse } from "../api";
 import { OperationsDashboard, OperationsDashboardView } from "./OperationsDashboard";
 
 vi.mock("../api", async (importOriginal) => ({
   ...(await importOriginal<typeof import("../api")>()),
   fetchOperationsDashboard: vi.fn(),
+  fetchVoiceTaxonomySummary: vi.fn(),
 }));
 
 const data: OperationsDashboardResponse = {
@@ -179,6 +180,11 @@ describe("OperationsDashboardView", () => {
   });
 
   it("keeps period controls mounted while a changed period loads", async () => {
+    vi.mocked(fetchVoiceTaxonomySummary).mockResolvedValue({
+      total_eligible: 0, classified_unique: 0, multi_membership: 0,
+      source_count: 0, derived_count: 0, unavailable: 0, disagreement: 0,
+      counts_overlap: true, category_memberships: [],
+    });
     vi.mocked(fetchOperationsDashboard)
       .mockResolvedValueOnce(data)
       .mockImplementationOnce(() => new Promise(() => undefined));
@@ -191,9 +197,11 @@ describe("OperationsDashboardView", () => {
   });
 
   it("requests the external scope at the API boundary", async () => {
-    vi.mocked(fetchOperationsDashboard).mockResolvedValue(data);
+    vi.mocked(fetchVoiceTaxonomySummary).mockClear();
+    vi.mocked(fetchOperationsDashboard).mockReset().mockResolvedValue(data);
     render(<OperationsDashboard accessToken="synthetic-token" externalOnly onOpenPost={() => undefined} />);
     await screen.findByText("5건");
     expect(fetchOperationsDashboard).toHaveBeenCalledWith("synthetic-token", "", "", true);
+    expect(fetchVoiceTaxonomySummary).not.toHaveBeenCalled();
   });
 });

@@ -18,9 +18,27 @@ create table if not exists post_voice_classification_assertion (
     supersedes_assertion_id uuid references post_voice_classification_assertion(classification_assertion_id),
     check ((evidence_span_start is null) = (evidence_span_end is null)),
     check (evidence_span_start is null or (evidence_span_start >= 0 and evidence_span_end > evidence_span_start)),
-    check (valid_to is null or valid_from is null or valid_to >= valid_from),
-    check (assertion_status_code = 'source' or (evidence_span_start is not null and btrim(orchestrator_model_receipt) <> ''))
+    check (valid_to is null or valid_from is null or valid_to >= valid_from)
 );
+do $migration$
+begin
+    if not exists (
+        select 1 from pg_constraint
+         where conrelid = 'post_voice_classification_assertion'::regclass
+           and conname = 'post_voice_derived_receipt_check'
+    ) then
+        alter table post_voice_classification_assertion
+            add constraint post_voice_derived_receipt_check check (
+                assertion_status_code = 'source'
+                or (
+                    evidence_span_start is not null
+                    and orchestrator_model_receipt is not null
+                    and btrim(orchestrator_model_receipt) <> ''
+                )
+            );
+    end if;
+end
+$migration$;
 create index if not exists post_voice_assertion_scope_idx
     on post_voice_classification_assertion (post_id, valid_from, voice_concept_code);
 create unique index if not exists post_voice_assertion_idempotency_idx
