@@ -285,7 +285,9 @@ async def compute_global_ask_answer(
             search_client = claim_search_client or NullPublicClaimSearchClient()
             async with pool.acquire() as conn:
                 envelopes = await load_authorized_public_claim_envelopes(conn, can_see)
-            verification = verify_public_claims(envelopes, search_client)
+            verification = await asyncio.to_thread(
+                verify_public_claims, envelopes, search_client
+            )
             cited_post_ids_exclude_external([], verification)
             payload["public_claim_verification"] = verification
         return payload
@@ -341,7 +343,9 @@ async def compute_global_ask_answer(
         search_client = claim_search_client or NullPublicClaimSearchClient()
         async with pool.acquire() as conn:
             envelopes = await load_authorized_public_claim_envelopes(conn, can_see)
-        verification = verify_public_claims(envelopes, search_client)
+        verification = await asyncio.to_thread(
+            verify_public_claims, envelopes, search_client
+        )
         cited_post_ids_exclude_external(cited_ids, verification)
         payload["public_claim_verification"] = verification
         if not payload.get("next_action"):
