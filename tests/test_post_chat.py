@@ -14,7 +14,9 @@ import os
 import pytest
 
 from backend.app.post_chat_ingestion import (
+    _graph_evidence_projection,
     _graph_facts_for_posts,
+    _public_project_claims_for_posts,
     seeded_demo_chat,
     seeded_demo_commitment_chat,
     seeded_demo_exchanges,
@@ -216,6 +218,7 @@ def test_chat_render_includes_persisted_graph_facts_with_source_evidence() -> No
 def test_graph_facts_are_hydrated_from_visible_evidence_posts(monkeypatch) -> None:
     class _Connection:
         async def fetch(self, _query, _visible_post_ids):
+            assert "exists" in _query.lower()
             return [
                 {
                     "source_node_type_code": "node_person",
@@ -224,7 +227,8 @@ def test_graph_facts_are_hydrated_from_visible_evidence_posts(monkeypatch) -> No
                     "target_node_id": "corp-demo",
                     "edge_type_code": "edge_affiliation",
                     "edge_weight": 1.0,
-                    "evidence_post_ids": ["post-graph"],
+                    "visible_evidence_post_ids": ["post-graph"],
+                    "all_evidence_post_ids": ["post-graph"],
                 }
             ]
 
@@ -246,6 +250,105 @@ def test_graph_facts_are_hydrated_from_visible_evidence_posts(monkeypatch) -> No
         '(https://contextualwisdomlab.github.io/LineageWeave/ontology#affiliatedWith)--> '
         'node_corporate_entity "Demo Corp" [evidence_post_id=post-graph]',
     )
+
+
+def test_typed_graph_claim_requires_non_person_public_evidence(monkeypatch) -> None:
+    class _Connection:
+        async def fetch(self, _query, _visible_post_ids):
+            return [
+                {
+                    "source_node_type_code": "node_team",
+                    "source_node_id": "team-demo",
+                    "target_node_type_code": "node_corporate_entity",
+                    "target_node_id": "corp-demo",
+                    "edge_type_code": "edge_team_affiliation",
+                    "edge_weight": 1.0,
+                    "visible_evidence_post_ids": ["public-post"],
+                    "all_evidence_post_ids": ["public-post"],
+                }
+            ]
+
+    async def fake_hydrate(_conn, _node_keys):
+        return [
+            {"node_type_code": "node_team", "node_id": "team-demo", "label": "Demo Team"},
+            {
+                "node_type_code": "node_corporate_entity",
+                "node_id": "corp-demo",
+                "label": "Demo Corp",
+            },
+        ]
+
+    monkeypatch.setattr("backend.app.post_chat_ingestion.hydrate_related_nodes", fake_hydrate)
+    public = asyncio.run(
+        _graph_evidence_projection(
+            _Connection(), ["public-post"], frozenset({"public-post"})
+        )
+    )
+    private = asyncio.run(
+        _graph_evidence_projection(_Connection(), ["public-post"], frozenset())
+    )
+
+    assert public.public_claims[0].claim_kind == "knowledge_graph_relation"
+    assert public.public_claims[0].source_post_ids == ("public-post",)
+    assert private.public_claims == ()
+
+
+def test_typed_graph_claim_rejects_hidden_evidence_without_leaking_it(monkeypatch) -> None:
+    class _Connection:
+        async def fetch(self, _query, _visible_post_ids):
+            return [
+                {
+                    "source_node_type_code": "node_team",
+                    "source_node_id": "team-demo",
+                    "target_node_type_code": "node_corporate_entity",
+                    "target_node_id": "corp-demo",
+                    "edge_type_code": "edge_team_affiliation",
+                    "edge_weight": 1.0,
+                    "visible_evidence_post_ids": ["public-post"],
+                    "all_evidence_post_ids": ["hidden-post", "public-post"],
+                }
+            ]
+
+    async def fake_hydrate(_conn, _node_keys):
+        return [
+            {"node_type_code": "node_team", "node_id": "team-demo", "label": "Demo Team"},
+            {
+                "node_type_code": "node_corporate_entity",
+                "node_id": "corp-demo",
+                "label": "Demo Corp",
+            },
+        ]
+
+    monkeypatch.setattr("backend.app.post_chat_ingestion.hydrate_related_nodes", fake_hydrate)
+    projection = asyncio.run(
+        _graph_evidence_projection(
+            _Connection(), ["public-post"], frozenset({"public-post"})
+        )
+    )
+
+    assert projection.public_claims == ()
+    assert "hidden-post" not in projection.facts[0]
+
+
+def test_typed_project_claim_comes_from_explicit_persisted_columns() -> None:
+    class _Connection:
+        async def fetch(self, query, post_ids):
+            assert "project_name, ontology_iri" in query
+            assert post_ids == ["public-post"]
+            return [
+                {
+                    "post_id": "public-post",
+                    "project_name": "Synthetic Renewal",
+                    "ontology_iri": "https://example.test/ontology#Project",
+                }
+            ]
+
+    claims = asyncio.run(
+        _public_project_claims_for_posts(_Connection(), ["public-post"])
+    )
+
+    assert claims["public-post"][0].claim_kind == "semantic_project"
+    assert claims["public-post"][0].source_post_ids == ("public-post",)
 
 
 def test_parses_a_well_formed_json_object() -> None:

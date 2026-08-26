@@ -94,6 +94,7 @@ import { CutoffKnownBody } from "./components/CutoffKnownBody";
 import { LineageEntityPicker } from "./components/LineageEntityPicker";
 import { OntologyExplorer } from "./components/OntologyExplorer";
 import { AskEvidenceLayerPopup } from "./components/AskEvidenceLayerPopup";
+import { PublicClaimVerification } from "./components/PublicClaimVerification";
 import { PopupCloseButton } from "./components/PopupCloseButton";
 import { SimilarVocPanel } from "./components/SimilarVocPanel";
 import { chatEvidenceKindLabel } from "./evidenceKindLabels";
@@ -156,7 +157,7 @@ function LanguageSwitcher({ accessToken }: { accessToken?: string }) {
 
 function searchUnavailableMessage(err: unknown): string {
   if (err instanceof BackendError && err.status === 503) {
-    return t("Verification unavailable (search is not configured).");
+    return t("Public information could not be checked. Try again later.");
   }
   return String(err);
 }
@@ -4813,7 +4814,7 @@ function CustomerMasterPanel({
   );
 }
 
-function AskAgentPanel({
+export function AskAgentPanel({
   accessToken,
   onOpenPost,
 }: {
@@ -4824,6 +4825,7 @@ function AskAgentPanel({
   const [answer, setAnswer] = useState<AskAgentResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [asking, setAsking] = useState(false);
+  const [verifyExternal, setVerifyExternal] = useState(false);
   const [evidenceLayerPostId, setEvidenceLayerPostId] = useState<string | null>(null);
 
   async function handleAsk() {
@@ -4832,7 +4834,7 @@ function AskAgentPanel({
     setAsking(true);
     setError(null);
     try {
-      setAnswer(await askAgent(accessToken, normalized));
+      setAnswer(await askAgent(accessToken, normalized, verifyExternal));
     } catch (err) {
       setAnswer(null);
       setError(orchestratorUnavailableMessage(err, t("Ask Agent")));
@@ -4856,6 +4858,14 @@ function AskAgentPanel({
           rows={4}
         />
       </label>
+      <label className="ask-agent-source">
+        <input
+          type="checkbox"
+          checked={verifyExternal}
+          onChange={(event) => setVerifyExternal(event.target.checked)}
+        />
+        <span>{t("Check eligible public claims")}</span>
+      </label>
       <button className="keyman-select" onClick={() => void handleAsk()} disabled={asking || !question.trim()}>
         {asking ? t("Asking...") : t("Ask")}
       </button>
@@ -4864,6 +4874,10 @@ function AskAgentPanel({
           <h3>{t("Answer")}</h3>
           {answer.answer_text ? <p>{answer.answer_text}</p> : null}
           {answer.next_action ? <p className="post-meta">{t(answer.next_action)}</p> : null}
+          <PublicClaimVerification
+            claims={answer.external_claims ?? []}
+            statusCode={answer.external_verification_status}
+          />
           {answer.delivery ? (
             <aside className="ask-delivery" aria-label={t("Report · alert · MCP")}>
               <h4>{t("Report · alert · MCP")}</h4>

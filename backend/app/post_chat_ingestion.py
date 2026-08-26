@@ -26,6 +26,10 @@ from zoneinfo import ZoneInfo
 import asyncpg
 
 from lineageweave.ask_time_axis import row_matches_time_range, time_axis_evidence_fact
+from lineageweave.claim_verification import (
+    GlobalAskSourceDocument,
+    PublicClaimCandidate,
+)
 from lineageweave.embedding_client import EmbeddingClient, NullEmbeddingClient
 from lineageweave.image_content import ImageContentClient, NullImageContentClient
 from lineageweave.knowledge_graph import (
@@ -63,6 +67,14 @@ class LinkedPostIds:
     indirect: frozenset[str]
 
 
+@dataclass(frozen=True)
+class _GraphEvidenceProjection:
+    """Rendered graph facts and typed public-egress claims from the same rows."""
+
+    facts: tuple[str, ...]
+    public_claims: tuple[PublicClaimCandidate, ...]
+
+
 async def _normalize_post_body_text(
     body: str,
     vision_client: ImageContentClient,
@@ -76,28 +88,37 @@ async def _normalize_post_body_text(
     return normalized.text
 
 
-async def _graph_facts_for_posts(
+async def _graph_evidence_projection(
     conn: asyncpg.Connection,
     visible_post_ids: list[str],
-) -> tuple[str, ...]:
-    """Render persisted, ontology-annotated graph facts for visible posts.
+    public_post_ids: frozenset[str] = frozenset(),
+) -> _GraphEvidenceProjection:
+    """Project persisted graph rows without parsing rendered fact strings.
 
     The evidence join is deliberate: a graph edge without a visible evidence
     post must never enter an LLM prompt. This is the chat-side trust boundary
     in addition to the post-level ABAC check.
     """
     if not visible_post_ids:
-        return ()
+        return _GraphEvidenceProjection((), ())
     edge_rows = await conn.fetch(
         """
         select edge.source_node_type_code, edge.source_node_id,
                edge.target_node_type_code, edge.target_node_id,
                edge.edge_type_code, edge.edge_weight,
-               array_agg(distinct evidence.evidence_post_id::text) as evidence_post_ids
+               array_agg(distinct evidence.evidence_post_id::text)
+                 filter (where evidence.evidence_post_id = any($1::uuid[]))
+                 as visible_evidence_post_ids,
+               array_agg(distinct evidence.evidence_post_id::text) as all_evidence_post_ids
           from knowledge_graph_edge edge
           join knowledge_graph_edge_evidence evidence
             on evidence.knowledge_graph_edge_id = edge.knowledge_graph_edge_id
-         where evidence.evidence_post_id = any($1::uuid[])
+         where exists (
+                   select 1
+                     from knowledge_graph_edge_evidence visible_evidence
+                    where visible_evidence.knowledge_graph_edge_id = edge.knowledge_graph_edge_id
+                      and visible_evidence.evidence_post_id = any($1::uuid[])
+               )
          group by edge.source_node_type_code, edge.source_node_id,
                   edge.target_node_type_code, edge.target_node_id,
                   edge.edge_type_code, edge.edge_weight
@@ -108,7 +129,7 @@ async def _graph_facts_for_posts(
         visible_post_ids,
     )
     if not edge_rows:
-        return ()
+        return _GraphEvidenceProjection((), ())
 
     endpoint_keys = {
         node_key(row["source_node_type_code"], str(row["source_node_id"]))
@@ -127,6 +148,7 @@ async def _graph_facts_for_posts(
     }
 
     facts: list[str] = []
+    public_claims: list[PublicClaimCandidate] = []
     for row in edge_rows:
         source_type = row["source_node_type_code"]
         source_id = str(row["source_node_id"])
@@ -141,13 +163,43 @@ async def _graph_facts_for_posts(
         edge_name = row["edge_type_code"]
         if ontology_iri:
             edge_name = f"{edge_name} ({ontology_iri})"
-        evidence_ids = ",".join(sorted(str(value) for value in row["evidence_post_ids"]))
-        facts.append(
-            f'{source_type} "{source["label"]}" '
-            f'--{edge_name}--> {target_type} "{target["label"]}" '
-            f"[evidence_post_id={evidence_ids}]"
+        visible_evidence_post_ids = tuple(
+            sorted(str(value) for value in row["visible_evidence_post_ids"])
         )
-    return tuple(dict.fromkeys(facts))
+        all_evidence_post_ids = tuple(
+            sorted(str(value) for value in row["all_evidence_post_ids"])
+        )
+        evidence_ids = ",".join(visible_evidence_post_ids)
+        claim_text = (
+            f'{source_type} "{source["label"]}" '
+            f'--{edge_name}--> {target_type} "{target["label"]}"'
+        )
+        facts.append(f"{claim_text} [evidence_post_id={evidence_ids}]")
+        if (
+            source_type != "node_person"
+            and target_type != "node_person"
+            and all_evidence_post_ids
+            and set(all_evidence_post_ids).issubset(public_post_ids)
+        ):
+            public_claims.append(
+                PublicClaimCandidate(
+                    claim_text=claim_text,
+                    claim_kind="knowledge_graph_relation",
+                    source_post_ids=all_evidence_post_ids,
+                )
+            )
+    return _GraphEvidenceProjection(
+        tuple(dict.fromkeys(facts)), tuple(dict.fromkeys(public_claims))
+    )
+
+
+async def _graph_facts_for_posts(
+    conn: asyncpg.Connection,
+    visible_post_ids: list[str],
+) -> tuple[str, ...]:
+    """Render persisted graph facts for an already-authorized post set."""
+
+    return (await _graph_evidence_projection(conn, visible_post_ids)).facts
 
 
 _SOURCE_HINT_FIELDS = (
@@ -238,6 +290,44 @@ async def _semantic_facts_for_posts(
     for row in rows:
         facts.setdefault(str(row["post_id"]), []).append(row["fact"])
     return {post_id: tuple(dict.fromkeys(values)) for post_id, values in facts.items()}
+
+
+async def _public_project_claims_for_posts(
+    conn: asyncpg.Connection,
+    public_post_ids: list[str],
+) -> dict[str, tuple[PublicClaimCandidate, ...]]:
+    """Project typed public claims from normalized project-mention rows."""
+
+    if not public_post_ids:
+        return {}
+    rows = await conn.fetch(
+        """
+        select post_id::text as post_id, project_name, ontology_iri
+          from post_project_mention
+         where post_id = any($1::uuid[])
+         order by post_id, project_key, ontology_iri
+         limit 64
+        """,
+        public_post_ids,
+    )
+    claims: dict[str, list[PublicClaimCandidate]] = {}
+    for row in rows:
+        post_id = str(row["post_id"])
+        claim_text = (
+            f'Project "{str(row["project_name"]).strip()}" '
+            f'has ontology type {str(row["ontology_iri"]).strip()}'
+        )
+        claims.setdefault(post_id, []).append(
+            PublicClaimCandidate(
+                claim_text=claim_text[:800],
+                claim_kind="semantic_project",
+                source_post_ids=(post_id,),
+            )
+        )
+    return {
+        post_id: tuple(dict.fromkeys(post_claims))
+        for post_id, post_claims in claims.items()
+    }
 
 
 async def find_linked_post_ids(conn: asyncpg.Connection, post_id: str) -> LinkedPostIds:
@@ -576,9 +666,18 @@ async def gather_global_chat_sources(
         if can_see_post(row) and row_matches_time_range(row, resolved_time_range)
     ][:limit]
     visible_ids = [str(row["post_id"]) for row in visible_rows]
+    public_ids = [
+        str(row["post_id"])
+        for row in visible_rows
+        if row["visibility_code"] == "public"
+    ]
     anchor_is_visible = lineage_anchor_id in visible_ids
     semantic_facts = await _semantic_facts_for_posts(conn, visible_ids)
-    graph_facts = (await _graph_facts_for_posts(conn, visible_ids))[:16]
+    public_project_claims = await _public_project_claims_for_posts(conn, public_ids)
+    graph_projection = await _graph_evidence_projection(
+        conn, visible_ids, frozenset(public_ids)
+    )
+    graph_facts = graph_projection.facts[:16]
     time_filter_active = resolved_time_range is not None
     sources: list[ChatSourceDocument] = []
     for index, row in enumerate(visible_rows):
@@ -594,8 +693,23 @@ async def gather_global_chat_sources(
             if post_id in lineage_neighbor_id_set and anchor_is_visible
             else ()
         )
+        source_type = (
+            GlobalAskSourceDocument
+            if row["visibility_code"] == "public"
+            else ChatSourceDocument
+        )
+        source_arguments: dict[str, Any] = {}
+        if source_type is GlobalAskSourceDocument:
+            source_arguments["external_claims"] = (
+                public_project_claims.get(post_id, ())
+                + tuple(
+                    claim
+                    for claim in graph_projection.public_claims
+                    if post_id in claim.source_post_ids
+                )
+            )
         sources.append(
-            ChatSourceDocument(
+            source_type(
                 post_id,
                 row["post_title"],
                 normalized_body,
@@ -604,6 +718,7 @@ async def gather_global_chat_sources(
                 + semantic_facts.get(post_id, ())
                 + lineage_fact
                 + time_axis_evidence_fact(row, time_filter_active=time_filter_active),
+                **source_arguments,
             )
         )
     return sources

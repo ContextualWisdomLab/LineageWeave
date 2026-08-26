@@ -354,7 +354,7 @@ this file per §3.5 of the prior snapshot).
 | #87 | Milestone 2.1 normalized runtime-analysis schema bridge | related analysis-run work |
 | #269 | Authenticated Global Ask MCP browser-safe and admission-bounded | Ask stack |
 | #271 | Evidence-honest knowledge-cutoff scope on Global Ask | Ask stack |
-| #272 | Verify Global Ask KG/ontology/semantic claims with public SearXNG evidence; ADR 0227 candidate implements the internal indexed semantic/KG nomination slice only | Ask stack; external public verification remains open |
+| #272 | Verify Global Ask KG/ontology/semantic claims with public SearXNG evidence; stacked PR #682 exact head `b9cf3f01` adds the ADR 0228 opt-in candidate and keeps internal post provenance out of the public evidence payload | #682 is in progress, not protected delivery; require terminal exact-head checks, independent review, and authenticated egress/runtime evidence before closing |
 | #274 | Persist and explain Event Lineage channel evidence | #387 |
 | #277 | TEPP: persist accepted receipts, poll completed results, keep measurement authority distinct | #468, #417 |
 | #280 | Full project-lifecycle history and handover intervals | Tracked with issue #284; no active delivery PR confirmed |

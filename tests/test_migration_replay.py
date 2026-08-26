@@ -194,3 +194,17 @@ def test_topic_lineage_result_migration_is_idempotent_for_replay() -> None:
 
     assert "create table if not exists analysis_run_topic_lineage_result" in migration
     assert "create index if not exists" in migration
+
+
+def test_global_ask_public_verification_opt_in_is_replay_safe() -> None:
+    """The durable worker receives explicit consent on old and new volumes."""
+
+    sql = (
+        Path(__file__).resolve().parents[1]
+        / "migrations"
+        / "0211_global_ask_public_verification.sql"
+    ).read_text(encoding="utf-8")
+
+    assert "verify_external_requested boolean not null default false" in sql
+    assert "add column if not exists" in sql
+    assert "data_type <> 'boolean'" in sql

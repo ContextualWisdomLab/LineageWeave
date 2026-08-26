@@ -2696,7 +2696,7 @@ describe("App, authenticated", () => {
     await userEvent.click(await screen.findByRole("button", { name: /verify against web search/i }));
 
     await waitFor(() =>
-      expect(screen.getByText("Verification unavailable (search is not configured).")).toBeInTheDocument(),
+      expect(screen.getByText("Public information could not be checked. Try again later.")).toBeInTheDocument(),
     );
     expect(screen.queryByText(/HTTP 503/)).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /verify against web search/i })).not.toBeInTheDocument();
