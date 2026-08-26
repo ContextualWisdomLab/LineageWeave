@@ -12,7 +12,7 @@ function jsonResponse(body: unknown, status = 200) {
 
 function installFixture(fixture: Fixture) {
   globalThis.fetch = async (input) => {
-    const url = String(input);
+    const url = typeof input === "string" ? input : input.url;
     if (url.endsWith("/api/posts/post-1/chat/conversations/conversation-post-1")) {
       return jsonResponse({
         conversation_id: "conversation-post-1",
@@ -93,4 +93,3 @@ export const Phone: Story = {
     viewport: { defaultViewport: "mobile1" },
   },
 };
-
