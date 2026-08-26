@@ -3281,7 +3281,7 @@ describe("App, authenticated", () => {
     expect(list).toHaveTextContent("TEPP measurement · Failed · Demo Corp");
     expect(list).toHaveTextContent("Period report · Succeeded · Demo Corp");
     expect(list).toHaveTextContent(
-      "Open this run to review the failure. Ask an administrator to restore measurement access, then re-run it.",
+      "Ask an administrator to restore measurement access, then re-run this measurement.",
     );
     expect(list).toHaveTextContent("3 documents");
     expect(list).not.toHaveTextContent("postgresql://");
@@ -3379,7 +3379,7 @@ describe("App, authenticated", () => {
     expect(teppHistory).not.toHaveTextContent("tepp_not_available");
     expect(
       screen.getByText(
-        "These posts are the cutoff corpus TEPP would measure. Review the failure details, then ask a workspace administrator to restore measurement access before re-running for a calibrated result.",
+        "These posts are the cutoff corpus TEPP would measure. Ask a workspace administrator to restore measurement access before re-running for a calibrated result.",
       ),
     ).toBeInTheDocument();
     expect(screen.queryByText(/TEPP transport/i)).not.toBeInTheDocument();
@@ -3409,7 +3409,7 @@ describe("App, authenticated", () => {
     );
     expect(
       screen.getByText(
-        "These posts are the cutoff corpus topic-lineage would thread. Review the failure details, then ask a workspace administrator to restore topic measurement access before re-running for a topic-identity result.",
+        "These posts are the cutoff corpus topic-lineage would thread. Ask a workspace administrator to restore topic measurement access before re-running for a topic-identity result.",
       ),
     ).toBeInTheDocument();
   });
@@ -3491,11 +3491,11 @@ describe("App, authenticated", () => {
       name: "Open analysis run: TEPP measurement · Failed · Demo Corp",
     });
     expect(lineageButton).toHaveTextContent(
-      "Open this run to see why it failed, then retry reconstruction from a current snapshot.",
+      "Retry reconstruction from a current snapshot.",
     );
     expect(lineageButton).not.toHaveTextContent("measurement service");
     expect(teppButton).toHaveTextContent(
-      "Open this run to review the failure. Ask an administrator to restore measurement access, then re-run it.",
+      "Ask an administrator to restore measurement access, then re-run this measurement.",
     );
     expect(teppButton).not.toHaveTextContent("reconstruction");
   });
@@ -3772,7 +3772,7 @@ describe("App, authenticated", () => {
       name: "Open analysis run: Period report · Failed · Demo Corp",
     });
     expect(reportButton).toHaveTextContent(
-      "Open this run to see why it failed, then rebuild the period report from a current snapshot.",
+      "Rebuild the period report from a current snapshot.",
     );
     expect(reportButton).not.toHaveTextContent("measurement service");
     expect(reportButton).not.toHaveTextContent("reconstruction");

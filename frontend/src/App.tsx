@@ -2663,10 +2663,8 @@ function analysisRunCaption(run: AnalysisRun): string {
 /**
  * Next action for a pending or failed run on the home list and detail.
  *
- * The machine `failure_code` stays on detail history (ADR 0014). Copy
- * is pinned to registered kinds so a pending TEPP row is not mistaken
- * for reconstruction, and a failed lineage row is not mistaken for a
- * missing TEPP transport.
+ * Machine failure codes remain outside the customer view. Copy is pinned to
+ * registered kinds so each run offers the recovery action that can help.
  */
 function analysisRunNextAction(run: AnalysisRun): string | null {
   switch (run.status_code) {
@@ -2688,13 +2686,13 @@ function analysisRunNextAction(run: AnalysisRun): string | null {
     case "analysis_status_failed":
       switch (run.run_kind_code) {
         case "analysis_run_tepp":
-          return "Open this run to review the failure. Ask an administrator to restore measurement access, then re-run it.";
+          return "Ask an administrator to restore measurement access, then re-run this measurement.";
         case "analysis_run_topic_lineage":
-          return "Open this run to review the failure. Ask an administrator to restore topic measurement access, then re-run it.";
+          return "Ask an administrator to restore topic measurement access, then re-run this topic analysis.";
         case "analysis_run_lineage":
-          return "Open this run to see why it failed, then retry reconstruction from a current snapshot.";
+          return "Retry reconstruction from a current snapshot.";
         case "analysis_run_report":
-          return "Open this run to see why it failed, then rebuild the period report from a current snapshot.";
+          return "Rebuild the period report from a current snapshot.";
         default: {
           const unexpected: never = run.run_kind_code;
           return unexpected;
@@ -2762,8 +2760,8 @@ function analysisRunCorpusHint(run: AnalysisRun): string | null {
   switch (run.status_code) {
     case "analysis_status_failed":
       return (
-        `These posts are the cutoff corpus ${service} would ${verb}. Review the failure details, ` +
-        `then ask a workspace administrator to restore ${access} before re-running for ${result}.`
+        `These posts are the cutoff corpus ${service} would ${verb}. ` +
+        `Ask a workspace administrator to restore ${access} before re-running for ${result}.`
       );
     case "analysis_status_succeeded":
       return `These posts are the cutoff corpus this ${service} run ${verbPast}.`;
