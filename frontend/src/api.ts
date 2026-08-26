@@ -29,7 +29,6 @@ export interface PostSummary {
   post_body_excerpt?: string | null;
   post_body_truncated?: boolean;
   project_evidence?: ProjectEvidence[];
-  occupational_construct_assertions?: OccupationalConstructAssertion[];
   created_at: string;
 }
 
@@ -101,6 +100,7 @@ export interface PostKnownAt {
 
 export interface PostDetail extends PostSummary {
   post_body: string;
+  occupational_construct_assertions: OccupationalConstructAssertion[];
   known_at?: PostKnownAt;
 }
 
