@@ -188,6 +188,37 @@ def test_probability_sample_manifest_requires_known_stratum_inclusion_probabilit
         validate_probability_sample_manifest(manifest, 80)
 
 
+@pytest.mark.parametrize(
+    ("field", "value", "message"),
+    [
+        ("population_size", 601, "stratum populations"),
+        ("sample_size", 47, "stratum samples"),
+    ],
+)
+def test_probability_manifest_stratum_totals_match_declared_totals(
+    field: str, value: int, message: str
+) -> None:
+    """Stratum totals cannot contradict the declared sample population."""
+    manifest = _probability_manifest()
+    strata = manifest["strata"]
+    assert isinstance(strata, list) and isinstance(strata[0], dict)
+    strata[0][field] = value
+
+    with pytest.raises(ValueError, match=message):
+        validate_probability_sample_manifest(manifest, 80)
+
+
+def test_probability_manifest_selected_units_match_each_stratum_sample() -> None:
+    """Selected-unit membership must realize every declared stratum count."""
+    manifest = _probability_manifest()
+    selected_units = manifest["selected_units"]
+    assert isinstance(selected_units, list) and isinstance(selected_units[0], dict)
+    selected_units[0]["stratum_code"] = "synthetic-b"
+
+    with pytest.raises(ValueError, match="selected-unit strata"):
+        validate_probability_sample_manifest(manifest, 80)
+
+
 def test_selected_contents_bind_query_order_to_owner_tokens() -> None:
     """A different query row cannot masquerade as the Rust-selected member."""
     token = "synthetic-owner-token"

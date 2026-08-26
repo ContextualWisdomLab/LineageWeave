@@ -131,6 +131,8 @@ def validate_probability_sample_manifest(
         "selection_frame_sha256",
     }
     stratum_codes: set[str] = set()
+    stratum_populations: dict[str, int] = {}
+    stratum_samples: dict[str, int] = {}
     for stratum in strata:
         if not isinstance(stratum, dict) or set(stratum) != stratum_fields:
             raise ValueError("sample manifest stratum fields are invalid")
@@ -150,6 +152,8 @@ def validate_probability_sample_manifest(
             or stratum_sample > stratum_population
         ):
             raise ValueError("sample manifest stratum sizes are invalid")
+        stratum_populations[code] = stratum_population
+        stratum_samples[code] = stratum_sample
         if (
             not isinstance(stratum["inclusion_probability"], str)
             or _INCLUSION_PROBABILITY.fullmatch(stratum["inclusion_probability"])
@@ -165,6 +169,10 @@ def validate_probability_sample_manifest(
             raise ValueError(
                 "sample manifest requires a selection-frame SHA-256 per stratum"
             )
+    if sum(stratum_populations.values()) != population_size:
+        raise ValueError("sample manifest stratum populations must match population_size")
+    if sum(stratum_samples.values()) != sample_size:
+        raise ValueError("sample manifest stratum samples must match sample_size")
 
     selected_units = payload["selected_units"]
     selected_unit_fields = {"ordinal", "selection_token_sha256", "stratum_code"}
@@ -187,6 +195,12 @@ def validate_probability_sample_manifest(
         membership.append((token_digest, stratum_code))
     if len({token_digest for token_digest, _ in membership}) != sample_size:
         raise ValueError("sample manifest selection-token digests must be unique")
+    if Counter(stratum_code for _, stratum_code in membership) != Counter(
+        stratum_samples
+    ):
+        raise ValueError(
+            "sample manifest selected-unit strata must match stratum sample sizes"
+        )
 
     artifact = payload["rust_owner_artifact"]
     artifact_fields = {
