@@ -509,10 +509,12 @@ of leverage; open connector PRs there when the defect is upstream:
   `namespace-compatibility.ttl` artifact, not a second served namespace.
 - The public index, `ontology.ttl`, SHACL graph, and manifest return HTTP 200.
   Their Turtle SHA-256 values match protected `main@494b54e2` exactly
-  (`c5a8c147…` ontology; `a57f274e…` shapes), and no ontology publication input
-  changed after successful deployment `6092833214`. Workflow run `32925410179`
-  is queued to refresh deployment provenance from the exact protected head;
-  do not claim that newer deployment provenance until it succeeds.
+  (`c5a8c147…` ontology; `a57f274e…` shapes). Ontology Pages workflow run
+  `32925410179` completed successfully on exact protected head
+  `494b54e2245040bcf02b45376f221c37cd437e76`; a fresh live fetch reproduced
+  both hashes. The canonical directory redirects to its published index, while
+  the deprecated lowercase namespace path remains an intentional HTTP 404 per
+  ADR 0229.
 
 ## 9. Evidence boundaries
 
