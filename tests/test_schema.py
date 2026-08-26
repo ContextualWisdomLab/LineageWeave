@@ -97,6 +97,11 @@ _LEFTOVER_MAP_RECONSTRUCTION_MIGRATION = (
     / "migrations"
     / "0206_report_leftover_map_reconstruction.sql"
 )
+_LEFTOVER_MAP_EXPLAINED_SHARE_MIGRATION = (
+    Path(__file__).resolve().parents[1]
+    / "migrations"
+    / "0236_report_leftover_map_explained_share.sql"
+)
 _LEFTOVER_MAP_AXIS_MIGRATION = (
     Path(__file__).resolve().parents[1]
     / "migrations"
@@ -239,6 +244,7 @@ def schema_db():
                 cur.execute(_LEFTOVER_MAP_UNEXPLAINED_MIGRATION.read_text())
                 cur.execute(_LEFTOVER_MAP_CROSS_SHARE_MIGRATION.read_text())
                 cur.execute(_LEFTOVER_MAP_RECONSTRUCTION_MIGRATION.read_text())
+                cur.execute(_LEFTOVER_MAP_EXPLAINED_SHARE_MIGRATION.read_text())
                 cur.execute(_OPERATIONS_CASE_MIGRATION.read_text())
                 cur.execute(_OPERATIONS_CASE_EVIDENCE_MIGRATION.read_text())
                 cur.execute(_OPERATIONS_CASE_MISSING_MIGRATION.read_text())
@@ -1006,7 +1012,7 @@ def test_leftover_pair_names_nullable_cross_share_column(schema_db) -> None:
     assert columns["leftover_map_cross_share"] == "YES"
     assert columns["leftover_residual"] == "NO"
     assert columns["leftover_distance"] == "NO"
-    assert "leftover_map_explained_share" not in columns
+    assert columns["leftover_map_explained_share"] == "YES"
     assert "leftover_map_unexplained_share" not in columns
     assert columns["leftover_map_reconstruction"] == "YES"
     with schema_db.cursor() as cur:
@@ -1016,6 +1022,34 @@ def test_leftover_pair_names_nullable_cross_share_column(schema_db) -> None:
             from pg_constraint
             where conrelid = 'report_leftover_pair'::regclass
               and conname like '%share%chk'
+            """
+        )
+        assert cur.fetchall() == []
+
+
+def test_leftover_pair_names_nullable_explained_share_column(schema_db) -> None:
+    """Every install path preserves legacy pairs while naming leftover-map explained share."""
+    with schema_db.cursor() as cur:
+        cur.execute(
+            """
+            select column_name, is_nullable
+            from information_schema.columns
+            where table_name = 'report_leftover_pair'
+            """
+        )
+        columns = dict(cur.fetchall())
+    assert columns["leftover_map_explained_share"] == "YES"
+    assert columns["leftover_residual"] == "NO"
+    assert columns["leftover_distance"] == "NO"
+    assert "leftover_map_unexplained_share" not in columns
+    assert columns["leftover_map_reconstruction"] == "YES"
+    with schema_db.cursor() as cur:
+        cur.execute(
+            """
+            select conname
+            from pg_constraint
+            where conrelid = 'report_leftover_pair'::regclass
+              and conname like '%explained_share%chk%'
             """
         )
         assert cur.fetchall() == []
