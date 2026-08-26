@@ -31,21 +31,33 @@ export function OccupationRatingProfile({ accessToken }: Props) {
     return () => { active = false; };
   }, [accessToken]);
 
-  function load(offset = 0) {
+  function load(offset: number | null = null) {
     const source = sources?.find(
       (item) => `${item.data_release_code}|${item.source_table_code}` === selectedSource,
     );
-    if (!source) return;
+    const request = offset == null && source
+      ? {
+          onetsocCode,
+          dataReleaseCode: source.data_release_code,
+          sourceTableCode: source.source_table_code,
+        }
+      : profile
+        ? {
+            onetsocCode: profile.onetsoc_code,
+            dataReleaseCode: profile.data_release_code,
+            sourceTableCode: profile.source_table_code,
+          }
+        : null;
+    if (!request) return;
+    if (offset == null) setProfile(null);
     setStatus("loading");
     fetchOccupationRatings(accessToken, {
-      onetsocCode,
-      dataReleaseCode: source.data_release_code,
-      sourceTableCode: source.source_table_code,
-      offset,
+      ...request,
+      offset: offset ?? 0,
     })
       .then((payload) => {
         setProfile((current) =>
-          offset && current
+          offset != null && current
             ? { ...payload, items: [...current.items, ...payload.items] }
             : payload,
         );
@@ -107,7 +119,7 @@ export function OccupationRatingProfile({ accessToken }: Props) {
           className="btn-secondary"
           type="button"
           disabled={status === "loading"}
-          onClick={() => load(profile.next_offset ?? 0)}
+          onClick={() => load(profile.next_offset)}
         >
           다음 관측값 불러오기
         </button>
