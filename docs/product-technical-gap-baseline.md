@@ -1,6 +1,6 @@
 # Product & Technical Gap Baseline
 
-> Dashboard delivery snapshot: 2026-08-26 11:12 KST. Protected `main` is
+> Dashboard delivery snapshot: 2026-08-26 11:28 KST. Protected `main` is
 > `494b54e2245040bcf02b45376f221c37cd437e76`. This local branch is not
 > protected-main release evidence.
 
@@ -68,7 +68,7 @@ are not merge readiness. Re-fetch exact heads,
 unresolved threads, checks, approvals, rulesets, and merge SHA before any
 lifecycle claim.
 
-> Audit snapshot: 2026-08-26 11:12 KST (refreshed by the autonomous merge
+> Audit snapshot: 2026-08-26 11:28 KST (refreshed by the autonomous merge
 > loop). This repository records synthetic fixtures and aggregate,
 > non-identifying runtime evidence only. Open PRs and local checks are not
 > protected-default-branch release evidence. Identifying post identifiers,
@@ -86,7 +86,7 @@ context only.
 | PR | Exact observed head | Merge/check state at this snapshot |
 | ---: | --- | --- |
 | #687 | `f3b1ef13` | bounded semantic backfill producer stacked on #640; UNSTABLE with hosted checks queued |
-| #686 | `5eec27fc` | customer-facing copy boundary audit with localized action copy and exact `Time axis` label; BLOCKED with review required and hosted checks pending |
+| #686 | `201f61d2` | customer-facing copy boundary audit removes implementation labels from source details and ranking accessibility text; BLOCKED with review required and hosted checks pending |
 | #684 | `d71d0892` | MERGED to stack `feat/dashboard-case-metrics` as `49f0369e`; observed PostgreSQL runtime tuning plan is now part of the dashboard stack |
 | #682 | `0aa3113e` | MERGED to stack `feat/global-ask-semantic-public-current` as `fa245483`; typed public-claim verification filters cited claims before the bounded candidate budget, preserves answers when verification is unavailable, rejects hidden evidence from public egress, and validates empty orchestrator choices |
 | #681 | `3e0fa644` | MERGED to stack `feat/dashboard-case-metrics` as `dae28fb2`; fail-closed lineage-weight owner contract pin with lockfile parity |
