@@ -44,6 +44,11 @@ repository's multi-agent requirement.
   shortcut.
 - Previously completed post-content jobs are reclaimed when the current body
   digest lacks an extraction-run record.
+- A claimed retry repeats hierarchy extraction. `persist_post_content` replaces
+  the semantic-unit rows before this stage, so the digest ledger proves the
+  prior attempt but cannot safely act as a cache for assertions whose evidence
+  is bound to those replaced unit identifiers. Reuse would require a separate
+  stable-unit identity and invalidation decision; the worker does not infer one.
 
 ## Verification
 
