@@ -497,8 +497,12 @@ def _ontology_terms(path: Path) -> list[dict[str, object]]:
     """Return deterministic public semantics for every governed ontology term."""
     graph = Graph().parse(path, format="turtle")
     support_profile = path.with_name("prov-o-support-profile.ttl")
-    if support_profile.is_file():
-        graph.parse(support_profile, format="turtle")
+    if not support_profile.is_file():
+        raise FileNotFoundError(
+            "PROV-O support profile must accompany the ontology audit input: "
+            f"{support_profile}"
+        )
+    graph.parse(support_profile, format="turtle")
     governed_kinds = {
         OWL.Class,
         OWL.ObjectProperty,
