@@ -4,7 +4,7 @@
 > `ff7431bd1851c03e737808d22c6a2d43968582f9`; PR #713 was
 > `850494c3861703862a76cfe564381a41243c6c2d`; stacked PR #717 was
 > audited at implementation head
-> `bf355876e197f8a460879ddfbd7a3016ecf284e9`. This candidate and the
+> `4aab6e556ca5290347699e487cfb0a504a755b39`. This candidate and the
 > historical evidence below are not protected-main release evidence.
 
 ## Voice-of-X product and technical gap
@@ -85,7 +85,7 @@ reached end of life, and the OpenAI fallback reported exhausted credits. This
 is provider/control-plane unavailability, not a vulnerability result or
 permission to transfer an older success. Auto-merge remains enabled, while an
 independent approval is still required. PR #717 implementation head
-`c6a4c263` merges that
+`4aab6e55` merges that
 parent change without force-pushing and separates the complete governed Voice
 catalog used for authoring from usage-derived Board filters, so an authorized
 administrator can attach a Voice that no visible Post carries yet. Its
