@@ -1,6 +1,6 @@
 # Product & Technical Gap Baseline
 
-> Dashboard delivery snapshot: 2026-08-26 10:25 KST. Protected `main` is
+> Dashboard delivery snapshot: 2026-08-26 10:35 KST. Protected `main` is
 > `494b54e2245040bcf02b45376f221c37cd437e76`. This local branch is not
 > protected-main release evidence.
 
@@ -86,6 +86,7 @@ context only.
 | PR | Exact observed head | Merge/check state at this snapshot |
 | ---: | --- | --- |
 | #682 | `bf86f740` | typed public-claim verification filters cited claims before the bounded candidate budget and rejects generic `/search` result URLs; hosted checks queued and independent review required |
+| #680 | `9efe21d0` | customer-facing ranking copy also removes the fused-ranking implementation label from the accessible list name; hosted checks requeued and independent review required |
 | #680 | `9f841cc1` | customer-facing ranking copy removes internal engine names and provides localized retry/search-next-action guidance; BLOCKED with hosted checks and independent review required |
 | #681 | `3e0fa644` | fail-closed lineage-weight owner contract pin; lockfile parity verified; UNSTABLE stack with hosted checks pending |
 | #680 | `fbc0987f` | customer-facing ranking copy with localized retry/search guidance and explicit non-calibrated interpretation; BLOCKED with hosted checks and independent review required |
