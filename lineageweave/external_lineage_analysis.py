@@ -202,6 +202,18 @@ def _ordered_contract_groups(
     )
 
 
+def _has_inference_candidate(
+    records: tuple[LineageEvidenceRecord, ...],
+) -> bool:
+    """Return whether a same-group predecessor could support inference."""
+
+    return any(
+        index > 0 and record.explicit_parent is None
+        for group_records in _ordered_contract_groups(records)
+        for index, record in enumerate(group_records)
+    )
+
+
 def _pair_evaluation_count(
     records: tuple[LineageEvidenceRecord, ...],
     candidate_window: int,
@@ -469,9 +481,7 @@ def analyze_external_lineage(
         )
         for record in excluded
     ]
-    if weight_estimate is None and any(
-        record.explicit_parent is None for record in included[1:]
-    ):
+    if weight_estimate is None and _has_inference_candidate(included):
         limitations.append(
             LineageLimitation(
                 "channel_weights_unavailable",

@@ -1,4 +1,4 @@
-# ADR 0124: Publish a bounded external email/project lineage contract
+# ADR 0232: Publish a bounded external email/project lineage contract
 
 - Status: Accepted
 - Date: 2026-08-21

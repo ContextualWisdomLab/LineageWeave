@@ -182,6 +182,32 @@ def test_missing_weight_estimate_keeps_observed_truth_and_blocks_inference() -> 
     ]
 
 
+def test_missing_weights_do_not_warn_for_unrelated_group_singletons() -> None:
+    """Independent singleton groups need no unavailable inference weights."""
+
+    request = _request(
+        [
+            _record(
+                "email:one",
+                "First independent record",
+                "2026-08-18T09:00:00Z",
+                group_ref="workspace:one",
+            ),
+            _record(
+                "email:two",
+                "Second independent record",
+                "2026-08-18T09:01:00Z",
+                group_ref="workspace:two",
+            ),
+        ]
+    )
+
+    result = analyze_external_lineage(request)
+
+    assert result.edges == ()
+    assert result.limitations == ()
+
+
 def test_cutoff_uses_available_time_and_discloses_excluded_evidence() -> None:
     request = _request(
         [
