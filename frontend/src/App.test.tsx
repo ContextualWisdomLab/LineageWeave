@@ -3994,7 +3994,7 @@ describe("App, authenticated", () => {
     expect(createBodies[1].idempotency_key).not.toBe(createBodies[0].idempotency_key);
   });
 
-  it("scopes an interrupted measurement retry key to its source run", async () => {
+  it("retains each interrupted measurement retry key across run switches", async () => {
     const fetchMock = stubBackend({
       failMeasurementStartOnce: true,
       secondFailedTeppRun: true,
@@ -4010,19 +4010,19 @@ describe("App, authenticated", () => {
     await waitFor(() =>
       expect(screen.getByRole("button", { name: "Retry measurement" })).toBeEnabled(),
     );
-    await userEvent.click(screen.getByRole("button", { name: "Retry measurement" }));
-    await waitFor(() =>
-      expect(
-        fetchMock.mock.calls.filter((call) =>
-          String(call[0]).endsWith("/api/analysis-runs/run-demo-tepp-retry/start"),
-        ),
-      ).toHaveLength(2),
-    );
     await userEvent.click(
       screen.getByRole("button", {
         name: "Open analysis run: TEPP measurement · Failed · Other Demo Corp",
       }),
     );
+    await userEvent.click(screen.getByRole("button", { name: "Retry measurement" }));
+    const originalRun = screen
+      .getAllByRole("button", {
+        name: "Open analysis run: TEPP measurement · Failed · Demo Corp",
+      })
+      .find((button) => button.textContent?.includes("3 documents"));
+    expect(originalRun).toBeDefined();
+    await userEvent.click(originalRun!);
     await userEvent.click(screen.getByRole("button", { name: "Retry measurement" }));
 
     const retries = fetchMock.mock.calls
@@ -4032,9 +4032,10 @@ describe("App, authenticated", () => {
       .map((call) => JSON.parse(String(call[1]?.body)));
     expect(retries).toHaveLength(3);
     expect(retries[0].corporate_entity_id).toBe("corp-demo");
-    expect(retries[1].idempotency_key).toBe(retries[0].idempotency_key);
-    expect(retries[2].corporate_entity_id).toBe("corp-other");
-    expect(retries[2].idempotency_key).not.toBe(retries[0].idempotency_key);
+    expect(retries[1].corporate_entity_id).toBe("corp-other");
+    expect(retries[1].idempotency_key).not.toBe(retries[0].idempotency_key);
+    expect(retries[2].corporate_entity_id).toBe("corp-demo");
+    expect(retries[2].idempotency_key).toBe(retries[0].idempotency_key);
   });
 
   it("does not tell a succeeded TEPP run to replace Failed", async () => {

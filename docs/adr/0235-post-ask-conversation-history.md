@@ -51,6 +51,9 @@ orchestrator is off. Account history is additional, not a replacement.
   UUID, and cannot load a conversation against a different post id.
 * Revoked post visibility removes that post's citation projection; the
   stored answer remains account-owned transcript data.
+* Hard deletion is a separate data-erasure boundary and cascades the post's
+  conversations. Callers must use visibility revocation, not hard deletion,
+  when the source record must remain retained but inaccessible.
 * TEPP topic modeling of how many posts can connect, and how many
   lineages form under temporal precedence, remains deferred.
 * Reauthorization for a conversation's turns is batched
