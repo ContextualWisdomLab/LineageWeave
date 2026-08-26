@@ -277,6 +277,35 @@ def test_persist_turn_rejects_a_conversation_outside_the_account_post_scope() ->
     assert not any("insert into post_ask_turn" in query for query, _ in connection.calls)
 
 
+def test_persist_turn_locks_existing_session_before_allocating_ordinal() -> None:
+    """Every existing-session append is serialized before choosing its ordinal."""
+    connection = _Connection()
+
+    asyncio.run(
+        persist_turn(
+            connection,
+            "account-1",
+            "post-1",
+            UUID("00000000-0000-0000-0000-000000000005"),
+            "What changed?",
+            "An answer.",
+            ["post-1"],
+            [],
+        )
+    )
+
+    statements = [query for query, _arguments in connection.calls]
+    lock_index = next(
+        index for index, query in enumerate(statements)
+        if "from post_ask_session" in query and "for update" in query
+    )
+    ordinal_index = next(
+        index for index, query in enumerate(statements)
+        if "coalesce(max(turn_ordinal)" in query
+    )
+    assert lock_index < ordinal_index
+
+
 def test_persist_post_ask_turn_starts_a_new_conversation_if_a_confirmed_one_is_deleted(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

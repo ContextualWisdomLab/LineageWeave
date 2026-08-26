@@ -293,10 +293,12 @@ export function ChatPanel({
   const [evidencePostId, setEvidencePostId] = useState<string | null>(null);
   const [seededOnly, setSeededOnly] = useState(false);
   const conversationListRequest = useRef(0);
+  const conversationRequest = useRef(0);
 
   useEffect(() => {
     let active = true;
     ++conversationListRequest.current;
+    ++conversationRequest.current;
     setExchanges([]);
     setSeededExchanges([]);
     setConversations([]);
@@ -327,7 +329,6 @@ export function ChatPanel({
     return () => { active = false; };
   }, [postId, accessToken]);
 
-  const conversationRequest = useRef(0);
   async function selectConversation(nextId: string) {
     const requestId = ++conversationRequest.current;
     setHistoryError(null);

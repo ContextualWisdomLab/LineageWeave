@@ -157,6 +157,82 @@ describe("ChatPanel conversation history", () => {
     await waitFor(() => expect(screen.queryByRole("option", { name: "Previous post (1)" })).toBeNull());
   });
 
+  it("discards a selected conversation response after moving to another post", async () => {
+    let resolveOldConversation!: (response: Response) => void;
+    vi.stubGlobal("fetch", vi.fn(async (input: RequestInfo | URL) => {
+      const url = input instanceof Request ? input.url : String(input);
+      if (url.endsWith("post-1/chat/conversations/conversation-old")) {
+        return new Promise<Response>((resolve) => { resolveOldConversation = resolve; });
+      }
+      if (url.endsWith("post-1/chat/conversations")) {
+        return jsonResponse({
+          conversations: [{ conversation_id: "conversation-old", title: "Previous post", updated_at: "2026-08-25T00:00:00Z", turn_count: 1 }],
+          next_cursor: null,
+        });
+      }
+      if (url.endsWith("post-2/chat/conversations")) {
+        return jsonResponse({ conversations: [], next_cursor: null });
+      }
+      return jsonResponse({ post_id: url.includes("post-2") ? "post-2" : "post-1", exchanges: [] });
+    }));
+
+    const view = render(<ChatPanel postId="post-1" accessToken="synthetic-token" />);
+    await userEvent.selectOptions(await screen.findByLabelText("Conversation history"), "conversation-old");
+    view.rerender(<ChatPanel postId="post-2" accessToken="synthetic-token" />);
+    resolveOldConversation(jsonResponse({
+      conversation_id: "conversation-old",
+      title: "Previous post",
+      older_cursor: null,
+      exchanges: [{ turn_id: "turn-old", question_text: "Old?", answer_text: "Stale selected answer", cited_post_ids: [] }],
+    }));
+
+    await waitFor(() => expect(screen.queryByText("Stale selected answer")).toBeNull());
+    expect(screen.getByLabelText("Conversation history")).toHaveValue("");
+  });
+
+  it("discards an earlier-page response after moving to another post", async () => {
+    let resolveOlder!: (response: Response) => void;
+    vi.stubGlobal("fetch", vi.fn(async (input: RequestInfo | URL) => {
+      const url = input instanceof Request ? input.url : String(input);
+      if (url.endsWith("post-1/chat/conversations/conversation-old?before_turn=2")) {
+        return new Promise<Response>((resolve) => { resolveOlder = resolve; });
+      }
+      if (url.endsWith("post-1/chat/conversations/conversation-old")) {
+        return jsonResponse({
+          conversation_id: "conversation-old",
+          title: "Previous post",
+          older_cursor: "2",
+          exchanges: [{ turn_id: "turn-current", question_text: "Current?", answer_text: "Current old-post answer", cited_post_ids: [] }],
+        });
+      }
+      if (url.endsWith("post-1/chat/conversations")) {
+        return jsonResponse({
+          conversations: [{ conversation_id: "conversation-old", title: "Previous post", updated_at: "2026-08-25T00:00:00Z", turn_count: 2 }],
+          next_cursor: null,
+        });
+      }
+      if (url.endsWith("post-2/chat/conversations")) {
+        return jsonResponse({ conversations: [], next_cursor: null });
+      }
+      return jsonResponse({ post_id: url.includes("post-2") ? "post-2" : "post-1", exchanges: [] });
+    }));
+
+    const view = render(<ChatPanel postId="post-1" accessToken="synthetic-token" />);
+    await userEvent.selectOptions(await screen.findByLabelText("Conversation history"), "conversation-old");
+    await screen.findByText("Current old-post answer");
+    await userEvent.click(screen.getByRole("button", { name: "Load earlier messages" }));
+    view.rerender(<ChatPanel postId="post-2" accessToken="synthetic-token" />);
+    resolveOlder(jsonResponse({
+      conversation_id: "conversation-old",
+      title: "Previous post",
+      older_cursor: null,
+      exchanges: [{ turn_id: "turn-earlier", question_text: "Earlier?", answer_text: "Stale earlier-page answer", cited_post_ids: [] }],
+    }));
+
+    await waitFor(() => expect(screen.queryByText("Stale earlier-page answer")).toBeNull());
+    expect(screen.queryByText("Current old-post answer")).toBeNull();
+  });
+
   it("reopens an owned conversation and returns to the seeded new-conversation state", async () => {
     vi.stubGlobal("fetch", vi.fn(async (input: RequestInfo | URL) => {
       const url = input instanceof Request ? input.url : String(input);
