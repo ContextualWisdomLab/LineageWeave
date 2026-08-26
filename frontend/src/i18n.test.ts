@@ -305,6 +305,21 @@ describe("i18n", () => {
 });
 
 describe("locale-aware source labels", () => {
+  const allVoiceLabels = [
+    "Voice of Customer",
+    "Voice of Customer's Customer",
+    "Voice of Competitor",
+    "Voice of Market",
+    "Voice of Partner",
+    "Voice of Supplier",
+    "Voice of Employee",
+    "Voice of Business",
+    "Voice of Regulator",
+    "Voice of Investor",
+    "Voice of Society",
+    "Voice of Process",
+  ] as const;
+
   it.each([
     ["en", "Voice of Customer", "Public"],
     ["ko", "고객의 소리", "공개"],
@@ -316,4 +331,12 @@ describe("locale-aware source labels", () => {
     expect(t("Voice of Customer")).toBe(customerVoice);
     expect(t("Public")).toBe(visibility);
   });
+
+  it.each(["ko", "zh", "ja", "vi"] as const)(
+    "translates every governed atomic Voice label in %s",
+    (locale) => {
+      setLocale(locale);
+      for (const label of allVoiceLabels) expect(t(label)).not.toBe(label);
+    },
+  );
 });
