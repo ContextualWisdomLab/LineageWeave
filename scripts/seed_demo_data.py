@@ -129,7 +129,7 @@ def seed(
             cur.execute((migrations / "0182_report_leftover_map_unexplained.sql").read_text())
             cur.execute((migrations / "0185_report_leftover_map_cross_share.sql").read_text())
             cur.execute((migrations / "0206_report_leftover_map_reconstruction.sql").read_text())
-            cur.execute((migrations / "0232_report_leftover_map_explained_share.sql").read_text())
+            cur.execute((migrations / "0236_report_leftover_map_explained_share.sql").read_text())
             cur.execute((migrations / "0060_role_responsibility_agent_type.sql").read_text())
             cur.execute((migrations / "0013_person_job_title.sql").read_text())
             cur.execute((migrations / "0014_role_responsibility_team_actor_type.sql").read_text())

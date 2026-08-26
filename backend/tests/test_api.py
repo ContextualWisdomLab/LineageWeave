@@ -187,7 +187,7 @@ _LEFTOVER_MAP_RECONSTRUCTION_MIGRATION = (
 _LEFTOVER_MAP_EXPLAINED_SHARE_MIGRATION = (
     Path(__file__).resolve().parents[2]
     / "migrations"
-    / "0232_report_leftover_map_explained_share.sql"
+    / "0236_report_leftover_map_explained_share.sql"
 )
 _GLOBAL_ASK_JOB_MIGRATION = (
     Path(__file__).resolve().parents[2]

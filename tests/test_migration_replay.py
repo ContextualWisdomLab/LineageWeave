@@ -112,7 +112,7 @@ def test_migrate_sh_replays_leftover_map_explained_share_on_existing_volumes() -
     """migrate.sh's replay window must cover 0232 (leftover-map explained share).
 
     Volumes created before leftover-map explained share shipped never get
-    leftover_map_explained_share unless migrate.sh replays 0232 on every
+    leftover_map_explained_share unless migrate.sh replays 0236 on every
     ``docker compose up``. GET /api/reports/{grouping}/{period} then 500s
     on undefined_column the first time a period actually has leftover pairs.
 
@@ -120,7 +120,7 @@ def test_migrate_sh_replays_leftover_map_explained_share_on_existing_volumes() -
     per-migration allowlist entry. The column add is nullable and
     idempotent so a second start does not invent a leftover score.
     """
-    migration_name = "0232_report_leftover_map_explained_share.sql"
+    migration_name = "0236_report_leftover_map_explained_share.sql"
     migration_path = Path(__file__).resolve().parents[1] / "migrations" / migration_name
     assert migration_path.exists()
     assert re.fullmatch(r"[0-9]{4}_.+\.sql", migration_name)

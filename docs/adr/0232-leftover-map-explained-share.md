@@ -32,9 +32,10 @@ leftover criterion. Leftover-map distance stays two-axis Euclidean.
 Reconstruction `R̂` remains the ADR 0201 internal two-axis inner
 product already used for `U` and `x`.
 
-The unprotected-stack reconstructions for neighbouring leftover facts
-use 0162–0186. This protected-main increment uses **0232** so it does
-not collide with leftover-map reconstruction (0201 / migration 0206),
+The feature is stacked over the Rust-boundary work in ADR 0208. The decision
+number remains 0232, while the schema increment uses migration **0236** so it
+does not collide with the parent stack's migrations. It also does not collide
+with leftover-map reconstruction (0201 / migration 0206),
 leftover-map cross share (0185), leftover-map unexplained leftover
 (0182), leftover-map unexplained leftover share, leftover residual
 disclosure, leftover observed `Y` / expected `E`, leftover-map rank,
@@ -44,9 +45,14 @@ token-backed status notice (0214 on an open stack).
 
 ## Decision
 
+fast-mlsirm's Rust `residual_interaction_map` computes the reconstruction,
+unexplained residual, cross share, and explained share in one result envelope.
+LineageWeave only binds those returned cells to authorized product identifiers;
+it never recalculates these quantities in Python.
+
 Each leftover pair names `leftover_map_explained_share` — leftover-map
 explained share `e = R̂² / R²` of raw residual after two-axis Gabriel
-reconstruction `R̂ = ξ_{1:2} · ζ_{1:2}`. Migration `0232` is the
+reconstruction `R̂ = ξ_{1:2} · ζ_{1:2}`. Migration `0236` is the
 single source of the column on every install path, fresh or existing --
 shipped migrations (`0001` / `0012`) are never edited after the fact.
 The column is nullable so older leftover rows keep distance, residual,
