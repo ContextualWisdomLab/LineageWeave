@@ -26,7 +26,10 @@ import psycopg2.errors
 import pytest
 
 from backend.app.post_chat_ingestion import gather_global_chat_sources
-from lineageweave.occupational_construct_catalog import sync_onet_construct_catalog
+from lineageweave.occupational_construct_catalog import (
+    catalog_content_sha256,
+    sync_onet_construct_catalog,
+)
 
 _ADMIN_DSN = os.environ.get(
     "LINEAGEWEAVE_TEST_POSTGRES_ADMIN_DSN", "postgresql://localhost/postgres"
@@ -309,7 +312,11 @@ def test_occupational_catalog_sync_persists_exact_rows(schema_db) -> None:
         )
         conn = await asyncpg.connect(db_dsn)
         try:
-            return await sync_onet_construct_catalog(conn, payload)
+            return await sync_onet_construct_catalog(
+                conn,
+                payload,
+                expected_source_sha256=catalog_content_sha256(payload),
+            )
         finally:
             await conn.close()
 
