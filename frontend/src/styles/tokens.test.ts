@@ -187,6 +187,18 @@ describe("design tokens", () => {
     expect(rule).toContain("display: inline-flex");
     expect(rule).toContain("align-items: center");
   });
+
+  it("keeps public-verification layout on shared tokens", () => {
+    expect(publicClaimCss).not.toMatch(/#[0-9a-fA-F]{3,8}/);
+    for (const token of [
+      "--space-panel-block",
+      "--space-control-gap",
+      "--color-border",
+      "--size-control-min",
+    ]) {
+      expect(publicClaimCss).toContain(`var(${token})`);
+    }
+  });
 });
 
 describe("secondary disclosure toggle touch targets", () => {

@@ -4845,7 +4845,14 @@ export function AskAgentPanel({
     setAsking(true);
     setError(null);
     try {
-      setAnswer(await askAgent(accessToken, normalized));
+      setAnswer(
+        await askAgent(
+          accessToken,
+          normalized,
+          verifyExternal,
+          knowledgeCutoff ? new Date(knowledgeCutoff).toISOString() : undefined,
+        ),
+      );
       setAnsweredQuestion(normalized);
     } catch (err) {
       setAnswer(null);
@@ -4872,6 +4879,23 @@ export function AskAgentPanel({
             value={question}
             onChange={(event) => setQuestion(event.target.value)}
             rows={4}
+          />
+        </label>
+        <label className="ask-agent-checkbox">
+          <input
+            type="checkbox"
+            checked={verifyExternal}
+            onChange={(event) => setVerifyExternal(event.target.checked)}
+          />
+          <span>{t("Check eligible public claims")}</span>
+        </label>
+        <label className="ask-agent-field">
+          <span>{t("Knowledge cutoff (optional)")}</span>
+          <input
+            type="datetime-local"
+            value={knowledgeCutoff}
+            max={localKnowledgeCutoffMax}
+            onChange={(event) => setKnowledgeCutoff(event.target.value)}
           />
         </label>
         <div className="ask-agent-actions">
