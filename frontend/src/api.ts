@@ -132,7 +132,7 @@ export interface VoiceTaxonomySummary {
   disagreement: number;
   counts_overlap: boolean;
   category_memberships: Array<{
-    voice_concept_code: "voc" | "vocc" | "voco" | "vom" | "vop";
+    voice_concept_code: "voc" | "vocc" | "voco" | "vom" | "vop" | "vos" | "voe" | "vob" | "vor" | "voi" | "voso" | "vops";
     post_count: number;
     eligible_percentage: number;
   }>;
