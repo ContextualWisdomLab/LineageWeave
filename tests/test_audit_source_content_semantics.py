@@ -277,6 +277,17 @@ def test_ontology_contract_contains_public_semantics_not_only_local_names() -> N
         assert set(SEMANTIC_DIMENSION_TERM_IRIS[dimension]) <= set(by_iri)
 
 
+def test_ontology_contract_requires_the_governed_prov_support_profile(
+    tmp_path: Path,
+) -> None:
+    """A partial ontology bundle fails instead of changing coverage semantics."""
+    ontology_path = tmp_path / "lineageweave-kg.ttl"
+    ontology_path.write_bytes(Path("docs/ontology/lineageweave-kg.ttl").read_bytes())
+
+    with pytest.raises(FileNotFoundError, match="PROV-O support profile"):
+        _ontology_terms(ontology_path)
+
+
 def test_probability_sample_manifest_preserves_design_evidence() -> None:
     """The audit preserves selection evidence without claiming corpus inference."""
     manifest = _probability_manifest()
