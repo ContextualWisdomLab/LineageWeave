@@ -390,7 +390,7 @@ async def process_post_content_job(
     embedding_factory: Callable[[], EmbeddingClient],
     structure_factory: Callable[[], PostStructureClient],
     defer_embedding: bool = False,
-) -> tuple[int, asyncio.Task[None] | None] | None:
+) -> int | None:
     """Claim, run, and record the outcome of one post-content ingestion job.
 
     Claims the job for `post_id`/`source_body_digest` (a no-op if it is
@@ -427,7 +427,6 @@ async def process_post_content_job(
             expected_attempt_count=attempt_count,
         )
         return
-    operations_task: asyncio.Task[None] | None = None
     try:
         metadata = build_post_llm_metadata(post_id, row)
         embedding_client = NullEmbeddingClient() if defer_embedding else embedding_factory()
@@ -435,18 +434,16 @@ async def process_post_content_job(
         with use_llm_metadata(metadata):
             vision_client = vision_factory()
             if settings.orchestrator_base_url and settings.orchestrator_api_key:
-                operations_task = asyncio.create_task(
-                    _persist_operations_case_analysis_if_needed(
-                        pool,
-                        post_id,
-                        source_body_digest,
-                        raw_body,
-                        row,
-                        vision_client,
-                        metadata["lineageweave_post_session_id"],
-                        settings.orchestrator_base_url,
-                        settings.orchestrator_api_key,
-                    )
+                await _persist_operations_case_analysis_if_needed(
+                    pool,
+                    post_id,
+                    source_body_digest,
+                    raw_body,
+                    row,
+                    vision_client,
+                    metadata["lineageweave_post_session_id"],
+                    settings.orchestrator_base_url,
+                    settings.orchestrator_api_key,
                 )
             normalized = await asyncio.to_thread(
                 normalize_post_body, raw_body, vision_client
@@ -473,9 +470,7 @@ async def process_post_content_job(
                     require_structure=require_orchestrator_evidence,
                 )
             if defer_embedding:
-                return attempt_count, operations_task
-            if operations_task is not None:
-                await operations_task
+                return attempt_count
             if not complete:
                 await _finish_failed_job(
                     pool,
@@ -501,11 +496,6 @@ async def process_post_content_job(
                         outcome="provider_unavailable",
                     )
     except Exception as exc:  # noqa: BLE001 - durable failure is recorded for retry.
-        if operations_task is not None:
-            try:
-                await operations_task
-            except Exception:  # noqa: BLE001 - the content failure remains the durable retry cause.
-                pass
         _logger.error("post content ingestion failed for post_id=%s", post_id)
         outcome = (
             "provider_unavailable"
@@ -524,7 +514,7 @@ async def process_post_content_job(
         )
         return
     await _finish_job(pool, post_id, SUCCEEDED, expected_attempt_count=attempt_count)
-    return attempt_count, None
+    return attempt_count
 
 
 async def _persist_bulk_embeddings(
@@ -670,10 +660,8 @@ async def consume_post_content_stream_once(
     ):
         embedding_client = embedding_factory()
         bulk_enabled = embedding_client.available
-        deferred: list[tuple[str, int, asyncio.Task[None] | None]] = []
-        pending: list[
-            tuple[str, Awaitable[tuple[int, asyncio.Task[None] | None] | None]]
-        ] = []
+        deferred: list[tuple[str, int]] = []
+        pending: list[tuple[str, Awaitable[int | None]]] = []
         for _stream_name, entries in batches:
             for entry_id, fields in entries:
                 post_id = str(fields.get("post_id", "")).strip()
@@ -701,25 +689,18 @@ async def consume_post_content_stream_once(
         if pending:
             attempt_counts = await asyncio.gather(*(job for _post_id, job in pending))
             deferred.extend(
-                (post_id, result[0], result[1])
-                for (post_id, _job), result in zip(pending, attempt_counts, strict=True)
-                if result is not None
+                (post_id, attempt_count)
+                for (post_id, _job), attempt_count in zip(pending, attempt_counts, strict=True)
+                if attempt_count is not None
             )
         if deferred:
-            operations_tasks = [task for _post_id, _attempt, task in deferred if task is not None]
-            results = await asyncio.gather(
-                _persist_bulk_embeddings(
-                    pool, [post_id for post_id, _attempt, _task in deferred], embedding_client
-                ),
-                *operations_tasks,
-                return_exceptions=True,
-            )
-            bulk_error = results[0] if isinstance(results[0], Exception) else None
-            if bulk_error is not None:
-                record_server_failure(
-                    "post_content_bulk_embedding", bulk_error, outcome="provider_unavailable"
+            try:
+                await _persist_bulk_embeddings(
+                    pool, [post_id for post_id, _attempt in deferred], embedding_client
                 )
-                for post_id, attempt_count, _task in deferred:
+            except Exception as exc:  # noqa: BLE001 - each durable job is retryable.
+                record_server_failure("post_content_bulk_embedding", exc, outcome="provider_unavailable")
+                for post_id, attempt_count in deferred:
                     await _finish_failed_job(
                         pool,
                         post_id,
@@ -728,16 +709,7 @@ async def consume_post_content_stream_once(
                         expected_attempt_count=attempt_count,
                     )
             else:
-                for post_id, attempt_count, operations_task in deferred:
-                    if operations_task is not None and operations_task.exception() is not None:
-                        await _finish_failed_job(
-                            pool,
-                            post_id,
-                            failure_code="operations_case_analysis_failed",
-                            detail_text="operations analysis did not produce persisted evidence",
-                            expected_attempt_count=attempt_count,
-                        )
-                        continue
+                for post_id, attempt_count in deferred:
                     async with pool.acquire() as conn:
                         complete = await post_content_is_complete(
                             conn,
