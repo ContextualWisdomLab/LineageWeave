@@ -10,18 +10,13 @@ from .embedding_client import ContextualOrchestratorEmbeddingClient
 from .llm_context import build_post_llm_metadata
 
 _SELECT_UNITS_SQL = """
-with candidates as (
+with bounded_candidates as materialized (
     select unit.post_content_unit_id, unit.unit_text, unit.unit_index,
+           post.created_at as post_created_at,
            post.post_id, post.author_account_id, post.source_process_unit_code,
            post.source_author_code, post.source_company_code,
            post.source_customer_code, post.source_project_code,
-           post.source_sales_pool_code, entity.corporate_entity_code,
-           row_number() over (
-               order by post.created_at, post.post_id, unit.unit_index
-           ) as candidate_ordinal,
-           sum(octet_length(unit.unit_text) + 1) over (
-               order by post.created_at, post.post_id, unit.unit_index
-           ) as cumulative_text_bytes
+           post.source_sales_pool_code, entity.corporate_entity_code
       from post_content_unit unit
       join source_post post using (post_id)
       left join corporate_entity entity using (corporate_entity_id)
@@ -30,6 +25,17 @@ with candidates as (
            select 1 from post_content_embedding existing
             where existing.post_content_unit_id = unit.post_content_unit_id
        )
+     order by post.created_at, post.post_id, unit.unit_index
+     limit $2
+), candidates as (
+    select bounded_candidates.*,
+           row_number() over (
+               order by post_created_at, post_id, unit_index
+           ) as candidate_ordinal,
+           sum(octet_length(unit_text) + 1) over (
+               order by post_created_at, post_id, unit_index
+           ) as cumulative_text_bytes
+      from bounded_candidates
 )
 select * from candidates
  where candidate_ordinal = 1

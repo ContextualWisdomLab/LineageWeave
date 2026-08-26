@@ -187,7 +187,8 @@ class ContextualOrchestratorEmbeddingClient:
                     texts,
                     input_attributions=input_attributions,
                     input_metadata=input_metadata,
-                )
+                ),
+                include_orchestrator_session=True,
             )
         )
 

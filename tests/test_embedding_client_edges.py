@@ -3,6 +3,8 @@ from __future__ import annotations
 import pytest
 
 from lineageweave import embedding_client
+from lineageweave.http_client import json_request_body
+from lineageweave.llm_context import build_post_llm_metadata, use_llm_metadata
 
 
 def test_missing_embedding_configuration_returns_null_client() -> None:
@@ -173,3 +175,17 @@ def test_legacy_client_name_delegates(monkeypatch: pytest.MonkeyPatch) -> None:
 
 def test_cosine_similarity_returns_zero_for_zero_vector() -> None:
     assert embedding_client.cosine_similarity([0.0], [1.0]) == 0.0
+
+
+def test_batch_body_size_matches_post_scoped_orchestrator_wire_body() -> None:
+    """The advertised ceiling includes the injected post session field."""
+    client = embedding_client.ContextualOrchestratorEmbeddingClient(
+        "http://orchestrator", "synthetic-key"
+    )
+    payload = client.batch_payload(["synthetic semantic unit"])
+    metadata = build_post_llm_metadata("synthetic-post", {})
+
+    with use_llm_metadata(metadata):
+        assert client.batch_request_body_size(["synthetic semantic unit"]) == len(
+            json_request_body(payload, include_orchestrator_session=True)
+        )
