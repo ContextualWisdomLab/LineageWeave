@@ -6,6 +6,16 @@ import {
 
 type Props = { accessToken: string };
 
+function safeHttpUrl(value: string | null | undefined): string | null {
+  if (!value) return null;
+  try {
+    const parsed = new URL(value);
+    return parsed.protocol === "http:" || parsed.protocol === "https:" ? parsed.toString() : null;
+  } catch {
+    return null;
+  }
+}
+
 /** Lets an authenticated user inspect one exact imported occupation profile. */
 export function OccupationRatingProfile({ accessToken }: Props) {
   const [onetsocCode, setOnetsocCode] = useState("");
@@ -113,14 +123,20 @@ export function OccupationRatingProfileView({
       </p>
     );
   }
+  const sourceArtifactUrl = safeHttpUrl(profile.source?.source_artifact_url);
+  const scaleArtifactUrl = safeHttpUrl(profile.source?.scale_artifact_url);
   return (
     <>
       <div className="occupation-rating-source">
         <strong>{profile.source?.source_table_name}</strong>
         <span>{profile.data_release_code} · {profile.onetsoc_code}</span>
-        <a href={profile.source?.source_artifact_url} target="_blank" rel="noreferrer">평정 원문 열기</a>
-        {profile.source?.scale_artifact_url ? (
-          <a href={profile.source.scale_artifact_url} target="_blank" rel="noreferrer">척도 정의 열기</a>
+        {sourceArtifactUrl ? (
+          <a href={sourceArtifactUrl} target="_blank" rel="noreferrer">평정 원문 열기</a>
+        ) : (
+          <span>원문 링크를 사용할 수 없습니다. 데이터 담당자에게 출처 확인을 요청하세요.</span>
+        )}
+        {scaleArtifactUrl ? (
+          <a href={scaleArtifactUrl} target="_blank" rel="noreferrer">척도 정의 열기</a>
         ) : null}
       </div>
       <p className="occupation-rating-scroll-hint">표를 가로로 밀어 오차와 사용 주의를 확인하세요.</p>
