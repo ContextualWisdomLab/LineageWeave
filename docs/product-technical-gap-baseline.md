@@ -1,6 +1,6 @@
 # Product & Technical Gap Baseline
 
-> Dashboard delivery snapshot: 2026-08-27 03:04 KST. Protected `main` was
+> Dashboard delivery snapshot: 2026-08-27 03:58 KST. Protected `main` was
 > `ff7431bd1851c03e737808d22c6a2d43968582f9`. This local branch is not
 > protected-main release evidence.
 
@@ -60,7 +60,7 @@ only aggregate, non-identifying evidence to this repository.
 
 ### Exact open-PR boundary
 
-At this snapshot there were 34 open PRs and 10 open issues. PR #712 merged only
+At this snapshot there were 36 open PRs and 10 open issues. PR #712 merged only
 into #702's non-default branch as `78a14410`; it is part of that combined
 candidate and is not protected-`main` delivery. PR #711 still targets #640 and
 must wait for its protected upstream dependency before it can be retargeted to
@@ -69,7 +69,7 @@ independent review after the base changed. These observations are
 not merge readiness. Re-fetch exact heads, unresolved threads, checks,
 approvals, rulesets, and merge SHA before any lifecycle claim.
 
-> Audit snapshot: 2026-08-27 03:04 KST (refreshed by the autonomous merge
+> Audit snapshot: 2026-08-27 03:58 KST (refreshed by the autonomous merge
 > loop). This repository records synthetic fixtures and aggregate,
 > non-identifying runtime evidence only. Open PRs and local checks are not
 > protected-default-branch release evidence. Identifying post identifiers,
@@ -79,7 +79,7 @@ approvals, rulesets, and merge SHA before any lifecycle claim.
 ## 1. Exact-head and governance evidence
 
 The protected default branch was `ff7431bd1851c03e737808d22c6a2d43968582f9`
-when this baseline was refreshed. The live queue contained 34 open PRs and 10
+when this baseline was refreshed. The live queue contained 36 open PRs and 10
 open issues. The exact-head inventory below supersedes older per-PR snapshots
 elsewhere in this document; those older rows remain useful historical delivery
 context only.
@@ -89,7 +89,7 @@ context only.
 | #629 | `b721b0f2` | provider-work release and bounded landing reads; exact-head hosted review remains incomplete |
 | #632 | `24262a99` | graph-fact provenance; exact-head hosted review remains incomplete |
 | #639 | `2f4b1bff` | Running action and Compose contracts; exact-head hosted review remains incomplete |
-| #640 | `353dfd01` | dashboard case metrics and project journeys; exact-head hosted review remains incomplete |
+| #640 | `ebfe60af` | dashboard case metrics and project journeys; exact-head hosted review remains incomplete |
 | #643 | `8767de1b` | shared token-backed status notice; exact-head hosted review remains incomplete |
 | #644 | `f53dd28e` | native frontend surface code splitting; exact-head hosted review remains incomplete |
 | #657 | `9f71681c` | TEPP asynchronous lifecycle consumer; exact-head hosted review remains incomplete |
@@ -104,24 +104,24 @@ context only.
 | #702 | `eda7083b` | source-semantic coverage plus non-default #712 composition; exact-head hosted evidence remains incomplete |
 | #704 | `7b9a70ee` | external lineage contract with exact provider-work budget and fail-closed importer repair; exact-head hosted evidence remains incomplete |
 | #709 | `8ef4090c` | official DOT/FJA worker-function taxonomy; exact-head hosted review remains incomplete |
-| #710 | `47dbd335` | worker-taxonomy delivery-gap baseline; this row describes the pre-refresh head of the present candidate |
-| #711 | `c2b3f893` | stacked on #640 and blocked by an unmerged contextual-orchestrator pin; auto-merge remains disabled |
+| #710 | `2f6b7ae7` | worker-taxonomy delivery-gap baseline; this is the pre-refresh head of the present candidate |
+| #711 | `05e5f520` | stacked on #640 and blocked by an unmerged contextual-orchestrator pin; auto-merge remains disabled |
 | #713 | `cc3dfc14` | complete source-post Voice-of-X taxonomy; exact-head hosted review remains incomplete |
-| #714 | `98149723` | post-scoped public source research; hosted checks and independent approval remain incomplete |
-| #716 | `b41e8ecb` | stacked on #711; operations backfill priority, with unstable hosted evidence and no protected-main claim |
-| #717 | `edc0ab97` | stacked on #713; evidence-bearing Voice-of-X combinations, with unstable hosted evidence and no protected-main claim |
+| #714 | `76a602c8` | post-scoped public source research; hosted checks and independent approval remain incomplete |
+| #716 | `c01de078` | stacked on #711; operations backfill priority, with unstable hosted evidence and no protected-main claim |
+| #717 | `9db158c4` | stacked on #713; evidence-bearing Voice-of-X combinations, with unstable hosted evidence and no protected-main claim |
 | #718 | `2723fea3` | stacked on #709; evidence-bound occupational constructs; terminal hosted checks are green but no protected-main claim exists |
 | #719 | `6ee2278a` | stacked on #718; source-grounded occupational taxonomy, with no protected-main claim |
 | #720 | `dda0531d` | stale-run cancellation workflow; exact-head hosted review remains incomplete |
 | #721 | `9214c50f` | stacked on #718; normalized evidence-bound occupational-construct persistence; terminal hosted checks are green but no protected-main claim exists |
 | #723 | `30ddc8fd` | stacked on #721; official O*NET 31.0 construct catalog sync; terminal hosted checks are green but no protected-main claim exists |
 | #724 | `f5ee37b0` | stacked on #719; complete 2018 SOC hierarchy, with unstable hosted evidence and no protected-main claim |
-| #725 | `bac9f68f` | stacked on #640; worker cgroup memory evidence, with unstable hosted evidence and no protected-main claim |
-| #726 | `44f63f82` | stacked on #723; catalog-bound occupational-construct extraction; hosted checks are queued and no protected-main claim exists |
-| #728 | `f90f247a` | leftover-map explained-share persistence; exact-head hosted review remains incomplete |
-| #729 | `f28b31e2` | stacked on #726; occupational-construct evidence review UI; hosted checks are queued and no protected-main claim exists |
-| #730 | `2c20a7fe` | stacked on #640; Global Ask next-action Storybook coverage, with unstable hosted evidence and no protected-main claim |
-| #731 | `8ab2248e` | stacked on #724; complete O*NET 31.0 content model, with a dirty merge state and no protected-main claim |
+| #726 | `6249ba0e` | stacked on #723; catalog-bound extraction plus merged #729 review UI; hosted checks are active and no protected-main claim exists |
+| #728 | `ef7ba0f7` | stacked on #640; leftover-map explained-share persistence, with unstable hosted evidence and no protected-main claim |
+| #731 | `88ae5796` | stacked on #724; complete O*NET 31.0 content model, with unstable hosted evidence and no protected-main claim |
+| #732 | `1c622545` | stacked on #731; O*NET content-model linkages, with a dirty merge state and no protected-main claim |
+| #733 | `7965fe67` | stacked on #726; authorized occupational-construct ontology navigation, with active hosted evidence and no protected-main claim |
+| #734 | `3b0655ad` | stacked on #732; O*NET occupation rating store, with unstable hosted evidence and no protected-main claim |
 
 No row above is merge evidence. Immediately before any lifecycle action,
 re-fetch the head, unresolved threads, formal reviews, rulesets, and same-head
@@ -400,7 +400,7 @@ this file per §3.5 of the prior snapshot).
 
 | Gap | Current evidence | Acceptance requirement |
 | --- | --- | --- |
-| Protected release | 34 open PRs at snapshot. Twenty-three target `main`; eleven are stacked on unmerged candidates. None of the occupational stack is protected-main delivery. #712's merge into non-default #702 is composition, not protected-main delivery. Queued checks remain infrastructure state and do not block safe work on other PRs. Active ruleset 18156473 currently requires one approval, dismissal on push, approval for unattributed changes, resolved threads, and seven central workflows; it does not currently enable the separate last-push-approval flag | Terminal exact-head checks, no unresolved threads, one eligible independent current-head approval, and a protected squash-merge SHA under the re-fetched active rules |
+| Protected release | 36 open PRs at snapshot. Twenty-two target `main`; fourteen are stacked on unmerged candidates. None of the occupational stack is protected-main delivery. #712's merge into non-default #702 is composition, not protected-main delivery. Queued checks remain infrastructure state and do not block safe work on other PRs. Active ruleset 18156473 currently requires one approval, dismissal on push, approval for unattributed changes, resolved threads, and seven central workflows; it does not currently enable the separate last-push-approval flag | Terminal exact-head checks, no unresolved threads, one eligible independent current-head approval, and a protected squash-merge SHA under the re-fetched active rules |
 | CI queue release latency | Two Tests runs for already merged PRs occupied the available runner slots while 54 newer runs remained queued. Manual cancellation released the stale work, but the central close workflow was itself queued behind those runs. #631 delivered #634's reuse of the repository's existing per-PR concurrency group to protected `main`, so a jobless close event can cancel obsolete Tests work before runner allocation | Close a synthetic PR while its Tests run is active and verify the old run becomes cancelled, the close-event jobs remain skipped, and a newer exact-head run starts without manual intervention |
 | Evidence-grounded operations workspace | Protected-main #614 delivers governed semantic Ask, live Similar VOC, disjoint pending/failed analysis metrics, full Storybook state inventory, and current desktop/mobile screenshot evidence. Authorized-corpus backfill acceptance remains unavailable | Perform authenticated authorized-corpus acceptance with aggregate evidence and retain fail-closed no-match behavior |
 | Shared frontend gate | The ADR 0109 login repair is on protected `main`; eight older branches carried the defect and received the same verified repair this loop (#521–#560) | Keep every future branch cut from post-repair bases; re-verify with frontend lint/test/build before push |
@@ -410,8 +410,8 @@ this file per §3.5 of the prior snapshot).
 | Image understanding | Region, OCR, and description work exists across active heads (#405, #419), but current runtime acceptance has not yet proved table-image structure, complete region coverage, or summary/image readiness together | Orchestrator-backed rendered workflow, original/derived asset provenance, region-before-OCR processing, and honest unsupported states; reconcile ADR 0052's image-bearing summary readiness with ADR 0098 before changing sequencing |
 | Semantic source rendering | Paragraph, table, list, formula, and indentation work exists across stacks (#394, #427, #448–#450); #515 adds synthetic backend/frontend parity for deterministic rows/cells, footnote boundaries, and encoded scripts | Land the #427 → #515 stack, then gather authenticated browser evidence that list nesting, continuation alignment, and formula units render without authoring-layout artifacts |
 | Event and project semantics | #663 delivered evidence-backed Project nodes, bounded traversal, cutoff/snapshot fencing, exact-value table parity, localized graph labels, and #666's heuristic removal to protected `main` as `faff7a32`. #640 separately proposes project journeys without claiming authoritative lifecycle status | Aggregate authenticated evidence must still prove distinct projects/events and handover intervals without promoting co-occurrence; #640 remains candidate-only until protected merge |
-| Official worker-function vocabulary (2026-08-27 03:04 KST snapshot) | Protected `main` has no addressable DOT/FJA Data/People/Things vocabulary. PR #709 exact head `8ef4090c` carries candidate ADR 0232 and adds the 24 complete official definitions, domains, and ordinal rank positions as SKOS concepts plus deterministic fail-closed reads. Commit `91f342f4` removed the unsupported term-level Fleishman/O*NET facet crosswalk; the current head preserves the authoritative DOT definitions as `skos:definition` without manufacturing stronger semantics | Land candidate ADR 0232 and its implementation together through normal protected gates, publish the deterministic ontology artifact from `main`, and require an authoritative exact crosswalk before adding any ability, skill, work-style, or behavioral mapping |
-| Occupational construct evidence (2026-08-27 03:04 KST snapshot) | The #718 → #721 → #723 → #726 → #729 stack defines evidence-bound cognitive, affective, and behavioral constructs, normalized assertion provenance, the pinned official O*NET 31.0 catalog, contextual-orchestrator extraction, and a token-backed Post-detail review surface. Exact heads are `2723fea3`, `9214c50f`, `30ddc8fd`, `44f63f82`, and `f28b31e2`. Parent checks through #723 are terminal green; #726 and #729 checks are queued. Local synthetic tests, Storybook builds, and inspected desktop/mobile screenshots are candidate evidence only. No authenticated aggregate runtime acceptance or protected-main delivery exists | Merge #709 first, then retarget and revalidate each child in stack order. Prove official catalog sync, completed-empty versus unavailable extraction, ABAC-filtered exact evidence, historical-cutoff unavailability, and rendered keyboard/mobile behavior on one protected release head. Keep affect/performance constructs unavailable unless an authoritative catalog entry and source span support them; add no heuristic projection or numeric weight |
+| Official worker-function vocabulary (2026-08-27 03:58 KST snapshot) | Protected `main` has no addressable DOT/FJA Data/People/Things vocabulary. PR #709 exact head `8ef4090c` carries candidate ADR 0232 and adds the 24 complete official definitions, domains, and ordinal rank positions as SKOS concepts plus deterministic fail-closed reads. Commit `91f342f4` removed the unsupported term-level Fleishman/O*NET facet crosswalk; the current head preserves the authoritative DOT definitions as `skos:definition` without manufacturing stronger semantics | Land candidate ADR 0232 and its implementation together through normal protected gates, publish the deterministic ontology artifact from `main`, and require an authoritative exact crosswalk before adding any ability, skill, work-style, or behavioral mapping |
+| Occupational construct evidence (2026-08-27 03:58 KST snapshot) | The #718 → #721 → #723 → #726 → #733 stack defines evidence-bound cognitive, affective, and behavioral constructs, normalized assertion provenance, the pinned official O*NET 31.0 catalog, contextual-orchestrator extraction, Post-detail review, and authorized ontology navigation. Exact heads are `2723fea3`, `9214c50f`, `30ddc8fd`, `6249ba0e`, and `7965fe67`; #729 merged only into #726 and is candidate composition, not protected-main delivery. Parent checks through #723 are terminal green; #726 and #733 have fresh hosted evidence in progress. Local synthetic tests, Storybook builds, and inspected desktop/mobile screenshots are candidate evidence only. No authenticated aggregate runtime acceptance or protected-main delivery exists | Merge #709 first, then retarget and revalidate each child in stack order. Prove official catalog sync, completed-empty versus unavailable extraction, current-digest stale-evidence fencing, ABAC-filtered exact evidence, historical-cutoff unavailability, and rendered keyboard/mobile ontology behavior on one protected release head. Keep affect/performance constructs unavailable unless an authoritative catalog entry and source span support them; add no heuristic projection or numeric weight |
 | Knowledge Graph readability | Protected `main` includes #659's token-backed node-type repair and regression coverage | Verify light/dark contrast, keyboard graph navigation, full labels, and evidence tables in the authenticated rendered surface |
 | Source-code lookup UX | Source state/detail codes remain evidence-bearing machine values and current detail presentation is dense | Catalog-backed display labels with raw-code provenance, compact 5W1H/source-detail hierarchy, keyboard access, and no unsupported customer/project binding |
 | Calendar / Naruon | #355 delivered the projection contract; v2.17.0 wires operator consumption without forwarding the end-user token. Naruon producer, provider/consumer fixtures, and protected merge remain open (#336) | Verify observed events against the published schema without invented events; keep commitments available when the channel is unwired |
@@ -528,13 +528,13 @@ review latency are never blockers — keep working while they settle.
    .github#1288 only through their protected gates.
 2. Process main-targeted PRs #629, #632, #639, #640, #643, #644, #657,
    #658, #667, #668, #672, #679, #680, #700, #701, #702, #704, #709, #710,
-   #713, #714, #720, and #728 only after each exact head shows terminal green required
+   #713, #714, and #720 only after each exact head shows terminal green required
    checks plus current-head independent approval. Treat #712's
    non-default-branch merge only as part of #702's combined candidate. Merge
    #640 before retargeting #711, then merge #711 before retargeting #716.
    Likewise merge #713 before retargeting #717. Merge the occupational stack
-   in dependency order #709 → #718 → #721 → #723 → #726 → #729; separately
-   preserve #718 → #719 → #724 → #731. Retarget #725 and #730 only after #640.
+   in dependency order #709 → #718 → #721 → #723 → #726 → #733; separately
+   preserve #718 → #719 → #724 → #731 → #732 → #734. Retarget #728 only after #640.
    Reconcile ADR/migration/release identities and refresh all
    exact-head evidence after every retarget.
 3. While hosted checks or independent reviews wait, resume user-visible gaps
