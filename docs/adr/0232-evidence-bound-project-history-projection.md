@@ -26,7 +26,8 @@ navigation destination. Controlled VOC codes may label VOC evidence. Other
 records remain `source_recorded`; source stage and detail-state codes are shown
 without inferred lifecycle meaning. Adjacent responsibility rows describe
 document evidence only. Persisted Event Lineage paths are labelled related and
-non-causal. Dates disclose that `source_post.created_at` is the fallback clock.
+non-causal. Dates use `source_post.event_occurred_at` when recorded and disclose
+`source_post.created_at` as the fallback clock.
 
 The projection is bounded and declares truncation. A missing or unauthorized
 project is indistinguishable as HTTP 404. The Figma identifier records the

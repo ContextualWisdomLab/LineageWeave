@@ -110,7 +110,8 @@ describe("ProjectHistoryTimeline", () => {
     expect(vocTab).toHaveAttribute("aria-current", "step");
     expect(screen.getAllByText(/evidence gap/i).length).toBeGreaterThan(0);
     expect(screen.getByText(/related history, not causality/i)).toBeInTheDocument();
-    expect(screen.getByText("document_time")).toBeInTheDocument();
+    expect(screen.getByText("Recorded event time")).toBeInTheDocument();
+    expect(screen.queryByText("document_time")).not.toBeInTheDocument();
     expect(screen.getByText("delivery")).toBeInTheDocument();
     expect(screen.getByText("delivered")).toBeInTheDocument();
 

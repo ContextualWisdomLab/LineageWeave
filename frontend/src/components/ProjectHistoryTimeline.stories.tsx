@@ -81,7 +81,7 @@ projection.events[3].related_prior_paths = [
 ];
 
 const meta = {
-  title: "Buyer/Project History Timeline",
+  title: "Projects/History Timeline",
   component: ProjectHistoryTimeline,
   args: {
     projection,

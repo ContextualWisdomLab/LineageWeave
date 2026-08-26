@@ -24,6 +24,7 @@ class _Connection:
                     "post_id": "00000000-0000-0000-0000-000000000001",
                     "post_title": "Synthetic project record",
                     "created_at": datetime(2026, 1, 1, tzinfo=timezone.utc),
+                    "event_occurred_at": datetime(2025, 12, 20, tzinfo=timezone.utc),
                     "voc_type_code": None,
                     "source_stage_code": "observed-stage",
                     "source_detail_state_code": None,
@@ -48,5 +49,8 @@ def test_project_history_query_binds_corporate_and_process_scopes() -> None:
     )
     event_query, event_args = connection.calls[0]
     assert "post.process_unit_id::text = any($3::text[])" in event_query
+    assert "coalesce(post.event_occurred_at, post.created_at)" in event_query
     assert event_args[1:3] == (["corp-1"], ["pu-1"])
     assert result["events"][0]["event_type_code"] == "source_recorded"
+    assert result["events"][0]["occurred_at"] == "2025-12-20T00:00:00Z"
+    assert result["events"][0]["time_basis_code"] == "document_time"

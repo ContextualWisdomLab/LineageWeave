@@ -1,4 +1,4 @@
-"""RED contracts for the Buyer project-history timeline."""
+"""RED contracts for the customer-facing project-history timeline."""
 
 from __future__ import annotations
 

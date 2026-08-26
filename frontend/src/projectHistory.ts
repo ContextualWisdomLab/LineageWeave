@@ -71,13 +71,6 @@ export interface ProjectHistoryProjection {
   events: ProjectHistoryEvent[];
 }
 
-export interface ProjectEvidenceGroup {
-  normalizedProjectKey: string;
-  projectKey: string;
-  projectName: string;
-  evidence: ProjectEvidence[];
-}
-
 function normalizeProjectIdentity(value: string): string {
   return value.normalize("NFKC").trim().toLocaleLowerCase("en-US");
 }
@@ -100,48 +93,6 @@ export function projectHistoryKeys(
   });
 }
 
-function evidenceOrder(evidence: ProjectEvidence): number {
-  if (evidence.extraction_method === "source_field_hint") return 0;
-  if (evidence.resolution_status === "hint_only") return 1;
-  return 2;
-}
-
-function compareEvidence(left: ProjectEvidence, right: ProjectEvidence): number {
-  return (
-    evidenceOrder(left) - evidenceOrder(right) ||
-    left.project_name.localeCompare(right.project_name) ||
-    left.project_key.localeCompare(right.project_key) ||
-    left.provenance.localeCompare(right.provenance)
-  );
-}
-
-export function groupProjectEvidence(evidence: ProjectEvidence[]): ProjectEvidenceGroup[] {
-  const groups = new Map<string, ProjectEvidence[]>();
-  for (const item of evidence) {
-    const normalizedProjectKey = normalizeProjectIdentity(item.project_key || item.project_name);
-    if (!normalizedProjectKey) continue;
-    const rows = groups.get(normalizedProjectKey) ?? [];
-    rows.push(item);
-    groups.set(normalizedProjectKey, rows);
-  }
-  return Array.from(groups.entries())
-    .map(([normalizedProjectKey, rows]) => {
-      const ordered = [...rows].sort(compareEvidence);
-      const representative = ordered[0];
-      return {
-        normalizedProjectKey,
-        projectKey: representative.project_key || representative.project_name,
-        projectName: representative.project_name || representative.project_key,
-        evidence: ordered,
-      };
-    })
-    .sort(
-      (left, right) =>
-        left.projectName.localeCompare(right.projectName) ||
-        left.normalizedProjectKey.localeCompare(right.normalizedProjectKey),
-    );
-}
-
 const MESSAGE_KEYS = [
   "heading",
   "summaryCounts",
@@ -151,6 +102,8 @@ const MESSAGE_KEYS = [
   "eventType",
   "eventDate",
   "timeBasisCode",
+  "recordedEventTime",
+  "sourceCreationTime",
   "sourceStageCode",
   "sourceDetailStateCode",
   "responsibilityEvidence",
@@ -191,12 +144,14 @@ type MessageParams = Record<string, string | number>;
 const EN: Record<ProjectHistoryMessageKey, string> = {
   heading: "Project event timeline",
   summaryCounts: "{events} events · {actors} observed actors",
-  documentTime: "Dates use source-post creation time because a separate event clock is not recorded.",
+  documentTime: "Dates use the recorded event time when available and the source creation time otherwise.",
   truncated: "This bounded timeline is truncated. The selected event remains included.",
   eventDetail: "Event detail",
   eventType: "Display event type",
-  eventDate: "Source-post date",
-  timeBasisCode: "Time basis code",
+  eventDate: "Event date",
+  timeBasisCode: "Time source",
+  recordedEventTime: "Recorded event time",
+  sourceCreationTime: "Source creation time",
   sourceStageCode: "Source stage code",
   sourceDetailStateCode: "Source detail-state code",
   responsibilityEvidence: "Observed responsibility evidence",
@@ -234,12 +189,14 @@ const MESSAGES: Record<Locale, Record<ProjectHistoryMessageKey, string>> = {
   ko: {
     heading: "프로젝트 이벤트 타임라인",
     summaryCounts: "이벤트 {events}건 · 관찰된 담당자 {actors}명",
-    documentTime: "별도 사건 시각이 없어 날짜는 원천 게시물 생성 시각을 사용합니다.",
+    documentTime: "기록된 사건 시각을 우선 사용하고, 없으면 원천 생성 시각을 사용합니다.",
     truncated: "이 제한된 타임라인은 일부만 표시합니다. 선택한 이벤트는 계속 포함됩니다.",
     eventDetail: "이벤트 상세",
     eventType: "표시용 이벤트 유형",
-    eventDate: "원천 게시물 날짜",
-    timeBasisCode: "시간 기준 코드",
+    eventDate: "이벤트 날짜",
+    timeBasisCode: "시간 출처",
+    recordedEventTime: "기록된 사건 시각",
+    sourceCreationTime: "원천 생성 시각",
     sourceStageCode: "원천 단계 코드",
     sourceDetailStateCode: "원천 세부 상태 코드",
     responsibilityEvidence: "관찰된 담당 근거",
@@ -274,12 +231,14 @@ const MESSAGES: Record<Locale, Record<ProjectHistoryMessageKey, string>> = {
   zh: {
     heading: "项目事件时间线",
     summaryCounts: "{events} 个事件 · {actors} 名已观察责任人",
-    documentTime: "未记录独立事件时钟，因此日期采用源帖子创建时间。",
+    documentTime: "优先使用已记录的事件时间；若无，则使用来源创建时间。",
     truncated: "此有界时间线已截断，但所选事件仍保留。",
     eventDetail: "事件详情",
     eventType: "显示事件类型",
-    eventDate: "源帖子日期",
-    timeBasisCode: "时间基准代码",
+    eventDate: "事件日期",
+    timeBasisCode: "时间来源",
+    recordedEventTime: "已记录的事件时间",
+    sourceCreationTime: "来源创建时间",
     sourceStageCode: "来源阶段代码",
     sourceDetailStateCode: "来源详细状态代码",
     responsibilityEvidence: "已观察的责任证据",
@@ -314,12 +273,14 @@ const MESSAGES: Record<Locale, Record<ProjectHistoryMessageKey, string>> = {
   ja: {
     heading: "プロジェクトイベントのタイムライン",
     summaryCounts: "イベント {events}件 · 観察された担当者 {actors}名",
-    documentTime: "独立したイベント時刻がないため、原資料の作成時刻を使用します。",
+    documentTime: "記録されたイベント時刻を優先し、ない場合は原資料の作成時刻を使います。",
     truncated: "この上限付きタイムラインは省略されていますが、選択イベントは保持されます。",
     eventDetail: "イベント詳細",
     eventType: "表示用イベント種別",
-    eventDate: "原資料の日付",
-    timeBasisCode: "時間基準コード",
+    eventDate: "イベント日",
+    timeBasisCode: "時刻の出典",
+    recordedEventTime: "記録されたイベント時刻",
+    sourceCreationTime: "原資料の作成時刻",
     sourceStageCode: "ソース段階コード",
     sourceDetailStateCode: "ソース詳細状態コード",
     responsibilityEvidence: "観察された担当根拠",
@@ -354,12 +315,14 @@ const MESSAGES: Record<Locale, Record<ProjectHistoryMessageKey, string>> = {
   vi: {
     heading: "Dòng thời gian sự kiện dự án",
     summaryCounts: "{events} sự kiện · {actors} người phụ trách được quan sát",
-    documentTime: "Không có đồng hồ sự kiện riêng, nên dùng thời gian tạo bài nguồn.",
+    documentTime: "Ưu tiên thời gian sự kiện đã ghi; nếu thiếu thì dùng thời gian tạo nguồn.",
     truncated: "Dòng thời gian có giới hạn này đã bị rút gọn nhưng vẫn giữ sự kiện đang chọn.",
     eventDetail: "Chi tiết sự kiện",
     eventType: "Loại sự kiện hiển thị",
-    eventDate: "Ngày bài nguồn",
-    timeBasisCode: "Mã cơ sở thời gian",
+    eventDate: "Ngày sự kiện",
+    timeBasisCode: "Nguồn thời gian",
+    recordedEventTime: "Thời gian sự kiện đã ghi",
+    sourceCreationTime: "Thời gian tạo nguồn",
     sourceStageCode: "Mã giai đoạn nguồn",
     sourceDetailStateCode: "Mã trạng thái chi tiết nguồn",
     responsibilityEvidence: "Bằng chứng trách nhiệm quan sát được",

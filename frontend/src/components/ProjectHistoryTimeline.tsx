@@ -105,9 +105,7 @@ export function ProjectHistoryTimeline({
       </header>
 
       <p className="project-history-time-basis">
-        {projection.time_basis_code === "source_post_created_at_fallback"
-          ? projectHistoryText(locale, "documentTime")
-          : `${projectHistoryText(locale, "timeBasisCode")}: ${projection.time_basis_code}`}
+        {projectHistoryText(locale, "documentTime")}
       </p>
       {projection.truncated ? (
         <p className="project-history-warning" role="status">
@@ -188,7 +186,14 @@ export function ProjectHistoryTimeline({
             </div>
             <div>
               <dt>{projectHistoryText(locale, "timeBasisCode")}</dt>
-              <dd>{selectedEvent.time_basis_code}</dd>
+              <dd>
+                {projectHistoryText(
+                  locale,
+                  selectedEvent.time_basis_code === "document_time"
+                    ? "recordedEventTime"
+                    : "sourceCreationTime",
+                )}
+              </dd>
             </div>
             <div>
               <dt>{projectHistoryText(locale, "sourceStageCode")}</dt>

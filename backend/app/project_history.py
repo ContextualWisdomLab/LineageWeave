@@ -42,6 +42,7 @@ _EVENT_SQL = f"""
 select post.post_id,
        post.post_title,
        post.created_at,
+       post.event_occurred_at,
        post.voc_type_code,
        post.source_stage_code,
        post.source_detail_state_code
@@ -53,13 +54,14 @@ select post.post_id,
    and {_ELIGIBILITY}
    and post.created_at <= $4
    and {_PROJECT_MATCH}
- order by post.created_at, post.post_id
+ order by coalesce(post.event_occurred_at, post.created_at), post.created_at, post.post_id
  limit $5
 """
 _FOCUS_SQL = f"""
 select post.post_id,
        post.post_title,
        post.created_at,
+       post.event_occurred_at,
        post.voc_type_code,
        post.source_stage_code,
        post.source_detail_state_code
@@ -194,7 +196,13 @@ async def fetch_project_history_projection(
             raise ProjectHistoryNotFound(project_key)
         truncated = True
         event_rows = (event_rows[: limit - 1] if limit > 1 else []) + [focus_rows[0]]
-        event_rows.sort(key=lambda row: (row["created_at"], str(row["post_id"])))
+        event_rows.sort(
+            key=lambda row: (
+                row.get("event_occurred_at") or row["created_at"],
+                row["created_at"],
+                str(row["post_id"]),
+            )
+        )
         visible_ids = [str(row["post_id"]) for row in event_rows]
 
     match_rows, role_rows, edge_rows = await _fetch_project_children(

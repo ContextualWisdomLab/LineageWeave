@@ -19,6 +19,7 @@ from unicodedata import normalize
 
 PROJECT_HISTORY_CONTRACT_VERSION = 1
 PROJECT_HISTORY_TIME_BASIS = "source_post_created_at_fallback"
+PROJECT_HISTORY_DOCUMENT_TIME_BASIS = "document_time"
 PROJECT_HISTORY_MAX_DEPTH = 8
 PROJECT_HISTORY_MAX_PATHS_PER_EVENT = 32
 
@@ -213,7 +214,7 @@ def build_project_history_projection(
     maximum_depth: int = PROJECT_HISTORY_MAX_DEPTH,
     maximum_paths_per_event: int = PROJECT_HISTORY_MAX_PATHS_PER_EVENT,
 ) -> dict[str, Any]:
-    """Build the versioned Buyer project-history projection.
+    """Build the versioned project-history projection.
 
     Inputs must already be visible, eligible, and within the requested cutoff.
     Duplicate source rows and role rows are collapsed deterministically. An
@@ -230,11 +231,25 @@ def build_project_history_projection(
     for row in event_rows:
         event_id = str(row["post_id"])
         current = deduplicated.get(event_id)
-        if current is None or (row["created_at"], event_id) < (current["created_at"], event_id):
+        row_clock = row.get("event_occurred_at") or row["created_at"]
+        current_clock = (
+            current.get("event_occurred_at") or current["created_at"]
+            if current is not None
+            else None
+        )
+        if current is None or (row_clock, row["created_at"], event_id) < (
+            current_clock,
+            current["created_at"],
+            event_id,
+        ):
             deduplicated[event_id] = row
     ordered_rows = sorted(
         deduplicated.values(),
-        key=lambda row: (row["created_at"], str(row["post_id"])),
+        key=lambda row: (
+            row.get("event_occurred_at") or row["created_at"],
+            row["created_at"],
+            str(row["post_id"]),
+        ),
     )
     if not ordered_rows:
         raise ValueError("project history requires at least one visible event")
@@ -333,6 +348,12 @@ def build_project_history_projection(
     previous_actor_keys: Sequence[str] | None = None
     for row in ordered_rows:
         event_id = str(row["post_id"])
+        event_occurred_at = row.get("event_occurred_at")
+        time_basis_code = (
+            PROJECT_HISTORY_DOCUMENT_TIME_BASIS
+            if event_occurred_at is not None
+            else PROJECT_HISTORY_TIME_BASIS
+        )
         current_actor_keys = actor_keys_by_event[event_id]
         transition = (
             None
@@ -352,8 +373,8 @@ def build_project_history_projection(
                     is_focus=event_id == effective_focus,
                 ),
                 "event_type_basis_code": "controlled_source_code",
-                "occurred_at": _as_utc(row["created_at"]),
-                "time_basis_code": PROJECT_HISTORY_TIME_BASIS,
+                "occurred_at": _as_utc(event_occurred_at or row["created_at"]),
+                "time_basis_code": time_basis_code,
                 "voc_type_code": row.get("voc_type_code"),
                 "source_stage_code": row.get("source_stage_code"),
                 "source_detail_state_code": row.get("source_detail_state_code"),
@@ -372,7 +393,11 @@ def build_project_history_projection(
         "normalized_project_key": normalized_key,
         "project_name": project_name,
         "focus_event_id": effective_focus,
-        "time_basis_code": PROJECT_HISTORY_TIME_BASIS,
+        "time_basis_code": (
+            PROJECT_HISTORY_DOCUMENT_TIME_BASIS
+            if all(event["time_basis_code"] == PROJECT_HISTORY_DOCUMENT_TIME_BASIS for event in events)
+            else PROJECT_HISTORY_TIME_BASIS
+        ),
         "event_count": len(events),
         "distinct_observed_actor_count": len(distinct_actor_keys),
         "truncated": bool(truncated),

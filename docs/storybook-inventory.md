@@ -34,7 +34,10 @@ World Wide Web Consortium. (2024). *Web Content Accessibility Guidelines
 (WCAG) 2.2* (W3C Recommendation). https://www.w3.org/TR/WCAG22/
 # Project history timeline
 
-`ProjectHistoryTimeline.stories.tsx` covers the evidence-bearing default
+`Projects/History Timeline` covers the evidence-bearing default
 timeline and its exact-value table. Keyboard roving focus, the current event,
 responsibility-evidence gaps, non-causal lineage paths, and source-record
-actions are executable component-test states governed by ADR 0232.
+actions are executable component-test states governed by ADR 0232. The
+1440×1000 and 390×844 audits are retained in
+`docs/screenshots/project-history-time-source-{desktop,mobile}.png`; both show
+the customer-readable time source without exposing the stored basis code.
