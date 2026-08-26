@@ -65,7 +65,7 @@ def test_provider_key_is_not_aliased_as_gateway_transport(monkeypatch) -> None:
         module.main()
 
 
-def test_bootstrap_leaves_embedding_selection_to_the_orchestrator(monkeypatch) -> None:
+def test_bootstrap_registers_operator_configured_embedding_capability(monkeypatch) -> None:
     module = _load_start_module()
     captured: dict[str, object] = {}
 
@@ -141,5 +141,16 @@ def test_bootstrap_leaves_embedding_selection_to_the_orchestrator(monkeypatch) -
     } & os.environ.keys()
     agents = captured["agents"]
     assert isinstance(agents, dict)
-    assert not [agent for agent in agents["agents"] if "embedding" in agent.get("tags", [])]
+    assert [agent for agent in agents["agents"] if "embedding" in agent.get("tags", [])] == [
+        {
+            "id": "gateway_embedding_agent",
+            "model": "text-embedding-3-large",
+            "provider_protocol": "auto",
+            "provider_name": "openai",
+            "base_url": "https://gateway.example/v1",
+            "credential_key": "LLM_GATEWAY_API_KEY",
+            "tags": ["embedding"],
+            "priority": 1,
+        }
+    ]
     assert "LLM_GATEWAY_EMBEDDING_MODEL" not in os.environ
