@@ -71,13 +71,15 @@ def test_script_uses_one_connection_pool_and_closes_resources(
     monkeypatch.setattr(script.asyncpg, "create_pool", create_pool)
     monkeypatch.setattr(script.redis, "from_url", lambda *_args, **_kwargs: client)
     monkeypatch.setattr(script, "enqueue_post_content_backfill", enqueue)
-    monkeypatch.setattr(
-        script,
-        "load_settings",
-        lambda: type(
-            "Settings", (), {"orchestrator_base_url": "https://example.invalid", "orchestrator_api_key": "set"}
-        )(),
+    settings_type = type(
+        "Settings",
+        (),
+        {
+            "orchestrator_base_url": "https://example.invalid",
+            "orchestrator_api_key": "set",
+        },
     )
+    monkeypatch.setattr(script, "load_settings", settings_type)
     result = asyncio.run(
         script.queue_post_content_backfill("postgresql://invalid", "redis://invalid", limit=12)
     )
