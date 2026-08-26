@@ -110,14 +110,19 @@ def test_provider_deadline_accepts_response_larger_than_queue_pipe() -> None:
 def test_provider_deadline_preserves_explicit_audit_session() -> None:
     """A spawned request retains the non-identifying audit correlation id."""
     received_session_id = ""
+    received_metadata: dict[str, object] = {}
     body = b'{"ok":true}'
 
     class Handler(BaseHTTPRequestHandler):
         def do_POST(self) -> None:  # noqa: N802
-            nonlocal received_session_id
+            nonlocal received_metadata, received_session_id
             received_session_id = self.headers.get(
                 "x-lineageweave-session-id", ""
             )
+            received = json.loads(
+                self.rfile.read(int(self.headers.get("Content-Length", "0")))
+            )
+            received_metadata = received.get("metadata", {})
             self.send_response(200)
             self.send_header("Content-Type", "application/json")
             self.send_header("Content-Length", str(len(body)))
@@ -144,6 +149,7 @@ def test_provider_deadline_preserves_explicit_audit_session() -> None:
 
     assert result == {"ok": True}
     assert received_session_id == "semantic-audit:synthetic"
+    assert received_metadata == {"session_id": "semantic-audit:synthetic"}
 
 
 def test_audit_contract_distinguishes_instance_data_from_schema_gaps() -> None:

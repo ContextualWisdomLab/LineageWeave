@@ -22,6 +22,7 @@ from rdflib import Graph, URIRef
 from rdflib.namespace import OWL, RDF, RDFS, SKOS
 
 from lineageweave.http_client import chat_completion_content, post_json
+from lineageweave.llm_context import use_llm_metadata
 from lineageweave.prov_o import (
     PROV,
     PROV_CLASSES,
@@ -601,7 +602,15 @@ def _post_json_worker(
 ) -> None:
     """Run one provider request in a terminable child process."""
     try:
-        result_queue.put((True, post_json(endpoint, payload, headers=headers, timeout=timeout)))
+        session_id = headers.get("x-lineageweave-session-id", "")
+        if session_id:
+            with use_llm_metadata({"session_id": session_id}):
+                response = post_json(
+                    endpoint, payload, headers=headers, timeout=timeout
+                )
+        else:
+            response = post_json(endpoint, payload, headers=headers, timeout=timeout)
+        result_queue.put((True, response))
     except Exception as exc:
         result_queue.put((False, type(exc).__name__))
 

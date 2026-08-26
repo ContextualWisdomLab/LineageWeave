@@ -123,8 +123,9 @@ Repository artifacts must not retain the private titles.
    a peer that keeps a connection active cannot leave the attempt indefinitely
    `in_progress`. Because process spawning does not inherit request context,
    every provider call carries the same non-identifying audit session id,
-   derived from the selection, design, and ontology hashes and recorded in the
-   attempt artifact, so orchestration trace and execution PROV stay correlated.
+   derived from the selection, design, and ontology hashes, through the HTTP
+   header, request metadata, local telemetry, and attempt artifact, so
+   orchestration trace and execution PROV stay correlated.
 10. The model receives the locally validated semantic-dimension support
     profile, not the entire ontology inventory. It classifies source meaning
     into governed dimensions but never selects terms or decides coverage.
