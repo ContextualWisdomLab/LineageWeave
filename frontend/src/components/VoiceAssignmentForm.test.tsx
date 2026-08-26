@@ -59,19 +59,19 @@ describe("VoiceAssignmentForm", () => {
     render(
       <VoiceAssignmentForm
         voices={[]}
-        options={[{ code: "vreg", label: "Voice of Regulator" }]}
+        options={[{ code: "vor", label: "Voice of Regulator" }]}
         onSave={vi.fn().mockRejectedValue(new Error("Evidence is no longer visible."))}
       />,
     );
 
-    fireEvent.change(screen.getByLabelText("Perspective"), { target: { value: "vreg" } });
+    fireEvent.change(screen.getByLabelText("Perspective"), { target: { value: "vor" } });
     fireEvent.change(screen.getByLabelText("Evidence status"), {
       target: { value: "truth_proposed" },
     });
     fireEvent.click(screen.getByRole("button", { name: "Connect perspective" }));
 
     expect(await screen.findByRole("alert")).toHaveTextContent("Evidence is no longer visible.");
-    expect(screen.getByLabelText("Perspective")).toHaveValue("vreg");
+    expect(screen.getByLabelText("Perspective")).toHaveValue("vor");
     expect(screen.getByLabelText("Evidence status")).toHaveValue("truth_proposed");
   });
 });

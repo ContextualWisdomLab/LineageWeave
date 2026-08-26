@@ -47,7 +47,7 @@ export const RejectedEvidence: Story = {
     voices: [
       ...meta.args.voices,
       {
-        code: "vreg",
+        code: "vor",
         label: "Voice of Regulator",
         is_primary: false,
         truth_status_code: "truth_rejected",

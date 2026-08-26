@@ -20,7 +20,7 @@ const meta = {
     options: [
       { code: "voc", label: "Voice of Customer" },
       { code: "vops", label: "Voice of Process" },
-      { code: "vreg", label: "Voice of Regulator" },
+      { code: "vor", label: "Voice of Regulator" },
     ],
     onSave: fn().mockResolvedValue(undefined),
   },

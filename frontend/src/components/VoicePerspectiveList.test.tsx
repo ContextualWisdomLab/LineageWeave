@@ -23,7 +23,7 @@ describe("VoicePerspectiveList", () => {
             evidence_available: true,
           },
           {
-            code: "vreg",
+            code: "vor",
             label: "Voice of Regulator",
             is_primary: false,
             truth_status_code: "truth_rejected",
