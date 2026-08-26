@@ -3811,9 +3811,10 @@ describe("App, authenticated", () => {
     expect(
       await screen.findByText("These posts are the cutoff corpus this TEPP run measured."),
     ).toBeInTheDocument();
-    expect(screen.getByLabelText("TEPP accepted receipt")).toHaveTextContent(
-      "TEPP accepted remote run tepp-remote-run-1",
+    expect(screen.getByLabelText("Measurement request accepted")).toHaveTextContent(
+      "Refresh this run to check whether results are ready.",
     );
+    expect(screen.queryByText("tepp-remote-run-1")).not.toBeInTheDocument();
     expect(screen.queryByText(/replace Failed/i)).not.toBeInTheDocument();
   });
 

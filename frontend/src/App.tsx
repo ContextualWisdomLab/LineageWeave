@@ -3181,9 +3181,7 @@ function AnalysisRunsPanel({
             Requested {selected.requested_at.slice(0, 10)}
           </p>
           {selected.tepp_accepted_receipt && (
-            <TeppAcceptedReceipt
-              remoteRunId={selected.tepp_accepted_receipt.remote_run_id}
-            />
+            <TeppAcceptedReceipt />
           )}
           <AnalysisRunReproducibilityDigests
             codeRevisionSha={selected.code_revision_sha}

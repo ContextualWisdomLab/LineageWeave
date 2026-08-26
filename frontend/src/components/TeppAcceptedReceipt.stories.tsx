@@ -6,7 +6,6 @@ import "../App.css";
 const meta = {
   title: "Analysis/TeppAcceptedReceipt",
   component: TeppAcceptedReceipt,
-  args: { remoteRunId: "tepp-run-synthetic-001" },
   parameters: { layout: "padded" },
 } satisfies Meta<typeof TeppAcceptedReceipt>;
 
@@ -15,8 +14,8 @@ type Story = StoryObj<typeof meta>;
 
 export const Accepted: Story = {
   play: async ({ canvasElement }) => {
-    const receipt = within(canvasElement).getByLabelText("TEPP accepted receipt");
-    await expect(receipt).toHaveTextContent("tepp-run-synthetic-001");
-    await expect(receipt).not.toHaveTextContent(/measurement|succeeded/i);
+    const receipt = within(canvasElement).getByLabelText("Measurement request accepted");
+    await expect(receipt).toHaveTextContent("Refresh this run");
+    await expect(receipt).not.toHaveTextContent(/TEPP|remote|identifier|succeeded/i);
   },
 };
