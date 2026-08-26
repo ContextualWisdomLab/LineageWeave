@@ -111,6 +111,17 @@ def test_public_verification_requires_public_capability_and_internal_citation() 
     assert client.calls == 0
 
 
+def test_no_public_claim_next_action_opens_authorized_evidence() -> None:
+    """Customer copy names the evidence action, not an internal boundary."""
+
+    next_action = global_ask_queue._verification_next_action(
+        cv.VERIFICATION_NO_PUBLIC_CLAIMS
+    )
+
+    assert next_action == "Inspect the authorized cited posts and their evidence."
+    assert "internal" not in next_action.lower()
+
+
 def test_public_verification_keeps_external_urls_out_of_internal_citations() -> None:
     """A verified URL remains external evidence, never a cited post id."""
 

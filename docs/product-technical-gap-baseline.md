@@ -47,6 +47,17 @@ named volumes.
 | Temporal Lineage topics and multilevel important posts | ADR 0210; TEPP posterior topic/plausible-value contract followed by fast-mlsirm observed-information case-deletion influence | This stacked candidate adds normalized persistence, exact run/snapshot/cutoff binding, pre-aggregation scope authorization, API diagnostics, and populated/unavailable Storybook surfaces. TEPP PR #247 remains open at `063f10f3`; stacked #251–#254 provide fail-closed input validation, full joint precision, deterministic joint plausible-value draws, and the canonical research register, while complete provenance assembly remains gated. fast-mlsirm PR #1418 validates the Rust consumer envelope but intentionally returns `EstimatorUnavailable` until the scientific estimator lands. Runtime therefore remains honestly unavailable with no local Python or fallback score. |
 | PostgreSQL WAL/checkpoint pressure | ADR 0227; aligned two-snapshot `pg_stat_wal`/checkpoint deltas, PostgreSQL WAL-segment and checkpoint constraints, cgroup memory, and data-volume space | Candidate procedure emits a content-authenticated plan and Compose environment, retains unmeasured memory/I/O/compression settings, preserves durability, validates the overlay without mutation, rejects stale preconditions, and requires an approved service recreation for apply or rollback. The observed CPU-bound GIN scan remains distinct from historical checkpoint pressure; canonical runtime application waits for the active migration to complete. |
 
+Customer-copy audit at #640 exact `c142c4ea` retained the ADR-required
+measurement-administrator terms and explicit ontology/provenance inspection
+labels. Two general-reader gaps were isolated: Customer Master explained the
+ontology/semantic implementation boundary instead of the evidence action, and
+Global Ask called authorized workspace evidence "internal" posts. The stacked
+copy repair tells the reader to compare the source identifier with related
+posts and organization evidence, and reuses the authorized-citation action.
+Five-locale consistency, rendered component tests, and desktop/narrow
+Storybook scenes cover the repair. `프로젝트별 관측 Event` and ADR 0210's exact
+`model influence` estimand name remain unchanged.
+
 ### Technical contract and flow
 
 ```mermaid

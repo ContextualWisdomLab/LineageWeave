@@ -2097,6 +2097,20 @@ describe("App, authenticated", () => {
     expect(screen.queryByText("our_side", { exact: true })).not.toBeInTheDocument();
   });
 
+  it("tells the customer-master reader what evidence to confirm without implementation terms", async () => {
+    stubBackend({ hintRelatedPosts: true });
+    render(<App />);
+    expect(await screen.findByRole("button", { name: "View post: Public post" })).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "고객 마스터" }));
+
+    expect(
+      await screen.findByText(
+        "Before linking a customer, compare the source identifier with the related posts and organization evidence.",
+      ),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/ontology and semantic evidence/i)).not.toBeInTheDocument();
+  });
+
   it("nests a corporate entity under its parent instead of a flat list", async () => {
     // Live bug (2026-08-19): corporate_entities already carries
     // parent_entity_id and the codebase already builds a real forest from
