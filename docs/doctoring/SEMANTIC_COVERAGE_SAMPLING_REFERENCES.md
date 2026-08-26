@@ -18,6 +18,8 @@ NIST supplies the proportion sample-size relationship and finite-population
 correction; ABS defines probability sampling as requiring determinable
 selection probabilities and stratified sampling as independent random
 selection within strata. ADR 0242 keeps LineageWeave at structural sample
-identity and completeness validation. Its current output is sample-level only;
-corpus inference remains unavailable until a versioned Rust owner artifact
-attests the estimand, estimator, variance, and achieved interval.
+identity and completeness validation and replays the versioned fast-mlsirm
+Rust artifact for sample size, finite-population correction, and allocation.
+Its current output is sample-level only; corpus inference remains unavailable
+until a terminal Rust owner artifact attests the achieved estimand, estimator,
+variance, and interval.

@@ -64,10 +64,13 @@ Repository artifacts must not retain the private titles.
    `n = n0 / (1 + (n0 - 1) / N)`. Stratified designs determine sample size per
    stratum. LineageWeave neither evaluates those equations nor derives sample
    weights: a versioned, SHA-256-bound `ContextualWisdomLab/fast-mlsirm` Rust
-   artifact owns that arithmetic. Until an immutable published artifact proves
-   its source identity and attests the declared design, allocation, inclusion
-   probabilities, estimand, estimator, variance, and achieved interval, the
-   script emits a complete sample audit with
+   artifact owns that arithmetic. The audit replays the complete Rust-owned
+   design artifact and requires its population, ordered stratum populations,
+   total sample size, and stratum allocations to match the separately bound
+   selection manifest. The artifact accepts no caller hash or selected
+   membership. Until a later immutable terminal artifact also attests the
+   estimand, estimator, variance, and achieved interval, the script emits a
+   complete sample audit with
    `corpus_inference_available=false`. Caller-recomputed hashes do not
    establish Rust provenance or authorize corpus inference. Confidence,
    margin, prior-proportion, or interval fields are not accepted as proof when
@@ -83,9 +86,10 @@ An HTTP 200 can no longer turn a partial classification into coverage evidence.
 The audit remains unavailable when contextual-orchestrator cannot complete all
 batches, preserving failures in the declared denominator instead of silently
 shrinking the sample. The observed 80-record result remains exploratory pipeline
-acceptance evidence. Even a complete probability sample remains sample-audit
-evidence until the published Rust inferential artifact and its immutable
-verification boundary ship.
+acceptance evidence. The Rust design artifact proves sample-size,
+finite-population-correction, and allocation provenance only. Even a complete
+probability sample remains sample-audit evidence until a terminal Rust artifact
+also proves the achieved estimator, variance, and interval.
 
 ## References
 

@@ -1,8 +1,11 @@
 import hashlib
 import json
+from copy import deepcopy
+from dataclasses import asdict
 from pathlib import Path
 
 import pytest
+from fast_mlsirm import SamplingStratum, finite_population_proportion_design
 
 from scripts.audit_source_content_semantics import (
     _ontology_terms,
@@ -11,6 +14,7 @@ from scripts.audit_source_content_semantics import (
     parse_batch_result,
     selected_contents,
     validate_probability_sample_manifest,
+    validate_sampling_design_artifact,
 )
 
 _TERM_IRI = "https://example.test/ontology#Event"
@@ -26,6 +30,12 @@ def test_cli_defaults_to_the_internal_orchestrator_credential() -> None:
     )
 
     assert action.default == "CONTEXTUAL_ORCHESTRATOR_TOKEN"
+    design_action = next(
+        action
+        for action in _parser()._actions
+        if action.dest == "sample_design_artifact_file"
+    )
+    assert design_action.required is True
 
 
 def _probability_manifest() -> dict[str, object]:
@@ -72,6 +82,18 @@ def _probability_manifest() -> dict[str, object]:
         ).encode()
     ).hexdigest()
     return manifest
+
+
+def _rust_design_artifact() -> dict[str, object]:
+    """Return the Rust-owned design matching the synthetic sample manifest."""
+    design = finite_population_proportion_design(
+        1000,
+        0.95,
+        0.1055,
+        [SamplingStratum(600, 0.5), SamplingStratum(400, 0.5)],
+        allocation_method="proportional",
+    )
+    return json.loads(json.dumps(asdict(design), sort_keys=True))
 
 
 def test_parser_rejects_the_observed_100_to_60_cardinality_mismatch() -> None:
@@ -193,6 +215,63 @@ def test_probability_sample_manifest_preserves_design_evidence() -> None:
         "corpus_inference_available": False,
     }
     assert len(membership) == 80
+
+
+def test_rust_sampling_design_replays_and_binds_the_manifest() -> None:
+    """Caller hashes cannot replace exact package-owned Rust replay evidence."""
+    manifest = _probability_manifest()
+    artifact = _rust_design_artifact()
+
+    result = validate_sampling_design_artifact(artifact, manifest)
+
+    assert result["sampling_design_verified"] is True
+    assert result["corpus_inference_available"] is False
+    assert result["artifact_sha256"] == artifact["artifact_sha256"]
+    artifact["sample_size"] = 79
+    with pytest.raises(ValueError, match="Rust replay"):
+        validate_sampling_design_artifact(artifact, manifest)
+
+
+def test_rust_sampling_design_rejects_every_unbound_boundary() -> None:
+    """Malformed, unreplayable, or manifest-divergent artifacts fail closed."""
+    manifest = _probability_manifest()
+    artifact = _rust_design_artifact()
+
+    wrong_fields = deepcopy(artifact)
+    wrong_fields.pop("source_sha256")
+    with pytest.raises(ValueError, match="fields"):
+        validate_sampling_design_artifact(wrong_fields, manifest)
+
+    no_strata = deepcopy(artifact)
+    no_strata["strata"] = []
+    with pytest.raises(ValueError, match="ordered strata"):
+        validate_sampling_design_artifact(no_strata, manifest)
+
+    malformed_stratum = deepcopy(artifact)
+    malformed_stratum["strata"][0]["unsupported"] = True
+    with pytest.raises(ValueError, match="strata are invalid"):
+        validate_sampling_design_artifact(malformed_stratum, manifest)
+
+    unreplayable = deepcopy(artifact)
+    unreplayable["allocation_method"] = "caller_guess"
+    with pytest.raises(ValueError, match="cannot be replayed"):
+        validate_sampling_design_artifact(unreplayable, manifest)
+
+    missing_manifest_strata = deepcopy(manifest)
+    missing_manifest_strata["strata"] = None
+    with pytest.raises(TypeError, match="strata are unavailable"):
+        validate_sampling_design_artifact(artifact, missing_manifest_strata)
+
+    wrong_total = deepcopy(manifest)
+    wrong_total["sample_size"] = 79
+    with pytest.raises(ValueError, match="totals"):
+        validate_sampling_design_artifact(artifact, wrong_total)
+
+    wrong_allocation = deepcopy(manifest)
+    wrong_allocation["strata"][0]["sample_size"] = 47
+    wrong_allocation["strata"][1]["sample_size"] = 33
+    with pytest.raises(ValueError, match="allocation"):
+        validate_sampling_design_artifact(artifact, wrong_allocation)
 
 
 @pytest.mark.parametrize(

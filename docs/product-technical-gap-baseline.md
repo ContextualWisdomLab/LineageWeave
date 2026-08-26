@@ -52,6 +52,12 @@ LineageWeave validates sample identity and completeness but deliberately emits
 `corpus_inference_available=false`: the current manifest does not contain an
 immutable estimator, variance, or achieved-interval artifact and therefore
 cannot support a corpus coverage estimate.
+The current candidate consumer separately replays the immutable
+`fast-mlsirm.sampling-design.v1` Rust artifact and binds its population,
+ordered stratum populations, total sample size, and allocation to the selected
+frame manifest. That proves design arithmetic provenance, not achieved
+semantic-coverage inference; `corpus_inference_available` remains false until a
+terminal Rust artifact also attests the estimator, variance, and interval.
 
 A runtime-only simple random sample without replacement then selected 100 new
 records from an eligible frame of 43,714. The pre-augmentation audit accepted

@@ -10,9 +10,10 @@ import os
 import re
 from collections import Counter
 from collections.abc import Mapping, Sequence
+from dataclasses import asdict
 from decimal import Decimal
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 import asyncpg
 from rdflib import Graph, URIRef
@@ -212,6 +213,95 @@ def validate_probability_sample_manifest(
         },
         tuple(membership),
     )
+
+
+def validate_sampling_design_artifact(
+    payload: object, sample_manifest: Mapping[str, object]
+) -> dict[str, object]:
+    """Replay and bind a package-owned Rust sampling-design artifact."""
+    from fast_mlsirm import SamplingStratum, finite_population_proportion_design
+
+    required = {
+        "schema_version",
+        "source_identity",
+        "source_sha256",
+        "algorithm_version",
+        "population_size",
+        "expected_proportion",
+        "confidence_level",
+        "margin_of_error",
+        "critical_value",
+        "uncorrected_sample_size",
+        "sample_size",
+        "finite_population_correction",
+        "allocation_method",
+        "strata",
+        "stratum_sample_sizes",
+        "input_sha256",
+        "output_sha256",
+        "artifact_sha256",
+    }
+    if not isinstance(payload, dict) or set(payload) != required:
+        raise ValueError("sampling design fields do not match the Rust artifact contract")
+    strata = payload["strata"]
+    if not isinstance(strata, list) or not strata:
+        raise ValueError("sampling design artifact requires ordered strata")
+    if any(
+        not isinstance(stratum, dict)
+        or set(stratum) != {"population_size", "expected_proportion"}
+        for stratum in strata
+    ):
+        raise ValueError("sampling design artifact strata are invalid")
+    try:
+        replay = finite_population_proportion_design(
+            payload["population_size"],
+            payload["confidence_level"],
+            payload["margin_of_error"],
+            [
+                SamplingStratum(
+                    stratum["population_size"], stratum["expected_proportion"]
+                )
+                for stratum in strata
+            ],
+            allocation_method=payload["allocation_method"],
+        )
+    except (TypeError, ValueError) as exc:
+        raise ValueError("sampling design artifact cannot be replayed by Rust") from exc
+    replay_payload = json.loads(json.dumps(asdict(replay), sort_keys=True))
+    if payload != replay_payload:
+        raise ValueError("sampling design artifact does not match Rust replay")
+
+    manifest_strata = sample_manifest.get("strata")
+    if not isinstance(manifest_strata, list):
+        raise TypeError("sample manifest strata are unavailable for design binding")
+    if payload["population_size"] != sample_manifest.get("population_size") or payload[
+        "sample_size"
+    ] != sample_manifest.get("sample_size"):
+        raise ValueError("sampling design artifact totals do not match the sample manifest")
+    if [stratum["population_size"] for stratum in strata] != [
+        stratum.get("population_size")
+        for stratum in manifest_strata
+        if isinstance(stratum, dict)
+    ] or payload["stratum_sample_sizes"] != [
+        stratum.get("sample_size")
+        for stratum in manifest_strata
+        if isinstance(stratum, dict)
+    ]:
+        raise ValueError("sampling design artifact allocation does not match the sample manifest")
+    return {
+        "schema_version": payload["schema_version"],
+        "source_identity": payload["source_identity"],
+        "source_sha256": payload["source_sha256"],
+        "algorithm_version": payload["algorithm_version"],
+        "input_sha256": payload["input_sha256"],
+        "output_sha256": payload["output_sha256"],
+        "artifact_sha256": payload["artifact_sha256"],
+        "confidence_level": payload["confidence_level"],
+        "margin_of_error": payload["margin_of_error"],
+        "sample_size": payload["sample_size"],
+        "sampling_design_verified": True,
+        "corpus_inference_available": False,
+    }
 
 
 def parse_batch_result(
@@ -417,6 +507,7 @@ async def audit_source_content(
     query: str,
     sample_size: int,
     sample_manifest: object,
+    sample_design_artifact: object,
     batch_size: int,
     ontology_path: Path,
     gateway_url: str,
@@ -430,6 +521,9 @@ async def audit_source_content(
         )
     sample_design, selected_membership = validate_probability_sample_manifest(
         sample_manifest, sample_size
+    )
+    sample_design["rust_artifact"] = validate_sampling_design_artifact(
+        sample_design_artifact, cast(Mapping[str, object], sample_manifest)
     )
     connection = await asyncpg.connect(source_dsn)
     try:
@@ -495,6 +589,7 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument("--query-file", type=Path, required=True)
     parser.add_argument("--sample-size", type=int, required=True)
     parser.add_argument("--sample-manifest-file", type=Path, required=True)
+    parser.add_argument("--sample-design-artifact-file", type=Path, required=True)
     parser.add_argument("--batch-size", type=int, default=10)
     parser.add_argument(
         "--ontology-path",
@@ -522,6 +617,9 @@ def main() -> None:
             sample_size=args.sample_size,
             sample_manifest=json.loads(
                 args.sample_manifest_file.read_text(encoding="utf-8")
+            ),
+            sample_design_artifact=json.loads(
+                args.sample_design_artifact_file.read_text(encoding="utf-8")
             ),
             batch_size=args.batch_size,
             ontology_path=args.ontology_path,
