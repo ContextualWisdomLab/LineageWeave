@@ -147,9 +147,9 @@ def validate_shapes_graph(shapes: Graph, canonical: Graph) -> None:
     """Reject SHACL shapes whose targets dangle outside the ontology.
 
     A shape that targets a class absent from the canonical graph, or
-    constrains a path neither declared there nor one of RDF's three
-    reification predicates, would silently validate nothing -- the
-    publication boundary refuses it instead (ADR 0207 decision 10).
+    constrains a path neither declared there nor an allowlisted RDF
+    reification/PROV-O provenance predicate, would silently validate nothing
+    -- the publication boundary refuses it instead (ADR 0207 decision 10).
     Only URI-valued targets and paths are checked; literal sh:path values
     are not part of this contract.
     """
