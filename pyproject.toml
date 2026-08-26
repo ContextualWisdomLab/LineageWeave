@@ -51,12 +51,11 @@ backend = [
   # Speaks RESP; works against Valkey (a Redis-protocol-compatible fork)
   # as well as real Redis. Used for the post-activity event stream.
   "redis>=5.0.0",
-  # LLM-as-a-Judge -> IRT -> Fixed-Item Parameter Calibration for the
-  # weekly/monthly PU/team/project reports (ADR 0003). No PyPI release
-  # yet; pinned to a specific commit, same pattern as rankweave. Ships a
-  # PyO3/maturin Rust core with no fallback wheel, so building this from
-  # source needs a Rust toolchain -- see backend/Dockerfile.
-  "fast-mlsirm @ git+https://github.com/ContextualWisdomLab/fast-mlsirm.git@256470c7d1df4910a018841499a74d88b751a774",
+  # Owner arithmetic plus the fail-closed TEPP lineage criterion consumer
+  # contract (ADR 0208). The exact commit is immutable; it still exposes no
+  # channel-weight result until independent pair-level posterior evidence is
+  # available. PyO3/maturin source builds need the pinned Rust toolchain.
+  "fast-mlsirm @ git+https://github.com/ContextualWisdomLab/fast-mlsirm.git@b3d85c35856fa8f7376821084f93292d0dea0407",
 ]
 
 [tool.setuptools.packages.find]
