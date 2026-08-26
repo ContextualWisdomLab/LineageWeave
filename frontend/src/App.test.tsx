@@ -649,7 +649,7 @@ describe("App, authenticated", () => {
               JSON.stringify({
                 detail:
                   payload.run_kind_code === "analysis_run_tepp"
-                    ? "Connect a TEPP transport from a Failed TEPP row; this endpoint does not invent a measurement."
+                    ? "Ask an administrator to restore temporal measurement, then re-run this source set."
                     : "Rebuild the period report from the Reports panel.",
               }),
               { status: 422, headers: { "Content-Type": "application/json" } },
@@ -3248,10 +3248,10 @@ describe("App, authenticated", () => {
     expect(await screen.findByRole("heading", { name: "Analysis runs" })).toBeInTheDocument();
     const list = screen.getByRole("list", { name: "Analysis runs" });
     expect(list).toHaveTextContent("Lineage reconstruction · Succeeded · Demo Corp");
-    expect(list).toHaveTextContent("TEPP measurement · Failed · Demo Corp");
+    expect(list).toHaveTextContent("Temporal measurement · Failed · Demo Corp");
     expect(list).toHaveTextContent("Period report · Succeeded · Demo Corp");
     expect(list).toHaveTextContent(
-      "Open this run to see why it failed, then connect the measurement service and re-run.",
+      "Open this run to review the failure, ask an administrator to restore analysis, then re-run.",
     );
     expect(list).toHaveTextContent("3 documents");
     expect(list).not.toHaveTextContent("postgresql://");
@@ -3341,15 +3341,15 @@ describe("App, authenticated", () => {
 
     await userEvent.click(
       screen.getByRole("button", {
-        name: "Open analysis run: TEPP measurement · Failed · Demo Corp",
+        name: "Open analysis run: Temporal measurement · Failed · Demo Corp",
       }),
     );
     expect(
-      await screen.findByRole("heading", { name: "TEPP measurement · Failed · Demo Corp" }),
+      await screen.findByRole("heading", { name: "Temporal measurement · Failed · Demo Corp" }),
     ).toBeInTheDocument();
     const teppHistory = screen.getByRole("list", { name: "Analysis run status history" });
     expect(teppHistory).toHaveTextContent("Failed 2026-01-12 12:37 · tepp_not_available");
-    expect(screen.getByText(/cutoff corpus TEPP would measure/i)).toBeInTheDocument();
+    expect(screen.getByText(/source set temporal measurement would measure/i)).toBeInTheDocument();
     expect(teppHistory).not.toHaveTextContent("Succeeded");
   });
 
@@ -3401,7 +3401,7 @@ describe("App, authenticated", () => {
     expect(screen.queryByRole("heading", { name: "Body this run knew" })).not.toBeInTheDocument();
   });
 
-  it("tells a running lineage run to refresh the durable outbox", async () => {
+  it("tells a running lineage run to refresh its progress", async () => {
     stubBackend({ runningLineageRun: true });
     render(<App showLabPanels />);
 
@@ -3409,12 +3409,12 @@ describe("App, authenticated", () => {
       name: "Open analysis run: Lineage reconstruction · Running · Demo Corp",
     });
     expect(lineageButton).toHaveTextContent(
-      "Refresh this run. Start already queued the work on the durable outbox.",
+      "Refresh this run to see the latest progress.",
     );
     await userEvent.click(lineageButton);
     expect(screen.getByRole("button", { name: "Start reconstruction" })).toBeInTheDocument();
     expect(
-      screen.getAllByText("Refresh this run. Start already queued the work on the durable outbox."),
+      screen.getAllByText("Refresh this run to see the latest progress."),
     ).not.toHaveLength(0);
   });
 
@@ -3427,14 +3427,14 @@ describe("App, authenticated", () => {
       name: "Open analysis run: Lineage reconstruction · Failed · Demo Corp",
     });
     const teppButton = screen.getByRole("button", {
-      name: "Open analysis run: TEPP measurement · Failed · Demo Corp",
+      name: "Open analysis run: Temporal measurement · Failed · Demo Corp",
     });
     expect(lineageButton).toHaveTextContent(
       "Open this run to see why it failed, then retry reconstruction from a current snapshot.",
     );
     expect(lineageButton).not.toHaveTextContent("measurement service");
     expect(teppButton).toHaveTextContent(
-      "Open this run to see why it failed, then connect the measurement service and re-run.",
+      "Open this run to review the failure, ask an administrator to restore analysis, then re-run.",
     );
     expect(teppButton).not.toHaveTextContent("reconstruction");
   });
@@ -3734,17 +3734,17 @@ describe("App, authenticated", () => {
 
     await userEvent.click(
       await screen.findByRole("button", {
-        name: "Open analysis run: TEPP measurement · Pending · Demo Corp",
+        name: "Open analysis run: Temporal measurement · Pending · Demo Corp",
       }),
     );
     expect(
-      await screen.findByText("These posts are the cutoff corpus TEPP will measure once this run finishes."),
+      await screen.findByText("These posts are the cutoff corpus temporal measurement will measure once this run finishes."),
     ).toBeInTheDocument();
     expect(screen.queryByText(/replace Failed/i)).not.toBeInTheDocument();
-    expect(screen.queryByText(/this TEPP run measured/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/this temporal measurement run measured/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/Reconstruction has not started yet/)).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Start reconstruction" })).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Start TEPP measurement" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Start temporal measurement" })).toBeInTheDocument();
   });
 
   it("starts a pending TEPP run through tepp_client and does not invent a theta", async () => {
@@ -3753,12 +3753,12 @@ describe("App, authenticated", () => {
 
     await userEvent.click(
       await screen.findByRole("button", {
-        name: "Open analysis run: TEPP measurement · Pending · Demo Corp",
+        name: "Open analysis run: Temporal measurement · Pending · Demo Corp",
       }),
     );
-    await userEvent.click(screen.getByRole("button", { name: "Start TEPP measurement" }));
+    await userEvent.click(screen.getByRole("button", { name: "Start temporal measurement" }));
     expect(
-      await screen.findByRole("heading", { name: "TEPP measurement · Failed · Demo Corp" }),
+      await screen.findByRole("heading", { name: "Temporal measurement · Failed · Demo Corp" }),
     ).toBeInTheDocument();
     expect(screen.getByText(/tepp_not_available/)).toBeInTheDocument();
     expect(screen.queryByText(/theta/i)).not.toBeInTheDocument();
@@ -3775,16 +3775,16 @@ describe("App, authenticated", () => {
 
     await userEvent.click(
       await screen.findByRole("button", {
-        name: "Open analysis run: TEPP measurement · Failed · Demo Corp",
+        name: "Open analysis run: Temporal measurement · Failed · Demo Corp",
       }),
     );
     expect(
       await screen.findByText(
-        "Connect a TEPP transport from this Failed row. Request a lineage reconstruction does not invent a measurement.",
+        "Ask an administrator to restore temporal measurement, then re-run this source set.",
       ),
     ).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Request a new TEPP measurement" })).not.toBeInTheDocument();
-    expect(screen.queryByRole("heading", { name: "TEPP measurement · Pending · Demo Corp" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "Temporal measurement · Pending · Demo Corp" })).not.toBeInTheDocument();
     expect(
       fetchMock.mock.calls.some(
         (call) => String(call[0]).endsWith("/api/analysis-runs") && call[1]?.method === "POST",
@@ -3798,11 +3798,11 @@ describe("App, authenticated", () => {
 
     await userEvent.click(
       await screen.findByRole("button", {
-        name: "Open analysis run: TEPP measurement · Succeeded · Demo Corp",
+        name: "Open analysis run: Temporal measurement · Succeeded · Demo Corp",
       }),
     );
     expect(
-      await screen.findByText("These posts are the cutoff corpus this TEPP run measured."),
+      await screen.findByText("These posts are the cutoff corpus this temporal measurement run measured."),
     ).toBeInTheDocument();
     expect(screen.queryByText(/replace Failed/i)).not.toBeInTheDocument();
   });

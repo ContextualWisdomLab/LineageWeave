@@ -2654,7 +2654,13 @@ function PostDetailPopup({
 }
 
 function analysisRunCaption(run: AnalysisRun): string {
-  return [run.run_kind_label, run.status_label, run.scope_entity_name ?? run.scope_kind_label]
+  const kindLabel =
+    run.run_kind_code === "analysis_run_tepp"
+      ? "Temporal measurement"
+      : run.run_kind_code === "analysis_run_topic_lineage"
+        ? "Topic journey analysis"
+        : run.run_kind_label;
+  return [kindLabel, run.status_label, run.scope_entity_name ?? run.scope_kind_label]
     .filter(Boolean)
     .join(" · ");
 }
@@ -2674,9 +2680,9 @@ function analysisRunNextAction(run: AnalysisRun): string | null {
         case "analysis_run_lineage":
           return "Open this run, then start reconstruction. Reconstruction has not started yet.";
         case "analysis_run_tepp":
-          return "Open this run to confirm which posts TEPP will measure. Measurement has not started yet — this is not a calibrated result.";
+          return "Open this run to confirm the source posts, then start temporal measurement.";
         case "analysis_run_topic_lineage":
-          return "Open this run to confirm which posts TEPP will thread into topic lineage. Topic-lineage analysis has not started yet — this is not a calibrated topic result.";
+          return "Open this run to confirm the source posts, then start topic journey analysis.";
         case "analysis_run_report":
           return "Open this run to confirm which posts the period report will use. The report has not been built yet.";
         default: {
@@ -2687,9 +2693,9 @@ function analysisRunNextAction(run: AnalysisRun): string | null {
     case "analysis_status_failed":
       switch (run.run_kind_code) {
         case "analysis_run_tepp":
-          return "Open this run to see why it failed, then connect the measurement service and re-run.";
+          return "Open this run to review the failure, ask an administrator to restore analysis, then re-run.";
         case "analysis_run_topic_lineage":
-          return "Open this run to see why it failed, then connect the TEPP transport and re-run.";
+          return "Open this run to review the failure, ask an administrator to restore analysis, then re-run.";
         case "analysis_run_lineage":
           return "Open this run to see why it failed, then retry reconstruction from a current snapshot.";
         case "analysis_run_report":
@@ -2700,7 +2706,7 @@ function analysisRunNextAction(run: AnalysisRun): string | null {
         }
       }
     case "analysis_status_running":
-      return "Refresh this run. Start already queued the work on the durable outbox.";
+      return "Refresh this run to see the latest progress.";
     case "analysis_status_succeeded":
     case "analysis_status_cancelled":
     case null:
@@ -2719,7 +2725,7 @@ function analysisRunEmptyPostsHint(run: AnalysisRun): string {
   switch (run.run_kind_code) {
     case "analysis_run_tepp":
       return (
-        "No posts were available at this cutoff for TEPP to measure. " +
+        "No posts were available at this cutoff for temporal measurement. " +
         "Open a later run, or ask an administrator to capture a newer snapshot."
       );
     case "analysis_run_topic_lineage":
@@ -2753,15 +2759,15 @@ function analysisRunEmptyPostsHint(run: AnalysisRun): string {
 function analysisRunCorpusHint(run: AnalysisRun): string | null {
   const isTopicLineage = run.run_kind_code === "analysis_run_topic_lineage";
   if (run.run_kind_code !== "analysis_run_tepp" && !isTopicLineage) return null;
-  const service = isTopicLineage ? "topic-lineage" : "TEPP";
-  const result = isTopicLineage ? "a topic-identity result" : "a calibrated result";
+  const service = isTopicLineage ? "topic journey analysis" : "temporal measurement";
+  const result = isTopicLineage ? "a topic journey result" : "a calibrated result";
   const verb = isTopicLineage ? "thread" : "measure";
   const verbPast = isTopicLineage ? "threaded" : "measured";
   switch (run.status_code) {
     case "analysis_status_failed":
       return (
-        `These posts are the cutoff corpus ${service} would ${verb}. Connect a TEPP ` +
-        `transport, then re-run, to replace Failed with ${result}.`
+        `These posts are the source set ${service} would ${verb}. ` +
+        `Ask an administrator to restore analysis, then re-run to produce ${result}.`
       );
     case "analysis_status_succeeded":
       return `These posts are the cutoff corpus this ${service} run ${verbPast}.`;
@@ -2900,7 +2906,7 @@ function analysisRunCanStart(run: AnalysisRun): boolean {
 
 function analysisRunStartLabel(run: AnalysisRun): string {
   if (run.run_kind_code === "analysis_run_tepp") {
-    return "Start TEPP measurement";
+    return "Start temporal measurement";
   }
   if (run.run_kind_code === "analysis_run_topic_lineage") {
     return "Start topic lineage";
@@ -3192,7 +3198,7 @@ function AnalysisRunsPanel({
             >
               {starting
                 ? selected.run_kind_code === "analysis_run_tepp"
-                  ? "Submitting the TEPP request..."
+                  ? "Starting temporal measurement..."
                   : selected.run_kind_code === "analysis_run_topic_lineage"
                     ? "Submitting the topic-lineage request..."
                     : "Reconstructing the cutoff bag..."
@@ -3202,10 +3208,8 @@ function AnalysisRunsPanel({
           {analysisRunCanRequestTeppRetry(selected) && (
             <p className="post-meta">
               {selected.run_kind_code === "analysis_run_topic_lineage"
-                ? "Connect a TEPP transport from this Failed row. Request a " +
-                  "lineage reconstruction does not invent a topic model."
-                : "Connect a TEPP transport from this Failed row. Request a lineage " +
-                  "reconstruction does not invent a measurement."}
+                ? "Ask an administrator to restore topic journey analysis, then re-run this source set."
+                : "Ask an administrator to restore temporal measurement, then re-run this source set."}
             </p>
           )}
           {analysisRunReportPeriod(selected) && onSelectReportPeriod && (
@@ -3390,7 +3394,7 @@ function RankingsPanel({
                   onClick={() => onSelectPost(hit.post_id)}
                 >
                   <span className="ticket-title">{hit.post_title}</span>
-                  <span className="post-badge">{t("Rankings · rankweave")}</span>
+                  <span className="post-badge">{t("Evidence ranking")}</span>
                   <span className="post-badge">{tf("rank {rank}", { rank: String(hit.fused_rank) })}</span>
                 </button>
                 {(hit.channel_evidence ?? []).length > 0 ? (
