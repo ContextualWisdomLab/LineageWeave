@@ -393,16 +393,26 @@ async def enqueue_post_content_backfill(
             )
             for row in rows:
                 post_id = str(row["post_id"])
+                body = str(row["post_body"] or "")
                 complete = await post_content_is_complete(
                     conn,
                     post_id,
                     require_embedding=require_embedding,
                     require_structure=require_structure,
                 )
+                if complete and require_structure:
+                    complete = bool(
+                        await conn.fetchval(
+                            "select exists (select 1 from operations_case_analysis "
+                            "where post_id = $1 and source_body_sha256 = $2)",
+                            post_id,
+                            source_body_sha256(body),
+                        )
+                    )
                 request = await ensure_post_content_job(
                     conn,
                     post_id,
-                    str(row["post_body"] or ""),
+                    body,
                     content_complete=complete,
                 )
                 if request.should_publish:
