@@ -37,6 +37,8 @@ def test_batch_capabilities_require_positive_integer_limits(
         "get_json",
         lambda *_args, **_kwargs: {
             "max_request_body_bytes": 65_536,
+            "max_inputs": 2048,
+            "max_total_tokens": 300_000,
             "max_tokens_per_part": 280_000,
             "max_chars_per_part": 240_000,
             "poll_after_ms": 1_000,

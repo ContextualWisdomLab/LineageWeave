@@ -202,6 +202,8 @@ class ContextualOrchestratorEmbeddingClient:
         )
         required = (
             "max_request_body_bytes",
+            "max_inputs",
+            "max_total_tokens",
             "max_tokens_per_part",
             "max_chars_per_part",
             "poll_after_ms",
