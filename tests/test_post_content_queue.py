@@ -154,8 +154,7 @@ def test_backfill_skips_a_candidate_that_became_complete(
             return Transaction()
 
         async def fetch(self, _query: str, *_args: object) -> list[dict[str, str]]:
-            if _args[-1] is False:
-                return []
+            assert _args[-1] is False
             return [
                 {"post_id": "00000000-0000-0000-0000-000000000001", "post_body": "done"}
             ]
