@@ -65,7 +65,7 @@ def test_provider_key_is_not_aliased_as_gateway_transport(monkeypatch) -> None:
         module.main()
 
 
-@pytest.mark.parametrize("embedding_model", ["embedding-model", ""])
+@pytest.mark.parametrize("embedding_model", ["embedding-model", "text-embedding-3-large", ""])
 def test_bootstrap_registers_configured_remote_embedding_agent(
     monkeypatch, embedding_model: str
 ) -> None:
@@ -148,8 +148,7 @@ def test_bootstrap_registers_configured_remote_embedding_agent(
         agent for agent in agents["agents"] if "embedding" in agent.get("tags", [])
     ]
     if embedding_model:
-        assert embedding_agents == [
-            {
+        expected = {
                 "id": "gateway_embedding_agent",
                 "model": embedding_model,
                 "provider_protocol": "auto",
@@ -158,7 +157,9 @@ def test_bootstrap_registers_configured_remote_embedding_agent(
                 "tags": ["embedding"],
                 "priority": 1,
             }
-        ]
+        if embedding_model == "text-embedding-3-large":
+            expected["provider_name"] = "openai"
+        assert embedding_agents == [expected]
     else:
         assert embedding_agents == []
     assert "LLM_GATEWAY_EMBEDDING_MODEL" not in os.environ

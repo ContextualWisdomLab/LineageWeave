@@ -70,8 +70,7 @@ def main() -> None:
         agent["credential_key"] = "LLM_GATEWAY_API_KEY"
         agent.setdefault("provider_protocol", "auto")
     if embedding_model:
-        agents["agents"].append(
-            {
+        embedding_agent = {
                 "id": "gateway_embedding_agent",
                 "model": embedding_model,
                 "provider_protocol": "auto",
@@ -80,7 +79,9 @@ def main() -> None:
                 "tags": ["embedding"],
                 "priority": 1,
             }
-        )
+        if embedding_model == "text-embedding-3-large":
+            embedding_agent["provider_name"] = "openai"
+        agents["agents"].append(embedding_agent)
     agents_path.write_text(json.dumps(agents), encoding="utf-8")
 
     from contextual_orchestrator.credentials import register_credential
