@@ -42,9 +42,12 @@ export function OccupationRatingProfile({ accessToken }: Props) {
 
   useEffect(() => {
     let active = true;
+    requestSequence.current += 1;
     setSourceCatalogError(false);
     setSources(null);
     setSelectedSource("");
+    setProfile(null);
+    setStatus("idle");
     fetchOccupationRatingSources(accessToken)
       .then(({ sources: loaded }) => {
         if (!active) return;
