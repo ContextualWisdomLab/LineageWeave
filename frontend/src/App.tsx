@@ -290,6 +290,7 @@ export function ChatPanel({
   const [answer, setAnswer] = useState<ChatAnswer | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [conversationLoading, setConversationLoading] = useState(false);
   const [evidencePostId, setEvidencePostId] = useState<string | null>(null);
   const [seededOnly, setSeededOnly] = useState(false);
   const conversationListRequest = useRef(0);
@@ -312,6 +313,7 @@ export function ChatPanel({
     setAnswer(null);
     setError(null);
     setLoading(false);
+    setConversationLoading(false);
     setSeededOnly(false);
     setEvidencePostId(null);
     fetchPostChat(accessToken, postId)
@@ -335,6 +337,7 @@ export function ChatPanel({
 
   async function selectConversation(nextId: string) {
     const requestId = ++conversationRequest.current;
+    setConversationLoading(true);
     setHistoryError(null);
     setAnswer(null);
     try {
@@ -346,11 +349,14 @@ export function ChatPanel({
     } catch {
       if (requestId !== conversationRequest.current) return;
       setHistoryError(t("Conversation history could not be loaded. Start a new conversation or try again later."));
+    } finally {
+      if (requestId === conversationRequest.current) setConversationLoading(false);
     }
   }
 
   function startNewConversation() {
     ++conversationRequest.current;
+    setConversationLoading(false);
     setConversationId(null);
     setConversationOlderCursor(null);
     setExchanges(seededExchanges);
@@ -361,7 +367,7 @@ export function ChatPanel({
   }
 
   async function handleAsk(asked = question) {
-    if (!asked.trim()) return;
+    if (!asked.trim() || conversationLoading) return;
     const requestId = ++askRequest.current;
     const requestedConversationId = conversationId;
     setLoading(true);
@@ -413,6 +419,7 @@ export function ChatPanel({
     (firstCitedPostId ? firstCitedPostId.slice(0, 8) : null);
   const showNamedSeed = Boolean(nameFirstAsk && conversationId === null && exchanges[0]);
   const landedEvidencePostId = showNamedSeed ? (evidencePostId ?? firstCitedPostId) : null;
+  const chatBusy = loading || conversationLoading;
 
   return (
     <section className="popup-section chat-section">
@@ -496,6 +503,7 @@ export function ChatPanel({
       {conversationId && conversationOlderCursor ? (
         <button type="button" onClick={async () => {
           const requestId = ++conversationRequest.current;
+          setConversationLoading(true);
           try {
             const conversation = await fetchPostChatConversation(
               accessToken,
@@ -509,8 +517,10 @@ export function ChatPanel({
           } catch {
             if (requestId !== conversationRequest.current) return;
             setHistoryError(t("Conversation history could not be loaded. Start a new conversation or try again later."));
+          } finally {
+            if (requestId === conversationRequest.current) setConversationLoading(false);
           }
-        }} disabled={loading}>{t("Load earlier messages")}</button>
+        }} disabled={chatBusy}>{t("Load earlier messages")}</button>
       ) : null}
       {historyError ? <p className="error" role="alert">{historyError}</p> : null}
       {!seededOnly && (
@@ -518,11 +528,12 @@ export function ChatPanel({
           <input
             type="text"
             value={question}
+            disabled={chatBusy}
             onChange={(event) => setQuestion(event.target.value)}
             onKeyDown={(event) => event.key === "Enter" && handleAsk()}
             placeholder={t("What happened between these events?")}
           />
-          <button onClick={() => handleAsk()} disabled={loading || !question.trim()}>
+          <button onClick={() => handleAsk()} disabled={chatBusy || !question.trim()}>
             {loading ? t("Asking...") : t("Ask")}
           </button>
         </div>

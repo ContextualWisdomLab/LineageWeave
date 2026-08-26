@@ -236,11 +236,13 @@ describe("ChatPanel conversation history", () => {
     }));
 
     const view = render(<ChatPanel postId="post-1" accessToken="synthetic-token" />);
-    await userEvent.selectOptions(await screen.findByLabelText("Conversation history"), "conversation-old");
     await userEvent.type(
       screen.getByPlaceholderText("What happened between these events?"),
       "Question for the previous post",
     );
+    await userEvent.selectOptions(await screen.findByLabelText("Conversation history"), "conversation-old");
+    expect(screen.getByPlaceholderText("What happened between these events?")).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Ask" })).toBeDisabled();
     view.rerender(<ChatPanel postId="post-2" accessToken="synthetic-token" />);
     resolveOldConversation(jsonResponse({
       conversation_id: "conversation-old",
