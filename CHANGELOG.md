@@ -39,6 +39,20 @@ All notable changes to this project are documented here. Format follows
   cognitive-ability, work-style, and work-activity Content Model element with
   stable IRIs, descriptions, attribution, and a deterministic source digest;
   conflicting release metadata fails closed (ADR 0250).
+
+- The occupational-classification and worker-characteristic taxonomy is now
+  published in the canonical ontology: all 23 major groups of the 2018
+  Standard Occupational Classification (the O*NET job families) carry
+  official titles and codes verbatim, the four O*NET 31.0 job-zone categories
+  carry their published names and source values, and source-native
+  worker-characteristic families are addressable -- Fleishman's four ability domains,
+  Holland's six RIASEC interest types with the published hexagonal adjacency,
+  the six legacy O*NET work-value clusters, and the seven higher-order
+  revised O*NET Work Styles dimensions (ADR 0245). Typed derivation properties from
+  classifications to characteristics are declared but assert no instance
+  binding; a deterministic application read model
+  (`lineageweave.io_taxonomy`) exposes fail-closed lookups, and no numeric
+  importance or level rating is imported.
 - The DOT/FJA Data/People/Things worker-function taxonomy is now published
   in the canonical ontology: all 24 worker functions carry the official
   Dictionary of Occupational Titles Appendix B definitions verbatim, their
