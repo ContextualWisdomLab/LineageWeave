@@ -68,7 +68,7 @@ are not merge readiness. Re-fetch exact heads,
 unresolved threads, checks, approvals, rulesets, and merge SHA before any
 lifecycle claim.
 
-> Audit snapshot: 2026-08-26 12:49 KST (refreshed by the autonomous merge
+> Audit snapshot: 2026-08-26 13:12 KST (refreshed by the autonomous merge
 > loop). This repository records synthetic fixtures and aggregate,
 > non-identifying runtime evidence only. Open PRs and local checks are not
 > protected-default-branch release evidence. Identifying post identifiers,
@@ -85,29 +85,34 @@ context only.
 
 | PR | Exact observed head | Merge/check state at this snapshot |
 | ---: | --- | --- |
-| #689 | `81d85a02` | accepted measurement-owner release pin restacked on current #640; hosted checks and independent review pending |
-| #688 | `dd65e92e` | automatic related-source evidence lookup restacked on current #640; newly analyzed project evidence now durably requeues completed sibling analyses with missing facts, and the current head is UNSTABLE with hosted checks pending |
-| #687 | `827978a5` | bounded semantic backfill jobs stacked on #640; UNSTABLE with hosted checks and stack-base delivery pending |
-| #686 | `c056dad2` | customer-facing copy boundary audit removes implementation labels while retaining Event Lineage distinction and localized actions; current review threads are resolved, ranking guidance has desktop/mobile Storybook screenshot evidence, and hosted checks remain pending |
+| #690 | `244efc6b` | analysis-run next actions, empty-snapshot states, and selected-post guidance localized across five product locales; Korean desktop/mobile Storybook screenshots retained; stacked on #667 with hosted checks pending |
+| #689 | `3197954d` | accepted measurement-owner release pin contains current #640 after #687 merged; hosted checks and review pending |
+| #688 | `a7cda9b3` | automatic related-source lookup contains current #640; project evidence requeues completed siblings with missing facts without failing already-persisted primary evidence; hosted checks and review pending |
+| #686 | `fbca05d9` | customer-facing copy boundary audit removes implementation labels while retaining Event Lineage distinction and localized actions; current review threads are resolved, ranking guidance has desktop/mobile Storybook screenshot evidence, and hosted checks remain pending |
 | #680 | `5c246a54` | customer-facing ranking copy with localized retry/search guidance and source-record detail copy corrected; BLOCKED with exact-head checks and independent review required |
 | #679 | `29aa69dd` | ADR 0229 public-claim envelope, async verification, locale-aware next actions, opt-in search setup, and aggregate-status guidance repair; BLOCKED with exact-head checks and independent review required |
 | #672 | `147f208e` | persisted semantic-evidence nomination for Global Ask with ADR renumbering; unexpected verification failures degrade to unavailable, and embedding work is performed before the pool is acquired; hosted checks requeued |
 | #668 | `e452bf38` | evidence-bound project history projection with ADR renumbering, request guards, source-code/time-basis display repair, and theme-token timeline styling; BLOCKED with review required |
-| #667 | `793931a6` | baseline refresh plus repeated-turn conversation-key repair, stale-history response fencing, and legacy ontology identifier separation; current head has no unresolved review threads, while hosted checks and independent approval remain pending |
+| #667 | `2a2ec9cf` | baseline refresh plus repeated-turn conversation-key repair, stale-history response fencing, and legacy ontology identifier separation; current head has no unresolved review threads, while hosted checks and independent approval remain pending |
 | #663 | `f616887a` | project ontology traversal, cutoff-snapshot project focus, bounded MCP admission, and migration-fixture/worker startup repair; exact-head local ontology/migration/docstring checks pass (100 tests) and frontend ontology/token/i18n checks pass (88 tests); hosted checks are terminal successful except queued OpenCode review, and independent review remains required |
 | #658 | `f497a6e8` | evidence-honest Global Ask cutoff with robust revision timestamps; BLOCKED with review required |
 | #657 | `709df1b9` | TEPP lifecycle persistence and fail-closed topic acceptance; BLOCKED with hosted checks queued and review required |
 | #644 | `ed8d97f3` | native-surface code splitting; BLOCKED with review required |
 | #643 | `3453ab08` | accessible status notices; BLOCKED with review required |
-| #640 | `eaec942f` | dashboard ranking and topic-influence stack now localizes evidence-rank labels, uses one topic-journey vocabulary, and makes the PostgreSQL tuning command contract explicit while retaining migration replay safety, id-only Ask citations, and the not-applicable topic state; focused UI and tuning-plan regressions passed, while exact-head hosted checks and independent review remain required |
+| #640 | `9d4210c0` | dashboard ranking/topic-influence stack now includes merged #687's bounded semantic backfill operator; current protected-main candidate checks and independent review remain pending |
 | #639 | `8da485d3` | running-action/config repair; BLOCKED with review required |
 | #632 | `811026cc` | graph-fact provenance repair with current baseline evidence; BLOCKED with hosted checks queued and review required |
 | #631 | `e6b4f0c4` | ADR decomposition documentation; BLOCKED with review required |
 | #629 | `48496ff6` | provider-work release, bounded reads, and UUID tie-break ordering; BLOCKED with review required |
 
-The exact-head check-run scan at 12:49 KST found no `failure`, `cancelled`, or
+PR #687 exact head `827978a5` completed both hosted test jobs with no unresolved
+review thread and merged into its non-default stack base as merge commit
+`9d4210c04fb0aeec17e885bed097f400c7018269`. This is stack integration
+evidence only; it is not protected-`main` delivery.
+
+The exact-head check-run scan at 13:12 KST found no `failure`, `cancelled`, or
 `timed_out` conclusions on the 19 current heads. Several heads, including
-PR #667, #672, and #686 after their repair pushes, are still queued and therefore have
+PR #640, #667, #686, #688, #689, and #690 after their repair or restack pushes, are still queued and therefore have
 no terminal gate evidence; review approval is also independently required.
 
 No row above is merge evidence. Immediately before any lifecycle action,
