@@ -248,6 +248,9 @@ def test_public_claim_envelope_migration_is_replay_safe() -> None:
     assert "create table if not exists public_claim_envelope" in sql
     assert "on conflict (lookup_code) do nothing" in sql
     assert "create or replace function public_claim_envelope_require_public_post" in sql
+    assert "claim_kind_code must belong to public_claim_kind" in sql
+    assert "truth_status_code must belong to ontology_truth_status" in sql
+    assert "create trigger public_claim_envelope_revoke_private_post" in sql
     assert "claim_organization_presence" in sql
     assert "claim_public_event" in sql
     assert "claim_public_relationship" in sql

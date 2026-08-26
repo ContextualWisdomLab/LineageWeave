@@ -96,6 +96,8 @@ describe("i18n", () => {
     "Public web evidence supports this claim. Open that post.",
     "Public claim is on {title}. Open that post.",
     "No authorized public claims are available to verify. Turn off web verification and ask again.",
+    "Public claim results disagree. Open each cited post to review the evidence.",
+    "Open a cited post to review the evidence behind this answer.",
     "Collect stronger authoritative evidence before accepting the claim.",
     "Inspect the authorized cited posts and their evidence.",
     "Review unavailable historical channels before relying on this cutoff answer.",
