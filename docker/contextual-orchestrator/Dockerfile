@@ -15,6 +15,7 @@ RUN mkdir /tmp/contextual-orchestrator \
         'opentelemetry-api>=1.30.0' \
         'opentelemetry-sdk>=1.30.0' \
         'opentelemetry-exporter-otlp-proto-http>=1.30.0' \
+    && python -m contextual_orchestrator --help | grep -q -- '--allowed-provider-host' \
     && useradd --uid 10001 --no-create-home orchestrator
 
 COPY agents.json /app/agents.json

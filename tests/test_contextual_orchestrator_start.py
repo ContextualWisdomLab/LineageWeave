@@ -37,6 +37,19 @@ def test_bootstrap_does_not_patch_upstream_model_classes() -> None:
     assert "_apply_provider_models" not in module.__dict__
 
 
+def test_container_pin_verifies_provider_host_cli_contract() -> None:
+    """The image build fails if its immutable upstream drops the forwarded flag."""
+    dockerfile = (
+        Path(__file__).parents[1]
+        / "docker"
+        / "contextual-orchestrator"
+        / "Dockerfile"
+    ).read_text(encoding="utf-8")
+
+    assert "python -m contextual_orchestrator --help" in dockerfile
+    assert "grep -q -- '--allowed-provider-host'" in dockerfile
+
+
 def test_provider_api_url_is_canonical_over_compatibility_aliases(monkeypatch) -> None:
     module = _load_start_module()
     monkeypatch.setenv("LLM_GATEWAY_API_URL", "https://canonical.example/v1")
