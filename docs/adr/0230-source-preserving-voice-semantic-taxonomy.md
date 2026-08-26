@@ -31,7 +31,12 @@ retraction names the superseded assertion and closes validity with provenance.
 The database reconciles the source assertion in the same transaction that
 inserts or changes `source_post.voc_type_code` or its revision-bearing body.
 It retains the prior assertion as a closed, superseded version; migration
-replay is a recovery/backfill path, not the normal ingestion lifecycle.
+replay is a recovery/backfill path, not the normal ingestion lifecycle. The
+initial historical backfill records `0230_voice_source_assertion_backfill` in
+`data_migration_completion` only after its insert and repair finish in one
+transaction. An interrupted run therefore retries, while a completed replay
+does not repeatedly hash the source corpus; subsequent writes remain covered
+by the trigger.
 
 Counts use the same authorized eligible-post denominator at the same cutoff and
 filters. They report source, derived, multi-membership, disagreement, and

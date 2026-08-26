@@ -45,8 +45,18 @@ notation is an optional extension and cannot be required by this script.
 
 Existing volumes receive migrations such as 0103, 0163, and 0164 without a
 whitelist edit. Invalidly named files and the non-idempotent bootstrap family do
-not replay. This remains a bounded no-ledger design; introduce a durable
-migration ledger before any post-0011 migration needs exactly-once semantics.
+not replay. Most migrations remain native-idempotent and need no ledger.
+Migration 0230's initial source-assertion data backfill is the first exception:
+hashing every eligible source body made each otherwise-idempotent startup
+replay scan the entire corpus. The normalized `data_migration_completion`
+ledger records only that bounded backfill after its insert and repair finish in
+the same PostgreSQL transaction. An interruption rolls back both writes and
+marker, so replay retries safely. A transaction-scoped advisory lock serializes
+the marker check across concurrent startup attempts, preventing two complete
+corpus scans before either can commit. After completion, the 0230 source-post
+trigger owns every new or revised row and startup skips the historical scan.
+The ledger does not replace schema migration replay or permit application code
+to compensate for missing schema.
 
 ## References
 

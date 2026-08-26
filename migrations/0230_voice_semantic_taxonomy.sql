@@ -61,35 +61,61 @@ create unique index if not exists post_voice_assertion_open_scope_idx
     (post_id, assertion_status_code, voice_concept_code)
     where valid_to is null;
 
-insert into post_voice_classification_assertion (
-    post_id, voice_concept_code, assertion_status_code,
-    evidence_sha256, source_revision_digest
-)
-select post.post_id,
-       lower(post.voc_type_code),
-       'source',
-       encode(sha256(convert_to(post.voc_type_code, 'UTF8')), 'hex'),
-       encode(sha256(convert_to(coalesce(post.post_body, ''), 'UTF8')), 'hex')
-  from source_post post
- where lower(post.voc_type_code) in ('voc', 'vocc', 'voco', 'vom', 'vop')
-on conflict (post_id, assertion_status_code, voice_concept_code)
-where valid_to is null
-do nothing;
+create table if not exists data_migration_completion (
+    migration_code text primary key,
+    completed_at timestamptz not null default current_timestamp
+);
 
--- Source labels are recorded provenance, not future business-event claims.
--- Repair rows written by an earlier replay of this migration without changing
--- a separately sourced assertion that happens to share the post and concept.
-update post_voice_classification_assertion assertion
-   set valid_from = null
-  from source_post post
- where assertion.post_id = post.post_id
-   and assertion.assertion_status_code = 'source'
-   and assertion.voice_concept_code = lower(post.voc_type_code)
-   and assertion.evidence_sha256 =
-       encode(sha256(convert_to(post.voc_type_code, 'UTF8')), 'hex')
-   and assertion.source_revision_digest =
-       encode(sha256(convert_to(coalesce(post.post_body, ''), 'UTF8')), 'hex')
-   and assertion.valid_from is not null;
+-- This transaction-scoped block is the one-time recovery of source rows that
+-- predate the trigger installed below. A failed statement rolls back the
+-- completion marker with the backfill, so startup can safely retry it. Once
+-- complete, later inserts and revisions are owned by the transactional trigger
+-- and startup does not hash the corpus again.
+do $source_assertion_backfill$
+begin
+    perform pg_advisory_xact_lock(
+        hashtextextended('0230_voice_source_assertion_backfill', 0)
+    );
+    if not exists (
+        select 1
+          from data_migration_completion
+         where migration_code = '0230_voice_source_assertion_backfill'
+    ) then
+        insert into post_voice_classification_assertion (
+            post_id, voice_concept_code, assertion_status_code,
+            evidence_sha256, source_revision_digest
+        )
+        select post.post_id,
+               lower(post.voc_type_code),
+               'source',
+               encode(sha256(convert_to(post.voc_type_code, 'UTF8')), 'hex'),
+               encode(sha256(convert_to(coalesce(post.post_body, ''), 'UTF8')), 'hex')
+          from source_post post
+         where lower(post.voc_type_code) in ('voc', 'vocc', 'voco', 'vom', 'vop')
+        on conflict (post_id, assertion_status_code, voice_concept_code)
+        where valid_to is null
+        do nothing;
+
+        -- Source labels are recorded provenance, not future business-event
+        -- claims. Repair rows written by an earlier migration revision without
+        -- changing a separately sourced assertion sharing the post and concept.
+        update post_voice_classification_assertion assertion
+           set valid_from = null
+          from source_post post
+         where assertion.post_id = post.post_id
+           and assertion.assertion_status_code = 'source'
+           and assertion.voice_concept_code = lower(post.voc_type_code)
+           and assertion.evidence_sha256 =
+               encode(sha256(convert_to(post.voc_type_code, 'UTF8')), 'hex')
+           and assertion.source_revision_digest =
+               encode(sha256(convert_to(coalesce(post.post_body, ''), 'UTF8')), 'hex')
+           and assertion.valid_from is not null;
+
+        insert into data_migration_completion (migration_code)
+        values ('0230_voice_source_assertion_backfill');
+    end if;
+end
+$source_assertion_backfill$;
 
 create or replace function reconcile_post_voice_source_assertion()
 returns trigger
