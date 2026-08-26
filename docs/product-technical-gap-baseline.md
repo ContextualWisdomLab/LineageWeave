@@ -60,14 +60,14 @@ only aggregate, non-identifying evidence to this repository.
 
 ### Exact open-PR boundary
 
-At this snapshot there were 19 open PRs and 10 open issues. The exact-head
+At this snapshot there were 18 open PRs and 10 open issues. The exact-head
 inventory in section 1 is authoritative for this snapshot. Every open head
 remained blocked on hosted gates and/or independent review. These observations
 are not merge readiness. Re-fetch exact heads,
 unresolved threads, checks, approvals, rulesets, and merge SHA before any
 lifecycle claim.
 
-> Audit snapshot: 2026-08-26 10:00 KST (live queue refresh). This repository
+> Audit snapshot: 2026-08-26 10:55 KST (live queue refresh). This repository
 > records synthetic fixtures and aggregate,
 > non-identifying runtime evidence only. Open PRs and local checks are not
 > protected-default-branch release evidence. Identifying post identifiers,
@@ -77,28 +77,27 @@ lifecycle claim.
 ## 1. Exact-head and governance evidence
 
 The protected default branch was `494b54e2245040bcf02b45376f221c37cd437e76`
-when this baseline was refreshed. The live queue contained 19 open PRs and 10
+when this baseline was refreshed. The live queue contained 18 open PRs and 10
 open issues. The exact-head inventory below supersedes older per-PR snapshots
 elsewhere in this document; those older rows remain useful historical delivery
 context only.
 
 | PR | Exact observed head | Merge/check state at this snapshot |
 | ---: | --- | --- |
-| #682 | `0aa3113e` | typed public semantic-claim verification candidate; stacked on #672, exact-head checks/review required |
-| #681 | `a99bf374` | fail-closed lineage-weight owner adapter; exact-head checks/review required |
-| #680 | `fbc0987f` | customer-facing ranking copy; exact-head checks/review required |
-| #679 | `ee5eb25f` | public-claim envelope for Global Ask; exact-head checks/review required |
-| #678 | `da98de07` | canonical Compose stack consolidation; stacked on #640, exact-head checks/review required |
-| #677 | `27835005` | per-post Ask conversation history; stacked on #667, exact-head checks/review required |
-| #672 | `5468c04d` | persisted semantic evidence for Global Ask; base of #682, exact-head checks/review required |
-| #668 | `1b8e1a99` | project history in post detail; exact-head checks/review required |
-| #667 | `84a9de34` | previous gap-baseline refresh; exact-head checks/review required |
+| #686 | `7276df4f` | customer-action copy boundary and audited responsive evidence; this row observes the pre-refresh head of the PR carrying this file, so hosted metadata must be re-fetched after this documentation commit |
+| #684 | `cb5e7df7` | measured PostgreSQL runtime-tuning plan; exact-head checks/review required |
+| #680 | `cc1b779e` | customer-facing ranking copy; exact-head checks/review required |
+| #679 | `c430cfa1` | public-claim envelope for Global Ask; exact-head checks/review required |
+| #677 | `bf7d6b88` | per-post Ask conversation history; stacked on #667, exact-head checks/review required |
+| #672 | `9d1c5a1e` | persisted semantic evidence for Global Ask; exact-head checks/review required |
+| #668 | `153add77` | project history in post detail; exact-head checks/review required |
+| #667 | `90b0d330` | previous gap-baseline refresh; exact-head checks/review required |
 | #663 | `74b9a1d9` | project-node relation traversal; exact-head checks/review required |
 | #658 | `f497a6e8` | Global Ask knowledge-cutoff handling; exact-head checks/review required |
 | #657 | `709df1b9` | TEPP lifecycle evidence; exact-head checks/review required |
 | #644 | `ed8d97f3` | native-surface code splitting; exact-head checks/review required |
 | #643 | `3453ab08` | shared accessible status notice; exact-head checks/review required |
-| #640 | `169f599f` | Dashboard case metrics; exact-head checks/review required |
+| #640 | `72703c31` | Dashboard case metrics; exact-head checks/review required |
 | #639 | `8da485d3` | running analysis action; exact-head checks/review required |
 | #632 | `811026cc` | Global Ask fact provenance; exact-head checks/review required |
 | #631 | `e6b4f0c4` | ADR decomposition documentation; exact-head checks/review required |
@@ -108,6 +107,10 @@ No row above is merge evidence. Immediately before any lifecycle action,
 re-fetch the head, unresolved threads, formal reviews, rulesets, and same-head
 check conclusions. In particular, queued checks are infrastructure state and
 do not transfer evidence from an earlier SHA.
+
+PR #682 merged as `fa24548356d3a81cee233da3e2da07be02f6b18e` into
+#672's non-default branch. Its typed public-claim verification and review
+repairs are stack evidence only until #672 passes the protected-`main` gate.
 
 PR #664 merged as `b2e48d5b0db59f5aa434e2a293cd182ee810c019`
 into #660's non-default branch. Its semantic-unit implementation is therefore
