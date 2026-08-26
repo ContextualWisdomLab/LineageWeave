@@ -107,6 +107,7 @@ begin
            set valid_to = current_timestamp
          where post_id = new.post_id
            and assertion_status_code = 'source'
+           and voice_concept_code = lower(coalesce(old.voc_type_code, new.voc_type_code))
            and valid_to is null;
         return new;
     end if;
@@ -133,6 +134,7 @@ begin
            set valid_to = current_timestamp
          where post_id = new.post_id
            and assertion_status_code = 'source'
+           and voice_concept_code = lower(coalesce(old.voc_type_code, new.voc_type_code))
            and valid_to is null
            and classification_assertion_id <> matching_assertion_id;
         return new;
@@ -143,6 +145,7 @@ begin
       from post_voice_classification_assertion
      where post_id = new.post_id
        and assertion_status_code = 'source'
+       and voice_concept_code = lower(coalesce(old.voc_type_code, new.voc_type_code))
        and valid_to is null
      order by recorded_at desc, classification_assertion_id
      limit 1;
@@ -151,6 +154,7 @@ begin
        set valid_to = current_timestamp
      where post_id = new.post_id
        and assertion_status_code = 'source'
+       and voice_concept_code = lower(coalesce(old.voc_type_code, new.voc_type_code))
        and valid_to is null;
 
     insert into post_voice_classification_assertion (

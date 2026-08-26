@@ -246,3 +246,14 @@ describe("OperationsDashboardView", () => {
     expect(screen.getByRole("button", { name: "다시 시도" })).toBeInTheDocument();
   });
 });
+
+describe("OperationsDashboard", () => {
+  it("announces concurrent dashboard and voice loading through one status region", () => {
+    vi.mocked(fetchOperationsDashboard).mockImplementation(() => new Promise(() => undefined));
+    vi.mocked(fetchVoiceTaxonomySummary).mockImplementation(() => new Promise(() => undefined));
+    render(<OperationsDashboard accessToken="synthetic-token" onOpenPost={() => undefined} />);
+    expect(screen.getAllByRole("status")).toHaveLength(1);
+    expect(screen.getByRole("status")).toHaveTextContent("Dashboard 근거를 불러오는 중입니다.");
+    expect(screen.getByRole("status")).toHaveTextContent("Loading voice evidence...");
+  });
+});
