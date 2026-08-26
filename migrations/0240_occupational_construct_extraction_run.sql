@@ -23,6 +23,13 @@ with requeue_candidate as materialized (
        and extraction.source_body_sha256 = job.source_body_sha256
      where job.status_code = 'post_content_ingestion_succeeded'
        and extraction.post_id is null
+       and not exists (
+           select 1
+             from post_content_ingestion_job_status_event prior_requeue
+            where prior_requeue.post_id = job.post_id
+              and prior_requeue.detail_text =
+                  'required occupational construct evidence channel added'
+       )
      group by job.post_id
 ), requeued as (
     update post_content_ingestion_job job
