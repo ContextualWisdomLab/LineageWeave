@@ -67,7 +67,7 @@ are not merge readiness. Re-fetch exact heads,
 unresolved threads, checks, approvals, rulesets, and merge SHA before any
 lifecycle claim.
 
-> Audit snapshot: 2026-08-26 11:30 KST (refreshed by the autonomous merge
+> Audit snapshot: 2026-08-26 12:00 KST (refreshed by the autonomous merge
 > loop). This repository records synthetic fixtures and aggregate,
 > non-identifying runtime evidence only. Open PRs and local checks are not
 > protected-default-branch release evidence. Identifying post identifiers,
@@ -94,7 +94,7 @@ context only.
 | #643 | `3453ab08` | accessible status notices; BLOCKED with review required |
 | #640 | `d70a7788` | operations-dashboard evidence touch-target, scoped metrics, Rust residual interaction-map consumption, ABAC/UUID repairs, and RankWeave-owned RRF evidence; BLOCKED with hosted checks queued and no independent approval |
 | #639 | `8da485d3` | running-action/config repair; BLOCKED with review required |
-| #632 | `cad4debf` | graph-fact provenance repair; BLOCKED with review required |
+| #632 | `811026cc` | graph-fact provenance repair with current baseline evidence; BLOCKED with hosted checks queued and review required |
 | #631 | `e6b4f0c4` | ADR decomposition documentation; BLOCKED with review required |
 | #629 | `48496ff6` | provider-work release, bounded reads, and UUID tie-break ordering; BLOCKED with review required |
 
@@ -102,6 +102,12 @@ No row above is merge evidence. Immediately before any lifecycle action,
 re-fetch the head, unresolved threads, formal reviews, rulesets, and same-head
 check conclusions. In particular, queued checks are infrastructure state and
 do not transfer evidence from an earlier SHA.
+
+The hosted Full test for PR #632 at superseded head `cad4debf` failed only in
+the real-PostgreSQL semantic-nomination test with `InvalidPasswordError`; the
+other 1,333 tests passed. The run was cancelled after the branch advanced to
+`811026cc`, and a fresh exact-head run is queued. This is retained as runner
+evidence, not treated as a source regression or a passing gate.
 
 PR #664 first merged into #660's non-default stack as
 `b2e48d5b0db59f5aa434e2a293cd182ee810c019`; PR #660 then passed the protected
