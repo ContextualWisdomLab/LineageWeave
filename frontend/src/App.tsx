@@ -27,6 +27,8 @@ import {
   fetchPostActivity,
   fetchPostBookmark,
   fetchPostChat,
+  fetchPostChatConversation,
+  fetchPostChatConversations,
   fetchPostAffiliateTree,
   fetchPostCounterparties,
   fetchPostEvaluation,
@@ -58,6 +60,8 @@ import {
   type CalendarResponse,
   type ChatAnswer,
   type ChatExchange,
+  type PostAskConversationSummary,
+  type PostAskConversationPage,
   type CorporateEntityRef,
   type CustomerMasterEntity,
   type CustomerMasterResponse,
@@ -256,7 +260,7 @@ function ChatCitations({
   );
 }
 
-function ChatPanel({
+export function ChatPanel({
   postId,
   accessToken,
   nameFirstAsk,
@@ -267,6 +271,12 @@ function ChatPanel({
 }) {
   const [question, setQuestion] = useState("");
   const [exchanges, setExchanges] = useState<ChatExchange[]>([]);
+  const [seededExchanges, setSeededExchanges] = useState<ChatExchange[]>([]);
+  const [conversations, setConversations] = useState<PostAskConversationSummary[]>([]);
+  const [conversationCursor, setConversationCursor] = useState<PostAskConversationPage["next_cursor"]>(null);
+  const [conversationOlderCursor, setConversationOlderCursor] = useState<string | null>(null);
+  const [conversationId, setConversationId] = useState<string | null>(null);
+  const [historyError, setHistoryError] = useState<string | null>(null);
   const [answer, setAnswer] = useState<ChatAnswer | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -274,23 +284,83 @@ function ChatPanel({
   const [seededOnly, setSeededOnly] = useState(false);
 
   useEffect(() => {
+    let active = true;
     setExchanges([]);
+    setSeededExchanges([]);
+    setConversations([]);
+    setConversationId(null);
+    setHistoryError(null);
+    setConversationCursor(null);
+    setConversationOlderCursor(null);
     setAnswer(null);
     setError(null);
     setSeededOnly(false);
     setEvidencePostId(null);
     fetchPostChat(accessToken, postId)
-      .then((history) => setExchanges(history.exchanges))
-      .catch(() => setExchanges([]));
+      .then((history) => {
+        if (active) {
+          setSeededExchanges(history.exchanges);
+          setExchanges(history.exchanges);
+        }
+      })
+      .catch(() => { if (active) setExchanges([]); });
+    fetchPostChatConversations(accessToken, postId)
+      .then((page) => {
+        if (active) {
+          setConversations(page.conversations);
+          setConversationCursor(page.next_cursor ?? null);
+        }
+      })
+      .catch(() => { if (active) setHistoryError(t("Conversation history could not be loaded. Start a new conversation or try again later.")); });
+    return () => { active = false; };
   }, [postId, accessToken]);
+
+  const conversationRequest = useRef(0);
+  async function selectConversation(nextId: string) {
+    const requestId = ++conversationRequest.current;
+    setHistoryError(null);
+    setAnswer(null);
+    try {
+      const conversation = await fetchPostChatConversation(accessToken, postId, nextId);
+      if (requestId !== conversationRequest.current) return;
+      setConversationId(conversation.conversation_id);
+      setExchanges(conversation.exchanges);
+      setConversationOlderCursor(conversation.older_cursor ?? null);
+    } catch {
+      setHistoryError(t("Conversation history could not be loaded. Start a new conversation or try again later."));
+    }
+  }
+
+  function startNewConversation() {
+    ++conversationRequest.current;
+    setConversationId(null);
+    setConversationOlderCursor(null);
+    setExchanges(seededExchanges);
+    setQuestion("");
+    setAnswer(null);
+    setError(null);
+  }
 
   async function handleAsk(asked = question) {
     if (!asked.trim()) return;
+    const startsConversation = conversationId === null;
     setLoading(true);
     setError(null);
     try {
-      const result = await askPostChat(accessToken, postId, asked);
+      const result = await askPostChat(accessToken, postId, asked, conversationId);
       setAnswer(result);
+      if (result.conversation_id) {
+        setConversationId(result.conversation_id);
+        setConversations((current) => [
+          {
+            conversation_id: result.conversation_id!,
+            title: current.find((row) => row.conversation_id === result.conversation_id)?.title ?? asked.trim().slice(0, 80),
+            updated_at: new Date().toISOString(),
+            turn_count: (current.find((row) => row.conversation_id === result.conversation_id)?.turn_count ?? 0) + 1,
+          },
+          ...current.filter((row) => row.conversation_id !== result.conversation_id),
+        ]);
+      }
       setExchanges((prev) => {
         const next: ChatExchange = {
           question_text: asked.trim(),
@@ -298,7 +368,7 @@ function ChatPanel({
           cited_post_ids: result.cited_post_ids,
           cited_posts: result.cited_posts,
         };
-        return [...prev.filter((row) => row.question_text !== next.question_text), next];
+        return startsConversation ? [next] : [...prev, next];
       });
     } catch (err) {
       setError(orchestratorUnavailableMessage(err, "Chat"));
@@ -362,6 +432,54 @@ function ChatPanel({
           {landedEvidenceNextAction(firstCitedTitle)}
         </p>
       ) : null}
+      <div className="chat-history-controls">
+        <label>
+          <span>{t("Conversation history")}</span>
+          <select
+            value={conversationId ?? ""}
+            onChange={(event) => event.target.value ? void selectConversation(event.target.value) : startNewConversation()}
+            disabled={loading}
+          >
+            <option value="">{t("New conversation")}</option>
+            {conversations.map((conversation) => (
+              <option key={conversation.conversation_id} value={conversation.conversation_id}>
+                {conversation.title ?? t("New conversation")} ({conversation.turn_count})
+              </option>
+            ))}
+          </select>
+        </label>
+        {conversationCursor ? (
+          <button type="button" onClick={async () => {
+            try {
+              const page = await fetchPostChatConversations(accessToken, postId, conversationCursor);
+              setConversations((current) => [...current, ...page.conversations]);
+              setConversationCursor(page.next_cursor ?? null);
+            } catch {
+              setHistoryError(t("Conversation history could not be loaded. Start a new conversation or try again later."));
+            }
+          }} disabled={loading}>{t("Load more")}</button>
+        ) : null}
+        <button type="button" onClick={startNewConversation} disabled={loading}>
+          {t("New conversation")}
+        </button>
+      </div>
+      {conversationId && conversationOlderCursor ? (
+        <button type="button" onClick={async () => {
+          try {
+            const conversation = await fetchPostChatConversation(
+              accessToken,
+              postId,
+              conversationId,
+              Number(conversationOlderCursor),
+            );
+            setExchanges((current) => [...conversation.exchanges, ...current]);
+            setConversationOlderCursor(conversation.older_cursor ?? null);
+          } catch {
+            setHistoryError(t("Conversation history could not be loaded. Start a new conversation or try again later."));
+          }
+        }} disabled={loading}>{t("Load earlier messages")}</button>
+      ) : null}
+      {historyError ? <p className="error" role="alert">{historyError}</p> : null}
       {!seededOnly && (
         <div className="chat-input-row">
           <input
@@ -2687,9 +2805,9 @@ function analysisRunNextAction(run: AnalysisRun): string | null {
     case "analysis_status_failed":
       switch (run.run_kind_code) {
         case "analysis_run_tepp":
-          return "Open this run to see why it failed, then connect the measurement service and re-run.";
+          return "Open this run to see why it failed. Ask an administrator to enable measurement, then run it again.";
         case "analysis_run_topic_lineage":
-          return "Open this run to see why it failed, then connect the TEPP transport and re-run.";
+          return "Open this run to see why it failed. Ask an administrator to enable topic-lineage analysis, then run it again.";
         case "analysis_run_lineage":
           return "Open this run to see why it failed, then retry reconstruction from a current snapshot.";
         case "analysis_run_report":
@@ -2700,15 +2818,15 @@ function analysisRunNextAction(run: AnalysisRun): string | null {
         }
       }
     case "analysis_status_running":
-      return "Refresh this run. Start already queued the work on the durable outbox.";
+      return "This run is in progress. Refresh it to check for results.";
     case "analysis_status_cancelled":
       switch (run.run_kind_code) {
         case "analysis_run_lineage":
           return "This run was cancelled. Request a new lineage reconstruction from a current snapshot.";
         case "analysis_run_tepp":
-          return "This run was cancelled. Connect the measurement service, then ask an administrator to submit a new TEPP run from a current snapshot.";
+          return "This run was cancelled. Ask an administrator to enable measurement and submit a new run from a current snapshot.";
         case "analysis_run_topic_lineage":
-          return "This run was cancelled. Connect the TEPP transport, then ask an administrator to submit new topic-lineage analysis from a current snapshot.";
+          return "This run was cancelled. Ask an administrator to enable topic-lineage analysis and submit a new run from a current snapshot.";
         case "analysis_run_report":
           return "This run was cancelled. Rebuild the period report from a current snapshot.";
         default: {
@@ -3216,10 +3334,8 @@ function AnalysisRunsPanel({
           {analysisRunCanRequestTeppRetry(selected) && (
             <p className="post-meta">
               {selected.run_kind_code === "analysis_run_topic_lineage"
-                ? "Connect a TEPP transport from this Failed row. Request a " +
-                  "lineage reconstruction does not invent a topic model."
-                : "Connect a TEPP transport from this Failed row. Request a lineage " +
-                  "reconstruction does not invent a measurement."}
+                ? "Ask an administrator to enable topic-lineage analysis, then retry from this failed run."
+                : "Ask an administrator to enable measurement, then retry from this failed run."}
             </p>
           )}
           {analysisRunReportPeriod(selected) && onSelectReportPeriod && (

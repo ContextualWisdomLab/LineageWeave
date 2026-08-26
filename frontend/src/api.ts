@@ -333,6 +333,7 @@ export interface CitedPostEvidence {
 
 export interface ChatAnswer {
   post_id: string;
+  conversation_id?: string;
   answer_text: string;
   cited_post_ids: string[];
   cited_posts?: CitedPostRef[];
@@ -349,6 +350,25 @@ export interface ChatExchange {
 export interface ChatHistory {
   post_id: string;
   exchanges: ChatExchange[];
+}
+
+export interface PostAskConversationSummary {
+  conversation_id: string;
+  title: string | null;
+  updated_at: string;
+  turn_count: number;
+}
+
+export interface PostAskConversationPage {
+  conversations: PostAskConversationSummary[];
+  next_cursor?: { updated_at: string; conversation_id: string } | null;
+}
+
+export interface PostAskConversation {
+  conversation_id: string;
+  title: string;
+  exchanges: ChatExchange[];
+  older_cursor?: string | null;
 }
 
 export interface CitedPostImage {
@@ -1125,11 +1145,37 @@ export function fetchPostChat(accessToken: string, postId: string): Promise<Chat
   return backendFetch(`/api/posts/${postId}/chat`, accessToken);
 }
 
-export function askPostChat(accessToken: string, postId: string, question: string): Promise<ChatAnswer> {
+export function askPostChat(
+  accessToken: string,
+  postId: string,
+  question: string,
+  conversationId?: string | null,
+): Promise<ChatAnswer> {
   return backendFetch(`/api/posts/${postId}/chat`, accessToken, {
     method: "POST",
-    body: JSON.stringify({ question }),
+    body: JSON.stringify({ question, ...(conversationId ? { conversation_id: conversationId } : {}) }),
   });
+}
+
+export function fetchPostChatConversations(
+  accessToken: string,
+  postId: string,
+  cursor?: { updated_at: string; conversation_id: string },
+): Promise<PostAskConversationPage> {
+  const query = cursor
+    ? `?before_updated_at=${encodeURIComponent(cursor.updated_at)}&before_conversation_id=${encodeURIComponent(cursor.conversation_id)}`
+    : "";
+  return backendFetch(`/api/posts/${postId}/chat/conversations${query}`, accessToken);
+}
+
+export function fetchPostChatConversation(
+  accessToken: string,
+  postId: string,
+  conversationId: string,
+  beforeTurn?: number,
+): Promise<PostAskConversation> {
+  const query = beforeTurn === undefined ? "" : `?before_turn=${beforeTurn}`;
+  return backendFetch(`/api/posts/${postId}/chat/conversations/${conversationId}${query}`, accessToken);
 }
 
 /** How often the queued Ask job is polled, and for how long overall.

@@ -130,6 +130,14 @@ from backend.app.post_chat_ingestion import (
     gather_chat_sources,
     persist_post_chat,
 )
+from backend.app.post_ask_history import (
+    PostAskConversationNotFound,
+    PostAskEvidenceChanged,
+    conversation_exists as post_ask_conversation_exists,
+    fetch_conversation as fetch_post_ask_conversation,
+    list_conversations as list_post_ask_conversations,
+    persist_turn as persist_post_ask_turn,
+)
 from backend.app.post_content_queue import (
     ensure_post_content_job,
     post_content_api_status,
@@ -2954,12 +2962,48 @@ class ChatRequest(BaseModel):
     """JSON body for ``POST /api/posts/{post_id}/chat``."""
 
     question: str
+    conversation_id: UUID | None = None
 
 
 class GlobalAskRequest(BaseModel):
     """JSON body for the buyer's source-grounded Global Ask Agent."""
 
     question: str
+
+
+async def _persist_post_ask_turn(
+    conn: asyncpg.Connection,
+    account: CurrentAccount,
+    post_id: str,
+    conversation_id: UUID | None,
+    question: str,
+    answer_text: str,
+    source_post_ids: list[str],
+    cited_post_ids: list[str],
+) -> UUID:
+    """Persist a completed turn after reauthorizing every citation."""
+    try:
+        return await persist_post_ask_turn(
+            conn,
+            account.user_account_id,
+            post_id,
+            conversation_id,
+            question,
+            answer_text,
+            source_post_ids,
+            cited_post_ids,
+            can_see_post=lambda row: _can_see_post(account, row),
+        )
+    except PostAskEvidenceChanged as exc:
+        raise HTTPException(
+            status.HTTP_503_SERVICE_UNAVAILABLE,
+            "Post chat is temporarily unavailable because authorized evidence changed. Retry the question.",
+        ) from exc
+    except PostAskConversationNotFound as exc:
+        raise HTTPException(
+            status.HTTP_404_NOT_FOUND,
+            "This conversation is no longer available. Choose another conversation or start a new one.",
+        ) from exc
 
 
 @app.get("/api/posts/{post_id}/chat")
@@ -3006,16 +3050,34 @@ async def chat_about_post(
     post = await _load_visible_post(post_id, account, pool)
     post_metadata = build_post_llm_metadata(post_id, post)
     async with pool.acquire() as conn:
+        if request.conversation_id is not None and not await post_ask_conversation_exists(
+            conn, account.user_account_id, post_id, request.conversation_id
+        ):
+            raise HTTPException(
+                status.HTTP_404_NOT_FOUND,
+                "This conversation is no longer available. Choose another conversation or start a new one.",
+            )
         stored = await fetch_persisted_chat(conn, post_id, question)
         if stored is not None:
             source_ids = [post_id]
             source_ids.extend(cid for cid in stored["cited_post_ids"] if cid != post_id)
+            conversation_id = await _persist_post_ask_turn(
+                conn,
+                account,
+                post_id,
+                request.conversation_id,
+                question,
+                stored["answer_text"],
+                source_ids,
+                list(stored["cited_post_ids"]),
+            )
             return {
                 "post_id": post_id,
                 "answer_text": stored["answer_text"],
                 "cited_post_ids": stored["cited_post_ids"],
                 "cited_posts": stored["cited_posts"],
                 "source_post_ids": source_ids,
+                "conversation_id": str(conversation_id),
             }
     with use_llm_metadata(post_metadata):
         with traced(
@@ -3067,8 +3129,19 @@ async def chat_about_post(
                     "Saved evidence is still available.",
                 ) from exc
     cited_ids = list(answer.cited_post_ids)
+    source_ids = [source.post_id for source in sources]
     async with pool.acquire() as conn:
         await persist_post_chat(conn, post_id, question, answer.answer_text, cited_ids)
+        conversation_id = await _persist_post_ask_turn(
+            conn,
+            account,
+            post_id,
+            request.conversation_id,
+            question,
+            answer.answer_text,
+            source_ids,
+            cited_ids,
+        )
     await publish_activity_event(
         valkey,
         post_id,
@@ -3081,8 +3154,65 @@ async def chat_about_post(
         "answer_text": answer.answer_text,
         "cited_post_ids": cited_ids,
         "cited_posts": cited_post_summaries(sources, cited_ids),
-        "source_post_ids": [source.post_id for source in sources],
+        "source_post_ids": source_ids,
+        "conversation_id": str(conversation_id),
     }
+
+
+@app.get("/api/posts/{post_id}/chat/conversations")
+async def read_post_chat_conversations(
+    post_id: str,
+    limit: int = Query(50, ge=1, le=50),
+    before_updated_at: datetime | None = Query(None),
+    before_conversation_id: UUID | None = Query(None),
+    account: CurrentAccount = Depends(get_current_account),
+    pool: asyncpg.Pool = Depends(get_pool),
+) -> dict[str, Any]:
+    """List this account's saved Ask conversations on one visible post."""
+    await _load_visible_post(post_id, account, pool)
+    if (before_updated_at is None) != (before_conversation_id is None):
+        raise HTTPException(
+            status.HTTP_422_UNPROCESSABLE_CONTENT,
+            "before_updated_at and before_conversation_id must be provided together",
+        )
+    async with pool.acquire() as conn:
+        return await list_post_ask_conversations(
+            conn,
+            account.user_account_id,
+            post_id,
+            limit=limit,
+            before_updated_at=before_updated_at,
+            before_conversation_id=before_conversation_id,
+        )
+
+
+@app.get("/api/posts/{post_id}/chat/conversations/{conversation_id}")
+async def read_post_chat_conversation(
+    post_id: str,
+    conversation_id: UUID,
+    limit: int = Query(50, ge=1, le=50),
+    before_turn: int | None = Query(None, ge=1),
+    account: CurrentAccount = Depends(get_current_account),
+    pool: asyncpg.Pool = Depends(get_pool),
+) -> dict[str, Any]:
+    """Load one owned transcript with currently authorized citations."""
+    await _load_visible_post(post_id, account, pool)
+    async with pool.acquire() as conn:
+        conversation = await fetch_post_ask_conversation(
+            conn,
+            account.user_account_id,
+            post_id,
+            conversation_id,
+            lambda row: _can_see_post(account, row),
+            turn_limit=limit,
+            before_turn_ordinal=before_turn,
+        )
+    if conversation is None:
+        raise HTTPException(
+            status.HTTP_404_NOT_FOUND,
+            "This conversation is no longer available. Choose another conversation or start a new one.",
+        )
+    return conversation
 
 
 @app.post("/api/ask", status_code=status.HTTP_202_ACCEPTED)

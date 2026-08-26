@@ -8,6 +8,8 @@ All notable changes to this project are documented here. Format follows
 
 ### Added
 
+- Account-owned per-post Ask conversations can be listed, reopened, and
+  continued with current authorization reapplied to cited evidence (ADR 0228).
 - Persist explicit paragraph, list, table, MathML formula, and caller-parsed
   conversation-turn semantic-unit kinds without inferring absent boundaries.
 - Event Lineage now persists each reconstructed connection's independent
