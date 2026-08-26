@@ -15,6 +15,7 @@ from __future__ import annotations
 import asyncio
 import math
 import os
+import time
 import uuid
 from contextlib import closing
 from pathlib import Path
@@ -37,6 +38,7 @@ _POSTGRES_ADMIN_DSN = os.environ.get(
 _KEYCLOAK_BASE_URL = os.environ.get("LINEAGEWEAVE_TEST_KEYCLOAK_BASE_URL", "http://localhost:18080")
 _VALKEY_URL = os.environ.get("LINEAGEWEAVE_TEST_VALKEY_URL", "redis://localhost:16379/0")
 _REALM = "lineageweave-demo"
+_demo_analyst_token_cache: tuple[str, int] | None = None
 _MIGRATION_PATH = Path(__file__).resolve().parents[2] / "migrations" / "0001_initial_schema.sql"
 _REGISTRY_MIGRATION = Path(__file__).resolve().parents[2] / "migrations" / "0018_analysis_run_registry.sql"
 _RETENTION_MIGRATION = Path(__file__).resolve().parents[2] / "migrations" / "0020_analysis_run_retention_purge.sql"
@@ -273,10 +275,46 @@ def _fetch_demo_analyst_token() -> str:
     return token_response["access_token"]
 
 
+def _current_demo_analyst_token() -> str:
+    """Reuse the live token until its issuer-recorded expiration instant."""
+    global _demo_analyst_token_cache
+
+    if _demo_analyst_token_cache is not None:
+        token, expires_at = _demo_analyst_token_cache
+        if time.time() < expires_at:
+            return token
+
+    token = _fetch_demo_analyst_token()
+    expires_at = int(jwt.decode(token, options={"verify_signature": False})["exp"])
+    _demo_analyst_token_cache = (token, expires_at)
+    return token
+
+
 @pytest.fixture
 def demo_analyst_token() -> str:
-    """Return a fresh token so long-running suites cannot outlive its TTL."""
-    return _fetch_demo_analyst_token()
+    """Return a cached live token, refreshing it at the issuer's exact expiry."""
+    return _current_demo_analyst_token()
+
+
+def test_demo_analyst_token_cache_refreshes_only_at_issuer_expiry(monkeypatch: pytest.MonkeyPatch) -> None:
+    """The integration suite reuses a token before ``exp`` and refreshes at ``exp``."""
+    global _demo_analyst_token_cache
+
+    issued = iter(
+        (
+            jwt.encode({"exp": 101}, "test-key-for-cache-expiry-check-1", algorithm="HS256"),
+            jwt.encode({"exp": 202}, "test-key-for-cache-expiry-check-2", algorithm="HS256"),
+        )
+    )
+    monkeypatch.setattr(__name__ + "._fetch_demo_analyst_token", lambda: next(issued))
+    monkeypatch.setattr(__name__ + ".time.time", lambda: 100)
+    _demo_analyst_token_cache = None
+    first = _current_demo_analyst_token()
+    assert _current_demo_analyst_token() == first
+
+    monkeypatch.setattr(__name__ + ".time.time", lambda: 101)
+    assert _current_demo_analyst_token() != first
+    _demo_analyst_token_cache = None
 
 
 @pytest.fixture
