@@ -78,21 +78,19 @@ export function OperationsDashboard({ accessToken, externalOnly = false, onOpenP
         <button type="button" className="btn-secondary" onClick={() => setRetryCount((count) => count + 1)}>다시 시도</button>
       </section>
     ) : data ? (
-      <>
-        <OperationsDashboardView data={data} externalOnly={externalOnly} onOpenPost={onOpenPost} />
-        {!externalOnly && voiceSummary ? <VoiceTaxonomySummary data={voiceSummary} /> : null}
-        {!externalOnly && voiceSummaryError ? (
-          <section className="operations-dashboard" aria-labelledby="voice-summary-error-heading">
-            <h2 id="voice-summary-error-heading">{t("Voice evidence overview")}</h2>
-            <p role="alert">{t("Voice evidence could not be loaded.")}</p>
-            <button type="button" className="btn-secondary" onClick={() => setVoiceRetryCount((count) => count + 1)}>{t("Retry voice evidence")}</button>
-          </section>
-        ) : null}
-        {!externalOnly && !voiceSummary && !voiceSummaryError ? <p role="status">{t("Loading voice evidence...")}</p> : null}
-      </>
+      <OperationsDashboardView data={data} externalOnly={externalOnly} onOpenPost={onOpenPost} />
     ) : (
       <p role="status">Dashboard 근거를 불러오는 중입니다.</p>
     )}
+    {!externalOnly && voiceSummary ? <VoiceTaxonomySummary data={voiceSummary} /> : null}
+    {!externalOnly && voiceSummaryError ? (
+      <section className="operations-dashboard" aria-labelledby="voice-summary-error-heading">
+        <h2 id="voice-summary-error-heading">{t("Voice evidence overview")}</h2>
+        <p role="alert">{t("Voice evidence could not be loaded.")}</p>
+        <button type="button" className="btn-secondary" onClick={() => setVoiceRetryCount((count) => count + 1)}>{t("Retry voice evidence")}</button>
+      </section>
+    ) : null}
+    {!externalOnly && !voiceSummary && !voiceSummaryError ? <p role="status">{t("Loading voice evidence...")}</p> : null}
   </>;
 }
 

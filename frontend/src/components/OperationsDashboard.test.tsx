@@ -223,4 +223,18 @@ describe("OperationsDashboardView", () => {
     expect(fetchVoiceTaxonomySummary).toHaveBeenCalledTimes(2);
     expect(fetchOperationsDashboard).toHaveBeenCalledTimes(1);
   });
+
+  it("keeps voice evidence actionable when the dashboard request fails", async () => {
+    vi.mocked(fetchOperationsDashboard).mockReset().mockRejectedValue(new Error("synthetic dashboard failure"));
+    vi.mocked(fetchVoiceTaxonomySummary).mockReset().mockResolvedValue({
+      total_eligible: 0, classified_unique: 0, multi_membership: 0,
+      source_count: 0, derived_count: 0, unavailable: 0, disagreement: 0,
+      counts_overlap: true, category_memberships: [],
+    });
+    render(<OperationsDashboard accessToken="synthetic-token" onOpenPost={() => undefined} />);
+
+    expect(await screen.findByText("Dashboard 근거를 불러오지 못했습니다.")).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "Voice evidence overview" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "다시 시도" })).toBeInTheDocument();
+  });
 });

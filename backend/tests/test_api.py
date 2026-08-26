@@ -2019,6 +2019,7 @@ def test_voice_taxonomy_summary_uses_visible_post_denominator(
     conn = psycopg2.connect(seeded_db["dsn"])
     try:
         with conn.cursor() as cur:
+            cur.execute("delete from post_voice_classification_assertion")
             cur.execute(
                 "insert into post_voice_classification_assertion "
                 "(post_id, voice_concept_code, assertion_status_code, evidence_sha256, "
@@ -2115,6 +2116,31 @@ def test_derived_voice_assertion_requires_model_receipt(seeded_db) -> None:
         conn.close()
 
 
+def test_voice_assertion_rejects_duplicate_open_scope(seeded_db) -> None:
+    """One post, status, and concept cannot have two current assertions."""
+    conn = psycopg2.connect(seeded_db["dsn"])
+    try:
+        with conn.cursor() as cur:
+            cur.execute("delete from post_voice_classification_assertion")
+            cur.execute(
+                "insert into post_voice_classification_assertion "
+                "(post_id, voice_concept_code, assertion_status_code, evidence_sha256, "
+                "source_revision_digest) values (%s, 'voc', 'source', repeat('a', 64), "
+                "repeat('b', 64))",
+                (seeded_db["public_post_id"],),
+            )
+            with pytest.raises(psycopg2.errors.UniqueViolation):
+                cur.execute(
+                    "insert into post_voice_classification_assertion "
+                    "(post_id, voice_concept_code, assertion_status_code, evidence_sha256, "
+                    "source_revision_digest) values (%s, 'voc', 'source', repeat('c', 64), "
+                    "repeat('d', 64))",
+                    (seeded_db["public_post_id"],),
+                )
+    finally:
+        conn.close()
+
+
 def test_voice_taxonomy_matching_multi_membership_is_not_a_disagreement(
     client, demo_analyst_token, seeded_db
 ) -> None:
@@ -2122,6 +2148,7 @@ def test_voice_taxonomy_matching_multi_membership_is_not_a_disagreement(
     conn = psycopg2.connect(seeded_db["dsn"])
     try:
         with conn.cursor() as cur:
+            cur.execute("delete from post_voice_classification_assertion")
             for status_code in ("source", "derived"):
                 for concept_code in ("voc", "vom"):
                     cur.execute(

@@ -42,9 +42,23 @@ $migration$;
 create index if not exists post_voice_assertion_scope_idx
     on post_voice_classification_assertion (post_id, valid_from, voice_concept_code);
 drop index if exists post_voice_assertion_idempotency_idx;
-create unique index post_voice_assertion_idempotency_idx
+with ranked_open_assertion as (
+    select classification_assertion_id,
+           row_number() over (
+               partition by post_id, assertion_status_code, voice_concept_code
+               order by recorded_at desc, classification_assertion_id desc
+           ) as duplicate_rank
+      from post_voice_classification_assertion
+     where valid_to is null
+)
+update post_voice_classification_assertion assertion
+   set valid_to = greatest(current_timestamp, assertion.valid_from)
+  from ranked_open_assertion ranked
+ where assertion.classification_assertion_id = ranked.classification_assertion_id
+   and ranked.duplicate_rank > 1;
+create unique index if not exists post_voice_assertion_open_scope_idx
     on post_voice_classification_assertion
-    (post_id, assertion_status_code, voice_concept_code, source_revision_digest)
+    (post_id, assertion_status_code, voice_concept_code)
     where valid_to is null;
 
 insert into post_voice_classification_assertion (
@@ -58,7 +72,7 @@ select post.post_id,
        encode(sha256(convert_to(coalesce(post.post_body, ''), 'UTF8')), 'hex')
   from source_post post
  where lower(post.voc_type_code) in ('voc', 'vocc', 'voco', 'vom', 'vop')
-on conflict (post_id, assertion_status_code, voice_concept_code, source_revision_digest)
+on conflict (post_id, assertion_status_code, voice_concept_code)
 where valid_to is null
 do nothing;
 
@@ -147,8 +161,7 @@ begin
         current_evidence_sha256, current_revision_digest, prior_assertion_id
     )
     on conflict (
-        post_id, assertion_status_code, voice_concept_code,
-        source_revision_digest
+        post_id, assertion_status_code, voice_concept_code
     ) where valid_to is null do nothing;
     return new;
 end
