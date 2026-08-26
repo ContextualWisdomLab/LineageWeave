@@ -36,6 +36,7 @@ decision from them.
 | [`ONET_RATING_STORE_REFERENCES.md`](../doctoring/ONET_RATING_STORE_REFERENCES.md) | [0257](0257-onet-occupation-rating-observation-store.md) |
 | Occupation-rating authenticated read projection | [0258](0258-occupation-rating-read-api.md) |
 | Occupation-rating Dashboard evidence view | [0259](0259-occupation-rating-evidence-ui.md) |
+| Imported occupation-rating source catalog | [0260](0260-occupation-rating-source-catalog.md) |
 
 [0011](0011-prov-o-standard-relations.md) and [0065](0065-prov-o-provenance-boundary.md) cite the dated W3C PROV-O and PROV-DM Recommendations (https://www.w3.org/TR/2013/REC-prov-o-20130430/ and https://www.w3.org/TR/2013/REC-prov-dm-20130430/).
 

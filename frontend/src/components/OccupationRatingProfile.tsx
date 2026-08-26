@@ -1,7 +1,9 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
+  fetchOccupationRatingSources,
   fetchOccupationRatings,
   type OccupationRatingProfile as OccupationRatingProfilePayload,
+  type OccupationRatingSource,
 } from "../api";
 
 type Props = { accessToken: string };
@@ -9,17 +11,36 @@ type Props = { accessToken: string };
 /** Lets an authenticated user inspect one exact imported occupation profile. */
 export function OccupationRatingProfile({ accessToken }: Props) {
   const [onetsocCode, setOnetsocCode] = useState("");
-  const [releaseCode, setReleaseCode] = useState("onet-31.0");
-  const [sourceCode, setSourceCode] = useState("abilities");
+  const [sources, setSources] = useState<OccupationRatingSource[] | null>(null);
+  const [selectedSource, setSelectedSource] = useState("");
+  const [sourceCatalogError, setSourceCatalogError] = useState(false);
   const [profile, setProfile] = useState<OccupationRatingProfilePayload | null>(null);
   const [status, setStatus] = useState<"idle" | "loading" | "error">("idle");
 
+  useEffect(() => {
+    let active = true;
+    fetchOccupationRatingSources(accessToken)
+      .then(({ sources: loaded }) => {
+        if (!active) return;
+        setSources(loaded);
+        setSelectedSource(
+          loaded[0] ? `${loaded[0].data_release_code}|${loaded[0].source_table_code}` : "",
+        );
+      })
+      .catch(() => active && setSourceCatalogError(true));
+    return () => { active = false; };
+  }, [accessToken]);
+
   function load(offset = 0) {
+    const source = sources?.find(
+      (item) => `${item.data_release_code}|${item.source_table_code}` === selectedSource,
+    );
+    if (!source) return;
     setStatus("loading");
     fetchOccupationRatings(accessToken, {
       onetsocCode,
-      dataReleaseCode: releaseCode,
-      sourceTableCode: sourceCode,
+      dataReleaseCode: source.data_release_code,
+      sourceTableCode: source.source_table_code,
       offset,
     })
       .then((payload) => {
@@ -57,18 +78,26 @@ export function OccupationRatingProfile({ accessToken }: Props) {
             onChange={(event) => setOnetsocCode(event.target.value)}
           />
         </label>
-        <label>
-          데이터 릴리스
-          <input required value={releaseCode} onChange={(event) => setReleaseCode(event.target.value)} />
+        <label className="occupation-rating-source-select">
+          근거 릴리스·표
+          <select required value={selectedSource} onChange={(event) => setSelectedSource(event.target.value)}>
+            {(sources ?? []).map((source) => (
+              <option
+                key={`${source.data_release_code}|${source.source_table_code}`}
+                value={`${source.data_release_code}|${source.source_table_code}`}
+              >
+                {source.release_version} · {source.source_table_name}
+              </option>
+            ))}
+          </select>
         </label>
-        <label>
-          근거 표
-          <input required value={sourceCode} onChange={(event) => setSourceCode(event.target.value)} />
-        </label>
-        <button className="btn-secondary" type="submit" disabled={status === "loading"}>
+        <button className="btn-secondary" type="submit" disabled={status === "loading" || !selectedSource}>
           {status === "loading" ? "근거를 불러오는 중" : "직업 근거 열기"}
         </button>
       </form>
+      {sources === null && !sourceCatalogError ? <p role="status">사용 가능한 근거 표를 확인하는 중입니다.</p> : null}
+      {sources?.length === 0 ? <p role="status">가져온 직업 근거 표가 없습니다. 데이터 담당자에게 근거 가져오기를 요청하세요.</p> : null}
+      {sourceCatalogError ? <p role="alert">사용 가능한 근거 표를 확인하지 못했습니다. 잠시 후 다시 열어 보세요.</p> : null}
       {status === "error" ? (
         <p role="alert">직업 근거를 불러오지 못했습니다. 코드와 접근 권한을 확인한 뒤 다시 시도하세요.</p>
       ) : null}

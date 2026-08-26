@@ -997,6 +997,24 @@ export interface OccupationRatingProfile {
   next_offset: number | null;
 }
 
+export interface OccupationRatingSource {
+  data_release_code: string;
+  release_version: string;
+  source_publisher_name: string;
+  source_license_url: string;
+  source_table_code: string;
+  source_table_name: string;
+  source_artifact_url: string;
+  source_artifact_sha256: string;
+  source_row_count: number;
+}
+
+export function fetchOccupationRatingSources(
+  accessToken: string,
+): Promise<{ sources: OccupationRatingSource[] }> {
+  return backendFetch("/api/occupation-rating-sources", accessToken);
+}
+
 export function fetchOccupationRatings(
   accessToken: string,
   query: {

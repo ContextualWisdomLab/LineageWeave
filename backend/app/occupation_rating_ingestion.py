@@ -125,3 +125,29 @@ async def fetch_occupation_ratings(
         "items": items,
         "next_offset": offset + limit if len(rows) > limit else None,
     }
+
+
+async def fetch_occupation_rating_sources(
+    conn: RatingReadConnection,
+) -> dict[str, list[dict[str, object]]]:
+    """Return imported rating artifacts that contain at least one observation."""
+    rows = await conn.fetch(
+        """select source.data_release_code, release.release_version,
+                  release.source_publisher_name, release.source_license_url,
+                  source.source_table_code, source.source_table_name,
+                  source.source_artifact_url, source.source_artifact_sha256,
+                  source.source_row_count
+             from occupational_source_table source
+             join occupational_data_release release
+               on release.data_release_code = source.data_release_code
+            where source.source_table_code <> 'scales_reference'
+              and exists (
+                    select 1
+                      from occupational_rating_observation observation
+                     where observation.data_release_code = source.data_release_code
+                       and observation.source_table_code = source.source_table_code
+              )
+            order by release.imported_at desc, source.data_release_code,
+                     source.source_table_name, source.source_table_code"""
+    )
+    return {"sources": [dict(row) for row in rows]}

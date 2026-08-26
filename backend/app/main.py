@@ -98,7 +98,10 @@ from backend.app.issue_ticket_ingestion import (
     upsert_commitment_ticket,
 )
 from backend.app.operations_dashboard import fetch_operations_dashboard
-from backend.app.occupation_rating_ingestion import fetch_occupation_ratings
+from backend.app.occupation_rating_ingestion import (
+    fetch_occupation_rating_sources,
+    fetch_occupation_ratings,
+)
 from backend.app.keyman_ingestion import ingest_post_keymen
 from backend.app.knowledge_graph import (
     corporate_entity_exists,
@@ -2300,6 +2303,16 @@ async def read_occupation_ratings(
             limit=limit,
             offset=offset,
         )
+
+
+@app.get("/api/occupation-rating-sources")
+async def read_occupation_rating_sources(
+    _account: CurrentAccount = Depends(get_current_account),
+    pool: asyncpg.Pool = Depends(get_pool),
+) -> dict[str, list[dict[str, object]]]:
+    """Return the authenticated catalog of imported occupation-rating sources."""
+    async with pool.acquire() as conn:
+        return await fetch_occupation_rating_sources(conn)
 
 
 @app.get("/api/posts/{post_id}/counterparties")

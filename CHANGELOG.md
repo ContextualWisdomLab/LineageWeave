@@ -8,6 +8,10 @@ All notable changes to this project are documented here. Format follows
 
 ### Added
 
+- Occupation evidence source selection now comes from an authenticated catalog
+  of actually imported rating artifacts, with release, publisher, license,
+  digest, URL, and row-count provenance and fail-closed loading/empty/error
+  states (ADR 0260).
 - The existing Dashboard now includes an authenticated occupation-evidence
   view with exact source selection, sample/error context, textual suppression
   warnings, artifact links, responsive table access, and distinct unavailable

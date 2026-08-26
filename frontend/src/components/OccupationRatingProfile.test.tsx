@@ -1,11 +1,16 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
-import { fetchOccupationRatings, type OccupationRatingProfile as Payload } from "../api";
+import {
+  fetchOccupationRatingSources,
+  fetchOccupationRatings,
+  type OccupationRatingProfile as Payload,
+} from "../api";
 import { OccupationRatingProfile, OccupationRatingProfileView } from "./OccupationRatingProfile";
 
 vi.mock("../api", async (importOriginal) => ({
   ...(await importOriginal<typeof import("../api")>()),
+  fetchOccupationRatingSources: vi.fn(),
   fetchOccupationRatings: vi.fn(),
 }));
 
@@ -35,8 +40,18 @@ const ready: Payload = {
 
 describe("OccupationRatingProfile", () => {
   it("submits exact identifiers and renders warnings beside the retained value", async () => {
+    vi.mocked(fetchOccupationRatingSources).mockResolvedValue({
+      sources: [{
+        data_release_code: "onet-31.0", release_version: "31.0",
+        source_publisher_name: "Synthetic publisher", source_license_url: "https://example.test/license",
+        source_table_code: "abilities", source_table_name: "Abilities",
+        source_artifact_url: "https://example.test/abilities.csv", source_artifact_sha256: "a".repeat(64),
+        source_row_count: 2,
+      }],
+    });
     vi.mocked(fetchOccupationRatings).mockResolvedValue(ready);
     render(<OccupationRatingProfile accessToken="synthetic-token" />);
+    expect(await screen.findByRole("option", { name: "31.0 · Abilities" })).toBeInTheDocument();
     await userEvent.type(screen.getByLabelText("O*NET-SOC 직업 코드"), "15-1252.00");
     await userEvent.click(screen.getByRole("button", { name: "직업 근거 열기" }));
     expect(fetchOccupationRatings).toHaveBeenCalledWith("synthetic-token", {
@@ -46,6 +61,14 @@ describe("OccupationRatingProfile", () => {
     expect(screen.getByText(/정밀도가 낮아/)).toBeInTheDocument();
     expect(screen.getByText(/해당 없음 응답이 포함됩니다/)).toBeInTheDocument();
     expect(screen.getByText(/표를 가로로 밀어/)).toBeInTheDocument();
+  });
+
+  it("fails closed when no imported rating source exists", async () => {
+    vi.mocked(fetchOccupationRatingSources).mockResolvedValue({ sources: [] });
+    render(<OccupationRatingProfile accessToken="synthetic-token" />);
+
+    expect(await screen.findByText(/가져온 직업 근거 표가 없습니다/)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "직업 근거 열기" })).toBeDisabled();
   });
 
   it("distinguishes an unavailable artifact from an empty occupation profile", () => {
