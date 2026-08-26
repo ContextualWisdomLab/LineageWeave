@@ -3,6 +3,7 @@ set -euo pipefail
 
 : "${ALLOW_PROVIDER_CALLS:?Set ALLOW_PROVIDER_CALLS=1 only after the readiness-lease fix is deployed}"
 : "${EXPECTED_ORCHESTRATOR_REVISION:?Set the exact merged contextual-orchestrator revision}"
+: "${EXPECTED_LINEAGEWEAVE_REVISION:?Set the exact LineageWeave revision used for the images}"
 : "${ORCHESTRATOR_ADMIN_TOKEN:?Set the runtime admin token}"
 : "${LINEAGEWEAVE_ACCESS_TOKEN:?Set an authorized post_admin access token}"
 : "${LINEAGEWEAVE_OIDC_ISSUER:?Set the frontend OIDC issuer}"
@@ -10,6 +11,10 @@ set -euo pipefail
 : "${K6_VUS:?Set the declared Dashboard concurrency}"
 : "${K6_DURATION:?Set the declared Dashboard observation duration, including its unit}"
 [[ "$ALLOW_PROVIDER_CALLS" == "1" ]] || { echo "provider calls are not authorized" >&2; exit 2; }
+[[ "$EXPECTED_LINEAGEWEAVE_REVISION" =~ ^[0-9a-f]{40}$ ]] || {
+  echo "EXPECTED_LINEAGEWEAVE_REVISION must be a full commit SHA" >&2
+  exit 2
+}
 
 ORCHESTRATOR_URL="${ORCHESTRATOR_URL:-http://localhost:18000}"
 BACKEND_URL="${BACKEND_URL:-http://localhost:18420}"
@@ -48,6 +53,23 @@ done
 actual_revision="$(docker inspect lineageweave-orchestrator-1 --format '{{ index .Config.Labels "org.opencontainers.image.revision" }}')"
 [[ "$actual_revision" == "$EXPECTED_ORCHESTRATOR_REVISION" ]] || {
   echo "orchestrator image revision does not match the accepted revision" >&2
+  exit 2
+}
+for service_name in backend backend-worker frontend; do
+  product_revision="$(docker inspect "lineageweave-${service_name}-1" --format '{{ index .Config.Labels "org.opencontainers.image.revision" }}')"
+  [[ "$product_revision" == "$EXPECTED_LINEAGEWEAVE_REVISION" ]] || {
+    echo "lineageweave-${service_name}-1 image revision does not match the accepted revision" >&2
+    exit 2
+  }
+done
+frontend_issuer="$(docker inspect lineageweave-frontend-1 --format '{{ index .Config.Labels "io.contextualwisdomlab.lineageweave.oidc-issuer" }}')"
+frontend_backend_url="$(docker inspect lineageweave-frontend-1 --format '{{ index .Config.Labels "io.contextualwisdomlab.lineageweave.backend-url" }}')"
+[[ "$frontend_issuer" == "$LINEAGEWEAVE_OIDC_ISSUER" ]] || {
+  echo "frontend image OIDC issuer does not match the acceptance issuer" >&2
+  exit 2
+}
+[[ "$frontend_backend_url" == "$BACKEND_URL" ]] || {
+  echo "frontend image backend URL does not match the acceptance backend" >&2
   exit 2
 }
 

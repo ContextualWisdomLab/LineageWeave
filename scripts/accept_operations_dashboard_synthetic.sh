@@ -4,12 +4,13 @@ set -euo pipefail
 : "${EXPECTED_LINEAGEWEAVE_REVISION:?Set the exact LineageWeave revision used for the images}"
 : "${K6_VUS:?Set the declared Dashboard concurrency}"
 : "${K6_DURATION:?Set the declared Dashboard observation duration, including its unit}"
+: "${OIDC_READINESS_TIMEOUT_SECONDS:?Set the declared synthetic OIDC readiness budget}"
 
 BACKEND_URL="${BACKEND_URL:-http://localhost:18420}"
 LINEAGEWEAVE_E2E_BASE_URL="${LINEAGEWEAVE_E2E_BASE_URL:-http://localhost:15173}"
 LINEAGEWEAVE_OIDC_ISSUER="${LINEAGEWEAVE_OIDC_ISSUER:-http://localhost:18080/realms/lineageweave-demo}"
 LINEAGEWEAVE_OIDC_CLIENT_ID="${LINEAGEWEAVE_OIDC_CLIENT_ID:-lineageweave-frontend}"
-SYNTHETIC_USERNAME="${SYNTHETIC_USERNAME:-demo.analyst}"
+SYNTHETIC_USERNAME="${SYNTHETIC_USERNAME:-demo.admin}"
 SYNTHETIC_PASSWORD="${SYNTHETIC_PASSWORD:-lineageweave-demo-only}"
 SCREENSHOT_DESKTOP_PATH="${SCREENSHOT_DESKTOP_PATH:-/tmp/lineageweave-operations-dashboard-synthetic-desktop.png}"
 SCREENSHOT_MOBILE_PATH="${SCREENSHOT_MOBILE_PATH:-/tmp/lineageweave-operations-dashboard-synthetic-mobile.png}"
@@ -36,6 +37,10 @@ done
   echo "K6_DURATION must include an explicit k6 duration unit" >&2
   exit 2
 }
+[[ "$OIDC_READINESS_TIMEOUT_SECONDS" =~ ^[1-9][0-9]*$ ]] || {
+  echo "OIDC_READINESS_TIMEOUT_SECONDS must be a positive integer" >&2
+  exit 2
+}
 for command_name in curl docker jq corepack k6; do
   command -v "$command_name" >/dev/null || { echo "$command_name is required" >&2; exit 2; }
 done
@@ -48,8 +53,24 @@ for service_name in backend backend-worker frontend; do
     exit 2
   }
 done
+frontend_issuer="$(docker inspect "${PRODUCT_CONTAINER_PREFIX}-frontend-1" --format '{{ index .Config.Labels "io.contextualwisdomlab.lineageweave.oidc-issuer" }}')"
+frontend_backend_url="$(docker inspect "${PRODUCT_CONTAINER_PREFIX}-frontend-1" --format '{{ index .Config.Labels "io.contextualwisdomlab.lineageweave.backend-url" }}')"
+[[ "$frontend_issuer" == "$LINEAGEWEAVE_OIDC_ISSUER" ]] || {
+  echo "frontend image OIDC issuer does not match the acceptance issuer" >&2
+  exit 2
+}
+[[ "$frontend_backend_url" == "$BACKEND_URL" ]] || {
+  echo "frontend image backend URL does not match the acceptance backend" >&2
+  exit 2
+}
 
 token_endpoint="${LINEAGEWEAVE_OIDC_ISSUER%/}/protocol/openid-connect/token"
+oidc_deadline=$((SECONDS + OIDC_READINESS_TIMEOUT_SECONDS))
+until curl --silent --fail --output /dev/null \
+  "${LINEAGEWEAVE_OIDC_ISSUER%/}/.well-known/openid-configuration"; do
+  (( SECONDS < oidc_deadline )) || { echo "synthetic OIDC did not become ready" >&2; exit 1; }
+  sleep 1
+done
 LINEAGEWEAVE_ACCESS_TOKEN="$(curl --fail-with-body --silent --show-error \
   --data-urlencode "client_id=$LINEAGEWEAVE_OIDC_CLIENT_ID" \
   --data-urlencode 'grant_type=password' \

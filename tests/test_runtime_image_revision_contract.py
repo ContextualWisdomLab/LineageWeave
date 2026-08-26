@@ -15,6 +15,9 @@ def test_product_images_expose_explicit_source_revision() -> None:
             "LABEL org.opencontainers.image.revision=${LINEAGEWEAVE_SOURCE_REVISION}"
             in dockerfile
         )
+    frontend = (_ROOT / "frontend" / "Dockerfile").read_text(encoding="utf-8")
+    assert "io.contextualwisdomlab.lineageweave.oidc-issuer" in frontend
+    assert "io.contextualwisdomlab.lineageweave.backend-url" in frontend
 
 
 def test_compose_passes_revision_to_all_product_images() -> None:
@@ -35,6 +38,8 @@ def test_synthetic_acceptance_never_enables_provider_calls() -> None:
     assert "provider_readiness" not in runner
     assert '"$BACKEND_URL/api/dashboard"' in runner
     assert 'PRODUCT_CONTAINER_PREFIX="${PRODUCT_CONTAINER_PREFIX:-lineageweave}"' in runner
+    assert 'SYNTHETIC_USERNAME="${SYNTHETIC_USERNAME:-demo.admin}"' in runner
+    assert "OIDC_READINESS_TIMEOUT_SECONDS" in runner
 
 
 def test_provider_acceptance_reuses_shared_post_eligibility_sql() -> None:
