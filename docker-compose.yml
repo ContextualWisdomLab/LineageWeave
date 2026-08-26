@@ -234,7 +234,7 @@ services:
       searxng:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "python", "-m", "backend.app.worker_health"]
+      test: ["CMD", "/bin/sh", "/app/backend/worker-healthcheck.sh"]
       interval: 10s
       timeout: 3s
       retries: 3

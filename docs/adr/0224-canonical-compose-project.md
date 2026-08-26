@@ -34,7 +34,11 @@ only the synthetic `lineageweave-demo` Keycloak realm.
 
 The API process never owns a queue consumer. Instead, `backend` has a required
 `service_healthy` dependency on `backend-worker`, whose progress-based health
-probe observes its event loop. Consequently, targeted canonical startup such
+probe observes its event loop. The probe reads the worker's monotonic heartbeat
+with the image's POSIX shell rather than starting and importing a Python
+process on every interval. This preserves progress detection while preventing
+concurrent health probes from amplifying container-runtime and filesystem load.
+Consequently, targeted canonical startup such
 as `docker compose up backend` also starts the worker and does not expose an API
 that can accept durable jobs while no consumer exists. Non-Compose deployments
 must express the same co-deployment and readiness dependency in their service
