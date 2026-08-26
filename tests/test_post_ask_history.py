@@ -104,6 +104,34 @@ def test_list_conversations_binds_account_post_and_cursor() -> None:
     assert result["conversations"][0]["conversation_id"] == "00000000-0000-0000-0000-000000000001"
 
 
+@pytest.mark.parametrize(
+    ("before_updated_at", "before_conversation_id"),
+    [
+        (datetime(2026, 1, 3, tzinfo=UTC), None),
+        (None, UUID("00000000-0000-0000-0000-000000000003")),
+    ],
+)
+def test_list_conversations_rejects_a_partial_cursor(
+    before_updated_at: datetime | None,
+    before_conversation_id: UUID | None,
+) -> None:
+    """Direct callers cannot silently turn a partial cursor into page one."""
+    connection = _Connection()
+
+    with pytest.raises(ValueError, match="must be provided together"):
+        asyncio.run(
+            list_conversations(
+                connection,
+                "account-1",
+                "post-1",
+                before_updated_at=before_updated_at,
+                before_conversation_id=before_conversation_id,
+            )
+        )
+
+    assert connection.calls == []
+
+
 def test_conversation_exists_requires_account_and_post() -> None:
     """A conversation id from another post or account must not match."""
     connection = _Connection()

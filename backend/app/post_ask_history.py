@@ -59,6 +59,8 @@ async def list_conversations(
     before_conversation_id: UUID | None = None,
 ) -> dict[str, Any]:
     """Return this account's conversations on ``post_id``, newest first."""
+    if (before_updated_at is None) != (before_conversation_id is None):
+        raise ValueError("before_updated_at and before_conversation_id must be provided together")
     rows = await conn.fetch(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
         """
         select session.post_ask_session_id,
