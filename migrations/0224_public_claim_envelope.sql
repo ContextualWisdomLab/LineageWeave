@@ -74,17 +74,3 @@ create trigger public_claim_envelope_require_public_post
     before insert or update on public_claim_envelope
     for each row
     execute function public_claim_envelope_require_public_post();
-
-do $$
-begin
-    if exists (
-        select 1 from information_schema.tables
-         where table_schema = 'public' and table_name = 'global_ask_job'
-    ) then
-        alter table global_ask_job
-            add column if not exists verify_external boolean not null default false;
-        comment on column global_ask_job.verify_external is
-            'Opt-in public-claim verification. Off omits the projection; on '
-            'loads authorized egress-eligible envelopes only.';
-    end if;
-end $$;

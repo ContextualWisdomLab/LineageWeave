@@ -78,7 +78,7 @@ describe("i18n", () => {
     "Observed calendar events",
     "No observed calendar events are available.",
     "Open this observed occurrence. It is not a LineageWeave commitment.",
-    "Verify public claims on the web",
+    "Check eligible public claims",
     "Only authorized public claims are sent for web verification. Other workspace evidence is not sent.",
     "Public claims",
     "Open public claim: {title}",
@@ -96,6 +96,10 @@ describe("i18n", () => {
     "Public web evidence supports this claim. Open that post.",
     "Public claim is on {title}. Open that post.",
     "No authorized public claims are available to verify. Turn off web verification and ask again.",
+    "Collect stronger authoritative evidence before accepting the claim.",
+    "Inspect the authorized cited posts and their evidence.",
+    "Review unavailable historical channels before relying on this cutoff answer.",
+    "Compare these cutoff-grounded citations with live evidence next.",
   ] as const;
 
   it("supports the five product locales", () => {

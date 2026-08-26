@@ -14,14 +14,18 @@ with a real Postgres, same spirit as the real-provider LLM tests.
 
 from __future__ import annotations
 
+import asyncio
 import os
 import uuid
 from pathlib import Path
 from urllib.parse import urlsplit, urlunsplit
 
+import asyncpg
 import psycopg2
 import psycopg2.errors
 import pytest
+
+from backend.app.post_chat_ingestion import gather_global_chat_sources
 
 _ADMIN_DSN = os.environ.get(
     "LINEAGEWEAVE_TEST_POSTGRES_ADMIN_DSN", "postgresql://localhost/postgres"
@@ -32,6 +36,27 @@ _MAJOR_EVENT_ACTION_MIGRATION = (
 )
 _PROJECT_MENTION_MIGRATION = (
     Path(__file__).resolve().parents[1] / "migrations" / "0031_semantic_project_mentions.sql"
+)
+_POST_CONTENT_MIGRATION = (
+    Path(__file__).resolve().parents[1] / "migrations" / "0026_post_content_artifacts.sql"
+)
+_SOURCE_STATE_MIGRATION = (
+    Path(__file__).resolve().parents[1] / "migrations" / "0033_source_state_provenance.sql"
+)
+_SOURCE_CONTEXT_MIGRATION = (
+    Path(__file__).resolve().parents[1] / "migrations" / "0034_source_context_provenance.sql"
+)
+_SOURCE_IDENTITY_MIGRATION = (
+    Path(__file__).resolve().parents[1] / "migrations" / "0037_source_record_identity.sql"
+)
+_SOURCE_NAMED_HINTS_MIGRATION = (
+    Path(__file__).resolve().parents[1] / "migrations" / "0038_source_named_hints.sql"
+)
+_SOURCE_ORG_HINTS_MIGRATION = (
+    Path(__file__).resolve().parents[1] / "migrations" / "0039_source_org_named_hints.sql"
+)
+_SOURCE_EVENT_TIME_MIGRATION = (
+    Path(__file__).resolve().parents[1] / "migrations" / "0183_source_post_event_occurred_at.sql"
 )
 _PROJECT_BOUND_ACTION_MIGRATION = (
     Path(__file__).resolve().parents[1]
@@ -68,18 +93,26 @@ _LEFTOVER_MAP_RECONSTRUCTION_MIGRATION = (
     / "migrations"
     / "0206_report_leftover_map_reconstruction.sql"
 )
-_GLOBAL_ASK_JOB_MIGRATION = (
-    Path(__file__).resolve().parents[1] / "migrations" / "0165_global_ask_job.sql"
-)
-_PUBLIC_CLAIM_ENVELOPE_MIGRATION = (
-    Path(__file__).resolve().parents[1]
-    / "migrations"
-    / "0224_public_claim_envelope.sql"
-)
 _LEFTOVER_MAP_AXIS_MIGRATION = (
     Path(__file__).resolve().parents[1]
     / "migrations"
     / "0169_report_leftover_map_axis.sql"
+)
+_GLOBAL_ASK_EVIDENCE_SEARCH_MIGRATION = (
+    Path(__file__).resolve().parents[1]
+    / "migrations"
+    / "0210_global_ask_evidence_search_indexes.sql"
+)
+_GLOBAL_ASK_JOB_MIGRATION = (
+    Path(__file__).resolve().parents[1] / "migrations" / "0165_global_ask_job.sql"
+)
+_GLOBAL_ASK_PUBLIC_VERIFICATION_MIGRATION = (
+    Path(__file__).resolve().parents[1]
+    / "migrations"
+    / "0218_global_ask_public_verification.sql"
+)
+_PUBLIC_CLAIM_ENVELOPE_MIGRATION = (
+    Path(__file__).resolve().parents[1] / "migrations" / "0224_public_claim_envelope.sql"
 )
 _CHANNEL_EVIDENCE_MIGRATION = (
     Path(__file__).resolve().parents[1] / "migrations" / "0174_post_lineage_edge_signal.sql"
@@ -123,10 +156,21 @@ def schema_db():
         parsed_admin_dsn = urlsplit(_ADMIN_DSN)
         db_dsn = urlunsplit(parsed_admin_dsn._replace(path=f"/{db_name}"))
         conn = psycopg2.connect(db_dsn)
+        # Production migration runs each file through psql -X, so concurrent
+        # indexes are outside a transaction. Keep this integration fixture's
+        # execution semantics identical to that path.
+        conn.autocommit = True
         try:
             with conn.cursor() as cur:
                 cur.execute(_MIGRATION_PATH.read_text())
+                cur.execute(_POST_CONTENT_MIGRATION.read_text())
                 cur.execute(_PROJECT_MENTION_MIGRATION.read_text())
+                cur.execute(_SOURCE_STATE_MIGRATION.read_text())
+                cur.execute(_SOURCE_CONTEXT_MIGRATION.read_text())
+                cur.execute("create extension if not exists pg_trgm")
+                cur.execute(_SOURCE_IDENTITY_MIGRATION.read_text())
+                cur.execute(_SOURCE_NAMED_HINTS_MIGRATION.read_text())
+                cur.execute(_SOURCE_ORG_HINTS_MIGRATION.read_text())
                 cur.execute(_MAJOR_EVENT_ACTION_MIGRATION.read_text())
                 cur.execute(_PROJECT_BOUND_ACTION_MIGRATION.read_text())
                 cur.execute(_PROJECT_BOUND_EVENT_MIGRATION.read_text())
@@ -139,9 +183,19 @@ def schema_db():
                 cur.execute(_LEFTOVER_MAP_UNEXPLAINED_MIGRATION.read_text())
                 cur.execute(_LEFTOVER_MAP_CROSS_SHARE_MIGRATION.read_text())
                 cur.execute(_LEFTOVER_MAP_RECONSTRUCTION_MIGRATION.read_text())
+                cur.execute(_SOURCE_EVENT_TIME_MIGRATION.read_text())
+                # psql sends each statement independently, which is required
+                # by CREATE INDEX CONCURRENTLY. psycopg2 treats a multi-
+                # statement execute as one transaction even with autocommit.
+                for statement in _GLOBAL_ASK_EVIDENCE_SEARCH_MIGRATION.read_text().split(";\n\n"):
+                    if statement.strip():
+                        cur.execute(statement + ";")
                 cur.execute(_GLOBAL_ASK_JOB_MIGRATION.read_text())
+                cur.execute(_GLOBAL_ASK_PUBLIC_VERIFICATION_MIGRATION.read_text())
                 cur.execute(_PUBLIC_CLAIM_ENVELOPE_MIGRATION.read_text())
-            conn.commit()
+            # Migration replay needs autocommit for concurrent indexes, while
+            # tests need transactions for savepoints and rollback assertions.
+            conn.autocommit = False
             yield conn
         finally:
             conn.close()
@@ -195,10 +249,176 @@ def test_migration_applies_cleanly(schema_db) -> None:
         "post_summary_action",
         "post_chat_result",
         "post_chat_citation",
-        "global_ask_job",
-        "public_claim_envelope",
     }
     assert expected <= tables
+
+
+def test_global_ask_evidence_search_indexes_exist_on_normalized_tables(schema_db) -> None:
+    """The real PostgreSQL schema owns all nine evidence-search indexes."""
+    with schema_db.cursor() as cur:
+        cur.execute(
+            """
+            select indexname
+              from pg_indexes
+             where schemaname = 'public'
+               and (indexname like '%_evidence_search_idx'
+                    or indexname = 'knowledge_graph_edge_type_search_idx')
+             order by indexname
+            """
+        )
+        index_names = [row[0] for row in cur.fetchall()]
+
+    assert index_names == [
+        "cataloged_person_evidence_search_idx",
+        "cataloged_team_evidence_search_idx",
+        "common_lookup_value_evidence_search_idx",
+        "corporate_entity_evidence_search_idx",
+        "knowledge_graph_edge_type_search_idx",
+        "person_affiliation_evidence_search_idx",
+        "post_project_mention_evidence_search_idx",
+        "post_summary_role_evidence_search_idx",
+        "source_post_title_evidence_search_idx",
+    ]
+
+
+def test_global_ask_nominates_a_live_semantic_only_post(schema_db) -> None:
+    """Real PostgreSQL retrieves a post whose query term exists only in evidence."""
+    post_id = "30000000-0000-0000-0000-000000000001"
+    with schema_db.cursor() as cur:
+        cur.execute(
+            """
+            insert into common_lookup_value
+                (lookup_category, lookup_code, lookup_label)
+            values
+                ('corporate_entity_level', 'semantic_test_level', 'Synthetic level'),
+                ('voc_type', 'semantic_test_voc', 'Synthetic VOC'),
+                ('post_visibility', 'semantic_test_public', 'Synthetic public'),
+                ('person_side', 'semantic_test_person_side', 'Synthetic person side'),
+                ('node_type', 'node_person', 'Person'),
+                ('node_type', 'node_corporate_entity', 'Corporate entity'),
+                ('edge_type', 'edge_affiliation', 'Affiliated with')
+            """
+        )
+        cur.execute(
+            """
+            insert into corporate_entity
+                (corporate_entity_id, corporate_entity_code, entity_name,
+                 entity_level_code)
+            values
+                ('10000000-0000-0000-0000-000000000001', 'SYNTH-CORP',
+                 'Synthetic Corp', 'semantic_test_level')
+            """
+        )
+        cur.execute(
+            """
+            insert into user_account
+                (user_account_id, external_subject_id, display_name, email_address)
+            values
+                ('20000000-0000-0000-0000-000000000001', 'synthetic-subject',
+                 'Synthetic User', 'synthetic@example.invalid')
+            """
+        )
+        cur.execute(
+            """
+            insert into source_post
+                (post_id, author_account_id, corporate_entity_id, post_title,
+                 post_body, voc_type_code, visibility_code)
+            values
+                (%s, '20000000-0000-0000-0000-000000000001',
+                 '10000000-0000-0000-0000-000000000001', 'Neutral title',
+                 'Neutral body', 'semantic_test_voc', 'semantic_test_public')
+            """,
+            (post_id,),
+        )
+        cur.execute(
+            """
+            insert into post_project_mention
+                (post_id, project_key, project_name, evidence_text, confidence,
+                 ontology_iri, extraction_method)
+            values
+                (%s, 'semantic-project', 'Exclusive Semantic Project',
+                 'Synthetic project evidence', 1.000,
+                 'https://contextualwisdomlab.github.io/LineageWeave/ontology#Project',
+                 'synthetic_test')
+            """,
+            (post_id,),
+        )
+        cur.execute(
+            """
+            insert into cataloged_person
+                (person_id, person_name, person_side_code, last_known_job_title)
+            values
+                ('40000000-0000-0000-0000-000000000001', 'Synthetic Expert',
+                 'semantic_test_person_side', 'Synthetic Reviewer')
+            """
+        )
+        cur.execute(
+            """
+            insert into person_affiliation
+                (person_id, affiliated_organization_name,
+                 affiliated_corporate_entity_id, role_title)
+            values
+                ('40000000-0000-0000-0000-000000000001', 'Synthetic Corp',
+                 '10000000-0000-0000-0000-000000000001', 'Synthetic Reviewer')
+            """
+        )
+        cur.execute(
+            """
+            insert into post_person_mention (post_id, person_id, mention_context)
+            values (%s, '40000000-0000-0000-0000-000000000001', 'Synthetic evidence')
+            """,
+            (post_id,),
+        )
+        cur.execute(
+            """
+            insert into knowledge_graph_edge
+                (knowledge_graph_edge_id, source_node_type_code, source_node_id,
+                 target_node_type_code, target_node_id, edge_type_code)
+            values
+                ('50000000-0000-0000-0000-000000000001', 'node_person',
+                 '40000000-0000-0000-0000-000000000001',
+                 'node_corporate_entity',
+                 '10000000-0000-0000-0000-000000000001', 'edge_affiliation')
+            """
+        )
+    schema_db.commit()
+    async_dsn = urlunsplit(
+        urlsplit(_ADMIN_DSN)._replace(path=f"/{schema_db.info.dbname}")
+    )
+
+    async def retrieve(question: str) -> list:
+        # Reuse the fixture DSN so password-authenticated CI databases keep
+        # the same credentials as the psycopg2 migration connection.
+        conn = await asyncpg.connect(async_dsn)
+        try:
+            return await gather_global_chat_sources(
+                conn,
+                lambda row: row["visibility_code"] == "semantic_test_public",
+                ["10000000-0000-0000-0000-000000000001"],
+                question=question,
+                question_embedding=([1.0, 0.0], "synthetic-model", 1.0),
+                limit=4,
+            )
+        finally:
+            await conn.close()
+
+    sources = asyncio.run(retrieve("Exclusive Semantic Project"))
+
+    assert [source.post_id for source in sources] == [post_id]
+    assert any(
+        "Exclusive Semantic Project" in fact for fact in sources[0].evidence_facts
+    )
+    assert [source.post_id for source in asyncio.run(retrieve("Synthetic Expert"))] == [
+        post_id
+    ]
+    assert [
+        source.post_id
+        for source in asyncio.run(
+            retrieve(
+                "https://contextualwisdomlab.github.io/LineageWeave/ontology#affiliatedWith"
+            )
+        )
+    ] == [post_id]
 
 
 def test_post_lineage_edge_requires_an_allen_interval_code(schema_db) -> None:
@@ -607,9 +827,10 @@ def test_public_claim_envelope_requires_a_public_post_for_egress(schema_db) -> N
         ]
         cur.execute(
             "select column_name from information_schema.columns "
-            "where table_name = 'global_ask_job' and column_name = 'verify_external'"
+            "where table_name = 'global_ask_job' "
+            "and column_name = 'verify_external_requested'"
         )
-        assert cur.fetchone()[0] == "verify_external"
+        assert cur.fetchone()[0] == "verify_external_requested"
         cur.execute(
             "insert into common_lookup_value "
             "(lookup_category, lookup_code, lookup_label) values "
@@ -632,39 +853,35 @@ def test_public_claim_envelope_requires_a_public_post_for_egress(schema_db) -> N
         )
         account_id = cur.fetchone()[0]
         cur.execute(
-            "insert into source_post ("
-            "author_account_id, corporate_entity_id, post_title, post_body, "
-            "voc_type_code, visibility_code"
-            ") values (%s, %s, 'Demo public post', 'Northridge Grid is named here.', "
+            "insert into source_post (author_account_id, corporate_entity_id, "
+            "post_title, post_body, voc_type_code, visibility_code) "
+            "values (%s, %s, 'Demo public post', 'Northridge Grid is named here.', "
             "'vom', 'public') returning post_id",
             (account_id, entity_id),
         )
         public_post_id = cur.fetchone()[0]
         cur.execute(
-            "insert into source_post ("
-            "author_account_id, corporate_entity_id, post_title, post_body, "
-            "voc_type_code, visibility_code"
-            ") values (%s, %s, 'Demo private post', 'Internal only.', "
+            "insert into source_post (author_account_id, corporate_entity_id, "
+            "post_title, post_body, voc_type_code, visibility_code) "
+            "values (%s, %s, 'Demo private post', 'Internal only.', "
             "'vom', 'private') returning post_id",
             (account_id, entity_id),
         )
         private_post_id = cur.fetchone()[0]
         cur.execute(
-            "insert into public_claim_envelope ("
-            "source_post_id, claim_kind_code, subject_label, claim_text, "
-            "truth_status_code, egress_eligible"
-            ") values (%s, 'claim_organization_presence', 'Northridge Grid', "
-            "'Northridge Grid is a power utility named on the Demo public post.', "
+            "insert into public_claim_envelope (source_post_id, claim_kind_code, "
+            "subject_label, claim_text, truth_status_code, egress_eligible) "
+            "values (%s, 'claim_organization_presence', 'Northridge Grid', "
+            "'Northridge Grid is named on the Demo public post.', "
             "'truth_observed', true)",
             (public_post_id,),
         )
         cur.execute("savepoint before_private_egress")
         with pytest.raises(psycopg2.errors.RaiseException):
             cur.execute(
-                "insert into public_claim_envelope ("
-                "source_post_id, claim_kind_code, subject_label, claim_text, "
-                "truth_status_code, egress_eligible"
-                ") values (%s, 'claim_organization_presence', 'Northridge Grid', "
+                "insert into public_claim_envelope (source_post_id, claim_kind_code, "
+                "subject_label, claim_text, truth_status_code, egress_eligible) "
+                "values (%s, 'claim_organization_presence', 'Northridge Grid', "
                 "'A private claim must not leave the trust boundary.', "
                 "'truth_observed', true)",
                 (private_post_id,),
@@ -673,10 +890,9 @@ def test_public_claim_envelope_requires_a_public_post_for_egress(schema_db) -> N
         cur.execute("savepoint before_ineligible_kind")
         with pytest.raises(psycopg2.errors.ForeignKeyViolation):
             cur.execute(
-                "insert into public_claim_envelope ("
-                "source_post_id, claim_kind_code, subject_label, claim_text, "
-                "truth_status_code, egress_eligible"
-                ") values (%s, 'keyman', 'Ada West', 'Ada West is a Keyman', "
+                "insert into public_claim_envelope (source_post_id, claim_kind_code, "
+                "subject_label, claim_text, truth_status_code, egress_eligible) "
+                "values (%s, 'keyman', 'Ada West', 'Ada West is a Keyman', "
                 "'truth_observed', false)",
                 (public_post_id,),
             )

@@ -8,7 +8,13 @@ import {
 } from "../api";
 import { t, tf } from "../i18n";
 import { ontologyExplorerText } from "../ontologyExplorerI18n";
-import { accumulateNeighborhoodPages, filterNeighborhood, layoutOntologyNeighborhood, neighborhoodCsv } from "../ontologyLayout";
+import {
+  accumulateNeighborhoodPages,
+  filterNeighborhood,
+  layoutOntologyNeighborhood,
+  neighborhoodCsv,
+  ONTOLOGY_NODE_LABEL_WIDTH,
+} from "../ontologyLayout";
 
 export type OntologyExplorerStatus =
   | "ready"
@@ -36,6 +42,7 @@ const NODE_TYPE_LABEL: Record<string, string> = {
   node_person: "Person",
   node_corporate_entity: "Organization",
   node_team: "Team",
+  node_project: "Project",
 };
 
 const NODE_TYPE_CLASS: Record<string, string> = {
@@ -43,6 +50,7 @@ const NODE_TYPE_CLASS: Record<string, string> = {
   node_person: "ontology-node-person",
   node_corporate_entity: "ontology-node-organization",
   node_team: "ontology-node-team",
+  node_project: "ontology-node-project",
 };
 
 const TRUTH_LABEL: Record<string, string> = {
@@ -192,7 +200,7 @@ export function OntologyExplorer({
           <h3>{t("Typed relations, not Event Lineage")}</h3>
           <p>
             {t("This is an ontology neighborhood, not Event Lineage.")}{" "}
-            {t("Event Lineage shows reconstructed post-to-post parents. This graph shows typed people, organizations, teams, and posts.")}
+            {t("Event Lineage shows reconstructed post-to-post parents. This graph shows typed people, organizations, teams, projects, and posts.")}
           </p>
         </div>
         <div className="ontology-explorer-actions">
@@ -346,6 +354,7 @@ function OntologyLegend() {
         <li>{t("Person")} — {t("ellipse")}</li>
         <li>{t("Organization")} — {t("hexagon")}</li>
         <li>{t("Team")} — {t("rounded rectangle")}</li>
+        <li>{t("Project")} — {t("diamond")}</li>
       </ul>
       <ul>
         <li>{t("Authoritative")}</li>
@@ -444,12 +453,18 @@ function OntologyGraph({
           }}
         >
           <OntologyShape shape={node.shape_code} />
-          <text x={28} y={4}>
-            {node.display_label}
-          </text>
-          <text className="ontology-node-type" x={28} y={18}>
-            {t(NODE_TYPE_LABEL[node.node_type_code] ?? node.node_type_code)}
-          </text>
+          <foreignObject
+            className="ontology-node-label"
+            x={-ONTOLOGY_NODE_LABEL_WIDTH / 2}
+            y={18}
+            width={ONTOLOGY_NODE_LABEL_WIDTH}
+            height={layout.height - node.y}
+          >
+            <div aria-hidden="true">
+              <span>{node.display_label}</span>
+              <small>{t(NODE_TYPE_LABEL[node.node_type_code] ?? node.node_type_code)}</small>
+            </div>
+          </foreignObject>
         </g>
       ))}
     </svg>
@@ -465,6 +480,9 @@ function OntologyShape({ shape }: { shape: string }) {
   }
   if (shape === "rounded-rectangle") {
     return <rect x={-18} y={-12} width={36} height={24} rx={8} />;
+  }
+  if (shape === "diamond") {
+    return <polygon points="0,-16 20,0 0,16 -20,0" />;
   }
   return <rect x={-18} y={-12} width={36} height={24} />;
 }
@@ -497,6 +515,9 @@ function OntologyExactValueTable({
               <th>{t("Property")}</th>
               <th>{t("Target")}</th>
               <th>{t("Truth status")}</th>
+              <th>{t("Valid from")}</th>
+              <th>{t("Valid to")}</th>
+              <th>{t("Evidence")}</th>
               <th>{t("Recorded at")}</th>
             </tr>
           </thead>
@@ -511,6 +532,9 @@ function OntologyExactValueTable({
                 <td>{row.property_label}</td>
                 <td>{row.target_label}</td>
                 <td>{t(TRUTH_LABEL[row.truth_status_code] ?? row.truth_status_code)}</td>
+                <td>{row.valid_from.slice(0, 10) || t("Unknown")}</td>
+                <td>{row.valid_to.slice(0, 10) || t("Unknown")}</td>
+                <td>{row.evidence_count}</td>
                 <td>{row.recorded_at.slice(0, 10)}</td>
               </tr>
             ))}

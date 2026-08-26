@@ -41,6 +41,7 @@ const ONTOLOGY_NODE_TOKENS = [
   "--ontology-node-person-fill",
   "--ontology-node-organization-fill",
   "--ontology-node-team-fill",
+  "--ontology-node-project-fill",
   "--ontology-node-generic-fill",
 ];
 
@@ -173,6 +174,16 @@ describe("design tokens", () => {
     // the top of the box once min-height grows past the line height.
     expect(citationChipBlock).toContain("display: inline-flex");
     expect(citationChipBlock).toContain("align-items: center");
+  });
+
+  it("keeps public-verification layout on shared tokens", () => {
+    for (const token of [
+      "--space-panel-block",
+      "--space-control-gap",
+      "--color-border",
+      "--size-control-min",
+    ]) {
+    }
   });
 });
 

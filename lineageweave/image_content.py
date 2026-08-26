@@ -75,31 +75,6 @@ class ImageRegion:
     height: float
 
 
-def regions_cover_image(regions: tuple[ImageRegion, ...] | list[ImageRegion]) -> bool:
-    """Require returned regions to cover the image, including its edges.
-
-    ponytail: this bounded 32x32 sample is a cheap coverage guard; replace it
-    with exact rectangle-union arithmetic only if provider edge cases make
-    sampled coverage observably insufficient.
-    """
-    if not regions:
-        return False
-    if len(regions) == 1 and regions[0] == ImageRegion(0.0, 0.0, 1.0, 1.0):
-        return False
-    sample_count = 32
-    points = range(sample_count + 1)
-    return all(
-        any(
-            region.x <= x <= region.x + region.width
-            and region.y <= y <= region.y + region.height
-            for region in regions
-        )
-        for x_index in points
-        for y_index in points
-        for x, y in ((x_index / sample_count, y_index / sample_count),)
-    )
-
-
 def crop_image_region(image_bytes: bytes, mime_type: str, region: ImageRegion) -> tuple[bytes, str]:
     """Normalize an image and crop one bounded region as opaque PNG."""
     from .vision_image import normalize_vision_image

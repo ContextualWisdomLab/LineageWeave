@@ -85,7 +85,7 @@ describe("askAgent public-claim opt-in", () => {
       );
     vi.stubGlobal("fetch", fetchMock);
 
-    await askAgent("access-token", "Does Northridge Grid exist?", { verifyExternal: true });
+    await askAgent("access-token", "Does Northridge Grid exist?", true);
 
     expect(JSON.parse(String(fetchMock.mock.calls[0][1].body))).toEqual({
       question: "Does Northridge Grid exist?",

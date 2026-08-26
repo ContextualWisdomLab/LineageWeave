@@ -2082,7 +2082,7 @@ describe("App, authenticated", () => {
     expect(await screen.findByRole("button", { name: "View post: Public post" })).toBeInTheDocument();
     await userEvent.click(screen.getByRole("button", { name: "Ask Agent" }));
 
-    const verify = screen.getByRole("checkbox", { name: "Verify public claims on the web" });
+    const verify = screen.getByRole("checkbox", { name: "Check eligible public claims" });
     expect(verify).not.toBeChecked();
     await userEvent.click(verify);
     await userEvent.type(screen.getByRole("textbox", { name: "Ask a question" }), "Does Northridge Grid exist?");
@@ -2104,7 +2104,7 @@ describe("App, authenticated", () => {
     render(<App />);
     await screen.findByRole("button", { name: "View post: Public post" });
     await userEvent.click(screen.getByRole("button", { name: "Ask Agent" }));
-    await userEvent.click(screen.getByRole("checkbox", { name: "Verify public claims on the web" }));
+    await userEvent.click(screen.getByRole("checkbox", { name: "Check eligible public claims" }));
     await userEvent.type(screen.getByRole("textbox", { name: "Ask a question" }), "What is public?");
     await userEvent.click(screen.getByRole("button", { name: "Ask" }));
 

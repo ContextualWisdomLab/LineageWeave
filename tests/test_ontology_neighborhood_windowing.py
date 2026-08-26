@@ -306,6 +306,26 @@ def test_load_facts_binds_edges_to_the_sealed_snapshot() -> None:
     assert conn.arguments[6] == T0
 
 
+def test_load_facts_binds_edge_creation_to_the_knowledge_cutoff() -> None:
+    """A graph assertion created later must not appear in an earlier view."""
+    conn = CapturingWindowConnection()
+    asyncio.run(
+        _load_facts(
+            conn,  # type: ignore[arg-type]
+            [POST_ID],
+            focus_node_type_code=NODE_POST,
+            focus_node_id=POST_ID,
+            maximum_depth=1,
+            maximum_edges=1,
+            knowledge_cutoff=T0,
+        )
+    )
+    normalized = " ".join(conn.query.lower().split())
+    assert "edge.created_at <= $6::timestamptz" in normalized
+    assert "greatest(edge.created_at, min(post.created_at))" in normalized
+    assert conn.arguments[5] == T0
+
+
 def test_loaded_display_edge_keeps_its_raw_sql_cursor_key() -> None:
     """A reversed display relation must still resume with the raw SQL orientation."""
     window = asyncio.run(
@@ -370,6 +390,7 @@ def test_source_continuation_uses_sealed_snapshot_and_rechecks_page_endpoints(mo
         expires_at=T0,
     )
     load_snapshots: list[datetime | None] = []
+    focus_visibility_snapshots: list[datetime | None] = []
     load_after_keys: list[OntologySourceKey | None] = []
     verify_modes: list[bool] = []
     minted_keys: list[OntologySourceKey] = []
@@ -391,13 +412,14 @@ def test_source_continuation_uses_sealed_snapshot_and_rechecks_page_endpoints(mo
             source_keys_by_edge={display_edge_key: last_key},
         )
 
-    async def fake_visible_post_ids(*_args, **_kwargs):
+    async def fake_visible_post_ids(*_args, snapshot_at=None, **_kwargs):
+        focus_visibility_snapshots.append(snapshot_at)
         return [POST_ID]
 
     async def fake_focus_exists(*_args, **_kwargs):
         return True
 
-    async def fake_visible_by_nodes(_conn, endpoint_keys, _can_see_post):
+    async def fake_visible_by_nodes(_conn, endpoint_keys, _can_see_post, **_kwargs):
         assert (NODE_PERSON, PERSON_ID) in endpoint_keys
         return {(NODE_PERSON, PERSON_ID): [POST_ID]}
 
@@ -444,6 +466,7 @@ def test_source_continuation_uses_sealed_snapshot_and_rechecks_page_endpoints(mo
     )
 
     assert verify_modes == [False, True]
+    assert focus_visibility_snapshots == [T0]
     assert load_snapshots == [T0, T0]
     assert load_after_keys == [None, last_key]
     assert minted_keys == [last_key]
@@ -524,7 +547,7 @@ def test_skos_overflow_mints_source_cursor_for_continuation(monkeypatch) -> None
     async def fake_focus_exists(*_args, **_kwargs):
         return True
 
-    async def fake_visible_by_nodes(_conn, endpoint_keys, _can_see_post):
+    async def fake_visible_by_nodes(_conn, endpoint_keys, _can_see_post, **_kwargs):
         return {key: [POST_ID] for key in endpoint_keys}
 
     async def fake_skos(*_args, **_kwargs):

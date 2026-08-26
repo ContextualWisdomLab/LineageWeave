@@ -196,6 +196,47 @@ def test_topic_lineage_result_migration_is_idempotent_for_replay() -> None:
     assert "create index if not exists" in migration
 
 
+def test_global_ask_job_migrations_are_idempotent_for_replay() -> None:
+    """Existing volumes must replay the queue and authorization scope safely."""
+    migrations = Path(__file__).resolve().parents[1] / "migrations"
+    job_sql = (migrations / "0165_global_ask_job.sql").read_text(encoding="utf-8")
+    scope_sql = (migrations / "0203_global_ask_authorization_scope.sql").read_text(
+        encoding="utf-8"
+    )
+
+    assert "create table if not exists global_ask_job" in job_sql
+    assert job_sql.count("create index if not exists") == 2
+    assert scope_sql.count("create table if not exists") == 2
+
+
+def test_global_ask_public_verification_opt_in_is_replay_safe() -> None:
+    """The durable worker receives explicit consent on old and new volumes."""
+
+    sql = (
+        Path(__file__).resolve().parents[1]
+        / "migrations"
+        / "0218_global_ask_public_verification.sql"
+    ).read_text(encoding="utf-8")
+
+    assert "verify_external_requested boolean not null default false" in sql
+    assert "add column if not exists" in sql
+    assert "data_type <> 'boolean'" in sql
+
+
+def test_global_ask_knowledge_cutoff_is_replay_safe() -> None:
+    """Existing queue tables accept the optional as-of clock on every restart."""
+
+    sql = (
+        Path(__file__).resolve().parents[1]
+        / "migrations"
+        / "0212_global_ask_knowledge_cutoff.sql"
+    ).read_text(encoding="utf-8")
+
+    assert "knowledge_cutoff timestamptz" in sql
+    assert "add column if not exists" in sql
+    assert "data_type <> 'timestamp with time zone'" in sql
+
+
 def test_public_claim_envelope_migration_is_replay_safe() -> None:
     """Volumes created before 0224 must survive migrate.sh's every-start replay."""
     sql = (
@@ -207,7 +248,6 @@ def test_public_claim_envelope_migration_is_replay_safe() -> None:
     assert "create table if not exists public_claim_envelope" in sql
     assert "on conflict (lookup_code) do nothing" in sql
     assert "create or replace function public_claim_envelope_require_public_post" in sql
-    assert "add column if not exists verify_external" in sql
     assert "claim_organization_presence" in sql
     assert "claim_public_event" in sql
     assert "claim_public_relationship" in sql
@@ -216,12 +256,10 @@ def test_public_claim_envelope_migration_is_replay_safe() -> None:
 def test_public_claim_rollback_preserves_shared_truth_statuses() -> None:
     """Rollback 0224 must not delete ontology statuses owned by migration 0175."""
     root = Path(__file__).resolve().parents[1]
-    truth_status_owner = (root / "migrations/0175_ontology_truth_status.sql").read_text(
+    owner = (root / "migrations/0175_ontology_truth_status.sql").read_text(encoding="utf-8")
+    rollback = (root / "migrations/rollback/0224_public_claim_envelope.sql").read_text(
         encoding="utf-8"
     )
-    rollback = (
-        root / "migrations/rollback/0224_public_claim_envelope.sql"
-    ).read_text(encoding="utf-8")
 
     for code in (
         "truth_authoritative",
@@ -231,5 +269,5 @@ def test_public_claim_rollback_preserves_shared_truth_statuses() -> None:
         "truth_superseded",
         "truth_rejected",
     ):
-        assert code in truth_status_owner
+        assert code in owner
         assert code not in rollback

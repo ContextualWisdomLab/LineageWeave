@@ -1,6 +1,5 @@
 import { AdminPanel } from "./components/AdminPanel";
 import { LeftoverPairList } from "./components/LeftoverPairList";
-import { PublicClaimList } from "./components/PublicClaimList";
 import { WorkspaceCalendar } from "./components/WorkspaceCalendar";
 import { focusedGraphMustReset } from "./focusedGraphSelection";
 
@@ -95,6 +94,7 @@ import { CutoffKnownBody } from "./components/CutoffKnownBody";
 import { LineageEntityPicker } from "./components/LineageEntityPicker";
 import { OntologyExplorer } from "./components/OntologyExplorer";
 import { AskEvidenceLayerPopup } from "./components/AskEvidenceLayerPopup";
+import { PublicClaimList } from "./components/PublicClaimList";
 import { PopupCloseButton } from "./components/PopupCloseButton";
 import { SimilarVocPanel } from "./components/SimilarVocPanel";
 import { chatEvidenceKindLabel } from "./evidenceKindLabels";
@@ -4814,7 +4814,7 @@ function CustomerMasterPanel({
   );
 }
 
-function AskAgentPanel({
+export function AskAgentPanel({
   accessToken,
   onOpenPost,
 }: {
@@ -4826,7 +4826,12 @@ function AskAgentPanel({
   const [error, setError] = useState<string | null>(null);
   const [asking, setAsking] = useState(false);
   const [verifyExternal, setVerifyExternal] = useState(false);
+  const [knowledgeCutoff, setKnowledgeCutoff] = useState("");
   const [evidenceLayerPostId, setEvidenceLayerPostId] = useState<string | null>(null);
+  const now = new Date();
+  const localKnowledgeCutoffMax = new Date(
+    now.getTime() - now.getTimezoneOffset() * 60_000,
+  ).toISOString().slice(0, 16);
 
   async function handleAsk() {
     const normalized = question.trim();
@@ -4834,7 +4839,14 @@ function AskAgentPanel({
     setAsking(true);
     setError(null);
     try {
-      setAnswer(await askAgent(accessToken, normalized, { verifyExternal }));
+      setAnswer(
+        await askAgent(
+          accessToken,
+          normalized,
+          verifyExternal,
+          knowledgeCutoff ? new Date(knowledgeCutoff).toISOString() : undefined,
+        ),
+      );
     } catch (err) {
       setAnswer(null);
       setError(orchestratorUnavailableMessage(err, t("Ask Agent")));
@@ -4849,32 +4861,42 @@ function AskAgentPanel({
       <h2 id="ask-agent-heading">{t("Ask Agent")}</h2>
       <p className="workspace-destination-intro">{t("Questions use authorized posts and their evidence.")}</p>
       {error ? <p className="error">{error}</p> : null}
-      <label className="ask-agent-source">
-        <span>{t("Ask a question")}</span>
-        <textarea
-          aria-label={t("Ask a question")}
-          value={question}
-          onChange={(event) => setQuestion(event.target.value)}
-          rows={4}
-        />
-      </label>
-      <label className="ask-agent-source">
-        <input
-          type="checkbox"
-          checked={verifyExternal}
-          onChange={(event) => setVerifyExternal(event.target.checked)}
-          aria-label={t("Verify public claims on the web")}
-        />
-        <span>{t("Verify public claims on the web")}</span>
-      </label>
-      <p className="post-meta">
-        {t(
-          "Only authorized public claims are sent for web verification. Other workspace evidence is not sent.",
-        )}
-      </p>
-      <button className="keyman-select" onClick={() => void handleAsk()} disabled={asking || !question.trim()}>
-        {asking ? t("Asking...") : t("Ask")}
-      </button>
+      <div className="ask-agent-form">
+        <label className="ask-agent-field">
+          <span>{t("Ask a question")}</span>
+          <textarea
+            aria-label={t("Ask a question")}
+            value={question}
+            onChange={(event) => setQuestion(event.target.value)}
+            rows={4}
+          />
+        </label>
+        <label className="ask-agent-checkbox">
+          <input
+            type="checkbox"
+            checked={verifyExternal}
+            onChange={(event) => setVerifyExternal(event.target.checked)}
+          />
+          <span>{t("Check eligible public claims")}</span>
+        </label>
+        <p className="post-meta">
+          {t(
+            "Only authorized public claims are sent for web verification. Other workspace evidence is not sent.",
+          )}
+        </p>
+        <label className="ask-agent-field">
+          <span>{t("Knowledge cutoff (optional)")}</span>
+          <input
+            type="datetime-local"
+            value={knowledgeCutoff}
+            max={localKnowledgeCutoffMax}
+            onChange={(event) => setKnowledgeCutoff(event.target.value)}
+          />
+        </label>
+        <button className="btn-primary" onClick={() => void handleAsk()} disabled={asking || !question.trim()}>
+          {asking ? t("Asking...") : t("Ask")}
+        </button>
+      </div>
       {answer && (
         <section className="popup-section" aria-label={t("Answer")}>
           <h3>{t("Answer")}</h3>
@@ -4889,6 +4911,22 @@ function AskAgentPanel({
             )
           ) : null}
           {answer.answer_text ? <p>{answer.answer_text}</p> : null}
+          {answer.knowledge_cutoff ? (
+            <aside className="ask-delivery" aria-label={t("Knowledge-cutoff grounding")}>
+              <h4>{t("Knowledge-cutoff grounding")}</h4>
+              <p>
+                {answer.grounding_status === "fully_cutoff_grounded"
+                  ? t("Fully cutoff-grounded")
+                  : t("Partially cutoff-grounded")}
+                {` · ${answer.knowledge_cutoff}`}
+              </p>
+              {answer.limitations?.length ? (
+                <p role="alert">
+                  {t("Some historical bodies or channels are unavailable. Review the cited limitations.")}
+                </p>
+              ) : null}
+            </aside>
+          ) : null}
           {answer.next_action && !answer.public_claim_verification ? (
             <p className="post-meta">{t(answer.next_action)}</p>
           ) : null}
@@ -4914,6 +4952,13 @@ function AskAgentPanel({
                   <li key={post.post_id}>
                     <button className="post-list-item" onClick={() => onOpenPost(post.post_id)}>
                       <strong>{post.post_title}</strong>
+                      {post.source_post_revision_id ? (
+                        <span className="post-meta">
+                          {t("Retained revision")}
+                          {post.evidence_available_at ? ` · ${post.evidence_available_at}` : ""}
+                          {post.live_changed_after_cutoff ? ` · ${t("Live source changed later")}` : ""}
+                        </span>
+                      ) : null}
                     </button>
                     <button
                       type="button"

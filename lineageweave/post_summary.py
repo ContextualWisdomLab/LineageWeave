@@ -42,6 +42,7 @@ import re
 import unicodedata
 from dataclasses import dataclass, field
 from typing import Protocol
+from uuid import UUID
 
 from .http_client import chat_completion_content, post_json
 
@@ -172,6 +173,27 @@ def normalize_project_key(project_name: str) -> str:
     """Stable comparison key; raw/canonical labels and evidence stay separate."""
     normalized = unicodedata.normalize("NFKC", project_name).casefold()
     return re.sub(r"[^\w]+", "-", normalized, flags=re.UNICODE).strip("-")
+
+
+def project_candidate_node_id(post_id: str, project_key: str) -> str:
+    """Return a post-scoped node id without asserting cross-post identity."""
+
+    canonical_post_id = str(UUID(post_id))
+    if not project_key or normalize_project_key(project_key) != project_key:
+        raise ValueError("project_key must already be normalized")
+    return f"{canonical_post_id}/{project_key}"
+
+
+def parse_project_candidate_node_id(node_id: str) -> tuple[str, str]:
+    """Validate and split one post-scoped unresolved Project candidate id."""
+
+    post_id, separator, project_key = node_id.partition("/")
+    if not separator or "/" in project_key:
+        raise ValueError("project candidate node id must contain one post/key separator")
+    canonical = project_candidate_node_id(post_id, project_key)
+    if canonical != node_id:
+        raise ValueError("project candidate node id is not canonical")
+    return post_id, project_key
 
 
 def _parse_optional_project_key(value: object) -> str | None:

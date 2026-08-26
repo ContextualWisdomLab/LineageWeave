@@ -27,9 +27,10 @@ question string.
 3. `egress_eligible` may be true only when the source post is `public`. A
    trigger fail-closes private or missing posts. Application code re-checks
    visibility and ABAC before any SearXNG dispatch.
-4. Global Ask `verify_external` is opt-in. Off omits the projection. On
-   loads currently authorized egress-eligible envelopes and never nominates
-   a claim from question tokens.
+4. Global Ask `verify_external` is opt-in and reuses the durable
+   `global_ask_job.verify_external_requested` consent field from migration
+   0218. Off omits the projection. On loads currently authorized
+   egress-eligible envelopes and never nominates a claim from question tokens.
 5. SearXNG may retrieve a bounded list of public HTTP(S) URLs for the
    persisted claim text. Search pages, localhost, and literal
    private-network hosts are dropped. Those URLs are `external_evidence_urls`

@@ -88,18 +88,6 @@ flowchart LR
 | `server.py` | Legacy stdlib HTTP server for the library-level synthetic fixture demo; production uses FastAPI/PostgreSQL |
 | `web/index.html` | Legacy self-contained SVG DAG viewer; production UI is the React/Vite frontend |
 
-> **Known local-test-environment limitation:** `adjudication_client.py`'s
-> `mode="verify"` call depends on contextual-orchestrator's
-> `TaskOrchestrator.route_and_verify`, which as of this writing is still
-> an open, unmerged upstream PR
-> (`ContextualWisdomLab/contextual-orchestrator#149`). Until it merges,
-> the four adjudication/chat tests that exercise `mode="verify"` against
-> a real orchestrator fail with `invalid_mode` (the deployed `main` only
-> accepts `auto`/`route`/`conduct`) -- confirmed by reproducing the same
-> `400` directly against the orchestrator's own `/v1/chat/completions`,
-> not caused by anything in this repo. `mode="route"` (every other
-> pluggable client) is unaffected.
-
 ## Design decisions worth naming
 
 - **Pluggable, never faked, channels.** `NullEmbeddingClient` and
