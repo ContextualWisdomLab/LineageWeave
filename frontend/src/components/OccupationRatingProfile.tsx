@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   fetchOccupationRatingOccupations,
   fetchOccupationRatingSources,
@@ -34,8 +34,15 @@ export function OccupationRatingProfile({ accessToken }: Props) {
   const [occupationCatalogError, setOccupationCatalogError] = useState(false);
   const [profile, setProfile] = useState<OccupationRatingProfilePayload | null>(null);
   const [status, setStatus] = useState<"idle" | "loading" | "error">("idle");
+  const requestSequence = useRef(0);
 
   useEffect(() => {
+    requestSequence.current += 1;
+    setSources(null);
+    setSelectedSource("");
+    setSourceCatalogError(false);
+    setProfile(null);
+    setStatus("idle");
     let active = true;
     fetchOccupationRatingSources(accessToken)
       .then(({ sources: loaded }) => {
@@ -48,6 +55,9 @@ export function OccupationRatingProfile({ accessToken }: Props) {
   }, [accessToken]);
 
   useEffect(() => {
+    requestSequence.current += 1;
+    setProfile(null);
+    setStatus("idle");
     const source = sources?.find((item) => sourceKey(item) === selectedSource);
     if (!source) {
       setOccupations(null);
@@ -74,6 +84,8 @@ export function OccupationRatingProfile({ accessToken }: Props) {
   }, [accessToken, sources, selectedSource]);
 
   function load(offset: number | null = null) {
+    const requestId = requestSequence.current + 1;
+    requestSequence.current = requestId;
     const source = sources?.find((item) => sourceKey(item) === selectedSource);
     const request = offset == null && source && selectedOccupation
       ? {
@@ -96,6 +108,7 @@ export function OccupationRatingProfile({ accessToken }: Props) {
       offset: offset ?? 0,
     })
       .then((payload) => {
+        if (requestSequence.current !== requestId) return;
         setProfile((current) =>
           offset != null && current
             ? { ...payload, items: [...current.items, ...payload.items] }
@@ -103,7 +116,9 @@ export function OccupationRatingProfile({ accessToken }: Props) {
         );
         setStatus("idle");
       })
-      .catch(() => setStatus("error"));
+      .catch(() => {
+        if (requestSequence.current === requestId) setStatus("error");
+      });
   }
 
   const occupationCatalogReady = occupations !== null && !occupationCatalogError;
@@ -129,8 +144,10 @@ export function OccupationRatingProfile({ accessToken }: Props) {
             required
             value={selectedSource}
             onChange={(event) => {
+              requestSequence.current += 1;
               setSelectedSource(event.target.value);
               setProfile(null);
+              setStatus("idle");
             }}
           >
             {(sources ?? []).map((source) => (
@@ -146,7 +163,12 @@ export function OccupationRatingProfile({ accessToken }: Props) {
             required
             value={selectedOccupation}
             disabled={!occupationCatalogReady || occupations.length === 0}
-            onChange={(event) => setSelectedOccupation(event.target.value)}
+            onChange={(event) => {
+              requestSequence.current += 1;
+              setSelectedOccupation(event.target.value);
+              setProfile(null);
+              setStatus("idle");
+            }}
           >
             {(occupations ?? []).map((occupation) => (
               <option key={occupation.onetsoc_code} value={occupation.onetsoc_code}>

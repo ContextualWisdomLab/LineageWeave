@@ -108,12 +108,10 @@ describe("OccupationRatingProfile", () => {
     expect(screen.getByRole("button", { name: "직업 근거 열기" })).toBeDisabled();
   });
 
-  it("keeps pagination bound to the loaded profile after form edits", async () => {
+  it("clears loaded evidence when the selected occupation changes", async () => {
     vi.mocked(fetchOccupationRatingSources).mockResolvedValue({ sources: [importedSource] });
     vi.mocked(fetchOccupationRatingOccupations).mockResolvedValue(observedOccupations);
-    vi.mocked(fetchOccupationRatings)
-      .mockResolvedValueOnce({ ...ready, next_offset: 100 })
-      .mockResolvedValueOnce({ ...ready, items: [{ ...ready.items[0], scale_id: "LV" }] });
+    vi.mocked(fetchOccupationRatings).mockResolvedValue({ ...ready, next_offset: 100 });
     render(<OccupationRatingProfile accessToken="synthetic-token" />);
     const occupation = await screen.findByLabelText("직업");
     await screen.findByRole("option", { name: "Synthetic occupation (15-1252.00)" });
@@ -122,12 +120,34 @@ describe("OccupationRatingProfile", () => {
     await screen.findByText("4.10");
 
     await userEvent.selectOptions(occupation, "11-1011.00");
-    await userEvent.click(screen.getByRole("button", { name: "다음 관측값 불러오기" }));
+    expect(screen.queryByText("4.10")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "다음 관측값 불러오기" })).not.toBeInTheDocument();
+  });
 
-    expect(fetchOccupationRatings).toHaveBeenLastCalledWith("synthetic-token", {
-      onetsocCode: "15-1252.00", dataReleaseCode: "onet-31.0", sourceTableCode: "abilities", offset: 100,
-    });
-    expect(await screen.findAllByText("4.10")).toHaveLength(2);
+  it("ignores a late profile response after the occupation changes", async () => {
+    vi.mocked(fetchOccupationRatingSources).mockResolvedValue({ sources: [importedSource] });
+    vi.mocked(fetchOccupationRatingOccupations).mockResolvedValue(observedOccupations);
+    let resolveFirst!: (payload: Payload) => void;
+    vi.mocked(fetchOccupationRatings)
+      .mockImplementationOnce(() => new Promise((resolve) => { resolveFirst = resolve; }))
+      .mockResolvedValueOnce({
+        ...ready,
+        onetsoc_code: "11-1011.00",
+        occupation_title: "Synthetic chief occupation",
+      });
+    render(<OccupationRatingProfile accessToken="synthetic-token" />);
+    const occupation = await screen.findByLabelText("직업");
+    await screen.findByRole("option", { name: "Synthetic occupation (15-1252.00)" });
+    await userEvent.selectOptions(occupation, "15-1252.00");
+    await userEvent.click(screen.getByRole("button", { name: "직업 근거 열기" }));
+    await userEvent.selectOptions(occupation, "11-1011.00");
+    await userEvent.click(screen.getByRole("button", { name: "직업 근거 열기" }));
+    expect(await screen.findByText("Synthetic chief occupation", { selector: "strong" })).toBeInTheDocument();
+
+    resolveFirst(ready);
+    await Promise.resolve();
+    expect(screen.getByText("Synthetic chief occupation", { selector: "strong" })).toBeInTheDocument();
+    expect(screen.queryByText("Synthetic occupation", { selector: "strong" })).not.toBeInTheDocument();
   });
 
   it("removes stale evidence while a fresh occupation loads", async () => {
