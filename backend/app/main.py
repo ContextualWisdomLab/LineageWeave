@@ -1545,8 +1545,8 @@ async def list_posts(
 
 @app.get("/api/voice-taxonomy/summary")
 async def read_voice_taxonomy_summary(
-    date_from: datetime | None = None,
-    date_to: datetime | None = None,
+    date_from: date | None = None,
+    date_to: date | None = None,
     corporate_entity_id: UUID | None = None,
     process_unit_id: UUID | None = None,
     team_id: UUID | None = None,
@@ -1558,7 +1558,7 @@ async def read_voice_taxonomy_summary(
 ) -> dict[str, Any]:
     """Return overlapping source/derived voice counts for the selected scope."""
     _require_post_read(account)
-    if date_from is not None and date_to is not None and date_to <= date_from:
+    if date_from is not None and date_to is not None and date_to < date_from:
         raise HTTPException(
             status.HTTP_422_UNPROCESSABLE_CONTENT,
             "Choose an end time after the start time, then review the updated scope.",

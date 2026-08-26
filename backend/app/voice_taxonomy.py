@@ -38,8 +38,8 @@ async def load_voice_taxonomy_summary(
                     or (post.corporate_entity_id = any($1::uuid[])
                         and (cardinality($2::uuid[]) = 0
                              or post.process_unit_id = any($2::uuid[]))))
-               and ($3::timestamptz is null or coalesce(post.event_occurred_at, post.created_at) >= $3)
-               and ($4::timestamptz is null or coalesce(post.event_occurred_at, post.created_at) < $4)
+               and ($3::date is null or timezone('Asia/Seoul', coalesce(post.event_occurred_at, post.created_at))::date >= $3)
+               and ($4::date is null or timezone('Asia/Seoul', coalesce(post.event_occurred_at, post.created_at))::date <= $4)
                and ($5::uuid is null or post.corporate_entity_id = $5)
                and ($6::uuid is null or post.process_unit_id = $6)
                and ($7::uuid is null or exists (

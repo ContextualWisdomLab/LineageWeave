@@ -2010,11 +2010,21 @@ def test_voice_taxonomy_summary_rejects_reversed_period(
     client, demo_analyst_token
 ) -> None:
     response = client.get(
-        "/api/voice-taxonomy/summary?date_from=2026-02-01T00:00:00Z&date_to=2026-01-01T00:00:00Z",
+        "/api/voice-taxonomy/summary?date_from=2026-02-01&date_to=2026-01-01",
         headers={"Authorization": f"Bearer {demo_analyst_token}"},
     )
     assert response.status_code == 422
     assert "Choose an end time" in response.json()["detail"]
+
+
+def test_voice_taxonomy_summary_accepts_one_calendar_day(
+    client, demo_analyst_token
+) -> None:
+    response = client.get(
+        "/api/voice-taxonomy/summary?date_from=2026-01-01&date_to=2026-01-01",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert response.status_code == 200
 
 
 def test_post_detail_exposes_explicit_and_semantic_project_evidence(

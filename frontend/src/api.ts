@@ -145,8 +145,8 @@ export async function fetchVoiceTaxonomySummary(
   dateTo = "",
 ): Promise<VoiceTaxonomySummary> {
   const query = new URLSearchParams();
-  if (dateFrom) query.set("date_from", `${dateFrom}T00:00:00Z`);
-  if (dateTo) query.set("date_to", `${dateTo}T00:00:00Z`);
+  if (dateFrom) query.set("date_from", dateFrom);
+  if (dateTo) query.set("date_to", dateTo);
   const suffix = query.size ? `?${query.toString()}` : "";
   return backendFetch<VoiceTaxonomySummary>(`/api/voice-taxonomy/summary${suffix}`, accessToken);
 }
