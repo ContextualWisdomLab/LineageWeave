@@ -4,7 +4,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends curl build-esse
     && curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | \
        sh -s -- -y --profile minimal --default-toolchain 1.97.1
 ENV PATH=/root/.cargo/bin:$PATH
-ADD https://github.com/ContextualWisdomLab/contextual-orchestrator/archive/2c1a1fb5234d89a8dbbe59672358f6dd4c3e8691.tar.gz /tmp/contextual-orchestrator.tar.gz
+ADD https://github.com/ContextualWisdomLab/contextual-orchestrator/archive/1fc4d3d563e8931b6414b2f6dc6453b82ba23a43.tar.gz /tmp/contextual-orchestrator.tar.gz
 RUN mkdir /tmp/contextual-orchestrator \
     && tar -xzf /tmp/contextual-orchestrator.tar.gz --strip-components=1 -C /tmp/contextual-orchestrator \
     && cargo build --locked --release --manifest-path /tmp/contextual-orchestrator/rust/token_counter/Cargo.toml
@@ -16,7 +16,7 @@ WORKDIR /app
 # Reuse the upstream implementation without copying it into LineageWeave.
 # Pin the runtime to a reviewed immutable upstream commit; model selection,
 # structured synthesis, and reasoning policy stay in contextual-orchestrator.
-ADD https://github.com/ContextualWisdomLab/contextual-orchestrator/archive/2c1a1fb5234d89a8dbbe59672358f6dd4c3e8691.tar.gz /tmp/contextual-orchestrator.tar.gz
+ADD https://github.com/ContextualWisdomLab/contextual-orchestrator/archive/1fc4d3d563e8931b6414b2f6dc6453b82ba23a43.tar.gz /tmp/contextual-orchestrator.tar.gz
 RUN mkdir /tmp/contextual-orchestrator \
     && tar -xzf /tmp/contextual-orchestrator.tar.gz --strip-components=1 -C /tmp/contextual-orchestrator \
     && cp -R /tmp/contextual-orchestrator/contextual_orchestrator /app/contextual_orchestrator \
