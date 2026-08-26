@@ -1655,6 +1655,33 @@ describe("App, authenticated", () => {
         }
         return Promise.resolve(jsonResponse({ verified: [] }));
       }
+      if (url.endsWith("/api/posts/post-1/research-citations") && method === "POST") {
+        return Promise.resolve(
+          jsonResponse({
+            post_id: "post-1",
+            visibility_code: "public",
+            citations: [
+              {
+                lead_kind_code: "research_lead_semantic_unit",
+                lead_source_unit_id: "unit-1",
+                lead_image_region_id: null,
+                lead_excerpt_text: "Demo Corp delayed Apollo.",
+                search_query_text: "Demo Corp delayed Apollo.",
+                evidence_url: "https://example.com/apollo",
+                evidence_title_text: "Public Apollo evidence",
+                evidence_excerpt_text: "The published notice describes the delay.",
+                judgment_code: "research_supported",
+                rationale_text: "The retrieved page matches this source unit.",
+                next_action_text:
+                  "Open the cited public resource, then compare it with this post's source unit or image region.",
+              },
+            ],
+          }),
+        );
+      }
+      if (url.endsWith("/api/posts/post-1/research-citations")) {
+        return Promise.resolve(jsonResponse({ post_id: "post-1", visibility_code: "public", citations: [] }));
+      }
       if (url.endsWith("/api/posts/post-1/lineage")) {
         return Promise.resolve(
           jsonResponse({
@@ -2966,6 +2993,24 @@ describe("App, authenticated", () => {
         expect.objectContaining({ method: "POST" }),
       ),
     );
+  });
+
+  it("lets post_admin research public sources for a source unit", async () => {
+    const fetchMock = stubBackend({ admin: true });
+    render(<App showLabPanels />);
+
+    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
+    await userEvent.click(await screen.findByRole("button", { name: /research public sources/i }));
+
+    await waitFor(() =>
+      expect(fetchMock).toHaveBeenCalledWith(
+        expect.stringContaining("/api/posts/post-1/research-citations"),
+        expect.objectContaining({ method: "POST" }),
+      ),
+    );
+    expect(
+      await screen.findByRole("link", { name: "Public Apollo evidence" }),
+    ).toHaveAttribute("href", "https://example.com/apollo");
   });
 
   it("lets post_admin extract Keymen from the popup", async () => {

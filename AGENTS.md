@@ -188,8 +188,10 @@ contextual-orchestrator owns model discovery and selection.
 
 `NullEmbeddingClient`, `NullAdjudicationClient`,
 `NullKeymanExtractionClient`, `NullEntityRelationshipClient`,
-`NullPostSummaryClient`, `NullPostChatClient`, and
-`NullCommitmentExtractionClient` (and any new channel client you add)
+`NullPostSummaryClient`, `NullPostChatClient`,
+`NullCommitmentExtractionClient`, `NullRelationVerificationClient`,
+`NullClaimVerificationClient`, and `NullSourceResearchClient`
+(and any new channel client you add)
 must set `available = False` and make their channel dropped +
 renormalized (`reconstruct.active_weights`), never silently return a
 placeholder score, invented Keyman, guessed relationship, fabricated
@@ -201,6 +203,14 @@ adjudication does -- never a raw LLM API. Demo TEPP seed goes through
 `tepp_client` the same way: a missing transport or an unused accepted
 envelope is Failed (`tepp_not_available` / `tepp_result_not_persisted`),
 never a fabricated theta or a local psychometric substitute.
+
+Public source-reference research (ADR 0232) is a post-scoped write action
+on existing semantic units or image regions. Only `visibility_code=public`
+posts may send lead text to SearXNG or retrieve a result URL. Private posts
+fail closed without egress. Redirects and non-global targets are rejected.
+Unavailable search, retrieval, or adjudication is `research_unavailable`,
+never a fabricated supported/refuted judgment. Global Ask public
+verification (ADR 0215) still never fetches result URLs.
 
 The lineage `text` channel follows [ADR 0190](docs/adr/0190-lineage-text-channel-embedding-swap.md):
 when an embedding provider is configured, `reconstruct()` precomputes

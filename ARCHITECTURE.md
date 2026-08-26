@@ -802,6 +802,19 @@ against a deliberately fabricated one in the same request, asserting
 the former comes back `verify_corroborated` with a real evidence URL
 and the latter `verify_uncorroborated` with none.
 
+## Phase 6e: post-scoped source-reference research
+
+Issue #611's remaining ADR 0133 criterion is a different workflow from
+relation verification and from Global Ask snippet verification (ADR 0215).
+A public post may send an existing semantic unit or image-region excerpt
+to self-hosted SearXNG, retrieve one cited public page under SSRF and
+redirect rejection, and ask contextual-orchestrator to judge in
+`mode="verify"`. Private posts fail closed without egress. Citations
+persist to `source_research_citation` (migration 0222, ADR 0232). The
+buyer next action is to open the cited public resource and compare it
+with this post's source unit or image region. Global Ask still never
+fetches result URLs.
+
 ## Phase 7: R&R's named actor is a PROV-O Agent, not always a person
 
 `post_summary.py`'s R&R extraction forced every named actor into a

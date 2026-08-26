@@ -8,6 +8,14 @@ All notable changes to this project are documented here. Format follows
 
 ### Added
 
+- Public posts can research an existing source unit or image region against a
+  cited public page (ADR 0232 / remaining ADR 0133). SearXNG finds candidates;
+  retrieval refuses redirects and non-global targets; contextual-orchestrator
+  judges in `mode=verify`. Private posts fail closed without sending content.
+  After seed, open a public post and choose **Research public sources**, then
+  open the cited public resource and compare it with that source unit or
+  image region.
+
 - Persist explicit paragraph, list, table, MathML formula, and caller-parsed
   conversation-turn semantic-unit kinds without inferring absent boundaries.
 - Event Lineage now persists each reconstructed connection's independent

@@ -17,6 +17,7 @@ operator-facing control you can click before changing product CSS.
 | `Chrome/PopupCloseButton` | Close the evidence panel or post popup. | `--space-close-inset`, `--font-size-close`, `PopupCloseButton` |
 | `Workspace/WorkspaceCalendar` | Read observed Naruon events, or open a commitment to land on that post. Fail-closed copy stays `이 범위의 일정을 아직 받을 수 없습니다`. | `--color-chip-border`, `WorkspaceCalendar`, `EvidenceStatusMark` |
 | `Ask Agent/Public claim verification` | Compare supported, refuted, and not-enough-information states; open only the external evidence link, then review the separate internal citation before changing governed graph state. | `--space-panel-block`, `--space-control-gap`, `--color-border`, `--size-control-min`, `PublicClaimVerification` |
+| `Post/Source research` | Open the cited public resource, then compare it with this post's source unit or image region. `SupportedAndUnavailable` and `PrivatePost` cover cited retrieval, fail-closed private egress, and the research action. | `--space-panel-block`, `--space-control-gap`, `--color-border`, `--size-control-min`, `SourceResearchPanel` |
 | `Ask Agent/Knowledge cutoff` | Exercise partial historical grounding, retained-revision provenance, later-live-change disclosure, and the narrow viewport before relying on a historical answer. | Native `datetime-local`, `--space-panel-block`, `--space-control-gap`, `--color-border`, `--size-control-min` |
 
 Repeated web objects must use `frontend/src/styles/tokens.css` and a module

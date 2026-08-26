@@ -154,6 +154,10 @@ from backend.app.post_summary_ingestion import (
 )
 from backend.app.ranking_ingestion import load_visible_ranking_posts
 from backend.app.relation_verification_ingestion import verify_post_relations_from_pool
+from backend.app.source_research_ingestion import (
+    list_source_research_citations,
+    research_post_sources_from_pool,
+)
 from backend.app.report_ingestion import (
     GROUPING_KINDS,
     fetch_period_comparison,
@@ -240,6 +244,10 @@ from lineageweave.rankweave_client import build_rankweave_client
 from lineageweave.relation_verification import (
     NullRelationVerificationClient,
     SearxngRelationVerificationClient,
+)
+from lineageweave.source_reference_research import (
+    NullSourceResearchClient,
+    SearxngOrchestratedSourceResearchClient,
 )
 from lineageweave.semantic_hints import customer_hint_trust, format_semantic_hints
 from lineageweave.semantic_query import (
@@ -402,6 +410,23 @@ def _claim_verification_client():
 def _claim_verification_client_factory():
     """Resolve the verifier late so runtime overrides reach the worker."""
     return _claim_verification_client()
+
+
+def _source_research_client():
+    """Return the post-scoped public-research client, or its unavailable null."""
+
+    settings = load_settings()
+    if not (
+        settings.searxng_base_url
+        and settings.orchestrator_base_url
+        and settings.orchestrator_api_key
+    ):
+        return NullSourceResearchClient()
+    return SearxngOrchestratedSourceResearchClient(
+        settings.searxng_base_url,
+        settings.orchestrator_base_url,
+        settings.orchestrator_api_key,
+    )
 
 
 def _organization_name_resolution_client():
@@ -2386,6 +2411,93 @@ async def verify_post_entity_relationships(
             }
             for row in verified
         ],
+    }
+
+
+@app.get("/api/posts/{post_id}/research-citations")
+async def read_post_research_citations(
+    post_id: str,
+    account: CurrentAccount = Depends(get_current_account),
+    pool: asyncpg.Pool = Depends(get_pool),
+) -> dict[str, Any]:
+    """Return persisted public-research citations for this post's source leads."""
+
+    post = await _load_visible_post(post_id, account, pool)
+    async with pool.acquire() as conn:
+        citations = await list_source_research_citations(conn, post_id)
+    return {
+        "post_id": str(post["post_id"]),
+        "visibility_code": post["visibility_code"],
+        "citations": [
+            {
+                "lead_kind_code": row["lead_kind_code"],
+                "lead_source_unit_id": row["lead_source_unit_id"],
+                "lead_image_region_id": row["lead_image_region_id"],
+                "lead_excerpt_text": row["lead_excerpt_text"],
+                "search_query_text": row["search_query_text"],
+                "evidence_url": row["evidence_url"],
+                "evidence_title_text": row["evidence_title_text"],
+                "evidence_excerpt_text": row["evidence_excerpt_text"],
+                "judgment_code": row["judgment_code"],
+                "rationale_text": row["rationale_text"],
+                "next_action_text": row["next_action_text"],
+                "checked_at": row["checked_at"],
+            }
+            for row in citations
+        ],
+    }
+
+
+@app.post("/api/posts/{post_id}/research-citations")
+async def research_post_source_references(
+    post_id: str,
+    account: CurrentAccount = Depends(get_current_account),
+    pool: asyncpg.Pool = Depends(get_pool),
+    valkey: redis.Redis = Depends(get_valkey),
+) -> dict[str, Any]:
+    """Search and retrieve a public resource for this post's source leads.
+
+    Private posts fail closed without sending content. Gated by post_admin
+    because retrieval is a real external-search write action.
+    """
+
+    _require_post_admin(account)
+    post = await _load_visible_post(post_id, account, pool)
+    client = _source_research_client()
+    if not client.available:
+        raise HTTPException(
+            status.HTTP_503_SERVICE_UNAVAILABLE,
+            "Source research is unavailable: set SEARXNG_BASE_URL and ORCHESTRATOR_BASE_URL",
+        )
+    try:
+        run = await research_post_sources_from_pool(
+            pool,
+            client,
+            post_id,
+            visibility_code=str(post["visibility_code"]),
+        )
+    except (HttpClientError, OSError, ValueError) as exc:
+        raise HTTPException(
+            status.HTTP_503_SERVICE_UNAVAILABLE,
+            "Source research is unavailable: the search or retrieval provider did not respond",
+        ) from exc
+    except Exception as exc:  # noqa: BLE001 - provider boundary is fail-closed.
+        raise HTTPException(
+            status.HTTP_503_SERVICE_UNAVAILABLE,
+            "Source research is unavailable: the search or retrieval provider did not respond",
+        ) from exc
+    await publish_activity_event(
+        valkey,
+        post_id,
+        "source_research_checked",
+        account.user_account_id,
+        f"Source research checked: {len(run.citations)} lead(s)",
+    )
+    return {
+        "post_id": run.post_id,
+        "visibility_code": run.visibility_code,
+        "unavailable_reason": run.unavailable_reason,
+        "citations": [citation.to_payload() for citation in run.citations],
     }
 
 

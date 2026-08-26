@@ -1,0 +1,126 @@
+from __future__ import annotations
+
+import asyncio
+
+from backend.app.source_research_ingestion import research_post_sources_from_pool
+from lineageweave.source_reference_research import (
+    JUDGMENT_SUPPORTED,
+    LEAD_SEMANTIC_UNIT,
+    NEXT_ACTION,
+    NO_LEAD_UNAVAILABLE,
+    PRIVATE_POST_UNAVAILABLE,
+    SourceResearchCitation,
+    SourceResearchLead,
+    research_query_text,
+)
+
+
+class _Connection:
+    def __init__(self, units: list[dict], regions: list[dict] | None = None) -> None:
+        self.units = units
+        self.regions = regions or []
+        self.executed: list[tuple[str, tuple[object, ...]]] = []
+
+    async def fetch(self, query: str, post_id: str):
+        if "post_content_image_region" in query:
+            return self.regions
+        return self.units
+
+    async def execute(self, query: str, *args: object):
+        self.executed.append((query, args))
+        return "INSERT 0 1"
+
+    def transaction(self):
+        return _Transaction()
+
+
+class _Transaction:
+    async def __aenter__(self):
+        return self
+
+    async def __aexit__(self, exc_type, exc, traceback):
+        return False
+
+
+class _Acquire:
+    def __init__(self, pool: "_Pool") -> None:
+        self.pool = pool
+
+    async def __aenter__(self):
+        assert not self.pool.acquired
+        self.pool.acquired = True
+        return self.pool.connection
+
+    async def __aexit__(self, exc_type, exc, traceback):
+        self.pool.acquired = False
+
+
+class _Pool:
+    def __init__(self, connection: _Connection) -> None:
+        self.connection = connection
+        self.acquired = False
+
+    def acquire(self):
+        return _Acquire(self)
+
+
+class _Client:
+    available = True
+
+    def __init__(self, pool: _Pool) -> None:
+        self.pool = pool
+
+    def research(self, lead: SourceResearchLead) -> SourceResearchCitation:
+        assert not self.pool.acquired
+        return SourceResearchCitation(
+            lead_kind_code=lead.lead_kind_code,
+            lead_source_unit_id=lead.lead_source_unit_id,
+            lead_image_region_id=lead.lead_image_region_id,
+            lead_excerpt_text=lead.lead_excerpt_text,
+            search_query_text=research_query_text(lead),
+            judgment_code=JUDGMENT_SUPPORTED,
+            rationale_text="The retrieved public page matches the source unit.",
+            evidence_url="https://example.com/apollo",
+            evidence_title_text="Apollo",
+            evidence_excerpt_text="Public corroboration.",
+        )
+
+
+def test_private_posts_do_not_load_leads_or_search() -> None:
+    pool = _Pool(_Connection([{"post_content_unit_id": "unit-1", "unit_kind_code": "plain_text", "unit_text": "secret"}]))
+    run = asyncio.run(
+        research_post_sources_from_pool(pool, _Client(pool), "post-private", "private")
+    )
+    assert run.unavailable_reason == PRIVATE_POST_UNAVAILABLE
+    assert run.citations == ()
+    assert pool.connection.executed == []
+
+
+def test_missing_leads_are_unavailable_without_search() -> None:
+    pool = _Pool(_Connection([]))
+    run = asyncio.run(
+        research_post_sources_from_pool(pool, _Client(pool), "post-public", "public")
+    )
+    assert run.unavailable_reason == NO_LEAD_UNAVAILABLE
+    assert run.citations == ()
+
+
+def test_public_research_releases_the_pool_during_search() -> None:
+    conn = _Connection(
+        [
+            {
+                "post_content_unit_id": "unit-1",
+                "unit_kind_code": "plain_text",
+                "unit_text": "Demo Corp delayed Apollo.",
+            }
+        ]
+    )
+    pool = _Pool(conn)
+    run = asyncio.run(research_post_sources_from_pool(pool, _Client(pool), "post-public", "public"))
+    assert run.unavailable_reason is None
+    assert len(run.citations) == 1
+    assert run.citations[0].judgment_code == JUDGMENT_SUPPORTED
+    assert run.citations[0].next_action_text == NEXT_ACTION
+    assert conn.executed
+    assert "source_research_citation" in conn.executed[0][0]
+    assert conn.executed[0][1][2] == "unit-1"
