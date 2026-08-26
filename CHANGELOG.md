@@ -35,8 +35,9 @@ All notable changes to this project are documented here. Format follows
 - Node-attribute datatype properties grounded only in real schema columns
   (`postTitle`, `postBody`, `eventOccurredAt`, `personName`,
   `lastKnownJobTitle`, `entityName`, `entityCode`, shared domain-free
-  `createdAt`/`updatedAt`), a SKOS post-type scheme formalizing the governed
-  five-value `voc_type` vocabulary under the round-trip check, and logical
+  `createdAt`/`updatedAt`), a SKOS post-type scheme formalizing the initial
+  five-value `voc_type` vocabulary plus ADR 0246's seven additions under the
+  round-trip check, and logical
   constraints: `OurSidePerson owl:disjointWith CounterpartyPerson` plus the
   `hasAffiliate` inverse of `affiliatedWith` (ADR 0207).
 
