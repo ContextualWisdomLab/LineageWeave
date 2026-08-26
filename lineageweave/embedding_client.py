@@ -16,7 +16,7 @@ from collections.abc import Mapping
 from typing import Protocol
 
 from .chunking import Chunk, chunk_by_paragraph
-from .http_client import get_json, post_json
+from .http_client import get_json, json_request_body, post_json
 
 
 class EmbeddingClient(Protocol):
@@ -102,17 +102,11 @@ class ContextualOrchestratorEmbeddingClient:
         if input_metadata is not None and len(input_metadata) != len(texts):
             raise ValueError("input_metadata must align with texts")
         headers = {"authorization": f"Bearer {self._api_key}"}
-        payload = {
-            "inputs": texts,
-            "endpoint": "/v1/embeddings",
-            "metadata": {"service": "lineageweave", "channel": "post_content_embedding"},
-        }
-        if input_attributions is not None:
-            payload["input_attributions"] = [dict(value) for value in input_attributions]
-        if input_metadata is not None:
-            payload["input_metadata"] = [dict(value) for value in input_metadata]
-        if self._model is not None:
-            payload["model"] = self._model
+        payload = self.batch_payload(
+            texts,
+            input_attributions=input_attributions,
+            input_metadata=input_metadata,
+        )
         response = post_json(
             f"{self._base_url}/batch/embeddings",
             payload,
@@ -144,6 +138,59 @@ class ContextualOrchestratorEmbeddingClient:
         if vectors is None:
             raise ValueError("embedding response did not contain a complete vector batch")
         return vectors
+
+    def batch_payload(
+        self,
+        texts: list[str],
+        *,
+        input_attributions: list[Mapping[str, object]] | None = None,
+        input_metadata: list[Mapping[str, object]] | None = None,
+    ) -> dict[str, object]:
+        """Build the exact provider-neutral bulk request document."""
+        payload: dict[str, object] = {
+            "inputs": texts,
+            "endpoint": "/v1/embeddings",
+            "metadata": {"service": "lineageweave", "channel": "post_content_embedding"},
+        }
+        if input_attributions is not None:
+            payload["input_attributions"] = [dict(value) for value in input_attributions]
+        if input_metadata is not None:
+            payload["input_metadata"] = [dict(value) for value in input_metadata]
+        if self._model is not None:
+            payload["model"] = self._model
+        return payload
+
+    def batch_request_body_size(
+        self,
+        texts: list[str],
+        *,
+        input_attributions: list[Mapping[str, object]] | None = None,
+        input_metadata: list[Mapping[str, object]] | None = None,
+    ) -> int:
+        """Return exact UTF-8 bytes sent for one bulk request."""
+        return len(
+            json_request_body(
+                self.batch_payload(
+                    texts,
+                    input_attributions=input_attributions,
+                    input_metadata=input_metadata,
+                )
+            )
+        )
+
+    def batch_capabilities(self) -> dict[str, int]:
+        """Read enforced bulk request ceilings from contextual-orchestrator."""
+        headers = {"authorization": f"Bearer {self._api_key}"}
+        response = get_json(
+            f"{self._base_url}/batch/embeddings/capabilities",
+            headers=headers,
+            timeout=self._timeout,
+            service_peer_name="contextual-orchestrator",
+        )
+        required = ("max_request_body_bytes", "max_tokens_per_part", "max_chars_per_part")
+        if any(type(response.get(key)) is not int or response[key] < 1 for key in required):
+            raise ValueError("embedding batch capabilities are incomplete")
+        return {key: int(response[key]) for key in required}
 
     @property
     def resolved_model(self) -> str | None:

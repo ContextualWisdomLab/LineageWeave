@@ -22,7 +22,6 @@ from lineageweave.embedding_client import orchestrator_embedding_client
 
 def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--limit", required=True, type=int)
     parser.add_argument(
         "--target-dsn",
         default=os.environ.get(
@@ -33,17 +32,20 @@ def _parser() -> argparse.ArgumentParser:
     return parser
 
 
-async def _run(target_dsn: str, input_limit: int) -> dict[str, int | str]:
+async def _run(target_dsn: str) -> dict[str, int | str]:
     client = orchestrator_embedding_client(
         os.environ.get("ORCHESTRATOR_BASE_URL", ""),
         os.environ.get("ORCHESTRATOR_API_KEY", ""),
     )
     if not client.available:
         raise RuntimeError("embedding is unavailable; configure contextual-orchestrator")
+    capabilities = client.batch_capabilities()
     conn = await asyncpg.connect(target_dsn)
     try:
         return await backfill_post_content_embeddings(
-            conn, client, input_limit=input_limit
+            conn,
+            client,
+            max_request_body_bytes=capabilities["max_request_body_bytes"],
         )
     finally:
         await conn.close()
@@ -52,9 +54,7 @@ async def _run(target_dsn: str, input_limit: int) -> dict[str, int | str]:
 def main() -> None:
     """Run one operator-bounded embedding batch and print aggregate counts only."""
     args = _parser().parse_args()
-    if args.limit < 1:
-        raise SystemExit("--limit must be positive")
-    print(json.dumps(asyncio.run(_run(args.target_dsn, args.limit)), sort_keys=True))
+    print(json.dumps(asyncio.run(_run(args.target_dsn)), sort_keys=True))
 
 
 if __name__ == "__main__":

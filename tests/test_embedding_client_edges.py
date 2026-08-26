@@ -29,6 +29,28 @@ def test_per_input_context_must_align_with_texts(field: str) -> None:
         client.embed_many(["first", "second"], **{field: [{"key": "value"}]})
 
 
+def test_batch_capabilities_require_positive_integer_limits(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(
+        embedding_client,
+        "get_json",
+        lambda *_args, **_kwargs: {
+            "max_request_body_bytes": 65_536,
+            "max_tokens_per_part": 280_000,
+            "max_chars_per_part": 240_000,
+        },
+    )
+    client = embedding_client.ContextualOrchestratorEmbeddingClient(
+        "http://orchestrator", "key"
+    )
+    assert client.batch_capabilities()["max_request_body_bytes"] == 65_536
+
+    monkeypatch.setattr(embedding_client, "get_json", lambda *_args, **_kwargs: {})
+    with pytest.raises(ValueError, match="capabilities are incomplete"):
+        client.batch_capabilities()
+
+
 def test_immediate_embedding_response_is_ordered(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(
         embedding_client,
