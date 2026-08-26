@@ -27,6 +27,8 @@ decision from them.
 | Ask answer citation and evidence-timeline interaction | [0225](0225-ask-answer-evidence-timeline.md) |
 | macOS-native Rust/MLX mathematical compute boundary | [0226](0226-macos-native-mlx-mathematical-compute-boundary.md), [0208](0208-externalize-local-mathematical-compute.md) |
 | Observed PostgreSQL WAL/checkpoint tuning plan | [0227](0227-observed-postgresql-runtime-tuning.md) |
+| Worker cgroup memory evidence | [0247](0247-worker-cgroup-memory-evidence.md) |
+| [`WORKER_CGROUP_MEMORY_REFERENCES.md`](../doctoring/WORKER_CGROUP_MEMORY_REFERENCES.md) | [0247](0247-worker-cgroup-memory-evidence.md) |
 | Product semantic catalog and typed evidence relations | [0228](0228-evidence-bound-product-semantic-catalog.md) |
 | Source-preserving voice semantic taxonomy | [0244](0244-source-preserving-voice-semantic-taxonomy.md) |
 | Expanded Voice-of-X post lookup and ontology | [0246](0246-expanded-voice-of-x-post-taxonomy.md) |
