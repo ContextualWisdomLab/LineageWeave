@@ -1711,6 +1711,7 @@ async def read_post(
             "order by mention.mention_ordinal",
             post_id,
         )
+        # Safe SQL: the eligibility predicate is an immutable schema fragment; post id is bound.
         product_relation_rows = await conn.fetch(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
             "select relation.mention_ordinal, relation.relation_type_code, "
             "'operations_fact' as target_kind_code, "
