@@ -46,6 +46,7 @@ async def _run(target_dsn: str) -> dict[str, int | str]:
             conn,
             client,
             max_request_body_bytes=capabilities["max_request_body_bytes"],
+            max_inputs=capabilities["max_inputs"],
         )
     finally:
         await conn.close()

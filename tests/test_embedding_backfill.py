@@ -99,7 +99,7 @@ def test_bulk_backfill_calls_provider_once_and_persists_in_one_transaction() -> 
     client = _EmbeddingClient()
 
     result = asyncio.run(
-        backfill_post_content_embeddings(conn, client, max_request_body_bytes=10_000)
+        backfill_post_content_embeddings(conn, client, max_request_body_bytes=10_000, max_inputs=2048)
     )
 
     assert result == {
@@ -126,7 +126,7 @@ def test_provider_failure_makes_no_database_change() -> None:
 
     with pytest.raises(RuntimeError, match="synthetic provider failure"):
         asyncio.run(
-            backfill_post_content_embeddings(conn, client, max_request_body_bytes=10_000)
+            backfill_post_content_embeddings(conn, client, max_request_body_bytes=10_000, max_inputs=2048)
         )
 
     assert conn.transaction_entries == 0
@@ -139,7 +139,7 @@ def test_empty_selection_skips_provider_and_transaction() -> None:
     client = _EmbeddingClient()
 
     result = asyncio.run(
-        backfill_post_content_embeddings(conn, client, max_request_body_bytes=10_000)
+        backfill_post_content_embeddings(conn, client, max_request_body_bytes=10_000, max_inputs=2048)
     )
 
     assert result == {
@@ -165,10 +165,11 @@ def test_oversized_first_unit_reaches_the_explicit_failure_guard() -> None:
                 _Connection([row]),
                 _EmbeddingClient(),
                 max_request_body_bytes=100,
+                max_inputs=2048,
             )
         )
 
-    assert "candidate_ordinal = 1 or cumulative_text_bytes <= $1" in _SELECT_UNITS_SQL
+    assert "candidate_ordinal <= $2" in _SELECT_UNITS_SQL
 
 
 def test_bulk_backfill_packs_largest_prefix_within_advertised_body_ceiling() -> None:
@@ -181,7 +182,7 @@ def test_bulk_backfill_packs_largest_prefix_within_advertised_body_ceiling() -> 
 
     result = asyncio.run(
         backfill_post_content_embeddings(
-            conn, client, max_request_body_bytes=two_input_size
+            conn, client, max_request_body_bytes=two_input_size, max_inputs=2048
         )
     )
 

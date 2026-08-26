@@ -32,7 +32,8 @@ with candidates as (
        )
 )
 select * from candidates
- where candidate_ordinal = 1 or cumulative_text_bytes <= $1
+ where candidate_ordinal = 1
+    or (cumulative_text_bytes <= $1 and candidate_ordinal <= $2)
  order by cumulative_text_bytes
 """
 
@@ -42,6 +43,7 @@ async def backfill_post_content_embeddings(
     embedding_client: ContextualOrchestratorEmbeddingClient,
     *,
     max_request_body_bytes: int,
+    max_inputs: int,
 ) -> dict[str, int | str]:
     """Embed one explicitly bounded unit set and atomically persist the complete batch.
 
@@ -52,7 +54,9 @@ async def backfill_post_content_embeddings(
     """
     if max_request_body_bytes < 1:
         raise ValueError("max_request_body_bytes must be positive")
-    rows = list(await conn.fetch(_SELECT_UNITS_SQL, max_request_body_bytes))
+    if max_inputs < 1:
+        raise ValueError("max_inputs must be positive")
+    rows = list(await conn.fetch(_SELECT_UNITS_SQL, max_request_body_bytes, max_inputs))
     if not rows:
         return {"selected_units": 0, "persisted_units": 0, "dimension_values": 0}
 
