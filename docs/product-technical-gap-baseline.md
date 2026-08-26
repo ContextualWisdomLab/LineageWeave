@@ -61,14 +61,14 @@ only aggregate, non-identifying evidence to this repository.
 
 ### Exact open-PR boundary
 
-At this snapshot there were 19 open PRs and 10 open issues. The exact-head
+At this snapshot there were 20 open PRs and 10 open issues. The exact-head
 inventory in section 1 is authoritative for this snapshot. Every open head
 remained blocked on hosted gates and/or independent review. These observations
 are not merge readiness. Re-fetch exact heads,
 unresolved threads, checks, approvals, rulesets, and merge SHA before any
 lifecycle claim.
 
-> Audit snapshot: 2026-08-26 13:16 KST (refreshed by the autonomous merge
+> Audit snapshot: 2026-08-26 14:02 KST (refreshed by the autonomous merge
 > loop). This repository records synthetic fixtures and aggregate,
 > non-identifying runtime evidence only. Open PRs and local checks are not
 > protected-default-branch release evidence. Identifying post identifiers,
@@ -78,16 +78,17 @@ lifecycle claim.
 ## 1. Exact-head and governance evidence
 
 The protected default branch is `494b54e2245040bcf02b45376f221c37cd437e76`
-at this refresh. The live queue contains 19 open PRs and 10
+at this refresh. The live queue contains 20 open PRs and 10
 open issues. The exact-head inventory below supersedes older per-PR snapshots
 elsewhere in this document; those older rows remain useful historical delivery
 context only.
 
 | PR | Exact observed head | Merge/check state at this snapshot |
 | ---: | --- | --- |
-| #690 | `b4b03011` | five-locale guidance states that LineageWeave performs measurement and topic-lineage work, removes a contradictory administrator handoff, and retains desktop/mobile Storybook evidence; hosted checks and parent delivery pending |
+| #691 | `ad27b4cc` | Failed measurement and topic-lineage runs now offer a working retry action that creates and starts a new current-snapshot request while preserving terminal history; 1,361 backend and 104 focused frontend tests pass, desktop/mobile Storybook evidence is retained, and hosted checks are queued |
+| #690 | `da5652da` | five-locale guidance states that LineageWeave performs measurement and topic-lineage work, removes a contradictory administrator handoff, and retains desktop/mobile Storybook evidence; cancelled hosted jobs were requeued and parent delivery remains pending |
 | #689 | `3197954d` | accepted measurement-owner release pin restacked on current #640; hosted checks and independent review pending |
-| #688 | `5b874f4d` | automatic related-source evidence lookup now fingerprints the exact authorized evidence window so an unchanged sibling is re-analyzed when new project evidence arrives; all review threads are resolved, 1,435 full-suite tests passed before the concurrent rebase and 61 affected tests passed after it, while hosted checks and #640 delivery remain pending |
+| #688 | `f07f7135` | automatic related-source evidence lookup now fingerprints the exact authorized evidence window so an unchanged sibling is re-analyzed when new project evidence arrives; all review threads are resolved, 1,435 full-suite tests passed before the concurrent rebase and 61 affected tests passed after it, while cancelled hosted jobs were requeued and #640 delivery remains pending |
 | #686 | `fbca05d9` | customer-facing copy boundary audit removes implementation labels while retaining Event Lineage distinction and localized actions; current review threads are resolved, ranking guidance has desktop/mobile Storybook screenshot evidence, and hosted checks remain pending |
 | #680 | `5c246a54` | customer-facing ranking copy with localized retry/search guidance and source-record detail copy corrected; BLOCKED with exact-head checks and independent review required |
 | #679 | `29aa69dd` | ADR 0229 public-claim envelope, async verification, locale-aware next actions, opt-in search setup, and aggregate-status guidance repair; BLOCKED with exact-head checks and independent review required |
