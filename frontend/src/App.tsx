@@ -795,13 +795,13 @@ function relatedNodeCaption(node: RelatedNode): string {
 
 const PROJECT_EXTRACTION_LABELS: Record<string, string> = {
   source_field_hint: "Explicit source field",
-  contextual_orchestrator_semantic: "Semantic extraction",
+  contextual_orchestrator_semantic: "Record content",
 };
 
 const PROJECT_PROVENANCE_LABELS: Record<string, string> = {
   "source_post.source_project_code": "Source project code",
   "source_post.source_project_name": "Source project name",
-  "post_project_mention.evidence_text": "Stored semantic evidence",
+  "post_project_mention.evidence_text": "Supporting record text",
 };
 
 function projectExtractionLabel(method: string): string {
@@ -2145,7 +2145,7 @@ function PostDetailPopup({
                 <PostBody body={post.post_body} imageContent={imageContent} structureUnits={structureUnits} />
               ) : (
                 <p className="popup-placeholder" role="status">
-                  {t("Source body was not imported; summary and semantic extraction are unavailable.")}
+                  {t("The source text is missing. Open the original record, or ask an administrator to import its text before reviewing this post.")}
                 </p>
               )}
             </section>
@@ -2286,8 +2286,8 @@ function PostDetailPopup({
 					<FiveW1H slots={fiveW1H?.slots ?? null} />
 
 				{post.project_evidence && post.project_evidence.length > 0 ? (
-              <section className="popup-section" aria-label={t("Projects / semantic evidence")}>
-                <h3>{t("Projects / semantic evidence")}</h3>
+              <section className="popup-section" aria-label={t("Projects and supporting evidence")}>
+                <h3>{t("Projects and supporting evidence")}</h3>
                 <ul>
                   {post.project_evidence.map((project) => (
                     <li key={`${project.resolution_status}:${project.project_key}`}>
@@ -2329,7 +2329,7 @@ function PostDetailPopup({
                 <>
                   {summary.summary_status === "stale" ? (
                     <p className="post-meta" role="status">
-                      {t("Last saved summary shown. Retry semantic refresh.")} {" "}
+                      {t("The last saved summary is shown. Select Retry summary refresh to check for an update.")} {" "}
                       <button type="button" onClick={() => setSummaryRetry((value) => value + 1)}>
                         {t("Retry summary refresh")}
                       </button>
@@ -3139,8 +3139,7 @@ function AnalysisRunsPanel({
       {(error || entitiesLoadError) && <p className="error">{error ?? entitiesLoadError}</p>}
       {runs.length === 0 ? (
         <p className="popup-placeholder">
-          No analysis runs visible to this account yet. Request a lineage
-          reconstruction, or ask an administrator to run make seed.
+          {t("No analysis runs are available. Select Request lineage reconstruction, or ask an administrator to check your data access.")}
         </p>
       ) : (
         <ul className="ticket-list" aria-label="Analysis runs">
@@ -4153,17 +4152,17 @@ function PostList({
             }}
           >
             <label>
-              {t("Search semantic evidence")}
+              {t("Search records and evidence")}
               <input
                 type="search"
                 value={searchInput}
                 onChange={(event) => setSearchInput(event.target.value)}
-                placeholder={t("Search semantic evidence")}
-                aria-label={t("Search semantic evidence")}
+                placeholder={t("Search records and evidence")}
+                aria-label={t("Search records and evidence")}
               />
             </label>
             <button type="submit">{t("Search")}</button>
-            <p className="board-search-help post-meta">{t("Search includes post text and semantic evidence.")}</p>
+            <p className="board-search-help post-meta">{t("Enter words from a record or its supporting evidence, then select Search.")}</p>
             <fieldset className="board-voc-type-filter">
               <legend>{t("Filter by VOC type")}</legend>
               {vocTypeOptions.map((option) => (
@@ -4220,7 +4219,7 @@ function PostList({
             <p className="board-empty" role="status">
               {hasBoardFilters
                 ? t("No posts match the current filters.")
-                : t("No posts visible to this account yet -- try `make seed`.")}
+                : t("No posts are available. Ask an administrator to check your access or import source records.")}
             </p>
           ) : filteredPosts.length === 0 ? (
             <p className="board-empty" role="status">
@@ -4685,7 +4684,7 @@ function CustomerMasterPanel({
         <section className="customer-keymen" aria-labelledby="observed-customer-evidence-heading">
           <h3 id="observed-customer-evidence-heading">{t("Observed customer evidence")}</h3>
           <p className="workspace-destination-intro">
-            {t("Source identifiers are hints only; ontology and semantic evidence must resolve them before binding a customer.")}
+            {t("These identifiers are unverified. Open the related records, then select Resolve only after the customer identity is confirmed.")}
           </p>
           {master.source_customer_hints.length > HINT_RENDER_LIMIT && (
             <p className="post-meta">

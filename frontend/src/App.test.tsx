@@ -116,6 +116,7 @@ describe("App, authenticated", () => {
     customerEntityHierarchy?: boolean;
     staleSummary?: boolean;
     contentAfterSummary?: boolean;
+    emptyPosts?: boolean;
     organizationAliases?: boolean;
     askLineageGraph?: boolean;
     askImageCitation?: boolean;
@@ -1136,6 +1137,8 @@ describe("App, authenticated", () => {
           jsonResponse(
             postsUrl.searchParams.get("search")
               ? []
+              : options?.emptyPosts
+                ? { posts: [], total_count: 0, limit: 50, offset: 0 }
               : {
                   posts: [
                     {
@@ -1734,7 +1737,7 @@ describe("App, authenticated", () => {
             ask_job_id: "ask-job-1",
             job_status_code: "succeeded",
             answer: {
-            answer_text: "The cited project is supported by the stored semantic evidence.",
+              answer_text: "The cited project is supported by the linked record.",
             cited_post_ids: ["post-2"],
             cited_posts: [{ post_id: "post-2", post_title: "Linked post" }],
             cited_post_evidence: [
@@ -2220,7 +2223,7 @@ describe("App, authenticated", () => {
       await screen.findByRole("button", { name: "Search related posts for: Semantic project" }),
     );
 
-    const searchInput = await screen.findByRole("searchbox", { name: "Search semantic evidence" });
+    const searchInput = await screen.findByRole("searchbox", { name: "Search records and evidence" });
     expect(searchInput).toHaveValue("Semantic project");
     expect(screen.queryByRole("button", { name: "Close" })).not.toBeInTheDocument();
   });
@@ -2249,7 +2252,7 @@ describe("App, authenticated", () => {
 
     const board = await screen.findByRole("region", { name: "Board" });
     expect(within(board).getByRole("search", { name: "Search and filter posts" })).toBeInTheDocument();
-    expect(within(board).getByLabelText("Search semantic evidence")).toHaveAttribute("type", "search");
+    expect(within(board).getByLabelText("Search records and evidence")).toHaveAttribute("type", "search");
     expect(within(board).getByRole("list", { name: "Board posts" })).toBeInTheDocument();
     expect(within(board).getByText(/Posts shown:/)).toBeInTheDocument();
     expect(within(board).getByLabelText("Voice of Partner")).toBeInTheDocument();
@@ -2259,11 +2262,22 @@ describe("App, authenticated", () => {
       expect(fetchMock.mock.calls.some(([url]) => String(url).includes("sort=title"))).toBe(true),
     );
 
-    await userEvent.type(within(board).getByLabelText("Search semantic evidence"), "not found");
+    await userEvent.type(within(board).getByLabelText("Search records and evidence"), "not found");
     await userEvent.click(within(board).getByRole("button", { name: "Search" }));
     expect(within(board).getByRole("status")).toHaveTextContent("No posts match the current filters.");
     await userEvent.click(within(board).getByRole("button", { name: "Reset filters" }));
     expect(within(board).getByRole("button", { name: "View post: Public post" })).toBeInTheDocument();
+  });
+
+  it("guides an empty board without exposing a developer command", async () => {
+    stubBackend({ emptyPosts: true });
+    render(<App showLabPanels />);
+
+    const status = await screen.findByRole("status");
+    expect(status).toHaveTextContent(
+      "No posts are available. Ask an administrator to check your access or import source records.",
+    );
+    expect(status).not.toHaveTextContent("make seed");
   });
 
   it("opens a post from a DAG node click", async () => {
@@ -2461,8 +2475,8 @@ describe("App, authenticated", () => {
     expect(provenance).not.toHaveAttribute("open");
     await userEvent.click(screen.getByText("Evidence provenance"));
     expect(screen.getByText(/Ontology class:/)).toBeInTheDocument();
-    expect(screen.getByText(/Extraction source: Semantic extraction/)).toBeInTheDocument();
-    expect(screen.getByText(/Evidence field: Stored semantic evidence/)).toBeInTheDocument();
+    expect(screen.getByText(/Extraction source: Record content/)).toBeInTheDocument();
+    expect(screen.getByText(/Evidence field: Supporting record text/)).toBeInTheDocument();
     expect(screen.queryByText("contextual_orchestrator_semantic")).not.toBeInTheDocument();
     expect(screen.queryByText("https://contextualwisdomlab.github.io/LineageWeave/ontology#Project")).not.toBeInTheDocument();
     expect(screen.getByText("첫 번째 이벤트")).toBeInTheDocument();
@@ -2512,13 +2526,17 @@ describe("App, authenticated", () => {
     expect(keyman.compareDocumentPosition(ask) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(0);
   });
 
-  it("labels a stale summary and retries the semantic refresh on request", async () => {
+  it("labels a stale summary and retries the summary refresh on request", async () => {
     const fetchMock = stubBackend({ staleSummary: true });
     render(<App showLabPanels />);
 
     await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
     await waitFor(() =>
-      expect(screen.getByText("Last saved summary shown. Retry semantic refresh.")).toBeInTheDocument(),
+      expect(
+        screen.getByText(
+          "The last saved summary is shown. Select Retry summary refresh to check for an update.",
+        ),
+      ).toBeInTheDocument(),
     );
     const summaryCallsBeforeRetry = fetchMock.mock.calls.filter(([input]) =>
       String(input).endsWith("/api/posts/post-1/summary"),
