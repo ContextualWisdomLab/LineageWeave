@@ -117,15 +117,26 @@ create trigger source_post_voice_type_guard
 before insert or update on source_post_voice
 for each row execute function validate_source_post_voice_codes();
 
+update source_post_voice voice
+   set is_primary = true,
+       truth_status_code = 'truth_observed',
+       provenance_assertion_id = null
+  from source_post post
+ where voice.post_id = post.post_id
+   and voice.voice_type_code = post.voc_type_code
+   and voice.effective_to is null
+   and not voice.is_primary;
+
 insert into source_post_voice
     (post_id, voice_type_code, is_primary, truth_status_code, effective_from)
-select post_id, voc_type_code, true, 'truth_observed', created_at
-from source_post
-on conflict (post_id, voice_type_code) where effective_to is null do update
-set is_primary = true,
-    truth_status_code = 'truth_observed',
-    provenance_assertion_id = null
-where not source_post_voice.is_primary;
+select post.post_id, post.voc_type_code, true, 'truth_observed', post.created_at
+  from source_post post
+ where not exists (
+    select 1 from source_post_voice voice
+     where voice.post_id = post.post_id
+       and voice.voice_type_code = post.voc_type_code
+       and voice.effective_to is null
+ );
 
 create or replace function synchronize_source_post_primary_voice()
 returns trigger

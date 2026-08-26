@@ -25,14 +25,14 @@ def test_voice_combination_schema_is_normalized_and_evidence_bearing() -> None:
     assert "effective_from timestamptz not null" in sql
     assert "true, 'truth_observed'" in sql
     assert "where is_primary" in sql
-    assert "select post_id, voc_type_code, true, 'truth_observed', created_at" in sql
+    assert "select post.post_id, post.voc_type_code, true, 'truth_observed', post.created_at" in sql
     assert "change_at timestamptz := clock_timestamp()" in sql
     assert "case when tg_op = 'insert' then new.created_at else change_at end" in sql
     assert "after insert on source_post" in sql
     assert "after update of voc_type_code on source_post" in sql
     assert "when (old.voc_type_code is distinct from new.voc_type_code)" in sql
     assert "on conflict (post_id, voice_type_code) where effective_to is null do update" in sql
-    assert "where not source_post_voice.is_primary" in sql
+    assert "and not voice.is_primary" in sql
     assert "set effective_to = change_at" in sql
     assert "delete from source_post_voice" not in sql
     assert "primary intervals must not overlap" in sql
