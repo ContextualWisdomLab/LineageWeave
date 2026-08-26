@@ -1068,7 +1068,10 @@ def test_create_analysis_run_records_pending_without_inventing_a_score(
         },
     )
     assert tepp.status_code == 422
-    assert "invent a measurement" in tepp.json()["detail"]
+    assert (
+        tepp.json()["detail"]
+        == "Open the failed temporal measurement, ask an administrator to restore analysis, then re-run it."
+    )
     assert "theta" not in tepp.json()["detail"].lower()
 
     report = client.post(
@@ -1227,7 +1230,10 @@ def test_start_analysis_run_recovers_the_a100_fork(
         },
     )
     assert tepp_create.status_code == 422
-    assert "invent a measurement" in tepp_create.json()["detail"]
+    assert (
+        tepp_create.json()["detail"]
+        == "Open the failed temporal measurement, ask an administrator to restore analysis, then re-run it."
+    )
 
     admin_conn = psycopg2.connect(seeded_db["dsn"])
     admin_conn.autocommit = True

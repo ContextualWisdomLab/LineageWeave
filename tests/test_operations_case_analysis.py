@@ -2,10 +2,50 @@
 
 import json
 
+from lineageweave import operations_case_analysis
 from lineageweave.operations_case_analysis import (
+    ContextualOrchestratorOperationsCaseAnalysisClient,
     OperationsEvidenceSource,
+    operations_analysis_input_sha256,
     parse_operations_case_response,
 )
+
+
+def test_orchestrator_request_uses_provider_neutral_auto_selector(monkeypatch) -> None:
+    """The consumer selects orchestrator routing, never a provider model name."""
+    captured: dict[str, object] = {}
+
+    def post_json(_url, payload, **_kwargs):
+        captured.update(payload)
+        return {"choices": [{"message": {"content": "[]"}}]}
+
+    monkeypatch.setattr(operations_case_analysis, "post_json", post_json)
+    client = ContextualOrchestratorOperationsCaseAnalysisClient("gateway", "key")
+
+    assert client.analyze(
+        (OperationsEvidenceSource("post-1", "Synthetic", "Synthetic source."),),
+        "",
+    ) == ()
+    assert captured["model"] == "orchestrator/auto"
+
+
+def test_analysis_input_digest_tracks_ordered_evidence_and_context() -> None:
+    """Cache identity changes when any orchestrator input changes."""
+    first = OperationsEvidenceSource("post-1", "First", "Evidence one")
+    second = OperationsEvidenceSource("post-2", "Second", "Evidence two")
+
+    baseline = operations_analysis_input_sha256((first, second), "project=P-1")
+
+    assert len(baseline) == 64
+    assert baseline == operations_analysis_input_sha256(
+        (first, second), "project=P-1"
+    )
+    assert baseline != operations_analysis_input_sha256(
+        (second, first), "project=P-1"
+    )
+    assert baseline != operations_analysis_input_sha256(
+        (first, second), "project=P-2"
+    )
 
 
 def test_parses_multiple_cases_and_grounded_facts() -> None:

@@ -123,3 +123,38 @@ def test_orchestrator_embedding_client_submits_and_polls_batch(monkeypatch) -> N
 
     assert client.embed_many(["third", "fourth"]) == [[0.0, 1.0], [2.0, 3.0]]
     assert calls[2][2]["model"] == "resolved-embedding"
+
+
+def test_orchestrator_embedding_client_submits_index_aligned_provenance(monkeypatch) -> None:
+    """Each bulk input carries its own source metadata and cost attribution."""
+    captured = {}
+
+    def fake_post_json(url, payload, *, headers, timeout):
+        captured.update(payload)
+        return {
+            "status": "completed",
+            "model": "resolved-embedding",
+            "embeddings": [
+                {"index": 0, "embedding": [1.0]},
+                {"index": 1, "embedding": [2.0]},
+            ],
+        }
+
+    monkeypatch.setattr("lineageweave.embedding_client.post_json", fake_post_json)
+    client = ContextualOrchestratorEmbeddingClient(
+        "http://orchestrator:8000", "synthetic-token"
+    )
+
+    assert client.embed_many(
+        ["first", "second"],
+        input_attributions=[{"team": "alpha"}, {"team": "beta"}],
+        input_metadata=[{"session_id": "one"}, {"session_id": "two"}],
+    ) == [[1.0], [2.0]]
+    assert captured["input_attributions"] == [
+        {"team": "alpha"},
+        {"team": "beta"},
+    ]
+    assert captured["input_metadata"] == [
+        {"session_id": "one"},
+        {"session_id": "two"},
+    ]

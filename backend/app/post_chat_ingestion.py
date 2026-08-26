@@ -283,6 +283,30 @@ async def find_linked_post_ids(conn: asyncpg.Connection, post_id: str) -> Linked
     return LinkedPostIds(direct=direct_ids - {post_id}, indirect=indirect_ids - direct_ids)
 
 
+async def find_project_sibling_post_ids(
+    conn: asyncpg.Connection, post_id: str
+) -> frozenset[str]:
+    """Published posts sharing a persisted project key, for Ask context only."""
+    project_rows = await conn.fetch(
+        "select distinct project_key from post_project_mention where post_id = $1",
+        post_id,
+    )
+    project_keys = [str(row["project_key"]) for row in project_rows]
+    if not project_keys:
+        return frozenset()
+    rows = await conn.fetch(
+        "select distinct ppm.post_id from post_project_mention ppm "
+        "join source_post sp on sp.post_id = ppm.post_id "
+        "where ppm.project_key = any($1::text[]) and ppm.post_id <> $2 "
+        f"and {SOURCE_POST_ELIGIBILITY_SQL.format(alias='sp')} "
+        "order by ppm.post_id limit $3",
+        project_keys,
+        post_id,
+        _POST_CHAT_CANDIDATE_LIMIT,
+    )
+    return frozenset(str(row["post_id"]) for row in rows)
+
+
 async def gather_chat_sources(
     conn: asyncpg.Connection,
     post_id: str,
@@ -291,9 +315,11 @@ async def gather_chat_sources(
 ) -> list[ChatSourceDocument]:
     """Post `post_id` plus a bounded, deterministic linked-source window.
 
-    Direct Event Lineage neighbors precede indirect Knowledge Graph
-    neighbors; both groups are identifier-sorted before ABAC filtering. The
-    current post plus at most seven visible linked posts become the numbered
+    Persisted semantic-project siblings precede direct Event Lineage and
+    indirect Knowledge Graph neighbors; each group is identifier-sorted before
+    ABAC filtering. This gives exact project membership a bounded opportunity
+    to supply the missing original even when graph neighborhoods are dense.
+    The current post plus at most seven visible linked posts become the numbered
     source set that `post_chat` citations refer back to. Every source's body
     is normalized (HTML tags/base64 images never reach the reason-and-cite
     LLM call raw) before becoming a `ChatSourceDocument` -- see
@@ -332,9 +358,11 @@ async def gather_chat_sources(
     ]
 
     linked = await find_linked_post_ids(conn, post_id)
+    project_sibling_ids = await find_project_sibling_post_ids(conn, post_id)
     candidate_ids = [
-        *sorted(linked.direct),
-        *sorted(linked.indirect),
+        *sorted(project_sibling_ids),
+        *sorted(linked.direct - project_sibling_ids),
+        *sorted(linked.indirect - project_sibling_ids),
     ][:_POST_CHAT_CANDIDATE_LIMIT]
     if not candidate_ids:
         return sources

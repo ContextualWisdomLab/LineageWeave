@@ -28,6 +28,7 @@ RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --frozen --no-dev --extra backend --no-install-project --no-editable
 COPY lineageweave ./lineageweave
 COPY backend ./backend
+COPY scripts/backfill_post_embeddings.py ./scripts/backfill_post_embeddings.py
 # lineageweave/ontology.py resolves this path relative to itself
 # (parents[1] = /app) -- ADR 0004.
 COPY docs/ontology ./docs/ontology

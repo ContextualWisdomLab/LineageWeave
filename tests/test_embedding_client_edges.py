@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pytest
 
-import lineageweave.embedding_client as embedding_client
+from lineageweave import embedding_client
 
 
 def test_missing_embedding_configuration_returns_null_client() -> None:
@@ -17,6 +17,16 @@ def test_empty_batch_does_not_call_orchestrator(monkeypatch: pytest.MonkeyPatch)
     monkeypatch.setattr(embedding_client, "post_json", lambda *_args, **_kwargs: pytest.fail("unexpected call"))
     client = embedding_client.ContextualOrchestratorEmbeddingClient("http://orchestrator", "key", "model")
     assert client.embed_many([]) == []
+
+
+@pytest.mark.parametrize("field", ["input_attributions", "input_metadata"])
+def test_per_input_context_must_align_with_texts(field: str) -> None:
+    client = embedding_client.ContextualOrchestratorEmbeddingClient(
+        "http://orchestrator", "key", "model"
+    )
+
+    with pytest.raises(ValueError, match=field):
+        client.embed_many(["first", "second"], **{field: [{"key": "value"}]})
 
 
 def test_immediate_embedding_response_is_ordered(monkeypatch: pytest.MonkeyPatch) -> None:

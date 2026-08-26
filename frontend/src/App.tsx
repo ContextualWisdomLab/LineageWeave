@@ -4848,23 +4848,31 @@ function AskAgentPanel({
   }
 
   return (
-    <section className="workspace-destination" aria-labelledby="ask-agent-heading">
+    <section className="workspace-destination ask-agent-panel" aria-labelledby="ask-agent-heading">
       <p className="section-eyebrow">{t("Evidence-grounded questions")}</p>
       <h2 id="ask-agent-heading">{t("Ask Agent")}</h2>
       <p className="workspace-destination-intro">{t("Questions use authorized posts and their evidence.")}</p>
       {error ? <p className="error">{error}</p> : null}
-      <label className="ask-agent-source">
-        <span>{t("Ask a question")}</span>
-        <textarea
-          aria-label={t("Ask a question")}
-          value={question}
-          onChange={(event) => setQuestion(event.target.value)}
-          rows={4}
-        />
-      </label>
-      <button className="keyman-select" onClick={() => void handleAsk()} disabled={asking || !question.trim()}>
-        {asking ? t("Asking...") : t("Ask")}
-      </button>
+      <form className="ask-agent-composer" onSubmit={(event) => {
+        event.preventDefault();
+        void handleAsk();
+      }}>
+        <label className="ask-agent-source">
+          <span>{t("Ask a question")}</span>
+          <textarea
+            aria-label={t("Ask a question")}
+            value={question}
+            onChange={(event) => setQuestion(event.target.value)}
+            rows={4}
+          />
+        </label>
+        <div className="ask-agent-actions">
+          <button type="submit" className="btn-primary" disabled={asking || !question.trim()}>
+            {t("Ask")}
+          </button>
+          {asking ? <span role="status">{t("Asking...")}</span> : null}
+        </div>
+      </form>
       {answer && (
         <section className="popup-section" aria-label={t("Answer")}>
           <h3>{t("Answer")}</h3>

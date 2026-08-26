@@ -15,7 +15,7 @@ multi-agent.
 ## Decision
 
 `docker/contextual-orchestrator/Dockerfile` pins the downloaded archive to
-commit `1a40e0f7ad10d1a24137d69d20e44fc9a5dcdd89`. The pin remains explicit
+commit `d9c62be9feea24fdaeb8453f3c72f2c2b0237143`. The pin remains explicit
 and immutable until the reviewed upstream change is superseded; it is not a
 moving `main` reference and it is not a LineageWeave monkey patch.
 
@@ -37,6 +37,10 @@ The runtime contract is:
   endpoint; embedding-only rows are not added to the chat agent pool.
 - A batch embedding request may omit `model`; contextual-orchestrator selects
   an embedding-capable model and returns its identity for subsequent batches.
+- A blank embedding input fails before provider selection; it is never sent as
+  a successful empty semantic signal.
+- An explicit remote agent tagged `embedding` uses its provider-backed
+  embedding transport rather than a local placeholder implementation.
 - `json_object`, `json_schema`, and Responses JSON formats run conduct plus
   synthesis. Tool requests never silently fall back to one agent.
 

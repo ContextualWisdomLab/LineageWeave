@@ -8,6 +8,16 @@ All notable changes to this project are documented here. Format follows
 
 ### Changed
 
+- Ask Agent now searches posts with the same persisted semantic project key as
+  part of its authorized evidence window before re-analysis. Missing evidence
+  remains a retry state rather than a request for the reader to attach an
+  original; newly analyzed project evidence now requeues completed sibling
+  analyses that still have missing facts. Case-analysis reuse now binds to a
+  digest of the exact ordered authorized evidence window and context, so an
+  unchanged focal body is re-analyzed when new sibling evidence arrives. The
+  composer now uses an accessible form with a stable action and separate
+  progress status.
+
 - Docker Compose now has one canonical `lineageweave` project containing the
   complete synthetic product stack. The backend receives the existing TEPP API
   credential contract, and the OIDC smoke target installs its declared backend

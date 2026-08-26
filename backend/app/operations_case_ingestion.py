@@ -33,6 +33,8 @@ async def persist_operations_cases(
     source_body: str,
     orchestrator_session_id: str,
     cases: tuple[OperationsCase, ...],
+    *,
+    analysis_input_sha256: str,
 ) -> None:
     """Atomically replace one post's normalized case analysis."""
     async with conn.transaction():
@@ -40,10 +42,11 @@ async def persist_operations_cases(
             "delete from operations_case_analysis where post_id = $1", post_id
         )
         await conn.execute(
-            "insert into operations_case_analysis (post_id, source_body_sha256, orchestrator_session_id) values ($1, $2, $3)",
+            "insert into operations_case_analysis (post_id, source_body_sha256, orchestrator_session_id, analysis_input_sha256) values ($1, $2, $3, $4)",
             post_id,
             source_body_sha256(source_body),
             orchestrator_session_id,
+            analysis_input_sha256,
         )
         for case in cases:
             await conn.execute(

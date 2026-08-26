@@ -44,10 +44,13 @@ provenance.
    regexes, provider-name ordering, local model selection, and hand-authored
    scoring weights are prohibited.
 5. Persist the result in normalized post case-analysis tables with the source
-   body digest and orchestrator session/run provenance. A changed source body
-   invalidates the old result and queues re-analysis through the existing
-   content-ingestion lifecycle. Schema-invalid or unavailable results fail the
-   job and remain retryable; they are not converted into a negative case.
+   body digest, a SHA-256 fingerprint of the exact ordered authorized evidence
+   window and context, and orchestrator session/run provenance. A changed
+   source body or input fingerprint invalidates reuse and queues re-analysis
+   through the existing content-ingestion lifecycle. Historical rows without
+   an input fingerprint are honest unknowns and re-analyze when next queued.
+   Schema-invalid or unavailable results fail the job and remain retryable;
+   they are not converted into a negative case.
 6. External-information coverage is the distinct count of visible posts with
    a persisted positive `external_information` classification divided by all
    visible posts in the same period. The stored `vom` source code is supplied
@@ -63,7 +66,11 @@ provenance.
    absent from the authorized corpus.
    The analysis input reuses the post-chat source assembler: focal post first,
    then bounded Event Lineage and semantic-neighborhood posts after the same
-   corporate-entity/process-unit ABAC check. Every classification and fact
+   corporate-entity/process-unit ABAC check. The semantic window includes posts
+   carrying the same persisted `post_project_mention.project_key`; display-name
+   similarity and keyword matching do not create that link. This lookup applies
+   the shared source-post publication eligibility boundary and a deterministic
+   candidate limit before graph loading. Every classification and fact
    persists its evidence post id and the SHA-256 of the exact numbered input
    document. A span that does not occur in that identified document rejects
    the whole provider response; linked evidence is never rewritten as focal
@@ -71,8 +78,9 @@ provenance.
 8. Claim-investigation and rebid/handover panels include positively classified
    cases and show extracted answers plus cited spans. A required answer that
    the source does not support is stored in the normalized
-   `operations_case_missing_fact` relation as an explicit missing fact, so the
-   next action is collection or human correction rather than keyword guessing.
+   `operations_case_missing_fact` relation as an explicit retry state while the
+   system searches the authorized semantic source window and re-analyzes the
+   case. The reader is not asked to attach the source manually.
    A provider result is invalid unless every required question is represented
    exactly once as either a cited supported fact or an explicit missing fact;
    a fact cannot be both. Missing facts carry no invented value or evidence
@@ -174,7 +182,8 @@ treated as a negative case.
 ## Verification
 
 - Parser and persistence tests cover multi-label output, cited spans, malformed
-  responses, source-digest invalidation, and unavailable orchestrator states.
+  responses, source-body and ordered evidence-window invalidation, replay-safe
+  fingerprint storage, and unavailable orchestrator states.
 - Backend integration tests cover ABAC filtering, event-time fallback, event
   versus post counts, external-information percentage, multi-project
   membership, explicit missing facts, observed lifecycle endpoints, exact

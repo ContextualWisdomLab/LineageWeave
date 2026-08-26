@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import math
 import time
+from collections.abc import Mapping
 from typing import Protocol
 
 from .chunking import Chunk, chunk_by_paragraph
@@ -86,16 +87,30 @@ class ContextualOrchestratorEmbeddingClient:
         """Return an embedding for the supplied text."""
         return self.embed_many([text])[0]
 
-    def embed_many(self, texts: list[str]) -> list[list[float]]:
-        """Return embeddings for the supplied texts."""
+    def embed_many(
+        self,
+        texts: list[str],
+        *,
+        input_attributions: list[Mapping[str, object]] | None = None,
+        input_metadata: list[Mapping[str, object]] | None = None,
+    ) -> list[list[float]]:
+        """Return embeddings while preserving optional per-input provenance."""
         if not texts:
             return []
+        if input_attributions is not None and len(input_attributions) != len(texts):
+            raise ValueError("input_attributions must align with texts")
+        if input_metadata is not None and len(input_metadata) != len(texts):
+            raise ValueError("input_metadata must align with texts")
         headers = {"authorization": f"Bearer {self._api_key}"}
         payload = {
             "inputs": texts,
             "endpoint": "/v1/embeddings",
             "metadata": {"service": "lineageweave", "channel": "post_content_embedding"},
         }
+        if input_attributions is not None:
+            payload["input_attributions"] = [dict(value) for value in input_attributions]
+        if input_metadata is not None:
+            payload["input_metadata"] = [dict(value) for value in input_metadata]
         if self._model is not None:
             payload["model"] = self._model
         response = post_json(
