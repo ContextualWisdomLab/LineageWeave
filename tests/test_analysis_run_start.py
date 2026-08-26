@@ -22,11 +22,29 @@ from backend.app.analysis_run_start import (
     topic_lineage_submit_outcome,
 )
 from backend.app.lineage_ingestion import records_from_source_posts
+from lineageweave.adjudication_client import AdjudicationClientError
 from lineageweave.channel_weight_estimation import estimate_fixture_channel_weights
 from lineageweave.fixtures import sample_records
 from lineageweave.http_client import HttpClientError
 from lineageweave.lineage_persistence import lineage_edge_specs
 from lineageweave.tepp_client import AnalysisRunRequest, TeppClient, TeppNotAvailable
+
+
+def test_adjudication_boundary_types_malformed_provider_reply() -> None:
+    """Malformed orchestrator output becomes a controlled provider failure."""
+
+    class MalformedAdjudication:
+        available = True
+
+        def judge(self, candidate_label: str, record_label: str) -> float:
+            raise AdjudicationClientError("synthetic malformed reply")
+
+    client = analysis_run_start._ProviderBoundaryAdjudication(
+        MalformedAdjudication()
+    )
+
+    with pytest.raises(analysis_run_start._AdjudicationProviderError):
+        client.judge("synthetic parent", "synthetic child")
 
 @lru_cache(maxsize=1)
 def _estimated_fixture_weights() -> dict[str, float]:
