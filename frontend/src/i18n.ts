@@ -311,6 +311,7 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "What happened between these events?": "이 사건들 사이에 무슨 일이 있었나요?",
     "Ask about this lineage": "이 계보에 대해 질문",
     "Conversation history": "대화 기록",
+    "Load more": "더 보기",
     "New conversation": "새 대화",
     "Conversation history could not be loaded.": "대화 기록을 불러올 수 없습니다.",
     "No reconstructed lineage yet. Rebuild after seeding posts.":
@@ -814,6 +815,7 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "What happened between these events?": "这些事件之间发生了什么？",
     "Ask about this lineage": "询问此谱系",
     "Conversation history": "对话历史",
+    "Load more": "加载更多",
     "New conversation": "新对话",
     "Conversation history could not be loaded.": "无法加载对话历史。",
     "No reconstructed lineage yet. Rebuild after seeding posts.":
@@ -1329,6 +1331,7 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "What happened between these events?": "これらのイベントの間に何が起きましたか？",
     "Ask about this lineage": "この系譜について質問",
     "Conversation history": "会話履歴",
+    "Load more": "さらに読み込む",
     "New conversation": "新しい会話",
     "Conversation history could not be loaded.": "会話履歴を読み込めませんでした。",
     "No reconstructed lineage yet. Rebuild after seeding posts.":
@@ -1832,6 +1835,7 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "What happened between these events?": "Điều gì đã xảy ra giữa các sự kiện này?",
     "Ask about this lineage": "Hỏi về dòng sự kiện này",
     "Conversation history": "Lịch sử hội thoại",
+    "Load more": "Tải thêm",
     "New conversation": "Cuộc hội thoại mới",
     "Conversation history could not be loaded.": "Không thể tải lịch sử hội thoại.",
     "No reconstructed lineage yet. Rebuild after seeding posts.":

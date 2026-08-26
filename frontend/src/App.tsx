@@ -61,6 +61,7 @@ import {
   type ChatAnswer,
   type ChatExchange,
   type PostAskConversationSummary,
+  type PostAskConversationPage,
   type CorporateEntityRef,
   type CustomerMasterEntity,
   type CustomerMasterResponse,
@@ -272,6 +273,7 @@ export function ChatPanel({
   const [exchanges, setExchanges] = useState<ChatExchange[]>([]);
   const [seededExchanges, setSeededExchanges] = useState<ChatExchange[]>([]);
   const [conversations, setConversations] = useState<PostAskConversationSummary[]>([]);
+  const [conversationCursor, setConversationCursor] = useState<PostAskConversationPage["next_cursor"]>(null);
   const [conversationId, setConversationId] = useState<string | null>(null);
   const [historyError, setHistoryError] = useState<string | null>(null);
   const [answer, setAnswer] = useState<ChatAnswer | null>(null);
@@ -281,6 +283,7 @@ export function ChatPanel({
   const [seededOnly, setSeededOnly] = useState(false);
 
   useEffect(() => {
+    let active = true;
     setExchanges([]);
     setSeededExchanges([]);
     setConversations([]);
@@ -292,19 +295,31 @@ export function ChatPanel({
     setEvidencePostId(null);
     fetchPostChat(accessToken, postId)
       .then((history) => {
-        setSeededExchanges(history.exchanges);
-        setExchanges(history.exchanges);
+        if (active) {
+          setSeededExchanges(history.exchanges);
+          setExchanges(history.exchanges);
+        }
       })
-      .catch(() => setExchanges([]));
+      .catch(() => { if (active) setExchanges([]); });
     fetchPostChatConversations(accessToken, postId)
-      .then((page) => setConversations(page.conversations))
-      .catch(() => setHistoryError(t("Conversation history could not be loaded.")));
+      .then((page) => {
+        if (active) {
+          setConversations(page.conversations);
+          setConversationCursor(page.next_cursor ?? null);
+        }
+      })
+      .catch(() => { if (active) setHistoryError(t("Conversation history could not be loaded.")); });
+    return () => { active = false; };
   }, [postId, accessToken]);
 
+  const conversationRequest = useRef(0);
   async function selectConversation(nextId: string) {
+    const requestId = ++conversationRequest.current;
     setHistoryError(null);
+    setAnswer(null);
     try {
       const conversation = await fetchPostChatConversation(accessToken, postId, nextId);
+      if (requestId !== conversationRequest.current) return;
       setConversationId(conversation.conversation_id);
       setExchanges(conversation.exchanges);
     } catch {
@@ -313,6 +328,7 @@ export function ChatPanel({
   }
 
   function startNewConversation() {
+    ++conversationRequest.current;
     setConversationId(null);
     setExchanges(seededExchanges);
     setQuestion("");
@@ -346,7 +362,7 @@ export function ChatPanel({
           cited_post_ids: result.cited_post_ids,
           cited_posts: result.cited_posts,
         };
-        return [...prev.filter((row) => row.question_text !== next.question_text), next];
+        return [...prev, next];
       });
     } catch (err) {
       setError(orchestratorUnavailableMessage(err, "Chat"));
@@ -415,17 +431,24 @@ export function ChatPanel({
           <span>{t("Conversation history")}</span>
           <select
             value={conversationId ?? ""}
-            onChange={(event) => event.target.value && void selectConversation(event.target.value)}
+            onChange={(event) => event.target.value ? void selectConversation(event.target.value) : startNewConversation()}
             disabled={loading}
           >
             <option value="">{t("New conversation")}</option>
             {conversations.map((conversation) => (
               <option key={conversation.conversation_id} value={conversation.conversation_id}>
-                {conversation.title} ({conversation.turn_count})
+                {conversation.title ?? t("New conversation")} ({conversation.turn_count})
               </option>
             ))}
           </select>
         </label>
+        {conversationCursor ? (
+          <button type="button" onClick={async () => {
+            const page = await fetchPostChatConversations(accessToken, postId, conversationCursor);
+            setConversations((current) => [...current, ...page.conversations]);
+            setConversationCursor(page.next_cursor ?? null);
+          }} disabled={loading}>{t("Load more")}</button>
+        ) : null}
         <button type="button" onClick={startNewConversation} disabled={loading}>
           {t("New conversation")}
         </button>
