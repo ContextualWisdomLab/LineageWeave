@@ -11,4 +11,3 @@ def test_frontend_container_copies_the_single_build_script_policy() -> None:
 
     assert workspace == "allowBuilds:\n  esbuild: true\n"
     assert "COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./" in dockerfile
-

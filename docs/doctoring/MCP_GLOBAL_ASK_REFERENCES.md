@@ -28,4 +28,3 @@ https://doi.org/10.17487/RFC9700
 Model Context Protocol. (2025). *Transports: Streamable HTTP* (Specification
 2025-06-18).
 https://modelcontextprotocol.io/specification/2025-06-18/basic/transports
-

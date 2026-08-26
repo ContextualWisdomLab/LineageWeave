@@ -1,6 +1,6 @@
 # ADR 0231: External lineage arithmetic authority
 
-**Status:** Accepted  
+**Status:** Accepted
 **Date:** 2026-08-26
 
 ## Context
