@@ -15,8 +15,9 @@ that already-supported runtime setting.
 ## Decision
 
 `docker-compose.yml` declares the default project name `lineageweave` and keeps
-all eight product services in that project: PostgreSQL, the one-shot migration,
-Valkey, SearXNG, Keycloak, contextual-orchestrator, backend, and frontend.
+all product services in that project: PostgreSQL, the one-shot migration,
+Valkey, SearXNG, Keycloak, contextual-orchestrator, the dedicated durable-queue
+worker, backend, and frontend.
 An isolated test may still override the name explicitly with Compose `-p`; it
 must use a disposable name and must not mutate the canonical project.
 
@@ -31,6 +32,14 @@ unbound Keyverse scope claims fail closed; the local Keycloak service is not a
 second trusted issuer. With no Keyverse issuer, standalone/local/dev/test uses
 only the synthetic `lineageweave-demo` Keycloak realm.
 
+The API process never owns a queue consumer. Instead, `backend` has a required
+`service_healthy` dependency on `backend-worker`, whose progress-based health
+probe observes its event loop. Consequently, targeted canonical startup such
+as `docker compose up backend` also starts the worker and does not expose an API
+that can accept durable jobs while no consumer exists. Non-Compose deployments
+must express the same co-deployment and readiness dependency in their service
+manager; process liveness alone is not durable-job readiness.
+
 ## Consequences
 
 - `make up`, `make ps`, `make logs`, and `make down` address the same project
@@ -39,6 +48,8 @@ only the synthetic `lineageweave-demo` Keycloak realm.
 - A complete synthetic acceptance run can exercise OIDC, migrations, search,
   Valkey, contextual-orchestrator, backend, frontend, Dashboard, and Ask without
   mixing services from different working directories.
+- Starting the canonical backend target alone still starts and health-gates the
+  dedicated worker; queue ownership remains outside the HTTP process.
 - Historical `lw*` projects may be removed only after comparing their Compose
   source and validating the canonical stack; their named volumes remain
   recoverable.

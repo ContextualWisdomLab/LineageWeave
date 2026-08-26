@@ -158,6 +158,12 @@ no re-typed copy.
 `backend/` is a FastAPI app talking directly to that database (`asyncpg`,
 no ORM, no file DB) and to Keycloak's live JWKS for OIDC verification:
 
+The API does not consume durable jobs. Canonical Compose makes `backend`
+depend on the progress-healthy `backend-worker`, so `docker compose up backend`
+starts both. Any non-Compose deployment must co-deploy
+`python -m backend.app.worker` and gate API readiness on that worker service;
+`/healthz` is process liveness only.
+
 ```bash
 make up
 make seed   # scripts/seed_demo_data.py: inserts synthetic corp/account/post

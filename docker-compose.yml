@@ -205,6 +205,11 @@ services:
         condition: service_healthy
       searxng:
         condition: service_healthy
+      # The HTTP process deliberately does not consume durable queues. Make
+      # even a targeted `docker compose up backend` start the sole worker
+      # owner and wait for observed event-loop progress before serving jobs.
+      backend-worker:
+        condition: service_healthy
 
   backend-worker:
     build:
