@@ -442,6 +442,7 @@
 #################################################################
 
 :OccupationalConstruct a owl:Class ;
+    :lookupCode "node_occupational_construct" ;
     rdfs:label "Occupational construct"@en ;
     rdfs:comment "A governed cognitive, dispositional, behavioral, or affective concept referenced by authorized record evidence; it is not itself a person-level measurement."@en .
 
@@ -468,9 +469,10 @@
     rdfs:label "Performance behavior"@en .
 
 :supportsOccupationalConstruct a owl:ObjectProperty ;
+    :lookupCode "edge_supports_occupational_construct" ;
     rdfs:domain :Post ;
     rdfs:range :OccupationalConstruct ;
-    rdfs:label "supports occupational construct"@en ;
+    rdfs:label "supports construct"@en ;
     rdfs:comment "Record evidence supports discussion of a construct; this does not assert a person trait, score, job requirement, or cause."@en .
 
 :OccupationalConstructAssertion a owl:Class ;

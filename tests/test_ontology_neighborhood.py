@@ -13,10 +13,12 @@ from lineageweave.knowledge_graph import (
     EDGE_MENTION_ORGANIZATION,
     EDGE_MENTION_PROJECT,
     EDGE_MENTION_TEAM,
+    EDGE_SUPPORTS_OCCUPATIONAL_CONSTRUCT,
     EDGE_TEAM_AFFILIATION,
     NODE_CORPORATE_ENTITY,
     NODE_PERSON,
     NODE_POST,
+    NODE_OCCUPATIONAL_CONSTRUCT,
     NODE_PROJECT,
     NODE_TEAM,
 )
@@ -28,6 +30,7 @@ from lineageweave.ontology_neighborhood import (
     PROPERTY_MENTIONS_ORGANIZATION,
     PROPERTY_MENTIONS_PROJECT,
     PROPERTY_MENTIONS_TEAM,
+    PROPERTY_SUPPORTS_OCCUPATIONAL_CONSTRUCT,
     PROPERTY_OWL_SUBCLASS_OF,
     PROPERTY_SKOS_BROADER,
     PROPERTY_TEAM_AFFILIATED_WITH,
@@ -55,6 +58,7 @@ GROUP_ID = "dddddddd-dddd-dddd-dddd-ddddddddddd1"
 HIDDEN_PERSON = "eeeeeeee-eeee-eeee-eeee-eeeeeeeeeee1"
 TEAM_ID = "ffffffff-ffff-ffff-ffff-fffffffffff1"
 PROJECT_ID = "demo-project"
+CONSTRUCT_ID = "99999999-9999-9999-9999-999999999999"
 TZ = timezone.utc
 T0 = datetime(2026, 1, 10, 12, 0, tzinfo=TZ)
 T_LATE = datetime(2026, 1, 20, 12, 0, tzinfo=TZ)
@@ -70,6 +74,7 @@ def _labels() -> dict[tuple[str, str], str]:
         (NODE_PERSON, HIDDEN_PERSON): "Hidden Person",
         (NODE_TEAM, TEAM_ID): "Demo Team",
         (NODE_PROJECT, PROJECT_ID): "Demo Project",
+        (NODE_OCCUPATIONAL_CONSTRUCT, CONSTRUCT_ID): "Problem Sensitivity",
     }
 
 
@@ -185,6 +190,40 @@ def test_post_mentions_project_round_trips_as_proposed_evidence() -> None:
     assert edge.truth_status_code == TRUTH_PROPOSED
     assert project.ontology_class_iri == str(LW.Project)
     assert project.shape_code == "diamond"
+
+
+def test_post_supports_occupational_construct_without_truth_promotion() -> None:
+    fact = fact_from_knowledge_graph_edge(
+        source_node_type_code=NODE_POST,
+        source_node_id=POST_ID,
+        target_node_type_code=NODE_OCCUPATIONAL_CONSTRUCT,
+        target_node_id=CONSTRUCT_ID,
+        edge_type_code=EDGE_SUPPORTS_OCCUPATIONAL_CONSTRUCT,
+        recorded_at=T0,
+        evidence_references=(POST_ID,),
+        provenance_reference="post_occupational_construct_assertion",
+        truth_status_code=TRUTH_INFERRED,
+    )
+    neighborhood = assemble_ontology_neighborhood(
+        focus_node_type_code=NODE_POST,
+        focus_node_id=POST_ID,
+        facts=[fact],
+        labels=_labels(),
+        allowed_property_codes=["edge_supports_occupational_construct"],
+    )
+
+    edge = neighborhood.edges[0]
+    construct = next(
+        node
+        for node in neighborhood.nodes
+        if node.node_type_code == NODE_OCCUPATIONAL_CONSTRUCT
+    )
+    assert edge.property_code == PROPERTY_SUPPORTS_OCCUPATIONAL_CONSTRUCT
+    assert edge.ontology_property_iri == str(LW.supportsOccupationalConstruct)
+    assert edge.truth_status_code == TRUTH_INFERRED
+    assert edge.evidence_references == (POST_ID,)
+    assert construct.ontology_class_iri == str(LW.OccupationalConstruct)
+    assert construct.shape_code == "rounded-rectangle"
 
 
 def test_jsonld_keeps_colliding_identifiers_typed() -> None:

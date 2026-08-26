@@ -26,6 +26,17 @@ All notable changes to this project are documented here. Format follows
   only exact catalog IRIs with verbatim semantic-unit evidence. A digest-bound
   run ledger preserves successful empty extraction without inventing a signal
   (ADR 0253).
+- Authorized Post detail now shows O*NET work evidence with its verbatim source
+  span, explicit inference status, and official definition action. Complete
+  empty, processing, and unavailable states stay distinct and localized rather
+  than collapsing into a blank panel. Historical cutoff reads omit live
+  assertions and direct the reviewer to the cutoff-known body (ADR 0254).
+- Assertion-backed occupational constructs now appear in the authorized
+  ontology neighborhood with persisted truth status, cutoff-safe availability,
+  exact Post evidence, and fail-closed conflicting truth. The projection
+  duplicates no `knowledge_graph_edge` row and creates no person trait or score
+  (ADR 0255).
+
 - The DOT/FJA Data/People/Things worker-function taxonomy is now published
   in the canonical ontology: all 24 worker functions carry the official
   Dictionary of Occupational Titles Appendix B definitions verbatim, their

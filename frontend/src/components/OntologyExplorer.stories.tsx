@@ -6,6 +6,7 @@ const POST_ID = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa1";
 const PERSON_ID = "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbb1";
 const CORP_ID = "cccccccc-cccc-cccc-cccc-ccccccccccc1";
 const PROJECT_ID = `${POST_ID}/demo-project`;
+const CONSTRUCT_ID = "99999999-9999-9999-9999-999999999999";
 
 const demoNeighborhood: OntologyNeighborhoodPayload = {
   focus_node_id: POST_ID,
@@ -62,6 +63,18 @@ const demoNeighborhood: OntologyNeighborhoodPayload = {
       evidence_count: 1,
       shape_code: "diamond",
     },
+    {
+      node_id: CONSTRUCT_ID,
+      node_type_code: "node_occupational_construct",
+      ontology_class_iri: "https://contextualwisdomlab.github.io/LineageWeave/ontology#OccupationalConstruct",
+      display_label: "Problem Sensitivity",
+      truth_status_code: null,
+      valid_from: null,
+      valid_to: null,
+      recorded_at: null,
+      evidence_count: 1,
+      shape_code: "rounded-rectangle",
+    },
   ],
   edges: [
     {
@@ -110,6 +123,22 @@ const demoNeighborhood: OntologyNeighborhoodPayload = {
       valid_to: null,
       recorded_at: "2026-01-10T12:00:00+00:00",
       provenance_reference: "post_project_mention",
+      evidence_references: [POST_ID],
+    },
+    {
+      edge_id: `supportsOccupationalConstruct:node_post:${POST_ID}:node_occupational_construct:${CONSTRUCT_ID}`,
+      source_node_type_code: "node_post",
+      source_node_id: POST_ID,
+      target_node_type_code: "node_occupational_construct",
+      target_node_id: CONSTRUCT_ID,
+      property_code: "supportsOccupationalConstruct",
+      ontology_property_iri: "https://contextualwisdomlab.github.io/LineageWeave/ontology#supportsOccupationalConstruct",
+      property_label: "supports construct",
+      truth_status_code: "truth_inferred",
+      valid_from: null,
+      valid_to: null,
+      recorded_at: "2026-01-11T12:00:00+00:00",
+      provenance_reference: "post_occupational_construct_assertion",
       evidence_references: [POST_ID],
     },
   ],
@@ -161,6 +190,23 @@ const demoNeighborhood: OntologyNeighborhoodPayload = {
       target_type_code: "node_project",
       truth_status_code: "truth_proposed",
       recorded_at: "2026-01-10T12:00:00+00:00",
+      valid_from: "",
+      valid_to: "",
+      evidence_count: "1",
+    },
+    {
+      edge_id: `supportsOccupationalConstruct:node_post:${POST_ID}:node_occupational_construct:${CONSTRUCT_ID}`,
+      source_node_id: POST_ID,
+      source_label: "Demo public post",
+      source_type_code: "node_post",
+      property_code: "supportsOccupationalConstruct",
+      property_label: "supports construct",
+      ontology_property_iri: "https://contextualwisdomlab.github.io/LineageWeave/ontology#supportsOccupationalConstruct",
+      target_node_id: CONSTRUCT_ID,
+      target_label: "Problem Sensitivity",
+      target_type_code: "node_occupational_construct",
+      truth_status_code: "truth_inferred",
+      recorded_at: "2026-01-11T12:00:00+00:00",
       valid_from: "",
       valid_to: "",
       evidence_count: "1",

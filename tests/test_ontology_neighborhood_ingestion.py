@@ -24,9 +24,11 @@ from lineageweave.knowledge_graph import (
     EDGE_AFFILIATION,
     EDGE_MENTION,
     EDGE_MENTION_PROJECT,
+    EDGE_SUPPORTS_OCCUPATIONAL_CONSTRUCT,
     NODE_CORPORATE_ENTITY,
     NODE_PERSON,
     NODE_POST,
+    NODE_OCCUPATIONAL_CONSTRUCT,
     NODE_PROJECT,
     NODE_TEAM,
 )
@@ -47,6 +49,7 @@ GROUP_ID = "dddddddd-dddd-dddd-dddd-ddddddddddd1"
 TEAM_ID = "ffffffff-ffff-ffff-ffff-fffffffffff1"
 PROJECT_KEY = "demo-project"
 PROJECT_ID = f"{POST_ID}/{PROJECT_KEY}"
+CONSTRUCT_ID = "99999999-9999-9999-9999-999999999999"
 T0 = datetime(2026, 1, 10, 12, 0, tzinfo=timezone.utc)
 
 
@@ -161,6 +164,101 @@ def test_focus_catalog_exists_rejects_unknown_and_non_uuid() -> None:
     assert asyncio.run(focus_catalog_exists(empty, NODE_TEAM, TEAM_ID)) is False
     assert asyncio.run(focus_catalog_exists(empty, NODE_POST, POST_ID)) is False
     assert asyncio.run(focus_catalog_exists(empty, NODE_PROJECT, PROJECT_ID)) is False
+
+
+def test_construct_focus_requires_catalog_and_visible_assertion() -> None:
+    conn = ScriptedConn(
+        {
+            "from occupational_construct where construct_id": {"exists": 1},
+            "from post_occupational_construct_assertion assertion": [
+                {
+                    "post_id": POST_ID,
+                    "visibility_code": "visibility_public",
+                    "corporate_entity_id": None,
+                    "process_unit_id": None,
+                }
+            ],
+        }
+    )
+    assert asyncio.run(
+        focus_catalog_exists(conn, NODE_OCCUPATIONAL_CONSTRUCT, CONSTRUCT_ID)
+    ) is True
+    visible = asyncio.run(
+        visible_post_ids_for_focus(
+            conn,
+            NODE_OCCUPATIONAL_CONSTRUCT,
+            CONSTRUCT_ID,
+            lambda row: row["visibility_code"] == "visibility_public",
+        )
+    )
+    assert visible == [POST_ID]
+    assertion_query = next(
+        sql for sql, _ in conn.calls if "from post_occupational_construct_assertion" in sql
+    )
+    assert "greatest(post.created_at, assertion.generated_at)" in assertion_query
+
+
+def test_construct_projection_is_cutoff_safe_and_truth_conflicts_fail_closed() -> None:
+    conn = ScriptedConn({"from knowledge_graph_edge edge": []})
+    asyncio.run(_load_facts(conn, [POST_ID]))
+    query = conn.calls[0][0]
+    assert "edge_supports_occupational_construct" in query
+    assert "having count(distinct assertion.truth_status_code) = 1" in query
+    assert "min(greatest(post.created_at, assertion.generated_at))" in query
+    assert "$6::timestamptz" in query and "$7::timestamptz" in query
+
+
+def test_construct_fact_keeps_inferred_truth_and_assertion_provenance() -> None:
+    conn = ScriptedConn(
+        {
+            "from knowledge_graph_edge edge": [
+                {
+                    "source_node_type_code": NODE_POST,
+                    "source_node_id": POST_ID,
+                    "target_node_type_code": NODE_OCCUPATIONAL_CONSTRUCT,
+                    "target_node_id": CONSTRUCT_ID,
+                    "edge_type_code": EDGE_SUPPORTS_OCCUPATIONAL_CONSTRUCT,
+                    "truth_status_code": "truth_inferred",
+                    "available_at": T0,
+                    "evidence_ids": [POST_ID],
+                    "hop_depth": 0,
+                }
+            ]
+        }
+    )
+    fact = asyncio.run(_load_facts(conn, [POST_ID]))[0]
+    assert fact.truth_status_code == "truth_inferred"
+    assert fact.evidence_references == (POST_ID,)
+    assert fact.provenance_reference == "post_occupational_construct_assertion"
+
+
+def test_construct_label_requires_visible_evidence_post() -> None:
+    fact = fact_from_knowledge_graph_edge(
+        source_node_type_code=NODE_POST,
+        source_node_id=POST_ID,
+        target_node_type_code=NODE_OCCUPATIONAL_CONSTRUCT,
+        target_node_id=CONSTRUCT_ID,
+        edge_type_code=EDGE_SUPPORTS_OCCUPATIONAL_CONSTRUCT,
+        recorded_at=T0,
+        evidence_references=(POST_ID,),
+        truth_status_code="truth_inferred",
+    )
+    conn = ScriptedConn(
+        {
+            "from occupational_construct construct": [
+                {"construct_id": CONSTRUCT_ID, "preferred_label": "Problem Sensitivity"}
+            ]
+        }
+    )
+    labels = asyncio.run(
+        _load_labels(conn, [fact], visible_post_ids=[POST_ID])
+    )
+    assert labels[(NODE_OCCUPATIONAL_CONSTRUCT, CONSTRUCT_ID)] == "Problem Sensitivity"
+    query, arguments = next(
+        call for call in conn.calls if "from occupational_construct construct" in call[0]
+    )
+    assert "assertion.post_id = any($2::uuid[])" in query
+    assert arguments[1] == [POST_ID]
 
 
 def test_visible_post_ids_for_each_focus_type() -> None:
