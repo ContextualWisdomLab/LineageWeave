@@ -41,6 +41,15 @@ const ready: Payload = {
 };
 
 beforeEach(() => {
+  vi.mocked(fetchOccupationRatingSources).mockResolvedValue({
+    sources: [{
+      data_release_code: "onet-31.0", release_version: "31.0",
+      source_publisher_name: "Synthetic publisher", source_license_url: "https://example.test/license",
+      source_table_code: "abilities", source_table_name: "Abilities",
+      source_artifact_url: "https://example.test/abilities.csv", source_artifact_sha256: "a".repeat(64),
+      source_row_count: 2,
+    }],
+  });
   vi.mocked(fetchRatingSourceOccupations).mockResolvedValue({
     data_release_code: "onet-31.0",
     source_table_code: "abilities",
@@ -171,12 +180,12 @@ describe("OccupationRatingProfile", () => {
       .mockImplementationOnce(() => new Promise((resolve) => { finishFirst = resolve; }))
       .mockResolvedValueOnce({ ...ready, onetsoc_code: "11-1011.00", items: [{ ...ready.items[0], data_value: "3.20" }] });
     render(<OccupationRatingProfile accessToken="synthetic-token" />);
-    const occupation = screen.getByLabelText("O*NET-SOC 직업 코드");
-    await userEvent.type(occupation, "15-1252.00");
+    const occupation = await screen.findByLabelText("직업");
+    await screen.findByRole("option", { name: "Software Developers · 15-1252.00" });
+    await userEvent.selectOptions(occupation, "15-1252.00");
     await userEvent.click(screen.getByRole("button", { name: "직업 근거 열기" }));
 
-    await userEvent.clear(occupation);
-    await userEvent.type(occupation, "11-1011.00");
+    await userEvent.selectOptions(occupation, "11-1011.00");
     fireEvent.submit(occupation.closest("form")!);
     expect(await screen.findByText("3.20")).toBeInTheDocument();
 

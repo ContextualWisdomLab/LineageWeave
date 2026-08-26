@@ -47,6 +47,8 @@ export function OccupationRatingProfile({ accessToken }: Props) {
   }, [accessToken]);
 
   useEffect(() => {
+    requestSequence.current += 1;
+    setStatus("idle");
     const source = sources?.find(
       (item) => `${item.data_release_code}|${item.source_table_code}` === selectedSource,
     );
