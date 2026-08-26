@@ -200,7 +200,6 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Asking...": "질의 중...",
     Answer: "답변",
     "Cited posts": "인용된 글",
-    "Verify public claims on the web": "웹에서 공개 주장을 검증",
     "Only authorized public claims are sent for web verification. Other workspace evidence is not sent.":
       "권한이 있는 공개 주장만 웹 검증에 전송합니다. 작업공간의 다른 근거는 전송하지 않습니다.",
     "Public claims": "공개 주장",
@@ -750,7 +749,6 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Asking...": "正在提问...",
     Answer: "回答",
     "Cited posts": "引用文章",
-    "Verify public claims on the web": "在网上核验公开主张",
     "Only authorized public claims are sent for web verification. Other workspace evidence is not sent.":
       "仅将已授权的公开主张发送用于网络核验。不会发送工作区中的其他证据。",
     "Public claims": "公开主张",
@@ -1315,7 +1313,6 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Asking...": "質問中...",
     Answer: "回答",
     "Cited posts": "引用された投稿",
-    "Verify public claims on the web": "ウェブで公開主張を検証",
     "Only authorized public claims are sent for web verification. Other workspace evidence is not sent.":
       "権限のある公開主張だけをウェブ検証に送信します。ワークスペース内の他の証拠は送信しません。",
     "Public claims": "公開主張",
@@ -1860,7 +1857,6 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Asking...": "Đang hỏi...",
     Answer: "Câu trả lời",
     "Cited posts": "Bài viết được trích dẫn",
-    "Verify public claims on the web": "Xác minh tuyên bố công khai trên web",
     "Only authorized public claims are sent for web verification. Other workspace evidence is not sent.":
       "Chỉ các tuyên bố công khai được cấp quyền mới được gửi để xác minh trên web. Bằng chứng khác trong không gian làm việc không được gửi đi.",
     "Public claims": "Tuyên bố công khai",
