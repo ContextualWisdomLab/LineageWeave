@@ -481,6 +481,7 @@ async def process_global_ask_job(
             raise _SafeJobError(
                 "Ask Agent is unavailable: set ORCHESTRATOR_BASE_URL / ORCHESTRATOR_API_KEY"
             )
+        verify_external = bool(row.get("verify_external", False))
         payload = await asyncio.wait_for(
             compute_global_ask_answer(
                 pool,
@@ -490,8 +491,10 @@ async def process_global_ask_job(
                 process_scope_limited=process_scope_limited,
                 chat_client=chat_client,
                 embedding_client=embedding_factory(),
-                verify_external=bool(row.get("verify_external", False)),
-                claim_search_client=_public_claim_search_client(),
+                verify_external=verify_external,
+                claim_search_client=(
+                    _public_claim_search_client() if verify_external else None
+                ),
             ),
             timeout=JOB_DEADLINE_SECONDS,
         )

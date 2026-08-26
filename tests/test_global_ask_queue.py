@@ -5,6 +5,8 @@ from __future__ import annotations
 import asyncio
 from contextlib import asynccontextmanager
 
+import pytest
+
 from backend.app import global_ask_queue
 from backend.app.global_ask_queue import load_job_visibility
 
@@ -208,6 +210,43 @@ def test_process_global_ask_job_forwards_opt_in_verify_external(monkeypatch) -> 
 
     assert captured["verify_external"] is True
     assert captured["claim_search_client"] is not None
+
+
+def test_process_global_ask_job_does_not_build_search_client_without_opt_in(
+    monkeypatch,
+) -> None:
+    """Ordinary Ask jobs must not initialize the unused public-search boundary."""
+    connection = _Connection({**_queued_row(), "verify_external": False})
+    pool = _Pool(connection)
+    captured: dict[str, object] = {}
+
+    async def _fake_load_job_visibility(_conn, _job_id, _account_id):
+        return {"corp-1"}, set(), False, True
+
+    async def _fake_compute_global_ask_answer(*_args, **kwargs):
+        captured.update(kwargs)
+        return {"answer_text": "synthetic", "cited_post_ids": []}
+
+    monkeypatch.setattr(global_ask_queue, "load_job_visibility", _fake_load_job_visibility)
+    monkeypatch.setattr(
+        global_ask_queue, "compute_global_ask_answer", _fake_compute_global_ask_answer
+    )
+    monkeypatch.setattr(
+        global_ask_queue,
+        "_public_claim_search_client",
+        lambda: pytest.fail("search client must stay lazy when verification is off"),
+    )
+
+    asyncio.run(
+        global_ask_queue.process_global_ask_job(
+            pool,
+            job_id="job-1",
+            chat_factory=_AvailableClient,
+        )
+    )
+
+    assert captured["verify_external"] is False
+    assert captured["claim_search_client"] is None
 
 
 def test_missing_public_claim_table_is_unavailable_not_an_invented_claim() -> None:
