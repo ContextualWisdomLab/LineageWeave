@@ -45,6 +45,13 @@ from .ontology import LW, ONTOLOGY
 #: Official major-group code shape from the published 2018 SOC table:
 #: two digits, a hyphen, then four zeros.
 _MAJOR_GROUP_CODE_PATTERN = re.compile(r"^\d{2}-0000$")
+_SOC_CODE_PATTERN = re.compile(r"^\d{2}-\d{4}$")
+_SOC_LEVEL_CLASSES = (
+    ("major_group", LW.OccupationalMajorGroup),
+    ("minor_group", LW.OccupationalMinorGroup),
+    ("broad_occupation", LW.BroadOccupation),
+    ("detailed_occupation", LW.DetailedOccupation),
+)
 
 #: Published preparation-level ordering extent for the O*NET job zones.
 #: The bounds are the definitional table extents, not tunable parameters.
@@ -79,6 +86,26 @@ class MajorGroupRecord:
 
     label: str
     """The official major-group title, e.g. ``"Management Occupations"``."""
+
+
+@dataclass(frozen=True)
+class SocClassificationRecord:
+    """One source-published node in the complete 2018 SOC hierarchy."""
+
+    iri: str
+    """Canonical repository-case ontology IRI."""
+
+    code: str
+    """Official 2018 SOC code."""
+
+    label: str
+    """Official preferred title."""
+
+    level: str
+    """Source level: major, minor, broad, or detailed."""
+
+    broader_code: str | None
+    """Exact source parent code; ``None`` only for a major group."""
 
 
 @dataclass(frozen=True)
@@ -209,8 +236,9 @@ def taxonomy_source_records() -> tuple[TaxonomySourceRecord, ...]:
     subjects = {
         source
         for scheme in (
-            LW.socMajorGroupScheme,
+            LW.soc2018Scheme,
             LW.jobZoneScheme,
+            LW.onet31ContentModelScheme,
             LW.workerCharacteristicScheme,
         )
         for source in ONTOLOGY.objects(scheme, PROV.wasDerivedFrom)
@@ -248,7 +276,9 @@ def major_group_records() -> tuple[MajorGroupRecord, ...]:
     deterministic-artifact rules.
     """
     records = []
-    for subject in _scheme_subjects(LW.socMajorGroupScheme):
+    for subject in _scheme_subjects(LW.soc2018Scheme):
+        if (subject, RDF.type, LW.OccupationalMajorGroup) not in ONTOLOGY:
+            continue
         code_literal = ONTOLOGY.value(subject, LW.socCode)
         if code_literal is None:
             raise ValueError(
@@ -272,6 +302,68 @@ def major_group_records() -> tuple[MajorGroupRecord, ...]:
         raise ValueError("occupational major groups declare duplicate SOC codes")
     records.sort(key=lambda record: record.code)
     return tuple(records)
+
+
+@lru_cache(maxsize=1)
+def soc_classification_records() -> tuple[SocClassificationRecord, ...]:
+    """Return the complete source-published 2018 SOC hierarchy by code."""
+    subjects = _scheme_subjects(LW.soc2018Scheme)
+    codes: dict[URIRef, str] = {}
+    for subject in subjects:
+        values = list(ONTOLOGY.objects(subject, LW.socCode))
+        if len(values) != 1 or not _SOC_CODE_PATTERN.fullmatch(str(values[0])):
+            raise ValueError(f"SOC classification {subject} has invalid :socCode")
+        codes[subject] = str(values[0])
+    if len(set(codes.values())) != len(codes):
+        raise ValueError("2018 SOC hierarchy declares duplicate codes")
+
+    records = []
+    counts = {level: 0 for level, _ in _SOC_LEVEL_CLASSES}
+    for subject in subjects:
+        levels = [
+            level
+            for level, rdf_class in _SOC_LEVEL_CLASSES
+            if (subject, RDF.type, rdf_class) in ONTOLOGY
+        ]
+        if len(levels) != 1:
+            raise ValueError(f"SOC classification {subject} has ambiguous level")
+        parents = list(ONTOLOGY.objects(subject, SKOS.broader))
+        if (levels[0] == "major_group") != (not parents) or len(parents) > 1:
+            raise ValueError(f"SOC classification {subject} has invalid parent count")
+        parent_code = None
+        if parents:
+            parent = parents[0]
+            if not isinstance(parent, URIRef) or parent not in codes:
+                raise ValueError(f"SOC classification {subject} has unknown parent")
+            parent_code = codes[parent]
+        counts[levels[0]] += 1
+        records.append(
+            SocClassificationRecord(
+                iri=str(subject),
+                code=codes[subject],
+                label=_label_of(subject),
+                level=levels[0],
+                broader_code=parent_code,
+            )
+        )
+    if counts != {
+        "major_group": 23,
+        "minor_group": 98,
+        "broad_occupation": 459,
+        "detailed_occupation": 867,
+    }:
+        raise ValueError(f"2018 SOC hierarchy has unexpected level counts: {counts}")
+    return tuple(sorted(records, key=lambda record: record.code))
+
+
+def soc_classification(code: str) -> SocClassificationRecord | None:
+    """Return one declared 2018 SOC node, or ``None`` for a valid absent code."""
+    if not isinstance(code, str) or not _SOC_CODE_PATTERN.fullmatch(code):
+        raise ValueError(f"malformed SOC code {code!r}; expected NN-NNNN")
+    return next(
+        (record for record in soc_classification_records() if record.code == code),
+        None,
+    )
 
 
 def major_group(code: str) -> MajorGroupRecord | None:

@@ -30,6 +30,8 @@ decision from them.
 | [`WORKER_FUNCTION_TAXONOMY_REFERENCES.md`](../doctoring/WORKER_FUNCTION_TAXONOMY_REFERENCES.md) | [0232](0232-worker-function-taxonomy-in-the-published-ontology.md) |
 | [`IO_OCCUPATIONAL_TAXONOMY_REFERENCES.md`](../doctoring/IO_OCCUPATIONAL_TAXONOMY_REFERENCES.md) | [0245](0245-io-occupational-taxonomy-in-the-published-ontology.md) |
 | [`OCCUPATIONAL_CONSTRUCT_REFERENCES.md`](../doctoring/OCCUPATIONAL_CONSTRUCT_REFERENCES.md) | [0248](0248-occupational-construct-evidence-boundary.md) |
+| [`ONET_31_CONTENT_MODEL_REFERENCES.md`](../doctoring/ONET_31_CONTENT_MODEL_REFERENCES.md) | [0255](0255-onet-31-content-model-ontology.md) |
+| [`SOC_2018_HIERARCHY_REFERENCES.md`](../doctoring/SOC_2018_HIERARCHY_REFERENCES.md) | [0252](0252-complete-2018-soc-hierarchy.md) |
 
 [0011](0011-prov-o-standard-relations.md) and [0065](0065-prov-o-provenance-boundary.md) cite the dated W3C PROV-O and PROV-DM Recommendations (https://www.w3.org/TR/2013/REC-prov-o-20130430/ and https://www.w3.org/TR/2013/REC-prov-dm-20130430/).
 

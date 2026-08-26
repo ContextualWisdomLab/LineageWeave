@@ -63,9 +63,9 @@ def test_build_publishes_dereferenceable_html_and_machine_formats(tmp_path: Path
     assert (output / ".nojekyll").is_file()
     assert (output / "index.html").is_file()
     assert (ontology_dir / "index.html").is_file()
-    assert (ontology_dir / "ontology.ttl").read_bytes() == (
-        ROOT / "docs" / "ontology" / "lineageweave-kg.ttl"
-    ).read_bytes()
+    served_turtle = Graph().parse(ontology_dir / "ontology.ttl", format="turtle")
+    served_ntriples = Graph().parse(ontology_dir / "ontology.nt", format="nt")
+    assert isomorphic(served_turtle, served_ntriples)
     assert (ontology_dir / "prov-o-support-profile.ttl").is_file()
     assert (ontology_dir / "namespace-compatibility.ttl").read_bytes() == (
         ROOT / "docs" / "ontology" / "namespace-compatibility.ttl"
@@ -81,6 +81,8 @@ def test_build_publishes_dereferenceable_html_and_machine_formats(tmp_path: Path
     assert 'href="#Post"' in html
     assert "LineageWeave Knowledge Graph Ontology" in html
     assert "ontology.ttl" in html
+    assert 'Turtle <small>generated equivalent</small>' in html
+    assert "authoritative source" not in html
     assert "ontology.jsonld" in html
     assert "ontology.nt" in html
     assert "lineageweave-kg-shapes.ttl" in html
@@ -178,10 +180,19 @@ def test_serializations_round_trip_to_the_source_graph(tmp_path: Path) -> None:
     output = tmp_path / "site"
     builder.build_site(ROOT, output)
 
-    source = Graph().parse(ROOT / "docs" / "ontology" / "lineageweave-kg.ttl", format="turtle")
+    source = Graph().parse(
+        ROOT / "docs" / "ontology" / "lineageweave-kg.ttl", format="turtle"
+    )
+    source.parse(
+        ROOT / "docs" / "ontology" / "soc-2018-structure.ttl", format="turtle"
+    )
+    source.parse(
+        ROOT / "docs" / "ontology" / "onet-31-content-model.ttl", format="turtle"
+    )
     jsonld = Graph()
     to_rdf(json.loads((output / "ontology" / "ontology.jsonld").read_text()), jsonld)
     ntriples = Graph().parse(output / "ontology" / "ontology.nt", format="nt")
+    turtle = Graph().parse(output / "ontology" / "ontology.ttl", format="turtle")
     compatibility_source = Graph().parse(
         ROOT / "docs" / "ontology" / "namespace-compatibility.ttl", format="turtle"
     )
@@ -191,6 +202,7 @@ def test_serializations_round_trip_to_the_source_graph(tmp_path: Path) -> None:
 
     assert isomorphic(source, jsonld)
     assert isomorphic(source, ntriples)
+    assert isomorphic(source, turtle)
     assert isomorphic(compatibility_source, compatibility_published)
 
 
@@ -211,8 +223,37 @@ def test_metadata_manifest_has_source_digest_and_no_build_clock(tmp_path: Path) 
     builder.build_site(ROOT, output)
 
     manifest = json.loads((output / "ontology" / "manifest.json").read_text(encoding="utf-8"))
+    published = output / "ontology" / "ontology.ttl"
+    assert manifest["ontology_ttl_sha256"] == hashlib.sha256(
+        published.read_bytes()
+    ).hexdigest()
     source = ROOT / "docs" / "ontology" / "lineageweave-kg.ttl"
-    assert manifest["source_sha256"] == hashlib.sha256(source.read_bytes()).hexdigest()
+    fragment = ROOT / "docs" / "ontology" / "soc-2018-structure.ttl"
+    content_model = ROOT / "docs" / "ontology" / "onet-31-content-model.ttl"
+    assert manifest["source_tree_sha256"] == hashlib.sha256(
+        source.read_bytes() + fragment.read_bytes() + content_model.read_bytes()
+    ).hexdigest()
+    assert [entry["path"] for entry in manifest["source_files"]] == [
+        "docs/ontology/lineageweave-kg.ttl",
+        "docs/ontology/soc-2018-structure.ttl",
+        "docs/ontology/onet-31-content-model.ttl",
+    ]
+    assert manifest["source_files"] == [
+        {
+            "path": "docs/ontology/lineageweave-kg.ttl",
+            "sha256": hashlib.sha256(source.read_bytes()).hexdigest(),
+        },
+        {
+            "path": "docs/ontology/soc-2018-structure.ttl",
+            "sha256": hashlib.sha256(fragment.read_bytes()).hexdigest(),
+        },
+        {
+            "path": "docs/ontology/onet-31-content-model.ttl",
+            "sha256": hashlib.sha256(content_model.read_bytes()).hexdigest(),
+        },
+    ]
+    assert "source_path" not in manifest
+    assert "source_sha256" not in manifest
     assert "built_at" not in manifest
     assert manifest["documentation_url"] == "https://contextualwisdomlab.github.io/LineageWeave/ontology"
     assert manifest["generated_artifacts"] == [
@@ -315,6 +356,28 @@ def test_builder_fails_closed_for_missing_sources_and_rejects_existing_output(tm
 
     (ontology_dir / "lineageweave-kg-shapes.ttl").write_bytes(
         (ROOT / "docs" / "ontology" / "lineageweave-kg-shapes.ttl").read_bytes()
+    )
+
+    try:
+        builder.build_site(repository, output)
+    except FileNotFoundError as exc:
+        assert "ontology source fragment" in str(exc)
+    else:
+        raise AssertionError("missing ontology source fragment was accepted")
+
+    (ontology_dir / "soc-2018-structure.ttl").write_bytes(
+        (ROOT / "docs" / "ontology" / "soc-2018-structure.ttl").read_bytes()
+    )
+
+    try:
+        builder.build_site(repository, output)
+    except FileNotFoundError as exc:
+        assert "onet-31-content-model.ttl" in str(exc)
+    else:
+        raise AssertionError("missing O*NET content-model fragment was accepted")
+
+    (ontology_dir / "onet-31-content-model.ttl").write_bytes(
+        (ROOT / "docs" / "ontology" / "onet-31-content-model.ttl").read_bytes()
     )
 
     try:

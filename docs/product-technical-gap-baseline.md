@@ -1,7 +1,7 @@
 # Product & Technical Gap Baseline
 
 > Current queue overlay: 2026-08-27 KST. Protected `main` was
-> `ff7431bd1851c03e737808d22c6a2d43968582f9`; 26 PRs and 10 issues were
+> `ff7431bd1851c03e737808d22c6a2d43968582f9`; 33 PRs and 10 issues were
 > open. This overlay supersedes the older queue count and exact-head table
 > below, which remain historical evidence. Re-fetch the head, checks, reviews,
 > threads, applicable rulesets, and merge SHA immediately before any lifecycle
@@ -9,19 +9,22 @@
 
 ## Current occupational semantic-layer gap
 
-ADR 0245's candidate branch publishes only a provenance-safe classification
-foundation: 23 2018 SOC major groups, four O*NET 31.0 Job Zone categories, six RIASEC interest
+The current candidate stack publishes a provenance-safe classification
+foundation: ADR 0252 adds the complete 2018 SOC hierarchy (23 major groups,
+98 minor groups, 459 broad occupations, and 867 detailed occupations) above
+ADR 0255's candidate full O*NET 31.0 Content Model Reference (3,006 concepts),
+and ADR 0245's four O*NET 31.0 Job Zone categories, six RIASEC interest
 types and their published adjacency, six explicitly legacy work-value clusters, seven
 revised work-style dimensions, and four ability domains. It asserts no
-occupation-to-characteristic instance profile and therefore does **not** yet
-satisfy the requested job-family, job-series, and occupation-level coverage of
-work cognition, affect, behavior, or their empirical relations. This is an
+occupation-to-characteristic instance profile or employer job architecture and
+therefore does **not** yet satisfy requested job-family and job-series coverage
+of work cognition, affect, behavior, or their empirical relations. This is an
 explicit unavailable state, not a reason to infer mappings from labels.
 
 | Gap | Current evidence | Acceptance requirement |
 |---|---|---|
-| Classification depth | ADR 0245 and `lineageweave/io_taxonomy.py` expose SOC major groups only; schemes now name versioned PROV source entities and the stable O*NET 31.0 Job Zone JSON digest | Import a versioned authoritative classification release with provenance-preserving major, minor, broad, and detailed occupation identifiers; add ISCO/ESCO crosswalks only where the publishing authority supplies them |
-| Construct granularity | The candidate ontology exposes 23 high-level characteristic concepts | Publish source-versioned O*NET abilities, skills, knowledge, work activities, work context, interests, and work styles without collapsing cognition, affect, and behavior into one dimension; preserve removed Work Values only as versioned legacy content |
+| Classification depth | ADR 0252's candidate branch imports all 1,447 official 2018 SOC nodes with source-declared hierarchy, pinned XLSX/CSV digests, a deterministic Turtle renderer, and fail-closed read model | Pass exact-head review/checks and protected merge; add ISCO/ESCO crosswalks only where the publishing authority supplies them |
+| Construct granularity | ADR 0255's candidate branch publishes all 3,006 O*NET 31.0 Content Model Reference concepts with exact IDs, names, descriptions, and source-defined parents; it imports no ratings or person assertions | Pass exact-head review/checks and protected merge; import separately released occupation-element observations only through the provenance contract below |
 | Occupation-to-construct relations | ADR 0245 deliberately declares relation properties without instance assertions | Persist released source observations with source version, occupation code, element identifier, scale identifier, value, sample/error metadata when supplied, and provenance; never invent or locally normalize a weight |
 | Job-family and job-series semantics | No authoritative employer-specific job architecture is present | Define an organization-neutral import contract that preserves the authorized source hierarchy and distinguishes standard occupation codes from employer job families/series; no label-based binding |
 | Temporal and multilevel interpretation | Static vocabulary only; no person-level inference is asserted | Version valid and transaction time, preserve occupation/organization/unit nesting and multiple membership, and require TEPP or the owning Rust psychometric service before any calibrated temporal or multilevel result |
@@ -31,8 +34,9 @@ explicit unavailable state, not a reason to infer mappings from labels.
 
 | PR | Exact observed head | Base | Observed gate state |
 |---:|---|---|---|
-| #719 | `0cea830a` | `feat/fja-worker-function-ontology` | unstable; 1 pending check(s) |
-| #718 | `a3fb32bb` | `feat/fja-worker-function-ontology` | clean; no non-passing check observed |
+| #724 | `10c3af40` | `feat/io-occupational-taxonomy` | unstable; Devin Review pending; CodeRabbit passed |
+| #719 | `6ee2278a` | `feat/io-psych-construct-ontology` | unstable; full tests, frontend, CodeRabbit, and Devin Review passed |
+| #718 | `2723fea3` | `feat/fja-worker-function-ontology` | unstable; full tests, frontend, CodeRabbit, and Devin Review passed |
 | #717 | `771a8edf` | `feat/voice-of-x-complete-taxonomy` | unstable; 1 pending check(s) |
 | #716 | `8b54b2f7` | `fix/structured-workflow-exact-pin` | clean; no non-passing check observed |
 | #714 | `aa93318f` | `main` | blocked; no non-passing check observed |
