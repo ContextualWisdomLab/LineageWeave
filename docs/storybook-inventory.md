@@ -16,6 +16,7 @@ operator-facing control you can click before changing product CSS.
 | `Chrome/PopupCloseButton` | Close the evidence panel or post popup. | `--space-close-inset`, `--font-size-close`, `PopupCloseButton` |
 | `Workspace/WorkspaceCalendar` | Read observed Naruon events, or open a commitment to land on that post. Fail-closed copy stays `이 범위의 일정을 아직 받을 수 없습니다`. | `--color-chip-border`, `WorkspaceCalendar`, `EvidenceStatusMark` |
 | `Evidence/OntologyExplorer` | Distinguish Post, Person, Organization, and Team by shape and text, use the token-backed surface as a secondary cue, then open the exact-value table or cited evidence. Compare desktop, narrow, drawer, empty, truncated, denied, stale, and rejected states. Customer-copy audit: [`desktop`](screenshots/customer-copy-related-information-desktop.png), [`mobile`](screenshots/customer-copy-related-information-mobile.png). | `--ontology-node-*-fill`, `OntologyExplorer` |
+| `Evidence/Rankings` | Compare ordering signals and per-channel contributions without interpreting them as calibrated scores; desktop and narrow scenes preserve the same guidance. Customer-copy audit: [`desktop`](screenshots/customer-copy-rankings-desktop.png), [`mobile`](screenshots/customer-copy-rankings-mobile.png). | Existing ranking and badge tokens; `RankingsPanel` |
 
 Repeated web objects must use `frontend/src/styles/tokens.css` and a module
 under `frontend/src/components/`. Do not add a second Node package manager;

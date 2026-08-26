@@ -942,6 +942,11 @@
   justify-content: flex-start;
 }
 
+.ranking-hit .post-list-item {
+  flex-wrap: wrap;
+  gap: var(--space-control-gap);
+}
+
 .ranking-channel-evidence-copy {
   margin: 0 0 0.75rem;
 }

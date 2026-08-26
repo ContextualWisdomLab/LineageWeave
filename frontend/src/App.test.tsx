@@ -3209,7 +3209,6 @@ describe("App, authenticated", () => {
       name: /open ranking: public post/i,
     });
     expect(rankingButton).toHaveTextContent("Public post");
-    expect(rankingButton).toHaveTextContent("Related-record ranking");
     expect(rankingButton).toHaveTextContent("rank 1");
     expect(
       screen.getByText(

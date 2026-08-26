@@ -3257,7 +3257,7 @@ function formatRankingContribution(value: number): string {
   return value.toFixed(6);
 }
 
-function RankingsPanel({
+export function RankingsPanel({
   accessToken,
   onSelectPost,
 }: {
@@ -3313,7 +3313,6 @@ function RankingsPanel({
                   onClick={() => onSelectPost(hit.post_id)}
                 >
                   <span className="ticket-title">{hit.post_title}</span>
-                  <span className="post-badge">{t("Related-record ranking")}</span>
                   <span className="post-badge">{tf("rank {rank}", { rank: String(hit.fused_rank) })}</span>
                 </button>
                 {(hit.channel_evidence ?? []).length > 0 ? (
