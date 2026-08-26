@@ -4427,6 +4427,7 @@ def test_keymen_provider_error_does_not_leak_raw_error(
 
     assert response.status_code == 503
     assert "raw-keyman-provider-secret" not in response.text
+    assert response.json()["detail"].endswith("contact your workspace administrator.")
 
 
 def test_evaluation_provider_error_does_not_leak_raw_error(
@@ -4452,6 +4453,7 @@ def test_evaluation_provider_error_does_not_leak_raw_error(
 
     assert response.status_code == 503
     assert "raw-evaluation-provider-secret" not in response.text
+    assert response.json()["detail"].endswith("contact your workspace administrator.")
 
 
 def test_commitment_provider_error_does_not_leak_raw_error(
@@ -4477,6 +4479,7 @@ def test_commitment_provider_error_does_not_leak_raw_error(
 
     assert response.status_code == 503
     assert "raw-commitment-provider-secret" not in response.text
+    assert response.json()["detail"].endswith("contact your workspace administrator.")
 
 
 def test_summary_enrichment_provider_error_does_not_leak_raw_error(
@@ -4504,6 +4507,7 @@ def test_summary_enrichment_provider_error_does_not_leak_raw_error(
 
     assert response.status_code == 503
     assert "raw-summary-provider-secret" not in response.text
+    assert response.json()["detail"].endswith("contact your workspace administrator.")
 
 
 def test_evaluate_is_unavailable_without_orchestrator(client, demo_analyst_token, seeded_db) -> None:
