@@ -29,6 +29,11 @@ document evidence only. Persisted Event Lineage paths are labelled related and
 non-causal. Dates use `source_post.event_occurred_at` when recorded and disclose
 `source_post.created_at` as the fallback clock.
 
+Responsibility change is shown only when two displayed records are adjacent in
+the authorized source ordering. If truncation retains a focus record but omits
+intermediate records, that focus record has no responsibility-transition code;
+the projection must not imply a direct handover or continuity across the gap.
+
 The projection is bounded and declares truncation. A missing or unauthorized
 project is indistinguishable as HTTP 404. The Figma identifier records the
 design authority; Storybook remains the executable state inventory.

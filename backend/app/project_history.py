@@ -178,6 +178,7 @@ async def fetch_project_history_projection(
     )
     truncated = len(rows) > limit
     event_rows = rows[:limit]
+    transition_suppressed_event_ids: set[str] = set()
     if not event_rows:
         raise ProjectHistoryNotFound(project_key)
     visible_ids = [str(row["post_id"]) for row in event_rows]
@@ -196,6 +197,7 @@ async def fetch_project_history_projection(
             raise ProjectHistoryNotFound(project_key)
         truncated = True
         event_rows = (event_rows[: limit - 1] if limit > 1 else []) + [focus_rows[0]]
+        transition_suppressed_event_ids.add(str(focus_rows[0]["post_id"]))
         event_rows.sort(
             key=lambda row: (
                 row.get("event_occurred_at") or row["created_at"],
@@ -218,6 +220,7 @@ async def fetch_project_history_projection(
         role_rows=role_rows,
         edge_rows=edge_rows,
         truncated=truncated,
+        transition_suppressed_event_ids=transition_suppressed_event_ids,
     )
 
 

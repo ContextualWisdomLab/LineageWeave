@@ -211,6 +211,7 @@ def build_project_history_projection(
     role_rows: Sequence[Mapping[str, Any]],
     edge_rows: Sequence[Mapping[str, Any]],
     truncated: bool = False,
+    transition_suppressed_event_ids: set[str] | None = None,
     maximum_depth: int = PROJECT_HISTORY_MAX_DEPTH,
     maximum_paths_per_event: int = PROJECT_HISTORY_MAX_PATHS_PER_EVENT,
 ) -> dict[str, Any]:
@@ -219,6 +220,8 @@ def build_project_history_projection(
     Inputs must already be visible, eligible, and within the requested cutoff.
     Duplicate source rows and role rows are collapsed deterministically. An
     observed source project name outranks an inferred semantic display name.
+    A transition is omitted for an event whose predecessor was excluded from
+    the supplied sequence, rather than treating the displayed rows as adjacent.
     """
 
     normalized_key = normalize_project_key(project_key)
@@ -258,6 +261,7 @@ def build_project_history_projection(
     effective_focus = focus_event_id or ordered_ids[-1]
     if effective_focus not in event_index:
         raise ValueError("focus event is not in the visible project history")
+    suppressed_transition_ids = transition_suppressed_event_ids or set()
 
     matches_by_event: dict[str, list[dict[str, Any]]] = {event_id: [] for event_id in ordered_ids}
     display_names: list[tuple[int, int, str, str]] = []
@@ -357,7 +361,7 @@ def build_project_history_projection(
         current_actor_keys = actor_keys_by_event[event_id]
         transition = (
             None
-            if previous_actor_keys is None
+            if previous_actor_keys is None or event_id in suppressed_transition_ids
             else responsibility_transition_code(previous_actor_keys, current_actor_keys)
         )
         events.append(

@@ -54,3 +54,84 @@ def test_project_history_query_binds_corporate_and_process_scopes() -> None:
     assert result["events"][0]["event_type_code"] == "source_recorded"
     assert result["events"][0]["occurred_at"] == "2025-12-20T00:00:00Z"
     assert result["events"][0]["time_basis_code"] == "document_time"
+
+
+def test_truncated_focus_does_not_claim_a_responsibility_transition_across_omitted_events() -> None:
+    """A retained focus event loses its transition when hidden events break adjacency."""
+
+    class _TruncatedConnection:
+        async def fetch(self, query: str, *args: object):
+            compact_query = " ".join(query.split())
+            early = {
+                "post_id": "00000000-0000-0000-0000-000000000001",
+                "post_title": "Early record",
+                "created_at": datetime(2026, 1, 1, tzinfo=timezone.utc),
+                "event_occurred_at": None,
+                "voc_type_code": None,
+                "source_stage_code": None,
+                "source_detail_state_code": None,
+            }
+            omitted = {
+                "post_id": "00000000-0000-0000-0000-000000000002",
+                "post_title": "Omitted record",
+                "created_at": datetime(2026, 1, 2, tzinfo=timezone.utc),
+                "event_occurred_at": None,
+                "voc_type_code": None,
+                "source_stage_code": None,
+                "source_detail_state_code": None,
+            }
+            focus = {
+                "post_id": "00000000-0000-0000-0000-000000000003",
+                "post_title": "Focus record",
+                "created_at": datetime(2026, 1, 3, tzinfo=timezone.utc),
+                "event_occurred_at": None,
+                "voc_type_code": None,
+                "source_stage_code": None,
+                "source_detail_state_code": None,
+            }
+            if "post.post_id = $5::uuid" in compact_query:
+                return [focus]
+            if "limit $5" in compact_query:
+                return [early, omitted, focus]
+            if "from post_summary_role" in compact_query:
+                return [
+                    {
+                        "post_id": early["post_id"],
+                        "actor_name": "Early owner",
+                        "responsibility": "Own early work",
+                        "actor_type_code": "prov_person",
+                        "affiliated_organization_name": None,
+                        "cataloged_person_id": None,
+                        "cataloged_team_id": None,
+                        "cataloged_corporate_entity_id": None,
+                    },
+                    {
+                        "post_id": focus["post_id"],
+                        "actor_name": "Focus owner",
+                        "responsibility": "Own focus work",
+                        "actor_type_code": "prov_person",
+                        "affiliated_organization_name": None,
+                        "cataloged_person_id": None,
+                        "cataloged_team_id": None,
+                        "cataloged_corporate_entity_id": None,
+                    },
+                ]
+            return []
+
+    result = asyncio.run(
+        fetch_project_history_projection(
+            _TruncatedConnection(),
+            project_key="P-100",
+            focus_post_id="00000000-0000-0000-0000-000000000003",
+            knowledge_cutoff=datetime(2026, 2, 1, tzinfo=timezone.utc),
+            corporate_entity_ids=["corp-1"],
+            process_unit_ids=["pu-1"],
+            limit=2,
+        )
+    )
+
+    assert [event["event_id"] for event in result["events"]] == [
+        "00000000-0000-0000-0000-000000000001",
+        "00000000-0000-0000-0000-000000000003",
+    ]
+    assert result["events"][-1]["responsibility_transition_code"] is None

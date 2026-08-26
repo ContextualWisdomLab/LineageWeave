@@ -1983,7 +1983,7 @@ describe("App, authenticated", () => {
     render(<App />);
 
     await userEvent.click(await screen.findByRole("button", { name: "글 보기: Public post" }));
-    await userEvent.click(await screen.findByRole("button", { name: "Open project history: source-project" }));
+    await userEvent.click(await screen.findByRole("button", { name: "프로젝트 이력 열기: source-project" }));
 
     expect(screen.getByText("프로젝트 이력을 불러오는 중입니다. 표시되면 타임라인을 확인하세요.")).toHaveAttribute(
       "role",
