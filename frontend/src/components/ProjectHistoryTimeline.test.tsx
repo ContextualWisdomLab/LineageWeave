@@ -74,10 +74,10 @@ const projection: ProjectHistoryProjection = {
       event_type_code: "voc_received",
       event_type_basis_code: "controlled_source_code",
       occurred_at: "2026-02-02T09:00:00Z",
-      time_basis_code: "source_post_created_at_fallback",
+      time_basis_code: "document_time",
       voc_type_code: "voc",
-      source_stage_code: null,
-      source_detail_state_code: null,
+      source_stage_code: "delivery",
+      source_detail_state_code: "delivered",
       project_matches: [],
       observed_responsibilities: [],
       responsibility_transition_code: "assignment_gap",
@@ -110,6 +110,9 @@ describe("ProjectHistoryTimeline", () => {
     expect(vocTab).toHaveAttribute("aria-current", "step");
     expect(screen.getAllByText(/evidence gap/i).length).toBeGreaterThan(0);
     expect(screen.getByText(/related history, not causality/i)).toBeInTheDocument();
+    expect(screen.getByText("document_time")).toBeInTheDocument();
+    expect(screen.getByText("delivery")).toBeInTheDocument();
+    expect(screen.getByText("delivered")).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: /open source record: VOC received/i }));
     expect(onOpenPost).toHaveBeenCalledWith("post-voc");
