@@ -972,6 +972,21 @@
   gap: 0.5rem;
 }
 
+.public-claim-list-item {
+  align-items: stretch;
+  flex-direction: column;
+}
+
+.public-claim-list-row {
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  overflow-wrap: anywhere;
+}
+
+.public-claim-list-item a {
+  overflow-wrap: anywhere;
+}
+
 .ranking-hit {
   flex-direction: column;
   align-items: stretch;

@@ -4901,14 +4901,15 @@ export function AskAgentPanel({
         <section className="popup-section" aria-label={t("Answer")}>
           <h3>{t("Answer")}</h3>
           {answer.public_claim_verification ? (
-            answer.public_claim_verification.claims.length ? (
-              <PublicClaimList
-                claims={answer.public_claim_verification.claims}
-                onSelectPost={onOpenPost}
-              />
-            ) : (
+            <>
               <p className="post-meta">{t(answer.public_claim_verification.next_action)}</p>
-            )
+              {answer.public_claim_verification.claims.length ? (
+                <PublicClaimList
+                  claims={answer.public_claim_verification.claims}
+                  onSelectPost={onOpenPost}
+                />
+              ) : null}
+            </>
           ) : null}
           {answer.answer_text ? <p>{answer.answer_text}</p> : null}
           {answer.knowledge_cutoff ? (

@@ -1,6 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { expect, userEvent, within } from "storybook/test";
 import { AskAgentPanel } from "./App";
+import { getLocale, setLocale } from "./i18n";
 import "./App.css";
 
 const meta = {
@@ -10,6 +11,8 @@ const meta = {
   parameters: { layout: "fullscreen" },
   beforeEach: () => {
     const previousFetch = globalThis.fetch;
+    const previousLocale = getLocale();
+    setLocale("en");
     let requestCount = 0;
     globalThis.fetch = async () => {
       requestCount += 1;
@@ -31,13 +34,31 @@ const meta = {
               }],
               cited_post_evidence: [],
               source_post_ids: ["synthetic-post"],
+              public_claim_verification: {
+                status_code: "claim_supported",
+                next_action: "Public web evidence supports this claim. Open that post.",
+                claims: [{
+                  public_claim_envelope_id: "synthetic-claim",
+                  source_post_id: "synthetic-post",
+                  source_post_title: "Retained Apollo revision",
+                  claim_kind_code: "claim_public_event",
+                  subject_label: "Apollo",
+                  claim_text: "Apollo appeared in a published event notice.",
+                  status_code: "claim_supported",
+                  external_evidence_urls: ["https://example.com/apollo"],
+                  next_action: "Public web evidence supports this claim. Open that post.",
+                }],
+              },
               knowledge_cutoff: "2026-01-15T03:00:00Z",
               grounding_status: "partially_cutoff_grounded",
               limitations: ["Current-only semantic channels were excluded from this historical answer."],
             },
           }), { status: 200 });
     };
-    return () => { globalThis.fetch = previousFetch; };
+    return () => {
+      globalThis.fetch = previousFetch;
+      setLocale(previousLocale);
+    };
   },
 } satisfies Meta<typeof AskAgentPanel>;
 
@@ -53,6 +74,9 @@ export const PartialHistoricalEvidence: Story = {
     await expect(canvas.findByText(/Partially cutoff-grounded/)).resolves.toBeVisible();
     await expect(canvas.getByRole("alert")).toHaveTextContent("Current-only semantic channels were excluded");
     await expect(canvas.getByText(/Retained revision/)).toHaveTextContent("Live source changed later");
+    await expect(
+      canvas.getAllByText("Public web evidence supports this claim. Open that post."),
+    ).toHaveLength(2);
   },
 };
 

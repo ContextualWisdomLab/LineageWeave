@@ -2100,7 +2100,7 @@ describe("App, authenticated", () => {
     expect(claim).toHaveTextContent("Supported");
     expect(
       screen.getAllByText("Public web evidence supports this claim. Open that post."),
-    ).toHaveLength(1);
+    ).toHaveLength(2);
     await userEvent.click(claim);
     expect(await screen.findByRole("button", { name: "View post: Public post" })).toBeInTheDocument();
   });

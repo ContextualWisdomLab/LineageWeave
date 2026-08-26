@@ -44,10 +44,10 @@ export function PublicClaimList({ claims, onSelectPost }: PublicClaimListProps) 
         const kindLabel = t(KIND_LABELS[claim.claim_kind_code] ?? claim.claim_kind_code);
         const statusLabel = t(STATUS_LABELS[claim.status_code] ?? claim.status_code);
         return (
-          <li key={claim.public_claim_envelope_id} className="ticket-list-item">
+          <li key={claim.public_claim_envelope_id} className="ticket-list-item public-claim-list-item">
             <button
               type="button"
-              className="post-list-item"
+              className="post-list-item public-claim-list-row"
               aria-label={tf("Open public claim: {title}", {
                 title: claim.source_post_title,
               })}

@@ -59,7 +59,7 @@ describe("AskAgentPanel public verification", () => {
                   next_action: "Public web evidence supports this claim. Open that post.",
                 }],
               },
-              next_action: "Inspect public evidence separately before any governed graph review.",
+              next_action: "Open a cited post to review the evidence behind this answer.",
               knowledge_cutoff: "2026-01-15T03:00:00Z",
               grounding_status: "fully_cutoff_grounded",
               limitations: [],
@@ -89,6 +89,9 @@ describe("AskAgentPanel public verification", () => {
       knowledge_cutoff: new Date("2026-01-15T12:00").toISOString(),
     });
     expect(screen.getByLabelText("Public claims")).toBeInTheDocument();
+    expect(
+      screen.getAllByText("Public web evidence supports this claim. Open that post."),
+    ).toHaveLength(2);
     expect(screen.getByText("Supported")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "https://example.com/apollo" })).toHaveAttribute(
       "href",
