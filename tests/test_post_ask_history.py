@@ -279,3 +279,29 @@ def test_persist_turn_aborts_when_a_citation_loses_authorization() -> None:
         "post.process_unit_id" in query and "for share of post" in query.lower()
         for query, _ in connection.calls
     )
+
+
+def test_persist_turn_rejects_deleted_source_before_foreign_key_insert() -> None:
+    """A source deleted mid-request becomes evidence-changed, never a raw FK error."""
+    connection = _Connection([])
+
+    with pytest.raises(PostAskEvidenceChanged):
+        asyncio.run(
+            persist_turn(
+                connection,
+                "account-1",
+                "post-1",
+                None,
+                "What changed?",
+                "A complete answer.",
+                ["post-1", "post-2"],
+                ["post-2"],
+                can_see_post=lambda _row: True,
+            )
+        )
+
+    assert not any(
+        "insert into post_ask_turn_source" in query
+        or "insert into post_ask_turn_citation" in query
+        for query, _ in connection.calls
+    )
