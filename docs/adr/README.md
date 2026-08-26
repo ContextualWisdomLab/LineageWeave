@@ -26,6 +26,7 @@ decision from them.
 | Canonical Docker Compose project (`name: lineageweave`) | [0224](0224-canonical-compose-project.md) |
 | Ask answer citation and evidence-timeline interaction | [0225](0225-ask-answer-evidence-timeline.md) |
 | macOS-native Rust/MLX mathematical compute boundary | [0226](0226-macos-native-mlx-mathematical-compute-boundary.md), [0208](0208-externalize-local-mathematical-compute.md) |
+| Observed PostgreSQL WAL/checkpoint tuning plan | [0227](0227-observed-postgresql-runtime-tuning.md) |
 
 [0011](0011-prov-o-standard-relations.md) and [0065](0065-prov-o-provenance-boundary.md) cite the dated W3C PROV-O and PROV-DM Recommendations (https://www.w3.org/TR/2013/REC-prov-o-20130430/ and https://www.w3.org/TR/2013/REC-prov-dm-20130430/).
 
