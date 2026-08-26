@@ -1,6 +1,6 @@
 # Product & Technical Gap Baseline
 
-> Dashboard delivery snapshot: 2026-08-26 13:28 KST. Protected `main` is
+> Dashboard delivery snapshot: 2026-08-26 13:38 KST. Protected `main` is
 > `494b54e2245040bcf02b45376f221c37cd437e76`. This local branch is not
 > protected-main release evidence.
 
@@ -68,7 +68,7 @@ are not merge readiness. Re-fetch exact heads,
 unresolved threads, checks, approvals, rulesets, and merge SHA before any
 lifecycle claim.
 
-> Audit snapshot: 2026-08-26 13:28 KST (refreshed by the autonomous merge
+> Audit snapshot: 2026-08-26 13:38 KST (refreshed by the autonomous merge
 > loop). This repository records synthetic fixtures and aggregate,
 > non-identifying runtime evidence only. Open PRs and local checks are not
 > protected-default-branch release evidence. Identifying post identifiers,
@@ -91,7 +91,7 @@ context only.
 | #672 | `147f208e` | persisted semantic-evidence nomination for Global Ask with ADR renumbering; unexpected verification failures degrade to unavailable, and embedding work is performed before the pool is acquired; hosted checks requeued |
 | #668 | `e452bf38` | evidence-bound project history projection with ADR renumbering, request guards, source-code/time-basis display repair, and theme-token timeline styling; BLOCKED with review required |
 | #667 | `55b5a48f` | baseline refresh plus repeated-turn conversation-key repair, stale-history response fencing, legacy ontology identifier separation, source-lock protection for hard-deleted Ask evidence, protected ontology publication proof, and five-locale analysis-run guidance with desktop/mobile Storybook evidence; exact-head hosted checks and independent approval remain pending |
-| #663 | `f616887a` | project ontology traversal, cutoff-snapshot project focus, bounded MCP admission, and migration-fixture/worker startup repair; exact-head local ontology/migration/docstring checks pass (100 tests) and frontend ontology/token/i18n checks pass (88 tests); hosted checks are terminal successful except queued OpenCode review, and independent review remains required |
+| #663 | `4ded3d2d` | project ontology traversal, cutoff-snapshot project focus, bounded MCP admission, and migration-fixture/worker startup repair; its new ADRs were renumbered to unique 0230/0231 identities so the ontology stack no longer contradicts #640's 0224/0225 decisions; hosted checks and independent review requeued on the new exact head |
 | #658 | `f497a6e8` | evidence-honest Global Ask cutoff with robust revision timestamps; BLOCKED with review required |
 | #657 | `709df1b9` | TEPP lifecycle persistence and fail-closed topic acceptance; BLOCKED with hosted checks queued and review required |
 | #644 | `ed8d97f3` | native-surface code splitting; BLOCKED with review required |
@@ -110,7 +110,7 @@ non-default #667 stack as `55b5a48ff997fddbe8fcc47a268d0b02aa835c6a`.
 These are stack-integration evidence only; they are not protected-`main`
 delivery. Their acceptance now travels with the two parent heads above.
 
-The exact-head check-run scan at 13:28 KST found no `failure`, `cancelled`, or
+The exact-head check-run scan at 13:38 KST found no `failure`, `cancelled`, or
 `timed_out` conclusions on the 16 current heads. Several heads, including
 PR #667, #672, and #686 after their repair pushes, are still queued and therefore have
 no terminal gate evidence; review approval is also independently required.
@@ -124,9 +124,10 @@ do not transfer evidence from an earlier SHA.
 
 The current heads cannot be merged in arbitrary order. PR #672 and stacked
 PR #677 assign different decisions to ADR 0228 (public-claim verification
-versus per-post conversation history). PR #640 and PR #663 likewise assign
-different decisions to ADR 0224, while #640 and #672 introduce different
-`0211_*.sql` migrations. The `0212_global_ask_knowledge_cutoff.sql` blobs in
+versus per-post conversation history), while #640 and #672 introduce different
+`0211_*.sql` migrations. The former #640/#663 ADR 0224 and 0225 collisions are
+resolved on #663 by unique ADR 0230/0231 identities. The
+`0212_global_ask_knowledge_cutoff.sql` blobs in
 PR #658 and #663 are byte-identical, so that overlap is duplicated delivery rather
 than a semantic divergence. Release metadata also diverges: the observed
 `pyproject.toml` versions are 2.18.0 on #632/#640/#663, 2.19.0 on #643,
