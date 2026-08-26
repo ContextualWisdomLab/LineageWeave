@@ -88,7 +88,7 @@ continues to pass unchanged.
   structure.
 - Publish all 3,006 O*NET 31.0 Content Model Reference elements with exact
   identifiers, names, descriptions, and source-defined outline parents
-  (ADR 0250). Treat the six roots and 18 second-level branches as navigation
+  (ADR 0255). Treat the six roots and 18 second-level branches as navigation
   classes, never occupation ratings, person traits, scores, or weights.
 - Declare typed derivation properties from classifications to
   characteristics but assert no instance binding; binding requires a
