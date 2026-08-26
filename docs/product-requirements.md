@@ -220,7 +220,7 @@ A release claim requires one exact protected-main head that proves:
 - Product/data boundary: ADR 0001, ADR 0089.
 - Asynchronous delivery and database-pool isolation: ADR 0204, ADR 0213.
 - Knowledge Graph, ontology, and provenance: ADR 0004, ADR 0011, ADR 0065,
-  ADR 0184, ADR 0207, ADR 0222.
+  ADR 0184, ADR 0207, ADR 0222, ADR 0246.
 - Semantic units and retrieval: ADR 0047, ADR 0062, ADR 0102, ADR 0217.
 - LLM/model boundary: ADR 0070, ADR 0072, ADR 0076, ADR 0079.
 - Measurement: ADR 0003, ADR 0145, ADR 0200, ADR 0205.

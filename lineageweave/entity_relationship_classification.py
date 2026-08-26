@@ -1,21 +1,19 @@
 """Pluggable entity-relationship classification: for each organization
 named in a post's text, what is that organization's relationship to the
 post author's own organization -- partner, competitor, customer,
-customer's-customer, market, supplier, or one of the six further
-stakeholder-voice classes ADR 0232 governs?
+customer's-customer, market, or supplier?
 
 Grounded in relation extraction from text (Zelenko, Aone, & Richardella,
 2003): classifying the semantic relation between a document's subject and
 a named entity mentioned in it, rather than treating the entity as an
-undifferentiated string. This maps onto the product's twelve-way
+undifferentiated string. This maps onto the product's own six-way
 vocabulary -- ``rel_voc``/``rel_vom``/``rel_vop``/``rel_vocc``/``rel_voco``/
-``rel_vos`` plus the six ADR 0232 mirrors listed below (``rel_`` prefixed:
-``common_lookup_value.lookup_code`` is
+``rel_vos`` (``rel_`` prefixed: ``common_lookup_value.lookup_code`` is
 unique GLOBALLY across categories, and bare ``voc``/``vom`` are already
 claimed by ``source_post.voc_type_code``'s own category) -- which in practice
-collapses to "customer" and "competitor" most of the time; the rarer codes
-still need to classify correctly because they are rare, not because they
-never happen.
+collapses to "customer" and "competitor" most of the time; ``rel_vos``
+(supplier) is the unusual case that still needs to classify correctly
+because it is rare, not because it never happens.
 
 Same pluggable-client, never-fake-a-missing-channel discipline as
 ``keyman_extraction``: :class:`NullEntityRelationshipClient` makes the
@@ -46,18 +44,8 @@ VOM = "rel_vom"  # Voice of Market -- a general market signal, no single counter
 VOP = "rel_vop"  # Voice of Partner
 VOCC = "rel_vocc"  # Voice of Customer's Customer -- one hop further down the chain
 VOCO = "rel_voco"  # Voice of Competitor
-VOS = "rel_vos"  # Voice of Supplier
-VOE = "rel_voe"  # Voice of Employee -- employee-voice signal involving this org
-VOB = "rel_vob"  # Voice of Business -- internal-business-unit signal involving this org
-VOR = "rel_vor"  # Voice of Regulator -- this org regulates the post author's org
-VOI = "rel_voi"  # Voice of Investor -- this org invests in the post author's org
-VOSO = (
-    "rel_voso"  # Voice of Society -- community/society-level signal involving this org
-)
-VOPS = "rel_vops"  # Voice of Process -- process/system signal involving this org
-_VALID_RELATIONSHIP_CODES = frozenset(
-    {VOC, VOM, VOP, VOCC, VOCO, VOS, VOE, VOB, VOR, VOI, VOSO, VOPS}
-)
+VOS = "rel_vos"  # Voice of Supplier -- the uncommon edge case
+_VALID_RELATIONSHIP_CODES = frozenset({VOC, VOM, VOP, VOCC, VOCO, VOS})
 
 
 @dataclass(frozen=True)
@@ -110,18 +98,6 @@ these codes:
              customers (one hop further down the chain), not a direct customer
   rel_voco = this organization is a competitor
   rel_vos  = this organization is a supplier to the post author's org
-  rel_voe  = an employee-voice signal involving this organization
-             (e.g. its staff speak through the post)
-  rel_vob  = an internal business unit or management voice involving
-             this organization
-  rel_vor  = this organization is a regulator of / compliance authority over
-             the post author's org
-  rel_voi  = this organization invests in or holds capital in the post
-             author's org (shareholder, investor, lender)
-  rel_voso = a community, media, or public-society-level signal involving
-             this organization
-  rel_vops = a process/system-generated signal (monitoring alert, automated
-             report) involving this organization
 
 An organization can genuinely be more than one of these across different
 parts of its business (e.g. a current customer that also competes with the
@@ -132,8 +108,7 @@ the organization.
 Reply with ONLY a JSON array (no markdown fences, no prose), where each
 element has exactly these fields:
   "organization_name": exactly one of the names from the list below
-  "relationship_type_code": one of rel_voc, rel_vom, rel_vop, rel_vocc, rel_voco,
-     rel_vos, rel_voe, rel_vob, rel_vor, rel_voi, rel_voso, rel_vops
+  "relationship_type_code": one of rel_voc, rel_vom, rel_vop, rel_vocc, rel_voco, rel_vos
 
 Organizations to classify: {organization_names}
 
@@ -179,11 +154,7 @@ def parse_classification_response(
             continue
         if code not in _VALID_RELATIONSHIP_CODES:
             continue
-        results.append(
-            OrganizationRelationship(
-                organization_name=name, relationship_type_code=code
-            )
-        )
+        results.append(OrganizationRelationship(organization_name=name, relationship_type_code=code))
     return results
 
 
@@ -193,12 +164,7 @@ class ContextualOrchestratorEntityRelationshipClient:
     available = True
 
     def __init__(
-        self,
-        base_url: str,
-        api_key: str,
-        *,
-        reasoning_effort: str = "auto",
-        timeout: float = 180.0,
+        self, base_url: str, api_key: str, *, reasoning_effort: str = "auto", timeout: float = 180.0
     ) -> None:
         self._base_url = base_url.rstrip("/")
         self._api_key = api_key

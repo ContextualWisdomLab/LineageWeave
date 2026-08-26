@@ -29,8 +29,6 @@ def test_null_relationship_client_is_unavailable_not_empty_relations() -> None:
     assert client.available is False
     with pytest.raises(RuntimeError):
         client.classify("any title", "any body", ["Acme Corp"])
-
-
 from lineageweave.fixtures import ambiguous_entity_relationship_post
 
 
@@ -47,9 +45,7 @@ def test_parses_a_well_formed_json_array() -> None:
 
 
 def test_entry_naming_an_organization_not_in_the_input_list_is_skipped() -> None:
-    content = (
-        '[{"organization_name": "Unlisted Corp", "relationship_type_code": "rel_voc"}]'
-    )
+    content = '[{"organization_name": "Unlisted Corp", "relationship_type_code": "rel_voc"}]'
     assert parse_classification_response(content, ["Acme Corp"]) == []
 
 
@@ -60,32 +56,6 @@ def test_entry_with_invalid_relationship_code_is_skipped() -> None:
 
 def test_empty_array_is_no_relationships() -> None:
     assert parse_classification_response("[]", ["Acme Corp"]) == []
-
-
-def test_every_adr_0232_voice_class_code_is_accepted_not_dropped() -> None:
-    """ADR 0232's six new relationship codes must classify, not silently
-    drop -- a dropped entry is the failure mode the parser guards against,
-    so extending the vocabulary without extending acceptance would be a
-    silent regression.
-    """
-    codes = [
-        "rel_voe",
-        "rel_vob",
-        "rel_vor",
-        "rel_voi",
-        "rel_voso",
-        "rel_vops",
-    ]
-    content = (
-        "["
-        + ", ".join(
-            f'{{"organization_name": "Acme Corp", "relationship_type_code": "{code}"}}'
-            for code in codes
-        )
-        + "]"
-    )
-    results = parse_classification_response(content, ["Acme Corp"])
-    assert [r.relationship_type_code for r in results] == codes
 
 
 def test_invalid_json_returns_empty_list() -> None:
@@ -136,22 +106,14 @@ def test_classified_names_attach_cataloged_org_ids_or_stay_null() -> None:
 
     rows = attach_resolved_entity_ids(
         [
-            {
-                "counterparty_entity_name": "Demo Corp",
-                "relationship_type_code": "rel_voc",
-            },
-            {
-                "counterparty_entity_name": "Northridge Grid",
-                "relationship_type_code": "rel_voc",
-            },
+            {"counterparty_entity_name": "Demo Corp", "relationship_type_code": "rel_voc"},
+            {"counterparty_entity_name": "Northridge Grid", "relationship_type_code": "rel_voc"},
         ],
         [
             CorporateEntityCandidate("corp-1", "Demo Corp"),
             CorporateEntityCandidate("corp-2", "Test Corp"),
         ],
     )
-    by_name = {
-        row["counterparty_entity_name"]: row["corporate_entity_id"] for row in rows
-    }
+    by_name = {row["counterparty_entity_name"]: row["corporate_entity_id"] for row in rows}
     assert by_name["Demo Corp"] == "corp-1"
     assert by_name["Northridge Grid"] is None

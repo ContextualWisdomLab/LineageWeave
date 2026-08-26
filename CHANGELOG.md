@@ -8,15 +8,11 @@ All notable changes to this project are documented here. Format follows
 
 ### Added
 
-- Complete general Voice-of-X taxonomy (ADR 0232): the governed `voc_type`
-  scheme expands from five to twelve post types -- adding Voice of Supplier,
-  Employee, Business, Regulator, Investor, Society, and Process, grounded in
-  stakeholder identification theory and quality-engineering measurement
-  practice -- and mirrors six new counterparty relationship codes
-  (`rel_voe`..`rel_vops`) so any post class can type each organization it
-  names. Ontology SKOS concepts and object properties, idempotent migration
-  0222, and the entity-relationship classification prompt stay in round-trip
-  sync.
+- Expanded Voice-of-X post taxonomy (ADR 0246): the governed `voc_type`
+  scheme adds Voice of Supplier, Employee, Business, Regulator, Investor,
+  Society, and Process as source-post categories. Ontology SKOS concepts and
+  idempotent migration 0235 stay in round-trip sync; counterparty relationships
+  remain a separate evidence contract.
 - Persist explicit paragraph, list, table, MathML formula, and caller-parsed
   conversation-turn semantic-unit kinds without inferring absent boundaries.
 - Event Lineage now persists each reconstructed connection's independent
