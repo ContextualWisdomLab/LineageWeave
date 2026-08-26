@@ -184,6 +184,11 @@ docker compose --profile mcp up mcp
 # Streamable HTTP resource: http://localhost:18001/mcp
 ```
 
+For client initialization, tool arguments, durable status handling, and quota
+recovery, see the [MCP manual](docs/manuals/mcp-manual.md). Workspace users can
+start with the [user guide](docs/manuals/user-guide.md); deployment and incident
+procedures are in the [operations manual](docs/manuals/operations-manual.md).
+
 `GET /api/posts`, `GET /api/posts/{post_id}`,
 `GET /api/posts/{post_id}/keymen`, `GET /api/keymen/{person_id}/related`,
 `GET /api/posts/{post_id}/affiliate-tree`,

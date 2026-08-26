@@ -51,6 +51,13 @@ All notable changes to this project are documented here. Format follows
 
 ### Added
 
+- Customer, MCP-client, and operator manuals now describe the shipped
+  Dashboard, twelve Voice categories, product evidence, asynchronous Ask
+  citations and related public originals, canonical Compose stack, OIDC/MCP
+  session handling, k6 observation procedure, and fail-closed TEPP boundary.
+  Each unavailable result points to a recovery action instead of exposing an
+  internal model or provider choice.
+
 - Public posts can research a highlighted passage or image detail against a
   cited public page (ADR 0248 / remaining ADR 0133). SearXNG finds candidates;
   retrieval refuses redirects and non-global targets; contextual-orchestrator
