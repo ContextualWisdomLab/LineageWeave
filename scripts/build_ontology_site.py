@@ -375,7 +375,7 @@ def _render_ontology_page(graph: Graph, source_sha256: str) -> tuple[str, int]:
         '<section aria-labelledby="downloads-heading">'
         '<h2 id="downloads-heading">Machine-readable artifacts</h2>'
         '<div class="downloads">'
-        '<a href="ontology.ttl" type="text/turtle">Turtle <small>authoritative source</small></a>'
+        '<a href="ontology.ttl" type="text/turtle">Turtle <small>generated equivalent</small></a>'
         '<a href="ontology.jsonld" type="application/ld+json">JSON-LD <small>generated equivalent</small></a>'
         '<a href="ontology.nt" type="application/n-triples">N-Triples <small>generated equivalent</small></a>'
         '<a href="prov-o-support-profile.ttl" type="text/turtle">PROV-O support profile</a>'
