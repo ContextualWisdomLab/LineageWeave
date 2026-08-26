@@ -2162,6 +2162,7 @@ def test_voice_taxonomy_excludes_assertions_before_their_validity_window(
     conn = psycopg2.connect(seeded_db["dsn"])
     try:
         with conn.cursor() as cur:
+            cur.execute("delete from post_voice_classification_assertion")
             cur.execute(
                 "insert into post_voice_classification_assertion "
                 "(post_id, voice_concept_code, assertion_status_code, "
