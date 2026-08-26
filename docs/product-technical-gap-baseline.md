@@ -1,7 +1,7 @@
 # Product & Technical Gap Baseline
 
 > Current queue overlay: 2026-08-27 KST. Protected `main` was
-> `ff7431bd1851c03e737808d22c6a2d43968582f9`; 35 PRs and 10 issues were
+> `ff7431bd1851c03e737808d22c6a2d43968582f9`; 38 PRs and 10 issues were
 > open. This overlay supersedes the older queue count and exact-head table
 > below, which remain historical evidence. Re-fetch the head, checks, reviews,
 > threads, applicable rulesets, and merge SHA immediately before any lifecycle
@@ -26,18 +26,20 @@ explicit unavailable state, not a reason to infer mappings from labels.
 | Classification depth | ADR 0252's candidate branch imports all 1,447 official 2018 SOC nodes with source-declared hierarchy, pinned XLSX/CSV digests, a deterministic Turtle renderer, and fail-closed read model | Pass exact-head review/checks and protected merge; add ISCO/ESCO crosswalks only where the publishing authority supplies them |
 | Construct granularity | ADR 0255's candidate branch publishes all 3,006 O*NET 31.0 Content Model Reference concepts with exact IDs, names, descriptions, and source-defined parents; it imports no ratings or person assertions | Pass exact-head review/checks and protected merge; import separately released occupation-element observations only through the provenance contract below |
 | Construct-to-work relations | ADR 0256's candidate branch imports all 1,417 official Ability/Essential Skill/Transferable Skill/Work Style linkages to Work Activities and Work Context with assertion-level source provenance and no invented weights | Pass exact-head review/checks and protected merge; keep these published relevance links distinct from occupation ratings and causal claims |
-| Occupation-to-construct relations | ADR 0257 defines a candidate 3NF, release/source-partitioned immutable observation store preserving value, optional category, sample/error/CI, suppression, relevance, exact `MM/YYYY` source update month, source digest, and domain provenance; no corpus is imported | Pass exact-head review/checks and protected merge; add a deterministic source importer for pinned public artifacts; never invent a date, weight, or local normalization |
+| Occupation-to-construct relations | ADR 0257 defines a candidate 3NF, release/source-partitioned immutable observation store and deterministic pinned-CSV importer preserving value, optional category, sample/error/CI, suppression, relevance, exact `MM/YYYY` source update month, source digest, and domain provenance. The official O*NET 31.0 Abilities file (94,640 rows, 910 occupations, 52 elements; SHA-256 `7e9cd79791ce6014e1d26d0a449ae5b1e7aa7ef52d39b3934c3bb8d438104b88`) and all 33 Scales Reference rows (SHA-256 `bcba23858ce21ecaacbde303a8993e35d46724b4afb8c9ec2b10e04f42adcfc9`) imported into a throwaway local PostgreSQL database with all 94,640 observations, 55 suppression flags, 7,572 not-relevant flags, and source months from `12/2004` through `08/2026`; every scale retained `scales_reference` artifact provenance, the database was dropped afterward, and no corpus is committed or claimed deployed | Pass exact-head review/checks and protected merge; validate and import every selected official rating artifact through an authorized runtime, returning only aggregate evidence; never invent or locally normalize a weight |
 | Job-family and job-series semantics | No authoritative employer-specific job architecture is present | Define an organization-neutral import contract that preserves the authorized source hierarchy and distinguishes standard occupation codes from employer job families/series; no label-based binding |
 | Temporal and multilevel interpretation | Static vocabulary only; no person-level inference is asserted | Version valid and transaction time, preserve occupation/organization/unit nesting and multiple membership, and require TEPP or the owning Rust psychometric service before any calibrated temporal or multilevel result |
-| Product consumption | The read model has no persisted semantic-layer consumer or authenticated UI evidence | Add a provenance-bearing API and accessible ontology exploration flow, then verify synthetic Storybook edge states plus authenticated aggregate runtime evidence without exposing identifying records |
+| Product consumption | ADR 0258 defines a candidate authenticated occupation-rating API that distinguishes unavailable source from empty profile and returns exact decimal/uncertainty/warning/artifact provenance without ranking; accessible UI and authenticated runtime evidence remain absent | Pass exact-head review/checks and protected merge; add the accessible exploration UI, synthetic Storybook unavailable/empty/suppressed/paginated states, screenshots, and authenticated aggregate runtime evidence without exposing identifying records |
 
 ### Current exact-head PR queue
 
 | PR | Exact observed head | Base | Observed gate state |
 |---:|---|---|---|
-| #732 | `1c622545` | `feat/onet-31-content-model-ontology` | unstable; full tests in progress; frontend, CodeRabbit, and Devin Review passed; one informational review thread open |
-| #731 | `2c848373` | `feat/soc-2018-full-hierarchy` | unstable; full tests, frontend, and Devin Review queued |
-| #724 | `f5ee37b0` | `feat/io-occupational-taxonomy` | clean; full tests, frontend, CodeRabbit, and Devin Review passed; parent-first stack gate remains |
+| #735 | `56d8cbfa` | `feat/onet-occupation-ratings-contract` | clean immediately after exact parent merge; hosted checks had not yet registered on this head, so this is not merge-readiness evidence |
+| #734 | `0dedf33b` | `feat/onet-content-model-linkages` | unstable; two hosted gates pending after exact parent reconciliation |
+| #732 | `3e30402d` | `feat/onet-31-content-model-ontology` | unstable; one hosted gate pending after exact parent reconciliation |
+| #731 | `9654bb8b` | `feat/soc-2018-full-hierarchy` | unstable; one hosted gate pending after exact parent reconciliation |
+| #724 | `fdec8f65` | `feat/io-occupational-taxonomy` | clean; hosted gates passed; parent-first stack gate remains |
 | #719 | `6ee2278a` | `feat/io-psych-construct-ontology` | unstable; full tests, frontend, CodeRabbit, and Devin Review passed |
 | #718 | `2723fea3` | `feat/fja-worker-function-ontology` | unstable; full tests, frontend, CodeRabbit, and Devin Review passed |
 | #717 | `771a8edf` | `feat/voice-of-x-complete-taxonomy` | unstable; 1 pending check(s) |

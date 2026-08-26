@@ -57,13 +57,22 @@ also violate LineageWeave's externalized-compute boundary.
    truncation fail closed. Any later aggregation, comparison,
    temporal model, multilevel model, or occupational recommendation belongs to
    TEPP/fast-mlsirm or another owning Rust service and must cite these rows.
+10. `scripts/import_onet_ratings.py` accepts one caller-pinned official CSV and
+   Scales Reference file. It verifies both artifact SHA-256 values and row
+   counts, exact scale names and bounds, reference-name consistency, finite
+   decimals, Y/N/blank flags, optional Category and Not Relevant columns,
+   exact `MM/YYYY` source months, and observation-key uniqueness before opening the
+   target connection. A transaction-scoped advisory lock serializes one
+   release's partition DDL.
 
 ## Consequences
 
 LineageWeave can import the governed public O*NET content-model rating corpus without
 manufacturing semantics or embedding large production datasets in git.
 Release/source partitions localize hot imports and permit exact detach/archive
-operations. A separate API/UI ADR is still required before exposing ratings.
+operations. The same pinned artifact is idempotent; a reused release, source,
+scale, occupation, or element identity with different source metadata fails
+closed. A separate API/UI ADR is still required before exposing ratings.
 
 ## References
 

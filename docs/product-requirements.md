@@ -140,10 +140,26 @@ persistence and UI remain unavailable until their separate ADR acceptance.
   Ratings remain unavailable until their integer Task IDs and statements have
   a separate normalized source-target contract.
 
-Acceptance: the replay-safe migration creates the normalized store; PostgreSQL
-integration proves missing partitions fail closed, null-category UPSERT is
-idempotent, and invalid uncertainty is rejected. Corpus import, API, UI, and
-derived modeling remain unavailable until separate accepted delivery records.
+Acceptance: the replay-safe migration creates the normalized store; the pinned
+CSV importer validates both rating and scale-reference digests and row counts,
+reference identity, source scale, uncertainty, flags, and dates before
+persistence; PostgreSQL integration proves missing partitions fail closed and
+repeated null-category UPSERT is idempotent.
+API, UI, and derived modeling remain unavailable until separate accepted
+delivery records.
+
+### PRD-FR-2E — Occupation-rating evidence read
+
+- Let an authenticated user open one exact release/source/occupation profile
+  with both rating and scale artifact provenance (ADR 0258).
+- Distinguish an unavailable imported source from an available source with no
+  observation for the occupation.
+- Preserve exact decimal text, uncertainty, suppression, relevance, source
+  month, domain source, and declared bounds; derive no ranking or recommendation.
+
+Acceptance: invalid identifiers and unbounded pages are rejected; an unavailable
+source never appears as a negative profile; pagination is deterministic; and a
+suppressed observation retains its value and warning flag together.
 
 ### PRD-FR-3 — Bounded ontology exploration
 
