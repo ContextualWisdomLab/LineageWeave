@@ -55,6 +55,11 @@ its own public-target SSRF and redirect rejection.
    does not erase a lead's last determinate persisted judgment or cited public
    resource. Citation reads use the persisted source-unit and image-region
    order as the deterministic tie-break within one transaction timestamp.
+9. The bounded lead sequence alternates the two persisted source-kind streams,
+   beginning with whichever kind occurs first in document order. This gives
+   both a semantic-unit stream and an image-region stream a place whenever the
+   supplied budget can contain both, without an inferred score, weight, or
+   content-ranking heuristic. Each stream retains its persisted source order.
 
 ## Consequences
 

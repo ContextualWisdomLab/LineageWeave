@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 
+from backend.app import main
 from backend.app.source_research_ingestion import (
     list_source_research_citations,
     persist_source_research_citation,
@@ -103,13 +104,44 @@ class _OneMalformedClient(_Client):
 
 
 def test_private_posts_do_not_load_leads_or_search() -> None:
-    pool = _Pool(_Connection([{"post_content_unit_id": "unit-1", "unit_kind_code": "plain_text", "unit_text": "secret"}]))
+    pool = _Pool(
+        _Connection(
+            [
+                {
+                    "post_content_unit_id": "unit-1",
+                    "unit_index": 0,
+                    "unit_kind_code": "plain_text",
+                    "unit_text": "secret",
+                }
+            ]
+        )
+    )
     run = asyncio.run(
         research_post_sources_from_pool(pool, _Client(pool), "post-private", "private")
     )
     assert run.unavailable_reason == PRIVATE_POST_UNAVAILABLE
     assert run.citations == ()
     assert pool.connection.executed == []
+
+
+def test_private_citation_read_does_not_load_persisted_public_rows(monkeypatch) -> None:
+    """A visibility change hides citations created while the post was public."""
+
+    async def load_private_post(*_args, **_kwargs):
+        return {"post_id": "post-private", "visibility_code": "private"}
+
+    async def fail_if_loaded(*_args, **_kwargs):
+        raise AssertionError("private citation rows must not be loaded")
+
+    monkeypatch.setattr(main, "_load_visible_post", load_private_post)
+    monkeypatch.setattr(main, "list_source_research_citations", fail_if_loaded)
+
+    payload = asyncio.run(
+        main.read_post_research_citations("post-private", object(), object())
+    )
+
+    assert payload["unavailable_reason"] == PRIVATE_POST_UNAVAILABLE
+    assert payload["citations"] == []
 
 
 def test_missing_leads_are_unavailable_without_search() -> None:
@@ -126,6 +158,7 @@ def test_public_research_releases_the_pool_during_search() -> None:
         [
             {
                 "post_content_unit_id": "unit-1",
+                "unit_index": 0,
                 "unit_kind_code": "plain_text",
                 "unit_text": "Demo Corp delayed Apollo.",
             }
@@ -147,11 +180,13 @@ def test_malformed_adjudication_fails_closed_for_only_its_lead() -> None:
         [
             {
                 "post_content_unit_id": "unit-1",
+                "unit_index": 0,
                 "unit_kind_code": "plain_text",
                 "unit_text": "Demo Corp delayed Apollo.",
             },
             {
                 "post_content_unit_id": "unit-2",
+                "unit_index": 1,
                 "unit_kind_code": "plain_text",
                 "unit_text": "A second synthetic passage.",
             },

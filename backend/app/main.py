@@ -2429,16 +2429,19 @@ async def read_post_research_citations(
     """Return persisted public-research citations for this post's source leads."""
 
     post = await _load_visible_post(post_id, account, pool)
+    if str(post["visibility_code"]) != VISIBILITY_PUBLIC:
+        return {
+            "post_id": str(post["post_id"]),
+            "visibility_code": post["visibility_code"],
+            "unavailable_reason": PRIVATE_POST_UNAVAILABLE,
+            "citations": [],
+        }
     async with pool.acquire() as conn:
         citations = await list_source_research_citations(conn, post_id)
     return {
         "post_id": str(post["post_id"]),
         "visibility_code": post["visibility_code"],
-        "unavailable_reason": (
-            PRIVATE_POST_UNAVAILABLE
-            if str(post["visibility_code"]) != VISIBILITY_PUBLIC
-            else None
-        ),
+        "unavailable_reason": None,
         "citations": [
             {
                 "lead_kind_code": row["lead_kind_code"],

@@ -45,6 +45,7 @@ async def load_source_research_leads(
     units = await conn.fetch(
         """
         select post_content_unit_id::text as post_content_unit_id,
+               unit_index,
                unit_kind_code,
                unit_text
           from post_content_unit
@@ -56,6 +57,8 @@ async def load_source_research_leads(
     regions = await conn.fetch(
         """
         select region.post_content_image_region_id::text as post_content_image_region_id,
+               unit.unit_index as source_unit_index,
+               region.region_index,
                region.caption,
                region.extracted_text
           from post_content_image_region region
@@ -64,7 +67,8 @@ async def load_source_research_leads(
           join post_content_unit unit
             on unit.post_content_unit_id = image.post_content_unit_id
          where unit.post_id = $1
-         order by region.region_index, region.post_content_image_region_id
+         order by unit.unit_index, region.region_index,
+                  region.post_content_image_region_id
         """,
         post_id,
     )

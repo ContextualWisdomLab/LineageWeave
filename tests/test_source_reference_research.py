@@ -36,16 +36,19 @@ def test_select_source_research_leads_skips_image_units_and_empty_text() -> None
     units = [
         {
             "post_content_unit_id": "unit-image",
+            "unit_index": 0,
             "unit_kind_code": "image",
             "unit_text": "diagram",
         },
         {
             "post_content_unit_id": "unit-empty",
+            "unit_index": 1,
             "unit_kind_code": "plain_text",
             "unit_text": "  ",
         },
         {
             "post_content_unit_id": "unit-ok",
+            "unit_index": 2,
             "unit_kind_code": "plain_text",
             "unit_text": "Apollo transformer delay",
         },
@@ -53,31 +56,70 @@ def test_select_source_research_leads_skips_image_units_and_empty_text() -> None
     regions = [
         {
             "post_content_image_region_id": "region-empty",
+            "source_unit_index": 0,
             "caption": "",
             "extracted_text": None,
         },
         {
             "post_content_image_region_id": "region-ok",
+            "source_unit_index": 0,
             "caption": "Nameplate",
             "extracted_text": "Apollo 500 kVA",
         },
     ]
     leads = select_source_research_leads(units, regions, maximum_leads=3)
     assert [lead.lead_kind_code for lead in leads] == [
-        LEAD_SEMANTIC_UNIT,
         LEAD_IMAGE_REGION,
+        LEAD_SEMANTIC_UNIT,
     ]
-    assert leads[0].lead_source_unit_id == "unit-ok"
-    assert leads[1].lead_image_region_id == "region-ok"
-    assert "Apollo 500 kVA" in leads[1].lead_excerpt_text
+    assert leads[0].lead_image_region_id == "region-ok"
+    assert "Apollo 500 kVA" in leads[0].lead_excerpt_text
+    assert leads[1].lead_source_unit_id == "unit-ok"
 
 
 def test_select_source_research_leads_honors_zero_budget() -> None:
     assert select_source_research_leads(
-        [{"post_content_unit_id": "unit-ok", "unit_kind_code": "plain_text", "unit_text": "x"}],
+        [
+            {
+                "post_content_unit_id": "unit-ok",
+                "unit_index": 0,
+                "unit_kind_code": "plain_text",
+                "unit_text": "x",
+            }
+        ],
         [],
         maximum_leads=0,
     ) == ()
+
+
+def test_lead_budget_alternates_persisted_source_kinds() -> None:
+    """Text volume cannot consume the whole budget before an image region."""
+
+    units = [
+        {
+            "post_content_unit_id": f"unit-{index}",
+            "unit_index": index,
+            "unit_kind_code": "plain_text",
+            "unit_text": f"Synthetic text {index}",
+        }
+        for index in range(3)
+    ]
+    regions = [
+        {
+            "post_content_image_region_id": "region-1",
+            "source_unit_index": 3,
+            "region_index": 0,
+            "caption": "Synthetic image evidence",
+            "extracted_text": None,
+        }
+    ]
+
+    leads = select_source_research_leads(units, regions, maximum_leads=2)
+
+    assert [lead.lead_kind_code for lead in leads] == [
+        LEAD_SEMANTIC_UNIT,
+        LEAD_IMAGE_REGION,
+    ]
 
 
 def test_null_client_is_unavailable() -> None:

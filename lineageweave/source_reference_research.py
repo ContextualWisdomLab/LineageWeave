@@ -12,6 +12,7 @@ from __future__ import annotations
 import json
 import re
 from dataclasses import dataclass
+from itertools import zip_longest
 from typing import Protocol
 from urllib.parse import quote, urlparse
 
@@ -130,30 +131,37 @@ def select_source_research_leads(
 
     if maximum_leads <= 0:
         return ()
-    selected: list[SourceResearchLead] = []
+    unit_leads: list[tuple[int, SourceResearchLead]] = []
     for unit in units:
-        if len(selected) >= maximum_leads:
-            break
         kind = unit.get("unit_kind_code")
         unit_id = unit.get("post_content_unit_id")
+        unit_index = unit.get("unit_index")
         text = unit.get("unit_text")
         if kind == _IMAGE_UNIT_KIND:
             continue
-        if not isinstance(unit_id, str) or not unit_id.strip():
+        if (
+            not isinstance(unit_id, str)
+            or not unit_id.strip()
+            or not isinstance(unit_index, int)
+            or unit_index < 0
+        ):
             continue
         if not isinstance(text, str) or not text.strip():
             continue
-        selected.append(
-            SourceResearchLead(
-                lead_kind_code=LEAD_SEMANTIC_UNIT,
-                lead_source_unit_id=unit_id,
-                lead_excerpt_text=text.strip()[:800],
+        unit_leads.append(
+            (
+                unit_index,
+                SourceResearchLead(
+                    lead_kind_code=LEAD_SEMANTIC_UNIT,
+                    lead_source_unit_id=unit_id,
+                    lead_excerpt_text=text.strip()[:800],
+                ),
             )
         )
+    region_leads: list[tuple[int, SourceResearchLead]] = []
     for region in regions:
-        if len(selected) >= maximum_leads:
-            break
         region_id = region.get("post_content_image_region_id")
+        source_unit_index = region.get("source_unit_index")
         caption = region.get("caption")
         extracted = region.get("extracted_text")
         parts = [
@@ -161,15 +169,35 @@ def select_source_research_leads(
             for value in (caption, extracted)
             if isinstance(value, str) and value.strip()
         ]
-        if not isinstance(region_id, str) or not region_id.strip() or not parts:
+        if (
+            not isinstance(region_id, str)
+            or not region_id.strip()
+            or not isinstance(source_unit_index, int)
+            or source_unit_index < 0
+            or not parts
+        ):
             continue
-        selected.append(
-            SourceResearchLead(
-                lead_kind_code=LEAD_IMAGE_REGION,
-                lead_image_region_id=region_id,
-                lead_excerpt_text=" ".join(parts)[:800],
+        region_leads.append(
+            (
+                source_unit_index,
+                SourceResearchLead(
+                    lead_kind_code=LEAD_IMAGE_REGION,
+                    lead_image_region_id=region_id,
+                    lead_excerpt_text=" ".join(parts)[:800],
+                ),
             )
         )
+
+    first, second = (unit_leads, region_leads)
+    if region_leads and (not unit_leads or region_leads[0][0] < unit_leads[0][0]):
+        first, second = region_leads, unit_leads
+    selected: list[SourceResearchLead] = []
+    for first_item, second_item in zip_longest(first, second):
+        for item in (first_item, second_item):
+            if item is not None:
+                selected.append(item[1])
+                if len(selected) >= maximum_leads:
+                    return tuple(selected)
     return tuple(selected)
 
 
