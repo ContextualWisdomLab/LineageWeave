@@ -111,7 +111,7 @@ describe("AskAgentPanel public verification", () => {
     await userEvent.click(screen.getByRole("button", { name: "Ask" }));
 
     await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
-    expect(screen.getByText("Not enough public information")).toBeInTheDocument();
+    expect(screen.getByText("Public verification is unavailable. Try again later.")).toBeInTheDocument();
     expect(
       screen.getByText("Retry after the public verification service is available."),
     ).toBeInTheDocument();

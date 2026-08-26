@@ -14,7 +14,15 @@ export function PublicClaimVerification({
   return (
     <section className="popup-section public-claim-verification" aria-label={t("Public verification")}>
       <h4>{t("Public verification")}</h4>
-      {claims.length === 0 && <p>{t("Not enough public information")}</p>}
+      {claims.length === 0 && (
+        <p>
+          {t(
+            statusCode === "external_verification_unavailable"
+              ? "Public verification is unavailable. Try again later."
+              : "Not enough public information",
+          )}
+        </p>
+      )}
       {claims.map((claim) => (
         <article className="public-claim-card" key={`${claim.claim_kind}:${claim.claim_text}`}>
           <p>

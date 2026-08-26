@@ -196,7 +196,7 @@ async def _verify_public_claims(
                 *(asyncio.to_thread(client.verify, claim) for claim in claims)
             )
         )
-    except (HttpClientError, KeyError, OSError, TypeError, ValueError):
+    except (HttpClientError, IndexError, KeyError, OSError, TypeError, ValueError):
         return VERIFICATION_UNAVAILABLE, ()
     return VERIFICATION_COMPLETED, tuple(
         result
@@ -397,7 +397,9 @@ async def compute_global_ask_answer(
         "delivery": build_ask_delivery(answer.answer_text, cited_posts, cited_evidence),
         "external_verification_status": verification_status,
         "external_claims": [claim.to_payload() for claim in external_claims],
-        "next_action": _verification_next_action(verification_status),
+        "next_action": (
+            _verification_next_action(verification_status) if verify_external else None
+        ),
     }
 
 

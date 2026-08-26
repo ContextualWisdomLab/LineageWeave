@@ -110,7 +110,12 @@ async def _graph_evidence_projection(
           from knowledge_graph_edge edge
           join knowledge_graph_edge_evidence evidence
             on evidence.knowledge_graph_edge_id = edge.knowledge_graph_edge_id
-         where evidence.evidence_post_id = any($1::uuid[])
+         where exists (
+                   select 1
+                     from knowledge_graph_edge_evidence visible_evidence
+                    where visible_evidence.knowledge_graph_edge_id = edge.knowledge_graph_edge_id
+                      and visible_evidence.evidence_post_id = any($1::uuid[])
+               )
          group by edge.source_node_type_code, edge.source_node_id,
                   edge.target_node_type_code, edge.target_node_id,
                   edge.edge_type_code, edge.edge_weight

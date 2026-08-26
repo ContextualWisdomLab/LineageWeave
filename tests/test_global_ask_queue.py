@@ -67,6 +67,11 @@ class _VerificationClient:
         )
 
 
+class _MalformedVerificationClient(_VerificationClient):
+    def verify(self, claim: cv.PublicClaimCandidate) -> cv.ClaimVerificationResult:
+        raise IndexError("empty provider choices")
+
+
 def test_public_verification_requires_public_capability_and_internal_citation() -> None:
     """Private facts and uncited public facts never reach external search."""
 
@@ -143,6 +148,27 @@ def test_public_verification_keeps_external_urls_out_of_internal_citations() -> 
     assert results[0].source_post_ids == ("public-post",)
     assert results[0].evidence[0].url == "https://example.com/evidence"
     assert results[0].evidence[0].url not in results[0].source_post_ids
+
+
+def test_malformed_provider_response_degrades_to_unavailable() -> None:
+    source = cv.GlobalAskSourceDocument(
+        "public-post",
+        "Public",
+        "Public body",
+        external_claims=(
+            cv.PublicClaimCandidate("A public claim", "semantic_project", ("public-post",)),
+        ),
+    )
+    status_code, results = asyncio.run(
+        global_ask_queue._verify_public_claims(
+            [source],
+            ["public-post"],
+            verify_external=True,
+            client=_MalformedVerificationClient(),
+        )
+    )
+    assert status_code == cv.VERIFICATION_UNAVAILABLE
+    assert results == ()
 
 
 def test_unexpected_job_failure_settles_with_a_generic_detail_not_the_raw_exception(

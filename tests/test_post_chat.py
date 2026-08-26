@@ -218,6 +218,7 @@ def test_chat_render_includes_persisted_graph_facts_with_source_evidence() -> No
 def test_graph_facts_are_hydrated_from_visible_evidence_posts(monkeypatch) -> None:
     class _Connection:
         async def fetch(self, _query, _visible_post_ids):
+            assert "exists" in _query.lower()
             return [
                 {
                     "source_node_type_code": "node_person",
