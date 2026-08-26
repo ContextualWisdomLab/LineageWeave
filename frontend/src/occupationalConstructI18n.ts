@@ -13,6 +13,9 @@ const COPY = {
     "Evidence details": "Evidence details",
     "Catalog release": "Catalog release",
     "Evidence unit": "Evidence unit",
+=======
+    "Select a work-evidence node to review the records that support it.":
+      "Select a work-evidence node to review the records that support it.",
     "No supported work evidence was found in this record.":
       "No supported work evidence was found in this record.",
     "Work evidence is still being prepared. Reopen this record shortly.":
@@ -36,6 +39,9 @@ const COPY = {
     "Evidence details": "근거 상세",
     "Catalog release": "카탈로그 버전",
     "Evidence unit": "근거 단위",
+=======
+    "Select a work-evidence node to review the records that support it.":
+      "업무 근거 노드를 선택하여 이를 뒷받침하는 기록을 검토하세요.",
     "No supported work evidence was found in this record.":
       "이 기록에서 뒷받침되는 업무 근거를 찾지 못했습니다.",
     "Work evidence is still being prepared. Reopen this record shortly.":
@@ -59,6 +65,9 @@ const COPY = {
     "Evidence details": "证据详情",
     "Catalog release": "目录版本",
     "Evidence unit": "证据单元",
+=======
+    "Select a work-evidence node to review the records that support it.":
+      "请选择工作证据节点，查看支持该节点的记录。",
     "No supported work evidence was found in this record.": "此记录中未找到有依据的工作证据。",
     "Work evidence is still being prepared. Reopen this record shortly.":
       "工作证据仍在准备中。请稍后重新打开此记录。",
@@ -81,6 +90,9 @@ const COPY = {
     "Evidence details": "エビデンス詳細",
     "Catalog release": "カタログ版",
     "Evidence unit": "エビデンス単位",
+=======
+    "Select a work-evidence node to review the records that support it.":
+      "業務エビデンスのノードを選択し、それを裏付ける記録を確認してください。",
     "No supported work evidence was found in this record.":
       "この記録には裏付けられた業務エビデンスがありません。",
     "Work evidence is still being prepared. Reopen this record shortly.":
@@ -104,6 +116,9 @@ const COPY = {
     "Evidence details": "Chi tiết bằng chứng",
     "Catalog release": "Phiên bản danh mục",
     "Evidence unit": "Đơn vị bằng chứng",
+=======
+    "Select a work-evidence node to review the records that support it.":
+      "Chọn một nút bằng chứng công việc để xem các bản ghi hỗ trợ nút đó.",
     "No supported work evidence was found in this record.":
       "Không tìm thấy bằng chứng công việc được hỗ trợ trong bản ghi này.",
     "Work evidence is still being prepared. Reopen this record shortly.":
