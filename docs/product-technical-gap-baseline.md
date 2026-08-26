@@ -89,9 +89,29 @@ Security/operability: every aggregation applies `post_read` plus row-level
 corporate-entity visibility before counting; source-body digests invalidate
 stale inference; provider errors persist no positive/negative result; PII
 remains authorized at the UI boundary and is excluded from telemetry. The
-tables use composite keys and bounded kind-first indexes; production hot-path
-acceptance still requires `EXPLAIN (ANALYZE, BUFFERS)` on an anonymized runtime
-snapshot.
+tables use composite keys and bounded kind-first indexes. Production hot-path
+acceptance uses `scripts/explain_post_content_backfill.py` on an anonymized
+runtime snapshot; the exact candidate SQL runs in a rolled-back transaction
+and emits aggregate plan/buffer metrics only. A deployment-specific
+capacity/SLO remains separate from this query-shape evidence.
+
+On an isolated exact-schema synthetic snapshot based on #716 `c01de078`
+(20,000 eligible posts and jobs, 9,927 ontology-backed project mentions, and
+4,951 current operations analyses), a consecutive rolled-back comparison
+returned the same 200-row priority page in 2,056.629 ms before and 1,327.868 ms
+after the change. Root shared-hit blocks fell from 275,642 to 100,514; both
+plans recorded zero shared reads and zero temporary reads/writes. The former
+plan made 20,000 correlated project probes and 9,927 correlated
+operations-analysis probes, while the semantics-equivalent two-tier query
+scans each relation once.
+The plan remains `Limit -> LockRows -> Sort`; `SKIP LOCKED` and the transaction
+boundary therefore remain intact, and the remaining tier runs only when the
+priority tier cannot fill the requested page. A separate remaining-tier
+observation returned 200 rows in 12,649.654 ms with 241,317 root shared-hit
+blocks and no reads or temporary spill; it is retained as the next
+distribution-specific optimization target, not hidden by the priority-path
+improvement. These observations establish query shape only, not a deployment
+capacity or latency SLO.
 
 ### Historical UI audit evidence
 

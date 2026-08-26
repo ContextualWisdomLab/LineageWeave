@@ -56,6 +56,8 @@ def test_bounded_backfill_is_idempotent_and_broker_loss_stays_recoverable(
             return None
 
     class Connection:
+        fetch_count = 0
+
         def transaction(self) -> Transaction:
             return Transaction()
 
@@ -63,25 +65,31 @@ def test_bounded_backfill_is_idempotent_and_broker_loss_stays_recoverable(
             assert "source_draft_code" in query
             assert "source_deleted_flag" in query
             assert "job.post_id is null or job.status_code = $1" in query
-            assert "from operations_case_analysis analysis" in query
+            assert "left join operations_case_analysis analysis" in query
             assert "analysis.post_id = post.post_id" in query
             assert "analysis.source_body_sha256 = job.source_body_sha256" in query
-            assert "from post_product_analysis analysis" in query
+            assert "left join post_product_analysis product_analysis" in query
             assert "from post_project_mention project" in query
             assert "nullif(btrim(project.ontology_iri), '') is not null" in query
             assert "job.source_body_sha256 is not null" in query
             assert query.count("from post_project_mention project") == 1
-            assert "when $3::boolean" in query
-            assert "then 0 else 1" in query
+            assert "$5::boolean = (" in query
             assert "coalesce(post.event_occurred_at, post.created_at)" in query
             assert "post.post_body ilike" not in query.lower()
             assert "post.post_title ilike" not in query.lower()
             assert "for update of post skip locked" in query.lower()
-            assert args == (SUCCEEDED, True, True, 2)
-            return [
-                {"post_id": "00000000-0000-0000-0000-000000000001", "post_body": "one"},
-                {"post_id": "00000000-0000-0000-0000-000000000002", "post_body": "two"},
-            ]
+            self.fetch_count += 1
+            assert args == (
+                SUCCEEDED,
+                True,
+                True,
+                2 if self.fetch_count == 1 else 1,
+                self.fetch_count == 1,
+            )
+            return [{
+                "post_id": f"00000000-0000-0000-0000-{self.fetch_count:012d}",
+                "post_body": "one" if self.fetch_count == 1 else "two",
+            }]
 
     class Acquire:
         async def __aenter__(self) -> Connection:
@@ -146,6 +154,8 @@ def test_backfill_skips_a_candidate_that_became_complete(
             return Transaction()
 
         async def fetch(self, _query: str, *_args: object) -> list[dict[str, str]]:
+            if _args[-1] is False:
+                return []
             return [
                 {"post_id": "00000000-0000-0000-0000-000000000001", "post_body": "done"}
             ]

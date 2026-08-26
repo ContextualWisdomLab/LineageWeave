@@ -381,28 +381,21 @@ async def ensure_post_content_job(
     )
 
 
-async def enqueue_post_content_backfill(
-    pool: asyncpg.Pool,
-    client: redis.Redis | None,
-    *,
-    limit: int,
-    require_embedding: bool,
-    require_structure: bool,
-) -> dict[str, int]:
-    """Durably enqueue one bounded page of eligible incomplete source posts.
-
-    PostgreSQL is committed before Valkey is touched.  A missing wake-up is
-    therefore recoverable by :func:`republish_queued_post_content_jobs` rather
-    than turning an operator request into lost work.  Active and terminal jobs
-    are excluded so repeated requests neither duplicate work nor reset the
-    explicit retry boundary.
-    """
-    if not 1 <= limit <= 200:
-        raise ValueError("limit must be between 1 and 200")
-    query = f"""
+POST_CONTENT_BACKFILL_CANDIDATE_SQL = f"""
         select post.post_id, post.post_body
           from source_post post
           left join post_content_ingestion_job job on job.post_id = post.post_id
+          left join operations_case_analysis analysis
+            on analysis.post_id = post.post_id
+           and analysis.source_body_sha256 = job.source_body_sha256
+          left join post_product_analysis product_analysis
+            on product_analysis.post_id = post.post_id
+           and product_analysis.source_body_sha256 = job.source_body_sha256
+          left join (
+              select distinct project.post_id
+                from post_project_mention project
+               where nullif(btrim(project.ontology_iri), '') is not null
+          ) ontology_project on ontology_project.post_id = post.post_id
          where {SOURCE_POST_ELIGIBILITY_SQL.format(alias='post')}
            and (job.post_id is null or job.status_code = $1)
            and (
@@ -443,53 +436,62 @@ async def enqueue_post_content_backfill(
                           or structure.decision_source_code = 'unresolved'
                       )
                ))
-               or ($3::boolean and not exists (
-                   select 1
-                     from operations_case_analysis analysis
-                    where analysis.post_id = post.post_id
-                      and analysis.source_body_sha256 = job.source_body_sha256
-               ))
-               or ($3::boolean and not exists (
-                   select 1
-                     from post_product_analysis analysis
-                    where analysis.post_id = post.post_id
-                      and analysis.source_body_sha256 = job.source_body_sha256
-               ))
+               or ($3::boolean and analysis.post_id is null)
+               or ($3::boolean and product_analysis.post_id is null)
            )
-         order by case
-                      when $3::boolean
-                       and exists (
-                           select 1
-                             from post_project_mention project
-                            where project.post_id = post.post_id
-                              and nullif(btrim(project.ontology_iri), '') is not null
-                       )
-                       and job.source_body_sha256 is not null
-                       and not exists (
-                           select 1
-                             from operations_case_analysis analysis
-                            where analysis.post_id = post.post_id
-                              and analysis.source_body_sha256 = job.source_body_sha256
-                       )
-                      then 0 else 1
-                  end,
-                  coalesce(post.event_occurred_at, post.created_at),
+           and ($5::boolean = (
+                   $3::boolean
+                   and ontology_project.post_id is not null
+                   and job.source_body_sha256 is not null
+                   and analysis.post_id is null
+               ))
+         order by coalesce(post.event_occurred_at, post.created_at),
                   post.created_at,
                   post.post_id
          limit $4
          for update of post skip locked
     """
+
+
+async def enqueue_post_content_backfill(
+    pool: asyncpg.Pool,
+    client: redis.Redis | None,
+    *,
+    limit: int,
+    require_embedding: bool,
+    require_structure: bool,
+) -> dict[str, int]:
+    """Durably enqueue one bounded page of eligible incomplete source posts.
+
+    PostgreSQL is committed before Valkey is touched.  A missing wake-up is
+    therefore recoverable by :func:`republish_queued_post_content_jobs` rather
+    than turning an operator request into lost work.  Active and terminal jobs
+    are excluded so repeated requests neither duplicate work nor reset the
+    explicit retry boundary.
+    """
+    if not 1 <= limit <= 200:
+        raise ValueError("limit must be between 1 and 200")
     requests: list[PostContentJobRequest] = []
     async with pool.acquire() as conn:
         async with conn.transaction():
             # Safe SQL: the eligibility predicate is an immutable schema fragment; values are bound.
             rows = await conn.fetch(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
-                query,
+                POST_CONTENT_BACKFILL_CANDIDATE_SQL,
                 SUCCEEDED,
                 require_embedding,
                 require_structure,
                 limit,
+                True,
             )
+            if len(rows) < limit:
+                rows += await conn.fetch(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
+                    POST_CONTENT_BACKFILL_CANDIDATE_SQL,
+                    SUCCEEDED,
+                    require_embedding,
+                    require_structure,
+                    limit - len(rows),
+                    False,
+                )
             for row in rows:
                 post_id = str(row["post_id"])
                 body = str(row["post_body"] or "")
