@@ -82,6 +82,8 @@ describe("i18n", () => {
   const relatedRecordLabels = [
     "Related-record ranking",
     "Ranking is unavailable",
+    "Records are ordered by recent and related activity. Open a record to review its evidence.",
+    "Related item",
     "No related records are available yet.",
     "Explore related records",
     "Explore related information",

@@ -121,6 +121,7 @@ describe("App, authenticated", () => {
     askImageCitation?: boolean;
     askDelivery?: boolean;
     lineageIsolationReason?: "comparison_candidates_available" | "no_comparison_group";
+    relatedNodeWithoutOntologyLabel?: boolean;
   }): ReturnType<typeof vi.fn> & { releaseMe: () => void; releasePostOne: () => void } {
     const statusLabel: Record<string, string> = {
       open: "Open",
@@ -1441,7 +1442,7 @@ describe("App, authenticated", () => {
                 node_id: "team-1",
                 node_type_code: "node_team",
                 ontology_iri: "https://contextualwisdomlab.github.io/LineageWeave/ontology#Team",
-                ontology_label: "Team",
+                ...(options?.relatedNodeWithoutOntologyLabel ? {} : { ontology_label: "Team" }),
                 label: "설계팀",
                 relevance: 0.15,
               },
@@ -2834,6 +2835,18 @@ describe("App, authenticated", () => {
     expect(screen.getByText("Related to 설계팀").closest(".related-keymen")).toHaveTextContent(
       "Linked post",
     );
+  });
+
+  it("localizes the fallback label for a related node without an ontology label", async () => {
+    setLocale("ko");
+    stubBackend({ relatedNodeWithoutOntologyLabel: true });
+    render(<App showLabPanels />);
+
+    await userEvent.click(await screen.findByRole("button", { name: "글 보기: Public post" }));
+    await userEvent.click(screen.getByRole("button", { name: "Ada West 관련 정보" }));
+
+    expect(await screen.findByRole("button", { name: /설계팀 \(관련 항목\)/ })).toBeInTheDocument();
+    expect(screen.queryByText("설계팀 (Related item)")).not.toBeInTheDocument();
   });
 
   it("opens related nodes from a related corporate entity", async () => {

@@ -789,7 +789,7 @@ function relatedNodeCaption(node: RelatedNode): string {
       return aliased;
     }
   }
-  return `${name} (${node.ontology_label ?? "Related item"})`;
+  return `${name} (${node.ontology_label ?? t("Related item")})`;
 }
 
 const PROJECT_EXTRACTION_LABELS: Record<string, string> = {
