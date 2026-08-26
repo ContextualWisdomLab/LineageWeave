@@ -529,6 +529,40 @@ def test_explicit_parent_cycle_fails_closed_even_when_timestamps_tie() -> None:
     assert captured.value.code == "explicit_parent_cycle"
 
 
+def test_inference_cannot_reverse_an_observed_edge_on_tied_timestamps() -> None:
+    """A tied-time observed edge excludes its child as an inferred parent."""
+
+    request = _request(
+        [
+            _record(
+                "email:z-parent",
+                "Shared update",
+                "2026-08-20T09:00:00Z",
+            ),
+            _record(
+                "email:a-child",
+                "Shared update follow-up",
+                "2026-08-20T09:00:00Z",
+                explicit_parent={
+                    "evidence_ref": "email:z-parent",
+                    "relation_code": "rfc_reply",
+                },
+            ),
+        ]
+    )
+
+    result = _analyze(request)
+
+    assert [
+        (
+            edge.parent_evidence_ref,
+            edge.child_evidence_ref,
+            edge.truth_status_code,
+        )
+        for edge in result.edges
+    ] == [("email:z-parent", "email:a-child", "observed")]
+
+
 def test_cutoff_excluded_explicit_parent_creates_limitation_not_edge() -> None:
     request = _request(
         [

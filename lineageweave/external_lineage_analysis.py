@@ -327,6 +327,30 @@ def _inferred_edges(
             "active estimated channel weights must normalize to one",
             "weight_estimate.weights",
         )
+    included_refs = {record.evidence_ref for record in records}
+    explicit_children_by_parent: dict[str, set[str]] = defaultdict(set)
+    for record in records:
+        if (
+            record.explicit_parent is not None
+            and record.explicit_parent.evidence_ref in included_refs
+        ):
+            explicit_children_by_parent[
+                record.explicit_parent.evidence_ref
+            ].add(record.evidence_ref)
+
+    def explicit_descendants(evidence_ref: str) -> set[str]:
+        """Return observed descendants that cannot become inferred parents."""
+
+        descendants: set[str] = set()
+        pending = list(explicit_children_by_parent.get(evidence_ref, ()))
+        while pending:
+            descendant = pending.pop()
+            if descendant in descendants:
+                continue
+            descendants.add(descendant)
+            pending.extend(explicit_children_by_parent.get(descendant, ()))
+        return descendants
+
     edges: list[LineageEdgeResult] = []
     for group_records in _ordered_contract_groups(records):
         core_records = [_core_record(record) for record in group_records]
@@ -335,6 +359,14 @@ def _inferred_edges(
                 continue
             candidates = core_records[
                 max(0, index - request.policy.candidate_window) : index
+            ]
+            cycle_forming_parents = explicit_descendants(
+                source_record.evidence_ref
+            )
+            candidates = [
+                candidate
+                for candidate in candidates
+                if candidate.record_id not in cycle_forming_parents
             ]
             parent_choice = _best_parent(
                 core_records[index],
