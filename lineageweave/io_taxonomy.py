@@ -158,6 +158,9 @@ class TaxonomySourceRecord:
     license_url: str | None
     """Applicable license URL, never inferred from a related source."""
 
+    rights_url: str | None
+    """Applicable rights URL, never inferred from a related source."""
+
     artifact_sha256: str | None
     """Verified artifact digest, or ``None`` when no stable artifact exists."""
 
@@ -227,6 +230,7 @@ def taxonomy_source_records() -> tuple[TaxonomySourceRecord, ...]:
                 publisher=_optional_single_text(subject, DCTERMS.publisher),
                 source_url=_optional_single_text(subject, DCTERMS.source),
                 license_url=_optional_single_text(subject, DCTERMS.license),
+                rights_url=_optional_single_text(subject, DCTERMS.rights),
                 artifact_sha256=_optional_single_text(
                     subject, LW.sourceArtifactSha256
                 ),
