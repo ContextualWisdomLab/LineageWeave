@@ -292,8 +292,8 @@ async def lifespan(app: FastAPI):
             )
         )
         app.state.post_content_worker = content_worker
-        # Late-bound lambda so tests that monkeypatch _post_chat_client reach
-        # the worker too (the name resolves in module globals at call time).
+        # Late-bound lambdas keep worker factories aligned with runtime/test
+        # configuration changes (the names resolve in globals at call time).
         # Only this worker gets the long answer timeout; the per-post chat
         # endpoint keeps the client's interactive default.
         global_ask_worker = asyncio.create_task(

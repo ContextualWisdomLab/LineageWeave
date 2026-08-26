@@ -11,6 +11,7 @@ import pytest
 
 from backend.app import global_ask_queue, main
 from lineageweave import observability
+from lineageweave.http_client import HttpClientError
 from tests.test_observability import attach_inmemory_tracer
 
 
@@ -162,6 +163,41 @@ def test_global_ask_source_gather_failure_is_classified(
     assert record.failure_outcome == "internal_error"
     assert sensitive not in caplog.text
     assert sensitive not in raised.value.detail
+
+
+def test_global_ask_embedding_transport_failure_drops_only_that_channel(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A known embedding transport failure still permits native nominations."""
+
+    class _Embedding:
+        available = True
+        resolved_model = "synthetic-model"
+
+        def embed(self, _text: str) -> list[float]:
+            raise HttpClientError("synthetic transport failure")
+
+    async def _sources(*args: object, **kwargs: object) -> list[object]:
+        assert kwargs["question_embedding"] is None
+        return []
+
+    monkeypatch.setattr(global_ask_queue, "gather_global_chat_sources", _sources)
+    result = asyncio.run(
+        global_ask_queue.compute_global_ask_answer(
+            _Pool(),
+            question_text="synthetic question",
+            corporate_entity_ids=set(),
+            process_unit_ids=set(),
+            process_scope_limited=False,
+            chat_client=_FailingClient(RuntimeError("unused")),
+            embedding_client=_Embedding(),
+        )
+    )
+
+    assert result["source_post_ids"] == []
+    assert result["next_action"] == (
+        "No authorized source posts are available for this question."
+    )
 
 
 def test_global_ask_timeout_is_provider_unavailable(

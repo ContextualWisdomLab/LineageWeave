@@ -47,22 +47,14 @@ _SEARCH_HOST_MARKERS = (
     "yandex.",
     "searx",
 )
-_PROVENANCE_SUFFIX = re.compile(
-    r"\s*\[(?:evidence_post_id|provenance)=[^]]+\]\s*$"
-)
-_METADATA_SEGMENT = re.compile(
-    r"\s*\|\s*(?:extraction_method|confidence):\s*[^|\[]+"
-)
-_TOKEN = re.compile(r"[0-9A-Za-z가-힣_:/#.-]{2,}")
 _CODE_FENCE = re.compile(r"```(?:json)?\s*(.*?)\s*```", re.DOTALL)
-_EVIDENCE_POST_IDS = re.compile(r"\[evidence_post_id=([^]]+)\]")
 
 
 @dataclass(frozen=True)
 class GlobalAskSourceDocument(ChatSourceDocument):
     """Authorized Global Ask source plus facts explicitly safe for web egress."""
 
-    external_claim_facts: tuple[str, ...] = field(default_factory=tuple)
+    public_claims: tuple[PublicClaimCandidate, ...] = field(default_factory=tuple)
 
 
 @dataclass(frozen=True)
@@ -132,80 +124,47 @@ class NullClaimVerificationClient:
         raise RuntimeError("public claim verification is not configured")
 
 
-def _clean_fact(fact: str) -> str:
-    """Remove storage and extraction metadata while preserving the assertion."""
-
-    cleaned = _PROVENANCE_SUFFIX.sub("", fact)
-    cleaned = _METADATA_SEGMENT.sub("", cleaned)
-    cleaned = re.split(r"\s*\|\s*evidence:", cleaned, maxsplit=1)[0]
-    return " ".join(cleaned.split())
-
-
-def _claim_kind(fact: str) -> str | None:
-    """Return the externally verifiable claim family, or ``None``."""
-
-    if "node_person" in fact or fact.startswith(("Keyman mention:", "actor:")):
-        return None
-    if "--" in fact and "-->" in fact:
-        return "knowledge_graph_relation"
-    if fact.startswith("project:"):
-        return "semantic_project"
-    if "ontology_iri:" in fact or "/ontology#" in fact:
-        return "ontology_reference"
-    return None
-
-
-def _question_tokens(question: str) -> frozenset[str]:
-    return frozenset(token.casefold() for token in _TOKEN.findall(question))
-
-
 def public_claim_candidates(
     sources: list[ChatSourceDocument] | tuple[ChatSourceDocument, ...],
     question: str,
     *,
     maximum_claims: int = 4,
 ) -> tuple[PublicClaimCandidate, ...]:
-    """Select bounded public claims relevant to ``question``.
+    """Return bounded public claims from egress-capable sources.
 
     Only :class:`GlobalAskSourceDocument` instances can contribute facts. This
     makes the public-egress capability explicit instead of adding an egress
     field to every post-scoped chat source. Person and Keyman claims are still
     excluded even when an upstream caller constructs a malformed subclass.
+    ``question`` is accepted for caller symmetry only; the cited-source gate,
+    rather than a local relevance heuristic, bounds egress.
     """
 
     if maximum_claims <= 0:
         return ()
-    query_tokens = _question_tokens(question)
+    del question
     merged: dict[tuple[str, str], list[str]] = {}
     for source in sources:
         if not isinstance(source, GlobalAskSourceDocument):
             continue
-        for raw_fact in source.external_claim_facts:
-            kind = _claim_kind(raw_fact)
-            if kind is None:
+        for claim in source.public_claims:
+            if not claim.claim_text or len(claim.claim_text) > 800:
                 continue
-            claim_text = _clean_fact(raw_fact)
-            if not claim_text or len(claim_text) > 800:
+            if claim.claim_kind not in {
+                "semantic_project",
+                "ontology_reference",
+                "knowledge_graph_relation",
+            }:
                 continue
-            claim_tokens = _question_tokens(claim_text)
-            if query_tokens and not query_tokens.intersection(claim_tokens):
-                continue
-            key = (kind, claim_text)
+            key = (claim.claim_kind, claim.claim_text)
             post_ids = merged.setdefault(key, [])
-            evidence_match = _EVIDENCE_POST_IDS.search(raw_fact)
-            evidence_ids = (
-                [value.strip() for value in evidence_match.group(1).split(",")]
-                if evidence_match is not None
-                else [source.post_id]
-            )
-            for post_id in evidence_ids:
+            for post_id in claim.source_post_ids:
                 if post_id and post_id not in post_ids:
                     post_ids.append(post_id)
 
     ranked = sorted(
         merged.items(),
         key=lambda item: (
-            -len(query_tokens.intersection(_question_tokens(item[0][1]))),
             item[0][0],
             item[0][1].casefold(),
         ),

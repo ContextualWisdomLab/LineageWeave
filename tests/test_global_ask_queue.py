@@ -83,7 +83,9 @@ def test_public_verification_requires_public_capability_and_internal_citation() 
         "public-post",
         "Public",
         "Public body",
-        external_claim_facts=("project: Apollo | evidence: public",),
+        public_claims=(
+            cv.PublicClaimCandidate("Project Apollo", "semantic_project", ("public-post",)),
+        ),
     )
 
     private_status, private_results = asyncio.run(
@@ -119,7 +121,9 @@ def test_public_verification_keeps_external_urls_out_of_internal_citations() -> 
         "public-post",
         "Public",
         "Public body",
-        external_claim_facts=("project: Apollo | evidence: public",),
+        public_claims=(
+            cv.PublicClaimCandidate("Project Apollo", "semantic_project", ("public-post",)),
+        ),
     )
 
     status_code, results = asyncio.run(
@@ -144,7 +148,9 @@ def test_malformed_public_verification_is_unavailable() -> None:
         "public-post",
         "Public",
         "Public body",
-        external_claim_facts=("project: Apollo | evidence: public",),
+        public_claims=(
+            cv.PublicClaimCandidate("Project Apollo", "semantic_project", ("public-post",)),
+        ),
     )
 
     for error in (
@@ -401,6 +407,41 @@ def test_unexpected_job_failure_settles_with_a_generic_detail_not_the_raw_except
     assert failure_detail == (
         "Ask Agent is unavailable: contextual-orchestrator returned no complete evidence object"
     )
+
+
+def test_non_verification_job_does_not_build_public_search_client(monkeypatch) -> None:
+    """An ordinary Ask job is independent of optional public-search config."""
+    connection = _Connection(_queued_row())
+    pool = _Pool(connection)
+
+    async def _fake_load_job_visibility(_conn, _job_id, _account_id):
+        return {"corp-1"}, set(), False, True
+
+    async def _fake_compute_global_ask_answer(*_args, **kwargs):
+        assert kwargs["verify_external"] is False
+        assert kwargs["claim_verification_client"] is None
+        return {"answer_text": "synthetic answer"}
+
+    def _unexpected_verification_factory():
+        raise AssertionError("non-opt-in jobs must not build public search")
+
+    monkeypatch.setattr(global_ask_queue, "load_job_visibility", _fake_load_job_visibility)
+    monkeypatch.setattr(
+        global_ask_queue, "compute_global_ask_answer", _fake_compute_global_ask_answer
+    )
+
+    asyncio.run(
+        global_ask_queue.process_global_ask_job(
+            pool,
+            job_id="job-1",
+            chat_factory=_AvailableClient,
+            claim_verification_factory=_unexpected_verification_factory,
+        )
+    )
+
+    settle_query, settle_args = connection.executed[-1]
+    assert "failure_detail" not in settle_query
+    assert settle_args[1] == global_ask_queue.SUCCEEDED
 
 
 def test_permission_and_connection_errors_keep_their_pre_authored_safe_message(

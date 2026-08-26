@@ -8,6 +8,10 @@ All notable changes to this project are documented here. Format follows
 
 ### Added
 
+- Global Ask now nominates bounded post IDs from indexed persisted project,
+  role, person, organization, team, and Knowledge Graph evidence before its
+  existing embedding channel, then repeats eligibility and authorization
+  before reading any source (ADR 0233; issue #272 internal-search slice).
 - Persist explicit paragraph, list, table, MathML formula, and caller-parsed
   conversation-turn semantic-unit kinds without inferring absent boundaries.
 - Event Lineage now persists each reconstructed connection's independent

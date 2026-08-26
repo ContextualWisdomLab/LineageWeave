@@ -5,6 +5,7 @@ import math
 from datetime import date, datetime, timezone
 
 from backend.app.post_chat_ingestion import (
+    _GraphEvidenceProjection,
     _fuse_global_candidate_ids,
     _ontology_lookup_codes_in_question,
     gather_global_chat_sources as _gather_global_chat_sources,
@@ -195,14 +196,16 @@ def test_global_sources_apply_process_scope_before_sql_limit() -> None:
     class FakeConnection:
         async def fetch(self, query: str, *args):
             calls.append((query, args))
+            if "candidate_post" in query:
+                return [{"post_id": "semantic-post"}]
             return []
 
     asyncio.run(
         gather_global_chat_sources(
             FakeConnection(),
             lambda _row: True,
-            {"corp-demo"},
-            {"process-demo"},
+            (value for value in ["corp-demo"]),
+            (value for value in ["process-demo"]),
             question="synthetic process evidence",
         )
     )
@@ -236,6 +239,8 @@ def test_global_sources_use_semantic_rank_order_and_bound_long_bodies() -> None:
     class FakeConnection:
         async def fetch(self, query: str, *args):
             calls.append((query, args))
+            if "candidate_post" in query:
+                return []
             return rows if "from source_post" in query else []
 
     sources = asyncio.run(
@@ -247,7 +252,9 @@ def test_global_sources_use_semantic_rank_order_and_bound_long_bodies() -> None:
         )
     )
 
-    candidate_query, candidate_args = calls[0]
+    candidate_query, candidate_args = next(
+        (query, args) for query, args in calls if "unit_similarity" in query
+    )
     source_query, source_args = next(
         (query, args) for query, args in calls if "array_position($3::uuid[], post_id)" in query
     )
@@ -288,6 +295,14 @@ def test_global_sources_carry_source_and_semantic_evidence() -> None:
             if "from source_post" in query:
                 return rows
             if "from post_project_mention" in query:
+                if "project_name, ontology_iri" in query:
+                    return [
+                        {
+                            "post_id": "semantic-post",
+                            "project_name": "semantic project",
+                            "ontology_iri": "urn:test",
+                        }
+                    ]
                 return [
                     {
                         "post_id": "semantic-post",
@@ -326,11 +341,16 @@ def test_global_sources_keep_graph_facts_with_their_evidence_source(monkeypatch)
         async def fetch(self, query: str, *args):
             return rows if "from source_post" in query else []
 
-    async def fake_graph_facts(_conn, _visible_post_ids, _knowledge_cutoff=None):
-        return {"post-b": ("fact evidenced by post-b",)}
+    async def fake_graph_projection(
+        _conn, _visible_post_ids, _public_post_ids, _knowledge_cutoff=None
+    ):
+        return _GraphEvidenceProjection(
+            {"post-b": ("fact evidenced by post-b",)}, ()
+        )
 
     monkeypatch.setattr(
-        "backend.app.post_chat_ingestion._graph_facts_for_posts", fake_graph_facts
+        "backend.app.post_chat_ingestion._graph_evidence_projection",
+        fake_graph_projection,
     )
 
     sources = asyncio.run(
@@ -351,6 +371,8 @@ def test_global_sources_embed_identifier_question_without_tokenizing() -> None:
     class FakeConnection:
         async def fetch(self, query: str, *args):
             calls.append((query, args))
+            if "candidate_post" in query:
+                return [{"post_id": "semantic-post"}]
             return []
 
     asyncio.run(
@@ -373,6 +395,8 @@ def test_global_sources_embed_localized_question_once() -> None:
     class FakeConnection:
         async def fetch(self, query: str, *args):
             calls.append((query, args))
+            if "candidate_post" in query:
+                return [{"post_id": "semantic-post"}]
             return []
 
     asyncio.run(
@@ -660,6 +684,8 @@ def test_global_sources_resolve_relative_time_against_seoul_calendar_day(
     class FakeConnection:
         async def fetch(self, query: str, *args):
             calls.append((query, args))
+            if "candidate_post" in query:
+                return [{"post_id": "semantic-post"}]
             return []
 
     asyncio.run(

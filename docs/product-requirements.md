@@ -103,6 +103,8 @@ stale evidence from a previously opened post.
 - Nominate only cited, public semantic/KG facts; source bodies, private facts,
   personal facts, and measurement outputs never become external queries.
 - Retrieve bounded public evidence through SearXNG and adjudicate through
+  contextual-orchestrator's adaptive orchestration boundary.
+
   contextual-orchestrator's verification mode.
 - Report supported, refuted, and not-enough-information outcomes without
   promoting public pages to internal ontology authority.

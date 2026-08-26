@@ -1,5 +1,7 @@
 # Global Ask public-verification research register
 
+ADR 0234 adopts three distinct contracts:
+
 ADR 0215 adopts three distinct contracts:
 
 - FEVER supplies the evidence-dependent `supported`, `refuted`, and
@@ -7,6 +9,15 @@ ADR 0215 adopts three distinct contracts:
 - W3C PROV-O keeps internal source evidence, external web evidence, and the
   verification activity separate.
 - SearXNG's Search API defines the bounded JSON retrieval transport; public
+  instance defaults are not assumed. The checked 2026-08-26 documentation
+  states that `/search` accepts GET query parameters and that JSON output must
+  be enabled by the instance; disabled formats return HTTP 403.
+
+The implementation does not infer claim eligibility from question-token
+overlap or rendered-string patterns. It projects typed project and non-person
+graph claims from normalized PostgreSQL evidence after authorization. Model
+and orchestration selection remains contextual-orchestrator authority.
+
   instance defaults are not assumed.
 
 ## APA 7 references

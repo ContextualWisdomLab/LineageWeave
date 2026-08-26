@@ -15,6 +15,7 @@ from __future__ import annotations
 import asyncio
 import math
 import os
+import subprocess
 import uuid
 from contextlib import closing
 from pathlib import Path
@@ -185,6 +186,11 @@ _GLOBAL_ASK_JOB_MIGRATION = (
     Path(__file__).resolve().parents[2]
     / "migrations"
     / "0165_global_ask_job.sql"
+)
+_GLOBAL_ASK_SEMANTIC_SEARCH_MIGRATION = (
+    Path(__file__).resolve().parents[2]
+    / "migrations"
+    / "0225_global_ask_semantic_candidate_search.sql"
 )
 _GLOBAL_ASK_SCOPE_MIGRATION = (
     Path(__file__).resolve().parents[2]
@@ -752,6 +758,18 @@ def seeded_db(demo_analyst_token):
                         ),
                     )
         conn.commit()
+        subprocess.run(
+            [
+                "psql",
+                "-X",
+                "-v",
+                "ON_ERROR_STOP=1",
+                db_dsn,
+                "-f",
+                str(_GLOBAL_ASK_SEMANTIC_SEARCH_MIGRATION),
+            ],
+            check=True,
+        )
 
         yield {
             "dsn": db_dsn,
