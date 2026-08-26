@@ -437,6 +437,7 @@ def _write_manifest(
         ],
         "shapes_path": SHAPES_RELATIVE_PATH.as_posix(),
         "ontology_triple_count": len(graph),
+        "ontology_ttl_sha256": _sha256(ontology_dir / "ontology.ttl"),
         "ontology_unique_term_count": term_count,
         "source_path": SOURCE_RELATIVE_PATH.as_posix(),
         "source_sha256": _sha256(sources[0]),
