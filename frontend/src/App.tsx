@@ -3378,7 +3378,7 @@ function RankingsPanel({
         <>
           <p className="ranking-channel-evidence-copy">
             {t(
-              "Open a result to review the records most relevant to your search.",
+              "Open a result to review the records most relevant to your search. These results are not calibrated measurements.",
             )}
           </p>
           <ul className="ticket-list" aria-label={t("Fused rankings")}>
