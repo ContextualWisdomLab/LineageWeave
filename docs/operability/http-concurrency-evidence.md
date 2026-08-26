@@ -70,6 +70,16 @@ above on an application-ready stack to obtain the product measurement.
 
 ## Older-image diagnostic observation
 
+On 2026-08-26, the application-ready local synthetic stack completed a
+5-VU, 15-second k6 run with five iterations and 0 failed requests. Ask enqueue
+was 967.49 ms; Ask polling averaged 11.94 seconds; ordinary authenticated
+posts/lineage reads averaged 34.53 seconds (p95 43.26 seconds). The run used
+the stack's deployed image rather than this candidate head, so it proves only
+that the existing HTTP boundary remains responsive without request failures
+while also exposing unacceptable reader latency for investigation. It is not
+an ADR 0228 capacity result or an SLO. Rebuild the exact candidate image and
+repeat with resource and query-plan telemetry before attributing the delay.
+
 On 2026-08-25, an application-ready local Compose stack configured with four
 worker VUs completed zero full iterations in two observations. In the second
 30-second observation, Ask enqueue took 2.69 seconds, the maximum completed
