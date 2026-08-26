@@ -271,8 +271,9 @@ def test_non_verification_job_does_not_build_public_search_client(monkeypatch) -
         )
     )
 
-    settle_query, _settle_args = connection.executed[-1]
-    assert "job_status_code = $2" in settle_query
+    settle_query, settle_args = connection.executed[-1]
+    assert "failure_detail" not in settle_query
+    assert settle_args[1] == global_ask_queue.SUCCEEDED
 
 
 def test_permission_and_connection_errors_keep_their_pre_authored_safe_message(

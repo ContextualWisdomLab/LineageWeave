@@ -82,3 +82,17 @@ export const CompletedWithoutEligibleClaims: Story = {
     ).toBeVisible();
   },
 };
+
+export const NoEligibleCitedClaims: Story = {
+  args: {
+    claims: [],
+    statusCode: "external_verification_no_public_claims",
+  },
+  play: async ({ canvasElement }) => {
+    await expect(
+      within(canvasElement).getByText(
+        "No eligible cited public claims were found. Review the cited posts.",
+      ),
+    ).toBeVisible();
+  },
+};

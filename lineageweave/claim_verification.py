@@ -134,7 +134,10 @@ def public_claim_candidates(
         for claim in source.external_claims:
             if (
                 allowed_source_post_ids is not None
-                and not set(claim.source_post_ids).issubset(allowed_source_post_ids)
+                and (
+                    not claim.source_post_ids
+                    or not set(claim.source_post_ids).issubset(allowed_source_post_ids)
+                )
             ):
                 continue
             if not claim.claim_text.strip() or len(claim.claim_text) > 800:

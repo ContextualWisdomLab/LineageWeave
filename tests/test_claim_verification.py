@@ -58,12 +58,13 @@ def test_public_claim_candidates_require_positive_budget_without_heuristic_filte
 
 def test_public_claim_candidates_filters_citations_before_budget() -> None:
     source = _public_source(
+        cv.PublicClaimCandidate("missing citation", "semantic_project"),
         cv.PublicClaimCandidate("uncited", "semantic_project", ("other",)),
         cv.PublicClaimCandidate("cited", "semantic_project", ("post-1",)),
     )
     assert cv.public_claim_candidates(
         [source], maximum_claims=1, allowed_source_post_ids=frozenset({"post-1"})
-    ) == (source.external_claims[1],)
+    ) == (source.external_claims[2],)
 
 
 def test_public_claim_payload_keeps_internal_post_ids_out_of_public_evidence() -> None:

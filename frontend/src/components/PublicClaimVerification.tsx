@@ -13,6 +13,7 @@ export function PublicClaimVerification({
   if (
     claims.length === 0
     && statusCode !== "external_verification_completed"
+    && statusCode !== "external_verification_no_public_claims"
     && statusCode !== "external_verification_unavailable"
   ) return null;
   return (
@@ -23,6 +24,8 @@ export function PublicClaimVerification({
           {t(
             statusCode === "external_verification_unavailable"
               ? "Public verification is unavailable. Try again later."
+              : statusCode === "external_verification_no_public_claims"
+                ? "No eligible cited public claims were found. Review the cited posts."
               : "Not enough public information",
           )}
         </p>
