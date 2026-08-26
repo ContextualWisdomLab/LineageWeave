@@ -13,6 +13,7 @@ from backend.app.occupational_construct_ingestion import (
     OccupationalConstruct,
     OccupationalConstructAssertion,
     load_occupational_construct_assertions,
+    load_occupational_construct_evidence_status,
     persist_occupational_construct_assertions,
 )
 
