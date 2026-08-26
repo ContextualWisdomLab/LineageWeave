@@ -340,6 +340,10 @@ async def lifespan(app: FastAPI):
 
 
 logger = logging.getLogger(__name__)
+_POST_CHAT_RETRY_DETAIL = (
+    "Post chat is temporarily unavailable. Review the saved evidence, then "
+    "retry in a moment. If this continues, contact your workspace administrator."
+)
 
 app = FastAPI(title="LineageWeave API", lifespan=lifespan)
 app.add_middleware(
@@ -1266,12 +1270,12 @@ async def resolve_customer_master_hint(
             # verify-relations' identical try/except).
             raise HTTPException(
                 status.HTTP_503_SERVICE_UNAVAILABLE,
-                "Hint resolution is unavailable: the orchestrator or search provider did not respond",
+                "Hint resolution is temporarily unavailable. Retry in a moment. If this continues, contact your workspace administrator.",
             ) from exc
         except Exception as exc:  # noqa: BLE001 - provider boundary is fail-closed.
             raise HTTPException(
                 status.HTTP_503_SERVICE_UNAVAILABLE,
-                "Hint resolution is unavailable: the orchestrator or search provider did not respond",
+                "Hint resolution is temporarily unavailable. Retry in a moment. If this continues, contact your workspace administrator.",
             ) from exc
     if resolution is None:
         raise HTTPException(
@@ -1316,8 +1320,7 @@ async def rebuild_lineage_graph(
     except ChannelWeightsNotEstimated as exc:
         raise HTTPException(
             status.HTTP_503_SERVICE_UNAVAILABLE,
-            "Channel weights are not estimated yet. Run "
-            "scripts/estimate_channel_weights.py, then rebuild again.",
+            "Lineage calibration evidence is unavailable. Ask your workspace administrator to complete calibration, then rebuild again.",
         ) from exc
     except (HttpClientError, OSError) as exc:
         # This can issue up to MAXIMUM_LIVE_LLM_PAIR_EVALUATIONS sequential
@@ -1327,7 +1330,7 @@ async def rebuild_lineage_graph(
         # discipline as this file's other orchestrator call sites.
         raise HTTPException(
             status.HTTP_503_SERVICE_UNAVAILABLE,
-            "Lineage rebuild is unavailable: the orchestrator did not respond",
+            "Lineage rebuild is temporarily unavailable. Retry in a moment. If this continues, contact your workspace administrator.",
         ) from exc
     return {"edge_count": len(edges)}
 
@@ -1882,7 +1885,7 @@ async def read_similar_voc(
     if client is None:
         raise HTTPException(
             status.HTTP_503_SERVICE_UNAVAILABLE,
-            "similar VOC inference is unavailable; configure contextual-orchestrator and retry",
+            "Similar VOC evidence is unavailable. Retry in a moment. If this continues, contact your workspace administrator.",
         )
     async with pool.acquire() as conn:
         # Safe SQL: the sole interpolation is the closed eligibility fragment; request and identity values remain asyncpg parameters.
@@ -2355,7 +2358,7 @@ async def verify_post_entity_relationships(
     if not client.available:
         raise HTTPException(
             status.HTTP_503_SERVICE_UNAVAILABLE,
-            "Relation verification is unavailable: set SEARXNG_BASE_URL",
+            "Relation verification is temporarily unavailable. Retry in a moment. If this continues, contact your workspace administrator.",
         )
     try:
         verified = await verify_post_relations_from_pool(
@@ -2369,12 +2372,12 @@ async def verify_post_entity_relationships(
         # provider failure into a clean 503 rather than persisting a miss.
         raise HTTPException(
             status.HTTP_503_SERVICE_UNAVAILABLE,
-            "Relation verification is unavailable: the search provider did not respond",
+            "Relation verification is temporarily unavailable. Retry in a moment. If this continues, contact your workspace administrator.",
         ) from exc
     except Exception as exc:  # noqa: BLE001 - provider boundary is fail-closed.
         raise HTTPException(
             status.HTTP_503_SERVICE_UNAVAILABLE,
-            "Relation verification is unavailable: the search provider did not respond",
+            "Relation verification is temporarily unavailable. Retry in a moment. If this continues, contact your workspace administrator.",
         ) from exc
     await publish_activity_event(
         valkey,
@@ -2419,7 +2422,7 @@ async def extract_post_keymen(
         if not keyman_client.available:
             raise HTTPException(
                 status.HTTP_503_SERVICE_UNAVAILABLE,
-                "Keymen extraction is unavailable: set ORCHESTRATOR_BASE_URL / ORCHESTRATOR_API_KEY",
+                "Keymen extraction is unavailable. Retry in a moment. If this continues, contact your workspace administrator.",
             )
         relationship_client = _entity_relationship_client()
         async with pool.acquire() as conn:
@@ -2449,12 +2452,12 @@ async def extract_post_keymen(
             except (HttpClientError, KeyError, OSError, TypeError, ValueError, RuntimeError) as exc:
                 raise HTTPException(
                     status.HTTP_503_SERVICE_UNAVAILABLE,
-                    "Keymen extraction is unavailable: contextual-orchestrator or corroboration provider returned no complete evidence object",
+                    "Keymen extraction is unavailable. Retry in a moment. If this continues, contact your workspace administrator.",
                 ) from exc
             except Exception as exc:  # noqa: BLE001 - provider boundary is fail-closed.
                 raise HTTPException(
                     status.HTTP_503_SERVICE_UNAVAILABLE,
-                    "Keymen extraction is unavailable: contextual-orchestrator or corroboration provider returned no complete evidence object",
+                    "Keymen extraction is unavailable. Retry in a moment. If this continues, contact your workspace administrator.",
                 ) from exc
             # Live bug (2026-08-19): an organization affiliated ONLY with an
             # our_side person (our own factory, our own affiliate) got fed
@@ -2478,12 +2481,12 @@ async def extract_post_keymen(
             except (HttpClientError, KeyError, OSError, TypeError, ValueError, RuntimeError) as exc:
                 raise HTTPException(
                     status.HTTP_503_SERVICE_UNAVAILABLE,
-                    "Keymen extraction is unavailable: contextual-orchestrator or corroboration provider returned no complete evidence object",
+                    "Keymen extraction is unavailable. Retry in a moment. If this continues, contact your workspace administrator.",
                 ) from exc
             except Exception as exc:  # noqa: BLE001 - provider boundary is fail-closed.
                 raise HTTPException(
                     status.HTTP_503_SERVICE_UNAVAILABLE,
-                    "Keymen extraction is unavailable: contextual-orchestrator or corroboration provider returned no complete evidence object",
+                    "Keymen extraction is unavailable. Retry in a moment. If this continues, contact your workspace administrator.",
                 ) from exc
             async with conn.transaction():
                 await persist_edges_for_post(conn, post_id)
@@ -2633,12 +2636,12 @@ async def evaluate_post(
         except (HttpClientError, KeyError, OSError, TypeError, ValueError, RuntimeError) as exc:
             raise HTTPException(
                 status.HTTP_503_SERVICE_UNAVAILABLE,
-                "Post evaluation is unavailable: contextual-orchestrator returned no complete evidence object",
+                "Post evaluation is unavailable. Retry in a moment. If this continues, contact your workspace administrator.",
             ) from exc
         except Exception as exc:  # noqa: BLE001 - provider boundary is fail-closed.
             raise HTTPException(
                 status.HTTP_503_SERVICE_UNAVAILABLE,
-                "Post evaluation is unavailable: contextual-orchestrator returned no complete evidence object",
+                "Post evaluation is unavailable. Retry in a moment. If this continues, contact your workspace administrator.",
             ) from exc
     await publish_activity_event(
         valkey,
@@ -2905,7 +2908,7 @@ async def read_post_summary(
                     return stale_fallback("orchestrator_unavailable")
                 raise HTTPException(
                     status.HTTP_503_SERVICE_UNAVAILABLE,
-                    "Post summary is unavailable: set ORCHESTRATOR_BASE_URL / ORCHESTRATOR_API_KEY",
+                    "Post summary is unavailable. Retry in a moment. If this continues, contact your workspace administrator.",
                 )
             context_hints = await _load_post_semantic_hints(conn, post_id)
             summarize_with_hints = getattr(client, "summarize_with_hints", None)
@@ -2923,14 +2926,14 @@ async def read_post_summary(
                     return stale_fallback("orchestrator_failure", exc)
                 raise HTTPException(
                     status.HTTP_503_SERVICE_UNAVAILABLE,
-                    "Post summary is unavailable: contextual-orchestrator returned no complete evidence object",
+                    "Post summary is unavailable. Retry in a moment. If this continues, contact your workspace administrator.",
                 ) from exc
             except Exception as exc:  # noqa: BLE001 - provider boundary is fail-closed.
                 if stale is not None:
                     return stale_fallback("orchestrator_unexpected_failure", exc)
                 raise HTTPException(
                     status.HTTP_503_SERVICE_UNAVAILABLE,
-                    "Post summary is unavailable: contextual-orchestrator returned no complete evidence object",
+                    "Post summary is unavailable. Retry in a moment. If this continues, contact your workspace administrator.",
                 ) from exc
             try:
                 payload = await persist_post_summary(
@@ -2946,7 +2949,7 @@ async def read_post_summary(
                     return stale_fallback("summary_persist_failure", exc)
                 raise HTTPException(
                     status.HTTP_503_SERVICE_UNAVAILABLE,
-                    "Post summary is unavailable: contextual-orchestrator or corroboration provider returned no complete evidence object",
+                    "Post summary is unavailable. Retry in a moment. If this continues, contact your workspace administrator.",
                 ) from exc
         content_complete = await post_content_is_complete(
             conn,
@@ -3152,8 +3155,7 @@ async def chat_about_post(
                     )
                     raise HTTPException(
                         status.HTTP_503_SERVICE_UNAVAILABLE,
-                        "Post chat is temporarily unavailable. "
-                        "Saved evidence is still available.",
+                        _POST_CHAT_RETRY_DETAIL,
                     )
                 async with pool.acquire() as conn:
                     sources = await gather_chat_sources(
@@ -3176,15 +3178,13 @@ async def chat_about_post(
                 record_server_failure("post_chat", exc, outcome="provider_unavailable")
                 raise HTTPException(
                     status.HTTP_503_SERVICE_UNAVAILABLE,
-                    "Post chat is temporarily unavailable. "
-                    "Saved evidence is still available.",
+                    _POST_CHAT_RETRY_DETAIL,
                 ) from exc
             except Exception as exc:
                 record_server_failure("post_chat", exc, outcome="internal_error")
                 raise HTTPException(
                     status.HTTP_503_SERVICE_UNAVAILABLE,
-                    "Post chat is temporarily unavailable. "
-                    "Saved evidence is still available.",
+                    _POST_CHAT_RETRY_DETAIL,
                 ) from exc
     cited_ids = list(answer.cited_post_ids)
     source_ids = [source.post_id for source in sources]
@@ -3534,7 +3534,7 @@ async def derive_post_commitment(
         if not client.available:
             raise HTTPException(
                 status.HTTP_503_SERVICE_UNAVAILABLE,
-                "Commitment derivation is unavailable: set ORCHESTRATOR_BASE_URL / ORCHESTRATOR_API_KEY",
+                "Commitment derivation is unavailable. Retry in a moment. If this continues, contact your workspace administrator.",
             )
         async with pool.acquire() as conn:
             body_row = await conn.fetchrow("select post_body from source_post where post_id = $1", post_id)
@@ -3555,12 +3555,12 @@ async def derive_post_commitment(
         except (HttpClientError, KeyError, OSError, TypeError, ValueError, RuntimeError) as exc:
             raise HTTPException(
                 status.HTTP_503_SERVICE_UNAVAILABLE,
-                "Commitment derivation is unavailable: contextual-orchestrator returned no complete evidence object",
+                "Commitment derivation is unavailable. Retry in a moment. If this continues, contact your workspace administrator.",
             ) from exc
         except Exception as exc:  # noqa: BLE001 - provider boundary is fail-closed.
             raise HTTPException(
                 status.HTTP_503_SERVICE_UNAVAILABLE,
-                "Commitment derivation is unavailable: contextual-orchestrator returned no complete evidence object",
+                "Commitment derivation is unavailable. Retry in a moment. If this continues, contact your workspace administrator.",
             ) from exc
     if not commitment.has_commitment:
         return {"post_id": str(post["post_id"]), "has_commitment": False, "ticket": None}

@@ -954,9 +954,9 @@ async def _claim_delivery_plan(
     if weights is None:
         raise AnalysisRunStartError(
             503,
-            "Channel weights are not estimated yet for this run's active "
-            f"channels ({', '.join(sorted(active_channels))}). Run "
-            "scripts/estimate_channel_weights.py, then start this run again.",
+            "Lineage calibration evidence is unavailable for this run. Ask "
+            "your workspace administrator to complete calibration, then start "
+            "this run again.",
         )
     return _DeliveryPlan(
         _LINEAGE_KIND,
@@ -986,9 +986,9 @@ def _execute_delivery_plan(
         except _AdjudicationProviderError as exc:
             raise AnalysisRunStartError(
                 503,
-                "The adjudication provider failed mid-reconstruction; nothing "
-                "was persisted. Check the contextual-orchestrator transport, "
-                "then start this run again.",
+                "Lineage reconstruction is temporarily unavailable. No result "
+                "was saved. Start this run again in a moment; if this continues, "
+                "contact your workspace administrator.",
             ) from exc
         return _DeliveryOutcome(plan.work_kind_code, plan.started_at, tuple(edges))
 

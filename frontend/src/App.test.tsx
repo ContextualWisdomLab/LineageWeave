@@ -274,7 +274,8 @@ describe("App, authenticated", () => {
           return Promise.resolve(
             new Response(
               JSON.stringify({
-                detail: "Commitment extraction is unavailable: set ORCHESTRATOR_BASE_URL / ORCHESTRATOR_API_KEY",
+                detail:
+                  "Commitment extraction is unavailable. Retry in a moment. If this continues, contact your workspace administrator.",
               }),
               { status: 503, headers: { "Content-Type": "application/json" } },
             ),
@@ -1473,7 +1474,8 @@ describe("App, authenticated", () => {
           return Promise.resolve(
             new Response(
               JSON.stringify({
-                detail: "Keymen extraction is unavailable: set ORCHESTRATOR_BASE_URL / ORCHESTRATOR_API_KEY",
+                detail:
+                  "Keymen extraction is unavailable. Retry in a moment. If this continues, contact your workspace administrator.",
               }),
               { status: 503, headers: { "Content-Type": "application/json" } },
             ),
@@ -1486,7 +1488,8 @@ describe("App, authenticated", () => {
           return Promise.resolve(
             new Response(
               JSON.stringify({
-                detail: "Post evaluation is unavailable: set ORCHESTRATOR_BASE_URL / ORCHESTRATOR_API_KEY",
+                detail:
+                  "Post evaluation is unavailable. Retry in a moment. If this continues, contact your workspace administrator.",
               }),
               { status: 503, headers: { "Content-Type": "application/json" } },
             ),
@@ -1778,7 +1781,10 @@ describe("App, authenticated", () => {
         if (options?.searchUnavailable) {
           return Promise.resolve(
             new Response(
-              JSON.stringify({ detail: "Relation verification is unavailable: set SEARXNG_BASE_URL" }),
+              JSON.stringify({
+                detail:
+                  "Relation verification is temporarily unavailable. Retry in a moment. If this continues, contact your workspace administrator.",
+              }),
               { status: 503, headers: { "Content-Type": "application/json" } },
             ),
           );
@@ -1837,7 +1843,8 @@ describe("App, authenticated", () => {
           return Promise.resolve(
             new Response(
               JSON.stringify({
-                detail: "Post chat is unavailable: set ORCHESTRATOR_BASE_URL / ORCHESTRATOR_API_KEY",
+                detail:
+                  "Post chat is unavailable. Retry in a moment. If this continues, contact your workspace administrator.",
               }),
               { status: 503, headers: { "Content-Type": "application/json" } },
             ),
@@ -2758,7 +2765,11 @@ describe("App, authenticated", () => {
     await userEvent.click(screen.getByRole("button", { name: /^ask$/i }));
 
     await waitFor(() =>
-      expect(screen.getByText("Chat is temporarily unavailable. Saved evidence is still available.")).toBeInTheDocument(),
+      expect(
+        screen.getByText(
+          "Chat is temporarily unavailable. Review the saved evidence below, then retry in a moment.",
+        ),
+      ).toBeInTheDocument(),
     );
     expect(screen.queryByText(/HTTP 503/)).not.toBeInTheDocument();
     expect(screen.queryByPlaceholderText(/what happened/i)).not.toBeInTheDocument();
@@ -2782,7 +2793,11 @@ describe("App, authenticated", () => {
     await userEvent.click(await screen.findByRole("button", { name: /evaluate post/i }));
 
     await waitFor(() =>
-      expect(screen.getByText("Evaluation is temporarily unavailable. Saved evidence is still available.")).toBeInTheDocument(),
+      expect(
+        screen.getByText(
+          "Evaluation is temporarily unavailable. Review the saved evidence below, then retry in a moment.",
+        ),
+      ).toBeInTheDocument(),
     );
     expect(screen.queryByText(/HTTP 503/)).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /evaluate post/i })).not.toBeInTheDocument();
@@ -2796,7 +2811,11 @@ describe("App, authenticated", () => {
     await userEvent.click(await screen.findByRole("button", { name: /extract keymen/i }));
 
     await waitFor(() =>
-      expect(screen.getByText("Keymen extraction is temporarily unavailable. Saved evidence is still available.")).toBeInTheDocument(),
+      expect(
+        screen.getByText(
+          "Keymen extraction is temporarily unavailable. Review the saved evidence below, then retry in a moment.",
+        ),
+      ).toBeInTheDocument(),
     );
     expect(screen.queryByText(/HTTP 503/)).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /extract keymen/i })).not.toBeInTheDocument();
@@ -2811,7 +2830,9 @@ describe("App, authenticated", () => {
 
     await waitFor(() =>
       expect(
-        screen.getByText("Commitment derivation is temporarily unavailable. Saved evidence is still available."),
+        screen.getByText(
+          "Commitment derivation is temporarily unavailable. Review the saved evidence below, then retry in a moment.",
+        ),
       ).toBeInTheDocument(),
     );
     expect(screen.queryByText(/HTTP 503/)).not.toBeInTheDocument();
@@ -2826,7 +2847,11 @@ describe("App, authenticated", () => {
     await userEvent.click(await screen.findByRole("button", { name: /verify against web search/i }));
 
     await waitFor(() =>
-      expect(screen.getByText("Verification unavailable (search is not configured).")).toBeInTheDocument(),
+      expect(
+        screen.getByText(
+          "Verification is temporarily unavailable. Retry in a moment; if this continues, contact your workspace administrator.",
+        ),
+      ).toBeInTheDocument(),
     );
     expect(screen.queryByText(/HTTP 503/)).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /verify against web search/i })).not.toBeInTheDocument();
@@ -3912,7 +3937,7 @@ describe("App, authenticated", () => {
       }),
     );
     expect(
-      await screen.findByText("LineageWeave will measure these posts when this run finishes."),
+      await screen.findByText("Start this run to submit these posts for measurement. A result is not guaranteed."),
     ).toBeInTheDocument();
     expect(screen.queryByText(/replace Failed/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/this TEPP run measured/i)).not.toBeInTheDocument();

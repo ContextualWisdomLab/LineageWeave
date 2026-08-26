@@ -2,7 +2,7 @@ import type { Meta, StoryObj } from "@storybook/react-vite";
 import { expect, userEvent, within } from "storybook/test";
 import { ChatPanel } from "./App";
 
-type Fixture = "empty" | "saved";
+type Fixture = "empty" | "saved" | "unavailable";
 
 function jsonResponse(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
@@ -12,8 +12,18 @@ function jsonResponse(body: unknown, status = 200) {
 }
 
 function installFixture(fixture: Fixture) {
-  globalThis.fetch = async (input) => {
+  globalThis.fetch = async (input, init) => {
     const url = input instanceof Request ? input.url : String(input);
+    const method = input instanceof Request ? input.method : init?.method;
+    if (fixture === "unavailable" && url.endsWith("/api/posts/post-1/chat") && method === "POST") {
+      return jsonResponse(
+        {
+          detail:
+            "Post chat is unavailable. Retry in a moment. If this continues, contact your workspace administrator.",
+        },
+        503,
+      );
+    }
     if (url.endsWith("/api/posts/post-1/chat/conversations/conversation-post-1")) {
       return jsonResponse({
         conversation_id: "conversation-post-1",
@@ -111,5 +121,22 @@ export const Phone: Story = {
   parameters: {
     layout: "padded",
     viewport: { defaultViewport: "mobile1" },
+  },
+};
+
+export const UnavailableWithNextAction: Story = {
+  render(args) {
+    installFixture("unavailable");
+    return <ChatPanel {...args} />;
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await userEvent.type(canvas.getByPlaceholderText(/what happened/i), "What changed?");
+    await userEvent.click(canvas.getByRole("button", { name: /^ask$/i }));
+    await expect(
+      await canvas.findByText(
+        "Chat is temporarily unavailable. Review the saved evidence below, then retry in a moment.",
+      ),
+    ).toBeVisible();
   },
 };

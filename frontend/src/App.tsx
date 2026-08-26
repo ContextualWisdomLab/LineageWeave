@@ -130,7 +130,7 @@ import "./App.css";
 
 function orchestratorUnavailableMessage(err: unknown, action: string): string {
   if (err instanceof BackendError && err.status === 503) {
-    return `${action} ${t("is temporarily unavailable.")} ${t("Saved evidence is still available.")}`;
+    return `${action} ${t("is temporarily unavailable.")} ${t("Review the saved evidence below, then retry in a moment.")}`;
   }
   return String(err);
 }
@@ -162,7 +162,9 @@ function LanguageSwitcher({ accessToken }: { accessToken?: string }) {
 
 function searchUnavailableMessage(err: unknown): string {
   if (err instanceof BackendError && err.status === 503) {
-    return t("Verification unavailable (search is not configured).");
+    return t(
+      "Verification is temporarily unavailable. Retry in a moment; if this continues, contact your workspace administrator.",
+    );
   }
   return String(err);
 }

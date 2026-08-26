@@ -76,7 +76,8 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Stored semantic evidence": "저장된 의미 기반 근거",
     "Recorded evidence": "기록된 근거",
     "Lineage maintenance": "계보 관리",
-    "Verification unavailable (search is not configured).": "검증을 사용할 수 없습니다(검색이 설정되지 않았습니다).",
+    "Verification is temporarily unavailable. Retry in a moment; if this continues, contact your workspace administrator.":
+      "검증을 일시적으로 사용할 수 없습니다. 잠시 후 다시 시도하고, 문제가 계속되면 워크스페이스 관리자에게 문의하십시오.",
     "No customer commitment found in this post.": "이 글에서 고객 약속을 찾지 못했습니다.",
     due: "기한",
     "Ticket created": "티켓 생성",
@@ -193,7 +194,7 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Open supporting post": "근거 글 열기",
     "Inspect public evidence separately before any governed graph review.": "거버넌스 그래프 검토 전에 공개 근거를 별도로 확인하세요.",
     "Collect stronger authoritative evidence before accepting the claim.": "주장을 받아들이기 전에 더 강한 권위 있는 근거를 확보하세요.",
-    "Inspect the authorized cited posts and their evidence.": "권한이 있는 인용 글과 근거를 확인하세요.",
+    "Ask about a specific claim or narrow the time range, then retry.": "확인할 주장을 구체적으로 묻거나 기간을 좁힌 뒤 다시 시도하세요.",
     "Review unavailable historical channels before relying on this cutoff answer.": "이 컷오프 답변을 사용하기 전에 사용할 수 없는 과거 채널을 검토하세요.",
     "Compare these cutoff-grounded citations with live evidence next.": "다음으로 컷오프 시점 인용과 현재 근거를 비교하세요.",
     Ask: "질의",
@@ -449,7 +450,8 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Share unavailable.": "공유할 수 없습니다.",
     "Bookmark unavailable.": "북마크를 사용할 수 없습니다.",
     "No summary is available for this record yet.": "이 기록의 요약이 아직 없습니다.",
-    "Saved evidence is still available.": "저장된 근거는 계속 확인할 수 있습니다.",
+    "Review the saved evidence below, then retry in a moment.":
+      "아래의 저장된 근거를 검토한 후 잠시 뒤 다시 시도하십시오.",
     "Showing the first {shown} of {total} posts known at this cutoff.":
       "이 기준 시점에 알려진 {total}개 글 중 처음 {shown}개를 표시합니다.",
     "Showing the first {shown} of {total} observed customer identifiers, ranked by post count.":
@@ -608,7 +610,8 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Stored semantic evidence": "已存储的语义证据",
     "Recorded evidence": "已记录的证据",
     "Lineage maintenance": "谱系维护",
-    "Verification unavailable (search is not configured).": "无法验证（未配置搜索）。",
+    "Verification is temporarily unavailable. Retry in a moment; if this continues, contact your workspace administrator.":
+      "验证暂时不可用。请稍后重试；如果问题持续，请联系工作区管理员。",
     "No customer commitment found in this post.": "未在此文章中找到客户承诺。",
     due: "截止日期",
     "Ticket created": "工单已创建",
@@ -725,7 +728,7 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Open supporting post": "打开支持性帖子",
     "Inspect public evidence separately before any governed graph review.": "在治理图谱审查前单独检查公开证据。",
     "Collect stronger authoritative evidence before accepting the claim.": "接受该声明前，请收集更有力的权威证据。",
-    "Inspect the authorized cited posts and their evidence.": "检查已获授权的引用文章及其证据。",
+    "Ask about a specific claim or narrow the time range, then retry.": "请明确要核实的主张或缩小时间范围，然后重试。",
     "Review unavailable historical channels before relying on this cutoff answer.": "依赖此截止时间答案前，请检查不可用的历史渠道。",
     "Compare these cutoff-grounded citations with live evidence next.": "接下来请将截止时间依据的引用与当前证据进行比较。",
     Ask: "提问",
@@ -974,7 +977,8 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Share unavailable.": "分享不可用。",
     "Bookmark unavailable.": "书签不可用。",
     "No summary is available for this record yet.": "此记录暂时没有摘要。",
-    "Saved evidence is still available.": "仍可查看已保存的证据。",
+    "Review the saved evidence below, then retry in a moment.":
+      "请先查看下方已保存的证据，然后稍后重试。",
     "Showing the first {shown} of {total} posts known at this cutoff.":
       "显示此截止时间已知的 {total} 篇文章中的前 {shown} 篇。",
     "Showing the first {shown} of {total} observed customer identifiers, ranked by post count.":
@@ -1156,7 +1160,8 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Stored semantic evidence": "保存された意味的証拠",
     "Recorded evidence": "記録された証拠",
     "Lineage maintenance": "系譜管理",
-    "Verification unavailable (search is not configured).": "確認できません（検索が設定されていません）。",
+    "Verification is temporarily unavailable. Retry in a moment; if this continues, contact your workspace administrator.":
+      "確認機能は一時的に利用できません。しばらくしてから再試行し、問題が続く場合はワークスペース管理者にお問い合わせください。",
     "No customer commitment found in this post.": "この投稿に顧客コミットメントは見つかりませんでした。",
     due: "期限",
     "Ticket created": "チケットを作成",
@@ -1273,7 +1278,7 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Open supporting post": "根拠となる投稿を開く",
     "Inspect public evidence separately before any governed graph review.": "管理対象グラフをレビューする前に公開証拠を別途確認してください。",
     "Collect stronger authoritative evidence before accepting the claim.": "主張を受け入れる前に、より強い権威ある証拠を集めてください。",
-    "Inspect the authorized cited posts and their evidence.": "許可された引用投稿とその証拠を確認してください。",
+    "Ask about a specific claim or narrow the time range, then retry.": "確認する主張を具体化するか期間を絞って、もう一度お試しください。",
     "Review unavailable historical channels before relying on this cutoff answer.": "このカットオフ回答を利用する前に、利用できない履歴チャネルを確認してください。",
     "Compare these cutoff-grounded citations with live evidence next.": "次に、カットオフ時点の引用を現在の証拠と比較してください。",
     Ask: "質問する",
@@ -1500,7 +1505,8 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Share unavailable.": "共有できません。",
     "Bookmark unavailable.": "ブックマークを利用できません。",
     "No summary is available for this record yet.": "この記録の概要はまだありません。",
-    "Saved evidence is still available.": "保存された証拠は引き続き確認できます。",
+    "Review the saved evidence below, then retry in a moment.":
+      "下に保存された証拠を確認してから、しばらくして再試行してください。",
     "Showing the first {shown} of {total} posts known at this cutoff.":
       "この基準時点で把握されている{total}件の投稿のうち、最初の{shown}件を表示しています。",
     "Showing the first {shown} of {total} observed customer identifiers, ranked by post count.":
@@ -1683,7 +1689,8 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Stored semantic evidence": "Bằng chứng ngữ nghĩa đã lưu",
     "Recorded evidence": "Bằng chứng đã ghi nhận",
     "Lineage maintenance": "Bảo trì dòng sự kiện",
-    "Verification unavailable (search is not configured).": "Không thể xác minh (chưa cấu hình tìm kiếm).",
+    "Verification is temporarily unavailable. Retry in a moment; if this continues, contact your workspace administrator.":
+      "Tính năng xác minh tạm thời không khả dụng. Hãy thử lại sau ít phút; nếu sự cố tiếp diễn, hãy liên hệ quản trị viên không gian làm việc.",
     "No customer commitment found in this post.": "Không tìm thấy cam kết của khách hàng trong bài viết này.",
     due: "Hạn",
     "Ticket created": "Đã tạo phiếu",
@@ -1800,7 +1807,7 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Open supporting post": "Mở bài viết làm bằng chứng",
     "Inspect public evidence separately before any governed graph review.": "Kiểm tra riêng bằng chứng công khai trước khi rà soát đồ thị được quản trị.",
     "Collect stronger authoritative evidence before accepting the claim.": "Thu thập bằng chứng có thẩm quyền mạnh hơn trước khi chấp nhận tuyên bố.",
-    "Inspect the authorized cited posts and their evidence.": "Kiểm tra các bài viết được trích dẫn đã cấp quyền và bằng chứng của chúng.",
+    "Ask about a specific claim or narrow the time range, then retry.": "Hãy nêu rõ tuyên bố cần xác minh hoặc thu hẹp khoảng thời gian, rồi thử lại.",
     "Review unavailable historical channels before relying on this cutoff answer.": "Xem lại các kênh lịch sử không khả dụng trước khi dựa vào câu trả lời tại mốc cắt này.",
     "Compare these cutoff-grounded citations with live evidence next.": "Tiếp theo, hãy so sánh các trích dẫn tại mốc cắt với bằng chứng hiện tại.",
     Ask: "Hỏi",
@@ -2027,7 +2034,8 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Share unavailable.": "Không thể chia sẻ.",
     "Bookmark unavailable.": "Không thể dùng dấu trang.",
     "No summary is available for this record yet.": "Chưa có bản tóm tắt cho bản ghi này.",
-    "Saved evidence is still available.": "Bằng chứng đã lưu vẫn có thể xem.",
+    "Review the saved evidence below, then retry in a moment.":
+      "Hãy xem bằng chứng đã lưu bên dưới, rồi thử lại sau ít phút.",
     "Showing the first {shown} of {total} posts known at this cutoff.":
       "Đang hiển thị {shown} bài viết đầu tiên trong số {total} bài viết được biết tại thời điểm chốt này.",
     "Showing the first {shown} of {total} observed customer identifiers, ranked by post count.":
