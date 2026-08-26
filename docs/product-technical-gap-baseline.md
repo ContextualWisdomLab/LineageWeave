@@ -20,12 +20,18 @@ runtime inputs rather than committed source identifiers.
 
 Semantic-layer referential checks found no unknown ontology term references,
 no missing graph endpoints, and no confidence values outside `[0, 1]`.
-However, 3,190 document-to-document semantic edges spanning 5,080 distinct
-documents have no evidence identifier. All have a nonblank reason and one of
-two governed evidence states, but none joins to the current lineage edge set
-and only one joins to an inference candidate with evidence. These edges remain
-an explicit provenance gap: do not present them as source-backed facts until a
-normalized evidence or inference-run reference is persisted.
+All 832,696 observed knowledge-graph edges carry a direct evidence identifier,
+and no edge uses an ungoverned evidence status. Of 6,046 inferred edges, 3,024
+lack a direct evidence identifier; all 166 predicted edges lack one. Those
+3,190 document-to-document edges span 5,080 distinct documents and have a
+nonblank reason, but none joins to the current lineage edge set and only one
+joins to an inference candidate with evidence. A direct evidence identifier is
+not required to mislabel an inference or prediction as observed. Its generation
+or derivation nevertheless requires qualified provenance, and the authorized
+source database currently has zero of the 13 normalized PROV-O tables required
+by ADR 0011. These edges therefore remain an explicit provenance gap: do not
+present them as source-backed facts or qualified derivations until a normalized
+resource, activity, assertion, and qualification reference is persisted.
 
 The current semantic layer is therefore **not sufficient for the source
 content as a whole**. It covers typed Post, Person, CorporateEntity, Team,

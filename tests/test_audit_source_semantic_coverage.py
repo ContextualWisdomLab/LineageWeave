@@ -123,3 +123,82 @@ def test_audit_requires_complete_key_coverage_configuration() -> None:
                 source_key="document_key",
             )
         )
+
+
+def test_audit_reports_assertion_evidence_and_prov_schema_without_values(
+    monkeypatch,
+) -> None:
+    """Assertion evidence stays aggregate and PROV deployment is exact."""
+
+    class Connection:
+        calls = 0
+
+        async def fetchrow(self, query: str):
+            self.calls += 1
+            if self.calls == 1:
+                return {"row_count": 2}
+            assert 'from "semantic_schema"."edge_assertions"' in query
+            return {
+                "assertion_count": 9,
+                "observed_count": 6,
+                "observed_without_evidence_count": 0,
+                "inferred_count": 2,
+                "inferred_without_direct_evidence_count": 1,
+                "predicted_count": 1,
+                "predicted_without_direct_evidence_count": 1,
+                "ungoverned_status_count": 0,
+            }
+
+        async def fetch(self, query: str, schema: str, required: list[str]):
+            assert "information_schema.tables" in query
+            assert schema == "semantic_schema"
+            return [{"table_name": name} for name in required]
+
+        async def close(self) -> None:
+            pass
+
+    async def connect(_dsn: str):
+        return Connection()
+
+    monkeypatch.setattr("scripts.audit_source_semantic_coverage.asyncpg.connect", connect)
+
+    result = asyncio.run(
+        audit_source_semantic_coverage(
+            "postgresql://synthetic",
+            "source_schema.source_rows",
+            {},
+            assertion_table="semantic_schema.edge_assertions",
+            assertion_status="evidence_status",
+            assertion_evidence="evidence_id",
+            provenance_schema="semantic_schema",
+        )
+    )
+
+    assert result["semantic_assertion_evidence"] == {
+        "assertion_count": 9,
+        "observed_count": 6,
+        "observed_without_evidence_count": 0,
+        "inferred_count": 2,
+        "inferred_without_direct_evidence_count": 1,
+        "predicted_count": 1,
+        "predicted_without_direct_evidence_count": 1,
+        "ungoverned_status_count": 0,
+        "source_evidence_boundary_complete": True,
+    }
+    assert result["normalized_provenance_schema"] == {
+        "required_table_count": 13,
+        "present_table_count": 13,
+        "complete": True,
+    }
+
+
+def test_audit_requires_complete_assertion_configuration() -> None:
+    with pytest.raises(ValueError, match="assertion_table.*all required"):
+        asyncio.run(
+            audit_source_semantic_coverage(
+                "postgresql://synthetic",
+                "source_schema.source_rows",
+                {},
+                assertion_table="semantic_schema.edge_assertions",
+            )
+        )
