@@ -11,16 +11,21 @@ LINEAGEWEAVE_OIDC_ISSUER="${LINEAGEWEAVE_OIDC_ISSUER:-http://localhost:18080/rea
 LINEAGEWEAVE_OIDC_CLIENT_ID="${LINEAGEWEAVE_OIDC_CLIENT_ID:-lineageweave-frontend}"
 SYNTHETIC_USERNAME="${SYNTHETIC_USERNAME:-demo.analyst}"
 SYNTHETIC_PASSWORD="${SYNTHETIC_PASSWORD:-lineageweave-demo-only}"
-SCREENSHOT_PATH="${SCREENSHOT_PATH:-/tmp/lineageweave-operations-dashboard-synthetic.png}"
+SCREENSHOT_DESKTOP_PATH="${SCREENSHOT_DESKTOP_PATH:-/tmp/lineageweave-operations-dashboard-synthetic-desktop.png}"
+SCREENSHOT_MOBILE_PATH="${SCREENSHOT_MOBILE_PATH:-/tmp/lineageweave-operations-dashboard-synthetic-mobile.png}"
 E2E_OUTPUT_DIR="${E2E_OUTPUT_DIR:-/tmp/lineageweave-operations-dashboard-synthetic-e2e}"
 K6_SUMMARY_PATH="${K6_SUMMARY_PATH:-/tmp/lineageweave-operations-dashboard-synthetic-k6.json}"
 repository_root="$(git rev-parse --show-toplevel)"
 
-for artifact_path in "$SCREENSHOT_PATH" "$E2E_OUTPUT_DIR" "$K6_SUMMARY_PATH"; do
+for artifact_path in "$SCREENSHOT_DESKTOP_PATH" "$SCREENSHOT_MOBILE_PATH" "$E2E_OUTPUT_DIR" "$K6_SUMMARY_PATH"; do
   case "$artifact_path" in
     "$repository_root"/*) echo "runtime evidence must stay outside the repository" >&2; exit 2 ;;
   esac
 done
+[[ "$SCREENSHOT_DESKTOP_PATH" != "$SCREENSHOT_MOBILE_PATH" ]] || {
+  echo "desktop and mobile screenshots require distinct paths" >&2
+  exit 2
+}
 [[ "$EXPECTED_LINEAGEWEAVE_REVISION" =~ ^[0-9a-f]{40}$ ]] || {
   echo "EXPECTED_LINEAGEWEAVE_REVISION must be a full commit SHA" >&2
   exit 2
@@ -55,7 +60,7 @@ curl --fail-with-body --silent --show-error \
   "$BACKEND_URL/api/dashboard" | jq -e '.cases | type == "array"' >/dev/null
 
 export LINEAGEWEAVE_ACCESS_TOKEN LINEAGEWEAVE_OIDC_ISSUER LINEAGEWEAVE_OIDC_CLIENT_ID
-export LINEAGEWEAVE_E2E_BASE_URL SCREENSHOT_PATH
+export LINEAGEWEAVE_E2E_BASE_URL SCREENSHOT_DESKTOP_PATH SCREENSHOT_MOBILE_PATH
 export REQUIRE_GROUNDED_CASE=false
 (cd frontend && corepack pnpm exec playwright test \
   e2e/runtime-operations-dashboard.spec.ts --output "$E2E_OUTPUT_DIR")
@@ -63,5 +68,7 @@ export REQUIRE_GROUNDED_CASE=false
 export BACKEND_URL K6_VUS K6_DURATION
 k6 run --vus "$K6_VUS" --duration "$K6_DURATION" \
   --summary-export "$K6_SUMMARY_PATH" scripts/k6_operations_dashboard.js
+jq -e '.metrics.checks.values.fails == 0 and .metrics.http_req_failed.values.rate == 0' \
+  "$K6_SUMMARY_PATH" >/dev/null
 
 printf 'operations-dashboard-synthetic-acceptance-ok revision=%s\n' "$EXPECTED_LINEAGEWEAVE_REVISION"

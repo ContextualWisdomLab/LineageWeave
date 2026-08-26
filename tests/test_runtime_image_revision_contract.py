@@ -43,3 +43,17 @@ def test_provider_acceptance_reuses_shared_post_eligibility_sql() -> None:
     )
     assert "from backend.app.post_eligibility import SOURCE_POST_ELIGIBILITY_SQL" in runner
     assert "where ${source_post_eligibility_sql}" in runner
+
+
+def test_runtime_runners_require_distinct_desktop_and_mobile_artifacts() -> None:
+    """Both acceptance modes must preserve separate responsive screenshots."""
+    for script_name in (
+        "accept_operations_dashboard_runtime.sh",
+        "accept_operations_dashboard_synthetic.sh",
+    ):
+        runner = (_ROOT / "scripts" / script_name).read_text(encoding="utf-8")
+        assert "SCREENSHOT_DESKTOP_PATH" in runner
+        assert "SCREENSHOT_MOBILE_PATH" in runner
+        assert '"$SCREENSHOT_DESKTOP_PATH" != "$SCREENSHOT_MOBILE_PATH"' in runner
+        assert ".metrics.checks.values.fails == 0" in runner
+        assert ".metrics.http_req_failed.values.rate == 0" in runner

@@ -1,10 +1,15 @@
 import { expect, test } from "@playwright/test";
 
-test("renders the authenticated operations Dashboard with grounded cases", async ({ page }) => {
+test("renders the authenticated operations Dashboard with grounded cases", async ({
+  page,
+}, testInfo) => {
   const accessToken = process.env.LINEAGEWEAVE_ACCESS_TOKEN;
   const issuer = process.env.LINEAGEWEAVE_OIDC_ISSUER;
   const clientId = process.env.LINEAGEWEAVE_OIDC_CLIENT_ID;
-  const screenshotPath = process.env.SCREENSHOT_PATH;
+  const screenshotPath =
+    testInfo.project.name === "chromium-mobile"
+      ? process.env.SCREENSHOT_MOBILE_PATH
+      : process.env.SCREENSHOT_DESKTOP_PATH;
   const requireGroundedCase = process.env.REQUIRE_GROUNDED_CASE !== "false";
   if (!accessToken || !issuer || !clientId || !screenshotPath) {
     throw new Error("runtime OIDC and screenshot environment is required");
