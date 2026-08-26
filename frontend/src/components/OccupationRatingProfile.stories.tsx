@@ -111,16 +111,10 @@ export const OccupationsEmpty: Story = {
   },
 };
 export const OccupationFilterEmpty: Story = {
-  render: () => <OccupationRatingProfile accessToken="synthetic-token" />,
-  beforeEach: () => mockOccupationCatalog({
-    occupations: [
-      { onetsoc_code: "11-1011.00", occupation_title: "Synthetic chief occupation" },
-      { onetsoc_code: "15-1252.00", occupation_title: "Synthetic occupation" },
-    ],
-  }),
+  ...InteractiveEvidenceReady,
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    await canvas.findByRole("option", { name: "Synthetic occupation (15-1252.00)" });
+    await canvas.findByRole("option", { name: "Software Developers · 15-1252.00" });
     await userEvent.type(canvas.getByLabelText("직업 찾기"), "unknown-occupation");
     await expect(canvas.findByText(/입력한 조건에 맞는 직업이 없습니다/)).resolves.toBeVisible();
   },

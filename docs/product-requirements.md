@@ -206,7 +206,7 @@ stays bound to the loaded profile identifiers.
 ### PRD-FR-2I — Occupation catalog title filter
 
 - Let an authenticated user filter the imported occupation catalog by
-  published title or retained code without ranking or typed SOC fallback
+  published title or retained code without ranking or typed-code fallback
   (ADR 0262).
 - Reset the filter when the source changes.
 - Disable profile submission and state the next action when the filter

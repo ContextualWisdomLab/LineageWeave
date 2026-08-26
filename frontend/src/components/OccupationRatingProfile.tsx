@@ -15,11 +15,8 @@ function matchesOccupationCatalogQuery(
   query: string,
 ): boolean {
   const needle = query.trim().toLocaleLowerCase("en-US");
-  if (!needle) return true;
-  return (
-    occupation.occupation_title.toLocaleLowerCase("en-US").includes(needle)
-    || occupation.onetsoc_code.toLocaleLowerCase("en-US").includes(needle)
-  );
+  return !needle || occupation.occupation_title.toLocaleLowerCase("en-US").includes(needle)
+    || occupation.onetsoc_code.toLocaleLowerCase("en-US").includes(needle);
 }
 
 function safeHttpUrl(value: string | null | undefined): string | null {
@@ -132,15 +129,6 @@ export function OccupationRatingProfile({ accessToken }: Props) {
     matchesOccupationCatalogQuery(occupation, occupationQuery),
   );
 
-  useEffect(() => {
-    if (occupations == null) return;
-    if (visibleOccupations.some((occupation) => occupation.onetsoc_code === onetsocCode)) return;
-    requestSequence.current += 1;
-    setOnetsocCode(visibleOccupations[0]?.onetsoc_code ?? "");
-    setProfile(null);
-    setStatus("idle");
-  }, [occupations, onetsocCode, visibleOccupations]);
-
   return (
     <section className="occupation-rating-profile" aria-labelledby="occupation-rating-heading">
       <header>
@@ -163,7 +151,17 @@ export function OccupationRatingProfile({ accessToken }: Props) {
               value={occupationQuery}
               placeholder="이름이나 코드로 찾기"
               disabled={occupations === null || occupations.length === 0}
-              onChange={(event) => setOccupationQuery(event.target.value)}
+              onChange={(event) => {
+                const query = event.target.value;
+                setOccupationQuery(query);
+                const selected = occupations?.find((item) => item.onetsoc_code === onetsocCode);
+                if (selected && !matchesOccupationCatalogQuery(selected, query)) {
+                  requestSequence.current += 1;
+                  setOnetsocCode("");
+                  setProfile(null);
+                  setStatus("idle");
+                }
+              }}
             />
           </label>
           <label>
