@@ -1021,12 +1021,12 @@
 }
 
 .chat-history-controls select {
-  min-height: 44px;
+  min-height: var(--size-control-min);
   width: 100%;
 }
 
 .chat-history-controls > button {
-  min-height: 44px;
+  min-height: var(--size-control-min);
   white-space: nowrap;
 }
 
