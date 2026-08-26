@@ -1217,7 +1217,7 @@ function KeymanPanel({
           onClick={() => setOntologyOpen((open) => !open)}
           aria-expanded={ontologyOpen}
         >
-          {t("Inspect ontology neighborhood")}
+          {t("View related information")}
         </button>
         {canExtract && !orchestratorOff && (
           <details className="operator-action-tools">
@@ -1231,7 +1231,7 @@ function KeymanPanel({
       {error && <p className="error">{error}</p>}
       {sourceAuthorContext ? (
         <details className="keyman-source-context">
-          <summary>{t("Source author evidence")} · {t("Hint only")}</summary>
+          <summary>{t("Author context")} · {t("Hint only")}</summary>
           <p>
             <strong>
               {sourceAuthorContext.source_author_name || sourceAuthorContext.source_author_code || t("Unknown")}
@@ -2166,8 +2166,8 @@ function PostDetailPopup({
               post.source_project_name ||
               post.source_system_code ||
               post.source_record_key) && (
-              <section className="popup-section" aria-label={t("Original source state")}>
-                <h3>{t("Original source state")}</h3>
+              <section className="popup-section" aria-label={t("Earlier source version")}>
+                <h3>{t("Earlier source version")}</h3>
                 <dl>
                   {post.source_stage_code ? (
                     <>
@@ -2285,8 +2285,8 @@ function PostDetailPopup({
 					<FiveW1H slots={fiveW1H?.slots ?? null} />
 
 				{post.project_evidence && post.project_evidence.length > 0 ? (
-              <section className="popup-section" aria-label={t("Projects / semantic evidence")}>
-                <h3>{t("Projects / semantic evidence")}</h3>
+              <section className="popup-section" aria-label={t("Related projects")}>
+                <h3>{t("Related projects")}</h3>
                 <ul>
                   {post.project_evidence.map((project) => (
                     <li key={`${project.resolution_status}:${project.project_key}`}>
@@ -2305,15 +2305,15 @@ function PostDetailPopup({
                         : `(${Math.round(project.confidence * 100)}%)`}
                       : {project.evidence}
                       <details className="semantic-provenance">
-                        <summary>{t("Evidence provenance")}</summary>
+                        <summary>{t("Why this item is listed")}</summary>
                         <span className="post-badge">
-                          {t("Ontology class")}: {t(project.ontology_label ?? "Project")}
+                          {t("Category")}: {t(project.ontology_label ?? "Project")}
                         </span>
                         <span className="post-badge">
-                          {t("Extraction source")}: {projectExtractionLabel(project.extraction_method)}
+                          {t("How this item was found")}: {projectExtractionLabel(project.extraction_method)}
                         </span>
                         <span className="post-badge">
-                          {t("Evidence field")}: {projectProvenanceLabel(project.provenance)}
+                          {t("Recorded evidence")}: {projectProvenanceLabel(project.provenance)}
                         </span>
                       </details>
                     </li>
@@ -2687,9 +2687,9 @@ function analysisRunNextAction(run: AnalysisRun): string | null {
     case "analysis_status_failed":
       switch (run.run_kind_code) {
         case "analysis_run_tepp":
-          return "Open this run to see why it failed, then connect the measurement service and re-run.";
+          return "Open this run to see why it failed, then retry with the latest available records.";
         case "analysis_run_topic_lineage":
-          return "Open this run to see why it failed, then connect the TEPP transport and re-run.";
+          return "Open this run to see why it failed, then retry with the latest available records.";
         case "analysis_run_lineage":
           return "Open this run to see why it failed, then retry reconstruction from a current snapshot.";
         case "analysis_run_report":
@@ -2720,22 +2720,22 @@ function analysisRunEmptyPostsHint(run: AnalysisRun): string {
     case "analysis_run_tepp":
       return (
         "No posts were available at this cutoff for TEPP to measure. " +
-        "Open a later run, or ask an administrator to capture a newer snapshot."
+        "Open a later run or retry after a newer snapshot is available."
       );
     case "analysis_run_topic_lineage":
       return (
         "No posts were available at this cutoff for topic-lineage analysis. " +
-        "Open a later run, or ask an administrator to capture a newer snapshot."
+        "Open a later run or retry after a newer snapshot is available."
       );
     case "analysis_run_lineage":
       return (
         "No posts were available at this cutoff for reconstruction. " +
-        "Open a later run, or ask an administrator to capture a newer snapshot."
+        "Open a later run or retry after a newer snapshot is available."
       );
     case "analysis_run_report":
       return (
         "No posts were available at this cutoff for the period report. " +
-        "Open a later run, or ask an administrator to capture a newer snapshot."
+        "Open a later run or retry after a newer snapshot is available."
       );
     default: {
       const unexpected: never = run.run_kind_code;
@@ -3138,8 +3138,8 @@ function AnalysisRunsPanel({
       {(error || entitiesLoadError) && <p className="error">{error ?? entitiesLoadError}</p>}
       {runs.length === 0 ? (
         <p className="popup-placeholder">
-          No analysis runs visible to this account yet. Request a lineage
-          reconstruction, or ask an administrator to run make seed.
+          No analysis runs are visible to this account yet. Add source records,
+          then request a new analysis run.
         </p>
       ) : (
         <ul className="ticket-list" aria-label="Analysis runs">
@@ -4734,7 +4734,7 @@ function CustomerMasterPanel({
       ) : null}
       {master && master.source_author_hints.length > 0 ? (
         <section className="customer-keymen" aria-labelledby="source-author-evidence-heading">
-          <h3 id="source-author-evidence-heading">{t("Source author evidence")}</h3>
+          <h3 id="source-author-evidence-heading">{t("Author context")}</h3>
           {master.source_author_hints.length > HINT_RENDER_LIMIT && (
             <p className="post-meta">
               {tf("Showing the first {shown} of {total} observed source authors, ranked by post count.", {

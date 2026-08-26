@@ -158,10 +158,10 @@ describe("OntologyExplorer", () => {
     await userEvent.click(await screen.findByRole("button", { name: "Select node: Post Demo public post" }));
     expect(screen.getByRole("heading", { name: "Demo public post" })).toBeInTheDocument();
     await userEvent.click(screen.getByRole("button", { name: "Load next relation page" }));
-    expect(await screen.findByText("Loading ontology neighborhood...")).toBeInTheDocument();
+    expect(await screen.findByText("Loading related information...")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Select node: Post Demo public post" })).toBeInTheDocument();
     rejectContinuation(new BackendError("/api/ontology/neighborhood", 500));
-    expect(await screen.findByText("Ontology neighborhood is unavailable. Open a visible post next.")).toBeInTheDocument();
+    expect(await screen.findByText("Related information is unavailable. Open a visible post next.")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Select node: Post Demo public post" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Demo public post" })).toBeInTheDocument();
     expect(fetchNeighborhood).toHaveBeenNthCalledWith(
@@ -188,10 +188,10 @@ describe("OntologyExplorer", () => {
     );
 
     await userEvent.click(await screen.findByRole("button", { name: "Load next relation page" }));
-    expect(await screen.findByText("Ontology neighborhood is unavailable. Open a visible post next.")).toBeInTheDocument();
+    expect(await screen.findByText("Related information is unavailable. Open a visible post next.")).toBeInTheDocument();
     await userEvent.click(screen.getByRole("button", { name: "Load next relation page" }));
     await waitFor(() => expect(fetchNeighborhood).toHaveBeenCalledTimes(3));
-    expect(screen.queryByText("Ontology neighborhood is unavailable. Open a visible post next.")).not.toBeInTheDocument();
+    expect(screen.queryByText("Related information is unavailable. Open a visible post next.")).not.toBeInTheDocument();
     expect(fetchNeighborhood).toHaveBeenNthCalledWith(
       3,
       "synthetic-access-token",
@@ -216,7 +216,7 @@ describe("OntologyExplorer", () => {
 
     expect(
       await screen.findByText(
-        "Access denied for this ontology neighborhood. Open a visible post next.",
+        "Related information is unavailable for this record. Open a visible post next.",
       ),
     ).toBeInTheDocument();
   });
@@ -234,7 +234,7 @@ describe("OntologyExplorer", () => {
       />,
     );
     expect(
-      screen.getByText(/This is an ontology neighborhood, not Event Lineage/),
+      screen.getByText("Review related records and open a source post for details."),
     ).toBeInTheDocument();
     await userEvent.click(screen.getByRole("button", { name: "Select node: Post Demo public post" }));
     expect(screen.getByRole("heading", { name: "Demo public post" })).toBeInTheDocument();
@@ -258,7 +258,7 @@ describe("OntologyExplorer", () => {
     );
     expect(
       screen.getAllByText(
-        "No visible ontology relations for this focus. Open a Keyman or affiliated organization next.",
+        "No related information is available. Open a visible post next.",
       ).length,
     ).toBeGreaterThan(0);
     rerender(
@@ -281,7 +281,7 @@ describe("OntologyExplorer", () => {
         status="denied"
       />,
     );
-    expect(screen.getByText("Access denied for this ontology neighborhood. Open a visible post next.")).toBeInTheDocument();
+    expect(screen.getByText("Related information is unavailable for this record. Open a visible post next.")).toBeInTheDocument();
     rerender(
       <OntologyExplorer
         focusNodeType="node_post"
@@ -293,7 +293,7 @@ describe("OntologyExplorer", () => {
         status="rejected"
       />,
     );
-    expect(screen.getByText("Rejected proposal. Open the evidence and do not treat it as authoritative.")).toBeInTheDocument();
+    expect(screen.getByText("This suggestion was not accepted. Open the evidence to review it.")).toBeInTheDocument();
   });
 
   it("does not hide rejected or cutoff warnings behind truncation", () => {
@@ -309,7 +309,7 @@ describe("OntologyExplorer", () => {
         neighborhood={rejected}
       />,
     );
-    expect(screen.getByText("Rejected proposal. Open the evidence and do not treat it as authoritative.")).toBeInTheDocument();
+    expect(screen.getByText("This suggestion was not accepted. Open the evidence to review it.")).toBeInTheDocument();
     expect(screen.queryByText(/Load the next relation page or inspect one edge/)).not.toBeInTheDocument();
 
     rerender(
@@ -321,7 +321,7 @@ describe("OntologyExplorer", () => {
       />,
     );
     expect(
-      screen.getByText("This neighborhood is bound to a knowledge cutoff. Compare with live evidence next."),
+      screen.getByText("This information reflects an earlier view. Compare it with the current record next."),
     ).toBeInTheDocument();
   });
 

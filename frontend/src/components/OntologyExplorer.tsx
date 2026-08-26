@@ -178,14 +178,13 @@ export function OntologyExplorer({
   }
 
   return (
-    <section className="ontology-explorer" aria-label={t("Ontology neighborhood")}>
+    <section className="ontology-explorer" aria-label={t("View related information")}>
       <header className="ontology-explorer-header">
         <div>
-          <p className="section-eyebrow">{t("Ontology neighborhood")}</p>
-          <h3>{t("Typed relations, not Event Lineage")}</h3>
+          <p className="section-eyebrow">{t("Related information")}</p>
+          <h3>{t("View related information")}</h3>
           <p>
-            {t("This is an ontology neighborhood, not Event Lineage.")}{" "}
-            {t("Event Lineage shows reconstructed post-to-post parents. This graph shows typed people, organizations, teams, and posts.")}
+            {t("Review related records and open a source post for details.")}
           </p>
         </div>
         <div className="ontology-explorer-actions">
@@ -312,13 +311,13 @@ function statusMessage(
   }
   const messages: Record<OntologyExplorerStatus, string> = {
     ready: "",
-    loading: t("Loading ontology neighborhood..."),
-    empty: t("No visible ontology relations for this focus. Open a Keyman or affiliated organization next."),
-    truncated: t("Neighborhood truncated. Page visible relations, then inspect one edge."),
-    denied: t("Access denied for this ontology neighborhood. Open a visible post next."),
-    stale: t("This neighborhood is bound to a knowledge cutoff. Compare with live evidence next."),
-    rejected: t("Rejected proposal. Open the evidence and do not treat it as authoritative."),
-    error: t("Ontology neighborhood is unavailable. Open a visible post next."),
+    loading: t("Loading related information..."),
+    empty: t("No related information is available. Open a visible post next."),
+    truncated: t("Some related information is not shown. Open a source post to continue."),
+    denied: t("Related information is unavailable for this record. Open a visible post next."),
+    stale: t("This information reflects an earlier view. Compare it with the current record next."),
+    rejected: t("This suggestion was not accepted. Open the evidence to review it."),
+    error: t("Related information is unavailable. Open a visible post next."),
   };
   const text = messages[status];
   if (!text) return null;
@@ -372,7 +371,7 @@ function OntologyGraph({
       width="100%"
       height={Math.max(180, layout.height)}
     >
-      <title>{t("Ontology neighborhood")}</title>
+      <title>{t("View related information")}</title>
       {layout.edges.map((edge) => {
         const midX = (edge.fromX + edge.toX) / 2;
         const midY = (edge.fromY + edge.toY) / 2;
@@ -471,7 +470,7 @@ function OntologyExactValueTable({
     <div className="ontology-exact-values">
       <h4>{t("Exact values")}</h4>
       {payload.exact_value_rows.length === 0 ? (
-        <p>{t("No visible ontology relations for this focus. Open a Keyman or affiliated organization next.")}</p>
+        <p>{t("No related information is available. Open a visible post next.")}</p>
       ) : (
         <table>
           <caption>{t("Exact values")}</caption>
@@ -524,7 +523,7 @@ function OntologyNodeDrawer({
       <p>
         {t(NODE_TYPE_LABEL[node.node_type_code] ?? node.node_type_code)} · {t(TRUTH_LABEL[node.truth_status_code ?? ""] ?? node.truth_status_code ?? "Unknown")}
       </p>
-      <p>{t("Ontology class")}: {node.ontology_class_iri}</p>
+      <p>{t("Category")}: {node.ontology_class_iri}</p>
       <p>{t("Recorded at")}: {node.recorded_at?.slice(0, 10) ?? t("Unknown")}</p>
       <div className="ontology-explorer-actions">
         {canRefocus ? (
@@ -538,7 +537,7 @@ function OntologyNodeDrawer({
           </button>
         ) : null}
         <button type="button" onClick={onClose}>
-          {t("Close ontology details")}
+          {t("Close record details")}
         </button>
       </div>
     </aside>
@@ -596,7 +595,7 @@ function OntologyEdgeDrawer({
         </p>
       )}
       <button type="button" onClick={onClose}>
-        {t("Close ontology details")}
+        {t("Close record details")}
       </button>
     </aside>
   );
