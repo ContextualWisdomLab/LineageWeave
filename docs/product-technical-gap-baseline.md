@@ -496,7 +496,7 @@ of leverage; open connector PRs there when the defect is upstream:
 - Pull requests validate only. Only protected `main` may publish, and the
   generated-directory marker, linked-IRI, duplicate-fragment, symlink, and
   source-overlap checks fail closed.
-- ADR 0205 and closed issue #372 make the repository-case namespace canonical;
+- ADR 0207 and closed issue #372 make the repository-case namespace canonical;
   the lowercase namespace is a deprecated compatibility vocabulary with
   term-kind-safe mappings and an explicit migration path.
 - The public index, `ontology.ttl`, SHACL graph, and manifest return HTTP 200.
