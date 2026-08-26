@@ -874,6 +874,7 @@ def test_voice_assignments_join_exact_csv_rows_and_jsonld() -> None:
         truth_status_code=TRUTH_OBSERVED,
         recorded_at=T0,
         provenance_reference="Evidence-backed additional voice",
+        evidence_post_id=PERSON_ID,
     )
     neighborhood = replace(neighborhood, voice_assignments=(assignment,))
 
@@ -892,8 +893,21 @@ def test_voice_assignments_join_exact_csv_rows_and_jsonld() -> None:
     assert post_projection[str(LW.hasVoiceAssignment)] == [{"@id": assignment_iri}]
     assert projected[str(LW.assignedVoiceType)] == {"@id": str(LW.voiceOfProcessType)}
     assert projected[str(LW.voiceAssignmentEvidence)] == {
-        "@id": ontology_node_iri(NODE_POST, POST_ID)
+        "@id": ontology_node_iri(NODE_POST, PERSON_ID)
     }
+    assert projected["prov:wasDerivedFrom"] == {
+        "@id": ontology_node_iri(NODE_POST, PERSON_ID)
+    }
+
+    hidden_evidence = replace(assignment, evidence_post_id=None)
+    hidden_projection = next(
+        item
+        for item in replace(neighborhood, voice_assignments=(hidden_evidence,))
+        .jsonld_document()["@graph"]
+        if item.get("@id") == assignment_iri
+    )
+    assert str(LW.voiceAssignmentEvidence) not in hidden_projection
+    assert "prov:wasDerivedFrom" not in hidden_projection
 
     with pytest.raises(OntologyNeighborhoodError, match="offset-aware"):
         replace(assignment, recorded_at=T0.replace(tzinfo=None))

@@ -28,6 +28,7 @@ def test_voice_combination_schema_is_normalized_and_evidence_bearing() -> None:
     assert "after update of voc_type_code on source_post" in sql
     assert "when (old.voc_type_code is distinct from new.voc_type_code)" in sql
     assert "on conflict (post_id, voice_type_code) do update" in sql
+    assert "where not source_post_voice.is_primary" in sql
     assert "where lookup_category = 'voc_type'" in sql
     assert "where lookup_category = 'ontology_truth_status'" in sql
     assert "errcode = '23514'" in sql

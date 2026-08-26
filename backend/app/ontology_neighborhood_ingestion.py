@@ -791,11 +791,18 @@ async def _load_voice_assignments(
     rows = await conn.fetch(
         """
         select voice.post_id, voice.voice_type_code, lookup.lookup_label, voice.is_primary,
-               voice.truth_status_code, voice.recorded_at
+               voice.truth_status_code, voice.recorded_at,
+               case when evidence.node_id = any($1::uuid[]) then evidence.node_id end
+                   as evidence_post_id
           from source_post_voice voice
           join common_lookup_value lookup
             on lookup.lookup_category = 'voc_type'
            and lookup.lookup_code = voice.voice_type_code
+          left join provenance_assertion assertion
+            on assertion.assertion_id = voice.provenance_assertion_id
+          left join provenance_resource_binding evidence
+            on evidence.resource_id = assertion.object_resource_id
+           and evidence.node_type_code = 'node_post'
          where voice.post_id = any($1::uuid[])
            and ($2::timestamptz is null or voice.effective_from <= $2)
            and voice.recorded_at <= $3::timestamptz
@@ -826,6 +833,11 @@ async def _load_voice_assignments(
                     "Evidence-backed additional voice"
                     if not row["is_primary"]
                     else "Imported primary voice"
+                ),
+                evidence_post_id=(
+                    str(row["evidence_post_id"])
+                    if row["evidence_post_id"] is not None
+                    else None
                 ),
             )
         )

@@ -833,6 +833,7 @@ def test_focus_label_fetch_may_be_empty_when_facts_already_labeled() -> None:
                 "truth_status_code": "truth_observed",
                 "recorded_at": T0,
                 "has_assertion": False,
+                "evidence_post_id": None,
             }
         ],
     }
@@ -905,6 +906,7 @@ def test_load_voice_assignments_preserves_truth_and_customer_safe_provenance() -
                     "truth_status_code": "truth_observed",
                     "recorded_at": T0,
                     "has_assertion": False,
+                    "evidence_post_id": None,
                 },
                 {
                     "post_id": POST_ID,
@@ -914,6 +916,7 @@ def test_load_voice_assignments_preserves_truth_and_customer_safe_provenance() -
                     "truth_status_code": "truth_observed",
                     "recorded_at": T0,
                     "has_assertion": True,
+                    "evidence_post_id": POST_ID,
                 },
             ]
         }
@@ -926,6 +929,8 @@ def test_load_voice_assignments_preserves_truth_and_customer_safe_provenance() -
     assert [assignment.voice_type_code for assignment in assignments] == ["voc", "vops"]
     assert assignments[0].provenance_reference == "Imported primary voice"
     assert assignments[1].provenance_reference == "Evidence-backed additional voice"
+    assert assignments[1].evidence_post_id == POST_ID
+    assert "evidence.node_id = any($1::uuid[])" in conn.calls[0][0]
     assert "voice.effective_from <= $2" in conn.calls[0][0]
     assert "voice.recorded_at <= $3" in conn.calls[0][0]
     assert conn.calls[0][1] == ([POST_ID], T0, T0)

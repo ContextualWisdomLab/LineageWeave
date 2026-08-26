@@ -64,7 +64,8 @@ from source_post
 on conflict (post_id, voice_type_code) do update
 set is_primary = true,
     truth_status_code = 'truth_observed',
-    provenance_assertion_id = null;
+    provenance_assertion_id = null
+where not source_post_voice.is_primary;
 
 create or replace function synchronize_source_post_primary_voice()
 returns trigger

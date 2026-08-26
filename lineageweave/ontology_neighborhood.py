@@ -221,6 +221,7 @@ class OntologyVoiceAssignment:
     truth_status_code: str
     recorded_at: datetime
     provenance_reference: str
+    evidence_post_id: str | None = None
 
     def __post_init__(self) -> None:
         """Reject ungoverned or incomplete assignments at the export boundary."""
@@ -382,6 +383,20 @@ class OntologyNeighborhood:
         for assignment in self.voice_assignments:
             post_iri = ontology_node_iri(NODE_POST, assignment.post_id)
             assignment_iri = _voice_assignment_iri(assignment)
+            evidence_post_id = assignment.evidence_post_id
+            evidence_iri = (
+                ontology_node_iri(NODE_POST, evidence_post_id)
+                if evidence_post_id is not None
+                else post_iri if assignment.is_primary else None
+            )
+            provenance = (
+                {
+                    str(LW.voiceAssignmentEvidence): {"@id": evidence_iri},
+                    "prov:wasDerivedFrom": {"@id": evidence_iri},
+                }
+                if evidence_iri is not None
+                else {}
+            )
             graph.append(
                 {
                     "@id": assignment_iri,
@@ -391,8 +406,7 @@ class OntologyNeighborhood:
                         "@value": assignment.is_primary,
                         "@type": "xsd:boolean",
                     },
-                    str(LW.voiceAssignmentEvidence): {"@id": post_iri},
-                    "prov:wasDerivedFrom": {"@id": post_iri},
+                    **provenance,
                     "lw:truthStatus": assignment.truth_status_code,
                     "prov:generatedAtTime": {
                         "@value": assignment.recorded_at.isoformat(),
