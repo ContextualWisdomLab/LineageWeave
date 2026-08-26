@@ -684,7 +684,7 @@
 # give stored evidence an addressable occupational-classification
 # vocabulary. The O*NET job zones carry published preparation levels;
 # the Holland RIASEC interest types, O*NET work-value clusters,
-# personality-linked work-style families (Hogan & Holland, 2003), and
+# work-style families from the revised O*NET Work Styles report, and
 # Fleishman ability domains carry the worker-characteristic constructs
 # that the O*NET content model organizes under every occupation
 # (Peterson et al., 1999; Peterson et al., 2001).

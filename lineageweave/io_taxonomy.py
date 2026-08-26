@@ -263,6 +263,9 @@ def major_group_records() -> tuple[MajorGroupRecord, ...]:
                 label=_label_of(subject),
             )
         )
+    codes = [record.code for record in records]
+    if len(set(codes)) != len(codes):
+        raise ValueError("occupational major groups declare duplicate SOC codes")
     records.sort(key=lambda record: record.code)
     return tuple(records)
 
