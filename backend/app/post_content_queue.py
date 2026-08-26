@@ -370,6 +370,11 @@ async def enqueue_post_content_backfill(
                           or structure.decision_source_code = 'unresolved'
                       )
                ))
+               or ($3::boolean and not exists (
+                   select 1
+                     from operations_case_analysis analysis
+                    where analysis.post_id = post.post_id
+               ))
            )
          order by post.created_at, post.post_id
          limit $4
