@@ -67,7 +67,7 @@ are not merge readiness. Re-fetch exact heads,
 unresolved threads, checks, approvals, rulesets, and merge SHA before any
 lifecycle claim.
 
-> Audit snapshot: 2026-08-26 12:00 KST (refreshed by the autonomous merge
+> Audit snapshot: 2026-08-26 12:20 KST (refreshed by the autonomous merge
 > loop). This repository records synthetic fixtures and aggregate,
 > non-identifying runtime evidence only. Open PRs and local checks are not
 > protected-default-branch release evidence. Identifying post identifiers,
@@ -84,7 +84,7 @@ context only.
 
 | PR | Exact observed head | Merge/check state at this snapshot |
 | ---: | --- | --- |
-| #667 | `1207e579` | baseline refresh branch exact head at this snapshot; BLOCKED with review required; stacked #669 and #671 are merged into this non-default branch |
+| #667 | `0653f0d9` | baseline refresh branch exact head at this snapshot; BLOCKED with review required; stacked #669 and #671 are merged into this non-default branch |
 | #672 | `5468c04d` | persisted semantic-evidence nomination for Global Ask with ADR renumbering; BLOCKED with hosted checks queued and review required |
 | #668 | `1b8e1a99` | evidence-bound project history projection with ADR renumbering, request guards, and source-code/time-basis display repair; BLOCKED with review required |
 | #663 | `7ac1483e` | project ontology traversal, cutoff-snapshot project focus, bounded MCP admission, and migration-fixture/worker startup repair; BLOCKED with review required |
@@ -92,7 +92,7 @@ context only.
 | #657 | `709df1b9` | TEPP lifecycle persistence and fail-closed topic acceptance; BLOCKED with hosted checks queued and review required |
 | #644 | `ed8d97f3` | native-surface code splitting; BLOCKED with review required |
 | #643 | `3453ab08` | accessible status notices; BLOCKED with review required |
-| #640 | `d70a7788` | operations-dashboard evidence touch-target, scoped metrics, Rust residual interaction-map consumption, ABAC/UUID repairs, and RankWeave-owned RRF evidence; BLOCKED with hosted checks queued and no independent approval |
+| #640 | `674f2805` | operations-dashboard evidence touch-target, scoped metrics, Rust residual interaction-map consumption, ABAC/UUID repairs, and RankWeave-owned RRF evidence; BLOCKED with hosted checks queued and no independent approval |
 | #639 | `8da485d3` | running-action/config repair; BLOCKED with review required |
 | #632 | `811026cc` | graph-fact provenance repair with current baseline evidence; BLOCKED with hosted checks queued and review required |
 | #631 | `e6b4f0c4` | ADR decomposition documentation; BLOCKED with review required |
