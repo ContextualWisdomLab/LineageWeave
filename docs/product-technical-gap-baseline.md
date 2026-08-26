@@ -26,7 +26,7 @@ Accordingly, ADR 0246 keeps the controlled vocabulary extensible and refuses
 keyword inference, defaults, invented weights, or an asserted exhaustive
 cross-product.
 
-ADR 0247 and migration 0237 now define the persistence contract for
+ADR 0251 and migration 0237 now define the persistence contract for
 evidence-bearing composition. A post keeps one source-provided
 `voc_type_code`, mirrored as its sole primary association, while every
 additional voice requires a normalized PROV-O assertion and explicit truth
@@ -64,7 +64,7 @@ queued; and an independent approval was still required. Auto-merge remains
 enabled. No self-approval, admin bypass, or stale-head check transfer is
 permitted.
 
-Stacked PR #717 at `771a8edf` carries ADR 0247, migration 0237, qualified
+Stacked PR #717 at `771a8edf` carries ADR 0251, migration 0237, qualified
 ontology terms, persistence/API/UI tests, and the category-validation review
 repairs. CodeRabbit and Devin were successful on that exact remote head before
 this local projection slice. It targets #713's branch, not protected `main`;

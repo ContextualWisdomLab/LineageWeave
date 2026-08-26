@@ -452,7 +452,7 @@ def test_post_voice_additions_do_not_invent_counterparty_relationships() -> None
 
 
 def test_voice_combinations_use_qualified_assignments() -> None:
-    """ADR 0247 composes atomic voices without Cartesian-product terms."""
+    """ADR 0251 composes atomic voices without Cartesian-product terms."""
     graph = load_ontology()
 
     assert (LW.VoiceAssignment, RDF.type, OWL.Class) in graph

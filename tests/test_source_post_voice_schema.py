@@ -1,4 +1,4 @@
-"""Static contract tests for ADR 0247's normalized Voice-of-X associations."""
+"""Static contract tests for ADR 0251's normalized Voice-of-X associations."""
 
 from __future__ import annotations
 

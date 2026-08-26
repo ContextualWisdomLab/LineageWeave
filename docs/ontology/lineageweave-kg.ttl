@@ -361,7 +361,7 @@
     rdfs:comment "A process- or system-generated source record." ;
     :lookupCode "vops" .
 
-# ADR 0247 -- qualified, evidence-bearing combinations. A post links to one
+# ADR 0251 -- qualified, evidence-bearing combinations. A post links to one
 # assignment per atomic voice instead of minting a term for each Cartesian
 # combination. Additional assignments use prov:wasDerivedFrom to retain their
 # evidence lineage.
