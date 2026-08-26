@@ -34,3 +34,11 @@ export const WithTools: Story = {
     tools: <button type="button">Sign out</button>,
   },
 };
+
+export const MobileAllDestinations: Story = {
+  args: {
+    destination: "dashboard",
+    tools: <button type="button">언어</button>,
+  },
+  globals: { viewport: { value: "mobile1", isRotated: false } },
+};

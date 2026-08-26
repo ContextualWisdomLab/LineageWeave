@@ -1,4 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react";
+import { setLocale } from "../i18n";
 import { VoiceTaxonomySummary } from "./VoiceTaxonomySummary";
 
 const meta = { title: "Dashboard/VoiceTaxonomySummary", component: VoiceTaxonomySummary } satisfies Meta<typeof VoiceTaxonomySummary>;
@@ -14,3 +15,12 @@ export const OverlappingEvidence: Story = { args: { data: {
     { voice_concept_code: "vom", post_count: 4, eligible_percentage: 33.3 },
   ],
 } } };
+
+export const KoreanMobile: Story = {
+  ...OverlappingEvidence,
+  beforeEach: () => {
+    setLocale("ko");
+    return () => setLocale("en");
+  },
+  globals: { viewport: { value: "mobile1", isRotated: false } },
+};

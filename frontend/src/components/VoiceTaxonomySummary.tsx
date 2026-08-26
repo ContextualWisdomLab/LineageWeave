@@ -1,5 +1,5 @@
 import type { VoiceTaxonomySummary as Summary } from "../api";
-import { t, tf } from "../i18n";
+import { t, tf, useLocale } from "../i18n";
 
 const voiceLabels = {
   voc: "Voice of Customer",
@@ -10,6 +10,7 @@ const voiceLabels = {
 } as const;
 
 export function VoiceTaxonomySummary({ data }: { data: Summary }) {
+  useLocale();
   return (
     <section className="operations-dashboard" aria-labelledby="voice-summary-heading">
       <h2 id="voice-summary-heading">{t("Voice evidence overview")}</h2>
