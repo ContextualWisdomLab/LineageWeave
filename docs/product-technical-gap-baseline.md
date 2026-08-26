@@ -61,7 +61,7 @@ only aggregate, non-identifying evidence to this repository.
 
 ### Exact open-PR boundary
 
-At this snapshot there were 17 open PRs and 10 open issues. The exact-head
+At this snapshot there were 18 open PRs and 10 open issues. The exact-head
 inventory in section 1 is authoritative for this snapshot. Every open head
 remained blocked on hosted gates and/or independent review. These observations
 are not merge readiness. Re-fetch exact heads,
@@ -78,13 +78,14 @@ lifecycle claim.
 ## 1. Exact-head and governance evidence
 
 The protected default branch is `ff7431bd1851c03e737808d22c6a2d43968582f9`
-at this refresh. The live queue contains 17 open PRs and 10
+at this refresh. The live queue contains 18 open PRs and 10
 open issues. The exact-head inventory below supersedes older per-PR snapshots
 elsewhere in this document; those older rows remain useful historical delivery
 context only.
 
 | PR | Exact observed head | Merge/check state at this snapshot |
 | ---: | --- | --- |
+| #700 | `0b04fe73` | adds ADR 0238's bounded versioned caller-parsed conversation-turn envelope, fail-closed whole-result preflight, ordered semantic-unit persistence, and opaque caller evidence references without body-pattern speaker inference. Focused import/persistence/chunking/docstring/documentation tests and Ruff pass; protected hosted checks and independent review remain required |
 | #699 | `2fc467c6` | audits the dashboard stack against the Rust ownership boundary: TEPP and fast-mlsirm are the accepted scientific-compute owners, RankWeave remains the current Python retrieval contract, and no future Rust vector/graph scoring owner is invented. It is stacked on #694 pending parent delivery, hosted checks, and independent review |
 | #697 | `4003ed27` | deletes unused Python vector helpers without inventing a replacement. The active Global Ask vector arithmetic remains explicit migration debt until an accepted Rust retrieval-scoring owner contract exists; it is stacked on #692 pending parent delivery, hosted checks, and independent review |
 | #694 | `d903f7d0` | preserves overlapping voice classifications and authorized aggregate filters; voice evidence and next actions remain visible when the surrounding Dashboard is pending or failed, and the replay-safe schema permits only one open assertion per post, status, and concept. Focused backend/frontend, lint/build/Storybook, PostgreSQL constraint, and 1280×720 visual checks pass. It remains stacked on #692, so parent delivery, retargeting, fresh hosted checks, and independent review are required |
@@ -125,7 +126,7 @@ open current-main candidate rather than relying on that closed head.
 
 The exact-head check-run scan at 16:48 KST found no `failure`, `cancelled`, or
 `timed_out` conclusions on the 17 current heads. Several heads, including
-PR #667 and #672 after their repair pushes, are still queued and therefore have
+PR #667, #672, and #700 after their repair pushes, are still queued and therefore have
 no terminal gate evidence; review approval is also independently required.
 
 No row above is merge evidence. Immediately before any lifecycle action,
@@ -144,7 +145,7 @@ ADR 0229 unambiguous. #672's Semantic Ask migrations now use 0225/0226,
 separate from #640's 0211/0222 and #679's 0224. The former #640/#663 ADR
 0224 and 0225 collisions are resolved on #663 by unique ADR 0230/0231
 identities. A current-head inventory found no ADR or migration number assigned
-to divergent filenames across the 19 open PRs. The
+to divergent filenames across the 18 open PRs. The
 `0212_global_ask_knowledge_cutoff.sql` blobs in
 PR #658 and #663 are byte-identical, so that overlap is duplicated delivery rather
 than a semantic divergence. Release metadata also diverges: the observed
@@ -459,7 +460,7 @@ for wholesale replay from #490.
 
 | Gap | Current evidence | Acceptance requirement |
 | --- | --- | --- |
-| Protected release | Protected `main@ff7431bd` includes #631's ADR-decomposition documentation and #663's project-ontology/caller-parsed semantic-unit seam in addition to the #660/#664 semantic-unit/backend stack and #659 ontology readability/token repair. Seventeen PRs remain open at the 16:48 KST snapshot; every candidate still requires exact-head checks, unresolved-thread review, and independent approval before merge | Terminal exact-head checks, no unresolved threads, one independent approval under active ruleset `18156473`, and a protected merge SHA; re-fetch the ruleset before every lifecycle claim |
+| Protected release | Protected `main@ff7431bd` includes #631's ADR-decomposition documentation and #663's project-ontology/caller-parsed semantic-unit seam in addition to the #660/#664 semantic-unit/backend stack and #659 ontology readability/token repair. Eighteen PRs remain open at the 16:48 KST snapshot; every candidate still requires exact-head checks, unresolved-thread review, and independent approval before merge | Terminal exact-head checks, no unresolved threads, one independent approval under active ruleset `18156473`, and a protected merge SHA; re-fetch the ruleset before every lifecycle claim |
 | Evidence-grounded operations workspace | Protected-main #614 delivers governed semantic Ask, live Similar VOC, disjoint pending/failed analysis metrics, full Storybook state inventory, and current desktop/mobile screenshot evidence. Authorized-corpus backfill acceptance remains unavailable | Perform authenticated authorized-corpus acceptance with aggregate evidence and retain fail-closed no-match behavior |
 | Cancelled analysis guidance | PRD-FR-5 requires every lifecycle state to identify a valid next action, while ADR 0013 makes Cancelled terminal. Protected `main@494b54e2` rendered Cancelled without a next action. This stacked candidate adds kind-specific guidance for lineage, TEPP, topic lineage, and period reports; 390×844 and 1440×1000 authenticated synthetic-runtime audits are retained in `docs/screenshots/cancelled-analysis-runs-{mobile,desktop}.png`. The audit also found and repaired attached count/action text and the three-column mobile squeeze | Land through the protected gate, then repeat authenticated keyboard and screen-reader acceptance on the exact release head; no cancelled run may imply that it can resume or that a measurement exists |
 | Shared frontend gate | The ADR 0109 login repair is on protected `main`; eight older branches carried the defect and received the same verified repair this loop (#521–#560) | Keep every future branch cut from post-repair bases; re-verify with frontend lint/test/build before push |
@@ -468,7 +469,7 @@ for wholesale replay from #490.
 | Concurrent web responsiveness | ADR 0204 releases pooled transactions during provider work, and the synthetic Compose boundary has an authenticated k6 E2E harness for Ask enqueue, concurrent reads, and job polling. On PR #639 exact head `f6c8c93f`, a local 4-VU/30-second synthetic authenticated run completed 4,650 iterations (152.21/s), 13,952 requests (456.71/s), and zero failed requests. Ask enqueue was 74.90 ms; Ask polling p95 was 29.94 ms; combined post/lineage reads were 23.22 ms average and 40.88 ms p95. The one Ask job settled `succeeded`. A mid-run sample observed backend CPU 98.03%, PostgreSQL CPU 107.59%, Valkey 1.90% with zero rejected connections/evictions, and orchestrator 0.47%; PostgreSQL showed no lock wait. This names CPU pressure at the application/database boundary but does not establish a latency bottleneck, capacity limit, or SLO. The first PR #629 image build also reproduced the pnpm 11 ignored-build failure; PR #639's workspace-policy copy fixes that owned Compose contract and now locks the seed extras in regression. PR #629 exact head `48496ff6` still moves Global Ask question embedding before `pool.acquire()` and remains blocked on independent review | Land #639 and #629 through their protected gates, repeat this declared workload on their merge heads with endpoint-separated trends and repeated resource samples, then increase concurrency only until an observed latency/error knee identifies a bottleneck. Retain raw distributions and resource configuration; set no SLO until representative capacity evidence is approved |
 | Image understanding | Region, OCR, and description work exists across active heads (#405, #419), but current runtime acceptance has not yet proved table-image structure, complete region coverage, or summary/image readiness together | Orchestrator-backed rendered workflow, original/derived asset provenance, region-before-OCR processing, and honest unsupported states; reconcile ADR 0052's image-bearing summary readiness with ADR 0098 before changing sequencing |
 | Semantic source rendering | ADR 0223 and migration 0221 were first delivered via #664/#660 and remain on protected `main@494b54e2`; persisted paragraph, list, table, MathML formula, and caller-parsed conversation-turn kinds remain explicit and image regions remain ordered normalized children | Prove an authorized semantic-only query retrieves each persisted unit kind and gather authenticated browser evidence that nesting, continuation alignment, formula units, and image regions retain source order |
-| Source conversation-turn ingestion | PRD FR-4 and ADR 0062 require ordered sender/receiver turns, but `chunk_by_conversation_turn()` has no production caller. Protected #663 supplies the caller-parsed semantic-unit seam without a versioned Naruon contract; Ask conversation history and ThreadWeave message threading are separate graphs | Add a bounded, versioned LineageWeave semantic-unit request contract on protected main and a Naruon consumer contract that supplies authorized RFC/JMAP-derived `conversation_turn` units with opaque speaker evidence. Prove ordering, fail-closed validation, ABAC non-disclosure, idempotent replay, semantic-only turn retrieval and citation, and no body-pattern speaker inference |
+| Source conversation-turn ingestion | PR #700 adds ADR 0238's bounded versioned PostgreSQL-import envelope, whole-result preflight, ordered turn persistence, and opaque caller evidence references without body-pattern speaker inference. It is a current-main candidate, not protected delivery; Naruon producer consumption, authorized semantic-only retrieval/citation, and runtime ABAC evidence remain absent. Ask conversation history and ThreadWeave message threading remain separate graphs | Land #700 through the protected gate, publish its immutable contract fixture, and add a Naruon consumer that supplies authorized RFC/JMAP-derived turns. Prove ABAC non-disclosure, semantic-only turn retrieval and exact-unit citation, and absence of cross-graph inference on released heads |
 | Event and project semantics | Multi-project mentions, project-bound actions, 5W1H, requester/processor, and semantic relations exist in ADR 0036/0052/0100/0111/0129 and active stacks | Aggregate authenticated evidence must show distinct projects and events, explicit requester/processor and real R&R, normalized relative time, and product/entity relations without promoting attendance or co-occurrence |
 | Product hierarchy and voice exploration | PR #692 carries an evidence-bound product group/model/variant/trade-item catalog, and #694 carries overlapping voice classifications with source eligibility, ABAC, and original evidence preserved; both remain stacked candidates rather than protected delivery | Land the ordered parent stack, then prove through authenticated aggregate API and rendered acceptance that authorized users can navigate product hierarchy and overlapping voice classes without exposing hidden evidence or implementation ownership |
 | Knowledge Graph readability | PR #659 is protected-main delivery in `main@494b54e2`: ontology node types use semantic-family light/dark tokens while shape and text remain non-color channels; exact-value tables retain full labels | Complete authenticated rendered acceptance for light/dark contrast, keyboard graph navigation, full labels, and evidence tables |
