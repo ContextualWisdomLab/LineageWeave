@@ -3372,13 +3372,13 @@ function RankingsPanel({
         <p className="popup-placeholder">{t("Rankings are temporarily unavailable. Try again later.")}</p>
       )}
       {ranking && ranking.status === "accepted" && ranking.rankings.length === 0 && (
-        <p className="popup-placeholder">{t("No ranked records are available. Try a broader search.")}</p>
+        <p className="popup-placeholder">{t("No ranked records are available. Check again after more records are added.")}</p>
       )}
       {ranking && ranking.rankings.length > 0 && (
         <>
           <p className="ranking-channel-evidence-copy">
             {t(
-              "Open a result to review the records most relevant to your search. These results are not calibrated measurements.",
+              "Open a result to review why it appears in this ranking. These results are not calibrated measurements.",
             )}
           </p>
           <ul className="ticket-list" aria-label={t("Ranked records")}>
