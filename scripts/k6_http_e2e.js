@@ -16,6 +16,8 @@ const realm = __ENV.KEYCLOAK_REALM || "lineageweave-demo";
 const clientId = __ENV.KEYCLOAK_CLIENT_ID || "lineageweave-frontend";
 const username = __ENV.K6_USERNAME || "demo.analyst";
 const password = __ENV.K6_PASSWORD || "lineageweave-demo-only";
+const requestTimeout = __ENV.REQUEST_TIMEOUT;
+const unitlessDuration = /^\d+(?:\.\d+)?$/;
 
 const askEnqueueDuration = new Trend("lineageweave_ask_enqueue_duration", true);
 const readDuration = new Trend("lineageweave_read_duration", true);
@@ -33,7 +35,7 @@ function authenticate() {
       username,
       password,
     },
-    { tags: { endpoint: "oidc_token" } },
+    { tags: { endpoint: "oidc_token" }, timeout: requestTimeout },
   );
   if (response.status !== 200) {
     fail(`synthetic OIDC login failed with HTTP ${response.status}`);
@@ -44,24 +46,40 @@ function authenticate() {
 function readBatch(token, askJobId) {
   const params = { headers: { Authorization: `Bearer ${token}` } };
   return http.batch([
-    ["GET", `${backendUrl}/api/posts`, null, { ...params, tags: { endpoint: "posts" } }],
-    ["GET", `${backendUrl}/api/lineage`, null, { ...params, tags: { endpoint: "lineage" } }],
+    [
+      "GET",
+      `${backendUrl}/api/posts`,
+      null,
+      { ...params, tags: { endpoint: "posts" }, timeout: requestTimeout },
+    ],
+    [
+      "GET",
+      `${backendUrl}/api/lineage`,
+      null,
+      { ...params, tags: { endpoint: "lineage" }, timeout: requestTimeout },
+    ],
     [
       "GET",
       `${backendUrl}/api/ask/jobs/${askJobId}`,
       null,
-      { ...params, tags: { endpoint: "ask_poll" } },
+      { ...params, tags: { endpoint: "ask_poll" }, timeout: requestTimeout },
     ],
   ]);
 }
 
 export function setup() {
+  if (!requestTimeout) {
+    fail("REQUEST_TIMEOUT is required");
+  }
+  if (unitlessDuration.test(requestTimeout)) {
+    fail("REQUEST_TIMEOUT must include a duration unit, for example 20s");
+  }
   const token = authenticate();
   const headers = { Authorization: `Bearer ${token}`, "Content-Type": "application/json" };
   const submitted = http.post(
     `${backendUrl}/api/ask`,
     JSON.stringify({ question: "Summarize the synthetic demo lineage evidence." }),
-    { headers, tags: { endpoint: "ask_enqueue" } },
+    { headers, tags: { endpoint: "ask_enqueue" }, timeout: requestTimeout },
   );
   askEnqueueDuration.add(submitted.timings.duration);
   if (submitted.status !== 202) {

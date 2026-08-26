@@ -109,6 +109,24 @@ def test_gather_chat_sources_keeps_the_event_loop_responsive_during_body_normali
     assert order.index("event_loop_progress") < order.index("normalization_finished")
 
 
+def test_isolated_post_keeps_its_own_graph_facts(monkeypatch: pytest.MonkeyPatch) -> None:
+    """A post needs no linked neighbor to expose its own persisted evidence."""
+
+    async def fake_graph_facts(_conn: object, post_ids: list[str]):
+        assert post_ids == ["post-1"]
+        return {"post-1": ("fact evidenced by post-1",)}
+
+    monkeypatch.setattr(
+        "backend.app.post_chat_ingestion._graph_facts_for_posts", fake_graph_facts
+    )
+
+    sources = asyncio.run(
+        gather_chat_sources(_SourceConnection(), "post-1", lambda _row: True)
+    )
+
+    assert sources[0].graph_facts == ("fact evidenced by post-1",)
+
+
 def test_gather_chat_sources_bounds_and_orders_linked_context(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -126,6 +144,15 @@ def test_gather_chat_sources_bounds_and_orders_linked_context(
     monkeypatch.setattr(
         "backend.app.post_chat_ingestion.find_linked_post_ids",
         fake_find_linked_post_ids,
+    )
+    graph_fact_calls: list[list[str]] = []
+
+    async def fake_graph_facts(_conn: object, post_ids: list[str]):
+        graph_fact_calls.append(post_ids)
+        return {}
+
+    monkeypatch.setattr(
+        "backend.app.post_chat_ingestion._graph_facts_for_posts", fake_graph_facts
     )
 
     class SourceBudgetConnection:
@@ -206,6 +233,7 @@ def test_gather_chat_sources_bounds_and_orders_linked_context(
     assert "source_deleted_flag" in conn.candidate_query
     assert [source.post_id for source in sources] == [root_id, *expected_candidates[:7]]
     assert len(sources) == 8
+    assert graph_fact_calls == [[root_id, *expected_candidates[:7]]]
 
 
 def test_normalize_question_rejects_empty_and_collapses_whitespace() -> None:

@@ -28,7 +28,6 @@ import redis
 
 from lineageweave.http_client import HttpClientError, get_json, post_form
 from lineageweave.knowledge_graph import knowledge_graph_edges_for_post
-from lineageweave.post_chat import ChatSourceDocument
 from lineageweave.post_summary import POST_SUMMARY_CONTRACT_VERSION
 
 _POSTGRES_ADMIN_DSN = os.environ.get(
@@ -192,6 +191,21 @@ _GLOBAL_ASK_SCOPE_MIGRATION = (
     / "migrations"
     / "0203_global_ask_authorization_scope.sql"
 )
+_GLOBAL_ASK_EVIDENCE_SEARCH_MIGRATION = (
+    Path(__file__).resolve().parents[2]
+    / "migrations"
+    / "0210_global_ask_evidence_search_indexes.sql"
+)
+_GLOBAL_ASK_PUBLIC_VERIFICATION_MIGRATION = (
+    Path(__file__).resolve().parents[2]
+    / "migrations"
+    / "0218_global_ask_public_verification.sql"
+)
+_GLOBAL_ASK_KNOWLEDGE_CUTOFF_MIGRATION = (
+    Path(__file__).resolve().parents[2]
+    / "migrations"
+    / "0212_global_ask_knowledge_cutoff.sql"
+)
 _LEFTOVER_MAP_AXIS_MIGRATION = (
     Path(__file__).resolve().parents[2]
     / "migrations"
@@ -301,6 +315,9 @@ def seeded_db(demo_analyst_token):
 
     db_dsn = _POSTGRES_ADMIN_DSN.rsplit("/", 1)[0] + f"/{db_name}"
     conn = psycopg2.connect(db_dsn)
+    # CREATE INDEX CONCURRENTLY in the production migration stream is
+    # intentionally applied outside a transaction (psql -X per file).
+    conn.autocommit = True
     try:
         with conn.cursor() as cur:
             cur.execute(_MIGRATION_PATH.read_text())
@@ -371,6 +388,9 @@ def seeded_db(demo_analyst_token):
             cur.execute(_LEFTOVER_MAP_COVERAGE_MIGRATION.read_text())
             cur.execute(_GLOBAL_ASK_JOB_MIGRATION.read_text())
             cur.execute(_GLOBAL_ASK_SCOPE_MIGRATION.read_text())
+            cur.execute(_GLOBAL_ASK_EVIDENCE_SEARCH_MIGRATION.read_text())
+            cur.execute(_GLOBAL_ASK_KNOWLEDGE_CUTOFF_MIGRATION.read_text())
+            cur.execute(_GLOBAL_ASK_PUBLIC_VERIFICATION_MIGRATION.read_text())
             cur.execute(_EVENT_OCCURRED_AT_MIGRATION.read_text())
             cur.execute(_LEFTOVER_MAP_AXIS_MIGRATION.read_text())
             cur.execute(_CHANNEL_EVIDENCE_MIGRATION.read_text())
@@ -418,6 +438,8 @@ def seeded_db(demo_analyst_token):
                 "('prov_agent_type', 'prov_organization', 'Organization'), "
                 "('prov_agent_type', 'prov_team', 'Team')"
             )
+            conn.commit()
+            conn.autocommit = False
             cur.execute(
                 "insert into corporate_entity (corporate_entity_code, entity_name, entity_level_code) "
                 "values ('TEST-GROUP', 'Test Group', 'group') returning corporate_entity_id"
@@ -575,7 +597,11 @@ def seeded_db(demo_analyst_token):
             )
             other_account_id = cur.fetchone()[0]
             visible_run_id = _seed_analysis_run(
-                "0" * 64,
+                # The TEPP anchor above already owns the all-``a`` digest.
+                # Keep each synthetic snapshot distinct so the database's
+                # content-addressed uniqueness constraint is exercised rather
+                # than tripping during fixture setup.
+                "8" * 64,
                 "visible-own-corp",
                 account_id,
                 "analysis_scope_corporate_entity",
@@ -3899,20 +3925,12 @@ def test_global_ask_provider_error_does_not_leak_raw_error(
         def answer(self, question: str, sources) -> object:
             raise Exception("raw-global-provider-secret")
 
-    async def _source(*_args, **_kwargs):
-        return [
-            ChatSourceDocument(
-                seeded_db["own_private_post_id"], "Authorized source", "Evidence"
-            )
-        ]
-
-    monkeypatch.setattr("backend.app.global_ask_queue.gather_global_chat_sources", _source)
     monkeypatch.setattr("backend.app.main._post_chat_client", lambda **_kwargs: _FailingAskClient())
     headers = {"Authorization": f"Bearer {demo_analyst_token}"}
 
     submitted = client.post(
         "/api/ask",
-        json={"question": "What happened in this global failure case?"},
+            json={"question": "Public post"},
         headers=headers,
     )
     assert submitted.status_code == 202
@@ -5013,6 +5031,27 @@ def test_ask_rejects_an_empty_question(client, demo_analyst_token, seeded_db) ->
     assert response.status_code == 422
 
 
+def test_ask_rejects_invalid_or_future_knowledge_cutoffs(
+    client, demo_analyst_token, seeded_db
+) -> None:
+    """The HTTP trust boundary accepts only a valid clock no later than DB now."""
+
+    headers = {"Authorization": f"Bearer {demo_analyst_token}"}
+    invalid = client.post(
+        "/api/ask",
+        json={"question": "What was known?", "knowledge_cutoff": "not-a-clock"},
+        headers=headers,
+    )
+    future = client.post(
+        "/api/ask",
+        json={"question": "What was known?", "knowledge_cutoff": "2999-01-01T00:00:00Z"},
+        headers=headers,
+    )
+
+    assert invalid.status_code == 422
+    assert future.status_code == 422
+
+
 def test_ask_is_unavailable_without_orchestrator_credentials(
     client, demo_analyst_token, seeded_db, monkeypatch
 ) -> None:
@@ -5057,18 +5096,10 @@ def test_ask_queues_a_job_and_polls_it_to_a_settled_answer(
                 cited_post_ids=(sources[0].post_id,),
             )
 
-    async def _source(*_args, **_kwargs):
-        return [
-            ChatSourceDocument(
-                seeded_db["own_private_post_id"], "Authorized source", "Evidence"
-            )
-        ]
-
-    monkeypatch.setattr("backend.app.global_ask_queue.gather_global_chat_sources", _source)
     monkeypatch.setattr("backend.app.main._post_chat_client", lambda **_kwargs: _FakeChatClient())
     headers = {"Authorization": f"Bearer {demo_analyst_token}"}
     submitted = client.post(
-        "/api/ask", json={"question": "What happened with the public post?"}, headers=headers
+            "/api/ask", json={"question": "Public post"}, headers=headers
     )
     assert submitted.status_code == 202
     job_id = submitted.json()["ask_job_id"]
@@ -5088,6 +5119,86 @@ def test_ask_queues_a_job_and_polls_it_to_a_settled_answer(
     assert answer["answer_text"] == "A settled asynchronous answer."
     assert answer["cited_post_ids"], "the fake client cited one source"
     assert "lineage_graph" in answer and "cited_post_images" in answer
+
+
+def test_ask_public_verification_is_opt_in_and_separate_from_post_citations(
+    client, demo_analyst_token, seeded_db, monkeypatch
+) -> None:
+    """A cited public semantic claim can be refuted without changing its post id."""
+
+    import time as _time
+
+    from lineageweave import claim_verification as cv
+    from lineageweave.post_chat import ChatAnswer
+
+    class _FakeChatClient:
+        available = True
+
+        def answer(self, question, sources):  # noqa: ARG002 - contract shape
+            return ChatAnswer("Internal answer.", (sources[0].post_id,))
+
+    class _FakeVerificationClient:
+        available = True
+
+        def verify(self, claim):
+            return cv.ClaimVerificationResult(
+                claim.claim_text,
+                claim.claim_kind,
+                cv.CLAIM_REFUTED,
+                "The selected public evidence conflicts with the claim.",
+                claim.source_post_ids,
+                (
+                    cv.ExternalEvidenceDocument(
+                        "Public evidence",
+                        "https://example.com/public-evidence",
+                        "The published record describes a conflicting state.",
+                    ),
+                ),
+            )
+
+    with closing(psycopg2.connect(seeded_db["dsn"])) as conn, conn.cursor() as cur:
+        cur.execute(
+            """
+            insert into post_project_mention
+                (post_id, project_key, project_name, evidence_text, confidence,
+                 ontology_iri, extraction_method)
+            values (%s, 'synthetic-apollo', 'Apollo', 'Public project evidence',
+                    1.0, 'https://contextualwisdomlab.github.io/LineageWeave/ontology#Project',
+                    'synthetic_test')
+            """,
+            (seeded_db["public_post_id"],),
+        )
+        conn.commit()
+
+    monkeypatch.setattr("backend.app.main._post_chat_client", lambda **_kwargs: _FakeChatClient())
+    monkeypatch.setattr(
+        "backend.app.main._claim_verification_client",
+        lambda: _FakeVerificationClient(),
+    )
+    headers = {"Authorization": f"Bearer {demo_analyst_token}"}
+    submitted = client.post(
+        "/api/ask",
+        json={"question": "Apollo", "verify_external": True},
+        headers=headers,
+    )
+    assert submitted.status_code == 202
+    job_id = submitted.json()["ask_job_id"]
+
+    deadline = _time.monotonic() + 30
+    body: dict = {}
+    while _time.monotonic() < deadline:
+        body = client.get(f"/api/ask/jobs/{job_id}", headers=headers).json()
+        if body["job_status_code"] in ("succeeded", "failed"):
+            break
+        _time.sleep(0.25)
+
+    assert body.get("job_status_code") == "succeeded", body
+    answer = body["answer"]
+    assert answer["source_post_ids"] == [seeded_db["public_post_id"]]
+    assert answer["external_verification_status"] == cv.VERIFICATION_COMPLETED
+    assert answer["external_claims"][0]["status_code"] == cv.CLAIM_REFUTED
+    assert answer["cited_post_ids"] == [seeded_db["public_post_id"]]
+    assert "https://example.com/public-evidence" not in answer["cited_post_ids"]
 
 
 def test_ask_job_reads_are_owner_scoped(
