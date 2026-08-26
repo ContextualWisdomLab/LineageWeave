@@ -196,12 +196,12 @@ _GLOBAL_ASK_SCOPE_MIGRATION = (
 _GLOBAL_ASK_PUBLIC_VERIFICATION_MIGRATION = (
     Path(__file__).resolve().parents[2]
     / "migrations"
-    / "0211_global_ask_public_verification.sql"
+    / "0224_global_ask_public_verification.sql"
 )
 _GLOBAL_ASK_SEMANTIC_SEARCH_MIGRATION = (
     Path(__file__).resolve().parents[2]
     / "migrations"
-    / "0222_global_ask_semantic_candidate_search.sql"
+    / "0225_global_ask_semantic_candidate_search.sql"
 )
 _LEFTOVER_MAP_AXIS_MIGRATION = (
     Path(__file__).resolve().parents[2]

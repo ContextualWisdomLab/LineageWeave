@@ -202,7 +202,7 @@ def test_global_ask_public_verification_opt_in_is_replay_safe() -> None:
     sql = (
         Path(__file__).resolve().parents[1]
         / "migrations"
-        / "0211_global_ask_public_verification.sql"
+        / "0224_global_ask_public_verification.sql"
     ).read_text(encoding="utf-8")
 
     assert "verify_external_requested boolean not null default false" in sql

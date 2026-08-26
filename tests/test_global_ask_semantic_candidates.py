@@ -8,7 +8,7 @@ from pathlib import Path
 from backend.app.global_ask_semantic_candidates import semantic_candidate_post_ids
 
 
-_MIGRATION = Path(__file__).parents[1] / "migrations" / "0222_global_ask_semantic_candidate_search.sql"
+_MIGRATION = Path(__file__).parents[1] / "migrations" / "0225_global_ask_semantic_candidate_search.sql"
 
 
 def test_semantic_candidates_use_bounded_native_full_text_search() -> None:
