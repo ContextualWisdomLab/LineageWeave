@@ -29,12 +29,15 @@ cannot prove that a compatible device and vendor driver are present.
    behind it. On Apple silicon, an MLX process runs natively as such a service;
    LineageWeave does not pass Metal devices into its Linux VM or encode an MLX
    URL, model, port, or chat template.
-3. TEPP, fast-mlsirm, and RankWeave own their construct-specific Rust compute.
-   An owner may publish separate CPU and accelerator deployment profiles:
-   deterministic multithreaded CPU is the portable required path; CUDA uses an
-   explicit Compose GPU reservation plus a compatible host driver/toolkit;
-   OpenCL uses an explicitly mounted device and matching vendor ICD. These
-   profiles are not added to LineageWeave Compose.
+3. TEPP and fast-mlsirm own their construct-specific scientific and
+   psychometric Rust cores. Their compute services may publish separate CPU and
+   accelerator deployment profiles: deterministic multithreaded CPU is the
+   portable required path; CUDA uses an explicit Compose GPU reservation plus
+   a compatible host driver/toolkit; OpenCL uses an explicitly mounted device
+   and matching vendor ICD. RankWeave remains the dependency-free Python owner
+   of retrieval fusion and evaluation behind its published contract; this ADR
+   neither changes its implementation language nor transfers psychometric
+   ownership to it. None of these profiles are added to LineageWeave Compose.
 4. LineageWeave connectors accept only the owner's provider-neutral envelope.
    Persisted evidence records the owner, contract/model version, input/output
    digest, execution-device class reported by the owner, convergence or
@@ -48,7 +51,8 @@ cannot prove that a compatible device and vendor driver are present.
 ```mermaid
 flowchart LR
     LW[LineageWeave API and UI] -->|provider-neutral contract| CO[contextual-orchestrator]
-    LW -->|measurement contract| M[TEPP / fast-mlsirm / RankWeave service]
+    LW -->|measurement contract| M[TEPP / fast-mlsirm service]
+    LW -->|retrieval-fusion contract| R[RankWeave]
     CO --> N[Native MLX service on Apple silicon]
     CO --> P[Remote or container inference provider]
     M --> C[Deterministic multithreaded CPU]
@@ -68,13 +72,15 @@ flowchart LR
 ## Consequences and acceptance
 
 - LineageWeave Compose remains CPU-portable and contains no device reservation.
-- Owners bear additional deployment and recovery-test work for every advertised
-  execution profile.
-- An integration is accepted only when the owning repository proves the same
-  versioned synthetic input on deterministic CPU and each advertised
-  accelerator, reports bounded numerical tolerance and device provenance, and
-  LineageWeave proves malformed, mismatched, and unavailable envelopes fail
-  closed without exposing implementation details in customer copy.
+- TEPP and fast-mlsirm bear deployment and recovery-test work for every
+  advertised scientific-compute profile. RankWeave retains its own retrieval
+  fusion/evaluation conformance contract.
+- A scientific-compute integration is accepted only when its owning repository
+  proves the same versioned synthetic input on deterministic CPU and each
+  advertised accelerator, reports bounded numerical tolerance and device
+  provenance, and LineageWeave proves malformed, mismatched, and unavailable
+  envelopes fail closed without exposing implementation details in customer
+  copy.
 - Native MLX availability is verified at contextual-orchestrator's provider
   boundary; CUDA/OpenCL availability is verified in the compute owner's health
   and conformance evidence. A Compose declaration by itself is insufficient.
