@@ -99,10 +99,9 @@ describe("OperationsDashboardView", () => {
     expect(screen.queryByText("분류 Event")).not.toBeInTheDocument();
   });
 
-  it("does not label a scoped external count with a corpus-wide rate", () => {
+  it("shows external information as a share of all visible posts in the GNB view", () => {
     render(<OperationsDashboardView data={data} externalOnly onOpenPost={() => undefined} />);
-    expect(screen.getByText("5건")).toBeInTheDocument();
-    expect(screen.queryByText("5건 · 25.0%")).not.toBeInTheDocument();
+    expect(screen.getByText("5건 · 25.0%")).toBeInTheDocument();
   });
 
   it("labels a source-backed external relation by its semantic target", () => {
@@ -208,7 +207,7 @@ describe("OperationsDashboardView", () => {
     vi.mocked(fetchVoiceTaxonomySummary).mockClear();
     vi.mocked(fetchOperationsDashboard).mockReset().mockResolvedValue(data);
     render(<OperationsDashboard accessToken="synthetic-token" externalOnly onOpenPost={() => undefined} />);
-    await screen.findByText("5건");
+    await screen.findByText("5건 · 25.0%");
     expect(fetchOperationsDashboard).toHaveBeenCalledWith("synthetic-token", "", "", true);
     expect(fetchVoiceTaxonomySummary).not.toHaveBeenCalled();
   });

@@ -116,7 +116,7 @@ export function OperationsDashboardView({ data, externalOnly = false, onOpenPost
       <dl className="dashboard-metrics">
         {!externalOnly ? <div><dt>전체 글</dt><dd>{data.total_post_count}</dd></div> : null}
         {!externalOnly ? <div><dt>분류 Event</dt><dd>{data.total_event_count}</dd></div> : null}
-        <div><dt>외부 정보</dt><dd>{data.external_post_count}건{externalOnly ? "" : ` · ${data.external_percent.toFixed(1)}%`}</dd></div>
+        <div><dt>외부 정보</dt><dd>{data.external_post_count}건 · {data.external_percent.toFixed(1)}%</dd></div>
         {!externalOnly ? <div><dt>분석 대기</dt><dd>{data.pending_analysis_count}</dd></div> : null}
         {!externalOnly ? <div><dt>분석 실패</dt><dd>{data.failed_analysis_count}</dd></div> : null}
       </dl>
