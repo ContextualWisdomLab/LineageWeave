@@ -101,7 +101,7 @@ context only.
 | #657 | `709df1b9` | TEPP lifecycle persistence and fail-closed topic acceptance; BLOCKED with hosted checks queued and review required |
 | #644 | `ed8d97f3` | native-surface code splitting; BLOCKED with review required |
 | #643 | `3453ab08` | accessible status notices; BLOCKED with review required |
-| #640 | `4a4acc38` | dashboard ranking and topic-influence surfaces no longer expose provider, hash, or uncertainty-code implementation labels; current head repairs customer copy, migration replay safety, id-only Ask citations, and not-applicable topic state; hosted checks requeued and independent review required |
+| #640 | `f88e7c64` | dashboard ranking and topic-influence surfaces no longer expose provider, hash, or uncertainty-code implementation labels; current head retains customer copy, migration replay safety, id-only Ask citations, and not-applicable topic state while reverting an upstream capability-pin change; hosted checks requeued and independent review required |
 | #639 | `8da485d3` | running-action/config repair; BLOCKED with review required |
 | #632 | `811026cc` | graph-fact provenance repair with current baseline evidence; BLOCKED with hosted checks queued and review required |
 | #631 | `e6b4f0c4` | ADR decomposition documentation; BLOCKED with review required |
