@@ -7,9 +7,10 @@ import argparse
 import json
 import subprocess
 import time
+from collections.abc import Mapping, Sequence
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, Mapping, Sequence
+from typing import Any
 
 SERVICE = "backend-worker"
 PROJECT = "lineageweave"
@@ -50,6 +51,11 @@ def _events(snapshot: Mapping[str, Any]) -> Mapping[str, Any]:
     events = snapshot.get("memory_events_local")
     if not isinstance(events, Mapping):
         raise MemoryEvidenceError("memory.events.local is unavailable")
+    missing = [key for key in EVENT_KEYS if key not in events]
+    if missing:
+        raise MemoryEvidenceError(
+            "memory.events.local is missing required keys: " + ", ".join(missing)
+        )
     return events
 
 
@@ -64,24 +70,39 @@ def compare_snapshots(
     ):
         raise MemoryEvidenceError("container changed during the observation")
     peak = after.get("memory_peak_bytes")
-    if peak is None:
+    if peak is None and after.get("memory_events_local") is not None:
         raise MemoryEvidenceError("memory.peak is unavailable")
-    observed_peak = _integer(peak, "memory_peak_bytes")
+    if peak is None:
+        observed_peak = _integer(before.get("memory_peak_bytes"), "memory_peak_bytes")
+        peak_scope = "before_terminal_exit"
+    else:
+        observed_peak = _integer(peak, "memory_peak_bytes")
+        peak_scope = "cgroup_lifetime_at_window_end"
+    current = after.get("memory_current_bytes")
+    ending_current = (
+        None if current is None else _integer(current, "memory_current_bytes")
+    )
+    docker_oom_killed = bool(after.get("container_oom_killed"))
+    exit_code = _integer(after.get("container_exit_code", 0), "container_exit_code")
     before_events = _events(before)
-    after_events = _events(after)
-    deltas: dict[str, int] = {}
-    for key in EVENT_KEYS:
-        earlier = _integer(before_events.get(key, 0), f"memory.events.local.{key}")
-        later = _integer(after_events.get(key, 0), f"memory.events.local.{key}")
-        if later < earlier:
-            raise MemoryEvidenceError(f"memory.events.local.{key} decreased")
-        deltas[key] = later - earlier
+    deltas: dict[str, int] | None = None
+    if after.get("memory_events_local") is not None:
+        after_events = _events(after)
+        deltas = {}
+        for key in EVENT_KEYS:
+            earlier = _integer(before_events[key], f"memory.events.local.{key}")
+            later = _integer(after_events[key], f"memory.events.local.{key}")
+            if later < earlier:
+                raise MemoryEvidenceError(f"memory.events.local.{key} decreased")
+            deltas[key] = later - earlier
+    elif not docker_oom_killed and exit_code != 137:
+        raise MemoryEvidenceError("ending cgroup evidence is unavailable")
 
-    if bool(after.get("container_oom_killed")) or deltas["oom_kill"] > 0:
+    if docker_oom_killed or (deltas is not None and deltas["oom_kill"] > 0):
         classification = "oom_confirmed"
-    elif _integer(after.get("container_exit_code", 0), "container_exit_code") == 137:
+    elif exit_code == 137:
         classification = "sigkill_unattributed"
-    elif any(deltas[key] for key in ("high", "max", "oom")):
+    elif deltas is not None and any(deltas[key] for key in ("high", "max", "oom")):
         classification = "memory_pressure_observed"
     else:
         classification = "observed_without_memory_pressure"
@@ -91,9 +112,8 @@ def compare_snapshots(
         "elapsed_seconds": elapsed_seconds,
         "classification": classification,
         "observed_peak_bytes": observed_peak,
-        "ending_current_bytes": _integer(
-            after.get("memory_current_bytes"), "memory_current_bytes"
-        ),
+        "observed_peak_scope": peak_scope,
+        "ending_current_bytes": ending_current,
         "configured_memory_limit_bytes": after.get("memory_limit_bytes"),
         "configured_memory_reservation_bytes": after.get("memory_reservation_bytes"),
         "event_deltas": deltas,
@@ -119,7 +139,7 @@ def _run(command: Sequence[str], *, timeout: float = 15) -> str:
 def capture_snapshot() -> dict[str, Any]:
     """Capture Docker state and cgroup v2 counters for the canonical worker."""
     container_id = _run(
-        ["docker", "compose", "-p", PROJECT, "ps", "-q", SERVICE]
+        ["docker", "compose", "-p", PROJECT, "ps", "--all", "-q", SERVICE]
     )
     if not container_id:
         raise MemoryEvidenceError("canonical backend-worker container is unavailable")
@@ -130,17 +150,48 @@ def capture_snapshot() -> dict[str, Any]:
     host = inspected[0].get("HostConfig", {})
     if not isinstance(state, Mapping) or not isinstance(host, Mapping):
         raise MemoryEvidenceError("Docker state is incomplete")
+    if not state.get("StartedAt") or not isinstance(state.get("Status"), str):
+        raise MemoryEvidenceError("Docker state is incomplete")
+    if state.get("Status") != "running":
+        return {
+            "captured_at": datetime.now(UTC).isoformat(),
+            "container_started_at": state.get("StartedAt"),
+            "container_status": state.get("Status"),
+            "container_oom_killed": bool(state.get("OOMKilled")),
+            "container_exit_code": _integer(
+                state.get("ExitCode", 0), "container_exit_code"
+            ),
+            "container_restart_count": _integer(
+                inspected[0].get("RestartCount", 0), "container_restart_count"
+            ),
+            "memory_limit_bytes": _integer(
+                host.get("Memory", 0), "memory_limit_bytes"
+            )
+            or None,
+            "memory_reservation_bytes": (
+                _integer(
+                    host.get("MemoryReservation", 0), "memory_reservation_bytes"
+                )
+                or None
+            ),
+            "memory_current_bytes": None,
+            "memory_peak_bytes": None,
+            "memory_max_bytes": None,
+            "memory_events_local": None,
+        }
     cgroup = _run(
         [
             "docker", "exec", container_id, "sh", "-eu", "-c",
-            "test -r /sys/fs/cgroup/memory.current; "
-            "test -r /sys/fs/cgroup/memory.peak; "
-            "test -r /sys/fs/cgroup/memory.max; "
-            "test -r /sys/fs/cgroup/memory.events.local; "
-            "cat /sys/fs/cgroup/memory.current; "
-            "cat /sys/fs/cgroup/memory.peak; "
-            "cat /sys/fs/cgroup/memory.max; "
-            "cat /sys/fs/cgroup/memory.events.local",
+            (
+                "test -r /sys/fs/cgroup/memory.current; "
+                "test -r /sys/fs/cgroup/memory.peak; "
+                "test -r /sys/fs/cgroup/memory.max; "
+                "test -r /sys/fs/cgroup/memory.events.local; "
+                "cat /sys/fs/cgroup/memory.current; "
+                "cat /sys/fs/cgroup/memory.peak; "
+                "cat /sys/fs/cgroup/memory.max; "
+                "cat /sys/fs/cgroup/memory.events.local"
+            ),
         ]
     ).splitlines()
     if len(cgroup) < 4:

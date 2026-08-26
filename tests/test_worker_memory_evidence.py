@@ -39,7 +39,14 @@ def _snapshot(**changes: object) -> dict[str, object]:
         "memory_current_bytes": 80 * 1024 * 1024,
         "memory_peak_bytes": 120 * 1024 * 1024,
         "memory_max_bytes": None,
-        "memory_events_local": {"low": 0, "high": 0, "max": 0, "oom": 0, "oom_kill": 0},
+        "memory_events_local": {
+            "low": 0,
+            "high": 0,
+            "max": 0,
+            "oom": 0,
+            "oom_kill": 0,
+            "oom_group_kill": 0,
+        },
     }
     value.update(changes)
     return value
@@ -51,7 +58,14 @@ def test_compare_confirms_only_kernel_or_docker_oom_evidence() -> None:
         container_status="exited",
         container_oom_killed=True,
         container_exit_code=137,
-        memory_events_local={"low": 0, "high": 0, "max": 1, "oom": 1, "oom_kill": 1},
+        memory_events_local={
+            "low": 0,
+            "high": 0,
+            "max": 1,
+            "oom": 1,
+            "oom_kill": 1,
+            "oom_group_kill": 0,
+        },
     )
 
     evidence = worker_memory.compare_snapshots(before, after, elapsed_seconds=60)
@@ -92,8 +106,17 @@ def test_compare_rejects_container_replacement_and_counter_reset() -> None:
         )
     with pytest.raises(worker_memory.MemoryEvidenceError, match="decreased"):
         worker_memory.compare_snapshots(
-            _snapshot(memory_events_local={"oom_kill": 1}),
-            _snapshot(memory_events_local={"oom_kill": 0}),
+            _snapshot(
+                memory_events_local={
+                    "low": 0,
+                    "high": 0,
+                    "max": 0,
+                    "oom": 0,
+                    "oom_kill": 1,
+                    "oom_group_kill": 0,
+                }
+            ),
+            _snapshot(),
             elapsed_seconds=60,
         )
 
@@ -126,11 +149,26 @@ def test_integer_and_event_validation_fail_closed() -> None:
         worker_memory.compare_snapshots(
             _snapshot(memory_events_local=None), _snapshot(), elapsed_seconds=1
         )
+    missing_key_events = dict(_snapshot()["memory_events_local"])
+    del missing_key_events["oom_kill"]
+    with pytest.raises(worker_memory.MemoryEvidenceError, match="required keys"):
+        worker_memory.compare_snapshots(
+            _snapshot(memory_events_local=missing_key_events),
+            _snapshot(),
+            elapsed_seconds=1,
+        )
 
 
 def test_compare_reports_pressure_without_claiming_oom() -> None:
     after = _snapshot(
-        memory_events_local={"low": 0, "high": 1, "max": 0, "oom": 0, "oom_kill": 0}
+        memory_events_local={
+            "low": 0,
+            "high": 1,
+            "max": 0,
+            "oom": 0,
+            "oom_kill": 0,
+            "oom_group_kill": 0,
+        }
     )
     evidence = worker_memory.compare_snapshots(_snapshot(), after, elapsed_seconds=1)
     assert evidence["classification"] == "memory_pressure_observed"
@@ -177,7 +215,11 @@ def test_capture_snapshot_reads_docker_and_keyed_cgroup_evidence(monkeypatch) ->
         ]
     )
     outputs = iter(
-        ["container-id", inspection, "100\n200\n300\noom_kill 0\nhigh 0\n"]
+        [
+            "container-id",
+            inspection,
+            "100\n200\n300\nlow 0\nhigh 0\nmax 0\noom 0\noom_kill 0\noom_group_kill 0\n",
+        ]
     )
     monkeypatch.setattr(worker_memory, "_run", lambda *_args, **_kwargs: next(outputs))
 
@@ -191,17 +233,71 @@ def test_capture_snapshot_reads_docker_and_keyed_cgroup_evidence(monkeypatch) ->
 
 
 @pytest.mark.parametrize(
+    ("oom_killed", "exit_code", "classification"),
+    [(True, 137, "oom_confirmed"), (False, 137, "sigkill_unattributed")],
+)
+def test_capture_and_compare_classify_worker_that_exits_mid_window(
+    monkeypatch, oom_killed: bool, exit_code: int, classification: str
+) -> None:
+    inspection = json.dumps(
+        [
+            {
+                "State": {
+                    "StartedAt": "2026-08-27T00:00:00Z",
+                    "Status": "exited",
+                    "OOMKilled": oom_killed,
+                    "ExitCode": exit_code,
+                },
+                "HostConfig": {"Memory": 0, "MemoryReservation": 0},
+                "RestartCount": 0,
+            }
+        ]
+    )
+    outputs = iter(["container-id", inspection])
+    monkeypatch.setattr(worker_memory, "_run", lambda *_args, **_kwargs: next(outputs))
+
+    after = worker_memory.capture_snapshot()
+    evidence = worker_memory.compare_snapshots(_snapshot(), after, elapsed_seconds=1)
+
+    assert evidence["classification"] == classification
+    assert evidence["observed_peak_bytes"] == 120 * 1024 * 1024
+    assert evidence["observed_peak_scope"] == "before_terminal_exit"
+    assert evidence["ending_current_bytes"] is None
+    assert evidence["event_deltas"] is None
+
+
+def test_compare_rejects_other_exit_without_ending_cgroup_evidence() -> None:
+    after = _snapshot(
+        container_status="exited",
+        container_exit_code=1,
+        memory_current_bytes=None,
+        memory_peak_bytes=None,
+        memory_max_bytes=None,
+        memory_events_local=None,
+    )
+    with pytest.raises(worker_memory.MemoryEvidenceError, match="ending cgroup"):
+        worker_memory.compare_snapshots(_snapshot(), after, elapsed_seconds=1)
+
+
+@pytest.mark.parametrize(
     ("outputs", "message"),
     [
         ([""], "unavailable"),
         (["id", "[]"], "inspection"),
         (["id", '[{"State": [], "HostConfig": {}}]'], "state"),
         (
-            [
-                "id",
-                '[{"State": {}, "HostConfig": {}, "RestartCount": 0}]',
-                "1\n2\nmax",
-            ],
+            ["id", '[{"State": {"Status": "running"}, "HostConfig": {}}]'],
+            "state",
+        ),
+        (
+                [
+                    "id",
+                    (
+                        '[{"State": {"StartedAt": "start", "Status": "running"}, '
+                        '"HostConfig": {}, "RestartCount": 0}]'
+                    ),
+                    "1\n2\nmax",
+                ],
             "cgroup v2",
         ),
     ],

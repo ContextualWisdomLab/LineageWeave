@@ -13,7 +13,9 @@ The output contains aggregates and no container identifier or record content.
 Preserve it outside git with the workload definition and host capacity. An
 `oom_confirmed` result requires Docker `OOMKilled` or a local kernel
 `oom_kill` delta. `sigkill_unattributed` requires further host/runtime logs;
-do not relabel it OOM. A container change invalidates the window.
+do not relabel it OOM. A container change invalidates the window. If the same
+container exits, ending cgroup values remain unavailable and the retained
+pre-exit peak is labeled as such; it is not a whole-window maximum.
 
 Acceptance requires the declared representative workload to finish on one
 unchanged container with zero `high`, `max`, `oom`, and `oom_kill` deltas.

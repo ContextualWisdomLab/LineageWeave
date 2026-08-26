@@ -34,6 +34,14 @@ confirmed only when Docker records `OOMKilled` or the kernel's local
 `sigkill_unattributed`. `high`, `max`, or `oom` deltas establish memory
 pressure without inventing an OOM kill.
 
+If the unchanged worker exits during the window, Compose discovery includes
+stopped containers and Docker inspection preserves its terminal state. The
+terminated cgroup is no longer readable, so ending current usage and event
+deltas remain `null`; the output retains only the peak captured before exit
+and labels that limited scope. Docker `OOMKilled` may still confirm OOM and an
+otherwise unattributed exit 137 remains distinguishable. Every other terminal
+state without ending cgroup evidence is rejected rather than classified.
+
 No observation emits a memory-limit proposal. `memory.peak` is a measured
 maximum for that cgroup lifetime, but neither Docker nor the kernel defines a
 universal safety margin that turns it into a safe hard limit. A future limit
