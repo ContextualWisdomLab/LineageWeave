@@ -173,7 +173,12 @@ def schema_db():
                 cur.execute(_LEFTOVER_MAP_CROSS_SHARE_MIGRATION.read_text())
                 cur.execute(_LEFTOVER_MAP_RECONSTRUCTION_MIGRATION.read_text())
                 cur.execute(_SOURCE_EVENT_TIME_MIGRATION.read_text())
-                cur.execute(_GLOBAL_ASK_EVIDENCE_SEARCH_MIGRATION.read_text())
+                # psql sends each statement independently, which is required
+                # by CREATE INDEX CONCURRENTLY. psycopg2 treats a multi-
+                # statement execute as one transaction even with autocommit.
+                for statement in _GLOBAL_ASK_EVIDENCE_SEARCH_MIGRATION.read_text().split(";\n\n"):
+                    if statement.strip():
+                        cur.execute(statement + ";")
             yield conn
         finally:
             conn.close()
