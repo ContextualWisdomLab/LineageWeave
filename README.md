@@ -134,7 +134,7 @@ carrying `corp_code` / `pu_code` as token claims -- these are throwaway
 local-dev credentials in a locally-run realm, never the org's real Keyverse
 tenant (see ADR 0001 for why).
 
-Host ports (15432, 16379, 18080, 18420) deliberately avoid each service's
+Host ports (15432, 16379, 18080, 18001, 18420) deliberately avoid each service's
 own default -- a dev machine commonly already runs its own
 Postgres/Redis/local server on those. Override via `.env` (copy
 `.env.example`) or inline if even those collide, e.g.
@@ -154,6 +154,18 @@ make seed   # scripts/seed_demo_data.py: inserts synthetic corp/account/post
             # rows keyed to the *real* Keycloak demo users' subject ids,
             # plus Valkey ticket_created events so Activity is not empty
 curl http://localhost:18420/healthz
+```
+
+The optional authenticated MCP resource server submits and reads the same
+durable Global Ask jobs as REST. Enable it only with quota values established
+by the deployment's k6 capacity evidence; the service intentionally has no
+guessed request/window defaults:
+
+```bash
+MCP_RATE_LIMIT_REQUESTS=<measured-count> \
+MCP_RATE_LIMIT_WINDOW_SECONDS=<measured-window> \
+docker compose --profile mcp up mcp
+# Streamable HTTP resource: http://localhost:18001/mcp
 ```
 
 `GET /api/posts`, `GET /api/posts/{post_id}`,

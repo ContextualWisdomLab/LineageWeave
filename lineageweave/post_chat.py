@@ -64,6 +64,12 @@ class ChatSourceDocument:
     post_body: str
     graph_facts: tuple[str, ...] = field(default_factory=tuple)
     evidence_facts: tuple[str, ...] = field(default_factory=tuple)
+    source_post_revision_id: str | None = None
+    evidence_available_at: str | None = None
+    knowledge_cutoff: str | None = None
+    live_changed_after_cutoff: bool = False
+    historical_body_unavailable: bool = False
+    unavailable_channels: tuple[str, ...] = field(default_factory=tuple)
 
 
 @dataclass(frozen=True)
@@ -79,18 +85,64 @@ class ChatAnswer:
 def cited_post_summaries(
     sources: list[ChatSourceDocument] | tuple[ChatSourceDocument, ...],
     cited_post_ids: tuple[str, ...] | list[str],
-) -> list[dict[str, str]]:
+) -> list[dict[str, str | bool | list[str] | None]]:
     """Titles for cited ids, in citation order. Unknown ids are dropped.
 
     The sliding evidence chip must show the source post's title, not a
     truncated UUID -- a missing title is omitted, never invented.
     """
-    titles = {source.post_id: source.post_title for source in sources}
+    by_id = {source.post_id: source for source in sources}
+    citations: list[dict[str, str | bool | list[str] | None]] = []
+    for post_id in cited_post_ids:
+        source = by_id.get(post_id)
+        if source is None:
+            continue
+        citation: dict[str, str | bool | list[str] | None] = {
+            "post_id": post_id,
+            "post_title": source.post_title,
+        }
+        if source.knowledge_cutoff is not None:
+            citation.update(
+                {
+                    "source_post_revision_id": source.source_post_revision_id,
+                    "evidence_available_at": source.evidence_available_at,
+                    "knowledge_cutoff": source.knowledge_cutoff,
+                    "live_changed_after_cutoff": source.live_changed_after_cutoff,
+                    "historical_body_unavailable": source.historical_body_unavailable,
+                    "unavailable_channels": list(source.unavailable_channels),
+                }
+            )
+        citations.append(citation)
+    return citations
+
+
+def historical_body_limitations(
+    sources: list[ChatSourceDocument] | tuple[ChatSourceDocument, ...],
+) -> list[dict[str, object]]:
+    """Return explicit cutoff limitations without exposing a live replacement."""
+
     return [
-        {"post_id": post_id, "post_title": titles[post_id]}
-        for post_id in cited_post_ids
-        if post_id in titles
+        {
+            "post_id": source.post_id,
+            "limitation_code": "historical_body_unavailable",
+            "unavailable_channels": list(source.unavailable_channels),
+        }
+        for source in sources
+        if source.historical_body_unavailable
     ]
+
+
+def ask_grounding_status(
+    sources: list[ChatSourceDocument] | tuple[ChatSourceDocument, ...],
+    knowledge_cutoff: str | None,
+) -> str:
+    """Classify live, complete-cutoff, or partial-cutoff source grounding."""
+
+    if knowledge_cutoff is None:
+        return "live_only"
+    if not sources or any(source.historical_body_unavailable for source in sources):
+        return "partially_cutoff_grounded"
+    return "fully_cutoff_grounded"
 
 
 def _buyer_evidence_kind(fact: str) -> str:
