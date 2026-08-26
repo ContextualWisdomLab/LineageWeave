@@ -44,7 +44,7 @@
   position: absolute;
   inset-inline: 1rem;
   top: 2rem;
-  border-top: 2px solid var(--border-color, #9aa4b2);
+  border-top: 2px solid var(--color-border);
 }
 
 .project-history-tab {
@@ -68,7 +68,7 @@
 
 .project-history-marker {
   background: currentColor;
-  border: 0.25rem solid var(--surface-color, #fff);
+  border: 0.25rem solid var(--color-background);
   border-radius: 50%;
   box-shadow: 0 0 0 2px currentColor;
   height: 1rem;
@@ -87,7 +87,7 @@
 }
 
 .project-history-detail {
-  border: 1px solid var(--border-color, #c8d0da);
+  border: 1px solid var(--color-border);
   border-radius: 0.75rem;
   display: grid;
   gap: 1rem;
@@ -138,7 +138,7 @@
 
 .project-history-responsibilities li,
 .project-history-paths li {
-  border: 1px solid var(--border-color, #d7dde5);
+  border: 1px solid var(--color-border);
   border-radius: 0.5rem;
   display: flex;
   flex-wrap: wrap;
@@ -180,7 +180,7 @@
 
 .project-history-table-scroll th,
 .project-history-table-scroll td {
-  border: 1px solid var(--border-color, #c8d0da);
+  border: 1px solid var(--color-border);
   padding: 0.5rem;
   text-align: start;
   vertical-align: top;
@@ -195,7 +195,7 @@
   }
 
   .project-history-tabs::before {
-    border-inline-start: 2px solid var(--border-color, #9aa4b2);
+    border-inline-start: 2px solid var(--color-border);
     border-top: 0;
     inset-block: 1rem;
     inset-inline-start: 0.75rem;
