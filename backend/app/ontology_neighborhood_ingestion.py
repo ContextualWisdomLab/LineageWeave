@@ -795,7 +795,7 @@ async def _load_voice_assignments(
             on lookup.lookup_category = 'voc_type'
            and lookup.lookup_code = voice.voice_type_code
          where voice.post_id = $1
-           and ($2::timestamptz is null or voice.recorded_at <= $2)
+           and ($2::timestamptz is null or voice.effective_from <= $2)
          order by voice.is_primary desc, lookup.display_order, voice.voice_type_code
         """,
         post_id,

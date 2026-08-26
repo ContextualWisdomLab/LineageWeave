@@ -34,6 +34,11 @@ compound lookup codes.
 - The pair `(post_id, voice_type_code)` is unique. One partial unique index
   permits only one primary voice while allowing any evidence-backed subset of
   the governed vocabulary as additional voices.
+- `effective_from` records when an assignment became applicable. The initial
+  imported primary starts at the source post's `created_at`; a later imported
+  primary change and every added evidence-bearing voice start when recorded.
+  Knowledge-cutoff reads use this effective instant, so migration time does not
+  erase the primary voice from an older authorized view.
 - A database trigger verifies that every association code belongs to the
   `voc_type` lookup category and every truth code belongs to
   `ontology_truth_status`;
@@ -72,6 +77,7 @@ classDiagram
     boolean is_primary
     text truth_status_code
     uuid provenance_assertion_id
+    timestamptz effective_from
     timestamptz recorded_at
   }
   class LookupValue {

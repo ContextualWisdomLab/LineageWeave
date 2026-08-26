@@ -30,7 +30,9 @@ ADR 0247 and migration 0237 now define the persistence contract for
 evidence-bearing composition. A post keeps one source-provided
 `voc_type_code`, mirrored as its sole primary association, while every
 additional voice requires a normalized PROV-O assertion and explicit truth
-status. This implements the first two requirements below without adding
+status. An explicit assignment-effective instant preserves a backfilled
+primary at historical cutoffs without antedating later primary changes. This
+implements the first two requirements below without adding
 Cartesian-product codes. The remaining acceptance boundary is:
 
 1. preserve the imported primary voice without reclassification (implemented
@@ -42,7 +44,8 @@ Cartesian-product codes. The remaining acceptance boundary is:
 4. return only authorized associations through API, JSON-LD, CSV, filters,
    and UI (candidate API list/detail, filters, combined post-card labels,
    qualified JSON-LD, exact-value CSV, SHACL, and source-post evidence
-   navigation implemented); and
+   navigation implemented; the board re-filter matches every associated voice
+   and restores locale translation for each displayed label); and
 5. proves zero-, one-, and multi-voice states with synthetic fixtures,
    migration replay, ontology/SHACL, API, accessibility, and Storybook edge
    tests before any release claim. The candidate `CombinedVoiceEvidence` scene

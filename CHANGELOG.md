@@ -18,6 +18,9 @@ All notable changes to this project are documented here. Format follows
   carries the assignments through SHACL-validated JSON-LD, exact-value CSV,
   and source-post evidence navigation. Storybook includes the combined primary
   plus additional Voice evidence state for desktop and narrow-screen audit.
+  Board filters match additional as well as primary voices, labels retain the
+  active locale, and cutoff reads use assignment-effective time rather than
+  migration recording time.
 - Expanded Voice-of-X post taxonomy (ADR 0246): the governed `voc_type`
   scheme adds Voice of Supplier, Employee, Business, Regulator, Investor,
   Society, and Process as source-post categories. Ontology SKOS concepts and

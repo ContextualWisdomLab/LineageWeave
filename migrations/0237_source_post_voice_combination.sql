@@ -10,10 +10,14 @@ create table if not exists source_post_voice (
     is_primary boolean not null default false,
     truth_status_code text not null references common_lookup_value (lookup_code),
     provenance_assertion_id uuid references provenance_assertion (assertion_id),
+    effective_from timestamptz not null default now(),
     recorded_at timestamptz not null default now(),
     primary key (post_id, voice_type_code),
     check (is_primary or provenance_assertion_id is not null)
 );
+
+alter table source_post_voice
+    add column if not exists effective_from timestamptz not null default now();
 
 create unique index if not exists source_post_voice_primary_idx
     on source_post_voice (post_id) where is_primary;
@@ -54,14 +58,13 @@ before insert or update of voice_type_code, truth_status_code on source_post_voi
 for each row execute function validate_source_post_voice_codes();
 
 insert into source_post_voice
-    (post_id, voice_type_code, is_primary, truth_status_code, recorded_at)
+    (post_id, voice_type_code, is_primary, truth_status_code, effective_from)
 select post_id, voc_type_code, true, 'truth_observed', created_at
 from source_post
 on conflict (post_id, voice_type_code) do update
 set is_primary = true,
     truth_status_code = 'truth_observed',
-    provenance_assertion_id = null,
-    recorded_at = least(source_post_voice.recorded_at, excluded.recorded_at);
+    provenance_assertion_id = null;
 
 create or replace function synchronize_source_post_primary_voice()
 returns trigger
@@ -74,12 +77,19 @@ begin
       and voice_type_code <> new.voc_type_code;
 
     insert into source_post_voice
-        (post_id, voice_type_code, is_primary, truth_status_code)
-    values (new.post_id, new.voc_type_code, true, 'truth_observed')
+        (post_id, voice_type_code, is_primary, truth_status_code, effective_from)
+    values (
+        new.post_id,
+        new.voc_type_code,
+        true,
+        'truth_observed',
+        case when tg_op = 'INSERT' then new.created_at else now() end
+    )
     on conflict (post_id, voice_type_code) do update
     set is_primary = true,
         truth_status_code = 'truth_observed',
-        provenance_assertion_id = null;
+        provenance_assertion_id = null,
+        effective_from = excluded.effective_from;
     return new;
 end;
 $$;

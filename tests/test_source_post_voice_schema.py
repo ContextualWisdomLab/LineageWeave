@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from pathlib import Path
 
-
 MIGRATION = (
     Path(__file__).resolve().parents[1]
     / "migrations"
@@ -20,10 +19,11 @@ def test_voice_combination_schema_is_normalized_and_evidence_bearing() -> None:
     assert "primary key (post_id, voice_type_code)" in sql
     assert "check (is_primary or provenance_assertion_id is not null)" in sql
     assert "truth_status_code text not null" in sql
+    assert "effective_from timestamptz not null" in sql
     assert "true, 'truth_observed'" in sql
     assert "where is_primary" in sql
     assert "select post_id, voc_type_code, true, 'truth_observed', created_at" in sql
-    assert "recorded_at = least(source_post_voice.recorded_at, excluded.recorded_at)" in sql
+    assert "case when tg_op = 'insert' then new.created_at else now() end" in sql
     assert "after insert or update of voc_type_code on source_post" in sql
     assert "on conflict (post_id, voice_type_code) do update" in sql
     assert "where lookup_category = 'voc_type'" in sql
