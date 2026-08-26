@@ -8,6 +8,7 @@ All notable changes to this project are documented here. Format follows
 
 ### Added
 
+- Occupation evidence can filter the imported catalog by published title or retained code without ranking or typed fallback, and provides next actions when no catalog entry matches (ADR 0262).
 - Each imported rating source now exposes its exact represented O*NET-SOC
   code/title catalog, and the Dashboard uses that catalog instead of requiring
   users to know or type an occupation code (ADR 0261).
