@@ -88,7 +88,7 @@ continues to pass unchanged.
   structure.
 - Publish all 3,006 O*NET 31.0 Content Model Reference elements with exact
   identifiers, names, descriptions, and source-defined outline parents
-  (ADR 0250). Treat the six roots and 18 second-level branches as navigation
+  (ADR 0255). Treat the six roots and 18 second-level branches as navigation
   classes, never occupation ratings, person traits, scores, or weights.
 - Declare typed derivation properties from classifications to
   characteristics but assert no instance binding; binding requires a
@@ -113,7 +113,7 @@ canonical namespace, and lookup round-trip isolation are enforced by
   never infer a DPT-to-psychology crosswalk or relabel work style as affect.
 - Publish the eight O*NET 31.0 Ability, Essential Skill, Transferable Skill,
   and Work Style link tables to Work Activities and Work Context as 1,417
-  directed, assertion-level provenance-bearing relations (ADR 0253). Treat
+  directed, assertion-level provenance-bearing relations (ADR 0256). Treat
   relevance as neither a causal effect nor a numeric weight.
 - Bind a construct to record content only through a provenance-bearing,
   evidence-cited assertion. Do not promote record evidence to a person trait,
@@ -129,7 +129,7 @@ persistence and UI remain unavailable until their separate ADR acceptance.
 - Persist released occupation-to-element ratings as source observations, not
   ontology weights: release, source table, occupation, element, scale,
   optional category, value, sample/error/interval, suppression, relevance,
-  update date, and domain source remain independently auditable (ADR 0254).
+  update date, and domain source remain independently auditable (ADR 0257).
 - Keep normalized reference identities in third normal form and partition the
   observation store by exact release then source table. An unknown partition
   fails closed instead of entering a catch-all table.

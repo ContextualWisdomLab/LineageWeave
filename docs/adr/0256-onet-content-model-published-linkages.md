@@ -1,8 +1,8 @@
-# ADR 0253: O*NET content-model published linkages
+# ADR 0256: O*NET content-model published linkages
 
 **Status:** Accepted  
 **Date:** 2026-08-27  
-**Extends:** ADR 0248, ADR 0250
+**Extends:** ADR 0248, ADR 0255
 
 ## Context
 

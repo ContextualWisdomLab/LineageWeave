@@ -1,7 +1,7 @@
 # O*NET occupation-rating store evidence
 
 This supporting note records the source and database capabilities governed by
-ADR 0254. It introduces no independent architecture decision.
+ADR 0257. It introduces no independent architecture decision.
 
 O*NET 31.0 occupation data tables publish occupation and element identifiers,
 scale identifiers and names, decimal values, optional category values, sample

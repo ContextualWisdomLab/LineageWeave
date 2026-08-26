@@ -1,4 +1,4 @@
--- ADR 0254: normalized, immutable O*NET occupation-rating source evidence.
+-- ADR 0257: normalized, immutable O*NET occupation-rating source evidence.
 -- Release and source-table LIST partitions are created by the importer before
 -- data insertion; no default partition may silently absorb an unknown source.
 
@@ -132,5 +132,50 @@ create index if not exists occupational_rating_occupation_element_idx
 create index if not exists occupational_rating_element_occupation_idx
     on occupational_rating_observation
     (data_release_code, element_id, scale_id, onetsoc_code);
+
+create or replace function validate_occupational_rating_insert()
+returns trigger
+language plpgsql
+as $$
+declare
+    declared_minimum numeric;
+    declared_maximum numeric;
+begin
+    if new.source_updated_date > current_date then
+        raise check_violation using message = 'source_updated_date must not be in the future';
+    end if;
+    select minimum_value, maximum_value
+      into declared_minimum, declared_maximum
+      from occupational_scale_definition
+     where data_release_code = new.data_release_code
+       and scale_id = new.scale_id;
+    if declared_minimum is not null
+       and new.data_value not between declared_minimum and declared_maximum then
+        raise check_violation using message = 'data_value is outside the declared scale bounds';
+    end if;
+    return new;
+end;
+$$;
+
+drop trigger if exists occupational_rating_validate_insert
+    on occupational_rating_observation;
+create trigger occupational_rating_validate_insert
+before insert on occupational_rating_observation
+for each row execute function validate_occupational_rating_insert();
+
+create or replace function reject_occupational_rating_mutation()
+returns trigger
+language plpgsql
+as $$
+begin
+    raise check_violation using message = 'occupational rating evidence is immutable';
+end;
+$$;
+
+drop trigger if exists occupational_rating_reject_mutation
+    on occupational_rating_observation;
+create trigger occupational_rating_reject_mutation
+before update or delete on occupational_rating_observation
+for each row execute function reject_occupational_rating_mutation();
 
 commit;

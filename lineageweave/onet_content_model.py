@@ -2,7 +2,7 @@
 
 This module exposes source-published identities and parent relationships only.
 It never turns a content-model element into an occupation rating, person trait,
-causal claim, score, or weight (ADR 0250).
+causal claim, score, or weight (ADR 0255).
 """
 
 from __future__ import annotations

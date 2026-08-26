@@ -1,7 +1,7 @@
 # O*NET 31.0 content-model linkage evidence
 
 This supporting note records the eight official JSON artifacts governed by
-ADR 0253. It introduces no independent architecture decision.
+ADR 0256. It introduces no independent architecture decision.
 
 | Table | Rows | SHA-256 |
 |---|---:|---|

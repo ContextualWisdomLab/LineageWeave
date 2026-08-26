@@ -17,6 +17,7 @@ from __future__ import annotations
 import asyncio
 import os
 import uuid
+from decimal import Decimal
 from pathlib import Path
 from urllib.parse import urlsplit, urlunsplit
 
@@ -340,7 +341,7 @@ def test_onet_rating_store_partitions_upserts_and_rejects_invalid_error(schema_d
                     'IM', null, %s, 120, 0.08, 3.94, 4.26, false, false,
                     date '2026-08-01', 'Analyst')
             on conflict on constraint occupational_rating_identity_key
-            do update set data_value = excluded.data_value
+            do nothing
         """
         cur.execute(statement, (4.10,))
         cur.execute(statement, (4.25,))
@@ -351,17 +352,53 @@ def test_onet_rating_store_partitions_upserts_and_rejects_invalid_error(schema_d
             where data_release_code = 'onet-31.0'
             """
         )
-        assert cur.fetchone() == (1, 4.25)
-        cur.execute("savepoint invalid_error")
+        assert cur.fetchone() == (1, Decimal("4.10"))
+        cur.execute("savepoint immutable_update")
         with pytest.raises(psycopg2.errors.CheckViolation):
             cur.execute(
                 """
                 update occupational_rating_observation
-                set standard_error = -0.01
+                set data_value = 4.25
                 where data_release_code = 'onet-31.0'
                 """
             )
-        cur.execute("rollback to savepoint invalid_error")
+        cur.execute("rollback to savepoint immutable_update")
+        cur.execute("savepoint immutable_delete")
+        with pytest.raises(psycopg2.errors.CheckViolation):
+            cur.execute(
+                "delete from occupational_rating_observation where data_release_code = 'onet-31.0'"
+            )
+        cur.execute("rollback to savepoint immutable_delete")
+        for savepoint, value_sql, date_sql in (
+            ("outside_scale", "6.00", "date '2026-08-01'"),
+            ("future_source_date", "4.00", "current_date + 1"),
+        ):
+            cur.execute(f"savepoint {savepoint}")
+            with pytest.raises(psycopg2.errors.CheckViolation):
+                cur.execute(
+                    f"""
+                    insert into occupational_rating_observation
+                        (data_release_code, source_table_code, onetsoc_code, element_id,
+                         scale_id, category_value, data_value, source_updated_date,
+                         domain_source_code)
+                    values ('onet-31.0', 'abilities', '15-1252.00', '1.A.1.a.1',
+                            'IM', 1, {value_sql}, {date_sql}, 'Analyst')
+                    """
+                )
+            cur.execute(f"rollback to savepoint {savepoint}")
+        cur.execute("savepoint invalid_standard_error")
+        with pytest.raises(psycopg2.errors.CheckViolation):
+            cur.execute(
+                """
+                insert into occupational_rating_observation
+                    (data_release_code, source_table_code, onetsoc_code, element_id,
+                     scale_id, category_value, data_value, standard_error,
+                     source_updated_date, domain_source_code)
+                values ('onet-31.0', 'abilities', '15-1252.00', '1.A.1.a.1',
+                        'IM', 2, 4.00, -0.01, date '2026-08-01', 'Analyst')
+                """
+            )
+        cur.execute("rollback to savepoint invalid_standard_error")
 
 
 def test_global_ask_evidence_search_indexes_exist_on_normalized_tables(schema_db) -> None:

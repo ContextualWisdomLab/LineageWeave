@@ -1,8 +1,8 @@
-# ADR 0254: O*NET occupation-rating observation store
+# ADR 0257: O*NET occupation-rating observation store
 
 **Status:** Accepted  
 **Date:** 2026-08-27  
-**Extends:** ADR 0166, ADR 0250, ADR 0253
+**Extends:** ADR 0166, ADR 0255, ADR 0256
 
 ## Context
 
@@ -33,7 +33,7 @@ also violate LineageWeave's externalized-compute boundary.
    hash modulus. An importer must create both exact LIST partitions before
    inserting; without them PostgreSQL rejects the row.
 5. Every insert uses the owning release/table artifact digest and idempotent
-   UPSERT. Endpoint names and scale names must match their normalized reference
+   `ON CONFLICT DO NOTHING`. Endpoint names and scale names must match their normalized reference
    rows; each scale definition names its owning source-table artifact, and the
    importer rejects disagreement rather than overwriting identity.
 6. Preserve `recommend_suppress` and `not_relevant` independently. A suppressed
