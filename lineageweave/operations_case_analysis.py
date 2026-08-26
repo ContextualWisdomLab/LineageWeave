@@ -182,7 +182,7 @@ that is not supported anywhere in the authorized sources in this array; never in
 evidence span for it. Required types are: claim_investigation = order,
 specification_change, originating_order, sales_pool; rebid_handover = discussion,
 counterparty, our_owner, decision; external_information = external_relation;
-repeat_issue = issue_pattern, improvement_action. Return [] only when the record supports none
+repeat_issue = issue_pattern, improvement_action. Return {{"cases": []}} only when the record supports none
 of the case kinds. Each item must also contain milestones and
 missing_milestone_type_codes. A milestone has milestone_type_code,
 evidence_post_id, and a verbatim evidence_text; its instant is assigned from

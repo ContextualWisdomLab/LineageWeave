@@ -30,6 +30,7 @@ def test_orchestrator_request_uses_provider_neutral_auto_selector(monkeypatch) -
         "",
     ) == ()
     assert captured["model"] == "orchestrator/auto"
+    assert 'Return {"cases": []}' in captured["messages"][0]["content"]
     assert captured_request["timeout"] == 180.0
     assert captured_request["headers"]["x-request-timeout-ms"] == "180000"
     response_format = captured["response_format"]
