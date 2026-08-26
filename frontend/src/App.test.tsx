@@ -3840,11 +3840,6 @@ describe("App, authenticated", () => {
         name: "Open analysis run: TEPP measurement · Failed · Demo Corp",
       }),
     );
-    expect(
-      await screen.findByText(
-        "Ask an administrator to enable measurement, then retry from this failed run.",
-      ),
-    ).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Request a new TEPP measurement" })).not.toBeInTheDocument();
     expect(screen.queryByRole("heading", { name: "TEPP measurement · Pending · Demo Corp" })).not.toBeInTheDocument();
     expect(

@@ -3033,15 +3033,6 @@ function analysisRunStartLabel(run: AnalysisRun): string {
   return "Start reconstruction";
 }
 
-/** Failed TEPP/topic-lineage is terminal. Create cannot invent a Pending row. */
-function analysisRunCanRequestTeppRetry(run: AnalysisRun): boolean {
-  return (
-    (run.run_kind_code === "analysis_run_tepp" ||
-      run.run_kind_code === "analysis_run_topic_lineage") &&
-    run.status_code === "analysis_status_failed"
-  );
-}
-
 const REPORT_PERIOD_KEY = /^\d{4}-W\d{2}$/;
 
 /**
@@ -3323,13 +3314,6 @@ function AnalysisRunsPanel({
                     : "Reconstructing the cutoff bag..."
                 : analysisRunStartLabel(selected)}
             </button>
-          )}
-          {analysisRunCanRequestTeppRetry(selected) && (
-            <p className="post-meta">
-              {selected.run_kind_code === "analysis_run_topic_lineage"
-                ? "Ask an administrator to enable topic-lineage analysis, then retry from this failed run."
-                : "Ask an administrator to enable measurement, then retry from this failed run."}
-            </p>
           )}
           {analysisRunReportPeriod(selected) && onSelectReportPeriod && (
             <button
