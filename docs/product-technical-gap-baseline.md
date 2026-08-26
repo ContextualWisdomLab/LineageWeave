@@ -28,10 +28,14 @@ nonblank reason, but none joins to the current lineage edge set and only one
 joins to an inference candidate with evidence. A direct evidence identifier is
 not required to mislabel an inference or prediction as observed. Its generation
 or derivation nevertheless requires qualified provenance, and the authorized
-source database currently has zero of the 14 normalized PROV-O tables required
-by ADR 0011. These edges therefore remain an explicit provenance gap: do not
-present them as source-backed facts or qualified derivations until a normalized
-resource, activity, assertion, and qualification reference is persisted.
+source-adjacent analysis database has zero of the 14 normalized PROV-O tables
+required by ADR 0011. This is not a reason to mutate the source database:
+replaying the application Compose target deployed all 14 tables and populated
+the canonical 30 classes, 50 relations, and 14 qualification definitions. The
+remaining gap is linkage: the 3,190 analysis edges are not bound to target
+PROV resources, activities, assertions, or qualifications. Do not present them
+as source-backed facts or qualified derivations until that normalized linkage
+is persisted.
 The export names 117 distinct opaque source-artifact references. A protected
 runtime search found 117 local MHTML files whose complete SHA-256 digests match
 the artifact catalog exactly. Replaying all 12.1 GB through the non-rendering
