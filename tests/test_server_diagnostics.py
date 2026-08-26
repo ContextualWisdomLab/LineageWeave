@@ -56,9 +56,7 @@ def _call_ask(monkeypatch: pytest.MonkeyPatch, exc: BaseException) -> None:
             )
         )
     assert raised.value.status_code == 503
-    assert raised.value.detail == (
-        "Ask Agent is unavailable: contextual-orchestrator could not complete the answer"
-    )
+    assert raised.value.detail == "Ask Agent could not complete this question. Try again later."
 
 
 def test_global_ask_provider_failure_is_reader_safe_and_classified(
