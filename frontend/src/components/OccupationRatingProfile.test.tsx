@@ -1,7 +1,8 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
+  fetchOccupationRatingOccupations,
   fetchOccupationRatingSources,
   fetchOccupationRatings,
   type OccupationRatingProfile as Payload,
@@ -10,6 +11,7 @@ import { OccupationRatingProfile, OccupationRatingProfileView } from "./Occupati
 
 vi.mock("../api", async (importOriginal) => ({
   ...(await importOriginal<typeof import("../api")>()),
+  fetchOccupationRatingOccupations: vi.fn(),
   fetchOccupationRatingSources: vi.fn(),
   fetchOccupationRatings: vi.fn(),
 }));
@@ -18,6 +20,7 @@ const ready: Payload = {
   data_release_code: "onet-31.0",
   source_table_code: "abilities",
   onetsoc_code: "15-1252.00",
+  occupation_title: "Synthetic occupation",
   source_available: true,
   source: {
     source_table_name: "Abilities",
@@ -38,26 +41,47 @@ const ready: Payload = {
   next_offset: null,
 };
 
+const importedSource = {
+  data_release_code: "onet-31.0", release_version: "31.0",
+  source_publisher_name: "Synthetic publisher", source_license_url: "https://example.test/license",
+  source_table_code: "abilities", source_table_name: "Abilities",
+  source_artifact_url: "https://example.test/abilities.csv", source_artifact_sha256: "a".repeat(64),
+  source_row_count: 2,
+};
+
+const observedOccupations = {
+  data_release_code: "onet-31.0",
+  source_table_code: "abilities",
+  source_available: true,
+  occupations: [
+    { onetsoc_code: "11-1011.00", occupation_title: "Synthetic chief occupation" },
+    { onetsoc_code: "15-1252.00", occupation_title: "Synthetic occupation" },
+  ],
+};
+
 describe("OccupationRatingProfile", () => {
-  it("submits exact identifiers and renders warnings beside the retained value", async () => {
-    vi.mocked(fetchOccupationRatingSources).mockResolvedValue({
-      sources: [{
-        data_release_code: "onet-31.0", release_version: "31.0",
-        source_publisher_name: "Synthetic publisher", source_license_url: "https://example.test/license",
-        source_table_code: "abilities", source_table_name: "Abilities",
-        source_artifact_url: "https://example.test/abilities.csv", source_artifact_sha256: "a".repeat(64),
-        source_row_count: 2,
-      }],
-    });
+  beforeEach(() => {
+    vi.mocked(fetchOccupationRatingOccupations).mockReset();
+    vi.mocked(fetchOccupationRatingSources).mockReset();
+    vi.mocked(fetchOccupationRatings).mockReset();
+  });
+  afterEach(() => {
+    vi.clearAllMocks();
+  });
+  it("submits catalog identifiers and renders warnings beside the retained value", async () => {
+    vi.mocked(fetchOccupationRatingSources).mockResolvedValue({ sources: [importedSource] });
+    vi.mocked(fetchOccupationRatingOccupations).mockResolvedValue(observedOccupations);
     vi.mocked(fetchOccupationRatings).mockResolvedValue(ready);
     render(<OccupationRatingProfile accessToken="synthetic-token" />);
     expect(await screen.findByRole("option", { name: "31.0 · Abilities" })).toBeInTheDocument();
-    await userEvent.type(screen.getByLabelText("O*NET-SOC 직업 코드"), "15-1252.00");
+    await screen.findByRole("option", { name: "Synthetic occupation (15-1252.00)" });
+    await userEvent.selectOptions(screen.getByLabelText("직업"), "15-1252.00");
     await userEvent.click(screen.getByRole("button", { name: "직업 근거 열기" }));
     expect(fetchOccupationRatings).toHaveBeenCalledWith("synthetic-token", {
       onetsocCode: "15-1252.00", dataReleaseCode: "onet-31.0", sourceTableCode: "abilities", offset: 0,
     });
-    expect(await screen.findByText("4.10")).toBeInTheDocument();
+    expect(await screen.findByText("Synthetic occupation")).toBeInTheDocument();
+    expect(screen.getByText("4.10")).toBeInTheDocument();
     expect(screen.getByText(/정밀도가 낮아/)).toBeInTheDocument();
     expect(screen.getByText(/해당 없음 응답이 포함됩니다/)).toBeInTheDocument();
     expect(screen.getByText(/표를 가로로 밀어/)).toBeInTheDocument();
@@ -69,29 +93,35 @@ describe("OccupationRatingProfile", () => {
 
     expect(await screen.findByText(/가져온 직업 근거 표가 없습니다/)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "직업 근거 열기" })).toBeDisabled();
+    expect(fetchOccupationRatingOccupations).not.toHaveBeenCalled();
+  });
+
+  it("fails closed when the selected source has no observed occupation", async () => {
+    vi.mocked(fetchOccupationRatingSources).mockResolvedValue({ sources: [importedSource] });
+    vi.mocked(fetchOccupationRatingOccupations).mockResolvedValue({
+      ...observedOccupations,
+      occupations: [],
+    });
+    render(<OccupationRatingProfile accessToken="synthetic-token" />);
+
+    expect(await screen.findByText(/이 근거 표에서 확인할 수 있는 직업이 없습니다/)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "직업 근거 열기" })).toBeDisabled();
   });
 
   it("keeps pagination bound to the loaded profile after form edits", async () => {
-    vi.mocked(fetchOccupationRatingSources).mockResolvedValue({
-      sources: [{
-        data_release_code: "onet-31.0", release_version: "31.0",
-        source_publisher_name: "Synthetic publisher", source_license_url: "https://example.test/license",
-        source_table_code: "abilities", source_table_name: "Abilities",
-        source_artifact_url: "https://example.test/abilities.csv", source_artifact_sha256: "a".repeat(64),
-        source_row_count: 2,
-      }],
-    });
+    vi.mocked(fetchOccupationRatingSources).mockResolvedValue({ sources: [importedSource] });
+    vi.mocked(fetchOccupationRatingOccupations).mockResolvedValue(observedOccupations);
     vi.mocked(fetchOccupationRatings)
       .mockResolvedValueOnce({ ...ready, next_offset: 100 })
       .mockResolvedValueOnce({ ...ready, items: [{ ...ready.items[0], scale_id: "LV" }] });
     render(<OccupationRatingProfile accessToken="synthetic-token" />);
-    const occupation = screen.getByLabelText("O*NET-SOC 직업 코드");
-    await userEvent.type(occupation, "15-1252.00");
+    const occupation = await screen.findByLabelText("직업");
+    await screen.findByRole("option", { name: "Synthetic occupation (15-1252.00)" });
+    await userEvent.selectOptions(occupation, "15-1252.00");
     await userEvent.click(screen.getByRole("button", { name: "직업 근거 열기" }));
     await screen.findByText("4.10");
 
-    await userEvent.clear(occupation);
-    await userEvent.type(occupation, "11-1011.00");
+    await userEvent.selectOptions(occupation, "11-1011.00");
     await userEvent.click(screen.getByRole("button", { name: "다음 관측값 불러오기" }));
 
     expect(fetchOccupationRatings).toHaveBeenLastCalledWith("synthetic-token", {
@@ -101,26 +131,19 @@ describe("OccupationRatingProfile", () => {
   });
 
   it("removes stale evidence while a fresh occupation loads", async () => {
-    vi.mocked(fetchOccupationRatingSources).mockResolvedValue({
-      sources: [{
-        data_release_code: "onet-31.0", release_version: "31.0",
-        source_publisher_name: "Synthetic publisher", source_license_url: "https://example.test/license",
-        source_table_code: "abilities", source_table_name: "Abilities",
-        source_artifact_url: "https://example.test/abilities.csv", source_artifact_sha256: "a".repeat(64),
-        source_row_count: 2,
-      }],
-    });
+    vi.mocked(fetchOccupationRatingSources).mockResolvedValue({ sources: [importedSource] });
+    vi.mocked(fetchOccupationRatingOccupations).mockResolvedValue(observedOccupations);
     vi.mocked(fetchOccupationRatings)
       .mockResolvedValueOnce(ready)
       .mockImplementationOnce(() => new Promise(() => undefined));
     render(<OccupationRatingProfile accessToken="synthetic-token" />);
-    const occupation = screen.getByLabelText("O*NET-SOC 직업 코드");
-    await userEvent.type(occupation, "15-1252.00");
+    const occupation = await screen.findByLabelText("직업");
+    await screen.findByRole("option", { name: "Synthetic occupation (15-1252.00)" });
+    await userEvent.selectOptions(occupation, "15-1252.00");
     await userEvent.click(screen.getByRole("button", { name: "직업 근거 열기" }));
     await screen.findByText("4.10");
 
-    await userEvent.clear(occupation);
-    await userEvent.type(occupation, "11-1011.00");
+    await userEvent.selectOptions(occupation, "11-1011.00");
     await userEvent.click(screen.getByRole("button", { name: "직업 근거 열기" }));
 
     expect(screen.queryByText("4.10")).not.toBeInTheDocument();

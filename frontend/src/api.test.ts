@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   BackendError,
   fetchMe,
+  fetchOccupationRatingOccupations,
   fetchOccupationRatingSources,
   fetchOccupationRatings,
   fetchOperationsDashboard,
@@ -56,6 +57,24 @@ describe("backendFetch provider-error boundary", () => {
     await fetchOccupationRatingSources("access-token");
 
     expect(fetchMock.mock.calls[0][0]).toContain("/api/occupation-rating-sources");
+  });
+
+  it("reads occupations that have observations in one imported source", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify({ source_available: true, occupations: [] }), {
+        headers: { "Content-Type": "application/json" },
+      }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    await fetchOccupationRatingOccupations("access-token", {
+      dataReleaseCode: "onet-31.0",
+      sourceTableCode: "abilities",
+    });
+
+    expect(fetchMock.mock.calls[0][0]).toContain(
+      "/api/occupation-rating-sources/onet-31.0/abilities/occupations",
+    );
   });
 
   it("does not expose provider details from server failures", async () => {

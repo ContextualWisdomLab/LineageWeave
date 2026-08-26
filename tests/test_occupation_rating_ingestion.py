@@ -3,8 +3,14 @@
 import asyncio
 from decimal import Decimal
 
-from backend.app.main import read_occupation_rating_sources, read_occupation_ratings
+from backend.app.main import (
+    read_occupation_rating_occupations,
+    read_occupation_rating_sources,
+    read_occupation_ratings,
+)
 from backend.app.occupation_rating_ingestion import (
+    OCCUPATION_CATALOG_BOUND,
+    fetch_occupation_rating_occupations,
     fetch_occupation_rating_sources,
     fetch_occupation_ratings,
 )
@@ -18,15 +24,17 @@ class FakeConnection:
         self.rows = list(rows)
         self.fetch_called = False
         self.last_fetch_query = ""
+        self.last_fetch_args: tuple[object, ...] = ()
 
     async def fetchrow(self, _query: str, *_args: object):
         """Return configured source metadata."""
         return self.source
 
-    async def fetch(self, query: str, *_args: object):
+    async def fetch(self, query: str, *args: object):
         """Return configured observation rows."""
         self.fetch_called = True
         self.last_fetch_query = query
+        self.last_fetch_args = args
         return self.rows
 
 
@@ -70,6 +78,7 @@ def test_unimported_source_is_not_an_empty_observed_profile() -> None:
     )
 
     assert result["source_available"] is False
+    assert result["occupation_title"] is None
     assert result["items"] == []
     assert conn.fetch_called is False
 
@@ -83,6 +92,7 @@ def test_rating_projection_preserves_exact_decimal_and_warning_flags() -> None:
         "scale_artifact_url": "https://example.test/scales.csv",
         "scale_artifact_sha256": "b" * 64,
         "scale_source_row_count": 33,
+        "occupation_title": "Synthetic occupation",
     }
     row = {
         "element_id": "1.A.1.a.1",
@@ -120,6 +130,7 @@ def test_rating_projection_preserves_exact_decimal_and_warning_flags() -> None:
     assert item["standard_error"] == "0.1830"
     assert item["recommend_suppress"] is True
     assert item["not_relevant"] is None
+    assert result["occupation_title"] == "Synthetic occupation"
     assert result["source"]["scale_artifact_sha256"] == "b" * 64
     assert result["next_offset"] == 1
 
@@ -133,6 +144,7 @@ def test_empty_profile_keeps_imported_scale_provenance() -> None:
         "scale_artifact_url": "https://example.test/scales.csv",
         "scale_artifact_sha256": "b" * 64,
         "scale_source_row_count": 33,
+        "occupation_title": None,
     }
 
     result = asyncio.run(
@@ -147,6 +159,7 @@ def test_empty_profile_keeps_imported_scale_provenance() -> None:
     )
 
     assert result["source_available"] is True
+    assert result["occupation_title"] is None
     assert result["items"] == []
     assert result["source"]["scale_artifact_sha256"] == "b" * 64
 
@@ -197,3 +210,67 @@ def test_authenticated_source_catalog_route_uses_shared_projection() -> None:
     )
 
     assert result == {"sources": []}
+
+
+def test_occupation_catalog_lists_observed_titles_in_title_order() -> None:
+    occupations = (
+        {
+            "onetsoc_code": "11-1011.00",
+            "occupation_title": "Synthetic chief occupation",
+        },
+        {
+            "onetsoc_code": "15-1252.00",
+            "occupation_title": "Synthetic occupation",
+        },
+    )
+    conn = FakeConnection({"source_table_code": "abilities"}, occupations)
+
+    result = asyncio.run(
+        fetch_occupation_rating_occupations(
+            conn,
+            data_release_code="onet-31.0",
+            source_table_code="abilities",
+        )
+    )
+
+    assert result == {
+        "data_release_code": "onet-31.0",
+        "source_table_code": "abilities",
+        "source_available": True,
+        "occupations": list(occupations),
+    }
+    assert "order by occupation.occupation_title, occupation.onetsoc_code" in (
+        conn.last_fetch_query
+    )
+    assert "and exists" in conn.last_fetch_query
+    assert conn.last_fetch_args[-1] == OCCUPATION_CATALOG_BOUND
+
+
+def test_occupation_catalog_unavailable_source_is_not_an_empty_list() -> None:
+    conn = FakeConnection(None)
+
+    result = asyncio.run(
+        fetch_occupation_rating_occupations(
+            conn,
+            data_release_code="onet-31.0",
+            source_table_code="scales_reference",
+        )
+    )
+
+    assert result["source_available"] is False
+    assert result["occupations"] == []
+    assert conn.fetch_called is False
+
+
+def test_authenticated_occupation_catalog_route_uses_shared_projection() -> None:
+    result = asyncio.run(
+        read_occupation_rating_occupations(
+            data_release_code="onet-31.0",
+            source_table_code="abilities",
+            _account=object(),
+            pool=FakePool(FakeConnection(None)),
+        )
+    )
+
+    assert result["source_available"] is False
+    assert result["occupations"] == []

@@ -5,6 +5,8 @@ from __future__ import annotations
 from decimal import Decimal
 from typing import Any, Protocol
 
+OCCUPATION_CATALOG_BOUND = 2000
+
 
 class RatingReadConnection(Protocol):
     """Small asyncpg-compatible surface used by the rating read projection."""
@@ -19,6 +21,14 @@ class RatingReadConnection(Protocol):
 def _decimal_text(value: Decimal | None) -> str | None:
     """Return the exact database decimal representation or honest absence."""
     return str(value) if value is not None else None
+
+
+def _optional_mapping_value(row: Any, key: str) -> Any:
+    """Return a mapping value when the projection supplied the column."""
+    try:
+        return row[key]
+    except (KeyError, IndexError):
+        return None
 
 
 async def fetch_occupation_ratings(
@@ -38,21 +48,27 @@ async def fetch_occupation_ratings(
                   rating_source.source_row_count,
                   scale_source.source_artifact_url as scale_artifact_url,
                   scale_source.source_artifact_sha256 as scale_artifact_sha256,
-                  scale_source.source_row_count as scale_source_row_count
+                  scale_source.source_row_count as scale_source_row_count,
+                  occupation.occupation_title
              from occupational_source_table rating_source
              left join occupational_source_table scale_source
                on scale_source.data_release_code = rating_source.data_release_code
               and scale_source.source_table_code = 'scales_reference'
+             left join occupational_classification_entry occupation
+               on occupation.data_release_code = rating_source.data_release_code
+              and occupation.onetsoc_code = $3
             where rating_source.data_release_code = $1
               and rating_source.source_table_code = $2""",
         data_release_code,
         source_table_code,
+        onetsoc_code,
     )
     if source is None:
         return {
             "data_release_code": data_release_code,
             "source_table_code": source_table_code,
             "onetsoc_code": onetsoc_code,
+            "occupation_title": None,
             "source_available": False,
             "source": None,
             "items": [],
@@ -112,6 +128,7 @@ async def fetch_occupation_ratings(
         "data_release_code": data_release_code,
         "source_table_code": source_table_code,
         "onetsoc_code": onetsoc_code,
+        "occupation_title": _optional_mapping_value(source, "occupation_title"),
         "source_available": True,
         "source": {
             "source_table_name": source["source_table_name"],
@@ -151,3 +168,57 @@ async def fetch_occupation_rating_sources(
                      source.source_table_name, source.source_table_code"""
     )
     return {"sources": [dict(row) for row in rows]}
+
+
+async def fetch_occupation_rating_occupations(
+    conn: RatingReadConnection,
+    *,
+    data_release_code: str,
+    source_table_code: str,
+) -> dict[str, object]:
+    """Return occupations that have observations in one imported rating source."""
+    source = await conn.fetchrow(
+        """select source_table_code
+             from occupational_source_table
+            where data_release_code = $1
+              and source_table_code = $2
+              and source_table_code <> 'scales_reference'""",
+        data_release_code,
+        source_table_code,
+    )
+    if source is None:
+        return {
+            "data_release_code": data_release_code,
+            "source_table_code": source_table_code,
+            "source_available": False,
+            "occupations": [],
+        }
+    rows = await conn.fetch(
+        """select occupation.onetsoc_code, occupation.occupation_title
+             from occupational_classification_entry occupation
+            where occupation.data_release_code = $1
+              and exists (
+                    select 1
+                      from occupational_rating_observation observation
+                     where observation.data_release_code = occupation.data_release_code
+                       and observation.source_table_code = $2
+                       and observation.onetsoc_code = occupation.onetsoc_code
+              )
+            order by occupation.occupation_title, occupation.onetsoc_code
+            limit $3""",
+        data_release_code,
+        source_table_code,
+        OCCUPATION_CATALOG_BOUND,
+    )
+    return {
+        "data_release_code": data_release_code,
+        "source_table_code": source_table_code,
+        "source_available": True,
+        "occupations": [
+            {
+                "onetsoc_code": row["onetsoc_code"],
+                "occupation_title": row["occupation_title"],
+            }
+            for row in rows
+        ],
+    }

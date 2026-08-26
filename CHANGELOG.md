@@ -8,6 +8,10 @@ All notable changes to this project are documented here. Format follows
 
 ### Added
 
+- Occupation evidence now selects a published occupation title from occupations
+  that actually have observations in the chosen imported source, with fail-closed
+  empty/unavailable catalog states and the retained title on the opened profile
+  (ADR 0261).
 - Occupation evidence source selection now comes from an authenticated catalog
   of actually imported rating artifacts, with release, publisher, license,
   digest, URL, and row-count provenance and fail-closed loading/empty/error

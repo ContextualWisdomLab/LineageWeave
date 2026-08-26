@@ -99,6 +99,7 @@ from backend.app.issue_ticket_ingestion import (
 )
 from backend.app.operations_dashboard import fetch_operations_dashboard
 from backend.app.occupation_rating_ingestion import (
+    fetch_occupation_rating_occupations,
     fetch_occupation_rating_sources,
     fetch_occupation_ratings,
 )
@@ -2313,6 +2314,28 @@ async def read_occupation_rating_sources(
     """Return the authenticated catalog of imported occupation-rating sources."""
     async with pool.acquire() as conn:
         return await fetch_occupation_rating_sources(conn)
+
+
+@app.get(
+    "/api/occupation-rating-sources/{data_release_code}/{source_table_code}/occupations"
+)
+async def read_occupation_rating_occupations(
+    data_release_code: str = Path(
+        ..., min_length=1, max_length=63, pattern=r"^[a-z0-9][a-z0-9.-]*$"
+    ),
+    source_table_code: str = Path(
+        ..., min_length=1, max_length=63, pattern=r"^[a-z][a-z0-9_]*$"
+    ),
+    _account: CurrentAccount = Depends(get_current_account),
+    pool: asyncpg.Pool = Depends(get_pool),
+) -> dict[str, object]:
+    """Return occupations that have observations in one imported rating source."""
+    async with pool.acquire() as conn:
+        return await fetch_occupation_rating_occupations(
+            conn,
+            data_release_code=data_release_code,
+            source_table_code=source_table_code,
+        )
 
 
 @app.get("/api/posts/{post_id}/counterparties")

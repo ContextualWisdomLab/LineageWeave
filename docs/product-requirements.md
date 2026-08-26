@@ -163,8 +163,9 @@ suppressed observation retains its value and warning flag together.
 
 ### PRD-FR-2F — Occupation-rating evidence view
 
-- Let an authenticated user submit an exact O*NET-SOC code, release, and source
-  from the existing Dashboard without changing the governed GNB (ADR 0259).
+- Let an authenticated user submit an imported source and a published
+  occupation from the existing Dashboard without changing the governed GNB
+  (ADR 0259, ADR 0260, ADR 0261).
 - Display published values beside bounds, sample/error/interval evidence,
   source time, and text warnings; link both source artifacts.
 - Give different next actions for unavailable source, empty occupation,
@@ -187,6 +188,23 @@ Acceptance: a user never types an internal release/source code; the selector
 order follows persisted import time rather than parsed version heuristics; and
 the real PostgreSQL integration test proves an imported synthetic artifact is
 listed while its supporting scale artifact is not.
+
+### PRD-FR-2H — Imported occupation catalog
+
+- Populate the occupation selector only from occupations that have
+  observations in the currently selected imported source, showing the
+  published title with the retained O*NET-SOC code (ADR 0261).
+- Reset the occupation when the source changes.
+- Disable profile submission and state the next action while the occupation
+  catalog is loading, empty, or unavailable; keep unavailable sources
+  distinct from an empty occupation list.
+- Display the published title on the opened profile without deriving a
+  ranking or recommendation.
+
+Acceptance: a user never types an O*NET-SOC code; occupation order follows
+published title then code; and the real PostgreSQL integration test proves an
+imported synthetic occupation is listed for its rating source while a
+classification-only occupation is not.
 
 ### PRD-FR-3 — Bounded ontology exploration
 
