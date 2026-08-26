@@ -231,6 +231,8 @@ treated as a negative case.
   the remaining eligible tier only when fewer than the requested bounded page
   are locked. This preserves the documented total order while avoiding a
   corpus-wide priority `CASE` sort and its per-row correlated probes.
+  Candidate post identifiers are de-duplicated before mutation because the two
+  `READ COMMITTED` statements may observe a target moving between tiers.
 
 ## References
 
