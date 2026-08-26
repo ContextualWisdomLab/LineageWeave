@@ -80,4 +80,9 @@ export const NaruonUnavailable: Story = {
 
 export const ObservedOccurrence: Story = {
   args: { calendar: observed },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(canvas.getByText("Customer review")).toBeVisible();
+    await expect(canvas.queryByText("summary_visible")).not.toBeInTheDocument();
+  },
 };

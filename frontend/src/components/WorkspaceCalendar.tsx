@@ -94,7 +94,6 @@ function ObservedEventRow({ event }: { event: NaruonCalendarEvent }) {
         <EvidenceStatusMark status="evidence" />
         <span className="ticket-title">{event.display_text}</span>
         <span className="post-badge">{event.starts_at}</span>
-        <span className="post-badge">{event.disclosure_code}</span>
         <span className="post-badge">
           {t("Open this observed occurrence. It is not a LineageWeave commitment.")}
         </span>

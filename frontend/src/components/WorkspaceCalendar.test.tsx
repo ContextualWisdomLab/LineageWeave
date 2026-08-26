@@ -86,6 +86,7 @@ describe("WorkspaceCalendar", () => {
     );
 
     expect(screen.getByText("Customer review")).toBeInTheDocument();
+    expect(screen.queryByText("summary_visible")).not.toBeInTheDocument();
     expect(
       screen.getByText("Open this observed occurrence. It is not a LineageWeave commitment."),
     ).toBeInTheDocument();
