@@ -5,6 +5,9 @@
 **Amends:** ADR 0003, ADR 0024, ADR 0064, ADR 0084, ADR 0132, ADR 0145,
 ADR 0148, ADR 0167, ADR 0168, ADR 0182, ADR 0185, ADR 0200, ADR 0201, and
 ADR 0205
+**Extended by:** [ADR 0245](0245-lineage-scoring-and-entity-resolution-owner-contract.md),
+which names the remaining channel, reconstruction-decision, and corporate-
+entity similarity paths and defines their minimum owner envelopes.
 
 ## Context
 
@@ -28,9 +31,10 @@ The ecosystem product boundaries are already sufficient:
   CPU/GPU implementation before LineageWeave treats a new result as governed
   numerical evidence.
 
-LineageWeave has no standalone canonical PRD file on this exact head. Until
-one lands, `ARCHITECTURE.md` and the accepted ADR set are the product baseline;
-this absence remains a product-documentation gap, not permission to infer a
+At the time of this decision LineageWeave had no standalone canonical PRD.
+`docs/product-requirements.md` has since landed as a supporting product
+contract and confirms the same consumer-only measurement boundary; accepted
+ADRs remain normative. The earlier absence was never permission to infer a
 different responsibility.
 
 ## Decision
@@ -113,4 +117,3 @@ https://doi.org/10.1007/s11336-021-09762-5
 Roberts, M. E., Stewart, B. M., & Tingley, D. (2019). stm: An R package for
 structural topic models. *Journal of Statistical Software, 91*(2), 1–40.
 https://doi.org/10.18637/jss.v091.i02
-

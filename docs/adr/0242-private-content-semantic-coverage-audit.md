@@ -28,12 +28,16 @@ Repository artifacts must not retain the private titles.
    `conduct` mode. Every accepted batch requires a multi-step trace. The model
    receives a deterministic public ontology contract containing each governed
    term's IRI, RDF kind, labels, comments, domain, range, and SKOS scheme; local
-   names alone are not semantic evidence.
+   names alone are not semantic evidence. Coverage evaluates schema
+   expressibility: source-specific names and values are instance data when a
+   supplied class/property represents them, not missing private vocabulary.
 3. The caller accepts a batch only when JSON, input count, item count, ordered
    indexes, booleans, unique governed missing-dimension codes, and supporting
    ontology IRIs all validate. The contract parses the published PROV-O support
    profile with the primary ontology and includes `rdfs:subClassOf` and
-   `rdfs:subPropertyOf`, so standard alignments are not reduced to local names.
+   `rdfs:subPropertyOf`. It also reuses the runtime's canonical 30 PROV-O class,
+   50 property, and qualification-table registries, so standard semantics are
+   present in the audit rather than reduced to imports or local mappings.
    A covered verdict requires at least one supplied
    ontology IRI; an uncovered verdict requires at least one missing dimension.
    Person/actor meaning is a governed dimension distinct from organization role;

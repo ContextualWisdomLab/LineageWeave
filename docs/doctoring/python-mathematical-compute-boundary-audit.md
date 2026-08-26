@@ -8,8 +8,9 @@ Python paths satisfy the Rust/GPU requirement.
 
 ## Product-boundary sources read
 
-- LineageWeave `ARCHITECTURE.md` and accepted ADRs 0003, 0132, 0145,
-  0200, 0201, and 0205. This exact head has no standalone canonical PRD.
+- LineageWeave `docs/product-requirements.md`, `ARCHITECTURE.md`, and accepted
+  ADRs 0003, 0132, 0145, 0200, 0201, 0205, 0208, and 0245. The PRD is a
+  supporting product contract and ADRs remain normative.
 - TEPP `docs/product/prd-v0.4-approved.md`, whose approved TRSL-TM scope
   owns temporal, relational, multilingual, topic, event, and trajectory
   measurement.
@@ -22,12 +23,14 @@ Python paths satisfy the Rust/GPU requirement.
 
 | Current LineageWeave path | Local computation | Owner | Consumer replacement | Principal callers / tests |
 |---|---|---|---|---|
+| `lineageweave/channels.py` | inverse elapsed-day scoring, numeric secondary-key scoring, and `SequenceMatcher` label similarity | TEPP for calibrated temporal/event criterion evidence; RankWeave for Rust-backed similarity/ranking only after an accepted owner API | ADR 0245 Event-Lineage owner envelope; no local score fallback | `lineageweave/reconstruct.py`, estimation script; `tests/test_channels.py` |
 | `lineageweave/channel_weight_estimation.py` | dichotomization, synthetic simulation, MLS2PLM input construction, expected item information and normalization | fast-mlsirm, conditional on TEPP anchor | versioned anchored-weight artifact; strict digest/convergence validation | estimation scripts, seed/server/rebuild paths; `tests/test_channel_weight_estimation.py`, estimator-script tests |
 | `lineageweave/period_report.py` | response matrix, GRM/GPCM fit/FIPC/EAP, likelihood, category expectation, information ordering | fast-mlsirm | period-measurement artifact with item bank, scores, uncertainty, diagnostics | report ingestion and demo seed; period-report and report API tests |
 | `lineageweave/leftover_pairs.py` | residual matrix, complete-case selection, SVD/Gabriel coordinates, distances, reconstruction, axis shares | fast-mlsirm | residual-interaction artifact with observed/expected identity and coverage | `period_report.py`, report ingestion/seed; `tests/test_leftover_pairs.py`, report tests |
 | `lineageweave/embedding_client.py` and `backend/app/post_chat_ingestion.py` | cosine similarity, vector norms, maximum semantic score | RankWeave retrieval-score contract | ranked evidence envelope over ABAC-visible semantic units | reconstruction text channel and Global Ask retrieval; embedding/post-chat tests |
 | `lineageweave/knowledge_graph.py` | random walk with restart, convergence delta, adaptive relevance cutoff | RankWeave graph-ranking contract | ranked-node artifact with contribution and convergence evidence | related-person/entity API paths; knowledge-graph tests |
 | `lineageweave/reconstruct.py` | channel-weight renormalization, candidate-score fusion and minimum-score decision | RankWeave fusion; TEPP supplies independent lineage criterion | accepted edge-ranking artifact; LineageWeave persists selected edge and channel provenance | lineage rebuild/start/seed/server; reconstruct, persistence, API tests |
+| `lineageweave/corporate_hierarchy_resolution.py` | fixed legal-suffix deletion, `SequenceMatcher` candidate score, and fixed catalog-binding threshold | unassigned; no ecosystem PRD/API currently accepts corporate-master entity resolution | ADR 0245 corporate-entity resolution envelope; remain unbound when unavailable | corporate/team/Keyman/entity-relationship ingestion; corporate resolution and tie tests |
 | `lineageweave/rankweave_client.py` | channel construction, token overlap, RRF weights and contribution arithmetic | RankWeave | strict ranking artifact exposing owner-computed contributions | `/api/rankings`, frontend Rankings; `tests/test_rankweave_client.py` and frontend tests |
 
 `lineageweave/post_evaluation.py` imports fast-mlsirm only for its published
@@ -51,6 +54,11 @@ validation, and presentation formatting also remain LineageWeave concerns.
 - **RankWeave:** Rust-backed similarity, graph ranking, fusion, contribution,
   evaluation, and policy-selection artifacts. Its present Python calculation
   core is the correct product owner but not the final execution architecture.
+- **Corporate entity resolution:** no owner is designated. A repository must
+  explicitly accept this product responsibility and ADR 0245's versioned
+  unique/miss/tie envelope before LineageWeave can replace the current local
+  candidate scorer. Neither contextual-orchestrator nor Keyverse acquires this
+  responsibility implicitly.
 
 ## Persistence and UI blast radius
 

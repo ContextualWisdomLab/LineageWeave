@@ -10,6 +10,7 @@ from fast_mlsirm import SamplingStratum, finite_population_proportion_design
 from scripts.audit_source_content_semantics import (
     _ontology_terms,
     _parser,
+    _prompt,
     aggregate_results,
     parse_batch_result,
     selected_contents,
@@ -36,6 +37,14 @@ def test_cli_defaults_to_the_internal_orchestrator_credential() -> None:
         if action.dest == "sample_design_artifact_file"
     )
     assert design_action.required is True
+
+
+def test_audit_contract_distinguishes_instance_data_from_schema_gaps() -> None:
+    """Private names and values do not require private ontology vocabulary."""
+    prompt = _prompt([], ["Synthetic event at a synthetic facility"])
+
+    assert "as instance data, not missing schema terms" in prompt
+    assert "no supplied class/property can represent it" in prompt
 
 
 def _probability_manifest() -> dict[str, object]:
@@ -199,6 +208,14 @@ def test_ontology_contract_contains_public_semantics_not_only_local_names() -> N
     assert "http://www.w3.org/ns/prov#wasDerivedFrom" in by_iri[
         namespace + "wasDerivedFromPost"
     ]["superproperties"]
+    assert by_iri["http://www.w3.org/ns/prov#Activity"]["kinds"] == [
+        "http://www.w3.org/2002/07/owl#Class"
+    ]
+    assert by_iri["http://www.w3.org/ns/prov#wasInformedBy"]["qualification"] == {
+        "qualification_relation": "http://www.w3.org/ns/prov#qualifiedCommunication",
+        "influence_class": "http://www.w3.org/ns/prov#Communication",
+        "influencer_relation": "http://www.w3.org/ns/prov#activity",
+    }
 
 
 def test_probability_sample_manifest_preserves_design_evidence() -> None:

@@ -20,6 +20,7 @@ from rdflib import Graph, URIRef
 from rdflib.namespace import OWL, RDF, RDFS, SKOS
 
 from lineageweave.http_client import chat_completion_content, post_json
+from lineageweave.prov_o import PROV, PROV_CLASSES, PROV_QUALIFICATIONS, PROV_RELATIONS
 
 SEMANTIC_DIMENSIONS = frozenset(
     {
@@ -474,7 +475,52 @@ def _ontology_terms(path: Path) -> list[dict[str, object]]:
                 ),
             }
         )
-    return terms
+    qualifications = {
+        spec.unqualified_relation: {
+            "qualification_relation": str(PROV[spec.qualification_relation]),
+            "influence_class": str(PROV[spec.influence_class]),
+            "influencer_relation": str(PROV[spec.influencer_relation]),
+        }
+        for spec in PROV_QUALIFICATIONS
+    }
+    terms.extend(
+        {
+            "iri": spec.iri,
+            "kinds": [str(OWL.Class)],
+            "labels": [spec.local_name],
+            "comments": [],
+            "domains": [],
+            "ranges": [],
+            "superclasses": [str(PROV[name]) for name in spec.superclasses],
+            "superproperties": [],
+            "schemes": [],
+        }
+        for spec in PROV_CLASSES.values()
+    )
+    terms.extend(
+        {
+            "iri": spec.iri,
+            "kinds": [
+                str(OWL.ObjectProperty)
+                if spec.property_kind == "object"
+                else str(OWL.DatatypeProperty)
+            ],
+            "labels": [spec.local_name],
+            "comments": [],
+            "domains": [str(PROV[name]) for name in spec.domains],
+            "ranges": (
+                [spec.datatype_iri]
+                if spec.datatype_iri
+                else [str(PROV[name]) for name in spec.ranges]
+            ),
+            "superclasses": [],
+            "superproperties": [str(PROV[name]) for name in spec.superproperties],
+            "schemes": [],
+            "qualification": qualifications.get(spec.local_name),
+        }
+        for spec in PROV_RELATIONS.values()
+    )
+    return sorted(terms, key=lambda term: str(term["iri"]))
 
 
 def _prompt(terms: Sequence[Mapping[str, object]], contents: Sequence[str]) -> str:
@@ -484,8 +530,12 @@ def _prompt(terms: Sequence[Mapping[str, object]], contents: Sequence[str]) -> s
         for index, content in enumerate(contents)
     ]
     return (
-        "Audit whether the supplied OWL/SKOS terms express every private item's material meaning. "
+        "Audit whether the supplied OWL/SKOS schema can represent every private item's material meaning. "
         "Never quote, paraphrase, reproduce, or expose source content or proper nouns. "
+        "Treat source-specific people, organizations, places, products, projects, events, and values "
+        "as instance data, not missing schema terms, when a supplied class/property can represent them. "
+        "Report a missing dimension only when no supplied class/property can represent it without "
+        "inventing a new schema term. "
         "Return only JSON with input_count and items. Return exactly one ordered item per item_index. "
         "Each item has exactly item_index, covered (boolean), missing_semantic_dimensions, "
         "and supporting_term_iris. Use only supplied ontology IRIs. A covered item requires "
