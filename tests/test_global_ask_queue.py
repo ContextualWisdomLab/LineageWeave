@@ -365,3 +365,4 @@ def test_empty_sources_still_attach_opt_in_public_claim_verification(monkeypatch
     )
     assert payload["public_claim_verification"]["status_code"] == "claim_unavailable"
     assert payload["public_claim_verification"]["claims"]
+    assert payload["next_action"] == payload["public_claim_verification"]["next_action"]

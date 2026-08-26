@@ -290,6 +290,7 @@ async def compute_global_ask_answer(
             )
             cited_post_ids_exclude_external([], verification)
             payload["public_claim_verification"] = verification
+            payload["next_action"] = verification["next_action"]
         return payload
     try:
         answer = await asyncio.to_thread(
