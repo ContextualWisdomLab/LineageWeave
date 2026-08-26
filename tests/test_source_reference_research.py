@@ -109,6 +109,28 @@ def test_supported_without_cited_resource_downgrades() -> None:
     assert result.next_action_text == NEXT_ACTION
 
 
+def test_string_cited_resource_does_not_claim_a_citation() -> None:
+    resource = PublicResource(
+        url="https://example.com/apollo",
+        title="Apollo",
+        excerpt_text="Apollo is a public project.",
+        media_type="text/html",
+    )
+    result = parse_research_adjudication(
+        json.dumps(
+            {
+                "status_code": JUDGMENT_SUPPORTED,
+                "rationale": "The page describes the delay.",
+                "cited_resource": "true",
+            }
+        ),
+        _unit_lead(),
+        resource,
+    )
+    assert result.judgment_code == JUDGMENT_NOT_ENOUGH_INFORMATION
+    assert result.evidence_url is None
+
+
 def test_supported_with_cited_resource_keeps_url() -> None:
     resource = PublicResource(
         url="https://example.com/apollo",

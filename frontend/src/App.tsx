@@ -1729,6 +1729,7 @@ const ACTIVITY_TYPE_LABELS: Record<string, string> = {
   commitment_derived: "Commitment derived",
   keymen_extracted: "Keymen extracted",
   relations_verified: "Relations verified",
+  source_research_checked: "Public evidence reviewed",
   post_evaluated: "Post evaluated",
   chat_answered: "Chat answered",
 };

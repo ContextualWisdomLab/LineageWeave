@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { expect, within } from "storybook/test";
+import { expect, fn, within } from "storybook/test";
 import { SourceResearchPanel } from "./SourceResearchPanel";
 
 const meta = {
@@ -11,11 +11,12 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 
 const nextAction =
-  "Open the cited public resource, then compare it with this post's source unit or image region.";
+  "Open the cited public resource, then compare it with the highlighted post evidence.";
 
 export const SupportedAndUnavailable: Story = {
   args: {
     canResearch: true,
+    onResearch: fn(),
     citations: [
       {
         lead_kind_code: "research_lead_semantic_unit",
@@ -27,7 +28,7 @@ export const SupportedAndUnavailable: Story = {
         evidence_title_text: "Public Apollo evidence",
         evidence_excerpt_text: "The published notice describes the delay.",
         judgment_code: "research_supported",
-        rationale_text: "The retrieved page matches this source unit.",
+        rationale_text: "The retrieved page matches the highlighted excerpt.",
         next_action_text: nextAction,
       },
       {
@@ -40,7 +41,7 @@ export const SupportedAndUnavailable: Story = {
         evidence_title_text: null,
         evidence_excerpt_text: null,
         judgment_code: "research_unavailable",
-        rationale_text: "No usable public resource could be retrieved from search results.",
+        rationale_text: "No usable public resource was found. Try again later or review the post evidence manually.",
         next_action_text: nextAction,
       },
     ],
@@ -60,12 +61,12 @@ export const SupportedAndUnavailable: Story = {
 export const PrivatePost: Story = {
   args: {
     citations: [],
-    unavailableReason: "Private posts cannot send source content to public search.",
+    unavailableReason: "Make this post public before researching external sources.",
   },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     await expect(
       canvas.getByRole("status"),
-    ).toHaveTextContent("Private posts cannot send source content to public search.");
+    ).toHaveTextContent("Make this post public before researching external sources.");
   },
 };

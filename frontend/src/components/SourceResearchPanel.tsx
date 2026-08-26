@@ -11,8 +11,8 @@ function judgmentLabel(code: string): string {
 
 function leadKindLabel(code: string): string {
   return code === "research_lead_image_region"
-    ? t("Image region")
-    : t("Source unit");
+    ? t("Image evidence")
+    : t("Post excerpt");
 }
 
 function isHttpUrl(url: string | null): url is string {
@@ -28,7 +28,7 @@ type Props = {
   onResearch?: () => void;
 };
 
-/** Compare a cited public resource with this post's source unit or image region. */
+  /** Help readers compare a cited public resource with highlighted post evidence. */
 export function SourceResearchPanel({
   citations,
   unavailableReason,
@@ -50,7 +50,7 @@ export function SourceResearchPanel({
           </details>
         ) : null}
       </div>
-      <p>{t("Open the cited public resource, then compare it with this post's source unit or image region.")}</p>
+      <p>{t("Open the cited public resource, then compare it with the highlighted post evidence.")}</p>
       {error ? <p className="error" role="alert">{error}</p> : null}
       {unavailableReason ? <p role="status">{unavailableReason}</p> : null}
       {citations.length === 0 && !unavailableReason ? (
@@ -74,7 +74,6 @@ export function SourceResearchPanel({
                     {citation.evidence_excerpt_text ? <span>{citation.evidence_excerpt_text}</span> : null}
                   </p>
                 ) : null}
-                <p>{citation.next_action_text}</p>
               </article>
             </li>
           ))}

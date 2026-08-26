@@ -34,14 +34,13 @@ JUDGMENT_UNAVAILABLE = "research_unavailable"
 
 VISIBILITY_PUBLIC = "public"
 PRIVATE_POST_UNAVAILABLE = (
-    "Private posts cannot send source content to public search."
+    "Make this post public before researching external sources."
 )
 NO_LEAD_UNAVAILABLE = (
-    "No source unit or image region is available to research."
+    "Add readable post text or image evidence before researching external sources."
 )
 NEXT_ACTION = (
-    "Open the cited public resource, then compare it with this post's source "
-    "unit or image region."
+    "Open the cited public resource, then compare it with the highlighted post evidence."
 )
 
 _ALLOWED_LEAD_KINDS = frozenset({LEAD_SEMANTIC_UNIT, LEAD_IMAGE_REGION})
@@ -237,7 +236,7 @@ def parse_research_adjudication(
         raise ValueError("source research adjudication returned an unsupported status")
     rationale = parsed.get("rationale")
     rationale_text = rationale.strip()[:1000] if isinstance(rationale, str) else ""
-    cited = bool(parsed.get("cited_resource"))
+    cited = parsed.get("cited_resource") is True
     if status_code in {JUDGMENT_SUPPORTED, JUDGMENT_REFUTED} and (resource is None or not cited):
         status_code = JUDGMENT_NOT_ENOUGH_INFORMATION
         rationale_text = (
@@ -338,7 +337,7 @@ class SearxngOrchestratedSourceResearchClient:
         if resource is None:
             return unavailable_citation(
                 lead,
-                "No usable public resource could be retrieved from search results.",
+                "No usable public resource was found. Try again later or review the post evidence manually.",
             )
         prompt = (
             "Compare the source lead with ONLY the retrieved public resource. "

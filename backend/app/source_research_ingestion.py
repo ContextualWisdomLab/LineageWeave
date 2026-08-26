@@ -12,6 +12,7 @@ from dataclasses import dataclass
 
 import asyncpg
 
+from lineageweave.http_client import HttpClientError
 from lineageweave.source_reference_research import (
     NO_LEAD_UNAVAILABLE,
     PRIVATE_POST_UNAVAILABLE,
@@ -20,6 +21,7 @@ from lineageweave.source_reference_research import (
     SourceResearchClient,
     SourceResearchLead,
     select_source_research_leads,
+    unavailable_citation,
 )
 
 
@@ -214,7 +216,13 @@ async def research_post_sources_from_pool(
         )
     citations: list[SourceResearchCitation] = []
     for lead in leads:
-        citation = await asyncio.to_thread(client.research, lead)
+        try:
+            citation = await asyncio.to_thread(client.research, lead)
+        except (HttpClientError, OSError, ValueError):
+            citation = unavailable_citation(
+                lead,
+                "Public evidence could not be verified. Try again later or review the post evidence manually.",
+            )
         citations.append(citation)
     async with pool.acquire() as conn, conn.transaction():
         for citation in citations:

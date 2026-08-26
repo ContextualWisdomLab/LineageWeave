@@ -51,6 +51,56 @@ def test_classify_public_target_accepts_public_https() -> None:
     assert target.host_header == "example.com"
 
 
+def test_ipv6_target_uses_raw_connect_host_and_bracketed_host_header(monkeypatch) -> None:
+    observed: dict[str, object] = {}
+
+    class _Response:
+        status = 200
+
+        def getheader(self, name: str):
+            return "text/plain" if name == "Content-Type" else None
+
+        def read(self, amount: int) -> bytes:
+            return b"Public corroboration."
+
+    class _Connection:
+        sock = object()
+
+        def __init__(self, host: str, port: int, *, timeout: float) -> None:
+            observed["host"] = host
+
+        def connect(self) -> None:
+            return None
+
+        def request(self, method: str, path: str, *, headers: dict[str, str]) -> None:
+            observed["headers"] = headers
+
+        def getresponse(self) -> _Response:
+            return _Response()
+
+        def close(self) -> None:
+            return None
+
+    monkeypatch.setattr(
+        "lineageweave.public_resource_retrieval.http.client.HTTPConnection",
+        _Connection,
+    )
+    target = PublicTarget(
+        scheme="http",
+        hostname="2001:4860:4860::8888",
+        port=80,
+        request_path="/evidence",
+        original_url="http://[2001:4860:4860::8888]/evidence",
+    )
+    retrieve_public_target(target, ipaddress.ip_address("2001:4860:4860::8888"))
+    assert observed["host"] == "2001:4860:4860::8888"
+    assert observed["headers"] == {
+        "host": "[2001:4860:4860::8888]",
+        "accept": "text/html, text/plain;q=0.9",
+        "user-agent": "LineageWeave-source-research/2.19",
+    }
+
+
 def test_is_public_ip_rejects_private_and_mapped_loopback() -> None:
     assert not is_public_ip(ipaddress.ip_address("127.0.0.1"))
     assert not is_public_ip(ipaddress.ip_address("10.1.2.3"))

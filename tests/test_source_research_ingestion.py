@@ -86,6 +86,13 @@ class _Client:
         )
 
 
+class _OneMalformedClient(_Client):
+    def research(self, lead: SourceResearchLead) -> SourceResearchCitation:
+        if lead.lead_source_unit_id == "unit-bad":
+            raise ValueError("malformed adjudication")
+        return super().research(lead)
+
+
 def test_private_posts_do_not_load_leads_or_search() -> None:
     pool = _Pool(_Connection([{"post_content_unit_id": "unit-1", "unit_kind_code": "plain_text", "unit_text": "secret"}]))
     run = asyncio.run(
@@ -124,3 +131,31 @@ def test_public_research_releases_the_pool_during_search() -> None:
     assert conn.executed
     assert "source_research_citation" in conn.executed[0][0]
     assert conn.executed[0][1][2] == "unit-1"
+
+
+def test_malformed_adjudication_keeps_other_leads_and_records_unavailable() -> None:
+    conn = _Connection(
+        [
+            {
+                "post_content_unit_id": "unit-bad",
+                "unit_kind_code": "plain_text",
+                "unit_text": "First excerpt",
+            },
+            {
+                "post_content_unit_id": "unit-good",
+                "unit_kind_code": "plain_text",
+                "unit_text": "Second excerpt",
+            },
+        ]
+    )
+    pool = _Pool(conn)
+    run = asyncio.run(
+        research_post_sources_from_pool(
+            pool, _OneMalformedClient(pool), "post-public", "public"
+        )
+    )
+    assert [citation.judgment_code for citation in run.citations] == [
+        "research_unavailable",
+        JUDGMENT_SUPPORTED,
+    ]
+    assert len(conn.executed) == 2

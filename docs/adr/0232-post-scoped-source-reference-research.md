@@ -1,6 +1,6 @@
 # ADR 0232: Post-scoped source-reference research
 
-**Status:** Accepted  
+**Status:** Accepted
 **Date:** 2026-08-26
 
 ## Context
