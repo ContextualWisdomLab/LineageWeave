@@ -667,7 +667,7 @@ requires-dist = [
     { name = "pyjwt", extras = ["crypto"], marker = "extra == 'dev'", specifier = ">=2.8.0" },
     { name = "pyshacl", marker = "extra == 'dev'", specifier = ">=0.26.0" },
     { name = "pytest", marker = "extra == 'dev'", specifier = ">=8.0" },
-    { name = "rankweave", git = "https://github.com/ContextualWisdomLab/RankWeave.git?rev=61c49c50d3b4a24fc9bd7c6d3a7f2f4ba19d7be6" },
+    { name = "rankweave", git = "https://github.com/ContextualWisdomLab/RankWeave.git?rev=f92c3a2c7c50f3b5f4499dfdc94987d4e023a4fa" },
     { name = "rdflib", specifier = ">=7.0.0" },
     { name = "redis", marker = "extra == 'backend'", specifier = ">=5.0.0" },
     { name = "threadweave", specifier = ">=0.1.0" },
@@ -1218,7 +1218,7 @@ wheels = [
 [[package]]
 name = "rankweave"
 version = "0.18.0"
-source = { git = "https://github.com/ContextualWisdomLab/RankWeave.git?rev=61c49c50d3b4a24fc9bd7c6d3a7f2f4ba19d7be6#61c49c50d3b4a24fc9bd7c6d3a7f2f4ba19d7be6" }
+source = { git = "https://github.com/ContextualWisdomLab/RankWeave.git?rev=f92c3a2c7c50f3b5f4499dfdc94987d4e023a4fa#f92c3a2c7c50f3b5f4499dfdc94987d4e023a4fa" }
 
 [[package]]
 name = "rdflib"

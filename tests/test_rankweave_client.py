@@ -1,9 +1,8 @@
 """Fail-closed RankWeave ranking port.
 
-RankWeave is an in-process weighted-RRF library. LineageWeave fuses
-only visible posts. A hidden post is omitted from every channel. The
-client never invents a fused score or a theta. Channel evidence is
-computed from owned rank lists (Cormack 2009), not RankWeave extras.
+RankWeave owns classic and convex-weighted RRF calculation. LineageWeave sends
+only visible posts and projects the owner's contributions from owned channel
+inputs. The client never invents a fused score or a theta.
 """
 
 from __future__ import annotations
@@ -170,6 +169,18 @@ def test_injected_transport_returns_accepted_hits() -> None:
     assert "fused_score" not in serialized
 
 
+def test_library_transport_uses_classic_rrf_without_convex_weights() -> None:
+    payload = build_rankweave_client().as_api_payload(
+        [PUBLIC, QUOTE],
+        can_see_post=lambda _row: True,
+    )
+
+    assert payload["status"] == "accepted"
+    assert payload["rankings"][0]["channel_evidence"] == _lexical_then_temporal(
+        "post-2", 1
+    )
+
+
 def test_library_transport_projects_monkeypatched_rrf(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -177,19 +188,51 @@ def test_library_transport_projects_monkeypatched_rrf(
 
     class FakeRw:
         @staticmethod
-        def weighted_reciprocal_rank_fuse(
+        def reciprocal_rank_fuse(
             channels: dict[str, list[str]],
-            weights: dict[str, float],
             limit: int = 20,
             rank_constant_eta: int = 60,
         ) -> list:
             captured["channels"] = channels
-            captured["weights"] = weights
             captured["limit"] = limit
             captured["eta"] = rank_constant_eta
             return [
-                SimpleNamespace(item_id="post-2", fused_score=0.99, theta=1.2),
-                SimpleNamespace(item_id="post-1"),
+                SimpleNamespace(
+                    item_id="post-2",
+                    fused_score=0.99,
+                    theta=1.2,
+                    channel_contributions=(
+                        SimpleNamespace(
+                            channel_name="lexical",
+                            rank=1,
+                            weight=1.0,
+                            contribution=1.0 / 61,
+                        ),
+                        SimpleNamespace(
+                            channel_name="temporal",
+                            rank=1,
+                            weight=1.0,
+                            contribution=1.0 / 61,
+                        ),
+                    ),
+                ),
+                SimpleNamespace(
+                    item_id="post-1",
+                    channel_contributions=(
+                        SimpleNamespace(
+                            channel_name="lexical",
+                            rank=2,
+                            weight=1.0,
+                            contribution=1.0 / 62,
+                        ),
+                        SimpleNamespace(
+                            channel_name="temporal",
+                            rank=2,
+                            weight=1.0,
+                            contribution=1.0 / 62,
+                        ),
+                    ),
+                ),
             ]
 
     monkeypatch.setattr(
@@ -201,7 +244,6 @@ def test_library_transport_projects_monkeypatched_rrf(
     )
 
     assert captured["eta"] == 60
-    assert set(captured["weights"].values()) == {1.0}
     assert payload["rankings"][0]["post_title"] == (
         "Pricing renegotiation: revised quote sent"
     )
