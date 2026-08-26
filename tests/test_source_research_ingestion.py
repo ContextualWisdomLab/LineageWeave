@@ -6,7 +6,6 @@ from backend.app.source_research_ingestion import research_post_sources_from_poo
 from lineageweave.source_reference_research import (
     JUDGMENT_SUPPORTED,
     JUDGMENT_UNAVAILABLE,
-    LEAD_SEMANTIC_UNIT,
     NEXT_ACTION,
     NO_LEAD_UNAVAILABLE,
     PRIVATE_POST_UNAVAILABLE,
