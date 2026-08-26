@@ -15,7 +15,7 @@ multi-agent.
 ## Decision
 
 `docker/contextual-orchestrator/Dockerfile` pins the downloaded archive to
-commit `1cf837d8c6cd13cc66041f6da3c64500c474601e`. The pin remains explicit
+commit `4212b25db9948c14f366124d92687383b3a0c712`. The pin remains explicit
 and immutable until the reviewed upstream change is superseded; it is not a
 moving `main` reference and it is not a LineageWeave monkey patch.
 
@@ -35,13 +35,8 @@ The runtime contract is:
   successful empty semantic result.
 - An empty seed model is expanded from configured provider discovery endpoints;
   provider-declared embedding rows enter the embedding pool but never a chat role.
-- Because the configured gateway does not currently advertise a complete
-  embedding provider/model pair, canonical Compose supplies
-  the explicit `openai` / `text-embedding-3-large` pair to the orchestrator
-  bootstrap. The bootstrap does not infer a provider from the model name; it
-  publishes the pair's official 2,048-input,
-  8,192-token-per-input, and 300,000-total-token limits. LineageWeave clients
-  remain provider- and model-neutral and consume that advertised capability.
+- Runtime discovery activates provider-declared chat and embedding capabilities.
+  LineageWeave does not configure or infer an embedding provider/model pair.
 - A batch embedding request may omit `model`; contextual-orchestrator selects
   an embedding-capable model and returns its identity for subsequent batches.
 - A blank embedding input fails before provider selection; it is never sent as

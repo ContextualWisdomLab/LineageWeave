@@ -12,8 +12,8 @@ import subprocess
 _ROOT = Path(__file__).parents[1]
 
 
-def test_rendered_compose_owns_exact_embedding_pair(tmp_path: Path) -> None:
-    """Render Compose and retain the gateway-owned exact embedding model."""
+def test_rendered_compose_keeps_embedding_selection_upstream(tmp_path: Path) -> None:
+    """Render Compose without a LineageWeave-owned embedding selector."""
     (tmp_path / ".env").write_text("", encoding="utf-8")
     environment = os.environ.copy()
     environment["HOME"] = str(tmp_path)
@@ -31,8 +31,8 @@ def test_rendered_compose_owns_exact_embedding_pair(tmp_path: Path) -> None:
     orchestrator_environment = config["services"]["orchestrator"]["environment"]
     backend_environment = config["services"]["backend"]["environment"]
 
-    assert orchestrator_environment["LLM_GATEWAY_EMBEDDING_MODEL"] == "text-embedding-3-large"
-    assert orchestrator_environment["LLM_GATEWAY_EMBEDDING_PROVIDER"] == "openai"
+    assert "LLM_GATEWAY_EMBEDDING_MODEL" not in orchestrator_environment
+    assert "LLM_GATEWAY_EMBEDDING_PROVIDER" not in orchestrator_environment
     assert (
         orchestrator_environment["CONTEXTUAL_ORCHESTRATOR_TOKEN"]
         == backend_environment["ORCHESTRATOR_API_KEY"]
@@ -45,5 +45,5 @@ def test_rendered_compose_owns_exact_embedding_pair(tmp_path: Path) -> None:
 def test_lineage_clients_do_not_select_an_embedding_model() -> None:
     """Keep provider/model ownership outside LineageWeave client services."""
     compose = (_ROOT / "docker-compose.yml").read_text(encoding="utf-8")
-    assert compose.count("LLM_GATEWAY_EMBEDDING_MODEL:") == 1
-    assert compose.count("LLM_GATEWAY_EMBEDDING_PROVIDER:") == 1
+    assert "LLM_GATEWAY_EMBEDDING_MODEL:" not in compose
+    assert "LLM_GATEWAY_EMBEDDING_PROVIDER:" not in compose
