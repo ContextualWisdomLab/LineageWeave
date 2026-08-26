@@ -314,9 +314,9 @@ def test_onet_rating_store_partitions_upserts_and_rejects_invalid_error(schema_d
                 """
                 insert into occupational_rating_observation
                     (data_release_code, source_table_code, onetsoc_code, element_id,
-                     scale_id, data_value, source_updated_date, domain_source_code)
+                     scale_id, data_value, source_updated_month, domain_source_code)
                 values ('onet-31.0', 'abilities', '15-1252.00', '1.A.1.a.1',
-                        'IM', 4.10, date '2026-08-01', 'Analyst')
+                        'IM', 4.10, '08/2026', 'Analyst')
                 """
             )
         cur.execute("rollback to savepoint missing_partition")
@@ -339,23 +339,27 @@ def test_onet_rating_store_partitions_upserts_and_rejects_invalid_error(schema_d
                 (data_release_code, source_table_code, onetsoc_code, element_id,
                  scale_id, category_value, data_value, sample_size, standard_error,
                  lower_ci_bound, upper_ci_bound, recommend_suppress, not_relevant,
-                 source_updated_date, domain_source_code)
+                 source_updated_month, domain_source_code)
             values ('onet-31.0', 'abilities', '15-1252.00', '1.A.1.a.1',
                     'IM', null, %s, 120, 0.08, 3.94, 4.26, false, false,
-                    date '2026-08-01', 'Analyst')
+                    '08/2026', 'Analyst')
             on conflict on constraint occupational_rating_identity_key
             do nothing
         """
         cur.execute(statement, (4.10,))
-        cur.execute(statement, (4.25,))
+        cur.execute("savepoint divergent_duplicate")
+        with pytest.raises(psycopg2.errors.CheckViolation):
+            cur.execute(statement, (4.25,))
+        cur.execute("rollback to savepoint divergent_duplicate")
+        cur.execute(statement, (4.10,))
         cur.execute(
             """
-            select count(*), max(data_value)
+            select count(*), max(data_value), max(source_updated_month)
             from occupational_rating_observation
             where data_release_code = 'onet-31.0'
             """
         )
-        assert cur.fetchone() == (1, Decimal("4.10"))
+        assert cur.fetchone() == (1, Decimal("4.10"), "08/2026")
         cur.execute("savepoint immutable_update")
         with pytest.raises(psycopg2.errors.CheckViolation):
             cur.execute(
@@ -372,9 +376,18 @@ def test_onet_rating_store_partitions_upserts_and_rejects_invalid_error(schema_d
                 "delete from occupational_rating_observation where data_release_code = 'onet-31.0'"
             )
         cur.execute("rollback to savepoint immutable_delete")
-        for savepoint, value_sql, date_sql in (
-            ("outside_scale", "6.00", "date '2026-08-01'"),
-            ("future_source_date", "4.00", "current_date + 1"),
+        cur.execute("savepoint immutable_truncate")
+        with pytest.raises(psycopg2.errors.CheckViolation):
+            cur.execute("truncate occupational_rating_observation")
+        cur.execute("rollback to savepoint immutable_truncate")
+        for savepoint, value_sql, month_sql in (
+            ("outside_scale", "6.00", "'08/2026'"),
+            (
+                "future_source_month",
+                "4.00",
+                "to_char(current_date + interval '1 month', 'MM/YYYY')",
+            ),
+            ("malformed_source_month", "4.00", "'13/2026'"),
         ):
             cur.execute(f"savepoint {savepoint}")
             with pytest.raises(psycopg2.errors.CheckViolation):
@@ -382,10 +395,10 @@ def test_onet_rating_store_partitions_upserts_and_rejects_invalid_error(schema_d
                     f"""
                     insert into occupational_rating_observation
                         (data_release_code, source_table_code, onetsoc_code, element_id,
-                         scale_id, category_value, data_value, source_updated_date,
+                         scale_id, category_value, data_value, source_updated_month,
                          domain_source_code)
                     values ('onet-31.0', 'abilities', '15-1252.00', '1.A.1.a.1',
-                            'IM', 1, {value_sql}, {date_sql}, 'Analyst')
+                            'IM', 1, {value_sql}, {month_sql}, 'Analyst')
                     """
                 )
             cur.execute(f"rollback to savepoint {savepoint}")
@@ -396,9 +409,9 @@ def test_onet_rating_store_partitions_upserts_and_rejects_invalid_error(schema_d
                 insert into occupational_rating_observation
                     (data_release_code, source_table_code, onetsoc_code, element_id,
                      scale_id, category_value, data_value, standard_error,
-                     source_updated_date, domain_source_code)
+                     source_updated_month, domain_source_code)
                 values ('onet-31.0', 'abilities', '15-1252.00', '1.A.1.a.1',
-                        'IM', 2, 4.00, -0.01, date '2026-08-01', 'Analyst')
+                        'IM', 2, 4.00, -0.01, '08/2026', 'Analyst')
                 """
             )
         cur.execute("rollback to savepoint invalid_standard_error")

@@ -60,7 +60,7 @@ class RatingObservation:
     upper_ci_bound: Decimal | None
     recommend_suppress: bool | None
     not_relevant: bool | None
-    source_updated_date: date
+    source_updated_month: str
     domain_source_code: str
 
 
@@ -101,16 +101,19 @@ def _flag(value: str, field: str) -> bool | None:
     raise ValueError(f"invalid {field} flag: {value!r}")
 
 
-def _updated_month(value: str, today: date) -> date:
-    """Parse O*NET MM/YYYY source dates and reject a future release month."""
+def _updated_month(value: str, today: date) -> str:
+    """Validate and preserve one exact O*NET ``MM/YYYY`` source month."""
+    text = value.strip()
+    if not re.fullmatch(r"(0[1-9]|1[0-2])/[0-9]{4}", text):
+        raise ValueError(f"invalid source update date: {value!r}")
     try:
-        month_text, year_text = value.strip().split("/")
+        month_text, year_text = text.split("/")
         parsed = date(int(year_text), int(month_text), 1)
     except (TypeError, ValueError) as exc:
         raise ValueError(f"invalid source update date: {value!r}") from exc
     if parsed > today.replace(day=1):
         raise ValueError(f"future source update date: {value!r}")
-    return parsed
+    return text
 
 
 def _rows(path: Path, required: set[str]) -> list[dict[str, str]]:
@@ -223,7 +226,7 @@ def read_rating_file(
                     row.get("Recommend Suppress", ""), "recommend suppress"
                 ),
                 not_relevant=_flag(row.get("Not Relevant", ""), "not relevant"),
-                source_updated_date=_updated_month(row["Date"], observed_today),
+                source_updated_month=_updated_month(row["Date"], observed_today),
                 domain_source_code=domain_source,
             )
         )
@@ -478,7 +481,7 @@ async def import_ratings(args: argparse.Namespace) -> dict[str, object]:
                        (data_release_code, source_table_code, onetsoc_code, element_id,
                         scale_id, category_value, data_value, sample_size, standard_error,
                         lower_ci_bound, upper_ci_bound, recommend_suppress, not_relevant,
-                        source_updated_date, domain_source_code)
+                        source_updated_month, domain_source_code)
                    values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15)
                    on conflict on constraint occupational_rating_identity_key do nothing""",
                 [
@@ -496,7 +499,7 @@ async def import_ratings(args: argparse.Namespace) -> dict[str, object]:
                         item.upper_ci_bound,
                         item.recommend_suppress,
                         item.not_relevant,
-                        item.source_updated_date,
+                        item.source_updated_month,
                         item.domain_source_code,
                     )
                     for item in observations

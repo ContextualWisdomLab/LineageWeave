@@ -129,12 +129,16 @@ persistence and UI remain unavailable until their separate ADR acceptance.
 - Persist released occupation-to-element ratings as source observations, not
   ontology weights: release, source table, occupation, element, scale,
   optional category, value, sample/error/interval, suppression, relevance,
-  update date, and domain source remain independently auditable (ADR 0257).
+  exact source update month, and domain source remain independently auditable
+  (ADR 0257); the product must not invent a day for O*NET's `MM/YYYY` field.
 - Keep normalized reference identities in third normal form and partition the
   observation store by exact release then source table. An unknown partition
   fails closed instead of entering a catch-all table.
 - Preserve decimals and missingness exactly. No local aggregation,
   normalization, person inference, or psychometric estimation is permitted.
+- Reject divergent duplicate identities and owner-level truncation. Task
+  Ratings remain unavailable until their integer Task IDs and statements have
+  a separate normalized source-target contract.
 
 Acceptance: the replay-safe migration creates the normalized store; the pinned
 CSV importer validates both rating and scale-reference digests and row counts,

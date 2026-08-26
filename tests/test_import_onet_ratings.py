@@ -42,8 +42,12 @@ def test_official_csv_preserves_decimal_missingness_and_uncertainty(
 
     assert len(ratings) == 1
     assert ratings[0].data_value == Decimal("4.10")
+    assert ratings[0].data_value.as_tuple().exponent == -2
+    assert ratings[0].standard_error == Decimal("0.08")
+    assert ratings[0].lower_ci_bound == Decimal("3.94")
+    assert ratings[0].upper_ci_bound == Decimal("4.26")
     assert ratings[0].not_relevant is None
-    assert ratings[0].source_updated_date == date(2026, 8, 1)
+    assert ratings[0].source_updated_month == "08/2026"
 
 
 @pytest.mark.parametrize(
@@ -52,6 +56,7 @@ def test_official_csv_preserves_decimal_missingness_and_uncertainty(
         ("Data Value", "5.01", "outside scale"),
         ("Standard Error", "-0.01", "standard error"),
         ("Date", "09/2026", "future"),
+        ("Date", "8/2026", "invalid source update date"),
         ("Recommend Suppress", "maybe", "flag"),
     ],
 )
