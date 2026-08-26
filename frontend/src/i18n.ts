@@ -310,6 +310,9 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
       "첨부 이미지를 해독할 수 없습니다. 원문을 다시 내보내고 다시 여세요.",
     "What happened between these events?": "이 사건들 사이에 무슨 일이 있었나요?",
     "Ask about this lineage": "이 계보에 대해 질문",
+    "Conversation history": "대화 기록",
+    "New conversation": "새 대화",
+    "Conversation history could not be loaded.": "대화 기록을 불러올 수 없습니다.",
     "No reconstructed lineage yet. Rebuild after seeding posts.":
       "아직 재구성된 계보가 없습니다. 글을 시드한 뒤 다시 만드세요.",
     "Reconstructed lineage": "재구성된 계보",
@@ -810,6 +813,9 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
       "无法解码嵌入图像。请重新导出原始文章后再打开。",
     "What happened between these events?": "这些事件之间发生了什么？",
     "Ask about this lineage": "询问此谱系",
+    "Conversation history": "对话历史",
+    "New conversation": "新对话",
+    "Conversation history could not be loaded.": "无法加载对话历史。",
     "No reconstructed lineage yet. Rebuild after seeding posts.":
       "尚未重建事件谱系。生成文章种子后再重建。",
     "Reconstructed lineage": "已重建的事件谱系",
@@ -1322,6 +1328,9 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
       "埋め込み画像をデコードできませんでした。原文を再エクスポートして、もう一度開いてください。",
     "What happened between these events?": "これらのイベントの間に何が起きましたか？",
     "Ask about this lineage": "この系譜について質問",
+    "Conversation history": "会話履歴",
+    "New conversation": "新しい会話",
+    "Conversation history could not be loaded.": "会話履歴を読み込めませんでした。",
     "No reconstructed lineage yet. Rebuild after seeding posts.":
       "再構成された系譜はまだありません。投稿をシードしてから再構成してください。",
     "Reconstructed lineage": "再構成された系譜",
@@ -1822,6 +1831,9 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
       "Không thể giải mã hình ảnh nhúng. Hãy xuất lại bài viết gốc rồi mở lại.",
     "What happened between these events?": "Điều gì đã xảy ra giữa các sự kiện này?",
     "Ask about this lineage": "Hỏi về dòng sự kiện này",
+    "Conversation history": "Lịch sử hội thoại",
+    "New conversation": "Cuộc hội thoại mới",
+    "Conversation history could not be loaded.": "Không thể tải lịch sử hội thoại.",
     "No reconstructed lineage yet. Rebuild after seeding posts.":
       "Chưa có dòng sự kiện được tái dựng. Hãy tạo dữ liệu mồi rồi tái dựng lại.",
     "Reconstructed lineage": "Dòng sự kiện đã tái dựng",
