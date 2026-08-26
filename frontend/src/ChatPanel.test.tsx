@@ -83,6 +83,47 @@ describe("ChatPanel conversation history", () => {
     expect(screen.queryByText("Demo answer")).toBeNull();
   });
 
+  it("does not duplicate an answered conversation when loading another page", async () => {
+    vi.stubGlobal("fetch", vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = input instanceof Request ? input.url : String(input);
+      if (url.endsWith("/chat") && init?.method === "POST") {
+        return jsonResponse({
+          answer_text: "Saved answer",
+          cited_post_ids: [],
+          cited_posts: [],
+          conversation_id: "conversation-1",
+        });
+      }
+      if (url.includes("before_updated_at=")) {
+        return jsonResponse({
+          conversations: [
+            { conversation_id: "conversation-1", title: "Saved question", updated_at: "2026-08-26T00:02:00Z", turn_count: 2 },
+            { conversation_id: "conversation-2", title: "Older question", updated_at: "2026-08-26T00:00:00Z", turn_count: 1 },
+          ],
+          next_cursor: null,
+        });
+      }
+      if (url.endsWith("/chat/conversations")) {
+        return jsonResponse({
+          conversations: [{ conversation_id: "conversation-1", title: "Saved question", updated_at: "2026-08-26T00:01:00Z", turn_count: 1 }],
+          next_cursor: { updated_at: "2026-08-26T00:00:00Z", conversation_id: "conversation-2" },
+        });
+      }
+      return jsonResponse({ post_id: "post-1", exchanges: [] });
+    }));
+
+    render(<ChatPanel postId="post-1" accessToken="synthetic-token" />);
+    await userEvent.type(await screen.findByPlaceholderText("What happened between these events?"), "Saved question");
+    await userEvent.click(screen.getByRole("button", { name: "Ask" }));
+    await screen.findByText("Saved answer");
+    await userEvent.click(screen.getByRole("button", { name: "Load more" }));
+
+    await waitFor(() =>
+      expect(screen.getAllByRole("option", { name: "Saved question (2)" })).toHaveLength(1),
+    );
+    expect(screen.getByRole("option", { name: "Older question (1)" })).toBeInTheDocument();
+  });
+
   it("reopens an owned conversation and returns to the seeded new-conversation state", async () => {
     vi.stubGlobal("fetch", vi.fn(async (input: RequestInfo | URL) => {
       const url = input instanceof Request ? input.url : String(input);

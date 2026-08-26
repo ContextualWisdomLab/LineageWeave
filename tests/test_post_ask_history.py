@@ -8,6 +8,8 @@ from uuid import UUID
 
 import pytest
 
+from backend.app.auth import CurrentAccount
+from backend.app import main as post_ask_main
 from backend.app.post_ask_history import (
     PostAskConversationNotFound,
     PostAskEvidenceChanged,
@@ -272,6 +274,56 @@ def test_persist_turn_rejects_a_conversation_outside_the_account_post_scope() ->
         )
 
     assert not any("insert into post_ask_turn" in query for query, _ in connection.calls)
+
+
+def test_persist_post_ask_turn_starts_a_new_conversation_if_a_confirmed_one_is_deleted(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A deletion after answer work preserves the answer without bypassing the write boundary."""
+    deleted_conversation_id = UUID("00000000-0000-0000-0000-000000000006")
+    replacement_conversation_id = UUID("00000000-0000-0000-0000-000000000007")
+    calls: list[UUID | None] = []
+
+    async def persist(
+        _conn: object,
+        _user_account_id: str,
+        _post_id: str,
+        conversation_id: UUID | None,
+        *_args: object,
+        **_kwargs: object,
+    ) -> UUID:
+        calls.append(conversation_id)
+        if conversation_id == deleted_conversation_id:
+            raise PostAskConversationNotFound
+        return replacement_conversation_id
+
+    monkeypatch.setattr(post_ask_main, "persist_post_ask_turn", persist)
+    account = CurrentAccount(
+        user_account_id="account-1",
+        external_subject_id="subject-1",
+        display_name="Synthetic analyst",
+        preferred_locale="en",
+        corporate_entity_ids=frozenset(),
+        process_unit_ids=frozenset(),
+        permission_codes=frozenset({"post_read"}),
+    )
+
+    conversation_id = asyncio.run(
+        post_ask_main._persist_post_ask_turn(
+            _Connection(),
+            account,
+            "post-1",
+            deleted_conversation_id,
+            "What changed?",
+            "The completed answer remains available.",
+            ["post-1"],
+            [],
+            recover_deleted_conversation=True,
+        )
+    )
+
+    assert conversation_id == replacement_conversation_id
+    assert calls == [deleted_conversation_id, None]
 
 
 def test_persist_turn_aborts_when_a_citation_loses_authorization() -> None:

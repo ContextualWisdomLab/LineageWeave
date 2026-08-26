@@ -261,6 +261,14 @@ function ChatCitations({
   );
 }
 
+function appendUniqueConversations(
+  current: PostAskConversationSummary[],
+  incoming: PostAskConversationSummary[],
+): PostAskConversationSummary[] {
+  const conversationIds = new Set(current.map((conversation) => conversation.conversation_id));
+  return [...current, ...incoming.filter((conversation) => !conversationIds.has(conversation.conversation_id))];
+}
+
 export function ChatPanel({
   postId,
   accessToken,
@@ -454,7 +462,7 @@ export function ChatPanel({
           <button type="button" onClick={async () => {
             try {
               const page = await fetchPostChatConversations(accessToken, postId, conversationCursor);
-              setConversations((current) => [...current, ...page.conversations]);
+              setConversations((current) => appendUniqueConversations(current, page.conversations));
               setConversationCursor(page.next_cursor ?? null);
             } catch {
               setHistoryError(t("Conversation history could not be loaded. Start a new conversation or try again later."));

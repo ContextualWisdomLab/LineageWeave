@@ -62,6 +62,12 @@ orchestrator is off. Account history is additional, not a replacement.
   Persisted citations remain a subset of those authorized sources, so a
   cited or non-cited source that loses authorization between source-gathering
   and commit aborts the whole turn.
+* A selected conversation is ownership-scoped before answer work begins. If
+  that confirmed conversation is deleted before the commit transaction, the
+  answer is saved once as a new owned conversation after a fresh transactional
+  source reauthorization. A never-confirmed or out-of-scope conversation still
+  returns 404; the implementation never holds a database lock across answer
+  generation.
 
 ## Implementation Plan
 

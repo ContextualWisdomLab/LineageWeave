@@ -2980,8 +2980,15 @@ async def _persist_post_ask_turn(
     answer_text: str,
     source_post_ids: list[str],
     cited_post_ids: list[str],
+    *,
+    recover_deleted_conversation: bool = False,
 ) -> UUID:
-    """Persist a completed turn after reauthorizing every gathered source."""
+    """Persist a completed turn after reauthorizing every gathered source.
+
+    A conversation confirmed before answer work can disappear before this
+    commit. In that narrow case, the completed answer starts a new owned
+    conversation after the same transactional source reauthorization.
+    """
     try:
         return await persist_post_ask_turn(
             conn,
@@ -3000,6 +3007,18 @@ async def _persist_post_ask_turn(
             "Post chat is temporarily unavailable because authorized evidence changed. Retry the question.",
         ) from exc
     except PostAskConversationNotFound as exc:
+        if recover_deleted_conversation and conversation_id is not None:
+            return await persist_post_ask_turn(
+                conn,
+                account.user_account_id,
+                post_id,
+                None,
+                question,
+                answer_text,
+                source_post_ids,
+                cited_post_ids,
+                can_see_post=lambda row: _can_see_post(account, row),
+            )
         raise HTTPException(
             status.HTTP_404_NOT_FOUND,
             "This conversation is no longer available. Choose another conversation or start a new one.",
@@ -3057,6 +3076,7 @@ async def chat_about_post(
                 status.HTTP_404_NOT_FOUND,
                 "This conversation is no longer available. Choose another conversation or start a new one.",
             )
+        conversation_was_confirmed = request.conversation_id is not None
         stored = await fetch_persisted_chat(conn, post_id, question)
         if stored is not None:
             source_ids = [post_id]
@@ -3070,6 +3090,7 @@ async def chat_about_post(
                 stored["answer_text"],
                 source_ids,
                 list(stored["cited_post_ids"]),
+                recover_deleted_conversation=conversation_was_confirmed,
             )
             return {
                 "post_id": post_id,
@@ -3141,6 +3162,7 @@ async def chat_about_post(
             answer.answer_text,
             source_ids,
             cited_ids,
+            recover_deleted_conversation=request.conversation_id is not None,
         )
     await publish_activity_event(
         valkey,
