@@ -68,7 +68,7 @@ are not merge readiness. Re-fetch exact heads,
 unresolved threads, checks, approvals, rulesets, and merge SHA before any
 lifecycle claim.
 
-> Audit snapshot: 2026-08-26 09:27 KST (refreshed by the autonomous merge
+> Audit snapshot: 2026-08-26 09:50 KST (refreshed by the autonomous merge
 > loop). This repository records synthetic fixtures and aggregate,
 > non-identifying runtime evidence only. Open PRs and local checks are not
 > protected-default-branch release evidence. Identifying post identifiers,
@@ -85,10 +85,10 @@ context only.
 
 | PR | Exact observed head | Merge/check state at this snapshot |
 | ---: | --- | --- |
-| #679 | `c60dcb3a` | ADR 0229 persisted public-claim envelope with unique ADR numbering; BLOCKED with exact-head checks and independent review required; normal squash auto-merge enabled |
+| #679 | `640e530c` | ADR 0229 persisted public-claim envelope with unique ADR numbering and async public-claim verification repair; BLOCKED with exact-head checks and independent review required |
 | #678 | `662a62fb` | canonical Compose-stack consolidation stacked on #640; parent protected merge and `main` retarget precede fresh exact-head evidence |
-| #677 | `51b9dfaf` | ADR 0228 account-owned per-post Ask conversation history; stacked on #667, so parent protected merge and `main` retarget precede fresh exact-head review/check evidence |
-| #667 | `10c4e1d6` | baseline refresh branch pre-refresh head; BLOCKED with review required; stacked #669 and #671 are merged into this non-default branch |
+| #677 | `70af96b0` | ADR 0228 account-owned per-post Ask conversation history with localized titles, cursor transport, stale-response guards, repeated-turn preservation, and eligibility recheck; BLOCKED with hosted checks and independent review required |
+| #667 | `10c4e1d6` | baseline refresh branch current head; BLOCKED with review required; stacked #669 and #671 are merged into this non-default branch |
 | #672 | `5468c04d` | persisted semantic-evidence nomination for Global Ask with ADR renumbering; BLOCKED with hosted checks queued and review required |
 | #668 | `1b8e1a99` | evidence-bound project history projection with ADR renumbering, request guards, and source-code/time-basis display repair; BLOCKED with review required |
 | #663 | `7ac1483e` | project ontology traversal, cutoff-snapshot project focus, bounded MCP admission, and migration-fixture/worker startup repair; BLOCKED with review required |
