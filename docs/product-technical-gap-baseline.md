@@ -60,15 +60,6 @@ only aggregate, non-identifying evidence to this repository.
 
 ### Exact open-PR boundary
 
-At this snapshot there were 13 open PRs and 10 open issues. The exact-head
-inventory in section 1 is authoritative for this snapshot. Every open head
-remained blocked on hosted gates and/or independent review. These observations
-are not merge readiness. Re-fetch exact heads,
-unresolved threads, checks, approvals, rulesets, and merge SHA before any
-lifecycle claim.
-
-> Audit snapshot: 2026-08-26 09:00 KST (refreshed by the autonomous merge
-
 At this snapshot there were 11 open PRs and 10 open issues. PRs #660 and #659
 merged to protected `main`; PR #666 remains only non-default-branch stack
 composition inside #663. Every remaining open head required refreshed hosted
@@ -86,8 +77,6 @@ approvals, rulesets, and merge SHA before any lifecycle claim.
 ## 1. Exact-head and governance evidence
 
 The protected default branch was `494b54e2245040bcf02b45376f221c37cd437e76`
-when this baseline was refreshed. The live queue contained 13 open PRs and 10
-
 when this baseline was refreshed. The live queue contained 11 open PRs and 10
 open issues. The exact-head inventory below supersedes older per-PR snapshots
 elsewhere in this document; those older rows remain useful historical delivery
@@ -95,20 +84,6 @@ context only.
 
 | PR | Exact observed head | Merge/check state at this snapshot |
 | ---: | --- | --- |
-| #672 | `5387acb4` | indexed persisted semantic/KG candidate nomination (ADR 0233); exact-head checks/review required |
-| #668 | `f272f4b0` | evidence-bound project history in post detail; exact-head checks/review required |
-| #667 | `e05d138c` | current baseline refresh plus stacked cancelled-run guidance; exact-head checks/review required |
-| #663 | `7ac1483e` | project ontology traversal plus cutoff/snapshot-frozen project focus and labels; exact-head checks/review required |
-| #658 | `f497a6e8` | evidence-honest Global Ask cutoff with revision-interval live-after semantics; exact-head checks/review required |
-| #657 | `a59a2023` | TEPP asynchronous lifecycle evidence; exact-head checks/review required |
-| #644 | `ed8d97f3` | native-surface code splitting with modal-focus regression coverage; exact-head checks/review required |
-| #643 | `3453ab08` | accessible token-backed status notices; exact-head checks/review required |
-| #640 | `dda5cf48` | operations-dashboard contract alignment and ABAC/UUID repairs; exact-head checks/review required |
-| #639 | `8da485d3` | Running action and Compose contracts; exact-head checks/review required |
-| #632 | `cad4debf` | active semantic provenance repair head; exact-head checks/review required |
-| #631 | `e6b4f0c4` | documentation decomposition; exact-head checks/review required |
-| #629 | `48496ff6` | web provider release and bounded landing reads; exact-head checks/review required |
-
 | #667 | `3bc662d7` | refreshes protected-main and open-queue documentation evidence; base conflict remains to be repaired |
 | #663 | `6fd2f701` | combined Project ontology candidate plus #666's non-default-branch removal of sampled region-coverage arithmetic; base conflict remains to be repaired |
 | #658 | `f007a5ed` | evidence-honest Global Ask cutoff; hosted checks and independent review required |
@@ -374,12 +349,6 @@ this file per §3.5 of the prior snapshot).
 | #79 | Milestone 2: port verified direct-PostgreSQL analysis into the protected architecture | analysis-run registry on `main`; remaining runtime bridge |
 | #87 | Milestone 2.1 normalized runtime-analysis schema bridge | related analysis-run work |
 | #269 | Authenticated Global Ask MCP browser-safe and admission-bounded | Ask stack |
-| #271 | Evidence-honest knowledge-cutoff scope on Global Ask | Ask stack |
-| #272 | Verify Global Ask KG/ontology/semantic claims with public SearXNG evidence; stacked PR #682 exact head `b9cf3f01` adds the ADR 0234 opt-in candidate and keeps internal post provenance out of the public evidence payload | #682 is in progress, not protected delivery; require terminal exact-head checks, independent review, and authenticated egress/runtime evidence before closing |
-| #274 | Persist and explain Event Lineage channel evidence | #387 |
-| #277 | TEPP: persist accepted receipts, poll completed results, keep measurement authority distinct | #468, #417 |
-| #280 | Full project-lifecycle history and handover intervals | Tracked with issue #284; no active delivery PR confirmed |
-
 | #271 | Evidence-honest knowledge-cutoff scope on Global Ask | #658; still open and not protected-main evidence |
 | #272 | Verify Global Ask KG/ontology/semantic claims with public SearXNG evidence | #632 preserves internal provenance; public verification acceptance remains open |
 | #277 | TEPP: persist accepted receipts, poll completed results, keep measurement authority distinct | #657 consumer lifecycle; executable producer route remains unavailable |
@@ -400,10 +369,7 @@ this file per §3.5 of the prior snapshot).
 | Authorized-corpus runtime | Repository tests use synthetic fixtures; private records remain outside git | Authenticated runtime validation returning only aggregate, non-identifying evidence |
 | Concurrent web responsiveness | ADR 0204 releases pooled transactions during provider work, and the synthetic Compose boundary has an authenticated k6 E2E harness for Ask enqueue, concurrent reads, and job polling. PR #633's measured landing-query and event-loop work merged into open parent #629 rather than protected `main`; its aggregate observation improved 25-VU throughput but did not establish a latency SLO. The current exact #629 also persists each completed relation verification before propagating a later provider failure | Land #629 through its refreshed protected gate, rebuild that exact-head application image, and repeat `make load-http` with declared environment concurrency/window and retained raw distributions/resource configuration; set no SLO until representative capacity evidence is approved |
 | Image understanding | Region, OCR, and description work exists across active heads (#405, #419), but current runtime acceptance has not yet proved table-image structure, complete region coverage, or summary/image readiness together | Orchestrator-backed rendered workflow, original/derived asset provenance, region-before-OCR processing, and honest unsupported states; reconcile ADR 0052's image-bearing summary readiness with ADR 0098 before changing sequencing |
-| Semantic source rendering and retrieval | ADR 0223 and migration 0221 give new paragraph, list, table, MathML formula, and caller-parsed conversation-turn units explicit persisted kinds without rewriting historical rows; image regions remain ordered normalized children under ADR 0091. ADR 0233's candidate adds indexed project/role/person/organization/team/KG nomination before embedding and repeats the final authorization boundary. Neither branch is protected-main delivery | Land both exact-head candidates, prove an authorized semantic-only query retrieves each persisted evidence family and unit kind, then gather authenticated browser evidence that nesting, continuation alignment, formula units, and image regions retain source order |
-| Event and project semantics | Multi-project mentions, project-bound actions, 5W1H, requester/processor, and semantic relations exist in ADR 0036/0052/0100/0111/0129 and active stacks | Aggregate authenticated evidence must show distinct projects and events, explicit requester/processor and real R&R, normalized relative time, and product/entity relations without promoting attendance or co-occurrence |
-| Knowledge Graph readability | The black evidence-node root cause is an undefined-token fallback; the design-token repair and long-label/evidence-table coverage remain only on closed, unmerged #490, not protected `main` | Recreate the token repair on a current base and deliver it through protected `main`, then verify light/dark contrast, keyboard graph navigation, full labels, and evidence tables in the authenticated rendered surface |
-
+| Semantic source rendering and retrieval | ADR 0223 and migration 0221 give paragraph, list, table, MathML formula, and caller-parsed conversation-turn units explicit persisted kinds without rewriting historical rows; image regions remain ordered normalized children under ADR 0091. ADR 0233's candidate adds indexed project/role/person/organization/team/KG nomination before embedding and repeats the final authorization boundary. Neither branch is protected-main delivery | Land both exact-head candidates, prove an authorized semantic-only query retrieves each persisted evidence family and unit kind, then gather authenticated browser evidence that nesting, continuation alignment, formula units, and image regions retain source order |
 | Semantic source rendering | Paragraph, table, list, formula, and indentation work exists across stacks (#394, #427, #448–#450); #515 adds synthetic backend/frontend parity for deterministic rows/cells, footnote boundaries, and encoded scripts | Land the #427 → #515 stack, then gather authenticated browser evidence that list nesting, continuation alignment, and formula units render without authoring-layout artifacts |
 | Event and project semantics | #663 is the largest current user-visible gap slice: evidence-backed Project nodes, bounded traversal, cutoff/snapshot fencing, exact-value table parity, and localized graph labels. Focus visibility, label-bound, and temporal test-double regressions are repaired. #666's heuristic removal is composed into this parent but is not separately protected-main evidence. #640 separately adds project journeys without claiming authoritative lifecycle status | Combined #663 must pass exact-head checks and independent approval before protected merge. Aggregate authenticated evidence must still prove distinct projects/events and handover intervals without promoting co-occurrence |
 | Knowledge Graph readability | #659 recreates the token-backed node-type repair on current `main`, including regression coverage; it is open and therefore not protected-main evidence | Merge #659 normally, then verify light/dark contrast, keyboard graph navigation, full labels, and evidence tables in the authenticated rendered surface |
