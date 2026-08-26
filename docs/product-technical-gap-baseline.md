@@ -68,7 +68,7 @@ are not merge readiness. Re-fetch exact heads,
 unresolved threads, checks, approvals, rulesets, and merge SHA before any
 lifecycle claim.
 
-> Audit snapshot: 2026-08-26 11:53 KST (refreshed by the autonomous merge
+> Audit snapshot: 2026-08-26 11:55 KST (refreshed by the autonomous merge
 > loop). This repository records synthetic fixtures and aggregate,
 > non-identifying runtime evidence only. Open PRs and local checks are not
 > protected-default-branch release evidence. Identifying post identifiers,
@@ -85,15 +85,15 @@ context only.
 
 | PR | Exact observed head | Merge/check state at this snapshot |
 | ---: | --- | --- |
-| #689 | `81a5b1e9` | accepted measurement-owner release pin stacked on #640; hosted checks and independent review pending |
-| #688 | `c8e217ca` | automatic related-source evidence lookup stacked on #640; UNSTABLE with hosted checks and stack-base delivery pending |
+| #689 | `81d85a02` | accepted measurement-owner release pin restacked on current #640; hosted checks and independent review pending |
+| #688 | `63372cc9` | automatic related-source evidence lookup restacked on current #640; UNSTABLE with hosted checks and stack-base delivery pending |
 | #687 | `827978a5` | bounded semantic backfill jobs stacked on #640; UNSTABLE with hosted checks and stack-base delivery pending |
 | #686 | `ea34a797` | customer-facing copy boundary audit removes implementation labels while retaining Event Lineage distinction and localized actions; BLOCKED with review required and hosted checks pending |
 | #680 | `5c246a54` | customer-facing ranking copy with localized retry/search guidance and source-record detail copy corrected; BLOCKED with exact-head checks and independent review required |
 | #679 | `29aa69dd` | ADR 0229 public-claim envelope, async verification, locale-aware next actions, opt-in search setup, and aggregate-status guidance repair; BLOCKED with exact-head checks and independent review required |
 | #672 | `91caeb02` | persisted semantic-evidence nomination for Global Ask with ADR renumbering; exact-head worker factory quality repair applied, hosted checks requeued and review required |
 | #668 | `e452bf38` | evidence-bound project history projection with ADR renumbering, request guards, source-code/time-basis display repair, and theme-token timeline styling; BLOCKED with review required |
-| #667 | `9c094422` | baseline refresh observed before this documentation-only update; BLOCKED with hosted checks and independent review required; this row is not a prediction of the commit created by the refresh |
+| #667 | `b3a1c4e6` | baseline refresh observed before this documentation-only update; BLOCKED with hosted checks and independent review required; this row is not a prediction of the commit created by the refresh |
 | #663 | `f616887a` | project ontology traversal, cutoff-snapshot project focus, bounded MCP admission, and migration-fixture/worker startup repair; exact-head Full-suite authentication and transaction-fixture failures repaired; fresh checks pending and review required |
 | #658 | `f497a6e8` | evidence-honest Global Ask cutoff with robust revision timestamps; BLOCKED with review required |
 | #657 | `709df1b9` | TEPP lifecycle persistence and fail-closed topic acceptance; BLOCKED with hosted checks queued and review required |
