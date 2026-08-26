@@ -56,7 +56,7 @@ backend = [
   # Owner arithmetic from protected main (ADR 0208). Product-specific lineage
   # contracts remain unavailable until a domain-neutral owner contract lands.
   # PyO3/maturin source builds need the pinned Rust toolchain.
-  "fast-mlsirm @ git+https://github.com/ContextualWisdomLab/fast-mlsirm.git@54bcdf0b1d8a8e98d2265e05e3c03bd42e8b57c2",
+  "fast-mlsirm @ git+https://github.com/ContextualWisdomLab/fast-mlsirm.git@2c2688a56ce75adddf795333f20d69eaef18e4e5",
 ]
 
 [tool.setuptools.packages.find]
