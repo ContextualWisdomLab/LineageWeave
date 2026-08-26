@@ -4927,7 +4927,8 @@ export function AskAgentPanel({
               ) : null}
             </aside>
           ) : null}
-          {answer.next_action && !answer.public_claim_verification ? (
+          {answer.next_action &&
+          answer.next_action !== answer.public_claim_verification?.next_action ? (
             <p className="post-meta">{t(answer.next_action)}</p>
           ) : null}
           {answer.delivery ? (

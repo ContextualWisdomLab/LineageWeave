@@ -121,6 +121,7 @@ describe("App, authenticated", () => {
     askImageCitation?: boolean;
     askDelivery?: boolean;
     askNoPublicClaims?: boolean;
+    askNoSources?: boolean;
     lineageIsolationReason?: "comparison_candidates_available" | "no_comparison_group";
   }): ReturnType<typeof vi.fn> & { releaseMe: () => void; releasePostOne: () => void } {
     const statusLabel: Record<string, string> = {
@@ -1738,7 +1739,12 @@ describe("App, authenticated", () => {
             ask_job_id: "ask-job-1",
             job_status_code: "succeeded",
             answer: {
-            answer_text: "The cited project is supported by the stored semantic evidence.",
+            answer_text: options?.askNoSources
+              ? ""
+              : "The cited project is supported by the stored semantic evidence.",
+            next_action: options?.askNoSources
+              ? "No authorized source posts are available for this question."
+              : undefined,
             cited_post_ids: ["post-2"],
             cited_posts: [{ post_id: "post-2", post_title: "Linked post" }],
             cited_post_evidence: [
@@ -2111,6 +2117,21 @@ describe("App, authenticated", () => {
     expect(await screen.findByText(
       "No authorized public claims are available to verify. Turn off web verification and ask again.",
     )).toBeInTheDocument();
+  });
+
+  it("keeps the no-source action visible beside public verification", async () => {
+    stubBackend({ askNoSources: true });
+    render(<App />);
+    await screen.findByRole("button", { name: "View post: Public post" });
+    await userEvent.click(screen.getByRole("button", { name: "Ask Agent" }));
+    await userEvent.click(screen.getByRole("checkbox", { name: "Check eligible public claims" }));
+    await userEvent.type(screen.getByRole("textbox", { name: "Ask a question" }), "What is public?");
+    await userEvent.click(screen.getByRole("button", { name: "Ask" }));
+
+    expect(await screen.findByText(
+      "No authorized source posts are available for this question.",
+    )).toBeInTheDocument();
+    expect(screen.getByLabelText("Public claims")).toBeInTheDocument();
   });
 
   it("labels the Customer Master entity level and Keymen side, never the raw lookup code", async () => {
