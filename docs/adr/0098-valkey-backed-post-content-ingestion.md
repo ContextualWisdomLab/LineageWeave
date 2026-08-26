@@ -142,6 +142,9 @@ and exact-session tracing without retaining a response body, error message,
 prompt, provider identity, credential, or source text. The buyer-facing status
 continues to state the next action; these implementation diagnostics remain an
 authorized operational boundary.
+Operations-case validation failures additionally retain only the closed
+`operations_case_evidence_contract` code and `$.cases` JSON path; returned
+content is never copied into the ledger.
 
 ### Operational timeout for structure adjudication
 

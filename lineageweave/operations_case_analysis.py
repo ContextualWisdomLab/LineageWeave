@@ -168,7 +168,7 @@ class NullOperationsCaseAnalysisClient:
 
 
 _PROMPT = """Analyze this business record semantically. Do not use keyword matching.
-Return ONLY a JSON array. Each item must have case_kind_code (one of
+Return ONLY a JSON object with a cases array. Each item must have case_kind_code (one of
 claim_investigation, rebid_handover, external_information, repeat_issue), summary_text,
 evidence_post_id, evidence_text (a verbatim span from that numbered source), and facts. Each fact has
 fact_type_code (one of order, specification_change, originating_order,
@@ -197,6 +197,78 @@ Authorized numbered sources:
 {sources}
 """
 
+_RESPONSE_SCHEMA = {
+    "type": "object",
+    "additionalProperties": False,
+    "required": ["cases"],
+    "properties": {
+        "cases": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "additionalProperties": False,
+                "required": [
+                    "case_kind_code", "summary_text", "evidence_post_id",
+                    "evidence_text", "facts", "missing_fact_type_codes",
+                    "milestones", "missing_milestone_type_codes",
+                ],
+                "properties": {
+                    "case_kind_code": {"type": "string", "enum": sorted(CASE_KINDS)},
+                    "summary_text": {"type": "string"},
+                    "evidence_post_id": {"type": "string"},
+                    "evidence_text": {"type": "string"},
+                    "facts": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "additionalProperties": False,
+                            "required": [
+                                "fact_type_code", "value_text", "evidence_post_id",
+                                "evidence_text", "relation_target_kind_code",
+                            ],
+                            "properties": {
+                                "fact_type_code": {"type": "string", "enum": sorted(FACT_TYPES)},
+                                "value_text": {"type": "string"},
+                                "evidence_post_id": {"type": "string"},
+                                "evidence_text": {"type": "string"},
+                                "relation_target_kind_code": {
+                                    "enum": [None, *sorted(EXTERNAL_RELATION_TARGET_KINDS)]
+                                },
+                            },
+                        },
+                    },
+                    "missing_fact_type_codes": {
+                        "type": "array", "items": {"type": "string", "enum": sorted(FACT_TYPES)}
+                    },
+                    "milestones": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "additionalProperties": False,
+                            "required": ["milestone_type_code", "evidence_post_id", "evidence_text"],
+                            "properties": {
+                                "milestone_type_code": {"type": "string", "enum": sorted(MILESTONE_TYPES)},
+                                "evidence_post_id": {"type": "string"},
+                                "evidence_text": {"type": "string"},
+                            },
+                        },
+                    },
+                    "missing_milestone_type_codes": {
+                        "type": "array", "items": {"type": "string", "enum": sorted(MILESTONE_TYPES)}
+                    },
+                },
+            },
+        }
+    },
+}
+
+
+class OperationsCaseResponseContractError(ValueError):
+    """A structured response failed the bounded evidence contract."""
+
+    validation_code = "operations_case_evidence_contract"
+    validation_path = "$.cases"
+
 
 def parse_operations_case_response(
     content: str, sources: tuple[OperationsEvidenceSource, ...] | str
@@ -210,6 +282,8 @@ def parse_operations_case_response(
         payload = json.loads(content.strip())
     except json.JSONDecodeError:
         return None
+    if isinstance(payload, dict) and set(payload) == {"cases"}:
+        payload = payload["cases"]
     if not isinstance(payload, list):
         return None
     cases: list[OperationsCase] = []
@@ -419,6 +493,14 @@ class ContextualOrchestratorOperationsCaseAnalysisClient:
                 ],
                 "mode": "auto",
                 "reasoning_effort": "auto",
+                "response_format": {
+                    "type": "json_schema",
+                    "json_schema": {
+                        "name": "operations_case_analysis",
+                        "strict": True,
+                        "schema": _RESPONSE_SCHEMA,
+                    },
+                },
             },
             headers={
                 "authorization": f"Bearer {self._api_key}",
@@ -430,7 +512,7 @@ class ContextualOrchestratorOperationsCaseAnalysisClient:
             chat_completion_content(response), sources
         )
         if parsed is None:
-            raise ValueError(
+            raise OperationsCaseResponseContractError(
                 "operations case response did not match the evidence contract"
             )
         return parsed

@@ -913,6 +913,7 @@ def test_worker_persists_bounded_failure_provenance(monkeypatch) -> None:
     )
     assert isinstance(update[13], str) and len(update[13]) <= 128
     assert update[14] == "http_client_error"
+    assert update[15:17] == (None, None)
     assert "sanitized" not in str(update)
 
 
