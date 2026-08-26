@@ -29,6 +29,12 @@ notation is an optional extension and cannot be required by this script.
   PostgreSQL idempotency such as `IF NOT EXISTS` and `ON CONFLICT`; a migration
   that cannot be made idempotent requires a migration ledger ADR before it is
   added.
+- An interrupted `CREATE INDEX CONCURRENTLY` can retain an invalid catalog
+  object that `IF NOT EXISTS` would incorrectly accept on every later replay.
+  A migration owning such an index must query `pg_index.indisvalid`, drop only
+  its own invalid index concurrently through `psql` `\gexec`, and then replay
+  the idempotent create. Valid indexes remain untouched, so ordinary startup
+  does not rebuild them.
 - Execute each accepted file with `psql -X -v ON_ERROR_STOP=1`. A failed
   migration stops startup instead of leaving a healthy-looking partial schema.
 - Tests must cover the stable 0012 boundary and the idempotency of any changed
