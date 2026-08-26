@@ -2,7 +2,6 @@ import { useRef, useState } from "react";
 import type { AskAgentResponse, CitedPostEvent } from "../api";
 import { chatEvidenceKindLabel } from "../evidenceKindLabels";
 import { getLocale, t, tf } from "../i18n";
-import { PublicClaimVerification } from "./PublicClaimVerification";
 
 type Props = {
   question: string;
@@ -108,24 +107,7 @@ export function AskAnswerTimeline({ question, answer, onOpenEvidence, onOpenPost
             </nav>
           ) : null}
         </div>
-        {answer.knowledge_cutoff ? (
-          <aside className="ask-delivery" aria-label={t("Knowledge-cutoff grounding")}>
-            <h4>{t("Knowledge-cutoff grounding")}</h4>
-            <p>
-              {answer.grounding_status === "fully_cutoff_grounded"
-                ? t("Fully cutoff-grounded")
-                : t("Partially cutoff-grounded")}
-              {` · ${answer.knowledge_cutoff}`}
-            </p>
-            {answer.limitations?.length ? (
-              <p role="alert">
-                {t("Some historical bodies or channels are unavailable. Review the cited limitations.")}
-              </p>
-            ) : null}
-          </aside>
-        ) : null}
         {answer.next_action ? <p className="ask-next-action">{t(answer.next_action)}</p> : null}
-        <PublicClaimVerification claims={answer.external_claims ?? []} />
       </section>
 
       {chronological.length ? (
@@ -166,13 +148,6 @@ export function AskAnswerTimeline({ question, answer, onOpenEvidence, onOpenPost
                       <span>
                         <strong>{citation.postTitle}</strong>
                         <small>{observedTimeLabel(citation.event)}</small>
-                        {post?.source_post_revision_id ? (
-                          <small>
-                            {t("Retained revision")}
-                            {post.evidence_available_at ? ` · ${post.evidence_available_at}` : ""}
-                            {post.live_changed_after_cutoff ? ` · ${t("Live source changed later")}` : ""}
-                          </small>
-                        ) : null}
                       </span>
                     </button>
                     {post?.source_post_revision_id ? (
