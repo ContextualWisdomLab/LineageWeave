@@ -111,7 +111,17 @@ Repository artifacts must not retain the private titles.
 9. Any provider, transport, trace, parse, or item failure invalidates the whole
    declared probability sample. The selected item remains in the denominator
    and must be retried in place; it is never dropped or replaced by another
-   record. Only a zero-failure complete run emits a coverage aggregate.
+   record. Only a zero-failure complete run emits a coverage aggregate. The
+   failed execution itself is not erased: an owner-only aggregate attempt
+   artifact records the accepted-item count, failed batch index, bounded error
+   class, and a content-addressed PROV-O graph showing that the attempt activity
+   used the selection manifest, Rust design artifact, and ontology. This is
+   execution provenance, not a partial coverage result, and therefore never
+   sets `corpus_inference_available` or persists row-level verdicts. Each
+   provider call runs behind a terminable process boundary so the declared
+   timeout is a wall-clock deadline, not merely a socket inactivity timeout;
+   a peer that keeps a connection active cannot leave the attempt indefinitely
+   `in_progress`.
 10. The model receives the locally validated semantic-dimension support
     profile, not the entire ontology inventory. It classifies source meaning
     into governed dimensions but never selects terms or decides coverage.

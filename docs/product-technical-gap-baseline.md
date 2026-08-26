@@ -119,8 +119,13 @@ violated the exact batch cardinality schema. contextual-orchestrator PR #891
 now carries the upstream candidate repairs: structured trace disclosure through
 the audited trace-read boundary, removal of mock seed agents after successful
 provider discovery, and response-format capability selection from explicit
-provider catalog evidence. No 381-unit coverage estimate is accepted until all
-39 batches complete against one unchanged manifest.
+provider catalog evidence. The candidate audit now also retains an owner-only,
+aggregate PROV-O attempt artifact from the start of execution: the activity
+uses the content-addressed selection manifest, Rust design artifact, and
+ontology, while a rejection records only accepted-item count, failed batch,
+and bounded error class. It never promotes partial verdicts to corpus inference
+or exposes source identifiers. No 381-unit coverage estimate is accepted until
+all 39 batches complete against one unchanged manifest.
 
 A runtime-only simple random sample without replacement then selected 100 new
 records from an eligible frame of 43,714. The pre-augmentation audit accepted

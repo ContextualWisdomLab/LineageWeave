@@ -13,9 +13,11 @@ from scripts.audit_source_content_semantics import (
     SEMANTIC_DIMENSIONS,
     _ontology_terms,
     _parser,
+    _post_json_with_deadline,
     _prompt,
     _response_format,
     aggregate_results,
+    audit_attempt_provenance,
     parse_batch_result,
     selected_contents,
     terminal_semantic_coverage_evidence,
@@ -45,6 +47,10 @@ def test_cli_defaults_to_the_internal_orchestrator_credential() -> None:
         if action.dest == "sample_design_artifact_file"
     )
     assert design_action.required is True
+    attempt_action = next(
+        action for action in _parser()._actions if action.dest == "attempt_evidence_file"
+    )
+    assert attempt_action.required is True
 
 
 def test_audit_uses_the_orchestrator_owned_auto_route() -> None:
@@ -53,6 +59,17 @@ def test_audit_uses_the_orchestrator_owned_auto_route() -> None:
 
     assert '"model": "orchestrator/auto"' in source
     assert '"model": "contextual-orchestrator"' not in source
+
+
+def test_provider_deadline_must_be_positive() -> None:
+    """The hard wall-clock boundary cannot be disabled accidentally."""
+    with pytest.raises(ValueError, match="timeout must be positive"):
+        _post_json_with_deadline(
+            "https://example.test",
+            {},
+            headers={},
+            timeout=0,
+        )
 
 
 def test_audit_contract_distinguishes_instance_data_from_schema_gaps() -> None:
@@ -433,6 +450,35 @@ def test_terminal_semantic_coverage_binds_exact_interval_and_audit() -> None:
     assert len(result["audit_artifact_sha256"]) == 64
     assert len(result["prov_o_sha256"]) == 64
     prov_o = result["prov_o"]
+    assert isinstance(prov_o, dict)
+    relations = {assertion["relation_iri"] for assertion in prov_o["assertions"]}
+    assert relations == {
+        str(PROV.used),
+        str(PROV.wasDerivedFrom),
+        str(PROV.wasGeneratedBy),
+    }
+    assert len(prov_o["resource_types"]) == 5
+    assert len(prov_o["assertions"]) == 7
+
+
+def test_rejected_attempt_retains_prov_without_becoming_a_coverage_result() -> None:
+    """A failed batch remains auditable but cannot claim terminal inference."""
+    evidence = audit_attempt_provenance(
+        selection_manifest_sha256="a" * 64,
+        sampling_design_sha256="b" * 64,
+        ontology_sha256="c" * 64,
+        status_code="rejected",
+        accepted_count=30,
+        failed_batch_index=3,
+        failure_code="ValueError",
+    )
+
+    assert evidence["status_code"] == "rejected"
+    assert evidence["accepted_count"] == 30
+    assert evidence["failed_batch_index"] == 3
+    assert "corpus_inference_available" not in evidence
+    assert len(evidence["prov_o_sha256"]) == 64
+    prov_o = evidence["prov_o"]
     assert isinstance(prov_o, dict)
     relations = {assertion["relation_iri"] for assertion in prov_o["assertions"]}
     assert relations == {

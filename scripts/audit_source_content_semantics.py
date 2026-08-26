@@ -6,8 +6,10 @@ import argparse
 import asyncio
 import hashlib
 import json
+import multiprocessing
 import os
 import re
+import tempfile
 from collections import Counter
 from collections.abc import Mapping, Sequence
 from dataclasses import asdict
@@ -496,6 +498,141 @@ def terminal_semantic_coverage_evidence(
     }
 
 
+def audit_attempt_provenance(
+    *,
+    selection_manifest_sha256: str,
+    sampling_design_sha256: str,
+    ontology_sha256: str,
+    status_code: str,
+    accepted_count: int,
+    failed_batch_index: int | None = None,
+    failure_code: str | None = None,
+) -> dict[str, object]:
+    """Describe an audit attempt without treating partial verdicts as a result."""
+    if status_code not in {"in_progress", "completed", "rejected"}:
+        raise ValueError("unsupported audit-attempt status")
+    if status_code == "rejected" and not failure_code:
+        raise ValueError("a rejected audit attempt requires a failure code")
+    identity = {
+        "selection_manifest_sha256": selection_manifest_sha256,
+        "sampling_design_sha256": sampling_design_sha256,
+        "ontology_sha256": ontology_sha256,
+        "status_code": status_code,
+        "accepted_count": accepted_count,
+        "failed_batch_index": failed_batch_index,
+        "failure_code": failure_code,
+    }
+    attempt_sha256 = _canonical_sha256(identity)
+    resources = {
+        "selection": "urn:sha256:" + selection_manifest_sha256,
+        "design": "urn:sha256:" + sampling_design_sha256,
+        "ontology": "urn:sha256:" + ontology_sha256,
+        "attempt": "urn:sha256:" + attempt_sha256,
+        "activity": "urn:lineageweave:semantic-coverage-attempt:" + attempt_sha256,
+    }
+    provenance = ProvGraph()
+    for name in ("selection", "design", "ontology", "attempt"):
+        provenance.add_resource(resources[name], "Entity")
+    provenance.add_resource(resources["activity"], "Activity")
+    for name in ("selection", "design", "ontology"):
+        provenance.add_assertion(resources["activity"], "used", resources[name])
+        provenance.add_assertion(resources["attempt"], "wasDerivedFrom", resources[name])
+    provenance.add_assertion(
+        resources["attempt"], "wasGeneratedBy", resources["activity"]
+    )
+    prov_o = {
+        "resource_types": {
+            iri: sorted(types) for iri, types in sorted(provenance.resource_types.items())
+        },
+        "assertions": sorted(
+            (
+                {
+                    "subject_iri": assertion.subject_iri,
+                    "relation_iri": str(PROV[assertion.relation]),
+                    "object_iri": assertion.object_resource_iri,
+                }
+                for assertion in provenance.explicit_assertions
+            ),
+            key=lambda item: (
+                item["subject_iri"],
+                item["relation_iri"],
+                item["object_iri"],
+            ),
+        ),
+    }
+    return {
+        **identity,
+        "attempt_sha256": attempt_sha256,
+        "prov_o": prov_o,
+        "prov_o_sha256": _canonical_sha256(prov_o),
+    }
+
+
+def _write_private_json(path: Path, payload: object) -> None:
+    """Atomically replace a runtime-only JSON artifact with owner-only permissions."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    descriptor, temporary_name = tempfile.mkstemp(dir=path.parent, prefix=path.name + ".")
+    try:
+        with os.fdopen(descriptor, "w", encoding="utf-8") as stream:
+            json.dump(payload, stream, sort_keys=True)
+            stream.write("\n")
+        os.chmod(temporary_name, 0o600)
+        os.replace(temporary_name, path)
+    finally:
+        if os.path.exists(temporary_name):
+            os.unlink(temporary_name)
+
+
+def _post_json_worker(
+    result_queue: Any,
+    endpoint: str,
+    payload: dict[str, object],
+    headers: dict[str, str],
+    timeout: float,
+) -> None:
+    """Run one provider request in a terminable child process."""
+    try:
+        result_queue.put((True, post_json(endpoint, payload, headers=headers, timeout=timeout)))
+    except Exception as exc:
+        result_queue.put((False, type(exc).__name__))
+
+
+def _post_json_with_deadline(
+    endpoint: str,
+    payload: dict[str, object],
+    *,
+    headers: dict[str, str],
+    timeout: float,
+) -> dict[str, Any]:
+    """Enforce a wall-clock deadline even when a peer keeps a socket active."""
+    if timeout <= 0:
+        raise ValueError("timeout must be positive")
+    context = multiprocessing.get_context("spawn")
+    result_queue = context.Queue(maxsize=1)
+    process = context.Process(
+        target=_post_json_worker,
+        args=(result_queue, endpoint, payload, headers, timeout),
+    )
+    process.start()
+    process.join(timeout)
+    try:
+        if process.is_alive():
+            process.terminate()
+            process.join()
+            raise TimeoutError("semantic audit provider request exceeded its deadline")
+        if result_queue.empty():
+            raise RuntimeError("semantic audit provider process returned no result")
+        succeeded, value = result_queue.get()
+        if not succeeded:
+            raise RuntimeError(f"semantic audit provider request failed: {value}")
+        if not isinstance(value, dict):
+            raise RuntimeError("semantic audit provider response must be an object")
+        return value
+    finally:
+        result_queue.close()
+        result_queue.join_thread()
+
+
 def parse_batch_result(
     content: str,
     expected_count: int,
@@ -809,6 +946,7 @@ async def audit_source_content(
     gateway_url: str,
     gateway_api_key: str,
     timeout: float,
+    attempt_evidence_path: Path | None = None,
 ) -> dict[str, object]:
     """Run a fail-closed multi-agent audit and return aggregate evidence only."""
     if sample_size < 1 or not 1 <= batch_size <= 10:
@@ -821,30 +959,55 @@ async def audit_source_content(
     sample_design["rust_artifact"] = validate_sampling_design_artifact(
         sample_design_artifact, cast(Mapping[str, object], sample_manifest)
     )
-    connection = await asyncpg.connect(source_dsn)
-    try:
-        records = await connection.fetch(query)
-    finally:
-        await connection.close()
-    contents = selected_contents(records, selected_membership)
-
-    terms = _ontology_terms(ontology_path)
-    allowed_term_iris = {str(term["iri"]) for term in terms}
-    supporting_terms_by_dimension = {
-        dimension: tuple(
-            iri for iri in expected_iris if iri in allowed_term_iris
-        )
-        for dimension, expected_iris in SEMANTIC_DIMENSION_TERM_IRIS.items()
+    rust_artifact = cast(Mapping[str, object], sample_design["rust_artifact"])
+    ontology_sha256 = hashlib.sha256(ontology_path.read_bytes()).hexdigest()
+    attempt_inputs = {
+        "selection_manifest_sha256": str(sample_design["selection_manifest_sha256"]),
+        "sampling_design_sha256": str(rust_artifact["artifact_sha256"]),
+        "ontology_sha256": ontology_sha256,
     }
-    batches: list[tuple[dict[str, Any], ...]] = []
-    trace_counts: list[int] = []
-    endpoint = gateway_url.rstrip("/") + "/v1/chat/completions"
-    for start in range(0, len(contents), batch_size):
-        window = contents[start : start + batch_size]
-        response = await asyncio.to_thread(
-            post_json,
-            endpoint,
-            {
+    accepted_count = 0
+    failed_batch_index: int | None = None
+
+    def retain_attempt(status_code: str, failure_code: str | None = None) -> dict[str, object]:
+        evidence = audit_attempt_provenance(
+            **attempt_inputs,
+            status_code=status_code,
+            accepted_count=accepted_count,
+            failed_batch_index=(
+                failed_batch_index if status_code == "rejected" else None
+            ),
+            failure_code=failure_code,
+        )
+        if attempt_evidence_path is not None:
+            _write_private_json(attempt_evidence_path, evidence)
+        return evidence
+
+    retain_attempt("in_progress")
+    try:
+        connection = await asyncpg.connect(source_dsn)
+        try:
+            records = await connection.fetch(query)
+        finally:
+            await connection.close()
+        contents = selected_contents(records, selected_membership)
+
+        terms = _ontology_terms(ontology_path)
+        allowed_term_iris = {str(term["iri"]) for term in terms}
+        supporting_terms_by_dimension = {
+            dimension: tuple(iri for iri in expected_iris if iri in allowed_term_iris)
+            for dimension, expected_iris in SEMANTIC_DIMENSION_TERM_IRIS.items()
+        }
+        batches: list[tuple[dict[str, Any], ...]] = []
+        trace_counts: list[int] = []
+        endpoint = gateway_url.rstrip("/") + "/v1/chat/completions"
+        for start in range(0, len(contents), batch_size):
+            failed_batch_index = start // batch_size
+            window = contents[start : start + batch_size]
+            response = await asyncio.to_thread(
+                _post_json_with_deadline,
+                endpoint,
+                {
                 "model": "orchestrator/auto",
                 "messages": [
                     {
@@ -860,42 +1023,49 @@ async def audit_source_content(
                 "include_orchestration_trace": True,
                 "response_format": _response_format(len(window)),
             },
-            headers={"authorization": f"Bearer {gateway_api_key}"},
-            timeout=timeout,
-        )
-        orchestration = response.get("orchestration")
-        trace = orchestration.get("trace") if isinstance(orchestration, dict) else None
-        if not isinstance(trace, list) or len(trace) < 2:
-            raise ValueError("semantic audit did not return multi-agent trace evidence")
-        try:
-            parsed_batch = parse_batch_result(
-                chat_completion_content(response),
-                len(window),
-                supporting_terms_by_dimension,
+                headers={"authorization": f"Bearer {gateway_api_key}"},
+                timeout=timeout,
             )
-        except ValueError as exc:
-            raise ValueError(
-                f"semantic audit batch {start // batch_size} failed validation"
-            ) from exc
-        batches.append(parsed_batch)
-        trace_counts.append(len(trace))
-    result = aggregate_results(batches, trace_counts)
-    if result["sample_count"] != sample_size:
-        raise AssertionError(
-            "validated semantic audit total does not match source sample"
+            orchestration = response.get("orchestration")
+            trace = orchestration.get("trace") if isinstance(orchestration, dict) else None
+            if not isinstance(trace, list) or len(trace) < 2:
+                raise ValueError("semantic audit did not return multi-agent trace evidence")
+            try:
+                parsed_batch = parse_batch_result(
+                    chat_completion_content(response),
+                    len(window),
+                    supporting_terms_by_dimension,
+                )
+            except ValueError as exc:
+                raise ValueError(
+                    f"semantic audit batch {start // batch_size} failed validation"
+                ) from exc
+            batches.append(parsed_batch)
+            trace_counts.append(len(trace))
+            accepted_count += len(window)
+            retain_attempt("in_progress")
+        failed_batch_index = None
+        result = aggregate_results(batches, trace_counts)
+        if result["sample_count"] != sample_size:
+            raise AssertionError(
+                "validated semantic audit total does not match source sample"
+            )
+        sample_design.update(
+            terminal_semantic_coverage_evidence(
+                cast(Mapping[str, object], sample_design_artifact),
+                sample_design,
+                result,
+                ontology_path,
+            )
         )
-    sample_design.update(
-        terminal_semantic_coverage_evidence(
-            cast(Mapping[str, object], sample_design_artifact),
-            sample_design,
-            result,
-            ontology_path,
-        )
-    )
-    result["sample_design"] = sample_design
-    result["attempted_count"] = sample_size
-    result["failed_count"] = 0
-    return result
+        result["sample_design"] = sample_design
+        result["attempted_count"] = sample_size
+        result["failed_count"] = 0
+        result["attempt_provenance"] = retain_attempt("completed")
+        return result
+    except Exception as exc:
+        retain_attempt("rejected", type(exc).__name__)
+        raise
 
 
 def _parser() -> argparse.ArgumentParser:
@@ -917,6 +1087,7 @@ def _parser() -> argparse.ArgumentParser:
         "--gateway-api-key-env", default="CONTEXTUAL_ORCHESTRATOR_TOKEN"
     )
     parser.add_argument("--timeout", type=float, default=300.0)
+    parser.add_argument("--attempt-evidence-file", type=Path, required=True)
     return parser
 
 
@@ -942,6 +1113,7 @@ def main() -> None:
             gateway_url=args.gateway_url,
             gateway_api_key=api_key,
             timeout=args.timeout,
+            attempt_evidence_path=args.attempt_evidence_file,
         )
     )
     print(json.dumps(result, sort_keys=True))
