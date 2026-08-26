@@ -70,7 +70,7 @@ describe("i18n", () => {
     "Interval relations",
     "Inspect ontology neighborhood",
     "Ontology neighborhood",
-    "This is an ontology neighborhood, not Event Lineage.",
+    "This view is separate from Event Lineage.",
     "Rankings",
     "Title overlap",
     "Open a result to review why it appears in this ranking. These results are not calibrated measurements.",

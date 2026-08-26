@@ -440,8 +440,8 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Related concepts": "관련 개념",
     Post: "글",
     "Typed relations, not Event Lineage": "유형 관계이며 이벤트 계보가 아닙니다",
-    "This is an ontology neighborhood, not Event Lineage.":
-      "이벤트 계보가 아니라 온톨로지 이웃입니다.",
+    "This view is separate from Event Lineage.":
+      "이 보기는 이벤트 계보와 구분됩니다.",
     "Event Lineage shows reconstructed post-to-post parents. This graph shows typed people, organizations, teams, and posts.":
       "이벤트 계보는 복원된 글-글 부모 링크입니다. 이 그래프는 유형이 있는 사람, 조직, 팀, 글을 보여 줍니다.",
     "Loading ontology neighborhood...": "온톨로지 이웃을 불러오는 중...",
@@ -944,7 +944,7 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Related concepts": "相关概念",
     Post: "文章",
     "Typed relations, not Event Lineage": "这是类型化关系，不是事件谱系",
-    "This is an ontology neighborhood, not Event Lineage.": "这是本体邻域，不是事件谱系。",
+    "This view is separate from Event Lineage.": "此视图与事件谱系相互独立。",
     "Event Lineage shows reconstructed post-to-post parents. This graph shows typed people, organizations, teams, and posts.":
       "事件谱系显示重建的文章父子链接。此图显示带类型的人员、组织、团队和文章。",
     "Loading ontology neighborhood...": "正在加载本体邻域...",
@@ -1449,8 +1449,8 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Related concepts": "関連する概念",
     Post: "投稿",
     "Typed relations, not Event Lineage": "型付き関係であり、イベント系譜ではありません",
-    "This is an ontology neighborhood, not Event Lineage.":
-      "これはイベント系譜ではなく、オントロジー近傍です。",
+    "This view is separate from Event Lineage.":
+      "このビューはイベント系譜とは別のものです。",
     "Event Lineage shows reconstructed post-to-post parents. This graph shows typed people, organizations, teams, and posts.":
       "イベント系譜は復元された投稿間の親子リンクです。このグラフは型付きの人・組織・チーム・投稿を示します。",
     "Loading ontology neighborhood...": "オントロジー近傍を読み込んでいます...",
@@ -1955,8 +1955,8 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Related concepts": "Các khái niệm liên quan",
     Post: "Bài viết",
     "Typed relations, not Event Lineage": "Quan hệ có kiểu, không phải Dòng sự kiện",
-    "This is an ontology neighborhood, not Event Lineage.":
-      "Đây là lân cận bản thể, không phải Dòng sự kiện.",
+    "This view is separate from Event Lineage.":
+      "Chế độ xem này tách biệt với Dòng sự kiện.",
     "Event Lineage shows reconstructed post-to-post parents. This graph shows typed people, organizations, teams, and posts.":
       "Dòng sự kiện hiện liên kết cha-con đã tái tạo giữa các bài viết. Đồ thị này hiện người, tổ chức, nhóm và bài viết có kiểu.",
     "Loading ontology neighborhood...": "Đang tải lân cận bản thể...",

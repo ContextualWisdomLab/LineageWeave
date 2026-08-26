@@ -234,7 +234,7 @@ describe("OntologyExplorer", () => {
       />,
     );
     expect(
-      screen.getByText(/This is an ontology neighborhood, not Event Lineage/),
+      screen.getByText(/This view is separate from Event Lineage/),
     ).toBeInTheDocument();
     expect(screen.getByRole("region", { name: "Exact values" })).toHaveAttribute("tabindex", "0");
     await userEvent.click(screen.getByRole("button", { name: "Select node: Post Demo public post" }));

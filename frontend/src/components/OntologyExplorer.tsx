@@ -191,7 +191,7 @@ export function OntologyExplorer({
           <p className="section-eyebrow">{t("Related concepts")}</p>
           <h3>{t("Typed relations, not Event Lineage")}</h3>
           <p>
-            {t("This is an ontology neighborhood, not Event Lineage.")}{" "}
+            {t("This view is separate from Event Lineage.")}{" "}
             {t("Event Lineage shows reconstructed post-to-post parents. This graph shows typed people, organizations, teams, and posts.")}
           </p>
         </div>
