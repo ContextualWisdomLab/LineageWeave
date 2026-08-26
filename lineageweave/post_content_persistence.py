@@ -16,8 +16,8 @@ from typing import Any, TypeVar
 
 from .chunking import Chunk, chunk_by_source_body
 from .embedding_client import EmbeddingClient
-from .image_content import ImageContentClient, ImageDescription
 from .http_client import HttpClientError, json_request_body
+from .image_content import ImageContentClient, ImageDescription
 from .post_content_normalization import ImageContentResult, normalize_post_body
 from .post_structure import (
     ContextualOrchestratorPostStructureClient,
@@ -312,8 +312,9 @@ async def persist_post_content(
             unit_id = await conn.fetchval(
                 """
                 insert into post_content_unit
-                    (post_id, unit_index, unit_kind_code, unit_label, unit_text, inline_style)
-                values ($1, $2, $3, $4, $5, $6)
+                    (post_id, unit_index, unit_kind_code, unit_label, unit_text,
+                     inline_style, source_evidence_reference)
+                values ($1, $2, $3, $4, $5, $6, $7)
                 returning post_content_unit_id
                 """,
                 post_id,
@@ -322,6 +323,7 @@ async def persist_post_content(
                 chunk.label,
                 unit_text,
                 style,
+                chunk.source_evidence_reference,
             )
             unit_ids[chunk.index] = str(unit_id)
             structure = structure_by_index.get(chunk.index)

@@ -72,6 +72,19 @@ def test_semantic_content_unit_kind_migration_is_replay_safe() -> None:
         assert f"'{unit_kind}'" in sql
 
 
+def test_source_conversation_turn_evidence_migration_is_replay_safe() -> None:
+    sql = (
+        Path(__file__).resolve().parents[1]
+        / "migrations"
+        / "0230_source_conversation_turn_evidence.sql"
+    ).read_text(encoding="utf-8").lower()
+
+    assert "add column if not exists source_evidence_reference" in sql
+    assert "if not exists" in sql
+    assert "post_content_unit_source_evidence_reference_check" in sql
+    assert "octet_length(source_evidence_reference) <= 24000" in sql
+
+
 def test_interval_relation_foreign_key_validation_is_separate() -> None:
     """Installing the FK must not scan a large existing edge table."""
 
