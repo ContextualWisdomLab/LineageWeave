@@ -170,10 +170,10 @@ def _verification_next_action(status_code: str) -> str:
     return {
         VERIFICATION_SKIPPED: "Enable public verification to check eligible public claims.",
         VERIFICATION_UNAVAILABLE: "Ask a workspace administrator to enable public verification, then retry.",
-        VERIFICATION_NO_PUBLIC_CLAIMS: "Inspect the authorized cited posts and their evidence.",
+        VERIFICATION_NO_PUBLIC_CLAIMS: "Ask about a specific claim or narrow the time range, then retry.",
         VERIFICATION_COMPLETED: "Inspect public evidence separately before any governed graph review.",
         CLAIM_NOT_ENOUGH_INFORMATION: "Collect stronger authoritative evidence before accepting the claim.",
-    }.get(status_code, "Inspect the authorized cited posts and their evidence.")
+    }.get(status_code, "Ask about a specific claim or narrow the time range, then retry.")
 
 
 async def _verify_public_claims(
