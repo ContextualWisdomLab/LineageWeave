@@ -91,7 +91,7 @@ The current candidate consumer separately replays the immutable
 `fast-mlsirm.sampling-design.v1` Rust artifact and binds its population,
 ordered stratum populations, total sample size, allocation, and exact `(n_h,
 N_h)` inclusion ratios to the selected frame manifest. That proves design arithmetic provenance, not achieved
-semantic-coverage inference. Stacked fast-mlsirm PR #1458 now adds the separate
+semantic-coverage inference. Merged stacked fast-mlsirm PR #1458 adds the separate
 `fast-mlsirm.achieved-proportion.v1` Rust artifact for a complete one-stratum
 SRSWOR sample: it binds the design artifact and attests the achieved
 sample-proportion estimator, SRSWOR design variance, and exact Wang/Konijn
@@ -104,8 +104,9 @@ It also emits a validated aggregate-only PROV-O graph linking the audit entity
 and activity to the selection manifest, ontology, and terminal Rust entity by
 content-addressed URNs; no source record identifier is exposed.
 This capability is not runtime evidence for the historical samples and is not
-protected-integrated while prerequisite fast-mlsirm PR #1445 and stacked
-PR #1458 remain open.
+protected-integrated while prerequisite fast-mlsirm PR #1445 remains open;
+stacked PR #1458 is merged into that still-unmerged feature branch, not
+protected `main`.
 
 The next runtime-only acceptance frame contains 43,814 eligible titles. With
 the ADR 0242 predeclared 95% confidence, five-percentage-point margin, and NIST
@@ -197,7 +198,7 @@ credentials and model inventory.
 
 Remaining acceptance gaps:
 
-- protected-integrate fast-mlsirm PRs #1445 and #1458, then run a new complete
+- protected-integrate fast-mlsirm PR #1445 (including merged stack #1458), then run a new complete
   one-stratum probability sample through the exact terminal artifact before
   making any corpus coverage estimate; the stratified path remains explicitly
   unavailable until it has its own governed estimator, covariance, and
