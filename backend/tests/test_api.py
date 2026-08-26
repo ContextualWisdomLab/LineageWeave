@@ -15,6 +15,7 @@ from __future__ import annotations
 import asyncio
 import math
 import os
+import subprocess
 import uuid
 from contextlib import closing
 from pathlib import Path
@@ -196,6 +197,11 @@ _GLOBAL_ASK_PUBLIC_VERIFICATION_MIGRATION = (
     Path(__file__).resolve().parents[2]
     / "migrations"
     / "0211_global_ask_public_verification.sql"
+)
+_GLOBAL_ASK_SEMANTIC_SEARCH_MIGRATION = (
+    Path(__file__).resolve().parents[2]
+    / "migrations"
+    / "0222_global_ask_semantic_candidate_search.sql"
 )
 _LEFTOVER_MAP_AXIS_MIGRATION = (
     Path(__file__).resolve().parents[2]
@@ -732,6 +738,18 @@ def seeded_db(demo_analyst_token):
                         ),
                     )
         conn.commit()
+        subprocess.run(
+            [
+                "psql",
+                "-X",
+                "-v",
+                "ON_ERROR_STOP=1",
+                db_dsn,
+                "-f",
+                str(_GLOBAL_ASK_SEMANTIC_SEARCH_MIGRATION),
+            ],
+            check=True,
+        )
 
         yield {
             "dsn": db_dsn,
