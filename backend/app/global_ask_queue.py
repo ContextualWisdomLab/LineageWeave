@@ -35,6 +35,7 @@ from lineageweave.observability import record_server_failure
 from lineageweave.post_chat import (
     PostChatClient,
     cited_post_evidence,
+    cited_post_events,
     cited_post_summaries,
 )
 from lineageweave.temporal_expressions import resolve_korean_relative_time
@@ -260,6 +261,7 @@ async def compute_global_ask_answer(
             "answer_text": "",
             "cited_post_ids": [],
             "cited_posts": [],
+            "cited_events": [],
             "source_post_ids": [],
             "cited_post_evidence": [],
             "lineage_graph": {"nodes": [], "edges": [], "truncated": False},
@@ -304,11 +306,13 @@ async def compute_global_ask_answer(
         lineage_graph = await lineage_graphs_for_posts(conn, can_see, cited_ids)
         images = await cited_post_images(conn, cited_ids)
     cited_posts = cited_post_summaries(sources, cited_ids)
+    cited_events = cited_post_events(sources, cited_ids)
     cited_evidence = cited_post_evidence(sources, cited_ids)
     return {
         "answer_text": answer.answer_text,
         "cited_post_ids": cited_ids,
         "cited_posts": cited_posts,
+        "cited_events": cited_events,
         "cited_post_evidence": cited_evidence,
         "cited_post_images": images,
         "source_post_ids": [source.post_id for source in sources],

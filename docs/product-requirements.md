@@ -96,6 +96,19 @@ stale evidence from a previously opened post. An open lifecycle has a cited
 start, a missing end, and nullable elapsed time; a resolved lifecycle links both
 endpoint sources and names the source clock used for each instant.
 
+### PRD-FR-5A — Ask answer evidence navigation
+
+- Link each numbered Ask citation to one authorized event card and preserve the
+  same number when cards are ordered by observed time.
+- Move focus citation-to-card and card-to-citation, then open the existing
+  evidence layer or full source post.
+- Name `event_occurred_at` or the `created_at` fallback; never turn chronology
+  into a project start, predecessor, branch, or recommended response.
+
+Acceptance: keyboard selection works in both directions, every card opens its
+authorized source, missing time stays explicit, and any commercial next action
+comes from the cited orchestrator answer rather than frontend inference.
+
 ### PRD-FR-6 — Measurement boundary
 
 - Consume TEPP accepted/completed wire contracts and fast-mlsirm outputs; do

@@ -1737,6 +1737,14 @@ describe("App, authenticated", () => {
             answer_text: "The cited project is supported by the stored semantic evidence.",
             cited_post_ids: ["post-2"],
             cited_posts: [{ post_id: "post-2", post_title: "Linked post" }],
+            cited_events: [
+              {
+                post_id: "post-2",
+                post_title: "Linked post",
+                observed_at: "2026-08-01T00:00:00Z",
+                time_axis_code: "event_occurred_at",
+              },
+            ],
             cited_post_evidence: [
               {
                 post_id: "post-2",
@@ -2049,6 +2057,25 @@ describe("App, authenticated", () => {
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
     // The answer itself is still on screen -- the layer never navigated away.
     expect(screen.getByRole("button", { name: "View evidence" })).toBeInTheDocument();
+  });
+
+  it("links an Ask answer citation to its event card and back", async () => {
+    stubBackend();
+    render(<App />);
+    expect(await screen.findByRole("button", { name: "View post: Public post" })).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Ask Agent" }));
+    await userEvent.type(screen.getByRole("textbox", { name: "Ask a question" }), "Which project?");
+    await userEvent.click(screen.getByRole("button", { name: "Ask" }));
+
+    const citation = await screen.findByRole("button", { name: "Show event 1: Linked post" });
+    const eventCard = screen.getByRole("button", {
+      name: "Return to answer citation 1: Linked post",
+    });
+    await userEvent.click(citation);
+    expect(eventCard).toHaveFocus();
+    expect(screen.getByText(/Event occurred/)).toBeInTheDocument();
+    await userEvent.click(eventCard);
+    expect(citation).toHaveFocus();
   });
 
   it("labels the Customer Master entity level and Keymen side, never the raw lookup code", async () => {

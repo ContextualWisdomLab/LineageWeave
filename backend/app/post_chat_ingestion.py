@@ -579,6 +579,9 @@ async def gather_global_chat_sources(
             if post_id in lineage_neighbor_id_set and anchor_is_visible
             else ()
         )
+        event_occurred_at = row.get("event_occurred_at")
+        created_at = row.get("created_at")
+        observed_at = event_occurred_at or created_at
         sources.append(
             ChatSourceDocument(
                 post_id,
@@ -589,6 +592,12 @@ async def gather_global_chat_sources(
                 + semantic_facts.get(post_id, ())
                 + lineage_fact
                 + time_axis_evidence_fact(row, time_filter_active=time_filter_active),
+                observed_at=observed_at.isoformat() if observed_at else None,
+                time_axis_code="event_occurred_at"
+                if event_occurred_at is not None
+                else "created_at"
+                if created_at is not None
+                else None,
             )
         )
     return sources
