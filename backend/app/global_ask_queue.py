@@ -33,7 +33,6 @@ from lineageweave.embedding_client import EmbeddingClient, NullEmbeddingClient
 from lineageweave.http_client import HttpClientError
 from lineageweave.observability import record_server_failure
 from lineageweave.post_chat import (
-    ChatSourceDocument,
     PostChatClient,
     ask_grounding_status,
     cited_post_evidence,

@@ -176,15 +176,6 @@ describe("design tokens", () => {
     expect(citationChipBlock).toContain("align-items: center");
   });
 
-  it("keeps public-verification layout on shared tokens", () => {
-    for (const token of [
-      "--space-panel-block",
-      "--space-control-gap",
-      "--color-border",
-      "--size-control-min",
-    ]) {
-    }
-  });
 });
 
 describe("secondary disclosure toggle touch targets", () => {

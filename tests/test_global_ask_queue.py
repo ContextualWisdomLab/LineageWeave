@@ -10,7 +10,6 @@ import pytest
 
 from backend.app import global_ask_queue
 from backend.app.global_ask_queue import load_job_visibility
-from lineageweave.post_chat import ChatSourceDocument
 
 
 class _AvailableClient:
