@@ -28,6 +28,8 @@ Add one `StatusNotice` component under `frontend/src/components/` that:
    Unavailable is missing evidence, not a transport failure.
 4. Renders caller-supplied message and optional next-action copy. It never
    interpolates provider payloads, credentials, or raw HTTP bodies (ADR 0123).
+   Customer-facing copy names the available capability and next action, never
+   an internal provider, model, transport, environment variable, or projection.
 5. Shows a retry control only on the retry kind when the caller supplies
    `onRetry`.
 

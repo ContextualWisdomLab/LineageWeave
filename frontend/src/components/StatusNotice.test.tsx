@@ -49,11 +49,14 @@ describe("StatusNotice", () => {
       <StatusNotice
         kind="unavailable"
         message="이 범위의 일정을 아직 받을 수 없습니다"
-        nextAction="Connect the Naruon calendar projection. Open a commitment below to read that post."
+        nextAction="Ask your workspace administrator to enable calendar access. Open a commitment below to read its source post."
       />,
     );
     expect(screen.getByRole("region", { name: /^Unavailable:/ })).toHaveTextContent(
-      "Connect the Naruon calendar projection",
+      "enable calendar access",
+    );
+    expect(screen.getByRole("region", { name: /^Unavailable:/ })).not.toHaveTextContent(
+      /Naruon|provider|model|transport|environment/i,
     );
     expect(screen.queryByRole("button")).not.toBeInTheDocument();
   });

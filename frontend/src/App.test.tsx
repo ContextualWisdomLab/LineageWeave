@@ -830,7 +830,7 @@ describe("App, authenticated", () => {
             calendar_sources: {
               naruon_available: false,
               naruon_next_action:
-                "Connect the Naruon calendar projection. Open a commitment below to read that post.",
+                "Ask your workspace administrator to enable calendar access. Open a commitment below to read its source post.",
             },
           }),
         );

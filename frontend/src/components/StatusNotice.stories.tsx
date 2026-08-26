@@ -33,14 +33,15 @@ export const Unavailable: Story = {
     kind: "unavailable",
     message: "이 범위의 일정을 아직 받을 수 없습니다",
     nextAction:
-      "Connect the Naruon calendar projection. Open a commitment below to read that post.",
+      "Ask your workspace administrator to enable calendar access. Open a commitment below to read its source post.",
   },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     const notice = canvas.getByRole("region", { name: /^Unavailable:/ });
     await expect(notice).toHaveTextContent("Unavailable");
     await expect(notice).toHaveTextContent("이 범위의 일정을 아직 받을 수 없습니다");
-    await expect(notice).toHaveTextContent("Connect the Naruon calendar projection");
+    await expect(notice).toHaveTextContent("enable calendar access");
+    await expect(notice).not.toHaveTextContent(/Naruon|provider|model|transport|environment/i);
     await expect(canvas.queryByRole("alert")).toBeNull();
     await expect(canvas.queryByRole("status")).toBeNull();
   },
