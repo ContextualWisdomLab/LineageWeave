@@ -1,6 +1,6 @@
 # Product & Technical Gap Baseline
 
-> Dashboard delivery snapshot: 2026-08-26 11:25 KST. Protected `main` is
+> Dashboard delivery snapshot: 2026-08-26 11:40 KST. Protected `main` is
 > `494b54e2245040bcf02b45376f221c37cd437e76`. This local branch is not
 > protected-main release evidence.
 
@@ -87,7 +87,7 @@ context only.
 | ---: | --- | --- |
 | #682 | `aae2b4bb` | typed public-claim verification filters cited claims before the bounded candidate budget, preserves answers when verification is unavailable, and rejects hidden evidence from public egress; hosted checks requeued and independent review required |
 | #681 | `3e0fa644` | fail-closed lineage-weight owner contract pin; lockfile parity verified; UNSTABLE stack with hosted checks pending |
-| #680 | `b0e4d2c9` | customer-facing ranking copy with localized retry/search guidance, no fused-ranking implementation label, and related-concepts/author-context/earlier-source-version labels; hosted checks requeued and independent review required |
+| #680 | `4e41bcd1` | customer-facing ranking copy with localized retry/search guidance, no fused-ranking implementation label, related-concepts/author-context/earlier-source-version labels, and complete guidance regression coverage; hosted checks requeued and independent review required |
 | #679 | `67706ef5` | ADR 0229 public-claim envelope, async verification, locale-aware next actions, and opt-in search setup; BLOCKED with exact-head checks and independent review required |
 | #678 | `da98de07` | canonical Compose-stack consolidation stacked on #640; parent protected merge and `main` retarget precede fresh exact-head evidence |
 | #677 | `aede5911` | ADR 0228 account-owned per-post Ask conversation history with localized titles, full conversation/transcript pagination, stale-response guards, repeated-turn preservation, and eligibility recheck; hosted checks and independent review required |
