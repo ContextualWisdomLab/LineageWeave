@@ -1,7 +1,8 @@
 """Keep customer and operator manuals aligned with shipped entry points."""
 
-from pathlib import Path
 import re
+from pathlib import Path
+from urllib.parse import unquote
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -11,6 +12,19 @@ MANUALS = ROOT / "docs" / "manuals"
 def _text(name: str) -> str:
     """Return one checked-in manual as UTF-8 text."""
     return (MANUALS / name).read_text(encoding="utf-8")
+
+
+def _markdown_anchors(content: str) -> set[str]:
+    """Return GitHub-style anchors for the headings in one Markdown file."""
+    anchors: set[str] = set()
+    occurrences: dict[str, int] = {}
+    for heading in re.findall(r"^#{1,6}\s+(.+?)\s*#*$", content, flags=re.MULTILINE):
+        base = re.sub(r"[^\w\- ]", "", heading.lower())
+        base = re.sub(r"\s+", "-", base.strip())
+        occurrence = occurrences.get(base, 0)
+        occurrences[base] = occurrence + 1
+        anchors.add(base if occurrence == 0 else f"{base}-{occurrence}")
+    return anchors
 
 
 def test_manual_cross_links_resolve() -> None:
@@ -28,12 +42,18 @@ def test_local_manual_links_resolve() -> None:
     for document in documents:
         content = document.read_text(encoding="utf-8")
         for target in re.findall(r"\[[^]]+\]\(([^)]+)\)", content):
-            path_text = target.split("#", 1)[0]
+            path_text, _, fragment = target.partition("#")
             if not path_text or "://" in path_text:
                 continue
-            assert (document.parent / path_text).resolve().exists(), (
+            linked_document = (document.parent / path_text).resolve()
+            assert linked_document.exists(), (
                 f"{document.relative_to(ROOT)} links to missing {target}"
             )
+            if fragment:
+                linked_content = linked_document.read_text(encoding="utf-8")
+                assert unquote(fragment) in _markdown_anchors(linked_content), (
+                    f"{document.relative_to(ROOT)} links to missing anchor {target}"
+                )
 
 
 def test_mcp_manual_names_only_current_tools_and_async_contract() -> None:
