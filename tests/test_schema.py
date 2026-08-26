@@ -15,10 +15,12 @@ with a real Postgres, same spirit as the real-provider LLM tests.
 from __future__ import annotations
 
 import asyncio
+import hashlib
 import os
 import uuid
 from decimal import Decimal
 from pathlib import Path
+from types import SimpleNamespace
 from urllib.parse import urlsplit, urlunsplit
 
 import asyncpg
@@ -27,6 +29,7 @@ import psycopg2.errors
 import pytest
 
 from backend.app.post_chat_ingestion import gather_global_chat_sources
+from scripts.import_onet_ratings import import_ratings
 
 _ADMIN_DSN = os.environ.get(
     "LINEAGEWEAVE_TEST_POSTGRES_ADMIN_DSN", "postgresql://localhost/postgres"
@@ -399,6 +402,51 @@ def test_onet_rating_store_partitions_upserts_and_rejects_invalid_error(schema_d
                 """
             )
         cur.execute("rollback to savepoint invalid_standard_error")
+
+
+def test_onet_rating_importer_is_idempotent_against_postgresql(
+    schema_db,
+    tmp_path: Path,
+) -> None:
+    """A pinned synthetic artifact imports twice as one exact observation."""
+    scales = tmp_path / "scales.csv"
+    scales.write_text(
+        "Scale ID,Scale Name,Minimum,Maximum\nIM,Importance,1,5\n",
+        encoding="utf-8",
+    )
+    ratings = tmp_path / "abilities.csv"
+    ratings.write_text(
+        "O*NET-SOC Code,Title,Element ID,Element Name,Scale ID,Scale Name,Data Value,N,Standard Error,Lower CI Bound,Upper CI Bound,Recommend Suppress,Not Relevant,Date,Domain Source\n"
+        "15-1252.00,Synthetic occupation,1.A.1.a.1,Oral Comprehension,IM,Importance,4.10,120,0.08,3.94,4.26,N,,08/2026,Analyst\n",
+        encoding="utf-8",
+    )
+    args = SimpleNamespace(
+        target_dsn=schema_db.dsn,
+        release_code="onet-31.0-synthetic",
+        release_version="31.0-synthetic",
+        source_table_code="abilities",
+        source_table_name="Abilities",
+        source_url="https://example.test/abilities.csv",
+        source_sha256=hashlib.sha256(ratings.read_bytes()).hexdigest(),
+        source_row_count=1,
+        publisher="Synthetic publisher",
+        license_url="https://example.test/license",
+        scales_file=scales,
+        scales_url="https://example.test/scales.csv",
+        scales_sha256=hashlib.sha256(scales.read_bytes()).hexdigest(),
+        scales_row_count=1,
+        ratings_file=ratings,
+    )
+
+    assert asyncio.run(import_ratings(args))["imported_rows"] == 1
+    assert asyncio.run(import_ratings(args))["imported_rows"] == 1
+    with schema_db.cursor() as cur:
+        cur.execute(
+            """select count(*), min(data_value), bool_or(not_relevant is null)
+                 from occupational_rating_observation
+                where data_release_code = 'onet-31.0-synthetic'"""
+        )
+        assert cur.fetchone() == (1, Decimal("4.10"), True)
 
 
 def test_global_ask_evidence_search_indexes_exist_on_normalized_tables(schema_db) -> None:

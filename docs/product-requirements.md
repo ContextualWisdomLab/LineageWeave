@@ -136,10 +136,13 @@ persistence and UI remain unavailable until their separate ADR acceptance.
 - Preserve decimals and missingness exactly. No local aggregation,
   normalization, person inference, or psychometric estimation is permitted.
 
-Acceptance: the replay-safe migration creates the normalized store; PostgreSQL
-integration proves missing partitions fail closed, null-category UPSERT is
-idempotent, and invalid uncertainty is rejected. Corpus import, API, UI, and
-derived modeling remain unavailable until separate accepted delivery records.
+Acceptance: the replay-safe migration creates the normalized store; the pinned
+CSV importer validates both rating and scale-reference digests and row counts,
+reference identity, source scale, uncertainty, flags, and dates before
+persistence; PostgreSQL integration proves missing partitions fail closed and
+repeated null-category UPSERT is idempotent.
+API, UI, and derived modeling remain unavailable until separate accepted
+delivery records.
 
 ### PRD-FR-3 — Bounded ontology exploration
 

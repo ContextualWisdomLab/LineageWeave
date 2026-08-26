@@ -12,7 +12,10 @@ All notable changes to this project are documented here. Format follows
   contract with normalized release, source-table, scale, occupation, element,
   and observation tables. Exact release/source LIST partitions fail closed;
   nullable categories remain idempotent identities, and no source value is
-  promoted to a local weight or person score (ADR 0257).
+  promoted to a local weight or person score. A pinned CSV importer validates
+  rating and scale-reference digests, row counts, source identities, scale
+  bounds, uncertainty, flags, and update dates before immutable transactional
+  insertion (ADR 0257).
 - All eight O*NET 31.0 published linkage tables now contribute 1,417 directed
   Ability/Essential Skill/Transferable Skill/Work Style relations to Work
   Activities and Work Context. Every direct relation has an exact reified
