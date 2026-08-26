@@ -41,6 +41,13 @@ export function OccupationRatingProfile({ accessToken }: Props) {
   const [profile, setProfile] = useState<OccupationRatingProfilePayload | null>(null);
   const [status, setStatus] = useState<"idle" | "loading" | "error">("idle");
   const requestSequence = useRef(0);
+  const selectedSourceRecord = sources?.find(
+    (item) => `${item.data_release_code}|${item.source_table_code}` === selectedSource,
+  );
+  const profileMatchesForm = profile != null
+    && profile.onetsoc_code === onetsocCode
+    && profile.data_release_code === selectedSourceRecord?.data_release_code
+    && profile.source_table_code === selectedSourceRecord?.source_table_code;
 
   useEffect(() => {
     let active = true;
@@ -95,9 +102,7 @@ export function OccupationRatingProfile({ accessToken }: Props) {
   function load(offset: number | null = null) {
     const requestId = requestSequence.current + 1;
     requestSequence.current = requestId;
-    const source = sources?.find(
-      (item) => `${item.data_release_code}|${item.source_table_code}` === selectedSource,
-    );
+    const source = selectedSourceRecord;
     const request = offset == null && source
       ? {
           onetsocCode,
@@ -223,7 +228,7 @@ export function OccupationRatingProfile({ accessToken }: Props) {
         <p role="alert">직업 근거를 불러오지 못했습니다. 선택 항목과 접근 권한을 확인한 뒤 다시 시도하세요.</p>
       ) : null}
       {profile ? <OccupationRatingProfileView profile={profile} /> : null}
-      {profile?.next_offset != null ? (
+      {profileMatchesForm && profile.next_offset != null ? (
         <button
           className="btn-secondary"
           type="button"
