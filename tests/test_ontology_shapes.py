@@ -23,7 +23,7 @@ from rdflib import Graph, Literal, Namespace, URIRef
 from rdflib.namespace import RDF, XSD
 from pyshacl import validate as shacl_validate
 
-from lineageweave.ontology import project_project_mention_rdf
+from lineageweave.ontology import project_project_mention_rdf, project_source_post_rdf
 
 ROOT = Path(__file__).resolve().parents[1]
 KG_PATH = ROOT / "docs" / "ontology" / "lineageweave-kg.ttl"
@@ -66,6 +66,8 @@ def _representative_projection() -> Graph:
     data.add((post, RDF.type, LWn.Post))
     data.add((post, LWn.postTitle, Literal("Line 3 downtime window")))
     data.add((post, LWn.postBody, Literal("Customer reported a stoppage after changeover.")))
+    data.add((post, LWn.bodyAvailable, Literal(True, datatype=XSD.boolean)))
+    data.add((post, LWn.hasPostType, LWn.voiceOfCustomerType))
     data.add(
         (
             post,
@@ -125,6 +127,7 @@ def test_schema_shaped_project_row_projection_passes_validation() -> None:
         post_title="Synthetic commissioning review",
         post_body="The synthetic source names the grid-upgrade project.",
         post_created_at=datetime(2026, 8, 25, 1, 23, 45, tzinfo=timezone.utc),
+        voc_type_code="vop",
         project_key="grid-upgrade",
         project_name="Grid Upgrade",
         evidence_text="grid-upgrade project",
@@ -143,6 +146,28 @@ def test_schema_shaped_project_row_projection_passes_validation() -> None:
     assert (mention, RDF.subject, None) in data
     assert (mention, RDF.predicate, LWn.mentionsProject) in data
     assert (mention, RDF.object, project) in data
+    post = URIRef(LW + "node/node_post/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa1")
+    assert (post, Namespace(LW).hasPostType, Namespace(LW).voiceOfPartnerType) in data
+
+
+def test_missing_body_source_post_projection_passes_without_fabricated_text() -> None:
+    """An evidenced missing body remains an empty literal and explicit false state."""
+    data = project_source_post_rdf(
+        post_id="aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa2",
+        post_title="Synthetic title-only record",
+        post_body="",
+        post_created_at=datetime(2026, 8, 25, 1, 23, 45, tzinfo=timezone.utc),
+        voc_type_code="voc",
+        source_stage_code="synthetic-stage",
+        source_detail_state_code="synthetic-detail",
+    )
+    conforms, report_text = _conforms(data)
+    assert conforms, report_text
+    LWn = Namespace(LW)
+    post = URIRef(LW + "node/node_post/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa2")
+    assert (post, LWn.postBody, Literal("")) in data
+    assert (post, LWn.bodyAvailable, Literal(False, datatype=XSD.boolean)) in data
+    assert (post, LWn.hasPostType, LWn.voiceOfCustomerType) in data
 
 
 @pytest.mark.parametrize(
@@ -168,6 +193,7 @@ def test_project_row_projection_rejects_invalid_source_values(
         "post_title": "Synthetic commissioning review",
         "post_body": "The synthetic source names the grid-upgrade project.",
         "post_created_at": datetime(2026, 8, 25, 1, 23, 45, tzinfo=timezone.utc),
+        "voc_type_code": "voc",
         "project_key": "grid-upgrade",
         "project_name": "Grid Upgrade",
         "evidence_text": "grid-upgrade project",
@@ -192,6 +218,50 @@ def test_project_row_projection_rejects_invalid_source_values(
             ),
             "postTitle",
             id="missing-required-post-title",
+        ),
+        pytest.param(
+            lambda g: g.set(
+                (
+                    URIRef(LW + "post-alpha"),
+                    URIRef(LW + "postTitle"),
+                    Literal("   "),
+                )
+            ),
+            "postTitle",
+            id="whitespace-only-post-title",
+        ),
+        pytest.param(
+            lambda g: g.set(
+                (
+                    URIRef(LW + "post-alpha"),
+                    URIRef(LW + "bodyAvailable"),
+                    Literal(False, datatype=XSD.boolean),
+                )
+            ),
+            "bodyAvailable must be true",
+            id="nonempty-body-marked-unavailable",
+        ),
+        pytest.param(
+            lambda g: g.set(
+                (
+                    URIRef(LW + "post-alpha"),
+                    URIRef(LW + "postBody"),
+                    Literal(" \n\t"),
+                )
+            ),
+            "bodyAvailable must be true",
+            id="whitespace-body-marked-available",
+        ),
+        pytest.param(
+            lambda g: g.add(
+                (
+                    URIRef(LW + "post-alpha"),
+                    URIRef(LW + "sourceStageCode"),
+                    Literal("   "),
+                )
+            ),
+            "sourceStageCode",
+            id="whitespace-only-source-stage-code",
         ),
         pytest.param(
             lambda g: g.remove(

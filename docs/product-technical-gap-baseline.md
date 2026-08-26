@@ -1,7 +1,64 @@
 # Product & Technical Gap Baseline
 
-> Dashboard delivery snapshot: 2026-08-26 07:15 KST. Protected `main` was
-> `494b54e2245040bcf02b45376f221c37cd437e76`. This local branch is not
+## Authorized source semantic-coverage audit
+
+An aggregate-only inspection on 2026-08-26 found 43,814 source rows with
+43,814 non-empty titles and zero non-empty bodies. Structured coverage was
+40,001 customer-code rows (91.3%), 4,490 project-code rows (10.2%), 43,812
+VOC process-unit rows, and complete process-unit, sales-pool, actor, lineage,
+and source-artifact provenance fields. No source value, identifier,
+organization, table name, or artifact path is retained here.
+The aggregate is reproducible with
+`scripts/audit_source_semantic_coverage.py`; table and column mappings remain
+runtime inputs rather than committed source identifiers.
+
+The current semantic layer is therefore **not sufficient for the source
+content as a whole**. It covers typed Post, Person, CorporateEntity, Team,
+Project candidates, raw source context hints, lineage keys, and temporal
+provenance, but it cannot derive body semantic units, embeddings, summaries,
+VISION evidence, or body-grounded ontology assertions from this export.
+ADR 0224 and the PostgreSQL importer now accept an explicitly evidenced
+missing-body dimension without copying titles into bodies. This makes the
+structured records importable while keeping body-derived capabilities
+unavailable instead of fabricated.
+ADR 0225 additionally carries the governed VOC type and raw source stage/detail
+state into contextual-orchestrator hints with exact column provenance. The
+available reference catalog contains examples rather than complete code-system
+definitions, so raw stage/detail values are retained only as source-code RDF
+literals and hints; they are not minted as classified ontology concepts.
+
+An ADR 0226 private-content audit then validated eight disjoint deterministic
+windows of ten titles (80/80 ordered outputs, four orchestration trace steps
+per window). It found zero titles whose material meaning was completely
+expressible by the published ontology. Missing dimensions were observed for
+event/activity (55), product/service (37), communication/document type (33),
+organization role (26), topic/domain (26), location/geography (24), commercial
+transaction (18), facility/asset/equipment (17), status/stage (16),
+requirement/issue/risk (15), time interval/deadline (13), and
+quantity/measurement (6); a title may contribute to several dimensions. Two
+remaining ten-title windows were not accepted after provider failures, so this
+is explicitly an 80-record sample result, not a 100-record or corpus claim.
+The reusable audit now rejects the previously observed 100-input/60-output
+response, requires every ordered item plus a multi-agent trace, and prints only
+complete non-identifying aggregates.
+The advertised deployment alias needed by this multi-agent path is repaired in
+contextual-orchestrator PR #870; until that exact head passes its protected
+checks and independent review, the runtime path remains candidate evidence.
+
+Remaining acceptance gaps:
+
+- connect an authoritative body/file source and prove non-zero, ordered
+  semantic-unit persistence before claiming PRD-FR-4 corpus coverage;
+- obtain governed source definitions before mapping grade, inspection,
+  lifecycle-detail, country, due-date, or artifact fields to ontology terms;
+- publish only terms with domain/range, provenance, SHACL, API, and rendered
+  acceptance evidence; opaque source codes remain raw hints until then;
+- run an authenticated import/backfill and report only non-identifying
+  aggregate counts for content units, embeddings, proposed/verified facts,
+  and unavailable channels.
+
+> Dashboard delivery snapshot: 2026-08-26 18:05 KST. Protected `main` was
+> `ff7431bd1851c03e737808d22c6a2d43968582f9`. This local branch is not
 > protected-main release evidence.
 
 ## Operations Dashboard PRD/TRD traceability
@@ -60,14 +117,14 @@ only aggregate, non-identifying evidence to this repository.
 
 ### Exact open-PR boundary
 
-At this snapshot there were 11 open PRs and 10 open issues. PRs #660 and #659
-merged to protected `main`; PR #666 remains only non-default-branch stack
-composition inside #663. Every remaining open head required refreshed hosted
-gates and/or independent review after the base changed. These observations are
-not merge readiness. Re-fetch exact heads, unresolved threads, checks,
-approvals, rulesets, and merge SHA before any lifecycle claim.
+At this snapshot there were 15 open PRs and 10 open issues. The exact-head
+inventory in section 1 is authoritative for this snapshot. Every open head
+remained blocked on hosted gates and/or independent review. These observations
+are not merge readiness. Re-fetch exact heads,
+unresolved threads, checks, approvals, rulesets, and merge SHA before any
+lifecycle claim.
 
-> Audit snapshot: 2026-08-26 07:15 KST (refreshed by the autonomous merge
+> Audit snapshot: 2026-08-26 18:05 KST (refreshed by the autonomous merge
 > loop). This repository records synthetic fixtures and aggregate,
 > non-identifying runtime evidence only. Open PRs and local checks are not
 > protected-default-branch release evidence. Identifying post identifiers,
@@ -76,25 +133,29 @@ approvals, rulesets, and merge SHA before any lifecycle claim.
 
 ## 1. Exact-head and governance evidence
 
-The protected default branch was `494b54e2245040bcf02b45376f221c37cd437e76`
-when this baseline was refreshed. The live queue contained 11 open PRs and 10
+The protected default branch was `ff7431bd1851c03e737808d22c6a2d43968582f9`
+when this baseline was refreshed. The live queue contained 15 open PRs and 10
 open issues. The exact-head inventory below supersedes older per-PR snapshots
 elsewhere in this document; those older rows remain useful historical delivery
 context only.
 
 | PR | Exact observed head | Merge/check state at this snapshot |
 | ---: | --- | --- |
-| #667 | `3bc662d7` | refreshes protected-main and open-queue documentation evidence; base conflict remains to be repaired |
-| #663 | `6fd2f701` | combined Project ontology candidate plus #666's non-default-branch removal of sampled region-coverage arithmetic; base conflict remains to be repaired |
-| #658 | `f007a5ed` | evidence-honest Global Ask cutoff; hosted checks and independent review required |
-| #657 | `2d9b43b7` | TEPP asynchronous lifecycle persistence while unpublished producer work stays unavailable; hosted checks and independent review required |
-| #644 | `ed8d97f3` | native frontend surface code splitting; hosted checks and independent review required |
-| #643 | `7fb4d18c` | shared token-backed status notice; hosted checks and independent review required |
-| #640 | `2d50fa01` | dashboard case metrics and project journeys; base conflict remains to be repaired |
-| #639 | `48065ad1` | restores Running action and Compose contracts; hosted checks and independent review required |
-| #632 | `29aee18d` | graph-fact provenance, public verification, MCP admission, and k6 evidence; hosted checks and independent review required |
-| #631 | `665046dc` (observed parent) | decomposes closed PR #490; this merge refresh advances its head and restarts hosted review evidence |
-| #629 | `0138db5f` | provider-work release and bounded landing reads refreshed onto protected `main`; hosted checks and independent review restarted |
+| #701 | `cc3351a9` | mergeable but blocked; exact-head checks and independent review required |
+| #700 | `28f7ec9d` | mergeable but blocked; exact-head checks and independent review required |
+| #680 | `eafa9e06` | mergeable but blocked; exact-head checks and independent review required |
+| #679 | `7dfff363` | mergeable but blocked; exact-head checks and independent review required |
+| #672 | `f78f036c` | mergeable but blocked; exact-head checks and independent review required |
+| #668 | `f9c4bd65` | mergeable but blocked; exact-head checks and independent review required |
+| #667 | `060f9e35` | mergeable but blocked; exact-head checks and independent review required |
+| #658 | `6813894e` | mergeable but blocked; exact-head checks and independent review required |
+| #657 | `9f71681c` | mergeable but blocked; exact-head checks and independent review required |
+| #644 | `f11e77d1` | conflicts with current main; repair, new-head checks, and independent review required |
+| #643 | `42ba340e` | mergeable but blocked; exact-head checks and independent review required |
+| #640 | `7adb7a4a` | conflicts with current main; repair, new-head checks, and independent review required |
+| #639 | `f6c8c93f` | conflicts with current main; repair, new-head checks, and independent review required |
+| #632 | `4f1dfd01` | mergeable but blocked; exact-head checks and independent review required |
+| #629 | `b721b0f2` | mergeable but blocked; exact-head checks and independent review required |
 
 No row above is merge evidence. Immediately before any lifecycle action,
 re-fetch the head, unresolved threads, formal reviews, rulesets, and same-head

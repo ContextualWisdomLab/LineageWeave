@@ -71,7 +71,7 @@ class ColumnMapping:
     record_key: str
     post_id: str | None
     title: str
-    body: str
+    body: str | None
     created_at: str
     updated_at: str | None
     event_occurred_at: str | None
@@ -112,7 +112,16 @@ def _parser() -> argparse.ArgumentParser:
         help="optional source UUID column for post_id; otherwise derive it from record key",
     )
     parser.add_argument("--title-column", required=True)
-    parser.add_argument("--body-column", required=True)
+    body_group = parser.add_mutually_exclusive_group(required=True)
+    body_group.add_argument("--body-column")
+    body_group.add_argument(
+        "--no-body-dimension-evidence",
+        default="",
+        help=(
+            "written evidence that the source export has no body dimension; "
+            "the title remains a title and no semantic body is invented"
+        ),
+    )
     parser.add_argument("--created-at-column", required=True)
     parser.add_argument("--updated-at-column")
     parser.add_argument(
@@ -319,11 +328,23 @@ def _validate_source_rows(
     excluded_draft_values: list[str],
     excluded_deleted_values: list[str],
     no_draft_dimension_evidence: str = "",
+    no_body_dimension_evidence: str = "",
 ) -> None:
     """Reject incomplete source evidence before the target is mutated."""
     _validate_publication_state(
         rows, mapping, excluded_draft_values, no_draft_dimension_evidence
     )
+    body_evidence = no_body_dimension_evidence.strip()
+    if mapping.body is None:
+        if len(body_evidence) < 40:
+            raise ValueError(
+                "--no-body-dimension-evidence must actually state the evidence "
+                "(at least 40 characters), not a placeholder"
+            )
+    elif body_evidence:
+        raise ValueError(
+            "--no-body-dimension-evidence cannot be combined with a mapped body column"
+        )
     seen_record_keys: dict[str, int] = {}
     seen_post_ids: dict[uuid.UUID, int] = {}
     post_id_column = getattr(mapping, "post_id", None)
@@ -351,7 +372,7 @@ def _validate_source_rows(
                 )
             seen_post_ids[post_id] = row_number
         body = str(_value(row, mapping.body) or "")
-        if not body.strip():
+        if mapping.body is not None and not body.strip():
             raise ValueError(f"source post body cannot be empty at source row {row_number}")
         voc_type_column = getattr(mapping, "voc_type", None)
         try:
@@ -457,6 +478,7 @@ async def import_rows(args: argparse.Namespace) -> dict[str, object]:
             args.exclude_draft_value,
             args.exclude_deleted_value,
             args.no_draft_dimension_evidence,
+            args.no_body_dimension_evidence,
         )
         account_id, corporate_id, process_unit_id = await _ensure_scope(target, args)
         vision_client = orchestrator_vision_client(
@@ -670,6 +692,10 @@ async def import_rows(args: argparse.Namespace) -> dict[str, object]:
         if args.no_draft_dimension_evidence.strip():
             summary["no_draft_dimension_evidence"] = (
                 args.no_draft_dimension_evidence.strip()
+            )
+        if args.no_body_dimension_evidence.strip():
+            summary["no_body_dimension_evidence"] = (
+                args.no_body_dimension_evidence.strip()
             )
         return summary
     finally:

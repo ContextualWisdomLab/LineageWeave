@@ -27,6 +27,9 @@ def test_semantic_hints_keep_explicit_project_pool_and_author_sources() -> None:
         source_project_code="SOURCE-PROJECT",
         source_company_name="Named company",
         source_process_unit_name="Named PU",
+        source_voc_type_code="vocc",
+        source_stage_code="medium",
+        source_detail_state_code="inspection-report",
     )
 
     assert "project_field=PROJECT-42" in hints
@@ -46,6 +49,9 @@ def test_semantic_hints_keep_explicit_project_pool_and_author_sources() -> None:
     assert "source_project_code=SOURCE-PROJECT" in hints
     assert "source_company_name=Named company [source_field=source_post.source_company_name]" in hints
     assert "source_process_unit_name=Named PU [source_field=source_post.source_process_unit_name]" in hints
+    assert "source_voc_type_code=vocc [source_field=source_post.voc_type_code]" in hints
+    assert "source_stage_code=medium [source_field=source_post.source_stage_code]" in hints
+    assert "source_detail_state_code=inspection-report [source_field=source_post.source_detail_state_code]" in hints
     assert "source_company_catalog_name=Catalog Company [source_lookup=corporate_entity.corporate_entity_code]" in hints
     assert "source_process_unit_catalog_name=Catalog PU [source_lookup=process_unit.process_unit_code]" in hints
     assert "source_customer_catalog_name=Catalog Customer [source_lookup=corporate_entity.corporate_entity_code]" in hints
@@ -168,3 +174,25 @@ def test_without_source_context_account_affiliation_is_kept_as_keyman_hint() -> 
 
     assert "author_affiliations=Synthetic Corp" in hints
     assert "author_side_hint=our_side_candidate" in hints
+
+
+def test_classification_only_hints_do_not_suppress_identity_context() -> None:
+    """Classification evidence is not a substitute source identity boundary."""
+    hints = format_semantic_hints(
+        author_name="Synthetic Analyst",
+        author_account_id="demo-account",
+        author_account_name="Synthetic Analyst",
+        author_affiliations=["Synthetic Corp"],
+        order_pool_code=None,
+        order_pool_name=None,
+        project_field=None,
+        customer_name="Synthetic Customer",
+        source_voc_type_code="vop",
+        source_stage_code="synthetic-stage",
+        source_detail_state_code="synthetic-detail",
+    )
+
+    assert "author_affiliations=Synthetic Corp" in hints
+    assert "customer=Synthetic Customer" in hints
+    assert "author_side_hint=our_side_candidate" in hints
+    assert "source_voc_type_code=vop" in hints

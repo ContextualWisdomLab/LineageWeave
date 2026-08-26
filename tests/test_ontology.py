@@ -340,6 +340,9 @@ def test_node_attribute_datatype_properties_project_real_columns() -> None:
     expected = {
         (LW.postTitle, LW.Post, XSD.string),
         (LW.postBody, LW.Post, XSD.string),
+        (LW.bodyAvailable, LW.Post, XSD.boolean),
+        (LW.sourceStageCode, LW.Post, XSD.string),
+        (LW.sourceDetailStateCode, LW.Post, XSD.string),
         (LW.eventOccurredAt, LW.Post, XSD.dateTime),
         (LW.personName, LW.Person, XSD.string),
         (LW.lastKnownJobTitle, LW.Person, XSD.string),
@@ -350,6 +353,9 @@ def test_node_attribute_datatype_properties_project_real_columns() -> None:
         assert (prop, RDF.type, OWL.DatatypeProperty) in graph, str(prop)
         assert (prop, RDFS.domain, domain) in graph, str(prop)
         assert (prop, RDFS.range, datatype_range) in graph, str(prop)
+    assert (LW.hasPostType, RDF.type, OWL.ObjectProperty) in graph
+    assert (LW.hasPostType, RDFS.domain, LW.Post) in graph
+    assert (LW.hasPostType, RDFS.range, SKOS.Concept) in graph
 
 
 def test_shared_timestamps_declare_no_domain_to_avoid_multi_domain_entailment() -> None:

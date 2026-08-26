@@ -92,6 +92,9 @@ def _semantic_hints(row: asyncpg.Record) -> str:
         source_customer_catalog_name=row["source_customer_catalog_name"],
         source_project_code=row["source_project_code"],
         source_project_name=row["source_project_name"],
+        source_voc_type_code=row["voc_type_code"],
+        source_stage_code=row["source_stage_code"],
+        source_detail_state_code=row["source_detail_state_code"],
     )
 
 
@@ -124,6 +127,9 @@ async def _load_posts(
                    source_customer.entity_name as source_customer_catalog_name,
                    post.source_project_code,
                    post.source_project_name,
+                   post.voc_type_code,
+                   post.source_stage_code,
+                   post.source_detail_state_code,
                    post.secondary_grouping_key as project_field,
                    customer.entity_name as customer_name,
                    coalesce(

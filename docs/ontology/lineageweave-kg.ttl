@@ -227,7 +227,31 @@
     rdfs:domain :Post ;
     rdfs:range xsd:string ;
     rdfs:label "post body" ;
-    rdfs:comment "source_post.post_body -- the preserved source representation, never flattened into one opaque string by derived views." .
+    rdfs:comment "source_post.post_body -- the preserved source representation; an empty literal honestly records an evidenced missing-body dimension (ADR 0224)." .
+
+:bodyAvailable a owl:DatatypeProperty ;
+    rdfs:domain :Post ;
+    rdfs:range xsd:boolean ;
+    rdfs:label "body available" ;
+    rdfs:comment "True exactly when source_post.post_body contains non-whitespace source content; false is an unavailable state, not negative semantic evidence (ADR 0224)." .
+
+:hasPostType a owl:ObjectProperty ;
+    rdfs:domain :Post ;
+    rdfs:range skos:Concept ;
+    rdfs:label "has post type" ;
+    rdfs:comment "The governed source_post.voc_type_code resolved through :postTypeScheme; unknown codes fail before projection." .
+
+:sourceStageCode a owl:DatatypeProperty ;
+    rdfs:domain :Post ;
+    rdfs:range xsd:string ;
+    rdfs:label "source stage code" ;
+    rdfs:comment "Raw source_post.source_stage_code with no inferred lifecycle meaning (ADR 0225)." .
+
+:sourceDetailStateCode a owl:DatatypeProperty ;
+    rdfs:domain :Post ;
+    rdfs:range xsd:string ;
+    rdfs:label "source detail-state code" ;
+    rdfs:comment "Raw source_post.source_detail_state_code with no inferred inspection or quality meaning (ADR 0225)." .
 
 :eventOccurredAt a owl:DatatypeProperty ;
     rdfs:domain :Post ;

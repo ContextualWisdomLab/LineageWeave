@@ -234,12 +234,60 @@ def test_importer_preflights_identity_and_body_before_target_mutation() -> None:
         )
 
 
+def test_importer_accepts_explicitly_evidenced_missing_body_dimension() -> None:
+    mapping = SimpleNamespace(
+        record_key="record_key", body=None, draft="draft_state", deleted=None
+    )
+    evidence = (
+        "aggregate source inspection found no non-empty body values while "
+        "titles and structured dimensions remained populated"
+    )
+
+    _validate_source_rows(
+        [{"record_key": "one", "draft_state": "published"}],
+        mapping,
+        ["draft"],
+        [],
+        "",
+        evidence,
+    )
+
+    with pytest.raises(ValueError, match="at least 40 characters"):
+        _validate_source_rows(
+            [{"record_key": "one", "draft_state": "published"}],
+            mapping,
+            ["draft"],
+            [],
+            "",
+            "no body",
+        )
+
+
+def test_importer_requires_exactly_one_body_evidence_door() -> None:
+    with pytest.raises(SystemExit):
+        _parser().parse_args(
+            [
+                "--source-dsn", "postgresql://source",
+                "--target-dsn", "postgresql://target",
+                "--query-file", "query.sql",
+                "--source-system-code", "source",
+                "--record-key-column", "record_key",
+                "--title-column", "title",
+                "--body-column", "body",
+                "--no-body-dimension-evidence", "body is absent from this source export",
+                "--created-at-column", "created_at",
+                "--author-subject-id", "subject",
+                "--corporate-entity-code", "corp",
+                "--process-unit-code", "pu",
+            ]
+        )
+
 def test_importer_keeps_source_record_key_separate_from_source_uuid() -> None:
-    mapping = SimpleNamespace(post_id="guid_field")
+    mapping = SimpleNamespace(post_id="synthetic_post_id")
     source_uuid = "01234567-89ab-cdef-0123-456789abcdef"
 
     assert _source_post_id(
-        {"guid_field": source_uuid}, mapping, "source", "human-entered-source-key"
+        {"synthetic_post_id": source_uuid}, mapping, "source", "human-entered-source-key"
     ) == uuid.UUID(source_uuid)
 
 

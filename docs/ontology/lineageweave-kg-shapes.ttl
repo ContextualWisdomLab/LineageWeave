@@ -47,15 +47,65 @@
         sh:maxCount 1 ;
         sh:datatype xsd:string ;
         sh:minLength 1 ;
+        sh:pattern "\\S" ;
+    ] ;
+    sh:property [
+        sh:path :bodyAvailable ;
+        sh:name "body available" ;
+        sh:description "Every post distinguishes source body availability from semantic content." ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:datatype xsd:boolean ;
+    ] ;
+    sh:property [
+        sh:path :hasPostType ;
+        sh:name "post type" ;
+        sh:description "The governed VOC type resolves to one published SKOS concept." ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:in (
+            :voiceOfCustomerType
+            :voiceOfCustomersCustomerType
+            :voiceOfCompetitorType
+            :voiceOfMarketType
+            :voiceOfPartnerType
+        ) ;
+    ] ;
+    sh:property [
+        sh:path :sourceStageCode ;
+        sh:name "source stage code" ;
+        sh:maxCount 1 ;
+        sh:datatype xsd:string ;
+        sh:minLength 1 ;
+        sh:pattern "\\S" ;
+    ] ;
+    sh:property [
+        sh:path :sourceDetailStateCode ;
+        sh:name "source detail-state code" ;
+        sh:maxCount 1 ;
+        sh:datatype xsd:string ;
+        sh:minLength 1 ;
+        sh:pattern "\\S" ;
     ] ;
     sh:property [
         sh:path :postBody ;
         sh:name "post body" ;
-        sh:description "The preserved source representation is never absent." ;
+        sh:description "The preserved source representation is present as a literal; empty means the body dimension is unavailable (ADR 0224)." ;
         sh:minCount 1 ;
         sh:maxCount 1 ;
         sh:datatype xsd:string ;
-        sh:minLength 1 ;
+    ] ;
+    sh:sparql [
+        a sh:SPARQLConstraint ;
+        sh:message "bodyAvailable must be true exactly when postBody contains non-whitespace text." ;
+        sh:select """
+            SELECT $this
+            WHERE {
+                $this :postBody ?body ; :bodyAvailable ?available .
+                BIND(REGEX(STR(?body), "\\\\S") AS ?actualAvailable)
+                FILTER(?available != ?actualAvailable)
+            }
+        """ ;
     ] ;
     sh:property [
         sh:path :createdAt ;
