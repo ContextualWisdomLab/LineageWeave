@@ -3,7 +3,8 @@
 > Voice-of-X delivery snapshot: 2026-08-27 KST. Protected `main` was
 > `ff7431bd1851c03e737808d22c6a2d43968582f9`; PR #713 was
 > `850494c3861703862a76cfe564381a41243c6c2d`; stacked PR #717 was
-> `e4d72e4f1b8642442ee17e7e7c9a094c5b6e2cfe`. This candidate and the
+> audited at implementation head
+> `c6a4c263f47bd01e45b006189277e0bfde7ad1cb`. This candidate and the
 > historical evidence below are not protected-main release evidence.
 
 ## Voice-of-X product and technical gap
@@ -39,11 +40,13 @@ Cartesian-product codes. The remaining acceptance boundary is:
 1. preserve the imported primary voice without reclassification (implemented
    in the candidate migration; migration 0237 replayed twice successfully on
    an isolated PostgreSQL stack on 2026-08-27, including both primary-sync
-   triggers; authenticated API acceptance remains pending);
+   triggers; a synthetic real-OIDC PostgreSQL API write also proved that the
+   imported primary remains unchanged);
 2. record each additional voice with its own source/evidence and truth state
    (schema-enforced and candidate `post_admin` API plus live Post-popup
-   authoring implemented; authenticated PostgreSQL API integration remains
-   pending);
+   authoring implemented; synthetic authenticated PostgreSQL integration
+   proved denial before permission, the authorized write, and its normalized
+   PROV-O derivation on 2026-08-27);
 3. keeps post voice distinct from named-counterparty relationship, actor role,
    topic, channel, lifecycle, and stakeholder-salience attributes;
 4. return only authorized associations through API, JSON-LD, CSV, filters,
@@ -79,7 +82,8 @@ the primary NVIDIA NIM model returned HTTP 429, one configured fallback had
 reached end of life, and the OpenAI fallback reported exhausted credits. This
 is provider/control-plane unavailability, not a vulnerability result or
 permission to transfer an older success. Auto-merge remains enabled, while an
-independent approval is still required. PR #717 head `e4d72e4f` merges that
+independent approval is still required. PR #717 implementation head
+`c6a4c263` merges that
 parent change without force-pushing and separates the complete governed Voice
 catalog used for authoring from usage-derived Board filters, so an authorized
 administrator can attach a Voice that no visible Post carries yet. Its
@@ -92,8 +96,11 @@ limit, so the timeout run is not promoted to full-suite success. The isolated
 PostgreSQL and Valkey services were healthy, but authenticated integration
 acceptance remained pending because the shared Keycloak token endpoint did not
 respond within its bounded 10-second transport timeout and the isolated
-Keycloak was still initializing. No self-approval, admin bypass, or stale-head
-check transfer is permitted.
+Keycloak was still initializing. A later retry against the shared synthetic
+stack succeeded in 56.18 seconds and proved the permission, API, PostgreSQL,
+PROV-O, and primary-preservation assertions; no identifying source data was
+used or retained. No self-approval, admin bypass, or stale-head check transfer
+is permitted.
 
 Stacked PR #717 carries ADR 0251, migration 0237, qualified
 ontology terms, persistence/API/UI tests, and the category-validation review

@@ -135,8 +135,10 @@ SHACL, CSV, and evidence navigation and includes the governed admin API and
 Post-popup authoring path above. Synthetic Storybook desktop/mobile scenes
 verify the focused evidence action, contained horizontally scrollable
 exact-value table, explicit unassigned-Voice/truth selections, success state,
-and 44-pixel touch controls. Authenticated PostgreSQL API acceptance remains
-required before a release claim.
+and 44-pixel touch controls. A synthetic real-OIDC integration on 2026-08-27
+proved the permission denial, authorized write, normalized PROV-O derivation,
+additional-Voice row, and unchanged imported primary against PostgreSQL. A
+release claim still requires protected-main delivery evidence.
 
 ## References
 
