@@ -1,30 +1,14 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
-  fetchOccupationRatingOccupations,
   fetchOccupationRatingSources,
   fetchOccupationRatings,
-  type OccupationRatingOccupation,
+  fetchRatingSourceOccupations,
   type OccupationRatingProfile as OccupationRatingProfilePayload,
   type OccupationRatingSource,
+  type RatingSourceOccupation,
 } from "../api";
 
 type Props = { accessToken: string };
-
-function sourceKey(source: Pick<OccupationRatingSource, "data_release_code" | "source_table_code">): string {
-  return `${source.data_release_code}|${source.source_table_code}`;
-}
-
-function matchesOccupationCatalogQuery(
-  occupation: OccupationRatingOccupation,
-  query: string,
-): boolean {
-  const needle = query.trim().toLocaleLowerCase("en-US");
-  if (!needle) return true;
-  return (
-    occupation.occupation_title.toLocaleLowerCase("en-US").includes(needle)
-    || occupation.onetsoc_code.toLocaleLowerCase("en-US").includes(needle)
-  );
-}
 
 function safeHttpUrl(value: string | null | undefined): string | null {
   if (!value) return null;
@@ -38,61 +22,67 @@ function safeHttpUrl(value: string | null | undefined): string | null {
 
 /** Lets an authenticated user inspect one exact imported occupation profile. */
 export function OccupationRatingProfile({ accessToken }: Props) {
+  const [onetsocCode, setOnetsocCode] = useState("");
   const [sources, setSources] = useState<OccupationRatingSource[] | null>(null);
   const [selectedSource, setSelectedSource] = useState("");
   const [sourceCatalogError, setSourceCatalogError] = useState(false);
-  const [occupations, setOccupations] = useState<OccupationRatingOccupation[] | null>(null);
-  const [selectedOccupation, setSelectedOccupation] = useState("");
-  const [occupationQuery, setOccupationQuery] = useState("");
+  const [occupations, setOccupations] = useState<RatingSourceOccupation[] | null>(null);
   const [occupationCatalogError, setOccupationCatalogError] = useState(false);
   const [profile, setProfile] = useState<OccupationRatingProfilePayload | null>(null);
   const [status, setStatus] = useState<"idle" | "loading" | "error">("idle");
+  const requestSequence = useRef(0);
 
   useEffect(() => {
     let active = true;
+    setSourceCatalogError(false);
+    setSources(null);
+    setSelectedSource("");
     fetchOccupationRatingSources(accessToken)
       .then(({ sources: loaded }) => {
         if (!active) return;
         setSources(loaded);
-        setSelectedSource(loaded[0] ? sourceKey(loaded[0]) : "");
+        setSelectedSource(
+          loaded[0] ? `${loaded[0].data_release_code}|${loaded[0].source_table_code}` : "",
+        );
       })
       .catch(() => active && setSourceCatalogError(true));
     return () => { active = false; };
   }, [accessToken]);
 
   useEffect(() => {
-    const source = sources?.find((item) => sourceKey(item) === selectedSource);
+    requestSequence.current += 1;
+    setStatus("idle");
+    const source = sources?.find(
+      (item) => `${item.data_release_code}|${item.source_table_code}` === selectedSource,
+    );
+    setOnetsocCode("");
+    setProfile(null);
+    setOccupationCatalogError(false);
     if (!source) {
       setOccupations(null);
-      setSelectedOccupation("");
-      setOccupationQuery("");
-      setOccupationCatalogError(false);
       return;
     }
     let active = true;
     setOccupations(null);
-    setSelectedOccupation("");
-    setOccupationQuery("");
-    setOccupationCatalogError(false);
-    fetchOccupationRatingOccupations(accessToken, {
-      dataReleaseCode: source.data_release_code,
-      sourceTableCode: source.source_table_code,
-    })
-      .then((payload) => {
-        if (!active) return;
-        const loaded = payload.source_available ? payload.occupations : [];
-        setOccupations(loaded);
-        setSelectedOccupation(loaded[0]?.onetsoc_code ?? "");
-      })
+    fetchRatingSourceOccupations(
+      accessToken,
+      source.data_release_code,
+      source.source_table_code,
+    )
+      .then((payload) => active && setOccupations(payload.occupations))
       .catch(() => active && setOccupationCatalogError(true));
     return () => { active = false; };
-  }, [accessToken, sources, selectedSource]);
+  }, [accessToken, selectedSource, sources]);
 
   function load(offset: number | null = null) {
-    const source = sources?.find((item) => sourceKey(item) === selectedSource);
-    const request = offset == null && source && selectedOccupation
+    const requestId = requestSequence.current + 1;
+    requestSequence.current = requestId;
+    const source = sources?.find(
+      (item) => `${item.data_release_code}|${item.source_table_code}` === selectedSource,
+    );
+    const request = offset == null && source
       ? {
-          onetsocCode: selectedOccupation,
+          onetsocCode,
           dataReleaseCode: source.data_release_code,
           sourceTableCode: source.source_table_code,
         }
@@ -111,6 +101,7 @@ export function OccupationRatingProfile({ accessToken }: Props) {
       offset: offset ?? 0,
     })
       .then((payload) => {
+        if (requestSequence.current !== requestId) return;
         setProfile((current) =>
           offset != null && current
             ? { ...payload, items: [...current.items, ...payload.items] }
@@ -118,31 +109,17 @@ export function OccupationRatingProfile({ accessToken }: Props) {
         );
         setStatus("idle");
       })
-      .catch(() => setStatus("error"));
+      .catch(() => {
+        if (requestSequence.current === requestId) setStatus("error");
+      });
   }
-
-  const visibleOccupations = (occupations ?? []).filter((item) =>
-    matchesOccupationCatalogQuery(item, occupationQuery),
-  );
-
-  useEffect(() => {
-    if (occupations == null) return;
-    if (visibleOccupations.some((item) => item.onetsoc_code === selectedOccupation)) return;
-    setSelectedOccupation(visibleOccupations[0]?.onetsoc_code ?? "");
-  }, [occupations, selectedOccupation, visibleOccupations]);
-
-  const occupationCatalogReady = occupations !== null && !occupationCatalogError;
-  const canSubmit = Boolean(selectedSource)
-    && Boolean(selectedOccupation)
-    && occupationCatalogReady
-    && visibleOccupations.some((item) => item.onetsoc_code === selectedOccupation);
 
   return (
     <section className="occupation-rating-profile" aria-labelledby="occupation-rating-heading">
       <header>
         <p className="dashboard-eyebrow">공개 직업 근거</p>
         <h2 id="occupation-rating-heading">직업별 업무 특성 확인</h2>
-        <p>직업 이름과 근거 표를 선택해 관측값, 오차, 사용 주의사항을 함께 확인하세요.</p>
+        <p>직업과 근거 표를 선택해 관측값, 오차, 사용 주의사항을 함께 확인하세요.</p>
       </header>
       <form
         className="occupation-rating-form"
@@ -151,69 +128,52 @@ export function OccupationRatingProfile({ accessToken }: Props) {
           load();
         }}
       >
-        <label className="occupation-rating-source-select">
-          근거 릴리스·표
+        <label>
+          직업
           <select
             required
-            value={selectedSource}
+            value={onetsocCode}
             onChange={(event) => {
-              setSelectedSource(event.target.value);
+              requestSequence.current += 1;
+              setOnetsocCode(event.target.value);
               setProfile(null);
+              setStatus("idle");
             }}
+            disabled={occupations === null || occupations.length === 0}
           >
+            <option value="">직업 선택</option>
+            {(occupations ?? []).map((occupation) => (
+              <option key={occupation.onetsoc_code} value={occupation.onetsoc_code}>
+                {occupation.occupation_title} · {occupation.onetsoc_code}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="occupation-rating-source-select">
+          근거 릴리스·표
+          <select required value={selectedSource} onChange={(event) => setSelectedSource(event.target.value)}>
             {(sources ?? []).map((source) => (
-              <option key={sourceKey(source)} value={sourceKey(source)}>
+              <option
+                key={`${source.data_release_code}|${source.source_table_code}`}
+                value={`${source.data_release_code}|${source.source_table_code}`}
+              >
                 {source.release_version} · {source.source_table_name}
               </option>
             ))}
           </select>
         </label>
-        <div className="occupation-rating-occupation-select">
-          <label>
-            직업 찾기
-            <input
-              type="search"
-              value={occupationQuery}
-              placeholder="이름이나 코드로 찾기"
-              disabled={!occupationCatalogReady || (occupations?.length ?? 0) === 0}
-              onChange={(event) => setOccupationQuery(event.target.value)}
-            />
-          </label>
-          <label>
-            직업
-            <select
-              required
-              value={selectedOccupation}
-              disabled={!occupationCatalogReady || visibleOccupations.length === 0}
-              onChange={(event) => setSelectedOccupation(event.target.value)}
-            >
-              {visibleOccupations.map((occupation) => (
-                <option key={occupation.onetsoc_code} value={occupation.onetsoc_code}>
-                  {occupation.occupation_title} ({occupation.onetsoc_code})
-                </option>
-              ))}
-            </select>
-          </label>
-        </div>
-        <button className="btn-secondary" type="submit" disabled={status === "loading" || !canSubmit}>
+        <button className="btn-secondary" type="submit" disabled={status === "loading" || !selectedSource || !onetsocCode}>
           {status === "loading" ? "근거를 불러오는 중" : "직업 근거 열기"}
         </button>
       </form>
       {sources === null && !sourceCatalogError ? <p role="status">사용 가능한 근거 표를 확인하는 중입니다.</p> : null}
       {sources?.length === 0 ? <p role="status">가져온 직업 근거 표가 없습니다. 데이터 담당자에게 근거 가져오기를 요청하세요.</p> : null}
       {sourceCatalogError ? <p role="alert">사용 가능한 근거 표를 확인하지 못했습니다. 잠시 후 다시 열어 보세요.</p> : null}
-      {selectedSource && occupations === null && !occupationCatalogError ? (
-        <p role="status">사용 가능한 직업을 확인하는 중입니다.</p>
-      ) : null}
-      {occupations?.length === 0 && !occupationCatalogError ? (
-        <p role="status">이 근거 표에서 확인할 수 있는 직업이 없습니다. 다른 근거 표를 선택하거나 데이터 담당자에게 가져오기를 요청하세요.</p>
-      ) : null}
-      {occupations != null && occupations.length > 0 && visibleOccupations.length === 0 ? (
-        <p role="status">입력한 조건에 맞는 직업이 없습니다. 검색어를 바꾸거나 다른 근거 표를 선택하세요.</p>
-      ) : null}
-      {occupationCatalogError ? <p role="alert">사용 가능한 직업을 확인하지 못했습니다. 잠시 후 다시 열어 보세요.</p> : null}
+      {selectedSource && occupations === null && !occupationCatalogError ? <p role="status">이 근거 표의 직업 목록을 확인하는 중입니다.</p> : null}
+      {selectedSource && occupations?.length === 0 ? <p role="status">이 근거 표에 선택할 수 있는 직업이 없습니다. 다른 근거 표를 선택하세요.</p> : null}
+      {occupationCatalogError ? <p role="alert">직업 목록을 확인하지 못했습니다. 잠시 후 다시 열어 보세요.</p> : null}
       {status === "error" ? (
-        <p role="alert">직업 근거를 불러오지 못했습니다. 선택한 직업과 접근 권한을 확인한 뒤 다시 시도하세요.</p>
+        <p role="alert">직업 근거를 불러오지 못했습니다. 선택 항목과 접근 권한을 확인한 뒤 다시 시도하세요.</p>
       ) : null}
       {profile ? <OccupationRatingProfileView profile={profile} /> : null}
       {profile?.next_offset != null ? (
@@ -246,7 +206,7 @@ export function OccupationRatingProfileView({
   if (profile.items.length === 0) {
     return (
       <p role="status">
-        이 근거 표에는 선택한 직업의 관측값이 없습니다. 직업이나 근거 표를 바꿔 확인하세요.
+        이 근거 표에는 선택한 직업의 관측값이 없습니다. 직업 코드나 근거 표를 바꿔 확인하세요.
       </p>
     );
   }
@@ -255,9 +215,8 @@ export function OccupationRatingProfileView({
   return (
     <>
       <div className="occupation-rating-source">
-        <strong>{profile.occupation_title ?? profile.onetsoc_code}</strong>
+        <strong>{profile.source?.source_table_name}</strong>
         <span>{profile.data_release_code} · {profile.onetsoc_code}</span>
-        <span>{profile.source?.source_table_name}</span>
         {sourceArtifactUrl ? (
           <a href={sourceArtifactUrl} target="_blank" rel="noreferrer">평정 원문 열기</a>
         ) : (

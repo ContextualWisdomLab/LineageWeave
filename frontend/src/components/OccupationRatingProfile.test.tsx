@@ -1,26 +1,25 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
-  fetchOccupationRatingOccupations,
   fetchOccupationRatingSources,
   fetchOccupationRatings,
+  fetchRatingSourceOccupations,
   type OccupationRatingProfile as Payload,
 } from "../api";
 import { OccupationRatingProfile, OccupationRatingProfileView } from "./OccupationRatingProfile";
 
 vi.mock("../api", async (importOriginal) => ({
   ...(await importOriginal<typeof import("../api")>()),
-  fetchOccupationRatingOccupations: vi.fn(),
   fetchOccupationRatingSources: vi.fn(),
   fetchOccupationRatings: vi.fn(),
+  fetchRatingSourceOccupations: vi.fn(),
 }));
 
 const ready: Payload = {
   data_release_code: "onet-31.0",
   source_table_code: "abilities",
   onetsoc_code: "15-1252.00",
-  occupation_title: "Synthetic occupation",
   source_available: true,
   source: {
     source_table_name: "Abilities",
@@ -41,47 +40,51 @@ const ready: Payload = {
   next_offset: null,
 };
 
-const importedSource = {
-  data_release_code: "onet-31.0", release_version: "31.0",
-  source_publisher_name: "Synthetic publisher", source_license_url: "https://example.test/license",
-  source_table_code: "abilities", source_table_name: "Abilities",
-  source_artifact_url: "https://example.test/abilities.csv", source_artifact_sha256: "a".repeat(64),
-  source_row_count: 2,
-};
-
-const observedOccupations = {
-  data_release_code: "onet-31.0",
-  source_table_code: "abilities",
-  source_available: true,
-  occupations: [
-    { onetsoc_code: "11-1011.00", occupation_title: "Synthetic chief occupation" },
-    { onetsoc_code: "15-1252.00", occupation_title: "Synthetic occupation" },
-  ],
-};
+beforeEach(() => {
+  vi.mocked(fetchOccupationRatingSources).mockResolvedValue({
+    sources: [{
+      data_release_code: "onet-31.0", release_version: "31.0",
+      source_publisher_name: "Synthetic publisher", source_license_url: "https://example.test/license",
+      source_table_code: "abilities", source_table_name: "Abilities",
+      source_artifact_url: "https://example.test/abilities.csv", source_artifact_sha256: "a".repeat(64),
+      source_row_count: 2,
+    }],
+  });
+  vi.mocked(fetchRatingSourceOccupations).mockResolvedValue({
+    data_release_code: "onet-31.0",
+    source_table_code: "abilities",
+    source_available: true,
+    occupations: [
+      { onetsoc_code: "11-1011.00", occupation_title: "Chief Executives" },
+      { onetsoc_code: "15-1252.00", occupation_title: "Software Developers" },
+    ],
+  });
+});
 
 describe("OccupationRatingProfile", () => {
-  beforeEach(() => {
-    vi.mocked(fetchOccupationRatingOccupations).mockReset();
-    vi.mocked(fetchOccupationRatingSources).mockReset();
-    vi.mocked(fetchOccupationRatings).mockReset();
-  });
-  afterEach(() => {
-    vi.clearAllMocks();
-  });
-  it("submits catalog identifiers and renders warnings beside the retained value", async () => {
-    vi.mocked(fetchOccupationRatingSources).mockResolvedValue({ sources: [importedSource] });
-    vi.mocked(fetchOccupationRatingOccupations).mockResolvedValue(observedOccupations);
+  it("submits exact identifiers and renders warnings beside the retained value", async () => {
+    vi.mocked(fetchOccupationRatingSources).mockResolvedValue({
+      sources: [{
+        data_release_code: "onet-31.0", release_version: "31.0",
+        source_publisher_name: "Synthetic publisher", source_license_url: "https://example.test/license",
+        source_table_code: "abilities", source_table_name: "Abilities",
+        source_artifact_url: "https://example.test/abilities.csv", source_artifact_sha256: "a".repeat(64),
+        source_row_count: 2,
+      }],
+    });
     vi.mocked(fetchOccupationRatings).mockResolvedValue(ready);
     render(<OccupationRatingProfile accessToken="synthetic-token" />);
     expect(await screen.findByRole("option", { name: "31.0 · Abilities" })).toBeInTheDocument();
-    await screen.findByRole("option", { name: "Synthetic occupation (15-1252.00)" });
-    await userEvent.selectOptions(screen.getByLabelText("직업"), "15-1252.00");
+    await screen.findByRole("option", { name: "Software Developers · 15-1252.00" });
+    await userEvent.selectOptions(
+      await screen.findByLabelText("직업"),
+      "15-1252.00",
+    );
     await userEvent.click(screen.getByRole("button", { name: "직업 근거 열기" }));
     expect(fetchOccupationRatings).toHaveBeenCalledWith("synthetic-token", {
       onetsocCode: "15-1252.00", dataReleaseCode: "onet-31.0", sourceTableCode: "abilities", offset: 0,
     });
-    expect(await screen.findByText("Synthetic occupation")).toBeInTheDocument();
-    expect(screen.getByText("4.10")).toBeInTheDocument();
+    expect(await screen.findByText("4.10")).toBeInTheDocument();
     expect(screen.getByText(/정밀도가 낮아/)).toBeInTheDocument();
     expect(screen.getByText(/해당 없음 응답이 포함됩니다/)).toBeInTheDocument();
     expect(screen.getByText(/표를 가로로 밀어/)).toBeInTheDocument();
@@ -93,82 +96,87 @@ describe("OccupationRatingProfile", () => {
 
     expect(await screen.findByText(/가져온 직업 근거 표가 없습니다/)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "직업 근거 열기" })).toBeDisabled();
-    expect(fetchOccupationRatingOccupations).not.toHaveBeenCalled();
   });
 
-  it("fails closed when the selected source has no observed occupation", async () => {
-    vi.mocked(fetchOccupationRatingSources).mockResolvedValue({ sources: [importedSource] });
-    vi.mocked(fetchOccupationRatingOccupations).mockResolvedValue({
-      ...observedOccupations,
-      occupations: [],
+  it("fails closed when an imported source has no selectable occupation", async () => {
+    vi.mocked(fetchOccupationRatingSources).mockResolvedValue({
+      sources: [{
+        data_release_code: "onet-31.0", release_version: "31.0",
+        source_publisher_name: "Synthetic publisher", source_license_url: "https://example.test/license",
+        source_table_code: "abilities", source_table_name: "Abilities",
+        source_artifact_url: "https://example.test/abilities.csv", source_artifact_sha256: "a".repeat(64),
+        source_row_count: 2,
+      }],
+    });
+    vi.mocked(fetchRatingSourceOccupations).mockResolvedValue({
+      data_release_code: "onet-31.0", source_table_code: "abilities",
+      source_available: true, occupations: [],
     });
     render(<OccupationRatingProfile accessToken="synthetic-token" />);
 
-    expect(await screen.findByText(/이 근거 표에서 확인할 수 있는 직업이 없습니다/)).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "직업 근거 열기" })).toBeDisabled();
+    expect(await screen.findByText(/선택할 수 있는 직업이 없습니다/)).toBeInTheDocument();
+    expect(screen.getByLabelText("직업")).toBeDisabled();
   });
 
-  it("filters catalog titles without submitting a typed occupation code", async () => {
-    vi.mocked(fetchOccupationRatingSources).mockResolvedValue({ sources: [importedSource] });
-    vi.mocked(fetchOccupationRatingOccupations).mockResolvedValue(observedOccupations);
-    vi.mocked(fetchOccupationRatings).mockResolvedValue(ready);
-    render(<OccupationRatingProfile accessToken="synthetic-token" />);
-    await screen.findByRole("option", { name: "Synthetic occupation (15-1252.00)" });
+  it("clears a stale catalog error when authentication changes", async () => {
+    vi.mocked(fetchOccupationRatingSources)
+      .mockRejectedValueOnce(new Error("synthetic catalog failure"))
+      .mockResolvedValueOnce({ sources: [{
+        data_release_code: "onet-31.0", release_version: "31.0",
+        source_publisher_name: "Synthetic publisher", source_license_url: "https://example.test/license",
+        source_table_code: "abilities", source_table_name: "Abilities",
+        source_artifact_url: "https://example.test/abilities.csv", source_artifact_sha256: "a".repeat(64),
+        source_row_count: 2,
+      }] });
+    const { rerender } = render(<OccupationRatingProfile accessToken="expired-token" />);
+    expect(await screen.findByRole("alert")).toHaveTextContent("근거 표를 확인하지 못했습니다");
 
-    await userEvent.type(screen.getByLabelText("직업 찾기"), "15-1252");
-    expect(screen.queryByRole("option", { name: "Synthetic chief occupation (11-1011.00)" })).not.toBeInTheDocument();
-    expect(screen.getByRole("option", { name: "Synthetic occupation (15-1252.00)" })).toBeInTheDocument();
-    await userEvent.click(screen.getByRole("button", { name: "직업 근거 열기" }));
+    rerender(<OccupationRatingProfile accessToken="fresh-token" />);
 
-    expect(fetchOccupationRatings).toHaveBeenCalledWith("synthetic-token", {
-      onetsocCode: "15-1252.00", dataReleaseCode: "onet-31.0", sourceTableCode: "abilities", offset: 0,
+    expect(await screen.findByRole("option", { name: "31.0 · Abilities" })).toBeInTheDocument();
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  });
+
+  it("clears loaded evidence when the occupation selection changes", async () => {
+    vi.mocked(fetchOccupationRatingSources).mockResolvedValue({
+      sources: [{
+        data_release_code: "onet-31.0", release_version: "31.0",
+        source_publisher_name: "Synthetic publisher", source_license_url: "https://example.test/license",
+        source_table_code: "abilities", source_table_name: "Abilities",
+        source_artifact_url: "https://example.test/abilities.csv", source_artifact_sha256: "a".repeat(64),
+        source_row_count: 2,
+      }],
     });
-  });
-
-  it("fails closed when the title filter matches no catalog occupation", async () => {
-    vi.mocked(fetchOccupationRatingSources).mockResolvedValue({ sources: [importedSource] });
-    vi.mocked(fetchOccupationRatingOccupations).mockResolvedValue(observedOccupations);
-    render(<OccupationRatingProfile accessToken="synthetic-token" />);
-    await screen.findByRole("option", { name: "Synthetic occupation (15-1252.00)" });
-
-    await userEvent.type(screen.getByLabelText("직업 찾기"), "unknown-occupation");
-
-    expect(await screen.findByText(/입력한 조건에 맞는 직업이 없습니다/)).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "직업 근거 열기" })).toBeDisabled();
-    expect(fetchOccupationRatings).not.toHaveBeenCalled();
-  });
-
-  it("keeps pagination bound to the loaded profile after form edits", async () => {
-    vi.mocked(fetchOccupationRatingSources).mockResolvedValue({ sources: [importedSource] });
-    vi.mocked(fetchOccupationRatingOccupations).mockResolvedValue(observedOccupations);
-    vi.mocked(fetchOccupationRatings)
-      .mockResolvedValueOnce({ ...ready, next_offset: 100 })
-      .mockResolvedValueOnce({ ...ready, items: [{ ...ready.items[0], scale_id: "LV" }] });
+    vi.mocked(fetchOccupationRatings).mockResolvedValueOnce({ ...ready, next_offset: 100 });
     render(<OccupationRatingProfile accessToken="synthetic-token" />);
     const occupation = await screen.findByLabelText("직업");
-    await screen.findByRole("option", { name: "Synthetic occupation (15-1252.00)" });
+    await screen.findByRole("option", { name: "Software Developers · 15-1252.00" });
     await userEvent.selectOptions(occupation, "15-1252.00");
     await userEvent.click(screen.getByRole("button", { name: "직업 근거 열기" }));
     await screen.findByText("4.10");
 
     await userEvent.selectOptions(occupation, "11-1011.00");
-    await userEvent.click(screen.getByRole("button", { name: "다음 관측값 불러오기" }));
 
-    expect(fetchOccupationRatings).toHaveBeenLastCalledWith("synthetic-token", {
-      onetsocCode: "15-1252.00", dataReleaseCode: "onet-31.0", sourceTableCode: "abilities", offset: 100,
-    });
-    expect(await screen.findAllByText("4.10")).toHaveLength(2);
+    expect(screen.queryByText("4.10")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "다음 관측값 불러오기" })).not.toBeInTheDocument();
   });
 
   it("removes stale evidence while a fresh occupation loads", async () => {
-    vi.mocked(fetchOccupationRatingSources).mockResolvedValue({ sources: [importedSource] });
-    vi.mocked(fetchOccupationRatingOccupations).mockResolvedValue(observedOccupations);
+    vi.mocked(fetchOccupationRatingSources).mockResolvedValue({
+      sources: [{
+        data_release_code: "onet-31.0", release_version: "31.0",
+        source_publisher_name: "Synthetic publisher", source_license_url: "https://example.test/license",
+        source_table_code: "abilities", source_table_name: "Abilities",
+        source_artifact_url: "https://example.test/abilities.csv", source_artifact_sha256: "a".repeat(64),
+        source_row_count: 2,
+      }],
+    });
     vi.mocked(fetchOccupationRatings)
       .mockResolvedValueOnce(ready)
       .mockImplementationOnce(() => new Promise(() => undefined));
     render(<OccupationRatingProfile accessToken="synthetic-token" />);
     const occupation = await screen.findByLabelText("직업");
-    await screen.findByRole("option", { name: "Synthetic occupation (15-1252.00)" });
+    await screen.findByRole("option", { name: "Software Developers · 15-1252.00" });
     await userEvent.selectOptions(occupation, "15-1252.00");
     await userEvent.click(screen.getByRole("button", { name: "직업 근거 열기" }));
     await screen.findByText("4.10");
@@ -178,6 +186,33 @@ describe("OccupationRatingProfile", () => {
 
     expect(screen.queryByText("4.10")).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "근거를 불러오는 중" })).toBeDisabled();
+  });
+
+  it("ignores a superseded occupation response that finishes last", async () => {
+    let finishFirst: ((profile: Payload) => void) | undefined;
+    vi.mocked(fetchOccupationRatingSources).mockResolvedValue({ sources: [{
+      data_release_code: "onet-31.0", release_version: "31.0",
+      source_publisher_name: "Synthetic publisher", source_license_url: "https://example.test/license",
+      source_table_code: "abilities", source_table_name: "Abilities",
+      source_artifact_url: "https://example.test/abilities.csv", source_artifact_sha256: "a".repeat(64),
+      source_row_count: 2,
+    }] });
+    vi.mocked(fetchOccupationRatings)
+      .mockImplementationOnce(() => new Promise((resolve) => { finishFirst = resolve; }))
+      .mockResolvedValueOnce({ ...ready, onetsoc_code: "11-1011.00", items: [{ ...ready.items[0], data_value: "3.20" }] });
+    render(<OccupationRatingProfile accessToken="synthetic-token" />);
+    const occupation = await screen.findByLabelText("직업");
+    await screen.findByRole("option", { name: "Software Developers · 15-1252.00" });
+    await userEvent.selectOptions(occupation, "15-1252.00");
+    await userEvent.click(screen.getByRole("button", { name: "직업 근거 열기" }));
+
+    await userEvent.selectOptions(occupation, "11-1011.00");
+    fireEvent.submit(occupation.closest("form")!);
+    expect(await screen.findByText("3.20")).toBeInTheDocument();
+
+    finishFirst?.(ready);
+    expect(screen.queryByText("4.10")).not.toBeInTheDocument();
+    expect(screen.getByText("3.20")).toBeInTheDocument();
   });
 
   it("distinguishes an unavailable artifact from an empty occupation profile", () => {

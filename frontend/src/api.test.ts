@@ -2,10 +2,10 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   BackendError,
   fetchMe,
-  fetchOccupationRatingOccupations,
   fetchOccupationRatingSources,
   fetchOccupationRatings,
   fetchOperationsDashboard,
+  fetchRatingSourceOccupations,
   updateTenantConfig,
 } from "./api";
 
@@ -59,21 +59,18 @@ describe("backendFetch provider-error boundary", () => {
     expect(fetchMock.mock.calls[0][0]).toContain("/api/occupation-rating-sources");
   });
 
-  it("reads occupations that have observations in one imported source", async () => {
+  it("reads occupations for one exact imported source", async () => {
     const fetchMock = vi.fn().mockResolvedValue(
-      new Response(JSON.stringify({ source_available: true, occupations: [] }), {
+      new Response(JSON.stringify({ occupations: [] }), {
         headers: { "Content-Type": "application/json" },
       }),
     );
     vi.stubGlobal("fetch", fetchMock);
 
-    await fetchOccupationRatingOccupations("access-token", {
-      dataReleaseCode: "onet-31.0",
-      sourceTableCode: "abilities",
-    });
+    await fetchRatingSourceOccupations("access-token", "onet-31.0", "abilities");
 
     expect(fetchMock.mock.calls[0][0]).toContain(
-      "/api/occupation-rating-sources/onet-31.0/abilities/occupations",
+      "/api/occupation-rating-occupations?data_release_code=onet-31.0&source_table_code=abilities",
     );
   });
 
