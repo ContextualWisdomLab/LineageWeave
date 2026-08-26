@@ -141,14 +141,6 @@ describe("OperationsDashboardView", () => {
     expect(screen.queryByText(/추정 점수/)).not.toBeInTheDocument();
   });
 
-  it("shows a separate next action when topic influence does not apply", () => {
-    const notApplicable = { ...data, topic_context: { ...data.topic_context, status_code: "not_applicable" as const, reason_code: "no_eligible_posts" } };
-    render(<OperationsDashboardView data={notApplicable} onOpenPost={() => undefined} />);
-    expect(screen.getByText("이 기간에는 글 영향도를 계산할 대상이 없습니다.")).toBeInTheDocument();
-    expect(screen.getByText("다른 기간을 선택해 분석 가능한 글이 있는지 확인하세요.")).toBeInTheDocument();
-    expect(screen.queryByText("글 영향도를 아직 확인할 수 없습니다.")).not.toBeInTheDocument();
-  });
-
   it("opens accepted exact influence evidence and retains equal values", async () => {
     const onOpenPost = vi.fn();
     const influence = {

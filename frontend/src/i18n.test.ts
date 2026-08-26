@@ -20,6 +20,7 @@ describe("i18n", () => {
   const requiredSharedLabels = [
     "Language",
     "Evidence",
+    "Evidence ranking",
     "Ask",
     "linked",
     "Post body preview",

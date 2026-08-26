@@ -326,11 +326,13 @@ def _container_resources() -> tuple[int | None, int, int]:
     output = _run(
         [
             "docker", "compose", "exec", "-T", "postgres", "sh", "-eu", "-c",
-            "if [ -r /sys/fs/cgroup/memory.max ]; then cat /sys/fs/cgroup/memory.max; "
-            "elif [ -r /sys/fs/cgroup/memory/memory.limit_in_bytes ]; then "
-            "cat /sys/fs/cgroup/memory/memory.limit_in_bytes; else printf 'max\\n'; fi; "
-            "df -Pk /var/lib/postgresql/data | awk 'NR==2 {print $4}'; "
-            "du -sk /var/lib/postgresql/data/pg_wal | awk '{print $1}'",
+            (
+                "if [ -r /sys/fs/cgroup/memory.max ]; then cat /sys/fs/cgroup/memory.max; "
+                + "elif [ -r /sys/fs/cgroup/memory/memory.limit_in_bytes ]; then "
+                + "cat /sys/fs/cgroup/memory/memory.limit_in_bytes; else printf 'max\\n'; fi; "
+                + "df -Pk /var/lib/postgresql/data | awk 'NR==2 {print $4}'; "
+                + "du -sk /var/lib/postgresql/data/pg_wal | awk '{print $1}'"
+            ),
         ]
     ).splitlines()
     if len(output) != 3:

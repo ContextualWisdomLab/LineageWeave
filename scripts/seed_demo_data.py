@@ -30,6 +30,7 @@ from urllib.parse import urlencode
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 import psycopg2
+from psycopg2 import sql
 
 from backend.app.post_eligibility import SOURCE_POST_ELIGIBILITY_SQL
 from lineageweave.http_client import get_json, get_json_list, post_form
@@ -2211,10 +2212,16 @@ def _warm_seeded_post_content(
     connection = psycopg2.connect(postgres_dsn)
     try:
         with connection.cursor() as cur:
-            cur.execute(
-                "select post_id from source_post "
-                "where post_title like 'Demo %post' and "
-                + SOURCE_POST_ELIGIBILITY_SQL.format(alias="source_post")
+            eligibility = sql.SQL(
+                SOURCE_POST_ELIGIBILITY_SQL.format(alias="source_post")
+            )
+            # psycopg2.sql composes only the immutable eligibility policy;
+            # the runtime title pattern remains a bound value below.
+            cur.execute(  # nosemgrep: python.sqlalchemy.security.sqlalchemy-execute-raw-query.sqlalchemy-execute-raw-query
+                sql.SQL(
+                    "select post_id from source_post where post_title like %s and {}"
+                ).format(eligibility),
+                ("Demo %post",),
             )
             post_ids = [str(row[0]) for row in cur.fetchall()]
     finally:
