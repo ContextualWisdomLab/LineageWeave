@@ -137,10 +137,15 @@ async def persist_post_content(
     ``semantic_units`` admits caller-parsed source boundaries such as RFC 5322
     conversation turns without inferring them from an opaque body string.
     """
-    normalized = normalized_result or normalize_post_body(body, vision_client)
-    chunks = semantic_units if semantic_units is not None else chunk_by_source_body(body)
-    image_results = {result.chunk_index: result for result in normalized.image_results}
-    formatting = {hint.chunk_index: hint.style for hint in normalized.formatting_hints}
+    if semantic_units is None:
+        normalized = normalized_result or normalize_post_body(body, vision_client)
+        chunks = chunk_by_source_body(body)
+        image_results = {result.chunk_index: result for result in normalized.image_results}
+        formatting = {hint.chunk_index: hint.style for hint in normalized.formatting_hints}
+    else:
+        chunks = semantic_units
+        image_results = {}
+        formatting = {}
 
     prepared: list[tuple[Chunk, str, str | None]] = []
     for chunk in chunks:

@@ -86,13 +86,21 @@ def test_persist_post_content_keeps_units_when_embedding_provider_fails() -> Non
     assert not any("post_content_embedding_value" in query for query, _args in conn.executed)
 
 
-def test_persist_post_content_replaces_turn_units_with_same_evidence_references() -> None:
+def test_persist_post_content_replaces_turn_units_with_same_evidence_references(
+    monkeypatch,
+) -> None:
     conn = _Connection()
     units = chunk_by_conversation_turn(
         [
             ConversationTurn("Synthetic requester", "Question", "part:0"),
             ConversationTurn("Synthetic responder", "Answer", "part:1"),
         ]
+    )
+    def fail_body_parsing(*_args):
+        raise AssertionError("body parsing must stay unused")
+
+    monkeypatch.setattr(
+        "lineageweave.post_content_persistence.normalize_post_body", fail_body_parsing
     )
 
     for _attempt in range(2):
@@ -113,3 +121,4 @@ def test_persist_post_content_replaces_turn_units_with_same_evidence_references(
     ]
     assert len(deletes) == 2
     assert [args[-1] for args in inserts] == ["part:0", "part:1", "part:0", "part:1"]
+    assert all(args[-2] is None for args in inserts)
