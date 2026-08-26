@@ -31,14 +31,15 @@ compound lookup codes.
 - An additional voice uses another existing `voc_type` code and must reference
   a normalized `provenance_assertion`. Missing evidence therefore cannot be
   persisted as a positive association.
-- The pair `(post_id, voice_type_code)` is unique. One partial unique index
-  permits only one primary voice while allowing any evidence-backed subset of
-  the governed vocabulary as additional voices.
+- Each association interval has an immutable assignment identifier. Partial
+  unique indexes permit only one current row for `(post_id, voice_type_code)`
+  and one current primary while allowing closed historical intervals.
 - `effective_from` records when an assignment became applicable. The initial
   imported primary starts at the source post's `created_at`; a later imported
   primary change and every added evidence-bearing voice start when recorded.
-  Knowledge-cutoff reads use this effective instant, so migration time does not
-  erase the primary voice from an older authorized view.
+  `effective_to` closes a replaced primary as a half-open interval. Knowledge-
+  cutoff reads select the interval containing the cutoff, so A → B → A changes
+  retain all three states without presenting two primaries at one instant.
 - A database trigger verifies that every association code belongs to the
   `voc_type` lookup category and every truth code belongs to
   `ontology_truth_status`;
@@ -93,12 +94,14 @@ classDiagram
     text voc_type_code
   }
   class SourcePostVoice {
+    uuid voice_assignment_id
     uuid post_id
     text voice_type_code
     boolean is_primary
     text truth_status_code
     uuid provenance_assertion_id
     timestamptz effective_from
+    timestamptz effective_to
     timestamptz recorded_at
   }
   class LookupValue {
@@ -129,10 +132,10 @@ sequenceDiagram
 ## Consequences
 
 Migration 0237 is replay-safe, backfills one primary association per existing
-post, synchronizes later inserts and primary-voice changes, and adds a
-voice-first index for bounded filtering. It introduces no new Voice-of-X
-category and stores no source content or identifying evidence in repository
-artifacts.
+post, closes rather than deletes a replaced primary, synchronizes later
+inserts and primary-voice changes, and adds a voice-first index for bounded
+filtering. It introduces no new Voice-of-X category and stores no source
+content or identifying evidence in repository artifacts.
 
 The repository candidate projects authorized combinations through JSON-LD,
 SHACL, CSV, and separate carrying-Post/evidence navigation and includes the governed admin API and

@@ -70,6 +70,7 @@ def test_additional_voice_creates_prov_derivation_and_assignment_atomically() ->
 
     sql = "\n".join(query for query, _args in conn.calls)
     assert "prov_was_derived_from" in sql
+    assert "where effective_to is null" in sql
     assert "where not source_post_voice.is_primary" in sql
     assert "voice-assignment/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa1/vops" in str(
         conn.calls

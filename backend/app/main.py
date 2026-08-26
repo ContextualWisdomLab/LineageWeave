@@ -715,7 +715,10 @@ async def _load_post_voice_types(
             on lookup.lookup_category = 'voc_type'
            and lookup.lookup_code = voice.voice_type_code
          where voice.post_id = $1
-           and ($2::timestamptz is null or voice.effective_from <= $2)
+           and (($2::timestamptz is null and voice.effective_to is null)
+                or ($2::timestamptz is not null
+                    and voice.effective_from <= $2
+                    and (voice.effective_to is null or $2 < voice.effective_to)))
          order by voice.is_primary desc, lookup.display_order, voice.voice_type_code
         """,
         post_id,
@@ -744,7 +747,8 @@ async def _post_filter_options(
                coalesce(lookup.lookup_label, option.code) as label,
                coalesce(lookup.display_order, 2147483647) as display_order
           from source_post post
-          left join source_post_voice voice on voice.post_id = post.post_id
+          left join source_post_voice voice
+            on voice.post_id = post.post_id and voice.effective_to is null
          cross join lateral (
                values ('post_visibility', post.visibility_code),
                       ('voc_type', coalesce(voice.voice_type_code, post.voc_type_code))
@@ -1573,6 +1577,7 @@ async def list_posts(
                and ($3::text[] is null or exists (
                     select 1 from source_post_voice voice_filter
                      where voice_filter.post_id = post.post_id
+                       and voice_filter.effective_to is null
                        and voice_filter.voice_type_code = any($3::text[])
                ))
                and ($4::text is null or post.visibility_code = $4)
@@ -1648,6 +1653,7 @@ async def list_posts(
                       on lookup.lookup_category = 'voc_type'
                      and lookup.lookup_code = voice.voice_type_code
                    where voice.post_id = page.post_id
+                     and voice.effective_to is null
               ) voices on true
              order by
                 case when $1::text is not null then page.search_priority end asc,

@@ -32,13 +32,12 @@ ADR 0251 and migration 0237 now define the persistence contract for
 evidence-bearing composition. A post keeps one source-provided
 `voc_type_code`, mirrored as its sole primary association, while every
 additional voice requires a normalized PROV-O assertion and explicit truth
-status. An explicit assignment-effective instant preserves a backfilled
-primary at historical cutoffs and does not antedate a later primary change.
-It does not preserve the former primary after that change: migration 0237
-deletes the old row, and the current key cannot represent an A → B → A
-history. Issue #748 owns that separate temporal-history gap. This implements
-the first two requirements below without adding Cartesian-product codes. The
-remaining acceptance boundary is:
+status. Half-open assignment intervals preserve a backfilled primary at
+historical cutoffs, close a replaced primary without deleting it, and permit a
+later return to the same Voice. The #717 candidate therefore addresses #748's
+A → B → A storage root cause without adding Cartesian-product codes. Protected
+delivery and synthetic PostgreSQL concurrency/cutoff evidence remain required.
+The remaining acceptance boundary is:
 
 1. preserve the imported primary voice without reclassification (implemented
    in the candidate migration; migration 0237 replayed twice successfully on
@@ -521,7 +520,7 @@ this file per §3.5 of the prior snapshot).
 | Image understanding | Region, OCR, and description work exists across active heads (#405, #419), but current runtime acceptance has not yet proved table-image structure, complete region coverage, or summary/image readiness together | Orchestrator-backed rendered workflow, original/derived asset provenance, region-before-OCR processing, and honest unsupported states; reconcile ADR 0052's image-bearing summary readiness with ADR 0098 before changing sequencing |
 | Semantic source rendering | Paragraph, table, list, formula, and indentation work exists across stacks (#394, #427, #448–#450); #515 adds synthetic backend/frontend parity for deterministic rows/cells, footnote boundaries, and encoded scripts | Land the #427 → #515 stack, then gather authenticated browser evidence that list nesting, continuation alignment, and formula units render without authoring-layout artifacts |
 | Event and project semantics | #663 is the largest current user-visible gap slice: evidence-backed Project nodes, bounded traversal, cutoff/snapshot fencing, exact-value table parity, and localized graph labels. Focus visibility, label-bound, and temporal test-double regressions are repaired. #666's heuristic removal is composed into this parent but is not separately protected-main evidence. #640 separately adds project journeys without claiming authoritative lifecycle status | Combined #663 must pass exact-head checks and independent approval before protected merge. Aggregate authenticated evidence must still prove distinct projects/events and handover intervals without promoting co-occurrence |
-| Voice primary history | ADR 0251 and migration 0237 prevent a changed imported primary Voice from appearing before its effective instant, but the former primary row is deleted and cannot be recovered at an older cutoff; #748 owns this gap | Define the temporal schema in an ADR, then prove atomic A → B → A changes, non-overlap, replay, concurrent UPSERT, ABAC, API, ontology, CSV, and UI cutoff behavior with synthetic PostgreSQL evidence |
+| Voice primary history | The #717 candidate updates ADR 0251 and migration 0237 with immutable assignment ids and half-open intervals, closing rather than deleting a replaced primary so A → B → A is representable; this is not protected-main evidence | Prove migration replay, concurrent primary changes, non-overlap, and API/ontology cutoff reads against synthetic PostgreSQL at the current exact head, then close #748 only after protected delivery |
 | Knowledge Graph readability | #659 recreates the token-backed node-type repair on current `main`, including regression coverage; it is open and therefore not protected-main evidence | Merge #659 normally, then verify light/dark contrast, keyboard graph navigation, full labels, and evidence tables in the authenticated rendered surface |
 | Source-code lookup UX | Source state/detail codes remain evidence-bearing machine values and current detail presentation is dense | Catalog-backed display labels with raw-code provenance, compact 5W1H/source-detail hierarchy, keyboard access, and no unsupported customer/project binding |
 | Calendar / Naruon | #355 delivered the projection contract; v2.17.0 wires operator consumption without forwarding the end-user token. Naruon producer, provider/consumer fixtures, and protected merge remain open (#336) | Verify observed events against the published schema without invented events; keep commitments available when the channel is unwired |

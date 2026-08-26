@@ -806,7 +806,10 @@ async def _load_voice_assignments(
            and evidence.node_type_code = 'node_post'
          where voice.post_id = any($1::uuid[])
            and (voice.is_primary or evidence.node_id = any($1::uuid[]))
-           and ($2::timestamptz is null or voice.effective_from <= $2)
+           and (($2::timestamptz is null and voice.effective_to is null)
+                or ($2::timestamptz is not null
+                    and voice.effective_from <= $2
+                    and (voice.effective_to is null or $2 < voice.effective_to)))
            and voice.recorded_at <= $3::timestamptz
          order by voice.post_id, voice.is_primary desc,
                   lookup.display_order, voice.voice_type_code

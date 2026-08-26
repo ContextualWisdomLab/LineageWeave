@@ -16,8 +16,10 @@ import asyncio
 import math
 import os
 import uuid
+from concurrent.futures import ThreadPoolExecutor
 from contextlib import closing
 from pathlib import Path
+from threading import Barrier
 from types import SimpleNamespace
 
 import asyncpg
@@ -4764,6 +4766,66 @@ def test_create_voice_assignment_persists_authorized_prov_o_evidence(
             (seeded_db["own_private_post_id"],),
         )
         assert cur.fetchone() == ("voc",)
+
+
+def test_primary_voice_history_survives_concurrent_changes_and_cutoff_reads(
+    client, demo_analyst_token, seeded_db
+) -> None:
+    """Concurrent A→B→C→A changes retain one non-overlapping primary timeline."""
+    post_id = seeded_db["own_private_post_id"]
+    barrier = Barrier(2)
+
+    with closing(psycopg2.connect(seeded_db["dsn"])) as conn, conn.cursor() as cur:
+        cur.execute(_VOICE_ASSIGNMENT_MIGRATION.read_text())
+        cur.execute(_VOICE_ASSIGNMENT_MIGRATION.read_text())
+
+    def update_voice(code: str) -> None:
+        with closing(psycopg2.connect(seeded_db["dsn"])) as conn, conn.cursor() as cur:
+            barrier.wait()
+            cur.execute(
+                "update source_post set voc_type_code = %s where post_id = %s",
+                (code, post_id),
+            )
+            conn.commit()
+
+    with ThreadPoolExecutor(max_workers=2) as executor:
+        futures = [executor.submit(update_voice, code) for code in ("vop", "voe")]
+        for future in futures:
+            future.result()
+
+    with closing(psycopg2.connect(seeded_db["dsn"])) as conn, conn.cursor() as cur:
+        cur.execute(
+            "update source_post set voc_type_code = 'voc' where post_id = %s",
+            (post_id,),
+        )
+        conn.commit()
+        cur.execute(
+            "select voice_type_code, effective_from, effective_to "
+            "from source_post_voice where post_id = %s and is_primary "
+            "order by effective_from, voice_assignment_id",
+            (post_id,),
+        )
+        history = cur.fetchall()
+
+    assert len(history) == 4
+    assert history[0][0] == "voc"
+    assert history[-1][0] == "voc"
+    assert sum(effective_to is None for _, _, effective_to in history) == 1
+    assert all(
+        history[index][2] == history[index + 1][1]
+        for index in range(len(history) - 1)
+    )
+    for voice_type_code, effective_from, _effective_to in history:
+        response = client.get(
+            f"/api/posts/{post_id}",
+            params={"as_of": effective_from.isoformat()},
+            headers={"Authorization": f"Bearer {demo_analyst_token}"},
+        )
+        assert response.status_code == 200, response.text
+        primaries = [
+            voice for voice in response.json()["voice_types"] if voice["is_primary"]
+        ]
+        assert [voice["code"] for voice in primaries] == [voice_type_code]
 
 
 def test_tickets_list_is_empty_before_any_created(client, demo_analyst_token, seeded_db) -> None:
