@@ -47,6 +47,17 @@ named volumes.
 | Temporal Lineage topics and multilevel important posts | ADR 0210; TEPP posterior topic/plausible-value contract followed by fast-mlsirm observed-information case-deletion influence | This stacked candidate adds normalized persistence, exact run/snapshot/cutoff binding, pre-aggregation scope authorization, API diagnostics, and populated/unavailable Storybook surfaces. TEPP PR #247 remains open at `063f10f3`; stacked #251–#254 provide fail-closed input validation, full joint precision, deterministic joint plausible-value draws, and the canonical research register, while complete provenance assembly remains gated. fast-mlsirm PR #1418 validates the Rust consumer envelope but intentionally returns `EstimatorUnavailable` until the scientific estimator lands. Runtime therefore remains honestly unavailable with no local Python or fallback score. |
 | PostgreSQL WAL/checkpoint and worker memory pressure | ADR 0227 and ADR 0247; aligned PostgreSQL counter deltas plus unchanged-container Docker/cgroup v2 evidence | Candidate PostgreSQL procedure emits a content-authenticated restart/rollback plan while retaining unmeasured settings and durability. The current cumulative counters establish sustained historical WAL/checkpoint pressure but do not replace a representative aligned apply window. A prior worker exit 137 is not attributable after container recreation: the current healthy worker has no configured service memory limit/reservation, and a one-second non-identifying observation showed an approximately 109 MiB cgroup lifetime peak with no new local pressure/OOM event. That idle window is not capacity acceptance. Capture the declared representative workload before recreation; do not add a limit or headroom multiplier until that evidence supports a separately accepted capacity boundary. |
 
+Customer-copy audit at #640 exact `c142c4ea` retained the ADR-required
+measurement-administrator terms and explicit ontology/provenance inspection
+labels. Two general-reader gaps were isolated: Customer Master explained the
+ontology/semantic implementation boundary instead of the evidence action, and
+Global Ask called authorized workspace evidence "internal" posts. The stacked
+copy repair tells the reader to compare the source identifier with related
+posts and organization evidence, and reuses the authorized-citation action.
+Five-locale consistency, rendered component tests, and desktop/narrow
+Storybook scenes cover the repair. `프로젝트별 관측 Event` and ADR 0210's exact
+`model influence` estimand name remain unchanged.
+
 ### Technical contract and flow
 
 ```mermaid

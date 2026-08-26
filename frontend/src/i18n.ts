@@ -180,7 +180,8 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "A counterparty can hold more than one role over time -- a customer in one post can be a competitor, supplier, or partner in another. Every role observed for a name is listed, not just the most frequent.":
       "거래처는 시간에 따라 여러 역할을 동시에 가질 수 있습니다 -- 한 게시물에서는 고객이지만 다른 게시물에서는 경쟁사, 공급자, 파트너일 수 있습니다. 가장 빈번한 역할만이 아니라 관측된 모든 역할을 표시합니다.",
     "Multiple roles observed": "복수 역할 관측됨",
-    "Source identifiers are hints only; ontology and semantic evidence must resolve them before binding a customer.": "원본 식별자는 힌트일 뿐이며, 고객에 연결하기 전에 온톨로지와 의미 증거로 확인해야 합니다.",
+    "Before linking a customer, compare the source identifier with the related posts and organization evidence.":
+      "고객을 연결하기 전에 원본 식별자와 관련 글·조직 근거를 비교하세요.",
     "Unresolved source identifier": "미해결 원본 식별자",
     "Weak source hint": "신뢰도가 낮은 원본 힌트",
     "Source hint": "원본 힌트",
@@ -207,8 +208,8 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Conflicts with public evidence": "공개 근거와 충돌합니다",
     "Not enough public information": "공개 정보가 충분하지 않습니다",
     "Enable public verification to check eligible public claims.": "검증 가능한 공개 주장을 확인하려면 공개 자료 검증을 켜세요.",
-    "Configure public search and contextual-orchestrator, then retry.": "공개 검색과 contextual-orchestrator를 구성한 후 다시 시도하세요.",
-    "Inspect the internal cited posts; no public claim was eligible.": "검증 가능한 공개 주장이 없으므로 내부 인용 글을 확인하세요.",
+    "Ask a workspace administrator to enable public verification, then retry.": "작업 공간 관리자에게 공개 자료 검증을 켜 달라고 요청한 후 다시 시도하세요.",
+    "Open supporting post": "근거 글 열기",
     "Inspect public evidence separately before any governed graph review.": "거버넌스 그래프 검토 전에 공개 근거를 별도로 확인하세요.",
     "Collect stronger authoritative evidence before accepting the claim.": "주장을 받아들이기 전에 더 강한 권위 있는 근거를 확보하세요.",
     "Inspect the authorized cited posts and their evidence.": "권한이 있는 인용 글과 근거를 확인하세요.",
@@ -738,7 +739,8 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "A counterparty can hold more than one role over time -- a customer in one post can be a competitor, supplier, or partner in another. Every role observed for a name is listed, not just the most frequent.":
       "同一交易对手可能随时间拥有多个角色 -- 在一篇文章中是客户,在另一篇文章中可能是竞争对手、供应商或合作伙伴。会列出观测到的每一个角色,而不仅是最频繁的那个。",
     "Multiple roles observed": "观测到多个角色",
-    "Source identifiers are hints only; ontology and semantic evidence must resolve them before binding a customer.": "源标识符仅是提示；绑定客户前必须通过本体和语义证据解析它们。",
+    "Before linking a customer, compare the source identifier with the related posts and organization evidence.":
+      "关联客户前，请将源标识符与相关帖子和组织证据进行比较。",
     "Unresolved source identifier": "未解析的源标识符",
     "Weak source hint": "低可信源提示",
     "Source hint": "源提示",
@@ -765,8 +767,8 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Conflicts with public evidence": "与公开证据冲突",
     "Not enough public information": "公开信息不足",
     "Enable public verification to check eligible public claims.": "启用公开资料核验以检查符合条件的声明。",
-    "Configure public search and contextual-orchestrator, then retry.": "配置公开搜索和 contextual-orchestrator 后重试。",
-    "Inspect the internal cited posts; no public claim was eligible.": "没有符合条件的公开声明，请检查内部引用文章。",
+    "Ask a workspace administrator to enable public verification, then retry.": "请联系工作区管理员启用公开资料核验，然后重试。",
+    "Open supporting post": "打开支持性帖子",
     "Inspect public evidence separately before any governed graph review.": "在治理图谱审查前单独检查公开证据。",
     "Collect stronger authoritative evidence before accepting the claim.": "接受该声明前，请收集更有力的权威证据。",
     "Inspect the authorized cited posts and their evidence.": "检查已获授权的引用文章及其证据。",
@@ -1312,7 +1314,8 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "A counterparty can hold more than one role over time -- a customer in one post can be a competitor, supplier, or partner in another. Every role observed for a name is listed, not just the most frequent.":
       "取引先は時間の経過とともに複数の役割を持つことがあります -- ある投稿では顧客でも、別の投稿では競合他社、サプライヤー、またはパートナーである場合があります。最も頻繁な役割だけでなく、観測されたすべての役割を表示します。",
     "Multiple roles observed": "複数の役割が観測されました",
-    "Source identifiers are hints only; ontology and semantic evidence must resolve them before binding a customer.": "ソース識別子はヒントにすぎません。顧客に紐付ける前にオントロジーと意味証拠で解決する必要があります。",
+    "Before linking a customer, compare the source identifier with the related posts and organization evidence.":
+      "顧客を紐付ける前に、元の識別子を関連投稿と組織の根拠と照合してください。",
     "Unresolved source identifier": "未解決のソース識別子",
     "Weak source hint": "信頼度の低いソースヒント",
     "Source hint": "ソースヒント",
@@ -1339,8 +1342,8 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Conflicts with public evidence": "公開証拠と矛盾しています",
     "Not enough public information": "公開情報が不十分です",
     "Enable public verification to check eligible public claims.": "対象となる主張を確認するには公開検証を有効にしてください。",
-    "Configure public search and contextual-orchestrator, then retry.": "公開検索と contextual-orchestrator を設定して再試行してください。",
-    "Inspect the internal cited posts; no public claim was eligible.": "対象となる公開主張がないため、内部の引用投稿を確認してください。",
+    "Ask a workspace administrator to enable public verification, then retry.": "ワークスペース管理者に公開情報の検証を有効にするよう依頼してから、再試行してください。",
+    "Open supporting post": "根拠となる投稿を開く",
     "Inspect public evidence separately before any governed graph review.": "管理対象グラフをレビューする前に公開証拠を別途確認してください。",
     "Collect stronger authoritative evidence before accepting the claim.": "主張を受け入れる前に、より強い権威ある証拠を集めてください。",
     "Inspect the authorized cited posts and their evidence.": "許可された引用投稿とその証拠を確認してください。",
@@ -1865,7 +1868,8 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "A counterparty can hold more than one role over time -- a customer in one post can be a competitor, supplier, or partner in another. Every role observed for a name is listed, not just the most frequent.":
       "Một đối tác có thể giữ nhiều vai trò theo thời gian -- là khách hàng trong bài viết này nhưng có thể là đối thủ cạnh tranh, nhà cung cấp, hoặc đối tác trong bài viết khác. Mọi vai trò được quan sát đều được liệt kê, không chỉ vai trò phổ biến nhất.",
     "Multiple roles observed": "Đã quan sát nhiều vai trò",
-    "Source identifiers are hints only; ontology and semantic evidence must resolve them before binding a customer.": "Mã định danh nguồn chỉ là gợi ý; ontology và bằng chứng ngữ nghĩa phải phân giải trước khi gắn với khách hàng.",
+    "Before linking a customer, compare the source identifier with the related posts and organization evidence.":
+      "Trước khi liên kết khách hàng, hãy đối chiếu mã định danh nguồn với các bài viết liên quan và bằng chứng tổ chức.",
     "Unresolved source identifier": "Mã định danh nguồn chưa được phân giải",
     "Weak source hint": "Gợi ý nguồn có độ tin cậy thấp",
     "Source hint": "Gợi ý nguồn",
@@ -1892,8 +1896,8 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Conflicts with public evidence": "Mâu thuẫn với bằng chứng công khai",
     "Not enough public information": "Không đủ thông tin công khai",
     "Enable public verification to check eligible public claims.": "Bật xác minh công khai để kiểm tra các tuyên bố đủ điều kiện.",
-    "Configure public search and contextual-orchestrator, then retry.": "Cấu hình tìm kiếm công khai và contextual-orchestrator rồi thử lại.",
-    "Inspect the internal cited posts; no public claim was eligible.": "Không có tuyên bố công khai đủ điều kiện; hãy xem các bài viết nội bộ được trích dẫn.",
+    "Ask a workspace administrator to enable public verification, then retry.": "Hãy yêu cầu quản trị viên không gian làm việc bật xác minh công khai, rồi thử lại.",
+    "Open supporting post": "Mở bài viết làm bằng chứng",
     "Inspect public evidence separately before any governed graph review.": "Kiểm tra riêng bằng chứng công khai trước khi rà soát đồ thị được quản trị.",
     "Collect stronger authoritative evidence before accepting the claim.": "Thu thập bằng chứng có thẩm quyền mạnh hơn trước khi chấp nhận tuyên bố.",
     "Inspect the authorized cited posts and their evidence.": "Kiểm tra các bài viết được trích dẫn đã cấp quyền và bằng chứng của chúng.",
