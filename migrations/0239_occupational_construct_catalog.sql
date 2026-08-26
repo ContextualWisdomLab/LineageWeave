@@ -14,3 +14,12 @@ alter table occupational_construct_vocabulary
 
 alter table occupational_construct
     add column if not exists construct_description text;
+
+alter table occupational_construct
+    drop constraint if exists occupational_construct_description_nonblank_check;
+alter table occupational_construct
+    add constraint occupational_construct_description_nonblank_check
+    check (
+        construct_description is null
+        or btrim(construct_description) <> ''
+    );

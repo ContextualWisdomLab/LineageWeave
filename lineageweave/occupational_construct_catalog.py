@@ -14,6 +14,9 @@ ONET_CONTENT_MODEL_URL = (
     "https://www.onetcenter.org/dl_files/database/"
     "db_31_0_json/content_model_reference.json"
 )
+ONET_CONTENT_MODEL_CANONICAL_SHA256 = (
+    "cb25e83a25c355dba035afdfc6b23ed8706a939d5f5021ed772d554ea49afb06"
+)
 ONET_VOCABULARY_IRI = "https://www.onetcenter.org/database.html"
 ONET_LICENSE_IRI = "https://creativecommons.org/licenses/by/4.0/"
 ONET_ATTRIBUTION = (
@@ -66,6 +69,8 @@ def parse_onet_construct_catalog(payload: dict[str, Any]) -> tuple[CatalogConstr
             raise ValueError("O*NET element_id is malformed")
         if not isinstance(label, str) or not label.strip():
             raise ValueError("O*NET element_name must be non-empty")
+        if label != label.strip():
+            raise ValueError("O*NET element_name must not contain outer whitespace")
         family = next(
             (
                 family_code
@@ -83,16 +88,23 @@ def parse_onet_construct_catalog(payload: dict[str, Any]) -> tuple[CatalogConstr
         iri = f"https://data.onetcenter.org/element/{element_id}"
         if iri in constructs:
             raise ValueError(f"duplicate O*NET construct IRI: {iri}")
-        constructs[iri] = CatalogConstruct(iri, family, label.strip(), description)
+        constructs[iri] = CatalogConstruct(iri, family, label, description)
     if not constructs:
         raise ValueError("O*NET catalog contains no governed construct roots")
     return tuple(constructs[iri] for iri in sorted(constructs))
 
 
-async def sync_onet_construct_catalog(conn: Any, payload: dict[str, Any]) -> int:
+async def sync_onet_construct_catalog(
+    conn: Any,
+    payload: dict[str, Any],
+    *,
+    expected_source_sha256: str = ONET_CONTENT_MODEL_CANONICAL_SHA256,
+) -> int:
     """Atomically synchronize one immutable O*NET release and verify it exactly."""
-    constructs = parse_onet_construct_catalog(payload)
     source_sha256 = catalog_content_sha256(payload)
+    if source_sha256 != expected_source_sha256:
+        raise ValueError("O*NET 31.0 source digest differs from the reviewed release")
+    constructs = parse_onet_construct_catalog(payload)
     async with conn.transaction():
         vocabulary_id = await conn.fetchval(
             """

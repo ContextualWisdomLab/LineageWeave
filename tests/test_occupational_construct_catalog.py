@@ -9,6 +9,7 @@ import pytest
 
 from lineageweave.occupational_construct_catalog import (
     ONET_ATTRIBUTION,
+    ONET_CONTENT_MODEL_CANONICAL_SHA256,
     catalog_content_sha256,
     parse_onet_construct_catalog,
     sync_onet_construct_catalog,
@@ -67,6 +68,19 @@ def test_parser_rejects_malformed_or_duplicate_source_rows() -> None:
         parse_onet_construct_catalog(payload)
 
 
+def test_parser_preserves_labels_and_keeps_blank_description_unavailable() -> None:
+    """Official labels are exact while whitespace-only descriptions stay absent."""
+    payload = _payload()
+    constructs = parse_onet_construct_catalog(payload)
+    assert constructs[1].preferred_label == "Achievement Orientation"
+    assert constructs[1].description is None
+    rows = payload["row"]
+    assert isinstance(rows, list)
+    rows[0]["element_name"] = " Oral Comprehension"
+    with pytest.raises(ValueError, match="outer whitespace"):
+        parse_onet_construct_catalog(payload)
+
+
 def test_catalog_hash_is_key_order_independent() -> None:
     """Equivalent decoded JSON produces one reproducible release digest."""
     assert catalog_content_sha256({"a": 1, "b": 2}) == catalog_content_sha256(
@@ -115,7 +129,17 @@ class _RecordingConnection:
 def test_sync_uses_one_transaction_and_verifies_exact_stored_metadata() -> None:
     """The operator sync persists and verifies the whole admitted catalog."""
     conn = _RecordingConnection()
-    assert asyncio.run(sync_onet_construct_catalog(conn, _payload())) == 3
+    payload = _payload()
+    assert (
+        asyncio.run(
+            sync_onet_construct_catalog(
+                conn,
+                payload,
+                expected_source_sha256=catalog_content_sha256(payload),
+            )
+        )
+        == 3
+    )
     assert len(conn.batch) == 3
 
 
@@ -130,4 +154,20 @@ def test_sync_rejects_conflicting_stored_construct_metadata() -> None:
             return rows
 
     with pytest.raises(ValueError, match="differs from the official release"):
-        asyncio.run(sync_onet_construct_catalog(ConflictingConnection(), _payload()))
+        payload = _payload()
+        asyncio.run(
+            sync_onet_construct_catalog(
+                ConflictingConnection(),
+                payload,
+                expected_source_sha256=catalog_content_sha256(payload),
+            )
+        )
+
+
+def test_sync_rejects_unreviewed_release_before_opening_a_transaction() -> None:
+    """A same-URL document change cannot initialize a new release silently."""
+    conn = _RecordingConnection()
+    with pytest.raises(ValueError, match="digest differs"):
+        asyncio.run(sync_onet_construct_catalog(conn, _payload()))
+    assert conn.batch == []
+    assert len(ONET_CONTENT_MODEL_CANONICAL_SHA256) == 64

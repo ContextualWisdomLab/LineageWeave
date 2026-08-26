@@ -29,9 +29,14 @@ below `4.A`. These are source classifications, not a LineageWeave heuristic.
    `4.A` as `work_activity`. It preserves official labels, optional descriptions,
    and permanent `https://data.onetcenter.org/element/{element_id}` IRIs.
 3. The canonical decoded JSON SHA-256 is stored on the vocabulary release.
-   Replaying the same document is idempotent. A changed document under the same
-   release, or conflicting construct metadata, aborts the transaction instead
-   of rewriting history.
+   The reviewed O*NET 31.0 document digest is
+   `cb25e83a25c355dba035afdfc6b23ed8706a939d5f5021ed772d554ea49afb06`;
+   synchronization rejects any other digest before opening a database
+   transaction. Replaying the same document is idempotent. A changed document
+   under the same release, or conflicting construct metadata, aborts instead
+   of rewriting history. The reviewed document contains 3,006 source rows and
+   admits 2,529 governed constructs: 29 cognitive abilities, 26 work styles,
+   and 2,474 work activities.
 4. This catalog does not import occupation ratings, scores, scale values,
    ability-to-activity linkages, work-style linkages, FJA crosswalks, affective
    vocabularies, or person/job bindings. Those require their own provenance and

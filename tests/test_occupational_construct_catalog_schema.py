@@ -12,4 +12,6 @@ def test_catalog_migration_is_replay_safe_and_preserves_source_integrity() -> No
     assert "add column if not exists source_content_sha256" in sql
     assert "source_content_sha256 ~ '^[0-9a-f]{64}$'" in sql
     assert "add column if not exists construct_description" in sql
+    assert "construct_description is null" in sql
+    assert "btrim(construct_description) <> ''" in sql
     assert "drop constraint if exists" in sql
