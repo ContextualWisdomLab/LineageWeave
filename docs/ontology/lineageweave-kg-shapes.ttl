@@ -214,7 +214,10 @@
     sh:targetClass :PostVoiceClassificationAssertion ;
     sh:property [
         sh:path :voiceConceptCode ; sh:minCount 1 ; sh:maxCount 1 ;
-        sh:in ("voc" "vocc" "voco" "vom" "vop") ;
+        sh:in (
+            "voc" "vocc" "voco" "vom" "vop" "vos"
+            "voe" "vob" "vor" "voi" "voso" "vops"
+        ) ;
     ] ;
     sh:property [
         sh:path :voiceAssertionStatus ; sh:minCount 1 ; sh:maxCount 1 ;

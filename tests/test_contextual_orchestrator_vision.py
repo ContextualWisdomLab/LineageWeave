@@ -15,7 +15,7 @@ def test_native_vision_client_sends_multimodal_payload_through_orchestrator(monk
         lambda image_bytes, mime_type: (image_bytes, mime_type),
     )
 
-    def fake_request(method, url, *, body, headers, timeout):
+    def fake_request(method, url, *, body, headers, timeout, response_control_headers):
         captured["url"] = url
         captured["payload"] = json.loads(body)
         response = {
@@ -51,7 +51,7 @@ def test_native_vision_region_locator_uses_orchestrator_auto_contract(monkeypatc
         lambda image_bytes, mime_type: (image_bytes, mime_type),
     )
 
-    def fake_request(method, url, *, body, headers, timeout):
+    def fake_request(method, url, *, body, headers, timeout, response_control_headers):
         captured["url"] = url
         captured["payload"] = json.loads(body)
         return 200, json.dumps({
@@ -78,7 +78,7 @@ def test_native_vision_region_locator_accepts_single_region_object(monkeypatch) 
         lambda image_bytes, mime_type: (image_bytes, mime_type),
     )
 
-    def fake_request(method, url, *, body, headers, timeout):
+    def fake_request(method, url, *, body, headers, timeout, response_control_headers):
         return 200, json.dumps({
             "choices": [{"message": {"content": '{"x":0.13,"y":0.545,"width":0.74,"height":0.41}'}}]
         }).encode("utf-8")
