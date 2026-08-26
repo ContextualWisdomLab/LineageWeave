@@ -21,6 +21,29 @@ create unique index if not exists source_post_voice_primary_idx
 create index if not exists source_post_voice_type_idx
     on source_post_voice (voice_type_code, post_id);
 
+create or replace function validate_source_post_voice_type()
+returns trigger
+language plpgsql
+as $$
+begin
+    if not exists (
+        select 1
+        from common_lookup_value
+        where lookup_category = 'voc_type'
+          and lookup_code = new.voice_type_code
+    ) then
+        raise exception 'source_post_voice requires a voc_type lookup code'
+            using errcode = '23514';
+    end if;
+    return new;
+end;
+$$;
+
+drop trigger if exists source_post_voice_type_guard on source_post_voice;
+create trigger source_post_voice_type_guard
+before insert or update of voice_type_code on source_post_voice
+for each row execute function validate_source_post_voice_type();
+
 insert into source_post_voice
     (post_id, voice_type_code, is_primary, truth_status_code)
 select post_id, voc_type_code, true, 'truth_observed'

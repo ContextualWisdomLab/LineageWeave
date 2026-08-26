@@ -34,6 +34,9 @@ compound lookup codes.
 - The pair `(post_id, voice_type_code)` is unique. One partial unique index
   permits only one primary voice while allowing any evidence-backed subset of
   the governed vocabulary as additional voices.
+- A database trigger verifies that every association code belongs to the
+  `voc_type` lookup category; the global lookup-code foreign key alone does not
+  establish that category boundary.
 - Voice remains distinct from counterparty relationship, actor role, topic,
   channel, lifecycle, and stakeholder-salience attributes. No inference,
   keyword rule, confidence threshold, or weight converts those dimensions into

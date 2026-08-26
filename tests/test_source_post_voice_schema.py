@@ -23,6 +23,8 @@ def test_voice_combination_schema_is_normalized_and_evidence_bearing() -> None:
     assert "select post_id, voc_type_code, true" in sql
     assert "after insert or update of voc_type_code on source_post" in sql
     assert "on conflict (post_id, voice_type_code) do update" in sql
+    assert "where lookup_category = 'voc_type'" in sql
+    assert "errcode = '23514'" in sql
 
 
 def test_voice_combination_migration_uses_no_compound_or_inferred_voice_codes() -> None:
