@@ -3144,10 +3144,7 @@ function AnalysisRunsPanel({
   const [starting, setStarting] = useState(false);
   const [selectedEntityId, setSelectedEntityId] = useState("");
   const lineageRequestKeyRef = useRef<string | null>(null);
-  const measurementRetryKeyRef = useRef<{
-    sourceRunId: string;
-    idempotencyKey: string;
-  } | null>(null);
+  const measurementRetryKeysRef = useRef(new Map<string, string>());
   const entitiesReady = corporateEntities !== null && entitiesLoadError === null;
   const requestLabel = requesting
     ? "Recording the run..."
@@ -3231,13 +3228,12 @@ function AnalysisRunsPanel({
     if (!selected || !analysisRunCanRetryMeasurement(selected)) return;
     setError(null);
     setStarting(true);
-    if (measurementRetryKeyRef.current?.sourceRunId !== selected.analysis_run_id) {
-      measurementRetryKeyRef.current = {
-        sourceRunId: selected.analysis_run_id,
-        idempotencyKey: crypto.randomUUID(),
-      };
+    const sourceRunId = selected.analysis_run_id;
+    let idempotencyKey = measurementRetryKeysRef.current.get(sourceRunId);
+    if (idempotencyKey === undefined) {
+      idempotencyKey = crypto.randomUUID();
+      measurementRetryKeysRef.current.set(sourceRunId, idempotencyKey);
     }
-    const idempotencyKey = measurementRetryKeyRef.current.idempotencyKey;
     try {
       const created = await createAnalysisRun(accessToken, {
         run_kind_code: selected.run_kind_code,
@@ -3248,10 +3244,10 @@ function AnalysisRunsPanel({
       const listed = await fetchAnalysisRuns(accessToken);
       setRuns(listed.analysis_runs);
       setSelected(started);
-      measurementRetryKeyRef.current = null;
+      measurementRetryKeysRef.current.delete(sourceRunId);
     } catch (err) {
       if (err instanceof BackendError && err.status === 409) {
-        measurementRetryKeyRef.current = null;
+        measurementRetryKeysRef.current.delete(sourceRunId);
       }
       setError(err instanceof BackendError ? err.message : String(err));
     } finally {

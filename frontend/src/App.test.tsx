@@ -103,7 +103,7 @@ describe("App, authenticated", () => {
     verificationEvidenceUrl?: string | null;
     failedLineageRun?: boolean;
     failLineageCreateOnce?: boolean;
-    failMeasurementStartOnce?: boolean;
+    measurementStartFailures?: number;
     secondFailedTeppRun?: boolean;
     runningLineageRun?: boolean;
     failedReportRun?: boolean;
@@ -128,7 +128,7 @@ describe("App, authenticated", () => {
     lineageIsolationReason?: "comparison_candidates_available" | "no_comparison_group";
   }): ReturnType<typeof vi.fn> & { releaseMe: () => void; releasePostOne: () => void } {
     let lineageCreateFailed = false;
-    let measurementStartFailed = false;
+    let measurementStartFailureCount = 0;
     const statusLabel: Record<string, string> = {
       open: "Open",
       in_progress: "In progress",
@@ -675,8 +675,8 @@ describe("App, authenticated", () => {
         );
       }
       if (url.endsWith("/api/analysis-runs/run-demo-tepp-retry/start") && method === "POST") {
-        if (options?.failMeasurementStartOnce && !measurementStartFailed) {
-          measurementStartFailed = true;
+        if (measurementStartFailureCount < (options?.measurementStartFailures ?? 0)) {
+          measurementStartFailureCount += 1;
           return Promise.resolve(
             new Response(JSON.stringify({ detail: "The response was interrupted." }), {
               status: 503,
@@ -3996,7 +3996,7 @@ describe("App, authenticated", () => {
 
   it("scopes an interrupted measurement retry key to its source run", async () => {
     const fetchMock = stubBackend({
-      failMeasurementStartOnce: true,
+      measurementStartFailures: 2,
       secondFailedTeppRun: true,
     });
     render(<App showLabPanels />);
@@ -4035,6 +4035,20 @@ describe("App, authenticated", () => {
     expect(retries[1].idempotency_key).toBe(retries[0].idempotency_key);
     expect(retries[2].corporate_entity_id).toBe("corp-other");
     expect(retries[2].idempotency_key).not.toBe(retries[0].idempotency_key);
+
+    const originalRunButtons = screen.getAllByRole("button", {
+      name: "Open analysis run: TEPP measurement · Failed · Demo Corp",
+    });
+    await userEvent.click(originalRunButtons.at(-1)!);
+    await userEvent.click(screen.getByRole("button", { name: "Retry measurement" }));
+
+    const replayed = fetchMock.mock.calls
+      .filter(
+        (call) => String(call[0]).endsWith("/api/analysis-runs") && call[1]?.method === "POST",
+      )
+      .map((call) => JSON.parse(String(call[1]?.body)));
+    expect(replayed).toHaveLength(4);
+    expect(replayed[3].idempotency_key).toBe(replayed[0].idempotency_key);
   });
 
   it("does not tell a succeeded TEPP run to replace Failed", async () => {
