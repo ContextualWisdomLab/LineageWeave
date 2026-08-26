@@ -34,9 +34,11 @@ Normalized tables:
 * `post_ask_turn_citation` / `post_ask_turn_source` — cited and retrieved
   posts
 
-The composite index `(user_account_id, post_id, updated_at desc)` leads
+The composite index `(user_account_id, post_id, created_at desc)` leads
 with the account so a hot post cannot concentrate list traffic on one
-partition key. A turn is written only after a complete answer exists
+partition key. Conversation pagination uses that immutable creation key;
+`updated_at` remains display metadata but cannot move a row across a cursor
+while a reader loads later pages. A turn is written only after a complete answer exists
 (seeded cache hit or orchestrator object). History reads re-apply current
 post visibility before returning titles or citations.
 

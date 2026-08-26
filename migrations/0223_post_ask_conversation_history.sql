@@ -11,8 +11,8 @@ create table if not exists post_ask_session (
     updated_at timestamptz not null default now()
 );
 
-create index if not exists post_ask_session_account_post_idx
-    on post_ask_session (user_account_id, post_id, updated_at desc);
+create index if not exists post_ask_session_account_post_created_idx
+    on post_ask_session (user_account_id, post_id, created_at desc);
 
 create table if not exists post_ask_turn (
     post_ask_session_id uuid not null

@@ -153,7 +153,7 @@ describe("ChatPanel conversation history", () => {
           conversation_id: "conversation-1",
         });
       }
-      if (url.includes("before_updated_at=")) {
+      if (url.includes("before_created_at=")) {
         return jsonResponse({
           conversations: [
             { conversation_id: "conversation-1", title: "Saved question", updated_at: "2026-08-26T00:02:00Z", turn_count: 2 },
@@ -165,7 +165,7 @@ describe("ChatPanel conversation history", () => {
       if (url.endsWith("/chat/conversations")) {
         return jsonResponse({
           conversations: [{ conversation_id: "conversation-1", title: "Saved question", updated_at: "2026-08-26T00:01:00Z", turn_count: 1 }],
-          next_cursor: { updated_at: "2026-08-26T00:00:00Z", conversation_id: "conversation-2" },
+          next_cursor: { created_at: "2026-08-26T00:00:00Z", conversation_id: "conversation-2" },
         });
       }
       return jsonResponse({ post_id: "post-1", exchanges: [] });
@@ -192,7 +192,7 @@ describe("ChatPanel conversation history", () => {
       if (url.endsWith("post-1/chat/conversations")) {
         return jsonResponse({
           conversations: [],
-          next_cursor: { updated_at: "2026-08-26T00:00:00Z", conversation_id: "conversation-old" },
+          next_cursor: { created_at: "2026-08-26T00:00:00Z", conversation_id: "conversation-old" },
         });
       }
       if (url.endsWith("post-2/chat/conversations")) {
@@ -496,7 +496,7 @@ describe("ChatPanel conversation history", () => {
   it("offers a next action when another history page cannot be loaded", async () => {
     vi.stubGlobal("fetch", vi.fn(async (input: RequestInfo | URL) => {
       const url = input instanceof Request ? input.url : String(input);
-      if (url.includes("before_updated_at=")) throw new TypeError("network unavailable");
+      if (url.includes("before_created_at=")) throw new TypeError("network unavailable");
       if (url.endsWith("/chat/conversations")) {
         return jsonResponse({
           conversations: [{

@@ -3222,17 +3222,17 @@ async def chat_about_post(
 async def read_post_chat_conversations(
     post_id: str,
     limit: int = Query(50, ge=1, le=50),
-    before_updated_at: datetime | None = Query(None),
+    before_created_at: datetime | None = Query(None),
     before_conversation_id: UUID | None = Query(None),
     account: CurrentAccount = Depends(get_current_account),
     pool: asyncpg.Pool = Depends(get_pool),
 ) -> dict[str, Any]:
     """List this account's saved Ask conversations on one visible post."""
     await _load_visible_post(post_id, account, pool)
-    if (before_updated_at is None) != (before_conversation_id is None):
+    if (before_created_at is None) != (before_conversation_id is None):
         raise HTTPException(
             status.HTTP_422_UNPROCESSABLE_CONTENT,
-            "before_updated_at and before_conversation_id must be provided together",
+            "before_created_at and before_conversation_id must be provided together",
         )
     async with pool.acquire() as conn:
         return await list_post_ask_conversations(
@@ -3240,7 +3240,7 @@ async def read_post_chat_conversations(
             account.user_account_id,
             post_id,
             limit=limit,
-            before_updated_at=before_updated_at,
+            before_created_at=before_created_at,
             before_conversation_id=before_conversation_id,
         )
 

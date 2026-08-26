@@ -55,12 +55,12 @@ async def list_conversations(
     post_id: str,
     *,
     limit: int = 50,
-    before_updated_at: datetime | None = None,
+    before_created_at: datetime | None = None,
     before_conversation_id: UUID | None = None,
 ) -> dict[str, Any]:
-    """Return this account's conversations on ``post_id``, newest first."""
-    if (before_updated_at is None) != (before_conversation_id is None):
-        raise ValueError("before_updated_at and before_conversation_id must be provided together")
+    """Return this account's conversations on ``post_id``, newest-created first."""
+    if (before_created_at is None) != (before_conversation_id is None):
+        raise ValueError("before_created_at and before_conversation_id must be provided together")
     rows = await conn.fetch(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
         """
         select session.post_ask_session_id,
@@ -69,6 +69,7 @@ async def list_conversations(
                  where turn.post_ask_session_id = session.post_ask_session_id
                  order by turn.turn_ordinal
                  limit 1) as conversation_title,
+               session.created_at,
                session.updated_at,
                count(turn.turn_ordinal)::int as turn_count
           from post_ask_session session
@@ -79,16 +80,16 @@ async def list_conversations(
            and (
                $3 is null
                or $4 is null
-               or session.updated_at < $3
-               or (session.updated_at = $3 and session.post_ask_session_id < $4)
+               or session.created_at < $3
+               or (session.created_at = $3 and session.post_ask_session_id < $4)
            )
-         group by session.post_ask_session_id, session.updated_at
-         order by session.updated_at desc, session.post_ask_session_id desc
+         group by session.post_ask_session_id, session.created_at, session.updated_at
+         order by session.created_at desc, session.post_ask_session_id desc
          limit $5
         """,
         user_account_id,
         post_id,
-        before_updated_at,
+        before_created_at,
         before_conversation_id,
         limit + 1,
     )
@@ -97,7 +98,7 @@ async def list_conversations(
     if len(rows) > limit and page_rows:
         last = page_rows[-1]
         next_cursor = {
-            "updated_at": last["updated_at"],
+            "created_at": last["created_at"],
             "conversation_id": str(last["post_ask_session_id"]),
         }
     return {

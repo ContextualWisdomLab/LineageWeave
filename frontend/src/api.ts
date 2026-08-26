@@ -368,7 +368,7 @@ export interface PostAskConversationSummary {
 
 export interface PostAskConversationPage {
   conversations: PostAskConversationSummary[];
-  next_cursor?: { updated_at: string; conversation_id: string } | null;
+  next_cursor?: { created_at: string; conversation_id: string } | null;
 }
 
 export interface PostAskConversation {
@@ -1191,10 +1191,10 @@ export function askPostChat(
 export function fetchPostChatConversations(
   accessToken: string,
   postId: string,
-  cursor?: { updated_at: string; conversation_id: string },
+  cursor?: { created_at: string; conversation_id: string },
 ): Promise<PostAskConversationPage> {
   const query = cursor
-    ? `?before_updated_at=${encodeURIComponent(cursor.updated_at)}&before_conversation_id=${encodeURIComponent(cursor.conversation_id)}`
+    ? `?before_created_at=${encodeURIComponent(cursor.created_at)}&before_conversation_id=${encodeURIComponent(cursor.conversation_id)}`
     : "";
   return backendFetch(`/api/posts/${postId}/chat/conversations${query}`, accessToken);
 }

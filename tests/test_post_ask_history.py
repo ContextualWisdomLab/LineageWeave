@@ -65,12 +65,14 @@ def test_list_conversations_binds_account_post_and_cursor() -> None:
             {
                 "post_ask_session_id": UUID("00000000-0000-0000-0000-000000000001"),
                 "conversation_title": "First",
-                "updated_at": datetime(2026, 1, 2, tzinfo=UTC),
+                "created_at": datetime(2026, 1, 2, tzinfo=UTC),
+                "updated_at": datetime(2026, 1, 5, tzinfo=UTC),
                 "turn_count": 1,
             },
             {
                 "post_ask_session_id": UUID("00000000-0000-0000-0000-000000000002"),
                 "conversation_title": "Second",
+                "created_at": datetime(2026, 1, 1, tzinfo=UTC),
                 "updated_at": datetime(2026, 1, 1, tzinfo=UTC),
                 "turn_count": 2,
             },
@@ -84,7 +86,7 @@ def test_list_conversations_binds_account_post_and_cursor() -> None:
             "account-1",
             "post-1",
             limit=1,
-            before_updated_at=cursor_time,
+            before_created_at=cursor_time,
             before_conversation_id=UUID("00000000-0000-0000-0000-000000000003"),
         )
     )
@@ -92,6 +94,7 @@ def test_list_conversations_binds_account_post_and_cursor() -> None:
     query, arguments = connection.calls[0]
     assert "{cursor_clause}" not in query
     assert "post_ask_session" in query
+    assert "order by session.created_at desc" in query
     assert arguments == (
         "account-1",
         "post-1",
@@ -101,18 +104,19 @@ def test_list_conversations_binds_account_post_and_cursor() -> None:
     )
     assert len(result["conversations"]) == 1
     assert result["next_cursor"] is not None
+    assert result["next_cursor"]["created_at"] == datetime(2026, 1, 2, tzinfo=UTC)
     assert result["conversations"][0]["conversation_id"] == "00000000-0000-0000-0000-000000000001"
 
 
 @pytest.mark.parametrize(
-    ("before_updated_at", "before_conversation_id"),
+    ("before_created_at", "before_conversation_id"),
     [
         (datetime(2026, 1, 3, tzinfo=UTC), None),
         (None, UUID("00000000-0000-0000-0000-000000000003")),
     ],
 )
 def test_list_conversations_rejects_a_partial_cursor(
-    before_updated_at: datetime | None,
+    before_created_at: datetime | None,
     before_conversation_id: UUID | None,
 ) -> None:
     """Direct callers cannot silently turn a partial cursor into page one."""
@@ -124,7 +128,7 @@ def test_list_conversations_rejects_a_partial_cursor(
                 connection,
                 "account-1",
                 "post-1",
-                before_updated_at=before_updated_at,
+                before_created_at=before_created_at,
                 before_conversation_id=before_conversation_id,
             )
         )
