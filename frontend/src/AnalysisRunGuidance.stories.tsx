@@ -59,7 +59,7 @@ export const StatusAndCorpusMatrix: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     await expect(canvas.getByText("관리자에게 측정 복구를 요청한 다음 다시 실행하세요.", { exact: false })).toBeVisible();
-    await expect(canvas.getByText("이 실행이 끝나면 이 글들이 토픽 계보를 구성합니다.")).toBeVisible();
+    await expect(canvas.getByText("이 실행이 끝나면 LineageWeave가 이 글들을 토픽 계보로 구성합니다.")).toBeVisible();
   },
 };
 

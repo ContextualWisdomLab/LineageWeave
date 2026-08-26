@@ -3025,7 +3025,7 @@ function analysisRunCanStart(run: AnalysisRun): boolean {
 
 function analysisRunStartLabel(run: AnalysisRun): string {
   if (run.run_kind_code === "analysis_run_tepp") {
-    return "Start TEPP measurement";
+    return "Start measurement";
   }
   if (run.run_kind_code === "analysis_run_topic_lineage") {
     return "Start topic lineage";
@@ -3317,7 +3317,7 @@ function AnalysisRunsPanel({
             >
               {starting
                 ? selected.run_kind_code === "analysis_run_tepp"
-                  ? "Submitting the TEPP request..."
+                  ? "Starting measurement..."
                   : selected.run_kind_code === "analysis_run_topic_lineage"
                     ? "Submitting the topic-lineage request..."
                     : "Reconstructing the cutoff bag..."

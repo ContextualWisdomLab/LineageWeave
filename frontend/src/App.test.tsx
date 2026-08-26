@@ -3800,13 +3800,13 @@ describe("App, authenticated", () => {
       }),
     );
     expect(
-      await screen.findByText("These posts will be measured when this run finishes."),
+      await screen.findByText("LineageWeave will measure these posts when this run finishes."),
     ).toBeInTheDocument();
     expect(screen.queryByText(/replace Failed/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/this TEPP run measured/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/Reconstruction has not started yet/)).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Start reconstruction" })).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Start TEPP measurement" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Start measurement" })).toBeInTheDocument();
   });
 
   it("starts a pending TEPP run through tepp_client and does not invent a theta", async () => {
@@ -3818,7 +3818,7 @@ describe("App, authenticated", () => {
         name: "Open analysis run: TEPP measurement · Pending · Demo Corp",
       }),
     );
-    await userEvent.click(screen.getByRole("button", { name: "Start TEPP measurement" }));
+    await userEvent.click(screen.getByRole("button", { name: "Start measurement" }));
     expect(
       await screen.findByRole("heading", { name: "TEPP measurement · Failed · Demo Corp" }),
     ).toBeInTheDocument();
@@ -3864,7 +3864,7 @@ describe("App, authenticated", () => {
       }),
     );
     expect(
-      await screen.findByText("These posts were measured in this run."),
+      await screen.findByText("LineageWeave measured these posts in this run."),
     ).toBeInTheDocument();
     expect(screen.queryByText(/replace Failed/i)).not.toBeInTheDocument();
   });
