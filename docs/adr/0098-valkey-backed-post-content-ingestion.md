@@ -101,6 +101,11 @@ The producer applies `SOURCE_POST_ELIGIBILITY_SQL`, locks source rows with
 `SKIP LOCKED`, selects only new or incomplete-succeeded jobs, rechecks the
 shared completeness predicate, and records the existing job state in
 PostgreSQL. Repeated calls therefore do not reset active or terminal work.
+When contextual-orchestrator evidence is required, an otherwise complete
+successful job with no `operations_case_analysis` row is also incomplete and
+eligible for the same bounded requeue. This lets records completed before the
+operations extractor was deployed enter that extractor without a synchronous
+provider call or a second queue.
 If Valkey is unavailable, the response reports `recovery_pending` and the
 committed queued rows are republished by the existing recovery sweep. Direct
 provider calls are not a substitute for the worker queue.

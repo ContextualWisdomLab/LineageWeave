@@ -48,7 +48,6 @@ def main() -> None:
         raise SystemExit("LLM_GATEWAY_API_URL or LLM_GATEWAY_URL is required to start the gateway")
     if not provider_url.rstrip("/").endswith("/v1"):
         provider_url = provider_url.rstrip("/") + "/v1"
-    os.environ.pop("LLM_GATEWAY_EMBEDDING_MODEL", None)
     batch_registry_url = os.environ.pop("BATCH_JOB_REGISTRY_VALKEY_URL", "").strip()
     raw_limit = os.environ.pop("LLM_GATEWAY_MAX_OUTPUT_TOKENS", "4096").strip()
     try:

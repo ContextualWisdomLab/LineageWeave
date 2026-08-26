@@ -62,6 +62,8 @@ def test_bounded_backfill_is_idempotent_and_broker_loss_stays_recoverable(
             assert "source_draft_code" in query
             assert "source_deleted_flag" in query
             assert "job.post_id is null or job.status_code = $1" in query
+            assert "from operations_case_analysis analysis" in query
+            assert "analysis.post_id = post.post_id" in query
             assert "for update of post skip locked" in query.lower()
             assert args == (SUCCEEDED, True, True, 2)
             return [
@@ -169,6 +171,79 @@ def test_backfill_skips_a_candidate_that_became_complete(
         "selected_posts": 1,
         "queued_posts": 0,
         "published_events": 0,
+        "recovery_pending": 0,
+    }
+
+
+def test_backfill_requeues_complete_content_missing_operations_analysis(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A pre-extractor success is incomplete until its exact body is analyzed."""
+
+    class Transaction:
+        async def __aenter__(self) -> None:
+            return None
+
+        async def __aexit__(self, *_args: object) -> None:
+            return None
+
+    class Connection:
+        def transaction(self) -> Transaction:
+            return Transaction()
+
+        async def fetch(self, _query: str, *_args: object) -> list[dict[str, str]]:
+            return [
+                {
+                    "post_id": "00000000-0000-0000-0000-000000000001",
+                    "post_body": "historical success",
+                }
+            ]
+
+        async def fetchval(self, query: str, *args: object) -> bool:
+            assert "operations_case_analysis" in query
+            assert args == (
+                "00000000-0000-0000-0000-000000000001",
+                source_body_sha256("historical success"),
+            )
+            return False
+
+    class Acquire:
+        async def __aenter__(self) -> Connection:
+            return Connection()
+
+        async def __aexit__(self, *_args: object) -> None:
+            return None
+
+    class Pool:
+        def acquire(self) -> Acquire:
+            return Acquire()
+
+    async def content_complete(*_args: object, **_kwargs: object) -> bool:
+        return True
+
+    async def ensure(
+        _conn: object, post_id: str, body: str, *, content_complete: bool
+    ) -> PostContentJobRequest:
+        assert content_complete is False
+        return PostContentJobRequest(post_id, source_body_sha256(body), QUEUED, True)
+
+    async def publish(*_args: object, **_kwargs: object) -> str:
+        return "1-0"
+
+    from backend.app import post_content_queue
+
+    monkeypatch.setattr(post_content_queue, "post_content_is_complete", content_complete)
+    monkeypatch.setattr(post_content_queue, "ensure_post_content_job", ensure)
+    monkeypatch.setattr(post_content_queue, "publish_post_content_event", publish)
+    result = asyncio.run(
+        enqueue_post_content_backfill(
+            Pool(), object(), limit=1, require_embedding=True, require_structure=True
+        )
+    )
+    assert result == {
+        "selected_posts": 1,
+        "queued_posts": 1,
+        "published_events": 1,
         "recovery_pending": 0,
     }
 

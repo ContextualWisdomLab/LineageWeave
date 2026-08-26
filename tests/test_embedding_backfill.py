@@ -188,3 +188,12 @@ def test_bulk_backfill_packs_largest_prefix_within_advertised_body_ceiling() -> 
 
     assert result["selected_units"] == 2
     assert len(client.calls[0][0]) == 2
+
+
+def test_candidate_window_is_bounded_before_window_functions() -> None:
+    """Each batch ranks at most the operator-advertised input ceiling."""
+    bounded_start = _SELECT_UNITS_SQL.index("bounded_candidates as materialized")
+    limit_position = _SELECT_UNITS_SQL.index("limit $2")
+    window_position = _SELECT_UNITS_SQL.index("row_number() over")
+
+    assert bounded_start < limit_position < window_position

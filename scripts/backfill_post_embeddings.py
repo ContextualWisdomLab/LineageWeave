@@ -40,6 +40,10 @@ async def _run(target_dsn: str) -> dict[str, int | str]:
     if not client.available:
         raise RuntimeError("embedding is unavailable; configure contextual-orchestrator")
     capabilities = client.batch_capabilities()
+    # LineageWeave bounds only the provider-neutral HTTP envelope. The
+    # advertised token/character ceilings are enforced by the orchestrator's
+    # Rust token-boundary splitter and durable shard runner; reproducing that
+    # arithmetic here would create a divergent model/provider policy boundary.
     conn = await asyncpg.connect(target_dsn)
     try:
         return await backfill_post_content_embeddings(
