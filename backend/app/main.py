@@ -587,11 +587,15 @@ def _serialize_post(post: asyncpg.Record, labels: dict[str, str] | None = None) 
     project_evidence = post.get("project_evidence") or []
     if isinstance(project_evidence, str):
         project_evidence = json.loads(project_evidence)
+    voice_types = post.get("voice_types") or []
+    if isinstance(voice_types, str):
+        voice_types = json.loads(voice_types)
     return {
         "post_id": str(post["post_id"]),
         "post_title": post["post_title"],
         "voc_type_code": voc,
         "voc_type_label": resolved.get(voc, voc),
+        "voice_types": voice_types,
         "visibility_code": visibility,
         "visibility_label": resolved.get(visibility, visibility),
         "source_stage_code": post.get("source_stage_code"),
@@ -691,6 +695,36 @@ async def _lookup_post_labels(conn: asyncpg.Connection, rows: list[asyncpg.Recor
     return await labels_for_codes(conn, codes)
 
 
+async def _load_post_voice_types(
+    conn: asyncpg.Connection, post_id: str
+) -> list[dict[str, Any]]:
+    """Return qualified Voice-of-X associations without exposing assertion ids."""
+    rows = await conn.fetch(
+        """
+        select voice.voice_type_code, lookup.lookup_label, voice.is_primary,
+               voice.truth_status_code,
+               voice.provenance_assertion_id is not null as evidence_available
+          from source_post_voice voice
+          join common_lookup_value lookup
+            on lookup.lookup_category = 'voc_type'
+           and lookup.lookup_code = voice.voice_type_code
+         where voice.post_id = $1
+         order by voice.is_primary desc, lookup.display_order, voice.voice_type_code
+        """,
+        post_id,
+    )
+    return [
+        {
+            "code": row["voice_type_code"],
+            "label": row["lookup_label"],
+            "is_primary": row["is_primary"],
+            "truth_status_code": row["truth_status_code"],
+            "evidence_available": row["evidence_available"],
+        }
+        for row in rows
+    ]
+
+
 async def _post_filter_options(
     conn: asyncpg.Connection,
     corporate_entity_ids: frozenset[str],
@@ -702,9 +736,10 @@ async def _post_filter_options(
                coalesce(lookup.lookup_label, option.code) as label,
                coalesce(lookup.display_order, 2147483647) as display_order
           from source_post post
+          left join source_post_voice voice on voice.post_id = post.post_id
          cross join lateral (
                values ('post_visibility', post.visibility_code),
-                      ('voc_type', post.voc_type_code)
+                      ('voc_type', coalesce(voice.voice_type_code, post.voc_type_code))
          ) as option(lookup_category, code)
           left join common_lookup_value lookup
             on lookup.lookup_category = option.lookup_category
@@ -1516,7 +1551,11 @@ async def list_posts(
                                 or affiliated.corporate_entity_code ilike '%' || $1 || '%')
                     )
                )
-               and ($3::text[] is null or post.voc_type_code = any($3::text[]))
+               and ($3::text[] is null or exists (
+                    select 1 from source_post_voice voice_filter
+                     where voice_filter.post_id = post.post_id
+                       and voice_filter.voice_type_code = any($3::text[])
+               ))
                and ($4::text is null or post.visibility_code = $4)
                  order by
                     search_priority asc,
@@ -1545,7 +1584,8 @@ async def list_posts(
                        else btrim(left(source_post_search_text(post.post_body), 420))
                    end as post_body_excerpt,
                    char_length(coalesce(post.post_body, '')) > 420 as post_body_truncated,
-                   coalesce(projects.project_evidence, '[]'::json) as project_evidence
+                   coalesce(projects.project_evidence, '[]'::json) as project_evidence,
+                   coalesce(voices.voice_types, '[]'::json) as voice_types
               from page
               join source_post post on post.post_id = page.post_id
               left join lateral (
@@ -1572,6 +1612,24 @@ async def list_posts(
                          limit 5
                     ) project
               ) projects on true
+              left join lateral (
+                  select json_agg(
+                             json_build_object(
+                                 'code', voice.voice_type_code,
+                                 'label', lookup.lookup_label,
+                                 'is_primary', voice.is_primary,
+                                 'truth_status_code', voice.truth_status_code,
+                                 'evidence_available', voice.provenance_assertion_id is not null
+                             )
+                             order by voice.is_primary desc, lookup.display_order,
+                                      voice.voice_type_code
+                         ) as voice_types
+                    from source_post_voice voice
+                    join common_lookup_value lookup
+                      on lookup.lookup_category = 'voc_type'
+                     and lookup.lookup_code = voice.voice_type_code
+                   where voice.post_id = page.post_id
+              ) voices on true
              order by
                 case when $1::text is not null then page.search_priority end asc,
                 case
@@ -1654,6 +1712,7 @@ async def read_post(
         project_evidence = await _load_project_evidence(
             conn, post_id, row["source_project_code"], row["source_project_name"]
         )
+        voice_types = await _load_post_voice_types(conn, post_id)
         known_at = None
         if as_of_clock is not None:
             known_at = await fetch_known_at_revision(conn, post_id, as_of_clock)
@@ -1661,6 +1720,7 @@ async def read_post(
         **_serialize_post(row, labels),
         "post_body": row["post_body"],
         "project_evidence": project_evidence,
+        "voice_types": voice_types,
     }
     if known_at is not None:
         payload["known_at"] = known_at

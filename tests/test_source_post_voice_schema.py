@@ -1,5 +1,7 @@
 """Static contract tests for ADR 0247's normalized Voice-of-X associations."""
 
+from __future__ import annotations
+
 from pathlib import Path
 
 

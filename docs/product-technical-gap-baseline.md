@@ -39,8 +39,9 @@ Cartesian-product codes. The remaining acceptance boundary is:
    (schema-enforced; no authorized write workflow shipped yet);
 3. keeps post voice distinct from named-counterparty relationship, actor role,
    topic, channel, lifecycle, and stakeholder-salience attributes;
-4. returns only authorized associations through API, JSON-LD, CSV, filters,
-   and UI; and
+4. return only authorized associations through API, JSON-LD, CSV, filters,
+   and UI (API list/detail, filters, and combined post-card labels implemented;
+   JSON-LD, CSV, and evidence navigation remain missing); and
 5. proves zero-, one-, and multi-voice states with synthetic fixtures,
    migration replay, ontology/SHACL, API, accessibility, and Storybook edge
    tests before any release claim.

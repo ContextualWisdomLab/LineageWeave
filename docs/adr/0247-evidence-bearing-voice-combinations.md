@@ -44,9 +44,12 @@ compound lookup codes.
 - The public ontology represents each row as a qualified `VoiceAssignment`
   linked from its post. Each assignment names one atomic SKOS voice concept;
   additional assignments retain evidence through `prov:wasDerivedFrom`.
-- API, JSON-LD, filtering, and UI publication remain unavailable until a later
-  delivery slice applies the same post-read authorization boundary and exposes
-  provenance per association. Schema presence is not a customer-facing claim.
+- Authorized post list/detail responses expose ordered voice assignments with
+  labels, truth state, and evidence availability but never internal assertion
+  identifiers. Filters match any associated voice, and repeated post cards show
+  the combined labels. JSON-LD and evidence navigation remain unavailable
+  until a later slice; schema presence alone is not a broader publication
+  claim.
 
 ## Data model
 
@@ -84,10 +87,9 @@ voice-first index for bounded filtering. It introduces no new Voice-of-X
 category and stores no source content or identifying evidence in repository
 artifacts.
 
-The next product slice must project authorized combinations through the API,
-ontology/SHACL, exports, and accessible UI with synthetic zero-, one-, and
-multi-voice tests. Until then, the association table is a persistence contract,
-not proof that users can inspect combinations.
+The next product slice must project authorized combinations through JSON-LD,
+SHACL, exports, and evidence navigation. Authenticated runtime and rendered
+desktop/mobile acceptance remain required before a release claim.
 
 ## References
 

@@ -5,6 +5,7 @@ export interface PostSummary {
   post_title: string;
   voc_type_code: string;
   voc_type_label?: string;
+  voice_types?: PostVoiceType[];
   visibility_code: string;
   visibility_label?: string;
   source_stage_code?: string | null;
@@ -30,6 +31,14 @@ export interface PostSummary {
   post_body_truncated?: boolean;
   project_evidence?: ProjectEvidence[];
   created_at: string;
+}
+
+export interface PostVoiceType {
+  code: string;
+  label: string;
+  is_primary: boolean;
+  truth_status_code: string;
+  evidence_available: boolean;
 }
 
 export interface PostPage {

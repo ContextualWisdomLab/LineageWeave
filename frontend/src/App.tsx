@@ -4273,7 +4273,12 @@ function PostList({
                         </span>
                       </span>
                       <span className="post-card-badges">
-                        <span className="post-badge">{t(post.voc_type_label ?? post.voc_type_code)}</span>
+                        <span className="post-badge">
+                          {(post.voice_types?.length
+                            ? post.voice_types.map((voice) => voice.label)
+                            : [post.voc_type_label ?? post.voc_type_code]
+                          ).join(" + ")}
+                        </span>
                         <span className="post-badge">{t(post.visibility_label ?? post.visibility_code)}</span>
                         {post.source_detail_state_code ? (
                           <span className="post-badge">

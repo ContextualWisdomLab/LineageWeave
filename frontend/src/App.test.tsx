@@ -117,6 +117,7 @@ describe("App, authenticated", () => {
     staleSummary?: boolean;
     contentAfterSummary?: boolean;
     organizationAliases?: boolean;
+    combinedVoices?: boolean;
     askLineageGraph?: boolean;
     askImageCitation?: boolean;
     askDelivery?: boolean;
@@ -1143,6 +1144,26 @@ describe("App, authenticated", () => {
                       post_title: "Public post",
                       voc_type_code: "voc",
                       voc_type_label: "Voice of Customer",
+                      ...(options?.combinedVoices
+                        ? {
+                            voice_types: [
+                              {
+                                code: "voc",
+                                label: "Voice of Customer",
+                                is_primary: true,
+                                truth_status_code: "truth_observed",
+                                evidence_available: false,
+                              },
+                              {
+                                code: "vops",
+                                label: "Voice of Process",
+                                is_primary: false,
+                                truth_status_code: "truth_observed",
+                                evidence_available: true,
+                              },
+                            ],
+                          }
+                        : {}),
                       visibility_code: "public",
                       visibility_label: "Public",
                       created_at: "2026-01-01T00:00:00Z",
@@ -1947,6 +1968,13 @@ describe("App, authenticated", () => {
     vi.stubGlobal("fetch", fetchMock);
     return Object.assign(fetchMock, { releaseMe, releasePostOne });
   }
+
+  it("shows all evidence-bearing Voice-of-X labels on a post card", async () => {
+    stubBackend({ combinedVoices: true });
+    render(<App />);
+
+    expect(await screen.findByText("Voice of Customer + Voice of Process")).toBeInTheDocument();
+  });
 
   it("renders safe Ask Agent evidence under each cited post", async () => {
     stubBackend();

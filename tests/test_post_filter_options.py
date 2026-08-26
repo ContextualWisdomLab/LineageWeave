@@ -56,7 +56,8 @@ def test_post_filter_options_use_one_authorized_source_scan() -> None:
     query, args = conn.calls[0]
     assert "cross join lateral" in query
     assert "('post_visibility', post.visibility_code)" in query
-    assert "('voc_type', post.voc_type_code)" in query
+    assert "left join source_post_voice voice" in query
+    assert "('voc_type', coalesce(voice.voice_type_code, post.voc_type_code))" in query
     assert "post.corporate_entity_id::text = any($1::text[])" in query
     assert "post.process_unit_id::text = any($2::text[])" in query
     assert "nullif(btrim(post.source_draft_code), '') is null" in query
