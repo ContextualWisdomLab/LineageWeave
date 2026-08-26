@@ -80,8 +80,8 @@ flowchart LR
 | `temporal_expressions.py` | Pure Korean relative-time resolver for Global Ask (ADR 0150) |
 | `ask_time_axis.py` | Event-time vs ingestion-time clock choice for that window (ADR 0202) |
 | `ontology.py` | Loads the governed Turtle source tree (`lineageweave-kg.ttl` plus generated fragments), the formal OWL 2/RDFS/SKOS vocabulary for the Knowledge Graph's node/edge types, source taxonomies, and published O*NET linkages (ADR 0004, ADR 0252, ADR 0255, ADR 0256) |
-| `backend/app/occupation_rating_ingestion.py` | Projects authenticated, bounded occupation-rating evidence, the persisted selectable-source catalog, and occupations that have observations in a selected source (ADR 0258, ADR 0260, ADR 0261) |
-| `frontend/src/components/OccupationRatingProfile.tsx` | Selects an imported source and published occupation title, filters that catalog without ranking, then reads exact occupation evidence in the existing Dashboard while preserving absence, uncertainty, and warning semantics (ADR 0259, ADR 0260, ADR 0261, ADR 0262) |
+| `backend/app/occupation_rating_ingestion.py` | Projects authenticated occupation-rating evidence plus persisted source and represented-occupation catalogs (ADR 0258, ADR 0260, ADR 0261) |
+| `frontend/src/components/OccupationRatingProfile.tsx` | Selects an imported source, filters stored occupation titles without ranking, and reads exact Dashboard evidence while preserving absence, uncertainty, and warning semantics (ADR 0259–0262) |
 | `ontology_neighborhood.py` | Bounded typed ontology/provenance neighborhood (ADR 0184); PostgreSQL stays authoritative, OWL subclass is not an instance edge |
 | `ontology_source_cursor.py` | Opaque HMAC source-window continuation (ADR 0124); keyset pagination, never OFFSET |
 | `period_report.py` | Fit GRM/GPCM on persisted IRT rows, FIPC-select, EAP-score a period (ADR 0003 slice 3; Bock & Mislevy, 1982) |

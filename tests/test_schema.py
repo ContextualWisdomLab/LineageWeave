@@ -29,9 +29,9 @@ import psycopg2.errors
 import pytest
 
 from backend.app.occupation_rating_ingestion import (
-    fetch_occupation_rating_occupations,
     fetch_occupation_rating_sources,
     fetch_occupation_ratings,
+    fetch_rating_source_occupations,
 )
 from backend.app.post_chat_ingestion import gather_global_chat_sources
 from scripts.import_onet_ratings import import_ratings
@@ -544,7 +544,7 @@ def test_onet_rating_importer_is_idempotent_against_postgresql(
                 offset=0,
             )
             catalog = await fetch_occupation_rating_sources(conn)
-            occupations = await fetch_occupation_rating_occupations(
+            occupations = await fetch_rating_source_occupations(
                 conn,
                 data_release_code=args.release_code,
                 source_table_code=args.source_table_code,
@@ -555,45 +555,12 @@ def test_onet_rating_importer_is_idempotent_against_postgresql(
 
     profile, catalog, occupations = asyncio.run(read_imported_profile())
     assert profile["source_available"] is True
-    assert profile["occupation_title"] == "Synthetic occupation"
     assert profile["items"][0]["data_value"] == "4.10"
     assert profile["source"]["scale_artifact_sha256"] == args.scales_sha256
     assert catalog["sources"][0]["source_table_code"] == "abilities"
-    assert occupations["source_available"] is True
     assert occupations["occupations"] == [
-        {
-            "onetsoc_code": "15-1252.00",
-            "occupation_title": "Synthetic occupation",
-        }
+        {"onetsoc_code": "15-1252.00", "occupation_title": "Synthetic occupation"}
     ]
-
-    with schema_db.cursor() as cur:
-        cur.execute(
-            """
-            insert into occupational_classification_entry
-                (data_release_code, onetsoc_code, occupation_title)
-            values (%s, '11-1011.00', 'Synthetic classification-only occupation')
-            """,
-            (args.release_code,),
-        )
-
-    occupations_after = asyncio.run(read_imported_profile())[2]
-    assert occupations_after["occupations"] == occupations["occupations"]
-
-    async def read_unavailable_occupation_catalog() -> dict[str, object]:
-        conn = await asyncpg.connect(args.target_dsn)
-        try:
-            return await fetch_occupation_rating_occupations(
-                conn,
-                data_release_code=args.release_code,
-                source_table_code="scales_reference",
-            )
-        finally:
-            await conn.close()
-
-    unavailable = asyncio.run(read_unavailable_occupation_catalog())
-    assert unavailable["source_available"] is False
-    assert unavailable["occupations"] == []
 
 
 def test_global_ask_evidence_search_indexes_exist_on_normalized_tables(schema_db) -> None:

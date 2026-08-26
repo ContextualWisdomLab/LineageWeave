@@ -983,7 +983,6 @@ export interface OccupationRatingProfile {
   data_release_code: string;
   source_table_code: string;
   onetsoc_code: string;
-  occupation_title: string | null;
   source_available: boolean;
   source: {
     source_table_name: string;
@@ -1010,30 +1009,32 @@ export interface OccupationRatingSource {
   source_row_count: number;
 }
 
-export interface OccupationRatingOccupation {
-  onetsoc_code: string;
-  occupation_title: string;
-}
-
 export function fetchOccupationRatingSources(
   accessToken: string,
 ): Promise<{ sources: OccupationRatingSource[] }> {
   return backendFetch("/api/occupation-rating-sources", accessToken);
 }
 
-export function fetchOccupationRatingOccupations(
+export interface RatingSourceOccupation {
+  onetsoc_code: string;
+  occupation_title: string;
+}
+
+export function fetchRatingSourceOccupations(
   accessToken: string,
-  query: { dataReleaseCode: string; sourceTableCode: string },
+  dataReleaseCode: string,
+  sourceTableCode: string,
 ): Promise<{
   data_release_code: string;
   source_table_code: string;
   source_available: boolean;
-  occupations: OccupationRatingOccupation[];
+  occupations: RatingSourceOccupation[];
 }> {
-  return backendFetch(
-    `/api/occupation-rating-sources/${encodeURIComponent(query.dataReleaseCode)}/${encodeURIComponent(query.sourceTableCode)}/occupations`,
-    accessToken,
-  );
+  const params = new URLSearchParams({
+    data_release_code: dataReleaseCode,
+    source_table_code: sourceTableCode,
+  });
+  return backendFetch(`/api/occupation-rating-occupations?${params.toString()}`, accessToken);
 }
 
 export function fetchOccupationRatings(
