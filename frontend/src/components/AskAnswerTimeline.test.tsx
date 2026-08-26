@@ -91,6 +91,7 @@ describe("AskAnswerTimeline", () => {
           ...answer,
           cited_events: [{ ...answer.cited_events![0], observed_at: null, time_axis_code: null }],
           cited_posts: [answer.cited_posts![0]],
+          cited_post_ids: [answer.cited_posts![0].post_id],
         }}
         onOpenEvidence={() => undefined}
         onOpenPost={() => undefined}
@@ -98,5 +99,17 @@ describe("AskAnswerTimeline", () => {
     );
 
     expect(screen.getByText("Observed time unavailable")).toBeInTheDocument();
+  });
+
+  it("keeps an id-only citation visible when details are unavailable", () => {
+    render(
+      <AskAnswerTimeline
+        question="What changed?"
+        answer={{ ...answer, cited_posts: [], cited_post_ids: ["post-id-only"] }}
+        onOpenEvidence={() => undefined}
+        onOpenPost={() => undefined}
+      />,
+    );
+    expect(screen.getByRole("article", { name: "Evidence 1: Record details" })).toBeInTheDocument();
   });
 });

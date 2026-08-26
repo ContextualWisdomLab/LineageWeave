@@ -45,11 +45,16 @@ export function AskAnswerTimeline({ question, answer, onOpenEvidence, onOpenPost
   const citationRefs = useRef(new Map<string, HTMLButtonElement>());
   const cardRefs = useRef(new Map<string, HTMLButtonElement>());
   const eventsByPost = new Map(answer.cited_events?.map((event) => [event.post_id, event]));
-  const citations: Citation[] = (answer.cited_posts ?? []).map((post, index) => ({
+  const postDetails = new Map((answer.cited_posts ?? []).map((post) => [post.post_id, post]));
+  const citationIds = [...new Set([
+    ...(answer.cited_post_ids ?? []),
+    ...(answer.cited_posts ?? []).map((post) => post.post_id),
+  ])];
+  const citations: Citation[] = citationIds.map((postId, index) => ({
     citationNumber: index + 1,
-    postId: post.post_id,
-    postTitle: post.post_title,
-    event: eventsByPost.get(post.post_id),
+    postId,
+    postTitle: postDetails.get(postId)?.post_title ?? t("Record details"),
+    event: eventsByPost.get(postId),
   }));
   const chronological = [...citations].sort((left, right) => {
     const leftEpoch = observedEpoch(left.event);

@@ -30,6 +30,7 @@ async def test_operations_dashboard_sql_binds_against_postgres() -> None:
             "operations_case_milestone",
             "operations_case_missing_milestone",
             "topic_context_membership",
+            "topic_activity_interval",
             "topic_post_context_influence",
         )
         for table_name in required_tables:

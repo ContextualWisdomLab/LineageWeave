@@ -31,6 +31,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 import psycopg2
 
+from backend.app.post_eligibility import SOURCE_POST_ELIGIBILITY_SQL
 from lineageweave.http_client import get_json, get_json_list, post_form
 from lineageweave.post_summary import ACTOR_TYPE_PERSON, POST_SUMMARY_CONTRACT_VERSION
 from lineageweave.tepp_client import AnalysisRunRequest, TeppClient, TeppNotAvailable
@@ -2211,7 +2212,9 @@ def _warm_seeded_post_content(
     try:
         with connection.cursor() as cur:
             cur.execute(
-                "select post_id from source_post where post_title like 'Demo %post'"
+                "select post_id from source_post "
+                "where post_title like 'Demo %post' and "
+                + SOURCE_POST_ELIGIBILITY_SQL.format(alias="source_post")
             )
             post_ids = [str(row[0]) for row in cur.fetchall()]
     finally:
