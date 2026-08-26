@@ -46,3 +46,20 @@ uv run python scripts/plan_postgres_tuning.py rollback \
 
 The base `docker-compose.yml` contains no tuned command. Removing the tuning
 overlay and recreating PostgreSQL is the secondary rollback path.
+
+## Non-identifying canonical observation — 2026-08-27
+
+Since the 2026-08-24 statistics reset, the canonical PostgreSQL 16 instance
+reported 25,308 requested checkpoints versus 382 timed checkpoints, 336.7 GB
+of WAL, 7,598,680 `wal_buffers_full` events, 81,194,401 backend buffer writes,
+and no lock waiter at capture. The running configuration retained
+`wal_level=replica`, `max_wal_size=1GB`, and `shared_buffers=128MB` under read
+committed isolation.
+
+This snapshot confirms severe cumulative pressure, not an apply value.
+PostgreSQL documents that `max_wal_size` pressure can start a checkpoint before
+`checkpoint_timeout`, that high WAL output can require more WAL buffers, and
+that its own WAL recycling estimate adapts to prior checkpoint cycles. Run the
+aligned planner across the representative write workload before applying its
+segment-aligned proposal. The snapshot supplies no evidence for changing
+`shared_buffers`, durability, isolation, or storage concurrency.

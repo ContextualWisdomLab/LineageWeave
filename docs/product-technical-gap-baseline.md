@@ -1,17 +1,23 @@
 # Product & Technical Gap Baseline
 
-> Dashboard delivery snapshot: 2026-08-27 01:44 KST. Protected `main` was
+> Dashboard delivery snapshot: 2026-08-27. Protected `main` was
 > `ff7431bd1851c03e737808d22c6a2d43968582f9`. Dashboard PR #640 exact
-> observed head was `5594029c801263a7f629c287ce41580ecf4e0739`; this branch is not
-> protected-main release evidence. The queue contained 29 open PRs (22
-> `BLOCKED`, five `UNSTABLE`, two `CLEAN`) and no exact-head approval. PR #715
+> observed head is `b3befa8bec8dd2807994444299df7eafdd1c7781`; this branch is not
+> protected-main release evidence. The queue contained 35 open PRs (23
+> `BLOCKED`, six `UNSTABLE`, four `CLEAN`, and two `UNKNOWN`) and no exact-head
+> approval. PR #715
 > merged normally into #640 and repaired the four stale HTTP transport test
 > doubles plus one Python-before-3.7 Semgrep false positive that contradicted
-> the repository's Python >=3.12 contract. Stacked PR #722 pre-documentation
-> head `eed7cabd` restores semantic-query and opt-in public-verification
-> factories in the dedicated Ask worker and the production-equivalent
-> concurrent-migration fixture path; its focused evidence is 46 unit tests and
-> one live Keycloak/PostgreSQL public-verification integration test.
+> the repository's Python >=3.12 contract. PR #722 also merged normally into
+> #640, restoring semantic-query and opt-in public-verification factories in
+> the dedicated Ask worker and the production-equivalent concurrent-migration
+> fixture path. PR #727 merged normally as `353dfd01`, replacing general-reader
+> implementation wording with evidence actions. Worker evidence PR #725's
+> implementation exact is `40283c9b`; subsequent evidence-only refreshes do not
+> change that code and its fresh hosted gates are pending. Storybook follow-up
+> #730 merged normally at `b3befa8b` from exact head `c21cac5d`.
+> Current #640 required checks are queued and independent approval remains
+> absent, so the candidate stays blocked.
 
 ## Operations Dashboard PRD/TRD traceability
 
@@ -25,8 +31,8 @@ the current #640 head. The canonical containers currently return HTTP 200 from
 backend `/healthz` and the frontend root, but their Compose labels do not prove
 the source commit; therefore neither the running stack nor the historical k6
 run is exact-head authenticated acceptance. Exact-head desktop/mobile
-screenshots and k6 remain required after #722 is incorporated and #640 is
-rebuilt. Historical test projects are retired only by their exact Compose
+screenshots and k6 remain required after #640 is rebuilt from its current
+exact head. Historical test projects are retired only by their exact Compose
 project label and without named-volume deletion. PR #678 implementation head
 `da98de07` fixes the default project name; its follow-up exact-label audit also
 removed the remaining identifiable isolated test containers while preserving
@@ -45,9 +51,10 @@ named volumes.
 | Similar VOC, customer cohort, prior action | Persisted repeat-issue candidate semantics plus orchestrator pair adjudication and extractive evidence | Candidate live post endpoint and post-detail UI implemented; authenticated runtime acceptance pending |
 | TEPP independent Event Lineage anchor | Accepted, persisted TEPP criterion bound to exact snapshot/cutoff before fast-mlsirm activation | Consumer PR #606 is on protected main; TEPP producer PR #237 remains open, so no end-to-end accepted artifact is release evidence yet |
 | Temporal Lineage topics and multilevel important posts | ADR 0210; TEPP posterior topic/plausible-value contract followed by fast-mlsirm observed-information case-deletion influence | This stacked candidate adds normalized persistence, exact run/snapshot/cutoff binding, pre-aggregation scope authorization, API diagnostics, and populated/unavailable Storybook surfaces. TEPP PR #247 remains open at `063f10f3`; stacked #251–#254 provide fail-closed input validation, full joint precision, deterministic joint plausible-value draws, and the canonical research register, while complete provenance assembly remains gated. fast-mlsirm PR #1418 validates the Rust consumer envelope but intentionally returns `EstimatorUnavailable` until the scientific estimator lands. Runtime therefore remains honestly unavailable with no local Python or fallback score. |
-| PostgreSQL WAL/checkpoint pressure | ADR 0227; aligned two-snapshot `pg_stat_wal`/checkpoint deltas, PostgreSQL WAL-segment and checkpoint constraints, cgroup memory, and data-volume space | Candidate procedure emits a content-authenticated plan and Compose environment, retains unmeasured memory/I/O/compression settings, preserves durability, validates the overlay without mutation, rejects stale preconditions, and requires an approved service recreation for apply or rollback. The observed CPU-bound GIN scan remains distinct from historical checkpoint pressure; canonical runtime application waits for the active migration to complete. |
+| PostgreSQL WAL/checkpoint and worker memory pressure | ADR 0227 and ADR 0247; aligned PostgreSQL counter deltas plus unchanged-container Docker/cgroup v2 evidence | Candidate PostgreSQL procedure emits a content-authenticated restart/rollback plan while retaining unmeasured settings and durability. The current cumulative counters establish sustained historical WAL/checkpoint pressure but do not replace a representative aligned apply window. A prior worker exit 137 is not attributable after container recreation: the current healthy worker has no configured service memory limit/reservation, and a one-second non-identifying observation showed an approximately 109 MiB cgroup lifetime peak with no new local pressure/OOM event. That idle window is not capacity acceptance. Capture the declared representative workload before recreation; do not add a limit or headroom multiplier until that evidence supports a separately accepted capacity boundary. |
 
-Customer-copy audit at #640 exact `c142c4ea` retained the ADR-required
+Customer-copy audit began at #640 exact `c142c4ea` and was delivered by #727
+at merge `353dfd01`; it retained the ADR-required
 measurement-administrator terms and explicit ontology/provenance inspection
 labels. Two general-reader gaps were isolated: Customer Master explained the
 ontology/semantic implementation boundary instead of the evidence action, and
@@ -55,7 +62,9 @@ Global Ask called authorized workspace evidence "internal" posts. The stacked
 copy repair tells the reader to compare the source identifier with related
 posts and organization evidence, and reuses the authorized-citation action.
 Five-locale consistency, rendered component tests, and desktop/narrow
-Storybook scenes cover the repair. `프로젝트별 관측 Event` and ADR 0210's exact
+Storybook scenes cover the Customer Master repair. Follow-up #730 renders the
+Global Ask no-public-claim result and its next action in desktop and narrow
+scenes delivered at merge `b3befa8b`. `프로젝트별 관측 Event` and ADR 0210's exact
 `model influence` estimand name remain unchanged.
 
 ### Technical contract and flow
