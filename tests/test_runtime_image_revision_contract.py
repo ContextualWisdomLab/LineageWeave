@@ -34,6 +34,7 @@ def test_synthetic_acceptance_never_enables_provider_calls() -> None:
     assert "/api/post-content" not in runner
     assert "provider_readiness" not in runner
     assert '"$BACKEND_URL/api/dashboard"' in runner
+    assert 'PRODUCT_CONTAINER_PREFIX="${PRODUCT_CONTAINER_PREFIX:-lineageweave}"' in runner
 
 
 def test_provider_acceptance_reuses_shared_post_eligibility_sql() -> None:
