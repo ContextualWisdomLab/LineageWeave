@@ -1,8 +1,8 @@
 # Product & Technical Gap Baseline
 
-> Dashboard delivery snapshot: 2026-08-26 07:26 KST. Protected `main` was
+> Dashboard delivery snapshot: 2026-08-26 10:06 KST. Protected `main` was
 > `494b54e2245040bcf02b45376f221c37cd437e76`. Dashboard PR #640 exact
-> pre-synchronization head was `dd134e77`; this branch is not
+> observed head was `d314855c`; this branch is not
 > protected-main release evidence.
 
 ## Operations Dashboard PRD/TRD traceability
@@ -135,13 +135,14 @@ context only.
 
 | PR | Exact observed head | Merge/check state at this snapshot |
 | ---: | --- | --- |
+| #681 | `3e0fa644` | stacked fast-mlsirm pair-posterior contract pin; exact-head checks queued and independent review required |
 | #667 | `425de329` | current governance/gap evidence refresh; exact-head checks and independent review required |
 | #663 | `e65fd29c` | consolidates project ontology traversal and #632 content; exact-head checks and independent review required |
 | #658 | `f497a6e8` | evidence-honest Global Ask cutoff with revision-interval live-after semantics |
 | #657 | `a59a2023` | fail-closed TEPP asynchronous lifecycle persistence; executable producer evidence remains required |
 | #644 | `ed8d97f3` | native-surface code splitting with modal-focus regression coverage |
 | #643 | `7fb4d18c` | accessible status-notice surfaces |
-| #640 | `dd134e77` | operations-dashboard contract alignment |
+| #640 | `d314855c` | operations-dashboard contract alignment; exact-head checks queued and independent review required |
 | #639 | `8da485d3` | exact-head checks and independent review required |
 | #632 | `cad4debf` | semantic provenance repair structurally included by #663 |
 | #631 | `e6b4f0c4` | documentation-only queue snapshot requires current-main refresh or closure |
