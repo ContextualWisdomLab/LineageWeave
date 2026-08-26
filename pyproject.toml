@@ -55,7 +55,7 @@ backend = [
   # contract (ADR 0208). The exact commit is immutable; it still exposes no
   # channel-weight result until independent pair-level posterior evidence is
   # available. PyO3/maturin source builds need the pinned Rust toolchain.
-  "fast-mlsirm @ git+https://github.com/ContextualWisdomLab/fast-mlsirm.git@b3d85c35856fa8f7376821084f93292d0dea0407",
+  "fast-mlsirm @ git+https://github.com/ContextualWisdomLab/fast-mlsirm.git@4478d1634148216f1f40d8464112e1235b8b5ded",
 ]
 
 [tool.setuptools.packages.find]

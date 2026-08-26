@@ -471,7 +471,7 @@ wheels = [
 [[package]]
 name = "fast-mlsirm"
 version = "0.9.0"
-source = { git = "https://github.com/ContextualWisdomLab/fast-mlsirm.git?rev=b3d85c35856fa8f7376821084f93292d0dea0407#b3d85c35856fa8f7376821084f93292d0dea0407" }
+source = { git = "https://github.com/ContextualWisdomLab/fast-mlsirm.git?rev=4478d1634148216f1f40d8464112e1235b8b5ded#4478d1634148216f1f40d8464112e1235b8b5ded" }
 dependencies = [
     { name = "numpy" },
 ]
@@ -655,7 +655,7 @@ requires-dist = [
     { name = "certifi", specifier = ">=2024.0.0" },
     { name = "coverage", marker = "extra == 'dev'", specifier = ">=7.6" },
     { name = "cryptography", specifier = ">=42.0" },
-    { name = "fast-mlsirm", marker = "extra == 'backend'", git = "https://github.com/ContextualWisdomLab/fast-mlsirm.git?rev=b3d85c35856fa8f7376821084f93292d0dea0407" },
+    { name = "fast-mlsirm", marker = "extra == 'backend'", git = "https://github.com/ContextualWisdomLab/fast-mlsirm.git?rev=4478d1634148216f1f40d8464112e1235b8b5ded" },
     { name = "fastapi", marker = "extra == 'backend'", specifier = ">=0.141.1" },
     { name = "httpx2", marker = "extra == 'dev'", specifier = ">=2.12.0" },
     { name = "opentelemetry-api", specifier = ">=1.30.0" },

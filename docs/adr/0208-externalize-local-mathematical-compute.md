@@ -72,7 +72,7 @@ different responsibility.
 ## Implemented migration slices
 
 - The backend dependency is immutably pinned to fast-mlsirm commit
-  `b3d85c35856fa8f7376821084f93292d0dea0407`, which publishes the strict
+  `4478d1634148216f1f40d8464112e1235b8b5ded`, which publishes the strict
   `tepp.lineage_pair_criterion_posterior.v2` minimum producer schema and keeps
   channel-weight estimation unavailable. This is a contract adapter only: the
   legacy Python estimator remains frozen migration debt and MUST NOT be used to
