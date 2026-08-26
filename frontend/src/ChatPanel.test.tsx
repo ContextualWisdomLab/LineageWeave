@@ -26,9 +26,22 @@ describe("ChatPanel conversation history", () => {
           title: "Repeated question",
           older_cursor: null,
           exchanges: [
-            { turn_id: "turn-1", question_text: "What changed?", answer_text: "First answer", cited_post_ids: [] },
+            {
+              turn_id: "turn-1",
+              question_text: "What changed?",
+              answer_text: "First answer",
+              cited_post_ids: ["evidence-post"],
+              cited_posts: [{ post_id: "evidence-post", post_title: "Saved evidence" }],
+            },
             { turn_id: "turn-2", question_text: "What changed?", answer_text: "Second answer", cited_post_ids: [] },
           ],
+        });
+      }
+      if (url.endsWith("/api/posts/evidence-post")) {
+        return jsonResponse({
+          post_id: "evidence-post",
+          post_title: "Saved evidence",
+          post_body: "Evidence from the saved conversation.",
         });
       }
       if (url.endsWith("/chat/conversations")) {
@@ -47,6 +60,10 @@ describe("ChatPanel conversation history", () => {
     expect(screen.getByText("Second answer")).toBeInTheDocument();
     expect(screen.queryByLabelText("Ask seed next action")).not.toBeInTheDocument();
     expect(screen.getAllByRole("button", { name: "Ask seeded question: What changed?" })).toHaveLength(2);
+    await userEvent.click(screen.getByRole("button", { name: "Open evidence: Saved evidence" }));
+    expect(await screen.findByRole("complementary", { name: "Evidence" })).toHaveTextContent(
+      "Evidence from the saved conversation.",
+    );
   });
 
   it("replaces demo cache rows when the first saved turn starts", async () => {

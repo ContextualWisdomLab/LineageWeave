@@ -578,7 +578,7 @@ export function ChatPanel({
           />
         </div>
       )}
-      {!nameFirstAsk && evidencePostId ? (
+      {!showNamedSeed && evidencePostId ? (
         <EvidencePanel
           postId={evidencePostId}
           accessToken={accessToken}
