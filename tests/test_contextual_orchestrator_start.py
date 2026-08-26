@@ -112,6 +112,10 @@ def test_bootstrap_leaves_embedding_selection_to_the_orchestrator(monkeypatch) -
     monkeypatch.setenv("CONTEXTUAL_ORCHESTRATOR_TOKEN", "orchestrator-token")
     monkeypatch.setenv("LLM_GATEWAY_API_URL", "https://gateway.example")
     monkeypatch.setenv("LLM_GATEWAY_EMBEDDING_MODEL", "embedding-model")
+    monkeypatch.setenv(
+        "CONTEXTUAL_ORCHESTRATOR_ALLOWED_PROVIDER_HOSTS",
+        " secondary.example, gateway.example,secondary.example ",
+    )
 
     module.main()
 
@@ -119,6 +123,11 @@ def test_bootstrap_leaves_embedding_selection_to_the_orchestrator(monkeypatch) -
     assert isinstance(argv, list)
     assert "--embedding-provider-url" not in argv
     assert "--embedding-model" not in argv
+    assert argv.count("--allowed-provider-host") == 2
+    assert argv[argv.index("--allowed-provider-host") + 1] == "gateway.example"
+    assert argv[argv.index("--allowed-provider-host", argv.index("--allowed-provider-host") + 1) + 1] == (
+        "secondary.example"
+    )
     assert captured["credentials"] == [
         ("LLM_GATEWAY_API_KEY", "provider-key"),
         ("OPENAI_API_KEY", "openai-key"),

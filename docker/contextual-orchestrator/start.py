@@ -98,6 +98,16 @@ def main() -> None:
         "--max-body-bytes",
         str(max_body_bytes),
     ]
+    for allowed_host in sorted(
+        {
+            value.strip()
+            for value in os.environ.get(
+                "CONTEXTUAL_ORCHESTRATOR_ALLOWED_PROVIDER_HOSTS", ""
+            ).split(",")
+            if value.strip()
+        }
+    ):
+        sys.argv.extend(("--allowed-provider-host", allowed_host))
     del provider_url
     del auth_token
     from contextual_orchestrator.__main__ import main as serve
