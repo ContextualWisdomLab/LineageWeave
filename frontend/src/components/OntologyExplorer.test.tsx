@@ -301,7 +301,7 @@ describe("OntologyExplorer", () => {
     );
 
     await userEvent.click(
-      screen.getByRole("button", { name: "Open evidence: Demo public post" }),
+      screen.getByRole("button", { name: "Open post: Demo public post" }),
     );
     expect(onOpenEvidence).toHaveBeenCalledWith(POST_ID);
   });

@@ -534,7 +534,7 @@ function OntologyExactValueTable({
                     type="button"
                     aria-label={
                       row.property_code === "hasVoiceAssignment"
-                        ? tf("Open evidence: {title}", { title: row.source_label })
+                        ? tf("Open post: {label}", { label: row.source_label })
                         : undefined
                     }
                     onClick={() =>
