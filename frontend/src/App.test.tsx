@@ -3200,7 +3200,7 @@ describe("App, authenticated", () => {
     expect(rankingButton).toHaveTextContent("rank 1");
     expect(
       screen.getByText(
-        "Open a result to review the records most relevant to your search.",
+        "Open a result to review the records most relevant to your search. These results are not calibrated measurements.",
       ),
     ).toBeInTheDocument();
     expect(
