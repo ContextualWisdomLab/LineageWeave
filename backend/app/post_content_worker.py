@@ -21,6 +21,7 @@ from backend.app.post_content_queue import (
     RUNNING,
     STALE_RUNNING_INTERVAL,
     SUCCEEDED,
+    defer_post_content_job,
     ensure_post_content_job,
     post_content_is_complete,
     republish_queued_post_content_jobs,
@@ -36,7 +37,7 @@ from backend.app.post_chat_ingestion import (
     gather_chat_sources,
 )
 from lineageweave.embedding_client import EmbeddingClient
-from lineageweave.http_client import HttpClientError
+from lineageweave.http_client import HttpAdmissionDeferred, HttpClientError
 from lineageweave.image_content import ImageContentClient
 from lineageweave.llm_context import build_post_llm_metadata, use_llm_metadata
 from lineageweave.observability import record_server_failure, traced
@@ -303,6 +304,7 @@ async def _claim_job(
                        j.attempt_count as job_attempt_count,
                        j.started_at as job_started_at,
                        j.queued_at as job_queued_at,
+                       j.next_attempt_at as job_next_attempt_at,
                        (
                            select analysis.source_body_sha256
                              from operations_case_analysis analysis
@@ -341,7 +343,14 @@ async def _claim_job(
                     detail_text="post-content ingestion attempt limit was already reached",
                 )
                 return None
-            if status_code == QUEUED and attempt_count > 0:
+            if status_code == QUEUED and row["job_next_attempt_at"] is not None:
+                retry_ready = await conn.fetchval(
+                    "select now() >= $1::timestamptz",
+                    row["job_next_attempt_at"],
+                )
+                if not retry_ready:
+                    return None
+            elif status_code == QUEUED and attempt_count > 0:
                 retry_ready = await conn.fetchval(
                     "select now() >= $1::timestamptz + $2::interval",
                     row["job_queued_at"],
@@ -522,6 +531,8 @@ async def process_post_content_job(
                         settings.orchestrator_api_key,
                         evidence_sources,
                     )
+                except HttpAdmissionDeferred:
+                    raise
                 except (HttpClientError, OSError, RuntimeError, TimeoutError, ValueError) as exc:
                     _logger.error("product evidence ingestion failed for post_id=%s", post_id)
                     record_server_failure(
@@ -589,6 +600,16 @@ async def process_post_content_job(
                         exc,
                         outcome="provider_unavailable",
                     )
+    except HttpAdmissionDeferred as exc:
+        async with pool.acquire() as conn:
+            async with conn.transaction():
+                await defer_post_content_job(
+                    conn,
+                    post_id,
+                    expected_attempt_count=attempt_count,
+                    retry_after_seconds=exc.retry_after_seconds,
+                )
+        return
     except Exception as exc:  # noqa: BLE001 - durable failure is recorded for retry.
         _logger.error("post content ingestion failed for post_id=%s", post_id)
         outcome = (
