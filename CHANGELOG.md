@@ -28,7 +28,10 @@ All notable changes to this project are documented here. Format follows
   `prov:wasDerivedFrom` assertion atomically from an ABAC-visible evidence Post;
   callers cannot replace the imported primary or supply an assertion UUID.
   Post detail lists the primary and evidence-connected perspectives separately,
-  with localized provenance cues and knowledge-cutoff filtering.
+  with localized provenance cues and knowledge-cutoff filtering. A
+  permission- and cutoff-gated popup form connects an unassigned Voice with an
+  explicit truth state and the open Post as evidence; localized success/error
+  feedback and responsive Storybook scenes cover the write interaction.
 - Expanded Voice-of-X post taxonomy (ADR 0246): the governed `voc_type`
   scheme adds Voice of Supplier, Employee, Business, Regulator, Investor,
   Society, and Process as source-post categories. Ontology SKOS concepts and

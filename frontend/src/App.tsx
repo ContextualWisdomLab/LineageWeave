@@ -2,6 +2,7 @@ import { AdminPanel } from "./components/AdminPanel";
 import { LeftoverPairList } from "./components/LeftoverPairList";
 import { WorkspaceCalendar } from "./components/WorkspaceCalendar";
 import { focusedGraphMustReset } from "./focusedGraphSelection";
+import { canAuthorVoice, postPrimaryVoiceLabel } from "./voicePerspective";
 
 import { useCallback, useEffect, useEffectEvent, useRef, useState, type ReactNode } from "react";
 import { useAuth } from "react-oidc-context";
@@ -12,6 +13,7 @@ import {
   createAnalysisRun,
   startAnalysisRun,
   createPostTicket,
+  createPostVoiceAssignment,
   deriveCommitment,
   evaluatePost,
   extractPostKeymen,
@@ -1813,6 +1815,94 @@ export function VoicePerspectiveList({ voices }: { voices: PostVoiceType[] }) {
   );
 }
 
+const VOICE_TRUTH_OPTIONS = [
+  "truth_authoritative",
+  "truth_observed",
+  "truth_inferred",
+  "truth_proposed",
+  "truth_superseded",
+  "truth_rejected",
+];
+
+export function VoiceAssignmentForm({
+  voices,
+  options,
+  onSave,
+}: {
+  voices: PostVoiceType[];
+  options: PostFilterOption[];
+  onSave: (voiceTypeCode: string, truthStatusCode: string) => Promise<void>;
+}) {
+  const assigned = new Set(voices.map((voice) => voice.code));
+  const available = options.filter((option) => !assigned.has(option.code));
+  const [voiceTypeCode, setVoiceTypeCode] = useState("");
+  const [truthStatusCode, setTruthStatusCode] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function submit(event: React.FormEvent) {
+    event.preventDefault();
+    if (!voiceTypeCode || !truthStatusCode || saving) return;
+    setSaving(true);
+    setSaved(false);
+    setError(null);
+    try {
+      await onSave(voiceTypeCode, truthStatusCode);
+      setVoiceTypeCode("");
+      setTruthStatusCode("");
+      setSaved(true);
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : t("Perspective could not be connected."));
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  if (available.length === 0) return null;
+  return (
+    <section className="popup-section" aria-label={t("Connect another perspective")}>
+      <h3>{t("Connect another perspective")}</h3>
+      <p className="post-meta">{t("This post will be recorded as the evidence.")}</p>
+      <form className="admin-form voice-assignment-form" onSubmit={submit}>
+        <label>
+          {t("Perspective")}
+          <select
+            value={voiceTypeCode}
+            onChange={(event) => setVoiceTypeCode(event.target.value)}
+            disabled={saving}
+            required
+          >
+            <option value="">{t("Choose a perspective")}</option>
+            {available.map((option) => (
+              <option key={option.code} value={option.code}>{t(option.label)}</option>
+            ))}
+          </select>
+        </label>
+        <label>
+          {t("Evidence status")}
+          <select
+            value={truthStatusCode}
+            onChange={(event) => setTruthStatusCode(event.target.value)}
+            disabled={saving}
+            required
+          >
+            <option value="">{t("Choose an evidence status")}</option>
+            {VOICE_TRUTH_OPTIONS.map((code) => (
+              <option key={code} value={code}>{voiceTruthLabel(code)}</option>
+            ))}
+          </select>
+        </label>
+        <button type="submit" className="btn-primary" disabled={saving || !voiceTypeCode || !truthStatusCode}>
+          {t(saving ? "Connecting..." : "Connect perspective")}
+        </button>
+        {saved ? <p className="voice-assignment-feedback" role="status">{t("Perspective connected.")}</p> : null}
+        {error ? <p role="alert" className="error voice-assignment-feedback">{error}</p> : null}
+      </form>
+    </section>
+  );
+}
+
 
 function PostDetailPopup({
   postId,
@@ -1826,6 +1916,7 @@ function PostDetailPopup({
   onClose,
   onSelectPost,
   onSearch,
+  voiceOptions = [],
 }: {
   postId: string;
   accessToken: string;
@@ -1838,6 +1929,7 @@ function PostDetailPopup({
   onClose: () => void;
   onSelectPost?: (postId: string) => void;
   onSearch?: (query: string) => void;
+  voiceOptions?: PostFilterOption[];
 }) {
   const [post, setPost] = useState<PostDetail | null>(null);
   const [imageContent, setImageContent] = useState<PostImageContent[]>([]);
@@ -2139,11 +2231,32 @@ function PostDetailPopup({
           <>
             <h2 id="post-detail-title">{post.post_title}</h2>
             <p className="post-meta">
-              {post.voc_type_label ?? post.voc_type_code} &middot;{" "}
+              {t(postPrimaryVoiceLabel(post, knowledgeCutoff))} &middot;{" "}
               {post.visibility_label ?? post.visibility_code} &middot;{" "}
               {new Date(post.created_at).toLocaleString()}
             </p>
             {post.voice_types?.length ? <VoicePerspectiveList voices={post.voice_types} /> : null}
+            {canAuthorVoice(canExtract, knowledgeCutoff) ? (
+              <VoiceAssignmentForm
+                voices={post.voice_types ?? []}
+                options={voiceOptions}
+                onSave={async (voiceTypeCode, truthStatusCode) => {
+                  const assignment = await createPostVoiceAssignment(
+                    accessToken,
+                    postId,
+                    voiceTypeCode,
+                    truthStatusCode,
+                  );
+                  setPost((current) => current ? {
+                    ...current,
+                    voice_types: [
+                      ...(current.voice_types ?? []).filter((voice) => voice.code !== assignment.code),
+                      assignment,
+                    ],
+                  } : current);
+                }}
+              />
+            ) : null}
             <div className="post-actions" role="group" aria-label={t("Post actions")}>
               <button type="button" onClick={() => void sharePost()}>
                 {t("Share")}
@@ -4441,6 +4554,7 @@ function PostList({
           onClose={closeSelectedPost}
           onSelectPost={selectPost}
           onSearch={searchBoard}
+          voiceOptions={vocTypeFilterOptions}
         />
       )}
     </section>

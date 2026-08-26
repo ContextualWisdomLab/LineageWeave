@@ -931,6 +931,7 @@ def test_load_voice_assignments_preserves_truth_and_customer_safe_provenance() -
     assert assignments[1].provenance_reference == "Evidence-backed additional voice"
     assert assignments[1].evidence_post_id == POST_ID
     assert "evidence.node_id = any($1::uuid[])" in conn.calls[0][0]
+    assert "voice.is_primary or evidence.node_id = any($1::uuid[])" in conn.calls[0][0]
     assert "voice.effective_from <= $2" in conn.calls[0][0]
     assert "voice.recorded_at <= $3" in conn.calls[0][0]
     assert conn.calls[0][1] == ([POST_ID], T0, T0)

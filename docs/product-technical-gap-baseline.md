@@ -41,8 +41,9 @@ Cartesian-product codes. The remaining acceptance boundary is:
    an isolated PostgreSQL stack on 2026-08-27, including both primary-sync
    triggers; authenticated API acceptance remains pending);
 2. record each additional voice with its own source/evidence and truth state
-   (schema-enforced and candidate `post_admin` API implemented; authenticated
-   PostgreSQL integration and customer-facing authoring UI remain pending);
+   (schema-enforced and candidate `post_admin` API plus live Post-popup
+   authoring implemented; authenticated PostgreSQL API integration remains
+   pending);
 3. keeps post voice distinct from named-counterparty relationship, actor role,
    topic, channel, lifecycle, and stakeholder-salience attributes;
 4. return only authorized associations through API, JSON-LD, CSV, filters,
@@ -63,21 +64,29 @@ Cartesian-product codes. The remaining acceptance boundary is:
    and the source-post evidence action remained visible and labeled. The
    `Post/Recorded perspectives` desktop and 390-pixel scenes were also inspected
    on 2026-08-27; both kept each complete Voice label paired with its imported
-   or evidence-connected state without clipping or horizontal overflow.
+   or evidence-connected state without clipping or horizontal overflow. The
+   `Post/Connect perspective` ready/success scenes were inspected at 1440 and
+   390 CSS pixels on 2026-08-27: labels stay above controls, the mobile form is
+   a single column, controls meet the 44-pixel touch target, and no horizontal
+   overflow was visible.
 
 At this snapshot the repository had 35 open PRs and 10 open issues. PR #713
 was policy-blocked: every reported exact-head check was successful and only
-an independent approval remained; auto-merge remains enabled. PR #717's
-exact-head checks restarted after the review repair, with Devin pending and
-CodeRabbit successful at capture time. No self-approval, admin bypass, or
-stale-head check transfer is permitted.
+an independent approval remained; auto-merge remains enabled. PR #717 head
+`9db158c4` passed frontend, Devin, and CodeRabbit but its full suite failed
+three ontology traversal test doubles that had not adopted the new Voice
+loader. The candidate repair supplies the missing seam and passes the 85-test
+ontology/SHACL/docstring slice locally; new exact-head hosted checks are
+required after push. No self-approval, admin bypass, or stale-head check
+transfer is permitted.
 
 Stacked PR #717 carries ADR 0251, migration 0237, qualified
 ontology terms, persistence/API/UI tests, and the category-validation review
 repairs plus a local candidate admin write path that creates its PROV-O
-derivation from an authorized evidence Post. Its JSON-LD projection now names
-that evidence Post only when it is in the authorized visible set and otherwise
-omits the reference instead of substituting the assigned Post. It targets
+derivation from an authorized evidence Post. Its JSON-LD projection names that
+evidence Post only when it is in the authorized visible set and omits the whole
+additional assignment otherwise, preserving the SHACL evidence minimum without
+substituting the assigned Post. It targets
 #713's branch, not protected `main`;
 its checks and review are candidate evidence only. After
 #713 reaches protected main, #717 must be synchronized, retargeted to `main`,

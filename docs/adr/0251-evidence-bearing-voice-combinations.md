@@ -64,13 +64,21 @@ compound lookup codes.
   not accept a caller-supplied assertion identifier: one transaction binds the
   evidence Post as a PROV Entity, records `prov:wasDerivedFrom`, and upserts the
   assignment. It cannot replace or demote the imported primary Voice.
+- In the live Post popup, a `post_admin` may choose one unassigned atomic Voice
+  and one explicit truth state. The open Post is submitted as its own evidence,
+  which covers a single record that contains several perspectives without
+  asking the user for an internal identifier. Historical-cutoff views and
+  accounts without `post_admin` do not expose this write control.
 - The authorized ontology neighborhood projects each association as a
   qualified assignment in JSON-LD and the exact-value CSV. SHACL requires its
   atomic voice concept, primary flag, and source-post evidence. The exact-value
   table opens that already-authorized source post; it does not invent a graph
   edge or expose an internal assertion identifier. A single bounded query loads
   assignments for every authorized Post in the neighborhood, regardless of
-  whether the focus is a Post, Person, Organization, Team, or Project.
+  whether the focus is a Post, Person, Organization, Team, or Project. An
+  additional assignment whose evidence Post is outside that authorized node
+  set is omitted as a whole, keeping the JSON-LD conformant with the SHACL
+  evidence minimum without disclosing or substituting hidden evidence.
 
 ## Data model
 
@@ -123,11 +131,12 @@ category and stores no source content or identifying evidence in repository
 artifacts.
 
 The repository candidate projects authorized combinations through JSON-LD,
-SHACL, CSV, and evidence navigation and includes the governed admin API write
-path above. Its synthetic Storybook desktop/mobile scene verifies a focused
-evidence action and a contained horizontally scrollable exact-value table.
-Authenticated PostgreSQL runtime acceptance and a customer-facing authoring
-surface remain required before a release claim.
+SHACL, CSV, and evidence navigation and includes the governed admin API and
+Post-popup authoring path above. Synthetic Storybook desktop/mobile scenes
+verify the focused evidence action, contained horizontally scrollable
+exact-value table, explicit unassigned-Voice/truth selections, success state,
+and 44-pixel touch controls. Authenticated PostgreSQL API acceptance remains
+required before a release claim.
 
 ## References
 

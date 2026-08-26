@@ -775,6 +775,22 @@ export function fetchPost(
   return backendFetch<PostDetail>(`/api/posts/${postId}${query}`, accessToken);
 }
 
+export function createPostVoiceAssignment(
+  accessToken: string,
+  postId: string,
+  voiceTypeCode: string,
+  truthStatusCode: string,
+): Promise<PostVoiceType> {
+  return backendFetch(`/api/posts/${postId}/voice-assignments`, accessToken, {
+    method: "POST",
+    body: JSON.stringify({
+      voice_type_code: voiceTypeCode,
+      truth_status_code: truthStatusCode,
+      evidence_post_id: postId,
+    }),
+  });
+}
+
 export function fetchPostContent(accessToken: string, postId: string): Promise<PostContentResponse> {
   return backendFetch<PostContentResponse>(`/api/posts/${postId}/content`, accessToken);
 }

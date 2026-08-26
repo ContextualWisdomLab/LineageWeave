@@ -804,6 +804,7 @@ async def _load_voice_assignments(
             on evidence.resource_id = assertion.object_resource_id
            and evidence.node_type_code = 'node_post'
          where voice.post_id = any($1::uuid[])
+           and (voice.is_primary or evidence.node_id = any($1::uuid[]))
            and ($2::timestamptz is null or voice.effective_from <= $2)
            and voice.recorded_at <= $3::timestamptz
          order by voice.post_id, voice.is_primary desc,
@@ -1157,7 +1158,7 @@ async def visible_ontology_neighborhood(
     )
     visible_post_ids = tuple(
         node.node_id
-        for node in neighborhood.nodes
+        for node in getattr(neighborhood, "nodes", ())
         if node.node_type_code == NODE_POST
     )
     if visible_post_ids:
