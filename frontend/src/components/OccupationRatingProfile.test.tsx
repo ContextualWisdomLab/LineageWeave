@@ -262,6 +262,7 @@ describe("OccupationRatingProfile", () => {
 
     expect(screen.queryByRole("option", { name: "Chief Executives · 11-1011.00" })).not.toBeInTheDocument();
     expect(screen.getByRole("option", { name: "Software Developers · 15-1252.00" })).toBeInTheDocument();
+    await userEvent.selectOptions(screen.getByLabelText("직업"), "15-1252.00");
     await userEvent.click(screen.getByRole("button", { name: "직업 근거 열기" }));
     expect(fetchOccupationRatings).toHaveBeenCalledWith("synthetic-token", {
       onetsocCode: "15-1252.00", dataReleaseCode: "onet-31.0", sourceTableCode: "abilities", offset: 0,
