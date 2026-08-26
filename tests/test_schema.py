@@ -659,7 +659,7 @@ def test_public_claim_envelope_requires_a_public_post_for_egress(schema_db) -> N
             (public_post_id,),
         )
         cur.execute("savepoint before_private_egress")
-        with pytest.raises(psycopg2.errors.RaiseError):
+        with pytest.raises(psycopg2.errors.RaiseException):
             cur.execute(
                 "insert into public_claim_envelope ("
                 "source_post_id, claim_kind_code, subject_label, claim_text, "
