@@ -52,6 +52,7 @@ from lineageweave.post_structure import PostStructureClient
 from lineageweave.product_semantics import (
     ContextualOrchestratorProductExtractionClient,
     ProductEvidenceSource,
+    ProductRelationTarget,
     product_analysis_input_sha256,
 )
 
@@ -236,14 +237,42 @@ async def _persist_product_analysis_if_needed(
                 input_digest,
             )
         )
+        operation_rows = await conn.fetch(
+            "select case_kind_code, fact_ordinal, fact_type_code, value_text "
+            "from operations_case_fact where post_id = $1 "
+            "order by case_kind_code, fact_ordinal",
+            post_id,
+        )
+        project_rows = await conn.fetch(
+            "select project_key, project_name from post_project_mention "
+            "where post_id = $1 order by project_key",
+            post_id,
+        )
     if already_persisted:
         return
     client = ContextualOrchestratorProductExtractionClient(
         orchestrator_base_url, orchestrator_api_key
     )
-    mentions = await asyncio.to_thread(client.extract, sources)
+    targets = tuple(
+        ProductRelationTarget(
+            f"operations_fact:{row['case_kind_code']}:{row['fact_ordinal']}",
+            "operations_fact",
+            f"{row['fact_type_code']}: {row['value_text']}",
+            (post_id, str(row["case_kind_code"]), str(row["fact_ordinal"])),
+        )
+        for row in operation_rows
+    ) + tuple(
+        ProductRelationTarget(
+            f"project:{row['project_key']}",
+            "project",
+            str(row["project_name"]),
+            (post_id, str(row["project_key"])),
+        )
+        for row in project_rows
+    )
+    extraction = await asyncio.to_thread(client.extract, sources, targets)
     async with pool.acquire() as conn:
-        resolved = await resolve_product_mentions(conn, mentions)
+        resolved = await resolve_product_mentions(conn, extraction.mentions)
         await persist_product_mentions(
             conn,
             post_id,
@@ -251,6 +280,7 @@ async def _persist_product_analysis_if_needed(
             input_digest,
             session_id,
             resolved,
+            extraction,
         )
 
 

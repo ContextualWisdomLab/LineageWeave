@@ -7,7 +7,12 @@ from backend.app.product_semantic_ingestion import (
     persist_product_mentions,
     resolve_product_mentions,
 )
-from lineageweave.product_semantics import ProductMention, ResolvedProductMention
+from lineageweave.product_semantics import (
+    ProductExtraction,
+    ProductMention,
+    ProductRelation,
+    ResolvedProductMention,
+)
 
 
 class _Connection:
@@ -66,3 +71,31 @@ def test_persist_product_mentions_replaces_exact_projection() -> None:
         "post-a",
         "a" * 64,
     )
+
+
+def test_persist_product_mentions_writes_authorized_relation_in_same_transaction() -> None:
+    connection = _Connection()
+    mention = ProductMention("Product Q", "Product Q", "post-a", "a" * 64)
+    relation = ProductRelation(
+        0,
+        "project:project-a",
+        "project",
+        "used_by_project",
+        "Product Q",
+        "post-a",
+        "a" * 64,
+        ("post-a", "project-a"),
+    )
+    asyncio.run(
+        persist_product_mentions(
+            connection,
+            "post-a",
+            "b" * 64,
+            "c" * 64,
+            "session-a",
+            (ResolvedProductMention(mention, "missing", None),),
+            ProductExtraction((mention,), (relation,)),
+        )
+    )
+    assert "insert into product_project_relation" in connection.calls[-1][0]
+    assert connection.calls[-1][1][0:4] == ("post-a", 0, "project-a", "used_by_project")

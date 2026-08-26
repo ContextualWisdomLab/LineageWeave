@@ -23,7 +23,7 @@ from rdflib import Graph, Literal, Namespace, URIRef
 from rdflib.namespace import RDF, XSD
 from pyshacl import validate as shacl_validate
 
-from lineageweave.ontology import project_project_mention_rdf
+from lineageweave.ontology import project_product_relation_rdf, project_project_mention_rdf
 
 ROOT = Path(__file__).resolve().parents[1]
 KG_PATH = ROOT / "docs" / "ontology" / "lineageweave-kg.ttl"
@@ -143,6 +143,39 @@ def test_schema_shaped_project_row_projection_passes_validation() -> None:
     assert (mention, RDF.subject, None) in data
     assert (mention, RDF.predicate, LWn.mentionsProject) in data
     assert (mention, RDF.object, project) in data
+
+
+def test_product_relation_projection_passes_validation_and_closed_codes() -> None:
+    """The production projector emits a complete evidence-bound relation."""
+    data = project_product_relation_rdf(
+        post_id="aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa1",
+        mention_ordinal=0,
+        product_id="synthetic-product",
+        target_kind_code="project",
+        target_id="synthetic-project",
+        relation_type_code="used_by_project",
+        evidence_text="Synthetic Product supports Synthetic Project",
+        evidence_input_sha256="a" * 64,
+        post_title="Synthetic relation source",
+        post_body="Synthetic Product supports Synthetic Project",
+        post_created_at=datetime(2026, 8, 27, tzinfo=timezone.utc),
+    )
+    conforms, report_text = _conforms(data)
+    assert conforms, report_text
+    with pytest.raises(ValueError, match="relation type"):
+        project_product_relation_rdf(
+            post_id="aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa1",
+            mention_ordinal=0,
+            product_id="synthetic-product",
+            target_kind_code="project",
+            target_id="synthetic-project",
+            relation_type_code="concerns_product",
+            evidence_text="Synthetic evidence",
+            evidence_input_sha256="a" * 64,
+            post_title="Synthetic relation source",
+            post_body="Synthetic evidence",
+            post_created_at=datetime(2026, 8, 27, tzinfo=timezone.utc),
+        )
 
 
 @pytest.mark.parametrize(

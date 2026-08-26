@@ -1711,6 +1711,35 @@ async def read_post(
             "order by mention.mention_ordinal",
             post_id,
         )
+        product_relation_rows = await conn.fetch(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
+            "select relation.mention_ordinal, relation.relation_type_code, "
+            "'operations_fact' as target_kind_code, "
+            "relation.case_kind_code || ':' || relation.fact_ordinal::text as target_id, "
+            "fact.value_text as target_label, relation.evidence_text, "
+            "relation.evidence_post_id, evidence_post.visibility_code, "
+            "evidence_post.corporate_entity_id, evidence_post.process_unit_id "
+            "from product_operations_fact_relation relation "
+            "join operations_case_fact fact on fact.post_id = relation.post_id "
+            "and fact.case_kind_code = relation.case_kind_code "
+            "and fact.fact_ordinal = relation.fact_ordinal "
+            "join source_post evidence_post on evidence_post.post_id = relation.evidence_post_id "
+            "where relation.post_id = $1 and "
+            f"{SOURCE_POST_ELIGIBILITY_SQL.format(alias='evidence_post')} "
+            "union all "
+            "select relation.mention_ordinal, relation.relation_type_code, "
+            "'project' as target_kind_code, relation.project_key as target_id, "
+            "project.project_name as target_label, relation.evidence_text, "
+            "relation.evidence_post_id, evidence_post.visibility_code, "
+            "evidence_post.corporate_entity_id, evidence_post.process_unit_id "
+            "from product_project_relation relation "
+            "join post_project_mention project on project.post_id = relation.post_id "
+            "and project.project_key = relation.project_key "
+            "join source_post evidence_post on evidence_post.post_id = relation.evidence_post_id "
+            "where relation.post_id = $1 and "
+            f"{SOURCE_POST_ELIGIBILITY_SQL.format(alias='evidence_post')} "
+            "order by mention_ordinal, target_kind_code, target_id",
+            post_id,
+        )
         known_at = None
         if as_of_clock is not None:
             known_at = await fetch_known_at_revision(conn, post_id, as_of_clock)
@@ -1727,6 +1756,19 @@ async def read_post(
                 "product_level_code": item["product_level_code"],
                 "evidence_text": item["evidence_text"],
                 "evidence_post_id": item["evidence_post_id"],
+                "relations": [
+                    {
+                        "relation_type_code": relation["relation_type_code"],
+                        "target_kind_code": relation["target_kind_code"],
+                        "target_id": relation["target_id"],
+                        "target_label": relation["target_label"],
+                        "evidence_text": relation["evidence_text"],
+                        "evidence_post_id": relation["evidence_post_id"],
+                    }
+                    for relation in product_relation_rows
+                    if relation["mention_ordinal"] == item["mention_ordinal"]
+                    and _can_see_post(account, relation)
+                ],
             }
             for item in product_rows
             if _can_see_post(account, item)

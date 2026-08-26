@@ -252,6 +252,16 @@ export interface ProductEvidence {
   product_level_code: "product_group" | "product_model" | "variant" | "trade_item" | null;
   evidence_text: string;
   evidence_post_id: string;
+  relations?: ProductRelationEvidence[];
+}
+
+export interface ProductRelationEvidence {
+  relation_type_code: "concerns_product" | "changes_product" | "originates_from_product" | "senses_product" | "used_by_project";
+  target_kind_code: "operations_fact" | "project";
+  target_id: string;
+  target_label: string;
+  evidence_text: string;
+  evidence_post_id: string;
 }
 
 export interface PostImageContent {

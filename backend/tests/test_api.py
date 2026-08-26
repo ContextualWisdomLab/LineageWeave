@@ -2049,6 +2049,7 @@ def test_post_detail_returns_authorized_product_evidence(
         "product_level_code": "product_model",
         "evidence_text": "Synthetic evidence",
         "evidence_post_id": seeded_db["public_post_id"],
+        "relations": [],
     }]
 
 
