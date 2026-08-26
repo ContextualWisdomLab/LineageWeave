@@ -196,7 +196,7 @@ _GLOBAL_ASK_SCOPE_MIGRATION = (
 _GLOBAL_ASK_PUBLIC_VERIFICATION_MIGRATION = (
     Path(__file__).resolve().parents[2]
     / "migrations"
-    / "0224_global_ask_public_verification.sql"
+    / "0226_global_ask_public_verification.sql"
 )
 _GLOBAL_ASK_SEMANTIC_SEARCH_MIGRATION = (
     Path(__file__).resolve().parents[2]
