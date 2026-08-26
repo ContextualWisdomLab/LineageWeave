@@ -222,7 +222,7 @@ def schema_db():
                 # statement execute as one transaction even with autocommit.
                 for statement in _GLOBAL_ASK_EVIDENCE_SEARCH_MIGRATION.read_text().split(";\n\n"):
                     if statement.strip():
-                        cur.execute(statement + ";")
+                        cur.execute(statement)
             # Migration replay needs autocommit for concurrent indexes, while
             # tests need transactions for savepoints and rollback assertions.
             conn.autocommit = False

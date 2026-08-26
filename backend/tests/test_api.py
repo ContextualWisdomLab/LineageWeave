@@ -407,7 +407,7 @@ def seeded_db(demo_analyst_token):
             # preserve that boundary in the integration fixture as well.
             for statement in _GLOBAL_ASK_EVIDENCE_SEARCH_MIGRATION.read_text().split(";\n\n"):
                 if statement.strip():
-                    cur.execute(statement + ";")
+                    cur.execute(statement)
             cur.execute(_GLOBAL_ASK_KNOWLEDGE_CUTOFF_MIGRATION.read_text())
             cur.execute(_GLOBAL_ASK_PUBLIC_VERIFICATION_MIGRATION.read_text())
             cur.execute(_EVENT_OCCURRED_AT_MIGRATION.read_text())
