@@ -255,8 +255,6 @@ def retrieve_public_target(
     if maximum_response_bytes <= 0:
         raise ValueError("maximum_response_bytes must be a positive integer")
     connect_host = str(connect_address)
-    if connect_address.version == 6:
-        connect_host = f"[{connect_host}]"
     connection = http.client.HTTPConnection(connect_host, target.port, timeout=timeout)
     try:
         try:

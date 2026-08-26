@@ -1673,7 +1673,7 @@ describe("App, authenticated", () => {
                 judgment_code: "research_supported",
                 rationale_text: "The retrieved page matches this source unit.",
                 next_action_text:
-                  "Open the cited public resource, then compare it with this post's source unit or image region.",
+                  "Open the cited public resource, then compare it with the highlighted passage or image detail from this post.",
               },
             ],
           }),

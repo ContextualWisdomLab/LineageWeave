@@ -2,8 +2,8 @@
 
 from pathlib import Path
 
-MIGRATION = Path("migrations/0222_source_research_citation.sql")
-ROLLBACK = Path("migrations/rollback/0222_source_research_citation.sql")
+MIGRATION = Path("migrations/0223_source_research_citation.sql")
+ROLLBACK = Path("migrations/rollback/0223_source_research_citation.sql")
 
 
 def test_source_research_citation_is_third_normal_form_and_replay_safe() -> None:

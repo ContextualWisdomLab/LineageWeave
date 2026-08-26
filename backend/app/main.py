@@ -246,6 +246,8 @@ from lineageweave.relation_verification import (
     SearxngRelationVerificationClient,
 )
 from lineageweave.source_reference_research import (
+    PRIVATE_POST_UNAVAILABLE,
+    VISIBILITY_PUBLIC,
     NullSourceResearchClient,
     SearxngOrchestratedSourceResearchClient,
 )
@@ -420,12 +422,16 @@ def _source_research_client():
         settings.searxng_base_url
         and settings.orchestrator_base_url
         and settings.orchestrator_api_key
+        and settings.source_research_maximum_leads is not None
+        and settings.source_research_maximum_results is not None
     ):
         return NullSourceResearchClient()
     return SearxngOrchestratedSourceResearchClient(
         settings.searxng_base_url,
         settings.orchestrator_base_url,
         settings.orchestrator_api_key,
+        maximum_leads=settings.source_research_maximum_leads,
+        maximum_results=settings.source_research_maximum_results,
     )
 
 
@@ -2428,6 +2434,11 @@ async def read_post_research_citations(
     return {
         "post_id": str(post["post_id"]),
         "visibility_code": post["visibility_code"],
+        "unavailable_reason": (
+            PRIVATE_POST_UNAVAILABLE
+            if str(post["visibility_code"]) != VISIBILITY_PUBLIC
+            else None
+        ),
         "citations": [
             {
                 "lead_kind_code": row["lead_kind_code"],
@@ -2470,12 +2481,13 @@ async def research_post_source_references(
             "Source research is unavailable: set SEARXNG_BASE_URL and ORCHESTRATOR_BASE_URL",
         )
     try:
-        run = await research_post_sources_from_pool(
-            pool,
-            client,
-            post_id,
-            visibility_code=str(post["visibility_code"]),
-        )
+        with use_llm_metadata(build_post_llm_metadata(post_id, post)):
+            run = await research_post_sources_from_pool(
+                pool,
+                client,
+                post_id,
+                visibility_code=str(post["visibility_code"]),
+            )
     except (HttpClientError, OSError, ValueError) as exc:
         raise HTTPException(
             status.HTTP_503_SERVICE_UNAVAILABLE,
@@ -2491,7 +2503,7 @@ async def research_post_source_references(
         post_id,
         "source_research_checked",
         account.user_account_id,
-        f"Source research checked: {len(run.citations)} lead(s)",
+        f"Public sources reviewed: {len(run.citations)} item(s)",
     )
     return {
         "post_id": run.post_id,

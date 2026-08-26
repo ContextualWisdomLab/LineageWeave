@@ -1,7 +1,7 @@
 """Load source leads, run public research, and persist citations.
 
 Private posts fail closed before any search or retrieval. Already-checked
-leads are replaced in place so the buyer sees the latest public resource
+leads are replaced in place so the reader sees the latest public resource
 for that unit or image region.
 """
 
@@ -12,6 +12,7 @@ from dataclasses import dataclass
 
 import asyncpg
 
+from lineageweave.http_client import HttpClientError
 from lineageweave.source_reference_research import (
     NO_LEAD_UNAVAILABLE,
     PRIVATE_POST_UNAVAILABLE,
@@ -20,6 +21,7 @@ from lineageweave.source_reference_research import (
     SourceResearchClient,
     SourceResearchLead,
     select_source_research_leads,
+    unavailable_citation,
 )
 
 
@@ -36,6 +38,7 @@ class SourceResearchRun:
 async def load_source_research_leads(
     conn: asyncpg.Connection,
     post_id: str,
+    maximum_leads: int,
 ) -> tuple[SourceResearchLead, ...]:
     """Read persisted semantic units and image regions for ``post_id``."""
 
@@ -68,6 +71,7 @@ async def load_source_research_leads(
     return select_source_research_leads(
         [dict(row) for row in units],
         [dict(row) for row in regions],
+        maximum_leads=maximum_leads,
     )
 
 
@@ -204,7 +208,7 @@ async def research_post_sources_from_pool(
             unavailable_reason=PRIVATE_POST_UNAVAILABLE,
         )
     async with pool.acquire() as conn:
-        leads = await load_source_research_leads(conn, post_id)
+        leads = await load_source_research_leads(conn, post_id, client.maximum_leads)
     if not leads:
         return SourceResearchRun(
             post_id=post_id,
@@ -214,7 +218,13 @@ async def research_post_sources_from_pool(
         )
     citations: list[SourceResearchCitation] = []
     for lead in leads:
-        citation = await asyncio.to_thread(client.research, lead)
+        try:
+            citation = await asyncio.to_thread(client.research, lead)
+        except (HttpClientError, OSError, ValueError):
+            citation = unavailable_citation(
+                lead,
+                "This item could not be checked. Review its existing evidence instead.",
+            )
         citations.append(citation)
     async with pool.acquire() as conn, conn.transaction():
         for citation in citations:

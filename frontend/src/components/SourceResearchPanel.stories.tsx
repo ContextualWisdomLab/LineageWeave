@@ -11,7 +11,7 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 
 const nextAction =
-  "Open the cited public resource, then compare it with this post's source unit or image region.";
+  "Open the cited public resource, then compare it with the highlighted passage or image detail from this post.";
 
 export const SupportedAndUnavailable: Story = {
   args: {
@@ -60,12 +60,12 @@ export const SupportedAndUnavailable: Story = {
 export const PrivatePost: Story = {
   args: {
     citations: [],
-    unavailableReason: "Private posts cannot send source content to public search.",
+    unavailableReason: "Public research is unavailable for this post. Review its existing evidence instead.",
   },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     await expect(
       canvas.getByRole("status"),
-    ).toHaveTextContent("Private posts cannot send source content to public search.");
+    ).toHaveTextContent("Public research is unavailable for this post. Review its existing evidence instead.");
   },
 };

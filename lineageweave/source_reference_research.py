@@ -34,14 +34,16 @@ JUDGMENT_UNAVAILABLE = "research_unavailable"
 
 VISIBILITY_PUBLIC = "public"
 PRIVATE_POST_UNAVAILABLE = (
-    "Private posts cannot send source content to public search."
+    "Public research is unavailable for this post. "
+    "Review its existing evidence instead."
 )
 NO_LEAD_UNAVAILABLE = (
-    "No source unit or image region is available to research."
+    "No researchable passage or image detail is available. "
+    "Review this post's existing evidence instead."
 )
 NEXT_ACTION = (
-    "Open the cited public resource, then compare it with this post's source "
-    "unit or image region."
+    "Open the cited public resource, then compare it with the highlighted "
+    "passage or image detail from this post."
 )
 
 _ALLOWED_LEAD_KINDS = frozenset({LEAD_SEMANTIC_UNIT, LEAD_IMAGE_REGION})
@@ -55,10 +57,6 @@ _ALLOWED_JUDGMENTS = frozenset(
 )
 _CODE_FENCE = re.compile(r"```(?:json)?\s*(.*?)\s*```", re.DOTALL)
 _IMAGE_UNIT_KIND = "image"
-DEFAULT_MAXIMUM_LEADS = 3
-DEFAULT_MAXIMUM_SEARCH_RESULTS = 5
-
-
 @dataclass(frozen=True)
 class SourceResearchLead:
     """One already-persisted source unit or image region used as a search lead."""
@@ -126,7 +124,7 @@ def select_source_research_leads(
     units: list[dict[str, object]] | tuple[dict[str, object], ...],
     regions: list[dict[str, object]] | tuple[dict[str, object], ...],
     *,
-    maximum_leads: int = DEFAULT_MAXIMUM_LEADS,
+    maximum_leads: int,
 ) -> tuple[SourceResearchLead, ...]:
     """Select bounded existing units and regions; never invent a lead."""
 
@@ -196,6 +194,7 @@ class SourceResearchClient(Protocol):
     """Research one public source lead against retrieved public pages."""
 
     available: bool
+    maximum_leads: int
 
     def research(self, lead: SourceResearchLead) -> SourceResearchCitation:
         """Return a supported, refuted, not-enough, or unavailable citation."""
@@ -207,6 +206,7 @@ class NullSourceResearchClient:
     """Unavailable research channel; never fabricates a citation."""
 
     available = False
+    maximum_leads = 0
 
     def research(self, lead: SourceResearchLead) -> SourceResearchCitation:
         """Raise because callers must check :attr:`available` first."""
@@ -274,7 +274,8 @@ class SearxngOrchestratedSourceResearchClient:
         search_timeout: float = 15.0,
         retrieval_timeout: float = 10.0,
         adjudication_timeout: float = 180.0,
-        maximum_results: int = DEFAULT_MAXIMUM_SEARCH_RESULTS,
+        maximum_leads: int,
+        maximum_results: int,
         reasoning_effort: str = "auto",
         fetch_resource=fetch_public_resource,
     ) -> None:
@@ -284,13 +285,14 @@ class SearxngOrchestratedSourceResearchClient:
             raise ValueError("unsupported SearXNG base URL")
         if orchestrator_url.scheme not in {"http", "https"}:
             raise ValueError("unsupported contextual-orchestrator base URL")
-        if maximum_results <= 0:
-            raise ValueError("maximum_results must be positive")
+        if maximum_leads <= 0 or maximum_results <= 0:
+            raise ValueError("source-research limits must be positive")
         if not api_key.strip():
             raise ValueError("orchestrator API key is required")
         self._searxng_base_url = searxng_base_url.rstrip("/")
         self._orchestrator_base_url = orchestrator_base_url.rstrip("/")
         self._api_key = api_key
+        self.maximum_leads = maximum_leads
         self._search_timeout = search_timeout
         self._retrieval_timeout = retrieval_timeout
         self._adjudication_timeout = adjudication_timeout
@@ -377,7 +379,6 @@ class SearxngOrchestratedSourceResearchClient:
 
 
 __all__ = [
-    "DEFAULT_MAXIMUM_LEADS",
     "JUDGMENT_NOT_ENOUGH_INFORMATION",
     "JUDGMENT_REFUTED",
     "JUDGMENT_SUPPORTED",

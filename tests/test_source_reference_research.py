@@ -6,6 +6,7 @@ import json
 
 import pytest
 
+from backend.app.config import load_settings
 from lineageweave.public_resource_retrieval import PublicResource, PublicTargetRejected
 from lineageweave.source_reference_research import (
     JUDGMENT_NOT_ENOUGH_INFORMATION,
@@ -84,6 +85,24 @@ def test_null_client_is_unavailable() -> None:
     assert client.available is False
     with pytest.raises(RuntimeError):
         client.research(_unit_lead())
+
+
+def test_source_research_resource_budgets_have_no_implicit_default(
+    monkeypatch,
+) -> None:
+    """Keep research fail-closed until deployment supplies both budgets."""
+
+    monkeypatch.delenv("SOURCE_RESEARCH_MAXIMUM_LEADS", raising=False)
+    monkeypatch.delenv("SOURCE_RESEARCH_MAXIMUM_RESULTS", raising=False)
+    settings = load_settings()
+    assert settings.source_research_maximum_leads is None
+    assert settings.source_research_maximum_results is None
+
+    monkeypatch.setenv("SOURCE_RESEARCH_MAXIMUM_LEADS", "2")
+    monkeypatch.setenv("SOURCE_RESEARCH_MAXIMUM_RESULTS", "4")
+    configured = load_settings()
+    assert configured.source_research_maximum_leads == 2
+    assert configured.source_research_maximum_results == 4
 
 
 def test_supported_without_cited_resource_downgrades() -> None:
@@ -203,6 +222,8 @@ def test_orchestrated_client_searches_retrieves_and_verifies(monkeypatch) -> Non
         "https://search.example",
         "https://orchestrator.example",
         "test-key",
+        maximum_leads=3,
+        maximum_results=5,
         fetch_resource=fake_fetch,
     )
     result = client.research(lead)
@@ -228,6 +249,8 @@ def test_orchestrated_client_skips_rejected_retrievals(monkeypatch) -> None:
         "https://search.example",
         "https://orchestrator.example",
         "test-key",
+        maximum_leads=3,
+        maximum_results=5,
         fetch_resource=fake_fetch,
     )
     result = client.research(_unit_lead())

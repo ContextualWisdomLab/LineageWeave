@@ -133,6 +133,37 @@ def test_retrieve_public_target_returns_visible_html() -> None:
     assert resource.url == "https://example.com/evidence"
 
 
+def test_retrieve_public_target_passes_unbracketed_ipv6_to_http_client(
+    monkeypatch,
+) -> None:
+    """Let ``HTTPConnection`` own IPv6 socket-address formatting."""
+
+    observed: dict[str, object] = {}
+
+    class _UnavailableConnection:
+        sock = None
+
+        def __init__(self, host: str, port: int, *, timeout: float) -> None:
+            observed.update(host=host, port=port, timeout=timeout)
+
+        def connect(self) -> None:
+            raise OSError("test transport stop")
+
+        def close(self) -> None:
+            return
+
+    monkeypatch.setattr(
+        "lineageweave.public_resource_retrieval.http.client.HTTPConnection",
+        _UnavailableConnection,
+    )
+    with pytest.raises(PublicResourceUnavailable):
+        retrieve_public_target(
+            _target(8080),
+            ipaddress.ip_address("2001:4860:4860::8888"),
+        )
+    assert observed["host"] == "2001:4860:4860::8888"
+
+
 def test_retrieve_public_target_rejects_oversized_declared_length() -> None:
     class _HugeHandler(BaseHTTPRequestHandler):
         def do_GET(self) -> None:  # noqa: N802

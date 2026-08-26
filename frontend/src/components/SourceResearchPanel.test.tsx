@@ -4,7 +4,7 @@ import { describe, expect, it, vi } from "vitest";
 import { SourceResearchPanel } from "./SourceResearchPanel";
 
 const nextAction =
-  "Open the cited public resource, then compare it with this post's source unit or image region.";
+  "Open the cited public resource, then compare it with the highlighted passage or image detail from this post.";
 
 describe("SourceResearchPanel", () => {
   it("opens a cited public resource without following a javascript URL", async () => {
@@ -56,11 +56,11 @@ describe("SourceResearchPanel", () => {
     render(
       <SourceResearchPanel
         citations={[]}
-        unavailableReason="Private posts cannot send source content to public search."
+        unavailableReason="Public research is unavailable for this post. Review its existing evidence instead."
       />,
     );
     expect(screen.getByRole("status")).toHaveTextContent(
-      "Private posts cannot send source content to public search.",
+      "Public research is unavailable for this post. Review its existing evidence instead.",
     );
     expect(screen.queryByRole("button", { name: "Research public sources" })).not.toBeInTheDocument();
   });

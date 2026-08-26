@@ -58,6 +58,8 @@ class Settings:
     orchestrator_answer_timeout_seconds: float
     valkey_url: str
     searxng_base_url: str
+    source_research_maximum_leads: int | None
+    source_research_maximum_results: int | None
     tepp_transport_url: str
     tepp_api_key: str
     caldav_base_url: str
@@ -205,6 +207,12 @@ def load_settings() -> Settings:
         ),
         valkey_url=os.environ.get("VALKEY_URL", "redis://localhost:16379/0"),
         searxng_base_url=os.environ.get("SEARXNG_BASE_URL", ""),
+        source_research_maximum_leads=_optional_positive_int(
+            "SOURCE_RESEARCH_MAXIMUM_LEADS"
+        ),
+        source_research_maximum_results=_optional_positive_int(
+            "SOURCE_RESEARCH_MAXIMUM_RESULTS"
+        ),
         tepp_transport_url=os.environ.get("TEPP_TRANSPORT_URL", ""),
         tepp_api_key=os.environ.get("TEPP_API_KEY", ""),
         caldav_base_url=os.environ.get("CALDAV_BASE_URL", "").strip(),
