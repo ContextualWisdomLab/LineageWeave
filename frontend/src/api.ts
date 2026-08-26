@@ -367,7 +367,7 @@ export interface PostAskConversationPage {
 
 export interface PostAskConversation {
   conversation_id: string;
-  title: string;
+  title: string | null;
   exchanges: ChatExchange[];
   older_cursor?: string | null;
 }
