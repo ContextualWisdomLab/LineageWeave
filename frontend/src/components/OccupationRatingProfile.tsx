@@ -80,7 +80,14 @@ export function OccupationRatingProfile({ accessToken }: Props) {
       source.data_release_code,
       source.source_table_code,
     )
-      .then((payload) => active && setOccupations(payload.occupations))
+      .then((payload) => {
+        if (!active) return;
+        if (!payload.source_available) {
+          setOccupationCatalogError(true);
+          return;
+        }
+        setOccupations(payload.occupations);
+      })
       .catch(() => active && setOccupationCatalogError(true));
     return () => { active = false; };
   }, [accessToken, selectedSource, sources]);

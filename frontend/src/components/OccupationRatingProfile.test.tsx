@@ -119,6 +119,17 @@ describe("OccupationRatingProfile", () => {
     expect(screen.getByLabelText("직업")).toBeDisabled();
   });
 
+  it("distinguishes an unavailable occupation catalog from an empty one", async () => {
+    vi.mocked(fetchRatingSourceOccupations).mockResolvedValue({
+      data_release_code: "onet-31.0", source_table_code: "abilities",
+      source_available: false, occupations: [],
+    });
+    render(<OccupationRatingProfile accessToken="synthetic-token" />);
+
+    expect(await screen.findByRole("alert")).toHaveTextContent("직업 목록을 확인하지 못했습니다");
+    expect(screen.queryByText(/선택할 수 있는 직업이 없습니다/)).not.toBeInTheDocument();
+  });
+
   it("clears a stale catalog error when authentication changes", async () => {
     vi.mocked(fetchOccupationRatingSources)
       .mockRejectedValueOnce(new Error("synthetic catalog failure"))
