@@ -181,6 +181,12 @@ def schema_db():
                 cur.execute(_LEFTOVER_MAP_CROSS_SHARE_MIGRATION.read_text())
                 cur.execute(_LEFTOVER_MAP_RECONSTRUCTION_MIGRATION.read_text())
                 cur.execute(_SOURCE_EVENT_TIME_MIGRATION.read_text())
+                cur.execute(_GLOBAL_ASK_JOB_MIGRATION.read_text())
+                cur.execute(_GLOBAL_ASK_SCOPE_MIGRATION.read_text())
+                # Exercise the production replay contract against the same
+                # PostgreSQL objects instead of merely inspecting SQL text.
+                cur.execute(_GLOBAL_ASK_JOB_MIGRATION.read_text())
+                cur.execute(_GLOBAL_ASK_SCOPE_MIGRATION.read_text())
                 # psql sends each statement independently, which is required
                 # by CREATE INDEX CONCURRENTLY. psycopg2 treats a multi-
                 # statement execute as one transaction even with autocommit.
@@ -243,6 +249,9 @@ def test_migration_applies_cleanly(schema_db) -> None:
         "post_summary_action",
         "post_chat_result",
         "post_chat_citation",
+        "global_ask_job",
+        "global_ask_job_corporate_entity_scope",
+        "global_ask_job_process_unit_scope",
     }
     assert expected <= tables
 
