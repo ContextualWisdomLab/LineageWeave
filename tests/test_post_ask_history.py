@@ -309,6 +309,45 @@ def test_persist_turn_aborts_when_a_citation_loses_authorization() -> None:
     )
 
 
+def test_persist_turn_aborts_when_a_non_cited_source_loses_authorization() -> None:
+    """Every gathered source is reauthorized even when it is not cited."""
+    connection = _Connection([
+        {
+            "post_id": "post-1",
+            "post_title": "Synthetic context",
+            "visibility_code": "workspace",
+            "corporate_entity_id": "entity-1",
+            "author_account_id": "account-1",
+            "source_detail_state_code": "current",
+        },
+        {
+            "post_id": "post-2",
+            "post_title": "Synthetic citation",
+            "visibility_code": "workspace",
+            "corporate_entity_id": "entity-2",
+            "author_account_id": "account-2",
+            "source_detail_state_code": "current",
+        },
+    ])
+
+    with pytest.raises(PostAskEvidenceChanged):
+        asyncio.run(
+            persist_turn(
+                connection,
+                "account-1",
+                "post-1",
+                None,
+                "What changed?",
+                "A complete answer.",
+                ["post-1", "post-2"],
+                ["post-2"],
+                can_see_post=lambda row: row["post_id"] == "post-2",
+            )
+        )
+
+    assert not any("insert into post_ask_turn" in query for query, _ in connection.calls)
+
+
 def test_persist_turn_rejects_deleted_source_before_foreign_key_insert() -> None:
     """A source deleted mid-request becomes evidence-changed, never a raw FK error."""
     connection = _Connection([])

@@ -512,7 +512,7 @@ export function ChatPanel({
               className="chat-suggestion-chip"
               aria-label={tf("Ask seeded question: {question}", { question: exchange.question_text })}
               aria-current={
-                nameFirstAsk && exchanges[0]?.question_text === exchange.question_text
+                nameFirstAsk && index === 0
                   ? "true"
                   : undefined
               }
@@ -529,10 +529,7 @@ export function ChatPanel({
       )}
       {error && <p className="error">{error}</p>}
       {exchanges
-        .filter(
-          (exchange) =>
-            !(nameFirstAsk && exchange.question_text === exchanges[0]?.question_text),
-        )
+        .slice(nameFirstAsk ? 1 : 0)
         .map((exchange, index) => (
         <div key={exchange.turn_id ?? `answer-${index}`} className="chat-answer">
           <p className="chat-question">{exchange.question_text}</p>
