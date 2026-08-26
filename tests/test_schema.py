@@ -117,6 +117,11 @@ _OPERATIONS_CASE_CONSTRAINT_VALIDATION_MIGRATION = (
     / "migrations"
     / "0216_validate_operations_case_constraints.sql"
 )
+_OPERATIONS_CASE_INPUT_MIGRATION = (
+    Path(__file__).resolve().parents[1]
+    / "migrations"
+    / "0222_operations_case_analysis_input.sql"
+)
 _ANALYSIS_RUN_REGISTRY_MIGRATION = (
     Path(__file__).resolve().parents[1] / "migrations" / "0018_analysis_run_registry.sql"
 )
@@ -191,6 +196,7 @@ def schema_db():
                 cur.execute(_OPERATIONS_EXTERNAL_RELATION_MIGRATION.read_text())
                 cur.execute(_OPERATIONS_CASE_MILESTONE_MIGRATION.read_text())
                 cur.execute(_OPERATIONS_CASE_CONSTRAINT_VALIDATION_MIGRATION.read_text())
+                cur.execute(_OPERATIONS_CASE_INPUT_MIGRATION.read_text())
             conn.commit()
             yield conn
         finally:
@@ -278,6 +284,24 @@ def test_operations_case_constraints_are_validated(schema_db) -> None:
         )
         constraints = dict(cur.fetchall())
     assert constraints == {name: True for name in names}
+
+
+def test_operations_case_input_fingerprint_rejects_malformed_digest(schema_db) -> None:
+    """The input fingerprint is nullable only for honest historical unknowns."""
+    with schema_db.cursor() as cur:
+        cur.execute(
+            "select is_nullable from information_schema.columns "
+            "where table_name = 'operations_case_analysis' "
+            "and column_name = 'analysis_input_sha256'"
+        )
+        assert cur.fetchone() == ("YES",)
+        cur.execute(
+            "select pg_get_constraintdef(oid) from pg_constraint "
+            "where conname = 'operations_case_analysis_input_digest_check'"
+        )
+        definition = cur.fetchone()[0]
+    assert "analysis_input_sha256 IS NULL" in definition
+    assert "^[0-9a-f]{64}$" in definition
 
 
 def test_operations_case_milestones_reject_cross_kind_types(schema_db) -> None:

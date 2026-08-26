@@ -365,9 +365,16 @@ def test_incomplete_provider_output_is_requeued_with_a_failure_code(monkeypatch)
 
 
 def test_existing_case_analysis_skips_duplicate_orchestrator_call(monkeypatch) -> None:
-    """A retry preserves same-digest analysis instead of spending another call."""
+    """A retry preserves the same exact input without another provider call."""
     connection = _Connection(values=[True])
     called: list[str] = []
+
+    async def evidence_sources(*_args, **_kwargs):
+        return (OperationsEvidenceSource("post-1", "Synthetic", "Evidence"),)
+
+    monkeypatch.setattr(
+        post_content_worker, "_operations_evidence_sources", evidence_sources
+    )
     monkeypatch.setattr(
         post_content_worker,
         "ContextualOrchestratorOperationsCaseAnalysisClient",
@@ -389,6 +396,51 @@ def test_existing_case_analysis_skips_duplicate_orchestrator_call(monkeypatch) -
     )
 
     assert called == []
+
+
+def test_changed_evidence_window_reanalyzes_unchanged_body(monkeypatch) -> None:
+    """A newly available sibling invalidates reuse without changing focal text."""
+    connection = _Connection(values=[False])
+    analyzed: list[tuple[OperationsEvidenceSource, ...]] = []
+    persisted: list[str] = []
+
+    async def evidence_sources(*_args, **_kwargs):
+        return (
+            OperationsEvidenceSource("post-1", "Focal", "Focal evidence"),
+            OperationsEvidenceSource("post-2", "Sibling", "New sibling evidence"),
+        )
+
+    async def persist(*_args, **kwargs):
+        persisted.append(str(kwargs["analysis_input_sha256"]))
+
+    monkeypatch.setattr(
+        post_content_worker, "_operations_evidence_sources", evidence_sources
+    )
+    monkeypatch.setattr(
+        post_content_worker,
+        "ContextualOrchestratorOperationsCaseAnalysisClient",
+        lambda *_args: SimpleNamespace(
+            analyze=lambda sources, _context: analyzed.append(sources) or ()
+        ),
+    )
+    monkeypatch.setattr(post_content_worker, "persist_operations_cases", persist)
+
+    asyncio.run(
+        post_content_worker._persist_operations_case_analysis_if_needed(
+            _Pool(connection),
+            "00000000-0000-0000-0000-000000000001",
+            "a" * 64,
+            "Synthetic source body",
+            _row(RUNNING, 1),
+            SimpleNamespace(available=True),
+            "synthetic-session",
+            "gateway",
+            "key",
+        )
+    )
+
+    assert [source.post_id for source in analyzed[0]] == ["post-1", "post-2"]
+    assert len(persisted[0]) == 64
 
 
 def test_sibling_requeue_failure_preserves_completed_primary_job(monkeypatch) -> None:
@@ -465,7 +517,7 @@ def test_case_analysis_persists_before_content_provider_failure(monkeypatch) -> 
             ),
         )
 
-    async def persist_cases(_conn, _post_id, *_args):
+    async def persist_cases(_conn, _post_id, *_args, **_kwargs):
         persisted.append("cases")
 
     monkeypatch.setattr(post_content_worker, "_claim_job", claim)

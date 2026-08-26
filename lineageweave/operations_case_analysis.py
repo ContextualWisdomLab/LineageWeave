@@ -121,6 +121,27 @@ class OperationsEvidenceSource:
         return hashlib.sha256(self.text.encode("utf-8")).hexdigest()
 
 
+def operations_analysis_input_sha256(
+    sources: tuple[OperationsEvidenceSource, ...], context: str
+) -> str:
+    """Digest the exact ordered source window and context sent for analysis."""
+    payload = {
+        "context": context,
+        "sources": [
+            {
+                "post_id": source.post_id,
+                "title": source.title,
+                "input_sha256": source.input_sha256,
+            }
+            for source in sources
+        ],
+    }
+    encoded = json.dumps(
+        payload, ensure_ascii=False, separators=(",", ":"), sort_keys=True
+    ).encode("utf-8")
+    return hashlib.sha256(encoded).hexdigest()
+
+
 class OperationsCaseAnalysisClient(Protocol):
     """Classify operational cases without keyword rules."""
 
