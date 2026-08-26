@@ -35,6 +35,12 @@ The runtime contract is:
   successful empty semantic result.
 - An empty seed model is expanded from configured provider discovery endpoints;
   provider-declared embedding rows enter the embedding pool but never a chat role.
+- Because the configured gateway does not currently advertise a complete
+  embedding provider/model pair, canonical Compose supplies
+  `text-embedding-3-large` to the orchestrator bootstrap. The bootstrap owns
+  the exact OpenAI binding and publishes its official 2,048-input,
+  8,192-token-per-input, and 300,000-total-token limits. LineageWeave clients
+  remain provider- and model-neutral and consume that advertised capability.
 - A batch embedding request may omit `model`; contextual-orchestrator selects
   an embedding-capable model and returns its identity for subsequent batches.
 - A blank embedding input fails before provider selection; it is never sent as
