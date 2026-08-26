@@ -17,14 +17,14 @@ def test_missing_embedding_configuration_returns_null_client() -> None:
 
 def test_empty_batch_does_not_call_orchestrator(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(embedding_client, "post_json", lambda *_args, **_kwargs: pytest.fail("unexpected call"))
-    client = embedding_client.ContextualOrchestratorEmbeddingClient("http://orchestrator", "key", "model")
+    client = embedding_client.ContextualOrchestratorEmbeddingClient("http://orchestrator", "key")
     assert client.embed_many([]) == []
 
 
 @pytest.mark.parametrize("field", ["input_attributions", "input_metadata"])
 def test_per_input_context_must_align_with_texts(field: str) -> None:
     client = embedding_client.ContextualOrchestratorEmbeddingClient(
-        "http://orchestrator", "key", "model"
+        "http://orchestrator", "key"
     )
 
     with pytest.raises(ValueError, match=field):
@@ -69,7 +69,7 @@ def test_immediate_embedding_response_is_ordered(monkeypatch: pytest.MonkeyPatch
             ]
         },
     )
-    client = embedding_client.ContextualOrchestratorEmbeddingClient("http://orchestrator/v1", "key", "model")
+    client = embedding_client.ContextualOrchestratorEmbeddingClient("http://orchestrator/v1", "key")
     assert client.embed_many(["a", "b"]) == [[1.0], [2.0]]
 
 
@@ -94,7 +94,7 @@ def test_batch_response_polls_until_complete(monkeypatch: pytest.MonkeyPatch) ->
     )
     monkeypatch.setattr(embedding_client.time, "sleep", lambda _seconds: None)
     monkeypatch.setattr(embedding_client.time, "monotonic", lambda: 0.0)
-    client = embedding_client.ContextualOrchestratorEmbeddingClient("http://orchestrator", "key", "model", timeout=1)
+    client = embedding_client.ContextualOrchestratorEmbeddingClient("http://orchestrator", "key", timeout=1)
     assert client.embed_many(["a"]) == [[0.5]]
 
 
@@ -110,7 +110,7 @@ def test_failed_batch_raises_without_fallback(monkeypatch: pytest.MonkeyPatch) -
             "job_retention_ms": 60_000,
         },
     )
-    client = embedding_client.ContextualOrchestratorEmbeddingClient("http://orchestrator", "key", "model")
+    client = embedding_client.ContextualOrchestratorEmbeddingClient("http://orchestrator", "key")
     with pytest.raises(RuntimeError, match="did not complete"):
         client.embed_many(["a"])
 
@@ -128,7 +128,7 @@ def test_batch_timeout_raises(monkeypatch: pytest.MonkeyPatch) -> None:
         },
     )
     monkeypatch.setattr(embedding_client.time, "monotonic", iter([0.0, 2.0]).__next__)
-    client = embedding_client.ContextualOrchestratorEmbeddingClient("http://orchestrator", "key", "model", timeout=1)
+    client = embedding_client.ContextualOrchestratorEmbeddingClient("http://orchestrator", "key", timeout=1)
     with pytest.raises(TimeoutError, match="timed out"):
         client.embed_many(["a"])
 
@@ -169,8 +169,19 @@ def test_legacy_client_name_delegates(monkeypatch: pytest.MonkeyPatch) -> None:
             return [float(len(text))]
 
     monkeypatch.setattr(embedding_client, "ContextualOrchestratorEmbeddingClient", Delegate)
-    client = embedding_client.OpenAiCompatibleEmbeddingClient("http://orchestrator", "key", "model")
+    client = embedding_client.OpenAiCompatibleEmbeddingClient("http://orchestrator", "key")
     assert client.embed("abc") == [3.0]
+
+
+def test_embedding_clients_do_not_accept_a_caller_selected_model() -> None:
+    with pytest.raises(TypeError):
+        embedding_client.ContextualOrchestratorEmbeddingClient(
+            "http://orchestrator", "key", "caller-model"
+        )
+    with pytest.raises(TypeError):
+        embedding_client.OpenAiCompatibleEmbeddingClient(
+            "http://orchestrator", "key", "caller-model"
+        )
 
 
 def test_batch_body_size_matches_post_scoped_orchestrator_wire_body() -> None:
