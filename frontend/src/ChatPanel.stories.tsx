@@ -1,4 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
+import { expect, userEvent, within } from "storybook/test";
 import { ChatPanel } from "./App";
 
 type Fixture = "empty" | "saved";
@@ -45,6 +46,13 @@ function installFixture(fixture: Fixture) {
             : [],
       });
     }
+    if (url.endsWith("/api/posts/post-2")) {
+      return jsonResponse({
+        post_id: "post-2",
+        post_title: "Linked source post",
+        post_body: "Evidence from the saved conversation.",
+      });
+    }
     return jsonResponse({
       post_id: "post-1",
       exchanges: [
@@ -80,9 +88,21 @@ export const SeededDump: Story = {
 };
 
 export const SavedHistory: Story = {
+  args: { nameFirstAsk: true },
   render(args) {
     installFixture("saved");
     return <ChatPanel {...args} />;
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await userEvent.selectOptions(
+      await canvas.findByLabelText("Conversation history"),
+      "conversation-post-1",
+    );
+    await userEvent.click(await canvas.findByRole("button", { name: "Open evidence: Linked source post" }));
+    await expect(await canvas.findByRole("complementary", { name: "Evidence" })).toHaveTextContent(
+      "Evidence from the saved conversation.",
+    );
   },
 };
 
