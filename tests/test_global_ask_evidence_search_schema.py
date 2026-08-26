@@ -9,8 +9,6 @@ ROLLBACK = Path("migrations/rollback/0210_global_ask_evidence_search_indexes.sql
 def test_evidence_search_indexes_cover_every_normalized_owner_table() -> None:
     """Every searched evidence field has a replay-safe owning-table index."""
     sql = MIGRATION.read_text(encoding="utf-8")
-    statements = [statement for statement in sql.split(";") if statement.strip()]
-
     for table_name in (
         "post_project_mention",
         "post_summary_role",
@@ -24,8 +22,6 @@ def test_evidence_search_indexes_cover_every_normalized_owner_table() -> None:
     ):
         assert f"on {table_name}" in sql
     assert sql.count("create index concurrently if not exists") == 9
-    assert len(statements) == 9
-    assert all(statement.count("create index concurrently if not exists") == 1 for statement in statements)
     assert "create table" not in sql.lower()
 
 

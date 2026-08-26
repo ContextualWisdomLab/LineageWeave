@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import asyncio
 import os
+import subprocess
 import uuid
 from pathlib import Path
 from urllib.parse import urlsplit, urlunsplit
@@ -217,12 +218,20 @@ def schema_db():
                 cur.execute(_LEFTOVER_MAP_RECONSTRUCTION_MIGRATION.read_text())
                 cur.execute(_LEFTOVER_MAP_UNEXPLAINED_SHARE_MIGRATION.read_text())
                 cur.execute(_SOURCE_EVENT_TIME_MIGRATION.read_text())
-                # psql sends each statement independently, which is required
-                # by CREATE INDEX CONCURRENTLY. psycopg2 treats a multi-
-                # statement execute as one transaction even with autocommit.
-                for statement in _GLOBAL_ASK_EVIDENCE_SEARCH_MIGRATION.read_text().split(";"):
-                    if statement.strip():
-                        cur.execute(statement)
+                # Match ADR 0166's production runner exactly instead of
+                # maintaining a fixture-owned SQL statement parser.
+                subprocess.run(
+                    [
+                        "psql",
+                        "-X",
+                        "-v",
+                        "ON_ERROR_STOP=1",
+                        db_dsn,
+                        "-f",
+                        str(_GLOBAL_ASK_EVIDENCE_SEARCH_MIGRATION),
+                    ],
+                    check=True,
+                )
             # Migration replay needs autocommit for concurrent indexes, while
             # tests need transactions for savepoints and rollback assertions.
             conn.autocommit = False
