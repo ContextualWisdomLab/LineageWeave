@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import pytest
 
+from lineageweave.http_client import HttpClientError
 from lineageweave.public_claim_verification import (
     KIND_ORGANIZATION_PRESENCE,
     KIND_PUBLIC_EVENT,
@@ -155,6 +156,19 @@ def test_empty_authorized_set_is_unavailable_and_does_not_search() -> None:
 
 def test_missing_search_channel_is_unavailable_not_not_enough_information() -> None:
     payload = verify_public_claims((_envelope(),), NullPublicClaimSearchClient())
+    assert payload["status_code"] == STATUS_UNAVAILABLE
+    assert payload["claims"][0]["external_evidence_urls"] == []
+    assert "search service" in payload["next_action"]
+
+
+def test_failing_search_channel_preserves_unavailable_claims() -> None:
+    class _Failing:
+        available = True
+
+        def search_urls(self, claim_text: str, *, limit: int = 5) -> tuple[str, ...]:
+            raise HttpClientError("searxng", "unavailable")
+
+    payload = verify_public_claims((_envelope(),), _Failing())
     assert payload["status_code"] == STATUS_UNAVAILABLE
     assert payload["claims"][0]["external_evidence_urls"] == []
     assert "search service" in payload["next_action"]

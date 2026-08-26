@@ -20,11 +20,7 @@ const STATUS_LABELS: Record<string, string> = {
 };
 
 function nextActionLabel(claim: PublicClaimVerdict): string {
-  if (
-    claim.status_code === "claim_unavailable" &&
-    (claim.claim_kind_code === "claim_public_event" ||
-      claim.claim_kind_code === "claim_public_relationship")
-  ) {
+  if (claim.next_action === `Public claim is on ${claim.source_post_title}. Open that post.`) {
     return tf("Public claim is on {title}. Open that post.", {
       title: claim.source_post_title,
     });

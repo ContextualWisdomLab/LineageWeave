@@ -19,7 +19,7 @@ from dataclasses import dataclass
 from typing import Any, Protocol
 from urllib.parse import quote, urlparse
 
-from .http_client import get_json
+from .http_client import HttpClientError, get_json
 from .relation_verification import _SEARCH_HOST_MARKERS, corroborating_evidence_url
 
 KIND_ORGANIZATION_PRESENCE = "claim_organization_presence"
@@ -284,14 +284,19 @@ def verify_public_claims(
             "claims": [],
         }
     verdicts: list[PublicClaimVerdict] = []
+    search_available = search_client.available
     for envelope in envelopes:
-        if not search_client.available:
+        if not search_available:
             urls: tuple[str, ...] = ()
         else:
-            urls = search_client.search_urls(envelope.claim_text)
+            try:
+                urls = search_client.search_urls(envelope.claim_text)
+            except (HttpClientError, OSError):
+                search_available = False
+                urls = ()
         verdicts.append(
             classify_public_claim(
-                envelope, urls, search_available=search_client.available
+                envelope, urls, search_available=search_available
             )
         )
     overall = _overall_status(tuple(verdict.status_code for verdict in verdicts))

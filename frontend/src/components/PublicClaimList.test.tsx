@@ -44,6 +44,7 @@ describe("PublicClaimList", () => {
         claims={[
           {
             ...SUPPORTED,
+            claim_kind_code: "claim_public_event",
             status_code: "claim_unavailable",
             external_evidence_urls: [],
             next_action:
