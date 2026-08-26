@@ -56,7 +56,7 @@
 
 :Post a owl:Class ;
     rdfs:label "Post" ;
-    rdfs:comment "A source_post row: one record typed by the voc_type scheme (:postTypeScheme) -- Voice of Customer, Customer's Customer, Competitor, Market, Partner, Supplier, Employee, Business, Regulator, Investor, Society, or Process (ADR 0232)." ;
+    rdfs:comment "A source_post row: one record typed by the voc_type scheme (:postTypeScheme) -- Voice of Customer, Customer's Customer, Competitor, Market, Partner, Supplier, Employee, Business, Regulator, Investor, Society, or Process (ADR 0246)." ;
     :lookupCode "node_post" .
 
 :Person a owl:Class ;
@@ -200,45 +200,6 @@
     rdfs:label "has Voice-of-Supplier relationship" ;
     :lookupCode "rel_vos" .
 
-# ADR 0232 mirrors the complete stakeholder-voice taxonomy in the
-# counterparty vocabulary so a post of ANY voice class can still type
-# each organization it names.
-:hasVoeRelationship a owl:ObjectProperty ;
-    rdfs:domain :Post ; rdfs:range :CorporateEntity ;
-    rdfs:label "has Voice-of-Employee relationship" ;
-    rdfs:comment "An employee-voice signal involving this organization (rel_voe)." ;
-    :lookupCode "rel_voe" .
-
-:hasVobRelationship a owl:ObjectProperty ;
-    rdfs:domain :Post ; rdfs:range :CorporateEntity ;
-    rdfs:label "has Voice-of-Business relationship" ;
-    rdfs:comment "An internal-business-unit signal involving this organization (rel_vob)." ;
-    :lookupCode "rel_vob" .
-
-:hasVorRelationship a owl:ObjectProperty ;
-    rdfs:domain :Post ; rdfs:range :CorporateEntity ;
-    rdfs:label "has Voice-of-Regulator relationship" ;
-    rdfs:comment "This organization regulates the post author's organization (rel_vor)." ;
-    :lookupCode "rel_vor" .
-
-:hasVoiRelationship a owl:ObjectProperty ;
-    rdfs:domain :Post ; rdfs:range :CorporateEntity ;
-    rdfs:label "has Voice-of-Investor relationship" ;
-    rdfs:comment "This organization invests in / holds capital in the post author's organization (rel_voi)." ;
-    :lookupCode "rel_voi" .
-
-:hasVosoRelationship a owl:ObjectProperty ;
-    rdfs:domain :Post ; rdfs:range :CorporateEntity ;
-    rdfs:label "has Voice-of-Society relationship" ;
-    rdfs:comment "A community/society-level signal involving this organization (rel_voso)." ;
-    :lookupCode "rel_voso" .
-
-:hasVopsRelationship a owl:ObjectProperty ;
-    rdfs:domain :Post ; rdfs:range :CorporateEntity ;
-    rdfs:label "has Voice-of-Process relationship" ;
-    rdfs:comment "A process/system-generated signal involving this organization (rel_vops)." ;
-    :lookupCode "rel_vops" .
-
 #################################################################
 # Datatype properties -- node attribute projections.
 #
@@ -314,19 +275,18 @@
 #################################################################
 # SKOS -- voc_type (post type classification)
 #
-# The complete stakeholder-voice vocabulary ADR 0232 governs:
-# migrations/0042 seeds the original five codes and migrations/0222
-# seeds the seven additions, so every stakeholder class that can author
-# correspondence (Freeman, 1984; Mitchell et al., 1997) plus the two
-# quality-engineering voices (Voice of Business; Voice of Process,
-# Shewhart, 1931) has exactly one concept here. Adding "voc_type" to
+# The expanded post-voice vocabulary ADR 0246 governs:
+# migrations/0042 seeds the original five codes and migrations/0235
+# seeds the seven additions. These are product-controlled source categories,
+# not an assertion that the cited literature defines an exhaustive twelve-code
+# taxonomy. Adding "voc_type" to
 # the ontology-covered categories puts all twelve codes under
 # tests/test_ontology.py's round-trip check.
 #################################################################
 
 :postTypeScheme a skos:ConceptScheme ;
     rdfs:label "Post type scheme" ;
-    rdfs:comment "Voice-based classification of what a source post records, per the governed twelve-code voc_type lookup category (migrations/0042 + 0222)." .
+    rdfs:comment "Voice-based classification of what a source post records, per the governed twelve-code voc_type lookup category (migrations/0042 + 0235)." .
 
 :voiceOfCustomerType a skos:Concept ;
     skos:inScheme :postTypeScheme ;
@@ -358,7 +318,7 @@
     rdfs:comment "A partner organization's voice." ;
     :lookupCode "vop" .
 
-# ADR 0232 additions -- the complete stakeholder-voice taxonomy.
+# ADR 0246 additions -- expanded source-post voice categories.
 :voiceOfSupplierType a skos:Concept ;
     skos:inScheme :postTypeScheme ;
     skos:prefLabel "Voice of Supplier"@en ;
@@ -368,37 +328,37 @@
 :voiceOfEmployeeType a skos:Concept ;
     skos:inScheme :postTypeScheme ;
     skos:prefLabel "Voice of Employee"@en ;
-    rdfs:comment "A staff member's voice about their workplace, per the service-profit chain (Heskett et al., 1994)." ;
+    rdfs:comment "An employee-authored or employee-originated source record." ;
     :lookupCode "voe" .
 
 :voiceOfBusinessType a skos:Concept ;
     skos:inScheme :postTypeScheme ;
     skos:prefLabel "Voice of Business"@en ;
-    rdfs:comment "An internal business unit's or management's voice (quality-engineering practice)." ;
+    rdfs:comment "An internal-management or business-unit source record." ;
     :lookupCode "vob" .
 
 :voiceOfRegulatorType a skos:Concept ;
     skos:inScheme :postTypeScheme ;
     skos:prefLabel "Voice of Regulator"@en ;
-    rdfs:comment "A government or compliance authority's voice, per regulatory stakeholder salience (Mitchell et al., 1997)." ;
+    rdfs:comment "A regulator-authored or regulator-originated source record." ;
     :lookupCode "vor" .
 
 :voiceOfInvestorType a skos:Concept ;
     skos:inScheme :postTypeScheme ;
     skos:prefLabel "Voice of Investor"@en ;
-    rdfs:comment "An owner's or capital provider's voice (Freeman, 1984)." ;
+    rdfs:comment "An investor-authored or investor-originated source record." ;
     :lookupCode "voi" .
 
 :voiceOfSocietyType a skos:Concept ;
     skos:inScheme :postTypeScheme ;
     skos:prefLabel "Voice of Society"@en ;
-    rdfs:comment "A community, media, or public stakeholder's voice (Mitchell et al., 1997)." ;
+    rdfs:comment "A community or public-stakeholder source record." ;
     :lookupCode "voso" .
 
 :voiceOfProcessType a skos:Concept ;
     skos:inScheme :postTypeScheme ;
     skos:prefLabel "Voice of Process"@en ;
-    rdfs:comment "The system/process speaking through its own generated signal (Shewhart, 1931; Deming, 1986)." ;
+    rdfs:comment "A process- or system-generated source record." ;
     :lookupCode "vops" .
 
 #################################################################

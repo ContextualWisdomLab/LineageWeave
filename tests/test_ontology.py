@@ -46,11 +46,11 @@ _SEED_SCRIPT_PATH = (
 # text -- read alongside it below so the round-trip still sees them:
 # 0012 (ADR 0006: prov_person/prov_organization), 0014 (ADR 0007:
 # prov_team), 0016 (ADR 0009: node_team/edge_mention_team/
-# edge_team_affiliation/edge_mention_organization), and 0042 (ADR 0207:
-# the five governed voc_type post-type codes), 0220 (ADR 0222:
-# node_project/edge_mention_project), 0222 (ADR 0232: the seven further
-# Voice-of-X codes and their relationship mirrors), and 0241 (ADR 0255:
-# assertion-backed occupational construct navigation).
+
+# edge_team_affiliation/edge_mention_organization), 0042 (ADR 0207:
+# the original five voc_type post-type codes) + 0235 (ADR 0246: the
+# seven further Voice-of-X post-type codes), and
+# 0220 (ADR 0222: node_project/edge_mention_project).
 _ADDITIONAL_LOOKUP_MIGRATION_PATHS = (
     Path(__file__).resolve().parents[1]
     / "migrations"
@@ -65,7 +65,7 @@ _ADDITIONAL_LOOKUP_MIGRATION_PATHS = (
     Path(__file__).resolve().parents[1] / "migrations" / "0220_ontology_project_node.sql",
     Path(__file__).resolve().parents[1]
     / "migrations"
-    / "0222_voice_of_x_complete_taxonomy.sql",
+    / "0235_voice_of_x_post_taxonomy.sql",
     Path(__file__).resolve().parents[1]
     / "migrations"
     / "0241_occupational_construct_ontology_navigation.sql",
@@ -408,7 +408,7 @@ def test_shared_timestamps_declare_no_domain_to_avoid_multi_domain_entailment() 
 
 
 def test_post_type_scheme_covers_the_governed_voc_vocabulary() -> None:
-    """ADR 0232: the complete twelve-code stakeholder-voice vocabulary
+    """ADR 0246: the expanded twelve-code source-post voice vocabulary
     becomes SKOS concepts; every seeded code resolves, including vos,
     which ADR 0207 had restricted to its rel_vos relationship mirror.
     """
@@ -451,22 +451,7 @@ def test_post_type_scheme_covers_the_governed_voc_vocabulary() -> None:
     } <= seeded
 
 
-def test_voice_of_x_relationship_properties_resolve_for_the_full_taxonomy() -> None:
-    """ADR 0232: each new voice class mirrors into an object property the
-    Knowledge Graph can project, with Post -> CorporateEntity direction
-    matching the stored counterparty rows.
-    """
-    graph = load_ontology()
-    expected = {
-        ("rel_voe", LW.hasVoeRelationship),
-        ("rel_vob", LW.hasVobRelationship),
-        ("rel_vor", LW.hasVorRelationship),
-        ("rel_voi", LW.hasVoiRelationship),
-        ("rel_voso", LW.hasVosoRelationship),
-        ("rel_vops", LW.hasVopsRelationship),
-        ("rel_vos", LW.hasVosRelationship),
-    }
-    for code, prop in expected:
-        assert iri_for_lookup_code(code) == str(prop), code
-        assert (prop, RDFS.domain, LW.Post) in graph, str(prop)
-        assert (prop, RDFS.range, LW.CorporateEntity) in graph, str(prop)
+def test_post_voice_additions_do_not_invent_counterparty_relationships() -> None:
+    """ADR 0246 keeps source-post voice and named-organization relations distinct."""
+    for code in ("rel_voe", "rel_vob", "rel_vor", "rel_voi", "rel_voso", "rel_vops"):
+        assert iri_for_lookup_code(code) is None
