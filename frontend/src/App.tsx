@@ -3134,9 +3134,7 @@ function AnalysisRunsPanel({
           )}
           {analysisRunCanRequestTeppRetry(selected) && (
             <p className="post-meta">
-              {selected.run_kind_code === "analysis_run_topic_lineage"
-                ? "This update could not be completed. Review the available records and try again later."
-                : "This update could not be completed. Review the available records and try again later."}
+              This update could not be completed. Review the available records and try again later.
             </p>
           )}
           {analysisRunReportPeriod(selected) && onSelectReportPeriod && (
