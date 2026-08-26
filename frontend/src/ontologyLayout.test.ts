@@ -159,6 +159,28 @@ describe("ontologyLayout", () => {
     expect(accumulateNeighborhoodPages(source, withVoice).voice_assignments).toEqual([assignment]);
   });
 
+  it("merges JSON-LD properties and multi-value relations for one paged subject", () => {
+    const source = payload();
+    const postIri = `${ONTOLOGY_NAMESPACE}node/node_post/${POST_ID}`;
+    const propertyIri = `${ONTOLOGY_NAMESPACE}hasVoiceAssignment`;
+    const first = {
+      ...source,
+      jsonld: { "@graph": [{ "@id": postIri, "rdfs:label": "Demo public post", [propertyIri]: [{ "@id": "voice:one" }] }] },
+    };
+    const second = {
+      ...source,
+      jsonld: { "@graph": [{ "@id": postIri, [propertyIri]: [{ "@id": "voice:two" }] }] },
+    };
+
+    expect(accumulateNeighborhoodPages(first, second).jsonld["@graph"]).toEqual([
+      {
+        "@id": postIri,
+        "rdfs:label": "Demo public post",
+        [propertyIri]: [{ "@id": "voice:one" }, { "@id": "voice:two" }],
+      },
+    ]);
+  });
+
   it("keeps only exact canonical JSON-LD node ids when filtering", () => {
     const source = payload();
     const postIri = `${ONTOLOGY_NAMESPACE}node/node_post/${POST_ID}`;

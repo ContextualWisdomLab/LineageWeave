@@ -92,6 +92,9 @@ _SOURCE_NAMED_HINTS_MIGRATION = (
 _SOURCE_ORG_NAMED_HINTS_MIGRATION = (
     Path(__file__).resolve().parents[2] / "migrations" / "0039_source_org_named_hints.sql"
 )
+_VOC_VOCABULARY_MIGRATION = (
+    Path(__file__).resolve().parents[2] / "migrations" / "0042_voc_type_vocabulary.sql"
+)
 _MEMBER_LOCALE_MIGRATION = (
     Path(__file__).resolve().parents[2] / "migrations" / "0044_member_locale_preference.sql"
 )
@@ -359,6 +362,7 @@ def seeded_db(demo_analyst_token):
                 (Path(__file__).resolve().parents[2] / "migrations" / "0040_post_summary_contract.sql")
                 .read_text()
             )
+            cur.execute(_VOC_VOCABULARY_MIGRATION.read_text())
             cur.execute(_MEMBER_LOCALE_MIGRATION.read_text())
             cur.execute(_IMAGE_REGION_MIGRATION.read_text())
             cur.execute(_POST_CONTENT_STRUCTURE_MIGRATION.read_text())

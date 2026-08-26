@@ -79,7 +79,10 @@ compound lookup codes.
   whether the focus is a Post, Person, Organization, Team, or Project. An
   additional assignment whose evidence Post is outside that authorized node
   set is omitted as a whole, keeping the JSON-LD conformant with the SHACL
-  evidence minimum without disclosing or substituting hidden evidence.
+  evidence minimum without disclosing or substituting hidden evidence. When
+  bounded pages are accumulated, properties for the same JSON-LD subject are
+  merged and multi-value Voice relations are unioned instead of one page
+  replacing another.
 
 ## Data model
 

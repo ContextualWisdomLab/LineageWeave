@@ -902,7 +902,9 @@ def test_voice_assignments_join_exact_csv_rows_and_jsonld() -> None:
     }
 
     hidden_evidence = replace(assignment, evidence_post_id=None)
-    hidden_row = replace(neighborhood, voice_assignments=(hidden_evidence,)).exact_value_rows()[0]
+    hidden_row = replace(
+        neighborhood, voice_assignments=(hidden_evidence,)
+    ).exact_value_rows()[0]
     assert hidden_row["evidence_post_id"] == ""
     assert hidden_row["evidence_count"] == "0"
     hidden_projection = next(

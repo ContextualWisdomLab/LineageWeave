@@ -284,7 +284,26 @@ export function accumulateNeighborhoodPages(
     if (!Array.isArray(graph)) continue;
     for (const item of graph) {
       if (typeof item === "object" && item !== null && typeof item["@id"] === "string") {
-        graphItems.set(item["@id"], item as Record<string, unknown>);
+        const incoming = item as Record<string, unknown>;
+        const existing = graphItems.get(item["@id"]);
+        if (!existing) {
+          graphItems.set(item["@id"], incoming);
+          continue;
+        }
+        const merged = { ...existing, ...incoming };
+        for (const key of Object.keys(incoming)) {
+          if (Array.isArray(existing[key]) && Array.isArray(incoming[key])) {
+            const values = [...existing[key], ...incoming[key]];
+            const seen = new Set<string>();
+            merged[key] = values.filter((value) => {
+              const serialized = JSON.stringify(value);
+              if (seen.has(serialized)) return false;
+              seen.add(serialized);
+              return true;
+            });
+          }
+        }
+        graphItems.set(item["@id"], merged);
       }
     }
   }

@@ -61,7 +61,9 @@ Cartesian-product codes. The remaining acceptance boundary is:
    exact canonical repository-case node and Voice-assignment IRIs rather than
    accepting cross-origin suffix matches; the exact-value row exposes distinct
    carrying-Post and authorized derivation-evidence actions, while hidden
-   evidence emits neither an identifier nor a fabricated evidence count); and
+   evidence emits neither an identifier nor a fabricated evidence count;
+   paged JSON-LD merges properties for one subject and unions its multi-Voice
+   relation rather than overwriting an earlier page); and
 5. proves zero-, one-, and multi-voice states with synthetic fixtures,
    migration replay, ontology/SHACL, API, accessibility, and Storybook edge
    tests before any release claim. The candidate `CombinedVoiceEvidence` scene
