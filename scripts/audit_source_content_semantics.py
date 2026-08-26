@@ -8,6 +8,7 @@ import hashlib
 import json
 import multiprocessing
 import os
+import queue
 import re
 import tempfile
 from collections import Counter
@@ -614,15 +615,24 @@ def _post_json_with_deadline(
         args=(result_queue, endpoint, payload, headers, timeout),
     )
     process.start()
-    process.join(timeout)
     try:
+        try:
+            succeeded, value = result_queue.get(timeout=timeout)
+        except queue.Empty as exc:
+            timed_out = process.is_alive()
+            if timed_out:
+                process.terminate()
+            process.join()
+            if timed_out:
+                raise TimeoutError(
+                    "semantic audit provider request exceeded its deadline"
+                ) from exc
+            raise RuntimeError(
+                "semantic audit provider process returned no result"
+            ) from exc
         if process.is_alive():
             process.terminate()
-            process.join()
-            raise TimeoutError("semantic audit provider request exceeded its deadline")
-        if result_queue.empty():
-            raise RuntimeError("semantic audit provider process returned no result")
-        succeeded, value = result_queue.get()
+        process.join()
         if not succeeded:
             raise RuntimeError(f"semantic audit provider request failed: {value}")
         if not isinstance(value, dict):

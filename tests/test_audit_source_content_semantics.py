@@ -1,7 +1,9 @@
 import hashlib
 import json
+import threading
 from copy import deepcopy
 from dataclasses import asdict
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
 import pytest
@@ -70,6 +72,39 @@ def test_provider_deadline_must_be_positive() -> None:
             headers={},
             timeout=0,
         )
+
+
+def test_provider_deadline_accepts_response_larger_than_queue_pipe() -> None:
+    """The parent drains a valid large result before waiting for child shutdown."""
+    body = json.dumps({"trace": "x" * 262_144}).encode()
+
+    class Handler(BaseHTTPRequestHandler):
+        def do_POST(self) -> None:  # noqa: N802
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+
+        def log_message(self, _format: str, *_args: object) -> None:
+            return
+
+    server = ThreadingHTTPServer(("127.0.0.1", 0), Handler)
+    thread = threading.Thread(target=server.serve_forever)
+    thread.start()
+    try:
+        result = _post_json_with_deadline(
+            f"http://127.0.0.1:{server.server_port}/conduct",
+            {},
+            headers={},
+            timeout=5,
+        )
+    finally:
+        server.shutdown()
+        thread.join()
+        server.server_close()
+
+    assert len(result["trace"]) == 262_144
 
 
 def test_audit_contract_distinguishes_instance_data_from_schema_gaps() -> None:
