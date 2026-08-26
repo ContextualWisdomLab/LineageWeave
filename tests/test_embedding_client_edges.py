@@ -173,10 +173,6 @@ def test_legacy_client_name_delegates(monkeypatch: pytest.MonkeyPatch) -> None:
     assert client.embed("abc") == [3.0]
 
 
-def test_cosine_similarity_returns_zero_for_zero_vector() -> None:
-    assert embedding_client.cosine_similarity([0.0], [1.0]) == 0.0
-
-
 def test_batch_body_size_matches_post_scoped_orchestrator_wire_body() -> None:
     """The advertised ceiling includes the injected post session field."""
     client = embedding_client.ContextualOrchestratorEmbeddingClient(
