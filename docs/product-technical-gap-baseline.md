@@ -1,6 +1,6 @@
 # Product & Technical Gap Baseline
 
-> Dashboard delivery snapshot: 2026-08-26 16:42 KST. Protected `main` is
+> Dashboard delivery snapshot: 2026-08-26 16:48 KST. Protected `main` is
 > `ff7431bd1851c03e737808d22c6a2d43968582f9`. This local branch is not
 > protected-main release evidence.
 
@@ -68,7 +68,7 @@ are not merge readiness. Re-fetch exact heads,
 unresolved threads, checks, approvals, rulesets, and merge SHA before any
 lifecycle claim.
 
-> Audit snapshot: 2026-08-26 16:42 KST (refreshed by the autonomous merge
+> Audit snapshot: 2026-08-26 16:48 KST (refreshed by the autonomous merge
 > loop). This repository records synthetic fixtures and aggregate,
 > non-identifying runtime evidence only. Open PRs and local checks are not
 > protected-default-branch release evidence. Identifying post identifiers,
@@ -90,11 +90,11 @@ context only.
 | #694 | `d903f7d0` | preserves overlapping voice classifications and authorized aggregate filters; voice evidence and next actions remain visible when the surrounding Dashboard is pending or failed, and the replay-safe schema permits only one open assertion per post, status, and concept. Focused backend/frontend, lint/build/Storybook, PostgreSQL constraint, and 1280×720 visual checks pass. It remains stacked on #692, so parent delivery, retargeting, fresh hosted checks, and independent review are required |
 | #693 | `cdd499b1` | restores the missing review/delivery parent for durable semantic embedding and operations-worker changes accumulated after #688 merged into #640; current composition leaves token splitting with the orchestrator's Rust owner, reports event-loop progress instead of PID existence, and requeues successful records whose operations evidence is missing. It remains stacked directly on #640 pending protected parent delivery |
 | #692 | `583059ed` | adds an evidence-bound product group/model/variant/trade-item ontology and normalized semantic catalog; each evidence post is independently authorized, malformed optional-orchestrator responses fail without escaping the optional channel, and evidence spans/digests bind to original source text rather than an augmented prompt. Focused tests pass; it remains stacked on #693 pending retargeting, hosted checks, and independent review |
-| #680 | `cc2b7182` | customer-facing ranking and related-concept copy now removes the remaining rendered internal ontology label while preserving the Event Lineage distinction. Focused 75-test i18n/component regression, lint, Storybook build, and synthetic 1440×1000 / 390×844 visual audits pass; fresh exact-head hosted checks and independent review are required |
+| #680 | `95f8feee` | customer-facing ranking and related-concept copy removes the remaining rendered internal ontology label while preserving the Event Lineage distinction and protected-main's Project node additions. The merge-forward head passes 77 focused i18n/component tests and lint; fresh exact-head hosted checks and independent review are required |
 | #679 | `5601fea8` | ADR 0229 public-claim envelope, async verification, locale-aware next actions, opt-in search setup, aggregate-status guidance repair, and rollback protection for truth-owned fields; BLOCKED with exact-head checks and independent review required |
 | #672 | `748944ad` | persisted semantic-evidence nomination for Global Ask uses unique ADR 0233/0234 and migration 0225/0226 identities; empty-citation public egress now fails closed, the no-public-claims state is buyer-visible, and the opt-in regression distinguishes successful from failed settlement. Review threads are resolved; hosted checks and independent review remain required |
 | #668 | `dd7bd3f0` | evidence-bound project history orders by recorded event time, guarantees one deterministic shortest path per predecessor, suppresses false direct handovers across truncated gaps, and localizes both action and loading guidance in all supported locales. Focused i18n regression and existing desktop/mobile screenshot evidence pass; hosted checks and independent review remain required |
-| #667 | parent `adad5be0` | this refresh branch contains merged #691 retry semantics, prevents stale conversation pagination from contaminating a new post, applies the shared source-eligibility boundary to chat evidence, merge-forwards protected #663, and includes ADR 0237's Docker/Podman/Colima accelerator boundary. The row records the remote parent observed immediately before this documentation merge because a commit cannot contain its own SHA; re-fetch the resulting PR head for lifecycle use. Documentation hygiene and focused semantic tests pass; hosted checks and independent approval remain pending |
+| #667 | parent `c2f0e875` | this refresh branch contains merged #691 retry semantics, prevents stale conversation pagination from contaminating a new post, applies the shared source-eligibility boundary to chat evidence, merge-forwards protected #663, and includes ADR 0237's Docker/Podman/Colima accelerator boundary. The row records the remote parent observed immediately before this documentation commit because a commit cannot contain its own SHA; re-fetch the resulting PR head for lifecycle use. Documentation hygiene and focused semantic tests pass; hosted checks and independent approval remain pending |
 | #658 | `f497a6e8` | evidence-honest Global Ask cutoff with robust revision timestamps; BLOCKED with review required |
 | #657 | `709df1b9` | TEPP lifecycle persistence and fail-closed topic acceptance; BLOCKED with hosted checks queued and review required |
 | #644 | `f11e77d1` | native-surface code splitting; BLOCKED with review required |
@@ -123,7 +123,7 @@ PR #686 was closed without merge at `fbca05d9`; its customer-copy work is not
 protected-main delivery and any still-required behavior must travel through an
 open current-main candidate rather than relying on that closed head.
 
-The exact-head check-run scan at 16:42 KST found no `failure`, `cancelled`, or
+The exact-head check-run scan at 16:48 KST found no `failure`, `cancelled`, or
 `timed_out` conclusions on the 17 current heads. Several heads, including
 PR #667 and #672 after their repair pushes, are still queued and therefore have
 no terminal gate evidence; review approval is also independently required.
@@ -459,7 +459,7 @@ for wholesale replay from #490.
 
 | Gap | Current evidence | Acceptance requirement |
 | --- | --- | --- |
-| Protected release | Protected `main@ff7431bd` includes #631's ADR-decomposition documentation and #663's project-ontology/caller-parsed semantic-unit seam in addition to the #660/#664 semantic-unit/backend stack and #659 ontology readability/token repair. Seventeen PRs remain open at the 16:42 KST snapshot; every candidate still requires exact-head checks, unresolved-thread review, and independent approval before merge | Terminal exact-head checks, no unresolved threads, one independent approval under active ruleset `18156473`, and a protected merge SHA; re-fetch the ruleset before every lifecycle claim |
+| Protected release | Protected `main@ff7431bd` includes #631's ADR-decomposition documentation and #663's project-ontology/caller-parsed semantic-unit seam in addition to the #660/#664 semantic-unit/backend stack and #659 ontology readability/token repair. Seventeen PRs remain open at the 16:48 KST snapshot; every candidate still requires exact-head checks, unresolved-thread review, and independent approval before merge | Terminal exact-head checks, no unresolved threads, one independent approval under active ruleset `18156473`, and a protected merge SHA; re-fetch the ruleset before every lifecycle claim |
 | Evidence-grounded operations workspace | Protected-main #614 delivers governed semantic Ask, live Similar VOC, disjoint pending/failed analysis metrics, full Storybook state inventory, and current desktop/mobile screenshot evidence. Authorized-corpus backfill acceptance remains unavailable | Perform authenticated authorized-corpus acceptance with aggregate evidence and retain fail-closed no-match behavior |
 | Cancelled analysis guidance | PRD-FR-5 requires every lifecycle state to identify a valid next action, while ADR 0013 makes Cancelled terminal. Protected `main@494b54e2` rendered Cancelled without a next action. This stacked candidate adds kind-specific guidance for lineage, TEPP, topic lineage, and period reports; 390×844 and 1440×1000 authenticated synthetic-runtime audits are retained in `docs/screenshots/cancelled-analysis-runs-{mobile,desktop}.png`. The audit also found and repaired attached count/action text and the three-column mobile squeeze | Land through the protected gate, then repeat authenticated keyboard and screen-reader acceptance on the exact release head; no cancelled run may imply that it can resume or that a measurement exists |
 | Shared frontend gate | The ADR 0109 login repair is on protected `main`; eight older branches carried the defect and received the same verified repair this loop (#521–#560) | Keep every future branch cut from post-repair bases; re-verify with frontend lint/test/build before push |
