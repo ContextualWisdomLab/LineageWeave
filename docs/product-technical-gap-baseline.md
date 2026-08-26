@@ -12,7 +12,8 @@
 The current candidate stack publishes a provenance-safe classification
 foundation: ADR 0249 adds the complete 2018 SOC hierarchy (23 major groups,
 98 minor groups, 459 broad occupations, and 867 detailed occupations) above
-ADR 0245's four O*NET 31.0 Job Zone categories, six RIASEC interest
+ADR 0250's candidate full O*NET 31.0 Content Model Reference (3,006 concepts),
+and ADR 0245's four O*NET 31.0 Job Zone categories, six RIASEC interest
 types and their published adjacency, six explicitly legacy work-value clusters, seven
 revised work-style dimensions, and four ability domains. It asserts no
 occupation-to-characteristic instance profile or employer job architecture and
@@ -23,7 +24,7 @@ explicit unavailable state, not a reason to infer mappings from labels.
 | Gap | Current evidence | Acceptance requirement |
 |---|---|---|
 | Classification depth | ADR 0249's candidate branch imports all 1,447 official 2018 SOC nodes with source-declared hierarchy, pinned XLSX/CSV digests, a deterministic Turtle renderer, and fail-closed read model | Pass exact-head review/checks and protected merge; add ISCO/ESCO crosswalks only where the publishing authority supplies them |
-| Construct granularity | The candidate ontology exposes 23 high-level characteristic concepts | Publish source-versioned O*NET abilities, skills, knowledge, work activities, work context, interests, and work styles without collapsing cognition, affect, and behavior into one dimension; preserve removed Work Values only as versioned legacy content |
+| Construct granularity | ADR 0250's candidate branch publishes all 3,006 O*NET 31.0 Content Model Reference concepts with exact IDs, names, descriptions, and source-defined parents; it imports no ratings or person assertions | Pass exact-head review/checks and protected merge; import separately released occupation-element observations only through the provenance contract below |
 | Occupation-to-construct relations | ADR 0245 deliberately declares relation properties without instance assertions | Persist released source observations with source version, occupation code, element identifier, scale identifier, value, sample/error metadata when supplied, and provenance; never invent or locally normalize a weight |
 | Job-family and job-series semantics | No authoritative employer-specific job architecture is present | Define an organization-neutral import contract that preserves the authorized source hierarchy and distinguishes standard occupation codes from employer job families/series; no label-based binding |
 | Temporal and multilevel interpretation | Static vocabulary only; no person-level inference is asserted | Version valid and transaction time, preserve occupation/organization/unit nesting and multiple membership, and require TEPP or the owning Rust psychometric service before any calibrated temporal or multilevel result |

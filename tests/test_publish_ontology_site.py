@@ -50,6 +50,7 @@ def _repository_fixture(tmp_path: Path) -> Path:
     for name in (
         "lineageweave-kg.ttl",
         "soc-2018-structure.ttl",
+        "onet-31-content-model.ttl",
         "prov-o-support-profile.ttl",
         "namespace-compatibility.ttl",
         "lineageweave-kg-shapes.ttl",

@@ -725,6 +725,14 @@
     dcterms:license <https://creativecommons.org/licenses/by/4.0/> ;
     :sourceArtifactSha256 "f66d665a2e507c825a71aedb2c13ba22765e8259bc6c7fe5b3cdfd8105475a66" .
 
+:sourceOnet310ContentModelReference a prov:Entity ;
+    dcterms:title "O*NET 31.0 Content Model Reference"@en ;
+    dcterms:publisher "National Center for O*NET Development"@en ;
+    dcterms:hasVersion "31.0" ;
+    dcterms:source <https://www.onetcenter.org/dl_files/database/db_31_0_json/content_model_reference.json> ;
+    dcterms:license <https://creativecommons.org/licenses/by/4.0/> ;
+    :sourceArtifactSha256 "db59c30e4240931edce59310f2747f5476f058984b55f58f72c6f29faa30186f" .
+
 :sourceOnetRevisedWorkStyles a prov:Entity ;
     dcterms:title "Revisiting the Work Styles Domain of the O*NET Content Model"@en ;
     dcterms:publisher "National Center for O*NET Development"@en ;
@@ -780,6 +788,46 @@
     rdfs:range xsd:string ;
     rdfs:label "SOC code"@en ;
     rdfs:comment "The official code from the published 2018 SOC structure, in the form \"NN-NNNN\"."@en .
+
+# ---- Complete O*NET 31.0 Content Model Reference (ADR 0250) ----
+
+:OnetContentModelElement a owl:Class ;
+    rdfs:label "O*NET content model element"@en .
+
+:WorkerCharacteristicsElement a owl:Class ; rdfs:subClassOf :OnetContentModelElement ; rdfs:label "Worker characteristics element"@en .
+:WorkerRequirementsElement a owl:Class ; rdfs:subClassOf :OnetContentModelElement ; rdfs:label "Worker requirements element"@en .
+:ExperienceRequirementsElement a owl:Class ; rdfs:subClassOf :OnetContentModelElement ; rdfs:label "Experience requirements element"@en .
+:OccupationalRequirementsElement a owl:Class ; rdfs:subClassOf :OnetContentModelElement ; rdfs:label "Occupational requirements element"@en .
+:OccupationSpecificInformationElement a owl:Class ; rdfs:subClassOf :OnetContentModelElement ; rdfs:label "Occupation-specific information element"@en .
+:WorkforceCharacteristicsElement a owl:Class ; rdfs:subClassOf :OnetContentModelElement ; rdfs:label "Workforce characteristics element"@en .
+
+:AbilityElement a owl:Class ; rdfs:subClassOf :WorkerCharacteristicsElement ; rdfs:label "Ability element"@en .
+:CareerInterestElement a owl:Class ; rdfs:subClassOf :WorkerCharacteristicsElement ; rdfs:label "Career interest element"@en .
+:WorkStyleElement a owl:Class ; rdfs:subClassOf :WorkerCharacteristicsElement ; rdfs:label "Work style element"@en .
+:EssentialSkillElement a owl:Class ; rdfs:subClassOf :WorkerRequirementsElement ; rdfs:label "Essential skill element"@en .
+:TransferableSkillElement a owl:Class ; rdfs:subClassOf :WorkerRequirementsElement ; rdfs:label "Transferable skill element"@en .
+:KnowledgeElement a owl:Class ; rdfs:subClassOf :WorkerRequirementsElement ; rdfs:label "Knowledge element"@en .
+:EducationElement a owl:Class ; rdfs:subClassOf :WorkerRequirementsElement ; rdfs:label "Education element"@en .
+:SoftwareSkillElement a owl:Class ; rdfs:subClassOf :WorkerRequirementsElement ; rdfs:label "Software skill element"@en .
+:ExperienceTrainingElement a owl:Class ; rdfs:subClassOf :ExperienceRequirementsElement ; rdfs:label "Experience and training element"@en .
+:LicensingElement a owl:Class ; rdfs:subClassOf :ExperienceRequirementsElement ; rdfs:label "Licensing element"@en .
+:WorkActivityElement a owl:Class ; rdfs:subClassOf :OccupationalRequirementsElement ; rdfs:label "Work activity element"@en .
+:WorkContextElement a owl:Class ; rdfs:subClassOf :OccupationalRequirementsElement ; rdfs:label "Work context element"@en .
+:TaskElement a owl:Class ; rdfs:subClassOf :OccupationSpecificInformationElement ; rdfs:label "Task element"@en .
+:OccupationTitleElement a owl:Class ; rdfs:subClassOf :OccupationSpecificInformationElement ; rdfs:label "Occupation title element"@en .
+:OccupationDescriptionElement a owl:Class ; rdfs:subClassOf :OccupationSpecificInformationElement ; rdfs:label "Occupation description element"@en .
+:JobTitleElement a owl:Class ; rdfs:subClassOf :OccupationSpecificInformationElement ; rdfs:label "Job title element"@en .
+:LaborMarketInformationElement a owl:Class ; rdfs:subClassOf :WorkforceCharacteristicsElement ; rdfs:label "Labor market information element"@en .
+:OccupationalOutlookElement a owl:Class ; rdfs:subClassOf :WorkforceCharacteristicsElement ; rdfs:label "Occupational outlook element"@en .
+
+:onet31ContentModelScheme a skos:ConceptScheme ;
+    skos:prefLabel "O*NET 31.0 Content Model Reference"@en ;
+    prov:wasDerivedFrom :sourceOnet310ContentModelReference .
+
+:onetElementId a owl:DatatypeProperty ;
+    rdfs:domain :OnetContentModelElement ;
+    rdfs:range xsd:string ;
+    rdfs:label "O*NET element ID"@en .
 
 # ---- Job zones: published preparation-level ordering ----
 

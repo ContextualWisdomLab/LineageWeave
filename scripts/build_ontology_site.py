@@ -46,7 +46,10 @@ CANONICAL_LINK_SUPPRESSION = (
     "-- canonical metadata fetches no subresource -->"
 )
 SOURCE_RELATIVE_PATH = Path("docs/ontology/lineageweave-kg.ttl")
-SOURCE_FRAGMENT_RELATIVE_PATHS = (Path("docs/ontology/soc-2018-structure.ttl"),)
+SOURCE_FRAGMENT_RELATIVE_PATHS = (
+    Path("docs/ontology/soc-2018-structure.ttl"),
+    Path("docs/ontology/onet-31-content-model.ttl"),
+)
 PROV_PROFILE_RELATIVE_PATH = Path("docs/ontology/prov-o-support-profile.ttl")
 COMPATIBILITY_RELATIVE_PATH = Path("docs/ontology/namespace-compatibility.ttl")
 TERM_TYPES: tuple[tuple[str, URIRef], ...] = (

@@ -86,6 +86,10 @@ continues to pass unchanged.
   clusters, and
   the seven higher-order dimensions of the revised O*NET Work Styles
   structure.
+- Publish all 3,006 O*NET 31.0 Content Model Reference elements with exact
+  identifiers, names, descriptions, and source-defined outline parents
+  (ADR 0250). Treat the six roots and 18 second-level branches as navigation
+  classes, never occupation ratings, person traits, scores, or weights.
 - Declare typed derivation properties from classifications to
   characteristics but assert no instance binding; binding requires a
   versioned released source profile imported with provenance in its own
@@ -97,7 +101,8 @@ continues to pass unchanged.
 Acceptance: completeness counts, verbatim titles, closed RIASEC
 vocabulary, exact published adjacency pairs, deterministic ordering,
 canonical namespace, and lookup round-trip isolation are enforced by
-`tests/test_io_taxonomy.py` and `tests/test_soc_2018_hierarchy.py`;
+`tests/test_io_taxonomy.py`, `tests/test_soc_2018_hierarchy.py`, and
+`tests/test_onet_content_model.py`;
 `tests/test_ontology.py` continues to pass unchanged.
 ### PRD-FR-2C — Evidence-bound occupational constructs
 

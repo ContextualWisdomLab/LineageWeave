@@ -124,6 +124,9 @@ _CANONICAL_NAMESPACE = (
 _ONET_310_JOB_ZONE_SHA256 = (
     "f66d665a2e507c825a71aedb2c13ba22765e8259bc6c7fe5b3cdfd8105475a66"
 )
+_ONET_310_CONTENT_MODEL_SHA256 = (
+    "db59c30e4240931edce59310f2747f5476f058984b55f58f72c6f29faa30186f"
+)
 
 
 class TestMajorGroups:
@@ -376,6 +379,10 @@ class TestSourceProvenance:
         assert onet.version == "31.0"
         assert onet.license_url == "https://creativecommons.org/licenses/by/4.0/"
         assert onet.artifact_sha256 == _ONET_310_JOB_ZONE_SHA256
+        content_model = by_iri[str(LW.sourceOnet310ContentModelReference)]
+        assert content_model.version == "31.0"
+        assert content_model.license_url == "https://creativecommons.org/licenses/by/4.0/"
+        assert content_model.artifact_sha256 == _ONET_310_CONTENT_MODEL_SHA256
         soc = by_iri[str(LW.sourceSoc2018)]
         assert soc.version == "2018"
         assert soc.license_url is None
