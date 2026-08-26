@@ -12,9 +12,10 @@ evidence.
 from __future__ import annotations
 
 import pytest
-from rdflib import RDF, URIRef
+from rdflib import RDF, Graph, Literal, URIRef
 from rdflib.namespace import DCTERMS, PROV, SKOS
 
+from lineageweave import io_taxonomy
 from lineageweave.io_taxonomy import (
     JOB_ZONE_LEVELS,
     ability_domain_records,
@@ -153,6 +154,19 @@ class TestMajorGroups:
     def test_malformed_code_raises_caller_error(self, bad_code: str) -> None:
         with pytest.raises(ValueError):
             major_group(bad_code)
+
+    def test_duplicate_soc_code_fails_closed(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        duplicate = URIRef("https://example.test/major-group/synthetic-duplicate")
+        graph = Graph()
+        graph += ONTOLOGY
+        graph.add((duplicate, SKOS.inScheme, LW.socMajorGroupScheme))
+        graph.add((duplicate, LW.socCode, Literal("15-0000")))
+        graph.add((duplicate, SKOS.prefLabel, Literal("Synthetic duplicate")))
+        monkeypatch.setattr(io_taxonomy, "ONTOLOGY", graph)
+        major_group_records.cache_clear()
+
+        with pytest.raises(ValueError, match="duplicate SOC codes"):
+            major_group_records()
 
 
 class TestJobZones:
