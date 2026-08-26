@@ -188,7 +188,7 @@ export function OntologyExplorer({
     <section className="ontology-explorer" aria-label={t("Related concepts")}>
       <header className="ontology-explorer-header">
         <div>
-      <p className="section-eyebrow">{t("Related concepts")}</p>
+          <p className="section-eyebrow">{t("Related concepts")}</p>
           <h3>{t("Typed relations, not Event Lineage")}</h3>
           <p>
             {t("This is an ontology neighborhood, not Event Lineage.")}{" "}
