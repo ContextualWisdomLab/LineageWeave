@@ -224,11 +224,13 @@ describe("OntologyExplorer", () => {
   it("lets keyboard users open node and edge evidence", async () => {
     const onSelectPost = vi.fn();
     const onOpenEvidence = vi.fn();
+    const payload = neighborhood();
+    payload.edges[0].evidence_references = [POST_ID, "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa2"];
     render(
       <OntologyExplorer
         focusNodeType="node_post"
         focusNodeId={POST_ID}
-        neighborhood={neighborhood()}
+        neighborhood={payload}
         onSelectPost={onSelectPost}
         onOpenEvidence={onOpenEvidence}
       />,
@@ -244,7 +246,8 @@ describe("OntologyExplorer", () => {
     expect(onOpenEvidence).not.toHaveBeenCalled();
     await userEvent.click(screen.getByRole("button", { name: /Open relation: mentions from/ }));
     expect(screen.queryByText(/Property IRI/)).not.toBeInTheDocument();
-    await userEvent.click(screen.getByRole("button", { name: "Open linked record" }));
+    expect(screen.getByRole("button", { name: "Open linked record 2" })).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Open linked record 1" }));
     expect(onOpenEvidence).toHaveBeenCalledWith(POST_ID);
     expect(screen.queryByRole("img")).not.toBeInTheDocument();
   });

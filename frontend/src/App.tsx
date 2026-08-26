@@ -4228,7 +4228,7 @@ function PostList({
                         ) : null}
                         {post.project_evidence && post.project_evidence.length > 0 ? (
                           <span className="post-meta">
-                            {t("Semantic project")}: {post.project_evidence.map((project) => project.project_name).join(", ")}
+                            {t("Project")}: {post.project_evidence.map((project) => project.project_name).join(", ")}
                           </span>
                         ) : null}
                         <span className="post-meta">

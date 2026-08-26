@@ -597,10 +597,16 @@ function OntologyEdgeDrawer({
       <p>{t("Recorded at")}: {edge.recorded_at.slice(0, 10)}</p>
       {edge.evidence_references.length > 0 ? (
         <ul>
-          {edge.evidence_references.map((reference) => (
+          {edge.evidence_references.map((reference, index) => (
             <li key={reference}>
               {onOpenEvidence ? (
-                <button type="button" onClick={() => onOpenEvidence(reference)}>
+                <button
+                  type="button"
+                  aria-label={edge.evidence_references.length > 1
+                    ? `${t("Open linked record")} ${index + 1}`
+                    : undefined}
+                  onClick={() => onOpenEvidence(reference)}
+                >
                   {t("Open linked record")}
                 </button>
               ) : (
