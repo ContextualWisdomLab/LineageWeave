@@ -1,6 +1,7 @@
 """Keep customer and operator manuals aligned with shipped entry points."""
 
 from pathlib import Path
+import re
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -19,6 +20,20 @@ def test_manual_cross_links_resolve() -> None:
     assert "[operations manual](operations-manual.md)" in _text("user-guide.md")
     assert "[MCP manual](mcp-manual.md)" in _text("operations-manual.md")
     assert "[user guide](user-guide.md)" in _text("operations-manual.md")
+
+
+def test_local_manual_links_resolve() -> None:
+    """Reject broken fragment-free links from README or the manual set."""
+    documents = [ROOT / "README.md", *sorted(MANUALS.glob("*.md"))]
+    for document in documents:
+        content = document.read_text(encoding="utf-8")
+        for target in re.findall(r"\[[^]]+\]\(([^)]+)\)", content):
+            path_text = target.split("#", 1)[0]
+            if not path_text or "://" in path_text:
+                continue
+            assert (document.parent / path_text).resolve().exists(), (
+                f"{document.relative_to(ROOT)} links to missing {target}"
+            )
 
 
 def test_mcp_manual_names_only_current_tools_and_async_contract() -> None:
