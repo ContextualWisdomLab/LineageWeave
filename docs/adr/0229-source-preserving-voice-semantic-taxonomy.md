@@ -28,6 +28,10 @@ a future event. Optional validity intervals describe derived or explicitly
 time-scoped relationship claims, not ingestion availability. No threshold,
 weight, keyword, alias rule, or forced winner is permitted. A replacement or
 retraction names the superseded assertion and closes validity with provenance.
+The database reconciles the source assertion in the same transaction that
+inserts or changes `source_post.voc_type_code` or its revision-bearing body.
+It retains the prior assertion as a closed, superseded version; migration
+replay is a recovery/backfill path, not the normal ingestion lifecycle.
 
 Counts use the same authorized eligible-post denominator at the same cutoff and
 filters. They report source, derived, multi-membership, disagreement, and

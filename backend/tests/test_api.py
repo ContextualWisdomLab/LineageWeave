@@ -2045,10 +2045,10 @@ def test_voice_taxonomy_summary_uses_visible_post_denominator(
     assert "category_post_counts" not in payload
 
 
-def test_voice_source_backfill_is_available_for_future_business_event(
+def test_voice_source_ingestion_is_available_for_future_business_event(
     seeded_db,
 ) -> None:
-    """An imported source label is available when recorded, not at event time."""
+    """Ingestion records a source label immediately, not at event time."""
     conn = psycopg2.connect(seeded_db["dsn"])
     try:
         with conn.cursor() as cur:
@@ -2057,18 +2057,43 @@ def test_voice_source_backfill_is_available_for_future_business_event(
                 (seeded_db["public_post_id"],),
             )
             cur.execute(
-                "update source_post set voc_type_code = 'voc', "
+                "update source_post set post_body = post_body, "
                 "event_occurred_at = '2999-01-01T00:00:00Z' where post_id = %s",
                 (seeded_db["public_post_id"],),
             )
-            cur.execute(_PRODUCT_SEMANTIC_MIGRATIONS[-1].read_text(encoding="utf-8"))
             cur.execute(
-                "select valid_from from post_voice_classification_assertion "
+                "select classification_assertion_id, valid_from "
+                "from post_voice_classification_assertion "
                 "where post_id = %s and assertion_status_code = 'source' "
                 "and voice_concept_code = 'voc'",
                 (seeded_db["public_post_id"],),
             )
-            assert cur.fetchone() == (None,)
+            first_assertion_id, valid_from = cur.fetchone()
+            assert valid_from is None
+            cur.execute(
+                "update source_post set post_body = post_body || ' revised' "
+                "where post_id = %s",
+                (seeded_db["public_post_id"],),
+            )
+            cur.execute(
+                "update source_post set post_body = post_body where post_id = %s",
+                (seeded_db["public_post_id"],),
+            )
+            cur.execute(
+                "select count(*), count(*) filter (where valid_to is null), "
+                "count(*) filter (where classification_assertion_id = %s "
+                "and valid_to is not null), "
+                "max(supersedes_assertion_id::text) filter (where valid_to is null) "
+                "from post_voice_classification_assertion where post_id = %s "
+                "and assertion_status_code = 'source'",
+                (first_assertion_id, seeded_db["public_post_id"]),
+            )
+            assert cur.fetchone() == (
+                2,
+                1,
+                1,
+                str(first_assertion_id),
+            )
         conn.commit()
     finally:
         conn.close()
