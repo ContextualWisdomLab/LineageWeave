@@ -4,10 +4,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends curl build-esse
     && curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | \
        sh -s -- -y --profile minimal --default-toolchain 1.97.1
 ENV PATH=/root/.cargo/bin:$PATH
-ADD https://github.com/ContextualWisdomLab/contextual-orchestrator/archive/1fc4d3d563e8931b6414b2f6dc6453b82ba23a43.tar.gz /tmp/contextual-orchestrator.tar.gz
+ADD https://github.com/ContextualWisdomLab/contextual-orchestrator/archive/dadf843a974e40da4badf262a62598d475a96edf.tar.gz /tmp/contextual-orchestrator.tar.gz
 RUN mkdir /tmp/contextual-orchestrator \
     && tar -xzf /tmp/contextual-orchestrator.tar.gz --strip-components=1 -C /tmp/contextual-orchestrator \
-    && cargo build --locked --release --manifest-path /tmp/contextual-orchestrator/rust/token_counter/Cargo.toml
+    && python -m pip install --no-cache-dir 'maturin>=1.8,<2' \
+    && maturin build --locked --release --manifest-path /tmp/contextual-orchestrator/rust/token_counter/Cargo.toml --out /tmp/token-wheels
 
 FROM python:3.12-slim@sha256:423ed6ab25b1921a477529254bfeeabf5855151dc2c3141699a1bfc852199fbf
 
@@ -16,7 +17,7 @@ WORKDIR /app
 # Reuse the upstream implementation without copying it into LineageWeave.
 # Pin the runtime to a reviewed immutable upstream commit; model selection,
 # structured synthesis, and reasoning policy stay in contextual-orchestrator.
-ADD https://github.com/ContextualWisdomLab/contextual-orchestrator/archive/1fc4d3d563e8931b6414b2f6dc6453b82ba23a43.tar.gz /tmp/contextual-orchestrator.tar.gz
+ADD https://github.com/ContextualWisdomLab/contextual-orchestrator/archive/dadf843a974e40da4badf262a62598d475a96edf.tar.gz /tmp/contextual-orchestrator.tar.gz
 RUN mkdir /tmp/contextual-orchestrator \
     && tar -xzf /tmp/contextual-orchestrator.tar.gz --strip-components=1 -C /tmp/contextual-orchestrator \
     && cp -R /tmp/contextual-orchestrator/contextual_orchestrator /app/contextual_orchestrator \
@@ -29,7 +30,8 @@ RUN mkdir /tmp/contextual-orchestrator \
         'opentelemetry-exporter-otlp-proto-http>=1.30.0' \
     && useradd --uid 10001 --no-create-home orchestrator
 
-COPY --from=token-builder /tmp/contextual-orchestrator/rust/token_counter/target/release/contextual-token-counter /usr/local/bin/contextual-token-counter
+COPY --from=token-builder /tmp/token-wheels /tmp/token-wheels
+RUN pip install --no-cache-dir /tmp/token-wheels/*.whl && rm -rf /tmp/token-wheels
 
 COPY agents.json /app/agents.json
 COPY start.py /app/start.py
