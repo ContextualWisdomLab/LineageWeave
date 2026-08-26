@@ -1,4 +1,4 @@
--- ADR 0228: persist account-owned Ask conversations on each visible post.
+-- ADR 0235: persist account-owned Ask conversations on each visible post.
 -- Third normal form: session identity, turn text, and citation/source
 -- relations are separate tables. Index leads with user_account_id so a
 -- frequently asked post cannot become a single hot partition key.

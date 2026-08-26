@@ -4,7 +4,7 @@
 **Date:** 2026-08-25
 **Supersedes:** [ADR 0157](0157-public-ontology-namespace-identity.md)
 **Resolves:** [#372](https://github.com/ContextualWisdomLab/LineageWeave/issues/372)
-**Amended by:** [ADR 0229](0229-legacy-ontology-namespace-publication.md)
+**Amended by:** [ADR 0236](0236-legacy-ontology-namespace-publication.md)
 
 ## Context
 
@@ -48,14 +48,14 @@ fail loudly instead of silently polluting downstream graphs.
    values, RDF exports, database rows, examples, API payloads, and generated
    Pages artifacts mint only repository-case term IRIs.
 2. The lowercase namespace is now the deprecated compatibility namespace and
-   is never reused for different meanings. ADR 0229 clarifies that its current
+   is never reused for different meanings. ADR 0236 clarifies that its current
    `404` path is not described as dereferenceable.
 3. The publication slice serves the repository-case namespace document and
    its `namespace-compatibility.ttl` mapping document with `200 OK`. The
    repository-case document is authoritative; the mapping document identifies
    it via `dcterms:isReplacedBy`, carries `owl:deprecated true`, and holds only
    validated mappings. It does not make the lowercase namespace path a served
-   document (ADR 0229).
+   document (ADR 0236).
 4. Compatibility mappings are generated between the two parsed graphs and
    emitted only when local-name uniqueness, term kind, and defining semantics
    match: class-to-class `owl:equivalentClass`; property-to-same-kind

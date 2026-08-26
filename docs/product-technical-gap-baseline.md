@@ -1,6 +1,6 @@
 # Product & Technical Gap Baseline
 
-> Dashboard delivery snapshot: 2026-08-26 13:38 KST. Protected `main` is
+> Dashboard delivery snapshot: 2026-08-26 13:43 KST. Protected `main` is
 > `494b54e2245040bcf02b45376f221c37cd437e76`. This local branch is not
 > protected-main release evidence.
 
@@ -14,7 +14,7 @@
 | Project-specific journey | Explicit source/semantic project membership plus event-time ordering | Candidate API and ordered journey UI implemented; authenticated runtime acceptance pending |
 | Repeat issue to design improvement | `repeat_issue`, `issue_pattern`, and `improvement_action` cited facts | Candidate semantic contract; design-system connector acceptance pending |
 | Natural-language Ask with evidence, report, alert, MCP | Persisted semantic-unit embeddings plus versioned delivery/resource contract | Candidate implementation uses whole-question embedding retrieval with no lexical fallback; authenticated runtime acceptance pending |
-| Per-post Ask continuity | ADR 0228; account/post-scoped normalized sessions and current-authorization citation projection | PR #677 merged into the non-default baseline branch as `80c59672`; retarget to `main` and revalidate after protected parent delivery |
+| Per-post Ask continuity | ADR 0235; account/post-scoped normalized sessions and current-authorization citation projection | PR #677 merged into the non-default baseline branch as `80c59672`; retarget to `main` and revalidate after protected parent delivery |
 | Similar VOC, customer cohort, prior action | Persisted repeat-issue candidate semantics plus orchestrator pair adjudication and extractive evidence | Candidate live post endpoint and post-detail UI implemented; authenticated runtime acceptance pending |
 | TEPP independent Event Lineage anchor | Accepted, persisted TEPP criterion bound to exact snapshot/cutoff before fast-mlsirm activation | Consumer PR #606 is on protected main; TEPP producer PR #237 remains open, so no end-to-end accepted artifact is release evidence yet |
 | Temporal Lineage topics and multilevel important posts | ADR 0210; TEPP posterior topic/plausible-value contract followed by fast-mlsirm observed-information case-deletion influence | Product/technical contract is protected on `main`; neither required Rust CPU/GPU producer envelope is shipped, so the Dashboard surface remains unavailable (ADR 0208: no local Python substitute) |
@@ -68,7 +68,7 @@ are not merge readiness. Re-fetch exact heads,
 unresolved threads, checks, approvals, rulesets, and merge SHA before any
 lifecycle claim.
 
-> Audit snapshot: 2026-08-26 13:38 KST (refreshed by the autonomous merge
+> Audit snapshot: 2026-08-26 13:43 KST (refreshed by the autonomous merge
 > loop). This repository records synthetic fixtures and aggregate,
 > non-identifying runtime evidence only. Open PRs and local checks are not
 > protected-default-branch release evidence. Identifying post identifiers,
@@ -88,8 +88,8 @@ context only.
 | #686 | `fbca05d9` | customer-facing copy boundary audit removes implementation labels while retaining Event Lineage distinction and localized actions; current review threads are resolved, ranking guidance has desktop/mobile Storybook screenshot evidence, and hosted checks remain pending |
 | #680 | `5c246a54` | customer-facing ranking copy with localized retry/search guidance and source-record detail copy corrected; BLOCKED with exact-head checks and independent review required |
 | #679 | `29aa69dd` | ADR 0229 public-claim envelope, async verification, locale-aware next actions, opt-in search setup, and aggregate-status guidance repair; BLOCKED with exact-head checks and independent review required |
-| #672 | `147f208e` | persisted semantic-evidence nomination for Global Ask with ADR renumbering; unexpected verification failures degrade to unavailable, and embedding work is performed before the pool is acquired; hosted checks requeued |
-| #668 | `e452bf38` | evidence-bound project history projection with ADR renumbering, request guards, source-code/time-basis display repair, and theme-token timeline styling; BLOCKED with review required |
+| #672 | `b7570c5a` | persisted semantic-evidence nomination for Global Ask now uses unique ADR 0233/0234 identities; unexpected verification failures degrade to unavailable, and embedding work is performed before the pool is acquired; hosted checks and independent review requeued |
+| #668 | `1a2fae22` | evidence-bound project history projection now uses unique ADR 0232, with request guards, source-code/time-basis display repair, and theme-token timeline styling; hosted checks and independent review requeued |
 | #667 | `55b5a48f` | baseline refresh plus repeated-turn conversation-key repair, stale-history response fencing, legacy ontology identifier separation, source-lock protection for hard-deleted Ask evidence, protected ontology publication proof, and five-locale analysis-run guidance with desktop/mobile Storybook evidence; exact-head hosted checks and independent approval remain pending |
 | #663 | `4ded3d2d` | project ontology traversal, cutoff-snapshot project focus, bounded MCP admission, and migration-fixture/worker startup repair; its new ADRs were renumbered to unique 0230/0231 identities so the ontology stack no longer contradicts #640's 0224/0225 decisions; hosted checks and independent review requeued on the new exact head |
 | #658 | `f497a6e8` | evidence-honest Global Ask cutoff with robust revision timestamps; BLOCKED with review required |
@@ -110,7 +110,7 @@ non-default #667 stack as `55b5a48ff997fddbe8fcc47a268d0b02aa835c6a`.
 These are stack-integration evidence only; they are not protected-`main`
 delivery. Their acceptance now travels with the two parent heads above.
 
-The exact-head check-run scan at 13:38 KST found no `failure`, `cancelled`, or
+The exact-head check-run scan at 13:43 KST found no `failure`, `cancelled`, or
 `timed_out` conclusions on the 16 current heads. Several heads, including
 PR #667, #672, and #686 after their repair pushes, are still queued and therefore have
 no terminal gate evidence; review approval is also independently required.
@@ -123,8 +123,11 @@ do not transfer evidence from an earlier SHA.
 ### Cross-PR contract collision audit
 
 The current heads cannot be merged in arbitrary order. PR #672 and stacked
-PR #677 assign different decisions to ADR 0228 (public-claim verification
-versus per-post conversation history), while #640 and #672 introduce different
+PR #677 formerly assigned ADR 0228 to per-post conversation history while #672
+used it for public-claim verification. The baseline branch now assigns the
+conversation contract unique ADR 0235, while #672 uses ADR 0234; the legacy
+ontology publication decision now uses ADR 0236, leaving #679's public-claim
+ADR 0229 unambiguous. #640 and #672 introduce different
 `0211_*.sql` migrations. The former #640/#663 ADR 0224 and 0225 collisions are
 resolved on #663 by unique ADR 0230/0231 identities. The
 `0212_global_ask_knowledge_cutoff.sql` blobs in
@@ -510,7 +513,7 @@ of leverage; open connector PRs there when the defect is upstream:
   generated-directory marker, linked-IRI, duplicate-fragment, symlink, and
   source-overlap checks fail closed.
 - ADR 0207 and closed issue #372 make the repository-case namespace canonical;
-  ADR 0229 records that the lowercase namespace paths return HTTP 404. They are
+  ADR 0236 records that the lowercase namespace paths return HTTP 404. They are
   deprecated compatibility identifiers mapped by the term-kind-safe public
   `namespace-compatibility.ttl` artifact, not a second served namespace.
 - The public index, `ontology.ttl`, SHACL graph, and manifest return HTTP 200.
@@ -520,7 +523,7 @@ of leverage; open connector PRs there when the defect is upstream:
   `494b54e2245040bcf02b45376f221c37cd437e76`; a fresh live fetch reproduced
   both hashes. The canonical directory redirects to its published index, while
   the deprecated lowercase namespace path remains an intentional HTTP 404 per
-  ADR 0229.
+  ADR 0236.
 
 ## 9. Evidence boundaries
 

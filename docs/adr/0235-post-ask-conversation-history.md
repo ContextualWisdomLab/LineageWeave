@@ -1,4 +1,4 @@
-# ADR 0228: Persisted per-post Ask conversation history
+# ADR 0235: Persisted per-post Ask conversation history
 
 * Status: Accepted
 * Date: 2026-08-23

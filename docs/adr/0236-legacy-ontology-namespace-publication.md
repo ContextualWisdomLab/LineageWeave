@@ -1,4 +1,4 @@
-# ADR 0229 — Separate the legacy ontology identifier from its compatibility document
+# ADR 0236 — Separate the legacy ontology identifier from its compatibility document
 
 **Decision status:** Accepted
 **Date:** 2026-08-26

@@ -14,10 +14,10 @@ decision from them.
 | [`lineage-bi-research-notes.md`](../lineage-bi-research-notes.md) | [0084](0084-lineage-research-grounding.md), [0062](0062-semantic-unit-embedding.md), [0064](0064-lineage-evidence-and-tree-assembly.md), [0024](0024-rankweave-fusion-fail-closed.md), [0165](0165-quantity-script-display.md), [0167](0167-rankweave-ranking-channel-evidence.md), [0169](0169-ask-batched-lineage-graph.md), [0172](0172-event-lineage-channel-evidence.md), [0202](0202-ask-event-time-filter.md), [0223](0223-explicit-semantic-content-unit-kinds.md) |
 | [`PROV_O_IMPLEMENTATION.md`](../PROV_O_IMPLEMENTATION.md) | [0065](0065-prov-o-provenance-boundary.md) |
 | [`PROV_O_IMPLEMENTATION_MATRIX.md`](../PROV_O_IMPLEMENTATION_MATRIX.md) | [0065](0065-prov-o-provenance-boundary.md) |
-| [`ONTOLOGY_NAMESPACE_INVENTORY.md`](../doctoring/ONTOLOGY_NAMESPACE_INVENTORY.md) | [0229](0229-legacy-ontology-namespace-publication.md), [0207](0207-repository-case-ontology-namespace-canonical.md), [0157](0157-public-ontology-namespace-identity.md) |
+| [`ONTOLOGY_NAMESPACE_INVENTORY.md`](../doctoring/ONTOLOGY_NAMESPACE_INVENTORY.md) | [0236](0236-legacy-ontology-namespace-publication.md), [0207](0207-repository-case-ontology-namespace-canonical.md), [0157](0157-public-ontology-namespace-identity.md) |
 | [`image-content-schema.md`](../image-content-schema.md) | [0066](0066-position-preserving-image-content.md) |
 | [`storybook-inventory.md`](../storybook-inventory.md) | [0118](0118-uiux-standard-guide-v3-design-overhaul.md), [0184](0184-ontology-provenance-explorer.md) |
-| Per-post Ask conversation history | [0228](0228-post-ask-conversation-history.md) |
+| Per-post Ask conversation history | [0235](0235-post-ask-conversation-history.md) |
 | [`POSTGRESQL_CONCURRENCY_REFERENCES.md`](../doctoring/POSTGRESQL_CONCURRENCY_REFERENCES.md) | [0204](0204-analysis-run-short-transaction-delivery.md) |
 | [`operability/http-concurrency-evidence.md`](../operability/http-concurrency-evidence.md) | [0204](0204-analysis-run-short-transaction-delivery.md), [0212](0212-single-query-authorized-post-filter-options.md) |
 | Evidence operations Dashboard (`/`) | [0206](0206-evidence-operations-dashboard.md) |

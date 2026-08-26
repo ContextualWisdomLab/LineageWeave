@@ -31,7 +31,7 @@ Storybook. (2026). *Storybook for React & Vite*.
 https://storybook.js.org/docs/get-started/frameworks/react-vite
 
 `Workspace/ChatPanel` covers seeded-only, saved-history, and narrow mobile
-states for the ADR 0228 list/select/new conversation controls.
+states for the ADR 0235 list/select/new conversation controls.
 
 World Wide Web Consortium. (2024). *Web Content Accessibility Guidelines
 (WCAG) 2.2* (W3C Recommendation). https://www.w3.org/TR/WCAG22/

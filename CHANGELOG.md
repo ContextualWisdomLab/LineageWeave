@@ -14,7 +14,7 @@ All notable changes to this project are documented here. Format follows
   exposing internal measurement transport boundaries; Storybook includes
   desktop and phone status matrices.
 - Account-owned per-post Ask conversations can be listed, reopened, and
-  continued with current authorization reapplied to cited evidence (ADR 0228).
+  continued with current authorization reapplied to cited evidence (ADR 0235).
 - Persist explicit paragraph, list, table, MathML formula, and caller-parsed
   conversation-turn semantic-unit kinds without inferring absent boundaries.
 - Event Lineage now persists each reconstructed connection's independent
