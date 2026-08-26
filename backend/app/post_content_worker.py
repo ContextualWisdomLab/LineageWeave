@@ -500,6 +500,8 @@ async def _finish_failed_job(
                 retryable=getattr(error, "retryable", None),
                 session_correlation_id=session_correlation_id,
                 failure_error_type=_bounded_failure_error_type(error),
+                failure_validation_code=getattr(error, "validation_code", None),
+                failure_validation_path=getattr(error, "validation_path", None),
             )
 
 
