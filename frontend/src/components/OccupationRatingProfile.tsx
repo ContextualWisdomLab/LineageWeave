@@ -24,6 +24,10 @@ export function OccupationRatingProfile({ accessToken }: Props) {
   const [profile, setProfile] = useState<OccupationRatingProfilePayload | null>(null);
   const [status, setStatus] = useState<"idle" | "loading" | "error">("idle");
   const requestSequence = useRef(0);
+  const profileMatchesForm = profile != null
+    && profile.onetsoc_code === onetsocCode
+    && profile.data_release_code === releaseCode
+    && profile.source_table_code === sourceCode;
 
   function load(offset: number | null = null) {
     const requestId = requestSequence.current + 1;
@@ -95,7 +99,7 @@ export function OccupationRatingProfile({ accessToken }: Props) {
         <p role="alert">직업 근거를 불러오지 못했습니다. 코드와 접근 권한을 확인한 뒤 다시 시도하세요.</p>
       ) : null}
       {profile ? <OccupationRatingProfileView profile={profile} /> : null}
-      {profile?.next_offset != null ? (
+      {profileMatchesForm && profile.next_offset != null ? (
         <button
           className="btn-secondary"
           type="button"
