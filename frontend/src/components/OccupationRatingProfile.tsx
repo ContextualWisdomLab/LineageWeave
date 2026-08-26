@@ -30,6 +30,9 @@ export function OccupationRatingProfile({ accessToken }: Props) {
 
   useEffect(() => {
     let active = true;
+    setSourceCatalogError(false);
+    setSources(null);
+    setSelectedSource("");
     fetchOccupationRatingSources(accessToken)
       .then(({ sources: loaded }) => {
         if (!active) return;
