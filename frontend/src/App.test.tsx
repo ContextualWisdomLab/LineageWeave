@@ -2720,7 +2720,11 @@ describe("App, authenticated", () => {
     await userEvent.click(await screen.findByRole("button", { name: /verify against web search/i }));
 
     await waitFor(() =>
-      expect(screen.getByText("Verification unavailable (search is not configured).")).toBeInTheDocument(),
+      expect(
+        screen.getByText(
+          "Public verification is temporarily unavailable. Review the saved evidence, then retry later.",
+        ),
+      ).toBeInTheDocument(),
     );
     expect(screen.queryByText(/HTTP 503/)).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /verify against web search/i })).not.toBeInTheDocument();
@@ -3315,11 +3319,8 @@ describe("App, authenticated", () => {
     expect(history).toHaveTextContent("Pending 2026-01-12 12:31");
     expect(history).toHaveTextContent("Running 2026-01-12 12:32");
     expect(history).toHaveTextContent("Succeeded 2026-01-12 12:33");
-    const outbox = screen.getByRole("list", { name: "Analysis run outbox delivery" });
-    expect(outbox).toHaveTextContent("Claimed 2026-01-12 12:32");
-    expect(outbox).toHaveTextContent("Delivered 2026-01-12 12:33");
-    expect(outbox).not.toHaveTextContent("valkey");
-    expect(outbox).not.toHaveTextContent("stream");
+    expect(screen.queryByText("tepp_not_available")).not.toBeInTheDocument();
+    expect(screen.queryByRole("list", { name: "Analysis run outbox delivery" })).not.toBeInTheDocument();
     expect(screen.getByRole("list", { name: "Posts known at this run cutoff" })).toBeInTheDocument();
     const seededFork = screen.getByRole("list", { name: "Reconstructed lineage edges" });
     expect(seededFork).toHaveTextContent(
@@ -3374,7 +3375,8 @@ describe("App, authenticated", () => {
       await screen.findByRole("heading", { name: "TEPP measurement · Failed · Demo Corp" }),
     ).toBeInTheDocument();
     const teppHistory = screen.getByRole("list", { name: "Analysis run status history" });
-    expect(teppHistory).toHaveTextContent("Failed 2026-01-12 12:37 · tepp_not_available");
+    expect(teppHistory).toHaveTextContent("Failed 2026-01-12 12:37");
+    expect(teppHistory).not.toHaveTextContent("tepp_not_available");
     expect(
       screen.getByText(
         "These posts are the cutoff corpus TEPP would measure. Review the failure details, then ask a workspace administrator to restore measurement access before re-running for a calibrated result.",
@@ -3819,7 +3821,7 @@ describe("App, authenticated", () => {
     expect(
       await screen.findByRole("heading", { name: "TEPP measurement · Failed · Demo Corp" }),
     ).toBeInTheDocument();
-    expect(screen.getByText(/tepp_not_available/)).toBeInTheDocument();
+    expect(screen.queryByText(/tepp_not_available/)).not.toBeInTheDocument();
     expect(screen.queryByText(/theta/i)).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Start reconstruction" })).not.toBeInTheDocument();
     const startCall = fetchMock.mock.calls.find((call) =>

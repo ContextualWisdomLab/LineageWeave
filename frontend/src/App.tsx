@@ -157,7 +157,7 @@ function LanguageSwitcher({ accessToken }: { accessToken?: string }) {
 
 function searchUnavailableMessage(err: unknown): string {
   if (err instanceof BackendError && err.status === 503) {
-    return t("Verification unavailable (search is not configured).");
+    return t("Public verification is temporarily unavailable. Review the saved evidence, then retry later.");
   }
   return String(err);
 }
@@ -3277,16 +3277,6 @@ function AnalysisRunsPanel({
               {selected.status_history.map((event) => (
                 <li key={event.status_ordinal}>
                   {event.status_label} {event.occurred_at.slice(0, 16).replace("T", " ")}
-                  {event.failure_code ? ` · ${event.failure_code}` : ""}
-                </li>
-              ))}
-            </ol>
-          )}
-          {selected.outbox_deliveries && selected.outbox_deliveries.length > 0 && (
-            <ol aria-label="Analysis run outbox delivery">
-              {selected.outbox_deliveries.map((event) => (
-                <li key={event.delivery_ordinal}>
-                  {event.delivery_status_label} {event.occurred_at.slice(0, 16).replace("T", " ")}
                 </li>
               ))}
             </ol>
