@@ -1,6 +1,6 @@
 # Product & Technical Gap Baseline
 
-> Dashboard delivery snapshot: 2026-08-26 14:53 KST. Protected `main` is
+> Dashboard delivery snapshot: 2026-08-26 15:02 KST. Protected `main` is
 > `494b54e2245040bcf02b45376f221c37cd437e76`. This local branch is not
 > protected-main release evidence.
 
@@ -68,7 +68,7 @@ are not merge readiness. Re-fetch exact heads,
 unresolved threads, checks, approvals, rulesets, and merge SHA before any
 lifecycle claim.
 
-> Audit snapshot: 2026-08-26 14:53 KST (refreshed by the autonomous merge
+> Audit snapshot: 2026-08-26 15:02 KST (refreshed by the autonomous merge
 > loop). This repository records synthetic fixtures and aggregate,
 > non-identifying runtime evidence only. Open PRs and local checks are not
 > protected-default-branch release evidence. Identifying post identifiers,
@@ -85,15 +85,15 @@ context only.
 
 | PR | Exact observed head | Merge/check state at this snapshot |
 | ---: | --- | --- |
-| #694 | `88afe2c6` | preserves overlapping voice classifications and authorized aggregate filters; the exact-head repair aligns the denominator with shared source eligibility and ABAC, restores the authenticated frontend transport, removes the raw aggregate from the public response, and replaces implementation-boundary labels with localized next-action copy. Focused unit, live PostgreSQL, frontend, lint, build, Storybook, and 1280×720 visual checks pass; hosted checks and independent review remain non-terminal |
-| #693 | `20e1a5d9` | restores the missing review/delivery parent for durable semantic embedding and operations-worker changes accumulated after #688 merged into #640; current composition preserves exact orchestrator/measurement dependencies, rejects oversized backfill units explicitly, has no unresolved review thread, and still requires exact-head hosted checks and independent review |
-| #692 | `d8c32516` | adds an evidence-bound product group/model/variant/trade-item ontology and normalized semantic catalog; the authorized API projection now independently checks every evidence post so a visible mention cannot disclose a cross-entity private source. Focused live PostgreSQL tests pass; parent reconciliation, exact-head checks, and independent review remain required |
+| #694 | `cd6fc637` | preserves overlapping voice classifications and authorized aggregate filters; the repaired stack aligns the denominator with shared source eligibility and ABAC, restores the authenticated frontend transport, removes raw internal response copy, aligns period semantics, and replaces implementation-boundary labels with localized next-action copy. Focused unit, live PostgreSQL, frontend, lint, build, Storybook, and 1280×720 visual checks pass; hosted checks and independent review remain non-terminal |
+| #693 | `3323bfbd` | restores the missing review/delivery parent for durable semantic embedding and operations-worker changes accumulated after #688 merged into #640; current composition preserves exact orchestrator/measurement dependencies and rejects oversized backfill units explicitly. Unresolved threads and failed checks are zero, while hosted checks and independent review remain required |
+| #692 | `f20c0af6` | adds an evidence-bound product group/model/variant/trade-item ontology and normalized semantic catalog; the authorized API independently checks every evidence post so a visible mention cannot disclose a cross-entity private source. Durable DB failure and focal-window deletion contracts were re-reviewed, 13 focused tests pass, and unresolved threads are zero; parent checks and independent review remain required |
 | #686 | `fbca05d9` | customer-facing copy boundary audit removes implementation labels while retaining Event Lineage distinction and localized actions; current review threads are resolved, ranking guidance has desktop/mobile Storybook screenshot evidence, and hosted checks remain pending |
 | #680 | `5c246a54` | customer-facing ranking copy with localized retry/search guidance and source-record detail copy corrected; BLOCKED with exact-head checks and independent review required |
 | #679 | `29aa69dd` | ADR 0229 public-claim envelope, async verification, locale-aware next actions, opt-in search setup, and aggregate-status guidance repair; BLOCKED with exact-head checks and independent review required |
-| #672 | `672fdbf6` | persisted semantic-evidence nomination for Global Ask uses unique ADR 0233/0234 and migration 0225/0226 identities; interrupted concurrent indexes recover safely, embedding transport failure drops only that optional channel, and non-opt-in jobs no longer construct a verification client (16 queue/diagnostic tests pass); hosted checks and independent review are requeued |
-| #668 | `8b4ed41d` | evidence-bound project history orders by recorded event time, guarantees one deterministic shortest path per predecessor, suppresses false direct handovers across truncated gaps, and localizes the customer action labels; focused backend/frontend/i18n/build/Storybook checks and existing mobile evidence pass while hosted checks and independent review are requeued |
-| #667 | `60b4c600` | baseline/conversation repairs now also contain merged #691 retry semantics: retry keys are scoped to source run and operation so same-run transport replay is stable while different runs cannot collide. Focused App/backend/lint checks pass, unresolved threads are zero, and hosted checks plus independent approval remain pending |
+| #672 | `748944ad` | persisted semantic-evidence nomination for Global Ask uses unique ADR 0233/0234 and migration 0225/0226 identities; interrupted indexes recover safely, empty citation source lists fail closed, non-opt-in jobs avoid verification setup, and no-public-claims now has distinct localized next actions plus a Storybook edge state. Focused Python 24, frontend 389, and lint checks pass; hosted checks and independent review are requeued |
+| #668 | `dd7bd3f0` | evidence-bound project history orders by recorded event time, guarantees one deterministic shortest path per predecessor, suppresses false handovers across truncated gaps, and localizes loading/action guidance across all five locales; 395 frontend tests, lint, focused backend, build, Storybook, and existing mobile evidence pass while hosted checks and independent review are requeued |
+| #667 | `56dc4097` | baseline/conversation repairs contain merged #691 retry semantics and route deleted-conversation recovery back through the shared persistence boundary so a second evidence change maps to an actionable 503. Focused history/docstring checks pass, unresolved threads are zero, and hosted checks plus independent approval remain pending |
 | #663 | `ee795ac0` | project ontology traversal, cutoff-snapshot focus, bounded MCP admission, and migration-fixture/worker startup repair; its new ADRs use unique 0230/0231 identities, KG edge creation obeys the knowledge cutoff, and sealed `snapshot_at` now bounds authorizing focus evidence for every ontology node type rather than Projects alone (32 focused ontology tests pass); hosted checks and independent review requeued |
 | #658 | `f497a6e8` | evidence-honest Global Ask cutoff with robust revision timestamps; BLOCKED with review required |
 | #657 | `709df1b9` | TEPP lifecycle persistence and fail-closed topic acceptance; BLOCKED with hosted checks queued and review required |
@@ -114,7 +114,7 @@ and `60b4c6004739a05e63edae8ff160758f8e665919`.
 These are stack-integration evidence only; they are not protected-`main`
 delivery. Their acceptance now travels with the two parent heads above.
 
-The exact-head check-run scan at 14:53 KST found no `failure`, `cancelled`, or
+The exact-head check-run scan at 15:02 KST found no `failure`, `cancelled`, or
 `timed_out` conclusions on the 19 current heads. Several heads, including
 PR #667, #672, and #686 after their repair pushes, are still queued and therefore have
 no terminal gate evidence; review approval is also independently required.
@@ -282,10 +282,10 @@ requires the ADR 0001 incident process and security/privacy-owner coordination;
 never force-push or delete evidence ad hoc.
 
 The repository-owned hourly commercialization loop and the central thin GitHub
-Actions caller ContextualWisdomLab/.github#1288 (current head `18ce105f`, minute
+Actions caller ContextualWisdomLab/.github#1288 (current head `a11a2e53`, minute
 4, `pr-review-fix-scheduler.yml`) both target this repository. The central
 candidate now reaches model execution through a pinned contextual-orchestrator
-sidecar instead of a direct provider endpoint. PR #1259 is the
+sidecar and exposes only its loopback gateway contract to OpenCode. PR #1259 is the
 closed predecessor and must not be treated as current scheduler evidence. Do
 not add a LineageWeave-local duplicate workflow. ContextualWisdomLab/.github#1258
 merged at exact head `897819c4` to repair the pnpm/coverage-evidence workflow;
@@ -450,7 +450,7 @@ for wholesale replay from #490.
 
 | Gap | Current evidence | Acceptance requirement |
 | --- | --- | --- |
-| Protected release | Protected `main@494b54e2` includes the #660/#664 semantic-unit/backend stack and #659 ontology readability/token repair. Nineteen PRs remain open at the 14:53 KST snapshot; every candidate still requires exact-head checks, unresolved-thread review, and independent approval before merge | Terminal exact-head checks, no unresolved threads, one independent approval under active ruleset `18156473`, and a protected merge SHA; re-fetch the ruleset before every lifecycle claim |
+| Protected release | Protected `main@494b54e2` includes the #660/#664 semantic-unit/backend stack and #659 ontology readability/token repair. Nineteen PRs remain open at the 15:02 KST snapshot; every candidate still requires exact-head checks, unresolved-thread review, and independent approval before merge | Terminal exact-head checks, no unresolved threads, one independent approval under active ruleset `18156473`, and a protected merge SHA; re-fetch the ruleset before every lifecycle claim |
 | Evidence-grounded operations workspace | Protected-main #614 delivers governed semantic Ask, live Similar VOC, disjoint pending/failed analysis metrics, full Storybook state inventory, and current desktop/mobile screenshot evidence. Authorized-corpus backfill acceptance remains unavailable | Perform authenticated authorized-corpus acceptance with aggregate evidence and retain fail-closed no-match behavior |
 | Cancelled analysis guidance | PRD-FR-5 requires every lifecycle state to identify a valid next action, while ADR 0013 makes Cancelled terminal. Protected `main@494b54e2` rendered Cancelled without a next action. This stacked candidate adds kind-specific guidance for lineage, TEPP, topic lineage, and period reports; 390×844 and 1440×1000 authenticated synthetic-runtime audits are retained in `docs/screenshots/cancelled-analysis-runs-{mobile,desktop}.png`. The audit also found and repaired attached count/action text and the three-column mobile squeeze | Land through the protected gate, then repeat authenticated keyboard and screen-reader acceptance on the exact release head; no cancelled run may imply that it can resume or that a measurement exists |
 | Shared frontend gate | The ADR 0109 login repair is on protected `main`; eight older branches carried the defect and received the same verified repair this loop (#521–#560) | Keep every future branch cut from post-repair bases; re-verify with frontend lint/test/build before push |
@@ -511,7 +511,7 @@ of leverage; open connector PRs there when the defect is upstream:
 6. **ThreadWeave** — tree assembly.
 7. **Naruon** — calendar projection delivered through merged #355/closed #336; email/project lineage projection remains open as #338.
 8. **DiskSage / wardnet** — storage and network policy as needed.
-9. **ContextualWisdomLab/.github** — required review workflows (OpenCode, Strix, Noema) and the LineageWeave hourly caller (#1288, current head `18ce105f`). Its candidate routes provider work through a pinned contextual-orchestrator sidecar while preserving the existing review/OIDC mutation credentials; exact-head hosted checks and independent re-review remain pending. If stacked PRs miss central review or coverage-evidence fails on pnpm 9 (`--trust-lockfile` is pnpm 11.3) or a missing Vitest coverage provider, fix the org workflow (#1258), not a local bypass.
+9. **ContextualWisdomLab/.github** — required review workflows (OpenCode, Strix, Noema) and the LineageWeave hourly caller (#1288, current head `a11a2e53`). Its candidate routes provider work through a pinned contextual-orchestrator sidecar, exposes only the loopback gateway contract to OpenCode, and preserves the existing review/OIDC mutation credentials; 97 focused workflow/security tests and actionlint pass, while exact-head hosted checks and independent re-review remain pending. If stacked PRs miss central review or coverage-evidence fails on pnpm 9 (`--trust-lockfile` is pnpm 11.3) or a missing Vitest coverage provider, fix the org workflow (#1258), not a local bypass.
 
 ## 8. Public ontology publication boundary
 
