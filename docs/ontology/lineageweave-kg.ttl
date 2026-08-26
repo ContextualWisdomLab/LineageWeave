@@ -436,3 +436,242 @@
 :semanticConfidence a owl:DatatypeProperty ;
     rdfs:domain :ProjectMention ;
     rdfs:range xsd:decimal .
+
+#################################################################
+# Worker-function taxonomy (ADR 0232).
+#
+# The Dictionary of Occupational Titles' Data/People/Things worker
+# functions (U.S. Department of Labor, 1991, Appendix B) descend from
+# Functional Job Analysis (Fine & Cronshaw, 1999). Each function below
+# carries the official DOT definition verbatim as its rdfs:comment,
+# its definitional ordinal rank (:fjaRank -- lower digits denote the
+# more complex function; these are scale positions, never fitted or
+# calibrated weights), and qualitative facet tags naming published
+# Fleishman ability families and O*NET basic / cross-functional skills
+# (Fleishman et al., 1999; Mumford et al., 1999; Peterson et al.,
+# 1999). Facet tags are an editorial projection of each official
+# definition onto those taxonomies: they carry no numeric weight, no
+# calibration, and no measurement claim -- channel-weight estimation
+# stays governed by ADR 0145.
+#
+# Like column-projection properties above, these concepts deliberately
+# do NOT carry :lookupCode: they are not common_lookup_value rows, so
+# the lookup-code round trip is unaffected.
+#################################################################
+
+:WorkerFunction a owl:Class ;
+    rdfs:label "Worker function"@en ;
+    rdfs:comment "One DOT/FJA Data, People, or Things worker function: the standard terminology for how a worker functions on a job in relation to data, people, or things."@en .
+
+:workerFunctionScheme a skos:ConceptScheme ;
+    skos:prefLabel "DOT/FJA worker functions"@en ;
+    skos:definition "The three ordered DOT worker-function lists (Data 0-6, People 0-8, Things 0-7), each arranged from the most complex to the simplest relationship."@en ;
+    rdfs:seeAlso <https://www.dol.gov/agencies/oalj/PUBLIC/DOT/REFERENCES/DOTAPPB> .
+
+:fjaDomain a owl:DatatypeProperty ;
+    rdfs:domain :WorkerFunction ;
+    rdfs:range xsd:string ;
+    rdfs:label "FJA domain"@en ;
+    rdfs:comment "Which DOT list the function belongs to: exactly one of \"data\", \"people\", or \"things\"."@en .
+
+:fjaRank a owl:DatatypeProperty ;
+    rdfs:domain :WorkerFunction ;
+    rdfs:range xsd:integer ;
+    rdfs:label "FJA rank"@en ;
+    rdfs:comment "The function's definitional position on its DOT list. Lower digits name the more complex function; the digit is a scale position from the published table, not a fitted weight."@en .
+
+:cognitiveFacet a owl:AnnotationProperty ;
+    rdfs:label "cognitive facet"@en ;
+    rdfs:comment "A named Fleishman ability family or O*NET skill that the official function definition exercises cognitively. Editorial projection only; no weight or calibration."@en .
+
+:affectiveFacet a owl:AnnotationProperty ;
+    rdfs:label "affective facet"@en ;
+    rdfs:comment "A named O*NET work style or social skill that the official function definition exercises affectively. Editorial projection only; no weight or calibration."@en .
+
+:behavioralFacet a owl:AnnotationProperty ;
+    rdfs:label "behavioral facet"@en ;
+    rdfs:comment "A named Fleishman psychomotor/physical ability or O*NET behavioral skill that the official function definition exercises behaviorally. Editorial projection only; no weight or calibration."@en .
+
+# ---- Data (4th DOT digit): information, knowledge, and conceptions ----
+
+:dataSynthesizing a skos:Concept , :WorkerFunction ;
+    skos:inScheme :workerFunctionScheme ;
+    skos:prefLabel "Synthesizing"@en ;
+    :fjaDomain "data" ; :fjaRank 0 ;
+    :cognitiveFacet "Inductive Reasoning" , "Fluency of Ideas" ;
+    rdfs:comment "Integrating analyses of data to discover facts and/or develop knowledge concepts or interpretations."@en .
+
+:dataCoordinating a skos:Concept , :WorkerFunction ;
+    skos:inScheme :workerFunctionScheme ;
+    skos:prefLabel "Coordinating"@en ;
+    :fjaDomain "data" ; :fjaRank 1 ;
+    :cognitiveFacet "Time Management" , "Coordination" ;
+    :behavioralFacet "Oral Expression" ;
+    rdfs:comment "Determining time, place, and sequence of operations or action to be taken on the basis of analysis of data; executing determinations and/or reporting on events."@en .
+
+:dataAnalyzing a skos:Concept , :WorkerFunction ;
+    skos:inScheme :workerFunctionScheme ;
+    skos:prefLabel "Analyzing"@en ;
+    :fjaDomain "data" ; :fjaRank 2 ;
+    :cognitiveFacet "Deductive Reasoning" , "Inductive Reasoning" , "Critical Thinking" ;
+    rdfs:comment "Examining and evaluating data. Presenting alternative actions in relation to the evaluation is frequently involved."@en .
+
+:dataCompiling a skos:Concept , :WorkerFunction ;
+    skos:inScheme :workerFunctionScheme ;
+    skos:prefLabel "Compiling"@en ;
+    :fjaDomain "data" ; :fjaRank 3 ;
+    :cognitiveFacet "Category Flexibility" , "Written Comprehension" ;
+    rdfs:comment "Gathering, collating, or classifying information about data, people, or things. Reporting and/or carrying out a prescribed action in relation to the information is frequently involved."@en .
+
+:dataComputing a skos:Concept , :WorkerFunction ;
+    skos:inScheme :workerFunctionScheme ;
+    skos:prefLabel "Computing"@en ;
+    :fjaDomain "data" ; :fjaRank 4 ;
+    :cognitiveFacet "Number Facility" , "Mathematical Reasoning" ;
+    rdfs:comment "Performing arithmetic operations and reporting on and/or carrying out a prescribed action in relation to them. Does not include counting."@en .
+
+:dataCopying a skos:Concept , :WorkerFunction ;
+    skos:inScheme :workerFunctionScheme ;
+    skos:prefLabel "Copying"@en ;
+    :fjaDomain "data" ; :fjaRank 5 ;
+    :cognitiveFacet "Written Comprehension" ;
+    :behavioralFacet "Finger Dexterity" ;
+    rdfs:comment "Transcribing, entering, or posting data."@en .
+
+:dataComparing a skos:Concept , :WorkerFunction ;
+    skos:inScheme :workerFunctionScheme ;
+    skos:prefLabel "Comparing"@en ;
+    :fjaDomain "data" ; :fjaRank 6 ;
+    :cognitiveFacet "Perceptual Speed" ;
+    rdfs:comment "Judging the readily observable functional, structural, or compositional characteristics (whether similar to or divergent from obvious standards) of data, people, or things."@en .
+
+# ---- People (5th DOT digit): human beings dealt with individually ----
+
+:peopleMentoring a skos:Concept , :WorkerFunction ;
+    skos:inScheme :workerFunctionScheme ;
+    skos:prefLabel "Mentoring"@en ;
+    :fjaDomain "people" ; :fjaRank 0 ;
+    :affectiveFacet "Social Perceptiveness" ;
+    :behavioralFacet "Instructing" , "Active Listening" ;
+    rdfs:comment "Dealing with individuals in terms of their total personality in order to advise, counsel, and/or guide them with regard to problems that may be resolved by legal, scientific, clinical, spiritual, and/or other professional principles."@en .
+
+:peopleNegotiating a skos:Concept , :WorkerFunction ;
+    skos:inScheme :workerFunctionScheme ;
+    skos:prefLabel "Negotiating"@en ;
+    :fjaDomain "people" ; :fjaRank 1 ;
+    :affectiveFacet "Social Perceptiveness" ;
+    :behavioralFacet "Negotiation" , "Persuasion" ;
+    rdfs:comment "Exchanging ideas, information, and opinions with others to formulate policies and programs and/or arrive jointly at decisions, conclusions, or solutions."@en .
+
+:peopleInstructing a skos:Concept , :WorkerFunction ;
+    skos:inScheme :workerFunctionScheme ;
+    skos:prefLabel "Instructing"@en ;
+    :fjaDomain "people" ; :fjaRank 2 ;
+    :behavioralFacet "Instructing" , "Speaking" ;
+    rdfs:comment "Teaching subject matter to others, or training others (including animals) through explanation, demonstration, and supervised practice; or making recommendations on the basis of technical disciplines."@en .
+
+:peopleSupervising a skos:Concept , :WorkerFunction ;
+    skos:inScheme :workerFunctionScheme ;
+    skos:prefLabel "Supervising"@en ;
+    :fjaDomain "people" ; :fjaRank 3 ;
+    :behavioralFacet "Management of Personnel Resources" , "Monitoring" , "Coordination" ;
+    rdfs:comment "Determining or interpreting work procedures for a group of workers, assigning specific duties to them, maintaining harmonious relations among them, and promoting efficiency. A variety of responsibilities is involved in this function."@en .
+
+:peopleDiverting a skos:Concept , :WorkerFunction ;
+    skos:inScheme :workerFunctionScheme ;
+    skos:prefLabel "Diverting"@en ;
+    :fjaDomain "people" ; :fjaRank 4 ;
+    :behavioralFacet "Speaking" ;
+    rdfs:comment "Amusing others, usually through the medium of stage, screen, television, or radio."@en .
+
+:peoplePersuading a skos:Concept , :WorkerFunction ;
+    skos:inScheme :workerFunctionScheme ;
+    skos:prefLabel "Persuading"@en ;
+    :fjaDomain "people" ; :fjaRank 5 ;
+    :behavioralFacet "Persuasion" , "Speaking" ;
+    rdfs:comment "Influencing others in favor of a product, service, or point of view."@en .
+
+:peopleSpeakingSignalling a skos:Concept , :WorkerFunction ;
+    skos:inScheme :workerFunctionScheme ;
+    skos:prefLabel "Speaking-Signalling"@en ;
+    :fjaDomain "people" ; :fjaRank 6 ;
+    :cognitiveFacet "Oral Comprehension" ;
+    :behavioralFacet "Speaking" ;
+    rdfs:comment "Talking with and/or signalling people to convey or exchange information. Includes giving assignments and/or directions to helpers or assistants."@en .
+
+:peopleServing a skos:Concept , :WorkerFunction ;
+    skos:inScheme :workerFunctionScheme ;
+    skos:prefLabel "Serving"@en ;
+    :fjaDomain "people" ; :fjaRank 7 ;
+    :affectiveFacet "Service Orientation" ;
+    :behavioralFacet "Active Listening" ;
+    rdfs:comment "Attending to the needs or requests of people or animals or the expressed or implicit wishes of people. Immediate response is involved."@en .
+
+:peopleTakingInstructionsHelping a skos:Concept , :WorkerFunction ;
+    skos:inScheme :workerFunctionScheme ;
+    skos:prefLabel "Taking Instructions-Helping"@en ;
+    :fjaDomain "people" ; :fjaRank 8 ;
+    :affectiveFacet "Cooperation" ;
+    :behavioralFacet "Active Listening" ;
+    rdfs:comment "Attending to the work assignment instructions or orders of supervisor. (No immediate response required unless clarification of instructions or orders is needed.)"@en .
+
+# ---- Things (6th DOT digit): inanimate objects as defined by DOT ----
+
+:thingsSettingUp a skos:Concept , :WorkerFunction ;
+    skos:inScheme :workerFunctionScheme ;
+    skos:prefLabel "Setting Up"@en ;
+    :fjaDomain "things" ; :fjaRank 0 ;
+    :behavioralFacet "Manual Dexterity" , "Equipment Maintenance" ;
+    rdfs:comment "Preparing machines, equipment, or work stations for use by adjusting fixtures, controls, or settings according to job requirements."@en .
+
+:thingsPrecisionWorking a skos:Concept , :WorkerFunction ;
+    skos:inScheme :workerFunctionScheme ;
+    skos:prefLabel "Precision Working"@en ;
+    :fjaDomain "things" ; :fjaRank 1 ;
+    :behavioralFacet "Control Precision" , "Arm-Hand Steadiness" ;
+    rdfs:comment "Using body members and/or tools or work aids to work on, move, guide, or place objects or materials in situations where ultimate responsibility for the attainment of standards occurs and where the selection of appropriate tools, objects, or materials and the adjustment of the tool to the task require considerable tolerance for judgment."@en .
+
+:thingsOperatingControlling a skos:Concept , :WorkerFunction ;
+    skos:inScheme :workerFunctionScheme ;
+    skos:prefLabel "Operating-Controlling"@en ;
+    :fjaDomain "things" ; :fjaRank 2 ;
+    :cognitiveFacet "Operation Monitoring" ;
+    :behavioralFacet "Rate Control" , "Reaction Time" ;
+    rdfs:comment "Starting, stopping, and controlling the actions of machines and equipment by turning valves, switches, dials, buttons, levers, knobs, and similar devices, either singly or in combinations."@en .
+
+:thingsDrivingOperating a skos:Concept , :WorkerFunction ;
+    skos:inScheme :workerFunctionScheme ;
+    skos:prefLabel "Driving-Operating"@en ;
+    :fjaDomain "things" ; :fjaRank 3 ;
+    :cognitiveFacet "Spatial Orientation" ;
+    :behavioralFacet "Reaction Time" , "Response Orientation" ;
+    rdfs:comment "Starting, stopping, and controlling the actions of machines or vehicles, such as automobiles, trucks, tractors, buses, cranes, hoists, conveyors, and like equipment, that are operated primarily by steering or by manipulation of controls."@en .
+
+:thingsManipulating a skos:Concept , :WorkerFunction ;
+    skos:inScheme :workerFunctionScheme ;
+    skos:prefLabel "Manipulating"@en ;
+    :fjaDomain "things" ; :fjaRank 4 ;
+    :behavioralFacet "Multilimb Coordination" , "Manual Dexterity" ;
+    rdfs:comment "Using body members, handtools, and/or special devices to work on, move, guide, or place objects or materials."@en .
+
+:thingsTending a skos:Concept , :WorkerFunction ;
+    skos:inScheme :workerFunctionScheme ;
+    skos:prefLabel "Tending"@en ;
+    :fjaDomain "things" ; :fjaRank 5 ;
+    :cognitiveFacet "Vigilance" ;
+    :behavioralFacet "Reaction Time" ;
+    rdfs:comment "Starting, stopping, and observing the functioning of machines and equipment by manipulating controls according to a relatively fixed routine and/or by making adjustments when signaled or informed that the operation requires correction."@en .
+
+:thingsFeedingOffbearing a skos:Concept , :WorkerFunction ;
+    skos:inScheme :workerFunctionScheme ;
+    skos:prefLabel "Feeding-Offbearing"@en ;
+    :fjaDomain "things" ; :fjaRank 6 ;
+    :behavioralFacet "Extent Flexibility" , "Static Strength" ;
+    rdfs:comment "Inserting, throwing, dumping, or placing materials into or removing them from machines or equipment which are automatic or tended or operated by other workers."@en .
+
+:thingsHandling a skos:Concept , :WorkerFunction ;
+    skos:inScheme :workerFunctionScheme ;
+    skos:prefLabel "Handling"@en ;
+    :fjaDomain "things" ; :fjaRank 7 ;
+    :behavioralFacet "Manual Dexterity" , "Finger Dexterity" ;
+    rdfs:comment "Using body members, handtools, and/or special devices to install, remove, or otherwise handle materials or objects."@en .

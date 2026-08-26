@@ -56,6 +56,23 @@ edge exposes the same authorized endpoints and evidence through API and UI.
 Acceptance: Turtle, JSON-LD, N-Triples, SHACL, API payloads, persisted IRIs,
 and rendered labels agree on term kind, direction, namespace, and provenance.
 
+### PRD-FR-2A — Worker-function taxonomy
+
+- Publish the DOT/FJA Data/People/Things worker functions (24 concepts,
+  official definitions verbatim) in the canonical ontology namespace
+  (ADR 0232), each with its definitional ordinal rank and qualitative
+  cognitive/affective/behavioral facet tags drawn only from published
+  Fleishman ability and O*NET skill/work-style vocabularies.
+- Expose the taxonomy through a deterministic application read model with
+  fail-closed lookups; an absent function is an honest unknown.
+- Carry no numeric weight from the taxonomy: ranks are scale positions,
+  never calibrated weights.
+
+Acceptance: completeness, verbatim definition, closed facet vocabulary,
+deterministic ordering, and lookup round-trip isolation are enforced by
+`tests/test_worker_function_taxonomy.py`; `tests/test_ontology.py`
+continues to pass unchanged.
+
 ### PRD-FR-3 — Bounded ontology exploration
 
 - Apply RBAC/ABAC, source eligibility, and knowledge cutoff before graph
