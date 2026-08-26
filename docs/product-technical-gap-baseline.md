@@ -86,14 +86,14 @@ context only.
 | PR | Exact observed head | Merge/check state at this snapshot |
 | ---: | --- | --- |
 | #689 | `81d85a02` | accepted measurement-owner release pin restacked on current #640; hosted checks and independent review pending |
-| #688 | `a18eb200` | automatic related-source evidence lookup restacked on current #640; missing-evidence copy now explains automatic retry and the current head is UNSTABLE with hosted checks pending |
+| #688 | `e5769971` | automatic related-source evidence lookup restacked on current #640; newly analyzed project evidence now durably requeues completed sibling analyses with missing facts, and the current head is UNSTABLE with hosted checks pending |
 | #687 | `827978a5` | bounded semantic backfill jobs stacked on #640; UNSTABLE with hosted checks and stack-base delivery pending |
-| #686 | `7f0a6fd1` | customer-facing copy boundary audit removes implementation labels while retaining Event Lineage distinction and localized actions; five locale/accessibility fixes applied, three Devin threads resolved, hosted checks requeued |
+| #686 | `7bd0da8b` | customer-facing copy boundary audit removes implementation labels while retaining Event Lineage distinction and localized actions; current review threads are resolved and hosted checks remain pending |
 | #680 | `5c246a54` | customer-facing ranking copy with localized retry/search guidance and source-record detail copy corrected; BLOCKED with exact-head checks and independent review required |
 | #679 | `29aa69dd` | ADR 0229 public-claim envelope, async verification, locale-aware next actions, opt-in search setup, and aggregate-status guidance repair; BLOCKED with exact-head checks and independent review required |
 | #672 | `147f208e` | persisted semantic-evidence nomination for Global Ask with ADR renumbering; unexpected verification failures degrade to unavailable, and embedding work is performed before the pool is acquired; hosted checks requeued |
 | #668 | `e452bf38` | evidence-bound project history projection with ADR renumbering, request guards, source-code/time-basis display repair, and theme-token timeline styling; BLOCKED with review required |
-| #667 | `26b60284` | baseline refresh plus repeated-turn conversation-key repair; current head has no unresolved review threads, while hosted checks and independent approval remain pending |
+| #667 | `79b49012` | baseline refresh plus repeated-turn conversation-key repair and legacy ontology identifier separation; current head has no unresolved review threads, while hosted checks and independent approval remain pending |
 | #663 | `f616887a` | project ontology traversal, cutoff-snapshot project focus, bounded MCP admission, and migration-fixture/worker startup repair; exact-head local ontology/migration/docstring checks pass (100 tests) and frontend ontology/token/i18n checks pass (88 tests); hosted checks are terminal successful except queued OpenCode review, and independent review remains required |
 | #658 | `f497a6e8` | evidence-honest Global Ask cutoff with robust revision timestamps; BLOCKED with review required |
 | #657 | `709df1b9` | TEPP lifecycle persistence and fail-closed topic acceptance; BLOCKED with hosted checks queued and review required |
