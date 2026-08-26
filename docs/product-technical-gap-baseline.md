@@ -1,6 +1,6 @@
 # Product & Technical Gap Baseline
 
-> Dashboard delivery snapshot: 2026-08-26 14:28 KST. Protected `main` is
+> Dashboard delivery snapshot: 2026-08-26 14:53 KST. Protected `main` is
 > `494b54e2245040bcf02b45376f221c37cd437e76`. This local branch is not
 > protected-main release evidence.
 
@@ -68,7 +68,7 @@ are not merge readiness. Re-fetch exact heads,
 unresolved threads, checks, approvals, rulesets, and merge SHA before any
 lifecycle claim.
 
-> Audit snapshot: 2026-08-26 14:28 KST (refreshed by the autonomous merge
+> Audit snapshot: 2026-08-26 14:53 KST (refreshed by the autonomous merge
 > loop). This repository records synthetic fixtures and aggregate,
 > non-identifying runtime evidence only. Open PRs and local checks are not
 > protected-default-branch release evidence. Identifying post identifiers,
@@ -85,21 +85,21 @@ context only.
 
 | PR | Exact observed head | Merge/check state at this snapshot |
 | ---: | --- | --- |
-| #693 | `c5fc9b50` | restores the missing review/delivery parent for durable semantic embedding and operations-worker changes accumulated after #688 merged into #640; its current conflict with #640 is under semantic merge repair, so it is not merge-ready evidence |
-| #692 | `cbc63bd9` | adds an evidence-bound product group/model/variant/trade-item ontology and normalized semantic catalog with authorized API/UI projection; it remains stacked on #693 and requires parent reconciliation, exact-head checks, and independent review |
-| #691 | `70a974fa` | failed measurement and topic-lineage runs offer a retry action that creates and starts a new current-snapshot request while preserving terminal history; lineage and measurement operations use distinct idempotency keys, governing rule files match ADR 0017/0022/0132, and focused backend/frontend checks pass while hosted checks remain non-terminal |
+| #694 | `88afe2c6` | preserves overlapping voice classifications and authorized aggregate filters; the exact-head repair aligns the denominator with shared source eligibility and ABAC, restores the authenticated frontend transport, removes the raw aggregate from the public response, and replaces implementation-boundary labels with localized next-action copy. Focused unit, live PostgreSQL, frontend, lint, build, Storybook, and 1280×720 visual checks pass; hosted checks and independent review remain non-terminal |
+| #693 | `20e1a5d9` | restores the missing review/delivery parent for durable semantic embedding and operations-worker changes accumulated after #688 merged into #640; current composition preserves exact orchestrator/measurement dependencies, rejects oversized backfill units explicitly, has no unresolved review thread, and still requires exact-head hosted checks and independent review |
+| #692 | `d8c32516` | adds an evidence-bound product group/model/variant/trade-item ontology and normalized semantic catalog; the authorized API projection now independently checks every evidence post so a visible mention cannot disclose a cross-entity private source. Focused live PostgreSQL tests pass; parent reconciliation, exact-head checks, and independent review remain required |
 | #686 | `fbca05d9` | customer-facing copy boundary audit removes implementation labels while retaining Event Lineage distinction and localized actions; current review threads are resolved, ranking guidance has desktop/mobile Storybook screenshot evidence, and hosted checks remain pending |
 | #680 | `5c246a54` | customer-facing ranking copy with localized retry/search guidance and source-record detail copy corrected; BLOCKED with exact-head checks and independent review required |
 | #679 | `29aa69dd` | ADR 0229 public-claim envelope, async verification, locale-aware next actions, opt-in search setup, and aggregate-status guidance repair; BLOCKED with exact-head checks and independent review required |
-| #672 | `213d661b` | persisted semantic-evidence nomination for Global Ask uses unique ADR 0233/0234 and migration 0225/0226 identities; interrupted concurrent indexes recover safely, and embedding transport failure drops only that optional channel while native authorized nomination remains available (25 focused tests pass); hosted checks and independent review are requeued |
-| #668 | `7a7a7a64` | evidence-bound project history orders by recorded event time with an honest source-creation fallback, exposes localized loading status without stale-request clearing, and guarantees one deterministic shortest path per predecessor; focused backend/frontend checks and existing desktop/mobile evidence pass while hosted checks and independent review are requeued |
-| #667 | `efd5d41d` | baseline and conversation history now deduplicate paginated conversation identities, recover once into a new owned conversation when a previously authorized conversation is deleted during answer generation, fence stale selection failures, and retain source reauthorization fail-closed; focused frontend/backend/documentation checks pass while hosted checks and independent approval remain pending |
+| #672 | `672fdbf6` | persisted semantic-evidence nomination for Global Ask uses unique ADR 0233/0234 and migration 0225/0226 identities; interrupted concurrent indexes recover safely, embedding transport failure drops only that optional channel, and non-opt-in jobs no longer construct a verification client (16 queue/diagnostic tests pass); hosted checks and independent review are requeued |
+| #668 | `8b4ed41d` | evidence-bound project history orders by recorded event time, guarantees one deterministic shortest path per predecessor, suppresses false direct handovers across truncated gaps, and localizes the customer action labels; focused backend/frontend/i18n/build/Storybook checks and existing mobile evidence pass while hosted checks and independent review are requeued |
+| #667 | `60b4c600` | baseline/conversation repairs now also contain merged #691 retry semantics: retry keys are scoped to source run and operation so same-run transport replay is stable while different runs cannot collide. Focused App/backend/lint checks pass, unresolved threads are zero, and hosted checks plus independent approval remain pending |
 | #663 | `ee795ac0` | project ontology traversal, cutoff-snapshot focus, bounded MCP admission, and migration-fixture/worker startup repair; its new ADRs use unique 0230/0231 identities, KG edge creation obeys the knowledge cutoff, and sealed `snapshot_at` now bounds authorizing focus evidence for every ontology node type rather than Projects alone (32 focused ontology tests pass); hosted checks and independent review requeued |
 | #658 | `f497a6e8` | evidence-honest Global Ask cutoff with robust revision timestamps; BLOCKED with review required |
 | #657 | `709df1b9` | TEPP lifecycle persistence and fail-closed topic acceptance; BLOCKED with hosted checks queued and review required |
 | #644 | `ed8d97f3` | native-surface code splitting; BLOCKED with review required |
 | #643 | `3453ab08` | accessible status notices; BLOCKED with review required |
-| #640 | `fbf7afb5` | dashboard ranking and topic-influence stack now includes bounded semantic backfill jobs, evidence-window fingerprint invalidation for automatic related-source analysis, accepted measurement-owner release pins, localized evidence-rank labels, one topic-journey vocabulary, migration replay safety, id-only Ask citations, and the not-applicable topic state; exact-head hosted checks and independent review remain required |
+| #640 | `19c9c9e4` | dashboard ranking and topic-influence stack now includes bounded semantic backfill jobs, evidence-window fingerprint invalidation for automatic related-source analysis, accepted measurement-owner release pins, localized evidence-rank labels, one topic-journey vocabulary, migration replay safety, id-only Ask citations, and the not-applicable topic state; redundant test lambdas were removed without changing behavior, while exact-head hosted checks and independent review remain required |
 | #639 | `8da485d3` | running-action/config repair; BLOCKED with review required |
 | #632 | `811026cc` | graph-fact provenance repair with current baseline evidence; BLOCKED with hosted checks queued and review required |
 | #631 | `e6b4f0c4` | ADR decomposition documentation; BLOCKED with review required |
@@ -108,12 +108,13 @@ context only.
 PRs #687, #688, and #689 merged into the non-default #640 stack as merge
 commits `9d4210c04fb0aeec17e885bed097f400c7018269`,
 `b597b0182084a89222d1a04d05878adebfa9ec2b`, and
-`fbf7afb5a3037254266e5cf1bb024e435b126bb1`. PR #690 merged into the
-non-default #667 stack as `55b5a48ff997fddbe8fcc47a268d0b02aa835c6a`.
+`fbf7afb5a3037254266e5cf1bb024e435b126bb1`. PRs #690 and #691 merged into the
+non-default #667 stack as `55b5a48ff997fddbe8fcc47a268d0b02aa835c6a`
+and `60b4c6004739a05e63edae8ff160758f8e665919`.
 These are stack-integration evidence only; they are not protected-`main`
 delivery. Their acceptance now travels with the two parent heads above.
 
-The exact-head check-run scan at 14:28 KST found no `failure`, `cancelled`, or
+The exact-head check-run scan at 14:53 KST found no `failure`, `cancelled`, or
 `timed_out` conclusions on the 19 current heads. Several heads, including
 PR #667, #672, and #686 after their repair pushes, are still queued and therefore have
 no terminal gate evidence; review approval is also independently required.
@@ -449,7 +450,7 @@ for wholesale replay from #490.
 
 | Gap | Current evidence | Acceptance requirement |
 | --- | --- | --- |
-| Protected release | Protected `main@494b54e2` includes the #660/#664 semantic-unit/backend stack and #659 ontology readability/token repair. Nineteen PRs remain open at the 14:28 KST snapshot; every candidate still requires exact-head checks, unresolved-thread review, and independent approval before merge | Terminal exact-head checks, no unresolved threads, one independent approval under active ruleset `18156473`, and a protected merge SHA; re-fetch the ruleset before every lifecycle claim |
+| Protected release | Protected `main@494b54e2` includes the #660/#664 semantic-unit/backend stack and #659 ontology readability/token repair. Nineteen PRs remain open at the 14:53 KST snapshot; every candidate still requires exact-head checks, unresolved-thread review, and independent approval before merge | Terminal exact-head checks, no unresolved threads, one independent approval under active ruleset `18156473`, and a protected merge SHA; re-fetch the ruleset before every lifecycle claim |
 | Evidence-grounded operations workspace | Protected-main #614 delivers governed semantic Ask, live Similar VOC, disjoint pending/failed analysis metrics, full Storybook state inventory, and current desktop/mobile screenshot evidence. Authorized-corpus backfill acceptance remains unavailable | Perform authenticated authorized-corpus acceptance with aggregate evidence and retain fail-closed no-match behavior |
 | Cancelled analysis guidance | PRD-FR-5 requires every lifecycle state to identify a valid next action, while ADR 0013 makes Cancelled terminal. Protected `main@494b54e2` rendered Cancelled without a next action. This stacked candidate adds kind-specific guidance for lineage, TEPP, topic lineage, and period reports; 390×844 and 1440×1000 authenticated synthetic-runtime audits are retained in `docs/screenshots/cancelled-analysis-runs-{mobile,desktop}.png`. The audit also found and repaired attached count/action text and the three-column mobile squeeze | Land through the protected gate, then repeat authenticated keyboard and screen-reader acceptance on the exact release head; no cancelled run may imply that it can resume or that a measurement exists |
 | Shared frontend gate | The ADR 0109 login repair is on protected `main`; eight older branches carried the defect and received the same verified repair this loop (#521–#560) | Keep every future branch cut from post-repair bases; re-verify with frontend lint/test/build before push |
