@@ -789,7 +789,7 @@
     rdfs:label "SOC code"@en ;
     rdfs:comment "The official code from the published 2018 SOC structure, in the form \"NN-NNNN\"."@en .
 
-# ---- Complete O*NET 31.0 Content Model Reference (ADR 0250) ----
+# ---- Complete O*NET 31.0 Content Model Reference (ADR 0255) ----
 
 :OnetContentModelElement a owl:Class ;
     rdfs:label "O*NET content model element"@en .

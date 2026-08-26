@@ -12,10 +12,10 @@ All notable changes to this project are documented here. Format follows
   Ability/Essential Skill/Transferable Skill/Work Style relations to Work
   Activities and Work Context. Every direct relation has an exact reified
   PROV source-table assertion; no confidence, causal effect, rating, or weight
-  is inferred (ADR 0253).
+  is inferred (ADR 0256).
 - The complete O*NET 31.0 Content Model Reference is now a deterministic
   3,006-concept SKOS fragment with exact source IDs, names, descriptions, and
-  documented outline parents (ADR 0250). Its read model fails closed on
+  documented outline parents (ADR 0255). Its read model fails closed on
   malformed hierarchy data; no occupation rating, person trait, score,
   weight, or inferred crosswalk is introduced.
 - The complete 2018 SOC hierarchy is now published as a deterministic

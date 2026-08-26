@@ -88,7 +88,7 @@ continues to pass unchanged.
   structure.
 - Publish all 3,006 O*NET 31.0 Content Model Reference elements with exact
   identifiers, names, descriptions, and source-defined outline parents
-  (ADR 0250). Treat the six roots and 18 second-level branches as navigation
+  (ADR 0255). Treat the six roots and 18 second-level branches as navigation
   classes, never occupation ratings, person traits, scores, or weights.
 - Declare typed derivation properties from classifications to
   characteristics but assert no instance binding; binding requires a
@@ -113,7 +113,7 @@ canonical namespace, and lookup round-trip isolation are enforced by
   never infer a DPT-to-psychology crosswalk or relabel work style as affect.
 - Publish the eight O*NET 31.0 Ability, Essential Skill, Transferable Skill,
   and Work Style link tables to Work Activities and Work Context as 1,417
-  directed, assertion-level provenance-bearing relations (ADR 0253). Treat
+  directed, assertion-level provenance-bearing relations (ADR 0256). Treat
   relevance as neither a causal effect nor a numeric weight.
 - Bind a construct to record content only through a provenance-bearing,
   evidence-cited assertion. Do not promote record evidence to a person trait,

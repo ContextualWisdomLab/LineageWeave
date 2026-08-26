@@ -1,4 +1,4 @@
-# ADR 0250: O*NET 31.0 content-model semantic layer
+# ADR 0255: O*NET 31.0 content-model semantic layer
 
 **Status:** Accepted
 **Date:** 2026-08-27
