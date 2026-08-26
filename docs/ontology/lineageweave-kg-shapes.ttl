@@ -217,12 +217,31 @@
         sh:in ("voc" "vocc" "voco" "vom" "vop") ;
     ] ;
     sh:property [
-        sh:path :evidenceInputDigest ; sh:minCount 1 ; sh:maxCount 1 ;
+        sh:path :voiceAssertionStatus ; sh:minCount 1 ; sh:maxCount 1 ;
+        sh:in ("source" "derived") ;
+    ] ;
+    sh:property [
+        sh:path :voiceEvidenceDigest ; sh:minCount 1 ; sh:maxCount 1 ;
+        sh:datatype xsd:string ; sh:pattern "^[0-9a-f]{64}$" ;
+    ] ;
+    sh:property [
+        sh:path :sourceRevisionDigest ; sh:minCount 1 ; sh:maxCount 1 ;
         sh:datatype xsd:string ; sh:pattern "^[0-9a-f]{64}$" ;
     ] ;
     sh:property [
         sh:path prov:wasDerivedFrom ; sh:minCount 1 ; sh:maxCount 1 ; sh:class :Post ;
-    ] .
+    ] ;
+    sh:property [ sh:path :validFrom ; sh:maxCount 1 ; sh:datatype xsd:dateTime ; sh:lessThanOrEquals :validTo ] ;
+    sh:property [ sh:path :validTo ; sh:maxCount 1 ; sh:datatype xsd:dateTime ] ;
+    sh:or (
+        [ sh:property [ sh:path :voiceAssertionStatus ; sh:hasValue "source" ] ]
+        [
+            sh:property [ sh:path :voiceAssertionStatus ; sh:hasValue "derived" ] ;
+            sh:property [ sh:path :orchestratorModelReceipt ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:string ; sh:minLength 1 ] ;
+            sh:property [ sh:path :evidenceSpanStart ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:integer ; sh:minInclusive 0 ; sh:lessThan :evidenceSpanEnd ] ;
+            sh:property [ sh:path :evidenceSpanEnd ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:integer ]
+        ]
+    ) .
 
 :OrganizationVoiceRelationshipAssertionShape a sh:NodeShape ;
     sh:targetClass :OrganizationVoiceRelationshipAssertion ;
@@ -235,9 +254,17 @@
         sh:datatype xsd:string ; sh:minLength 1 ;
     ] ;
     sh:property [
-        sh:path :evidenceInputDigest ; sh:minCount 1 ; sh:maxCount 1 ;
+        sh:path :voiceEvidenceDigest ; sh:minCount 1 ; sh:maxCount 1 ;
         sh:datatype xsd:string ; sh:pattern "^[0-9a-f]{64}$" ;
     ] ;
+    sh:property [
+        sh:path :sourceRevisionDigest ; sh:minCount 1 ; sh:maxCount 1 ;
+        sh:datatype xsd:string ; sh:pattern "^[0-9a-f]{64}$" ;
+    ] ;
+    sh:property [ sh:path :evidenceSpanStart ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:integer ; sh:minInclusive 0 ; sh:lessThan :evidenceSpanEnd ] ;
+    sh:property [ sh:path :evidenceSpanEnd ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:integer ] ;
+    sh:property [ sh:path :validFrom ; sh:maxCount 1 ; sh:datatype xsd:dateTime ; sh:lessThanOrEquals :validTo ] ;
+    sh:property [ sh:path :validTo ; sh:maxCount 1 ; sh:datatype xsd:dateTime ] ;
     sh:property [
         sh:path prov:wasDerivedFrom ; sh:minCount 1 ; sh:maxCount 1 ; sh:class :Post ;
     ] .
