@@ -6,6 +6,7 @@
 @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
 @prefix prov: <http://www.w3.org/ns/prov#> .
 @prefix org: <http://www.w3.org/ns/org#> .
+@prefix dcterms: <http://purl.org/dc/terms/> .
 
 #################################################################
 # LineageWeave Knowledge Graph Ontology
@@ -1557,6 +1558,48 @@
 # carry :lookupCode: they are not common_lookup_value rows.
 #################################################################
 
+:sourceArtifactSha256 a owl:DatatypeProperty ;
+    rdfs:domain prov:Entity ;
+    rdfs:range xsd:string ;
+    rdfs:label "source artifact SHA-256"@en ;
+    rdfs:comment "Lowercase SHA-256 of the exact versioned source artifact when a stable downloadable artifact is available; absence is an honest unknown."@en .
+
+:sourceSoc2018 a prov:Entity ;
+    dcterms:title "2018 Standard Occupational Classification System"@en ;
+    dcterms:publisher "U.S. Bureau of Labor Statistics"@en ;
+    dcterms:hasVersion "2018" ;
+    dcterms:source <https://www.bls.gov/soc/2018/major_groups.htm> ;
+    dcterms:rights <https://www.dol.gov/general/aboutdol/copyright> .
+
+:sourceOnet310JobZoneReference a prov:Entity ;
+    dcterms:title "O*NET 31.0 Job Zone Reference"@en ;
+    dcterms:publisher "National Center for O*NET Development"@en ;
+    dcterms:hasVersion "31.0" ;
+    dcterms:source <https://www.onetcenter.org/dl_files/database/db_31_0_json/job_zone_reference.json> ;
+    dcterms:license <https://creativecommons.org/licenses/by/4.0/> ;
+    :sourceArtifactSha256 "f66d665a2e507c825a71aedb2c13ba22765e8259bc6c7fe5b3cdfd8105475a66" .
+
+:sourceOnetRevisedWorkStyles a prov:Entity ;
+    dcterms:title "Revisiting the Work Styles Domain of the O*NET Content Model"@en ;
+    dcterms:publisher "National Center for O*NET Development"@en ;
+    dcterms:hasVersion "updated May 2026" ;
+    dcterms:source <https://www.onetcenter.org/reports/Work_Styles_New.html> .
+
+:sourceOnetLegacyWorkValues a prov:Entity ;
+    dcterms:title "O*NET work-value clusters (legacy content-model branch)"@en ;
+    dcterms:publisher "National Center for O*NET Development"@en ;
+    dcterms:source <https://www.onetcenter.org/contentmodel/> .
+
+:sourceHolland1997 a prov:Entity ;
+    dcterms:title "Making vocational choices: A theory of vocational personalities and work environments"@en ;
+    dcterms:creator "John L. Holland"@en ;
+    dcterms:hasVersion "3rd edition, 1997" .
+
+:sourceFleishmanQuaintance1984 a prov:Entity ;
+    dcterms:title "Taxonomies of human performance: The description of human tasks"@en ;
+    dcterms:creator "Edwin A. Fleishman and Marilyn K. Quaintance"@en ;
+    dcterms:hasVersion "1984" .
+
 # ---- Occupational classification: classes, scheme, code property ----
 
 :OccupationalClassification a owl:Class ;
@@ -1571,6 +1614,7 @@
 :socMajorGroupScheme a skos:ConceptScheme ;
     skos:prefLabel "O*NET job families (2018 SOC major groups)"@en ;
     skos:definition "The 23 major groups of the 2018 Standard Occupational Classification, adopted as the O*NET job-family grouping."@en ;
+    prov:wasDerivedFrom :sourceSoc2018 ;
     rdfs:seeAlso <https://www.bls.gov/soc/> , <https://www.onetcenter.org/taxonomy.html> , :workerFunctionScheme .
 
 :socCode a owl:DatatypeProperty ;
@@ -1703,6 +1747,7 @@
 :jobZoneScheme a skos:ConceptScheme ;
     skos:prefLabel "O*NET job zones"@en ;
     skos:definition "The four O*NET 31.0 preparation categories, using published zone values 2 through 5; the first category combines former zones 1 and 2."@en ;
+    prov:wasDerivedFrom :sourceOnet310JobZoneReference ;
     rdfs:seeAlso <https://www.onetcenter.org/dictionary/31.0/json/job_zone_reference.html> .
 
 :jobZoneLevel a owl:DatatypeProperty ;
@@ -1875,6 +1920,7 @@
 :workerCharacteristicScheme a skos:ConceptScheme ;
     skos:prefLabel "O*NET worker-characteristic families"@en ;
     skos:definition "Published worker-characteristic construct families: Fleishman ability domains, Holland RIASEC interest types, O*NET work-value clusters, and the seven higher-order dimensions of the revised O*NET Work Styles structure."@en ;
+    prov:wasDerivedFrom :sourceFleishmanQuaintance1984 , :sourceHolland1997 , :sourceOnetLegacyWorkValues , :sourceOnetRevisedWorkStyles ;
     rdfs:seeAlso <https://www.onetcenter.org/contentmodel/> , <https://www.onetcenter.org/reports/Work_Styles_New.html> .
 
 # ---- Typed derivation properties (declared; no instance asserted) ----
