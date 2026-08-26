@@ -232,6 +232,7 @@ _RESPONSE_SCHEMA = {
                                 "evidence_post_id": {"type": "string"},
                                 "evidence_text": {"type": "string"},
                                 "relation_target_kind_code": {
+                                    "type": ["string", "null"],
                                     "enum": [None, *sorted(EXTERNAL_RELATION_TARGET_KINDS)]
                                 },
                             },
