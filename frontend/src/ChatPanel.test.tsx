@@ -24,11 +24,26 @@ describe("ChatPanel conversation history", () => {
         return jsonResponse({
           conversation_id: "conversation-1",
           title: "Saved question",
-          older_cursor: null,
+          older_cursor: "2",
           exchanges: [{
             turn_id: "turn-1",
             question_text: "What was saved?",
             answer_text: "Only authorized saved evidence.",
+            cited_post_ids: [],
+            cited_posts: [],
+            source_post_ids: ["post-1"],
+          }],
+        });
+      }
+      if (url.endsWith("/chat/conversations/conversation-1?before_turn=2")) {
+        return jsonResponse({
+          conversation_id: "conversation-1",
+          title: "Saved question",
+          older_cursor: null,
+          exchanges: [{
+            turn_id: "turn-0",
+            question_text: "What came first?",
+            answer_text: "The earlier authorized evidence.",
             cited_post_ids: [],
             cited_posts: [],
             source_post_ids: ["post-1"],
@@ -65,6 +80,8 @@ describe("ChatPanel conversation history", () => {
       "conversation-1",
     );
     expect(await screen.findByText("Only authorized saved evidence.")).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Load earlier messages" }));
+    expect(await screen.findByText("The earlier authorized evidence.")).toBeInTheDocument();
 
     await userEvent.click(screen.getByRole("button", { name: "New conversation" }));
     await waitFor(() => expect(screen.getByText("Seed answer")).toBeInTheDocument());

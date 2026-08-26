@@ -312,6 +312,7 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Ask about this lineage": "이 계보에 대해 질문",
     "Conversation history": "대화 기록",
     "Load more": "더 보기",
+    "Load earlier messages": "이전 메시지 불러오기",
     "New conversation": "새 대화",
     "Conversation history could not be loaded. Start a new conversation or try again later.": "대화 기록을 불러올 수 없습니다. 새 대화를 시작하거나 나중에 다시 시도하세요.",
     "No reconstructed lineage yet. Rebuild after seeding posts.":
@@ -816,6 +817,7 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Ask about this lineage": "询问此谱系",
     "Conversation history": "对话历史",
     "Load more": "加载更多",
+    "Load earlier messages": "加载更早的消息",
     "New conversation": "新对话",
     "Conversation history could not be loaded. Start a new conversation or try again later.": "无法加载对话历史。请开始新对话或稍后重试。",
     "No reconstructed lineage yet. Rebuild after seeding posts.":
@@ -1332,6 +1334,7 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Ask about this lineage": "この系譜について質問",
     "Conversation history": "会話履歴",
     "Load more": "さらに読み込む",
+    "Load earlier messages": "以前のメッセージを読み込む",
     "New conversation": "新しい会話",
     "Conversation history could not be loaded. Start a new conversation or try again later.": "会話履歴を読み込めませんでした。新しい会話を開始するか、後でもう一度お試しください。",
     "No reconstructed lineage yet. Rebuild after seeding posts.":
@@ -1836,6 +1839,7 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Ask about this lineage": "Hỏi về dòng sự kiện này",
     "Conversation history": "Lịch sử hội thoại",
     "Load more": "Tải thêm",
+    "Load earlier messages": "Tải tin nhắn trước đó",
     "New conversation": "Cuộc hội thoại mới",
     "Conversation history could not be loaded. Start a new conversation or try again later.": "Không thể tải lịch sử hội thoại. Hãy bắt đầu cuộc hội thoại mới hoặc thử lại sau.",
     "No reconstructed lineage yet. Rebuild after seeding posts.":

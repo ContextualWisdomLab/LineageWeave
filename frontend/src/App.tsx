@@ -274,6 +274,7 @@ export function ChatPanel({
   const [seededExchanges, setSeededExchanges] = useState<ChatExchange[]>([]);
   const [conversations, setConversations] = useState<PostAskConversationSummary[]>([]);
   const [conversationCursor, setConversationCursor] = useState<PostAskConversationPage["next_cursor"]>(null);
+  const [conversationOlderCursor, setConversationOlderCursor] = useState<string | null>(null);
   const [conversationId, setConversationId] = useState<string | null>(null);
   const [historyError, setHistoryError] = useState<string | null>(null);
   const [answer, setAnswer] = useState<ChatAnswer | null>(null);
@@ -289,6 +290,8 @@ export function ChatPanel({
     setConversations([]);
     setConversationId(null);
     setHistoryError(null);
+    setConversationCursor(null);
+    setConversationOlderCursor(null);
     setAnswer(null);
     setError(null);
     setSeededOnly(false);
@@ -322,6 +325,7 @@ export function ChatPanel({
       if (requestId !== conversationRequest.current) return;
       setConversationId(conversation.conversation_id);
       setExchanges(conversation.exchanges);
+      setConversationOlderCursor(conversation.older_cursor ?? null);
     } catch {
       setHistoryError(t("Conversation history could not be loaded. Start a new conversation or try again later."));
     }
@@ -330,6 +334,7 @@ export function ChatPanel({
   function startNewConversation() {
     ++conversationRequest.current;
     setConversationId(null);
+    setConversationOlderCursor(null);
     setExchanges(seededExchanges);
     setQuestion("");
     setAnswer(null);
@@ -457,6 +462,22 @@ export function ChatPanel({
           {t("New conversation")}
         </button>
       </div>
+      {conversationId && conversationOlderCursor ? (
+        <button type="button" onClick={async () => {
+          try {
+            const conversation = await fetchPostChatConversation(
+              accessToken,
+              postId,
+              conversationId,
+              Number(conversationOlderCursor),
+            );
+            setExchanges((current) => [...conversation.exchanges, ...current]);
+            setConversationOlderCursor(conversation.older_cursor ?? null);
+          } catch {
+            setHistoryError(t("Conversation history could not be loaded. Start a new conversation or try again later."));
+          }
+        }} disabled={loading}>{t("Load earlier messages")}</button>
+      ) : null}
       {historyError ? <p className="error" role="alert">{historyError}</p> : null}
       {!seededOnly && (
         <div className="chat-input-row">
