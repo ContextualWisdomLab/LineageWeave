@@ -69,8 +69,8 @@ affective science has no single default category set.
   measured person attribute.
 - Complete O*NET breadth remains available through its maintained RDF graph;
   ADRs 0249 and 0250 add normalized assertion persistence and official catalog
-  synchronization. Record extraction remains unavailable until its separate
-  contextual-orchestrator contract is accepted and shipped.
+  synchronization. ADR 0251 supplies catalog-bound record extraction through
+  contextual-orchestrator without a local similarity or scoring heuristic.
 - Actual affect stays absent unless the evidence names a conforming affect
   vocabulary and supports the reaction; work style is never relabeled affect.
 - Unsupported equivalence and causal links fail closed rather than becoming
