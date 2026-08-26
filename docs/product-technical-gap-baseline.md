@@ -1,7 +1,7 @@
 # Product & Technical Gap Baseline
 
-> Dashboard delivery snapshot: 2026-08-26 07:15 KST. Protected `main` was
-> `494b54e2245040bcf02b45376f221c37cd437e76`. This local branch is not
+> Dashboard delivery snapshot: 2026-08-26 22:40 KST. Protected `main` was
+> `ff7431bd1851c03e737808d22c6a2d43968582f9`. This local branch is not
 > protected-main release evidence.
 
 ## Operations Dashboard PRD/TRD traceability
@@ -60,14 +60,16 @@ only aggregate, non-identifying evidence to this repository.
 
 ### Exact open-PR boundary
 
-At this snapshot there were 11 open PRs and 10 open issues. PRs #660 and #659
-merged to protected `main`; PR #666 remains only non-default-branch stack
-composition inside #663. Every remaining open head required refreshed hosted
-gates and/or independent review after the base changed. These observations are
+At this snapshot there were 20 open PRs and 10 open issues. PR #712 merged only
+into #702's non-default branch as `78a14410`; it is part of that combined
+candidate and is not protected-`main` delivery. PR #711 still targets #640 and
+must wait for its protected upstream dependency before it can be retargeted to
+`main`. Every remaining open head required refreshed hosted gates and/or
+independent review after the base changed. These observations are
 not merge readiness. Re-fetch exact heads, unresolved threads, checks,
 approvals, rulesets, and merge SHA before any lifecycle claim.
 
-> Audit snapshot: 2026-08-26 07:15 KST (refreshed by the autonomous merge
+> Audit snapshot: 2026-08-26 22:40 KST (refreshed by the autonomous merge
 > loop). This repository records synthetic fixtures and aggregate,
 > non-identifying runtime evidence only. Open PRs and local checks are not
 > protected-default-branch release evidence. Identifying post identifiers,
@@ -76,25 +78,34 @@ approvals, rulesets, and merge SHA before any lifecycle claim.
 
 ## 1. Exact-head and governance evidence
 
-The protected default branch was `494b54e2245040bcf02b45376f221c37cd437e76`
-when this baseline was refreshed. The live queue contained 11 open PRs and 10
+The protected default branch was `ff7431bd1851c03e737808d22c6a2d43968582f9`
+when this baseline was refreshed. The live queue contained 20 open PRs and 10
 open issues. The exact-head inventory below supersedes older per-PR snapshots
 elsewhere in this document; those older rows remain useful historical delivery
 context only.
 
 | PR | Exact observed head | Merge/check state at this snapshot |
 | ---: | --- | --- |
-| #667 | `3bc662d7` | refreshes protected-main and open-queue documentation evidence; base conflict remains to be repaired |
-| #663 | `6fd2f701` | combined Project ontology candidate plus #666's non-default-branch removal of sampled region-coverage arithmetic; base conflict remains to be repaired |
-| #658 | `f007a5ed` | evidence-honest Global Ask cutoff; hosted checks and independent review required |
-| #657 | `2d9b43b7` | TEPP asynchronous lifecycle persistence while unpublished producer work stays unavailable; hosted checks and independent review required |
-| #644 | `ed8d97f3` | native frontend surface code splitting; hosted checks and independent review required |
-| #643 | `7fb4d18c` | shared token-backed status notice; hosted checks and independent review required |
-| #640 | `2d50fa01` | dashboard case metrics and project journeys; base conflict remains to be repaired |
-| #639 | `48065ad1` | restores Running action and Compose contracts; hosted checks and independent review required |
-| #632 | `29aee18d` | graph-fact provenance, public verification, MCP admission, and k6 evidence; hosted checks and independent review required |
-| #631 | `665046dc` (observed parent) | decomposes closed PR #490; this merge refresh advances its head and restarts hosted review evidence |
-| #629 | `0138db5f` | provider-work release and bounded landing reads refreshed onto protected `main`; hosted checks and independent review restarted |
+| #629 | `b721b0f2` | provider-work release and bounded landing reads; exact-head hosted review remains incomplete |
+| #632 | `24262a99` | graph-fact provenance; exact-head hosted review remains incomplete |
+| #639 | `2f4b1bff` | Running action and Compose contracts; exact-head hosted review remains incomplete |
+| #640 | `78f9e5b1` | dashboard case metrics and project journeys; exact-head hosted review remains incomplete |
+| #643 | `42ba340e` | shared token-backed status notice; exact-head hosted review remains incomplete |
+| #644 | `f53dd28e` | native frontend surface code splitting; exact-head hosted review remains incomplete |
+| #657 | `9f71681c` | TEPP asynchronous lifecycle consumer; exact-head hosted review remains incomplete |
+| #658 | `15d670f0` | evidence-honest Global Ask cutoff; exact-head hosted review remains incomplete |
+| #667 | `4855c380` | per-post Ask history and baseline evidence; exact-head hosted review remains incomplete |
+| #668 | `1194f44d` | evidence-bound project history; exact-head hosted review remains incomplete |
+| #672 | `a3e87a89` | persisted semantic evidence nomination; exact-head hosted review remains incomplete |
+| #679 | `a8734f6f` | opt-in public-claim envelopes; exact-head hosted review remains incomplete |
+| #680 | `bebab3d6` | customer-actionable ranking guidance; exact-head hosted review remains incomplete |
+| #700 | `1bc99eca` | evidence-bound conversation turns; exact-head hosted review remains incomplete |
+| #701 | `cc3351a9` | production-equivalent concurrent-migration fixture; exact-head hosted review remains incomplete and independent approval is absent |
+| #702 | `af4642ff` | source-semantic coverage plus non-default #712 composition; exact-head hosted evidence restarted after the stack merge |
+| #704 | `027323cf` | external lineage contract with exact provider-work budget and fail-closed importer repair; exact-head hosted evidence restarted |
+| #709 | `c7c27889` | official DOT/FJA worker-function taxonomy; exact-head hosted review remains incomplete |
+| #710 | `3ad55346` | worker-taxonomy delivery-gap baseline; this row describes the pre-refresh head of the present candidate |
+| #711 | `a66f9cf6` | stacked on #640 and blocked by an unmerged contextual-orchestrator pin; auto-merge remains disabled |
 
 No row above is merge evidence. Immediately before any lifecycle action,
 re-fetch the head, unresolved threads, formal reviews, rulesets, and same-head
@@ -361,7 +372,7 @@ this file per §3.5 of the prior snapshot).
 
 | Gap | Current evidence | Acceptance requirement |
 | --- | --- | --- |
-| Protected release | 12 open PRs at snapshot, all targeting `main` with normal auto-merge enabled. None has the required independent approval, and running checks on #631/#632/#663 are not treated as blockers for safe work on other PRs. #666's merge into the non-default #663 branch is not protected-main delivery | Terminal exact-head checks, no unresolved threads, two independent approvals including last-push approval, protected squash-merge SHA |
+| Protected release | 20 open PRs at snapshot. Nineteen target `main` with normal auto-merge enabled; #711 targets #640 with auto-merge disabled. None has the required exact-head independent approval. #712's merge into non-default #702 is composition, not protected-main delivery. Queued checks remain infrastructure state and do not block safe work on other PRs | Terminal exact-head checks, no unresolved threads, two independent approvals including last-push approval, protected squash-merge SHA |
 | CI queue release latency | Two Tests runs for already merged PRs occupied the available runner slots while 54 newer runs remained queued. Manual cancellation released the stale work, but the central close workflow was itself queued behind those runs. #634 merged into #631's non-default branch and reuses the repository's existing per-PR concurrency group so a jobless close event can cancel obsolete Tests work before runner allocation; this is not protected-main delivery | Merge #631 through its refreshed protected gate; close a synthetic PR while its Tests run is active and verify the old run becomes cancelled, the close-event jobs remain skipped, and a newer exact-head run starts without manual intervention |
 | Evidence-grounded operations workspace | Protected-main #614 delivers governed semantic Ask, live Similar VOC, disjoint pending/failed analysis metrics, full Storybook state inventory, and current desktop/mobile screenshot evidence. Authorized-corpus backfill acceptance remains unavailable | Perform authenticated authorized-corpus acceptance with aggregate evidence and retain fail-closed no-match behavior |
 | Shared frontend gate | The ADR 0109 login repair is on protected `main`; eight older branches carried the defect and received the same verified repair this loop (#521–#560) | Keep every future branch cut from post-repair bases; re-verify with frontend lint/test/build before push |
@@ -486,11 +497,12 @@ review latency are never blockers — keep working while they settle.
 1. Revalidate Strix after merged ContextualWisdomLab/.github#1320, reconcile
    open .github#1263, and land the atomic hourly LineageWeave caller in open
    .github#1288 only through their protected gates.
-2. Process main-targeted PRs #629, #631, #632, #639, #640, #643, #644, #657,
-   #658, #659, #660, and #663 only after each exact head shows terminal green
-   required checks plus current-head independent approval. Treat #666's
-   non-default-branch merge only as part of #663's combined candidate and
-   collect all protected evidence on #663's exact head.
+2. Process main-targeted PRs #629, #632, #639, #640, #643, #644, #657,
+   #658, #667, #668, #672, #679, #680, #700, #701, #702, #704, #709, and
+   #710 only after each exact head shows terminal green required checks plus
+   current-head independent approval. Treat #712's non-default-branch merge
+   only as part of #702's combined candidate. Merge #640 through its protected
+   gate before retargeting #711 to `main`; then refresh all #711 evidence.
 3. While hosted checks or independent reviews wait, resume user-visible gaps
    from §5 in leverage order:
    external semantic verification (#272), Naruon calendar (#355/#336), and
