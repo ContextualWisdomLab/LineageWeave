@@ -36,6 +36,12 @@ All notable changes to this project are documented here. Format follows
 
 ### Added
 
+- PostgreSQL Compose now has a plan-first automatic tuning procedure that
+  samples aligned WAL/checkpoint counters and container resources, calculates
+  only segment- and checkpoint-bound settings, validates an auditable plan,
+  preserves durability, and applies or rolls back solely through an approved
+  controlled restart.
+
 - Global Ask answers now link numbered citations to authorized event cards in
   both directions. Each card names event time or the record-time fallback and
   opens the focused evidence layer or full source post without inventing a
