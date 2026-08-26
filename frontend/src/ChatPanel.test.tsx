@@ -124,6 +124,39 @@ describe("ChatPanel conversation history", () => {
     expect(screen.getByRole("option", { name: "Older question (1)" })).toBeInTheDocument();
   });
 
+  it("discards a paginated conversation response after moving to another post", async () => {
+    let resolveOldPage!: (response: Response) => void;
+    const oldPage = new Promise<Response>((resolve) => { resolveOldPage = resolve; });
+    vi.stubGlobal("fetch", vi.fn(async (input: RequestInfo | URL) => {
+      const url = input instanceof Request ? input.url : String(input);
+      if (url.includes("post-1/chat/conversations?")) return oldPage;
+      if (url.endsWith("post-1/chat/conversations")) {
+        return jsonResponse({
+          conversations: [],
+          next_cursor: { updated_at: "2026-08-26T00:00:00Z", conversation_id: "conversation-old" },
+        });
+      }
+      if (url.endsWith("post-2/chat/conversations")) {
+        return jsonResponse({
+          conversations: [{ conversation_id: "conversation-new", title: "Current post", updated_at: "2026-08-26T00:00:00Z", turn_count: 1 }],
+          next_cursor: null,
+        });
+      }
+      return jsonResponse({ post_id: url.includes("post-2") ? "post-2" : "post-1", exchanges: [] });
+    }));
+
+    const view = render(<ChatPanel postId="post-1" accessToken="synthetic-token" />);
+    await userEvent.click(await screen.findByRole("button", { name: "Load more" }));
+    view.rerender(<ChatPanel postId="post-2" accessToken="synthetic-token" />);
+    expect(await screen.findByRole("option", { name: "Current post (1)" })).toBeInTheDocument();
+    resolveOldPage(jsonResponse({
+      conversations: [{ conversation_id: "conversation-old", title: "Previous post", updated_at: "2026-08-25T00:00:00Z", turn_count: 1 }],
+      next_cursor: null,
+    }));
+
+    await waitFor(() => expect(screen.queryByRole("option", { name: "Previous post (1)" })).toBeNull());
+  });
+
   it("reopens an owned conversation and returns to the seeded new-conversation state", async () => {
     vi.stubGlobal("fetch", vi.fn(async (input: RequestInfo | URL) => {
       const url = input instanceof Request ? input.url : String(input);

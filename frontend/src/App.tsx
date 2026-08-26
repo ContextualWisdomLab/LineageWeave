@@ -291,9 +291,11 @@ export function ChatPanel({
   const [loading, setLoading] = useState(false);
   const [evidencePostId, setEvidencePostId] = useState<string | null>(null);
   const [seededOnly, setSeededOnly] = useState(false);
+  const conversationListRequest = useRef(0);
 
   useEffect(() => {
     let active = true;
+    ++conversationListRequest.current;
     setExchanges([]);
     setSeededExchanges([]);
     setConversations([]);
@@ -461,11 +463,14 @@ export function ChatPanel({
         </label>
         {conversationCursor ? (
           <button type="button" onClick={async () => {
+            const requestId = ++conversationListRequest.current;
             try {
               const page = await fetchPostChatConversations(accessToken, postId, conversationCursor);
+              if (requestId !== conversationListRequest.current) return;
               setConversations((current) => appendUniqueConversations(current, page.conversations));
               setConversationCursor(page.next_cursor ?? null);
             } catch {
+              if (requestId !== conversationListRequest.current) return;
               setHistoryError(t("Conversation history could not be loaded. Start a new conversation or try again later."));
             }
           }} disabled={loading}>{t("Load more")}</button>
