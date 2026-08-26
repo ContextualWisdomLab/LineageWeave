@@ -384,8 +384,9 @@ def seeded_db(demo_analyst_token):
             cur.execute(_LEFTOVER_MAP_COVERAGE_MIGRATION.read_text())
             cur.execute(_GLOBAL_ASK_JOB_MIGRATION.read_text())
             cur.execute(_GLOBAL_ASK_SCOPE_MIGRATION.read_text())
-            # Match docker/postgres-init/migrate.sh instead of maintaining a
-            # partial SQL parser for CREATE INDEX CONCURRENTLY.
+            # Match ADR 0166's production runner exactly: psql keeps
+            # concurrent indexes outside an implicit transaction and parses
+            # SQL literals/comments without a fixture-owned splitter.
             subprocess.run(
                 [
                     "psql",
