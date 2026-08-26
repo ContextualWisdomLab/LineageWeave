@@ -391,6 +391,61 @@ def test_existing_case_analysis_skips_duplicate_orchestrator_call(monkeypatch) -
     assert called == []
 
 
+def test_sibling_requeue_failure_preserves_completed_primary_job(monkeypatch) -> None:
+    """Ancillary retry discovery cannot fail already-persisted post evidence."""
+    outcomes: list[str] = []
+
+    async def claim(*_args, **_kwargs):
+        return _row(RUNNING, 1)
+
+    async def complete(*_args, **_kwargs):
+        return True
+
+    async def fail_requeue(*_args, **_kwargs):
+        raise OSError("synthetic sibling lookup outage")
+
+    async def finish(_pool, _post_id, status, **_kwargs):
+        outcomes.append(status)
+
+    monkeypatch.setattr(post_content_worker, "_claim_job", claim)
+    monkeypatch.setattr(
+        post_content_worker,
+        "load_settings",
+        lambda: SimpleNamespace(orchestrator_base_url="gateway", orchestrator_api_key="key"),
+    )
+    monkeypatch.setattr(
+        post_content_worker,
+        "_persist_operations_case_analysis_if_needed",
+        lambda *_args, **_kwargs: asyncio.sleep(0),
+    )
+    monkeypatch.setattr(post_content_worker, "normalize_post_body", lambda *_args: object())
+    monkeypatch.setattr(
+        post_content_worker,
+        "persist_post_content",
+        lambda *_args, **_kwargs: asyncio.sleep(0),
+    )
+    monkeypatch.setattr(post_content_worker, "post_content_is_complete", complete)
+    monkeypatch.setattr(post_content_worker, "_requeue_project_missing_case_jobs", fail_requeue)
+    monkeypatch.setattr(post_content_worker, "_finish_job", finish)
+    monkeypatch.setattr(
+        post_content_worker, "record_server_failure", lambda *_args, **_kwargs: None
+    )
+    client = SimpleNamespace(available=True, resolved_model="synthetic-model")
+
+    asyncio.run(
+        post_content_worker.process_post_content_job(
+            _Pool(_Connection()),
+            post_id="00000000-0000-0000-0000-000000000001",
+            source_body_digest="a" * 64,
+            vision_factory=lambda: client,
+            embedding_factory=lambda: client,
+            structure_factory=lambda: client,
+        )
+    )
+
+    assert outcomes == [SUCCEEDED]
+
+
 def test_case_analysis_persists_before_content_provider_failure(monkeypatch) -> None:
     """Independent case evidence survives a later structure or embedding outage."""
     connection = _Connection(values=[False, 2])

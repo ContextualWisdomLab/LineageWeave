@@ -72,6 +72,9 @@ dangling endpoints fail closed; fixed input produces stable page boundaries.
 - Preserve source representation and derive ordered paragraph, list, table,
   formula, conversation-turn, and image-region semantic units.
 - Route embeddings, LLM, and VISION through contextual-orchestrator.
+- Let an authorized administrator enqueue only a bounded page of eligible,
+  incomplete posts into the durable worker ledger; acknowledge before model
+  work and recover a missing broker wake-up from PostgreSQL.
 - Apply authorization/time/process scope before ranking and again before
   response delivery.
 - Keep internal post citations separate from external public citations.
