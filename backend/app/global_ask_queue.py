@@ -53,13 +53,13 @@ from lineageweave.temporal_expressions import resolve_korean_relative_time
 from .config import GLOBAL_ASK_JOB_DEADLINE_SECONDS
 from .lineage_ingestion import lineage_graphs_for_posts
 from .operability import log_internal_fault, log_provider_unavailable
-from .post_eligibility import SOURCE_POST_ELIGIBILITY_SQL
 from .post_chat_ingestion import (
     _seoul_today,
     cited_post_images,
     gather_global_chat_sources,
     prepare_global_question_embedding,
 )
+from .post_eligibility import SOURCE_POST_ELIGIBILITY_SQL
 
 GLOBAL_ASK_STREAM_KEY = "global_ask_request_stream"
 
@@ -291,7 +291,7 @@ async def compute_global_ask_answer(
         if rewriter.available:
             try:
                 search_phrases = await asyncio.to_thread(rewriter.rewrite, question_text)
-            except Exception as exc:
+            except Exception as exc:  # noqa: BLE001 - optional provider boundary
                 # Query rewriting is an optional recall channel. Any provider
                 # or envelope defect retains the original authorized query;
                 # cancellation remains outside Exception and still propagates.
@@ -451,7 +451,11 @@ async def load_authorized_public_claim_envelopes(
     knowledge_cutoff: datetime | None = None,
 ) -> tuple:
     """Load public envelopes that existed within the requested evidence view."""
-    rows = await conn.fetch(_AUTHORIZED_PUBLIC_CLAIM_ENVELOPES_SQL, knowledge_cutoff)
+    # The statement is assembled once from module-owned SQL fragments; the only
+    # runtime value remains the asyncpg $1 parameter.
+    rows = await conn.fetch(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
+        _AUTHORIZED_PUBLIC_CLAIM_ENVELOPES_SQL, knowledge_cutoff
+    )
     return tuple(
         envelope
         for row in rows
