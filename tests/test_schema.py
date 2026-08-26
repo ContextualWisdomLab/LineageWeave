@@ -426,6 +426,25 @@ def test_voice_source_backfill_completion_is_atomic_and_replay_skips_scan(
             (str(post_id),),
         )
         assert cur.fetchone() == (1,)
+
+        # A separately governed expanded post code follows the same source-
+        # preserving trigger path; it never becomes an organization relation.
+        cur.execute(
+            "insert into common_lookup_value "
+            "(lookup_category, lookup_code, lookup_label) "
+            "values ('voc_type', 'voe', 'Voice of Employee')"
+        )
+        cur.execute(
+            "update source_post set voc_type_code = 'voe' where post_id = %s",
+            (str(post_id),),
+        )
+        cur.execute(
+            "select voice_concept_code from post_voice_classification_assertion "
+            "where post_id = %s and assertion_status_code = 'source' "
+            "and valid_to is null",
+            (str(post_id),),
+        )
+        assert cur.fetchone() == ("voe",)
     schema_db.rollback()
 
 

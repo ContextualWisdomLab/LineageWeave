@@ -51,6 +51,12 @@ All notable changes to this project are documented here. Format follows
 
 ### Added
 
+- Expanded Voice-of-X post taxonomy (ADR 0246): the governed `voc_type`
+  scheme adds Voice of Supplier, Employee, Business, Regulator, Investor,
+  Society, and Process as source-post categories. Ontology, SHACL, the
+  replay-safe lookup migration, and source-preserving assertions stay in sync;
+  counterparty relationships remain a separate evidence contract.
+
 - PostgreSQL Compose now has a plan-first automatic tuning procedure that
   samples aligned WAL/checkpoint counters and container resources, calculates
   only segment- and checkpoint-bound settings, validates an auditable plan,
