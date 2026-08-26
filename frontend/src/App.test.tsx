@@ -1629,6 +1629,7 @@ describe("App, authenticated", () => {
                 relationship_label: "Voice of Customer",
                 verification_status_code: "verify_pending",
                 verification_evidence_url: null,
+                verification_evidence_post_id: "post-1",
                 corporate_entity_id: "corp-1",
                 ...demoOrgAlias,
               },
@@ -2095,6 +2096,20 @@ describe("App, authenticated", () => {
     expect(screen.getByText("Our side")).toBeInTheDocument();
     expect(screen.queryByText("company", { exact: true })).not.toBeInTheDocument();
     expect(screen.queryByText("our_side", { exact: true })).not.toBeInTheDocument();
+  });
+
+  it("tells the customer-master reader what evidence to confirm without implementation terms", async () => {
+    stubBackend({ hintRelatedPosts: true });
+    render(<App />);
+    expect(await screen.findByRole("button", { name: "View post: Public post" })).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "고객 마스터" }));
+
+    expect(
+      await screen.findByText(
+        "Before linking a customer, compare the source identifier with the related posts and organization evidence.",
+      ),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/ontology and semantic evidence/i)).not.toBeInTheDocument();
   });
 
   it("nests a corporate entity under its parent instead of a flat list", async () => {
@@ -2953,6 +2968,15 @@ describe("App, authenticated", () => {
       "Ada West (Our side)",
     );
     expect(screen.queryByRole("button", { name: "Counterparty org: Northridge Grid" })).not.toBeInTheDocument();
+  });
+
+  it("opens a counterparty supporting post without exposing its storage boundary", async () => {
+    stubBackend();
+    render(<App showLabPanels />);
+    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
+
+    expect(await screen.findByRole("button", { name: "Open supporting post" })).toBeInTheDocument();
+    expect(screen.queryByText(/internal evidence/i)).not.toBeInTheDocument();
   });
 
   it("links a verification badge only for http(s) evidence URLs", async () => {
