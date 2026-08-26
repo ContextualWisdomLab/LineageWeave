@@ -379,6 +379,7 @@ class TestSourceProvenance:
         soc = by_iri[str(LW.sourceSoc2018)]
         assert soc.version == "2018"
         assert soc.license_url is None
+        assert soc.rights_url == "https://www.dol.gov/general/aboutdol/copyright"
         assert soc.artifact_sha256 == (
             "ade08af40923266f3a854842e888ca3e93c15b26a147c20a2b12a61f4c4f4077"
         )
