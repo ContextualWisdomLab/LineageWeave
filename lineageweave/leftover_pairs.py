@@ -85,7 +85,11 @@ def leftover_map_from_residual(
                 if index < len(result.singular_values)
                 else 0.0
             ),
-            leftover_share=float(result.axis_shares[index]),
+            leftover_share=(
+                float(result.axis_shares[index])
+                if index < len(result.axis_shares)
+                else 0.0
+            ),
         )
         for index in range(_LEFTOVER_MAP_AXES)
     )

@@ -3385,7 +3385,7 @@ function RankingsPanel({
               "Compare recency and content-relevance evidence, then open the source post before acting. This rank is not a performance score.",
             )}
           </p>
-          <ul className="ticket-list" aria-label={t("Fused rankings")}>
+          <ul className="ticket-list" aria-label={t("Evidence")}>
             {ranking.rankings.map((hit) => (
               <li key={hit.post_id} className="ticket-list-item ranking-hit">
                 <button

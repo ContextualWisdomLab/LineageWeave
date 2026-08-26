@@ -230,8 +230,8 @@ export function TopicContextInfluence({ data, onOpenPost }: { data: OperationsDa
                             <td><time dateTime={influence.occurred_at}>{influence.occurred_at.slice(0, 10)}</time></td>
                             <td>{topicStateLabels[influence.topic_state_code]}</td>
                             <td><data value={influence.model_influence}>{influence.model_influence}</data></td>
-                            <td>{influence.uncertainty_lower_value}–{influence.uncertainty_upper_value} · {influence.uncertainty_method_code}</td>
-                            <td>weight {influence.membership_weight} · <code>{influence.membership_evidence_sha256}</code></td>
+                            <td>{influence.uncertainty_lower_value}–{influence.uncertainty_upper_value}</td>
+                            <td>{influence.membership_weight}</td>
                             <td><button type="button" className="btn-link" onClick={() => onOpenPost(influence.post_id)}>근거 글 열기</button></td>
                           </tr>
                         ))}</tbody>
