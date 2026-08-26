@@ -50,9 +50,8 @@ def test_verbatim_examples_and_direct_children() -> None:
     assert {record.element_id for record in child_elements("1")} == {"1.A", "1.B", "1.D"}
 
 
-def test_read_model_uses_numeric_outline_order() -> None:
+def test_records_follow_numeric_outline_order() -> None:
     element_ids = [record.element_id for record in content_model_records()]
-
     assert element_ids.index("2.C.2") < element_ids.index("2.C.10")
 
 
