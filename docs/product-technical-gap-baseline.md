@@ -1,6 +1,6 @@
 # Product & Technical Gap Baseline
 
-> Dashboard delivery snapshot: 2026-08-26 11:32 KST. Protected `main` is
+> Dashboard delivery snapshot: 2026-08-26 11:39 KST. Protected `main` is
 > `494b54e2245040bcf02b45376f221c37cd437e76`. This local branch is not
 > protected-main release evidence.
 
@@ -68,7 +68,7 @@ are not merge readiness. Re-fetch exact heads,
 unresolved threads, checks, approvals, rulesets, and merge SHA before any
 lifecycle claim.
 
-> Audit snapshot: 2026-08-26 11:36 KST (refreshed by the autonomous merge
+> Audit snapshot: 2026-08-26 11:39 KST (refreshed by the autonomous merge
 > loop). This repository records synthetic fixtures and aggregate,
 > non-identifying runtime evidence only. Open PRs and local checks are not
 > protected-default-branch release evidence. Identifying post identifiers,
@@ -89,17 +89,17 @@ context only.
 | #687 | `6798c081` | bounded semantic backfill jobs stacked on #640; UNSTABLE with hosted checks and stack-base delivery pending |
 | #686 | `b8547687` | customer-facing copy boundary audit removes implementation labels while retaining Event Lineage distinction and localized actions; BLOCKED with review required and hosted checks pending |
 | #680 | `5c246a54` | customer-facing ranking copy with localized retry/search guidance and source-record detail copy corrected; BLOCKED with exact-head checks and independent review required |
-| #679 | `c430cfa1` | ADR 0229 public-claim envelope, async verification, locale-aware next actions, opt-in search setup, and aggregate-status guidance repair; BLOCKED with exact-head checks and independent review required |
+| #679 | `29aa69dd` | ADR 0229 public-claim envelope, async verification, locale-aware next actions, opt-in search setup, and aggregate-status guidance repair; BLOCKED with exact-head checks and independent review required |
 | #677 | `0ba4e609` | ADR 0228 account-owned per-post Ask conversation history with canonical cursor-field fixture repair; hosted checks requeued and independent review required |
 | #672 | `3d743ff7` | persisted semantic-evidence nomination for Global Ask with ADR renumbering; exact-head worker factory quality repair applied, hosted checks requeued and review required |
 | #668 | `e452bf38` | evidence-bound project history projection with ADR renumbering, request guards, source-code/time-basis display repair, and theme-token timeline styling; BLOCKED with review required |
-| #667 | `9a9b956a` | baseline refresh observed before this documentation-only update; BLOCKED with hosted checks and independent review required; this row is not a prediction of the commit created by the refresh |
+| #667 | `2625f5b9` | baseline refresh observed before this documentation-only update; BLOCKED with hosted checks and independent review required; this row is not a prediction of the commit created by the refresh |
 | #663 | `f616887a` | project ontology traversal, cutoff-snapshot project focus, bounded MCP admission, and migration-fixture/worker startup repair; exact-head Full-suite authentication and transaction-fixture failures repaired; fresh checks pending and review required |
 | #658 | `f497a6e8` | evidence-honest Global Ask cutoff with robust revision timestamps; BLOCKED with review required |
 | #657 | `709df1b9` | TEPP lifecycle persistence and fail-closed topic acceptance; BLOCKED with hosted checks queued and review required |
 | #644 | `ed8d97f3` | native-surface code splitting; BLOCKED with review required |
 | #643 | `3453ab08` | accessible status notices; BLOCKED with review required |
-| #640 | `ed777202` | dashboard ranking and topic-influence stack with customer-facing copy, migration replay safety, id-only Ask citations, and not-applicable topic state; hosted checks and independent review required |
+| #640 | `fbc129c0` | dashboard ranking and topic-influence stack now localizes evidence-rank labels, uses one topic-journey vocabulary, and makes the PostgreSQL tuning command contract explicit; focused UI and tuning-plan regressions passed, while exact-head hosted checks and independent review remain required |
 | #639 | `8da485d3` | running-action/config repair; BLOCKED with review required |
 | #632 | `811026cc` | graph-fact provenance repair with current baseline evidence; BLOCKED with hosted checks queued and review required |
 | #631 | `e6b4f0c4` | ADR decomposition documentation; BLOCKED with review required |
