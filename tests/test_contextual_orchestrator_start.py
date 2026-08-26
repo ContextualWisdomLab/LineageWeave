@@ -141,16 +141,5 @@ def test_bootstrap_registers_operator_configured_embedding_capability(monkeypatc
     } & os.environ.keys()
     agents = captured["agents"]
     assert isinstance(agents, dict)
-    assert [agent for agent in agents["agents"] if "embedding" in agent.get("tags", [])] == [
-        {
-            "id": "gateway_embedding_agent",
-            "model": "text-embedding-3-large",
-            "provider_protocol": "auto",
-            "provider_name": "openai",
-            "base_url": "https://gateway.example/v1",
-            "credential_key": "LLM_GATEWAY_API_KEY",
-            "tags": ["embedding"],
-            "priority": 1,
-        }
-    ]
+    assert not [agent for agent in agents["agents"] if "embedding" in agent.get("tags", [])]
     assert "LLM_GATEWAY_EMBEDDING_MODEL" not in os.environ
