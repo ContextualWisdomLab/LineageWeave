@@ -30,12 +30,18 @@ def test_orchestrator_request_uses_provider_neutral_auto_selector(monkeypatch) -
         "",
     ) == ()
     assert captured["model"] == "orchestrator/auto"
+    assert 'Return {"cases": []}' in captured["messages"][0]["content"]
     assert captured_request["timeout"] == 180.0
     assert captured_request["headers"]["x-request-timeout-ms"] == "180000"
     response_format = captured["response_format"]
     assert response_format["type"] == "json_schema"
     assert response_format["json_schema"]["strict"] is True
-    assert response_format["json_schema"]["schema"]["required"] == ["cases"]
+    schema = response_format["json_schema"]["schema"]
+    assert schema["required"] == ["cases"]
+    relation_target = schema["properties"]["cases"]["items"]["properties"][
+        "facts"
+    ]["items"]["properties"]["relation_target_kind_code"]
+    assert relation_target["type"] == ["string", "null"]
 
 
 def test_analysis_input_digest_tracks_ordered_evidence_and_context() -> None:
