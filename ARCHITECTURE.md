@@ -25,6 +25,13 @@ recovery/equivalence checks; affected product paths fail closed during each
 cutover rather than substituting a local estimate. See
 `docs/doctoring/python-mathematical-compute-boundary-audit.md`.
 
+ADR 0237 also keeps accelerator deployment outside this repository. MLX runs
+as a native Apple-silicon inference service behind contextual-orchestrator;
+CUDA or OpenCL profiles belong to the TEPP, fast-mlsirm, RankWeave, or
+inference service that owns the computation. LineageWeave Compose therefore
+does not reserve devices or mount host drivers. Its provider-neutral connectors
+consume versioned results and fail closed when an owning service is unavailable.
+
 ## Data flow
 
 ```mermaid
