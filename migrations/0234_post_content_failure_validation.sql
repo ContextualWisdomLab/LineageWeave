@@ -1,4 +1,4 @@
--- ADR 0098 amendment: validation failures retain only a closed code and JSON path.
+-- Migration 0234 / ADR 0098 amendment: validation failures retain only a closed code and JSON path.
 alter table post_content_ingestion_job
     add column if not exists failure_validation_code text,
     add column if not exists failure_validation_path text;
