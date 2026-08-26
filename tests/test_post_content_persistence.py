@@ -25,6 +25,9 @@ class _Connection:
         self.executed.append((query, args))
         return "OK"
 
+    async def executemany(self, query: str, args: list[tuple[object, ...]]) -> None:
+        self.executed.extend((query, row) for row in args)
+
     async def fetchval(self, query: str, *args: object) -> str:
         self.fetched.append(query)
         if "post_content_unit" in query:

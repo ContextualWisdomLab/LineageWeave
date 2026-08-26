@@ -86,8 +86,14 @@ class ContextualOrchestratorEmbeddingClient:
         """Return an embedding for the supplied text."""
         return self.embed_many([text])[0]
 
-    def embed_many(self, texts: list[str]) -> list[list[float]]:
-        """Return embeddings for the supplied texts."""
+    def embed_many(
+        self,
+        texts: list[str],
+        *,
+        input_metadata: list[dict[str, object]] | None = None,
+        input_attributions: list[dict[str, object]] | None = None,
+    ) -> list[list[float]]:
+        """Return an index-aligned bulk embedding batch with optional provenance."""
         if not texts:
             return []
         headers = {"authorization": f"Bearer {self._api_key}"}
@@ -98,6 +104,14 @@ class ContextualOrchestratorEmbeddingClient:
         }
         if self._model is not None:
             payload["model"] = self._model
+        if input_metadata is not None:
+            if len(input_metadata) != len(texts):
+                raise ValueError("input_metadata must align with embedding inputs")
+            payload["input_metadata"] = input_metadata
+        if input_attributions is not None:
+            if len(input_attributions) != len(texts):
+                raise ValueError("input_attributions must align with embedding inputs")
+            payload["input_attributions"] = input_attributions
         response = post_json(
             f"{self._base_url}/batch/embeddings",
             payload,

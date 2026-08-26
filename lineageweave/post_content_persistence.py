@@ -405,13 +405,13 @@ async def persist_post_content(
                         embedding_model_code,
                         len(vector),
                     )
-                    for dimension_index, dimension_value in enumerate(vector):
-                        await conn.execute(
-                            "insert into post_content_image_region_embedding_value (post_content_image_region_embedding_id, dimension_index, dimension_value) values ($1, $2, $3)",
-                            region_embedding_id,
-                            dimension_index,
-                            dimension_value,
-                        )
+                    await conn.executemany(
+                        "insert into post_content_image_region_embedding_value (post_content_image_region_embedding_id, dimension_index, dimension_value) values ($1, $2, $3)",
+                        [
+                            (region_embedding_id, dimension_index, dimension_value)
+                            for dimension_index, dimension_value in enumerate(vector)
+                        ],
+                    )
 
         if embedding_model_code:
             for embedding_key, vector in vectors.items():
@@ -429,11 +429,11 @@ async def persist_post_content(
                     embedding_model_code,
                     len(vector),
                 )
-                for dimension_index, dimension_value in enumerate(vector):
-                    await conn.execute(
-                        "insert into post_content_embedding_value (post_content_embedding_id, dimension_index, dimension_value) values ($1, $2, $3)",
-                        embedding_id,
-                        dimension_index,
-                        dimension_value,
-                    )
+                await conn.executemany(
+                    "insert into post_content_embedding_value (post_content_embedding_id, dimension_index, dimension_value) values ($1, $2, $3)",
+                    [
+                        (embedding_id, dimension_index, dimension_value)
+                        for dimension_index, dimension_value in enumerate(vector)
+                    ],
+                )
     return len(prepared)

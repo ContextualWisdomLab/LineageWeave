@@ -55,6 +55,9 @@ class _Connection:
         self.executed.append((query, args))
         return "OK"
 
+    async def executemany(self, query: str, args: list[tuple[object, ...]]) -> None:
+        self.executed.extend((query, row) for row in args)
+
 
 class _Pool:
     def __init__(self, connection: _Connection):
@@ -84,6 +87,52 @@ def test_worker_starts_after_historical_stream_tail() -> None:
             return [("123-0", {})]
 
     assert asyncio.run(post_content_worker._stream_tail(Client())) == "123-0"
+
+
+def test_bulk_embedding_uses_one_provenance_aligned_call_and_bulk_value_insert() -> None:
+    """Multiple posts share one call while retaining index-aligned provenance."""
+    post_ids = [
+        "00000000-0000-0000-0000-000000000001",
+        "00000000-0000-0000-0000-000000000002",
+    ]
+
+    class Connection(_Connection):
+        async def fetch(self, *_args: object):
+            return [
+                {
+                    "target_kind": "unit",
+                    "target_id": f"unit-{index}",
+                    "input_text": f"synthetic unit {index}",
+                    "post_id": UUID(post_id),
+                    "author_account_id": f"account-{index}",
+                    "corporate_entity_id": f"company-{index}",
+                    "process_unit_id": f"team-{index}",
+                }
+                for index, post_id in enumerate(post_ids)
+            ]
+
+        async def fetchval(self, *_args: object):
+            return f"embedding-{len(self.executed)}"
+
+    class Embeddings:
+        available = True
+        resolved_model = "resolved-model"
+
+        def __init__(self) -> None:
+            self.calls: list[tuple[list[str], list[dict[str, object]]]] = []
+
+        def embed_many(self, texts, *, input_metadata, input_attributions):
+            self.calls.append((texts, input_metadata))
+            assert [item["team"] for item in input_attributions] == ["team-0", "team-1"]
+            return [[0.1, 0.2], [0.3, 0.4]]
+
+    connection = Connection()
+    client = Embeddings()
+    asyncio.run(post_content_worker._persist_bulk_embeddings(_Pool(connection), post_ids, client))
+
+    assert len(client.calls) == 1
+    assert [item["post_id"] for item in client.calls[0][1]] == post_ids
+    assert sum("post_content_embedding_value" in query for query, _args in connection.executed) == 4
 
 
 def test_operations_sources_apply_focal_entity_and_process_scope(monkeypatch) -> None:
