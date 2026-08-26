@@ -48,7 +48,7 @@ describe("PublicClaimList", () => {
             status_code: "claim_unavailable",
             external_evidence_urls: [],
             next_action:
-              "Web verification is unavailable until the search service is connected. Open that post.",
+              "Public web verification is unavailable. Open that post or try verification again later.",
           },
         ]}
         onSelectPost={vi.fn()}
@@ -56,7 +56,7 @@ describe("PublicClaimList", () => {
     );
 
     expect(screen.getByRole("button")).toHaveTextContent(
-      "Web verification is unavailable until the search service is connected. Open that post.",
+      "Public web verification is unavailable. Open that post or try verification again later.",
     );
     expect(screen.queryByRole("link")).not.toBeInTheDocument();
   });

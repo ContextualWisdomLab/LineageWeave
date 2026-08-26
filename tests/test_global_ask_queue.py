@@ -79,9 +79,7 @@ def test_unexpected_job_failure_settles_with_a_generic_detail_not_the_raw_except
     assert "failure_detail" in settle_query
     failure_detail = settle_args[-1]
     assert secret_bearing_message not in failure_detail
-    assert failure_detail == (
-        "Ask Agent is unavailable: contextual-orchestrator returned no complete evidence object"
-    )
+    assert failure_detail == "Ask Agent could not complete this question. Try again later."
 
 
 def test_permission_and_connection_errors_keep_their_pre_authored_safe_message(
@@ -144,7 +142,7 @@ def test_job_deadline_timeout_settles_with_a_specific_but_still_generic_detail(
     )
 
     _settle_query, settle_args = connection.executed[-1]
-    assert settle_args[-1] == f"job exceeded the {global_ask_queue.JOB_DEADLINE_SECONDS}s deadline"
+    assert settle_args[-1] == "Ask Agent took too long to answer. Try the question again."
 
 
 def test_job_visibility_never_expands_past_queued_scope() -> None:
@@ -249,20 +247,20 @@ def test_process_global_ask_job_does_not_build_search_client_without_opt_in(
     assert captured["claim_search_client"] is None
 
 
-def test_missing_public_claim_table_is_unavailable_not_an_invented_claim() -> None:
-    """A volume that has not replayed 0224 fails closed."""
+def test_missing_public_claim_table_fails_startup_contract() -> None:
+    """Application code must not hide a volume that has not replayed 0224."""
     import asyncpg
 
     class _MissingTable:
         async def fetch(self, *_args: object, **_kwargs: object):
             raise asyncpg.UndefinedTableError("public_claim_envelope")
 
-    envelopes = asyncio.run(
-        global_ask_queue.load_authorized_public_claim_envelopes(
-            _MissingTable(), lambda _row: True
+    with pytest.raises(asyncpg.UndefinedTableError):
+        asyncio.run(
+            global_ask_queue.load_authorized_public_claim_envelopes(
+                _MissingTable(), lambda _row: True
+            )
         )
-    )
-    assert envelopes == ()
 
 
 def test_public_claim_loader_drops_unauthorized_and_ineligible_rows() -> None:
@@ -365,4 +363,5 @@ def test_empty_sources_still_attach_opt_in_public_claim_verification(monkeypatch
     )
     assert payload["public_claim_verification"]["status_code"] == "claim_unavailable"
     assert payload["public_claim_verification"]["claims"]
-    assert payload["next_action"] == payload["public_claim_verification"]["next_action"]
+    assert payload["next_action"] == "No authorized source posts are available for this question."
+    assert payload["public_claim_verification"]["next_action"]

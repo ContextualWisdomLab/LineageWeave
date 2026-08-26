@@ -151,14 +151,14 @@ def test_empty_authorized_set_is_unavailable_and_does_not_search() -> None:
     payload = verify_public_claims((), _Exploding())
     assert payload["status_code"] == STATUS_UNAVAILABLE
     assert payload["claims"] == []
-    assert "no egress-eligible" in payload["next_action"]
+    assert "Turn off web verification" in payload["next_action"]
 
 
 def test_missing_search_channel_is_unavailable_not_not_enough_information() -> None:
     payload = verify_public_claims((_envelope(),), NullPublicClaimSearchClient())
     assert payload["status_code"] == STATUS_UNAVAILABLE
     assert payload["claims"][0]["external_evidence_urls"] == []
-    assert "search service" in payload["next_action"]
+    assert "try verification again later" in payload["next_action"]
 
 
 def test_failing_search_channel_preserves_unavailable_claims() -> None:
@@ -171,7 +171,7 @@ def test_failing_search_channel_preserves_unavailable_claims() -> None:
     payload = verify_public_claims((_envelope(),), _Failing())
     assert payload["status_code"] == STATUS_UNAVAILABLE
     assert payload["claims"][0]["external_evidence_urls"] == []
-    assert "search service" in payload["next_action"]
+    assert "try verification again later" in payload["next_action"]
 
 
 def test_no_usable_urls_are_not_enough_information() -> None:

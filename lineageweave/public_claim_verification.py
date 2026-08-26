@@ -220,13 +220,12 @@ def classify_public_claim(
     kinds with retrieved URLs stay unavailable until orchestrator-owned
     polarity exists — this function does not invent refutation.
     """
-    title = envelope.source_post_title
     if not search_available:
         return _verdict(
             envelope,
             STATUS_UNAVAILABLE,
             (),
-            f"Web verification is unavailable until the search service is connected. Open that post.",
+            "Public web verification is unavailable. Open that post or try verification again later.",
         )
     if not urls:
         return _verdict(
@@ -261,7 +260,7 @@ def classify_public_claim(
         envelope,
         STATUS_UNAVAILABLE,
         urls,
-        f"Public claim is on {title}. Open that post.",
+        f"Public claim is on {envelope.source_post_title}. Open that post.",
     )
 
 
@@ -278,8 +277,8 @@ def verify_public_claims(
         return {
             "status_code": STATUS_UNAVAILABLE,
             "next_action": (
-                "Public-claim verification is unavailable: no egress-eligible "
-                "public claim is authorized."
+                "No authorized public claims are available to verify. "
+                "Turn off web verification and ask again."
             ),
             "claims": [],
         }

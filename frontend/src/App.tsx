@@ -4869,7 +4869,7 @@ function AskAgentPanel({
       </label>
       <p className="post-meta">
         {t(
-          "Uses authorized public claims only. Person, Keyman, TEPP, and measurement data stay inside the workspace.",
+          "Only authorized public claims are sent for web verification. Other workspace evidence is not sent.",
         )}
       </p>
       <button className="keyman-select" onClick={() => void handleAsk()} disabled={asking || !question.trim()}>
@@ -4879,10 +4879,14 @@ function AskAgentPanel({
         <section className="popup-section" aria-label={t("Answer")}>
           <h3>{t("Answer")}</h3>
           {answer.public_claim_verification ? (
-            <PublicClaimList
-              claims={answer.public_claim_verification.claims}
-              onSelectPost={onOpenPost}
-            />
+            answer.public_claim_verification.claims.length ? (
+              <PublicClaimList
+                claims={answer.public_claim_verification.claims}
+                onSelectPost={onOpenPost}
+              />
+            ) : (
+              <p className="post-meta">{t(answer.public_claim_verification.next_action)}</p>
+            )
           ) : null}
           {answer.answer_text ? <p>{answer.answer_text}</p> : null}
           {answer.next_action ? <p className="post-meta">{t(answer.next_action)}</p> : null}

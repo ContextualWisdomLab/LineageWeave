@@ -79,7 +79,7 @@ describe("i18n", () => {
     "No observed calendar events are available.",
     "Open this observed occurrence. It is not a LineageWeave commitment.",
     "Verify public claims on the web",
-    "Uses authorized public claims only. Person, Keyman, TEPP, and measurement data stay inside the workspace.",
+    "Only authorized public claims are sent for web verification. Other workspace evidence is not sent.",
     "Public claims",
     "Open public claim: {title}",
     "Open this post so the public claim is current.",
@@ -91,11 +91,11 @@ describe("i18n", () => {
     "Not enough information",
     "Unavailable",
     "Public web evidence",
-    "Web verification is unavailable until the search service is connected. Open that post.",
+    "Public web verification is unavailable. Open that post or try verification again later.",
     "No usable public web evidence. Open that post.",
     "Public web evidence supports this claim. Open that post.",
     "Public claim is on {title}. Open that post.",
-    "Public-claim verification is unavailable: no egress-eligible public claim is authorized.",
+    "No authorized public claims are available to verify. Turn off web verification and ask again.",
   ] as const;
 
   it("supports the five product locales", () => {

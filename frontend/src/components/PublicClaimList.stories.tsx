@@ -41,7 +41,7 @@ export const UnavailableSearch: Story = {
         status_code: "claim_unavailable",
         external_evidence_urls: [],
         next_action:
-          "Web verification is unavailable until the search service is connected. Open that post.",
+          "Public web verification is unavailable. Open that post or try verification again later.",
       },
     ],
   },

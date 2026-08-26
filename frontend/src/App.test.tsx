@@ -120,6 +120,7 @@ describe("App, authenticated", () => {
     askLineageGraph?: boolean;
     askImageCitation?: boolean;
     askDelivery?: boolean;
+    askNoPublicClaims?: boolean;
     lineageIsolationReason?: "comparison_candidates_available" | "no_comparison_group";
   }): ReturnType<typeof vi.fn> & { releaseMe: () => void; releasePostOne: () => void } {
     const statusLabel: Record<string, string> = {
@@ -1813,8 +1814,10 @@ describe("App, authenticated", () => {
             public_claim_verification: lastAskVerifyExternal
               ? {
                   status_code: "claim_supported",
-                  next_action: "Public web evidence supports this claim. Open that post.",
-                  claims: [
+                  next_action: options?.askNoPublicClaims
+                    ? "No authorized public claims are available to verify. Turn off web verification and ask again."
+                    : "Public web evidence supports this claim. Open that post.",
+                  claims: options?.askNoPublicClaims ? [] : [
                     {
                       public_claim_envelope_id: "env-demo-public",
                       source_post_id: "post-1",
@@ -2091,6 +2094,20 @@ describe("App, authenticated", () => {
     expect(claim).toHaveTextContent("Supported");
     await userEvent.click(claim);
     expect(await screen.findByRole("button", { name: "View post: Public post" })).toBeInTheDocument();
+  });
+
+  it("shows the next valid action when no public claim can be verified", async () => {
+    stubBackend({ askNoPublicClaims: true });
+    render(<App />);
+    await screen.findByRole("button", { name: "View post: Public post" });
+    await userEvent.click(screen.getByRole("button", { name: "Ask Agent" }));
+    await userEvent.click(screen.getByRole("checkbox", { name: "Verify public claims on the web" }));
+    await userEvent.type(screen.getByRole("textbox", { name: "Ask a question" }), "What is public?");
+    await userEvent.click(screen.getByRole("button", { name: "Ask" }));
+
+    expect(await screen.findByText(
+      "No authorized public claims are available to verify. Turn off web verification and ask again.",
+    )).toBeInTheDocument();
   });
 
   it("labels the Customer Master entity level and Keymen side, never the raw lookup code", async () => {

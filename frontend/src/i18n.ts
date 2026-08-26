@@ -180,8 +180,8 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     Answer: "답변",
     "Cited posts": "인용된 글",
     "Verify public claims on the web": "웹에서 공개 주장을 검증",
-    "Uses authorized public claims only. Person, Keyman, TEPP, and measurement data stay inside the workspace.":
-      "권한이 있는 공개 주장만 사용합니다. Person, Keyman, TEPP, 측정 데이터는 작업공간 안에 남습니다.",
+    "Only authorized public claims are sent for web verification. Other workspace evidence is not sent.":
+      "권한이 있는 공개 주장만 웹 검증에 전송합니다. 작업공간의 다른 근거는 전송하지 않습니다.",
     "Public claims": "공개 주장",
     "Open public claim: {title}": "공개 주장 열기: {title}",
     "Open this post so the public claim is current.": "공개 주장이 현재 글이 되도록 이 글을 여세요.",
@@ -193,15 +193,15 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Not enough information": "정보 부족",
     Unavailable: "사용할 수 없음",
     "Public web evidence": "공개 웹 근거",
-    "Web verification is unavailable until the search service is connected. Open that post.":
-      "검색 서비스가 연결되기 전까지 웹 검증을 사용할 수 없습니다. 그 글을 여세요.",
+    "Public web verification is unavailable. Open that post or try verification again later.":
+      "공개 웹 검증을 사용할 수 없습니다. 그 글을 열거나 나중에 다시 검증하세요.",
     "No usable public web evidence. Open that post.":
       "사용할 수 있는 공개 웹 근거가 없습니다. 그 글을 여세요.",
     "Public web evidence supports this claim. Open that post.":
       "공개 웹 근거가 이 주장을 지지합니다. 그 글을 여세요.",
     "Public claim is on {title}. Open that post.": "공개 주장은 {title}에 있습니다. 그 글을 여세요.",
-    "Public-claim verification is unavailable: no egress-eligible public claim is authorized.":
-      "공개 주장 검증을 사용할 수 없습니다. 반출 가능한 공개 주장이 없습니다.",
+    "No authorized public claims are available to verify. Turn off web verification and ask again.":
+      "검증할 수 있는 권한 있는 공개 주장이 없습니다. 웹 검증을 끄고 다시 질문하세요.",
     "Report · alert · MCP": "리포트 · 알림 · MCP",
     "{count} evidence documents are linked to this report.": "근거 문서 {count}건이 리포트에 연결됐습니다.",
     "You can subscribe to evidence-change alerts.": "근거 변경 알림을 구독할 수 있습니다.",
@@ -708,8 +708,8 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     Answer: "回答",
     "Cited posts": "引用文章",
     "Verify public claims on the web": "在网上核验公开主张",
-    "Uses authorized public claims only. Person, Keyman, TEPP, and measurement data stay inside the workspace.":
-      "仅使用已授权的公开主张。Person、Keyman、TEPP 和测量数据留在工作区内。",
+    "Only authorized public claims are sent for web verification. Other workspace evidence is not sent.":
+      "仅将已授权的公开主张发送用于网络核验。不会发送工作区中的其他证据。",
     "Public claims": "公开主张",
     "Open public claim: {title}": "打开公开主张：{title}",
     "Open this post so the public claim is current.": "打开这篇文章，使该公开主张成为当前项。",
@@ -721,14 +721,14 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Not enough information": "信息不足",
     Unavailable: "不可用",
     "Public web evidence": "公开网络证据",
-    "Web verification is unavailable until the search service is connected. Open that post.":
-      "在连接搜索服务之前无法进行网络核验。打开那篇文章。",
+    "Public web verification is unavailable. Open that post or try verification again later.":
+      "公开网络核验暂不可用。请打开该文章或稍后重试核验。",
     "No usable public web evidence. Open that post.": "没有可用的公开网络证据。打开那篇文章。",
     "Public web evidence supports this claim. Open that post.":
       "公开网络证据支持这一主张。打开那篇文章。",
     "Public claim is on {title}. Open that post.": "公开主张在 {title}。打开那篇文章。",
-    "Public-claim verification is unavailable: no egress-eligible public claim is authorized.":
-      "无法核验公开主张：没有可出境的已授权公开主张。",
+    "No authorized public claims are available to verify. Turn off web verification and ask again.":
+      "没有可核验的已授权公开主张。请关闭网络核验后再次提问。",
     "Search related posts": "搜索相关文章",
     "Search related posts for: {name}": "搜索与{name}相关的文章",
     "Evidence facts": "证据事实",
@@ -1251,8 +1251,8 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     Answer: "回答",
     "Cited posts": "引用された投稿",
     "Verify public claims on the web": "ウェブで公開主張を検証",
-    "Uses authorized public claims only. Person, Keyman, TEPP, and measurement data stay inside the workspace.":
-      "権限のある公開主張だけを使います。Person、Keyman、TEPP、測定データはワークスペース内に残ります。",
+    "Only authorized public claims are sent for web verification. Other workspace evidence is not sent.":
+      "権限のある公開主張だけをウェブ検証に送信します。ワークスペース内の他の証拠は送信しません。",
     "Public claims": "公開主張",
     "Open public claim: {title}": "公開主張を開く: {title}",
     "Open this post so the public claim is current.": "この公開主張が現在の投稿になるように開いてください。",
@@ -1264,15 +1264,15 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Not enough information": "情報不足",
     Unavailable: "利用不可",
     "Public web evidence": "公開ウェブ証拠",
-    "Web verification is unavailable until the search service is connected. Open that post.":
-      "検索サービスが接続されるまでウェブ検証は利用できません。その投稿を開いてください。",
+    "Public web verification is unavailable. Open that post or try verification again later.":
+      "公開ウェブ検証を利用できません。その投稿を開くか、後でもう一度検証してください。",
     "No usable public web evidence. Open that post.":
       "利用できる公開ウェブ証拠がありません。その投稿を開いてください。",
     "Public web evidence supports this claim. Open that post.":
       "公開ウェブ証拠がこの主張を支持します。その投稿を開いてください。",
     "Public claim is on {title}. Open that post.": "公開主張は {title} にあります。その投稿を開いてください。",
-    "Public-claim verification is unavailable: no egress-eligible public claim is authorized.":
-      "公開主張の検証は利用できません。持ち出せる公開主張がありません。",
+    "No authorized public claims are available to verify. Turn off web verification and ask again.":
+      "検証できる権限済みの公開主張がありません。ウェブ検証をオフにして、もう一度質問してください。",
     "Search related posts": "関連投稿を検索",
     "Search related posts for: {name}": "{name}の関連投稿を検索",
     "Evidence facts": "証拠の事実",
@@ -1774,8 +1774,8 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     Answer: "Câu trả lời",
     "Cited posts": "Bài viết được trích dẫn",
     "Verify public claims on the web": "Xác minh tuyên bố công khai trên web",
-    "Uses authorized public claims only. Person, Keyman, TEPP, and measurement data stay inside the workspace.":
-      "Chỉ dùng tuyên bố công khai được cấp quyền. Person, Keyman, TEPP và dữ liệu đo lường ở lại trong không gian làm việc.",
+    "Only authorized public claims are sent for web verification. Other workspace evidence is not sent.":
+      "Chỉ các tuyên bố công khai được cấp quyền mới được gửi để xác minh trên web. Bằng chứng khác trong không gian làm việc không được gửi đi.",
     "Public claims": "Tuyên bố công khai",
     "Open public claim: {title}": "Mở tuyên bố công khai: {title}",
     "Open this post so the public claim is current.":
@@ -1788,15 +1788,15 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Not enough information": "Không đủ thông tin",
     Unavailable: "Không khả dụng",
     "Public web evidence": "Bằng chứng web công khai",
-    "Web verification is unavailable until the search service is connected. Open that post.":
-      "Không thể xác minh trên web cho đến khi dịch vụ tìm kiếm được kết nối. Mở bài viết đó.",
+    "Public web verification is unavailable. Open that post or try verification again later.":
+      "Xác minh web công khai hiện không khả dụng. Hãy mở bài viết đó hoặc thử xác minh lại sau.",
     "No usable public web evidence. Open that post.":
       "Không có bằng chứng web công khai khả dụng. Mở bài viết đó.",
     "Public web evidence supports this claim. Open that post.":
       "Bằng chứng web công khai hỗ trợ tuyên bố này. Mở bài viết đó.",
     "Public claim is on {title}. Open that post.": "Tuyên bố công khai nằm ở {title}. Mở bài viết đó.",
-    "Public-claim verification is unavailable: no egress-eligible public claim is authorized.":
-      "Không thể xác minh tuyên bố công khai: không có tuyên bố công khai được phép đưa ra ngoài.",
+    "No authorized public claims are available to verify. Turn off web verification and ask again.":
+      "Không có tuyên bố công khai được cấp quyền để xác minh. Hãy tắt xác minh web và hỏi lại.",
     "Search related posts": "Tìm bài viết liên quan",
     "Search related posts for: {name}": "Tìm bài viết liên quan đến {name}",
     "Evidence facts": "Sự kiện bằng chứng",

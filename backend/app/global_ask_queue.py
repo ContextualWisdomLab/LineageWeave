@@ -290,7 +290,6 @@ async def compute_global_ask_answer(
             )
             cited_post_ids_exclude_external([], verification)
             payload["public_claim_verification"] = verification
-            payload["next_action"] = verification["next_action"]
         return payload
     try:
         answer = await asyncio.to_thread(
@@ -304,7 +303,7 @@ async def compute_global_ask_answer(
         record_server_failure("global_ask", exc, outcome="provider_unavailable")
         raise HTTPException(
             status.HTTP_503_SERVICE_UNAVAILABLE,
-            "Ask Agent is unavailable: contextual-orchestrator could not complete the answer",
+            "Ask Agent could not complete this question. Try again later.",
         ) from exc
     except (KeyError, ValueError) as exc:
         # Contract/schema fault: the orchestrator responded but its payload
@@ -313,7 +312,7 @@ async def compute_global_ask_answer(
         record_server_failure("global_ask", exc, outcome="provider_unavailable")
         raise HTTPException(
             status.HTTP_503_SERVICE_UNAVAILABLE,
-            "Ask Agent is unavailable: contextual-orchestrator could not complete the answer",
+            "Ask Agent could not complete this question. Try again later.",
         ) from exc
     except Exception as exc:
         # Unexpected defect. Keep the customer boundary and emit a full
@@ -322,7 +321,7 @@ async def compute_global_ask_answer(
         record_server_failure("global_ask", exc, outcome="internal_error")
         raise HTTPException(
             status.HTTP_503_SERVICE_UNAVAILABLE,
-            "Ask Agent is unavailable: contextual-orchestrator could not complete the answer",
+            "Ask Agent could not complete this question. Try again later.",
         ) from exc
     cited_ids = list(answer.cited_post_ids)
     async with pool.acquire() as conn:
@@ -363,9 +362,8 @@ async def load_authorized_public_claim_envelopes(
     A missing table is unavailable, not an invented claim. Private or
     ineligible rows never reach SearXNG.
     """
-    try:
-        rows = await conn.fetch(
-            """
+    rows = await conn.fetch(
+        """
             select envelope.public_claim_envelope_id,
                    envelope.source_post_id,
                    post.post_title as source_post_title,
@@ -384,10 +382,8 @@ async def load_authorized_public_claim_envelopes(
              where envelope.egress_eligible
                and post.visibility_code = 'public'
              order by envelope.created_at, envelope.public_claim_envelope_id
-            """
-        )
-    except asyncpg.UndefinedTableError:
-        return ()
+        """
+    )
     envelopes = []
     for row in rows:
         if not can_see(row):
@@ -476,11 +472,14 @@ async def process_global_ask_job(
                 conn, job_id, str(row["requesting_account_id"])
             )
         if not has_post_read:
-            raise _SafeJobError("account lacks the post_read permission")
+            raise _SafeJobError(
+                "You no longer have access to the posts for this question. "
+                "Ask about posts you can view, or ask an administrator to restore access."
+            )
         chat_client = chat_factory()
         if not chat_client.available:
             raise _SafeJobError(
-                "Ask Agent is unavailable: set ORCHESTRATOR_BASE_URL / ORCHESTRATOR_API_KEY"
+                "Ask Agent is not ready. Try again later or ask an administrator to enable it."
             )
         verify_external = bool(row.get("verify_external", False))
         payload = await asyncio.wait_for(
@@ -517,15 +516,14 @@ async def process_global_ask_job(
             # state / missing config) — never a provider-boundary leak.
             detail = str(exc)
         elif isinstance(exc, asyncio.TimeoutError):
-            detail = f"job exceeded the {JOB_DEADLINE_SECONDS}s deadline"
+            detail = "Ask Agent took too long to answer. Try the question again."
         else:
             # Provider responses/exceptions can carry credentials, gateway
             # diagnostics, or model output (ADR 0123): never persist the
             # raw exception text as a durable `failure_detail`. The
             # traceback just logged keeps it for operator debugging only.
             detail = (
-                "Ask Agent is unavailable: contextual-orchestrator returned "
-                "no complete evidence object"
+                "Ask Agent could not complete this question. Try again later."
             )
         async with pool.acquire() as conn:
             await conn.execute(
