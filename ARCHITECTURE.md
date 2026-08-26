@@ -438,6 +438,14 @@ name, confirmed the events on the activity endpoint, and independently
 confirmed the stream's existence and length with `valkey-cli` directly
 against the `valkey` container.
 
+Post-content ingestion uses the same transport with a stronger durability
+boundary (ADR 0098): PostgreSQL owns each job and Valkey only wakes the worker.
+`POST /api/post-content/backfill` is a `post_admin`-gated producer for one
+1--200-row eligible page. It commits jobs before publishing, returns HTTP 202
+without running semantic providers, and reports wake-ups that the worker's
+bounded recovery sweep must republish. `FOR UPDATE SKIP LOCKED` partitions
+concurrent operator calls without a second scheduler or an in-memory task.
+
 ## Phase 5c: customer commitment derivation and the calendar
 
 The brief asked for two separate-sounding things: issues auto-registered

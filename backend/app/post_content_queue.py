@@ -10,6 +10,7 @@ from typing import Any
 import asyncpg
 import redis.asyncio as redis
 
+from backend.app.post_eligibility import SOURCE_POST_ELIGIBILITY_SQL
 from lineageweave.observability import traced
 
 POST_CONTENT_STREAM_KEY = "post-content-ingestion"
@@ -305,6 +306,120 @@ async def ensure_post_content_job(
         status_code,
         status_code == QUEUED,
     )
+
+
+async def enqueue_post_content_backfill(
+    pool: asyncpg.Pool,
+    client: redis.Redis | None,
+    *,
+    limit: int,
+    require_embedding: bool,
+    require_structure: bool,
+) -> dict[str, int | bool]:
+    """Durably enqueue one bounded page of eligible incomplete source posts.
+
+    PostgreSQL is committed before Valkey is touched.  A missing wake-up is
+    therefore recoverable by :func:`republish_queued_post_content_jobs` rather
+    than turning an operator request into lost work.  Active and terminal jobs
+    are excluded so repeated requests neither duplicate work nor reset the
+    explicit retry boundary.
+    """
+    if not 1 <= limit <= 200:
+        raise ValueError("limit must be between 1 and 200")
+    query = f"""
+        select post.post_id, post.post_body
+          from source_post post
+          left join post_content_ingestion_job job on job.post_id = post.post_id
+         where {SOURCE_POST_ELIGIBILITY_SQL.format(alias='post')}
+           and (job.post_id is null or job.status_code = $1)
+           and (
+               not exists (
+                   select 1 from post_content_unit unit
+                    where unit.post_id = post.post_id
+               )
+               or ($2::boolean and exists (
+                   select 1
+                     from post_content_unit unit
+                     left join post_content_embedding embedding
+                       on embedding.post_content_unit_id = unit.post_content_unit_id
+                    where unit.post_id = post.post_id
+                      and embedding.post_content_embedding_id is null
+               ))
+               or ($2::boolean and exists (
+                   select 1
+                     from post_content_unit unit
+                     join post_content_image image
+                       on image.post_content_unit_id = unit.post_content_unit_id
+                     join post_content_image_region region
+                       on region.post_content_image_id = image.post_content_image_id
+                     left join post_content_image_region_embedding embedding
+                       on embedding.post_content_image_region_id = region.post_content_image_region_id
+                    where unit.post_id = post.post_id
+                      and region.description_status_code = 'described'
+                      and embedding.post_content_image_region_embedding_id is null
+               ))
+               or ($3::boolean and exists (
+                   select 1
+                     from post_content_unit unit
+                     left join post_content_unit_structure structure
+                       on structure.post_content_unit_id = unit.post_content_unit_id
+                    where unit.post_id = post.post_id
+                      and unit.unit_kind_code <> 'image'
+                      and (
+                          structure.post_content_unit_structure_id is null
+                          or structure.decision_source_code = 'unresolved'
+                      )
+               ))
+           )
+         order by post.created_at, post.post_id
+         limit $4
+         for update of post skip locked
+    """
+    requests: list[PostContentJobRequest] = []
+    has_more = False
+    async with pool.acquire() as conn:
+        async with conn.transaction():
+            # Safe SQL: the eligibility predicate is an immutable schema fragment; values are bound.
+            rows = await conn.fetch(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
+                query,
+                SUCCEEDED,
+                require_embedding,
+                require_structure,
+                limit + 1,
+            )
+            has_more = len(rows) > limit
+            for row in rows[:limit]:
+                post_id = str(row["post_id"])
+                complete = await post_content_is_complete(
+                    conn,
+                    post_id,
+                    require_embedding=require_embedding,
+                    require_structure=require_structure,
+                )
+                request = await ensure_post_content_job(
+                    conn,
+                    post_id,
+                    str(row["post_body"] or ""),
+                    content_complete=complete,
+                )
+                if request.should_publish:
+                    requests.append(request)
+
+    published = 0
+    for request in requests:
+        if await publish_post_content_event(
+            client,
+            post_id=request.post_id,
+            source_body_digest=request.source_body_sha256,
+        ):
+            published += 1
+    return {
+        "selected_posts": min(len(rows), limit),
+        "queued_posts": len(requests),
+        "published_events": published,
+        "recovery_pending": len(requests) - published,
+        "has_more": has_more,
+    }
 
 
 async def requeue_failed_post_content_job(
