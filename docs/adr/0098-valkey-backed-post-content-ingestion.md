@@ -135,13 +135,16 @@ delay admission of the case request. This is execution isolation, not a new
 queue or a change to either channel's evidence contract.
 
 Every failed attempt persists bounded diagnostic provenance on the normalized
-job ledger: the channel stage, HTTP status, orchestrator error code, explicit
+job ledger: the channel stage, bounded exception class, HTTP status, orchestrator error code, explicit
 retryability when supplied by the upstream contract, and the existing
 post-scoped session correlation id. These fields support aggregate operations
 and exact-session tracing without retaining a response body, error message,
 prompt, provider identity, credential, or source text. The buyer-facing status
 continues to state the next action; these implementation diagnostics remain an
 authorized operational boundary.
+Operations-case validation failures additionally retain only the closed
+`operations_case_evidence_contract` code and `$.cases` JSON path; returned
+content is never copied into the ledger.
 
 ### Operational timeout for structure adjudication
 

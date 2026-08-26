@@ -402,7 +402,13 @@ def test_incomplete_provider_output_is_requeued_with_a_failure_code(monkeypatch)
     )
 
     updates = [args for query, args in connection.executed if "set status_code" in query]
-    assert any(args[1] == QUEUED and args[6] == "post_content_ingestion_incomplete" for args in updates)
+    incomplete_update = next(
+        args
+        for args in updates
+        if args[1] == QUEUED and args[6] == "post_content_ingestion_incomplete"
+    )
+    assert incomplete_update[9] == "content_persistence"
+    assert incomplete_update[13]
     assert analyzed_bodies == ["A synthetic post body with a retrieval unit."]
 
 
@@ -912,6 +918,8 @@ def test_worker_persists_bounded_failure_provenance(monkeypatch) -> None:
         True,
     )
     assert isinstance(update[13], str) and len(update[13]) <= 128
+    assert update[14] == "http_client_error"
+    assert update[15:17] == (None, None)
     assert "sanitized" not in str(update)
 
 

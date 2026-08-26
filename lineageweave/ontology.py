@@ -18,12 +18,18 @@ schema actually defines has a matching ontology term, and vice versa.
 
 from __future__ import annotations
 
-from pathlib import Path
+from datetime import datetime
+from decimal import Decimal, InvalidOperation
 from importlib.resources import files
+from pathlib import Path
+from urllib.parse import quote
+from uuid import UUID
 
-from rdflib import Graph, Namespace
-from rdflib.namespace import OWL, RDF, RDFS, SKOS
+from rdflib import Graph, Literal, Namespace, URIRef
+from rdflib.namespace import OWL, PROV, RDF, RDFS, SKOS, XSD
 from rdflib.term import Identifier
+
+from .post_summary import normalize_project_key, project_candidate_node_id
 
 #: The ontology's own namespace -- every class/property IRI below is
 #: this prefix plus the term's local name (e.g. LW.Post). ADR 0207 made
@@ -80,7 +86,7 @@ def iri_for_lookup_code(lookup_code: str) -> str | None:
 
 
 def ontology_annotations(lookup_code: str) -> dict[str, str]:
-    """IRI + ``rdfs:label`` for a lookup code, or empty if undeclared.
+    """IRI plus its RDFS or SKOS preferred label, or empty if undeclared.
 
     Empty (not a fabricated label) when the ontology does not cover
     this code -- the same missing-vs-negative discipline as Null
@@ -90,9 +96,10 @@ def ontology_annotations(lookup_code: str) -> dict[str, str]:
     if subject is None:
         return {}
     fields = {"ontology_iri": str(subject)}
-    label = ONTOLOGY.value(subject, RDFS.label)
-    if label is not None:
-        fields["ontology_label"] = str(label)
+    label = ONTOLOGY.value(subject, RDFS.label) or ONTOLOGY.value(subject, SKOS.prefLabel)
+    if label is None:
+        raise ValueError(f"ontology term for {lookup_code!r} has no readable label")
+    fields["ontology_label"] = str(label)
     return fields
 
 
@@ -102,6 +109,88 @@ def all_declared_lookup_codes() -> set[str]:
     `tests/test_ontology.py` to round-trip against the live schema.
     """
     return {str(value) for value in ONTOLOGY.objects(None, LOOKUP_CODE)}
+
+
+def ontology_node_iri(node_type_code: str, node_id: str) -> str:
+    """Return the canonical percent-encoded IRI for one ontology node."""
+
+    if not node_type_code or not node_id:
+        raise ValueError("ontology node type and id must be non-empty")
+    return str(
+        LW[
+            f"node/{quote(node_type_code, safe='')}/"
+            f"{quote(node_id, safe='/')}"
+        ]
+    )
+
+
+def project_project_mention_rdf(
+    *,
+    post_id: str,
+    post_title: str,
+    post_body: str,
+    post_created_at: datetime,
+    project_key: str,
+    project_name: str,
+    evidence_text: str,
+    confidence: Decimal | float | str,
+    mention_created_at: datetime,
+) -> Graph:
+    """Project one authorized joined Post/Project-mention row to RDF.
+
+    PostgreSQL remains authoritative. The caller supplies one already
+    authorized row; this pure projection preserves the direct assertion and
+    its SHACL-governed reification without querying or mutating a data store.
+    """
+    canonical_post_id = str(UUID(post_id))
+    if normalize_project_key(project_key) != project_key:
+        raise ValueError("project_key must already be normalized")
+    for field_name, value in (
+        ("post_title", post_title),
+        ("post_body", post_body),
+        ("project_name", project_name),
+        ("evidence_text", evidence_text),
+    ):
+        if not value.strip():
+            raise ValueError(f"{field_name} must be non-empty")
+    for field_name, value in (
+        ("post_created_at", post_created_at),
+        ("mention_created_at", mention_created_at),
+    ):
+        if value.tzinfo is None or value.utcoffset() is None:
+            raise ValueError(f"{field_name} must be timezone-aware")
+    try:
+        confidence_value = Decimal(str(confidence))
+    except InvalidOperation as exc:
+        raise ValueError("confidence must be a decimal between zero and one") from exc
+    if not confidence_value.is_finite() or not Decimal(0) <= confidence_value <= Decimal(1):
+        raise ValueError("confidence must be a decimal between zero and one")
+
+    post = URIRef(ontology_node_iri("node_post", canonical_post_id))
+    candidate_id = project_candidate_node_id(canonical_post_id, project_key)
+    project = URIRef(ontology_node_iri("node_project", candidate_id))
+    mention = URIRef(
+        LW[f"statement/project-mention/{canonical_post_id}/{quote(project_key, safe='')}"]
+    )
+    graph = Graph()
+    graph.bind("lw", LW)
+    graph.bind("prov", PROV)
+    graph.add((post, RDF.type, LW.Post))
+    graph.add((post, LW.postTitle, Literal(post_title)))
+    graph.add((post, LW.postBody, Literal(post_body)))
+    graph.add((post, LW.createdAt, Literal(post_created_at, datatype=XSD.dateTime)))
+    graph.add((project, RDF.type, LW.Project))
+    graph.add((project, RDFS.label, Literal(project_name)))
+    graph.add((post, LW.mentionsProject, project))
+    graph.add((mention, RDF.type, LW.ProjectMention))
+    graph.add((mention, RDF.subject, post))
+    graph.add((mention, RDF.predicate, LW.mentionsProject))
+    graph.add((mention, RDF.object, project))
+    graph.add((mention, LW.projectEvidence, Literal(evidence_text)))
+    graph.add((mention, LW.semanticConfidence, Literal(confidence_value, datatype=XSD.decimal)))
+    graph.add((mention, PROV.wasDerivedFrom, post))
+    graph.add((mention, PROV.generatedAtTime, Literal(mention_created_at, datatype=XSD.dateTime)))
+    return graph
 
 
 __all__ = [
@@ -115,5 +204,7 @@ __all__ = [
     "all_declared_lookup_codes",
     "iri_for_lookup_code",
     "load_ontology",
+    "ontology_node_iri",
     "ontology_annotations",
+    "project_project_mention_rdf",
 ]

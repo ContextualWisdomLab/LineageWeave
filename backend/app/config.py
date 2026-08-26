@@ -6,7 +6,7 @@ from __future__ import annotations
 
 import math
 import os
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 # Hard ceiling on one Global Ask job's answer computation, shared with the
 # worker in global_ask_queue.py so config validation and execution can never
@@ -65,6 +65,16 @@ class Settings:
     naruon_calendar_service_token: str
     rankweave_disabled: bool
     ontology_source_cursor_secret: str
+    mcp_resource_url: str = "http://localhost:18001/mcp"
+    mcp_audience: str = "http://localhost:18001/mcp"
+    mcp_required_scopes: list[str] = field(default_factory=list)
+    mcp_allowed_hosts: list[str] = field(
+        default_factory=lambda: ["localhost:*", "127.0.0.1:*", "mcp:8001"]
+    )
+    mcp_allowed_origins: list[str] = field(default_factory=list)
+    mcp_max_request_bytes: int = 65_536
+    mcp_rate_limit_requests: int | None = None
+    mcp_rate_limit_window_seconds: int | None = None
 
     @property
     def keycloak_jwks_uri(self) -> str:
@@ -83,12 +93,28 @@ def _validated_answer_timeout(raw: str) -> float:
     try:
         value = float(raw)
     except ValueError as exc:
-        raise ValueError("ORCHESTRATOR_ANSWER_TIMEOUT_SECONDS must be a number") from exc
+        raise ValueError(
+            "ORCHESTRATOR_ANSWER_TIMEOUT_SECONDS must be a number"
+        ) from exc
     if not math.isfinite(value) or not 0 < value < GLOBAL_ASK_JOB_DEADLINE_SECONDS:
         raise ValueError(
             "ORCHESTRATOR_ANSWER_TIMEOUT_SECONDS must be a finite number greater"
             f" than 0 and less than {GLOBAL_ASK_JOB_DEADLINE_SECONDS}"
         )
+    return value
+
+
+def _optional_positive_int(name: str) -> int | None:
+    """Parse an optional positive deployment integer without inventing a default."""
+    raw = os.environ.get(name, "").strip()
+    if not raw:
+        return None
+    try:
+        value = int(raw, 10)
+    except ValueError as exc:
+        raise ValueError(f"{name} must be a base-10 integer") from exc
+    if value <= 0:
+        raise ValueError(f"{name} must be positive")
     return value
 
 
@@ -103,7 +129,9 @@ def load_settings() -> Settings:
     keyverse_issuer = os.environ.get("KEYVERSE_ISSUER", "").strip()
     generic_oidc_issuer = os.environ.get("OIDC_ISSUER", "").strip()
     external_oidc = bool(keyverse_issuer or generic_oidc_issuer)
-    oidc_issuer = (keyverse_issuer or generic_oidc_issuer or keycloak_issuer).rstrip("/")
+    oidc_issuer = (keyverse_issuer or generic_oidc_issuer or keycloak_issuer).rstrip(
+        "/"
+    )
     oidc_client_id = (
         os.environ.get("KEYVERSE_CLIENT_ID", "").strip()
         or os.environ.get("OIDC_CLIENT_ID", "").strip()
@@ -119,9 +147,13 @@ def load_settings() -> Settings:
             "do not infer a resource-server audience from the browser client id"
         )
     oidc_audience = configured_audience or "lineageweave-api"
-    oidc_discovery_uri = os.environ.get("KEYVERSE_DISCOVERY_URI", "").strip() or os.environ.get(
-        "OIDC_DISCOVERY_URI", ""
+    mcp_resource_url = os.environ.get(
+        "MCP_RESOURCE_URL", "http://localhost:18001/mcp"
     ).strip()
+    oidc_discovery_uri = (
+        os.environ.get("KEYVERSE_DISCOVERY_URI", "").strip()
+        or os.environ.get("OIDC_DISCOVERY_URI", "").strip()
+    )
     if not oidc_discovery_uri:
         discovery_base = oidc_issuer if external_oidc else keycloak_base_url
         oidc_discovery_uri = (
@@ -161,7 +193,9 @@ def load_settings() -> Settings:
         keyverse_claim_binding_required=bool(keyverse_issuer),
         frontend_origins=[
             origin.strip()
-            for origin in os.environ.get("FRONTEND_ORIGINS", "http://localhost:5173").split(",")
+            for origin in os.environ.get(
+                "FRONTEND_ORIGINS", "http://localhost:5173"
+            ).split(",")
             if origin.strip()
         ],
         orchestrator_base_url=os.environ.get("ORCHESTRATOR_BASE_URL", ""),
@@ -178,9 +212,33 @@ def load_settings() -> Settings:
         naruon_calendar_service_token=os.environ.get(
             "NARUON_CALENDAR_SERVICE_TOKEN", ""
         ).strip(),
-        rankweave_disabled=os.environ.get("RANKWEAVE_DISABLED", "")
-        .strip()
-        .lower()
+        rankweave_disabled=os.environ.get("RANKWEAVE_DISABLED", "").strip().lower()
         in {"1", "true", "yes", "on"},
-        ontology_source_cursor_secret=os.environ.get("ONTOLOGY_SOURCE_CURSOR_SECRET", "").strip(),
+        ontology_source_cursor_secret=os.environ.get(
+            "ONTOLOGY_SOURCE_CURSOR_SECRET", ""
+        ).strip(),
+        mcp_resource_url=mcp_resource_url,
+        mcp_audience=os.environ.get("MCP_AUDIENCE", mcp_resource_url).strip(),
+        mcp_required_scopes=[
+            item.strip()
+            for item in os.environ.get("MCP_REQUIRED_SCOPES", "").split(",")
+            if item.strip()
+        ],
+        mcp_allowed_hosts=[
+            item.strip()
+            for item in os.environ.get(
+                "MCP_ALLOWED_HOSTS", "localhost:*,127.0.0.1:*,mcp:8001"
+            ).split(",")
+            if item.strip()
+        ],
+        mcp_allowed_origins=[
+            item.strip()
+            for item in os.environ.get("MCP_ALLOWED_ORIGINS", "").split(",")
+            if item.strip()
+        ],
+        mcp_max_request_bytes=_optional_positive_int("MCP_MAX_REQUEST_BYTES") or 65_536,
+        mcp_rate_limit_requests=_optional_positive_int("MCP_RATE_LIMIT_REQUESTS"),
+        mcp_rate_limit_window_seconds=_optional_positive_int(
+            "MCP_RATE_LIMIT_WINDOW_SECONDS"
+        ),
     )

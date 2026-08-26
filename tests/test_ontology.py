@@ -12,13 +12,19 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
+import pytest
+from rdflib import Graph, Literal, URIRef
+from rdflib.namespace import OWL, RDF, RDFS, SKOS, XSD
+
 from lineageweave.knowledge_graph import (
     EDGE_AFFILIATION,
     EDGE_CO_MENTION,
     EDGE_MENTION,
+    EDGE_MENTION_PROJECT,
     NODE_CORPORATE_ENTITY,
     NODE_PERSON,
     NODE_POST,
+    NODE_PROJECT,
 )
 from lineageweave.ontology import (
     LOOKUP_CODE,
@@ -39,12 +45,14 @@ _SEED_SCRIPT_PATH = Path(__file__).resolve().parents[1] / "scripts" / "seed_demo
 # 0012 (ADR 0006: prov_person/prov_organization), 0014 (ADR 0007:
 # prov_team), 0016 (ADR 0009: node_team/edge_mention_team/
 # edge_team_affiliation/edge_mention_organization), and 0042 (ADR 0207:
-# the five governed voc_type post-type codes).
+# the five governed voc_type post-type codes), and 0220 (ADR 0222:
+# node_project/edge_mention_project).
 _ADDITIONAL_LOOKUP_MIGRATION_PATHS = (
     Path(__file__).resolve().parents[1] / "migrations" / "0060_role_responsibility_agent_type.sql",
     Path(__file__).resolve().parents[1] / "migrations" / "0014_role_responsibility_team_actor_type.sql",
     Path(__file__).resolve().parents[1] / "migrations" / "0016_cross_post_actor_identity.sql",
     Path(__file__).resolve().parents[1] / "migrations" / "0042_voc_type_vocabulary.sql",
+    Path(__file__).resolve().parents[1] / "migrations" / "0220_ontology_project_node.sql",
 )
 
 # The categories this ontology covers (ADR 0004's scope, extended by
@@ -124,8 +132,10 @@ def test_knowledge_graph_lookup_constants_are_declared_in_the_ontology() -> None
         NODE_PERSON,
         NODE_CORPORATE_ENTITY,
         NODE_POST,
+        NODE_PROJECT,
         EDGE_MENTION,
         EDGE_AFFILIATION,
+        EDGE_MENTION_PROJECT,
         EDGE_CO_MENTION,
     ):
         assert code in declared, f"{code} is written by knowledge_graph.py but missing from lineageweave-kg.ttl"
@@ -149,8 +159,49 @@ def test_ontology_annotations_carry_iri_and_label_for_a_node_type() -> None:
     assert ontology_annotations("node_corporate_entity")["ontology_label"] == "Corporate entity"
 
 
+def test_ontology_annotations_use_skos_preferred_labels_for_concepts() -> None:
+    """Controlled concepts expose their authored SKOS labels to API callers."""
+    expected = {
+        "group": "Group",
+        "company": "Company",
+        "plant": "Plant",
+        "voc": "Voice of Customer",
+        "vocc": "Voice of Customer's Customer",
+        "voco": "Voice of Competitor",
+        "vom": "Voice of Market",
+        "vop": "Voice of Partner",
+    }
+    assert {code: ontology_annotations(code)["ontology_label"] for code in expected} == expected
+
+
+def test_every_declared_lookup_term_has_one_runtime_label() -> None:
+    """Every governed lookup term is readable wherever its IRI is exposed."""
+    graph = load_ontology()
+    for code in all_declared_lookup_codes():
+        annotation = ontology_annotations(code)
+        assert annotation["ontology_iri"]
+        assert annotation["ontology_label"]
+        subject = URIRef(annotation["ontology_iri"])
+        labels = list(graph.objects(subject, RDFS.label)) or list(
+            graph.objects(subject, SKOS.prefLabel)
+        )
+        assert [str(label) for label in labels] == [annotation["ontology_label"]]
+
+
 def test_ontology_annotations_are_empty_for_an_undeclared_code() -> None:
     assert ontology_annotations("not_a_real_lookup_code") == {}
+
+
+def test_ontology_annotations_fail_closed_when_declared_term_has_no_label(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    graph = Graph()
+    subject = URIRef("https://example.invalid/Unlabelled")
+    graph.add((subject, LOOKUP_CODE, Literal("unlabelled")))
+    monkeypatch.setattr("lineageweave.ontology.ONTOLOGY", graph)
+
+    with pytest.raises(ValueError, match="has no readable label"):
+        ontology_annotations("unlabelled")
     # `open` is a real ticket_status lookup code this ontology
     # deliberately does not cover -- missing, not a fake label.
     assert ontology_annotations("open") == {}
@@ -240,6 +291,7 @@ def test_semantic_project_terms_preserve_post_evidence_and_confidence() -> None:
     )
     assert (LW.mentionsProject, RDFS.domain, LW.Post) in graph
     assert (LW.mentionsProject, RDFS.range, LW.Project) in graph
+    assert (LW.mentionsProject, RDFS.label, Literal("mentions project", lang="en")) in graph
     assert (LW.projectEvidence, RDFS.domain, LW.ProjectMention) in graph
     assert (LW.projectEvidence, RDFS.range, XSD.string) in graph
     assert (LW.semanticConfidence, RDFS.range, XSD.decimal) in graph

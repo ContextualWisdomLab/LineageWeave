@@ -30,6 +30,7 @@ def test_rendered_compose_keeps_embedding_selection_upstream(tmp_path: Path) -> 
     config = json.loads(rendered.stdout)
     orchestrator_environment = config["services"]["orchestrator"]["environment"]
     backend_environment = config["services"]["backend"]["environment"]
+    backend_dependencies = config["services"]["backend"]["depends_on"]
 
     assert "LLM_GATEWAY_EMBEDDING_MODEL" not in orchestrator_environment
     assert "LLM_GATEWAY_EMBEDDING_PROVIDER" not in orchestrator_environment
@@ -40,6 +41,18 @@ def test_rendered_compose_keeps_embedding_selection_upstream(tmp_path: Path) -> 
     assert config["services"]["orchestrator"]["healthcheck"]["test"][-1].find(
         "/healthz"
     ) >= 0
+    assert backend_dependencies["backend-worker"]["condition"] == "service_healthy"
+    assert config["services"]["backend-worker"]["command"] == [
+        "python",
+        "-m",
+        "backend.app.worker",
+    ]
+    assert config["services"]["backend-worker"]["healthcheck"]["test"] == [
+        "CMD",
+        "python",
+        "-m",
+        "backend.app.worker_health",
+    ]
 
 
 def test_lineage_clients_do_not_select_an_embedding_model() -> None:

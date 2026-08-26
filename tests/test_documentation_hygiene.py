@@ -118,19 +118,28 @@ def test_role_catalog_identity_migration_is_wired() -> None:
 
 def test_orchestrator_runtime_pin_matches_adr() -> None:
     """The image pin and ADR must describe the same immutable upstream commit."""
-    expected_embedding_contract_commit = "a504be59fd2a7f070d8a12b50826765e79b68fd3"
+    expected_embedding_contract_commit = "db3e9d883123332fc1164fcd986f961ba8195b53"
     dockerfile = (
         _ROOT / "docker" / "contextual-orchestrator" / "Dockerfile"
     ).read_text(encoding="utf-8")
     adr = (_ADR_DIRECTORY / "0083-orchestrator-runtime-commit-pin.md").read_text(
         encoding="utf-8"
     )
+    compose = (_ROOT / "docker-compose.yml").read_text(encoding="utf-8")
     docker_match = re.search(r"archive/([0-9a-f]{40})\.tar\.gz", dockerfile)
     adr_match = re.search(r"commit `([0-9a-f]{40})`", adr)
     assert docker_match is not None
     assert adr_match is not None
     assert docker_match.group(1) == adr_match.group(1)
     assert docker_match.group(1) == expected_embedding_contract_commit
+    assert (
+        "image: ${COMPOSE_PROJECT_NAME:-lineageweave}-orchestrator:"
+        + expected_embedding_contract_commit
+    ) in compose
+    assert (
+        f'org.opencontainers.image.revision="{expected_embedding_contract_commit}"'
+        in dockerfile
+    )
 
 
 def test_embedding_bootstrap_contract_keeps_request_model_free() -> None:

@@ -86,6 +86,14 @@ class _MixedValidityRegionVisionClient(_PartialRegionVisionClient):
         )
 
 
+class _TiledRegionVisionClient(_PartialRegionVisionClient):
+    def locate_regions(self, image_bytes: bytes, mime_type: str) -> tuple[ImageRegion, ...]:
+        return (
+            ImageRegion(0.0, 0.0, 0.5, 1.0),
+            ImageRegion(0.5, 0.0, 0.5, 1.0),
+        )
+
+
 class _LocatorFailureVisionClient(_FakeVisionClient):
     def locate_regions(self, image_bytes: bytes, mime_type: str) -> tuple[ImageRegion, ...]:
         raise RuntimeError("synthetic locator outage")
@@ -320,6 +328,20 @@ def test_partial_region_response_retains_panel_and_parent_evidence() -> None:
 
     assert result.image_results[0].regions[0].region == ImageRegion(0.25, 0.25, 0.25, 0.25)
     assert client.describe_calls == 2
+
+
+def test_tiled_regions_still_retain_parent_image_evidence() -> None:
+    b64 = base64.b64encode(_PNG_1X1).decode("ascii")
+    client = _TiledRegionVisionClient(
+        ImageDescription(extracted_text="source", caption="source", tags=())
+    )
+
+    result = normalize_post_body(
+        f'<img src="data:image/png;base64,{b64}"/>', vision_client=client
+    )
+
+    assert len(result.image_results[0].regions) == 2
+    assert client.describe_calls == 3
 
 
 def test_partial_region_parent_failure_keeps_successful_panel_evidence() -> None:

@@ -74,6 +74,7 @@ def test_worker_process_owns_all_three_durable_consumers(monkeypatch) -> None:
     monkeypatch.setattr(worker, "_embedding_client", lambda: object())
     monkeypatch.setattr(worker, "_post_structure_client", lambda: object())
     monkeypatch.setattr(worker, "_post_chat_client", lambda **_kwargs: object())
+    monkeypatch.setattr(worker, "run_worker_heartbeat", lambda: _async_value(None))
     monkeypatch.setattr(
         worker, "run_analysis_run_worker", lambda *a, **kw: called("analysis", *a, **kw)
     )

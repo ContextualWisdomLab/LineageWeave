@@ -66,6 +66,23 @@ _UNEXPECTED_FAILURE_DETAIL = (
 )
 
 
+def _bounded_failure_error_type(error: Exception | None) -> str | None:
+    """Map exceptions to a closed operational taxonomy without module or message."""
+    if error is None:
+        return None
+    for exception_type, code in (
+        (HttpClientError, "http_client_error"),
+        (TimeoutError, "timeout_error"),
+        (KeyError, "key_error"),
+        (OSError, "os_error"),
+        (ValueError, "value_error"),
+        (RuntimeError, "runtime_error"),
+    ):
+        if isinstance(error, exception_type):
+            return code
+    return "internal_error"
+
+
 async def _operations_evidence_sources(
     pool: asyncpg.Pool,
     post_id: str,
@@ -482,6 +499,9 @@ async def _finish_failed_job(
                 orchestrator_error_code=getattr(error, "remote_error_code", None),
                 retryable=getattr(error, "retryable", None),
                 session_correlation_id=session_correlation_id,
+                failure_error_type=_bounded_failure_error_type(error),
+                failure_validation_code=getattr(error, "validation_code", None),
+                failure_validation_path=getattr(error, "validation_path", None),
             )
 
 
@@ -611,6 +631,10 @@ async def process_post_content_job(
                     failure_code=_INCOMPLETE_FAILURE_CODE,
                     detail_text="post-content providers did not produce complete persisted evidence",
                     expected_attempt_count=attempt_count,
+                    channel_stage_code=channel_stage_code,
+                    session_correlation_id=metadata.get(
+                        "lineageweave_post_session_id"
+                    ),
                 )
                 return
             if (

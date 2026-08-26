@@ -34,6 +34,14 @@ instruction such as “extract Keyman” as source-post content. Existing posts
 are reprocessed only by an explicit operator backfill with selected post IDs;
 the buyer read path never starts an unbounded VISION job.
 
+The locator contract does not carry an authoritative assertion that a set of
+boxes exhausts the source image. LineageWeave therefore requests parent-image
+evidence whenever it accepts any proper subregion, even when the returned
+rectangles appear to tile the normalized plane. It does not estimate coverage
+from sampled points or implement rectangle-union arithmetic locally. A single
+explicit `(0, 0, 1, 1)` locator result is treated as the parent image rather
+than persisted as a decomposed region.
+
 ## Consequences
 
 - Search can attribute a hit to a document image and a specific visual panel.
