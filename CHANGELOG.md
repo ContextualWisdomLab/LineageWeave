@@ -8,6 +8,10 @@ All notable changes to this project are documented here. Format follows
 
 ### Changed
 
+- Docker Compose now has one canonical `lineageweave` project containing the
+  complete synthetic product stack. The backend receives the existing TEPP API
+  credential contract, and the OIDC smoke target installs its declared backend
+  dependencies before verifying the live Keycloak signature.
 - Rankings now call RankWeave's parameter-free classic RRF path when no
   calibrated weights exist and project RankWeave-owned channel contributions;
   the prior local contribution arithmetic and invalid all-ones call to the
