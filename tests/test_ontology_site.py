@@ -81,6 +81,8 @@ def test_build_publishes_dereferenceable_html_and_machine_formats(tmp_path: Path
     assert 'href="#Post"' in html
     assert "LineageWeave Knowledge Graph Ontology" in html
     assert "ontology.ttl" in html
+    assert 'Turtle <small>generated equivalent</small>' in html
+    assert "authoritative source" not in html
     assert "ontology.jsonld" in html
     assert "ontology.nt" in html
     assert "lineageweave-kg-shapes.ttl" in html
