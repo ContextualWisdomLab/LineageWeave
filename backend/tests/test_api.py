@@ -5778,6 +5778,14 @@ def test_seed_period_report_surfaces_on_get_reports(client, demo_analyst_token, 
         for pair in leftover_thread.get("leftover_pairs", [])
     )
     assert all(
+        "leftover_map_cross_share" in pair
+        and (
+            pair["leftover_map_cross_share"] is None
+            or isinstance(pair["leftover_map_cross_share"], (int, float))
+        )
+        for pair in leftover_thread.get("leftover_pairs", [])
+    )
+    assert all(
         "leftover_map_explained_share" in pair
         and (
             pair["leftover_map_explained_share"] is None
