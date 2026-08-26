@@ -21,7 +21,7 @@ provenance.
    exactly `ordinal`, `speaker`, `text`, and `evidence_reference`; ordinals are
    the contiguous integers beginning at zero. Speaker and text are explicit
    source values, never inferred from body syntax or account metadata.
-3. Each text is bounded to 8,000 Unicode scalar values, a turn list to 32
+3. Each text is bounded to 8,000 characters, a turn list to 32
    entries, and the complete UTF-8 serialized envelope to 24,000 bytes. These are exactly
    the existing post-structure unit, unit-batch, and provider request-body
    transport limits. Speaker and opaque evidence-reference strings must be
