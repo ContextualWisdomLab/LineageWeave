@@ -1,4 +1,4 @@
-# ADR 0232: Post-scoped source-reference research
+# ADR 0247: Post-scoped source-reference research
 
 **Status:** Accepted
 **Date:** 2026-08-26
@@ -13,7 +13,7 @@ judgment, and a persisted research citation.
 ADR 0005 verifies an already extracted ontology relation with a presence or
 absence search signal. ADR 0215 verifies Global Ask public claims from SearXNG
 snippets and **never fetches result URLs**. Those contracts stay unchanged.
-Source-reference research needs the retrieved page itself because the buyer
+Source-reference research needs the retrieved page itself because the reader
 next action is to open the cited public resource and compare it with this
 post's source unit or image region.
 
@@ -31,8 +31,11 @@ its own public-target SSRF and redirect rejection.
    `unit_text`) or `post_content_image_region` rows with caption or extracted
    text. The workflow does not invent a unit, region, claim, or score.
 3. SearXNG search reuses the self-hosted `SEARXNG_BASE_URL` boundary already
-   used by ADR 0005 and ADR 0215. At most three leads and at most five search
-   results per lead are admitted.
+   used by ADR 0005 and ADR 0215. The deployment must explicitly provide
+   positive `SOURCE_RESEARCH_MAXIMUM_LEADS` and
+   `SOURCE_RESEARCH_MAXIMUM_RESULTS` resource budgets. No undocumented default
+   or evidence-free ranking threshold is inferred; without both budgets the
+   channel is unavailable.
 4. Result retrieval is a distinct public-target client: HTTP(S) only, no
    userinfo, no localhost or `.local` hosts, no non-global resolved addresses
    including IPv4-mapped forms, no search-engine hosts, redirects refused, and
@@ -51,7 +54,7 @@ its own public-target SSRF and redirect rejection.
 
 ## Consequences
 
-- Buyers can research a public post's own source unit or image region without
+- Readers can research a public post's own source unit or image region without
   mixing Global Ask snippet verification into the same table.
 - Private posts remain inside the authorization boundary.
 - Redirect-based SSRF and DNS rebinding are rejected at the retrieval client,

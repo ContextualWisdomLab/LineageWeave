@@ -5,6 +5,7 @@ import asyncio
 from backend.app.source_research_ingestion import research_post_sources_from_pool
 from lineageweave.source_reference_research import (
     JUDGMENT_SUPPORTED,
+    JUDGMENT_UNAVAILABLE,
     LEAD_SEMANTIC_UNIT,
     NEXT_ACTION,
     NO_LEAD_UNAVAILABLE,
@@ -66,6 +67,7 @@ class _Pool:
 
 class _Client:
     available = True
+    maximum_leads = 1
 
     def __init__(self, pool: _Pool) -> None:
         self.pool = pool
@@ -87,9 +89,11 @@ class _Client:
 
 
 class _OneMalformedClient(_Client):
+    maximum_leads = 2
+
     def research(self, lead: SourceResearchLead) -> SourceResearchCitation:
-        if lead.lead_source_unit_id == "unit-bad":
-            raise ValueError("malformed adjudication")
+        if lead.lead_source_unit_id == "unit-2":
+            raise ValueError("malformed provider response")
         return super().research(lead)
 
 
@@ -133,29 +137,32 @@ def test_public_research_releases_the_pool_during_search() -> None:
     assert conn.executed[0][1][2] == "unit-1"
 
 
-def test_malformed_adjudication_keeps_other_leads_and_records_unavailable() -> None:
+def test_malformed_adjudication_fails_closed_for_only_its_lead() -> None:
     conn = _Connection(
         [
             {
-                "post_content_unit_id": "unit-bad",
+                "post_content_unit_id": "unit-1",
                 "unit_kind_code": "plain_text",
-                "unit_text": "First excerpt",
+                "unit_text": "Demo Corp delayed Apollo.",
             },
             {
-                "post_content_unit_id": "unit-good",
+                "post_content_unit_id": "unit-2",
                 "unit_kind_code": "plain_text",
-                "unit_text": "Second excerpt",
+                "unit_text": "A second synthetic passage.",
             },
         ]
     )
     pool = _Pool(conn)
     run = asyncio.run(
         research_post_sources_from_pool(
-            pool, _OneMalformedClient(pool), "post-public", "public"
+            pool,
+            _OneMalformedClient(pool),
+            "post-public",
+            "public",
         )
     )
     assert [citation.judgment_code for citation in run.citations] == [
-        "research_unavailable",
         JUDGMENT_SUPPORTED,
+        JUDGMENT_UNAVAILABLE,
     ]
     assert len(conn.executed) == 2

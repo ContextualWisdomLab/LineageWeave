@@ -246,10 +246,10 @@ from lineageweave.relation_verification import (
     SearxngRelationVerificationClient,
 )
 from lineageweave.source_reference_research import (
-    NullSourceResearchClient,
     PRIVATE_POST_UNAVAILABLE,
-    SearxngOrchestratedSourceResearchClient,
     VISIBILITY_PUBLIC,
+    NullSourceResearchClient,
+    SearxngOrchestratedSourceResearchClient,
 )
 from lineageweave.semantic_hints import customer_hint_trust, format_semantic_hints
 from lineageweave.semantic_query import (
@@ -422,12 +422,16 @@ def _source_research_client():
         settings.searxng_base_url
         and settings.orchestrator_base_url
         and settings.orchestrator_api_key
+        and settings.source_research_maximum_leads is not None
+        and settings.source_research_maximum_results is not None
     ):
         return NullSourceResearchClient()
     return SearxngOrchestratedSourceResearchClient(
         settings.searxng_base_url,
         settings.orchestrator_base_url,
         settings.orchestrator_api_key,
+        maximum_leads=settings.source_research_maximum_leads,
+        maximum_results=settings.source_research_maximum_results,
     )
 
 
@@ -2431,9 +2435,9 @@ async def read_post_research_citations(
         "post_id": str(post["post_id"]),
         "visibility_code": post["visibility_code"],
         "unavailable_reason": (
-            None
-            if post["visibility_code"] == VISIBILITY_PUBLIC
-            else PRIVATE_POST_UNAVAILABLE
+            PRIVATE_POST_UNAVAILABLE
+            if str(post["visibility_code"]) != VISIBILITY_PUBLIC
+            else None
         ),
         "citations": [
             {
@@ -2470,7 +2474,7 @@ async def research_post_source_references(
 
     _require_post_admin(account)
     post = await _load_visible_post(post_id, account, pool)
-    if post["visibility_code"] != VISIBILITY_PUBLIC:
+    if str(post["visibility_code"]) != VISIBILITY_PUBLIC:
         return {
             "post_id": str(post["post_id"]),
             "visibility_code": post["visibility_code"],
@@ -2481,7 +2485,8 @@ async def research_post_source_references(
     if not client.available:
         raise HTTPException(
             status.HTTP_503_SERVICE_UNAVAILABLE,
-            "Source research is unavailable: set SEARXNG_BASE_URL and ORCHESTRATOR_BASE_URL",
+            "Public research is unavailable. Ask an administrator to enable it, "
+            "then try again.",
         )
     try:
         with use_llm_metadata(build_post_llm_metadata(post_id, post)):
@@ -2494,19 +2499,21 @@ async def research_post_source_references(
     except (HttpClientError, OSError, ValueError) as exc:
         raise HTTPException(
             status.HTTP_503_SERVICE_UNAVAILABLE,
-            "Source research is unavailable: the search or retrieval provider did not respond",
+            "Public research could not be completed. Try again later or review "
+            "this post's existing evidence.",
         ) from exc
     except Exception as exc:  # noqa: BLE001 - provider boundary is fail-closed.
         raise HTTPException(
             status.HTTP_503_SERVICE_UNAVAILABLE,
-            "Source research is unavailable: the search or retrieval provider did not respond",
+            "Public research could not be completed. Try again later or review "
+            "this post's existing evidence.",
         ) from exc
     await publish_activity_event(
         valkey,
         post_id,
         "source_research_checked",
         account.user_account_id,
-        f"Public evidence reviewed: {len(run.citations)} item(s)",
+        f"Public sources reviewed: {len(run.citations)} item(s)",
     )
     return {
         "post_id": run.post_id,

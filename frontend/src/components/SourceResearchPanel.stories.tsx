@@ -11,7 +11,7 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 
 const nextAction =
-  "Open the cited public resource, then compare it with the highlighted post evidence.";
+  "Open the cited public resource, then compare it with the highlighted passage or image detail from this post.";
 
 export const SupportedAndUnavailable: Story = {
   args: {
@@ -28,7 +28,7 @@ export const SupportedAndUnavailable: Story = {
         evidence_title_text: "Public Apollo evidence",
         evidence_excerpt_text: "The published notice describes the delay.",
         judgment_code: "research_supported",
-        rationale_text: "The retrieved page matches the highlighted excerpt.",
+        rationale_text: "The retrieved page matches the highlighted passage.",
         next_action_text: nextAction,
       },
       {
@@ -41,7 +41,7 @@ export const SupportedAndUnavailable: Story = {
         evidence_title_text: null,
         evidence_excerpt_text: null,
         judgment_code: "research_unavailable",
-        rationale_text: "No usable public resource was found. Try again later or review the post evidence manually.",
+        rationale_text: "No usable public resource was found. Try again later or review this post's existing evidence.",
         next_action_text: nextAction,
       },
     ],
@@ -61,12 +61,12 @@ export const SupportedAndUnavailable: Story = {
 export const PrivatePost: Story = {
   args: {
     citations: [],
-    unavailableReason: "Make this post public before researching external sources.",
+    unavailableReason: "Public research is unavailable for this post. Review its existing evidence instead.",
   },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     await expect(
       canvas.getByRole("status"),
-    ).toHaveTextContent("Make this post public before researching external sources.");
+    ).toHaveTextContent("Public research is unavailable for this post. Review its existing evidence instead.");
   },
 };

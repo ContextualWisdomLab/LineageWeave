@@ -17,12 +17,20 @@ operator-facing control you can click before changing product CSS.
 | `Chrome/PopupCloseButton` | Close the evidence panel or post popup. | `--space-close-inset`, `--font-size-close`, `PopupCloseButton` |
 | `Workspace/WorkspaceCalendar` | Read observed Naruon events, or open a commitment to land on that post. Fail-closed copy stays `이 범위의 일정을 아직 받을 수 없습니다`. | `--color-chip-border`, `WorkspaceCalendar`, `EvidenceStatusMark` |
 | `Ask Agent/Public claim verification` | Compare supported, refuted, and not-enough-information states; open only the external evidence link, then review the separate internal citation before changing governed graph state. | `--space-panel-block`, `--space-control-gap`, `--color-border`, `--size-control-min`, `PublicClaimVerification` |
-| `Post/Source research` | Open the cited public resource, then compare it with this post's source unit or image region. `SupportedAndUnavailable` and `PrivatePost` cover cited retrieval, fail-closed private egress, and the research action. | `--space-panel-block`, `--space-control-gap`, `--color-border`, `--size-control-min`, `SourceResearchPanel` |
+| `Post/Source research` | Open the cited public resource, then compare it with the highlighted passage or image detail from this post. `SupportedAndUnavailable` and `PrivatePost` cover cited retrieval, fail-closed private egress, and the research action. | `--space-panel-block`, `--space-control-gap`, `--color-border`, `--size-control-min`, `SourceResearchPanel` |
 | `Ask Agent/Knowledge cutoff` | Exercise partial historical grounding, retained-revision provenance, later-live-change disclosure, and the narrow viewport before relying on a historical answer. | Native `datetime-local`, `--space-panel-block`, `--space-control-gap`, `--color-border`, `--size-control-min` |
 
 Repeated web objects must use `frontend/src/styles/tokens.css` and a module
 under `frontend/src/components/`. Do not add a second Node package manager;
 Storybook is installed with the existing pnpm pin on Node 24.
+
+The `Post/Source research` candidate was rendered with synthetic evidence at
+1440×1000 and an iPhone 14 viewport. The governed captures are
+[`source-research-desktop.png`](screenshots/source-research-desktop.png) and
+[`source-research-mobile.png`](screenshots/source-research-mobile.png). Desktop
+and narrow inspection confirmed readable
+wrapping without horizontal overflow, a token-sized action control, visible
+link semantics, and customer-action copy without storage or provider names.
 
 ## References — APA 7th
 

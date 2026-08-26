@@ -83,8 +83,8 @@ describe("i18n", () => {
     "Review unavailable historical channels before relying on this cutoff answer.",
     "Compare these cutoff-grounded citations with live evidence next.",
     "Source research",
-    "Public evidence reviewed",
-    "Open the cited public resource, then compare it with the highlighted post evidence.",
+    "Public sources reviewed",
+    "Open the cited public resource, then compare it with the highlighted passage or image detail from this post.",
   ] as const;
 
   it("supports the five product locales", () => {

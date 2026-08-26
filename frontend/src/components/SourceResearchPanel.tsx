@@ -11,8 +11,8 @@ function judgmentLabel(code: string): string {
 
 function leadKindLabel(code: string): string {
   return code === "research_lead_image_region"
-    ? t("Image evidence")
-    : t("Post excerpt");
+    ? t("Image detail")
+    : t("Highlighted passage");
 }
 
 function isHttpUrl(url: string | null): url is string {
@@ -28,7 +28,7 @@ type Props = {
   onResearch?: () => void;
 };
 
-  /** Help readers compare a cited public resource with highlighted post evidence. */
+/** Help the reader compare cited evidence with the relevant post content. */
 export function SourceResearchPanel({
   citations,
   unavailableReason,
@@ -42,15 +42,12 @@ export function SourceResearchPanel({
       <div className="source-research-header">
         <h3>{t("Source research")}</h3>
         {canResearch && onResearch ? (
-          <details className="operator-action-tools">
-            <summary>{t("Evidence operations")}</summary>
-            <button type="button" onClick={onResearch} disabled={researching}>
-              {researching ? t("Researching...") : t("Research public sources")}
-            </button>
-          </details>
+          <button type="button" onClick={onResearch} disabled={researching}>
+            {researching ? t("Researching...") : t("Research public sources")}
+          </button>
         ) : null}
       </div>
-      <p>{t("Open the cited public resource, then compare it with the highlighted post evidence.")}</p>
+      <p>{t("Open the cited public resource, then compare it with the highlighted passage or image detail from this post.")}</p>
       {error ? <p className="error" role="alert">{error}</p> : null}
       {unavailableReason ? <p role="status">{unavailableReason}</p> : null}
       {citations.length === 0 && !unavailableReason ? (

@@ -11,6 +11,10 @@
   gap: var(--space-control-gap);
 }
 
+.source-research-header button {
+  min-height: var(--size-control-min);
+}
+
 .source-research-list {
   display: grid;
   gap: var(--space-panel-block);

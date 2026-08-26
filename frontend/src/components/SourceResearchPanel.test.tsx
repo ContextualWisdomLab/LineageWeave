@@ -4,7 +4,7 @@ import { describe, expect, it, vi } from "vitest";
 import { SourceResearchPanel } from "./SourceResearchPanel";
 
 const nextAction =
-  "Open the cited public resource, then compare it with the highlighted post evidence.";
+  "Open the cited public resource, then compare it with the highlighted passage or image detail from this post.";
 
 describe("SourceResearchPanel", () => {
   it("opens a cited public resource without following a javascript URL", async () => {
@@ -24,7 +24,7 @@ describe("SourceResearchPanel", () => {
             evidence_title_text: "Public Apollo evidence",
             evidence_excerpt_text: "The published notice describes the delay.",
             judgment_code: "research_supported",
-            rationale_text: "The retrieved page matches the highlighted excerpt.",
+            rationale_text: "The retrieved page matches the highlighted passage.",
             next_action_text: nextAction,
           },
           {
@@ -50,17 +50,18 @@ describe("SourceResearchPanel", () => {
     expect(screen.queryByRole("link", { name: "unsafe" })).not.toBeInTheDocument();
     await userEvent.click(screen.getByRole("button", { name: "Research public sources" }));
     expect(onResearch).toHaveBeenCalledOnce();
+    expect(screen.queryByText("Evidence operations")).not.toBeInTheDocument();
   });
 
   it("explains a private post without a research action", () => {
     render(
       <SourceResearchPanel
         citations={[]}
-        unavailableReason="Make this post public before researching external sources."
+        unavailableReason="Public research is unavailable for this post. Review its existing evidence instead."
       />,
     );
     expect(screen.getByRole("status")).toHaveTextContent(
-      "Make this post public before researching external sources.",
+      "Public research is unavailable for this post. Review its existing evidence instead.",
     );
     expect(screen.queryByRole("button", { name: "Research public sources" })).not.toBeInTheDocument();
   });
