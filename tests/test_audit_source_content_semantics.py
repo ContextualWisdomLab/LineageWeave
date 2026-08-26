@@ -6,6 +6,7 @@ from pathlib import Path
 
 import pytest
 from fast_mlsirm import SamplingStratum, finite_population_proportion_design
+from lineageweave.prov_o import PROV
 
 from scripts.audit_source_content_semantics import (
     SEMANTIC_DIMENSION_TERM_IRIS,
@@ -16,6 +17,7 @@ from scripts.audit_source_content_semantics import (
     aggregate_results,
     parse_batch_result,
     selected_contents,
+    terminal_semantic_coverage_evidence,
     validate_probability_sample_manifest,
     validate_sampling_design_artifact,
 )
@@ -111,6 +113,50 @@ def _rust_design_artifact() -> dict[str, object]:
         allocation_method="proportional",
     )
     return json.loads(json.dumps(asdict(design), sort_keys=True))
+
+
+def _simple_probability_evidence() -> tuple[dict[str, object], dict[str, object]]:
+    """Return a synthetic one-stratum manifest and its exact Rust design."""
+    design = finite_population_proportion_design(
+        1000,
+        0.95,
+        0.1,
+        [SamplingStratum(1000, 0.5)],
+        allocation_method="proportional",
+    )
+    selected_units = [
+        {
+            "ordinal": ordinal,
+            "selection_token_sha256": hashlib.sha256(
+                f"synthetic-simple-token-{ordinal}".encode()
+            ).hexdigest(),
+            "stratum_code": "synthetic-simple",
+        }
+        for ordinal in range(design.sample_size)
+    ]
+    manifest: dict[str, object] = {
+        "contract_kind": "lineageweave.semantic_coverage_probability_sample",
+        "contract_version": 3,
+        "population_size": design.population_size,
+        "sample_size": design.sample_size,
+        "design_code": "simple_random_without_replacement",
+        "provider_failures_retained": True,
+        "strata": [
+            {
+                "stratum_code": "synthetic-simple",
+                "population_size": design.population_size,
+                "sample_size": design.sample_size,
+                "inclusion_probability_numerator": design.sample_size,
+                "inclusion_probability_denominator": design.population_size,
+                "selection_frame_sha256": "c" * 64,
+            }
+        ],
+        "selected_units": selected_units,
+        "selection_manifest_sha256": hashlib.sha256(
+            json.dumps(selected_units, sort_keys=True, separators=(",", ":")).encode()
+        ).hexdigest(),
+    }
+    return manifest, json.loads(json.dumps(asdict(design), sort_keys=True))
 
 
 def test_parser_rejects_the_observed_100_to_60_cardinality_mismatch() -> None:
@@ -307,6 +353,109 @@ def test_rust_sampling_design_rejects_every_unbound_boundary() -> None:
     wrong_ratio["strata"][0]["inclusion_probability_numerator"] = 47
     with pytest.raises(ValueError, match="inclusion ratios"):
         validate_sampling_design_artifact(artifact, wrong_ratio)
+
+
+def test_terminal_semantic_coverage_binds_exact_interval_and_audit() -> None:
+    """A complete SRSWOR result receives Rust inference and an aggregate identity."""
+    manifest, artifact = _simple_probability_evidence()
+    sample_design, _ = validate_probability_sample_manifest(
+        manifest, manifest["sample_size"]
+    )
+    validate_sampling_design_artifact(artifact, manifest)
+    sample_count = manifest["sample_size"]
+    assert isinstance(sample_count, int)
+    aggregate = {
+        "complete": True,
+        "sample_count": sample_count,
+        "covered_count": sample_count,
+        "uncovered_count": 0,
+        "missing_semantic_dimension_counts": {},
+        "batch_count": 10,
+        "minimum_trace_step_count": 2,
+        "maximum_trace_step_count": 4,
+    }
+
+    result = terminal_semantic_coverage_evidence(
+        artifact,
+        sample_design,
+        aggregate,
+        Path("docs/ontology/lineageweave-kg.ttl"),
+    )
+
+    assert result["corpus_inference_available"] is True
+    terminal = result["rust_terminal_artifact"]
+    assert isinstance(terminal, dict)
+    assert terminal["design_artifact_sha256"] == artifact["artifact_sha256"]
+    assert terminal["estimated_proportion"] == 1.0
+    assert terminal["lower_proportion"] < 1.0
+    assert terminal["upper_proportion"] == 1.0
+    assert len(result["ontology_sha256"]) == 64
+    assert len(result["audit_artifact_sha256"]) == 64
+    assert len(result["prov_o_sha256"]) == 64
+    prov_o = result["prov_o"]
+    assert isinstance(prov_o, dict)
+    relations = {assertion["relation_iri"] for assertion in prov_o["assertions"]}
+    assert relations == {
+        str(PROV.used),
+        str(PROV.wasDerivedFrom),
+        str(PROV.wasGeneratedBy),
+    }
+    assert len(prov_o["resource_types"]) == 5
+    assert len(prov_o["assertions"]) == 7
+
+
+def test_terminal_semantic_coverage_fails_closed_or_stays_unavailable() -> None:
+    """Partial/tampered SRSWOR and unsupported stratified inference never open."""
+    stratified_manifest = _probability_manifest()
+    stratified_design, _ = validate_probability_sample_manifest(
+        stratified_manifest, 80
+    )
+    unavailable = terminal_semantic_coverage_evidence(
+        _rust_design_artifact(),
+        stratified_design,
+        {"complete": True, "sample_count": 80},
+        Path("docs/ontology/lineageweave-kg.ttl"),
+    )
+    assert unavailable == {
+        "corpus_inference_available": False,
+        "corpus_inference_unavailable_reason": (
+            "stratified_terminal_estimator_not_available"
+        ),
+    }
+
+    manifest, artifact = _simple_probability_evidence()
+    sample_design, _ = validate_probability_sample_manifest(
+        manifest, manifest["sample_size"]
+    )
+    sample_count = manifest["sample_size"]
+    assert isinstance(sample_count, int)
+    incomplete = {
+        "complete": True,
+        "sample_count": sample_count - 1,
+        "covered_count": sample_count - 1,
+        "uncovered_count": 0,
+    }
+    with pytest.raises(ValueError, match="complete design-sized"):
+        terminal_semantic_coverage_evidence(
+            artifact,
+            sample_design,
+            incomplete,
+            Path("docs/ontology/lineageweave-kg.ttl"),
+        )
+    tampered = deepcopy(artifact)
+    tampered["artifact_sha256"] = "f" * 64
+    with pytest.raises(ValueError, match="does not match"):
+        terminal_semantic_coverage_evidence(
+            tampered,
+            sample_design,
+            {
+                "complete": True,
+                "sample_count": sample_count,
+                "covered_count": sample_count,
+                "uncovered_count": 0,
+            },
+            Path("docs/ontology/lineageweave-kg.ttl"),
+        )
 
 
 @pytest.mark.parametrize(

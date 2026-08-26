@@ -19,7 +19,13 @@ from rdflib import Graph, URIRef
 from rdflib.namespace import OWL, RDF, RDFS, SKOS
 
 from lineageweave.http_client import chat_completion_content, post_json
-from lineageweave.prov_o import PROV, PROV_CLASSES, PROV_QUALIFICATIONS, PROV_RELATIONS
+from lineageweave.prov_o import (
+    PROV,
+    PROV_CLASSES,
+    PROV_QUALIFICATIONS,
+    PROV_RELATIONS,
+    ProvGraph,
+)
 
 SEMANTIC_DIMENSIONS = frozenset(
     {
@@ -377,6 +383,119 @@ def validate_sampling_design_artifact(
     }
 
 
+def terminal_semantic_coverage_evidence(
+    sample_design_artifact: Mapping[str, object],
+    sample_design: Mapping[str, object],
+    aggregate: Mapping[str, object],
+    ontology_path: Path,
+) -> dict[str, object]:
+    """Build a Rust-owned terminal SRSWOR result and aggregate audit identity."""
+    if sample_design.get("design_code") != "simple_random_without_replacement":
+        return {
+            "corpus_inference_available": False,
+            "corpus_inference_unavailable_reason": (
+                "stratified_terminal_estimator_not_available"
+            ),
+        }
+    from fast_mlsirm import (
+        SamplingStratum,
+        finite_population_achieved_proportion,
+        finite_population_proportion_design,
+    )
+
+    strata = sample_design_artifact.get("strata")
+    if not isinstance(strata, list) or len(strata) != 1:
+        raise ValueError("terminal SRSWOR evidence requires one design stratum")
+    stratum = strata[0]
+    if not isinstance(stratum, dict):
+        raise ValueError("terminal SRSWOR evidence requires one design stratum")
+    design = finite_population_proportion_design(
+        sample_design_artifact["population_size"],
+        sample_design_artifact["confidence_level"],
+        sample_design_artifact["margin_of_error"],
+        [SamplingStratum(stratum["population_size"], stratum["expected_proportion"])],
+        allocation_method=sample_design_artifact["allocation_method"],
+    )
+    if design.artifact_sha256 != sample_design_artifact.get("artifact_sha256"):
+        raise ValueError("terminal coverage design does not match the Rust artifact")
+    sample_count = aggregate.get("sample_count")
+    covered_count = aggregate.get("covered_count")
+    uncovered_count = aggregate.get("uncovered_count")
+    if (
+        aggregate.get("complete") is not True
+        or type(sample_count) is not int
+        or sample_count != design.sample_size
+        or type(covered_count) is not int
+        or type(uncovered_count) is not int
+        or covered_count + uncovered_count != sample_count
+    ):
+        raise ValueError("terminal coverage requires one complete design-sized audit")
+    achieved = finite_population_achieved_proportion(design, covered_count)
+    terminal_artifact = json.loads(json.dumps(asdict(achieved), sort_keys=True))
+    ontology_sha256 = hashlib.sha256(ontology_path.read_bytes()).hexdigest()
+    audit_identity = {
+        "selection_manifest_sha256": sample_design["selection_manifest_sha256"],
+        "ontology_sha256": ontology_sha256,
+        "terminal_artifact_sha256": terminal_artifact["artifact_sha256"],
+        "complete": True,
+        "sample_count": sample_count,
+        "covered_count": covered_count,
+        "uncovered_count": uncovered_count,
+        "missing_semantic_dimension_counts": aggregate.get(
+            "missing_semantic_dimension_counts"
+        ),
+        "batch_count": aggregate.get("batch_count"),
+        "minimum_trace_step_count": aggregate.get("minimum_trace_step_count"),
+        "maximum_trace_step_count": aggregate.get("maximum_trace_step_count"),
+    }
+    audit_artifact_sha256 = _canonical_sha256(audit_identity)
+    resource_iris = {
+        "selection": "urn:sha256:" + str(sample_design["selection_manifest_sha256"]),
+        "ontology": "urn:sha256:" + ontology_sha256,
+        "terminal": "urn:sha256:" + str(terminal_artifact["artifact_sha256"]),
+        "audit": "urn:sha256:" + audit_artifact_sha256,
+        "activity": "urn:lineageweave:semantic-coverage-audit:" + audit_artifact_sha256,
+    }
+    provenance = ProvGraph()
+    for name in ("selection", "ontology", "terminal", "audit"):
+        provenance.add_resource(resource_iris[name], "Entity")
+    provenance.add_resource(resource_iris["activity"], "Activity")
+    for name in ("selection", "ontology", "terminal"):
+        provenance.add_assertion(resource_iris["activity"], "used", resource_iris[name])
+        provenance.add_assertion(resource_iris["audit"], "wasDerivedFrom", resource_iris[name])
+    provenance.add_assertion(
+        resource_iris["audit"], "wasGeneratedBy", resource_iris["activity"]
+    )
+    prov_o = {
+        "resource_types": {
+            iri: sorted(types) for iri, types in sorted(provenance.resource_types.items())
+        },
+        "assertions": sorted(
+            (
+                {
+                    "subject_iri": assertion.subject_iri,
+                    "relation_iri": str(PROV[assertion.relation]),
+                    "object_iri": assertion.object_resource_iri,
+                }
+                for assertion in provenance.explicit_assertions
+            ),
+            key=lambda item: (
+                item["subject_iri"],
+                item["relation_iri"],
+                item["object_iri"],
+            ),
+        ),
+    }
+    return {
+        "corpus_inference_available": True,
+        "rust_terminal_artifact": terminal_artifact,
+        "ontology_sha256": ontology_sha256,
+        "audit_artifact_sha256": audit_artifact_sha256,
+        "prov_o": prov_o,
+        "prov_o_sha256": _canonical_sha256(prov_o),
+    }
+
+
 def parse_batch_result(
     content: str,
     expected_count: int,
@@ -709,6 +828,14 @@ async def audit_source_content(
         raise AssertionError(
             "validated semantic audit total does not match source sample"
         )
+    sample_design.update(
+        terminal_semantic_coverage_evidence(
+            cast(Mapping[str, object], sample_design_artifact),
+            sample_design,
+            result,
+            ontology_path,
+        )
+    )
     result["sample_design"] = sample_design
     result["attempted_count"] = sample_size
     result["failed_count"] = 0

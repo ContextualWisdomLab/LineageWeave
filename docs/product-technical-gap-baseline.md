@@ -83,16 +83,29 @@ caller supplies probability-sample manifest v3 with exact per-stratum
 inclusion-probability numerator/denominator pairs, per-stratum frame digests,
 ordered owner-token membership
 digests, retained provider failures, and a canonical selection-manifest digest.
-LineageWeave validates sample identity and completeness but deliberately emits
-`corpus_inference_available=false`: the current manifest does not contain an
-immutable estimator, variance, or achieved-interval artifact and therefore
-cannot support a corpus coverage estimate.
+LineageWeave validates sample identity and completeness. Historical sample
+outputs still emit `corpus_inference_available=false` because they predate a
+bound terminal estimator/variance/interval artifact and cannot be upgraded by
+copying their aggregate counts into a new envelope.
 The current candidate consumer separately replays the immutable
-`fast-mlsirm.sampling-design.v2` Rust artifact and binds its population,
+`fast-mlsirm.sampling-design.v1` Rust artifact and binds its population,
 ordered stratum populations, total sample size, allocation, and exact `(n_h,
 N_h)` inclusion ratios to the selected frame manifest. That proves design arithmetic provenance, not achieved
-semantic-coverage inference; `corpus_inference_available` remains false until a
-terminal Rust artifact also attests the estimator, variance, and interval.
+semantic-coverage inference. Stacked fast-mlsirm PR #1458 now adds the separate
+`fast-mlsirm.achieved-proportion.v1` Rust artifact for a complete one-stratum
+SRSWOR sample: it binds the design artifact and attests the achieved
+sample-proportion estimator, SRSWOR design variance, and exact Wang/Konijn
+equal-tailed hypergeometric interval. Its exhaustive small-population tests and
+Wang published-table oracle pass; the complete fast-mlsirm Python suite passed
+6,677 tests with 15 skips. LineageWeave's candidate consumer additionally
+binds the terminal artifact, selection-manifest digest, current ontology
+SHA-256, aggregate verdicts, and trace-count bounds into one audit SHA-256.
+It also emits a validated aggregate-only PROV-O graph linking the audit entity
+and activity to the selection manifest, ontology, and terminal Rust entity by
+content-addressed URNs; no source record identifier is exposed.
+This capability is not runtime evidence for the historical samples and is not
+protected-integrated while prerequisite fast-mlsirm PR #1445 and stacked PR
+#1458 remain open.
 
 A runtime-only simple random sample without replacement then selected 100 new
 records from an eligible frame of 43,714. The pre-augmentation audit accepted
@@ -161,8 +174,11 @@ credentials and model inventory.
 
 Remaining acceptance gaps:
 
-- ship an immutable Rust-owned estimator/variance/interval artifact for the
-  declared probability design before making any corpus coverage estimate;
+- protected-integrate fast-mlsirm PRs #1445 and #1458, then run a new complete
+  one-stratum probability sample through the exact terminal artifact before
+  making any corpus coverage estimate; the stratified path remains explicitly
+  unavailable until it has its own governed estimator, covariance, and
+  interval;
 - continue periodic independent and governed-stratum probability samples as
   the source changes; reconcile any newly uncovered meaning with public
   standards before adding a schema term, and never mint source-local codes as

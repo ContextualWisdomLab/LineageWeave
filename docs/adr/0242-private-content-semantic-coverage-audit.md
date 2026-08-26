@@ -91,10 +91,20 @@ Repository artifacts must not retain the private titles.
    design artifact and requires its population, ordered stratum populations,
    total sample size, stratum allocations, and Rust-attested exact inclusion
    ratios to match the separately bound selection manifest. The artifact accepts no caller hash or selected
-   membership. Until a later immutable terminal artifact also attests the
-   estimand, estimator, variance, and achieved interval, the script emits a
-   complete sample audit with
-   `corpus_inference_available=false`. Caller-recomputed hashes do not
+   membership. For a complete one-stratum SRSWOR audit, the immutable
+   `fast-mlsirm.achieved-proportion.v1` artifact binds that design artifact and
+   attests the sample-proportion estimand, SRSWOR design variance, and exact
+   Wang/Konijn equal-tailed hypergeometric interval. The script additionally
+   binds the terminal artifact, selection-manifest digest, ontology SHA-256,
+   aggregate verdict counts, and trace-count bounds into one audit SHA-256.
+   The same aggregate-only envelope carries a validated PROV-O graph: the
+   audit activity `prov:used` the selection manifest, ontology, and Rust
+   terminal entity; the audit entity `prov:wasGeneratedBy` that activity and
+   `prov:wasDerivedFrom` all three inputs. Resource IRIs are content-addressed
+   URNs, so no private source identifier enters the repository artifact.
+   Only that complete chain sets `corpus_inference_available=true`.
+   Stratified terminal inference remains unavailable rather than receiving an
+   invented variance or interval. Caller-recomputed hashes do not
    establish Rust provenance or authorize corpus inference. Confidence,
    margin, prior-proportion, or interval fields are not accepted as proof when
    no immutable owner artifact attests their computation.
@@ -110,9 +120,11 @@ The audit remains unavailable when contextual-orchestrator cannot complete all
 batches, preserving failures in the declared denominator instead of silently
 shrinking the sample. The observed 80-record result remains exploratory pipeline
 acceptance evidence. The Rust design artifact proves sample-size,
-finite-population-correction, and allocation provenance only. Even a complete
-probability sample remains sample-audit evidence until a terminal Rust artifact
-also proves the achieved estimator, variance, and interval.
+finite-population-correction, and allocation provenance only. A complete
+one-stratum SRSWOR audit becomes corpus inference evidence only when its Rust
+terminal artifact and aggregate audit identity also validate. This does not
+turn the point estimate into certainty: an all-success sample retains a lower
+exact confidence bound below one unless the sample is a census.
 
 ## References
 
@@ -137,3 +149,7 @@ https://www.itl.nist.gov/div898/handbook/ppc/section3/ppc333.htm
 National Institute of Standards and Technology. (n.d.). *Confidence limits*.
 In *NIST/SEMATECH e-handbook of statistical methods*.
 https://www.itl.nist.gov/div898/handbook/prc/section2/old.prc271.htm
+
+Wang, W. (2015). Exact optimal confidence intervals for hypergeometric
+parameters. *Journal of the American Statistical Association, 110*(512),
+1491–1499. https://doi.org/10.1080/01621459.2014.966191
