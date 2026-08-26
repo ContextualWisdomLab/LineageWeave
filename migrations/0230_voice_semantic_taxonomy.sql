@@ -1,4 +1,4 @@
--- ADR 0230: source-preserving, multi-membership voice taxonomy assertions.
+-- ADR 0244: source-preserving, multi-membership voice taxonomy assertions.
 create table if not exists post_voice_classification_assertion (
     classification_assertion_id uuid primary key default gen_random_uuid(),
     post_id uuid not null references source_post(post_id) on delete cascade,
@@ -60,36 +60,6 @@ create unique index if not exists post_voice_assertion_open_scope_idx
     on post_voice_classification_assertion
     (post_id, assertion_status_code, voice_concept_code)
     where valid_to is null;
-
-insert into post_voice_classification_assertion (
-    post_id, voice_concept_code, assertion_status_code,
-    evidence_sha256, source_revision_digest
-)
-select post.post_id,
-       lower(post.voc_type_code),
-       'source',
-       encode(sha256(convert_to(post.voc_type_code, 'UTF8')), 'hex'),
-       encode(sha256(convert_to(coalesce(post.post_body, ''), 'UTF8')), 'hex')
-  from source_post post
- where lower(post.voc_type_code) in ('voc', 'vocc', 'voco', 'vom', 'vop')
-on conflict (post_id, assertion_status_code, voice_concept_code)
-where valid_to is null
-do nothing;
-
--- Source labels are recorded provenance, not future business-event claims.
--- Repair rows written by an earlier replay of this migration without changing
--- a separately sourced assertion that happens to share the post and concept.
-update post_voice_classification_assertion assertion
-   set valid_from = null
-  from source_post post
- where assertion.post_id = post.post_id
-   and assertion.assertion_status_code = 'source'
-   and assertion.voice_concept_code = lower(post.voc_type_code)
-   and assertion.evidence_sha256 =
-       encode(sha256(convert_to(post.voc_type_code, 'UTF8')), 'hex')
-   and assertion.source_revision_digest =
-       encode(sha256(convert_to(coalesce(post.post_body, ''), 'UTF8')), 'hex')
-   and assertion.valid_from is not null;
 
 create or replace function reconcile_post_voice_source_assertion()
 returns trigger
@@ -175,6 +145,60 @@ drop trigger if exists source_post_voice_assertion_reconcile on source_post;
 create trigger source_post_voice_assertion_reconcile
 after insert or update of voc_type_code, post_body on source_post
 for each row execute function reconcile_post_voice_source_assertion();
+
+create table if not exists data_migration_completion (
+    migration_code text primary key,
+    completed_at timestamptz not null default current_timestamp
+);
+
+-- Install the trigger before recovering historical rows so every write after
+-- the backfill snapshot remains covered, including a write concurrent with or
+-- immediately after this block.
+do $source_assertion_backfill$
+begin
+    perform pg_advisory_xact_lock(
+        hashtextextended('0230_voice_source_assertion_backfill', 0)
+    );
+    if not exists (
+        select 1
+          from data_migration_completion
+         where migration_code = '0230_voice_source_assertion_backfill'
+    ) then
+        insert into post_voice_classification_assertion (
+            post_id, voice_concept_code, assertion_status_code,
+            evidence_sha256, source_revision_digest
+        )
+        select post.post_id,
+               lower(post.voc_type_code),
+               'source',
+               encode(sha256(convert_to(post.voc_type_code, 'UTF8')), 'hex'),
+               encode(sha256(convert_to(coalesce(post.post_body, ''), 'UTF8')), 'hex')
+          from source_post post
+         where lower(post.voc_type_code) in ('voc', 'vocc', 'voco', 'vom', 'vop')
+        on conflict (post_id, assertion_status_code, voice_concept_code)
+        where valid_to is null
+        do nothing;
+
+        -- Source labels are recorded provenance, not future business-event
+        -- claims. Repair rows written by an earlier migration revision without
+        -- changing a separately sourced assertion sharing the post and concept.
+        update post_voice_classification_assertion assertion
+           set valid_from = null
+          from source_post post
+         where assertion.post_id = post.post_id
+           and assertion.assertion_status_code = 'source'
+           and assertion.voice_concept_code = lower(post.voc_type_code)
+           and assertion.evidence_sha256 =
+               encode(sha256(convert_to(post.voc_type_code, 'UTF8')), 'hex')
+           and assertion.source_revision_digest =
+               encode(sha256(convert_to(coalesce(post.post_body, ''), 'UTF8')), 'hex')
+           and assertion.valid_from is not null;
+
+        insert into data_migration_completion (migration_code)
+        values ('0230_voice_source_assertion_backfill');
+    end if;
+end
+$source_assertion_backfill$;
 
 create table if not exists organization_voice_relationship_assertion (
     relationship_assertion_id uuid primary key default gen_random_uuid(),
