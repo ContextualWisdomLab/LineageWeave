@@ -44,12 +44,12 @@ export function FiveW1H({ slots }: { slots: FiveW1HSlot[] | null }) {
                       <li key={`${value.source}:${value.text}:${index}`}>
                         <strong>{value.text}</strong>
                         <details className="semantic-provenance">
-                          <summary>{t("Evidence provenance")}</summary>
+                          <summary>{t("Why this item is listed")}</summary>
                           <span className="post-badge">{evidenceSourceLabel(value.source)}</span>
                           {value.evidence_text ? <span>{value.evidence_text}</span> : null}
                           {value.ontology_codes.map((code) => (
                             <span className="post-badge" key={code}>
-                              {t("Ontology class")}: {t(value.ontology_annotations.ontology_label ?? code)}
+                              {t("Category")}: {t(value.ontology_annotations.ontology_label ?? code)}
                             </span>
                           ))}
                         </details>

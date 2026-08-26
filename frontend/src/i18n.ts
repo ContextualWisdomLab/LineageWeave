@@ -2110,6 +2110,45 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
   },
 };
 
+/** Customer-facing labels keep implementation vocabulary out of the reader UI. */
+const CUSTOMER_COPY: Record<Locale, Record<string, string>> = {
+  en: {
+    "View related information": "View related information",
+    "Related information": "Related information",
+    "Author context": "Author context",
+    "Record details": "Record details",
+    "Related projects": "Related projects",
+    "Why this item is listed": "Why this item is listed",
+    "Category": "Category",
+    "How this item was found": "How this item was found",
+    "Earlier source version": "Earlier source version",
+    "Loading related information...": "Loading related information...",
+    "Close record details": "Close record details",
+  },
+  ko: {
+    "View related information": "관련 정보 보기",
+    "Related information": "관련 정보",
+    "Author context": "작성자 맥락",
+    "Record details": "기록 세부 정보",
+    "Related projects": "관련 프로젝트",
+    "Why this item is listed": "이 항목이 표시된 이유",
+    "Category": "분류",
+    "How this item was found": "이 항목을 찾은 방법",
+    "Earlier source version": "이전 기록 버전",
+    "Loading related information...": "관련 정보를 불러오는 중...",
+    "Close record details": "기록 세부 정보 닫기",
+  },
+  zh: {
+    "View related information": "查看相关信息", "Related information": "相关信息", "Author context": "作者背景", "Record details": "记录详情", "Related projects": "相关项目", "Why this item is listed": "显示此项目的原因", "Category": "分类", "How this item was found": "此项目的发现方式", "Earlier source version": "较早的记录版本", "Loading related information...": "正在加载相关信息…", "Close record details": "关闭记录详情",
+  },
+  ja: {
+    "View related information": "関連情報を見る", "Related information": "関連情報", "Author context": "作成者の背景", "Record details": "記録の詳細", "Related projects": "関連プロジェクト", "Why this item is listed": "この項目が表示される理由", "Category": "分類", "How this item was found": "この項目の見つけ方", "Earlier source version": "以前の記録バージョン", "Loading related information...": "関連情報を読み込んでいます…", "Close record details": "記録の詳細を閉じる",
+  },
+  vi: {
+    "View related information": "Xem thông tin liên quan", "Related information": "Thông tin liên quan", "Author context": "Bối cảnh tác giả", "Record details": "Chi tiết bản ghi", "Related projects": "Dự án liên quan", "Why this item is listed": "Lý do mục này được hiển thị", "Category": "Phân loại", "How this item was found": "Cách tìm thấy mục này", "Earlier source version": "Phiên bản bản ghi trước đó", "Loading related information...": "Đang tải thông tin liên quan…", "Close record details": "Đóng chi tiết bản ghi",
+  },
+};
+
 function isLocale(value: string | null | undefined): value is Locale {
   return Boolean(value && SUPPORTED_LOCALES.includes(value as Locale));
 }
@@ -2163,7 +2202,7 @@ export function useLocale(): Locale {
 }
 
 export function t(key: string): string {
-  return TRANSLATIONS[currentLocale]?.[key] ?? key;
+  return CUSTOMER_COPY[currentLocale][key] ?? TRANSLATIONS[currentLocale]?.[key] ?? key;
 }
 
 export function tf(key: string, values: Record<string, string | number>): string {

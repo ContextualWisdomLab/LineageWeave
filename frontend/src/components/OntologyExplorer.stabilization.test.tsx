@@ -99,7 +99,7 @@ describe("OntologyExplorer stabilization contracts", () => {
 
     expect(
       screen.getByText(
-        "This neighborhood is bound to a knowledge cutoff. Compare with live evidence next.",
+        "This information reflects an earlier view. Compare it with the current record next.",
       ),
     ).toBeInTheDocument();
   });
@@ -150,7 +150,7 @@ describe("OntologyExplorer stabilization contracts", () => {
 
     expect(
       await screen.findByText(
-        "Neighborhood truncated. Load the next relation page or inspect one edge.",
+        "Some related information is not shown. Open a source post to continue.",
       ),
     ).toBeInTheDocument();
     await userEvent.click(screen.getByRole("button", { name: "Load next relation page" }));
@@ -251,7 +251,7 @@ describe("OntologyExplorer stabilization contracts", () => {
     });
     expect(
       screen.getByText(
-        "No visible ontology relations for this focus. Open a Keyman or affiliated organization next.",
+        "No related information is available. Open a visible post next.",
       ),
     ).toBeInTheDocument();
   });
