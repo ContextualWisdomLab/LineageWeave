@@ -59,7 +59,7 @@ def test_script_uses_one_connection_pool_and_closes_resources(
     async def create_pool(*_args: object, **_kwargs: object) -> Pool:
         return pool
 
-    async def enqueue(_pool: object, _client: object, **kwargs: object) -> dict[str, int | bool]:
+    async def enqueue(_pool: object, _client: object, **kwargs: object) -> dict[str, int]:
         assert (_pool, _client) == (pool, client)
         assert kwargs == {
             "limit": 12,

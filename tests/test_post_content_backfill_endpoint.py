@@ -51,14 +51,13 @@ def test_backfill_endpoint_only_enqueues_durable_work(
     """The accepted response delegates once and never invokes a provider."""
     observed: dict[str, object] = {}
 
-    async def enqueue(pool: object, valkey: object, **kwargs: object) -> dict[str, int | bool]:
+    async def enqueue(pool: object, valkey: object, **kwargs: object) -> dict[str, int]:
         observed.update(pool=pool, valkey=valkey, **kwargs)
         return {
             "selected_posts": 1,
             "queued_posts": 1,
             "published_events": 1,
             "recovery_pending": 0,
-            "has_more": False,
         }
 
     monkeypatch.setattr(main, "enqueue_post_content_backfill", enqueue)
@@ -97,14 +96,13 @@ def test_backfill_endpoint_does_not_require_missing_model_evidence(
     """An unwired orchestrator remains unavailable instead of being fabricated."""
     observed: dict[str, object] = {}
 
-    async def enqueue(_pool: object, _valkey: object, **kwargs: object) -> dict[str, int | bool]:
+    async def enqueue(_pool: object, _valkey: object, **kwargs: object) -> dict[str, int]:
         observed.update(kwargs)
         return {
             "selected_posts": 0,
             "queued_posts": 0,
             "published_events": 0,
             "recovery_pending": 0,
-            "has_more": False,
         }
 
     monkeypatch.setattr(main, "enqueue_post_content_backfill", enqueue)

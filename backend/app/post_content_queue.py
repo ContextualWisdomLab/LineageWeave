@@ -315,7 +315,7 @@ async def enqueue_post_content_backfill(
     limit: int,
     require_embedding: bool,
     require_structure: bool,
-) -> dict[str, int | bool]:
+) -> dict[str, int]:
     """Durably enqueue one bounded page of eligible incomplete source posts.
 
     PostgreSQL is committed before Valkey is touched.  A missing wake-up is
@@ -376,7 +376,6 @@ async def enqueue_post_content_backfill(
          for update of post skip locked
     """
     requests: list[PostContentJobRequest] = []
-    has_more = False
     async with pool.acquire() as conn:
         async with conn.transaction():
             # Safe SQL: the eligibility predicate is an immutable schema fragment; values are bound.
@@ -385,10 +384,9 @@ async def enqueue_post_content_backfill(
                 SUCCEEDED,
                 require_embedding,
                 require_structure,
-                limit + 1,
+                limit,
             )
-            has_more = len(rows) > limit
-            for row in rows[:limit]:
+            for row in rows:
                 post_id = str(row["post_id"])
                 complete = await post_content_is_complete(
                     conn,
@@ -414,11 +412,10 @@ async def enqueue_post_content_backfill(
         ):
             published += 1
     return {
-        "selected_posts": min(len(rows), limit),
+        "selected_posts": len(rows),
         "queued_posts": len(requests),
         "published_events": published,
         "recovery_pending": len(requests) - published,
-        "has_more": has_more,
     }
 
 

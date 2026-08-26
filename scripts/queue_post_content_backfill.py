@@ -44,7 +44,7 @@ async def queue_post_content_backfill(
     valkey_url: str,
     *,
     limit: int,
-) -> dict[str, int | bool]:
+) -> dict[str, int]:
     """Queue one bounded page through the shared durable producer."""
     if not 1 <= limit <= 200:
         raise ValueError("limit must be between 1 and 200")

@@ -63,11 +63,10 @@ def test_bounded_backfill_is_idempotent_and_broker_loss_stays_recoverable(
             assert "source_deleted_flag" in query
             assert "job.post_id is null or job.status_code = $1" in query
             assert "for update of post skip locked" in query.lower()
-            assert args == (SUCCEEDED, True, True, 3)
+            assert args == (SUCCEEDED, True, True, 2)
             return [
                 {"post_id": "00000000-0000-0000-0000-000000000001", "post_body": "one"},
                 {"post_id": "00000000-0000-0000-0000-000000000002", "post_body": "two"},
-                {"post_id": "00000000-0000-0000-0000-000000000003", "post_body": "three"},
             ]
 
     class Acquire:
@@ -113,7 +112,6 @@ def test_bounded_backfill_is_idempotent_and_broker_loss_stays_recoverable(
         "queued_posts": 2,
         "published_events": 1,
         "recovery_pending": 1,
-        "has_more": True,
     }
 
 
@@ -172,7 +170,6 @@ def test_backfill_skips_a_candidate_that_became_complete(
         "queued_posts": 0,
         "published_events": 0,
         "recovery_pending": 0,
-        "has_more": False,
     }
 
 

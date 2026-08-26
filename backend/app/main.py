@@ -821,7 +821,7 @@ async def queue_post_content_backfill(
     account: CurrentAccount = Depends(get_current_account),
     pool: asyncpg.Pool = Depends(get_pool),
     valkey: redis.Redis = Depends(get_valkey),
-) -> dict[str, int | bool]:
+) -> dict[str, int]:
     """Queue one bounded corpus page and return before semantic work runs."""
     _require_post_admin(account)
     settings = load_settings()
