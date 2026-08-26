@@ -103,6 +103,8 @@ describe("App, authenticated", () => {
     verificationEvidenceUrl?: string | null;
     failedLineageRun?: boolean;
     failLineageCreateOnce?: boolean;
+    failMeasurementStartOnce?: boolean;
+    secondFailedTeppRun?: boolean;
     runningLineageRun?: boolean;
     failedReportRun?: boolean;
     succeededReportRun?: boolean;
@@ -126,6 +128,7 @@ describe("App, authenticated", () => {
     lineageIsolationReason?: "comparison_candidates_available" | "no_comparison_group";
   }): ReturnType<typeof vi.fn> & { releaseMe: () => void; releasePostOne: () => void } {
     let lineageCreateFailed = false;
+    let measurementStartFailed = false;
     const statusLabel: Record<string, string> = {
       open: "Open",
       in_progress: "In progress",
@@ -672,6 +675,15 @@ describe("App, authenticated", () => {
         );
       }
       if (url.endsWith("/api/analysis-runs/run-demo-tepp-retry/start") && method === "POST") {
+        if (options?.failMeasurementStartOnce && !measurementStartFailed) {
+          measurementStartFailed = true;
+          return Promise.resolve(
+            new Response(JSON.stringify({ detail: "The response was interrupted." }), {
+              status: 503,
+              headers: { "Content-Type": "application/json" },
+            }),
+          );
+        }
         createdPendingTepp = {
           analysis_run_id: "run-demo-tepp-retry",
           run_kind_code: "analysis_run_tepp",
@@ -689,6 +701,26 @@ describe("App, authenticated", () => {
           visible_posts: [],
         };
         return Promise.resolve(jsonResponse(createdPendingTepp));
+      }
+      if (url.endsWith("/api/analysis-runs/run-demo-tepp-two")) {
+        return Promise.resolve(
+          jsonResponse({
+            analysis_run_id: "run-demo-tepp-two",
+            run_kind_code: "analysis_run_tepp",
+            run_kind_label: "TEPP measurement",
+            scope_kind_code: "analysis_scope_corporate_entity",
+            scope_kind_label: "Corporate entity",
+            scope_entity_name: "Other Demo Corp",
+            scope_corporate_entity_id: "corp-other",
+            status_code: "analysis_status_failed",
+            status_label: "Failed",
+            failure_code: "tepp_not_available",
+            knowledge_cutoff: "2026-01-12T12:00:00Z",
+            requested_at: "2026-01-12T12:39:00Z",
+            source_counts: [],
+            visible_posts: [],
+          }),
+        );
       }
       if (url.endsWith("/api/analysis-runs") && method === "POST") {
         const payload = init?.body ? JSON.parse(String(init.body)) : {};
@@ -766,6 +798,24 @@ describe("App, authenticated", () => {
               ...(cancelledRun ? [cancelledRun] : []),
               ...(createdPendingLineage ? [createdPendingLineage] : []),
               ...(createdPendingTepp ? [createdPendingTepp] : []),
+              ...(options?.secondFailedTeppRun
+                ? [
+                    {
+                      analysis_run_id: "run-demo-tepp-two",
+                      run_kind_code: "analysis_run_tepp" as const,
+                      run_kind_label: "TEPP measurement",
+                      scope_kind_code: "analysis_scope_corporate_entity",
+                      scope_kind_label: "Corporate entity",
+                      scope_entity_name: "Other Demo Corp",
+                      scope_corporate_entity_id: "corp-other",
+                      status_code: "analysis_status_failed" as const,
+                      status_label: "Failed",
+                      knowledge_cutoff: "2026-01-12T12:00:00Z",
+                      requested_at: "2026-01-12T12:39:00Z",
+                      source_counts: [],
+                    },
+                  ]
+                : []),
               {
                 analysis_run_id: "run-demo-lineage",
                 run_kind_code: "analysis_run_lineage",
@@ -3942,6 +3992,40 @@ describe("App, authenticated", () => {
     expect(createBodies[0].run_kind_code).toBe("analysis_run_lineage");
     expect(createBodies[1].run_kind_code).toBe("analysis_run_tepp");
     expect(createBodies[1].idempotency_key).not.toBe(createBodies[0].idempotency_key);
+  });
+
+  it("scopes an interrupted measurement retry key to its source run", async () => {
+    const fetchMock = stubBackend({
+      failMeasurementStartOnce: true,
+      secondFailedTeppRun: true,
+    });
+    render(<App showLabPanels />);
+
+    await userEvent.click(
+      await screen.findByRole("button", {
+        name: "Open analysis run: TEPP measurement · Failed · Demo Corp",
+      }),
+    );
+    await userEvent.click(screen.getByRole("button", { name: "Retry measurement" }));
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "Retry measurement" })).toBeEnabled(),
+    );
+    await userEvent.click(
+      screen.getByRole("button", {
+        name: "Open analysis run: TEPP measurement · Failed · Other Demo Corp",
+      }),
+    );
+    await userEvent.click(screen.getByRole("button", { name: "Retry measurement" }));
+
+    const retries = fetchMock.mock.calls
+      .filter(
+        (call) => String(call[0]).endsWith("/api/analysis-runs") && call[1]?.method === "POST",
+      )
+      .map((call) => JSON.parse(String(call[1]?.body)));
+    expect(retries).toHaveLength(2);
+    expect(retries[0].corporate_entity_id).toBe("corp-demo");
+    expect(retries[1].corporate_entity_id).toBe("corp-other");
+    expect(retries[1].idempotency_key).not.toBe(retries[0].idempotency_key);
   });
 
   it("does not tell a succeeded TEPP run to replace Failed", async () => {
