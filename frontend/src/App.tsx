@@ -2688,9 +2688,9 @@ function analysisRunNextAction(run: AnalysisRun): string | null {
     case "analysis_status_failed":
       switch (run.run_kind_code) {
         case "analysis_run_tepp":
-          return "Open this run to see why it failed, then connect the measurement service and re-run.";
+          return "Open this run to review the failure. Ask an administrator to restore measurement access, then re-run it.";
         case "analysis_run_topic_lineage":
-          return "Open this run to see why it failed, then connect the TEPP transport and re-run.";
+          return "Open this run to review the failure. Ask an administrator to restore topic measurement access, then re-run it.";
         case "analysis_run_lineage":
           return "Open this run to see why it failed, then retry reconstruction from a current snapshot.";
         case "analysis_run_report":
@@ -2701,7 +2701,7 @@ function analysisRunNextAction(run: AnalysisRun): string | null {
         }
       }
     case "analysis_status_running":
-      return "Refresh this run. Start already queued the work on the durable outbox.";
+      return "Refresh this run to check whether the work has finished.";
     case "analysis_status_succeeded":
     case "analysis_status_cancelled":
     case null:
@@ -3202,10 +3202,10 @@ function AnalysisRunsPanel({
           {analysisRunCanRequestTeppRetry(selected) && (
             <p className="post-meta">
               {selected.run_kind_code === "analysis_run_topic_lineage"
-                ? "Connect a TEPP transport from this Failed row. Request a " +
-                  "lineage reconstruction does not invent a topic model."
-                : "Connect a TEPP transport from this Failed row. Request a lineage " +
-                  "reconstruction does not invent a measurement."}
+                ? "Ask an administrator to restore topic measurement access, then re-run this analysis. " +
+                  "A lineage reconstruction will not produce a topic result."
+                : "Ask an administrator to restore measurement access, then re-run this analysis. " +
+                  "A lineage reconstruction will not produce a measurement."}
             </p>
           )}
           {analysisRunReportPeriod(selected) && onSelectReportPeriod && (

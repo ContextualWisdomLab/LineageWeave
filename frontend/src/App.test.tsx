@@ -650,7 +650,7 @@ describe("App, authenticated", () => {
               JSON.stringify({
                 detail:
                   payload.run_kind_code === "analysis_run_tepp"
-                    ? "Connect a TEPP transport from a Failed TEPP row; this endpoint does not invent a measurement."
+                    ? "Open the failed measurement run. Ask an administrator to restore measurement access before retrying; this request cannot produce a measurement."
                     : "Rebuild the period report from the Reports panel.",
               }),
               { status: 422, headers: { "Content-Type": "application/json" } },
@@ -3271,7 +3271,7 @@ describe("App, authenticated", () => {
     expect(list).toHaveTextContent("TEPP measurement · Failed · Demo Corp");
     expect(list).toHaveTextContent("Period report · Succeeded · Demo Corp");
     expect(list).toHaveTextContent(
-      "Open this run to see why it failed, then connect the measurement service and re-run.",
+      "Open this run to review the failure. Ask an administrator to restore measurement access, then re-run it.",
     );
     expect(list).toHaveTextContent("3 documents");
     expect(list).not.toHaveTextContent("postgresql://");
@@ -3421,7 +3421,7 @@ describe("App, authenticated", () => {
     expect(screen.queryByRole("heading", { name: "Body this run knew" })).not.toBeInTheDocument();
   });
 
-  it("tells a running lineage run to refresh the durable outbox", async () => {
+  it("tells a running lineage run to refresh for completion", async () => {
     stubBackend({ runningLineageRun: true });
     render(<App showLabPanels />);
 
@@ -3429,16 +3429,16 @@ describe("App, authenticated", () => {
       name: "Open analysis run: Lineage reconstruction · Running · Demo Corp",
     });
     expect(lineageButton).toHaveTextContent(
-      "Refresh this run. Start already queued the work on the durable outbox.",
+      "Refresh this run to check whether the work has finished.",
     );
     await userEvent.click(lineageButton);
     expect(screen.getByRole("button", { name: "Start reconstruction" })).toBeInTheDocument();
     expect(
-      screen.getAllByText("Refresh this run. Start already queued the work on the durable outbox."),
+      screen.getAllByText("Refresh this run to check whether the work has finished."),
     ).not.toHaveLength(0);
   });
 
-  it("does not tell a failed lineage run to connect the measurement service", async () => {
+  it("does not tell a failed lineage run to restore measurement access", async () => {
     stubBackend({ failedLineageRun: true });
     render(<App showLabPanels />);
 
@@ -3454,7 +3454,7 @@ describe("App, authenticated", () => {
     );
     expect(lineageButton).not.toHaveTextContent("measurement service");
     expect(teppButton).toHaveTextContent(
-      "Open this run to see why it failed, then connect the measurement service and re-run.",
+      "Open this run to review the failure. Ask an administrator to restore measurement access, then re-run it.",
     );
     expect(teppButton).not.toHaveTextContent("reconstruction");
   });
@@ -3723,7 +3723,7 @@ describe("App, authenticated", () => {
     }
   });
 
-  it("does not tell a failed period report to connect the measurement service", async () => {
+  it("does not tell a failed period report to restore measurement access", async () => {
     stubBackend({ failedReportRun: true });
     render(<App showLabPanels />);
 
@@ -3800,7 +3800,7 @@ describe("App, authenticated", () => {
     );
     expect(
       await screen.findByText(
-        "Connect a TEPP transport from this Failed row. Request a lineage reconstruction does not invent a measurement.",
+        "Ask an administrator to restore measurement access, then re-run this analysis. A lineage reconstruction will not produce a measurement.",
       ),
     ).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Request a new TEPP measurement" })).not.toBeInTheDocument();

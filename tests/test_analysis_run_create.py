@@ -144,11 +144,11 @@ def test_create_rejects_tepp_and_report_kinds_without_a_fake_score() -> None:
     with pytest.raises(AnalysisRunCreateError) as tepp:
         _require_lineage_create_kind("analysis_run_tepp")
     assert tepp.value.status_code == 422
-    assert "invent a measurement" in tepp.value.detail
+    assert "cannot produce a measurement" in tepp.value.detail
     with pytest.raises(AnalysisRunCreateError) as topic_lineage:
         _require_lineage_create_kind("analysis_run_topic_lineage")
     assert topic_lineage.value.status_code == 422
-    assert "invent a topic model" in topic_lineage.value.detail
+    assert "cannot produce a topic model" in topic_lineage.value.detail
     with pytest.raises(AnalysisRunCreateError) as report:
         _require_lineage_create_kind("analysis_run_report")
     assert report.value.status_code == 422
@@ -180,7 +180,7 @@ def test_create_pending_rejects_tepp_before_touching_the_registry() -> None:
                 idempotency_key="client-key-1",
             )
         assert err.value.status_code == 422
-        assert "invent a measurement" in err.value.detail
+        assert "cannot produce a measurement" in err.value.detail
 
     asyncio.run(_run())
 

@@ -102,4 +102,4 @@ def test_period_report_never_enters_the_start_outbox() -> None:
     report = start_kind_rejection("analysis_run_report")
     assert report is not None
     assert report.status_code == 422
-    assert "invent a measurement" in report.detail
+    assert "cannot produce a measurement" in report.detail
