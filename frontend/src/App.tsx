@@ -1834,6 +1834,7 @@ function PostDetailPopup({
   const [focusTeam, setFocusTeam] = useState<{ teamId: string; teamName: string } | null>(null);
   const [projectHistory, setProjectHistory] = useState<ProjectHistoryProjection | null>(null);
   const [projectHistoryError, setProjectHistoryError] = useState<string | null>(null);
+  const [projectHistoryLoading, setProjectHistoryLoading] = useState(false);
   const projectHistoryRequestRef = useRef(0);
   const contentReloadRef = useRef<() => void>(() => undefined);
   const dialogRef = useRef<HTMLDivElement>(null);
@@ -1844,11 +1845,14 @@ function PostDetailPopup({
     const requestedPostId = postId;
     setProjectHistory(null);
     setProjectHistoryError(null);
+    setProjectHistoryLoading(true);
     try {
       const projection = await fetchProjectHistory(accessToken, projectKey, requestedPostId, knowledgeCutoff);
       if (projectHistoryRequestRef.current === requestId) setProjectHistory(projection);
     } catch (historyError) {
       if (projectHistoryRequestRef.current === requestId) setProjectHistoryError(String(historyError));
+    } finally {
+      if (projectHistoryRequestRef.current === requestId) setProjectHistoryLoading(false);
     }
   }
 
@@ -1863,6 +1867,7 @@ function PostDetailPopup({
     dialogRef.current?.focus();
     setProjectHistory(null);
     setProjectHistoryError(null);
+    setProjectHistoryLoading(false);
     projectHistoryRequestRef.current += 1;
   }, [postId, knowledgeCutoff]);
 
@@ -2366,6 +2371,9 @@ function PostDetailPopup({
                     ))}
                 </div>
                 {projectHistoryError ? <p role="alert">{projectHistoryError}</p> : null}
+                {projectHistoryLoading ? (
+                  <p role="status">{t("Loading project history. Review the timeline when it appears.")}</p>
+                ) : null}
                 {projectHistory ? (
                   <ProjectHistoryTimeline
                     projection={projectHistory}

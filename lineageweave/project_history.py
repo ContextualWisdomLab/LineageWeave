@@ -131,7 +131,7 @@ def _prior_paths(
     maximum_depth: int,
     maximum_paths_per_event: int,
 ) -> dict[str, list[dict[str, Any]]]:
-    """Return deterministic shortest visible predecessor paths per event."""
+    """Return one deterministic shortest visible predecessor path per source event."""
 
     event_index = {event_id: index for index, event_id in enumerate(ordered_event_ids)}
     reverse_edges: dict[str, list[dict[str, Any]]] = {event_id: [] for event_id in ordered_event_ids}

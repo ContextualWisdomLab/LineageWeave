@@ -5,6 +5,7 @@ from __future__ import annotations
 import pytest
 
 from lineageweave.project_history import (
+    _prior_paths,
     classify_project_event,
     normalize_project_key,
     responsibility_transition_code,
@@ -49,3 +50,21 @@ def test_responsibility_transition_describes_document_evidence_only() -> None:
     assert responsibility_transition_code(["person:a"], ["person:a"]) == "continuous"
     assert responsibility_transition_code(["person:a"], ["person:b"]) == "handoff"
     assert responsibility_transition_code(["person:a"], []) == "assignment_gap"
+
+
+def test_prior_paths_keep_the_first_deterministic_shortest_route_per_predecessor() -> None:
+    """A tied route reports one stable path for a prior event rather than duplicate history."""
+    paths = _prior_paths(
+        ["award", "spec-a", "spec-b", "delivery"],
+        [
+            {"parent_post_id": "award", "child_post_id": "spec-a", "fused_score": 0.9},
+            {"parent_post_id": "award", "child_post_id": "spec-b", "fused_score": 0.8},
+            {"parent_post_id": "spec-a", "child_post_id": "delivery", "fused_score": 0.7},
+            {"parent_post_id": "spec-b", "child_post_id": "delivery", "fused_score": 0.6},
+        ],
+        maximum_depth=8,
+        maximum_paths_per_event=32,
+    )
+
+    award_paths = [path for path in paths["delivery"] if path["source_event_id"] == "award"]
+    assert [path["event_ids"] for path in award_paths] == [["award", "spec-a", "delivery"]]

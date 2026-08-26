@@ -155,6 +155,7 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Authorized customer scope": "권한이 있는 고객 범위",
     "Customer entities available to this account.": "이 계정에서 사용할 수 있는 고객 엔터티입니다.",
     "Loading customer master...": "고객 마스터를 불러오는 중...",
+    "Loading project history. Review the timeline when it appears.": "프로젝트 이력을 불러오는 중입니다. 표시되면 타임라인을 확인하세요.",
     "Customer master could not be loaded.": "고객 마스터를 불러오지 못했습니다.",
     "No customer entities are connected to this account.": "이 계정에 연결된 고객 엔터티가 없습니다.",
     "Observed customer evidence": "관찰된 고객 증거",

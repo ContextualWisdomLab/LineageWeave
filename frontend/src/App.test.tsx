@@ -109,6 +109,7 @@ describe("App, authenticated", () => {
     pluralAffiliations?: boolean;
     deferMe?: boolean;
     deferPostOne?: boolean;
+    deferProjectHistory?: boolean;
     meFailed?: boolean;
     postBody?: string;
     manyCustomerHints?: number;
@@ -121,7 +122,11 @@ describe("App, authenticated", () => {
     askImageCitation?: boolean;
     askDelivery?: boolean;
     lineageIsolationReason?: "comparison_candidates_available" | "no_comparison_group";
-  }): ReturnType<typeof vi.fn> & { releaseMe: () => void; releasePostOne: () => void } {
+  }): ReturnType<typeof vi.fn> & {
+    releaseMe: () => void;
+    releasePostOne: () => void;
+    releaseProjectHistory: () => void;
+  } {
     const statusLabel: Record<string, string> = {
       open: "Open",
       in_progress: "In progress",
@@ -159,6 +164,13 @@ describe("App, authenticated", () => {
     const postOneReady = options?.deferPostOne
       ? new Promise<void>((resolve) => {
           releasePostOne = resolve;
+        })
+      : Promise.resolve();
+
+    let releaseProjectHistory = () => {};
+    const projectHistoryReady = options?.deferProjectHistory
+      ? new Promise<void>((resolve) => {
+          releaseProjectHistory = resolve;
         })
       : Promise.resolve();
 
@@ -1130,6 +1142,23 @@ describe("App, authenticated", () => {
           }),
         );
       }
+      const projectHistoryUrl = new URL(url, "https://backend.test");
+      if (projectHistoryUrl.pathname === "/api/projects/source-project/history") {
+        return projectHistoryReady.then(() =>
+          jsonResponse({
+            contract_version: 1,
+            project_key: "source-project",
+            normalized_project_key: "source-project",
+            project_name: "Semantic project",
+            focus_event_id: "post-1",
+            time_basis_code: "document_time",
+            event_count: 0,
+            distinct_observed_actor_count: 0,
+            truncated: false,
+            events: [],
+          }),
+        );
+      }
       const postsUrl = new URL(url, "https://backend.test");
       if (postsUrl.pathname === "/api/posts") {
         return Promise.resolve(
@@ -1945,8 +1974,27 @@ describe("App, authenticated", () => {
       return Promise.reject(new Error(`unexpected fetch: ${method} ${url}`));
     });
     vi.stubGlobal("fetch", fetchMock);
-    return Object.assign(fetchMock, { releaseMe, releasePostOne });
+    return Object.assign(fetchMock, { releaseMe, releasePostOne, releaseProjectHistory });
   }
+
+  it("announces the next step while project history is loading", async () => {
+    const backend = stubBackend({ deferProjectHistory: true });
+    setLocale("ko");
+    render(<App />);
+
+    await userEvent.click(await screen.findByRole("button", { name: "글 보기: Public post" }));
+    await userEvent.click(await screen.findByRole("button", { name: "Open project history: source-project" }));
+
+    expect(screen.getByText("프로젝트 이력을 불러오는 중입니다. 표시되면 타임라인을 확인하세요.")).toHaveAttribute(
+      "role",
+      "status",
+    );
+
+    backend.releaseProjectHistory();
+    await waitFor(() =>
+      expect(screen.queryByText("프로젝트 이력을 불러오는 중입니다. 표시되면 타임라인을 확인하세요.")).not.toBeInTheDocument(),
+    );
+  });
 
   it("renders safe Ask Agent evidence under each cited post", async () => {
     stubBackend();
