@@ -1,4 +1,4 @@
--- ADR 0247: persist post-scoped source-unit / image-region research citations.
+-- ADR 0248: persist post-scoped source-unit / image-region research citations.
 -- Replay-safe. Lookup codes are globally unique on lookup_code.
 
 insert into common_lookup_value (lookup_category, lookup_code, lookup_label, display_order)

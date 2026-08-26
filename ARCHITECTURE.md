@@ -60,7 +60,7 @@ flowchart LR
 | `models.py` | `Record`, `Edge`, `Tree` -- source-agnostic data shapes |
 | `channels.py` | Independent `[0, 1]` scoring functions |
 | `chunking.py` | Splits a document into meaning-identifiable units (paragraph, sentence, DOM, conversation-turn) plus embedded-image extraction, in document order |
-| `embedding_client.py` | Pluggable text-embedding channel (`Null` default, `OpenAiCompatible` real impl) + `chunked_max_similarity` |
+| `embedding_client.py` | Provider-neutral contextual-orchestrator embedding transport and strict vector-envelope validation; no local similarity arithmetic |
 | `adjudication_client.py` | Pluggable LLM-judgment channel (`Null` default, `ContextualOrchestrator` real impl) |
 | `image_content.py` | Pluggable vision channel: OCR + object recognition/tagging for embedded images (`Null` default, `OpenAiCompatibleVisionClient` real impl). The product popup (`frontend/src/PostBody.tsx`) renders each `data:image` payload in document order so the buyer sees the picture, not the base64 string; GET does not call the vision client. |
 | `tepp_client.py` | TEPP's published `AnalysisRunRequest` wire contract, pluggable transport |
@@ -161,6 +161,10 @@ real-provider LLM tests).
 provider (`docker/keycloak/realm-export.json` seeds a `lineageweave-demo`
 realm with synthetic demo accounts carrying `corp_code` / `pu_code` as
 custom token claims -- see [README](README.md#local-product-stack-docker-compose)).
+ADR 0224 fixes the default project name to `lineageweave` and keeps the
+migration, SearXNG, contextual-orchestrator, backend, and frontend in that same
+project. Test stacks use an explicit disposable `-p` name; they never replace a
+canonical service with a container built from another worktree.
 `scripts/smoke_test_oidc.py` proves the round-trip is real: it logs in as
 the synthetic demo user, fetches Keycloak's live JWKS, and cryptographically
 verifies the returned JWT's RS256 signature rather than just checking for an
@@ -433,6 +437,14 @@ real `valkey` container over the internal `redis://valkey:6379/0` DNS
 name, confirmed the events on the activity endpoint, and independently
 confirmed the stream's existence and length with `valkey-cli` directly
 against the `valkey` container.
+
+Post-content ingestion uses the same transport with a stronger durability
+boundary (ADR 0098): PostgreSQL owns each job and Valkey only wakes the worker.
+`POST /api/post-content/backfill` is a `post_admin`-gated producer for one
+1--200-row eligible page. It commits jobs before publishing, returns HTTP 202
+without running semantic providers, and reports wake-ups that the worker's
+bounded recovery sweep must republish. `FOR UPDATE SKIP LOCKED` partitions
+concurrent operator calls without a second scheduler or an in-memory task.
 
 ## Phase 5c: customer commitment derivation and the calendar
 
@@ -753,6 +765,18 @@ HTML-wrapped, base64-image-embedded version of the existing
 people through the live `/extract-keymen` endpoint
 (`test_extract_keymen_normalizes_html_and_embedded_image_content`).
 
+## Evidence-operations lifecycle projection
+
+ADR 0206's Dashboard persists a semantic classification separately from its
+facts and observed milestones. `operations_case_milestone` binds a closed XES-
+style activity code to an exact evidence span, evidence-post digest, observed
+instant, and named source clock; `operations_case_missing_milestone` records an
+unsupported required endpoint without fabricating one. The Dashboard pairs
+only the three declared start/end definitions for claim investigation, rebid
+response, and handover. Both endpoints yield `end - start`; a cited start plus
+a missing end is open with nullable elapsed time. API projection rechecks
+current ABAC for focal and evidence posts before returning either span.
+
 ## Phase 6d: external search verification for Ontology relation inferences
 
 The brief requires an external web/internal search agent to check the
@@ -810,7 +834,7 @@ A public post may send an existing semantic unit or image-region excerpt
 to self-hosted SearXNG, retrieve one cited public page under SSRF and
 redirect rejection, and ask contextual-orchestrator to judge in
 `mode="verify"`. Private posts fail closed without egress. Citations
-persist to `source_research_citation` (migration 0236, ADR 0247). The
+persist to `source_research_citation` (migration 0236, ADR 0248). The
 reader next action is to open the cited public resource and compare it
 with the highlighted passage or image detail. Global Ask still never
 fetches result URLs.

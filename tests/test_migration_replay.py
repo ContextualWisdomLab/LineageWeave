@@ -235,3 +235,17 @@ def test_global_ask_knowledge_cutoff_is_replay_safe() -> None:
     assert "knowledge_cutoff timestamptz" in sql
     assert "add column if not exists" in sql
     assert "data_type <> 'timestamp with time zone'" in sql
+
+
+def test_post_content_failure_validation_migration_is_replay_safe() -> None:
+    """The union-free validation migration replays without losing its constraint."""
+
+    sql = (
+        Path(__file__).resolve().parents[1]
+        / "migrations"
+        / "0234_post_content_failure_validation.sql"
+    ).read_text(encoding="utf-8")
+
+    assert sql.count("add column if not exists") == 2
+    assert "drop constraint if exists post_content_failure_validation_check" in sql
+    assert "failure_validation_code = 'operations_case_evidence_contract'" in sql

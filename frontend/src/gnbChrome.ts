@@ -1,7 +1,8 @@
-/** Analyst GNB chrome: four Korean destinations, no Buyer/Cubee labels. */
+/** Analyst GNB chrome: six Korean destinations, no Buyer/Cubee labels. */
 
 export const ANALYST_GNB_ITEMS = [
   { id: "dashboard", label: "Dashboard" },
+  { id: "external", label: "외부 정보" },
   { id: "board", label: "게시판" },
   { id: "customers", label: "고객 마스터" },
   { id: "calendar", label: "달력" },

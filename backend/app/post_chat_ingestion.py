@@ -322,6 +322,30 @@ async def find_linked_post_ids(conn: asyncpg.Connection, post_id: str) -> Linked
     return LinkedPostIds(direct=direct_ids - {post_id}, indirect=indirect_ids - direct_ids)
 
 
+async def find_project_sibling_post_ids(
+    conn: asyncpg.Connection, post_id: str
+) -> frozenset[str]:
+    """Published posts sharing a persisted project key, for Ask context only."""
+    project_rows = await conn.fetch(
+        "select distinct project_key from post_project_mention where post_id = $1",
+        post_id,
+    )
+    project_keys = [str(row["project_key"]) for row in project_rows]
+    if not project_keys:
+        return frozenset()
+    rows = await conn.fetch(
+        "select distinct ppm.post_id from post_project_mention ppm "
+        "join source_post sp on sp.post_id = ppm.post_id "
+        "where ppm.project_key = any($1::text[]) and ppm.post_id <> $2 "
+        f"and {SOURCE_POST_ELIGIBILITY_SQL.format(alias='sp')} "
+        "order by ppm.post_id limit $3",
+        project_keys,
+        post_id,
+        _POST_CHAT_CANDIDATE_LIMIT,
+    )
+    return frozenset(str(row["post_id"]) for row in rows)
+
+
 async def gather_chat_sources(
     conn: asyncpg.Connection,
     post_id: str,
@@ -330,9 +354,11 @@ async def gather_chat_sources(
 ) -> list[ChatSourceDocument]:
     """Post `post_id` plus a bounded, deterministic linked-source window.
 
-    Direct Event Lineage neighbors precede indirect Knowledge Graph
-    neighbors; both groups are identifier-sorted before ABAC filtering. The
-    current post plus at most seven visible linked posts become the numbered
+    Persisted semantic-project siblings precede direct Event Lineage and
+    indirect Knowledge Graph neighbors; each group is identifier-sorted before
+    ABAC filtering. This gives exact project membership a bounded opportunity
+    to supply the missing original even when graph neighborhoods are dense.
+    The current post plus at most seven visible linked posts become the numbered
     source set that `post_chat` citations refer back to. Every source's body
     is normalized (HTML tags/base64 images never reach the reason-and-cite
     LLM call raw) before becoming a `ChatSourceDocument` -- see
@@ -363,9 +389,11 @@ async def gather_chat_sources(
     )
 
     linked = await find_linked_post_ids(conn, post_id)
+    project_sibling_ids = await find_project_sibling_post_ids(conn, post_id)
     candidate_ids = [
-        *sorted(linked.direct),
-        *sorted(linked.indirect),
+        *sorted(project_sibling_ids),
+        *sorted(linked.direct - project_sibling_ids),
+        *sorted(linked.indirect - project_sibling_ids),
     ][:_POST_CHAT_CANDIDATE_LIMIT]
     if not candidate_ids:
         graph_facts = await _graph_facts_for_posts(conn, [source_id])
@@ -937,6 +965,9 @@ async def gather_global_chat_sources(
             source_arguments["external_claim_facts"] = (
                 semantic_facts.get(post_id, ()) + post_graph_facts
             )
+        event_occurred_at = row.get("event_occurred_at")
+        created_at = row.get("created_at")
+        observed_at = event_occurred_at or created_at
         sources.append(
             source_type(
                 post_id,
@@ -952,17 +983,44 @@ async def gather_global_chat_sources(
                 source_post_revision_id=(
                     revision["source_post_revision_id"] if revision is not None else None
                 ),
-                evidence_available_at=(revision["written_at"] if revision is not None else None),
-                knowledge_cutoff=(knowledge_cutoff.isoformat() if knowledge_cutoff else None),
+                evidence_available_at=(
+                    revision["written_at"] if revision is not None else None
+                ),
+                knowledge_cutoff=(
+                    knowledge_cutoff.isoformat() if knowledge_cutoff else None
+                ),
                 live_changed_after_cutoff=(
                     knowledge_cutoff is not None and row["updated_at"] > knowledge_cutoff
                 ),
                 historical_body_unavailable=historical_body_unavailable,
                 unavailable_channels=(
-                    ("historical_body", "semantic_role", "semantic_keyman", "knowledge_graph", "lineage", "image")
+                    (
+                        "historical_body",
+                        "semantic_role",
+                        "semantic_keyman",
+                        "knowledge_graph",
+                        "lineage",
+                        "image",
+                    )
                     if historical_body_unavailable
-                    else (("semantic_role", "semantic_keyman", "knowledge_graph", "lineage", "image") if knowledge_cutoff else ())
+                    else (
+                        (
+                            "semantic_role",
+                            "semantic_keyman",
+                            "knowledge_graph",
+                            "lineage",
+                            "image",
+                        )
+                        if knowledge_cutoff
+                        else ()
+                    )
                 ),
+                observed_at=observed_at.isoformat() if observed_at else None,
+                time_axis_code="event_occurred_at"
+                if event_occurred_at is not None
+                else "created_at"
+                if created_at is not None
+                else None,
                 **source_arguments,
             )
         )

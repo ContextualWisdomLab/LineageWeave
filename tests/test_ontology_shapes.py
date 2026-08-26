@@ -290,3 +290,50 @@ def test_confidence_boundary_values_are_inclusive() -> None:
         )
         conforms, report_text = _conforms(data)
         assert conforms, f"{value} rejected:\n{report_text}"
+
+
+def test_derived_voice_assertion_requires_receipt_and_ordered_source_span() -> None:
+    """Derived voice RDF cannot omit the receipt or its exact source span."""
+    data = _representative_projection()
+    voice = URIRef(LW + "voice-assertion-alpha")
+    post = URIRef(LW + "post-alpha")
+    prov = Namespace("http://www.w3.org/ns/prov#")
+    LWn = Namespace(LW)
+    for predicate, value in (
+        (RDF.type, LWn.PostVoiceClassificationAssertion),
+        (LWn.voiceConceptCode, Literal("voc")),
+        (LWn.voiceAssertionStatus, Literal("derived")),
+        (LWn.voiceEvidenceDigest, Literal("a" * 64)),
+        (LWn.sourceRevisionDigest, Literal("b" * 64)),
+        (prov.wasDerivedFrom, post),
+    ):
+        data.add((voice, predicate, value))
+
+    conforms, report_text = _conforms(data)
+    assert not conforms
+    assert "orchestratorModelReceipt" in report_text
+
+    data.add((voice, LWn.orchestratorModelReceipt, Literal("synthetic-receipt")))
+    data.add((voice, LWn.evidenceSpanStart, Literal(0, datatype=XSD.integer)))
+    data.add((voice, LWn.evidenceSpanEnd, Literal(12, datatype=XSD.integer)))
+    conforms, report_text = _conforms(data)
+    assert conforms, report_text
+
+
+@pytest.mark.parametrize("voice_code", ("vos", "voe", "vob", "vor", "voi", "voso", "vops"))
+def test_expanded_source_post_voice_codes_conform(voice_code: str) -> None:
+    """ADR 0246 post codes validate without becoming organization relations."""
+    data = _representative_projection()
+    LWn = Namespace(LW)
+    voice = URIRef(LW + f"voice-assertion-{voice_code}")
+    for predicate, value in (
+        (RDF.type, LWn.PostVoiceClassificationAssertion),
+        (LWn.voiceConceptCode, Literal(voice_code)),
+        (LWn.voiceAssertionStatus, Literal("source")),
+        (LWn.voiceEvidenceDigest, Literal("a" * 64)),
+        (LWn.sourceRevisionDigest, Literal("b" * 64)),
+        (Namespace("http://www.w3.org/ns/prov#").wasDerivedFrom, URIRef(LW + "post-alpha")),
+    ):
+        data.add((voice, predicate, value))
+    conforms, report_text = _conforms(data)
+    assert conforms, report_text

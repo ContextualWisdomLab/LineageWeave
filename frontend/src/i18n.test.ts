@@ -20,6 +20,7 @@ describe("i18n", () => {
   const requiredSharedLabels = [
     "Language",
     "Evidence",
+    "Evidence ranking",
     "Ask",
     "linked",
     "Post body preview",
@@ -73,13 +74,21 @@ describe("i18n", () => {
     "This is an ontology neighborhood, not Event Lineage.",
     "Rankings",
     "Title overlap",
-    "RankWeave fused newest-first and title-overlap ranks. This is not a calibrated score.",
+    "Evidence combined",
+    "Evidence needed",
+    "Rankings could not be loaded. Retry in a moment.",
+    "Rankings are not ready. Refresh after the source evidence is connected.",
+    "No comparable posts are visible. Check the period and access scope.",
+    "Compare recency and content-relevance evidence, then open the source post before acting. This rank is not a performance score.",
     "Workspace navigation",
     "Observed calendar events",
     "No observed calendar events are available.",
     "Open this observed occurrence. It is not a LineageWeave commitment.",
     "Collect stronger authoritative evidence before accepting the claim.",
-    "Inspect the authorized cited posts and their evidence.",
+    "Ask about a specific claim or narrow the time range, then retry.",
+    "Before linking a customer, compare the source identifier with the related posts and organization evidence.",
+    "Ask a workspace administrator to enable public verification, then retry.",
+    "Open supporting post",
     "Review unavailable historical channels before relying on this cutoff answer.",
     "Compare these cutoff-grounded citations with live evidence next.",
     "Source research",
@@ -116,7 +125,7 @@ describe("i18n", () => {
   );
 
   it("keeps analyst GNB chrome on the Dashboard and four Korean labels", () => {
-    expect(ANALYST_GNB_LABELS).toEqual(["Dashboard", "게시판", "고객 마스터", "달력", "Ask Agent"]);
+    expect(ANALYST_GNB_LABELS).toEqual(["Dashboard", "외부 정보", "게시판", "고객 마스터", "달력", "Ask Agent"]);
     expect(ANALYST_GNB_LABELS.join(" ")).not.toMatch(/Buyer|Cubee|Board|Customer master/);
     expect(CALENDAR_CONSUME_UNAVAILABLE).toBe("이 범위의 일정을 아직 받을 수 없습니다");
   });
@@ -318,5 +327,17 @@ describe("locale-aware source labels", () => {
     setLocale(locale);
     expect(t("Voice of Customer")).toBe(customerVoice);
     expect(t("Public")).toBe(visibility);
+  });
+
+  it.each([
+    ["en", "Records in multiple voice categories", "Records without voice evidence"],
+    ["ko", "여러 글 유형에 해당하는 기록", "글 유형 근거가 없는 기록"],
+    ["zh", "属于多个声音类别的记录", "缺少声音证据的记录"],
+    ["ja", "複数の声カテゴリに該当する記録", "声の証拠がない記録"],
+    ["vi", "Bản ghi thuộc nhiều nhóm tiếng nói", "Bản ghi không có bằng chứng tiếng nói"],
+  ] as const)("keeps voice-summary metrics specific in %s", (locale, multiple, unavailable) => {
+    setLocale(locale);
+    expect(t("Records in multiple voice categories")).toBe(multiple);
+    expect(t("Records without voice evidence")).toBe(unavailable);
   });
 });

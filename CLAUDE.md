@@ -51,6 +51,6 @@ Create/start endpoint rules (ADR 0017 / 0021), tie-vs-miss similarity
 (ADR 0048–0164 / 0182 / 0201), the text-channel embedding swap and cosine
 clamp (ADR 0190), per-edge channel-score persistence (ADR 0195),
 migration replay (ADR 0166), docstring coverage, source-reference
-research (ADR 0247), and the measurement boundary are all stated in
+research (ADR 0248), and the measurement boundary are all stated in
 [AGENTS.md](AGENTS.md) -- read it before changing code, tests, or runtime
 policy rather than restating anything here.

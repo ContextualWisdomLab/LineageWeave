@@ -2,7 +2,7 @@
 
 **Decision status:** Accepted
 **Date:** 2026-08-25
-**Amends:** ADR 0003, ADR 0024, ADR 0064, ADR 0084, ADR 0132, ADR 0145,
+**Amends:** ADR 0003, ADR 0024, ADR 0062, ADR 0064, ADR 0084, ADR 0132, ADR 0145,
 ADR 0148, ADR 0167, ADR 0168, ADR 0182, ADR 0185, ADR 0200, ADR 0201, and
 ADR 0205
 
@@ -54,7 +54,7 @@ different responsibility.
    Missing, malformed, non-converged, mixed-snapshot, or unsupported results
    fail closed. It never repairs, normalizes, estimates, or substitutes a
    numerical result.
-5. **No big-bang rewrite.** Existing local computation is frozen as named
+5. **No big-bang rewrite.** Remaining local computation is frozen as named
    migration debt in
    `docs/doctoring/python-mathematical-compute-boundary-audit.md`. Each owner
    contract lands and proves recovery/equivalence before the corresponding
@@ -68,6 +68,34 @@ different responsibility.
    string similarity, or equal weights are not promoted to measurement.
    Operational bounds may remain only as disclosed resource limits and may
    not determine a scientific score or ground truth.
+
+## Implemented migration slices
+
+- The backend dependency is immutably pinned to fast-mlsirm protected-main
+  commit `09f762ded35786dd1078222a4577ff09d649816f`. The TEPP-specific contract
+  proposed by closed, unmerged fast-mlsirm PR #1423 is not an owner contract
+  and is not consumed. Channel-weight estimation remains unavailable until a
+  domain-neutral owner contract lands; the legacy Python estimator remains
+  frozen migration debt and MUST NOT activate calibrated weights. No customer
+  projection exposes schema, transport, hash, TEPP, or fast-mlsirm internals.
+
+- The residual interaction map consumes fast-mlsirm's protected-main
+  `residual_interaction_map` and `polytomous_expected_response` contracts.
+  Gabriel SVD, axis inertia, distance, reconstruction, unexplained residual,
+  cross share, and coverage arithmetic were deleted from LineageWeave Python.
+  Product-side identifier attachment and closest/farthest selection remain.
+- Rankings call RankWeave's classic or convex-weighted RRF owner path and
+  project its exact channel contributions. LineageWeave no longer evaluates
+  the reciprocal-rank contribution formula. RankWeave's Rust CPU/GPU migration
+  remains open, so this slice is owner-bound but not yet final execution-contract
+  compliance.
+- The production-unused `embedding_client.cosine_similarity` and
+  `chunked_max_similarity` experiments are deleted instead of being assigned
+  a new local implementation. Persisted semantic units remain the retrieval
+  provenance boundary from ADR 0062. Active Global Ask cosine stays named
+  migration debt until an accepted retrieval owner publishes a versioned Rust
+  scoring envelope; LineageWeave will validate and persist that envelope, not
+  reproduce its vector arithmetic.
 
 ## Stacked delivery order
 
@@ -113,4 +141,3 @@ https://doi.org/10.1007/s11336-021-09762-5
 Roberts, M. E., Stewart, B. M., & Tingley, D. (2019). stm: An R package for
 structural topic models. *Journal of Statistical Software, 91*(2), 1–40.
 https://doi.org/10.18637/jss.v091.i02
-

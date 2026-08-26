@@ -123,6 +123,16 @@ compatibility aliases only. `ORCHESTRATOR_BASE_URL` and
 `ORCHESTRATOR_API_KEY` are separate, internal
 LineageWeave-to-orchestrator settings.
 
+The Compose file declares `lineageweave` as its canonical default project, so
+the same eight-service synthetic stack is addressed from the repository and
+temporary worktrees. Isolated tests may override it explicitly with `-p`; use
+`docker compose down` without `-v` when retiring such a project so its named
+volumes remain recoverable (ADR 0224).
+The bundled Keycloak realm is the standalone/local/dev/test fallback only.
+Setting `KEYVERSE_ISSUER` selects central Keyverse for both backend and
+frontend and activates the fail-closed claim binding in ADR 0156; the two
+issuers are never combined as authorization authorities.
+
 Postgres and Keycloak are built (`docker/postgres-init/`, `docker/keycloak/`)
 rather than bind-mounted, so the keycloak database's init script and the
 realm seed ship inside the images themselves -- portable to any Docker host
@@ -147,6 +157,12 @@ no re-typed copy.
 
 `backend/` is a FastAPI app talking directly to that database (`asyncpg`,
 no ORM, no file DB) and to Keycloak's live JWKS for OIDC verification:
+
+The API does not consume durable jobs. Canonical Compose makes `backend`
+depend on the progress-healthy `backend-worker`, so `docker compose up backend`
+starts both. Any non-Compose deployment must co-deploy
+`python -m backend.app.worker` and gate API readiness on that worker service;
+`/healthz` is process liveness only.
 
 ```bash
 make up

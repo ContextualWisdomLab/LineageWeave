@@ -16,9 +16,9 @@ share is a report-level property of the residual SVD, not a
 post-identifying leftover score and not a second theta. Denormalizing
 it onto each leftover pair would violate 3NF.
 
-`fast-mlsirm` still exposes no leftover-pair or leftover-map API.
-LineageWeave must not fork LSIRM or invent leftover numbers when the
-residual is rank-0.
+`fast-mlsirm` exposes the Rust-owned residual interaction-map API.
+LineageWeave must consume its singular values and shares without reproducing
+the factorization or inventing leftover numbers when the residual is rank-0.
 
 ## Decision
 
@@ -36,8 +36,8 @@ Cascade the rows with `report_period_score`. Axes are aggregate and
 non-identifying: ABAC that hides leftover pairs does not hide axis
 share. Do not store a second theta. Do not invent leftover numbers.
 
-The biplot lives in `lineageweave/leftover_pairs.py` so leftover tests
-do not import `period_report` or `fast_mlsirm`.
+The biplot lives in fast-mlsirm's Rust core. `leftover_pairs.py` only projects
+the returned array indices onto authorized post and criterion identifiers.
 
 ## Consequences
 

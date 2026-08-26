@@ -46,18 +46,9 @@ function authenticate() {
 function readBatch(token, askJobId) {
   const params = { headers: { Authorization: `Bearer ${token}` } };
   return http.batch([
-    [
-      "GET",
-      `${backendUrl}/api/posts`,
-      null,
-      { ...params, tags: { endpoint: "posts" }, timeout: requestTimeout },
-    ],
-    [
-      "GET",
-      `${backendUrl}/api/lineage`,
-      null,
-      { ...params, tags: { endpoint: "lineage" }, timeout: requestTimeout },
-    ],
+    ["GET", `${backendUrl}/api/posts`, null, { ...params, tags: { endpoint: "posts" } }],
+    ["GET", `${backendUrl}/api/lineage`, null, { ...params, tags: { endpoint: "lineage" } }],
+    ["GET", `${backendUrl}/api/dashboard`, null, { ...params, tags: { endpoint: "dashboard" } }],
     [
       "GET",
       `${backendUrl}/api/ask/jobs/${askJobId}`,
@@ -98,13 +89,15 @@ export default function (data) {
 
   readDuration.add(responses[0].timings.duration, { endpoint: "posts" });
   readDuration.add(responses[1].timings.duration, { endpoint: "lineage" });
-  askPollDuration.add(responses[2].timings.duration);
-  if (responses[2].status === 200) {
+  readDuration.add(responses[2].timings.duration, { endpoint: "dashboard" });
+  askPollDuration.add(responses[3].timings.duration);
+  if (responses[3].status === 200) {
     askStateObservations.add(1, {
-      job_status: String(responses[2].json("job_status_code") || "unknown"),
+      job_status: String(responses[3].json("job_status_code") || "unknown"),
     });
   }
   check(responses[0], { "posts read succeeds": (response) => response.status === 200 });
   check(responses[1], { "lineage read succeeds": (response) => response.status === 200 });
-  check(responses[2], { "Ask poll succeeds": (response) => response.status === 200 });
+  check(responses[2], { "dashboard read succeeds": (response) => response.status === 200 });
+  check(responses[3], { "Ask poll succeeds": (response) => response.status === 200 });
 }

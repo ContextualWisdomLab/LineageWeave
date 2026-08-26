@@ -1,4 +1,4 @@
-# ADR 0247: Post-scoped source-reference research
+# ADR 0248: Post-scoped source-reference research
 
 **Status:** Accepted
 **Date:** 2026-08-26

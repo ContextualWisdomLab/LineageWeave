@@ -9,7 +9,7 @@ from datetime import UTC, datetime
 from backend.app import global_ask_queue
 from backend.app.global_ask_queue import load_job_visibility
 from lineageweave import claim_verification as cv
-from lineageweave.post_chat import ChatSourceDocument
+from lineageweave.post_chat import ChatAnswer, ChatSourceDocument
 
 
 class _AvailableClient:
@@ -109,6 +109,30 @@ def test_public_verification_requires_public_capability_and_internal_citation() 
     assert uncited_status == cv.VERIFICATION_NO_PUBLIC_CLAIMS
     assert private_results == uncited_results == ()
     assert client.calls == 0
+
+
+def test_no_public_claim_next_action_opens_authorized_evidence() -> None:
+    """Customer copy names the evidence action, not an internal boundary."""
+
+    next_action = global_ask_queue._verification_next_action(
+        cv.VERIFICATION_NO_PUBLIC_CLAIMS
+    )
+
+    assert next_action == "Ask about a specific claim or narrow the time range, then retry."
+    assert "internal" not in next_action.lower()
+
+
+def test_unavailable_public_verification_guides_the_reader_without_service_names() -> None:
+    """Unavailable verification names the customer action, not its providers."""
+
+    next_action = global_ask_queue._verification_next_action(
+        cv.VERIFICATION_UNAVAILABLE
+    )
+
+    assert next_action == (
+        "Ask a workspace administrator to enable public verification, then retry."
+    )
+    assert "orchestrator" not in next_action.lower()
 
 
 def test_public_verification_keeps_external_urls_out_of_internal_citations() -> None:
@@ -398,9 +422,7 @@ def test_unexpected_job_failure_settles_with_a_generic_detail_not_the_raw_except
     assert "failure_detail" in settle_query
     failure_detail = settle_args[-1]
     assert secret_bearing_message not in failure_detail
-    assert failure_detail == (
-        "Ask Agent is unavailable: contextual-orchestrator returned no complete evidence object"
-    )
+    assert failure_detail == global_ask_queue._ASK_RETRY_MESSAGE
 
 
 def test_permission_and_connection_errors_keep_their_pre_authored_safe_message(
@@ -463,7 +485,7 @@ def test_job_deadline_timeout_settles_with_a_specific_but_still_generic_detail(
     )
 
     _settle_query, settle_args = connection.executed[-1]
-    assert settle_args[-1] == f"job exceeded the {global_ask_queue.JOB_DEADLINE_SECONDS}s deadline"
+    assert settle_args[-1] == global_ask_queue._ASK_RETRY_MESSAGE
 
 
 def test_job_visibility_never_expands_past_queued_scope() -> None:
@@ -494,3 +516,55 @@ def test_job_visibility_never_expands_past_queued_scope() -> None:
     assert processes == {"queued-process"}
     assert process_scope_limited is True
     assert has_post_read is True
+
+
+def test_completed_answer_carries_the_cited_source_clock(monkeypatch) -> None:
+    """The UI timeline receives the admitted source clock, not a graph guess."""
+    connection = _Connection(None)
+    pool = _Pool(connection)
+    sources = [
+        ChatSourceDocument(
+            "post-1",
+            "Synthetic event",
+            "body",
+            observed_at="2026-08-21T03:00:00+00:00",
+            time_axis_code="event_occurred_at",
+        )
+    ]
+
+    async def _fake_gather(*_args, **_kwargs):
+        return sources
+
+    async def _fake_graph(*_args, **_kwargs):
+        return {"nodes": [], "edges": [], "truncated": False}
+
+    async def _fake_images(*_args, **_kwargs):
+        return []
+
+    class _AnswerClient:
+        def answer(self, _question, _sources):
+            return ChatAnswer("Grounded answer", ("post-1",))
+
+    monkeypatch.setattr(global_ask_queue, "gather_global_chat_sources", _fake_gather)
+    monkeypatch.setattr(global_ask_queue, "lineage_graphs_for_posts", _fake_graph)
+    monkeypatch.setattr(global_ask_queue, "cited_post_images", _fake_images)
+
+    payload = asyncio.run(
+        global_ask_queue.compute_global_ask_answer(
+            pool,
+            question_text="What happened?",
+            corporate_entity_ids=set(),
+            process_unit_ids=set(),
+            process_scope_limited=False,
+            chat_client=_AnswerClient(),
+        )
+    )
+
+    assert payload["cited_events"] == [
+        {
+            "post_id": "post-1",
+            "post_title": "Synthetic event",
+            "observed_at": "2026-08-21T03:00:00+00:00",
+            "time_axis_code": "event_occurred_at",
+        }
+    ]

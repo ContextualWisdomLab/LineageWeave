@@ -6,15 +6,21 @@ RUN pnpm install --frozen-lockfile
 COPY . .
 # Vite bakes VITE_* vars in at build time, not runtime -- build args let
 # docker-compose pass through its own (possibly operator-overridden) ports.
-ARG VITE_KEYCLOAK_ISSUER
-ARG VITE_KEYCLOAK_CLIENT_ID
+ARG VITE_KEYVERSE_ISSUER
+ARG VITE_KEYVERSE_CLIENT_ID
 ARG VITE_BACKEND_BASE_URL
-ENV VITE_KEYCLOAK_ISSUER=${VITE_KEYCLOAK_ISSUER} \
-    VITE_KEYCLOAK_CLIENT_ID=${VITE_KEYCLOAK_CLIENT_ID} \
+ENV VITE_KEYVERSE_ISSUER=${VITE_KEYVERSE_ISSUER} \
+    VITE_KEYVERSE_CLIENT_ID=${VITE_KEYVERSE_CLIENT_ID} \
     VITE_BACKEND_BASE_URL=${VITE_BACKEND_BASE_URL}
 RUN pnpm run build
 
 FROM nginx:1.27-alpine@sha256:65645c7bb6a0661892a8b03b89d0743208a18dd2f3f17a54ef4b76fb8e2f2a10
+ARG LINEAGEWEAVE_SOURCE_REVISION=unknown
+ARG VITE_KEYVERSE_ISSUER
+ARG VITE_BACKEND_BASE_URL
+LABEL org.opencontainers.image.revision=${LINEAGEWEAVE_SOURCE_REVISION} \
+      io.contextualwisdomlab.lineageweave.oidc-issuer=${VITE_KEYVERSE_ISSUER} \
+      io.contextualwisdomlab.lineageweave.backend-url=${VITE_BACKEND_BASE_URL}
 COPY --from=build /app/dist /usr/share/nginx/html
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 # Official nginx binds :80 as root and writes its pid file to /run/nginx.pid

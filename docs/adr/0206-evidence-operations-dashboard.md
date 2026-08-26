@@ -28,8 +28,11 @@ provenance.
 2. Dashboard requests are bounded by an inclusive event-time period.
    `source_post.event_occurred_at` is the primary clock and `created_at` is the
    explicit fallback, matching ADR 0202. The response names that clock.
-3. Every count is authorization-filtered before aggregation. The API returns
-   both event count and distinct post count; neither substitutes for the other.
+3. Every count is authorization-filtered before aggregation. Event count is
+   the number of persisted `post_summary_event` rows for the classified,
+   visible posts; post count is the distinct count of those posts. Neither
+   substitutes for the other, and no event is invented when a summary event
+   row is absent.
    Analysis-pending and ingestion-failed post counts are disjoint: a failed
    current job is shown as retryable failure, never hidden inside the pending
    count or interpreted as a negative classification.
@@ -41,15 +44,20 @@ provenance.
    regexes, provider-name ordering, local model selection, and hand-authored
    scoring weights are prohibited.
 5. Persist the result in normalized post case-analysis tables with the source
-   body digest and orchestrator session/run provenance. A changed source body
-   invalidates the old result and queues re-analysis through the existing
-   content-ingestion lifecycle. Schema-invalid or unavailable results fail the
-   job and remain retryable; they are not converted into a negative case.
+   body digest, a SHA-256 fingerprint of the exact ordered authorized evidence
+   window and context, and orchestrator session/run provenance. A changed
+   source body or input fingerprint invalidates reuse and queues re-analysis
+   through the existing content-ingestion lifecycle. Historical rows without
+   an input fingerprint are honest unknowns and re-analyze when next queued.
+   Schema-invalid or unavailable results fail the job and remain retryable;
+   they are not converted into a negative case.
 6. External-information coverage is the distinct count of visible posts with
    a persisted positive `external_information` classification divided by all
    visible posts in the same period. The stored `vom` source code is supplied
    to the orchestrator as labeled evidence, but does not replace semantic
    analysis. Zero total posts yields `0`.
+   The external destination passes an API scope so non-external counts and
+   case rows are excluded at the SQL boundary, not merely hidden in the UI.
 7. Qualitative rows project only persisted evidence:
    project names and evidence spans, source sales-pool code/name, summary
    events, requester/processor action evidence, roles, and Event Lineage links.
@@ -58,19 +66,37 @@ provenance.
    absent from the authorized corpus.
    The analysis input reuses the post-chat source assembler: focal post first,
    then bounded Event Lineage and semantic-neighborhood posts after the same
-   corporate-entity/process-unit ABAC check. Every classification and fact
+   corporate-entity/process-unit ABAC check. The semantic window includes posts
+   carrying the same persisted `post_project_mention.project_key`; display-name
+   similarity and keyword matching do not create that link. This lookup applies
+   the shared source-post publication eligibility boundary and a deterministic
+   candidate limit before graph loading. Every classification and fact
    persists its evidence post id and the SHA-256 of the exact numbered input
    document. A span that does not occur in that identified document rejects
    the whole provider response; linked evidence is never rewritten as focal
    post evidence.
 8. Claim-investigation and rebid/handover panels include positively classified
    cases and show extracted answers plus cited spans. A required answer that
-   the source does not support is stored as an explicit missing fact, so the
-   next action is collection or human correction rather than keyword guessing.
-9. Project journeys group events only by an explicit source project or stored
-   semantic project mention. A multi-project post may appear in multiple
-   journeys. Unbound events remain visible as unassigned evidence and are not
-   attached to the nearest project.
+   the source does not support is stored in the normalized
+   `operations_case_missing_fact` relation as an explicit retry state while the
+   system searches the authorized semantic source window and re-analyzes the
+   case. The reader is not asked to attach the source manually.
+   A provider result is invalid unless every required question is represented
+   exactly once as either a cited supported fact or an explicit missing fact;
+   a fact cannot be both. Missing facts carry no invented value or evidence
+   span and inherit the analysis run and authorized-source boundary through
+   their classification parent.
+9. Project membership uses only an explicit source project or stored semantic
+   project mention. A multi-project post may appear in multiple groups;
+   unbound events remain unassigned. A chronological sort of those records is
+   only a **project-observed-event list**, not a Project Journey. Project
+   Journey starts, predecessors, branches, and transitions consume a
+   provenance-bearing TEPP TDT/CHRONOS result. Previous projects, customer
+   requests, procurement notices, negotiated/direct bidding, external
+   sensing, internal discussions, and sales leads are all admissible starts or
+   predecessors when the accepted TEPP artifact and source evidence connect
+   them. LineageWeave never chooses a fixed first stage or promotes nearest-date
+   ordering to a lineage edge.
 10. A repeat-issue result carries both the issue-pattern evidence and any
    source-supported improvement action. Its Dashboard flow is As-Is evidence
    to To-Be action: rebid history retrieval, originating-order/specification
@@ -103,6 +129,56 @@ provenance.
    authorized, and that rank is never a psychometric measure or substitute for
    TEPP. Missing estimates remain unavailable; no hand-picked weight is
    introduced.
+15. Operations classifications and facts have a governed OWL/JSON-LD read
+   projection. Each case is a `prov:Entity`; each fact is an RDF-reified
+   `prov:Entity` linked to its exact cited Post by `prov:wasDerivedFrom`.
+   External-information relations carry a provider-returned, closed semantic
+   target type (`order`, `project`, `sales`, or `business_management`) and map
+   to typed ontology properties. This is not a `knowledge_graph_edge` alias:
+   PostgreSQL operations tables remain authoritative, and an older untyped
+   relation remains absent from the typed projection until re-analysis.
+16. Claim investigation and rebid/handover use an observed event-log contract
+   aligned with IEEE 1849-2023 (XES). A classification is the local analysis
+   case identifier; a milestone has a closed activity code, an exact cited
+   evidence span, its evidence post, source digest, observed instant, and named
+   clock. Cross-post business-case identity is not inferred from project,
+   similarity, proximity, or text.
+17. Claim investigation pairs `claim_received` with `cause_confirmed`.
+   Rebid/handover independently pairs `rebid_response_requested` with
+   `rebid_decision_recorded`, and `handover_started` with
+   `handover_accepted`. The database rejects a claim milestone on a
+   rebid/handover case, a rebid/handover milestone on a claim case, and every
+   milestone on the other case kinds; the same invariant applies to observed
+   and explicitly missing endpoints. Contextual-orchestrator identifies the supported
+   milestone semantics; LineageWeave assigns the instant only from that cited
+   `source_post`: `event_occurred_at` when present, otherwise the explicitly
+   labeled `created_at` fallback from ADR 0202. The model never emits a date.
+18. Each required endpoint is exactly one cited milestone or one normalized
+   missing-milestone row. Both observed endpoints produce the exact duration
+   `end - start`; start plus an explicitly missing end is `open`; a missing
+   start is `evidence_missing`. An open case has no elapsed duration because
+   no end instant was observed. Reversed observed endpoints reject the entire
+   provider result. No delay threshold, severity band, current-time endpoint,
+   imputed date, average, score, or arbitrary weight is introduced. Equal
+   source instants yield an auditable zero duration; they are not replaced by
+   an invented sub-record timestamp.
+19. The API rechecks the reader's current ABAC and source eligibility for each
+   classification, fact, and milestone evidence post before returning its
+   span. Consequently, aggregate counts exclude classifications whose cited
+   evidence is no longer authorized. The UI reports open, resolved, and
+   evidence-missing counts separately, shows exact elapsed seconds in a
+   lossless human-readable form, names each milestone's clock, and links the
+   reader to both endpoint sources. State and next action are conveyed in text
+   rather than color alone.
+20. The bounded durable content backfill prefers an eligible post with a
+   canonical `post_project_mention.ontology_iri` projection when its exact
+   queued source-body digest lacks operations analysis. `EXISTS` prevents a
+   multi-project mention fan-out from duplicating the post. The remaining
+   incomplete posts stay in the same fallback queue, ordered after that tier by
+   event time (with the ADR 0202 created-time fallback), created time, and post
+   id before the existing bounded `LIMIT` / `SKIP LOCKED` claim. Titles, body
+   keywords, source lifecycle codes, and inferred stages do not affect this
+   priority.
 
 ## Consequences
 
@@ -115,11 +191,51 @@ treated as a negative case.
 ## Verification
 
 - Parser and persistence tests cover multi-label output, cited spans, malformed
-  responses, source-digest invalidation, and unavailable orchestrator states.
+  responses, source-body and ordered evidence-window invalidation, replay-safe
+  fingerprint storage, and unavailable orchestrator states.
 - Backend integration tests cover ABAC filtering, event-time fallback, event
   versus post counts, external-information percentage, multi-project
-  membership, and explicit missing facts.
+  membership, explicit missing facts, observed lifecycle endpoints, exact
+  elapsed duration, open cases with nullable elapsed time, reversed endpoint
+  rejection, and evidence-post authorization.
 - Frontend tests cover period submission, navigation, empty/error states,
   evidence links, keyboard semantics, and non-color status copy.
 - Storybook interaction tests and authenticated browser screenshots audit the
   rendered desktop and narrow layouts.
+- `scripts/accept_operations_dashboard_runtime.sh` fails closed on the exact
+  orchestrator image revision, performs the explicit structured-readiness
+  refresh only after operator opt-in, verifies one normalized preferred
+  candidate and a positive grounded-case aggregate delta, then exercises the
+  authenticated Dashboard API and rendered UI without printing source rows.
+  The same operator-declared run invokes `scripts/k6_operations_dashboard.js`
+  with explicit VUs and duration; it observes Dashboard reads only, defines no
+  performance threshold, and keeps its summary outside the repository. The
+  runner accepts the observation only when the summary records zero failed
+  functional checks and a zero HTTP-request failure rate; this is a correctness
+  postcondition, not a latency or capacity SLO.
+- `scripts/accept_operations_dashboard_synthetic.sh` obtains only the local
+  synthetic Keycloak identity and makes authenticated Dashboard reads without
+  starting content analysis or calling a provider. It rejects backend, worker,
+  or frontend images whose OCI revision label is not the operator-declared
+  exact LineageWeave commit, and keeps distinct desktop/mobile screenshots,
+  browser output, and k6 evidence
+  outside the repository. An empty synthetic case list remains a valid UI/API
+  shape check; it is not evidence that grounded production cases exist.
+
+## References
+
+Institute of Electrical and Electronics Engineers. (2023). *IEEE standard for
+eXtensible Event Stream (XES) for achieving interoperability in event logs and
+event streams* (IEEE Std 1849-2023). IEEE Standards Association.
+https://standards.ieee.org/ieee/1849/10907/
+
+van der Aalst, W. M. P., Adriansyah, A., de Medeiros, A. K. A., Arcieri, F.,
+Baier, T., Blickle, T., Bose, J. C., van den Brand, P., Brandtjen, R., Buijs,
+J., Burattin, A., Carmona, J., Castellanos, M., Claes, J., Cook, J., Costantini,
+N., Curbera, F., Damiani, E., de Leoni, M., ... Wynn, M. (2012). Process mining
+manifesto. In F. Daniel, K. Barkaoui, & S. Dustdar (Eds.), *Business process
+management workshops* (pp. 169–194). Springer.
+https://doi.org/10.1007/978-3-642-28108-2_19
+
+World Wide Web Consortium. (2022). *Time ontology in OWL*.
+https://www.w3.org/TR/owl-time/

@@ -21,6 +21,14 @@ documents unless an ADR explicitly promotes a decision from them --
 to its governing ADR. Update research notes as literature changes; never
 use them to introduce an untracked architecture decision.
 
+Customer-facing copy must help the reader take the next product action. Do
+not expose implementation boundaries, provider or package names, schema
+versions, internal status/reason codes, environment variables, transport
+setup, hashes, or developer remediation instructions as explanatory UI copy.
+Keep that evidence in governed audit/admin surfaces and logs; translate a
+customer-visible state into the source, decision, retry, or administrator
+action the reader can actually take.
+
 ## Hard rule: no real data in repository artifacts
 
 This repository ships **synthetic fixtures only** (`lineageweave/fixtures.py`)
@@ -204,7 +212,7 @@ adjudication does -- never a raw LLM API. Demo TEPP seed goes through
 envelope is Failed (`tepp_not_available` / `tepp_result_not_persisted`),
 never a fabricated theta or a local psychometric substitute.
 
-Public source-reference research (ADR 0247) is a post-scoped write action
+Public source-reference research (ADR 0248) is a post-scoped write action
 on existing semantic units or image regions. Only `visibility_code=public`
 posts may send lead text to SearXNG or retrieve a result URL. Private posts
 fail closed without egress. Redirects and non-global targets are rejected.
@@ -247,6 +255,20 @@ vector degrades that pair back to difflib; it never fabricates a score.
 
 ## Tests
 
+### Isolated Compose lifecycle
+
+- The canonical standalone Compose project is `lineageweave` (ADR 0224).
+- A test, review, or stacked-PR environment may use an explicit isolated
+  project name only while that environment is needed. Once its stated test or
+  review objective has succeeded, preserve the relevant evidence and port any
+  required behavior into the canonical Compose contract, then run `docker
+  compose -p <exact-project> down` so its containers and network do not become
+  a second production-looking stack.
+- Never use `down -v` or otherwise delete named volumes without separate,
+  explicit authorization. Resolve the exact project from Compose labels before
+  cleanup; never target a glob, directory root, or another agent's active
+  environment.
+
 ```bash
 # backend extra compiles fast-mlsirm's PyO3 core -- needs rustc 1.97.1
 # (see backend/Dockerfile). Without it, pip falls over at build time.
@@ -281,8 +303,9 @@ stops startup instead of leaving a healthy-looking partial schema, and
 application code must not compensate for a missing table.
 
 Period leftover pairs (ADR 0017 / 0018 / 0048 / 0049 / 0119 / 0158 / 0162 /
-0163 / 0164 / 0182 / 0201) are computed in `lineageweave/leftover_pairs.py` from the
-residual after a real GRM/GPCM score, never invented. Distances are
+0163 / 0164 / 0182 / 0201 / 0208) consume fast-mlsirm's Rust-owned residual
+interaction map after a real GRM/GPCM score, never invented. LineageWeave only
+attaches product identifiers and selects returned cells. Distances are
 Euclidean on the two-dimensional Gabriel leftover map; missing cells stay
 out of the factorization. Closest and farthest post–criterion pairs
 persist to `report_leftover_pair` with signed residual `R`, observed

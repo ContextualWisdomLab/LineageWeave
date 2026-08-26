@@ -4,7 +4,7 @@ LineageWeave provides `scripts/k6_http_e2e.js` to measure the real Compose
 HTTP boundary while a synthetic Global Ask job is queued or running. It logs
 in through the seeded Keycloak realm, submits one non-identifying question to
 `POST /api/ask`, then drives concurrent authenticated requests to posts,
-Event Lineage, and the Ask-status projection.
+Event Lineage, the evidence Dashboard, and the Ask-status projection.
 
 This implements the measurement side of ADR 0204's resource-release decision:
 provider work is asynchronous, so ordinary readers should remain observable
@@ -40,7 +40,7 @@ k6 reports observed request counts, failure rate, and duration distributions.
 The custom metrics separate:
 
 - `lineageweave_ask_enqueue_duration`: time to persist and acknowledge the job;
-- `lineageweave_read_duration{endpoint:posts|lineage}`: ordinary reader paths;
+- `lineageweave_read_duration{endpoint:posts|lineage|dashboard}`: ordinary reader paths;
 - `lineageweave_ask_poll_duration`: owner-scoped status polling.
 - `lineageweave_ask_state_observations{job_status:...}`: how many observations
   occurred while the one queued job was queued, running, or settled.
@@ -61,23 +61,36 @@ or shared-runner result to a product guarantee.
 
 Figma and screenshot review do not apply: this is a non-UI HTTP load harness.
 
-## Exact-head synthetic verification record
+## Dashboard candidate verification record
 
-On 2026-08-26, an isolated Compose stack built from PR #663 commit
-`be361f10` completed an authenticated 4-VU, 30-second run against 27 synthetic
-`source_post` rows. The run completed 5,537 iterations and 16,613 HTTP
-requests; all 16,611 endpoint checks passed and k6 recorded no HTTP failures.
-Ask enqueue averaged 11.88 ms. Ask polling averaged 13.61 ms, with 21.46 ms
-p95 and 156.69 ms maximum. The combined post/lineage reader metric averaged
-19.57 ms, with 31.39 ms p95 and 198.64 ms maximum. Overall HTTP duration
-averaged 17.59 ms with 29.25 ms p95, at 183.44 iterations and 550.39 requests
-per second.
+On 2026-08-26 KST (2026-08-25 UTC), the synthetic 27-post Compose dataset at candidate head
+`b045a6e5` ran with 4 VUs for 30 seconds on alternate local ports. It completed
+1,240 iterations and 4,962 authenticated HTTP requests with zero failed
+requests and 4,960/4,960 successful checks across posts, Event Lineage,
+Dashboard, and Ask polling. Overall request duration was 75.02 ms average,
+56.73 ms median, 181.76 ms p95, and 791.89 ms maximum; the combined reader
+metric was 81.68 ms average and 197.25 ms p95. The one Ask enqueue took
+173.66 ms, while Ask polling averaged 54.80 ms with 132.98 ms p95.
 
-The host exposed 10 logical CPUs and 32 GiB RAM; Compose imposed no explicit
-backend CPU or memory limit. This exact-head observation verifies concurrent
-responsiveness for the small synthetic fixture and the asynchronous Ask
-enqueue/poll path. It does not represent authorized production volume,
-establish capacity, isolate a causal bottleneck, or establish an SLO.
+The first candidate run exposed two Dashboard-only SQL contract defects:
+an evidence-post predicate in the missing-fact query despite that query having
+no evidence-post join, and a fifth bind value passed to the four-parameter
+topic projection. Both failed every Dashboard request while sibling endpoints
+remained responsive. The shared query boundary was repaired and regression
+tests now assert the join and bind arity; the distribution above is the clean
+rerun. This is synthetic candidate evidence, not protected-main evidence or a
+capacity/SLO claim.
+
+After the normalized topic-coordinate/provenance and lifecycle constraints were
+added, candidate `7e63d8c2` replayed migrations through `0216` on the retained
+synthetic volume and passed the real-PostgreSQL Dashboard contract. Its clean
+4-VU/30-second rerun completed 345 iterations, 1,382 requests, and 1,380/1,380
+checks with zero request failures. HTTP duration was 255.55 ms average,
+187.54 ms median, and 593.53 ms p95; the reader metric was 275.26 ms average
+and 637.94 ms p95. Ask enqueue took 791.12 ms and polling p95 was 425.66 ms.
+The host was still completing the Keycloak/Quarkus cold start immediately
+before this run, so the distribution is retained as correctness/concurrency
+evidence and is not compared as a performance regression or SLO.
 
 ## Current-main verification record
 
@@ -196,3 +209,14 @@ duplicate filter-option query; they do not demonstrate current-head latency,
 causality, capacity, or an SLO. ADR 0212 combines the two option projections
 into one database query; its physical plan remains to be measured exact-head.
 Repeat the synthetic k6 run on an exact-head image before comparing effects.
+
+## Operations Dashboard exact-head observation
+
+On 2026-08-26 KST, candidate `361641ec` ran from a freshly built, isolated
+Compose project with the repository's 27-post synthetic dataset, 4 VUs, and a
+30-second observation window. It completed 974 iterations and 3,898 HTTP
+requests with zero failed requests and 3,896/3,896 successful reader checks.
+HTTP p95 was 194.70 ms; ordinary-reader p95 was 204.06 ms; Ask enqueue was
+104.90 ms. This local synthetic observation is not a capacity guarantee or an
+approved SLO; repeat it on the protected merge SHA and representative declared
+deployment capacity.
