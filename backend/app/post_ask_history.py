@@ -278,31 +278,28 @@ async def fetch_conversation(
     }
 
 
-async def _ensure_citations_visible(
+async def _ensure_sources_visible(
     conn: asyncpg.Connection,
-    conversation_id: UUID,
-    turn_ordinal: int,
-    cited_post_count: int,
+    source_post_ids: list[str],
     can_see_post: Callable[[asyncpg.Record], bool],
 ) -> None:
-    """Lock and re-authorize new citations before their transaction commits."""
+    """Lock and re-authorize every source before dependent rows are inserted."""
     rows = await conn.fetch(
         f"""
-        select relation.cited_post_id::text as post_id,
-               post.post_title, post.visibility_code, post.corporate_entity_id,
+        select post.post_id::text as post_id, post.post_title,
+               post.visibility_code, post.corporate_entity_id,
                post.process_unit_id,
                post.author_account_id, post.source_detail_state_code
-          from post_ask_turn_citation relation
-          join source_post post on post.post_id = relation.cited_post_id
-         where relation.post_ask_session_id = $1
-           and relation.turn_ordinal = $2
+          from source_post post
+         where post.post_id = any($1::uuid[])
            and ({SOURCE_POST_ELIGIBILITY_SQL.format(alias='post')})
          for share of post
         """,
-        conversation_id,
-        turn_ordinal,
+        source_post_ids,
     )
-    if len(rows) != cited_post_count or any(not can_see_post(row) for row in rows):
+    if len(rows) != len(source_post_ids) or any(
+        not can_see_post(row) for row in rows
+    ):
         raise PostAskEvidenceChanged
 
 
@@ -324,6 +321,8 @@ async def persist_turn(
         dict.fromkeys(str(post_id_value) for post_id_value in cited_post_ids if str(post_id_value) in source_set)
     )
     async with conn.transaction():
+        if can_see_post is not None:
+            await _ensure_sources_visible(conn, source_ids, can_see_post)
         if conversation_id is None:
             conversation_id = uuid4()
             await conn.execute(
@@ -397,13 +396,5 @@ async def persist_turn(
             "update post_ask_session set updated_at = now() where post_ask_session_id = $1",
             conversation_id,
         )
-        if can_see_post is not None:
-            await _ensure_citations_visible(
-                conn,
-                conversation_id,
-                ordinal,
-                len(cited_ids),
-                can_see_post,
-            )
     assert conversation_id is not None
     return conversation_id
