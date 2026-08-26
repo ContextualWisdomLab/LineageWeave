@@ -1104,7 +1104,7 @@
   min-width: var(--size-control-min);
   min-height: var(--size-control-min);
   border: 0;
-  border-bottom: 2px solid currentColor;
+  border-bottom: 2px solid currentcolor;
   background: transparent;
   color: var(--color-accent);
   cursor: pointer;

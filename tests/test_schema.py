@@ -354,7 +354,7 @@ def test_operations_case_milestones_reject_cross_kind_types(schema_db) -> None:
             (str(post_id), str(post_id), "a" * 64),
             (str(post_id),),
         )
-        for index, (statement, values) in enumerate(zip(invalid_statements, parameters)):
+        for index, (statement, values) in enumerate(zip(invalid_statements, parameters, strict=True)):
             savepoint = f"invalid_milestone_kind_{index}"
             cur.execute(f"savepoint {savepoint}")
             with pytest.raises(psycopg2.errors.CheckViolation):

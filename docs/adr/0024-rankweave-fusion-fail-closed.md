@@ -22,8 +22,9 @@ tables, and does not bind the demo IdP to production Keyverse.
 1. Consume RankWeave only through `RankWeaveClient`. The default
    transport raises `RankWeaveNotAvailable`. `build_rankweave_client
    (disabled=False)` uses `LibraryRankWeaveTransport`, which imports
-   `weighted_reciprocal_rank_fuse` inside the call so a missing
-   package fail-closes.
+   both `reciprocal_rank_fuse` (the default parameter-free path) and
+   `weighted_reciprocal_rank_fuse` (the explicit weighted path) inside
+   the call so a missing package fail-closes.
 2. `GET /api/rankings` (`post_read`) loads ABAC-visible posts as two
    rank-only channels: temporal (newest first) and lexical (token
    overlap with the synthetic demo query `pricing quote delivery`).

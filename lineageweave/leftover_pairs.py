@@ -135,8 +135,8 @@ def leftover_map_coverage_from_residual(
 
     _validate_shapes(post_ids, item_codes, matrix, expected)
     result = residual_interaction_map(matrix, expected, axis_count=_LEFTOVER_MAP_AXES)
-    map_posts = int(len(result.person_indices))
-    map_items = int(len(result.item_indices))
+    map_posts = len(result.person_indices)
+    map_items = len(result.item_indices)
     return LeftoverMapCoverage(
         map_post_count=map_posts,
         scored_post_count=int(result.scored_person_count),

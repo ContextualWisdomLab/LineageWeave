@@ -196,7 +196,12 @@ export function TopicContextInfluence({ data, onOpenPost }: { data: OperationsDa
         <div><p className="dashboard-eyebrow">글 영향도</p><h3 id="topic-context-heading">시간 흐름별 Topic model influence</h3></div>
         <p>사업 가치가 아닌, 해당 글을 제외했을 때 Topic·조직 수준 모형이 변하는 정도입니다.</p>
       </header>
-      {topicContext.status_code === "unavailable" ? (
+      {topicContext.status_code === "not_applicable" ? (
+        <div className="dashboard-topic-unavailable" role="status">
+          <strong>이 기간에는 글 영향도를 계산할 대상이 없습니다.</strong>
+          <p>다른 기간을 선택해 분석 가능한 글이 있는지 확인하세요.</p>
+        </div>
+      ) : topicContext.status_code === "unavailable" ? (
         <div className="dashboard-topic-unavailable" role="status">
           <strong>글 영향도를 아직 확인할 수 없습니다.</strong>
           <p>분석 대상 글의 사건 시점과 조직 소속을 확인한 뒤 다시 분석하세요.</p>

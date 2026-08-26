@@ -158,14 +158,32 @@ create table if not exists topic_post_context_influence (
 alter table topic_model_run
     add column if not exists coordinate_kind_code text
     check (coordinate_kind_code in ('logistic_normal_coordinate', 'plausible_value'));
+do $$
+begin
+    if exists (select 1 from topic_model_run where coordinate_kind_code is null) then
+        raise exception '0214 cannot enforce coordinate_kind_code: existing runs need producer reanalysis';
+    end if;
+end $$;
 alter table topic_model_run alter column coordinate_kind_code set not null;
 alter table topic_lineage_relation
     add column if not exists provenance_assertion_id uuid
     references provenance_assertion (assertion_id);
+do $$
+begin
+    if exists (select 1 from topic_lineage_relation where provenance_assertion_id is null) then
+        raise exception '0214 cannot enforce lineage provenance: existing relations need producer reanalysis';
+    end if;
+end $$;
 alter table topic_lineage_relation alter column provenance_assertion_id set not null;
 alter table topic_context_membership
     add column if not exists provenance_assertion_id uuid
     references provenance_assertion (assertion_id);
+do $$
+begin
+    if exists (select 1 from topic_context_membership where provenance_assertion_id is null) then
+        raise exception '0214 cannot enforce membership provenance: existing memberships need producer reanalysis';
+    end if;
+end $$;
 alter table topic_context_membership alter column provenance_assertion_id set not null;
 
 create index if not exists topic_activity_interval_time_idx
