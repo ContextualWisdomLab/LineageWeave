@@ -92,10 +92,18 @@ event.
 
 ## Corpus backfill (2026-08-20)
 
-Operational backfill MUST use `scripts/queue_post_content_backfill.py`. It
-selects only non-draft, non-deleted rows with real source context, records the
-same completeness-aware job state in PostgreSQL, and publishes wake-ups through
-Valkey. Direct provider calls are not a substitute for the worker queue.
+Operational backfill MUST use `scripts/queue_post_content_backfill.py` or
+`POST /api/post-content/backfill`; both call the same producer. The HTTP
+entry point requires `post_admin`, accepts only a 1--200 row page, and returns
+HTTP 202 after committing the ledger and attempting wake-ups; it never runs a
+provider in the request. The CLI has the same bound and no whole-corpus mode.
+The producer applies `SOURCE_POST_ELIGIBILITY_SQL`, locks source rows with
+`SKIP LOCKED`, selects only new or incomplete-succeeded jobs, rechecks the
+shared completeness predicate, and records the existing job state in
+PostgreSQL. Repeated calls therefore do not reset active or terminal work.
+If Valkey is unavailable, the response reports `recovery_pending` and the
+committed queued rows are republished by the existing recovery sweep. Direct
+provider calls are not a substitute for the worker queue.
 
 ### Operational timeout for structure adjudication
 

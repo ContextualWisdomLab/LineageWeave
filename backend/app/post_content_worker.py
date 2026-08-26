@@ -483,7 +483,15 @@ async def process_post_content_job(
                 and row.get("case_analysis_source_body_sha256")
                 != source_body_digest
             ):
-                await _requeue_project_missing_case_jobs(pool, post_id)
+                try:
+                    await _requeue_project_missing_case_jobs(pool, post_id)
+                except Exception as exc:  # noqa: BLE001 - primary evidence is complete.
+                    _logger.error("project sibling requeue failed for post_id=%s", post_id)
+                    record_server_failure(
+                        "post_content_sibling_requeue",
+                        exc,
+                        outcome="provider_unavailable",
+                    )
     except Exception as exc:  # noqa: BLE001 - durable failure is recorded for retry.
         _logger.error("post content ingestion failed for post_id=%s", post_id)
         outcome = (
