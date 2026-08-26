@@ -52,6 +52,19 @@ failures, and the SHA-256-bound output of the NIST proportion/FPC calculation
 owned by a versioned fast-mlsirm Rust
 artifact. LineageWeave validates that contract but performs no sample-size,
 finite-population, allocation, or weight arithmetic in Python.
+
+A separate non-probability diagnostic excluded the first deterministic 100
+records and selected 100 records from each of five event/update-time strata
+(500 total). Every stratum again had 100/100 governed VOC type, stage, and
+detail-state values but 0/100 non-empty bodies. Across the 500 records,
+customer code was present for 447, project code for 50, country code for 486,
+and due-date text for 0. Each stratum retained all five governed VOC types;
+stage had 2–4 distinct raw values, detail state 3–4, and country 9–14. This
+observed the same missing-body boundary and structured hint availability in
+each diagnostic stratum; it is not probability-sample or corpus-prevalence
+evidence and supplies no confidence interval.
+An attempted additional 100-title semantic audit produced no accepted batch
+after provider failures, so it contributes no content-classification counts.
 The advertised deployment alias needed by this multi-agent path is repaired in
 the canonical contextual-orchestrator PR #868. PR #870 was closed unmerged
 after its explicit-conduct regression was composed into #868; until #868's
