@@ -93,7 +93,7 @@ describe("FiveW1H", () => {
     expect(screen.getByText("Contract renewal")).toBeInTheDocument();
   });
 
-  it("falls back to the ontology code when no ontology label is annotated", async () => {
+  it("uses customer-facing detail copy when no ontology label is annotated", async () => {
     render(
       <FiveW1H
         slots={[
