@@ -51,6 +51,7 @@ def _repository_fixture(tmp_path: Path) -> Path:
         "lineageweave-kg.ttl",
         "soc-2018-structure.ttl",
         "onet-31-content-model.ttl",
+        "onet-31-content-model-linkages.ttl",
         "prov-o-support-profile.ttl",
         "namespace-compatibility.ttl",
         "lineageweave-kg-shapes.ttl",

@@ -111,12 +111,17 @@ canonical namespace, and lookup round-trip isolation are enforced by
   (ADR 0248). FJA worker functions remain separate.
 - Reuse official external identifiers and source-published relationships;
   never infer a DPT-to-psychology crosswalk or relabel work style as affect.
+- Publish the eight O*NET 31.0 Ability, Essential Skill, Transferable Skill,
+  and Work Style link tables to Work Activities and Work Context as 1,417
+  directed, assertion-level provenance-bearing relations (ADR 0253). Treat
+  relevance as neither a causal effect nor a numeric weight.
 - Bind a construct to record content only through a provenance-bearing,
   evidence-cited assertion. Do not promote record evidence to a person trait,
   score, causal effect, or job requirement.
 
-Acceptance: SHACL rejects incomplete assertions; ontology tests prohibit FJA
-equivalence and require exact Post/evidence/PROV statement structure. Runtime
+Acceptance: SHACL rejects incomplete record assertions; ontology tests
+prohibit FJA equivalence, require exact Post/evidence/PROV statement structure,
+and reproduce every pinned O*NET linkage with its exact source table. Runtime
 persistence and UI remain unavailable until their separate ADR acceptance.
 
 ### PRD-FR-3 — Bounded ontology exploration

@@ -1,0 +1,276 @@
+{
+  "table_id": "essential_skills_to_work_context",
+  "title": "Essential Skills to Work Context",
+  "description": "Provide linkages between essential skills and relevant work context.",
+  "data_dictionary": "https://www.onetcenter.org/dictionary/31.0/json/essential_skills_to_work_context.html",
+  "column": [
+    {
+      "column_id": "essential_skills_element_id",
+      "optional": false,
+      "title": "Essential Skills Element ID",
+      "description": "Content Model Outline Position",
+      "type": "Text",
+      "format": "Character Varying(20)"
+    },
+    {
+      "column_id": "essential_skills_element_name",
+      "optional": false,
+      "title": "Essential Skills Element Name",
+      "description": "Content Model Element Name",
+      "type": "Text",
+      "format": "Character Varying(150)"
+    },
+    {
+      "column_id": "work_context_element_id",
+      "optional": false,
+      "title": "Work Context Element ID",
+      "description": "Content Model Outline Position",
+      "type": "Text",
+      "format": "Character Varying(20)"
+    },
+    {
+      "column_id": "work_context_element_name",
+      "optional": false,
+      "title": "Work Context Element Name",
+      "description": "Content Model Element Name",
+      "type": "Text",
+      "format": "Character Varying(150)"
+    }
+  ],
+  "row": [
+    {
+      "essential_skills_element_id": "2.A.1.a",
+      "essential_skills_element_name": "Reading Comprehension",
+      "work_context_element_id": "4.C.1.a.2.h",
+      "work_context_element_name": "E-Mail"
+    },
+    {
+      "essential_skills_element_id": "2.A.1.b",
+      "essential_skills_element_name": "Active Listening",
+      "work_context_element_id": "4.C.1.a.2.c",
+      "work_context_element_name": "Public Speaking"
+    },
+    {
+      "essential_skills_element_id": "2.A.1.b",
+      "essential_skills_element_name": "Active Listening",
+      "work_context_element_id": "4.C.1.a.2.f",
+      "work_context_element_name": "Telephone Conversations"
+    },
+    {
+      "essential_skills_element_id": "2.A.1.b",
+      "essential_skills_element_name": "Active Listening",
+      "work_context_element_id": "4.C.1.a.2.l",
+      "work_context_element_name": "Face-to-Face Discussions with Individuals and Within Teams"
+    },
+    {
+      "essential_skills_element_id": "2.A.1.b",
+      "essential_skills_element_name": "Active Listening",
+      "work_context_element_id": "4.C.1.a.4",
+      "work_context_element_name": "Contact With Others"
+    },
+    {
+      "essential_skills_element_id": "2.A.1.b",
+      "essential_skills_element_name": "Active Listening",
+      "work_context_element_id": "4.C.1.b.1.e",
+      "work_context_element_name": "Work With or Contribute to a Work Group or Team"
+    },
+    {
+      "essential_skills_element_id": "2.A.1.b",
+      "essential_skills_element_name": "Active Listening",
+      "work_context_element_id": "4.C.1.b.1.f",
+      "work_context_element_name": "Deal With External Customers or the Public in General"
+    },
+    {
+      "essential_skills_element_id": "2.A.1.b",
+      "essential_skills_element_name": "Active Listening",
+      "work_context_element_id": "4.C.1.b.1.g",
+      "work_context_element_name": "Coordinate or Lead Others in Accomplishing Work Activities"
+    },
+    {
+      "essential_skills_element_id": "2.A.1.b",
+      "essential_skills_element_name": "Active Listening",
+      "work_context_element_id": "4.C.1.d.1",
+      "work_context_element_name": "Conflict Situations"
+    },
+    {
+      "essential_skills_element_id": "2.A.1.b",
+      "essential_skills_element_name": "Active Listening",
+      "work_context_element_id": "4.C.1.d.2",
+      "work_context_element_name": "Dealing With Unpleasant, Angry, or Discourteous People"
+    },
+    {
+      "essential_skills_element_id": "2.A.1.c",
+      "essential_skills_element_name": "Writing",
+      "work_context_element_id": "4.C.1.a.2.h",
+      "work_context_element_name": "E-Mail"
+    },
+    {
+      "essential_skills_element_id": "2.A.1.c",
+      "essential_skills_element_name": "Writing",
+      "work_context_element_id": "4.C.1.a.2.j",
+      "work_context_element_name": "Written Letters and Memos"
+    },
+    {
+      "essential_skills_element_id": "2.A.1.d",
+      "essential_skills_element_name": "Speaking",
+      "work_context_element_id": "4.C.1.a.2.c",
+      "work_context_element_name": "Public Speaking"
+    },
+    {
+      "essential_skills_element_id": "2.A.1.d",
+      "essential_skills_element_name": "Speaking",
+      "work_context_element_id": "4.C.1.a.2.f",
+      "work_context_element_name": "Telephone Conversations"
+    },
+    {
+      "essential_skills_element_id": "2.A.1.d",
+      "essential_skills_element_name": "Speaking",
+      "work_context_element_id": "4.C.1.a.2.l",
+      "work_context_element_name": "Face-to-Face Discussions with Individuals and Within Teams"
+    },
+    {
+      "essential_skills_element_id": "2.A.1.d",
+      "essential_skills_element_name": "Speaking",
+      "work_context_element_id": "4.C.1.a.4",
+      "work_context_element_name": "Contact With Others"
+    },
+    {
+      "essential_skills_element_id": "2.A.1.d",
+      "essential_skills_element_name": "Speaking",
+      "work_context_element_id": "4.C.1.b.1.e",
+      "work_context_element_name": "Work With or Contribute to a Work Group or Team"
+    },
+    {
+      "essential_skills_element_id": "2.A.1.d",
+      "essential_skills_element_name": "Speaking",
+      "work_context_element_id": "4.C.1.b.1.f",
+      "work_context_element_name": "Deal With External Customers or the Public in General"
+    },
+    {
+      "essential_skills_element_id": "2.A.1.d",
+      "essential_skills_element_name": "Speaking",
+      "work_context_element_id": "4.C.1.b.1.g",
+      "work_context_element_name": "Coordinate or Lead Others in Accomplishing Work Activities"
+    },
+    {
+      "essential_skills_element_id": "2.A.1.d",
+      "essential_skills_element_name": "Speaking",
+      "work_context_element_id": "4.C.1.d.1",
+      "work_context_element_name": "Conflict Situations"
+    },
+    {
+      "essential_skills_element_id": "2.A.1.d",
+      "essential_skills_element_name": "Speaking",
+      "work_context_element_id": "4.C.1.d.2",
+      "work_context_element_name": "Dealing With Unpleasant, Angry, or Discourteous People"
+    },
+    {
+      "essential_skills_element_id": "2.A.1.d",
+      "essential_skills_element_name": "Speaking",
+      "work_context_element_id": "4.C.1.d.3",
+      "work_context_element_name": "Dealing with Violent or Physically Aggressive People"
+    },
+    {
+      "essential_skills_element_id": "2.A.2.a",
+      "essential_skills_element_name": "Critical Thinking",
+      "work_context_element_id": "4.C.1.b.1.e",
+      "work_context_element_name": "Work With or Contribute to a Work Group or Team"
+    },
+    {
+      "essential_skills_element_id": "2.A.2.a",
+      "essential_skills_element_name": "Critical Thinking",
+      "work_context_element_id": "4.C.1.b.1.f",
+      "work_context_element_name": "Deal With External Customers or the Public in General"
+    },
+    {
+      "essential_skills_element_id": "2.A.2.a",
+      "essential_skills_element_name": "Critical Thinking",
+      "work_context_element_id": "4.C.1.d.1",
+      "work_context_element_name": "Conflict Situations"
+    },
+    {
+      "essential_skills_element_id": "2.A.2.a",
+      "essential_skills_element_name": "Critical Thinking",
+      "work_context_element_id": "4.C.1.d.3",
+      "work_context_element_name": "Dealing with Violent or Physically Aggressive People"
+    },
+    {
+      "essential_skills_element_id": "2.A.2.a",
+      "essential_skills_element_name": "Critical Thinking",
+      "work_context_element_id": "4.C.3.a.1",
+      "work_context_element_name": "Consequence of Error"
+    },
+    {
+      "essential_skills_element_id": "2.A.2.a",
+      "essential_skills_element_name": "Critical Thinking",
+      "work_context_element_id": "4.C.3.a.2.a",
+      "work_context_element_name": "Impact of Decisions on Co-workers or Company Results"
+    },
+    {
+      "essential_skills_element_id": "2.A.2.a",
+      "essential_skills_element_name": "Critical Thinking",
+      "work_context_element_id": "4.C.3.a.4",
+      "work_context_element_name": "Freedom to Make Decisions"
+    },
+    {
+      "essential_skills_element_id": "2.A.2.a",
+      "essential_skills_element_name": "Critical Thinking",
+      "work_context_element_id": "4.C.3.b.8",
+      "work_context_element_name": "Determine Tasks, Priorities and Goals"
+    },
+    {
+      "essential_skills_element_id": "2.A.2.a",
+      "essential_skills_element_name": "Critical Thinking",
+      "work_context_element_id": "4.C.3.c.1",
+      "work_context_element_name": "Level of Competition"
+    },
+    {
+      "essential_skills_element_id": "2.A.2.b",
+      "essential_skills_element_name": "Active Learning",
+      "work_context_element_id": "4.C.3.a.4",
+      "work_context_element_name": "Freedom to Make Decisions"
+    },
+    {
+      "essential_skills_element_id": "2.A.2.d",
+      "essential_skills_element_name": "Monitoring",
+      "work_context_element_id": "4.C.1.b.1.e",
+      "work_context_element_name": "Work With or Contribute to a Work Group or Team"
+    },
+    {
+      "essential_skills_element_id": "2.A.2.d",
+      "essential_skills_element_name": "Monitoring",
+      "work_context_element_id": "4.C.1.b.1.g",
+      "work_context_element_name": "Coordinate or Lead Others in Accomplishing Work Activities"
+    },
+    {
+      "essential_skills_element_id": "2.A.2.d",
+      "essential_skills_element_name": "Monitoring",
+      "work_context_element_id": "4.C.1.c.1",
+      "work_context_element_name": "Health and Safety of Other Workers"
+    },
+    {
+      "essential_skills_element_id": "2.A.2.d",
+      "essential_skills_element_name": "Monitoring",
+      "work_context_element_id": "4.C.1.c.2",
+      "work_context_element_name": "Work Outcomes and Results of Other Workers"
+    },
+    {
+      "essential_skills_element_id": "2.A.2.d",
+      "essential_skills_element_name": "Monitoring",
+      "work_context_element_id": "4.C.3.b.4",
+      "work_context_element_name": "Importance of Being Exact or Accurate"
+    },
+    {
+      "essential_skills_element_id": "2.A.2.d",
+      "essential_skills_element_name": "Monitoring",
+      "work_context_element_id": "4.C.3.b.7",
+      "work_context_element_name": "Importance of Repeating Same Tasks"
+    },
+    {
+      "essential_skills_element_id": "2.A.2.d",
+      "essential_skills_element_name": "Monitoring",
+      "work_context_element_id": "4.C.3.d.3",
+      "work_context_element_name": "Pace Determined by Speed of Equipment"
+    }
+  ]
+}

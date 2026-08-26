@@ -12,7 +12,7 @@ from dataclasses import dataclass
 from functools import lru_cache
 
 from rdflib import URIRef
-from rdflib.namespace import SKOS
+from rdflib.namespace import PROV, RDF, SKOS
 
 from .ontology import LW, ONTOLOGY
 
@@ -43,6 +43,23 @@ class OnetContentModelRecord:
 
     branch_element_id: str | None
     """Published second-level branch ID, or ``None`` for a root."""
+
+
+@dataclass(frozen=True)
+class OnetContentModelLinkageRecord:
+    """One source-published directed O*NET content-model linkage."""
+
+    source_element_id: str
+    """Worker-side source element ID."""
+
+    target_element_id: str
+    """Work-activity or work-context target element ID."""
+
+    relationship: str
+    """Stable relationship code, never a score or causal claim."""
+
+    provenance_iri: str
+    """Pinned O*NET source-table entity that published this pair."""
 
 
 def _single_text(subject: URIRef, predicate: URIRef) -> str:
@@ -120,4 +137,57 @@ def child_elements(element_id: str) -> tuple[OnetContentModelRecord, ...]:
         record
         for record in content_model_records()
         if record.parent_element_id == element_id
+    )
+
+
+@lru_cache(maxsize=1)
+def _all_linkages() -> tuple[OnetContentModelLinkageRecord, ...]:
+    by_iri = {URIRef(record.iri): record.element_id for record in content_model_records()}
+    records = []
+    for predicate, relationship in (
+        (LW.relevantWorkActivity, "relevant_work_activity"),
+        (LW.relevantWorkContext, "relevant_work_context"),
+    ):
+        for source, target in ONTOLOGY.subject_objects(predicate):
+            if source not in by_iri or target not in by_iri:
+                raise ValueError("O*NET linkage references an unknown content-model element")
+            statements = [
+                statement
+                for statement in ONTOLOGY.subjects(RDF.subject, source)
+                if (statement, RDF.predicate, predicate) in ONTOLOGY
+                and (statement, RDF.object, target) in ONTOLOGY
+            ]
+            if len(statements) != 1:
+                raise ValueError("O*NET linkage requires exactly one reified statement")
+            provenance = list(ONTOLOGY.objects(statements[0], PROV.wasDerivedFrom))
+            if len(provenance) != 1 or not isinstance(provenance[0], URIRef):
+                raise ValueError("O*NET linkage requires exactly one provenance IRI")
+            records.append(
+                OnetContentModelLinkageRecord(
+                    source_element_id=by_iri[source],
+                    target_element_id=by_iri[target],
+                    relationship=relationship,
+                    provenance_iri=str(provenance[0]),
+                )
+            )
+    if len(records) != 1417:
+        raise ValueError("O*NET 31.0 content model must contain 1,417 linkages")
+    return tuple(
+        sorted(
+            records,
+            key=lambda record: (
+                record.source_element_id,
+                record.relationship,
+                record.target_element_id,
+            ),
+        )
+    )
+
+
+def content_model_linkages(element_id: str) -> tuple[OnetContentModelLinkageRecord, ...]:
+    """Return published outgoing linkages for one declared content-model element."""
+    if content_model_element(element_id) is None:
+        return ()
+    return tuple(
+        record for record in _all_linkages() if record.source_element_id == element_id
     )

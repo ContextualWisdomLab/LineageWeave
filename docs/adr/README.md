@@ -32,6 +32,7 @@ decision from them.
 | [`OCCUPATIONAL_CONSTRUCT_REFERENCES.md`](../doctoring/OCCUPATIONAL_CONSTRUCT_REFERENCES.md) | [0248](0248-occupational-construct-evidence-boundary.md) |
 | [`ONET_31_CONTENT_MODEL_REFERENCES.md`](../doctoring/ONET_31_CONTENT_MODEL_REFERENCES.md) | [0250](0250-onet-31-content-model-ontology.md) |
 | [`SOC_2018_HIERARCHY_REFERENCES.md`](../doctoring/SOC_2018_HIERARCHY_REFERENCES.md) | [0252](0252-complete-2018-soc-hierarchy.md) |
+| [`ONET_31_LINKAGE_REFERENCES.md`](../doctoring/ONET_31_LINKAGE_REFERENCES.md) | [0253](0253-onet-content-model-published-linkages.md) |
 
 [0011](0011-prov-o-standard-relations.md) and [0065](0065-prov-o-provenance-boundary.md) cite the dated W3C PROV-O and PROV-DM Recommendations (https://www.w3.org/TR/2013/REC-prov-o-20130430/ and https://www.w3.org/TR/2013/REC-prov-dm-20130430/).
 

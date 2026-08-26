@@ -67,6 +67,7 @@ def test_build_publishes_dereferenceable_html_and_machine_formats(tmp_path: Path
         ROOT / "docs" / "ontology" / "lineageweave-kg.ttl",
         ROOT / "docs" / "ontology" / "soc-2018-structure.ttl",
         ROOT / "docs" / "ontology" / "onet-31-content-model.ttl",
+        ROOT / "docs" / "ontology" / "onet-31-content-model-linkages.ttl",
     )
     assert (ontology_dir / "ontology.ttl").read_text(encoding="utf-8") == (
         "\n".join(path.read_text(encoding="utf-8").rstrip() for path in sources)
@@ -193,6 +194,10 @@ def test_serializations_round_trip_to_the_source_graph(tmp_path: Path) -> None:
     source.parse(
         ROOT / "docs" / "ontology" / "onet-31-content-model.ttl", format="turtle"
     )
+    source.parse(
+        ROOT / "docs" / "ontology" / "onet-31-content-model-linkages.ttl",
+        format="turtle",
+    )
     jsonld = Graph()
     to_rdf(json.loads((output / "ontology" / "ontology.jsonld").read_text()), jsonld)
     ntriples = Graph().parse(output / "ontology" / "ontology.nt", format="nt")
@@ -233,13 +238,18 @@ def test_metadata_manifest_has_source_digest_and_no_build_clock(tmp_path: Path) 
     assert manifest["source_sha256"] == hashlib.sha256(source.read_bytes()).hexdigest()
     fragment = ROOT / "docs" / "ontology" / "soc-2018-structure.ttl"
     content_model = ROOT / "docs" / "ontology" / "onet-31-content-model.ttl"
+    linkages = ROOT / "docs" / "ontology" / "onet-31-content-model-linkages.ttl"
     assert manifest["source_tree_sha256"] == hashlib.sha256(
-        source.read_bytes() + fragment.read_bytes() + content_model.read_bytes()
+        source.read_bytes()
+        + fragment.read_bytes()
+        + content_model.read_bytes()
+        + linkages.read_bytes()
     ).hexdigest()
     assert [entry["path"] for entry in manifest["source_files"]] == [
         "docs/ontology/lineageweave-kg.ttl",
         "docs/ontology/soc-2018-structure.ttl",
         "docs/ontology/onet-31-content-model.ttl",
+        "docs/ontology/onet-31-content-model-linkages.ttl",
     ]
     assert "built_at" not in manifest
     assert manifest["documentation_url"] == "https://contextualwisdomlab.github.io/LineageWeave/ontology"
@@ -365,6 +375,17 @@ def test_builder_fails_closed_for_missing_sources_and_rejects_existing_output(tm
 
     (ontology_dir / "onet-31-content-model.ttl").write_bytes(
         (ROOT / "docs" / "ontology" / "onet-31-content-model.ttl").read_bytes()
+    )
+
+    try:
+        builder.build_site(repository, output)
+    except FileNotFoundError as exc:
+        assert "onet-31-content-model-linkages.ttl" in str(exc)
+    else:
+        raise AssertionError("missing O*NET linkage fragment was accepted")
+
+    (ontology_dir / "onet-31-content-model-linkages.ttl").write_bytes(
+        (ROOT / "docs" / "ontology" / "onet-31-content-model-linkages.ttl").read_bytes()
     )
 
     try:

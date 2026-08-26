@@ -8,6 +8,11 @@ All notable changes to this project are documented here. Format follows
 
 ### Added
 
+- All eight O*NET 31.0 published linkage tables now contribute 1,417 directed
+  Ability/Essential Skill/Transferable Skill/Work Style relations to Work
+  Activities and Work Context. Every direct relation has an exact reified
+  PROV source-table assertion; no confidence, causal effect, rating, or weight
+  is inferred (ADR 0253).
 - The complete O*NET 31.0 Content Model Reference is now a deterministic
   3,006-concept SKOS fragment with exact source IDs, names, descriptions, and
   documented outline parents (ADR 0250). Its read model fails closed on
