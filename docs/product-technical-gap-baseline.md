@@ -129,6 +129,12 @@ and 2.22.0 on #679. These ADR, migration, and release identities remain merge
 blockers until the parent lands and every surviving child is retargeted to
 `main`, renumbered where needed, and revalidated on its new exact head.
 
+PR #680 and #686 independently edit the same ranking, ontology, and locale
+surfaces, and neither exact head contains the other. Land #686 first because it
+contains the repository-wide customer-copy boundary audit and rendered
+desktop/mobile evidence; then rebase #680 and retain only behavior not already
+covered, so a later merge cannot restore implementation-facing copy.
+
 The hosted Full test for PR #632 at superseded head `cad4debf` failed only in
 the real-PostgreSQL semantic-nomination test with `InvalidPasswordError`; the
 other 1,333 tests passed. The run was cancelled after the branch advanced to
