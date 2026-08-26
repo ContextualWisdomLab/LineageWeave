@@ -21,12 +21,16 @@ from backend.app.post_content_queue import (
     RUNNING,
     STALE_RUNNING_INTERVAL,
     SUCCEEDED,
+    ensure_post_content_job,
     post_content_is_complete,
     republish_queued_post_content_jobs,
     transition_post_content_job,
 )
 from backend.app.operations_case_ingestion import persist_operations_cases
-from backend.app.post_chat_ingestion import gather_chat_sources
+from backend.app.post_chat_ingestion import (
+    find_project_sibling_post_ids,
+    gather_chat_sources,
+)
 from lineageweave.embedding_client import EmbeddingClient
 from lineageweave.http_client import HttpClientError
 from lineageweave.image_content import ImageContentClient
@@ -158,6 +162,42 @@ async def _persist_operations_case_analysis_if_needed(
         )
 
 
+async def _requeue_project_missing_case_jobs(
+    pool: asyncpg.Pool,
+    post_id: str,
+) -> int:
+    """Re-analyze older project siblings that still lack required facts."""
+    async with pool.acquire() as conn:
+        async with conn.transaction():
+            sibling_ids = await find_project_sibling_post_ids(conn, post_id)
+            if not sibling_ids:
+                return 0
+            rows = await conn.fetch(
+                """
+                select distinct post.post_id, post.post_body
+                  from operations_case_missing_fact missing
+                  join source_post post on post.post_id = missing.post_id
+                 join post_content_ingestion_job job on job.post_id = missing.post_id
+                 where missing.post_id = any($1::uuid[])
+                   and job.status_code = $2
+                   and nullif(btrim(post.post_body), '') is not null
+                 order by post.post_id
+                """,
+                [UUID(sibling_id) for sibling_id in sibling_ids],
+                SUCCEEDED,
+            )
+            queued = 0
+            for row in rows:
+                request = await ensure_post_content_job(
+                    conn,
+                    str(row["post_id"]),
+                    str(row["post_body"]),
+                    content_complete=False,
+                )
+                queued += int(request.should_publish)
+            return queued
+
+
 async def _stream_tail(client: redis.Redis) -> str:
     """Start after historical wake-ups; the normalized ledger drives recovery."""
     with traced(
@@ -188,7 +228,12 @@ async def _claim_job(
                        j.status_code as job_status_code,
                        j.attempt_count as job_attempt_count,
                        j.started_at as job_started_at,
-                       j.queued_at as job_queued_at
+                       j.queued_at as job_queued_at,
+                       (
+                           select analysis.source_body_sha256
+                             from operations_case_analysis analysis
+                            where analysis.post_id = p.post_id
+                       ) as case_analysis_source_body_sha256
                 from post_content_ingestion_job j
                 join source_post p on p.post_id = j.post_id
                 where j.post_id = $1::uuid
@@ -432,6 +477,13 @@ async def process_post_content_job(
                     expected_attempt_count=attempt_count,
                 )
                 return
+            if (
+                settings.orchestrator_base_url
+                and settings.orchestrator_api_key
+                and row.get("case_analysis_source_body_sha256")
+                != source_body_digest
+            ):
+                await _requeue_project_missing_case_jobs(pool, post_id)
     except Exception as exc:  # noqa: BLE001 - durable failure is recorded for retry.
         _logger.error("post content ingestion failed for post_id=%s", post_id)
         outcome = (

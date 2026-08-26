@@ -114,10 +114,11 @@ def test_project_sibling_precedes_a_dense_graph_candidate_window(
     """Exact project evidence is not crowded out by a dense graph window."""
 
     root_id = "00000000-0000-0000-0000-000000000001"
-    project_id = "00000000-0000-0000-0000-000000000002"
+    project_id = "00000000-0000-0000-9999-999999999999"
     direct_ids = {
         f"00000000-0000-0000-0001-{index:012d}" for index in range(40)
     }
+    direct_ids.add(project_id)
 
     class DenseConnection(_SourceConnection):
         candidate_ids: list[str] = []

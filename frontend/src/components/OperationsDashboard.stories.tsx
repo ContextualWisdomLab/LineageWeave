@@ -99,7 +99,7 @@ export const TopicInfluenceAccepted: Story = {
     await expect(canvas.getByRole("heading", { name: "시간 흐름별 Topic model influence" })).toBeVisible();
     await expect(canvas.getByText(/휴면 \/ 재활성/)).toBeVisible();
     await expect(canvas.getAllByText("4.25")).toHaveLength(3);
-    await expect(canvas.getByText(/순번이나 임의 가중치를 추가하지 않습니다/)).toBeVisible();
+    await expect(canvas.getByText(/영향도와 불확실성을 함께 비교하고 같은 값은 동점으로 확인하세요/)).toBeVisible();
   },
 };
 
@@ -127,7 +127,7 @@ export const RequiredFactMissing: Story = {
     onOpenPost: () => undefined,
   },
   play: async ({ canvasElement }) => {
-    await expect(within(canvasElement).getByText(/수주 Pool: 권한 범위 내 근거가 없습니다/)).toBeVisible();
+    await expect(within(canvasElement).getByText(/수주 Pool: 관련 근거를 찾으면 자동으로 다시 분석합니다. 이후 결과를 다시 확인하세요/)).toBeVisible();
   },
 };
 
