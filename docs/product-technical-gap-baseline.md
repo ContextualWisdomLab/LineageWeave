@@ -28,7 +28,7 @@ containers while preserving named volumes.
 | Apple-Silicon mathematical acceleration | ADR 0226 macOS-native Rust owner service with authenticated MLX Metal execution receipts | Normative boundary accepted; TEPP, fast-mlsirm, and RankWeave owner implementations and actual Metal parity receipts remain required before activation |
 | Ask answer citation-to-event navigation | ADR 0225; authorized cited source, observed source clock, focused evidence layer, and full-post navigation | Stacked candidate renders numbered answer citations and chronologically ordered evidence cards with bidirectional focus. Event and record clocks stay distinct; this list does not claim a Project Journey. Storybook and component interaction evidence are included; authenticated runtime screenshots remain required at the exact candidate head. |
 | Repeat issue to design improvement | `repeat_issue`, `issue_pattern`, and `improvement_action` cited facts | Candidate semantic contract; design-system connector acceptance pending |
-| Natural-language Ask with evidence, report, alert, MCP | Persisted semantic-unit embeddings plus versioned delivery/resource contract | Candidate implementation uses whole-question embedding retrieval with no lexical fallback; authenticated runtime acceptance pending |
+| Natural-language Ask with evidence, report, alert, MCP | Persisted semantic-unit embeddings plus versioned delivery/resource contract | Candidate implementation uses whole-question embedding retrieval with no lexical fallback. Post-scoped evidence collection now also follows exact persisted `project_key` membership, so the system searches authorized related originals before re-analysis instead of asking the reader to attach them. Focused backend tests pass; authenticated exact-head runtime acceptance remains pending. |
 | Similar VOC, customer cohort, prior action | Persisted repeat-issue candidate semantics plus orchestrator pair adjudication and extractive evidence | Candidate live post endpoint and post-detail UI implemented; authenticated runtime acceptance pending |
 | TEPP independent Event Lineage anchor | Accepted, persisted TEPP criterion bound to exact snapshot/cutoff before fast-mlsirm activation | Consumer PR #606 is on protected main; TEPP producer PR #237 remains open, so no end-to-end accepted artifact is release evidence yet |
 | Temporal Lineage topics and multilevel important posts | ADR 0210; TEPP posterior topic/plausible-value contract followed by fast-mlsirm observed-information case-deletion influence | This stacked candidate adds normalized persistence, exact run/snapshot/cutoff binding, pre-aggregation scope authorization, API diagnostics, and populated/unavailable Storybook surfaces. TEPP PR #247 remains open at `063f10f3`; stacked #251–#254 provide fail-closed input validation, full joint precision, deterministic joint plausible-value draws, and the canonical research register, while complete provenance assembly remains gated. fast-mlsirm PR #1418 validates the Rust consumer envelope but intentionally returns `EstimatorUnavailable` until the scientific estimator lands. Runtime therefore remains honestly unavailable with no local Python or fallback score. |
@@ -86,6 +86,13 @@ was 20.15:1, 5.73:1, and 18.62:1. Authenticated runtime evidence remains
 required before protected delivery can be claimed.
 Authenticated authorized-corpus acceptance remains separate and may return
 only aggregate, non-identifying evidence to this repository.
+
+The 2026-08-26 canonical runtime audit found the Ask composer visually
+compressed even though its asynchronous enqueue path remained responsive. The
+current stacked candidate replaces that loose control row with a labeled form,
+a stable submit action, and a separate live status. Component screenshot
+acceptance remains pending until the candidate image is rebuilt. This is not
+protected-main delivery evidence.
 
 The current candidate was also re-rendered from the isolated synthetic stack
 at 1440×1100 and 402×1200 after the touch-target repair. Both viewports had

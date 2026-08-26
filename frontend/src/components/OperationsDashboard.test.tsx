@@ -55,7 +55,7 @@ describe("OperationsDashboardView", () => {
     expect(screen.getByText("3 Event · 2글")).toBeInTheDocument();
     expect(screen.getByText("5건 · 25.0%")).toBeInTheDocument();
     expect(screen.getByText("원인 수주")).toBeInTheDocument();
-    expect(screen.getByText(/수주 Pool: 권한 범위 내 근거가 없습니다/)).toBeInTheDocument();
+    expect(screen.getByText(/수주 Pool: 관련 원문을 찾고 다시 분석하고 있습니다/)).toBeInTheDocument();
     expect(screen.getByText("2일 3시간 30분 0초")).toBeInTheDocument();
     expect(screen.getByText(/진행 중 1건 · 종료 확인 0건/)).toBeInTheDocument();
     await userEvent.click(screen.getByRole("button", { name: "분류 근거 글 열기" }));

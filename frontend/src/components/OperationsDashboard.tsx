@@ -108,7 +108,7 @@ export function OperationsDashboardView({ data, externalOnly = false, onOpenPost
       {!externalOnly ? (
         <section className="dashboard-lifecycle-summary" aria-labelledby="lifecycle-summary-heading">
           <h3 id="lifecycle-summary-heading">관측된 처리 구간</h3>
-          <p>임의 지연 기준 없이, 시작·종료 Event가 모두 확인된 구간만 경과 시간을 계산합니다.</p>
+          <p>시작과 종료 Event가 확인된 항목의 경과 시간을 비교하세요.</p>
           <dl className="dashboard-lifecycle-metrics">
             {data.lifecycle_metrics.map((metric) => (
               <div key={metric.lifecycle_kind_code}>
@@ -172,7 +172,7 @@ export function OperationsDashboardView({ data, externalOnly = false, onOpenPost
             {item.missing_facts.length ? (
               <section className="dashboard-missing-facts" aria-label="추가 확인이 필요한 항목">
                 <h4>추가 확인 필요</h4>
-                <ul>{item.missing_facts.map((fact) => <li key={fact.fact_type_code}>{fact.fact_type_label}: 권한 범위 내 근거가 없습니다. 관련 원문을 연결하세요.</li>)}</ul>
+                <ul>{item.missing_facts.map((fact) => <li key={fact.fact_type_code}>{fact.fact_type_label}: 관련 원문을 찾고 다시 분석하고 있습니다.</li>)}</ul>
               </section>
             ) : null}
             <button type="button" className="btn-secondary" onClick={() => onOpenPost(item.evidence_post_id)}>분류 근거 글 열기</button>
@@ -228,7 +228,7 @@ export function TopicContextInfluence({ data, onOpenPost }: { data: OperationsDa
                     <h4 id={`topic-${topic.topic_index}-${context.dimension_code}-${context.context_id}`}>{dimensionLabels[context.dimension_code]} · {context.context_label}</h4>
                     <div className="dashboard-topic-table-scroll" tabIndex={0} role="region" aria-label={`${context.context_label} model influence 표`}>
                       <table>
-                        <caption>값이 같으면 동점이며, 순번이나 임의 가중치를 추가하지 않습니다.</caption>
+                        <caption>영향도와 불확실성을 함께 비교하고 같은 값은 동점으로 확인하세요.</caption>
                         <thead><tr><th scope="col">Event 발생일</th><th scope="col">상태</th><th scope="col">Model influence</th><th scope="col">불확실성</th><th scope="col">소속 근거</th><th scope="col">원문</th></tr></thead>
                         <tbody>{context.influences.map((influence) => (
                           <tr key={`${influence.post_id}-${influence.membership_evidence_sha256}`}>

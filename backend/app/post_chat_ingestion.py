@@ -270,6 +270,23 @@ async def find_linked_post_ids(conn: asyncpg.Connection, post_id: str) -> Linked
         )
         sibling_post_ids = list({str(row["post_id"]) for row in sibling_rows} | {post_id})
 
+    project_rows = await conn.fetch(
+        "select distinct project_key from post_project_mention where post_id = $1",
+        post_id,
+    )
+    project_keys = [str(row["project_key"]) for row in project_rows]
+    project_sibling_ids: set[str] = set()
+    if project_keys:
+        project_sibling_rows = await conn.fetch(
+            "select distinct post_id from post_project_mention "
+            "where project_key = any($1::text[])",
+            project_keys,
+        )
+        project_sibling_ids = {
+            str(row["post_id"]) for row in project_sibling_rows
+        } - {post_id}
+        sibling_post_ids = list(set(sibling_post_ids) | project_sibling_ids)
+
     edges = await load_visible_subgraph(conn, sibling_post_ids)
     start = node_key(NODE_POST, post_id)
     scores = random_walk_with_restart(adjacency_from_edges(edges), start_node=start)
@@ -278,7 +295,7 @@ async def find_linked_post_ids(conn: asyncpg.Connection, post_id: str) -> Linked
         node_id
         for key, _ in related
         if (node_id := parse_node_key(key)[1]) and parse_node_key(key)[0] == NODE_POST
-    ) - {post_id}
+    ).union(project_sibling_ids) - {post_id}
 
     return LinkedPostIds(direct=direct_ids - {post_id}, indirect=indirect_ids - direct_ids)
 

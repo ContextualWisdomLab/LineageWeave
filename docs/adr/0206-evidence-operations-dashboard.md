@@ -63,7 +63,9 @@ provenance.
    absent from the authorized corpus.
    The analysis input reuses the post-chat source assembler: focal post first,
    then bounded Event Lineage and semantic-neighborhood posts after the same
-   corporate-entity/process-unit ABAC check. Every classification and fact
+   corporate-entity/process-unit ABAC check. The semantic window includes posts
+   carrying the same persisted `post_project_mention.project_key`; display-name
+   similarity and keyword matching do not create that link. Every classification and fact
    persists its evidence post id and the SHA-256 of the exact numbered input
    document. A span that does not occur in that identified document rejects
    the whole provider response; linked evidence is never rewritten as focal
@@ -71,8 +73,9 @@ provenance.
 8. Claim-investigation and rebid/handover panels include positively classified
    cases and show extracted answers plus cited spans. A required answer that
    the source does not support is stored in the normalized
-   `operations_case_missing_fact` relation as an explicit missing fact, so the
-   next action is collection or human correction rather than keyword guessing.
+   `operations_case_missing_fact` relation as an explicit retry state while the
+   system searches the authorized semantic source window and re-analyzes the
+   case. The reader is not asked to attach the source manually.
    A provider result is invalid unless every required question is represented
    exactly once as either a cited supported fact or an explicit missing fact;
    a fact cannot be both. Missing facts carry no invented value or evidence
