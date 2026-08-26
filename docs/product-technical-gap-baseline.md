@@ -1,6 +1,6 @@
 # Product & Technical Gap Baseline
 
-> Dashboard delivery snapshot: 2026-08-26 12:08 KST. Protected `main` is
+> Dashboard delivery snapshot: 2026-08-26 12:11 KST. Protected `main` is
 > `494b54e2245040bcf02b45376f221c37cd437e76`. This local branch is not
 > protected-main release evidence.
 
@@ -68,7 +68,7 @@ are not merge readiness. Re-fetch exact heads,
 unresolved threads, checks, approvals, rulesets, and merge SHA before any
 lifecycle claim.
 
-> Audit snapshot: 2026-08-26 11:56 KST (refreshed by the autonomous merge
+> Audit snapshot: 2026-08-26 12:11 KST (refreshed by the autonomous merge
 > loop). This repository records synthetic fixtures and aggregate,
 > non-identifying runtime evidence only. Open PRs and local checks are not
 > protected-default-branch release evidence. Identifying post identifiers,
@@ -93,7 +93,7 @@ context only.
 | #679 | `29aa69dd` | ADR 0229 public-claim envelope, async verification, locale-aware next actions, opt-in search setup, and aggregate-status guidance repair; BLOCKED with exact-head checks and independent review required |
 | #672 | `ac521a24` | persisted semantic-evidence nomination for Global Ask with ADR renumbering; unexpected external-verification adapter failures now degrade to unavailable with a regression test; one pre-existing pool/embedding review note remains, hosted checks requeued |
 | #668 | `e452bf38` | evidence-bound project history projection with ADR renumbering, request guards, source-code/time-basis display repair, and theme-token timeline styling; BLOCKED with review required |
-| #667 | `ed061921` | baseline refresh parent is the current exact head; BLOCKED with hosted checks and independent review required; this row is not a prediction of the commit created by the refresh |
+| #667 | `95ac10b9` | baseline refresh plus repeated-turn conversation-key repair; current head has no unresolved review threads, while hosted checks and independent approval remain pending |
 | #663 | `f616887a` | project ontology traversal, cutoff-snapshot project focus, bounded MCP admission, and migration-fixture/worker startup repair; exact-head Full-suite authentication and transaction-fixture failures repaired; fresh checks pending and review required |
 | #658 | `f497a6e8` | evidence-honest Global Ask cutoff with robust revision timestamps; BLOCKED with review required |
 | #657 | `709df1b9` | TEPP lifecycle persistence and fail-closed topic acceptance; BLOCKED with hosted checks queued and review required |
