@@ -48,7 +48,8 @@ def main() -> None:
         raise SystemExit("LLM_GATEWAY_API_URL or LLM_GATEWAY_URL is required to start the gateway")
     if not provider_url.rstrip("/").endswith("/v1"):
         provider_url = provider_url.rstrip("/") + "/v1"
-    embedding_model = os.environ.pop("LLM_GATEWAY_EMBEDDING_MODEL", "").strip()
+    os.environ.pop("LLM_GATEWAY_EMBEDDING_MODEL", None)
+    batch_registry_url = os.environ.pop("BATCH_JOB_REGISTRY_VALKEY_URL", "").strip()
     raw_limit = os.environ.pop("LLM_GATEWAY_MAX_OUTPUT_TOKENS", "4096").strip()
     try:
         max_output_tokens = int(raw_limit)
@@ -69,26 +70,17 @@ def main() -> None:
         agent["base_url"] = provider_url
         agent["credential_key"] = "LLM_GATEWAY_API_KEY"
         agent.setdefault("provider_protocol", "auto")
-    if embedding_model:
-        agents["agents"].append(
-            {
-                "id": "gateway_embedding_agent",
-                "model": embedding_model,
-                "provider_protocol": "auto",
-                "base_url": provider_url,
-                "credential_key": "LLM_GATEWAY_API_KEY",
-                "tags": ["embedding"],
-                "priority": 1,
-            }
-        )
     agents_path.write_text(json.dumps(agents), encoding="utf-8")
 
     from contextual_orchestrator.credentials import register_credential
 
     register_credential("LLM_GATEWAY_API_KEY", gateway_key)
+    if batch_registry_url:
+        register_credential("batch_job_registry_valkey_url", batch_registry_url)
     for credential_name, credential_value in provider_credentials.items():
         register_credential(credential_name, credential_value)
     del gateway_key
+    del batch_registry_url
     del provider_credentials
     sys.argv = [
         "contextual_orchestrator",
@@ -109,7 +101,6 @@ def main() -> None:
         str(max_body_bytes),
     ]
     del provider_url
-    del embedding_model
     del auth_token
     from contextual_orchestrator.__main__ import main as serve
 

@@ -119,11 +119,15 @@ services:
       # explicit bounded 8 MiB limit rather than an unbounded request size.
       CONTEXTUAL_ORCHESTRATOR_MAX_BODY_BYTES: ${CONTEXTUAL_ORCHESTRATOR_MAX_BODY_BYTES:-8388608}
       CONTEXTUAL_ORCHESTRATOR_ALLOWED_PROVIDER_HOSTS: ${CONTEXTUAL_ORCHESTRATOR_ALLOWED_PROVIDER_HOSTS:-host.docker.internal}
+      BATCH_JOB_REGISTRY_VALKEY_URL: redis://valkey:6379/1
       OTEL_SERVICE_NAME: ${OTEL_ORCHESTRATOR_SERVICE_NAME:-contextual-orchestrator}
       # Do not set OTEL_EXPORTER_OTLP_ENDPOINT here. An empty
       # ${OTEL_EXPORTER_OTLP_ENDPOINT:-} interpolation would wipe a value from
       # env_file (${HOME}/.env). Export stays opt-in from that file or the host.
     command: ["python", "/app/start.py"]
+    depends_on:
+      valkey:
+        condition: service_healthy
     ports:
       - "${ORCHESTRATOR_PORT:-18000}:8000"
     healthcheck:

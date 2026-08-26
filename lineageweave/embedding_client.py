@@ -125,7 +125,14 @@ class ContextualOrchestratorEmbeddingClient:
                 if vectors is not None:
                     return vectors
                 if response.get("status") in {"failed", "cancelled", "rejected"}:
-                    raise RuntimeError("embedding batch did not complete")
+                    failure = response.get("failure")
+                    failure_code = (
+                        failure.get("provider_code") or failure.get("error_type")
+                        if isinstance(failure, dict)
+                        else None
+                    )
+                    suffix = f": {failure_code}" if failure_code else ""
+                    raise RuntimeError(f"embedding batch did not complete{suffix}")
                 if time.monotonic() >= deadline:
                     raise TimeoutError("embedding batch timed out")
                 poll_after_ms = response.get("poll_after_ms")
@@ -202,6 +209,9 @@ class ContextualOrchestratorEmbeddingClient:
         )
         if any(type(response.get(key)) is not int or response[key] < 1 for key in required):
             raise ValueError("embedding batch capabilities are incomplete")
+        model = response.get("model")
+        if isinstance(model, str) and model.strip():
+            self._bind_model(response)
         return {key: int(response[key]) for key in required}
 
     @property
