@@ -32,10 +32,15 @@ source database currently has zero of the 14 normalized PROV-O tables required
 by ADR 0011. These edges therefore remain an explicit provenance gap: do not
 present them as source-backed facts or qualified derivations until a normalized
 resource, activity, assertion, and qualification reference is persisted.
-The export names 117 distinct opaque source-artifact references, but none is a
-locally resolvable file, directory, absolute path, or URI in the authorized
-runtime. Those references therefore cannot substitute for an authoritative
-body/file connector or prove body semantic coverage.
+The export names 117 distinct opaque source-artifact references. A protected
+runtime search found 117 local MHTML files whose complete SHA-256 digests match
+the artifact catalog exactly. Replaying all 12.1 GB through the non-rendering
+`mhtml-etl-gateway` parser succeeded for 117/117 artifacts, produced exactly
+43,814 rows, found exactly one body-candidate header in every artifact, and
+found zero nonblank body cells. The database's zero-body result is therefore
+faithful to the complete authorized source bytes, not an ETL omission. Body
+semantics remain honestly unavailable unless a different authoritative source
+is connected; titles must not be copied into bodies.
 
 The current semantic layer is therefore **not sufficient for the source
 content as a whole**. It covers typed Post, Person, CorporateEntity, Team,
