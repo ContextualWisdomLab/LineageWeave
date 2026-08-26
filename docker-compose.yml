@@ -105,7 +105,7 @@ services:
     build:
       context: ./docker/contextual-orchestrator
       dockerfile: Dockerfile
-    image: ${COMPOSE_PROJECT_NAME:-lineageweave}-orchestrator:71fa80976ea8db69e178bb16b4b04db3c2cf5076
+    image: ${COMPOSE_PROJECT_NAME:-lineageweave}-orchestrator:d93b74ad8c2c73ff889901ece7c61d4504a56eb1
     env_file:
       - ${HOME}/.env
     environment:
