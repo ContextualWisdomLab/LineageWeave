@@ -49,6 +49,7 @@ def main() -> None:
     if not provider_url.rstrip("/").endswith("/v1"):
         provider_url = provider_url.rstrip("/") + "/v1"
     embedding_model = os.environ.pop("LLM_GATEWAY_EMBEDDING_MODEL", "").strip()
+    batch_registry_url = os.environ.pop("BATCH_JOB_REGISTRY_VALKEY_URL", "").strip()
     raw_limit = os.environ.pop("LLM_GATEWAY_MAX_OUTPUT_TOKENS", "4096").strip()
     try:
         max_output_tokens = int(raw_limit)
@@ -87,9 +88,12 @@ def main() -> None:
     from contextual_orchestrator.credentials import register_credential
 
     register_credential("LLM_GATEWAY_API_KEY", gateway_key)
+    if batch_registry_url:
+        register_credential("batch_job_registry_valkey_url", batch_registry_url)
     for credential_name, credential_value in provider_credentials.items():
         register_credential(credential_name, credential_value)
     del gateway_key
+    del batch_registry_url
     del provider_credentials
     sys.argv = [
         "contextual_orchestrator",

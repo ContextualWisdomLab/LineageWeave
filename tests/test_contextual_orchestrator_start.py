@@ -114,6 +114,7 @@ def test_bootstrap_registers_configured_remote_embedding_agent(
     monkeypatch.setenv("BYTEZ_API_KEY", "bytez-key")
     monkeypatch.setenv("CONTEXTUAL_ORCHESTRATOR_TOKEN", "orchestrator-token")
     monkeypatch.setenv("LLM_GATEWAY_API_URL", "https://gateway.example")
+    monkeypatch.setenv("BATCH_JOB_REGISTRY_VALKEY_URL", "redis://valkey:6379/1")
     if embedding_model:
         monkeypatch.setenv("LLM_GATEWAY_EMBEDDING_MODEL", embedding_model)
     else:
@@ -127,6 +128,7 @@ def test_bootstrap_registers_configured_remote_embedding_agent(
     assert "--embedding-model" not in argv
     assert captured["credentials"] == [
         ("LLM_GATEWAY_API_KEY", "provider-key"),
+        ("batch_job_registry_valkey_url", "redis://valkey:6379/1"),
         ("OPENAI_API_KEY", "openai-key"),
         ("OPENROUTER_API_KEY", "openrouter-key"),
         ("NVIDIA_NIM_API_KEY", "nim-key"),
@@ -141,6 +143,7 @@ def test_bootstrap_registers_configured_remote_embedding_agent(
         "NVIDIA_NIM_API_KEY",
         "NVIDIA_NIM_API_KEY_SUB",
         "BYTEZ_API_KEY",
+        "BATCH_JOB_REGISTRY_VALKEY_URL",
     } & os.environ.keys()
     agents = captured["agents"]
     assert isinstance(agents, dict)
