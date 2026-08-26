@@ -54,6 +54,11 @@ _OCCUPATIONAL_CATALOG_MIGRATION = (
     / "migrations"
     / "0239_occupational_construct_catalog.sql"
 )
+_OCCUPATIONAL_EXTRACTION_MIGRATION = (
+    Path(__file__).resolve().parents[1]
+    / "migrations"
+    / "0240_occupational_construct_extraction_run.sql"
+)
 _SOURCE_STATE_MIGRATION = (
     Path(__file__).resolve().parents[1] / "migrations" / "0033_source_state_provenance.sql"
 )
@@ -170,6 +175,7 @@ def schema_db():
                 cur.execute(_ONTOLOGY_TRUTH_STATUS_MIGRATION.read_text())
                 cur.execute(_OCCUPATIONAL_CONSTRUCT_MIGRATION.read_text())
                 cur.execute(_OCCUPATIONAL_CATALOG_MIGRATION.read_text())
+                cur.execute(_OCCUPATIONAL_EXTRACTION_MIGRATION.read_text())
                 cur.execute(_PROJECT_MENTION_MIGRATION.read_text())
                 cur.execute(_SOURCE_STATE_MIGRATION.read_text())
                 cur.execute(_SOURCE_CONTEXT_MIGRATION.read_text())
@@ -255,6 +261,7 @@ def test_migration_applies_cleanly(schema_db) -> None:
         "occupational_construct_vocabulary",
         "occupational_construct",
         "post_occupational_construct_assertion",
+        "post_occupational_construct_extraction",
     }
     assert expected <= tables
 
