@@ -94,7 +94,12 @@ def test_orchestrator_embedding_client_submits_and_polls_batch(monkeypatch) -> N
 
     def fake_post_json(url, payload, *, headers, timeout):
         calls.append(("post", url, payload, headers))
-        return {"batch_id": "synthetic-batch", "status": "queued", "model": "resolved-embedding"}
+        return {
+            "batch_id": "synthetic-batch",
+            "status": "queued",
+            "model": "resolved-embedding",
+            "poll_after_ms": 1,
+        }
 
     def fake_get_json(url, *, headers, timeout, service_peer_name):
         assert service_peer_name == "contextual-orchestrator"

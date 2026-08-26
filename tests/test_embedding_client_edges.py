@@ -39,6 +39,7 @@ def test_batch_capabilities_require_positive_integer_limits(
             "max_request_body_bytes": 65_536,
             "max_tokens_per_part": 280_000,
             "max_chars_per_part": 240_000,
+            "poll_after_ms": 1_000,
         },
     )
     client = embedding_client.ContextualOrchestratorEmbeddingClient(
@@ -68,7 +69,9 @@ def test_immediate_embedding_response_is_ordered(monkeypatch: pytest.MonkeyPatch
 
 
 def test_batch_response_polls_until_complete(monkeypatch: pytest.MonkeyPatch) -> None:
-    responses = iter([{"batch_id": "batch-1", "status": "pending", "model": "model"}])
+    responses = iter([
+        {"batch_id": "batch-1", "status": "pending", "model": "model", "poll_after_ms": 1_000}
+    ])
     monkeypatch.setattr(embedding_client, "post_json", lambda *_args, **_kwargs: next(responses))
     monkeypatch.setattr(
         embedding_client,
@@ -92,6 +95,7 @@ def test_failed_batch_raises_without_fallback(monkeypatch: pytest.MonkeyPatch) -
             "batch_id": "batch-1",
             "status": "failed",
             "model": "model",
+            "poll_after_ms": 1_000,
         },
     )
     client = embedding_client.ContextualOrchestratorEmbeddingClient("http://orchestrator", "key", "model")
@@ -107,6 +111,7 @@ def test_batch_timeout_raises(monkeypatch: pytest.MonkeyPatch) -> None:
             "batch_id": "batch-1",
             "status": "pending",
             "model": "model",
+            "poll_after_ms": 1_000,
         },
     )
     monkeypatch.setattr(embedding_client.time, "monotonic", iter([0.0, 2.0]).__next__)

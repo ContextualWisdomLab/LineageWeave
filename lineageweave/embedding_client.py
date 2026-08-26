@@ -125,7 +125,10 @@ class ContextualOrchestratorEmbeddingClient:
                     raise RuntimeError("embedding batch did not complete")
                 if time.monotonic() >= deadline:
                     raise TimeoutError("embedding batch timed out")
-                time.sleep(self._poll_interval)
+                poll_after_ms = response.get("poll_after_ms")
+                if type(poll_after_ms) is not int or poll_after_ms < 1:
+                    raise ValueError("embedding batch did not declare a polling cadence")
+                time.sleep(poll_after_ms / 1000)
                 response = get_json(
                     f"{self._base_url}/batch/embeddings/{batch_id}",
                     headers=headers,
@@ -187,7 +190,12 @@ class ContextualOrchestratorEmbeddingClient:
             timeout=self._timeout,
             service_peer_name="contextual-orchestrator",
         )
-        required = ("max_request_body_bytes", "max_tokens_per_part", "max_chars_per_part")
+        required = (
+            "max_request_body_bytes",
+            "max_tokens_per_part",
+            "max_chars_per_part",
+            "poll_after_ms",
+        )
         if any(type(response.get(key)) is not int or response[key] < 1 for key in required):
             raise ValueError("embedding batch capabilities are incomplete")
         return {key: int(response[key]) for key in required}

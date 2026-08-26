@@ -15,7 +15,7 @@ multi-agent.
 ## Decision
 
 `docker/contextual-orchestrator/Dockerfile` pins the downloaded archive to
-commit `a4e71d3e33e323c4b3decc66a1e0163fa6017cff`. The pin remains explicit
+commit `b6cf8d5c77756b36e992924667d07b1c501a9d62`. The pin remains explicit
 and immutable until the reviewed upstream change is superseded; it is not a
 moving `main` reference and it is not a LineageWeave monkey patch.
 
