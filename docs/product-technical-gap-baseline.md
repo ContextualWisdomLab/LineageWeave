@@ -46,7 +46,8 @@ Cartesian-product codes. The remaining acceptance boundary is:
    qualified JSON-LD, exact-value CSV, SHACL, and source-post evidence
    navigation implemented; the board re-filter matches every associated voice
    and all twelve governed atomic labels are localized across English, Korean,
-   Chinese, Japanese, and Vietnamese); and
+   Chinese, Japanese, and Vietnamese; one bounded query projects assignments
+   for every authorized Post even when another node type is the focus); and
 5. proves zero-, one-, and multi-voice states with synthetic fixtures,
    migration replay, ontology/SHACL, API, accessibility, and Storybook edge
    tests before any release claim. The candidate `CombinedVoiceEvidence` scene

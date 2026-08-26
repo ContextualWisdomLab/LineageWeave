@@ -61,7 +61,9 @@ compound lookup codes.
   qualified assignment in JSON-LD and the exact-value CSV. SHACL requires its
   atomic voice concept, primary flag, and source-post evidence. The exact-value
   table opens that already-authorized source post; it does not invent a graph
-  edge or expose an internal assertion identifier.
+  edge or expose an internal assertion identifier. A single bounded query loads
+  assignments for every authorized Post in the neighborhood, regardless of
+  whether the focus is a Post, Person, Organization, Team, or Project.
 
 ## Data model
 

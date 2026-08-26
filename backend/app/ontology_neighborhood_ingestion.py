@@ -780,25 +780,28 @@ def neighborhood_to_payload(neighborhood: OntologyNeighborhood) -> dict[str, Any
 
 async def _load_voice_assignments(
     conn: asyncpg.Connection,
-    post_id: str,
+    post_ids: Sequence[str],
     *,
     knowledge_cutoff: datetime | None,
 ) -> tuple[OntologyVoiceAssignment, ...]:
-    """Load qualified voices only after the focus post passed authorization."""
+    """Load qualified voices only for posts admitted to the visible neighborhood."""
+    if not post_ids:
+        return ()
     rows = await conn.fetch(
         """
-        select voice.voice_type_code, lookup.lookup_label, voice.is_primary,
+        select voice.post_id, voice.voice_type_code, lookup.lookup_label, voice.is_primary,
                voice.truth_status_code, voice.recorded_at,
                voice.provenance_assertion_id is not null as has_assertion
           from source_post_voice voice
           join common_lookup_value lookup
             on lookup.lookup_category = 'voc_type'
            and lookup.lookup_code = voice.voice_type_code
-         where voice.post_id = $1
+         where voice.post_id = any($1::uuid[])
            and ($2::timestamptz is null or voice.effective_from <= $2)
-         order by voice.is_primary desc, lookup.display_order, voice.voice_type_code
+         order by voice.post_id, voice.is_primary desc,
+                  lookup.display_order, voice.voice_type_code
         """,
-        post_id,
+        list(post_ids),
         knowledge_cutoff,
     )
     assignments: list[OntologyVoiceAssignment] = []
@@ -810,7 +813,7 @@ async def _load_voice_assignments(
             )
         assignments.append(
             OntologyVoiceAssignment(
-                post_id=post_id,
+                post_id=str(row["post_id"]),
                 voice_type_code=row["voice_type_code"],
                 voice_type_iri=voice_type_iri,
                 voice_type_label=row["lookup_label"],
@@ -1138,12 +1141,17 @@ async def visible_ontology_neighborhood(
         cursor=assembler_cursor,
         source_truncated=source_truncated,
     )
-    if focus_node_type_code == NODE_POST:
+    visible_post_ids = tuple(
+        node.node_id
+        for node in neighborhood.nodes
+        if node.node_type_code == NODE_POST
+    )
+    if visible_post_ids:
         neighborhood = replace(
             neighborhood,
             voice_assignments=await _load_voice_assignments(
                 conn,
-                focus_node_id,
+                visible_post_ids,
                 knowledge_cutoff=knowledge_cutoff,
             ),
         )

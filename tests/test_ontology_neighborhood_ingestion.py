@@ -824,6 +824,17 @@ def test_focus_label_fetch_may_be_empty_when_facts_already_labeled() -> None:
         "person_affiliation affiliation": [post_row],
         "post_team_mention": [post_row],
         "select post_id from source_post where post_id = any": [{"post_id": POST_ID}],
+        "from source_post_voice voice": [
+            {
+                "post_id": POST_ID,
+                "voice_type_code": "voc",
+                "lookup_label": "Voice of Customer",
+                "is_primary": True,
+                "truth_status_code": "truth_observed",
+                "recorded_at": T0,
+                "has_assertion": False,
+            }
+        ],
     }
     post_neighborhood = asyncio.run(
         visible_ontology_neighborhood(
@@ -843,6 +854,10 @@ def test_focus_label_fetch_may_be_empty_when_facts_already_labeled() -> None:
         )
     )
     assert person_neighborhood.focus_node_id == PERSON_ID
+    assert [
+        assignment.voice_type_code
+        for assignment in person_neighborhood.voice_assignments
+    ] == ["voc"]
     corp_neighborhood = asyncio.run(
         visible_ontology_neighborhood(
             ScriptedConn({**shared_labels, "select 1 from corporate_entity": {"ignored": 1}}),
@@ -883,6 +898,7 @@ def test_load_voice_assignments_preserves_truth_and_customer_safe_provenance() -
         {
             "from source_post_voice voice": [
                 {
+                    "post_id": POST_ID,
                     "voice_type_code": "voc",
                     "lookup_label": "Voice of Customer",
                     "is_primary": True,
@@ -891,6 +907,7 @@ def test_load_voice_assignments_preserves_truth_and_customer_safe_provenance() -
                     "has_assertion": False,
                 },
                 {
+                    "post_id": POST_ID,
                     "voice_type_code": "vops",
                     "lookup_label": "Voice of Process",
                     "is_primary": False,
@@ -903,14 +920,24 @@ def test_load_voice_assignments_preserves_truth_and_customer_safe_provenance() -
     )
 
     assignments = asyncio.run(
-        _load_voice_assignments(conn, POST_ID, knowledge_cutoff=T0)
+        _load_voice_assignments(conn, [POST_ID], knowledge_cutoff=T0)
     )
 
     assert [assignment.voice_type_code for assignment in assignments] == ["voc", "vops"]
     assert assignments[0].provenance_reference == "Imported primary voice"
     assert assignments[1].provenance_reference == "Evidence-backed additional voice"
     assert "voice.effective_from <= $2" in conn.calls[0][0]
-    assert conn.calls[0][1] == (POST_ID, T0)
+    assert conn.calls[0][1] == ([POST_ID], T0)
+
+
+def test_load_voice_assignments_skips_database_for_no_visible_posts() -> None:
+    """A non-post-only neighborhood does not issue an empty-array query."""
+    conn = ScriptedConn({})
+
+    assert asyncio.run(
+        _load_voice_assignments(conn, [], knowledge_cutoff=None)
+    ) == ()
+    assert conn.calls == []
 
 
 def test_payload_serializes_optional_validity() -> None:

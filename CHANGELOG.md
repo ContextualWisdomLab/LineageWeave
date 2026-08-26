@@ -21,7 +21,9 @@ All notable changes to this project are documented here. Format follows
   Board filters match additional as well as primary voices, labels retain the
   active locale, and cutoff reads use assignment-effective time rather than
   migration recording time. All twelve governed atomic Voice labels are
-  translated across the five supported product locales.
+  translated across the five supported product locales. Ontology neighborhoods
+  load assignments for every authorized visible Post in one bounded query,
+  including Person-, Organization-, Team-, and Project-focused exploration.
 - Expanded Voice-of-X post taxonomy (ADR 0246): the governed `voc_type`
   scheme adds Voice of Supplier, Employee, Business, Regulator, Investor,
   Society, and Process as source-post categories. Ontology SKOS concepts and
