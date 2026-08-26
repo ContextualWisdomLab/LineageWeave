@@ -17,6 +17,41 @@ afterEach(() => {
 });
 
 describe("ChatPanel conversation history", () => {
+  it("replaces demo cache rows when the first saved turn starts", async () => {
+    vi.stubGlobal("fetch", vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = input instanceof Request ? input.url : String(input);
+      if (url.endsWith("/chat") && init?.method === "POST") {
+        return jsonResponse({
+          answer_text: "Saved answer",
+          cited_post_ids: [],
+          cited_posts: [],
+          conversation_id: "conversation-2",
+        });
+      }
+      if (url.endsWith("/chat/conversations")) {
+        return jsonResponse({ conversations: [], next_cursor: null });
+      }
+      return jsonResponse({
+        post_id: "post-1",
+        exchanges: [{
+          question_text: "Demo question",
+          answer_text: "Demo answer",
+          cited_post_ids: [],
+          cited_posts: [],
+        }],
+      });
+    }));
+
+    render(<ChatPanel postId="post-1" accessToken="synthetic-token" />);
+
+    expect(await screen.findByText("Demo answer")).toBeInTheDocument();
+    await userEvent.type(screen.getByPlaceholderText("What happened between these events?"), "Save this");
+    await userEvent.click(screen.getByRole("button", { name: "Ask" }));
+
+    expect(await screen.findByText("Saved answer")).toBeInTheDocument();
+    expect(screen.queryByText("Demo answer")).toBeNull();
+  });
+
   it("reopens an owned conversation and returns to the seeded new-conversation state", async () => {
     vi.stubGlobal("fetch", vi.fn(async (input: RequestInfo | URL) => {
       const url = input instanceof Request ? input.url : String(input);

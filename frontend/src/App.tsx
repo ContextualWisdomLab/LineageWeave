@@ -343,6 +343,7 @@ export function ChatPanel({
 
   async function handleAsk(asked = question) {
     if (!asked.trim()) return;
+    const startsConversation = conversationId === null;
     setLoading(true);
     setError(null);
     try {
@@ -367,7 +368,7 @@ export function ChatPanel({
           cited_post_ids: result.cited_post_ids,
           cited_posts: result.cited_posts,
         };
-        return [...prev, next];
+        return startsConversation ? [next] : [...prev, next];
       });
     } catch (err) {
       setError(orchestratorUnavailableMessage(err, "Chat"));
