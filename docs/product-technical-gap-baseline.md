@@ -14,7 +14,10 @@ passed, the latest topic-coordinate migration tables were present, Ask reached
 `succeeded`, and a 2-VU 20-second authenticated k6 observation completed 162
 HTTP requests with zero failures. This is local candidate evidence, not a
 protected-main release claim. Historical test projects are retired only by
-their exact Compose project label and without named-volume deletion.
+their exact Compose project label and without named-volume deletion. PR #678
+implementation head `da98de07` fixes the default project name; its follow-up
+exact-label audit also removed the remaining identifiable isolated test
+containers while preserving named volumes.
 
 | Requirement | Evidence contract | Delivery state |
 |---|---|---|

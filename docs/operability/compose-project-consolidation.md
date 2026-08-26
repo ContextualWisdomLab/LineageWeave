@@ -21,10 +21,13 @@ Each identified Compose project was retired with its exact `-p` project name
 and `docker compose down`, without `-v`. Six named volumes remain: one
 PostgreSQL and one Valkey volume for each retired project. The independently
 created `lw-orch-hostport` container has no Compose project/configuration
-labels, so it was not guessed into a project or deleted. A one-off container
-still labeled `lw-k6-agent` is likewise retained because the approved cleanup
-mechanism is project-scoped `docker compose down`, not direct container
-deletion.
+labels, so it was not guessed into a project or deleted. A later exact-label
+audit found one running `lw-k6-agent` migration container that Compose could
+not discover because it lacked configuration labels; after its project and
+service labels were revalidated, that isolated test container was removed
+directly. Stale created-only projects `lineageweave-kg-fix-20260822` and
+`lineageweave-261-exact` were also removed with their exact project names.
+Named volumes were not deleted.
 
 This is local, synthetic runtime evidence. It is neither production capacity
 evidence nor protected-main delivery evidence.
