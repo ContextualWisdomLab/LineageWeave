@@ -14,6 +14,7 @@ _IDENTIFIER = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
 _PROVENANCE_TABLES = frozenset(
     {
         "provenance_assertion",
+        "provenance_assertion_derivation",
         "provenance_class_definition",
         "provenance_class_hierarchy",
         "provenance_inverse_definition",
@@ -180,7 +181,7 @@ async def audit_source_semantic_coverage(
             result["normalized_provenance_schema"] = {
                 "required_table_count": len(_PROVENANCE_TABLES),
                 "present_table_count": len(present),
-                "complete": present == _PROVENANCE_TABLES,
+                "schema_complete": present == _PROVENANCE_TABLES,
             }
         return result
     finally:

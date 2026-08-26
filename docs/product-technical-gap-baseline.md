@@ -28,7 +28,7 @@ nonblank reason, but none joins to the current lineage edge set and only one
 joins to an inference candidate with evidence. A direct evidence identifier is
 not required to mislabel an inference or prediction as observed. Its generation
 or derivation nevertheless requires qualified provenance, and the authorized
-source database currently has zero of the 13 normalized PROV-O tables required
+source database currently has zero of the 14 normalized PROV-O tables required
 by ADR 0011. These edges therefore remain an explicit provenance gap: do not
 present them as source-backed facts or qualified derivations until a normalized
 resource, activity, assertion, and qualification reference is persisted.

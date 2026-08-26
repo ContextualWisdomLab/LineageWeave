@@ -186,9 +186,9 @@ def test_audit_reports_assertion_evidence_and_prov_schema_without_values(
         "source_evidence_boundary_complete": True,
     }
     assert result["normalized_provenance_schema"] == {
-        "required_table_count": 13,
-        "present_table_count": 13,
-        "complete": True,
+        "required_table_count": 14,
+        "present_table_count": 14,
+        "schema_complete": True,
     }
 
 
