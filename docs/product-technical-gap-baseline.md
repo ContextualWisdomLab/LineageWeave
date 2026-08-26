@@ -4,7 +4,7 @@
 > `ff7431bd1851c03e737808d22c6a2d43968582f9`; PR #713 was
 > `850494c3861703862a76cfe564381a41243c6c2d`; stacked PR #717 was
 > audited at implementation head
-> `c6a4c263f47bd01e45b006189277e0bfde7ad1cb`. This candidate and the
+> `bf355876e197f8a460879ddfbd7a3016ecf284e9`. This candidate and the
 > historical evidence below are not protected-main release evidence.
 
 ## Voice-of-X product and technical gap
@@ -57,7 +57,9 @@ Cartesian-product codes. The remaining acceptance boundary is:
    Chinese, Japanese, and Vietnamese; one bounded query projects assignments
    for every authorized Post even when another node type is the focus; post
    detail lists primary and evidence-connected perspectives separately and
-   honors its knowledge cutoff); and
+   honors its knowledge cutoff; client-side JSON-LD filtering retains only
+   exact canonical repository-case node and Voice-assignment IRIs rather than
+   accepting cross-origin suffix matches); and
 5. proves zero-, one-, and multi-voice states with synthetic fixtures,
    migration replay, ontology/SHACL, API, accessibility, and Storybook edge
    tests before any release claim. The candidate `CombinedVoiceEvidence` scene
