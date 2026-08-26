@@ -140,7 +140,10 @@ def test_orchestrator_runtime_pin_matches_adr() -> None:
         f'org.opencontainers.image.revision="{expected_embedding_contract_commit}"'
         in dockerfile
     )
-    assert "'jsonschema>=4.23,<5'" in dockerfile
+    assert "uv export --locked --no-dev --no-emit-project --extra queue" in dockerfile
+    assert "--requirement /tmp/runtime-requirements.txt" in dockerfile
+    assert "import cryptography, jsonschema, opentelemetry, redis" in dockerfile
+    assert "'jsonschema>=4.23,<5'" not in dockerfile
 
 
 def test_embedding_bootstrap_contract_keeps_request_model_free() -> None:

@@ -25,14 +25,12 @@ RUN mkdir /tmp/contextual-orchestrator \
     && tar -xzf /tmp/contextual-orchestrator.tar.gz --strip-components=1 -C /tmp/contextual-orchestrator \
     && cp -R /tmp/contextual-orchestrator/contextual_orchestrator /app/contextual_orchestrator \
     && cp -R /tmp/contextual-orchestrator/examples /app/examples \
-    && rm -rf /tmp/contextual-orchestrator /tmp/contextual-orchestrator.tar.gz \
-    && python -m pip install --no-cache-dir \
-        'cryptography>=43.0' \
-        'opentelemetry-api>=1.30.0' \
-        'opentelemetry-sdk>=1.30.0' \
-        'opentelemetry-exporter-otlp-proto-http>=1.30.0' \
-        'jsonschema>=4.23,<5' \
-        'redis>=5.0' \
+    && python -m pip install --no-cache-dir 'uv==0.12.6' \
+    && cd /tmp/contextual-orchestrator \
+    && uv export --locked --no-dev --no-emit-project --extra queue --no-hashes --output-file /tmp/runtime-requirements.txt \
+    && python -m pip install --no-cache-dir --requirement /tmp/runtime-requirements.txt \
+    && python -c 'import cryptography, jsonschema, opentelemetry, redis' \
+    && rm -rf /tmp/contextual-orchestrator /tmp/contextual-orchestrator.tar.gz /tmp/runtime-requirements.txt \
     && useradd --uid 10001 --no-create-home orchestrator
 
 COPY --from=token-builder /tmp/token-wheels /tmp/token-wheels
