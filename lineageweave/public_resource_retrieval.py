@@ -49,6 +49,10 @@ _BLOCKED_HOSTS = frozenset(
     }
 )
 _DEFAULT_PORTS = {"http": 80, "https": 443}
+_IPV6_TRANSITION_NETWORKS = (
+    ipaddress.ip_network("64:ff9b::/96"),
+    ipaddress.ip_network("64:ff9b:1::/48"),
+)
 _TEXT_MEDIA_TYPES = frozenset({"text/html", "text/plain", "application/xhtml+xml"})
 DEFAULT_MAXIMUM_RESPONSE_BYTES = 200_000
 DEFAULT_MAXIMUM_TEXT_CHARS = 8_000
@@ -149,6 +153,12 @@ class _VisibleTextParser(html.parser.HTMLParser):
 def is_public_ip(address: ipaddress.IPv4Address | ipaddress.IPv6Address) -> bool:
     """Return True when ``address`` is globally reachable unicast."""
 
+    if address.version == 6 and (
+        address.sixtofour is not None
+        or address.teredo is not None
+        or any(address in network for network in _IPV6_TRANSITION_NETWORKS)
+    ):
+        return False
     mapped = address.ipv4_mapped if address.version == 6 else None
     candidate = mapped if mapped is not None else address
     return bool(candidate.is_global) and not candidate.is_multicast

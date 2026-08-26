@@ -107,8 +107,14 @@ def test_is_public_ip_rejects_private_and_mapped_loopback() -> None:
     assert not is_public_ip(ipaddress.ip_address("10.1.2.3"))
     assert not is_public_ip(ipaddress.ip_address("::1"))
     assert not is_public_ip(ipaddress.ip_address("::ffff:127.0.0.1"))
+    assert not is_public_ip(ipaddress.ip_address("64:ff9b::7f00:1"))
+    assert not is_public_ip(ipaddress.ip_address("2002:808:808::"))
+    assert not is_public_ip(
+        ipaddress.ip_address("2001:0000:4136:e378:8000:63bf:3fff:fdd2")
+    )
     assert not is_public_ip(ipaddress.ip_address("fc00::1"))
     assert is_public_ip(ipaddress.ip_address("93.184.216.34"))
+    assert is_public_ip(ipaddress.ip_address("2001:4860:4860::8888"))
 
 
 def test_extract_visible_text_drops_script_and_keeps_body() -> None:
