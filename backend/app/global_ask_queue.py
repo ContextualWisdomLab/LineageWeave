@@ -290,6 +290,7 @@ async def compute_global_ask_answer(
             )
             cited_post_ids_exclude_external([], verification)
             payload["public_claim_verification"] = verification
+            payload["next_action"] = verification["next_action"]
         return payload
     try:
         answer = await asyncio.to_thread(
@@ -491,7 +492,11 @@ async def process_global_ask_job(
                 chat_client=chat_client,
                 embedding_client=embedding_factory(),
                 verify_external=bool(row.get("verify_external", False)),
-                claim_search_client=_public_claim_search_client(),
+                claim_search_client=(
+                    _public_claim_search_client()
+                    if bool(row.get("verify_external", False))
+                    else None
+                ),
             ),
             timeout=JOB_DEADLINE_SECONDS,
         )
