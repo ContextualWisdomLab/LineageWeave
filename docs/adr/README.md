@@ -17,7 +17,7 @@ decision from them.
 | [`ONTOLOGY_NAMESPACE_INVENTORY.md`](../doctoring/ONTOLOGY_NAMESPACE_INVENTORY.md) | [0207](0207-repository-case-ontology-namespace-canonical.md), [0157](0157-public-ontology-namespace-identity.md) |
 | [`image-content-schema.md`](../image-content-schema.md) | [0066](0066-position-preserving-image-content.md) |
 | [`storybook-inventory.md`](../storybook-inventory.md) | [0118](0118-uiux-standard-guide-v3-design-overhaul.md), [0184](0184-ontology-provenance-explorer.md), [0222](0222-project-nodes-in-ontology-neighborhood.md) |
-| Project-history timeline | [0232](0232-evidence-bound-project-history-projection.md) |
+| Project-history timeline | [0243](0243-evidence-bound-project-history-projection.md) |
 | [`POSTGRESQL_CONCURRENCY_REFERENCES.md`](../doctoring/POSTGRESQL_CONCURRENCY_REFERENCES.md) | [0204](0204-analysis-run-short-transaction-delivery.md), [0213](0213-global-ask-embedding-pool-release.md) |
 | [`GLOBAL_ASK_PUBLIC_VERIFICATION_REFERENCES.md`](../doctoring/GLOBAL_ASK_PUBLIC_VERIFICATION_REFERENCES.md) | [0215](0215-global-ask-public-claim-verification.md) |
 | [`GLOBAL_ASK_KNOWLEDGE_CUTOFF_REFERENCES.md`](../doctoring/GLOBAL_ASK_KNOWLEDGE_CUTOFF_REFERENCES.md) | [0216](0216-global-ask-knowledge-cutoff.md) |
