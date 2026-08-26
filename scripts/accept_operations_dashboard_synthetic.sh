@@ -5,6 +5,7 @@ set -euo pipefail
 : "${K6_VUS:?Set the declared Dashboard concurrency}"
 : "${K6_DURATION:?Set the declared Dashboard observation duration, including its unit}"
 : "${OIDC_READINESS_TIMEOUT_SECONDS:?Set the declared synthetic OIDC readiness budget}"
+: "${BACKEND_READINESS_TIMEOUT_SECONDS:?Set the declared backend readiness budget}"
 
 BACKEND_URL="${BACKEND_URL:-http://localhost:18420}"
 LINEAGEWEAVE_E2E_BASE_URL="${LINEAGEWEAVE_E2E_BASE_URL:-http://localhost:15173}"
@@ -41,6 +42,10 @@ done
   echo "OIDC_READINESS_TIMEOUT_SECONDS must be a positive integer" >&2
   exit 2
 }
+[[ "$BACKEND_READINESS_TIMEOUT_SECONDS" =~ ^[1-9][0-9]*$ ]] || {
+  echo "BACKEND_READINESS_TIMEOUT_SECONDS must be a positive integer" >&2
+  exit 2
+}
 for command_name in curl docker jq corepack k6; do
   command -v "$command_name" >/dev/null || { echo "$command_name is required" >&2; exit 2; }
 done
@@ -65,6 +70,11 @@ frontend_backend_url="$(docker inspect "${PRODUCT_CONTAINER_PREFIX}-frontend-1" 
 }
 
 token_endpoint="${LINEAGEWEAVE_OIDC_ISSUER%/}/protocol/openid-connect/token"
+backend_deadline=$((SECONDS + BACKEND_READINESS_TIMEOUT_SECONDS))
+until curl --silent --fail --output /dev/null "${BACKEND_URL%/}/healthz"; do
+  (( SECONDS < backend_deadline )) || { echo "backend did not become ready" >&2; exit 1; }
+  sleep 1
+done
 oidc_deadline=$((SECONDS + OIDC_READINESS_TIMEOUT_SECONDS))
 until curl --silent --fail --output /dev/null \
   "${LINEAGEWEAVE_OIDC_ISSUER%/}/.well-known/openid-configuration"; do

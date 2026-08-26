@@ -10,6 +10,7 @@ set -euo pipefail
 : "${LINEAGEWEAVE_OIDC_CLIENT_ID:?Set the frontend OIDC client id}"
 : "${K6_VUS:?Set the declared Dashboard concurrency}"
 : "${K6_DURATION:?Set the declared Dashboard observation duration, including its unit}"
+: "${BACKEND_READINESS_TIMEOUT_SECONDS:?Set the declared backend readiness budget}"
 [[ "$ALLOW_PROVIDER_CALLS" == "1" ]] || { echo "provider calls are not authorized" >&2; exit 2; }
 [[ "$EXPECTED_LINEAGEWEAVE_REVISION" =~ ^[0-9a-f]{40}$ ]] || {
   echo "EXPECTED_LINEAGEWEAVE_REVISION must be a full commit SHA" >&2
@@ -45,6 +46,10 @@ esac
   echo "K6_DURATION must include an explicit k6 duration unit" >&2
   exit 2
 }
+[[ "$BACKEND_READINESS_TIMEOUT_SECONDS" =~ ^[1-9][0-9]*$ ]] || {
+  echo "BACKEND_READINESS_TIMEOUT_SECONDS must be a positive integer" >&2
+  exit 2
+}
 
 for command_name in curl docker jq corepack k6 uv; do
   command -v "$command_name" >/dev/null || { echo "$command_name is required" >&2; exit 2; }
@@ -75,6 +80,11 @@ frontend_backend_url="$(docker inspect lineageweave-frontend-1 --format '{{ inde
 
 source_post_eligibility_sql="$(uv run python -c \
   'from backend.app.post_eligibility import SOURCE_POST_ELIGIBILITY_SQL; print(SOURCE_POST_ELIGIBILITY_SQL.format(alias="post"))')"
+backend_deadline=$((SECONDS + BACKEND_READINESS_TIMEOUT_SECONDS))
+until curl --silent --fail --output /dev/null "${BACKEND_URL%/}/healthz"; do
+  (( SECONDS < backend_deadline )) || { echo "backend did not become ready" >&2; exit 1; }
+  sleep 1
+done
 
 curl_json() {
   local token="$1" method="$2" url="$3" body="${4:-}"
