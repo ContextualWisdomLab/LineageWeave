@@ -19,9 +19,9 @@ from decimal import Decimal
 from pathlib import Path
 
 import pytest
-from rdflib import Graph, Literal, Namespace, URIRef
-from rdflib.namespace import RDF, XSD
 from pyshacl import validate as shacl_validate
+from rdflib import Graph, Literal, Namespace, URIRef
+from rdflib.namespace import RDF, SH, XSD
 
 from lineageweave.ontology import project_project_mention_rdf, project_source_post_rdf
 
@@ -112,6 +112,14 @@ def test_shipped_shapes_conform_to_shacl_specification() -> None:
     """
     conforms, report_text = _conforms(_load_shapes())
     assert conforms, report_text
+
+
+def test_sparql_constraints_declare_their_prefixes() -> None:
+    """Portable SHACL-SPARQL constraints never rely on parser prefix fallback."""
+    shapes = _load_shapes()
+    constraints = set(shapes.subjects(RDF.type, SH.SPARQLConstraint))
+    assert constraints
+    assert all((constraint, SH.prefixes, None) in shapes for constraint in constraints)
 
 
 def test_representative_db_projection_passes_validation() -> None:

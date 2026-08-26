@@ -15,6 +15,7 @@ from __future__ import annotations
 import asyncio
 import math
 import os
+import subprocess
 import uuid
 from contextlib import closing
 from pathlib import Path
@@ -383,18 +384,21 @@ def seeded_db(demo_analyst_token):
             cur.execute(_LEFTOVER_MAP_COVERAGE_MIGRATION.read_text())
             cur.execute(_GLOBAL_ASK_JOB_MIGRATION.read_text())
             cur.execute(_GLOBAL_ASK_SCOPE_MIGRATION.read_text())
-            # psycopg sends a multi-statement execute as one transaction even
-            # in autocommit mode; production psql executes this migration one
-            # statement at a time so CONCURRENTLY keeps its required boundary.
-            migration_sql = "\n".join(
-                line
-                for line in _GLOBAL_ASK_EVIDENCE_SEARCH_MIGRATION.read_text().splitlines()
-                if not line.lstrip().startswith("--")
+            # Match ADR 0166's production runner exactly: psql keeps
+            # concurrent indexes outside an implicit transaction and parses
+            # SQL literals/comments without a fixture-owned splitter.
+            subprocess.run(
+                [
+                    "psql",
+                    "-X",
+                    "-v",
+                    "ON_ERROR_STOP=1",
+                    db_dsn,
+                    "-f",
+                    str(_GLOBAL_ASK_EVIDENCE_SEARCH_MIGRATION),
+                ],
+                check=True,
             )
-            for statement in migration_sql.split(";"):
-                sql = statement.strip()
-                if sql:
-                    cur.execute(sql)
             cur.execute(_GLOBAL_ASK_KNOWLEDGE_CUTOFF_MIGRATION.read_text())
             cur.execute(_GLOBAL_ASK_PUBLIC_VERIFICATION_MIGRATION.read_text())
             cur.execute(_EVENT_OCCURRED_AT_MIGRATION.read_text())

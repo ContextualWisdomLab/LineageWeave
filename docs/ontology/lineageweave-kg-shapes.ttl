@@ -33,6 +33,10 @@
     a owl:Ontology ;
     dcterms:title "LineageWeave Knowledge Graph SHACL shapes"@en ;
     dcterms:description "Closed-world validation shapes over the LineageWeave knowledge-graph ontology: required attributes, confidence bounds, and side disjointness."@en ;
+    sh:declare [
+        sh:prefix "lw" ;
+        sh:namespace "https://contextualwisdomlab.github.io/LineageWeave/ontology#"^^xsd:anyURI ;
+    ] ;
     owl:imports <https://contextualwisdomlab.github.io/LineageWeave/ontology> ;
     owl:versionInfo "1.0.0" .
 
@@ -97,11 +101,12 @@
     ] ;
     sh:sparql [
         a sh:SPARQLConstraint ;
+        sh:prefixes <https://contextualwisdomlab.github.io/LineageWeave/ontology/lineageweave-kg-shapes.ttl> ;
         sh:message "bodyAvailable must be true exactly when postBody contains non-whitespace text." ;
         sh:select """
             SELECT $this
             WHERE {
-                $this :postBody ?body ; :bodyAvailable ?available .
+                $this lw:postBody ?body ; lw:bodyAvailable ?available .
                 BIND(REGEX(STR(?body), "\\\\S") AS ?actualAvailable)
                 FILTER(?available != ?actualAvailable)
             }
