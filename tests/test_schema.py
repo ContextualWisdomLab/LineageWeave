@@ -14,14 +14,18 @@ with a real Postgres, same spirit as the real-provider LLM tests.
 
 from __future__ import annotations
 
+import asyncio
 import os
 import uuid
 from pathlib import Path
 from urllib.parse import urlsplit, urlunsplit
 
+import asyncpg
 import psycopg2
 import psycopg2.errors
 import pytest
+
+from backend.app.post_chat_ingestion import gather_global_chat_sources
 
 _ADMIN_DSN = os.environ.get(
     "LINEAGEWEAVE_TEST_POSTGRES_ADMIN_DSN", "postgresql://localhost/postgres"
@@ -36,6 +40,27 @@ _PROJECT_MENTION_MIGRATION = (
     Path(__file__).resolve().parents[1]
     / "migrations"
     / "0031_semantic_project_mentions.sql"
+)
+_POST_CONTENT_MIGRATION = (
+    Path(__file__).resolve().parents[1] / "migrations" / "0026_post_content_artifacts.sql"
+)
+_SOURCE_STATE_MIGRATION = (
+    Path(__file__).resolve().parents[1] / "migrations" / "0033_source_state_provenance.sql"
+)
+_SOURCE_CONTEXT_MIGRATION = (
+    Path(__file__).resolve().parents[1] / "migrations" / "0034_source_context_provenance.sql"
+)
+_SOURCE_IDENTITY_MIGRATION = (
+    Path(__file__).resolve().parents[1] / "migrations" / "0037_source_record_identity.sql"
+)
+_SOURCE_NAMED_HINTS_MIGRATION = (
+    Path(__file__).resolve().parents[1] / "migrations" / "0038_source_named_hints.sql"
+)
+_SOURCE_ORG_HINTS_MIGRATION = (
+    Path(__file__).resolve().parents[1] / "migrations" / "0039_source_org_named_hints.sql"
+)
+_SOURCE_EVENT_TIME_MIGRATION = (
+    Path(__file__).resolve().parents[1] / "migrations" / "0183_source_post_event_occurred_at.sql"
 )
 _PROJECT_BOUND_ACTION_MIGRATION = (
     Path(__file__).resolve().parents[1]
@@ -76,6 +101,11 @@ _LEFTOVER_MAP_AXIS_MIGRATION = (
     Path(__file__).resolve().parents[1]
     / "migrations"
     / "0169_report_leftover_map_axis.sql"
+)
+_GLOBAL_ASK_EVIDENCE_SEARCH_MIGRATION = (
+    Path(__file__).resolve().parents[1]
+    / "migrations"
+    / "0210_global_ask_evidence_search_indexes.sql"
 )
 _CHANNEL_EVIDENCE_MIGRATION = (
     Path(__file__).resolve().parents[1]
@@ -170,6 +200,10 @@ def schema_db():
         parsed_admin_dsn = urlsplit(_ADMIN_DSN)
         db_dsn = urlunsplit(parsed_admin_dsn._replace(path=f"/{db_name}"))
         conn = psycopg2.connect(db_dsn)
+        # Production migration runs each file through psql -X, so concurrent
+        # indexes are outside a transaction. Keep this integration fixture's
+        # execution semantics identical to that path.
+        conn.autocommit = True
         try:
             with conn.cursor() as cur:
                 cur.execute(_MIGRATION_PATH.read_text())
@@ -177,6 +211,12 @@ def schema_db():
                 cur.execute(_ANALYSIS_RUN_REGISTRY_MIGRATION.read_text())
                 cur.execute(_TOPIC_LINEAGE_KIND_MIGRATION.read_text())
                 cur.execute(_PROJECT_MENTION_MIGRATION.read_text())
+                cur.execute(_SOURCE_STATE_MIGRATION.read_text())
+                cur.execute(_SOURCE_CONTEXT_MIGRATION.read_text())
+                cur.execute("create extension if not exists pg_trgm")
+                cur.execute(_SOURCE_IDENTITY_MIGRATION.read_text())
+                cur.execute(_SOURCE_NAMED_HINTS_MIGRATION.read_text())
+                cur.execute(_SOURCE_ORG_HINTS_MIGRATION.read_text())
                 cur.execute(_MAJOR_EVENT_ACTION_MIGRATION.read_text())
                 cur.execute(_PROJECT_BOUND_ACTION_MIGRATION.read_text())
                 cur.execute(_PROJECT_BOUND_EVENT_MIGRATION.read_text())

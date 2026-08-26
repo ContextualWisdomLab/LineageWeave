@@ -7,6 +7,10 @@ import { describe, expect, it } from "vitest";
 const here = dirname(fileURLToPath(import.meta.url));
 const tokensCss = readFileSync(join(here, "tokens.css"), "utf-8");
 const appCss = readFileSync(join(here, "..", "App.css"), "utf-8");
+const publicClaimCss = readFileSync(
+  join(here, "..", "components", "PublicClaimVerification.css"),
+  "utf-8",
+);
 
 const [lightBlock, darkBlock] = tokensCss.split("@media (prefers-color-scheme: dark)");
 
@@ -41,6 +45,7 @@ const ONTOLOGY_NODE_TOKENS = [
   "--ontology-node-person-fill",
   "--ontology-node-organization-fill",
   "--ontology-node-team-fill",
+  "--ontology-node-project-fill",
   "--ontology-node-generic-fill",
 ];
 

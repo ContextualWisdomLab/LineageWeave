@@ -4819,7 +4819,7 @@ function CustomerMasterPanel({
   );
 }
 
-function AskAgentPanel({
+export function AskAgentPanel({
   accessToken,
   onOpenPost,
 }: {
@@ -4831,7 +4831,13 @@ function AskAgentPanel({
   const [answeredQuestion, setAnsweredQuestion] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [asking, setAsking] = useState(false);
+  const [verifyExternal, setVerifyExternal] = useState(false);
+  const [knowledgeCutoff, setKnowledgeCutoff] = useState("");
   const [evidenceLayerPostId, setEvidenceLayerPostId] = useState<string | null>(null);
+  const now = new Date();
+  const localKnowledgeCutoffMax = new Date(
+    now.getTime() - now.getTimezoneOffset() * 60_000,
+  ).toISOString().slice(0, 16);
 
   async function handleAsk() {
     const normalized = question.trim();
