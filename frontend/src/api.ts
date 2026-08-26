@@ -47,6 +47,7 @@ export interface PostPage {
   limit: number;
   offset: number;
   voc_type_options?: PostFilterOption[];
+  voice_type_catalog?: PostFilterOption[];
   visibility_options?: PostFilterOption[];
 }
 

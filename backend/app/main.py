@@ -1385,6 +1385,17 @@ async def list_posts(
         voc_type_options, visibility_options = await _post_filter_options(
             conn, account.corporate_entity_ids, account.process_unit_ids
         )
+        voice_type_catalog = [
+            {"code": row["lookup_code"], "label": row["lookup_label"]}
+            for row in await conn.fetch(
+                """
+                select lookup_code, lookup_label
+                  from common_lookup_value
+                 where lookup_category = 'voc_type'
+                 order by display_order, lookup_code
+                """
+            )
+        ]
         body_search_ids: list[str] = []
         if search_term:
             # Safe SQL: search SQL is a closed schema query; search_term is bound through $1.
@@ -1668,6 +1679,7 @@ async def list_posts(
         "limit": limit,
         "offset": offset,
         "voc_type_options": voc_type_options,
+        "voice_type_catalog": voice_type_catalog,
         "visibility_options": visibility_options,
     }
 

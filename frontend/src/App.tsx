@@ -4061,6 +4061,7 @@ function PostList({
   const [searchQuery, setSearchQuery] = useState("");
   const [typeFilter, setTypeFilter] = useState<string[]>([]);
   const [vocTypeFilterOptions, setVocTypeFilterOptions] = useState<PostFilterOption[]>([]);
+  const [voiceTypeCatalog, setVoiceTypeCatalog] = useState<PostFilterOption[]>([]);
   const [visibilityFilter, setVisibilityFilter] = useState("all");
   const [visibilityFilterOptions, setVisibilityFilterOptions] = useState<PostFilterOption[]>([]);
   const [sortOrder, setSortOrder] = useState<BoardSortOrder>("newest");
@@ -4159,6 +4160,7 @@ function PostList({
       setPosts(response.posts);
       setTotalPosts(response.total_count);
       setVocTypeFilterOptions(response.voc_type_options ?? []);
+      setVoiceTypeCatalog(response.voice_type_catalog ?? response.voc_type_options ?? []);
       setVisibilityFilterOptions(response.visibility_options ?? []);
       setCurrentPage(page);
     } catch (err) {
@@ -4554,7 +4556,7 @@ function PostList({
           onClose={closeSelectedPost}
           onSelectPost={selectPost}
           onSearch={searchBoard}
-          voiceOptions={vocTypeFilterOptions}
+          voiceOptions={voiceTypeCatalog}
         />
       )}
     </section>

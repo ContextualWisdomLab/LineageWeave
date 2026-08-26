@@ -1183,6 +1183,11 @@ describe("App, authenticated", () => {
                             ? [{ code: "vops", label: "Voice of Process" }]
                             : []),
                         ],
+                        voice_type_catalog: [
+                          { code: "voc", label: "Voice of Customer" },
+                          { code: "vop", label: "Voice of Partner" },
+                          { code: "vos", label: "Voice of Supplier" },
+                        ],
                       }),
                   visibility_options: [{ code: "public", label: "Public" }],
                 },
@@ -2000,6 +2005,16 @@ describe("App, authenticated", () => {
     render(<App />);
 
     expect(await screen.findByRole("checkbox", { name: "Voice of Process" })).toBeInTheDocument();
+  });
+
+  it("offers an unused governed Voice when an administrator connects evidence", async () => {
+    stubBackend({ admin: true });
+    render(<App />);
+
+    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
+
+    expect(await screen.findByRole("option", { name: "Voice of Supplier" })).toBeInTheDocument();
+    expect(screen.queryByRole("checkbox", { name: "Voice of Supplier" })).not.toBeInTheDocument();
   });
 
   it("renders safe Ask Agent evidence under each cited post", async () => {
