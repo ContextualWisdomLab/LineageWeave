@@ -118,7 +118,7 @@ def test_role_catalog_identity_migration_is_wired() -> None:
 
 def test_orchestrator_runtime_pin_matches_adr() -> None:
     """The image pin and ADR must describe the same immutable upstream commit."""
-    expected_embedding_contract_commit = "a31e622885aac791673d5c8639f208f3cb19d737"
+    expected_embedding_contract_commit = "74091e15a3bb19c4251d4f315860811cc9a11945"
     dockerfile = (
         _ROOT / "docker" / "contextual-orchestrator" / "Dockerfile"
     ).read_text(encoding="utf-8")
