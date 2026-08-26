@@ -2166,8 +2166,8 @@ function PostDetailPopup({
               post.source_project_name ||
               post.source_system_code ||
               post.source_record_key) && (
-              <section className="popup-section" aria-label={t("Earlier source version")}>
-                <h3>{t("Earlier source version")}</h3>
+              <section className="popup-section" aria-label={t("Source record details")}>
+                <h3>{t("Source record details")}</h3>
                 <dl>
                   {post.source_stage_code ? (
                     <>
@@ -2278,7 +2278,7 @@ function PostDetailPopup({
                     </>
                   ) : null}
                 </dl>
-                <p className="post-meta">{t("Raw source codes are shown; no state label was inferred.")}</p>
+                <p className="post-meta">{t("Use these details to compare this record in its original system.")}</p>
               </section>
             )}
 
