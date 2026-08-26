@@ -244,6 +244,7 @@ def schema_db():
                 cur.execute(_LEFTOVER_MAP_UNEXPLAINED_MIGRATION.read_text())
                 cur.execute(_LEFTOVER_MAP_CROSS_SHARE_MIGRATION.read_text())
                 cur.execute(_LEFTOVER_MAP_RECONSTRUCTION_MIGRATION.read_text())
+                cur.execute(_LEFTOVER_MAP_EXPLAINED_SHARE_MIGRATION.read_text())
                 cur.execute(_OPERATIONS_CASE_MIGRATION.read_text())
                 cur.execute(_OPERATIONS_CASE_EVIDENCE_MIGRATION.read_text())
                 cur.execute(_OPERATIONS_CASE_MISSING_MIGRATION.read_text())
