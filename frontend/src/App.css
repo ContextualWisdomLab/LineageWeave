@@ -1015,14 +1015,14 @@
 .chat-history-controls {
   display: flex;
   align-items: end;
-  gap: var(--space-2);
-  margin-bottom: var(--space-3);
+  gap: var(--space-control-gap);
+  margin-bottom: var(--space-panel-block);
 }
 
 .chat-history-controls label {
   display: grid;
   flex: 1;
-  gap: var(--space-1);
+  gap: var(--space-control-gap);
 }
 
 .chat-history-controls select {
