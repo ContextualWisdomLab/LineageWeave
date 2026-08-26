@@ -1,3 +1,5 @@
+name: lineageweave
+
 services:
   postgres:
     # Built (not bind-mounted) so the keycloak-db init script and the
@@ -175,6 +177,7 @@ services:
       ORCHESTRATOR_API_KEY: ${ORCHESTRATOR_API_KEY:-${CONTEXTUAL_ORCHESTRATOR_TOKEN:-lineageweave-orchestrator-dev-only}}
       SEARXNG_BASE_URL: http://searxng:8080
       TEPP_TRANSPORT_URL: ${TEPP_TRANSPORT_URL:-}
+      TEPP_API_KEY: ${TEPP_API_KEY:-}
       CALDAV_BASE_URL: ${CALDAV_BASE_URL:-}
       NARUON_CALENDAR_BASE_URL: ${NARUON_CALENDAR_BASE_URL:-}
       NARUON_CALENDAR_SERVICE_TOKEN: ${NARUON_CALENDAR_SERVICE_TOKEN:-}

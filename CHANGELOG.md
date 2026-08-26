@@ -8,6 +8,11 @@ All notable changes to this project are documented here. Format follows
 
 ### Changed
 
+- Docker Compose now has one canonical `lineageweave` project containing the
+  complete synthetic product stack. The backend receives the existing TEPP API
+  credential contract, and the OIDC smoke target installs its declared backend
+  dependencies before verifying the live Keycloak signature.
+
 - Period-report leftover maps now consume fast-mlsirm's protected Rust
   residual-interaction and expected-response contracts. Local Python Gabriel
   SVD, distance, reconstruction, share, expectation, and duplicate likelihood

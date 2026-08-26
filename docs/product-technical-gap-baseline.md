@@ -7,6 +7,15 @@
 
 ## Operations Dashboard PRD/TRD traceability
 
+ADR 0224 reconciles the observed `lw*` test projects with the complete
+`lineageweave` Compose boundary. The Dashboard candidate stack exercised all
+eight declared services with 27 synthetic posts: live OIDC/JWKS verification
+passed, the latest topic-coordinate migration tables were present, Ask reached
+`succeeded`, and a 2-VU 20-second authenticated k6 observation completed 162
+HTTP requests with zero failures. This is local candidate evidence, not a
+protected-main release claim. Historical test projects are retired only by
+their exact Compose project label and without named-volume deletion.
+
 | Requirement | Evidence contract | Delivery state |
 |---|---|---|
 | Claim cause delay: order, specification change, originating order, sales pool, Event/post counts | ADR 0206; contextual-orchestrator case classification and `claim_received` → `cause_confirmed` milestones with cited spans and observed source clocks | Stacked candidate reports open/resolved/evidence-missing counts and exact elapsed time only for paired observed endpoints; every required answer and endpoint is cited or explicitly missing; authenticated synthetic runtime passed, while authorized-corpus re-analysis remains pending |

@@ -161,6 +161,10 @@ real-provider LLM tests).
 provider (`docker/keycloak/realm-export.json` seeds a `lineageweave-demo`
 realm with synthetic demo accounts carrying `corp_code` / `pu_code` as
 custom token claims -- see [README](README.md#local-product-stack-docker-compose)).
+ADR 0224 fixes the default project name to `lineageweave` and keeps the
+migration, SearXNG, contextual-orchestrator, backend, and frontend in that same
+project. Test stacks use an explicit disposable `-p` name; they never replace a
+canonical service with a container built from another worktree.
 `scripts/smoke_test_oidc.py` proves the round-trip is real: it logs in as
 the synthetic demo user, fetches Keycloak's live JWKS, and cryptographically
 verifies the returned JWT's RS256 signature rather than just checking for an

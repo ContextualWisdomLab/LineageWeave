@@ -21,7 +21,7 @@ ps:
 # Keycloak's live JWKS, and asserts the corp_code/pu_code claims. See
 # scripts/smoke_test_oidc.py.
 smoke:
-	uv run --locked python scripts/smoke_test_oidc.py
+	uv run --locked --extra backend python scripts/smoke_test_oidc.py
 
 # Seeds synthetic corp/account/post rows keyed to the actual Keycloak demo
 # users' real subject ids, plus Valkey ticket_created events so Activity
