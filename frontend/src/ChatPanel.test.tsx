@@ -237,6 +237,10 @@ describe("ChatPanel conversation history", () => {
 
     const view = render(<ChatPanel postId="post-1" accessToken="synthetic-token" />);
     await userEvent.selectOptions(await screen.findByLabelText("Conversation history"), "conversation-old");
+    await userEvent.type(
+      screen.getByPlaceholderText("What happened between these events?"),
+      "Question for the previous post",
+    );
     view.rerender(<ChatPanel postId="post-2" accessToken="synthetic-token" />);
     resolveOldConversation(jsonResponse({
       conversation_id: "conversation-old",
@@ -247,6 +251,7 @@ describe("ChatPanel conversation history", () => {
 
     await waitFor(() => expect(screen.queryByText("Stale selected answer")).toBeNull());
     expect(screen.getByLabelText("Conversation history")).toHaveValue("");
+    expect(screen.getByPlaceholderText("What happened between these events?")).toHaveValue("");
   });
 
   it("discards an answer response after moving to another post", async () => {
@@ -277,7 +282,8 @@ describe("ChatPanel conversation history", () => {
     }));
 
     await waitFor(() => expect(screen.queryByText("Stale old-post answer")).toBeNull());
-    expect(screen.getByRole("button", { name: "Ask" })).toBeEnabled();
+    expect(screen.getByPlaceholderText("What happened between these events?")).toHaveValue("");
+    expect(screen.getByRole("button", { name: "Ask" })).toBeDisabled();
   });
 
   it("discards an earlier-page response after moving to another post", async () => {

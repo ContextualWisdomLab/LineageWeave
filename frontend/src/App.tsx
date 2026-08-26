@@ -301,6 +301,7 @@ export function ChatPanel({
     ++conversationListRequest.current;
     ++conversationRequest.current;
     ++askRequest.current;
+    setQuestion("");
     setExchanges([]);
     setSeededExchanges([]);
     setConversations([]);
