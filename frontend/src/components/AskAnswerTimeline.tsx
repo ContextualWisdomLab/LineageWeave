@@ -39,6 +39,10 @@ function observedEpoch(event: CitedPostEvent | undefined): number | null {
   return Number.isNaN(epoch) ? null : epoch;
 }
 
+function isPublicDocumentUrl(url: string): boolean {
+  return /^https?:\/\//i.test(url);
+}
+
 /** Links one grounded Ask answer to its authorized source-event cards. */
 export function AskAnswerTimeline({ question, answer, onOpenEvidence, onOpenPost }: Props) {
   const [selectedPostId, setSelectedPostId] = useState<string | null>(null);
@@ -123,6 +127,9 @@ export function AskAnswerTimeline({ question, answer, onOpenEvidence, onOpenPost
               const images = answer.cited_post_images?.filter(
                 (image) => image.post_id === citation.postId,
               ) ?? [];
+              const sourceReferences = answer.cited_source_references?.filter(
+                (reference) => reference.post_id === citation.postId,
+              ) ?? [];
               const selected = selectedPostId === citation.postId;
               return (
                 <li key={citation.postId} className={selected ? "ask-event-selected" : undefined}>
@@ -174,6 +181,29 @@ export function AskAnswerTimeline({ question, answer, onOpenEvidence, onOpenPost
                         {image.tags.length ? ` — ${t("Image tags")}: ${image.tags.join(", ")}` : ""}
                       </p>
                     ))}
+                    {sourceReferences.length ? (
+                      <section aria-label={t("Related public sources")}>
+                        <h5>{t("Related public sources")}</h5>
+                        <ul className="post-evidence-list">
+                          {sourceReferences.map((reference) => (
+                            <li key={`${reference.evidence_url}:${reference.lead_kind_code}`}>
+                              {isPublicDocumentUrl(reference.evidence_url) ? (
+                                <a
+                                  href={reference.evidence_url}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                >
+                                  {reference.evidence_title_text || reference.evidence_url}
+                                </a>
+                              ) : null}
+                              {reference.evidence_excerpt_text ? (
+                                <span>{` — ${reference.evidence_excerpt_text}`}</span>
+                              ) : null}
+                            </li>
+                          ))}
+                        </ul>
+                      </section>
+                    ) : null}
                     <div className="ask-event-actions">
                       <button type="button" className="citation-chip" onClick={() => onOpenEvidence(citation.postId)}>
                         {t("View evidence")}

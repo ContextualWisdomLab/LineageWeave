@@ -9,6 +9,15 @@ def test_delivery_links_only_cited_evidence_without_keyword_classification() -> 
         "A prior response is documented.",
         ({"post_id": "post/a", "post_title": "Response record"},),
         ({"post_id": "post/a", "facts": [{"kind": "source_field", "text": "Recorded"}]},),
+        ({
+            "post_id": "post/a",
+            "evidence_url": "https://example.com/source",
+            "evidence_title_text": "Public source",
+            "evidence_excerpt_text": "Source excerpt",
+            "judgment_code": "research_supported",
+            "lead_kind_code": "research_lead_semantic_unit",
+            "next_action_text": "Compare the source.",
+        },),
     )
 
     assert delivery == {
@@ -23,6 +32,14 @@ def test_delivery_links_only_cited_evidence_without_keyword_classification() -> 
                     "api_path": "/api/posts/post%2Fa",
                     "resource_uri": "lineageweave://posts/post%2Fa",
                     "evidence_facts": [{"kind": "source_field", "text": "Recorded"}],
+                    "source_references": [{
+                        "url": "https://example.com/source",
+                        "title": "Public source",
+                        "excerpt": "Source excerpt",
+                        "judgment_code": "research_supported",
+                        "lead_kind_code": "research_lead_semantic_unit",
+                        "next_action": "Compare the source.",
+                    }],
                 }
             ],
         },

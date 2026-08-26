@@ -13,6 +13,7 @@ _CURRENT_METADATA: ContextVar[dict[str, str] | None] = ContextVar(
     "lineageweave_llm_metadata", default=None
 )
 _POST_METADATA_FIELDS = {
+    "visibility": "visibility_code",
     "pu": "source_process_unit_code",
     "author_id": "author_account_id",
     "corp_code": "corporate_entity_code",
