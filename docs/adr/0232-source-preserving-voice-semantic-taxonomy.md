@@ -1,4 +1,4 @@
-# ADR 0230: Source-preserving voice semantic taxonomy
+# ADR 0232: Source-preserving voice semantic taxonomy
 
 - Status: Accepted
 - Date: 2026-08-26
@@ -36,7 +36,8 @@ initial historical backfill records `0230_voice_source_assertion_backfill` in
 `data_migration_completion` only after its insert and repair finish in one
 transaction. An interrupted run therefore retries, while a completed replay
 does not repeatedly hash the source corpus; subsequent writes remain covered
-by the trigger.
+by the trigger. The trigger is installed before the backfill snapshot so a
+concurrent write cannot fall between recovery and normal ingestion coverage.
 
 Counts use the same authorized eligible-post denominator at the same cutoff and
 filters. They report source, derived, multi-membership, disagreement, and

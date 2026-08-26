@@ -282,6 +282,14 @@ def test_migration_applies_cleanly(schema_db) -> None:
     assert expected <= tables
 
 
+def test_voice_source_backfill_installs_trigger_before_snapshot() -> None:
+    """Concurrent writes are covered before the one-time snapshot starts."""
+    migration_sql = _VOICE_SEMANTIC_MIGRATION.read_text()
+    assert migration_sql.index("create trigger source_post_voice_assertion_reconcile") < (
+        migration_sql.index("do $source_assertion_backfill$")
+    )
+
+
 def test_voice_source_backfill_completion_is_atomic_and_replay_skips_scan(
     schema_db,
 ) -> None:
