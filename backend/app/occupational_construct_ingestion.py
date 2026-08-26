@@ -303,6 +303,11 @@ async def load_occupational_construct_assertions(
             on vocabulary.vocabulary_id = construct.vocabulary_id
           join post_content_unit unit
             on unit.post_content_unit_id = assertion.post_content_unit_id
+          join post_occupational_construct_extraction extraction
+            on extraction.post_id = assertion.post_id
+          join post_content_ingestion_job job
+            on job.post_id = assertion.post_id
+           and job.source_body_sha256 = extraction.source_body_sha256
          where assertion.post_id = $1
          order by unit.unit_index, construct.construct_family_code,
                   construct.preferred_label, construct.construct_iri
