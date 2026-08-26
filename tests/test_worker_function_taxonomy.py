@@ -13,9 +13,8 @@ from __future__ import annotations
 import hashlib
 
 import pytest
-from rdflib import RDF
 
-from lineageweave.ontology import LW, ONTOLOGY, all_declared_lookup_codes
+from lineageweave.ontology import all_declared_lookup_codes
 from lineageweave.worker_function_taxonomy import (
     WORKER_FUNCTION_DOMAINS,
     worker_function,
@@ -69,9 +68,9 @@ def test_records_are_sorted_in_dot_digit_order_then_rank() -> None:
     records = worker_function_records()
     domain_order = ["data"] * 7 + ["people"] * 9 + ["things"] * 8
     assert [record.domain for record in records] == domain_order
-    assert [record.rank for record in records[:7]] == list(range(0, 7))
-    assert [record.rank for record in records[7:16]] == list(range(0, 9))
-    assert [record.rank for record in records[16:]] == list(range(0, 8))
+    assert [record.rank for record in records[:7]] == list(range(7))
+    assert [record.rank for record in records[7:16]] == list(range(9))
+    assert [record.rank for record in records[16:]] == list(range(8))
 
 
 def test_iri_is_the_canonical_repository_case_namespace() -> None:
