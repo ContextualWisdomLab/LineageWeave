@@ -94,6 +94,29 @@ _WORKER_CONCURRENCY = 4
 
 _logger = logging.getLogger(__name__)
 
+_AUTHORIZED_PUBLIC_CLAIM_ENVELOPES_SQL = """
+    select envelope.public_claim_envelope_id,
+           envelope.source_post_id,
+           post.post_title as source_post_title,
+           envelope.claim_kind_code,
+           envelope.subject_label,
+           envelope.claim_text,
+           envelope.truth_status_code,
+           envelope.event_occurred_at,
+           envelope.egress_eligible,
+           post.visibility_code,
+           post.corporate_entity_id,
+           post.process_unit_id
+      from public_claim_envelope envelope
+      join source_post post on post.post_id = envelope.source_post_id
+     where envelope.egress_eligible
+       and post.visibility_code = 'public'
+       and {source_post_eligibility}
+     order by envelope.created_at, envelope.public_claim_envelope_id
+""".format(
+    source_post_eligibility=SOURCE_POST_ELIGIBILITY_SQL.format(alias="post")
+)
+
 
 class _SafeJobError(Exception):
     """Failure whose bounded message is safe to persist for the requester."""
@@ -419,28 +442,7 @@ async def load_authorized_public_claim_envelopes(
     can_see: Callable[[asyncpg.Record], bool],
 ) -> tuple:
     """Load only currently public, egress-eligible claim envelopes."""
-    rows = await conn.fetch(
-        f"""
-            select envelope.public_claim_envelope_id,
-                   envelope.source_post_id,
-                   post.post_title as source_post_title,
-                   envelope.claim_kind_code,
-                   envelope.subject_label,
-                   envelope.claim_text,
-                   envelope.truth_status_code,
-                   envelope.event_occurred_at,
-                   envelope.egress_eligible,
-                   post.visibility_code,
-                   post.corporate_entity_id,
-                   post.process_unit_id
-              from public_claim_envelope envelope
-              join source_post post on post.post_id = envelope.source_post_id
-             where envelope.egress_eligible
-               and post.visibility_code = 'public'
-               and {SOURCE_POST_ELIGIBILITY_SQL.format(alias='post')}
-             order by envelope.created_at, envelope.public_claim_envelope_id
-        """
-    )
+    rows = await conn.fetch(_AUTHORIZED_PUBLIC_CLAIM_ENVELOPES_SQL)
     return tuple(
         envelope
         for row in rows
