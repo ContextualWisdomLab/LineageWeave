@@ -8,6 +8,6 @@ LineageWeave publishes strict, versioned contracts for separately governed consu
 - Synthetic request: `external-lineage-analysis-v1.example.json`
 - Python parser and immutable types: `lineageweave.external_lineage_contract`
 - Store-agnostic execution adapter: `lineageweave.external_lineage_analysis`
-- Decision record: `docs/adr/0232-external-email-project-lineage-contract.md`
+- Decision record: `docs/adr/0239-external-email-project-lineage-contract.md`
 
 A consumer must submit only bounded evidence it is already authorized to disclose. Outputs retain opaque caller references and explicit `observed`, `inferred`, or `proposed` truth boundaries. The contract performs no source-system access or provider mutation.

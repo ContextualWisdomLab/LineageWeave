@@ -9,4 +9,4 @@
 - Reject explicit-parent cycles and candidate-pair work above the caller-approved limit before optional LLM/provider activity.
 - Expose exact active channel scores, weights, contributions, LLM availability state, proposed project groupings, and deterministic result digests.
 - Require a provenance-bearing fast-mlsirm channel-weight estimate for inferred edges; without it, return observed edges plus an explicit unavailable limitation.
-- Add JSON Schema Draft 2020-12, one canonical ADR 0232, APA 7th doctoring, and focused TDD coverage.
+- Add JSON Schema Draft 2020-12, union-free ADR 0239, APA 7th doctoring, and focused TDD coverage.
