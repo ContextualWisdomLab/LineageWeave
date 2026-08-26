@@ -171,6 +171,8 @@ def test_legacy_client_name_delegates(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(embedding_client, "ContextualOrchestratorEmbeddingClient", Delegate)
     client = embedding_client.OpenAiCompatibleEmbeddingClient("http://orchestrator", "key", "model")
     assert client.embed("abc") == [3.0]
+
+
 def test_batch_body_size_matches_post_scoped_orchestrator_wire_body() -> None:
     """The advertised ceiling includes the injected post session field."""
     client = embedding_client.ContextualOrchestratorEmbeddingClient(
