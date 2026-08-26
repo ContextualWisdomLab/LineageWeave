@@ -417,6 +417,10 @@ class RankWeaveClient:
         it explicitly; the disclosed per-channel evidence carries
         whichever weights actually fused.
         """
+        if weights is not None and not weights:
+            raise RankWeaveNotAvailable(
+                "rankweave_not_available: explicit channel weights are empty"
+            )
         active_weights = (
             weights
             if weights is not None

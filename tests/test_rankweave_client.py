@@ -181,9 +181,12 @@ def test_library_transport_uses_classic_rrf_without_convex_weights() -> None:
     )
 
 
-def test_explicit_empty_weight_vector_fails_closed() -> None:
+def test_explicit_empty_weight_vector_fails_before_transport() -> None:
+    def transport(*_args: object) -> object:
+        pytest.fail("invalid explicit weights must not cross the transport boundary")
+
     with pytest.raises(RankWeaveNotAvailable, match="rankweave_not_available"):
-        build_rankweave_client().fuse_rankings(
+        RankWeaveClient(transport=transport).fuse_rankings(
             {"temporal": ["post-1"], "lexical": ["post-1"]},
             {"post-1": "Public post"},
             weights={},
