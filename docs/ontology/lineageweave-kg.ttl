@@ -487,6 +487,18 @@
 :evidenceInputDigest a owl:DatatypeProperty ;
     rdfs:domain :ProductMention ; rdfs:range xsd:string .
 
+:PostVoiceClassificationAssertion a owl:Class ;
+    rdfs:label "Post voice classification assertion"@en .
+
+:OrganizationVoiceRelationshipAssertion a owl:Class ;
+    rdfs:label "Organization voice relationship assertion"@en .
+
+:voiceConceptCode a owl:DatatypeProperty ;
+    rdfs:range xsd:string .
+
+:orchestratorModelReceipt a owl:DatatypeProperty ;
+    rdfs:range xsd:string .
+
 :Order a owl:Class ; rdfs:label "Order"@en .
 :SalesContext a owl:Class ; rdfs:label "Sales context"@en .
 :BusinessManagementContext a owl:Class ; rdfs:label "Business-management context"@en .

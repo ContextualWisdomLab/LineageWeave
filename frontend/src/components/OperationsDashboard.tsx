@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { fetchOperationsDashboard, type OperationsDashboardResponse } from "../api";
+import { fetchOperationsDashboard, fetchVoiceTaxonomySummary, type OperationsDashboardResponse, type VoiceTaxonomySummary as VoiceSummary } from "../api";
+import { VoiceTaxonomySummary } from "./VoiceTaxonomySummary";
 
 function formatElapsed(seconds: number): string {
   const days = Math.floor(seconds / 86_400);
@@ -35,6 +36,7 @@ export function OperationsDashboard({ accessToken, externalOnly = false, onOpenP
   const [periodEnd, setPeriodEnd] = useState("");
   const [submittedPeriod, setSubmittedPeriod] = useState<[string, string]>(["", ""]);
   const [retryCount, setRetryCount] = useState(0);
+  const [voiceSummary, setVoiceSummary] = useState<VoiceSummary | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -45,6 +47,15 @@ export function OperationsDashboard({ accessToken, externalOnly = false, onOpenP
       .catch(() => active && setError(true));
     return () => { active = false; };
   }, [accessToken, externalOnly, submittedPeriod, retryCount]);
+
+  useEffect(() => {
+    let active = true;
+    setVoiceSummary(null);
+    fetchVoiceTaxonomySummary(accessToken, ...submittedPeriod)
+      .then((value) => active && setVoiceSummary(value))
+      .catch(() => undefined);
+    return () => { active = false; };
+  }, [accessToken, submittedPeriod, retryCount]);
 
   return <>
     <form className="dashboard-period-form" onSubmit={(event) => {
@@ -62,7 +73,10 @@ export function OperationsDashboard({ accessToken, externalOnly = false, onOpenP
         <button type="button" className="btn-secondary" onClick={() => setRetryCount((count) => count + 1)}>다시 시도</button>
       </section>
     ) : data ? (
-      <OperationsDashboardView data={data} externalOnly={externalOnly} onOpenPost={onOpenPost} />
+      <>
+        <OperationsDashboardView data={data} externalOnly={externalOnly} onOpenPost={onOpenPost} />
+        {voiceSummary ? <VoiceTaxonomySummary data={voiceSummary} /> : null}
+      </>
     ) : (
       <p role="status">Dashboard 근거를 불러오는 중입니다.</p>
     )}

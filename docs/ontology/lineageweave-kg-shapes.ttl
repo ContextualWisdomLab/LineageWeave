@@ -210,6 +210,38 @@
         sh:class :Post ;
     ] .
 
+:PostVoiceClassificationAssertionShape a sh:NodeShape ;
+    sh:targetClass :PostVoiceClassificationAssertion ;
+    sh:property [
+        sh:path :voiceConceptCode ; sh:minCount 1 ; sh:maxCount 1 ;
+        sh:in ("voc" "vocc" "voco" "vom" "vop") ;
+    ] ;
+    sh:property [
+        sh:path :evidenceInputDigest ; sh:minCount 1 ; sh:maxCount 1 ;
+        sh:datatype xsd:string ; sh:pattern "^[0-9a-f]{64}$" ;
+    ] ;
+    sh:property [
+        sh:path prov:wasDerivedFrom ; sh:minCount 1 ; sh:maxCount 1 ; sh:class :Post ;
+    ] .
+
+:OrganizationVoiceRelationshipAssertionShape a sh:NodeShape ;
+    sh:targetClass :OrganizationVoiceRelationshipAssertion ;
+    sh:property [
+        sh:path :voiceConceptCode ; sh:minCount 1 ; sh:maxCount 1 ;
+        sh:in ("rel_voc" "rel_vocc" "rel_voco" "rel_vom" "rel_vop" "rel_vos") ;
+    ] ;
+    sh:property [
+        sh:path :orchestratorModelReceipt ; sh:minCount 1 ; sh:maxCount 1 ;
+        sh:datatype xsd:string ; sh:minLength 1 ;
+    ] ;
+    sh:property [
+        sh:path :evidenceInputDigest ; sh:minCount 1 ; sh:maxCount 1 ;
+        sh:datatype xsd:string ; sh:pattern "^[0-9a-f]{64}$" ;
+    ] ;
+    sh:property [
+        sh:path prov:wasDerivedFrom ; sh:minCount 1 ; sh:maxCount 1 ; sh:class :Post ;
+    ] .
+
 :OurSidePersonShape a sh:NodeShape ;
     rdfs:label "Our-side person shape" ;
     sh:comment "Closed-world complement of :OurSidePerson owl:disjointWith :CounterpartyPerson: an instance of one can never be typed as the other." ;

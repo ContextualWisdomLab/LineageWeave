@@ -204,6 +204,7 @@ _PRODUCT_SEMANTIC_MIGRATIONS = tuple(
         "0215_operations_case_milestone.sql",
         "0222_operations_case_analysis_input.sql",
         "0228_product_semantic_catalog.sql",
+        "0229_voice_semantic_taxonomy.sql",
     )
 )
 _LEFTOVER_MAP_AXIS_MIGRATION = (
@@ -417,9 +418,9 @@ def seeded_db(demo_analyst_token):
             cur.execute(_LEFTOVER_MAP_COVERAGE_MIGRATION.read_text())
             cur.execute(_GLOBAL_ASK_JOB_MIGRATION.read_text())
             cur.execute(_GLOBAL_ASK_SCOPE_MIGRATION.read_text())
+            cur.execute(_EVENT_OCCURRED_AT_MIGRATION.read_text())
             for migration_path in _PRODUCT_SEMANTIC_MIGRATIONS:
                 cur.execute(migration_path.read_text())
-            cur.execute(_EVENT_OCCURRED_AT_MIGRATION.read_text())
             cur.execute(_LEFTOVER_MAP_AXIS_MIGRATION.read_text())
             cur.execute(_CHANNEL_EVIDENCE_MIGRATION.read_text())
             cur.execute(_LEFTOVER_MAP_UNEXPLAINED_MIGRATION.read_text())
@@ -1970,6 +1971,49 @@ def test_post_detail_returns_authorized_product_evidence(
         "evidence_text": "Synthetic evidence",
         "evidence_post_id": seeded_db["public_post_id"],
     }]
+
+
+def test_voice_taxonomy_summary_uses_visible_post_denominator(
+    client, demo_analyst_token, seeded_db
+) -> None:
+    """Counts include visible unavailable posts and disclose overlap semantics."""
+    conn = psycopg2.connect(seeded_db["dsn"])
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                "insert into post_voice_classification_assertion "
+                "(post_id, voice_concept_code, assertion_status_code, evidence_sha256, "
+                "source_revision_digest) select post_id, 'voc', 'source', repeat('a', 64), "
+                "repeat('b', 64) from source_post"
+            )
+        conn.commit()
+    finally:
+        conn.close()
+    response = client.get(
+        "/api/voice-taxonomy/summary",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert response.status_code == 200, response.text
+    payload = response.json()
+    assert payload["total_eligible"] == 3
+    assert payload["source_count"] == 3
+    assert payload["counts_overlap"] is True
+    assert payload["category_memberships"] == [{
+        "voice_concept_code": "voc",
+        "post_count": 3,
+        "eligible_percentage": 100.0,
+    }]
+
+
+def test_voice_taxonomy_summary_rejects_reversed_period(
+    client, demo_analyst_token
+) -> None:
+    response = client.get(
+        "/api/voice-taxonomy/summary?date_from=2026-02-01T00:00:00Z&date_to=2026-01-01T00:00:00Z",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert response.status_code == 422
+    assert "Choose an end time" in response.json()["detail"]
 
 
 def test_post_detail_exposes_explicit_and_semantic_project_evidence(

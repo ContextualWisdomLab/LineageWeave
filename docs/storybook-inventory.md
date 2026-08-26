@@ -18,6 +18,7 @@ operator-facing control you can click before changing product CSS.
 | `Workspace/WorkspaceCalendar` | Read observed Naruon events, or open a commitment to land on that post. Fail-closed copy stays `이 범위의 일정을 아직 받을 수 없습니다`. | `--color-chip-border`, `WorkspaceCalendar`, `EvidenceStatusMark` |
 | `Evidence/OntologyExplorer` | Distinguish Post, Person, Organization, and Team by shape and text, use the token-backed surface as a secondary cue, then open the exact-value table or cited evidence. Compare desktop, narrow, drawer, empty, truncated, denied, stale, and rejected states. | `--ontology-node-*-fill`, `OntologyExplorer` |
 | `Post/ProductEvidenceList` | Open the cited product span. If the identity is unresolved, review the product catalog before using the relationship. Compare catalog-linked and catalog-review-required states. | `--surface`, `--border`, `ProductEvidenceList` |
+| `Dashboard/VoiceTaxonomySummary` | Compare source and semantic classifications, note overlapping memberships, then review disagreements and records waiting for evidence. | `--surface`, `--border`, `VoiceTaxonomySummary` |
 
 Repeated web objects must use `frontend/src/styles/tokens.css` and a module
 under `frontend/src/components/`. Do not add a second Node package manager;
