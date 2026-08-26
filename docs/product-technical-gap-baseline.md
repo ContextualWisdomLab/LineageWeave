@@ -10,7 +10,7 @@
 ## Current occupational semantic-layer gap
 
 The current candidate stack publishes a provenance-safe classification
-foundation: ADR 0251 adds the complete 2018 SOC hierarchy (23 major groups,
+foundation: ADR 0252 adds the complete 2018 SOC hierarchy (23 major groups,
 98 minor groups, 459 broad occupations, and 867 detailed occupations) above
 ADR 0245's four O*NET 31.0 Job Zone categories, six RIASEC interest
 types and their published adjacency, six explicitly legacy work-value clusters, seven
@@ -22,7 +22,7 @@ explicit unavailable state, not a reason to infer mappings from labels.
 
 | Gap | Current evidence | Acceptance requirement |
 |---|---|---|
-| Classification depth | ADR 0251's candidate branch imports all 1,447 official 2018 SOC nodes with source-declared hierarchy, pinned XLSX/CSV digests, a deterministic Turtle renderer, and fail-closed read model | Pass exact-head review/checks and protected merge; add ISCO/ESCO crosswalks only where the publishing authority supplies them |
+| Classification depth | ADR 0252's candidate branch imports all 1,447 official 2018 SOC nodes with source-declared hierarchy, pinned XLSX/CSV digests, a deterministic Turtle renderer, and fail-closed read model | Pass exact-head review/checks and protected merge; add ISCO/ESCO crosswalks only where the publishing authority supplies them |
 | Construct granularity | The candidate ontology exposes 23 high-level characteristic concepts | Publish source-versioned O*NET abilities, skills, knowledge, work activities, work context, interests, and work styles without collapsing cognition, affect, and behavior into one dimension; preserve removed Work Values only as versioned legacy content |
 | Occupation-to-construct relations | ADR 0245 deliberately declares relation properties without instance assertions | Persist released source observations with source version, occupation code, element identifier, scale identifier, value, sample/error metadata when supplied, and provenance; never invent or locally normalize a weight |
 | Job-family and job-series semantics | No authoritative employer-specific job architecture is present | Define an organization-neutral import contract that preserves the authorized source hierarchy and distinguishes standard occupation codes from employer job families/series; no label-based binding |

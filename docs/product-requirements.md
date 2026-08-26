@@ -76,7 +76,7 @@ continues to pass unchanged.
 
 - Publish all four levels of the 2018 Standard Occupational Classification:
   23 major groups, 98 minor groups, 459 broad occupations, and 867 detailed
-  occupations with exact source parents, titles, and codes (ADR 0251), plus
+  occupations with exact source parents, titles, and codes (ADR 0252), plus
   the four O*NET 31.0 job-zone categories with
   published names and source values 2 through 5 (ADR 0245).
 - Publish the worker-characteristic families that work-related
