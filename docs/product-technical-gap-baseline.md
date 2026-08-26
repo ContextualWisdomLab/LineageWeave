@@ -61,7 +61,7 @@ only aggregate, non-identifying evidence to this repository.
 
 ### Exact open-PR boundary
 
-At this snapshot there were 15 open PRs and 10 open issues. The exact-head
+At this snapshot there were 16 open PRs and 10 open issues. The exact-head
 inventory in section 1 is authoritative for this snapshot. Every open head
 remained blocked on hosted gates and/or independent review. These observations
 are not merge readiness. Re-fetch exact heads,
@@ -78,13 +78,14 @@ lifecycle claim.
 ## 1. Exact-head and governance evidence
 
 The protected default branch is `ff7431bd1851c03e737808d22c6a2d43968582f9`
-at this refresh. The live queue contains 15 open PRs and 10
+at this refresh. The live queue contains 16 open PRs and 10
 open issues. The exact-head inventory below supersedes older per-PR snapshots
 elsewhere in this document; those older rows remain useful historical delivery
 context only.
 
 | PR | Exact observed head | Merge/check state at this snapshot |
 | ---: | --- | --- |
+| #702 | `766568b0` | makes missing source-body evidence explicit, carries governed source classifications through semantic hints and RDF/SHACL, and records only aggregate coverage evidence. Eighty-five focused import/audit/ontology checks pass; the authenticated aggregate audit reports no fully covered record rather than substituting titles or claiming failed provider windows. Protected hosted checks and independent review remain required |
 | #701 | `cc3351a9` | repairs both integration fixtures by invoking `psql -X -v ON_ERROR_STOP=1 -f` exactly like the ADR 0166 production runner, so concurrent indexes remain outside a transaction without a fixture-owned SQL parser; no migration is skipped or suppressed. Forty schema/replay/backend checks pass; protected hosted checks and independent review remain required |
 | #700 | `28f7ec9d` | adds ADR 0238's bounded versioned caller-parsed conversation-turn envelope, fail-closed whole-result preflight, ordered semantic-unit persistence, and opaque caller evidence references without body-pattern speaker inference. Caller units cannot inherit opaque-body metadata, trigger unused vision work, or admit text the database cannot persist. Focused import/persistence/chunking/docstring/documentation tests and Ruff pass; protected hosted checks and independent review remain required |
 | #680 | `ff4d9eaf` | customer-facing ranking and related-concept copy removes the remaining rendered internal ontology label while preserving the Event Lineage distinction and protected-main's Project node additions. Orphaned-source and unavailable-ranking guidance now direct the reader to the valid workspace-admin action across locales; lint and 159 App/i18n checks pass. Fresh exact-head hosted checks and independent review are required |
@@ -96,7 +97,7 @@ context only.
 | #657 | `9f71681c` | TEPP lifecycle persistence and fail-closed topic acceptance; BLOCKED with hosted checks queued and review required |
 | #644 | `b116128e` | current-main reconciliation preserves all existing workspace surfaces and adds Public Claim Verification as the ninth lazy boundary. Frontend 42 files/391 tests, lint, production build, and Storybook build pass; refreshed desktop loading and mobile error screenshots confirm the actionable alert/Refresh states. The observed 509.58 kB app chunk still triggers Vite's warning and remains measured performance debt; hosted checks and independent review remain required |
 | #643 | `42ba340e` | accessible status notices; BLOCKED with review required |
-| #640 | `93c5b6f6` | dashboard ranking and topic-influence stack was merged with current main, but the merge resolution dropped required Ask imports/provenance fields and mixed worker, MCP, cutoff, verification, and timeline contracts; focused pytest cannot collect. Auto-merge is disabled until those exact-head regressions are repaired and the composed contracts are retested |
+| #640 | `ca3b9e79` | dashboard ranking and topic-influence stack was merged with current main. A concurrent repair restored the core Ask evidence/status contract and test import, but exact-head audit still finds missing ontology imports and packaged-Turtle parity, fixture transaction semantics, MCP Compose profile, cutoff/public-verification rendering, and service imports. Auto-merge is disabled until those regressions are repaired and the composed contracts are retested |
 | #639 | `fac30fc4` | running-action/config repair now also makes the documented `make seed` contract install its declared script/runtime extras. The current-main merge preserves both host-artifact exclusions and both frontend container contract tests; 16 focused checks pass. Fresh exact-head hosted checks and independent review remain required |
 | #632 | `24262a99` | graph-fact provenance repair also carries the current bounded MCP request contract, token-backed Ask layout, ontology-label wrapping, and normalized-table evidence-search index repair. Both live migration fixtures now execute the production-equivalent `psql -X -v ON_ERROR_STOP=1 -f` path; 38 schema/replay/contract checks pass. Hosted checks and independent review remain required |
 | #629 | `b721b0f2` | provider-work release and bounded reads now preserve relationship type, capture update status, remove a shadowed legacy verifier, persist each completed result before a later provider failure, fence deleted evidence, and execute both Global Ask migrations twice in the real PostgreSQL fixture. Focused migration/schema tests pass; hosted checks and independent review remain required |
