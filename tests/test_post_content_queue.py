@@ -716,11 +716,15 @@ def test_migration_replay_window_includes_post_content_queue() -> None:
     assert "[0-9][0-9][0-9][0-9]_*)" in migrate
 
 
-def test_concurrent_search_index_replay_repairs_only_invalid_owned_indexes() -> None:
-    """An interrupted concurrent build cannot poison every later replay."""
-    migration = (_ROOT / "migrations" / "0035_body_search_prefix.sql").read_text()
-    assert "not index_state.indisvalid" in migration
-    assert "drop index concurrently if exists %I.%I" in migration
-    assert "\\gexec" in migration
-    assert migration.count("source_post_body_prefix_trgm_idx") == 2
-    assert migration.count("source_post_body_fts_idx") == 2
+def test_superseded_body_indexes_are_not_rebuilt_before_normalized_search() -> None:
+    """Replay never builds legacy GIN indexes that the successor drops."""
+    migration_0035 = (
+        _ROOT / "migrations" / "0035_body_search_prefix.sql"
+    ).read_text()
+    migration_0036 = (
+        _ROOT / "migrations" / "0036_normalized_body_search.sql"
+    ).read_text()
+    assert "create extension if not exists pg_trgm" in migration_0035
+    assert "create index" not in migration_0035.casefold()
+    assert "create index if not exists source_post_search_prefix_trgm_idx" in migration_0036
+    assert "create index if not exists source_post_search_fts_idx" in migration_0036
