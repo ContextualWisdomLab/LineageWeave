@@ -56,10 +56,12 @@ orchestrator is off. Account history is additional, not a replacement.
 * Reauthorization for a conversation's turns is batched
   (`_visible_post_ids_batch`, one query per relation type per page instead
   of per turn), preventing transcript length from creating an N+1 query path.
-* `persist_turn` now re-authorizes every citation inside its own commit
-  transaction (`_ensure_citations_visible`, row-share-locked, raising
-  `PostAskEvidenceChanged` -> 503). A citation that loses authorization
-  between source-gathering and commit therefore aborts the whole turn.
+* `persist_turn` now row-share-locks and re-authorizes every
+  `source_post_id` inside its own commit transaction
+  (`_ensure_sources_visible`, raising `PostAskEvidenceChanged` -> 503).
+  Persisted citations remain a subset of those authorized sources, so a
+  cited or non-cited source that loses authorization between source-gathering
+  and commit aborts the whole turn.
 
 ## Implementation Plan
 
