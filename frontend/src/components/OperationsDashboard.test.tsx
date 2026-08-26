@@ -101,6 +101,7 @@ describe("OperationsDashboardView", () => {
 
   it("shows external information as a share of all visible posts in the GNB view", () => {
     render(<OperationsDashboardView data={data} externalOnly onOpenPost={() => undefined} />);
+    expect(screen.getByText("외부 정보 (전체 글 대비)")).toBeInTheDocument();
     expect(screen.getByText("5건 · 25.0%")).toBeInTheDocument();
   });
 
