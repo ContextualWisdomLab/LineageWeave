@@ -100,6 +100,7 @@ describe("i18n", () => {
     "Why this item is listed",
     "No records are available yet. Add a source record to continue.",
     "Public verification is unavailable right now. Review the linked evidence or try again later.",
+    "These links show people, organizations, teams, and records. Open Event Lineage to review record-to-record history.",
   ] as const;
 
   it("supports the five product locales", () => {

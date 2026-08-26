@@ -3271,14 +3271,9 @@ describe("App, authenticated", () => {
     expect(await screen.findByRole("heading", { name: "Lineage reconstruction · Succeeded · Demo Corp" })).toBeInTheDocument();
     expect(screen.getByText(/Cutoff 2026-01-12/)).toBeInTheDocument();
     expect(screen.getByText(/Requested 2026-01-12/)).toBeInTheDocument();
-    const digests = screen.getByLabelText("Run audit details");
-    expect(digests).toHaveTextContent("This update includes audit details for administrators.");
-    expect(digests).toHaveTextContent("Code");
-    expect(digests).toHaveTextContent("Config");
-    expect(digests).not.toHaveTextContent("abcdef0123456789deadbeefcafebabe");
-    expect(digests).not.toHaveTextContent(
-      "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
-    );
+    expect(screen.queryByLabelText("Run audit details")).not.toBeInTheDocument();
+    expect(screen.queryByText("Code")).not.toBeInTheDocument();
+    expect(screen.queryByText("Config")).not.toBeInTheDocument();
     expect(screen.queryByTitle("abcdef0123456789deadbeefcafebabe")).not.toBeInTheDocument();
     expect(screen.queryByTitle("0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef")).not.toBeInTheDocument();
     const history = screen.getByRole("list", { name: "Analysis run status history" });
@@ -3913,8 +3908,8 @@ describe("App, authenticated", () => {
     expect(fork).toHaveTextContent(
       "Delivery schedule question raised follows Pricing renegotiation follow-up",
     );
-    const digests = screen.getByLabelText("Run audit details");
-    expect(digests).toHaveTextContent("Result");
+    expect(screen.queryByLabelText("Run audit details")).not.toBeInTheDocument();
+    expect(screen.queryByText("Result")).not.toBeInTheDocument();
     expect(screen.queryByTitle("aa".repeat(32))).not.toBeInTheDocument();
     const startCall = fetchMock.mock.calls.find((call) =>
       String(call[0]).endsWith("/api/analysis-runs/run-demo-lineage-pending/start"),

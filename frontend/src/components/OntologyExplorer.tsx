@@ -197,7 +197,11 @@ export function OntologyExplorer({
         <div>
           <p className="section-eyebrow">{t("Related information")}</p>
           <h3>{t("Explore related records")}</h3>
-          <p>{t("Select a person, organization, team, or record to review its supporting details.")}</p>
+          <p>
+            {t(
+              "These links show people, organizations, teams, and records. Open Event Lineage to review record-to-record history.",
+            )}
+          </p>
         </div>
         <div className="ontology-explorer-actions">
           <button type="button" onClick={resetFocus}>

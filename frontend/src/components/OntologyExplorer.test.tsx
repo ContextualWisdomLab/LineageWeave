@@ -236,7 +236,7 @@ describe("OntologyExplorer", () => {
       />,
     );
     expect(
-      screen.getByText(/Select a person, organization, team, or record/),
+      screen.getByText(/Open Event Lineage to review record-to-record history/),
     ).toBeInTheDocument();
     expect(screen.getByRole("region", { name: "Exact values" })).toHaveAttribute("tabindex", "0");
     await userEvent.click(screen.getByRole("button", { name: "Open related item: Post Demo public post" }));

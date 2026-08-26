@@ -2825,45 +2825,6 @@ function analysisRunLivePostButtonLabel(post: {
   return `Open live post: ${post.post_title}`;
 }
 
-function AnalysisRunReproducibilityDigests({
-  codeRevisionSha,
-  configurationSha256,
-  reconstructionResultSha256,
-}: {
-  codeRevisionSha?: string;
-  configurationSha256?: string;
-  reconstructionResultSha256?: string;
-}) {
-  const parts: { label: string; digest: string }[] = [];
-  if (codeRevisionSha) {
-    parts.push({ label: "Code", digest: codeRevisionSha });
-  }
-  if (configurationSha256) {
-    parts.push({ label: "Config", digest: configurationSha256 });
-  }
-  if (reconstructionResultSha256) {
-    parts.push({ label: "Result", digest: reconstructionResultSha256 });
-  }
-  if (parts.length === 0) {
-    return null;
-  }
-  return (
-    <div role="group" aria-label="Run audit details">
-      <p className="post-meta">
-        <span className="visually-hidden">
-          This update includes audit details for administrators.{" "}
-        </span>
-        {parts.map((part, index) => (
-          <span key={part.label}>
-            {index > 0 ? " · " : null}
-            <span>{part.label}</span>
-          </span>
-        ))}
-      </p>
-    </div>
-  );
-}
-
 /**
  * Start is for a Pending lineage or TEPP row after Request.
  *
@@ -3159,11 +3120,6 @@ function AnalysisRunsPanel({
             {" · "}
             Requested {selected.requested_at.slice(0, 10)}
           </p>
-          <AnalysisRunReproducibilityDigests
-            codeRevisionSha={selected.code_revision_sha}
-            configurationSha256={selected.configuration_sha256}
-            reconstructionResultSha256={selected.reconstruction_result_sha256}
-          />
           {analysisRunCanStart(selected) && (
             <button
               className="keyman-select"
