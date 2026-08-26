@@ -1,6 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { fetchOperationsDashboard, fetchVoiceTaxonomySummary, type OperationsDashboardResponse } from "../api";
 import { OperationsDashboard, OperationsDashboardView } from "./OperationsDashboard";
 
@@ -9,6 +9,14 @@ vi.mock("../api", async (importOriginal) => ({
   fetchOperationsDashboard: vi.fn(),
   fetchVoiceTaxonomySummary: vi.fn(),
 }));
+
+beforeEach(() => {
+  vi.mocked(fetchVoiceTaxonomySummary).mockReset().mockResolvedValue({
+    total_eligible: 0, classified_unique: 0, multi_membership: 0,
+    source_count: 0, derived_count: 0, unavailable: 0, disagreement: 0,
+    counts_overlap: true, category_memberships: [],
+  });
+});
 
 const data: OperationsDashboardResponse = {
   period_label: "2026-08-01–2026-08-25 · Event time",

@@ -17,9 +17,9 @@ export function VoiceTaxonomySummary({ data }: { data: Summary }) {
       <dl className="dashboard-metrics-grid">
         <div><dt>{t("Recorded evidence")}</dt><dd>{data.source_count.toLocaleString()}</dd></div>
         <div><dt>{t("Stored semantic evidence")}</dt><dd>{data.derived_count.toLocaleString()}</dd></div>
-        <div><dt>{t("Multiple roles observed")}</dt><dd>{data.multi_membership.toLocaleString()}</dd></div>
+        <div><dt>{t("Records in multiple voice categories")}</dt><dd>{data.multi_membership.toLocaleString()}</dd></div>
         <div><dt>{t("Needs review")}</dt><dd>{data.disagreement.toLocaleString()}</dd></div>
-        <div><dt>{t("No evidence found")}</dt><dd>{data.unavailable.toLocaleString()}</dd></div>
+        <div><dt>{t("Records without voice evidence")}</dt><dd>{data.unavailable.toLocaleString()}</dd></div>
       </dl>
       <ul className="evidence-list">
         {data.category_memberships.map((category) => (
