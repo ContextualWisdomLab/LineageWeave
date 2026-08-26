@@ -221,6 +221,18 @@ treated as a negative case.
   browser output, and k6 evidence
   outside the repository. An empty synthetic case list remains a valid UI/API
   shape check; it is not evidence that grounded production cases exist.
+- `scripts/explain_post_content_backfill.py` executes the exact bounded
+  candidate SQL with `EXPLAIN (ANALYZE, BUFFERS, WAL, FORMAT JSON)` inside a
+  rolled-back transaction. It reports only aggregate timing, buffer, temporary
+  block, node-kind, and relation-scan counts, so priority-sort, correlated
+  subquery, index, spill, and lock-path evidence is reproducible without
+  emitting source rows.
+- Backfill admission reads the ontology-backed priority tier first and reads
+  the remaining eligible tier only when fewer than the requested bounded page
+  are locked. This preserves the documented total order while avoiding a
+  corpus-wide priority `CASE` sort and its per-row correlated probes.
+  Candidate post identifiers are de-duplicated before mutation because the two
+  `READ COMMITTED` statements may observe a target moving between tiers.
 
 ## References
 
