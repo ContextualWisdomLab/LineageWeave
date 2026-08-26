@@ -17,6 +17,10 @@ All notable changes to this project are documented here. Format follows
   now persist in normalized tables. Database and application validation require
   same-Post verbatim evidence, and authorized Post detail exposes provenance
   without internal identifiers or numerical scores (ADR 0249).
+- An operator-only O*NET 31.0 catalog synchronizer now imports every official
+  cognitive-ability, work-style, and work-activity Content Model element with
+  stable IRIs, descriptions, attribution, and a deterministic source digest;
+  conflicting release metadata fails closed (ADR 0250).
 
 - The DOT/FJA Data/People/Things worker-function taxonomy is now published
   in the canonical ontology: all 24 worker functions carry the official
