@@ -42,6 +42,7 @@ from backend.app.activity_stream import (
     ticket_created_summary,
     ticket_status_changed_summary,
 )
+from backend.app.voice_taxonomy import load_voice_taxonomy_summary
 from backend.app.affiliate_tree_ingestion import (
     fetch_affiliate_forest,
     fetch_voc_evidence,
@@ -1539,6 +1540,71 @@ async def list_posts(
         "offset": offset,
         "voc_type_options": voc_type_options,
         "visibility_options": visibility_options,
+    }
+
+
+@app.get("/api/voice-taxonomy/summary")
+async def read_voice_taxonomy_summary(
+    date_from: date | None = None,
+    date_to: date | None = None,
+    corporate_entity_id: UUID | None = None,
+    process_unit_id: UUID | None = None,
+    team_id: UUID | None = None,
+    person_id: UUID | None = None,
+    product_catalog_id: UUID | None = None,
+    project_key: str | None = Query(default=None, max_length=200),
+    account: CurrentAccount = Depends(get_current_account),
+    pool: asyncpg.Pool = Depends(get_pool),
+) -> dict[str, Any]:
+    """Return overlapping source/derived voice counts for the selected scope."""
+    _require_post_read(account)
+    if date_from is not None and date_to is not None and date_to < date_from:
+        raise HTTPException(
+            status.HTTP_422_UNPROCESSABLE_CONTENT,
+            "Choose an end time after the start time, then review the updated scope.",
+        )
+    async with pool.acquire() as conn:
+        excluded_entity_ids: tuple[str, ...] = ()
+        if await has_real_source_context(conn, list(account.corporate_entity_ids)):
+            excluded_entity_ids = tuple(
+                sorted(await fetch_demo_corporate_entity_ids(conn))
+            )
+        summary = await load_voice_taxonomy_summary(
+            conn,
+            authorized_corporate_entity_ids=tuple(
+                str(value) for value in account.corporate_entity_ids
+            ),
+            authorized_process_unit_ids=tuple(
+                str(value) for value in account.process_unit_ids
+            ),
+            date_from=date_from,
+            date_to=date_to,
+            corporate_entity_id=str(corporate_entity_id) if corporate_entity_id else None,
+            process_unit_id=str(process_unit_id) if process_unit_id else None,
+            team_id=str(team_id) if team_id else None,
+            person_id=str(person_id) if person_id else None,
+            product_catalog_id=str(product_catalog_id) if product_catalog_id else None,
+            project_key=project_key.strip() if project_key and project_key.strip() else None,
+            excluded_corporate_entity_ids=excluded_entity_ids,
+        )
+    total = int(summary["total_eligible"])
+    raw_category_counts = summary["category_post_counts"]
+    category_counts = (
+        json.loads(raw_category_counts)
+        if isinstance(raw_category_counts, str)
+        else dict(raw_category_counts)
+    )
+    return {
+        **{key: value for key, value in summary.items() if key != "category_post_counts"},
+        "category_memberships": [
+            {
+                "voice_concept_code": code,
+                "post_count": int(count),
+                "eligible_percentage": (float(count) / total * 100.0) if total else 0.0,
+            }
+            for code, count in sorted(category_counts.items())
+        ],
+        "counts_overlap": True,
     }
 
 

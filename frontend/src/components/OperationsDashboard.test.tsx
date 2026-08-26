@@ -1,13 +1,22 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it, vi } from "vitest";
-import { fetchOperationsDashboard, type OperationsDashboardResponse } from "../api";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { fetchOperationsDashboard, fetchVoiceTaxonomySummary, type OperationsDashboardResponse } from "../api";
 import { OperationsDashboard, OperationsDashboardView } from "./OperationsDashboard";
 
 vi.mock("../api", async (importOriginal) => ({
   ...(await importOriginal<typeof import("../api")>()),
   fetchOperationsDashboard: vi.fn(),
+  fetchVoiceTaxonomySummary: vi.fn(),
 }));
+
+beforeEach(() => {
+  vi.mocked(fetchVoiceTaxonomySummary).mockReset().mockResolvedValue({
+    total_eligible: 0, classified_unique: 0, multi_membership: 0,
+    source_count: 0, derived_count: 0, unavailable: 0, disagreement: 0,
+    counts_overlap: true, category_memberships: [],
+  });
+});
 
 const data: OperationsDashboardResponse = {
   period_label: "2026-08-01–2026-08-25 · Event time",
@@ -179,6 +188,11 @@ describe("OperationsDashboardView", () => {
   });
 
   it("keeps period controls mounted while a changed period loads", async () => {
+    vi.mocked(fetchVoiceTaxonomySummary).mockResolvedValue({
+      total_eligible: 0, classified_unique: 0, multi_membership: 0,
+      source_count: 0, derived_count: 0, unavailable: 0, disagreement: 0,
+      counts_overlap: true, category_memberships: [],
+    });
     vi.mocked(fetchOperationsDashboard)
       .mockResolvedValueOnce(data)
       .mockImplementationOnce(() => new Promise(() => undefined));
@@ -191,9 +205,55 @@ describe("OperationsDashboardView", () => {
   });
 
   it("requests the external scope at the API boundary", async () => {
-    vi.mocked(fetchOperationsDashboard).mockResolvedValue(data);
+    vi.mocked(fetchVoiceTaxonomySummary).mockClear();
+    vi.mocked(fetchOperationsDashboard).mockReset().mockResolvedValue(data);
     render(<OperationsDashboard accessToken="synthetic-token" externalOnly onOpenPost={() => undefined} />);
     await screen.findByText("5건");
     expect(fetchOperationsDashboard).toHaveBeenCalledWith("synthetic-token", "", "", true);
+    expect(fetchVoiceTaxonomySummary).not.toHaveBeenCalled();
+  });
+
+  it("shows a failed voice summary and retries only that evidence", async () => {
+    vi.mocked(fetchOperationsDashboard).mockReset().mockResolvedValue(data);
+    vi.mocked(fetchVoiceTaxonomySummary)
+      .mockReset()
+      .mockRejectedValueOnce(new Error("synthetic transport failure"))
+      .mockResolvedValueOnce({
+        total_eligible: 0, classified_unique: 0, multi_membership: 0,
+        source_count: 0, derived_count: 0, unavailable: 0, disagreement: 0,
+        counts_overlap: true, category_memberships: [],
+      });
+    render(<OperationsDashboard accessToken="synthetic-token" onOpenPost={() => undefined} />);
+
+    expect(await screen.findByRole("alert")).toHaveTextContent("Voice evidence could not be loaded.");
+    await userEvent.click(screen.getByRole("button", { name: "Retry voice evidence" }));
+    expect(await screen.findByRole("heading", { name: "Voice evidence overview" })).toBeInTheDocument();
+    expect(fetchVoiceTaxonomySummary).toHaveBeenCalledTimes(2);
+    expect(fetchOperationsDashboard).toHaveBeenCalledTimes(1);
+  });
+
+  it("keeps voice evidence actionable when the dashboard request fails", async () => {
+    vi.mocked(fetchOperationsDashboard).mockReset().mockRejectedValue(new Error("synthetic dashboard failure"));
+    vi.mocked(fetchVoiceTaxonomySummary).mockReset().mockResolvedValue({
+      total_eligible: 0, classified_unique: 0, multi_membership: 0,
+      source_count: 0, derived_count: 0, unavailable: 0, disagreement: 0,
+      counts_overlap: true, category_memberships: [],
+    });
+    render(<OperationsDashboard accessToken="synthetic-token" onOpenPost={() => undefined} />);
+
+    expect(await screen.findByText("Dashboard 근거를 불러오지 못했습니다.")).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "Voice evidence overview" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "다시 시도" })).toBeInTheDocument();
+  });
+});
+
+describe("OperationsDashboard", () => {
+  it("announces concurrent dashboard and voice loading through one status region", () => {
+    vi.mocked(fetchOperationsDashboard).mockImplementation(() => new Promise(() => undefined));
+    vi.mocked(fetchVoiceTaxonomySummary).mockImplementation(() => new Promise(() => undefined));
+    render(<OperationsDashboard accessToken="synthetic-token" onOpenPost={() => undefined} />);
+    expect(screen.getAllByRole("status")).toHaveLength(1);
+    expect(screen.getByRole("status")).toHaveTextContent("Dashboard 근거를 불러오는 중입니다.");
+    expect(screen.getByRole("status")).toHaveTextContent("Loading voice evidence...");
   });
 });
