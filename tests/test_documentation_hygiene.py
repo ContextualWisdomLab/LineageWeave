@@ -125,12 +125,21 @@ def test_orchestrator_runtime_pin_matches_adr() -> None:
     adr = (_ADR_DIRECTORY / "0083-orchestrator-runtime-commit-pin.md").read_text(
         encoding="utf-8"
     )
+    compose = (_ROOT / "docker-compose.yml").read_text(encoding="utf-8")
     docker_match = re.search(r"archive/([0-9a-f]{40})\.tar\.gz", dockerfile)
     adr_match = re.search(r"commit `([0-9a-f]{40})`", adr)
     assert docker_match is not None
     assert adr_match is not None
     assert docker_match.group(1) == adr_match.group(1)
     assert docker_match.group(1) == expected_embedding_contract_commit
+    assert (
+        "image: ${COMPOSE_PROJECT_NAME:-lineageweave}-orchestrator:"
+        + expected_embedding_contract_commit
+    ) in compose
+    assert (
+        f'org.opencontainers.image.revision="{expected_embedding_contract_commit}"'
+        in dockerfile
+    )
 
 
 def test_embedding_bootstrap_contract_keeps_request_model_free() -> None:
