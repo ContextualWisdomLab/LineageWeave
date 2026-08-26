@@ -435,6 +435,47 @@ def test_deleted_conversation_recovery_maps_changed_evidence_to_retry_guidance(
     assert exc_info.value.status_code == 503
 
 
+def test_deleted_conversation_is_detected_before_recovery_reauthorizes_evidence() -> None:
+    """The real persistence path enters recovery before checking changed evidence."""
+
+    class _DeletedConversationConnection(_Connection):
+        async def fetchrow(self, query: str, *arguments: object) -> None:
+            self.calls.append((query, arguments))
+            return None
+
+    connection = _DeletedConversationConnection()
+    account = CurrentAccount(
+        user_account_id="account-1",
+        external_subject_id="subject-1",
+        display_name="Synthetic analyst",
+        preferred_locale="en",
+        corporate_entity_ids=frozenset(),
+        process_unit_ids=frozenset(),
+        permission_codes=frozenset({"post_read"}),
+    )
+
+    with pytest.raises(HTTPException) as exc_info:
+        asyncio.run(
+            post_ask_main._persist_post_ask_turn(
+                connection,
+                account,
+                "post-1",
+                UUID("00000000-0000-0000-0000-000000000008"),
+                "What changed?",
+                "The completed answer remains available.",
+                ["post-1"],
+                [],
+                recover_deleted_conversation=True,
+            )
+        )
+
+    statements = [query for query, _arguments in connection.calls]
+    assert exc_info.value.status_code == 503
+    assert "from post_ask_session" in statements[0]
+    assert any("for share of post" in query.lower() for query in statements[1:])
+    assert not any("insert into post_ask_session" in query for query in statements)
+
+
 def test_persist_turn_aborts_when_a_citation_loses_authorization() -> None:
     """The transaction fails closed if cited evidence is no longer visible."""
     connection = _Connection([

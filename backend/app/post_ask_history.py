@@ -326,9 +326,9 @@ async def persist_turn(
         dict.fromkeys(str(post_id_value) for post_id_value in cited_post_ids if str(post_id_value) in source_set)
     )
     async with conn.transaction():
-        if can_see_post is not None:
-            await _ensure_sources_visible(conn, source_ids, can_see_post)
         if conversation_id is None:
+            if can_see_post is not None:
+                await _ensure_sources_visible(conn, source_ids, can_see_post)
             conversation_id = uuid4()
             await conn.execute(
                 """
@@ -355,6 +355,8 @@ async def persist_turn(
             )
             if conversation is None:
                 raise PostAskConversationNotFound
+            if can_see_post is not None:
+                await _ensure_sources_visible(conn, source_ids, can_see_post)
 
         ordinal = int(
             await conn.fetchval(
