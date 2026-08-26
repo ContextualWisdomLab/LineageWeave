@@ -74,7 +74,7 @@ Remaining acceptance gaps:
   aggregate counts for content units, embeddings, proposed/verified facts,
   and unavailable channels.
 
-> Dashboard delivery snapshot: 2026-08-26 18:53 KST. Protected `main` was
+> Dashboard delivery snapshot: 2026-08-26 19:30 KST. Protected `main` was
 > `ff7431bd1851c03e737808d22c6a2d43968582f9`. This local branch is not
 > protected-main release evidence.
 
@@ -134,14 +134,14 @@ only aggregate, non-identifying evidence to this repository.
 
 ### Exact open-PR boundary
 
-At this snapshot there were 16 open PRs and 10 open issues. The exact-head
+At this snapshot there were 17 open PRs and 10 open issues. The exact-head
 inventory in section 1 is authoritative for this snapshot. Every open head
 remained blocked on hosted gates and/or independent review. These observations
 are not merge readiness. Re-fetch exact heads,
 unresolved threads, checks, approvals, rulesets, and merge SHA before any
 lifecycle claim.
 
-> Audit snapshot: 2026-08-26 18:53 KST (refreshed by the autonomous merge
+> Audit snapshot: 2026-08-26 19:30 KST (refreshed by the autonomous merge
 > loop). This repository records synthetic fixtures and aggregate,
 > non-identifying runtime evidence only. Open PRs and local checks are not
 > protected-default-branch release evidence. Identifying post identifiers,
@@ -151,26 +151,27 @@ lifecycle claim.
 ## 1. Exact-head and governance evidence
 
 The protected default branch was `ff7431bd1851c03e737808d22c6a2d43968582f9`
-when this baseline was refreshed. The live queue contained 16 open PRs and 10
+when this baseline was refreshed. The live queue contained 17 open PRs and 10
 open issues. The exact-head inventory below supersedes older per-PR snapshots
 elsewhere in this document; those older rows remain useful historical delivery
 context only.
 
 | PR | Exact observed head | Merge/check state at this snapshot |
 | ---: | --- | --- |
-| #702 | `c57d4cdf` | mergeable but blocked; exact-head checks and independent review required |
+| #703 | `e5a483e2` | stacked on #640; conflicting and not eligible to retarget or merge before the parent reaches protected `main` |
+| #702 | `e4c61407` | mergeable but blocked; exact-head checks and independent review required |
 | #701 | `cc3351a9` | mergeable but blocked; exact-head checks and independent review required |
-| #700 | `28f7ec9d` | mergeable but blocked; exact-head checks and independent review required |
+| #700 | `495b4504` | mergeable but blocked; exact-head checks and independent review required |
 | #680 | `ff4d9eaf` | mergeable but blocked; exact-head checks and independent review required |
-| #679 | `866c46d0` | mergeable but blocked; exact-head checks and independent review required |
+| #679 | `e26a7208` | mergeable but blocked; exact-head checks and independent review required |
 | #672 | `f78f036c` | mergeable but blocked; exact-head checks and independent review required |
 | #668 | `f9c4bd65` | mergeable but blocked; exact-head checks and independent review required |
-| #667 | `3e432b41` | mergeable but blocked; exact-head checks and independent review required |
-| #658 | `6813894e` | mergeable but blocked; exact-head checks and independent review required |
+| #667 | `1754b2c2` | mergeable but blocked; exact-head checks and independent review required |
+| #658 | `0ae09b83` | mergeable but blocked; exact-head checks and independent review required |
 | #657 | `9f71681c` | mergeable but blocked; exact-head checks and independent review required |
 | #644 | `f53dd28e` | mergeable but blocked; exact-head checks and independent review required |
 | #643 | `42ba340e` | mergeable but blocked; exact-head checks and independent review required |
-| #640 | `c15b2ec4` | mergeable but blocked; exact-head checks and independent review required |
+| #640 | `26bfea65` | mergeable but blocked; exact-head checks and independent review required; parent of #703 |
 | #639 | `f1d7aaaa` | mergeable but blocked; exact-head checks and independent review required |
 | #632 | `24262a99` | mergeable but blocked; exact-head checks and independent review required |
 | #629 | `b721b0f2` | mergeable but blocked; exact-head checks and independent review required |
@@ -440,7 +441,7 @@ this file per §3.5 of the prior snapshot).
 
 | Gap | Current evidence | Acceptance requirement |
 | --- | --- | --- |
-| Protected release | 12 open PRs at snapshot, all targeting `main` with normal auto-merge enabled. None has the required independent approval, and running checks on #631/#632/#663 are not treated as blockers for safe work on other PRs. #666's merge into the non-default #663 branch is not protected-main delivery | Terminal exact-head checks, no unresolved threads, two independent approvals including last-push approval, protected squash-merge SHA |
+| Protected release | 17 open PRs at snapshot. Sixteen target `main` with normal auto-merge enabled; stacked child #703 targets #640 and must wait for its parent, then retarget to `main` and collect fresh evidence. None has the required independent approval, and queued checks are not treated as blockers for safe work on other PRs | Terminal exact-head checks, no unresolved threads, the current ruleset's one independent approval, and protected squash-merge SHA |
 | CI queue release latency | Two Tests runs for already merged PRs occupied the available runner slots while 54 newer runs remained queued. Manual cancellation released the stale work, but the central close workflow was itself queued behind those runs. #634 merged into #631's non-default branch and reuses the repository's existing per-PR concurrency group so a jobless close event can cancel obsolete Tests work before runner allocation; this is not protected-main delivery | Merge #631 through its refreshed protected gate; close a synthetic PR while its Tests run is active and verify the old run becomes cancelled, the close-event jobs remain skipped, and a newer exact-head run starts without manual intervention |
 | Evidence-grounded operations workspace | Protected-main #614 delivers governed semantic Ask, live Similar VOC, disjoint pending/failed analysis metrics, full Storybook state inventory, and current desktop/mobile screenshot evidence. Authorized-corpus backfill acceptance remains unavailable | Perform authenticated authorized-corpus acceptance with aggregate evidence and retain fail-closed no-match behavior |
 | Shared frontend gate | The ADR 0109 login repair is on protected `main`; eight older branches carried the defect and received the same verified repair this loop (#521–#560) | Keep every future branch cut from post-repair bases; re-verify with frontend lint/test/build before push |
