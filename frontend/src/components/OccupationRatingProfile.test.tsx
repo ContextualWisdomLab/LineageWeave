@@ -126,8 +126,17 @@ describe("OccupationRatingProfile", () => {
     });
     render(<OccupationRatingProfile accessToken="synthetic-token" />);
 
-    expect(await screen.findByRole("alert")).toHaveTextContent("직업 목록을 확인하지 못했습니다");
+    expect(await screen.findByText(/직업 목록이 아직 준비되지 않았습니다/)).toHaveAttribute("role", "status");
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
     expect(screen.queryByText(/선택할 수 있는 직업이 없습니다/)).not.toBeInTheDocument();
+  });
+
+  it("reports a transport failure separately from an unavailable occupation catalog", async () => {
+    vi.mocked(fetchRatingSourceOccupations).mockRejectedValue(new Error("synthetic transport failure"));
+    render(<OccupationRatingProfile accessToken="synthetic-token" />);
+
+    expect(await screen.findByRole("alert")).toHaveTextContent("직업 목록을 확인하지 못했습니다");
+    expect(screen.queryByText(/직업 목록이 아직 준비되지 않았습니다/)).not.toBeInTheDocument();
   });
 
   it("clears a stale catalog error when authentication changes", async () => {
@@ -173,6 +182,32 @@ describe("OccupationRatingProfile", () => {
     expect(await screen.findByText(/입력한 조건에 맞는 직업이 없습니다/)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "직업 근거 열기" })).toBeDisabled();
     expect(fetchOccupationRatings).not.toHaveBeenCalled();
+  });
+
+  it("clears evidence and ignores an in-flight response when authentication changes", async () => {
+    let finishExpired: ((profile: Payload) => void) | undefined;
+    vi.mocked(fetchOccupationRatingSources).mockResolvedValue({ sources: [{
+      data_release_code: "onet-31.0", release_version: "31.0",
+      source_publisher_name: "Synthetic publisher", source_license_url: "https://example.test/license",
+      source_table_code: "abilities", source_table_name: "Abilities",
+      source_artifact_url: "https://example.test/abilities.csv", source_artifact_sha256: "a".repeat(64),
+      source_row_count: 2,
+    }] });
+    vi.mocked(fetchOccupationRatings).mockImplementation(
+      () => new Promise((resolve) => { finishExpired = resolve; }),
+    );
+    const { rerender } = render(<OccupationRatingProfile accessToken="expired-token" />);
+    await screen.findByRole("option", { name: "31.0 · Abilities" });
+    await screen.findByRole("option", { name: "Software Developers · 15-1252.00" });
+    await userEvent.selectOptions(screen.getByLabelText("직업"), "15-1252.00");
+    await userEvent.click(screen.getByRole("button", { name: "직업 근거 열기" }));
+
+    rerender(<OccupationRatingProfile accessToken="fresh-token" />);
+    finishExpired?.(ready);
+
+    expect(await screen.findByRole("option", { name: "31.0 · Abilities" })).toBeInTheDocument();
+    expect(screen.queryByText("4.10")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "직업 근거 열기" })).toBeDisabled();
   });
 
   it("clears loaded evidence when the occupation selection changes", async () => {
