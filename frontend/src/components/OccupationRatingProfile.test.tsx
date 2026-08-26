@@ -148,6 +148,13 @@ describe("OccupationRatingProfile", () => {
 
   it("ignores a superseded occupation response that finishes last", async () => {
     let finishFirst: ((profile: Payload) => void) | undefined;
+    vi.mocked(fetchOccupationRatingSources).mockResolvedValue({ sources: [{
+      data_release_code: "onet-31.0", release_version: "31.0",
+      source_publisher_name: "Synthetic publisher", source_license_url: "https://example.test/license",
+      source_table_code: "abilities", source_table_name: "Abilities",
+      source_artifact_url: "https://example.test/abilities.csv", source_artifact_sha256: "a".repeat(64),
+      source_row_count: 2,
+    }] });
     vi.mocked(fetchOccupationRatings)
       .mockImplementationOnce(() => new Promise((resolve) => { finishFirst = resolve; }))
       .mockResolvedValueOnce({ ...ready, onetsoc_code: "11-1011.00", items: [{ ...ready.items[0], data_value: "3.20" }] });
