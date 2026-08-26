@@ -602,14 +602,14 @@ function OntologyEdgeDrawer({
       {edge.evidence_references.length > 0 ? (
         <ul>
           {edge.evidence_references.map((reference, index) => (
-            <li key={reference}>
+            <li key={`${reference}:${index}`}>
               {onOpenEvidence ? (
                 <button
                   type="button"
                   aria-label={tf("Open linked record {number}", { number: index + 1 })}
                   onClick={() => onOpenEvidence(reference)}
                 >
-                  {t("Open linked record")}
+                  {tf("Open linked record {number}", { number: index + 1 })}
                 </button>
               ) : (
                 t("Linked record available")
