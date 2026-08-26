@@ -77,6 +77,7 @@ def test_import_rows_persists_raw_and_derived_grouping_values(
         "thread": "record-1",
         "secondary": "document-1",
         "project": "project-1",
+        "voc_type": "VOC",
     }
     if source_body is not None:
         row["body"] = source_body
@@ -151,6 +152,8 @@ def test_import_rows_persists_raw_and_derived_grouping_values(
             "title",
             "--created-at-column",
             "created_at",
+            "--voc-type-column",
+            "voc_type",
             "--draft-column",
             "draft_state",
             "--exclude-draft-value",
@@ -191,12 +194,10 @@ def test_import_rows_persists_raw_and_derived_grouping_values(
     )
     assert source_post_args[32] is None
     assert source_post_args[33] is preserve_existing_body
-    revision_args = next(
-        call_args
-        for query, call_args in target.executions
-        if "insert into source_post_revision" in query
+    assert not any(
+        "insert into source_post_revision" in query
+        for query, _call_args in target.executions
     )
-    assert revision_args[2] == effective_body
     assert persisted_bodies == [effective_body]
     expected_result: dict[str, object] = {
         "source_rows": 1,
@@ -218,14 +219,14 @@ def test_import_rows_persists_raw_and_derived_grouping_values(
     [("VOC", "voc"), ("VOCC", "vocc"), ("VOCO", "voco"), ("VOM", "vom"), ("VOP", "vop")],
 )
 def test_importer_preserves_source_voc_type_vocabulary(source_value: str, expected: str) -> None:
-    assert _normalize_voc_type(source_value, mapped=True) == expected
+    assert _normalize_voc_type(source_value) == expected
 
 
 def test_importer_rejects_unknown_or_empty_mapped_voc_type() -> None:
     with pytest.raises(ValueError, match="unsupported source VOC type"):
-        _normalize_voc_type("not-a-voc-type", mapped=True)
+        _normalize_voc_type("not-a-voc-type")
     with pytest.raises(ValueError, match="mapped source VOC type is empty"):
-        _normalize_voc_type("", mapped=True)
+        _normalize_voc_type("")
 
 
 def test_source_state_exclusion_uses_only_explicit_caller_values() -> None:
@@ -249,13 +250,19 @@ def test_importer_rejects_mapping_the_pu_column_as_sales_pool() -> None:
 
 
 def test_importer_preflights_identity_and_body_before_target_mutation() -> None:
-    mapping = SimpleNamespace(record_key="record_key", body="body", draft="draft_state", deleted=None)
+    mapping = SimpleNamespace(
+        record_key="record_key",
+        body="body",
+        voc_type="voc_type",
+        draft="draft_state",
+        deleted=None,
+    )
 
     with pytest.raises(ValueError, match="source record key cannot be empty at source row 2"):
         _validate_source_rows(
             [
-                {"record_key": "one", "body": "body", "draft_state": "N"},
-                {"record_key": "", "body": "body", "draft_state": "N"},
+                {"record_key": "one", "body": "body", "voc_type": "VOC", "draft_state": "N"},
+                {"record_key": "", "body": "body", "voc_type": "VOC", "draft_state": "N"},
             ],
             mapping,
             ["Y"],
@@ -264,13 +271,13 @@ def test_importer_preflights_identity_and_body_before_target_mutation() -> None:
 
     with pytest.raises(ValueError, match="source post body cannot be empty at source row 1"):
         _validate_source_rows(
-            [{"record_key": "one", "body": "", "draft_state": "N"}], mapping, ["Y"], []
+            [{"record_key": "one", "body": "", "voc_type": "VOC", "draft_state": "N"}], mapping, ["Y"], []
         )
 
 
 def test_importer_accepts_explicitly_evidenced_missing_body_dimension() -> None:
     mapping = SimpleNamespace(
-        record_key="record_key", body=None, draft="draft_state", deleted=None
+        record_key="record_key", body=None, voc_type="voc_type", draft="draft_state", deleted=None
     )
     evidence = (
         "aggregate source inspection found no non-empty body values while "
@@ -278,7 +285,7 @@ def test_importer_accepts_explicitly_evidenced_missing_body_dimension() -> None:
     )
 
     _validate_source_rows(
-        [{"record_key": "one", "draft_state": "published"}],
+        [{"record_key": "one", "voc_type": "VOC", "draft_state": "published"}],
         mapping,
         ["draft"],
         [],
@@ -288,7 +295,7 @@ def test_importer_accepts_explicitly_evidenced_missing_body_dimension() -> None:
 
     with pytest.raises(ValueError, match="requires an operator evidence statement"):
         _validate_source_rows(
-            [{"record_key": "one", "draft_state": "published"}],
+            [{"record_key": "one", "voc_type": "VOC", "draft_state": "published"}],
             mapping,
             ["draft"],
             [],
@@ -334,13 +341,15 @@ def test_importer_derives_legacy_post_uuid_without_a_post_id_mapping() -> None:
 
 
 def test_importer_rejects_duplicate_active_source_identity() -> None:
-    mapping = SimpleNamespace(record_key="record_key", body="body", draft="draft_state", deleted=None)
+    mapping = SimpleNamespace(
+        record_key="record_key", body="body", voc_type="voc_type", draft="draft_state", deleted=None
+    )
 
     with pytest.raises(ValueError, match="duplicate source record key at source rows 1 and 2"):
         _validate_source_rows(
             [
-                {"record_key": "same", "body": "first", "draft_state": "N"},
-                {"record_key": "same", "body": "second", "draft_state": "N"},
+                {"record_key": "same", "body": "first", "voc_type": "VOC", "draft_state": "N"},
+                {"record_key": "same", "body": "second", "voc_type": "VOC", "draft_state": "N"},
             ],
             mapping,
             ["Y"],
@@ -353,6 +362,7 @@ def test_importer_allows_repeated_lookup_keys_when_source_uuids_are_distinct() -
         record_key="record_key",
         post_id="post_id",
         body="body",
+        voc_type="voc_type",
         draft="draft_state",
         deleted=None,
     )
@@ -363,12 +373,14 @@ def test_importer_allows_repeated_lookup_keys_when_source_uuids_are_distinct() -
                 "record_key": "same",
                 "post_id": "01234567-89ab-cdef-0123-456789abcdef",
                 "body": "first",
+                "voc_type": "VOC",
                 "draft_state": "N",
             },
             {
                 "record_key": "same",
                 "post_id": "11234567-89ab-cdef-0123-456789abcdef",
                 "body": "second",
+                "voc_type": "VOC",
                 "draft_state": "N",
             },
         ],
@@ -418,7 +430,7 @@ def test_no_draft_dimension_evidence_is_an_explicit_audited_door() -> None:
     text length is not a validity proxy.
     """
     no_draft_mapping = SimpleNamespace(
-        record_key="record_key", body="body", draft=None, deleted=None
+        record_key="record_key", body="body", voc_type="voc_type", draft=None, deleted=None
     )
     evidence = (
         "every candidate draft column is NULL across the export and the "
@@ -426,7 +438,7 @@ def test_no_draft_dimension_evidence_is_an_explicit_audited_door() -> None:
         "real document"
     )
     _validate_source_rows(
-        [{"record_key": "one", "body": "body"}],
+        [{"record_key": "one", "body": "body", "voc_type": "VOC"}],
         no_draft_mapping,
         [],
         [],
@@ -434,7 +446,7 @@ def test_no_draft_dimension_evidence_is_an_explicit_audited_door() -> None:
     )
 
     _validate_source_rows(
-        [{"record_key": "one", "body": "body"}],
+        [{"record_key": "one", "body": "body", "voc_type": "VOC"}],
         no_draft_mapping,
         [],
         [],
@@ -474,6 +486,7 @@ def test_importer_does_not_select_a_provider_embedding_model(monkeypatch) -> Non
             "--title-column", "title",
             "--body-column", "body",
             "--created-at-column", "created_at",
+            "--voc-type-column", "voc_type",
             "--author-subject-id", "subject",
             "--corporate-entity-code", "corp",
             "--process-unit-code", "pu",
@@ -494,6 +507,7 @@ def test_importer_accepts_explicit_source_name_mappings() -> None:
             "--title-column", "title",
             "--body-column", "body",
             "--created-at-column", "created_at",
+            "--voc-type-column", "voc_type",
             "--author-subject-id", "subject",
             "--corporate-entity-code", "corp",
             "--process-unit-code", "pu",

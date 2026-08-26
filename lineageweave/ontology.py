@@ -170,6 +170,8 @@ def project_project_mention_rdf(
     evidence_text: str,
     confidence: Decimal | float | str,
     mention_created_at: datetime,
+    source_stage_code: str | None = None,
+    source_detail_state_code: str | None = None,
 ) -> Graph:
     """Project one authorized joined Post/Project-mention row to RDF.
 
@@ -211,6 +213,8 @@ def project_project_mention_rdf(
         post_body=post_body,
         post_created_at=post_created_at,
         voc_type_code=voc_type_code,
+        source_stage_code=source_stage_code,
+        source_detail_state_code=source_detail_state_code,
     )
     graph.bind("prov", PROV)
     graph.add((project, RDF.type, LW.Project))

@@ -52,12 +52,10 @@ _VOC_TYPE_ALIASES = {
 }
 
 
-def _normalize_voc_type(value: Any, *, mapped: bool) -> str:
+def _normalize_voc_type(value: Any) -> str:
     """Preserve the governed source VOC vocabulary as canonical target codes."""
     if value is None or not str(value).strip():
-        if mapped:
-            raise ValueError("mapped source VOC type is empty")
-        return "voc"
+        raise ValueError("mapped source VOC type is empty")
     normalized = _VOC_TYPE_ALIASES.get(str(value).strip().casefold())
     if normalized is None:
         raise ValueError(f"unsupported source VOC type {value!r}")
@@ -128,7 +126,7 @@ def _parser() -> argparse.ArgumentParser:
         "--event-occurred-at-column",
         help="optional source-system event instant; Global Ask falls back to created_at when omitted",
     )
-    parser.add_argument("--voc-type-column")
+    parser.add_argument("--voc-type-column", required=True)
     parser.add_argument("--visibility-column")
     parser.add_argument("--stage-column")
     parser.add_argument("--detail-state-column")
@@ -369,11 +367,10 @@ def _validate_source_rows(
         if mapping.body is not None and not body.strip():
             raise ValueError(f"source post body cannot be empty at source row {row_number}")
         voc_type_column = getattr(mapping, "voc_type", None)
+        if voc_type_column is None:
+            raise ValueError("source VOC type column is required")
         try:
-            _normalize_voc_type(
-                _value(row, voc_type_column, "voc"),
-                mapped=voc_type_column is not None,
-            )
+            _normalize_voc_type(_value(row, voc_type_column))
         except ValueError as exc:
             raise ValueError(f"invalid source VOC type at source row {row_number}: {exc}") from exc
 
@@ -520,10 +517,7 @@ async def import_rows(args: argparse.Namespace) -> dict[str, object]:
             post_id = _source_post_id(row, mapping, args.source_system_code, record_key)
             title = str(_value(row, mapping.title, "") or "")
             body = str(_value(row, mapping.body, "") or "")
-            voc_type_code = _normalize_voc_type(
-                _value(row, mapping.voc_type, "voc"),
-                mapped=mapping.voc_type is not None,
-            )
+            voc_type_code = _normalize_voc_type(_value(row, mapping.voc_type))
             (
                 source_thread_group_key,
                 source_secondary_grouping_key,
@@ -626,20 +620,6 @@ async def import_rows(args: argparse.Namespace) -> dict[str, object]:
                 updated_at,
                 event_occurred_at,
                 preserve_existing_body,
-            )
-            await target.execute(
-                """
-                insert into source_post_revision (post_id, post_title, post_body, written_at, superseded_at)
-                select $1, $2, $3, $4, null
-                where not exists (
-                    select 1 from source_post_revision
-                    where post_id = $1 and written_at = $4 and superseded_at is null
-                )
-                """,
-                post_id,
-                title,
-                effective_body,
-                updated_at,
             )
             metadata = build_post_llm_metadata(
                 str(post_id),

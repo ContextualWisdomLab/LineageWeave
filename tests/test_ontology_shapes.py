@@ -158,6 +158,8 @@ def test_schema_shaped_project_row_projection_passes_validation() -> None:
         evidence_text="grid-upgrade project",
         confidence=Decimal("0.870"),
         mention_created_at=datetime(2026, 8, 25, 1, 24, tzinfo=timezone.utc),
+        source_stage_code="synthetic-stage",
+        source_detail_state_code="synthetic-detail",
     )
     conforms, report_text = _conforms(data)
     assert conforms, report_text
@@ -173,6 +175,8 @@ def test_schema_shaped_project_row_projection_passes_validation() -> None:
     assert (mention, RDF.object, project) in data
     post = URIRef(LW + "node/node_post/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa1")
     assert (post, Namespace(LW).hasPostType, Namespace(LW).voiceOfPartnerType) in data
+    assert (post, Namespace(LW).sourceStageCode, Literal("synthetic-stage")) in data
+    assert (post, Namespace(LW).sourceDetailStateCode, Literal("synthetic-detail")) in data
 
 
 def test_missing_body_source_post_projection_passes_without_fabricated_text() -> None:
