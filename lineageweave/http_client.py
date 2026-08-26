@@ -34,8 +34,16 @@ class HttpClientError(RuntimeError):
     """The remote endpoint failed, returned a non-success status, or invalid JSON."""
 
 
-def json_request_body(payload: dict) -> bytes:
-    """Serialize the exact JSON body sent by :func:`post_json`."""
+def json_request_body(
+    payload: dict,
+    *,
+    include_orchestrator_session: bool = False,
+) -> bytes:
+    """Serialize a JSON body with bounded post provenance when requested.
+
+    ``session_id`` is an orchestrator transport field, so callers that only
+    size or persist a provider-neutral payload retain their existing bytes.
+    """
     request_payload = payload
     request_metadata = current_llm_metadata()
     if request_metadata:
@@ -47,6 +55,10 @@ def json_request_body(payload: dict) -> bytes:
             request_payload["metadata"] = {**existing_metadata, **request_metadata}
         else:
             raise ValueError("metadata must be an object")
+        if include_orchestrator_session:
+            session_id = request_metadata.get("lineageweave_post_session_id")
+            if session_id:
+                request_payload["session_id"] = session_id
     return json.dumps(request_payload).encode("utf-8")
 
 
@@ -276,7 +288,12 @@ def post_json(
         status, raw = _request(
             "POST",
             url,
-            body=json_request_body(payload),
+            body=json_request_body(
+                payload,
+                include_orchestrator_session=(
+                    service_peer_name == "contextual-orchestrator"
+                ),
+            ),
             headers=request_headers,
             timeout=timeout,
         )
