@@ -3276,7 +3276,7 @@ describe("App, authenticated", () => {
     expect(list).toHaveTextContent("TEPP measurement · Failed · Demo Corp");
     expect(list).toHaveTextContent("Period report · Succeeded · Demo Corp");
     expect(list).toHaveTextContent(
-      "Open this run to see why it failed. Ask an administrator to enable measurement, then run it again.",
+      "Open this run to see why it failed. Ask an administrator to restore measurement, then run it again.",
     );
     expect(list).toHaveTextContent("3 documents");
     expect(list).not.toHaveTextContent("postgresql://");
@@ -3374,7 +3374,7 @@ describe("App, authenticated", () => {
     ).toBeInTheDocument();
     const teppHistory = screen.getByRole("list", { name: "Analysis run status history" });
     expect(teppHistory).toHaveTextContent("Failed 2026-01-12 12:37 · tepp_not_available");
-    expect(screen.getByText(/cutoff corpus TEPP would measure/i)).toBeInTheDocument();
+    expect(screen.getByText(/selected for measurement at this snapshot/i)).toBeInTheDocument();
     expect(teppHistory).not.toHaveTextContent("Succeeded");
   });
 
@@ -3430,11 +3430,11 @@ describe("App, authenticated", () => {
     ["analysis_run_lineage", "Request a new lineage reconstruction from a current snapshot."],
     [
       "analysis_run_tepp",
-      "Ask an administrator to enable measurement and submit a new run from a current snapshot.",
+      "Ask an administrator to restore measurement and submit a new run from a current snapshot.",
     ],
     [
       "analysis_run_topic_lineage",
-      "Ask an administrator to enable topic-lineage analysis and submit a new run from a current snapshot.",
+      "Ask an administrator to restore topic-lineage analysis and submit a new run from a current snapshot.",
     ],
     ["analysis_run_report", "Rebuild the period report from a current snapshot."],
   ] satisfies [AnalysisRunKindCode, string][])(
@@ -3452,6 +3452,16 @@ describe("App, authenticated", () => {
       expect(screen.queryByRole("button", { name: /Start/ })).not.toBeInTheDocument();
     },
   );
+
+  it("shows analysis-run next actions in the selected locale", async () => {
+    setLocale("ko");
+    stubBackend({ cancelledRunKind: "analysis_run_lineage" });
+    render(<App showLabPanels />);
+
+    expect(await screen.findByText(
+      "이 실행은 취소되었습니다. 현재 스냅샷에서 새 계보 재구성을 요청하세요.",
+    )).toBeInTheDocument();
+  });
 
   it("tells a running lineage run how to check for results", async () => {
     stubBackend({ runningLineageRun: true });
@@ -3486,7 +3496,7 @@ describe("App, authenticated", () => {
     );
     expect(lineageButton).not.toHaveTextContent("measurement service");
     expect(teppButton).toHaveTextContent(
-      "Open this run to see why it failed. Ask an administrator to enable measurement, then run it again.",
+      "Open this run to see why it failed. Ask an administrator to restore measurement, then run it again.",
     );
     expect(teppButton).not.toHaveTextContent("reconstruction");
   });
@@ -3775,7 +3785,7 @@ describe("App, authenticated", () => {
     ).not.toBeInTheDocument();
     expect(
       await screen.findByText(
-        "No posts were available at this cutoff for the period report. Open a later run, or ask an administrator to capture a newer snapshot.",
+        "No posts were available at this snapshot for the period report. Open a later run, or ask an administrator to capture a newer snapshot.",
       ),
     ).toBeInTheDocument();
   });
@@ -3790,7 +3800,7 @@ describe("App, authenticated", () => {
       }),
     );
     expect(
-      await screen.findByText("These posts are the cutoff corpus TEPP will measure once this run finishes."),
+      await screen.findByText("These posts will be measured when this run finishes."),
     ).toBeInTheDocument();
     expect(screen.queryByText(/replace Failed/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/this TEPP run measured/i)).not.toBeInTheDocument();
@@ -3854,7 +3864,7 @@ describe("App, authenticated", () => {
       }),
     );
     expect(
-      await screen.findByText("These posts are the cutoff corpus this TEPP run measured."),
+      await screen.findByText("These posts were measured in this run."),
     ).toBeInTheDocument();
     expect(screen.queryByText(/replace Failed/i)).not.toBeInTheDocument();
   });
