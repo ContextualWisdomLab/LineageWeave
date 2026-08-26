@@ -343,7 +343,7 @@ async def load_occupational_construct_evidence_status(
                    when job.status_code in (
                        'post_content_ingestion_queued',
                        'post_content_ingestion_running'
-                   ) then 'processing'
+                   ) and $2 then 'processing'
                    when extraction.source_body_sha256 = job.source_body_sha256
                        then 'complete'
                    else 'unavailable'
@@ -354,6 +354,7 @@ async def load_occupational_construct_evidence_status(
          where job.post_id = $1
         """,
         post_id,
+        evidence_configured,
     )
     if value in {"complete", "processing"}:
         return str(value)

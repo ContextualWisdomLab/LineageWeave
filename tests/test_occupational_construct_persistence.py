@@ -224,12 +224,14 @@ def test_evidence_status_preserves_missing_vs_empty(stored, expected) -> None:
     """Only a matching run is complete; active work and absence remain distinct."""
 
     class StatusConnection:
-        async def fetchval(self, query: str, post_id: str):
+        async def fetchval(self, query: str, post_id: str, evidence_configured: bool):
             assert "extraction.source_body_sha256 = job.source_body_sha256" in query
+            assert ") and $2 then 'processing'" in query
             assert query.index("when job.status_code") < query.index(
                 "when extraction.source_body_sha256"
             )
             assert post_id == "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"
+            assert evidence_configured is True
             return stored
 
     assert (
@@ -245,7 +247,11 @@ def test_evidence_status_preserves_missing_vs_empty(stored, expected) -> None:
 def test_evidence_status_distinguishes_missing_setup_from_retryable_failure() -> None:
     """A missing analysis setup never tells the reader that retrying can help."""
     class StatusConnection:
-        async def fetchval(self, _query: str, _post_id: str):
+        async def fetchval(
+            self, query: str, _post_id: str, evidence_configured: bool
+        ):
+            assert ") and $2 then 'processing'" in query
+            assert evidence_configured is False
             return None
 
     assert asyncio.run(
