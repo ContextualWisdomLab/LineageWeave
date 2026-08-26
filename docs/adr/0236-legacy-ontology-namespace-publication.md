@@ -45,6 +45,19 @@ namespace itself dereferenceable.
   OWL/SKOS term kinds, and SHACL; only its lowercase dereferenceability claim
   is amended.
 
+## Release evidence
+
+The 2026-08-26 publication audit observed these responses after redirects:
+
+- `404` — `https://contextualwisdomlab.github.io/lineageweave/ontology`
+- `404` — `https://contextualwisdomlab.github.io/lineageweave/ontology/ontology.ttl`
+- `404` — `https://contextualwisdomlab.github.io/lineageweave/ontology/namespace-compatibility.ttl`
+- `200` — `https://contextualwisdomlab.github.io/LineageWeave/ontology/ontology.ttl`
+- `200` — `https://contextualwisdomlab.github.io/LineageWeave/ontology/namespace-compatibility.ttl`
+
+Recheck these URLs on every publication release; this dated observation is
+release evidence, not a permanent availability guarantee.
+
 ## References
 
 Berners-Lee, T., Fielding, R., & Masinter, L. (2005). *Uniform resource
