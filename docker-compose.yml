@@ -119,11 +119,15 @@ services:
       # explicit bounded 8 MiB limit rather than an unbounded request size.
       CONTEXTUAL_ORCHESTRATOR_MAX_BODY_BYTES: ${CONTEXTUAL_ORCHESTRATOR_MAX_BODY_BYTES:-8388608}
       CONTEXTUAL_ORCHESTRATOR_ALLOWED_PROVIDER_HOSTS: ${CONTEXTUAL_ORCHESTRATOR_ALLOWED_PROVIDER_HOSTS:-host.docker.internal}
+      BATCH_JOB_REGISTRY_VALKEY_URL: redis://valkey:6379/1
       OTEL_SERVICE_NAME: ${OTEL_ORCHESTRATOR_SERVICE_NAME:-contextual-orchestrator}
       # Do not set OTEL_EXPORTER_OTLP_ENDPOINT here. An empty
       # ${OTEL_EXPORTER_OTLP_ENDPOINT:-} interpolation would wipe a value from
       # env_file (${HOME}/.env). Export stays opt-in from that file or the host.
     command: ["python", "/app/start.py"]
+    depends_on:
+      valkey:
+        condition: service_healthy
     ports:
       - "${ORCHESTRATOR_PORT:-18000}:8000"
     healthcheck:
@@ -142,7 +146,7 @@ services:
     build:
       context: .
       dockerfile: backend/Dockerfile
-    environment:
+    environment: &backend-environment
       DATABASE_URL: postgresql://${POSTGRES_USER:-lineageweave}:${POSTGRES_PASSWORD:-lineageweave_dev_only}@postgres:5432/${POSTGRES_DB:-lineageweave}
       # Internal DNS name for JWKS fetches (always reachable from inside the
       # compose network); KEYCLOAK_ISSUER is the *external*, host-published
@@ -200,6 +204,31 @@ services:
         condition: service_healthy
       searxng:
         condition: service_healthy
+
+  backend-worker:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    command: ["python", "-m", "backend.app.worker"]
+    restart: unless-stopped
+    environment: *backend-environment
+    depends_on:
+      postgres:
+        condition: service_healthy
+      database_migration:
+        condition: service_completed_successfully
+      orchestrator:
+        condition: service_healthy
+      valkey:
+        condition: service_healthy
+      searxng:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-m", "backend.app.worker_health"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 5s
 
   frontend:
     build:

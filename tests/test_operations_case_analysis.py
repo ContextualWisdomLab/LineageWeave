@@ -15,8 +15,11 @@ def test_orchestrator_request_uses_provider_neutral_auto_selector(monkeypatch) -
     """The consumer selects orchestrator routing, never a provider model name."""
     captured: dict[str, object] = {}
 
-    def post_json(_url, payload, **_kwargs):
+    captured_request: dict[str, object] = {}
+
+    def post_json(_url, payload, **kwargs):
         captured.update(payload)
+        captured_request.update(kwargs)
         return {"choices": [{"message": {"content": "[]"}}]}
 
     monkeypatch.setattr(operations_case_analysis, "post_json", post_json)
@@ -27,6 +30,8 @@ def test_orchestrator_request_uses_provider_neutral_auto_selector(monkeypatch) -
         "",
     ) == ()
     assert captured["model"] == "orchestrator/auto"
+    assert captured_request["timeout"] == 180.0
+    assert captured_request["headers"]["x-request-timeout-ms"] == "180000"
 
 
 def test_analysis_input_digest_tracks_ordered_evidence_and_context() -> None:

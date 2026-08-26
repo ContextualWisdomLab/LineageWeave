@@ -122,6 +122,34 @@ export interface OperationsDashboardResponse {
   cases: OperationsDashboardCase[];
 }
 
+export interface VoiceTaxonomySummary {
+  total_eligible: number;
+  classified_unique: number;
+  multi_membership: number;
+  source_count: number;
+  derived_count: number;
+  unavailable: number;
+  disagreement: number;
+  counts_overlap: boolean;
+  category_memberships: Array<{
+    voice_concept_code: "voc" | "vocc" | "voco" | "vom" | "vop";
+    post_count: number;
+    eligible_percentage: number;
+  }>;
+}
+
+export async function fetchVoiceTaxonomySummary(
+  accessToken: string,
+  dateFrom = "",
+  dateTo = "",
+): Promise<VoiceTaxonomySummary> {
+  const query = new URLSearchParams();
+  if (dateFrom) query.set("date_from", dateFrom);
+  if (dateTo) query.set("date_to", dateTo);
+  const suffix = query.size ? `?${query.toString()}` : "";
+  return backendFetch<VoiceTaxonomySummary>(`/api/voice-taxonomy/summary${suffix}`, accessToken);
+}
+
 export interface TopicContextDashboard {
   status_code: "accepted" | "unavailable" | "not_applicable";
   reason_code: string | null;
@@ -213,6 +241,17 @@ export interface PostKnownAt {
 export interface PostDetail extends PostSummary {
   post_body: string;
   known_at?: PostKnownAt;
+  product_evidence?: ProductEvidence[];
+}
+
+export interface ProductEvidence {
+  mention_ordinal: number;
+  extracted_product_name: string;
+  resolution_status_code: "unique" | "missing" | "tie" | "unavailable";
+  canonical_product_name: string | null;
+  product_level_code: "product_group" | "product_model" | "variant" | "trade_item" | null;
+  evidence_text: string;
+  evidence_post_id: string;
 }
 
 export interface PostImageContent {

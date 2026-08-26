@@ -18,6 +18,7 @@ from backend.app.post_content_queue import (
     RUNNING,
     SUCCEEDED,
     PostContentJobRequest,
+    defer_post_content_job,
     enqueue_post_content_backfill,
     record_post_content_backfill_success,
     requeue_failed_post_content_job,
@@ -62,6 +63,10 @@ def test_bounded_backfill_is_idempotent_and_broker_loss_stays_recoverable(
             assert "source_draft_code" in query
             assert "source_deleted_flag" in query
             assert "job.post_id is null or job.status_code = $1" in query
+            assert "from operations_case_analysis analysis" in query
+            assert "analysis.post_id = post.post_id" in query
+            assert "analysis.source_body_sha256 = job.source_body_sha256" in query
+            assert "from post_product_analysis analysis" in query
             assert "for update of post skip locked" in query.lower()
             assert args == (SUCCEEDED, True, True, 2)
             return [
@@ -169,6 +174,80 @@ def test_backfill_skips_a_candidate_that_became_complete(
         "selected_posts": 1,
         "queued_posts": 0,
         "published_events": 0,
+        "recovery_pending": 0,
+    }
+
+
+def test_backfill_requeues_complete_content_missing_operations_analysis(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A pre-extractor success is incomplete until its exact body is analyzed."""
+
+    class Transaction:
+        async def __aenter__(self) -> None:
+            return None
+
+        async def __aexit__(self, *_args: object) -> None:
+            return None
+
+    class Connection:
+        def transaction(self) -> Transaction:
+            return Transaction()
+
+        async def fetch(self, _query: str, *_args: object) -> list[dict[str, str]]:
+            return [
+                {
+                    "post_id": "00000000-0000-0000-0000-000000000001",
+                    "post_body": "historical success",
+                }
+            ]
+
+        async def fetchval(self, query: str, *args: object) -> bool:
+            assert "operations_case_analysis" in query
+            assert "post_product_analysis" in query
+            assert args == (
+                "00000000-0000-0000-0000-000000000001",
+                source_body_sha256("historical success"),
+            )
+            return False
+
+    class Acquire:
+        async def __aenter__(self) -> Connection:
+            return Connection()
+
+        async def __aexit__(self, *_args: object) -> None:
+            return None
+
+    class Pool:
+        def acquire(self) -> Acquire:
+            return Acquire()
+
+    async def content_complete(*_args: object, **_kwargs: object) -> bool:
+        return True
+
+    async def ensure(
+        _conn: object, post_id: str, body: str, *, content_complete: bool
+    ) -> PostContentJobRequest:
+        assert content_complete is False
+        return PostContentJobRequest(post_id, source_body_sha256(body), QUEUED, True)
+
+    async def publish(*_args: object, **_kwargs: object) -> str:
+        return "1-0"
+
+    from backend.app import post_content_queue
+
+    monkeypatch.setattr(post_content_queue, "post_content_is_complete", content_complete)
+    monkeypatch.setattr(post_content_queue, "ensure_post_content_job", ensure)
+    monkeypatch.setattr(post_content_queue, "publish_post_content_event", publish)
+    result = asyncio.run(
+        enqueue_post_content_backfill(
+            Pool(), object(), limit=1, require_embedding=True, require_structure=True
+        )
+    )
+    assert result == {
+        "selected_posts": 1,
+        "queued_posts": 1,
+        "published_events": 1,
         "recovery_pending": 0,
     }
 
@@ -553,9 +632,72 @@ def test_recovery_republishes_due_rows_in_queued_at_order() -> None:
 
     assert published == 2
     assert client.events == [("first", "a" * 64), ("second", "b" * 64)]
+    assert "next_attempt_at <= now()" in connection.query
     assert "queued_at <= now() - $2::interval" in connection.query
     assert "order by queued_at" in connection.query
     assert connection.args == (QUEUED, POST_CONTENT_RETRY_INTERVAL, RUNNING, STALE_RUNNING_INTERVAL, 2)
+
+
+def test_admission_deferral_requeues_exact_lease_without_consuming_attempt() -> None:
+    """A readiness miss records timing and fences the running attempt."""
+    executed: list[tuple[str, tuple[object, ...]]] = []
+
+    class FakeConnection:
+        async def fetchval(self, query: str, *_args: object) -> int:
+            assert "status_ordinal" in query
+            return 2
+
+        async def execute(self, query: str, *args: object) -> str:
+            executed.append((query, args))
+            return "UPDATE 1" if query.lstrip().startswith("update") else "INSERT 0 1"
+
+    deferred = asyncio.run(
+        defer_post_content_job(
+            FakeConnection(),
+            "00000000-0000-0000-0000-000000000001",
+            expected_attempt_count=2,
+            retry_after_seconds=30,
+        )
+    )
+
+    assert deferred is True
+    update_query, update_args = executed[0]
+    assert "attempt_count = attempt_count - 1" in update_query
+    assert "status_code = $3" in update_query
+    assert "next_attempt_at = now() + make_interval(secs => $5)" in update_query
+    assert update_args[3:5] == (2, 30)
+    assert all("provider" not in str(args).casefold() for _query, args in executed)
+
+
+def test_admission_deferral_rejects_stale_lease_without_event() -> None:
+    """A reclaimed attempt cannot defer or append status for its replacement."""
+    executed: list[str] = []
+
+    class FakeConnection:
+        async def execute(self, query: str, *_args: object) -> str:
+            executed.append(query)
+            return "UPDATE 0"
+
+    deferred = asyncio.run(
+        defer_post_content_job(
+            FakeConnection(),
+            "00000000-0000-0000-0000-000000000001",
+            expected_attempt_count=1,
+            retry_after_seconds=30,
+        )
+    )
+
+    assert deferred is False
+    assert len(executed) == 1
+
+
+def test_admission_deferral_migration_is_replay_safe() -> None:
+    """The normalized retry instant is replay-safe and indexed for recovery."""
+    migration = (
+        _ROOT / "migrations" / "0229_post_content_admission_deferral.sql"
+    ).read_text()
+    assert "add column if not exists next_attempt_at timestamptz" in migration
+    assert "create index if not exists post_content_ingestion_next_attempt_idx" in migration
 
 
 def test_migration_contains_normalized_job_and_status_event_tables() -> None:
@@ -574,3 +716,17 @@ def test_migration_replay_window_includes_post_content_queue() -> None:
     # 0050 therefore clears the fixed lower-bound filename gate.
     assert "000[0-9]_*|001[01]_*) continue" in migrate
     assert "[0-9][0-9][0-9][0-9]_*)" in migrate
+
+
+def test_superseded_body_indexes_are_not_rebuilt_before_normalized_search() -> None:
+    """Replay never builds legacy GIN indexes that the successor drops."""
+    migration_0035 = (
+        _ROOT / "migrations" / "0035_body_search_prefix.sql"
+    ).read_text()
+    migration_0036 = (
+        _ROOT / "migrations" / "0036_normalized_body_search.sql"
+    ).read_text()
+    assert "create extension if not exists pg_trgm" in migration_0035
+    assert "create index" not in migration_0035.casefold()
+    assert "create index if not exists source_post_search_prefix_trgm_idx" in migration_0036
+    assert "create index if not exists source_post_search_fts_idx" in migration_0036

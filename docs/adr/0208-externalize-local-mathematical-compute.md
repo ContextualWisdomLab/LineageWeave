@@ -2,7 +2,7 @@
 
 **Decision status:** Accepted
 **Date:** 2026-08-25
-**Amends:** ADR 0003, ADR 0024, ADR 0064, ADR 0084, ADR 0132, ADR 0145,
+**Amends:** ADR 0003, ADR 0024, ADR 0062, ADR 0064, ADR 0084, ADR 0132, ADR 0145,
 ADR 0148, ADR 0167, ADR 0168, ADR 0182, ADR 0185, ADR 0200, ADR 0201, and
 ADR 0205
 
@@ -89,6 +89,13 @@ different responsibility.
   the reciprocal-rank contribution formula. RankWeave's Rust CPU/GPU migration
   remains open, so this slice is owner-bound but not yet final execution-contract
   compliance.
+- The production-unused `embedding_client.cosine_similarity` and
+  `chunked_max_similarity` experiments are deleted instead of being assigned
+  a new local implementation. Persisted semantic units remain the retrieval
+  provenance boundary from ADR 0062. Active Global Ask cosine stays named
+  migration debt until an accepted retrieval owner publishes a versioned Rust
+  scoring envelope; LineageWeave will validate and persist that envelope, not
+  reproduce its vector arithmetic.
 
 ## Stacked delivery order
 

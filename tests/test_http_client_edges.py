@@ -187,6 +187,55 @@ def test_post_json_adds_context_metadata_when_payload_omits_it(
     assert b'"lineageweave_post_id": "synthetic-post"' in captured_body
 
 
+def test_post_json_exposes_only_validated_admission_deferral(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The exact bounded retry contract becomes a typed control signal."""
+
+    def deferred_request(*_args: object, **kwargs: object) -> tuple[int, bytes]:
+        kwargs["response_control_headers"]["retry-after"] = "30"
+        return (
+            503,
+            b'{"error":{"code":"no_viable_agent","detail":{"retry_after_seconds":30}}}',
+        )
+
+    monkeypatch.setattr(http_client, "_request", deferred_request)
+    with pytest.raises(http_client.HttpAdmissionDeferred) as captured:
+        http_client.post_json(
+            "https://gateway.example/v1/chat/completions",
+            {},
+            headers={},
+            timeout=1,
+        )
+
+    assert captured.value.retry_after_seconds == 30
+    assert "no_viable_agent" not in str(captured.value)
+
+
+def test_post_json_rejects_mismatched_admission_delay(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Conflicting header/body delays remain an ordinary unavailable response."""
+
+    def mismatched_request(*_args: object, **kwargs: object) -> tuple[int, bytes]:
+        kwargs["response_control_headers"]["retry-after"] = "31"
+        return (
+            503,
+            b'{"error":{"code":"no_viable_agent","detail":{"retry_after_seconds":30}}}',
+        )
+
+    monkeypatch.setattr(http_client, "_request", mismatched_request)
+    with pytest.raises(http_client.HttpClientError, match="HTTP 503") as captured:
+        http_client.post_json(
+            "https://gateway.example/v1/chat/completions",
+            {},
+            headers={},
+            timeout=1,
+        )
+
+    assert not isinstance(captured.value, http_client.HttpAdmissionDeferred)
+
+
 def test_request_preserves_the_url_query_in_the_http_target(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

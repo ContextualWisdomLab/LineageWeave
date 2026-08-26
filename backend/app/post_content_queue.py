@@ -208,6 +208,7 @@ async def transition_post_content_job(
             end,
             completed_at = case when $2 in ($4, $5) then now() else null end,
             queued_at = case when $2 = $6 then now() else queued_at end,
+            next_attempt_at = null,
             updated_at = now(),
             last_error_code = $7,
             last_error_detail = $8
@@ -232,6 +233,53 @@ async def transition_post_content_job(
         status_code,
         failure_code=failure_code,
         detail_text=detail_text,
+    )
+    return True
+
+
+async def defer_post_content_job(
+    conn: asyncpg.Connection,
+    post_id: str,
+    *,
+    expected_attempt_count: int,
+    retry_after_seconds: int,
+) -> bool:
+    """Return one unadmitted lease to queued without consuming an attempt."""
+    if type(retry_after_seconds) is not int or retry_after_seconds <= 0:
+        raise ValueError("retry_after_seconds must be a positive integer")
+    updated = await conn.execute(
+        """
+        update post_content_ingestion_job
+        set status_code = $2,
+            attempt_count = attempt_count - 1,
+            queued_at = now(),
+            next_attempt_at = now() + make_interval(secs => $5),
+            started_at = null,
+            completed_at = null,
+            updated_at = now(),
+            last_error_code = $6,
+            last_error_detail = $7
+        where post_id = $1
+          and status_code = $3
+          and attempt_count = $4
+          and attempt_count > 0
+        """,
+        post_id,
+        QUEUED,
+        RUNNING,
+        expected_attempt_count,
+        retry_after_seconds,
+        "no_viable_agent",
+        "Analysis capacity is being restored; this record will retry automatically.",
+    )
+    if not updated.endswith(" 1"):
+        return False
+    await _record_status(
+        conn,
+        post_id,
+        QUEUED,
+        failure_code="no_viable_agent",
+        detail_text="Analysis capacity is being restored; this record will retry automatically.",
     )
     return True
 
@@ -287,6 +335,7 @@ async def ensure_post_content_job(
                 status_code = $3,
                 attempt_count = 0,
                 queued_at = now(),
+                next_attempt_at = null,
                 started_at = null,
                 completed_at = null,
                 updated_at = now(),
@@ -370,6 +419,18 @@ async def enqueue_post_content_backfill(
                           or structure.decision_source_code = 'unresolved'
                       )
                ))
+               or ($3::boolean and not exists (
+                   select 1
+                     from operations_case_analysis analysis
+                    where analysis.post_id = post.post_id
+                      and analysis.source_body_sha256 = job.source_body_sha256
+               ))
+               or ($3::boolean and not exists (
+                   select 1
+                     from post_product_analysis analysis
+                    where analysis.post_id = post.post_id
+                      and analysis.source_body_sha256 = job.source_body_sha256
+               ))
            )
          order by post.created_at, post.post_id
          limit $4
@@ -388,16 +449,28 @@ async def enqueue_post_content_backfill(
             )
             for row in rows:
                 post_id = str(row["post_id"])
+                body = str(row["post_body"] or "")
                 complete = await post_content_is_complete(
                     conn,
                     post_id,
                     require_embedding=require_embedding,
                     require_structure=require_structure,
                 )
+                if complete and require_structure:
+                    complete = bool(
+                        await conn.fetchval(
+                            "select exists (select 1 from operations_case_analysis "
+                            "where post_id = $1 and source_body_sha256 = $2) "
+                            "and exists (select 1 from post_product_analysis "
+                            "where post_id = $1 and source_body_sha256 = $2)",
+                            post_id,
+                            source_body_sha256(body),
+                        )
+                    )
                 request = await ensure_post_content_job(
                     conn,
                     post_id,
-                    str(row["post_body"] or ""),
+                    body,
                     content_complete=complete,
                 )
                 if request.should_publish:
@@ -446,6 +519,7 @@ async def requeue_failed_post_content_job(
             status_code = $3,
             attempt_count = 0,
             queued_at = now(),
+            next_attempt_at = null,
             started_at = null,
             completed_at = null,
             updated_at = now(),
@@ -505,6 +579,7 @@ async def record_post_content_backfill_success(
                 status_code = $3,
                 started_at = null,
                 completed_at = now(),
+                next_attempt_at = null,
                 updated_at = now(),
                 last_error_code = null,
                 last_error_detail = null
@@ -538,8 +613,14 @@ async def republish_queued_post_content_jobs(
             where (
                 status_code = $1
                 and (
-                    attempt_count = 0
-                    or queued_at <= now() - $2::interval
+                    next_attempt_at <= now()
+                    or (
+                        next_attempt_at is null
+                        and (
+                            attempt_count = 0
+                            or queued_at <= now() - $2::interval
+                        )
+                    )
                 )
             )
                or (

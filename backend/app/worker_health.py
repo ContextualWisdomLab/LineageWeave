@@ -1,0 +1,52 @@
+"""Progress-based health contract for the durable worker event loop."""
+
+from __future__ import annotations
+
+import asyncio
+from pathlib import Path
+import time
+
+
+HEARTBEAT_PATH = Path("/tmp/lineageweave-worker-heartbeat")
+HEALTHCHECK_STATE_PATH = Path("/tmp/lineageweave-worker-healthcheck-state")
+
+
+def record_worker_heartbeat(path: Path = HEARTBEAT_PATH) -> None:
+    """Record one monotonic event-loop progress sample atomically."""
+    temporary = path.with_suffix(".tmp")
+    temporary.write_text(str(time.monotonic_ns()), encoding="ascii")
+    temporary.replace(path)
+
+
+async def run_worker_heartbeat(path: Path = HEARTBEAT_PATH) -> None:
+    """Record progress once per broker-poll interval until cancelled."""
+    while True:
+        record_worker_heartbeat(path)
+        await asyncio.sleep(1.0)
+
+
+def heartbeat_has_advanced(
+    heartbeat_path: Path = HEARTBEAT_PATH,
+    state_path: Path = HEALTHCHECK_STATE_PATH,
+) -> bool:
+    """Return whether the heartbeat advanced since the prior health probe."""
+    try:
+        current = int(heartbeat_path.read_text(encoding="ascii"))
+    except (FileNotFoundError, ValueError):
+        return False
+    previous: int | None = None
+    try:
+        previous = int(state_path.read_text(encoding="ascii"))
+    except (FileNotFoundError, ValueError):
+        pass
+    state_path.write_text(str(current), encoding="ascii")
+    return current >= 0 and (previous is None or current > previous)
+
+
+def main() -> None:
+    """Exit successfully only when the durable worker event loop progressed."""
+    raise SystemExit(0 if heartbeat_has_advanced() else 1)
+
+
+if __name__ == "__main__":
+    main()

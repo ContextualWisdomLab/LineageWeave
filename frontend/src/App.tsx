@@ -121,6 +121,7 @@ import {
   useLocale,
 } from "./i18n";
 import "./App.css";
+import { ProductEvidenceList } from "./components/ProductEvidenceList";
 
 function orchestratorUnavailableMessage(err: unknown, action: string): string {
   if (err instanceof BackendError && err.status === 503) {
@@ -2148,6 +2149,7 @@ function PostDetailPopup({
                 </p>
               )}
             </section>
+            {post.product_evidence?.length ? <ProductEvidenceList products={post.product_evidence} /> : null}
             {(post.source_stage_code ||
               post.source_detail_state_code ||
               post.source_draft_code ||

@@ -114,6 +114,7 @@ class OperationsEvidenceSource:
     text: str
     observed_at: datetime | None = None
     time_axis_code: str | None = None
+    source_text: str | None = None
 
     @property
     def input_sha256(self) -> str:
@@ -419,7 +420,10 @@ class ContextualOrchestratorOperationsCaseAnalysisClient:
                 "mode": "auto",
                 "reasoning_effort": "auto",
             },
-            headers={"authorization": f"Bearer {self._api_key}"},
+            headers={
+                "authorization": f"Bearer {self._api_key}",
+                "x-request-timeout-ms": str(round(self._timeout * 1000)),
+            },
             timeout=self._timeout,
         )
         parsed = parse_operations_case_response(

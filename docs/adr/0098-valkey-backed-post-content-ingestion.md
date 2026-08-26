@@ -101,9 +101,38 @@ The producer applies `SOURCE_POST_ELIGIBILITY_SQL`, locks source rows with
 `SKIP LOCKED`, selects only new or incomplete-succeeded jobs, rechecks the
 shared completeness predicate, and records the existing job state in
 PostgreSQL. Repeated calls therefore do not reset active or terminal work.
+When contextual-orchestrator evidence is required, an otherwise complete
+successful job with no `operations_case_analysis` row is also incomplete and
+eligible for the same bounded requeue. This lets records completed before the
+operations extractor was deployed enter that extractor without a synchronous
+provider call or a second queue.
 If Valkey is unavailable, the response reports `recovery_pending` and the
 committed queued rows are republished by the existing recovery sweep. Direct
 provider calls are not a substitute for the worker queue.
+
+## Provider admission deferral (2026-08-26)
+
+Contextual-orchestrator may return its typed `no_viable_agent` response before
+any provider inference is admitted. It supplies the same positive delay in the
+standard `Retry-After` header and its bounded error contract. This outcome is
+queue admission evidence, not a provider attempt or a negative analysis.
+
+The owning worker therefore uses a fenced PostgreSQL transition from the exact
+running lease back to queued, reverses only that lease's claim increment, and
+stores `next_attempt_at` from the orchestrator's exact delay. The post identity,
+body digest, post-scoped session, and existing evidence remain unchanged. A
+stale worker cannot defer a newer lease. Recovery publishes the row only after
+`next_attempt_at`; other transport, provider, validation, and persistence
+failures retain the existing three-attempt accounting. Raw upstream error text,
+agent identity, prompt, and response are neither stored nor shown to a reader.
+
+Operations-case analysis is the Dashboard acceptance channel and runs before
+optional product extraction inside a claimed job. Each channel commits through
+its own existing persistence transaction while retaining the same post-scoped
+session and exact body digest. A later product extraction failure therefore
+cannot erase an already committed operations case, and product latency cannot
+delay admission of the case request. This is execution isolation, not a new
+queue or a change to either channel's evidence contract.
 
 ### Operational timeout for structure adjudication
 

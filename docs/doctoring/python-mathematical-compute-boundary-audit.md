@@ -8,8 +8,8 @@ does not relabel still-local Python paths as Rust/GPU compliant.
 
 ## Product-boundary sources read
 
-- LineageWeave `ARCHITECTURE.md` and accepted ADRs 0003, 0132, 0145,
-  0200, 0201, and 0205. This exact head has no standalone canonical PRD.
+- LineageWeave `docs/product-requirements.md`, `ARCHITECTURE.md`, and accepted
+  ADRs 0003, 0062, 0132, 0145, 0200, 0201, and 0205.
 - TEPP `docs/product/prd-v0.4-approved.md`, whose approved TRSL-TM scope
   owns temporal, relational, multilingual, topic, event, and trajectory
   measurement.
@@ -25,10 +25,12 @@ does not relabel still-local Python paths as Rust/GPU compliant.
 | `lineageweave/channel_weight_estimation.py` | dichotomization, synthetic simulation, MLS2PLM input construction, expected item information and normalization | fast-mlsirm, conditional on TEPP anchor | versioned anchored-weight artifact; strict digest/convergence validation | estimation scripts, seed/server/rebuild paths; `tests/test_channel_weight_estimation.py`, estimator-script tests |
 | `lineageweave/period_report.py` | response matrix and owner-call orchestration remain; local category expectation and duplicate likelihood arithmetic removed | fast-mlsirm | `polytomous_expected_response`; diagnostics-owned held-out log likelihood; full period artifact remains debt | report ingestion and demo seed; period-report and report API tests |
 | `lineageweave/leftover_pairs.py` | **migrated:** identifier projection and closest/farthest selection only | fast-mlsirm | protected-main Rust `residual_interaction_map` with residual, coverage, SVD/Gabriel coordinates, distances, reconstruction and shares | `period_report.py`, report ingestion/seed; owner contract and consumer projection tests |
-| `lineageweave/embedding_client.py` and `backend/app/post_chat_ingestion.py` | cosine similarity, vector norms, maximum semantic score | RankWeave retrieval-score contract | ranked evidence envelope over ABAC-visible semantic units | reconstruction text channel and Global Ask retrieval; embedding/post-chat tests |
+| `backend/app/post_chat_ingestion.py` | active Global Ask cosine, vector norm, maximum semantic score; the unused `embedding_client.py` cosine/max-pooling experiment is deleted | RankWeave or another accepted Rust retrieval-score owner | versioned ranked-evidence envelope over ABAC-visible semantic units; fail closed until accepted | Global Ask retrieval and post-chat tests |
 | `lineageweave/knowledge_graph.py` | random walk with restart, convergence delta, adaptive relevance cutoff | RankWeave graph-ranking contract | ranked-node artifact with contribution and convergence evidence | related-person/entity API paths; knowledge-graph tests |
+| `lineageweave/channels.py` | local time-decay score and `SequenceMatcher` text similarity fallback | RankWeave similarity contract; TEPP supplies temporal evidence | owner-computed, provenance-bearing channel evidence | `reconstruct.py`; channel and reconstruction tests |
 | `lineageweave/reconstruct.py` | channel-weight renormalization, candidate-score fusion and minimum-score decision | RankWeave fusion; TEPP supplies independent lineage criterion | accepted edge-ranking artifact; LineageWeave persists selected edge and channel provenance | lineage rebuild/start/seed/server; reconstruct, persistence, API tests |
 | `lineageweave/rankweave_client.py` | channel construction and token overlap remain; **owner-bound:** classic/weighted RRF and contribution arithmetic now come from RankWeave #47, whose Python core still awaits the required Rust CPU/GPU migration | RankWeave | Rust-backed strict ranking artifact exposing owner-computed contributions and owned channel construction | `/api/rankings`, frontend Rankings; `tests/test_rankweave_client.py` and frontend tests |
+| `lineageweave/corporate_hierarchy_resolution.py` | `SequenceMatcher` organization-name similarity, score threshold, and top-score selection | external entity-resolution owner contract required | unique/miss/tie catalog-resolution artifact with evidence and policy version | organization resolution ingestion; corporate-hierarchy and API tests |
 
 `lineageweave/post_evaluation.py` imports fast-mlsirm only for its published
 judge contract and `to_irt_row` projection. It performs no fitted numerical
@@ -38,6 +40,9 @@ import must be reviewed before LineageWeave's final wire-only state.
 Validation-only uses of `math.isfinite` and database aggregation are not model
 ownership and remain. Date ordering, counts, pagination, authorization, schema
 validation, and presentation formatting also remain LineageWeave concerns.
+Exact JSON UTF-8 body length, server-advertised token/input ceilings, vector
+dimension equality, and finite-number checks in embedding backfill validate an
+owner envelope; they neither estimate token counts nor calculate similarity.
 
 ## Required owner contracts
 
@@ -62,3 +67,36 @@ labels do not replace foreign keys. Dashboard and post detail endpoints read
 only accepted persisted rows and preserve source-post ABAC. Storybook covers
 accepted, pending, failed, stale-digest, non-converged, hidden-evidence, and
 multiple-membership cases before UI activation.
+
+## 2026-08-26 stacked-PR audit
+
+The exact reviewed heads were PR #692 `583059edcffe994b18a6fbf3cb3b00bf4647c2a3`,
+PR #693 `999063d22e60469227eeea308fee787683952cab`, and PR #694
+`296cbae6c9ac2839b0f5ff150ae02ebf4f726627`. The review used CodeGraph before
+diff inspection.
+
+- PR #692 adds evidence-span normalization, unique/miss/tie catalog binding,
+  persistence, and projection. It adds no statistical score, vector algebra,
+  fitted weight, or local model.
+- PR #693's Python code validates vector shape and finiteness, serializes the
+  exact UTF-8 request body, and chooses a prefix under an upstream-advertised
+  byte ceiling. Those are transport and schema-validation operations allowed
+  by ADR 0208, not token estimation or vector scoring. Tokenization, token
+  ranges, provider-limit packing, checked token totals, and shard construction
+  are owned by contextual-orchestrator's Rust/PyO3 extension pinned by the
+  Docker build. The owner follow-up PR #865 is stacked on the current owning
+  #857 branch and fails closed at an undecodable
+  token ceiling and preserves complete UTF-8 scalars when a nominal token
+  boundary divides their byte representation.
+- PR #694 delegates overlap counts and the shared eligible denominator to one
+  authorization-filtered SQL aggregate. Converting those returned counts to a
+  displayed percentage is presentation formatting, explicitly outside the
+  model-ownership inventory. It supplies no threshold, category weight,
+  probability model, or forced winner.
+
+No new Python mathematical or psychometric implementation was found in this
+stack. The highest-leverage newly exercised owner path is therefore the Rust
+token packer rather than a duplicate LineageWeave implementation. Existing
+time-decay and string similarity, cosine, graph-ranking, fusion, period-report,
+and anchored channel-weight debt remains frozen under the owner and acceptance
+criteria above; this audit does not reclassify it as complete.

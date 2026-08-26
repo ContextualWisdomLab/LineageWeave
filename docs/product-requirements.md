@@ -185,12 +185,32 @@ A release claim requires one exact protected-main head that proves:
 7. synchronized PRD, ADR, architecture, API, changelog, and product-gap
    baseline.
 
+### 6.1 Product identity and evidence relationships
+
+The product must extract product mentions through contextual-orchestrator from
+authorized semantic source units, validate verbatim evidence, and resolve only
+against the normalized product catalog. Product group, model, variant, and
+trade-item identities preserve their hierarchy and scoped GTIN/MPN keys.
+Unique, tied, missing, and unavailable outcomes remain distinct. Product links
+to posts, projects, orders, sales pools, specification changes, claims, and
+external information reuse normalized evidence-bearing records and never
+derive identity from keywords, tags, weak source sentinels, or arbitrary
+similarity thresholds. Historical processing is bounded, asynchronous,
+digest-idempotent, and authorization-filtered when read.
+
+The source post voice scheme (`voc`, `vocc`, `voco`, `vom`, `vop`) and
+post-scoped organization relationship scheme (the same five relationships plus
+supplier `rel_vos`) remain distinct. Source and derived assertions coexist;
+multi-membership and disagreements are reported without forced selection.
+Authorized counts use the same period and organization/PU/team/person/product/
+project filters and disclose overlapping category totals.
+
 ## 7. Traceability
 
 - Product/data boundary: ADR 0001, ADR 0089.
 - Asynchronous delivery and database-pool isolation: ADR 0204.
 - Knowledge Graph, ontology, and provenance: ADR 0004, ADR 0011, ADR 0065,
-  ADR 0184, ADR 0207.
+  ADR 0184, ADR 0207, ADR 0228.
 - Semantic units and retrieval: ADR 0047, ADR 0062, ADR 0102.
 - LLM/model boundary: ADR 0070, ADR 0072, ADR 0076, ADR 0079.
 - Measurement: ADR 0003, ADR 0145, ADR 0200, ADR 0205.

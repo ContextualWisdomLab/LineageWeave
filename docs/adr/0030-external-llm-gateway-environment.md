@@ -75,17 +75,13 @@ must never be returned through a buyer-facing API or persisted failure detail.
   When they are blank, contextual-orchestrator resolves the registered agent
   model, so a local or provider-specific model name cannot leak into this
   application or be assumed available on an external gateway.
-- LineageWeave embedding requests do not select a model: every batch omits
-  `model`. At the Compose process boundary an operator-supplied
-  `LLM_GATEWAY_EMBEDDING_MODEL` may register one explicit remote agent tagged
-  `embedding` in contextual-orchestrator, using the same provider URL and
-  credential handle as the gateway. The bootstrap removes that environment
-  value before serving; application code never reads it, sends it in a request,
-  or calls the provider directly. contextual-orchestrator returns the selected
-  identity on submission and polling responses. LineageWeave binds that
-  identity for later batches and persists it with every vector. A missing or
-  changed identity, or an incomplete vector batch, fails closed and cannot make
-  post content complete.
+- LineageWeave does not configure an embedding model. Its first batch request
+  omits `model`; contextual-orchestrator selects a provider-neutral embedding
+  model from its discovered provider catalog and returns that identity on
+  submission and polling responses. LineageWeave binds that identity for later
+  batches and persists it with every vector. A missing or changed identity, or
+  an incomplete vector batch, fails closed and cannot make post content
+  complete.
 - `LLM_API_KEY`, `LLM_API_GATEWAY`, and `LLM_GATEWAY_URL` are compatibility
   aliases only; `LLM_GATEWAY_API_KEY` and `LLM_GATEWAY_API_URL` are the
   canonical names for

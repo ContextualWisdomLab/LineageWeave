@@ -10,21 +10,37 @@ from .embedding_client import ContextualOrchestratorEmbeddingClient
 from .llm_context import build_post_llm_metadata
 
 _SELECT_UNITS_SQL = """
-select unit.post_content_unit_id, unit.unit_text, unit.unit_index,
-       post.post_id, post.author_account_id, post.source_process_unit_code,
-       post.source_author_code, post.source_company_code,
-       post.source_customer_code, post.source_project_code,
-       post.source_sales_pool_code, entity.corporate_entity_code
-  from post_content_unit unit
-  join source_post post using (post_id)
-  left join corporate_entity entity using (corporate_entity_id)
- where nullif(btrim(unit.unit_text), '') is not null
-   and not exists (
-       select 1 from post_content_embedding existing
-        where existing.post_content_unit_id = unit.post_content_unit_id
-   )
- order by post.created_at, post.post_id, unit.unit_index
- limit $1
+with bounded_candidates as materialized (
+    select unit.post_content_unit_id, unit.unit_text, unit.unit_index,
+           post.created_at as post_created_at,
+           post.post_id, post.author_account_id, post.source_process_unit_code,
+           post.source_author_code, post.source_company_code,
+           post.source_customer_code, post.source_project_code,
+           post.source_sales_pool_code, entity.corporate_entity_code
+      from post_content_unit unit
+      join source_post post using (post_id)
+      left join corporate_entity entity using (corporate_entity_id)
+     where nullif(btrim(unit.unit_text), '') is not null
+       and not exists (
+           select 1 from post_content_embedding existing
+            where existing.post_content_unit_id = unit.post_content_unit_id
+       )
+     order by post.created_at, post.post_id, unit.unit_index
+     limit $2
+), candidates as (
+    select bounded_candidates.*,
+           row_number() over (
+               order by post_created_at, post_id, unit_index
+           ) as candidate_ordinal,
+           sum(octet_length(unit_text) + 1) over (
+               order by post_created_at, post_id, unit_index
+           ) as cumulative_text_bytes
+      from bounded_candidates
+)
+select * from candidates
+ where candidate_ordinal = 1
+    or (cumulative_text_bytes <= $1 and candidate_ordinal <= $2)
+ order by cumulative_text_bytes
 """
 
 
@@ -32,19 +48,21 @@ async def backfill_post_content_embeddings(
     conn: Any,
     embedding_client: ContextualOrchestratorEmbeddingClient,
     *,
-    input_limit: int,
+    max_request_body_bytes: int,
+    max_inputs: int,
 ) -> dict[str, int | str]:
     """Embed one explicitly bounded unit set and atomically persist the complete batch.
 
     The provider call finishes and validates every vector before the transaction
     starts. Consequently a provider failure cannot delete or partially replace a
-    persisted embedding. ``input_limit`` is an operator-supplied work selection,
-    not a locally invented provider limit; contextual-orchestrator remains the
-    owner of provider request partitioning.
+    persisted embedding. The candidate query and final prefix are both bounded
+    by contextual-orchestrator's advertised request-body ceiling.
     """
-    if input_limit < 1:
-        raise ValueError("input_limit must be positive")
-    rows = list(await conn.fetch(_SELECT_UNITS_SQL, input_limit))
+    if max_request_body_bytes < 1:
+        raise ValueError("max_request_body_bytes must be positive")
+    if max_inputs < 1:
+        raise ValueError("max_inputs must be positive")
+    rows = list(await conn.fetch(_SELECT_UNITS_SQL, max_request_body_bytes, max_inputs))
     if not rows:
         return {"selected_units": 0, "persisted_units": 0, "dimension_values": 0}
 
@@ -73,6 +91,28 @@ async def backfill_post_content_embeddings(
                 ),
             }
         )
+
+    selected_count = 0
+    lower = 1
+    upper = len(rows)
+    while lower <= upper:
+        candidate_count = (lower + upper) // 2
+        body_size = embedding_client.batch_request_body_size(
+            texts[:candidate_count],
+            input_attributions=attributions[:candidate_count],
+            input_metadata=metadata[:candidate_count],
+        )
+        if body_size > max_request_body_bytes:
+            upper = candidate_count - 1
+        else:
+            selected_count = candidate_count
+            lower = candidate_count + 1
+    if selected_count == 0:
+        raise ValueError("one semantic unit exceeds the advertised embedding request ceiling")
+    rows = rows[:selected_count]
+    texts = texts[:selected_count]
+    metadata = metadata[:selected_count]
+    attributions = attributions[:selected_count]
 
     vectors = await asyncio.to_thread(
         embedding_client.embed_many,

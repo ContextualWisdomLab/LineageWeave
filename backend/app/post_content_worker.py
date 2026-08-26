@@ -21,18 +21,23 @@ from backend.app.post_content_queue import (
     RUNNING,
     STALE_RUNNING_INTERVAL,
     SUCCEEDED,
+    defer_post_content_job,
     ensure_post_content_job,
     post_content_is_complete,
     republish_queued_post_content_jobs,
     transition_post_content_job,
 )
 from backend.app.operations_case_ingestion import persist_operations_cases
+from backend.app.product_semantic_ingestion import (
+    persist_product_mentions,
+    resolve_product_mentions,
+)
 from backend.app.post_chat_ingestion import (
     find_project_sibling_post_ids,
     gather_chat_sources,
 )
 from lineageweave.embedding_client import EmbeddingClient
-from lineageweave.http_client import HttpClientError
+from lineageweave.http_client import HttpAdmissionDeferred, HttpClientError
 from lineageweave.image_content import ImageContentClient
 from lineageweave.llm_context import build_post_llm_metadata, use_llm_metadata
 from lineageweave.observability import record_server_failure, traced
@@ -44,6 +49,11 @@ from lineageweave.operations_case_analysis import (
 from lineageweave.post_content_normalization import normalize_post_body
 from lineageweave.post_content_persistence import persist_post_content
 from lineageweave.post_structure import PostStructureClient
+from lineageweave.product_semantics import (
+    ContextualOrchestratorProductExtractionClient,
+    ProductEvidenceSource,
+    product_analysis_input_sha256,
+)
 
 _logger = logging.getLogger(__name__)
 _RECOVERY_INTERVAL_SECONDS = 30.0
@@ -106,6 +116,7 @@ async def _operations_evidence_sources(
             ),
             source_times[source.post_id][0],
             source_times[source.post_id][1],
+            source.post_body,
         )
         for source in sources
     )
@@ -121,6 +132,7 @@ async def _persist_operations_case_analysis_if_needed(
     session_id: str,
     orchestrator_base_url: str,
     orchestrator_api_key: str,
+    evidence_sources: tuple[OperationsEvidenceSource, ...] | None = None,
 ) -> None:
     """Persist cases once per exact focal body and authorized evidence window."""
     context = " | ".join(
@@ -134,9 +146,10 @@ async def _persist_operations_case_analysis_if_needed(
         )
         if row.get(name) is not None and str(row[name]).strip()
     )
-    evidence_sources = await _operations_evidence_sources(
-        pool, post_id, row, vision_client
-    )
+    if evidence_sources is None:
+        evidence_sources = await _operations_evidence_sources(
+            pool, post_id, row, vision_client
+        )
     analysis_input_digest = operations_analysis_input_sha256(
         evidence_sources, context
     )
@@ -166,6 +179,61 @@ async def _persist_operations_case_analysis_if_needed(
             session_id,
             cases,
             analysis_input_sha256=analysis_input_digest,
+        )
+
+
+async def _persist_product_analysis_if_needed(
+    pool: asyncpg.Pool,
+    post_id: str,
+    source_body_digest: str,
+    row: asyncpg.Record,
+    vision_client: ImageContentClient,
+    session_id: str,
+    orchestrator_base_url: str,
+    orchestrator_api_key: str,
+    evidence_sources: tuple[OperationsEvidenceSource, ...] | None = None,
+) -> None:
+    """Extract and persist products once per exact authorized source window."""
+    operation_sources = evidence_sources
+    if operation_sources is None:
+        operation_sources = await _operations_evidence_sources(
+            pool, post_id, row, vision_client
+        )
+    sources = tuple(
+        ProductEvidenceSource(
+            source.post_id,
+            source.source_text if source.source_text is not None else source.text,
+        )
+        for source in operation_sources
+        if source.post_id == post_id
+    )
+    input_digest = product_analysis_input_sha256(sources)
+    async with pool.acquire() as conn:
+        already_persisted = bool(
+            await conn.fetchval(
+                "select exists (select 1 from post_product_analysis "
+                "where post_id = $1 and source_body_sha256 = $2 "
+                "and analysis_input_sha256 = $3)",
+                post_id,
+                source_body_digest,
+                input_digest,
+            )
+        )
+    if already_persisted:
+        return
+    client = ContextualOrchestratorProductExtractionClient(
+        orchestrator_base_url, orchestrator_api_key
+    )
+    mentions = await asyncio.to_thread(client.extract, sources)
+    async with pool.acquire() as conn:
+        resolved = await resolve_product_mentions(conn, mentions)
+        await persist_product_mentions(
+            conn,
+            post_id,
+            source_body_digest,
+            input_digest,
+            session_id,
+            resolved,
         )
 
 
@@ -236,11 +304,17 @@ async def _claim_job(
                        j.attempt_count as job_attempt_count,
                        j.started_at as job_started_at,
                        j.queued_at as job_queued_at,
+                       j.next_attempt_at as job_next_attempt_at,
                        (
                            select analysis.source_body_sha256
                              from operations_case_analysis analysis
                             where analysis.post_id = p.post_id
-                       ) as case_analysis_source_body_sha256
+                       ) as case_analysis_source_body_sha256,
+                       (
+                           select analysis.source_body_sha256
+                             from post_product_analysis analysis
+                            where analysis.post_id = p.post_id
+                       ) as product_analysis_source_body_sha256
                 from post_content_ingestion_job j
                 join source_post p on p.post_id = j.post_id
                 where j.post_id = $1::uuid
@@ -274,7 +348,14 @@ async def _claim_job(
                     detail_text="post-content ingestion attempt limit was already reached",
                 )
                 return None
-            if status_code == QUEUED and attempt_count > 0:
+            if status_code == QUEUED and row["job_next_attempt_at"] is not None:
+                retry_ready = await conn.fetchval(
+                    "select now() >= $1::timestamptz",
+                    row["job_next_attempt_at"],
+                )
+                if not retry_ready:
+                    return None
+            elif status_code == QUEUED and attempt_count > 0:
                 retry_ready = await conn.fetchval(
                     "select now() >= $1::timestamptz + $2::interval",
                     row["job_queued_at"],
@@ -297,7 +378,15 @@ async def _claim_job(
                         source_body_digest,
                     )
                 )
-                if content_complete and case_complete:
+                if (
+                    content_complete
+                    and case_complete
+                    and (
+                        not require_structure
+                        or row["product_analysis_source_body_sha256"]
+                        == source_body_digest
+                    )
+                ):
                     return None
             if status_code == RUNNING and row["job_started_at"] is not None:
                 stale = await conn.fetchval(
@@ -440,6 +529,9 @@ async def process_post_content_job(
         with use_llm_metadata(metadata):
             vision_client = vision_factory()
             if settings.orchestrator_base_url and settings.orchestrator_api_key:
+                evidence_sources = await _operations_evidence_sources(
+                    pool, post_id, row, vision_client
+                )
                 await _persist_operations_case_analysis_if_needed(
                     pool,
                     post_id,
@@ -450,7 +542,29 @@ async def process_post_content_job(
                     metadata["lineageweave_post_session_id"],
                     settings.orchestrator_base_url,
                     settings.orchestrator_api_key,
+                    evidence_sources,
                 )
+                try:
+                    await _persist_product_analysis_if_needed(
+                        pool,
+                        post_id,
+                        source_body_digest,
+                        row,
+                        vision_client,
+                        metadata["lineageweave_post_session_id"],
+                        settings.orchestrator_base_url,
+                        settings.orchestrator_api_key,
+                        evidence_sources,
+                    )
+                except HttpAdmissionDeferred:
+                    raise
+                except (HttpClientError, OSError, RuntimeError, TimeoutError, ValueError) as exc:
+                    _logger.error("product evidence ingestion failed for post_id=%s", post_id)
+                    record_server_failure(
+                        "product_semantic_ingestion",
+                        exc,
+                        outcome="provider_unavailable",
+                    )
             normalized = await asyncio.to_thread(
                 normalize_post_body, raw_body, vision_client
             )
@@ -499,6 +613,16 @@ async def process_post_content_job(
                         exc,
                         outcome="provider_unavailable",
                     )
+    except HttpAdmissionDeferred as exc:
+        async with pool.acquire() as conn:
+            async with conn.transaction():
+                await defer_post_content_job(
+                    conn,
+                    post_id,
+                    expected_attempt_count=attempt_count,
+                    retry_after_seconds=exc.retry_after_seconds,
+                )
+        return
     except Exception as exc:  # noqa: BLE001 - durable failure is recorded for retry.
         _logger.error("post content ingestion failed for post_id=%s", post_id)
         outcome = (

@@ -65,10 +65,7 @@ def test_provider_key_is_not_aliased_as_gateway_transport(monkeypatch) -> None:
         module.main()
 
 
-@pytest.mark.parametrize("embedding_model", ["embedding-model", ""])
-def test_bootstrap_registers_configured_remote_embedding_agent(
-    monkeypatch, embedding_model: str
-) -> None:
+def test_bootstrap_delegates_embedding_discovery_upstream(monkeypatch) -> None:
     module = _load_start_module()
     captured: dict[str, object] = {}
 
@@ -114,10 +111,7 @@ def test_bootstrap_registers_configured_remote_embedding_agent(
     monkeypatch.setenv("BYTEZ_API_KEY", "bytez-key")
     monkeypatch.setenv("CONTEXTUAL_ORCHESTRATOR_TOKEN", "orchestrator-token")
     monkeypatch.setenv("LLM_GATEWAY_API_URL", "https://gateway.example")
-    if embedding_model:
-        monkeypatch.setenv("LLM_GATEWAY_EMBEDDING_MODEL", embedding_model)
-    else:
-        monkeypatch.delenv("LLM_GATEWAY_EMBEDDING_MODEL", raising=False)
+    monkeypatch.setenv("BATCH_JOB_REGISTRY_VALKEY_URL", "redis://valkey:6379/1")
 
     module.main()
 
@@ -127,6 +121,7 @@ def test_bootstrap_registers_configured_remote_embedding_agent(
     assert "--embedding-model" not in argv
     assert captured["credentials"] == [
         ("LLM_GATEWAY_API_KEY", "provider-key"),
+        ("batch_job_registry_valkey_url", "redis://valkey:6379/1"),
         ("OPENAI_API_KEY", "openai-key"),
         ("OPENROUTER_API_KEY", "openrouter-key"),
         ("NVIDIA_NIM_API_KEY", "nim-key"),
@@ -141,24 +136,9 @@ def test_bootstrap_registers_configured_remote_embedding_agent(
         "NVIDIA_NIM_API_KEY",
         "NVIDIA_NIM_API_KEY_SUB",
         "BYTEZ_API_KEY",
+        "BATCH_JOB_REGISTRY_VALKEY_URL",
     } & os.environ.keys()
     agents = captured["agents"]
     assert isinstance(agents, dict)
-    embedding_agents = [
-        agent for agent in agents["agents"] if "embedding" in agent.get("tags", [])
-    ]
-    if embedding_model:
-        assert embedding_agents == [
-            {
-                "id": "gateway_embedding_agent",
-                "model": embedding_model,
-                "provider_protocol": "auto",
-                "base_url": "https://gateway.example/v1",
-                "credential_key": "LLM_GATEWAY_API_KEY",
-                "tags": ["embedding"],
-                "priority": 1,
-            }
-        ]
-    else:
-        assert embedding_agents == []
-    assert "LLM_GATEWAY_EMBEDDING_MODEL" not in os.environ
+    assert not [agent for agent in agents["agents"] if "embedding" in agent.get("tags", [])]
+    assert "--auto-discover-model-agents" in argv

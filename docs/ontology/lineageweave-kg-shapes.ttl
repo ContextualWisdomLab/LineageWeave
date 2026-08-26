@@ -186,6 +186,89 @@
         sh:class :Post ;
     ] .
 
+:ProductMentionShape a sh:NodeShape ;
+    rdfs:label "Evidence-bound product mention shape" ;
+    sh:targetClass :ProductMention ;
+    sh:property [
+        sh:path :extractedProductName ;
+        sh:minCount 1 ; sh:maxCount 1 ;
+        sh:datatype xsd:string ; sh:minLength 1 ;
+    ] ;
+    sh:property [
+        sh:path :productResolutionStatus ;
+        sh:minCount 1 ; sh:maxCount 1 ;
+        sh:in ("unique" "missing" "tie" "unavailable") ;
+    ] ;
+    sh:property [
+        sh:path :evidenceInputDigest ;
+        sh:minCount 1 ; sh:maxCount 1 ;
+        sh:datatype xsd:string ; sh:pattern "^[0-9a-f]{64}$" ;
+    ] ;
+    sh:property [
+        sh:path prov:wasDerivedFrom ;
+        sh:minCount 1 ; sh:maxCount 1 ;
+        sh:class :Post ;
+    ] .
+
+:PostVoiceClassificationAssertionShape a sh:NodeShape ;
+    sh:targetClass :PostVoiceClassificationAssertion ;
+    sh:property [
+        sh:path :voiceConceptCode ; sh:minCount 1 ; sh:maxCount 1 ;
+        sh:in ("voc" "vocc" "voco" "vom" "vop") ;
+    ] ;
+    sh:property [
+        sh:path :voiceAssertionStatus ; sh:minCount 1 ; sh:maxCount 1 ;
+        sh:in ("source" "derived") ;
+    ] ;
+    sh:property [
+        sh:path :voiceEvidenceDigest ; sh:minCount 1 ; sh:maxCount 1 ;
+        sh:datatype xsd:string ; sh:pattern "^[0-9a-f]{64}$" ;
+    ] ;
+    sh:property [
+        sh:path :sourceRevisionDigest ; sh:minCount 1 ; sh:maxCount 1 ;
+        sh:datatype xsd:string ; sh:pattern "^[0-9a-f]{64}$" ;
+    ] ;
+    sh:property [
+        sh:path prov:wasDerivedFrom ; sh:minCount 1 ; sh:maxCount 1 ; sh:class :Post ;
+    ] ;
+    sh:property [ sh:path :validFrom ; sh:maxCount 1 ; sh:datatype xsd:dateTime ; sh:lessThanOrEquals :validTo ] ;
+    sh:property [ sh:path :validTo ; sh:maxCount 1 ; sh:datatype xsd:dateTime ] ;
+    sh:or (
+        [ sh:property [ sh:path :voiceAssertionStatus ; sh:hasValue "source" ] ]
+        [
+            sh:property [ sh:path :voiceAssertionStatus ; sh:hasValue "derived" ] ;
+            sh:property [ sh:path :orchestratorModelReceipt ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:string ; sh:minLength 1 ] ;
+            sh:property [ sh:path :evidenceSpanStart ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:integer ; sh:minInclusive 0 ; sh:lessThan :evidenceSpanEnd ] ;
+            sh:property [ sh:path :evidenceSpanEnd ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:integer ]
+        ]
+    ) .
+
+:OrganizationVoiceRelationshipAssertionShape a sh:NodeShape ;
+    sh:targetClass :OrganizationVoiceRelationshipAssertion ;
+    sh:property [
+        sh:path :voiceConceptCode ; sh:minCount 1 ; sh:maxCount 1 ;
+        sh:in ("rel_voc" "rel_vocc" "rel_voco" "rel_vom" "rel_vop" "rel_vos") ;
+    ] ;
+    sh:property [
+        sh:path :orchestratorModelReceipt ; sh:minCount 1 ; sh:maxCount 1 ;
+        sh:datatype xsd:string ; sh:minLength 1 ;
+    ] ;
+    sh:property [
+        sh:path :voiceEvidenceDigest ; sh:minCount 1 ; sh:maxCount 1 ;
+        sh:datatype xsd:string ; sh:pattern "^[0-9a-f]{64}$" ;
+    ] ;
+    sh:property [
+        sh:path :sourceRevisionDigest ; sh:minCount 1 ; sh:maxCount 1 ;
+        sh:datatype xsd:string ; sh:pattern "^[0-9a-f]{64}$" ;
+    ] ;
+    sh:property [ sh:path :evidenceSpanStart ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:integer ; sh:minInclusive 0 ; sh:lessThan :evidenceSpanEnd ] ;
+    sh:property [ sh:path :evidenceSpanEnd ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:integer ] ;
+    sh:property [ sh:path :validFrom ; sh:maxCount 1 ; sh:datatype xsd:dateTime ; sh:lessThanOrEquals :validTo ] ;
+    sh:property [ sh:path :validTo ; sh:maxCount 1 ; sh:datatype xsd:dateTime ] ;
+    sh:property [
+        sh:path prov:wasDerivedFrom ; sh:minCount 1 ; sh:maxCount 1 ; sh:class :Post ;
+    ] .
+
 :OurSidePersonShape a sh:NodeShape ;
     rdfs:label "Our-side person shape" ;
     sh:comment "Closed-world complement of :OurSidePerson owl:disjointWith :CounterpartyPerson: an instance of one can never be typed as the other." ;

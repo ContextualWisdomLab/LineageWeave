@@ -34,8 +34,24 @@ class HttpClientError(RuntimeError):
     """The remote endpoint failed, returned a non-success status, or invalid JSON."""
 
 
-def json_request_body(payload: dict) -> bytes:
-    """Serialize the exact JSON body sent by :func:`post_json`."""
+class HttpAdmissionDeferred(HttpClientError):
+    """The orchestrator admitted no provider work and supplied an exact retry delay."""
+
+    def __init__(self, retry_after_seconds: int) -> None:
+        super().__init__("remote service has no viable agent yet")
+        self.retry_after_seconds = retry_after_seconds
+
+
+def json_request_body(
+    payload: dict,
+    *,
+    include_orchestrator_session: bool = False,
+) -> bytes:
+    """Serialize a JSON body with bounded post provenance when requested.
+
+    ``session_id`` is an orchestrator transport field, so callers that only
+    size or persist a provider-neutral payload retain their existing bytes.
+    """
     request_payload = payload
     request_metadata = current_llm_metadata()
     if request_metadata:
@@ -47,6 +63,10 @@ def json_request_body(payload: dict) -> bytes:
             request_payload["metadata"] = {**existing_metadata, **request_metadata}
         else:
             raise ValueError("metadata must be an object")
+        if include_orchestrator_session:
+            session_id = request_metadata.get("lineageweave_post_session_id")
+            if session_id:
+                request_payload["session_id"] = session_id
     return json.dumps(request_payload).encode("utf-8")
 
 
@@ -151,6 +171,7 @@ def _request(
     timeout: float,
     maximum_response_bytes: int | None = None,
     expected_response_media_type: str | None = None,
+    response_control_headers: dict[str, str] | None = None,
 ) -> tuple[int, bytes]:
     """Perform one bounded HTTP(S) request without exposing provider transport exception details."""
 
@@ -207,6 +228,10 @@ def _request(
                 response,
                 maximum_response_bytes=limit,
             )
+            if response_control_headers is not None:
+                retry_after = response.getheader("Retry-After")
+                if retry_after is not None:
+                    response_control_headers["retry-after"] = retry_after
             return response.status, raw
         except (OSError, ValueError, http.client.HTTPException) as exc:
             # Chain internally for operator logging; the exposed
@@ -273,18 +298,49 @@ def post_json(
         },
     ) as span:
         inject_trace_context(request_headers)
+        response_control_headers: dict[str, str] = {}
         status, raw = _request(
             "POST",
             url,
-            body=json_request_body(payload),
+            body=json_request_body(
+                payload,
+                include_orchestrator_session=(
+                    service_peer_name == "contextual-orchestrator"
+                ),
+            ),
             headers=request_headers,
             timeout=timeout,
+            response_control_headers=response_control_headers,
         )
         if span is not None:
             span.set_attribute("http.response.status_code", status)
         if status >= 400:
             if span is not None:
                 span.set_attribute("error.type", str(status))
+            if status == 503:
+                try:
+                    error_payload = _decode_json_object(raw, hostname).get("error")
+                except HttpClientError:
+                    error_payload = None
+                if (
+                    isinstance(error_payload, dict)
+                    and error_payload.get("code") == "no_viable_agent"
+                ):
+                    detail = error_payload.get("detail")
+                    retry_after = response_control_headers.get("retry-after", "")
+                    detail_seconds = (
+                        detail.get("retry_after_seconds")
+                        if isinstance(detail, dict)
+                        else None
+                    )
+                    if (
+                        retry_after.isascii()
+                        and retry_after.isdigit()
+                        and int(retry_after) > 0
+                        and type(detail_seconds) is int
+                        and detail_seconds == int(retry_after)
+                    ):
+                        raise HttpAdmissionDeferred(detail_seconds)
             raise HttpClientError(f"HTTP {status} from {hostname}")
         try:
             return _decode_json_object(raw, hostname)
