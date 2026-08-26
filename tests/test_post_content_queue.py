@@ -62,6 +62,8 @@ def test_bounded_backfill_is_idempotent_and_broker_loss_stays_recoverable(
             assert "source_draft_code" in query
             assert "source_deleted_flag" in query
             assert "job.post_id is null or job.status_code = $1" in query
+            assert "from operations_case_analysis analysis" in query
+            assert "analysis.post_id = post.post_id" in query
             assert "for update of post skip locked" in query.lower()
             assert args == (SUCCEEDED, True, True, 2)
             return [
