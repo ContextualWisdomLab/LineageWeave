@@ -308,7 +308,7 @@ async def compute_global_ask_answer(
     if embedding_client is not None and embedding_client.available and question_text.strip():
         try:
             question_vector = await asyncio.to_thread(embedding_client.embed, question_text)
-        except (OSError, RuntimeError, ValueError):
+        except (HttpClientError, OSError, RuntimeError, ValueError):
             question_vector = []
     try:
         async with pool.acquire() as conn:

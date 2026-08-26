@@ -604,11 +604,12 @@ async def gather_global_chat_sources(
     )[:limit]
     candidate_id_set = frozenset(candidate_ids)
 
-    # One semantic match is still only one event snapshot. Expand the
-    # best-matching post through its direct Event Lineage neighbors
+    # One nominated match is still only one event snapshot. Expand the
+    # first authorized full-text-or-embedding candidate through its direct
+    # Event Lineage neighbors
     # (`post_lineage_edge`, `lineageweave.reconstruct`'s output), mirroring
     # `find_linked_post_ids`'s `.direct` set used by the post-scoped chat
-    # flow. Only the top match is expanded so lower-ranked semantic candidates
+    # flow. Only the first candidate is expanded so later candidates
     # cannot each pull a separate lineage chain into the bounded context.
     lineage_neighbor_ids: list[str] = []
     lineage_anchor_id = candidate_ids[0] if candidate_ids else None
