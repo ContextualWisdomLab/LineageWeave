@@ -117,8 +117,8 @@ def _canonicalize_json(value: Any, parent_key: str | None = None) -> Any:
     return value
 
 
-def _write_serializations(graph: Graph, ontology_dir: Path) -> None:
-    """Write deterministic JSON-LD and line-sorted N-Triples serializations."""
+def _write_serializations(graph: Graph, ontology_dir: Path) -> str:
+    """Write deterministic serializations and return canonical RDF lines."""
     canonical_graph = to_canonical_graph(graph)
     raw_jsonld = canonical_graph.serialize(format="json-ld", auto_compact=False)
     parsed_jsonld = json.loads(raw_jsonld)
@@ -134,6 +134,7 @@ def _write_serializations(graph: Graph, ontology_dir: Path) -> None:
         "\n".join(nt_lines) + "\n",
         encoding="utf-8",
     )
+    return "\n".join(nt_lines) + "\n"
 
 
 def _render_link(value: URIRef, ontology_subjects: set[URIRef]) -> str:
@@ -439,8 +440,6 @@ def _write_manifest(
         "ontology_triple_count": len(graph),
         "ontology_ttl_sha256": _sha256(ontology_dir / "ontology.ttl"),
         "ontology_unique_term_count": term_count,
-        "source_path": SOURCE_RELATIVE_PATH.as_posix(),
-        "source_sha256": _sha256(sources[0]),
         "source_tree_sha256": hashlib.sha256(
             b"".join(source.read_bytes() for source in sources)
         ).hexdigest(),
@@ -500,15 +499,14 @@ def build_site(repository_root: Path, output_dir: Path) -> None:
     (output / ".nojekyll").write_text("", encoding="utf-8")
     (output / "index.html").write_text(_render_root_page(), encoding="utf-8")
     (ontology_dir / "index.html").write_text(ontology_html, encoding="utf-8")
-    (ontology_dir / "ontology.ttl").write_text(
-        "\n".join(path.read_text(encoding="utf-8").rstrip() for path in sources)
-        + "\n",
-        encoding="utf-8",
-    )
     shutil.copyfile(prov_profile, ontology_dir / "prov-o-support-profile.ttl")
     shutil.copyfile(compatibility, ontology_dir / "namespace-compatibility.ttl")
     shutil.copyfile(shapes, ontology_dir / "lineageweave-kg-shapes.ttl")
-    _write_serializations(graph, ontology_dir)
+    canonical_rdf = _write_serializations(graph, ontology_dir)
+    # N-Triples is a strict subset of Turtle. Publishing the canonical graph
+    # avoids joining independent Turtle documents whose prefix/base scopes
+    # are document-local, while retaining a deterministic .ttl representation.
+    (ontology_dir / "ontology.ttl").write_text(canonical_rdf, encoding="utf-8")
     _write_manifest(ontology_dir, sources, graph, term_count)
     (output / "robots.txt").write_text(
         "User-agent: *\nAllow: /\nSitemap: " f"{PUBLIC_BASE_URL}/sitemap.xml\n",
