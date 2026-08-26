@@ -52,6 +52,7 @@ def test_worker_process_owns_all_three_durable_consumers(monkeypatch) -> None:
     pool = _Closable()
     valkey = _Closable()
     calls: list[str] = []
+    global_ask_kwargs: dict = {}
     settings = SimpleNamespace(
         database_url="db",
         valkey_url="valkey",
@@ -62,6 +63,10 @@ def test_worker_process_owns_all_three_durable_consumers(monkeypatch) -> None:
 
     async def called(name: str, *_args, **_kwargs) -> None:
         calls.append(name)
+
+    async def global_ask(*_args, **kwargs) -> None:
+        global_ask_kwargs.update(kwargs)
+        calls.append("global_ask")
 
     monkeypatch.setattr(worker, "load_settings", lambda: settings)
     monkeypatch.setattr(worker, "create_pool", lambda _url: _async_value(pool))
@@ -74,6 +79,12 @@ def test_worker_process_owns_all_three_durable_consumers(monkeypatch) -> None:
     monkeypatch.setattr(worker, "_embedding_client", lambda: object())
     monkeypatch.setattr(worker, "_post_structure_client", lambda: object())
     monkeypatch.setattr(worker, "_post_chat_client", lambda **_kwargs: object())
+    semantic_client = object()
+    verification_client = object()
+    monkeypatch.setattr(worker, "_semantic_query_client", lambda: semantic_client)
+    monkeypatch.setattr(
+        worker, "_claim_verification_client_factory", lambda: verification_client
+    )
     monkeypatch.setattr(worker, "run_worker_heartbeat", lambda: _async_value(None))
     monkeypatch.setattr(
         worker, "run_analysis_run_worker", lambda *a, **kw: called("analysis", *a, **kw)
@@ -81,13 +92,13 @@ def test_worker_process_owns_all_three_durable_consumers(monkeypatch) -> None:
     monkeypatch.setattr(
         worker, "run_post_content_worker", lambda *a, **kw: called("content", *a, **kw)
     )
-    monkeypatch.setattr(
-        worker, "run_global_ask_worker", lambda *a, **kw: called("global_ask", *a, **kw)
-    )
+    monkeypatch.setattr(worker, "run_global_ask_worker", global_ask)
 
     asyncio.run(worker.run_worker_process())
 
     assert calls[:3] == ["analysis", "content", "global_ask"]
+    assert global_ask_kwargs["semantic_query_factory"]() is semantic_client
+    assert global_ask_kwargs["claim_verification_factory"]() is verification_client
     assert calls[-1] == "shutdown"
     assert pool.closed
     assert valkey.closed

@@ -1,14 +1,17 @@
 # Product & Technical Gap Baseline
 
-> Dashboard delivery snapshot: 2026-08-27 00:50 KST. Protected `main` was
+> Dashboard delivery snapshot: 2026-08-27 01:44 KST. Protected `main` was
 > `ff7431bd1851c03e737808d22c6a2d43968582f9`. Dashboard PR #640 exact
-> observed head was `fa9f0aeb5225035264ebc0579c127d1f283c0b17`; this branch is not
-> protected-main release evidence. The queue contained 23 open PRs (21
-> `BLOCKED`, one `UNSTABLE`, one `CLEAN`) and no exact-head approval. Stacked
-> repair PR #715 was based exactly on #640 and its pre-documentation head
-> `5746c57d` passed 44 focused tests; it repairs the four stale HTTP transport
-> test doubles and narrowly excludes one Python-before-3.7 Semgrep rule that
-> contradicts the repository's Python >=3.12 contract.
+> observed head was `5594029c801263a7f629c287ce41580ecf4e0739`; this branch is not
+> protected-main release evidence. The queue contained 29 open PRs (22
+> `BLOCKED`, five `UNSTABLE`, two `CLEAN`) and no exact-head approval. PR #715
+> merged normally into #640 and repaired the four stale HTTP transport test
+> doubles plus one Python-before-3.7 Semgrep false positive that contradicted
+> the repository's Python >=3.12 contract. Stacked PR #722 pre-documentation
+> head `eed7cabd` restores semantic-query and opt-in public-verification
+> factories in the dedicated Ask worker and the production-equivalent
+> concurrent-migration fixture path; its focused evidence is 46 unit tests and
+> one live Keycloak/PostgreSQL public-verification integration test.
 
 ## Operations Dashboard PRD/TRD traceability
 
@@ -22,7 +25,7 @@ the current #640 head. The canonical containers currently return HTTP 200 from
 backend `/healthz` and the frontend root, but their Compose labels do not prove
 the source commit; therefore neither the running stack nor the historical k6
 run is exact-head authenticated acceptance. Exact-head desktop/mobile
-screenshots and k6 remain required after #715 is incorporated and #640 is
+screenshots and k6 remain required after #722 is incorporated and #640 is
 rebuilt. Historical test projects are retired only by their exact Compose
 project label and without named-volume deletion. PR #678 implementation head
 `da98de07` fixes the default project name; its follow-up exact-label audit also
