@@ -31,7 +31,7 @@ from backend.app.post_chat_ingestion import (
     find_project_sibling_post_ids,
     gather_chat_sources,
 )
-from lineageweave.embedding_client import EmbeddingClient
+from lineageweave.embedding_client import EmbeddingClient, NullEmbeddingClient
 from lineageweave.http_client import HttpClientError
 from lineageweave.image_content import ImageContentClient
 from lineageweave.llm_context import build_post_llm_metadata, use_llm_metadata
@@ -389,7 +389,8 @@ async def process_post_content_job(
     vision_factory: Callable[[], ImageContentClient],
     embedding_factory: Callable[[], EmbeddingClient],
     structure_factory: Callable[[], PostStructureClient],
-) -> None:
+    defer_embedding: bool = False,
+) -> int | None:
     """Claim, run, and record the outcome of one post-content ingestion job.
 
     Claims the job for `post_id`/`source_body_digest` (a no-op if it is
@@ -428,7 +429,7 @@ async def process_post_content_job(
         return
     try:
         metadata = build_post_llm_metadata(post_id, row)
-        embedding_client = embedding_factory()
+        embedding_client = NullEmbeddingClient() if defer_embedding else embedding_factory()
         structure_client = structure_factory()
         with use_llm_metadata(metadata):
             vision_client = vision_factory()
@@ -468,6 +469,8 @@ async def process_post_content_job(
                     require_embedding=require_orchestrator_evidence,
                     require_structure=require_orchestrator_evidence,
                 )
+            if defer_embedding:
+                return attempt_count
             if not complete:
                 await _finish_failed_job(
                     pool,
@@ -511,6 +514,108 @@ async def process_post_content_job(
         )
         return
     await _finish_job(pool, post_id, SUCCEEDED, expected_attempt_count=attempt_count)
+    return attempt_count
+
+
+async def _persist_bulk_embeddings(
+    pool: asyncpg.Pool, post_ids: list[str], embedding_client: EmbeddingClient
+) -> None:
+    """Embed all missing semantic units in one provenance-aligned bulk request."""
+    if not post_ids or not embedding_client.available:
+        return
+    async with pool.acquire() as conn:
+        rows = await conn.fetch(
+            """
+            select 'unit' as target_kind, unit.post_content_unit_id as target_id,
+                   unit.unit_text as input_text, post.post_id,
+                   post.author_account_id, post.corporate_entity_id, post.process_unit_id
+              from post_content_unit unit
+              join source_post post on post.post_id = unit.post_id
+              left join post_content_embedding embedding using (post_content_unit_id)
+             where unit.post_id = any($1::uuid[])
+               and nullif(btrim(unit.unit_text), '') is not null
+               and embedding.post_content_embedding_id is null
+            union all
+            select 'region', region.post_content_image_region_id,
+                   concat_ws(' ', region.caption, region.extracted_text), post.post_id,
+                   post.author_account_id, post.corporate_entity_id, post.process_unit_id
+              from post_content_image_region region
+              join post_content_image image using (post_content_image_id)
+              join post_content_unit unit using (post_content_unit_id)
+              join source_post post on post.post_id = unit.post_id
+              left join post_content_image_region_embedding embedding
+                using (post_content_image_region_id)
+             where unit.post_id = any($1::uuid[])
+               and region.description_status_code = 'described'
+               and nullif(btrim(concat_ws(' ', region.caption, region.extracted_text)), '') is not null
+               and embedding.post_content_image_region_embedding_id is null
+             order by post_id, target_kind, target_id
+            """,
+            [UUID(post_id) for post_id in post_ids],
+        )
+    if not rows:
+        return
+    embed_many = getattr(embedding_client, "embed_many", None)
+    if not callable(embed_many):
+        raise RuntimeError("bulk embedding client is unavailable")
+    vectors = await asyncio.to_thread(
+        embed_many,
+        [str(row["input_text"]) for row in rows],
+        input_metadata=[
+            {
+                "session_id": f"post:{row['post_id']}",
+                "post_id": str(row["post_id"]),
+                "target_kind": str(row["target_kind"]),
+                "target_id": str(row["target_id"]),
+            }
+            for row in rows
+        ],
+        input_attributions=[
+            {
+                key: str(value)
+                for key, value in {
+                    "account": row["author_account_id"],
+                    "team": row["process_unit_id"],
+                    "company": row["corporate_entity_id"],
+                }.items()
+                if value is not None
+            }
+            for row in rows
+        ],
+    )
+    model = getattr(embedding_client, "resolved_model", None)
+    if not isinstance(model, str) or not model:
+        raise ValueError("bulk embedding response did not identify its model")
+    unit_dimensions: list[tuple[object, int, float]] = []
+    region_dimensions: list[tuple[object, int, float]] = []
+    async with pool.acquire() as conn, conn.transaction():
+        for row, vector in zip(rows, vectors, strict=True):
+            is_unit = row["target_kind"] == "unit"
+            embedding_id = await conn.fetchval(
+                (
+                    "insert into post_content_embedding (post_content_unit_id, embedding_model_code, embedding_dimension_count) values ($1, $2, $3) returning post_content_embedding_id"
+                    if is_unit
+                    else "insert into post_content_image_region_embedding (post_content_image_region_id, embedding_model_code, embedding_dimension_count) values ($1, $2, $3) returning post_content_image_region_embedding_id"
+                ),
+                row["target_id"],
+                model,
+                len(vector),
+            )
+            target = unit_dimensions if is_unit else region_dimensions
+            target.extend(
+                (embedding_id, index, float(value))
+                for index, value in enumerate(vector)
+            )
+        if unit_dimensions:
+            await conn.executemany(
+                "insert into post_content_embedding_value (post_content_embedding_id, dimension_index, dimension_value) values ($1, $2, $3)",
+                unit_dimensions,
+            )
+        if region_dimensions:
+            await conn.executemany(
+                "insert into post_content_image_region_embedding_value (post_content_image_region_embedding_id, dimension_index, dimension_value) values ($1, $2, $3)",
+                region_dimensions,
+            )
 
 
 async def consume_post_content_stream_once(
@@ -553,6 +658,9 @@ async def consume_post_content_stream_once(
             "lineageweave.stream.kind": "post_content",
         },
     ):
+        embedding_client = embedding_factory()
+        bulk_enabled = embedding_client.available
+        deferred: list[tuple[str, int]] = []
         for _stream_name, entries in batches:
             for entry_id, fields in entries:
                 post_id = str(fields.get("post_id", "")).strip()
@@ -562,15 +670,61 @@ async def consume_post_content_stream_once(
                 except ValueError:
                     post_id = ""
                 if post_id and len(digest) == 64:
-                    await process_post_content_job(
+                    attempt_count = await process_post_content_job(
                         pool,
                         post_id=post_id,
                         source_body_digest=digest,
                         vision_factory=vision_factory,
                         embedding_factory=embedding_factory,
                         structure_factory=structure_factory,
+                        defer_embedding=bulk_enabled,
                     )
+                    if attempt_count is not None:
+                        deferred.append((post_id, attempt_count))
                 last_id = str(entry_id)
+        if deferred:
+            try:
+                await _persist_bulk_embeddings(
+                    pool, [post_id for post_id, _attempt in deferred], embedding_client
+                )
+            except Exception as exc:  # noqa: BLE001 - each durable job is retryable.
+                record_server_failure("post_content_bulk_embedding", exc, outcome="provider_unavailable")
+                for post_id, attempt_count in deferred:
+                    await _finish_failed_job(
+                        pool,
+                        post_id,
+                        failure_code=_INCOMPLETE_FAILURE_CODE,
+                        detail_text="bulk embedding did not produce complete persisted evidence",
+                        expected_attempt_count=attempt_count,
+                    )
+            else:
+                for post_id, attempt_count in deferred:
+                    async with pool.acquire() as conn:
+                        complete = await post_content_is_complete(
+                            conn,
+                            post_id,
+                            embedding_model_code=getattr(embedding_client, "resolved_model", None),
+                            require_embedding=True,
+                            require_structure=True,
+                        )
+                    if complete:
+                        await _finish_job(
+                            pool, post_id, SUCCEEDED, expected_attempt_count=attempt_count
+                        )
+                        try:
+                            await _requeue_project_missing_case_jobs(pool, post_id)
+                        except Exception as exc:  # noqa: BLE001 - primary evidence is complete.
+                            record_server_failure(
+                                "post_content_sibling_requeue", exc, outcome="provider_unavailable"
+                            )
+                    else:
+                        await _finish_failed_job(
+                            pool,
+                            post_id,
+                            failure_code=_INCOMPLETE_FAILURE_CODE,
+                            detail_text="bulk embedding did not produce complete persisted evidence",
+                            expected_attempt_count=attempt_count,
+                        )
     return last_id
 
 
