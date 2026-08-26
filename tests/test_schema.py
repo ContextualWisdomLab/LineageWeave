@@ -434,7 +434,9 @@ def test_onet_rating_importer_is_idempotent_against_postgresql(
         encoding="utf-8",
     )
     args = SimpleNamespace(
-        target_dsn=schema_db.dsn,
+        target_dsn=urlunsplit(
+            urlsplit(_ADMIN_DSN)._replace(path=f"/{schema_db.info.dbname}")
+        ),
         release_code="onet-31.0-synthetic",
         release_version="31.0-synthetic",
         source_table_code="abilities",
