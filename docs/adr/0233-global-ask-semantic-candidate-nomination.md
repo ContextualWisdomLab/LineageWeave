@@ -1,4 +1,4 @@
-# ADR 0227: Global Ask nominates persisted semantic candidates
+# ADR 0233: Global Ask nominates persisted semantic candidates
 
 - Status: Accepted
 - Date: 2026-08-26

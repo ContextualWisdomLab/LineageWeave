@@ -1,4 +1,4 @@
-# ADR 0228: Global Ask verifies typed public claims outside internal authority
+# ADR 0234: Global Ask verifies typed public claims outside internal authority
 
 ## Status
 
@@ -6,7 +6,7 @@ Accepted
 
 ## Context
 
-ADR 0227 lets normalized semantic and Knowledge Graph evidence nominate an
+ADR 0233 lets normalized semantic and Knowledge Graph evidence nominate an
 authorized source post. Nomination and an internal citation do not establish
 that a real-world claim is publicly corroborated. Conversely, sending private
 post bodies, people facts, measurement payloads, or source hints to a public

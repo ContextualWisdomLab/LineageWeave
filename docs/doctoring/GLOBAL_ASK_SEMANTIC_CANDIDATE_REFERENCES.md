@@ -1,6 +1,6 @@
 # Global Ask semantic candidate research register
 
-ADR 0227 is normative. This register records the adopted platform evidence.
+ADR 0233 is normative. This register records the adopted platform evidence.
 
 | Decision need | Adopted evidence | Product consequence |
 |---|---|---|

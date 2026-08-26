@@ -1,6 +1,6 @@
 # Global Ask public-verification research register
 
-ADR 0228 adopts three distinct contracts:
+ADR 0234 adopts three distinct contracts:
 
 - FEVER supplies the evidence-dependent `supported`, `refuted`, and
   `not_enough_information` outcome model.
