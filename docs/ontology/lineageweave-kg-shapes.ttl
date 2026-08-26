@@ -23,10 +23,11 @@
 #
 # Every sh:targetClass must live in the canonical repository-case namespace;
 # sh:path may additionally use RDF's subject/predicate/object reification
-# predicates. scripts/publish_ontology_site.py fails closed on every other
-# external or dangling target so a renamed term cannot silently orphan its
-# shape. tests/test_ontology_shapes.py validates this graph against the
-# ontology source with pyshacl, plus negative violation tests.
+# predicates and PROV-O's derivation/time predicates.
+# scripts/publish_ontology_site.py fails closed on every other external or
+# dangling target so a renamed term cannot silently orphan its shape.
+# tests/test_ontology_shapes.py validates this graph against the ontology
+# source with pyshacl, plus negative violation tests.
 #################################################################
 
 <https://contextualwisdomlab.github.io/LineageWeave/ontology/lineageweave-kg-shapes.ttl>
