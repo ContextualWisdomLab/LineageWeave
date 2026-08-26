@@ -35,8 +35,12 @@ compound lookup codes.
   permits only one primary voice while allowing any evidence-backed subset of
   the governed vocabulary as additional voices.
 - A database trigger verifies that every association code belongs to the
-  `voc_type` lookup category; the global lookup-code foreign key alone does not
-  establish that category boundary.
+  `voc_type` lookup category and every truth code belongs to
+  `ontology_truth_status`;
+  the global lookup-code foreign key alone does not establish either category
+  boundary. Promoting an existing additional voice to the imported primary
+  resets it to observed source evidence and removes the now-unneeded derived
+  assertion reference.
 - Voice remains distinct from counterparty relationship, actor role, topic,
   channel, lifecycle, and stakeholder-salience attributes. No inference,
   keyword rule, confidence threshold, or weight converts those dimensions into

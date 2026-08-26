@@ -26,7 +26,10 @@ def test_voice_combination_schema_is_normalized_and_evidence_bearing() -> None:
     assert "after insert or update of voc_type_code on source_post" in sql
     assert "on conflict (post_id, voice_type_code) do update" in sql
     assert "where lookup_category = 'voc_type'" in sql
+    assert "where lookup_category = 'ontology_truth_status'" in sql
     assert "errcode = '23514'" in sql
+    assert sql.count("truth_status_code = 'truth_observed'") == 2
+    assert sql.count("provenance_assertion_id = null") == 2
 
 
 def test_voice_combination_migration_uses_no_compound_or_inferred_voice_codes() -> None:

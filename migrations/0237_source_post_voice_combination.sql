@@ -21,7 +21,7 @@ create unique index if not exists source_post_voice_primary_idx
 create index if not exists source_post_voice_type_idx
     on source_post_voice (voice_type_code, post_id);
 
-create or replace function validate_source_post_voice_type()
+create or replace function validate_source_post_voice_codes()
 returns trigger
 language plpgsql
 as $$
@@ -35,21 +35,32 @@ begin
         raise exception 'source_post_voice requires a voc_type lookup code'
             using errcode = '23514';
     end if;
+    if not exists (
+        select 1
+        from common_lookup_value
+        where lookup_category = 'ontology_truth_status'
+          and lookup_code = new.truth_status_code
+    ) then
+        raise exception 'source_post_voice requires an ontology_truth_status lookup code'
+            using errcode = '23514';
+    end if;
     return new;
 end;
 $$;
 
 drop trigger if exists source_post_voice_type_guard on source_post_voice;
 create trigger source_post_voice_type_guard
-before insert or update of voice_type_code on source_post_voice
-for each row execute function validate_source_post_voice_type();
+before insert or update of voice_type_code, truth_status_code on source_post_voice
+for each row execute function validate_source_post_voice_codes();
 
 insert into source_post_voice
     (post_id, voice_type_code, is_primary, truth_status_code)
 select post_id, voc_type_code, true, 'truth_observed'
 from source_post
 on conflict (post_id, voice_type_code) do update
-set is_primary = true;
+set is_primary = true,
+    truth_status_code = 'truth_observed',
+    provenance_assertion_id = null;
 
 create or replace function synchronize_source_post_primary_voice()
 returns trigger
@@ -65,7 +76,9 @@ begin
         (post_id, voice_type_code, is_primary, truth_status_code)
     values (new.post_id, new.voc_type_code, true, 'truth_observed')
     on conflict (post_id, voice_type_code) do update
-    set is_primary = true;
+    set is_primary = true,
+        truth_status_code = 'truth_observed',
+        provenance_assertion_id = null;
     return new;
 end;
 $$;
