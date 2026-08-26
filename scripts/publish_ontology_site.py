@@ -17,7 +17,7 @@ from types import ModuleType
 from urllib.parse import urlsplit
 
 from rdflib import Graph, URIRef
-from rdflib.namespace import OWL, RDF, RDFS, SH, SKOS
+from rdflib.namespace import OWL, PROV, RDF, RDFS, SH, SKOS
 
 try:
     from scripts.ontology_site_contract import public_fragment
@@ -33,7 +33,15 @@ SHAPES_RELATIVE_PATH = Path("docs/ontology/lineageweave-kg-shapes.ttl")
 #: lowercase form is the deprecated compatibility vocabulary.
 CANONICAL_NAMESPACE = "https://contextualwisdomlab.github.io/LineageWeave/ontology#"
 DEPRECATED_NAMESPACE = "https://contextualwisdomlab.github.io/lineageweave/ontology#"
-STANDARD_SHACL_PATHS = frozenset({RDF.subject, RDF.predicate, RDF.object})
+STANDARD_SHACL_PATHS = frozenset(
+    {
+        RDF.subject,
+        RDF.predicate,
+        RDF.object,
+        PROV.wasDerivedFrom,
+        PROV.generatedAtTime,
+    }
+)
 
 _MAPPING_FOR_KIND = {
     OWL.Class: OWL.equivalentClass,

@@ -98,6 +98,20 @@ vocabulary, exact published adjacency pairs, deterministic ordering,
 canonical namespace, and lookup round-trip isolation are enforced by
 `tests/test_io_taxonomy.py`; `tests/test_ontology.py` continues to pass
 unchanged.
+### PRD-FR-2C — Evidence-bound occupational constructs
+
+- Keep cognitive abilities, work styles, work activities, affective
+  reactions, and performance behaviors as non-equivalent construct classes
+  (ADR 0248). FJA worker functions remain separate.
+- Reuse official external identifiers and source-published relationships;
+  never infer a DPT-to-psychology crosswalk or relabel work style as affect.
+- Bind a construct to record content only through a provenance-bearing,
+  evidence-cited assertion. Do not promote record evidence to a person trait,
+  score, causal effect, or job requirement.
+
+Acceptance: SHACL rejects incomplete assertions; ontology tests prohibit FJA
+equivalence and require exact Post/evidence/PROV statement structure. Runtime
+persistence and UI remain unavailable until their separate ADR acceptance.
 
 ### PRD-FR-3 — Bounded ontology exploration
 

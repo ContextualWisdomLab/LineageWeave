@@ -23,6 +23,12 @@ All notable changes to this project are documented here. Format follows
   importance or level rating is imported. Each scheme links to versioned
   PROV source entities with publisher/creator and rights/license metadata;
   the stable O*NET 31.0 Job Zone JSON carries its verified SHA-256.
+- Evidence-bound occupational construct semantics now keep cognitive
+  abilities, work styles, work activities, affective reactions, performance
+  behaviors, and FJA worker functions distinct. Record-to-construct links
+  require a reified evidence span and PROV-O derivation/time; unsupported
+  DPT-to-psychology crosswalks and local scores remain unavailable (ADR 0248).
+
 - The DOT/FJA Data/People/Things worker-function taxonomy is now published
   in the canonical ontology: all 24 worker functions carry the official
   Dictionary of Occupational Titles Appendix B definitions verbatim, their
