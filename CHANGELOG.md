@@ -8,6 +8,11 @@ All notable changes to this project are documented here. Format follows
 
 ### Added
 
+- O*NET occupation-rating source evidence now has a replay-safe PostgreSQL
+  contract with normalized release, source-table, scale, occupation, element,
+  and observation tables. Exact release/source LIST partitions fail closed;
+  nullable categories remain idempotent identities, and no source value is
+  promoted to a local weight or person score (ADR 0254).
 - All eight O*NET 31.0 published linkage tables now contribute 1,417 directed
   Ability/Essential Skill/Transferable Skill/Work Style relations to Work
   Activities and Work Context. Every direct relation has an exact reified

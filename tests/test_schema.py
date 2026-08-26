@@ -103,6 +103,11 @@ _GLOBAL_ASK_EVIDENCE_SEARCH_MIGRATION = (
     / "migrations"
     / "0210_global_ask_evidence_search_indexes.sql"
 )
+_ONET_RATING_MIGRATION = (
+    Path(__file__).resolve().parents[1]
+    / "migrations"
+    / "0222_onet_rating_observation_store.sql"
+)
 _CHANNEL_EVIDENCE_MIGRATION = (
     Path(__file__).resolve().parents[1] / "migrations" / "0174_post_lineage_edge_signal.sql"
 )
@@ -173,6 +178,7 @@ def schema_db():
                 cur.execute(_LEFTOVER_MAP_CROSS_SHARE_MIGRATION.read_text())
                 cur.execute(_LEFTOVER_MAP_RECONSTRUCTION_MIGRATION.read_text())
                 cur.execute(_SOURCE_EVENT_TIME_MIGRATION.read_text())
+                cur.execute(_ONET_RATING_MIGRATION.read_text())
                 # psql sends each statement independently, which is required
                 # by CREATE INDEX CONCURRENTLY. psycopg2 treats a multi-
                 # statement execute as one transaction even with autocommit.
@@ -235,8 +241,116 @@ def test_migration_applies_cleanly(schema_db) -> None:
         "post_summary_action",
         "post_chat_result",
         "post_chat_citation",
+        "occupational_data_release",
+        "occupational_source_table",
+        "occupational_scale_definition",
+        "occupational_classification_entry",
+        "occupational_element_definition",
+        "occupational_rating_observation",
     }
     assert expected <= tables
+
+
+def test_onet_rating_store_partitions_upserts_and_rejects_invalid_error(schema_db) -> None:
+    """Persist one realistic rating without collapsing missing category or uncertainty."""
+    with schema_db.cursor() as cur:
+        cur.execute(
+            """
+            insert into occupational_data_release
+                (data_release_code, release_version, source_publisher_name, source_license_url)
+            values ('onet-31.0', '31.0', 'National Center for O*NET Development',
+                    'https://creativecommons.org/licenses/by/4.0/')
+            """
+        )
+        cur.execute(
+            """
+            insert into occupational_source_table
+                (data_release_code, source_table_code, source_table_name,
+                 source_artifact_url, source_artifact_sha256, source_row_count)
+            values ('onet-31.0', 'abilities', 'Abilities', 'https://example.test/abilities.json',
+                    %s, 94640)
+            """,
+            ("a" * 64,),
+        )
+        cur.execute(
+            """
+            insert into occupational_scale_definition
+                (data_release_code, scale_id, scale_name, minimum_value, maximum_value)
+            values ('onet-31.0', 'IM', 'Importance', 1, 5)
+            """
+        )
+        cur.execute(
+            """
+            insert into occupational_classification_entry
+                (data_release_code, onetsoc_code, occupation_title)
+            values ('onet-31.0', '15-1252.00', 'Synthetic software occupation')
+            """
+        )
+        cur.execute(
+            """
+            insert into occupational_element_definition
+                (data_release_code, element_id, element_name)
+            values ('onet-31.0', '1.A.1.a.1', 'Oral Comprehension')
+            """
+        )
+        cur.execute("savepoint missing_partition")
+        with pytest.raises(psycopg2.errors.CheckViolation):
+            cur.execute(
+                """
+                insert into occupational_rating_observation
+                    (data_release_code, source_table_code, onetsoc_code, element_id,
+                     scale_id, data_value, source_updated_date, domain_source_code)
+                values ('onet-31.0', 'abilities', '15-1252.00', '1.A.1.a.1',
+                        'IM', 4.10, date '2026-08-01', 'Analyst')
+                """
+            )
+        cur.execute("rollback to savepoint missing_partition")
+        cur.execute(
+            """
+            create table occupational_rating_observation_onet_31
+                partition of occupational_rating_observation
+                for values in ('onet-31.0') partition by list (source_table_code)
+            """
+        )
+        cur.execute(
+            """
+            create table occupational_rating_observation_onet_31_abilities
+                partition of occupational_rating_observation_onet_31
+                for values in ('abilities')
+            """
+        )
+        statement = """
+            insert into occupational_rating_observation
+                (data_release_code, source_table_code, onetsoc_code, element_id,
+                 scale_id, category_value, data_value, sample_size, standard_error,
+                 lower_ci_bound, upper_ci_bound, recommend_suppress, not_relevant,
+                 source_updated_date, domain_source_code)
+            values ('onet-31.0', 'abilities', '15-1252.00', '1.A.1.a.1',
+                    'IM', null, %s, 120, 0.08, 3.94, 4.26, false, false,
+                    date '2026-08-01', 'Analyst')
+            on conflict on constraint occupational_rating_identity_key
+            do update set data_value = excluded.data_value
+        """
+        cur.execute(statement, (4.10,))
+        cur.execute(statement, (4.25,))
+        cur.execute(
+            """
+            select count(*), max(data_value)
+            from occupational_rating_observation
+            where data_release_code = 'onet-31.0'
+            """
+        )
+        assert cur.fetchone() == (1, 4.25)
+        cur.execute("savepoint invalid_error")
+        with pytest.raises(psycopg2.errors.CheckViolation):
+            cur.execute(
+                """
+                update occupational_rating_observation
+                set standard_error = -0.01
+                where data_release_code = 'onet-31.0'
+                """
+            )
+        cur.execute("rollback to savepoint invalid_error")
 
 
 def test_global_ask_evidence_search_indexes_exist_on_normalized_tables(schema_db) -> None:
