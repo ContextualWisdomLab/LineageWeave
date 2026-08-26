@@ -51,6 +51,10 @@ its own public-target SSRF and redirect rejection.
    ontology, Knowledge Graph, Event Lineage, TEPP, or fast-mlsirm state.
 7. Missing SearXNG, orchestrator, public target, or retrieved text is an
    explicit unavailable outcome, never a fabricated negative judgment.
+8. A transient unavailable re-check is returned for the current attempt but
+   does not erase a lead's last determinate persisted judgment or cited public
+   resource. Citation reads use the persisted source-unit and image-region
+   order as the deterministic tie-break within one transaction timestamp.
 
 ## Consequences
 

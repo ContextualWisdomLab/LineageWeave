@@ -1,8 +1,8 @@
 """Load source leads, run public research, and persist citations.
 
 Private posts fail closed before any search or retrieval. Already-checked
-leads are replaced in place so the reader sees the latest public resource
-for that unit or image region.
+leads retain their last determinate public evidence when a later provider
+attempt is unavailable.
 """
 
 from __future__ import annotations
@@ -95,9 +95,22 @@ async def list_source_research_citations(
                rationale_text,
                next_action_text,
                checked_at
-          from source_research_citation
-         where post_id = $1
-         order by checked_at desc, source_research_citation_id
+          from source_research_citation citation
+          left join post_content_unit unit
+            on unit.post_content_unit_id = citation.lead_source_unit_id
+          left join post_content_image_region region
+            on region.post_content_image_region_id = citation.lead_image_region_id
+          left join post_content_image image
+            on image.post_content_image_id = region.post_content_image_id
+          left join post_content_unit image_unit
+            on image_unit.post_content_unit_id = image.post_content_unit_id
+         where citation.post_id = $1
+         order by citation.checked_at desc,
+                  case when citation.lead_source_unit_id is not null then 0 else 1 end,
+                  unit.unit_index,
+                  image_unit.unit_index,
+                  region.region_index,
+                  citation.source_research_citation_id
         """,
         post_id,
     )
@@ -109,7 +122,7 @@ async def persist_source_research_citation(
     post_id: str,
     citation: SourceResearchCitation,
 ) -> None:
-    """Replace the latest citation for this lead."""
+    """Replace a lead citation without erasing determinate evidence on outage."""
 
     values = (
         post_id,
@@ -154,6 +167,8 @@ async def persist_source_research_citation(
                 rationale_text = excluded.rationale_text,
                 next_action_text = excluded.next_action_text,
                 checked_at = now()
+            where excluded.judgment_code <> 'research_unavailable'
+               or source_research_citation.judgment_code = 'research_unavailable'
             """,
             *values,
         )
@@ -186,6 +201,8 @@ async def persist_source_research_citation(
             rationale_text = excluded.rationale_text,
             next_action_text = excluded.next_action_text,
             checked_at = now()
+        where excluded.judgment_code <> 'research_unavailable'
+           or source_research_citation.judgment_code = 'research_unavailable'
         """,
         *values,
     )

@@ -2,7 +2,11 @@ from __future__ import annotations
 
 import asyncio
 
-from backend.app.source_research_ingestion import research_post_sources_from_pool
+from backend.app.source_research_ingestion import (
+    list_source_research_citations,
+    persist_source_research_citation,
+    research_post_sources_from_pool,
+)
 from lineageweave.source_reference_research import (
     JUDGMENT_SUPPORTED,
     JUDGMENT_UNAVAILABLE,
@@ -19,9 +23,11 @@ class _Connection:
     def __init__(self, units: list[dict], regions: list[dict] | None = None) -> None:
         self.units = units
         self.regions = regions or []
+        self.fetched: list[tuple[str, str]] = []
         self.executed: list[tuple[str, tuple[object, ...]]] = []
 
     async def fetch(self, query: str, post_id: str):
+        self.fetched.append((query, post_id))
         if "post_content_image_region" in query:
             return self.regions
         return self.units
@@ -165,3 +171,33 @@ def test_malformed_adjudication_fails_closed_for_only_its_lead() -> None:
         JUDGMENT_UNAVAILABLE,
     ]
     assert len(conn.executed) == 2
+
+
+def test_unavailable_recheck_does_not_replace_determinate_evidence() -> None:
+    conn = _Connection([])
+    citation = SourceResearchCitation(
+        lead_kind_code="research_lead_semantic_unit",
+        lead_source_unit_id="unit-1",
+        lead_excerpt_text="Synthetic public lead.",
+        search_query_text="Synthetic public lead.",
+        judgment_code=JUDGMENT_UNAVAILABLE,
+        rationale_text="Provider unavailable.",
+    )
+
+    asyncio.run(persist_source_research_citation(conn, "post-public", citation))
+
+    query = conn.executed[0][0]
+    assert "excluded.judgment_code <> 'research_unavailable'" in query
+    assert "source_research_citation.judgment_code = 'research_unavailable'" in query
+
+
+def test_citation_reads_preserve_source_order_for_same_run() -> None:
+    conn = _Connection([])
+
+    asyncio.run(list_source_research_citations(conn, "post-public"))
+
+    query = conn.fetched[0][0]
+    assert "case when citation.lead_source_unit_id is not null then 0 else 1 end" in query
+    assert "unit.unit_index" in query
+    assert "image_unit.unit_index" in query
+    assert "region.region_index" in query
