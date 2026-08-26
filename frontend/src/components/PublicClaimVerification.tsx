@@ -10,7 +10,11 @@ export function PublicClaimVerification({
   claims: ExternalClaim[];
   statusCode?: string;
 }) {
-  if (claims.length === 0 && statusCode !== "external_verification_unavailable") return null;
+  if (
+    claims.length === 0
+    && statusCode !== "external_verification_completed"
+    && statusCode !== "external_verification_unavailable"
+  ) return null;
   return (
     <section className="popup-section public-claim-verification" aria-label={t("Public verification")}>
       <h4>{t("Public verification")}</h4>

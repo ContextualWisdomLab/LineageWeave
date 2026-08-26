@@ -164,7 +164,6 @@ def _verification_next_action(status_code: str) -> str | None:
         VERIFICATION_UNAVAILABLE: "Review the cited posts or try the public information check again later.",
         VERIFICATION_NO_PUBLIC_CLAIMS: "Open the cited posts to review the available evidence.",
         VERIFICATION_COMPLETED: "Compare the public sources with the cited posts before deciding what to do next.",
-        CLAIM_NOT_ENOUGH_INFORMATION: "Find another reliable source before relying on this claim.",
     }.get(status_code, "Open the cited posts and review their evidence.")
 
 

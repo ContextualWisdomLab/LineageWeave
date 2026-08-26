@@ -70,3 +70,15 @@ export const Unavailable: Story = {
     ).toBeVisible();
   },
 };
+
+export const CompletedWithoutEligibleClaims: Story = {
+  args: {
+    claims: [],
+    statusCode: "external_verification_completed",
+  },
+  play: async ({ canvasElement }) => {
+    await expect(
+      within(canvasElement).getByText("Not enough public information"),
+    ).toBeVisible();
+  },
+};
