@@ -3088,11 +3088,11 @@ describe("App, authenticated", () => {
     );
   });
 
-  it("names RankWeave unavailability on home rankings instead of inventing a fused score", async () => {
+  it("gives a customer action when rankings are unavailable", async () => {
     stubBackend();
     render(<App />);
 
-    expect(await screen.findByText("Rankings · RankWeave not available")).toBeInTheDocument();
+    expect(await screen.findByText("Rankings are temporarily unavailable. Try again later.")).toBeInTheDocument();
     expect(screen.queryByText("Pricing renegotiation: revised quote sent")).not.toBeInTheDocument();
   });
 
@@ -3196,11 +3196,11 @@ describe("App, authenticated", () => {
       name: /open ranking: public post/i,
     });
     expect(rankingButton).toHaveTextContent("Public post");
-    expect(rankingButton).toHaveTextContent("Rankings · rankweave");
+    expect(rankingButton).toHaveTextContent("Ranked result");
     expect(rankingButton).toHaveTextContent("rank 1");
     expect(
       screen.getByText(
-        "RankWeave fused newest-first and title-overlap ranks. This is not a calibrated score.",
+        "Open a result to review the records most relevant to your search.",
       ),
     ).toBeInTheDocument();
     expect(

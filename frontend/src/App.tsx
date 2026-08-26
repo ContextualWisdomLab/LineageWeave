@@ -3361,24 +3361,24 @@ function RankingsPanel({
         {ranking && (
           <span className="post-badge">
             {ranking.status === "accepted"
-              ? "rankweave"
-              : `rankweave · ${ranking.status_reason ?? "unavailable"}`}
+              ? t("Ranked result")
+              : t("Rankings temporarily unavailable")}
           </span>
         )}
       </div>
       {error && <p className="error">{error}</p>}
       {ranking === null && !error && <p role="status">{t("Loading rankings...")}</p>}
       {ranking && ranking.status === "unavailable" && (
-        <p className="popup-placeholder">{t("Rankings · RankWeave not available")}</p>
+        <p className="popup-placeholder">{t("Rankings are temporarily unavailable. Try again later.")}</p>
       )}
       {ranking && ranking.status === "accepted" && ranking.rankings.length === 0 && (
-        <p className="popup-placeholder">{t("No fused rankings from RankWeave.")}</p>
+        <p className="popup-placeholder">{t("No ranked records are available. Try a broader search.")}</p>
       )}
       {ranking && ranking.rankings.length > 0 && (
         <>
           <p className="ranking-channel-evidence-copy">
             {t(
-              "RankWeave fused newest-first and title-overlap ranks. This is not a calibrated score.",
+              "Open a result to review the records most relevant to your search.",
             )}
           </p>
           <ul className="ticket-list" aria-label={t("Fused rankings")}>
@@ -3390,7 +3390,7 @@ function RankingsPanel({
                   onClick={() => onSelectPost(hit.post_id)}
                 >
                   <span className="ticket-title">{hit.post_title}</span>
-                  <span className="post-badge">{t("Rankings · rankweave")}</span>
+                  <span className="post-badge">{t("Ranked result")}</span>
                   <span className="post-badge">{tf("rank {rank}", { rank: String(hit.fused_rank) })}</span>
                 </button>
                 {(hit.channel_evidence ?? []).length > 0 ? (
