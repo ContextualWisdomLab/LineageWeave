@@ -106,6 +106,58 @@ async def _operations_evidence_sources(
     )
 
 
+async def _persist_operations_case_analysis_if_needed(
+    pool: asyncpg.Pool,
+    post_id: str,
+    source_body_digest: str,
+    raw_body: str,
+    row: asyncpg.Record,
+    vision_client: ImageContentClient,
+    session_id: str,
+    orchestrator_base_url: str,
+    orchestrator_api_key: str,
+) -> None:
+    """Persist evidence-bound cases once per exact source-body version."""
+    async with pool.acquire() as conn:
+        already_persisted = bool(
+            await conn.fetchval(
+                "select exists (select 1 from operations_case_analysis "
+                "where post_id = $1 and source_body_sha256 = $2)",
+                post_id,
+                source_body_digest,
+            )
+        )
+    if already_persisted:
+        return
+    case_client = ContextualOrchestratorOperationsCaseAnalysisClient(
+        orchestrator_base_url,
+        orchestrator_api_key,
+    )
+    context = " | ".join(
+        f"{name}={row[name]}"
+        for name in (
+            "source_project_code",
+            "source_project_name",
+            "source_sales_pool_code",
+            "source_sales_pool_name",
+            "voc_type_code",
+        )
+        if row.get(name) is not None and str(row[name]).strip()
+    )
+    evidence_sources = await _operations_evidence_sources(
+        pool, post_id, row, vision_client
+    )
+    cases = await asyncio.to_thread(case_client.analyze, evidence_sources, context)
+    async with pool.acquire() as conn:
+        await persist_operations_cases(
+            conn,
+            post_id,
+            raw_body,
+            session_id,
+            cases,
+        )
+
+
 async def _stream_tail(client: redis.Redis) -> str:
     """Start after historical wake-ups; the normalized ledger drives recovery."""
     with traced(
@@ -335,6 +387,18 @@ async def process_post_content_job(
         structure_client = structure_factory()
         with use_llm_metadata(metadata):
             vision_client = vision_factory()
+            if settings.orchestrator_base_url and settings.orchestrator_api_key:
+                await _persist_operations_case_analysis_if_needed(
+                    pool,
+                    post_id,
+                    source_body_digest,
+                    raw_body,
+                    row,
+                    vision_client,
+                    metadata["lineageweave_post_session_id"],
+                    settings.orchestrator_base_url,
+                    settings.orchestrator_api_key,
+                )
             normalized = await asyncio.to_thread(
                 normalize_post_body, raw_body, vision_client
             )
@@ -349,38 +413,6 @@ async def process_post_content_job(
                     structure_client=structure_client,
                     post_title=str(row["post_title"]),
                 )
-            if settings.orchestrator_base_url and settings.orchestrator_api_key:
-                case_client = ContextualOrchestratorOperationsCaseAnalysisClient(
-                    settings.orchestrator_base_url,
-                    settings.orchestrator_api_key,
-                )
-                context = " | ".join(
-                    f"{name}={row[name]}"
-                    for name in (
-                        "source_project_code",
-                        "source_project_name",
-                        "source_sales_pool_code",
-                        "source_sales_pool_name",
-                        "voc_type_code",
-                    )
-                    if row.get(name) is not None and str(row[name]).strip()
-                )
-                evidence_sources = await _operations_evidence_sources(
-                    pool, post_id, row, vision_client
-                )
-                cases = await asyncio.to_thread(
-                    case_client.analyze,
-                    evidence_sources,
-                    context,
-                )
-                async with pool.acquire() as conn:
-                    await persist_operations_cases(
-                        conn,
-                        post_id,
-                        raw_body,
-                        metadata["lineageweave_post_session_id"],
-                        cases,
-                    )
             async with pool.acquire() as conn:
                 complete = await post_content_is_complete(
                     conn,
