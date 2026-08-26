@@ -114,6 +114,9 @@ const MESSAGE_KEYS = [
   "noPriorHistory",
   "inferredBoundary",
   "projectEvidence",
+  "sourceRecordEvidence",
+  "supportingRecordEvidence",
+  "recordedEvidence",
   "observed",
   "inferred",
   "openSourceRecord",
@@ -162,6 +165,9 @@ const EN: Record<ProjectHistoryMessageKey, string> = {
   noPriorHistory: "No visible prior lineage path is recorded for this event.",
   inferredBoundary: "This is inferred related history, not causality or an authoritative assignment record.",
   projectEvidence: "Project identity evidence",
+  sourceRecordEvidence: "Source record",
+  supportingRecordEvidence: "Supporting record",
+  recordedEvidence: "Recorded evidence",
   observed: "Observed",
   inferred: "Inferred",
   openSourceRecord: "Open source record: {title}",
@@ -207,6 +213,9 @@ const MESSAGES: Record<Locale, Record<ProjectHistoryMessageKey, string>> = {
     noPriorHistory: "이 이벤트로 이어지는 공개 가능한 이전 계보가 없습니다.",
     inferredBoundary: "이는 추론된 관련 이력이며 인과관계나 권위 있는 인사 배정 기록이 아닙니다.",
     projectEvidence: "프로젝트 식별 근거",
+    sourceRecordEvidence: "원천 기록",
+    supportingRecordEvidence: "뒷받침 기록",
+    recordedEvidence: "기록된 근거",
     observed: "관찰됨",
     inferred: "추론됨",
     openSourceRecord: "원천 기록 열기: {title}",
@@ -249,6 +258,9 @@ const MESSAGES: Record<Locale, Record<ProjectHistoryMessageKey, string>> = {
     noPriorHistory: "此事件没有可见的既往谱系路径。",
     inferredBoundary: "这是推断的相关历史，并非因果关系或权威任命记录。",
     projectEvidence: "项目身份依据",
+    sourceRecordEvidence: "来源记录",
+    supportingRecordEvidence: "支持记录",
+    recordedEvidence: "已记录依据",
     observed: "已观察",
     inferred: "已推断",
     openSourceRecord: "打开源记录：{title}",
@@ -291,6 +303,9 @@ const MESSAGES: Record<Locale, Record<ProjectHistoryMessageKey, string>> = {
     noPriorHistory: "このイベントに至る可視の過去系譜はありません。",
     inferredBoundary: "これは推論された関連履歴であり、因果関係や権威ある配属記録ではありません。",
     projectEvidence: "プロジェクト識別根拠",
+    sourceRecordEvidence: "元レコード",
+    supportingRecordEvidence: "根拠レコード",
+    recordedEvidence: "記録された根拠",
     observed: "観察済み",
     inferred: "推論済み",
     openSourceRecord: "原資料を開く: {title}",
@@ -333,6 +348,9 @@ const MESSAGES: Record<Locale, Record<ProjectHistoryMessageKey, string>> = {
     noPriorHistory: "Không có đường dẫn lịch sử trước đó khả kiến cho sự kiện này.",
     inferredBoundary: "Đây là lịch sử liên quan được suy luận, không phải quan hệ nhân quả hay hồ sơ phân công có thẩm quyền.",
     projectEvidence: "Bằng chứng nhận dạng dự án",
+    sourceRecordEvidence: "Bản ghi nguồn",
+    supportingRecordEvidence: "Bản ghi hỗ trợ",
+    recordedEvidence: "Bằng chứng đã ghi nhận",
     observed: "Đã quan sát",
     inferred: "Đã suy luận",
     openSourceRecord: "Mở bản ghi nguồn: {title}",
@@ -378,7 +396,18 @@ export function projectHistoryEventTypeLabel(locale: Locale, code: string): stri
     source_recorded: "sourceRecorded",
   };
   const key = keyByCode[code];
-  return key ? projectHistoryText(locale, key) : code;
+  return projectHistoryText(locale, key ?? "sourceRecorded");
+}
+
+/** Return a customer label for a persisted project-match provenance field. */
+export function projectHistoryMatchSourceLabel(locale: Locale, provenance: string): string {
+  if (provenance.startsWith("source_post.")) {
+    return projectHistoryText(locale, "sourceRecordEvidence");
+  }
+  if (provenance.startsWith("post_project_mention.")) {
+    return projectHistoryText(locale, "supportingRecordEvidence");
+  }
+  return projectHistoryText(locale, "recordedEvidence");
 }
 
 export function projectHistoryTransitionLabel(

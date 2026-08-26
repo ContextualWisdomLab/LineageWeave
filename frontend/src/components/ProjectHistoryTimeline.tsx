@@ -5,6 +5,7 @@ import {
   type ProjectHistoryEvent,
   type ProjectHistoryProjection,
   projectHistoryEventTypeLabel,
+  projectHistoryMatchSourceLabel,
   projectHistoryText,
   projectHistoryTransitionLabel,
 } from "../projectHistory";
@@ -278,7 +279,8 @@ export function ProjectHistoryTimeline({
               <ul>
                 {selectedEvent.project_matches.map((match) => (
                   <li key={`${match.match_kind_code}:${match.matched_value}:${match.provenance}`}>
-                    <strong>{match.matched_value}</strong> · {match.provenance} ·{" "}
+                    <strong>{match.matched_value}</strong> ·{" "}
+                    {projectHistoryMatchSourceLabel(locale, match.provenance)} ·{" "}
                     {projectHistoryText(locale, match.truth_status_code)}
                   </li>
                 ))}

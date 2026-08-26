@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 
-import { projectHistoryKeys } from "./projectHistory";
+import {
+  projectHistoryEventTypeLabel,
+  projectHistoryKeys,
+  projectHistoryMatchSourceLabel,
+} from "./projectHistory";
 
 describe("projectHistoryKeys", () => {
   it("deduplicates compatibility- and case-normalized identities", () => {
@@ -39,5 +43,18 @@ describe("projectHistoryKeys", () => {
         "Source project",
       ),
     ).toEqual(["semantic-project", "SOURCE-200"]);
+  });
+
+  it("keeps storage fields and unknown event codes out of customer labels", () => {
+    expect(projectHistoryMatchSourceLabel("en", "source_post.source_project_name")).toBe(
+      "Source record",
+    );
+    expect(projectHistoryMatchSourceLabel("en", "post_project_mention.project_name")).toBe(
+      "Supporting record",
+    );
+    expect(projectHistoryMatchSourceLabel("en", "future_table.future_column")).toBe(
+      "Recorded evidence",
+    );
+    expect(projectHistoryEventTypeLabel("en", "future_event_code")).toBe("Source record");
   });
 });
