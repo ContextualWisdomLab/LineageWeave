@@ -202,6 +202,7 @@ def test_library_transport_projects_monkeypatched_rrf(
             limit: int = 20,
             rank_constant_eta: int = 60,
         ) -> list:
+            captured["calls"] = int(captured.get("calls", 0)) + 1
             captured["channels"] = channels
             captured["limit"] = limit
             captured["eta"] = rank_constant_eta
@@ -253,6 +254,7 @@ def test_library_transport_projects_monkeypatched_rrf(
     )
 
     assert captured["eta"] == 60
+    assert captured["calls"] == 1
     assert payload["rankings"][0]["post_title"] == (
         "Pricing renegotiation: revised quote sent"
     )
@@ -291,6 +293,16 @@ def test_unknown_envelope_fails_closed() -> None:
         project_ranking_list({"hits": [{"item_id": "spoofed"}]}, {"spoofed": "x"})
 
 
+def test_empty_transport_result_does_not_start_an_owner_calculation(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(
+        "lineageweave.rankweave_client._import_rankweave",
+        lambda: pytest.fail("empty projection must not call RankWeave"),
+    )
+    assert project_ranking_list([], {}).items == ()
+
+
 def test_unknown_hit_id_is_dropped_not_repaired() -> None:
     ranking = project_ranking_list(
         [{"item_id": "invented"}, {"item_id": "post-2"}],
@@ -306,12 +318,12 @@ def test_ranking_channel_evidence_uses_cormack_weighted_rrf() -> None:
     evidence = ranking_channel_evidence(
         "post-1",
         {"temporal": ["post-1"], "lexical": ["post-1"]},
-        {"temporal": 1.0, "lexical": 1.0},
+        {"temporal": 0.5, "lexical": 0.5},
         eta=60,
     )
     by_code = {item.signal_code: item for item in evidence}
-    assert by_code["lexical"].contribution == 1.0 / 61
-    assert by_code["temporal"].contribution == 1.0 / 61
+    assert by_code["lexical"].contribution == 0.5 / 61
+    assert by_code["temporal"].contribution == 0.5 / 61
     assert by_code["lexical"].channel_rank == 1
     assert by_code["temporal"].channel_rank == 1
     assert by_code["lexical"].rank == 1
@@ -351,7 +363,7 @@ def test_project_ranking_list_ignores_transport_extra_fields() -> None:
         ],
         {"post-1": "Public post"},
         channels={"temporal": ["post-1"], "lexical": ["post-2"]},
-        weights={"temporal": 1.0, "lexical": 1.0},
+        weights={"temporal": 0.5, "lexical": 0.5},
     )
     payload = ranking.to_json()
     assert payload[0]["channel_evidence"] == [
@@ -359,8 +371,8 @@ def test_project_ranking_list_ignores_transport_extra_fields() -> None:
             "signal_code": "temporal",
             "signal_label": "Newest first",
             "channel_rank": 1,
-            "weight": 1.0,
-            "contribution": 1.0 / 61,
+            "weight": 0.5,
+            "contribution": 0.5 / 61,
             "rank": 1,
         }
     ]
