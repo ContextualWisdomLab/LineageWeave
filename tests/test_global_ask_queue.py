@@ -422,9 +422,7 @@ def test_unexpected_job_failure_settles_with_a_generic_detail_not_the_raw_except
     assert "failure_detail" in settle_query
     failure_detail = settle_args[-1]
     assert secret_bearing_message not in failure_detail
-    assert failure_detail == (
-        "Ask Agent is unavailable: contextual-orchestrator returned no complete evidence object"
-    )
+    assert failure_detail == global_ask_queue._ASK_RETRY_MESSAGE
 
 
 def test_permission_and_connection_errors_keep_their_pre_authored_safe_message(
@@ -487,7 +485,7 @@ def test_job_deadline_timeout_settles_with_a_specific_but_still_generic_detail(
     )
 
     _settle_query, settle_args = connection.executed[-1]
-    assert settle_args[-1] == f"job exceeded the {global_ask_queue.JOB_DEADLINE_SECONDS}s deadline"
+    assert settle_args[-1] == global_ask_queue._ASK_RETRY_MESSAGE
 
 
 def test_job_visibility_never_expands_past_queued_scope() -> None:
