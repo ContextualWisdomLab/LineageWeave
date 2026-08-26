@@ -130,12 +130,14 @@ def public_claim_candidates(
     *,
     maximum_claims: int = 4,
 ) -> tuple[PublicClaimCandidate, ...]:
-    """Select bounded public claims relevant to ``question``.
+    """Return bounded public claims from egress-capable sources.
 
     Only :class:`GlobalAskSourceDocument` instances can contribute facts. This
     makes the public-egress capability explicit instead of adding an egress
     field to every post-scoped chat source. Person and Keyman claims are still
     excluded even when an upstream caller constructs a malformed subclass.
+    ``question`` is accepted for caller symmetry only; the cited-source gate,
+    rather than a local relevance heuristic, bounds egress.
     """
 
     if maximum_claims <= 0:
