@@ -160,12 +160,12 @@ def _verification_next_action(status_code: str) -> str:
     """Name the next evidence action without promoting web results to authority."""
 
     return {
-        VERIFICATION_SKIPPED: "Enable public verification to check eligible public claims.",
-        VERIFICATION_UNAVAILABLE: "Configure public search and contextual-orchestrator, then retry.",
-        VERIFICATION_NO_PUBLIC_CLAIMS: "Inspect the internal cited posts; no public claim was eligible.",
-        VERIFICATION_COMPLETED: "Inspect public evidence separately before any governed graph review.",
-        CLAIM_NOT_ENOUGH_INFORMATION: "Collect stronger authoritative evidence before accepting the claim.",
-    }.get(status_code, "Inspect the authorized cited posts and their evidence.")
+        VERIFICATION_SKIPPED: "Turn on public information checks, then ask again.",
+        VERIFICATION_UNAVAILABLE: "Review the cited posts or try the public information check again later.",
+        VERIFICATION_NO_PUBLIC_CLAIMS: "Open the cited posts to review the available evidence.",
+        VERIFICATION_COMPLETED: "Compare the public sources with the cited posts before deciding what to do next.",
+        CLAIM_NOT_ENOUGH_INFORMATION: "Find another reliable source before relying on this claim.",
+    }.get(status_code, "Open the cited posts and review their evidence.")
 
 
 async def _verify_public_claims(

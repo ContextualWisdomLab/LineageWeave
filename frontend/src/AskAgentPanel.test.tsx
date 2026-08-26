@@ -45,7 +45,7 @@ describe("AskAgentPanel public verification", () => {
                   ],
                 },
               ],
-              next_action: "Inspect public evidence separately before any governed graph review.",
+              next_action: "Compare the public sources with the cited posts before deciding what to do next.",
             },
           }),
           { status: 200, headers: { "Content-Type": "application/json" } },
