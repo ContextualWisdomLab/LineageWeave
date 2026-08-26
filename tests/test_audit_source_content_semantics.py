@@ -8,8 +8,8 @@ import pytest
 from fast_mlsirm import SamplingStratum, finite_population_proportion_design
 
 from scripts.audit_source_content_semantics import (
-    SEMANTIC_DIMENSIONS,
     SEMANTIC_DIMENSION_TERM_IRIS,
+    SEMANTIC_DIMENSIONS,
     _ontology_terms,
     _parser,
     _prompt,
