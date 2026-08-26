@@ -77,6 +77,7 @@ describe("i18n", () => {
     "Workspace navigation",
     "Project history",
     "Open project history: {name}",
+    "Loading project history. Review the timeline when it appears.",
     "Observed calendar events",
     "No observed calendar events are available.",
     "Open this observed occurrence. It is not a LineageWeave commitment.",
