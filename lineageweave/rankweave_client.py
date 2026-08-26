@@ -341,7 +341,7 @@ def project_ranking_list(
 
 
 class LibraryRankWeaveTransport:
-    """Call RankWeave ``weighted_reciprocal_rank_fuse`` in-process."""
+    """Call RankWeave reciprocal-rank fusion in-process."""
 
     def __call__(
         self,

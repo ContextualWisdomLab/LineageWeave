@@ -1,4 +1,4 @@
--- ADR 0230: source-preserving, multi-membership voice taxonomy assertions.
+-- ADR 0232: source-preserving, multi-membership voice taxonomy assertions.
 create table if not exists post_voice_classification_assertion (
     classification_assertion_id uuid primary key default gen_random_uuid(),
     post_id uuid not null references source_post(post_id) on delete cascade,

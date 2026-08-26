@@ -72,7 +72,7 @@ async def fetch_known_at_revision(
     cutoff label when no revision covers the clock.
     """
     row = await conn.fetchrow(
-        "select post_title, post_body, written_at "
+        "select source_post_revision_id, post_title, post_body, written_at "
         "from source_post_revision "
         "where post_id = $1 "
         "and written_at <= $2 "
@@ -85,8 +85,45 @@ async def fetch_known_at_revision(
     if row is None:
         return None
     return {
+        "source_post_revision_id": str(row["source_post_revision_id"]),
         "post_title": row["post_title"],
         "post_body": row["post_body"],
         "written_at": _iso(row["written_at"]),
         "as_of": _iso(as_of),
+    }
+
+
+async def fetch_known_at_revisions(
+    conn: "asyncpg.Connection",
+    post_ids: list[str],
+    as_of: datetime,
+) -> dict[str, dict[str, str]]:
+    """Batch-load the retained revision covering ``as_of`` for each post.
+
+    Missing posts stay absent so callers can report an honest historical-body
+    limitation without substituting the live title or body.
+    """
+
+    if not post_ids:
+        return {}
+    rows = await conn.fetch(
+        "select distinct on (post_id) post_id, source_post_revision_id, "
+        "post_title, post_body, written_at "
+        "from source_post_revision "
+        "where post_id = any($1::uuid[]) "
+        "and written_at <= $2 "
+        "and (superseded_at is null or superseded_at > $2) "
+        "order by post_id, written_at desc",
+        post_ids,
+        as_of,
+    )
+    return {
+        str(row["post_id"]): {
+            "source_post_revision_id": str(row["source_post_revision_id"]),
+            "post_title": row["post_title"],
+            "post_body": row["post_body"],
+            "written_at": _iso(row["written_at"]),
+            "as_of": _iso(as_of),
+        }
+        for row in rows
     }

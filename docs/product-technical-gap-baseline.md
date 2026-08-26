@@ -133,12 +133,12 @@ regression evidence, not hosted-gate or protected-main evidence.
 
 ### Exact open-PR boundary
 
-At this snapshot there were 11 open PRs and 10 open issues. The exact-head
-inventory in section 1 is authoritative for this snapshot. Every open head
-remained blocked on hosted gates and/or independent review. These observations
-are not merge readiness. Re-fetch exact heads,
-unresolved threads, checks, approvals, rulesets, and merge SHA before any
-lifecycle claim.
+At this snapshot there were 11 open PRs and 10 open issues. PRs #660 and #659
+merged to protected `main`; PR #666 remains only non-default-branch stack
+composition inside #663. Every remaining open head required refreshed hosted
+gates and/or independent review after the base changed. These observations are
+not merge readiness. Re-fetch exact heads, unresolved threads, checks,
+approvals, rulesets, and merge SHA before any lifecycle claim.
 
 > Audit snapshot: 2026-08-26 07:26 KST (refreshed by the autonomous merge
 > loop). This repository records synthetic fixtures and aggregate,
@@ -254,6 +254,8 @@ Recent protected-default-branch delivery evidence (squash merges onto
 
 | PR | Merged (UTC) | Delivered |
 | ---: | --- | --- |
+| #628 | 2026-08-25 12:39 | one-round-trip authorized post filter options without narrowing the complete ABAC-visible set |
+| #627 | 2026-08-25 12:35 | preserved valid k6 lifecycle evidence across setup, scenario execution, and teardown |
 | #468 | 2026-08-25 08:44 | fast-mlsirm, Keyverse, contextual-orchestrator, and TEPP integration boundaries |
 | #493 | 2026-08-25 08:44 | evidence-grounded Event Lineage isolation reasons |
 | #600 | 2026-08-25 08:44 | then-current exact-head product/technical baseline |
@@ -433,14 +435,8 @@ this file per §3.5 of the prior snapshot).
 | #277 | TEPP: persist accepted receipts, poll completed results, keep measurement authority distinct | #468, #417 |
 | #280 | Full project-lifecycle history and handover intervals | The current stacked candidate covers observed claim, rebid-response, and handover endpoint pairs; cross-record business-case identity remains unavailable unless an explicit source identifier is persisted, so project/similarity proximity is not used as a substitute |
 | #284 | Authoritative lifecycle ingestion and idempotent reconciliation | No active delivery PR confirmed |
-| #289 | Activate the optional lineage LLM channel through a bounded asynchronous rebuild | #434 |
-| #336 | Replace pseudo-CalDAV feed with a Naruon-owned calendar projection | Contract on `main` (#355); operator consume wiring in historical branch `feat/naruon-calendar-buyer-wiring-v2170` |
-| #338 | Evidence-bounded email/project lineage contract for Naruon consumption | #355 |
-| #341 | Heterogeneous ontology and provenance explorer separate from Event Lineage | Protected `main` via #349; issue closed |
-| #358 | Batch reauthorize persisted post-Ask evidence without N+1 queries | Ask stack |
-| #359 | Centralize Global Ask session storage access | Ask stack |
-| #363 | Continue ontology neighborhoods beyond the bounded source window | Protected `main` via #349; issue closed |
-| #372 | Reconcile lowercase and repository-case public namespace IRIs | Protected `main` via #616; issue closed, with term-kind hardening on #618 |
+| #338 | Evidence-bounded email/project lineage contract for Naruon consumption | Missing on protected `main`; #343 merged only into a non-default stack, while #355 is a distinct calendar-consumer contract and is not delivery evidence for email/project lineage |
+| #611 | Decompose closed PR #490 ADR 0133–0137 evidence without transferring stale branch state | #631 supplies the current-main inventory only; focused implementation PRs and tests for every unmet criterion are still required |
 
 ## 5. Open product and technical gaps
 
@@ -468,13 +464,36 @@ this file per §3.5 of the prior snapshot).
 | Planned-facility intent | Planned-facility relationship intent remains only on closed, unmerged #490; earlier stack-only merges were not protected delivery | Recreate the evidence-backed slice on a current base and land through protected `main` before a release claim |
 | Accessibility and responsive UX | #602 delivered base post-detail modal semantics; #605 adds selected-post refocus, collapsed/hidden/inert/CSS-invisible focus exclusion across both modal types, readable evidence separators, focused tests, and desktop/mobile Storybook screenshots | Land #605 through the protected gate, then complete screen-reader and authenticated Playwright acceptance on the exact release head |
 | Design tokens and repeated objects | Token extraction started; sanitized Figma Event Lineage desktop/mobile frames exist, while other repeated product surfaces remain incomplete | Tokens in CSS + Storybook stories for board, popup, DAG, Ask, calendar, forms, charts; same-viewport Figma/runtime visual comparison before release |
-| Frontend delivery performance | A current production build succeeds but emits Vite's >500 kB chunk warning (`539.27 kB` minified); raising the warning limit would conceal rather than reduce delivery cost | Measure module contribution on an exact head, split one real route/surface boundary with native dynamic import, then prove the warning is absent and loading/error states remain accessible |
+| Frontend delivery performance | #644 implements a native dynamic-import boundary for conditional workspace surfaces and retains accessible loading/error states; exact-head checks passed but the PR is not protected-main evidence | Merge #644 normally, rebuild the protected-main production bundle, and retain the measured chunk inventory rather than raising the warning limit |
 | External integrations | Search, Zotero, calendar, Keyverse, orchestrator, RankWeave, ThreadWeave, TEPP, DiskSage, wardnet | Provider conformance, failure/reconciliation behavior, and provenance-bearing integration evidence |
 | MSA / modular reuse | LineageWeave must run standalone and as a consumer of org packages | Do not reimplement RankWeave/TEPP/orchestrator/ThreadWeave/Keyverse; fix upstream and PR there |
-| Product contract authority | This branch recreates the first LineageWeave PRD after superseded #613 closed without merge and records an exact-case ecosystem authority register; TEPP, fast-mlsirm, keyverse, and ThreadWeave have standalone PRDs, while contextual-orchestrator, RankWeave, DiskSage, and wardnet currently rely on product-planning/architecture documents and naruon has only a scoped Topic Intelligence PRD | Land the LineageWeave PRD, keep ADRs normative, and add standalone PRDs in each owning repository before making cross-product release claims beyond its documented boundary |
-| Release quality | The #664/#660 stacked tree passed the complete Python suite (1,352 passed, 17 skipped) after #660 removed a duplicate synthetic snapshot digest and restored the TEPP settings contract. This is local candidate evidence, not protected-main delivery | Repository-wide coverage, frontend/Storybook, security, browser, and protected merge evidence on one exact head |
+| Product contract authority | The current LineageWeave PRD records exact-case ecosystem authorities. TEPP, fast-mlsirm, keyverse, ThreadWeave, and RankWeave PR #41 have standalone PRDs; RankWeave's remains unmerged. contextual-orchestrator, disksage, and wardnet still rely on product/architecture documents, and naruon has only a scoped Topic Intelligence PRD | Keep ADRs normative, preserve canonical repository case in machine references, land the pending PRDs, and add standalone PRDs in each remaining owning repository before cross-product release claims exceed its documented boundary |
+| Release quality | PR #660 is now on protected `main`; its pre-merge full Python suite passed 1,352 tests with 17 skips, but release-wide frontend, Storybook, security, browser, and runtime acceptance remain unproven on one exact protected head | Repository-wide coverage, docstrings, Storybook, security, browser, and release evidence on one exact head |
 | PII | Masking would paralyze the product; ADR 0001 forbids identifying artifacts in git | ABAC + authorized runtime; synthetic fixtures in git; no mask-in-place that drops names the operator must read |
 | Database | PostgreSQL, 3NF, snake_case ≥ two words, hot-partition and lock policy | No file DBs; read/write split if lock management fails; whitelist every migration |
+
+### 5.1 Closed PR #490 decomposition (issue #611)
+
+Protected `main` at `04e6b610` and the three open PRs present during the initial
+decomposition were rechecked; the later audit snapshot above includes #631
+itself as the fourth open PR. Protected `main` contains none of PR #490. That PR remains
+closed, unmerged branch evidence; its ADR 0133–0137 files are not normative and
+its 321-file tree must not be replayed. Current-main code and schema searches
+give this delivery matrix:
+
+| Closed-branch decision | Current-main classification | Smallest remaining delivery |
+| --- | --- | --- |
+| ADR 0133 source-reference research | Partial foundation: protected `main` has the self-hosted SearXNG relation-verification client and fail-closed configuration, but it verifies an already extracted relation. It has no source-unit/image-region lead, cited-resource retrieval, claim judgment, or normalized research citation workflow | One post-scoped lead-to-citation slice that reuses the self-hosted SearXNG search boundary, adds public-target SSRF/redirect rejection for result retrieval, and judges through contextual-orchestrator with explicit unavailable outcomes |
+| ADR 0134 token-backed exception messages | Partial: sanitized next-action failures exist, but no shared token-backed exception component or complete Storybook error inventory exists | Migrate one existing unavailable flow to one shared accessible alert and verify its success, unavailable, and retry states |
+| ADR 0135 kind/status-exact analysis actions | Partial: protected `main` has kind-aware start/retry controls plus normative analysis-run, TEPP, cutoff-body, and channel-evidence contracts; it does not contain the closed branch's unified guidance component or its full kind × status interaction inventory | Test the current run-kind/status matrix first, then add only a proven missing state/control pair rather than copying the closed-branch function |
+| ADR 0136 per-post Ask history | Partial: `post_chat_result` / `post_chat_citation`, the authorized post Chat API, and its linear exchange history are on protected `main`. Account-and-post-scoped sessions, ordered turns, list/select/new controls, and batched citation reauthorization are not | Define the 3NF account/post session boundary, bounded batch reauthorization, and one authorized list/load/write path before adding the conversation picker |
+| ADR 0137 cross-post customer identity | Partial foundation: protected `main` preserves source customer hints and has corporate-catalog unique/miss/tie safeguards, but it has no normalized cross-post customer-identity judgment, supporting-post binding, or corporate-name-history workflow | Add only after external corroboration, orchestrator judgment, TEPP ordering, and unique-catalog fail-close can be verified together; never promote a one-post hint |
+
+This matrix satisfies only #611's current-main inventory step. Issue #611
+remains open: every unmet criterion above still needs a focused regression test
+and exact-head current-main implementation PR before its acceptance criteria
+are satisfied. No stale check, review, or implementation is transferred from
+#490.
 
 ## 6. UI-UX acceptance inventory (must be defined, reviewed, applied, audited)
 
@@ -546,23 +565,29 @@ Process every open PR in ascending number order, considering leverage; for
 each: check reviews → repair → re-verify Checks → merge → continue. Checks and
 review latency are never blockers — keep working while they settle.
 
-1. Revalidate Strix after protected ContextualWisdomLab/.github#1320, reconcile
-   .github#1263, and land the atomic hourly LineageWeave caller in .github#1288.
-2. Merge #387 and #618–#621 only after each exact head shows terminal
-   green required checks plus current-head independent approval.
-3. After the queue drains, resume user-visible gaps from §5 in leverage order:
-   Event Lineage evidence (#387/#274), Naruon calendar (#355/#336), and
-   authenticated operations/ontology publication acceptance.
-5. Rename remaining `[Buyer Gap]` issue titles to neutral product-object
+1. Revalidate Strix after merged ContextualWisdomLab/.github#1320, reconcile
+   open .github#1263, and land the atomic hourly LineageWeave caller in open
+   .github#1288 only through their protected gates.
+2. Process main-targeted PRs #629, #631, #632, #639, #640, #643, #644, #657,
+   #658, #659, #660, and #663 only after each exact head shows terminal green
+   required checks plus current-head independent approval. Treat #666's
+   non-default-branch merge only as part of #663's combined candidate and
+   collect all protected evidence on #663's exact head.
+3. While hosted checks or independent reviews wait, resume user-visible gaps
+   from §5 in leverage order:
+   external semantic verification (#272), Naruon calendar (#355/#336), and
+   authenticated operations/ontology publication acceptance. Event Lineage
+   evidence shipped in merged PR #387 and closed issue #274 is not an open gap.
+4. Rename remaining `[Buyer Gap]` issue titles to neutral product-object
    naming per repository convention (no "Buyer" for internal objects).
-6. Keep psychometric tests as true-parameter recovery (RMSE); never fixture
+5. Keep psychometric tests as true-parameter recovery (RMSE); never fixture
    tautologies, invented theta, or hand-authored numeric weights. Remove
    weights from tests that do not exercise fusion; fusion tests must consume
    provenance-bearing fast-mlsirm estimates over synthetic fixtures.
-7. Run frontend lint/test/build/Storybook, backend tests, and authenticated
+6. Run frontend lint/test/build/Storybook, backend tests, and authenticated
    browser/accessibility checks on the exact candidate release head.
-8. Fix only evidence-backed failures and repeat the protected merge gate.
-9. Refresh this file each loop with the exact queue state.
+7. Fix only evidence-backed failures and repeat the protected merge gate.
+8. Refresh this file each loop with the exact queue state.
 
 ## 11. Spec pointers (derive, do not fork)
 

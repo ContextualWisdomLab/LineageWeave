@@ -11,19 +11,22 @@ from lineageweave.knowledge_graph import (
     EDGE_CO_MENTION,
     EDGE_MENTION,
     EDGE_MENTION_ORGANIZATION,
+    EDGE_MENTION_PROJECT,
     EDGE_MENTION_TEAM,
     EDGE_TEAM_AFFILIATION,
     NODE_CORPORATE_ENTITY,
     NODE_PERSON,
     NODE_POST,
+    NODE_PROJECT,
     NODE_TEAM,
 )
-from lineageweave.ontology import LW
+from lineageweave.ontology import LW, ontology_node_iri
 from lineageweave.ontology_neighborhood import (
     PROPERTY_AFFILIATED_WITH,
     PROPERTY_CO_MENTIONED_WITH,
     PROPERTY_MENTIONS,
     PROPERTY_MENTIONS_ORGANIZATION,
+    PROPERTY_MENTIONS_PROJECT,
     PROPERTY_MENTIONS_TEAM,
     PROPERTY_OWL_SUBCLASS_OF,
     PROPERTY_SKOS_BROADER,
@@ -32,6 +35,7 @@ from lineageweave.ontology_neighborhood import (
     TRUTH_AUTHORITATIVE,
     TRUTH_INFERRED,
     TRUTH_OBSERVED,
+    TRUTH_PROPOSED,
     HARD_MAXIMUM_NODES,
     NeighborhoodFact,
     OntologyGraphEdge,
@@ -50,6 +54,7 @@ CORP_ID = "cccccccc-cccc-cccc-cccc-ccccccccccc1"
 GROUP_ID = "dddddddd-dddd-dddd-dddd-ddddddddddd1"
 HIDDEN_PERSON = "eeeeeeee-eeee-eeee-eeee-eeeeeeeeeee1"
 TEAM_ID = "ffffffff-ffff-ffff-ffff-fffffffffff1"
+PROJECT_ID = "demo-project"
 TZ = timezone.utc
 T0 = datetime(2026, 1, 10, 12, 0, tzinfo=TZ)
 T_LATE = datetime(2026, 1, 20, 12, 0, tzinfo=TZ)
@@ -64,6 +69,7 @@ def _labels() -> dict[tuple[str, str], str]:
         (NODE_CORPORATE_ENTITY, GROUP_ID): "Demo Group",
         (NODE_PERSON, HIDDEN_PERSON): "Hidden Person",
         (NODE_TEAM, TEAM_ID): "Demo Team",
+        (NODE_PROJECT, PROJECT_ID): "Demo Project",
     }
 
 
@@ -118,6 +124,69 @@ def test_post_mentions_person_affiliated_with_corporate_entity_round_trips() -> 
     assert all(row["source_label"] and row["target_label"] for row in rows)
 
 
+def test_jsonld_preserves_available_system_and_valid_times() -> None:
+    fact = NeighborhoodFact(
+        source_node_type_code=NODE_PERSON,
+        source_node_id=PERSON_ID,
+        target_node_type_code=NODE_CORPORATE_ENTITY,
+        target_node_id=CORP_ID,
+        property_code=PROPERTY_AFFILIATED_WITH,
+        truth_status_code=TRUTH_OBSERVED,
+        recorded_at=T0,
+        valid_from=T0,
+        valid_to=T_LATE,
+        evidence_references=(POST_ID,),
+    )
+    neighborhood = assemble_ontology_neighborhood(
+        focus_node_type_code=NODE_PERSON,
+        focus_node_id=PERSON_ID,
+        facts=[fact],
+        labels=_labels(),
+        node_metadata={
+            (NODE_PERSON, PERSON_ID): OntologyNodeMetadata(recorded_at=T0),
+        },
+    )
+
+    document = neighborhood.jsonld_document()
+    assert document["@context"]["time"] == "http://www.w3.org/2006/time#"
+    node_item = next(item for item in document["@graph"] if item["@id"].endswith(PERSON_ID))
+    assert node_item["prov:generatedAtTime"]["@value"] == T0.isoformat()
+    assert "time:hasBeginning" not in node_item
+    edge_item = next(item for item in document["@graph"] if item["@id"].startswith("lw:edge/"))
+    assert edge_item["prov:generatedAtTime"]["@type"] == "xsd:dateTimeStamp"
+    assert edge_item["time:hasBeginning"]["time:inXSDDateTimeStamp"]["@value"] == T0.isoformat()
+    assert edge_item["time:hasEnd"]["time:inXSDDateTimeStamp"]["@value"] == T_LATE.isoformat()
+
+
+def test_post_mentions_project_round_trips_as_proposed_evidence() -> None:
+    fact = fact_from_knowledge_graph_edge(
+        source_node_type_code=NODE_POST,
+        source_node_id=POST_ID,
+        target_node_type_code=NODE_PROJECT,
+        target_node_id=PROJECT_ID,
+        edge_type_code=EDGE_MENTION_PROJECT,
+        recorded_at=T0,
+        evidence_references=(POST_ID,),
+        provenance_reference="post_project_mention",
+        truth_status_code=TRUTH_PROPOSED,
+    )
+    neighborhood = assemble_ontology_neighborhood(
+        focus_node_type_code=NODE_POST,
+        focus_node_id=POST_ID,
+        facts=[fact],
+        labels=_labels(),
+    )
+
+    edge = neighborhood.edges[0]
+    project = next(node for node in neighborhood.nodes if node.node_type_code == NODE_PROJECT)
+    assert edge.property_code == PROPERTY_MENTIONS_PROJECT
+    assert edge.ontology_property_iri == str(LW.mentionsProject)
+    assert edge.property_label == "mentions project"
+    assert edge.truth_status_code == TRUTH_PROPOSED
+    assert project.ontology_class_iri == str(LW.Project)
+    assert project.shape_code == "diamond"
+
+
 def test_jsonld_keeps_colliding_identifiers_typed() -> None:
     facts = [
         fact_from_knowledge_graph_edge(
@@ -156,7 +225,66 @@ def test_jsonld_keeps_colliding_identifiers_typed() -> None:
         if str(item["@id"]).startswith("lw:edge/")
     }
     mentions = next(item for key, item in edge_ids.items() if "/mentions:" in str(key))
-    assert mentions["lw:source"]["@id"] == f"lw:node/{NODE_POST}/{POST_ID}"
+    assert mentions["rdf:subject"]["@id"] == ontology_node_iri(NODE_POST, POST_ID)
+
+
+def test_jsonld_emits_direct_and_reified_edge_semantics() -> None:
+    """A typed edge denotes the same assertion directly and by reification."""
+    neighborhood = assemble_ontology_neighborhood(
+        focus_node_type_code=NODE_POST,
+        focus_node_id=POST_ID,
+        facts=_mention_affiliation(),
+        labels=_labels(),
+        maximum_depth=2,
+    )
+    items = neighborhood.jsonld_document()["@graph"]
+    post_iri = ontology_node_iri(NODE_POST, POST_ID)
+    person_iri = ontology_node_iri(NODE_PERSON, PERSON_ID)
+    direct = next(
+        item
+        for item in items
+        if item.get("@id") == post_iri and str(LW.mentions) in item
+    )
+    statement = next(
+        item for item in items if "rdf:Statement" in item.get("@type", [])
+    )
+
+    assert direct[str(LW.mentions)]["@id"] == person_iri
+    assert statement["rdf:subject"]["@id"] == post_iri
+    assert statement["rdf:predicate"]["@id"] == str(LW.mentions)
+    assert statement["rdf:object"]["@id"] == person_iri
+
+
+def test_jsonld_percent_encodes_project_iri_like_the_rdf_projection() -> None:
+    """Unicode candidate ids denote one resource in JSON-LD and RDF."""
+    project_id = f"{POST_ID}/설비-개선"
+    fact = fact_from_knowledge_graph_edge(
+        source_node_type_code=NODE_POST,
+        source_node_id=POST_ID,
+        target_node_type_code=NODE_PROJECT,
+        target_node_id=project_id,
+        edge_type_code=EDGE_MENTION_PROJECT,
+        recorded_at=T0,
+        evidence_references=(POST_ID,),
+        truth_status_code=TRUTH_PROPOSED,
+    )
+    neighborhood = assemble_ontology_neighborhood(
+        focus_node_type_code=NODE_POST,
+        focus_node_id=POST_ID,
+        facts=[fact],
+        labels={
+            (NODE_POST, POST_ID): "Synthetic source",
+            (NODE_PROJECT, project_id): "설비 개선",
+        },
+    )
+
+    project = next(
+        item
+        for item in neighborhood.jsonld_document()["@graph"]
+        if item.get("@type") == str(LW.Project)
+    )
+    assert project["@id"] == ontology_node_iri(NODE_PROJECT, project_id)
+    assert "%EC%84%A4%EB%B9%84-%EA%B0%9C%EC%84%A0" in project["@id"]
 
 
 def test_skos_broader_is_distinct_from_owl_class_subsumption() -> None:
@@ -399,6 +527,33 @@ def test_node_metadata_is_catalog_owned_and_missing_values_stay_absent() -> None
     )
     assert without_metadata.nodes[0].truth_status_code is None
     assert without_metadata.nodes[0].recorded_at is None
+
+    with pytest.raises(OntologyNeighborhoodError, match="node recorded_at"):
+        assemble_ontology_neighborhood(
+            focus_node_type_code=NODE_PERSON,
+            focus_node_id=PERSON_ID,
+            facts=[],
+            labels=_labels(),
+            node_metadata={
+                (NODE_PERSON, PERSON_ID): OntologyNodeMetadata(
+                    recorded_at=datetime(2026, 1, 10, 12, 0)
+                )
+            },
+        )
+
+    with pytest.raises(OntologyNeighborhoodError) as unknown_truth:
+        assemble_ontology_neighborhood(
+            focus_node_type_code=NODE_PERSON,
+            focus_node_id=PERSON_ID,
+            facts=[],
+            labels=_labels(),
+            node_metadata={
+                (NODE_PERSON, PERSON_ID): OntologyNodeMetadata(
+                    truth_status_code="truth_unregistered"
+                )
+            },
+        )
+    assert unknown_truth.value.code == "unknown_truth_status"
 
 
 def test_truncation_is_flagged_without_omission_counts() -> None:

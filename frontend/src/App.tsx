@@ -95,6 +95,7 @@ import { LineageEntityPicker } from "./components/LineageEntityPicker";
 import { OntologyExplorer } from "./components/OntologyExplorer";
 import { AskEvidenceLayerPopup } from "./components/AskEvidenceLayerPopup";
 import { AskAnswerTimeline } from "./components/AskAnswerTimeline";
+import { PublicClaimVerification } from "./components/PublicClaimVerification";
 import { PopupCloseButton } from "./components/PopupCloseButton";
 import { SimilarVocPanel } from "./components/SimilarVocPanel";
 import { WorkspaceNav, type WorkspaceDestination } from "./components/WorkspaceNav";
@@ -4819,7 +4820,7 @@ function CustomerMasterPanel({
   );
 }
 
-function AskAgentPanel({
+export function AskAgentPanel({
   accessToken,
   onOpenPost,
 }: {
@@ -4831,7 +4832,13 @@ function AskAgentPanel({
   const [answeredQuestion, setAnsweredQuestion] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [asking, setAsking] = useState(false);
+  const [verifyExternal, setVerifyExternal] = useState(false);
+  const [knowledgeCutoff, setKnowledgeCutoff] = useState("");
   const [evidenceLayerPostId, setEvidenceLayerPostId] = useState<string | null>(null);
+  const now = new Date();
+  const localKnowledgeCutoffMax = new Date(
+    now.getTime() - now.getTimezoneOffset() * 60_000,
+  ).toISOString().slice(0, 16);
 
   async function handleAsk() {
     const normalized = question.trim();
@@ -4839,7 +4846,14 @@ function AskAgentPanel({
     setAsking(true);
     setError(null);
     try {
-      setAnswer(await askAgent(accessToken, normalized));
+      setAnswer(
+        await askAgent(
+          accessToken,
+          normalized,
+          verifyExternal,
+          knowledgeCutoff ? new Date(knowledgeCutoff).toISOString() : undefined,
+        ),
+      );
       setAnsweredQuestion(normalized);
     } catch (err) {
       setAnswer(null);
@@ -4868,6 +4882,23 @@ function AskAgentPanel({
             rows={4}
           />
         </label>
+        <label className="ask-agent-checkbox">
+          <input
+            type="checkbox"
+            checked={verifyExternal}
+            onChange={(event) => setVerifyExternal(event.target.checked)}
+          />
+          <span>{t("Check eligible public claims")}</span>
+        </label>
+        <label className="ask-agent-field">
+          <span>{t("Knowledge cutoff (optional)")}</span>
+          <input
+            type="datetime-local"
+            value={knowledgeCutoff}
+            max={localKnowledgeCutoffMax}
+            onChange={(event) => setKnowledgeCutoff(event.target.value)}
+          />
+        </label>
         <div className="ask-agent-actions">
           <button type="submit" className="btn-primary" disabled={asking || !question.trim()}>
             {t("Ask")}
@@ -4885,6 +4916,23 @@ function AskAgentPanel({
             onOpenEvidence={setEvidenceLayerPostId}
             onOpenPost={onOpenPost}
           />
+          {answer.knowledge_cutoff ? (
+            <aside className="ask-delivery" aria-label={t("Knowledge-cutoff grounding")}>
+              <h4>{t("Knowledge-cutoff grounding")}</h4>
+              <p>
+                {answer.grounding_status === "fully_cutoff_grounded"
+                  ? t("Fully cutoff-grounded")
+                  : t("Partially cutoff-grounded")}
+                {` · ${answer.knowledge_cutoff}`}
+              </p>
+              {answer.limitations?.length ? (
+                <p role="alert">
+                  {t("Some historical bodies or channels are unavailable. Review the cited limitations.")}
+                </p>
+              ) : null}
+            </aside>
+          ) : null}
+          <PublicClaimVerification claims={answer.external_claims ?? []} />
           {answer.delivery ? (
             <aside className="ask-delivery" aria-label={t("Report · alert · MCP")}>
               <h4>{t("Report · alert · MCP")}</h4>
