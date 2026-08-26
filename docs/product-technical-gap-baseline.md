@@ -8,9 +8,24 @@ An aggregate-only inspection on 2026-08-26 found 43,814 source rows with
 VOC process-unit rows, and complete process-unit, sales-pool, actor, lineage,
 and source-artifact provenance fields. No source value, identifier,
 organization, table name, or artifact path is retained here.
+A 2026-08-27 aggregate follow-up found that the 43,814 rows normalize to
+43,707 distinct document keys. The key audit found exactly 43,707 semantic
+document nodes, all 43,707 matched, with
+zero source-only and zero semantic-only keys. Every semantic document has a
+nonblank title, summary, event, stage, status, content manifest, and at least
+one knowledge-graph edge carrying that document as evidence.
 The aggregate is reproducible with
 `scripts/audit_source_semantic_coverage.py`; table and column mappings remain
 runtime inputs rather than committed source identifiers.
+
+Semantic-layer referential checks found no unknown ontology term references,
+no missing graph endpoints, and no confidence values outside `[0, 1]`.
+However, 3,190 document-to-document semantic edges spanning 5,080 distinct
+documents have no evidence identifier. All have a nonblank reason and one of
+two governed evidence states, but none joins to the current lineage edge set
+and only one joins to an inference candidate with evidence. These edges remain
+an explicit provenance gap: do not present them as source-backed facts until a
+normalized evidence or inference-run reference is persisted.
 
 The current semantic layer is therefore **not sufficient for the source
 content as a whole**. It covers typed Post, Person, CorporateEntity, Team,

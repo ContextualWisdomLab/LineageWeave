@@ -45,3 +45,63 @@ def test_audit_returns_aggregate_roles_without_source_values(monkeypatch) -> Non
 def test_audit_rejects_sql_syntax_in_identifiers() -> None:
     with pytest.raises(ValueError, match="invalid PostgreSQL identifier"):
         _identifier('source_rows; select secret')
+
+
+def test_audit_reports_distinct_semantic_key_coverage(monkeypatch) -> None:
+    """Coverage compares normalized keys and emits counts, never source values."""
+    class Connection:
+        calls = 0
+
+        async def fetchrow(self, query: str):
+            self.calls += 1
+            if self.calls == 1:
+                return {"row_count": 3}
+            assert 'from "source_schema"."source_rows"' in query
+            assert 'from "semantic_schema"."document_nodes"' in query
+            assert 'full join coverage_keys using (key_value)' in query
+            return {
+                "source_key_count": 2,
+                "coverage_key_count": 2,
+                "matched_key_count": 2,
+                "source_without_coverage_count": 0,
+                "coverage_without_source_count": 0,
+            }
+
+        async def close(self) -> None:
+            pass
+
+    async def connect(_dsn: str):
+        return Connection()
+
+    monkeypatch.setattr("scripts.audit_source_semantic_coverage.asyncpg.connect", connect)
+
+    result = asyncio.run(
+        audit_source_semantic_coverage(
+            "postgresql://synthetic",
+            "source_schema.source_rows",
+            {},
+            source_key="document_key",
+            coverage_table="semantic_schema.document_nodes",
+            coverage_key="document_key",
+        )
+    )
+
+    assert result["semantic_key_coverage"] == {
+        "source_key_count": 2,
+        "coverage_key_count": 2,
+        "matched_key_count": 2,
+        "source_without_coverage_count": 0,
+        "coverage_without_source_count": 0,
+    }
+
+
+def test_audit_requires_complete_key_coverage_configuration() -> None:
+    with pytest.raises(ValueError, match="all required"):
+        asyncio.run(
+            audit_source_semantic_coverage(
+                "postgresql://synthetic",
+                "source_schema.source_rows",
+                {},
+                source_key="document_key",
+            )
+        )

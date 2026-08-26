@@ -54,6 +54,9 @@ Repository artifacts must not retain the private titles.
    incomplete, single-agent, or unavailable result fails the run.
 5. Only complete non-identifying aggregates may enter repository documents.
    A sample audit describes the sample, never the full corpus.
+   The aggregate source audit may additionally compare distinct caller-selected
+   source and semantic-layer keys. It reports matched and one-sided key counts
+   only; identifiers and values never enter output or repository artifacts.
 6. Missing-dimension counts do not themselves authorize new private ontology
    terms. Event/activity candidates must first reconcile with PROV-O;
    temporal candidates with OWL-Time; and observed property, asset, system,

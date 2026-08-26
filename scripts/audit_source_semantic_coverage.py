@@ -32,8 +32,17 @@ async def audit_source_semantic_coverage(
     dsn: str,
     table: str,
     columns: Mapping[str, str],
+    *,
+    source_key: str | None = None,
+    coverage_table: str | None = None,
+    coverage_key: str | None = None,
 ) -> dict[str, object]:
     """Return row and nonblank counts without reading source values."""
+    coverage_options = (source_key, coverage_table, coverage_key)
+    if any(value is not None for value in coverage_options) and not all(
+        value is not None for value in coverage_options
+    ):
+        raise ValueError("source_key, coverage_table, and coverage_key are all required")
     projections = ["count(*)::bigint as row_count"]
     for role, column in columns.items():
         if not _IDENTIFIER.fullmatch(role):
@@ -47,14 +56,48 @@ async def audit_source_semantic_coverage(
     connection = await asyncpg.connect(dsn)
     try:
         row = await connection.fetchrow(query)
+        result: dict[str, object] = {
+            "row_count": row["row_count"],
+            "semantic_role_nonblank_counts": {
+                role: row[f"{role}_nonblank_count"] for role in columns
+            },
+        }
+        if source_key and coverage_table and coverage_key:
+            source_key_column = _identifier(source_key)
+            coverage_key_column = _identifier(coverage_key)
+            key_row = await connection.fetchrow(
+                f"""
+            with source_keys as (
+                select distinct {source_key_column}::text as key_value
+                  from {_table(table)}
+                 where nullif(btrim({source_key_column}::text), '') is not null
+            ), coverage_keys as (
+                select distinct {coverage_key_column}::text as key_value
+                  from {_table(coverage_table)}
+                 where nullif(btrim({coverage_key_column}::text), '') is not null
+            )
+            select count(source_keys.key_value)::bigint as source_key_count,
+                   count(coverage_keys.key_value)::bigint as coverage_key_count,
+                   count(*) filter (
+                       where source_keys.key_value is not null
+                         and coverage_keys.key_value is not null
+                   )::bigint as matched_key_count,
+                   count(*) filter (
+                       where source_keys.key_value is not null
+                         and coverage_keys.key_value is null
+                   )::bigint as source_without_coverage_count,
+                   count(*) filter (
+                       where source_keys.key_value is null
+                         and coverage_keys.key_value is not null
+                   )::bigint as coverage_without_source_count
+              from source_keys
+              full join coverage_keys using (key_value)
+            """
+            )
+            result["semantic_key_coverage"] = dict(key_row)
+        return result
     finally:
         await connection.close()
-    return {
-        "row_count": row["row_count"],
-        "semantic_role_nonblank_counts": {
-            role: row[f"{role}_nonblank_count"] for role in columns
-        },
-    }
 
 
 def _parser() -> argparse.ArgumentParser:
@@ -62,6 +105,9 @@ def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--dsn", required=True)
     parser.add_argument("--table", required=True)
+    parser.add_argument("--source-key")
+    parser.add_argument("--coverage-table")
+    parser.add_argument("--coverage-key")
     parser.add_argument(
         "--column",
         action="append",
@@ -83,7 +129,16 @@ def main() -> None:
         columns[role] = column
     print(
         json.dumps(
-            asyncio.run(audit_source_semantic_coverage(args.dsn, args.table, columns)),
+            asyncio.run(
+                audit_source_semantic_coverage(
+                    args.dsn,
+                    args.table,
+                    columns,
+                    source_key=args.source_key,
+                    coverage_table=args.coverage_table,
+                    coverage_key=args.coverage_key,
+                )
+            ),
             sort_keys=True,
         )
     )
