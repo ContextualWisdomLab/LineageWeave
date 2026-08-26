@@ -19,9 +19,12 @@ Source assertions and contextual-orchestrator-derived assertions are append-only
 and separate. Derived assertions require an exact source span, source revision
 digest, evidence digest, model receipt, and optional validity interval. A post
 or organization may have multiple simultaneous memberships. Conflicting
-source and derived concepts remain disagreement evidence; no threshold, weight,
-keyword, alias rule, or forced winner is permitted. A replacement or retraction
-names the superseded assertion and closes validity with provenance.
+source and derived concept sets remain disagreement evidence; matching
+multi-membership sets are agreement, not a pairwise mismatch. A summary admits
+an assertion only while its optional validity interval contains the query
+instant. No threshold, weight, keyword, alias rule, or forced winner is
+permitted. A replacement or retraction names the superseded assertion and
+closes validity with provenance.
 
 Counts use the same authorized eligible-post denominator at the same cutoff and
 filters. They report source, derived, multi-membership, disagreement, and

@@ -165,3 +165,26 @@ export const LoadError: Story = {
     await expect(canvas.getByRole("button", { name: "다시 시도" })).toBeVisible();
   },
 };
+
+export const VoiceSummaryLoadError: Story = {
+  args: EvidenceReady.args,
+  render: () => <OperationsDashboard accessToken="synthetic-token" onOpenPost={() => undefined} />,
+  beforeEach: () => {
+    const fetchBeforeStory = globalThis.fetch;
+    globalThis.fetch = async (input) => {
+      if (String(input).includes("/api/dashboard")) {
+        return new Response(JSON.stringify(EvidenceReady.args!.data!), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        });
+      }
+      throw new Error("synthetic voice-summary transport failure");
+    };
+    return () => { globalThis.fetch = fetchBeforeStory; };
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(canvas.findByRole("alert")).resolves.toHaveTextContent("External relationship evidence could not be loaded");
+    await expect(canvas.getByRole("button", { name: "Retry external relationship evidence" })).toBeVisible();
+  },
+};

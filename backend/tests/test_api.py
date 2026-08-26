@@ -2061,6 +2061,75 @@ def test_derived_voice_assertion_requires_model_receipt(seeded_db) -> None:
         conn.close()
 
 
+def test_voice_taxonomy_matching_multi_membership_is_not_a_disagreement(
+    client, demo_analyst_token, seeded_db
+) -> None:
+    """Matching source and derived concept sets remain agreement evidence."""
+    conn = psycopg2.connect(seeded_db["dsn"])
+    try:
+        with conn.cursor() as cur:
+            for status_code in ("source", "derived"):
+                for concept_code in ("voc", "vom"):
+                    cur.execute(
+                        "insert into post_voice_classification_assertion "
+                        "(post_id, voice_concept_code, assertion_status_code, "
+                        "evidence_span_start, evidence_span_end, evidence_sha256, "
+                        "source_revision_digest, orchestrator_model_receipt) "
+                        "values (%s, %s, %s, %s, %s, repeat(%s, 64), repeat(%s, 64), %s)",
+                        (
+                            seeded_db["public_post_id"],
+                            concept_code,
+                            status_code,
+                            0 if status_code == "derived" else None,
+                            1 if status_code == "derived" else None,
+                            "a" if concept_code == "voc" else "b",
+                            "c" if concept_code == "voc" else "d",
+                            "synthetic-receipt" if status_code == "derived" else None,
+                        ),
+                    )
+        conn.commit()
+    finally:
+        conn.close()
+
+    response = client.get(
+        "/api/voice-taxonomy/summary",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert response.status_code == 200, response.text
+    payload = response.json()
+    assert payload["multi_membership"] == 1
+    assert payload["disagreement"] == 0
+
+
+def test_voice_taxonomy_excludes_assertions_before_their_validity_window(
+    client, demo_analyst_token, seeded_db
+) -> None:
+    """A future assertion is unavailable until its recorded validity begins."""
+    conn = psycopg2.connect(seeded_db["dsn"])
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                "insert into post_voice_classification_assertion "
+                "(post_id, voice_concept_code, assertion_status_code, "
+                "evidence_sha256, source_revision_digest, valid_from) "
+                "values (%s, 'voc', 'source', repeat('a', 64), repeat('b', 64), "
+                "'2999-01-01T00:00:00Z')",
+                (seeded_db["public_post_id"],),
+            )
+        conn.commit()
+    finally:
+        conn.close()
+
+    response = client.get(
+        "/api/voice-taxonomy/summary",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert response.status_code == 200, response.text
+    payload = response.json()
+    assert payload["source_count"] == 0
+    assert payload["unavailable"] == payload["total_eligible"]
+
+
 def test_voice_taxonomy_summary_rejects_reversed_period(
     client, demo_analyst_token
 ) -> None:

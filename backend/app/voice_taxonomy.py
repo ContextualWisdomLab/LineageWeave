@@ -59,7 +59,8 @@ async def load_voice_taxonomy_summary(
                    assertion.voice_concept_code
               from post_voice_classification_assertion assertion
               join eligible on eligible.post_id = assertion.post_id
-             where assertion.valid_to is null
+             where (assertion.valid_from is null or assertion.valid_from <= current_timestamp)
+               and (assertion.valid_to is null or assertion.valid_to > current_timestamp)
         ), per_post as (
             select eligible.post_id,
                    count(distinct memberships.voice_concept_code) as membership_count,
@@ -68,11 +69,16 @@ async def load_voice_taxonomy_summary(
               from eligible left join memberships on memberships.post_id = eligible.post_id
              group by eligible.post_id
         ), conflicts as (
-            select distinct source.post_id
-              from memberships source join memberships derived on derived.post_id = source.post_id
-             where source.assertion_status_code = 'source'
-               and derived.assertion_status_code = 'derived'
-               and source.voice_concept_code <> derived.voice_concept_code
+            select post_id
+              from memberships
+             group by post_id
+            having bool_or(assertion_status_code = 'source')
+               and bool_or(assertion_status_code = 'derived')
+               and array_agg(distinct voice_concept_code order by voice_concept_code)
+                       filter (where assertion_status_code = 'source')
+                   is distinct from
+                   array_agg(distinct voice_concept_code order by voice_concept_code)
+                       filter (where assertion_status_code = 'derived')
         ), categories as (
             select voice_concept_code, count(distinct post_id) as post_count
               from memberships group by voice_concept_code

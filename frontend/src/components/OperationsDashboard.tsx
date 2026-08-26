@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { fetchOperationsDashboard, fetchVoiceTaxonomySummary, type OperationsDashboardResponse, type VoiceTaxonomySummary as VoiceSummary } from "../api";
+import { t } from "../i18n";
 import { VoiceTaxonomySummary } from "./VoiceTaxonomySummary";
 
 function formatElapsed(seconds: number): string {
@@ -37,6 +38,8 @@ export function OperationsDashboard({ accessToken, externalOnly = false, onOpenP
   const [submittedPeriod, setSubmittedPeriod] = useState<[string, string]>(["", ""]);
   const [retryCount, setRetryCount] = useState(0);
   const [voiceSummary, setVoiceSummary] = useState<VoiceSummary | null>(null);
+  const [voiceSummaryError, setVoiceSummaryError] = useState(false);
+  const [voiceRetryCount, setVoiceRetryCount] = useState(0);
 
   useEffect(() => {
     let active = true;
@@ -51,12 +54,13 @@ export function OperationsDashboard({ accessToken, externalOnly = false, onOpenP
   useEffect(() => {
     let active = true;
     setVoiceSummary(null);
+    setVoiceSummaryError(false);
     if (externalOnly) return () => { active = false; };
     fetchVoiceTaxonomySummary(accessToken, ...submittedPeriod)
       .then((value) => active && setVoiceSummary(value))
-      .catch(() => undefined);
+      .catch(() => active && setVoiceSummaryError(true));
     return () => { active = false; };
-  }, [accessToken, externalOnly, submittedPeriod, retryCount]);
+  }, [accessToken, externalOnly, submittedPeriod, retryCount, voiceRetryCount]);
 
   return <>
     <form className="dashboard-period-form" onSubmit={(event) => {
@@ -77,6 +81,14 @@ export function OperationsDashboard({ accessToken, externalOnly = false, onOpenP
       <>
         <OperationsDashboardView data={data} externalOnly={externalOnly} onOpenPost={onOpenPost} />
         {!externalOnly && voiceSummary ? <VoiceTaxonomySummary data={voiceSummary} /> : null}
+        {!externalOnly && voiceSummaryError ? (
+          <section className="operations-dashboard" aria-labelledby="voice-summary-error-heading">
+            <h2 id="voice-summary-error-heading">{t("External voice overview")}</h2>
+            <p role="alert">{t("External relationship evidence could not be loaded.")}</p>
+            <button type="button" className="btn-secondary" onClick={() => setVoiceRetryCount((count) => count + 1)}>{t("Retry external relationship evidence")}</button>
+          </section>
+        ) : null}
+        {!externalOnly && !voiceSummary && !voiceSummaryError ? <p role="status">{t("Loading external relationship evidence...")}</p> : null}
       </>
     ) : (
       <p role="status">Dashboard 근거를 불러오는 중입니다.</p>

@@ -204,4 +204,23 @@ describe("OperationsDashboardView", () => {
     expect(fetchOperationsDashboard).toHaveBeenCalledWith("synthetic-token", "", "", true);
     expect(fetchVoiceTaxonomySummary).not.toHaveBeenCalled();
   });
+
+  it("shows a failed voice summary and retries only that evidence", async () => {
+    vi.mocked(fetchOperationsDashboard).mockReset().mockResolvedValue(data);
+    vi.mocked(fetchVoiceTaxonomySummary)
+      .mockReset()
+      .mockRejectedValueOnce(new Error("synthetic transport failure"))
+      .mockResolvedValueOnce({
+        total_eligible: 0, classified_unique: 0, multi_membership: 0,
+        source_count: 0, derived_count: 0, unavailable: 0, disagreement: 0,
+        counts_overlap: true, category_memberships: [],
+      });
+    render(<OperationsDashboard accessToken="synthetic-token" onOpenPost={() => undefined} />);
+
+    expect(await screen.findByRole("alert")).toHaveTextContent("External relationship evidence could not be loaded.");
+    await userEvent.click(screen.getByRole("button", { name: "Retry external relationship evidence" }));
+    expect(await screen.findByRole("heading", { name: "External voice overview" })).toBeInTheDocument();
+    expect(fetchVoiceTaxonomySummary).toHaveBeenCalledTimes(2);
+    expect(fetchOperationsDashboard).toHaveBeenCalledTimes(1);
+  });
 });
