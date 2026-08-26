@@ -4,14 +4,19 @@ from pathlib import Path
 
 
 def test_frontend_container_uses_pinned_pnpm_policy_and_keyverse_args() -> None:
+    root = Path(__file__).resolve().parents[1]
     dockerfile = (
-        Path(__file__).resolve().parents[1] / "frontend" / "Dockerfile"
+        root / "frontend" / "Dockerfile"
     ).read_text(encoding="utf-8")
+    example = (root / "frontend" / ".env.example").read_text(encoding="utf-8")
 
     assert "COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./" in dockerfile
     assert "ARG VITE_KEYVERSE_ISSUER" in dockerfile
     assert "ARG VITE_KEYVERSE_CLIENT_ID" in dockerfile
     assert "VITE_KEYCLOAK_ISSUER" not in dockerfile
+    assert "VITE_KEYVERSE_ISSUER" in example
+    assert "VITE_KEYVERSE_CLIENT_ID" in example
+    assert "VITE_KEYCLOAK_ISSUER" not in example
 
 
 def test_make_seed_installs_the_script_runtime_extras() -> None:
