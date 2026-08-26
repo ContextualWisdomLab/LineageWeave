@@ -69,6 +69,18 @@ topic/domain (10), communication/document type (8), time interval/deadline (5),
 person/actor (4), and quantity/measurement (4). These are same-sample audit
 counts, not estimated corpus prevalence or a confidence interval.
 
+A second runtime-only simple random sample without replacement selected 100
+records from the current 43,814-record eligible title frame. Under the old
+ambiguous rubric, two complete same-sample runs disagreed materially (20/100
+versus 10/100 covered), so neither result is accepted as stable semantic-gap
+evidence. ADR 0242 now distinguishes source-specific instance data from a
+missing public schema term and supplies the audit with the existing canonical
+PROV-O registry rather than only its import/mapping profile. On the exact same
+selection manifest, the revised contract produced 100/100 covered, zero
+failures, ten batches, and four trace steps per batch in two consecutive runs.
+This proves repeatable coverage of this sampled title set only; it is not a
+corpus estimate and does not repair the export's zero-body evidence gap.
+
 A separate non-probability diagnostic excluded the first deterministic 100
 records and selected 100 records from each of five event/update-time strata
 (500 total). Every stratum again had 100/100 governed VOC type, stage, and
@@ -84,14 +96,18 @@ the canonical contextual-orchestrator PR #868. PR #870 was closed unmerged
 after its explicit-conduct regression was composed into #868; until #868's
 exact head passes its protected checks and independent review, the runtime path
 remains candidate evidence.
+LineageWeave's Compose bootstrap now also forwards the normalized configured
+provider-host allowlist to the orchestrator CLI; without that handoff, runtime
+discovery silently retained a blank model placeholder despite valid gateway
+credentials and model inventory.
 
 Remaining acceptance gaps:
 
 - ship an immutable Rust-owned estimator/variance/interval artifact for the
   declared probability design before making any corpus coverage estimate;
-- model and validate the still-uncovered meanings without minting source-local
-  codes as public concepts; repeat the audit against the same frozen selection
-  before drawing a change comparison;
+- repeat the revised contract on independently selected probability samples;
+  reconcile any newly uncovered meaning with public standards before adding a
+  schema term, and never mint source-local codes as public concepts;
 - connect an authoritative body/file source and prove non-zero, ordered
   semantic-unit persistence before claiming PRD-FR-4 corpus coverage;
 - obtain governed source definitions before mapping grade, inspection,
