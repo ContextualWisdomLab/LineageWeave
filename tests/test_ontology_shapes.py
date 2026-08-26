@@ -128,6 +128,23 @@ def test_representative_db_projection_passes_validation() -> None:
     assert conforms, report_text
 
 
+def test_semantic_content_assertion_requires_source_post_provenance() -> None:
+    """A semantic assertion without its source-post derivation fails closed."""
+    data = _representative_projection()
+    LWn = Namespace(LW)
+    assertion = URIRef(LW + "semantic-assertion-alpha")
+    post = URIRef(LW + "post-alpha")
+    activity = URIRef(LW + "activity-alpha")
+    data.add((assertion, RDF.type, LWn.SemanticContentAssertion))
+    data.add((assertion, RDF.subject, post))
+    data.add((assertion, RDF.predicate, LWn.describesActivity))
+    data.add((assertion, RDF.object, activity))
+    data.add((assertion, LWn.semanticEvidence, Literal("Synthetic activity evidence.")))
+    conforms, report_text = _conforms(data)
+    assert not conforms
+    assert "wasDerivedFromPost" in report_text
+
+
 def test_schema_shaped_project_row_projection_passes_validation() -> None:
     """The production projector emits the complete SHACL-governed chain."""
     data = project_project_mention_rdf(

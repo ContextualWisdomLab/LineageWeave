@@ -25,9 +25,19 @@ Repository artifacts must not retain the private titles.
    the corresponding manifest membership digest; neither tokens nor digests are
    sent to contextual-orchestrator or printed.
 2. Content crosses only the configured contextual-orchestrator boundary in
-   `conduct` mode. Every accepted batch requires a multi-step trace.
+   `conduct` mode. Every accepted batch requires a multi-step trace. The model
+   receives a deterministic public ontology contract containing each governed
+   term's IRI, RDF kind, labels, comments, domain, range, and SKOS scheme; local
+   names alone are not semantic evidence.
 3. The caller accepts a batch only when JSON, input count, item count, ordered
-   indexes, booleans, and governed missing-dimension codes all validate.
+   indexes, booleans, unique governed missing-dimension codes, and supporting
+   ontology IRIs all validate. A covered verdict requires at least one supplied
+   ontology IRI; an uncovered verdict requires at least one missing dimension.
+   Person/actor meaning is a governed dimension distinct from organization role;
+   collapsing the two would hide whether the ontology identifies an actor or only
+   an organizational function. Project/initiative meaning is likewise distinct
+   from product/service meaning because the former denotes organized work while
+   the latter denotes an offering or deliverable.
 4. No retry repairs, lexical rules, inferred categories, source values,
    identifiers, or row-level outputs are persisted or printed. Any malformed,
    incomplete, single-agent, or unavailable result fails the run.
@@ -38,12 +48,12 @@ Repository artifacts must not retain the private titles.
    temporal candidates with OWL-Time; and observed property, asset, system,
    or feature-of-interest candidates with the current SOSA/SSN edition. A
    source-grounded normalized fact and qualified provenance remain mandatory.
-7. A corpus inference additionally requires a versioned caller-supplied sample
-   manifest: a complete population/frame size, simple or stratified random
-   design, known inclusion probability and frame digest for every stratum,
-   explicit confidence and margin targets, an expected proportion backed by a
-   named prior-evidence reference, ordered selected-unit token digests bound to
-   their strata, and `provider_failures_retained=true`.
+7. A probability-sample audit additionally requires a versioned caller-supplied
+   sample manifest: a complete population/frame size, simple or stratified
+   random design, known inclusion probability and frame digest for every
+   stratum, ordered selected-unit token digests bound to their strata, a
+   canonical selection-manifest digest, and
+   `provider_failures_retained=true`.
    Deterministic windows, convenience samples, unknown inclusion probabilities,
    and replacement of failed items are pipeline evidence only.
 8. NIST/SEMATECH's proportion design begins with
@@ -51,10 +61,14 @@ Repository artifacts must not retain the private titles.
    `n = n0 / (1 + (n0 - 1) / N)`. Stratified designs determine sample size per
    stratum. LineageWeave neither evaluates those equations nor derives sample
    weights: a versioned, SHA-256-bound `ContextualWisdomLab/fast-mlsirm` Rust
-   artifact owns that arithmetic. Caller-authored hashes are not attestation:
-   until a pinned fast-mlsirm library exposes a canonical artifact that this
-   script can recompute and verify, the probability-sample path fails closed
-   before reading source rows or contacting contextual-orchestrator.
+   artifact owns that arithmetic. Until an immutable published artifact proves
+   its source identity and attests the declared design, allocation, inclusion
+   probabilities, estimand, estimator, variance, and achieved interval, the
+   script emits a complete sample audit with
+   `corpus_inference_available=false`. Caller-recomputed hashes do not
+   establish Rust provenance or authorize corpus inference. Confidence,
+   margin, prior-proportion, or interval fields are not accepted as proof when
+   no immutable owner artifact attests their computation.
 9. Any provider, transport, trace, parse, or item failure invalidates the whole
    declared probability sample. The selected item remains in the denominator
    and must be retried in place; it is never dropped or replaced by another
@@ -65,10 +79,10 @@ Repository artifacts must not retain the private titles.
 An HTTP 200 can no longer turn a partial classification into coverage evidence.
 The audit remains unavailable when contextual-orchestrator cannot complete all
 batches, preserving failures in the declared denominator instead of silently
-shrinking the sample. The observed 80-record result remains pipeline acceptance
-evidence only until an independently generated probability-sample manifest and
-its Rust owner artifact exist. A manifest that merely labels caller-computed
-hashes as a Rust artifact remains unavailable evidence.
+shrinking the sample. The observed 80-record result remains exploratory pipeline
+acceptance evidence. Even a complete probability sample remains sample-audit
+evidence until the published Rust inferential artifact and its immutable
+verification boundary ship.
 
 ## References
 

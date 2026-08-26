@@ -138,5 +138,6 @@ def test_bootstrap_leaves_embedding_selection_to_the_orchestrator(monkeypatch) -
     } & os.environ.keys()
     agents = captured["agents"]
     assert isinstance(agents, dict)
+    assert agents["agents"][0]["provider_name"] == "configured_gateway"
     assert not [agent for agent in agents["agents"] if "embedding" in agent.get("tags", [])]
     assert "LLM_GATEWAY_EMBEDDING_MODEL" not in os.environ

@@ -15,6 +15,8 @@ from pathlib import Path
 from typing import Any
 
 import asyncpg
+from rdflib import Graph, URIRef
+from rdflib.namespace import OWL, RDF, RDFS, SKOS
 
 from lineageweave.http_client import chat_completion_content, post_json
 
@@ -23,11 +25,13 @@ SEMANTIC_DIMENSIONS = frozenset(
         "event_or_activity",
         "location_or_geography",
         "product_or_service",
+        "project_or_initiative",
         "facility_asset_or_equipment",
         "topic_or_domain",
         "status_or_stage",
         "time_interval_or_deadline",
         "organization_role",
+        "person_or_actor",
         "communication_or_document_type",
         "commercial_transaction",
         "quantity_or_measurement",
@@ -36,7 +40,6 @@ SEMANTIC_DIMENSIONS = frozenset(
     }
 )
 _CODE_FENCE = re.compile(r"^```(?:json)?\s*|\s*```$", re.DOTALL)
-_PROBABILITY = re.compile(r"0\.(?:0*[1-9]\d*)$")
 _INCLUSION_PROBABILITY = re.compile(r"(?:0\.(?:0*[1-9]\d*)|1(?:\.0+)?)$")
 _SHA256 = re.compile(r"[0-9a-f]{64}$")
 _SAMPLE_DESIGNS = {
@@ -61,14 +64,10 @@ def validate_probability_sample_manifest(
         "population_size",
         "sample_size",
         "design_code",
-        "target_confidence_level",
-        "target_margin_of_error",
-        "expected_proportion",
-        "expected_proportion_evidence_reference",
         "provider_failures_retained",
         "strata",
         "selected_units",
-        "rust_owner_artifact",
+        "selection_manifest_sha256",
     }
     if not isinstance(payload, dict) or set(payload) != required:
         raise ValueError(
@@ -76,7 +75,7 @@ def validate_probability_sample_manifest(
         )
     if (
         payload["contract_kind"] != "lineageweave.semantic_coverage_probability_sample"
-        or payload["contract_version"] != 1
+        or payload["contract_version"] != 2
     ):
         raise ValueError("unsupported probability-sample manifest contract")
     population_size = payload["population_size"]
@@ -91,23 +90,6 @@ def validate_probability_sample_manifest(
         raise ValueError("sample manifest population or sample size is invalid")
     if payload["design_code"] not in _SAMPLE_DESIGNS:
         raise ValueError("sample manifest must use a supported probability design")
-    for field in (
-        "target_confidence_level",
-        "target_margin_of_error",
-        "expected_proportion",
-    ):
-        if (
-            not isinstance(payload[field], str)
-            or _PROBABILITY.fullmatch(payload[field]) is None
-        ):
-            raise ValueError(
-                f"sample manifest {field} must be a decimal string between zero and one"
-            )
-    evidence_reference = payload["expected_proportion_evidence_reference"]
-    if not isinstance(evidence_reference, str) or not evidence_reference.strip():
-        raise ValueError(
-            "sample manifest requires prior evidence for expected_proportion"
-        )
     if payload["provider_failures_retained"] is not True:
         raise ValueError(
             "sample manifest must retain provider failures in the declared sample"
@@ -212,51 +194,29 @@ def validate_probability_sample_manifest(
             "sample manifest selected-unit strata must match stratum sample sizes"
         )
 
-    artifact = payload["rust_owner_artifact"]
-    artifact_fields = {
-        "repository",
-        "artifact_version",
-        "formula_code",
-        "source_sha256",
-        "input_sha256",
-        "output_sha256",
-    }
-    if not isinstance(artifact, dict) or set(artifact) != artifact_fields:
-        raise ValueError("sample manifest Rust owner artifact fields are invalid")
+    selection_digest = payload["selection_manifest_sha256"]
     if (
-        artifact["repository"] != "ContextualWisdomLab/fast-mlsirm"
-        or artifact["formula_code"] != "nist_sematech_proportion_fpc_v1"
-        or not isinstance(artifact["artifact_version"], str)
-        or not artifact["artifact_version"].strip()
+        not isinstance(selection_digest, str)
+        or _SHA256.fullmatch(selection_digest) is None
+        or selection_digest != _canonical_sha256(selected_units)
     ):
-        raise ValueError(
-            "sample manifest requires the governed Rust sample-size artifact"
-        )
-    if any(
-        not isinstance(artifact[field], str)
-        or _SHA256.fullmatch(artifact[field]) is None
-        for field in ("source_sha256", "input_sha256", "output_sha256")
-    ):
-        raise ValueError("sample manifest Rust artifact digests must be SHA-256")
-    artifact_input = {
-        key: payload[key]
-        for key in required - {"selected_units", "rust_owner_artifact"}
-    }
-    if artifact["input_sha256"] != _canonical_sha256(artifact_input):
-        raise ValueError(
-            "sample manifest does not match the Rust artifact input digest"
-        )
-    if artifact["output_sha256"] != _canonical_sha256(selected_units):
-        raise ValueError(
-            "selected sample does not match the Rust artifact output digest"
-        )
-    raise ValueError(
-        "probability-sample inference is unavailable until a pinned fast-mlsirm "
-        "library exposes a verifiable sampling artifact"
+        raise ValueError("selected sample does not match its manifest digest")
+    return (
+        {
+            "design_code": payload["design_code"],
+            "population_size": population_size,
+            "sample_size": sample_size,
+            "stratum_count": len(strata),
+            "selection_manifest_sha256": selection_digest,
+            "corpus_inference_available": False,
+        },
+        tuple(membership),
     )
 
 
-def parse_batch_result(content: str, expected_count: int) -> tuple[dict[str, Any], ...]:
+def parse_batch_result(
+    content: str, expected_count: int, allowed_term_iris: frozenset[str]
+) -> tuple[dict[str, Any], ...]:
     """Require one ordered, governed verdict for every submitted item."""
     candidate = (
         _CODE_FENCE.sub("", content.strip())
@@ -282,7 +242,12 @@ def parse_batch_result(content: str, expected_count: int) -> tuple[dict[str, Any
             "semantic audit item indexes are missing, duplicated, or unordered"
         )
     for item in items:
-        if set(item) != {"item_index", "covered", "missing_semantic_dimensions"}:
+        if set(item) != {
+            "item_index",
+            "covered",
+            "missing_semantic_dimensions",
+            "supporting_term_iris",
+        }:
             raise ValueError("semantic audit item has an unsupported field")
         if type(item["covered"]) is not bool:
             raise ValueError("semantic audit covered value must be boolean")
@@ -292,8 +257,22 @@ def parse_batch_result(content: str, expected_count: int) -> tuple[dict[str, Any
             for value in dimensions
         ):
             raise ValueError("semantic audit returned an ungoverned dimension")
+        if len(dimensions) != len(set(dimensions)):
+            raise ValueError("semantic audit returned a duplicate missing dimension")
+        supporting_terms = item["supporting_term_iris"]
+        if not isinstance(supporting_terms, list) or any(
+            not isinstance(value, str) or value not in allowed_term_iris
+            for value in supporting_terms
+        ):
+            raise ValueError("semantic audit returned an ungoverned supporting term")
+        if len(supporting_terms) != len(set(supporting_terms)):
+            raise ValueError("semantic audit returned a duplicate supporting term")
         if item["covered"] and dimensions:
             raise ValueError("a covered item cannot report a missing dimension")
+        if item["covered"] and not supporting_terms:
+            raise ValueError("a covered item requires a supporting ontology term")
+        if not item["covered"] and not dimensions:
+            raise ValueError("an uncovered item requires a missing dimension")
     return tuple(items)
 
 
@@ -348,21 +327,56 @@ def aggregate_results(
     }
 
 
-def _ontology_terms(path: Path) -> list[str]:
-    """Read public class/property/concept names used as the coverage boundary."""
-    return sorted(
-        set(
-            re.findall(
-                r"^:([A-Za-z0-9_-]+)\s+a\s+"
-                r"(?:owl:(?:Class|ObjectProperty|DatatypeProperty)|skos:Concept)\b",
-                path.read_text(encoding="utf-8"),
-                re.MULTILINE,
-            )
+def _ontology_terms(path: Path) -> list[dict[str, object]]:
+    """Return deterministic public semantics for every governed ontology term."""
+    graph = Graph().parse(path, format="turtle")
+    governed_kinds = {
+        OWL.Class,
+        OWL.ObjectProperty,
+        OWL.DatatypeProperty,
+        SKOS.Concept,
+    }
+    terms: list[dict[str, object]] = []
+    for subject in sorted(
+        {
+            subject
+            for kind in governed_kinds
+            for subject in graph.subjects(RDF.type, kind)
+            if isinstance(subject, URIRef)
+        },
+        key=str,
+    ):
+        terms.append(
+            {
+                "iri": str(subject),
+                "kinds": sorted(
+                    str(kind)
+                    for kind in graph.objects(subject, RDF.type)
+                    if kind in governed_kinds
+                ),
+                "labels": sorted(
+                    str(value)
+                    for predicate in (RDFS.label, SKOS.prefLabel)
+                    for value in graph.objects(subject, predicate)
+                ),
+                "comments": sorted(
+                    str(value) for value in graph.objects(subject, RDFS.comment)
+                ),
+                "domains": sorted(
+                    str(value) for value in graph.objects(subject, RDFS.domain)
+                ),
+                "ranges": sorted(
+                    str(value) for value in graph.objects(subject, RDFS.range)
+                ),
+                "schemes": sorted(
+                    str(value) for value in graph.objects(subject, SKOS.inScheme)
+                ),
+            }
         )
-    )
+    return terms
 
 
-def _prompt(terms: Sequence[str], contents: Sequence[str]) -> str:
+def _prompt(terms: Sequence[Mapping[str, object]], contents: Sequence[str]) -> str:
     """Build a privacy-constrained exact-cardinality audit request."""
     items = [
         {"item_index": index, "source_content": content}
@@ -372,7 +386,11 @@ def _prompt(terms: Sequence[str], contents: Sequence[str]) -> str:
         "Audit whether the supplied OWL/SKOS terms express every private item's material meaning. "
         "Never quote, paraphrase, reproduce, or expose source content or proper nouns. "
         "Return only JSON with input_count and items. Return exactly one ordered item per item_index. "
-        "Each item has exactly item_index, covered (boolean), and missing_semantic_dimensions. "
+        "Each item has exactly item_index, covered (boolean), missing_semantic_dimensions, "
+        "and supporting_term_iris. Use only supplied ontology IRIs. A covered item requires "
+        "one or more supporting IRIs and no missing dimensions. An uncovered item requires "
+        "one or more missing dimensions; do not duplicate values. Never invent a dimension "
+        "name or synonym; use other_unmodeled_meaning for meaning outside the enum. "
         "Do not treat Post or an opaque text literal as semantic coverage. Missing dimensions may use only: "
         + ", ".join(sorted(SEMANTIC_DIMENSIONS))
         + ". If uncertain, use other_unmodeled_meaning.\nONTOLOGY TERMS:\n"
@@ -410,6 +428,7 @@ async def audit_source_content(
     contents = selected_contents(records, selected_membership)
 
     terms = _ontology_terms(ontology_path)
+    allowed_term_iris = frozenset(str(term["iri"]) for term in terms)
     batches: list[tuple[dict[str, Any], ...]] = []
     trace_counts: list[int] = []
     endpoint = gateway_url.rstrip("/") + "/v1/chat/completions"
@@ -437,9 +456,15 @@ async def audit_source_content(
         trace = orchestration.get("trace") if isinstance(orchestration, dict) else None
         if not isinstance(trace, list) or len(trace) < 2:
             raise ValueError("semantic audit did not return multi-agent trace evidence")
-        batches.append(
-            parse_batch_result(chat_completion_content(response), len(window))
-        )
+        try:
+            parsed_batch = parse_batch_result(
+                chat_completion_content(response), len(window), allowed_term_iris
+            )
+        except ValueError as exc:
+            raise ValueError(
+                f"semantic audit batch {start // batch_size} failed validation"
+            ) from exc
+        batches.append(parsed_batch)
         trace_counts.append(len(trace))
     result = aggregate_results(batches, trace_counts)
     if result["sample_count"] != sample_size:

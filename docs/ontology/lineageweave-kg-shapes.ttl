@@ -238,3 +238,23 @@
         a sh:NodeShape ;
         sh:class :OurSidePerson ;
     ] .
+
+:SemanticContentAssertionShape a sh:NodeShape ;
+    rdfs:label "Semantic content assertion shape" ;
+    sh:targetClass :SemanticContentAssertion ;
+    sh:property [
+        sh:path rdf:subject ; sh:minCount 1 ; sh:maxCount 1 ; sh:class :Post
+    ] ;
+    sh:property [
+        sh:path rdf:predicate ; sh:minCount 1 ; sh:maxCount 1 ; sh:nodeKind sh:IRI
+    ] ;
+    sh:property [
+        sh:path rdf:object ; sh:minCount 1 ; sh:maxCount 1 ; sh:nodeKind sh:IRI
+    ] ;
+    sh:property [
+        sh:path :wasDerivedFromPost ; sh:minCount 1 ; sh:maxCount 1 ; sh:class :Post
+    ] ;
+    sh:property [
+        sh:path :semanticEvidence ; sh:minCount 1 ; sh:maxCount 1 ;
+        sh:datatype xsd:string ; sh:minLength 1 ; sh:pattern "\\S"
+    ] .

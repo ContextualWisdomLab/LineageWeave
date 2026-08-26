@@ -46,15 +46,28 @@ The reusable audit now rejects the previously observed 100-input/60-output
 response, requires every ordered item plus a multi-agent trace, and prints only
 complete non-identifying aggregates. It additionally fails closed unless the
 caller supplies a probability-sample manifest with known per-stratum inclusion
-probabilities, explicit confidence/margin targets, prior evidence for the
-expected proportion, ordered owner-token membership digests, retained provider
-failures, and a verifiable output of the NIST proportion/FPC calculation owned
-by a pinned fast-mlsirm Rust artifact. The current fast-mlsirm candidate returns
-design values but no canonical content-addressed artifact or selected-member
-manifest, so LineageWeave now rejects every probability-inference run before
-reading source rows. Caller-authored SHA-256 values are not accepted as Rust
-attestation, and LineageWeave performs no sample-size, finite-population,
-allocation, or weight arithmetic in Python.
+probabilities, per-stratum frame digests, ordered owner-token membership
+digests, retained provider failures, and a canonical selection-manifest digest.
+LineageWeave validates sample identity and completeness but deliberately emits
+`corpus_inference_available=false`: the current manifest does not contain an
+immutable estimator, variance, or achieved-interval artifact and therefore
+cannot support a corpus coverage estimate.
+
+A runtime-only simple random sample without replacement then selected 100 new
+records from an eligible frame of 43,714. The pre-augmentation audit accepted
+all 100 ordered outputs in ten batches, with four contextual-orchestrator trace
+steps for every batch and no provider failure; 0/100 were completely covered.
+After adding public, standards-aligned content classes/properties plus a
+PROV-O-derived semantic-assertion and SHACL evidence contract, the exact same
+selection manifest again accepted 100/100 outputs with the same trace bounds:
+20/100 were completely covered and 80/100 remained uncovered. The remaining
+sample-level missing-dimension counts were event/activity (32),
+facility/asset/equipment (35), organization role (35), other unmodeled meaning
+(28), product/service (27), requirement/issue/risk (23), location/geography
+(16), commercial transaction (14), project/initiative (14), status/stage (14),
+topic/domain (10), communication/document type (8), time interval/deadline (5),
+person/actor (4), and quantity/measurement (4). These are same-sample audit
+counts, not estimated corpus prevalence or a confidence interval.
 
 A separate non-probability diagnostic excluded the first deterministic 100
 records and selected 100 records from each of five event/update-time strata
@@ -66,8 +79,6 @@ stage had 2–4 distinct raw values, detail state 3–4, and country 9–14. Thi
 observed the same missing-body boundary and structured hint availability in
 each diagnostic stratum; it is not probability-sample or corpus-prevalence
 evidence and supplies no confidence interval.
-An attempted additional 100-title semantic audit produced no accepted batch
-after provider failures, so it contributes no content-classification counts.
 The advertised deployment alias needed by this multi-agent path is repaired in
 the canonical contextual-orchestrator PR #868. PR #870 was closed unmerged
 after its explicit-conduct regression was composed into #868; until #868's
@@ -76,11 +87,11 @@ remains candidate evidence.
 
 Remaining acceptance gaps:
 
-- ship and pin a canonical fast-mlsirm Rust probability-sample artifact that
-  LineageWeave can recompute and verify, select the
-  fixed sample from a complete authorized frame, and complete every selected
-  item without dropping or replacing provider failures before making any
-  corpus coverage estimate;
+- ship an immutable Rust-owned estimator/variance/interval artifact for the
+  declared probability design before making any corpus coverage estimate;
+- model and validate the still-uncovered meanings without minting source-local
+  codes as public concepts; repeat the audit against the same frozen selection
+  before drawing a change comparison;
 - connect an authoritative body/file source and prove non-zero, ordered
   semantic-unit persistence before claiming PRD-FR-4 corpus coverage;
 - obtain governed source definitions before mapping grade, inspection,

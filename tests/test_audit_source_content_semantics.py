@@ -1,4 +1,3 @@
-import asyncio
 import hashlib
 import json
 from pathlib import Path
@@ -6,13 +5,16 @@ from pathlib import Path
 import pytest
 
 from scripts.audit_source_content_semantics import (
+    _ontology_terms,
     _parser,
     aggregate_results,
-    audit_source_content,
     parse_batch_result,
     selected_contents,
     validate_probability_sample_manifest,
 )
+
+_TERM_IRI = "https://example.test/ontology#Event"
+_ALLOWED_TERMS = frozenset({_TERM_IRI})
 
 
 def test_cli_defaults_to_the_internal_orchestrator_credential() -> None:
@@ -27,18 +29,14 @@ def test_cli_defaults_to_the_internal_orchestrator_credential() -> None:
 
 
 def _probability_manifest() -> dict[str, object]:
-    """Return a synthetic, Rust-attested stratified sample contract."""
+    """Return a synthetic stratified sample-audit contract."""
     digest = "a" * 64
     manifest: dict[str, object] = {
         "contract_kind": "lineageweave.semantic_coverage_probability_sample",
-        "contract_version": 1,
+        "contract_version": 2,
         "population_size": 1000,
         "sample_size": 80,
         "design_code": "stratified_random_without_replacement",
-        "target_confidence_level": "0.95",
-        "target_margin_of_error": "0.05",
-        "expected_proportion": "0.50",
-        "expected_proportion_evidence_reference": "synthetic-prior-study:v1",
         "provider_failures_retained": True,
         "strata": [
             {
@@ -66,26 +64,9 @@ def _probability_manifest() -> dict[str, object]:
             }
             for ordinal in range(80)
         ],
-        "rust_owner_artifact": {
-            "repository": "ContextualWisdomLab/fast-mlsirm",
-            "artifact_version": "synthetic-test-v1",
-            "formula_code": "nist_sematech_proportion_fpc_v1",
-            "source_sha256": digest,
-            "input_sha256": "",
-            "output_sha256": "",
-        },
+        "selection_manifest_sha256": "",
     }
-    artifact_input = {
-        key: value
-        for key, value in manifest.items()
-        if key not in {"selected_units", "rust_owner_artifact"}
-    }
-    artifact = manifest["rust_owner_artifact"]
-    assert isinstance(artifact, dict)
-    artifact["input_sha256"] = hashlib.sha256(
-        json.dumps(artifact_input, sort_keys=True, separators=(",", ":")).encode()
-    ).hexdigest()
-    artifact["output_sha256"] = hashlib.sha256(
+    manifest["selection_manifest_sha256"] = hashlib.sha256(
         json.dumps(
             manifest["selected_units"], sort_keys=True, separators=(",", ":")
         ).encode()
@@ -97,7 +78,12 @@ def test_parser_rejects_the_observed_100_to_60_cardinality_mismatch() -> None:
     payload = {
         "input_count": 60,
         "items": [
-            {"item_index": index, "covered": True, "missing_semantic_dimensions": []}
+            {
+                "item_index": index,
+                "covered": True,
+                "missing_semantic_dimensions": [],
+                "supporting_term_iris": [_TERM_IRI],
+            }
             for index in range(60)
         ],
     }
@@ -105,15 +91,18 @@ def test_parser_rejects_the_observed_100_to_60_cardinality_mismatch() -> None:
     import json
 
     with pytest.raises(ValueError, match="input_count"):
-        parse_batch_result(json.dumps(payload), expected_count=100)
+        parse_batch_result(json.dumps(payload), 100, _ALLOWED_TERMS)
 
 
 def test_valid_batches_aggregate_without_source_values() -> None:
     rows = parse_batch_result(
         '{"input_count":2,"items":['
-        '{"item_index":0,"covered":false,"missing_semantic_dimensions":["event_or_activity"]},'
-        '{"item_index":1,"covered":true,"missing_semantic_dimensions":[]}]}',
+        '{"item_index":0,"covered":false,"missing_semantic_dimensions":["event_or_activity"],'
+        '"supporting_term_iris":[]},'
+        '{"item_index":1,"covered":true,"missing_semantic_dimensions":[],'
+        f'"supporting_term_iris":["{_TERM_IRI}"]}}]}}',
         expected_count=2,
+        allowed_term_iris=_ALLOWED_TERMS,
     )
 
     result = aggregate_results([rows], [4])
@@ -134,42 +123,69 @@ def test_parser_rejects_ungoverned_dimensions() -> None:
     with pytest.raises(ValueError, match="ungoverned"):
         parse_batch_result(
             '{"input_count":1,"items":['
-            '{"item_index":0,"covered":false,"missing_semantic_dimensions":["invented"]}]}',
+            '{"item_index":0,"covered":false,"missing_semantic_dimensions":["invented"],'
+            '"supporting_term_iris":[]}]}',
             expected_count=1,
+            allowed_term_iris=_ALLOWED_TERMS,
         )
 
 
-def test_probability_sample_manifest_fails_without_verifiable_rust_artifact() -> None:
-    """Caller-authored hashes cannot attest that Rust produced the design."""
+@pytest.mark.parametrize(
+    ("covered", "dimensions", "supporting_terms", "message"),
+    [
+        (True, [], [], "requires a supporting"),
+        (False, [], [], "requires a missing"),
+        (False, ["event_or_activity", "event_or_activity"], [], "duplicate missing"),
+        (True, [], ["https://example.test/unknown"], "ungoverned supporting"),
+    ],
+)
+def test_parser_requires_auditable_noncontradictory_verdicts(
+    covered: bool,
+    dimensions: list[str],
+    supporting_terms: list[str],
+    message: str,
+) -> None:
+    """Bare coverage and empty or duplicated gap verdicts fail closed."""
+    payload = {
+        "input_count": 1,
+        "items": [
+            {
+                "item_index": 0,
+                "covered": covered,
+                "missing_semantic_dimensions": dimensions,
+                "supporting_term_iris": supporting_terms,
+            }
+        ],
+    }
+
+    with pytest.raises(ValueError, match=message):
+        parse_batch_result(json.dumps(payload), 1, _ALLOWED_TERMS)
+
+
+def test_ontology_contract_contains_public_semantics_not_only_local_names() -> None:
+    """Coverage decisions receive term kinds and meaning-bearing RDF relations."""
+    terms = _ontology_terms(Path("docs/ontology/lineageweave-kg.ttl"))
+
+    assert terms
+    assert all(term["iri"] and term["kinds"] for term in terms)
+    assert any(term["labels"] for term in terms)
+    assert any(term["domains"] or term["ranges"] for term in terms)
+
+
+def test_probability_sample_manifest_preserves_design_evidence() -> None:
+    """The audit preserves selection evidence without claiming corpus inference."""
     manifest = _probability_manifest()
+    result, membership = validate_probability_sample_manifest(manifest, 80)
 
-    with pytest.raises(ValueError, match="pinned fast-mlsirm"):
-        validate_probability_sample_manifest(manifest, 80)
-
-
-def test_probability_audit_fails_before_source_or_provider_access(monkeypatch) -> None:
-    """Unavailable attestation cannot expose source rows or spend provider work."""
-    async def forbidden_connect(_dsn: str):
-        raise AssertionError("source access must not run")
-
-    monkeypatch.setattr(
-        "scripts.audit_source_content_semantics.asyncpg.connect", forbidden_connect
-    )
-
-    with pytest.raises(ValueError, match="pinned fast-mlsirm"):
-        asyncio.run(
-            audit_source_content(
-                source_dsn="postgresql://synthetic",
-                query="select selection_token, content_text from synthetic",
-                sample_size=80,
-                sample_manifest=_probability_manifest(),
-                batch_size=10,
-                ontology_path=Path("unused.ttl"),
-                gateway_url="https://orchestrator.invalid",
-                gateway_api_key="synthetic",
-                timeout=1,
-            )
-        )
+    assert result == {
+        "design_code": "stratified_random_without_replacement",
+        "population_size": 1000,
+        "sample_size": 80,
+        "stratum_count": 2,
+        "selection_manifest_sha256": manifest["selection_manifest_sha256"],
+        "corpus_inference_available": False,
+    }
+    assert len(membership) == 80
 
 
 @pytest.mark.parametrize(
@@ -177,8 +193,7 @@ def test_probability_audit_fails_before_source_or_provider_access(monkeypatch) -
     [
         ("design_code", "deterministic_windows", "probability design"),
         ("provider_failures_retained", False, "retain provider failures"),
-        ("target_confidence_level", "95%", "decimal string"),
-        ("expected_proportion_evidence_reference", "", "prior evidence"),
+        ("contract_version", 1, "unsupported"),
     ],
 )
 def test_probability_sample_manifest_rejects_noninferential_contracts(

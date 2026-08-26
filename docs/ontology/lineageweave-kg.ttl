@@ -6,6 +6,10 @@
 @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
 @prefix prov: <http://www.w3.org/ns/prov#> .
 @prefix org: <http://www.w3.org/ns/org#> .
+@prefix dcterms: <http://purl.org/dc/terms/> .
+@prefix time: <http://www.w3.org/2006/time#> .
+@prefix sosa: <http://www.w3.org/ns/sosa/> .
+@prefix qudt: <http://qudt.org/schema/qudt/> .
 
 #################################################################
 # LineageWeave Knowledge Graph Ontology
@@ -460,3 +464,94 @@
 :semanticConfidence a owl:DatatypeProperty ;
     rdfs:domain :ProjectMention ;
     rdfs:range xsd:decimal .
+
+#################################################################
+# Content-semantic subjects (ADR 0242)
+#################################################################
+
+:BusinessEventActivity a owl:Class ;
+    rdfs:subClassOf prov:Activity ;
+    rdfs:label "Business event or activity"@en ;
+    rdfs:comment "A source-described occurrence or activity, aligned with PROV-O Activity."@en .
+
+:ProductOrService a owl:Class ;
+    rdfs:label "Product or service"@en ;
+    rdfs:comment "An offering, deliverable, product, or service materially discussed by a post."@en .
+
+:CommunicationDocument a owl:Class ;
+    rdfs:subClassOf prov:Entity ;
+    rdfs:label "Communication or document"@en ;
+    rdfs:comment "A communication or documentary artifact discussed by a post."@en .
+
+:OrganizationRole a owl:Class ;
+    rdfs:subClassOf org:Role ;
+    rdfs:label "Organization role"@en ;
+    rdfs:comment "A role borne in an organizational context, aligned with the W3C Organization Ontology."@en .
+
+:Topic a owl:Class ;
+    rdfs:subClassOf skos:Concept ;
+    rdfs:label "Topic or domain"@en ;
+    rdfs:comment "A governed subject concept materially discussed by a post."@en .
+
+:Location a owl:Class ;
+    rdfs:subClassOf dcterms:Location ;
+    rdfs:label "Location"@en ;
+    rdfs:comment "A spatial region or named place aligned with DCMI Location."@en .
+
+:CommercialTransaction a owl:Class ;
+    rdfs:label "Commercial transaction"@en ;
+    rdfs:comment "A quotation, order, sale, purchase, contract, or other commercial exchange."@en .
+
+:FacilityAssetEquipment a owl:Class ;
+    rdfs:subClassOf sosa:FeatureOfInterest ;
+    rdfs:label "Facility, asset, or equipment"@en ;
+    rdfs:comment "A physical facility, asset, component, or equipment item observed or discussed, aligned with SOSA FeatureOfInterest."@en .
+
+:StatusStage a owl:Class ;
+    rdfs:subClassOf skos:Concept ;
+    rdfs:label "Status or stage"@en ;
+    rdfs:comment "A governed lifecycle state or process stage; raw source codes remain literals until their code system is governed."@en .
+
+:RequirementIssueRisk a owl:Class ;
+    rdfs:subClassOf prov:Entity ;
+    rdfs:label "Requirement, issue, or risk"@en ;
+    rdfs:comment "An evidence-bearing requirement, issue, constraint, defect, or risk discussed by a post."@en .
+
+:RelevantTimeInterval a owl:Class ;
+    rdfs:subClassOf time:TemporalEntity ;
+    rdfs:label "Relevant time interval or deadline"@en ;
+    rdfs:comment "A material temporal interval or deadline aligned with OWL-Time."@en .
+
+:QuantityMeasurement a owl:Class ;
+    rdfs:subClassOf qudt:QuantityValue ;
+    rdfs:label "Quantity or measurement"@en ;
+    rdfs:comment "A quantity value with its unit and provenance, aligned with QUDT QuantityValue."@en .
+
+:describesActivity a owl:ObjectProperty ; rdfs:domain :Post ; rdfs:range :BusinessEventActivity ; rdfs:label "describes activity"@en .
+:concernsProductOrService a owl:ObjectProperty ; rdfs:domain :Post ; rdfs:range :ProductOrService ; rdfs:label "concerns product or service"@en .
+:hasCommunicationDocument a owl:ObjectProperty ; rdfs:domain :Post ; rdfs:range :CommunicationDocument ; rdfs:label "has communication or document"@en .
+:assignsOrganizationRole a owl:ObjectProperty ; rdfs:domain :Post ; rdfs:range :OrganizationRole ; rdfs:label "assigns organization role"@en .
+:concernsTopic a owl:ObjectProperty ; rdfs:domain :Post ; rdfs:range :Topic ; rdfs:label "concerns topic"@en .
+:concernsLocation a owl:ObjectProperty ; rdfs:domain :Post ; rdfs:range :Location ; rdfs:label "concerns location"@en .
+:concernsTransaction a owl:ObjectProperty ; rdfs:domain :Post ; rdfs:range :CommercialTransaction ; rdfs:label "concerns transaction"@en .
+:concernsFacilityAssetEquipment a owl:ObjectProperty ; rdfs:domain :Post ; rdfs:range :FacilityAssetEquipment ; rdfs:label "concerns facility, asset, or equipment"@en .
+:hasStatusStage a owl:ObjectProperty ; rdfs:domain :Post ; rdfs:range :StatusStage ; rdfs:label "has status or stage"@en .
+:concernsRequirementIssueRisk a owl:ObjectProperty ; rdfs:domain :Post ; rdfs:range :RequirementIssueRisk ; rdfs:label "concerns requirement, issue, or risk"@en .
+:hasRelevantTimeInterval a owl:ObjectProperty ; rdfs:domain :Post ; rdfs:range :RelevantTimeInterval ; rdfs:label "has relevant time interval"@en .
+:hasQuantityMeasurement a owl:ObjectProperty ; rdfs:domain :Post ; rdfs:range :QuantityMeasurement ; rdfs:label "has quantity or measurement"@en .
+
+:SemanticContentAssertion a owl:Class ;
+    rdfs:subClassOf rdf:Statement, prov:Entity ;
+    rdfs:label "Semantic content assertion"@en ;
+    rdfs:comment "A provenance-bearing reification of one content-semantic relation; publication requires a source post and evidence text."@en .
+
+:semanticEvidence a owl:DatatypeProperty ;
+    rdfs:domain :SemanticContentAssertion ;
+    rdfs:range xsd:string ;
+    rdfs:label "semantic evidence"@en .
+
+:wasDerivedFromPost a owl:ObjectProperty ;
+    rdfs:subPropertyOf prov:wasDerivedFrom ;
+    rdfs:domain :SemanticContentAssertion ;
+    rdfs:range :Post ;
+    rdfs:label "was derived from post"@en .

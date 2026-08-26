@@ -14,7 +14,7 @@ from pathlib import Path
 
 import pytest
 from rdflib import Graph, Literal, URIRef
-from rdflib.namespace import OWL, RDF, RDFS, SKOS, XSD
+from rdflib.namespace import OWL, PROV, RDF, RDFS, SKOS, XSD
 
 from lineageweave.knowledge_graph import (
     EDGE_AFFILIATION,
@@ -93,6 +93,13 @@ def _seeded_lookup_codes_for_covered_categories() -> set[str]:
 def test_ontology_parses_as_valid_turtle() -> None:
     graph = load_ontology()
     assert len(graph) > 0
+
+
+def test_semantic_content_provenance_specializes_prov_o() -> None:
+    """Content assertions remain PROV entities derived from their source posts."""
+    graph = load_ontology()
+    assert (LW.SemanticContentAssertion, RDFS.subClassOf, PROV.Entity) in graph
+    assert (LW.wasDerivedFromPost, RDFS.subPropertyOf, PROV.wasDerivedFrom) in graph
 
 
 def test_every_seeded_lookup_code_is_declared_in_the_ontology() -> None:
