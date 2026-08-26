@@ -496,7 +496,11 @@ async def process_global_ask_job(
                 chat_client=chat_client,
                 embedding_client=embedding_factory(),
                 verify_external=bool(row["verify_external_requested"]),
-                claim_verification_client=claim_verification_factory(),
+                claim_verification_client=(
+                    claim_verification_factory()
+                    if bool(row["verify_external_requested"])
+                    else None
+                ),
             ),
             timeout=JOB_DEADLINE_SECONDS,
         )
