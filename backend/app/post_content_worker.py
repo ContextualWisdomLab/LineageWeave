@@ -437,6 +437,9 @@ async def _finish_failed_job(
     failure_code: str,
     detail_text: str,
     expected_attempt_count: int,
+    channel_stage_code: str | None = None,
+    error: Exception | None = None,
+    session_correlation_id: str | None = None,
 ) -> None:
     """Schedule one retry, or persist a terminal failure for this attempt.
 
@@ -474,6 +477,11 @@ async def _finish_failed_job(
                     else detail_text
                 ),
                 expected_attempt_count=expected_attempt_count,
+                channel_stage_code=channel_stage_code,
+                http_status=getattr(error, "http_status", None),
+                orchestrator_error_code=getattr(error, "remote_error_code", None),
+                retryable=getattr(error, "retryable", None),
+                session_correlation_id=session_correlation_id,
             )
 
 
@@ -522,16 +530,21 @@ async def process_post_content_job(
             expected_attempt_count=attempt_count,
         )
         return
+    channel_stage_code = "metadata"
+    metadata: dict[str, str] = {}
     try:
         metadata = build_post_llm_metadata(post_id, row)
+        channel_stage_code = "client_initialization"
         embedding_client = embedding_factory()
         structure_client = structure_factory()
         with use_llm_metadata(metadata):
             vision_client = vision_factory()
             if settings.orchestrator_base_url and settings.orchestrator_api_key:
+                channel_stage_code = "operations_evidence"
                 evidence_sources = await _operations_evidence_sources(
                     pool, post_id, row, vision_client
                 )
+                channel_stage_code = "operations_case"
                 await _persist_operations_case_analysis_if_needed(
                     pool,
                     post_id,
@@ -565,9 +578,11 @@ async def process_post_content_job(
                         exc,
                         outcome="provider_unavailable",
                     )
+            channel_stage_code = "content_normalization"
             normalized = await asyncio.to_thread(
                 normalize_post_body, raw_body, vision_client
             )
+            channel_stage_code = "content_persistence"
             async with pool.acquire() as conn:
                 await persist_post_content(
                     conn,
@@ -639,6 +654,9 @@ async def process_post_content_job(
             failure_code="post_content_ingestion_failed",
             detail_text=_UNEXPECTED_FAILURE_DETAIL,
             expected_attempt_count=attempt_count,
+            channel_stage_code=channel_stage_code,
+            error=exc,
+            session_correlation_id=metadata.get("lineageweave_post_session_id"),
         )
         return
     await _finish_job(pool, post_id, SUCCEEDED, expected_attempt_count=attempt_count)

@@ -190,6 +190,11 @@ async def transition_post_content_job(
     failure_code: str | None = None,
     detail_text: str | None = None,
     expected_attempt_count: int | None = None,
+    channel_stage_code: str | None = None,
+    http_status: int | None = None,
+    orchestrator_error_code: str | None = None,
+    retryable: bool | None = None,
+    session_correlation_id: str | None = None,
 ) -> bool:
     """Update one job attempt and append its lifecycle event atomically.
 
@@ -211,7 +216,12 @@ async def transition_post_content_job(
             next_attempt_at = null,
             updated_at = now(),
             last_error_code = $7,
-            last_error_detail = $8
+            last_error_detail = $8,
+            failure_channel_stage_code = $10,
+            failure_http_status = $11,
+            failure_orchestrator_error_code = $12,
+            failure_retryable = $13,
+            failure_session_correlation_id = $14
         where post_id = $1
           and ($9::integer is null or attempt_count = $9)
         """,
@@ -224,6 +234,11 @@ async def transition_post_content_job(
         failure_code,
         detail_text,
         expected_attempt_count,
+        channel_stage_code,
+        http_status,
+        orchestrator_error_code,
+        retryable,
+        session_correlation_id,
     )
     if not updated.endswith(" 1"):
         return False

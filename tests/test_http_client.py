@@ -373,3 +373,21 @@ def test_post_json_raises_on_http_error() -> None:
     finally:
         server.shutdown()
         server.server_close()
+
+
+def test_post_json_preserves_only_bounded_remote_failure_fields(monkeypatch) -> None:
+    """Typed failure provenance excludes the remote message and response body."""
+
+    monkeypatch.setattr(
+        "lineageweave.http_client._request",
+        lambda *_args, **_kwargs: (
+            504,
+            b'{"error":{"code":"request_deadline_exceeded","retryable":true,"message":"private"}}',
+        ),
+    )
+    with pytest.raises(HttpClientError) as caught:
+        post_json("https://orchestrator.example/v1/chat/completions", {}, headers={}, timeout=2.0)
+    assert caught.value.http_status == 504
+    assert caught.value.remote_error_code == "request_deadline_exceeded"
+    assert caught.value.retryable is True
+    assert "private" not in str(caught.value)

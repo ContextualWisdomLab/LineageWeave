@@ -33,6 +33,19 @@ _SESSION_HEADER_PEERS = frozenset({"contextual-orchestrator", "tepp"})
 class HttpClientError(RuntimeError):
     """The remote endpoint failed, returned a non-success status, or invalid JSON."""
 
+    def __init__(
+        self,
+        message: str,
+        *,
+        http_status: int | None = None,
+        remote_error_code: str | None = None,
+        retryable: bool | None = None,
+    ) -> None:
+        super().__init__(message)
+        self.http_status = http_status
+        self.remote_error_code = remote_error_code
+        self.retryable = retryable
+
 
 class HttpAdmissionDeferred(HttpClientError):
     """The orchestrator admitted no provider work and supplied an exact retry delay."""
@@ -317,11 +330,11 @@ def post_json(
         if status >= 400:
             if span is not None:
                 span.set_attribute("error.type", str(status))
+            try:
+                error_payload = _decode_json_object(raw, hostname).get("error")
+            except HttpClientError:
+                error_payload = None
             if status == 503:
-                try:
-                    error_payload = _decode_json_object(raw, hostname).get("error")
-                except HttpClientError:
-                    error_payload = None
                 if (
                     isinstance(error_payload, dict)
                     and error_payload.get("code") == "no_viable_agent"
@@ -341,7 +354,26 @@ def post_json(
                         and detail_seconds == int(retry_after)
                     ):
                         raise HttpAdmissionDeferred(detail_seconds)
-            raise HttpClientError(f"HTTP {status} from {hostname}")
+            error_code = (
+                error_payload.get("code")
+                if isinstance(error_payload, dict)
+                and isinstance(error_payload.get("code"), str)
+                and error_payload["code"].isascii()
+                and error_payload["code"].replace("_", "").isalnum()
+                else None
+            )
+            retryable = (
+                error_payload.get("retryable")
+                if isinstance(error_payload, dict)
+                and type(error_payload.get("retryable")) is bool
+                else None
+            )
+            raise HttpClientError(
+                f"HTTP {status} from {hostname}",
+                http_status=status,
+                remote_error_code=error_code,
+                retryable=retryable,
+            )
         try:
             return _decode_json_object(raw, hostname)
         except HttpClientError:

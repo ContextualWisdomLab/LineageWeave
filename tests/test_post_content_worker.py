@@ -19,7 +19,7 @@ from backend.app.post_content_queue import (
     SUCCEEDED,
 )
 from lineageweave.operations_case_analysis import OperationsEvidenceSource
-from lineageweave.http_client import HttpAdmissionDeferred
+from lineageweave.http_client import HttpAdmissionDeferred, HttpClientError
 
 _PRODUCT_ANALYSIS = post_content_worker._persist_product_analysis_if_needed
 
@@ -866,6 +866,53 @@ def test_transient_provider_error_is_requeued_before_attempt_limit(monkeypatch, 
         item for item in caplog.records if item.msg == "lineageweave.server_failure"
     )
     assert record.failure_outcome == "provider_unavailable"
+
+
+def test_worker_persists_bounded_failure_provenance(monkeypatch) -> None:
+    """A failed channel records typed diagnostics without remote content."""
+
+    connection = _Connection(values=[1])
+    pool = _Pool(connection)
+
+    async def claim(*_args, **_kwargs):
+        return _row(RUNNING, 0)
+
+    async def persist(*_args, **_kwargs):
+        raise HttpClientError(
+            "sanitized",
+            http_status=504,
+            remote_error_code="request_deadline_exceeded",
+            retryable=True,
+        )
+
+    monkeypatch.setattr(post_content_worker, "_claim_job", claim)
+    monkeypatch.setattr(post_content_worker, "persist_post_content", persist)
+    monkeypatch.setattr(post_content_worker, "normalize_post_body", lambda *_args: object())
+    monkeypatch.setattr(
+        post_content_worker,
+        "load_settings",
+        lambda: SimpleNamespace(orchestrator_base_url="", orchestrator_api_key=""),
+    )
+    client = SimpleNamespace(available=True)
+    asyncio.run(
+        post_content_worker.process_post_content_job(
+            pool,
+            post_id="00000000-0000-0000-0000-000000000001",
+            source_body_digest="a" * 64,
+            vision_factory=lambda: client,
+            embedding_factory=lambda: client,
+            structure_factory=lambda: client,
+        )
+    )
+    update = next(args for query, args in connection.executed if "set status_code" in query)
+    assert update[9:13] == (
+        "content_persistence",
+        504,
+        "request_deadline_exceeded",
+        True,
+    )
+    assert isinstance(update[13], str) and len(update[13]) <= 128
+    assert "sanitized" not in str(update)
 
 
 def test_no_viable_agent_defers_without_consuming_failure_budget(monkeypatch) -> None:
