@@ -113,6 +113,18 @@ describe("i18n", () => {
     },
   );
 
+  it.each(["ko", "zh", "ja", "vi"] as const)(
+    "names the exact reconstruction button in empty-run guidance in %s",
+    (locale) => {
+      setLocale(locale);
+      expect(
+        t(
+          "No analysis runs are available. Select Request a lineage reconstruction, or ask an administrator to check your data access.",
+        ),
+      ).toContain(t("Request a lineage reconstruction"));
+    },
+  );
+
   it("keeps analyst GNB chrome on the Dashboard and four Korean labels", () => {
     expect(ANALYST_GNB_LABELS).toEqual(["Dashboard", "게시판", "고객 마스터", "달력", "Ask Agent"]);
     expect(ANALYST_GNB_LABELS.join(" ")).not.toMatch(/Buyer|Cubee|Board|Customer master/);

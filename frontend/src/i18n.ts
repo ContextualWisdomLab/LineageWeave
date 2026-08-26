@@ -1756,7 +1756,7 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Board posts": "Bài viết trên bảng tin",
     "No posts match the current filters.": "Không có bài viết nào khớp với bộ lọc hiện tại.",
     "No posts are available. Ask an administrator to check your access or import source records.": "Không có bài viết nào. Hãy yêu cầu quản trị viên kiểm tra quyền truy cập của bạn hoặc nhập các bản ghi nguồn.",
-    "No analysis runs are available. Select Request a lineage reconstruction, or ask an administrator to check your data access.": "Không có lượt phân tích nào. Hãy chọn Yêu cầu tái dựng phả hệ hoặc yêu cầu quản trị viên kiểm tra quyền truy cập dữ liệu của bạn.",
+    "No analysis runs are available. Select Request a lineage reconstruction, or ask an administrator to check your data access.": "Không có lượt phân tích nào. Hãy chọn Yêu cầu tái dựng dòng sự kiện hoặc yêu cầu quản trị viên kiểm tra quyền truy cập dữ liệu của bạn.",
     "Recording the run...": "Đang ghi lượt phân tích...",
     "Reload to choose a corporate entity": "Tải lại để chọn pháp nhân",
     "Loading affiliated entities...": "Đang tải các pháp nhân liên kết...",
