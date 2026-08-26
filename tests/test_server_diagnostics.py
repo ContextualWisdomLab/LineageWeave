@@ -178,7 +178,7 @@ def test_global_ask_embedding_transport_failure_drops_only_that_channel(
             raise HttpClientError("synthetic transport failure")
 
     async def _sources(*args: object, **kwargs: object) -> list[object]:
-        assert kwargs["question_vector"] == []
+        assert kwargs["question_embedding"] is None
         return []
 
     monkeypatch.setattr(global_ask_queue, "gather_global_chat_sources", _sources)
