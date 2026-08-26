@@ -141,6 +141,7 @@ async def _visible_post_ids_batch(
         select relation.turn_ordinal as turn_ordinal,
                relation.source_post_id::text as post_id, relation.source_ordinal as ordinal,
                post.post_title, post.visibility_code, post.corporate_entity_id,
+               post.process_unit_id,
                post.author_account_id, post.source_detail_state_code
           from post_ask_turn_source relation
           join source_post post on post.post_id = relation.source_post_id
@@ -158,6 +159,7 @@ async def _visible_post_ids_batch(
         select relation.turn_ordinal as turn_ordinal,
                relation.cited_post_id::text as post_id, relation.citation_ordinal as ordinal,
                post.post_title, post.visibility_code, post.corporate_entity_id,
+               post.process_unit_id,
                post.author_account_id, post.source_detail_state_code
           from post_ask_turn_citation relation
           join source_post post on post.post_id = relation.cited_post_id
@@ -291,6 +293,7 @@ async def _ensure_citations_visible(
         """
         select relation.cited_post_id::text as post_id,
                post.post_title, post.visibility_code, post.corporate_entity_id,
+               post.process_unit_id,
                post.author_account_id, post.source_detail_state_code
           from post_ask_turn_citation relation
           join source_post post on post.post_id = relation.cited_post_id
