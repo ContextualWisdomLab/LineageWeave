@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import pytest
 
-import lineageweave.adjudication_client as module
 from lineageweave.adjudication_client import (
     AdjudicationClientError,
     ContextualOrchestratorAdjudicationClient,
@@ -37,7 +36,9 @@ def test_parse_confidence_response_rejects_non_text_payload() -> None:
 def test_adjudication_client_rejects_malformed_provider_shape(monkeypatch) -> None:
     """A provider response without one chat message fails explicitly."""
 
-    monkeypatch.setattr(module, "post_json", lambda *args, **kwargs: {})
+    monkeypatch.setattr(
+        "lineageweave.adjudication_client.post_json", lambda *args, **kwargs: {}
+    )
     client = ContextualOrchestratorAdjudicationClient(
         "https://orchestrator.invalid",
         "synthetic-key",
@@ -53,8 +54,7 @@ def test_adjudication_client_rejects_provider_score_outside_unit_interval(
     """A raw out-of-range score is rejected instead of being clamped."""
 
     monkeypatch.setattr(
-        module,
-        "post_json",
+        "lineageweave.adjudication_client.post_json",
         lambda *args, **kwargs: {"choices": [{"message": {"content": "1.2"}}]},
     )
     client = ContextualOrchestratorAdjudicationClient(
