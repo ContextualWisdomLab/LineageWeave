@@ -1,4 +1,4 @@
-"""Completeness and reproducibility checks for ADR 0249's 2018 SOC graph."""
+"""Completeness and reproducibility checks for ADR 0251's 2018 SOC graph."""
 
 from __future__ import annotations
 
