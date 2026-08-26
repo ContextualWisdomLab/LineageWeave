@@ -96,7 +96,6 @@ def main() -> None:
         "--agents",
         str(agents_path),
         "--auto-discover-model-agents",
-        "--allow-discovery-failures",
         "--host",
         "0.0.0.0",
         "--port",

@@ -172,7 +172,7 @@ async def _claim_job(
                 return None
             if status_code == QUEUED and attempt_count > 0:
                 retry_ready = await conn.fetchval(
-                    "select now() >= $1 + $2::interval",
+                    "select now() >= $1::timestamptz + $2::interval",
                     row["job_queued_at"],
                     POST_CONTENT_RETRY_INTERVAL,
                 )
@@ -197,7 +197,7 @@ async def _claim_job(
                     return None
             if status_code == RUNNING and row["job_started_at"] is not None:
                 stale = await conn.fetchval(
-                    "select now() - $1 > $2::interval",
+                    "select now() - $1::timestamptz > $2::interval",
                     row["job_started_at"],
                     STALE_RUNNING_INTERVAL,
                 )
