@@ -66,8 +66,11 @@ For an incident:
    connectivity, and the owner service's readiness.
 3. Restore the failed dependency before retrying. Do not convert an unavailable
    provider response into a negative classification.
-4. Use the product's retry/requeue path so the original source digest,
-   orchestrator session lineage, and idempotency boundary remain intact.
+4. For one terminal content job, run
+   `uv run python scripts/requeue_failed_post_content.py --post-id <post-id>`
+   from the governed operator environment. This preserves the original source
+   digest, orchestrator session lineage, and idempotency boundary. Do not edit
+   queue rows or publish a wake-up manually.
 5. Verify the affected aggregate returns to completed and that no partial
    result became visible.
 

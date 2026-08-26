@@ -67,4 +67,6 @@ def test_operations_manual_names_current_commands_and_fail_closed_measurement() 
         assert f"{target}:" in makefile
     assert "TEPP" in manual
     assert "unavailable" in manual
+    assert "scripts/requeue_failed_post_content.py" in manual
+    assert (ROOT / "scripts" / "requeue_failed_post_content.py").is_file()
     assert "do not manufacture a score" in _text("mcp-manual.md")

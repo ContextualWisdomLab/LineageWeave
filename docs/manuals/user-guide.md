@@ -84,8 +84,8 @@ Use its evidence sections to:
 
 - compare the source body with derived paragraphs and image regions;
 - review product mentions at group, model, variant, or trade-item level;
-- open the product catalog review action when a mention is tied, missing, or
-  unavailable;
+- ask the product-catalog steward to review a mention marked tied, missing, or
+  unavailable before using its relationship;
 - inspect similar prior issues and their cited actions; and
 - follow Event Lineage without treating ontology neighbors as parent records.
 
