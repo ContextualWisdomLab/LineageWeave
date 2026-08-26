@@ -36,15 +36,26 @@ def test_oidc_clock_skew_is_bounded(monkeypatch) -> None:
         raise AssertionError("clock skew above the bound must be rejected")
 
 
-def test_tepp_transport_url_defaults_empty_and_is_not_a_score(monkeypatch) -> None:
-    """Missing TEPP_TRANSPORT_URL keeps the channel dropped."""
+def test_tepp_transport_defaults_empty_and_preserve_runtime_credentials(monkeypatch) -> None:
+    """Missing TEPP transport config drops the channel; a key stays runtime-only."""
     monkeypatch.delenv("TEPP_TRANSPORT_URL", raising=False)
-    assert load_settings().tepp_transport_url == ""
+    monkeypatch.delenv("TEPP_API_KEY", raising=False)
+    settings = load_settings()
+    assert settings.tepp_transport_url == ""
+    assert settings.tepp_api_key == ""
     monkeypatch.setenv("TEPP_TRANSPORT_URL", "https://tepp.example/v1/analysis-runs")
-    monkeypatch.setenv("TEPP_API_KEY", "runtime-only-secret")
+    monkeypatch.setenv("TEPP_API_KEY", "runtime-test-key")
     settings = load_settings()
     assert settings.tepp_transport_url == "https://tepp.example/v1/analysis-runs"
-    assert settings.tepp_api_key == "runtime-only-secret"
+    assert settings.tepp_api_key == "runtime-test-key"
+
+
+def test_tepp_api_key_is_runtime_only(monkeypatch) -> None:
+    """TEPP authentication comes from the process boundary, never source."""
+    monkeypatch.delenv("TEPP_API_KEY", raising=False)
+    assert load_settings().tepp_api_key == ""
+    monkeypatch.setenv("TEPP_API_KEY", "runtime-only-test-value")
+    assert load_settings().tepp_api_key == "runtime-only-test-value"
 
 
 def test_keyverse_issuer_overrides_local_keycloak_and_uses_oidc_discovery(monkeypatch) -> None:

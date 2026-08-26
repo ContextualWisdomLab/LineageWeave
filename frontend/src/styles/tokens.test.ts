@@ -7,6 +7,10 @@ import { describe, expect, it } from "vitest";
 const here = dirname(fileURLToPath(import.meta.url));
 const tokensCss = readFileSync(join(here, "tokens.css"), "utf-8");
 const appCss = readFileSync(join(here, "..", "App.css"), "utf-8");
+const publicClaimCss = readFileSync(
+  join(here, "..", "components", "PublicClaimVerification.css"),
+  "utf-8",
+);
 
 const [lightBlock, darkBlock] = tokensCss.split("@media (prefers-color-scheme: dark)");
 
@@ -41,6 +45,7 @@ const ONTOLOGY_NODE_TOKENS = [
   "--ontology-node-person-fill",
   "--ontology-node-organization-fill",
   "--ontology-node-team-fill",
+  "--ontology-node-project-fill",
   "--ontology-node-generic-fill",
 ];
 
@@ -181,6 +186,18 @@ describe("design tokens", () => {
     expect(rule).toContain("min-height: var(--size-control-min)");
     expect(rule).toContain("display: inline-flex");
     expect(rule).toContain("align-items: center");
+  });
+
+  it("keeps public-verification layout on shared tokens", () => {
+    expect(publicClaimCss).not.toMatch(/#[0-9a-fA-F]{3,8}/);
+    for (const token of [
+      "--space-panel-block",
+      "--space-control-gap",
+      "--color-border",
+      "--size-control-min",
+    ]) {
+      expect(publicClaimCss).toContain(`var(${token})`);
+    }
   });
 });
 
