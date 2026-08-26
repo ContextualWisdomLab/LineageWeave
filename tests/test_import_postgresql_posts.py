@@ -252,14 +252,14 @@ def test_importer_accepts_explicitly_evidenced_missing_body_dimension() -> None:
         evidence,
     )
 
-    with pytest.raises(ValueError, match="at least 40 characters"):
+    with pytest.raises(ValueError, match="requires an operator evidence statement"):
         _validate_source_rows(
             [{"record_key": "one", "draft_state": "published"}],
             mapping,
             ["draft"],
             [],
             "",
-            "no body",
+            "   ",
         )
 
 
@@ -379,8 +379,9 @@ def test_importer_has_no_unknown_publication_state_bypass() -> None:
 
 def test_no_draft_dimension_evidence_is_an_explicit_audited_door() -> None:
     """An export with no authorship-draft dimension passes only with the
-    operator's written evidence; the note cannot be a placeholder and
-    cannot be combined with a mapped draft column.
+    operator's written evidence and cannot be combined with a mapped draft
+    column. Evidence quality remains an operator/governance responsibility;
+    text length is not a validity proxy.
     """
     no_draft_mapping = SimpleNamespace(
         record_key="record_key", body="body", draft=None, deleted=None
@@ -398,14 +399,13 @@ def test_no_draft_dimension_evidence_is_an_explicit_audited_door() -> None:
         evidence,
     )
 
-    with pytest.raises(ValueError, match="at least 40 characters"):
-        _validate_source_rows(
-            [{"record_key": "one", "body": "body"}],
-            no_draft_mapping,
-            [],
-            [],
-            "no drafts",
-        )
+    _validate_source_rows(
+        [{"record_key": "one", "body": "body"}],
+        no_draft_mapping,
+        [],
+        [],
+        "operator attestation",
+    )
 
     draft_mapping = SimpleNamespace(
         record_key="record_key", body="body", draft="draft_state", deleted=None

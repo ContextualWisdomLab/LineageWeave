@@ -1,7 +1,7 @@
 # ADR 0225: Source classification semantic hints
 
-**Status:** Accepted  
-**Date:** 2026-08-26  
+**Status:** Accepted
+**Date:** 2026-08-26
 **Extends:** [ADR 0004](0004-knowledge-graph-ontology.md),
 [ADR 0117](0117-catalog-backed-semantic-hints.md),
 [ADR 0159](0159-published-ontology-pages.md),

@@ -308,11 +308,6 @@ def _validate_publication_state(
                 "mapped draft column or --exclude-draft-value; pick one "
                 "publication-state door"
             )
-        if len(evidence) < 40:
-            raise ValueError(
-                "--no-draft-dimension-evidence must actually state the "
-                "evidence (at least 40 characters), not a placeholder"
-            )
         return
     if mapping.draft is None:
         raise ValueError("source draft status column is required for publication-state preflight")
@@ -336,10 +331,9 @@ def _validate_source_rows(
     )
     body_evidence = no_body_dimension_evidence.strip()
     if mapping.body is None:
-        if len(body_evidence) < 40:
+        if not body_evidence:
             raise ValueError(
-                "--no-body-dimension-evidence must actually state the evidence "
-                "(at least 40 characters), not a placeholder"
+                "--no-body-dimension-evidence requires an operator evidence statement"
             )
     elif body_evidence:
         raise ValueError(

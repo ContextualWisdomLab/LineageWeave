@@ -1,7 +1,7 @@
 # ADR 0224: Explicit missing-body import boundary
 
-**Status:** Accepted  
-**Date:** 2026-08-26  
+**Status:** Accepted
+**Date:** 2026-08-26
 **Extends:** [ADR 0102](0102-semantic-source-unit-boundaries.md)
 
 ## Context
@@ -15,7 +15,9 @@ evidence and falsely imply semantic-unit coverage.
 ## Decision
 
 1. The PostgreSQL importer accepts exactly one of a mapped body column or
-   `--no-body-dimension-evidence` containing a substantive operator statement.
+   `--no-body-dimension-evidence` containing a non-blank operator statement.
+   The importer records that attestation but does not use an arbitrary text-
+   length threshold as a proxy for evidence quality.
 2. A missing body persists as the empty source representation. The title stays
    `post_title`; it is never copied into `post_body` or emitted as a paragraph.
 3. Content-unit, embedding, summary, VISION, and body-search coverage remain

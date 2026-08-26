@@ -1,7 +1,7 @@
 # ADR 0226: Private content semantic-coverage audit
 
-**Status:** Accepted  
-**Date:** 2026-08-26  
+**Status:** Accepted
+**Date:** 2026-08-26
 **Extends:** [ADR 0001](0001-demo-identity-and-data-boundary.md),
 [ADR 0004](0004-knowledge-graph-ontology.md), and
 [ADR 0089](0089-private-real-data-runtime-boundary.md)
