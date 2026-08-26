@@ -168,7 +168,7 @@ def _verification_next_action(status_code: str) -> str:
 
     return {
         VERIFICATION_SKIPPED: "Enable public verification to check eligible public claims.",
-        VERIFICATION_UNAVAILABLE: "Configure public search and contextual-orchestrator, then retry.",
+        VERIFICATION_UNAVAILABLE: "Review the internal citations now, then retry public verification when it is available.",
         VERIFICATION_NO_PUBLIC_CLAIMS: "Inspect the internal cited posts; no public claim was eligible.",
         VERIFICATION_COMPLETED: "Inspect public evidence separately before any governed graph review.",
         CLAIM_NOT_ENOUGH_INFORMATION: "Collect stronger authoritative evidence before accepting the claim.",

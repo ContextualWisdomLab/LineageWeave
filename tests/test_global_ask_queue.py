@@ -172,6 +172,19 @@ def test_malformed_public_verification_is_unavailable() -> None:
         assert results == ()
 
 
+def test_public_verification_unavailable_next_action_is_product_facing() -> None:
+    """Unavailable verification guides the reader without naming providers."""
+    next_action = global_ask_queue._verification_next_action(
+        cv.VERIFICATION_UNAVAILABLE
+    )
+
+    assert next_action == (
+        "Review the internal citations now, then retry public verification when "
+        "it is available."
+    )
+    assert "contextual-orchestrator" not in next_action
+
+
 def test_question_embedding_finishes_before_global_ask_acquires_a_pool_slot(
     monkeypatch,
 ) -> None:

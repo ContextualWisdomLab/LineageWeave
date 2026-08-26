@@ -3369,7 +3369,12 @@ describe("App, authenticated", () => {
     ).toBeInTheDocument();
     const teppHistory = screen.getByRole("list", { name: "Analysis run status history" });
     expect(teppHistory).toHaveTextContent("Failed 2026-01-12 12:37 · tepp_not_available");
-    expect(screen.getByText(/cutoff corpus TEPP would measure/i)).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        "These posts are the cutoff corpus TEPP would measure. Review the failure details, then ask a workspace administrator to restore measurement access before re-running for a calibrated result.",
+      ),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/TEPP transport/i)).not.toBeInTheDocument();
     expect(teppHistory).not.toHaveTextContent("Succeeded");
   });
 

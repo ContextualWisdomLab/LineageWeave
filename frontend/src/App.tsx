@@ -2761,8 +2761,8 @@ function analysisRunCorpusHint(run: AnalysisRun): string | null {
   switch (run.status_code) {
     case "analysis_status_failed":
       return (
-        `These posts are the cutoff corpus ${service} would ${verb}. Connect a TEPP ` +
-        `transport, then re-run, to replace Failed with ${result}.`
+        `These posts are the cutoff corpus ${service} would ${verb}. Review the failure details, ` +
+        `then ask a workspace administrator to restore measurement access before re-running for ${result}.`
       );
     case "analysis_status_succeeded":
       return `These posts are the cutoff corpus this ${service} run ${verbPast}.`;
