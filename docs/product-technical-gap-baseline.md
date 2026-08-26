@@ -12,9 +12,10 @@
 > #640, restoring semantic-query and opt-in public-verification factories in
 > the dedicated Ask worker and the production-equivalent concurrent-migration
 > fixture path. PR #727 merged normally as `353dfd01`, replacing general-reader
-> implementation wording with evidence actions. Worker evidence PR #725 is at
-> exact head `40283c9b`; its fresh hosted gates are pending. Storybook follow-up
-> #730 is at exact head `2c20a7fe`; its fresh hosted gates are also pending.
+> implementation wording with evidence actions. Worker evidence PR #725's
+> implementation exact is `40283c9b`; subsequent evidence-only refreshes do not
+> change that code and its fresh hosted gates are pending. Storybook follow-up
+> #730 merged normally at `b3befa8b` from exact head `c21cac5d`.
 > Current #640 required checks are queued and independent approval remains
 > absent, so the candidate stays blocked.
 
@@ -63,7 +64,7 @@ posts and organization evidence, and reuses the authorized-citation action.
 Five-locale consistency, rendered component tests, and desktop/narrow
 Storybook scenes cover the Customer Master repair. Follow-up #730 renders the
 Global Ask no-public-claim result and its next action in desktop and narrow
-scenes at exact head `2c20a7fe`. `프로젝트별 관측 Event` and ADR 0210's exact
+scenes delivered at merge `b3befa8b`. `프로젝트별 관측 Event` and ADR 0210's exact
 `model influence` estimand name remain unchanged.
 
 ### Technical contract and flow
