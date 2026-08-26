@@ -115,6 +115,7 @@ async def _operations_evidence_sources(
             ),
             source_times[source.post_id][0],
             source_times[source.post_id][1],
+            source.post_body,
         )
         for source in sources
     )
@@ -198,7 +199,10 @@ async def _persist_product_analysis_if_needed(
             pool, post_id, row, vision_client
         )
     sources = tuple(
-        ProductEvidenceSource(source.post_id, source.text)
+        ProductEvidenceSource(
+            source.post_id,
+            source.source_text if source.source_text is not None else source.text,
+        )
         for source in operation_sources
     )
     input_digest = product_analysis_input_sha256(sources)
@@ -517,7 +521,7 @@ async def process_post_content_job(
                         settings.orchestrator_api_key,
                         evidence_sources,
                     )
-                except (HttpClientError, OSError, RuntimeError, TimeoutError, ValueError) as exc:
+                except (HttpClientError, OSError, RuntimeError, TimeoutError, TypeError, ValueError) as exc:
                     _logger.error("product evidence ingestion failed for post_id=%s", post_id)
                     record_server_failure(
                         "product_semantic_ingestion",
