@@ -135,7 +135,7 @@ delay admission of the case request. This is execution isolation, not a new
 queue or a change to either channel's evidence contract.
 
 Every failed attempt persists bounded diagnostic provenance on the normalized
-job ledger: the channel stage, HTTP status, orchestrator error code, explicit
+job ledger: the channel stage, bounded exception class, HTTP status, orchestrator error code, explicit
 retryability when supplied by the upstream contract, and the existing
 post-scoped session correlation id. These fields support aggregate operations
 and exact-session tracing without retaining a response body, error message,

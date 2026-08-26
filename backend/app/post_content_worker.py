@@ -482,6 +482,7 @@ async def _finish_failed_job(
                 orchestrator_error_code=getattr(error, "remote_error_code", None),
                 retryable=getattr(error, "retryable", None),
                 session_correlation_id=session_correlation_id,
+                failure_error_type=type(error).__name__ if error is not None else None,
             )
 
 
