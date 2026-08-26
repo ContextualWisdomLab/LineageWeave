@@ -2,10 +2,30 @@
 
 import json
 
+from lineageweave import operations_case_analysis
 from lineageweave.operations_case_analysis import (
+    ContextualOrchestratorOperationsCaseAnalysisClient,
     OperationsEvidenceSource,
     parse_operations_case_response,
 )
+
+
+def test_orchestrator_request_uses_provider_neutral_auto_selector(monkeypatch) -> None:
+    """The consumer selects orchestrator routing, never a provider model name."""
+    captured: dict[str, object] = {}
+
+    def post_json(_url, payload, **_kwargs):
+        captured.update(payload)
+        return {"choices": [{"message": {"content": "[]"}}]}
+
+    monkeypatch.setattr(operations_case_analysis, "post_json", post_json)
+    client = ContextualOrchestratorOperationsCaseAnalysisClient("gateway", "key")
+
+    assert client.analyze(
+        (OperationsEvidenceSource("post-1", "Synthetic", "Synthetic source."),),
+        "",
+    ) == ()
+    assert captured["model"] == "auto"
 
 
 def test_parses_multiple_cases_and_grounded_facts() -> None:
