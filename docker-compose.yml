@@ -142,7 +142,7 @@ services:
     build:
       context: .
       dockerfile: backend/Dockerfile
-    environment:
+    environment: &backend-environment
       DATABASE_URL: postgresql://${POSTGRES_USER:-lineageweave}:${POSTGRES_PASSWORD:-lineageweave_dev_only}@postgres:5432/${POSTGRES_DB:-lineageweave}
       # Internal DNS name for JWKS fetches (always reachable from inside the
       # compose network); KEYCLOAK_ISSUER is the *external*, host-published
@@ -200,6 +200,30 @@ services:
         condition: service_healthy
       searxng:
         condition: service_healthy
+
+  backend-worker:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    command: ["python", "-m", "backend.app.worker"]
+    environment: *backend-environment
+    depends_on:
+      postgres:
+        condition: service_healthy
+      database_migration:
+        condition: service_completed_successfully
+      orchestrator:
+        condition: service_healthy
+      valkey:
+        condition: service_healthy
+      searxng:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "kill -0 1"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 5s
 
   frontend:
     build:

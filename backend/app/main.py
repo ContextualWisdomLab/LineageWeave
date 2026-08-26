@@ -65,7 +65,6 @@ from backend.app.analysis_run_start import (
     deliver_queued_analysis_run,
     enqueue_pending_analysis_run,
 )
-from backend.app.analysis_run_worker import run_analysis_run_worker
 from backend.app.auth import CurrentAccount, get_current_account
 from backend.app.config import load_settings
 from backend.app.customer_hint_ingestion import resolve_customer_hint
@@ -80,10 +79,7 @@ from backend.app.entity_relationship_ingestion import (
     ingest_post_entity_relationships,
 )
 from backend.app.five_w1h_ingestion import load_five_w1h_slots
-from backend.app.global_ask_queue import (
-    enqueue_global_ask_job,
-    run_global_ask_worker,
-)
+from backend.app.global_ask_queue import enqueue_global_ask_job
 from backend.app.issue_ticket_ingestion import (
     create_ticket,
     fetch_ticket_post_id,
@@ -137,7 +133,6 @@ from backend.app.post_content_queue import (
     post_content_is_complete,
     publish_post_content_event,
 )
-from backend.app.post_content_worker import run_post_content_worker
 from backend.app.post_eligibility import SOURCE_POST_ELIGIBILITY_SQL
 from backend.app.post_evaluation_ingestion import (
     fetch_post_evaluation,
@@ -247,69 +242,18 @@ _SIMILAR_VOC_REQUEST_TIMEOUT_SECONDS = 180.0
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Open one asyncpg pool and one Valkey client for the process, and
-    close both on shutdown."""
+    """Open API database and Valkey clients without consuming durable jobs."""
     configure_telemetry("lineageweave")
     pool = None
     valkey = None
-    analysis_worker = None
-    content_worker = None
-    global_ask_worker = None
     try:
         settings = load_settings()
         pool = await create_pool(settings.database_url)
         app.state.pool = pool
         valkey = create_valkey_client(settings.valkey_url)
         app.state.valkey = valkey
-        analysis_worker = asyncio.create_task(
-            run_analysis_run_worker(
-                valkey,
-                pool,
-                database_url=settings.database_url,
-                tepp_client=configured_tepp_client(
-                    settings.tepp_transport_url,
-                    settings.tepp_api_key,
-                ),
-                adjudication_client=_adjudication_client(),
-            )
-        )
-        app.state.analysis_run_worker = analysis_worker
-        content_worker = asyncio.create_task(
-            run_post_content_worker(
-                valkey,
-                pool,
-                vision_factory=_vision_client,
-                embedding_factory=_embedding_client,
-                structure_factory=_post_structure_client,
-            )
-        )
-        app.state.post_content_worker = content_worker
-        # Late-bound lambda so tests that monkeypatch _post_chat_client reach
-        # the worker too (the name resolves in module globals at call time).
-        # Only this worker gets the long answer timeout; the per-post chat
-        # endpoint keeps the client's interactive default.
-        global_ask_worker = asyncio.create_task(
-            run_global_ask_worker(
-                valkey,
-                pool,
-                chat_factory=lambda: _post_chat_client(
-                    timeout=load_settings().orchestrator_answer_timeout_seconds
-                ),
-                embedding_factory=_embedding_client,
-            )
-        )
-        app.state.global_ask_worker = global_ask_worker
         yield
     finally:
-        workers = tuple(
-            worker
-            for worker in (analysis_worker, content_worker, global_ask_worker)
-            if worker is not None
-        )
-        for worker in workers:
-            worker.cancel()
-        if workers:
-            await asyncio.gather(*workers, return_exceptions=True)
         try:
             if pool is not None:
                 await pool.close()
