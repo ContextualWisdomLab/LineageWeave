@@ -339,6 +339,7 @@ export function ChatPanel({
     setQuestion("");
     setAnswer(null);
     setError(null);
+    setHistoryError(null);
   }
 
   async function handleAsk(asked = question) {

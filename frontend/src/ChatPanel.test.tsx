@@ -234,5 +234,9 @@ describe("ChatPanel conversation history", () => {
     expect(await screen.findByText(
       "Conversation history could not be loaded. Start a new conversation or try again later.",
     )).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "New conversation" }));
+    expect(screen.queryByText(
+      "Conversation history could not be loaded. Start a new conversation or try again later.",
+    )).toBeNull();
   });
 });
