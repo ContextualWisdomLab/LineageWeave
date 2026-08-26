@@ -77,6 +77,10 @@ FAILED = "failed"
 # trimmed stream) and are republished by the worker's recovery sweep.
 _REPUBLISH_AFTER_SECONDS = 60
 _RECOVERY_INTERVAL_SECONDS = 30.0
+_ASK_RETRY_MESSAGE = (
+    "Ask Agent is unavailable. Retry in a moment. If this continues, "
+    "contact your workspace administrator."
+)
 # Hard ceiling on one job's answer computation. Without it a hung
 # orchestrator round-trip kept a job `running` indefinitely (observed:
 # 17+ minutes) and, before concurrent processing, stalled every job
@@ -349,7 +353,7 @@ async def compute_global_ask_answer(
         record_server_failure("global_ask", exc, outcome="internal_error")
         raise HTTPException(
             status.HTTP_503_SERVICE_UNAVAILABLE,
-            "Ask Agent is unavailable: authorized evidence could not be assembled",
+            _ASK_RETRY_MESSAGE,
         ) from exc
     cutoff_text = knowledge_cutoff.isoformat() if knowledge_cutoff else None
     grounding_status = ask_grounding_status(sources, cutoff_text)
@@ -406,7 +410,7 @@ async def compute_global_ask_answer(
         record_server_failure("global_ask", exc, outcome="provider_unavailable")
         raise HTTPException(
             status.HTTP_503_SERVICE_UNAVAILABLE,
-            "Ask Agent is unavailable: contextual-orchestrator could not complete the answer",
+            _ASK_RETRY_MESSAGE,
         ) from exc
     except (KeyError, ValueError) as exc:
         # Contract/schema fault: the orchestrator responded but its payload
@@ -415,7 +419,7 @@ async def compute_global_ask_answer(
         record_server_failure("global_ask", exc, outcome="provider_unavailable")
         raise HTTPException(
             status.HTTP_503_SERVICE_UNAVAILABLE,
-            "Ask Agent is unavailable: contextual-orchestrator could not complete the answer",
+            _ASK_RETRY_MESSAGE,
         ) from exc
     except Exception as exc:
         # Unexpected defect. Keep the customer boundary and emit a full
@@ -424,7 +428,7 @@ async def compute_global_ask_answer(
         record_server_failure("global_ask", exc, outcome="internal_error")
         raise HTTPException(
             status.HTTP_503_SERVICE_UNAVAILABLE,
-            "Ask Agent is unavailable: contextual-orchestrator could not complete the answer",
+            _ASK_RETRY_MESSAGE,
         ) from exc
     cited_ids = list(answer.cited_post_ids)
     verification_status, external_claims = await _verify_public_claims(
@@ -556,7 +560,7 @@ async def process_global_ask_job(
         chat_client = chat_factory()
         if not chat_client.available:
             raise _SafeJobError(
-                "Ask Agent is unavailable: set ORCHESTRATOR_BASE_URL / ORCHESTRATOR_API_KEY"
+                _ASK_RETRY_MESSAGE
             )
         payload = await asyncio.wait_for(
             compute_global_ask_answer(
@@ -592,16 +596,13 @@ async def process_global_ask_job(
             # state / missing config) — never a provider-boundary leak.
             detail = str(exc)
         elif isinstance(exc, asyncio.TimeoutError):
-            detail = f"job exceeded the {JOB_DEADLINE_SECONDS}s deadline"
+            detail = _ASK_RETRY_MESSAGE
         else:
             # Provider responses/exceptions can carry credentials, gateway
             # diagnostics, or model output (ADR 0123): never persist the
             # raw exception text as a durable `failure_detail`. The
             # traceback just logged keeps it for operator debugging only.
-            detail = (
-                "Ask Agent is unavailable: contextual-orchestrator returned "
-                "no complete evidence object"
-            )
+            detail = _ASK_RETRY_MESSAGE
         async with pool.acquire() as conn:
             await conn.execute(
                 """
