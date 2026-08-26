@@ -1,4 +1,4 @@
-# ADR 0229: Source-preserving voice semantic taxonomy
+# ADR 0230: Source-preserving voice semantic taxonomy
 
 - Status: Accepted
 - Date: 2026-08-26

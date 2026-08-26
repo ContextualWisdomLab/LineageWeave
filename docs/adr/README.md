@@ -28,7 +28,7 @@ decision from them.
 | macOS-native Rust/MLX mathematical compute boundary | [0226](0226-macos-native-mlx-mathematical-compute-boundary.md), [0208](0208-externalize-local-mathematical-compute.md) |
 | Observed PostgreSQL WAL/checkpoint tuning plan | [0227](0227-observed-postgresql-runtime-tuning.md) |
 | Product semantic catalog and typed evidence relations | [0228](0228-evidence-bound-product-semantic-catalog.md) |
-| Source-preserving voice semantic taxonomy | [0229](0229-source-preserving-voice-semantic-taxonomy.md) |
+| Source-preserving voice semantic taxonomy | [0230](0230-source-preserving-voice-semantic-taxonomy.md) |
 
 [0011](0011-prov-o-standard-relations.md) and [0065](0065-prov-o-provenance-boundary.md) cite the dated W3C PROV-O and PROV-DM Recommendations (https://www.w3.org/TR/2013/REC-prov-o-20130430/ and https://www.w3.org/TR/2013/REC-prov-dm-20130430/).
 

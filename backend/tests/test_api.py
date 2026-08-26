@@ -204,7 +204,7 @@ _PRODUCT_SEMANTIC_MIGRATIONS = tuple(
         "0215_operations_case_milestone.sql",
         "0222_operations_case_analysis_input.sql",
         "0228_product_semantic_catalog.sql",
-        "0229_voice_semantic_taxonomy.sql",
+        "0230_voice_semantic_taxonomy.sql",
     )
 )
 _LEFTOVER_MAP_AXIS_MIGRATION = (
