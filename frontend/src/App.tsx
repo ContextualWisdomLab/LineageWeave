@@ -94,9 +94,9 @@ import { CutoffKnownBody } from "./components/CutoffKnownBody";
 import { LineageEntityPicker } from "./components/LineageEntityPicker";
 import { OntologyExplorer } from "./components/OntologyExplorer";
 import { AskEvidenceLayerPopup } from "./components/AskEvidenceLayerPopup";
+import { AskAnswerTimeline } from "./components/AskAnswerTimeline";
 import { PopupCloseButton } from "./components/PopupCloseButton";
 import { SimilarVocPanel } from "./components/SimilarVocPanel";
-import { chatEvidenceKindLabel } from "./evidenceKindLabels";
 import { WorkspaceNav, type WorkspaceDestination } from "./components/WorkspaceNav";
 import { OperationsDashboard } from "./components/OperationsDashboard";
 import { initialWorkspaceDestination } from "./gnbChrome";
@@ -4826,6 +4826,7 @@ function AskAgentPanel({
 }) {
   const [question, setQuestion] = useState("");
   const [answer, setAnswer] = useState<AskAgentResponse | null>(null);
+  const [answeredQuestion, setAnsweredQuestion] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [asking, setAsking] = useState(false);
   const [evidenceLayerPostId, setEvidenceLayerPostId] = useState<string | null>(null);
@@ -4837,6 +4838,7 @@ function AskAgentPanel({
     setError(null);
     try {
       setAnswer(await askAgent(accessToken, normalized));
+      setAnsweredQuestion(normalized);
     } catch (err) {
       setAnswer(null);
       setError(orchestratorUnavailableMessage(err, t("Ask Agent")));
@@ -4866,8 +4868,13 @@ function AskAgentPanel({
       {answer && (
         <section className="popup-section" aria-label={t("Answer")}>
           <h3>{t("Answer")}</h3>
-          {answer.answer_text ? <p>{answer.answer_text}</p> : null}
-          {answer.next_action ? <p className="post-meta">{t(answer.next_action)}</p> : null}
+          <AskAnswerTimeline
+            key={answeredQuestion}
+            question={answeredQuestion}
+            answer={answer}
+            onOpenEvidence={setEvidenceLayerPostId}
+            onOpenPost={onOpenPost}
+          />
           {answer.delivery ? (
             <aside className="ask-delivery" aria-label={t("Report · alert · MCP")}>
               <h4>{t("Report · alert · MCP")}</h4>
@@ -4882,51 +4889,6 @@ function AskAgentPanel({
               <code>{answer.delivery.report.source_documents[0]?.resource_uri ?? "lineageweave://posts"}</code>
             </aside>
           ) : null}
-          {answer.cited_posts && answer.cited_posts.length > 0 && (
-            <>
-              <h4>{t("Cited posts")}</h4>
-              <ul className="related-post-list">
-                {answer.cited_posts.map((post) => (
-                  <li key={post.post_id}>
-                    <button className="post-list-item" onClick={() => onOpenPost(post.post_id)}>
-                      <strong>{post.post_title}</strong>
-                    </button>
-                    <button
-                      type="button"
-                      className="citation-chip"
-                      onClick={() => setEvidenceLayerPostId(post.post_id)}
-                    >
-                      {t("View evidence")}
-                    </button>
-                    {answer.cited_post_evidence?.find((item) => item.post_id === post.post_id)?.facts.length ? (
-                      <ul className="post-evidence-list" aria-label={t("Evidence facts")}>
-                        {answer.cited_post_evidence
-                          .find((item) => item.post_id === post.post_id)
-                          ?.facts.map((fact, index) => (
-                            <li key={`${fact.kind}:${fact.text}:${index}`}>
-                              <span>{chatEvidenceKindLabel(fact.kind)}</span>
-                              <span>{fact.text}</span>
-                            </li>
-                          ))}
-                      </ul>
-                    ) : null}
-                    {answer.cited_post_images
-                      ?.filter((image) => image.post_id === post.post_id)
-                      .map((image) => (
-                        <p
-                          key={`${image.post_id}:${image.unit_index}`}
-                          className="post-meta ask-agent-image-citation"
-                        >
-                          {t("Image evidence")}: {image.caption?.trim() ? image.caption : t("Untitled image")}
-                          {image.extracted_text ? ` — ${image.extracted_text}` : ""}
-                          {image.tags.length ? ` — ${t("Image tags")}: ${image.tags.join(", ")}` : ""}
-                        </p>
-                      ))}
-                  </li>
-                ))}
-              </ul>
-            </>
-          )}
           {answer.lineage_graph && answer.lineage_graph.nodes.length > 0 ? (
             <LineageDag graph={answer.lineage_graph} onSelectPost={onOpenPost} />
           ) : null}

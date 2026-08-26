@@ -7,6 +7,7 @@ from contextlib import asynccontextmanager
 
 from backend.app import global_ask_queue
 from backend.app.global_ask_queue import load_job_visibility
+from lineageweave.post_chat import ChatAnswer, ChatSourceDocument
 
 
 class _AvailableClient:
@@ -173,3 +174,55 @@ def test_job_visibility_never_expands_past_queued_scope() -> None:
     assert processes == {"queued-process"}
     assert process_scope_limited is True
     assert has_post_read is True
+
+
+def test_completed_answer_carries_the_cited_source_clock(monkeypatch) -> None:
+    """The UI timeline receives the admitted source clock, not a graph guess."""
+    connection = _Connection(None)
+    pool = _Pool(connection)
+    sources = [
+        ChatSourceDocument(
+            "post-1",
+            "Synthetic event",
+            "body",
+            observed_at="2026-08-21T03:00:00+00:00",
+            time_axis_code="event_occurred_at",
+        )
+    ]
+
+    async def _fake_gather(*_args, **_kwargs):
+        return sources
+
+    async def _fake_graph(*_args, **_kwargs):
+        return {"nodes": [], "edges": [], "truncated": False}
+
+    async def _fake_images(*_args, **_kwargs):
+        return []
+
+    class _AnswerClient:
+        def answer(self, _question, _sources):
+            return ChatAnswer("Grounded answer", ("post-1",))
+
+    monkeypatch.setattr(global_ask_queue, "gather_global_chat_sources", _fake_gather)
+    monkeypatch.setattr(global_ask_queue, "lineage_graphs_for_posts", _fake_graph)
+    monkeypatch.setattr(global_ask_queue, "cited_post_images", _fake_images)
+
+    payload = asyncio.run(
+        global_ask_queue.compute_global_ask_answer(
+            pool,
+            question_text="What happened?",
+            corporate_entity_ids=set(),
+            process_unit_ids=set(),
+            process_scope_limited=False,
+            chat_client=_AnswerClient(),
+        )
+    )
+
+    assert payload["cited_events"] == [
+        {
+            "post_id": "post-1",
+            "post_title": "Synthetic event",
+            "observed_at": "2026-08-21T03:00:00+00:00",
+            "time_axis_code": "event_occurred_at",
+        }
+    ]

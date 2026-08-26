@@ -32,6 +32,11 @@ All notable changes to this project are documented here. Format follows
 
 ### Added
 
+- Global Ask answers now link numbered citations to authorized event cards in
+  both directions. Each card names event time or the record-time fallback and
+  opens the focused evidence layer or full source post without inventing a
+  Project Journey.
+
 - ADR 0210's Dashboard consumer now persists a normalized, exact-provenance
   projection for TEPP temporal topics and fast-mlsirm case-deletion model
   influence. The API authorizes the fitted analysis scope before returning

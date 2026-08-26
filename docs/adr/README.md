@@ -23,6 +23,7 @@ decision from them.
 | [`temporal-topic-context-influence-research.md`](../temporal-topic-context-influence-research.md) | [0210](0210-temporal-topic-context-influence-dashboard.md) |
 | [`python-mathematical-compute-boundary-audit.md`](../doctoring/python-mathematical-compute-boundary-audit.md) | [0208](0208-externalize-local-mathematical-compute.md) |
 | Canonical Docker Compose project (`name: lineageweave`) | [0224](0224-canonical-compose-project-name.md) |
+| Ask answer citation and evidence-timeline interaction | [0225](0225-ask-answer-evidence-timeline.md) |
 
 [0011](0011-prov-o-standard-relations.md) and [0065](0065-prov-o-provenance-boundary.md) cite the dated W3C PROV-O and PROV-DM Recommendations (https://www.w3.org/TR/2013/REC-prov-o-20130430/ and https://www.w3.org/TR/2013/REC-prov-dm-20130430/).
 

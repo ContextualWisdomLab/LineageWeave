@@ -443,6 +443,13 @@ export interface CitedPostEvidence {
   facts: CitedPostEvidenceFact[];
 }
 
+export interface CitedPostEvent {
+  post_id: string;
+  post_title: string;
+  observed_at: string | null;
+  time_axis_code: "event_occurred_at" | "created_at" | null;
+}
+
 export interface ChatAnswer {
   post_id: string;
   answer_text: string;
@@ -477,6 +484,7 @@ export interface AskAgentResponse {
   answer_text: string;
   cited_post_ids: string[];
   cited_posts?: CitedPostRef[];
+  cited_events?: CitedPostEvent[];
   cited_post_evidence?: CitedPostEvidence[];
   cited_post_images?: CitedPostImage[];
   source_post_ids: string[];

@@ -64,6 +64,8 @@ class ChatSourceDocument:
     post_body: str
     graph_facts: tuple[str, ...] = field(default_factory=tuple)
     evidence_facts: tuple[str, ...] = field(default_factory=tuple)
+    observed_at: str | None = None
+    time_axis_code: str | None = None
 
 
 @dataclass(frozen=True)
@@ -90,6 +92,24 @@ def cited_post_summaries(
         {"post_id": post_id, "post_title": titles[post_id]}
         for post_id in cited_post_ids
         if post_id in titles
+    ]
+
+
+def cited_post_events(
+    sources: list[ChatSourceDocument] | tuple[ChatSourceDocument, ...],
+    cited_post_ids: tuple[str, ...] | list[str],
+) -> list[dict[str, str | None]]:
+    """Return cited event clocks in citation order without inventing time."""
+    by_id = {source.post_id: source for source in sources}
+    return [
+        {
+            "post_id": source.post_id,
+            "post_title": source.post_title,
+            "observed_at": source.observed_at,
+            "time_axis_code": source.time_axis_code,
+        }
+        for post_id in cited_post_ids
+        if (source := by_id.get(post_id)) is not None
     ]
 
 
@@ -172,6 +192,9 @@ sources don't actually support an answer (say so instead of guessing).
 Do not output a reasoning trace. Return the JSON object immediately.
 
 For every part of your answer, track which source number(s) it came from.
+If the question asks for a commercial response, include a concise commercial
+perspective only when the cited event progression supports it; otherwise say
+what evidence is still needed. Never infer it from chronology alone.
 
 Reply with ONLY a JSON object (no markdown fences, no prose) with exactly
 these fields:
@@ -190,6 +213,9 @@ _CODE_FENCE_PATTERN = re.compile(r"```(?:json)?\s*(.*?)\s*```", re.DOTALL)
 _CHAT_REQUEST_PROMPT_TEMPLATE = """\
 Answer the question using ONLY the numbered source documents below. Do not
 use outside knowledge or guess. Be concise and preserve the evidence facts.
+If the question asks for a commercial response, include a concise commercial
+perspective only when the cited event progression supports it; otherwise say
+what evidence is still needed. Never infer it from chronology alone.
 Write the answer first, then a new line exactly beginning CITED SOURCES:
 followed by the 1-based source numbers separated by commas. Cite every
 source the answer used; write NONE when the sources do not support an answer.
