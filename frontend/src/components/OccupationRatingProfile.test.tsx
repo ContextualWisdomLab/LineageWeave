@@ -125,8 +125,17 @@ describe("OccupationRatingProfile", () => {
     });
     render(<OccupationRatingProfile accessToken="synthetic-token" />);
 
-    expect(await screen.findByRole("alert")).toHaveTextContent("직업 목록을 확인하지 못했습니다");
+    expect(await screen.findByText(/직업 목록이 아직 준비되지 않았습니다/)).toHaveAttribute("role", "status");
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
     expect(screen.queryByText(/선택할 수 있는 직업이 없습니다/)).not.toBeInTheDocument();
+  });
+
+  it("reports a transport failure separately from an unavailable occupation catalog", async () => {
+    vi.mocked(fetchRatingSourceOccupations).mockRejectedValue(new Error("synthetic transport failure"));
+    render(<OccupationRatingProfile accessToken="synthetic-token" />);
+
+    expect(await screen.findByRole("alert")).toHaveTextContent("직업 목록을 확인하지 못했습니다");
+    expect(screen.queryByText(/직업 목록이 아직 준비되지 않았습니다/)).not.toBeInTheDocument();
   });
 
   it("clears a stale catalog error when authentication changes", async () => {

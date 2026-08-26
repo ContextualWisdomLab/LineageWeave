@@ -27,6 +27,7 @@ export function OccupationRatingProfile({ accessToken }: Props) {
   const [selectedSource, setSelectedSource] = useState("");
   const [sourceCatalogError, setSourceCatalogError] = useState(false);
   const [occupations, setOccupations] = useState<RatingSourceOccupation[] | null>(null);
+  const [occupationCatalogUnavailable, setOccupationCatalogUnavailable] = useState(false);
   const [occupationCatalogError, setOccupationCatalogError] = useState(false);
   const [profile, setProfile] = useState<OccupationRatingProfilePayload | null>(null);
   const [status, setStatus] = useState<"idle" | "loading" | "error">("idle");
@@ -64,6 +65,7 @@ export function OccupationRatingProfile({ accessToken }: Props) {
     );
     setOnetsocCode("");
     setProfile(null);
+    setOccupationCatalogUnavailable(false);
     setOccupationCatalogError(false);
     if (!source) {
       setOccupations(null);
@@ -79,7 +81,7 @@ export function OccupationRatingProfile({ accessToken }: Props) {
       .then((payload) => {
         if (!active) return;
         if (!payload.source_available) {
-          setOccupationCatalogError(true);
+          setOccupationCatalogUnavailable(true);
           return;
         }
         setOccupations(payload.occupations);
@@ -181,8 +183,9 @@ export function OccupationRatingProfile({ accessToken }: Props) {
       {sources === null && !sourceCatalogError ? <p role="status">사용 가능한 근거 표를 확인하는 중입니다.</p> : null}
       {sources?.length === 0 ? <p role="status">가져온 직업 근거 표가 없습니다. 데이터 담당자에게 근거 가져오기를 요청하세요.</p> : null}
       {sourceCatalogError ? <p role="alert">사용 가능한 근거 표를 확인하지 못했습니다. 잠시 후 다시 열어 보세요.</p> : null}
-      {selectedSource && occupations === null && !occupationCatalogError ? <p role="status">이 근거 표의 직업 목록을 확인하는 중입니다.</p> : null}
+      {selectedSource && occupations === null && !occupationCatalogUnavailable && !occupationCatalogError ? <p role="status">이 근거 표의 직업 목록을 확인하는 중입니다.</p> : null}
       {selectedSource && occupations?.length === 0 ? <p role="status">이 근거 표에 선택할 수 있는 직업이 없습니다. 다른 근거 표를 선택하세요.</p> : null}
+      {occupationCatalogUnavailable ? <p role="status">이 근거 표의 직업 목록이 아직 준비되지 않았습니다. 다른 근거 표를 선택하거나 데이터 담당자에게 가져오기를 요청하세요.</p> : null}
       {occupationCatalogError ? <p role="alert">직업 목록을 확인하지 못했습니다. 잠시 후 다시 열어 보세요.</p> : null}
       {status === "error" ? (
         <p role="alert">직업 근거를 불러오지 못했습니다. 선택 항목과 접근 권한을 확인한 뒤 다시 시도하세요.</p>
