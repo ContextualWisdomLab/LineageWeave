@@ -406,12 +406,13 @@ def seeded_db(demo_analyst_token):
             cur.execute(_GLOBAL_ASK_SCOPE_MIGRATION.read_text())
             # psycopg2 sends one multi-statement execute as one transaction,
             # which PostgreSQL correctly rejects for CREATE INDEX CONCURRENTLY.
-            for statement in _GLOBAL_ASK_EVIDENCE_SEARCH_MIGRATION.read_text().split(";"):
-                sql = "\n".join(
-                    line
-                    for line in statement.splitlines()
-                    if not line.lstrip().startswith("--")
-                ).strip()
+            migration_sql = "\n".join(
+                line
+                for line in _GLOBAL_ASK_EVIDENCE_SEARCH_MIGRATION.read_text().splitlines()
+                if not line.lstrip().startswith("--")
+            )
+            for statement in migration_sql.split(";"):
+                sql = statement.strip()
                 if sql:
                     cur.execute(sql)
             cur.execute(_GLOBAL_ASK_KNOWLEDGE_CUTOFF_MIGRATION.read_text())
@@ -4752,7 +4753,7 @@ def test_create_voice_assignment_persists_authorized_prov_o_evidence(
             "vos",
             False,
             "prov_was_derived_from",
-            uuid.UUID(seeded_db["public_post_id"]),
+            seeded_db["public_post_id"],
         )
         cur.execute(
             "select voice_type_code from source_post_voice "
