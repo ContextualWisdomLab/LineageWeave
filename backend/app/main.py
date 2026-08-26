@@ -2478,7 +2478,8 @@ async def research_post_source_references(
     if not client.available:
         raise HTTPException(
             status.HTTP_503_SERVICE_UNAVAILABLE,
-            "Source research is unavailable: set SEARXNG_BASE_URL and ORCHESTRATOR_BASE_URL",
+            "Public research is unavailable. Ask an administrator to enable it, "
+            "then try again.",
         )
     try:
         with use_llm_metadata(build_post_llm_metadata(post_id, post)):
@@ -2491,12 +2492,14 @@ async def research_post_source_references(
     except (HttpClientError, OSError, ValueError) as exc:
         raise HTTPException(
             status.HTTP_503_SERVICE_UNAVAILABLE,
-            "Source research is unavailable: the search or retrieval provider did not respond",
+            "Public research could not be completed. Try again later or review "
+            "this post's existing evidence.",
         ) from exc
     except Exception as exc:  # noqa: BLE001 - provider boundary is fail-closed.
         raise HTTPException(
             status.HTTP_503_SERVICE_UNAVAILABLE,
-            "Source research is unavailable: the search or retrieval provider did not respond",
+            "Public research could not be completed. Try again later or review "
+            "this post's existing evidence.",
         ) from exc
     await publish_activity_event(
         valkey,
