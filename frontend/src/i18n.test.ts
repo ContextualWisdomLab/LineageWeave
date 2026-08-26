@@ -318,4 +318,16 @@ describe("locale-aware source labels", () => {
     expect(t("Voice of Customer")).toBe(customerVoice);
     expect(t("Public")).toBe(visibility);
   });
+
+  it.each([
+    ["en", "Records in multiple voice categories", "Records without voice evidence"],
+    ["ko", "여러 글 유형에 해당하는 기록", "글 유형 근거가 없는 기록"],
+    ["zh", "属于多个声音类别的记录", "缺少声音证据的记录"],
+    ["ja", "複数の声カテゴリに該当する記録", "声の証拠がない記録"],
+    ["vi", "Bản ghi thuộc nhiều nhóm tiếng nói", "Bản ghi không có bằng chứng tiếng nói"],
+  ] as const)("keeps voice-summary metrics specific in %s", (locale, multiple, unavailable) => {
+    setLocale(locale);
+    expect(t("Records in multiple voice categories")).toBe(multiple);
+    expect(t("Records without voice evidence")).toBe(unavailable);
+  });
 });

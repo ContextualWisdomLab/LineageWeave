@@ -198,6 +198,13 @@ derive identity from keywords, tags, weak source sentinels, or arbitrary
 similarity thresholds. Historical processing is bounded, asynchronous,
 digest-idempotent, and authorization-filtered when read.
 
+The source post voice scheme (`voc`, `vocc`, `voco`, `vom`, `vop`) and
+post-scoped organization relationship scheme (the same five relationships plus
+supplier `rel_vos`) remain distinct. Source and derived assertions coexist;
+multi-membership and disagreements are reported without forced selection.
+Authorized counts use the same period and organization/PU/team/person/product/
+project filters and disclose overlapping category totals.
+
 ## 7. Traceability
 
 - Product/data boundary: ADR 0001, ADR 0089.
