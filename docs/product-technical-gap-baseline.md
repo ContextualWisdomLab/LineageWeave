@@ -4,7 +4,7 @@
 > `ff7431bd1851c03e737808d22c6a2d43968582f9`; PR #713 was
 > `850494c3861703862a76cfe564381a41243c6c2d`; stacked PR #717 was
 > audited at implementation head
-> `dde0a83a7da5c099bc52d5c447790e42e63a42b6`. This candidate and the
+> `3db9c44d97640afe4b7f84b197a1d72adace5f4f`. This candidate and the
 > historical evidence below are not protected-main release evidence.
 
 ## Voice-of-X product and technical gap
@@ -89,17 +89,21 @@ reached end of life, and the OpenAI fallback reported exhausted credits. This
 is provider/control-plane unavailability, not a vulnerability result or
 permission to transfer an older success. Auto-merge remains enabled, while an
 independent approval is still required. PR #717 implementation head
-`dde0a83a` merges that
+`3db9c44d` merges that
 parent change without force-pushing and separates the complete governed Voice
 catalog used for authoring from usage-derived Board filters, so an authorized
 administrator can attach a Voice that no visible Post carries yet. It also
 labels Voice exact-value navigation as opening the carrying Post rather than
 misrepresenting that Post as the separately recorded derivation evidence. Its
-CodeRabbit and hosted Frontend/Storybook checks passed at exact head
-`dde0a83a`; Devin and the hosted full suite were still pending. Focused local
+CodeRabbit and hosted Frontend/Storybook checks passed at predecessor head
+`dde0a83a`; refreshed checks for exact head `3db9c44d` were queued. Focused local
 backend tests, frontend type checking/lint, and the new unused-Voice authoring
 regression passed, and the exact-value navigation tests, lint, and type check
-passed after the label repair. The wider local frontend run had
+passed after the label repair. The paged JSON-LD union regression and Voice
+evidence navigation suite passed 23 focused frontend tests; 48 focused backend
+ontology/docstring tests also passed. The real-integration fixture now applies
+the existing migration 0042 before the expanded taxonomy migrations instead
+of seeding an incomplete legacy catalog. The wider local frontend run had
 397 passes and eight five-second timeouts under concurrent machine load; a
 focused rerun of the new App path passed in 5.57 seconds with a 20-second test
 limit, so the timeout run is not promoted to full-suite success. An initial
