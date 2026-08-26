@@ -160,6 +160,7 @@ def test_operations_sources_bind_milestones_to_source_owned_clocks(monkeypatch) 
 
     assert sources[0].observed_at == observed_at
     assert sources[0].time_axis_code == "event_occurred_at"
+    assert sources[0].source_text == "A claim was received."
 
 
 def test_operations_sources_retry_when_a_source_clock_disappears(monkeypatch) -> None:
@@ -414,9 +415,17 @@ def test_product_analysis_persists_one_exact_authorized_window(monkeypatch) -> N
     """Product extraction reuses authorized sources and persists catalog outcomes."""
     connection = _Connection(values=[False])
     events: list[object] = []
+    submitted_sources: list[object] = []
 
     async def evidence_sources(*_args, **_kwargs):
-        return (OperationsEvidenceSource("post-1", "Synthetic", "Synthetic Product Q"),)
+        return (
+            OperationsEvidenceSource(
+                "post-1",
+                "Synthetic",
+                "Synthetic Product Q\nPersisted semantic evidence:\nproject: Product Alias",
+                source_text="Synthetic Product Q",
+            ),
+        )
 
     async def resolve(_conn, mentions):
         events.append(mentions)
@@ -432,9 +441,9 @@ def test_product_analysis_persists_one_exact_authorized_window(monkeypatch) -> N
         post_content_worker,
         "ContextualOrchestratorProductExtractionClient",
         lambda *_args: SimpleNamespace(
-            extract=lambda sources: (
+            extract=lambda sources: submitted_sources.extend(sources) or (
                 post_content_worker.ProductEvidenceSource(sources[0].post_id, sources[0].text),
-            )
+            ),
         ),
     )
     monkeypatch.setattr(post_content_worker, "resolve_product_mentions", resolve)
@@ -454,6 +463,7 @@ def test_product_analysis_persists_one_exact_authorized_window(monkeypatch) -> N
     )
     assert len(events) == 2
     assert len(events[1][3]) == 64
+    assert submitted_sources[0].text == "Synthetic Product Q"
 
 
 def test_product_analysis_skips_same_digest(monkeypatch) -> None:
@@ -586,7 +596,10 @@ def test_sibling_requeue_failure_preserves_completed_primary_job(monkeypatch) ->
     assert outcomes == [SUCCEEDED]
 
 
-def test_invalid_product_output_does_not_block_primary_post_evidence(monkeypatch) -> None:
+@pytest.mark.parametrize("error_type", [RuntimeError, TypeError])
+def test_invalid_product_output_does_not_block_primary_post_evidence(
+    monkeypatch, error_type
+) -> None:
     """Optional product extraction cannot discard structure, embedding, or cases."""
     outcomes: list[str] = []
     persisted: list[str] = []
@@ -596,7 +609,7 @@ def test_invalid_product_output_does_not_block_primary_post_evidence(monkeypatch
         return _row(RUNNING, 1)
 
     async def fail_product(*_args, **_kwargs):
-        raise RuntimeError("synthetic non-verbatim product span")
+        raise error_type("synthetic malformed product response")
 
     async def persist_cases(*_args, **_kwargs):
         persisted.append("cases")
