@@ -4889,7 +4889,7 @@ function AskAgentPanel({
             )
           ) : null}
           {answer.answer_text ? <p>{answer.answer_text}</p> : null}
-          {answer.next_action && !answer.public_claim_verification ? (
+          {answer.next_action ? (
             <p className="post-meta">{t(answer.next_action)}</p>
           ) : null}
           {answer.delivery ? (
