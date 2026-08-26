@@ -89,9 +89,10 @@ independent approval is still required. PR #717 implementation head
 parent change without force-pushing and separates the complete governed Voice
 catalog used for authoring from usage-derived Board filters, so an authorized
 administrator can attach a Voice that no visible Post carries yet. Its
-CodeRabbit check passed; Devin and both hosted test jobs were pending on this
-exact head. Focused local backend tests, frontend type checking/lint, and the
-new unused-Voice authoring regression passed. The wider local frontend run had
+CodeRabbit and hosted Frontend/Storybook checks passed at documentation head
+`bb2eec19`; Devin and the hosted full suite were still running. Focused local
+backend tests, frontend type checking/lint, and the new unused-Voice authoring
+regression passed. The wider local frontend run had
 397 passes and eight five-second timeouts under concurrent machine load; a
 focused rerun of the new App path passed in 5.57 seconds with a 20-second test
 limit, so the timeout run is not promoted to full-suite success. The isolated
@@ -115,6 +116,14 @@ substituting the assigned Post. It targets
 its checks and review are candidate evidence only. After
 #713 reaches protected main, #717 must be synchronized, retargeted to `main`,
 and revalidated on its then-current head.
+
+Downstream Dashboard repair PR #737 exact head `a837ee5d` is stacked on base
+`7c7bb2cf`, which contains migration 0235 through a non-#713 composition but
+does not contain #713's twelve-label locale update. Its added Voice labels are
+therefore necessary on that exact base, yet overlap #713 and must be reconciled
+when the stack is eventually rebuilt on protected `main`; neither branch is a
+second taxonomy authority, and pre-parent Checks cannot transfer across that
+restack.
 
 References for this gap use the APA 7 entries in ADR 0246. Current supporting
 standards pages were rechecked on 2026-08-27: ISO 26000:2010 remains applicable
