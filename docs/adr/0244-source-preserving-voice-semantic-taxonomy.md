@@ -1,4 +1,4 @@
-# ADR 0232: Source-preserving voice semantic taxonomy
+# ADR 0244: Source-preserving voice semantic taxonomy
 
 - Status: Accepted
 - Date: 2026-08-26
@@ -31,7 +31,16 @@ retraction names the superseded assertion and closes validity with provenance.
 The database reconciles the source assertion in the same transaction that
 inserts or changes `source_post.voc_type_code` or its revision-bearing body.
 It retains the prior assertion as a closed, superseded version; migration
-replay is a recovery/backfill path, not the normal ingestion lifecycle.
+replay is a recovery/backfill path, not the normal ingestion lifecycle. The
+initial historical backfill records `0230_voice_source_assertion_backfill` in
+`data_migration_completion` only after its insert and repair finish in one
+transaction. An interrupted run therefore retries, while a completed replay
+does not repeatedly hash the source corpus; subsequent writes remain covered
+by the trigger. The trigger is installed before the backfill snapshot so a
+concurrent write cannot fall between recovery and normal ingestion coverage.
+A trigger-disabled restore must restore the assertion table with `source_post`;
+if it restores source rows alone, the operator deletes this completion marker
+and replays migration 0230 before normal writes resume.
 
 Counts use the same authorized eligible-post denominator at the same cutoff and
 filters. They report source, derived, multi-membership, disagreement, and

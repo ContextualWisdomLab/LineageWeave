@@ -171,6 +171,16 @@ _OPERATIONS_EXTERNAL_RELATION_MIGRATION = (
     / "migrations"
     / "0213_operations_external_relation_target.sql"
 )
+_PRODUCT_SEMANTIC_MIGRATION = (
+    Path(__file__).resolve().parents[1]
+    / "migrations"
+    / "0228_product_semantic_catalog.sql"
+)
+_VOICE_SEMANTIC_MIGRATION = (
+    Path(__file__).resolve().parents[1]
+    / "migrations"
+    / "0230_voice_semantic_taxonomy.sql"
+)
 
 
 def _postgres_available() -> bool:
@@ -237,6 +247,8 @@ def schema_db():
                 cur.execute(_OPERATIONS_CASE_MILESTONE_MIGRATION.read_text())
                 cur.execute(_OPERATIONS_CASE_CONSTRAINT_VALIDATION_MIGRATION.read_text())
                 cur.execute(_OPERATIONS_CASE_INPUT_MIGRATION.read_text())
+                cur.execute(_PRODUCT_SEMANTIC_MIGRATION.read_text())
+                cur.execute(_VOICE_SEMANTIC_MIGRATION.read_text())
             # Migrations intentionally run in autocommit mode to match psql
             # and support concurrent indexes. Tests use savepoints, so return
             # the connection to transactional mode before yielding it.
@@ -311,6 +323,110 @@ def test_migration_applies_cleanly(schema_db) -> None:
         "topic_post_context_influence",
     }
     assert expected <= tables
+
+
+def test_voice_source_backfill_installs_trigger_before_snapshot() -> None:
+    """Concurrent writes are covered before the one-time snapshot starts."""
+    migration_sql = _VOICE_SEMANTIC_MIGRATION.read_text()
+    assert migration_sql.index("create trigger source_post_voice_assertion_reconcile") < (
+        migration_sql.index("do $source_assertion_backfill$")
+    )
+
+
+def test_voice_source_backfill_completion_is_atomic_and_replay_skips_scan(
+    schema_db,
+) -> None:
+    """An interrupted backfill resumes, while a completed one defers to triggers."""
+    post_id = uuid.uuid4()
+    account_id = uuid.uuid4()
+    migration_sql = _VOICE_SEMANTIC_MIGRATION.read_text()
+    with schema_db.cursor() as cur:
+        cur.execute(
+            "insert into common_lookup_value "
+            "(lookup_category, lookup_code, lookup_label) values "
+            "('corporate_entity_level', 'replay_level', 'Replay level'), "
+            "('post_visibility', 'replay_visibility', 'Replay visibility'), "
+            "('voc_type', 'voc', 'Voice of Customer')"
+        )
+        cur.execute(
+            "insert into corporate_entity "
+            "(corporate_entity_code, entity_name, entity_level_code) "
+            "values ('REPLAY-ENTITY', 'Replay Entity', 'replay_level') "
+            "returning corporate_entity_id"
+        )
+        entity_id = cur.fetchone()[0]
+        cur.execute(
+            "insert into user_account "
+            "(user_account_id, external_subject_id, display_name, email_address) "
+            "values (%s, %s, 'Replay Author', %s)",
+            (str(account_id), f"replay-{account_id}", f"replay-{account_id}@example.invalid"),
+        )
+        cur.execute(
+            "insert into source_post "
+            "(post_id, author_account_id, corporate_entity_id, post_title, "
+            "post_body, voc_type_code, visibility_code, created_at) "
+            "values (%s, %s, %s, 'Replay post', 'Replay body', 'voc', "
+            "'replay_visibility', current_timestamp)",
+            (str(post_id), str(account_id), str(entity_id)),
+        )
+        cur.execute(
+            "delete from data_migration_completion "
+            "where migration_code = '0230_voice_source_assertion_backfill'"
+        )
+        cur.execute(
+            "delete from post_voice_classification_assertion where post_id = %s",
+            (str(post_id),),
+        )
+        cur.execute("savepoint before_interrupted_backfill")
+        cur.execute(migration_sql)
+        cur.execute(
+            "select count(*) from data_migration_completion "
+            "where migration_code = '0230_voice_source_assertion_backfill'"
+        )
+        assert cur.fetchone() == (1,)
+        cur.execute(
+            "select count(*) from post_voice_classification_assertion "
+            "where post_id = %s and assertion_status_code = 'source'",
+            (str(post_id),),
+        )
+        assert cur.fetchone() == (1,)
+
+        cur.execute("rollback to savepoint before_interrupted_backfill")
+        cur.execute(
+            "select count(*) from data_migration_completion "
+            "where migration_code = '0230_voice_source_assertion_backfill'"
+        )
+        assert cur.fetchone() == (0,)
+        cur.execute(migration_sql)
+
+        # Removing a projection after completion proves replay no longer runs
+        # the historical source-table backfill.
+        cur.execute(
+            "delete from post_voice_classification_assertion where post_id = %s",
+            (str(post_id),),
+        )
+        cur.execute(migration_sql)
+        cur.execute(
+            "select count(*) from post_voice_classification_assertion "
+            "where post_id = %s and assertion_status_code = 'source'",
+            (str(post_id),),
+        )
+        assert cur.fetchone() == (0,)
+
+        # New and revised rows remain covered by the transactional trigger.
+        cur.execute(
+            "update source_post set post_body = post_body || ' revised' "
+            "where post_id = %s",
+            (str(post_id),),
+        )
+        cur.execute(
+            "select count(*) from post_voice_classification_assertion "
+            "where post_id = %s and assertion_status_code = 'source' "
+            "and valid_to is null",
+            (str(post_id),),
+        )
+        assert cur.fetchone() == (1,)
+    schema_db.rollback()
 
 
 def test_operations_case_constraints_are_validated(schema_db) -> None:
