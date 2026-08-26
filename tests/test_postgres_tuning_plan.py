@@ -162,6 +162,15 @@ def test_environment_preserves_durability_and_supports_rollback() -> None:
     assert "POSTGRES_TUNED_SYNCHRONOUS_COMMIT=on" in proposed
 
 
+def test_environment_preserves_retained_block_aligned_wal_buffers() -> None:
+    settings = {**_snapshot()["settings"], "wal_buffers_bytes": 640 * tuning.KIB}
+    plan = tuning.build_plan(
+        _observation(_snapshot(settings=settings), _snapshot(settings=settings))
+    )
+
+    assert "POSTGRES_TUNED_WAL_BUFFERS=640kB" in tuning.plan_environment(plan)
+
+
 def test_compose_overlay_has_no_unmeasured_tuning_or_durability_relaxation() -> None:
     overlay = (_ROOT / "docker-compose.postgres-tuned.yml").read_text(encoding="utf-8")
 
@@ -294,7 +303,7 @@ def test_plan_rejects_unsupported_database_evidence(
         tuning.build_plan(_observation(before, after))
 
 
-def test_environment_rejects_missing_or_non_mib_values() -> None:
+def test_environment_rejects_missing_or_misaligned_values() -> None:
     with pytest.raises(tuning.TuningPlanError, match="settings are unavailable"):
         tuning.plan_environment({})
     with pytest.raises(tuning.TuningPlanError, match="whole MiB"):

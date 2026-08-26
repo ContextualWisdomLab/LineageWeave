@@ -15,6 +15,7 @@ from pathlib import Path
 from typing import Any, Callable, Mapping, Sequence
 
 MIB = 1024 * 1024
+KIB = 1024
 SUPPORTED_SERVER_MAJOR = 16
 DURABILITY_SETTINGS = ("fsync", "full_page_writes", "synchronous_commit")
 TUNED_COMPOSE_FILE = "docker-compose.postgres-tuned.yml"
@@ -32,7 +33,7 @@ SELECT json_build_object(
   'wal_segment_size_bytes', pg_size_bytes(current_setting('wal_segment_size')),
   'settings', json_build_object(
   'checkpoint_timeout_seconds',
-    current_setting('checkpoint_timeout')::interval / interval '1 second',
+    EXTRACT(EPOCH FROM current_setting('checkpoint_timeout')::interval),
     'max_wal_size_bytes', pg_size_bytes(current_setting('max_wal_size')),
     'min_wal_size_bytes', pg_size_bytes(current_setting('min_wal_size')),
     'wal_buffers_bytes', pg_size_bytes(current_setting('wal_buffers')),
@@ -268,14 +269,21 @@ def plan_environment(plan: Mapping[str, Any], *, rollback: bool = False) -> str:
         raise TuningPlanError(f"{section_name} settings are unavailable")
     max_wal = _integer(section.get("max_wal_size_bytes"), "max_wal_size_bytes")
     wal_buffers = _integer(section.get("wal_buffers_bytes"), "wal_buffers_bytes")
-    if max_wal % MIB or wal_buffers % MIB:
-        raise TuningPlanError("Compose settings must be whole MiB values")
+    if max_wal % MIB:
+        raise TuningPlanError("max_wal_size must be a whole MiB value")
+    if wal_buffers % KIB:
+        raise TuningPlanError("wal_buffers must be a whole KiB value")
+    wal_buffers_setting = (
+        f"{wal_buffers // MIB}MB"
+        if wal_buffers % MIB == 0
+        else f"{wal_buffers // KIB}kB"
+    )
     durability = {
         field: _durability_value(section, field) for field in DURABILITY_SETTINGS
     }
     return (
         f"POSTGRES_TUNED_MAX_WAL_SIZE={max_wal // MIB}MB\n"
-        f"POSTGRES_TUNED_WAL_BUFFERS={wal_buffers // MIB}MB\n"
+        f"POSTGRES_TUNED_WAL_BUFFERS={wal_buffers_setting}\n"
         f"POSTGRES_TUNED_FSYNC={durability['fsync']}\n"
         f"POSTGRES_TUNED_FULL_PAGE_WRITES={durability['full_page_writes']}\n"
         f"POSTGRES_TUNED_SYNCHRONOUS_COMMIT={durability['synchronous_commit']}\n"
