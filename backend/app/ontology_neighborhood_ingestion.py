@@ -380,7 +380,7 @@ async def _load_facts(
                    edge.target_node_id::text as target_node_id,
                    edge.edge_type_code,
                    'truth_observed'::text as truth_status_code,
-                   min(post.created_at) as available_at,
+                   greatest(edge.created_at, min(post.created_at)) as available_at,
                    array_agg(evidence.evidence_post_id::text order by evidence.evidence_post_id)
                        as evidence_ids
               from knowledge_graph_edge edge
@@ -390,6 +390,7 @@ async def _load_facts(
                 on post.post_id = evidence.evidence_post_id
              where evidence.evidence_post_id = any($1::uuid[])
                and ($6::timestamptz is null or post.created_at <= $6::timestamptz)
+               and ($6::timestamptz is null or edge.created_at <= $6::timestamptz)
                and ($7::timestamptz is null or post.created_at <= $7::timestamptz)
                and ($7::timestamptz is null or edge.created_at <= $7::timestamptz)
              group by edge.source_node_type_code, edge.source_node_id,

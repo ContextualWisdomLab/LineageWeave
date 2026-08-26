@@ -19,7 +19,11 @@
    value is omitted from JSON-LD and represented as `null` in the typed API;
    edge truth and edge availability never fill a node field.
 5. SKOS broader is projected from `corporate_entity.parent_entity_id`. OWL class subsumption is schema, not an instance neighborhood edge, and fails closed.
-6. `knowledge_cutoff` binds `available_time` (`min(source_post.created_at)` of supporting evidence). Current-only facts without a time contract stay out of an as-of response.
+6. `knowledge_cutoff` binds `available_time`. An evidence-backed graph edge is
+   available at the later of its creation and its earliest supporting source;
+   a project mention is available at the later of its mention and source
+   creation. Current-only facts without a time contract stay out of an as-of
+   response.
 7. The workspace surface extends the existing Keyman/evidence panel with **Inspect ontology neighborhood**. It is not a second GNB destination.
 8. Node type uses shape plus text (never color alone). Every edge carries both endpoint type codes and IDs, so heterogeneous catalogs remain unambiguous even if UUIDs collide. Keyboard users can select every visible node and edge. The graph SVG has no enclosing ARIA `img`; native browser text layout wraps complete node labels instead of truncating or estimating character widths. Exact-value table, CSV, JSON-LD, and print expose the same authorized visible graph. JSON-LD emits the source-to-target property assertion directly and describes its evidence-bearing edge as an RDF reified statement with exact `rdf:subject`, `rdf:predicate`, and `rdf:object`; it does not make the edge resource itself the relationship subject. JSON-LD represents system time with `prov:generatedAtTime` and non-null validity bounds as OWL-Time `time:Instant` values using `time:inXSDDateTimeStamp`; it omits unavailable bounds rather than inventing them.
 9. Synthetic Storybook frames cover desktop, narrow exact-value-first, node drawer, edge drawer, legend, empty, truncated, denied, stale, and rejected states. No confidential Figma content enters the repository. Storybook inventory records the implementation surface; frame IDs are not copied from the confidential design file (ADR 0002).

@@ -306,6 +306,26 @@ def test_load_facts_binds_edges_to_the_sealed_snapshot() -> None:
     assert conn.arguments[6] == T0
 
 
+def test_load_facts_binds_edge_creation_to_the_knowledge_cutoff() -> None:
+    """A graph assertion created later must not appear in an earlier view."""
+    conn = CapturingWindowConnection()
+    asyncio.run(
+        _load_facts(
+            conn,  # type: ignore[arg-type]
+            [POST_ID],
+            focus_node_type_code=NODE_POST,
+            focus_node_id=POST_ID,
+            maximum_depth=1,
+            maximum_edges=1,
+            knowledge_cutoff=T0,
+        )
+    )
+    normalized = " ".join(conn.query.lower().split())
+    assert "edge.created_at <= $6::timestamptz" in normalized
+    assert "greatest(edge.created_at, min(post.created_at))" in normalized
+    assert conn.arguments[5] == T0
+
+
 def test_loaded_display_edge_keeps_its_raw_sql_cursor_key() -> None:
     """A reversed display relation must still resume with the raw SQL orientation."""
     window = asyncio.run(
