@@ -14,7 +14,7 @@ import os
 import sys
 import uuid
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -206,7 +206,7 @@ def _value(row: Any, column: str | None, default: Any = None) -> Any:
     """Read an optional mapped field without guessing absent source data."""
     if column is None:
         return default
-    if column not in row.keys():
+    if column not in row:
         raise KeyError(f"source query did not return mapped column {column!r}")
     return row[column]
 
@@ -228,7 +228,7 @@ def _timestamp(value: Any) -> datetime:
     """Normalize a source timestamp for asyncpg timestamptz parameters."""
     if not isinstance(value, datetime):
         raise TypeError("created/updated source values must be datetime instances")
-    return value.replace(tzinfo=timezone.utc) if value.tzinfo is None else value
+    return value.replace(tzinfo=UTC) if value.tzinfo is None else value
 
 
 def _source_code_matches(
@@ -535,7 +535,8 @@ async def import_rows(args: argparse.Namespace) -> dict[str, object]:
                 record_key=record_key,
                 default_group=args.process_unit_code,
             )
-            await target.execute(
+            preserve_existing_body = mapping.body is None
+            effective_body = await target.fetchval(
                 """
                 insert into source_post
                     (post_id, author_account_id, corporate_entity_id, process_unit_id,
@@ -557,7 +558,10 @@ async def import_rows(args: argparse.Namespace) -> dict[str, object]:
                     corporate_entity_id = excluded.corporate_entity_id,
                     process_unit_id = excluded.process_unit_id,
                     post_title = excluded.post_title,
-                    post_body = excluded.post_body,
+                    post_body = case
+                        when $34 then source_post.post_body
+                        else excluded.post_body
+                    end,
                     voc_type_code = excluded.voc_type_code,
                     visibility_code = excluded.visibility_code,
                     source_stage_code = excluded.source_stage_code,
@@ -586,6 +590,7 @@ async def import_rows(args: argparse.Namespace) -> dict[str, object]:
                     created_at = excluded.created_at,
                     updated_at = excluded.updated_at,
                     event_occurred_at = excluded.event_occurred_at
+                returning post_body
                 """,
                 post_id,
                 account_id,
@@ -620,6 +625,7 @@ async def import_rows(args: argparse.Namespace) -> dict[str, object]:
                 created_at,
                 updated_at,
                 event_occurred_at,
+                preserve_existing_body,
             )
             await target.execute(
                 """
@@ -632,7 +638,7 @@ async def import_rows(args: argparse.Namespace) -> dict[str, object]:
                 """,
                 post_id,
                 title,
-                body,
+                effective_body,
                 updated_at,
             )
             metadata = build_post_llm_metadata(
@@ -651,7 +657,7 @@ async def import_rows(args: argparse.Namespace) -> dict[str, object]:
                 await persist_post_content(
                     target,
                     str(post_id),
-                    body,
+                    effective_body,
                     vision_client=vision_client,
                     embedding_client=embedding_client,
                     structure_client=structure_client,

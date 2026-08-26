@@ -34,6 +34,11 @@ evidence and falsely imply semantic-unit coverage.
    next-line, and legacy information-separator characters. A body containing
    only those characters is unavailable; validators must not reinterpret it as
    semantic evidence.
+8. A no-body-dimension re-import preserves an already-populated target body
+   atomically in the source-post UPSERT. The preserved body is also the input
+   to revision and semantic-content persistence; an unavailable source
+   dimension must not erase evidence acquired from an authoritative body
+   source.
 
 ## Consequences
 

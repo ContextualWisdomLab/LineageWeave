@@ -51,9 +51,20 @@ def test_real_source_grouping_remains_the_derived_grouping() -> None:
     ) == ("thread-a", "secondary-a", "thread-a", "secondary-a")
 
 
+@pytest.mark.parametrize(
+    ("body_column", "source_body", "effective_body", "preserve_existing_body"),
+    [
+        ("body", "Synthetic customer-safe evidence body.", "Synthetic customer-safe evidence body.", False),
+        (None, None, "Previously imported authoritative body.", True),
+    ],
+)
 def test_import_rows_persists_raw_and_derived_grouping_values(
     monkeypatch,
     tmp_path: Path,
+    body_column: str | None,
+    source_body: str | None,
+    effective_body: str,
+    preserve_existing_body: bool,
 ) -> None:
     """One synthetic import carries provenance and reconstruction fields together."""
     query_file = tmp_path / "synthetic-query.sql"
@@ -61,13 +72,14 @@ def test_import_rows_persists_raw_and_derived_grouping_values(
     row = {
         "record_key": "record-1",
         "title": "Synthetic lineage follow-up",
-        "body": "Synthetic customer-safe evidence body.",
         "created_at": datetime(2026, 1, 2, tzinfo=UTC),
         "draft_state": "published",
         "thread": "record-1",
         "secondary": "document-1",
         "project": "project-1",
     }
+    if source_body is not None:
+        row["body"] = source_body
 
     class FakeConnection:
         def __init__(self, *, source: bool) -> None:
@@ -82,6 +94,10 @@ def test_import_rows_persists_raw_and_derived_grouping_values(
         async def execute(self, query: str, *args: object):
             self.executions.append((query, args))
 
+        async def fetchval(self, query: str, *args: object):
+            self.executions.append((query, args))
+            return effective_body
+
         async def close(self) -> None:
             self.closed = True
 
@@ -95,8 +111,10 @@ def test_import_rows_persists_raw_and_derived_grouping_values(
     async def fake_scope(_conn, _args):
         return "account-1", "corporate-1", "process-unit-1"
 
-    async def no_content(*_args, **_kwargs) -> None:
-        return None
+    persisted_bodies: list[str] = []
+
+    async def no_content(_conn, _post_id, body: str, **_kwargs) -> None:
+        persisted_bodies.append(body)
 
     async def no_cleanup(*_args, **_kwargs) -> dict[str, int]:
         return {"synthetic_rows_removed": 0}
@@ -118,8 +136,7 @@ def test_import_rows_persists_raw_and_derived_grouping_values(
         lambda *_args: object(),
     )
 
-    args = _parser().parse_args(
-        [
+    command = [
             "--source-dsn",
             "postgresql://synthetic-source",
             "--target-dsn",
@@ -132,8 +149,6 @@ def test_import_rows_persists_raw_and_derived_grouping_values(
             "record_key",
             "--title-column",
             "title",
-            "--body-column",
-            "body",
             "--created-at-column",
             "created_at",
             "--draft-column",
@@ -153,7 +168,13 @@ def test_import_rows_persists_raw_and_derived_grouping_values(
             "--process-unit-code",
             "synthetic-pu",
         ]
-    )
+    if body_column is None:
+        command.extend(
+            ["--no-body-dimension-evidence", "synthetic export has no body dimension"]
+        )
+    else:
+        command.extend(["--body-column", body_column])
+    args = _parser().parse_args(command)
 
     result = asyncio.run(import_rows(args))
 
@@ -168,14 +189,27 @@ def test_import_rows_persists_raw_and_derived_grouping_values(
         "",
         "project-1",
     )
-    assert source_post_args[-1] is None
-    assert result == {
+    assert source_post_args[32] is None
+    assert source_post_args[33] is preserve_existing_body
+    revision_args = next(
+        call_args
+        for query, call_args in target.executions
+        if "insert into source_post_revision" in query
+    )
+    assert revision_args[2] == effective_body
+    assert persisted_bodies == [effective_body]
+    expected_result: dict[str, object] = {
         "source_rows": 1,
         "imported_rows": 1,
         "skipped_rows": 0,
         "lineage_edges": 0,
         "synthetic_rows_removed": 0,
     }
+    if preserve_existing_body:
+        expected_result["no_body_dimension_evidence"] = (
+            "synthetic export has no body dimension"
+        )
+    assert result == expected_result
     assert source.closed and target.closed
 
 
