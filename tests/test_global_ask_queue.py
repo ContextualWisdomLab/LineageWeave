@@ -541,6 +541,18 @@ def test_completed_answer_carries_the_cited_source_clock(monkeypatch) -> None:
     async def _fake_images(*_args, **_kwargs):
         return []
 
+    async def _fake_source_references(*_args, **_kwargs):
+        return [{
+            "post_id": "post-1",
+            "lead_kind_code": "research_lead_semantic_unit",
+            "evidence_url": "https://example.com/source",
+            "evidence_title_text": "Public source",
+            "evidence_excerpt_text": "Public excerpt",
+            "judgment_code": "research_supported",
+            "next_action_text": "Compare the public source with the cited post.",
+            "checked_at": "2026-08-20T00:00:00Z",
+        }]
+
     class _AnswerClient:
         def answer(self, _question, _sources):
             return ChatAnswer("Grounded answer", ("post-1",))
@@ -548,6 +560,11 @@ def test_completed_answer_carries_the_cited_source_clock(monkeypatch) -> None:
     monkeypatch.setattr(global_ask_queue, "gather_global_chat_sources", _fake_gather)
     monkeypatch.setattr(global_ask_queue, "lineage_graphs_for_posts", _fake_graph)
     monkeypatch.setattr(global_ask_queue, "cited_post_images", _fake_images)
+    monkeypatch.setattr(
+        global_ask_queue,
+        "list_ask_source_references",
+        _fake_source_references,
+    )
 
     payload = asyncio.run(
         global_ask_queue.compute_global_ask_answer(
@@ -568,3 +585,9 @@ def test_completed_answer_carries_the_cited_source_clock(monkeypatch) -> None:
             "time_axis_code": "event_occurred_at",
         }
     ]
+    assert payload["cited_source_references"][0]["evidence_url"] == (
+        "https://example.com/source"
+    )
+    assert payload["delivery"]["report"]["source_documents"][0][
+        "source_references"
+    ][0]["title"] == "Public source"

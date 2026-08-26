@@ -29,6 +29,16 @@ const args: Story["args"] = {
       { post_id: "post-request", facts: [{ kind: "semantic_project", text: "project: Synthetic renewal" }] },
       { post_id: "post-discussion", facts: [{ kind: "semantic_role", text: "actor: Synthetic account owner" }] },
     ],
+    cited_source_references: [{
+      post_id: "post-request",
+      lead_kind_code: "research_lead_semantic_unit",
+      evidence_url: "https://example.com/public-source",
+      evidence_title_text: "Synthetic public source",
+      evidence_excerpt_text: "A public document records the revised request.",
+      judgment_code: "research_supported",
+      next_action_text: "Compare the public document with the cited post.",
+      checked_at: "2026-08-20T10:00:00Z",
+    }],
     source_post_ids: ["post-request", "post-discussion"],
   },
   onOpenEvidence: () => undefined,
@@ -47,6 +57,7 @@ export const BidirectionalFocus: Story = {
     await expect(card).toHaveFocus();
     await userEvent.click(card);
     await expect(citation).toHaveFocus();
+    await expect(canvas.getByRole("link", { name: "Synthetic public source" })).toBeVisible();
   },
 };
 

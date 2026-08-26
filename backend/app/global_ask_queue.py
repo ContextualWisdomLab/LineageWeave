@@ -64,6 +64,7 @@ from .post_chat_ingestion import (
     gather_global_chat_sources,
     prepare_global_question_embedding,
 )
+from .source_research_ingestion import list_ask_source_references
 
 GLOBAL_ASK_STREAM_KEY = "global_ask_request_stream"
 
@@ -438,13 +439,18 @@ async def compute_global_ask_answer(
         verify_external=verify_external,
         client=verification_client,
     )
-    if knowledge_cutoff is None:
-        async with pool.acquire() as conn:
+    async with pool.acquire() as conn:
+        if knowledge_cutoff is None:
             lineage_graph = await lineage_graphs_for_posts(conn, can_see, cited_ids)
             images = await cited_post_images(conn, cited_ids)
-    else:
-        lineage_graph = {"nodes": [], "edges": [], "truncated": False}
-        images = []
+        else:
+            lineage_graph = {"nodes": [], "edges": [], "truncated": False}
+            images = []
+        source_references = await list_ask_source_references(
+            conn,
+            cited_ids,
+            checked_by=knowledge_cutoff,
+        )
     cited_posts = cited_post_summaries(usable_sources, cited_ids)
     cited_events = cited_post_events(usable_sources, cited_ids)
     cited_evidence = cited_post_evidence(usable_sources, cited_ids)
@@ -462,9 +468,15 @@ async def compute_global_ask_answer(
         "cited_events": cited_events,
         "cited_post_evidence": cited_evidence,
         "cited_post_images": images,
+        "cited_source_references": source_references,
         "source_post_ids": [source.post_id for source in sources],
         "lineage_graph": lineage_graph,
-        "delivery": build_ask_delivery(answer.answer_text, cited_posts, cited_evidence),
+        "delivery": build_ask_delivery(
+            answer.answer_text,
+            cited_posts,
+            cited_evidence,
+            source_references,
+        ),
         "external_verification_status": verification_status,
         "external_claims": [claim.to_payload() for claim in external_claims],
         "next_action": next_action,

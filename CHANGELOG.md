@@ -51,6 +51,13 @@ All notable changes to this project are documented here. Format follows
 
 ### Added
 
+- Public posts can research a highlighted passage or image detail against a
+  cited public page (ADR 0248 / remaining ADR 0133). SearXNG finds candidates;
+  retrieval refuses redirects and non-global targets; contextual-orchestrator
+  judges in `mode=verify`. Private posts fail closed without sending content,
+  and absent explicit source-research resource budgets keep the channel unavailable.
+  After seed, open a public post and choose **Research public sources**, then
+  open the cited public resource and compare it with that highlighted content.
 - Expanded Voice-of-X post taxonomy (ADR 0246): the governed `voc_type`
   scheme adds Voice of Supplier, Employee, Business, Regulator, Investor,
   Society, and Process as source-post categories. Ontology, SHACL, the
