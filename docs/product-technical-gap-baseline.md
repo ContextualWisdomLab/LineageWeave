@@ -4,7 +4,7 @@
 > `ff7431bd1851c03e737808d22c6a2d43968582f9`; PR #713 was
 > `850494c3861703862a76cfe564381a41243c6c2d`; stacked PR #717 was
 > audited at implementation head
-> `3db9c44d97640afe4b7f84b197a1d72adace5f4f`. This candidate and the
+> `d5fe4828e9005f0157c308e8ea3c3a590cdf465b`. This candidate and the
 > historical evidence below are not protected-main release evidence.
 
 ## Voice-of-X product and technical gap
@@ -79,34 +79,41 @@ Cartesian-product codes. The remaining acceptance boundary is:
    a single column, controls meet the 44-pixel touch target, and no horizontal
    overflow was visible.
 
-At this snapshot the repository had 41 open PRs and 11 open issues. PR #713
+At this snapshot the repository had 42 open PRs and 11 open issues. PR #713
 head `850494c3` includes the review-driven localization of all twelve governed
 Voice labels. Its frontend, ontology publication, static-analysis, dependency,
 coverage, full-suite, CodeRabbit, Devin, and OpenCode checks passed. Strix
 failed closed before producing a vulnerability report:
 the primary NVIDIA NIM model returned HTTP 429, one configured fallback had
-reached end of life, and the OpenAI fallback reported exhausted credits. This
+reached end of life, and the OpenAI fallback reported exhausted credits. A
+same-head retry completed on 2026-08-27 with the explicit
+`STRIX_PROVIDER_UNAVAILABLE` annotation and again produced no vulnerability
+report. This
 is provider/control-plane unavailability, not a vulnerability result or
 permission to transfer an older success. Auto-merge remains enabled, while an
 independent approval is still required. PR #717 implementation head
-`3db9c44d` merges that
+`d5fe4828` merges that
 parent change without force-pushing and separates the complete governed Voice
 catalog used for authoring from usage-derived Board filters, so an authorized
 administrator can attach a Voice that no visible Post carries yet. It also
 labels Voice exact-value navigation as opening the carrying Post rather than
 misrepresenting that Post as the separately recorded derivation evidence. Its
 CodeRabbit and hosted Frontend/Storybook checks passed at predecessor head
-`dde0a83a`; refreshed checks for exact head `3db9c44d` were queued. Focused local
+`ebb4ef1d`; refreshed checks for exact head `d5fe4828` were queued. Focused local
 backend tests, frontend type checking/lint, and the new unused-Voice authoring
 regression passed, and the exact-value navigation tests, lint, and type check
 passed after the label repair. The paged JSON-LD union regression and Voice
 evidence navigation suite passed 23 focused frontend tests; 48 focused backend
-ontology/docstring tests also passed. The real-integration fixture now applies
+ontology/docstring tests also passed. The full backend suite at predecessor
+head `ebb4ef1d` passed 1,366 tests with 148 environment-dependent skips. The
+real-integration fixture now applies
 the existing migration 0042 before the expanded taxonomy migrations instead
-of seeding an incomplete legacy catalog. The wider local frontend run had
-397 passes and eight five-second timeouts under concurrent machine load; a
-focused rerun of the new App path passed in 5.57 seconds with a 20-second test
-limit, so the timeout run is not promoted to full-suite success. An initial
+of seeding an incomplete or duplicate legacy catalog; the exact
+`d5fe4828` authenticated post-list integration passed in 91.54 seconds. The
+wider local frontend run had 400 passes and eight five-second timeouts under
+concurrent backend-suite load; a later App-only run had 94 passes and five
+five-second timeouts, while the hosted Frontend/Storybook job passed on
+`ebb4ef1d`. Neither local timeout run is promoted to full-suite success. An initial
 authenticated integration attempt was unavailable while Keycloak initialized;
 a later retry against the shared synthetic stack succeeded in 56.18 seconds
 and proved the permission, API, PostgreSQL,
