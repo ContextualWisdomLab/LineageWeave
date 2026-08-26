@@ -131,3 +131,13 @@ def test_orchestrator_runtime_pin_matches_adr() -> None:
     assert adr_match is not None
     assert docker_match.group(1) == adr_match.group(1)
     assert docker_match.group(1) == expected_embedding_contract_commit
+
+
+def test_embedding_bootstrap_contract_keeps_request_model_free() -> None:
+    """ADR distinguishes remote-agent registration from request selection."""
+    adr = (_ADR_DIRECTORY / "0030-external-llm-gateway-environment.md").read_text(
+        encoding="utf-8"
+    )
+    assert "LineageWeave embedding requests do not select a model" in adr
+    assert "LLM_GATEWAY_EMBEDDING_MODEL" in adr
+    assert "application code never reads it" in adr
