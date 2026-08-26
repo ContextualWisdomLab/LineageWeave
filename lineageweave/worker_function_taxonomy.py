@@ -9,19 +9,13 @@ Things ranks 0-7, each ordered so the lower digit names the more complex
 function. This module is the application-side projection of those
 concepts from `docs/ontology/lineageweave-kg.ttl`, where they live as a
 `skos:ConceptScheme` of `:WorkerFunction` concepts carrying the official
-definitions, their definitional ordinal ranks, and qualitative
-cognitive / affective / behavioral facet tags.
+definitions and their definitional ordinal ranks.
 
 Provenance discipline mirrors the rest of this repository:
 
 - Ranks are scale positions copied from the published table -- never
   fitted, calibrated, or renormalized here. Nothing in this module may
   produce numeric weights (measurement stays governed by ADR 0145).
-- Facet tags name published Fleishman ability families and O*NET basic /
-  cross-functional skills (Fleishman, Costanza, & Marshall-Mies, 1999;
-  Mumford, Peterson, & Childs, 1999) projected editorially onto each
-  official definition. They carry no weight and make no calibration
-  claim.
 - Lookups fail closed: an absent concept returns ``None``/empty rather
   than a placeholder, the same missing-vs-negative rule as the Null
   channels.
@@ -59,15 +53,6 @@ WORKER_FUNCTION_DOMAINS: dict[str, tuple[int, int]] = {
 #: 5th, Things the 6th -- used for deterministic sorting.
 _DOMAIN_ORDER: tuple[str, ...] = ("data", "people", "things")
 
-#: Facet annotation groups read off each concept, mapped to the record
-#: field names they populate.
-_FACET_PROPERTIES: tuple[tuple[str, URIRef], ...] = (
-    ("cognitive_facets", LW.cognitiveFacet),
-    ("affective_facets", LW.affectiveFacet),
-    ("behavioral_facets", LW.behavioralFacet),
-)
-
-
 @dataclass(frozen=True)
 class WorkerFunctionRecord:
     """One worker-function concept exactly as the ontology declares it.
@@ -93,34 +78,6 @@ class WorkerFunctionRecord:
     definition: str
     """The official DOT Appendix B definition, stored verbatim as the
     term's ``rdfs:comment``."""
-
-    cognitive_facets: tuple[str, ...]
-    """Published Fleishman ability families or O*NET skills exercised
-    cognitively, alphabetically sorted for deterministic output."""
-
-    affective_facets: tuple[str, ...]
-    """Published O*NET work styles or social skills exercised
-    affectively, alphabetically sorted for deterministic output."""
-
-    behavioral_facets: tuple[str, ...]
-    """Published Fleishman psychomotor/physical abilities or O*NET
-    behavioral skills exercised behaviorally, alphabetically sorted for
-    deterministic output."""
-
-
-def _facet_values(subject: URIRef) -> dict[str, tuple[str, ...]]:
-    """Read the three facet annotation groups off one subject.
-
-    Values are collected into sets first so duplicate annotations can
-    never surface twice, then returned as deterministically sorted
-    tuples keyed by record field name.
-    """
-    values: dict[str, tuple[str, ...]] = {}
-    for field_name, predicate in _FACET_PROPERTIES:
-        seen = {str(value) for value in ONTOLOGY.objects(subject, predicate)}
-        values[field_name] = tuple(sorted(seen))
-    return values
-
 
 def _record_for(subject: URIRef) -> WorkerFunctionRecord:
     """Build one record from its ontology subject.
@@ -155,16 +112,12 @@ def _record_for(subject: URIRef) -> WorkerFunctionRecord:
             f"worker-function term {subject} declares unknown :fjaDomain "
             f"{domain!r}"
         )
-    facets = _facet_values(subject)
     return WorkerFunctionRecord(
         iri=str(subject),
         domain=domain,
         rank=int(rank_literal),
         label=str(label_literal),
         definition=str(definition_literal),
-        cognitive_facets=facets["cognitive_facets"],
-        affective_facets=facets["affective_facets"],
-        behavioral_facets=facets["behavioral_facets"],
     )
 
 
@@ -202,21 +155,3 @@ def worker_function(domain: str, rank: int) -> WorkerFunctionRecord | None:
         if record.domain == domain and record.rank == rank:
             return record
     return None
-
-
-def facets_for(domain: str, rank: int) -> dict[str, tuple[str, ...]]:
-    """The facet tag groups for one worker function.
-
-    Returns the three sorted facet tuples for a declared function and
-    ``{}`` for an undeclared rank inside a valid domain -- the same
-    missing-vs-negative discipline as `ontology_annotations`. An
-    unrecognized ``domain`` raises ``ValueError``.
-    """
-    record = worker_function(domain, rank)
-    if record is None:
-        return {}
-    return {
-        "cognitive_facets": record.cognitive_facets,
-        "affective_facets": record.affective_facets,
-        "behavioral_facets": record.behavioral_facets,
-    }

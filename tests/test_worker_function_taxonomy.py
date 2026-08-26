@@ -3,10 +3,9 @@
 
 The tests treat the published Dictionary of Occupational Titles
 Appendix B tables as ground truth: every declared concept must carry
-the official definition verbatim, the definitional rank from the
-published table, and facet tags drawn only from the published Fleishman
-ability / O*NET skill vocabularies. Nothing here may accept an invented
-weight or a placeholder for missing evidence.
+the official definition verbatim and the definitional rank from the
+published table. Nothing here may accept an invented weight or a
+placeholder for missing evidence.
 """
 
 from __future__ import annotations
@@ -17,7 +16,6 @@ from rdflib import RDF
 from lineageweave.ontology import LW, ONTOLOGY, all_declared_lookup_codes
 from lineageweave.worker_function_taxonomy import (
     WORKER_FUNCTION_DOMAINS,
-    facets_for,
     worker_function,
     worker_function_records,
 )
@@ -51,52 +49,6 @@ _OFFICIAL_DEFINITION_PREFIXES: dict[tuple[str, int], str] = {
     ("things", 6): "Inserting, throwing, dumping, or placing materials",
     ("things", 7): "Using body members, handtools, and/or special devices to install",
 }
-
-#: The closed facet-tag vocabulary this ADR allows: published Fleishman
-#: ability families plus O*NET basic / cross-functional skill names.
-_ALLOWED_FACET_TAGS = {
-    # Fleishman ability families (Fleishman et al., 1999)
-    "Arm-Hand Steadiness",
-    "Category Flexibility",
-    "Control Precision",
-    "Deductive Reasoning",
-    "Extent Flexibility",
-    "Finger Dexterity",
-    "Fluency of Ideas",
-    "Inductive Reasoning",
-    "Manual Dexterity",
-    "Mathematical Reasoning",
-    "Multilimb Coordination",
-    "Number Facility",
-    "Oral Comprehension",
-    "Oral Expression",
-    "Perceptual Speed",
-    "Rate Control",
-    "Reaction Time",
-    "Response Orientation",
-    "Spatial Orientation",
-    "Static Strength",
-    "Vigilance",
-    "Written Comprehension",
-    # O*NET basic / cross-functional skills and work styles
-    # (Mumford et al., 1999; Peterson et al., 1999)
-    "Active Listening",
-    "Cooperation",
-    "Coordination",
-    "Critical Thinking",
-    "Equipment Maintenance",
-    "Instructing",
-    "Management of Personnel Resources",
-    "Monitoring",
-    "Negotiation",
-    "Operation Monitoring",
-    "Persuasion",
-    "Service Orientation",
-    "Social Perceptiveness",
-    "Speaking",
-    "Time Management",
-}
-
 
 def _record_map() -> dict[tuple[str, int], object]:
     """Index every declared record by its ``(domain, rank)`` pair."""
@@ -136,31 +88,6 @@ def test_labels_are_unique_across_the_scheme() -> None:
     can never conflate two ranks."""
     labels = [record.label for record in worker_function_records()]
     assert len(labels) == len(set(labels))
-
-
-def test_facet_tags_stay_inside_the_published_vocabularies() -> None:
-    """Every facet tag names a Fleishman ability family or O*NET skill
-    from the allowed set -- no invented construct may enter the layer."""
-    for record in worker_function_records():
-        all_tags = (
-            *record.cognitive_facets,
-            *record.affective_facets,
-            *record.behavioral_facets,
-        )
-        unknown = set(all_tags) - _ALLOWED_FACET_TAGS
-        assert not unknown, f"{(record.domain, record.rank)} invented facets: {unknown}"
-
-
-def test_every_function_exercises_at_least_one_facet() -> None:
-    """Each definition projects onto at least one facet group; a fully
-    untagged function would mean the projection silently failed."""
-    for record in worker_function_records():
-        total = (
-            len(record.cognitive_facets)
-            + len(record.affective_facets)
-            + len(record.behavioral_facets)
-        )
-        assert total >= 1, f"{(record.domain, record.rank)} has no facets"
 
 
 def test_records_are_sorted_in_dot_digit_order_then_rank() -> None:
@@ -221,27 +148,3 @@ def test_worker_function_raises_on_an_unknown_domain() -> None:
     """An unrecognized domain is caller error, not missing evidence."""
     with pytest.raises(ValueError, match="unknown worker-function domain"):
         worker_function("machines", 0)
-
-
-def test_facets_for_returns_groups_for_a_declared_pair() -> None:
-    """Facet lookup returns exactly the record's three sorted groups."""
-    record = worker_function("data", 2)
-    assert record is not None
-    facets = facets_for("data", 2)
-    assert facets == {
-        "cognitive_facets": record.cognitive_facets,
-        "affective_facets": record.affective_facets,
-        "behavioral_facets": record.behavioral_facets,
-    }
-    assert facets["cognitive_facets"] == tuple(sorted(facets["cognitive_facets"]))
-
-
-def test_facets_for_is_empty_for_an_undeclared_rank() -> None:
-    """Missing-vs-negative discipline mirrors ontology_annotations()."""
-    assert facets_for("things", 42) == {}
-
-
-def test_facets_for_raises_on_an_unknown_domain() -> None:
-    """Domain validation propagates through the facet helper too."""
-    with pytest.raises(ValueError, match="unknown worker-function domain"):
-        facets_for("vibes", 0)
