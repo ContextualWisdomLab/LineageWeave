@@ -75,14 +75,13 @@ class ClaimVerificationResult:
     evidence: tuple[ExternalEvidenceDocument, ...] = field(default_factory=tuple)
 
     def to_payload(self) -> dict[str, object]:
-        """Serialize without mixing internal post identifiers and external URLs."""
+        """Serialize public evidence without exposing internal provenance keys."""
 
         return {
             "claim_text": self.claim_text,
             "claim_kind": self.claim_kind,
             "status_code": self.status_code,
             "rationale": self.rationale,
-            "source_post_ids": list(self.source_post_ids),
             "evidence": [
                 {"title": item.title, "url": item.url, "snippet": item.snippet}
                 for item in self.evidence

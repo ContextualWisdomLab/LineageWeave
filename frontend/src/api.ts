@@ -405,7 +405,6 @@ export interface ExternalClaim {
   claim_kind: string;
   status_code: string;
   rationale: string;
-  source_post_ids: string[];
   evidence: ExternalClaimEvidence[];
 }
 

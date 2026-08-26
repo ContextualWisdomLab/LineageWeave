@@ -66,6 +66,34 @@ def test_public_claim_candidates_filters_citations_before_budget() -> None:
     ) == (source.external_claims[1],)
 
 
+def test_public_claim_payload_keeps_internal_post_ids_out_of_public_evidence() -> None:
+    result = cv.ClaimVerificationResult(
+        claim_text="Project Apollo is public",
+        claim_kind="semantic_project",
+        status_code=cv.CLAIM_SUPPORTED,
+        rationale="The cited public source supports the claim.",
+        source_post_ids=("internal-post-id",),
+        evidence=(
+            cv.ExternalEvidenceDocument(
+                "Public evidence",
+                "https://example.com/evidence",
+                "Published corroboration",
+            ),
+        ),
+    )
+
+    payload = result.to_payload()
+
+    assert "source_post_ids" not in payload
+    assert payload["evidence"] == [
+        {
+            "title": "Public evidence",
+            "url": "https://example.com/evidence",
+            "snippet": "Published corroboration",
+        }
+    ]
+
+
 def test_safe_external_document_rejects_search_local_and_private_hosts() -> None:
     assert cv._safe_external_document({"url": "http://localhost/a", "title": "x"}) is None
     assert cv._safe_external_document({"url": "http://127.0.0.1/a", "title": "x"}) is None
