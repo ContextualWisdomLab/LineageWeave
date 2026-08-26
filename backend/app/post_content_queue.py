@@ -462,7 +462,7 @@ async def enqueue_post_content_backfill(
                            select 1
                              from post_project_mention project
                             where project.post_id = post.post_id
-                              and project.ontology_iri is not null
+                              and nullif(btrim(project.ontology_iri), '') is not null
                        )
                        and not exists (
                            select 1

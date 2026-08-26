@@ -202,6 +202,11 @@ treated as a negative case.
   evidence links, keyboard semantics, and non-color status copy.
 - Storybook interaction tests and authenticated browser screenshots audit the
   rendered desktop and narrow layouts.
+- `scripts/accept_operations_dashboard_runtime.sh` fails closed on the exact
+  orchestrator image revision, performs the explicit structured-readiness
+  refresh only after operator opt-in, verifies one normalized preferred
+  candidate and a positive grounded-case aggregate delta, then exercises the
+  authenticated Dashboard API and rendered UI without printing source rows.
 
 ## References
 
