@@ -200,6 +200,10 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Asking...": "질의 중...",
     Answer: "답변",
     "Cited posts": "인용된 글",
+    "Open a cited post to review the evidence behind this answer.":
+      "인용된 글을 열어 이 답변의 근거를 확인하세요.",
+    "Public claim results disagree. Open each cited post to review the evidence.":
+      "공개 주장 검증 결과가 서로 다릅니다. 인용된 글을 하나씩 열어 근거를 확인하세요.",
     "Only authorized public claims are sent for web verification. Other workspace evidence is not sent.":
       "권한이 있는 공개 주장만 웹 검증에 전송합니다. 작업공간의 다른 근거는 전송하지 않습니다.",
     "Public claims": "공개 주장",
@@ -749,6 +753,10 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Asking...": "正在提问...",
     Answer: "回答",
     "Cited posts": "引用文章",
+    "Open a cited post to review the evidence behind this answer.":
+      "打开引用的文章，查看此回答所依据的证据。",
+    "Public claim results disagree. Open each cited post to review the evidence.":
+      "公开声明的核验结果不一致。请逐一打开引用文章查看证据。",
     "Only authorized public claims are sent for web verification. Other workspace evidence is not sent.":
       "仅将已授权的公开主张发送用于网络核验。不会发送工作区中的其他证据。",
     "Public claims": "公开主张",
@@ -1313,6 +1321,10 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Asking...": "質問中...",
     Answer: "回答",
     "Cited posts": "引用された投稿",
+    "Open a cited post to review the evidence behind this answer.":
+      "引用された投稿を開いて、この回答の根拠を確認してください。",
+    "Public claim results disagree. Open each cited post to review the evidence.":
+      "公開主張の検証結果が一致しません。引用された投稿を一つずつ開いて根拠を確認してください。",
     "Only authorized public claims are sent for web verification. Other workspace evidence is not sent.":
       "権限のある公開主張だけをウェブ検証に送信します。ワークスペース内の他の証拠は送信しません。",
     "Public claims": "公開主張",
@@ -1857,6 +1869,10 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Asking...": "Đang hỏi...",
     Answer: "Câu trả lời",
     "Cited posts": "Bài viết được trích dẫn",
+    "Open a cited post to review the evidence behind this answer.":
+      "Mở một bài viết được trích dẫn để xem bằng chứng cho câu trả lời này.",
+    "Public claim results disagree. Open each cited post to review the evidence.":
+      "Kết quả xác minh tuyên bố công khai không thống nhất. Hãy mở từng bài viết được trích dẫn để xem bằng chứng.",
     "Only authorized public claims are sent for web verification. Other workspace evidence is not sent.":
       "Chỉ các tuyên bố công khai được cấp quyền mới được gửi để xác minh trên web. Bằng chứng khác trong không gian làm việc không được gửi đi.",
     "Public claims": "Tuyên bố công khai",

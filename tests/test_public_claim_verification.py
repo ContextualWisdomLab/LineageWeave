@@ -64,6 +64,32 @@ def test_mixed_verdicts_use_the_overall_status_action(monkeypatch) -> None:
     assert payload["next_action"] == "Retry public verification."
 
 
+def test_mixed_verdicts_without_unavailable_item_use_status_aligned_action(monkeypatch) -> None:
+    first = _envelope(public_claim_envelope_id="env-1")
+    second = _envelope(public_claim_envelope_id="env-2")
+    verdicts = iter(
+        (
+            PublicClaimVerdict(
+                "env-1", "post-1", "First", KIND_ORGANIZATION_PRESENCE,
+                "First", "claim", STATUS_SUPPORTED, (), "Public web evidence supports this claim.",
+            ),
+            PublicClaimVerdict(
+                "env-2", "post-2", "Second", KIND_ORGANIZATION_PRESENCE,
+                "Second", "claim", STATUS_NOT_ENOUGH_INFORMATION, (), "Try another query.",
+            ),
+        )
+    )
+    monkeypatch.setattr(
+        "lineageweave.public_claim_verification.classify_public_claim",
+        lambda *_args, **_kwargs: next(verdicts),
+    )
+    payload = verify_public_claims((first, second), NullPublicClaimSearchClient())
+    assert payload["status_code"] == STATUS_UNAVAILABLE
+    assert payload["next_action"] == (
+        "Public claim results disagree. Open each cited post to review the evidence."
+    )
+
+
 def test_private_or_ineligible_rows_are_dropped() -> None:
     assert envelope_from_authorized_row(
         {

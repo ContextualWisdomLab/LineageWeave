@@ -301,7 +301,7 @@ def verify_public_claims(
     overall = _overall_status(tuple(verdict.status_code for verdict in verdicts))
     next_action = next(
         (verdict.next_action for verdict in verdicts if verdict.status_code == overall),
-        verdicts[0].next_action,
+        "Public claim results disagree. Open each cited post to review the evidence.",
     )
     return {
         "status_code": overall,

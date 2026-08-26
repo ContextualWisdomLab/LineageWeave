@@ -1,5 +1,8 @@
 begin;
 
+drop trigger if exists public_claim_envelope_revoke_private_post
+    on source_post;
+drop function if exists public_claim_envelope_revoke_private_post();
 drop trigger if exists public_claim_envelope_require_public_post
     on public_claim_envelope;
 drop function if exists public_claim_envelope_require_public_post();

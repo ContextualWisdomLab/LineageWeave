@@ -201,6 +201,11 @@ _GLOBAL_ASK_PUBLIC_VERIFICATION_MIGRATION = (
     / "migrations"
     / "0218_global_ask_public_verification.sql"
 )
+_PUBLIC_CLAIM_ENVELOPE_MIGRATION = (
+    Path(__file__).resolve().parents[2]
+    / "migrations"
+    / "0224_public_claim_envelope.sql"
+)
 _GLOBAL_ASK_KNOWLEDGE_CUTOFF_MIGRATION = (
     Path(__file__).resolve().parents[2]
     / "migrations"
@@ -386,6 +391,7 @@ def seeded_db(demo_analyst_token):
             cur.execute(_GLOBAL_ASK_EVIDENCE_SEARCH_MIGRATION.read_text())
             cur.execute(_GLOBAL_ASK_KNOWLEDGE_CUTOFF_MIGRATION.read_text())
             cur.execute(_GLOBAL_ASK_PUBLIC_VERIFICATION_MIGRATION.read_text())
+            cur.execute(_PUBLIC_CLAIM_ENVELOPE_MIGRATION.read_text())
             cur.execute(_EVENT_OCCURRED_AT_MIGRATION.read_text())
             cur.execute(_LEFTOVER_MAP_AXIS_MIGRATION.read_text())
             cur.execute(_CHANNEL_EVIDENCE_MIGRATION.read_text())
@@ -5232,7 +5238,6 @@ def test_ask_public_verification_is_opt_in_and_separate_from_post_citations(
     assert answer["public_claim_verification"]["claims"][0]["status_code"] == "claim_supported"
     assert answer["cited_post_ids"] == [seeded_db["public_post_id"]]
     assert "https://northridge-grid.example/about" not in answer["cited_post_ids"]
-
 
 def test_ask_job_reads_are_owner_scoped(
     client, demo_analyst_token, seeded_db, monkeypatch

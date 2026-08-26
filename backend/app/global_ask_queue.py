@@ -53,6 +53,7 @@ from lineageweave.temporal_expressions import resolve_korean_relative_time
 from .config import GLOBAL_ASK_JOB_DEADLINE_SECONDS
 from .lineage_ingestion import lineage_graphs_for_posts
 from .operability import log_internal_fault, log_provider_unavailable
+from .post_eligibility import SOURCE_POST_ELIGIBILITY_SQL
 from .post_chat_ingestion import (
     _seoul_today,
     cited_post_images,
@@ -419,7 +420,7 @@ async def load_authorized_public_claim_envelopes(
 ) -> tuple:
     """Load only currently public, egress-eligible claim envelopes."""
     rows = await conn.fetch(
-        """
+        f"""
             select envelope.public_claim_envelope_id,
                    envelope.source_post_id,
                    post.post_title as source_post_title,
@@ -436,6 +437,7 @@ async def load_authorized_public_claim_envelopes(
               join source_post post on post.post_id = envelope.source_post_id
              where envelope.egress_eligible
                and post.visibility_code = 'public'
+               and {SOURCE_POST_ELIGIBILITY_SQL.format(alias='post')}
              order by envelope.created_at, envelope.public_claim_envelope_id
         """
     )

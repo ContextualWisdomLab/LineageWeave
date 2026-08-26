@@ -54,7 +54,21 @@ language plpgsql
 as $$
 declare
     vis text;
+    claim_category text;
+    truth_category text;
 begin
+    select lookup_category into claim_category
+      from common_lookup_value
+     where lookup_code = new.claim_kind_code;
+    if claim_category is distinct from 'public_claim_kind' then
+        raise exception 'claim_kind_code must belong to public_claim_kind';
+    end if;
+    select lookup_category into truth_category
+      from common_lookup_value
+     where lookup_code = new.truth_status_code;
+    if truth_category is distinct from 'ontology_truth_status' then
+        raise exception 'truth_status_code must belong to ontology_truth_status';
+    end if;
     select visibility_code into vis
       from source_post
      where post_id = new.source_post_id;
@@ -74,3 +88,26 @@ create trigger public_claim_envelope_require_public_post
     before insert or update on public_claim_envelope
     for each row
     execute function public_claim_envelope_require_public_post();
+
+create or replace function public_claim_envelope_revoke_private_post()
+returns trigger
+language plpgsql
+as $$
+begin
+    if old.visibility_code = 'public' and new.visibility_code <> 'public' then
+        update public_claim_envelope
+           set egress_eligible = false,
+               updated_at = now()
+         where source_post_id = new.post_id
+           and egress_eligible;
+    end if;
+    return new;
+end;
+$$;
+
+drop trigger if exists public_claim_envelope_revoke_private_post
+    on source_post;
+create trigger public_claim_envelope_revoke_private_post
+    after update of visibility_code on source_post
+    for each row
+    execute function public_claim_envelope_revoke_private_post();

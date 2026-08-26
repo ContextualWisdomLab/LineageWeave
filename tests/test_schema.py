@@ -888,7 +888,7 @@ def test_public_claim_envelope_requires_a_public_post_for_egress(schema_db) -> N
             )
         cur.execute("rollback to savepoint before_private_egress")
         cur.execute("savepoint before_ineligible_kind")
-        with pytest.raises(psycopg2.errors.ForeignKeyViolation):
+        with pytest.raises(psycopg2.errors.RaiseException, match="public_claim_kind"):
             cur.execute(
                 "insert into public_claim_envelope (source_post_id, claim_kind_code, "
                 "subject_label, claim_text, truth_status_code, egress_eligible) "
@@ -897,4 +897,13 @@ def test_public_claim_envelope_requires_a_public_post_for_egress(schema_db) -> N
                 (public_post_id,),
             )
         cur.execute("rollback to savepoint before_ineligible_kind")
+        cur.execute(
+            "update source_post set visibility_code = 'private' where post_id = %s",
+            (public_post_id,),
+        )
+        cur.execute(
+            "select egress_eligible from public_claim_envelope where source_post_id = %s",
+            (public_post_id,),
+        )
+        assert cur.fetchone() == (False,)
     schema_db.rollback()

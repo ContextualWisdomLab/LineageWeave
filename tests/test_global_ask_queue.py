@@ -500,7 +500,9 @@ def test_missing_public_claim_table_fails_startup_contract() -> None:
 
 def test_public_claim_loader_drops_unauthorized_and_ineligible_rows() -> None:
     class _Rows:
-        async def fetch(self, *_args: object, **_kwargs: object):
+        async def fetch(self, query: str, *_args: object, **_kwargs: object):
+            assert "post.source_draft_code" in query
+            assert "post.source_deleted_flag" in query
             return [
                 {
                     "public_claim_envelope_id": "env-1",
