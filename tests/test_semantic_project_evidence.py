@@ -1,4 +1,11 @@
-from lineageweave.post_summary import normalize_project_key, parse_summary_response
+import pytest
+
+from lineageweave.post_summary import (
+    normalize_project_key,
+    parse_project_candidate_node_id,
+    parse_summary_response,
+    project_candidate_node_id,
+)
 
 
 def test_project_mentions_keep_evidence_and_low_confidence() -> None:
@@ -17,3 +24,24 @@ def test_project_mentions_keep_evidence_and_low_confidence() -> None:
     ]
     assert summary.project_mentions[1].confidence == 0.4
     assert normalize_project_key("Project Delta") == "project-delta"
+
+
+def test_project_candidate_identity_is_scoped_to_its_evidence_post() -> None:
+    first = project_candidate_node_id(
+        "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa1", "project-delta"
+    )
+    second = project_candidate_node_id(
+        "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa2", "project-delta"
+    )
+
+    assert first != second
+    assert parse_project_candidate_node_id(first) == (
+        "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa1",
+        "project-delta",
+    )
+    with pytest.raises(ValueError, match="separator"):
+        parse_project_candidate_node_id("project-delta")
+    with pytest.raises(ValueError, match="normalized"):
+        project_candidate_node_id(
+            "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa1", ""
+        )

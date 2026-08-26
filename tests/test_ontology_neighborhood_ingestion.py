@@ -23,9 +23,11 @@ from backend.app.ontology_neighborhood_ingestion import (
 from lineageweave.knowledge_graph import (
     EDGE_AFFILIATION,
     EDGE_MENTION,
+    EDGE_MENTION_PROJECT,
     NODE_CORPORATE_ENTITY,
     NODE_PERSON,
     NODE_POST,
+    NODE_PROJECT,
     NODE_TEAM,
 )
 from lineageweave.ontology_neighborhood import (
@@ -43,6 +45,8 @@ PERSON_ID = "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbb1"
 CORP_ID = "cccccccc-cccc-cccc-cccc-ccccccccccc1"
 GROUP_ID = "dddddddd-dddd-dddd-dddd-ddddddddddd1"
 TEAM_ID = "ffffffff-ffff-ffff-ffff-fffffffffff1"
+PROJECT_KEY = "demo-project"
+PROJECT_ID = f"{POST_ID}/{PROJECT_KEY}"
 T0 = datetime(2026, 1, 10, 12, 0, tzinfo=timezone.utc)
 
 
@@ -144,17 +148,38 @@ def test_focus_catalog_exists_rejects_unknown_and_non_uuid() -> None:
             ScriptedConn({"select 1 from cataloged_team": {"ignored": 1}}), NODE_TEAM, TEAM_ID
         )
     )
+    assert asyncio.run(
+        focus_catalog_exists(
+            ScriptedConn({"from post_project_mention": {"ignored": 1}}),
+            NODE_PROJECT,
+            PROJECT_ID,
+        )
+    )
     empty = ScriptedConn({})
     assert asyncio.run(focus_catalog_exists(empty, NODE_PERSON, PERSON_ID)) is False
     assert asyncio.run(focus_catalog_exists(empty, NODE_CORPORATE_ENTITY, CORP_ID)) is False
     assert asyncio.run(focus_catalog_exists(empty, NODE_TEAM, TEAM_ID)) is False
     assert asyncio.run(focus_catalog_exists(empty, NODE_POST, POST_ID)) is False
+    assert asyncio.run(focus_catalog_exists(empty, NODE_PROJECT, PROJECT_ID)) is False
 
 
 def test_visible_post_ids_for_each_focus_type() -> None:
-    post_row = {"post_id": POST_ID, "visibility_code": "public", "corporate_entity_id": CORP_ID}
+    post_row = {
+        "post_id": POST_ID,
+        "visibility_code": "public",
+        "corporate_entity_id": CORP_ID,
+        "process_unit_id": TEAM_ID,
+    }
     conn = ScriptedConn({"select post_id, visibility_code": post_row})
-    assert asyncio.run(visible_post_ids_for_focus(conn, NODE_POST, POST_ID, lambda row: True)) == [POST_ID]
+    assert asyncio.run(
+        visible_post_ids_for_focus(
+            conn,
+            NODE_POST,
+            POST_ID,
+            lambda row: row["process_unit_id"] == TEAM_ID,
+        )
+    ) == [POST_ID]
+    assert "process_unit_id" in conn.calls[0][0]
     assert asyncio.run(visible_post_ids_for_focus(conn, NODE_POST, POST_ID, lambda row: False)) == []
     assert asyncio.run(visible_post_ids_for_focus(ScriptedConn({}), NODE_POST, POST_ID, lambda row: True)) == []
     assert asyncio.run(
@@ -165,6 +190,19 @@ def test_visible_post_ids_for_each_focus_type() -> None:
             lambda row: True,
         )
     ) == [POST_ID]
+    project_focus_conn = ScriptedConn({"from post_project_mention mention": [post_row]})
+    assert asyncio.run(
+        visible_post_ids_for_focus(
+            project_focus_conn,
+            NODE_PROJECT,
+            PROJECT_ID,
+            lambda row: True,
+            knowledge_cutoff=T0,
+            snapshot_at=T0,
+        )
+    ) == [POST_ID]
+    assert project_focus_conn.calls[-1][1] == (POST_ID, PROJECT_KEY, T0, T0)
+    assert "greatest(post.created_at, mention.created_at)" in project_focus_conn.calls[-1][0]
     assert asyncio.run(
         visible_post_ids_for_focus(
             ScriptedConn({"person_affiliation affiliation": [post_row]}),
@@ -210,14 +248,28 @@ def test_load_facts_skos_and_labels() -> None:
                     "available_at": T0,
                     "evidence_ids": None,
                 },
+                {
+                    "source_node_type_code": NODE_POST,
+                    "source_node_id": POST_ID,
+                    "target_node_type_code": NODE_PROJECT,
+                    "target_node_id": PROJECT_ID,
+                    "edge_type_code": EDGE_MENTION_PROJECT,
+                    "truth_status_code": "truth_proposed",
+                    "available_at": T0,
+                    "evidence_ids": [POST_ID],
+                },
             ]
         }
     )
     facts = asyncio.run(_load_facts(conn, [POST_ID]))
     assert "with recursive" in conn.calls[0][0].lower()
+    assert "mention.post_id::text || '/' || mention.project_key" in conn.calls[0][0]
     assert facts[0].property_code == "mentions"
     assert facts[0].source_node_id == POST_ID
     assert facts[1].evidence_references == ()
+    assert facts[2].target_node_type_code == NODE_PROJECT
+    assert facts[2].truth_status_code == "truth_proposed"
+    assert facts[2].provenance_reference == "post_project_mention"
     skos = asyncio.run(
         _load_skos_facts(
             ScriptedConn(
@@ -260,6 +312,15 @@ def test_load_facts_skos_and_labels() -> None:
         edge_type_code=EDGE_AFFILIATION,
         recorded_at=T0,
     )
+    project_fact = fact_from_knowledge_graph_edge(
+        source_node_type_code=NODE_POST,
+        source_node_id=POST_ID,
+        target_node_type_code=NODE_PROJECT,
+        target_node_id=PROJECT_ID,
+        edge_type_code=EDGE_MENTION_PROJECT,
+        recorded_at=T0,
+        evidence_references=(POST_ID,),
+    )
     labels = asyncio.run(
         _load_labels(
             ScriptedConn(
@@ -272,15 +333,36 @@ def test_load_facts_skos_and_labels() -> None:
                         {"corporate_entity_id": CORP_ID, "entity_name": "Demo Corp"}
                     ],
                     "from cataloged_team": [{"team_id": TEAM_ID, "team_name": "Demo Team"}],
+                    "group by mention.post_id": [
+                        {"node_id": PROJECT_ID, "display_label": "Demo Project"}
+                    ],
                 }
             ),
-            [mention, team_fact, affiliation],
+            [mention, team_fact, affiliation, project_fact],
+            knowledge_cutoff=T0,
+            snapshot_at=T0,
         )
     )
     assert labels[(NODE_PERSON, PERSON_ID)] == "Test Person"
     assert labels[(NODE_POST, POST_ID)] == "Demo public post"
     assert labels[(NODE_CORPORATE_ENTITY, CORP_ID)] == "Demo Corp"
     assert labels[(NODE_TEAM, TEAM_ID)] == "Demo Team"
+    assert labels[(NODE_PROJECT, PROJECT_ID)] == "Demo Project"
+    bounded_label_conn = ScriptedConn({"group by mention.post_id": []})
+    asyncio.run(
+        _load_labels(
+            bounded_label_conn,
+            [project_fact],
+            knowledge_cutoff=T0,
+            snapshot_at=T0,
+        )
+    )
+    assert bounded_label_conn.calls[-1][1] == (
+        [PROJECT_ID],
+        [POST_ID],
+        T0,
+        T0,
+    )
     empty_labels = asyncio.run(_load_labels(ScriptedConn({}), []))
     assert empty_labels == {}
 
@@ -511,6 +593,16 @@ def test_visible_neighborhood_focus_variants_and_fail_closed() -> None:
             )
         )
     assert invalid.value.code == "invalid_focus_id"
+    with pytest.raises(OntologyNeighborhoodError) as noncanonical_project:
+        asyncio.run(
+            visible_ontology_neighborhood(
+                ScriptedConn({}),
+                focus_node_type_code=NODE_PROJECT,
+                focus_node_id="Demo Project",
+                can_see_post=lambda row: True,
+            )
+        )
+    assert noncanonical_project.value.code == "invalid_focus_id"
     with pytest.raises(OntologyNeighborhoodError) as unknown:
         asyncio.run(
             visible_ontology_neighborhood(
@@ -554,6 +646,7 @@ def test_visible_neighborhood_focus_variants_and_fail_closed() -> None:
                             "corporate_entity_id": CORP_ID,
                         }
                     ],
+                    "select post_id from source_post where post_id = any": [{"post_id": POST_ID}],
                     "select person_name from cataloged_person": "Test Person",
                 }
             ),
@@ -577,6 +670,7 @@ def test_visible_neighborhood_focus_variants_and_fail_closed() -> None:
                             "corporate_entity_id": CORP_ID,
                         }
                     ],
+                    "select post_id from source_post where post_id = any": [{"post_id": POST_ID}],
                     "parent_entity_id": [
                         {
                             "corporate_entity_id": CORP_ID,
@@ -610,6 +704,7 @@ def test_visible_neighborhood_focus_variants_and_fail_closed() -> None:
                             "corporate_entity_id": CORP_ID,
                         }
                     ],
+                    "select post_id from source_post where post_id = any": [{"post_id": POST_ID}],
                     "select team_name from cataloged_team": "Demo Team",
                 }
             ),
@@ -619,6 +714,30 @@ def test_visible_neighborhood_focus_variants_and_fail_closed() -> None:
         )
     )
     assert team_neighborhood.nodes[0].display_label == "Demo Team"
+
+    project_conn = ScriptedConn(
+        {
+            "with recursive candidate_facts as ( select edge.source_node_type_code": [],
+            "from post_project_mention": {"ignored": 1},
+            "from post_project_mention mention": [
+                {
+                    "post_id": POST_ID,
+                    "visibility_code": "public",
+                    "corporate_entity_id": CORP_ID,
+                }
+            ],
+        }
+    )
+    project_neighborhood = asyncio.run(
+        visible_ontology_neighborhood(
+            project_conn,
+            focus_node_type_code=NODE_PROJECT,
+            focus_node_id=PROJECT_ID,
+            can_see_post=lambda row: True,
+        )
+    )
+    assert project_neighborhood.nodes[0].display_label == PROJECT_ID
+    assert all("cataloged_team" not in query for query, _args in project_conn.calls)
 
 
 def test_hidden_non_focus_node_is_removed_before_label_loading() -> None:
@@ -703,6 +822,7 @@ def test_focus_label_fetch_may_be_empty_when_facts_already_labeled() -> None:
         "combined_post_person_mention": [post_row],
         "person_affiliation affiliation": [post_row],
         "post_team_mention": [post_row],
+        "select post_id from source_post where post_id = any": [{"post_id": POST_ID}],
     }
     post_neighborhood = asyncio.run(
         visible_ontology_neighborhood(

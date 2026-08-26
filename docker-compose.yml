@@ -199,6 +199,58 @@ services:
       searxng:
         condition: service_healthy
 
+  mcp:
+    profiles: ["mcp"]
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    command: ["uvicorn", "backend.app.mcp_server:app", "--host", "0.0.0.0", "--port", "8001"]
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-lineageweave}:${POSTGRES_PASSWORD:-lineageweave_dev_only}@postgres:5432/${POSTGRES_DB:-lineageweave}
+      KEYCLOAK_BASE_URL: http://keycloak:8080
+      KEYCLOAK_ISSUER: http://localhost:${KEYCLOAK_PORT:-18080}/realms/lineageweave-demo
+      KEYCLOAK_REALM: lineageweave-demo
+      KEYVERSE_ISSUER: ${KEYVERSE_ISSUER:-}
+      KEYVERSE_CLIENT_ID: ${KEYVERSE_CLIENT_ID:-}
+      KEYVERSE_AUDIENCE: ${KEYVERSE_AUDIENCE:-}
+      KEYVERSE_DISCOVERY_URI: ${KEYVERSE_DISCOVERY_URI:-}
+      KEYVERSE_JWKS_URI: ${KEYVERSE_JWKS_URI:-}
+      OIDC_ISSUER: ${OIDC_ISSUER:-}
+      OIDC_CLIENT_ID: ${OIDC_CLIENT_ID:-}
+      OIDC_AUDIENCE: lineageweave-api
+      OIDC_DISCOVERY_URI: ${OIDC_DISCOVERY_URI:-}
+      OIDC_JWKS_URI: ${OIDC_JWKS_URI:-}
+      OIDC_CLOCK_SKEW_SECONDS: ${OIDC_CLOCK_SKEW_SECONDS:-5}
+      VALKEY_URL: redis://valkey:6379/0
+      ORCHESTRATOR_BASE_URL: ${ORCHESTRATOR_BASE_URL:-http://orchestrator:8000}
+      ORCHESTRATOR_API_KEY: ${ORCHESTRATOR_API_KEY:-${CONTEXTUAL_ORCHESTRATOR_TOKEN:-lineageweave-orchestrator-dev-only}}
+      # Local Keycloak mints this exact fixed audience. Production Keyverse
+      # deployments configure both values together outside this demo stack.
+      MCP_RESOURCE_URL: http://localhost:18001/mcp
+      MCP_AUDIENCE: http://localhost:18001/mcp
+      MCP_ALLOWED_HOSTS: localhost:*,127.0.0.1:*,mcp:8001
+      MCP_ALLOWED_ORIGINS: ${MCP_ALLOWED_ORIGINS:-}
+      MCP_MAX_REQUEST_BYTES: ${MCP_MAX_REQUEST_BYTES:-65536}
+      # No guessed quota: operators must supply values justified by the k6
+      # capacity artifact for their deployment before enabling this profile.
+      MCP_RATE_LIMIT_REQUESTS: ${MCP_RATE_LIMIT_REQUESTS:-}
+      MCP_RATE_LIMIT_WINDOW_SECONDS: ${MCP_RATE_LIMIT_WINDOW_SECONDS:-}
+    ports:
+      - "18001:8001"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      database_migration:
+        condition: service_completed_successfully
+      orchestrator:
+        condition: service_healthy
+      keycloak:
+        condition: service_started
+      valkey:
+        condition: service_healthy
+      backend:
+        condition: service_started
+
   frontend:
     build:
       context: ./frontend

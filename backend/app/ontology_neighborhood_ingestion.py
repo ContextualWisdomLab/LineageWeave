@@ -18,11 +18,14 @@ from backend.app.knowledge_graph import (
     visible_team_mention_post_ids,
 )
 from backend.app.post_eligibility import SOURCE_POST_ELIGIBILITY_SQL
+from lineageweave.post_summary import parse_project_candidate_node_id
 from lineageweave.knowledge_graph import (
     NODE_CORPORATE_ENTITY,
     NODE_PERSON,
     NODE_POST,
+    NODE_PROJECT,
     NODE_TEAM,
+    EDGE_MENTION_PROJECT,
 )
 from lineageweave.ontology_neighborhood import (
     DEFAULT_MAXIMUM_DEPTH,
@@ -122,28 +125,78 @@ async def visible_post_ids_for_focus(
     focus_node_type_code: str,
     focus_node_id: str,
     can_see_post: Callable[[asyncpg.Record], bool],
+    *,
+    knowledge_cutoff: datetime | None = None,
+    snapshot_at: datetime | None = None,
 ) -> list[str]:
     """Visible evidence posts that authorize the requested focus node."""
     if focus_node_type_code == NODE_POST:
         # Safe SQL: eligibility is an immutable schema fragment; id is bound.
         row = await conn.fetchrow(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
             f"""
-            select post_id, visibility_code, corporate_entity_id
+            select post_id, visibility_code, corporate_entity_id, process_unit_id
               from source_post
              where post_id = $1
                and {SOURCE_POST_ELIGIBILITY_SQL.format(alias='source_post')}
+               and ($2::timestamptz is null or created_at <= $2::timestamptz)
+               and ($3::timestamptz is null or created_at <= $3::timestamptz)
             """,
             focus_node_id,
+            knowledge_cutoff,
+            snapshot_at,
         )
         if row is None:
             return []
         return [str(row["post_id"])] if can_see_post(row) else []
+    candidate_post_ids: list[str] | None = None
     if focus_node_type_code == NODE_PERSON:
-        return await visible_mention_post_ids(conn, focus_node_id, can_see_post)
-    if focus_node_type_code == NODE_CORPORATE_ENTITY:
-        return await visible_affiliation_post_ids(conn, focus_node_id, can_see_post)
-    if focus_node_type_code == NODE_TEAM:
-        return await visible_team_mention_post_ids(conn, focus_node_id, can_see_post)
+        candidate_post_ids = await visible_mention_post_ids(conn, focus_node_id, can_see_post)
+    elif focus_node_type_code == NODE_CORPORATE_ENTITY:
+        candidate_post_ids = await visible_affiliation_post_ids(conn, focus_node_id, can_see_post)
+    elif focus_node_type_code == NODE_TEAM:
+        candidate_post_ids = await visible_team_mention_post_ids(conn, focus_node_id, can_see_post)
+    if candidate_post_ids is not None:
+        if knowledge_cutoff is None and snapshot_at is None:
+            return candidate_post_ids
+        rows = await conn.fetch(
+            """
+            select post_id
+              from source_post
+             where post_id = any($1::uuid[])
+               and ($2::timestamptz is null or created_at <= $2::timestamptz)
+               and ($3::timestamptz is null or created_at <= $3::timestamptz)
+            """,
+            candidate_post_ids,
+            knowledge_cutoff,
+            snapshot_at,
+        )
+        admitted = {str(row["post_id"]) for row in rows}
+        return [post_id for post_id in candidate_post_ids if post_id in admitted]
+    if focus_node_type_code == NODE_PROJECT:
+        project_post_id, project_key = parse_project_candidate_node_id(focus_node_id)
+        # Safe SQL: eligibility is an immutable schema fragment and the alias is
+        # fixed here; all request-derived values remain asyncpg parameters.
+        project_posts_sql = f"""
+            select post.post_id, post.visibility_code, post.corporate_entity_id,
+                   post.process_unit_id
+              from post_project_mention mention
+              join source_post post on post.post_id = mention.post_id
+             where mention.post_id = $1::uuid
+               and mention.project_key = $2
+               and {SOURCE_POST_ELIGIBILITY_SQL.format(alias='post')}
+               and ($3::timestamptz is null
+                    or greatest(post.created_at, mention.created_at) <= $3::timestamptz)
+               and ($4::timestamptz is null
+                    or greatest(post.created_at, mention.created_at) <= $4::timestamptz)
+            """
+        rows = await conn.fetch(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
+            project_posts_sql,
+            project_post_id,
+            project_key,
+            knowledge_cutoff,
+            snapshot_at,
+        )
+        return [str(row["post_id"]) for row in rows if can_see_post(row)]
     raise OntologyNeighborhoodError("unknown_node_type", f"unknown node type {focus_node_type_code!r}")
 
 
@@ -151,8 +204,11 @@ async def _visible_post_ids_by_nodes(
     conn: asyncpg.Connection,
     node_keys: set[tuple[str, str]],
     can_see_post: Callable[[asyncpg.Record], bool],
+    *,
+    knowledge_cutoff: datetime | None = None,
+    snapshot_at: datetime | None = None,
 ) -> dict[tuple[str, str], list[str]]:
-    """Load evidence visibility for all endpoint nodes in four bounded queries.
+    """Load evidence visibility for all endpoint nodes in five bounded queries.
 
     The neighborhood can contain many endpoints. Grouping ids by node type
     preserves the same ABAC predicate as the single-node readers while
@@ -168,28 +224,34 @@ async def _visible_post_ids_by_nodes(
             NODE_POST,
             """
             select post.post_id, post.visibility_code,
-                   post.corporate_entity_id, post.post_id as node_id
+                   post.corporate_entity_id, post.process_unit_id,
+                   post.post_id as node_id
               from source_post post
              where post.post_id = any($1::uuid[])
                and {eligibility}
+               and ($2::timestamptz is null or post.created_at <= $2::timestamptz)
+               and ($3::timestamptz is null or post.created_at <= $3::timestamptz)
             """,
         ),
         (
             NODE_PERSON,
             """
             select post.post_id, post.visibility_code,
-                   post.corporate_entity_id, mention.person_id as node_id
+                   post.corporate_entity_id, post.process_unit_id,
+                   mention.person_id as node_id
               from combined_post_person_mention mention
               join source_post post on post.post_id = mention.post_id
              where mention.person_id = any($1::uuid[])
                and {eligibility}
+               and ($2::timestamptz is null or post.created_at <= $2::timestamptz)
+               and ($3::timestamptz is null or post.created_at <= $3::timestamptz)
             """,
         ),
         (
             NODE_CORPORATE_ENTITY,
             """
             select distinct post.post_id, post.visibility_code,
-                   post.corporate_entity_id,
+                   post.corporate_entity_id, post.process_unit_id,
                    affiliation.affiliated_corporate_entity_id as node_id
               from person_affiliation affiliation
               join combined_post_person_mention mention
@@ -197,25 +259,48 @@ async def _visible_post_ids_by_nodes(
               join source_post post on post.post_id = mention.post_id
              where affiliation.affiliated_corporate_entity_id = any($1::uuid[])
                and {eligibility}
+               and ($2::timestamptz is null or post.created_at <= $2::timestamptz)
+               and ($3::timestamptz is null or post.created_at <= $3::timestamptz)
             union
             select distinct post.post_id, post.visibility_code,
-                   post.corporate_entity_id,
+                   post.corporate_entity_id, post.process_unit_id,
                    org_mention.corporate_entity_id as node_id
               from post_organization_mention org_mention
               join source_post post on post.post_id = org_mention.post_id
              where org_mention.corporate_entity_id = any($1::uuid[])
                and {eligibility}
+               and ($2::timestamptz is null or post.created_at <= $2::timestamptz)
+               and ($3::timestamptz is null or post.created_at <= $3::timestamptz)
             """,
         ),
         (
             NODE_TEAM,
             """
             select post.post_id, post.visibility_code,
-                   post.corporate_entity_id, mention.team_id as node_id
+                   post.corporate_entity_id, post.process_unit_id,
+                   mention.team_id as node_id
               from post_team_mention mention
               join source_post post on post.post_id = mention.post_id
              where mention.team_id = any($1::uuid[])
                and {eligibility}
+               and ($2::timestamptz is null or post.created_at <= $2::timestamptz)
+               and ($3::timestamptz is null or post.created_at <= $3::timestamptz)
+            """,
+        ),
+        (
+            NODE_PROJECT,
+            """
+            select post.post_id, post.visibility_code,
+                   post.corporate_entity_id, post.process_unit_id,
+                   mention.post_id::text || '/' || mention.project_key as node_id
+              from post_project_mention mention
+              join source_post post on post.post_id = mention.post_id
+             where mention.post_id::text || '/' || mention.project_key = any($1::text[])
+               and {eligibility}
+               and ($2::timestamptz is null
+                    or greatest(post.created_at, mention.created_at) <= $2::timestamptz)
+               and ($3::timestamptz is null
+                    or greatest(post.created_at, mention.created_at) <= $3::timestamptz)
             """,
         ),
     )
@@ -224,7 +309,7 @@ async def _visible_post_ids_by_nodes(
         if not ids:
             continue
         query = template.format(eligibility=SOURCE_POST_ELIGIBILITY_SQL.format(alias="post"))
-        rows = await conn.fetch(query, ids)
+        rows = await conn.fetch(query, ids, knowledge_cutoff, snapshot_at)
         for row in rows:
             try:
                 raw_node_id = row["node_id"]
@@ -248,7 +333,15 @@ async def _visible_post_ids_by_nodes(
 async def focus_catalog_exists(
     conn: asyncpg.Connection, focus_node_type_code: str, focus_node_id: str
 ) -> bool:
-    """True when the focus id exists in the governed catalog."""
+    """True when the focus id exists in its governed relational source."""
+    if focus_node_type_code == NODE_PROJECT:
+        project_post_id, project_key = parse_project_candidate_node_id(focus_node_id)
+        row = await conn.fetchrow(
+            "select 1 from post_project_mention where post_id = $1::uuid and project_key = $2",
+            project_post_id,
+            project_key,
+        )
+        return row is not None
     if not _is_uuid(focus_node_id):
         return False
     if focus_node_type_code == NODE_POST:
@@ -286,7 +379,8 @@ async def _load_facts(
                    edge.target_node_type_code,
                    edge.target_node_id::text as target_node_id,
                    edge.edge_type_code,
-                   min(post.created_at) as available_at,
+                   'truth_observed'::text as truth_status_code,
+                   greatest(edge.created_at, min(post.created_at)) as available_at,
                    array_agg(evidence.evidence_post_id::text order by evidence.evidence_post_id)
                        as evidence_ids
               from knowledge_graph_edge edge
@@ -296,11 +390,28 @@ async def _load_facts(
                 on post.post_id = evidence.evidence_post_id
              where evidence.evidence_post_id = any($1::uuid[])
                and ($6::timestamptz is null or post.created_at <= $6::timestamptz)
+               and ($6::timestamptz is null or edge.created_at <= $6::timestamptz)
                and ($7::timestamptz is null or post.created_at <= $7::timestamptz)
                and ($7::timestamptz is null or edge.created_at <= $7::timestamptz)
              group by edge.source_node_type_code, edge.source_node_id,
                       edge.target_node_type_code, edge.target_node_id,
                       edge.edge_type_code
+            union all
+            select 'node_post'::text as source_node_type_code,
+                   mention.post_id::text as source_node_id,
+                   'node_project'::text as target_node_type_code,
+                   mention.post_id::text || '/' || mention.project_key as target_node_id,
+                   'edge_mention_project'::text as edge_type_code,
+                   'truth_proposed'::text as truth_status_code,
+                   greatest(post.created_at, mention.created_at) as available_at,
+                   array[mention.post_id::text] as evidence_ids
+              from post_project_mention mention
+              join source_post post on post.post_id = mention.post_id
+             where mention.post_id = any($1::uuid[])
+               and ($6::timestamptz is null
+                    or greatest(post.created_at, mention.created_at) <= $6::timestamptz)
+               and ($7::timestamptz is null
+                    or greatest(post.created_at, mention.created_at) <= $7::timestamptz)
         ), reachable(node_type_code, node_id, depth) as (
             values ($2::text, $3::text, 0)
             union
@@ -326,6 +437,7 @@ async def _load_facts(
                    candidate.target_node_type_code,
                    candidate.target_node_id,
                    candidate.edge_type_code,
+                   candidate.truth_status_code,
                    candidate.available_at,
                    candidate.evidence_ids,
                    min(reachable.depth) as hop_depth
@@ -341,6 +453,7 @@ async def _load_facts(
                       candidate.target_node_type_code,
                       candidate.target_node_id,
                       candidate.edge_type_code,
+                      candidate.truth_status_code,
                       candidate.available_at,
                       candidate.evidence_ids
         )
@@ -349,6 +462,7 @@ async def _load_facts(
                target_node_type_code,
                target_node_id,
                edge_type_code,
+               truth_status_code,
                available_at,
                evidence_ids,
                hop_depth
@@ -386,6 +500,10 @@ async def _load_facts(
     facts: list[NeighborhoodFact] = []
     source_keys_by_edge: dict[tuple[str, str, str, str, str], OntologySourceKey] = {}
     for row in page_rows:
+        try:
+            truth_status_code = row["truth_status_code"]
+        except (KeyError, IndexError):
+            truth_status_code = "truth_observed"
         fact = fact_from_knowledge_graph_edge(
                 source_node_type_code=row["source_node_type_code"],
                 source_node_id=str(row["source_node_id"]),
@@ -394,7 +512,12 @@ async def _load_facts(
                 edge_type_code=row["edge_type_code"],
                 recorded_at=row["available_at"],
                 evidence_references=tuple(row["evidence_ids"] or ()),
-                provenance_reference="knowledge_graph_edge",
+                provenance_reference=(
+                    "post_project_mention"
+                    if row["edge_type_code"] == EDGE_MENTION_PROJECT
+                    else "knowledge_graph_edge"
+                ),
+                truth_status_code=truth_status_code,
             )
         try:
             hop_depth = row["hop_depth"]
@@ -461,7 +584,11 @@ async def _load_skos_facts(
 
 
 async def _load_labels(
-    conn: asyncpg.Connection, facts: list[NeighborhoodFact]
+    conn: asyncpg.Connection,
+    facts: list[NeighborhoodFact],
+    *,
+    knowledge_cutoff: datetime | None = None,
+    snapshot_at: datetime | None = None,
 ) -> dict[tuple[str, str], str]:
     """Load only non-empty buyer-visible labels for fact endpoints."""
     ids_by_type = _node_ids_by_type(facts)
@@ -469,6 +596,7 @@ async def _load_labels(
     post_ids = ids_by_type[NODE_POST]
     corp_ids = ids_by_type[NODE_CORPORATE_ENTITY]
     team_ids = ids_by_type[NODE_TEAM]
+    project_ids = ids_by_type[NODE_PROJECT]
     labels: dict[tuple[str, str], str] = {}
     if person_ids:
         for row in await conn.fetch(
@@ -499,6 +627,40 @@ async def _load_labels(
         ):
             if row["team_name"]:
                 labels[(NODE_TEAM, str(row["team_id"]))] = str(row["team_name"])
+    if project_ids:
+        evidence_post_ids = sorted(
+            {
+                post_id
+                for fact in facts
+                for post_id in fact.evidence_references
+                if fact.source_node_type_code == NODE_PROJECT
+                or fact.target_node_type_code == NODE_PROJECT
+            }
+        )
+        if evidence_post_ids:
+            for row in await conn.fetch(
+                """
+                select mention.post_id::text || '/' || mention.project_key as node_id,
+                       mention.project_name as display_label
+                  from post_project_mention mention
+                  join source_post post on post.post_id = mention.post_id
+                 where mention.post_id::text || '/' || mention.project_key = any($1::text[])
+                   and mention.post_id = any($2::uuid[])
+                   and ($3::timestamptz is null
+                        or greatest(post.created_at, mention.created_at) <= $3::timestamptz)
+                   and ($4::timestamptz is null
+                        or greatest(post.created_at, mention.created_at) <= $4::timestamptz)
+                 group by mention.post_id, mention.project_key, mention.project_name
+                """,
+                project_ids,
+                evidence_post_ids,
+                knowledge_cutoff,
+                snapshot_at,
+            ):
+                if row["display_label"]:
+                    labels[(NODE_PROJECT, str(row["node_id"]))] = str(
+                        row["display_label"]
+                    )
     return labels
 
 
@@ -623,16 +785,19 @@ async def visible_ontology_neighborhood(
         )
     if not focus_node_id or focus_node_id.strip() != focus_node_id:
         raise OntologyNeighborhoodError("invalid_focus_id", "focus node id is empty or malformed")
-    if not _is_uuid(focus_node_id):
-        raise OntologyNeighborhoodError("invalid_focus_id", "focus node id is not a UUID")
-    focus_node_id = str(UUID(focus_node_id))
+    if focus_node_type_code == NODE_PROJECT:
+        try:
+            parse_project_candidate_node_id(focus_node_id)
+        except ValueError as exc:
+            raise OntologyNeighborhoodError(
+                "invalid_focus_id", "project focus id is not a post-scoped candidate id"
+            ) from exc
+    else:
+        if not _is_uuid(focus_node_id):
+            raise OntologyNeighborhoodError("invalid_focus_id", "focus node id is not a UUID")
+        focus_node_id = str(UUID(focus_node_id))
     if not await focus_catalog_exists(conn, focus_node_type_code, focus_node_id):
         raise OntologyNeighborhoodError("unknown_node_type", "focus node not found")
-    visible_post_ids = await visible_post_ids_for_focus(
-        conn, focus_node_type_code, focus_node_id, can_see_post
-    )
-    if not visible_post_ids:
-        raise OntologyNeighborhoodError("focus_not_visible", "focus node is not visible")
     secret = source_cursor_secret_from_env(source_cursor_secret)
     snapshot_at = datetime.now(timezone.utc)
     after_key: OntologySourceKey | None = None
@@ -660,6 +825,16 @@ async def visible_ontology_neighborhood(
         after_key = source_cursor_claims.last_key
     elif cursor is not None and not cursor.startswith("after:"):
         raise OntologyNeighborhoodError("malformed_cursor", "cursor must be an opaque after: or source token")
+    visible_post_ids = await visible_post_ids_for_focus(
+        conn,
+        focus_node_type_code,
+        focus_node_id,
+        can_see_post,
+        knowledge_cutoff=knowledge_cutoff,
+        snapshot_at=snapshot_at,
+    )
+    if not visible_post_ids:
+        raise OntologyNeighborhoodError("focus_not_visible", "focus node is not visible")
     fact_window = await _load_facts(
         conn,
         visible_post_ids,
@@ -686,7 +861,8 @@ async def visible_ontology_neighborhood(
         if not endpoint_keys:
             break
         visible_by_node = await _visible_post_ids_by_nodes(
-            conn, endpoint_keys, can_see_post
+            conn, endpoint_keys, can_see_post,
+            knowledge_cutoff=knowledge_cutoff, snapshot_at=snapshot_at,
         )
         candidate_post_ids = loaded_post_ids | {
             post_id
@@ -724,7 +900,8 @@ async def visible_ontology_neighborhood(
         }
         if endpoint_keys:
             visible_by_node = await _visible_post_ids_by_nodes(
-                conn, endpoint_keys, can_see_post
+                conn, endpoint_keys, can_see_post,
+                knowledge_cutoff=knowledge_cutoff, snapshot_at=snapshot_at,
             )
     frozen_posts = sorted(loaded_post_ids)
     if source_cursor_claims is not None:
@@ -781,7 +958,10 @@ async def visible_ontology_neighborhood(
         # Continuation pages can introduce endpoints absent from the first
         # window. Rebuild the authorization cache for the actual page before
         # discarding unseen relations.
-        visible_by_node = await _visible_post_ids_by_nodes(conn, endpoint_keys, can_see_post)
+        visible_by_node = await _visible_post_ids_by_nodes(
+            conn, endpoint_keys, can_see_post,
+            knowledge_cutoff=knowledge_cutoff, snapshot_at=snapshot_at,
+        )
     corp_ids = [
         fact.source_node_id if fact.source_node_type_code == NODE_CORPORATE_ENTITY else fact.target_node_id
         for fact in facts
@@ -799,7 +979,10 @@ async def visible_ontology_neighborhood(
     }
     missing_parent_keys = {key for key in parent_keys if key not in visible_by_node}
     if missing_parent_keys:
-        parent_visible = await _visible_post_ids_by_nodes(conn, missing_parent_keys, can_see_post)
+        parent_visible = await _visible_post_ids_by_nodes(
+            conn, missing_parent_keys, can_see_post,
+            knowledge_cutoff=knowledge_cutoff, snapshot_at=snapshot_at,
+        )
         visible_by_node.update(parent_visible)
     hidden_node_keys: set[str] = set()
     authorized_facts: list[NeighborhoodFact] = []
@@ -829,7 +1012,12 @@ async def visible_ontology_neighborhood(
         if authorized:
             authorized_facts.append(fact)
     facts = authorized_facts
-    labels = await _load_labels(conn, facts)
+    labels = await _load_labels(
+        conn,
+        facts,
+        knowledge_cutoff=knowledge_cutoff,
+        snapshot_at=snapshot_at,
+    )
     if hasattr(conn, "fetchval"):
         if focus_node_type_code == NODE_POST:
             title = await conn.fetchval("select post_title from source_post where post_id = $1", focus_node_id)
@@ -848,7 +1036,7 @@ async def visible_ontology_neighborhood(
             )
             if name:
                 labels[(NODE_CORPORATE_ENTITY, focus_node_id)] = name
-        else:
+        elif focus_node_type_code == NODE_TEAM:
             name = await conn.fetchval(
                 "select team_name from cataloged_team where team_id = $1", focus_node_id
             )
