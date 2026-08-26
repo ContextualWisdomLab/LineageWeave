@@ -32,7 +32,7 @@ import asyncpg
 import redis.asyncio as redis
 from fastapi import Depends, FastAPI, HTTPException, Query, status
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from backend.app.activity_stream import (
     create_valkey_client,
@@ -131,6 +131,7 @@ from backend.app.post_chat_ingestion import (
     persist_post_chat,
 )
 from backend.app.post_content_queue import (
+    enqueue_post_content_backfill,
     ensure_post_content_job,
     post_content_api_status,
     post_content_is_complete,
@@ -802,10 +803,38 @@ class LocalePreferenceRequest(BaseModel):
     preferred_locale: Literal["en", "ko", "zh", "ja", "vi"]
 
 
+class PostContentBackfillRequest(BaseModel):
+    """Bounded operator request for durable semantic-content ingestion."""
+
+    limit: int = Field(default=100, ge=1, le=200)
+
+
 class CustomerHintResolveRequest(BaseModel):
     """Body of a POST /api/customer-master/resolve-hint request."""
 
     hint_code: str
+
+
+@app.post("/api/post-content/backfill", status_code=status.HTTP_202_ACCEPTED)
+async def queue_post_content_backfill(
+    request: PostContentBackfillRequest,
+    account: CurrentAccount = Depends(get_current_account),
+    pool: asyncpg.Pool = Depends(get_pool),
+    valkey: redis.Redis = Depends(get_valkey),
+) -> dict[str, int]:
+    """Queue one bounded corpus page and return before semantic work runs."""
+    _require_post_admin(account)
+    settings = load_settings()
+    require_orchestrator_evidence = bool(
+        settings.orchestrator_base_url and settings.orchestrator_api_key
+    )
+    return await enqueue_post_content_backfill(
+        pool,
+        valkey,
+        limit=request.limit,
+        require_embedding=require_orchestrator_evidence,
+        require_structure=require_orchestrator_evidence,
+    )
 
 
 @app.patch("/api/me/preferences")
