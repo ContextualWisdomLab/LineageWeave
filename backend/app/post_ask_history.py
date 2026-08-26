@@ -284,7 +284,9 @@ async def _ensure_sources_visible(
     can_see_post: Callable[[asyncpg.Record], bool],
 ) -> None:
     """Lock and re-authorize every source before dependent rows are inserted."""
-    rows = await conn.fetch(
+    # Safe SQL: the only interpolation is the repository-owned eligibility
+    # expression; every request value remains an asyncpg parameter.
+    rows = await conn.fetch(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
         f"""
         select post.post_id::text as post_id, post.post_title,
                post.visibility_code, post.corporate_entity_id,
