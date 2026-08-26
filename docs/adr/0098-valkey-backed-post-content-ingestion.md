@@ -134,6 +134,15 @@ cannot erase an already committed operations case, and product latency cannot
 delay admission of the case request. This is execution isolation, not a new
 queue or a change to either channel's evidence contract.
 
+Every failed attempt persists bounded diagnostic provenance on the normalized
+job ledger: the channel stage, bounded exception class, HTTP status, orchestrator error code, explicit
+retryability when supplied by the upstream contract, and the existing
+post-scoped session correlation id. These fields support aggregate operations
+and exact-session tracing without retaining a response body, error message,
+prompt, provider identity, credential, or source text. The buyer-facing status
+continues to state the next action; these implementation diagnostics remain an
+authorized operational boundary.
+
 ### Operational timeout for structure adjudication
 
 The contextual-orchestrator structure adjudication request uses a 600-second client timeout by default. Structure inference is an accuracy-critical, structured multi-agent operation rather than a user-facing synchronous request; the longer bound prevents a slow but valid workflow from being downgraded to `unresolved` merely because the client abandoned the response. The durable job remains queued until all non-image units have complete structure evidence.

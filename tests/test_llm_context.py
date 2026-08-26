@@ -26,7 +26,8 @@ def test_post_metadata_is_stable_and_post_specific() -> None:
 def test_http_transport_merges_context_metadata_without_mutating_payload(monkeypatch) -> None:
     seen = {}
 
-    def fake_request(method, url, *, body, headers, timeout):
+    def fake_request(method, url, *, body, headers, timeout, **kwargs):
+        del kwargs
         seen["payload"] = body
         return 200, b"{}"
 
@@ -47,7 +48,8 @@ def test_orchestrator_session_is_stable_across_modalities_and_retries(monkeypatc
     """One post uses one payload session for chat, VISION, and embeddings."""
     requests: list[tuple[str, dict[str, object], dict[str, str]]] = []
 
-    def fake_request(method, url, *, body, headers, timeout):
+    def fake_request(method, url, *, body, headers, timeout, **kwargs):
+        del kwargs
         del method, timeout
         requests.append((url, json.loads(body), headers))
         return 200, b'{"choices": []}'
@@ -95,7 +97,8 @@ def test_orchestrator_session_is_not_invented_or_sent_to_other_peers(monkeypatch
     """Missing post context and non-orchestrator calls retain their payloads."""
     bodies: list[dict[str, object]] = []
 
-    def fake_request(method, url, *, body, headers, timeout):
+    def fake_request(method, url, *, body, headers, timeout, **kwargs):
+        del kwargs
         del method, url, headers, timeout
         bodies.append(json.loads(body))
         return 200, b"{}"
