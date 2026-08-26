@@ -1,4 +1,4 @@
-"""ABAC-safe PostgreSQL projection for Buyer project histories."""
+"""ABAC-safe PostgreSQL projection for customer-facing project histories."""
 
 from __future__ import annotations
 
@@ -19,7 +19,7 @@ class ProjectHistoryConnection(Protocol):
     async def fetch(self, query: str, *args: object) -> Sequence[Mapping[str, Any]]:
         """Execute a bounded read query and return mapping-like rows."""
 
-        ...
+        pass
 
 
 _ELIGIBILITY = SOURCE_POST_ELIGIBILITY_SQL.format(alias="post")

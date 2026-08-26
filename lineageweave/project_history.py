@@ -13,6 +13,7 @@ from collections import deque
 from collections.abc import Mapping, Sequence
 from datetime import datetime, timezone
 from decimal import Decimal
+import math
 from typing import Any
 from unicodedata import normalize
 
@@ -117,7 +118,7 @@ def _score(value: object) -> float:
     if isinstance(value, bool) or not isinstance(value, (int, float, Decimal)):
         raise ValueError("lineage score must be numeric")
     result = float(value)
-    if result != result or result in (float("inf"), float("-inf")):
+    if math.isnan(result) or result in (float("inf"), float("-inf")):
         raise ValueError("lineage score must be finite")
     return result
 
