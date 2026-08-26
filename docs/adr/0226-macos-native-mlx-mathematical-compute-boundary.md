@@ -14,11 +14,15 @@ Xcode 15, and the macOS 14 SDK; its Linux distributions provide CPU or NVIDIA
 CUDA backends instead. A Colima Linux VM therefore cannot truthfully issue an
 MLX Metal execution receipt merely because its macOS host has an Apple GPU.
 
-ADR 0208 already assigns mathematical and psychometric arithmetic to the Rust
-cores of TEPP, fast-mlsirm, and RankWeave. Moving a formula into Python to gain
-access to MLX would violate that ownership boundary. ADR 0076's prohibition on
+ADR 0208 assigns psychometric and scientific numerical kernels to the Rust
+cores of TEPP and fast-mlsirm. RankWeave instead owns its current
+dependency-free Python retrieval-fusion, evaluation, and audit contract; that
+contract is neither a Rust kernel nor evidence for a future Rust vector-scoring
+owner. Moving an accepted TEPP or fast-mlsirm formula into Python to gain access
+to MLX would violate its ownership boundary. ADR 0076's prohibition on
 LineageWeave-specific MLX model-provider routes remains unchanged: this ADR is
-about owner-repository numerical kernels, not LLM or VISION routing.
+about an already accepted owner-repository Rust kernel, not LLM, VISION,
+retrieval fusion, or an as-yet-unaccepted vector-scoring service.
 
 ## Decision
 
@@ -139,8 +143,12 @@ flowchart LR
 - Compose stays portable. A machine without the native capability still runs
   the product and honestly reports the affected measurement as unavailable or
   uses a separately accepted owner CPU/CUDA result.
-- TEPP, fast-mlsirm, and RankWeave must each adopt this boundary in their own
-  normative ADR before publishing an `mlx_metal` receipt.
+- TEPP and fast-mlsirm must each adopt this boundary in their own normative ADR
+  before publishing an `mlx_metal` receipt for an accepted Rust kernel.
+- RankWeave's current Python retrieval contract is unchanged by this ADR. Any
+  future Rust vector-scoring owner requires its own accepted ownership and wire
+  contract before this accelerator boundary can apply; this ADR does not assign
+  that responsibility or require RankWeave to adopt MLX.
 
 ## Alternatives considered
 
