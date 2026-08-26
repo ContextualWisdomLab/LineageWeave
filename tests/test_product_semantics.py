@@ -113,3 +113,15 @@ def test_orchestrator_product_client_rejects_invalid_evidence(monkeypatch) -> No
         ContextualOrchestratorProductExtractionClient("https://x", "secret").extract(
             (ProductEvidenceSource("post-a", "Synthetic Model Q"),)
         )
+
+
+def test_orchestrator_product_client_normalizes_malformed_envelope(monkeypatch) -> None:
+    """Malformed provider content is a bounded product-validation failure."""
+    monkeypatch.setattr(
+        "lineageweave.product_semantics.post_json",
+        lambda *args, **kwargs: {"choices": [{"message": {"content": None}}]},
+    )
+    with pytest.raises(RuntimeError, match="invalid product evidence"):
+        ContextualOrchestratorProductExtractionClient("https://x", "secret").extract(
+            (ProductEvidenceSource("post-a", "Synthetic Model Q"),)
+        )

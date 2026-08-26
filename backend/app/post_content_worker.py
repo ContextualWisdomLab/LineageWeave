@@ -204,6 +204,7 @@ async def _persist_product_analysis_if_needed(
             source.source_text if source.source_text is not None else source.text,
         )
         for source in operation_sources
+        if source.post_id == post_id
     )
     input_digest = product_analysis_input_sha256(sources)
     async with pool.acquire() as conn:
@@ -521,7 +522,7 @@ async def process_post_content_job(
                         settings.orchestrator_api_key,
                         evidence_sources,
                     )
-                except (HttpClientError, OSError, RuntimeError, TimeoutError, TypeError, ValueError) as exc:
+                except (HttpClientError, OSError, RuntimeError, TimeoutError, ValueError) as exc:
                     _logger.error("product evidence ingestion failed for post_id=%s", post_id)
                     record_server_failure(
                         "product_semantic_ingestion",
