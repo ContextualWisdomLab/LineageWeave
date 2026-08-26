@@ -45,6 +45,16 @@ All notable changes to this project are documented here. Format follows
   deterministic application read
   model (`lineageweave.worker_function_taxonomy`) exposes fail-closed
   lookups; ranks are scale positions and are never used as weights.
+
+- Complete general Voice-of-X taxonomy (ADR 0232): the governed `voc_type`
+  scheme expands from five to twelve post types -- adding Voice of Supplier,
+  Employee, Business, Regulator, Investor, Society, and Process, grounded in
+  stakeholder identification theory and quality-engineering measurement
+  practice -- and mirrors six new counterparty relationship codes
+  (`rel_voe`..`rel_vops`) so any post class can type each organization it
+  names. Ontology SKOS concepts and object properties, idempotent migration
+  0222, and the entity-relationship classification prompt stay in round-trip
+  sync.
 - Persist explicit paragraph, list, table, MathML formula, and caller-parsed
   conversation-turn semantic-unit kinds without inferring absent boundaries.
 - Event Lineage now persists each reconstructed connection's independent
