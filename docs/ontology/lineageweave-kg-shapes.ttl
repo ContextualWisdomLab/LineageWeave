@@ -101,7 +101,9 @@
         sh:select """
             SELECT $this
             WHERE {
-                $this :postBody ?body ; :bodyAvailable ?available .
+                $this
+                    <https://contextualwisdomlab.github.io/LineageWeave/ontology#postBody> ?body ;
+                    <https://contextualwisdomlab.github.io/LineageWeave/ontology#bodyAvailable> ?available .
                 BIND(REGEX(STR(?body), "\\\\S") AS ?actualAvailable)
                 FILTER(?available != ?actualAvailable)
             }
