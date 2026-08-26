@@ -267,7 +267,8 @@ def test_graph_facts_remain_attached_to_their_evidence_post(monkeypatch) -> None
                     "target_node_id": "corp-demo",
                     "edge_type_code": "edge_affiliation",
                     "edge_weight": 1.0,
-                    "evidence_post_ids": ["post-b"],
+                    "visible_evidence_post_ids": ["post-b"],
+                    "all_evidence_post_ids": ["post-b"],
                 }
             ]
 
@@ -302,7 +303,8 @@ def test_graph_facts_drop_post_endpoints_outside_visible_sources(monkeypatch) ->
                     "target_node_id": "corp-demo",
                     "edge_type_code": "edge_mention_organization",
                     "edge_weight": 1.0,
-                    "evidence_post_ids": ["post-visible"],
+                    "visible_evidence_post_ids": ["post-visible"],
+                    "all_evidence_post_ids": ["post-visible"],
                 }
             ]
 
@@ -393,7 +395,7 @@ def test_typed_graph_claim_rejects_hidden_evidence_without_leaking_it(monkeypatc
     )
 
     assert projection.public_claims == ()
-    assert "hidden-post" not in projection.facts[0]
+    assert "hidden-post" not in projection.facts["public-post"][0]
 
 
 def test_typed_project_claim_comes_from_explicit_persisted_columns() -> None:

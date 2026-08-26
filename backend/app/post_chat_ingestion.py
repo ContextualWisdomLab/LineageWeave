@@ -27,7 +27,7 @@ from zoneinfo import ZoneInfo
 import asyncpg
 
 from lineageweave.ask_time_axis import row_matches_time_range, time_axis_evidence_fact
-from lineageweave.claim_verification import GlobalAskSourceDocument
+from lineageweave.claim_verification import GlobalAskSourceDocument, PublicClaimCandidate
 from lineageweave.embedding_client import EmbeddingClient, NullEmbeddingClient
 from lineageweave.image_content import ImageContentClient, NullImageContentClient
 from lineageweave.knowledge_graph import (
@@ -51,6 +51,7 @@ from lineageweave.rankweave_client import RankWeaveNotAvailable, build_rankweave
 from lineageweave.temporal_expressions import resolve_korean_relative_time
 
 from .config import load_settings
+from .global_ask_semantic_candidates import semantic_candidate_post_ids
 from .knowledge_graph import hydrate_related_nodes, load_visible_subgraph
 from .post_eligibility import SOURCE_POST_ELIGIBILITY_SQL
 from .source_post_revision import fetch_known_at_revisions
@@ -71,7 +72,7 @@ class LinkedPostIds:
 class _GraphEvidenceProjection:
     """Rendered graph facts and typed public-egress claims from the same rows."""
 
-    facts: tuple[str, ...]
+    facts: dict[str, tuple[str, ...]]
     public_claims: tuple[PublicClaimCandidate, ...]
 
 
@@ -91,8 +92,9 @@ async def _normalize_post_body_text(
 async def _graph_evidence_projection(
     conn: asyncpg.Connection,
     visible_post_ids: list[str],
+    public_post_ids: frozenset[str] = frozenset(),
     knowledge_cutoff: datetime | None = None,
-) -> dict[str, tuple[str, ...]]:
+) -> _GraphEvidenceProjection:
     """Render graph facts under each visible post that evidences them.
 
     The evidence join is deliberate: a graph edge without a visible evidence
@@ -102,14 +104,19 @@ async def _graph_evidence_projection(
     different source and then cited as though that source supported it.
     """
     if not visible_post_ids or knowledge_cutoff is not None:
-        return {}
+        return _GraphEvidenceProjection({}, ())
     edge_rows = await conn.fetch(
         """
         select edge.source_node_type_code, edge.source_node_id,
                edge.target_node_type_code, edge.target_node_id,
                edge.edge_type_code, edge.edge_weight,
                array_agg(distinct evidence.evidence_post_id::text
-                         order by evidence.evidence_post_id::text) as evidence_post_ids
+                         order by evidence.evidence_post_id::text)
+                 filter (where evidence.evidence_post_id = any($1::uuid[]))
+                 as visible_evidence_post_ids,
+               array_agg(distinct evidence.evidence_post_id::text
+                         order by evidence.evidence_post_id::text)
+                 as all_evidence_post_ids
           from knowledge_graph_edge edge
           join knowledge_graph_edge_evidence evidence
             on evidence.knowledge_graph_edge_id = edge.knowledge_graph_edge_id
@@ -129,7 +136,7 @@ async def _graph_evidence_projection(
         visible_post_ids,
     )
     if not edge_rows:
-        return {}
+        return _GraphEvidenceProjection({}, ())
 
     visible_post_id_set = frozenset(visible_post_ids)
     edge_rows = [
@@ -145,7 +152,7 @@ async def _graph_evidence_projection(
         )
     ]
     if not edge_rows:
-        return {}
+        return _GraphEvidenceProjection({}, ())
 
     endpoint_keys = {
         node_key(row["source_node_type_code"], str(row["source_node_id"]))
@@ -164,6 +171,7 @@ async def _graph_evidence_projection(
     }
 
     facts_by_post: dict[str, list[str]] = {}
+    public_claims: list[PublicClaimCandidate] = []
     fact_count = 0
     for row in edge_rows:
         source_type = row["source_node_type_code"]
@@ -183,7 +191,25 @@ async def _graph_evidence_projection(
             f'{source_type} "{source["label"]}" '
             f'--{edge_name}--> {target_type} "{target["label"]}" '
         )
-        for evidence_post_id in row["evidence_post_ids"]:
+        visible_evidence_post_ids = tuple(
+            str(value) for value in row["visible_evidence_post_ids"]
+        )
+        all_evidence_post_ids = tuple(
+            str(value) for value in row["all_evidence_post_ids"]
+        )
+        claim_text = fact_prefix.rstrip()
+        if (
+            source_type != "node_person"
+            and target_type != "node_person"
+            and all_evidence_post_ids
+            and set(all_evidence_post_ids).issubset(public_post_ids)
+        ):
+            public_claims.append(PublicClaimCandidate(
+                claim_text=claim_text,
+                claim_kind="knowledge_graph_relation",
+                source_post_ids=all_evidence_post_ids,
+            ))
+        for evidence_post_id in visible_evidence_post_ids:
             post_id = str(evidence_post_id)
             post_facts = facts_by_post.setdefault(post_id, [])
             fact = f"{fact_prefix}[evidence_post_id={post_id}]"
@@ -191,8 +217,27 @@ async def _graph_evidence_projection(
                 post_facts.append(fact)
                 fact_count += 1
             if fact_count >= 64:
-                return {key: tuple(value) for key, value in facts_by_post.items()}
-    return {key: tuple(value) for key, value in facts_by_post.items()}
+                return _GraphEvidenceProjection(
+                    {key: tuple(value) for key, value in facts_by_post.items()},
+                    tuple(dict.fromkeys(public_claims)),
+                )
+    return _GraphEvidenceProjection(
+        {key: tuple(value) for key, value in facts_by_post.items()},
+        tuple(dict.fromkeys(public_claims)),
+    )
+
+
+async def _graph_facts_for_posts(
+    conn: asyncpg.Connection,
+    visible_post_ids: list[str],
+    knowledge_cutoff: datetime | None = None,
+) -> dict[str, tuple[str, ...]]:
+    """Render graph facts under the visible post that evidences each fact."""
+    return (
+        await _graph_evidence_projection(
+            conn, visible_post_ids, knowledge_cutoff=knowledge_cutoff
+        )
+    ).facts
 
 
 _SOURCE_HINT_FIELDS = (
@@ -613,6 +658,19 @@ async def gather_global_chat_sources(
     embedding_enabled = validated_embedding is not None
     if supplied_question_embedding and not embedding_enabled:
         return []
+    semantic_nominee_ids = (
+        await semantic_candidate_post_ids(
+            conn,
+            question,
+            maximum_candidates=limit,
+            authorized_corporate_entity_ids=authorized_corporate_entity_id_list,
+            authorized_process_unit_ids=authorized_process_unit_id_list,
+            date_from=resolved_time_range[0] if resolved_time_range else None,
+            date_to=resolved_time_range[1] if resolved_time_range else None,
+        )
+        if knowledge_cutoff is None
+        else []
+    )
     question_vector, embedding_model_code, question_norm = validated_embedding or (
         [],
         "",
@@ -869,13 +927,15 @@ async def gather_global_chat_sources(
         embedding_enabled,
     )
     embedding_candidate_ids: list[str] = []
-    evidence_candidate_ids: list[str] = []
+    evidence_candidate_ids: list[str] = list(semantic_nominee_ids)
     for row in candidate_rows:
         channel = str(row.get("candidate_channel") or "embedding")
         target = (
             evidence_candidate_ids if channel == "evidence" else embedding_candidate_ids
         )
-        target.append(str(row["post_id"]))
+        post_id = str(row["post_id"])
+        if post_id not in target:
+            target.append(post_id)
     candidate_ids = _fuse_global_candidate_ids(
         embedding_candidate_ids, evidence_candidate_ids, limit
     )

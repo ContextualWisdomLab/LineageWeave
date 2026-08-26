@@ -312,12 +312,6 @@ async def compute_global_ask_answer(
         )
 
     today = _seoul_today()
-    question_vector: list[float] = []
-    if embedding_client is not None and embedding_client.available and question_text.strip():
-        try:
-            question_vector = await asyncio.to_thread(embedding_client.embed, question_text)
-        except (HttpClientError, OSError, RuntimeError, ValueError):
-            question_vector = []
     try:
         search_phrases = (question_text,)
         rewriter = semantic_query_client or NullSemanticQueryClient()
@@ -571,7 +565,11 @@ async def process_global_ask_job(
                 embedding_client=embedding_factory(),
                 semantic_query_client=semantic_query_factory(),
                 verify_external=bool(row["verify_external_requested"]),
-                claim_verification_client=claim_verification_factory(),
+                claim_verification_client=(
+                    claim_verification_factory()
+                    if bool(row["verify_external_requested"])
+                    else None
+                ),
                 knowledge_cutoff=row["knowledge_cutoff"],
             ),
             timeout=JOB_DEADLINE_SECONDS,
