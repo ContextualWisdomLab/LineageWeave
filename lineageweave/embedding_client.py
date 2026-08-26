@@ -116,7 +116,10 @@ class ContextualOrchestratorEmbeddingClient:
         self._bind_model(response)
         batch_id = response.get("batch_id")
         if isinstance(batch_id, str) and batch_id:
-            deadline = time.monotonic() + self._timeout
+            job_retention_ms = response.get("job_retention_ms")
+            if type(job_retention_ms) is not int or job_retention_ms < 1:
+                raise ValueError("embedding batch did not declare result retention")
+            deadline = time.monotonic() + job_retention_ms / 1000
             while True:
                 vectors = self._vectors(response, len(texts))
                 if vectors is not None:
@@ -195,6 +198,7 @@ class ContextualOrchestratorEmbeddingClient:
             "max_tokens_per_part",
             "max_chars_per_part",
             "poll_after_ms",
+            "job_retention_ms",
         )
         if any(type(response.get(key)) is not int or response[key] < 1 for key in required):
             raise ValueError("embedding batch capabilities are incomplete")

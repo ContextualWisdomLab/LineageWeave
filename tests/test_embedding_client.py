@@ -99,6 +99,7 @@ def test_orchestrator_embedding_client_submits_and_polls_batch(monkeypatch) -> N
             "status": "queued",
             "model": "resolved-embedding",
             "poll_after_ms": 1,
+            "job_retention_ms": 60_000,
         }
 
     def fake_get_json(url, *, headers, timeout, service_peer_name):
