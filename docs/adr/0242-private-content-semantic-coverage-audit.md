@@ -31,7 +31,10 @@ Repository artifacts must not retain the private titles.
    names alone are not semantic evidence.
 3. The caller accepts a batch only when JSON, input count, item count, ordered
    indexes, booleans, unique governed missing-dimension codes, and supporting
-   ontology IRIs all validate. A covered verdict requires at least one supplied
+   ontology IRIs all validate. The contract parses the published PROV-O support
+   profile with the primary ontology and includes `rdfs:subClassOf` and
+   `rdfs:subPropertyOf`, so standard alignments are not reduced to local names.
+   A covered verdict requires at least one supplied
    ontology IRI; an uncovered verdict requires at least one missing dimension.
    Person/actor meaning is a governed dimension distinct from organization role;
    collapsing the two would hide whether the ontology identifies an actor or only

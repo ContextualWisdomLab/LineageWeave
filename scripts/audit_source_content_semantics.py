@@ -330,6 +330,9 @@ def aggregate_results(
 def _ontology_terms(path: Path) -> list[dict[str, object]]:
     """Return deterministic public semantics for every governed ontology term."""
     graph = Graph().parse(path, format="turtle")
+    support_profile = path.with_name("prov-o-support-profile.ttl")
+    if support_profile.is_file():
+        graph.parse(support_profile, format="turtle")
     governed_kinds = {
         OWL.Class,
         OWL.ObjectProperty,
@@ -367,6 +370,14 @@ def _ontology_terms(path: Path) -> list[dict[str, object]]:
                 ),
                 "ranges": sorted(
                     str(value) for value in graph.objects(subject, RDFS.range)
+                ),
+                "superclasses": sorted(
+                    str(value)
+                    for value in graph.objects(subject, RDFS.subClassOf)
+                ),
+                "superproperties": sorted(
+                    str(value)
+                    for value in graph.objects(subject, RDFS.subPropertyOf)
                 ),
                 "schemes": sorted(
                     str(value) for value in graph.objects(subject, SKOS.inScheme)

@@ -170,6 +170,13 @@ def test_ontology_contract_contains_public_semantics_not_only_local_names() -> N
     assert all(term["iri"] and term["kinds"] for term in terms)
     assert any(term["labels"] for term in terms)
     assert any(term["domains"] or term["ranges"] for term in terms)
+    by_iri = {term["iri"]: term for term in terms}
+    namespace = "https://contextualwisdomlab.github.io/LineageWeave/ontology#"
+    assert "http://www.w3.org/ns/prov#Entity" in by_iri[namespace + "Post"]["superclasses"]
+    assert "http://www.w3.org/ns/prov#Person" in by_iri[namespace + "Person"]["superclasses"]
+    assert "http://www.w3.org/ns/prov#wasDerivedFrom" in by_iri[
+        namespace + "wasDerivedFromPost"
+    ]["superproperties"]
 
 
 def test_probability_sample_manifest_preserves_design_evidence() -> None:
