@@ -67,8 +67,8 @@ are not merge readiness. Re-fetch exact heads,
 unresolved threads, checks, approvals, rulesets, and merge SHA before any
 lifecycle claim.
 
-> Audit snapshot: 2026-08-26 10:00 KST (live queue refresh).
-> loop). This repository records synthetic fixtures and aggregate,
+> Audit snapshot: 2026-08-26 10:00 KST (live queue refresh). This repository
+> records synthetic fixtures and aggregate,
 > non-identifying runtime evidence only. Open PRs and local checks are not
 > protected-default-branch release evidence. Identifying post identifiers,
 > organization names, and production record keys must never appear in this

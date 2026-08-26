@@ -210,7 +210,7 @@ export function OntologyExplorer({
             {t("Export structured data")}
           </button>
           <button type="button" onClick={() => window.print()}>
-            {t("Print this neighborhood")}
+            {t("Print related information")}
           </button>
         </div>
       </header>

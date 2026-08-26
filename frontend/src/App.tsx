@@ -498,7 +498,7 @@ function EventLineageSection({
       graph.isolation_reason === "comparison_candidates_available"
         ? t("Other visible posts share this comparison group, but no Event Lineage link is available. Read Keyman and evaluation next.")
         : graph.isolation_reason === "no_comparison_group"
-          ? t("No other visible posts share this comparison group yet. Request reconstruction after more posts arrive, or read Keyman and evaluation.")
+          ? t("No other visible records share this group yet. Review Keyman and evaluation, then try again after more records arrive.")
           : t("No linked posts yet.");
     return (
       <p className="lineage-empty">
@@ -2144,7 +2144,7 @@ function PostDetailPopup({
                 <PostBody body={post.post_body} imageContent={imageContent} structureUnits={structureUnits} />
               ) : (
                 <p className="popup-placeholder" role="status">
-                  {t("Source body was not imported; summary and semantic extraction are unavailable.")}
+                  {t("This record has no readable content. Open the source record or try again after content is added.")}
                 </p>
               )}
             </section>
@@ -2285,8 +2285,8 @@ function PostDetailPopup({
 					<FiveW1H slots={fiveW1H?.slots ?? null} />
 
 				{post.project_evidence && post.project_evidence.length > 0 ? (
-              <section className="popup-section" aria-label={t("Projects / semantic evidence")}>
-                <h3>{t("Projects / semantic evidence")}</h3>
+              <section className="popup-section" aria-label={t("Project evidence")}>
+                <h3>{t("Project evidence")}</h3>
                 <ul>
                   {post.project_evidence.map((project) => (
                     <li key={`${project.resolution_status}:${project.project_key}`}>
@@ -2328,7 +2328,7 @@ function PostDetailPopup({
                 <>
                   {summary.summary_status === "stale" ? (
                     <p className="post-meta" role="status">
-                      {t("Last saved summary shown. Retry semantic refresh.")} {" "}
+                      {t("The last saved summary is shown. Refresh it to check for updates.")} {" "}
                       <button type="button" onClick={() => setSummaryRetry((value) => value + 1)}>
                         {t("Retry summary refresh")}
                       </button>
@@ -2672,7 +2672,7 @@ function analysisRunNextAction(run: AnalysisRun): string | null {
     case "analysis_status_pending":
       switch (run.run_kind_code) {
         case "analysis_run_lineage":
-          return "Open this run, then start reconstruction. Reconstruction has not started yet.";
+          return "Open this run, then start it.";
         case "analysis_run_tepp":
           return "Open this run to review the selected posts. Measurement has not started yet.";
         case "analysis_run_topic_lineage":
@@ -2691,9 +2691,9 @@ function analysisRunNextAction(run: AnalysisRun): string | null {
         case "analysis_run_topic_lineage":
           return "Open this run to review the available records, then try again later.";
         case "analysis_run_lineage":
-          return "Open this run to see why it failed, then retry reconstruction from a current snapshot.";
+          return "Open this run to review the failure, then try again with current records.";
         case "analysis_run_report":
-          return "Open this run to see why it failed, then rebuild the period report from a current snapshot.";
+          return "Open this run to review the failure, then rebuild the report with current records.";
         default: {
           const unexpected: never = run.run_kind_code;
           return unexpected;
@@ -2719,23 +2719,23 @@ function analysisRunEmptyPostsHint(run: AnalysisRun): string {
   switch (run.run_kind_code) {
     case "analysis_run_tepp":
       return (
-        "No posts were available for this measurement. " +
-        "Open a later run, or ask an administrator to capture a newer snapshot."
+        "No records were available for this measurement. " +
+        "Open a later run, or ask an administrator for newer records."
       );
     case "analysis_run_topic_lineage":
       return (
-        "No posts were available for this update. " +
-        "Open a later run, or ask an administrator to capture a newer snapshot."
+        "No records were available for this update. " +
+        "Open a later run, or ask an administrator for newer records."
       );
     case "analysis_run_lineage":
       return (
-        "No posts were available at this cutoff for reconstruction. " +
-        "Open a later run, or ask an administrator to capture a newer snapshot."
+        "No records were available for this run. " +
+        "Open a later run, or ask an administrator for newer records."
       );
     case "analysis_run_report":
       return (
-        "No posts were available at this cutoff for the period report. " +
-        "Open a later run, or ask an administrator to capture a newer snapshot."
+        "No records were available for this report. " +
+        "Open a later run, or ask an administrator for newer records."
       );
     default: {
       const unexpected: never = run.run_kind_code;
@@ -2811,11 +2811,8 @@ function analysisRunLivePostWarning(cutoffIso: string): string {
  */
 function analysisRunOpenedBodyWarning(cutoffIso?: string | null): string {
   const cutoffDate = cutoffIso?.slice(0, 10);
-  const when = cutoffDate ? ` this ${cutoffDate}` : " this";
-  return (
-    "This is the live body, not a cutoff snapshot. " +
-    `Compare it with${when} run before you treat it as reconstructed evidence.`
-  );
+  const when = cutoffDate ? ` the ${cutoffDate}` : " this";
+  return `This is the current content. Compare it with${when} run before relying on it.`;
 }
 
 function analysisRunLivePostButtonLabel(post: {
@@ -2890,7 +2887,7 @@ function analysisRunStartLabel(run: AnalysisRun): string {
   if (run.run_kind_code === "analysis_run_topic_lineage") {
     return "Start topic lineage";
   }
-  return "Start reconstruction";
+  return "Start this run";
 }
 
 /** Failed TEPP/topic-lineage is terminal. Create cannot invent a Pending row. */
@@ -3005,7 +3002,7 @@ function AnalysisRunsPanel({
       ? "Reload to choose a corporate entity"
       : corporateEntities === null
         ? "Loading affiliated entities..."
-        : "Request a lineage reconstruction";
+        : "Request an update";
 
   useEffect(() => {
     fetchAnalysisRuns(accessToken)
@@ -3051,7 +3048,7 @@ function AnalysisRunsPanel({
       if (err instanceof BackendError && err.status === 409) {
         inFlightKeyRef.current = null;
         setError(
-          "This request key already names a different reconstruction. Request again to start a new run.",
+          "This request already points to another update. Submit again to start a new run.",
         );
       } else {
         setError(err instanceof BackendError ? err.message : String(err));
@@ -4117,17 +4114,17 @@ function PostList({
             }}
           >
             <label>
-              {t("Search semantic evidence")}
+              {t("Search records and evidence")}
               <input
                 type="search"
                 value={searchInput}
                 onChange={(event) => setSearchInput(event.target.value)}
-                placeholder={t("Search semantic evidence")}
-                aria-label={t("Search semantic evidence")}
+                placeholder={t("Search records and evidence")}
+                aria-label={t("Search records and evidence")}
               />
             </label>
             <button type="submit">{t("Search")}</button>
-            <p className="board-search-help post-meta">{t("Search includes post text and semantic evidence.")}</p>
+            <p className="board-search-help post-meta">{t("Search includes record text and supporting evidence.")}</p>
             <fieldset className="board-voc-type-filter">
               <legend>{t("Filter by VOC type")}</legend>
               {vocTypeOptions.map((option) => (

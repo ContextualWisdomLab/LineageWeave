@@ -2220,7 +2220,7 @@ describe("App, authenticated", () => {
       await screen.findByRole("button", { name: "Search related posts for: Semantic project" }),
     );
 
-    const searchInput = await screen.findByRole("searchbox", { name: "Search semantic evidence" });
+    const searchInput = await screen.findByRole("searchbox", { name: "Search records and evidence" });
     expect(searchInput).toHaveValue("Semantic project");
     expect(screen.queryByRole("button", { name: "Close" })).not.toBeInTheDocument();
   });
@@ -2249,7 +2249,7 @@ describe("App, authenticated", () => {
 
     const board = await screen.findByRole("region", { name: "Board" });
     expect(within(board).getByRole("search", { name: "Search and filter posts" })).toBeInTheDocument();
-    expect(within(board).getByLabelText("Search semantic evidence")).toHaveAttribute("type", "search");
+    expect(within(board).getByLabelText("Search records and evidence")).toHaveAttribute("type", "search");
     expect(within(board).getByRole("list", { name: "Board posts" })).toBeInTheDocument();
     expect(within(board).getByText(/Posts shown:/)).toBeInTheDocument();
     expect(within(board).getByLabelText("Voice of Partner")).toBeInTheDocument();
@@ -2259,7 +2259,7 @@ describe("App, authenticated", () => {
       expect(fetchMock.mock.calls.some(([url]) => String(url).includes("sort=title"))).toBe(true),
     );
 
-    await userEvent.type(within(board).getByLabelText("Search semantic evidence"), "not found");
+    await userEvent.type(within(board).getByLabelText("Search records and evidence"), "not found");
     await userEvent.click(within(board).getByRole("button", { name: "Search" }));
     expect(within(board).getByRole("status")).toHaveTextContent("No posts match the current filters.");
     await userEvent.click(within(board).getByRole("button", { name: "Reset filters" }));
@@ -2284,7 +2284,7 @@ describe("App, authenticated", () => {
     ],
     [
       "no_comparison_group" as const,
-      "No other visible posts share this comparison group yet. Request reconstruction after more posts arrive, or read Keyman and evaluation.",
+      "No other visible records share this group yet. Review Keyman and evaluation, then try again after more records arrive.",
     ],
   ])(
     "explains an empty focused Event Lineage graph: %s",
@@ -2518,7 +2518,7 @@ describe("App, authenticated", () => {
 
     await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
     await waitFor(() =>
-      expect(screen.getByText("Last saved summary shown. Retry semantic refresh.")).toBeInTheDocument(),
+      expect(screen.getByText("The last saved summary is shown. Refresh it to check for updates.")).toBeInTheDocument(),
     );
     const summaryCallsBeforeRetry = fetchMock.mock.calls.filter(([input]) =>
       String(input).endsWith("/api/posts/post-1/summary"),
@@ -3362,7 +3362,7 @@ describe("App, authenticated", () => {
     );
     await waitFor(() => expect(screen.getByText("The full body text.")).toBeInTheDocument());
     expect(screen.getByRole("status", { name: "Live body warning" })).toHaveTextContent(
-      "This is the live body, not a cutoff snapshot. Compare it with this 2026-01-12 run before you treat it as reconstructed evidence.",
+      "This is the current content. Compare it with the 2026-01-12 run before relying on it.",
     );
     expect(screen.getByRole("heading", { name: "Body this run knew" })).toBeInTheDocument();
     expect(screen.getByText("The cutoff body this run knew.")).toBeInTheDocument();
@@ -3405,7 +3405,7 @@ describe("App, authenticated", () => {
       "Refresh this run in a moment to see the latest status.",
     );
     await userEvent.click(lineageButton);
-    expect(screen.getByRole("button", { name: "Start reconstruction" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Start this run" })).toBeInTheDocument();
     expect(
       screen.getAllByText("Refresh this run in a moment to see the latest status."),
     ).not.toHaveLength(0);
@@ -3423,7 +3423,7 @@ describe("App, authenticated", () => {
       name: "Open analysis run: TEPP measurement · Failed · Demo Corp",
     });
     expect(lineageButton).toHaveTextContent(
-      "Open this run to see why it failed, then retry reconstruction from a current snapshot.",
+      "Open this run to review the failure, then try again with current records.",
     );
     expect(lineageButton).not.toHaveTextContent("measurement service");
     expect(teppButton).toHaveTextContent(
@@ -3452,7 +3452,7 @@ describe("App, authenticated", () => {
     expect(screen.queryByText(/rebuild the period report/)).not.toBeInTheDocument();
     expect(screen.queryByText(/Reconstruction has not started yet/)).not.toBeInTheDocument();
     expect(screen.queryByText(/The report has not been built yet/)).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Start reconstruction" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Start this run" })).not.toBeInTheDocument();
     expect(
       screen.getByRole("button", {
         name: "Open live post: Public post",
@@ -3704,19 +3704,19 @@ describe("App, authenticated", () => {
       name: "Open analysis run: Period report · Failed · Demo Corp",
     });
     expect(reportButton).toHaveTextContent(
-      "Open this run to see why it failed, then rebuild the period report from a current snapshot.",
+      "Open this run to review the failure, then rebuild the report with current records.",
     );
     expect(reportButton).not.toHaveTextContent("measurement service");
     expect(reportButton).not.toHaveTextContent("reconstruction");
 
     await userEvent.click(reportButton);
-    expect(screen.queryByRole("button", { name: "Start reconstruction" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Start this run" })).not.toBeInTheDocument();
     expect(
       screen.queryByRole("button", { name: "Open period report 2026-W02" }),
     ).not.toBeInTheDocument();
     expect(
       await screen.findByText(
-        "No posts were available at this cutoff for the period report. Open a later run, or ask an administrator to capture a newer snapshot.",
+        "No records were available for this report. Open a later run, or ask an administrator for newer records.",
       ),
     ).toBeInTheDocument();
   });
@@ -3736,7 +3736,7 @@ describe("App, authenticated", () => {
     expect(screen.queryByText(/replace Failed/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/this TEPP run measured/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/Reconstruction has not started yet/)).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Start reconstruction" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Start this run" })).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Start measurement" })).toBeInTheDocument();
   });
 
@@ -3756,7 +3756,7 @@ describe("App, authenticated", () => {
     expect(screen.getByText(/Needs attention/)).toBeInTheDocument();
     expect(screen.queryByText(/tepp_not_available/)).not.toBeInTheDocument();
     expect(screen.queryByText(/theta/i)).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Start reconstruction" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Start this run" })).not.toBeInTheDocument();
     const startCall = fetchMock.mock.calls.find((call) =>
       String(call[0]).endsWith("/api/analysis-runs/run-demo-tepp/start"),
     );
@@ -3806,7 +3806,7 @@ describe("App, authenticated", () => {
     render(<App showLabPanels />);
 
     await userEvent.click(
-      await screen.findByRole("button", { name: "Request a lineage reconstruction" }),
+      await screen.findByRole("button", { name: "Request an update" }),
     );
     expect(
       await screen.findByRole("heading", { name: "Lineage reconstruction · Pending · Demo Corp" }),
@@ -3818,10 +3818,10 @@ describe("App, authenticated", () => {
     ).toBeInTheDocument();
     expect(
       screen.getAllByText(
-        "Open this run, then start reconstruction. Reconstruction has not started yet.",
+        "Open this run, then start it.",
       ),
     ).toHaveLength(2);
-    expect(screen.getByRole("button", { name: "Start reconstruction" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Start this run" })).toBeInTheDocument();
     const postCall = fetchMock.mock.calls.find(
       (call) => String(call[0]).endsWith("/api/analysis-runs") && call[1]?.method === "POST",
     );
@@ -3842,7 +3842,7 @@ describe("App, authenticated", () => {
       name: "Corporate entity to reconstruct",
     });
     await userEvent.selectOptions(picker, "corp-north");
-    await userEvent.click(screen.getByRole("button", { name: "Request a lineage reconstruction" }));
+    await userEvent.click(screen.getByRole("button", { name: "Request an update" }));
     await waitFor(() =>
       expect(
         fetchMock.mock.calls.some(
@@ -3876,7 +3876,7 @@ describe("App, authenticated", () => {
     expect(picker).toBeInTheDocument();
     await userEvent.selectOptions(picker, "corp-demo");
     await waitFor(() =>
-      expect(screen.getByRole("button", { name: "Request a lineage reconstruction" })).toBeEnabled(),
+      expect(screen.getByRole("button", { name: "Request an update" })).toBeEnabled(),
     );
   });
 
@@ -3900,9 +3900,9 @@ describe("App, authenticated", () => {
     render(<App showLabPanels />);
 
     await userEvent.click(
-      await screen.findByRole("button", { name: "Request a lineage reconstruction" }),
+      await screen.findByRole("button", { name: "Request an update" }),
     );
-    await userEvent.click(await screen.findByRole("button", { name: "Start reconstruction" }));
+    await userEvent.click(await screen.findByRole("button", { name: "Start this run" }));
     expect(
       await screen.findByRole("heading", { name: "Lineage reconstruction · Succeeded · Demo Corp" }),
     ).toBeInTheDocument();
