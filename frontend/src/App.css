@@ -941,6 +941,11 @@
   gap: 0.75rem;
 }
 
+.analysis-run-item .post-meta {
+  overflow-wrap: anywhere;
+  word-break: keep-all;
+}
+
 .analysis-run-item.has-document-count.has-next-action {
   grid-template-columns: minmax(12rem, 1fr) auto minmax(18rem, 2fr);
 }

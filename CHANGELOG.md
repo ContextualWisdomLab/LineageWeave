@@ -8,6 +8,11 @@ All notable changes to this project are documented here. Format follows
 
 ### Added
 
+- Analysis-run next actions, empty-snapshot guidance, and selected-post
+  guidance now follow the active English, Korean, Chinese, Japanese, or
+  Vietnamese locale. Customer copy describes the next product action without
+  exposing internal measurement transport boundaries; Storybook includes
+  desktop and phone status matrices.
 - Account-owned per-post Ask conversations can be listed, reopened, and
   continued with current authorization reapplied to cited evidence (ADR 0228).
 - Persist explicit paragraph, list, table, MathML formula, and caller-parsed

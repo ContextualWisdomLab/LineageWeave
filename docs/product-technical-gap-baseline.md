@@ -85,7 +85,7 @@ context only.
 
 | PR | Exact observed head | Merge/check state at this snapshot |
 | ---: | --- | --- |
-| #690 | `ea85595b` | five-locale analysis-run guidance and desktop/mobile Storybook evidence stacked on #667; hosted checks and parent delivery pending |
+| #690 | `b4b03011` | five-locale guidance states that LineageWeave performs measurement and topic-lineage work, removes a contradictory administrator handoff, and retains desktop/mobile Storybook evidence; hosted checks and parent delivery pending |
 | #689 | `3197954d` | accepted measurement-owner release pin restacked on current #640; hosted checks and independent review pending |
 | #688 | `5b874f4d` | automatic related-source evidence lookup now fingerprints the exact authorized evidence window so an unchanged sibling is re-analyzed when new project evidence arrives; all review threads are resolved, 1,435 full-suite tests passed before the concurrent rebase and 61 affected tests passed after it, while hosted checks and #640 delivery remain pending |
 | #686 | `fbca05d9` | customer-facing copy boundary audit removes implementation labels while retaining Event Lineage distinction and localized actions; current review threads are resolved, ranking guidance has desktop/mobile Storybook screenshot evidence, and hosted checks remain pending |
@@ -104,6 +104,11 @@ context only.
 | #632 | `811026cc` | graph-fact provenance repair with current baseline evidence; BLOCKED with hosted checks queued and review required |
 | #631 | `e6b4f0c4` | ADR decomposition documentation; BLOCKED with review required |
 | #629 | `48496ff6` | provider-work release, bounded reads, and UUID tie-break ordering; BLOCKED with review required |
+
+PR #687 exact head `827978a5` completed both hosted test jobs with no unresolved
+review thread and merged into its non-default stack base as merge commit
+`9d4210c04fb0aeec17e885bed097f400c7018269`. This is stack integration
+evidence only; it is not protected-`main` delivery.
 
 The exact-head check-run scan at 13:16 KST found no `failure`, `cancelled`, or
 `timed_out` conclusions on the 19 current heads. Several heads, including
@@ -433,7 +438,7 @@ for wholesale replay from #490.
 
 | Gap | Current evidence | Acceptance requirement |
 | --- | --- | --- |
-| Protected release | Protected `main@494b54e2` includes the #660/#664 semantic-unit/backend stack and #659 ontology readability/token repair. Nineteen PRs remain open at the 13:16 KST snapshot; every candidate still requires exact-head checks, unresolved-thread review, and independent approval before merge | Terminal exact-head checks, no unresolved threads, two independent exact-head approvals including last-push approval, protected squash-merge SHA |
+| Protected release | Protected `main@494b54e2` includes the #660/#664 semantic-unit/backend stack and #659 ontology readability/token repair. Nineteen PRs remain open at the 13:20 KST snapshot; every candidate still requires exact-head checks, unresolved-thread review, and independent approval before merge | Terminal exact-head checks, no unresolved threads, two independent exact-head approvals including last-push approval, protected squash-merge SHA |
 | Evidence-grounded operations workspace | Protected-main #614 delivers governed semantic Ask, live Similar VOC, disjoint pending/failed analysis metrics, full Storybook state inventory, and current desktop/mobile screenshot evidence. Authorized-corpus backfill acceptance remains unavailable | Perform authenticated authorized-corpus acceptance with aggregate evidence and retain fail-closed no-match behavior |
 | Cancelled analysis guidance | PRD-FR-5 requires every lifecycle state to identify a valid next action, while ADR 0013 makes Cancelled terminal. Protected `main@494b54e2` rendered Cancelled without a next action. This stacked candidate adds kind-specific guidance for lineage, TEPP, topic lineage, and period reports; 390×844 and 1440×1000 authenticated synthetic-runtime audits are retained in `docs/screenshots/cancelled-analysis-runs-{mobile,desktop}.png`. The audit also found and repaired attached count/action text and the three-column mobile squeeze | Land through the protected gate, then repeat authenticated keyboard and screen-reader acceptance on the exact release head; no cancelled run may imply that it can resume or that a measurement exists |
 | Shared frontend gate | The ADR 0109 login repair is on protected `main`; eight older branches carried the defect and received the same verified repair this loop (#521–#560) | Keep every future branch cut from post-repair bases; re-verify with frontend lint/test/build before push |
