@@ -1,7 +1,7 @@
 # Product & Technical Gap Baseline
 
 > Current queue overlay: 2026-08-27 KST. Protected `main` was
-> `ff7431bd1851c03e737808d22c6a2d43968582f9`; 30 PRs and 10 issues were
+> `ff7431bd1851c03e737808d22c6a2d43968582f9`; 33 PRs and 10 issues were
 > open. This overlay supersedes the older queue count and exact-head table
 > below, which remain historical evidence. Re-fetch the head, checks, reviews,
 > threads, applicable rulesets, and merge SHA immediately before any lifecycle
@@ -34,9 +34,9 @@ explicit unavailable state, not a reason to infer mappings from labels.
 
 | PR | Exact observed head | Base | Observed gate state |
 |---:|---|---|---|
-| #724 | `4dd8f0ce` | `feat/io-occupational-taxonomy` | unstable; CodeRabbit and Devin Review pending |
-| #719 | `2a353d8d` | `feat/io-psych-construct-ontology` | unstable; Tests queued |
-| #718 | `2723fea3` | `feat/fja-worker-function-ontology` | unstable; Devin Review pending |
+| #724 | `10c3af40` | `feat/io-occupational-taxonomy` | unstable; Devin Review pending; CodeRabbit passed |
+| #719 | `6ee2278a` | `feat/io-psych-construct-ontology` | unstable; full tests, frontend, CodeRabbit, and Devin Review passed |
+| #718 | `2723fea3` | `feat/fja-worker-function-ontology` | unstable; full tests, frontend, CodeRabbit, and Devin Review passed |
 | #717 | `771a8edf` | `feat/voice-of-x-complete-taxonomy` | unstable; 1 pending check(s) |
 | #716 | `8b54b2f7` | `fix/structured-workflow-exact-pin` | clean; no non-passing check observed |
 | #714 | `aa93318f` | `main` | blocked; no non-passing check observed |
