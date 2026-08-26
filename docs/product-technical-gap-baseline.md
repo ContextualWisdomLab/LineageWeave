@@ -35,40 +35,51 @@ explicit unavailable state, not a reason to infer mappings from labels.
 
 | PR | Exact observed head | Base | Observed gate state |
 |---:|---|---|---|
-| #735 | `56d8cbfa` | `feat/onet-occupation-ratings-contract` | clean immediately after exact parent merge; hosted checks had not yet registered on this head, so this is not merge-readiness evidence |
-| #734 | `0dedf33b` | `feat/onet-content-model-linkages` | unstable; two hosted gates pending after exact parent reconciliation |
-| #732 | `3e30402d` | `feat/onet-31-content-model-ontology` | unstable; one hosted gate pending after exact parent reconciliation |
-| #731 | `9654bb8b` | `feat/soc-2018-full-hierarchy` | unstable; one hosted gate pending after exact parent reconciliation |
-| #724 | `fdec8f65` | `feat/io-occupational-taxonomy` | clean; hosted gates passed; parent-first stack gate remains |
-| #719 | `6ee2278a` | `feat/io-psych-construct-ontology` | unstable; full tests, frontend, CodeRabbit, and Devin Review passed |
-| #718 | `2723fea3` | `feat/fja-worker-function-ontology` | unstable; full tests, frontend, CodeRabbit, and Devin Review passed |
-| #717 | `771a8edf` | `feat/voice-of-x-complete-taxonomy` | unstable; 1 pending check(s) |
-| #716 | `8b54b2f7` | `fix/structured-workflow-exact-pin` | clean; no non-passing check observed |
-| #714 | `aa93318f` | `main` | blocked; no non-passing check observed |
-| #713 | `cc3dfc14` | `main` | blocked; review required; 13 pending check(s) |
-| #711 | `8902e37f` | `feat/dashboard-case-metrics` | clean; no non-passing check observed |
-| #710 | `8df04b68` | `main` | blocked; review required; no non-passing check observed |
-| #709 | `8ef4090c` | `main` | blocked; review required; 11 pending check(s) |
-| #704 | `027323cf` | `main` | blocked; review required; 2 failed check(s) |
-| #702 | `5de66ab9` | `main` | blocked; review required; 2 pending check(s) |
-| #701 | `cc3351a9` | `main` | blocked; review required; 1 failed check(s) |
-| #700 | `1bc99eca` | `main` | blocked; review required; 1 failed check(s) |
-| #680 | `efe864e5` | `main` | blocked; 1 failed check(s) |
-| #679 | `13ecf41d` | `main` | blocked; no non-passing check observed |
-| #672 | `a3e87a89` | `main` | blocked; review required; 1 failed check(s) |
-| #668 | `1194f44d` | `main` | blocked; review required; 1 failed check(s) |
-| #667 | `c2d11a8a` | `main` | blocked; review required; 2 pending check(s) |
-| #658 | `15d670f0` | `main` | blocked; review required; 1 failed check(s) |
-| #657 | `9f71681c` | `main` | blocked; review required; 1 failed check(s) |
-| #644 | `f53dd28e` | `main` | blocked; review required; 1 failed check(s) |
-| #643 | `8767de1b` | `main` | blocked; review required; 1 failed check(s); 1 pending check(s) |
-| #640 | `5594029c` | `main` | blocked; no non-passing check observed |
-| #639 | `2f4b1bff` | `main` | blocked; review required; 1 failed check(s) |
-| #632 | `24262a99` | `main` | blocked; review required; 1 failed check(s) |
-| #629 | `b721b0f2` | `main` | blocked; review required; 1 failed check(s) |
+| #740 | `52814353` | `feat/onet-rating-read-api` | unstable; three non-passing hosted contexts after opening the occupation evidence UI PR |
+| #739 | `9a3f380f` | `feat/operations-candidate-priority` | unstable; two non-passing hosted contexts |
+| #738 | `026ba803` | `feat/onet-rating-importer` | unstable; one hosted context still running after exact parent reconciliation; unresolved review threads 0 |
+| #735 | `b0355999` | `feat/onet-occupation-ratings-contract` | unstable; one non-passing hosted context |
+| #734 | `4c3677af` | `feat/onet-content-model-linkages` | clean snapshot; parent-first stack gate remains |
+| #733 | `b53c1edd` | `feat/io-psych-construct-extraction` | unstable; two non-passing hosted contexts |
+| #732 | `7f60aa8e` | `feat/onet-31-content-model-ontology` | clean snapshot; parent-first stack gate remains |
+| #731 | `b3b9b360` | `feat/soc-2018-full-hierarchy` | clean snapshot; parent-first stack gate remains |
+| #728 | `e52a8272` | `feat/dashboard-case-metrics` | clean snapshot; parent-first stack gate remains |
+| #726 | `d6a12fbb` | `feat/io-psych-construct-catalog` | unstable; one non-passing hosted context |
+| #724 | `1d2f8052` | `feat/io-occupational-taxonomy` | clean snapshot; parent-first stack gate remains |
+| #723 | `316fc190` | `feat/io-psych-construct-persistence` | clean snapshot; parent-first stack gate remains |
+| #721 | `9214c50f` | `feat/io-psych-construct-ontology` | clean snapshot; parent-first stack gate remains |
+| #720 | `dda0531d` | `main` | blocked; review required; one non-passing hosted context |
+| #719 | `6ee2278a` | `feat/io-psych-construct-ontology` | clean snapshot; parent-first stack gate remains |
+| #718 | `2723fea3` | `feat/fja-worker-function-ontology` | clean snapshot; parent-first stack gate remains |
+| #717 | `bf355876` | `feat/voice-of-x-complete-taxonomy` | unstable; one non-passing hosted context |
+| #716 | `0a8bd0b6` | `fix/structured-workflow-exact-pin` | unstable; two non-passing hosted contexts |
+| #714 | `76a602c8` | `main` | blocked; one non-passing hosted context |
+| #713 | `850494c3` | `main` | blocked; review required; one non-passing hosted context |
+| #711 | `05e5f520` | `feat/dashboard-case-metrics` | clean snapshot; parent-first stack gate remains |
+| #710 | `27a917ee` | `main` | blocked; review required |
+| #709 | `8ef4090c` | `main` | blocked; review required; all hosted checks passed; auto-merge awaits the independent approval gate |
+| #704 | `7b9a70ee` | `main` | blocked; review required; one non-passing hosted context |
+| #702 | `05bdd5b7` | `main` | blocked; two non-passing hosted contexts |
+| #701 | `cc3351a9` | `main` | blocked; review required; one non-passing hosted context |
+| #700 | `1bc99eca` | `main` | blocked; review required; one non-passing hosted context |
+| #680 | `b05e3100` | `main` | blocked; one non-passing hosted context |
+| #679 | `135dfe7c` | `main` | blocked; review required; two non-passing hosted contexts |
+| #672 | `a3e87a89` | `main` | blocked; review required; one non-passing hosted context |
+| #668 | `234f975b` | `main` | blocked; review required; three non-passing hosted contexts |
+| #667 | `92a64c40` | `main` | blocked; one non-passing hosted context |
+| #658 | `15d670f0` | `main` | blocked; review required; one non-passing hosted context |
+| #657 | `9f71681c` | `main` | blocked; review required; one non-passing hosted context |
+| #644 | `f53dd28e` | `main` | blocked; review required; one non-passing hosted context |
+| #643 | `8767de1b` | `main` | blocked; review required; one non-passing hosted context |
+| #640 | `ebfe60af` | `main` | blocked; one non-passing hosted context |
+| #639 | `2f4b1bff` | `main` | blocked; review required; one non-passing hosted context |
+| #632 | `24262a99` | `main` | blocked; review required; one non-passing hosted context |
+| #629 | `b721b0f2` | `main` | blocked; review required; one non-passing hosted context |
 
-> Dashboard delivery snapshot: 2026-08-26 07:15 KST. Protected `main` was
-> `494b54e2245040bcf02b45376f221c37cd437e76`. This local branch is not
+> Dashboard delivery snapshot: 2026-08-27 05:40 KST. Protected `main` was
+> `ff7431bd1851c03e737808d22c6a2d43968582f9`. `mergeStateStatus` and hosted
+> context counts are observations, not protected merge-readiness evidence.
+> This local branch is not
 > protected-main release evidence.
 
 ## Operations Dashboard PRD/TRD traceability
