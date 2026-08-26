@@ -319,6 +319,33 @@ def test_successful_job_reclaims_when_configured_evidence_is_incomplete(monkeypa
     assert calls == ["checked"]
 
 
+def test_successful_job_reclaims_when_product_analysis_is_missing(monkeypatch) -> None:
+    """Historical content is reclaimed until its exact product analysis exists."""
+    row = _row(SUCCEEDED, 0)
+    row["product_analysis_source_body_sha256"] = None
+    connection = _Connection(row, values=[True])
+
+    async def complete(*_args, **_kwargs) -> bool:
+        return True
+
+    monkeypatch.setattr(post_content_worker, "post_content_is_complete", complete)
+    claimed = asyncio.run(
+        post_content_worker._claim_job(
+            _Pool(connection),
+            "00000000-0000-0000-0000-000000000001",
+            "a" * 64,
+            require_embedding=True,
+            require_structure=True,
+        )
+    )
+
+    assert claimed is row
+    assert any(
+        "attempt_count = attempt_count + 1" in query
+        for query, _args in connection.executed
+    )
+
+
 def test_incomplete_provider_output_is_requeued_with_a_failure_code(monkeypatch) -> None:
     connection = _Connection(values=[False, 2])
     pool = _Pool(connection)

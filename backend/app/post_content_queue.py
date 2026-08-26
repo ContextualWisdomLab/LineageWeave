@@ -425,6 +425,12 @@ async def enqueue_post_content_backfill(
                     where analysis.post_id = post.post_id
                       and analysis.source_body_sha256 = job.source_body_sha256
                ))
+               or ($3::boolean and not exists (
+                   select 1
+                     from post_product_analysis analysis
+                    where analysis.post_id = post.post_id
+                      and analysis.source_body_sha256 = job.source_body_sha256
+               ))
            )
          order by post.created_at, post.post_id
          limit $4
@@ -454,6 +460,8 @@ async def enqueue_post_content_backfill(
                     complete = bool(
                         await conn.fetchval(
                             "select exists (select 1 from operations_case_analysis "
+                            "where post_id = $1 and source_body_sha256 = $2) "
+                            "and exists (select 1 from post_product_analysis "
                             "where post_id = $1 and source_body_sha256 = $2)",
                             post_id,
                             source_body_sha256(body),
