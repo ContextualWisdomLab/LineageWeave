@@ -5,7 +5,7 @@ from __future__ import annotations
 import asyncio
 import logging
 import time
-from collections.abc import Awaitable, Callable
+from collections.abc import Callable
 from uuid import UUID
 
 import asyncpg
@@ -661,7 +661,6 @@ async def consume_post_content_stream_once(
         embedding_client = embedding_factory()
         bulk_enabled = embedding_client.available
         deferred: list[tuple[str, int]] = []
-        pending: list[tuple[str, Awaitable[int | None]]] = []
         for _stream_name, entries in batches:
             for entry_id, fields in entries:
                 post_id = str(fields.get("post_id", "")).strip()
@@ -671,28 +670,18 @@ async def consume_post_content_stream_once(
                 except ValueError:
                     post_id = ""
                 if post_id and len(digest) == 64:
-                    pending.append(
-                        (
-                            post_id,
-                            process_post_content_job(
-                                pool,
-                                post_id=post_id,
-                                source_body_digest=digest,
-                                vision_factory=vision_factory,
-                                embedding_factory=embedding_factory,
-                                structure_factory=structure_factory,
-                                defer_embedding=bulk_enabled,
-                            ),
-                        )
+                    attempt_count = await process_post_content_job(
+                        pool,
+                        post_id=post_id,
+                        source_body_digest=digest,
+                        vision_factory=vision_factory,
+                        embedding_factory=embedding_factory,
+                        structure_factory=structure_factory,
+                        defer_embedding=bulk_enabled,
                     )
+                    if attempt_count is not None:
+                        deferred.append((post_id, attempt_count))
                 last_id = str(entry_id)
-        if pending:
-            attempt_counts = await asyncio.gather(*(job for _post_id, job in pending))
-            deferred.extend(
-                (post_id, attempt_count)
-                for (post_id, _job), attempt_count in zip(pending, attempt_counts, strict=True)
-                if attempt_count is not None
-            )
         if deferred:
             try:
                 await _persist_bulk_embeddings(
