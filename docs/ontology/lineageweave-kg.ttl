@@ -713,8 +713,9 @@
     dcterms:title "2018 Standard Occupational Classification System"@en ;
     dcterms:publisher "U.S. Bureau of Labor Statistics"@en ;
     dcterms:hasVersion "2018" ;
-    dcterms:source <https://www.bls.gov/soc/2018/major_groups.htm> ;
-    dcterms:rights <https://www.dol.gov/general/aboutdol/copyright> .
+    dcterms:source <https://www2.census.gov/programs-surveys/demo/guidance/industry-occupation/soc_structure_2018.xlsx> ;
+    dcterms:rights <https://www.dol.gov/general/aboutdol/copyright> ;
+    :sourceArtifactSha256 "ade08af40923266f3a854842e888ca3e93c15b26a147c20a2b12a61f4c4f4077" .
 
 :sourceOnet310JobZoneReference a prov:Entity ;
     dcterms:title "O*NET 31.0 Job Zone Reference"@en ;
@@ -756,132 +757,29 @@
     rdfs:label "Occupational major group"@en ;
     rdfs:comment "One of the 23 major groups of the 2018 Standard Occupational Classification, which the O*NET program publishes as its job-family grouping of detailed occupations."@en .
 
-:socMajorGroupScheme a skos:ConceptScheme ;
-    skos:prefLabel "O*NET job families (2018 SOC major groups)"@en ;
-    skos:definition "The 23 major groups of the 2018 Standard Occupational Classification, adopted as the O*NET job-family grouping."@en ;
+:OccupationalMinorGroup a owl:Class ;
+    rdfs:subClassOf :OccupationalClassification ;
+    rdfs:label "Occupational minor group"@en .
+
+:BroadOccupation a owl:Class ;
+    rdfs:subClassOf :OccupationalClassification ;
+    rdfs:label "Broad occupation"@en .
+
+:DetailedOccupation a owl:Class ;
+    rdfs:subClassOf :OccupationalClassification ;
+    rdfs:label "Detailed occupation"@en .
+
+:soc2018Scheme a skos:ConceptScheme ;
+    skos:prefLabel "2018 Standard Occupational Classification"@en ;
+    skos:definition "The complete 2018 SOC hierarchy: major groups, minor groups, broad occupations, and detailed occupations."@en ;
     prov:wasDerivedFrom :sourceSoc2018 ;
-    rdfs:seeAlso <https://www.bls.gov/soc/> , <https://www.onetcenter.org/taxonomy.html> , :workerFunctionScheme .
+    rdfs:seeAlso <https://www.bls.gov/soc/2018/> , <https://www.onetcenter.org/taxonomy.html> , :workerFunctionScheme .
 
 :socCode a owl:DatatypeProperty ;
-    rdfs:domain :OccupationalMajorGroup ;
+    rdfs:domain :OccupationalClassification ;
     rdfs:range xsd:string ;
     rdfs:label "SOC code"@en ;
-    rdfs:comment "The official major-group code from the published 2018 SOC table, in the form \"NN-0000\"."@en .
-
-:majorGroupManagement a skos:Concept , :OccupationalMajorGroup ;
-    skos:inScheme :socMajorGroupScheme ;
-    skos:prefLabel "Management Occupations"@en ;
-    :socCode "11-0000" .
-
-:majorGroupBusinessFinancialOperations a skos:Concept , :OccupationalMajorGroup ;
-    skos:inScheme :socMajorGroupScheme ;
-    skos:prefLabel "Business and Financial Operations Occupations"@en ;
-    :socCode "13-0000" .
-
-:majorGroupComputerMathematical a skos:Concept , :OccupationalMajorGroup ;
-    skos:inScheme :socMajorGroupScheme ;
-    skos:prefLabel "Computer and Mathematical Occupations"@en ;
-    :socCode "15-0000" .
-
-:majorGroupArchitectureEngineering a skos:Concept , :OccupationalMajorGroup ;
-    skos:inScheme :socMajorGroupScheme ;
-    skos:prefLabel "Architecture and Engineering Occupations"@en ;
-    :socCode "17-0000" .
-
-:majorGroupLifePhysicalSocialScience a skos:Concept , :OccupationalMajorGroup ;
-    skos:inScheme :socMajorGroupScheme ;
-    skos:prefLabel "Life, Physical, and Social Science Occupations"@en ;
-    :socCode "19-0000" .
-
-:majorGroupCommunitySocialService a skos:Concept , :OccupationalMajorGroup ;
-    skos:inScheme :socMajorGroupScheme ;
-    skos:prefLabel "Community and Social Service Occupations"@en ;
-    :socCode "21-0000" .
-
-:majorGroupLegal a skos:Concept , :OccupationalMajorGroup ;
-    skos:inScheme :socMajorGroupScheme ;
-    skos:prefLabel "Legal Occupations"@en ;
-    :socCode "23-0000" .
-
-:majorGroupEducationTrainingLibrary a skos:Concept , :OccupationalMajorGroup ;
-    skos:inScheme :socMajorGroupScheme ;
-    skos:prefLabel "Educational Instruction and Library Occupations"@en ;
-    :socCode "25-0000" .
-
-:majorGroupArtsDesignEntertainmentSportsMedia a skos:Concept , :OccupationalMajorGroup ;
-    skos:inScheme :socMajorGroupScheme ;
-    skos:prefLabel "Arts, Design, Entertainment, Sports, and Media Occupations"@en ;
-    :socCode "27-0000" .
-
-:majorGroupHealthcarePractitionersTechnical a skos:Concept , :OccupationalMajorGroup ;
-    skos:inScheme :socMajorGroupScheme ;
-    skos:prefLabel "Healthcare Practitioners and Technical Occupations"@en ;
-    :socCode "29-0000" .
-
-:majorGroupHealthcareSupport a skos:Concept , :OccupationalMajorGroup ;
-    skos:inScheme :socMajorGroupScheme ;
-    skos:prefLabel "Healthcare Support Occupations"@en ;
-    :socCode "31-0000" .
-
-:majorGroupProtectiveService a skos:Concept , :OccupationalMajorGroup ;
-    skos:inScheme :socMajorGroupScheme ;
-    skos:prefLabel "Protective Service Occupations"@en ;
-    :socCode "33-0000" .
-
-:majorGroupFoodPreparationServingRelated a skos:Concept , :OccupationalMajorGroup ;
-    skos:inScheme :socMajorGroupScheme ;
-    skos:prefLabel "Food Preparation and Serving Related Occupations"@en ;
-    :socCode "35-0000" .
-
-:majorGroupBuildingGroundsCleaningMaintenance a skos:Concept , :OccupationalMajorGroup ;
-    skos:inScheme :socMajorGroupScheme ;
-    skos:prefLabel "Building and Grounds Cleaning and Maintenance Occupations"@en ;
-    :socCode "37-0000" .
-
-:majorGroupPersonalCareService a skos:Concept , :OccupationalMajorGroup ;
-    skos:inScheme :socMajorGroupScheme ;
-    skos:prefLabel "Personal Care and Service Occupations"@en ;
-    :socCode "39-0000" .
-
-:majorGroupSalesRelated a skos:Concept , :OccupationalMajorGroup ;
-    skos:inScheme :socMajorGroupScheme ;
-    skos:prefLabel "Sales and Related Occupations"@en ;
-    :socCode "41-0000" .
-
-:majorGroupOfficeAdministrativeSupport a skos:Concept , :OccupationalMajorGroup ;
-    skos:inScheme :socMajorGroupScheme ;
-    skos:prefLabel "Office and Administrative Support Occupations"@en ;
-    :socCode "43-0000" .
-
-:majorGroupFarmingFishingForestry a skos:Concept , :OccupationalMajorGroup ;
-    skos:inScheme :socMajorGroupScheme ;
-    skos:prefLabel "Farming, Fishing, and Forestry Occupations"@en ;
-    :socCode "45-0000" .
-
-:majorGroupConstructionExtraction a skos:Concept , :OccupationalMajorGroup ;
-    skos:inScheme :socMajorGroupScheme ;
-    skos:prefLabel "Construction and Extraction Occupations"@en ;
-    :socCode "47-0000" .
-
-:majorGroupInstallationMaintenanceRepair a skos:Concept , :OccupationalMajorGroup ;
-    skos:inScheme :socMajorGroupScheme ;
-    skos:prefLabel "Installation, Maintenance, and Repair Occupations"@en ;
-    :socCode "49-0000" .
-
-:majorGroupProduction a skos:Concept , :OccupationalMajorGroup ;
-    skos:inScheme :socMajorGroupScheme ;
-    skos:prefLabel "Production Occupations"@en ;
-    :socCode "51-0000" .
-
-:majorGroupTransportationMaterialMoving a skos:Concept , :OccupationalMajorGroup ;
-    skos:inScheme :socMajorGroupScheme ;
-    skos:prefLabel "Transportation and Material Moving Occupations"@en ;
-    :socCode "53-0000" .
-
-:majorGroupMilitarySpecialties a skos:Concept , :OccupationalMajorGroup ;
-    skos:inScheme :socMajorGroupScheme ;
-    skos:prefLabel "Military Specific Occupations"@en ;
-    :socCode "55-0000" .
+    rdfs:comment "The official code from the published 2018 SOC structure, in the form \"NN-NNNN\"."@en .
 
 # ---- Job zones: published preparation-level ordering ----
 

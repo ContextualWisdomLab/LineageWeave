@@ -49,6 +49,7 @@ def _repository_fixture(tmp_path: Path) -> Path:
     scripts_dir.mkdir(parents=True)
     for name in (
         "lineageweave-kg.ttl",
+        "soc-2018-structure.ttl",
         "prov-o-support-profile.ttl",
         "namespace-compatibility.ttl",
         "lineageweave-kg-shapes.ttl",
@@ -372,6 +373,12 @@ def test_publication_fails_closed_for_missing_sources(tmp_path: Path) -> None:
         (ROOT / "docs" / "ontology" / "namespace-compatibility.ttl").read_bytes()
     )
     with pytest.raises(FileNotFoundError, match="SHACL shapes graph"):
+        publisher.publish_site(repository, output)
+
+    (ontology_dir / "lineageweave-kg-shapes.ttl").write_bytes(
+        (ROOT / "docs" / "ontology" / "lineageweave-kg-shapes.ttl").read_bytes()
+    )
+    with pytest.raises(FileNotFoundError, match="ontology source fragment"):
         publisher.publish_site(repository, output)
 
 

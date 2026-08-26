@@ -74,9 +74,10 @@ continues to pass unchanged.
 
 ### PRD-FR-2B — Occupational classification and worker-characteristic taxonomy
 
-- Publish the 23 major groups of the 2018 Standard Occupational
-  Classification (the O*NET job-family grouping) with official titles
-  and codes verbatim, plus the four O*NET 31.0 job-zone categories with
+- Publish all four levels of the 2018 Standard Occupational Classification:
+  23 major groups, 98 minor groups, 459 broad occupations, and 867 detailed
+  occupations with exact source parents, titles, and codes (ADR 0249), plus
+  the four O*NET 31.0 job-zone categories with
   published names and source values 2 through 5 (ADR 0245).
 - Publish the worker-characteristic families that work-related
   cognition, affect, and behavior resolve into: Fleishman's four ability
@@ -96,8 +97,8 @@ continues to pass unchanged.
 Acceptance: completeness counts, verbatim titles, closed RIASEC
 vocabulary, exact published adjacency pairs, deterministic ordering,
 canonical namespace, and lookup round-trip isolation are enforced by
-`tests/test_io_taxonomy.py`; `tests/test_ontology.py` continues to pass
-unchanged.
+`tests/test_io_taxonomy.py` and `tests/test_soc_2018_hierarchy.py`;
+`tests/test_ontology.py` continues to pass unchanged.
 ### PRD-FR-2C — Evidence-bound occupational constructs
 
 - Keep cognitive abilities, work styles, work activities, affective

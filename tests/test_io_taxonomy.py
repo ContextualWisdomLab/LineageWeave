@@ -159,7 +159,8 @@ class TestMajorGroups:
         duplicate = URIRef("https://example.test/major-group/synthetic-duplicate")
         graph = Graph()
         graph += ONTOLOGY
-        graph.add((duplicate, SKOS.inScheme, LW.socMajorGroupScheme))
+        graph.add((duplicate, SKOS.inScheme, LW.soc2018Scheme))
+        graph.add((duplicate, RDF.type, LW.OccupationalMajorGroup))
         graph.add((duplicate, LW.socCode, Literal("15-0000")))
         graph.add((duplicate, SKOS.prefLabel, Literal("Synthetic duplicate")))
         monkeypatch.setattr(io_taxonomy, "ONTOLOGY", graph)
@@ -324,7 +325,7 @@ class TestSourceProvenance:
     """Version, publisher, license, and artifact-integrity metadata."""
 
     def test_each_scheme_names_its_source_entities(self) -> None:
-        assert set(ONTOLOGY.objects(LW.socMajorGroupScheme, PROV.wasDerivedFrom)) == {
+        assert set(ONTOLOGY.objects(LW.soc2018Scheme, PROV.wasDerivedFrom)) == {
             LW.sourceSoc2018
         }
         assert set(ONTOLOGY.objects(LW.jobZoneScheme, PROV.wasDerivedFrom)) == {
@@ -361,7 +362,9 @@ class TestSourceProvenance:
         assert ONTOLOGY.value(source, DCTERMS.rights) == URIRef(
             "https://www.dol.gov/general/aboutdol/copyright"
         )
-        assert ONTOLOGY.value(source, LW.sourceArtifactSha256) is None
+        assert str(ONTOLOGY.value(source, LW.sourceArtifactSha256)) == (
+            "ade08af40923266f3a854842e888ca3e93c15b26a147c20a2b12a61f4c4f4077"
+        )
 
     def test_read_model_exposes_sources_without_invented_metadata(self) -> None:
         records = taxonomy_source_records()
@@ -376,4 +379,6 @@ class TestSourceProvenance:
         soc = by_iri[str(LW.sourceSoc2018)]
         assert soc.version == "2018"
         assert soc.license_url is None
-        assert soc.artifact_sha256 is None
+        assert soc.artifact_sha256 == (
+            "ade08af40923266f3a854842e888ca3e93c15b26a147c20a2b12a61f4c4f4077"
+        )
