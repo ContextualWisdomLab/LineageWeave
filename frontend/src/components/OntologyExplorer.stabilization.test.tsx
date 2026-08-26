@@ -343,11 +343,11 @@ describe("OntologyExplorer stabilization contracts", () => {
       />,
     );
     await userEvent.click(await screen.findByRole("button", { name: /Open relation: mentions from/ }));
-    expect(screen.getByLabelText("Supporting details")).toBeInTheDocument();
+    expect(screen.getByLabelText("Related item")).toBeInTheDocument();
     await userEvent.click(screen.getByRole("button", { name: "Load more related information" }));
     expect(await screen.findByText("Paged person")).toBeInTheDocument();
     expect(screen.getAllByText("Demo post").length).toBeGreaterThan(0);
-    expect(screen.getByLabelText("Supporting details")).toBeInTheDocument();
+    expect(screen.getByLabelText("Related item")).toBeInTheDocument();
     expect(String(fetchMock.mock.calls[1][0])).toContain("cursor=src.v2.opaque-token");
   });
 });

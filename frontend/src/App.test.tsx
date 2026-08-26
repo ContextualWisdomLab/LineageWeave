@@ -2456,10 +2456,10 @@ describe("App, authenticated", () => {
     await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
 
     await waitFor(() => expect(screen.getByText("이것은 요약입니다.")).toBeInTheDocument());
-    const provenance = screen.getByText("Supporting details").closest("details");
+    const provenance = screen.getByText("Why this item is listed").closest("details");
     expect(provenance).not.toBeNull();
     expect(provenance).not.toHaveAttribute("open");
-    await userEvent.click(screen.getByText("Supporting details"));
+    await userEvent.click(screen.getByText("Why this item is listed"));
     expect(screen.getByText(/Related detail:/)).toBeInTheDocument();
     expect(screen.getByText(/How this was found: Reviewed detail/)).toBeInTheDocument();
     expect(screen.getByText(/Supporting detail: Supporting detail/)).toBeInTheDocument();

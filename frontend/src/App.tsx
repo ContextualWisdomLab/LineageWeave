@@ -2305,7 +2305,7 @@ function PostDetailPopup({
                         : `(${Math.round(project.confidence * 100)}%)`}
                       : {project.evidence}
                       <details className="semantic-provenance">
-                        <summary>{t("Supporting details")}</summary>
+                        <summary>{t("Why this item is listed")}</summary>
                         <span className="post-badge">
                           {t("Related detail")}: {t(project.ontology_label ?? "Project")}
                         </span>
@@ -4181,7 +4181,7 @@ function PostList({
             <p className="board-empty" role="status">
               {hasBoardFilters
                 ? t("No posts match the current filters.")
-                : t("No records are available yet. Ask an administrator for help.")}
+                : t("No records are available yet. Add a source record to continue.")}
             </p>
           ) : filteredPosts.length === 0 ? (
             <p className="board-empty" role="status">

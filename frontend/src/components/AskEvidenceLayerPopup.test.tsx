@@ -53,7 +53,7 @@ describe("AskEvidenceLayerPopup", () => {
       />,
     );
 
-    expect(screen.getByText(/^Date:/)).toBeInTheDocument();
+    expect(screen.getByText(/^Time axis:/)).toBeInTheDocument();
     expect(screen.getByText("time axis: event occurred at")).toBeInTheDocument();
     expect(
       screen.getByRole("button", { name: "Open post: Checkout error follow-up" }),

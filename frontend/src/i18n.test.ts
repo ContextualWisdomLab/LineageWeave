@@ -79,6 +79,28 @@ describe("i18n", () => {
     "No observed calendar events are available.",
     "Open this observed occurrence. It is not a LineageWeave commitment.",
   ] as const;
+  const relatedRecordLabels = [
+    "Related-record ranking",
+    "Ranking is unavailable",
+    "No related records are available yet.",
+    "Explore related records",
+    "Explore related information",
+    "Search related information",
+    "Load more related information",
+    "Export structured data",
+    "Print related information",
+    "Open linked record",
+    "Linked record available",
+    "Close details",
+    "Follow-up actions",
+    "Needs attention",
+    "Supporting details",
+    "Related detail",
+    "How this was found",
+    "Why this item is listed",
+    "No records are available yet. Add a source record to continue.",
+    "Public verification is unavailable right now. Review the linked evidence or try again later.",
+  ] as const;
 
   it("supports the five product locales", () => {
     expect(SUPPORTED_LOCALES).toEqual(["en", "ko", "zh", "ja", "vi"]);
@@ -103,6 +125,16 @@ describe("i18n", () => {
     (locale) => {
       setLocale(locale);
       for (const key of requiredSharedLabels) {
+        expect(t(key), `${locale}:${key}`).not.toBe(key);
+      }
+    },
+  );
+
+  it.each(["ko", "zh", "ja", "vi"] as const)(
+    "translates related-record customer actions in %s",
+    (locale) => {
+      setLocale(locale);
+      for (const key of relatedRecordLabels) {
         expect(t(key), `${locale}:${key}`).not.toBe(key);
       }
     },

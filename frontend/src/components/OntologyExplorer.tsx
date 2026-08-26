@@ -543,7 +543,7 @@ function OntologyNodeDrawer({
   onClose: () => void;
 }) {
   return (
-    <aside className="ontology-drawer" aria-label={t("Supporting details")}>
+    <aside className="ontology-drawer" aria-label={t("Related item")}>
       <h4>{node.display_label}</h4>
       <p>
         {t(nodeTypeLabel(node.node_type_code))} · {t(truthLabel(node.truth_status_code))}
@@ -586,7 +586,7 @@ function OntologyEdgeDrawer({
     (node) => node.node_type_code === edge.target_node_type_code && node.node_id === edge.target_node_id,
   );
   return (
-    <aside className="ontology-drawer" aria-label={t("Supporting details")}>
+    <aside className="ontology-drawer" aria-label={t("Related item")}>
       <h4>{edge.property_label}</h4>
       <p>
         {source?.display_label} → {target?.display_label}

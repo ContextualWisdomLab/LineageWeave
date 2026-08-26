@@ -11,6 +11,105 @@ export const LOCALE_LABELS: Record<Locale, string> = {
   vi: "Tiếng Việt",
 };
 
+/** Localized product copy introduced by the related-record surfaces. */
+const CUSTOMER_COPY: Record<Locale, Record<string, string>> = {
+  en: {
+    "Affiliates of {name}": "Affiliates of {name}",
+    "Close details": "Close details",
+    "Compare this information with the latest evidence before relying on it.": "Compare this information with the latest evidence before relying on it.",
+    "Connect evidence to enable change-alert subscriptions.": "Connect evidence to enable change-alert subscriptions.",
+    "Explore related information": "Explore related information",
+    "Explore related records": "Explore related records",
+    "Export structured data": "Export structured data",
+    "Follow-up actions": "Follow-up actions",
+    "How this was found": "How this was found",
+    "Linked record available": "Linked record available",
+    "Load more related information": "Load more related information",
+    "Loading related information...": "Loading related information...",
+    "More related information is available. Load more or open a record.": "More related information is available. Load more or open a record.",
+    "Needs attention": "Needs attention",
+    "No linked record is available. Review the details above.": "No linked record is available. Review the details above.",
+    "No records are available yet. Add a source record to continue.": "No records are available yet. Add a source record to continue.",
+    "No related information is available. Open a record or organization next.": "No related information is available. Open a record or organization next.",
+    "No related records are available here. Open a record or organization next.": "No related records are available here. Open a record or organization next.",
+    "No related records are available yet.": "No related records are available yet.",
+    "Open a related record to review the available information.": "Open a related record to review the available information.",
+    "Open linked record": "Open linked record",
+    "Open related item: {label}": "Open related item: {label}",
+    "Open relation: {property} from {source} to {target}": "Open relation: {property} from {source} to {target}",
+    "Post details": "Post details",
+    "Public verification is unavailable right now. Review the linked evidence or try again later.": "Public verification is unavailable right now. Review the linked evidence or try again later.",
+    "Ranking is unavailable": "Ranking is unavailable",
+    "Related detail": "Related detail",
+    "Related information": "Related information",
+    "Related information for {name}": "Related information for {name}",
+    "Related information is unavailable. Open a visible record next.": "Related information is unavailable. Open a visible record next.",
+    "Related item": "Related item",
+    "Related-record ranking": "Related-record ranking",
+    "Review the related records and evidence before selecting a customer.": "Review the related records and evidence before selecting a customer.",
+    "Search related information": "Search related information",
+    "Select a person, organization, team, or record to review its supporting details.": "Select a person, organization, team, or record to review its supporting details.",
+    "Supporting detail": "Supporting detail",
+    "Supporting details": "Supporting details",
+    "Why this item is listed": "Why this item is listed",
+    "This information is not available. Open a visible record next.": "This information is not available. Open a visible record next.",
+    "You can subscribe to evidence-change alerts.": "You can subscribe to evidence-change alerts.",
+    "{count} evidence documents are linked to this report.": "{count} evidence documents are linked to this report.",
+  },
+  ko: {
+    "Affiliates of {name}": "{name}의 소속 구성원",
+    "Close details": "세부 정보 닫기",
+    "Compare this information with the latest evidence before relying on it.": "이 정보를 사용하기 전에 최신 근거와 비교하세요.",
+    "Connect evidence to enable change-alert subscriptions.": "근거를 연결하면 변경 알림을 구독할 수 있습니다.",
+    "Explore related information": "관련 정보 탐색",
+    "Explore related records": "관련 기록 탐색",
+    "Export structured data": "구조화된 데이터 내보내기",
+    "Follow-up actions": "후속 조치",
+    "How this was found": "찾은 방법",
+    "Linked record available": "연결된 기록 있음",
+    "Load more related information": "관련 정보 더 보기",
+    "Loading related information...": "관련 정보를 불러오는 중...",
+    "More related information is available. Load more or open a record.": "더 많은 관련 정보가 있습니다. 더 불러오거나 기록을 여세요.",
+    "Needs attention": "확인이 필요합니다",
+    "No linked record is available. Review the details above.": "연결된 기록이 없습니다. 위의 세부 정보를 검토하세요.",
+    "No records are available yet. Add a source record to continue.": "아직 기록이 없습니다. 계속하려면 원본 기록을 추가하세요.",
+    "No related information is available. Open a record or organization next.": "관련 정보가 없습니다. 다음으로 기록이나 조직을 여세요.",
+    "No related records are available here. Open a record or organization next.": "여기에는 관련 기록이 없습니다. 다음으로 기록이나 조직을 여세요.",
+    "No related records are available yet.": "아직 관련 기록이 없습니다.",
+    "Open a related record to review the available information.": "관련 기록을 열어 사용 가능한 정보를 검토하세요.",
+    "Open linked record": "연결된 기록 열기",
+    "Open related item: {label}": "관련 항목 열기: {label}",
+    "Open relation: {property} from {source} to {target}": "관계 열기: {source}에서 {target}으로 {property}",
+    "Post details": "글 세부 정보",
+    "Public verification is unavailable right now. Review the linked evidence or try again later.": "공개 검증을 지금 사용할 수 없습니다. 연결된 근거를 검토하거나 나중에 다시 시도하세요.",
+    "Ranking is unavailable": "순위를 사용할 수 없습니다",
+    "Related detail": "관련 세부 정보",
+    "Related information": "관련 정보",
+    "Related information for {name}": "{name} 관련 정보",
+    "Related information is unavailable. Open a visible record next.": "관련 정보를 사용할 수 없습니다. 다음으로 볼 수 있는 기록을 여세요.",
+    "Related item": "관련 항목",
+    "Related-record ranking": "관련 기록 순위",
+    "Review the related records and evidence before selecting a customer.": "고객을 선택하기 전에 관련 기록과 근거를 검토하세요.",
+    "Search related information": "관련 정보 검색",
+    "Select a person, organization, team, or record to review its supporting details.": "사람, 조직, 팀 또는 기록을 선택해 뒷받침 세부 정보를 검토하세요.",
+    "Supporting detail": "뒷받침 세부 정보",
+    "Supporting details": "뒷받침 세부 정보",
+    "Why this item is listed": "이 항목이 표시된 이유",
+    "This information is not available. Open a visible record next.": "이 정보를 사용할 수 없습니다. 다음으로 볼 수 있는 기록을 여세요.",
+    "You can subscribe to evidence-change alerts.": "근거 변경 알림을 구독할 수 있습니다.",
+    "{count} evidence documents are linked to this report.": "이 보고서에 근거 문서 {count}개가 연결되어 있습니다.",
+  },
+  zh: {
+    "Affiliates of {name}": "{name}的关联成员", "Close details": "关闭详情", "Compare this information with the latest evidence before relying on it.": "使用此信息前请与最新证据比较。", "Connect evidence to enable change-alert subscriptions.": "连接证据以启用变更提醒订阅。", "Explore related information": "探索相关信息", "Explore related records": "探索相关记录", "Export structured data": "导出结构化数据", "Follow-up actions": "后续操作", "How this was found": "发现方式", "Linked record available": "有可用的关联记录", "Load more related information": "加载更多相关信息", "Loading related information...": "正在加载相关信息…", "More related information is available. Load more or open a record.": "还有更多相关信息。请加载更多或打开记录。", "Needs attention": "需要关注", "No linked record is available. Review the details above.": "没有关联记录。请查看上方详情。", "No records are available yet. Add a source record to continue.": "暂时没有记录。请添加来源记录继续。", "No related information is available. Open a record or organization next.": "没有相关信息。请打开记录或组织继续。", "No related records are available here. Open a record or organization next.": "这里没有相关记录。请打开记录或组织继续。", "No related records are available yet.": "暂时没有相关记录。", "Open a related record to review the available information.": "打开相关记录查看可用信息。", "Open linked record": "打开关联记录", "Open related item: {label}": "打开相关项目：{label}", "Open relation: {property} from {source} to {target}": "打开关系：{source} 到 {target} 的 {property}", "Post details": "文章详情", "Public verification is unavailable right now. Review the linked evidence or try again later.": "公共验证暂不可用。请查看关联证据或稍后重试。", "Ranking is unavailable": "排名不可用", "Related detail": "相关详情", "Related information": "相关信息", "Related information for {name}": "{name}的相关信息", "Related information is unavailable. Open a visible record next.": "相关信息不可用。请打开可见记录继续。", "Related item": "相关项目", "Related-record ranking": "相关记录排名", "Review the related records and evidence before selecting a customer.": "选择客户前请查看相关记录和证据。", "Search related information": "搜索相关信息", "Select a person, organization, team, or record to review its supporting details.": "选择人员、组织、团队或记录查看支持详情。", "Supporting detail": "支持详情", "Supporting details": "支持详情", "Why this item is listed": "显示此项目的原因", "This information is not available. Open a visible record next.": "此信息不可用。请打开可见记录继续。", "You can subscribe to evidence-change alerts.": "您可以订阅证据变更提醒。", "{count} evidence documents are linked to this report.": "此报告关联了 {count} 份证据文档。",
+  },
+  ja: {
+    "Affiliates of {name}": "{name}の関係者", "Close details": "詳細を閉じる", "Compare this information with the latest evidence before relying on it.": "この情報を使う前に最新の証拠と比較してください。", "Connect evidence to enable change-alert subscriptions.": "証拠を接続すると変更通知を購読できます。", "Explore related information": "関連情報を探す", "Explore related records": "関連記録を探す", "Export structured data": "構造化データをエクスポート", "Follow-up actions": "次の対応", "How this was found": "見つかった方法", "Linked record available": "関連記録あり", "Load more related information": "関連情報をさらに読み込む", "Loading related information...": "関連情報を読み込んでいます…", "More related information is available. Load more or open a record.": "さらに関連情報があります。追加読み込みまたは記録を開いてください。", "Needs attention": "確認が必要です", "No linked record is available. Review the details above.": "関連記録がありません。上の詳細を確認してください。", "No records are available yet. Add a source record to continue.": "まだ記録がありません。続けるには元の記録を追加してください。", "No related information is available. Open a record or organization next.": "関連情報がありません。記録または組織を開いてください。", "No related records are available here. Open a record or organization next.": "ここには関連記録がありません。記録または組織を開いてください。", "No related records are available yet.": "まだ関連記録がありません。", "Open a related record to review the available information.": "関連記録を開いて情報を確認してください。", "Open linked record": "関連記録を開く", "Open related item: {label}": "関連項目を開く：{label}", "Open relation: {property} from {source} to {target}": "関係を開く：{source}から{target}への{property}", "Post details": "投稿の詳細", "Public verification is unavailable right now. Review the linked evidence or try again later.": "公開検証は現在利用できません。関連証拠を確認するか、後でもう一度お試しください。", "Ranking is unavailable": "ランキングを利用できません", "Related detail": "関連詳細", "Related information": "関連情報", "Related information for {name}": "{name}の関連情報", "Related information is unavailable. Open a visible record next.": "関連情報を利用できません。表示できる記録を開いてください。", "Related item": "関連項目", "Related-record ranking": "関連記録のランキング", "Review the related records and evidence before selecting a customer.": "顧客を選択する前に関連記録と証拠を確認してください。", "Search related information": "関連情報を検索", "Select a person, organization, team, or record to review its supporting details.": "人物、組織、チーム、記録を選択して裏付け詳細を確認してください。", "Supporting detail": "裏付け詳細", "Supporting details": "裏付け詳細", "Why this item is listed": "この項目が表示される理由", "This information is not available. Open a visible record next.": "この情報を利用できません。表示できる記録を開いてください。", "You can subscribe to evidence-change alerts.": "証拠の変更通知を購読できます。", "{count} evidence documents are linked to this report.": "このレポートには証拠文書が{count}件リンクされています。",
+  },
+  vi: {
+    "Affiliates of {name}": "Đơn vị liên kết của {name}", "Close details": "Đóng chi tiết", "Compare this information with the latest evidence before relying on it.": "Hãy so sánh thông tin này với bằng chứng mới nhất trước khi sử dụng.", "Connect evidence to enable change-alert subscriptions.": "Kết nối bằng chứng để bật đăng ký thông báo thay đổi.", "Explore related information": "Khám phá thông tin liên quan", "Explore related records": "Khám phá bản ghi liên quan", "Export structured data": "Xuất dữ liệu có cấu trúc", "Follow-up actions": "Hành động tiếp theo", "How this was found": "Cách tìm thấy", "Linked record available": "Có bản ghi liên kết", "Load more related information": "Tải thêm thông tin liên quan", "Loading related information...": "Đang tải thông tin liên quan…", "More related information is available. Load more or open a record.": "Còn thông tin liên quan. Hãy tải thêm hoặc mở một bản ghi.", "Needs attention": "Cần chú ý", "No linked record is available. Review the details above.": "Không có bản ghi liên kết. Hãy xem chi tiết ở trên.", "No records are available yet. Add a source record to continue.": "Chưa có bản ghi. Hãy thêm bản ghi nguồn để tiếp tục.", "No related information is available. Open a record or organization next.": "Không có thông tin liên quan. Hãy mở bản ghi hoặc tổ chức tiếp theo.", "No related records are available here. Open a record or organization next.": "Không có bản ghi liên quan ở đây. Hãy mở bản ghi hoặc tổ chức tiếp theo.", "No related records are available yet.": "Chưa có bản ghi liên quan.", "Open a related record to review the available information.": "Mở bản ghi liên quan để xem thông tin hiện có.", "Open linked record": "Mở bản ghi liên kết", "Open related item: {label}": "Mở mục liên quan: {label}", "Open relation: {property} from {source} to {target}": "Mở quan hệ {property} từ {source} đến {target}", "Post details": "Chi tiết bài viết", "Public verification is unavailable right now. Review the linked evidence or try again later.": "Xác minh công khai hiện không khả dụng. Hãy xem bằng chứng liên kết hoặc thử lại sau.", "Ranking is unavailable": "Không thể dùng xếp hạng", "Related detail": "Chi tiết liên quan", "Related information": "Thông tin liên quan", "Related information for {name}": "Thông tin liên quan đến {name}", "Related information is unavailable. Open a visible record next.": "Thông tin liên quan không khả dụng. Hãy mở bản ghi hiển thị tiếp theo.", "Related item": "Mục liên quan", "Related-record ranking": "Xếp hạng bản ghi liên quan", "Review the related records and evidence before selecting a customer.": "Hãy xem bản ghi và bằng chứng liên quan trước khi chọn khách hàng.", "Search related information": "Tìm thông tin liên quan", "Select a person, organization, team, or record to review its supporting details.": "Chọn người, tổ chức, nhóm hoặc bản ghi để xem chi tiết hỗ trợ.", "Supporting detail": "Chi tiết hỗ trợ", "Supporting details": "Các chi tiết hỗ trợ", "Why this item is listed": "Lý do mục này được hiển thị", "This information is not available. Open a visible record next.": "Thông tin này không khả dụng. Hãy mở bản ghi hiển thị tiếp theo.", "You can subscribe to evidence-change alerts.": "Bạn có thể đăng ký thông báo thay đổi bằng chứng.", "{count} evidence documents are linked to this report.": "Có {count} tài liệu bằng chứng liên kết với báo cáo này.",
+  },
+};
+
 export function isSupportedLocale(value: unknown): value is Locale {
   return typeof value === "string" && (SUPPORTED_LOCALES as readonly string[]).includes(value);
 }
@@ -2084,7 +2183,7 @@ export function useLocale(): Locale {
 }
 
 export function t(key: string): string {
-  return TRANSLATIONS[currentLocale]?.[key] ?? key;
+  return CUSTOMER_COPY[currentLocale][key] ?? TRANSLATIONS[currentLocale]?.[key] ?? key;
 }
 
 export function tf(key: string, values: Record<string, string | number>): string {
