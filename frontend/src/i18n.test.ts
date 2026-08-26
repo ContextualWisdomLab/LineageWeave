@@ -104,6 +104,8 @@ describe("i18n", () => {
     "Role",
     "Key contact",
     "How this was found",
+    "Reviewed detail",
+    "Project listed in the record",
     "Why this item is listed",
     "No records are available yet. Add a source record to continue.",
     "Public verification is unavailable right now. Review the linked evidence or try again later.",
