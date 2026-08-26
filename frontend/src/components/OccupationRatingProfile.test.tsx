@@ -90,6 +90,31 @@ describe("OccupationRatingProfile", () => {
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
   });
 
+  it("clears evidence and ignores an in-flight response when authentication changes", async () => {
+    let finishExpired: ((profile: Payload) => void) | undefined;
+    vi.mocked(fetchOccupationRatingSources).mockResolvedValue({ sources: [{
+      data_release_code: "onet-31.0", release_version: "31.0",
+      source_publisher_name: "Synthetic publisher", source_license_url: "https://example.test/license",
+      source_table_code: "abilities", source_table_name: "Abilities",
+      source_artifact_url: "https://example.test/abilities.csv", source_artifact_sha256: "a".repeat(64),
+      source_row_count: 2,
+    }] });
+    vi.mocked(fetchOccupationRatings).mockImplementation(
+      () => new Promise((resolve) => { finishExpired = resolve; }),
+    );
+    const { rerender } = render(<OccupationRatingProfile accessToken="expired-token" />);
+    await screen.findByRole("option", { name: "31.0 · Abilities" });
+    await userEvent.type(screen.getByLabelText("O*NET-SOC 직업 코드"), "15-1252.00");
+    await userEvent.click(screen.getByRole("button", { name: "직업 근거 열기" }));
+
+    rerender(<OccupationRatingProfile accessToken="fresh-token" />);
+    finishExpired?.(ready);
+
+    expect(await screen.findByRole("option", { name: "31.0 · Abilities" })).toBeInTheDocument();
+    expect(screen.queryByText("4.10")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "직업 근거 열기" })).not.toBeDisabled();
+  });
+
   it("hides stale pagination after form edits and loads the new profile", async () => {
     vi.mocked(fetchOccupationRatingSources).mockResolvedValue({
       sources: [{
