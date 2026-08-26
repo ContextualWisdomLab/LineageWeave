@@ -360,9 +360,9 @@ async def gather_chat_sources(
     linked = await find_linked_post_ids(conn, post_id)
     project_sibling_ids = await find_project_sibling_post_ids(conn, post_id)
     candidate_ids = [
-        *sorted(project_sibling_ids - linked.direct - linked.indirect),
-        *sorted(linked.direct),
-        *sorted(linked.indirect),
+        *sorted(project_sibling_ids),
+        *sorted(linked.direct - project_sibling_ids),
+        *sorted(linked.indirect - project_sibling_ids),
     ][:_POST_CHAT_CANDIDATE_LIMIT]
     if not candidate_ids:
         return sources
