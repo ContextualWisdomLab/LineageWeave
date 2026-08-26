@@ -1,6 +1,6 @@
 # Product & Technical Gap Baseline
 
-> Dashboard delivery snapshot: 2026-08-26 13:49 KST. Protected `main` is
+> Dashboard delivery snapshot: 2026-08-26 13:57 KST. Protected `main` is
 > `494b54e2245040bcf02b45376f221c37cd437e76`. This local branch is not
 > protected-main release evidence.
 
@@ -68,7 +68,7 @@ are not merge readiness. Re-fetch exact heads,
 unresolved threads, checks, approvals, rulesets, and merge SHA before any
 lifecycle claim.
 
-> Audit snapshot: 2026-08-26 13:49 KST (refreshed by the autonomous merge
+> Audit snapshot: 2026-08-26 13:57 KST (refreshed by the autonomous merge
 > loop). This repository records synthetic fixtures and aggregate,
 > non-identifying runtime evidence only. Open PRs and local checks are not
 > protected-default-branch release evidence. Identifying post identifiers,
@@ -89,7 +89,7 @@ context only.
 | #680 | `5c246a54` | customer-facing ranking copy with localized retry/search guidance and source-record detail copy corrected; BLOCKED with exact-head checks and independent review required |
 | #679 | `29aa69dd` | ADR 0229 public-claim envelope, async verification, locale-aware next actions, opt-in search setup, and aggregate-status guidance repair; BLOCKED with exact-head checks and independent review required |
 | #672 | `99a0322d` | persisted semantic-evidence nomination for Global Ask now uses unique ADR 0233/0234 and migration 0225/0226 identities; the public verifier factory is late-bound so the async worker uses current configuration, with its formerly failing PostgreSQL verification test and replay checks passing (17 focused tests); hosted checks and independent review requeued |
-| #668 | `1a2fae22` | evidence-bound project history projection now uses unique ADR 0232, with request guards, source-code/time-basis display repair, and theme-token timeline styling; hosted checks and independent review requeued |
+| #668 | `4664246e` | evidence-bound project history uses unique ADR 0232, orders by recorded event time with an honest source-creation fallback, removes an unused grouping implementation, and replaces stored time-basis codes and the Storybook `Buyer` boundary with five-locale customer copy; 9 Python and 66 frontend tests, production/Storybook builds, and 1440×1000 plus 390×844 screenshots pass; hosted checks and independent review requeued |
 | #667 | `763185ff` | baseline refresh plus repeated-turn conversation-key repair, stale-history response fencing, uniquely numbered conversation/legacy-ontology ADRs, source-lock protection for hard-deleted Ask evidence, protected ontology publication proof, five-locale analysis-run guidance, and reproducible canonical/legacy publication URL statuses; exact-head hosted checks and independent approval remain pending |
 | #663 | `885f27fd` | project ontology traversal, cutoff-snapshot project focus, bounded MCP admission, and migration-fixture/worker startup repair; its new ADRs use unique 0230/0231 identities, KG edge creation now obeys the knowledge cutoff, and all Ask next actions have five-locale coverage (17 Python and 64 i18n tests pass); hosted checks and independent review requeued |
 | #658 | `f497a6e8` | evidence-honest Global Ask cutoff with robust revision timestamps; BLOCKED with review required |
@@ -110,7 +110,7 @@ non-default #667 stack as `55b5a48ff997fddbe8fcc47a268d0b02aa835c6a`.
 These are stack-integration evidence only; they are not protected-`main`
 delivery. Their acceptance now travels with the two parent heads above.
 
-The exact-head check-run scan at 13:49 KST found no `failure`, `cancelled`, or
+The exact-head check-run scan at 13:57 KST found no `failure`, `cancelled`, or
 `timed_out` conclusions on the 16 current heads. Several heads, including
 PR #667, #672, and #686 after their repair pushes, are still queued and therefore have
 no terminal gate evidence; review approval is also independently required.
