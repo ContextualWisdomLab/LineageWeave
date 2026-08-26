@@ -19,6 +19,7 @@ from backend.app.post_content_queue import (
     SUCCEEDED,
 )
 from lineageweave.operations_case_analysis import OperationsEvidenceSource
+from lineageweave.http_client import HttpAdmissionDeferred
 
 _PRODUCT_ANALYSIS = post_content_worker._persist_product_analysis_if_needed
 
@@ -83,6 +84,7 @@ def _row(status: str, attempt_count: int, *, started_at: object = None) -> dict[
         "job_attempt_count": attempt_count,
         "job_started_at": started_at,
         "job_queued_at": "queued-at",
+        "job_next_attempt_at": None,
         "post_body": "A synthetic post body with a retrieval unit.",
         "post_title": "Synthetic post title",
     }
@@ -833,6 +835,62 @@ def test_transient_provider_error_is_requeued_before_attempt_limit(monkeypatch, 
         item for item in caplog.records if item.msg == "lineageweave.server_failure"
     )
     assert record.failure_outcome == "provider_unavailable"
+
+
+def test_no_viable_agent_defers_without_consuming_failure_budget(monkeypatch) -> None:
+    """Provider admission refusal uses the exact durable deferral transition."""
+    connection = _Connection()
+    pool = _Pool(connection)
+    deferred: list[tuple[int, int]] = []
+
+    async def claim(*_args, **_kwargs):
+        return _row(RUNNING, 0)
+
+    async def no_viable(*_args, **_kwargs):
+        raise HttpAdmissionDeferred(30)
+
+    async def evidence_sources(*_args, **_kwargs):
+        return ()
+
+    async def defer(*_args, expected_attempt_count: int, retry_after_seconds: int, **_kwargs):
+        deferred.append((expected_attempt_count, retry_after_seconds))
+        return True
+
+    monkeypatch.setattr(post_content_worker, "_claim_job", claim)
+    monkeypatch.setattr(
+        post_content_worker,
+        "_persist_operations_case_analysis_if_needed",
+        no_viable,
+    )
+    monkeypatch.setattr(
+        post_content_worker,
+        "_operations_evidence_sources",
+        evidence_sources,
+    )
+    monkeypatch.setattr(post_content_worker, "defer_post_content_job", defer)
+    monkeypatch.setattr(
+        post_content_worker,
+        "load_settings",
+        lambda: SimpleNamespace(
+            orchestrator_base_url="http://orchestrator",
+            orchestrator_api_key="synthetic-token",
+        ),
+    )
+    client = SimpleNamespace(available=True)
+
+    asyncio.run(
+        post_content_worker.process_post_content_job(
+            pool,
+            post_id="00000000-0000-0000-0000-000000000001",
+            source_body_digest="a" * 64,
+            vision_factory=lambda: client,
+            embedding_factory=lambda: client,
+            structure_factory=lambda: client,
+        )
+    )
+
+    assert deferred == [(1, 30)]
+    assert not any("post_content_ingestion_failed" in str(args) for _, args in connection.executed)
 
 
 def test_unexpected_worker_error_is_classified_as_internal(monkeypatch, caplog) -> None:

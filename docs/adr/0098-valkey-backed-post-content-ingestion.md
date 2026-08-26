@@ -110,6 +110,22 @@ If Valkey is unavailable, the response reports `recovery_pending` and the
 committed queued rows are republished by the existing recovery sweep. Direct
 provider calls are not a substitute for the worker queue.
 
+## Provider admission deferral (2026-08-26)
+
+Contextual-orchestrator may return its typed `no_viable_agent` response before
+any provider inference is admitted. It supplies the same positive delay in the
+standard `Retry-After` header and its bounded error contract. This outcome is
+queue admission evidence, not a provider attempt or a negative analysis.
+
+The owning worker therefore uses a fenced PostgreSQL transition from the exact
+running lease back to queued, reverses only that lease's claim increment, and
+stores `next_attempt_at` from the orchestrator's exact delay. The post identity,
+body digest, post-scoped session, and existing evidence remain unchanged. A
+stale worker cannot defer a newer lease. Recovery publishes the row only after
+`next_attempt_at`; other transport, provider, validation, and persistence
+failures retain the existing three-attempt accounting. Raw upstream error text,
+agent identity, prompt, and response are neither stored nor shown to a reader.
+
 ### Operational timeout for structure adjudication
 
 The contextual-orchestrator structure adjudication request uses a 600-second client timeout by default. Structure inference is an accuracy-critical, structured multi-agent operation rather than a user-facing synchronous request; the longer bound prevents a slow but valid workflow from being downgraded to `unresolved` merely because the client abandoned the response. The durable job remains queued until all non-image units have complete structure evidence.
