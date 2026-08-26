@@ -19,6 +19,14 @@ from .ontology import LW, ONTOLOGY
 _ELEMENT_ID_PATTERN = re.compile(r"^[1-6](?:\.[A-Za-z0-9]+)*$")
 
 
+def _outline_sort_key(element_id: str) -> tuple[tuple[int, int | str], ...]:
+    """Return the mixed numeric/text ordering of an O*NET outline ID."""
+    return tuple(
+        (0, int(part)) if part.isdigit() else (1, part)
+        for part in element_id.split(".")
+    )
+
+
 @dataclass(frozen=True)
 class OnetContentModelRecord:
     """One exact O*NET 31.0 Content Model Reference element."""
@@ -93,9 +101,7 @@ def content_model_records() -> tuple[OnetContentModelRecord, ...]:
                 branch_element_id=".".join(parts[:2]) if len(parts) > 1 else None,
             )
         )
-    return tuple(
-        sorted(records, key=lambda record: tuple(record.element_id.split(".")))
-    )
+    return tuple(sorted(records, key=lambda record: _outline_sort_key(record.element_id)))
 
 
 def content_model_element(element_id: str) -> OnetContentModelRecord | None:
