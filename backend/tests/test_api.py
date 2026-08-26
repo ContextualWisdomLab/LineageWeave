@@ -437,7 +437,6 @@ def seeded_db(demo_analyst_token):
                 "('corporate_entity_level', 'plant', 'Plant'), "
                 "('post_visibility', 'public', 'Public'), "
                 "('post_visibility', 'private', 'Private'), "
-                "('voc_type', 'voc', 'Voice of Customer'), "
                 "('permission', 'post_read', 'Read posts'), "
                 "('person_side', 'our_side', 'Our side'), "
                 "('person_side', 'counterparty', 'Counterparty'), "
