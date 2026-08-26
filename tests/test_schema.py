@@ -220,7 +220,7 @@ def schema_db():
                 # psql sends each statement independently, which is required
                 # by CREATE INDEX CONCURRENTLY. psycopg2 treats a multi-
                 # statement execute as one transaction even with autocommit.
-                for statement in _GLOBAL_ASK_EVIDENCE_SEARCH_MIGRATION.read_text().split(";\n\n"):
+                for statement in _GLOBAL_ASK_EVIDENCE_SEARCH_MIGRATION.read_text().split(";"):
                     if statement.strip():
                         cur.execute(statement)
             # Migration replay needs autocommit for concurrent indexes, while

@@ -405,7 +405,7 @@ def seeded_db(demo_analyst_token):
             # in autocommit mode. Production psql executes this migration's
             # CREATE INDEX CONCURRENTLY statements separately (ADR 0166), so
             # preserve that boundary in the integration fixture as well.
-            for statement in _GLOBAL_ASK_EVIDENCE_SEARCH_MIGRATION.read_text().split(";\n\n"):
+            for statement in _GLOBAL_ASK_EVIDENCE_SEARCH_MIGRATION.read_text().split(";"):
                 if statement.strip():
                     cur.execute(statement)
             cur.execute(_GLOBAL_ASK_KNOWLEDGE_CUTOFF_MIGRATION.read_text())
