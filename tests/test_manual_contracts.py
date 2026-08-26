@@ -52,9 +52,11 @@ def test_user_manual_covers_every_supported_voice_code() -> None:
     """Keep the user-facing category inventory equal to the API union."""
     manual = _text("user-guide.md")
     api = (ROOT / "frontend" / "src" / "api.ts").read_text(encoding="utf-8")
-    for code in ("voc", "vocc", "voco", "vom", "vop", "vos", "voe", "vob", "vor", "voi", "voso", "vops"):
-        assert f'"{code}"' in api
-        assert f"| {code.upper()} |" in manual
+    api_union = re.search(r"voice_concept_code:\s*([^;]+);", api)
+    assert api_union is not None
+    api_codes = set(re.findall(r'"([a-z]+)"', api_union.group(1)))
+    manual_codes = set(re.findall(r"^\| ([A-Z]+) \|", manual, flags=re.MULTILINE))
+    assert {code.upper() for code in api_codes} == manual_codes
 
 
 def test_operations_manual_names_current_commands_and_fail_closed_measurement() -> None:
