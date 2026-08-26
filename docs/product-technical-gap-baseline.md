@@ -111,6 +111,20 @@ re-fetch the head, unresolved threads, formal reviews, rulesets, and same-head
 check conclusions. In particular, queued checks are infrastructure state and
 do not transfer evidence from an earlier SHA.
 
+### Cross-PR contract collision audit
+
+The current heads cannot be merged in arbitrary order. PR #672 and stacked
+PR #677 assign different decisions to ADR 0228 (public-claim verification
+versus per-post conversation history). PR #640 and PR #663 likewise assign
+different decisions to ADR 0224, while #640 and #672 introduce different
+`0211_*.sql` migrations. The `0212_global_ask_knowledge_cutoff.sql` blobs in
+#658 and #663 are byte-identical, so that overlap is duplicated delivery rather
+than a semantic divergence. Release metadata also diverges: the observed
+`pyproject.toml` versions are 2.18.0 on #632/#640/#663/#689, 2.19.0 on #643,
+and 2.22.0 on #679. These ADR, migration, and release identities remain merge
+blockers until the parent lands and every surviving child is retargeted to
+`main`, renumbered where needed, and revalidated on its new exact head.
+
 The hosted Full test for PR #632 at superseded head `cad4debf` failed only in
 the real-PostgreSQL semantic-nomination test with `InvalidPasswordError`; the
 other 1,333 tests passed. The run was cancelled after the branch advanced to
