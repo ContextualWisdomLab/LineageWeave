@@ -253,6 +253,34 @@ describe("OccupationRatingProfile", () => {
     expect(screen.getByText("3.20")).toBeInTheDocument();
   });
 
+  it("filters published titles and retained codes without a typed fallback", async () => {
+    vi.mocked(fetchOccupationRatings).mockResolvedValue(ready);
+    render(<OccupationRatingProfile accessToken="synthetic-token" />);
+    await screen.findByRole("option", { name: "Software Developers · 15-1252.00" });
+
+    await userEvent.type(screen.getByLabelText("직업 찾기"), "15-1252");
+
+    expect(screen.queryByRole("option", { name: "Chief Executives · 11-1011.00" })).not.toBeInTheDocument();
+    expect(screen.getByRole("option", { name: "Software Developers · 15-1252.00" })).toBeInTheDocument();
+    await userEvent.selectOptions(screen.getByLabelText("직업"), "15-1252.00");
+    await userEvent.click(screen.getByRole("button", { name: "직업 근거 열기" }));
+    expect(fetchOccupationRatings).toHaveBeenCalledWith("synthetic-token", {
+      onetsocCode: "15-1252.00", dataReleaseCode: "onet-31.0", sourceTableCode: "abilities", offset: 0,
+    });
+  });
+
+  it("offers next actions and submits nothing when the catalog filter has no match", async () => {
+    render(<OccupationRatingProfile accessToken="synthetic-token" />);
+    await screen.findByRole("option", { name: "Software Developers · 15-1252.00" });
+    vi.mocked(fetchOccupationRatings).mockClear();
+
+    await userEvent.type(screen.getByLabelText("직업 찾기"), "unknown-occupation");
+
+    expect(await screen.findByText(/검색어를 바꾸거나 다른 근거 표를 선택하세요/)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "직업 근거 열기" })).toBeDisabled();
+    expect(fetchOccupationRatings).not.toHaveBeenCalled();
+  });
+
   it("distinguishes an unavailable artifact from an empty occupation profile", () => {
     const { rerender } = render(<OccupationRatingProfileView profile={{ ...ready, source_available: false, source: null, items: [] }} />);
     expect(screen.getByRole("status")).toHaveTextContent("아직 준비되지 않았습니다");
