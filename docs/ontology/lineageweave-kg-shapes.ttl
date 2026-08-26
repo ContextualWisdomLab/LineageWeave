@@ -186,6 +186,30 @@
         sh:class :Post ;
     ] .
 
+:ProductMentionShape a sh:NodeShape ;
+    rdfs:label "Evidence-bound product mention shape" ;
+    sh:targetClass :ProductMention ;
+    sh:property [
+        sh:path :extractedProductName ;
+        sh:minCount 1 ; sh:maxCount 1 ;
+        sh:datatype xsd:string ; sh:minLength 1 ;
+    ] ;
+    sh:property [
+        sh:path :productResolutionStatus ;
+        sh:minCount 1 ; sh:maxCount 1 ;
+        sh:in ("unique" "missing" "tie" "unavailable") ;
+    ] ;
+    sh:property [
+        sh:path :evidenceInputDigest ;
+        sh:minCount 1 ; sh:maxCount 1 ;
+        sh:datatype xsd:string ; sh:pattern "^[0-9a-f]{64}$" ;
+    ] ;
+    sh:property [
+        sh:path prov:wasDerivedFrom ;
+        sh:minCount 1 ; sh:maxCount 1 ;
+        sh:class :Post ;
+    ] .
+
 :OurSidePersonShape a sh:NodeShape ;
     rdfs:label "Our-side person shape" ;
     sh:comment "Closed-world complement of :OurSidePerson owl:disjointWith :CounterpartyPerson: an instance of one can never be typed as the other." ;

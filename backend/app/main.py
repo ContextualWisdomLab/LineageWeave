@@ -1590,6 +1590,23 @@ async def read_post(
         project_evidence = await _load_project_evidence(
             conn, post_id, row["source_project_code"], row["source_project_name"]
         )
+        # Safe SQL: the eligibility predicate is an immutable schema fragment; post id is bound.
+        product_rows = await conn.fetch(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
+            "select mention.mention_ordinal, mention.extracted_product_name, "
+            "mention.resolution_status_code, catalog.canonical_product_name, "
+            "catalog.product_level_code, mention.evidence_text, "
+            "mention.evidence_post_id, evidence_post.visibility_code, "
+            "evidence_post.corporate_entity_id, evidence_post.process_unit_id "
+            "from post_product_mention mention "
+            "left join product_catalog catalog "
+            "on catalog.product_catalog_id = mention.product_catalog_id "
+            "join source_post evidence_post "
+            "on evidence_post.post_id = mention.evidence_post_id "
+            "where mention.post_id = $1 and "
+            f"{SOURCE_POST_ELIGIBILITY_SQL.format(alias='evidence_post')} "
+            "order by mention.mention_ordinal",
+            post_id,
+        )
         known_at = None
         if as_of_clock is not None:
             known_at = await fetch_known_at_revision(conn, post_id, as_of_clock)
@@ -1597,6 +1614,19 @@ async def read_post(
         **_serialize_post(row, labels),
         "post_body": row["post_body"],
         "project_evidence": project_evidence,
+        "product_evidence": [
+            {
+                "mention_ordinal": item["mention_ordinal"],
+                "extracted_product_name": item["extracted_product_name"],
+                "resolution_status_code": item["resolution_status_code"],
+                "canonical_product_name": item["canonical_product_name"],
+                "product_level_code": item["product_level_code"],
+                "evidence_text": item["evidence_text"],
+                "evidence_post_id": item["evidence_post_id"],
+            }
+            for item in product_rows
+            if _can_see_post(account, item)
+        ],
     }
     if known_at is not None:
         payload["known_at"] = known_at

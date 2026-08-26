@@ -467,6 +467,26 @@
     rdfs:subClassOf rdf:Statement, prov:Entity ;
     rdfs:label "Operations case fact"@en .
 
+:Product a owl:Class ;
+    rdfs:label "Product"@en ;
+    rdfs:comment "A governed product catalog identity at group, model, variant, or trade-item level."@en .
+
+:ProductMention a owl:Class ;
+    rdfs:label "Product mention"@en ;
+    rdfs:comment "A source-span-bound product mention with a fail-closed catalog resolution outcome."@en .
+
+:mentionsProduct a owl:ObjectProperty ;
+    rdfs:domain :ProductMention ; rdfs:range :Product .
+
+:extractedProductName a owl:DatatypeProperty ;
+    rdfs:domain :ProductMention ; rdfs:range xsd:string .
+
+:productResolutionStatus a owl:DatatypeProperty ;
+    rdfs:domain :ProductMention ; rdfs:range xsd:string .
+
+:evidenceInputDigest a owl:DatatypeProperty ;
+    rdfs:domain :ProductMention ; rdfs:range xsd:string .
+
 :Order a owl:Class ; rdfs:label "Order"@en .
 :SalesContext a owl:Class ; rdfs:label "Sales context"@en .
 :BusinessManagementContext a owl:Class ; rdfs:label "Business-management context"@en .
