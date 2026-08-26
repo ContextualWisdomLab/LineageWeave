@@ -35,6 +35,7 @@ from backend.app.occupation_rating_ingestion import (
 )
 from backend.app.post_chat_ingestion import gather_global_chat_sources
 from scripts.import_onet_ratings import import_ratings
+from scripts.import_job_architecture import import_job_architecture
 
 _ADMIN_DSN = os.environ.get(
     "LINEAGEWEAVE_TEST_POSTGRES_ADMIN_DSN", "postgresql://localhost/postgres"
@@ -117,6 +118,11 @@ _ONET_RATING_MIGRATION = (
     / "migrations"
     / "0222_onet_rating_observation_store.sql"
 )
+_JOB_ARCHITECTURE_MIGRATION = (
+    Path(__file__).resolve().parents[1]
+    / "migrations"
+    / "0223_authorized_job_architecture.sql"
+)
 _CHANNEL_EVIDENCE_MIGRATION = (
     Path(__file__).resolve().parents[1] / "migrations" / "0174_post_lineage_edge_signal.sql"
 )
@@ -188,6 +194,7 @@ def schema_db():
                 cur.execute(_LEFTOVER_MAP_RECONSTRUCTION_MIGRATION.read_text())
                 cur.execute(_SOURCE_EVENT_TIME_MIGRATION.read_text())
                 cur.execute(_ONET_RATING_MIGRATION.read_text())
+                cur.execute(_JOB_ARCHITECTURE_MIGRATION.read_text())
                 # psql sends each statement independently, which is required
                 # by CREATE INDEX CONCURRENTLY. psycopg2 treats a multi-
                 # statement execute as one transaction even with autocommit.
@@ -256,8 +263,69 @@ def test_migration_applies_cleanly(schema_db) -> None:
         "occupational_classification_entry",
         "occupational_element_definition",
         "occupational_rating_observation",
+        "job_architecture_source",
+        "job_architecture_node",
+        "job_architecture_hierarchy_edge",
+        "job_architecture_occupation_binding",
     }
     assert expected <= tables
+
+
+def test_job_architecture_import_is_idempotent_and_immutable(
+    schema_db,
+    tmp_path: Path,
+) -> None:
+    """An exact synthetic snapshot replays while a changed identity fails closed."""
+    with schema_db.cursor() as cur:
+        cur.execute(_JOB_ARCHITECTURE_MIGRATION.read_text())
+        cur.execute(
+            """insert into common_lookup_value
+                   (lookup_category, lookup_code, lookup_label)
+               values ('corporate_entity_level', 'company', 'Company')"""
+        )
+        cur.execute(
+            """insert into corporate_entity
+                   (corporate_entity_code, entity_name, entity_level_code)
+               values ('SYNTHETIC-JOB-ARCH', 'Synthetic job architecture', 'company')"""
+        )
+    schema_db.commit()
+    source = tmp_path / "job-architecture.csv"
+    source.write_text(
+        "Node Code,Node Kind,Node Name,Description,Parent Code,Hierarchy Relation,Valid From,Valid To,Occupation Scheme IRI,Occupation Scheme Version,Occupation Code,Occupation Relation\n"
+        "F-A,job_family,Synthetic family,,,,2026-01-01,,,,,\n"
+        "S-1,job_series,Synthetic series,,F-A,source_broader,2026-01-01,,https://example.test/scheme,2026,SYN-1,source_classification\n",
+        encoding="utf-8",
+    )
+    args = SimpleNamespace(
+        target_dsn=urlunsplit(
+            urlsplit(_ADMIN_DSN)._replace(path=f"/{schema_db.info.dbname}")
+        ),
+        corporate_entity_code="SYNTHETIC-JOB-ARCH",
+        source_system_code="synthetic_hris",
+        source_snapshot_code="snapshot-2026-01",
+        source_name="Synthetic authorized source",
+        source_url="https://example.test/job-architecture.csv",
+        source_sha256=hashlib.sha256(source.read_bytes()).hexdigest(),
+        source_row_count=2,
+        source_file=source,
+    )
+
+    assert asyncio.run(import_job_architecture(args))["imported_nodes"] == 2
+    assert asyncio.run(import_job_architecture(args))["imported_nodes"] == 2
+    with schema_db.cursor() as cur:
+        cur.execute("select count(*) from job_architecture_node")
+        assert cur.fetchone() == (2,)
+        cur.execute("select count(*) from job_architecture_hierarchy_edge")
+        assert cur.fetchone() == (1,)
+        cur.execute("select count(*) from job_architecture_occupation_binding")
+        assert cur.fetchone() == (1,)
+
+    changed = tmp_path / "changed-job-architecture.csv"
+    changed.write_text(source.read_text().replace("Synthetic series", "Changed series"))
+    args.source_file = changed
+    args.source_sha256 = hashlib.sha256(changed.read_bytes()).hexdigest()
+    with pytest.raises(asyncpg.CheckViolationError, match="immutable"):
+        asyncio.run(import_job_architecture(args))
 
 
 def test_onet_rating_store_partitions_upserts_and_rejects_invalid_error(schema_db) -> None:

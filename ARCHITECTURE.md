@@ -688,6 +688,19 @@ enforcement mechanism: a future PR that adds a new `edge_type` or
 `entity_relationship_type` code without updating the ontology fails
 this test, not just a docstring's word.
 
+### Authorized job architecture snapshots
+
+The public SOC/O*NET vocabulary and an employer's job architecture remain
+different graphs. ADR 0263 adds an organization-scoped PostgreSQL source
+boundary for private job-family/job-series snapshots: immutable source
+metadata owns normalized nodes, source-declared broader/narrower edges, and
+optional explicit bindings to a versioned external occupation scheme. An edge
+table preserves multiple-family membership; the importer rejects cycles and
+never derives a parent or binding from a label or code pattern. The snapshot
+is source evidence only. It does not create a person, post, organizational
+unit, competency, score, weight, or ontology assertion, and runtime rows never
+enter repository artifacts.
+
 ## Phase 6c: post content normalization before any LLM/embedding call
 
 The brief's latest revision calls out, explicitly, that a post body mixing

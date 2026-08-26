@@ -215,6 +215,21 @@ stays bound to the loaded profile identifiers.
 Acceptance: submitting still sends only a catalog identity; a non-matching
 filter never creates a request; and Storybook covers a no-match state.
 
+### PRD-FR-2J — Authorized job-family and job-series snapshots
+
+- Import one authorized, pinned organization-specific source snapshot without
+  committing runtime rows or creating an organization (ADR 0263).
+- Keep job families, job series, standard occupations, organizational units,
+  positions, people, and psychological constructs as distinct identities.
+- Preserve source-declared multiple-family membership and validity dates; infer
+  no parent or occupation binding from a code, label, similarity, or model.
+- Persist a standard-occupation binding only when scheme IRI, version, code,
+  and source relation are all explicitly supplied.
+
+Acceptance: synthetic tests reproduce a series with two source-declared family
+parents, reject cycles and partial bindings, leave an occupation-looking label
+unbound, and prove the normalized snapshot store is immutable.
+
 ### PRD-FR-3 — Bounded ontology exploration
 
 - Apply RBAC/ABAC, source eligibility, and knowledge cutoff before graph

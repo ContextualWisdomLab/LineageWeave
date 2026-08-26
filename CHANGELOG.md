@@ -8,6 +8,10 @@ All notable changes to this project are documented here. Format follows
 
 ### Added
 
+- Authorized job-family/job-series snapshots now have a normalized immutable
+  source, node, multiple-membership hierarchy, and explicit occupation-binding
+  contract. The pinned CSV importer rejects cycles, partial bindings, changed
+  snapshot identities, and label-derived occupation matches (ADR 0263).
 - Occupation evidence now filters the imported occupation catalog by published
   title or retained code without ranking or typed-code fallback, and fails
   closed when the filter matches nothing (ADR 0262).
@@ -55,7 +59,8 @@ All notable changes to this project are documented here. Format follows
   person-level inference is introduced.
 - The occupational-classification and worker-characteristic taxonomy is now
   published in the canonical ontology: all 23 major groups of the 2018
-  Standard Occupational Classification (the O*NET job families) carry
+  Standard Occupational Classification (statistical occupation groups, not
+  employer job families) carry
   official titles and codes verbatim, the four O*NET 31.0 job-zone categories
   carry their published names and source values, and source-native
   worker-characteristic families are addressable -- Fleishman's four ability domains,
