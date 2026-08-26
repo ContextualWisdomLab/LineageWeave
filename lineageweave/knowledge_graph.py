@@ -130,6 +130,7 @@ NODE_PERSON = "node_person"
 NODE_CORPORATE_ENTITY = "node_corporate_entity"
 NODE_POST = "node_post"
 NODE_TEAM = "node_team"
+NODE_PROJECT = "node_project"
 EDGE_MENTION = "edge_mention"
 EDGE_AFFILIATION = "edge_affiliation"
 EDGE_CO_MENTION = "edge_co_mention"
@@ -142,13 +143,15 @@ EDGE_CO_MENTION = "edge_co_mention"
 EDGE_MENTION_TEAM = "edge_mention_team"
 EDGE_TEAM_AFFILIATION = "edge_team_affiliation"
 EDGE_MENTION_ORGANIZATION = "edge_mention_organization"
+EDGE_MENTION_PROJECT = "edge_mention_project"
 
 
 @dataclass(frozen=True)
 class KnowledgeGraphEdgeSpec:
     """One typed edge the application layer persists to knowledge_graph_edge.
 
-    Node ids are opaque strings (UUIDs in the product schema). The
+    Node ids are opaque strings (catalog nodes use UUIDs; ADR 0222 Project
+    nodes use their persisted canonical project key). The
     polymorphic id columns have no FK -- this spec is the application-layer
     contract that a writer must have already confirmed the endpoints exist.
     """

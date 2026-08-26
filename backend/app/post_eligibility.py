@@ -1,4 +1,6 @@
-"""Shared source-post eligibility SQL for analysis-facing evidence reads."""
+"""Shared source-post eligibility and visibility contracts."""
+
+from collections.abc import Collection, Mapping
 
 SOURCE_CONTEXT_COLUMNS = (
     "source_author_code",
@@ -45,3 +47,26 @@ SOURCE_POST_ELIGIBILITY_SQL = (
     missing_context=source_context_missing_sql("{alias}"),
     present_context=source_context_present_sql("real_post"),
 )
+
+
+def source_post_scope_sql(alias: str) -> str:
+    """Return the shared ABAC SQL using entity ``$1`` and process-unit ``$2``."""
+    return (
+        f"({alias}.visibility_code = 'public' or "
+        f"({alias}.corporate_entity_id::text = any($1::text[]) and "
+        f"(cardinality($2::text[]) = 0 or "
+        f"{alias}.process_unit_id::text = any($2::text[]))))"
+    )
+
+
+def source_post_visible(
+    post: Mapping[str, object],
+    corporate_entity_ids: Collection[str],
+    process_unit_ids: Collection[str],
+) -> bool:
+    """Apply the same public-or-bound-scope ABAC contract outside SQL."""
+    if post["visibility_code"] == "public":
+        return True
+    return str(post["corporate_entity_id"]) in corporate_entity_ids and (
+        not process_unit_ids or str(post["process_unit_id"]) in process_unit_ids
+    )

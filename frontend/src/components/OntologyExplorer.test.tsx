@@ -136,6 +136,29 @@ function neighborhood(overrides: Partial<OntologyNeighborhoodPayload> = {}): Ont
 }
 
 describe("OntologyExplorer", () => {
+  it("renders a project node with a text-labeled diamond", () => {
+    const payload = neighborhood();
+    const projectNode = {
+      ...payload.nodes[0],
+      node_id: `${POST_ID}/demo-project`,
+      node_type_code: "node_project",
+      ontology_class_iri: "https://example.test/Project",
+      display_label: "Demo Project",
+      truth_status_code: "truth_proposed",
+      shape_code: "diamond",
+    };
+    const { container } = render(
+      <OntologyExplorer
+        focusNodeType="node_project"
+        focusNodeId={`${POST_ID}/demo-project`}
+        neighborhood={{ ...payload, nodes: [projectNode], edges: [], exact_value_rows: [] }}
+      />,
+    );
+
+    expect(screen.getByLabelText("Select node: Project Demo Project")).toBeVisible();
+    expect(container.querySelector('polygon[points="0,-16 20,0 0,16 -20,0"]')).not.toBeNull();
+  });
+
   it("keeps loaded pages visible when a continuation page fails", async () => {
     const fetchNeighborhood = vi.mocked(fetchOntologyNeighborhood);
     let rejectContinuation!: (error: BackendError) => void;
@@ -236,7 +259,9 @@ describe("OntologyExplorer", () => {
     expect(
       screen.getByText(/This view is separate from Event Lineage/),
     ).toBeInTheDocument();
-    expect(screen.getByRole("region", { name: "Exact values" })).toHaveAttribute("tabindex", "0");
+    expect(screen.getByRole("columnheader", { name: "Valid from" })).toBeInTheDocument();
+    expect(screen.getByRole("columnheader", { name: "Valid to" })).toBeInTheDocument();
+    expect(screen.getByRole("columnheader", { name: "Evidence" })).toBeInTheDocument();
     await userEvent.click(screen.getByRole("button", { name: "Select node: Post Demo public post" }));
     expect(screen.getByRole("heading", { name: "Demo public post" })).toBeInTheDocument();
     await userEvent.click(screen.getByRole("button", { name: "Open evidence post" }));
@@ -249,12 +274,45 @@ describe("OntologyExplorer", () => {
     expect(screen.queryByRole("img")).not.toBeInTheDocument();
   });
 
-  it("maps known ontology node types to token-backed visual classes", () => {
+  it("keeps complete long node labels in the rendered graph and exact-value table", () => {
+    const longLabel =
+      "Synthetic multilingual procurement governance decision with complete provenance";
+    const payload = neighborhood({
+      nodes: neighborhood().nodes.map((node, index) =>
+        index === 0 ? { ...node, display_label: longLabel } : node,
+      ),
+      exact_value_rows: neighborhood().exact_value_rows.map((row, index) =>
+        index === 0 ? { ...row, source_label: longLabel } : row,
+      ),
+    });
     render(
       <OntologyExplorer
         focusNodeType="node_post"
         focusNodeId={POST_ID}
-        neighborhood={neighborhood()}
+        neighborhood={payload}
+      />,
+    );
+
+    expect(screen.getAllByText(longLabel)).toHaveLength(2);
+    expect(screen.getByRole("button", { name: `Select node: Post ${longLabel}` })).toBeInTheDocument();
+  });
+
+  it("maps known ontology node types to token-backed visual classes", () => {
+    const payload = neighborhood();
+    const projectNode = {
+      ...payload.nodes[0],
+      node_id: `${POST_ID}/demo-project`,
+      node_type_code: "node_project",
+      ontology_class_iri: "https://example.test/Project",
+      display_label: "Demo Project",
+      truth_status_code: "truth_proposed",
+      shape_code: "diamond",
+    };
+    render(
+      <OntologyExplorer
+        focusNodeType="node_post"
+        focusNodeId={POST_ID}
+        neighborhood={{ ...payload, nodes: [...payload.nodes, projectNode] }}
       />,
     );
 
@@ -264,6 +322,8 @@ describe("OntologyExplorer", () => {
       .toHaveClass("ontology-node-person");
     expect(screen.getByRole("button", { name: "Select node: Organization Demo Corp" }))
       .toHaveClass("ontology-node-organization");
+    expect(screen.getByRole("button", { name: "Select node: Project Demo Project" }))
+      .toHaveClass("ontology-node-project");
   });
 
   it("names empty, truncated, denied, and rejected next actions", () => {

@@ -319,6 +319,12 @@ export interface PostLineage {
 export interface CitedPostRef {
   post_id: string;
   post_title: string;
+  source_post_revision_id?: string | null;
+  evidence_available_at?: string | null;
+  knowledge_cutoff?: string | null;
+  live_changed_after_cutoff?: boolean;
+  historical_body_unavailable?: boolean;
+  unavailable_channels?: string[];
 }
 
 export interface CitedPostEvidenceFact {
@@ -368,7 +374,16 @@ export interface AskAgentResponse {
   cited_post_evidence?: CitedPostEvidence[];
   cited_post_images?: CitedPostImage[];
   source_post_ids: string[];
+  external_verification_status?: string;
+  external_claims?: ExternalClaim[];
   next_action?: string;
+  knowledge_cutoff?: string | null;
+  grounding_status?: "live_only" | "fully_cutoff_grounded" | "partially_cutoff_grounded";
+  limitations?: Array<{
+    post_id: string;
+    limitation_code: "historical_body_unavailable";
+    unavailable_channels: string[];
+  }>;
   lineage_graph?: LineageGraph;
   delivery?: {
     contract_version: string;
@@ -390,6 +405,21 @@ export interface AskAgentResponse {
       watched_resource_uris: string[];
     };
   };
+}
+
+export interface ExternalClaimEvidence {
+  title: string;
+  url: string;
+  snippet: string;
+}
+
+export interface ExternalClaim {
+  claim_text: string;
+  claim_kind: string;
+  status_code: string;
+  rationale: string;
+  source_post_ids: string[];
+  evidence: ExternalClaimEvidence[];
 }
 
 export interface IssueTicket {
@@ -1153,10 +1183,21 @@ interface AskJobStatus {
  * The signature and resolved value are unchanged from the old synchronous
  * call, so callers (AskAgentPanel) keep their existing pending/complete
  * states without modification. */
-export async function askAgent(accessToken: string, question: string): Promise<AskAgentResponse> {
+export async function askAgent(
+  accessToken: string,
+  question: string,
+  verifyExternal = false,
+  knowledgeCutoff?: string,
+): Promise<AskAgentResponse> {
+  const requestBody: {
+    question: string;
+    verify_external: boolean;
+    knowledge_cutoff?: string;
+  } = { question, verify_external: verifyExternal };
+  if (knowledgeCutoff) requestBody.knowledge_cutoff = knowledgeCutoff;
   const submitted = await backendFetch<AskJobStatus>("/api/ask", accessToken, {
     method: "POST",
-    body: JSON.stringify({ question }),
+    body: JSON.stringify(requestBody),
   });
   const deadline = Date.now() + ASK_POLL_CEILING_MS;
   for (;;) {
