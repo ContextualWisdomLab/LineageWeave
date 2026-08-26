@@ -8,6 +8,11 @@ All notable changes to this project are documented here. Format follows
 
 ### Added
 
+- The complete O*NET 31.0 Content Model Reference is now a deterministic
+  3,006-concept SKOS fragment with exact source IDs, names, descriptions, and
+  documented outline parents (ADR 0255). Its read model fails closed on
+  malformed hierarchy data; no occupation rating, person trait, score,
+  weight, or inferred crosswalk is introduced.
 - The complete 2018 SOC hierarchy is now published as a deterministic
   ontology fragment: 23 major groups, 98 minor groups, 459 broad occupations,
   and 867 detailed occupations retain their official codes, titles, levels,

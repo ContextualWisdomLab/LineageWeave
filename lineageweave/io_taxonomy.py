@@ -238,6 +238,7 @@ def taxonomy_source_records() -> tuple[TaxonomySourceRecord, ...]:
         for scheme in (
             LW.soc2018Scheme,
             LW.jobZoneScheme,
+            LW.onet31ContentModelScheme,
             LW.workerCharacteristicScheme,
         )
         for source in ONTOLOGY.objects(scheme, PROV.wasDerivedFrom)

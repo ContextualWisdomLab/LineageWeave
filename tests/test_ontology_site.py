@@ -186,6 +186,9 @@ def test_serializations_round_trip_to_the_source_graph(tmp_path: Path) -> None:
     source.parse(
         ROOT / "docs" / "ontology" / "soc-2018-structure.ttl", format="turtle"
     )
+    source.parse(
+        ROOT / "docs" / "ontology" / "onet-31-content-model.ttl", format="turtle"
+    )
     jsonld = Graph()
     to_rdf(json.loads((output / "ontology" / "ontology.jsonld").read_text()), jsonld)
     ntriples = Graph().parse(output / "ontology" / "ontology.nt", format="nt")
@@ -226,12 +229,14 @@ def test_metadata_manifest_has_source_digest_and_no_build_clock(tmp_path: Path) 
     ).hexdigest()
     source = ROOT / "docs" / "ontology" / "lineageweave-kg.ttl"
     fragment = ROOT / "docs" / "ontology" / "soc-2018-structure.ttl"
+    content_model = ROOT / "docs" / "ontology" / "onet-31-content-model.ttl"
     assert manifest["source_tree_sha256"] == hashlib.sha256(
-        source.read_bytes() + fragment.read_bytes()
+        source.read_bytes() + fragment.read_bytes() + content_model.read_bytes()
     ).hexdigest()
     assert [entry["path"] for entry in manifest["source_files"]] == [
         "docs/ontology/lineageweave-kg.ttl",
         "docs/ontology/soc-2018-structure.ttl",
+        "docs/ontology/onet-31-content-model.ttl",
     ]
     assert manifest["source_files"] == [
         {
@@ -241,6 +246,10 @@ def test_metadata_manifest_has_source_digest_and_no_build_clock(tmp_path: Path) 
         {
             "path": "docs/ontology/soc-2018-structure.ttl",
             "sha256": hashlib.sha256(fragment.read_bytes()).hexdigest(),
+        },
+        {
+            "path": "docs/ontology/onet-31-content-model.ttl",
+            "sha256": hashlib.sha256(content_model.read_bytes()).hexdigest(),
         },
     ]
     assert "source_path" not in manifest
@@ -358,6 +367,17 @@ def test_builder_fails_closed_for_missing_sources_and_rejects_existing_output(tm
 
     (ontology_dir / "soc-2018-structure.ttl").write_bytes(
         (ROOT / "docs" / "ontology" / "soc-2018-structure.ttl").read_bytes()
+    )
+
+    try:
+        builder.build_site(repository, output)
+    except FileNotFoundError as exc:
+        assert "onet-31-content-model.ttl" in str(exc)
+    else:
+        raise AssertionError("missing O*NET content-model fragment was accepted")
+
+    (ontology_dir / "onet-31-content-model.ttl").write_bytes(
+        (ROOT / "docs" / "ontology" / "onet-31-content-model.ttl").read_bytes()
     )
 
     try:
