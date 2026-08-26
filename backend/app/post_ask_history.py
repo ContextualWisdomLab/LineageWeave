@@ -62,14 +62,11 @@ async def list_conversations(
     rows = await conn.fetch(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
         """
         select session.post_ask_session_id,
-               coalesce(
-                   (select left(turn.question_text, 80)
-                      from post_ask_turn turn
-                     where turn.post_ask_session_id = session.post_ask_session_id
-                     order by turn.turn_ordinal
-                     limit 1),
-                   'New conversation'
-               ) as conversation_title,
+               (select left(turn.question_text, 80)
+                  from post_ask_turn turn
+                 where turn.post_ask_session_id = session.post_ask_session_id
+                 order by turn.turn_ordinal
+                 limit 1) as conversation_title,
                session.updated_at,
                count(turn.turn_ordinal)::int as turn_count
           from post_ask_session session
@@ -270,7 +267,7 @@ async def fetch_conversation(
                 "source_post_ids": source_ids,
             }
         )
-    title = title_question[:80] if title_question else "New conversation"
+    title = title_question[:80] if title_question else None
     return {
         "conversation_id": str(header["post_ask_session_id"]),
         "title": title,
@@ -288,7 +285,7 @@ async def _ensure_citations_visible(
 ) -> None:
     """Lock and re-authorize new citations before their transaction commits."""
     rows = await conn.fetch(
-        """
+        f"""
         select relation.cited_post_id::text as post_id,
                post.post_title, post.visibility_code, post.corporate_entity_id,
                post.author_account_id, post.source_detail_state_code
@@ -296,6 +293,7 @@ async def _ensure_citations_visible(
           join source_post post on post.post_id = relation.cited_post_id
          where relation.post_ask_session_id = $1
            and relation.turn_ordinal = $2
+           and ({SOURCE_POST_ELIGIBILITY_SQL.format(alias='post')})
          for share of post
         """,
         conversation_id,
