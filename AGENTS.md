@@ -301,9 +301,12 @@ out of the factorization. Closest and farthest post–criterion pairs
 persist to `report_leftover_pair` with signed residual `R`, observed
 `Y`, and expected `E[Y|θ, item]` so `R = Y − E` remains auditable,
 plus leftover-map rank so rank 0 is not read as structure,
-unexplained leftover, and the ADR 0201 reconstruction evidence. ADR 0201
-is the sole normative reconstruction formula, storage, and audit contract;
-do not duplicate or reinterpret it here. The pairs sit above the member
+unexplained leftover, ADR 0201 reconstruction evidence, leftover-map
+cross share `x`, and leftover-map explained share `e = R̂² / R²` of
+raw residual (ADR 0232). Unexplained leftover share `s` is not
+persisted. ADR 0201 is the sole normative reconstruction formula,
+storage, and audit contract; do not duplicate or reinterpret it here.
+The pairs sit above the member
 list so a click opens that post with the leftover criterion current
 in Post quality (ADR 0158). Leftover-map axis share (ADR 0148) is Gabriel inertia of
 residual SVD axes 1 and 2 and persists to `report_leftover_map_axis`.

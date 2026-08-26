@@ -108,6 +108,29 @@ def test_migrate_sh_replays_leftover_map_axis_migration_on_existing_volumes() ->
     assert int(migration_name[:4]) >= 12
 
 
+def test_migrate_sh_replays_leftover_map_explained_share_on_existing_volumes() -> None:
+    """migrate.sh's replay window must cover 0232 (leftover-map explained share).
+
+    Volumes created before leftover-map explained share shipped never get
+    leftover_map_explained_share unless migrate.sh replays 0236 on every
+    ``docker compose up``. GET /api/reports/{grouping}/{period} then 500s
+    on undefined_column the first time a period actually has leftover pairs.
+
+    ADR 0166's general four-digit filename boundary covers 0232 without a
+    per-migration allowlist entry. The column add is nullable and
+    idempotent so a second start does not invent a leftover score.
+    """
+    migration_name = "0236_report_leftover_map_explained_share.sql"
+    migration_path = Path(__file__).resolve().parents[1] / "migrations" / migration_name
+    assert migration_path.exists()
+    assert re.fullmatch(r"[0-9]{4}_.+\.sql", migration_name)
+    assert int(migration_name[:4]) >= 12
+    sql = migration_path.read_text(encoding="utf-8").casefold()
+    assert "add column if not exists leftover_map_explained_share" in sql
+    assert "add column if not exists leftover_map_unexplained_share" not in sql
+    assert "check (" not in sql
+
+
 def test_tenant_settings_migration_is_safe_to_replay() -> None:
     """The newest migration must survive migrate.sh's every-start replay."""
     sql = (

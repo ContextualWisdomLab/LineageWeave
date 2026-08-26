@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import inspect
+from types import SimpleNamespace
 
 import numpy as np
 import pytest
@@ -37,6 +38,39 @@ def test_rust_map_projects_pairs_axes_and_coverage() -> None:
         )
         assert pair.leftover_map_unexplained is not None
         assert pair.leftover_map_reconstruction is not None
+        assert pair.leftover_map_explained_share is not None
+
+
+def test_explained_share_is_projected_from_rust_without_recomputation(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """An upstream value is preserved even when local inputs imply another value."""
+
+    native_result = SimpleNamespace(
+        person_indices=np.array([0]),
+        item_indices=np.array([0]),
+        scored_person_count=1,
+        scored_item_count=1,
+        person_coordinates=np.zeros((1, 2)),
+        item_coordinates=np.zeros((1, 2)),
+        singular_values=np.array([1.0]),
+        axis_shares=np.array([1.0, 0.0]),
+        residual=np.array([[4.0]]),
+        distance=np.array([[0.0]]),
+        reconstruction=np.array([[2.0]]),
+        explained_share=np.array([[0.375]]),
+        unexplained=np.array([[2.0]]),
+        cross_share=np.array([[0.5]]),
+    )
+    monkeypatch.setattr(
+        leftover, "residual_interaction_map", lambda *_args, **_kwargs: native_result
+    )
+
+    pairs, _axes = leftover.leftover_map_from_residual(
+        ["post-a"], ("item-a",), np.array([[9.0]]), np.array([[1.0]])
+    )
+
+    assert [pair.leftover_map_explained_share for pair in pairs] == [0.375, 0.375]
 
 
 def test_rank_zero_keeps_deterministic_pairs_without_inventing_an_axis() -> None:

@@ -51,7 +51,9 @@ read as leftover residual `R`, leftover-map distance `d`, explained
 leftover share `e`, or unexplained leftover share `s` (ADR 0185).
 ADR 0201 now persists that same signed reconstruction on the pair row so
 `U + R̂ = R` remains directly auditable; it does not change this selection or
-distance contract.
+distance contract. ADR 0232 persists leftover-map explained share
+`e = R̂² / R²` of raw residual so `e + s + x = 1` is not read from `x`
+alone; unexplained leftover share `s` is still not persisted.
 
 Cascade the rows with `report_period_score`. A leftover post must
 also be a `report_member_score` row, and the leftover criterion

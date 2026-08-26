@@ -5,6 +5,10 @@ import {
   LEFTOVER_MAP_CROSS_SHARE_ACTION,
 } from "../leftoverMapCrossShare";
 import {
+  formatLeftoverMapExplainedShare,
+  LEFTOVER_MAP_EXPLAINED_SHARE_ACTION,
+} from "../leftoverMapExplainedShare";
+import {
   formatLeftoverMapReconstruction,
   LEFTOVER_MAP_RECONSTRUCTION_ACTION,
 } from "../leftoverMapReconstruction";
@@ -36,10 +40,13 @@ export type LeftoverPairListProps = {
  * takes priority over the residual/observed-expected/rank next action
  * when finite. When leftover-map cross share ``x = 2 R̂ U / R²`` of
  * raw residual is also present (ADR 0185), it names the next action
- * instead of unexplained leftover; a missing or non-finite value falls
- * back in order — cross share, reconstruction, unexplained leftover, then the
- * existing residual/rank/observed-expected next action. Every badge
- * still renders together before opening the named post.
+ * instead of unexplained leftover. Leftover-map explained share
+ * ``e = R̂² / R²`` of raw residual (ADR 0232) takes priority over
+ * cross share when finite. A missing or non-finite value falls back
+ * in order — explained share, cross share, reconstruction, unexplained
+ * leftover, then the existing residual/rank/observed-expected next
+ * action. Every badge still renders together before opening the named
+ * post.
  */
 export function LeftoverPairList({
   pairs,
@@ -66,12 +73,25 @@ export function LeftoverPairList({
         const reconstruction = formatLeftoverMapReconstruction(
           pair.leftover_map_reconstruction,
         );
+        const explainedShareBadge = formatLeftoverMapExplainedShare(
+          pair.leftover_map_explained_share,
+        );
+        const explainedShareValue =
+          pair.leftover_map_explained_share != null &&
+          Number.isFinite(pair.leftover_map_explained_share)
+            ? pair.leftover_map_explained_share.toFixed(2)
+            : "—";
         const crossShareValue =
           pair.leftover_map_cross_share != null && Number.isFinite(pair.leftover_map_cross_share)
             ? pair.leftover_map_cross_share.toFixed(2)
             : "—";
         let nextAction: string;
-        if (crossShareBadge !== null) {
+        if (explainedShareBadge !== null) {
+          nextAction = tf(LEFTOVER_MAP_EXPLAINED_SHARE_ACTION, {
+            value: explainedShareValue,
+            criterion,
+          });
+        } else if (crossShareBadge !== null) {
           nextAction = tf(LEFTOVER_MAP_CROSS_SHARE_ACTION, {
             value: crossShareValue,
             criterion,
@@ -155,6 +175,7 @@ export function LeftoverPairList({
               {unexplained ? <span className="post-badge">{unexplained}</span> : null}
               {crossShareBadge ? <span className="post-badge">{crossShareBadge}</span> : null}
               {reconstruction ? <span className="post-badge">{reconstruction}</span> : null}
+              {explainedShareBadge ? <span className="post-badge">{explainedShareBadge}</span> : null}
               <span className="post-badge">d {pair.leftover_distance.toFixed(2)}</span>
             </button>
           </li>

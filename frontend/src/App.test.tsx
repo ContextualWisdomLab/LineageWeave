@@ -993,6 +993,7 @@ describe("App, authenticated", () => {
                     leftover_map_rank: 1,
                     leftover_map_cross_share: 0.12,
                     leftover_map_reconstruction: 0.35,
+                    leftover_map_explained_share: 0.76,
                   },
                   {
                     pair_kind: "farthest",
@@ -1007,6 +1008,7 @@ describe("App, authenticated", () => {
                     leftover_map_rank: 1,
                     leftover_map_cross_share: -0.24,
                     leftover_map_reconstruction: -0.85,
+                    leftover_map_explained_share: 0.60,
                   },
                 ],
                 leftover_map_axes: [
@@ -4032,10 +4034,10 @@ describe("App, authenticated", () => {
       name: /open leftover farthest pair: specification revision requested/i,
     });
     expect(closestPair).toHaveTextContent("Closest leftover: Public post · sales-lead");
-    // Leftover-map cross share is present, so it names the next action
-    // instead of the rank/observed-expected chain (ADR 0185).
+    // Leftover-map explained share is present, so it names the next action
+    // ahead of cross share (ADR 0232).
     expect(closestPair).toHaveTextContent(
-      "Two leftover-map axes leave identity remainder 0.12 of raw residual after IRT main effects. Open this post to read sales-lead.",
+      "Leftover map explains 0.76 of raw residual after IRT main effects. Open this post to read sales-lead.",
     );
     expect(closestPair).toHaveTextContent("R +0.40");
     expect(closestPair).toHaveTextContent("Y 2.40 · E 2.00");
@@ -4043,11 +4045,12 @@ describe("App, authenticated", () => {
     expect(closestPair).toHaveTextContent("U +0.05");
     expect(closestPair).toHaveTextContent("2R̂U/R² 0.12");
     expect(closestPair).toHaveTextContent("R̂ +0.35");
+    expect(closestPair).toHaveTextContent("R̂²/R² 0.76");
     expect(closestPair).toHaveTextContent("d 0.12");
     expect(closestPair).toHaveAccessibleName("Open leftover closest pair: Public post · sales-lead");
     expect(farthestPair).toHaveTextContent("Farthest leftover: Specification revision requested · negative");
     expect(farthestPair).toHaveTextContent(
-      "Two leftover-map axes leave identity remainder -0.24 of raw residual after IRT main effects. Open this post to read negative.",
+      "Leftover map explains 0.60 of raw residual after IRT main effects. Open this post to read negative.",
     );
     expect(farthestPair).toHaveTextContent("R −1.10");
     expect(farthestPair).toHaveTextContent("Y 0.90 · E 2.00");
@@ -4055,6 +4058,7 @@ describe("App, authenticated", () => {
     expect(farthestPair).toHaveTextContent("U −0.25");
     expect(farthestPair).toHaveTextContent("2R̂U/R² -0.24");
     expect(farthestPair).toHaveTextContent("R̂ −0.85");
+    expect(farthestPair).toHaveTextContent("R̂²/R² 0.60");
     expect(farthestPair).toHaveTextContent("d 1.84");
     const memberButton = screen.getByRole("button", { name: /open report post: public post/i });
     expect(coverageCaption.compareDocumentPosition(closestPair) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();

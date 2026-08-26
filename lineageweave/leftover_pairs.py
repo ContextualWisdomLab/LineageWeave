@@ -32,6 +32,7 @@ class LeftoverPair:
     leftover_map_unexplained: float | None = None
     leftover_map_cross_share: float | None = None
     leftover_map_reconstruction: float | None = None
+    leftover_map_explained_share: float | None = None
 
 
 @dataclass(frozen=True)
@@ -97,13 +98,27 @@ def leftover_map_from_residual(
         return (), ()
 
     rank = int(len(result.singular_values))
-    candidates: list[tuple[float, str, str, float, float, float, float, float | None, float]] = []
+    candidates: list[
+        tuple[
+            float,
+            str,
+            str,
+            float,
+            float,
+            float,
+            float,
+            float | None,
+            float,
+            float | None,
+        ]
+    ] = []
     for local_person, person in enumerate(result.person_indices):
         for local_item, item in enumerate(result.item_indices):
             observed = float(matrix[int(person), int(item)])
             model_expected = float(expected[int(person), int(item)])
             residual = float(result.residual[local_person, local_item])
             cross_share = float(result.cross_share[local_person, local_item])
+            explained_share = float(result.explained_share[local_person, local_item])
             candidates.append(
                 (
                     float(result.distance[local_person, local_item]),
@@ -115,6 +130,7 @@ def leftover_map_from_residual(
                     float(result.unexplained[local_person, local_item]),
                     cross_share if np.isfinite(cross_share) else None,
                     float(result.reconstruction[local_person, local_item]),
+                    explained_share if np.isfinite(explained_share) else None,
                 )
             )
     closest = min(candidates, key=lambda row: (row[0], row[1], row[2]))
@@ -165,7 +181,9 @@ def _validate_shapes(
 
 def _pair(
     kind: str,
-    row: tuple[float, str, str, float, float, float, float, float | None, float],
+    row: tuple[
+        float, str, str, float, float, float, float, float | None, float, float | None
+    ],
     rank: int,
 ) -> LeftoverPair:
     """Attach product identifiers to one Rust-computed candidate cell."""
@@ -182,4 +200,5 @@ def _pair(
         leftover_map_unexplained=row[6],
         leftover_map_cross_share=row[7],
         leftover_map_reconstruction=row[8],
+        leftover_map_explained_share=row[9],
     )
