@@ -212,12 +212,9 @@ export function filterNeighborhood(
   const visibleVoiceIds = new Set(
     visibleVoiceAssignments.flatMap((assignment) => [
       assignment.voice_type_iri,
-      `voice-assignment/${assignment.post_id}/${assignment.voice_type_code}`,
+      `${ONTOLOGY_NAMESPACE}voice-assignment/${assignment.post_id}/${assignment.voice_type_code}`,
     ]),
   );
-  for (const assignment of visibleVoiceAssignments) {
-    visibleVoiceIds.add(`${ONTOLOGY_NAMESPACE}voice-assignment/${assignment.post_id}/${assignment.voice_type_code}`);
-  }
   const graph = payload.jsonld["@graph"];
   const jsonld = Array.isArray(graph)
     ? {
