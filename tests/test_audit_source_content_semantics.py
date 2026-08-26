@@ -58,7 +58,7 @@ def _probability_manifest() -> dict[str, object]:
     digest = "a" * 64
     manifest: dict[str, object] = {
         "contract_kind": "lineageweave.semantic_coverage_probability_sample",
-        "contract_version": 2,
+        "contract_version": 3,
         "population_size": 1000,
         "sample_size": 80,
         "design_code": "stratified_random_without_replacement",
@@ -68,14 +68,16 @@ def _probability_manifest() -> dict[str, object]:
                 "stratum_code": "synthetic-a",
                 "population_size": 600,
                 "sample_size": 48,
-                "inclusion_probability": "0.08",
+                "inclusion_probability_numerator": 48,
+                "inclusion_probability_denominator": 600,
                 "selection_frame_sha256": digest,
             },
             {
                 "stratum_code": "synthetic-b",
                 "population_size": 400,
                 "sample_size": 32,
-                "inclusion_probability": "0.08",
+                "inclusion_probability_numerator": 32,
+                "inclusion_probability_denominator": 400,
                 "selection_frame_sha256": "b" * 64,
             },
         ],
@@ -301,6 +303,11 @@ def test_rust_sampling_design_rejects_every_unbound_boundary() -> None:
     with pytest.raises(ValueError, match="allocation"):
         validate_sampling_design_artifact(artifact, wrong_allocation)
 
+    wrong_ratio = deepcopy(manifest)
+    wrong_ratio["strata"][0]["inclusion_probability_numerator"] = 47
+    with pytest.raises(ValueError, match="inclusion ratios"):
+        validate_sampling_design_artifact(artifact, wrong_ratio)
+
 
 @pytest.mark.parametrize(
     ("field", "value", "message"),
@@ -324,13 +331,13 @@ def test_probability_sample_manifest_rejects_noninferential_contracts(
 def test_probability_sample_manifest_requires_known_stratum_inclusion_probability() -> (
     None
 ):
-    """Every stratum retains a known inclusion probability and frame digest."""
+    """Every stratum retains an exact inclusion ratio and frame digest."""
     manifest = _probability_manifest()
     strata = manifest["strata"]
     assert isinstance(strata, list) and isinstance(strata[0], dict)
-    strata[0]["inclusion_probability"] = "unknown"
+    strata[0]["inclusion_probability_numerator"] = "unknown"
 
-    with pytest.raises(ValueError, match="known inclusion probability"):
+    with pytest.raises(ValueError, match="exact sample/population inclusion ratio"):
         validate_probability_sample_manifest(manifest, 80)
 
 
@@ -339,9 +346,9 @@ def test_probability_manifest_inclusion_probability_matches_sampling_fraction() 
     manifest = _probability_manifest()
     strata = manifest["strata"]
     assert isinstance(strata, list) and isinstance(strata[0], dict)
-    strata[0]["inclusion_probability"] = "0.5"
+    strata[0]["inclusion_probability_numerator"] = 300
 
-    with pytest.raises(ValueError, match="sampling fraction"):
+    with pytest.raises(ValueError, match="exact sample/population inclusion ratio"):
         validate_probability_sample_manifest(manifest, 80)
 
 

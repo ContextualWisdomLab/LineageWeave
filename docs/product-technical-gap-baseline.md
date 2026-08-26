@@ -60,17 +60,18 @@ or corpus claim.
 The reusable audit now rejects the previously observed 100-input/60-output
 response, requires every ordered item plus a multi-agent trace, and prints only
 complete non-identifying aggregates. It additionally fails closed unless the
-caller supplies a probability-sample manifest with known per-stratum inclusion
-probabilities, per-stratum frame digests, ordered owner-token membership
+caller supplies probability-sample manifest v3 with exact per-stratum
+inclusion-probability numerator/denominator pairs, per-stratum frame digests,
+ordered owner-token membership
 digests, retained provider failures, and a canonical selection-manifest digest.
 LineageWeave validates sample identity and completeness but deliberately emits
 `corpus_inference_available=false`: the current manifest does not contain an
 immutable estimator, variance, or achieved-interval artifact and therefore
 cannot support a corpus coverage estimate.
 The current candidate consumer separately replays the immutable
-`fast-mlsirm.sampling-design.v1` Rust artifact and binds its population,
-ordered stratum populations, total sample size, and allocation to the selected
-frame manifest. That proves design arithmetic provenance, not achieved
+`fast-mlsirm.sampling-design.v2` Rust artifact and binds its population,
+ordered stratum populations, total sample size, allocation, and exact `(n_h,
+N_h)` inclusion ratios to the selected frame manifest. That proves design arithmetic provenance, not achieved
 semantic-coverage inference; `corpus_inference_available` remains false until a
 terminal Rust artifact also attests the estimator, variance, and interval.
 

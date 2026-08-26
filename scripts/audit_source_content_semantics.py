@@ -11,7 +11,6 @@ import re
 from collections import Counter
 from collections.abc import Mapping, Sequence
 from dataclasses import asdict
-from decimal import Decimal
 from pathlib import Path
 from typing import Any, cast
 
@@ -108,7 +107,6 @@ SEMANTIC_DIMENSION_TERM_IRIS: Mapping[str, tuple[str, ...]] = {
     "other_unmodeled_meaning": (),
 }
 _CODE_FENCE = re.compile(r"^```(?:json)?\s*|\s*```$", re.DOTALL)
-_INCLUSION_PROBABILITY = re.compile(r"(?:0\.(?:0*[1-9]\d*)|1(?:\.0+)?)$")
 _SHA256 = re.compile(r"[0-9a-f]{64}$")
 _SAMPLE_DESIGNS = {
     "simple_random_without_replacement",
@@ -143,7 +141,7 @@ def validate_probability_sample_manifest(
         )
     if (
         payload["contract_kind"] != "lineageweave.semantic_coverage_probability_sample"
-        or payload["contract_version"] != 2
+        or payload["contract_version"] != 3
     ):
         raise ValueError("unsupported probability-sample manifest contract")
     population_size = payload["population_size"]
@@ -178,7 +176,8 @@ def validate_probability_sample_manifest(
         "stratum_code",
         "population_size",
         "sample_size",
-        "inclusion_probability",
+        "inclusion_probability_numerator",
+        "inclusion_probability_denominator",
         "selection_frame_sha256",
     }
     stratum_codes: set[str] = set()
@@ -206,14 +205,6 @@ def validate_probability_sample_manifest(
         stratum_populations[code] = stratum_population
         stratum_samples[code] = stratum_sample
         if (
-            not isinstance(stratum["inclusion_probability"], str)
-            or _INCLUSION_PROBABILITY.fullmatch(stratum["inclusion_probability"])
-            is None
-        ):
-            raise ValueError(
-                "sample manifest requires a known inclusion probability per stratum"
-            )
-        if (
             not isinstance(stratum["selection_frame_sha256"], str)
             or _SHA256.fullmatch(stratum["selection_frame_sha256"]) is None
         ):
@@ -224,16 +215,16 @@ def validate_probability_sample_manifest(
         raise ValueError("sample manifest stratum populations must match population_size")
     if sum(stratum_samples.values()) != sample_size:
         raise ValueError("sample manifest stratum samples must match sample_size")
-    for stratum in strata:
-        declared_probability = Decimal(stratum["inclusion_probability"])
-        actual_probability = Decimal(stratum["sample_size"]) / Decimal(
-            stratum["population_size"]
+    if any(
+        type(stratum["inclusion_probability_numerator"]) is not int
+        or type(stratum["inclusion_probability_denominator"]) is not int
+        or stratum["inclusion_probability_numerator"] != stratum["sample_size"]
+        or stratum["inclusion_probability_denominator"] != stratum["population_size"]
+        for stratum in strata
+    ):
+        raise ValueError(
+            "sample manifest requires the exact sample/population inclusion ratio per stratum"
         )
-        if abs(declared_probability - actual_probability) > Decimal("1e-12"):
-            raise ValueError(
-                "sample manifest inclusion probability must match the stratum sampling fraction"
-            )
-
     selected_units = payload["selected_units"]
     selected_unit_fields = {"ordinal", "selection_token_sha256", "stratum_code"}
     if not isinstance(selected_units, list) or len(selected_units) != sample_size:
@@ -304,6 +295,7 @@ def validate_sampling_design_artifact(
         "allocation_method",
         "strata",
         "stratum_sample_sizes",
+        "stratum_inclusion_probability_ratios",
         "input_sha256",
         "output_sha256",
         "artifact_sha256",
@@ -355,6 +347,17 @@ def validate_sampling_design_artifact(
         if isinstance(stratum, dict)
     ]:
         raise ValueError("sampling design artifact allocation does not match the sample manifest")
+    if payload["stratum_inclusion_probability_ratios"] != [
+        [
+            stratum.get("inclusion_probability_numerator"),
+            stratum.get("inclusion_probability_denominator"),
+        ]
+        for stratum in manifest_strata
+        if isinstance(stratum, dict)
+    ]:
+        raise ValueError(
+            "sampling design artifact inclusion ratios do not match the sample manifest"
+        )
     return {
         "schema_version": payload["schema_version"],
         "source_identity": payload["source_identity"],
@@ -366,6 +369,9 @@ def validate_sampling_design_artifact(
         "confidence_level": payload["confidence_level"],
         "margin_of_error": payload["margin_of_error"],
         "sample_size": payload["sample_size"],
+        "stratum_inclusion_probability_ratios": payload[
+            "stratum_inclusion_probability_ratios"
+        ],
         "sampling_design_verified": True,
         "corpus_inference_available": False,
     }

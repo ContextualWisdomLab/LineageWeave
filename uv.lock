@@ -484,7 +484,7 @@ wheels = [
 [[package]]
 name = "fast-mlsirm"
 version = "0.9.1"
-source = { git = "https://github.com/ContextualWisdomLab/fast-mlsirm.git?rev=05cdb305f7373e1c5ad5e8f559dd4e7946248194#05cdb305f7373e1c5ad5e8f559dd4e7946248194" }
+source = { git = "https://github.com/ContextualWisdomLab/fast-mlsirm.git?rev=e2e86a7dbe26baeee27e4e0caf627aab0d86311f#e2e86a7dbe26baeee27e4e0caf627aab0d86311f" }
 dependencies = [
     { name = "numpy" },
 ]
@@ -725,7 +725,7 @@ requires-dist = [
     { name = "certifi", specifier = ">=2024.0.0" },
     { name = "coverage", marker = "extra == 'dev'", specifier = ">=7.6" },
     { name = "cryptography", specifier = ">=42.0" },
-    { name = "fast-mlsirm", marker = "extra == 'backend'", git = "https://github.com/ContextualWisdomLab/fast-mlsirm.git?rev=05cdb305f7373e1c5ad5e8f559dd4e7946248194" },
+    { name = "fast-mlsirm", marker = "extra == 'backend'", git = "https://github.com/ContextualWisdomLab/fast-mlsirm.git?rev=e2e86a7dbe26baeee27e4e0caf627aab0d86311f" },
     { name = "fastapi", marker = "extra == 'backend'", specifier = ">=0.141.1" },
     { name = "httpx", marker = "extra == 'dev'", specifier = ">=0.27.0" },
     { name = "httpx2", marker = "extra == 'dev'", specifier = ">=2.12.0" },

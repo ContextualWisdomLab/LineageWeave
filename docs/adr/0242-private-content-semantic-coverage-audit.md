@@ -64,7 +64,8 @@ Repository artifacts must not retain the private titles.
    source-grounded normalized fact and qualified provenance remain mandatory.
 7. A probability-sample audit additionally requires a versioned caller-supplied
    sample manifest: a complete population/frame size, simple or stratified
-   random design, known inclusion probability and frame digest for every
+   random design, exact inclusion-probability numerator/denominator and frame
+   digest for every
    stratum, ordered selected-unit token digests bound to their strata, a
    canonical selection-manifest digest, and
    `provider_failures_retained=true`.
@@ -75,10 +76,11 @@ Repository artifacts must not retain the private titles.
    `n = n0 / (1 + (n0 - 1) / N)`. Stratified designs determine sample size per
    stratum. LineageWeave neither evaluates those equations nor derives sample
    weights: a versioned, SHA-256-bound `ContextualWisdomLab/fast-mlsirm` Rust
-   artifact owns that arithmetic. The audit replays the complete Rust-owned
+   artifact owns that arithmetic. Manifest contract v3 carries each stratum's
+   exact `(n_h, N_h)` ratio rather than a rounded decimal. The audit replays the complete Rust-owned
    design artifact and requires its population, ordered stratum populations,
-   total sample size, and stratum allocations to match the separately bound
-   selection manifest. The artifact accepts no caller hash or selected
+   total sample size, stratum allocations, and Rust-attested exact inclusion
+   ratios to match the separately bound selection manifest. The artifact accepts no caller hash or selected
    membership. Until a later immutable terminal artifact also attests the
    estimand, estimator, variance, and achieved interval, the script emits a
    complete sample audit with
