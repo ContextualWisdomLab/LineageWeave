@@ -31,7 +31,9 @@ RUN mkdir /tmp/contextual-orchestrator \
     && useradd --uid 10001 --no-create-home orchestrator
 
 COPY --from=token-builder /tmp/token-wheels /tmp/token-wheels
-RUN pip install --no-cache-dir /tmp/token-wheels/*.whl && rm -rf /tmp/token-wheels
+RUN pip install --no-cache-dir /tmp/token-wheels/*.whl \
+    && cp /usr/local/lib/python3.12/site-packages/contextual_orchestrator/_token_packer*.so /app/contextual_orchestrator/ \
+    && rm -rf /tmp/token-wheels
 
 COPY agents.json /app/agents.json
 COPY start.py /app/start.py
