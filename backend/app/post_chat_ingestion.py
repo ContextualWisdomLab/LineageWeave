@@ -1017,7 +1017,18 @@ async def gather_global_chat_sources(
     anchor_is_visible = lineage_anchor_id in visible_ids
     revisions = await fetch_known_at_revisions(conn, visible_ids, knowledge_cutoff) if knowledge_cutoff else {}
     semantic_facts = await _semantic_facts_for_posts(conn, visible_ids, knowledge_cutoff)
-    graph_facts = await _graph_facts_for_posts(conn, visible_ids, knowledge_cutoff)
+    graph_projection = await _graph_evidence_projection(
+        conn,
+        visible_ids,
+        frozenset(public_ids),
+        knowledge_cutoff,
+    )
+    graph_facts = graph_projection.facts
+    project_claims = (
+        await _public_project_claims_for_posts(conn, public_ids)
+        if knowledge_cutoff is None
+        else {}
+    )
     remaining_graph_facts = 16
     time_filter_active = resolved_time_range is not None
     sources: list[ChatSourceDocument] = []
@@ -1053,8 +1064,13 @@ async def gather_global_chat_sources(
         )
         source_arguments: dict[str, Any] = {}
         if source_type is GlobalAskSourceDocument:
-            source_arguments["external_claim_facts"] = (
-                semantic_facts.get(post_id, ()) + post_graph_facts
+            source_arguments["public_claims"] = (
+                project_claims.get(post_id, ())
+                + tuple(
+                    claim
+                    for claim in graph_projection.public_claims
+                    if post_id in claim.source_post_ids
+                )
             )
         sources.append(
             source_type(

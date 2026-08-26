@@ -8,12 +8,12 @@ from lineageweave import claim_verification as cv
 from lineageweave.post_chat import ChatSourceDocument
 
 
-def _public_source(*facts: str) -> cv.GlobalAskSourceDocument:
+def _public_source(*claims: cv.PublicClaimCandidate) -> cv.GlobalAskSourceDocument:
     return cv.GlobalAskSourceDocument(
         post_id="11111111-1111-1111-1111-111111111111",
         post_title="Public evidence",
         post_body="Acme semantic evidence",
-        external_claim_facts=tuple(facts),
+        public_claims=claims,
     )
 
 
@@ -29,9 +29,21 @@ def test_only_global_ask_sources_can_contribute_public_claims() -> None:
 
 def test_public_claim_candidates_keep_public_semantic_and_graph_claims_bounded() -> None:
     source = _public_source(
-        "project: Apollo | evidence: Acme launch | ontology_iri: https://example.test/ontology#Project | extraction_method: llm | confidence: 0.90 [provenance=post_project_mention]",
-        'node_team "Apollo Team" --edge_team_affiliation (https://example.test/ontology#teamAffiliation)--> node_organization "Acme" [evidence_post_id=11111111-1111-1111-1111-111111111111]',
-        'node_person "Alice" --edge_affiliation--> node_organization "Acme" [evidence_post_id=11111111-1111-1111-1111-111111111111]',
+        cv.PublicClaimCandidate(
+            'Project "Apollo" has ontology type https://example.test/ontology#Project',
+            "semantic_project",
+            ("11111111-1111-1111-1111-111111111111",),
+        ),
+        cv.PublicClaimCandidate(
+            'node_team "Apollo Team" --edge_team_affiliation--> node_organization "Acme"',
+            "knowledge_graph_relation",
+            ("11111111-1111-1111-1111-111111111111",),
+        ),
+        cv.PublicClaimCandidate(
+            'node_person "Alice" --edge_affiliation--> node_organization "Acme"',
+            "person_relation",
+            ("11111111-1111-1111-1111-111111111111",),
+        ),
     )
 
     claims = cv.public_claim_candidates([source], "Is Apollo at Acme?", maximum_claims=8)
@@ -42,13 +54,16 @@ def test_public_claim_candidates_keep_public_semantic_and_graph_claims_bounded()
     ]
     assert all("node_person" not in claim.claim_text for claim in claims)
     assert claims[0].source_post_ids == (source.post_id,)
-    assert "extraction_method" not in claims[1].claim_text
-    assert "confidence" not in claims[1].claim_text
+    assert claims[1].claim_text.startswith('Project "Apollo"')
 
 
-def test_public_claim_candidates_require_query_overlap_and_positive_budget() -> None:
-    source = _public_source("project: Apollo | evidence: Acme launch")
-    assert cv.public_claim_candidates([source], "Zephyr") == ()
+def test_public_claim_candidates_do_not_apply_local_relevance_and_require_positive_budget() -> None:
+    source = _public_source(
+        cv.PublicClaimCandidate(
+            "Project Apollo", "semantic_project", ("11111111-1111-1111-1111-111111111111",)
+        )
+    )
+    assert cv.public_claim_candidates([source], "Zephyr") == source.public_claims
     assert cv.public_claim_candidates([source], "Apollo", maximum_claims=0) == ()
 
 

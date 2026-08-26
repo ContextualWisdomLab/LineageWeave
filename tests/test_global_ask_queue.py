@@ -83,7 +83,9 @@ def test_public_verification_requires_public_capability_and_internal_citation() 
         "public-post",
         "Public",
         "Public body",
-        external_claim_facts=("project: Apollo | evidence: public",),
+        public_claims=(
+            cv.PublicClaimCandidate("Project Apollo", "semantic_project", ("public-post",)),
+        ),
     )
 
     private_status, private_results = asyncio.run(
@@ -119,7 +121,9 @@ def test_public_verification_keeps_external_urls_out_of_internal_citations() -> 
         "public-post",
         "Public",
         "Public body",
-        external_claim_facts=("project: Apollo | evidence: public",),
+        public_claims=(
+            cv.PublicClaimCandidate("Project Apollo", "semantic_project", ("public-post",)),
+        ),
     )
 
     status_code, results = asyncio.run(
@@ -144,7 +148,9 @@ def test_malformed_public_verification_is_unavailable() -> None:
         "public-post",
         "Public",
         "Public body",
-        external_claim_facts=("project: Apollo | evidence: public",),
+        public_claims=(
+            cv.PublicClaimCandidate("Project Apollo", "semantic_project", ("public-post",)),
+        ),
     )
 
     for error in (

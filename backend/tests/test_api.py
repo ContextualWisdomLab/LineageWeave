@@ -187,6 +187,11 @@ _GLOBAL_ASK_JOB_MIGRATION = (
     / "migrations"
     / "0165_global_ask_job.sql"
 )
+_GLOBAL_ASK_SEMANTIC_SEARCH_MIGRATION = (
+    Path(__file__).resolve().parents[2]
+    / "migrations"
+    / "0225_global_ask_semantic_candidate_search.sql"
+)
 _GLOBAL_ASK_SCOPE_MIGRATION = (
     Path(__file__).resolve().parents[2]
     / "migrations"

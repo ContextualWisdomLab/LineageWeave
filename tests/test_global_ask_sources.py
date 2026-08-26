@@ -5,6 +5,7 @@ import math
 from datetime import date, datetime, timezone
 
 from backend.app.post_chat_ingestion import (
+    _GraphEvidenceProjection,
     _fuse_global_candidate_ids,
     _ontology_lookup_codes_in_question,
     gather_global_chat_sources as _gather_global_chat_sources,
@@ -340,11 +341,16 @@ def test_global_sources_keep_graph_facts_with_their_evidence_source(monkeypatch)
         async def fetch(self, query: str, *args):
             return rows if "from source_post" in query else []
 
-    async def fake_graph_facts(_conn, _visible_post_ids, _knowledge_cutoff=None):
-        return {"post-b": ("fact evidenced by post-b",)}
+    async def fake_graph_projection(
+        _conn, _visible_post_ids, _public_post_ids, _knowledge_cutoff=None
+    ):
+        return _GraphEvidenceProjection(
+            {"post-b": ("fact evidenced by post-b",)}, ()
+        )
 
     monkeypatch.setattr(
-        "backend.app.post_chat_ingestion._graph_facts_for_posts", fake_graph_facts
+        "backend.app.post_chat_ingestion._graph_evidence_projection",
+        fake_graph_projection,
     )
 
     sources = asyncio.run(
