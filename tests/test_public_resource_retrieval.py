@@ -9,11 +9,13 @@ from http.server import BaseHTTPRequestHandler, HTTPServer
 import pytest
 
 from lineageweave.public_resource_retrieval import (
+    PublicResource,
     PublicResourceUnavailable,
     PublicTarget,
     PublicTargetRejected,
     classify_public_target,
     extract_visible_text,
+    fetch_public_resource,
     is_public_ip,
     retrieve_public_target,
 )
@@ -219,6 +221,37 @@ def test_retrieve_public_target_passes_unbracketed_ipv6_to_http_client(
             ipaddress.ip_address("2001:4860:4860::8888"),
         )
     assert observed["host"] == "2001:4860:4860::8888"
+
+
+def test_fetch_public_resource_tries_each_vetted_address(monkeypatch) -> None:
+    addresses = (
+        ipaddress.ip_address("2001:4860:4860::8888"),
+        ipaddress.ip_address("93.184.216.34"),
+    )
+    attempts: list[ipaddress.IPv4Address | ipaddress.IPv6Address] = []
+
+    monkeypatch.setattr(
+        "lineageweave.public_resource_retrieval.resolve_public_addresses",
+        lambda _hostname: addresses,
+    )
+
+    def retrieve(_target, address, **_kwargs):
+        attempts.append(address)
+        if address == addresses[0]:
+            raise PublicResourceUnavailable("IPv6 transport unavailable")
+        return PublicResource(
+            url="https://example.com/evidence",
+            title="Cited page",
+            excerpt_text="Public corroboration.",
+            media_type="text/plain",
+        )
+
+    monkeypatch.setattr(
+        "lineageweave.public_resource_retrieval.retrieve_public_target", retrieve
+    )
+    resource = fetch_public_resource("https://example.com/evidence")
+    assert resource.title == "Cited page"
+    assert attempts == list(addresses)
 
 
 def test_retrieve_public_target_rejects_oversized_declared_length() -> None:

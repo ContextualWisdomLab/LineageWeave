@@ -336,12 +336,20 @@ def fetch_public_resource(
     if target is None:
         raise PublicTargetRejected("url is not a public HTTP(S) target")
     addresses = resolve_public_addresses(target.hostname)
-    return retrieve_public_target(
-        target,
-        addresses[0],
-        timeout=timeout,
-        maximum_response_bytes=maximum_response_bytes,
-    )
+    last_error: PublicResourceUnavailable | None = None
+    for address in addresses:
+        try:
+            return retrieve_public_target(
+                target,
+                address,
+                timeout=timeout,
+                maximum_response_bytes=maximum_response_bytes,
+            )
+        except PublicResourceUnavailable as exc:
+            last_error = exc
+    if last_error is not None:
+        raise last_error
+    raise PublicResourceUnavailable("public target transport unavailable")
 
 
 __all__ = [
