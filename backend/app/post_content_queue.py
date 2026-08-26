@@ -474,9 +474,9 @@ async def enqueue_post_content_backfill(
     requests: list[PostContentJobRequest] = []
     async with pool.acquire() as conn:
         async with conn.transaction():
-            # Safe SQL: the eligibility predicate is an immutable schema fragment; values are bound.
             rows = []
             if require_structure:
+                # Safe SQL: the eligibility predicate is an immutable schema fragment; values are bound.
                 rows = await conn.fetch(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
                     POST_CONTENT_BACKFILL_CANDIDATE_SQL,
                     SUCCEEDED,
@@ -486,6 +486,7 @@ async def enqueue_post_content_backfill(
                     True,
                 )
             if len(rows) < limit:
+                # Safe SQL: the same immutable candidate statement is reused with bound tier values.
                 rows += await conn.fetch(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
                     POST_CONTENT_BACKFILL_CANDIDATE_SQL,
                     SUCCEEDED,
