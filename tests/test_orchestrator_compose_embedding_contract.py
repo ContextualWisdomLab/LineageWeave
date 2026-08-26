@@ -29,9 +29,17 @@ def test_rendered_compose_owns_exact_embedding_pair(tmp_path: Path) -> None:
     )
     config = json.loads(rendered.stdout)
     orchestrator_environment = config["services"]["orchestrator"]["environment"]
+    backend_environment = config["services"]["backend"]["environment"]
 
     assert orchestrator_environment["LLM_GATEWAY_EMBEDDING_MODEL"] == "text-embedding-3-large"
     assert orchestrator_environment["LLM_GATEWAY_EMBEDDING_PROVIDER"] == "openai"
+    assert (
+        orchestrator_environment["CONTEXTUAL_ORCHESTRATOR_TOKEN"]
+        == backend_environment["ORCHESTRATOR_API_KEY"]
+    )
+    assert config["services"]["orchestrator"]["healthcheck"]["test"][-1].find(
+        "/healthz"
+    ) >= 0
 
 
 def test_lineage_clients_do_not_select_an_embedding_model() -> None:
