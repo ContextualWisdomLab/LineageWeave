@@ -155,13 +155,13 @@ def test_injected_transport_returns_accepted_hits() -> None:
             "post_id": "post-2",
             "post_title": "Pricing renegotiation: revised quote sent",
             "fused_rank": 1,
-            "channel_evidence": _lexical_then_temporal("post-2", 1),
+            "channel_evidence": [],
         },
         {
             "post_id": "post-1",
             "post_title": "Public post",
             "fused_rank": 2,
-            "channel_evidence": _lexical_then_temporal("post-1", 2),
+            "channel_evidence": [],
         },
     ]
     serialized = json.dumps(payload)
@@ -355,7 +355,13 @@ def test_ranking_channel_evidence_tie_breaks_by_signal_code() -> None:
     assert evidence[0].contribution == evidence[1].contribution == 0.5 / 61
 
 
-def test_project_ranking_list_ignores_transport_extra_fields() -> None:
+def test_project_ranking_list_does_not_refuse_legacy_transport_for_evidence(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(
+        "lineageweave.rankweave_client._owner_channel_evidence",
+        lambda *_args, **_kwargs: pytest.fail("legacy ordering must not be re-fused"),
+    )
     ranking = project_ranking_list(
         [
             {
@@ -369,16 +375,7 @@ def test_project_ranking_list_ignores_transport_extra_fields() -> None:
         weights={"temporal": 0.5, "lexical": 0.5},
     )
     payload = ranking.to_json()
-    assert payload[0]["channel_evidence"] == [
-        {
-            "signal_code": "temporal",
-            "signal_label": "Newest first",
-            "channel_rank": 1,
-            "weight": 0.5,
-            "contribution": 0.5 / 61,
-            "rank": 1,
-        }
-    ]
+    assert payload[0]["channel_evidence"] == []
     serialized = json.dumps(payload)
     assert "theta" not in serialized
     assert "invented" not in serialized

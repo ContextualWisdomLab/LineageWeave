@@ -300,9 +300,10 @@ def project_ranking_list(
 ) -> RankingList:
     """Accept transport output. Unknown shapes fail closed. Hidden ids drop.
 
-    Channel evidence is attached from ``channels`` LineageWeave already
-    owns. Transport extra fields are ignored so RankWeave cannot invent
-    a missing signal.
+    Channel evidence is accepted only from the trusted in-process owner
+    envelope. Legacy list transports retain their ordering but expose an
+    empty breakdown; re-fusing their inputs could diverge from that ordering.
+    Transport extra fields are ignored so a transport cannot invent a signal.
     """
     if isinstance(raw, _OwnerRankingEnvelope):
         raw_hits = list(raw.hits)
@@ -315,16 +316,7 @@ def project_ranking_list(
         raw_hits = raw
         if not raw_hits:
             return RankingList(items=())
-        owned_channels = channels or {}
-        evidence_by_post_id = _owner_channel_evidence(
-            owned_channels,
-            (
-                weights
-                if weights is not None
-                else _ClassicWeights({name: 1.0 for name in owned_channels})
-            ),
-            DEFAULT_RANK_CONSTANT_ETA,
-        )
+        evidence_by_post_id = {}
     else:
         raise RankWeaveNotAvailable(
             "rankweave_not_available: ranking envelope is not a hit list"
