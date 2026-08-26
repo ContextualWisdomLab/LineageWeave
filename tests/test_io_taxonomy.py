@@ -12,8 +12,8 @@ evidence.
 from __future__ import annotations
 
 import pytest
-from rdflib import RDF
-from rdflib.namespace import SKOS
+from rdflib import RDF, URIRef
+from rdflib.namespace import DCTERMS, PROV, SKOS
 
 from lineageweave.io_taxonomy import (
     JOB_ZONE_LEVELS,
@@ -117,6 +117,10 @@ _PUBLISHED_ABILITY_DOMAINS: frozenset[str] = frozenset(
 
 _CANONICAL_NAMESPACE = (
     "https://contextualwisdomlab.github.io/LineageWeave/ontology#"
+)
+
+_ONET_310_JOB_ZONE_SHA256 = (
+    "f66d665a2e507c825a71aedb2c13ba22765e8259bc6c7fe5b3cdfd8105475a66"
 )
 
 
@@ -299,3 +303,47 @@ class TestOntologyIsolation:
         # The round trip stays exactly as the schema seeds it; none of
         # the occupational taxonomy concepts participates in it.
         assert isinstance(codes, set)
+
+
+class TestSourceProvenance:
+    """Version, publisher, license, and artifact-integrity metadata."""
+
+    def test_each_scheme_names_its_source_entities(self) -> None:
+        assert set(ONTOLOGY.objects(LW.socMajorGroupScheme, PROV.wasDerivedFrom)) == {
+            LW.sourceSoc2018
+        }
+        assert set(ONTOLOGY.objects(LW.jobZoneScheme, PROV.wasDerivedFrom)) == {
+            LW.sourceOnet310JobZoneReference
+        }
+        assert set(
+            ONTOLOGY.objects(LW.workerCharacteristicScheme, PROV.wasDerivedFrom)
+        ) == {
+            LW.sourceFleishmanQuaintance1984,
+            LW.sourceHolland1997,
+            LW.sourceOnetLegacyWorkValues,
+            LW.sourceOnetRevisedWorkStyles,
+        }
+
+    def test_onet_310_source_is_versioned_and_licensed(self) -> None:
+        source = LW.sourceOnet310JobZoneReference
+        assert str(ONTOLOGY.value(source, DCTERMS.hasVersion)) == "31.0"
+        assert str(ONTOLOGY.value(source, DCTERMS.publisher)) == (
+            "National Center for O*NET Development"
+        )
+        assert ONTOLOGY.value(source, DCTERMS.license) == URIRef(
+            "https://creativecommons.org/licenses/by/4.0/"
+        )
+        assert str(ONTOLOGY.value(source, LW.sourceArtifactSha256)) == (
+            _ONET_310_JOB_ZONE_SHA256
+        )
+
+    def test_soc_source_records_version_publisher_and_rights(self) -> None:
+        source = LW.sourceSoc2018
+        assert str(ONTOLOGY.value(source, DCTERMS.hasVersion)) == "2018"
+        assert str(ONTOLOGY.value(source, DCTERMS.publisher)) == (
+            "U.S. Bureau of Labor Statistics"
+        )
+        assert ONTOLOGY.value(source, DCTERMS.rights) == URIRef(
+            "https://www.dol.gov/general/aboutdol/copyright"
+        )
+        assert ONTOLOGY.value(source, LW.sourceArtifactSha256) is None

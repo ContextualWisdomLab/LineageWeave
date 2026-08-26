@@ -83,6 +83,13 @@ home, under the same two constraints that bound ADR 0232:
    ``ValueError`` for malformed keys, malformed TTL declarations,
    neighbors outside the closed RIASEC vocabulary, or a type without
    exactly two neighbors.
+8. Each concept scheme names its source entities through
+   `prov:wasDerivedFrom`. Source entities retain title, publisher or creator,
+   explicit release/version, source URL, and applicable rights or license.
+   `:sourceArtifactSha256` is present only when an exact stable artifact was
+   downloaded and hashed; the O*NET 31.0 Job Zone JSON is pinned to SHA-256
+   `f66d665a2e507c825a71aedb2c13ba22765e8259bc6c7fe5b3cdfd8105475a66`.
+   A dynamic page without a reproducible artifact carries no invented digest.
 
 ## Consequences
 
@@ -113,6 +120,9 @@ home, under the same two constraints that bound ADR 0232:
   isolation, and fail-closed lookups.
 - `tests/test_ontology.py` continues to pass unchanged: the round trip
   sees no new lookup codes.
+- Source-provenance tests require every new scheme to resolve to the declared
+  PROV entity and verify O*NET version, publisher, CC BY 4.0 license, artifact
+  digest, and SOC version/publisher/rights metadata.
 
 ## References
 

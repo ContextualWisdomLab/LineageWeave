@@ -59,6 +59,9 @@ model*. https://www.onetcenter.org/contentmodel/
 National Center for O*NET Development. (2026). *Job zone reference:
 O*NET 31.0 database*. https://www.onetcenter.org/dictionary/31.0/json/job_zone_reference.html
 
+National Center for O*NET Development. (n.d.). *O*NET 31.0 database
+content license*. https://www.onetcenter.org/license_db.html
+
 ## Occupational classification table
 
 U.S. Department of Labor. (2018). *2018 Standard Occupational
@@ -81,3 +84,6 @@ The taxonomy publishes names, codes, and structural relations only. It
 carries no importance rating, no level score, and no calibrated weight;
 presenting any of its scale positions as measured requirements would
 violate ADR 0145 and the Standards' validity-evidence requirements.
+O*NET-derived content identifies the National Center for O*NET Development,
+the 31.0 release where applicable, CC BY 4.0, and modifications in the
+ontology source entities. SOC terms identify BLS and the DOL rights policy.
