@@ -2755,6 +2755,7 @@ function analysisRunCorpusHint(run: AnalysisRun): string | null {
   const isTopicLineage = run.run_kind_code === "analysis_run_topic_lineage";
   if (run.run_kind_code !== "analysis_run_tepp" && !isTopicLineage) return null;
   const service = isTopicLineage ? "topic-lineage" : "TEPP";
+  const access = isTopicLineage ? "topic measurement access" : "measurement access";
   const result = isTopicLineage ? "a topic-identity result" : "a calibrated result";
   const verb = isTopicLineage ? "thread" : "measure";
   const verbPast = isTopicLineage ? "threaded" : "measured";
@@ -2762,7 +2763,7 @@ function analysisRunCorpusHint(run: AnalysisRun): string | null {
     case "analysis_status_failed":
       return (
         `These posts are the cutoff corpus ${service} would ${verb}. Review the failure details, ` +
-        `then ask a workspace administrator to restore measurement access before re-running for ${result}.`
+        `then ask a workspace administrator to restore ${access} before re-running for ${result}.`
       );
     case "analysis_status_succeeded":
       return `These posts are the cutoff corpus this ${service} run ${verbPast}.`;
@@ -3016,12 +3017,12 @@ function AnalysisRunsPanel({
   const inFlightKeyRef = useRef<string | null>(null);
   const entitiesReady = corporateEntities !== null && entitiesLoadError === null;
   const requestLabel = requesting
-    ? "Recording the run..."
+    ? t("Recording the run...")
     : entitiesLoadError
-      ? "Reload to choose a corporate entity"
+      ? t("Reload to choose a corporate entity")
       : corporateEntities === null
-        ? "Loading affiliated entities..."
-        : "Request a lineage reconstruction";
+        ? t("Loading affiliated entities...")
+        : t("Request a lineage reconstruction");
 
   useEffect(() => {
     fetchAnalysisRuns(accessToken)
@@ -3139,7 +3140,7 @@ function AnalysisRunsPanel({
       {(error || entitiesLoadError) && <p className="error">{error ?? entitiesLoadError}</p>}
       {runs.length === 0 ? (
         <p className="popup-placeholder">
-          {t("No analysis runs are available. Select Request lineage reconstruction, or ask an administrator to check your data access.")}
+          {t("No analysis runs are available. Select Request a lineage reconstruction, or ask an administrator to check your data access.")}
         </p>
       ) : (
         <ul className="ticket-list" aria-label="Analysis runs">

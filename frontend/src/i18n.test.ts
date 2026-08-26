@@ -72,6 +72,7 @@ describe("i18n", () => {
     "Ontology neighborhood",
     "This is an ontology neighborhood, not Event Lineage.",
     "Rankings",
+    "Request a lineage reconstruction",
     "Title overlap",
     "Open a result to review why it appears in this ranking. These results are not calibrated measurements.",
     "Workspace navigation",

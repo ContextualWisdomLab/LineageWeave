@@ -106,6 +106,8 @@ describe("App, authenticated", () => {
     succeededReportRun?: boolean;
     succeededTeppRun?: boolean;
     pendingTeppRun?: boolean;
+    topicLineageRun?: boolean;
+    emptyAnalysisRuns?: boolean;
     pluralAffiliations?: boolean;
     deferMe?: boolean;
     deferPostOne?: boolean;
@@ -377,8 +379,10 @@ describe("App, authenticated", () => {
         return Promise.resolve(
           jsonResponse({
             analysis_run_id: "run-demo-tepp",
-            run_kind_code: "analysis_run_tepp",
-            run_kind_label: "TEPP measurement",
+            run_kind_code: options?.topicLineageRun
+              ? "analysis_run_topic_lineage"
+              : "analysis_run_tepp",
+            run_kind_label: options?.topicLineageRun ? "Topic lineage" : "TEPP measurement",
             scope_kind_code: "analysis_scope_corporate_entity",
             scope_kind_label: "Corporate entity",
             scope_entity_name: "Demo Corp",
@@ -686,7 +690,7 @@ describe("App, authenticated", () => {
       if (url.endsWith("/api/analysis-runs")) {
         return Promise.resolve(
           jsonResponse({
-            analysis_runs: [
+            analysis_runs: options?.emptyAnalysisRuns ? [] : [
               ...(createdPendingLineage ? [createdPendingLineage] : []),
               ...(createdPendingTepp ? [createdPendingTepp] : []),
               {
@@ -721,8 +725,10 @@ describe("App, authenticated", () => {
               },
               {
                 analysis_run_id: "run-demo-tepp",
-                run_kind_code: "analysis_run_tepp",
-                run_kind_label: "TEPP measurement",
+                run_kind_code: options?.topicLineageRun
+                  ? "analysis_run_topic_lineage"
+                  : "analysis_run_tepp",
+                run_kind_label: options?.topicLineageRun ? "Topic lineage" : "TEPP measurement",
                 scope_kind_code: "analysis_scope_corporate_entity",
                 scope_kind_label: "Corporate entity",
                 scope_entity_name: "Demo Corp",
@@ -3376,6 +3382,34 @@ describe("App, authenticated", () => {
     ).toBeInTheDocument();
     expect(screen.queryByText(/TEPP transport/i)).not.toBeInTheDocument();
     expect(teppHistory).not.toHaveTextContent("Succeeded");
+  });
+
+  it("names the exact reconstruction action when no analysis runs are available", async () => {
+    stubBackend({ emptyAnalysisRuns: true });
+    render(<App showLabPanels />);
+
+    expect(
+      await screen.findByText(
+        "No analysis runs are available. Select Request a lineage reconstruction, or ask an administrator to check your data access.",
+      ),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Request a lineage reconstruction" })).toBeInTheDocument();
+  });
+
+  it("directs a failed topic-lineage run to restore topic measurement access", async () => {
+    stubBackend({ topicLineageRun: true });
+    render(<App showLabPanels />);
+
+    await userEvent.click(
+      await screen.findByRole("button", {
+        name: "Open analysis run: Topic lineage · Failed · Demo Corp",
+      }),
+    );
+    expect(
+      screen.getByText(
+        "These posts are the cutoff corpus topic-lineage would thread. Review the failure details, then ask a workspace administrator to restore topic measurement access before re-running for a topic-identity result.",
+      ),
+    ).toBeInTheDocument();
   });
 
   it("warns that a cutoff-rewritten title opens the live body, not a snapshot", async () => {
