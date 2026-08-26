@@ -31,6 +31,8 @@ class _Connection:
 
     async def fetch(self, query: str, *args: object) -> list[dict[str, object]]:
         self.queries.append((query, args))
+        if "from product_operations_fact_relation relation" in query:
+            return []
         if "operations_case_missing_fact missing" in query:
             return [{
                 "post_id": "00000000-0000-0000-0000-000000000001",
@@ -138,6 +140,20 @@ async def test_dashboard_reads_evidence_bound_product_relation() -> None:
         "evidence_text": "Synthetic cited sentence",
         "evidence_post_id": "00000000-0000-0000-0000-000000000002",
     }]
+
+
+@pytest.mark.anyio
+async def test_dashboard_rejects_malformed_product_relation_rows() -> None:
+    """A broken query projection must fail instead of hiding relation evidence."""
+
+    class MalformedProductRelationConnection(_Connection):
+        async def fetch(self, query: str, *args: object) -> list[dict[str, object]]:
+            if "from product_operations_fact_relation relation" in query:
+                return [{"post_id": "00000000-0000-0000-0000-000000000001"}]
+            return await super().fetch(query, *args)
+
+    with pytest.raises(KeyError, match="case_kind_code"):
+        await fetch_operations_dashboard(MalformedProductRelationConnection(), [])
 
 
 @pytest.mark.anyio
@@ -499,6 +515,8 @@ async def test_external_information_projects_a_typed_prov_o_relation() -> None:
 
         async def fetch(self, query: str, *args: object) -> list[dict[str, object]]:
             self.queries.append((query, args))
+            if "from product_operations_fact_relation relation" in query:
+                return []
             if "operations_case_milestone milestone" in query:
                 return []
             if "from topic_post_context_influence influence" in query:

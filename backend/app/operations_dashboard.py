@@ -354,8 +354,6 @@ async def fetch_operations_dashboard(
     )
     product_relations: dict[tuple[str, str, int], list[dict[str, str]]] = {}
     for row in product_relation_rows:
-        if "fact_ordinal" not in row or "relation_type_code" not in row:
-            continue
         relation_key = (
             str(row["post_id"]),
             row["case_kind_code"],
