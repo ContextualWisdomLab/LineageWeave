@@ -127,7 +127,7 @@ export const RequiredFactMissing: Story = {
     onOpenPost: () => undefined,
   },
   play: async ({ canvasElement }) => {
-    await expect(within(canvasElement).getByText(/수주 Pool: 관련 원문을 추가한 뒤 다시 분석하세요/)).toBeVisible();
+    await expect(within(canvasElement).getByText(/수주 Pool: 관련 근거를 찾으면 자동으로 다시 분석합니다. 이후 결과를 다시 확인하세요/)).toBeVisible();
   },
 };
 
