@@ -19,6 +19,9 @@ const STORAGE_KEY = "lineageweave.locale";
 
 const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
   ko: {
+    "Recorded perspectives": "기록된 관점",
+    "Imported from source": "원본에서 가져옴",
+    "Evidence connected": "근거 연결됨",
     "Unknown": "알 수 없음",
     Language: "언어",
     unresolved: "미해결",
@@ -556,6 +559,9 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
       "IRT 주효과 이후 잔여 맵 랭크 0은 잔여 구조가 없음을 뜻합니다. 관측 Y {observed}와 기대 E {expected}를 읽은 다음, 이 글을 여세요.",
   },
   zh: {
+    "Recorded perspectives": "已记录的观点",
+    "Imported from source": "从来源导入",
+    "Evidence connected": "已关联证据",
     "Unknown": "未知",
     Language: "语言",
     unresolved: "未解决",
@@ -1085,6 +1091,9 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
       "残余图秩 0 表示 IRT 主效应后没有残余结构。阅读观测 Y {observed} 与期望 E {expected}，然后打开这篇帖子。",
   },
   ja: {
+    "Recorded perspectives": "記録された観点",
+    "Imported from source": "元データから取得",
+    "Evidence connected": "根拠を関連付け済み",
     "Unknown": "不明",
     "5W1H": "5W1H",
     Who: "誰が",
@@ -1617,6 +1626,9 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
       "残差マップランク 0 は IRT 主効果後に残差構造がないことを示します。観測 Y {observed} と期待 E {expected} を読んでから、この投稿を開いてください。",
   },
   vi: {
+    "Recorded perspectives": "Các góc nhìn đã ghi nhận",
+    "Imported from source": "Được nhập từ nguồn",
+    "Evidence connected": "Đã liên kết bằng chứng",
     "Unknown": "Không rõ",
     "5W1H": "5W1H",
     Who: "Ai",

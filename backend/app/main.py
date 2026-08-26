@@ -700,7 +700,9 @@ async def _lookup_post_labels(conn: asyncpg.Connection, rows: list[asyncpg.Recor
 
 
 async def _load_post_voice_types(
-    conn: asyncpg.Connection, post_id: str
+    conn: asyncpg.Connection,
+    post_id: str,
+    effective_cutoff: datetime | None = None,
 ) -> list[dict[str, Any]]:
     """Return qualified Voice-of-X associations without exposing assertion ids."""
     rows = await conn.fetch(
@@ -713,9 +715,11 @@ async def _load_post_voice_types(
             on lookup.lookup_category = 'voc_type'
            and lookup.lookup_code = voice.voice_type_code
          where voice.post_id = $1
+           and ($2::timestamptz is null or voice.effective_from <= $2)
          order by voice.is_primary desc, lookup.display_order, voice.voice_type_code
         """,
         post_id,
+        effective_cutoff,
     )
     return [
         {
@@ -1716,7 +1720,7 @@ async def read_post(
         project_evidence = await _load_project_evidence(
             conn, post_id, row["source_project_code"], row["source_project_name"]
         )
-        voice_types = await _load_post_voice_types(conn, post_id)
+        voice_types = await _load_post_voice_types(conn, post_id, as_of_clock)
         known_at = None
         if as_of_clock is not None:
             known_at = await fetch_known_at_revision(conn, post_id, as_of_clock)

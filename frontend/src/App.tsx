@@ -77,6 +77,7 @@ import {
   type PeriodReportIndex,
   type PeriodReports,
   type PostLineage,
+  type PostVoiceType,
   type PostSummary,
   type PostSortOrder,
   type RankingList,
@@ -1776,6 +1777,25 @@ function ActivityPanel({ postId, accessToken }: { postId: string; accessToken: s
   );
 }
 
+export function VoicePerspectiveList({ voices }: { voices: PostVoiceType[] }) {
+  return (
+    <section className="popup-section" aria-label={t("Recorded perspectives")}>
+      <h3>{t("Recorded perspectives")}</h3>
+      <ul className="ticket-list">
+        {voices.map((voice) => (
+          <li key={voice.code} className="ticket-list-item">
+            <span className="ticket-title">{t(voice.label)}</span>
+            <span className="post-meta">
+              {t(voice.is_primary ? "Imported from source" : "Evidence connected")}
+            </span>
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+
+
 function PostDetailPopup({
   postId,
   accessToken,
@@ -2105,6 +2125,7 @@ function PostDetailPopup({
               {post.visibility_label ?? post.visibility_code} &middot;{" "}
               {new Date(post.created_at).toLocaleString()}
             </p>
+            {post.voice_types?.length ? <VoicePerspectiveList voices={post.voice_types} /> : null}
             <div className="post-actions" role="group" aria-label={t("Post actions")}>
               <button type="button" onClick={() => void sharePost()}>
                 {t("Share")}

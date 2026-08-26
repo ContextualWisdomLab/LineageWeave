@@ -1,6 +1,5 @@
-from datetime import UTC, datetime
-
 import asyncio
+from datetime import UTC, datetime
 
 from backend.app.main import _load_post_voice_types, _serialize_post
 
@@ -75,9 +74,13 @@ def test_voice_loader_projects_evidence_availability_not_assertion_ids() -> None
     """The read boundary returns a boolean evidence cue and keeps internal ids private."""
 
     class Connection:
-        async def fetch(self, query: str, post_id: str) -> list[dict[str, object]]:
+        async def fetch(
+            self, query: str, post_id: str, effective_cutoff: datetime
+        ) -> list[dict[str, object]]:
             assert "provenance_assertion_id is not null as evidence_available" in query
+            assert "voice.effective_from <= $2" in query
             assert post_id == "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"
+            assert effective_cutoff == datetime(2026, 1, 1, tzinfo=UTC)
             return [
                 {
                     "voice_type_code": "vops",
@@ -89,7 +92,11 @@ def test_voice_loader_projects_evidence_availability_not_assertion_ids() -> None
             ]
 
     rows = asyncio.run(
-        _load_post_voice_types(Connection(), "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa")  # type: ignore[arg-type]
+        _load_post_voice_types(  # type: ignore[arg-type]
+            Connection(),
+            "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+            datetime(2026, 1, 1, tzinfo=UTC),
+        )
     )
 
     assert rows == [

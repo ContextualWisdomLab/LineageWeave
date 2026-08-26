@@ -48,14 +48,19 @@ Cartesian-product codes. The remaining acceptance boundary is:
    navigation implemented; the board re-filter matches every associated voice
    and all twelve governed atomic labels are localized across English, Korean,
    Chinese, Japanese, and Vietnamese; one bounded query projects assignments
-   for every authorized Post even when another node type is the focus); and
+   for every authorized Post even when another node type is the focus; post
+   detail lists primary and evidence-connected perspectives separately and
+   honors its knowledge cutoff); and
 5. proves zero-, one-, and multi-voice states with synthetic fixtures,
    migration replay, ontology/SHACL, API, accessibility, and Storybook edge
    tests before any release claim. The candidate `CombinedVoiceEvidence` scene
    covers primary-plus-additional assignments; desktop and mobile screenshots
    were inspected on 2026-08-27. At 390 CSS pixels the document did not
    overflow, the named exact-value region remained horizontally scrollable,
-   and the source-post evidence action remained visible and labeled.
+   and the source-post evidence action remained visible and labeled. The
+   `Post/Recorded perspectives` desktop and 390-pixel scenes were also inspected
+   on 2026-08-27; both kept each complete Voice label paired with its imported
+   or evidence-connected state without clipping or horizontal overflow.
 
 At this snapshot the repository had 23 open PRs and 10 open issues. PR #713
 was policy-blocked: exact-head frontend, CodeQL, ontology-publication,

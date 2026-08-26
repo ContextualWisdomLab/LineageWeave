@@ -56,7 +56,9 @@ compound lookup codes.
 - Authorized post list/detail responses expose ordered voice assignments with
   labels, truth state, and evidence availability but never internal assertion
   identifiers. Filters match any associated voice, and repeated post cards show
-  the combined labels.
+  the combined labels. A knowledge-cutoff detail read includes only assignments
+  effective by that cutoff; the popup lists the imported and evidence-connected
+  perspectives separately instead of flattening them into a compound label.
 - A `post_admin` may add an additional assignment by naming an ABAC-visible
   evidence Post, an atomic Voice code, and a governed truth state. The API does
   not accept a caller-supplied assertion identifier: one transaction binds the

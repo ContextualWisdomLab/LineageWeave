@@ -27,6 +27,8 @@ All notable changes to this project are documented here. Format follows
   governed `post_admin` API creates each additional assignment and its
   `prov:wasDerivedFrom` assertion atomically from an ABAC-visible evidence Post;
   callers cannot replace the imported primary or supply an assertion UUID.
+  Post detail lists the primary and evidence-connected perspectives separately,
+  with localized provenance cues and knowledge-cutoff filtering.
 - Expanded Voice-of-X post taxonomy (ADR 0246): the governed `voc_type`
   scheme adds Voice of Supplier, Employee, Business, Regulator, Investor,
   Society, and Process as source-post categories. Ontology SKOS concepts and
