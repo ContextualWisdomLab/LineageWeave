@@ -476,7 +476,7 @@ describe("OntologyExplorer", () => {
               valid_to: null,
               recorded_at: null,
               evidence_count: 1,
-              shape_code: "double-rounded-rectangle",
+              shape_code: "rounded-rectangle",
             },
           ],
           edges: [],
@@ -492,7 +492,7 @@ describe("OntologyExplorer", () => {
     expect(
       screen.getByRole("button", { name: "Select node: Work evidence Problem Sensitivity" }),
     ).toHaveClass("ontology-node-occupational-construct");
-    expect(document.querySelectorAll(".ontology-node-occupational-construct rect")).toHaveLength(2);
+    expect(document.querySelectorAll(".ontology-node-occupational-construct rect")).toHaveLength(1);
     expect(screen.queryByText("node_occupational_construct")).not.toBeInTheDocument();
 
     await userEvent.type(

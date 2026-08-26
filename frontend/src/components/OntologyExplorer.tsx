@@ -53,7 +53,7 @@ const NODE_TYPE_CLASS: Record<string, string> = {
   node_corporate_entity: "ontology-node-organization",
   node_team: "ontology-node-team",
   node_project: "ontology-node-project",
-  node_occupational_construct: "ontology-node-team",
+  node_occupational_construct: "ontology-node-occupational-construct",
 };
 
 const TRUTH_LABEL: Record<string, string> = {
