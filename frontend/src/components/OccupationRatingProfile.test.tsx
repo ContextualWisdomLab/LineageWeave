@@ -96,6 +96,20 @@ describe("OccupationRatingProfile", () => {
     expect(fetchOccupationRatingOccupations).not.toHaveBeenCalled();
   });
 
+  it("clears a stale catalog error when authentication changes", async () => {
+    vi.mocked(fetchOccupationRatingOccupations).mockResolvedValue(observedOccupations);
+    vi.mocked(fetchOccupationRatingSources)
+      .mockRejectedValueOnce(new Error("synthetic catalog failure"))
+      .mockResolvedValueOnce({ sources: [importedSource] });
+    const { rerender } = render(<OccupationRatingProfile accessToken="expired-token" />);
+    expect(await screen.findByRole("alert")).toHaveTextContent("근거 표를 확인하지 못했습니다");
+
+    rerender(<OccupationRatingProfile accessToken="fresh-token" />);
+
+    expect(await screen.findByRole("option", { name: "31.0 · Abilities" })).toBeInTheDocument();
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  });
+
   it("fails closed when the selected source has no observed occupation", async () => {
     vi.mocked(fetchOccupationRatingSources).mockResolvedValue({ sources: [importedSource] });
     vi.mocked(fetchOccupationRatingOccupations).mockResolvedValue({
