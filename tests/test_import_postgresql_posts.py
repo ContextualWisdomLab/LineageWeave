@@ -96,6 +96,12 @@ def test_source_conversation_turn_contract_preserves_order_and_evidence() -> Non
             lambda envelope: envelope["turns"][0].update(evidence_reference=""),
             "evidence reference must be",
         ),
+        (lambda envelope: envelope["turns"][0].update(speaker="a\x00b"), "speaker must be"),
+        (lambda envelope: envelope["turns"][0].update(text="a\x00b"), "text must be"),
+        (
+            lambda envelope: envelope["turns"][0].update(evidence_reference="a\x00b"),
+            "evidence reference must be",
+        ),
     ],
 )
 def test_source_conversation_turn_contract_fails_closed(change, message: str) -> None:

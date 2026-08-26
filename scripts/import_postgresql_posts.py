@@ -334,21 +334,28 @@ def _source_conversation_turn_chunks(value: Any) -> list[Chunk] | None:
             not isinstance(speaker, str)
             or speaker != speaker.strip()
             or not speaker
+            or "\x00" in speaker
         ):
-            raise ValueError("conversation-turn speaker must be a nonblank bounded string")
+            raise ValueError(
+                "conversation-turn speaker must be a nonblank PostgreSQL text string"
+            )
         if (
             not isinstance(text, str)
             or not text.strip()
             or len(text) > SOURCE_CONVERSATION_TURN_MAX_TEXT_LENGTH
+            or "\x00" in text
         ):
-            raise ValueError("conversation-turn text must be a nonblank bounded string")
+            raise ValueError(
+                "conversation-turn text must be a nonblank bounded PostgreSQL text string"
+            )
         if (
             not isinstance(evidence_reference, str)
             or evidence_reference != evidence_reference.strip()
             or not evidence_reference
+            or "\x00" in evidence_reference
         ):
             raise ValueError(
-                "conversation-turn evidence reference must be a nonblank bounded string"
+                "conversation-turn evidence reference must be a nonblank PostgreSQL text string"
             )
         parsed.append(
             ConversationTurn(

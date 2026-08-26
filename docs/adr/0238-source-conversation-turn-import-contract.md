@@ -25,8 +25,9 @@ provenance.
    entries, and the complete UTF-8 serialized envelope to 24,000 bytes. These are exactly
    the existing post-structure unit, unit-batch, and provider request-body
    transport limits. Speaker and opaque evidence-reference strings must be
-   nonblank and fit within that same bounded envelope; no new empirical cutoff,
-   semantic weight, or scoring heuristic is introduced.
+   nonblank, fit within that same bounded envelope, and contain no NUL that
+   PostgreSQL `text` cannot represent; no new empirical cutoff, semantic
+   weight, or scoring heuristic is introduced.
 4. The entire source result set is validated before any target write. Unknown
    keys, kind/version drift, malformed JSON, non-contiguous order, blank or
    oversized values, and non-string fields fail closed.
