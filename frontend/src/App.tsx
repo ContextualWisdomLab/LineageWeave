@@ -2909,7 +2909,7 @@ function analysisRunStartLabel(run: AnalysisRun): string {
     return "Start temporal measurement";
   }
   if (run.run_kind_code === "analysis_run_topic_lineage") {
-    return "Start topic lineage";
+    return "Start topic journey analysis";
   }
   return "Start reconstruction";
 }
@@ -3200,7 +3200,7 @@ function AnalysisRunsPanel({
                 ? selected.run_kind_code === "analysis_run_tepp"
                   ? "Starting temporal measurement..."
                   : selected.run_kind_code === "analysis_run_topic_lineage"
-                    ? "Submitting the topic-lineage request..."
+                    ? "Submitting the topic journey analysis..."
                     : "Reconstructing the cutoff bag..."
                 : analysisRunStartLabel(selected)}
             </button>
