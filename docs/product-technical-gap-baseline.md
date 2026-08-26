@@ -1,6 +1,6 @@
 # Product & Technical Gap Baseline
 
-> Dashboard delivery snapshot: 2026-08-26 15:38 KST. Protected `main` is
+> Dashboard delivery snapshot: 2026-08-26 15:49 KST. Protected `main` is
 > `494b54e2245040bcf02b45376f221c37cd437e76`. This local branch is not
 > protected-main release evidence.
 
@@ -68,7 +68,7 @@ are not merge readiness. Re-fetch exact heads,
 unresolved threads, checks, approvals, rulesets, and merge SHA before any
 lifecycle claim.
 
-> Audit snapshot: 2026-08-26 15:38 KST (refreshed by the autonomous merge
+> Audit snapshot: 2026-08-26 15:49 KST (refreshed by the autonomous merge
 > loop). This repository records synthetic fixtures and aggregate,
 > non-identifying runtime evidence only. Open PRs and local checks are not
 > protected-default-branch release evidence. Identifying post identifiers,
@@ -117,7 +117,7 @@ PR #686 was closed without merge at `fbca05d9`; its customer-copy work is not
 protected-main delivery and any still-required behavior must travel through an
 open current-main candidate rather than relying on that closed head.
 
-The exact-head check-run scan at 15:38 KST found no `failure`, `cancelled`, or
+The exact-head check-run scan at 15:49 KST found no `failure`, `cancelled`, or
 `timed_out` conclusions on the 18 current heads. Several heads, including
 PR #667 and #672 after their repair pushes, are still queued and therefore have
 no terminal gate evidence; review approval is also independently required.
@@ -285,7 +285,7 @@ requires the ADR 0001 incident process and security/privacy-owner coordination;
 never force-push or delete evidence ad hoc.
 
 The repository-owned hourly commercialization loop and the central thin GitHub
-Actions caller ContextualWisdomLab/.github#1288 (current head `a11a2e53`, minute
+Actions caller ContextualWisdomLab/.github#1288 (current head `428e31a0`, minute
 4, `pr-review-fix-scheduler.yml`) both target this repository. The central
 candidate now reaches model execution through a pinned contextual-orchestrator
 sidecar and exposes only its loopback gateway contract to OpenCode. PR #1259 is the
@@ -453,7 +453,7 @@ for wholesale replay from #490.
 
 | Gap | Current evidence | Acceptance requirement |
 | --- | --- | --- |
-| Protected release | Protected `main@494b54e2` includes the #660/#664 semantic-unit/backend stack and #659 ontology readability/token repair. Eighteen PRs remain open at the 15:38 KST snapshot; every candidate still requires exact-head checks, unresolved-thread review, and independent approval before merge | Terminal exact-head checks, no unresolved threads, one independent approval under active ruleset `18156473`, and a protected merge SHA; re-fetch the ruleset before every lifecycle claim |
+| Protected release | Protected `main@494b54e2` includes the #660/#664 semantic-unit/backend stack and #659 ontology readability/token repair. Eighteen PRs remain open at the 15:49 KST snapshot; every candidate still requires exact-head checks, unresolved-thread review, and independent approval before merge | Terminal exact-head checks, no unresolved threads, one independent approval under active ruleset `18156473`, and a protected merge SHA; re-fetch the ruleset before every lifecycle claim |
 | Evidence-grounded operations workspace | Protected-main #614 delivers governed semantic Ask, live Similar VOC, disjoint pending/failed analysis metrics, full Storybook state inventory, and current desktop/mobile screenshot evidence. Authorized-corpus backfill acceptance remains unavailable | Perform authenticated authorized-corpus acceptance with aggregate evidence and retain fail-closed no-match behavior |
 | Cancelled analysis guidance | PRD-FR-5 requires every lifecycle state to identify a valid next action, while ADR 0013 makes Cancelled terminal. Protected `main@494b54e2` rendered Cancelled without a next action. This stacked candidate adds kind-specific guidance for lineage, TEPP, topic lineage, and period reports; 390×844 and 1440×1000 authenticated synthetic-runtime audits are retained in `docs/screenshots/cancelled-analysis-runs-{mobile,desktop}.png`. The audit also found and repaired attached count/action text and the three-column mobile squeeze | Land through the protected gate, then repeat authenticated keyboard and screen-reader acceptance on the exact release head; no cancelled run may imply that it can resume or that a measurement exists |
 | Shared frontend gate | The ADR 0109 login repair is on protected `main`; eight older branches carried the defect and received the same verified repair this loop (#521–#560) | Keep every future branch cut from post-repair bases; re-verify with frontend lint/test/build before push |
@@ -515,7 +515,7 @@ of leverage; open connector PRs there when the defect is upstream:
 6. **ThreadWeave** — tree assembly.
 7. **Naruon** — calendar projection delivered through merged #355/closed #336; email/project lineage projection remains open as #338.
 8. **DiskSage / wardnet** — storage and network policy as needed.
-9. **ContextualWisdomLab/.github** — required review workflows (OpenCode, Strix, Noema) and the LineageWeave hourly caller (#1288, current head `a11a2e53`). Its candidate routes provider work through a pinned contextual-orchestrator sidecar, exposes only the loopback gateway contract to OpenCode, and preserves the existing review/OIDC mutation credentials; 97 focused workflow/security tests and actionlint pass, while exact-head hosted checks and independent re-review remain pending. If stacked PRs miss central review or coverage-evidence fails on pnpm 9 (`--trust-lockfile` is pnpm 11.3) or a missing Vitest coverage provider, fix the org workflow (#1258), not a local bypass.
+9. **ContextualWisdomLab/.github** — required review workflows (OpenCode, Strix, Noema) and the LineageWeave hourly caller (#1288, current head `428e31a0`). Its current-main reconciliation preserves the pinned contextual-orchestrator sidecar, loopback gateway contract, provider-key isolation, and existing review/OIDC mutation credentials; 180 focused tests and actionlint pass, while exact-head hosted checks and independent re-review remain pending. If stacked PRs miss central review or coverage-evidence fails on pnpm 9 (`--trust-lockfile` is pnpm 11.3) or a missing Vitest coverage provider, fix the org workflow (#1258), not a local bypass.
 
 ## 8. Public ontology publication boundary
 
