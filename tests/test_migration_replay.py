@@ -85,6 +85,19 @@ def test_source_conversation_turn_evidence_migration_is_replay_safe() -> None:
     assert "octet_length(source_evidence_reference) <= 24000" in sql
 
 
+def test_source_conversation_turn_evidence_rollback_matches_forward_number() -> None:
+    """Operators can locate the rollback by the forward migration number."""
+    rollback_path = (
+        Path(__file__).resolve().parents[1]
+        / "migrations"
+        / "rollback"
+        / "0233_source_conversation_turn_evidence.sql"
+    )
+
+    assert rollback_path.exists()
+    assert "source_evidence_reference" in rollback_path.read_text(encoding="utf-8")
+
+
 def test_interval_relation_foreign_key_validation_is_separate() -> None:
     """Installing the FK must not scan a large existing edge table."""
 
