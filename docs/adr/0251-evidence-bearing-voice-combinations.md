@@ -72,8 +72,9 @@ compound lookup codes.
 - The authorized ontology neighborhood projects each association as a
   qualified assignment in JSON-LD and the exact-value CSV. SHACL requires its
   atomic voice concept, primary flag, and source-post evidence. The exact-value
-  table opens that already-authorized source post; it does not invent a graph
-  edge or expose an internal assertion identifier. A single bounded query loads
+  table opens the carrying Post and, separately, the already-authorized
+  derivation-evidence Post. It does not invent a graph edge or expose an
+  internal assertion identifier. A single bounded query loads
   assignments for every authorized Post in the neighborhood, regardless of
   whether the focus is a Post, Person, Organization, Team, or Project. An
   additional assignment whose evidence Post is outside that authorized node
@@ -131,7 +132,7 @@ category and stores no source content or identifying evidence in repository
 artifacts.
 
 The repository candidate projects authorized combinations through JSON-LD,
-SHACL, CSV, and evidence navigation and includes the governed admin API and
+SHACL, CSV, and separate carrying-Post/evidence navigation and includes the governed admin API and
 Post-popup authoring path above. Synthetic Storybook desktop/mobile scenes
 verify the focused evidence action, contained horizontally scrollable
 exact-value table, explicit unassigned-Voice/truth selections, success state,

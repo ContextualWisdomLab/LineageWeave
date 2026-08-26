@@ -770,6 +770,7 @@ def neighborhood_to_payload(neighborhood: OntologyNeighborhood) -> dict[str, Any
                 "truth_status_code": assignment.truth_status_code,
                 "recorded_at": assignment.recorded_at.isoformat(),
                 "provenance_reference": assignment.provenance_reference,
+                "evidence_post_id": assignment.evidence_post_id,
             }
             for assignment in neighborhood.voice_assignments
         ],

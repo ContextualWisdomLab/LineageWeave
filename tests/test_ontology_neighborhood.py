@@ -874,13 +874,15 @@ def test_voice_assignments_join_exact_csv_rows_and_jsonld() -> None:
         truth_status_code=TRUTH_OBSERVED,
         recorded_at=T0,
         provenance_reference="Evidence-backed additional voice",
-        evidence_post_id=PERSON_ID,
+        evidence_post_id=POST_ID,
     )
     neighborhood = replace(neighborhood, voice_assignments=(assignment,))
 
     row = neighborhood.exact_value_rows()[0]
     assert row["property_code"] == "hasVoiceAssignment"
     assert row["target_label"] == "Voice of Process"
+    assert row["evidence_post_id"] == POST_ID
+    assert row["evidence_count"] == "1"
     graph = neighborhood.jsonld_document()["@graph"]
     assignment_iri = str(LW[f"voice-assignment/{POST_ID}/vops"])
     projected = next(item for item in graph if item.get("@id") == assignment_iri)
@@ -893,13 +895,16 @@ def test_voice_assignments_join_exact_csv_rows_and_jsonld() -> None:
     assert post_projection[str(LW.hasVoiceAssignment)] == [{"@id": assignment_iri}]
     assert projected[str(LW.assignedVoiceType)] == {"@id": str(LW.voiceOfProcessType)}
     assert projected[str(LW.voiceAssignmentEvidence)] == {
-        "@id": ontology_node_iri(NODE_POST, PERSON_ID)
+        "@id": ontology_node_iri(NODE_POST, POST_ID)
     }
     assert projected["prov:wasDerivedFrom"] == {
-        "@id": ontology_node_iri(NODE_POST, PERSON_ID)
+        "@id": ontology_node_iri(NODE_POST, POST_ID)
     }
 
     hidden_evidence = replace(assignment, evidence_post_id=None)
+    hidden_row = replace(neighborhood, voice_assignments=(hidden_evidence,)).exact_value_rows()[0]
+    assert hidden_row["evidence_post_id"] == ""
+    assert hidden_row["evidence_count"] == "0"
     hidden_projection = next(
         item
         for item in replace(neighborhood, voice_assignments=(hidden_evidence,))

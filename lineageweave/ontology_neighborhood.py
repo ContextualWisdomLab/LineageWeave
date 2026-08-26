@@ -312,7 +312,10 @@ class OntologyNeighborhood:
                     "recorded_at": assignment.recorded_at.isoformat(),
                     "valid_from": "",
                     "valid_to": "",
-                    "evidence_count": "1",
+                    "evidence_count": "1" if assignment.evidence_post_id or assignment.is_primary else "0",
+                    "evidence_post_id": assignment.evidence_post_id or (
+                        assignment.post_id if assignment.is_primary else ""
+                    ),
                 }
             )
         return tuple(rows)

@@ -225,6 +225,7 @@ const combinedVoiceNeighborhood: OntologyNeighborhoodPayload = {
       truth_status_code: "truth_observed",
       recorded_at: "2026-01-10T12:00:00+00:00",
       provenance_reference: "Imported primary voice",
+      evidence_post_id: null,
     },
     {
       post_id: POST_ID,
@@ -235,6 +236,7 @@ const combinedVoiceNeighborhood: OntologyNeighborhoodPayload = {
       truth_status_code: "truth_observed",
       recorded_at: "2026-01-10T12:00:00+00:00",
       provenance_reference: "Evidence-backed additional voice",
+      evidence_post_id: POST_ID,
     },
   ],
   exact_value_rows: [
@@ -251,6 +253,7 @@ const combinedVoiceNeighborhood: OntologyNeighborhoodPayload = {
       target_node_id: code,
       target_label: label,
       target_type_code: "node_voice_type",
+      evidence_post_id: POST_ID,
     })),
   ],
 };
@@ -275,7 +278,7 @@ export const CombinedVoiceEvidence: Story = {
   args: { neighborhood: combinedVoiceNeighborhood },
   play: ({ canvasElement }) => {
     const evidence = canvasElement.querySelector<HTMLButtonElement>(
-      'button[aria-label="Open post: Demo public post"]',
+      'button[aria-label="Open evidence: Demo public post"]',
     );
     if (!evidence) throw new Error("Voice assignment evidence control was not rendered");
     evidence.focus();

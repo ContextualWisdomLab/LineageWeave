@@ -366,6 +366,11 @@ governed atomic Voice with an explicit truth state and an ABAC-visible evidence
 Post. The server creates the normalized PROV-O derivation and assignment in one
 transaction; clients never submit an internal assertion id, and this route
 cannot replace the imported primary Voice.
+The bounded ontology response carries a visible Voice assignment's evidence
+Post id alongside its exact-value row. The exact-value table therefore offers
+separate carrying-Post and derivation-evidence actions; hidden evidence removes
+the additional assignment before serialization rather than leaking its id or
+showing a fabricated count.
 The live Post popup exposes the route only to its existing `post_admin`
 permission result and only outside knowledge-cutoff views. Its form excludes
 already assigned catalog options, requires an explicit truth state, and uses

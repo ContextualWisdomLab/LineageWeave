@@ -63,6 +63,8 @@ edge exposes the same authorized endpoints and evidence through API and UI.
 Acceptance: Turtle, JSON-LD, N-Triples, SHACL, API payloads, persisted IRIs,
 and rendered labels agree on term kind, direction, namespace, and provenance;
 an additional Voice cannot demote the imported primary or cite hidden evidence;
+the exact-value table opens the carrying Post and its authorized derivation
+evidence as distinct actions;
 the authoring form has explicit selections, permission/cutoff gating, retryable
 feedback, keyboard labels, and desktop/mobile Storybook evidence.
 

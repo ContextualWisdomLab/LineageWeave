@@ -12,6 +12,7 @@ vi.mock("../api", async (importOriginal) => {
 });
 
 const POST_ID = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa1";
+const EVIDENCE_POST_ID = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa2";
 const PERSON_ID = "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbb1";
 const CORP_ID = "cccccccc-cccc-cccc-cccc-ccccccccccc1";
 
@@ -274,8 +275,9 @@ describe("OntologyExplorer", () => {
     expect(screen.queryByRole("img")).not.toBeInTheDocument();
   });
 
-  it("opens the source post for a qualified voice assignment", async () => {
+  it("opens the carrying post and its authorized Voice evidence separately", async () => {
     const onOpenEvidence = vi.fn();
+    const onSelectPost = vi.fn();
     const source = neighborhood();
     render(
       <OntologyExplorer
@@ -293,9 +295,19 @@ describe("OntologyExplorer", () => {
               target_node_id: "voc_customer",
               target_label: "Voice of Customer",
               target_type_code: "node_voice_type",
+              evidence_post_id: EVIDENCE_POST_ID,
+            },
+          ],
+          nodes: [
+            ...source.nodes,
+            {
+              ...source.nodes[0],
+              node_id: EVIDENCE_POST_ID,
+              display_label: "Demo evidence post",
             },
           ],
         }}
+        onSelectPost={onSelectPost}
         onOpenEvidence={onOpenEvidence}
       />,
     );
@@ -303,7 +315,9 @@ describe("OntologyExplorer", () => {
     await userEvent.click(
       screen.getByRole("button", { name: "Open post: Demo public post" }),
     );
-    expect(onOpenEvidence).toHaveBeenCalledWith(POST_ID);
+    expect(onSelectPost).toHaveBeenCalledWith(POST_ID);
+    await userEvent.click(screen.getByRole("button", { name: "Open evidence: Demo evidence post" }));
+    expect(onOpenEvidence).toHaveBeenCalledWith(EVIDENCE_POST_ID);
   });
 
   it("keeps complete long node labels in the rendered graph and exact-value table", () => {

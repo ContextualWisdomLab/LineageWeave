@@ -59,7 +59,9 @@ Cartesian-product codes. The remaining acceptance boundary is:
    detail lists primary and evidence-connected perspectives separately and
    honors its knowledge cutoff; client-side JSON-LD filtering retains only
    exact canonical repository-case node and Voice-assignment IRIs rather than
-   accepting cross-origin suffix matches); and
+   accepting cross-origin suffix matches; the exact-value row exposes distinct
+   carrying-Post and authorized derivation-evidence actions, while hidden
+   evidence emits neither an identifier nor a fabricated evidence count); and
 5. proves zero-, one-, and multi-voice states with synthetic fixtures,
    migration replay, ontology/SHACL, API, accessibility, and Storybook edge
    tests before any release claim. The candidate `CombinedVoiceEvidence` scene

@@ -942,6 +942,7 @@ export interface OntologyExactValueRow {
   valid_from: string;
   valid_to: string;
   evidence_count: string;
+  evidence_post_id?: string;
 }
 
 export interface OntologyVoiceAssignmentPayload {
@@ -953,6 +954,7 @@ export interface OntologyVoiceAssignmentPayload {
   truth_status_code: string;
   recorded_at: string;
   provenance_reference: string;
+  evidence_post_id: string | null;
 }
 
 export interface OntologyNeighborhoodPayload {

@@ -126,6 +126,7 @@ describe("ontologyLayout", () => {
       truth_status_code: "truth_observed",
       recorded_at: "2026-01-10T12:00:00+00:00",
       provenance_reference: "Evidence-backed additional voice",
+      evidence_post_id: POST_ID,
     };
     const row = {
       ...source.exact_value_rows[0],
@@ -135,6 +136,7 @@ describe("ontologyLayout", () => {
       target_node_id: assignment.voice_type_code,
       target_label: assignment.voice_type_label,
       target_type_code: "node_voice_type",
+      evidence_post_id: POST_ID,
     };
     const withVoice = {
       ...source,
@@ -148,7 +150,10 @@ describe("ontologyLayout", () => {
       },
     } satisfies OntologyNeighborhoodPayload;
 
-    expect(neighborhoodCsv(withVoice)).toContain("Voice of Customer");
+    const csv = neighborhoodCsv(withVoice);
+    expect(csv).toContain("Voice of Customer");
+    expect(csv.split("\n")[0]).toContain("evidence_post_id");
+    expect(csv).toContain(POST_ID);
     expect(filterNeighborhood(withVoice, "customer")!.voice_assignments).toEqual([assignment]);
     expect(filterNeighborhood(withVoice, "missing")!.voice_assignments).toEqual([assignment]);
     expect(accumulateNeighborhoodPages(source, withVoice).voice_assignments).toEqual([assignment]);
