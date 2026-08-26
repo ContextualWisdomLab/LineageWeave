@@ -118,6 +118,25 @@ describe("OccupationRatingProfile", () => {
     expect(screen.getByLabelText("직업")).toBeDisabled();
   });
 
+  it("clears a stale catalog error when authentication changes", async () => {
+    vi.mocked(fetchOccupationRatingSources)
+      .mockRejectedValueOnce(new Error("synthetic catalog failure"))
+      .mockResolvedValueOnce({ sources: [{
+        data_release_code: "onet-31.0", release_version: "31.0",
+        source_publisher_name: "Synthetic publisher", source_license_url: "https://example.test/license",
+        source_table_code: "abilities", source_table_name: "Abilities",
+        source_artifact_url: "https://example.test/abilities.csv", source_artifact_sha256: "a".repeat(64),
+        source_row_count: 2,
+      }] });
+    const { rerender } = render(<OccupationRatingProfile accessToken="expired-token" />);
+    expect(await screen.findByRole("alert")).toHaveTextContent("근거 표를 확인하지 못했습니다");
+
+    rerender(<OccupationRatingProfile accessToken="fresh-token" />);
+
+    expect(await screen.findByRole("option", { name: "31.0 · Abilities" })).toBeInTheDocument();
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  });
+
   it("keeps pagination bound to the loaded profile after form edits", async () => {
     vi.mocked(fetchOccupationRatingSources).mockResolvedValue({
       sources: [{
@@ -176,6 +195,13 @@ describe("OccupationRatingProfile", () => {
 
   it("ignores a superseded occupation response that finishes last", async () => {
     let finishFirst: ((profile: Payload) => void) | undefined;
+    vi.mocked(fetchOccupationRatingSources).mockResolvedValue({ sources: [{
+      data_release_code: "onet-31.0", release_version: "31.0",
+      source_publisher_name: "Synthetic publisher", source_license_url: "https://example.test/license",
+      source_table_code: "abilities", source_table_name: "Abilities",
+      source_artifact_url: "https://example.test/abilities.csv", source_artifact_sha256: "a".repeat(64),
+      source_row_count: 2,
+    }] });
     vi.mocked(fetchOccupationRatings)
       .mockImplementationOnce(() => new Promise((resolve) => { finishFirst = resolve; }))
       .mockResolvedValueOnce({ ...ready, onetsoc_code: "11-1011.00", items: [{ ...ready.items[0], data_value: "3.20" }] });
