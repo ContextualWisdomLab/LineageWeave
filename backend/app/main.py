@@ -1594,11 +1594,16 @@ async def read_post(
             "select mention.mention_ordinal, mention.extracted_product_name, "
             "mention.resolution_status_code, catalog.canonical_product_name, "
             "catalog.product_level_code, mention.evidence_text, "
-            "mention.evidence_post_id "
+            "mention.evidence_post_id, evidence_post.visibility_code, "
+            "evidence_post.corporate_entity_id, evidence_post.process_unit_id "
             "from post_product_mention mention "
             "left join product_catalog catalog "
             "on catalog.product_catalog_id = mention.product_catalog_id "
-            "where mention.post_id = $1 order by mention.mention_ordinal",
+            "join source_post evidence_post "
+            "on evidence_post.post_id = mention.evidence_post_id "
+            "where mention.post_id = $1 and "
+            f"{SOURCE_POST_ELIGIBILITY_SQL.format(alias='evidence_post')} "
+            "order by mention.mention_ordinal",
             post_id,
         )
         known_at = None
@@ -1619,6 +1624,7 @@ async def read_post(
                 "evidence_post_id": item["evidence_post_id"],
             }
             for item in product_rows
+            if _can_see_post(account, item)
         ],
     }
     if known_at is not None:

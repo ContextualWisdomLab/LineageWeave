@@ -1953,6 +1953,20 @@ def test_post_detail_returns_authorized_product_evidence(
                     "Synthetic evidence", seeded_db["public_post_id"], "c" * 64,
                 ),
             )
+            cur.execute(
+                "insert into post_product_mention "
+                "(post_id, mention_ordinal, extracted_product_name, "
+                "resolution_status_code, evidence_text, evidence_post_id, "
+                "evidence_input_sha256) "
+                "values (%s, 1, %s, 'missing', %s, %s, %s)",
+                (
+                    seeded_db["public_post_id"],
+                    "Hidden Synthetic Model",
+                    "Hidden synthetic evidence",
+                    seeded_db["other_private_post_id"],
+                    "d" * 64,
+                ),
+            )
         conn.commit()
     finally:
         conn.close()
