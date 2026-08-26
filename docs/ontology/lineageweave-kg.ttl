@@ -490,7 +490,7 @@
 
 :behavioralFacet a owl:AnnotationProperty ;
     rdfs:label "behavioral facet"@en ;
-    rdfs:comment "A named Fleishman psychomotor/physical ability or O*NET behavioral skill that the official function definition exercises behaviorally. Editorial projection only; no weight or calibration."@en .
+    rdfs:comment "A named Fleishman ability or published O*NET basic/cross-functional skill that the official function definition exercises as an observable behavior. This editorial projection is not an O*NET skill-category assertion and carries no weight or calibration."@en .
 
 # ---- Data (4th DOT digit): information, knowledge, and conceptions ----
 
