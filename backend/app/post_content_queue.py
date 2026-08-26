@@ -208,6 +208,7 @@ async def transition_post_content_job(
             end,
             completed_at = case when $2 in ($4, $5) then now() else null end,
             queued_at = case when $2 = $6 then now() else queued_at end,
+            next_attempt_at = null,
             updated_at = now(),
             last_error_code = $7,
             last_error_detail = $8
@@ -232,6 +233,53 @@ async def transition_post_content_job(
         status_code,
         failure_code=failure_code,
         detail_text=detail_text,
+    )
+    return True
+
+
+async def defer_post_content_job(
+    conn: asyncpg.Connection,
+    post_id: str,
+    *,
+    expected_attempt_count: int,
+    retry_after_seconds: int,
+) -> bool:
+    """Return one unadmitted lease to queued without consuming an attempt."""
+    if type(retry_after_seconds) is not int or retry_after_seconds <= 0:
+        raise ValueError("retry_after_seconds must be a positive integer")
+    updated = await conn.execute(
+        """
+        update post_content_ingestion_job
+        set status_code = $2,
+            attempt_count = attempt_count - 1,
+            queued_at = now(),
+            next_attempt_at = now() + make_interval(secs => $5),
+            started_at = null,
+            completed_at = null,
+            updated_at = now(),
+            last_error_code = $6,
+            last_error_detail = $7
+        where post_id = $1
+          and status_code = $3
+          and attempt_count = $4
+          and attempt_count > 0
+        """,
+        post_id,
+        QUEUED,
+        RUNNING,
+        expected_attempt_count,
+        retry_after_seconds,
+        "no_viable_agent",
+        "Analysis capacity is being restored; this record will retry automatically.",
+    )
+    if not updated.endswith(" 1"):
+        return False
+    await _record_status(
+        conn,
+        post_id,
+        QUEUED,
+        failure_code="no_viable_agent",
+        detail_text="Analysis capacity is being restored; this record will retry automatically.",
     )
     return True
 
@@ -287,6 +335,7 @@ async def ensure_post_content_job(
                 status_code = $3,
                 attempt_count = 0,
                 queued_at = now(),
+                next_attempt_at = null,
                 started_at = null,
                 completed_at = null,
                 updated_at = now(),
@@ -462,6 +511,7 @@ async def requeue_failed_post_content_job(
             status_code = $3,
             attempt_count = 0,
             queued_at = now(),
+            next_attempt_at = null,
             started_at = null,
             completed_at = null,
             updated_at = now(),
@@ -521,6 +571,7 @@ async def record_post_content_backfill_success(
                 status_code = $3,
                 started_at = null,
                 completed_at = now(),
+                next_attempt_at = null,
                 updated_at = now(),
                 last_error_code = null,
                 last_error_detail = null
@@ -554,8 +605,14 @@ async def republish_queued_post_content_jobs(
             where (
                 status_code = $1
                 and (
-                    attempt_count = 0
-                    or queued_at <= now() - $2::interval
+                    next_attempt_at <= now()
+                    or (
+                        next_attempt_at is null
+                        and (
+                            attempt_count = 0
+                            or queued_at <= now() - $2::interval
+                        )
+                    )
                 )
             )
                or (

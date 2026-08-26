@@ -18,6 +18,7 @@ from backend.app.post_content_queue import (
     RUNNING,
     SUCCEEDED,
     PostContentJobRequest,
+    defer_post_content_job,
     enqueue_post_content_backfill,
     record_post_content_backfill_success,
     requeue_failed_post_content_job,
@@ -629,9 +630,72 @@ def test_recovery_republishes_due_rows_in_queued_at_order() -> None:
 
     assert published == 2
     assert client.events == [("first", "a" * 64), ("second", "b" * 64)]
+    assert "next_attempt_at <= now()" in connection.query
     assert "queued_at <= now() - $2::interval" in connection.query
     assert "order by queued_at" in connection.query
     assert connection.args == (QUEUED, POST_CONTENT_RETRY_INTERVAL, RUNNING, STALE_RUNNING_INTERVAL, 2)
+
+
+def test_admission_deferral_requeues_exact_lease_without_consuming_attempt() -> None:
+    """A readiness miss records timing and fences the running attempt."""
+    executed: list[tuple[str, tuple[object, ...]]] = []
+
+    class FakeConnection:
+        async def fetchval(self, query: str, *_args: object) -> int:
+            assert "status_ordinal" in query
+            return 2
+
+        async def execute(self, query: str, *args: object) -> str:
+            executed.append((query, args))
+            return "UPDATE 1" if query.lstrip().startswith("update") else "INSERT 0 1"
+
+    deferred = asyncio.run(
+        defer_post_content_job(
+            FakeConnection(),
+            "00000000-0000-0000-0000-000000000001",
+            expected_attempt_count=2,
+            retry_after_seconds=30,
+        )
+    )
+
+    assert deferred is True
+    update_query, update_args = executed[0]
+    assert "attempt_count = attempt_count - 1" in update_query
+    assert "status_code = $3" in update_query
+    assert "next_attempt_at = now() + make_interval(secs => $5)" in update_query
+    assert update_args[3:5] == (2, 30)
+    assert all("provider" not in str(args).casefold() for _query, args in executed)
+
+
+def test_admission_deferral_rejects_stale_lease_without_event() -> None:
+    """A reclaimed attempt cannot defer or append status for its replacement."""
+    executed: list[str] = []
+
+    class FakeConnection:
+        async def execute(self, query: str, *_args: object) -> str:
+            executed.append(query)
+            return "UPDATE 0"
+
+    deferred = asyncio.run(
+        defer_post_content_job(
+            FakeConnection(),
+            "00000000-0000-0000-0000-000000000001",
+            expected_attempt_count=1,
+            retry_after_seconds=30,
+        )
+    )
+
+    assert deferred is False
+    assert len(executed) == 1
+
+
+def test_admission_deferral_migration_is_replay_safe() -> None:
+    """The normalized retry instant is replay-safe and indexed for recovery."""
+    migration = (
+        _ROOT / "migrations" / "0229_post_content_admission_deferral.sql"
+    ).read_text()
+    assert "add column if not exists next_attempt_at timestamptz" in migration
+    assert "create index if not exists post_content_ingestion_next_attempt_idx" in migration
 
 
 def test_migration_contains_normalized_job_and_status_event_tables() -> None:

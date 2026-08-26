@@ -204,7 +204,7 @@ _PRODUCT_SEMANTIC_MIGRATIONS = tuple(
         "0215_operations_case_milestone.sql",
         "0222_operations_case_analysis_input.sql",
         "0228_product_semantic_catalog.sql",
-        "0229_voice_semantic_taxonomy.sql",
+        "0230_voice_semantic_taxonomy.sql",
     )
 )
 _LEFTOVER_MAP_AXIS_MIGRATION = (
@@ -2112,6 +2112,33 @@ def test_derived_voice_assertion_requires_model_receipt(seeded_db) -> None:
                 "values (%s, 'voc', 'derived', 0, 1, repeat('a', 64), repeat('b', 64))",
                 (seeded_db["public_post_id"],),
             )
+    finally:
+        conn.close()
+
+
+def test_voice_source_reconcile_preserves_other_sourced_memberships(seeded_db) -> None:
+    """A body revision supersedes its source label without erasing another source."""
+    conn = psycopg2.connect(seeded_db["dsn"])
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                "insert into post_voice_classification_assertion "
+                "(post_id, voice_concept_code, assertion_status_code, evidence_sha256, "
+                "source_revision_digest) values (%s, 'vom', 'source', repeat('a', 64), "
+                "repeat('b', 64))",
+                (seeded_db["public_post_id"],),
+            )
+            cur.execute(
+                "update source_post set post_body = post_body || ' revised' where post_id = %s",
+                (seeded_db["public_post_id"],),
+            )
+            cur.execute(
+                "select voice_concept_code from post_voice_classification_assertion "
+                "where post_id = %s and assertion_status_code = 'source' "
+                "and valid_to is null order by voice_concept_code",
+                (seeded_db["public_post_id"],),
+            )
+            assert [row[0] for row in cur.fetchall()] == ["voc", "vom"]
     finally:
         conn.close()
 
