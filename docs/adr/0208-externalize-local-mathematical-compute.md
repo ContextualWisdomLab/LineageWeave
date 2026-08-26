@@ -71,13 +71,13 @@ different responsibility.
 
 ## Implemented migration slices
 
-- The backend dependency is immutably pinned to fast-mlsirm commit
-  `b3d85c35856fa8f7376821084f93292d0dea0407`, which publishes the strict
-  `tepp.lineage_pair_criterion_posterior.v2` minimum producer schema and keeps
-  channel-weight estimation unavailable. This is a contract adapter only: the
-  legacy Python estimator remains frozen migration debt and MUST NOT be used to
-  activate calibrated weights. No consumer-facing projection exposes schema,
-  transport, hash, TEPP, or fast-mlsirm internals.
+- The backend dependency is immutably pinned to fast-mlsirm protected-main
+  commit `09f762ded35786dd1078222a4577ff09d649816f`. The TEPP-specific contract
+  proposed by closed, unmerged fast-mlsirm PR #1423 is not an owner contract
+  and is not consumed. Channel-weight estimation remains unavailable until a
+  domain-neutral owner contract lands; the legacy Python estimator remains
+  frozen migration debt and MUST NOT activate calibrated weights. No customer
+  projection exposes schema, transport, hash, TEPP, or fast-mlsirm internals.
 
 - The residual interaction map consumes fast-mlsirm's protected-main
   `residual_interaction_map` and `polytomous_expected_response` contracts.

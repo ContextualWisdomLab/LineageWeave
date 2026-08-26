@@ -61,15 +61,15 @@ def test_backfill_endpoint_only_enqueues_durable_work(
         }
 
     monkeypatch.setattr(main, "enqueue_post_content_backfill", enqueue)
-    monkeypatch.setattr(
-        main,
-        "load_settings",
-        lambda: type(
-            "Settings",
-            (),
-            {"orchestrator_base_url": "https://orchestrator.invalid", "orchestrator_api_key": "configured"},
-        )(),
+    settings_type = type(
+        "Settings",
+        (),
+        {
+            "orchestrator_base_url": "https://orchestrator.invalid",
+            "orchestrator_api_key": "configured",
+        },
     )
+    monkeypatch.setattr(main, "load_settings", settings_type)
     pool = object()
     valkey = object()
     result = asyncio.run(
@@ -106,13 +106,10 @@ def test_backfill_endpoint_does_not_require_missing_model_evidence(
         }
 
     monkeypatch.setattr(main, "enqueue_post_content_backfill", enqueue)
-    monkeypatch.setattr(
-        main,
-        "load_settings",
-        lambda: type(
-            "Settings", (), {"orchestrator_base_url": "", "orchestrator_api_key": ""}
-        )(),
+    settings_type = type(
+        "Settings", (), {"orchestrator_base_url": "", "orchestrator_api_key": ""}
     )
+    monkeypatch.setattr(main, "load_settings", settings_type)
     asyncio.run(
         main.queue_post_content_backfill(
             main.PostContentBackfillRequest(),
