@@ -114,6 +114,7 @@ class OperationsEvidenceSource:
     text: str
     observed_at: datetime | None = None
     time_axis_code: str | None = None
+    source_text: str | None = None
 
     @property
     def input_sha256(self) -> str:
