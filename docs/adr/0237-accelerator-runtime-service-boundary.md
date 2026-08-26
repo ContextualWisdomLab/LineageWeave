@@ -106,5 +106,5 @@ https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/arch-ov
 Podman Contributors. (2026). *podman-pod-create*.
 https://docs.podman.io/en/latest/markdown/podman-pod-create.1.html
 
-Suzuki, A. (2026). *Colima: Container runtimes on macOS (and Linux) with
+Colima Contributors. (2026). *Colima: Container runtimes on macOS (and Linux) with
 minimal setup*. GitHub. https://github.com/abiosoft/colima
