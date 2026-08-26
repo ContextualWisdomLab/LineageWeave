@@ -1,6 +1,6 @@
 # Product & Technical Gap Baseline
 
-> Dashboard delivery snapshot: 2026-08-26 12:35 KST. Protected `main` is
+> Dashboard delivery snapshot: 2026-08-26 12:55 KST. Protected `main` is
 > `494b54e2245040bcf02b45376f221c37cd437e76`. This local branch is not
 > protected-main release evidence.
 
@@ -88,10 +88,10 @@ context only.
 | #682 | `0aa3113e` | MERGED to stack `feat/global-ask-semantic-public-current` as `fa245483`; typed public-claim verification filters cited claims before the bounded candidate budget, preserves answers when verification is unavailable, rejects hidden evidence from public egress, and validates empty orchestrator choices |
 | #681 | `3e0fa644` | MERGED to stack `feat/dashboard-case-metrics` as `dae28fb2`; fail-closed lineage-weight owner contract pin with lockfile parity |
 | #680 | `4e41bcd1` | customer-facing ranking copy with localized retry/search guidance, no fused-ranking implementation label, related-concepts/author-context/earlier-source-version labels, and complete guidance regression coverage; hosted checks requeued and independent review required |
-| #679 | `67706ef5` | ADR 0229 public-claim envelope, async verification, locale-aware next actions, and opt-in search setup; BLOCKED with exact-head checks and independent review required |
+| #679 | `7e6e386a` | ADR 0229 public-claim envelope, async verification, locale-aware next actions, opt-in search setup, and aggregate-status guidance repair; BLOCKED with exact-head checks and independent review required |
 | #678 | `676fcc5a` | MERGED to stack `feat/dashboard-case-metrics` as `bec013d8`; canonical Compose-stack consolidation |
 | #677 | `eb4d6932` | ADR 0228 account-owned per-post Ask conversation history rebased onto the current baseline with localized titles, full conversation/transcript pagination, stale-response guards, repeated-turn preservation, and eligibility recheck; hosted checks requeued and independent review required |
-| #667 | `8f535f45` | baseline refresh branch current head; BLOCKED with review required; stacked #669 and #671 are merged into this non-default branch |
+| #667 | `caa656a5` | baseline refresh branch current head; BLOCKED with review required; stacked #669 and #671 are merged into this non-default branch |
 | #672 | `5468c04d` | persisted semantic-evidence nomination for Global Ask with ADR renumbering; BLOCKED with hosted checks queued and review required |
 | #668 | `153add77` | evidence-bound project history projection with ADR renumbering, request guards, source-code/time-basis display repair, and theme-token timeline styling; BLOCKED with review required |
 | #663 | `74b9a1d9` | project ontology traversal, cutoff-snapshot project focus, bounded MCP admission, and migration-fixture/worker startup repair; hosted Full-suite transaction root cause repaired; fresh checks pending and review required |
