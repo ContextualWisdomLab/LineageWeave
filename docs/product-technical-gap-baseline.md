@@ -1,7 +1,7 @@
 # Product & Technical Gap Baseline
 
 > Current queue overlay: 2026-08-27 KST. Protected `main` was
-> `ff7431bd1851c03e737808d22c6a2d43968582f9`; 35 PRs and 10 issues were
+> `ff7431bd1851c03e737808d22c6a2d43968582f9`; 38 PRs and 10 issues were
 > open. This overlay supersedes the older queue count and exact-head table
 > below, which remain historical evidence. Re-fetch the head, checks, reviews,
 > threads, applicable rulesets, and merge SHA immediately before any lifecycle
@@ -35,9 +35,11 @@ explicit unavailable state, not a reason to infer mappings from labels.
 
 | PR | Exact observed head | Base | Observed gate state |
 |---:|---|---|---|
-| #732 | `1c622545` | `feat/onet-31-content-model-ontology` | unstable; full tests in progress; frontend, CodeRabbit, and Devin Review passed; one informational review thread open |
-| #731 | `2c848373` | `feat/soc-2018-full-hierarchy` | unstable; full tests, frontend, and Devin Review queued |
-| #724 | `f5ee37b0` | `feat/io-occupational-taxonomy` | clean; full tests, frontend, CodeRabbit, and Devin Review passed; parent-first stack gate remains |
+| #735 | `56d8cbfa` | `feat/onet-occupation-ratings-contract` | clean immediately after exact parent merge; hosted checks had not yet registered on this head, so this is not merge-readiness evidence |
+| #734 | `0dedf33b` | `feat/onet-content-model-linkages` | unstable; two hosted gates pending after exact parent reconciliation |
+| #732 | `3e30402d` | `feat/onet-31-content-model-ontology` | unstable; one hosted gate pending after exact parent reconciliation |
+| #731 | `9654bb8b` | `feat/soc-2018-full-hierarchy` | unstable; one hosted gate pending after exact parent reconciliation |
+| #724 | `fdec8f65` | `feat/io-occupational-taxonomy` | clean; hosted gates passed; parent-first stack gate remains |
 | #719 | `6ee2278a` | `feat/io-psych-construct-ontology` | unstable; full tests, frontend, CodeRabbit, and Devin Review passed |
 | #718 | `2723fea3` | `feat/fja-worker-function-ontology` | unstable; full tests, frontend, CodeRabbit, and Devin Review passed |
 | #717 | `771a8edf` | `feat/voice-of-x-complete-taxonomy` | unstable; 1 pending check(s) |
