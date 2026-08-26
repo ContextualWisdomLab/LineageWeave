@@ -25,7 +25,7 @@ def test_orchestrator_request_uses_provider_neutral_auto_selector(monkeypatch) -
         (OperationsEvidenceSource("post-1", "Synthetic", "Synthetic source."),),
         "",
     ) == ()
-    assert captured["model"] == "auto"
+    assert captured["model"] == "orchestrator/auto"
 
 
 def test_parses_multiple_cases_and_grounded_facts() -> None:

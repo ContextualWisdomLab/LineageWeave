@@ -382,7 +382,7 @@ class ContextualOrchestratorOperationsCaseAnalysisClient:
         response = post_json(
             f"{self._base_url}/v1/chat/completions",
             {
-                "model": "auto",
+                "model": "orchestrator/auto",
                 "messages": [
                     {
                         "role": "user",
