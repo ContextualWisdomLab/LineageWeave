@@ -408,7 +408,7 @@ function OntologyGraph({
               y={midY - 18}
               textAnchor="middle"
             >
-              {edge.property_label} · {t(TRUTH_LABEL[edge.truth_status_code] ?? edge.truth_status_code)}
+              {edge.property_label} · {t(truthLabel(edge.truth_status_code))}
             </text>
             <circle
               className="ontology-edge-hit"
@@ -522,7 +522,7 @@ function OntologyExactValueTable({
                 </td>
                 <td>{row.property_label}</td>
                 <td>{row.target_label}</td>
-                <td>{t(TRUTH_LABEL[row.truth_status_code] ?? row.truth_status_code)}</td>
+                <td>{t(truthLabel(row.truth_status_code))}</td>
                 <td>{row.recorded_at.slice(0, 10)}</td>
               </tr>
             ))}
@@ -606,9 +606,7 @@ function OntologyEdgeDrawer({
               {onOpenEvidence ? (
                 <button
                   type="button"
-                  aria-label={edge.evidence_references.length > 1
-                    ? `${t("Open linked record")} ${index + 1}`
-                    : undefined}
+                  aria-label={tf("Open linked record {number}", { number: index + 1 })}
                   onClick={() => onOpenEvidence(reference)}
                 >
                   {t("Open linked record")}
