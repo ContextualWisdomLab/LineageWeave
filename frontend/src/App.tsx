@@ -4077,11 +4077,24 @@ function PostList({
         }));
   const vocTypeOptions = vocTypeFilterOptions.length
     ? vocTypeFilterOptions
-    : Array.from(new Set(loadedPosts.map((post) => post.voc_type_code)))
+    : Array.from(
+        new Set(
+          loadedPosts.flatMap((post) =>
+            post.voice_types?.length
+              ? post.voice_types.map((voice) => voice.code)
+              : [post.voc_type_code],
+          ),
+        ),
+      )
         .sort()
         .map((code) => ({
           code,
-          label: loadedPosts.find((post) => post.voc_type_code === code)?.voc_type_label ?? code,
+          label:
+            loadedPosts
+              .flatMap((post) => post.voice_types ?? [])
+              .find((voice) => voice.code === code)?.label ??
+            loadedPosts.find((post) => post.voc_type_code === code)?.voc_type_label ??
+            code,
         }));
   const filteredPosts = loadedPosts
     .filter((post) => {

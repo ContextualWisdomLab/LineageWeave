@@ -361,6 +361,12 @@ than exposing the generic PROV-O `Person` class as business context.
 the list badge and popup meta show `Voice of Customer` / `Public`
 instead of raw codes.
 
+`POST /api/posts/{post_id}/voice-assignments` lets a `post_admin` add one
+governed atomic Voice with an explicit truth state and an ABAC-visible evidence
+Post. The server creates the normalized PROV-O derivation and assignment in one
+transaction; clients never submit an internal assertion id, and this route
+cannot replace the imported primary Voice.
+
 `GET /api/posts/{post_id}/voc-evidence` returns the
 `common_lookup_value` label for the post's `voc_type_code` plus the
 sentences in the post body that name a counterparty or affiliated

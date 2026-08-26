@@ -23,7 +23,10 @@ All notable changes to this project are documented here. Format follows
   migration recording time. All twelve governed atomic Voice labels are
   translated across the five supported product locales. Ontology neighborhoods
   load assignments for every authorized visible Post in one bounded query,
-  including Person-, Organization-, Team-, and Project-focused exploration.
+  including Person-, Organization-, Team-, and Project-focused exploration. A
+  governed `post_admin` API creates each additional assignment and its
+  `prov:wasDerivedFrom` assertion atomically from an ABAC-visible evidence Post;
+  callers cannot replace the imported primary or supply an assertion UUID.
 - Expanded Voice-of-X post taxonomy (ADR 0246): the governed `voc_type`
   scheme adds Voice of Supplier, Employee, Business, Regulator, Investor,
   Society, and Process as source-post categories. Ontology SKOS concepts and

@@ -57,6 +57,11 @@ compound lookup codes.
   labels, truth state, and evidence availability but never internal assertion
   identifiers. Filters match any associated voice, and repeated post cards show
   the combined labels.
+- A `post_admin` may add an additional assignment by naming an ABAC-visible
+  evidence Post, an atomic Voice code, and a governed truth state. The API does
+  not accept a caller-supplied assertion identifier: one transaction binds the
+  evidence Post as a PROV Entity, records `prov:wasDerivedFrom`, and upserts the
+  assignment. It cannot replace or demote the imported primary Voice.
 - The authorized ontology neighborhood projects each association as a
   qualified assignment in JSON-LD and the exact-value CSV. SHACL requires its
   atomic voice concept, primary flag, and source-post evidence. The exact-value
@@ -94,6 +99,19 @@ classDiagram
   ProvenanceAssertion "0..1" --> "0..*" SourcePostVoice
 ```
 
+```mermaid
+sequenceDiagram
+  actor Admin
+  participant API
+  participant ABAC
+  participant PostgreSQL
+  Admin->>API: Add atomic Voice + truth + evidence Post
+  API->>ABAC: Authorize target and evidence Posts
+  ABAC-->>API: Both visible
+  API->>PostgreSQL: Atomic PROV derivation + assignment upsert
+  PostgreSQL-->>API: Evidence-bearing assignment
+```
+
 ## Consequences
 
 Migration 0237 is replay-safe, backfills one primary association per existing
@@ -103,10 +121,11 @@ category and stores no source content or identifying evidence in repository
 artifacts.
 
 The repository candidate projects authorized combinations through JSON-LD,
-SHACL, CSV, and evidence navigation. Its synthetic Storybook desktop/mobile
-scene verifies a focused evidence action and a contained horizontally
-scrollable exact-value table. Authenticated runtime and an authorized write
-workflow for additional assignments remain required before a release claim.
+SHACL, CSV, and evidence navigation and includes the governed admin API write
+path above. Its synthetic Storybook desktop/mobile scene verifies a focused
+evidence action and a contained horizontally scrollable exact-value table.
+Authenticated PostgreSQL runtime acceptance and a customer-facing authoring
+surface remain required before a release claim.
 
 ## References
 

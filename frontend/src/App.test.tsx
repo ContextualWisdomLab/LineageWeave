@@ -118,6 +118,7 @@ describe("App, authenticated", () => {
     contentAfterSummary?: boolean;
     organizationAliases?: boolean;
     combinedVoices?: boolean;
+    omitVoiceOptions?: boolean;
     askLineageGraph?: boolean;
     askImageCitation?: boolean;
     askDelivery?: boolean;
@@ -1172,13 +1173,17 @@ describe("App, authenticated", () => {
                   total_count: 1,
                   limit: 50,
                   offset: 0,
-                  voc_type_options: [
-                    { code: "voc", label: "Voice of Customer" },
-                    { code: "vop", label: "Voice of Partner" },
-                    ...(options?.combinedVoices
-                      ? [{ code: "vops", label: "Voice of Process" }]
-                      : []),
-                  ],
+                  ...(options?.omitVoiceOptions
+                    ? {}
+                    : {
+                        voc_type_options: [
+                          { code: "voc", label: "Voice of Customer" },
+                          { code: "vop", label: "Voice of Partner" },
+                          ...(options?.combinedVoices
+                            ? [{ code: "vops", label: "Voice of Process" }]
+                            : []),
+                        ],
+                      }),
                   visibility_options: [{ code: "public", label: "Public" }],
                 },
           ),
@@ -1986,6 +1991,13 @@ describe("App, authenticated", () => {
     await screen.findByRole("button", { name: "View post: Public post" });
     await userEvent.click(screen.getByRole("checkbox", { name: "Voice of Process" }));
     expect(screen.getByRole("button", { name: "View post: Public post" })).toBeInTheDocument();
+  });
+
+  it("offers additional voices when filter options are omitted", async () => {
+    stubBackend({ combinedVoices: true, omitVoiceOptions: true });
+    render(<App />);
+
+    expect(await screen.findByRole("checkbox", { name: "Voice of Process" })).toBeInTheDocument();
   });
 
   it("renders safe Ask Agent evidence under each cited post", async () => {

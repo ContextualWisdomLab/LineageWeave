@@ -920,14 +920,15 @@ def test_load_voice_assignments_preserves_truth_and_customer_safe_provenance() -
     )
 
     assignments = asyncio.run(
-        _load_voice_assignments(conn, [POST_ID], knowledge_cutoff=T0)
+        _load_voice_assignments(conn, [POST_ID], knowledge_cutoff=T0, snapshot_at=T0)
     )
 
     assert [assignment.voice_type_code for assignment in assignments] == ["voc", "vops"]
     assert assignments[0].provenance_reference == "Imported primary voice"
     assert assignments[1].provenance_reference == "Evidence-backed additional voice"
     assert "voice.effective_from <= $2" in conn.calls[0][0]
-    assert conn.calls[0][1] == ([POST_ID], T0)
+    assert "voice.recorded_at <= $3" in conn.calls[0][0]
+    assert conn.calls[0][1] == ([POST_ID], T0, T0)
 
 
 def test_load_voice_assignments_skips_database_for_no_visible_posts() -> None:
@@ -935,7 +936,7 @@ def test_load_voice_assignments_skips_database_for_no_visible_posts() -> None:
     conn = ScriptedConn({})
 
     assert asyncio.run(
-        _load_voice_assignments(conn, [], knowledge_cutoff=None)
+        _load_voice_assignments(conn, [], knowledge_cutoff=None, snapshot_at=T0)
     ) == ()
     assert conn.calls == []
 

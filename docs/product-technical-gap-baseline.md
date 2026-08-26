@@ -38,7 +38,8 @@ Cartesian-product codes. The remaining acceptance boundary is:
 1. preserve the imported primary voice without reclassification (implemented
    in the candidate migration; runtime replay pending);
 2. record each additional voice with its own source/evidence and truth state
-   (schema-enforced; no authorized write workflow shipped yet);
+   (schema-enforced and candidate `post_admin` API implemented; authenticated
+   PostgreSQL integration and customer-facing authoring UI remain pending);
 3. keeps post voice distinct from named-counterparty relationship, actor role,
    topic, channel, lifecycle, and stakeholder-salience attributes;
 4. return only authorized associations through API, JSON-LD, CSV, filters,
@@ -64,10 +65,11 @@ queued; and an independent approval was still required. Auto-merge remains
 enabled. No self-approval, admin bypass, or stale-head check transfer is
 permitted.
 
-Stacked PR #717 at `771a8edf` carries ADR 0251, migration 0237, qualified
+Stacked PR #717 carries ADR 0251, migration 0237, qualified
 ontology terms, persistence/API/UI tests, and the category-validation review
-repairs. CodeRabbit and Devin were successful on that exact remote head before
-this local projection slice. It targets #713's branch, not protected `main`;
+repairs plus a local candidate admin write path that creates its PROV-O
+derivation from an authorized evidence Post. The remote exact head must be
+refetched after this local slice is pushed. It targets #713's branch, not protected `main`;
 its checks and review are candidate evidence only. After
 #713 reaches protected main, #717 must be synchronized, retargeted to `main`,
 and revalidated on its then-current head. Creating #717 raised the live queue

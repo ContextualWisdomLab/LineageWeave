@@ -49,12 +49,17 @@ edge exposes the same authorized endpoints and evidence through API and UI.
   governed catalog resolution supplies a stable cross-record identity.
 - Preserve truth status, valid/system time, provenance, and evidence
   references.
+- Preserve one imported primary Voice and allow a `post_admin` to add any
+  governed atomic Voice only with an ABAC-visible evidence Post and explicit
+  truth state; create the normalized PROV-O derivation server-side and never
+  accept an opaque provenance assertion identifier from the caller.
 - Validate DB-to-RDF projections with SHACL, including complete reified
   ProjectMention subject/predicate/object chains.
 - Keep SKOS broader/narrower distinct from OWL subclass semantics.
 
 Acceptance: Turtle, JSON-LD, N-Triples, SHACL, API payloads, persisted IRIs,
-and rendered labels agree on term kind, direction, namespace, and provenance.
+and rendered labels agree on term kind, direction, namespace, and provenance;
+an additional Voice cannot demote the imported primary or cite hidden evidence.
 
 ### PRD-FR-3 — Bounded ontology exploration
 

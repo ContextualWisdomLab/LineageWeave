@@ -164,6 +164,10 @@ from backend.app.report_ingestion import (
     rebuild_period_reports,
 )
 from backend.app.source_post_revision import fetch_known_at_revision, parse_as_of_clock
+from backend.app.source_post_voice_ingestion import (
+    PrimaryVoiceAssignmentError,
+    persist_additional_voice_assignment,
+)
 from lineageweave.adjudication_client import (
     ContextualOrchestratorAdjudicationClient,
     NullAdjudicationClient,
@@ -1725,6 +1729,64 @@ async def read_post(
     if known_at is not None:
         payload["known_at"] = known_at
     return payload
+
+
+class CreatePostVoiceAssignmentRequest(BaseModel):
+    """Evidence and governed truth state for one additional Voice assignment."""
+
+    voice_type_code: str
+    truth_status_code: str
+    evidence_post_id: UUID
+
+
+@app.post(
+    "/api/posts/{post_id}/voice-assignments",
+    status_code=status.HTTP_201_CREATED,
+)
+async def create_post_voice_assignment(
+    post_id: str,
+    request: CreatePostVoiceAssignmentRequest,
+    account: CurrentAccount = Depends(get_current_account),
+    pool: asyncpg.Pool = Depends(get_pool),
+    valkey: redis.Redis = Depends(get_valkey),
+) -> dict[str, Any]:
+    """Attach one additional Voice using an authorized evidence Post."""
+    _require_post_admin(account)
+    await _load_visible_post(post_id, account, pool)
+    evidence_post_id = str(request.evidence_post_id)
+    if evidence_post_id != post_id:
+        await _load_visible_post(evidence_post_id, account, pool)
+    async with pool.acquire() as conn:
+        try:
+            await persist_additional_voice_assignment(
+                conn,
+                post_id=post_id,
+                voice_type_code=request.voice_type_code,
+                truth_status_code=request.truth_status_code,
+                evidence_post_id=evidence_post_id,
+            )
+        except PrimaryVoiceAssignmentError as exc:
+            raise HTTPException(status.HTTP_409_CONFLICT, str(exc)) from exc
+        except (
+            asyncpg.CheckViolationError,
+            asyncpg.ForeignKeyViolationError,
+        ) as exc:
+            raise HTTPException(
+                status.HTTP_422_UNPROCESSABLE_CONTENT,
+                "voice_type_code and truth_status_code must use governed lookup values",
+            ) from exc
+        assignments = await _load_post_voice_types(conn, post_id)
+    assignment = next(
+        item for item in assignments if item["code"] == request.voice_type_code
+    )
+    await publish_activity_event(
+        valkey,
+        post_id,
+        "voice_assignment_added",
+        account.user_account_id,
+        "Additional Voice evidence connected",
+    )
+    return assignment
 
 
 @app.get("/api/posts/{post_id}/content")

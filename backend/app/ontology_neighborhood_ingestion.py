@@ -783,6 +783,7 @@ async def _load_voice_assignments(
     post_ids: Sequence[str],
     *,
     knowledge_cutoff: datetime | None,
+    snapshot_at: datetime,
 ) -> tuple[OntologyVoiceAssignment, ...]:
     """Load qualified voices only for posts admitted to the visible neighborhood."""
     if not post_ids:
@@ -790,19 +791,20 @@ async def _load_voice_assignments(
     rows = await conn.fetch(
         """
         select voice.post_id, voice.voice_type_code, lookup.lookup_label, voice.is_primary,
-               voice.truth_status_code, voice.recorded_at,
-               voice.provenance_assertion_id is not null as has_assertion
+               voice.truth_status_code, voice.recorded_at
           from source_post_voice voice
           join common_lookup_value lookup
             on lookup.lookup_category = 'voc_type'
            and lookup.lookup_code = voice.voice_type_code
          where voice.post_id = any($1::uuid[])
            and ($2::timestamptz is null or voice.effective_from <= $2)
+           and voice.recorded_at <= $3::timestamptz
          order by voice.post_id, voice.is_primary desc,
                   lookup.display_order, voice.voice_type_code
         """,
         list(post_ids),
         knowledge_cutoff,
+        snapshot_at,
     )
     assignments: list[OntologyVoiceAssignment] = []
     for row in rows:
@@ -822,7 +824,7 @@ async def _load_voice_assignments(
                 recorded_at=row["recorded_at"],
                 provenance_reference=(
                     "Evidence-backed additional voice"
-                    if row["has_assertion"]
+                    if not row["is_primary"]
                     else "Imported primary voice"
                 ),
             )
@@ -1153,6 +1155,7 @@ async def visible_ontology_neighborhood(
                 conn,
                 visible_post_ids,
                 knowledge_cutoff=knowledge_cutoff,
+                snapshot_at=snapshot_at,
             ),
         )
     last_source_key = None
