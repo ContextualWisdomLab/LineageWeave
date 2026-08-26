@@ -30,7 +30,6 @@ from fastapi import HTTPException, status
 
 from lineageweave.ask_delivery import build_ask_delivery
 from lineageweave.claim_verification import (
-    CLAIM_NOT_ENOUGH_INFORMATION,
     VERIFICATION_COMPLETED,
     VERIFICATION_NO_PUBLIC_CLAIMS,
     VERIFICATION_SKIPPED,
