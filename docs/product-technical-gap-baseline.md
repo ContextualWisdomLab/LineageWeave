@@ -48,10 +48,13 @@ complete non-identifying aggregates. It additionally fails closed unless the
 caller supplies a probability-sample manifest with known per-stratum inclusion
 probabilities, explicit confidence/margin targets, prior evidence for the
 expected proportion, ordered owner-token membership digests, retained provider
-failures, and the SHA-256-bound output of the NIST proportion/FPC calculation
-owned by a versioned fast-mlsirm Rust
-artifact. LineageWeave validates that contract but performs no sample-size,
-finite-population, allocation, or weight arithmetic in Python.
+failures, and a verifiable output of the NIST proportion/FPC calculation owned
+by a pinned fast-mlsirm Rust artifact. The current fast-mlsirm candidate returns
+design values but no canonical content-addressed artifact or selected-member
+manifest, so LineageWeave now rejects every probability-inference run before
+reading source rows. Caller-authored SHA-256 values are not accepted as Rust
+attestation, and LineageWeave performs no sample-size, finite-population,
+allocation, or weight arithmetic in Python.
 
 A separate non-probability diagnostic excluded the first deterministic 100
 records and selected 100 records from each of five event/update-time strata
@@ -73,7 +76,8 @@ remains candidate evidence.
 
 Remaining acceptance gaps:
 
-- ship the versioned fast-mlsirm Rust probability-sample artifact, select the
+- ship and pin a canonical fast-mlsirm Rust probability-sample artifact that
+  LineageWeave can recompute and verify, select the
   fixed sample from a complete authorized frame, and complete every selected
   item without dropping or replacing provider failures before making any
   corpus coverage estimate;

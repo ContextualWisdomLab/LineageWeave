@@ -1,11 +1,14 @@
+import asyncio
 import hashlib
 import json
+from pathlib import Path
 
 import pytest
 
 from scripts.audit_source_content_semantics import (
     _parser,
     aggregate_results,
+    audit_source_content,
     parse_batch_result,
     selected_contents,
     validate_probability_sample_manifest,
@@ -136,23 +139,37 @@ def test_parser_rejects_ungoverned_dimensions() -> None:
         )
 
 
-def test_probability_sample_manifest_preserves_design_evidence() -> None:
-    """The audit accepts only explicit probability and Rust-owner evidence."""
+def test_probability_sample_manifest_fails_without_verifiable_rust_artifact() -> None:
+    """Caller-authored hashes cannot attest that Rust produced the design."""
     manifest = _probability_manifest()
-    artifact = manifest["rust_owner_artifact"]
-    assert isinstance(artifact, dict)
-    result, membership = validate_probability_sample_manifest(manifest, 80)
 
-    assert result == {
-        "design_code": "stratified_random_without_replacement",
-        "population_size": 1000,
-        "sample_size": 80,
-        "target_confidence_level": "0.95",
-        "target_margin_of_error": "0.05",
-        "stratum_count": 2,
-        "rust_owner_artifact_sha256": artifact["output_sha256"],
-    }
-    assert len(membership) == 80
+    with pytest.raises(ValueError, match="pinned fast-mlsirm"):
+        validate_probability_sample_manifest(manifest, 80)
+
+
+def test_probability_audit_fails_before_source_or_provider_access(monkeypatch) -> None:
+    """Unavailable attestation cannot expose source rows or spend provider work."""
+    async def forbidden_connect(_dsn: str):
+        raise AssertionError("source access must not run")
+
+    monkeypatch.setattr(
+        "scripts.audit_source_content_semantics.asyncpg.connect", forbidden_connect
+    )
+
+    with pytest.raises(ValueError, match="pinned fast-mlsirm"):
+        asyncio.run(
+            audit_source_content(
+                source_dsn="postgresql://synthetic",
+                query="select selection_token, content_text from synthetic",
+                sample_size=80,
+                sample_manifest=_probability_manifest(),
+                batch_size=10,
+                ontology_path=Path("unused.ttl"),
+                gateway_url="https://orchestrator.invalid",
+                gateway_api_key="synthetic",
+                timeout=1,
+            )
+        )
 
 
 @pytest.mark.parametrize(

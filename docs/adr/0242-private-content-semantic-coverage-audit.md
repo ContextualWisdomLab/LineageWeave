@@ -51,10 +51,10 @@ Repository artifacts must not retain the private titles.
    `n = n0 / (1 + (n0 - 1) / N)`. Stratified designs determine sample size per
    stratum. LineageWeave neither evaluates those equations nor derives sample
    weights: a versioned, SHA-256-bound `ContextualWisdomLab/fast-mlsirm` Rust
-   artifact owns that arithmetic. The artifact input digest binds the declared
-   design and the output digest binds the ordered selected-unit manifest; this
-   script validates only those hashes, opaque owner tokens, and exact item
-   cardinality.
+   artifact owns that arithmetic. Caller-authored hashes are not attestation:
+   until a pinned fast-mlsirm library exposes a canonical artifact that this
+   script can recompute and verify, the probability-sample path fails closed
+   before reading source rows or contacting contextual-orchestrator.
 9. Any provider, transport, trace, parse, or item failure invalidates the whole
    declared probability sample. The selected item remains in the denominator
    and must be retried in place; it is never dropped or replaced by another
@@ -67,7 +67,8 @@ The audit remains unavailable when contextual-orchestrator cannot complete all
 batches, preserving failures in the declared denominator instead of silently
 shrinking the sample. The observed 80-record result remains pipeline acceptance
 evidence only until an independently generated probability-sample manifest and
-its Rust owner artifact exist.
+its Rust owner artifact exist. A manifest that merely labels caller-computed
+hashes as a Rust artifact remains unavailable evidence.
 
 ## References
 

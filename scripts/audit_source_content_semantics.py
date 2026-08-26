@@ -250,17 +250,9 @@ def validate_probability_sample_manifest(
         raise ValueError(
             "selected sample does not match the Rust artifact output digest"
         )
-    return (
-        {
-            "design_code": payload["design_code"],
-            "population_size": population_size,
-            "sample_size": sample_size,
-            "target_confidence_level": payload["target_confidence_level"],
-            "target_margin_of_error": payload["target_margin_of_error"],
-            "stratum_count": len(strata),
-            "rust_owner_artifact_sha256": artifact["output_sha256"],
-        },
-        tuple(membership),
+    raise ValueError(
+        "probability-sample inference is unavailable until a pinned fast-mlsirm "
+        "library exposes a verifiable sampling artifact"
     )
 
 
