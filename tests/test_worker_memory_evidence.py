@@ -283,6 +283,7 @@ def test_compare_rejects_other_exit_without_ending_cgroup_evidence() -> None:
     ("outputs", "message"),
     [
         ([""], "unavailable"),
+        (["id-one\nid-two"], "exactly one"),
         (["id", "[]"], "inspection"),
         (["id", '[{"State": [], "HostConfig": {}}]'], "state"),
         (

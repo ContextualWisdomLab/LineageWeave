@@ -138,11 +138,20 @@ def _run(command: Sequence[str], *, timeout: float = 15) -> str:
 
 def capture_snapshot() -> dict[str, Any]:
     """Capture Docker state and cgroup v2 counters for the canonical worker."""
-    container_id = _run(
-        ["docker", "compose", "-p", PROJECT, "ps", "--all", "-q", SERVICE]
-    )
-    if not container_id:
+    container_ids = [
+        value
+        for value in _run(
+            ["docker", "compose", "-p", PROJECT, "ps", "--all", "-q", SERVICE]
+        ).splitlines()
+        if value
+    ]
+    if not container_ids:
         raise MemoryEvidenceError("canonical backend-worker container is unavailable")
+    if len(container_ids) != 1:
+        raise MemoryEvidenceError(
+            "canonical backend-worker evidence requires exactly one container"
+        )
+    container_id = container_ids[0]
     inspected = json.loads(_run(["docker", "inspect", container_id]))
     if not isinstance(inspected, list) or len(inspected) != 1:
         raise MemoryEvidenceError("Docker inspection is incomplete")
