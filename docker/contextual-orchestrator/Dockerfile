@@ -31,6 +31,7 @@ RUN mkdir /tmp/contextual-orchestrator \
         'opentelemetry-api>=1.30.0' \
         'opentelemetry-sdk>=1.30.0' \
         'opentelemetry-exporter-otlp-proto-http>=1.30.0' \
+        'jsonschema>=4.23,<5' \
         'redis>=5.0' \
     && useradd --uid 10001 --no-create-home orchestrator
 
