@@ -148,7 +148,7 @@ export async function fetchVoiceTaxonomySummary(
   if (dateFrom) query.set("date_from", `${dateFrom}T00:00:00Z`);
   if (dateTo) query.set("date_to", `${dateTo}T00:00:00Z`);
   const suffix = query.size ? `?${query.toString()}` : "";
-  return requestJson<VoiceTaxonomySummary>(`/api/voice-taxonomy/summary${suffix}`, accessToken);
+  return backendFetch<VoiceTaxonomySummary>(`/api/voice-taxonomy/summary${suffix}`, accessToken);
 }
 
 export interface TopicContextDashboard {

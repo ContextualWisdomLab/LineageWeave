@@ -12,6 +12,9 @@ class _Connection:
     async def fetchrow(self, query: str, *args: object):
         assert "post_product_mention" in query
         assert "post_project_mention" in query
+        assert "post.visibility_code = 'public'" in query
+        assert "cardinality($2::uuid[]) = 0" in query
+        assert "source_deleted_flag" in query
         self.args = args
         return {
             "total_eligible": 4,

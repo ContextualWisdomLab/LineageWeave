@@ -1589,7 +1589,7 @@ async def read_voice_taxonomy_summary(
         else dict(raw_category_counts)
     )
     return {
-        **summary,
+        **{key: value for key, value in summary.items() if key != "category_post_counts"},
         "category_memberships": [
             {
                 "voice_concept_code": code,

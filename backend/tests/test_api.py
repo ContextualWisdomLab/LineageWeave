@@ -1995,14 +1995,15 @@ def test_voice_taxonomy_summary_uses_visible_post_denominator(
     )
     assert response.status_code == 200, response.text
     payload = response.json()
-    assert payload["total_eligible"] == 3
-    assert payload["source_count"] == 3
+    assert payload["total_eligible"] == 4
+    assert payload["source_count"] == 4
     assert payload["counts_overlap"] is True
     assert payload["category_memberships"] == [{
         "voice_concept_code": "voc",
-        "post_count": 3,
+        "post_count": 4,
         "eligible_percentage": 100.0,
     }]
+    assert "category_post_counts" not in payload
 
 
 def test_voice_taxonomy_summary_rejects_reversed_period(

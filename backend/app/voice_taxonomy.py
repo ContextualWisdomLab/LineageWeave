@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from typing import Any, Protocol
 
+from backend.app.post_eligibility import SOURCE_POST_ELIGIBILITY_SQL
+
 
 class _Connection(Protocol):
     async def fetchrow(self, query: str, *args: object) -> Any:
@@ -27,14 +29,15 @@ async def load_voice_taxonomy_summary(
 ) -> dict[str, Any]:
     """Count overlapping voice memberships over one authorized denominator."""
     row = await conn.fetchrow(
-        """
+        f"""
         with eligible as (
             select post.post_id
               from source_post post
-             where post.corporate_entity_id = any($1::uuid[])
+             where {SOURCE_POST_ELIGIBILITY_SQL.format(alias='post')}
                and (post.visibility_code = 'public'
-                    or post.process_unit_id is null
-                    or post.process_unit_id = any($2::uuid[]))
+                    or (post.corporate_entity_id = any($1::uuid[])
+                        and (cardinality($2::uuid[]) = 0
+                             or post.process_unit_id = any($2::uuid[]))))
                and ($3::timestamptz is null or coalesce(post.event_occurred_at, post.created_at) >= $3)
                and ($4::timestamptz is null or coalesce(post.event_occurred_at, post.created_at) < $4)
                and ($5::uuid is null or post.corporate_entity_id = $5)
@@ -82,7 +85,7 @@ async def load_voice_taxonomy_summary(
                count(*) filter (where membership_count = 0) as unavailable,
                (select count(*) from conflicts) as disagreement,
                coalesce((select jsonb_object_agg(voice_concept_code, post_count)
-                           from categories), '{}'::jsonb) as category_post_counts
+                           from categories), '{{}}'::jsonb) as category_post_counts
           from per_post
         """,
         list(authorized_corporate_entity_ids),
