@@ -133,4 +133,14 @@ describe("OccupationRatingProfile", () => {
     rerender(<OccupationRatingProfileView profile={{ ...ready, items: [] }} />);
     expect(screen.getByRole("status")).toHaveTextContent("관측값이 없습니다");
   });
+
+  it("does not turn a non-http artifact value into a customer link", () => {
+    render(<OccupationRatingProfileView profile={{
+      ...ready,
+      source: { ...ready.source!, source_artifact_url: "javascript:alert(1)" },
+    }} />);
+
+    expect(screen.queryByRole("link", { name: "평정 원문 열기" })).not.toBeInTheDocument();
+    expect(screen.getByText(/데이터 담당자에게 출처 확인을 요청하세요/)).toBeInTheDocument();
+  });
 });
