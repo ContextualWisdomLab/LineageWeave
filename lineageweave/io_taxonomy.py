@@ -38,7 +38,7 @@ from dataclasses import dataclass
 from functools import lru_cache
 
 from rdflib import RDF, URIRef
-from rdflib.namespace import RDFS, SKOS
+from rdflib.namespace import DCTERMS, PROV, RDFS, SKOS
 
 from .ontology import LW, ONTOLOGY
 
@@ -136,6 +136,32 @@ class CharacteristicFamilyRecord:
     """The family's published name, e.g. ``"Achievement"``."""
 
 
+@dataclass(frozen=True)
+class TaxonomySourceRecord:
+    """One declared source entity behind an occupational concept scheme."""
+
+    iri: str
+    """Canonical IRI of the source entity."""
+
+    title: str
+    """Published title of the source."""
+
+    version: str | None
+    """Declared source version, or ``None`` when the source has none."""
+
+    publisher: str | None
+    """Declared publisher, or ``None`` for creator-owned literature."""
+
+    source_url: str | None
+    """Versioned source URL when one is available."""
+
+    license_url: str | None
+    """Applicable license URL, never inferred from a related source."""
+
+    artifact_sha256: str | None
+    """Verified artifact digest, or ``None`` when no stable artifact exists."""
+
+
 def _label_of(subject: URIRef) -> str:
     """Return the SKOS preferred label of one subject.
 
@@ -162,6 +188,51 @@ def _scheme_subjects(scheme: URIRef) -> list[URIRef]:
         (subject for subject in ONTOLOGY.subjects(SKOS.inScheme, scheme)),
         key=str,
     )
+
+
+def _optional_single_text(subject: URIRef, predicate: URIRef) -> str | None:
+    """Return one optional metadata value and reject multivalued ambiguity."""
+    values = list(ONTOLOGY.objects(subject, predicate))
+    if len(values) > 1:
+        raise ValueError(
+            f"source entity {subject} declares multiple values for {predicate}"
+        )
+    return str(values[0]) if values else None
+
+
+@lru_cache(maxsize=1)
+def taxonomy_source_records() -> tuple[TaxonomySourceRecord, ...]:
+    """All source entities used by the occupational schemes, sorted by IRI."""
+    subjects = {
+        source
+        for scheme in (
+            LW.socMajorGroupScheme,
+            LW.jobZoneScheme,
+            LW.workerCharacteristicScheme,
+        )
+        for source in ONTOLOGY.objects(scheme, PROV.wasDerivedFrom)
+    }
+    records = []
+    for subject in sorted(subjects, key=str):
+        if not isinstance(subject, URIRef):
+            raise ValueError(f"taxonomy source must be an IRI, got {subject!r}")
+        title = _optional_single_text(subject, DCTERMS.title)
+        if title is None:
+            raise ValueError(f"source entity {subject} lacks dcterms:title")
+        records.append(
+            TaxonomySourceRecord(
+                iri=str(subject),
+                title=title,
+                version=_optional_single_text(subject, DCTERMS.hasVersion),
+                publisher=_optional_single_text(subject, DCTERMS.publisher),
+                source_url=_optional_single_text(subject, DCTERMS.source),
+                license_url=_optional_single_text(subject, DCTERMS.license),
+                artifact_sha256=_optional_single_text(
+                    subject, LW.sourceArtifactSha256
+                ),
+            )
+        )
+    return tuple(records)
 
 
 @lru_cache(maxsize=1)
