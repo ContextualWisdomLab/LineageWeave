@@ -27,8 +27,10 @@ does not relabel still-local Python paths as Rust/GPU compliant.
 | `lineageweave/leftover_pairs.py` | **migrated:** identifier projection and closest/farthest selection only | fast-mlsirm | protected-main Rust `residual_interaction_map` with residual, coverage, SVD/Gabriel coordinates, distances, reconstruction and shares | `period_report.py`, report ingestion/seed; owner contract and consumer projection tests |
 | `backend/app/post_chat_ingestion.py` | active Global Ask cosine, vector norm, maximum semantic score; the unused `embedding_client.py` cosine/max-pooling experiment is deleted | RankWeave or another accepted Rust retrieval-score owner | versioned ranked-evidence envelope over ABAC-visible semantic units; fail closed until accepted | Global Ask retrieval and post-chat tests |
 | `lineageweave/knowledge_graph.py` | random walk with restart, convergence delta, adaptive relevance cutoff | RankWeave graph-ranking contract | ranked-node artifact with contribution and convergence evidence | related-person/entity API paths; knowledge-graph tests |
+| `lineageweave/channels.py` | local time-decay score and `SequenceMatcher` text similarity fallback | RankWeave similarity contract; TEPP supplies temporal evidence | owner-computed, provenance-bearing channel evidence | `reconstruct.py`; channel and reconstruction tests |
 | `lineageweave/reconstruct.py` | channel-weight renormalization, candidate-score fusion and minimum-score decision | RankWeave fusion; TEPP supplies independent lineage criterion | accepted edge-ranking artifact; LineageWeave persists selected edge and channel provenance | lineage rebuild/start/seed/server; reconstruct, persistence, API tests |
 | `lineageweave/rankweave_client.py` | channel construction and token overlap remain; **owner-bound:** classic/weighted RRF and contribution arithmetic now come from RankWeave #47, whose Python core still awaits the required Rust CPU/GPU migration | RankWeave | Rust-backed strict ranking artifact exposing owner-computed contributions and owned channel construction | `/api/rankings`, frontend Rankings; `tests/test_rankweave_client.py` and frontend tests |
+| `lineageweave/corporate_hierarchy_resolution.py` | `SequenceMatcher` organization-name similarity, score threshold, and top-score selection | external entity-resolution owner contract required | unique/miss/tie catalog-resolution artifact with evidence and policy version | organization resolution ingestion; corporate-hierarchy and API tests |
 
 `lineageweave/post_evaluation.py` imports fast-mlsirm only for its published
 judge contract and `to_irt_row` projection. It performs no fitted numerical
@@ -95,6 +97,6 @@ diff inspection.
 No new Python mathematical or psychometric implementation was found in this
 stack. The highest-leverage newly exercised owner path is therefore the Rust
 token packer rather than a duplicate LineageWeave implementation. Existing
-cosine, graph-ranking, fusion, period-report, and anchored channel-weight debt
-remains frozen under the owner and acceptance criteria above; this audit does
-not reclassify it as complete.
+time-decay and string similarity, cosine, graph-ranking, fusion, period-report,
+and anchored channel-weight debt remains frozen under the owner and acceptance
+criteria above; this audit does not reclassify it as complete.
