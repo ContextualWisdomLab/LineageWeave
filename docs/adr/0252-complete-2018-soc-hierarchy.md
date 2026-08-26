@@ -28,7 +28,9 @@ job-family crosswalk would violate the repository's evidence boundary.
    job family, job series, position, person trait, or psychometric score. Those
    bindings require separately authorized source assertions.
 5. Runtime and publication loaders merge the governed Turtle fragments into
-   one graph. The public artifact remains one canonical ontology namespace.
+   one graph. The public artifact remains one canonical ontology namespace and
+   is serialized from that merged graph, rather than concatenating independent
+   Turtle documents. Its manifest identifies and hashes every governed input.
 
 ## Consequences
 
