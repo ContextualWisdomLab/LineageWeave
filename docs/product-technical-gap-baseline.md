@@ -7,7 +7,7 @@
 > `BLOCKED`, one `UNSTABLE`, three `CLEAN`) and 10 open issues, with no
 > exact-head approval. Repair PR #715 merged normally into #640. Structured
 > runtime pin PR #711 (`8902e37f`) and operations acceptance PR #716
-> (`33cd926b`) remain stacked; #711 intentionally retains an unresolved
+> (`8437a73f`) remain stacked; #711 intentionally retains an unresolved
 > upstream-delivery thread until contextual-orchestrator readiness-lease PR
 > #857 lands and the immutable pin is advanced to its delivered exact head.
 
@@ -22,9 +22,12 @@ observation completed 162 HTTP requests with zero failures. That run predates
 the current #640 head. The canonical containers currently return HTTP 200 from
 backend `/healthz` and the frontend root, but their Compose labels do not prove
 the source commit; therefore neither the running stack nor the historical k6
-run is exact-head authenticated acceptance. Exact-head desktop/mobile
-screenshots and k6 remain required after #715 is incorporated and #640 is
-rebuilt. Historical test projects are retired only by their exact Compose
+run is exact-head authenticated acceptance. PR #716 now supplies fail-closed
+backend, worker, and frontend OCI revision labels plus a provider-free synthetic
+authenticated screenshot/k6 runner, but no matching image build or evidence
+artifact has yet been observed. Provider-backed acceptance separately requires
+a nonempty grounded case after contextual-orchestrator #857 delivery. Historical
+test projects are retired only by their exact Compose
 project label and without named-volume deletion. PR #678 implementation head
 `da98de07` fixes the default project name; its follow-up exact-label audit also
 removed the remaining identifiable isolated test containers while preserving
@@ -169,7 +172,7 @@ context only.
 | ---: | --- | --- |
 | #718 | `a3fb32bb` | `CLEAN`: evidence-bound occupational constructs |
 | #717 | `461a4d12` | `CLEAN`: evidence-bearing Voice-of-X combinations |
-| #716 | `33cd926b` | `UNSTABLE`: evidence-bound operations backfill and exact runtime acceptance preparation |
+| #716 | `8437a73f` | `UNSTABLE`: evidence-bound operations backfill; exact-image provider-free synthetic runner prepared, evidence not yet executed |
 | #714 | `aa93318f` | `BLOCKED`: post-unit public-source research |
 | #713 | `cc3dfc14` | `BLOCKED`: expanded source-post Voice-of-X taxonomy |
 | #711 | `8902e37f` | `CLEAN`: structured-workflow runtime pin; upstream #857 delivery and pin advance remain required |
