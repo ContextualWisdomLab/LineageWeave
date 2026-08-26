@@ -65,7 +65,10 @@ def test_provider_key_is_not_aliased_as_gateway_transport(monkeypatch) -> None:
         module.main()
 
 
-def test_bootstrap_leaves_embedding_selection_to_the_orchestrator(monkeypatch) -> None:
+@pytest.mark.parametrize("embedding_model", ["embedding-model", ""])
+def test_bootstrap_registers_configured_remote_embedding_agent(
+    monkeypatch, embedding_model: str
+) -> None:
     module = _load_start_module()
     captured: dict[str, object] = {}
 
@@ -111,7 +114,10 @@ def test_bootstrap_leaves_embedding_selection_to_the_orchestrator(monkeypatch) -
     monkeypatch.setenv("BYTEZ_API_KEY", "bytez-key")
     monkeypatch.setenv("CONTEXTUAL_ORCHESTRATOR_TOKEN", "orchestrator-token")
     monkeypatch.setenv("LLM_GATEWAY_API_URL", "https://gateway.example")
-    monkeypatch.setenv("LLM_GATEWAY_EMBEDDING_MODEL", "embedding-model")
+    if embedding_model:
+        monkeypatch.setenv("LLM_GATEWAY_EMBEDDING_MODEL", embedding_model)
+    else:
+        monkeypatch.delenv("LLM_GATEWAY_EMBEDDING_MODEL", raising=False)
 
     module.main()
 
@@ -138,5 +144,21 @@ def test_bootstrap_leaves_embedding_selection_to_the_orchestrator(monkeypatch) -
     } & os.environ.keys()
     agents = captured["agents"]
     assert isinstance(agents, dict)
-    assert not [agent for agent in agents["agents"] if "embedding" in agent.get("tags", [])]
+    embedding_agents = [
+        agent for agent in agents["agents"] if "embedding" in agent.get("tags", [])
+    ]
+    if embedding_model:
+        assert embedding_agents == [
+            {
+                "id": "gateway_embedding_agent",
+                "model": embedding_model,
+                "provider_protocol": "auto",
+                "base_url": "https://gateway.example/v1",
+                "credential_key": "LLM_GATEWAY_API_KEY",
+                "tags": ["embedding"],
+                "priority": 1,
+            }
+        ]
+    else:
+        assert embedding_agents == []
     assert "LLM_GATEWAY_EMBEDDING_MODEL" not in os.environ
