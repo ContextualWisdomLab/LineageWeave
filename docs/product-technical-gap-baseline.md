@@ -1,6 +1,6 @@
 # Product & Technical Gap Baseline
 
-> Dashboard delivery snapshot: 2026-08-26 22:40 KST. Protected `main` was
+> Dashboard delivery snapshot: 2026-08-27 01:15 KST. Protected `main` was
 > `ff7431bd1851c03e737808d22c6a2d43968582f9`. This local branch is not
 > protected-main release evidence.
 
@@ -60,7 +60,7 @@ only aggregate, non-identifying evidence to this repository.
 
 ### Exact open-PR boundary
 
-At this snapshot there were 20 open PRs and 10 open issues. PR #712 merged only
+At this snapshot there were 25 open PRs and 10 open issues. PR #712 merged only
 into #702's non-default branch as `78a14410`; it is part of that combined
 candidate and is not protected-`main` delivery. PR #711 still targets #640 and
 must wait for its protected upstream dependency before it can be retargeted to
@@ -69,7 +69,7 @@ independent review after the base changed. These observations are
 not merge readiness. Re-fetch exact heads, unresolved threads, checks,
 approvals, rulesets, and merge SHA before any lifecycle claim.
 
-> Audit snapshot: 2026-08-26 22:40 KST (refreshed by the autonomous merge
+> Audit snapshot: 2026-08-27 01:15 KST (refreshed by the autonomous merge
 > loop). This repository records synthetic fixtures and aggregate,
 > non-identifying runtime evidence only. Open PRs and local checks are not
 > protected-default-branch release evidence. Identifying post identifiers,
@@ -79,7 +79,7 @@ approvals, rulesets, and merge SHA before any lifecycle claim.
 ## 1. Exact-head and governance evidence
 
 The protected default branch was `ff7431bd1851c03e737808d22c6a2d43968582f9`
-when this baseline was refreshed. The live queue contained 20 open PRs and 10
+when this baseline was refreshed. The live queue contained 25 open PRs and 10
 open issues. The exact-head inventory below supersedes older per-PR snapshots
 elsewhere in this document; those older rows remain useful historical delivery
 context only.
@@ -89,28 +89,44 @@ context only.
 | #629 | `b721b0f2` | provider-work release and bounded landing reads; exact-head hosted review remains incomplete |
 | #632 | `24262a99` | graph-fact provenance; exact-head hosted review remains incomplete |
 | #639 | `2f4b1bff` | Running action and Compose contracts; exact-head hosted review remains incomplete |
-| #640 | `78f9e5b1` | dashboard case metrics and project journeys; exact-head hosted review remains incomplete |
-| #643 | `42ba340e` | shared token-backed status notice; exact-head hosted review remains incomplete |
+| #640 | `5594029c` | dashboard case metrics and project journeys; exact-head hosted review remains incomplete |
+| #643 | `8767de1b` | shared token-backed status notice; exact-head hosted review remains incomplete |
 | #644 | `f53dd28e` | native frontend surface code splitting; exact-head hosted review remains incomplete |
 | #657 | `9f71681c` | TEPP asynchronous lifecycle consumer; exact-head hosted review remains incomplete |
 | #658 | `15d670f0` | evidence-honest Global Ask cutoff; exact-head hosted review remains incomplete |
 | #667 | `4855c380` | per-post Ask history and baseline evidence; exact-head hosted review remains incomplete |
 | #668 | `1194f44d` | evidence-bound project history; exact-head hosted review remains incomplete |
 | #672 | `a3e87a89` | persisted semantic evidence nomination; exact-head hosted review remains incomplete |
-| #679 | `a8734f6f` | opt-in public-claim envelopes; exact-head hosted review remains incomplete |
-| #680 | `bebab3d6` | customer-actionable ranking guidance; exact-head hosted review remains incomplete |
+| #679 | `13ecf41d` | opt-in public-claim envelopes; exact-head hosted review remains incomplete |
+| #680 | `efe864e5` | customer-actionable ranking guidance; exact-head hosted review remains incomplete |
 | #700 | `1bc99eca` | evidence-bound conversation turns; exact-head hosted review remains incomplete |
 | #701 | `cc3351a9` | production-equivalent concurrent-migration fixture; exact-head hosted review remains incomplete and independent approval is absent |
-| #702 | `af4642ff` | source-semantic coverage plus non-default #712 composition; exact-head hosted evidence restarted after the stack merge |
+| #702 | `5de66ab9` | source-semantic coverage plus non-default #712 composition; exact-head hosted evidence restarted after the stack merge |
 | #704 | `027323cf` | external lineage contract with exact provider-work budget and fail-closed importer repair; exact-head hosted evidence restarted |
-| #709 | `c7c27889` | official DOT/FJA worker-function taxonomy; exact-head hosted review remains incomplete |
-| #710 | `3ad55346` | worker-taxonomy delivery-gap baseline; this row describes the pre-refresh head of the present candidate |
-| #711 | `a66f9cf6` | stacked on #640 and blocked by an unmerged contextual-orchestrator pin; auto-merge remains disabled |
+| #709 | `8ef4090c` | official DOT/FJA worker-function taxonomy; exact-head hosted review remains incomplete |
+| #710 | `8df04b68` | worker-taxonomy delivery-gap baseline; this row describes the pre-refresh head of the present candidate |
+| #711 | `8902e37f` | stacked on #640 and blocked by an unmerged contextual-orchestrator pin; auto-merge remains disabled |
+| #713 | `cc3dfc14` | complete source-post Voice-of-X taxonomy; exact-head hosted review remains incomplete |
+| #714 | `aa93318f` | post-scoped public source research; determinate evidence retention and stable source-order regressions pass locally, while hosted checks and independent approval remain incomplete |
+| #716 | `8b54b2f7` | stacked on #711; operations backfill priority, with unstable hosted evidence and no protected-main claim |
+| #717 | `118cc380` | stacked on #713; evidence-bearing Voice-of-X combinations, with unstable hosted evidence and no protected-main claim |
+| #718 | `a3fb32bb` | stacked on #709; evidence-bound occupational constructs, with no protected-main claim |
 
 No row above is merge evidence. Immediately before any lifecycle action,
 re-fetch the head, unresolved threads, formal reviews, rulesets, and same-head
 check conclusions. In particular, queued checks are infrastructure state and
 do not transfer evidence from an earlier SHA.
+
+Cross-PR authority audit at this snapshot found unresolved composition
+collisions that must be reconciled after each parent reaches protected `main`:
+PR #640 and #713 both carry ADR 0246; PR #714 and stacked #717 both carry ADR
+0247; #718 already occupies candidate ADR 0248; and #632 and #701 carry
+different blobs for migration 0210. The candidate changelog fragments also
+span 2.19.0 through 2.22.0 while every pyproject-changing head inspected still
+declares 2.18.0. These are candidate-branch conflicts, not authority to pick a
+number heuristically. Merge each parent first, retarget its children to
+`main`, allocate the next unused ADR/migration/release identity from that live
+base, and recollect exact-head evidence.
 
 PR #607 first merged as `61fd631c7bb3c57113fd19763c2c43161eeb2824`
 into #606's non-default branch. PR #606 subsequently passed the protected gate,
@@ -412,7 +428,7 @@ give this delivery matrix:
 
 | Closed-branch decision | Current-main classification | Smallest remaining delivery |
 | --- | --- | --- |
-| ADR 0133 source-reference research | Partial foundation: protected `main` has the self-hosted SearXNG relation-verification client and fail-closed configuration, but it verifies an already extracted relation. It has no source-unit/image-region lead, cited-resource retrieval, claim judgment, or normalized research citation workflow | One post-scoped lead-to-citation slice that reuses the self-hosted SearXNG search boundary, adds public-target SSRF/redirect rejection for result retrieval, and judges through contextual-orchestrator with explicit unavailable outcomes |
+| ADR 0133 source-reference research | Protected `main` still has only the SearXNG relation-verification foundation. PR #714 exact head `aa93318f` is the candidate post-scoped source-unit/image-region workflow through contextual-orchestrator; its focused 46-test regression set passed locally, including preservation of the last determinate citation across a transient unavailable re-check and deterministic source-order reads | Complete exact-head hosted checks, independent approval, protected merge, and authenticated synthetic E2E acceptance; until then the buyer-visible capability remains unavailable on protected `main` |
 | ADR 0134 token-backed exception messages | Partial: sanitized next-action failures exist, but no shared token-backed exception component or complete Storybook error inventory exists | Migrate one existing unavailable flow to one shared accessible alert and verify its success, unavailable, and retry states |
 | ADR 0135 kind/status-exact analysis actions | Partial: protected `main` has kind-aware start/retry controls plus normative analysis-run, TEPP, cutoff-body, and channel-evidence contracts; it does not contain the closed branch's unified guidance component or its full kind × status interaction inventory | Test the current run-kind/status matrix first, then add only a proven missing state/control pair rather than copying the closed-branch function |
 | ADR 0136 per-post Ask history | Partial: `post_chat_result` / `post_chat_citation`, the authorized post Chat API, and its linear exchange history are on protected `main`. Account-and-post-scoped sessions, ordered turns, list/select/new controls, and batched citation reauthorization are not | Define the 3NF account/post session boundary, bounded batch reauthorization, and one authorized list/load/write path before adding the conversation picker |
@@ -498,11 +514,14 @@ review latency are never blockers — keep working while they settle.
    open .github#1263, and land the atomic hourly LineageWeave caller in open
    .github#1288 only through their protected gates.
 2. Process main-targeted PRs #629, #632, #639, #640, #643, #644, #657,
-   #658, #667, #668, #672, #679, #680, #700, #701, #702, #704, #709, and
-   #710 only after each exact head shows terminal green required checks plus
-   current-head independent approval. Treat #712's non-default-branch merge
-   only as part of #702's combined candidate. Merge #640 through its protected
-   gate before retargeting #711 to `main`; then refresh all #711 evidence.
+   #658, #667, #668, #672, #679, #680, #700, #701, #702, #704, #709, #710,
+   #713, and #714 only after each exact head shows terminal green required
+   checks plus current-head independent approval. Treat #712's
+   non-default-branch merge only as part of #702's combined candidate. Merge
+   #640 before retargeting #711, then merge #711 before retargeting #716.
+   Likewise merge #713 before retargeting #717 and merge #709 before
+   retargeting #718. Reconcile ADR/migration/release identities and refresh all
+   exact-head evidence after every retarget.
 3. While hosted checks or independent reviews wait, resume user-visible gaps
    from §5 in leverage order:
    external semantic verification (#272), Naruon calendar (#355/#336), and
