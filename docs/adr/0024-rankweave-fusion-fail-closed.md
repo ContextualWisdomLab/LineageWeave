@@ -32,9 +32,10 @@ tables, and does not bind the demo IdP to production Keyverse.
    Samuel et al. (2025) unequal-channel weights (`temporal` 0.25,
    `lexical` 0.75). The buyer sees 1-based `fused_rank` and the post
    title — not a TEPP theta.
-4. After login, Rankings sits above Calendar. Unavailable copy is
-   **Rankings · RankWeave not available**. An accepted hit lists the
-   title; click opens that `source_post`.
+4. After login, Rankings sits above Calendar. Customer copy describes the
+   available action and result state without naming the internal ranking
+   dependency. An accepted hit lists the title; click opens that
+   `source_post`.
 5. Accepted hits also disclose owned-channel evidence (ADR 0167):
    1-based `channel_rank` and Cormack contribution
    `weight / (η + rank)` for each channel the post actually appears

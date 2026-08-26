@@ -38,9 +38,10 @@ reasons.
 3. Labels: `temporal` = **Newest first**, `lexical` = **Title
    overlap**. The payload never includes a fused score or a theta.
 4. Rankings lists the evidence under each accepted hit as an
-   accessible sibling list, not hover-only. Copy states that
-   RankWeave fused newest-first and title-overlap ranks, and that
-   this is not a calibrated score. Click still opens that post.
+   accessible sibling list, not hover-only. Customer copy tells the reader
+   to open a result to review its channel evidence and states that the result
+   is not a calibrated measurement; it does not name the internal ranking
+   dependency. Click still opens that post.
 5. Unavailable RankWeave stays empty (`rankweave_not_available`).
    Hidden posts remain omitted from every channel.
 
