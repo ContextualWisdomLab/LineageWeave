@@ -151,3 +151,48 @@ async def fetch_occupation_rating_sources(
                      source.source_table_name, source.source_table_code"""
     )
     return {"sources": [dict(row) for row in rows]}
+
+
+async def fetch_rating_source_occupations(
+    conn: RatingReadConnection,
+    *,
+    data_release_code: str,
+    source_table_code: str,
+) -> dict[str, object]:
+    """Return occupations with observations in one exact imported source."""
+    source = await conn.fetchrow(
+        """select 1
+             from occupational_source_table
+            where data_release_code = $1 and source_table_code = $2""",
+        data_release_code,
+        source_table_code,
+    )
+    if source is None:
+        return {
+            "data_release_code": data_release_code,
+            "source_table_code": source_table_code,
+            "source_available": False,
+            "occupations": [],
+        }
+    rows = await conn.fetch(
+        """select classification.onetsoc_code, classification.occupation_title
+             from occupational_classification_entry classification
+            where classification.data_release_code = $1
+              and exists (
+                    select 1
+                      from occupational_rating_observation observation
+                     where observation.data_release_code = classification.data_release_code
+                       and observation.source_table_code = $2
+                       and observation.onetsoc_code = classification.onetsoc_code
+              )
+            order by classification.occupation_title,
+                     classification.onetsoc_code""",
+        data_release_code,
+        source_table_code,
+    )
+    return {
+        "data_release_code": data_release_code,
+        "source_table_code": source_table_code,
+        "source_available": True,
+        "occupations": [dict(row) for row in rows],
+    }

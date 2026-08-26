@@ -3,10 +3,15 @@
 import asyncio
 from decimal import Decimal
 
-from backend.app.main import read_occupation_rating_sources, read_occupation_ratings
+from backend.app.main import (
+    read_occupation_rating_sources,
+    read_occupation_ratings,
+    read_rating_source_occupations,
+)
 from backend.app.occupation_rating_ingestion import (
     fetch_occupation_rating_sources,
     fetch_occupation_ratings,
+    fetch_rating_source_occupations,
 )
 
 
@@ -197,3 +202,56 @@ def test_authenticated_source_catalog_route_uses_shared_projection() -> None:
     )
 
     assert result == {"sources": []}
+
+
+def test_source_occupation_catalog_distinguishes_unavailable_from_empty() -> None:
+    unavailable = asyncio.run(
+        fetch_rating_source_occupations(
+            FakeConnection(None),
+            data_release_code="onet-31.0",
+            source_table_code="abilities",
+        )
+    )
+    empty = asyncio.run(
+        fetch_rating_source_occupations(
+            FakeConnection({"exists": 1}),
+            data_release_code="onet-31.0",
+            source_table_code="abilities",
+        )
+    )
+
+    assert unavailable["source_available"] is False
+    assert empty["source_available"] is True
+    assert empty["occupations"] == []
+
+
+def test_source_occupation_catalog_returns_authoritative_codes_and_titles() -> None:
+    rows = (
+        {"onetsoc_code": "11-1011.00", "occupation_title": "Chief Executives"},
+        {"onetsoc_code": "15-1252.00", "occupation_title": "Software Developers"},
+    )
+    conn = FakeConnection({"exists": 1}, rows)
+
+    result = asyncio.run(
+        fetch_rating_source_occupations(
+            conn,
+            data_release_code="onet-31.0",
+            source_table_code="abilities",
+        )
+    )
+
+    assert result["occupations"] == list(rows)
+    assert "and exists" in conn.last_fetch_query
+
+
+def test_authenticated_source_occupation_route_uses_shared_projection() -> None:
+    result = asyncio.run(
+        read_rating_source_occupations(
+            data_release_code="onet-31.0",
+            source_table_code="abilities",
+            _account=object(),
+            pool=FakePool(FakeConnection({"exists": 1})),
+        )
+    )
+
+    assert result["source_available"] is True
