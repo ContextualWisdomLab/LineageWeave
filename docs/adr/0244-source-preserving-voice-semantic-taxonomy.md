@@ -7,11 +7,13 @@
 
 The imported `source_post.voc_type_code` is provenance, not permission to
 overwrite the source or collapse organization relationships into one post
-label. Two vocabularies already exist: post types `voc`, `vocc`, `voco`, `vom`,
-and `vop`; and post-scoped organization relationships `rel_voc`, `rel_vocc`,
-`rel_voco`, `rel_vom`, `rel_vop`, and `rel_vos`. Internal `rel_vos` means Voice
-of Supplier. It is not ISO 16355's Voice of Stakeholder and is not in the post
-type scheme.
+label. The post vocabulary contains `voc`, `vocc`, `voco`, `vom`, `vop`,
+`vos`, `voe`, `vob`, `vor`, `voi`, `voso`, and `vops`; the independently
+governed post-scoped organization relationships remain `rel_voc`, `rel_vocc`,
+`rel_voco`, `rel_vom`, `rel_vop`, and `rel_vos`. A bare post-type code and a
+`rel_` counterparty code are different assertions even when their labels are
+similar. In particular, a post's voice never assigns that relationship to
+every organization named in the post.
 
 ## Decision
 
@@ -50,8 +52,9 @@ Organization-relationship counts use a separately named evidence-bearing
 post-by-organization denominator. Filters may narrow period, corporate entity,
 PU, team, person, product, or project without changing these denominators.
 
-SHACL excludes `rel_vos` from the post scheme, admits it only in the organization
-relationship scheme, and requires derived evidence/digest/receipt/time fields.
+SHACL admits the twelve bare post codes only for post-voice assertions, admits
+the six `rel_` codes only in the organization-relationship scheme, and requires
+derived evidence/digest/receipt/time fields.
 Raw `source_post.voc_type_code` is never updated by this projection.
 
 ## Consequences

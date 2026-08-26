@@ -1,29 +1,39 @@
 # Product & Technical Gap Baseline
 
-> Dashboard delivery snapshot: 2026-08-26 10:06 KST. Protected `main` was
-> `494b54e2245040bcf02b45376f221c37cd437e76`. Dashboard PR #640 exact
-> observed head was `d314855c`; this branch is not
-> protected-main release evidence.
+> Dashboard delivery snapshot: 2026-08-27 00:50 KST. Protected `main` was
+> `ff7431bd1851c03e737808d22c6a2d43968582f9`. Dashboard PR #640 exact
+> observed head was `fa9f0aeb5225035264ebc0579c127d1f283c0b17`; this branch is not
+> protected-main release evidence. The queue contained 23 open PRs (21
+> `BLOCKED`, one `UNSTABLE`, one `CLEAN`) and no exact-head approval. Stacked
+> repair PR #715 was based exactly on #640 and its pre-documentation head
+> `5746c57d` passed 44 focused tests; it repairs the four stale HTTP transport
+> test doubles and narrowly excludes one Python-before-3.7 Semgrep rule that
+> contradicts the repository's Python >=3.12 contract.
 
 ## Operations Dashboard PRD/TRD traceability
 
 ADR 0224 reconciles the observed `lw*` test projects with the complete
-`lineageweave` Compose boundary. The Dashboard candidate stack exercised all
-eight declared services with 27 synthetic posts: live OIDC/JWKS verification
-passed, the latest topic-coordinate migration tables were present, Ask reached
-`succeeded`, and a 2-VU 20-second authenticated k6 observation completed 162
-HTTP requests with zero failures. This is local candidate evidence, not a
-protected-main release claim. Historical test projects are retired only by
-their exact Compose project label and without named-volume deletion. PR #678
-implementation head `da98de07` fixes the default project name; its follow-up
-exact-label audit also removed the remaining identifiable isolated test
-containers while preserving named volumes.
+`lineageweave` Compose boundary. A historical Dashboard candidate exercised
+all eight declared services with 27 synthetic posts: live OIDC/JWKS
+verification passed, the latest topic-coordinate migration tables were
+present, Ask reached `succeeded`, and a 2-VU 20-second authenticated k6
+observation completed 162 HTTP requests with zero failures. That run predates
+the current #640 head. The canonical containers currently return HTTP 200 from
+backend `/healthz` and the frontend root, but their Compose labels do not prove
+the source commit; therefore neither the running stack nor the historical k6
+run is exact-head authenticated acceptance. Exact-head desktop/mobile
+screenshots and k6 remain required after #715 is incorporated and #640 is
+rebuilt. Historical test projects are retired only by their exact Compose
+project label and without named-volume deletion. PR #678 implementation head
+`da98de07` fixes the default project name; its follow-up exact-label audit also
+removed the remaining identifiable isolated test containers while preserving
+named volumes.
 
 | Requirement | Evidence contract | Delivery state |
 |---|---|---|
-| Claim cause delay: order, specification change, originating order, sales pool, Event/post counts | ADR 0206; contextual-orchestrator case classification and `claim_received` → `cause_confirmed` milestones with cited spans and observed source clocks | Stacked candidate reports open/resolved/evidence-missing counts and exact elapsed time only for paired observed endpoints; every required answer and endpoint is cited or explicitly missing; authenticated synthetic runtime passed, while authorized-corpus re-analysis remains pending |
-| Rebid/handover: discussion, counterparties, our owner, decisions, Event/post counts | ADR 0206; normalized case facts plus separate rebid-response and handover milestone pairs | Stacked candidate reports open/resolved/evidence-missing rebid and handover lifecycles without a delay threshold or invented elapsed endpoint; authenticated synthetic runtime passed, while authorized-corpus re-analysis remains pending |
-| External information count/rate and sales/project relation | ADR 0206; semantic `external_information` classification inside Dashboard GNB | Candidate GNB destination filters the Dashboard to external evidence; no separate Board by product decision; authenticated synthetic runtime passed with the honest zero-result state |
+| Claim cause delay: order, specification change, originating order, sales pool, Event/post counts | ADR 0206; contextual-orchestrator case classification and `claim_received` → `cause_confirmed` milestones with cited spans and observed source clocks | Stacked candidate reports open/resolved/evidence-missing counts and exact elapsed time only for paired observed endpoints; every required answer and endpoint is cited or explicitly missing. Historical synthetic runtime passed, while current exact-head authenticated acceptance and authorized-corpus re-analysis remain pending. |
+| Rebid/handover: discussion, counterparties, our owner, decisions, Event/post counts | ADR 0206; normalized case facts plus separate rebid-response and handover milestone pairs | Stacked candidate reports open/resolved/evidence-missing rebid and handover lifecycles without a delay threshold or invented elapsed endpoint. Historical synthetic runtime passed, while current exact-head authenticated acceptance and authorized-corpus re-analysis remain pending. |
+| External information count/rate and sales/project relation | ADR 0206; semantic `external_information` classification inside Dashboard GNB | Candidate GNB destination filters the Dashboard to external evidence; no separate Board by product decision. Historical synthetic runtime returned the honest zero-result state; current exact-head authenticated acceptance remains pending. |
 | Project-specific journey | Explicit source/semantic project membership plus provenance-bearing TEPP TDT/CHRONOS predecessor, branch, and transition results | Candidate API preserves every explicit project membership, but its local event-time sort is only an observed-event list. It is no longer labeled as a Project Journey. Full journey delivery remains open until the accepted TEPP producer artifact is persisted and rendered; no fixed sales/order start or nearest-date edge is accepted. |
 | Apple-Silicon mathematical acceleration | ADR 0226 macOS-native Rust owner service with authenticated MLX Metal execution receipts | Normative boundary applies to accepted TEPP and fast-mlsirm Rust kernels; their owner implementations and actual Metal parity receipts remain required before activation. RankWeave's current dependency-free Python retrieval-fusion/evaluation contract is not Rust acceleration evidence and is not required to adopt MLX; a future Rust vector-scoring owner remains a separately accepted contract gap. |
 | Ask answer citation-to-event navigation | ADR 0225; authorized cited source, observed source clock, focused evidence layer, and full-post navigation | Stacked candidate renders numbered answer citations and chronologically ordered evidence cards with bidirectional focus. Event and record clocks stay distinct; this list does not claim a Project Journey. Storybook and component interaction evidence are included; authenticated runtime screenshots remain required at the exact candidate head. |

@@ -44,14 +44,16 @@ _SEED_SCRIPT_PATH = Path(__file__).resolve().parents[1] / "scripts" / "seed_demo
 # text -- read alongside it below so the round-trip still sees them:
 # 0012 (ADR 0006: prov_person/prov_organization), 0014 (ADR 0007:
 # prov_team), 0016 (ADR 0009: node_team/edge_mention_team/
-# edge_team_affiliation/edge_mention_organization), and 0042 (ADR 0207:
-# the five governed voc_type post-type codes), and 0220 (ADR 0222:
+# edge_team_affiliation/edge_mention_organization), 0042 (ADR 0207:
+# the original five voc_type post-type codes) + 0235 (ADR 0246: the
+# seven further Voice-of-X post-type codes), and 0220 (ADR 0222:
 # node_project/edge_mention_project).
 _ADDITIONAL_LOOKUP_MIGRATION_PATHS = (
     Path(__file__).resolve().parents[1] / "migrations" / "0060_role_responsibility_agent_type.sql",
     Path(__file__).resolve().parents[1] / "migrations" / "0014_role_responsibility_team_actor_type.sql",
     Path(__file__).resolve().parents[1] / "migrations" / "0016_cross_post_actor_identity.sql",
     Path(__file__).resolve().parents[1] / "migrations" / "0042_voc_type_vocabulary.sql",
+    Path(__file__).resolve().parents[1] / "migrations" / "0235_voice_of_x_post_taxonomy.sql",
     Path(__file__).resolve().parents[1] / "migrations" / "0220_ontology_project_node.sql",
 )
 
@@ -394,8 +396,9 @@ def test_shared_timestamps_declare_no_domain_to_avoid_multi_domain_entailment() 
 
 
 def test_post_type_scheme_covers_the_governed_voc_vocabulary() -> None:
-    """ADR 0207 decision 8: the five seeded voc_type codes become SKOS
-    concepts; vos exists only as rel_vos and must NOT appear here.
+    """ADR 0246: the expanded twelve-code source-post voice vocabulary
+    becomes SKOS concepts; every seeded code resolves, including vos,
+    which remains distinct from its rel_vos relationship counterpart.
     """
     graph = load_ontology()
     scheme_members = {
@@ -407,11 +410,36 @@ def test_post_type_scheme_covers_the_governed_voc_vocabulary() -> None:
         (LW.voiceOfCompetitorType, "voco"),
         (LW.voiceOfMarketType, "vom"),
         (LW.voiceOfPartnerType, "vop"),
+        (LW.voiceOfSupplierType, "vos"),
+        (LW.voiceOfEmployeeType, "voe"),
+        (LW.voiceOfBusinessType, "vob"),
+        (LW.voiceOfRegulatorType, "vor"),
+        (LW.voiceOfInvestorType, "voi"),
+        (LW.voiceOfSocietyType, "voso"),
+        (LW.voiceOfProcessType, "vops"),
     }
     for concept, code in expected:
         assert concept in scheme_members, str(concept)
         assert iri_for_lookup_code(code) == str(concept)
     assert len(scheme_members) == len(expected)
     seeded = _seeded_lookup_codes_for_covered_categories()
-    assert {"voc", "vocc", "voco", "vom", "vop"} <= seeded
-    assert iri_for_lookup_code("vos") is None  # relationship type only
+    assert {
+        "voc",
+        "vocc",
+        "voco",
+        "vom",
+        "vop",
+        "vos",
+        "voe",
+        "vob",
+        "vor",
+        "voi",
+        "voso",
+        "vops",
+    } <= seeded
+
+
+def test_post_voice_additions_do_not_invent_counterparty_relationships() -> None:
+    """ADR 0246 keeps source-post voice and named-organization relations distinct."""
+    for code in ("rel_voe", "rel_vob", "rel_vor", "rel_voi", "rel_voso", "rel_vops"):
+        assert iri_for_lookup_code(code) is None

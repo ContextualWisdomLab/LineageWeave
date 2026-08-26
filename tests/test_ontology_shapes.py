@@ -318,3 +318,22 @@ def test_derived_voice_assertion_requires_receipt_and_ordered_source_span() -> N
     data.add((voice, LWn.evidenceSpanEnd, Literal(12, datatype=XSD.integer)))
     conforms, report_text = _conforms(data)
     assert conforms, report_text
+
+
+@pytest.mark.parametrize("voice_code", ("vos", "voe", "vob", "vor", "voi", "voso", "vops"))
+def test_expanded_source_post_voice_codes_conform(voice_code: str) -> None:
+    """ADR 0246 post codes validate without becoming organization relations."""
+    data = _representative_projection()
+    LWn = Namespace(LW)
+    voice = URIRef(LW + f"voice-assertion-{voice_code}")
+    for predicate, value in (
+        (RDF.type, LWn.PostVoiceClassificationAssertion),
+        (LWn.voiceConceptCode, Literal(voice_code)),
+        (LWn.voiceAssertionStatus, Literal("source")),
+        (LWn.voiceEvidenceDigest, Literal("a" * 64)),
+        (LWn.sourceRevisionDigest, Literal("b" * 64)),
+        (Namespace("http://www.w3.org/ns/prov#").wasDerivedFrom, URIRef(LW + "post-alpha")),
+    ):
+        data.add((voice, predicate, value))
+    conforms, report_text = _conforms(data)
+    assert conforms, report_text

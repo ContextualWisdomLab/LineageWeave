@@ -250,9 +250,11 @@ derive identity from keywords, tags, weak source sentinels, or arbitrary
 similarity thresholds. Historical processing is bounded, asynchronous,
 digest-idempotent, and authorization-filtered when read.
 
-The source post voice scheme (`voc`, `vocc`, `voco`, `vom`, `vop`) and
-post-scoped organization relationship scheme (the same five relationships plus
-supplier `rel_vos`) remain distinct. Source and derived assertions coexist;
+The source post voice scheme (`voc`, `vocc`, `voco`, `vom`, `vop`, `vos`,
+`voe`, `vob`, `vor`, `voi`, `voso`, `vops`) and post-scoped organization
+relationship scheme (`rel_voc`, `rel_vocc`, `rel_voco`, `rel_vom`, `rel_vop`,
+`rel_vos`) remain distinct. A post voice never assigns a relationship to every
+organization it names. Source and derived assertions coexist;
 multi-membership and disagreements are reported without forced selection.
 Authorized counts use the same period and organization/PU/team/person/product/
 project filters and disclose overlapping category totals.
@@ -262,7 +264,7 @@ project filters and disclose overlapping category totals.
 - Product/data boundary: ADR 0001, ADR 0089.
 - Asynchronous delivery and database-pool isolation: ADR 0204, ADR 0213.
 - Knowledge Graph, ontology, and provenance: ADR 0004, ADR 0011, ADR 0065,
-  ADR 0184, ADR 0207, ADR 0228.
+  ADR 0184, ADR 0207, ADR 0228, ADR 0244, ADR 0246.
 - Semantic units and retrieval: ADR 0047, ADR 0062, ADR 0102.
 - LLM/model boundary: ADR 0070, ADR 0072, ADR 0076, ADR 0079.
 - Measurement: ADR 0003, ADR 0145, ADR 0200, ADR 0205.

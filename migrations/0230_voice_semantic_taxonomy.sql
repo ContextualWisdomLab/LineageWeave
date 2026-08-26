@@ -2,8 +2,7 @@
 create table if not exists post_voice_classification_assertion (
     classification_assertion_id uuid primary key default gen_random_uuid(),
     post_id uuid not null references source_post(post_id) on delete cascade,
-    voice_concept_code text not null
-        check (voice_concept_code in ('voc', 'vocc', 'voco', 'vom', 'vop')),
+    voice_concept_code text not null,
     assertion_status_code text not null
         check (assertion_status_code in ('source', 'derived')),
     evidence_span_start integer,
@@ -20,6 +19,16 @@ create table if not exists post_voice_classification_assertion (
     check (evidence_span_start is null or (evidence_span_start >= 0 and evidence_span_end > evidence_span_start)),
     check (valid_to is null or valid_from is null or valid_to >= valid_from)
 );
+alter table post_voice_classification_assertion
+    drop constraint if exists post_voice_classification_assertion_voice_concept_code_check;
+alter table post_voice_classification_assertion
+    drop constraint if exists post_voice_classification_voice_concept_code_check;
+alter table post_voice_classification_assertion
+    add constraint post_voice_classification_voice_concept_code_check
+        check (voice_concept_code in (
+            'voc', 'vocc', 'voco', 'vom', 'vop', 'vos',
+            'voe', 'vob', 'vor', 'voi', 'voso', 'vops'
+        ));
 do $migration$
 begin
     if not exists (
@@ -71,8 +80,10 @@ declare
     matching_assertion_id uuid;
     prior_assertion_id uuid;
 begin
-    if lower(coalesce(new.voc_type_code, '')) not in
-       ('voc', 'vocc', 'voco', 'vom', 'vop') then
+    if lower(coalesce(new.voc_type_code, '')) not in (
+        'voc', 'vocc', 'voco', 'vom', 'vop', 'vos',
+        'voe', 'vob', 'vor', 'voi', 'voso', 'vops'
+    ) then
         update post_voice_classification_assertion
            set valid_to = current_timestamp
          where post_id = new.post_id
@@ -174,7 +185,10 @@ begin
                encode(sha256(convert_to(post.voc_type_code, 'UTF8')), 'hex'),
                encode(sha256(convert_to(coalesce(post.post_body, ''), 'UTF8')), 'hex')
           from source_post post
-         where lower(post.voc_type_code) in ('voc', 'vocc', 'voco', 'vom', 'vop')
+         where lower(post.voc_type_code) in (
+             'voc', 'vocc', 'voco', 'vom', 'vop', 'vos',
+             'voe', 'vob', 'vor', 'voi', 'voso', 'vops'
+         )
         on conflict (post_id, assertion_status_code, voice_concept_code)
         where valid_to is null
         do nothing;

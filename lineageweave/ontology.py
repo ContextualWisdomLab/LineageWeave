@@ -20,7 +20,8 @@ from __future__ import annotations
 
 from datetime import datetime
 from decimal import Decimal, InvalidOperation
-from importlib.resources import files
+# Python >=3.12 is required by pyproject.toml.
+from importlib.resources import files  # nosemgrep: python.lang.compatibility.python37.python37-compatibility-importlib2
 from pathlib import Path
 from urllib.parse import quote
 from uuid import UUID
