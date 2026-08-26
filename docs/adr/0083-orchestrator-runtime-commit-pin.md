@@ -15,7 +15,7 @@ multi-agent.
 ## Decision
 
 `docker/contextual-orchestrator/Dockerfile` pins the downloaded archive to
-commit `74091e15a3bb19c4251d4f315860811cc9a11945`. The pin remains explicit
+commit `7b4891ae7b82db1e5ed30e846dad91cf27e5c96b`. The pin remains explicit
 and immutable until the reviewed upstream change is superseded; it is not a
 moving `main` reference and it is not a LineageWeave monkey patch.
 
@@ -33,8 +33,8 @@ The runtime contract is:
   reconciliation prompt; independent VISION worker evidence is retained instead.
 - A provider 4xx is reported as a failed orchestration attempt, never as a
   successful empty semantic result.
-- An empty seed model is expanded from the configured gateway `/v1/models`
-  endpoint; embedding-only rows are not added to the chat agent pool.
+- An empty seed model is expanded from configured provider discovery endpoints;
+  provider-declared embedding rows enter the embedding pool but never a chat role.
 - A batch embedding request may omit `model`; contextual-orchestrator selects
   an embedding-capable model and returns its identity for subsequent batches.
 - A blank embedding input fails before provider selection; it is never sent as
