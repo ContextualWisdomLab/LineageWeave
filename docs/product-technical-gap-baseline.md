@@ -496,11 +496,15 @@ of leverage; open connector PRs there when the defect is upstream:
 - Pull requests validate only. Only protected `main` may publish, and the
   generated-directory marker, linked-IRI, duplicate-fragment, symlink, and
   source-overlap checks fail closed.
-- The lowercase knowledge-graph namespace and repository-case support-profile
-  namespace remain distinct until issue #372 delivers a versioned migration
-  and compatibility decision; this publication PR rewrites neither identity.
-- Until the protected deployment and exact URL checks succeed, the public
-  ontology endpoint remains unavailable and must not be represented as live.
+- ADR 0205 and closed issue #372 make the repository-case namespace canonical;
+  the lowercase namespace is a deprecated compatibility vocabulary with
+  term-kind-safe mappings and an explicit migration path.
+- The public index, `ontology.ttl`, SHACL graph, and manifest return HTTP 200.
+  Their Turtle SHA-256 values match protected `main@494b54e2` exactly
+  (`c5a8c147…` ontology; `a57f274e…` shapes), and no ontology publication input
+  changed after successful deployment `6092833214`. Workflow run `32925410179`
+  is queued to refresh deployment provenance from the exact protected head;
+  do not claim that newer deployment provenance until it succeeds.
 
 ## 9. Evidence boundaries
 
