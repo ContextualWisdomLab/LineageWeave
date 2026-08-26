@@ -68,7 +68,7 @@ are not merge readiness. Re-fetch exact heads,
 unresolved threads, checks, approvals, rulesets, and merge SHA before any
 lifecycle claim.
 
-> Audit snapshot: 2026-08-26 20:05 KST (refreshed by the autonomous merge
+> Audit snapshot: 2026-08-26 20:44 KST (refreshed by the autonomous merge
 > loop). This repository records synthetic fixtures and aggregate,
 > non-identifying runtime evidence only. Open PRs and local checks are not
 > protected-default-branch release evidence. Identifying post identifiers,
@@ -93,7 +93,7 @@ context only.
 | #679 | `e26a7208` | ADR 0229 public-claim envelope, async verification, locale-aware next actions, opt-in search setup, and rollback protection for truth-owned fields. The current head reuses the shared source-publication eligibility boundary, validates claim/truth lookup categories, revokes egress after visibility becomes non-public, and locks translated next-action and migration contracts. Customer guidance remains present on plain answers, renders once, and prevents uncorroborated unavailable/NEI candidates from appearing as external evidence. Focused backend/frontend/lint checks pass locally; fresh exact-head hosted checks and independent review remain required |
 | #672 | `a3e87a89` | persisted semantic-evidence nomination for Global Ask uses unique ADR 0233/0234 and migration 0225/0226 identities; production nominee wiring includes organization/team evidence and typed public claims, removes duplicate embedding and token-overlap inference, and separates visible from all KG evidence so hidden identifiers cannot render. The current head repairs the server-diagnostics fixture to follow the configured Global Ask embedding contract after the prior exact head failed; fresh hosted checks and independent review remain required |
 | #668 | `1194f44d` | evidence-bound project history orders by recorded event time, retains explicit source identity alongside NFKC-deduplicated semantic keys, suppresses false direct handovers, localizes action/loading guidance, and carries one non-conflicting evidence snapshot. The current head reserves union-free ADR 0243 across its changelog, decision index, product baseline, and Storybook inventory; hosted checks and independent review remain required |
-| #667 | pre-documentation parent `f1502eba` | this refresh branch prevents stale conversation pagination, recovery, and delayed answers from contaminating a replacement post or conversation; keeps saved turns out of the demo-seed presentation; enforces both-or-neither cursor validation; applies the shared source-eligibility boundary; includes ADR 0237's accelerator boundary; and uses the shared workflow contract to run Tests on product-affecting documentation. The row records the parent observed immediately before this documentation commit because a commit cannot contain its own SHA; re-fetch the resulting PR head for lifecycle use. Hosted checks and independent approval remain pending |
+| #667 | pre-documentation parent `fccaef21` | this refresh branch prevents stale conversation pagination, recovery, and delayed answers from contaminating a replacement post or conversation; keeps saved turns out of the demo-seed presentation; enforces both-or-neither cursor validation; applies the shared source-eligibility boundary; includes ADR 0237's accelerator boundary; and uses the shared workflow contract to run Tests on product-affecting documentation. The row records the parent observed immediately before this documentation commit because a commit cannot contain its own SHA; re-fetch the resulting PR head for lifecycle use. Hosted checks and independent approval remain pending |
 | #658 | `15d670f0` | sends the validated UTC cutoff directly, removes duplicate/unreachable cutoff state and SQL parameter conflicts, aligns blank/live and cutoff-error guidance across five locales, and includes `verify_external` in the request contract. The current head restores the exact documented missing-cover contract and removes a cited-post badge branch that the source-eligibility API can never reach, so the screen does not imply unavailable historical evidence. The focused frontend test and lint pass locally; review threads are resolved, while exact-head hosted checks and independent review remain required |
 | #657 | `9f71681c` | TEPP lifecycle persistence and fail-closed topic acceptance; BLOCKED with hosted checks queued and review required |
 | #644 | `f53dd28e` | current-main reconciliation preserves all existing workspace surfaces and adds Public Claim Verification as the ninth lazy boundary; a subsequent normal merge reconciles concurrent ADR/baseline evidence without deleting either implementation path. Frontend 42 files/391 tests, lint, production build, and Storybook build pass; refreshed desktop loading and mobile error screenshots confirm the actionable alert/Refresh states. The observed 509.58 kB app chunk still triggers Vite's warning and remains measured performance debt; hosted checks and independent review remain required |
@@ -132,16 +132,11 @@ PR #686 was closed without merge at `fbca05d9`; its customer-copy work is not
 protected-main delivery and any still-required behavior must travel through an
 open current-main candidate rather than relying on that closed head.
 
-The exact-head check-run scan at 20:30 KST found Strix failures on #629, #643,
-#644, #657, and #680. Sampled exact-head logs show a shared provider/transport
-failure: NVIDIA attempts returned unavailable or rate-limit responses and the
-OpenAI fallback sent function tools plus reasoning effort through Chat
-Completions, which that model rejects. This is central Strix routing/protocol
-debt rather than five independent source defects; normal reruns cannot become
-passing evidence until the owning workflow repairs capability translation.
-Every open head still had queued or in-progress gates and no exact-head
-independent approval. Queued checks and bot success statuses are not merge
-evidence.
+The exact-head check-run scan at 20:44 KST found Strix failures on #629, #639,
+#643, #644, #657, #680, and #701; #639 also had a terminal Full test suite
+failure. All 17 open PRs had zero unresolved review threads, but every head
+still had queued or in-progress gates and lacked exact-head independent
+approval. Queued checks and bot success statuses are not merge evidence.
 
 ### Ecosystem owner-boundary evidence
 
@@ -268,36 +263,21 @@ regression is part of the current candidate and is not delivery evidence yet.
 
 Three systemic gates currently dominate the queue:
 
-1. **Strix visibility lookup failure (org control plane).** PR #600 exact head
-   `7580bdc9` failed before scanning because the required-workflow token could
-   not resolve this public repository after six API retries. The root repair is
-   ContextualWisdomLab/.github#1320 at `3b9b2380`: ordinary PR, push, and
-   schedule runs use trusted event visibility; cross-repository dispatch keeps
-   authoritative public/private/internal visibility; private and internal
-   repositories remain on private-capable providers. The exact head also
-   composes the executable fallback contract and classifies bounded NVIDIA
-   `ServiceUnavailableError` overload evidence as retryable across configured
-   distinct models without weakening exhaustion or vulnerability fail-close.
-   A hosted fallback then completed with zero vulnerabilities but was rejected
-   because the generic warning gate treated Strix's fallback-model banner and
-   a Hugging Face unauthenticated-download notice as provider failures. The
-   current head removes only those two exact scanner notices before the
-   existing general warning and explicit 429/provider failure checks. The
-   current head also clears a foreign NVIDIA/OpenRouter endpoint before a
-   direct-OpenAI fallback while retaining an explicitly configured
-   direct-OpenAI primary endpoint. The prior full quick-gate harness, overload
-   path, 12 visibility-contract tests, and the focused cross-provider endpoint
-   contract passed; exact-head hosted revalidation remains pending. It is blocked on
-   hosted exact-head gates and independent review, so no repaired
-   protected-main Strix runtime evidence exists yet.
-2. **Strix provider unavailability (org control plane).** The central required
-   Strix scan on .github#1320 failed when NVIDIA returned `Service temporarily
-   overloaded`; the gate correctly failed closed but did not try its configured
-   distinct fallbacks because the service-unavailable classifier excluded the
-   NVIDIA provider. Exact head `3b9b2380` composes that execution repair and the
-   two exact non-fatal scanner-notice exclusions while keeping
-   incomplete exhaustion non-passing. This is still an unmerged control-plane
-   proposal, not protected-main or downstream runtime evidence.
+1. **Strix visibility and fallback repair (org control plane).**
+   ContextualWisdomLab/.github#1320 merged to protected `main` as
+   `d2c554dbbc04854db6215970fabb70cef1ceb690`; its former candidate head is no
+   longer open-PR evidence. Current follow-up #1350 is open at exact head
+   `7e44aa17`, with zero unresolved threads and no terminal failed checks, but
+   its required hosted checks are queued and it has no formal independent
+   approval. It changes the owned Strix fallback contract and focused
+   regression only. Until #1350 passes its protected gate and downstream scans
+   succeed, the seven current LineageWeave Strix failures remain unresolved
+   control-plane evidence rather than seven proven source defects.
+2. **Exact-head hosted evidence.** #1350's local verification and mergeable
+   state do not prove the central workflow repair. A terminal successful
+   protected merge and subsequent successful LineageWeave scans are still
+   required; incomplete provider exhaustion and vulnerability findings remain
+   non-passing.
 3. **Current-head independent approval.** The org merge scheduler requires
    `reviewDecision == APPROVED` plus complete Strix evidence on the exact
    head. Bot review evidence regenerates per push, so any repair push resets
@@ -522,7 +502,7 @@ for wholesale replay from #490.
 
 | Gap | Current evidence | Acceptance requirement |
 | --- | --- | --- |
-| Protected release | Protected `main@ff7431bd` includes #631's ADR-decomposition documentation and #663's project-ontology/caller-parsed semantic-unit seam in addition to the #660/#664 semantic-unit/backend stack and #659 ontology readability/token repair. Sixteen PRs remain open at the 18:51 KST snapshot; every candidate still requires exact-head checks, unresolved-thread review, and independent approval before merge | Terminal exact-head checks, no unresolved threads, the current ruleset's independent and last-push approvals, and a protected merge SHA; re-fetch the ruleset before every lifecycle claim |
+| Protected release | Protected `main@ff7431bd` includes #631's ADR-decomposition documentation and #663's project-ontology/caller-parsed semantic-unit seam in addition to the #660/#664 semantic-unit/backend stack and #659 ontology readability/token repair. Seventeen PRs remain open at the 20:44 KST snapshot; every candidate still requires exact-head checks and independent approval before merge | Terminal exact-head checks, no unresolved threads, the current ruleset's independent and last-push approvals, and a protected merge SHA; re-fetch the ruleset before every lifecycle claim |
 | Evidence-grounded operations workspace | Protected-main #614 delivers governed semantic Ask, live Similar VOC, disjoint pending/failed analysis metrics, full Storybook state inventory, and current desktop/mobile screenshot evidence. Authorized-corpus backfill acceptance remains unavailable | Perform authenticated authorized-corpus acceptance with aggregate evidence and retain fail-closed no-match behavior |
 | Cancelled analysis guidance | PRD-FR-5 requires every lifecycle state to identify a valid next action, while ADR 0013 makes Cancelled terminal. Protected `main@494b54e2` rendered Cancelled without a next action. This stacked candidate adds kind-specific guidance for lineage, TEPP, topic lineage, and period reports; 390×844 and 1440×1000 authenticated synthetic-runtime audits are retained in `docs/screenshots/cancelled-analysis-runs-{mobile,desktop}.png`. The audit also found and repaired attached count/action text and the three-column mobile squeeze | Land through the protected gate, then repeat authenticated keyboard and screen-reader acceptance on the exact release head; no cancelled run may imply that it can resume or that a measurement exists |
 | Shared frontend gate | The ADR 0109 login repair is on protected `main`; eight older branches carried the defect and received the same verified repair this loop (#521–#560) | Keep every future branch cut from post-repair bases; re-verify with frontend lint/test/build before push |
