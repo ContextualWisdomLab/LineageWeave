@@ -95,7 +95,7 @@ context only.
 | #678 | `676fcc5a` | MERGED to stack `feat/dashboard-case-metrics` as `bec013d8`; canonical Compose-stack consolidation |
 | #677 | `0ba4e609` | ADR 0228 account-owned per-post Ask conversation history with canonical cursor-field fixture repair; hosted checks requeued and independent review required |
 | #667 | `771a5186` | baseline refresh branch current head; BLOCKED with review required; stacked #669 and #671 are merged into this non-default branch |
-| #672 | `5468c04d` | persisted semantic-evidence nomination for Global Ask with ADR renumbering; BLOCKED with hosted checks queued and review required |
+| #672 | `3d743ff7` | persisted semantic-evidence nomination for Global Ask with ADR renumbering; exact-head worker factory quality repair applied, hosted checks requeued and review required |
 | #668 | `e452bf38` | evidence-bound project history projection with ADR renumbering, request guards, source-code/time-basis display repair, and theme-token timeline styling; BLOCKED with review required |
 | #663 | `f616887a` | project ontology traversal, cutoff-snapshot project focus, bounded MCP admission, and migration-fixture/worker startup repair; exact-head Full-suite authentication and transaction-fixture failures repaired; fresh checks pending and review required |
 | #658 | `f497a6e8` | evidence-honest Global Ask cutoff with robust revision timestamps; BLOCKED with review required |
