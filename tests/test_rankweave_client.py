@@ -121,7 +121,7 @@ def test_library_transport_fails_closed_when_fuse_raises(
 ) -> None:
     class FakeRw:
         @staticmethod
-        def weighted_reciprocal_rank_fuse(*_args: object, **_kwargs: object) -> list:
+        def reciprocal_rank_fuse(*_args: object, **_kwargs: object) -> list:
             raise RuntimeError("duplicate identifiers")
 
     monkeypatch.setattr(
@@ -177,14 +177,12 @@ def test_library_transport_projects_monkeypatched_rrf(
 
     class FakeRw:
         @staticmethod
-        def weighted_reciprocal_rank_fuse(
+        def reciprocal_rank_fuse(
             channels: dict[str, list[str]],
-            weights: dict[str, float],
             limit: int = 20,
             rank_constant_eta: int = 60,
         ) -> list:
             captured["channels"] = channels
-            captured["weights"] = weights
             captured["limit"] = limit
             captured["eta"] = rank_constant_eta
             return [
@@ -201,7 +199,7 @@ def test_library_transport_projects_monkeypatched_rrf(
     )
 
     assert captured["eta"] == 60
-    assert set(captured["weights"].values()) == {1.0}
+    assert set(captured["channels"]) == {"temporal", "lexical"}
     assert payload["rankings"][0]["post_title"] == (
         "Pricing renegotiation: revised quote sent"
     )

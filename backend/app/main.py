@@ -34,6 +34,11 @@ from fastapi import Depends, FastAPI, HTTPException, Query, status
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
+from lineageweave.claim_verification import (
+    NullClaimVerificationClient,
+    SearxngOrchestratedClaimVerificationClient,
+)
+
 from backend.app.activity_stream import (
     create_valkey_client,
     get_valkey,
@@ -81,9 +86,9 @@ from backend.app.entity_relationship_ingestion import (
 )
 from backend.app.five_w1h_ingestion import load_five_w1h_slots
 from backend.app.global_ask_queue import (
-    enqueue_global_ask_job,
     run_global_ask_worker,
 )
+from backend.app.global_ask_service import read_global_ask_job, submit_global_ask
 from backend.app.issue_ticket_ingestion import (
     create_ticket,
     fetch_ticket_post_id,
@@ -137,7 +142,7 @@ from backend.app.post_content_queue import (
     publish_post_content_event,
 )
 from backend.app.post_content_worker import run_post_content_worker
-from backend.app.post_eligibility import SOURCE_POST_ELIGIBILITY_SQL
+from backend.app.post_eligibility import SOURCE_POST_ELIGIBILITY_SQL, source_post_visible
 from backend.app.post_evaluation_ingestion import (
     fetch_post_evaluation,
     ingest_post_evaluation,
@@ -152,7 +157,7 @@ from backend.app.post_summary_ingestion import (
     require_summary_source_body,
 )
 from backend.app.ranking_ingestion import load_visible_ranking_posts
-from backend.app.relation_verification_ingestion import verify_post_relations
+from backend.app.relation_verification_ingestion import verify_post_relations_from_pool
 from backend.app.report_ingestion import (
     GROUPING_KINDS,
     fetch_period_comparison,
@@ -241,6 +246,10 @@ from lineageweave.relation_verification import (
     SearxngRelationVerificationClient,
 )
 from lineageweave.semantic_hints import customer_hint_trust, format_semantic_hints
+from lineageweave.semantic_query import (
+    ContextualOrchestratorSemanticQueryClient,
+    NullSemanticQueryClient,
+)
 
 _POST_READ = "post_read"
 _POST_ADMIN = "post_admin"
@@ -299,6 +308,8 @@ async def lifespan(app: FastAPI):
                     timeout=load_settings().orchestrator_answer_timeout_seconds
                 ),
                 embedding_factory=_embedding_client,
+                semantic_query_factory=_semantic_query_client,
+                claim_verification_factory=_claim_verification_client_factory,
             )
         )
         app.state.global_ask_worker = global_ask_worker
@@ -373,6 +384,28 @@ def _relation_verification_client():
     if not settings.searxng_base_url:
         return NullRelationVerificationClient()
     return SearxngRelationVerificationClient(base_url=settings.searxng_base_url)
+
+
+def _claim_verification_client():
+    """Return the public-evidence verifier, or its unavailable null channel."""
+
+    settings = load_settings()
+    if not (
+        settings.searxng_base_url
+        and settings.orchestrator_base_url
+        and settings.orchestrator_api_key
+    ):
+        return NullClaimVerificationClient()
+    return SearxngOrchestratedClaimVerificationClient(
+        settings.searxng_base_url,
+        settings.orchestrator_base_url,
+        settings.orchestrator_api_key,
+    )
+
+
+def _claim_verification_client_factory():
+    """Resolve the verifier late so runtime overrides reach the worker."""
+    return _claim_verification_client()
 
 
 def _organization_name_resolution_client():
@@ -499,6 +532,16 @@ def _embedding_client():
     )
 
 
+def _semantic_query_client():
+    """Build the orchestrator query rewriter, or an unavailable channel."""
+    settings = load_settings()
+    if not (settings.orchestrator_base_url and settings.orchestrator_api_key):
+        return NullSemanticQueryClient()
+    return ContextualOrchestratorSemanticQueryClient(
+        settings.orchestrator_base_url, settings.orchestrator_api_key
+    )
+
+
 def _post_evaluation_client():
     """Live judge client when configured; otherwise the unavailable null."""
     settings = load_settings()
@@ -528,14 +571,8 @@ def _rankweave_client():
 
 def _can_see_post(account: CurrentAccount, post: asyncpg.Record) -> bool:
     """ABAC: public rows are visible; private rows require the bound local scope."""
-    if post["visibility_code"] == "public":
-        return True
-    return (
-        str(post["corporate_entity_id"]) in account.corporate_entity_ids
-        and (
-            not account.process_unit_ids
-            or str(post["process_unit_id"]) in account.process_unit_ids
-        )
+    return source_post_visible(
+        post, account.corporate_entity_ids, account.process_unit_ids
     )
 
 
@@ -1255,6 +1292,8 @@ async def read_lineage_graph(
             lambda row: _can_see_post(account, row),
             limit=limit,
             focus_post_id=post_id,
+            corporate_entity_ids=account.corporate_entity_ids,
+            process_unit_ids=account.process_unit_ids,
         )
 
 
@@ -2342,28 +2381,25 @@ async def verify_post_entity_relationships(
             status.HTTP_503_SERVICE_UNAVAILABLE,
             "Relation verification is unavailable: set SEARXNG_BASE_URL",
         )
-    async with pool.acquire() as conn:
-        try:
-            verified = await verify_post_relations(
-                conn,
-                client,
-                post_id,
-                visible_corporate_entity_ids=account.corporate_entity_ids,
-            )
-        except (HttpClientError, OSError) as exc:
-            # verify_post_relations() deliberately raises on a failed search
-            # (a failed search is not "searched and found nothing" -- see
-            # its docstring); this is the one caller, so it is the right
-            # place to turn that into a clean 503 instead of a raw 500.
-            raise HTTPException(
-                status.HTTP_503_SERVICE_UNAVAILABLE,
-                "Relation verification is unavailable: the search provider did not respond",
-            ) from exc
-        except Exception as exc:  # noqa: BLE001 - provider boundary is fail-closed.
-            raise HTTPException(
-                status.HTTP_503_SERVICE_UNAVAILABLE,
-                "Relation verification is unavailable: the search provider did not respond",
-            ) from exc
+    try:
+        verified = await verify_post_relations_from_pool(
+            pool,
+            client,
+            post_id,
+            visible_corporate_entity_ids=account.corporate_entity_ids,
+        )
+    except (HttpClientError, OSError) as exc:
+        # A failed search is not "searched and found nothing"; turn the
+        # provider failure into a clean 503 rather than persisting a miss.
+        raise HTTPException(
+            status.HTTP_503_SERVICE_UNAVAILABLE,
+            "Relation verification is unavailable: the search provider did not respond",
+        ) from exc
+    except Exception as exc:  # noqa: BLE001 - provider boundary is fail-closed.
+        raise HTTPException(
+            status.HTTP_503_SERVICE_UNAVAILABLE,
+            "Relation verification is unavailable: the search provider did not respond",
+        ) from exc
     await publish_activity_event(
         valkey,
         post_id,
@@ -2992,6 +3028,8 @@ class GlobalAskRequest(BaseModel):
     """JSON body for the buyer's source-grounded Global Ask Agent."""
 
     question: str
+    verify_external: bool = False
+    knowledge_cutoff: str | None = None
 
 
 @app.get("/api/posts/{post_id}/chat")
@@ -3133,26 +3171,15 @@ async def ask_agent(
     still fails fast on the states that cannot ever succeed (blank
     question, missing permission, unconfigured orchestrator).
     """
-    question = request.question.strip()
-    if not question:
-        raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, "question is required")
-    _require_post_read(account)
-    if not _post_chat_client().available:
-        raise HTTPException(
-            status.HTTP_503_SERVICE_UNAVAILABLE,
-            "Ask Agent is unavailable. Ask an administrator to configure the analysis service, "
-            "then retry.",
-        )
-    async with pool.acquire() as conn:
-        job_id = await enqueue_global_ask_job(
-            conn,
-            valkey,
-            requesting_account_id=account.user_account_id,
-            question_text=question,
-            corporate_entity_ids=account.corporate_entity_ids,
-            process_unit_ids=account.process_unit_ids,
-        )
-    return {"ask_job_id": job_id, "job_status_code": "queued"}
+    return await submit_global_ask(
+        pool=pool,
+        valkey=valkey,
+        account=account,
+        question=request.question,
+        verify_external=request.verify_external,
+        knowledge_cutoff=request.knowledge_cutoff,
+        service_available=_post_chat_client().available,
+    )
 
 
 @app.get("/api/ask/jobs/{ask_job_id}")
@@ -3166,25 +3193,7 @@ async def read_ask_job(
     Owner-scoped: another account's job id reads as absent (404, not
     403) so job ids do not leak their existence across accounts.
     """
-    _require_post_read(account)
-    async with pool.acquire() as conn:
-        row = await conn.fetchrow(
-            "select requesting_account_id, job_status_code, answer_payload,"
-            " failure_detail from global_ask_job where global_ask_job_id = $1",
-            ask_job_id,
-        )
-    if row is None or str(row["requesting_account_id"]) != account.user_account_id:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "ask job not found")
-    body: dict[str, Any] = {
-        "ask_job_id": str(ask_job_id),
-        "job_status_code": row["job_status_code"],
-    }
-    if row["job_status_code"] == "succeeded" and row["answer_payload"] is not None:
-        payload = row["answer_payload"]
-        body["answer"] = json.loads(payload) if isinstance(payload, str) else payload
-    if row["job_status_code"] == "failed":
-        body["failure_detail"] = row["failure_detail"]
-    return body
+    return await read_global_ask_job(pool=pool, account=account, ask_job_id=ask_job_id)
 
 
 class PostBookmarkRequest(BaseModel):
@@ -3418,7 +3427,12 @@ async def derive_post_commitment(
             # Friday" in a January post must resolve to that January, not to the
             # Friday after the operator clicked Derive.
             reference_date = post["created_at"].date().isoformat()
-            commitment = client.extract(post["post_title"], normalized_body, reference_date)
+            commitment = await asyncio.to_thread(
+                client.extract,
+                post["post_title"],
+                normalized_body,
+                reference_date,
+            )
         except (HttpClientError, KeyError, OSError, TypeError, ValueError, RuntimeError) as exc:
             raise HTTPException(
                 status.HTTP_503_SERVICE_UNAVAILABLE,
@@ -3632,7 +3646,8 @@ async def read_calendar(
     settings = load_settings()
     if window_start is None or window_end is None:
         window_start, window_end = default_calendar_window(datetime.now(timezone.utc))
-    naruon = load_observed_calendar_events(
+    naruon = await asyncio.to_thread(
+        load_observed_calendar_events,
         build_workspace_naruon_client(
             settings.naruon_calendar_base_url,
             settings.naruon_calendar_service_token,

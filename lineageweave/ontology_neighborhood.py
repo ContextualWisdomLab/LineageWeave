@@ -23,14 +23,16 @@ from lineageweave.knowledge_graph import (
     EDGE_CO_MENTION,
     EDGE_MENTION,
     EDGE_MENTION_ORGANIZATION,
+    EDGE_MENTION_PROJECT,
     EDGE_MENTION_TEAM,
     EDGE_TEAM_AFFILIATION,
     NODE_CORPORATE_ENTITY,
     NODE_PERSON,
     NODE_POST,
+    NODE_PROJECT,
     NODE_TEAM,
 )
-from lineageweave.ontology import LW, ontology_annotations
+from lineageweave.ontology import LW, ontology_annotations, ontology_node_iri
 
 TRUTH_AUTHORITATIVE = "truth_authoritative"
 TRUTH_OBSERVED = "truth_observed"
@@ -56,6 +58,7 @@ PROPERTY_CO_MENTIONED_WITH = "coMentionedWith"
 PROPERTY_MENTIONS_TEAM = "mentionsTeam"
 PROPERTY_TEAM_AFFILIATED_WITH = "teamAffiliatedWith"
 PROPERTY_MENTIONS_ORGANIZATION = "mentionsOrganization"
+PROPERTY_MENTIONS_PROJECT = "mentionsProject"
 PROPERTY_SKOS_BROADER = "skos_broader"
 PROPERTY_OWL_SUBCLASS_OF = "owl_subclass_of"
 
@@ -65,10 +68,15 @@ JSONLD_CONTEXT = {
     "skos": "http://www.w3.org/2004/02/skos/core#",
     "owl": "http://www.w3.org/2002/07/owl#",
     "prov": "http://www.w3.org/ns/prov#",
+    "rdf": "http://www.w3.org/1999/02/22-rdf-syntax-ns#",
     "rdfs": "http://www.w3.org/2000/01/rdf-schema#",
+    "time": "http://www.w3.org/2006/time#",
+    "xsd": "http://www.w3.org/2001/XMLSchema#",
 }
 
-KNOWN_NODE_TYPES = frozenset({NODE_POST, NODE_PERSON, NODE_CORPORATE_ENTITY, NODE_TEAM})
+KNOWN_NODE_TYPES = frozenset(
+    {NODE_POST, NODE_PERSON, NODE_CORPORATE_ENTITY, NODE_TEAM, NODE_PROJECT}
+)
 _KG_PROPERTY_BY_EDGE = {
     EDGE_MENTION: PROPERTY_MENTIONS,
     EDGE_AFFILIATION: PROPERTY_AFFILIATED_WITH,
@@ -76,6 +84,7 @@ _KG_PROPERTY_BY_EDGE = {
     EDGE_MENTION_TEAM: PROPERTY_MENTIONS_TEAM,
     EDGE_TEAM_AFFILIATION: PROPERTY_TEAM_AFFILIATED_WITH,
     EDGE_MENTION_ORGANIZATION: PROPERTY_MENTIONS_ORGANIZATION,
+    EDGE_MENTION_PROJECT: PROPERTY_MENTIONS_PROJECT,
 }
 _PROPERTY_IRI = {
     PROPERTY_MENTIONS: str(LW.mentions),
@@ -84,6 +93,7 @@ _PROPERTY_IRI = {
     PROPERTY_MENTIONS_TEAM: str(LW.mentionsTeam),
     PROPERTY_TEAM_AFFILIATED_WITH: str(LW.teamAffiliatedWith),
     PROPERTY_MENTIONS_ORGANIZATION: str(LW.mentionsOrganization),
+    PROPERTY_MENTIONS_PROJECT: str(LW.mentionsProject),
     PROPERTY_SKOS_BROADER: SKOS_BROADER_IRI,
 }
 INSTANCE_PROPERTY_CODES = frozenset(_PROPERTY_IRI)
@@ -95,6 +105,7 @@ ALLOWED_PROPERTY_ALIASES = {
     EDGE_MENTION_TEAM: PROPERTY_MENTIONS_TEAM,
     EDGE_TEAM_AFFILIATION: PROPERTY_TEAM_AFFILIATED_WITH,
     EDGE_MENTION_ORGANIZATION: PROPERTY_MENTIONS_ORGANIZATION,
+    EDGE_MENTION_PROJECT: PROPERTY_MENTIONS_PROJECT,
 }
 
 DEFAULT_MAXIMUM_DEPTH = 2
@@ -109,6 +120,7 @@ NODE_SHAPE = {
     NODE_PERSON: "ellipse",
     NODE_CORPORATE_ENTITY: "hexagon",
     NODE_TEAM: "rounded-rectangle",
+    NODE_PROJECT: "diamond",
 }
 
 
@@ -239,33 +251,81 @@ class OntologyNeighborhood:
         """JSON-LD 1.1 projection of the visible neighborhood only."""
         graph: list[dict[str, object]] = []
         for node in self.nodes:
-            graph.append(
-                {
-                    "@id": f"lw:node/{node.node_type_code}/{node.node_id}",
-                    "@type": node.ontology_class_iri,
-                    "rdfs:label": node.display_label,
-                    "lw:nodeType": node.node_type_code,
-                }
-            )
+            item: dict[str, object] = {
+                "@id": ontology_node_iri(node.node_type_code, node.node_id),
+                "@type": node.ontology_class_iri,
+                "rdfs:label": node.display_label,
+                "lw:nodeType": node.node_type_code,
+            }
+            _add_jsonld_times(item, node.recorded_at, node.valid_from, node.valid_to)
+            graph.append(item)
             if node.truth_status_code is not None:
                 graph[-1]["lw:truthStatus"] = node.truth_status_code
         for edge in self.edges:
+            source_iri = ontology_node_iri(
+                _node_type_for(
+                    self.nodes,
+                    edge.source_node_type_code,
+                    edge.source_node_id,
+                ),
+                edge.source_node_id,
+            )
+            target_iri = ontology_node_iri(
+                _node_type_for(
+                    self.nodes,
+                    edge.target_node_type_code,
+                    edge.target_node_id,
+                ),
+                edge.target_node_id,
+            )
+            graph.append(
+                {
+                    "@id": source_iri,
+                    edge.ontology_property_iri: {"@id": target_iri},
+                }
+            )
             item: dict[str, object] = {
                 "@id": f"lw:edge/{edge.edge_id}",
-                "@type": "prov:Entity",
-                edge.ontology_property_iri: {
-                    "@id": f"lw:node/{_node_type_for(self.nodes, edge.target_node_type_code, edge.target_node_id)}/{edge.target_node_id}"
-                },
+                "@type": ["rdf:Statement", "prov:Entity"],
+                "rdf:subject": {"@id": source_iri},
+                "rdf:predicate": {"@id": edge.ontology_property_iri},
+                "rdf:object": {"@id": target_iri},
                 "prov:wasDerivedFrom": [
                     {"@id": f"lw:evidence/{reference}"} for reference in edge.evidence_references
                 ],
                 "lw:truthStatus": edge.truth_status_code,
-                "lw:source": {
-                    "@id": f"lw:node/{_node_type_for(self.nodes, edge.source_node_type_code, edge.source_node_id)}/{edge.source_node_id}"
-                },
             }
+            _add_jsonld_times(item, edge.recorded_at, edge.valid_from, edge.valid_to)
             graph.append(item)
         return {"@context": JSONLD_CONTEXT, "@graph": graph}
+
+
+def _add_jsonld_times(
+    item: dict[str, object],
+    recorded_at: datetime | None,
+    valid_from: datetime | None,
+    valid_to: datetime | None,
+) -> None:
+    """Add only available PROV-O system time and OWL-Time validity bounds."""
+
+    def _instant(value: datetime) -> dict[str, object]:
+        return {
+            "@type": "time:Instant",
+            "time:inXSDDateTimeStamp": {
+                "@value": value.isoformat(),
+                "@type": "xsd:dateTimeStamp",
+            },
+        }
+
+    if recorded_at is not None:
+        item["prov:generatedAtTime"] = {
+            "@value": recorded_at.isoformat(),
+            "@type": "xsd:dateTimeStamp",
+        }
+    if valid_from is not None:
+        item["time:hasBeginning"] = _instant(valid_from)
+    if valid_to is not None:
+        item["time:hasEnd"] = _instant(valid_to)
 
 
 def _node_type_for(
@@ -387,6 +447,7 @@ def _property_label(property_code: str) -> str:
             PROPERTY_MENTIONS_TEAM: EDGE_MENTION_TEAM,
             PROPERTY_TEAM_AFFILIATED_WITH: EDGE_TEAM_AFFILIATION,
             PROPERTY_MENTIONS_ORGANIZATION: EDGE_MENTION_ORGANIZATION,
+            PROPERTY_MENTIONS_PROJECT: EDGE_MENTION_PROJECT,
         }[property_code]
     )
     return annotations.get("ontology_label", property_code)
@@ -593,6 +654,18 @@ def assemble_ontology_neighborhood(
         next_cursor = f"after:{_edge_id(page_edges[-1])}"
 
     catalog_metadata = node_metadata or {}
+    for metadata in catalog_metadata.values():
+        if (
+            metadata.truth_status_code is not None
+            and metadata.truth_status_code not in TRUTH_STATUS_CODES
+        ):
+            raise OntologyNeighborhoodError(
+                "unknown_truth_status", "node truth status is not governed"
+            )
+        if metadata.recorded_at is not None and metadata.recorded_at.tzinfo is None:
+            raise OntologyNeighborhoodError(
+                "naive_timestamp", "node recorded_at must be offset-aware"
+            )
     node_evidence: dict[str, set[str]] = defaultdict(set)
     node_meta: dict[str, tuple[str, str, str | None, datetime | None]] = {}
     focus_label = labels[(focus_node_type_code, focus_node_id)]
@@ -748,6 +821,7 @@ __all__ = [
     "PROPERTY_CO_MENTIONED_WITH",
     "PROPERTY_MENTIONS",
     "PROPERTY_MENTIONS_ORGANIZATION",
+    "PROPERTY_MENTIONS_PROJECT",
     "PROPERTY_MENTIONS_TEAM",
     "PROPERTY_OWL_SUBCLASS_OF",
     "PROPERTY_SKOS_BROADER",

@@ -8,6 +8,7 @@ classification.
 
 from __future__ import annotations
 
+import asyncio
 from collections.abc import Sequence
 from dataclasses import dataclass
 
@@ -24,6 +25,13 @@ class VerifiedRelation:
     verification_status_code: str
     verification_evidence_url: str | None
     verification_evidence_post_id: str | None
+
+
+@dataclass(frozen=True)
+class _PendingRelation:
+    counterparty_entity_name: str
+    relationship_label: str
+    internal_evidence_post_id: str | None
 
 
 async def _find_internal_evidence_post(
@@ -124,7 +132,11 @@ async def verify_post_relations(
             row["relationship_label"],
             visible_corporate_entity_ids,
         )
-        result = client.verify(row["counterparty_entity_name"], row["relationship_label"])
+        result = await asyncio.to_thread(
+            client.verify,
+            row["counterparty_entity_name"],
+            row["relationship_label"],
+        )
         await conn.execute(
             """
             update post_counterparty_entity
@@ -149,3 +161,76 @@ async def verify_post_relations(
             )
         )
     return verified
+
+
+async def verify_post_relations_from_pool(
+    pool: asyncpg.Pool,
+    client: RelationVerificationClient,
+    post_id: str,
+    visible_corporate_entity_ids: Sequence[str] = (),
+) -> list[VerifiedRelation]:
+    """Verify relations without reserving a DB connection during web I/O."""
+    async with pool.acquire() as conn:
+        rows = await conn.fetch(
+            """
+            select c.counterparty_entity_name, v.lookup_label as relationship_label
+            from post_counterparty_entity c
+            join common_lookup_value v on v.lookup_code = c.relationship_type_code
+            where c.post_id = $1 and c.verification_status_code = 'verify_pending'
+            order by c.counterparty_entity_name
+            """,
+            post_id,
+        )
+        pending = [
+            _PendingRelation(
+                str(row["counterparty_entity_name"]),
+                str(row["relationship_label"]),
+                await _find_internal_evidence_post(
+                    conn,
+                    post_id,
+                    row["counterparty_entity_name"],
+                    row["relationship_label"],
+                    visible_corporate_entity_ids,
+                ),
+            )
+            for row in rows
+        ]
+
+    verified = []
+    for relation in pending:
+        result = await asyncio.to_thread(
+            client.verify,
+            relation.counterparty_entity_name,
+            relation.relationship_label,
+        )
+        verified.append(
+            VerifiedRelation(
+                relation.counterparty_entity_name,
+                result.status_code,
+                result.evidence_url,
+                relation.internal_evidence_post_id,
+            )
+        )
+
+    persisted = []
+    async with pool.acquire() as conn, conn.transaction():
+        for relation in verified:
+            update_status = await conn.execute(
+                """
+                update post_counterparty_entity
+                set verification_status_code = $3,
+                    verification_evidence_url = $4,
+                    verification_evidence_post_id = $5,
+                    verification_checked_at = now()
+                where post_id = $1 and counterparty_entity_name = $2
+                  and verification_status_code = 'verify_pending'
+                """,
+                post_id,
+                relation.counterparty_entity_name,
+                relation.verification_status_code,
+                relation.verification_evidence_url,
+                relation.verification_evidence_post_id,
+            )
+            if update_status == "UPDATE 1":
+                persisted.append(relation)
+    return persisted
