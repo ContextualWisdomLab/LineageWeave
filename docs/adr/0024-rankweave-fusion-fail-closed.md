@@ -22,24 +22,26 @@ tables, and does not bind the demo IdP to production Keyverse.
 1. Consume RankWeave only through `RankWeaveClient`. The default
    transport raises `RankWeaveNotAvailable`. `build_rankweave_client
    (disabled=False)` uses `LibraryRankWeaveTransport`, which imports
-   `weighted_reciprocal_rank_fuse` inside the call so a missing
-   package fail-closes.
+   both `reciprocal_rank_fuse` (the default parameter-free path) and
+   `weighted_reciprocal_rank_fuse` (the explicit weighted path) inside
+   the call so a missing package fail-closes.
 2. `GET /api/rankings` (`post_read`) loads ABAC-visible posts as two
    rank-only channels: temporal (newest first) and lexical (token
    overlap with the synthetic demo query `pricing quote delivery`).
    Hidden posts are omitted from every channel. Never invent a score.
-3. Fusion is weighted RRF with Cormack et al. (2009) η = 60 and
-   Samuel et al. (2025) unequal-channel weights (`temporal` 0.25,
-   `lexical` 0.75). The buyer sees 1-based `fused_rank` and the post
-   title — not a TEPP theta.
+3. With no calibrated weights, fusion calls RankWeave's parameter-free
+   `reciprocal_rank_fuse` with Cormack et al. (2009) η = 60. An explicit
+   psychometrically estimated convex vector calls
+   `weighted_reciprocal_rank_fuse`. The buyer sees 1-based `fused_rank` and
+   the post title — not a TEPP theta.
 4. After login, Rankings sits above Calendar. Unavailable copy is
    **Rankings · RankWeave not available**. An accepted hit lists the
    title; click opens that `source_post`.
 5. Accepted hits also disclose owned-channel evidence (ADR 0167):
-   1-based `channel_rank` and Cormack contribution
-   `weight / (η + rank)` for each channel the post actually appears
-   in. Missing channels are omitted. RankWeave extra fields are
-   ignored. Copy states this is not a calibrated score.
+   1-based `channel_rank` and RankWeave-owned Cormack contribution for each
+   channel the post actually appears in. Missing channels are omitted.
+   Transport extra fields are ignored. Copy states this is not a calibrated
+   score.
 
 ## Consequences
 

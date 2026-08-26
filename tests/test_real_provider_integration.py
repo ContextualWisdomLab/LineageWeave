@@ -16,11 +16,7 @@ import os
 import pytest
 
 from lineageweave.adjudication_client import ContextualOrchestratorAdjudicationClient
-from lineageweave.embedding_client import (
-    ContextualOrchestratorEmbeddingClient,
-    chunked_max_similarity,
-    cosine_similarity,
-)
+from lineageweave.embedding_client import ContextualOrchestratorEmbeddingClient
 from lineageweave.fixtures import ambiguous_keyman_post
 from lineageweave.image_content import orchestrator_vision_client
 from lineageweave.keyman_extraction import (
@@ -42,55 +38,13 @@ _VISION_MODEL = os.environ.get("LINEAGEWEAVE_TEST_VISION_MODEL", "gpt-4.1-mini")
     reason="set LINEAGEWEAVE_TEST_ORCHESTRATOR_BASE_URL and LINEAGEWEAVE_TEST_ORCHESTRATOR_API_KEY to run",
 )
 def test_contextual_orchestrator_embedding_client_returns_real_vectors() -> None:
-    """A real embedding call, with a real, meaningful assertion: two labels
-    about the same synthetic topic must cosine-score higher than two about
-    unrelated synthetic topics -- not just "the call didn't crash".
-    """
+    """A real embedding call returns a complete provider-owned vector."""
     client = ContextualOrchestratorEmbeddingClient(
         base_url=_ORCHESTRATOR_BASE_URL, api_key=_ORCHESTRATOR_API_KEY, model=_EMBEDDING_MODEL
     )
 
     a = client.embed("Quarterly budget review meeting notes")
-    b = client.embed("Budget review follow-up: revised quarterly numbers")
-    c = client.embed("Office parking lot repaving schedule")
-
-    related_score = cosine_similarity(a, b)
-    unrelated_score = cosine_similarity(a, c)
-
-    assert 0.0 <= related_score <= 1.0
-    assert 0.0 <= unrelated_score <= 1.0
-    assert related_score > unrelated_score
     assert len(a) > 8
-
-
-@pytest.mark.skipif(
-    not (_ORCHESTRATOR_BASE_URL and _ORCHESTRATOR_API_KEY),
-    reason="set LINEAGEWEAVE_TEST_ORCHESTRATOR_BASE_URL and LINEAGEWEAVE_TEST_ORCHESTRATOR_API_KEY to run",
-)
-def test_chunked_embedding_finds_a_relevant_unit_buried_in_a_longer_document() -> None:
-    """The real case chunking exists for: a short relevant passage sitting
-    inside a much longer, mostly-irrelevant document. Whole-document
-    embedding dilutes the relevant passage with everything around it;
-    chunked max-pooled similarity should not.
-    """
-    client = ContextualOrchestratorEmbeddingClient(
-        base_url=_ORCHESTRATOR_BASE_URL, api_key=_ORCHESTRATOR_API_KEY, model=_EMBEDDING_MODEL
-    )
-
-    query = "Quarterly budget review meeting notes"
-    long_document = (
-        "Office parking lot repaving schedule for the north campus.\n\n"
-        "New badge access policy for the west entrance starting next month.\n\n"
-        "Budget review follow-up: revised quarterly numbers and next steps.\n\n"
-        "Cafeteria menu rotation for the coming season.\n\n"
-        "Reminder about the annual fire drill scheduled for next week."
-    )
-
-    chunked_score, _best_a, best_b = chunked_max_similarity(client, query, long_document)
-    whole_document_score = cosine_similarity(client.embed(query), client.embed(long_document))
-
-    assert "Budget review" in best_b.text
-    assert chunked_score > whole_document_score
 
 
 @pytest.mark.skipif(

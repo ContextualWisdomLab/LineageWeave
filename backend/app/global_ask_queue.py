@@ -48,6 +48,7 @@ from lineageweave.post_chat import (
     PostChatClient,
     ask_grounding_status,
     cited_post_evidence,
+    cited_post_events,
     cited_post_summaries,
     historical_body_limitations,
 )
@@ -168,11 +169,11 @@ def _verification_next_action(status_code: str) -> str:
 
     return {
         VERIFICATION_SKIPPED: "Enable public verification to check eligible public claims.",
-        VERIFICATION_UNAVAILABLE: "Configure public search and contextual-orchestrator, then retry.",
-        VERIFICATION_NO_PUBLIC_CLAIMS: "Inspect the internal cited posts; no public claim was eligible.",
+        VERIFICATION_UNAVAILABLE: "Ask a workspace administrator to enable public verification, then retry.",
+        VERIFICATION_NO_PUBLIC_CLAIMS: "Ask about a specific claim or narrow the time range, then retry.",
         VERIFICATION_COMPLETED: "Inspect public evidence separately before any governed graph review.",
         CLAIM_NOT_ENOUGH_INFORMATION: "Collect stronger authoritative evidence before accepting the claim.",
-    }.get(status_code, "Inspect the authorized cited posts and their evidence.")
+    }.get(status_code, "Ask about a specific claim or narrow the time range, then retry.")
 
 
 async def _verify_public_claims(
@@ -372,6 +373,7 @@ async def compute_global_ask_answer(
             "answer_text": "",
             "cited_post_ids": [],
             "cited_posts": [],
+            "cited_events": [],
             "source_post_ids": [source.post_id for source in sources],
             "cited_post_evidence": [],
             "lineage_graph": {"nodes": [], "edges": [], "truncated": False},
@@ -440,6 +442,7 @@ async def compute_global_ask_answer(
         lineage_graph = {"nodes": [], "edges": [], "truncated": False}
         images = []
     cited_posts = cited_post_summaries(usable_sources, cited_ids)
+    cited_events = cited_post_events(usable_sources, cited_ids)
     cited_evidence = cited_post_evidence(usable_sources, cited_ids)
     next_action = _verification_next_action(verification_status)
     if knowledge_cutoff is not None:
@@ -452,6 +455,7 @@ async def compute_global_ask_answer(
         "answer_text": answer.answer_text,
         "cited_post_ids": cited_ids,
         "cited_posts": cited_posts,
+        "cited_events": cited_events,
         "cited_post_evidence": cited_evidence,
         "cited_post_images": images,
         "source_post_ids": [source.post_id for source in sources],

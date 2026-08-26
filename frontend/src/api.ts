@@ -47,6 +47,35 @@ export interface OperationsDashboardFact {
   value_text: string;
   evidence_text: string;
   evidence_post_id: string;
+  ontology_class_iri?: string;
+  provenance_relation_iri?: string;
+  relation_target_kind_code?: "order" | "project" | "sales" | "business_management";
+  relation_target_kind_label?: string;
+  relation_target_class_iri?: string;
+  relation_predicate_iri?: string;
+}
+
+export interface OperationsDashboardMilestone {
+  milestone_type_code: string;
+  milestone_type_label: string;
+  evidence_text: string;
+  evidence_post_id: string;
+  observed_at: string;
+  time_axis_code: "event_occurred_at" | "created_at";
+  time_axis_label: string;
+}
+
+export interface OperationsDashboardLifecycle {
+  lifecycle_kind_code: string;
+  lifecycle_kind_label: string;
+  status_code: "resolved" | "open" | "evidence_missing";
+  status_label: string;
+  started_at: string | null;
+  resolved_at: string | null;
+  elapsed_seconds: number | null;
+  start_milestone: OperationsDashboardMilestone | null;
+  end_milestone: OperationsDashboardMilestone | null;
+  next_action_text: string;
 }
 
 export interface OperationsDashboardCase {
@@ -54,11 +83,18 @@ export interface OperationsDashboardCase {
   case_kind_code: string;
   case_kind_label: string;
   project_name: string | null;
+  project_names?: string[];
   summary_text: string;
   evidence_text: string;
   evidence_post_id: string;
   occurred_at: string;
   facts: OperationsDashboardFact[];
+  missing_facts: Array<{ fact_type_code: string; fact_type_label: string }>;
+  milestones: OperationsDashboardMilestone[];
+  lifecycles: OperationsDashboardLifecycle[];
+  ontology_class_iri?: string;
+  provenance_relation_iri?: string;
+  semantic_projection?: Record<string, unknown>;
 }
 
 export interface OperationsDashboardResponse {
@@ -69,17 +105,121 @@ export interface OperationsDashboardResponse {
   external_percent: number;
   pending_analysis_count: number;
   failed_analysis_count: number;
+  case_metrics: Array<{
+    case_kind_code: string;
+    case_kind_label: string;
+    event_count: number;
+    post_count: number;
+  }>;
+  lifecycle_metrics: Array<{
+    lifecycle_kind_code: string;
+    lifecycle_kind_label: string;
+    open_case_count: number;
+    resolved_case_count: number;
+    evidence_missing_case_count: number;
+  }>;
+  topic_context: TopicContextDashboard;
   cases: OperationsDashboardCase[];
+}
+
+export interface VoiceTaxonomySummary {
+  total_eligible: number;
+  classified_unique: number;
+  multi_membership: number;
+  source_count: number;
+  derived_count: number;
+  unavailable: number;
+  disagreement: number;
+  counts_overlap: boolean;
+  category_memberships: Array<{
+    voice_concept_code: "voc" | "vocc" | "voco" | "vom" | "vop";
+    post_count: number;
+    eligible_percentage: number;
+  }>;
+}
+
+export async function fetchVoiceTaxonomySummary(
+  accessToken: string,
+  dateFrom = "",
+  dateTo = "",
+): Promise<VoiceTaxonomySummary> {
+  const query = new URLSearchParams();
+  if (dateFrom) query.set("date_from", dateFrom);
+  if (dateTo) query.set("date_to", dateTo);
+  const suffix = query.size ? `?${query.toString()}` : "";
+  return backendFetch<VoiceTaxonomySummary>(`/api/voice-taxonomy/summary${suffix}`, accessToken);
+}
+
+export interface TopicContextDashboard {
+  status_code: "accepted" | "unavailable" | "not_applicable";
+  reason_code: string | null;
+  next_action: string;
+  required_contracts: Array<{
+    authority: "TEPP" | "fast-mlsirm";
+    schema_version: string;
+    state_code: "persisted" | "not_persisted";
+  }>;
+  model_run: null | {
+    tepp_run_id: string;
+    tepp_snapshot_id: string;
+    source_snapshot_sha256: string;
+    knowledge_cutoff: string;
+    tepp_model_contract_version: string;
+    tepp_artifact_sha256: string;
+    posterior_draw_set_id: string;
+    posterior_draw_count: number;
+    topic_count: number;
+    fast_mlsirm_version: string;
+    fast_mlsirm_code_revision: string;
+    fast_mlsirm_artifact_sha256: string;
+    compute_backend_code: "rust_cpu" | "rust_gpu";
+    precision_code: "f64" | "f32";
+    membership_fingerprint_sha256: string;
+  };
+  topics: Array<{
+    topic_index: number;
+    activity_intervals: Array<{
+      state_code: "active" | "dormant" | "reactivated";
+      valid_from: string;
+      valid_to: string;
+    }>;
+    lineage_events: Array<{
+      event_code: "birth" | "split" | "merge" | "retirement";
+      source_topic_index: number;
+      target_topic_index: number | null;
+      event_time: string;
+      evidence_sha256: string;
+    }>;
+    contexts: Array<{
+      dimension_code: "business_unit" | "process_unit" | "team" | "person";
+      context_id: string;
+      context_label: string;
+      influences: Array<{
+        post_id: string;
+        occurred_at: string;
+        topic_state_code: "active" | "dormant" | "reactivated";
+        model_influence: number;
+        uncertainty_method_code: string;
+        uncertainty_lower_value: number;
+        uncertainty_upper_value: number;
+        diagnostic_status_code: "accepted";
+        membership_weight: number;
+        membership_evidence_sha256: string;
+      }>;
+    }>;
+  }>;
 }
 
 export function fetchOperationsDashboard(
   accessToken: string,
   periodStart = "",
   periodEnd = "",
+  externalOnly = false,
 ): Promise<OperationsDashboardResponse> {
   const query = new URLSearchParams();
   if (periodStart) query.set("period_start", periodStart);
   if (periodEnd) query.set("period_end", periodEnd);
+  if (externalOnly) query.set("external_only", "true");
   const suffix = query.size ? `?${query}` : "";
   return backendFetch(`/api/dashboard${suffix}`, accessToken);
 }
@@ -101,6 +241,17 @@ export interface PostKnownAt {
 export interface PostDetail extends PostSummary {
   post_body: string;
   known_at?: PostKnownAt;
+  product_evidence?: ProductEvidence[];
+}
+
+export interface ProductEvidence {
+  mention_ordinal: number;
+  extracted_product_name: string;
+  resolution_status_code: "unique" | "missing" | "tie" | "unavailable";
+  canonical_product_name: string | null;
+  product_level_code: "product_group" | "product_model" | "variant" | "trade_item" | null;
+  evidence_text: string;
+  evidence_post_id: string;
 }
 
 export interface PostImageContent {
@@ -337,6 +488,13 @@ export interface CitedPostEvidence {
   facts: CitedPostEvidenceFact[];
 }
 
+export interface CitedPostEvent {
+  post_id: string;
+  post_title: string;
+  observed_at: string | null;
+  time_axis_code: "event_occurred_at" | "created_at" | null;
+}
+
 export interface ChatAnswer {
   post_id: string;
   answer_text: string;
@@ -371,6 +529,7 @@ export interface AskAgentResponse {
   answer_text: string;
   cited_post_ids: string[];
   cited_posts?: CitedPostRef[];
+  cited_events?: CitedPostEvent[];
   cited_post_evidence?: CitedPostEvidence[];
   cited_post_images?: CitedPostImage[];
   source_post_ids: string[];

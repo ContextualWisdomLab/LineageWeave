@@ -32,7 +32,7 @@ import asyncpg
 import redis.asyncio as redis
 from fastapi import Depends, FastAPI, HTTPException, Query, status
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from lineageweave.claim_verification import (
     NullClaimVerificationClient,
@@ -47,6 +47,7 @@ from backend.app.activity_stream import (
     ticket_created_summary,
     ticket_status_changed_summary,
 )
+from backend.app.voice_taxonomy import load_voice_taxonomy_summary
 from backend.app.affiliate_tree_ingestion import (
     fetch_affiliate_forest,
     fetch_voc_evidence,
@@ -70,7 +71,6 @@ from backend.app.analysis_run_start import (
     deliver_queued_analysis_run,
     enqueue_pending_analysis_run,
 )
-from backend.app.analysis_run_worker import run_analysis_run_worker
 from backend.app.auth import CurrentAccount, get_current_account
 from backend.app.config import load_settings
 from backend.app.customer_hint_ingestion import resolve_customer_hint
@@ -85,9 +85,7 @@ from backend.app.entity_relationship_ingestion import (
     ingest_post_entity_relationships,
 )
 from backend.app.five_w1h_ingestion import load_five_w1h_slots
-from backend.app.global_ask_queue import (
-    run_global_ask_worker,
-)
+from backend.app.global_ask_queue import enqueue_global_ask_job
 from backend.app.global_ask_service import read_global_ask_job, submit_global_ask
 from backend.app.issue_ticket_ingestion import (
     create_ticket,
@@ -136,12 +134,12 @@ from backend.app.post_chat_ingestion import (
     persist_post_chat,
 )
 from backend.app.post_content_queue import (
+    enqueue_post_content_backfill,
     ensure_post_content_job,
     post_content_api_status,
     post_content_is_complete,
     publish_post_content_event,
 )
-from backend.app.post_content_worker import run_post_content_worker
 from backend.app.post_eligibility import SOURCE_POST_ELIGIBILITY_SQL, source_post_visible
 from backend.app.post_evaluation_ingestion import (
     fetch_post_evaluation,
@@ -255,71 +253,18 @@ _SIMILAR_VOC_REQUEST_TIMEOUT_SECONDS = 180.0
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Open one asyncpg pool and one Valkey client for the process, and
-    close both on shutdown."""
+    """Open API database and Valkey clients without consuming durable jobs."""
     configure_telemetry("lineageweave")
     pool = None
     valkey = None
-    analysis_worker = None
-    content_worker = None
-    global_ask_worker = None
     try:
         settings = load_settings()
         pool = await create_pool(settings.database_url)
         app.state.pool = pool
         valkey = create_valkey_client(settings.valkey_url)
         app.state.valkey = valkey
-        analysis_worker = asyncio.create_task(
-            run_analysis_run_worker(
-                valkey,
-                pool,
-                database_url=settings.database_url,
-                tepp_client=configured_tepp_client(
-                    settings.tepp_transport_url,
-                    settings.tepp_api_key,
-                ),
-                adjudication_client=_adjudication_client(),
-            )
-        )
-        app.state.analysis_run_worker = analysis_worker
-        content_worker = asyncio.create_task(
-            run_post_content_worker(
-                valkey,
-                pool,
-                vision_factory=_vision_client,
-                embedding_factory=_embedding_client,
-                structure_factory=_post_structure_client,
-            )
-        )
-        app.state.post_content_worker = content_worker
-        # Late-bound lambda so tests that monkeypatch _post_chat_client reach
-        # the worker too (the name resolves in module globals at call time).
-        # Only this worker gets the long answer timeout; the per-post chat
-        # endpoint keeps the client's interactive default.
-        global_ask_worker = asyncio.create_task(
-            run_global_ask_worker(
-                valkey,
-                pool,
-                chat_factory=lambda: _post_chat_client(
-                    timeout=load_settings().orchestrator_answer_timeout_seconds
-                ),
-                embedding_factory=_embedding_client,
-                semantic_query_factory=_semantic_query_client,
-                claim_verification_factory=_claim_verification_client_factory,
-            )
-        )
-        app.state.global_ask_worker = global_ask_worker
         yield
     finally:
-        workers = tuple(
-            worker
-            for worker in (analysis_worker, content_worker, global_ask_worker)
-            if worker is not None
-        )
-        for worker in workers:
-            worker.cancel()
-        if workers:
-            await asyncio.gather(*workers, return_exceptions=True)
         try:
             if pool is not None:
                 await pool.close()
@@ -813,6 +758,7 @@ async def read_me(
 async def operations_dashboard(
     period_start: date | None = Query(None),
     period_end: date | None = Query(None),
+    external_only: bool = Query(False),
     account: CurrentAccount = Depends(get_current_account),
     pool: asyncpg.Pool = Depends(get_pool),
 ) -> dict[str, Any]:
@@ -826,6 +772,7 @@ async def operations_dashboard(
                 account.process_unit_ids,
                 period_start,
                 period_end,
+                external_only,
             )
         except ValueError as exc:
             raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, str(exc)) from exc
@@ -837,10 +784,38 @@ class LocalePreferenceRequest(BaseModel):
     preferred_locale: Literal["en", "ko", "zh", "ja", "vi"]
 
 
+class PostContentBackfillRequest(BaseModel):
+    """Bounded operator request for durable semantic-content ingestion."""
+
+    limit: int = Field(default=100, ge=1, le=200)
+
+
 class CustomerHintResolveRequest(BaseModel):
     """Body of a POST /api/customer-master/resolve-hint request."""
 
     hint_code: str
+
+
+@app.post("/api/post-content/backfill", status_code=status.HTTP_202_ACCEPTED)
+async def queue_post_content_backfill(
+    request: PostContentBackfillRequest,
+    account: CurrentAccount = Depends(get_current_account),
+    pool: asyncpg.Pool = Depends(get_pool),
+    valkey: redis.Redis = Depends(get_valkey),
+) -> dict[str, int]:
+    """Queue one bounded corpus page and return before semantic work runs."""
+    _require_post_admin(account)
+    settings = load_settings()
+    require_orchestrator_evidence = bool(
+        settings.orchestrator_base_url and settings.orchestrator_api_key
+    )
+    return await enqueue_post_content_backfill(
+        pool,
+        valkey,
+        limit=request.limit,
+        require_embedding=require_orchestrator_evidence,
+        require_structure=require_orchestrator_evidence,
+    )
 
 
 @app.patch("/api/me/preferences")
@@ -1606,6 +1581,71 @@ async def list_posts(
     }
 
 
+@app.get("/api/voice-taxonomy/summary")
+async def read_voice_taxonomy_summary(
+    date_from: date | None = None,
+    date_to: date | None = None,
+    corporate_entity_id: UUID | None = None,
+    process_unit_id: UUID | None = None,
+    team_id: UUID | None = None,
+    person_id: UUID | None = None,
+    product_catalog_id: UUID | None = None,
+    project_key: str | None = Query(default=None, max_length=200),
+    account: CurrentAccount = Depends(get_current_account),
+    pool: asyncpg.Pool = Depends(get_pool),
+) -> dict[str, Any]:
+    """Return overlapping source/derived voice counts for the selected scope."""
+    _require_post_read(account)
+    if date_from is not None and date_to is not None and date_to < date_from:
+        raise HTTPException(
+            status.HTTP_422_UNPROCESSABLE_CONTENT,
+            "Choose an end time after the start time, then review the updated scope.",
+        )
+    async with pool.acquire() as conn:
+        excluded_entity_ids: tuple[str, ...] = ()
+        if await has_real_source_context(conn, list(account.corporate_entity_ids)):
+            excluded_entity_ids = tuple(
+                sorted(await fetch_demo_corporate_entity_ids(conn))
+            )
+        summary = await load_voice_taxonomy_summary(
+            conn,
+            authorized_corporate_entity_ids=tuple(
+                str(value) for value in account.corporate_entity_ids
+            ),
+            authorized_process_unit_ids=tuple(
+                str(value) for value in account.process_unit_ids
+            ),
+            date_from=date_from,
+            date_to=date_to,
+            corporate_entity_id=str(corporate_entity_id) if corporate_entity_id else None,
+            process_unit_id=str(process_unit_id) if process_unit_id else None,
+            team_id=str(team_id) if team_id else None,
+            person_id=str(person_id) if person_id else None,
+            product_catalog_id=str(product_catalog_id) if product_catalog_id else None,
+            project_key=project_key.strip() if project_key and project_key.strip() else None,
+            excluded_corporate_entity_ids=excluded_entity_ids,
+        )
+    total = int(summary["total_eligible"])
+    raw_category_counts = summary["category_post_counts"]
+    category_counts = (
+        json.loads(raw_category_counts)
+        if isinstance(raw_category_counts, str)
+        else dict(raw_category_counts)
+    )
+    return {
+        **{key: value for key, value in summary.items() if key != "category_post_counts"},
+        "category_memberships": [
+            {
+                "voice_concept_code": code,
+                "post_count": int(count),
+                "eligible_percentage": (float(count) / total * 100.0) if total else 0.0,
+            }
+            for code, count in sorted(category_counts.items())
+        ],
+        "counts_overlap": True,
+    }
+
+
 @app.get("/api/posts/{post_id}")
 async def read_post(
     post_id: str,
@@ -1654,6 +1694,23 @@ async def read_post(
         project_evidence = await _load_project_evidence(
             conn, post_id, row["source_project_code"], row["source_project_name"]
         )
+        # Safe SQL: the eligibility predicate is an immutable schema fragment; post id is bound.
+        product_rows = await conn.fetch(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
+            "select mention.mention_ordinal, mention.extracted_product_name, "
+            "mention.resolution_status_code, catalog.canonical_product_name, "
+            "catalog.product_level_code, mention.evidence_text, "
+            "mention.evidence_post_id, evidence_post.visibility_code, "
+            "evidence_post.corporate_entity_id, evidence_post.process_unit_id "
+            "from post_product_mention mention "
+            "left join product_catalog catalog "
+            "on catalog.product_catalog_id = mention.product_catalog_id "
+            "join source_post evidence_post "
+            "on evidence_post.post_id = mention.evidence_post_id "
+            "where mention.post_id = $1 and "
+            f"{SOURCE_POST_ELIGIBILITY_SQL.format(alias='evidence_post')} "
+            "order by mention.mention_ordinal",
+            post_id,
+        )
         known_at = None
         if as_of_clock is not None:
             known_at = await fetch_known_at_revision(conn, post_id, as_of_clock)
@@ -1661,6 +1718,19 @@ async def read_post(
         **_serialize_post(row, labels),
         "post_body": row["post_body"],
         "project_evidence": project_evidence,
+        "product_evidence": [
+            {
+                "mention_ordinal": item["mention_ordinal"],
+                "extracted_product_name": item["extracted_product_name"],
+                "resolution_status_code": item["resolution_status_code"],
+                "canonical_product_name": item["canonical_product_name"],
+                "product_level_code": item["product_level_code"],
+                "evidence_text": item["evidence_text"],
+                "evidence_post_id": item["evidence_post_id"],
+            }
+            for item in product_rows
+            if _can_see_post(account, item)
+        ],
     }
     if known_at is not None:
         payload["known_at"] = known_at

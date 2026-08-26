@@ -98,10 +98,9 @@ Embedding a whole flattened document as one vector dilutes a short
 relevant unit with everything else in the same document -- the vector
 averages over content that has nothing to do with the match being sought.
 `lineageweave/chunking.py` splits a document into meaning-identifiable
-units first; `embedding_client.chunked_max_similarity` embeds every unit
-and takes the single highest-scoring pair, which is the standard
-passage-retrieval strategy for "a relevant unit is buried in a longer
-document." Four unit types, each grounded in a real boundary concept:
+units first. ADR 0208 removed the unused local Python cosine/max-pooling
+experiment; a versioned Rust retrieval-owner envelope must perform any future
+unit scoring. Four unit types remain, each grounded in a real boundary concept:
 
 - **paragraph** -- subtopic-passage boundaries (Hearst, 1997, TextTiling).
 - **sentence** -- the finer unit inside a paragraph.
@@ -114,10 +113,8 @@ document." Four unit types, each grounded in a real boundary concept:
 **Honest scope note for this project's real dataset**: the real dataset
 validated against in milestone 2 (43,814 short business records) has only
 one real free-text field, and it is short (~28 characters average) with no
-paragraph, DOM, or conversation structure to chunk -- chunking a title
-does nothing useful and `chunked_max_similarity` degrades gracefully to
-plain whole-text embedding for exactly this case (a document that chunks
-to zero or one piece is embedded once, same as before chunking existed).
+paragraph, DOM, or conversation structure to chunk, so unit persistence does
+not imply or fabricate a local similarity score.
 This module exists for when a richer content source is embedded --
 concretely, the raw MHTML source artifacts this dataset's records were
 derived from (tracked only as opaque content-addressed references in this

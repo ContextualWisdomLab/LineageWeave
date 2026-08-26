@@ -3,7 +3,7 @@ name = "lineageweave"
 version = "2.19.0"
 description = "Reconstructs git-branch-style lineage DAGs from scattered short records using multi-channel score fusion and LLM adjudication."
 readme = "README.md"
-license = { text = "MIT" }
+license = "MIT"
 # Was >=3.10; fast-mlsirm (see [project.optional-dependencies].backend)
 # declares >=3.12 itself, so this floor must match or `uv`'s resolver
 # reports the whole project unsatisfiable.
@@ -13,7 +13,7 @@ dependencies = [
   "pillow>=12.3.0",
   # RankWeave has no PyPI release yet; pinned to a specific commit (not a
   # floating branch ref) for reproducible installs, per org convention.
-  "rankweave @ git+https://github.com/ContextualWisdomLab/RankWeave.git@61c49c50d3b4a24fc9bd7c6d3a7f2f4ba19d7be6",
+  "rankweave @ git+https://github.com/ContextualWisdomLab/RankWeave.git@f92c3a2c7c50f3b5f4499dfdc94987d4e023a4fa",
   # Explicit CA bundle for http_client HTTPS posts -- some interpreter
   # distributions don't reliably inherit the OS trust store.
   "certifi>=2024.0.0",
@@ -28,7 +28,7 @@ dependencies = [
 ]
 
 [build-system]
-requires = ["setuptools>=75"]
+requires = ["setuptools>=77"]
 build-backend = "setuptools.build_meta"
 
 [project.optional-dependencies]
@@ -37,7 +37,6 @@ dev = [
   "coverage>=7.6",
   "pyjwt[crypto]>=2.8.0",
   "pytest>=8.0",
-  "httpx>=0.27.0",
   # Closed-world SHACL validation of docs/ontology/lineageweave-kg.ttl
   # against lineageweave-kg-shapes.ttl (ADR 0207 decision 10). Pure
   # Python; OWL-RL reasoning included.
@@ -54,16 +53,17 @@ backend = [
   "redis>=5.0.1",
   # Authenticated Streamable HTTP resource server (ADR 0218).
   "mcp==2.0.0",
-  # LLM-as-a-Judge -> IRT -> Fixed-Item Parameter Calibration for the
-  # weekly/monthly PU/team/project reports (ADR 0003). No PyPI release
-  # yet; pinned to a specific commit, same pattern as rankweave. Ships a
-  # PyO3/maturin Rust core with no fallback wheel, so building this from
-  # source needs a Rust toolchain -- see backend/Dockerfile.
-  "fast-mlsirm @ git+https://github.com/ContextualWisdomLab/fast-mlsirm.git@d025b7d237d8db7ca97a5611606c6285d5870895",
+  # Owner arithmetic from protected main (ADR 0208). Product-specific lineage
+  # contracts remain unavailable until a domain-neutral owner contract lands.
+  # PyO3/maturin source builds need the pinned Rust toolchain.
+  "fast-mlsirm @ git+https://github.com/ContextualWisdomLab/fast-mlsirm.git@09f762ded35786dd1078222a4577ff09d649816f",
 ]
 
 [tool.setuptools.packages.find]
 include = ["lineageweave*", "backend*"]
+
+[tool.setuptools.package-data]
+lineageweave = ["data/*.ttl"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests", "backend/tests"]

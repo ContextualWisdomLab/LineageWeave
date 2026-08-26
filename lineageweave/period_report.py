@@ -24,8 +24,8 @@ distances on that map (Jeon et al., 2021, eq. 3). Leftover-map axis
 share is Gabriel inertia ``σ_k² / Σ_j σ_j²`` of residual SVD axes 1
 and 2 (ADR 0148). Complete-case coverage (ADR 0168) names how many
 scored posts entered the factorization; incomplete rows are excluded,
-never filled with zero. ``fast-mlsirm`` has no leftover-pair API; this
-module does not invent a second IRT fit and does not fork LSIRM.
+never filled with zero. ``fast-mlsirm.residual_interaction_map`` owns that
+arithmetic in Rust; this module only attaches product identifiers.
 
 This module is pure compute. Persistence lives in
 ``backend/app/report_ingestion.py``. TEPP is not used here; temporal
@@ -43,6 +43,7 @@ from fast_mlsirm import (
     fixed_item_calibration_diagnostics,
     information_polytomous,
     polytomous_category_probabilities,
+    polytomous_expected_response,
     score_polytomous,
     validate_irt_response_matrix,
 )
@@ -126,6 +127,14 @@ class PeriodReport:
     leftover_map_coverage: LeftoverMapCoverage | None = None
 
 
+def _diagnostic_float(diagnostics: object, key: str) -> float:
+    """Read a required fast-mlsirm diagnostic without inventing a fallback."""
+    best = getattr(diagnostics, "best", None)
+    if not isinstance(best, dict) or key not in best:
+        raise RuntimeError(f"fast-mlsirm diagnostic contract missing {key!r}")
+    return float(best[key])
+
+
 def assemble_response_matrix(
     post_ids: list[str],
     rows: list[tuple[str, str, int]],
@@ -185,28 +194,6 @@ def item_bank_from_fit(fit: PolytomousFit, item_codes: tuple[str, ...], source_p
     )
 
 
-def observed_response_loglik(matrix: np.ndarray, probs: np.ndarray) -> float:
-    """Sum log P(y_ij) over observed cells; missing cells are skipped."""
-    loglik = 0.0
-    n_persons, n_items = matrix.shape
-    for person in range(n_persons):
-        for item in range(n_items):
-            category = matrix[person, item]
-            if np.isnan(category):
-                continue
-            index = int(category)
-            loglik += float(np.log(max(probs[person, item, index], 1e-12)))
-    return loglik
-
-
-def expected_category_matrix(matrix: np.ndarray, probs: np.ndarray) -> np.ndarray:
-    """E[Y_pi] = sum_k k P(Y=k | θ_p, item_i); missing cells stay NaN."""
-    n_categories = probs.shape[2]
-    categories = np.arange(n_categories, dtype=np.float64)
-    expected = np.tensordot(probs, categories, axes=([2], [0]))
-    return np.where(np.isnan(matrix), np.nan, expected)
-
-
 def leftover_map_for_fit(
     post_ids: list[str],
     item_codes: tuple[str, ...],
@@ -216,8 +203,7 @@ def leftover_map_for_fit(
     fit: PolytomousFit,
 ) -> tuple[tuple[LeftoverPair, ...], tuple[LeftoverMapAxis, ...]]:
     """Leftover pairs and leftover-map axis share from fitted GRM/GPCM."""
-    probs = _category_probabilities(model, theta, fit)
-    expected = expected_category_matrix(matrix, probs)
+    expected = polytomous_expected_response(fit, theta)
     return leftover_map_from_residual(post_ids, item_codes, matrix, expected)
 
 
@@ -243,8 +229,7 @@ def leftover_map_coverage_for_fit(
     fit: PolytomousFit,
 ) -> LeftoverMapCoverage:
     """Complete-case leftover-map coverage from the fitted main effects."""
-    probs = _category_probabilities(model, theta, fit)
-    expected = expected_category_matrix(matrix, probs)
+    expected = polytomous_expected_response(fit, theta)
     return leftover_map_coverage_from_residual(post_ids, item_codes, matrix, expected)
 
 
@@ -320,7 +305,7 @@ def calibrate_period_report(
         item_count=len(item_codes),
         fit_loglik=float(fit.loglik),
         fit_converged=bool(fit.converged),
-        calibration_score=float(diagnostics.best["calibration_score"]),
+        calibration_score=_diagnostic_float(diagnostics, "calibration_score"),
         member_scores=_member_scores(post_ids, scores),
         item_bank=item_bank,
         link_method=LINK_METHOD_FREE,
@@ -368,9 +353,9 @@ def score_period_on_bank(
         mean_theta_sd=float(theta.std(ddof=0)),
         post_count=len(post_ids),
         item_count=len(item_bank.item_codes),
-        fit_loglik=observed_response_loglik(matrix, probs),
+        fit_loglik=_diagnostic_float(diagnostics, "heldout_loglik"),
         fit_converged=True,
-        calibration_score=float(diagnostics.best["calibration_score"]),
+        calibration_score=_diagnostic_float(diagnostics, "calibration_score"),
         member_scores=_member_scores(post_ids, scores),
         item_bank=item_bank,
         link_method=LINK_METHOD_FIPC,

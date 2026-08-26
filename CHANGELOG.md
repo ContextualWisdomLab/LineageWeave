@@ -6,16 +6,74 @@ All notable changes to this project are documented here. Format follows
 
 ## [Unreleased]
 
+### Changed
+
+- Embedding transport now validates provider envelopes without retaining
+  production-unused Python cosine and chunk-max arithmetic. Active semantic
+  retrieval remains explicitly unavailable for migration until a versioned
+  Rust owner contract is accepted; no local or database substitute is added.
+
+- Ask Agent now searches posts with the same persisted semantic project key as
+  part of its authorized evidence window before re-analysis. Missing evidence
+  remains a retry state rather than a request for the reader to attach an
+  original; newly analyzed project evidence now requeues completed sibling
+  analyses that still have missing facts. Case-analysis reuse now binds to a
+  digest of the exact ordered authorized evidence window and context, so an
+  unchanged focal body is re-analyzed when new sibling evidence arrives. The
+  composer now uses an accessible form with a stable action and separate
+  progress status.
+
+- Docker Compose now has one canonical `lineageweave` project containing the
+  complete synthetic product stack. The backend receives the existing TEPP API
+  credential contract, and the OIDC smoke target installs its declared backend
+  dependencies before verifying the live Keycloak signature.
+- Rankings now call RankWeave's parameter-free classic RRF path when no
+  calibrated weights exist and project RankWeave-owned channel contributions;
+  the prior local contribution arithmetic and invalid all-ones call to the
+  convex-weight API were removed.
+
+- Period-report leftover maps now consume fast-mlsirm's protected Rust
+  residual-interaction and expected-response contracts. Local Python Gabriel
+  SVD, distance, reconstruction, share, expectation, and duplicate likelihood
+  arithmetic were removed; owner failures remain unavailable rather than
+  triggering a local substitute.
+
+- Dashboard evidence-link hit areas now honor the shared minimum control-size token on touch layouts.
+- The external-information GNB keeps all authorized in-period posts as its coverage denominator while filtering the displayed case rows.
+
+- Async Ask queue tests now isolate queue settlement from semantic retrieval,
+  and the development test stack follows Starlette's maintained `httpx2`
+  `TestClient` contract. FastAPI 422 responses use the RFC 9110 constant, so
+  deprecation failures are repaired rather than suppressed.
+- ADRs 0011 and 0065 now include APA 7th References for the dated W3C
+  PROV-O and PROV-DM Recommendations (30 April 2013). Decisions are
+  unchanged.
+
 ### Added
 
-- Period leftover pair rows now name leftover-map explained share
-  `e = R̂² / R²` of raw residual after two-axis Gabriel reconstruction
-  next to leftover-map distance `d`, then open that post (Gabriel, 1971;
-  Jeon et al., 2021, eq. 3; ADR 0232). A missing share omits the badge
-  rather than inventing a leftover score. A finite share greater than 1
-  is stored and shown, never clamped. Unexplained leftover share `s` is
-  not persisted.
+- Expanded Voice-of-X post taxonomy (ADR 0246): the governed `voc_type`
+  scheme adds Voice of Supplier, Employee, Business, Regulator, Investor,
+  Society, and Process as source-post categories. Ontology, SHACL, the
+  replay-safe lookup migration, and source-preserving assertions stay in sync;
+  counterparty relationships remain a separate evidence contract.
 
+- PostgreSQL Compose now has a plan-first automatic tuning procedure that
+  samples aligned WAL/checkpoint counters and container resources, calculates
+  only segment- and checkpoint-bound settings, validates an auditable plan,
+  preserves durability, and applies or rolls back solely through an approved
+  controlled restart.
+
+- Global Ask answers now link numbered citations to authorized event cards in
+  both directions. Each card names event time or the record-time fallback and
+  opens the focused evidence layer or full source post without inventing a
+  Project Journey.
+
+- ADR 0210's Dashboard consumer now persists a normalized, exact-provenance
+  projection for TEPP temporal topics and fast-mlsirm case-deletion model
+  influence. The API authorizes the fitted analysis scope before returning
+  rows; the UI preserves ties, multiple membership, uncertainty, time states,
+  and source links, and otherwise names the missing producer contract without
+  calculating a local score.
 - Persist explicit paragraph, list, table, MathML formula, and caller-parsed
   conversation-turn semantic-unit kinds without inferring absent boundaries.
 - Event Lineage now persists each reconstructed connection's independent
@@ -37,8 +95,9 @@ All notable changes to this project are documented here. Format follows
 - Node-attribute datatype properties grounded only in real schema columns
   (`postTitle`, `postBody`, `eventOccurredAt`, `personName`,
   `lastKnownJobTitle`, `entityName`, `entityCode`, shared domain-free
-  `createdAt`/`updatedAt`), a SKOS post-type scheme formalizing the governed
-  five-value `voc_type` vocabulary under the round-trip check, and logical
+  `createdAt`/`updatedAt`), a SKOS post-type scheme formalizing the initial
+  five-value `voc_type` vocabulary plus ADR 0246's seven additions under the
+  round-trip check, and logical
   constraints: `OurSidePerson owl:disjointWith CounterpartyPerson` plus the
   `hasAffiliate` inverse of `affiliatedWith` (ADR 0207).
 
@@ -110,12 +169,6 @@ All notable changes to this project are documented here. Format follows
   pair for a hidden post is omitted. Distances come from the same
   authorized leftover store as the period-report list; they do not
   invent a leftover score.
-
-### Changed
-
-- ADRs 0011 and 0065 now include APA 7th References for the dated W3C
-  PROV-O and PROV-DM Recommendations (30 April 2013). Decisions are
-  unchanged.
 
 ### Fixed
 

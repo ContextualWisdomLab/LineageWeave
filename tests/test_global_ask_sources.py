@@ -773,6 +773,8 @@ def test_global_sources_bind_relative_time_to_event_clock_not_ingest_cluster(
     assert [source.post_id for source in sources] == ["yesterday-event"]
     assert TIME_AXIS_EVENT in sources[0].evidence_facts
     assert TIME_AXIS_CREATED not in sources[0].evidence_facts
+    assert sources[0].observed_at == "2026-08-21T03:00:00+00:00"
+    assert sources[0].time_axis_code == "event_occurred_at"
 
 
 def test_global_sources_name_created_at_fallback_when_event_clock_is_missing(
@@ -811,3 +813,5 @@ def test_global_sources_name_created_at_fallback_when_event_clock_is_missing(
 
     assert [source.post_id for source in sources] == ["ingest-yesterday"]
     assert TIME_AXIS_CREATED in sources[0].evidence_facts
+    assert sources[0].observed_at == "2026-08-21T03:00:00+00:00"
+    assert sources[0].time_axis_code == "created_at"

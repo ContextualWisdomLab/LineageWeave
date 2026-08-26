@@ -34,6 +34,7 @@ from lineageweave.post_chat import (
     NullPostChatClient,
     _render_sources_block,
     cited_post_evidence,
+    cited_post_events,
     cited_post_summaries,
     normalize_chat_question,
     parse_chat_response,
@@ -163,6 +164,34 @@ def test_cited_post_summaries_keep_citation_order_and_drop_unknown_ids() -> None
     assert chips == [
         {"post_id": "post-2", "post_title": "Bid revision"},
         {"post_id": "post-1", "post_title": "Bid workshop"},
+    ]
+
+
+def test_cited_post_events_keep_named_clocks_and_do_not_invent_time() -> None:
+    sources = (
+        ChatSourceDocument(
+            "post-event",
+            "Observed event",
+            "body",
+            observed_at="2026-08-21T03:00:00+00:00",
+            time_axis_code="event_occurred_at",
+        ),
+        ChatSourceDocument("post-unknown", "No observed instant", "body"),
+    )
+
+    assert cited_post_events(sources, ("post-unknown", "missing", "post-event")) == [
+        {
+            "post_id": "post-unknown",
+            "post_title": "No observed instant",
+            "observed_at": None,
+            "time_axis_code": None,
+        },
+        {
+            "post_id": "post-event",
+            "post_title": "Observed event",
+            "observed_at": "2026-08-21T03:00:00+00:00",
+            "time_axis_code": "event_occurred_at",
+        },
     ]
 
 
@@ -422,3 +451,4 @@ def test_contextual_orchestrator_chat_requests_plain_citations(monkeypatch) -> N
     assert observed["payload"]["reasoning_effort"] == "auto"
     assert observed["payload"]["mode"] == "auto"
     assert "CITED SOURCES" in observed["payload"]["messages"][0]["content"]
+    assert "Never infer it from chronology alone" in observed["payload"]["messages"][0]["content"]

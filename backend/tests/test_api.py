@@ -15,6 +15,8 @@ from __future__ import annotations
 import asyncio
 import math
 import os
+import subprocess
+import time
 import uuid
 from contextlib import closing
 from pathlib import Path
@@ -36,6 +38,7 @@ _POSTGRES_ADMIN_DSN = os.environ.get(
 _KEYCLOAK_BASE_URL = os.environ.get("LINEAGEWEAVE_TEST_KEYCLOAK_BASE_URL", "http://localhost:18080")
 _VALKEY_URL = os.environ.get("LINEAGEWEAVE_TEST_VALKEY_URL", "redis://localhost:16379/0")
 _REALM = "lineageweave-demo"
+_demo_analyst_token_cache: tuple[str, int] | None = None
 _MIGRATION_PATH = Path(__file__).resolve().parents[2] / "migrations" / "0001_initial_schema.sql"
 _REGISTRY_MIGRATION = Path(__file__).resolve().parents[2] / "migrations" / "0018_analysis_run_registry.sql"
 _RETENTION_MIGRATION = Path(__file__).resolve().parents[2] / "migrations" / "0020_analysis_run_retention_purge.sql"
@@ -211,6 +214,19 @@ _GLOBAL_ASK_KNOWLEDGE_CUTOFF_MIGRATION = (
     / "migrations"
     / "0212_global_ask_knowledge_cutoff.sql"
 )
+_PRODUCT_SEMANTIC_MIGRATIONS = tuple(
+    Path(__file__).resolve().parents[2] / "migrations" / name
+    for name in (
+        "0208_operations_case_analysis.sql",
+        "0209_operations_case_evidence_source.sql",
+        "0211_operations_case_missing_fact.sql",
+        "0213_operations_external_relation_target.sql",
+        "0215_operations_case_milestone.sql",
+        "0222_operations_case_analysis_input.sql",
+        "0228_product_semantic_catalog.sql",
+        "0230_voice_semantic_taxonomy.sql",
+    )
+)
 _LEFTOVER_MAP_AXIS_MIGRATION = (
     Path(__file__).resolve().parents[2]
     / "migrations"
@@ -292,9 +308,46 @@ def _fetch_demo_analyst_token() -> str:
     return token_response["access_token"]
 
 
-@pytest.fixture(scope="module")
+def _current_demo_analyst_token() -> str:
+    """Reuse the live token until its issuer-recorded expiration instant."""
+    global _demo_analyst_token_cache
+
+    if _demo_analyst_token_cache is not None:
+        token, expires_at = _demo_analyst_token_cache
+        if time.time() < expires_at:
+            return token
+
+    token = _fetch_demo_analyst_token()
+    expires_at = int(jwt.decode(token, options={"verify_signature": False})["exp"])
+    _demo_analyst_token_cache = (token, expires_at)
+    return token
+
+
+@pytest.fixture
 def demo_analyst_token() -> str:
-    return _fetch_demo_analyst_token()
+    """Return a cached live token, refreshing it at the issuer's exact expiry."""
+    return _current_demo_analyst_token()
+
+
+def test_demo_analyst_token_cache_refreshes_only_at_issuer_expiry(monkeypatch: pytest.MonkeyPatch) -> None:
+    """The integration suite reuses a token before ``exp`` and refreshes at ``exp``."""
+    global _demo_analyst_token_cache
+
+    issued = iter(
+        (
+            jwt.encode({"exp": 101}, "test-key-for-cache-expiry-check-1", algorithm="HS256"),
+            jwt.encode({"exp": 202}, "test-key-for-cache-expiry-check-2", algorithm="HS256"),
+        )
+    )
+    monkeypatch.setattr(__name__ + "._fetch_demo_analyst_token", lambda: next(issued))
+    monkeypatch.setattr(__name__ + ".time.time", lambda: 100)
+    _demo_analyst_token_cache = None
+    first = _current_demo_analyst_token()
+    assert _current_demo_analyst_token() == first
+
+    monkeypatch.setattr(__name__ + ".time.time", lambda: 101)
+    assert _current_demo_analyst_token() != first
+    _demo_analyst_token_cache = None
 
 
 @pytest.fixture
@@ -388,10 +441,23 @@ def seeded_db(demo_analyst_token):
             cur.execute(_LEFTOVER_MAP_COVERAGE_MIGRATION.read_text())
             cur.execute(_GLOBAL_ASK_JOB_MIGRATION.read_text())
             cur.execute(_GLOBAL_ASK_SCOPE_MIGRATION.read_text())
-            cur.execute(_GLOBAL_ASK_EVIDENCE_SEARCH_MIGRATION.read_text())
+            subprocess.run(
+                [
+                    "psql",
+                    "-X",
+                    "-v",
+                    "ON_ERROR_STOP=1",
+                    db_dsn,
+                    "-f",
+                    str(_GLOBAL_ASK_EVIDENCE_SEARCH_MIGRATION),
+                ],
+                check=True,
+            )
             cur.execute(_GLOBAL_ASK_KNOWLEDGE_CUTOFF_MIGRATION.read_text())
             cur.execute(_GLOBAL_ASK_PUBLIC_VERIFICATION_MIGRATION.read_text())
             cur.execute(_EVENT_OCCURRED_AT_MIGRATION.read_text())
+            for migration_path in _PRODUCT_SEMANTIC_MIGRATIONS:
+                cur.execute(migration_path.read_text())
             cur.execute(_LEFTOVER_MAP_AXIS_MIGRATION.read_text())
             cur.execute(_CHANNEL_EVIDENCE_MIGRATION.read_text())
             cur.execute(_LEFTOVER_MAP_UNEXPLAINED_MIGRATION.read_text())
@@ -797,6 +863,33 @@ def client(seeded_db):
         yield test_client
 
 
+@pytest.fixture
+def client_with_ask_worker(client):
+    """Run the production Ask consumer beside API tests that require settlement."""
+    from backend.app import main as main_module
+    from backend.app.config import load_settings
+    from backend.app.global_ask_queue import run_global_ask_worker
+
+    async def run_worker() -> None:
+        await run_global_ask_worker(
+            main_module.app.state.valkey,
+            main_module.app.state.pool,
+            chat_factory=lambda: main_module._post_chat_client(
+                timeout=load_settings().orchestrator_answer_timeout_seconds
+            ),
+            embedding_factory=lambda: main_module._embedding_client(),
+            semantic_query_factory=lambda: main_module._semantic_query_client(),
+            claim_verification_factory=lambda: main_module._claim_verification_client_factory(),
+        )
+
+    assert client.portal is not None
+    worker = client.portal.start_task_soon(run_worker)
+    try:
+        yield client
+    finally:
+        worker.cancel()
+
+
 def test_keyverse_account_resolves_exact_scope_and_role_intersection(
     monkeypatch: pytest.MonkeyPatch, seeded_db, demo_analyst_token
 ) -> None:
@@ -1061,7 +1154,10 @@ def test_create_analysis_run_records_pending_without_inventing_a_score(
         },
     )
     assert tepp.status_code == 422
-    assert "invent a measurement" in tepp.json()["detail"]
+    assert (
+        tepp.json()["detail"]
+        == "Open the failed temporal measurement, ask an administrator to restore analysis, then re-run it."
+    )
     assert "theta" not in tepp.json()["detail"].lower()
 
     report = client.post(
@@ -1220,7 +1316,10 @@ def test_start_analysis_run_recovers_the_a100_fork(
         },
     )
     assert tepp_create.status_code == 422
-    assert "invent a measurement" in tepp_create.json()["detail"]
+    assert (
+        tepp_create.json()["detail"]
+        == "Open the failed temporal measurement, ask an administrator to restore analysis, then re-run it."
+    )
 
     admin_conn = psycopg2.connect(seeded_db["dsn"])
     admin_conn.autocommit = True
@@ -1894,6 +1993,317 @@ def test_post_detail_uses_lookup_labels_not_raw_codes(client, demo_analyst_token
     assert body["voc_type_label"] == "Voice of Customer"
     assert body["visibility_code"] == "public"
     assert body["visibility_label"] == "Public"
+
+
+def test_post_detail_returns_authorized_product_evidence(
+    client, demo_analyst_token, seeded_db
+) -> None:
+    """The post response exposes only its persisted evidence-bound product link."""
+    conn = psycopg2.connect(seeded_db["dsn"])
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                "insert into product_catalog "
+                "(canonical_product_name, product_level_code, product_catalog_code) "
+                "values (%s, %s, %s) returning product_catalog_id",
+                ("Synthetic Model Q", "product_model", "SYNTH-Q"),
+            )
+            catalog_id = cur.fetchone()[0]
+            cur.execute(
+                "insert into post_product_analysis "
+                "(post_id, source_body_sha256, analysis_input_sha256, orchestrator_session_id) "
+                "values (%s, %s, %s, %s)",
+                (seeded_db["public_post_id"], "a" * 64, "b" * 64, "session-a"),
+            )
+            cur.execute(
+                "insert into post_product_mention "
+                "(post_id, mention_ordinal, product_catalog_id, extracted_product_name, "
+                "resolution_status_code, evidence_text, evidence_post_id, evidence_input_sha256) "
+                "values (%s, 0, %s, %s, 'unique', %s, %s, %s)",
+                (
+                    seeded_db["public_post_id"], catalog_id, "Synthetic Model Q",
+                    "Synthetic evidence", seeded_db["public_post_id"], "c" * 64,
+                ),
+            )
+            cur.execute(
+                "insert into post_product_mention "
+                "(post_id, mention_ordinal, extracted_product_name, "
+                "resolution_status_code, evidence_text, evidence_post_id, "
+                "evidence_input_sha256) "
+                "values (%s, 1, %s, 'missing', %s, %s, %s)",
+                (
+                    seeded_db["public_post_id"],
+                    "Hidden Synthetic Model",
+                    "Hidden synthetic evidence",
+                    seeded_db["other_private_post_id"],
+                    "d" * 64,
+                ),
+            )
+        conn.commit()
+    finally:
+        conn.close()
+    response = client.get(
+        f"/api/posts/{seeded_db['public_post_id']}",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert response.status_code == 200
+    assert response.json()["product_evidence"] == [{
+        "mention_ordinal": 0,
+        "extracted_product_name": "Synthetic Model Q",
+        "resolution_status_code": "unique",
+        "canonical_product_name": "Synthetic Model Q",
+        "product_level_code": "product_model",
+        "evidence_text": "Synthetic evidence",
+        "evidence_post_id": seeded_db["public_post_id"],
+    }]
+
+
+def test_voice_taxonomy_summary_uses_visible_post_denominator(
+    client, demo_analyst_token, seeded_db
+) -> None:
+    """Counts include visible unavailable posts and disclose overlap semantics."""
+    conn = psycopg2.connect(seeded_db["dsn"])
+    try:
+        with conn.cursor() as cur:
+            cur.execute("delete from post_voice_classification_assertion")
+            cur.execute(
+                "insert into post_voice_classification_assertion "
+                "(post_id, voice_concept_code, assertion_status_code, evidence_sha256, "
+                "source_revision_digest) select post_id, 'voc', 'source', repeat('a', 64), "
+                "repeat('b', 64) from source_post"
+            )
+        conn.commit()
+    finally:
+        conn.close()
+    response = client.get(
+        "/api/voice-taxonomy/summary",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert response.status_code == 200, response.text
+    payload = response.json()
+    assert payload["total_eligible"] == 4
+    assert payload["source_count"] == 4
+    assert payload["counts_overlap"] is True
+    assert payload["category_memberships"] == [{
+        "voice_concept_code": "voc",
+        "post_count": 4,
+        "eligible_percentage": 100.0,
+    }]
+    assert "category_post_counts" not in payload
+
+
+def test_voice_source_ingestion_is_available_for_future_business_event(
+    seeded_db,
+) -> None:
+    """Ingestion records a source label immediately, not at event time."""
+    conn = psycopg2.connect(seeded_db["dsn"])
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                "delete from post_voice_classification_assertion where post_id = %s",
+                (seeded_db["public_post_id"],),
+            )
+            cur.execute(
+                "update source_post set post_body = post_body, "
+                "event_occurred_at = '2999-01-01T00:00:00Z' where post_id = %s",
+                (seeded_db["public_post_id"],),
+            )
+            cur.execute(
+                "select classification_assertion_id, valid_from "
+                "from post_voice_classification_assertion "
+                "where post_id = %s and assertion_status_code = 'source' "
+                "and voice_concept_code = 'voc'",
+                (seeded_db["public_post_id"],),
+            )
+            first_assertion_id, valid_from = cur.fetchone()
+            assert valid_from is None
+            cur.execute(
+                "update source_post set post_body = post_body || ' revised' "
+                "where post_id = %s",
+                (seeded_db["public_post_id"],),
+            )
+            cur.execute(
+                "update source_post set post_body = post_body where post_id = %s",
+                (seeded_db["public_post_id"],),
+            )
+            cur.execute(
+                "select count(*), count(*) filter (where valid_to is null), "
+                "count(*) filter (where classification_assertion_id = %s "
+                "and valid_to is not null), "
+                "max(supersedes_assertion_id::text) filter (where valid_to is null) "
+                "from post_voice_classification_assertion where post_id = %s "
+                "and assertion_status_code = 'source'",
+                (first_assertion_id, seeded_db["public_post_id"]),
+            )
+            assert cur.fetchone() == (
+                2,
+                1,
+                1,
+                str(first_assertion_id),
+            )
+        conn.commit()
+    finally:
+        conn.close()
+
+
+def test_derived_voice_assertion_requires_model_receipt(seeded_db) -> None:
+    """A derived classification cannot persist without its model receipt."""
+    conn = psycopg2.connect(seeded_db["dsn"])
+    try:
+        with conn.cursor() as cur, pytest.raises(psycopg2.errors.CheckViolation):
+            cur.execute(
+                "insert into post_voice_classification_assertion "
+                "(post_id, voice_concept_code, assertion_status_code, evidence_span_start, "
+                "evidence_span_end, evidence_sha256, source_revision_digest) "
+                "values (%s, 'voc', 'derived', 0, 1, repeat('a', 64), repeat('b', 64))",
+                (seeded_db["public_post_id"],),
+            )
+    finally:
+        conn.close()
+
+
+def test_voice_source_reconcile_preserves_other_sourced_memberships(seeded_db) -> None:
+    """A body revision supersedes its source label without erasing another source."""
+    conn = psycopg2.connect(seeded_db["dsn"])
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                "insert into post_voice_classification_assertion "
+                "(post_id, voice_concept_code, assertion_status_code, evidence_sha256, "
+                "source_revision_digest) values (%s, 'vom', 'source', repeat('a', 64), "
+                "repeat('b', 64))",
+                (seeded_db["public_post_id"],),
+            )
+            cur.execute(
+                "update source_post set post_body = post_body || ' revised' where post_id = %s",
+                (seeded_db["public_post_id"],),
+            )
+            cur.execute(
+                "select voice_concept_code from post_voice_classification_assertion "
+                "where post_id = %s and assertion_status_code = 'source' "
+                "and valid_to is null order by voice_concept_code",
+                (seeded_db["public_post_id"],),
+            )
+            assert [row[0] for row in cur.fetchall()] == ["voc", "vom"]
+    finally:
+        conn.close()
+
+
+def test_voice_assertion_rejects_duplicate_open_scope(seeded_db) -> None:
+    """One post, status, and concept cannot have two current assertions."""
+    conn = psycopg2.connect(seeded_db["dsn"])
+    try:
+        with conn.cursor() as cur:
+            cur.execute("delete from post_voice_classification_assertion")
+            cur.execute(
+                "insert into post_voice_classification_assertion "
+                "(post_id, voice_concept_code, assertion_status_code, evidence_sha256, "
+                "source_revision_digest) values (%s, 'voc', 'source', repeat('a', 64), "
+                "repeat('b', 64))",
+                (seeded_db["public_post_id"],),
+            )
+            with pytest.raises(psycopg2.errors.UniqueViolation):
+                cur.execute(
+                    "insert into post_voice_classification_assertion "
+                    "(post_id, voice_concept_code, assertion_status_code, evidence_sha256, "
+                    "source_revision_digest) values (%s, 'voc', 'source', repeat('c', 64), "
+                    "repeat('d', 64))",
+                    (seeded_db["public_post_id"],),
+                )
+    finally:
+        conn.close()
+
+
+def test_voice_taxonomy_matching_multi_membership_is_not_a_disagreement(
+    client, demo_analyst_token, seeded_db
+) -> None:
+    """Matching source and derived concept sets remain agreement evidence."""
+    conn = psycopg2.connect(seeded_db["dsn"])
+    try:
+        with conn.cursor() as cur:
+            cur.execute("delete from post_voice_classification_assertion")
+            for status_code in ("source", "derived"):
+                for concept_code in ("voc", "vom"):
+                    cur.execute(
+                        "insert into post_voice_classification_assertion "
+                        "(post_id, voice_concept_code, assertion_status_code, "
+                        "evidence_span_start, evidence_span_end, evidence_sha256, "
+                        "source_revision_digest, orchestrator_model_receipt) "
+                        "values (%s, %s, %s, %s, %s, repeat(%s, 64), repeat(%s, 64), %s)",
+                        (
+                            seeded_db["public_post_id"],
+                            concept_code,
+                            status_code,
+                            0 if status_code == "derived" else None,
+                            1 if status_code == "derived" else None,
+                            "a" if concept_code == "voc" else "b",
+                            "c" if concept_code == "voc" else "d",
+                            "synthetic-receipt" if status_code == "derived" else None,
+                        ),
+                    )
+        conn.commit()
+    finally:
+        conn.close()
+
+    response = client.get(
+        "/api/voice-taxonomy/summary",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert response.status_code == 200, response.text
+    payload = response.json()
+    assert payload["multi_membership"] == 1
+    assert payload["disagreement"] == 0
+
+
+def test_voice_taxonomy_excludes_assertions_before_their_validity_window(
+    client, demo_analyst_token, seeded_db
+) -> None:
+    """A future assertion is unavailable until its recorded validity begins."""
+    conn = psycopg2.connect(seeded_db["dsn"])
+    try:
+        with conn.cursor() as cur:
+            cur.execute("delete from post_voice_classification_assertion")
+            cur.execute(
+                "insert into post_voice_classification_assertion "
+                "(post_id, voice_concept_code, assertion_status_code, "
+                "evidence_sha256, source_revision_digest, valid_from) "
+                "values (%s, 'voc', 'source', repeat('a', 64), repeat('b', 64), "
+                "'2999-01-01T00:00:00Z')",
+                (seeded_db["public_post_id"],),
+            )
+        conn.commit()
+    finally:
+        conn.close()
+
+    response = client.get(
+        "/api/voice-taxonomy/summary",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert response.status_code == 200, response.text
+    payload = response.json()
+    assert payload["source_count"] == 0
+    assert payload["unavailable"] == payload["total_eligible"]
+
+
+def test_voice_taxonomy_summary_rejects_reversed_period(
+    client, demo_analyst_token
+) -> None:
+    response = client.get(
+        "/api/voice-taxonomy/summary?date_from=2026-02-01&date_to=2026-01-01",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert response.status_code == 422
+    assert "Choose an end time" in response.json()["detail"]
+
+
+def test_voice_taxonomy_summary_accepts_one_calendar_day(
+    client, demo_analyst_token
+) -> None:
+    response = client.get(
+        "/api/voice-taxonomy/summary?date_from=2026-01-01&date_to=2026-01-01",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert response.status_code == 200
 
 
 def test_post_detail_exposes_explicit_and_semantic_project_evidence(
@@ -3961,7 +4371,7 @@ def test_live_chat_provider_error_does_not_leak_raw_error(
 
 
 def test_global_ask_provider_error_does_not_leak_raw_error(
-    client, demo_analyst_token, seeded_db, monkeypatch
+    client_with_ask_worker, demo_analyst_token, seeded_db, monkeypatch
 ) -> None:
     """The cross-post Ask boundary settles a provider failure with a
     stable message, not the worker's raw exception text (ADR 0123).
@@ -3981,7 +4391,7 @@ def test_global_ask_provider_error_does_not_leak_raw_error(
     monkeypatch.setattr("backend.app.main._post_chat_client", lambda **_kwargs: _FailingAskClient())
     headers = {"Authorization": f"Bearer {demo_analyst_token}"}
 
-    submitted = client.post(
+    submitted = client_with_ask_worker.post(
         "/api/ask",
             json={"question": "Public post"},
         headers=headers,
@@ -3992,7 +4402,7 @@ def test_global_ask_provider_error_does_not_leak_raw_error(
     deadline = _time.monotonic() + 30
     body: dict = {}
     while _time.monotonic() < deadline:
-        polled = client.get(f"/api/ask/jobs/{job_id}", headers=headers)
+        polled = client_with_ask_worker.get(f"/api/ask/jobs/{job_id}", headers=headers)
         assert polled.status_code == 200
         body = polled.json()
         if body["job_status_code"] in ("succeeded", "failed"):
@@ -5127,7 +5537,7 @@ def test_ask_requires_authentication(client) -> None:
 
 
 def test_ask_queues_a_job_and_polls_it_to_a_settled_answer(
-    client, demo_analyst_token, seeded_db, monkeypatch
+    client_with_ask_worker, demo_analyst_token, seeded_db, monkeypatch
 ) -> None:
     """Submission returns 202 immediately; the worker settles the job.
 
@@ -5138,21 +5548,24 @@ def test_ask_queues_a_job_and_polls_it_to_a_settled_answer(
     """
     import time as _time
 
-    from lineageweave.post_chat import ChatAnswer
-
     class _FakeChatClient:
         available = True
 
-        def answer(self, question, sources):  # noqa: ARG002 - contract shape
-            return ChatAnswer(
-                answer_text="A settled asynchronous answer.",
-                cited_post_ids=(sources[0].post_id,),
-            )
+    async def _fake_compute_answer(*_args, **_kwargs):
+        return {
+            "answer_text": "A settled asynchronous answer.",
+            "cited_post_ids": [seeded_db["public_post_id"]],
+            "lineage_graph": {"nodes": [], "edges": [], "truncated": False},
+            "cited_post_images": [],
+        }
 
     monkeypatch.setattr("backend.app.main._post_chat_client", lambda **_kwargs: _FakeChatClient())
+    monkeypatch.setattr(
+        "backend.app.global_ask_queue.compute_global_ask_answer", _fake_compute_answer
+    )
     headers = {"Authorization": f"Bearer {demo_analyst_token}"}
-    submitted = client.post(
-            "/api/ask", json={"question": "Public post"}, headers=headers
+    submitted = client_with_ask_worker.post(
+        "/api/ask", json={"question": "What happened with the public post?"}, headers=headers
     )
     assert submitted.status_code == 202
     job_id = submitted.json()["ask_job_id"]
@@ -5161,7 +5574,7 @@ def test_ask_queues_a_job_and_polls_it_to_a_settled_answer(
     deadline = _time.monotonic() + 30
     body: dict = {}
     while _time.monotonic() < deadline:
-        polled = client.get(f"/api/ask/jobs/{job_id}", headers=headers)
+        polled = client_with_ask_worker.get(f"/api/ask/jobs/{job_id}", headers=headers)
         assert polled.status_code == 200
         body = polled.json()
         if body["job_status_code"] in ("succeeded", "failed"):
@@ -5175,7 +5588,7 @@ def test_ask_queues_a_job_and_polls_it_to_a_settled_answer(
 
 
 def test_ask_public_verification_is_opt_in_and_separate_from_post_citations(
-    client, demo_analyst_token, seeded_db, monkeypatch
+    client_with_ask_worker, demo_analyst_token, seeded_db, monkeypatch
 ) -> None:
     """A cited public semantic claim can be refuted without changing its post id."""
 
@@ -5229,7 +5642,7 @@ def test_ask_public_verification_is_opt_in_and_separate_from_post_citations(
         lambda: _FakeVerificationClient(),
     )
     headers = {"Authorization": f"Bearer {demo_analyst_token}"}
-    submitted = client.post(
+    submitted = client_with_ask_worker.post(
         "/api/ask",
         json={"question": "Apollo", "verify_external": True},
         headers=headers,
@@ -5240,7 +5653,7 @@ def test_ask_public_verification_is_opt_in_and_separate_from_post_citations(
     deadline = _time.monotonic() + 30
     body: dict = {}
     while _time.monotonic() < deadline:
-        body = client.get(f"/api/ask/jobs/{job_id}", headers=headers).json()
+        body = client_with_ask_worker.get(f"/api/ask/jobs/{job_id}", headers=headers).json()
         if body["job_status_code"] in ("succeeded", "failed"):
             break
         _time.sleep(0.25)

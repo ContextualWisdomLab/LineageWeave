@@ -20,6 +20,8 @@ from __future__ import annotations
 
 from datetime import datetime
 from decimal import Decimal, InvalidOperation
+# Python >=3.12 is required by pyproject.toml.
+from importlib.resources import files  # nosemgrep: python.lang.compatibility.python37.python37-compatibility-importlib2
 from pathlib import Path
 from urllib.parse import quote
 from uuid import UUID
@@ -41,7 +43,9 @@ LW = Namespace("https://contextualwisdomlab.github.io/LineageWeave/ontology#")
 #: `common_lookup_value.lookup_code` string it corresponds to.
 LOOKUP_CODE = LW.lookupCode
 
-_ONTOLOGY_PATH = Path(__file__).resolve().parents[1] / "docs" / "ontology" / "lineageweave-kg.ttl"
+_SOURCE_ONTOLOGY_PATH = (
+    Path(__file__).resolve().parents[1] / "docs" / "ontology" / "lineageweave-kg.ttl"
+)
 
 
 def load_ontology() -> Graph:
@@ -52,7 +56,9 @@ def load_ontology() -> Graph:
     on import-time caching.
     """
     graph = Graph()
-    graph.parse(_ONTOLOGY_PATH, format="turtle")
+    packaged = files("lineageweave").joinpath("data", "lineageweave-kg.ttl")
+    ontology_path = _SOURCE_ONTOLOGY_PATH if _SOURCE_ONTOLOGY_PATH.is_file() else packaged
+    graph.parse(ontology_path, format="turtle")
     return graph
 
 

@@ -28,6 +28,7 @@ def test_lineage_endpoint_serves_the_reconstructed_graph_with_a_branch_point() -
             body = json.loads(response.read().decode("utf-8"))
     finally:
         server.shutdown()
+        server.server_close()
         thread.join(timeout=5)
 
     assert status == 200
@@ -48,6 +49,7 @@ def test_root_serves_the_static_viewer() -> None:
             body = response.read().decode("utf-8")
     finally:
         server.shutdown()
+        server.server_close()
         thread.join(timeout=5)
 
     assert status == 200
@@ -69,6 +71,7 @@ def test_path_traversal_is_rejected() -> None:
             raised = exc.code == 404
     finally:
         server.shutdown()
+        server.server_close()
         thread.join(timeout=5)
 
     assert raised

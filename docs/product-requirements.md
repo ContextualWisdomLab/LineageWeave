@@ -74,6 +74,9 @@ dangling endpoints fail closed; fixed input produces stable page boundaries.
 - Preserve source representation and derive ordered paragraph, list, table,
   formula, conversation-turn, and image-region semantic units.
 - Route embeddings, LLM, and VISION through contextual-orchestrator.
+- Let an authorized administrator enqueue only a bounded page of eligible,
+  incomplete posts into the durable worker ledger; acknowledge before model
+  work and recover a missing broker wake-up from PostgreSQL.
 - Apply authorization/time/process scope before ranking and again before
   response delivery.
 - Keep internal post citations separate from external public citations.
@@ -90,12 +93,31 @@ question phrase.
 
 - Show persisted operational cases, actions, commitments, delivery status,
   and similar-VOC evidence with extractive citations.
+- For claim investigation, rebid response, and handover, persist closed-vocabulary
+  milestones only when an authorized source span supports them. Report
+  open/resolved/evidence-missing counts and exact elapsed time only between two
+  observed endpoints; never invent an endpoint or delay threshold.
 - Preserve controls during loading and retry; discard responses from an
   earlier navigation scope.
 - Distinguish pending, unavailable, failed, incomplete, and succeeded states.
 
 Acceptance: each state tells the user the next valid action and never displays
-stale evidence from a previously opened post.
+stale evidence from a previously opened post. An open lifecycle has a cited
+start, a missing end, and nullable elapsed time; a resolved lifecycle links both
+endpoint sources and names the source clock used for each instant.
+
+### PRD-FR-5A — Ask answer evidence navigation
+
+- Link each numbered Ask citation to one authorized event card and preserve the
+  same number when cards are ordered by observed time.
+- Move focus citation-to-card and card-to-citation, then open the existing
+  evidence layer or full source post.
+- Name `event_occurred_at` or the `created_at` fallback; never turn chronology
+  into a project start, predecessor, branch, or recommended response.
+
+Acceptance: keyboard selection works in both directions, every card opens its
+authorized source, missing time stays explicit, and any commercial next action
+comes from the cited orchestrator answer rather than frontend inference.
 
 ### PRD-FR-5A — Opt-in public claim verification
 
@@ -215,13 +237,35 @@ A release claim requires one exact protected-main head that proves:
 7. synchronized PRD, ADR, architecture, API, changelog, and product-gap
    baseline.
 
+### 6.1 Product identity and evidence relationships
+
+The product must extract product mentions through contextual-orchestrator from
+authorized semantic source units, validate verbatim evidence, and resolve only
+against the normalized product catalog. Product group, model, variant, and
+trade-item identities preserve their hierarchy and scoped GTIN/MPN keys.
+Unique, tied, missing, and unavailable outcomes remain distinct. Product links
+to posts, projects, orders, sales pools, specification changes, claims, and
+external information reuse normalized evidence-bearing records and never
+derive identity from keywords, tags, weak source sentinels, or arbitrary
+similarity thresholds. Historical processing is bounded, asynchronous,
+digest-idempotent, and authorization-filtered when read.
+
+The source post voice scheme (`voc`, `vocc`, `voco`, `vom`, `vop`, `vos`,
+`voe`, `vob`, `vor`, `voi`, `voso`, `vops`) and post-scoped organization
+relationship scheme (`rel_voc`, `rel_vocc`, `rel_voco`, `rel_vom`, `rel_vop`,
+`rel_vos`) remain distinct. A post voice never assigns a relationship to every
+organization it names. Source and derived assertions coexist;
+multi-membership and disagreements are reported without forced selection.
+Authorized counts use the same period and organization/PU/team/person/product/
+project filters and disclose overlapping category totals.
+
 ## 7. Traceability
 
 - Product/data boundary: ADR 0001, ADR 0089.
 - Asynchronous delivery and database-pool isolation: ADR 0204, ADR 0213.
 - Knowledge Graph, ontology, and provenance: ADR 0004, ADR 0011, ADR 0065,
-  ADR 0184, ADR 0207, ADR 0222.
-- Semantic units and retrieval: ADR 0047, ADR 0062, ADR 0102, ADR 0217.
+  ADR 0184, ADR 0207, ADR 0228, ADR 0244, ADR 0246.
+- Semantic units and retrieval: ADR 0047, ADR 0062, ADR 0102.
 - LLM/model boundary: ADR 0070, ADR 0072, ADR 0076, ADR 0079.
 - Measurement: ADR 0003, ADR 0145, ADR 0200, ADR 0205.
 - UX and publication: ADR 0118, ADR 0159.
