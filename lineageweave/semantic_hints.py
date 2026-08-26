@@ -59,6 +59,9 @@ def format_semantic_hints(
     source_customer_catalog_name: str | None = None,
     source_project_code: str | None = None,
     source_project_name: str | None = None,
+    source_voc_type_code: str | None = None,
+    source_stage_code: str | None = None,
+    source_detail_state_code: str | None = None,
     source_context_present: bool = False,
 ) -> str:
     """Render source-field hints without upgrading them into assertions."""
@@ -183,6 +186,9 @@ def format_semantic_hints(
             f"source_customer_name_hint_trust={source_customer_name_trust}",
             f"source_project_code={_value(source_project_code)} [source_field=source_post.source_project_code]",
             f"source_project_name={_value(source_project_name)} [source_field=source_post.source_project_name]",
+            f"source_voc_type_code={_value(source_voc_type_code)} [source_field=source_post.voc_type_code]",
+            f"source_stage_code={_value(source_stage_code)} [source_field=source_post.source_stage_code]",
+            f"source_detail_state_code={_value(source_detail_state_code)} [source_field=source_post.source_detail_state_code]",
             *catalog_hints,
         )
     )

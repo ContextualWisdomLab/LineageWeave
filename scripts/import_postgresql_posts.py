@@ -14,7 +14,7 @@ import os
 import sys
 import uuid
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -52,12 +52,10 @@ _VOC_TYPE_ALIASES = {
 }
 
 
-def _normalize_voc_type(value: Any, *, mapped: bool) -> str:
+def _normalize_voc_type(value: Any) -> str:
     """Preserve the governed source VOC vocabulary as canonical target codes."""
     if value is None or not str(value).strip():
-        if mapped:
-            raise ValueError("mapped source VOC type is empty")
-        return "voc"
+        raise ValueError("mapped source VOC type is empty")
     normalized = _VOC_TYPE_ALIASES.get(str(value).strip().casefold())
     if normalized is None:
         raise ValueError(f"unsupported source VOC type {value!r}")
@@ -71,7 +69,7 @@ class ColumnMapping:
     record_key: str
     post_id: str | None
     title: str
-    body: str
+    body: str | None
     created_at: str
     updated_at: str | None
     event_occurred_at: str | None
@@ -112,14 +110,23 @@ def _parser() -> argparse.ArgumentParser:
         help="optional source UUID column for post_id; otherwise derive it from record key",
     )
     parser.add_argument("--title-column", required=True)
-    parser.add_argument("--body-column", required=True)
+    body_group = parser.add_mutually_exclusive_group(required=True)
+    body_group.add_argument("--body-column")
+    body_group.add_argument(
+        "--no-body-dimension-evidence",
+        default="",
+        help=(
+            "written evidence that the source export has no body dimension; "
+            "the title remains a title and no semantic body is invented"
+        ),
+    )
     parser.add_argument("--created-at-column", required=True)
     parser.add_argument("--updated-at-column")
     parser.add_argument(
         "--event-occurred-at-column",
         help="optional source-system event instant; Global Ask falls back to created_at when omitted",
     )
-    parser.add_argument("--voc-type-column")
+    parser.add_argument("--voc-type-column", required=True)
     parser.add_argument("--visibility-column")
     parser.add_argument("--stage-column")
     parser.add_argument("--detail-state-column")
@@ -197,7 +204,7 @@ def _value(row: Any, column: str | None, default: Any = None) -> Any:
     """Read an optional mapped field without guessing absent source data."""
     if column is None:
         return default
-    if column not in row.keys():
+    if column not in row:
         raise KeyError(f"source query did not return mapped column {column!r}")
     return row[column]
 
@@ -219,7 +226,7 @@ def _timestamp(value: Any) -> datetime:
     """Normalize a source timestamp for asyncpg timestamptz parameters."""
     if not isinstance(value, datetime):
         raise TypeError("created/updated source values must be datetime instances")
-    return value.replace(tzinfo=timezone.utc) if value.tzinfo is None else value
+    return value.replace(tzinfo=UTC) if value.tzinfo is None else value
 
 
 def _source_code_matches(
@@ -299,11 +306,6 @@ def _validate_publication_state(
                 "mapped draft column or --exclude-draft-value; pick one "
                 "publication-state door"
             )
-        if len(evidence) < 40:
-            raise ValueError(
-                "--no-draft-dimension-evidence must actually state the "
-                "evidence (at least 40 characters), not a placeholder"
-            )
         return
     if mapping.draft is None:
         raise ValueError("source draft status column is required for publication-state preflight")
@@ -319,11 +321,22 @@ def _validate_source_rows(
     excluded_draft_values: list[str],
     excluded_deleted_values: list[str],
     no_draft_dimension_evidence: str = "",
+    no_body_dimension_evidence: str = "",
 ) -> None:
     """Reject incomplete source evidence before the target is mutated."""
     _validate_publication_state(
         rows, mapping, excluded_draft_values, no_draft_dimension_evidence
     )
+    body_evidence = no_body_dimension_evidence.strip()
+    if mapping.body is None:
+        if not body_evidence:
+            raise ValueError(
+                "--no-body-dimension-evidence requires an operator evidence statement"
+            )
+    elif body_evidence:
+        raise ValueError(
+            "--no-body-dimension-evidence cannot be combined with a mapped body column"
+        )
     seen_record_keys: dict[str, int] = {}
     seen_post_ids: dict[uuid.UUID, int] = {}
     post_id_column = getattr(mapping, "post_id", None)
@@ -351,14 +364,13 @@ def _validate_source_rows(
                 )
             seen_post_ids[post_id] = row_number
         body = str(_value(row, mapping.body) or "")
-        if not body.strip():
+        if mapping.body is not None and not body.strip():
             raise ValueError(f"source post body cannot be empty at source row {row_number}")
         voc_type_column = getattr(mapping, "voc_type", None)
+        if voc_type_column is None:
+            raise ValueError("source VOC type column is required")
         try:
-            _normalize_voc_type(
-                _value(row, voc_type_column, "voc"),
-                mapped=voc_type_column is not None,
-            )
+            _normalize_voc_type(_value(row, voc_type_column))
         except ValueError as exc:
             raise ValueError(f"invalid source VOC type at source row {row_number}: {exc}") from exc
 
@@ -457,6 +469,7 @@ async def import_rows(args: argparse.Namespace) -> dict[str, object]:
             args.exclude_draft_value,
             args.exclude_deleted_value,
             args.no_draft_dimension_evidence,
+            args.no_body_dimension_evidence,
         )
         account_id, corporate_id, process_unit_id = await _ensure_scope(target, args)
         vision_client = orchestrator_vision_client(
@@ -504,10 +517,7 @@ async def import_rows(args: argparse.Namespace) -> dict[str, object]:
             post_id = _source_post_id(row, mapping, args.source_system_code, record_key)
             title = str(_value(row, mapping.title, "") or "")
             body = str(_value(row, mapping.body, "") or "")
-            voc_type_code = _normalize_voc_type(
-                _value(row, mapping.voc_type, "voc"),
-                mapped=mapping.voc_type is not None,
-            )
+            voc_type_code = _normalize_voc_type(_value(row, mapping.voc_type))
             (
                 source_thread_group_key,
                 source_secondary_grouping_key,
@@ -519,7 +529,8 @@ async def import_rows(args: argparse.Namespace) -> dict[str, object]:
                 record_key=record_key,
                 default_group=args.process_unit_code,
             )
-            await target.execute(
+            preserve_existing_body = mapping.body is None
+            effective_body = await target.fetchval(
                 """
                 insert into source_post
                     (post_id, author_account_id, corporate_entity_id, process_unit_id,
@@ -541,7 +552,10 @@ async def import_rows(args: argparse.Namespace) -> dict[str, object]:
                     corporate_entity_id = excluded.corporate_entity_id,
                     process_unit_id = excluded.process_unit_id,
                     post_title = excluded.post_title,
-                    post_body = excluded.post_body,
+                    post_body = case
+                        when $34 then source_post.post_body
+                        else excluded.post_body
+                    end,
                     voc_type_code = excluded.voc_type_code,
                     visibility_code = excluded.visibility_code,
                     source_stage_code = excluded.source_stage_code,
@@ -570,6 +584,7 @@ async def import_rows(args: argparse.Namespace) -> dict[str, object]:
                     created_at = excluded.created_at,
                     updated_at = excluded.updated_at,
                     event_occurred_at = excluded.event_occurred_at
+                returning post_body
                 """,
                 post_id,
                 account_id,
@@ -604,20 +619,7 @@ async def import_rows(args: argparse.Namespace) -> dict[str, object]:
                 created_at,
                 updated_at,
                 event_occurred_at,
-            )
-            await target.execute(
-                """
-                insert into source_post_revision (post_id, post_title, post_body, written_at, superseded_at)
-                select $1, $2, $3, $4, null
-                where not exists (
-                    select 1 from source_post_revision
-                    where post_id = $1 and written_at = $4 and superseded_at is null
-                )
-                """,
-                post_id,
-                title,
-                body,
-                updated_at,
+                preserve_existing_body,
             )
             metadata = build_post_llm_metadata(
                 str(post_id),
@@ -635,7 +637,7 @@ async def import_rows(args: argparse.Namespace) -> dict[str, object]:
                 await persist_post_content(
                     target,
                     str(post_id),
-                    body,
+                    effective_body,
                     vision_client=vision_client,
                     embedding_client=embedding_client,
                     structure_client=structure_client,
@@ -670,6 +672,10 @@ async def import_rows(args: argparse.Namespace) -> dict[str, object]:
         if args.no_draft_dimension_evidence.strip():
             summary["no_draft_dimension_evidence"] = (
                 args.no_draft_dimension_evidence.strip()
+            )
+        if args.no_body_dimension_evidence.strip():
+            summary["no_body_dimension_evidence"] = (
+                args.no_body_dimension_evidence.strip()
             )
         return summary
     finally:

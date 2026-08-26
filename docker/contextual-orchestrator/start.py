@@ -67,6 +67,7 @@ def main() -> None:
     for agent in agents["agents"]:
         agent["base_url"] = provider_url
         agent["credential_key"] = "LLM_GATEWAY_API_KEY"
+        agent["provider_name"] = "configured_gateway"
         agent.setdefault("provider_protocol", "auto")
     os.environ.pop("LLM_GATEWAY_EMBEDDING_MODEL", None)
     agents_path.write_text(json.dumps(agents), encoding="utf-8")
@@ -97,6 +98,16 @@ def main() -> None:
         "--max-body-bytes",
         str(max_body_bytes),
     ]
+    for allowed_host in sorted(
+        {
+            value.strip()
+            for value in os.environ.get(
+                "CONTEXTUAL_ORCHESTRATOR_ALLOWED_PROVIDER_HOSTS", ""
+            ).split(",")
+            if value.strip()
+        }
+    ):
+        sys.argv.extend(("--allowed-provider-host", allowed_host))
     del provider_url
     del auth_token
     from contextual_orchestrator.__main__ import main as serve

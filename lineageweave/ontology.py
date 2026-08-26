@@ -119,17 +119,59 @@ def ontology_node_iri(node_type_code: str, node_id: str) -> str:
     )
 
 
+def project_source_post_rdf(
+    *,
+    post_id: str,
+    post_title: str,
+    post_body: str,
+    post_created_at: datetime,
+    voc_type_code: str,
+    source_stage_code: str | None = None,
+    source_detail_state_code: str | None = None,
+) -> Graph:
+    """Project one authorized ``source_post`` row without interpreting raw codes."""
+    canonical_post_id = str(UUID(post_id))
+    if not post_title.strip():
+        raise ValueError("post_title must be non-empty")
+    if post_created_at.tzinfo is None or post_created_at.utcoffset() is None:
+        raise ValueError("post_created_at must be timezone-aware")
+    post_type = _term_subject(voc_type_code)
+    if post_type is None or (post_type, SKOS.inScheme, LW.postTypeScheme) not in ONTOLOGY:
+        raise ValueError("voc_type_code must name a governed post type")
+    post = URIRef(ontology_node_iri("node_post", canonical_post_id))
+    graph = Graph()
+    graph.bind("lw", LW)
+    graph.add((post, RDF.type, LW.Post))
+    graph.add((post, LW.postTitle, Literal(post_title)))
+    graph.add((post, LW.postBody, Literal(post_body)))
+    graph.add((post, LW.bodyAvailable, Literal(bool(post_body.strip()), datatype=XSD.boolean)))
+    graph.add((post, LW.hasPostType, post_type))
+    graph.add((post, LW.createdAt, Literal(post_created_at, datatype=XSD.dateTime)))
+    for predicate, value in (
+        (LW.sourceStageCode, source_stage_code),
+        (LW.sourceDetailStateCode, source_detail_state_code),
+    ):
+        if value is not None:
+            if not value.strip():
+                raise ValueError("source classification codes must be non-empty when provided")
+            graph.add((post, predicate, Literal(value)))
+    return graph
+
+
 def project_project_mention_rdf(
     *,
     post_id: str,
     post_title: str,
     post_body: str,
     post_created_at: datetime,
+    voc_type_code: str,
     project_key: str,
     project_name: str,
     evidence_text: str,
     confidence: Decimal | float | str,
     mention_created_at: datetime,
+    source_stage_code: str | None = None,
+    source_detail_state_code: str | None = None,
 ) -> Graph:
     """Project one authorized joined Post/Project-mention row to RDF.
 
@@ -141,8 +183,6 @@ def project_project_mention_rdf(
     if normalize_project_key(project_key) != project_key:
         raise ValueError("project_key must already be normalized")
     for field_name, value in (
-        ("post_title", post_title),
-        ("post_body", post_body),
         ("project_name", project_name),
         ("evidence_text", evidence_text),
     ):
@@ -167,13 +207,16 @@ def project_project_mention_rdf(
     mention = URIRef(
         LW[f"statement/project-mention/{canonical_post_id}/{quote(project_key, safe='')}"]
     )
-    graph = Graph()
-    graph.bind("lw", LW)
+    graph = project_source_post_rdf(
+        post_id=canonical_post_id,
+        post_title=post_title,
+        post_body=post_body,
+        post_created_at=post_created_at,
+        voc_type_code=voc_type_code,
+        source_stage_code=source_stage_code,
+        source_detail_state_code=source_detail_state_code,
+    )
     graph.bind("prov", PROV)
-    graph.add((post, RDF.type, LW.Post))
-    graph.add((post, LW.postTitle, Literal(post_title)))
-    graph.add((post, LW.postBody, Literal(post_body)))
-    graph.add((post, LW.createdAt, Literal(post_created_at, datatype=XSD.dateTime)))
     graph.add((project, RDF.type, LW.Project))
     graph.add((project, RDFS.label, Literal(project_name)))
     graph.add((post, LW.mentionsProject, project))
@@ -202,4 +245,5 @@ __all__ = [
     "ontology_node_iri",
     "ontology_annotations",
     "project_project_mention_rdf",
+    "project_source_post_rdf",
 ]
