@@ -56,9 +56,7 @@ def _call_ask(monkeypatch: pytest.MonkeyPatch, exc: BaseException) -> None:
             )
         )
     assert raised.value.status_code == 503
-    assert raised.value.detail == (
-        "Ask Agent is unavailable: contextual-orchestrator could not complete the answer"
-    )
+    assert raised.value.detail == "Ask Agent could not complete this question. Try again later."
 
 
 def test_global_ask_provider_failure_is_reader_safe_and_classified(
@@ -153,9 +151,7 @@ def test_global_ask_source_gather_failure_is_classified(
             )
         )
     assert raised.value.status_code == 503
-    assert raised.value.detail == (
-        "Ask Agent is unavailable: authorized evidence could not be assembled"
-    )
+    assert raised.value.detail == "Ask Agent could not complete this question. Try again later."
     record = next(
         item for item in caplog.records if item.msg == "lineageweave.server_failure"
     )

@@ -2,7 +2,11 @@
 
 ## Status
 
-Accepted
+Superseded by [ADR 0229](0229-public-claim-envelope.md)
+
+ADR 0229 replaces question-derived claim admission and forced orchestration
+modes with persisted typed claim envelopes and provider-neutral evidence
+retrieval. The remainder of this record is retained as historical context.
 
 ## Context
 

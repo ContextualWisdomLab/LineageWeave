@@ -79,6 +79,7 @@ flowchart LR
 | `commitment_extraction.py` | Pluggable LLM derivation of a customer commitment (promise + deadline) from a post; `Null` default, `ContextualOrchestrator` real impl |
 | `temporal_expressions.py` | Pure Korean relative-time resolver for Global Ask (ADR 0150) |
 | `ask_time_axis.py` | Event-time vs ingestion-time clock choice for that window (ADR 0202) |
+| `public_claim_verification.py` | Typed public-claim envelopes for Global Ask; opt-in SearXNG URLs stay off `cited_post_ids` (ADR 0229) |
 | `ontology.py` | Loads `docs/ontology/lineageweave-kg.ttl`, the formal OWL 2/RDFS/SKOS vocabulary for the Knowledge Graph's node/edge types (ADR 0004) |
 | `ontology_neighborhood.py` | Bounded typed ontology/provenance neighborhood (ADR 0184); PostgreSQL stays authoritative, OWL subclass is not an instance edge |
 | `ontology_source_cursor.py` | Opaque HMAC source-window continuation (ADR 0124); keyset pagination, never OFFSET |
@@ -86,18 +87,6 @@ flowchart LR
 | `fixtures.py` | Synthetic demo dataset -- no real data ships in this repo |
 | `server.py` | Legacy stdlib HTTP server for the library-level synthetic fixture demo; production uses FastAPI/PostgreSQL |
 | `web/index.html` | Legacy self-contained SVG DAG viewer; production UI is the React/Vite frontend |
-
-> **Known local-test-environment limitation:** `adjudication_client.py`'s
-> `mode="verify"` call depends on contextual-orchestrator's
-> `TaskOrchestrator.route_and_verify`, which as of this writing is still
-> an open, unmerged upstream PR
-> (`ContextualWisdomLab/contextual-orchestrator#149`). Until it merges,
-> the four adjudication/chat tests that exercise `mode="verify"` against
-> a real orchestrator fail with `invalid_mode` (the deployed `main` only
-> accepts `auto`/`route`/`conduct`) -- confirmed by reproducing the same
-> `400` directly against the orchestrator's own `/v1/chat/completions`,
-> not caused by anything in this repo. `mode="route"` (every other
-> pluggable client) is unaffected.
 
 ## Design decisions worth naming
 
@@ -234,6 +223,10 @@ Each direct edge includes `interval_relation_code` /
 Global Ask merges cited threads from one post/edge fetch pair and
 caps the payload at the landing node bound, keeping cited posts first
 (ADR 0169). Open a cited post to read the focused thread.
+Opt-in public-claim verification (ADR 0229) loads persisted
+egress-eligible envelopes only. External URLs stay off
+`cited_post_ids`. Missing search is unavailable, not a question-token
+query, and this repository never forces `mode="verify"`.
 `POST /api/lineage/rebuild` (`post_admin`) re-runs `reconstruct()` over
 every `source_post` and atomically rewrites edges, channel signals, and
 Allen interval relations. Reconstruct grouping is

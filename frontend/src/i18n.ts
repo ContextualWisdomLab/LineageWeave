@@ -191,7 +191,6 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Enable public verification to check eligible public claims.": "검증 가능한 공개 주장을 확인하려면 공개 자료 검증을 켜세요.",
     "Configure public search and contextual-orchestrator, then retry.": "공개 검색과 contextual-orchestrator를 구성한 후 다시 시도하세요.",
     "Inspect the internal cited posts; no public claim was eligible.": "검증 가능한 공개 주장이 없으므로 내부 인용 글을 확인하세요.",
-    "Inspect public evidence separately before any governed graph review.": "거버넌스 그래프 검토 전에 공개 근거를 별도로 확인하세요.",
     "Collect stronger authoritative evidence before accepting the claim.": "주장을 받아들이기 전에 더 강한 권위 있는 근거를 확보하세요.",
     "Inspect the authorized cited posts and their evidence.": "권한이 있는 인용 글과 근거를 확인하세요.",
     "Review unavailable historical channels before relying on this cutoff answer.": "이 컷오프 답변을 사용하기 전에 사용할 수 없는 과거 채널을 검토하세요.",
@@ -200,6 +199,34 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Asking...": "질의 중...",
     Answer: "답변",
     "Cited posts": "인용된 글",
+    "Open a cited post to review the evidence behind this answer.":
+      "인용된 글을 열어 이 답변의 근거를 확인하세요.",
+    "Public claim results disagree. Open each cited post to review the evidence.":
+      "공개 주장 검증 결과가 서로 다릅니다. 인용된 글을 하나씩 열어 근거를 확인하세요.",
+    "Only authorized public claims are sent for web verification. Other workspace evidence is not sent.":
+      "권한이 있는 공개 주장만 웹 검증에 전송합니다. 작업공간의 다른 근거는 전송하지 않습니다.",
+    "Public claims": "공개 주장",
+    "Recorded claim": "기록된 주장",
+    "Status unavailable": "상태를 확인할 수 없음",
+    "Open public claim: {title}": "공개 주장 열기: {title}",
+    "Open this post so the public claim is current.": "공개 주장이 현재 글이 되도록 이 글을 여세요.",
+    "Organization presence": "조직 존재",
+    "Public event": "공개 사건",
+    "Public relationship": "공개 관계",
+    Supported: "지지됨",
+    Refuted: "반박됨",
+    "Not enough information": "정보 부족",
+    Unavailable: "사용할 수 없음",
+    "Public web evidence": "공개 웹 근거",
+    "Public web verification is unavailable. Open that post or try verification again later.":
+      "공개 웹 검증을 사용할 수 없습니다. 그 글을 열거나 나중에 다시 검증하세요.",
+    "No usable public web evidence. Open that post.":
+      "사용할 수 있는 공개 웹 근거가 없습니다. 그 글을 여세요.",
+    "Public web evidence supports this claim. Open that post.":
+      "공개 웹 근거가 이 주장을 지지합니다. 그 글을 여세요.",
+    "Public claim is on {title}. Open that post.": "공개 주장은 {title}에 있습니다. 그 글을 여세요.",
+    "No authorized public claims are available to verify. Turn off web verification and ask again.":
+      "검증할 수 있는 권한 있는 공개 주장이 없습니다. 웹 검증을 끄고 다시 질문하세요.",
     "Report · alert · MCP": "리포트 · 알림 · MCP",
     "{count} evidence documents are linked to this report.": "근거 문서 {count}건이 리포트에 연결됐습니다.",
     "You can subscribe to evidence-change alerts.": "근거 변경 알림을 구독할 수 있습니다.",
@@ -718,7 +745,6 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Enable public verification to check eligible public claims.": "启用公开资料核验以检查符合条件的声明。",
     "Configure public search and contextual-orchestrator, then retry.": "配置公开搜索和 contextual-orchestrator 后重试。",
     "Inspect the internal cited posts; no public claim was eligible.": "没有符合条件的公开声明，请检查内部引用文章。",
-    "Inspect public evidence separately before any governed graph review.": "在治理图谱审查前单独检查公开证据。",
     "Collect stronger authoritative evidence before accepting the claim.": "接受该声明前，请收集更有力的权威证据。",
     "Inspect the authorized cited posts and their evidence.": "检查已获授权的引用文章及其证据。",
     "Review unavailable historical channels before relying on this cutoff answer.": "依赖此截止时间答案前，请检查不可用的历史渠道。",
@@ -727,6 +753,33 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Asking...": "正在提问...",
     Answer: "回答",
     "Cited posts": "引用文章",
+    "Open a cited post to review the evidence behind this answer.":
+      "打开引用的文章，查看此回答所依据的证据。",
+    "Public claim results disagree. Open each cited post to review the evidence.":
+      "公开声明的核验结果不一致。请逐一打开引用文章查看证据。",
+    "Only authorized public claims are sent for web verification. Other workspace evidence is not sent.":
+      "仅将已授权的公开主张发送用于网络核验。不会发送工作区中的其他证据。",
+    "Public claims": "公开主张",
+    "Recorded claim": "已记录声明",
+    "Status unavailable": "状态不可用",
+    "Open public claim: {title}": "打开公开主张：{title}",
+    "Open this post so the public claim is current.": "打开这篇文章，使该公开主张成为当前项。",
+    "Organization presence": "组织存在",
+    "Public event": "公开事件",
+    "Public relationship": "公开关系",
+    Supported: "支持",
+    Refuted: "反驳",
+    "Not enough information": "信息不足",
+    Unavailable: "不可用",
+    "Public web evidence": "公开网络证据",
+    "Public web verification is unavailable. Open that post or try verification again later.":
+      "公开网络核验暂不可用。请打开该文章或稍后重试核验。",
+    "No usable public web evidence. Open that post.": "没有可用的公开网络证据。打开那篇文章。",
+    "Public web evidence supports this claim. Open that post.":
+      "公开网络证据支持这一主张。打开那篇文章。",
+    "Public claim is on {title}. Open that post.": "公开主张在 {title}。打开那篇文章。",
+    "No authorized public claims are available to verify. Turn off web verification and ask again.":
+      "没有可核验的已授权公开主张。请关闭网络核验后再次提问。",
     "Search related posts": "搜索相关文章",
     "Search related posts for: {name}": "搜索与{name}相关的文章",
     "Evidence facts": "证据事实",
@@ -1261,7 +1314,6 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Enable public verification to check eligible public claims.": "対象となる主張を確認するには公開検証を有効にしてください。",
     "Configure public search and contextual-orchestrator, then retry.": "公開検索と contextual-orchestrator を設定して再試行してください。",
     "Inspect the internal cited posts; no public claim was eligible.": "対象となる公開主張がないため、内部の引用投稿を確認してください。",
-    "Inspect public evidence separately before any governed graph review.": "管理対象グラフをレビューする前に公開証拠を別途確認してください。",
     "Collect stronger authoritative evidence before accepting the claim.": "主張を受け入れる前に、より強い権威ある証拠を集めてください。",
     "Inspect the authorized cited posts and their evidence.": "許可された引用投稿とその証拠を確認してください。",
     "Review unavailable historical channels before relying on this cutoff answer.": "このカットオフ回答を利用する前に、利用できない履歴チャネルを確認してください。",
@@ -1270,6 +1322,34 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Asking...": "質問中...",
     Answer: "回答",
     "Cited posts": "引用された投稿",
+    "Open a cited post to review the evidence behind this answer.":
+      "引用された投稿を開いて、この回答の根拠を確認してください。",
+    "Public claim results disagree. Open each cited post to review the evidence.":
+      "公開主張の検証結果が一致しません。引用された投稿を一つずつ開いて根拠を確認してください。",
+    "Only authorized public claims are sent for web verification. Other workspace evidence is not sent.":
+      "権限のある公開主張だけをウェブ検証に送信します。ワークスペース内の他の証拠は送信しません。",
+    "Public claims": "公開主張",
+    "Recorded claim": "記録された主張",
+    "Status unavailable": "状態を確認できません",
+    "Open public claim: {title}": "公開主張を開く: {title}",
+    "Open this post so the public claim is current.": "この公開主張が現在の投稿になるように開いてください。",
+    "Organization presence": "組織の存在",
+    "Public event": "公開イベント",
+    "Public relationship": "公開関係",
+    Supported: "支持",
+    Refuted: "反駁",
+    "Not enough information": "情報不足",
+    Unavailable: "利用不可",
+    "Public web evidence": "公開ウェブ証拠",
+    "Public web verification is unavailable. Open that post or try verification again later.":
+      "公開ウェブ検証を利用できません。その投稿を開くか、後でもう一度検証してください。",
+    "No usable public web evidence. Open that post.":
+      "利用できる公開ウェブ証拠がありません。その投稿を開いてください。",
+    "Public web evidence supports this claim. Open that post.":
+      "公開ウェブ証拠がこの主張を支持します。その投稿を開いてください。",
+    "Public claim is on {title}. Open that post.": "公開主張は {title} にあります。その投稿を開いてください。",
+    "No authorized public claims are available to verify. Turn off web verification and ask again.":
+      "検証できる権限済みの公開主張がありません。ウェブ検証をオフにして、もう一度質問してください。",
     "Search related posts": "関連投稿を検索",
     "Search related posts for: {name}": "{name}の関連投稿を検索",
     "Evidence facts": "証拠の事実",
@@ -1783,7 +1863,6 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Enable public verification to check eligible public claims.": "Bật xác minh công khai để kiểm tra các tuyên bố đủ điều kiện.",
     "Configure public search and contextual-orchestrator, then retry.": "Cấu hình tìm kiếm công khai và contextual-orchestrator rồi thử lại.",
     "Inspect the internal cited posts; no public claim was eligible.": "Không có tuyên bố công khai đủ điều kiện; hãy xem các bài viết nội bộ được trích dẫn.",
-    "Inspect public evidence separately before any governed graph review.": "Kiểm tra riêng bằng chứng công khai trước khi rà soát đồ thị được quản trị.",
     "Collect stronger authoritative evidence before accepting the claim.": "Thu thập bằng chứng có thẩm quyền mạnh hơn trước khi chấp nhận tuyên bố.",
     "Inspect the authorized cited posts and their evidence.": "Kiểm tra các bài viết được trích dẫn đã cấp quyền và bằng chứng của chúng.",
     "Review unavailable historical channels before relying on this cutoff answer.": "Xem lại các kênh lịch sử không khả dụng trước khi dựa vào câu trả lời tại mốc cắt này.",
@@ -1792,6 +1871,35 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Asking...": "Đang hỏi...",
     Answer: "Câu trả lời",
     "Cited posts": "Bài viết được trích dẫn",
+    "Open a cited post to review the evidence behind this answer.":
+      "Mở một bài viết được trích dẫn để xem bằng chứng cho câu trả lời này.",
+    "Public claim results disagree. Open each cited post to review the evidence.":
+      "Kết quả xác minh tuyên bố công khai không thống nhất. Hãy mở từng bài viết được trích dẫn để xem bằng chứng.",
+    "Only authorized public claims are sent for web verification. Other workspace evidence is not sent.":
+      "Chỉ các tuyên bố công khai được cấp quyền mới được gửi để xác minh trên web. Bằng chứng khác trong không gian làm việc không được gửi đi.",
+    "Public claims": "Tuyên bố công khai",
+    "Recorded claim": "Tuyên bố đã ghi nhận",
+    "Status unavailable": "Không có trạng thái",
+    "Open public claim: {title}": "Mở tuyên bố công khai: {title}",
+    "Open this post so the public claim is current.":
+      "Mở bài viết này để tuyên bố công khai trở thành mục hiện tại.",
+    "Organization presence": "Sự hiện diện của tổ chức",
+    "Public event": "Sự kiện công khai",
+    "Public relationship": "Quan hệ công khai",
+    Supported: "Được hỗ trợ",
+    Refuted: "Bị bác bỏ",
+    "Not enough information": "Không đủ thông tin",
+    Unavailable: "Không khả dụng",
+    "Public web evidence": "Bằng chứng web công khai",
+    "Public web verification is unavailable. Open that post or try verification again later.":
+      "Xác minh web công khai hiện không khả dụng. Hãy mở bài viết đó hoặc thử xác minh lại sau.",
+    "No usable public web evidence. Open that post.":
+      "Không có bằng chứng web công khai khả dụng. Mở bài viết đó.",
+    "Public web evidence supports this claim. Open that post.":
+      "Bằng chứng web công khai hỗ trợ tuyên bố này. Mở bài viết đó.",
+    "Public claim is on {title}. Open that post.": "Tuyên bố công khai nằm ở {title}. Mở bài viết đó.",
+    "No authorized public claims are available to verify. Turn off web verification and ask again.":
+      "Không có tuyên bố công khai được cấp quyền để xác minh. Hãy tắt xác minh web và hỏi lại.",
     "Search related posts": "Tìm bài viết liên quan",
     "Search related posts for: {name}": "Tìm bài viết liên quan đến {name}",
     "Evidence facts": "Sự kiện bằng chứng",

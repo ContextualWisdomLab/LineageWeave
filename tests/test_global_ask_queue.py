@@ -5,11 +5,12 @@ from __future__ import annotations
 import asyncio
 from contextlib import asynccontextmanager
 from datetime import UTC, datetime
+from types import SimpleNamespace
+
+import pytest
 
 from backend.app import global_ask_queue
 from backend.app.global_ask_queue import load_job_visibility
-from lineageweave import claim_verification as cv
-from lineageweave.post_chat import ChatSourceDocument
 
 
 class _AvailableClient:
@@ -45,131 +46,6 @@ def _queued_row() -> dict[str, object]:
         "verify_external_requested": False,
         "knowledge_cutoff": None,
     }
-
-
-class _VerificationClient:
-    available = True
-
-    def __init__(self) -> None:
-        self.calls = 0
-
-    def verify(self, claim: cv.PublicClaimCandidate) -> cv.ClaimVerificationResult:
-        self.calls += 1
-        return cv.ClaimVerificationResult(
-            claim_text=claim.claim_text,
-            claim_kind=claim.claim_kind,
-            status_code=cv.CLAIM_SUPPORTED,
-            rationale="Public evidence supports this claim.",
-            source_post_ids=claim.source_post_ids,
-            evidence=(
-                cv.ExternalEvidenceDocument(
-                    "Public source", "https://example.com/evidence", "Evidence"
-                ),
-            ),
-        )
-
-
-def test_public_verification_requires_public_capability_and_internal_citation() -> None:
-    """Private facts and uncited public facts never reach external search."""
-
-    client = _VerificationClient()
-    private_source = ChatSourceDocument(
-        "private-post",
-        "Private",
-        "Private body",
-        evidence_facts=("project: Apollo | evidence: private",),
-    )
-    public_source = cv.GlobalAskSourceDocument(
-        "public-post",
-        "Public",
-        "Public body",
-        external_claim_facts=("project: Apollo | evidence: public",),
-    )
-
-    private_status, private_results = asyncio.run(
-        global_ask_queue._verify_public_claims(
-            "Apollo",
-            [private_source],
-            ["private-post"],
-            verify_external=True,
-            client=client,
-        )
-    )
-    uncited_status, uncited_results = asyncio.run(
-        global_ask_queue._verify_public_claims(
-            "Apollo",
-            [public_source],
-            [],
-            verify_external=True,
-            client=client,
-        )
-    )
-
-    assert private_status == cv.VERIFICATION_NO_PUBLIC_CLAIMS
-    assert uncited_status == cv.VERIFICATION_NO_PUBLIC_CLAIMS
-    assert private_results == uncited_results == ()
-    assert client.calls == 0
-
-
-def test_public_verification_keeps_external_urls_out_of_internal_citations() -> None:
-    """A verified URL remains external evidence, never a cited post id."""
-
-    client = _VerificationClient()
-    source = cv.GlobalAskSourceDocument(
-        "public-post",
-        "Public",
-        "Public body",
-        external_claim_facts=("project: Apollo | evidence: public",),
-    )
-
-    status_code, results = asyncio.run(
-        global_ask_queue._verify_public_claims(
-            "Apollo",
-            [source],
-            ["public-post"],
-            verify_external=True,
-            client=client,
-        )
-    )
-
-    assert status_code == cv.VERIFICATION_COMPLETED
-    assert results[0].source_post_ids == ("public-post",)
-    assert results[0].evidence[0].url == "https://example.com/evidence"
-    assert results[0].evidence[0].url not in results[0].source_post_ids
-
-
-def test_malformed_public_verification_is_unavailable() -> None:
-    """Malformed provider/search envelopes do not discard a completed answer."""
-    source = cv.GlobalAskSourceDocument(
-        "public-post",
-        "Public",
-        "Public body",
-        external_claim_facts=("project: Apollo | evidence: public",),
-    )
-
-    for error in (
-        IndexError("empty choices"),
-        AttributeError("invalid search body"),
-        RuntimeError("provider adapter failed"),
-    ):
-        class MalformedClient:
-            available = True
-
-            def verify(self, _claim):
-                raise error
-
-        status_code, results = asyncio.run(
-            global_ask_queue._verify_public_claims(
-                "Apollo",
-                [source],
-                ["public-post"],
-                verify_external=True,
-                client=MalformedClient(),
-            )
-        )
-
-        assert status_code == cv.VERIFICATION_UNAVAILABLE
-        assert results == ()
 
 
 def test_question_embedding_finishes_before_global_ask_acquires_a_pool_slot(
@@ -363,6 +239,46 @@ def test_unavailable_question_embedding_is_not_called(monkeypatch) -> None:
     assert payload["source_post_ids"] == []
 
 
+def test_plain_answer_guides_the_reader_to_its_cited_evidence(monkeypatch) -> None:
+    """A completed ordinary Ask answer always gives a useful next action."""
+    source = SimpleNamespace(post_id="post-demo", historical_body_unavailable=False)
+
+    async def fake_gather(*_args, **_kwargs):
+        return [source]
+
+    class ChatClient:
+        def answer(self, *_args):
+            return SimpleNamespace(
+                answer_text="Synthetic answer", cited_post_ids=("post-demo",)
+            )
+
+    monkeypatch.setattr(global_ask_queue, "gather_global_chat_sources", fake_gather)
+    monkeypatch.setattr(global_ask_queue, "cited_post_summaries", lambda *_args: [])
+    monkeypatch.setattr(global_ask_queue, "cited_post_evidence", lambda *_args: [])
+
+    async def empty_lineage(*_args):
+        return {"nodes": [], "edges": [], "truncated": False}
+
+    async def empty_images(*_args):
+        return []
+
+    monkeypatch.setattr(global_ask_queue, "lineage_graphs_for_posts", empty_lineage)
+    monkeypatch.setattr(global_ask_queue, "cited_post_images", empty_images)
+
+    payload = asyncio.run(
+        global_ask_queue.compute_global_ask_answer(
+            _Pool(_Connection(None)),
+            question_text="What changed?",
+            corporate_entity_ids=set(),
+            process_unit_ids=set(),
+            process_scope_limited=False,
+            chat_client=ChatClient(),
+        )
+    )
+
+    assert payload["next_action"] == "Open a cited post to review the evidence behind this answer."
+
+
 def test_unexpected_job_failure_settles_with_a_generic_detail_not_the_raw_exception(
     monkeypatch,
 ) -> None:
@@ -398,9 +314,7 @@ def test_unexpected_job_failure_settles_with_a_generic_detail_not_the_raw_except
     assert "failure_detail" in settle_query
     failure_detail = settle_args[-1]
     assert secret_bearing_message not in failure_detail
-    assert failure_detail == (
-        "Ask Agent is unavailable: contextual-orchestrator returned no complete evidence object"
-    )
+    assert failure_detail == "Ask Agent could not complete this question. Try again later."
 
 
 def test_permission_and_connection_errors_keep_their_pre_authored_safe_message(
@@ -463,7 +377,7 @@ def test_job_deadline_timeout_settles_with_a_specific_but_still_generic_detail(
     )
 
     _settle_query, settle_args = connection.executed[-1]
-    assert settle_args[-1] == f"job exceeded the {global_ask_queue.JOB_DEADLINE_SECONDS}s deadline"
+    assert settle_args[-1] == "Ask Agent took too long to answer. Try the question again."
 
 
 def test_job_visibility_never_expands_past_queued_scope() -> None:
@@ -494,3 +408,216 @@ def test_job_visibility_never_expands_past_queued_scope() -> None:
     assert processes == {"queued-process"}
     assert process_scope_limited is True
     assert has_post_read is True
+
+
+def test_process_global_ask_job_forwards_opt_in_verify_external(monkeypatch) -> None:
+    """Opt-in is persisted on the job row and must reach answer assembly."""
+    connection = _Connection({**_queued_row(), "verify_external_requested": True})
+    pool = _Pool(connection)
+    captured: dict[str, object] = {}
+
+    async def _fake_load_job_visibility(_conn, _job_id, _account_id):
+        return {"corp-1"}, set(), False, True
+
+    async def _fake_compute_global_ask_answer(*_args, **kwargs):
+        captured.update(kwargs)
+        return {
+            "answer_text": "synthetic",
+            "cited_post_ids": [],
+            "cited_posts": [],
+            "source_post_ids": [],
+        }
+
+    monkeypatch.setattr(global_ask_queue, "load_job_visibility", _fake_load_job_visibility)
+    monkeypatch.setattr(
+        global_ask_queue, "compute_global_ask_answer", _fake_compute_global_ask_answer
+    )
+
+    asyncio.run(
+        global_ask_queue.process_global_ask_job(
+            pool,
+            job_id="job-1",
+            chat_factory=_AvailableClient,
+        )
+    )
+
+    assert captured["verify_external"] is True
+    assert captured["claim_search_client"] is not None
+
+
+def test_process_global_ask_job_does_not_build_search_client_without_opt_in(
+    monkeypatch,
+) -> None:
+    """Ordinary Ask jobs must not initialize the unused public-search boundary."""
+    connection = _Connection({**_queued_row(), "verify_external_requested": False})
+    pool = _Pool(connection)
+    captured: dict[str, object] = {}
+
+    async def _fake_load_job_visibility(_conn, _job_id, _account_id):
+        return {"corp-1"}, set(), False, True
+
+    async def _fake_compute_global_ask_answer(*_args, **kwargs):
+        captured.update(kwargs)
+        return {"answer_text": "synthetic", "cited_post_ids": []}
+
+    monkeypatch.setattr(global_ask_queue, "load_job_visibility", _fake_load_job_visibility)
+    monkeypatch.setattr(
+        global_ask_queue, "compute_global_ask_answer", _fake_compute_global_ask_answer
+    )
+    monkeypatch.setattr(
+        global_ask_queue,
+        "_public_claim_search_client",
+        lambda: pytest.fail("search client must stay lazy when verification is off"),
+    )
+
+    asyncio.run(
+        global_ask_queue.process_global_ask_job(
+            pool,
+            job_id="job-1",
+            chat_factory=_AvailableClient,
+        )
+    )
+
+    assert captured["verify_external"] is False
+    assert captured["claim_search_client"] is None
+
+
+def test_missing_public_claim_table_fails_startup_contract() -> None:
+    """Application code must not hide a volume that has not replayed 0224."""
+    import asyncpg
+
+    class _MissingTable:
+        async def fetch(self, *_args: object, **_kwargs: object):
+            raise asyncpg.UndefinedTableError("public_claim_envelope")
+
+    with pytest.raises(asyncpg.UndefinedTableError):
+        asyncio.run(
+            global_ask_queue.load_authorized_public_claim_envelopes(
+                _MissingTable(), lambda _row: True
+            )
+        )
+
+
+def test_public_claim_loader_drops_unauthorized_and_ineligible_rows() -> None:
+    class _Rows:
+        async def fetch(self, query: str, *_args: object, **_kwargs: object):
+            assert "post.source_draft_code" in query
+            assert "post.source_deleted_flag" in query
+            return [
+                {
+                    "public_claim_envelope_id": "env-1",
+                    "source_post_id": "post-demo-public",
+                    "source_post_title": "Demo public post",
+                    "claim_kind_code": "claim_organization_presence",
+                    "subject_label": "Northridge Grid",
+                    "claim_text": "Northridge Grid is a power utility.",
+                    "truth_status_code": "truth_observed",
+                    "event_occurred_at": None,
+                    "egress_eligible": True,
+                    "visibility_code": "public",
+                    "corporate_entity_id": "corp-1",
+                    "process_unit_id": "pu-1",
+                },
+                {
+                    "public_claim_envelope_id": "env-hidden",
+                    "source_post_id": "post-hidden",
+                    "source_post_title": "Hidden post",
+                    "claim_kind_code": "claim_organization_presence",
+                    "subject_label": "Northridge Grid",
+                    "claim_text": "should not dispatch",
+                    "truth_status_code": "truth_observed",
+                    "event_occurred_at": None,
+                    "egress_eligible": True,
+                    "visibility_code": "public",
+                    "corporate_entity_id": "corp-hidden",
+                    "process_unit_id": "pu-hidden",
+                },
+            ]
+
+    envelopes = asyncio.run(
+        global_ask_queue.load_authorized_public_claim_envelopes(
+            _Rows(),
+            lambda row: row["source_post_id"] == "post-demo-public",
+        )
+    )
+    assert len(envelopes) == 1
+    assert envelopes[0].source_post_id == "post-demo-public"
+
+
+def test_public_claim_loader_binds_the_knowledge_cutoff() -> None:
+    """Historical Ask cannot verify envelopes or posts created after its cutoff."""
+    cutoff = datetime(2026, 1, 2, tzinfo=UTC)
+
+    class _Rows:
+        async def fetch(self, query: str, *args: object, **_kwargs: object):
+            assert "envelope.created_at <= $1" in query
+            assert "post.created_at <= $1" in query
+            assert args == (cutoff,)
+            return []
+
+    envelopes = asyncio.run(
+        global_ask_queue.load_authorized_public_claim_envelopes(
+            _Rows(), lambda _row: True, knowledge_cutoff=cutoff
+        )
+    )
+    assert envelopes == ()
+
+
+def test_public_claim_search_client_is_null_when_searxng_is_unset(monkeypatch) -> None:
+    monkeypatch.setattr(
+        "backend.app.config.load_settings",
+        lambda: type("Settings", (), {"searxng_base_url": ""})(),
+    )
+    client = global_ask_queue._public_claim_search_client()
+    assert client.available is False
+
+
+def test_empty_sources_still_attach_opt_in_public_claim_verification(monkeypatch) -> None:
+    class _PoolWithConn:
+        @asynccontextmanager
+        async def acquire(self):
+            yield object()
+
+    async def _no_sources(*_args, **_kwargs):
+        return []
+
+    async def _envelopes(*_args, **_kwargs):
+        from lineageweave.public_claim_verification import (
+            KIND_ORGANIZATION_PRESENCE,
+            PublicClaimEnvelope,
+        )
+
+        return (
+            PublicClaimEnvelope(
+                public_claim_envelope_id="env-1",
+                source_post_id="post-demo-public",
+                source_post_title="Demo public post",
+                claim_kind_code=KIND_ORGANIZATION_PRESENCE,
+                subject_label="Northridge Grid",
+                claim_text="Northridge Grid is a power utility named on the Demo public post.",
+                truth_status_code="truth_observed",
+                event_occurred_at=None,
+                egress_eligible=True,
+                visibility_code="public",
+            ),
+        )
+
+    monkeypatch.setattr(global_ask_queue, "gather_global_chat_sources", _no_sources)
+    monkeypatch.setattr(
+        global_ask_queue, "load_authorized_public_claim_envelopes", _envelopes
+    )
+    payload = asyncio.run(
+        global_ask_queue.compute_global_ask_answer(
+            _PoolWithConn(),
+            question_text="Does Northridge Grid exist?",
+            corporate_entity_ids=set(),
+            process_unit_ids=set(),
+            process_scope_limited=False,
+            chat_client=_AvailableClient(),
+            verify_external=True,
+        )
+    )
+    assert payload["public_claim_verification"]["status_code"] == "claim_unavailable"
+    assert payload["public_claim_verification"]["claims"]
+    assert payload["next_action"] == "No authorized source posts are available for this question."
+    assert payload["public_claim_verification"]["next_action"]

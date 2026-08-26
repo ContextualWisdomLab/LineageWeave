@@ -44,24 +44,22 @@ describe("AskAgentPanel public verification", () => {
               }],
               cited_post_evidence: [],
               source_post_ids: ["post-1"],
-              external_verification_status: "external_verification_completed",
-              external_claims: [
-                {
-                  claim_text: "project: Apollo",
-                  claim_kind: "semantic_project",
+              public_claim_verification: {
+                status_code: "claim_supported",
+                next_action: "Public web evidence supports this claim. Open that post.",
+                claims: [{
+                  public_claim_envelope_id: "claim-1",
+                  source_post_id: "post-1",
+                  source_post_title: "Internal Apollo post",
+                  claim_kind_code: "claim_public_event",
+                  subject_label: "Apollo",
+                  claim_text: "Apollo is described by the public post.",
                   status_code: "claim_supported",
-                  rationale: "A bounded public source corroborates the claim.",
-                  source_post_ids: ["post-1"],
-                  evidence: [
-                    {
-                      title: "Public Apollo evidence",
-                      url: "https://example.com/apollo",
-                      snippet: "Apollo is a project.",
-                    },
-                  ],
-                },
-              ],
-              next_action: "Inspect public evidence separately before any governed graph review.",
+                  external_evidence_urls: ["https://example.com/apollo"],
+                  next_action: "Public web evidence supports this claim. Open that post.",
+                }],
+              },
+              next_action: "Open a cited post to review the evidence behind this answer.",
               knowledge_cutoff: "2026-01-15T03:00:00Z",
               grounding_status: "fully_cutoff_grounded",
               limitations: [],
@@ -90,9 +88,12 @@ describe("AskAgentPanel public verification", () => {
       verify_external: true,
       knowledge_cutoff: new Date("2026-01-15T12:00").toISOString(),
     });
-    expect(screen.getByRole("region", { name: "Public verification" })).toBeInTheDocument();
-    expect(screen.getByText("Supported by public evidence")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Public Apollo evidence" })).toHaveAttribute(
+    expect(screen.getByLabelText("Public claims")).toBeInTheDocument();
+    expect(
+      screen.getAllByText("Public web evidence supports this claim. Open that post."),
+    ).toHaveLength(2);
+    expect(screen.getByText("Supported")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "https://example.com/apollo" })).toHaveAttribute(
       "href",
       "https://example.com/apollo",
     );

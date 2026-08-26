@@ -34,11 +34,6 @@ from fastapi import Depends, FastAPI, HTTPException, Query, status
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
-from lineageweave.claim_verification import (
-    NullClaimVerificationClient,
-    SearxngOrchestratedClaimVerificationClient,
-)
-
 from backend.app.activity_stream import (
     create_valkey_client,
     get_valkey,
@@ -305,7 +300,6 @@ async def lifespan(app: FastAPI):
                 ),
                 embedding_factory=_embedding_client,
                 semantic_query_factory=_semantic_query_client,
-                claim_verification_factory=_claim_verification_client_factory,
             )
         )
         app.state.global_ask_worker = global_ask_worker
@@ -380,28 +374,6 @@ def _relation_verification_client():
     if not settings.searxng_base_url:
         return NullRelationVerificationClient()
     return SearxngRelationVerificationClient(base_url=settings.searxng_base_url)
-
-
-def _claim_verification_client():
-    """Return the public-evidence verifier, or its unavailable null channel."""
-
-    settings = load_settings()
-    if not (
-        settings.searxng_base_url
-        and settings.orchestrator_base_url
-        and settings.orchestrator_api_key
-    ):
-        return NullClaimVerificationClient()
-    return SearxngOrchestratedClaimVerificationClient(
-        settings.searxng_base_url,
-        settings.orchestrator_base_url,
-        settings.orchestrator_api_key,
-    )
-
-
-def _claim_verification_client_factory():
-    """Resolve the verifier late so runtime overrides reach the worker."""
-    return _claim_verification_client()
 
 
 def _organization_name_resolution_client():

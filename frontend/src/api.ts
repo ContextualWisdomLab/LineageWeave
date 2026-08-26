@@ -374,8 +374,7 @@ export interface AskAgentResponse {
   cited_post_evidence?: CitedPostEvidence[];
   cited_post_images?: CitedPostImage[];
   source_post_ids: string[];
-  external_verification_status?: string;
-  external_claims?: ExternalClaim[];
+  public_claim_verification?: PublicClaimVerification;
   next_action?: string;
   knowledge_cutoff?: string | null;
   grounding_status?: "live_only" | "fully_cutoff_grounded" | "partially_cutoff_grounded";
@@ -407,19 +406,22 @@ export interface AskAgentResponse {
   };
 }
 
-export interface ExternalClaimEvidence {
-  title: string;
-  url: string;
-  snippet: string;
+export interface PublicClaimVerdict {
+  public_claim_envelope_id: string;
+  source_post_id: string;
+  source_post_title: string;
+  claim_kind_code: string;
+  subject_label: string;
+  claim_text: string;
+  status_code: string;
+  external_evidence_urls: string[];
+  next_action: string;
 }
 
-export interface ExternalClaim {
-  claim_text: string;
-  claim_kind: string;
+export interface PublicClaimVerification {
   status_code: string;
-  rationale: string;
-  source_post_ids: string[];
-  evidence: ExternalClaimEvidence[];
+  next_action: string;
+  claims: PublicClaimVerdict[];
 }
 
 export interface IssueTicket {

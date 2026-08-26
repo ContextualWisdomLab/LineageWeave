@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { BackendError, fetchMe, fetchOperationsDashboard, updateTenantConfig } from "./api";
+import { askAgent, BackendError, fetchMe, fetchOperationsDashboard, updateTenantConfig } from "./api";
 
 afterEach(() => {
   vi.unstubAllGlobals();
@@ -60,6 +60,64 @@ describe("backendFetch provider-error boundary", () => {
     await expect(updateTenantConfig("access-token", "Example tenant")).rejects.toMatchObject({
       status: 500,
       message: "The service could not complete this request. Try again later.",
+    });
+  });
+});
+
+describe("askAgent public-claim opt-in", () => {
+  it("sends verify_external only when the reader opts in", async () => {
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({ ask_job_id: "ask-job-1", job_status_code: "queued" }),
+          { headers: { "Content-Type": "application/json" } },
+        ),
+      )
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            ask_job_id: "ask-job-1",
+            job_status_code: "succeeded",
+            answer: { answer_text: "synthetic", cited_post_ids: [], source_post_ids: [] },
+          }),
+          { headers: { "Content-Type": "application/json" } },
+        ),
+      );
+    vi.stubGlobal("fetch", fetchMock);
+
+    await askAgent("access-token", "Does Northridge Grid exist?", true);
+
+    expect(JSON.parse(String(fetchMock.mock.calls[0][1].body))).toEqual({
+      question: "Does Northridge Grid exist?",
+      verify_external: true,
+    });
+  });
+
+  it("defaults verify_external to false", async () => {
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({ ask_job_id: "ask-job-1", job_status_code: "queued" }),
+          { headers: { "Content-Type": "application/json" } },
+        ),
+      )
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            ask_job_id: "ask-job-1",
+            job_status_code: "succeeded",
+            answer: { answer_text: "synthetic", cited_post_ids: [], source_post_ids: [] },
+          }),
+          { headers: { "Content-Type": "application/json" } },
+        ),
+      );
+    vi.stubGlobal("fetch", fetchMock);
+
+    await askAgent("access-token", "Which project?");
+
+    expect(JSON.parse(String(fetchMock.mock.calls[0][1].body))).toEqual({
+      question: "Which project?",
+      verify_external: false,
     });
   });
 });

@@ -27,7 +27,6 @@ from zoneinfo import ZoneInfo
 import asyncpg
 
 from lineageweave.ask_time_axis import row_matches_time_range, time_axis_evidence_fact
-from lineageweave.claim_verification import GlobalAskSourceDocument
 from lineageweave.embedding_client import EmbeddingClient, NullEmbeddingClient
 from lineageweave.image_content import ImageContentClient, NullImageContentClient
 from lineageweave.knowledge_graph import (
@@ -927,18 +926,8 @@ async def gather_global_chat_sources(
         )
         post_graph_facts = graph_facts.get(post_id, ())[:remaining_graph_facts]
         remaining_graph_facts -= len(post_graph_facts)
-        source_type = (
-            GlobalAskSourceDocument
-            if row["visibility_code"] == "public"
-            else ChatSourceDocument
-        )
-        source_arguments: dict[str, Any] = {}
-        if source_type is GlobalAskSourceDocument:
-            source_arguments["external_claim_facts"] = (
-                semantic_facts.get(post_id, ()) + post_graph_facts
-            )
         sources.append(
-            source_type(
+            ChatSourceDocument(
                 post_id,
                 source_title,
                 normalized_body,
@@ -963,7 +952,6 @@ async def gather_global_chat_sources(
                     if historical_body_unavailable
                     else (("semantic_role", "semantic_keyman", "knowledge_graph", "lineage", "image") if knowledge_cutoff else ())
                 ),
-                **source_arguments,
             )
         )
     return sources

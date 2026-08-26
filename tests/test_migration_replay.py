@@ -235,3 +235,42 @@ def test_global_ask_knowledge_cutoff_is_replay_safe() -> None:
     assert "knowledge_cutoff timestamptz" in sql
     assert "add column if not exists" in sql
     assert "data_type <> 'timestamp with time zone'" in sql
+
+
+def test_public_claim_envelope_migration_is_replay_safe() -> None:
+    """Volumes created before 0224 must survive migrate.sh's every-start replay."""
+    sql = (
+        Path(__file__).resolve().parents[1]
+        / "migrations"
+        / "0224_public_claim_envelope.sql"
+    ).read_text(encoding="utf-8").casefold()
+
+    assert "create table if not exists public_claim_envelope" in sql
+    assert "on conflict (lookup_code) do nothing" in sql
+    assert "create or replace function public_claim_envelope_require_public_post" in sql
+    assert "claim_kind_code must belong to public_claim_kind" in sql
+    assert "truth_status_code must belong to ontology_truth_status" in sql
+    assert "create trigger public_claim_envelope_revoke_private_post" in sql
+    assert "claim_organization_presence" in sql
+    assert "claim_public_event" in sql
+    assert "claim_public_relationship" in sql
+
+
+def test_public_claim_rollback_preserves_shared_truth_statuses() -> None:
+    """Rollback 0224 must not delete ontology statuses owned by migration 0175."""
+    root = Path(__file__).resolve().parents[1]
+    owner = (root / "migrations/0175_ontology_truth_status.sql").read_text(encoding="utf-8")
+    rollback = (root / "migrations/rollback/0224_public_claim_envelope.sql").read_text(
+        encoding="utf-8"
+    )
+
+    for code in (
+        "truth_authoritative",
+        "truth_observed",
+        "truth_inferred",
+        "truth_proposed",
+        "truth_superseded",
+        "truth_rejected",
+    ):
+        assert code in owner
+        assert code not in rollback

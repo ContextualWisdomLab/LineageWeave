@@ -29,27 +29,23 @@ import redis.asyncio as redis
 from fastapi import HTTPException, status
 
 from lineageweave.ask_delivery import build_ask_delivery
-from lineageweave.claim_verification import (
-    CLAIM_NOT_ENOUGH_INFORMATION,
-    VERIFICATION_COMPLETED,
-    VERIFICATION_NO_PUBLIC_CLAIMS,
-    VERIFICATION_SKIPPED,
-    VERIFICATION_UNAVAILABLE,
-    ClaimVerificationClient,
-    ClaimVerificationResult,
-    NullClaimVerificationClient,
-    public_claim_candidates,
-)
 from lineageweave.embedding_client import EmbeddingClient, NullEmbeddingClient
 from lineageweave.http_client import HttpClientError
 from lineageweave.observability import record_server_failure
 from lineageweave.post_chat import (
-    ChatSourceDocument,
     PostChatClient,
     ask_grounding_status,
     cited_post_evidence,
     cited_post_summaries,
     historical_body_limitations,
+)
+from lineageweave.public_claim_verification import (
+    NullPublicClaimSearchClient,
+    PublicClaimSearchClient,
+    SearxngPublicClaimSearchClient,
+    cited_post_ids_exclude_external,
+    envelope_from_authorized_row,
+    verify_public_claims,
 )
 from lineageweave.semantic_query import NullSemanticQueryClient, SemanticQueryClient
 from lineageweave.temporal_expressions import resolve_korean_relative_time
@@ -63,6 +59,7 @@ from .post_chat_ingestion import (
     gather_global_chat_sources,
     prepare_global_question_embedding,
 )
+from .post_eligibility import SOURCE_POST_ELIGIBILITY_SQL
 
 GLOBAL_ASK_STREAM_KEY = "global_ask_request_stream"
 
@@ -96,6 +93,32 @@ _STREAM_MAX_LENGTH = 1000
 _WORKER_CONCURRENCY = 4
 
 _logger = logging.getLogger(__name__)
+
+_AUTHORIZED_PUBLIC_CLAIM_ENVELOPES_SQL = """
+    select envelope.public_claim_envelope_id,
+           envelope.source_post_id,
+           post.post_title as source_post_title,
+           envelope.claim_kind_code,
+           envelope.subject_label,
+           envelope.claim_text,
+           envelope.truth_status_code,
+           envelope.event_occurred_at,
+           envelope.egress_eligible,
+           post.visibility_code,
+           post.corporate_entity_id,
+           post.process_unit_id
+      from public_claim_envelope envelope
+      join source_post post on post.post_id = envelope.source_post_id
+     where envelope.egress_eligible
+       and post.visibility_code = 'public'
+       and {source_post_eligibility}
+       and ($1::timestamptz is null or (
+            envelope.created_at <= $1 and post.created_at <= $1
+       ))
+     order by envelope.created_at, envelope.public_claim_envelope_id
+""".format(
+    source_post_eligibility=SOURCE_POST_ELIGIBILITY_SQL.format(alias="post")
+)
 
 
 class _SafeJobError(Exception):
@@ -161,56 +184,6 @@ async def enqueue_global_ask_job(
         # pollable job id instead of a 500 for a lost wake-up.
         _logger.exception("global ask wake-up publish failed for job_id=%s", job_id)
     return str(job_id)
-
-
-def _verification_next_action(status_code: str) -> str:
-    """Name the next evidence action without promoting web results to authority."""
-
-    return {
-        VERIFICATION_SKIPPED: "Enable public verification to check eligible public claims.",
-        VERIFICATION_UNAVAILABLE: "Configure public search and contextual-orchestrator, then retry.",
-        VERIFICATION_NO_PUBLIC_CLAIMS: "Inspect the internal cited posts; no public claim was eligible.",
-        VERIFICATION_COMPLETED: "Inspect public evidence separately before any governed graph review.",
-        CLAIM_NOT_ENOUGH_INFORMATION: "Collect stronger authoritative evidence before accepting the claim.",
-    }.get(status_code, "Inspect the authorized cited posts and their evidence.")
-
-
-async def _verify_public_claims(
-    question: str,
-    sources: list[ChatSourceDocument],
-    cited_post_ids: list[str],
-    *,
-    verify_external: bool,
-    client: ClaimVerificationClient,
-) -> tuple[str, tuple[ClaimVerificationResult, ...]]:
-    """Verify only cited claims explicitly marked safe for public egress."""
-
-    if not verify_external:
-        return VERIFICATION_SKIPPED, ()
-    cited_ids = frozenset(cited_post_ids)
-    claims = tuple(
-        claim
-        for claim in public_claim_candidates(sources, question)
-        if set(claim.source_post_ids).issubset(cited_ids)
-    )
-    if not claims:
-        return VERIFICATION_NO_PUBLIC_CLAIMS, ()
-    if not client.available:
-        return VERIFICATION_UNAVAILABLE, ()
-    try:
-        results = tuple(
-            await asyncio.gather(
-                *(asyncio.to_thread(client.verify, claim) for claim in claims)
-            )
-        )
-    except Exception:
-        _logger.exception("public claim verification is unavailable")
-        return VERIFICATION_UNAVAILABLE, ()
-    return VERIFICATION_COMPLETED, tuple(
-        result
-        for result in results
-        if set(result.source_post_ids).issubset(cited_ids)
-    )
 
 
 async def load_job_visibility(
@@ -289,7 +262,7 @@ async def compute_global_ask_answer(
     embedding_client: EmbeddingClient | None = None,
     semantic_query_client: SemanticQueryClient | None = None,
     verify_external: bool = False,
-    claim_verification_client: ClaimVerificationClient | None = None,
+    claim_search_client: PublicClaimSearchClient | None = None,
     knowledge_cutoff: datetime | None = None,
 ) -> dict[str, Any]:
     """Assemble one complete Ask answer payload from authorized evidence.
@@ -318,7 +291,7 @@ async def compute_global_ask_answer(
         if rewriter.available:
             try:
                 search_phrases = await asyncio.to_thread(rewriter.rewrite, question_text)
-            except Exception as exc:
+            except Exception as exc:  # noqa: BLE001 - optional provider boundary
                 # Query rewriting is an optional recall channel. Any provider
                 # or envelope defect retains the original authorized query;
                 # cancellation remains outside Exception and still propagates.
@@ -348,7 +321,7 @@ async def compute_global_ask_answer(
         record_server_failure("global_ask", exc, outcome="internal_error")
         raise HTTPException(
             status.HTTP_503_SERVICE_UNAVAILABLE,
-            "Ask Agent is unavailable: authorized evidence could not be assembled",
+            "Ask Agent could not complete this question. Try again later.",
         ) from exc
     cutoff_text = knowledge_cutoff.isoformat() if knowledge_cutoff else None
     grounding_status = ask_grounding_status(sources, cutoff_text)
@@ -358,17 +331,9 @@ async def compute_global_ask_answer(
         if knowledge_cutoff
         else sources
     )
-    verification_client = claim_verification_client or NullClaimVerificationClient()
     if not usable_sources:
-        verification_status, external_claims = await _verify_public_claims(
-            question_text,
-            usable_sources,
-            [],
-            verify_external=verify_external,
-            client=verification_client,
-        )
         delivery = build_ask_delivery("", (), ())
-        return {
+        payload: dict[str, Any] = {
             "answer_text": "",
             "cited_post_ids": [],
             "cited_posts": [],
@@ -376,8 +341,6 @@ async def compute_global_ask_answer(
             "cited_post_evidence": [],
             "lineage_graph": {"nodes": [], "edges": [], "truncated": False},
             "cited_post_images": [],
-            "external_verification_status": verification_status,
-            "external_claims": [claim.to_payload() for claim in external_claims],
             "next_action": (
                 "Review unavailable historical channels before relying on this cutoff answer."
                 if limitations
@@ -388,6 +351,18 @@ async def compute_global_ask_answer(
             "grounding_status": grounding_status,
             "limitations": limitations,
         }
+        if verify_external:
+            search_client = claim_search_client or NullPublicClaimSearchClient()
+            async with pool.acquire() as conn:
+                envelopes = await load_authorized_public_claim_envelopes(
+                    conn, can_see, knowledge_cutoff=knowledge_cutoff
+                )
+            verification = await asyncio.to_thread(
+                verify_public_claims, envelopes, search_client
+            )
+            cited_post_ids_exclude_external([], verification)
+            payload["public_claim_verification"] = verification
+        return payload
     try:
         answer = await asyncio.to_thread(
             chat_client.answer,
@@ -404,7 +379,7 @@ async def compute_global_ask_answer(
         record_server_failure("global_ask", exc, outcome="provider_unavailable")
         raise HTTPException(
             status.HTTP_503_SERVICE_UNAVAILABLE,
-            "Ask Agent is unavailable: contextual-orchestrator could not complete the answer",
+            "Ask Agent could not complete this question. Try again later.",
         ) from exc
     except (KeyError, ValueError) as exc:
         # Contract/schema fault: the orchestrator responded but its payload
@@ -413,7 +388,7 @@ async def compute_global_ask_answer(
         record_server_failure("global_ask", exc, outcome="provider_unavailable")
         raise HTTPException(
             status.HTTP_503_SERVICE_UNAVAILABLE,
-            "Ask Agent is unavailable: contextual-orchestrator could not complete the answer",
+            "Ask Agent could not complete this question. Try again later.",
         ) from exc
     except Exception as exc:
         # Unexpected defect. Keep the customer boundary and emit a full
@@ -422,16 +397,9 @@ async def compute_global_ask_answer(
         record_server_failure("global_ask", exc, outcome="internal_error")
         raise HTTPException(
             status.HTTP_503_SERVICE_UNAVAILABLE,
-            "Ask Agent is unavailable: contextual-orchestrator could not complete the answer",
+            "Ask Agent could not complete this question. Try again later.",
         ) from exc
     cited_ids = list(answer.cited_post_ids)
-    verification_status, external_claims = await _verify_public_claims(
-        question_text,
-        usable_sources,
-        cited_ids,
-        verify_external=verify_external,
-        client=verification_client,
-    )
     if knowledge_cutoff is None:
         async with pool.acquire() as conn:
             lineage_graph = await lineage_graphs_for_posts(conn, can_see, cited_ids)
@@ -441,14 +409,14 @@ async def compute_global_ask_answer(
         images = []
     cited_posts = cited_post_summaries(usable_sources, cited_ids)
     cited_evidence = cited_post_evidence(usable_sources, cited_ids)
-    next_action = _verification_next_action(verification_status)
+    next_action = "Open a cited post to review the evidence behind this answer."
     if knowledge_cutoff is not None:
         next_action = (
             "Review unavailable historical channels before relying on this cutoff answer."
             if limitations
             else "Compare these cutoff-grounded citations with live evidence next."
         )
-    return {
+    payload = {
         "answer_text": answer.answer_text,
         "cited_post_ids": cited_ids,
         "cited_posts": cited_posts,
@@ -457,13 +425,58 @@ async def compute_global_ask_answer(
         "source_post_ids": [source.post_id for source in sources],
         "lineage_graph": lineage_graph,
         "delivery": build_ask_delivery(answer.answer_text, cited_posts, cited_evidence),
-        "external_verification_status": verification_status,
-        "external_claims": [claim.to_payload() for claim in external_claims],
         "next_action": next_action,
         "knowledge_cutoff": cutoff_text,
         "grounding_status": grounding_status,
         "limitations": limitations,
     }
+    if verify_external:
+        search_client = claim_search_client or NullPublicClaimSearchClient()
+        async with pool.acquire() as conn:
+            envelopes = await load_authorized_public_claim_envelopes(
+                conn, can_see, knowledge_cutoff=knowledge_cutoff
+            )
+        verification = await asyncio.to_thread(
+            verify_public_claims, envelopes, search_client
+        )
+        cited_post_ids_exclude_external(cited_ids, verification)
+        payload["public_claim_verification"] = verification
+    return payload
+
+
+async def load_authorized_public_claim_envelopes(
+    conn: asyncpg.Connection,
+    can_see: Callable[[asyncpg.Record], bool],
+    *,
+    knowledge_cutoff: datetime | None = None,
+) -> tuple:
+    """Load public envelopes that existed within the requested evidence view."""
+    # The statement is assembled once from module-owned SQL fragments; the only
+    # runtime value remains the asyncpg $1 parameter.
+    # Semgrep cannot prove that this module constant contains only repository-
+    # owned fragments; the sole runtime input remains asyncpg parameter $1.
+    rows = await conn.fetch(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
+        _AUTHORIZED_PUBLIC_CLAIM_ENVELOPES_SQL, knowledge_cutoff
+    )
+    return tuple(
+        envelope
+        for row in rows
+        if can_see(row)
+        if (envelope := envelope_from_authorized_row(row)) is not None
+    )
+
+
+def _public_claim_search_client() -> PublicClaimSearchClient:
+    """Return the configured public search channel, or an unavailable client."""
+    from backend.app.config import load_settings
+
+    base_url = load_settings().searxng_base_url
+    if not base_url:
+        return NullPublicClaimSearchClient()
+    try:
+        return SearxngPublicClaimSearchClient(base_url)
+    except ValueError:
+        return NullPublicClaimSearchClient()
 
 
 def _temporally_grounded_question(
@@ -512,9 +525,7 @@ async def process_global_ask_job(
     chat_factory: Callable[[], PostChatClient],
     embedding_factory: Callable[[], EmbeddingClient] = NullEmbeddingClient,
     semantic_query_factory: Callable[[], SemanticQueryClient] = NullSemanticQueryClient,
-    claim_verification_factory: Callable[
-        [], ClaimVerificationClient
-    ] = NullClaimVerificationClient,
+    claim_search_factory: Callable[[], PublicClaimSearchClient] | None = None,
 ) -> None:
     """Claim, answer, and settle one Ask job.
 
@@ -551,9 +562,7 @@ async def process_global_ask_job(
             raise _SafeJobError("account lacks the post_read permission")
         chat_client = chat_factory()
         if not chat_client.available:
-            raise _SafeJobError(
-                "Ask Agent is unavailable: set ORCHESTRATOR_BASE_URL / ORCHESTRATOR_API_KEY"
-            )
+            raise _SafeJobError("Ask Agent could not complete this question. Try again later.")
         payload = await asyncio.wait_for(
             compute_global_ask_answer(
                 pool,
@@ -565,7 +574,11 @@ async def process_global_ask_job(
                 embedding_client=embedding_factory(),
                 semantic_query_client=semantic_query_factory(),
                 verify_external=bool(row["verify_external_requested"]),
-                claim_verification_client=claim_verification_factory(),
+                claim_search_client=(
+                    (claim_search_factory or _public_claim_search_client)()
+                    if bool(row["verify_external_requested"])
+                    else None
+                ),
                 knowledge_cutoff=row["knowledge_cutoff"],
             ),
             timeout=JOB_DEADLINE_SECONDS,
@@ -588,16 +601,13 @@ async def process_global_ask_job(
             # state / missing config) — never a provider-boundary leak.
             detail = str(exc)
         elif isinstance(exc, asyncio.TimeoutError):
-            detail = f"job exceeded the {JOB_DEADLINE_SECONDS}s deadline"
+            detail = "Ask Agent took too long to answer. Try the question again."
         else:
             # Provider responses/exceptions can carry credentials, gateway
             # diagnostics, or model output (ADR 0123): never persist the
             # raw exception text as a durable `failure_detail`. The
             # traceback just logged keeps it for operator debugging only.
-            detail = (
-                "Ask Agent is unavailable: contextual-orchestrator returned "
-                "no complete evidence object"
-            )
+            detail = "Ask Agent could not complete this question. Try again later."
         async with pool.acquire() as conn:
             await conn.execute(
                 """
@@ -682,7 +692,7 @@ async def consume_global_ask_stream_once(
     chat_factory: Callable[[], PostChatClient],
     embedding_factory: Callable[[], EmbeddingClient] = NullEmbeddingClient,
     semantic_query_factory: Callable[[], SemanticQueryClient] = NullSemanticQueryClient,
-    claim_verification_factory: Callable[[], ClaimVerificationClient] = NullClaimVerificationClient,
+    claim_search_factory: Callable[[], PublicClaimSearchClient] | None = None,
     limiter: asyncio.Semaphore | None = None,
     tasks: set[asyncio.Task] | None = None,
 ) -> str:
@@ -708,7 +718,7 @@ async def consume_global_ask_stream_once(
                         chat_factory=chat_factory,
                         embedding_factory=embedding_factory,
                         semantic_query_factory=semantic_query_factory,
-                        claim_verification_factory=claim_verification_factory,
+                        claim_search_factory=claim_search_factory,
                     )
                 else:
                     await limiter.acquire()
@@ -719,7 +729,7 @@ async def consume_global_ask_stream_once(
                             chat_factory=chat_factory,
                             embedding_factory=embedding_factory,
                             semantic_query_factory=semantic_query_factory,
-                            claim_verification_factory=claim_verification_factory,
+                            claim_search_factory=claim_search_factory,
                             limiter=limiter,
                         )
                     )
@@ -737,7 +747,7 @@ async def _process_and_release(
     chat_factory: Callable[[], PostChatClient],
     embedding_factory: Callable[[], EmbeddingClient],
     semantic_query_factory: Callable[[], SemanticQueryClient],
-    claim_verification_factory: Callable[[], ClaimVerificationClient],
+    claim_search_factory: Callable[[], PublicClaimSearchClient] | None,
     limiter: asyncio.Semaphore,
 ) -> None:
     """Run one dispatched job and free its concurrency slot afterwards."""
@@ -748,7 +758,7 @@ async def _process_and_release(
             chat_factory=chat_factory,
             embedding_factory=embedding_factory,
             semantic_query_factory=semantic_query_factory,
-            claim_verification_factory=claim_verification_factory,
+            claim_search_factory=claim_search_factory,
         )
     finally:
         limiter.release()
@@ -771,7 +781,7 @@ async def run_global_ask_worker(
     chat_factory: Callable[[], PostChatClient],
     embedding_factory: Callable[[], EmbeddingClient] = NullEmbeddingClient,
     semantic_query_factory: Callable[[], SemanticQueryClient] = NullSemanticQueryClient,
-    claim_verification_factory: Callable[[], ClaimVerificationClient] = NullClaimVerificationClient,
+    claim_search_factory: Callable[[], PublicClaimSearchClient] | None = None,
 ) -> None:
     """Run the at-least-once Ask consumer with periodic queued-row recovery."""
     last_id = await _stream_tail(client)
@@ -792,7 +802,7 @@ async def run_global_ask_worker(
                     chat_factory=chat_factory,
                     embedding_factory=embedding_factory,
                     semantic_query_factory=semantic_query_factory,
-                    claim_verification_factory=claim_verification_factory,
+                    claim_search_factory=claim_search_factory,
                     limiter=limiter,
                     tasks=tasks,
                 )

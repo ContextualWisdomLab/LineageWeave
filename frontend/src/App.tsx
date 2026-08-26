@@ -94,7 +94,7 @@ import { CutoffKnownBody } from "./components/CutoffKnownBody";
 import { LineageEntityPicker } from "./components/LineageEntityPicker";
 import { OntologyExplorer } from "./components/OntologyExplorer";
 import { AskEvidenceLayerPopup } from "./components/AskEvidenceLayerPopup";
-import { PublicClaimVerification } from "./components/PublicClaimVerification";
+import { PublicClaimList } from "./components/PublicClaimList";
 import { PopupCloseButton } from "./components/PopupCloseButton";
 import { SimilarVocPanel } from "./components/SimilarVocPanel";
 import { chatEvidenceKindLabel } from "./evidenceKindLabels";
@@ -4879,6 +4879,11 @@ export function AskAgentPanel({
           />
           <span>{t("Check eligible public claims")}</span>
         </label>
+        <p className="post-meta">
+          {t(
+            "Only authorized public claims are sent for web verification. Other workspace evidence is not sent.",
+          )}
+        </p>
         <label className="ask-agent-field">
           <span>{t("Knowledge cutoff (optional)")}</span>
           <input
@@ -4895,6 +4900,17 @@ export function AskAgentPanel({
       {answer && (
         <section className="popup-section" aria-label={t("Answer")}>
           <h3>{t("Answer")}</h3>
+          {answer.public_claim_verification ? (
+            <>
+              <p className="post-meta">{t(answer.public_claim_verification.next_action)}</p>
+              {answer.public_claim_verification.claims.length ? (
+                <PublicClaimList
+                  claims={answer.public_claim_verification.claims}
+                  onSelectPost={onOpenPost}
+                />
+              ) : null}
+            </>
+          ) : null}
           {answer.answer_text ? <p>{answer.answer_text}</p> : null}
           {answer.knowledge_cutoff ? (
             <aside className="ask-delivery" aria-label={t("Knowledge-cutoff grounding")}>
@@ -4912,8 +4928,10 @@ export function AskAgentPanel({
               ) : null}
             </aside>
           ) : null}
-          {answer.next_action ? <p className="post-meta">{t(answer.next_action)}</p> : null}
-          <PublicClaimVerification claims={answer.external_claims ?? []} />
+          {answer.next_action &&
+          answer.next_action !== answer.public_claim_verification?.next_action ? (
+            <p className="post-meta">{t(answer.next_action)}</p>
+          ) : null}
           {answer.delivery ? (
             <aside className="ask-delivery" aria-label={t("Report · alert · MCP")}>
               <h4>{t("Report · alert · MCP")}</h4>
