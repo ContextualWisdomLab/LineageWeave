@@ -179,6 +179,9 @@ def schema_db():
                 for statement in _GLOBAL_ASK_EVIDENCE_SEARCH_MIGRATION.read_text().split(";\n\n"):
                     if statement.strip():
                         cur.execute(statement + ";")
+            # Migration replay needs autocommit for concurrent indexes, while
+            # tests need transactions for savepoints and rollback assertions.
+            conn.autocommit = False
             yield conn
         finally:
             conn.close()
@@ -365,14 +368,14 @@ def test_global_ask_nominates_a_live_semantic_only_post(schema_db) -> None:
             """
         )
     schema_db.commit()
+    async_dsn = urlunsplit(
+        urlsplit(_ADMIN_DSN)._replace(path=f"/{schema_db.info.dbname}")
+    )
 
     async def retrieve(question: str) -> list:
-        conn = await asyncpg.connect(
-            database=schema_db.info.dbname,
-            host=schema_db.info.host or "localhost",
-            port=schema_db.info.port,
-            user=schema_db.info.user,
-        )
+        # Reuse the fixture DSN so password-authenticated CI databases keep
+        # the same credentials as the psycopg2 migration connection.
+        conn = await asyncpg.connect(async_dsn)
         try:
             return await gather_global_chat_sources(
                 conn,
