@@ -21,7 +21,7 @@ import asyncio
 import logging
 import time
 from collections.abc import Callable
-from datetime import date
+from datetime import date, datetime
 from typing import Any
 
 import asyncpg
@@ -29,14 +29,29 @@ import redis.asyncio as redis
 from fastapi import HTTPException, status
 
 from lineageweave.ask_delivery import build_ask_delivery
+from lineageweave.claim_verification import (
+    CLAIM_NOT_ENOUGH_INFORMATION,
+    VERIFICATION_COMPLETED,
+    VERIFICATION_NO_PUBLIC_CLAIMS,
+    VERIFICATION_SKIPPED,
+    VERIFICATION_UNAVAILABLE,
+    ClaimVerificationClient,
+    ClaimVerificationResult,
+    NullClaimVerificationClient,
+    public_claim_candidates,
+)
 from lineageweave.embedding_client import EmbeddingClient, NullEmbeddingClient
 from lineageweave.http_client import HttpClientError
 from lineageweave.observability import record_server_failure
 from lineageweave.post_chat import (
+    ChatSourceDocument,
     PostChatClient,
+    ask_grounding_status,
     cited_post_evidence,
     cited_post_summaries,
+    historical_body_limitations,
 )
+from lineageweave.semantic_query import NullSemanticQueryClient, SemanticQueryClient
 from lineageweave.temporal_expressions import resolve_korean_relative_time
 
 from .config import GLOBAL_ASK_JOB_DEADLINE_SECONDS
@@ -93,6 +108,8 @@ async def enqueue_global_ask_job(
     *,
     requesting_account_id: str,
     question_text: str,
+    verify_external_requested: bool,
+    knowledge_cutoff: datetime | None,
     corporate_entity_ids: frozenset[str],
     process_unit_ids: frozenset[str],
 ) -> str:
@@ -105,11 +122,15 @@ async def enqueue_global_ask_job(
     async with conn.transaction():
         job_id = await conn.fetchval(
             """
-            insert into global_ask_job (requesting_account_id, question_text)
-            values ($1, $2) returning global_ask_job_id
+            insert into global_ask_job
+                (requesting_account_id, question_text, verify_external_requested,
+                 knowledge_cutoff)
+            values ($1, $2, $3, $4) returning global_ask_job_id
             """,
             requesting_account_id,
             question_text,
+            verify_external_requested,
+            knowledge_cutoff,
         )
         await conn.executemany(
             """
@@ -140,6 +161,56 @@ async def enqueue_global_ask_job(
         # pollable job id instead of a 500 for a lost wake-up.
         _logger.exception("global ask wake-up publish failed for job_id=%s", job_id)
     return str(job_id)
+
+
+def _verification_next_action(status_code: str) -> str:
+    """Name the next evidence action without promoting web results to authority."""
+
+    return {
+        VERIFICATION_SKIPPED: "Enable public verification to check eligible public claims.",
+        VERIFICATION_UNAVAILABLE: "Configure public search and contextual-orchestrator, then retry.",
+        VERIFICATION_NO_PUBLIC_CLAIMS: "Inspect the internal cited posts; no public claim was eligible.",
+        VERIFICATION_COMPLETED: "Inspect public evidence separately before any governed graph review.",
+        CLAIM_NOT_ENOUGH_INFORMATION: "Collect stronger authoritative evidence before accepting the claim.",
+    }.get(status_code, "Inspect the authorized cited posts and their evidence.")
+
+
+async def _verify_public_claims(
+    question: str,
+    sources: list[ChatSourceDocument],
+    cited_post_ids: list[str],
+    *,
+    verify_external: bool,
+    client: ClaimVerificationClient,
+) -> tuple[str, tuple[ClaimVerificationResult, ...]]:
+    """Verify only cited claims explicitly marked safe for public egress."""
+
+    if not verify_external:
+        return VERIFICATION_SKIPPED, ()
+    cited_ids = frozenset(cited_post_ids)
+    claims = tuple(
+        claim
+        for claim in public_claim_candidates(sources, question)
+        if set(claim.source_post_ids).issubset(cited_ids)
+    )
+    if not claims:
+        return VERIFICATION_NO_PUBLIC_CLAIMS, ()
+    if not client.available:
+        return VERIFICATION_UNAVAILABLE, ()
+    try:
+        results = tuple(
+            await asyncio.gather(
+                *(asyncio.to_thread(client.verify, claim) for claim in claims)
+            )
+        )
+    except Exception:
+        _logger.exception("public claim verification is unavailable")
+        return VERIFICATION_UNAVAILABLE, ()
+    return VERIFICATION_COMPLETED, tuple(
+        result
+        for result in results
+        if set(result.source_post_ids).issubset(cited_ids)
+    )
 
 
 async def load_job_visibility(
@@ -216,6 +287,10 @@ async def compute_global_ask_answer(
     process_scope_limited: bool,
     chat_client: PostChatClient,
     embedding_client: EmbeddingClient | None = None,
+    semantic_query_client: SemanticQueryClient | None = None,
+    verify_external: bool = False,
+    claim_verification_client: ClaimVerificationClient | None = None,
+    knowledge_cutoff: datetime | None = None,
 ) -> dict[str, Any]:
     """Assemble one complete Ask answer payload from authorized evidence.
 
@@ -238,23 +313,36 @@ async def compute_global_ask_answer(
 
     today = _seoul_today()
     try:
-        question_embedding = await prepare_global_question_embedding(
-            question_text, embedding_client or NullEmbeddingClient()
+        search_phrases = (question_text,)
+        rewriter = semantic_query_client or NullSemanticQueryClient()
+        if rewriter.available:
+            try:
+                search_phrases = await asyncio.to_thread(rewriter.rewrite, question_text)
+            except Exception as exc:
+                # Query rewriting is an optional recall channel. Any provider
+                # or envelope defect retains the original authorized query;
+                # cancellation remains outside Exception and still propagates.
+                log_provider_unavailable("global_ask_query_rewrite", exc)
+        question_embedding = (
+            None
+            if knowledge_cutoff is not None
+            else await prepare_global_question_embedding(
+                question_text, embedding_client or NullEmbeddingClient()
+            )
         )
-        if question_embedding is None:
-            sources = []
-        else:
-            async with pool.acquire() as conn:
-                sources = await gather_global_chat_sources(
-                    conn,
-                    can_see,
-                    corporate_entity_ids,
-                    process_unit_ids,
-                    question=question_text,
-                    question_embedding=question_embedding,
-                    today=today,
-                    embedding_client=embedding_client,
-                )
+        async with pool.acquire() as conn:
+            sources = await gather_global_chat_sources(
+                conn,
+                can_see,
+                corporate_entity_ids,
+                process_unit_ids,
+                question=question_text,
+                search_phrases=search_phrases,
+                question_embedding=question_embedding,
+                today=today,
+                embedding_client=NullEmbeddingClient(),
+                knowledge_cutoff=knowledge_cutoff,
+            )
     except Exception as exc:
         log_internal_fault("global_ask", exc)
         record_server_failure("global_ask", exc, outcome="internal_error")
@@ -262,22 +350,51 @@ async def compute_global_ask_answer(
             status.HTTP_503_SERVICE_UNAVAILABLE,
             "Ask Agent is unavailable: authorized evidence could not be assembled",
         ) from exc
-    if not sources:
+    cutoff_text = knowledge_cutoff.isoformat() if knowledge_cutoff else None
+    grounding_status = ask_grounding_status(sources, cutoff_text)
+    limitations = historical_body_limitations(sources) if knowledge_cutoff else []
+    usable_sources = (
+        [source for source in sources if not source.historical_body_unavailable]
+        if knowledge_cutoff
+        else sources
+    )
+    verification_client = claim_verification_client or NullClaimVerificationClient()
+    if not usable_sources:
+        verification_status, external_claims = await _verify_public_claims(
+            question_text,
+            usable_sources,
+            [],
+            verify_external=verify_external,
+            client=verification_client,
+        )
         delivery = build_ask_delivery("", (), ())
         return {
             "answer_text": "",
             "cited_post_ids": [],
             "cited_posts": [],
-            "source_post_ids": [],
+            "source_post_ids": [source.post_id for source in sources],
             "cited_post_evidence": [],
             "lineage_graph": {"nodes": [], "edges": [], "truncated": False},
             "cited_post_images": [],
-            "next_action": "No authorized source posts are available for this question.",
+            "external_verification_status": verification_status,
+            "external_claims": [claim.to_payload() for claim in external_claims],
+            "next_action": (
+                "Review unavailable historical channels before relying on this cutoff answer."
+                if limitations
+                else "No authorized source posts are available for this question."
+            ),
             "delivery": delivery,
+            "knowledge_cutoff": cutoff_text,
+            "grounding_status": grounding_status,
+            "limitations": limitations,
         }
     try:
         answer = await asyncio.to_thread(
-            chat_client.answer, _temporally_grounded_question(question_text, today=today), sources
+            chat_client.answer,
+            _temporally_grounded_question(
+                question_text, today=today, knowledge_cutoff=knowledge_cutoff
+            ),
+            usable_sources,
         )
     except (HttpClientError, OSError) as exc:
         # Known transport/provider failure. Same generic 503 text on every
@@ -308,11 +425,29 @@ async def compute_global_ask_answer(
             "Ask Agent is unavailable: contextual-orchestrator could not complete the answer",
         ) from exc
     cited_ids = list(answer.cited_post_ids)
-    async with pool.acquire() as conn:
-        lineage_graph = await lineage_graphs_for_posts(conn, can_see, cited_ids)
-        images = await cited_post_images(conn, cited_ids)
-    cited_posts = cited_post_summaries(sources, cited_ids)
-    cited_evidence = cited_post_evidence(sources, cited_ids)
+    verification_status, external_claims = await _verify_public_claims(
+        question_text,
+        usable_sources,
+        cited_ids,
+        verify_external=verify_external,
+        client=verification_client,
+    )
+    if knowledge_cutoff is None:
+        async with pool.acquire() as conn:
+            lineage_graph = await lineage_graphs_for_posts(conn, can_see, cited_ids)
+            images = await cited_post_images(conn, cited_ids)
+    else:
+        lineage_graph = {"nodes": [], "edges": [], "truncated": False}
+        images = []
+    cited_posts = cited_post_summaries(usable_sources, cited_ids)
+    cited_evidence = cited_post_evidence(usable_sources, cited_ids)
+    next_action = _verification_next_action(verification_status)
+    if knowledge_cutoff is not None:
+        next_action = (
+            "Review unavailable historical channels before relying on this cutoff answer."
+            if limitations
+            else "Compare these cutoff-grounded citations with live evidence next."
+        )
     return {
         "answer_text": answer.answer_text,
         "cited_post_ids": cited_ids,
@@ -322,10 +457,21 @@ async def compute_global_ask_answer(
         "source_post_ids": [source.post_id for source in sources],
         "lineage_graph": lineage_graph,
         "delivery": build_ask_delivery(answer.answer_text, cited_posts, cited_evidence),
+        "external_verification_status": verification_status,
+        "external_claims": [claim.to_payload() for claim in external_claims],
+        "next_action": next_action,
+        "knowledge_cutoff": cutoff_text,
+        "grounding_status": grounding_status,
+        "limitations": limitations,
     }
 
 
-def _temporally_grounded_question(question_text: str, *, today: date | None = None) -> str:
+def _temporally_grounded_question(
+    question_text: str,
+    *,
+    today: date | None = None,
+    knowledge_cutoff: datetime | None = None,
+) -> str:
     """Restate a resolved relative-time window inside the question.
 
     Retrieval already scopes sources to the resolved window, but the
@@ -337,19 +483,26 @@ def _temporally_grounded_question(question_text: str, *, today: date | None = No
     """
     today = today or _seoul_today()
     window = resolve_korean_relative_time(question_text, today=today)
-    if window is None:
-        return question_text
-    start_date, end_date = window
-    # Phrasing matters: an earlier clause that only named the window was
-    # read by the model as the reference point ("now"), which re-subtracted
-    # the offset and looked for events seven further months back. Anchor
-    # today's date and equate the expression to the window outright.
-    return (
-        f"{question_text}\n(오늘은 {today.isoformat()}입니다. 질문의 상대 시점 표현은 "
-        f"{start_date.isoformat()}부터 {end_date.isoformat()}까지의 기간을 가리킵니다. "
-        "제공된 소스 게시물은 모두 이 기간에 작성된 것이므로, 이 기간의 일을 "
-        "이 소스들로 답하십시오.)"
-    )
+    grounded = question_text
+    if window is not None:
+        start_date, end_date = window
+        # Phrasing matters: an earlier clause that only named the window was
+        # read by the model as the reference point ("now"), which re-subtracted
+        # the offset and looked for events seven further months back. Anchor
+        # today's date and equate the expression to the window outright.
+        grounded = (
+            f"{question_text}\n(오늘은 {today.isoformat()}입니다. 질문의 상대 시점 표현은 "
+            f"{start_date.isoformat()}부터 {end_date.isoformat()}까지의 기간을 가리킵니다. "
+            "제공된 소스 게시물은 모두 이 기간에 작성된 것이므로, 이 기간의 일을 "
+            "이 소스들로 답하십시오.)"
+        )
+    if knowledge_cutoff is not None:
+        grounded += (
+            f"\n(Knowledge cutoff: {knowledge_cutoff.isoformat()}. Every numbered "
+            "source body is the retained revision available by this cutoff. Do not "
+            "claim that later evidence was known at the cutoff.)"
+        )
+    return grounded
 
 
 async def process_global_ask_job(
@@ -358,6 +511,10 @@ async def process_global_ask_job(
     job_id: str,
     chat_factory: Callable[[], PostChatClient],
     embedding_factory: Callable[[], EmbeddingClient] = NullEmbeddingClient,
+    semantic_query_factory: Callable[[], SemanticQueryClient] = NullSemanticQueryClient,
+    claim_verification_factory: Callable[
+        [], ClaimVerificationClient
+    ] = NullClaimVerificationClient,
 ) -> None:
     """Claim, answer, and settle one Ask job.
 
@@ -371,7 +528,8 @@ async def process_global_ask_job(
             """
             update global_ask_job set job_status_code = $2, updated_at = now()
             where global_ask_job_id = $1 and job_status_code = $3
-            returning requesting_account_id, question_text
+            returning requesting_account_id, question_text, verify_external_requested,
+                      knowledge_cutoff
             """,
             job_id,
             RUNNING,
@@ -405,6 +563,10 @@ async def process_global_ask_job(
                 process_scope_limited=process_scope_limited,
                 chat_client=chat_client,
                 embedding_client=embedding_factory(),
+                semantic_query_client=semantic_query_factory(),
+                verify_external=bool(row["verify_external_requested"]),
+                claim_verification_client=claim_verification_factory(),
+                knowledge_cutoff=row["knowledge_cutoff"],
             ),
             timeout=JOB_DEADLINE_SECONDS,
         )
@@ -519,6 +681,8 @@ async def consume_global_ask_stream_once(
     last_id: str,
     chat_factory: Callable[[], PostChatClient],
     embedding_factory: Callable[[], EmbeddingClient] = NullEmbeddingClient,
+    semantic_query_factory: Callable[[], SemanticQueryClient] = NullSemanticQueryClient,
+    claim_verification_factory: Callable[[], ClaimVerificationClient] = NullClaimVerificationClient,
     limiter: asyncio.Semaphore | None = None,
     tasks: set[asyncio.Task] | None = None,
 ) -> str:
@@ -543,6 +707,8 @@ async def consume_global_ask_stream_once(
                         job_id=job_id,
                         chat_factory=chat_factory,
                         embedding_factory=embedding_factory,
+                        semantic_query_factory=semantic_query_factory,
+                        claim_verification_factory=claim_verification_factory,
                     )
                 else:
                     await limiter.acquire()
@@ -552,6 +718,8 @@ async def consume_global_ask_stream_once(
                             job_id=job_id,
                             chat_factory=chat_factory,
                             embedding_factory=embedding_factory,
+                            semantic_query_factory=semantic_query_factory,
+                            claim_verification_factory=claim_verification_factory,
                             limiter=limiter,
                         )
                     )
@@ -568,6 +736,8 @@ async def _process_and_release(
     job_id: str,
     chat_factory: Callable[[], PostChatClient],
     embedding_factory: Callable[[], EmbeddingClient],
+    semantic_query_factory: Callable[[], SemanticQueryClient],
+    claim_verification_factory: Callable[[], ClaimVerificationClient],
     limiter: asyncio.Semaphore,
 ) -> None:
     """Run one dispatched job and free its concurrency slot afterwards."""
@@ -577,6 +747,8 @@ async def _process_and_release(
             job_id=job_id,
             chat_factory=chat_factory,
             embedding_factory=embedding_factory,
+            semantic_query_factory=semantic_query_factory,
+            claim_verification_factory=claim_verification_factory,
         )
     finally:
         limiter.release()
@@ -598,6 +770,8 @@ async def run_global_ask_worker(
     *,
     chat_factory: Callable[[], PostChatClient],
     embedding_factory: Callable[[], EmbeddingClient] = NullEmbeddingClient,
+    semantic_query_factory: Callable[[], SemanticQueryClient] = NullSemanticQueryClient,
+    claim_verification_factory: Callable[[], ClaimVerificationClient] = NullClaimVerificationClient,
 ) -> None:
     """Run the at-least-once Ask consumer with periodic queued-row recovery."""
     last_id = await _stream_tail(client)
@@ -617,6 +791,8 @@ async def run_global_ask_worker(
                     last_id=last_id,
                     chat_factory=chat_factory,
                     embedding_factory=embedding_factory,
+                    semantic_query_factory=semantic_query_factory,
+                    claim_verification_factory=claim_verification_factory,
                     limiter=limiter,
                     tasks=tasks,
                 )

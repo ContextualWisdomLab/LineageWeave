@@ -1,4 +1,4 @@
-.PHONY: up down logs smoke seed ps load-http
+.PHONY: up down logs smoke seed ps load-http load-mcp
 
 # Keep provider credentials outside the repository. Compose interpolation must
 # read the same home env file as the orchestrator container's env_file.
@@ -37,3 +37,10 @@ load-http:
 	@test -n "$${LINEAGEWEAVE_DURATION:-}" || { echo "LINEAGEWEAVE_DURATION is required" >&2; exit 1; }
 	@test -n "$${LINEAGEWEAVE_REQUEST_TIMEOUT:-}" || { echo "LINEAGEWEAVE_REQUEST_TIMEOUT is required" >&2; exit 1; }
 	k6 run -e REQUEST_TIMEOUT="$${LINEAGEWEAVE_REQUEST_TIMEOUT}" --vus "$${LINEAGEWEAVE_VUS}" --duration "$${LINEAGEWEAVE_DURATION}" scripts/k6_http_e2e.js
+
+# Authenticated MCP measurement with operator-supplied observation bounds.
+load-mcp:
+	@test -n "$${LINEAGEWEAVE_VUS:-}" || { echo "LINEAGEWEAVE_VUS is required" >&2; exit 1; }
+	@test -n "$${LINEAGEWEAVE_DURATION:-}" || { echo "LINEAGEWEAVE_DURATION is required" >&2; exit 1; }
+	@test -n "$${LINEAGEWEAVE_REQUEST_TIMEOUT:-}" || { echo "LINEAGEWEAVE_REQUEST_TIMEOUT is required" >&2; exit 1; }
+	k6 run -e REQUEST_TIMEOUT="$${LINEAGEWEAVE_REQUEST_TIMEOUT}" --vus "$${LINEAGEWEAVE_VUS}" --duration "$${LINEAGEWEAVE_DURATION}" scripts/k6_mcp_e2e.js

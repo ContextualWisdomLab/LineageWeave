@@ -269,7 +269,7 @@ def project_ranking_list(
 
 
 class LibraryRankWeaveTransport:
-    """Call RankWeave ``weighted_reciprocal_rank_fuse`` in-process."""
+    """Call RankWeave reciprocal-rank fusion in-process."""
 
     def __call__(
         self,
@@ -298,19 +298,32 @@ class LibraryRankWeaveTransport:
                 "rankweave_not_available: no positive channel weights remain"
             )
         try:
-            hits = rw.weighted_reciprocal_rank_fuse(
-                usable,
-                active_weights,
-                limit=DEFAULT_RANKING_LIMIT,
-                rank_constant_eta=DEFAULT_RANK_CONSTANT_ETA,
-            )
-        except TypeError:
-            try:
+            if all(weight == 1.0 for weight in active_weights.values()):
+                hits = rw.reciprocal_rank_fuse(
+                    usable,
+                    limit=DEFAULT_RANKING_LIMIT,
+                    rank_constant_eta=DEFAULT_RANK_CONSTANT_ETA,
+                )
+            else:
                 hits = rw.weighted_reciprocal_rank_fuse(
                     usable,
                     active_weights,
                     limit=DEFAULT_RANKING_LIMIT,
+                    rank_constant_eta=DEFAULT_RANK_CONSTANT_ETA,
                 )
+        except TypeError:
+            try:
+                if all(weight == 1.0 for weight in active_weights.values()):
+                    hits = rw.reciprocal_rank_fuse(
+                        usable,
+                        limit=DEFAULT_RANKING_LIMIT,
+                    )
+                else:
+                    hits = rw.weighted_reciprocal_rank_fuse(
+                        usable,
+                        active_weights,
+                        limit=DEFAULT_RANKING_LIMIT,
+                    )
             except Exception as exc:
                 raise RankWeaveNotAvailable(
                     "rankweave_not_available: weighted_reciprocal_rank_fuse failed"

@@ -998,10 +998,30 @@ def test_landing_lineage_applies_abac_and_limit_in_database() -> None:
     post_query, post_args = connection.statements[0]
     assert "corporate_entity_id::text = any($1::text[])" in post_query
     assert "process_unit_id::text = any($2::text[])" in post_query
-    assert "order by created_at desc, post_id::text desc limit $3" in post_query
+    assert "order by created_at desc, post_id desc limit $3" in post_query
     assert post_args == (["corp-a"], ["pu-a"], 501)
     assert graph["nodes"] == []
     assert graph["truncated"] is False
+
+
+def test_landing_lineage_does_not_optimize_with_incomplete_abac_scope() -> None:
+    """A future caller cannot make corporate scope imply every process unit."""
+    class FetchRecordingConnection(_RecordingConnection):
+        async def fetch(self, query: str, *args):
+            self.statements.append((query, args))
+            return []
+
+    connection = FetchRecordingConnection()
+    asyncio.run(
+        visible_lineage_graph(
+            connection,
+            lambda row: True,
+            corporate_entity_ids=("corp-a",),
+        )
+    )
+
+    assert connection.statements
+    assert not any("any($1::text[])" in query for query, _ in connection.statements)
 
 
 class _RecordingConnection:

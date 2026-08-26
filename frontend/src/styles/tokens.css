@@ -109,6 +109,7 @@
   --ontology-node-person-fill: #ede7f6;
   --ontology-node-organization-fill: #fff3e0;
   --ontology-node-team-fill: #e0f2f1;
+  --ontology-node-project-fill: var(--color-accent-background);
   --ontology-node-generic-fill: var(--color-background);
 
   /* Layout & Breakpoint Tokens (§2.1 – 화면 해상도 / 반응형) */
@@ -220,6 +221,7 @@
     --ontology-node-person-fill: #30234d;
     --ontology-node-organization-fill: #4b2e1d;
     --ontology-node-team-fill: #123f3b;
+    --ontology-node-project-fill: var(--color-accent-background);
     --ontology-node-generic-fill: var(--color-background);
 
     --color-drawer-bg: #16171d;

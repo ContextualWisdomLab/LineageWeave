@@ -61,6 +61,24 @@ or shared-runner result to a product guarantee.
 
 Figma and screenshot review do not apply: this is a non-UI HTTP load harness.
 
+## Exact-head synthetic verification record
+
+On 2026-08-26, an isolated Compose stack built from PR #663 commit
+`be361f10` completed an authenticated 4-VU, 30-second run against 27 synthetic
+`source_post` rows. The run completed 5,537 iterations and 16,613 HTTP
+requests; all 16,611 endpoint checks passed and k6 recorded no HTTP failures.
+Ask enqueue averaged 11.88 ms. Ask polling averaged 13.61 ms, with 21.46 ms
+p95 and 156.69 ms maximum. The combined post/lineage reader metric averaged
+19.57 ms, with 31.39 ms p95 and 198.64 ms maximum. Overall HTTP duration
+averaged 17.59 ms with 29.25 ms p95, at 183.44 iterations and 550.39 requests
+per second.
+
+The host exposed 10 logical CPUs and 32 GiB RAM; Compose imposed no explicit
+backend CPU or memory limit. This exact-head observation verifies concurrent
+responsiveness for the small synthetic fixture and the asynchronous Ask
+enqueue/poll path. It does not represent authorized production volume,
+establish capacity, isolate a causal bottleneck, or establish an SLO.
+
 ## Current-main verification record
 
 On 2026-08-25, the follow-up change at `a700374e` was exercised against the
@@ -149,6 +167,18 @@ one temporary-buffer write. This identifies the measured database work to
 profile next; it does not by itself assign causality or establish an SLO.
 
 ## Older-image diagnostic observation
+
+On 2026-08-26, the same non-exact local Compose boundary completed an
+authenticated 4-VU, 30-second run over 43,189 aggregate synthetic
+`source_post` rows: 87 full iterations, 263 HTTP requests, and 261/261 endpoint
+checks succeeded. Ask enqueue was 57.25 ms. Ask polling was 56.83 ms mean,
+233.37 ms p95, and 765.24 ms maximum. The combined post/lineage reader metric
+was 842.14 ms mean, 1.53 s p95, and 2.80 s maximum. The host exposed 10 logical
+CPUs and 32 GiB RAM; Compose imposed no explicit backend CPU or memory limit.
+The backend container came from image `sha256:28234aa5db0e` created on
+2026-08-24, not the current PR head. These distributions show that concurrent
+readers remained responsive on that image; they do not validate an exact-head
+regression, identify a causal bottleneck, or establish an SLO.
 
 On 2026-08-25, an application-ready local Compose stack configured with four
 worker VUs completed zero full iterations in two observations. In the second

@@ -20,7 +20,10 @@ from typing import Any
 
 import asyncpg
 
-from backend.app.post_eligibility import SOURCE_POST_ELIGIBILITY_SQL
+from backend.app.post_eligibility import (
+    SOURCE_POST_ELIGIBILITY_SQL,
+    source_post_scope_sql,
+)
 from lineageweave.adjudication_client import AdjudicationClient
 from lineageweave.interval_relation import (
     INTERVAL_RELATION_LABELS,
@@ -45,6 +48,16 @@ ISOLATION_COMPARISON_CANDIDATES_AVAILABLE = "comparison_candidates_available"
 # ADR 0205 authorizes only a completed, persisted TEPP criterion anchor.
 _SUPPORTED_ANCHOR_METHOD_CODES: frozenset[str] = frozenset(
     {"tepp_lineage_criterion_v1"}
+)
+
+_LINEAGE_LANDING_SQL = (
+    "select post_id, post_title, voc_type_code, visibility_code, "
+    "corporate_entity_id, process_unit_id, thread_group_key, created_at "
+    "from source_post where {eligibility} and {visibility} "
+    "order by created_at desc, post_id desc limit $3"
+).format(
+    eligibility=SOURCE_POST_ELIGIBILITY_SQL.format(alias="source_post"),
+    visibility=source_post_scope_sql("source_post"),
 )
 
 def estimated_weight_channels(llm: AdjudicationClient | None) -> set[str]:
@@ -511,7 +524,7 @@ def _interval_payload(row: Mapping[str, Any]) -> dict[str, Any]:
 
 async def _fetch_visible_lineage_rows(conn: asyncpg.Connection, can_see_post):
     """One ABAC-filtered ``source_post`` scan plus one edge-table read."""
-    posts = await conn.fetch(
+    posts = await conn.fetch(  # nosemgrep
         "select post_id, post_title, voc_type_code, visibility_code, "
         "corporate_entity_id, process_unit_id, thread_group_key, created_at "
         f"from source_post where {SOURCE_POST_ELIGIBILITY_SQL.format(alias='source_post')}"
@@ -531,16 +544,11 @@ async def _fetch_lineage_landing_rows(
     limit: int,
 ):
     """Fetch only the authorized, bounded landing projection in PostgreSQL."""
-    # The only formatted value is the module-owned literal alias ``source_post``;
-    # every caller value remains an asyncpg bind parameter.
-    posts = await conn.fetch(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
-        "select post_id, post_title, voc_type_code, visibility_code, "
-        "corporate_entity_id, process_unit_id, thread_group_key, created_at "
-        "from source_post where "
-        f"{SOURCE_POST_ELIGIBILITY_SQL.format(alias='source_post')} and "
-        "(visibility_code = 'public' or (corporate_entity_id::text = any($1::text[]) "
-        "and (cardinality($2::text[]) = 0 or process_unit_id::text = any($2::text[])))) "
-        "order by created_at desc, post_id::text desc limit $3",
+    # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
+    # `_LINEAGE_LANDING_SQL` is a module constant; all runtime values below
+    # use asyncpg bind parameters. No caller-controlled SQL is interpolated.
+    posts = await conn.fetch(  # nosemgrep
+        _LINEAGE_LANDING_SQL,
         list(corporate_entity_ids),
         list(process_unit_ids),
         limit + 1,
@@ -694,7 +702,7 @@ async def visible_lineage_graph(
     focus_post_id: str | None = None,
     include_isolated: bool = False,
     corporate_entity_ids: Sequence[str] | None = None,
-    process_unit_ids: Sequence[str] = (),
+    process_unit_ids: Sequence[str] | None = None,
 ) -> dict[str, Any]:
     """ABAC-filtered graph bounded for the browser's initial viewport.
 
@@ -702,7 +710,12 @@ async def visible_lineage_graph(
     individual posts for complete lineage, while this landing projection keeps
     only the newest ``limit`` visible nodes and edges between them.
     """
-    if focus_post_id is None and corporate_entity_ids is not None:
+    optimized_landing = (
+        focus_post_id is None
+        and corporate_entity_ids is not None
+        and process_unit_ids is not None
+    )
+    if optimized_landing:
         visible, edge_rows, truncated = await _fetch_lineage_landing_rows(
             conn, corporate_entity_ids, process_unit_ids, limit
         )
@@ -710,7 +723,7 @@ async def visible_lineage_graph(
     else:
         visible_all, edge_rows = await _fetch_visible_lineage_rows(conn, can_see_post)
 
-    if focus_post_id is None and corporate_entity_ids is None:
+    if focus_post_id is None and not optimized_landing:
         visible = sorted(
             visible_all,
             key=lambda row: (row["created_at"], str(row["post_id"])),

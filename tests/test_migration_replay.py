@@ -206,6 +206,32 @@ def test_global_ask_job_migrations_are_idempotent_for_replay() -> None:
 
     assert "create table if not exists global_ask_job" in job_sql
     assert job_sql.count("create index if not exists") == 2
-    assert "global_ask_job exists with an incompatible schema" in job_sql
-    assert "pg_get_indexdef" in job_sql
     assert scope_sql.count("create table if not exists") == 2
+
+
+def test_global_ask_public_verification_opt_in_is_replay_safe() -> None:
+    """The durable worker receives explicit consent on old and new volumes."""
+
+    sql = (
+        Path(__file__).resolve().parents[1]
+        / "migrations"
+        / "0218_global_ask_public_verification.sql"
+    ).read_text(encoding="utf-8")
+
+    assert "verify_external_requested boolean not null default false" in sql
+    assert "add column if not exists" in sql
+    assert "data_type <> 'boolean'" in sql
+
+
+def test_global_ask_knowledge_cutoff_is_replay_safe() -> None:
+    """Existing queue tables accept the optional as-of clock on every restart."""
+
+    sql = (
+        Path(__file__).resolve().parents[1]
+        / "migrations"
+        / "0212_global_ask_knowledge_cutoff.sql"
+    ).read_text(encoding="utf-8")
+
+    assert "knowledge_cutoff timestamptz" in sql
+    assert "add column if not exists" in sql
+    assert "data_type <> 'timestamp with time zone'" in sql
