@@ -3,12 +3,14 @@
 
 The tests treat the published Dictionary of Occupational Titles
 Appendix B tables as ground truth: every declared concept must carry
-the official definition verbatim and the definitional rank from the
-published table. Nothing here may accept an invented weight or a
-placeholder for missing evidence.
+the official definition verbatim, the definitional rank from the
+published table. Nothing here may accept an invented weight, unsupported
+crosswalk, or placeholder for missing evidence.
 """
 
 from __future__ import annotations
+
+import hashlib
 
 import pytest
 from rdflib import RDF
@@ -20,35 +22,9 @@ from lineageweave.worker_function_taxonomy import (
     worker_function_records,
 )
 
-#: Verbatim opening fragments of official DOT Appendix B definitions,
-#: keyed by ``(domain, rank)`` -- a real-world accuracy check that the
-#: ontology carries the published text rather than a paraphrase.
-_OFFICIAL_DEFINITION_PREFIXES: dict[tuple[str, int], str] = {
-    ("data", 0): "Integrating analyses of data to discover facts",
-    ("data", 1): "Determining time, place, and sequence of operations",
-    ("data", 2): "Examining and evaluating data.",
-    ("data", 3): "Gathering, collating, or classifying information about data",
-    ("data", 4): "Performing arithmetic operations",
-    ("data", 5): "Transcribing, entering, or posting data.",
-    ("data", 6): "Judging the readily observable functional, structural",
-    ("people", 0): "Dealing with individuals in terms of their total personality",
-    ("people", 1): "Exchanging ideas, information, and opinions with others",
-    ("people", 2): "Teaching subject matter to others",
-    ("people", 3): "Determining or interpreting work procedures",
-    ("people", 4): "Amusing others",
-    ("people", 5): "Influencing others in favor of a product, service",
-    ("people", 6): "Talking with and/or signalling people",
-    ("people", 7): "Attending to the needs or requests of people",
-    ("people", 8): "Attending to the work assignment instructions or orders",
-    ("things", 0): "Preparing machines, equipment, or work stations",
-    ("things", 1): "Using body members and/or tools or work aids to work on",
-    ("things", 2): "Starting, stopping, and controlling the actions of machines and equipment",
-    ("things", 3): "Starting, stopping, and controlling the actions of machines or vehicles",
-    ("things", 4): "Using body members, handtools, and/or special devices",
-    ("things", 5): "Starting, stopping, and observing the functioning of machines",
-    ("things", 6): "Inserting, throwing, dumping, or placing materials",
-    ("things", 7): "Using body members, handtools, and/or special devices to install",
-}
+_OFFICIAL_TAXONOMY_SHA256 = (
+    "b960c338f8fa6a2795dc402a527b012bfadc24de45a1333845c05531e7c32ba3"
+)
 
 def _record_map() -> dict[tuple[str, int], object]:
     """Index every declared record by its ``(domain, rank)`` pair."""
@@ -72,15 +48,12 @@ def test_domain_ranks_match_the_published_table_extents() -> None:
 
 
 def test_definitions_carry_the_official_dot_text() -> None:
-    """Every concept's comment is the official Appendix B definition,
-    verified against verbatim opening fragments."""
-    indexed = _record_map()
-    for key, prefix in _OFFICIAL_DEFINITION_PREFIXES.items():
-        record = indexed[key]
-        assert record.definition.startswith(prefix), (
-            f"{key} definition drifted from the official text: "
-            f"{record.definition!r}"
-        )
+    """The complete ordered taxonomy matches the verified DOT text."""
+    payload = "\n".join(
+        f"{record.domain}:{record.rank}:{record.label}:{record.definition}"
+        for record in worker_function_records()
+    )
+    assert hashlib.sha256(payload.encode()).hexdigest() == _OFFICIAL_TAXONOMY_SHA256
 
 
 def test_labels_are_unique_across_the_scheme() -> None:
@@ -126,6 +99,7 @@ def test_worker_functions_carry_no_lookup_code() -> None:
     [
         ("data", 0, "Synthesizing"),
         ("people", 0, "Mentoring"),
+        ("people", 6, "Speaking-Signaling"),
         ("people", 8, "Taking Instructions-Helping"),
         ("things", 0, "Setting Up"),
         ("things", 7, "Handling"),

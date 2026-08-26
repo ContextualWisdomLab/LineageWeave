@@ -60,14 +60,14 @@ and rendered labels agree on term kind, direction, namespace, and provenance.
 
 - Publish the DOT/FJA Data/People/Things worker functions (24 concepts,
   official definitions verbatim) in the canonical ontology namespace
-  (ADR 0232), each with its official domain and definitional ordinal
-  rank.
+  (ADR 0232), each with its definitional ordinal rank. Do not infer a
+  DOT-to-O*NET or Fleishman crosswalk that the authorities do not publish.
 - Expose the taxonomy through a deterministic application read model with
   fail-closed lookups; an absent function is an honest unknown.
 - Carry no numeric weight from the taxonomy: ranks are scale positions,
   never calibrated weights.
 
-Acceptance: completeness, verbatim definition, deterministic ordering,
+Acceptance: completeness, full verbatim definitions, deterministic ordering,
 and lookup round-trip isolation are enforced by
 `tests/test_worker_function_taxonomy.py`; `tests/test_ontology.py`
 continues to pass unchanged.

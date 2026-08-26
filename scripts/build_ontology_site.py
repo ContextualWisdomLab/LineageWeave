@@ -162,7 +162,9 @@ def _render_term(graph: Graph, subject: URIRef, ontology_subjects: set[URIRef]) 
         or _preferred_literal(graph, subject, SKOS.prefLabel)
         or raw_fragment
     )
-    comment = _preferred_literal(graph, subject, RDFS.comment)
+    comment = _preferred_literal(graph, subject, SKOS.definition) or _preferred_literal(
+        graph, subject, RDFS.comment
+    )
     lookup_predicate = URIRef(CANONICAL_LOOKUP_PREDICATE)
     lookup_codes = sorted(str(value) for value in graph.objects(subject, lookup_predicate))
     type_values = sorted(

@@ -16,6 +16,8 @@ Provenance discipline mirrors the rest of this repository:
 - Ranks are scale positions copied from the published table -- never
   fitted, calibrated, or renormalized here. Nothing in this module may
   produce numeric weights (measurement stays governed by ADR 0145).
+- No DOT-to-O*NET or Fleishman crosswalk is inferred: the cited
+  authorities do not publish one.
 - Lookups fail closed: an absent concept returns ``None``/empty rather
   than a placeholder, the same missing-vs-negative rule as the Null
   channels.
@@ -36,7 +38,7 @@ from dataclasses import dataclass
 from functools import lru_cache
 
 from rdflib import URIRef
-from rdflib.namespace import RDFS, SKOS
+from rdflib.namespace import SKOS
 
 from .ontology import LW, ONTOLOGY
 
@@ -77,7 +79,8 @@ class WorkerFunctionRecord:
 
     definition: str
     """The official DOT Appendix B definition, stored verbatim as the
-    term's ``rdfs:comment``."""
+    term's ``skos:definition``."""
+
 
 def _record_for(subject: URIRef) -> WorkerFunctionRecord:
     """Build one record from its ontology subject.
@@ -90,14 +93,14 @@ def _record_for(subject: URIRef) -> WorkerFunctionRecord:
     domain_literal = ONTOLOGY.value(subject, LW.fjaDomain)
     rank_literal = ONTOLOGY.value(subject, LW.fjaRank)
     label_literal = ONTOLOGY.value(subject, SKOS.prefLabel)
-    definition_literal = ONTOLOGY.value(subject, RDFS.comment)
+    definition_literal = ONTOLOGY.value(subject, SKOS.definition)
     missing = [
         name
         for name, literal in (
             (":fjaDomain", domain_literal),
             (":fjaRank", rank_literal),
             ("skos:prefLabel", label_literal),
-            ("rdfs:comment", definition_literal),
+            ("skos:definition", definition_literal),
         )
         if literal is None
     ]
