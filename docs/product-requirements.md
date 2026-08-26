@@ -86,8 +86,10 @@ continues to pass unchanged.
 Acceptance: SHACL rejects incomplete assertions; ontology tests prohibit FJA
 equivalence and require exact Post/evidence/PROV statement structure. ADR 0249
 adds normalized, semantic-unit-bound persistence and an authorized Post-detail
-projection. Search, graph navigation, extraction, and UI remain unavailable
-until their separate ADR acceptance.
+projection. ADR 0250 synchronizes all official O*NET cognitive-ability,
+work-style, and work-activity Content Model elements into that versioned
+registry without importing ratings. Search, graph navigation, extraction, and
+UI remain unavailable until their separate ADR acceptance.
 
 ### PRD-FR-3 — Bounded ontology exploration
 

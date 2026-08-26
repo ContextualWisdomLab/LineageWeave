@@ -239,6 +239,11 @@ _OCCUPATIONAL_CONSTRUCT_MIGRATION = (
     / "migrations"
     / "0238_occupational_construct_assertion.sql"
 )
+_OCCUPATIONAL_CATALOG_MIGRATION = (
+    Path(__file__).resolve().parents[2]
+    / "migrations"
+    / "0239_occupational_construct_catalog.sql"
+)
 
 
 def _postgres_available() -> bool:
@@ -401,6 +406,7 @@ def seeded_db(demo_analyst_token):
             cur.execute(_LEFTOVER_MAP_AXIS_MIGRATION.read_text())
             cur.execute(_CHANNEL_EVIDENCE_MIGRATION.read_text())
             cur.execute(_OCCUPATIONAL_CONSTRUCT_MIGRATION.read_text())
+            cur.execute(_OCCUPATIONAL_CATALOG_MIGRATION.read_text())
             cur.execute(_LEFTOVER_MAP_UNEXPLAINED_MIGRATION.read_text())
             cur.execute(_LEFTOVER_MAP_CROSS_SHARE_MIGRATION.read_text())
             cur.execute(_LEFTOVER_MAP_RECONSTRUCTION_MIGRATION.read_text())
