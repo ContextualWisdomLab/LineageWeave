@@ -181,6 +181,15 @@ def test_library_transport_uses_classic_rrf_without_convex_weights() -> None:
     )
 
 
+def test_explicit_empty_weight_vector_fails_closed() -> None:
+    with pytest.raises(RankWeaveNotAvailable, match="rankweave_not_available"):
+        build_rankweave_client().fuse_rankings(
+            {"temporal": ["post-1"], "lexical": ["post-1"]},
+            {"post-1": "Public post"},
+            weights={},
+        )
+
+
 def test_library_transport_projects_monkeypatched_rrf(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

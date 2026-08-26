@@ -296,7 +296,9 @@ def project_ranking_list(
     owned_channels = channels or {}
     # Parameter-free classic RRF default (ADR 0200 point 1): every
     # channel weighs 1.0 unless the caller passes an estimated set.
-    owned_weights = weights or {name: 1.0 for name in owned_channels}
+    owned_weights = (
+        weights if weights is not None else {name: 1.0 for name in owned_channels}
+    )
     evidence_by_post_id = _owner_channel_evidence(
         owned_channels,
         owned_weights,
@@ -391,7 +393,9 @@ class RankWeaveClient:
         it explicitly; the disclosed per-channel evidence carries
         whichever weights actually fused.
         """
-        active_weights = weights or {name: 1.0 for name in channels}
+        active_weights = (
+            weights if weights is not None else {name: 1.0 for name in channels}
+        )
         try:
             raw = self._transport(channels, active_weights)
         except RankWeaveNotAvailable:
