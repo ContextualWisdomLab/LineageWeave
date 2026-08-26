@@ -4,6 +4,7 @@ on:
   push:
     branches: [main]
   pull_request:
+    types: [opened, synchronize, reopened, closed]
 
 permissions:
   contents: read
@@ -15,6 +16,7 @@ concurrency:
 jobs:
   pytest:
     name: Full test suite
+    if: github.event_name != 'pull_request' || github.event.action != 'closed'
     runs-on: ubuntu-latest
     services:
       postgres:
@@ -60,6 +62,7 @@ jobs:
 
   frontend:
     name: Frontend lint, test, build
+    if: github.event_name != 'pull_request' || github.event.action != 'closed'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
