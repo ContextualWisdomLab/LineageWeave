@@ -453,7 +453,9 @@ async def load_authorized_public_claim_envelopes(
     """Load public envelopes that existed within the requested evidence view."""
     # The statement is assembled once from module-owned SQL fragments; the only
     # runtime value remains the asyncpg $1 parameter.
-    rows = await conn.fetch(
+    # Semgrep cannot prove that this module constant contains only repository-
+    # owned fragments; the sole runtime input remains asyncpg parameter $1.
+    rows = await conn.fetch(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
         _AUTHORIZED_PUBLIC_CLAIM_ENVELOPES_SQL, knowledge_cutoff
     )
     return tuple(
