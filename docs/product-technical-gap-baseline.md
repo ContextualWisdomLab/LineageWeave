@@ -1,6 +1,6 @@
 # Product & Technical Gap Baseline
 
-> Dashboard delivery snapshot: 2026-08-26 11:56 KST. Protected `main` is
+> Dashboard delivery snapshot: 2026-08-26 12:08 KST. Protected `main` is
 > `494b54e2245040bcf02b45376f221c37cd437e76`. This local branch is not
 > protected-main release evidence.
 
@@ -86,14 +86,14 @@ context only.
 | PR | Exact observed head | Merge/check state at this snapshot |
 | ---: | --- | --- |
 | #689 | `81d85a02` | accepted measurement-owner release pin restacked on current #640; hosted checks and independent review pending |
-| #688 | `63372cc9` | automatic related-source evidence lookup restacked on current #640; UNSTABLE with hosted checks and stack-base delivery pending |
+| #688 | `ef7aebdd` | automatic related-source evidence lookup restacked on current #640; UNSTABLE with hosted checks and stack-base delivery pending |
 | #687 | `827978a5` | bounded semantic backfill jobs stacked on #640; UNSTABLE with hosted checks and stack-base delivery pending |
-| #686 | `ea34a797` | customer-facing copy boundary audit removes implementation labels while retaining Event Lineage distinction and localized actions; BLOCKED with review required and hosted checks pending |
+| #686 | `7f0a6fd1` | customer-facing copy boundary audit removes implementation labels while retaining Event Lineage distinction and localized actions; five locale/accessibility fixes applied, three Devin threads resolved, hosted checks requeued |
 | #680 | `5c246a54` | customer-facing ranking copy with localized retry/search guidance and source-record detail copy corrected; BLOCKED with exact-head checks and independent review required |
 | #679 | `29aa69dd` | ADR 0229 public-claim envelope, async verification, locale-aware next actions, opt-in search setup, and aggregate-status guidance repair; BLOCKED with exact-head checks and independent review required |
-| #672 | `91caeb02` | persisted semantic-evidence nomination for Global Ask with ADR renumbering; exact-head worker factory quality repair applied, hosted checks requeued and review required |
+| #672 | `ac521a24` | persisted semantic-evidence nomination for Global Ask with ADR renumbering; unexpected external-verification adapter failures now degrade to unavailable with a regression test; one pre-existing pool/embedding review note remains, hosted checks requeued |
 | #668 | `e452bf38` | evidence-bound project history projection with ADR renumbering, request guards, source-code/time-basis display repair, and theme-token timeline styling; BLOCKED with review required |
-| #667 | `b3a1c4e6` | baseline refresh observed before this documentation-only update; BLOCKED with hosted checks and independent review required; this row is not a prediction of the commit created by the refresh |
+| #667 | `ed061921` | baseline refresh parent is the current exact head; BLOCKED with hosted checks and independent review required; this row is not a prediction of the commit created by the refresh |
 | #663 | `f616887a` | project ontology traversal, cutoff-snapshot project focus, bounded MCP admission, and migration-fixture/worker startup repair; exact-head Full-suite authentication and transaction-fixture failures repaired; fresh checks pending and review required |
 | #658 | `f497a6e8` | evidence-honest Global Ask cutoff with robust revision timestamps; BLOCKED with review required |
 | #657 | `709df1b9` | TEPP lifecycle persistence and fail-closed topic acceptance; BLOCKED with hosted checks queued and review required |
@@ -104,6 +104,11 @@ context only.
 | #632 | `811026cc` | graph-fact provenance repair with current baseline evidence; BLOCKED with hosted checks queued and review required |
 | #631 | `e6b4f0c4` | ADR decomposition documentation; BLOCKED with review required |
 | #629 | `48496ff6` | provider-work release, bounded reads, and UUID tie-break ordering; BLOCKED with review required |
+
+The exact-head check-run scan at 12:08 KST found no `failure`, `cancelled`, or
+`timed_out` conclusions on the 19 current heads. Several heads, including
+#672 and #686 after their repair pushes, are still queued and therefore have
+no terminal gate evidence; review approval is also independently required.
 
 No row above is merge evidence. Immediately before any lifecycle action,
 re-fetch the head, unresolved threads, formal reviews, rulesets, and same-head
