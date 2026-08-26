@@ -1,6 +1,6 @@
 # Product & Technical Gap Baseline
 
-> Dashboard delivery snapshot: 2026-08-26 14:55 KST. Protected `main` is
+> Dashboard delivery snapshot: 2026-08-26 11:08 KST. Protected `main` is
 > `494b54e2245040bcf02b45376f221c37cd437e76`. This local branch is not
 > protected-main release evidence.
 
@@ -61,14 +61,14 @@ only aggregate, non-identifying evidence to this repository.
 
 ### Exact open-PR boundary
 
-At this snapshot there were 17 open PRs and 10 open issues. The exact-head
+At this snapshot there were 19 open PRs and 10 open issues. The exact-head
 inventory in section 1 is authoritative for this snapshot. Every open head
 remained blocked on hosted gates and/or independent review. These observations
 are not merge readiness. Re-fetch exact heads,
 unresolved threads, checks, approvals, rulesets, and merge SHA before any
 lifecycle claim.
 
-> Audit snapshot: 2026-08-26 10:10 KST (refreshed by the autonomous merge
+> Audit snapshot: 2026-08-26 11:08 KST (refreshed by the autonomous merge
 > loop). This repository records synthetic fixtures and aggregate,
 > non-identifying runtime evidence only. Open PRs and local checks are not
 > protected-default-branch release evidence. Identifying post identifiers,
@@ -78,22 +78,23 @@ lifecycle claim.
 ## 1. Exact-head and governance evidence
 
 The protected default branch is `494b54e2245040bcf02b45376f221c37cd437e76`
-at this refresh. The live queue contains 17 open PRs and 10
+at this refresh. The live queue contains 19 open PRs and 10
 open issues. The exact-head inventory below supersedes older per-PR snapshots
 elsewhere in this document; those older rows remain useful historical delivery
 context only.
 
 | PR | Exact observed head | Merge/check state at this snapshot |
 | ---: | --- | --- |
-| #686 | `dbe851ac` | customer-facing copy boundary audit; BLOCKED with hosted checks pending |
-| #684 | `cb5e7df7` | measured PostgreSQL runtime tuning plan; merge state unknown while hosted checks are pending |
+| #687 | `f3b1ef13` | bounded semantic backfill producer stacked on #640; UNSTABLE with hosted checks queued |
+| #686 | `5eec27fc` | customer-facing copy boundary audit with localized action copy and exact `Time axis` label; BLOCKED with review required and hosted checks pending |
+| #684 | `d71d0892` | measured PostgreSQL runtime tuning plan; UNSTABLE while hosted checks are pending |
 | #682 | `0aa3113e` | MERGED to stack `feat/global-ask-semantic-public-current` as `fa245483`; typed public-claim verification filters cited claims before the bounded candidate budget, preserves answers when verification is unavailable, rejects hidden evidence from public egress, and validates empty orchestrator choices |
 | #681 | `3e0fa644` | MERGED to stack `feat/dashboard-case-metrics` as `dae28fb2`; fail-closed lineage-weight owner contract pin with lockfile parity |
 | #680 | `5c246a54` | customer-facing ranking copy with localized retry/search guidance and source-record detail copy corrected; BLOCKED with exact-head checks and independent review required |
 | #679 | `c430cfa1` | ADR 0229 public-claim envelope, async verification, locale-aware next actions, opt-in search setup, and aggregate-status guidance repair; BLOCKED with exact-head checks and independent review required |
 | #678 | `676fcc5a` | MERGED to stack `feat/dashboard-case-metrics` as `bec013d8`; canonical Compose-stack consolidation |
-| #677 | `bf7d6b88` | ADR 0228 account-owned per-post Ask conversation history reconciled with the latest baseline; localized titles, full conversation/transcript pagination, stale-response guards, repeated-turn preservation, and eligibility recheck remain intact; hosted checks requeued and independent review required |
-| #667 | `90b0d330` | baseline refresh branch current head; BLOCKED with review required; stacked #669 and #671 are merged into this non-default branch |
+| #677 | `0ba4e609` | ADR 0228 account-owned per-post Ask conversation history with canonical cursor-field fixture repair; hosted checks requeued and independent review required |
+| #667 | `771a5186` | baseline refresh branch current head; BLOCKED with review required; stacked #669 and #671 are merged into this non-default branch |
 | #672 | `5468c04d` | persisted semantic-evidence nomination for Global Ask with ADR renumbering; BLOCKED with hosted checks queued and review required |
 | #668 | `e452bf38` | evidence-bound project history projection with ADR renumbering, request guards, source-code/time-basis display repair, and theme-token timeline styling; BLOCKED with review required |
 | #663 | `f616887a` | project ontology traversal, cutoff-snapshot project focus, bounded MCP admission, and migration-fixture/worker startup repair; exact-head Full-suite authentication and transaction-fixture failures repaired; fresh checks pending and review required |
