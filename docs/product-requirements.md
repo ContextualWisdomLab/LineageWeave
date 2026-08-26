@@ -110,8 +110,10 @@ unchanged.
   score, causal effect, or job requirement.
 
 Acceptance: SHACL rejects incomplete assertions; ontology tests prohibit FJA
-equivalence and require exact Post/evidence/PROV statement structure. Runtime
-persistence and UI remain unavailable until their separate ADR acceptance.
+equivalence and require exact Post/evidence/PROV statement structure. ADR 0249
+adds normalized, semantic-unit-bound persistence and an authorized Post-detail
+projection. Search, graph navigation, extraction, and UI remain unavailable
+until their separate ADR acceptance.
 
 ### PRD-FR-3 — Bounded ontology exploration
 

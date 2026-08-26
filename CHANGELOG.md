@@ -28,6 +28,10 @@ All notable changes to this project are documented here. Format follows
   behaviors, and FJA worker functions distinct. Record-to-construct links
   require a reified evidence span and PROV-O derivation/time; unsupported
   DPT-to-psychology crosswalks and local scores remain unavailable (ADR 0248).
+- Versioned occupational construct vocabularies and semantic-unit assertions
+  now persist in normalized tables. Database and application validation require
+  same-Post verbatim evidence, and authorized Post detail exposes provenance
+  without internal identifiers or numerical scores (ADR 0249).
 
 - The DOT/FJA Data/People/Things worker-function taxonomy is now published
   in the canonical ontology: all 24 worker functions carry the official
