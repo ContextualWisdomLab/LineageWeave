@@ -206,7 +206,19 @@ def test_other_kinds_stay_unavailable_even_with_urls() -> None:
         search_available=True,
     )
     assert verdict.status_code == STATUS_UNAVAILABLE
-    assert verdict.external_evidence_urls == ("https://events.example/northridge",)
+    assert verdict.external_evidence_urls == ()
+
+
+def test_uncorroborated_urls_are_not_exposed_as_public_evidence() -> None:
+    """Retrieved candidates stay hidden until they corroborate the claim."""
+    verdict = classify_public_claim(
+        _envelope(),
+        ("https://unrelated.example/about",),
+        search_available=True,
+    )
+
+    assert verdict.status_code == STATUS_NOT_ENOUGH_INFORMATION
+    assert verdict.external_evidence_urls == ()
 
 
 def test_external_urls_cannot_become_cited_post_ids() -> None:
