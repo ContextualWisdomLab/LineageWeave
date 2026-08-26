@@ -216,3 +216,41 @@ def test_authorized_projection_omits_internal_ids_and_preserves_provenance() -> 
     assert "job.source_body_sha256 = extraction.source_body_sha256" in conn.calls[0][0]
 
 
+@pytest.mark.parametrize(
+    ("stored", "expected"),
+    (("complete", "complete"), ("processing", "processing"), (None, "unavailable")),
+)
+def test_evidence_status_preserves_missing_vs_empty(stored, expected) -> None:
+    """Only a matching run is complete; active work and absence remain distinct."""
+
+    class StatusConnection:
+        async def fetchval(self, query: str, post_id: str):
+            assert "extraction.source_body_sha256 = job.source_body_sha256" in query
+            assert query.index("when job.status_code") < query.index(
+                "when extraction.source_body_sha256"
+            )
+            assert post_id == "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"
+            return stored
+
+    assert (
+        asyncio.run(
+            load_occupational_construct_evidence_status(
+                StatusConnection(), "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"
+            )
+        )
+        == expected
+    )
+
+
+def test_evidence_status_distinguishes_missing_setup_from_retryable_failure() -> None:
+    """A missing analysis setup never tells the reader that retrying can help."""
+    class StatusConnection:
+        async def fetchval(self, _query: str, _post_id: str):
+            return None
+
+    assert asyncio.run(
+        load_occupational_construct_evidence_status(
+            StatusConnection(), "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+            evidence_configured=False,
+        )
+    ) == "setup_required"
