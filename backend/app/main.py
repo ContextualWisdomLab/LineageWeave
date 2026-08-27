@@ -128,6 +128,10 @@ from backend.app.ontology_neighborhood_ingestion import (
     parse_allowed_property_query,
     visible_ontology_neighborhood,
 )
+from backend.app.iopsy_ontology_api import (
+    construct_catalog_payload,
+    worker_function_profile_payload,
+)
 from backend.app.post_chat_ingestion import (
     fetch_persisted_chat,
     fetch_persisted_chats,
@@ -2296,6 +2300,44 @@ async def read_ontology_neighborhood(
     except OntologyNeighborhoodError as exc:
         raise HTTPException(neighborhood_error_http_status(exc), neighborhood_error_detail(exc)) from None
     return payload
+
+
+@app.get("/api/ontology/worker-functions/{domain}/{rank}")
+async def read_worker_function_psychology(
+    domain: str,
+    rank: int,
+    account: CurrentAccount = Depends(get_current_account),
+) -> dict[str, Any]:
+    """I/O-Psychology demand profile for one DOT/FJA worker function (ADR 0251).
+
+    Serves the grounded cognitive, affective, and behavioral construct
+    relations declared in the published ontology. An undeclared domain/rank
+    pair is an honest 404 -- never a fabricated profile. Unrecognized
+    domains are client errors.
+    """
+    _require_post_read(account)
+    if rank < 0 or rank > 100 or domain not in {"data", "people", "things"}:
+        raise HTTPException(
+            status.HTTP_422_UNPROCESSABLE_CONTENT,
+            "domain must be one of data, people, things; rank within the published table extents",
+        )
+    payload = worker_function_profile_payload(domain, rank)
+    if payload is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "undeclared worker function")
+    return payload
+
+
+@app.get("/api/ontology/worker-function-constructs")
+async def read_worker_function_construct_catalog(
+    account: CurrentAccount = Depends(get_current_account),
+) -> dict[str, Any]:
+    """Cognitive, affective, and behavioral construct catalog (ADR 0251).
+
+    Returns the deterministic typed construct groups and their nomological
+    relations from the published ontology, for ontology/evidence surfaces.
+    """
+    _require_post_read(account)
+    return construct_catalog_payload()
 
 
 @app.get("/api/posts/{post_id}/counterparties")

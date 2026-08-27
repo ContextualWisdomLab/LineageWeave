@@ -988,6 +988,59 @@ export function fetchOntologyNeighborhood(
   return backendFetch(`/api/ontology/neighborhood?${params.toString()}`, accessToken);
 }
 
+export interface WorkerFunctionConstructPayload {
+  iri: string;
+  category: "cognitive" | "affective" | "behavioral";
+  label: string;
+  dimension: string;
+  theoretical_basis: string;
+  definition: string;
+}
+
+export interface WorkerFunctionProfilePayload {
+  function_domain: "data" | "people" | "things";
+  function_rank: number;
+  function_label: string;
+  cognitive_demands: WorkerFunctionConstructPayload[];
+  mental_workload_demands: WorkerFunctionConstructPayload[];
+  affective_demands: WorkerFunctionConstructPayload[];
+  emotional_labor_demands: WorkerFunctionConstructPayload[];
+  behavioral_manifestations: WorkerFunctionConstructPayload[];
+  psychomotor_behaviors: WorkerFunctionConstructPayload[];
+  interpersonal_behaviors: WorkerFunctionConstructPayload[];
+}
+
+export interface WorkerFunctionRelationPayload {
+  source_iri: string;
+  source_label: string;
+  predicate_iri: string;
+  predicate_label: string;
+  target_iri: string;
+  target_label: string;
+  target_category: string;
+}
+
+export interface WorkerFunctionConstructCatalogPayload {
+  constructs: Partial<
+    Record<"cognitive" | "affective" | "behavioral", WorkerFunctionConstructPayload[]>
+  >;
+  relations: WorkerFunctionRelationPayload[];
+}
+
+export function fetchWorkerFunctionProfile(
+  accessToken: string,
+  domain: string,
+  rank: number,
+): Promise<WorkerFunctionProfilePayload> {
+  return backendFetch(`/api/ontology/worker-functions/${domain}/${rank}`, accessToken);
+}
+
+export function fetchWorkerFunctionConstructCatalog(
+  accessToken: string,
+): Promise<WorkerFunctionConstructCatalogPayload> {
+  return backendFetch("/api/ontology/worker-function-constructs", accessToken);
+}
+
 export function extractPostKeymen(
   accessToken: string,
   postId: string,
