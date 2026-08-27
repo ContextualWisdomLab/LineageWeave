@@ -1,9 +1,10 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   fetchOccupationRatingSources,
   fetchOccupationRatings,
+  fetchRatingSourceOccupations,
   type OccupationRatingProfile as Payload,
 } from "../api";
 import { OccupationRatingProfile, OccupationRatingProfileView } from "./OccupationRatingProfile";
@@ -12,6 +13,7 @@ vi.mock("../api", async (importOriginal) => ({
   ...(await importOriginal<typeof import("../api")>()),
   fetchOccupationRatingSources: vi.fn(),
   fetchOccupationRatings: vi.fn(),
+  fetchRatingSourceOccupations: vi.fn(),
 }));
 
 const ready: Payload = {
@@ -38,6 +40,27 @@ const ready: Payload = {
   next_offset: null,
 };
 
+beforeEach(() => {
+  vi.mocked(fetchOccupationRatingSources).mockResolvedValue({
+    sources: [{
+      data_release_code: "onet-31.0", release_version: "31.0",
+      source_publisher_name: "Synthetic publisher", source_license_url: "https://example.test/license",
+      source_table_code: "abilities", source_table_name: "Abilities",
+      source_artifact_url: "https://example.test/abilities.csv", source_artifact_sha256: "a".repeat(64),
+      source_row_count: 2,
+    }],
+  });
+  vi.mocked(fetchRatingSourceOccupations).mockResolvedValue({
+    data_release_code: "onet-31.0",
+    source_table_code: "abilities",
+    source_available: true,
+    occupations: [
+      { onetsoc_code: "11-1011.00", occupation_title: "Chief Executives" },
+      { onetsoc_code: "15-1252.00", occupation_title: "Software Developers" },
+    ],
+  });
+});
+
 describe("OccupationRatingProfile", () => {
   it("submits exact identifiers and renders warnings beside the retained value", async () => {
     vi.mocked(fetchOccupationRatingSources).mockResolvedValue({
@@ -52,7 +75,11 @@ describe("OccupationRatingProfile", () => {
     vi.mocked(fetchOccupationRatings).mockResolvedValue(ready);
     render(<OccupationRatingProfile accessToken="synthetic-token" />);
     expect(await screen.findByRole("option", { name: "31.0 · Abilities" })).toBeInTheDocument();
-    await userEvent.type(screen.getByLabelText("O*NET-SOC 직업 코드"), "15-1252.00");
+    await screen.findByRole("option", { name: "Software Developers · 15-1252.00" });
+    await userEvent.selectOptions(
+      await screen.findByLabelText("직업"),
+      "15-1252.00",
+    );
     await userEvent.click(screen.getByRole("button", { name: "직업 근거 열기" }));
     expect(fetchOccupationRatings).toHaveBeenCalledWith("synthetic-token", {
       onetsocCode: "15-1252.00", dataReleaseCode: "onet-31.0", sourceTableCode: "abilities", offset: 0,
@@ -69,6 +96,46 @@ describe("OccupationRatingProfile", () => {
 
     expect(await screen.findByText(/가져온 직업 근거 표가 없습니다/)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "직업 근거 열기" })).toBeDisabled();
+  });
+
+  it("fails closed when an imported source has no selectable occupation", async () => {
+    vi.mocked(fetchOccupationRatingSources).mockResolvedValue({
+      sources: [{
+        data_release_code: "onet-31.0", release_version: "31.0",
+        source_publisher_name: "Synthetic publisher", source_license_url: "https://example.test/license",
+        source_table_code: "abilities", source_table_name: "Abilities",
+        source_artifact_url: "https://example.test/abilities.csv", source_artifact_sha256: "a".repeat(64),
+        source_row_count: 2,
+      }],
+    });
+    vi.mocked(fetchRatingSourceOccupations).mockResolvedValue({
+      data_release_code: "onet-31.0", source_table_code: "abilities",
+      source_available: true, occupations: [],
+    });
+    render(<OccupationRatingProfile accessToken="synthetic-token" />);
+
+    expect(await screen.findByText(/선택할 수 있는 직업이 없습니다/)).toBeInTheDocument();
+    expect(screen.getByLabelText("직업")).toBeDisabled();
+  });
+
+  it("distinguishes an unavailable occupation catalog from an empty one", async () => {
+    vi.mocked(fetchRatingSourceOccupations).mockResolvedValue({
+      data_release_code: "onet-31.0", source_table_code: "abilities",
+      source_available: false, occupations: [],
+    });
+    render(<OccupationRatingProfile accessToken="synthetic-token" />);
+
+    expect(await screen.findByText(/직업 목록이 아직 준비되지 않았습니다/)).toHaveAttribute("role", "status");
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    expect(screen.queryByText(/선택할 수 있는 직업이 없습니다/)).not.toBeInTheDocument();
+  });
+
+  it("reports a transport failure separately from an unavailable occupation catalog", async () => {
+    vi.mocked(fetchRatingSourceOccupations).mockRejectedValue(new Error("synthetic transport failure"));
+    render(<OccupationRatingProfile accessToken="synthetic-token" />);
+
+    expect(await screen.findByRole("alert")).toHaveTextContent("직업 목록을 확인하지 못했습니다");
+    expect(screen.queryByText(/직업 목록이 아직 준비되지 않았습니다/)).not.toBeInTheDocument();
   });
 
   it("clears a stale catalog error when authentication changes", async () => {
@@ -104,7 +171,8 @@ describe("OccupationRatingProfile", () => {
     );
     const { rerender } = render(<OccupationRatingProfile accessToken="expired-token" />);
     await screen.findByRole("option", { name: "31.0 · Abilities" });
-    await userEvent.type(screen.getByLabelText("O*NET-SOC 직업 코드"), "15-1252.00");
+    await screen.findByRole("option", { name: "Software Developers · 15-1252.00" });
+    await userEvent.selectOptions(screen.getByLabelText("직업"), "15-1252.00");
     await userEvent.click(screen.getByRole("button", { name: "직업 근거 열기" }));
 
     rerender(<OccupationRatingProfile accessToken="fresh-token" />);
@@ -112,10 +180,10 @@ describe("OccupationRatingProfile", () => {
 
     expect(await screen.findByRole("option", { name: "31.0 · Abilities" })).toBeInTheDocument();
     expect(screen.queryByText("4.10")).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "직업 근거 열기" })).not.toBeDisabled();
+    expect(screen.getByRole("button", { name: "직업 근거 열기" })).toBeDisabled();
   });
 
-  it("hides stale pagination after form edits and loads the new profile", async () => {
+  it("clears loaded evidence when the occupation selection changes", async () => {
     vi.mocked(fetchOccupationRatingSources).mockResolvedValue({
       sources: [{
         data_release_code: "onet-31.0", release_version: "31.0",
@@ -125,24 +193,18 @@ describe("OccupationRatingProfile", () => {
         source_row_count: 2,
       }],
     });
-    vi.mocked(fetchOccupationRatings)
-      .mockResolvedValueOnce({ ...ready, next_offset: 100 })
-      .mockResolvedValueOnce({ ...ready, items: [{ ...ready.items[0], scale_id: "LV" }] });
+    vi.mocked(fetchOccupationRatings).mockResolvedValueOnce({ ...ready, next_offset: 100 });
     render(<OccupationRatingProfile accessToken="synthetic-token" />);
-    const occupation = screen.getByLabelText("O*NET-SOC 직업 코드");
-    await userEvent.type(occupation, "15-1252.00");
+    const occupation = await screen.findByLabelText("직업");
+    await screen.findByRole("option", { name: "Software Developers · 15-1252.00" });
+    await userEvent.selectOptions(occupation, "15-1252.00");
     await userEvent.click(screen.getByRole("button", { name: "직업 근거 열기" }));
     await screen.findByText("4.10");
 
-    await userEvent.clear(occupation);
-    await userEvent.type(occupation, "11-1011.00");
-    expect(screen.queryByRole("button", { name: "다음 관측값 불러오기" })).not.toBeInTheDocument();
-    await userEvent.click(screen.getByRole("button", { name: "직업 근거 열기" }));
+    await userEvent.selectOptions(occupation, "11-1011.00");
 
-    expect(fetchOccupationRatings).toHaveBeenLastCalledWith("synthetic-token", {
-      onetsocCode: "11-1011.00", dataReleaseCode: "onet-31.0", sourceTableCode: "abilities", offset: 0,
-    });
-    expect(await screen.findByText("4.10")).toBeInTheDocument();
+    expect(screen.queryByText("4.10")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "다음 관측값 불러오기" })).not.toBeInTheDocument();
   });
 
   it("removes stale evidence while a fresh occupation loads", async () => {
@@ -159,13 +221,13 @@ describe("OccupationRatingProfile", () => {
       .mockResolvedValueOnce(ready)
       .mockImplementationOnce(() => new Promise(() => undefined));
     render(<OccupationRatingProfile accessToken="synthetic-token" />);
-    const occupation = screen.getByLabelText("O*NET-SOC 직업 코드");
-    await userEvent.type(occupation, "15-1252.00");
+    const occupation = await screen.findByLabelText("직업");
+    await screen.findByRole("option", { name: "Software Developers · 15-1252.00" });
+    await userEvent.selectOptions(occupation, "15-1252.00");
     await userEvent.click(screen.getByRole("button", { name: "직업 근거 열기" }));
     await screen.findByText("4.10");
 
-    await userEvent.clear(occupation);
-    await userEvent.type(occupation, "11-1011.00");
+    await userEvent.selectOptions(occupation, "11-1011.00");
     await userEvent.click(screen.getByRole("button", { name: "직업 근거 열기" }));
 
     expect(screen.queryByText("4.10")).not.toBeInTheDocument();
@@ -185,12 +247,12 @@ describe("OccupationRatingProfile", () => {
       .mockImplementationOnce(() => new Promise((resolve) => { finishFirst = resolve; }))
       .mockResolvedValueOnce({ ...ready, onetsoc_code: "11-1011.00", items: [{ ...ready.items[0], data_value: "3.20" }] });
     render(<OccupationRatingProfile accessToken="synthetic-token" />);
-    const occupation = screen.getByLabelText("O*NET-SOC 직업 코드");
-    await userEvent.type(occupation, "15-1252.00");
+    const occupation = await screen.findByLabelText("직업");
+    await screen.findByRole("option", { name: "Software Developers · 15-1252.00" });
+    await userEvent.selectOptions(occupation, "15-1252.00");
     await userEvent.click(screen.getByRole("button", { name: "직업 근거 열기" }));
 
-    await userEvent.clear(occupation);
-    await userEvent.type(occupation, "11-1011.00");
+    await userEvent.selectOptions(occupation, "11-1011.00");
     fireEvent.submit(occupation.closest("form")!);
     expect(await screen.findByText("3.20")).toBeInTheDocument();
 
@@ -203,7 +265,7 @@ describe("OccupationRatingProfile", () => {
     const { rerender } = render(<OccupationRatingProfileView profile={{ ...ready, source_available: false, source: null, items: [] }} />);
     expect(screen.getByRole("status")).toHaveTextContent("아직 준비되지 않았습니다");
     rerender(<OccupationRatingProfileView profile={{ ...ready, items: [] }} />);
-    expect(screen.getByRole("status")).toHaveTextContent("관측값이 없습니다");
+    expect(screen.getByRole("status")).toHaveTextContent("직업이나 근거 표를 바꿔");
   });
 
   it("does not turn a non-http artifact value into a customer link", () => {
