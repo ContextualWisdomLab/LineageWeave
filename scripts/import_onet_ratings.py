@@ -399,21 +399,9 @@ async def import_ratings(args: argparse.Namespace) -> dict[str, object]:
                 args.release_code,
             )
             await _reject_reference_conflicts(conn, args, scales, observations)
-            release_literal = await conn.fetchval(
-                "select quote_literal($1)", args.release_code
-            )
-            source_literal = await conn.fetchval(
-                "select quote_literal($1)", args.source_table_code
-            )
-            release_identifier = await conn.fetchval(
-                "select quote_ident($1)", release_partition
-            )
-            source_identifier = await conn.fetchval(
-                "select quote_ident($1)", source_partition
-            )
-            if not re.fullmatch(r"[a-z][a-z0-9_]*", release_identifier):
+            if not re.fullmatch(r"[a-z][a-z0-9_]*", release_partition):
                 raise ValueError("invalid release partition identifier")
-            if not re.fullmatch(r"[a-z][a-z0-9_]*", source_identifier):
+            if not re.fullmatch(r"[a-z][a-z0-9_]*", source_partition):
                 raise ValueError("invalid source partition identifier")
             await conn.execute(
                 """insert into occupational_data_release
@@ -437,7 +425,7 @@ async def import_ratings(args: argparse.Namespace) -> dict[str, object]:
                 end
                 $$;
                 """,
-                release_identifier,
+                release_partition,
                 args.release_code,
             )
             await conn.execute(
@@ -451,8 +439,8 @@ async def import_ratings(args: argparse.Namespace) -> dict[str, object]:
                 end
                 $$;
                 """,
-                source_identifier,
-                release_identifier,
+                source_partition,
+                release_partition,
                 args.source_table_code,
             )
             await conn.execute(
