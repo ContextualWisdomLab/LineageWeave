@@ -118,7 +118,7 @@ def test_role_catalog_identity_migration_is_wired() -> None:
 
 def test_orchestrator_runtime_pin_matches_adr() -> None:
     """The image pin and ADR must describe the same immutable upstream commit."""
-    expected_embedding_contract_commit = "b030799be812ef11a7c978c9b5a03ae99f4a7573"
+    expected_embedding_contract_commit = "88873d8c6f3b8a5a57915e9f4c167ece92fe9ca2"
     dockerfile = (
         _ROOT / "docker" / "contextual-orchestrator" / "Dockerfile"
     ).read_text(encoding="utf-8")
@@ -140,6 +140,11 @@ def test_orchestrator_runtime_pin_matches_adr() -> None:
         f'org.opencontainers.image.revision="{expected_embedding_contract_commit}"'
         in dockerfile
     )
+    assert "uv export --locked --no-dev --no-emit-project --extra queue" in dockerfile
+    assert "--requirement /tmp/runtime-requirements.txt" in dockerfile
+    assert "import cryptography, jsonschema, redis" in dockerfile
+    assert "opentelemetry.exporter.otlp.proto.http import trace_exporter" in dockerfile
+    assert "'jsonschema>=4.23,<5'" not in dockerfile
 
 
 def test_embedding_bootstrap_contract_keeps_request_model_free() -> None:
