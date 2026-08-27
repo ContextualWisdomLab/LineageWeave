@@ -1,7 +1,11 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
+  fetchOccupationRatingSources,
   fetchOccupationRatings,
+  fetchRatingSourceOccupations,
   type OccupationRatingProfile as OccupationRatingProfilePayload,
+  type OccupationRatingSource,
+  type RatingSourceOccupation,
 } from "../api";
 
 type Props = { accessToken: string };
@@ -19,26 +23,94 @@ function safeHttpUrl(value: string | null | undefined): string | null {
 /** Lets an authenticated user inspect one exact imported occupation profile. */
 export function OccupationRatingProfile({ accessToken }: Props) {
   const [onetsocCode, setOnetsocCode] = useState("");
-  const [releaseCode, setReleaseCode] = useState("onet-31.0");
-  const [sourceCode, setSourceCode] = useState("abilities");
+  const [sources, setSources] = useState<OccupationRatingSource[] | null>(null);
+  const [selectedSource, setSelectedSource] = useState("");
+  const [sourceCatalogError, setSourceCatalogError] = useState(false);
+  const [occupations, setOccupations] = useState<RatingSourceOccupation[] | null>(null);
+  const [occupationCatalogUnavailable, setOccupationCatalogUnavailable] = useState(false);
+  const [occupationCatalogError, setOccupationCatalogError] = useState(false);
   const [profile, setProfile] = useState<OccupationRatingProfilePayload | null>(null);
   const [status, setStatus] = useState<"idle" | "loading" | "error">("idle");
   const requestSequence = useRef(0);
+  const selectedSourceRecord = sources?.find(
+    (item) => `${item.data_release_code}|${item.source_table_code}` === selectedSource,
+  );
   const profileMatchesForm = profile != null
     && profile.onetsoc_code === onetsocCode
-    && profile.data_release_code === releaseCode
-    && profile.source_table_code === sourceCode;
+    && profile.data_release_code === selectedSourceRecord?.data_release_code
+    && profile.source_table_code === selectedSourceRecord?.source_table_code;
+
+  useEffect(() => {
+    let active = true;
+    requestSequence.current += 1;
+    setSourceCatalogError(false);
+    setSources(null);
+    setSelectedSource("");
+    setProfile(null);
+    setStatus("idle");
+    fetchOccupationRatingSources(accessToken)
+      .then(({ sources: loaded }) => {
+        if (!active) return;
+        setSources(loaded);
+        setSelectedSource(
+          loaded[0] ? `${loaded[0].data_release_code}|${loaded[0].source_table_code}` : "",
+        );
+      })
+      .catch(() => active && setSourceCatalogError(true));
+    return () => { active = false; };
+  }, [accessToken]);
+
+  useEffect(() => {
+    requestSequence.current += 1;
+    setStatus("idle");
+    const source = sources?.find(
+      (item) => `${item.data_release_code}|${item.source_table_code}` === selectedSource,
+    );
+    setOnetsocCode("");
+    setProfile(null);
+    setOccupationCatalogUnavailable(false);
+    setOccupationCatalogError(false);
+    if (!source) {
+      setOccupations(null);
+      return;
+    }
+    let active = true;
+    setOccupations(null);
+    fetchRatingSourceOccupations(
+      accessToken,
+      source.data_release_code,
+      source.source_table_code,
+    )
+      .then((payload) => {
+        if (!active) return;
+        if (!payload.source_available) {
+          setOccupationCatalogUnavailable(true);
+          return;
+        }
+        setOccupations(payload.occupations);
+      })
+      .catch(() => active && setOccupationCatalogError(true));
+    return () => { active = false; };
+  }, [accessToken, selectedSource, sources]);
 
   function load(offset: number | null = null) {
     const requestId = requestSequence.current + 1;
     requestSequence.current = requestId;
-    const request = offset == null
-      ? { onetsocCode, dataReleaseCode: releaseCode, sourceTableCode: sourceCode }
-      : {
-          onetsocCode: profile?.onetsoc_code ?? onetsocCode,
-          dataReleaseCode: profile?.data_release_code ?? releaseCode,
-          sourceTableCode: profile?.source_table_code ?? sourceCode,
-        };
+    const source = selectedSourceRecord;
+    const request = offset == null && source
+      ? {
+          onetsocCode,
+          dataReleaseCode: source.data_release_code,
+          sourceTableCode: source.source_table_code,
+        }
+      : profile
+        ? {
+            onetsocCode: profile.onetsoc_code,
+            dataReleaseCode: profile.data_release_code,
+            sourceTableCode: profile.source_table_code,
+          }
+        : null;
+    if (!request) return;
     if (offset == null) setProfile(null);
     setStatus("loading");
     fetchOccupationRatings(accessToken, {
@@ -64,7 +136,7 @@ export function OccupationRatingProfile({ accessToken }: Props) {
       <header>
         <p className="dashboard-eyebrow">공개 직업 근거</p>
         <h2 id="occupation-rating-heading">직업별 업무 특성 확인</h2>
-        <p>직업 코드와 근거 표를 선택해 관측값, 오차, 사용 주의사항을 함께 확인하세요.</p>
+        <p>직업과 근거 표를 선택해 관측값, 오차, 사용 주의사항을 함께 확인하세요.</p>
       </header>
       <form
         className="occupation-rating-form"
@@ -74,29 +146,52 @@ export function OccupationRatingProfile({ accessToken }: Props) {
         }}
       >
         <label>
-          O*NET-SOC 직업 코드
-          <input
+          직업
+          <select
             required
-            pattern="[0-9]{2}-[0-9]{4}\.[0-9]{2}"
-            placeholder="15-1252.00"
             value={onetsocCode}
-            onChange={(event) => setOnetsocCode(event.target.value)}
-          />
+            onChange={(event) => {
+              requestSequence.current += 1;
+              setOnetsocCode(event.target.value);
+              setProfile(null);
+              setStatus("idle");
+            }}
+            disabled={occupations === null || occupations.length === 0}
+          >
+            <option value="">직업 선택</option>
+            {(occupations ?? []).map((occupation) => (
+              <option key={occupation.onetsoc_code} value={occupation.onetsoc_code}>
+                {occupation.occupation_title} · {occupation.onetsoc_code}
+              </option>
+            ))}
+          </select>
         </label>
-        <label>
-          데이터 릴리스
-          <input required value={releaseCode} onChange={(event) => setReleaseCode(event.target.value)} />
+        <label className="occupation-rating-source-select">
+          근거 릴리스·표
+          <select required value={selectedSource} onChange={(event) => setSelectedSource(event.target.value)}>
+            {(sources ?? []).map((source) => (
+              <option
+                key={`${source.data_release_code}|${source.source_table_code}`}
+                value={`${source.data_release_code}|${source.source_table_code}`}
+              >
+                {source.release_version} · {source.source_table_name}
+              </option>
+            ))}
+          </select>
         </label>
-        <label>
-          근거 표
-          <input required value={sourceCode} onChange={(event) => setSourceCode(event.target.value)} />
-        </label>
-        <button className="btn-secondary" type="submit" disabled={status === "loading"}>
+        <button className="btn-secondary" type="submit" disabled={status === "loading" || !selectedSource || !onetsocCode}>
           {status === "loading" ? "근거를 불러오는 중" : "직업 근거 열기"}
         </button>
       </form>
+      {sources === null && !sourceCatalogError ? <p role="status">사용 가능한 근거 표를 확인하는 중입니다.</p> : null}
+      {sources?.length === 0 ? <p role="status">가져온 직업 근거 표가 없습니다. 데이터 담당자에게 근거 가져오기를 요청하세요.</p> : null}
+      {sourceCatalogError ? <p role="alert">사용 가능한 근거 표를 확인하지 못했습니다. 잠시 후 다시 열어 보세요.</p> : null}
+      {selectedSource && occupations === null && !occupationCatalogUnavailable && !occupationCatalogError ? <p role="status">이 근거 표의 직업 목록을 확인하는 중입니다.</p> : null}
+      {selectedSource && occupations?.length === 0 ? <p role="status">이 근거 표에 선택할 수 있는 직업이 없습니다. 다른 근거 표를 선택하세요.</p> : null}
+      {occupationCatalogUnavailable ? <p role="status">이 근거 표의 직업 목록이 아직 준비되지 않았습니다. 다른 근거 표를 선택하거나 데이터 담당자에게 가져오기를 요청하세요.</p> : null}
+      {occupationCatalogError ? <p role="alert">직업 목록을 확인하지 못했습니다. 잠시 후 다시 열어 보세요.</p> : null}
       {status === "error" ? (
-        <p role="alert">직업 근거를 불러오지 못했습니다. 코드와 접근 권한을 확인한 뒤 다시 시도하세요.</p>
+        <p role="alert">직업 근거를 불러오지 못했습니다. 선택 항목과 접근 권한을 확인한 뒤 다시 시도하세요.</p>
       ) : null}
       {profile ? <OccupationRatingProfileView profile={profile} /> : null}
       {profileMatchesForm && profile.next_offset != null ? (
@@ -129,7 +224,7 @@ export function OccupationRatingProfileView({
   if (profile.items.length === 0) {
     return (
       <p role="status">
-        이 근거 표에는 선택한 직업의 관측값이 없습니다. 직업 코드나 근거 표를 바꿔 확인하세요.
+        이 근거 표에는 선택한 직업의 관측값이 없습니다. 직업이나 근거 표를 바꿔 확인하세요.
       </p>
     );
   }

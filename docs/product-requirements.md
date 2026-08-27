@@ -175,6 +175,34 @@ scrollable table; narrow layouts retain complete values; suppression remains
 visible beside its value; and Storybook covers populated, narrow, unavailable,
 and empty states using synthetic data.
 
+### PRD-FR-2G — Imported rating-source catalog
+
+- Populate the occupation evidence selector only from imported artifacts that
+  contain observations, preserving release and artifact provenance (ADR 0260).
+- Exclude the scale-definition support artifact from the rating-source selector.
+- Disable profile submission and state the next action while the catalog is
+  loading, empty, or unavailable.
+
+Acceptance: a user never types an internal release/source code; the selector
+order follows persisted import time rather than parsed version heuristics; and
+the real PostgreSQL integration test proves an imported synthetic artifact is
+listed while its supporting scale artifact is not.
+
+### PRD-FR-2H — Occupations represented in a rating source
+
+- Populate the occupation selector with exact stored code/title pairs that
+  have observations in the selected imported source (ADR 0261).
+- Clear the current occupation and profile when the source changes, and clear
+  the profile when the occupation changes; never mix continuation rows across
+  occupations or sources.
+- Keep unavailable source, available-empty source, loading, and transport
+  failure distinct and actionable.
+
+Acceptance: a user selects a stored title rather than typing an internal code;
+the PostgreSQL integration test proves the source membership predicate; and
+component tests prove selector changes clear prior evidence and pagination
+stays bound to the loaded profile identifiers.
+
 ### PRD-FR-3 — Bounded ontology exploration
 
 - Apply RBAC/ABAC, source eligibility, and knowledge cutoff before graph

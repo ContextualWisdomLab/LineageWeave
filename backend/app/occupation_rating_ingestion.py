@@ -125,3 +125,74 @@ async def fetch_occupation_ratings(
         "items": items,
         "next_offset": offset + limit if len(rows) > limit else None,
     }
+
+
+async def fetch_occupation_rating_sources(
+    conn: RatingReadConnection,
+) -> dict[str, list[dict[str, object]]]:
+    """Return imported rating artifacts that contain at least one observation."""
+    rows = await conn.fetch(
+        """select source.data_release_code, release.release_version,
+                  release.source_publisher_name, release.source_license_url,
+                  source.source_table_code, source.source_table_name,
+                  source.source_artifact_url, source.source_artifact_sha256,
+                  source.source_row_count
+             from occupational_source_table source
+             join occupational_data_release release
+               on release.data_release_code = source.data_release_code
+            where source.source_table_code <> 'scales_reference'
+              and exists (
+                    select 1
+                      from occupational_rating_observation observation
+                     where observation.data_release_code = source.data_release_code
+                       and observation.source_table_code = source.source_table_code
+              )
+            order by release.imported_at desc, source.data_release_code,
+                     source.source_table_name, source.source_table_code"""
+    )
+    return {"sources": [dict(row) for row in rows]}
+
+
+async def fetch_rating_source_occupations(
+    conn: RatingReadConnection,
+    *,
+    data_release_code: str,
+    source_table_code: str,
+) -> dict[str, object]:
+    """Return occupations with observations in one exact imported source."""
+    source = await conn.fetchrow(
+        """select 1
+             from occupational_source_table
+            where data_release_code = $1 and source_table_code = $2""",
+        data_release_code,
+        source_table_code,
+    )
+    if source is None:
+        return {
+            "data_release_code": data_release_code,
+            "source_table_code": source_table_code,
+            "source_available": False,
+            "occupations": [],
+        }
+    rows = await conn.fetch(
+        """select classification.onetsoc_code, classification.occupation_title
+             from occupational_classification_entry classification
+            where classification.data_release_code = $1
+              and exists (
+                    select 1
+                      from occupational_rating_observation observation
+                     where observation.data_release_code = classification.data_release_code
+                       and observation.source_table_code = $2
+                       and observation.onetsoc_code = classification.onetsoc_code
+              )
+            order by classification.occupation_title,
+                     classification.onetsoc_code""",
+        data_release_code,
+        source_table_code,
+    )
+    return {
+        "data_release_code": data_release_code,
+        "source_table_code": source_table_code,
+        "source_available": True,
+        "occupations": [dict(row) for row in rows],
+    }

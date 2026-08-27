@@ -29,14 +29,33 @@ export const InteractiveEvidenceReady: Story = {
   render: () => <OccupationRatingProfile accessToken="synthetic-token" />,
   beforeEach: () => {
     const previousFetch = globalThis.fetch;
-    globalThis.fetch = async () => new Response(JSON.stringify(ready), {
-      headers: { "Content-Type": "application/json" },
-    });
+    globalThis.fetch = async (input) => new Response(JSON.stringify(
+      String(input).includes("occupation-rating-sources")
+        ? { sources: [{
+            data_release_code: "onet-31.0", release_version: "31.0",
+            source_publisher_name: "Synthetic publisher", source_license_url: "https://example.test/license",
+            source_table_code: "abilities", source_table_name: "Abilities",
+            source_artifact_url: "https://example.test/abilities.csv", source_artifact_sha256: "a".repeat(64),
+            source_row_count: 94640,
+          }] }
+        : String(input).includes("occupation-rating-occupations")
+          ? {
+              data_release_code: "onet-31.0", source_table_code: "abilities",
+              source_available: true,
+              occupations: [
+                { onetsoc_code: "11-1011.00", occupation_title: "Chief Executives" },
+                { onetsoc_code: "15-1252.00", occupation_title: "Software Developers" },
+              ],
+            }
+          : ready,
+    ), { headers: { "Content-Type": "application/json" } });
     return () => { globalThis.fetch = previousFetch; };
   },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    await userEvent.type(canvas.getByLabelText("O*NET-SOC 직업 코드"), "15-1252.00");
+    const occupation = await canvas.findByLabelText("직업");
+    await canvas.findByRole("option", { name: "Software Developers · 15-1252.00" });
+    await userEvent.selectOptions(occupation, "15-1252.00");
     await userEvent.click(canvas.getByRole("button", { name: "직업 근거 열기" }));
     await expect(canvas.findByText("4.10")).resolves.toBeVisible();
   },
@@ -45,6 +64,51 @@ export const InteractiveEvidenceReady: Story = {
 export const NarrowViewport: Story = {
   ...InteractiveEvidenceReady,
   parameters: { viewport: { defaultViewport: "mobile1" } },
+};
+export const CatalogEmpty: Story = {
+  render: () => <OccupationRatingProfile accessToken="synthetic-token" />,
+  beforeEach: () => {
+    const previousFetch = globalThis.fetch;
+    globalThis.fetch = async () => new Response(JSON.stringify({ sources: [] }), {
+      headers: { "Content-Type": "application/json" },
+    });
+    return () => { globalThis.fetch = previousFetch; };
+  },
+  play: async ({ canvasElement }) => {
+    await expect(within(canvasElement).findByText(/가져온 직업 근거 표가 없습니다/)).resolves.toBeVisible();
+  },
+};
+export const CatalogUnavailable: Story = {
+  render: () => <OccupationRatingProfile accessToken="synthetic-token" />,
+  beforeEach: () => {
+    const previousFetch = globalThis.fetch;
+    globalThis.fetch = async () => { throw new Error("synthetic catalog failure"); };
+    return () => { globalThis.fetch = previousFetch; };
+  },
+  play: async ({ canvasElement }) => {
+    await expect(within(canvasElement).findByRole("alert")).resolves.toHaveTextContent("잠시 후 다시 열어 보세요");
+  },
+};
+export const OccupationsEmpty: Story = {
+  render: () => <OccupationRatingProfile accessToken="synthetic-token" />,
+  beforeEach: () => {
+    const previousFetch = globalThis.fetch;
+    globalThis.fetch = async (input) => new Response(JSON.stringify(
+      String(input).includes("occupation-rating-sources")
+        ? { sources: [{
+            data_release_code: "onet-31.0", release_version: "31.0",
+            source_publisher_name: "Synthetic publisher", source_license_url: "https://example.test/license",
+            source_table_code: "abilities", source_table_name: "Abilities",
+            source_artifact_url: "https://example.test/abilities.csv", source_artifact_sha256: "a".repeat(64),
+            source_row_count: 2,
+          }] }
+        : { data_release_code: "onet-31.0", source_table_code: "abilities", source_available: true, occupations: [] },
+    ), { headers: { "Content-Type": "application/json" } });
+    return () => { globalThis.fetch = previousFetch; };
+  },
+  play: async ({ canvasElement }) => {
+    await expect(within(canvasElement).findByText(/선택할 수 있는 직업이 없습니다/)).resolves.toBeVisible();
+  },
 };
 export const SourceUnavailable: Story = { args: { profile: { ...ready, source_available: false, source: null, items: [] } } };
 export const EmptyOccupation: Story = { args: { profile: { ...ready, items: [] } } };
