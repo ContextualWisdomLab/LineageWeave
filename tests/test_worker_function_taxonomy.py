@@ -13,10 +13,6 @@ from __future__ import annotations
 import hashlib
 
 import pytest
-<<<<<<< HEAD
-=======
-
->>>>>>> origin/feat/onet-rating-occupation-filter
 from rdflib import Graph, Literal, URIRef
 from rdflib.namespace import RDF, SKOS
 
@@ -94,10 +90,6 @@ def test_worker_functions_carry_no_lookup_code() -> None:
     from lineageweave.ontology import iri_for_lookup_code
 
     assert iri_for_lookup_code("worker_function_data_synthesizing") is None
-<<<<<<< HEAD
-=======
-
->>>>>>> origin/feat/onet-rating-occupation-filter
     graph = load_ontology()
     for record in worker_function_records():
         assert (URIRef(record.iri), LW.lookupCode, None) not in graph

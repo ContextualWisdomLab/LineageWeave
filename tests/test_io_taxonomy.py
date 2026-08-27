@@ -124,12 +124,6 @@ _CANONICAL_NAMESPACE = (
 _ONET_310_JOB_ZONE_SHA256 = (
     "f66d665a2e507c825a71aedb2c13ba22765e8259bc6c7fe5b3cdfd8105475a66"
 )
-<<<<<<< HEAD
-=======
-_ONET_310_CONTENT_MODEL_SHA256 = (
-    "db59c30e4240931edce59310f2747f5476f058984b55f58f72c6f29faa30186f"
-)
->>>>>>> origin/feat/onet-rating-occupation-filter
 
 
 class TestMajorGroups:
@@ -165,12 +159,7 @@ class TestMajorGroups:
         duplicate = URIRef("https://example.test/major-group/synthetic-duplicate")
         graph = Graph()
         graph += ONTOLOGY
-<<<<<<< HEAD
         graph.add((duplicate, SKOS.inScheme, LW.socMajorGroupScheme))
-=======
-        graph.add((duplicate, SKOS.inScheme, LW.soc2018Scheme))
-        graph.add((duplicate, RDF.type, LW.OccupationalMajorGroup))
->>>>>>> origin/feat/onet-rating-occupation-filter
         graph.add((duplicate, LW.socCode, Literal("15-0000")))
         graph.add((duplicate, SKOS.prefLabel, Literal("Synthetic duplicate")))
         monkeypatch.setattr(io_taxonomy, "ONTOLOGY", graph)
@@ -335,11 +324,7 @@ class TestSourceProvenance:
     """Version, publisher, license, and artifact-integrity metadata."""
 
     def test_each_scheme_names_its_source_entities(self) -> None:
-<<<<<<< HEAD
         assert set(ONTOLOGY.objects(LW.socMajorGroupScheme, PROV.wasDerivedFrom)) == {
-=======
-        assert set(ONTOLOGY.objects(LW.soc2018Scheme, PROV.wasDerivedFrom)) == {
->>>>>>> origin/feat/onet-rating-occupation-filter
             LW.sourceSoc2018
         }
         assert set(ONTOLOGY.objects(LW.jobZoneScheme, PROV.wasDerivedFrom)) == {
@@ -376,13 +361,7 @@ class TestSourceProvenance:
         assert ONTOLOGY.value(source, DCTERMS.rights) == URIRef(
             "https://www.dol.gov/general/aboutdol/copyright"
         )
-<<<<<<< HEAD
         assert ONTOLOGY.value(source, LW.sourceArtifactSha256) is None
-=======
-        assert str(ONTOLOGY.value(source, LW.sourceArtifactSha256)) == (
-            "ade08af40923266f3a854842e888ca3e93c15b26a147c20a2b12a61f4c4f4077"
-        )
->>>>>>> origin/feat/onet-rating-occupation-filter
 
     def test_read_model_exposes_sources_without_invented_metadata(self) -> None:
         records = taxonomy_source_records()
@@ -394,21 +373,8 @@ class TestSourceProvenance:
         assert onet.version == "31.0"
         assert onet.license_url == "https://creativecommons.org/licenses/by/4.0/"
         assert onet.artifact_sha256 == _ONET_310_JOB_ZONE_SHA256
-<<<<<<< HEAD
-=======
-        content_model = by_iri[str(LW.sourceOnet310ContentModelReference)]
-        assert content_model.version == "31.0"
-        assert content_model.license_url == "https://creativecommons.org/licenses/by/4.0/"
-        assert content_model.artifact_sha256 == _ONET_310_CONTENT_MODEL_SHA256
->>>>>>> origin/feat/onet-rating-occupation-filter
         soc = by_iri[str(LW.sourceSoc2018)]
         assert soc.version == "2018"
         assert soc.license_url is None
         assert soc.rights_url == "https://www.dol.gov/general/aboutdol/copyright"
-<<<<<<< HEAD
         assert soc.artifact_sha256 is None
-=======
-        assert soc.artifact_sha256 == (
-            "ade08af40923266f3a854842e888ca3e93c15b26a147c20a2b12a61f4c4f4077"
-        )
->>>>>>> origin/feat/onet-rating-occupation-filter
