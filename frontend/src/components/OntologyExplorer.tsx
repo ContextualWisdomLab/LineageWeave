@@ -8,6 +8,7 @@ import {
 } from "../api";
 import { t, tf } from "../i18n";
 import { ontologyExplorerText } from "../ontologyExplorerI18n";
+import { occupationalConstructText } from "../occupationalConstructI18n";
 import {
   accumulateNeighborhoodPages,
   filterNeighborhood,
@@ -43,6 +44,7 @@ const NODE_TYPE_LABEL: Record<string, string> = {
   node_corporate_entity: "Organization",
   node_team: "Team",
   node_project: "Project",
+  node_occupational_construct: "Work evidence",
 };
 
 const NODE_TYPE_CLASS: Record<string, string> = {
@@ -51,6 +53,7 @@ const NODE_TYPE_CLASS: Record<string, string> = {
   node_corporate_entity: "ontology-node-organization",
   node_team: "ontology-node-team",
   node_project: "ontology-node-project",
+  node_occupational_construct: "ontology-node-occupational-construct",
 };
 
 const TRUTH_LABEL: Record<string, string> = {
@@ -61,6 +64,12 @@ const TRUTH_LABEL: Record<string, string> = {
   truth_superseded: "Superseded",
   truth_rejected: "Rejected",
 };
+
+function nodeTypeLabel(nodeTypeCode: string): string {
+  return nodeTypeCode === "node_occupational_construct"
+    ? occupationalConstructText("Work evidence")
+    : t(NODE_TYPE_LABEL[nodeTypeCode] ?? nodeTypeCode);
+}
 
 function nodeKey(node: Pick<OntologyGraphNodePayload, "node_type_code" | "node_id">): string {
   return `${node.node_type_code}:${node.node_id}`;
@@ -201,6 +210,9 @@ export function OntologyExplorer({
           <p>
             {t("This is an ontology neighborhood, not Event Lineage.")}{" "}
             {t("Event Lineage shows reconstructed post-to-post parents. This graph shows typed people, organizations, teams, projects, and posts.")}
+            {visible?.nodes.some((node) => node.node_type_code === "node_occupational_construct")
+              ? ` ${occupationalConstructText("Select a work-evidence node to review the records that support it.")}`
+              : ""}
           </p>
         </div>
         <div className="ontology-explorer-actions">
@@ -355,6 +367,7 @@ function OntologyLegend() {
         <li>{t("Organization")} — {t("hexagon")}</li>
         <li>{t("Team")} — {t("rounded rectangle")}</li>
         <li>{t("Project")} — {t("diamond")}</li>
+        <li>{occupationalConstructText("Work evidence")} — {t("rounded rectangle")}</li>
       </ul>
       <ul>
         <li>{t("Authoritative")}</li>
@@ -392,6 +405,7 @@ function OntologyGraph({
       {layout.edges.map((edge) => {
         const midX = (edge.fromX + edge.toX) / 2;
         const midY = (edge.fromY + edge.toY) / 2;
+        const labelY = midY + Math.sign(edge.toY - edge.fromY) * 28 - 18;
         const selected = edge.edge_id === selectedEdgeId;
         return (
           <g key={edge.edge_id}>
@@ -402,7 +416,7 @@ function OntologyGraph({
             <text
               className="ontology-edge-label"
               x={midX}
-              y={midY - 18}
+              y={labelY}
               textAnchor="middle"
             >
               {edge.property_label} · {t(TRUTH_LABEL[edge.truth_status_code] ?? edge.truth_status_code)}
@@ -442,7 +456,7 @@ function OntologyGraph({
           transform={`translate(${node.x}, ${node.y})`}
           role="button"
           tabIndex={0}
-          aria-label={tf("Select node: {label}", { label: `${t(NODE_TYPE_LABEL[node.node_type_code] ?? node.node_type_code)} ${node.display_label}` })}
+          aria-label={tf("Select node: {label}", { label: `${nodeTypeLabel(node.node_type_code)} ${node.display_label}` })}
           aria-pressed={nodeKey(node) === selectedNodeKey ? "true" : "false"}
           onClick={() => onSelectNode(node)}
           onKeyDown={(event) => {
@@ -462,7 +476,7 @@ function OntologyGraph({
           >
             <div aria-hidden="true">
               <span>{node.display_label}</span>
-              <small>{t(NODE_TYPE_LABEL[node.node_type_code] ?? node.node_type_code)}</small>
+              <small>{nodeTypeLabel(node.node_type_code)}</small>
             </div>
           </foreignObject>
         </g>
@@ -562,7 +576,7 @@ function OntologyNodeDrawer({
     <aside className="ontology-drawer" aria-label={t("Node evidence")}>
       <h4>{node.display_label}</h4>
       <p>
-        {t(NODE_TYPE_LABEL[node.node_type_code] ?? node.node_type_code)} · {t(TRUTH_LABEL[node.truth_status_code ?? ""] ?? node.truth_status_code ?? "Unknown")}
+        {nodeTypeLabel(node.node_type_code)} · {t(TRUTH_LABEL[node.truth_status_code ?? ""] ?? node.truth_status_code ?? "Unknown")}
       </p>
       <p>{t("Ontology class")}: {node.ontology_class_iri}</p>
       <p>{t("Recorded at")}: {node.recorded_at?.slice(0, 10) ?? t("Unknown")}</p>

@@ -330,3 +330,32 @@ async def load_occupational_construct_assertions(
         }
         for row in rows
     ]
+
+
+
+async def load_occupational_construct_evidence_status(
+    conn: Any, post_id: str, *, evidence_configured: bool = True
+) -> str:
+    """Return complete, processing, or unavailable for the current source digest."""
+    value = await conn.fetchval(
+        """
+        select case
+                   when job.status_code in (
+                       'post_content_ingestion_queued',
+                       'post_content_ingestion_running'
+                   ) and $2 then 'processing'
+                   when extraction.source_body_sha256 = job.source_body_sha256
+                       then 'complete'
+                   else 'unavailable'
+               end
+          from post_content_ingestion_job job
+          left join post_occupational_construct_extraction extraction
+            on extraction.post_id = job.post_id
+         where job.post_id = $1
+        """,
+        post_id,
+        evidence_configured,
+    )
+    if value in {"complete", "processing"}:
+        return str(value)
+    return "unavailable" if evidence_configured else "setup_required"

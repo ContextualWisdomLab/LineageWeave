@@ -34,6 +34,13 @@ repository's multi-agent requirement.
    Provider work runs without holding a pooled database connection.
 5. Affect and performance behavior remain unavailable because ADR 0250 admits
    no governed vocabulary for those families. Extraction cannot invent one.
+6. While contextual-orchestrator evidence is configured, recovery also wakes
+   successful current-digest jobs that lack an extraction-run row. This runtime
+   completeness check, rather than a one-time migration event, covers later
+   orchestrator enablement.
+7. A reclaimed successful job receives a fresh bounded retry budget for the
+   newly required channel. Failure exhausts that budget into `Failed`; runtime
+   recovery does not reclaim failed jobs again.
 
 ## Consequences
 

@@ -173,9 +173,14 @@ async def test_workers_retry_transient_broker_errors_without_dropping_the_task(m
     async def no_sleep(*_args):
         return None
 
+    async def no_republish(*_args, **_kwargs):
+        return 0
+
     monkeypatch.setattr(analysis_run_worker.asyncio, "sleep", no_sleep)
     monkeypatch.setattr(post_content_worker.asyncio, "sleep", no_sleep)
-    monkeypatch.setattr(post_content_worker, "republish_queued_post_content_jobs", no_sleep)
+    monkeypatch.setattr(
+        post_content_worker, "republish_queued_post_content_jobs", no_republish
+    )
 
     with pytest.raises(asyncio.CancelledError):
         await analysis_run_worker.run_analysis_run_worker(
