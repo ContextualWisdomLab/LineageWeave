@@ -236,3 +236,47 @@
         a sh:NodeShape ;
         sh:class :OurSidePerson ;
     ] .
+
+:IOPsyConstructShape a sh:NodeShape ;
+    rdfs:label "I/O psychology construct shape" ;
+    sh:comment "Every I/O psychology construct carries a dimension classification and an APA 7th theoretical basis citation (ADR 0251)." ;
+    sh:targetClass :IOPsyConstruct ;
+    sh:property [
+        sh:path :constructDimension ;
+        sh:name "construct dimension" ;
+        sh:description "Every construct carries a valid dimension classification string." ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:datatype xsd:string ;
+        sh:minLength 1 ;
+    ] ;
+    sh:property [
+        sh:path :constructTheoreticalBasis ;
+        sh:name "theoretical basis" ;
+        sh:description "Every construct carries its APA 7th literature anchor citation." ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:datatype xsd:string ;
+        sh:minLength 1 ;
+    ] .
+
+:CognitiveConstructShape a sh:NodeShape ;
+    rdfs:label "Cognitive construct shape" ;
+    sh:comment "Closed-world complement: a cognitive construct is never typed as affective or behavioral." ;
+    sh:targetClass :CognitiveConstruct ;
+    sh:not [ a sh:NodeShape ; sh:class :AffectiveConstruct ] ;
+    sh:not [ a sh:NodeShape ; sh:class :BehavioralConstruct ] .
+
+:AffectiveConstructShape a sh:NodeShape ;
+    rdfs:label "Affective construct shape" ;
+    sh:comment "Closed-world complement: an affective construct is never typed as cognitive or behavioral." ;
+    sh:targetClass :AffectiveConstruct ;
+    sh:not [ a sh:NodeShape ; sh:class :CognitiveConstruct ] ;
+    sh:not [ a sh:NodeShape ; sh:class :BehavioralConstruct ] .
+
+:BehavioralConstructShape a sh:NodeShape ;
+    rdfs:label "Behavioral construct shape" ;
+    sh:comment "Closed-world complement: a behavioral construct is never typed as cognitive or affective." ;
+    sh:targetClass :BehavioralConstruct ;
+    sh:not [ a sh:NodeShape ; sh:class :CognitiveConstruct ] ;
+    sh:not [ a sh:NodeShape ; sh:class :AffectiveConstruct ] .

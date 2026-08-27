@@ -304,6 +304,12 @@ Substantially present on protected `main`:
   baseline entry is stale).
 - Semantic paragraph/list/table/image-region units that preserve the source
   representation and provenance instead of flattening it into one body string.
+- FJA→I/O-Psychology semantic layer (ADR 0251): the published DOT/FJA
+  Data/People/Things worker functions (ADR 0232) project into disjoint
+  cognitive, affective, and behavioral constructs with APA 7th anchors,
+  SHACL validation, and a deterministic typed read model
+  (`lineageweave/iopsy_taxonomy.py`); no fitted weight or O*NET/ADR 0248
+  crosswalk is asserted (ADR 0145).
 - Contextual-orchestrator boundaries for adjudication, extraction, summaries,
   chat, embeddings, and VISION; null channels remain unavailable and are
   dropped from score fusion.

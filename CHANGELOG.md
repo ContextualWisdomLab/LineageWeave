@@ -14,6 +14,39 @@ All notable changes to this project are documented here. Format follows
   Society, and Process as source-post categories. Ontology SKOS concepts and
   idempotent migration 0235 stay in round-trip sync; counterparty relationships
   remain a separate evidence contract.
+
+- The DOT/FJA Data/People/Things worker functions now project into a
+  disjoint Industrial & Organizational (I/O) Psychology semantic layer
+  (ADR 0251): cognitive, affective, and behavioral constructs (information
+  processing, mental workload, executive functioning, appraisal; emotional
+  labor, burnout, engagement, psychological safety, commitment; task,
+  citizenship, counterproductive, safety, proactive, adaptive, service,
+  leadership, and withdrawal behavior) carry psychological dimensions and
+  APA 7th literature anchors, validate under new SHACL shapes, and surface
+  through a deterministic typed read model
+  (`lineageweave.iopsy_taxonomy`). No numeric weight, O*NET crosswalk, or
+  ADR 0248 equivalence is asserted (ADR 0145 still governs estimation).
+- Evidence-bound occupational construct semantics now keep cognitive
+  abilities, work styles, work activities, affective reactions, performance
+  behaviors, and FJA worker functions distinct. Record-to-construct links
+  require a reified evidence span and PROV-O derivation/time; unsupported
+  DPT-to-psychology crosswalks and local scores remain unavailable (ADR 0248).
+- Versioned occupational construct vocabularies and semantic-unit assertions
+  now persist in normalized tables. Database and application validation require
+  same-Post verbatim evidence, and authorized Post detail exposes provenance
+  without internal identifiers or numerical scores (ADR 0249).
+- An operator-only O*NET 31.0 catalog synchronizer now imports every official
+  cognitive-ability, work-style, and work-activity Content Model element with
+  stable IRIs, descriptions, attribution, and a deterministic source digest;
+  conflicting release metadata fails closed (ADR 0250).
+- The DOT/FJA Data/People/Things worker-function taxonomy is now published
+  in the canonical ontology: all 24 worker functions carry the official
+  Dictionary of Occupational Titles Appendix B definitions verbatim, their
+  definitional ordinal ranks (ADR 0232). No DOT-to-O*NET or Fleishman
+  crosswalk is inferred without an authoritative mapping source. A
+  deterministic application read
+  model (`lineageweave.worker_function_taxonomy`) exposes fail-closed
+  lookups; ranks are scale positions and are never used as weights.
 - Persist explicit paragraph, list, table, MathML formula, and caller-parsed
   conversation-turn semantic-unit kinds without inferring absent boundaries.
 - Event Lineage now persists each reconstructed connection's independent

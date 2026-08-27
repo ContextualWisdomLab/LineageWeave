@@ -720,3 +720,810 @@
     skos:prefLabel "Handling"@en ;
     :fjaDomain "things" ; :fjaRank 7 ;
     skos:definition "Using body members, handtools, and/or special devices to work, move, or carry objects or materials. Involves little or no latitude for judgment with regard to attainment of standards or in selecting appropriate tool, object, or materials."@en .
+
+#################################################################
+# Industrial and Organizational (I/O) Psychology Cognitive, Affective &
+# Behavioral Semantic Layer (ADR 0251).
+#
+# This systematic expansion projects Functional Job Analysis
+# Data/People/Things worker functions (ADR 0232) into their grounded
+# nomological network of Cognitive, Affective, and Behavioral constructs
+# in I/O Psychology. Unlike ADR 0248's evidence-bound records (which
+# benchmark occupations against an external O*NET-style catalog), these
+# constructs express the FJA-derived psychological demands and
+# manifestations of each worker function with literature anchors. No
+# crosswalk to O*NET, Fleishman, or any fitted weight is asserted
+# (ADR 0145 still governs quantitative estimation).
+#
+# Citations (APA 7th):
+# Cognitive: Sweller (1988); Endsley (1995); Miyake et al. (2000); Lazarus
+#   & Folkman (1984); Baddeley (2000); Gross (1998); Karasek (1979);
+#   Wickens (2002).
+# Affective: Hochschild (1983); Grandey (2000); Ashforth & Humphrey (1993);
+#   Maslach, Schaufeli, & Leiter (2001); Schaufeli et al. (2002);
+#   Edmondson (1999); Locke (1976); Meyer & Allen (1991); Watson, Clark, &
+#   Tellegen (1988).
+# Behavioral: Borman & Motowidlo (1993); Organ (1988); Williams &
+#   Anderson (1991); Spector et al. (2006); Bennett & Robinson (2000);
+#   Van Dyne & LePine (1998); Christian et al. (2009); Pulakos et al.
+#   (2000); Bass (1985).
+#
+# Each construct is a skos:Concept that additionally subclasses one of the
+# three top-level classes below, so machine reasoning and SPARQL queries
+# can partition the layer by psychological domain. Concepts deliberately
+# do NOT carry :lookupCode: they are not common_lookup_value rows, so the
+# ontology-relation round trip in tests/test_ontology.py is untouched.
+#################################################################
+
+:IOPsyConstruct a owl:Class ;
+    rdfs:label "I/O psychology construct"@en ;
+    rdfs:comment "A grounded psychological construct in Industrial and Organizational Psychology representing cognitive, affective, or behavioral worker processes, states, demands, and manifestations (ADR 0251)."@en .
+
+:CognitiveConstruct a owl:Class ;
+    rdfs:subClassOf :IOPsyConstruct , skos:Concept ;
+    rdfs:label "Cognitive construct"@en ;
+    rdfs:comment "A cognitive process, capacity, workload, or appraisal construct involved in task execution and worker functioning."@en .
+
+:AffectiveConstruct a owl:Class ;
+    rdfs:subClassOf :IOPsyConstruct , skos:Concept ;
+    rdfs:label "Affective construct"@en ;
+    rdfs:comment "An emotional, affective, or attitudinal state or process in organizational settings, including emotional labor, burnout, engagement, and job attitudes."@en .
+
+:BehavioralConstruct a owl:Class ;
+    rdfs:subClassOf :IOPsyConstruct , skos:Concept ;
+    rdfs:label "Behavioral construct"@en ;
+    rdfs:comment "An observable work behavior, contextual performance dimension, citizenship behavior, counterproductive deviance, or withdrawal manifestation."@en .
+
+:CognitiveConstruct owl:disjointWith :AffectiveConstruct , :BehavioralConstruct .
+:AffectiveConstruct owl:disjointWith :BehavioralConstruct .
+
+:iopsyConstructScheme a skos:ConceptScheme ;
+    skos:prefLabel "I/O psychology construct scheme"@en ;
+    skos:definition "The unified SKOS concept scheme encompassing cognitive, affective, and behavioral constructs in industrial and organizational psychology."@en .
+
+:cognitiveConstructScheme a skos:ConceptScheme ;
+    skos:prefLabel "Cognitive constructs scheme"@en ;
+    skos:definition "Taxonomy of cognitive processes, mental workload, appraisal, and intellectual capacities derived from task demands."@en .
+
+:affectiveConstructScheme a skos:ConceptScheme ;
+    skos:prefLabel "Affective constructs scheme"@en ;
+    skos:definition "Taxonomy of emotional states, emotional labor, burnout, psychological safety, and organizational attitudes."@en .
+
+:behavioralConstructScheme a skos:ConceptScheme ;
+    skos:prefLabel "Behavioral constructs scheme"@en ;
+    skos:definition "Taxonomy of task performance, organizational citizenship, counterproductive work behavior, safety behavior, proactive behavior, and withdrawal."@en .
+
+:constructDimension a owl:DatatypeProperty ;
+    rdfs:domain :IOPsyConstruct ;
+    rdfs:range xsd:string ;
+    rdfs:label "construct dimension"@en ;
+    rdfs:comment "The operational psychological dimension or domain category of the construct."@en .
+
+:constructTheoreticalBasis a owl:DatatypeProperty ;
+    rdfs:domain :IOPsyConstruct ;
+    rdfs:range xsd:string ;
+    rdfs:label "theoretical basis"@en ;
+    rdfs:comment "The primary theoretical literature anchor in I/O Psychology (APA 7th citation)."@en .
+
+:requiresCognitiveDemand a owl:ObjectProperty ;
+    rdfs:domain :WorkerFunction ;
+    rdfs:range :CognitiveConstruct ;
+    rdfs:label "requires cognitive demand"@en ;
+    rdfs:comment "A worker function inherently imposes this cognitive demand or activates this information-processing capacity."@en .
+
+:imposesMentalWorkload a owl:ObjectProperty ;
+    rdfs:domain :WorkerFunction ;
+    rdfs:range :CognitiveConstruct ;
+    rdfs:label "imposes mental workload"@en ;
+    rdfs:comment "A worker function generates mental load and cognitive resource consumption on the worker."@en .
+
+:elicitsEmotionalDemand a owl:ObjectProperty ;
+    rdfs:domain :WorkerFunction ;
+    rdfs:range :AffectiveConstruct ;
+    rdfs:label "elicits emotional demand"@en ;
+    rdfs:comment "A worker function evokes this affective state or emotional regulation requirement."@en .
+
+:requiresEmotionalLabor a owl:ObjectProperty ;
+    rdfs:domain :WorkerFunction ;
+    rdfs:range :AffectiveConstruct ;
+    rdfs:label "requires emotional labor"@en ;
+    rdfs:comment "A worker function demands surface or deep acting to regulate emotion display according to organizational expectations."@en .
+
+:manifestsInBehavior a owl:ObjectProperty ;
+    rdfs:domain :WorkerFunction ;
+    rdfs:range :BehavioralConstruct ;
+    rdfs:label "manifests in behavior"@en ;
+    rdfs:comment "A worker function directly manifests in or requires this observable work behavior."@en .
+
+:requiresPsychomotorBehavior a owl:ObjectProperty ;
+    rdfs:domain :WorkerFunction ;
+    rdfs:range :BehavioralConstruct ;
+    rdfs:label "requires psychomotor behavior"@en ;
+    rdfs:comment "A worker function demands specific physical, psychomotor, or equipment-manipulation behavior."@en .
+
+:requiresInterpersonalBehavior a owl:ObjectProperty ;
+    rdfs:domain :WorkerFunction ;
+    rdfs:range :BehavioralConstruct ;
+    rdfs:label "requires interpersonal behavior"@en ;
+    rdfs:comment "A worker function demands specific social, negotiation, leadership, guidance, or service behavior."@en .
+
+:cognitivelyMediates a owl:ObjectProperty ;
+    rdfs:domain :CognitiveConstruct ;
+    rdfs:range :BehavioralConstruct ;
+    rdfs:label "cognitively mediates"@en ;
+    rdfs:comment "A cognitive process or capacity directly mediates the execution of this work behavior."@en .
+
+:affectivelyDrives a owl:ObjectProperty ;
+    rdfs:domain :AffectiveConstruct ;
+    rdfs:range :BehavioralConstruct ;
+    rdfs:label "affectively drives"@en ;
+    rdfs:comment "An affective state, attitude, or strain level influences or drives this behavioral outcome."@en .
+
+:moderatesStrain a owl:ObjectProperty ;
+    rdfs:domain :IOPsyConstruct ;
+    rdfs:range :AffectiveConstruct ;
+    rdfs:label "moderates strain"@en ;
+    rdfs:comment "A cognitive appraisal or psychological resource buffers or exacerbates occupational strain."@en .
+
+:buffersBurnout a owl:ObjectProperty ;
+    rdfs:domain :AffectiveConstruct ;
+    rdfs:range :AffectiveConstruct ;
+    rdfs:label "buffers burnout"@en ;
+    rdfs:comment "A psychological resource or positive state buffers against burnout dimensions."@en .
+
+:inducesBurnoutRisk a owl:ObjectProperty ;
+    rdfs:domain :IOPsyConstruct ;
+    rdfs:range :AffectiveConstruct ;
+    rdfs:label "induces burnout risk"@en ;
+    rdfs:comment "A job demand or emotional-regulation strategy elevates the risk of burnout."@en .
+
+:reciprocallyInfluences a owl:ObjectProperty ;
+    rdfs:domain :BehavioralConstruct ;
+    rdfs:range :IOPsyConstruct ;
+    rdfs:label "reciprocally influences"@en ;
+    rdfs:comment "A behavioral performance manifestation provides feedback into cognitive appraisals and affective states."@en .
+
+# ---- 1. Cognitive constructs ----
+
+:cogInfoProcessing a skos:Concept , :CognitiveConstruct ;
+    skos:inScheme :cognitiveConstructScheme , :iopsyConstructScheme ;
+    skos:prefLabel "Information Processing"@en ;
+    :constructDimension "cognitive_architecture" ;
+    :constructTheoreticalBasis "Newell & Simon (1972); Wickens (2002)" ;
+    skos:definition "The systematic acquisition, encoding, transformation, retrieval, and synthesis of environmental cues into actionable mental representations."@en .
+
+:cogWorkingMemoryAllocation a skos:Concept , :CognitiveConstruct ;
+    skos:inScheme :cognitiveConstructScheme , :iopsyConstructScheme ;
+    skos:prefLabel "Working Memory Allocation"@en ;
+    :constructDimension "cognitive_capacity" ;
+    :constructTheoreticalBasis "Baddeley (2000); Engle (2002)" ;
+    skos:definition "The dynamic maintenance and manipulation of transient task-relevant information under concurrent processing demands."@en .
+
+:cogComplexProblemSolving a skos:Concept , :CognitiveConstruct ;
+    skos:inScheme :cognitiveConstructScheme , :iopsyConstructScheme ;
+    skos:prefLabel "Complex Problem Solving"@en ;
+    :constructDimension "higher_order_cognition" ;
+    :constructTheoreticalBasis "Funke (2010); Mumford et al. (2000)" ;
+    skos:definition "Goal-directed cognitive activity in dynamic, non-routine environments where solution pathways are ambiguous and require emergent schemas."@en .
+
+:cogStrategicDecisionMaking a skos:Concept , :CognitiveConstruct ;
+    skos:inScheme :cognitiveConstructScheme , :iopsyConstructScheme ;
+    skos:prefLabel "Strategic Decision Making"@en ;
+    :constructDimension "judgment_and_choice" ;
+    :constructTheoreticalBasis "Kahneman & Tversky (1979); Eisenhardt (1989)" ;
+    skos:definition "Evaluating multidimensional trade-offs, prospective risks, and probabilistic outcomes to commit organizational resources under uncertainty."@en .
+
+:cogCognitiveAppraisal a skos:Concept , :CognitiveConstruct ;
+    skos:inScheme :cognitiveConstructScheme , :iopsyConstructScheme ;
+    skos:prefLabel "Cognitive Appraisal"@en ;
+    :constructDimension "appraisal_and_coping" ;
+    :constructTheoreticalBasis "Lazarus & Folkman (1984)" ;
+    skos:definition "Primary appraisal of environmental demands as challenge versus threat, coupled with secondary evaluation of available personal and situational coping resources."@en .
+
+:cogMetacognitiveMonitoring a skos:Concept , :CognitiveConstruct ;
+    skos:inScheme :cognitiveConstructScheme , :iopsyConstructScheme ;
+    skos:prefLabel "Metacognitive Monitoring"@en ;
+    :constructDimension "metacognition" ;
+    :constructTheoreticalBasis "Flavell (1979); Ford et al. (1998)" ;
+    skos:definition "Conscious self-regulation, tracking of cognitive progress, error calibration, and strategic adjustment during task performance."@en .
+
+:cogExecutiveFunctioning a skos:Concept , :CognitiveConstruct ;
+    skos:inScheme :cognitiveConstructScheme , :iopsyConstructScheme ;
+    skos:prefLabel "Executive Functioning"@en ;
+    :constructDimension "cognitive_control" ;
+    :constructTheoreticalBasis "Miyake et al. (2000)" ;
+    skos:definition "Top-down cognitive control including cognitive inhibition, set-shifting across task contexts, and working-memory updating."@en .
+
+:cogSituationalAwareness a skos:Concept , :CognitiveConstruct ;
+    skos:inScheme :cognitiveConstructScheme , :iopsyConstructScheme ;
+    skos:prefLabel "Situational Awareness"@en ;
+    :constructDimension "perception_and_orientation" ;
+    :constructTheoreticalBasis "Endsley (1995)" ;
+    skos:definition "Perception of task elements in current space and time, comprehension of their functional meaning, and projection of their near-future operational status."@en .
+
+:cogSelectiveAttention a skos:Concept , :CognitiveConstruct ;
+    skos:inScheme :cognitiveConstructScheme , :iopsyConstructScheme ;
+    skos:prefLabel "Selective Attention"@en ;
+    :constructDimension "attentional_control" ;
+    :constructTheoreticalBasis "Posner & Petersen (1990)" ;
+    skos:definition "Focusing cognitive resources on goal-relevant sensory stimuli while filtering extraneous task noise."@en .
+
+:cogDividedAttention a skos:Concept , :CognitiveConstruct ;
+    skos:inScheme :cognitiveConstructScheme , :iopsyConstructScheme ;
+    skos:prefLabel "Divided Attention"@en ;
+    :constructDimension "attentional_control" ;
+    :constructTheoreticalBasis "Wickens (2002)" ;
+    skos:definition "Simultaneous allocation of attentional capacity across multiple concurrent information streams or sensory modalities."@en .
+
+:cogMentalWorkload a skos:Concept , :CognitiveConstruct ;
+    skos:inScheme :cognitiveConstructScheme , :iopsyConstructScheme ;
+    skos:prefLabel "Mental Workload"@en ;
+    :constructDimension "cognitive_load" ;
+    :constructTheoreticalBasis "Sweller (1988); Hart & Staveland (1988)" ;
+    skos:definition "The proportion of worker cognitive capacity demanded by the instantaneous difficulty, pace, and complexity of assigned functional tasks."@en .
+
+:cogTaskStructuring a skos:Concept , :CognitiveConstruct ;
+    skos:inScheme :cognitiveConstructScheme , :iopsyConstructScheme ;
+    skos:prefLabel "Task Structuring"@en ;
+    :constructDimension "schematization" ;
+    :constructTheoreticalBasis "Fine & Cronshaw (1999); Campbell (1990)" ;
+    skos:definition "Decomposing complex work objectives into discrete, sequence-dependent operational steps and workflow schema."@en .
+
+:cogErrorMonitoring a skos:Concept , :CognitiveConstruct ;
+    skos:inScheme :cognitiveConstructScheme , :iopsyConstructScheme ;
+    skos:prefLabel "Error Monitoring"@en ;
+    :constructDimension "quality_control_cognition" ;
+    :constructTheoreticalBasis "Reason (1990); Allwood (1984)" ;
+    skos:definition "Continuous verification of physical or informational outputs against defined tolerance thresholds, standards, or specifications."@en .
+
+:cogDiagnosticReasoning a skos:Concept , :CognitiveConstruct ;
+    skos:inScheme :cognitiveConstructScheme , :iopsyConstructScheme ;
+    skos:prefLabel "Diagnostic Reasoning"@en ;
+    :constructDimension "analytic_inference" ;
+    :constructTheoreticalBasis "Patel, Evans, & Groen (1989)" ;
+    skos:definition "Hypothesis-driven abductive and deductive inference to isolate root causes of malfunctions, variance, or discrepancy."@en .
+
+:cogCognitiveFlexibility a skos:Concept , :CognitiveConstruct ;
+    skos:inScheme :cognitiveConstructScheme , :iopsyConstructScheme ;
+    skos:prefLabel "Cognitive Flexibility"@en ;
+    :constructDimension "cognitive_adaptability" ;
+    :constructTheoreticalBasis "Pulakos et al. (2000); Spiro et al. (1991)" ;
+    skos:definition "The capacity to restructure knowledge representations and adjust mental models under unanticipated procedural or environmental shifts."@en .
+
+:cogInductiveDeductiveReasoning a skos:Concept , :CognitiveConstruct ;
+    skos:inScheme :cognitiveConstructScheme , :iopsyConstructScheme ;
+    skos:prefLabel "Inductive & Deductive Reasoning"@en ;
+    :constructDimension "logical_inference" ;
+    :constructTheoreticalBasis "Carroll (1993); Fleishman & Reilly (1992)" ;
+    skos:definition "Deriving general principles from empirical data observations and applying normative rules to specific operational cases."@en .
+
+:cogPatternRecognition a skos:Concept , :CognitiveConstruct ;
+    skos:inScheme :cognitiveConstructScheme , :iopsyConstructScheme ;
+    skos:prefLabel "Pattern Recognition"@en ;
+    :constructDimension "perceptual_cognition" ;
+    :constructTheoreticalBasis "Klein (1993); Chase & Simon (1973)" ;
+    skos:definition "Rapid, intuitive classification of complex situational configurations based on experiential schemas and domain knowledge."@en .
+
+:cogSpatialMechanicalCognition a skos:Concept , :CognitiveConstruct ;
+    skos:inScheme :cognitiveConstructScheme , :iopsyConstructScheme ;
+    skos:prefLabel "Spatial & Mechanical Cognition"@en ;
+    :constructDimension "spatial_ability" ;
+    :constructTheoreticalBasis "Hegarty (2004); Bennett et al. (1947)" ;
+    skos:definition "Mental visualization, rotation, and kinematic reasoning about physical structures, tools, linkages, and mechanical systems."@en .
+
+:cogVigilance a skos:Concept , :CognitiveConstruct ;
+    skos:inScheme :cognitiveConstructScheme , :iopsyConstructScheme ;
+    skos:prefLabel "Vigilance & Sustained Attention"@en ;
+    :constructDimension "sustained_attention" ;
+    :constructTheoreticalBasis "Mackworth (1948); Warm, Parasuraman, & Matthews (2008)" ;
+    skos:definition "The sustained maintenance of alertness to detect low-frequency, critical signal changes over prolonged operational durations."@en .
+
+:cogProceduralKnowledgeRetrieval a skos:Concept , :CognitiveConstruct ;
+    skos:inScheme :cognitiveConstructScheme , :iopsyConstructScheme ;
+    skos:prefLabel "Procedural Knowledge Retrieval"@en ;
+    :constructDimension "memory_retrieval" ;
+    :constructTheoreticalBasis "Anderson (1983)" ;
+    skos:definition "Automated activation of production rules (if-then execution chains) from long-term memory for application to standard job routines."@en .
+
+# ---- 2. Affective constructs ----
+
+:affEmotionalLaborSurfaceActing a skos:Concept , :AffectiveConstruct ;
+    skos:inScheme :affectiveConstructScheme , :iopsyConstructScheme ;
+    skos:prefLabel "Emotional Labor — Surface Acting"@en ;
+    :constructDimension "emotional_regulation_cost" ;
+    :constructTheoreticalBasis "Hochschild (1983); Grandey (2000)" ;
+    skos:definition "Simulating required organizational display emotions without altering inner affective feelings, producing dissonance and depleting regulatory energy."@en .
+
+:affEmotionalLaborDeepActing a skos:Concept , :AffectiveConstruct ;
+    skos:inScheme :affectiveConstructScheme , :iopsyConstructScheme ;
+    skos:prefLabel "Emotional Labor — Deep Acting"@en ;
+    :constructDimension "emotional_regulation_adaptive" ;
+    :constructTheoreticalBasis "Hochschild (1983); Grandey (2000)" ;
+    skos:definition "Modifying internal feelings to align genuinely with organizational display rules through perspective-taking and empathy."@en .
+
+:affEmotionRegulationReappraisal a skos:Concept , :AffectiveConstruct ;
+    skos:inScheme :affectiveConstructScheme , :iopsyConstructScheme ;
+    skos:prefLabel "Emotion Regulation — Cognitive Reappraisal"@en ;
+    :constructDimension "antecedent_regulation" ;
+    :constructTheoreticalBasis "Gross (1998)" ;
+    skos:definition "Reinterpreting emotion-eliciting workplace situations before emotional responses fully unfold to attenuate negative affective impact."@en .
+
+:affEmotionRegulationSuppression a skos:Concept , :AffectiveConstruct ;
+    skos:inScheme :affectiveConstructScheme , :iopsyConstructScheme ;
+    skos:prefLabel "Emotion Regulation — Expressive Suppression"@en ;
+    :constructDimension "response_focused_regulation" ;
+    :constructTheoreticalBasis "Gross (1998)" ;
+    skos:definition "Inhibiting ongoing outward emotional expressive behavior in response to stressful or conflicting events."@en .
+
+:affBurnoutEmotionalExhaustion a skos:Concept , :AffectiveConstruct ;
+    skos:inScheme :affectiveConstructScheme , :iopsyConstructScheme ;
+    skos:prefLabel "Burnout — Emotional Exhaustion"@en ;
+    :constructDimension "burnout_core" ;
+    :constructTheoreticalBasis "Maslach & Jackson (1981); Maslach et al. (2001)" ;
+    skos:definition "Chronic state of emotional and physical depletion resulting from excessive, prolonged psychological and interpersonal work demands."@en .
+
+:affBurnoutDepersonalization a skos:Concept , :AffectiveConstruct ;
+    skos:inScheme :affectiveConstructScheme , :iopsyConstructScheme ;
+    skos:prefLabel "Burnout — Depersonalization & Cynicism"@en ;
+    :constructDimension "burnout_relational" ;
+    :constructTheoreticalBasis "Maslach & Jackson (1987); Maslach et al. (2001)" ;
+    skos:definition "Unfeeling, callous, or detached response toward recipients of one's service, colleagues, or responsibilities."@en .
+
+:affBurnoutReducedAccomplishment a skos:Concept , :AffectiveConstruct ;
+    skos:inScheme :affectiveConstructScheme , :iopsyConstructScheme ;
+    skos:prefLabel "Burnout — Reduced Personal Accomplishment"@en ;
+    :constructDimension "burnout_efficacy" ;
+    :constructTheoreticalBasis "Maslach & Jackson (1987); Maslach et al. (2001)" ;
+    skos:definition "Feelings of occupational incompetence, declining self-efficacy, and a perceived lack of meaningful achievement."@en .
+
+:affWorkEngagementVigor a skos:Concept , :AffectiveConstruct ;
+    skos:inScheme :affectiveConstructScheme , :iopsyConstructScheme ;
+    skos:prefLabel "Work Engagement — Vigor"@en ;
+    :constructDimension "engagement_energy" ;
+    :constructTheoreticalBasis "Schaufeli et al. (2002); Bakker & Demerouti (2008)" ;
+    skos:definition "High levels of energy and mental resilience during work, willingness to invest effort, and persistence in the face of difficulty."@en .
+
+:affWorkEngagementDedication a skos:Concept , :AffectiveConstruct ;
+    skos:inScheme :affectiveConstructScheme , :iopsyConstructScheme ;
+    skos:prefLabel "Work Engagement — Dedication"@en ;
+    :constructDimension "engagement_significance" ;
+    :constructTheoreticalBasis "Schaufeli et al. (2002)" ;
+    skos:definition "Strong psychological involvement accompanied by enthusiasm, inspiration, pride, and perceived challenge."@en .
+
+:affWorkEngagementAbsorption a skos:Concept , :AffectiveConstruct ;
+    skos:inScheme :affectiveConstructScheme , :iopsyConstructScheme ;
+    skos:prefLabel "Work Engagement — Absorption"@en ;
+    :constructDimension "engagement_immersion" ;
+    :constructTheoreticalBasis "Schaufeli et al. (2002); Csikszentmihalyi (1990)" ;
+    skos:definition "Being fully and pleasantly concentrated in one's work such that time passes rapidly and detachment is difficult."@en .
+
+:affPsychologicalSafety a skos:Concept , :AffectiveConstruct ;
+    skos:inScheme :affectiveConstructScheme , :iopsyConstructScheme ;
+    skos:prefLabel "Psychological Safety"@en ;
+    :constructDimension "team_climate" ;
+    :constructTheoreticalBasis "Edmondson (1999)" ;
+    skos:definition "Shared belief that the team and climate is safe for interpersonal risk-taking, voice, error admission, and asking for help."@en .
+
+:affJobSatisfaction a skos:Concept , :AffectiveConstruct ;
+    skos:inScheme :affectiveConstructScheme , :iopsyConstructScheme ;
+    skos:prefLabel "Job Satisfaction"@en ;
+    :constructDimension "evaluative_attitude" ;
+    :constructTheoreticalBasis "Locke (1976); Judge et al. (2001)" ;
+    skos:definition "Pleasurable or positive emotional state resulting from the appraisal of one's job experiences, compensation, autonomy, and environment."@en .
+
+:affAffectiveCommitment a skos:Concept , :AffectiveConstruct ;
+    skos:inScheme :affectiveConstructScheme , :iopsyConstructScheme ;
+    skos:prefLabel "Organizational Commitment — Affective"@en ;
+    :constructDimension "commitment_emotional" ;
+    :constructTheoreticalBasis "Meyer & Allen (1991)" ;
+    skos:definition "Emotional attachment to, identification with, and involvement in the organization (wanting to stay)."@en .
+
+:affContinuanceCommitment a skos:Concept , :AffectiveConstruct ;
+    skos:inScheme :affectiveConstructScheme , :iopsyConstructScheme ;
+    skos:prefLabel "Organizational Commitment — Continuance"@en ;
+    :constructDimension "commitment_calculative" ;
+    :constructTheoreticalBasis "Meyer & Allen (1991)" ;
+    skos:definition "Awareness of the costs and lack of alternatives associated with leaving (needing to stay)."@en .
+
+:affNormativeCommitment a skos:Concept , :AffectiveConstruct ;
+    skos:inScheme :affectiveConstructScheme , :iopsyConstructScheme ;
+    skos:prefLabel "Organizational Commitment — Normative"@en ;
+    :constructDimension "commitment_moral" ;
+    :constructTheoreticalBasis "Meyer & Allen (1991)" ;
+    skos:definition "Perceived moral or ethical obligation to remain with the employer (feeling one ought to stay)."@en .
+
+:affOccupationalStrain a skos:Concept , :AffectiveConstruct ;
+    skos:inScheme :affectiveConstructScheme , :iopsyConstructScheme ;
+    skos:prefLabel "Occupational Strain"@en ;
+    :constructDimension "stress_and_strain" ;
+    :constructTheoreticalBasis "Karasek (1979); Bakker & Demerouti (2007)" ;
+    skos:definition "Negative psychological and physiological impairment from an imbalance between high demands and low latitude or resources."@en .
+
+:affPositiveAffectivity a skos:Concept , :AffectiveConstruct ;
+    skos:inScheme :affectiveConstructScheme , :iopsyConstructScheme ;
+    skos:prefLabel "Positive Affectivity"@en ;
+    :constructDimension "affective_trait" ;
+    :constructTheoreticalBasis "Watson, Clark, & Tellegen (1988)" ;
+    skos:definition "The extent to which an individual feels active, alert, enthusiastic, and pleasantly aroused at work."@en .
+
+:affNegativeAffectivity a skos:Concept , :AffectiveConstruct ;
+    skos:inScheme :affectiveConstructScheme , :iopsyConstructScheme ;
+    skos:prefLabel "Negative Affectivity"@en ;
+    :constructDimension "affective_trait" ;
+    :constructTheoreticalBasis "Watson, Clark, & Tellegen (1988)" ;
+    skos:definition "Dispositional and state distress characterized by anger, contempt, guilt, fear, and nervousness."@en .
+
+:affThreatAppraisalAnxiety a skos:Concept , :AffectiveConstruct ;
+    skos:inScheme :affectiveConstructScheme , :iopsyConstructScheme ;
+    skos:prefLabel "Threat Appraisal Anxiety"@en ;
+    :constructDimension "maladaptive_stress_response" ;
+    :constructTheoreticalBasis "LePine, Podsakoff, & LePine (2005)" ;
+    skos:definition "Anxiety and anticipatory strain elicited by tasks perceived as exceeding coping capacity with potential for loss or failure."@en .
+
+:affEmpathicConcern a skos:Concept , :AffectiveConstruct ;
+    skos:inScheme :affectiveConstructScheme , :iopsyConstructScheme ;
+    skos:prefLabel "Empathic Concern"@en ;
+    :constructDimension "interpersonal_affect" ;
+    :constructTheoreticalBasis "Batson (1993); Eisenberg & Miller (1987)" ;
+    skos:definition "Other-oriented emotional response to another person's well-being, central to mentoring, instructing, and serving functions."@en .
+
+# ---- 3. Behavioral constructs ----
+
+:behCoreTaskPerformance a skos:Concept , :BehavioralConstruct ;
+    skos:inScheme :behavioralConstructScheme , :iopsyConstructScheme ;
+    skos:prefLabel "Core Task Performance"@en ;
+    :constructDimension "task_performance" ;
+    :constructTheoreticalBasis "Campbell (1990); Borman & Motowidlo (1993)" ;
+    skos:definition "Direct execution of assigned technical processes and formal job duties that transform inputs into output."@en .
+
+:behTechnicalPrecision a skos:Concept , :BehavioralConstruct ;
+    skos:inScheme :behavioralConstructScheme , :iopsyConstructScheme ;
+    skos:prefLabel "Technical Precision"@en ;
+    :constructDimension "task_performance_precision" ;
+    :constructTheoreticalBasis "Fine & Cronshaw (1999); Campbell (1990)" ;
+    skos:definition "Executing parametric operational work with meticulous adherence to tolerances and specifications."@en .
+
+:behErrorRecovery a skos:Concept , :BehavioralConstruct ;
+    skos:inScheme :behavioralConstructScheme , :iopsyConstructScheme ;
+    skos:prefLabel "Error Recovery"@en ;
+    :constructDimension "resilience_behavior" ;
+    :constructTheoreticalBasis "Frese & Keith (2015); Reason (1990)" ;
+    skos:definition "Immediate, corrective action to intercept, mitigate, troubleshoot, and rectify slips, mistakes, or failures."@en .
+
+:behOcbIndividualAltruism a skos:Concept , :BehavioralConstruct ;
+    skos:inScheme :behavioralConstructScheme , :iopsyConstructScheme ;
+    skos:prefLabel "OCB-I Altruism"@en ;
+    :constructDimension "citizenship_interpersonal" ;
+    :constructTheoreticalBasis "Organ (1988); Williams & Anderson (1991)" ;
+    skos:definition "Discretionary, extra-role behaviors focused on helping specific colleagues with work problems or overload."@en .
+
+:behOcbIndividualCourtesy a skos:Concept , :BehavioralConstruct ;
+    skos:inScheme :behavioralConstructScheme , :iopsyConstructScheme ;
+    skos:prefLabel "OCB-I Courtesy"@en ;
+    :constructDimension "citizenship_interpersonal" ;
+    :constructTheoreticalBasis "Organ (1988); Williams & Anderson (1991)" ;
+    skos:definition "Proactive interpersonal gestures preventing conflicts and keeping coworkers informed before actions that affect them."@en .
+
+:behOcbOrganizationalConscientiousness a skos:Concept , :BehavioralConstruct ;
+    skos:inScheme :behavioralConstructScheme , :iopsyConstructScheme ;
+    skos:prefLabel "OCB-O Conscientiousness"@en ;
+    :constructDimension "citizenship_organizational" ;
+    :constructTheoreticalBasis "Organ (1988); Williams & Anderson (1991)" ;
+    skos:definition "Behavior well beyond minimal role requirements in attendance, rule adherence, time management, and housekeeping."@en .
+
+:behOcbOrganizationalCivicVirtue a skos:Concept , :BehavioralConstruct ;
+    skos:inScheme :behavioralConstructScheme , :iopsyConstructScheme ;
+    skos:prefLabel "OCB-O Civic Virtue"@en ;
+    :constructDimension "citizenship_organizational" ;
+    :constructTheoreticalBasis "Organ (1988); Williams & Anderson (1991)" ;
+    skos:definition "Responsible, active participation in the governance, meetings, and community of the organization."@en .
+
+:behOcbOrganizationalSportsmanship a skos:Concept , :BehavioralConstruct ;
+    skos:inScheme :behavioralConstructScheme , :iopsyConstructScheme ;
+    skos:prefLabel "OCB-O Sportsmanship"@en ;
+    :constructDimension "citizenship_organizational" ;
+    :constructTheoreticalBasis "Organ (1988); Podsakoff et al. (2000)" ;
+    skos:definition "Willingness to tolerate inevitable workplace inconveniences without complaining or making grievances."@en .
+
+:behCwbInterpersonalDeviance a skos:Concept , :BehavioralConstruct ;
+    skos:inScheme :behavioralConstructScheme , :iopsyConstructScheme ;
+    skos:prefLabel "CWB Interpersonal Deviance"@en ;
+    :constructDimension "counterproductive_deviance" ;
+    :constructTheoreticalBasis "Bennett & Robinson (2000); Spector et al. (2006)" ;
+    skos:definition "Voluntary counterproductive behaviors directed at coworkers: abuse, harassment, gossip, sabotage, or ostracism."@en .
+
+:behCwbOrganizationalDeviance a skos:Concept , :BehavioralConstruct ;
+    skos:inScheme :behavioralConstructScheme , :iopsyConstructScheme ;
+    skos:prefLabel "CWB Organizational Deviance"@en ;
+    :constructDimension "counterproductive_deviance" ;
+    :constructTheoreticalBasis "Bennett & Robinson (2000); Spector et al. (2006)" ;
+    skos:definition "Voluntary behaviors that harm the organization's functioning, property, or reputation."@en .
+
+:behCwbProductionDeviance a skos:Concept , :BehavioralConstruct ;
+    skos:inScheme :behavioralConstructScheme , :iopsyConstructScheme ;
+    skos:prefLabel "CWB Production Deviance"@en ;
+    :constructDimension "counterproductive_deviance" ;
+    :constructTheoreticalBasis "Hol & Snell (1991); Spector et al. (2006)" ;
+    skos:definition "Deliberately slowing work pace, taking unauthorized breaks, or executing shoddy work."@en .
+
+:behCwbPropertyDeviance a skos:Concept , :BehavioralConstruct ;
+    skos:inScheme :behavioralConstructScheme , :iopsyConstructScheme ;
+    skos:prefLabel "CWB Property Deviance"@en ;
+    :constructDimension "counterproductive_deviance" ;
+    :constructTheoreticalBasis "Hollinger & Clark (1983); Bennett & Robinson (2000)" ;
+    skos:definition "Theft, damage, vandalism, or unauthorized misuse of organizational property."@en .
+
+:behProactiveProblemSolving a skos:Concept , :BehavioralConstruct ;
+    skos:inScheme :behavioralConstructScheme , :iopsyConstructScheme ;
+    skos:prefLabel "Proactive Problem Solving"@en ;
+    :constructDimension "proactivity" ;
+    :constructTheoreticalBasis "Parker, Bindl, & Strauss (2010); Frese & Fay (2001)" ;
+    skos:definition "Self-initiated, anticipatory action to identify potential bottlenecks and implement preventative improvements."@en .
+
+:behVoiceBehavior a skos:Concept , :BehavioralConstruct ;
+    skos:inScheme :behavioralConstructScheme , :iopsyConstructScheme ;
+    skos:prefLabel "Voice Behavior"@en ;
+    :constructDimension "proactivity" ;
+    :constructTheoreticalBasis "Van Dyne & LePine (1998); Morrison (2014)" ;
+    skos:definition "Discretionary verbalization of constructive ideas, concerns, and suggestions to improve processes."@en .
+
+:behTakingCharge a skos:Concept , :BehavioralConstruct ;
+    skos:inScheme :behavioralConstructScheme , :iopsyConstructScheme ;
+    skos:prefLabel "Taking Charge"@en ;
+    :constructDimension "proactivity" ;
+    :constructTheoreticalBasis "Morrison & Phelps (1999)" ;
+    skos:definition "Voluntary, constructive efforts to effect functional change in how work is executed."@en .
+
+:behSafetyCompliance a skos:Concept , :BehavioralConstruct ;
+    skos:inScheme :behavioralConstructScheme , :iopsyConstructScheme ;
+    skos:prefLabel "Safety Compliance"@en ;
+    :constructDimension "safety" ;
+    :constructTheoreticalBasis "Neal & Griffin (2006); Christian et al. (2009)" ;
+    skos:definition "Adhering to mandatory safety protocols, using protective equipment, and executing tasks in a risk-averse manner."@en .
+
+:behSafetyParticipation a skos:Concept , :BehavioralConstruct ;
+    skos:inScheme :behavioralConstructScheme , :iopsyConstructScheme ;
+    skos:prefLabel "Safety Participation"@en ;
+    :constructDimension "safety_performance" ;
+    :constructTheoreticalBasis "Neal & Griffin (2006); Christian et al. (2009)" ;
+    skos:definition "Voluntary engagement in supporting safety programs and helping others work safely."@en .
+
+:behAdaptiveCrisisHandling a skos:Concept , :BehavioralConstruct ;
+    skos:inScheme :behavioralConstructScheme , :iopsyConstructScheme ;
+    skos:prefLabel "Adaptive Performance — Crisis Handling"@en ;
+    :constructDimension "adaptability" ;
+    :constructTheoreticalBasis "Pulakos et al. (2000)" ;
+    skos:definition "Maintaining composure, prioritizing immediate actions, and solving unexpected emergencies or crises."@en .
+
+:behAdaptiveCreativeSolving a skos:Concept , :BehavioralConstruct ;
+    skos:inScheme :behavioralConstructScheme , :iopsyConstructScheme ;
+    skos:prefLabel "Adaptive Performance — Creative Problem Solving"@en ;
+    :constructDimension "adaptability" ;
+    :constructTheoreticalBasis "Pulakos et al. (2000); Mumford et al. (2000)" ;
+    skos:definition "Inventing novel, practical solutions to novel, ambiguous, or ill-defined problems."@en .
+
+:behAdaptiveInterpersonal a skos:Concept , :BehavioralConstruct ;
+    skos:inScheme :behavioralConstructScheme , :iopsyConstructScheme ;
+    skos:prefLabel "Adaptive Performance — Interpersonal Adaptability"@en ;
+    :constructDimension "adaptability" ;
+    :constructTheoreticalBasis "Pulakos et al. (2000)" ;
+    skos:definition "Adjusting interpersonal style and tactics to interact effectively with diverse personalities and cultures."@en .
+
+:behTransformationalLeadership a skos:Concept , :BehavioralConstruct ;
+    skos:inScheme :behavioralConstructScheme , :iopsyConstructScheme ;
+    skos:prefLabel "Transformational Leadership"@en ;
+    :constructDimension "leadership" ;
+    :constructTheoreticalBasis "Bass (1985); Avolio, Bass, & Jung (1999)" ;
+    skos:definition "Inspiring followers through idealized influence, inspirational motivation, intellectual stimulation, and individualized consideration."@en .
+
+:behTransactionalSupervision a skos:Concept , :BehavioralConstruct ;
+    skos:inScheme :behavioralConstructScheme , :iopsyConstructScheme ;
+    skos:prefLabel "Transactional Supervision"@en ;
+    :constructDimension "leadership" ;
+    :constructTheoreticalBasis "Bass (1985); Podsakoff et al. (2000)" ;
+    skos:definition "Clarifying expectations, linking rewards to performance, and monitoring deviations for correction."@en .
+
+:behMentoringCoaching a skos:Concept , :BehavioralConstruct ;
+    skos:inScheme :behavioralConstructScheme , :iopsyConstructScheme ;
+    skos:prefLabel "Mentoring & Coaching"@en ;
+    :constructDimension "developmental_interaction" ;
+    :constructTheoreticalBasis "Kram (1985); Ragins & Kram (2007)" ;
+    skos:definition "Providing psychosocial, career, technical, and modeling guidance to less experienced workers."@en .
+
+:behCollaborativeKnowledgeSharing a skos:Concept , :BehavioralConstruct ;
+    skos:inScheme :behavioralConstructScheme , :iopsyConstructScheme ;
+    skos:prefLabel "Collaboration & Knowledge Sharing"@en ;
+    :constructDimension "teamwork" ;
+    :constructTheoreticalBasis "Mesmer-Magnus & DeChurch (2009); Wang & Noe (2010)" ;
+    skos:definition "Voluntarily communicating expertise, lessons, and insights to strengthen collective capability."@en .
+
+:behConflictNegotiation a skos:Concept , :BehavioralConstruct ;
+    skos:inScheme :behavioralConstructScheme , :iopsyConstructScheme ;
+    skos:prefLabel "Conflict Negotiation"@en ;
+    :constructDimension "negotiation" ;
+    :constructTheoreticalBasis "Pruitt & Carnevale (1993); De Dreu et al. (2001)" ;
+    skos:definition "Engaging in integrative problem-solving and principled bargaining to reconcile divergent interests."@en .
+
+:behServiceDelivery a skos:Concept , :BehavioralConstruct ;
+    skos:inScheme :behavioralConstructScheme , :iopsyConstructScheme ;
+    skos:prefLabel "Service & Instruction Delivery"@en ;
+    :constructDimension "service" ;
+    :constructTheoreticalBasis "Schneider & Bowen (1995); Liao & Chuang (2004)" ;
+    skos:definition "Executing client- and customer-directed tasks responsively to fulfill needs and build trust."@en .
+
+:behInstructionFollowing a skos:Concept , :BehavioralConstruct ;
+    skos:inScheme :behavioralConstructScheme , :iopsyConstructScheme ;
+    skos:prefLabel "Instruction Following"@en ;
+    :constructDimension "procedural_compliance" ;
+    :constructTheoreticalBasis "Fine & Cronshaw (1999); Borman & Motowidlo (1993)" ;
+    skos:definition "Faithfully executing prescribed supervisory directives and helping without unauthorized deviation."@en .
+
+:behTurnover a skos:Concept , :BehavioralConstruct ;
+    skos:inScheme :behavioralConstructScheme , :iopsyConstructScheme ;
+    skos:prefLabel "Withdrawal — Turnover"@en ;
+    :constructDimension "withdrawal" ;
+    :constructTheoreticalBasis "Mobley (1977); Hom et al. (2017)" ;
+    skos:definition "Voluntary disengagement culminating in resignation, job search, and departure."@en .
+
+:behAbsenteeism a skos:Concept , :BehavioralConstruct ;
+    skos:inScheme :behavioralConstructScheme , :iopsyConstructScheme ;
+    skos:prefLabel "Withdrawal — Absenteeism"@en ;
+    :constructDimension "withdrawal" ;
+    :constructTheoreticalBasis "Johns (2008); Harrison & Martocchio (2006)" ;
+    skos:definition "Unplanned absence from scheduled shifts reflecting psychological or physical withdrawal."@en .
+
+:behPresenteeism a skos:Concept , :BehavioralConstruct ;
+    skos:inScheme :behavioralConstructScheme , :iopsyConstructScheme ;
+    skos:prefLabel "Withdrawal — Presenteeism"@en ;
+    :constructDimension "withdrawal" ;
+    :constructTheoreticalBasis "Johns (2010); Aronsson, Gustafsson, & Dallner (2000)" ;
+    skos:definition "Attending work while psychologically or physically impaired, reducing throughput and elevating errors."@en .
+
+################################################################
+# 4. FJA → I/O Psychology Mapping (per worker function)
+################################################################
+
+# ---- Data functions ----
+
+:dataSynthesizing :requiresCognitiveDemand :cogComplexProblemSolving , :cogStrategicDecisionMaking , :cogMetacognitiveMonitoring ;
+    :imposesMentalWorkload :cogMentalWorkload ;
+    :elicitsEmotionalDemand :affJobSatisfaction ;
+    :manifestsInBehavior :behCoreTaskPerformance , :behProactiveProblemSolving , :behAdaptiveCreativeSolving .
+
+:dataCoordinating :requiresCognitiveDemand :cogStrategicDecisionMaking , :cogTaskStructuring , :cogExecutiveFunctioning ;
+    :imposesMentalWorkload :cogMentalWorkload ;
+    :elicitsEmotionalDemand :affOccupationalStrain ;
+    :manifestsInBehavior :behCoreTaskPerformance , :behCollaborativeKnowledgeSharing , :behTakingCharge .
+
+:dataAnalyzing :requiresCognitiveDemand :cogDiagnosticReasoning , :cogInductiveDeductiveReasoning , :cogInfoProcessing ;
+    :imposesMentalWorkload :cogMentalWorkload ;
+    :elicitsEmotionalDemand :affPositiveAffectivity ;
+    :manifestsInBehavior :behCoreTaskPerformance , :behProactiveProblemSolving .
+
+:dataCompiling :requiresCognitiveDemand :cogInfoProcessing , :cogPatternRecognition , :cogWorkingMemoryAllocation ;
+    :imposesMentalWorkload :cogMentalWorkload ;
+    :elicitsEmotionalDemand :affWorkEngagementAbsorption ;
+    :manifestsInBehavior :behCoreTaskPerformance , :behTechnicalPrecision .
+
+:dataComputing :requiresCognitiveDemand :cogProceduralKnowledgeRetrieval , :cogSelectiveAttention , :cogWorkingMemoryAllocation ;
+    :imposesMentalWorkload :cogMentalWorkload ;
+    :manifestsInBehavior :behCoreTaskPerformance , :behTechnicalPrecision .
+
+:dataCopying :requiresCognitiveDemand :cogSelectiveAttention , :cogProceduralKnowledgeRetrieval ;
+    :imposesMentalWorkload :cogMentalWorkload ;
+    :elicitsEmotionalDemand :affBurnoutEmotionalExhaustion ;
+    :manifestsInBehavior :behTechnicalPrecision , :behInstructionFollowing .
+
+:dataComparing :requiresCognitiveDemand :cogErrorMonitoring , :cogSelectiveAttention , :cogPatternRecognition ;
+    :imposesMentalWorkload :cogMentalWorkload ;
+    :elicitsEmotionalDemand :affNegativeAffectivity ;
+    :manifestsInBehavior :behCoreTaskPerformance , :behErrorRecovery .
+
+# ---- People functions (5th DOT digit) ----
+
+:peopleMentoring :requiresCognitiveDemand :cogMetacognitiveMonitoring , :cogCognitiveFlexibility ;
+    :requiresEmotionalLabor :affEmotionalLaborDeepActing ;
+    :elicitsEmotionalDemand :affEmpathicConcern , :affPsychologicalSafety ;
+    :manifestsInBehavior :behMentoringCoaching , :behOcbIndividualAltruism , :behTransformationalLeadership .
+
+:peopleNegotiating :requiresCognitiveDemand :cogStrategicDecisionMaking , :cogCognitiveFlexibility , :cogDividedAttention ;
+    :requiresEmotionalLabor :affEmotionalLaborDeepActing ;
+    :elicitsEmotionalDemand :affOccupationalStrain , :affEmotionRegulationReappraisal ;
+    :manifestsInBehavior :behConflictNegotiation , :behCollaborativeKnowledgeSharing , :behAdaptiveInterpersonal .
+
+:peopleInstructing :requiresCognitiveDemand :cogTaskStructuring , :cogInfoProcessing , :cogCognitiveFlexibility ;
+    :requiresEmotionalLabor :affEmotionalLaborDeepActing ;
+    :elicitsEmotionalDemand :affEmpathicConcern , :affWorkEngagementDedication ;
+    :manifestsInBehavior :behMentoringCoaching , :behServiceDelivery , :behCollaborativeKnowledgeSharing .
+
+:peopleSupervising :requiresCognitiveDemand :cogStrategicDecisionMaking , :cogExecutiveFunctioning , :cogDiagnosticReasoning ;
+    :requiresEmotionalLabor :affEmotionalLaborDeepActing ;
+    :elicitsEmotionalDemand :affOccupationalStrain , :affPsychologicalSafety ;
+    :manifestsInBehavior :behTransactionalSupervision , :behTransformationalLeadership , :behTakingCharge .
+
+:peopleDiverting :requiresCognitiveDemand :cogCognitiveFlexibility , :cogDividedAttention ;
+    :requiresEmotionalLabor :affEmotionalLaborSurfaceActing ;
+    :elicitsEmotionalDemand :affPositiveAffectivity ;
+    :manifestsInBehavior :behServiceDelivery , :behAdaptiveCreativeSolving .
+
+:peoplePersuading :requiresCognitiveDemand :cogCognitiveAppraisal , :cogCognitiveFlexibility , :cogStrategicDecisionMaking ;
+    :requiresEmotionalLabor :affEmotionalLaborDeepActing ;
+    :elicitsEmotionalDemand :affEmotionRegulationReappraisal ;
+    :manifestsInBehavior :behConflictNegotiation , :behVoiceBehavior , :behServiceDelivery .
+
+:peopleSpeakingSignaling :requiresCognitiveDemand :cogInfoProcessing , :cogSelectiveAttention ;
+    :elicitsEmotionalDemand :affEmotionalLaborSurfaceActing ;
+    :manifestsInBehavior :behCollaborativeKnowledgeSharing , :behOcbIndividualCourtesy .
+
+:peopleServing :requiresCognitiveDemand :cogSelectiveAttention , :cogSituationalAwareness ;
+    :requiresEmotionalLabor :affEmotionalLaborSurfaceActing ;
+    :elicitsEmotionalDemand :affEmpathicConcern ;
+    :manifestsInBehavior :behServiceDelivery , :behOcbIndividualCourtesy , :behInstructionFollowing .
+
+:peopleTakingInstructionsHelping :requiresCognitiveDemand :cogProceduralKnowledgeRetrieval , :cogSelectiveAttention ;
+    :elicitsEmotionalDemand :affBurnoutEmotionalExhaustion ;
+    :manifestsInBehavior :behInstructionFollowing , :behOcbIndividualAltruism .
+
+# ---- Things functions (6th DOT digit) ----
+
+:thingsSettingUp :requiresCognitiveDemand :cogSpatialMechanicalCognition , :cogComplexProblemSolving , :cogErrorMonitoring ;
+    :imposesMentalWorkload :cogMentalWorkload ;
+    :elicitsEmotionalDemand :affWorkEngagementAbsorption ;
+    :manifestsInBehavior :behTechnicalPrecision , :behSafetyCompliance , :behProactiveProblemSolving ;
+    :requiresPsychomotorBehavior :behTechnicalPrecision .
+
+:thingsPrecisionWorking :requiresCognitiveDemand :cogSpatialMechanicalCognition , :cogSelectiveAttention , :cogErrorMonitoring ;
+    :imposesMentalWorkload :cogMentalWorkload ;
+    :elicitsEmotionalDemand :affWorkEngagementAbsorption ;
+    :manifestsInBehavior :behTechnicalPrecision , :behSafetyCompliance ;
+    :requiresPsychomotorBehavior :behTechnicalPrecision .
+
+:thingsOperatingControlling :requiresCognitiveDemand :cogSituationalAwareness , :cogDividedAttention , :cogErrorMonitoring ;
+    :imposesMentalWorkload :cogMentalWorkload ;
+    :elicitsEmotionalDemand :affWorkEngagementVigor ;
+    :manifestsInBehavior :behCoreTaskPerformance , :behSafetyCompliance , :behSafetyParticipation ;
+    :requiresPsychomotorBehavior :behCoreTaskPerformance .
+
+:thingsDrivingOperating :requiresCognitiveDemand :cogSituationalAwareness , :cogSpatialMechanicalCognition , :cogDividedAttention ;
+    :imposesMentalWorkload :cogMentalWorkload ;
+    :elicitsEmotionalDemand :affOccupationalStrain ;
+    :manifestsInBehavior :behCoreTaskPerformance , :behSafetyCompliance ;
+    :requiresPsychomotorBehavior :behCoreTaskPerformance .
+
+:thingsManipulating :requiresCognitiveDemand :cogSpatialMechanicalCognition , :cogSelectiveAttention ;
+    :imposesMentalWorkload :cogMentalWorkload ;
+    :elicitsEmotionalDemand :affWorkEngagementAbsorption ;
+    :manifestsInBehavior :behTechnicalPrecision , :behSafetyCompliance ;
+    :requiresPsychomotorBehavior :behTechnicalPrecision .
+
+:thingsTending :requiresCognitiveDemand :cogVigilance , :cogSelectiveAttention , :cogErrorMonitoring ;
+    :imposesMentalWorkload :cogMentalWorkload ;
+    :elicitsEmotionalDemand :affBurnoutEmotionalExhaustion ;
+    :manifestsInBehavior :behSafetyCompliance , :behErrorRecovery ;
+    :requiresPsychomotorBehavior :behCoreTaskPerformance .
+
+:thingsFeedingOffbearing :requiresCognitiveDemand :cogSelectiveAttention , :cogVigilance ;
+    :imposesMentalWorkload :cogMentalWorkload ;
+    :elicitsEmotionalDemand :affBurnoutEmotionalExhaustion ;
+    :manifestsInBehavior :behSafetyCompliance , :behInstructionFollowing ;
+    :requiresPsychomotorBehavior :behCoreTaskPerformance .
+
+:thingsHandling :requiresCognitiveDemand :cogProceduralKnowledgeRetrieval , :cogSelectiveAttention ;
+    :imposesMentalWorkload :cogMentalWorkload ;
+    :elicitsEmotionalDemand :affBurnoutEmotionalExhaustion ;
+    :manifestsInBehavior :behSafetyCompliance , :behInstructionFollowing ;
+    :requiresPsychomotorBehavior :behCoreTaskPerformance .
+
+################################################################
+# 5. Nomological Network (inter-construct mediation & drive)
+################################################################
+
+:cogCognitiveAppraisal :moderatesStrain :affOccupationalStrain .
+:cogMetacognitiveMonitoring :cognitivelyMediates :behErrorRecovery , :behAdaptiveCreativeSolving .
+:cogExecutiveFunctioning :cognitivelyMediates :behCoreTaskPerformance , :behAdaptiveCrisisHandling .
+:cogSituationalAwareness :cognitivelyMediates :behSafetyCompliance , :behAdaptiveCrisisHandling .
+
+:affEmotionalLaborSurfaceActing :inducesBurnoutRisk :affBurnoutEmotionalExhaustion , :affBurnoutDepersonalization .
+:affEmotionalLaborDeepActing :buffersBurnout :affBurnoutEmotionalExhaustion ; :affectivelyDrives :behServiceDelivery .
+:affPsychologicalSafety :buffersBurnout :affBurnoutDepersonalization ; :affectivelyDrives :behVoiceBehavior .
+:affBurnoutEmotionalExhaustion :affectivelyDrives :behTurnover , :behAbsenteeism , :behPresenteeism .
