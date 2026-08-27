@@ -11,13 +11,10 @@ source actually supports and which tempting inferences remain prohibited.
   It is CC BY 4.0; derived products must credit USDOL/ETA, link the license,
   and identify modifications. LineageWeave links rather than remints these
   resources.
-<<<<<<< HEAD
-=======
 - The O*NET 31.0 Content Model Reference publishes 3,006 hierarchy elements.
   ADR 0250 admits only the source-defined cognitive-ability (`1.A.1`), work-
   style (`1.D`), and work-activity (`4.A`) roots and descendants; it preserves
   blank descriptions as unavailable and stores no occupation rating.
->>>>>>> origin/main
 - The O*NET Content Model separates worker characteristics and requirements
   from occupational requirements. It does not make FJA worker functions
   equivalent to abilities, dispositions, or affect.
@@ -61,13 +58,10 @@ National Center for O*NET Development. (2026). *O*NET 31.0 database* [Data
 set]. U.S. Department of Labor, Employment and Training Administration.
 https://www.onetcenter.org/database.html
 
-<<<<<<< HEAD
-=======
 National Center for O*NET Development. (2026). *O*NET 31.0 Content Model
 Reference* [Data set]. U.S. Department of Labor, Employment and Training
 Administration. https://www.onetcenter.org/dl_files/database/db_31_0_json/content_model_reference.json
 
->>>>>>> origin/main
 Peterson, N. G., Mumford, M. D., Borman, W. C., Jeanneret, P. R., Fleishman,
 E. A., Levin, K. Y., Campion, M. A., Mayfield, M. S., Morgeson, F. P.,
 Pearlman, K., Gowing, M. K., Lancaster, A. R., Silver, M. B., & Dye, D. M.

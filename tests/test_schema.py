@@ -34,15 +34,12 @@ from backend.app.occupation_rating_ingestion import (
     fetch_rating_source_occupations,
 )
 from backend.app.post_chat_ingestion import gather_global_chat_sources
-<<<<<<< HEAD
 from scripts.import_onet_ratings import import_ratings
 from scripts.import_job_architecture import import_job_architecture
-=======
 from lineageweave.occupational_construct_catalog import (
     catalog_content_sha256,
     sync_onet_construct_catalog,
 )
->>>>>>> origin/main
 
 _ADMIN_DSN = os.environ.get(
     "LINEAGEWEAVE_TEST_POSTGRES_ADMIN_DSN", "postgresql://localhost/postgres"
@@ -292,8 +289,7 @@ def test_migration_applies_cleanly(schema_db) -> None:
         "post_summary_action",
         "post_chat_result",
         "post_chat_citation",
-<<<<<<< HEAD
-        "occupational_data_release",
+"occupational_data_release",
         "occupational_source_table",
         "occupational_scale_definition",
         "occupational_classification_entry",
@@ -303,17 +299,14 @@ def test_migration_applies_cleanly(schema_db) -> None:
         "job_architecture_node",
         "job_architecture_hierarchy_edge",
         "job_architecture_occupation_binding",
-=======
         "occupational_construct_vocabulary",
         "occupational_construct",
         "post_occupational_construct_assertion",
         "post_occupational_construct_extraction",
->>>>>>> origin/main
     }
     assert expected <= tables
 
 
-<<<<<<< HEAD
 def test_job_architecture_import_is_idempotent_and_immutable(
     schema_db,
     tmp_path: Path,
@@ -672,7 +665,7 @@ def test_onet_rating_importer_is_idempotent_against_postgresql(
     assert occupations["occupations"] == [
         {"onetsoc_code": "15-1252.00", "occupation_title": "Synthetic occupation"}
     ]
-=======
+
 def test_occupational_catalog_metadata_columns_exist(schema_db) -> None:
     """The real schema preserves catalog descriptions and release integrity."""
     with schema_db.cursor() as cur:
@@ -745,7 +738,6 @@ def test_occupational_catalog_sync_persists_exact_rows(schema_db) -> None:
             ("work_activity", "Synthetic work activity", None),
             ("work_style", "Synthetic work style", None),
         ]
->>>>>>> origin/main
 
 
 def test_global_ask_evidence_search_indexes_exist_on_normalized_tables(schema_db) -> None:

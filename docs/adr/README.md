@@ -28,9 +28,8 @@ decision from them.
 | [`temporal-topic-context-influence-research.md`](../temporal-topic-context-influence-research.md) | [0210](0210-temporal-topic-context-influence-dashboard.md) |
 | [`python-mathematical-compute-boundary-audit.md`](../doctoring/python-mathematical-compute-boundary-audit.md) | [0208](0208-externalize-local-mathematical-compute.md) |
 | [`WORKER_FUNCTION_TAXONOMY_REFERENCES.md`](../doctoring/WORKER_FUNCTION_TAXONOMY_REFERENCES.md) | [0232](0232-worker-function-taxonomy-in-the-published-ontology.md) |
-<<<<<<< HEAD
 | [`IO_OCCUPATIONAL_TAXONOMY_REFERENCES.md`](../doctoring/IO_OCCUPATIONAL_TAXONOMY_REFERENCES.md) | [0245](0245-io-occupational-taxonomy-in-the-published-ontology.md) |
-| [`OCCUPATIONAL_CONSTRUCT_REFERENCES.md`](../doctoring/OCCUPATIONAL_CONSTRUCT_REFERENCES.md) | [0248](0248-occupational-construct-evidence-boundary.md) |
+| [`OCCUPATIONAL_CONSTRUCT_REFERENCES.md`](../doctoring/OCCUPATIONAL_CONSTRUCT_REFERENCES.md) | [0248](0248-occupational-construct-evidence-boundary.md), [0250](0250-official-occupational-construct-catalog-sync.md), [0253](0253-catalog-bound-occupational-construct-extraction.md), [0255](0255-occupational-construct-ontology-navigation.md) |
 | [`ONET_31_CONTENT_MODEL_REFERENCES.md`](../doctoring/ONET_31_CONTENT_MODEL_REFERENCES.md) | [0264](0264-onet-31-content-model-ontology.md) |
 | [`SOC_2018_HIERARCHY_REFERENCES.md`](../doctoring/SOC_2018_HIERARCHY_REFERENCES.md) | [0252](0252-complete-2018-soc-hierarchy.md) |
 | [`ONET_31_LINKAGE_REFERENCES.md`](../doctoring/ONET_31_LINKAGE_REFERENCES.md) | [0256](0256-onet-content-model-published-linkages.md) |
@@ -41,9 +40,6 @@ decision from them.
 | Rating-source occupation selector | [0261](0261-rating-source-occupation-selector.md) |
 | Occupation catalog title filter | [0262](0262-occupation-catalog-title-filter.md) |
 | Authorized job-family/job-series import | [0263](0263-authorized-job-architecture-import.md) |
-=======
-| [`OCCUPATIONAL_CONSTRUCT_REFERENCES.md`](../doctoring/OCCUPATIONAL_CONSTRUCT_REFERENCES.md) | [0248](0248-occupational-construct-evidence-boundary.md), [0250](0250-official-occupational-construct-catalog-sync.md), [0253](0253-catalog-bound-occupational-construct-extraction.md), [0255](0255-occupational-construct-ontology-navigation.md) |
->>>>>>> origin/main
 
 [0011](0011-prov-o-standard-relations.md) and [0065](0065-prov-o-provenance-boundary.md) cite the dated W3C PROV-O and PROV-DM Recommendations (https://www.w3.org/TR/2013/REC-prov-o-20130430/ and https://www.w3.org/TR/2013/REC-prov-dm-20130430/).
 
