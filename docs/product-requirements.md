@@ -425,6 +425,23 @@ Acceptance: MCP and REST produce the same scope snapshot, verification opt-in,
 knowledge cutoff, status, citations, and limitations; cross-account reads are
 404-equivalent; and exhaustion returns the bounded actual retry interval.
 
+### PRD-FR-5D — Project evidence history
+
+- Present the authorized records that carry one exact project identity as a
+  bounded event timeline inside the existing Post detail flow.
+- Keep observed responsibility evidence distinct from inferred Event Lineage;
+  a related prior path is never displayed as causality or an authoritative
+  assignment.
+- Apply the same visibility and cutoff gates before returning an event, actor,
+  project match, or source-record action.
+- When no event survives the authorized projection, show an actionable empty
+  state and no empty tablist or exact-value table.
+
+Acceptance: keyboard roving focus, current-event selection, responsibility
+evidence gaps, truncation, source navigation, exact values, and the default,
+no-assignment, single-assignment, authorization-filtered, truncated, and empty
+Storybook states remain synchronized with ADR 0243.
+
 ### PRD-FR-6 — Measurement boundary
 
 - Consume TEPP accepted/completed wire contracts and fast-mlsirm outputs; do

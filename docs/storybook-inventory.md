@@ -40,10 +40,13 @@ World Wide Web Consortium. (2024). *Web Content Accessibility Guidelines
 (WCAG) 2.2* (W3C Recommendation). https://www.w3.org/TR/WCAG22/
 # Project history timeline
 
-`Projects/History Timeline` covers the evidence-bearing default
-timeline and its exact-value table. Keyboard roving focus, the current event,
+`Projects/History Timeline` covers the evidence-bearing default timeline and its
+exact-value table plus no-assignment, single-assignment, authorization-filtered,
+truncated, and actionable empty states. Keyboard roving focus, the current event,
 responsibility-evidence gaps, non-causal lineage paths, and source-record
 actions are executable component-test states governed by ADR 0243. The
 1440×1000 and 390×844 audits are retained in
-`docs/screenshots/project-history-time-source-{desktop,mobile}.png`; both show
-the customer-readable time source without exposing the stored basis code.
+`docs/screenshots/project-history-timeline-current-{desktop,mobile}.png` and
+`docs/screenshots/project-history-empty-{desktop,mobile}.png`; they show the
+customer-readable time source and next action without exposing the stored basis
+code or empty navigation controls.
