@@ -1,5 +1,25 @@
 # Product & Technical Gap Baseline
 
+> Exact-head loop overlay: 2026-08-28 KST. Protected `main` was
+> `bbb191924e9881a5201f1ecf63c854d92992cc1c`; seven PRs and nine issues were
+> open. PR #763 was `b51d3bd8872b` and PR #762 was `e6ca33dba1b5`; both were
+> mergeable, normal squash auto-merge was enabled, exact-head Checks were still
+> running, and no qualifying independent approval existed. PRs #702
+> (`93e7b81d096d`), #679 (`135dfe7c4266`), #672 (`a3e87a89185f`), #667
+> (`0c0f4af572a9`), and #640 (`bd73e0a43ae1`) remained draft and dirty against
+> `main`. Central ruleset 18156473 and repository no-force-push ruleset
+> 21065108 remain active. This overlay supersedes every older queue count below.
+> Checks from older heads, stacked bases, or merged PRs are not transferred.
+>
+> Current-runtime boundary: the official Compose project was healthy at the
+> HTTP health route, but its PostgreSQL schema did not yet contain
+> `source_post_voice`; therefore no current Voice-history aggregate,
+> authenticated project-history API result, or rendered authenticated UI result
+> is claimed. Older aggregate observations below remain dated supporting
+> evidence, not confirmation of this exact head. The checked repository names
+> are `ContextualWisdomLab/LineageWeave`, `RankWeave`, `ThreadWeave`, `TEPP`,
+> and lowercase canonical `ContextualWisdomLab/disksage`.
+
 > Voice-of-X delivery snapshot: 2026-08-27 KST. Protected `main` was
 > `ff7431bd1851c03e737808d22c6a2d43968582f9`; PR #713 was
 > `850494c3861703862a76cfe564381a41243c6c2d`; stacked PR #717 was
