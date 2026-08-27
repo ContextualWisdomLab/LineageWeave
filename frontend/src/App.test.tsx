@@ -1,7 +1,7 @@
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import App from "./App";
+import App, { SurfaceBoundary } from "./App";
 import { optionalKnowledgeCutoffIso } from "./api";
 import { setLocale } from "./i18n";
 import { OIDC_RETURN_URL_STORAGE_KEY } from "./oidcReturnUrl";
@@ -43,7 +43,35 @@ afterEach(() => {
   window.history.replaceState({}, "", "/");
   window.sessionStorage.clear();
   window.localStorage.clear();
+  vi.restoreAllMocks();
 });
+
+
+it("announces a lazy surface load failure with a recovery action", () => {
+  vi.spyOn(console, "error").mockImplementation(() => undefined);
+  const BrokenSurface = () => {
+    throw new Error("synthetic chunk failure");
+  };
+
+  const { rerender } = render(
+    <SurfaceBoundary key="failed-post">
+      <BrokenSurface />
+    </SurfaceBoundary>,
+  );
+
+  expect(screen.getByRole("alert")).toHaveTextContent(
+    "This view is unavailable. Refresh once; if it fails again, contact your administrator.",
+  );
+  expect(screen.getByRole("button", { name: "Refresh" })).toBeInTheDocument();
+
+  rerender(
+    <SurfaceBoundary key="next-post">
+      <span>Recovered surface</span>
+    </SurfaceBoundary>,
+  );
+  expect(screen.getByText("Recovered surface")).toBeInTheDocument();
+});
+
 
 describe("App, unauthenticated", () => {
   it("shows a login button that starts the real OIDC redirect", async () => {
