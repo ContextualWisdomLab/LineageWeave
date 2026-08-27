@@ -207,9 +207,13 @@ Remaining acceptance gaps:
   unavailable until it has its own governed estimator, covariance, and
   interval;
 - continue periodic independent and governed-stratum probability samples as
-  the source changes; reconcile any newly uncovered meaning with public
-  standards before adding a schema term, and never mint source-local codes as
-  public concepts;
+  the source changes; the 381-unit one-stratum design supports only overall
+  eligible-frame prevalence, while rare semantic-dimension or category
+  precision remains unavailable until governance predeclares the strata,
+  category estimand, and acceptance precision and fast-mlsirm attests a matching
+  stratified terminal estimator, covariance, and interval artifact; reconcile
+  any newly uncovered meaning with public standards before adding a schema term,
+  and never mint source-local codes as public concepts;
 - connect an authoritative body/file source and prove non-zero, ordered
   semantic-unit persistence before claiming PRD-FR-4 corpus coverage;
 - obtain governed source definitions before mapping grade, inspection,

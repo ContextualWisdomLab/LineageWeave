@@ -37,6 +37,10 @@
         sh:prefix "lw" ;
         sh:namespace "https://contextualwisdomlab.github.io/LineageWeave/ontology#"^^xsd:anyURI ;
     ] ;
+    sh:declare [
+        sh:prefix "rdf" ;
+        sh:namespace "http://www.w3.org/1999/02/22-rdf-syntax-ns#"^^xsd:anyURI ;
+    ] ;
     owl:imports <https://contextualwisdomlab.github.io/LineageWeave/ontology> ;
     owl:versionInfo "1.0.0" .
 

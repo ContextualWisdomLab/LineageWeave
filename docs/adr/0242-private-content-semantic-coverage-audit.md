@@ -150,6 +150,11 @@ Repository artifacts must not retain the private titles.
     eligible frame, the Rust finite-population design yields 381 SRSWOR units.
     These are explicit audit acceptance inputs, not estimated channel weights;
     changing them requires a new design artifact and a new selection manifest.
+    This one-stratum design supports only overall eligible-frame prevalence;
+    precision for a rare semantic dimension or category remains unavailable
+    until governance predeclares the strata, category estimand, and acceptance
+    precision and fast-mlsirm attests a matching stratified terminal estimator,
+    covariance, and interval artifact.
 
 ## Consequences
 
