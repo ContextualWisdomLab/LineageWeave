@@ -829,6 +829,20 @@
     rdfs:range xsd:string ;
     rdfs:label "O*NET element ID"@en .
 
+:OnetContentModelLinkage a owl:Class ;
+    rdfs:subClassOf prov:Entity ;
+    rdfs:label "O*NET content model linkage"@en .
+
+:relevantWorkActivity a owl:ObjectProperty ;
+    rdfs:domain :OnetContentModelElement ;
+    rdfs:range :WorkActivityElement ;
+    rdfs:label "relevant work activity"@en .
+
+:relevantWorkContext a owl:ObjectProperty ;
+    rdfs:domain :OnetContentModelElement ;
+    rdfs:range :WorkContextElement ;
+    rdfs:label "relevant work context"@en .
+
 # ---- Job zones: published preparation-level ordering ----
 
 :JobZone a owl:Class ;

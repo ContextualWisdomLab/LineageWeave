@@ -1,0 +1,2328 @@
+{
+  "table_id": "abilities_to_work_activities",
+  "title": "Abilities to Work Activities",
+  "description": "Provide linkages between abilities and relevant work activities.",
+  "data_dictionary": "https://www.onetcenter.org/dictionary/31.0/json/abilities_to_work_activities.html",
+  "column": [
+    {
+      "column_id": "abilities_element_id",
+      "optional": false,
+      "title": "Abilities Element ID",
+      "description": "Content Model Outline Position",
+      "type": "Text",
+      "format": "Character Varying(20)"
+    },
+    {
+      "column_id": "abilities_element_name",
+      "optional": false,
+      "title": "Abilities Element Name",
+      "description": "Content Model Element Name",
+      "type": "Text",
+      "format": "Character Varying(150)"
+    },
+    {
+      "column_id": "work_activities_element_id",
+      "optional": false,
+      "title": "Work Activities Element ID",
+      "description": "Content Model Outline Position",
+      "type": "Text",
+      "format": "Character Varying(20)"
+    },
+    {
+      "column_id": "work_activities_element_name",
+      "optional": false,
+      "title": "Work Activities Element Name",
+      "description": "Content Model Element Name",
+      "type": "Text",
+      "format": "Character Varying(150)"
+    }
+  ],
+  "row": [
+    {
+      "abilities_element_id": "1.A.1.a.1",
+      "abilities_element_name": "Oral Comprehension",
+      "work_activities_element_id": "4.A.1.a.1",
+      "work_activities_element_name": "Getting Information"
+    },
+    {
+      "abilities_element_id": "1.A.1.a.1",
+      "abilities_element_name": "Oral Comprehension",
+      "work_activities_element_id": "4.A.1.a.2",
+      "work_activities_element_name": "Monitoring Processes, Materials, or Surroundings"
+    },
+    {
+      "abilities_element_id": "1.A.1.a.1",
+      "abilities_element_name": "Oral Comprehension",
+      "work_activities_element_id": "4.A.1.b.1",
+      "work_activities_element_name": "Identifying Objects, Actions, and Events"
+    },
+    {
+      "abilities_element_id": "1.A.1.a.1",
+      "abilities_element_name": "Oral Comprehension",
+      "work_activities_element_id": "4.A.2.a.1",
+      "work_activities_element_name": "Judging the Qualities of Objects, Services, or People"
+    },
+    {
+      "abilities_element_id": "1.A.1.a.1",
+      "abilities_element_name": "Oral Comprehension",
+      "work_activities_element_id": "4.A.2.a.2",
+      "work_activities_element_name": "Processing Information"
+    },
+    {
+      "abilities_element_id": "1.A.1.a.1",
+      "abilities_element_name": "Oral Comprehension",
+      "work_activities_element_id": "4.A.2.a.3",
+      "work_activities_element_name": "Evaluating Information to Determine Compliance with Standards"
+    },
+    {
+      "abilities_element_id": "1.A.1.a.1",
+      "abilities_element_name": "Oral Comprehension",
+      "work_activities_element_id": "4.A.2.b.3",
+      "work_activities_element_name": "Updating and Using Relevant Knowledge"
+    },
+    {
+      "abilities_element_id": "1.A.1.a.1",
+      "abilities_element_name": "Oral Comprehension",
+      "work_activities_element_id": "4.A.4.a.1",
+      "work_activities_element_name": "Interpreting the Meaning of Information for Others"
+    },
+    {
+      "abilities_element_id": "1.A.1.a.1",
+      "abilities_element_name": "Oral Comprehension",
+      "work_activities_element_id": "4.A.4.a.2",
+      "work_activities_element_name": "Communicating with Supervisors, Peers, or Subordinates"
+    },
+    {
+      "abilities_element_id": "1.A.1.a.1",
+      "abilities_element_name": "Oral Comprehension",
+      "work_activities_element_id": "4.A.4.a.3",
+      "work_activities_element_name": "Communicating with People Outside the Organization"
+    },
+    {
+      "abilities_element_id": "1.A.1.a.1",
+      "abilities_element_name": "Oral Comprehension",
+      "work_activities_element_id": "4.A.4.a.4",
+      "work_activities_element_name": "Establishing and Maintaining Interpersonal Relationships"
+    },
+    {
+      "abilities_element_id": "1.A.1.a.1",
+      "abilities_element_name": "Oral Comprehension",
+      "work_activities_element_id": "4.A.4.a.5",
+      "work_activities_element_name": "Assisting and Caring for Others"
+    },
+    {
+      "abilities_element_id": "1.A.1.a.1",
+      "abilities_element_name": "Oral Comprehension",
+      "work_activities_element_id": "4.A.4.a.6",
+      "work_activities_element_name": "Selling or Influencing Others"
+    },
+    {
+      "abilities_element_id": "1.A.1.a.1",
+      "abilities_element_name": "Oral Comprehension",
+      "work_activities_element_id": "4.A.4.a.7",
+      "work_activities_element_name": "Resolving Conflicts and Negotiating with Others"
+    },
+    {
+      "abilities_element_id": "1.A.1.a.1",
+      "abilities_element_name": "Oral Comprehension",
+      "work_activities_element_id": "4.A.4.a.8",
+      "work_activities_element_name": "Performing for or Working Directly with the Public"
+    },
+    {
+      "abilities_element_id": "1.A.1.a.1",
+      "abilities_element_name": "Oral Comprehension",
+      "work_activities_element_id": "4.A.4.b.1",
+      "work_activities_element_name": "Coordinating the Work and Activities of Others"
+    },
+    {
+      "abilities_element_id": "1.A.1.a.1",
+      "abilities_element_name": "Oral Comprehension",
+      "work_activities_element_id": "4.A.4.b.2",
+      "work_activities_element_name": "Developing and Building Teams"
+    },
+    {
+      "abilities_element_id": "1.A.1.a.1",
+      "abilities_element_name": "Oral Comprehension",
+      "work_activities_element_id": "4.A.4.b.3",
+      "work_activities_element_name": "Training and Teaching Others"
+    },
+    {
+      "abilities_element_id": "1.A.1.a.1",
+      "abilities_element_name": "Oral Comprehension",
+      "work_activities_element_id": "4.A.4.b.4",
+      "work_activities_element_name": "Guiding, Directing, and Motivating Subordinates"
+    },
+    {
+      "abilities_element_id": "1.A.1.a.1",
+      "abilities_element_name": "Oral Comprehension",
+      "work_activities_element_id": "4.A.4.b.5",
+      "work_activities_element_name": "Coaching and Developing Others"
+    },
+    {
+      "abilities_element_id": "1.A.1.a.1",
+      "abilities_element_name": "Oral Comprehension",
+      "work_activities_element_id": "4.A.4.b.6",
+      "work_activities_element_name": "Providing Consultation and Advice to Others"
+    },
+    {
+      "abilities_element_id": "1.A.1.a.1",
+      "abilities_element_name": "Oral Comprehension",
+      "work_activities_element_id": "4.A.4.c.2",
+      "work_activities_element_name": "Staffing Organizational Units"
+    },
+    {
+      "abilities_element_id": "1.A.1.a.1",
+      "abilities_element_name": "Oral Comprehension",
+      "work_activities_element_id": "4.A.4.c.3",
+      "work_activities_element_name": "Monitoring and Controlling Resources"
+    },
+    {
+      "abilities_element_id": "1.A.1.a.2",
+      "abilities_element_name": "Written Comprehension",
+      "work_activities_element_id": "4.A.1.a.1",
+      "work_activities_element_name": "Getting Information"
+    },
+    {
+      "abilities_element_id": "1.A.1.a.2",
+      "abilities_element_name": "Written Comprehension",
+      "work_activities_element_id": "4.A.1.a.2",
+      "work_activities_element_name": "Monitoring Processes, Materials, or Surroundings"
+    },
+    {
+      "abilities_element_id": "1.A.1.a.2",
+      "abilities_element_name": "Written Comprehension",
+      "work_activities_element_id": "4.A.1.b.1",
+      "work_activities_element_name": "Identifying Objects, Actions, and Events"
+    },
+    {
+      "abilities_element_id": "1.A.1.a.2",
+      "abilities_element_name": "Written Comprehension",
+      "work_activities_element_id": "4.A.2.a.1",
+      "work_activities_element_name": "Judging the Qualities of Objects, Services, or People"
+    },
+    {
+      "abilities_element_id": "1.A.1.a.2",
+      "abilities_element_name": "Written Comprehension",
+      "work_activities_element_id": "4.A.2.a.2",
+      "work_activities_element_name": "Processing Information"
+    },
+    {
+      "abilities_element_id": "1.A.1.a.2",
+      "abilities_element_name": "Written Comprehension",
+      "work_activities_element_id": "4.A.2.a.3",
+      "work_activities_element_name": "Evaluating Information to Determine Compliance with Standards"
+    },
+    {
+      "abilities_element_id": "1.A.1.a.2",
+      "abilities_element_name": "Written Comprehension",
+      "work_activities_element_id": "4.A.2.a.4",
+      "work_activities_element_name": "Analyzing Data or Information"
+    },
+    {
+      "abilities_element_id": "1.A.1.a.2",
+      "abilities_element_name": "Written Comprehension",
+      "work_activities_element_id": "4.A.2.b.1",
+      "work_activities_element_name": "Making Decisions and Solving Problems"
+    },
+    {
+      "abilities_element_id": "1.A.1.a.2",
+      "abilities_element_name": "Written Comprehension",
+      "work_activities_element_id": "4.A.2.b.3",
+      "work_activities_element_name": "Updating and Using Relevant Knowledge"
+    },
+    {
+      "abilities_element_id": "1.A.1.a.2",
+      "abilities_element_name": "Written Comprehension",
+      "work_activities_element_id": "4.A.3.b.1",
+      "work_activities_element_name": "Working with Computers"
+    },
+    {
+      "abilities_element_id": "1.A.1.a.2",
+      "abilities_element_name": "Written Comprehension",
+      "work_activities_element_id": "4.A.3.b.6",
+      "work_activities_element_name": "Documenting/Recording Information"
+    },
+    {
+      "abilities_element_id": "1.A.1.a.2",
+      "abilities_element_name": "Written Comprehension",
+      "work_activities_element_id": "4.A.4.a.1",
+      "work_activities_element_name": "Interpreting the Meaning of Information for Others"
+    },
+    {
+      "abilities_element_id": "1.A.1.a.2",
+      "abilities_element_name": "Written Comprehension",
+      "work_activities_element_id": "4.A.4.a.2",
+      "work_activities_element_name": "Communicating with Supervisors, Peers, or Subordinates"
+    },
+    {
+      "abilities_element_id": "1.A.1.a.2",
+      "abilities_element_name": "Written Comprehension",
+      "work_activities_element_id": "4.A.4.a.3",
+      "work_activities_element_name": "Communicating with People Outside the Organization"
+    },
+    {
+      "abilities_element_id": "1.A.1.a.2",
+      "abilities_element_name": "Written Comprehension",
+      "work_activities_element_id": "4.A.4.a.7",
+      "work_activities_element_name": "Resolving Conflicts and Negotiating with Others"
+    },
+    {
+      "abilities_element_id": "1.A.1.a.2",
+      "abilities_element_name": "Written Comprehension",
+      "work_activities_element_id": "4.A.4.b.3",
+      "work_activities_element_name": "Training and Teaching Others"
+    },
+    {
+      "abilities_element_id": "1.A.1.a.2",
+      "abilities_element_name": "Written Comprehension",
+      "work_activities_element_id": "4.A.4.b.4",
+      "work_activities_element_name": "Guiding, Directing, and Motivating Subordinates"
+    },
+    {
+      "abilities_element_id": "1.A.1.a.2",
+      "abilities_element_name": "Written Comprehension",
+      "work_activities_element_id": "4.A.4.b.6",
+      "work_activities_element_name": "Providing Consultation and Advice to Others"
+    },
+    {
+      "abilities_element_id": "1.A.1.a.2",
+      "abilities_element_name": "Written Comprehension",
+      "work_activities_element_id": "4.A.4.c.1",
+      "work_activities_element_name": "Performing Administrative Activities"
+    },
+    {
+      "abilities_element_id": "1.A.1.a.2",
+      "abilities_element_name": "Written Comprehension",
+      "work_activities_element_id": "4.A.4.c.2",
+      "work_activities_element_name": "Staffing Organizational Units"
+    },
+    {
+      "abilities_element_id": "1.A.1.a.2",
+      "abilities_element_name": "Written Comprehension",
+      "work_activities_element_id": "4.A.4.c.3",
+      "work_activities_element_name": "Monitoring and Controlling Resources"
+    },
+    {
+      "abilities_element_id": "1.A.1.a.3",
+      "abilities_element_name": "Oral Expression",
+      "work_activities_element_id": "4.A.1.a.1",
+      "work_activities_element_name": "Getting Information"
+    },
+    {
+      "abilities_element_id": "1.A.1.a.3",
+      "abilities_element_name": "Oral Expression",
+      "work_activities_element_id": "4.A.2.b.4",
+      "work_activities_element_name": "Developing Objectives and Strategies"
+    },
+    {
+      "abilities_element_id": "1.A.1.a.3",
+      "abilities_element_name": "Oral Expression",
+      "work_activities_element_id": "4.A.3.b.2",
+      "work_activities_element_name": "Drafting, Laying Out, and Specifying Technical Devices, Parts, and Equipment"
+    },
+    {
+      "abilities_element_id": "1.A.1.a.3",
+      "abilities_element_name": "Oral Expression",
+      "work_activities_element_id": "4.A.4.a.1",
+      "work_activities_element_name": "Interpreting the Meaning of Information for Others"
+    },
+    {
+      "abilities_element_id": "1.A.1.a.3",
+      "abilities_element_name": "Oral Expression",
+      "work_activities_element_id": "4.A.4.a.2",
+      "work_activities_element_name": "Communicating with Supervisors, Peers, or Subordinates"
+    },
+    {
+      "abilities_element_id": "1.A.1.a.3",
+      "abilities_element_name": "Oral Expression",
+      "work_activities_element_id": "4.A.4.a.3",
+      "work_activities_element_name": "Communicating with People Outside the Organization"
+    },
+    {
+      "abilities_element_id": "1.A.1.a.3",
+      "abilities_element_name": "Oral Expression",
+      "work_activities_element_id": "4.A.4.a.4",
+      "work_activities_element_name": "Establishing and Maintaining Interpersonal Relationships"
+    },
+    {
+      "abilities_element_id": "1.A.1.a.3",
+      "abilities_element_name": "Oral Expression",
+      "work_activities_element_id": "4.A.4.a.5",
+      "work_activities_element_name": "Assisting and Caring for Others"
+    },
+    {
+      "abilities_element_id": "1.A.1.a.3",
+      "abilities_element_name": "Oral Expression",
+      "work_activities_element_id": "4.A.4.a.6",
+      "work_activities_element_name": "Selling or Influencing Others"
+    },
+    {
+      "abilities_element_id": "1.A.1.a.3",
+      "abilities_element_name": "Oral Expression",
+      "work_activities_element_id": "4.A.4.a.7",
+      "work_activities_element_name": "Resolving Conflicts and Negotiating with Others"
+    },
+    {
+      "abilities_element_id": "1.A.1.a.3",
+      "abilities_element_name": "Oral Expression",
+      "work_activities_element_id": "4.A.4.a.8",
+      "work_activities_element_name": "Performing for or Working Directly with the Public"
+    },
+    {
+      "abilities_element_id": "1.A.1.a.3",
+      "abilities_element_name": "Oral Expression",
+      "work_activities_element_id": "4.A.4.b.1",
+      "work_activities_element_name": "Coordinating the Work and Activities of Others"
+    },
+    {
+      "abilities_element_id": "1.A.1.a.3",
+      "abilities_element_name": "Oral Expression",
+      "work_activities_element_id": "4.A.4.b.2",
+      "work_activities_element_name": "Developing and Building Teams"
+    },
+    {
+      "abilities_element_id": "1.A.1.a.3",
+      "abilities_element_name": "Oral Expression",
+      "work_activities_element_id": "4.A.4.b.3",
+      "work_activities_element_name": "Training and Teaching Others"
+    },
+    {
+      "abilities_element_id": "1.A.1.a.3",
+      "abilities_element_name": "Oral Expression",
+      "work_activities_element_id": "4.A.4.b.4",
+      "work_activities_element_name": "Guiding, Directing, and Motivating Subordinates"
+    },
+    {
+      "abilities_element_id": "1.A.1.a.3",
+      "abilities_element_name": "Oral Expression",
+      "work_activities_element_id": "4.A.4.b.5",
+      "work_activities_element_name": "Coaching and Developing Others"
+    },
+    {
+      "abilities_element_id": "1.A.1.a.3",
+      "abilities_element_name": "Oral Expression",
+      "work_activities_element_id": "4.A.4.b.6",
+      "work_activities_element_name": "Providing Consultation and Advice to Others"
+    },
+    {
+      "abilities_element_id": "1.A.1.a.3",
+      "abilities_element_name": "Oral Expression",
+      "work_activities_element_id": "4.A.4.c.2",
+      "work_activities_element_name": "Staffing Organizational Units"
+    },
+    {
+      "abilities_element_id": "1.A.1.a.4",
+      "abilities_element_name": "Written Expression",
+      "work_activities_element_id": "4.A.2.b.4",
+      "work_activities_element_name": "Developing Objectives and Strategies"
+    },
+    {
+      "abilities_element_id": "1.A.1.a.4",
+      "abilities_element_name": "Written Expression",
+      "work_activities_element_id": "4.A.3.b.2",
+      "work_activities_element_name": "Drafting, Laying Out, and Specifying Technical Devices, Parts, and Equipment"
+    },
+    {
+      "abilities_element_id": "1.A.1.a.4",
+      "abilities_element_name": "Written Expression",
+      "work_activities_element_id": "4.A.3.b.6",
+      "work_activities_element_name": "Documenting/Recording Information"
+    },
+    {
+      "abilities_element_id": "1.A.1.a.4",
+      "abilities_element_name": "Written Expression",
+      "work_activities_element_id": "4.A.4.a.1",
+      "work_activities_element_name": "Interpreting the Meaning of Information for Others"
+    },
+    {
+      "abilities_element_id": "1.A.1.a.4",
+      "abilities_element_name": "Written Expression",
+      "work_activities_element_id": "4.A.4.a.2",
+      "work_activities_element_name": "Communicating with Supervisors, Peers, or Subordinates"
+    },
+    {
+      "abilities_element_id": "1.A.1.a.4",
+      "abilities_element_name": "Written Expression",
+      "work_activities_element_id": "4.A.4.a.3",
+      "work_activities_element_name": "Communicating with People Outside the Organization"
+    },
+    {
+      "abilities_element_id": "1.A.1.a.4",
+      "abilities_element_name": "Written Expression",
+      "work_activities_element_id": "4.A.4.a.6",
+      "work_activities_element_name": "Selling or Influencing Others"
+    },
+    {
+      "abilities_element_id": "1.A.1.a.4",
+      "abilities_element_name": "Written Expression",
+      "work_activities_element_id": "4.A.4.a.7",
+      "work_activities_element_name": "Resolving Conflicts and Negotiating with Others"
+    },
+    {
+      "abilities_element_id": "1.A.1.a.4",
+      "abilities_element_name": "Written Expression",
+      "work_activities_element_id": "4.A.4.b.1",
+      "work_activities_element_name": "Coordinating the Work and Activities of Others"
+    },
+    {
+      "abilities_element_id": "1.A.1.a.4",
+      "abilities_element_name": "Written Expression",
+      "work_activities_element_id": "4.A.4.b.2",
+      "work_activities_element_name": "Developing and Building Teams"
+    },
+    {
+      "abilities_element_id": "1.A.1.a.4",
+      "abilities_element_name": "Written Expression",
+      "work_activities_element_id": "4.A.4.b.3",
+      "work_activities_element_name": "Training and Teaching Others"
+    },
+    {
+      "abilities_element_id": "1.A.1.a.4",
+      "abilities_element_name": "Written Expression",
+      "work_activities_element_id": "4.A.4.b.4",
+      "work_activities_element_name": "Guiding, Directing, and Motivating Subordinates"
+    },
+    {
+      "abilities_element_id": "1.A.1.a.4",
+      "abilities_element_name": "Written Expression",
+      "work_activities_element_id": "4.A.4.b.6",
+      "work_activities_element_name": "Providing Consultation and Advice to Others"
+    },
+    {
+      "abilities_element_id": "1.A.1.a.4",
+      "abilities_element_name": "Written Expression",
+      "work_activities_element_id": "4.A.4.c.1",
+      "work_activities_element_name": "Performing Administrative Activities"
+    },
+    {
+      "abilities_element_id": "1.A.1.a.4",
+      "abilities_element_name": "Written Expression",
+      "work_activities_element_id": "4.A.4.c.2",
+      "work_activities_element_name": "Staffing Organizational Units"
+    },
+    {
+      "abilities_element_id": "1.A.1.b.1",
+      "abilities_element_name": "Fluency of Ideas",
+      "work_activities_element_id": "4.A.2.b.1",
+      "work_activities_element_name": "Making Decisions and Solving Problems"
+    },
+    {
+      "abilities_element_id": "1.A.1.b.1",
+      "abilities_element_name": "Fluency of Ideas",
+      "work_activities_element_id": "4.A.2.b.2",
+      "work_activities_element_name": "Thinking Creatively"
+    },
+    {
+      "abilities_element_id": "1.A.1.b.1",
+      "abilities_element_name": "Fluency of Ideas",
+      "work_activities_element_id": "4.A.2.b.4",
+      "work_activities_element_name": "Developing Objectives and Strategies"
+    },
+    {
+      "abilities_element_id": "1.A.1.b.1",
+      "abilities_element_name": "Fluency of Ideas",
+      "work_activities_element_id": "4.A.4.a.6",
+      "work_activities_element_name": "Selling or Influencing Others"
+    },
+    {
+      "abilities_element_id": "1.A.1.b.1",
+      "abilities_element_name": "Fluency of Ideas",
+      "work_activities_element_id": "4.A.4.a.7",
+      "work_activities_element_name": "Resolving Conflicts and Negotiating with Others"
+    },
+    {
+      "abilities_element_id": "1.A.1.b.1",
+      "abilities_element_name": "Fluency of Ideas",
+      "work_activities_element_id": "4.A.4.b.1",
+      "work_activities_element_name": "Coordinating the Work and Activities of Others"
+    },
+    {
+      "abilities_element_id": "1.A.1.b.1",
+      "abilities_element_name": "Fluency of Ideas",
+      "work_activities_element_id": "4.A.4.b.2",
+      "work_activities_element_name": "Developing and Building Teams"
+    },
+    {
+      "abilities_element_id": "1.A.1.b.1",
+      "abilities_element_name": "Fluency of Ideas",
+      "work_activities_element_id": "4.A.4.b.3",
+      "work_activities_element_name": "Training and Teaching Others"
+    },
+    {
+      "abilities_element_id": "1.A.1.b.1",
+      "abilities_element_name": "Fluency of Ideas",
+      "work_activities_element_id": "4.A.4.b.4",
+      "work_activities_element_name": "Guiding, Directing, and Motivating Subordinates"
+    },
+    {
+      "abilities_element_id": "1.A.1.b.1",
+      "abilities_element_name": "Fluency of Ideas",
+      "work_activities_element_id": "4.A.4.b.5",
+      "work_activities_element_name": "Coaching and Developing Others"
+    },
+    {
+      "abilities_element_id": "1.A.1.b.1",
+      "abilities_element_name": "Fluency of Ideas",
+      "work_activities_element_id": "4.A.4.b.6",
+      "work_activities_element_name": "Providing Consultation and Advice to Others"
+    },
+    {
+      "abilities_element_id": "1.A.1.b.2",
+      "abilities_element_name": "Originality",
+      "work_activities_element_id": "4.A.2.b.1",
+      "work_activities_element_name": "Making Decisions and Solving Problems"
+    },
+    {
+      "abilities_element_id": "1.A.1.b.2",
+      "abilities_element_name": "Originality",
+      "work_activities_element_id": "4.A.2.b.2",
+      "work_activities_element_name": "Thinking Creatively"
+    },
+    {
+      "abilities_element_id": "1.A.1.b.2",
+      "abilities_element_name": "Originality",
+      "work_activities_element_id": "4.A.2.b.4",
+      "work_activities_element_name": "Developing Objectives and Strategies"
+    },
+    {
+      "abilities_element_id": "1.A.1.b.2",
+      "abilities_element_name": "Originality",
+      "work_activities_element_id": "4.A.4.a.6",
+      "work_activities_element_name": "Selling or Influencing Others"
+    },
+    {
+      "abilities_element_id": "1.A.1.b.2",
+      "abilities_element_name": "Originality",
+      "work_activities_element_id": "4.A.4.a.7",
+      "work_activities_element_name": "Resolving Conflicts and Negotiating with Others"
+    },
+    {
+      "abilities_element_id": "1.A.1.b.2",
+      "abilities_element_name": "Originality",
+      "work_activities_element_id": "4.A.4.b.1",
+      "work_activities_element_name": "Coordinating the Work and Activities of Others"
+    },
+    {
+      "abilities_element_id": "1.A.1.b.2",
+      "abilities_element_name": "Originality",
+      "work_activities_element_id": "4.A.4.b.2",
+      "work_activities_element_name": "Developing and Building Teams"
+    },
+    {
+      "abilities_element_id": "1.A.1.b.2",
+      "abilities_element_name": "Originality",
+      "work_activities_element_id": "4.A.4.b.3",
+      "work_activities_element_name": "Training and Teaching Others"
+    },
+    {
+      "abilities_element_id": "1.A.1.b.2",
+      "abilities_element_name": "Originality",
+      "work_activities_element_id": "4.A.4.b.4",
+      "work_activities_element_name": "Guiding, Directing, and Motivating Subordinates"
+    },
+    {
+      "abilities_element_id": "1.A.1.b.2",
+      "abilities_element_name": "Originality",
+      "work_activities_element_id": "4.A.4.b.5",
+      "work_activities_element_name": "Coaching and Developing Others"
+    },
+    {
+      "abilities_element_id": "1.A.1.b.2",
+      "abilities_element_name": "Originality",
+      "work_activities_element_id": "4.A.4.b.6",
+      "work_activities_element_name": "Providing Consultation and Advice to Others"
+    },
+    {
+      "abilities_element_id": "1.A.1.b.3",
+      "abilities_element_name": "Problem Sensitivity",
+      "work_activities_element_id": "4.A.1.a.2",
+      "work_activities_element_name": "Monitoring Processes, Materials, or Surroundings"
+    },
+    {
+      "abilities_element_id": "1.A.1.b.3",
+      "abilities_element_name": "Problem Sensitivity",
+      "work_activities_element_id": "4.A.1.b.1",
+      "work_activities_element_name": "Identifying Objects, Actions, and Events"
+    },
+    {
+      "abilities_element_id": "1.A.1.b.3",
+      "abilities_element_name": "Problem Sensitivity",
+      "work_activities_element_id": "4.A.1.b.2",
+      "work_activities_element_name": "Inspecting Equipment, Structures, or Materials"
+    },
+    {
+      "abilities_element_id": "1.A.1.b.3",
+      "abilities_element_name": "Problem Sensitivity",
+      "work_activities_element_id": "4.A.2.a.3",
+      "work_activities_element_name": "Evaluating Information to Determine Compliance with Standards"
+    },
+    {
+      "abilities_element_id": "1.A.1.b.3",
+      "abilities_element_name": "Problem Sensitivity",
+      "work_activities_element_id": "4.A.2.b.1",
+      "work_activities_element_name": "Making Decisions and Solving Problems"
+    },
+    {
+      "abilities_element_id": "1.A.1.b.3",
+      "abilities_element_name": "Problem Sensitivity",
+      "work_activities_element_id": "4.A.2.b.4",
+      "work_activities_element_name": "Developing Objectives and Strategies"
+    },
+    {
+      "abilities_element_id": "1.A.1.b.3",
+      "abilities_element_name": "Problem Sensitivity",
+      "work_activities_element_id": "4.A.2.b.5",
+      "work_activities_element_name": "Scheduling Work and Activities"
+    },
+    {
+      "abilities_element_id": "1.A.1.b.3",
+      "abilities_element_name": "Problem Sensitivity",
+      "work_activities_element_id": "4.A.2.b.6",
+      "work_activities_element_name": "Organizing, Planning, and Prioritizing Work"
+    },
+    {
+      "abilities_element_id": "1.A.1.b.3",
+      "abilities_element_name": "Problem Sensitivity",
+      "work_activities_element_id": "4.A.3.a.4",
+      "work_activities_element_name": "Operating Vehicles, Mechanized Devices, or Equipment"
+    },
+    {
+      "abilities_element_id": "1.A.1.b.3",
+      "abilities_element_name": "Problem Sensitivity",
+      "work_activities_element_id": "4.A.3.b.4",
+      "work_activities_element_name": "Repairing and Maintaining Mechanical Equipment"
+    },
+    {
+      "abilities_element_id": "1.A.1.b.3",
+      "abilities_element_name": "Problem Sensitivity",
+      "work_activities_element_id": "4.A.3.b.5",
+      "work_activities_element_name": "Repairing and Maintaining Electronic Equipment"
+    },
+    {
+      "abilities_element_id": "1.A.1.b.3",
+      "abilities_element_name": "Problem Sensitivity",
+      "work_activities_element_id": "4.A.4.a.4",
+      "work_activities_element_name": "Establishing and Maintaining Interpersonal Relationships"
+    },
+    {
+      "abilities_element_id": "1.A.1.b.3",
+      "abilities_element_name": "Problem Sensitivity",
+      "work_activities_element_id": "4.A.4.a.5",
+      "work_activities_element_name": "Assisting and Caring for Others"
+    },
+    {
+      "abilities_element_id": "1.A.1.b.3",
+      "abilities_element_name": "Problem Sensitivity",
+      "work_activities_element_id": "4.A.4.a.6",
+      "work_activities_element_name": "Selling or Influencing Others"
+    },
+    {
+      "abilities_element_id": "1.A.1.b.3",
+      "abilities_element_name": "Problem Sensitivity",
+      "work_activities_element_id": "4.A.4.a.7",
+      "work_activities_element_name": "Resolving Conflicts and Negotiating with Others"
+    },
+    {
+      "abilities_element_id": "1.A.1.b.3",
+      "abilities_element_name": "Problem Sensitivity",
+      "work_activities_element_id": "4.A.4.a.8",
+      "work_activities_element_name": "Performing for or Working Directly with the Public"
+    },
+    {
+      "abilities_element_id": "1.A.1.b.3",
+      "abilities_element_name": "Problem Sensitivity",
+      "work_activities_element_id": "4.A.4.b.1",
+      "work_activities_element_name": "Coordinating the Work and Activities of Others"
+    },
+    {
+      "abilities_element_id": "1.A.1.b.3",
+      "abilities_element_name": "Problem Sensitivity",
+      "work_activities_element_id": "4.A.4.b.2",
+      "work_activities_element_name": "Developing and Building Teams"
+    },
+    {
+      "abilities_element_id": "1.A.1.b.3",
+      "abilities_element_name": "Problem Sensitivity",
+      "work_activities_element_id": "4.A.4.b.3",
+      "work_activities_element_name": "Training and Teaching Others"
+    },
+    {
+      "abilities_element_id": "1.A.1.b.3",
+      "abilities_element_name": "Problem Sensitivity",
+      "work_activities_element_id": "4.A.4.b.4",
+      "work_activities_element_name": "Guiding, Directing, and Motivating Subordinates"
+    },
+    {
+      "abilities_element_id": "1.A.1.b.3",
+      "abilities_element_name": "Problem Sensitivity",
+      "work_activities_element_id": "4.A.4.b.5",
+      "work_activities_element_name": "Coaching and Developing Others"
+    },
+    {
+      "abilities_element_id": "1.A.1.b.3",
+      "abilities_element_name": "Problem Sensitivity",
+      "work_activities_element_id": "4.A.4.b.6",
+      "work_activities_element_name": "Providing Consultation and Advice to Others"
+    },
+    {
+      "abilities_element_id": "1.A.1.b.3",
+      "abilities_element_name": "Problem Sensitivity",
+      "work_activities_element_id": "4.A.4.c.2",
+      "work_activities_element_name": "Staffing Organizational Units"
+    },
+    {
+      "abilities_element_id": "1.A.1.b.3",
+      "abilities_element_name": "Problem Sensitivity",
+      "work_activities_element_id": "4.A.4.c.3",
+      "work_activities_element_name": "Monitoring and Controlling Resources"
+    },
+    {
+      "abilities_element_id": "1.A.1.b.4",
+      "abilities_element_name": "Deductive Reasoning",
+      "work_activities_element_id": "4.A.1.a.2",
+      "work_activities_element_name": "Monitoring Processes, Materials, or Surroundings"
+    },
+    {
+      "abilities_element_id": "1.A.1.b.4",
+      "abilities_element_name": "Deductive Reasoning",
+      "work_activities_element_id": "4.A.1.b.1",
+      "work_activities_element_name": "Identifying Objects, Actions, and Events"
+    },
+    {
+      "abilities_element_id": "1.A.1.b.4",
+      "abilities_element_name": "Deductive Reasoning",
+      "work_activities_element_id": "4.A.1.b.2",
+      "work_activities_element_name": "Inspecting Equipment, Structures, or Materials"
+    },
+    {
+      "abilities_element_id": "1.A.1.b.4",
+      "abilities_element_name": "Deductive Reasoning",
+      "work_activities_element_id": "4.A.1.b.3",
+      "work_activities_element_name": "Estimating the Quantifiable Characteristics of Products, Events, or Information"
+    },
+    {
+      "abilities_element_id": "1.A.1.b.4",
+      "abilities_element_name": "Deductive Reasoning",
+      "work_activities_element_id": "4.A.2.a.1",
+      "work_activities_element_name": "Judging the Qualities of Objects, Services, or People"
+    },
+    {
+      "abilities_element_id": "1.A.1.b.4",
+      "abilities_element_name": "Deductive Reasoning",
+      "work_activities_element_id": "4.A.2.a.2",
+      "work_activities_element_name": "Processing Information"
+    },
+    {
+      "abilities_element_id": "1.A.1.b.4",
+      "abilities_element_name": "Deductive Reasoning",
+      "work_activities_element_id": "4.A.2.a.3",
+      "work_activities_element_name": "Evaluating Information to Determine Compliance with Standards"
+    },
+    {
+      "abilities_element_id": "1.A.1.b.4",
+      "abilities_element_name": "Deductive Reasoning",
+      "work_activities_element_id": "4.A.2.a.4",
+      "work_activities_element_name": "Analyzing Data or Information"
+    },
+    {
+      "abilities_element_id": "1.A.1.b.4",
+      "abilities_element_name": "Deductive Reasoning",
+      "work_activities_element_id": "4.A.2.b.1",
+      "work_activities_element_name": "Making Decisions and Solving Problems"
+    },
+    {
+      "abilities_element_id": "1.A.1.b.4",
+      "abilities_element_name": "Deductive Reasoning",
+      "work_activities_element_id": "4.A.2.b.3",
+      "work_activities_element_name": "Updating and Using Relevant Knowledge"
+    },
+    {
+      "abilities_element_id": "1.A.1.b.4",
+      "abilities_element_name": "Deductive Reasoning",
+      "work_activities_element_id": "4.A.2.b.4",
+      "work_activities_element_name": "Developing Objectives and Strategies"
+    },
+    {
+      "abilities_element_id": "1.A.1.b.4",
+      "abilities_element_name": "Deductive Reasoning",
+      "work_activities_element_id": "4.A.2.b.5",
+      "work_activities_element_name": "Scheduling Work and Activities"
+    },
+    {
+      "abilities_element_id": "1.A.1.b.4",
+      "abilities_element_name": "Deductive Reasoning",
+      "work_activities_element_id": "4.A.2.b.6",
+      "work_activities_element_name": "Organizing, Planning, and Prioritizing Work"
+    },
+    {
+      "abilities_element_id": "1.A.1.b.4",
+      "abilities_element_name": "Deductive Reasoning",
+      "work_activities_element_id": "4.A.3.b.1",
+      "work_activities_element_name": "Working with Computers"
+    },
+    {
+      "abilities_element_id": "1.A.1.b.4",
+      "abilities_element_name": "Deductive Reasoning",
+      "work_activities_element_id": "4.A.3.b.2",
+      "work_activities_element_name": "Drafting, Laying Out, and Specifying Technical Devices, Parts, and Equipment"
+    },
+    {
+      "abilities_element_id": "1.A.1.b.4",
+      "abilities_element_name": "Deductive Reasoning",
+      "work_activities_element_id": "4.A.3.b.4",
+      "work_activities_element_name": "Repairing and Maintaining Mechanical Equipment"
+    },
+    {
+      "abilities_element_id": "1.A.1.b.4",
+      "abilities_element_name": "Deductive Reasoning",
+      "work_activities_element_id": "4.A.3.b.5",
+      "work_activities_element_name": "Repairing and Maintaining Electronic Equipment"
+    },
+    {
+      "abilities_element_id": "1.A.1.b.4",
+      "abilities_element_name": "Deductive Reasoning",
+      "work_activities_element_id": "4.A.4.a.1",
+      "work_activities_element_name": "Interpreting the Meaning of Information for Others"
+    },
+    {
+      "abilities_element_id": "1.A.1.b.4",
+      "abilities_element_name": "Deductive Reasoning",
+      "work_activities_element_id": "4.A.4.a.5",
+      "work_activities_element_name": "Assisting and Caring for Others"
+    },
+    {
+      "abilities_element_id": "1.A.1.b.4",
+      "abilities_element_name": "Deductive Reasoning",
+      "work_activities_element_id": "4.A.4.a.6",
+      "work_activities_element_name": "Selling or Influencing Others"
+    },
+    {
+      "abilities_element_id": "1.A.1.b.4",
+      "abilities_element_name": "Deductive Reasoning",
+      "work_activities_element_id": "4.A.4.a.7",
+      "work_activities_element_name": "Resolving Conflicts and Negotiating with Others"
+    },
+    {
+      "abilities_element_id": "1.A.1.b.4",
+      "abilities_element_name": "Deductive Reasoning",
+      "work_activities_element_id": "4.A.4.a.8",
+      "work_activities_element_name": "Performing for or Working Directly with the Public"
+    },
+    {
+      "abilities_element_id": "1.A.1.b.4",
+      "abilities_element_name": "Deductive Reasoning",
+      "work_activities_element_id": "4.A.4.b.1",
+      "work_activities_element_name": "Coordinating the Work and Activities of Others"
+    },
+    {
+      "abilities_element_id": "1.A.1.b.4",
+      "abilities_element_name": "Deductive Reasoning",
+      "work_activities_element_id": "4.A.4.b.2",
+      "work_activities_element_name": "Developing and Building Teams"
+    },
+    {
+      "abilities_element_id": "1.A.1.b.4",
+      "abilities_element_name": "Deductive Reasoning",
+      "work_activities_element_id": "4.A.4.b.3",
+      "work_activities_element_name": "Training and Teaching Others"
+    },
+    {
+      "abilities_element_id": "1.A.1.b.4",
+      "abilities_element_name": "Deductive Reasoning",
+      "work_activities_element_id": "4.A.4.b.4",
+      "work_activities_element_name": "Guiding, Directing, and Motivating Subordinates"
+    },
+    {
+      "abilities_element_id": "1.A.1.b.4",
+      "abilities_element_name": "Deductive Reasoning",
+      "work_activities_element_id": "4.A.4.b.5",
+      "work_activities_element_name": "Coaching and Developing Others"
+    },
+    {
+      "abilities_element_id": "1.A.1.b.4",
+      "abilities_element_name": "Deductive Reasoning",
+      "work_activities_element_id": "4.A.4.b.6",
+      "work_activities_element_name": "Providing Consultation and Advice to Others"
+    },
+    {
+      "abilities_element_id": "1.A.1.b.4",
+      "abilities_element_name": "Deductive Reasoning",
+      "work_activities_element_id": "4.A.4.c.1",
+      "work_activities_element_name": "Performing Administrative Activities"
+    },
+    {
+      "abilities_element_id": "1.A.1.b.4",
+      "abilities_element_name": "Deductive Reasoning",
+      "work_activities_element_id": "4.A.4.c.2",
+      "work_activities_element_name": "Staffing Organizational Units"
+    },
+    {
+      "abilities_element_id": "1.A.1.b.4",
+      "abilities_element_name": "Deductive Reasoning",
+      "work_activities_element_id": "4.A.4.c.3",
+      "work_activities_element_name": "Monitoring and Controlling Resources"
+    },
+    {
+      "abilities_element_id": "1.A.1.b.5",
+      "abilities_element_name": "Inductive Reasoning",
+      "work_activities_element_id": "4.A.1.a.1",
+      "work_activities_element_name": "Getting Information"
+    },
+    {
+      "abilities_element_id": "1.A.1.b.5",
+      "abilities_element_name": "Inductive Reasoning",
+      "work_activities_element_id": "4.A.1.a.2",
+      "work_activities_element_name": "Monitoring Processes, Materials, or Surroundings"
+    },
+    {
+      "abilities_element_id": "1.A.1.b.5",
+      "abilities_element_name": "Inductive Reasoning",
+      "work_activities_element_id": "4.A.1.b.1",
+      "work_activities_element_name": "Identifying Objects, Actions, and Events"
+    },
+    {
+      "abilities_element_id": "1.A.1.b.5",
+      "abilities_element_name": "Inductive Reasoning",
+      "work_activities_element_id": "4.A.1.b.2",
+      "work_activities_element_name": "Inspecting Equipment, Structures, or Materials"
+    },
+    {
+      "abilities_element_id": "1.A.1.b.5",
+      "abilities_element_name": "Inductive Reasoning",
+      "work_activities_element_id": "4.A.1.b.3",
+      "work_activities_element_name": "Estimating the Quantifiable Characteristics of Products, Events, or Information"
+    },
+    {
+      "abilities_element_id": "1.A.1.b.5",
+      "abilities_element_name": "Inductive Reasoning",
+      "work_activities_element_id": "4.A.2.a.1",
+      "work_activities_element_name": "Judging the Qualities of Objects, Services, or People"
+    },
+    {
+      "abilities_element_id": "1.A.1.b.5",
+      "abilities_element_name": "Inductive Reasoning",
+      "work_activities_element_id": "4.A.2.a.2",
+      "work_activities_element_name": "Processing Information"
+    },
+    {
+      "abilities_element_id": "1.A.1.b.5",
+      "abilities_element_name": "Inductive Reasoning",
+      "work_activities_element_id": "4.A.2.a.3",
+      "work_activities_element_name": "Evaluating Information to Determine Compliance with Standards"
+    },
+    {
+      "abilities_element_id": "1.A.1.b.5",
+      "abilities_element_name": "Inductive Reasoning",
+      "work_activities_element_id": "4.A.2.a.4",
+      "work_activities_element_name": "Analyzing Data or Information"
+    },
+    {
+      "abilities_element_id": "1.A.1.b.5",
+      "abilities_element_name": "Inductive Reasoning",
+      "work_activities_element_id": "4.A.2.b.1",
+      "work_activities_element_name": "Making Decisions and Solving Problems"
+    },
+    {
+      "abilities_element_id": "1.A.1.b.5",
+      "abilities_element_name": "Inductive Reasoning",
+      "work_activities_element_id": "4.A.2.b.2",
+      "work_activities_element_name": "Thinking Creatively"
+    },
+    {
+      "abilities_element_id": "1.A.1.b.5",
+      "abilities_element_name": "Inductive Reasoning",
+      "work_activities_element_id": "4.A.2.b.3",
+      "work_activities_element_name": "Updating and Using Relevant Knowledge"
+    },
+    {
+      "abilities_element_id": "1.A.1.b.5",
+      "abilities_element_name": "Inductive Reasoning",
+      "work_activities_element_id": "4.A.2.b.4",
+      "work_activities_element_name": "Developing Objectives and Strategies"
+    },
+    {
+      "abilities_element_id": "1.A.1.b.5",
+      "abilities_element_name": "Inductive Reasoning",
+      "work_activities_element_id": "4.A.2.b.6",
+      "work_activities_element_name": "Organizing, Planning, and Prioritizing Work"
+    },
+    {
+      "abilities_element_id": "1.A.1.b.5",
+      "abilities_element_name": "Inductive Reasoning",
+      "work_activities_element_id": "4.A.3.b.4",
+      "work_activities_element_name": "Repairing and Maintaining Mechanical Equipment"
+    },
+    {
+      "abilities_element_id": "1.A.1.b.5",
+      "abilities_element_name": "Inductive Reasoning",
+      "work_activities_element_id": "4.A.3.b.5",
+      "work_activities_element_name": "Repairing and Maintaining Electronic Equipment"
+    },
+    {
+      "abilities_element_id": "1.A.1.b.5",
+      "abilities_element_name": "Inductive Reasoning",
+      "work_activities_element_id": "4.A.4.a.1",
+      "work_activities_element_name": "Interpreting the Meaning of Information for Others"
+    },
+    {
+      "abilities_element_id": "1.A.1.b.5",
+      "abilities_element_name": "Inductive Reasoning",
+      "work_activities_element_id": "4.A.4.a.5",
+      "work_activities_element_name": "Assisting and Caring for Others"
+    },
+    {
+      "abilities_element_id": "1.A.1.b.5",
+      "abilities_element_name": "Inductive Reasoning",
+      "work_activities_element_id": "4.A.4.a.6",
+      "work_activities_element_name": "Selling or Influencing Others"
+    },
+    {
+      "abilities_element_id": "1.A.1.b.5",
+      "abilities_element_name": "Inductive Reasoning",
+      "work_activities_element_id": "4.A.4.a.7",
+      "work_activities_element_name": "Resolving Conflicts and Negotiating with Others"
+    },
+    {
+      "abilities_element_id": "1.A.1.b.5",
+      "abilities_element_name": "Inductive Reasoning",
+      "work_activities_element_id": "4.A.4.b.1",
+      "work_activities_element_name": "Coordinating the Work and Activities of Others"
+    },
+    {
+      "abilities_element_id": "1.A.1.b.5",
+      "abilities_element_name": "Inductive Reasoning",
+      "work_activities_element_id": "4.A.4.b.2",
+      "work_activities_element_name": "Developing and Building Teams"
+    },
+    {
+      "abilities_element_id": "1.A.1.b.5",
+      "abilities_element_name": "Inductive Reasoning",
+      "work_activities_element_id": "4.A.4.b.3",
+      "work_activities_element_name": "Training and Teaching Others"
+    },
+    {
+      "abilities_element_id": "1.A.1.b.5",
+      "abilities_element_name": "Inductive Reasoning",
+      "work_activities_element_id": "4.A.4.b.4",
+      "work_activities_element_name": "Guiding, Directing, and Motivating Subordinates"
+    },
+    {
+      "abilities_element_id": "1.A.1.b.5",
+      "abilities_element_name": "Inductive Reasoning",
+      "work_activities_element_id": "4.A.4.b.5",
+      "work_activities_element_name": "Coaching and Developing Others"
+    },
+    {
+      "abilities_element_id": "1.A.1.b.5",
+      "abilities_element_name": "Inductive Reasoning",
+      "work_activities_element_id": "4.A.4.b.6",
+      "work_activities_element_name": "Providing Consultation and Advice to Others"
+    },
+    {
+      "abilities_element_id": "1.A.1.b.5",
+      "abilities_element_name": "Inductive Reasoning",
+      "work_activities_element_id": "4.A.4.c.2",
+      "work_activities_element_name": "Staffing Organizational Units"
+    },
+    {
+      "abilities_element_id": "1.A.1.b.6",
+      "abilities_element_name": "Information Ordering",
+      "work_activities_element_id": "4.A.1.a.2",
+      "work_activities_element_name": "Monitoring Processes, Materials, or Surroundings"
+    },
+    {
+      "abilities_element_id": "1.A.1.b.6",
+      "abilities_element_name": "Information Ordering",
+      "work_activities_element_id": "4.A.1.b.1",
+      "work_activities_element_name": "Identifying Objects, Actions, and Events"
+    },
+    {
+      "abilities_element_id": "1.A.1.b.6",
+      "abilities_element_name": "Information Ordering",
+      "work_activities_element_id": "4.A.1.b.3",
+      "work_activities_element_name": "Estimating the Quantifiable Characteristics of Products, Events, or Information"
+    },
+    {
+      "abilities_element_id": "1.A.1.b.6",
+      "abilities_element_name": "Information Ordering",
+      "work_activities_element_id": "4.A.2.a.2",
+      "work_activities_element_name": "Processing Information"
+    },
+    {
+      "abilities_element_id": "1.A.1.b.6",
+      "abilities_element_name": "Information Ordering",
+      "work_activities_element_id": "4.A.2.a.3",
+      "work_activities_element_name": "Evaluating Information to Determine Compliance with Standards"
+    },
+    {
+      "abilities_element_id": "1.A.1.b.6",
+      "abilities_element_name": "Information Ordering",
+      "work_activities_element_id": "4.A.2.a.4",
+      "work_activities_element_name": "Analyzing Data or Information"
+    },
+    {
+      "abilities_element_id": "1.A.1.b.6",
+      "abilities_element_name": "Information Ordering",
+      "work_activities_element_id": "4.A.2.b.1",
+      "work_activities_element_name": "Making Decisions and Solving Problems"
+    },
+    {
+      "abilities_element_id": "1.A.1.b.6",
+      "abilities_element_name": "Information Ordering",
+      "work_activities_element_id": "4.A.2.b.5",
+      "work_activities_element_name": "Scheduling Work and Activities"
+    },
+    {
+      "abilities_element_id": "1.A.1.b.6",
+      "abilities_element_name": "Information Ordering",
+      "work_activities_element_id": "4.A.2.b.6",
+      "work_activities_element_name": "Organizing, Planning, and Prioritizing Work"
+    },
+    {
+      "abilities_element_id": "1.A.1.b.6",
+      "abilities_element_name": "Information Ordering",
+      "work_activities_element_id": "4.A.3.b.1",
+      "work_activities_element_name": "Working with Computers"
+    },
+    {
+      "abilities_element_id": "1.A.1.b.6",
+      "abilities_element_name": "Information Ordering",
+      "work_activities_element_id": "4.A.3.b.2",
+      "work_activities_element_name": "Drafting, Laying Out, and Specifying Technical Devices, Parts, and Equipment"
+    },
+    {
+      "abilities_element_id": "1.A.1.b.6",
+      "abilities_element_name": "Information Ordering",
+      "work_activities_element_id": "4.A.3.b.4",
+      "work_activities_element_name": "Repairing and Maintaining Mechanical Equipment"
+    },
+    {
+      "abilities_element_id": "1.A.1.b.6",
+      "abilities_element_name": "Information Ordering",
+      "work_activities_element_id": "4.A.3.b.5",
+      "work_activities_element_name": "Repairing and Maintaining Electronic Equipment"
+    },
+    {
+      "abilities_element_id": "1.A.1.b.6",
+      "abilities_element_name": "Information Ordering",
+      "work_activities_element_id": "4.A.3.b.6",
+      "work_activities_element_name": "Documenting/Recording Information"
+    },
+    {
+      "abilities_element_id": "1.A.1.b.6",
+      "abilities_element_name": "Information Ordering",
+      "work_activities_element_id": "4.A.4.a.1",
+      "work_activities_element_name": "Interpreting the Meaning of Information for Others"
+    },
+    {
+      "abilities_element_id": "1.A.1.b.6",
+      "abilities_element_name": "Information Ordering",
+      "work_activities_element_id": "4.A.4.a.2",
+      "work_activities_element_name": "Communicating with Supervisors, Peers, or Subordinates"
+    },
+    {
+      "abilities_element_id": "1.A.1.b.6",
+      "abilities_element_name": "Information Ordering",
+      "work_activities_element_id": "4.A.4.a.3",
+      "work_activities_element_name": "Communicating with People Outside the Organization"
+    },
+    {
+      "abilities_element_id": "1.A.1.b.6",
+      "abilities_element_name": "Information Ordering",
+      "work_activities_element_id": "4.A.4.a.7",
+      "work_activities_element_name": "Resolving Conflicts and Negotiating with Others"
+    },
+    {
+      "abilities_element_id": "1.A.1.b.6",
+      "abilities_element_name": "Information Ordering",
+      "work_activities_element_id": "4.A.4.b.1",
+      "work_activities_element_name": "Coordinating the Work and Activities of Others"
+    },
+    {
+      "abilities_element_id": "1.A.1.b.6",
+      "abilities_element_name": "Information Ordering",
+      "work_activities_element_id": "4.A.4.b.3",
+      "work_activities_element_name": "Training and Teaching Others"
+    },
+    {
+      "abilities_element_id": "1.A.1.b.6",
+      "abilities_element_name": "Information Ordering",
+      "work_activities_element_id": "4.A.4.b.6",
+      "work_activities_element_name": "Providing Consultation and Advice to Others"
+    },
+    {
+      "abilities_element_id": "1.A.1.b.6",
+      "abilities_element_name": "Information Ordering",
+      "work_activities_element_id": "4.A.4.c.1",
+      "work_activities_element_name": "Performing Administrative Activities"
+    },
+    {
+      "abilities_element_id": "1.A.1.b.6",
+      "abilities_element_name": "Information Ordering",
+      "work_activities_element_id": "4.A.4.c.2",
+      "work_activities_element_name": "Staffing Organizational Units"
+    },
+    {
+      "abilities_element_id": "1.A.1.b.6",
+      "abilities_element_name": "Information Ordering",
+      "work_activities_element_id": "4.A.4.c.3",
+      "work_activities_element_name": "Monitoring and Controlling Resources"
+    },
+    {
+      "abilities_element_id": "1.A.1.b.7",
+      "abilities_element_name": "Category Flexibility",
+      "work_activities_element_id": "4.A.1.a.2",
+      "work_activities_element_name": "Monitoring Processes, Materials, or Surroundings"
+    },
+    {
+      "abilities_element_id": "1.A.1.b.7",
+      "abilities_element_name": "Category Flexibility",
+      "work_activities_element_id": "4.A.1.b.1",
+      "work_activities_element_name": "Identifying Objects, Actions, and Events"
+    },
+    {
+      "abilities_element_id": "1.A.1.b.7",
+      "abilities_element_name": "Category Flexibility",
+      "work_activities_element_id": "4.A.1.b.2",
+      "work_activities_element_name": "Inspecting Equipment, Structures, or Materials"
+    },
+    {
+      "abilities_element_id": "1.A.1.b.7",
+      "abilities_element_name": "Category Flexibility",
+      "work_activities_element_id": "4.A.2.a.1",
+      "work_activities_element_name": "Judging the Qualities of Objects, Services, or People"
+    },
+    {
+      "abilities_element_id": "1.A.1.b.7",
+      "abilities_element_name": "Category Flexibility",
+      "work_activities_element_id": "4.A.2.a.2",
+      "work_activities_element_name": "Processing Information"
+    },
+    {
+      "abilities_element_id": "1.A.1.b.7",
+      "abilities_element_name": "Category Flexibility",
+      "work_activities_element_id": "4.A.2.a.4",
+      "work_activities_element_name": "Analyzing Data or Information"
+    },
+    {
+      "abilities_element_id": "1.A.1.b.7",
+      "abilities_element_name": "Category Flexibility",
+      "work_activities_element_id": "4.A.2.b.1",
+      "work_activities_element_name": "Making Decisions and Solving Problems"
+    },
+    {
+      "abilities_element_id": "1.A.1.b.7",
+      "abilities_element_name": "Category Flexibility",
+      "work_activities_element_id": "4.A.2.b.2",
+      "work_activities_element_name": "Thinking Creatively"
+    },
+    {
+      "abilities_element_id": "1.A.1.b.7",
+      "abilities_element_name": "Category Flexibility",
+      "work_activities_element_id": "4.A.2.b.4",
+      "work_activities_element_name": "Developing Objectives and Strategies"
+    },
+    {
+      "abilities_element_id": "1.A.1.b.7",
+      "abilities_element_name": "Category Flexibility",
+      "work_activities_element_id": "4.A.2.b.5",
+      "work_activities_element_name": "Scheduling Work and Activities"
+    },
+    {
+      "abilities_element_id": "1.A.1.b.7",
+      "abilities_element_name": "Category Flexibility",
+      "work_activities_element_id": "4.A.2.b.6",
+      "work_activities_element_name": "Organizing, Planning, and Prioritizing Work"
+    },
+    {
+      "abilities_element_id": "1.A.1.b.7",
+      "abilities_element_name": "Category Flexibility",
+      "work_activities_element_id": "4.A.3.b.6",
+      "work_activities_element_name": "Documenting/Recording Information"
+    },
+    {
+      "abilities_element_id": "1.A.1.b.7",
+      "abilities_element_name": "Category Flexibility",
+      "work_activities_element_id": "4.A.4.a.1",
+      "work_activities_element_name": "Interpreting the Meaning of Information for Others"
+    },
+    {
+      "abilities_element_id": "1.A.1.b.7",
+      "abilities_element_name": "Category Flexibility",
+      "work_activities_element_id": "4.A.4.a.7",
+      "work_activities_element_name": "Resolving Conflicts and Negotiating with Others"
+    },
+    {
+      "abilities_element_id": "1.A.1.b.7",
+      "abilities_element_name": "Category Flexibility",
+      "work_activities_element_id": "4.A.4.b.1",
+      "work_activities_element_name": "Coordinating the Work and Activities of Others"
+    },
+    {
+      "abilities_element_id": "1.A.1.b.7",
+      "abilities_element_name": "Category Flexibility",
+      "work_activities_element_id": "4.A.4.b.3",
+      "work_activities_element_name": "Training and Teaching Others"
+    },
+    {
+      "abilities_element_id": "1.A.1.b.7",
+      "abilities_element_name": "Category Flexibility",
+      "work_activities_element_id": "4.A.4.b.6",
+      "work_activities_element_name": "Providing Consultation and Advice to Others"
+    },
+    {
+      "abilities_element_id": "1.A.1.b.7",
+      "abilities_element_name": "Category Flexibility",
+      "work_activities_element_id": "4.A.4.c.1",
+      "work_activities_element_name": "Performing Administrative Activities"
+    },
+    {
+      "abilities_element_id": "1.A.1.b.7",
+      "abilities_element_name": "Category Flexibility",
+      "work_activities_element_id": "4.A.4.c.2",
+      "work_activities_element_name": "Staffing Organizational Units"
+    },
+    {
+      "abilities_element_id": "1.A.1.c.1",
+      "abilities_element_name": "Mathematical Reasoning",
+      "work_activities_element_id": "4.A.1.b.3",
+      "work_activities_element_name": "Estimating the Quantifiable Characteristics of Products, Events, or Information"
+    },
+    {
+      "abilities_element_id": "1.A.1.c.1",
+      "abilities_element_name": "Mathematical Reasoning",
+      "work_activities_element_id": "4.A.2.a.2",
+      "work_activities_element_name": "Processing Information"
+    },
+    {
+      "abilities_element_id": "1.A.1.c.2",
+      "abilities_element_name": "Number Facility",
+      "work_activities_element_id": "4.A.1.b.3",
+      "work_activities_element_name": "Estimating the Quantifiable Characteristics of Products, Events, or Information"
+    },
+    {
+      "abilities_element_id": "1.A.1.c.2",
+      "abilities_element_name": "Number Facility",
+      "work_activities_element_id": "4.A.2.a.2",
+      "work_activities_element_name": "Processing Information"
+    },
+    {
+      "abilities_element_id": "1.A.1.c.2",
+      "abilities_element_name": "Number Facility",
+      "work_activities_element_id": "4.A.4.c.3",
+      "work_activities_element_name": "Monitoring and Controlling Resources"
+    },
+    {
+      "abilities_element_id": "1.A.1.d.1",
+      "abilities_element_name": "Memorization",
+      "work_activities_element_id": "4.A.3.b.4",
+      "work_activities_element_name": "Repairing and Maintaining Mechanical Equipment"
+    },
+    {
+      "abilities_element_id": "1.A.1.d.1",
+      "abilities_element_name": "Memorization",
+      "work_activities_element_id": "4.A.3.b.5",
+      "work_activities_element_name": "Repairing and Maintaining Electronic Equipment"
+    },
+    {
+      "abilities_element_id": "1.A.1.d.1",
+      "abilities_element_name": "Memorization",
+      "work_activities_element_id": "4.A.4.a.8",
+      "work_activities_element_name": "Performing for or Working Directly with the Public"
+    },
+    {
+      "abilities_element_id": "1.A.1.d.1",
+      "abilities_element_name": "Memorization",
+      "work_activities_element_id": "4.A.4.b.3",
+      "work_activities_element_name": "Training and Teaching Others"
+    },
+    {
+      "abilities_element_id": "1.A.1.e.1",
+      "abilities_element_name": "Speed of Closure",
+      "work_activities_element_id": "4.A.1.b.1",
+      "work_activities_element_name": "Identifying Objects, Actions, and Events"
+    },
+    {
+      "abilities_element_id": "1.A.1.e.1",
+      "abilities_element_name": "Speed of Closure",
+      "work_activities_element_id": "4.A.4.a.6",
+      "work_activities_element_name": "Selling or Influencing Others"
+    },
+    {
+      "abilities_element_id": "1.A.1.e.1",
+      "abilities_element_name": "Speed of Closure",
+      "work_activities_element_id": "4.A.4.a.7",
+      "work_activities_element_name": "Resolving Conflicts and Negotiating with Others"
+    },
+    {
+      "abilities_element_id": "1.A.1.e.2",
+      "abilities_element_name": "Flexibility of Closure",
+      "work_activities_element_id": "4.A.1.a.1",
+      "work_activities_element_name": "Getting Information"
+    },
+    {
+      "abilities_element_id": "1.A.1.e.2",
+      "abilities_element_name": "Flexibility of Closure",
+      "work_activities_element_id": "4.A.1.a.2",
+      "work_activities_element_name": "Monitoring Processes, Materials, or Surroundings"
+    },
+    {
+      "abilities_element_id": "1.A.1.e.2",
+      "abilities_element_name": "Flexibility of Closure",
+      "work_activities_element_id": "4.A.1.b.1",
+      "work_activities_element_name": "Identifying Objects, Actions, and Events"
+    },
+    {
+      "abilities_element_id": "1.A.1.e.2",
+      "abilities_element_name": "Flexibility of Closure",
+      "work_activities_element_id": "4.A.1.b.2",
+      "work_activities_element_name": "Inspecting Equipment, Structures, or Materials"
+    },
+    {
+      "abilities_element_id": "1.A.1.e.2",
+      "abilities_element_name": "Flexibility of Closure",
+      "work_activities_element_id": "4.A.1.b.3",
+      "work_activities_element_name": "Estimating the Quantifiable Characteristics of Products, Events, or Information"
+    },
+    {
+      "abilities_element_id": "1.A.1.e.2",
+      "abilities_element_name": "Flexibility of Closure",
+      "work_activities_element_id": "4.A.2.a.2",
+      "work_activities_element_name": "Processing Information"
+    },
+    {
+      "abilities_element_id": "1.A.1.e.2",
+      "abilities_element_name": "Flexibility of Closure",
+      "work_activities_element_id": "4.A.2.b.1",
+      "work_activities_element_name": "Making Decisions and Solving Problems"
+    },
+    {
+      "abilities_element_id": "1.A.1.e.3",
+      "abilities_element_name": "Perceptual Speed",
+      "work_activities_element_id": "4.A.1.a.2",
+      "work_activities_element_name": "Monitoring Processes, Materials, or Surroundings"
+    },
+    {
+      "abilities_element_id": "1.A.1.e.3",
+      "abilities_element_name": "Perceptual Speed",
+      "work_activities_element_id": "4.A.1.b.1",
+      "work_activities_element_name": "Identifying Objects, Actions, and Events"
+    },
+    {
+      "abilities_element_id": "1.A.1.e.3",
+      "abilities_element_name": "Perceptual Speed",
+      "work_activities_element_id": "4.A.1.b.2",
+      "work_activities_element_name": "Inspecting Equipment, Structures, or Materials"
+    },
+    {
+      "abilities_element_id": "1.A.1.e.3",
+      "abilities_element_name": "Perceptual Speed",
+      "work_activities_element_id": "4.A.2.a.2",
+      "work_activities_element_name": "Processing Information"
+    },
+    {
+      "abilities_element_id": "1.A.1.e.3",
+      "abilities_element_name": "Perceptual Speed",
+      "work_activities_element_id": "4.A.3.a.4",
+      "work_activities_element_name": "Operating Vehicles, Mechanized Devices, or Equipment"
+    },
+    {
+      "abilities_element_id": "1.A.1.e.3",
+      "abilities_element_name": "Perceptual Speed",
+      "work_activities_element_id": "4.A.3.b.4",
+      "work_activities_element_name": "Repairing and Maintaining Mechanical Equipment"
+    },
+    {
+      "abilities_element_id": "1.A.1.e.3",
+      "abilities_element_name": "Perceptual Speed",
+      "work_activities_element_id": "4.A.3.b.5",
+      "work_activities_element_name": "Repairing and Maintaining Electronic Equipment"
+    },
+    {
+      "abilities_element_id": "1.A.1.f.1",
+      "abilities_element_name": "Spatial Orientation",
+      "work_activities_element_id": "4.A.3.a.4",
+      "work_activities_element_name": "Operating Vehicles, Mechanized Devices, or Equipment"
+    },
+    {
+      "abilities_element_id": "1.A.1.f.2",
+      "abilities_element_name": "Visualization",
+      "work_activities_element_id": "4.A.1.b.1",
+      "work_activities_element_name": "Identifying Objects, Actions, and Events"
+    },
+    {
+      "abilities_element_id": "1.A.1.f.2",
+      "abilities_element_name": "Visualization",
+      "work_activities_element_id": "4.A.1.b.2",
+      "work_activities_element_name": "Inspecting Equipment, Structures, or Materials"
+    },
+    {
+      "abilities_element_id": "1.A.1.f.2",
+      "abilities_element_name": "Visualization",
+      "work_activities_element_id": "4.A.1.b.3",
+      "work_activities_element_name": "Estimating the Quantifiable Characteristics of Products, Events, or Information"
+    },
+    {
+      "abilities_element_id": "1.A.1.f.2",
+      "abilities_element_name": "Visualization",
+      "work_activities_element_id": "4.A.2.b.2",
+      "work_activities_element_name": "Thinking Creatively"
+    },
+    {
+      "abilities_element_id": "1.A.1.f.2",
+      "abilities_element_name": "Visualization",
+      "work_activities_element_id": "4.A.3.a.4",
+      "work_activities_element_name": "Operating Vehicles, Mechanized Devices, or Equipment"
+    },
+    {
+      "abilities_element_id": "1.A.1.f.2",
+      "abilities_element_name": "Visualization",
+      "work_activities_element_id": "4.A.3.b.2",
+      "work_activities_element_name": "Drafting, Laying Out, and Specifying Technical Devices, Parts, and Equipment"
+    },
+    {
+      "abilities_element_id": "1.A.1.f.2",
+      "abilities_element_name": "Visualization",
+      "work_activities_element_id": "4.A.3.b.4",
+      "work_activities_element_name": "Repairing and Maintaining Mechanical Equipment"
+    },
+    {
+      "abilities_element_id": "1.A.1.f.2",
+      "abilities_element_name": "Visualization",
+      "work_activities_element_id": "4.A.3.b.5",
+      "work_activities_element_name": "Repairing and Maintaining Electronic Equipment"
+    },
+    {
+      "abilities_element_id": "1.A.1.g.1",
+      "abilities_element_name": "Selective Attention",
+      "work_activities_element_id": "4.A.1.a.1",
+      "work_activities_element_name": "Getting Information"
+    },
+    {
+      "abilities_element_id": "1.A.1.g.1",
+      "abilities_element_name": "Selective Attention",
+      "work_activities_element_id": "4.A.1.a.2",
+      "work_activities_element_name": "Monitoring Processes, Materials, or Surroundings"
+    },
+    {
+      "abilities_element_id": "1.A.1.g.1",
+      "abilities_element_name": "Selective Attention",
+      "work_activities_element_id": "4.A.2.a.4",
+      "work_activities_element_name": "Analyzing Data or Information"
+    },
+    {
+      "abilities_element_id": "1.A.1.g.1",
+      "abilities_element_name": "Selective Attention",
+      "work_activities_element_id": "4.A.2.b.1",
+      "work_activities_element_name": "Making Decisions and Solving Problems"
+    },
+    {
+      "abilities_element_id": "1.A.1.g.1",
+      "abilities_element_name": "Selective Attention",
+      "work_activities_element_id": "4.A.2.b.2",
+      "work_activities_element_name": "Thinking Creatively"
+    },
+    {
+      "abilities_element_id": "1.A.1.g.1",
+      "abilities_element_name": "Selective Attention",
+      "work_activities_element_id": "4.A.3.b.1",
+      "work_activities_element_name": "Working with Computers"
+    },
+    {
+      "abilities_element_id": "1.A.1.g.1",
+      "abilities_element_name": "Selective Attention",
+      "work_activities_element_id": "4.A.3.b.6",
+      "work_activities_element_name": "Documenting/Recording Information"
+    },
+    {
+      "abilities_element_id": "1.A.1.g.1",
+      "abilities_element_name": "Selective Attention",
+      "work_activities_element_id": "4.A.4.a.8",
+      "work_activities_element_name": "Performing for or Working Directly with the Public"
+    },
+    {
+      "abilities_element_id": "1.A.1.g.1",
+      "abilities_element_name": "Selective Attention",
+      "work_activities_element_id": "4.A.4.b.3",
+      "work_activities_element_name": "Training and Teaching Others"
+    },
+    {
+      "abilities_element_id": "1.A.1.g.2",
+      "abilities_element_name": "Time Sharing",
+      "work_activities_element_id": "4.A.1.a.2",
+      "work_activities_element_name": "Monitoring Processes, Materials, or Surroundings"
+    },
+    {
+      "abilities_element_id": "1.A.1.g.2",
+      "abilities_element_name": "Time Sharing",
+      "work_activities_element_id": "4.A.3.a.4",
+      "work_activities_element_name": "Operating Vehicles, Mechanized Devices, or Equipment"
+    },
+    {
+      "abilities_element_id": "1.A.1.g.2",
+      "abilities_element_name": "Time Sharing",
+      "work_activities_element_id": "4.A.4.a.8",
+      "work_activities_element_name": "Performing for or Working Directly with the Public"
+    },
+    {
+      "abilities_element_id": "1.A.2.a.1",
+      "abilities_element_name": "Arm-Hand Steadiness",
+      "work_activities_element_id": "4.A.3.a.2",
+      "work_activities_element_name": "Handling and Moving Objects"
+    },
+    {
+      "abilities_element_id": "1.A.2.a.1",
+      "abilities_element_name": "Arm-Hand Steadiness",
+      "work_activities_element_id": "4.A.3.a.3",
+      "work_activities_element_name": "Controlling Machines and Processes"
+    },
+    {
+      "abilities_element_id": "1.A.2.a.1",
+      "abilities_element_name": "Arm-Hand Steadiness",
+      "work_activities_element_id": "4.A.3.a.4",
+      "work_activities_element_name": "Operating Vehicles, Mechanized Devices, or Equipment"
+    },
+    {
+      "abilities_element_id": "1.A.2.a.1",
+      "abilities_element_name": "Arm-Hand Steadiness",
+      "work_activities_element_id": "4.A.3.b.4",
+      "work_activities_element_name": "Repairing and Maintaining Mechanical Equipment"
+    },
+    {
+      "abilities_element_id": "1.A.2.a.1",
+      "abilities_element_name": "Arm-Hand Steadiness",
+      "work_activities_element_id": "4.A.3.b.5",
+      "work_activities_element_name": "Repairing and Maintaining Electronic Equipment"
+    },
+    {
+      "abilities_element_id": "1.A.2.a.2",
+      "abilities_element_name": "Manual Dexterity",
+      "work_activities_element_id": "4.A.3.a.2",
+      "work_activities_element_name": "Handling and Moving Objects"
+    },
+    {
+      "abilities_element_id": "1.A.2.a.2",
+      "abilities_element_name": "Manual Dexterity",
+      "work_activities_element_id": "4.A.3.b.4",
+      "work_activities_element_name": "Repairing and Maintaining Mechanical Equipment"
+    },
+    {
+      "abilities_element_id": "1.A.2.a.2",
+      "abilities_element_name": "Manual Dexterity",
+      "work_activities_element_id": "4.A.3.b.5",
+      "work_activities_element_name": "Repairing and Maintaining Electronic Equipment"
+    },
+    {
+      "abilities_element_id": "1.A.2.a.3",
+      "abilities_element_name": "Finger Dexterity",
+      "work_activities_element_id": "4.A.3.a.2",
+      "work_activities_element_name": "Handling and Moving Objects"
+    },
+    {
+      "abilities_element_id": "1.A.2.a.3",
+      "abilities_element_name": "Finger Dexterity",
+      "work_activities_element_id": "4.A.3.b.4",
+      "work_activities_element_name": "Repairing and Maintaining Mechanical Equipment"
+    },
+    {
+      "abilities_element_id": "1.A.2.a.3",
+      "abilities_element_name": "Finger Dexterity",
+      "work_activities_element_id": "4.A.3.b.5",
+      "work_activities_element_name": "Repairing and Maintaining Electronic Equipment"
+    },
+    {
+      "abilities_element_id": "1.A.2.b.1",
+      "abilities_element_name": "Control Precision",
+      "work_activities_element_id": "4.A.3.a.3",
+      "work_activities_element_name": "Controlling Machines and Processes"
+    },
+    {
+      "abilities_element_id": "1.A.2.b.1",
+      "abilities_element_name": "Control Precision",
+      "work_activities_element_id": "4.A.3.a.4",
+      "work_activities_element_name": "Operating Vehicles, Mechanized Devices, or Equipment"
+    },
+    {
+      "abilities_element_id": "1.A.2.b.1",
+      "abilities_element_name": "Control Precision",
+      "work_activities_element_id": "4.A.3.b.4",
+      "work_activities_element_name": "Repairing and Maintaining Mechanical Equipment"
+    },
+    {
+      "abilities_element_id": "1.A.2.b.1",
+      "abilities_element_name": "Control Precision",
+      "work_activities_element_id": "4.A.3.b.5",
+      "work_activities_element_name": "Repairing and Maintaining Electronic Equipment"
+    },
+    {
+      "abilities_element_id": "1.A.2.b.2",
+      "abilities_element_name": "Multilimb Coordination",
+      "work_activities_element_id": "4.A.3.a.1",
+      "work_activities_element_name": "Performing General Physical Activities"
+    },
+    {
+      "abilities_element_id": "1.A.2.b.2",
+      "abilities_element_name": "Multilimb Coordination",
+      "work_activities_element_id": "4.A.3.a.2",
+      "work_activities_element_name": "Handling and Moving Objects"
+    },
+    {
+      "abilities_element_id": "1.A.2.b.2",
+      "abilities_element_name": "Multilimb Coordination",
+      "work_activities_element_id": "4.A.3.a.4",
+      "work_activities_element_name": "Operating Vehicles, Mechanized Devices, or Equipment"
+    },
+    {
+      "abilities_element_id": "1.A.2.b.3",
+      "abilities_element_name": "Response Orientation",
+      "work_activities_element_id": "4.A.3.a.4",
+      "work_activities_element_name": "Operating Vehicles, Mechanized Devices, or Equipment"
+    },
+    {
+      "abilities_element_id": "1.A.2.b.4",
+      "abilities_element_name": "Rate Control",
+      "work_activities_element_id": "4.A.3.a.3",
+      "work_activities_element_name": "Controlling Machines and Processes"
+    },
+    {
+      "abilities_element_id": "1.A.2.b.4",
+      "abilities_element_name": "Rate Control",
+      "work_activities_element_id": "4.A.3.a.4",
+      "work_activities_element_name": "Operating Vehicles, Mechanized Devices, or Equipment"
+    },
+    {
+      "abilities_element_id": "1.A.2.c.1",
+      "abilities_element_name": "Reaction Time",
+      "work_activities_element_id": "4.A.3.a.3",
+      "work_activities_element_name": "Controlling Machines and Processes"
+    },
+    {
+      "abilities_element_id": "1.A.2.c.1",
+      "abilities_element_name": "Reaction Time",
+      "work_activities_element_id": "4.A.3.a.4",
+      "work_activities_element_name": "Operating Vehicles, Mechanized Devices, or Equipment"
+    },
+    {
+      "abilities_element_id": "1.A.2.c.2",
+      "abilities_element_name": "Wrist-Finger Speed",
+      "work_activities_element_id": "4.A.3.b.6",
+      "work_activities_element_name": "Documenting/Recording Information"
+    },
+    {
+      "abilities_element_id": "1.A.3.a.1",
+      "abilities_element_name": "Static Strength",
+      "work_activities_element_id": "4.A.3.a.1",
+      "work_activities_element_name": "Performing General Physical Activities"
+    },
+    {
+      "abilities_element_id": "1.A.3.a.1",
+      "abilities_element_name": "Static Strength",
+      "work_activities_element_id": "4.A.3.a.2",
+      "work_activities_element_name": "Handling and Moving Objects"
+    },
+    {
+      "abilities_element_id": "1.A.3.a.2",
+      "abilities_element_name": "Explosive Strength",
+      "work_activities_element_id": "4.A.3.a.1",
+      "work_activities_element_name": "Performing General Physical Activities"
+    },
+    {
+      "abilities_element_id": "1.A.3.a.2",
+      "abilities_element_name": "Explosive Strength",
+      "work_activities_element_id": "4.A.3.a.2",
+      "work_activities_element_name": "Handling and Moving Objects"
+    },
+    {
+      "abilities_element_id": "1.A.3.a.3",
+      "abilities_element_name": "Dynamic Strength",
+      "work_activities_element_id": "4.A.3.a.1",
+      "work_activities_element_name": "Performing General Physical Activities"
+    },
+    {
+      "abilities_element_id": "1.A.3.a.4",
+      "abilities_element_name": "Trunk Strength",
+      "work_activities_element_id": "4.A.3.a.1",
+      "work_activities_element_name": "Performing General Physical Activities"
+    },
+    {
+      "abilities_element_id": "1.A.3.a.4",
+      "abilities_element_name": "Trunk Strength",
+      "work_activities_element_id": "4.A.3.a.4",
+      "work_activities_element_name": "Operating Vehicles, Mechanized Devices, or Equipment"
+    },
+    {
+      "abilities_element_id": "1.A.3.b.1",
+      "abilities_element_name": "Stamina",
+      "work_activities_element_id": "4.A.3.a.1",
+      "work_activities_element_name": "Performing General Physical Activities"
+    },
+    {
+      "abilities_element_id": "1.A.3.c.1",
+      "abilities_element_name": "Extent Flexibility",
+      "work_activities_element_id": "4.A.3.a.1",
+      "work_activities_element_name": "Performing General Physical Activities"
+    },
+    {
+      "abilities_element_id": "1.A.3.c.1",
+      "abilities_element_name": "Extent Flexibility",
+      "work_activities_element_id": "4.A.3.a.2",
+      "work_activities_element_name": "Handling and Moving Objects"
+    },
+    {
+      "abilities_element_id": "1.A.3.c.1",
+      "abilities_element_name": "Extent Flexibility",
+      "work_activities_element_id": "4.A.3.b.4",
+      "work_activities_element_name": "Repairing and Maintaining Mechanical Equipment"
+    },
+    {
+      "abilities_element_id": "1.A.3.c.1",
+      "abilities_element_name": "Extent Flexibility",
+      "work_activities_element_id": "4.A.3.b.5",
+      "work_activities_element_name": "Repairing and Maintaining Electronic Equipment"
+    },
+    {
+      "abilities_element_id": "1.A.3.c.3",
+      "abilities_element_name": "Gross Body Coordination",
+      "work_activities_element_id": "4.A.3.a.1",
+      "work_activities_element_name": "Performing General Physical Activities"
+    },
+    {
+      "abilities_element_id": "1.A.3.c.4",
+      "abilities_element_name": "Gross Body Equilibrium",
+      "work_activities_element_id": "4.A.3.a.1",
+      "work_activities_element_name": "Performing General Physical Activities"
+    },
+    {
+      "abilities_element_id": "1.A.4.a.1",
+      "abilities_element_name": "Near Vision",
+      "work_activities_element_id": "4.A.1.a.1",
+      "work_activities_element_name": "Getting Information"
+    },
+    {
+      "abilities_element_id": "1.A.4.a.1",
+      "abilities_element_name": "Near Vision",
+      "work_activities_element_id": "4.A.1.a.2",
+      "work_activities_element_name": "Monitoring Processes, Materials, or Surroundings"
+    },
+    {
+      "abilities_element_id": "1.A.4.a.1",
+      "abilities_element_name": "Near Vision",
+      "work_activities_element_id": "4.A.1.b.1",
+      "work_activities_element_name": "Identifying Objects, Actions, and Events"
+    },
+    {
+      "abilities_element_id": "1.A.4.a.1",
+      "abilities_element_name": "Near Vision",
+      "work_activities_element_id": "4.A.1.b.2",
+      "work_activities_element_name": "Inspecting Equipment, Structures, or Materials"
+    },
+    {
+      "abilities_element_id": "1.A.4.a.1",
+      "abilities_element_name": "Near Vision",
+      "work_activities_element_id": "4.A.1.b.3",
+      "work_activities_element_name": "Estimating the Quantifiable Characteristics of Products, Events, or Information"
+    },
+    {
+      "abilities_element_id": "1.A.4.a.1",
+      "abilities_element_name": "Near Vision",
+      "work_activities_element_id": "4.A.2.a.1",
+      "work_activities_element_name": "Judging the Qualities of Objects, Services, or People"
+    },
+    {
+      "abilities_element_id": "1.A.4.a.1",
+      "abilities_element_name": "Near Vision",
+      "work_activities_element_id": "4.A.2.a.2",
+      "work_activities_element_name": "Processing Information"
+    },
+    {
+      "abilities_element_id": "1.A.4.a.1",
+      "abilities_element_name": "Near Vision",
+      "work_activities_element_id": "4.A.2.a.3",
+      "work_activities_element_name": "Evaluating Information to Determine Compliance with Standards"
+    },
+    {
+      "abilities_element_id": "1.A.4.a.1",
+      "abilities_element_name": "Near Vision",
+      "work_activities_element_id": "4.A.3.a.3",
+      "work_activities_element_name": "Controlling Machines and Processes"
+    },
+    {
+      "abilities_element_id": "1.A.4.a.1",
+      "abilities_element_name": "Near Vision",
+      "work_activities_element_id": "4.A.3.a.4",
+      "work_activities_element_name": "Operating Vehicles, Mechanized Devices, or Equipment"
+    },
+    {
+      "abilities_element_id": "1.A.4.a.1",
+      "abilities_element_name": "Near Vision",
+      "work_activities_element_id": "4.A.3.b.1",
+      "work_activities_element_name": "Working with Computers"
+    },
+    {
+      "abilities_element_id": "1.A.4.a.1",
+      "abilities_element_name": "Near Vision",
+      "work_activities_element_id": "4.A.3.b.2",
+      "work_activities_element_name": "Drafting, Laying Out, and Specifying Technical Devices, Parts, and Equipment"
+    },
+    {
+      "abilities_element_id": "1.A.4.a.1",
+      "abilities_element_name": "Near Vision",
+      "work_activities_element_id": "4.A.3.b.4",
+      "work_activities_element_name": "Repairing and Maintaining Mechanical Equipment"
+    },
+    {
+      "abilities_element_id": "1.A.4.a.1",
+      "abilities_element_name": "Near Vision",
+      "work_activities_element_id": "4.A.3.b.5",
+      "work_activities_element_name": "Repairing and Maintaining Electronic Equipment"
+    },
+    {
+      "abilities_element_id": "1.A.4.a.1",
+      "abilities_element_name": "Near Vision",
+      "work_activities_element_id": "4.A.3.b.6",
+      "work_activities_element_name": "Documenting/Recording Information"
+    },
+    {
+      "abilities_element_id": "1.A.4.a.1",
+      "abilities_element_name": "Near Vision",
+      "work_activities_element_id": "4.A.4.c.1",
+      "work_activities_element_name": "Performing Administrative Activities"
+    },
+    {
+      "abilities_element_id": "1.A.4.a.2",
+      "abilities_element_name": "Far Vision",
+      "work_activities_element_id": "4.A.1.a.1",
+      "work_activities_element_name": "Getting Information"
+    },
+    {
+      "abilities_element_id": "1.A.4.a.2",
+      "abilities_element_name": "Far Vision",
+      "work_activities_element_id": "4.A.1.a.2",
+      "work_activities_element_name": "Monitoring Processes, Materials, or Surroundings"
+    },
+    {
+      "abilities_element_id": "1.A.4.a.2",
+      "abilities_element_name": "Far Vision",
+      "work_activities_element_id": "4.A.1.b.1",
+      "work_activities_element_name": "Identifying Objects, Actions, and Events"
+    },
+    {
+      "abilities_element_id": "1.A.4.a.2",
+      "abilities_element_name": "Far Vision",
+      "work_activities_element_id": "4.A.1.b.2",
+      "work_activities_element_name": "Inspecting Equipment, Structures, or Materials"
+    },
+    {
+      "abilities_element_id": "1.A.4.a.2",
+      "abilities_element_name": "Far Vision",
+      "work_activities_element_id": "4.A.1.b.3",
+      "work_activities_element_name": "Estimating the Quantifiable Characteristics of Products, Events, or Information"
+    },
+    {
+      "abilities_element_id": "1.A.4.a.2",
+      "abilities_element_name": "Far Vision",
+      "work_activities_element_id": "4.A.3.a.4",
+      "work_activities_element_name": "Operating Vehicles, Mechanized Devices, or Equipment"
+    },
+    {
+      "abilities_element_id": "1.A.4.a.3",
+      "abilities_element_name": "Visual Color Discrimination",
+      "work_activities_element_id": "4.A.1.a.2",
+      "work_activities_element_name": "Monitoring Processes, Materials, or Surroundings"
+    },
+    {
+      "abilities_element_id": "1.A.4.a.3",
+      "abilities_element_name": "Visual Color Discrimination",
+      "work_activities_element_id": "4.A.1.b.1",
+      "work_activities_element_name": "Identifying Objects, Actions, and Events"
+    },
+    {
+      "abilities_element_id": "1.A.4.a.3",
+      "abilities_element_name": "Visual Color Discrimination",
+      "work_activities_element_id": "4.A.1.b.2",
+      "work_activities_element_name": "Inspecting Equipment, Structures, or Materials"
+    },
+    {
+      "abilities_element_id": "1.A.4.a.3",
+      "abilities_element_name": "Visual Color Discrimination",
+      "work_activities_element_id": "4.A.3.b.5",
+      "work_activities_element_name": "Repairing and Maintaining Electronic Equipment"
+    },
+    {
+      "abilities_element_id": "1.A.4.a.4",
+      "abilities_element_name": "Night Vision",
+      "work_activities_element_id": "4.A.3.a.4",
+      "work_activities_element_name": "Operating Vehicles, Mechanized Devices, or Equipment"
+    },
+    {
+      "abilities_element_id": "1.A.4.a.5",
+      "abilities_element_name": "Peripheral Vision",
+      "work_activities_element_id": "4.A.3.a.4",
+      "work_activities_element_name": "Operating Vehicles, Mechanized Devices, or Equipment"
+    },
+    {
+      "abilities_element_id": "1.A.4.a.6",
+      "abilities_element_name": "Depth Perception",
+      "work_activities_element_id": "4.A.1.b.2",
+      "work_activities_element_name": "Inspecting Equipment, Structures, or Materials"
+    },
+    {
+      "abilities_element_id": "1.A.4.a.6",
+      "abilities_element_name": "Depth Perception",
+      "work_activities_element_id": "4.A.1.b.3",
+      "work_activities_element_name": "Estimating the Quantifiable Characteristics of Products, Events, or Information"
+    },
+    {
+      "abilities_element_id": "1.A.4.a.6",
+      "abilities_element_name": "Depth Perception",
+      "work_activities_element_id": "4.A.3.a.4",
+      "work_activities_element_name": "Operating Vehicles, Mechanized Devices, or Equipment"
+    },
+    {
+      "abilities_element_id": "1.A.4.a.7",
+      "abilities_element_name": "Glare Sensitivity",
+      "work_activities_element_id": "4.A.3.a.4",
+      "work_activities_element_name": "Operating Vehicles, Mechanized Devices, or Equipment"
+    },
+    {
+      "abilities_element_id": "1.A.4.b.1",
+      "abilities_element_name": "Hearing Sensitivity",
+      "work_activities_element_id": "4.A.1.a.2",
+      "work_activities_element_name": "Monitoring Processes, Materials, or Surroundings"
+    },
+    {
+      "abilities_element_id": "1.A.4.b.1",
+      "abilities_element_name": "Hearing Sensitivity",
+      "work_activities_element_id": "4.A.1.b.1",
+      "work_activities_element_name": "Identifying Objects, Actions, and Events"
+    },
+    {
+      "abilities_element_id": "1.A.4.b.1",
+      "abilities_element_name": "Hearing Sensitivity",
+      "work_activities_element_id": "4.A.1.b.2",
+      "work_activities_element_name": "Inspecting Equipment, Structures, or Materials"
+    },
+    {
+      "abilities_element_id": "1.A.4.b.1",
+      "abilities_element_name": "Hearing Sensitivity",
+      "work_activities_element_id": "4.A.3.a.4",
+      "work_activities_element_name": "Operating Vehicles, Mechanized Devices, or Equipment"
+    },
+    {
+      "abilities_element_id": "1.A.4.b.2",
+      "abilities_element_name": "Auditory Attention",
+      "work_activities_element_id": "4.A.1.a.2",
+      "work_activities_element_name": "Monitoring Processes, Materials, or Surroundings"
+    },
+    {
+      "abilities_element_id": "1.A.4.b.2",
+      "abilities_element_name": "Auditory Attention",
+      "work_activities_element_id": "4.A.1.b.2",
+      "work_activities_element_name": "Inspecting Equipment, Structures, or Materials"
+    },
+    {
+      "abilities_element_id": "1.A.4.b.2",
+      "abilities_element_name": "Auditory Attention",
+      "work_activities_element_id": "4.A.3.a.4",
+      "work_activities_element_name": "Operating Vehicles, Mechanized Devices, or Equipment"
+    },
+    {
+      "abilities_element_id": "1.A.4.b.2",
+      "abilities_element_name": "Auditory Attention",
+      "work_activities_element_id": "4.A.4.a.8",
+      "work_activities_element_name": "Performing for or Working Directly with the Public"
+    },
+    {
+      "abilities_element_id": "1.A.4.b.3",
+      "abilities_element_name": "Sound Localization",
+      "work_activities_element_id": "4.A.3.a.4",
+      "work_activities_element_name": "Operating Vehicles, Mechanized Devices, or Equipment"
+    },
+    {
+      "abilities_element_id": "1.A.4.b.4",
+      "abilities_element_name": "Speech Recognition",
+      "work_activities_element_id": "4.A.1.a.1",
+      "work_activities_element_name": "Getting Information"
+    },
+    {
+      "abilities_element_id": "1.A.4.b.4",
+      "abilities_element_name": "Speech Recognition",
+      "work_activities_element_id": "4.A.4.a.1",
+      "work_activities_element_name": "Interpreting the Meaning of Information for Others"
+    },
+    {
+      "abilities_element_id": "1.A.4.b.4",
+      "abilities_element_name": "Speech Recognition",
+      "work_activities_element_id": "4.A.4.a.2",
+      "work_activities_element_name": "Communicating with Supervisors, Peers, or Subordinates"
+    },
+    {
+      "abilities_element_id": "1.A.4.b.4",
+      "abilities_element_name": "Speech Recognition",
+      "work_activities_element_id": "4.A.4.a.3",
+      "work_activities_element_name": "Communicating with People Outside the Organization"
+    },
+    {
+      "abilities_element_id": "1.A.4.b.4",
+      "abilities_element_name": "Speech Recognition",
+      "work_activities_element_id": "4.A.4.a.4",
+      "work_activities_element_name": "Establishing and Maintaining Interpersonal Relationships"
+    },
+    {
+      "abilities_element_id": "1.A.4.b.4",
+      "abilities_element_name": "Speech Recognition",
+      "work_activities_element_id": "4.A.4.a.5",
+      "work_activities_element_name": "Assisting and Caring for Others"
+    },
+    {
+      "abilities_element_id": "1.A.4.b.4",
+      "abilities_element_name": "Speech Recognition",
+      "work_activities_element_id": "4.A.4.a.6",
+      "work_activities_element_name": "Selling or Influencing Others"
+    },
+    {
+      "abilities_element_id": "1.A.4.b.4",
+      "abilities_element_name": "Speech Recognition",
+      "work_activities_element_id": "4.A.4.a.7",
+      "work_activities_element_name": "Resolving Conflicts and Negotiating with Others"
+    },
+    {
+      "abilities_element_id": "1.A.4.b.4",
+      "abilities_element_name": "Speech Recognition",
+      "work_activities_element_id": "4.A.4.a.8",
+      "work_activities_element_name": "Performing for or Working Directly with the Public"
+    },
+    {
+      "abilities_element_id": "1.A.4.b.4",
+      "abilities_element_name": "Speech Recognition",
+      "work_activities_element_id": "4.A.4.b.1",
+      "work_activities_element_name": "Coordinating the Work and Activities of Others"
+    },
+    {
+      "abilities_element_id": "1.A.4.b.4",
+      "abilities_element_name": "Speech Recognition",
+      "work_activities_element_id": "4.A.4.b.2",
+      "work_activities_element_name": "Developing and Building Teams"
+    },
+    {
+      "abilities_element_id": "1.A.4.b.4",
+      "abilities_element_name": "Speech Recognition",
+      "work_activities_element_id": "4.A.4.b.3",
+      "work_activities_element_name": "Training and Teaching Others"
+    },
+    {
+      "abilities_element_id": "1.A.4.b.4",
+      "abilities_element_name": "Speech Recognition",
+      "work_activities_element_id": "4.A.4.b.4",
+      "work_activities_element_name": "Guiding, Directing, and Motivating Subordinates"
+    },
+    {
+      "abilities_element_id": "1.A.4.b.4",
+      "abilities_element_name": "Speech Recognition",
+      "work_activities_element_id": "4.A.4.b.5",
+      "work_activities_element_name": "Coaching and Developing Others"
+    },
+    {
+      "abilities_element_id": "1.A.4.b.4",
+      "abilities_element_name": "Speech Recognition",
+      "work_activities_element_id": "4.A.4.b.6",
+      "work_activities_element_name": "Providing Consultation and Advice to Others"
+    },
+    {
+      "abilities_element_id": "1.A.4.b.4",
+      "abilities_element_name": "Speech Recognition",
+      "work_activities_element_id": "4.A.4.c.2",
+      "work_activities_element_name": "Staffing Organizational Units"
+    },
+    {
+      "abilities_element_id": "1.A.4.b.5",
+      "abilities_element_name": "Speech Clarity",
+      "work_activities_element_id": "4.A.4.a.1",
+      "work_activities_element_name": "Interpreting the Meaning of Information for Others"
+    },
+    {
+      "abilities_element_id": "1.A.4.b.5",
+      "abilities_element_name": "Speech Clarity",
+      "work_activities_element_id": "4.A.4.a.2",
+      "work_activities_element_name": "Communicating with Supervisors, Peers, or Subordinates"
+    },
+    {
+      "abilities_element_id": "1.A.4.b.5",
+      "abilities_element_name": "Speech Clarity",
+      "work_activities_element_id": "4.A.4.a.3",
+      "work_activities_element_name": "Communicating with People Outside the Organization"
+    },
+    {
+      "abilities_element_id": "1.A.4.b.5",
+      "abilities_element_name": "Speech Clarity",
+      "work_activities_element_id": "4.A.4.a.4",
+      "work_activities_element_name": "Establishing and Maintaining Interpersonal Relationships"
+    },
+    {
+      "abilities_element_id": "1.A.4.b.5",
+      "abilities_element_name": "Speech Clarity",
+      "work_activities_element_id": "4.A.4.a.5",
+      "work_activities_element_name": "Assisting and Caring for Others"
+    },
+    {
+      "abilities_element_id": "1.A.4.b.5",
+      "abilities_element_name": "Speech Clarity",
+      "work_activities_element_id": "4.A.4.a.6",
+      "work_activities_element_name": "Selling or Influencing Others"
+    },
+    {
+      "abilities_element_id": "1.A.4.b.5",
+      "abilities_element_name": "Speech Clarity",
+      "work_activities_element_id": "4.A.4.a.7",
+      "work_activities_element_name": "Resolving Conflicts and Negotiating with Others"
+    },
+    {
+      "abilities_element_id": "1.A.4.b.5",
+      "abilities_element_name": "Speech Clarity",
+      "work_activities_element_id": "4.A.4.a.8",
+      "work_activities_element_name": "Performing for or Working Directly with the Public"
+    },
+    {
+      "abilities_element_id": "1.A.4.b.5",
+      "abilities_element_name": "Speech Clarity",
+      "work_activities_element_id": "4.A.4.b.1",
+      "work_activities_element_name": "Coordinating the Work and Activities of Others"
+    },
+    {
+      "abilities_element_id": "1.A.4.b.5",
+      "abilities_element_name": "Speech Clarity",
+      "work_activities_element_id": "4.A.4.b.2",
+      "work_activities_element_name": "Developing and Building Teams"
+    },
+    {
+      "abilities_element_id": "1.A.4.b.5",
+      "abilities_element_name": "Speech Clarity",
+      "work_activities_element_id": "4.A.4.b.3",
+      "work_activities_element_name": "Training and Teaching Others"
+    },
+    {
+      "abilities_element_id": "1.A.4.b.5",
+      "abilities_element_name": "Speech Clarity",
+      "work_activities_element_id": "4.A.4.b.4",
+      "work_activities_element_name": "Guiding, Directing, and Motivating Subordinates"
+    },
+    {
+      "abilities_element_id": "1.A.4.b.5",
+      "abilities_element_name": "Speech Clarity",
+      "work_activities_element_id": "4.A.4.b.5",
+      "work_activities_element_name": "Coaching and Developing Others"
+    },
+    {
+      "abilities_element_id": "1.A.4.b.5",
+      "abilities_element_name": "Speech Clarity",
+      "work_activities_element_id": "4.A.4.b.6",
+      "work_activities_element_name": "Providing Consultation and Advice to Others"
+    },
+    {
+      "abilities_element_id": "1.A.4.b.5",
+      "abilities_element_name": "Speech Clarity",
+      "work_activities_element_id": "4.A.4.c.2",
+      "work_activities_element_name": "Staffing Organizational Units"
+    }
+  ]
+}

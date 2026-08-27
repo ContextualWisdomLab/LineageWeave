@@ -1,0 +1,702 @@
+{
+  "table_id": "essential_skills_to_work_activities",
+  "title": "Essential Skills to Work Activities",
+  "description": "Provide linkages between essential skills and relevant work activities.",
+  "data_dictionary": "https://www.onetcenter.org/dictionary/31.0/json/essential_skills_to_work_activities.html",
+  "column": [
+    {
+      "column_id": "essential_skills_element_id",
+      "optional": false,
+      "title": "Essential Skills Element ID",
+      "description": "Content Model Outline Position",
+      "type": "Text",
+      "format": "Character Varying(20)"
+    },
+    {
+      "column_id": "essential_skills_element_name",
+      "optional": false,
+      "title": "Essential Skills Element Name",
+      "description": "Content Model Element Name",
+      "type": "Text",
+      "format": "Character Varying(150)"
+    },
+    {
+      "column_id": "work_activities_element_id",
+      "optional": false,
+      "title": "Work Activities Element ID",
+      "description": "Content Model Outline Position",
+      "type": "Text",
+      "format": "Character Varying(20)"
+    },
+    {
+      "column_id": "work_activities_element_name",
+      "optional": false,
+      "title": "Work Activities Element Name",
+      "description": "Content Model Element Name",
+      "type": "Text",
+      "format": "Character Varying(150)"
+    }
+  ],
+  "row": [
+    {
+      "essential_skills_element_id": "2.A.1.a",
+      "essential_skills_element_name": "Reading Comprehension",
+      "work_activities_element_id": "4.A.1.a.1",
+      "work_activities_element_name": "Getting Information"
+    },
+    {
+      "essential_skills_element_id": "2.A.1.a",
+      "essential_skills_element_name": "Reading Comprehension",
+      "work_activities_element_id": "4.A.1.a.2",
+      "work_activities_element_name": "Monitoring Processes, Materials, or Surroundings"
+    },
+    {
+      "essential_skills_element_id": "2.A.1.a",
+      "essential_skills_element_name": "Reading Comprehension",
+      "work_activities_element_id": "4.A.1.b.1",
+      "work_activities_element_name": "Identifying Objects, Actions, and Events"
+    },
+    {
+      "essential_skills_element_id": "2.A.1.a",
+      "essential_skills_element_name": "Reading Comprehension",
+      "work_activities_element_id": "4.A.2.a.1",
+      "work_activities_element_name": "Judging the Qualities of Objects, Services, or People"
+    },
+    {
+      "essential_skills_element_id": "2.A.1.a",
+      "essential_skills_element_name": "Reading Comprehension",
+      "work_activities_element_id": "4.A.2.a.2",
+      "work_activities_element_name": "Processing Information"
+    },
+    {
+      "essential_skills_element_id": "2.A.1.a",
+      "essential_skills_element_name": "Reading Comprehension",
+      "work_activities_element_id": "4.A.2.a.3",
+      "work_activities_element_name": "Evaluating Information to Determine Compliance with Standards"
+    },
+    {
+      "essential_skills_element_id": "2.A.1.a",
+      "essential_skills_element_name": "Reading Comprehension",
+      "work_activities_element_id": "4.A.2.a.4",
+      "work_activities_element_name": "Analyzing Data or Information"
+    },
+    {
+      "essential_skills_element_id": "2.A.1.a",
+      "essential_skills_element_name": "Reading Comprehension",
+      "work_activities_element_id": "4.A.2.b.1",
+      "work_activities_element_name": "Making Decisions and Solving Problems"
+    },
+    {
+      "essential_skills_element_id": "2.A.1.a",
+      "essential_skills_element_name": "Reading Comprehension",
+      "work_activities_element_id": "4.A.2.b.3",
+      "work_activities_element_name": "Updating and Using Relevant Knowledge"
+    },
+    {
+      "essential_skills_element_id": "2.A.1.a",
+      "essential_skills_element_name": "Reading Comprehension",
+      "work_activities_element_id": "4.A.3.b.1",
+      "work_activities_element_name": "Working with Computers"
+    },
+    {
+      "essential_skills_element_id": "2.A.1.a",
+      "essential_skills_element_name": "Reading Comprehension",
+      "work_activities_element_id": "4.A.3.b.2",
+      "work_activities_element_name": "Drafting, Laying Out, and Specifying Technical Devices, Parts, and Equipment"
+    },
+    {
+      "essential_skills_element_id": "2.A.1.a",
+      "essential_skills_element_name": "Reading Comprehension",
+      "work_activities_element_id": "4.A.4.a.1",
+      "work_activities_element_name": "Interpreting the Meaning of Information for Others"
+    },
+    {
+      "essential_skills_element_id": "2.A.1.a",
+      "essential_skills_element_name": "Reading Comprehension",
+      "work_activities_element_id": "4.A.4.b.3",
+      "work_activities_element_name": "Training and Teaching Others"
+    },
+    {
+      "essential_skills_element_id": "2.A.1.a",
+      "essential_skills_element_name": "Reading Comprehension",
+      "work_activities_element_id": "4.A.4.b.6",
+      "work_activities_element_name": "Providing Consultation and Advice to Others"
+    },
+    {
+      "essential_skills_element_id": "2.A.1.a",
+      "essential_skills_element_name": "Reading Comprehension",
+      "work_activities_element_id": "4.A.4.c.1",
+      "work_activities_element_name": "Performing Administrative Activities"
+    },
+    {
+      "essential_skills_element_id": "2.A.1.b",
+      "essential_skills_element_name": "Active Listening",
+      "work_activities_element_id": "4.A.1.a.1",
+      "work_activities_element_name": "Getting Information"
+    },
+    {
+      "essential_skills_element_id": "2.A.1.b",
+      "essential_skills_element_name": "Active Listening",
+      "work_activities_element_id": "4.A.1.a.2",
+      "work_activities_element_name": "Monitoring Processes, Materials, or Surroundings"
+    },
+    {
+      "essential_skills_element_id": "2.A.1.b",
+      "essential_skills_element_name": "Active Listening",
+      "work_activities_element_id": "4.A.1.b.1",
+      "work_activities_element_name": "Identifying Objects, Actions, and Events"
+    },
+    {
+      "essential_skills_element_id": "2.A.1.b",
+      "essential_skills_element_name": "Active Listening",
+      "work_activities_element_id": "4.A.2.b.1",
+      "work_activities_element_name": "Making Decisions and Solving Problems"
+    },
+    {
+      "essential_skills_element_id": "2.A.1.b",
+      "essential_skills_element_name": "Active Listening",
+      "work_activities_element_id": "4.A.2.b.3",
+      "work_activities_element_name": "Updating and Using Relevant Knowledge"
+    },
+    {
+      "essential_skills_element_id": "2.A.1.b",
+      "essential_skills_element_name": "Active Listening",
+      "work_activities_element_id": "4.A.4.a.1",
+      "work_activities_element_name": "Interpreting the Meaning of Information for Others"
+    },
+    {
+      "essential_skills_element_id": "2.A.1.b",
+      "essential_skills_element_name": "Active Listening",
+      "work_activities_element_id": "4.A.4.a.2",
+      "work_activities_element_name": "Communicating with Supervisors, Peers, or Subordinates"
+    },
+    {
+      "essential_skills_element_id": "2.A.1.b",
+      "essential_skills_element_name": "Active Listening",
+      "work_activities_element_id": "4.A.4.a.3",
+      "work_activities_element_name": "Communicating with People Outside the Organization"
+    },
+    {
+      "essential_skills_element_id": "2.A.1.b",
+      "essential_skills_element_name": "Active Listening",
+      "work_activities_element_id": "4.A.4.a.4",
+      "work_activities_element_name": "Establishing and Maintaining Interpersonal Relationships"
+    },
+    {
+      "essential_skills_element_id": "2.A.1.b",
+      "essential_skills_element_name": "Active Listening",
+      "work_activities_element_id": "4.A.4.a.5",
+      "work_activities_element_name": "Assisting and Caring for Others"
+    },
+    {
+      "essential_skills_element_id": "2.A.1.b",
+      "essential_skills_element_name": "Active Listening",
+      "work_activities_element_id": "4.A.4.a.6",
+      "work_activities_element_name": "Selling or Influencing Others"
+    },
+    {
+      "essential_skills_element_id": "2.A.1.b",
+      "essential_skills_element_name": "Active Listening",
+      "work_activities_element_id": "4.A.4.a.7",
+      "work_activities_element_name": "Resolving Conflicts and Negotiating with Others"
+    },
+    {
+      "essential_skills_element_id": "2.A.1.b",
+      "essential_skills_element_name": "Active Listening",
+      "work_activities_element_id": "4.A.4.a.8",
+      "work_activities_element_name": "Performing for or Working Directly with the Public"
+    },
+    {
+      "essential_skills_element_id": "2.A.1.b",
+      "essential_skills_element_name": "Active Listening",
+      "work_activities_element_id": "4.A.4.b.1",
+      "work_activities_element_name": "Coordinating the Work and Activities of Others"
+    },
+    {
+      "essential_skills_element_id": "2.A.1.b",
+      "essential_skills_element_name": "Active Listening",
+      "work_activities_element_id": "4.A.4.b.2",
+      "work_activities_element_name": "Developing and Building Teams"
+    },
+    {
+      "essential_skills_element_id": "2.A.1.b",
+      "essential_skills_element_name": "Active Listening",
+      "work_activities_element_id": "4.A.4.b.3",
+      "work_activities_element_name": "Training and Teaching Others"
+    },
+    {
+      "essential_skills_element_id": "2.A.1.b",
+      "essential_skills_element_name": "Active Listening",
+      "work_activities_element_id": "4.A.4.b.4",
+      "work_activities_element_name": "Guiding, Directing, and Motivating Subordinates"
+    },
+    {
+      "essential_skills_element_id": "2.A.1.b",
+      "essential_skills_element_name": "Active Listening",
+      "work_activities_element_id": "4.A.4.b.5",
+      "work_activities_element_name": "Coaching and Developing Others"
+    },
+    {
+      "essential_skills_element_id": "2.A.1.b",
+      "essential_skills_element_name": "Active Listening",
+      "work_activities_element_id": "4.A.4.b.6",
+      "work_activities_element_name": "Providing Consultation and Advice to Others"
+    },
+    {
+      "essential_skills_element_id": "2.A.1.b",
+      "essential_skills_element_name": "Active Listening",
+      "work_activities_element_id": "4.A.4.c.2",
+      "work_activities_element_name": "Staffing Organizational Units"
+    },
+    {
+      "essential_skills_element_id": "2.A.1.c",
+      "essential_skills_element_name": "Writing",
+      "work_activities_element_id": "4.A.2.b.4",
+      "work_activities_element_name": "Developing Objectives and Strategies"
+    },
+    {
+      "essential_skills_element_id": "2.A.1.c",
+      "essential_skills_element_name": "Writing",
+      "work_activities_element_id": "4.A.3.b.2",
+      "work_activities_element_name": "Drafting, Laying Out, and Specifying Technical Devices, Parts, and Equipment"
+    },
+    {
+      "essential_skills_element_id": "2.A.1.c",
+      "essential_skills_element_name": "Writing",
+      "work_activities_element_id": "4.A.3.b.6",
+      "work_activities_element_name": "Documenting/Recording Information"
+    },
+    {
+      "essential_skills_element_id": "2.A.1.c",
+      "essential_skills_element_name": "Writing",
+      "work_activities_element_id": "4.A.4.a.1",
+      "work_activities_element_name": "Interpreting the Meaning of Information for Others"
+    },
+    {
+      "essential_skills_element_id": "2.A.1.c",
+      "essential_skills_element_name": "Writing",
+      "work_activities_element_id": "4.A.4.a.2",
+      "work_activities_element_name": "Communicating with Supervisors, Peers, or Subordinates"
+    },
+    {
+      "essential_skills_element_id": "2.A.1.c",
+      "essential_skills_element_name": "Writing",
+      "work_activities_element_id": "4.A.4.a.3",
+      "work_activities_element_name": "Communicating with People Outside the Organization"
+    },
+    {
+      "essential_skills_element_id": "2.A.1.c",
+      "essential_skills_element_name": "Writing",
+      "work_activities_element_id": "4.A.4.b.3",
+      "work_activities_element_name": "Training and Teaching Others"
+    },
+    {
+      "essential_skills_element_id": "2.A.1.c",
+      "essential_skills_element_name": "Writing",
+      "work_activities_element_id": "4.A.4.b.4",
+      "work_activities_element_name": "Guiding, Directing, and Motivating Subordinates"
+    },
+    {
+      "essential_skills_element_id": "2.A.1.c",
+      "essential_skills_element_name": "Writing",
+      "work_activities_element_id": "4.A.4.b.6",
+      "work_activities_element_name": "Providing Consultation and Advice to Others"
+    },
+    {
+      "essential_skills_element_id": "2.A.1.c",
+      "essential_skills_element_name": "Writing",
+      "work_activities_element_id": "4.A.4.c.1",
+      "work_activities_element_name": "Performing Administrative Activities"
+    },
+    {
+      "essential_skills_element_id": "2.A.1.d",
+      "essential_skills_element_name": "Speaking",
+      "work_activities_element_id": "4.A.2.b.4",
+      "work_activities_element_name": "Developing Objectives and Strategies"
+    },
+    {
+      "essential_skills_element_id": "2.A.1.d",
+      "essential_skills_element_name": "Speaking",
+      "work_activities_element_id": "4.A.4.a.1",
+      "work_activities_element_name": "Interpreting the Meaning of Information for Others"
+    },
+    {
+      "essential_skills_element_id": "2.A.1.d",
+      "essential_skills_element_name": "Speaking",
+      "work_activities_element_id": "4.A.4.a.2",
+      "work_activities_element_name": "Communicating with Supervisors, Peers, or Subordinates"
+    },
+    {
+      "essential_skills_element_id": "2.A.1.d",
+      "essential_skills_element_name": "Speaking",
+      "work_activities_element_id": "4.A.4.a.3",
+      "work_activities_element_name": "Communicating with People Outside the Organization"
+    },
+    {
+      "essential_skills_element_id": "2.A.1.d",
+      "essential_skills_element_name": "Speaking",
+      "work_activities_element_id": "4.A.4.a.4",
+      "work_activities_element_name": "Establishing and Maintaining Interpersonal Relationships"
+    },
+    {
+      "essential_skills_element_id": "2.A.1.d",
+      "essential_skills_element_name": "Speaking",
+      "work_activities_element_id": "4.A.4.a.5",
+      "work_activities_element_name": "Assisting and Caring for Others"
+    },
+    {
+      "essential_skills_element_id": "2.A.1.d",
+      "essential_skills_element_name": "Speaking",
+      "work_activities_element_id": "4.A.4.a.6",
+      "work_activities_element_name": "Selling or Influencing Others"
+    },
+    {
+      "essential_skills_element_id": "2.A.1.d",
+      "essential_skills_element_name": "Speaking",
+      "work_activities_element_id": "4.A.4.a.7",
+      "work_activities_element_name": "Resolving Conflicts and Negotiating with Others"
+    },
+    {
+      "essential_skills_element_id": "2.A.1.d",
+      "essential_skills_element_name": "Speaking",
+      "work_activities_element_id": "4.A.4.a.8",
+      "work_activities_element_name": "Performing for or Working Directly with the Public"
+    },
+    {
+      "essential_skills_element_id": "2.A.1.d",
+      "essential_skills_element_name": "Speaking",
+      "work_activities_element_id": "4.A.4.b.1",
+      "work_activities_element_name": "Coordinating the Work and Activities of Others"
+    },
+    {
+      "essential_skills_element_id": "2.A.1.d",
+      "essential_skills_element_name": "Speaking",
+      "work_activities_element_id": "4.A.4.b.2",
+      "work_activities_element_name": "Developing and Building Teams"
+    },
+    {
+      "essential_skills_element_id": "2.A.1.d",
+      "essential_skills_element_name": "Speaking",
+      "work_activities_element_id": "4.A.4.b.3",
+      "work_activities_element_name": "Training and Teaching Others"
+    },
+    {
+      "essential_skills_element_id": "2.A.1.d",
+      "essential_skills_element_name": "Speaking",
+      "work_activities_element_id": "4.A.4.b.4",
+      "work_activities_element_name": "Guiding, Directing, and Motivating Subordinates"
+    },
+    {
+      "essential_skills_element_id": "2.A.1.d",
+      "essential_skills_element_name": "Speaking",
+      "work_activities_element_id": "4.A.4.b.5",
+      "work_activities_element_name": "Coaching and Developing Others"
+    },
+    {
+      "essential_skills_element_id": "2.A.1.d",
+      "essential_skills_element_name": "Speaking",
+      "work_activities_element_id": "4.A.4.b.6",
+      "work_activities_element_name": "Providing Consultation and Advice to Others"
+    },
+    {
+      "essential_skills_element_id": "2.A.1.d",
+      "essential_skills_element_name": "Speaking",
+      "work_activities_element_id": "4.A.4.c.2",
+      "work_activities_element_name": "Staffing Organizational Units"
+    },
+    {
+      "essential_skills_element_id": "2.A.1.e",
+      "essential_skills_element_name": "Mathematics",
+      "work_activities_element_id": "4.A.1.b.3",
+      "work_activities_element_name": "Estimating the Quantifiable Characteristics of Products, Events, or Information"
+    },
+    {
+      "essential_skills_element_id": "2.A.1.e",
+      "essential_skills_element_name": "Mathematics",
+      "work_activities_element_id": "4.A.2.a.2",
+      "work_activities_element_name": "Processing Information"
+    },
+    {
+      "essential_skills_element_id": "2.A.2.a",
+      "essential_skills_element_name": "Critical Thinking",
+      "work_activities_element_id": "4.A.1.a.1",
+      "work_activities_element_name": "Getting Information"
+    },
+    {
+      "essential_skills_element_id": "2.A.2.a",
+      "essential_skills_element_name": "Critical Thinking",
+      "work_activities_element_id": "4.A.1.a.2",
+      "work_activities_element_name": "Monitoring Processes, Materials, or Surroundings"
+    },
+    {
+      "essential_skills_element_id": "2.A.2.a",
+      "essential_skills_element_name": "Critical Thinking",
+      "work_activities_element_id": "4.A.1.b.1",
+      "work_activities_element_name": "Identifying Objects, Actions, and Events"
+    },
+    {
+      "essential_skills_element_id": "2.A.2.a",
+      "essential_skills_element_name": "Critical Thinking",
+      "work_activities_element_id": "4.A.1.b.2",
+      "work_activities_element_name": "Inspecting Equipment, Structures, or Materials"
+    },
+    {
+      "essential_skills_element_id": "2.A.2.a",
+      "essential_skills_element_name": "Critical Thinking",
+      "work_activities_element_id": "4.A.1.b.3",
+      "work_activities_element_name": "Estimating the Quantifiable Characteristics of Products, Events, or Information"
+    },
+    {
+      "essential_skills_element_id": "2.A.2.a",
+      "essential_skills_element_name": "Critical Thinking",
+      "work_activities_element_id": "4.A.2.a.3",
+      "work_activities_element_name": "Evaluating Information to Determine Compliance with Standards"
+    },
+    {
+      "essential_skills_element_id": "2.A.2.a",
+      "essential_skills_element_name": "Critical Thinking",
+      "work_activities_element_id": "4.A.2.a.4",
+      "work_activities_element_name": "Analyzing Data or Information"
+    },
+    {
+      "essential_skills_element_id": "2.A.2.a",
+      "essential_skills_element_name": "Critical Thinking",
+      "work_activities_element_id": "4.A.2.b.1",
+      "work_activities_element_name": "Making Decisions and Solving Problems"
+    },
+    {
+      "essential_skills_element_id": "2.A.2.a",
+      "essential_skills_element_name": "Critical Thinking",
+      "work_activities_element_id": "4.A.2.b.2",
+      "work_activities_element_name": "Thinking Creatively"
+    },
+    {
+      "essential_skills_element_id": "2.A.2.a",
+      "essential_skills_element_name": "Critical Thinking",
+      "work_activities_element_id": "4.A.2.b.4",
+      "work_activities_element_name": "Developing Objectives and Strategies"
+    },
+    {
+      "essential_skills_element_id": "2.A.2.a",
+      "essential_skills_element_name": "Critical Thinking",
+      "work_activities_element_id": "4.A.2.b.5",
+      "work_activities_element_name": "Scheduling Work and Activities"
+    },
+    {
+      "essential_skills_element_id": "2.A.2.a",
+      "essential_skills_element_name": "Critical Thinking",
+      "work_activities_element_id": "4.A.2.b.6",
+      "work_activities_element_name": "Organizing, Planning, and Prioritizing Work"
+    },
+    {
+      "essential_skills_element_id": "2.A.2.a",
+      "essential_skills_element_name": "Critical Thinking",
+      "work_activities_element_id": "4.A.3.b.1",
+      "work_activities_element_name": "Working with Computers"
+    },
+    {
+      "essential_skills_element_id": "2.A.2.a",
+      "essential_skills_element_name": "Critical Thinking",
+      "work_activities_element_id": "4.A.3.b.4",
+      "work_activities_element_name": "Repairing and Maintaining Mechanical Equipment"
+    },
+    {
+      "essential_skills_element_id": "2.A.2.a",
+      "essential_skills_element_name": "Critical Thinking",
+      "work_activities_element_id": "4.A.3.b.5",
+      "work_activities_element_name": "Repairing and Maintaining Electronic Equipment"
+    },
+    {
+      "essential_skills_element_id": "2.A.2.a",
+      "essential_skills_element_name": "Critical Thinking",
+      "work_activities_element_id": "4.A.4.a.1",
+      "work_activities_element_name": "Interpreting the Meaning of Information for Others"
+    },
+    {
+      "essential_skills_element_id": "2.A.2.a",
+      "essential_skills_element_name": "Critical Thinking",
+      "work_activities_element_id": "4.A.4.a.7",
+      "work_activities_element_name": "Resolving Conflicts and Negotiating with Others"
+    },
+    {
+      "essential_skills_element_id": "2.A.2.a",
+      "essential_skills_element_name": "Critical Thinking",
+      "work_activities_element_id": "4.A.4.b.1",
+      "work_activities_element_name": "Coordinating the Work and Activities of Others"
+    },
+    {
+      "essential_skills_element_id": "2.A.2.a",
+      "essential_skills_element_name": "Critical Thinking",
+      "work_activities_element_id": "4.A.4.b.2",
+      "work_activities_element_name": "Developing and Building Teams"
+    },
+    {
+      "essential_skills_element_id": "2.A.2.a",
+      "essential_skills_element_name": "Critical Thinking",
+      "work_activities_element_id": "4.A.4.b.3",
+      "work_activities_element_name": "Training and Teaching Others"
+    },
+    {
+      "essential_skills_element_id": "2.A.2.a",
+      "essential_skills_element_name": "Critical Thinking",
+      "work_activities_element_id": "4.A.4.b.4",
+      "work_activities_element_name": "Guiding, Directing, and Motivating Subordinates"
+    },
+    {
+      "essential_skills_element_id": "2.A.2.a",
+      "essential_skills_element_name": "Critical Thinking",
+      "work_activities_element_id": "4.A.4.b.5",
+      "work_activities_element_name": "Coaching and Developing Others"
+    },
+    {
+      "essential_skills_element_id": "2.A.2.a",
+      "essential_skills_element_name": "Critical Thinking",
+      "work_activities_element_id": "4.A.4.b.6",
+      "work_activities_element_name": "Providing Consultation and Advice to Others"
+    },
+    {
+      "essential_skills_element_id": "2.A.2.a",
+      "essential_skills_element_name": "Critical Thinking",
+      "work_activities_element_id": "4.A.4.c.2",
+      "work_activities_element_name": "Staffing Organizational Units"
+    },
+    {
+      "essential_skills_element_id": "2.A.2.a",
+      "essential_skills_element_name": "Critical Thinking",
+      "work_activities_element_id": "4.A.4.c.3",
+      "work_activities_element_name": "Monitoring and Controlling Resources"
+    },
+    {
+      "essential_skills_element_id": "2.A.2.b",
+      "essential_skills_element_name": "Active Learning",
+      "work_activities_element_id": "4.A.2.b.1",
+      "work_activities_element_name": "Making Decisions and Solving Problems"
+    },
+    {
+      "essential_skills_element_id": "2.A.2.b",
+      "essential_skills_element_name": "Active Learning",
+      "work_activities_element_id": "4.A.2.b.3",
+      "work_activities_element_name": "Updating and Using Relevant Knowledge"
+    },
+    {
+      "essential_skills_element_id": "2.A.2.b",
+      "essential_skills_element_name": "Active Learning",
+      "work_activities_element_id": "4.A.4.a.7",
+      "work_activities_element_name": "Resolving Conflicts and Negotiating with Others"
+    },
+    {
+      "essential_skills_element_id": "2.A.2.b",
+      "essential_skills_element_name": "Active Learning",
+      "work_activities_element_id": "4.A.4.b.3",
+      "work_activities_element_name": "Training and Teaching Others"
+    },
+    {
+      "essential_skills_element_id": "2.A.2.b",
+      "essential_skills_element_name": "Active Learning",
+      "work_activities_element_id": "4.A.4.b.4",
+      "work_activities_element_name": "Guiding, Directing, and Motivating Subordinates"
+    },
+    {
+      "essential_skills_element_id": "2.A.2.c",
+      "essential_skills_element_name": "Learning Strategies",
+      "work_activities_element_id": "4.A.2.b.3",
+      "work_activities_element_name": "Updating and Using Relevant Knowledge"
+    },
+    {
+      "essential_skills_element_id": "2.A.2.c",
+      "essential_skills_element_name": "Learning Strategies",
+      "work_activities_element_id": "4.A.4.b.3",
+      "work_activities_element_name": "Training and Teaching Others"
+    },
+    {
+      "essential_skills_element_id": "2.A.2.c",
+      "essential_skills_element_name": "Learning Strategies",
+      "work_activities_element_id": "4.A.4.b.4",
+      "work_activities_element_name": "Guiding, Directing, and Motivating Subordinates"
+    },
+    {
+      "essential_skills_element_id": "2.A.2.c",
+      "essential_skills_element_name": "Learning Strategies",
+      "work_activities_element_id": "4.A.4.b.5",
+      "work_activities_element_name": "Coaching and Developing Others"
+    },
+    {
+      "essential_skills_element_id": "2.A.2.d",
+      "essential_skills_element_name": "Monitoring",
+      "work_activities_element_id": "4.A.1.a.2",
+      "work_activities_element_name": "Monitoring Processes, Materials, or Surroundings"
+    },
+    {
+      "essential_skills_element_id": "2.A.2.d",
+      "essential_skills_element_name": "Monitoring",
+      "work_activities_element_id": "4.A.2.a.1",
+      "work_activities_element_name": "Judging the Qualities of Objects, Services, or People"
+    },
+    {
+      "essential_skills_element_id": "2.A.2.d",
+      "essential_skills_element_name": "Monitoring",
+      "work_activities_element_id": "4.A.4.a.5",
+      "work_activities_element_name": "Assisting and Caring for Others"
+    },
+    {
+      "essential_skills_element_id": "2.A.2.d",
+      "essential_skills_element_name": "Monitoring",
+      "work_activities_element_id": "4.A.4.a.6",
+      "work_activities_element_name": "Selling or Influencing Others"
+    },
+    {
+      "essential_skills_element_id": "2.A.2.d",
+      "essential_skills_element_name": "Monitoring",
+      "work_activities_element_id": "4.A.4.a.7",
+      "work_activities_element_name": "Resolving Conflicts and Negotiating with Others"
+    },
+    {
+      "essential_skills_element_id": "2.A.2.d",
+      "essential_skills_element_name": "Monitoring",
+      "work_activities_element_id": "4.A.4.b.1",
+      "work_activities_element_name": "Coordinating the Work and Activities of Others"
+    },
+    {
+      "essential_skills_element_id": "2.A.2.d",
+      "essential_skills_element_name": "Monitoring",
+      "work_activities_element_id": "4.A.4.b.2",
+      "work_activities_element_name": "Developing and Building Teams"
+    },
+    {
+      "essential_skills_element_id": "2.A.2.d",
+      "essential_skills_element_name": "Monitoring",
+      "work_activities_element_id": "4.A.4.b.3",
+      "work_activities_element_name": "Training and Teaching Others"
+    },
+    {
+      "essential_skills_element_id": "2.A.2.d",
+      "essential_skills_element_name": "Monitoring",
+      "work_activities_element_id": "4.A.4.b.4",
+      "work_activities_element_name": "Guiding, Directing, and Motivating Subordinates"
+    },
+    {
+      "essential_skills_element_id": "2.A.2.d",
+      "essential_skills_element_name": "Monitoring",
+      "work_activities_element_id": "4.A.4.b.5",
+      "work_activities_element_name": "Coaching and Developing Others"
+    },
+    {
+      "essential_skills_element_id": "2.A.2.d",
+      "essential_skills_element_name": "Monitoring",
+      "work_activities_element_id": "4.A.4.b.6",
+      "work_activities_element_name": "Providing Consultation and Advice to Others"
+    },
+    {
+      "essential_skills_element_id": "2.A.2.d",
+      "essential_skills_element_name": "Monitoring",
+      "work_activities_element_id": "4.A.4.c.2",
+      "work_activities_element_name": "Staffing Organizational Units"
+    },
+    {
+      "essential_skills_element_id": "2.A.2.d",
+      "essential_skills_element_name": "Monitoring",
+      "work_activities_element_id": "4.A.4.c.3",
+      "work_activities_element_name": "Monitoring and Controlling Resources"
+    }
+  ]
+}

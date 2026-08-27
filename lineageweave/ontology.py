@@ -51,6 +51,10 @@ _ONTOLOGY_FRAGMENT_PATHS = (
     / "docs"
     / "ontology"
     / "onet-31-content-model.ttl",
+    Path(__file__).resolve().parents[1]
+    / "docs"
+    / "ontology"
+    / "onet-31-content-model-linkages.ttl",
 )
 
 
