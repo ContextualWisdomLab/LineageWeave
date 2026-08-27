@@ -4950,6 +4950,33 @@ def test_primary_voice_history_survives_concurrent_changes_and_cutoff_reads(
         assert [voice["code"] for voice in primaries] == [voice_type_code]
 
 
+def test_voice_migration_family_replays_after_a_primary_change(seeded_db) -> None:
+    """Every-start replay remains valid after a post accumulates Voice history."""
+    post_id = seeded_db["own_private_post_id"]
+    with closing(psycopg2.connect(seeded_db["dsn"])) as conn, conn.cursor() as cur:
+        cur.execute(
+            "update source_post set voc_type_code = 'vob' where post_id = %s",
+            (post_id,),
+        )
+        conn.commit()
+
+        for _ in range(2):
+            cur.execute(_VOICE_ASSIGNMENT_MIGRATION.read_text())
+            cur.execute(_VOICE_HISTORY_MIGRATION.read_text())
+            conn.commit()
+
+        cur.execute(
+            "select count(*) filter (where effective_to is null), "
+            "count(*) from source_post_voice "
+            "where post_id = %s and is_primary",
+            (post_id,),
+        )
+        current_count, history_count = cur.fetchone()
+
+    assert current_count == 1
+    assert history_count >= 2
+
+
 def test_tickets_list_is_empty_before_any_created(client, demo_analyst_token, seeded_db) -> None:
     response = client.get(
         f"/api/posts/{seeded_db['own_private_post_id']}/tickets",
