@@ -4,6 +4,10 @@ from pathlib import Path
 
 
 MIGRATION = Path(__file__).resolve().parents[1] / "migrations/0238_occupational_construct_assertion.sql"
+EXTRACTION_MIGRATION = (
+    Path(__file__).resolve().parents[1]
+    / "migrations/0240_occupational_construct_extraction_run.sql"
+)
 
 
 def test_construct_migration_is_normalized_replay_safe_and_indexed() -> None:
@@ -40,3 +44,18 @@ def test_construct_assertion_schema_contains_no_local_measurement() -> None:
     )[1].split(");", 1)[0].casefold()
     for prohibited in ("score", "weight", "intensity", "importance", "person_id"):
         assert prohibited not in assertion_sql
+
+
+def test_extraction_run_distinguishes_empty_success_for_one_body_digest() -> None:
+    """A replay-safe normalized ledger records successful empty extraction."""
+    sql = EXTRACTION_MIGRATION.read_text(encoding="utf-8").casefold()
+    assert "create table if not exists post_occupational_construct_extraction" in sql
+    assert "post_id uuid primary key references source_post(post_id)" in sql
+    assert "source_body_sha256 ~ '^[0-9a-f]{64}$'" in sql
+    assert "(source_body_sha256, post_id)" in sql
+    assert "job.status_code = 'post_content_ingestion_succeeded'" in sql
+    assert "extraction.post_id is null" in sql
+    assert "from post_content_ingestion_job_status_event prior_requeue" in sql
+    assert "prior_requeue.detail_text =" in sql
+    assert "set status_code = 'post_content_ingestion_queued'" in sql
+    assert "insert into post_content_ingestion_job_status_event" in sql

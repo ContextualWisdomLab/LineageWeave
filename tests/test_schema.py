@@ -44,6 +44,11 @@ _PROJECT_MENTION_MIGRATION = (
 _POST_CONTENT_MIGRATION = (
     Path(__file__).resolve().parents[1] / "migrations" / "0026_post_content_artifacts.sql"
 )
+_POST_CONTENT_QUEUE_MIGRATION = (
+    Path(__file__).resolve().parents[1]
+    / "migrations"
+    / "0050_post_content_ingestion_queue.sql"
+)
 _ONTOLOGY_TRUTH_STATUS_MIGRATION = (
     Path(__file__).resolve().parents[1] / "migrations" / "0175_ontology_truth_status.sql"
 )
@@ -56,6 +61,11 @@ _OCCUPATIONAL_CATALOG_MIGRATION = (
     Path(__file__).resolve().parents[1]
     / "migrations"
     / "0239_occupational_construct_catalog.sql"
+)
+_OCCUPATIONAL_EXTRACTION_MIGRATION = (
+    Path(__file__).resolve().parents[1]
+    / "migrations"
+    / "0240_occupational_construct_extraction_run.sql"
 )
 _SOURCE_STATE_MIGRATION = (
     Path(__file__).resolve().parents[1] / "migrations" / "0033_source_state_provenance.sql"
@@ -170,9 +180,11 @@ def schema_db():
             with conn.cursor() as cur:
                 cur.execute(_MIGRATION_PATH.read_text())
                 cur.execute(_POST_CONTENT_MIGRATION.read_text())
+                cur.execute(_POST_CONTENT_QUEUE_MIGRATION.read_text())
                 cur.execute(_ONTOLOGY_TRUTH_STATUS_MIGRATION.read_text())
                 cur.execute(_OCCUPATIONAL_CONSTRUCT_MIGRATION.read_text())
                 cur.execute(_OCCUPATIONAL_CATALOG_MIGRATION.read_text())
+                cur.execute(_OCCUPATIONAL_EXTRACTION_MIGRATION.read_text())
                 cur.execute(_PROJECT_MENTION_MIGRATION.read_text())
                 cur.execute(_SOURCE_STATE_MIGRATION.read_text())
                 cur.execute(_SOURCE_CONTEXT_MIGRATION.read_text())
@@ -258,6 +270,7 @@ def test_migration_applies_cleanly(schema_db) -> None:
         "occupational_construct_vocabulary",
         "occupational_construct",
         "post_occupational_construct_assertion",
+        "post_occupational_construct_extraction",
     }
     assert expected <= tables
 

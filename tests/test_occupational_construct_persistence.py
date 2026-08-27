@@ -149,6 +149,43 @@ def test_empty_replacement_only_removes_stale_assertions() -> None:
     assert conn.calls[0][0].startswith("delete from post_occupational_construct_assertion")
 
 
+def test_empty_success_records_the_source_digest_in_the_same_transaction() -> None:
+    """A valid empty model result is persisted without a placeholder assertion."""
+    conn = RecordingConnection()
+    asyncio.run(
+        persist_occupational_construct_assertions(
+            conn,
+            "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+            "post-session",
+            (),
+            source_body_sha256="a" * 64,
+        )
+    )
+    assert len(conn.calls) == 2
+    assert conn.calls[1][0].startswith(
+        "insert into post_occupational_construct_extraction"
+    )
+    assert conn.calls[1][1] == (
+        "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+        "a" * 64,
+        "post-session",
+    )
+
+
+def test_extraction_run_rejects_a_malformed_source_digest() -> None:
+    """The application mirrors the database digest trust boundary."""
+    with pytest.raises(ValueError, match="lowercase SHA-256"):
+        asyncio.run(
+            persist_occupational_construct_assertions(
+                RecordingConnection(),
+                "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+                "post-session",
+                (),
+                source_body_sha256="NOT-A-DIGEST",
+            )
+        )
+
+
 def test_authorized_projection_omits_internal_ids_and_preserves_provenance() -> None:
     """The read model returns review fields in semantic-unit order."""
     conn = RecordingConnection()
@@ -176,3 +213,6 @@ def test_authorized_projection_omits_internal_ids_and_preserves_provenance() -> 
         "post_occupational_construct_assertion.evidence_text"
     )
     assert "construct_id" not in result[0]
+    assert "job.source_body_sha256 = extraction.source_body_sha256" in conn.calls[0][0]
+
+

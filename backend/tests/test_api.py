@@ -2032,6 +2032,30 @@ def test_post_detail_exposes_evidence_bound_occupational_construct(
         "post_occupational_construct_assertion.evidence_text"
     )
 
+    conn = psycopg2.connect(seeded_db["dsn"])
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                update post_content_ingestion_job
+                   set source_body_sha256 = %s,
+                       status_code = 'post_content_ingestion_failed'
+                 where post_id = %s
+                """,
+                ("f" * 64, seeded_db["public_post_id"]),
+            )
+        conn.commit()
+    finally:
+        conn.close()
+
+    stale = client.get(
+        f"/api/posts/{seeded_db['public_post_id']}",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert stale.status_code == 200
+    assert stale.json()["occupational_construct_evidence_status"] == "unavailable"
+    assert stale.json()["occupational_construct_assertions"] == []
+
 
 def test_post_detail_as_of_returns_the_cutoff_known_body(
     client, demo_analyst_token, seeded_db

@@ -2,9 +2,21 @@
 
 from __future__ import annotations
 
+import asyncio
 from dataclasses import dataclass
 from typing import Any
 from urllib.parse import urlsplit
+
+from lineageweave.occupational_construct_catalog import (
+    ONET_ATTRIBUTION,
+    ONET_LICENSE_IRI,
+    ONET_RELEASE,
+    ONET_VOCABULARY_IRI,
+)
+from lineageweave.occupational_construct_extraction import (
+    OccupationalConstructCandidate,
+    OccupationalConstructExtractionClient,
+)
 
 
 CONSTRUCT_FAMILIES = frozenset(
@@ -97,15 +109,108 @@ class OccupationalConstructAssertion:
             raise ValueError(f"unsupported ontology truth status {self.truth_status_code!r}")
 
 
+async def extract_occupational_construct_assertions(
+    pool: Any,
+    post_id: str,
+    client: OccupationalConstructExtractionClient,
+) -> tuple[OccupationalConstructAssertion, ...]:
+    """Traverse the official hierarchy and bind exact selections to semantic units."""
+    async with pool.acquire() as conn:
+        rows = await conn.fetch(
+            """
+            select construct.construct_iri, construct.construct_family_code,
+                   construct.preferred_label, construct.construct_description
+              from occupational_construct construct
+              join occupational_construct_vocabulary vocabulary
+                on vocabulary.vocabulary_id = construct.vocabulary_id
+             where vocabulary.vocabulary_iri = $1
+               and vocabulary.version_label = $2
+             order by construct.construct_iri
+            """,
+            ONET_VOCABULARY_IRI,
+            ONET_RELEASE,
+        )
+        units = await conn.fetch(
+            """
+            select post_content_unit_id, unit_text
+              from post_content_unit
+             where post_id = $1 and btrim(unit_text) <> ''
+             order by unit_index
+            """,
+            post_id,
+        )
+    if not rows:
+        raise ValueError("official O*NET construct catalog is unavailable")
+
+    by_iri = {str(row["construct_iri"]): row for row in rows}
+    children: dict[str | None, list[str]] = {}
+    for iri in by_iri:
+        element_id = iri.rsplit("/", 1)[-1]
+        parent_id = element_id.rsplit(".", 1)[0] if "." in element_id else ""
+        parent_iri = f"https://data.onetcenter.org/element/{parent_id}"
+        parent = parent_iri if parent_iri in by_iri else None
+        children.setdefault(parent, []).append(iri)
+
+    vocabulary = ConstructVocabulary(
+        ONET_VOCABULARY_IRI, ONET_RELEASE, ONET_LICENSE_IRI, ONET_ATTRIBUTION
+    )
+    assertions: list[OccupationalConstructAssertion] = []
+    for unit in units:
+        pending: list[str | None] = [None]
+        while pending:
+            parent = pending.pop()
+            candidate_iris = tuple(sorted(children.get(parent, ())))
+            if not candidate_iris:
+                continue
+            candidates = tuple(
+                OccupationalConstructCandidate(
+                    iri,
+                    str(by_iri[iri]["preferred_label"]),
+                    by_iri[iri]["construct_description"],
+                )
+                for iri in candidate_iris
+            )
+            selections = await asyncio.to_thread(
+                client.select, str(unit["unit_text"]), candidates
+            )
+            for selection in selections:
+                row = by_iri[selection.construct_iri]
+                assertions.append(
+                    OccupationalConstructAssertion(
+                        str(unit["post_content_unit_id"]),
+                        str(unit["unit_text"]),
+                        OccupationalConstruct(
+                            vocabulary,
+                            selection.construct_iri,
+                            str(row["construct_family_code"]),
+                            str(row["preferred_label"]),
+                        ),
+                        selection.evidence_text,
+                        "truth_inferred",
+                        "contextual_orchestrator_onet_hierarchy_v1",
+                    )
+                )
+                if selection.construct_iri in children:
+                    pending.append(selection.construct_iri)
+    return tuple(assertions)
+
+
 async def persist_occupational_construct_assertions(
     conn: Any,
     post_id: str,
     orchestrator_session_id: str,
     assertions: tuple[OccupationalConstructAssertion, ...],
+    *,
+    source_body_sha256: str | None = None,
 ) -> None:
     """Atomically replace one Post's construct assertions and shared registry rows."""
     if not post_id.strip() or not orchestrator_session_id.strip():
         raise ValueError("post and orchestrator session identifiers must be non-empty")
+    if source_body_sha256 is not None and (
+        len(source_body_sha256) != 64
+        or any(character not in "0123456789abcdef" for character in source_body_sha256)
+    ):
+        raise ValueError("source body digest must be a lowercase SHA-256 value")
     async with conn.transaction():
         await conn.execute(
             "delete from post_occupational_construct_assertion where post_id = $1",
@@ -164,6 +269,21 @@ async def persist_occupational_construct_assertions(
                 assertion.extraction_method,
                 orchestrator_session_id,
             )
+        if source_body_sha256 is not None:
+            await conn.execute(
+                """
+                insert into post_occupational_construct_extraction
+                    (post_id, source_body_sha256, orchestrator_session_id)
+                values ($1, $2, $3)
+                on conflict (post_id) do update set
+                    source_body_sha256 = excluded.source_body_sha256,
+                    orchestrator_session_id = excluded.orchestrator_session_id,
+                    generated_at = now()
+                """,
+                post_id,
+                source_body_sha256,
+                orchestrator_session_id,
+            )
 
 
 async def load_occupational_construct_assertions(
@@ -183,6 +303,11 @@ async def load_occupational_construct_assertions(
             on vocabulary.vocabulary_id = construct.vocabulary_id
           join post_content_unit unit
             on unit.post_content_unit_id = assertion.post_content_unit_id
+          join post_occupational_construct_extraction extraction
+            on extraction.post_id = assertion.post_id
+          join post_content_ingestion_job job
+            on job.post_id = assertion.post_id
+           and job.source_body_sha256 = extraction.source_body_sha256
          where assertion.post_id = $1
          order by unit.unit_index, construct.construct_family_code,
                   construct.preferred_label, construct.construct_iri
