@@ -32,9 +32,15 @@ non-overlapping half-open intervals. The review repair removes duplicate SQL
 clauses and makes ontology continuation evaluate the interval containing the
 frozen page snapshot rather than requiring the current open interval. Focused
 local Voice/ontology regression evidence passed 93 tests after merging current
-`main`; hosted exact-head checks were still pending. Authenticated PostgreSQL
-API and rendered desktop/mobile evidence have not yet been recollected for this
-head, so the runtime acceptance remains **unavailable**, not complete.
+`main`; the full frontend suite passed 453 tests. The combined-Voice Storybook
+scene was rendered and visually inspected at 1440 by 1000 and 390 by 844 CSS
+pixels: carrying-Post and derivation-evidence controls remain distinct, and the
+mobile exact-value table preserves its horizontal-scroll access. Hosted
+exact-head checks were still pending. Authenticated PostgreSQL API and
+authenticated product-UI evidence have not been recollected for this head
+because the running canonical Compose project was assembled from multiple
+other active worktrees; it was not rebuilt or migrated over their work. Runtime
+acceptance therefore remains **unavailable**, not complete.
 
 | PR | Exact head | Current gate at overlay time |
 |---:|---|---|
