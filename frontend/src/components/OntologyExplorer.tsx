@@ -9,6 +9,7 @@ import {
 import { t, tf } from "../i18n";
 import { ontologyExplorerText } from "../ontologyExplorerI18n";
 import { occupationalConstructText } from "../occupationalConstructI18n";
+import { OccupationalConstructCatalogSearch } from "./OccupationalConstructCatalogSearch";
 import {
   accumulateNeighborhoodPages,
   filterNeighborhood,
@@ -229,6 +230,11 @@ export function OntologyExplorer({
           </button>
         </div>
       </header>
+      <OccupationalConstructCatalogSearch
+        accessToken={accessToken}
+        knowledgeCutoff={knowledgeCutoff}
+        onSelectPost={onSelectPost ?? onOpenEvidence}
+      />
       <label className="ontology-search">
         {t("Search within this neighborhood")}
         <input

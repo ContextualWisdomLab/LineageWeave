@@ -108,8 +108,10 @@ and a digest-bound run record distinguishes a supported empty result from an
 unavailable provider. ADR 0254 adds the authorized Post-detail evidence review
 surface and honest complete, processing, and unavailable states. ADR 0255
 projects assertion-backed constructs into the existing ABAC-filtered ontology
-neighborhood without duplicating graph storage or promoting truth. Catalog
-search remains unavailable.
+neighborhood without duplicating graph storage or promoting truth. ADR 0257
+adds authorized catalog-label search: reviewers type an official O*NET label
+and open the earliest visible supporting Post. Constructs without visible
+evidence stay undisclosed. Occupation ratings remain unavailable.
 
 ### PRD-FR-2C — FJA I/O-Psychology cognitive, affective & behavioral semantic layer
 

@@ -90,6 +90,8 @@ flowchart LR
 | `backend/app/occupation_rating_ingestion.py` | Projects authenticated occupation-rating evidence plus persisted source and represented-occupation catalogs (ADR 0258, ADR 0260, ADR 0261) |
 | `frontend/src/components/OccupationRatingProfile.tsx` | Selects an imported source, filters stored occupation titles without ranking, and reads exact Dashboard evidence while preserving absence, uncertainty, and warning semantics (ADR 0259–0262) |
 | `ontology_neighborhood.py` | Bounded typed ontology/provenance neighborhood (ADR 0184); PostgreSQL stays authoritative, OWL subclass is not an instance edge |
+| `occupational_construct_catalog.py` | Official O*NET 31.0 construct catalog sync (ADR 0250); no ratings or invented IRIs |
+| `backend/app/occupational_construct_search.py` | Authorized catalog-label search over assertion-backed constructs (ADR 0257); hidden Posts never mint a hit |
 | `ontology_source_cursor.py` | Opaque HMAC source-window continuation (ADR 0124); keyset pagination, never OFFSET |
 | `period_report.py` | Fit GRM/GPCM on persisted IRT rows, FIPC-select, EAP-score a period (ADR 0003 slice 3; Bock & Mislevy, 1982) |
 | `fixtures.py` | Synthetic demo dataset -- no real data ships in this repo |

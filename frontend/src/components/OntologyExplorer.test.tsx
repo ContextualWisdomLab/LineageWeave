@@ -8,7 +8,7 @@ import { filterNeighborhood } from "../ontologyLayout";
 
 vi.mock("../api", async (importOriginal) => {
   const actual = await importOriginal<typeof import("../api")>();
-  return { ...actual, fetchOntologyNeighborhood: vi.fn() };
+  return { ...actual, fetchOntologyNeighborhood: vi.fn(), fetchOccupationalConstructSearch: vi.fn() };
 });
 
 const POST_ID = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa1";
@@ -548,5 +548,22 @@ describe("OntologyExplorer", () => {
     expect(
       screen.queryByText("Select a work-evidence node to review the records that support it."),
     ).not.toBeInTheDocument();
+  });
+
+  it("hosts authorized catalog search without a second destination", () => {
+    render(
+      <OntologyExplorer
+        focusNodeType="node_post"
+        focusNodeId={POST_ID}
+        neighborhood={neighborhood()}
+      />,
+    );
+    expect(screen.getByRole("heading", { name: "Find work evidence" })).toBeVisible();
+    expect(
+      screen.getByText(
+        "Type two or more letters of a catalog label, then open the supporting record.",
+      ),
+    ).toBeVisible();
+    expect(screen.getByRole("button", { name: "Find matching records" })).toBeVisible();
   });
 });
