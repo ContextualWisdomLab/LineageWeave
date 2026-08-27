@@ -39,6 +39,7 @@ const COPY = {
     "Open the supporting record": "Open the supporting record",
     "Open supporting record: {label} · {title}": "Open supporting record: {label} · {title}",
     "Finding work evidence...": "Finding work evidence...",
+    "Show more matching records": "Show more matching records",
   },
   ko: {
     "Work evidence": "업무 근거",
@@ -78,6 +79,7 @@ const COPY = {
     "Open the supporting record": "뒷받침하는 기록 열기",
     "Open supporting record: {label} · {title}": "뒷받침하는 기록 열기: {label} · {title}",
     "Finding work evidence...": "업무 근거를 찾는 중...",
+    "Show more matching records": "일치하는 기록 더 보기",
   },
   zh: {
     "Work evidence": "工作证据",
@@ -116,6 +118,7 @@ const COPY = {
     "Open the supporting record": "打开支持记录",
     "Open supporting record: {label} · {title}": "打开支持记录：{label} · {title}",
     "Finding work evidence...": "正在查找工作证据...",
+    "Show more matching records": "显示更多匹配记录",
   },
   ja: {
     "Work evidence": "業務エビデンス",
@@ -155,6 +158,7 @@ const COPY = {
     "Open the supporting record": "裏付け記録を開く",
     "Open supporting record: {label} · {title}": "裏付け記録を開く: {label} · {title}",
     "Finding work evidence...": "業務エビデンスを検索中...",
+    "Show more matching records": "一致する記録をさらに表示",
   },
   vi: {
     "Work evidence": "Bằng chứng công việc",
@@ -194,6 +198,7 @@ const COPY = {
     "Open the supporting record": "Mở bản ghi hỗ trợ",
     "Open supporting record: {label} · {title}": "Mở bản ghi hỗ trợ: {label} · {title}",
     "Finding work evidence...": "Đang tìm bằng chứng công việc...",
+    "Show more matching records": "Hiển thị thêm bản ghi phù hợp",
   },
 } as const satisfies Record<Locale, Record<string, string>>;
 

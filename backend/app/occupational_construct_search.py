@@ -1,4 +1,4 @@
-"""Search assertion-backed occupational constructs under ADR 0256."""
+"""Search assertion-backed occupational constructs under ADR 0257."""
 
 from __future__ import annotations
 
@@ -15,7 +15,8 @@ MIN_QUERY_CHARS = 2
 MAX_QUERY_CHARS = 80
 DEFAULT_SEARCH_LIMIT = 20
 HARD_SEARCH_LIMIT = 50
-CANDIDATE_ROW_LIMIT = 200
+CANDIDATE_CONSTRUCT_LIMIT = 200
+PER_CONSTRUCT_ROW_LIMIT = 200
 CONSTRUCT_IRI_PREFIX = "https://data.onetcenter.org/element/"
 WITHDRAWN_TRUTH_STATUSES = frozenset({"truth_rejected", "truth_superseded"})
 
@@ -166,6 +167,8 @@ def _collapse_visible_hits(
     hits: list[OccupationalConstructSearchHit] = []
     for construct_id in order:
         visible_rows = grouped[construct_id]
+        if int(visible_rows[0]["construct_row_count"]) > PER_CONSTRUCT_ROW_LIMIT:
+            continue
         truth_statuses = {str(item["truth_status_code"]) for item in visible_rows}
         if len(truth_statuses) != 1:
             continue
@@ -212,6 +215,7 @@ async def search_visible_occupational_constructs(
     page_size = normalize_construct_search_limit(limit)
     eligibility = SOURCE_POST_ELIGIBILITY_SQL.format(alias="post")
     sql = """
+        with matching_rows as (
             select construct.construct_id,
                    construct.construct_iri,
                    construct.construct_family_code,
@@ -224,7 +228,13 @@ async def search_visible_occupational_constructs(
                    post.process_unit_id,
                    assertion.evidence_text,
                    assertion.truth_status_code,
-                   greatest(post.created_at, assertion.generated_at) as available_at
+                   greatest(post.created_at, assertion.generated_at) as available_at,
+                   dense_rank() over (order by construct.construct_iri) as construct_rank,
+                   row_number() over (
+                       partition by construct.construct_id
+                       order by greatest(post.created_at, assertion.generated_at), post.post_id
+                   ) as construct_row_number,
+                   count(*) over (partition by construct.construct_id) as construct_row_count
               from occupational_construct construct
               join occupational_construct_vocabulary vocabulary
                 on vocabulary.vocabulary_id = construct.vocabulary_id
@@ -241,14 +251,18 @@ async def search_visible_occupational_constructs(
                     or coalesce(construct.construct_description, '') ilike $1 escape E'\\'
                    )
                and ($2::text is null or construct.construct_family_code = $2)
+               and construct.construct_family_code in (
+                    'cognitive_ability', 'work_style', 'work_activity'
+               )
                and ($3::text is null or construct.construct_iri > $3)
                and {eligibility}
                and ($4::timestamptz is null
                     or greatest(post.created_at, assertion.generated_at) <= $4)
-             order by construct.construct_iri,
-                      greatest(post.created_at, assertion.generated_at),
-                      post.post_id
-             limit $5
+        )
+        select * from matching_rows
+         where construct_rank <= $5
+           and construct_row_number <= $6
+         order by construct_iri, available_at, post_id
             """.replace("{eligibility}", eligibility)
     rows = await conn.fetch(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
         sql,
@@ -256,17 +270,19 @@ async def search_visible_occupational_constructs(
         normalized_family,
         normalized_cursor,
         knowledge_cutoff,
-        CANDIDATE_ROW_LIMIT,
+        CANDIDATE_CONSTRUCT_LIMIT,
+        PER_CONSTRUCT_ROW_LIMIT + 1,
     )
     hits, extra_visible = _collapse_visible_hits(rows, can_see_post, limit=page_size)
-    sql_exhausted = len(rows) == CANDIDATE_ROW_LIMIT
+    candidate_constructs = {
+        str(_row_mapping(row)["construct_iri"]) for row in rows
+    }
+    sql_exhausted = len(candidate_constructs) == CANDIDATE_CONSTRUCT_LIMIT
     next_cursor = None
     if extra_visible and hits:
         next_cursor = hits[-1].construct_iri
     elif sql_exhausted and rows:
         next_cursor = str(_row_mapping(rows[-1])["construct_iri"])
-        if hits and next_cursor == hits[-1].construct_iri:
-            next_cursor = hits[-1].construct_iri
     return OccupationalConstructSearchPage(
         query=normalized_query,
         family_code=normalized_family,

@@ -1,4 +1,4 @@
-"""Authorized occupational construct catalog search (ADR 0256)."""
+"""Authorized occupational construct catalog search (ADR 0257)."""
 
 from __future__ import annotations
 
@@ -9,7 +9,8 @@ import pytest
 
 from backend.app.occupational_construct_search import (
     CONSTRUCT_IRI_PREFIX,
-    CANDIDATE_ROW_LIMIT,
+    CANDIDATE_CONSTRUCT_LIMIT,
+    PER_CONSTRUCT_ROW_LIMIT,
     OccupationalConstructSearchError,
     like_contains_pattern,
     normalize_construct_search_cursor,
@@ -52,6 +53,7 @@ def _row(
     evidence: str = "reviewed the written procedure",
     truth: str = "truth_inferred",
     available_at: datetime = T0,
+    construct_row_count: int = 1,
 ) -> dict[str, object]:
     return {
         "construct_id": construct_id,
@@ -67,6 +69,7 @@ def _row(
         "evidence_text": evidence,
         "truth_status_code": truth,
         "available_at": available_at,
+        "construct_row_count": construct_row_count,
     }
 
 
@@ -113,7 +116,9 @@ def test_visible_substring_hit_opens_supporting_post() -> None:
     assert "ilike $1 escape E" in sql
     assert "post_occupational_construct_assertion" in sql
     assert args[0] == like_contains_pattern("Oral")
-    assert args[4] == CANDIDATE_ROW_LIMIT
+    assert args[4] == CANDIDATE_CONSTRUCT_LIMIT
+    assert args[5] == PER_CONSTRUCT_ROW_LIMIT + 1
+    assert "construct.construct_family_code in" in sql
 
 
 def test_hidden_post_does_not_create_a_catalog_hit() -> None:
@@ -199,3 +204,16 @@ def test_payload_omits_internal_extraction_and_hidden_counts() -> None:
     assert "extraction_method" not in hit
     assert "omitted_count" not in payload
     assert payload["next_cursor"] is None
+
+
+def test_oversized_construct_is_omitted_instead_of_hiding_a_truth_conflict() -> None:
+    """A truncated evidence group is unavailable, never falsely conflict-free."""
+    conn = RecordingConnection(
+        [_row(construct_row_count=PER_CONSTRUCT_ROW_LIMIT + 1)]
+    )
+    page = asyncio.run(
+        search_visible_occupational_constructs(
+            conn, query="Oral", can_see_post=_public
+        )
+    )
+    assert page.hits == ()

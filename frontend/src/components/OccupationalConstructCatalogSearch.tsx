@@ -89,6 +89,23 @@ export function OccupationalConstructCatalogSearch({
     }
   }
 
+  async function onMore() {
+    if (!accessToken || !page?.next_cursor) return;
+    setStatus("loading");
+    try {
+      const result = await fetchOccupationalConstructSearch(accessToken, {
+        query: page.query,
+        family: page.family_code || undefined,
+        knowledgeCutoff,
+        cursor: page.next_cursor,
+      });
+      setPage({ ...result, hits: [...page.hits, ...result.hits] });
+      setStatus("ready");
+    } catch {
+      setStatus("error");
+    }
+  }
+
   return (
     <section
       className="occupational-construct-catalog-search"
@@ -123,11 +140,16 @@ export function OccupationalConstructCatalogSearch({
       </form>
       {statusMessage(status)}
       {status === "ready" && page && page.hits.length > 0 ? (
-        <ul className="ticket-list" aria-labelledby="occupational-construct-catalog-search-heading">
-          {page.hits.map((hit) => (
-            <CatalogHitItem key={hit.construct_id} hit={hit} onSelectPost={onSelectPost} />
-          ))}
-        </ul>
+        <>
+          <ul className="ticket-list" aria-labelledby="occupational-construct-catalog-search-heading">
+            {page.hits.map((hit) => (
+              <CatalogHitItem key={hit.construct_id} hit={hit} onSelectPost={onSelectPost} />
+            ))}
+          </ul>
+          {page.next_cursor ? (
+            <button type="button" onClick={onMore}>{text("Show more matching records")}</button>
+          ) : null}
+        </>
       ) : null}
     </section>
   );

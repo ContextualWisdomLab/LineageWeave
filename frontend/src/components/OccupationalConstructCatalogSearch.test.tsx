@@ -102,4 +102,33 @@ describe("OccupationalConstructCatalogSearch", () => {
     );
     expect(screen.getByText("뒷받침하는 기록 열기")).toBeVisible();
   });
+
+  it("continues from next_cursor and retains earlier matches", async () => {
+    const user = userEvent.setup();
+    vi.mocked(fetchOccupationalConstructSearch)
+      .mockResolvedValueOnce({
+        query: "Oral",
+        family_code: null,
+        next_cursor: HIT.construct_iri,
+        hits: [HIT],
+      })
+      .mockResolvedValueOnce({
+        query: "Oral",
+        family_code: null,
+        next_cursor: null,
+        hits: [{ ...HIT, construct_id: "second", preferred_label: "Written Comprehension" }],
+      });
+    render(<OccupationalConstructCatalogSearch accessToken="token" />);
+    await user.type(screen.getByLabelText("Catalog label"), "Oral");
+    await user.click(screen.getByRole("button", { name: "Find matching records" }));
+    await user.click(screen.getByRole("button", { name: "Show more matching records" }));
+    expect(fetchOccupationalConstructSearch).toHaveBeenLastCalledWith("token", {
+      query: "Oral",
+      family: undefined,
+      knowledgeCutoff: undefined,
+      cursor: HIT.construct_iri,
+    });
+    expect(screen.getByText(/Oral Comprehension/)).toBeVisible();
+    expect(screen.getByText(/Written Comprehension/)).toBeVisible();
+  });
 });

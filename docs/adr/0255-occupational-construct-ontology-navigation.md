@@ -41,7 +41,7 @@ Posts would also turn the endpoint into an unauthorized vocabulary oracle.
 - Multiple evidence units collapse only when their truth semantics agree.
 - Catalog search remains a separate increment; this decision exposes only
   assertion-backed nodes in an already-authorized neighborhood. Authorized
-  label search is [ADR 0256](0256-occupational-construct-catalog-search.md).
+  label search is [ADR 0257](0257-occupational-construct-catalog-search.md).
 
 ## Verification
 
