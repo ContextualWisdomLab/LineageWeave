@@ -1079,6 +1079,8 @@ export function fetchWorkerFunctionConstructCatalog(
   accessToken: string,
 ): Promise<WorkerFunctionConstructCatalogPayload> {
   return backendFetch("/api/ontology/worker-function-constructs", accessToken);
+}
+
 export interface OccupationalConstructSearchHit {
   construct_id: string;
   construct_iri: string;
@@ -1116,7 +1118,6 @@ export function fetchOccupationalConstructSearch(
   if (query.cursor) params.set("cursor", query.cursor);
   if (query.limit != null) params.set("limit", String(query.limit));
   return backendFetch(`/api/occupational-constructs/search?${params.toString()}`, accessToken);
-(feat(ontology): search assertion-backed occupational constructs)
 }
 
 export function extractPostKeymen(
