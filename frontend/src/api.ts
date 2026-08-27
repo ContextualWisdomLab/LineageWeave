@@ -1028,6 +1028,98 @@ export function fetchOntologyNeighborhood(
   return backendFetch(`/api/ontology/neighborhood?${params.toString()}`, accessToken);
 }
 
+export interface WorkerFunctionConstructPayload {
+  iri: string;
+  category: "cognitive" | "affective" | "behavioral";
+  label: string;
+  dimension: string;
+  theoretical_basis: string;
+  definition: string;
+}
+
+export interface WorkerFunctionProfilePayload {
+  function_domain: "data" | "people" | "things";
+  function_rank: number;
+  function_label: string;
+  cognitive_demands: WorkerFunctionConstructPayload[];
+  mental_workload_demands: WorkerFunctionConstructPayload[];
+  affective_demands: WorkerFunctionConstructPayload[];
+  emotional_labor_demands: WorkerFunctionConstructPayload[];
+  behavioral_manifestations: WorkerFunctionConstructPayload[];
+  psychomotor_behaviors: WorkerFunctionConstructPayload[];
+  interpersonal_behaviors: WorkerFunctionConstructPayload[];
+}
+
+export interface WorkerFunctionRelationPayload {
+  source_iri: string;
+  source_label: string;
+  predicate_iri: string;
+  predicate_label: string;
+  target_iri: string;
+  target_label: string;
+  target_category: string;
+}
+
+export interface WorkerFunctionConstructCatalogPayload {
+  constructs: Partial<
+    Record<"cognitive" | "affective" | "behavioral", WorkerFunctionConstructPayload[]>
+  >;
+  relations: WorkerFunctionRelationPayload[];
+}
+
+export function fetchWorkerFunctionProfile(
+  accessToken: string,
+  domain: string,
+  rank: number,
+): Promise<WorkerFunctionProfilePayload> {
+  return backendFetch(`/api/ontology/worker-functions/${domain}/${rank}`, accessToken);
+}
+
+export function fetchWorkerFunctionConstructCatalog(
+  accessToken: string,
+): Promise<WorkerFunctionConstructCatalogPayload> {
+  return backendFetch("/api/ontology/worker-function-constructs", accessToken);
+}
+
+export interface OccupationalConstructSearchHit {
+  construct_id: string;
+  construct_iri: string;
+  construct_family_code: string;
+  preferred_label: string;
+  vocabulary_version: string;
+  supporting_post_id: string;
+  supporting_post_title: string;
+  evidence_text: string;
+  truth_status_code: string;
+}
+
+export interface OccupationalConstructSearchPage {
+  query: string;
+  family_code: string | null;
+  next_cursor: string | null;
+  hits: OccupationalConstructSearchHit[];
+}
+
+export interface OccupationalConstructSearchQuery {
+  query: string;
+  family?: string;
+  knowledgeCutoff?: string;
+  cursor?: string;
+  limit?: number;
+}
+
+export function fetchOccupationalConstructSearch(
+  accessToken: string,
+  query: OccupationalConstructSearchQuery,
+): Promise<OccupationalConstructSearchPage> {
+  const params = new URLSearchParams({ q: query.query });
+  if (query.family) params.set("family", query.family);
+  if (query.knowledgeCutoff) params.set("knowledge_cutoff", query.knowledgeCutoff);
+  if (query.cursor) params.set("cursor", query.cursor);
+  if (query.limit != null) params.set("limit", String(query.limit));
+  return backendFetch(`/api/occupational-constructs/search?${params.toString()}`, accessToken);
+}
+
 export function extractPostKeymen(
   accessToken: string,
   postId: string,
@@ -1327,6 +1419,105 @@ export function updateTicketStatus(
     method: "PATCH",
     body: JSON.stringify({ ticket_status_code: ticketStatusCode }),
   });
+}
+
+export interface OccupationRatingItem {
+  element_id: string;
+  element_name: string;
+  scale_id: string;
+  scale_name: string;
+  minimum_value: string;
+  maximum_value: string;
+  category_value: number | null;
+  data_value: string;
+  sample_size: number | null;
+  standard_error: string | null;
+  lower_ci_bound: string | null;
+  upper_ci_bound: string | null;
+  recommend_suppress: boolean | null;
+  not_relevant: boolean | null;
+  source_updated_month: string | null;
+  domain_source_code: string | null;
+}
+
+export interface OccupationRatingProfile {
+  data_release_code: string;
+  source_table_code: string;
+  onetsoc_code: string;
+  source_available: boolean;
+  source: {
+    source_table_name: string;
+    source_artifact_url: string;
+    source_artifact_sha256: string;
+    source_row_count: number;
+    scale_artifact_url: string | null;
+    scale_artifact_sha256: string | null;
+    scale_source_row_count: number | null;
+  } | null;
+  items: OccupationRatingItem[];
+  next_offset: number | null;
+}
+
+export interface OccupationRatingSource {
+  data_release_code: string;
+  release_version: string;
+  source_publisher_name: string;
+  source_license_url: string;
+  source_table_code: string;
+  source_table_name: string;
+  source_artifact_url: string;
+  source_artifact_sha256: string;
+  source_row_count: number;
+}
+
+export function fetchOccupationRatingSources(
+  accessToken: string,
+): Promise<{ sources: OccupationRatingSource[] }> {
+  return backendFetch("/api/occupation-rating-sources", accessToken);
+}
+
+export interface RatingSourceOccupation {
+  onetsoc_code: string;
+  occupation_title: string;
+}
+
+export function fetchRatingSourceOccupations(
+  accessToken: string,
+  dataReleaseCode: string,
+  sourceTableCode: string,
+): Promise<{
+  data_release_code: string;
+  source_table_code: string;
+  source_available: boolean;
+  occupations: RatingSourceOccupation[];
+}> {
+  const params = new URLSearchParams({
+    data_release_code: dataReleaseCode,
+    source_table_code: sourceTableCode,
+  });
+  return backendFetch(`/api/occupation-rating-occupations?${params.toString()}`, accessToken);
+}
+
+export function fetchOccupationRatings(
+  accessToken: string,
+  query: {
+    onetsocCode: string;
+    dataReleaseCode: string;
+    sourceTableCode: string;
+    limit?: number;
+    offset?: number;
+  },
+): Promise<OccupationRatingProfile> {
+  const params = new URLSearchParams({
+    data_release_code: query.dataReleaseCode,
+    source_table_code: query.sourceTableCode,
+    limit: String(query.limit ?? 100),
+    offset: String(query.offset ?? 0),
+  });
+  return backendFetch(
+    `/api/occupations/${encodeURIComponent(query.onetsocCode)}/ratings?${params.toString()}`,
+    accessToken,
+  );
 }
 
 export function fetchPostActivity(

@@ -146,6 +146,21 @@ def test_tenant_settings_migration_is_safe_to_replay() -> None:
     assert "on conflict (id) do nothing" in sql
 
 
+def test_global_ask_migrations_are_safe_to_replay() -> None:
+    """Fresh Compose databases also run the existing-volume migration service."""
+    migrations = Path(__file__).resolve().parents[1] / "migrations"
+    job_sql = (migrations / "0165_global_ask_job.sql").read_text(encoding="utf-8").casefold()
+    scope_sql = (migrations / "0203_global_ask_authorization_scope.sql").read_text(
+        encoding="utf-8"
+    ).casefold()
+
+    assert "create table if not exists global_ask_job" in job_sql
+    assert "create index if not exists global_ask_job_account_idx" in job_sql
+    assert "create index if not exists global_ask_job_queued_idx" in job_sql
+    assert "create table if not exists global_ask_job_corporate_entity_scope" in scope_sql
+    assert "create table if not exists global_ask_job_process_unit_scope" in scope_sql
+
+
 def test_channel_weight_migration_preserves_raw_source_grouping() -> None:
     migration = (
         Path(__file__).resolve().parents[1]

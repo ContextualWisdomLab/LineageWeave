@@ -430,20 +430,21 @@ def seeded_db(demo_analyst_token):
             cur.execute(_LEFTOVER_MAP_COVERAGE_MIGRATION.read_text())
             cur.execute(_GLOBAL_ASK_JOB_MIGRATION.read_text())
             cur.execute(_GLOBAL_ASK_SCOPE_MIGRATION.read_text())
-            # psycopg2 sends one multi-statement execute as one transaction,
-            # which PostgreSQL correctly rejects for CREATE INDEX CONCURRENTLY.
-            migration_sql = "\n".join(
-                line
-                for line in _GLOBAL_ASK_EVIDENCE_SEARCH_MIGRATION.read_text().splitlines()
-                if not line.lstrip().startswith("--")
+            conn.commit()
+            conn.autocommit = True
+            subprocess.run(
+                [
+                    "psql",
+                    "-X",
+                    "-v",
+                    "ON_ERROR_STOP=1",
+                    db_dsn,
+                    "-f",
+                    str(_GLOBAL_ASK_EVIDENCE_SEARCH_MIGRATION),
+                ],
+                check=True,
             )
-            for statement in migration_sql.split(";"):
-                sql = statement.strip()
-                if sql:
-                    cur.execute(sql)
-            for statement in _GLOBAL_ASK_EVIDENCE_SEARCH_MIGRATION.read_text().split(";\n\n"):
-                if statement.strip():
-                    cur.execute(statement + ";")
+            conn.autocommit = False
             cur.execute(_GLOBAL_ASK_KNOWLEDGE_CUTOFF_MIGRATION.read_text())
             cur.execute(_GLOBAL_ASK_PUBLIC_VERIFICATION_MIGRATION.read_text())
             cur.execute(_EVENT_OCCURRED_AT_MIGRATION.read_text())
@@ -455,7 +456,6 @@ def seeded_db(demo_analyst_token):
             cur.execute(_LEFTOVER_MAP_UNEXPLAINED_MIGRATION.read_text())
             cur.execute(_LEFTOVER_MAP_CROSS_SHARE_MIGRATION.read_text())
             cur.execute(_LEFTOVER_MAP_RECONSTRUCTION_MIGRATION.read_text())
-            cur.execute(_ONTOLOGY_TRUTH_STATUS_MIGRATION.read_text())
             cur.execute(_VOICE_TAXONOMY_MIGRATION.read_text())
             cur.execute(_VOICE_ASSIGNMENT_MIGRATION.read_text())
             cur.execute(_VOICE_HISTORY_MIGRATION.read_text())

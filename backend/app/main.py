@@ -30,7 +30,7 @@ from uuid import UUID
 
 import asyncpg
 import redis.asyncio as redis
-from fastapi import Depends, FastAPI, HTTPException, Query, status
+from fastapi import Depends, FastAPI, HTTPException, Path, Query, status
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
@@ -128,6 +128,10 @@ from backend.app.ontology_neighborhood_ingestion import (
     parse_allowed_property_query,
     visible_ontology_neighborhood,
 )
+from backend.app.iopsy_ontology_api import (
+    construct_catalog_payload,
+    worker_function_profile_payload,
+)
 from backend.app.post_chat_ingestion import (
     fetch_persisted_chat,
     fetch_persisted_chats,
@@ -144,11 +148,23 @@ from backend.app.post_content_queue import (
 from backend.app.occupational_construct_ingestion import (
     load_occupational_construct_assertions,
 )
+from backend.app.occupational_construct_search import (
+    OccupationalConstructSearchError,
+    occupational_construct_search_error_detail,
+    occupational_construct_search_http_status,
+    search_page_to_payload,
+    search_visible_occupational_constructs,
+)
 from backend.app.post_content_worker import run_post_content_worker
 from backend.app.post_eligibility import SOURCE_POST_ELIGIBILITY_SQL, source_post_visible
 from backend.app.post_evaluation_ingestion import (
     fetch_post_evaluation,
     ingest_post_evaluation,
+)
+from backend.app.occupation_rating_ingestion import (
+    fetch_occupation_rating_sources,
+    fetch_occupation_ratings,
+    fetch_rating_source_occupations,
 )
 from backend.app.post_summary_ingestion import (
     fetch_persisted_summary,
@@ -2440,6 +2456,137 @@ async def read_ontology_neighborhood(
     except OntologyNeighborhoodError as exc:
         raise HTTPException(neighborhood_error_http_status(exc), neighborhood_error_detail(exc)) from None
     return payload
+
+
+@app.get("/api/ontology/worker-functions/{domain}/{rank}")
+async def read_worker_function_psychology(
+    domain: str,
+    rank: int,
+    account: CurrentAccount = Depends(get_current_account),
+) -> dict[str, Any]:
+    """I/O-Psychology demand profile for one DOT/FJA worker function (ADR 0251).
+
+    Serves the grounded cognitive, affective, and behavioral construct
+    relations declared in the published ontology. An undeclared domain/rank
+    pair is an honest 404 -- never a fabricated profile. Unrecognized
+    domains are client errors.
+    """
+    _require_post_read(account)
+    if rank < 0 or rank > 100 or domain not in {"data", "people", "things"}:
+        raise HTTPException(
+            status.HTTP_422_UNPROCESSABLE_CONTENT,
+            "domain must be one of data, people, things; rank within the published table extents",
+        )
+    payload = worker_function_profile_payload(domain, rank)
+    if payload is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "undeclared worker function")
+    return payload
+
+
+@app.get("/api/ontology/worker-function-constructs")
+async def read_worker_function_construct_catalog(
+    account: CurrentAccount = Depends(get_current_account),
+) -> dict[str, Any]:
+    """Cognitive, affective, and behavioral construct catalog (ADR 0251).
+
+    Returns the deterministic typed construct groups and their nomological
+    relations from the published ontology, for ontology/evidence surfaces.
+    """
+    _require_post_read(account)
+    return construct_catalog_payload()
+
+
+@app.get("/api/occupations/{onetsoc_code}/ratings")
+async def read_occupation_ratings(
+    onetsoc_code: str = Path(..., pattern=r"^[0-9]{2}-[0-9]{4}\.[0-9]{2}$"),
+    data_release_code: str = Query(
+        ..., min_length=1, max_length=63, pattern=r"^[a-z0-9][a-z0-9.-]*$"
+    ),
+    source_table_code: str = Query(
+        ..., min_length=1, max_length=63, pattern=r"^[a-z][a-z0-9_]*$"
+    ),
+    limit: int = Query(100, ge=1, le=500),
+    offset: int = Query(0, ge=0, le=10000),
+    _account: CurrentAccount = Depends(get_current_account),
+    pool: asyncpg.Pool = Depends(get_pool),
+) -> dict[str, object]:
+    """Return one authenticated, provenance-bearing occupation source profile."""
+    async with pool.acquire() as conn:
+        return await fetch_occupation_ratings(
+            conn,
+            data_release_code=data_release_code,
+            source_table_code=source_table_code,
+            onetsoc_code=onetsoc_code,
+            limit=limit,
+            offset=offset,
+        )
+
+
+@app.get("/api/occupation-rating-sources")
+async def read_occupation_rating_sources(
+    _account: CurrentAccount = Depends(get_current_account),
+    pool: asyncpg.Pool = Depends(get_pool),
+) -> dict[str, list[dict[str, object]]]:
+    """Return the authenticated catalog of imported occupation-rating sources."""
+    async with pool.acquire() as conn:
+        return await fetch_occupation_rating_sources(conn)
+
+
+@app.get("/api/occupation-rating-occupations")
+async def read_rating_source_occupations(
+    data_release_code: str = Query(
+        ..., min_length=1, max_length=63, pattern=r"^[a-z0-9][a-z0-9.-]*$"
+    ),
+    source_table_code: str = Query(
+        ..., min_length=1, max_length=63, pattern=r"^[a-z][a-z0-9_]*$"
+    ),
+    _account: CurrentAccount = Depends(get_current_account),
+    pool: asyncpg.Pool = Depends(get_pool),
+) -> dict[str, object]:
+    """Return occupations represented in one imported rating source."""
+    async with pool.acquire() as conn:
+        return await fetch_rating_source_occupations(
+            conn,
+            data_release_code=data_release_code,
+            source_table_code=source_table_code,
+        )
+
+
+@app.get("/api/occupational-constructs/search")
+async def search_occupational_constructs(
+    q: str = Query(..., min_length=1),
+    family: str | None = Query(None),
+    knowledge_cutoff: str | None = Query(None),
+    cursor: str | None = Query(None),
+    limit: int | None = Query(None),
+    account: CurrentAccount = Depends(get_current_account),
+    pool: asyncpg.Pool = Depends(get_pool),
+) -> dict[str, Any]:
+    """Assertion-backed catalog matches the reviewer may already open."""
+    _require_post_read(account)
+    cutoff_clock = None
+    if knowledge_cutoff:
+        try:
+            cutoff_clock = parse_as_of_clock(knowledge_cutoff)
+        except ValueError as exc:
+            raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, str(exc)) from exc
+    try:
+        async with pool.acquire() as conn:
+            page = await search_visible_occupational_constructs(
+                conn,
+                query=q,
+                family_code=family,
+                knowledge_cutoff=cutoff_clock,
+                cursor=cursor,
+                limit=limit,
+                can_see_post=lambda row: _can_see_post(account, row),
+            )
+    except OccupationalConstructSearchError as exc:
+        raise HTTPException(
+            occupational_construct_search_http_status(exc),
+            occupational_construct_search_error_detail(exc),
+        ) from None
+    return search_page_to_payload(page)
 
 
 @app.get("/api/posts/{post_id}/counterparties")

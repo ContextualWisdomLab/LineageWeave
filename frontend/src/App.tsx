@@ -105,6 +105,7 @@ import { TeppAcceptedReceipt } from "./components/TeppAcceptedReceipt";
 import { chatEvidenceKindLabel } from "./evidenceKindLabels";
 import { WorkspaceNav, type WorkspaceDestination } from "./components/WorkspaceNav";
 import { OperationsDashboard } from "./components/OperationsDashboard";
+import { OccupationRatingProfile } from "./components/OccupationRatingProfile";
 import { initialWorkspaceDestination } from "./gnbChrome";
 import { LineageDag } from "./LineageDag";
 import { PostBody } from "./PostBody";
@@ -3050,8 +3051,7 @@ function analysisRunCanStart(run: AnalysisRun): boolean {
     (run.run_kind_code === "analysis_run_lineage" ||
       run.run_kind_code === "analysis_run_tepp" ||
       run.run_kind_code === "analysis_run_topic_lineage") &&
-    (run.status_code === "analysis_status_pending" ||
-      run.status_code === "analysis_status_running")
+    run.status_code === "analysis_status_pending"
   );
 }
 
@@ -5318,13 +5318,16 @@ export default function App({ showLabPanels = false }: { showLabPanels?: boolean
       />
       <main>
         {destination === "dashboard" ? (
-          <OperationsDashboard
-            accessToken={accessToken}
-            onOpenPost={(postId) => {
-              setPostToOpen(postId);
-              setDestination("board");
-            }}
-          />
+          <>
+            <OperationsDashboard
+              accessToken={accessToken}
+              onOpenPost={(postId) => {
+                setPostToOpen(postId);
+                setDestination("board");
+              }}
+            />
+            <OccupationRatingProfile accessToken={accessToken} />
+          </>
         ) : null}
         {destination === "board" ? (
           <PostList

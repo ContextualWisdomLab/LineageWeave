@@ -292,6 +292,13 @@ and are not a leftover score. Complete-case coverage (ADR 0168) persists to
 `report_leftover_map_coverage` and captions the pair list with how
 many scored posts entered the map.
 
+Authorized occupational construct catalog search (ADR 0257) matches official
+O*NET preferred labels or descriptions only when a source-eligible, ABAC-visible
+Post supports that construct. Hidden Posts, withdrawn truth, and conflicting
+truth statuses omit the hit. Clicking a hit opens that Post. Do not return
+catalog rows as a vocabulary oracle, scores, or person traits. Continuation
+is a construct-IRI keyset; never OFFSET.
+
 Global Ask relative-time filters (ADR 0150 / 0202) bind to
 `source_post.event_occurred_at` and fall back to `created_at` only
 when the event instant is missing. Cited evidence names **Time
