@@ -61,14 +61,15 @@ only aggregate, non-identifying evidence to this repository.
 
 ### Exact open-PR boundary
 
-At this snapshot there were 41 open PRs and 11 open issues. The exact-head
-inventory in section 1 is authoritative for this snapshot. Every open head
-remained blocked on hosted gates and/or independent review. These observations
-are not merge readiness. Re-fetch exact heads,
+At this snapshot there were 35 open PRs and 12 open issues. The compact
+exact-head inventory in section 1 is authoritative for this snapshot. Main-
+target heads remained blocked on hosted gates and/or independent review, while
+stacked heads require protected parent delivery first. These observations are
+not merge readiness. Re-fetch exact heads,
 unresolved threads, checks, approvals, rulesets, and merge SHA before any
 lifecycle claim.
 
-> Audit snapshot: 2026-08-27 06:57 KST (refreshed by the autonomous merge
+> Audit snapshot: 2026-08-27 13:41 KST (refreshed by the autonomous merge
 > loop). This repository records synthetic fixtures and aggregate,
 > non-identifying runtime evidence only. Open PRs and local checks are not
 > protected-default-branch release evidence. Identifying post identifiers,
@@ -78,11 +79,49 @@ lifecycle claim.
 ## 1. Exact-head and governance evidence
 
 The protected default branch is `ff7431bd1851c03e737808d22c6a2d43968582f9`
-at this refresh. The live queue contains 41 open PRs (21 targeting `main`,
-20 stacked on non-default parents) and 11
-open issues. The exact-head inventory below supersedes older per-PR snapshots
-elsewhere in this document; those older rows remain useful historical delivery
-context only.
+at this refresh. The live queue contains 35 open PRs (19 targeting `main`,
+16 stacked on non-default parents) and 12 open issues. The compact live index
+below is the exact-head authority for lifecycle state at this snapshot. The
+longer narrative rows that follow remain requirement evidence, but their heads
+are historical and must not be used for a merge decision.
+
+| PR | Exact observed head | Base | Observed lifecycle state |
+| ---: | --- | --- | --- |
+| #749 | `634b2601` | `feat/onet-rating-occupation-filter` | clean stack; auto-merge off |
+| #747 | `e20673a0` | `feat/operations-candidate-priority` | clean stack; auto-merge off |
+| #746 | `17e87747` | `feat/onet-rating-source-catalog` | clean stack; auto-merge off |
+| #745 | `771cc889` | `feat/onet-occupation-selector` | clean stack; auto-merge off |
+| #743 | `85af0fca` | `feat/onet-rating-evidence-ui` | clean stack; auto-merge off |
+| #742 | `72fe9b8b` | `feat/operations-candidate-priority` | clean stack; auto-merge off |
+| #740 | `36aa851f` | `feat/onet-occupation-ratings-contract` | clean stack; auto-merge off |
+| #733 | `822059ca` | `feat/io-psych-construct-extraction` | clean stack; auto-merge off |
+| #732 | `8d50f454` | `feat/soc-2018-full-hierarchy` | clean stack; auto-merge off |
+| #726 | `eeea3bcc` | `feat/io-psych-construct-catalog` | clean stack; auto-merge off |
+| #720 | `dda0531d` | `main` | blocked on required review; auto-merge on |
+| #719 | `396b712c` | `feat/io-psych-construct-ontology` | clean stack; auto-merge off |
+| #718 | `962022fe` | `feat/fja-worker-function-ontology` | clean stack; auto-merge off |
+| #717 | `7a259a42` | `feat/voice-of-x-complete-taxonomy` | clean stack; parent #713 first |
+| #716 | `65e1dcdc` | `fix/structured-workflow-exact-pin` | clean stack; auto-merge off |
+| #713 | `850494c3` | `main` | blocked on required review; auto-merge on |
+| #711 | `27f5ba38` | `feat/dashboard-case-metrics` | clean stack; auto-merge off |
+| #709 | `8ef4090c` | `main` | blocked on required review; auto-merge on |
+| #704 | `7b9a70ee` | `main` | blocked on required review; auto-merge on |
+| #702 | `4325941e` | `main` | repair checks/review pending; auto-merge on |
+| #701 | `cc3351a9` | `main` | blocked on required review; auto-merge on |
+| #700 | `1bc99eca` | `main` | blocked on required review; auto-merge on |
+| #680 | `d7f3e609` | `main` | blocked on required review; auto-merge on |
+| #679 | `135dfe7c` | `main` | blocked on required review; auto-merge on |
+| #672 | `a3e87a89` | `main` | blocked on required review; auto-merge on |
+| #668 | `234f975b` | `main` | blocked on required review; auto-merge on |
+| #667 | `e15c507d` | `main` | blocked on required review; auto-merge on |
+| #658 | `5f3bc384` | `main` | blocked on required review; auto-merge on |
+| #657 | `355a5796` | `main` | blocked on required review; auto-merge on |
+| #644 | `f53dd28e` | `main` | blocked on required review; auto-merge on |
+| #643 | `bae04cff` | `main` | blocked on required review; auto-merge on |
+| #640 | `cede3add` | `main` | review required by ruleset; auto-merge on |
+| #639 | `2f4b1bff` | `main` | blocked on required review; auto-merge on |
+| #632 | `24262a99` | `main` | blocked on required review; auto-merge on |
+| #629 | `b721b0f2` | `main` | blocked on required review; auto-merge on |
 
 | PR | Exact observed head | Merge/check state at this snapshot |
 | ---: | --- | --- |
