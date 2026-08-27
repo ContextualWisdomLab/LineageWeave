@@ -8,43 +8,12 @@ All notable changes to this project are documented here. Format follows
 
 ### Added
 
-- Evidence-bound occupational construct semantics now keep cognitive
-  abilities, work styles, work activities, affective reactions, performance
-  behaviors, and FJA worker functions distinct. Record-to-construct links
-  require a reified evidence span and PROV-O derivation/time; unsupported
-  DPT-to-psychology crosswalks and local scores remain unavailable (ADR 0248).
-- Versioned occupational construct vocabularies and semantic-unit assertions
-  now persist in normalized tables. Database and application validation require
-  same-Post verbatim evidence, and authorized Post detail exposes provenance
-  without internal identifiers or numerical scores (ADR 0249).
-- An operator-only O*NET 31.0 catalog synchronizer now imports every official
-  cognitive-ability, work-style, and work-activity Content Model element with
-  stable IRIs, descriptions, attribution, and a deterministic source digest;
-  conflicting release metadata fails closed (ADR 0250).
-- Post-content ingestion now traverses bounded official O*NET hierarchy nodes
-  through contextual-orchestrator's multi-agent conduct workflow and persists
-  only exact catalog IRIs with verbatim semantic-unit evidence. A digest-bound
-  run ledger preserves successful empty extraction without inventing a signal
-  (ADR 0253).
-- Authorized Post detail now shows O*NET work evidence with its verbatim source
-  span, explicit inference status, and official definition action. Complete
-  empty, processing, and unavailable states stay distinct and localized rather
-  than collapsing into a blank panel. Historical cutoff reads omit live
-  assertions and direct the reviewer to the cutoff-known body (ADR 0254).
-- Assertion-backed occupational constructs now appear in the authorized
-  ontology neighborhood with persisted truth status, cutoff-safe availability,
-  exact Post evidence, and fail-closed conflicting truth. The projection
-  duplicates no `knowledge_graph_edge` row and creates no person trait or score
-  (ADR 0255).
 
-- The DOT/FJA Data/People/Things worker-function taxonomy is now published
-  in the canonical ontology: all 24 worker functions carry the official
-  Dictionary of Occupational Titles Appendix B definitions verbatim, their
-  definitional ordinal ranks (ADR 0232). No DOT-to-O*NET or Fleishman
-  crosswalk is inferred without an authoritative mapping source. A
-  deterministic application read
-  model (`lineageweave.worker_function_taxonomy`) exposes fail-closed
-  lookups; ranks are scale positions and are never used as weights.
+- Expanded Voice-of-X post taxonomy (ADR 0246): the governed `voc_type`
+  scheme adds Voice of Supplier, Employee, Business, Regulator, Investor,
+  Society, and Process as source-post categories. Ontology SKOS concepts and
+  idempotent migration 0235 stay in round-trip sync; counterparty relationships
+  remain a separate evidence contract.
 - Persist explicit paragraph, list, table, MathML formula, and caller-parsed
   conversation-turn semantic-unit kinds without inferring absent boundaries.
 - Event Lineage now persists each reconstructed connection's independent
@@ -66,8 +35,9 @@ All notable changes to this project are documented here. Format follows
 - Node-attribute datatype properties grounded only in real schema columns
   (`postTitle`, `postBody`, `eventOccurredAt`, `personName`,
   `lastKnownJobTitle`, `entityName`, `entityCode`, shared domain-free
-  `createdAt`/`updatedAt`), a SKOS post-type scheme formalizing the governed
-  five-value `voc_type` vocabulary under the round-trip check, and logical
+  `createdAt`/`updatedAt`), a SKOS post-type scheme formalizing the initial
+  five-value `voc_type` vocabulary plus ADR 0246's seven additions under the
+  round-trip check, and logical
   constraints: `OurSidePerson owl:disjointWith CounterpartyPerson` plus the
   `hasAffiliate` inverse of `affiliatedWith` (ADR 0207).
 

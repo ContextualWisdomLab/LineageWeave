@@ -1,5 +1,63 @@
 # Product & Technical Gap Baseline
 
+> Voice-of-X delivery snapshot: 2026-08-27 KST. Protected `main` was
+> `ff7431bd1851c03e737808d22c6a2d43968582f9`; PR #713 was
+> `fea73e19c8b9662b4e6c3c842f1edaa6a3ef6d63`. This candidate and the
+> historical evidence below are not protected-main release evidence.
+
+## Voice-of-X product and technical gap
+
+ADR 0246 and PR #713 add Supplier, Employee, Business, Regulator, Investor,
+Society, and Process to the original Customer, Customer's Customer,
+Competitor, Market, and Partner source-post vocabulary. The migration,
+published SKOS concepts, product requirements, changelog, and ontology
+round-trip tests agree on the twelve codes. The design is organization-type
+neutral: public bodies, nonprofits, communities, and automated processes do
+not need to be forced into a B2B2C customer chain.
+
+The phrase "all Voice-of-X combinations" does not have a standards-backed
+finite enumeration. ISO's own stakeholder-category guidance says that the
+relevant category set varies by committee and subject; ISO 26000 requires
+stakeholder identification and engagement across organizational contexts;
+AA1000SES requires an inclusive, continuing identification process; and
+Mitchell, Agle, and Wood (1997) model stakeholder salience from combinations
+of power, legitimacy, and urgency rather than a fixed industry-role list.
+Accordingly, ADR 0246 keeps the controlled vocabulary extensible and refuses
+keyword inference, defaults, invented weights, or an asserted exhaustive
+cross-product.
+
+The remaining user-visible gap is evidence-bearing composition. A post still
+has one source-provided `voc_type_code`; the product cannot yet represent a
+single record that intentionally carries multiple independently evidenced
+voices, nor expose the combination in filters, exports, or the ontology
+neighborhood. Do not solve this by adding every Cartesian-product code. The
+acceptance boundary for a later ADR is a normalized, provenance-bearing
+multi-voice association that:
+
+1. preserves the imported primary voice without reclassification;
+2. records each additional voice with its own source/evidence and truth state;
+3. keeps post voice distinct from named-counterparty relationship, actor role,
+   topic, channel, lifecycle, and stakeholder-salience attributes;
+4. returns only authorized associations through API, JSON-LD, CSV, filters,
+   and UI; and
+5. proves zero-, one-, and multi-voice states with synthetic fixtures,
+   migration replay, ontology/SHACL, API, accessibility, and Storybook edge
+   tests before any release claim.
+
+At this snapshot the repository had 23 open PRs and 10 open issues. PR #713
+was `MERGEABLE` but policy-blocked: exact-head backend, frontend, CodeQL,
+ontology-publication, Semgrep, OSV, Trivy, Scorecard, Noema, Devin, and
+CodeRabbit checks were successful; `coverage-source-tree` was queued; Strix
+failed closed with `STRIX_PROVIDER_UNAVAILABLE`; and an independent approval
+was still required. Auto-merge remains enabled. No self-approval, admin bypass,
+or stale-head check transfer is permitted.
+
+References for this gap use the APA 7 entries in ADR 0246. Current supporting
+standards pages were rechecked on 2026-08-27: ISO 26000:2010 remains applicable
+to all organization types and AA1000SES v3 is under development for a planned
+2027 release, so the repository continues to cite the published AA1000SES
+(2015) contract rather than treating the draft as adopted policy.
+
 > Dashboard delivery snapshot: 2026-08-26 07:15 KST. Protected `main` was
 > `494b54e2245040bcf02b45376f221c37cd437e76`. This local branch is not
 > protected-main release evidence.

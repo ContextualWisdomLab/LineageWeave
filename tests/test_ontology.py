@@ -37,23 +37,35 @@ from lineageweave.ontology import (
     ontology_annotations,
 )
 
-_SEED_SCRIPT_PATH = Path(__file__).resolve().parents[1] / "scripts" / "seed_demo_data.py"
+_SEED_SCRIPT_PATH = (
+    Path(__file__).resolve().parents[1] / "scripts" / "seed_demo_data.py"
+)
 
 # Several covered categories add lookup rows via their own migration
 # SQL rather than literally embedded in seed_demo_data.py's own source
 # text -- read alongside it below so the round-trip still sees them:
 # 0012 (ADR 0006: prov_person/prov_organization), 0014 (ADR 0007:
 # prov_team), 0016 (ADR 0009: node_team/edge_mention_team/
-# edge_team_affiliation/edge_mention_organization), and 0042 (ADR 0207:
-# the five governed voc_type post-type codes), and 0220 (ADR 0222:
-# node_project/edge_mention_project), and 0241 (ADR 0255: assertion-backed
-# occupational construct navigation).
+
+# edge_team_affiliation/edge_mention_organization), 0042 (ADR 0207:
+# the original five voc_type post-type codes) + 0235 (ADR 0246: the
+# seven further Voice-of-X post-type codes), and
+# 0220 (ADR 0222: node_project/edge_mention_project).
 _ADDITIONAL_LOOKUP_MIGRATION_PATHS = (
-    Path(__file__).resolve().parents[1] / "migrations" / "0060_role_responsibility_agent_type.sql",
-    Path(__file__).resolve().parents[1] / "migrations" / "0014_role_responsibility_team_actor_type.sql",
-    Path(__file__).resolve().parents[1] / "migrations" / "0016_cross_post_actor_identity.sql",
+    Path(__file__).resolve().parents[1]
+    / "migrations"
+    / "0060_role_responsibility_agent_type.sql",
+    Path(__file__).resolve().parents[1]
+    / "migrations"
+    / "0014_role_responsibility_team_actor_type.sql",
+    Path(__file__).resolve().parents[1]
+    / "migrations"
+    / "0016_cross_post_actor_identity.sql",
     Path(__file__).resolve().parents[1] / "migrations" / "0042_voc_type_vocabulary.sql",
     Path(__file__).resolve().parents[1] / "migrations" / "0220_ontology_project_node.sql",
+    Path(__file__).resolve().parents[1]
+    / "migrations"
+    / "0235_voice_of_x_post_taxonomy.sql",
     Path(__file__).resolve().parents[1]
     / "migrations"
     / "0241_occupational_construct_ontology_navigation.sql",
@@ -136,7 +148,9 @@ def test_knowledge_graph_lookup_constants_are_declared_in_the_ontology() -> None
         EDGE_SUPPORTS_OCCUPATIONAL_CONSTRUCT,
         EDGE_CO_MENTION,
     ):
-        assert code in declared, f"{code} is written by knowledge_graph.py but missing from lineageweave-kg.ttl"
+        assert code in declared, (
+            f"{code} is written by knowledge_graph.py but missing from lineageweave-kg.ttl"
+        )
 
 
 def test_iri_for_lookup_code_resolves_a_real_term() -> None:
@@ -154,7 +168,10 @@ def test_ontology_annotations_carry_iri_and_label_for_a_node_type() -> None:
         "ontology_label": "Person",
     }
     assert ontology_annotations("node_post")["ontology_label"] == "Post"
-    assert ontology_annotations("node_corporate_entity")["ontology_label"] == "Corporate entity"
+    assert (
+        ontology_annotations("node_corporate_entity")["ontology_label"]
+        == "Corporate entity"
+    )
 
 
 def test_ontology_annotations_use_skos_preferred_labels_for_concepts() -> None:
@@ -168,8 +185,17 @@ def test_ontology_annotations_use_skos_preferred_labels_for_concepts() -> None:
         "voco": "Voice of Competitor",
         "vom": "Voice of Market",
         "vop": "Voice of Partner",
+        "vos": "Voice of Supplier",
+        "voe": "Voice of Employee",
+        "vob": "Voice of Business",
+        "vor": "Voice of Regulator",
+        "voi": "Voice of Investor",
+        "voso": "Voice of Society",
+        "vops": "Voice of Process",
     }
-    assert {code: ontology_annotations(code)["ontology_label"] for code in expected} == expected
+    assert {
+        code: ontology_annotations(code)["ontology_label"] for code in expected
+    } == expected
 
 
 def test_every_declared_lookup_term_has_one_runtime_label() -> None:
@@ -228,7 +254,11 @@ def test_prov_agent_type_terms_resolve_and_subclass_real_prov_o() -> None:
     assert iri_for_lookup_code("prov_person") == str(LW.RoleActorPerson)
     assert iri_for_lookup_code("prov_organization") == str(LW.RoleActorOrganization)
     assert (LW.RoleActorPerson, RDFS.subClassOf, URIRef(prov.Person)) in graph
-    assert (LW.RoleActorOrganization, RDFS.subClassOf, URIRef(prov.Organization)) in graph
+    assert (
+        LW.RoleActorOrganization,
+        RDFS.subClassOf,
+        URIRef(prov.Organization),
+    ) in graph
 
 
 def test_prov_team_type_resolves_and_subclasses_real_org_ontology() -> None:
@@ -289,7 +319,11 @@ def test_semantic_project_terms_preserve_post_evidence_and_confidence() -> None:
     )
     assert (LW.mentionsProject, RDFS.domain, LW.Post) in graph
     assert (LW.mentionsProject, RDFS.range, LW.Project) in graph
-    assert (LW.mentionsProject, RDFS.label, Literal("mentions project", lang="en")) in graph
+    assert (
+        LW.mentionsProject,
+        RDFS.label,
+        Literal("mentions project", lang="en"),
+    ) in graph
     assert (LW.projectEvidence, RDFS.domain, LW.ProjectMention) in graph
     assert (LW.projectEvidence, RDFS.range, XSD.string) in graph
     assert (LW.semanticConfidence, RDFS.range, XSD.decimal) in graph
@@ -374,8 +408,9 @@ def test_shared_timestamps_declare_no_domain_to_avoid_multi_domain_entailment() 
 
 
 def test_post_type_scheme_covers_the_governed_voc_vocabulary() -> None:
-    """ADR 0207 decision 8: the five seeded voc_type codes become SKOS
-    concepts; vos exists only as rel_vos and must NOT appear here.
+    """ADR 0246: the expanded twelve-code source-post voice vocabulary
+    becomes SKOS concepts; every seeded code resolves, including vos,
+    which ADR 0207 had restricted to its rel_vos relationship mirror.
     """
     graph = load_ontology()
     scheme_members = {
@@ -387,11 +422,36 @@ def test_post_type_scheme_covers_the_governed_voc_vocabulary() -> None:
         (LW.voiceOfCompetitorType, "voco"),
         (LW.voiceOfMarketType, "vom"),
         (LW.voiceOfPartnerType, "vop"),
+        (LW.voiceOfSupplierType, "vos"),
+        (LW.voiceOfEmployeeType, "voe"),
+        (LW.voiceOfBusinessType, "vob"),
+        (LW.voiceOfRegulatorType, "vor"),
+        (LW.voiceOfInvestorType, "voi"),
+        (LW.voiceOfSocietyType, "voso"),
+        (LW.voiceOfProcessType, "vops"),
     }
     for concept, code in expected:
         assert concept in scheme_members, str(concept)
         assert iri_for_lookup_code(code) == str(concept)
     assert len(scheme_members) == len(expected)
     seeded = _seeded_lookup_codes_for_covered_categories()
-    assert {"voc", "vocc", "voco", "vom", "vop"} <= seeded
-    assert iri_for_lookup_code("vos") is None  # relationship type only
+    assert {
+        "voc",
+        "vocc",
+        "voco",
+        "vom",
+        "vop",
+        "vos",
+        "voe",
+        "vob",
+        "vor",
+        "voi",
+        "voso",
+        "vops",
+    } <= seeded
+
+
+def test_post_voice_additions_do_not_invent_counterparty_relationships() -> None:
+    """ADR 0246 keeps source-post voice and named-organization relations distinct."""
+    for code in ("rel_voe", "rel_vob", "rel_vor", "rel_voi", "rel_voso", "rel_vops"):
+        assert iri_for_lookup_code(code) is None
