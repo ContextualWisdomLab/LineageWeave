@@ -67,6 +67,11 @@ _OCCUPATIONAL_EXTRACTION_MIGRATION = (
     / "migrations"
     / "0240_occupational_construct_extraction_run.sql"
 )
+_SOURCE_CONVERSATION_TURN_EVIDENCE_MIGRATION = (
+    Path(__file__).resolve().parents[1]
+    / "migrations"
+    / "0233_source_conversation_turn_evidence.sql"
+)
 _SOURCE_STATE_MIGRATION = (
     Path(__file__).resolve().parents[1] / "migrations" / "0033_source_state_provenance.sql"
 )
@@ -190,6 +195,7 @@ def schema_db():
                 cur.execute(_OCCUPATIONAL_CONSTRUCT_MIGRATION.read_text())
                 cur.execute(_OCCUPATIONAL_CATALOG_MIGRATION.read_text())
                 cur.execute(_OCCUPATIONAL_EXTRACTION_MIGRATION.read_text())
+                cur.execute(_SOURCE_CONVERSATION_TURN_EVIDENCE_MIGRATION.read_text())
                 cur.execute(_PROJECT_MENTION_MIGRATION.read_text())
                 cur.execute(_SOURCE_STATE_MIGRATION.read_text())
                 cur.execute(_SOURCE_CONTEXT_MIGRATION.read_text())

@@ -346,6 +346,13 @@ export interface CitedPostRef {
   live_changed_after_cutoff?: boolean;
   historical_body_unavailable?: boolean;
   unavailable_channels?: string[];
+  evidence_open_action?: EvidenceOpenAction;
+}
+
+export interface EvidenceOpenAction {
+  action_kind: "open_cited_content_unit";
+  post_id: string;
+  unit_index: number;
 }
 
 export interface CitedPostEvidenceFact {

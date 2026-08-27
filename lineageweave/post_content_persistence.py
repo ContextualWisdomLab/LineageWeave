@@ -16,8 +16,8 @@ from typing import Any, TypeVar
 
 from .chunking import Chunk, chunk_by_source_body
 from .embedding_client import EmbeddingClient
-from .image_content import ImageContentClient, ImageDescription
 from .http_client import HttpClientError, json_request_body
+from .image_content import ImageContentClient, ImageDescription
 from .post_content_normalization import ImageContentResult, normalize_post_body
 from .post_structure import (
     ContextualOrchestratorPostStructureClient,
@@ -137,10 +137,15 @@ async def persist_post_content(
     ``semantic_units`` admits caller-parsed source boundaries such as RFC 5322
     conversation turns without inferring them from an opaque body string.
     """
-    normalized = normalized_result or normalize_post_body(body, vision_client)
-    chunks = semantic_units if semantic_units is not None else chunk_by_source_body(body)
-    image_results = {result.chunk_index: result for result in normalized.image_results}
-    formatting = {hint.chunk_index: hint.style for hint in normalized.formatting_hints}
+    if semantic_units is None:
+        normalized = normalized_result or normalize_post_body(body, vision_client)
+        chunks = chunk_by_source_body(body)
+        image_results = {result.chunk_index: result for result in normalized.image_results}
+        formatting = {hint.chunk_index: hint.style for hint in normalized.formatting_hints}
+    else:
+        chunks = semantic_units
+        image_results = {}
+        formatting = {}
 
     prepared: list[tuple[Chunk, str, str | None]] = []
     for chunk in chunks:
@@ -312,8 +317,9 @@ async def persist_post_content(
             unit_id = await conn.fetchval(
                 """
                 insert into post_content_unit
-                    (post_id, unit_index, unit_kind_code, unit_label, unit_text, inline_style)
-                values ($1, $2, $3, $4, $5, $6)
+                    (post_id, unit_index, unit_kind_code, unit_label, unit_text,
+                     inline_style, source_evidence_reference)
+                values ($1, $2, $3, $4, $5, $6, $7)
                 returning post_content_unit_id
                 """,
                 post_id,
@@ -322,6 +328,7 @@ async def persist_post_content(
                 chunk.label,
                 unit_text,
                 style,
+                chunk.source_evidence_reference,
             )
             unit_ids[chunk.index] = str(unit_id)
             structure = structure_by_index.get(chunk.index)

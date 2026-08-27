@@ -1,4 +1,5 @@
 import asyncio
+import json
 import uuid
 from datetime import UTC, datetime
 from pathlib import Path
@@ -8,11 +9,13 @@ import pytest
 
 from lineageweave.adjudication_client import AdjudicationClientError
 from scripts.import_postgresql_posts import (
+    SOURCE_CONVERSATION_TURN_KIND,
     _lineage_grouping_values,
     _lineage_rebuild_summary,
     _normalize_voc_type,
     _parser,
     _source_code_matches,
+    _source_conversation_turn_chunks,
     _source_post_id,
     _validate_corporate_entity_scope,
     _validate_source_mapping,
@@ -39,6 +42,83 @@ def test_importer_keeps_rows_when_adjudication_response_is_unusable(
     assert "imported source rows remain persisted" in str(
         summary["lineage_rebuild_unavailable"]
     )
+
+
+def _turn_envelope() -> dict[str, object]:
+    """Return a synthetic, caller-parsed source-turn contract fixture."""
+    return {
+        "kind": SOURCE_CONVERSATION_TURN_KIND,
+        "version": 1,
+        "turns": [
+            {
+                "ordinal": 0,
+                "speaker": "Synthetic requester",
+                "text": "Please verify the synthetic order.",
+                "evidence_reference": "message-part:synthetic:0",
+            },
+            {
+                "ordinal": 1,
+                "speaker": "Synthetic responder",
+                "text": "The synthetic order was verified.",
+                "evidence_reference": "message-part:synthetic:1",
+            },
+        ],
+    }
+
+
+def test_source_conversation_turn_contract_preserves_order_and_evidence() -> None:
+    chunks = _source_conversation_turn_chunks(_turn_envelope())
+
+    assert chunks is not None
+    assert [(chunk.index, chunk.label, chunk.source_evidence_reference) for chunk in chunks] == [
+        (0, "Synthetic requester", "message-part:synthetic:0"),
+        (1, "Synthetic responder", "message-part:synthetic:1"),
+    ]
+    assert all(chunk.unit_type == "conversation_turn" for chunk in chunks)
+
+
+@pytest.mark.parametrize(
+    ("change", "message"),
+    [
+        (lambda envelope: envelope.update(kind="unknown"), "unsupported.*kind"),
+        (lambda envelope: envelope.update(version=2), "unsupported.*version"),
+        (
+            lambda envelope: envelope["turns"][1].update(ordinal=0),
+            "unique, contiguous, and in list order",
+        ),
+        (lambda envelope: envelope["turns"][0].update(speaker=""), "speaker must be"),
+        (lambda envelope: envelope["turns"][0].update(text=" "), "text must be"),
+        (
+            lambda envelope: envelope["turns"][0].update(text="x" * 8_001),
+            "text must be",
+        ),
+        (
+            lambda envelope: envelope["turns"][0].update(evidence_reference=""),
+            "evidence reference must be",
+        ),
+        (lambda envelope: envelope["turns"][0].update(speaker="a\x00b"), "speaker must be"),
+        (lambda envelope: envelope["turns"][0].update(text="a\x00b"), "text must be"),
+        (
+            lambda envelope: envelope["turns"][0].update(evidence_reference="a\x00b"),
+            "evidence reference must be",
+        ),
+    ],
+)
+def test_source_conversation_turn_contract_fails_closed(change, message: str) -> None:
+    envelope = _turn_envelope()
+    change(envelope)
+
+    with pytest.raises(ValueError, match=message):
+        _source_conversation_turn_chunks(envelope)
+
+
+def test_source_conversation_turn_contract_rejects_oversized_json_before_parse() -> None:
+    with pytest.raises(ValueError, match="exceeds its bounded contract"):
+        _source_conversation_turn_chunks("{" + (" " * 400_000) + "}")
+
+
+def test_absent_source_conversation_turn_contract_does_not_infer_speakers() -> None:
+    assert _source_conversation_turn_chunks(None) is None
 
 
 def test_placeholder_grouping_is_derived_without_losing_raw_source_values() -> None:
@@ -89,6 +169,7 @@ def test_import_rows_persists_raw_and_derived_grouping_values(
         "thread": "record-1",
         "secondary": "document-1",
         "project": "project-1",
+        "turns": json.dumps(_turn_envelope()),
     }
 
     class FakeConnection:
@@ -117,8 +198,10 @@ def test_import_rows_persists_raw_and_derived_grouping_values(
     async def fake_scope(_conn, _args):
         return "account-1", "corporate-1", "process-unit-1"
 
-    async def no_content(*_args, **_kwargs) -> None:
-        return None
+    persisted_units: list[object] = []
+
+    async def no_content(*_args, **kwargs) -> None:
+        persisted_units.append(kwargs.get("semantic_units"))
 
     async def no_cleanup(*_args, **_kwargs) -> dict[str, int]:
         return {"synthetic_rows_removed": 0}
@@ -168,6 +251,8 @@ def test_import_rows_persists_raw_and_derived_grouping_values(
             "secondary",
             "--source-project-code-column",
             "project",
+            "--conversation-turns-column",
+            "turns",
             "--author-subject-id",
             "synthetic-subject",
             "--corporate-entity-code",
@@ -191,6 +276,10 @@ def test_import_rows_persists_raw_and_derived_grouping_values(
         "project-1",
     )
     assert source_post_args[-1] is None
+    assert persisted_units and [unit.source_evidence_reference for unit in persisted_units[0]] == [
+        "message-part:synthetic:0",
+        "message-part:synthetic:1",
+    ]
     assert result == {
         "source_rows": 1,
         "imported_rows": 1,
