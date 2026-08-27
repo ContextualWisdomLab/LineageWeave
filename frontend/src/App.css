@@ -1226,6 +1226,10 @@
   fill: var(--ontology-node-team-fill);
 }
 
+.ontology-node-occupational-construct {
+  fill: var(--ontology-node-occupational-construct-fill);
+}
+
 .ontology-node-project {
   fill: var(--ontology-node-project-fill);
 }

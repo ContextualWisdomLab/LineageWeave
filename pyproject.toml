@@ -1,6 +1,10 @@
 [project]
 name = "lineageweave"
+<<<<<<< HEAD
 version = "2.20.0"
+=======
+version = "2.19.0"
+>>>>>>> origin/main
 description = "Reconstructs git-branch-style lineage DAGs from scattered short records using multi-channel score fusion and LLM adjudication."
 readme = "README.md"
 license = { text = "MIT" }

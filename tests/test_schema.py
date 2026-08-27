@@ -34,8 +34,15 @@ from backend.app.occupation_rating_ingestion import (
     fetch_rating_source_occupations,
 )
 from backend.app.post_chat_ingestion import gather_global_chat_sources
+<<<<<<< HEAD
 from scripts.import_onet_ratings import import_ratings
 from scripts.import_job_architecture import import_job_architecture
+=======
+from lineageweave.occupational_construct_catalog import (
+    catalog_content_sha256,
+    sync_onet_construct_catalog,
+)
+>>>>>>> origin/main
 
 _ADMIN_DSN = os.environ.get(
     "LINEAGEWEAVE_TEST_POSTGRES_ADMIN_DSN", "postgresql://localhost/postgres"
@@ -49,6 +56,29 @@ _PROJECT_MENTION_MIGRATION = (
 )
 _POST_CONTENT_MIGRATION = (
     Path(__file__).resolve().parents[1] / "migrations" / "0026_post_content_artifacts.sql"
+)
+_POST_CONTENT_QUEUE_MIGRATION = (
+    Path(__file__).resolve().parents[1]
+    / "migrations"
+    / "0050_post_content_ingestion_queue.sql"
+)
+_ONTOLOGY_TRUTH_STATUS_MIGRATION = (
+    Path(__file__).resolve().parents[1] / "migrations" / "0175_ontology_truth_status.sql"
+)
+_OCCUPATIONAL_CONSTRUCT_MIGRATION = (
+    Path(__file__).resolve().parents[1]
+    / "migrations"
+    / "0238_occupational_construct_assertion.sql"
+)
+_OCCUPATIONAL_CATALOG_MIGRATION = (
+    Path(__file__).resolve().parents[1]
+    / "migrations"
+    / "0239_occupational_construct_catalog.sql"
+)
+_OCCUPATIONAL_EXTRACTION_MIGRATION = (
+    Path(__file__).resolve().parents[1]
+    / "migrations"
+    / "0240_occupational_construct_extraction_run.sql"
 )
 _SOURCE_STATE_MIGRATION = (
     Path(__file__).resolve().parents[1] / "migrations" / "0033_source_state_provenance.sql"
@@ -173,6 +203,11 @@ def schema_db():
             with conn.cursor() as cur:
                 cur.execute(_MIGRATION_PATH.read_text())
                 cur.execute(_POST_CONTENT_MIGRATION.read_text())
+                cur.execute(_POST_CONTENT_QUEUE_MIGRATION.read_text())
+                cur.execute(_ONTOLOGY_TRUTH_STATUS_MIGRATION.read_text())
+                cur.execute(_OCCUPATIONAL_CONSTRUCT_MIGRATION.read_text())
+                cur.execute(_OCCUPATIONAL_CATALOG_MIGRATION.read_text())
+                cur.execute(_OCCUPATIONAL_EXTRACTION_MIGRATION.read_text())
                 cur.execute(_PROJECT_MENTION_MIGRATION.read_text())
                 cur.execute(_SOURCE_STATE_MIGRATION.read_text())
                 cur.execute(_SOURCE_CONTEXT_MIGRATION.read_text())
@@ -257,6 +292,7 @@ def test_migration_applies_cleanly(schema_db) -> None:
         "post_summary_action",
         "post_chat_result",
         "post_chat_citation",
+<<<<<<< HEAD
         "occupational_data_release",
         "occupational_source_table",
         "occupational_scale_definition",
@@ -267,10 +303,17 @@ def test_migration_applies_cleanly(schema_db) -> None:
         "job_architecture_node",
         "job_architecture_hierarchy_edge",
         "job_architecture_occupation_binding",
+=======
+        "occupational_construct_vocabulary",
+        "occupational_construct",
+        "post_occupational_construct_assertion",
+        "post_occupational_construct_extraction",
+>>>>>>> origin/main
     }
     assert expected <= tables
 
 
+<<<<<<< HEAD
 def test_job_architecture_import_is_idempotent_and_immutable(
     schema_db,
     tmp_path: Path,
@@ -629,6 +672,80 @@ def test_onet_rating_importer_is_idempotent_against_postgresql(
     assert occupations["occupations"] == [
         {"onetsoc_code": "15-1252.00", "occupation_title": "Synthetic occupation"}
     ]
+=======
+def test_occupational_catalog_metadata_columns_exist(schema_db) -> None:
+    """The real schema preserves catalog descriptions and release integrity."""
+    with schema_db.cursor() as cur:
+        cur.execute(
+            """
+            select table_name, column_name
+              from information_schema.columns
+             where (table_name, column_name) in (
+                 ('occupational_construct_vocabulary', 'source_content_sha256'),
+                 ('occupational_construct', 'construct_description')
+             )
+            """
+        )
+        columns = set(cur.fetchall())
+    assert columns == {
+        ("occupational_construct_vocabulary", "source_content_sha256"),
+        ("occupational_construct", "construct_description"),
+    }
+
+
+def test_occupational_catalog_sync_persists_exact_rows(schema_db) -> None:
+    """The real PostgreSQL path atomically stores the governed catalog subset."""
+    payload = {
+        "table_id": "content_model_reference",
+        "row": [
+            {
+                "element_id": "1.A.1.a.1",
+                "element_name": "Synthetic cognitive ability",
+                "description": "Synthetic description.",
+            },
+            {
+                "element_id": "1.D.1",
+                "element_name": "Synthetic work style",
+                "description": "",
+            },
+            {
+                "element_id": "4.A.1",
+                "element_name": "Synthetic work activity",
+                "description": None,
+            },
+        ],
+    }
+
+    async def synchronize() -> int:
+        parsed_admin_dsn = urlsplit(_ADMIN_DSN)
+        db_dsn = urlunsplit(
+            parsed_admin_dsn._replace(path=f"/{schema_db.info.dbname}")
+        )
+        conn = await asyncpg.connect(db_dsn)
+        try:
+            return await sync_onet_construct_catalog(
+                conn,
+                payload,
+                expected_source_sha256=catalog_content_sha256(payload),
+            )
+        finally:
+            await conn.close()
+
+    assert asyncio.run(synchronize()) == 3
+    with schema_db.cursor() as cur:
+        cur.execute(
+            """
+            select construct_family_code, preferred_label, construct_description
+              from occupational_construct
+             order by construct_family_code
+            """
+        )
+        assert cur.fetchall() == [
+            ("cognitive_ability", "Synthetic cognitive ability", "Synthetic description."),
+            ("work_activity", "Synthetic work activity", None),
+            ("work_style", "Synthetic work style", None),
+        ]
+>>>>>>> origin/main
 
 
 def test_global_ask_evidence_search_indexes_exist_on_normalized_tables(schema_db) -> None:

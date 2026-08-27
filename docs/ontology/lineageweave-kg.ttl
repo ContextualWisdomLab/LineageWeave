@@ -443,6 +443,10 @@
 #################################################################
 
 :OccupationalConstruct a owl:Class ;
+<<<<<<< HEAD
+=======
+    :lookupCode "node_occupational_construct" ;
+>>>>>>> origin/main
     rdfs:label "Occupational construct"@en ;
     rdfs:comment "A governed cognitive, dispositional, behavioral, or affective concept referenced by authorized record evidence; it is not itself a person-level measurement."@en .
 
@@ -469,9 +473,16 @@
     rdfs:label "Performance behavior"@en .
 
 :supportsOccupationalConstruct a owl:ObjectProperty ;
+<<<<<<< HEAD
     rdfs:domain :Post ;
     rdfs:range :OccupationalConstruct ;
     rdfs:label "supports occupational construct"@en ;
+=======
+    :lookupCode "edge_supports_occupational_construct" ;
+    rdfs:domain :Post ;
+    rdfs:range :OccupationalConstruct ;
+    rdfs:label "supports construct"@en ;
+>>>>>>> origin/main
     rdfs:comment "Record evidence supports discussion of a construct; this does not assert a person trait, score, job requirement, or cause."@en .
 
 :OccupationalConstructAssertion a owl:Class ;
@@ -675,6 +686,7 @@
     skos:prefLabel "Handling"@en ;
     :fjaDomain "things" ; :fjaRank 7 ;
     skos:definition "Using body members, handtools, and/or special devices to work, move, or carry objects or materials. Involves little or no latitude for judgment with regard to attainment of standards or in selecting appropriate tool, object, or materials."@en .
+<<<<<<< HEAD
 #################################################################
 # I-O occupational classification, job-zone preparation, and
 # worker-characteristic taxonomy (ADR 0245).
@@ -1053,3 +1065,5 @@
     rdfs:range :WorkStyleFamily ;
     rdfs:label "occupational work style norm"@en ;
     rdfs:comment "Declares that a versioned, released occupational profile expects the referenced work-style family of its workers. This ontology asserts no such binding yet; instance assertions must be imported with provenance in their own decision."@en .
+=======
+>>>>>>> origin/main

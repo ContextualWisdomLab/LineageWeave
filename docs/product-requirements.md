@@ -72,6 +72,7 @@ and lookup round-trip isolation are enforced by
 `tests/test_worker_function_taxonomy.py`; `tests/test_ontology.py`
 continues to pass unchanged.
 
+<<<<<<< HEAD
 ### PRD-FR-2B — Occupational classification and worker-characteristic taxonomy
 
 - Publish all four levels of the 2018 Standard Occupational Classification:
@@ -105,20 +106,27 @@ canonical namespace, and lookup round-trip isolation are enforced by
 `tests/test_onet_content_model.py`;
 `tests/test_ontology.py` continues to pass unchanged.
 ### PRD-FR-2C — Evidence-bound occupational constructs
+=======
+### PRD-FR-2B — Evidence-bound occupational constructs
+>>>>>>> origin/main
 
 - Keep cognitive abilities, work styles, work activities, affective
   reactions, and performance behaviors as non-equivalent construct classes
   (ADR 0248). FJA worker functions remain separate.
 - Reuse official external identifiers and source-published relationships;
   never infer a DPT-to-psychology crosswalk or relabel work style as affect.
+<<<<<<< HEAD
 - Publish the eight O*NET 31.0 Ability, Essential Skill, Transferable Skill,
   and Work Style link tables to Work Activities and Work Context as 1,417
   directed, assertion-level provenance-bearing relations (ADR 0256). Treat
   relevance as neither a causal effect nor a numeric weight.
+=======
+>>>>>>> origin/main
 - Bind a construct to record content only through a provenance-bearing,
   evidence-cited assertion. Do not promote record evidence to a person trait,
   score, causal effect, or job requirement.
 
+<<<<<<< HEAD
 Acceptance: SHACL rejects incomplete record assertions; ontology tests
 prohibit FJA equivalence, require exact Post/evidence/PROV statement structure,
 and reproduce every pinned O*NET linkage with its exact source table. Runtime
@@ -229,6 +237,23 @@ filter never creates a request; and Storybook covers a no-match state.
 Acceptance: synthetic tests reproduce a series with two source-declared family
 parents, reject cycles and partial bindings, leave an occupation-looking label
 unbound, and prove the normalized snapshot store is immutable.
+=======
+Acceptance: SHACL rejects incomplete assertions; ontology tests prohibit FJA
+equivalence and require exact Post/evidence/PROV statement structure. ADR 0249
+adds normalized, semantic-unit-bound persistence and an authorized Post-detail
+projection. ADR 0250 synchronizes all official O*NET cognitive-ability,
+work-style, and work-activity Content Model elements into that versioned
+registry without importing ratings. Search, graph navigation, extraction, and
+UI remain unavailable until their separate ADR acceptance. ADR 0253 adds
+catalog-bound semantic-unit extraction through contextual-orchestrator's
+multi-agent conduct path; exact offered IRIs and verbatim spans are required,
+and a digest-bound run record distinguishes a supported empty result from an
+unavailable provider. ADR 0254 adds the authorized Post-detail evidence review
+surface and honest complete, processing, and unavailable states. ADR 0255
+projects assertion-backed constructs into the existing ABAC-filtered ontology
+neighborhood without duplicating graph storage or promoting truth. Catalog
+search remains unavailable.
+>>>>>>> origin/main
 
 ### PRD-FR-3 — Bounded ontology exploration
 

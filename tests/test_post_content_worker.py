@@ -223,6 +223,14 @@ def test_incomplete_provider_output_is_requeued_with_a_failure_code(monkeypatch)
         ),
     )
     monkeypatch.setattr(post_content_worker, "persist_operations_cases", persist)
+    monkeypatch.setattr(
+        post_content_worker,
+        "extract_occupational_construct_assertions",
+        lambda *_args, **_kwargs: asyncio.sleep(0, result=()),
+    )
+    monkeypatch.setattr(
+        post_content_worker, "persist_occupational_construct_assertions", persist
+    )
     client = SimpleNamespace(available=True)
 
     asyncio.run(
