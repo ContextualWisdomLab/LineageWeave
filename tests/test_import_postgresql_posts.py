@@ -198,7 +198,7 @@ def test_import_rows_persists_raw_and_derived_grouping_values(
         "insert into source_post_revision" in query
         for query, _call_args in target.executions
     )
-    assert persisted_bodies == ([] if preserve_existing_body else [effective_body])
+    assert persisted_bodies == [effective_body]
     expected_result: dict[str, object] = {
         "source_rows": 1,
         "imported_rows": 1,

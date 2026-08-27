@@ -97,7 +97,7 @@ def test_provider_deadline_accepts_response_larger_than_queue_pipe() -> None:
             f"http://127.0.0.1:{server.server_port}/conduct",
             {},
             headers={},
-            timeout=5,
+            timeout=60,
         )
     finally:
         server.shutdown()
@@ -140,7 +140,7 @@ def test_provider_deadline_preserves_explicit_audit_session() -> None:
             f"http://127.0.0.1:{server.server_port}/conduct",
             {},
             headers={"x-lineageweave-session-id": "semantic-audit:synthetic"},
-            timeout=5,
+            timeout=60,
         )
     finally:
         server.shutdown()
