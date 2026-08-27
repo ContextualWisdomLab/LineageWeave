@@ -110,5 +110,14 @@ export const OccupationsEmpty: Story = {
     await expect(within(canvasElement).findByText(/선택할 수 있는 직업이 없습니다/)).resolves.toBeVisible();
   },
 };
+export const OccupationFilterEmpty: Story = {
+  ...InteractiveEvidenceReady,
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await canvas.findByRole("option", { name: "Software Developers · 15-1252.00" });
+    await userEvent.type(canvas.getByLabelText("직업 찾기"), "unknown-occupation");
+    await expect(canvas.findByText(/입력한 조건에 맞는 직업이 없습니다/)).resolves.toBeVisible();
+  },
+};
 export const SourceUnavailable: Story = { args: { profile: { ...ready, source_available: false, source: null, items: [] } } };
 export const EmptyOccupation: Story = { args: { profile: { ...ready, items: [] } } };

@@ -41,6 +41,7 @@ const ready: Payload = {
 };
 
 beforeEach(() => {
+  vi.mocked(fetchOccupationRatings).mockClear();
   vi.mocked(fetchOccupationRatingSources).mockResolvedValue({
     sources: [{
       data_release_code: "onet-31.0", release_version: "31.0",
@@ -155,6 +156,32 @@ describe("OccupationRatingProfile", () => {
 
     expect(await screen.findByRole("option", { name: "31.0 · Abilities" })).toBeInTheDocument();
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  });
+
+  it("filters stored titles and submits only the selected catalog identity", async () => {
+    vi.mocked(fetchOccupationRatings).mockResolvedValue(ready);
+    render(<OccupationRatingProfile accessToken="synthetic-token" />);
+    await screen.findByRole("option", { name: "Software Developers · 15-1252.00" });
+
+    await userEvent.type(screen.getByLabelText("직업 찾기"), "15-1252");
+    expect(screen.queryByRole("option", { name: "Chief Executives · 11-1011.00" })).not.toBeInTheDocument();
+    await userEvent.selectOptions(screen.getByLabelText("직업"), "15-1252.00");
+    await userEvent.click(screen.getByRole("button", { name: "직업 근거 열기" }));
+
+    expect(fetchOccupationRatings).toHaveBeenCalledWith("synthetic-token", {
+      onetsocCode: "15-1252.00", dataReleaseCode: "onet-31.0", sourceTableCode: "abilities", offset: 0,
+    });
+  });
+
+  it("fails closed when the title filter matches no catalog occupation", async () => {
+    render(<OccupationRatingProfile accessToken="synthetic-token" />);
+    await screen.findByRole("option", { name: "Software Developers · 15-1252.00" });
+
+    await userEvent.type(screen.getByLabelText("직업 찾기"), "unknown-occupation");
+
+    expect(await screen.findByText(/입력한 조건에 맞는 직업이 없습니다/)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "직업 근거 열기" })).toBeDisabled();
+    expect(fetchOccupationRatings).not.toHaveBeenCalled();
   });
 
   it("clears evidence and ignores an in-flight response when authentication changes", async () => {

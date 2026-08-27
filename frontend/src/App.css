@@ -1448,13 +1448,14 @@
 
 .occupation-rating-form {
   display: grid;
-  grid-template-columns: minmax(14rem, 1fr) minmax(16rem, 1fr) auto;
+  grid-template-columns: minmax(16rem, 1fr) minmax(18rem, 1.4fr) auto;
   align-items: end;
   gap: var(--space-control-gap);
   margin: 1rem 0;
 }
 
 .occupation-rating-form label,
+.occupation-rating-occupation-select,
 .occupation-rating-source {
   display: grid;
   gap: var(--space-control-gap);
