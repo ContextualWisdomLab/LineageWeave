@@ -533,6 +533,23 @@
 :evidenceInputDigest a owl:DatatypeProperty ;
     rdfs:domain :ProductMention ; rdfs:range xsd:string .
 
+:ProductRelationAssertion a owl:Class ;
+    rdfs:subClassOf rdf:Statement, prov:Entity ;
+    rdfs:label "Evidence-bound product relation"@en .
+
+:concernsProduct a owl:ObjectProperty ;
+    rdfs:domain :OperationsCaseFact ; rdfs:range :Product .
+:changesProduct a owl:ObjectProperty ;
+    rdfs:domain :OperationsCaseFact ; rdfs:range :Product .
+:originatesFromProduct a owl:ObjectProperty ;
+    rdfs:domain :OperationsCaseFact ; rdfs:range :Product .
+:sensesProduct a owl:ObjectProperty ;
+    rdfs:domain :OperationsCaseFact ; rdfs:range :Product .
+:usesProduct a owl:ObjectProperty ;
+    rdfs:domain :Project ; rdfs:range :Product .
+:productRelationEvidence a owl:DatatypeProperty ;
+    rdfs:domain :ProductRelationAssertion ; rdfs:range xsd:string .
+
 :PostVoiceClassificationAssertion a owl:Class ;
     rdfs:label "Post voice classification assertion"@en .
 

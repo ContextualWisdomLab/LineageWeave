@@ -2020,6 +2020,34 @@ def test_post_detail_returns_authorized_product_evidence(
                 ),
             )
             cur.execute(
+                "insert into post_project_mention "
+                "(post_id, project_key, project_name, evidence_text, confidence, "
+                "ontology_iri, extraction_method) values (%s, %s, %s, %s, %s, %s, %s) "
+                "on conflict (post_id, project_key) do nothing",
+                (
+                    seeded_db["public_post_id"],
+                    "synthetic-product-project",
+                    "Synthetic Product Project",
+                    "Synthetic evidence",
+                    1,
+                    "https://contextualwisdomlab.github.io/LineageWeave/ontology#Project",
+                    "synthetic_fixture",
+                ),
+            )
+            cur.execute(
+                "insert into product_project_relation "
+                "(post_id, mention_ordinal, project_key, relation_type_code, "
+                "evidence_text, evidence_post_id, evidence_input_sha256) "
+                "values (%s, 0, %s, 'used_by_project', %s, %s, %s)",
+                (
+                    seeded_db["public_post_id"],
+                    "synthetic-product-project",
+                    "Synthetic evidence",
+                    seeded_db["public_post_id"],
+                    "c" * 64,
+                ),
+            )
+            cur.execute(
                 "insert into post_product_mention "
                 "(post_id, mention_ordinal, extracted_product_name, "
                 "resolution_status_code, evidence_text, evidence_post_id, "
@@ -2049,6 +2077,14 @@ def test_post_detail_returns_authorized_product_evidence(
         "product_level_code": "product_model",
         "evidence_text": "Synthetic evidence",
         "evidence_post_id": seeded_db["public_post_id"],
+        "relations": [{
+            "relation_type_code": "used_by_project",
+            "target_kind_code": "project",
+            "target_id": "synthetic-product-project",
+            "target_label": "Synthetic Product Project",
+            "evidence_text": "Synthetic evidence",
+            "evidence_post_id": seeded_db["public_post_id"],
+        }],
     }]
 
 

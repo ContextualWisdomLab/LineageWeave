@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import Any, Protocol
 
 from lineageweave.product_semantics import (
+    ProductExtraction,
     ProductMention,
     ResolvedProductMention,
     normalize_product_alias,
@@ -52,6 +53,7 @@ async def persist_product_mentions(
     analysis_input_sha256: str,
     orchestrator_session_id: str,
     mentions: tuple[ResolvedProductMention, ...],
+    extraction: ProductExtraction | None = None,
 ) -> None:
     """Atomically replace one exact post's product analysis projection."""
     async with conn.transaction():
@@ -81,3 +83,43 @@ async def persist_product_mentions(
                 mention.evidence_post_id,
                 mention.evidence_input_sha256,
             )
+        if extraction is None:
+            return
+        for relation in extraction.relations:
+            if relation.target_kind_code == "operations_fact":
+                target_post_id, case_kind_code, fact_ordinal = relation.target_locator
+                if target_post_id != post_id:
+                    raise ValueError("product relation target is outside the focal post")
+                await conn.execute(
+                    "insert into product_operations_fact_relation "
+                    "(post_id, mention_ordinal, case_kind_code, fact_ordinal, "
+                    "relation_type_code, evidence_text, evidence_post_id, evidence_input_sha256) "
+                    "values ($1, $2, $3, $4, $5, $6, $7, $8)",
+                    post_id,
+                    relation.mention_ordinal,
+                    case_kind_code,
+                    int(fact_ordinal),
+                    relation.relation_type_code,
+                    relation.evidence_text,
+                    relation.evidence_post_id,
+                    relation.evidence_input_sha256,
+                )
+            elif relation.target_kind_code == "project":
+                target_post_id, project_key = relation.target_locator
+                if target_post_id != post_id:
+                    raise ValueError("product relation target is outside the focal post")
+                await conn.execute(
+                    "insert into product_project_relation "
+                    "(post_id, mention_ordinal, project_key, relation_type_code, "
+                    "evidence_text, evidence_post_id, evidence_input_sha256) "
+                    "values ($1, $2, $3, $4, $5, $6, $7)",
+                    post_id,
+                    relation.mention_ordinal,
+                    project_key,
+                    relation.relation_type_code,
+                    relation.evidence_text,
+                    relation.evidence_post_id,
+                    relation.evidence_input_sha256,
+                )
+            else:  # pragma: no cover - parser owns the closed vocabulary
+                raise ValueError("unsupported product relation target kind")
