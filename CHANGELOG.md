@@ -152,6 +152,16 @@ All notable changes to this project are documented here. Format follows
   leftover remains the ADR 0182 value `U = R − R̂`. Explained leftover share
   `e` and unexplained leftover share `s` are not persisted here.
 
+- Period leftover pair rows now name leftover-map unexplained leftover share
+  `s = U² / R²` of raw residual next to leftover-map distance `d`, then
+  open that post (Gabriel, 1971; Jeon et al., 2021, eq. 3; ADR 0233). After
+  `make seed`, closest and farthest leftover pairs sit above the member
+  list with `U²/R²` next to `d`. A missing share omits the badge rather
+  than inventing a leftover score. A share greater than 1 is shown, never
+  clamped. Two-axis reconstruction `R̂` and leftover-map cross share `x`
+  stay as already persisted. Explained leftover share `e` is not persisted
+  here.
+
 - The grouping comparison strip now names leftover post–criterion
   pairs on each visible row (ADR 0149). After `make seed`, open a
   leftover pair on A-100 from the strip to read that post. A leftover

@@ -120,6 +120,11 @@ _LEFTOVER_MAP_RECONSTRUCTION_MIGRATION = (
     / "migrations"
     / "0206_report_leftover_map_reconstruction.sql"
 )
+_LEFTOVER_MAP_UNEXPLAINED_SHARE_MIGRATION = (
+    Path(__file__).resolve().parents[1]
+    / "migrations"
+    / "0233_report_leftover_map_unexplained_share.sql"
+)
 _LEFTOVER_MAP_AXIS_MIGRATION = (
     Path(__file__).resolve().parents[1]
     / "migrations"
@@ -204,6 +209,7 @@ def schema_db():
                 cur.execute(_LEFTOVER_MAP_UNEXPLAINED_MIGRATION.read_text())
                 cur.execute(_LEFTOVER_MAP_CROSS_SHARE_MIGRATION.read_text())
                 cur.execute(_LEFTOVER_MAP_RECONSTRUCTION_MIGRATION.read_text())
+                cur.execute(_LEFTOVER_MAP_UNEXPLAINED_SHARE_MIGRATION.read_text())
                 cur.execute(_SOURCE_EVENT_TIME_MIGRATION.read_text())
                 # psql sends each statement independently, which is required
                 # by CREATE INDEX CONCURRENTLY. psycopg2 treats a multi-
@@ -748,7 +754,7 @@ def test_leftover_pair_names_nullable_cross_share_column(schema_db) -> None:
     assert columns["leftover_residual"] == "NO"
     assert columns["leftover_distance"] == "NO"
     assert "leftover_map_explained_share" not in columns
-    assert "leftover_map_unexplained_share" not in columns
+    assert columns["leftover_map_unexplained_share"] == "YES"
     assert columns["leftover_map_reconstruction"] == "YES"
     with schema_db.cursor() as cur:
         cur.execute(

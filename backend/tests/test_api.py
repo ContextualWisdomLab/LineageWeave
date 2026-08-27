@@ -181,6 +181,11 @@ _LEFTOVER_MAP_RECONSTRUCTION_MIGRATION = (
     / "migrations"
     / "0206_report_leftover_map_reconstruction.sql"
 )
+_LEFTOVER_MAP_UNEXPLAINED_SHARE_MIGRATION = (
+    Path(__file__).resolve().parents[2]
+    / "migrations"
+    / "0233_report_leftover_map_unexplained_share.sql"
+)
 _GLOBAL_ASK_JOB_MIGRATION = (
     Path(__file__).resolve().parents[2]
     / "migrations"
@@ -410,6 +415,7 @@ def seeded_db(demo_analyst_token):
             cur.execute(_LEFTOVER_MAP_UNEXPLAINED_MIGRATION.read_text())
             cur.execute(_LEFTOVER_MAP_CROSS_SHARE_MIGRATION.read_text())
             cur.execute(_LEFTOVER_MAP_RECONSTRUCTION_MIGRATION.read_text())
+            cur.execute(_LEFTOVER_MAP_UNEXPLAINED_SHARE_MIGRATION.read_text())
             cur.execute(
                 "insert into common_lookup_value (lookup_category, lookup_code, lookup_label) values "
                 "('corporate_entity_level', 'group', 'Group'), "
@@ -5812,10 +5818,15 @@ def test_seed_period_report_surfaces_on_get_reports(client, demo_analyst_token, 
         if share is not None:
             assert not math.isnan(share)
             assert not math.isinf(share)
+        unexplained_share = pair.get("leftover_map_unexplained_share")
+        assert unexplained_share is None or isinstance(unexplained_share, (int, float))
+        if unexplained_share is not None:
+            assert not math.isnan(unexplained_share)
+            assert not math.isinf(unexplained_share)
+            assert unexplained_share >= 0.0
         if unexplained is not None and reconstruction is not None:
             assert unexplained + reconstruction == pytest.approx(pair["leftover_residual"])
         assert "leftover_map_explained_share" not in pair
-        assert "leftover_map_unexplained_share" not in pair
     leftover_axes = high_report.get("leftover_map_axes", [])
     assert [axis["axis_index"] for axis in leftover_axes] == [1, 2]
     assert all(axis["leftover_singular_value"] >= 0 for axis in leftover_axes)
@@ -5876,6 +5887,11 @@ def test_seed_period_report_surfaces_on_get_reports(client, demo_analyst_token, 
     assert all(
         pair.get("leftover_map_reconstruction") is None
         or isinstance(pair["leftover_map_reconstruction"], (int, float))
+        for pair in leftover_thread.get("leftover_pairs", [])
+    )
+    assert all(
+        "leftover_map_unexplained_share" not in pair
+        and "leftover_map_explained_share" not in pair
         for pair in leftover_thread.get("leftover_pairs", [])
     )
 

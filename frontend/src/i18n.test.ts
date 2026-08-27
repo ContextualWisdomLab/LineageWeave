@@ -55,6 +55,7 @@ describe("i18n", () => {
     "Leftover map leaves unexplained U {value} after IRT main effects. Open this post to read {criterion}.",
     "Leftover map reconstructs R̂ {value} after IRT main effects. Open this post to read {criterion}.",
     "Two leftover-map axes leave identity remainder {value} of raw residual after IRT main effects. Open this post to read {criterion}.",
+    "Leftover map leaves unexplained leftover share {value} of raw residual after IRT main effects. Open this post to read {criterion}.",
     "Read observed Y {observed} and expected E {expected} after IRT main effects, then open this post.",
     "Leftover map has no leftover structure after IRT main effects. Open this post.",
     "Leftover map rank {rank} after IRT main effects. Open this post.",
@@ -215,6 +216,33 @@ describe("i18n", () => {
       tf(
         "Two leftover-map axes leave identity remainder {value} of raw residual after IRT main effects. Open this post to read {criterion}.",
         { value: "-0.24", criterion: "sales-lead" },
+      ),
+    ).toBe(expected);
+  });
+
+  it.each([
+    [
+      "ko",
+      "잔여 지도가 IRT 주효과 이후 원시 잔차의 설명되지 않은 잔여 비율 0.02을(를) 남깁니다. sales-lead 기준을 읽으려면 이 글을 여세요.",
+    ],
+    [
+      "zh",
+      "残差图在 IRT 主效应后留下原始残差的未解释残余份额 0.02。打开这篇帖子阅读 sales-lead。",
+    ],
+    [
+      "ja",
+      "残差マップはIRT主効果後の生の残差の未説明残差シェア 0.02 を残します。この投稿を開いて sales-lead を読んでください。",
+    ],
+    [
+      "vi",
+      "Bản đồ phần dư để lại tỷ phần phần dư chưa giải thích 0.02 của phần dư thô sau hiệu ứng chính IRT. Mở bài viết này để đọc sales-lead.",
+    ],
+  ] as const)("formats leftover-map unexplained leftover share next action in %s", (locale, expected) => {
+    setLocale(locale);
+    expect(
+      tf(
+        "Leftover map leaves unexplained leftover share {value} of raw residual after IRT main effects. Open this post to read {criterion}.",
+        { value: "0.02", criterion: "sales-lead" },
       ),
     ).toBe(expected);
   });
