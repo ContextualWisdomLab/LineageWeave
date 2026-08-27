@@ -37,16 +37,17 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Log out": "로그아웃",
     Calendar: "캘린더",
     Rankings: "순위",
-    "Rankings · RankWeave not available": "순위 · RankWeave를 사용할 수 없음",
-    "Rankings · rankweave": "순위 · rankweave",
+    "Rankings are not available right now. Reopen this post later to load them.":
+      "순위를 지금 불러올 수 없습니다. 이 글을 나중에 다시 열어 확인하세요.",
     "Loading rankings...": "순위를 불러오는 중...",
-    "No fused rankings from RankWeave.": "RankWeave가 융합한 순위가 없습니다.",
-    "Fused rankings": "융합 순위",
+    "No ranked posts yet. Ranked posts appear after the next rankings refresh.":
+      "아직 순위로 선정된 글이 없습니다. 다음 순위 갱신 후 표시됩니다.",
+    "Ranked posts": "순위 목록",
     "Open ranking: {title}": "순위 열기: {title}",
     "rank {rank}": "순위 {rank}",
     "Title overlap": "제목 겹침",
-    "RankWeave fused newest-first and title-overlap ranks. This is not a calibrated score.":
-      "RankWeave가 최신순과 제목 겹침 순위를 융합했습니다. 보정된 점수가 아닙니다.",
+    "Rankings combine newest-first and title-overlap evidence and are not calibrated scores. Open a ranked post to see its evidence.":
+      "순위는 최신순·제목 겹침 근거를 결합한 것이며 보정된 점수가 아닙니다. 순위에 포함된 글을 열어 근거를 확인하세요.",
     "Ranking evidence for {title}": "{title}의 순위 근거",
     "{label} rank {rank}, contribution {contribution}":
       "{label} 순위 {rank}, 기여 {contribution}",
@@ -76,7 +77,7 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Stored semantic evidence": "저장된 의미 기반 근거",
     "Recorded evidence": "기록된 근거",
     "Lineage maintenance": "계보 관리",
-    "Verification unavailable (search is not configured).": "검증을 사용할 수 없습니다(검색이 설정되지 않았습니다).",
+    "Verification is unavailable because public search is not configured yet. Ask an administrator to enable it, then retry.": "검증 기능이 아직 준비되지 않았습니다. 관리자에게 공개 검색 사용 설정을 요청한 뒤 다시 시도하세요.",
     "No customer commitment found in this post.": "이 글에서 고객 약속을 찾지 못했습니다.",
     due: "기한",
     "Ticket created": "티켓 생성",
@@ -121,14 +122,13 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Source process unit name": "원천 사업부(PU) 이름",
     "Source sales pool": "원천 수주풀",
     "Source sales pool name": "원천 수주풀 이름",
-    "Source body was not imported; summary and semantic extraction are unavailable.":
-      "원천 본문이 수집되지 않아 요약과 Semantic 추출을 사용할 수 없습니다.",
+    "The original text of this post was not imported, so its summary and semantic extraction are unavailable. Open the post directly or ask the source owner to re-import it with its body.": "원천 본문이 수집되지 않아 요약과 의미 기반 추출을 사용할 수 없습니다. 글을 직접 열어 확인하거나 원문 담당자에게 본문 포함 재등록을 요청하세요.",
     "Source customer code": "원천 고객 코드",
     "Source customer name": "원천 고객사 이름",
     "Source project code": "원천 프로젝트 코드",
     "Source project name": "원천 프로젝트 이름",
     "Business unit (PU)": "사업부(PU)",
-    "Raw source codes are shown; no state label was inferred.": "원천 코드를 그대로 표시하며 상태 라벨은 추정하지 않습니다.",
+    "Use these recorded details to confirm the record with your source system.": "기록된 세부 정보로 원천 시스템의 기록을 확인하세요.",
     "Search and filter posts": "글 검색 및 필터",
     "Search semantic evidence": "의미 기반 증거 검색",
     Search: "검색",
@@ -451,8 +451,8 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     Bookmark: "북마크",
     Bookmarked: "북마크됨",
     "Permanent link copied.": "영구 링크를 복사했습니다.",
-    "Share unavailable.": "공유할 수 없습니다.",
-    "Bookmark unavailable.": "북마크를 사용할 수 없습니다.",
+    "Sharing did not start. Copy the link from the browser address bar to share this post.": "공유가 시작되지 않았습니다. 브라우저 주소 표시줄에서 링크를 복사해 이 글을 공유하세요.",
+    "Bookmark could not be saved. Try again in a moment; the post itself stays open.": "북마크를 저장하지 못했습니다. 잠시 후 다시 시도하세요. 글은 그대로 열려 있습니다.",
     "No summary is available for this record yet.": "이 기록의 요약이 아직 없습니다.",
     "Saved evidence is still available.": "저장된 근거는 계속 확인할 수 있습니다.",
     "Showing the first {shown} of {total} posts known at this cutoff.":
@@ -574,16 +574,17 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Log out": "退出登录",
     Calendar: "日历",
     Rankings: "排名",
-    "Rankings · RankWeave not available": "排名 · RankWeave 不可用",
-    "Rankings · rankweave": "排名 · rankweave",
+    "Rankings are not available right now. Reopen this post later to load them.":
+      "暂时无法加载排名。请稍后重新打开这篇文章查看。",
     "Loading rankings...": "正在加载排名...",
-    "No fused rankings from RankWeave.": "RankWeave 未返回融合排名。",
-    "Fused rankings": "融合排名",
+    "No ranked posts yet. Ranked posts appear after the next rankings refresh.":
+      "还没有入选排名的文章。排名将在下次刷新后显示。",
+    "Ranked posts": "排名列表",
     "Open ranking: {title}": "打开排名：{title}",
     "rank {rank}": "排名 {rank}",
     "Title overlap": "标题重叠",
-    "RankWeave fused newest-first and title-overlap ranks. This is not a calibrated score.":
-      "RankWeave 融合了最新优先和标题重叠排名。这不是校准分数。",
+    "Rankings combine newest-first and title-overlap evidence and are not calibrated scores. Open a ranked post to see its evidence.":
+      "排名结合了最新优先与标题重叠证据，并非校准分数。打开排名中的文章可查看其证据。",
     "Ranking evidence for {title}": "{title} 的排名证据",
     "{label} rank {rank}, contribution {contribution}":
       "{label} 排名 {rank}，贡献 {contribution}",
@@ -613,7 +614,7 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Stored semantic evidence": "已存储的语义证据",
     "Recorded evidence": "已记录的证据",
     "Lineage maintenance": "谱系维护",
-    "Verification unavailable (search is not configured).": "无法验证（未配置搜索）。",
+    "Verification is unavailable because public search is not configured yet. Ask an administrator to enable it, then retry.": "验证功能尚未配置公开搜索。请请求管理员启用后再试。",
     "No customer commitment found in this post.": "未在此文章中找到客户承诺。",
     due: "截止日期",
     "Ticket created": "工单已创建",
@@ -658,14 +659,13 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Source process unit name": "来源事业部名称 (PU)",
     "Source sales pool": "来源销售池",
     "Source sales pool name": "来源销售池名称",
-    "Source body was not imported; summary and semantic extraction are unavailable.":
-      "尚未导入来源正文，因此无法进行摘要和语义提取。",
+    "The original text of this post was not imported, so its summary and semantic extraction are unavailable. Open the post directly or ask the source owner to re-import it with its body.": "这篇文章的原文尚未导入，因此无法提供摘要和语义提取。请直接打开文章，或请数据负责人连同正文重新导入。",
     "Source customer code": "来源客户代码",
     "Source customer name": "来源客户名称",
     "Source project code": "来源项目代码",
     "Source project name": "来源项目名称",
     "Business unit (PU)": "事业部 (PU)",
-    "Raw source codes are shown; no state label was inferred.": "显示原始来源代码；未推断状态标签。",
+    "Use these recorded details to confirm the record with your source system.": "请使用这些记录的详细信息在来源系统中确认该记录。",
     "Search and filter posts": "搜索和筛选文章",
     "Search semantic evidence": "搜索语义证据",
     Search: "搜索",
@@ -981,8 +981,8 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     Bookmark: "书签",
     Bookmarked: "已加书签",
     "Permanent link copied.": "已复制永久链接。",
-    "Share unavailable.": "分享不可用。",
-    "Bookmark unavailable.": "书签不可用。",
+    "Sharing did not start. Copy the link from the browser address bar to share this post.": "分享未能开始。请从浏览器地址栏复制链接来分享这篇文章。",
+    "Bookmark could not be saved. Try again in a moment; the post itself stays open.": "书签保存失败。请稍后重试；文章本身仍保持打开。",
     "No summary is available for this record yet.": "此记录暂时没有摘要。",
     "Saved evidence is still available.": "仍可查看已保存的证据。",
     "Showing the first {shown} of {total} posts known at this cutoff.":
@@ -1127,16 +1127,17 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Log out": "ログアウト",
     Calendar: "カレンダー",
     Rankings: "ランキング",
-    "Rankings · RankWeave not available": "ランキング · RankWeave を利用できません",
-    "Rankings · rankweave": "ランキング · rankweave",
+    "Rankings are not available right now. Reopen this post later to load them.":
+      "現在ランキングを読み込めません。後でこの投稿を開き直してご確認ください。",
     "Loading rankings...": "ランキングを読み込み中...",
-    "No fused rankings from RankWeave.": "RankWeave の融合ランキングはありません。",
-    "Fused rankings": "融合ランキング",
+    "No ranked posts yet. Ranked posts appear after the next rankings refresh.":
+      "ランク入り投稿はまだありません。次のランキング更新後に表示されます。",
+    "Ranked posts": "ランク一覧",
     "Open ranking: {title}": "ランキングを開く: {title}",
     "rank {rank}": "順位 {rank}",
     "Title overlap": "タイトル一致",
-    "RankWeave fused newest-first and title-overlap ranks. This is not a calibrated score.":
-      "RankWeave が新しい順とタイトル一致の順位を融合しました。校正されたスコアではありません。",
+    "Rankings combine newest-first and title-overlap evidence and are not calibrated scores. Open a ranked post to see its evidence.":
+      "ランキングは新しい順とタイトル一致の根拠を組み合わせたもので、校正されたスコアではありません。ランク入り投稿を開いて根拠をご確認ください。",
     "Ranking evidence for {title}": "{title} の順位根拠",
     "{label} rank {rank}, contribution {contribution}":
       "{label} 順位 {rank}、寄与 {contribution}",
@@ -1166,7 +1167,7 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Stored semantic evidence": "保存された意味的証拠",
     "Recorded evidence": "記録された証拠",
     "Lineage maintenance": "系譜管理",
-    "Verification unavailable (search is not configured).": "確認できません（検索が設定されていません）。",
+    "Verification is unavailable because public search is not configured yet. Ask an administrator to enable it, then retry.": "検証機能はまだ公開検索が設定されていません。管理者に有効化を依頼してから再試行してください。",
     "No customer commitment found in this post.": "この投稿に顧客コミットメントは見つかりませんでした。",
     due: "期限",
     "Ticket created": "チケットを作成",
@@ -1211,14 +1212,13 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Source process unit name": "原典の事業部名 (PU)",
     "Source sales pool": "原典の受注プール",
     "Source sales pool name": "原典の受注プール名",
-    "Source body was not imported; summary and semantic extraction are unavailable.":
-      "原典本文が取り込まれていないため、要約とセマンティック抽出は利用できません。",
+    "The original text of this post was not imported, so its summary and semantic extraction are unavailable. Open the post directly or ask the source owner to re-import it with its body.": "この投稿の本文が取り込まれていないため、要約と意味抽出を利用できません。投稿を直接開くか、本文ごとの再取り込みを担当者に依頼してください。",
     "Source customer code": "原典の顧客コード",
     "Source customer name": "原典の顧客名",
     "Source project code": "原典のプロジェクトコード",
     "Source project name": "原典のプロジェクト名",
     "Business unit (PU)": "事業部 (PU)",
-    "Raw source codes are shown; no state label was inferred.": "原典コードをそのまま表示し、状態ラベルは推定していません。",
+    "Use these recorded details to confirm the record with your source system.": "記録された詳細を使って、元のシステムでこの記録を確認してください。",
     "Search and filter posts": "投稿を検索・絞り込み",
     "Search semantic evidence": "意味に基づく証拠を検索",
     Search: "検索",
@@ -1512,8 +1512,8 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     Bookmark: "ブックマーク",
     Bookmarked: "ブックマーク済み",
     "Permanent link copied.": "固定リンクをコピーしました。",
-    "Share unavailable.": "共有できません。",
-    "Bookmark unavailable.": "ブックマークを利用できません。",
+    "Sharing did not start. Copy the link from the browser address bar to share this post.": "共有を開始できませんでした。ブラウザのアドレスバーからリンクをコピーして共有してください。",
+    "Bookmark could not be saved. Try again in a moment; the post itself stays open.": "ブックマークを保存できませんでした。少し待ってから再試行してください。投稿自体は開いたままです。",
     "No summary is available for this record yet.": "この記録の概要はまだありません。",
     "Saved evidence is still available.": "保存された証拠は引き続き確認できます。",
     "Showing the first {shown} of {total} posts known at this cutoff.":
@@ -1659,16 +1659,17 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Log out": "Đăng xuất",
     Calendar: "Lịch",
     Rankings: "Xếp hạng",
-    "Rankings · RankWeave not available": "Xếp hạng · RankWeave không khả dụng",
-    "Rankings · rankweave": "Xếp hạng · rankweave",
+    "Rankings are not available right now. Reopen this post later to load them.":
+      "Hiện không tải được xếp hạng. Hãy mở lại bài viết này sau để xem.",
     "Loading rankings...": "Đang tải xếp hạng...",
-    "No fused rankings from RankWeave.": "Không có xếp hạng hợp nhất từ RankWeave.",
-    "Fused rankings": "Xếp hạng hợp nhất",
+    "No ranked posts yet. Ranked posts appear after the next rankings refresh.":
+      "Chưa có bài viết nào vào xếp hạng. Các bài sẽ hiển thị sau lần làm mới tiếp theo.",
+    "Ranked posts": "Danh sách xếp hạng",
     "Open ranking: {title}": "Mở xếp hạng: {title}",
     "rank {rank}": "hạng {rank}",
     "Title overlap": "Trùng tiêu đề",
-    "RankWeave fused newest-first and title-overlap ranks. This is not a calibrated score.":
-      "RankWeave đã hợp nhất hạng mới nhất trước và trùng tiêu đề. Đây không phải điểm đã hiệu chỉnh.",
+    "Rankings combine newest-first and title-overlap evidence and are not calibrated scores. Open a ranked post to see its evidence.":
+      "Xếp hạng kết hợp bằng chứng mới nhất trước và trùng tiêu đề, không phải điểm đã hiệu chỉnh. Mở bài viết trong bảng xếp hạng để xem bằng chứng.",
     "Ranking evidence for {title}": "Bằng chứng xếp hạng cho {title}",
     "{label} rank {rank}, contribution {contribution}":
       "{label} hạng {rank}, đóng góp {contribution}",
@@ -1698,7 +1699,7 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Stored semantic evidence": "Bằng chứng ngữ nghĩa đã lưu",
     "Recorded evidence": "Bằng chứng đã ghi nhận",
     "Lineage maintenance": "Bảo trì dòng sự kiện",
-    "Verification unavailable (search is not configured).": "Không thể xác minh (chưa cấu hình tìm kiếm).",
+    "Verification is unavailable because public search is not configured yet. Ask an administrator to enable it, then retry.": "Tính năng xác minh chưa được cấu hình tìm kiếm công khai. Hãy yêu cầu quản trị viên bật rồi thử lại.",
     "No customer commitment found in this post.": "Không tìm thấy cam kết của khách hàng trong bài viết này.",
     due: "Hạn",
     "Ticket created": "Đã tạo phiếu",
@@ -1743,14 +1744,13 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Source process unit name": "Tên đơn vị kinh doanh nguồn (PU)",
     "Source sales pool": "Nhóm bán hàng nguồn",
     "Source sales pool name": "Tên nhóm bán hàng nguồn",
-    "Source body was not imported; summary and semantic extraction are unavailable.":
-      "Nội dung nguồn chưa được nhập nên không thể tóm tắt hoặc trích xuất ngữ nghĩa.",
+    "The original text of this post was not imported, so its summary and semantic extraction are unavailable. Open the post directly or ask the source owner to re-import it with its body.": "Bản gốc của bài viết chưa được nhập nên không thể tóm tắt và trích xuất ngữ nghĩa. Hãy mở trực tiếp bài viết hoặc yêu cầu người phụ trách nhập lại kèm bản gốc.",
     "Source customer code": "Mã khách hàng nguồn",
     "Source customer name": "Tên khách hàng nguồn",
     "Source project code": "Mã dự án nguồn",
     "Source project name": "Tên dự án nguồn",
     "Business unit (PU)": "Đơn vị kinh doanh (PU)",
-    "Raw source codes are shown; no state label was inferred.": "Hiển thị mã nguồn gốc; không suy đoán nhãn trạng thái.",
+    "Use these recorded details to confirm the record with your source system.": "Hãy dùng các chi tiết đã ghi để xác nhận bản ghi trong hệ thống nguồn.",
     "Search and filter posts": "Tìm kiếm và lọc bài viết",
     "Search semantic evidence": "Tìm kiếm bằng chứng ngữ nghĩa",
     Search: "Tìm",
@@ -2044,8 +2044,8 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     Bookmark: "Dấu trang",
     Bookmarked: "Đã đánh dấu",
     "Permanent link copied.": "Đã sao chép liên kết cố định.",
-    "Share unavailable.": "Không thể chia sẻ.",
-    "Bookmark unavailable.": "Không thể dùng dấu trang.",
+    "Sharing did not start. Copy the link from the browser address bar to share this post.": "Chia sẻ chưa bắt đầu. Hãy sao chép liên kết từ thanh địa chỉ trình duyệt để chia sẻ bài viết này.",
+    "Bookmark could not be saved. Try again in a moment; the post itself stays open.": "Không thể lưu dấu trang. Hãy thử lại sau; bài viết vẫn đang mở.",
     "No summary is available for this record yet.": "Chưa có bản tóm tắt cho bản ghi này.",
     "Saved evidence is still available.": "Bằng chứng đã lưu vẫn có thể xem.",
     "Showing the first {shown} of {total} posts known at this cutoff.":
@@ -2150,6 +2150,51 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
   },
 };
 
+/** Customer-facing labels keep implementation vocabulary out of the reader UI. */
+const CUSTOMER_COPY: Record<Locale, Record<string, string>> = {
+  en: {
+    "View related information": "View related information",
+    "Related information": "Related information",
+    "Author context": "Author context",
+    "Record details": "Record details",
+    "Related projects": "Related projects",
+    "Why this item is listed": "Why this item is listed",
+    "Category": "Category",
+    "How this item was found": "How this item was found",
+    "Earlier source version": "Earlier source version",
+    "Loading related information...": "Loading related information...",
+    "Close record details": "Close record details",
+  },
+  ko: {
+    "View related information": "관련 정보 보기",
+    "Related information": "관련 정보",
+    "Author context": "작성자 맥락",
+    "Record details": "기록 세부 정보",
+    "Related projects": "관련 프로젝트",
+    "Why this item is listed": "이 항목이 표시된 이유",
+    "Category": "분류",
+    "How this item was found": "이 항목을 찾은 방법",
+    "Earlier source version": "이전 기록 버전",
+    "Loading related information...": "관련 정보를 불러오는 중...",
+    "Close record details": "기록 세부 정보 닫기",
+    "No related information is available. Open a visible post next.": "관련 정보가 없습니다. 다음으로 표시되는 글을 여세요.",
+    "Some related information is not shown. Open a source post to continue.": "일부 관련 정보가 표시되지 않습니다. 계속하려면 원본 글을 여세요.",
+    "Related information is unavailable for this record. Open a visible post next.": "이 기록의 관련 정보를 사용할 수 없습니다. 다음으로 표시되는 글을 여세요.",
+    "This information reflects an earlier view. Compare it with the current record next.": "이 정보는 이전 기준으로 작성되었습니다. 다음으로 현재 기록과 비교하세요.",
+    "This suggestion was not accepted. Open the evidence to review it.": "이 제안은 수락되지 않았습니다. 근거를 열어 검토하세요.",
+    "Related information is unavailable. Open a visible post next.": "관련 정보를 사용할 수 없습니다. 다음으로 표시되는 글을 여세요.",
+  },
+  zh: {
+    "View related information": "查看相关信息", "Related information": "相关信息", "Author context": "作者背景", "Record details": "记录详情", "Related projects": "相关项目", "Why this item is listed": "显示此项目的原因", "Category": "分类", "How this item was found": "此项目的发现方式", "Earlier source version": "较早的记录版本", "Loading related information...": "正在加载相关信息…", "Close record details": "关闭记录详情", "No related information is available. Open a visible post next.": "暂无相关信息。接下来打开一条可见记录。", "Some related information is not shown. Open a source post to continue.": "部分相关信息未显示。请打开来源文章继续。", "Related information is unavailable for this record. Open a visible post next.": "此记录的暂无信息。请打开一条可见的记录。", "This information reflects an earlier view. Compare it with the current record next.": "此信息反映较早的视图。请与当前记录进行比较。", "This suggestion was not accepted. Open the evidence to review it.": "此建议未被接受。请打开证据进行复核。", "Related information is unavailable. Open a visible post next.": "相关信息不可用。请打开一条可见的记录。",
+  },
+  ja: {
+    "View related information": "関連情報を見る", "Related information": "関連情報", "Author context": "作成者の背景", "Record details": "記録の詳細", "Related projects": "関連プロジェクト", "Why this item is listed": "この項目が表示される理由", "Category": "分類", "How this item was found": "この項目の見つけ方", "Earlier source version": "以前の記録バージョン", "Loading related information...": "関連情報を読み込んでいます…", "Close record details": "記録の詳細を閉じる", "No related information is available to open a visible post next.": "関連情報はありません。次に表示される投稿を開いてください。", "Some related information is not shown. Open a source post to continue.": "一部の関連情報は表示されません。続けるには元の投稿を開いてください。", "Related information is unavailable for this record. Open a visible post next.": "この記録の関連情報を利用できません。次に表示される投稿を開いてください。", "This information reflects an earlier view. Compare it with the current record next.": "この情報は以前の基準を反映しています。次に現在の記録と比較してください。", "This suggestion was not accepted. Open the evidence to review it.": "この提案は受け入れられませんでした。証拠を開いて確認してください。", "Related information is unavailable. Open a visible post next.": "関連情報を利用できません。次に表示される投稿を開いてください。",
+  },
+  vi: {
+    "View related information": "Xem thông tin liên quan", "Related information": "Thông tin liên quan", "Author context": "Bối cảnh tác giả", "Record details": "Chi tiết bản ghi", "Related projects": "Dự án liên quan", "Why this item is listed": "Lý do mục này được hiển thị", "Category": "Phân loại", "How this item was found": "Cách tìm thấy mục này", "Earlier source version": "Phiên bản bản ghi trước đó", "Loading related information...": "Đang tải thông tin liên quan…", "Close record details": "Đóng chi tiết bản ghi", "No related information is available to open a visible post next.": "Chưa có thông tin liên quan. Hãy mở bài viết hiển thị tiếp theo.", "Related information is unavailable for this record. Open a visible post next.": "Không có thông tin liên quan cho bản ghi này. Hãy mở bài viết hiển thị tiếp theo.", "This information reflects an earlier view. Compare it with the current record next.": "Thông tin này phản ánh chế độ xem trước đó. Hãy so sánh với bản ghi hiện tại tiếp theo.", "This suggestion was not accepted. Open the evidence to review it.": "Đề xuất này chưa được chấp nhận. Hãy mở bằng chứng để xem lại.", "Related information is unavailable. Open a visible post next.": "Không có thông tin liên quan. Hãy mở bài viết hiển thị tiếp theo.",
+  },
+};
+
 function isLocale(value: string | null | undefined): value is Locale {
   return Boolean(value && SUPPORTED_LOCALES.includes(value as Locale));
 }
@@ -2203,7 +2248,7 @@ export function useLocale(): Locale {
 }
 
 export function t(key: string): string {
-  return TRANSLATIONS[currentLocale]?.[key] ?? key;
+  return CUSTOMER_COPY[currentLocale][key] ?? TRANSLATIONS[currentLocale]?.[key] ?? key;
 }
 
 export function tf(key: string, values: Record<string, string | number>): string {

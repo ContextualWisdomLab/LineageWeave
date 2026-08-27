@@ -25,6 +25,13 @@ recovery/equivalence checks; affected product paths fail closed during each
 cutover rather than substituting a local estimate. See
 `docs/doctoring/python-mathematical-compute-boundary-audit.md`.
 
+ADR 0237 also keeps accelerator deployment outside this repository. MLX runs
+as a native Apple-silicon inference service behind contextual-orchestrator;
+scientific CPU/CUDA/OpenCL profiles belong to TEPP or fast-mlsirm. RankWeave
+remains the dependency-free Python retrieval-fusion/evaluation owner behind its
+published contract. LineageWeave Compose therefore does not reserve devices or
+mount host drivers; its provider-neutral connectors consume versioned results
+and fail closed when an owning service is unavailable.
 ## Data flow
 
 ```mermaid
