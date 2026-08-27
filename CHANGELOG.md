@@ -8,6 +8,14 @@ All notable changes to this project are documented here. Format follows
 
 ### Added
 
+- The DOT/FJA Data/People/Things worker-function taxonomy is now published
+  in the canonical ontology: all 24 worker functions carry the official
+  Dictionary of Occupational Titles Appendix B definitions verbatim, their
+  definitional ordinal ranks (ADR 0232). No DOT-to-O*NET or Fleishman
+  crosswalk is inferred without an authoritative mapping source. A
+  deterministic application read
+  model (`lineageweave.worker_function_taxonomy`) exposes fail-closed
+  lookups; ranks are scale positions and are never used as weights.
 - Persist explicit paragraph, list, table, MathML formula, and caller-parsed
   conversation-turn semantic-unit kinds without inferring absent boundaries.
 - Event Lineage now persists each reconstructed connection's independent

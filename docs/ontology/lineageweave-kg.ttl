@@ -436,3 +436,192 @@
 :semanticConfidence a owl:DatatypeProperty ;
     rdfs:domain :ProjectMention ;
     rdfs:range xsd:decimal .
+
+#################################################################
+# Worker-function taxonomy (ADR 0232).
+#
+# The Dictionary of Occupational Titles' Data/People/Things worker
+# functions (U.S. Department of Labor, 1991, Appendix B) descend from
+# Functional Job Analysis (Fine & Cronshaw, 1999). Each function below
+# carries the official DOT definition verbatim as its skos:definition,
+# its definitional ordinal rank (:fjaRank -- lower digits denote the
+# more complex function; these are scale positions, never fitted or
+# calibrated weights). Channel-weight estimation stays governed by
+# ADR 0145. No DOT-to-O*NET or Fleishman crosswalk is asserted because
+# the cited authorities do not publish one.
+#
+# Like column-projection properties above, these concepts deliberately
+# do NOT carry :lookupCode: they are not common_lookup_value rows, so
+# the lookup-code round trip is unaffected.
+#################################################################
+
+:WorkerFunction a owl:Class ;
+    rdfs:label "Worker function"@en ;
+    rdfs:comment "One DOT/FJA Data, People, or Things worker function: the standard terminology for how a worker functions on a job in relation to data, people, or things."@en .
+
+:workerFunctionScheme a skos:ConceptScheme ;
+    skos:prefLabel "DOT/FJA worker functions"@en ;
+    skos:definition "The three ordered DOT worker-function lists (Data 0-6, People 0-8, Things 0-7), each arranged from the most complex to the simplest relationship."@en ;
+    rdfs:seeAlso <https://www.dol.gov/agencies/oalj/PUBLIC/DOT/REFERENCES/DOTAPPB> .
+
+:fjaDomain a owl:DatatypeProperty ;
+    rdfs:domain :WorkerFunction ;
+    rdfs:range xsd:string ;
+    rdfs:label "FJA domain"@en ;
+    rdfs:comment "Which DOT list the function belongs to: exactly one of \"data\", \"people\", or \"things\"."@en .
+
+:fjaRank a owl:DatatypeProperty ;
+    rdfs:domain :WorkerFunction ;
+    rdfs:range xsd:integer ;
+    rdfs:label "FJA rank"@en ;
+    rdfs:comment "The function's definitional position on its DOT list. Lower digits name the more complex function; the digit is a scale position from the published table, not a fitted weight."@en .
+
+# ---- Data (4th DOT digit): information, knowledge, and conceptions ----
+
+:dataSynthesizing a skos:Concept , :WorkerFunction ;
+    skos:inScheme :workerFunctionScheme ;
+    skos:prefLabel "Synthesizing"@en ;
+    :fjaDomain "data" ; :fjaRank 0 ;
+    skos:definition "Integrating analyses of data to discover facts and/or develop knowledge concepts or interpretations."@en .
+
+:dataCoordinating a skos:Concept , :WorkerFunction ;
+    skos:inScheme :workerFunctionScheme ;
+    skos:prefLabel "Coordinating"@en ;
+    :fjaDomain "data" ; :fjaRank 1 ;
+    skos:definition "Determining time, place, and sequence of operations or action to be taken on the basis of analysis of data; executing determinations and/or reporting on events."@en .
+
+:dataAnalyzing a skos:Concept , :WorkerFunction ;
+    skos:inScheme :workerFunctionScheme ;
+    skos:prefLabel "Analyzing"@en ;
+    :fjaDomain "data" ; :fjaRank 2 ;
+    skos:definition "Examining and evaluating data. Presenting alternative actions in relation to the evaluation is frequently involved."@en .
+
+:dataCompiling a skos:Concept , :WorkerFunction ;
+    skos:inScheme :workerFunctionScheme ;
+    skos:prefLabel "Compiling"@en ;
+    :fjaDomain "data" ; :fjaRank 3 ;
+    skos:definition "Gathering, collating, or classifying information about data, people, or things. Reporting and/or carrying out a prescribed action in relation to the information is frequently involved."@en .
+
+:dataComputing a skos:Concept , :WorkerFunction ;
+    skos:inScheme :workerFunctionScheme ;
+    skos:prefLabel "Computing"@en ;
+    :fjaDomain "data" ; :fjaRank 4 ;
+    skos:definition "Performing arithmetic operations and reporting on and/or carrying out a prescribed action in relation to them. Does not include counting."@en .
+
+:dataCopying a skos:Concept , :WorkerFunction ;
+    skos:inScheme :workerFunctionScheme ;
+    skos:prefLabel "Copying"@en ;
+    :fjaDomain "data" ; :fjaRank 5 ;
+    skos:definition "Transcribing, entering, or posting data."@en .
+
+:dataComparing a skos:Concept , :WorkerFunction ;
+    skos:inScheme :workerFunctionScheme ;
+    skos:prefLabel "Comparing"@en ;
+    :fjaDomain "data" ; :fjaRank 6 ;
+    skos:definition "Judging the readily observable functional, structural, or compositional characteristics (whether similar to or divergent from obvious standards) of data, people, or things."@en .
+
+# ---- People (5th DOT digit): human beings dealt with individually ----
+
+:peopleMentoring a skos:Concept , :WorkerFunction ;
+    skos:inScheme :workerFunctionScheme ;
+    skos:prefLabel "Mentoring"@en ;
+    :fjaDomain "people" ; :fjaRank 0 ;
+    skos:definition "Dealing with individuals in terms of their total personality in order to advise, counsel, and/or guide them with regard to problems that may be resolved by legal, scientific, clinical, spiritual, and/or other professional principles."@en .
+
+:peopleNegotiating a skos:Concept , :WorkerFunction ;
+    skos:inScheme :workerFunctionScheme ;
+    skos:prefLabel "Negotiating"@en ;
+    :fjaDomain "people" ; :fjaRank 1 ;
+    skos:definition "Exchanging ideas, information, and opinions with others to formulate policies and programs and/or arrive jointly at decisions, conclusions, or solutions."@en .
+
+:peopleInstructing a skos:Concept , :WorkerFunction ;
+    skos:inScheme :workerFunctionScheme ;
+    skos:prefLabel "Instructing"@en ;
+    :fjaDomain "people" ; :fjaRank 2 ;
+    skos:definition "Teaching subject matter to others, or training others (including animals) through explanation, demonstration, and supervised practice; or making recommendations on the basis of technical disciplines."@en .
+
+:peopleSupervising a skos:Concept , :WorkerFunction ;
+    skos:inScheme :workerFunctionScheme ;
+    skos:prefLabel "Supervising"@en ;
+    :fjaDomain "people" ; :fjaRank 3 ;
+    skos:definition "Determining or interpreting work procedures for a group of workers, assigning specific duties to them, maintaining harmonious relations among them, and promoting efficiency. A variety of responsibilities is involved in this function."@en .
+
+:peopleDiverting a skos:Concept , :WorkerFunction ;
+    skos:inScheme :workerFunctionScheme ;
+    skos:prefLabel "Diverting"@en ;
+    :fjaDomain "people" ; :fjaRank 4 ;
+    skos:definition "Amusing others, usually through the medium of stage, screen, television, or radio."@en .
+
+:peoplePersuading a skos:Concept , :WorkerFunction ;
+    skos:inScheme :workerFunctionScheme ;
+    skos:prefLabel "Persuading"@en ;
+    :fjaDomain "people" ; :fjaRank 5 ;
+    skos:definition "Influencing others in favor of a product, service, or point of view."@en .
+
+:peopleSpeakingSignaling a skos:Concept , :WorkerFunction ;
+    skos:inScheme :workerFunctionScheme ;
+    skos:prefLabel "Speaking-Signaling"@en ;
+    :fjaDomain "people" ; :fjaRank 6 ;
+    skos:definition "Talking with and/or signaling people to convey or exchange information. Includes giving assignments and/or directions to helpers or assistants."@en .
+
+:peopleServing a skos:Concept , :WorkerFunction ;
+    skos:inScheme :workerFunctionScheme ;
+    skos:prefLabel "Serving"@en ;
+    :fjaDomain "people" ; :fjaRank 7 ;
+    skos:definition "Attending to the needs or requests of people or animals or the expressed or implicit wishes of people. Immediate response is involved."@en .
+
+:peopleTakingInstructionsHelping a skos:Concept , :WorkerFunction ;
+    skos:inScheme :workerFunctionScheme ;
+    skos:prefLabel "Taking Instructions-Helping"@en ;
+    :fjaDomain "people" ; :fjaRank 8 ;
+    skos:definition "Attending to the work assignment instructions or orders of supervisor. (No immediate response required unless clarification of instructions or orders is needed.) Helping applies to 'non-learning' helpers."@en .
+
+# ---- Things (6th DOT digit): inanimate objects as defined by DOT ----
+
+:thingsSettingUp a skos:Concept , :WorkerFunction ;
+    skos:inScheme :workerFunctionScheme ;
+    skos:prefLabel "Setting Up"@en ;
+    :fjaDomain "things" ; :fjaRank 0 ;
+    skos:definition "Preparing machines (or equipment) for operation by planning order of successive machine operations, installing and adjusting tools and other machine components, adjusting the position of workpiece or material, setting controls, and verifying accuracy of machine capabilities, properties of materials, and shop practices. Uses tools, equipment, and work aids, such as precision gauges and measuring instruments. Workers who set up one or a number of machines for other workers or who set up and personally operate a variety of machines are included here."@en .
+
+:thingsPrecisionWorking a skos:Concept , :WorkerFunction ;
+    skos:inScheme :workerFunctionScheme ;
+    skos:prefLabel "Precision Working"@en ;
+    :fjaDomain "things" ; :fjaRank 1 ;
+    skos:definition "Using body members and/or tools or work aids to work, move, guide, or place objects or materials in situations where ultimate responsibility for the attainment of standards occurs and selection of appropriate tools, objects, or materials, and the adjustment of the tool to the task require exercise of considerable judgment."@en .
+
+:thingsOperatingControlling a skos:Concept , :WorkerFunction ;
+    skos:inScheme :workerFunctionScheme ;
+    skos:prefLabel "Operating-Controlling"@en ;
+    :fjaDomain "things" ; :fjaRank 2 ;
+    skos:definition "Starting, stopping, controlling, and adjusting the progress of machines or equipment. Operating machines involves setting up and adjusting the machine or material(s) as the work progresses. Controlling involves observing gauges, dials, etc., and turning valves and other devices to regulate factors such as temperature, pressure, flow of liquids, speed of pumps, and reactions of materials."@en .
+
+:thingsDrivingOperating a skos:Concept , :WorkerFunction ;
+    skos:inScheme :workerFunctionScheme ;
+    skos:prefLabel "Driving-Operating"@en ;
+    :fjaDomain "things" ; :fjaRank 3 ;
+    skos:definition "Starting, stopping, and controlling the actions of machines or equipment for which a course must be steered or which must be guided to control the movement of things or people for a variety of purposes. Involves such activities as observing gauges and dials, estimating distances and determining speed and direction of other objects, turning cranks and wheels, and pushing or pulling gear lifts or levers. Includes such machines as cranes, conveyor systems, tractors, furnace-charging machines, paving machines, and hoisting machines. Excludes manually powered machines, such as handtrucks and dollies, and power-assisted machines, such as electric wheelbarrows and handtrucks."@en .
+
+:thingsManipulating a skos:Concept , :WorkerFunction ;
+    skos:inScheme :workerFunctionScheme ;
+    skos:prefLabel "Manipulating"@en ;
+    :fjaDomain "things" ; :fjaRank 4 ;
+    skos:definition "Using body members, tools, or special devices to work, move, guide, or place objects or materials. Involves some latitude for judgment with regard to precision attained and selecting appropriate tool, object, or material, although this is readily manifest."@en .
+
+:thingsTending a skos:Concept , :WorkerFunction ;
+    skos:inScheme :workerFunctionScheme ;
+    skos:prefLabel "Tending"@en ;
+    :fjaDomain "things" ; :fjaRank 5 ;
+    skos:definition "Starting, stopping, and observing the functioning of machines and equipment. Involves adjusting materials or controls of the machine, such as changing guides, adjusting timers and temperature gauges, turning valves to allow flow of materials, and flipping switches in response to lights. Little judgment is involved in making these adjustments."@en .
+
+:thingsFeedingOffbearing a skos:Concept , :WorkerFunction ;
+    skos:inScheme :workerFunctionScheme ;
+    skos:prefLabel "Feeding-Offbearing"@en ;
+    :fjaDomain "things" ; :fjaRank 6 ;
+    skos:definition "Inserting, throwing, dumping, or placing materials in or removing them from machines or equipment which are automatic or tended or operated by other workers."@en .
+
+:thingsHandling a skos:Concept , :WorkerFunction ;
+    skos:inScheme :workerFunctionScheme ;
+    skos:prefLabel "Handling"@en ;
+    :fjaDomain "things" ; :fjaRank 7 ;
+    skos:definition "Using body members, handtools, and/or special devices to work, move, or carry objects or materials. Involves little or no latitude for judgment with regard to attainment of standards or in selecting appropriate tool, object, or materials."@en .
