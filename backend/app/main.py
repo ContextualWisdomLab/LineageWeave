@@ -171,6 +171,10 @@ from backend.app.report_ingestion import (
     rebuild_period_reports,
 )
 from backend.app.source_post_revision import fetch_known_at_revision, parse_as_of_clock
+from backend.app.source_post_voice_ingestion import (
+    PrimaryVoiceAssignmentError,
+    persist_additional_voice_assignment,
+)
 from lineageweave.adjudication_client import (
     AdjudicationClientError,
     ContextualOrchestratorAdjudicationClient,
@@ -595,11 +599,15 @@ def _serialize_post(post: asyncpg.Record, labels: dict[str, str] | None = None) 
     project_evidence = post.get("project_evidence") or []
     if isinstance(project_evidence, str):
         project_evidence = json.loads(project_evidence)
+    voice_types = post.get("voice_types") or []
+    if isinstance(voice_types, str):
+        voice_types = json.loads(voice_types)
     return {
         "post_id": str(post["post_id"]),
         "post_title": post["post_title"],
         "voc_type_code": voc,
         "voc_type_label": resolved.get(voc, voc),
+        "voice_types": voice_types,
         "visibility_code": visibility,
         "visibility_label": resolved.get(visibility, visibility),
         "source_stage_code": post.get("source_stage_code"),
@@ -699,6 +707,43 @@ async def _lookup_post_labels(conn: asyncpg.Connection, rows: list[asyncpg.Recor
     return await labels_for_codes(conn, codes)
 
 
+async def _load_post_voice_types(
+    conn: asyncpg.Connection,
+    post_id: str,
+    effective_cutoff: datetime | None = None,
+) -> list[dict[str, Any]]:
+    """Return qualified Voice-of-X associations without exposing assertion ids."""
+    rows = await conn.fetch(
+        """
+        select voice.voice_type_code, lookup.lookup_label, voice.is_primary,
+               voice.truth_status_code,
+               voice.provenance_assertion_id is not null as evidence_available
+          from source_post_voice voice
+          join common_lookup_value lookup
+            on lookup.lookup_category = 'voc_type'
+           and lookup.lookup_code = voice.voice_type_code
+         where voice.post_id = $1
+           and (($2::timestamptz is null and voice.effective_to is null)
+                or ($2::timestamptz is not null
+                    and voice.effective_from <= $2
+                    and (voice.effective_to is null or $2 < voice.effective_to)))
+         order by voice.is_primary desc, lookup.display_order, voice.voice_type_code
+        """,
+        post_id,
+        effective_cutoff,
+    )
+    return [
+        {
+            "code": row["voice_type_code"],
+            "label": row["lookup_label"],
+            "is_primary": row["is_primary"],
+            "truth_status_code": row["truth_status_code"],
+            "evidence_available": row["evidence_available"],
+        }
+        for row in rows
+    ]
+
+
 async def _post_filter_options(
     conn: asyncpg.Connection,
     corporate_entity_ids: frozenset[str],
@@ -710,9 +755,11 @@ async def _post_filter_options(
                coalesce(lookup.lookup_label, option.code) as label,
                coalesce(lookup.display_order, 2147483647) as display_order
           from source_post post
+          left join source_post_voice voice
+            on voice.post_id = post.post_id and voice.effective_to is null
          cross join lateral (
                values ('post_visibility', post.visibility_code),
-                      ('voc_type', post.voc_type_code)
+                      ('voc_type', coalesce(voice.voice_type_code, post.voc_type_code))
          ) as option(lookup_category, code)
           left join common_lookup_value lookup
             on lookup.lookup_category = option.lookup_category
@@ -1350,6 +1397,17 @@ async def list_posts(
         voc_type_options, visibility_options = await _post_filter_options(
             conn, account.corporate_entity_ids, account.process_unit_ids
         )
+        voice_type_catalog = [
+            {"code": row["lookup_code"], "label": row["lookup_label"]}
+            for row in await conn.fetch(
+                """
+                select lookup_code, lookup_label
+                  from common_lookup_value
+                 where lookup_category = 'voc_type'
+                 order by display_order, lookup_code
+                """
+            )
+        ]
         body_search_ids: list[str] = []
         if search_term:
             # Safe SQL: search SQL is a closed schema query; search_term is bound through $1.
@@ -1524,7 +1582,12 @@ async def list_posts(
                                 or affiliated.corporate_entity_code ilike '%' || $1 || '%')
                     )
                )
-               and ($3::text[] is null or post.voc_type_code = any($3::text[]))
+               and ($3::text[] is null or exists (
+                    select 1 from source_post_voice voice_filter
+                     where voice_filter.post_id = post.post_id
+                       and voice_filter.effective_to is null
+                       and voice_filter.voice_type_code = any($3::text[])
+               ))
                and ($4::text is null or post.visibility_code = $4)
                  order by
                     search_priority asc,
@@ -1553,7 +1616,8 @@ async def list_posts(
                        else btrim(left(source_post_search_text(post.post_body), 420))
                    end as post_body_excerpt,
                    char_length(coalesce(post.post_body, '')) > 420 as post_body_truncated,
-                   coalesce(projects.project_evidence, '[]'::json) as project_evidence
+                   coalesce(projects.project_evidence, '[]'::json) as project_evidence,
+                   coalesce(voices.voice_types, '[]'::json) as voice_types
               from page
               join source_post post on post.post_id = page.post_id
               left join lateral (
@@ -1580,6 +1644,25 @@ async def list_posts(
                          limit 5
                     ) project
               ) projects on true
+              left join lateral (
+                  select json_agg(
+                             json_build_object(
+                                 'code', voice.voice_type_code,
+                                 'label', lookup.lookup_label,
+                                 'is_primary', voice.is_primary,
+                                 'truth_status_code', voice.truth_status_code,
+                                 'evidence_available', voice.provenance_assertion_id is not null
+                             )
+                             order by voice.is_primary desc, lookup.display_order,
+                                      voice.voice_type_code
+                         ) as voice_types
+                    from source_post_voice voice
+                    join common_lookup_value lookup
+                      on lookup.lookup_category = 'voc_type'
+                     and lookup.lookup_code = voice.voice_type_code
+                   where voice.post_id = page.post_id
+                     and voice.effective_to is null
+              ) voices on true
              order by
                 case when $1::text is not null then page.search_priority end asc,
                 case
@@ -1610,6 +1693,7 @@ async def list_posts(
         "limit": limit,
         "offset": offset,
         "voc_type_options": voc_type_options,
+        "voice_type_catalog": voice_type_catalog,
         "visibility_options": visibility_options,
     }
 
@@ -1663,6 +1747,7 @@ async def read_post(
         project_evidence = await _load_project_evidence(
             conn, post_id, row["source_project_code"], row["source_project_name"]
         )
+        voice_types = await _load_post_voice_types(conn, post_id, as_of_clock)
         if as_of_clock is None:
             occupational_construct_assertions = (
                 await load_occupational_construct_assertions(conn, post_id)
@@ -1687,11 +1772,70 @@ async def read_post(
         **_serialize_post(row, labels),
         "post_body": row["post_body"],
         "project_evidence": project_evidence,
+        "voice_types": voice_types,
         "occupational_construct_assertions": occupational_construct_assertions,
     }
     if known_at is not None:
         payload["known_at"] = known_at
     return payload
+
+
+class CreatePostVoiceAssignmentRequest(BaseModel):
+    """Evidence and governed truth state for one additional Voice assignment."""
+
+    voice_type_code: str
+    truth_status_code: str
+    evidence_post_id: UUID
+
+
+@app.post(
+    "/api/posts/{post_id}/voice-assignments",
+    status_code=status.HTTP_201_CREATED,
+)
+async def create_post_voice_assignment(
+    post_id: str,
+    request: CreatePostVoiceAssignmentRequest,
+    account: CurrentAccount = Depends(get_current_account),
+    pool: asyncpg.Pool = Depends(get_pool),
+    valkey: redis.Redis = Depends(get_valkey),
+) -> dict[str, Any]:
+    """Attach one additional Voice using an authorized evidence Post."""
+    _require_post_admin(account)
+    await _load_visible_post(post_id, account, pool)
+    evidence_post_id = str(request.evidence_post_id)
+    if evidence_post_id != post_id:
+        await _load_visible_post(evidence_post_id, account, pool)
+    async with pool.acquire() as conn:
+        try:
+            await persist_additional_voice_assignment(
+                conn,
+                post_id=post_id,
+                voice_type_code=request.voice_type_code,
+                truth_status_code=request.truth_status_code,
+                evidence_post_id=evidence_post_id,
+            )
+        except PrimaryVoiceAssignmentError as exc:
+            raise HTTPException(status.HTTP_409_CONFLICT, str(exc)) from exc
+        except (
+            asyncpg.CheckViolationError,
+            asyncpg.ForeignKeyViolationError,
+        ) as exc:
+            raise HTTPException(
+                status.HTTP_422_UNPROCESSABLE_CONTENT,
+                "voice_type_code and truth_status_code must use governed lookup values",
+            ) from exc
+        assignments = await _load_post_voice_types(conn, post_id)
+    assignment = next(
+        item for item in assignments if item["code"] == request.voice_type_code
+    )
+    await publish_activity_event(
+        valkey,
+        post_id,
+        "voice_assignment_added",
+        account.user_account_id,
+        "Additional Voice evidence connected",
+    )
+    return assignment
 
 
 @app.get("/api/posts/{post_id}/content")

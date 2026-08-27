@@ -16,8 +16,10 @@ import asyncio
 import math
 import os
 import uuid
+from concurrent.futures import ThreadPoolExecutor
 from contextlib import closing
 from pathlib import Path
+from threading import Barrier
 from types import SimpleNamespace
 
 import asyncpg
@@ -37,6 +39,11 @@ _KEYCLOAK_BASE_URL = os.environ.get("LINEAGEWEAVE_TEST_KEYCLOAK_BASE_URL", "http
 _VALKEY_URL = os.environ.get("LINEAGEWEAVE_TEST_VALKEY_URL", "redis://localhost:16379/0")
 _REALM = "lineageweave-demo"
 _MIGRATION_PATH = Path(__file__).resolve().parents[2] / "migrations" / "0001_initial_schema.sql"
+_PROVENANCE_MIGRATION = (
+    Path(__file__).resolve().parents[2]
+    / "migrations"
+    / "0017_prov_o_standard_relations.sql"
+)
 _REGISTRY_MIGRATION = Path(__file__).resolve().parents[2] / "migrations" / "0018_analysis_run_registry.sql"
 _RETENTION_MIGRATION = Path(__file__).resolve().parents[2] / "migrations" / "0020_analysis_run_retention_purge.sql"
 _RECONSTRUCTION_MIGRATION = (
@@ -86,6 +93,9 @@ _SOURCE_NAMED_HINTS_MIGRATION = (
 )
 _SOURCE_ORG_NAMED_HINTS_MIGRATION = (
     Path(__file__).resolve().parents[2] / "migrations" / "0039_source_org_named_hints.sql"
+)
+_VOC_VOCABULARY_MIGRATION = (
+    Path(__file__).resolve().parents[2] / "migrations" / "0042_voc_type_vocabulary.sql"
 )
 _MEMBER_LOCALE_MIGRATION = (
     Path(__file__).resolve().parents[2] / "migrations" / "0044_member_locale_preference.sql"
@@ -237,7 +247,19 @@ _EVENT_OCCURRED_AT_MIGRATION = (
     / "0183_source_post_event_occurred_at.sql"
 )
 _ONTOLOGY_TRUTH_STATUS_MIGRATION = (
-    Path(__file__).resolve().parents[2] / "migrations" / "0175_ontology_truth_status.sql"
+    Path(__file__).resolve().parents[2]
+    / "migrations"
+    / "0175_ontology_truth_status.sql"
+)
+_VOICE_TAXONOMY_MIGRATION = (
+    Path(__file__).resolve().parents[2]
+    / "migrations"
+    / "0235_voice_of_x_post_taxonomy.sql"
+)
+_VOICE_ASSIGNMENT_MIGRATION = (
+    Path(__file__).resolve().parents[2]
+    / "migrations"
+    / "0237_source_post_voice_combination.sql"
 )
 _OCCUPATIONAL_CONSTRUCT_MIGRATION = (
     Path(__file__).resolve().parents[2]
@@ -334,6 +356,7 @@ def seeded_db(demo_analyst_token):
     try:
         with conn.cursor() as cur:
             cur.execute(_MIGRATION_PATH.read_text())
+            cur.execute(_PROVENANCE_MIGRATION.read_text())
             cur.execute(_REGISTRY_MIGRATION.read_text())
             cur.execute(_RETENTION_MIGRATION.read_text())
             cur.execute(_RECONSTRUCTION_MIGRATION.read_text())
@@ -356,6 +379,7 @@ def seeded_db(demo_analyst_token):
                 (Path(__file__).resolve().parents[2] / "migrations" / "0040_post_summary_contract.sql")
                 .read_text()
             )
+            cur.execute(_VOC_VOCABULARY_MIGRATION.read_text())
             cur.execute(_MEMBER_LOCALE_MIGRATION.read_text())
             cur.execute(_IMAGE_REGION_MIGRATION.read_text())
             cur.execute(_POST_CONTENT_STRUCTURE_MIGRATION.read_text())
@@ -401,6 +425,17 @@ def seeded_db(demo_analyst_token):
             cur.execute(_LEFTOVER_MAP_COVERAGE_MIGRATION.read_text())
             cur.execute(_GLOBAL_ASK_JOB_MIGRATION.read_text())
             cur.execute(_GLOBAL_ASK_SCOPE_MIGRATION.read_text())
+            # psycopg2 sends one multi-statement execute as one transaction,
+            # which PostgreSQL correctly rejects for CREATE INDEX CONCURRENTLY.
+            migration_sql = "\n".join(
+                line
+                for line in _GLOBAL_ASK_EVIDENCE_SEARCH_MIGRATION.read_text().splitlines()
+                if not line.lstrip().startswith("--")
+            )
+            for statement in migration_sql.split(";"):
+                sql = statement.strip()
+                if sql:
+                    cur.execute(sql)
             for statement in _GLOBAL_ASK_EVIDENCE_SEARCH_MIGRATION.read_text().split(";\n\n"):
                 if statement.strip():
                     cur.execute(statement + ";")
@@ -415,6 +450,9 @@ def seeded_db(demo_analyst_token):
             cur.execute(_LEFTOVER_MAP_UNEXPLAINED_MIGRATION.read_text())
             cur.execute(_LEFTOVER_MAP_CROSS_SHARE_MIGRATION.read_text())
             cur.execute(_LEFTOVER_MAP_RECONSTRUCTION_MIGRATION.read_text())
+            cur.execute(_ONTOLOGY_TRUTH_STATUS_MIGRATION.read_text())
+            cur.execute(_VOICE_TAXONOMY_MIGRATION.read_text())
+            cur.execute(_VOICE_ASSIGNMENT_MIGRATION.read_text())
             cur.execute(_LEFTOVER_MAP_UNEXPLAINED_SHARE_MIGRATION.read_text())
             cur.execute(
                 "insert into common_lookup_value (lookup_category, lookup_code, lookup_label) values "
@@ -423,7 +461,6 @@ def seeded_db(demo_analyst_token):
                 "('corporate_entity_level', 'plant', 'Plant'), "
                 "('post_visibility', 'public', 'Public'), "
                 "('post_visibility', 'private', 'Private'), "
-                "('voc_type', 'voc', 'Voice of Customer'), "
                 "('permission', 'post_read', 'Read posts'), "
                 "('person_side', 'our_side', 'Our side'), "
                 "('person_side', 'counterparty', 'Counterparty'), "
@@ -1873,6 +1910,20 @@ def test_post_list_includes_public_and_own_corp_but_excludes_other_corp(client, 
     assert public["voc_type_label"] == "Voice of Customer"
     assert public["visibility_label"] == "Public"
     assert {option["code"] for option in payload["voc_type_options"]} == {"voc"}
+    assert {option["code"] for option in payload["voice_type_catalog"]} == {
+        "voc",
+        "voe",
+        "vob",
+        "voi",
+        "vop",
+        "vops",
+        "vos",
+        "vocc",
+        "voco",
+        "vom",
+        "vor",
+        "voso",
+    }
     assert {option["code"] for option in payload["visibility_options"]} == {"public", "private"}
     assert next(option for option in payload["visibility_options"] if option["code"] == "public")["label"] == "Public"
 
@@ -4759,6 +4810,138 @@ def _grant_post_admin(dsn: str) -> None:
             )
     finally:
         admin_conn.close()
+
+
+def test_create_voice_assignment_persists_authorized_prov_o_evidence(
+    client, demo_analyst_token, seeded_db
+) -> None:
+    """A real OIDC admin write retains its governed Voice and evidence Post."""
+    headers = {"Authorization": f"Bearer {demo_analyst_token}"}
+    endpoint = f"/api/posts/{seeded_db['own_private_post_id']}/voice-assignments"
+    payload = {
+        "voice_type_code": "vos",
+        "truth_status_code": "truth_observed",
+        "evidence_post_id": seeded_db["public_post_id"],
+    }
+
+    assert client.post(endpoint, json=payload, headers=headers).status_code == 403
+    _grant_post_admin(seeded_db["dsn"])
+    with closing(psycopg2.connect(seeded_db["dsn"])) as conn, conn.cursor() as cur:
+        cur.execute(
+            "insert into provenance_resource (resource_iri, resource_label) "
+            "values (%s, 'Synthetic evidence Post') returning resource_id",
+            (f"https://example.test/posts/{seeded_db['public_post_id']}",),
+        )
+        resource_id = cur.fetchone()[0]
+        cur.execute(
+            "insert into provenance_resource_type (resource_id, class_code) "
+            "values (%s, 'prov_entity')",
+            (resource_id,),
+        )
+        cur.execute(
+            "insert into provenance_resource_binding "
+            "(resource_id, node_type_code, node_id) values (%s, 'node_post', %s)",
+            (resource_id, seeded_db["public_post_id"]),
+        )
+        conn.commit()
+
+    response = client.post(endpoint, json=payload, headers=headers)
+    assert response.status_code == 201, response.text
+    assert response.json() == {
+        "code": "vos",
+        "label": "Voice of Supplier",
+        "is_primary": False,
+        "truth_status_code": "truth_observed",
+        "evidence_available": True,
+    }
+
+    with closing(psycopg2.connect(seeded_db["dsn"])) as conn, conn.cursor() as cur:
+        cur.execute(
+            """
+            select voice.voice_type_code, voice.is_primary,
+                   assertion.relation_code, binding.node_id
+              from source_post_voice voice
+              join provenance_assertion assertion
+                on assertion.assertion_id = voice.provenance_assertion_id
+              join provenance_resource_binding binding
+                on binding.resource_id = assertion.object_resource_id
+             where voice.post_id = %s and voice.voice_type_code = 'vos'
+            """,
+            (seeded_db["own_private_post_id"],),
+        )
+        stored = cur.fetchone()
+        assert stored == (
+            "vos",
+            False,
+            "prov_was_derived_from",
+            seeded_db["public_post_id"],
+        )
+        cur.execute(
+            "select voice_type_code from source_post_voice "
+            "where post_id = %s and is_primary",
+            (seeded_db["own_private_post_id"],),
+        )
+        assert cur.fetchone() == ("voc",)
+
+
+def test_primary_voice_history_survives_concurrent_changes_and_cutoff_reads(
+    client, demo_analyst_token, seeded_db
+) -> None:
+    """Concurrent A→B→C→A changes retain one non-overlapping primary timeline."""
+    post_id = seeded_db["own_private_post_id"]
+    barrier = Barrier(2)
+
+    with closing(psycopg2.connect(seeded_db["dsn"])) as conn, conn.cursor() as cur:
+        cur.execute(_VOICE_ASSIGNMENT_MIGRATION.read_text())
+        cur.execute(_VOICE_ASSIGNMENT_MIGRATION.read_text())
+
+    def update_voice(code: str) -> None:
+        with closing(psycopg2.connect(seeded_db["dsn"])) as conn, conn.cursor() as cur:
+            barrier.wait()
+            cur.execute(
+                "update source_post set voc_type_code = %s where post_id = %s",
+                (code, post_id),
+            )
+            conn.commit()
+
+    with ThreadPoolExecutor(max_workers=2) as executor:
+        futures = [executor.submit(update_voice, code) for code in ("vop", "voe")]
+        for future in futures:
+            future.result()
+
+    with closing(psycopg2.connect(seeded_db["dsn"])) as conn, conn.cursor() as cur:
+        cur.execute(
+            "update source_post set voc_type_code = 'voc' where post_id = %s",
+            (post_id,),
+        )
+        conn.commit()
+        cur.execute(
+            "select voice_type_code, effective_from, effective_to "
+            "from source_post_voice where post_id = %s and is_primary "
+            "order by effective_from, voice_assignment_id",
+            (post_id,),
+        )
+        history = cur.fetchall()
+
+    assert len(history) == 4
+    assert history[0][0] == "voc"
+    assert history[-1][0] == "voc"
+    assert sum(effective_to is None for _, _, effective_to in history) == 1
+    assert all(
+        history[index][2] == history[index + 1][1]
+        for index in range(len(history) - 1)
+    )
+    for voice_type_code, effective_from, _effective_to in history:
+        response = client.get(
+            f"/api/posts/{post_id}",
+            params={"as_of": effective_from.isoformat()},
+            headers={"Authorization": f"Bearer {demo_analyst_token}"},
+        )
+        assert response.status_code == 200, response.text
+        primaries = [
+            voice for voice in response.json()["voice_types"] if voice["is_primary"]
+        ]
+        assert [voice["code"] for voice in primaries] == [voice_type_code]
 
 
 def test_tickets_list_is_empty_before_any_created(client, demo_analyst_token, seeded_db) -> None:

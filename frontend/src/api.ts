@@ -5,6 +5,7 @@ export interface PostSummary {
   post_title: string;
   voc_type_code: string;
   voc_type_label?: string;
+  voice_types?: PostVoiceType[];
   visibility_code: string;
   visibility_label?: string;
   source_stage_code?: string | null;
@@ -32,12 +33,21 @@ export interface PostSummary {
   created_at: string;
 }
 
+export interface PostVoiceType {
+  code: string;
+  label: string;
+  is_primary: boolean;
+  truth_status_code: string;
+  evidence_available: boolean;
+}
+
 export interface PostPage {
   posts: PostSummary[];
   total_count: number;
   limit: number;
   offset: number;
   voc_type_options?: PostFilterOption[];
+  voice_type_catalog?: PostFilterOption[];
   visibility_options?: PostFilterOption[];
 }
 
@@ -794,6 +804,22 @@ export function fetchPost(
   return backendFetch<PostDetail>(`/api/posts/${postId}${query}`, accessToken);
 }
 
+export function createPostVoiceAssignment(
+  accessToken: string,
+  postId: string,
+  voiceTypeCode: string,
+  truthStatusCode: string,
+): Promise<PostVoiceType> {
+  return backendFetch(`/api/posts/${postId}/voice-assignments`, accessToken, {
+    method: "POST",
+    body: JSON.stringify({
+      voice_type_code: voiceTypeCode,
+      truth_status_code: truthStatusCode,
+      evidence_post_id: postId,
+    }),
+  });
+}
+
 export function fetchPostContent(accessToken: string, postId: string): Promise<PostContentResponse> {
   return backendFetch<PostContentResponse>(`/api/posts/${postId}/content`, accessToken);
 }
@@ -944,6 +970,19 @@ export interface OntologyExactValueRow {
   valid_from: string;
   valid_to: string;
   evidence_count: string;
+  evidence_post_id?: string;
+}
+
+export interface OntologyVoiceAssignmentPayload {
+  post_id: string;
+  voice_type_code: string;
+  voice_type_iri: string;
+  voice_type_label: string;
+  is_primary: boolean;
+  truth_status_code: string;
+  recorded_at: string;
+  provenance_reference: string;
+  evidence_post_id: string | null;
 }
 
 export interface OntologyNeighborhoodPayload {
@@ -955,6 +994,7 @@ export interface OntologyNeighborhoodPayload {
   nodes: OntologyGraphNodePayload[];
   edges: OntologyGraphEdgePayload[];
   exact_value_rows: OntologyExactValueRow[];
+  voice_assignments?: OntologyVoiceAssignmentPayload[];
   jsonld: Record<string, unknown>;
 }
 

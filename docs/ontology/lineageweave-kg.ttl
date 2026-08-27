@@ -362,6 +362,37 @@
     rdfs:comment "A process- or system-generated source record." ;
     :lookupCode "vops" .
 
+# ADR 0256 -- qualified, evidence-bearing combinations. A post links to one
+# assignment per atomic voice instead of minting a term for each Cartesian
+# combination. Additional assignments use prov:wasDerivedFrom to retain their
+# evidence lineage.
+:VoiceAssignment a owl:Class ;
+    rdfs:subClassOf prov:Entity ;
+    rdfs:label "Voice assignment"@en ;
+    rdfs:comment "One atomic Voice-of-X classification attached to a post with its own truth and provenance contract."@en .
+
+:hasVoiceAssignment a owl:ObjectProperty ;
+    rdfs:domain :Post ;
+    rdfs:range :VoiceAssignment ;
+    rdfs:label "has voice assignment"@en .
+
+:assignedVoiceType a owl:ObjectProperty ;
+    rdfs:domain :VoiceAssignment ;
+    rdfs:range skos:Concept ;
+    rdfs:label "assigned voice type"@en .
+
+:primaryVoiceAssignment a owl:DatatypeProperty ;
+    rdfs:domain :VoiceAssignment ;
+    rdfs:range xsd:boolean ;
+    rdfs:label "primary voice assignment"@en .
+
+:voiceAssignmentEvidence a owl:ObjectProperty ;
+    rdfs:subPropertyOf prov:wasDerivedFrom ;
+    rdfs:domain :VoiceAssignment ;
+    rdfs:range :Post ;
+    rdfs:label "voice assignment evidence"@en ;
+    rdfs:comment "The authorized source post that supports this qualified voice assignment."@en .
+
 #################################################################
 # SKOS -- corporate_entity_level (Group -> Company -> Plant)
 #################################################################

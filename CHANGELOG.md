@@ -8,6 +8,30 @@ All notable changes to this project are documented here. Format follows
 
 ### Added
 
+- Normalized Voice-of-X composition persistence (ADR 0256): every imported
+  primary voice is mirrored into `source_post_voice`; each additional voice
+  requires its own PROV-O assertion and truth status. Compound lookup codes,
+  keyword inference, confidence thresholds, and invented weights remain out of
+  the contract; the ontology publishes qualified `VoiceAssignment` resources,
+  authorized post responses expose the assignments, filters match any assigned
+  voice, post cards display combined labels, and the authorized neighborhood
+  carries the assignments through SHACL-validated JSON-LD, exact-value CSV,
+  and source-post evidence navigation. Storybook includes the combined primary
+  plus additional Voice evidence state for desktop and narrow-screen audit.
+  Board filters match additional as well as primary voices, labels retain the
+  active locale, and cutoff reads use assignment-effective time rather than
+  migration recording time. All twelve governed atomic Voice labels are
+  translated across the five supported product locales. Ontology neighborhoods
+  load assignments for every authorized visible Post in one bounded query,
+  including Person-, Organization-, Team-, and Project-focused exploration. A
+  governed `post_admin` API creates each additional assignment and its
+  `prov:wasDerivedFrom` assertion atomically from an ABAC-visible evidence Post;
+  callers cannot replace the imported primary or supply an assertion UUID.
+  Post detail lists the primary and evidence-connected perspectives separately,
+  with localized provenance cues and knowledge-cutoff filtering. A
+  permission- and cutoff-gated popup form connects an unassigned Voice with an
+  explicit truth state and the open Post as evidence; localized success/error
+  feedback and responsive Storybook scenes cover the write interaction.
 - Expanded Voice-of-X post taxonomy (ADR 0246): the governed `voc_type`
   scheme adds Voice of Supplier, Employee, Business, Regulator, Investor,
   Society, and Process as source-post categories. Ontology SKOS concepts and
@@ -62,7 +86,6 @@ All notable changes to this project are documented here. Format follows
   deterministic application read
   model (`lineageweave.worker_function_taxonomy`) exposes fail-closed
   lookups; ranks are scale positions and are never used as weights.
-=======
 - Global Ask accepts an optional UTC `knowledge_cutoff`. Dated questions
   retrieve only posts available by that clock, cite the retained
   `source_post_revision`, and name when a historical body was not kept.

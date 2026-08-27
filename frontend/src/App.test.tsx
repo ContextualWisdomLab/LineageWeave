@@ -128,6 +128,8 @@ describe("App, authenticated", () => {
     staleSummary?: boolean;
     contentAfterSummary?: boolean;
     organizationAliases?: boolean;
+    combinedVoices?: boolean;
+    omitVoiceOptions?: boolean;
     askLineageGraph?: boolean;
     askImageCitation?: boolean;
     askDelivery?: boolean;
@@ -1165,6 +1167,26 @@ describe("App, authenticated", () => {
                       post_title: "Public post",
                       voc_type_code: "voc",
                       voc_type_label: "Voice of Customer",
+                      ...(options?.combinedVoices
+                        ? {
+                            voice_types: [
+                              {
+                                code: "voc",
+                                label: "Voice of Customer",
+                                is_primary: true,
+                                truth_status_code: "truth_observed",
+                                evidence_available: false,
+                              },
+                              {
+                                code: "vops",
+                                label: "Voice of Process",
+                                is_primary: false,
+                                truth_status_code: "truth_observed",
+                                evidence_available: true,
+                              },
+                            ],
+                          }
+                        : {}),
                       visibility_code: "public",
                       visibility_label: "Public",
                       created_at: "2026-01-01T00:00:00Z",
@@ -1173,10 +1195,22 @@ describe("App, authenticated", () => {
                   total_count: 1,
                   limit: 50,
                   offset: 0,
-                  voc_type_options: [
-                    { code: "voc", label: "Voice of Customer" },
-                    { code: "vop", label: "Voice of Partner" },
-                  ],
+                  ...(options?.omitVoiceOptions
+                    ? {}
+                    : {
+                        voc_type_options: [
+                          { code: "voc", label: "Voice of Customer" },
+                          { code: "vop", label: "Voice of Partner" },
+                          ...(options?.combinedVoices
+                            ? [{ code: "vops", label: "Voice of Process" }]
+                            : []),
+                        ],
+                        voice_type_catalog: [
+                          { code: "voc", label: "Voice of Customer" },
+                          { code: "vop", label: "Voice of Partner" },
+                          { code: "vos", label: "Voice of Supplier" },
+                        ],
+                      }),
                   visibility_options: [{ code: "public", label: "Public" }],
                 },
           ),
@@ -1969,6 +2003,41 @@ describe("App, authenticated", () => {
     vi.stubGlobal("fetch", fetchMock);
     return Object.assign(fetchMock, { releaseMe, releasePostOne });
   }
+
+  it("shows all evidence-bearing Voice-of-X labels on a post card", async () => {
+    stubBackend({ combinedVoices: true });
+    render(<App />);
+
+    expect(
+      await screen.findByText("Voice of Customer (Observed) + Voice of Process (Observed)"),
+    ).toBeInTheDocument();
+  });
+
+  it("keeps a post whose additional voice matches the board filter", async () => {
+    stubBackend({ combinedVoices: true });
+    render(<App />);
+
+    await screen.findByRole("button", { name: "View post: Public post" });
+    await userEvent.click(screen.getByRole("checkbox", { name: "Voice of Process" }));
+    expect(screen.getByRole("button", { name: "View post: Public post" })).toBeInTheDocument();
+  });
+
+  it("offers additional voices when filter options are omitted", async () => {
+    stubBackend({ combinedVoices: true, omitVoiceOptions: true });
+    render(<App />);
+
+    expect(await screen.findByRole("checkbox", { name: "Voice of Process" })).toBeInTheDocument();
+  });
+
+  it("offers an unused governed Voice when an administrator connects evidence", async () => {
+    stubBackend({ admin: true });
+    render(<App />);
+
+    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
+
+    expect(await screen.findByRole("option", { name: "Voice of Supplier" })).toBeInTheDocument();
+    expect(screen.queryByRole("checkbox", { name: "Voice of Supplier" })).not.toBeInTheDocument();
+  });
 
   it("renders safe Ask Agent evidence under each cited post", async () => {
     stubBackend();

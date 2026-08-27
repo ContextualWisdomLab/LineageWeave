@@ -2,6 +2,7 @@ import { AdminPanel } from "./components/AdminPanel";
 import { LeftoverPairList } from "./components/LeftoverPairList";
 import { WorkspaceCalendar } from "./components/WorkspaceCalendar";
 import { focusedGraphMustReset } from "./focusedGraphSelection";
+import { canAuthorVoice, postPrimaryVoiceLabel } from "./voicePerspective";
 
 import { useCallback, useEffect, useEffectEvent, useRef, useState, type ReactNode } from "react";
 import { useAuth } from "react-oidc-context";
@@ -13,6 +14,7 @@ import {
   createAnalysisRun,
   startAnalysisRun,
   createPostTicket,
+  createPostVoiceAssignment,
   deriveCommitment,
   evaluatePost,
   extractPostKeymen,
@@ -78,6 +80,7 @@ import {
   type PeriodReportIndex,
   type PeriodReports,
   type PostLineage,
+  type PostVoiceType,
   type PostSummary,
   type PostSortOrder,
   type RankingList,
@@ -1729,10 +1732,28 @@ const ACTIVITY_TYPE_LABELS: Record<string, string> = {
   relations_verified: "Relations verified",
   post_evaluated: "Post evaluated",
   chat_answered: "Chat answered",
+  voice_assignment_added: "Voice perspective connected",
 };
 
 function activityTypeLabel(eventType: string): string {
   return t(ACTIVITY_TYPE_LABELS[eventType] ?? eventType);
+}
+
+const VOICE_TRUTH_LABELS: Record<string, string> = {
+  truth_authoritative: "Authoritative",
+  truth_observed: "Observed",
+  truth_inferred: "Inferred",
+  truth_proposed: "Proposed",
+  truth_superseded: "Superseded",
+  truth_rejected: "Rejected",
+};
+
+function voiceTruthLabel(truthStatusCode: string): string {
+  return t(VOICE_TRUTH_LABELS[truthStatusCode] ?? "Status unavailable");
+}
+
+function voiceDisplayLabel(voice: PostVoiceType): string {
+  return `${t(voice.label)} (${voiceTruthLabel(voice.truth_status_code)})`;
 }
 
 function ActivityPanel({ postId, accessToken }: { postId: string; accessToken: string }) {
@@ -1778,6 +1799,113 @@ function ActivityPanel({ postId, accessToken }: { postId: string; accessToken: s
   );
 }
 
+export function VoicePerspectiveList({ voices }: { voices: PostVoiceType[] }) {
+  return (
+    <section className="popup-section" aria-label={t("Recorded perspectives")}>
+      <h3>{t("Recorded perspectives")}</h3>
+      <ul className="ticket-list">
+        {voices.map((voice) => (
+          <li key={voice.code} className="ticket-list-item">
+            <span className="ticket-title">{voiceDisplayLabel(voice)}</span>
+            <span className="post-meta">
+              {t(voice.is_primary ? "Imported from source" : "Evidence connected")}
+            </span>
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+
+const VOICE_TRUTH_OPTIONS = [
+  "truth_authoritative",
+  "truth_observed",
+  "truth_inferred",
+  "truth_proposed",
+  "truth_superseded",
+  "truth_rejected",
+];
+
+export function VoiceAssignmentForm({
+  voices,
+  options,
+  onSave,
+}: {
+  voices: PostVoiceType[];
+  options: PostFilterOption[];
+  onSave: (voiceTypeCode: string, truthStatusCode: string) => Promise<void>;
+}) {
+  const assigned = new Set(voices.map((voice) => voice.code));
+  const available = options.filter((option) => !assigned.has(option.code));
+  const [voiceTypeCode, setVoiceTypeCode] = useState("");
+  const [truthStatusCode, setTruthStatusCode] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function submit(event: React.FormEvent) {
+    event.preventDefault();
+    if (!voiceTypeCode || !truthStatusCode || saving) return;
+    setSaving(true);
+    setSaved(false);
+    setError(null);
+    try {
+      await onSave(voiceTypeCode, truthStatusCode);
+      setVoiceTypeCode("");
+      setTruthStatusCode("");
+      setSaved(true);
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : t("Perspective could not be connected."));
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  if (available.length === 0) return null;
+  return (
+    <section className="popup-section" aria-label={t("Connect another perspective")}>
+      <h3>{t("Connect another perspective")}</h3>
+      <p className="post-meta">{t("This post will be recorded as the evidence.")}</p>
+      <form className="admin-form voice-assignment-form" onSubmit={submit}>
+        <label>
+          {t("Perspective")}
+          <select
+            value={voiceTypeCode}
+            onChange={(event) => setVoiceTypeCode(event.target.value)}
+            disabled={saving}
+            required
+          >
+            <option value="">{t("Choose a perspective")}</option>
+            {available.map((option) => (
+              <option key={option.code} value={option.code}>{t(option.label)}</option>
+            ))}
+          </select>
+        </label>
+        <label>
+          {t("Evidence status")}
+          <select
+            value={truthStatusCode}
+            onChange={(event) => setTruthStatusCode(event.target.value)}
+            disabled={saving}
+            required
+          >
+            <option value="">{t("Choose an evidence status")}</option>
+            {VOICE_TRUTH_OPTIONS.map((code) => (
+              <option key={code} value={code}>{voiceTruthLabel(code)}</option>
+            ))}
+          </select>
+        </label>
+        <button type="submit" className="btn-primary" disabled={saving || !voiceTypeCode || !truthStatusCode}>
+          {t(saving ? "Connecting..." : "Connect perspective")}
+        </button>
+        {saved ? <p className="voice-assignment-feedback" role="status">{t("Perspective connected.")}</p> : null}
+        {error ? <p role="alert" className="error voice-assignment-feedback">{error}</p> : null}
+      </form>
+    </section>
+  );
+}
+
+
 function PostDetailPopup({
   postId,
   accessToken,
@@ -1790,6 +1918,7 @@ function PostDetailPopup({
   onClose,
   onSelectPost,
   onSearch,
+  voiceOptions = [],
 }: {
   postId: string;
   accessToken: string;
@@ -1802,6 +1931,7 @@ function PostDetailPopup({
   onClose: () => void;
   onSelectPost?: (postId: string) => void;
   onSearch?: (query: string) => void;
+  voiceOptions?: PostFilterOption[];
 }) {
   const [post, setPost] = useState<PostDetail | null>(null);
   const [imageContent, setImageContent] = useState<PostImageContent[]>([]);
@@ -2103,10 +2233,32 @@ function PostDetailPopup({
           <>
             <h2 id="post-detail-title">{post.post_title}</h2>
             <p className="post-meta">
-              {post.voc_type_label ?? post.voc_type_code} &middot;{" "}
+              {t(postPrimaryVoiceLabel(post, knowledgeCutoff))} &middot;{" "}
               {post.visibility_label ?? post.visibility_code} &middot;{" "}
               {new Date(post.created_at).toLocaleString()}
             </p>
+            {post.voice_types?.length ? <VoicePerspectiveList voices={post.voice_types} /> : null}
+            {canAuthorVoice(canExtract, knowledgeCutoff) ? (
+              <VoiceAssignmentForm
+                voices={post.voice_types ?? []}
+                options={voiceOptions}
+                onSave={async (voiceTypeCode, truthStatusCode) => {
+                  const assignment = await createPostVoiceAssignment(
+                    accessToken,
+                    postId,
+                    voiceTypeCode,
+                    truthStatusCode,
+                  );
+                  setPost((current) => current ? {
+                    ...current,
+                    voice_types: [
+                      ...(current.voice_types ?? []).filter((voice) => voice.code !== assignment.code),
+                      assignment,
+                    ],
+                  } : current);
+                }}
+              />
+            ) : null}
             <div className="post-actions" role="group" aria-label={t("Post actions")}>
               <button type="button" onClick={() => void sharePost()}>
                 {t("Share")}
@@ -3917,6 +4069,7 @@ function PostList({
   const [searchQuery, setSearchQuery] = useState("");
   const [typeFilter, setTypeFilter] = useState<string[]>([]);
   const [vocTypeFilterOptions, setVocTypeFilterOptions] = useState<PostFilterOption[]>([]);
+  const [voiceTypeCatalog, setVoiceTypeCatalog] = useState<PostFilterOption[]>([]);
   const [visibilityFilter, setVisibilityFilter] = useState("all");
   const [visibilityFilterOptions, setVisibilityFilterOptions] = useState<PostFilterOption[]>([]);
   const [sortOrder, setSortOrder] = useState<BoardSortOrder>("newest");
@@ -4015,6 +4168,7 @@ function PostList({
       setPosts(response.posts);
       setTotalPosts(response.total_count);
       setVocTypeFilterOptions(response.voc_type_options ?? []);
+      setVoiceTypeCatalog(response.voice_type_catalog ?? response.voc_type_options ?? []);
       setVisibilityFilterOptions(response.visibility_options ?? []);
       setCurrentPage(page);
     } catch (err) {
@@ -4085,15 +4239,32 @@ function PostList({
         }));
   const vocTypeOptions = vocTypeFilterOptions.length
     ? vocTypeFilterOptions
-    : Array.from(new Set(loadedPosts.map((post) => post.voc_type_code)))
+    : Array.from(
+        new Set(
+          loadedPosts.flatMap((post) =>
+            post.voice_types?.length
+              ? post.voice_types.map((voice) => voice.code)
+              : [post.voc_type_code],
+          ),
+        ),
+      )
         .sort()
         .map((code) => ({
           code,
-          label: loadedPosts.find((post) => post.voc_type_code === code)?.voc_type_label ?? code,
+          label:
+            loadedPosts
+              .flatMap((post) => post.voice_types ?? [])
+              .find((voice) => voice.code === code)?.label ??
+            loadedPosts.find((post) => post.voc_type_code === code)?.voc_type_label ??
+            code,
         }));
   const filteredPosts = loadedPosts
     .filter((post) => {
-      const matchesType = typeFilter.length === 0 || typeFilter.includes(post.voc_type_code);
+      const matchesType =
+        typeFilter.length === 0 ||
+        (post.voice_types?.length
+          ? post.voice_types.some((voice) => typeFilter.includes(voice.code))
+          : typeFilter.includes(post.voc_type_code));
       const matchesVisibility = visibilityFilter === "all" || post.visibility_code === visibilityFilter;
       return matchesType && matchesVisibility;
     })
@@ -4281,7 +4452,12 @@ function PostList({
                         </span>
                       </span>
                       <span className="post-card-badges">
-                        <span className="post-badge">{t(post.voc_type_label ?? post.voc_type_code)}</span>
+                        <span className="post-badge">
+                          {(post.voice_types?.length
+                            ? post.voice_types.map(voiceDisplayLabel)
+                            : [t(post.voc_type_label ?? post.voc_type_code)]
+                          ).join(" + ")}
+                        </span>
                         <span className="post-badge">{t(post.visibility_label ?? post.visibility_code)}</span>
                         {post.source_detail_state_code ? (
                           <span className="post-badge">
@@ -4388,6 +4564,7 @@ function PostList({
           onClose={closeSelectedPost}
           onSelectPost={selectPost}
           onSearch={searchBoard}
+          voiceOptions={voiceTypeCatalog}
         />
       )}
     </section>

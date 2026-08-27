@@ -28,9 +28,18 @@ const COLUMN_GAP = 260;
 const ROW_GAP = 128;
 const LEFT = ONTOLOGY_NODE_LABEL_WIDTH / 2 + 20;
 const TOP = 48;
+const ONTOLOGY_NAMESPACE = "https://contextualwisdomlab.github.io/LineageWeave/ontology#";
 
 function nodeKey(nodeTypeCode: string, nodeId: string): string {
   return `${nodeTypeCode}:${nodeId}`;
+}
+
+function ontologyNodeId(nodeTypeCode: string, nodeId: string): string {
+  const encode = (value: string) => encodeURIComponent(value).replace(
+    /[!'()*]/g,
+    (character) => `%${character.charCodeAt(0).toString(16).toUpperCase()}`,
+  );
+  return `${ONTOLOGY_NAMESPACE}node/${encode(nodeTypeCode)}/${encode(nodeId).replaceAll("%2F", "/")}`;
 }
 
 /**
@@ -137,6 +146,7 @@ export function neighborhoodCsv(payload: OntologyNeighborhoodPayload): string {
     "truth_status_code",
     "recorded_at",
     "ontology_property_iri",
+    "evidence_post_id",
   ];
   const lines = [header.join(",")];
   for (const row of payload.exact_value_rows) {
@@ -193,12 +203,29 @@ export function filterNeighborhood(
   }
   const nodes = payload.nodes.filter((node) => keep.has(nodeKey(node.node_type_code, node.node_id)));
   const exact_value_rows = payload.exact_value_rows.filter((row) =>
-    edges.some((edge) => edge.edge_id === row.edge_id),
+    edges.some((edge) => edge.edge_id === row.edge_id) ||
+    (payload.voice_assignments ?? []).some(
+      (assignment) =>
+        row.edge_id === `voice-assignment:${assignment.post_id}:${assignment.voice_type_code}` &&
+        keep.has(nodeKey("node_post", assignment.post_id)),
+    ),
   );
   const visibleIds = new Set([
     ...nodes.map((node) => `lw:node/${node.node_type_code}/${node.node_id}`),
     ...edges.map((edge) => `lw:edge/${edge.edge_id}`),
   ]);
+  const visibleNodeIds = new Set(nodes.map(
+    (node) => ontologyNodeId(node.node_type_code, node.node_id),
+  ));
+  const visibleVoiceAssignments = (payload.voice_assignments ?? []).filter((assignment) =>
+    keep.has(nodeKey("node_post", assignment.post_id)),
+  );
+  const visibleVoiceIds = new Set(
+    visibleVoiceAssignments.flatMap((assignment) => [
+      assignment.voice_type_iri,
+      `${ONTOLOGY_NAMESPACE}voice-assignment/${assignment.post_id}/${assignment.voice_type_code}`,
+    ]),
+  );
   const graph = payload.jsonld["@graph"];
   const jsonld = Array.isArray(graph)
     ? {
@@ -207,11 +234,20 @@ export function filterNeighborhood(
           (item): item is Record<string, unknown> =>
             typeof item === "object" && item !== null &&
             typeof item["@id"] === "string" &&
-            visibleIds.has(item["@id"]),
+            (visibleIds.has(item["@id"]) ||
+              visibleNodeIds.has(item["@id"]) ||
+              visibleVoiceIds.has(item["@id"])),
         ),
       }
     : payload.jsonld;
-  return { ...payload, nodes, edges, exact_value_rows, jsonld };
+  return {
+    ...payload,
+    nodes,
+    edges,
+    exact_value_rows,
+    voice_assignments: visibleVoiceAssignments,
+    jsonld,
+  };
 }
 
 /**
@@ -235,13 +271,41 @@ export function accumulateNeighborhoodPages(
   for (const row of next.exact_value_rows) {
     rows.set(row.edge_id, row);
   }
+  const voiceAssignments = new Map(
+    (current.voice_assignments ?? []).map((assignment) => [
+      `${assignment.post_id}:${assignment.voice_type_code}`,
+      assignment,
+    ]),
+  );
+  for (const assignment of next.voice_assignments ?? []) {
+    voiceAssignments.set(`${assignment.post_id}:${assignment.voice_type_code}`, assignment);
+  }
   const graphItems = new Map<string, Record<string, unknown>>();
   for (const payload of [current, next]) {
     const graph = payload.jsonld["@graph"];
     if (!Array.isArray(graph)) continue;
     for (const item of graph) {
       if (typeof item === "object" && item !== null && typeof item["@id"] === "string") {
-        graphItems.set(item["@id"], item as Record<string, unknown>);
+        const incoming = item as Record<string, unknown>;
+        const existing = graphItems.get(item["@id"]);
+        if (!existing) {
+          graphItems.set(item["@id"], incoming);
+          continue;
+        }
+        const merged = { ...existing, ...incoming };
+        for (const key of Object.keys(incoming)) {
+          if (Array.isArray(existing[key]) && Array.isArray(incoming[key])) {
+            const values = [...existing[key], ...incoming[key]];
+            const seen = new Set<string>();
+            merged[key] = values.filter((value) => {
+              const serialized = JSON.stringify(value);
+              if (seen.has(serialized)) return false;
+              seen.add(serialized);
+              return true;
+            });
+          }
+        }
+        graphItems.set(item["@id"], merged);
       }
     }
   }
@@ -250,6 +314,7 @@ export function accumulateNeighborhoodPages(
     nodes: [...nodes.values()],
     edges: [...edges.values()],
     exact_value_rows: [...rows.values()],
+    voice_assignments: [...voiceAssignments.values()],
     jsonld: {
       ...next.jsonld,
       "@graph": [...graphItems.values()],

@@ -49,12 +49,24 @@ edge exposes the same authorized endpoints and evidence through API and UI.
   governed catalog resolution supplies a stable cross-record identity.
 - Preserve truth status, valid/system time, provenance, and evidence
   references.
+- Preserve one imported primary Voice and allow a `post_admin` to add any
+  governed atomic Voice only with an ABAC-visible evidence Post and explicit
+  truth state; create the normalized PROV-O derivation server-side and never
+  accept an opaque provenance assertion identifier from the caller.
+- Let a `post_admin` connect another perspective from the live Post popup by
+  choosing an unassigned atomic Voice and an explicit truth state; use the open
+  authorized Post as evidence and hide the write action on cutoff views.
 - Validate DB-to-RDF projections with SHACL, including complete reified
   ProjectMention subject/predicate/object chains.
 - Keep SKOS broader/narrower distinct from OWL subclass semantics.
 
 Acceptance: Turtle, JSON-LD, N-Triples, SHACL, API payloads, persisted IRIs,
-and rendered labels agree on term kind, direction, namespace, and provenance.
+and rendered labels agree on term kind, direction, namespace, and provenance;
+an additional Voice cannot demote the imported primary or cite hidden evidence;
+the exact-value table opens the carrying Post and its authorized derivation
+evidence as distinct actions;
+the authoring form has explicit selections, permission/cutoff gating, retryable
+feedback, keyboard labels, and desktop/mobile Storybook evidence.
 
 ### PRD-FR-2A — Worker-function taxonomy
 
@@ -315,6 +327,7 @@ A release claim requires one exact protected-main head that proves:
 - Product/data boundary: ADR 0001, ADR 0089.
 - Asynchronous delivery and database-pool isolation: ADR 0204, ADR 0213.
 - Knowledge Graph, ontology, and provenance: ADR 0004, ADR 0011, ADR 0065,
+  ADR 0184, ADR 0207, ADR 0222, ADR 0246, ADR 0256.
   ADR 0184, ADR 0207, ADR 0222, ADR 0246.
 - Semantic units and retrieval: ADR 0047, ADR 0062, ADR 0102, ADR 0217.
 - LLM/model boundary: ADR 0070, ADR 0072, ADR 0076, ADR 0079.

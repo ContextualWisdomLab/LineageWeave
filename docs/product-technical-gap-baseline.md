@@ -1,5 +1,11 @@
 # Product & Technical Gap Baseline
 
+> Voice-of-X delivery snapshot: 2026-08-27 KST. Protected `main` was
+> `ff7431bd1851c03e737808d22c6a2d43968582f9`; PR #713 was
+> `850494c3861703862a76cfe564381a41243c6c2d`; stacked PR #717 was
+> audited at implementation head
+> `d5fe4828e9005f0157c308e8ea3c3a590cdf465b`. This candidate and the
+> historical evidence below are not protected-main release evidence.
 > Loop snapshot: 2026-08-27. Protected `main` advanced through the
 > I/O-Psychology job-family and occupational-classification delivery: PRs
 > #709 (DOT/FJA worker functions, ADR 0232), #718 (evidence-bound construct
@@ -32,6 +38,120 @@ Accordingly, ADR 0246 keeps the controlled vocabulary extensible and refuses
 keyword inference, defaults, invented weights, or an asserted exhaustive
 cross-product.
 
+ADR 0256 and migration 0237 now define the persistence contract for
+evidence-bearing composition. A post keeps one source-provided
+`voc_type_code`, mirrored as its sole primary association, while every
+additional voice requires a normalized PROV-O assertion and explicit truth
+status. Half-open assignment intervals preserve a backfilled primary at
+historical cutoffs, close a replaced primary without deleting it, and permit a
+later return to the same Voice. The #717 candidate therefore addresses #748's
+A → B → A storage root cause without adding Cartesian-product codes. Protected
+delivery and synthetic PostgreSQL concurrency/cutoff evidence remain required.
+The remaining acceptance boundary is:
+
+1. preserve the imported primary voice without reclassification (implemented
+   in the candidate migration; migration 0237 replayed twice successfully on
+   an isolated PostgreSQL stack on 2026-08-27, including both primary-sync
+   triggers; a synthetic real-OIDC PostgreSQL API write also proved that the
+   imported primary remains unchanged);
+2. record each additional voice with its own source/evidence and truth state
+   (schema-enforced and candidate `post_admin` API plus live Post-popup
+   authoring implemented; synthetic authenticated PostgreSQL integration
+   proved denial before permission, the authorized write, and its normalized
+   PROV-O derivation on 2026-08-27);
+3. keeps post voice distinct from named-counterparty relationship, actor role,
+   topic, channel, lifecycle, and stakeholder-salience attributes;
+4. return only authorized associations through API, JSON-LD, CSV, filters,
+   and UI (candidate API list/detail, filters, combined post-card labels,
+   qualified JSON-LD, exact-value CSV, SHACL, and source-post evidence
+   navigation implemented; the board re-filter matches every associated voice
+   and all twelve governed atomic labels are localized across English, Korean,
+   Chinese, Japanese, and Vietnamese; one bounded query projects assignments
+   for every authorized Post even when another node type is the focus; post
+   detail lists primary and evidence-connected perspectives separately and
+   honors its knowledge cutoff; client-side JSON-LD filtering retains only
+   exact canonical repository-case node and Voice-assignment IRIs rather than
+   accepting cross-origin suffix matches; the exact-value row exposes distinct
+   carrying-Post and authorized derivation-evidence actions, while hidden
+   evidence emits neither an identifier nor a fabricated evidence count;
+   paged JSON-LD merges properties for one subject and unions its multi-Voice
+   relation rather than overwriting an earlier page); and
+5. proves zero-, one-, and multi-voice states with synthetic fixtures,
+   migration replay, ontology/SHACL, API, accessibility, and Storybook edge
+   tests before any release claim. The candidate `CombinedVoiceEvidence` scene
+   covers primary-plus-additional assignments; desktop and mobile screenshots
+   were inspected on 2026-08-27. At 390 CSS pixels the document did not
+   overflow, the named exact-value region remained horizontally scrollable,
+   and the source-post evidence action remained visible and labeled. The
+   `Post/Recorded perspectives` desktop and 390-pixel scenes were also inspected
+   on 2026-08-27; both kept each complete Voice label paired with its imported
+   or evidence-connected state without clipping or horizontal overflow. The
+   `Post/Connect perspective` ready/success scenes were inspected at 1440 and
+   390 CSS pixels on 2026-08-27: labels stay above controls, the mobile form is
+   a single column, controls meet the 44-pixel touch target, and no horizontal
+   overflow was visible.
+
+At this snapshot the repository had 42 open PRs and 11 open issues. PR #713
+head `850494c3` includes the review-driven localization of all twelve governed
+Voice labels. Its frontend, ontology publication, static-analysis, dependency,
+coverage, full-suite, CodeRabbit, Devin, and OpenCode checks passed. Strix
+failed closed before producing a vulnerability report:
+the primary NVIDIA NIM model returned HTTP 429, one configured fallback had
+reached end of life, and the OpenAI fallback reported exhausted credits. A
+same-head retry completed on 2026-08-27 with the explicit
+`STRIX_PROVIDER_UNAVAILABLE` annotation and again produced no vulnerability
+report. This
+is provider/control-plane unavailability, not a vulnerability result or
+permission to transfer an older success. Auto-merge remains enabled, while an
+independent approval is still required. PR #717 implementation head
+`d5fe4828` merges that
+parent change without force-pushing and separates the complete governed Voice
+catalog used for authoring from usage-derived Board filters, so an authorized
+administrator can attach a Voice that no visible Post carries yet. It also
+labels Voice exact-value navigation as opening the carrying Post rather than
+misrepresenting that Post as the separately recorded derivation evidence. Its
+CodeRabbit and hosted Frontend/Storybook checks passed at predecessor head
+`ebb4ef1d`; refreshed checks for exact head `d5fe4828` were queued. Focused local
+backend tests, frontend type checking/lint, and the new unused-Voice authoring
+regression passed, and the exact-value navigation tests, lint, and type check
+passed after the label repair. The paged JSON-LD union regression and Voice
+evidence navigation suite passed 23 focused frontend tests; 48 focused backend
+ontology/docstring tests also passed. The full backend suite at predecessor
+head `ebb4ef1d` passed 1,366 tests with 148 environment-dependent skips. The
+real-integration fixture now applies
+the existing migration 0042 before the expanded taxonomy migrations instead
+of seeding an incomplete or duplicate legacy catalog; the exact
+`d5fe4828` authenticated post-list integration passed in 91.54 seconds. The
+wider local frontend run had 400 passes and eight five-second timeouts under
+concurrent backend-suite load; a later App-only run had 94 passes and five
+five-second timeouts, while the hosted Frontend/Storybook job passed on
+`ebb4ef1d`. Neither local timeout run is promoted to full-suite success. An initial
+authenticated integration attempt was unavailable while Keycloak initialized;
+a later retry against the shared synthetic stack succeeded in 56.18 seconds
+and proved the permission, API, PostgreSQL,
+PROV-O, and primary-preservation assertions; no identifying source data was
+used or retained. No self-approval, admin bypass, or stale-head check transfer
+is permitted.
+
+Stacked PR #717 carries ADR 0256, migration 0237, qualified
+ontology terms, persistence/API/UI tests, and the category-validation review
+repairs plus a local candidate admin write path that creates its PROV-O
+derivation from an authorized evidence Post. Its JSON-LD projection names that
+evidence Post only when it is in the authorized visible set and omits the whole
+additional assignment otherwise, preserving the SHACL evidence minimum without
+substituting the assigned Post. It targets
+#713's branch, not protected `main`;
+its checks and review are candidate evidence only. After
+#713 reaches protected main, #717 must be synchronized, retargeted to `main`,
+and revalidated on its then-current head.
+
+Downstream Dashboard repair PR #737 exact head `a837ee5d` is stacked on base
+`7c7bb2cf`, which contains migration 0235 through a non-#713 composition but
+does not contain #713's twelve-label locale update. Its added Voice labels are
+therefore necessary on that exact base, yet overlap #713 and must be reconciled
+when the stack is eventually rebuilt on protected `main`; neither branch is a
+second taxonomy authority, and pre-parent Checks cannot transfer across that
+restack.
 The remaining user-visible gap is evidence-bearing composition. A post still
 has one source-provided `voc_type_code`; the product cannot yet represent a
 single record that intentionally carries multiple independently evidenced
@@ -499,6 +619,7 @@ this file per §3.5 of the prior snapshot).
 | Image understanding | Region, OCR, and description work exists across active heads (#405, #419), but current runtime acceptance has not yet proved table-image structure, complete region coverage, or summary/image readiness together | Orchestrator-backed rendered workflow, original/derived asset provenance, region-before-OCR processing, and honest unsupported states; reconcile ADR 0052's image-bearing summary readiness with ADR 0098 before changing sequencing |
 | Semantic source rendering | Paragraph, table, list, formula, and indentation work exists across stacks (#394, #427, #448–#450); #515 adds synthetic backend/frontend parity for deterministic rows/cells, footnote boundaries, and encoded scripts | Land the #427 → #515 stack, then gather authenticated browser evidence that list nesting, continuation alignment, and formula units render without authoring-layout artifacts |
 | Event and project semantics | #663 is the largest current user-visible gap slice: evidence-backed Project nodes, bounded traversal, cutoff/snapshot fencing, exact-value table parity, and localized graph labels. Focus visibility, label-bound, and temporal test-double regressions are repaired. #666's heuristic removal is composed into this parent but is not separately protected-main evidence. #640 separately adds project journeys without claiming authoritative lifecycle status | Combined #663 must pass exact-head checks and independent approval before protected merge. Aggregate authenticated evidence must still prove distinct projects/events and handover intervals without promoting co-occurrence |
+| Voice primary history | The #717 candidate updates ADR 0256 and migration 0237 with immutable assignment ids and half-open intervals, closing rather than deleting a replaced primary so A → B → A is representable; this is not protected-main evidence | Prove migration replay, concurrent primary changes, non-overlap, and API/ontology cutoff reads against synthetic PostgreSQL at the current exact head, then close #748 only after protected delivery |
 | Knowledge Graph readability | #659 recreates the token-backed node-type repair on current `main`, including regression coverage; it is open and therefore not protected-main evidence | Merge #659 normally, then verify light/dark contrast, keyboard graph navigation, full labels, and evidence tables in the authenticated rendered surface |
 | Source-code lookup UX | Source state/detail codes remain evidence-bearing machine values and current detail presentation is dense | Catalog-backed display labels with raw-code provenance, compact 5W1H/source-detail hierarchy, keyboard access, and no unsupported customer/project binding |
 | Calendar / Naruon | #355 delivered the projection contract; v2.17.0 wires operator consumption without forwarding the end-user token. Naruon producer, provider/consumer fixtures, and protected merge remain open (#336) | Verify observed events against the published schema without invented events; keep commitments available when the channel is unwired |

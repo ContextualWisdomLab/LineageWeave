@@ -526,6 +526,51 @@
   color: var(--text-h);
 }
 
+.voice-assignment-form {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(12rem, 1fr)) auto;
+  align-items: end;
+  gap: var(--space-panel-block);
+}
+
+.voice-assignment-form label {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-control-gap);
+  color: var(--text-h);
+  font-weight: 600;
+}
+
+.voice-assignment-form select,
+.voice-assignment-form button {
+  min-height: var(--size-touch-target);
+}
+
+.voice-assignment-form select {
+  width: 100%;
+  padding-inline: var(--space-chip-inline);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-control);
+  background: var(--surface);
+  color: var(--text-h);
+  font: inherit;
+}
+
+.voice-assignment-feedback {
+  grid-column: 1 / -1;
+  margin: 0;
+}
+
+@media (max-width: 768px) {
+  .voice-assignment-form {
+    grid-template-columns: 1fr;
+  }
+
+  .voice-assignment-form button {
+    width: 100%;
+  }
+}
+
 .lineage-dag-group {
   margin: 0 0 1.25rem;
 }

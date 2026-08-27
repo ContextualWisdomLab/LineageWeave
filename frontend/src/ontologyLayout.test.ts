@@ -1,10 +1,16 @@
 import { describe, expect, it } from "vitest";
 import type { OntologyNeighborhoodPayload } from "./api";
-import { accumulateNeighborhoodPages, layoutOntologyNeighborhood, neighborhoodCsv } from "./ontologyLayout";
+import {
+  accumulateNeighborhoodPages,
+  filterNeighborhood,
+  layoutOntologyNeighborhood,
+  neighborhoodCsv,
+} from "./ontologyLayout";
 
 const POST_ID = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa1";
 const PERSON_ID = "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbb1";
 const CORP_ID = "cccccccc-cccc-cccc-cccc-ccccccccccc1";
+const ONTOLOGY_NAMESPACE = "https://contextualwisdomlab.github.io/LineageWeave/ontology#";
 
 function payload(): OntologyNeighborhoodPayload {
   return {
@@ -109,6 +115,104 @@ function payload(): OntologyNeighborhoodPayload {
 }
 
 describe("ontologyLayout", () => {
+  it("keeps evidence-bearing voice assignments in CSV, filters, and page accumulation", () => {
+    const source = payload();
+    const assignment = {
+      post_id: POST_ID,
+      voice_type_code: "voc_customer",
+      voice_type_iri: "https://example.test/voice/customer",
+      voice_type_label: "Voice of Customer",
+      is_primary: false,
+      truth_status_code: "truth_observed",
+      recorded_at: "2026-01-10T12:00:00+00:00",
+      provenance_reference: "Evidence-backed additional voice",
+      evidence_post_id: POST_ID,
+    };
+    const row = {
+      ...source.exact_value_rows[0],
+      edge_id: `voice-assignment:${POST_ID}:voc_customer`,
+      property_code: "hasVoiceAssignment",
+      property_label: "Voice carried by this post",
+      target_node_id: assignment.voice_type_code,
+      target_label: assignment.voice_type_label,
+      target_type_code: "node_voice_type",
+      evidence_post_id: POST_ID,
+    };
+    const withVoice = {
+      ...source,
+      voice_assignments: [assignment],
+      exact_value_rows: [...source.exact_value_rows, row],
+      jsonld: {
+        "@graph": [
+          { "@id": `${ONTOLOGY_NAMESPACE}voice-assignment/${POST_ID}/voc_customer` },
+          { "@id": assignment.voice_type_iri },
+        ],
+      },
+    } satisfies OntologyNeighborhoodPayload;
+
+    const csv = neighborhoodCsv(withVoice);
+    expect(csv).toContain("Voice of Customer");
+    expect(csv.split("\n")[0]).toContain("evidence_post_id");
+    expect(csv).toContain(POST_ID);
+    expect(filterNeighborhood(withVoice, "customer")!.voice_assignments).toEqual([assignment]);
+    expect(filterNeighborhood(withVoice, "missing")!.voice_assignments).toEqual([assignment]);
+    expect(accumulateNeighborhoodPages(source, withVoice).voice_assignments).toEqual([assignment]);
+  });
+
+  it("merges JSON-LD properties and multi-value relations for one paged subject", () => {
+    const source = payload();
+    const postIri = `${ONTOLOGY_NAMESPACE}node/node_post/${POST_ID}`;
+    const propertyIri = `${ONTOLOGY_NAMESPACE}hasVoiceAssignment`;
+    const first = {
+      ...source,
+      jsonld: { "@graph": [{ "@id": postIri, "rdfs:label": "Demo public post", [propertyIri]: [{ "@id": "voice:one" }] }] },
+    };
+    const second = {
+      ...source,
+      jsonld: { "@graph": [{ "@id": postIri, [propertyIri]: [{ "@id": "voice:two" }] }] },
+    };
+
+    expect(accumulateNeighborhoodPages(first, second).jsonld["@graph"]).toEqual([
+      {
+        "@id": postIri,
+        "rdfs:label": "Demo public post",
+        [propertyIri]: [{ "@id": "voice:one" }, { "@id": "voice:two" }],
+      },
+    ]);
+  });
+
+  it("keeps only exact canonical JSON-LD node ids when filtering", () => {
+    const source = payload();
+    const postIri = `${ONTOLOGY_NAMESPACE}node/node_post/${POST_ID}`;
+    const filtered = filterNeighborhood({
+      ...source,
+      jsonld: {
+        "@graph": [
+          { "@id": postIri },
+          { "@id": `https://example.test/prefix/${postIri}` },
+        ],
+      },
+    }, "missing")!;
+
+    expect(filtered.jsonld["@graph"]).toEqual([{ "@id": postIri }]);
+  });
+
+  it("matches the backend's canonical encoding for node ids", () => {
+    const source = payload();
+    const nodeId = `${POST_ID}/operator's-plan`;
+    const nodeIri = `${ONTOLOGY_NAMESPACE}node/node_post/${POST_ID}/operator%27s-plan`;
+    const filtered = filterNeighborhood({
+      ...source,
+      focus_node_id: nodeId,
+      nodes: [{ ...source.nodes[0], node_id: nodeId }],
+      edges: [],
+      exact_value_rows: [],
+      jsonld: { "@graph": [{ "@id": nodeIri }] },
+    }, "missing")!;
+
+    expect(filtered.jsonld["@graph"]).toEqual([{ "@id": nodeIri }]);
+  });
+
   it("is deterministic for a fixed payload", () => {
     const first = layoutOntologyNeighborhood(payload());
     const second = layoutOntologyNeighborhood(payload());

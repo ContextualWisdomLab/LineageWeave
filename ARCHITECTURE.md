@@ -370,6 +370,21 @@ than exposing the generic PROV-O `Person` class as business context.
 the list badge and popup meta show `Voice of Customer` / `Public`
 instead of raw codes.
 
+`POST /api/posts/{post_id}/voice-assignments` lets a `post_admin` add one
+governed atomic Voice with an explicit truth state and an ABAC-visible evidence
+Post. The server creates the normalized PROV-O derivation and assignment in one
+transaction; clients never submit an internal assertion id, and this route
+cannot replace the imported primary Voice.
+The bounded ontology response carries a visible Voice assignment's evidence
+Post id alongside its exact-value row. The exact-value table therefore offers
+separate carrying-Post and derivation-evidence actions; hidden evidence removes
+the additional assignment before serialization rather than leaking its id or
+showing a fabricated count.
+The live Post popup exposes the route only to its existing `post_admin`
+permission result and only outside knowledge-cutoff views. Its form excludes
+already assigned catalog options, requires an explicit truth state, and uses
+the open Post as evidence so the UI never asks for an internal Post id.
+
 `GET /api/posts/{post_id}/voc-evidence` returns the
 `common_lookup_value` label for the post's `voc_type_code` plus the
 sentences in the post body that name a counterparty or affiliated
