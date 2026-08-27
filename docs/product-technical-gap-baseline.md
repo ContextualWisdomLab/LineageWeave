@@ -1,5 +1,61 @@
 # Product & Technical Gap Baseline
 
+> Exact-head overlay: 2026-08-28 00:21 KST. Protected `main` was
+> `96109cf06f6611eb0e09c43d33416f8f8cf4242f`; 10 PRs and 10 issues were
+> open. This overlay supersedes every older queue count and head snapshot in
+> this document. Historical sections remain provenance for earlier decisions,
+> not current release evidence.
+
+## Current protected-delivery and Voice-of-X decision
+
+ADRs 0246 and 0251 remain distinct authorities: ADR 0246 governs the twelve
+atomic, extensible Voice-of-X concepts and ADR 0251 governs the FJA
+I/O-psychology semantic layer. ADR 0256 governs evidence-bearing Voice
+composition. No fixed compound-code catalog, B2B2C-only cross-product,
+confidence weight, or keyword inference is authorized. The accepted literature
+and standards cited by those ADRs support an extensible stakeholder vocabulary;
+they do not prove that any finite set of combinations is exhaustive.
+
+Protected `main` implements the twelve atomic concepts, normalized additional
+Voice assignments, server-created PROV-O derivation, truth status, authorization
+filtering, separate carrying-Post and derivation-evidence actions, and paged
+JSON-LD union behavior. Those are implementation facts, not evidence that a
+particular runtime contains accepted assignments. Current non-identifying
+repository aggregates establish only the open-work inventory above; no
+production row, title, organization, or credential was inspected for this
+overlay.
+
+The largest remaining user-visible Voice gap is temporal imported-primary
+history. PR #752 exact head `5c2dfed5a32db655264fa62fa46fda626d753954`
+adds ADR 0252 and migration 0243 so recurring A to B to A changes retain
+non-overlapping half-open intervals. The review repair removes duplicate SQL
+clauses and makes ontology continuation evaluate the interval containing the
+frozen page snapshot rather than requiring the current open interval. Focused
+local Voice/ontology regression evidence passed 93 tests after merging current
+`main`; hosted exact-head checks were still pending. Authenticated PostgreSQL
+API and rendered desktop/mobile evidence have not yet been recollected for this
+head, so the runtime acceptance remains **unavailable**, not complete.
+
+| PR | Exact head | Current gate at overlay time |
+|---:|---|---|
+| #629 | `fcb933ba30a5fe866f01a5a7940c7304cce347f5` | Mergeable with auto-merge retained; exact-head checks/reviews pending and `CHANGES_REQUESTED` not cleared |
+| #640 | `bd73e0a43ae139d0091c25696e89786c62a34e74` | Conflicting with `main`; auto-merge retained |
+| #643 | `bae04cff19f2e1d54237b7d7168708b9c5df9a3b` | Draft and conflicting; no auto-merge |
+| #644 | `f53dd28e50f984ceebd9520f800f84dbea05b7e6` | Conflicting; review required; auto-merge retained |
+| #667 | `0c0f4af572a94e63cc8ea4545e48f5eda32a389c` | Conflicting with one prior failed check; review required; auto-merge retained |
+| #668 | `234f975ba5b0982e22d918219b505a9cd6a103e2` | Conflicting; review required; auto-merge retained |
+| #672 | `a3e87a89185fae03c5f18c79e2d97d12c73e8af9` | Conflicting; review required; auto-merge retained |
+| #679 | `135dfe7c4266c7a2098c622b7c9976eaf7304cdd` | Conflicting; review required; auto-merge retained |
+| #702 | `ebee9520a5b48c3074135153954c96e067309863` | Conflicting; no auto-merge |
+| #752 | `5c2dfed5a32db655264fa62fa46fda626d753954` | Mergeable; exact-head checks and independent review pending; no auto-merge yet |
+
+Organization ruleset 18156473 currently requires one approval, dismissal of
+stale approvals after a push, approval for unattributed changes, resolved
+threads, and seven workflows pinned to `.github@main`. Repository ruleset
+21065108 and the organization ruleset both prohibit non-fast-forward updates.
+No self-approval, admin bypass, force push, stale check transfer, or pre-parent
+stack evidence satisfies those gates.
+
 > Voice-of-X delivery snapshot: 2026-08-27 KST. Protected `main` was
 > `ff7431bd1851c03e737808d22c6a2d43968582f9`; PR #713 was
 > `850494c3861703862a76cfe564381a41243c6c2d`; stacked PR #717 was
@@ -620,7 +676,7 @@ this file per §3.5 of the prior snapshot).
 | Semantic source rendering | Paragraph, table, list, formula, and indentation work exists across stacks (#394, #427, #448–#450); #515 adds synthetic backend/frontend parity for deterministic rows/cells, footnote boundaries, and encoded scripts | Land the #427 → #515 stack, then gather authenticated browser evidence that list nesting, continuation alignment, and formula units render without authoring-layout artifacts |
 | Event and project semantics | #663 is the largest current user-visible gap slice: evidence-backed Project nodes, bounded traversal, cutoff/snapshot fencing, exact-value table parity, and localized graph labels. Focus visibility, label-bound, and temporal test-double regressions are repaired. #666's heuristic removal is composed into this parent but is not separately protected-main evidence. #640 separately adds project journeys without claiming authoritative lifecycle status | Combined #663 must pass exact-head checks and independent approval before protected merge. Aggregate authenticated evidence must still prove distinct projects/events and handover intervals without promoting co-occurrence |
 | Voice primary history | The #717 candidate updates ADR 0256 and migration 0237 with immutable assignment ids and half-open intervals, closing rather than deleting a replaced primary so A → B → A is representable; this is not protected-main evidence | Prove migration replay, concurrent primary changes, non-overlap, and API/ontology cutoff reads against synthetic PostgreSQL at the current exact head, then close #748 only after protected delivery |
-| Voice primary history | ADR 0252 and candidate migration 0238 retain half-open imported-primary intervals, allow recurring A → B → A values, and align live, cutoff, and ontology-snapshot reads. Static/unit contracts pass; this branch is not protected-main or authenticated runtime evidence | Prove migration replay and atomic A → B → A cutoff reads against the isolated PostgreSQL/OIDC stack, then pass exact-head hosted checks and protected review before closing #748 |
+| Voice primary history | ADR 0252 and candidate migration 0243 retain half-open imported-primary intervals, allow recurring A → B → A values, and align live, cutoff, and ontology-snapshot reads. Static/unit contracts pass; this branch is not protected-main or authenticated runtime evidence | Prove migration replay and atomic A → B → A cutoff reads against the isolated PostgreSQL/OIDC stack, then pass exact-head hosted checks and protected review before closing #748 |
 | Knowledge Graph readability | #659 recreates the token-backed node-type repair on current `main`, including regression coverage; it is open and therefore not protected-main evidence | Merge #659 normally, then verify light/dark contrast, keyboard graph navigation, full labels, and evidence tables in the authenticated rendered surface |
 | Source-code lookup UX | Source state/detail codes remain evidence-bearing machine values and current detail presentation is dense | Catalog-backed display labels with raw-code provenance, compact 5W1H/source-detail hierarchy, keyboard access, and no unsupported customer/project binding |
 | Calendar / Naruon | #355 delivered the projection contract; v2.17.0 wires operator consumption without forwarding the end-user token. Naruon producer, provider/consumer fixtures, and protected merge remain open (#336) | Verify observed events against the published schema without invented events; keep commitments available when the channel is unwired |
