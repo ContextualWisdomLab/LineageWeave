@@ -275,6 +275,28 @@ async def fetch_operations_dashboard(
         """,
         *args,
     )
+    product_relation_rows = await conn.fetch(
+        f"""
+        select relation.post_id, relation.case_kind_code, relation.fact_ordinal,
+               relation.relation_type_code, mention.extracted_product_name,
+               catalog.canonical_product_name, relation.evidence_text,
+               relation.evidence_post_id
+          from product_operations_fact_relation relation
+          join post_product_mention mention
+            on mention.post_id = relation.post_id
+           and mention.mention_ordinal = relation.mention_ordinal
+          left join product_catalog catalog
+            on catalog.product_catalog_id = mention.product_catalog_id
+          join source_post post on post.post_id = relation.post_id
+          join source_post evidence_post on evidence_post.post_id = relation.evidence_post_id
+         where {visible}
+           and {visible_evidence}
+           and ($5::boolean is false or relation.case_kind_code = 'external_information')
+         order by relation.post_id, relation.case_kind_code, relation.fact_ordinal,
+                  relation.mention_ordinal
+        """,
+        *args,
+    )
     missing_rows = await conn.fetch(
         f"""
         select missing.post_id, missing.case_kind_code, missing.fact_type_code
@@ -330,7 +352,23 @@ async def fetch_operations_dashboard(
         if external_only
         else await _fetch_topic_context_dashboard(conn, visible, args[:4])
     )
-    facts: dict[tuple[str, str], list[dict[str, str]]] = {}
+    product_relations: dict[tuple[str, str, int], list[dict[str, str]]] = {}
+    for row in product_relation_rows:
+        relation_key = (
+            str(row["post_id"]),
+            row["case_kind_code"],
+            int(row["fact_ordinal"]),
+        )
+        product_relations.setdefault(relation_key, []).append(
+            {
+                "relation_type_code": row["relation_type_code"],
+                "product_name": row["canonical_product_name"]
+                or row["extracted_product_name"],
+                "evidence_text": row["evidence_text"],
+                "evidence_post_id": str(row["evidence_post_id"]),
+            }
+        )
+    facts: dict[tuple[str, str], list[dict[str, Any]]] = {}
     for row in fact_rows:
         key = (str(row["post_id"]), row["case_kind_code"])
         projected_fact = {
@@ -342,6 +380,12 @@ async def fetch_operations_dashboard(
             "ontology_class_iri": str(LW.OperationsCaseFact),
             "provenance_relation_iri": PROV_WAS_DERIVED_FROM,
         }
+        related_products = product_relations.get(
+            (str(row["post_id"]), row["case_kind_code"], int(row["fact_ordinal"])),
+            [],
+        )
+        if related_products:
+            projected_fact["product_relations"] = related_products
         target_kind = row["relation_target_kind_code"]
         if target_kind in EXTERNAL_RELATION_TARGETS:
             target_label, target_class, predicate = EXTERNAL_RELATION_TARGETS[target_kind]

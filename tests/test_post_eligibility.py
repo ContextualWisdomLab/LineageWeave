@@ -5,7 +5,7 @@ from backend.app.post_eligibility import (
     source_context_present_sql,
 )
 from backend.app.auth import CurrentAccount
-from backend.app.main import _can_see_post
+from backend.app.main import _can_see_post, _can_see_product_relation_target
 
 
 def _account(*, process_unit_ids: frozenset[str]) -> CurrentAccount:
@@ -40,6 +40,27 @@ def test_local_identity_retains_existing_corporate_scope() -> None:
     assert _can_see_post(
         _account(process_unit_ids=frozenset()),
         {"visibility_code": "private", "corporate_entity_id": "entity-a", "process_unit_id": None},
+    )
+
+
+def test_product_relation_target_requires_its_evidence_scope() -> None:
+    """A visible relation cannot disclose a target derived from hidden evidence."""
+    account = _account(process_unit_ids=frozenset({"process-a"}))
+    assert _can_see_product_relation_target(
+        account,
+        {
+            "target_visibility_code": "private",
+            "target_corporate_entity_id": "entity-a",
+            "target_process_unit_id": "process-a",
+        },
+    )
+    assert not _can_see_product_relation_target(
+        account,
+        {
+            "target_visibility_code": "private",
+            "target_corporate_entity_id": "entity-a",
+            "target_process_unit_id": "process-b",
+        },
     )
 
 

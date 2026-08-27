@@ -194,6 +194,82 @@ def project_project_mention_rdf(
     return graph
 
 
+_PRODUCT_RELATION_PREDICATES = {
+    "concerns_product": LW.concernsProduct,
+    "changes_product": LW.changesProduct,
+    "originates_from_product": LW.originatesFromProduct,
+    "senses_product": LW.sensesProduct,
+    "used_by_project": LW.usesProduct,
+}
+
+
+def project_product_relation_rdf(
+    *,
+    post_id: str,
+    mention_ordinal: int,
+    product_id: str,
+    target_kind_code: str,
+    target_id: str,
+    relation_type_code: str,
+    evidence_text: str,
+    evidence_input_sha256: str,
+    post_title: str,
+    post_body: str,
+    post_created_at: datetime,
+) -> Graph:
+    """Project one already-authorized normalized product relation to RDF."""
+    canonical_post_id = str(UUID(post_id))
+    if type(mention_ordinal) is not int or mention_ordinal < 0:
+        raise ValueError("mention_ordinal must be a non-negative integer")
+    if target_kind_code not in {"operations_fact", "project"}:
+        raise ValueError("unsupported product relation target kind")
+    predicate = _PRODUCT_RELATION_PREDICATES.get(relation_type_code)
+    if predicate is None or (
+        target_kind_code == "project"
+    ) != (relation_type_code == "used_by_project"):
+        raise ValueError("relation type does not match its target kind")
+    if not all(
+        value.strip()
+        for value in (product_id, target_id, evidence_text, post_title, post_body)
+    ):
+        raise ValueError("product, target, and evidence must be non-empty")
+    if post_created_at.tzinfo is None or post_created_at.utcoffset() is None:
+        raise ValueError("post_created_at must be timezone-aware")
+    if len(evidence_input_sha256) != 64 or any(
+        character not in "0123456789abcdef" for character in evidence_input_sha256
+    ):
+        raise ValueError("evidence_input_sha256 must be a lowercase SHA-256 digest")
+    product = URIRef(LW[f"node/product/{quote(product_id, safe='')}"])
+    target_class = LW.OperationsCaseFact if target_kind_code == "operations_fact" else LW.Project
+    target = URIRef(LW[f"node/{target_kind_code}/{quote(target_id, safe='')}"])
+    assertion = URIRef(
+        LW[
+            "statement/product-relation/"
+            f"{canonical_post_id}/{mention_ordinal}/{quote(target_id, safe='')}/"
+            f"{quote(relation_type_code, safe='')}/{quote(product_id, safe='')}"
+        ]
+    )
+    source = URIRef(ontology_node_iri("node_post", canonical_post_id))
+    graph = Graph()
+    graph.bind("lw", LW)
+    graph.bind("prov", PROV)
+    graph.add((source, RDF.type, LW.Post))
+    graph.add((source, LW.postTitle, Literal(post_title)))
+    graph.add((source, LW.postBody, Literal(post_body)))
+    graph.add((source, LW.createdAt, Literal(post_created_at, datatype=XSD.dateTime)))
+    graph.add((product, RDF.type, LW.Product))
+    graph.add((target, RDF.type, target_class))
+    graph.add((target, predicate, product))
+    graph.add((assertion, RDF.type, LW.ProductRelationAssertion))
+    graph.add((assertion, RDF.subject, target))
+    graph.add((assertion, RDF.predicate, predicate))
+    graph.add((assertion, RDF.object, product))
+    graph.add((assertion, LW.productRelationEvidence, Literal(evidence_text)))
+    graph.add((assertion, LW.evidenceInputDigest, Literal(evidence_input_sha256)))
+    graph.add((assertion, PROV.wasDerivedFrom, source))
+    return graph
+
+
 __all__ = [
     "LOOKUP_CODE",
     "LW",
@@ -208,4 +284,5 @@ __all__ = [
     "ontology_node_iri",
     "ontology_annotations",
     "project_project_mention_rdf",
+    "project_product_relation_rdf",
 ]

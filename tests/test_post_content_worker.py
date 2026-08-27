@@ -479,9 +479,14 @@ def test_product_analysis_persists_one_exact_authorized_window(monkeypatch) -> N
         post_content_worker,
         "ContextualOrchestratorProductExtractionClient",
         lambda *_args: SimpleNamespace(
-            extract=lambda sources: submitted_sources.extend(sources) or (
-                post_content_worker.ProductEvidenceSource(sources[0].post_id, sources[0].text),
-            ),
+            extract=lambda sources, targets, session_id: SimpleNamespace(
+                mentions=(
+                    post_content_worker.ProductEvidenceSource(
+                        sources[0].post_id, sources[0].text
+                    ),
+                ),
+                relations=(),
+            ) if session_id == "session-a" and not submitted_sources.extend(sources) else None,
         ),
     )
     monkeypatch.setattr(post_content_worker, "resolve_product_mentions", resolve)

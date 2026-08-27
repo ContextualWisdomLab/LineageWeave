@@ -38,6 +38,10 @@ async def persist_operations_cases(
 ) -> None:
     """Atomically replace one post's normalized case analysis."""
     async with conn.transaction():
+        # Product-to-fact evidence is valid only for the exact normalized
+        # target rows it was extracted against. Removing the owning analysis
+        # first prevents unchanged replacement values from bypassing a rerun.
+        await conn.execute("delete from post_product_analysis where post_id = $1", post_id)
         await conn.execute(
             "delete from operations_case_analysis where post_id = $1", post_id
         )

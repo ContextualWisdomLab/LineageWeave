@@ -323,6 +323,10 @@ async def _replace_summary_projection(
     """Write one atomic replacement using pre-resolved shared identities."""
     # Summary replacement owns only R&R projections. Keyman mentions remain
     # independent and are combined only by the graph read/derivation view.
+    # Product-to-project evidence belongs to the exact normalized project
+    # target set. Invalidate it before replacing those targets so a deleted
+    # relation cannot be mistaken for an already-complete analysis.
+    await conn.execute("delete from post_product_analysis where post_id = $1", post_id)
     await conn.execute(
         "delete from post_summary_person_mention where post_id = $1",
         post_id,
