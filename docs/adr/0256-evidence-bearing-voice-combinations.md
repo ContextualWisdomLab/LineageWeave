@@ -1,4 +1,4 @@
-# ADR 0251: Evidence-bearing Voice-of-X combinations
+# ADR 0256: Evidence-bearing Voice-of-X combinations
 
 ## Status
 

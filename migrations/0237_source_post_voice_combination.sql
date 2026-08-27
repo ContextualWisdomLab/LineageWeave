@@ -1,4 +1,4 @@
--- ADR 0251: normalized, evidence-bearing Voice-of-X combinations.
+-- ADR 0256: normalized, evidence-bearing Voice-of-X combinations.
 -- source_post.voc_type_code remains the imported primary voice. Additional
 -- voices require a normalized PROV-O assertion instead of keyword inference.
 

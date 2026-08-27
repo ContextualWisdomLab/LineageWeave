@@ -1,4 +1,4 @@
-"""Persist evidence-bearing additional Voice assignments (ADR 0251)."""
+"""Persist evidence-bearing additional Voice assignments (ADR 0256)."""
 
 from __future__ import annotations
 
