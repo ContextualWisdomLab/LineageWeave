@@ -90,6 +90,7 @@ def cited_post_summaries(
 
     The sliding evidence chip must show the source post's title, not a
     truncated UUID -- a missing title is omitted, never invented.
+    Cutoff citations also name the retained revision and limitation flags.
     """
     by_id = {source.post_id: source for source in sources}
     citations: list[dict[str, str | bool | list[str] | None]] = []
@@ -155,6 +156,7 @@ def _buyer_evidence_kind(fact: str) -> str:
     if fact.startswith("Keyman mention:"):
         return "semantic_keyman"
     return "source_field"
+
 
 
 def _buyer_evidence_text(fact: str) -> str:

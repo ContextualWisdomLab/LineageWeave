@@ -117,6 +117,7 @@ def test_evidence_only_term_nominates_its_authorized_source() -> None:
         async def fetch(self, query: str, *args):
             if "unit_similarity" in query:
                 assert "authorized_evidence_candidates" in query
+                assert "$9::timestamptz" not in query
                 assert query.index("authorized_evidence_candidates") < query.rindex("limit $8")
                 assert args[8] == ["exclusive responsibility"]
                 return [
@@ -209,6 +210,7 @@ def test_global_sources_apply_process_scope_before_sql_limit() -> None:
 
     source_query, source_args = calls[-1]
     assert "process_unit_id::text = any($2::text[])" in source_query
+    assert source_query.count("created_at <= $7") == 1
     assert source_args[:2] == (["corp-demo"], ["process-demo"])
 
 

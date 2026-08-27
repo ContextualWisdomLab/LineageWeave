@@ -8,7 +8,6 @@ All notable changes to this project are documented here. Format follows
 
 ### Added
 
-
 - Expanded Voice-of-X post taxonomy (ADR 0246): the governed `voc_type`
   scheme adds Voice of Supplier, Employee, Business, Regulator, Investor,
   Society, and Process as source-post categories. Ontology SKOS concepts and
@@ -63,6 +62,11 @@ All notable changes to this project are documented here. Format follows
   deterministic application read
   model (`lineageweave.worker_function_taxonomy`) exposes fail-closed
   lookups; ranks are scale positions and are never used as weights.
+=======
+- Global Ask accepts an optional UTC `knowledge_cutoff`. Dated questions
+  retrieve only posts available by that clock, cite the retained
+  `source_post_revision`, and name when a historical body was not kept.
+  Omitting the cutoff keeps the live-query contract (ADR 0216 / #271).
 - Persist explicit paragraph, list, table, MathML formula, and caller-parsed
   conversation-turn semantic-unit kinds without inferring absent boundaries.
 - Event Lineage now persists each reconstructed connection's independent

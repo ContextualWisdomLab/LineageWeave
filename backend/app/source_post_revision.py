@@ -100,7 +100,7 @@ async def fetch_known_at_revisions(
 ) -> dict[str, dict[str, str]]:
     """Batch-load the retained revision covering ``as_of`` for each post.
 
-    Missing posts stay absent so callers can report an honest historical-body
+    Missing covers are omitted so callers can report an honest historical-body
     limitation without substituting the live title or body.
     """
 

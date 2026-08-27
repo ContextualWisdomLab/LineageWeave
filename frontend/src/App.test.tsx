@@ -2,6 +2,7 @@ import { fireEvent, render, screen, waitFor, within } from "@testing-library/rea
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import App from "./App";
+import { optionalKnowledgeCutoffIso } from "./api";
 import { setLocale } from "./i18n";
 import { OIDC_RETURN_URL_STORAGE_KEY } from "./oidcReturnUrl";
 
@@ -25,6 +26,16 @@ beforeEach(() => {
     signinRedirect,
     signoutRedirect,
   };
+});
+
+it("normalizes valid knowledge cutoffs and rejects invalid input", () => {
+  expect(optionalKnowledgeCutoffIso("")).toBeUndefined();
+  expect(optionalKnowledgeCutoffIso("2026-01-15T12:00")).toBe(
+    new Date("2026-01-15T12:00").toISOString(),
+  );
+  expect(() => optionalKnowledgeCutoffIso("not-a-date")).toThrow(
+    "invalid knowledge cutoff",
+  );
 });
 
 afterEach(() => {
@@ -1969,6 +1980,35 @@ describe("App, authenticated", () => {
     expect(screen.getByText("Semantic project", { exact: true })).toBeInTheDocument();
     expect(screen.getByText(/project: Semantic project \| evidence: Body evidence/)).toBeInTheDocument();
     expect(screen.queryByText(/ontology_iri|contextual_orchestrator/i)).not.toBeInTheDocument();
+  });
+
+  it("converts the local knowledge cutoff to UTC for Global Ask", async () => {
+    const fetchMock = stubBackend();
+    render(<App />);
+    expect(await screen.findByRole("button", { name: "View post: Public post" })).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Ask Agent" }));
+    expect(screen.getByLabelText("Use evidence available by (optional)")).toBeInTheDocument();
+    expect(screen.getByText("Choose a time on this device, or leave blank to use the latest evidence.")).toBeInTheDocument();
+    await userEvent.type(screen.getByRole("textbox", { name: "Ask a question" }), "Phoenix?");
+    await userEvent.type(
+      screen.getByLabelText("Use evidence available by (optional)"),
+      "2026-01-15T12:00",
+    );
+    await userEvent.click(screen.getByRole("button", { name: "Ask" }));
+    expect(
+      await screen.findByText("The cited project is supported by the stored semantic evidence."),
+    ).toBeInTheDocument();
+    const askCall = fetchMock.mock.calls.find(
+      ([input, init]) => String(input).endsWith("/api/ask") && (init as RequestInit | undefined)?.method === "POST",
+    );
+    expect(askCall).toBeTruthy();
+    const askInit = askCall?.[1] as RequestInit | undefined;
+    expect(askInit).toBeDefined();
+    expect(JSON.parse(String(askInit?.body))).toEqual({
+      question: "Phoenix?",
+      verify_external: false,
+      knowledge_cutoff: new Date("2026-01-15T12:00").toISOString(),
+    });
   });
 
   it("localizes Ask delivery copy instead of rendering Korean literals in English", async () => {

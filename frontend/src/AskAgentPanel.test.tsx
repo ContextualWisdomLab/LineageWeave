@@ -79,7 +79,7 @@ describe("AskAgentPanel public verification", () => {
       screen.getByRole("checkbox", { name: "Check eligible public claims" }),
     );
     await userEvent.type(
-      screen.getByLabelText("Knowledge cutoff (optional)"),
+      screen.getByLabelText("Use evidence available by (optional)"),
       "2026-01-15T12:00",
     );
     await userEvent.click(screen.getByRole("button", { name: "Ask" }));
