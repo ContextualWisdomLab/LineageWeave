@@ -54,7 +54,8 @@ def test_history_migration_sorts_after_combination_for_replay() -> None:
     assert names.index("0237_source_post_voice_combination.sql") < names.index(
         "0243_source_post_voice_history.sql"
     )
-    assert int("0243") >= 12
+    migration_number = int(MIGRATION.name.partition("_")[0])
+    assert migration_number >= 12
 
 
 def test_api_and_ontology_cutoff_sql_use_half_open_containment() -> None:

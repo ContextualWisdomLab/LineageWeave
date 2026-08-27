@@ -50,6 +50,7 @@ select voice.voice_type_code
        voice.effective_to is null
        or coalesce(%s::timestamptz, %s::timestamptz) < voice.effective_to
    )
+   and voice.recorded_at <= %s::timestamptz
 """
 
 
@@ -195,7 +196,14 @@ def _ontology_primary(
 ) -> list[str]:
     cursor.execute(
         _ONTOLOGY_CUTOFF_SQL,
-        (post_id, knowledge_cutoff, snapshot_at, knowledge_cutoff, snapshot_at),
+        (
+            post_id,
+            knowledge_cutoff,
+            snapshot_at,
+            knowledge_cutoff,
+            snapshot_at,
+            snapshot_at,
+        ),
     )
     return [row[0] for row in cursor.fetchall()]
 
@@ -290,6 +298,18 @@ def test_aba_primary_history_matches_api_and_ontology_cutoffs(voice_history_dsn:
             assert _ontology_primary(cursor, post_id, None, snapshot_after) == ["voc"]
             assert _ontology_primary(cursor, post_id, first_from, snapshot_after) == ["voc"]
             assert _ontology_primary(cursor, post_id, between, snapshot_after) == ["vops"]
+
+            cursor.execute(
+                """
+                update source_post_voice
+                   set recorded_at = %s
+                 where post_id = %s
+                   and is_primary
+                   and effective_from = %s
+                """,
+                (snapshot_after + timedelta(seconds=1), post_id, third_from),
+            )
+            assert _ontology_primary(cursor, post_id, None, snapshot_after) == []
     finally:
         connection.close()
 
@@ -410,7 +430,7 @@ def test_concurrent_primary_updates_serialize_non_overlapping_history(
         setup.close()
 
     barrier = threading.Barrier(2)
-    errors: list[BaseException] = []
+    errors: list[Exception] = []
 
     def _update(next_code: str) -> None:
         connection = psycopg2.connect(voice_history_dsn)
@@ -422,7 +442,7 @@ def test_concurrent_primary_updates_serialize_non_overlapping_history(
                     (next_code, post_id),
                 )
             connection.commit()
-        except BaseException as exc:
+        except Exception as exc:
             errors.append(exc)
             connection.rollback()
         finally:
