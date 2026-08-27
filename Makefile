@@ -2,7 +2,7 @@
 
 # Keep provider credentials outside the repository. Compose interpolation must
 # read the same home env file as the orchestrator container's env_file.
-COMPOSE := docker compose --env-file "$$HOME/.env"
+COMPOSE := COMPOSE_FILE=docker-compose.yml docker compose --env-file "$$HOME/.env"
 
 up:
 	$(COMPOSE) up -d

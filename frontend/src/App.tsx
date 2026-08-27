@@ -51,6 +51,8 @@ import {
   setPreferredLocale,
   updateTicketStatus,
   verifyPostRelations,
+  fetchPostResearchCitations,
+  researchPostSources,
   type ActivityEvent,
   type AskAgentResponse,
   type AffiliateNode,
@@ -85,6 +87,7 @@ import {
   type RelatedNodeType,
   type VocEvidence,
   type SimilarVocItem,
+  type SourceResearchCitation,
   fetchTenantConfig,
 } from "./api";
 import { CitationChip } from "./components/CitationChip";
@@ -98,6 +101,7 @@ import { AskAnswerTimeline } from "./components/AskAnswerTimeline";
 import { PublicClaimVerification } from "./components/PublicClaimVerification";
 import { PopupCloseButton } from "./components/PopupCloseButton";
 import { SimilarVocPanel } from "./components/SimilarVocPanel";
+import { SourceResearchPanel } from "./components/SourceResearchPanel";
 import { WorkspaceNav, type WorkspaceDestination } from "./components/WorkspaceNav";
 import { OperationsDashboard } from "./components/OperationsDashboard";
 import { initialWorkspaceDestination } from "./gnbChrome";
@@ -1726,6 +1730,7 @@ const ACTIVITY_TYPE_LABELS: Record<string, string> = {
   commitment_derived: "Commitment derived",
   keymen_extracted: "Keymen extracted",
   relations_verified: "Relations verified",
+  source_research_checked: "Public sources reviewed",
   post_evaluated: "Post evaluated",
   chat_answered: "Chat answered",
 };
@@ -1823,9 +1828,15 @@ function PostDetailPopup({
   const [similarVocError, setSimilarVocError] = useState<string | null>(null);
   const [similarVocNextOffset, setSimilarVocNextOffset] = useState<number | null>(null);
   const [similarVocLoadingMore, setSimilarVocLoadingMore] = useState(false);
+  const [researchCitations, setResearchCitations] = useState<SourceResearchCitation[]>([]);
+  const [researchUnavailable, setResearchUnavailable] = useState<string | null>(null);
+  const [researching, setResearching] = useState(false);
+  const [researchError, setResearchError] = useState<string | null>(null);
   const similarVocLoadingMoreRef = useRef(false);
   const similarVocScopeRef = useRef({ postId });
   if (similarVocScopeRef.current.postId !== postId) similarVocScopeRef.current = { postId };
+  const researchScopeRef = useRef({ postId });
+  if (researchScopeRef.current.postId !== postId) researchScopeRef.current = { postId };
   const [evaluation, setEvaluation] = useState<EvaluationResponse[] | null>(null);
   const [focusPerson, setFocusPerson] = useState<{ personId: string; personName: string } | null>(null);
   const [focusEntity, setFocusEntity] = useState<{ entityId: string; entityName: string } | null>(null);
@@ -1929,6 +1940,10 @@ function PostDetailPopup({
     setSimilarVocNextOffset(null);
     setSimilarVocLoadingMore(false);
     similarVocLoadingMoreRef.current = false;
+    setResearchCitations([]);
+    setResearchUnavailable(null);
+    setResearching(false);
+    setResearchError(null);
     setEvaluation(null);
     setFocusPerson(null);
     setFocusEntity(null);
@@ -1985,6 +2000,17 @@ function PostDetailPopup({
       .then((r) => setAffiliateTrees(r.trees))
       .catch(() => setAffiliateTrees([]));
     fetchPostVocEvidence(accessToken, postId).then(setVocEvidence).catch(() => setVocEvidence(null));
+    fetchPostResearchCitations(accessToken, postId)
+      .then((result) => {
+        if (disposed) return;
+        setResearchCitations(result.citations);
+        setResearchUnavailable(result.unavailable_reason ?? null);
+      })
+      .catch(() => {
+        if (disposed) return;
+        setResearchCitations([]);
+        setResearchUnavailable(null);
+      });
     fetchSimilarVoc(accessToken, postId)
       .then((result) => {
         if (disposed) return;
@@ -2528,6 +2554,33 @@ function PostDetailPopup({
                     if (similarVocScopeRef.current !== requestScope) return;
                     similarVocLoadingMoreRef.current = false;
                     setSimilarVocLoadingMore(false);
+                  });
+              }}
+            />
+
+            <SourceResearchPanel
+              citations={researchCitations}
+              unavailableReason={researchUnavailable}
+              canResearch={canExtract && post.visibility_code === "public"}
+              researching={researching}
+              error={researchError}
+              onResearch={() => {
+                const requestScope = researchScopeRef.current;
+                setResearching(true);
+                setResearchError(null);
+                researchPostSources(accessToken, postId)
+                  .then((result) => {
+                    if (researchScopeRef.current !== requestScope) return;
+                    setResearchCitations(result.citations);
+                    setResearchUnavailable(result.unavailable_reason ?? null);
+                  })
+                  .catch((err) => {
+                    if (researchScopeRef.current === requestScope) {
+                      setResearchError(searchUnavailableMessage(err));
+                    }
+                  })
+                  .finally(() => {
+                    if (researchScopeRef.current === requestScope) setResearching(false);
                   });
               }}
             />

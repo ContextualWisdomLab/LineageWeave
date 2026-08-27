@@ -109,6 +109,8 @@ describe("App, authenticated", () => {
     pluralAffiliations?: boolean;
     deferMe?: boolean;
     deferPostOne?: boolean;
+    deferResearch?: boolean;
+    postTwoPrivate?: boolean;
     meFailed?: boolean;
     postBody?: string;
     manyCustomerHints?: number;
@@ -121,7 +123,11 @@ describe("App, authenticated", () => {
     askImageCitation?: boolean;
     askDelivery?: boolean;
     lineageIsolationReason?: "comparison_candidates_available" | "no_comparison_group";
-  }): ReturnType<typeof vi.fn> & { releaseMe: () => void; releasePostOne: () => void } {
+  }): ReturnType<typeof vi.fn> & {
+    releaseMe: () => void;
+    releasePostOne: () => void;
+    releaseResearch: () => void;
+  } {
     const statusLabel: Record<string, string> = {
       open: "Open",
       in_progress: "In progress",
@@ -159,6 +165,13 @@ describe("App, authenticated", () => {
     const postOneReady = options?.deferPostOne
       ? new Promise<void>((resolve) => {
           releasePostOne = resolve;
+        })
+      : Promise.resolve();
+
+    let releaseResearch = () => {};
+    const researchReady = options?.deferResearch
+      ? new Promise<void>((resolve) => {
+          releaseResearch = resolve;
         })
       : Promise.resolve();
 
@@ -1238,7 +1251,7 @@ describe("App, authenticated", () => {
             post_title: "Linked post",
             post_body: "The evidence panel should show exactly this text.",
             voc_type_code: "voc",
-            visibility_code: "public",
+            visibility_code: options?.postTwoPrivate ? "private" : "public",
             created_at: "2026-01-02T00:00:00Z",
           }),
         );
@@ -1658,6 +1671,33 @@ describe("App, authenticated", () => {
         }
         return Promise.resolve(jsonResponse({ verified: [] }));
       }
+      if (url.endsWith("/api/posts/post-1/research-citations") && method === "POST") {
+        return researchReady.then(() =>
+          jsonResponse({
+            post_id: "post-1",
+            visibility_code: "public",
+            citations: [
+              {
+                lead_kind_code: "research_lead_semantic_unit",
+                lead_source_unit_id: "unit-1",
+                lead_image_region_id: null,
+                lead_excerpt_text: "Demo Corp delayed Apollo.",
+                search_query_text: "Demo Corp delayed Apollo.",
+                evidence_url: "https://example.com/apollo",
+                evidence_title_text: "Public Apollo evidence",
+                evidence_excerpt_text: "The published notice describes the delay.",
+                judgment_code: "research_supported",
+                rationale_text: "The retrieved page matches this source unit.",
+                next_action_text:
+                  "Open the cited public resource, then compare it with the highlighted passage or image detail from this post.",
+              },
+            ],
+          }),
+        );
+      }
+      if (url.endsWith("/api/posts/post-1/research-citations")) {
+        return Promise.resolve(jsonResponse({ post_id: "post-1", visibility_code: "public", citations: [] }));
+      }
       if (url.endsWith("/api/posts/post-1/lineage")) {
         return Promise.resolve(
           jsonResponse({
@@ -1956,7 +1996,7 @@ describe("App, authenticated", () => {
       return Promise.reject(new Error(`unexpected fetch: ${method} ${url}`));
     });
     vi.stubGlobal("fetch", fetchMock);
-    return Object.assign(fetchMock, { releaseMe, releasePostOne });
+    return Object.assign(fetchMock, { releaseMe, releasePostOne, releaseResearch });
   }
 
   it("renders safe Ask Agent evidence under each cited post", async () => {
@@ -3019,6 +3059,50 @@ describe("App, authenticated", () => {
         expect.objectContaining({ method: "POST" }),
       ),
     );
+  });
+
+  it("lets post_admin research public sources for a source unit", async () => {
+    const fetchMock = stubBackend({ admin: true });
+    render(<App showLabPanels />);
+
+    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
+    await userEvent.click(await screen.findByRole("button", { name: /research public sources/i }));
+
+    await waitFor(() =>
+      expect(fetchMock).toHaveBeenCalledWith(
+        expect.stringContaining("/api/posts/post-1/research-citations"),
+        expect.objectContaining({ method: "POST" }),
+      ),
+    );
+    expect(
+      await screen.findByRole("link", { name: "Public Apollo evidence" }),
+    ).toHaveAttribute("href", "https://example.com/apollo");
+  });
+
+  it("does not apply a completed research request after switching posts", async () => {
+    const fetchMock = stubBackend({ admin: true, deferResearch: true });
+    render(<App showLabPanels />);
+
+    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
+    await userEvent.click(await screen.findByRole("button", { name: /research public sources/i }));
+    await userEvent.click(screen.getAllByLabelText("Open post: Linked post")[0]);
+    await screen.findByText("The evidence panel should show exactly this text.");
+    fetchMock.releaseResearch();
+
+    await waitFor(() =>
+      expect(screen.queryByRole("link", { name: "Public Apollo evidence" })).not.toBeInTheDocument(),
+    );
+  });
+
+  it("does not offer public-source research for a private post", async () => {
+    stubBackend({ admin: true, postTwoPrivate: true });
+    render(<App showLabPanels />);
+
+    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
+    await userEvent.click(screen.getAllByLabelText("Open post: Linked post")[0]);
+    await screen.findByText("The evidence panel should show exactly this text.");
+
+    expect(screen.queryByRole("button", { name: /research public sources/i })).not.toBeInTheDocument();
   });
 
   it("lets post_admin extract Keymen from the popup", async () => {

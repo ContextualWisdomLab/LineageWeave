@@ -1,23 +1,21 @@
 # Product & Technical Gap Baseline
 
-> Dashboard delivery snapshot: 2026-08-27. Protected `main` was
-> `ff7431bd1851c03e737808d22c6a2d43968582f9`. Dashboard PR #640 exact
-> observed head is `b3befa8bec8dd2807994444299df7eafdd1c7781`; this branch is not
-> protected-main release evidence. The queue contained 35 open PRs (23
-> `BLOCKED`, six `UNSTABLE`, four `CLEAN`, and two `UNKNOWN`) and no exact-head
-> approval. PR #715
-> merged normally into #640 and repaired the four stale HTTP transport test
-> doubles plus one Python-before-3.7 Semgrep false positive that contradicted
-> the repository's Python >=3.12 contract. PR #722 also merged normally into
-> #640, restoring semantic-query and opt-in public-verification factories in
-> the dedicated Ask worker and the production-equivalent concurrent-migration
-> fixture path. PR #727 merged normally as `353dfd01`, replacing general-reader
-> implementation wording with evidence actions. Worker evidence PR #725's
-> implementation exact is `40283c9b`; subsequent evidence-only refreshes do not
-> change that code and its fresh hosted gates are pending. Storybook follow-up
-> #730 merged normally at `b3befa8b` from exact head `c21cac5d`.
-> Current #640 required checks are queued and independent approval remains
-> absent, so the candidate stays blocked.
+> Dashboard delivery snapshot: 2026-08-28. Protected `main` is
+> `edf22ee39aee2a8481f9bda8fff59801821e79c2`. Dashboard PR #640 exact
+> observed head is `5fd50962c43717dbd73c9ee73aa5bf106507118a`; this branch is not
+> protected-main release evidence. The queue contains ten open PRs: five
+> non-drafts are `BLOCKED` (#770, #771, #772, #774, and #775), and five drafts
+> are `DIRTY` against `main` (#640, #667, #672, #679, and #702). PR #776
+> restored the reviewed #742 product-relation slice as #640 commit `1640ce08`;
+> PR #777 then corrected its live integration assertion as `5fd50962`. A
+> five-second squash-order race had merged #711 into #640 before #716 reached
+> #711, so the present repair reapplies the exact #716 squash delta whose parent
+> is the already-delivered #711 head while preserving #776/#777 and the newer
+> canonical Compose, worker, Voice-taxonomy, and product-relation contracts.
+> The earlier exact-head browser audit exposed the missing mobile navigation
+> content; it is contradictory evidence, not acceptance. Final authenticated
+> desktop/mobile screenshots, asynchronous worker proof, and k6 evidence must
+> be rebuilt from the repaired exact head after its hosted checks complete.
 
 ## Operations Dashboard PRD/TRD traceability
 
@@ -89,9 +87,32 @@ Security/operability: every aggregation applies `post_read` plus row-level
 corporate-entity visibility before counting; source-body digests invalidate
 stale inference; provider errors persist no positive/negative result; PII
 remains authorized at the UI boundary and is excluded from telemetry. The
-tables use composite keys and bounded kind-first indexes; production hot-path
-acceptance still requires `EXPLAIN (ANALYZE, BUFFERS)` on an anonymized runtime
-snapshot.
+tables use composite keys and bounded kind-first indexes. Production hot-path
+acceptance uses `scripts/explain_post_content_backfill.py` on an anonymized
+runtime snapshot; the exact candidate SQL runs in a rolled-back transaction
+and emits aggregate plan/buffer metrics only. A deployment-specific
+capacity/SLO remains separate from this query-shape evidence.
+
+On an isolated exact-schema synthetic snapshot based on #716 `c01de078`
+(20,000 eligible posts and jobs, 9,927 ontology-backed project mentions, and
+4,951 current operations analyses), a consecutive rolled-back comparison
+returned the same 200-row priority page in 2,056.629 ms before and 1,327.868 ms
+after the change. Root shared-hit blocks fell from 275,642 to 100,514; both
+plans recorded zero shared reads and zero temporary reads/writes. The former
+plan made 20,000 correlated project probes and 9,927 correlated
+operations-analysis probes, while the semantics-equivalent two-tier query
+removes the corpus-wide priority `CASE` and its extra correlated priority
+subplans. The reproducible summary includes both relation plan-node counts and
+actual scan-loop totals so a single nested-loop node cannot be mislabeled as a
+single execution.
+The plan remains `Limit -> LockRows -> Sort`; `SKIP LOCKED` and the transaction
+boundary therefore remain intact, and the remaining tier runs only when the
+priority tier cannot fill the requested page. A separate remaining-tier
+observation returned 200 rows in 12,649.654 ms with 241,317 root shared-hit
+blocks and no reads or temporary spill; it is retained as the next
+distribution-specific optimization target, not hidden by the priority-path
+improvement. These observations establish query shape only, not a deployment
+capacity or latency SLO.
 
 ### Historical UI audit evidence
 
@@ -475,6 +496,7 @@ this file per §3.5 of the prior snapshot).
 
 | Gap | Current evidence | Acceptance requirement |
 | --- | --- | --- |
+| Customer and operator guidance | Current-stack user, MCP, and operations manuals now cover Dashboard evidence, all twelve Voice categories, product catalog review, durable Ask jobs and related public originals, canonical Compose/OIDC/session handling, worker recovery, k6 observation, and unavailable TEPP measurement. Contract tests bind the manuals to current tools, API type inventory, commands, and cross-links | Keep the manuals in the release link-check/test gate and repeat the documented authenticated synthetic recovery and k6 procedures at the protected release SHA; update guidance whenever a public tool, status, or recovery owner changes |
 | Protected release | 11 open PRs at the 07:26 KST snapshot; the exact-head inventory in section 1 records their current evidence boundaries | Terminal exact-head checks, no unresolved threads, independent exact-head approvals, protected squash-merge SHA |
 | Evidence-grounded operations workspace | Protected-main #614 delivers governed semantic Ask, live Similar VOC, disjoint pending/failed analysis metrics, full Storybook state inventory, and current desktop/mobile screenshot evidence. The current Dashboard stack adds a candidate `post_admin`-gated, 1--200-row durable semantic-backfill enqueue path that reuses PostgreSQL recovery, includes successful records completed before operations extraction, and never runs providers in HTTP; authorized-corpus acceptance remains unavailable | Land the candidate, then perform authenticated authorized-corpus acceptance with aggregate queued/published/recovery and derived-evidence counts while retaining fail-closed no-match behavior |
 | Shared frontend gate | The ADR 0109 login repair is on protected `main`; eight older branches carried the defect and received the same verified repair this loop (#521–#560) | Keep every future branch cut from post-repair bases; re-verify with frontend lint/test/build before push |
@@ -516,7 +538,7 @@ give this delivery matrix:
 
 | Closed-branch decision | Current-main classification | Smallest remaining delivery |
 | --- | --- | --- |
-| ADR 0133 source-reference research | Partial foundation: protected `main` has the self-hosted SearXNG relation-verification client and fail-closed configuration, but it verifies an already extracted relation. It has no source-unit/image-region lead, cited-resource retrieval, claim judgment, or normalized research citation workflow | One post-scoped lead-to-citation slice that reuses the self-hosted SearXNG search boundary, adds public-target SSRF/redirect rejection for result retrieval, and judges through contextual-orchestrator with explicit unavailable outcomes |
+| ADR 0133 source-reference research | PR #714 ADR 0248 is stacked on the current Dashboard/Ask branch and adds the remaining lead-to-citation slice: public-only source-unit/image-region leads, SearXNG search, public-target SSRF/redirect-rejected retrieval, orchestrator `mode=verify`, 3NF `source_research_citation`, and the same persisted related-document links in REST/UI/report/MCP Ask delivery. It is open-PR evidence until protected merge. Distinct from ADR 0215, which still never fetches result URLs | Land ADR 0248 through independent exact-head approval; keep private posts fail-closed, recheck publication/cutoff eligibility at Ask delivery, and do not mix Global Ask snippet verification into this table |
 | ADR 0134 token-backed exception messages | Partial: sanitized next-action failures exist, but no shared token-backed exception component or complete Storybook error inventory exists | Migrate one existing unavailable flow to one shared accessible alert and verify its success, unavailable, and retry states |
 | ADR 0135 kind/status-exact analysis actions | Partial: protected `main` has kind-aware start/retry controls plus normative analysis-run, TEPP, cutoff-body, and channel-evidence contracts; it does not contain the closed branch's unified guidance component or its full kind × status interaction inventory | Test the current run-kind/status matrix first, then add only a proven missing state/control pair rather than copying the closed-branch function |
 | ADR 0136 per-post Ask history | Partial: `post_chat_result` / `post_chat_citation`, the authorized post Chat API, and its linear exchange history are on protected `main`. Account-and-post-scoped sessions, ordered turns, list/select/new controls, and batched citation reauthorization are not | Define the 3NF account/post session boundary, bounded batch reauthorization, and one authorized list/load/write path before adding the conversation picker |

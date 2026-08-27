@@ -39,6 +39,8 @@ RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --frozen --no-dev --extra backend --no-editable \
     && chown -R appuser:appuser /app
 
+ARG LINEAGEWEAVE_SOURCE_REVISION=unknown
+LABEL org.opencontainers.image.revision=${LINEAGEWEAVE_SOURCE_REVISION}
 USER appuser
 EXPOSE 8000
 CMD ["uvicorn", "backend.app.main:app", "--host", "0.0.0.0", "--port", "8000"]

@@ -31,6 +31,18 @@ const answer: AskAgentResponse = {
       facts: [{ kind: "semantic_project", text: "project: Synthetic renewal" }],
     },
   ],
+  cited_source_references: [
+    {
+      post_id: "post-later",
+      lead_kind_code: "research_lead_semantic_unit",
+      evidence_url: "https://example.com/source",
+      evidence_title_text: "Public source document",
+      evidence_excerpt_text: "A synthetic public excerpt.",
+      judgment_code: "research_supported",
+      next_action_text: "Compare this source with the cited post.",
+      checked_at: "2026-08-20T10:00:00Z",
+    },
+  ],
   source_post_ids: ["post-later", "post-earlier"],
 };
 
@@ -81,6 +93,22 @@ describe("AskAnswerTimeline", () => {
     expect(onOpenEvidence).toHaveBeenCalledWith("post-earlier");
     await user.click(screen.getByRole("button", { name: "Open post: Revised request" }));
     expect(onOpenPost).toHaveBeenCalledWith("post-later");
+  });
+
+  it("opens a persisted related public source from its cited event", () => {
+    render(
+      <AskAnswerTimeline
+        question="What changed?"
+        answer={answer}
+        onOpenEvidence={() => undefined}
+        onOpenPost={() => undefined}
+      />,
+    );
+
+    const link = screen.getByRole("link", { name: "Public source document" });
+    expect(link).toHaveAttribute("href", "https://example.com/source");
+    expect(link).toHaveAttribute("target", "_blank");
+    expect(screen.getByText(/A synthetic public excerpt\./)).toBeInTheDocument();
   });
 
   it("names absent time instead of borrowing a lineage timestamp", () => {

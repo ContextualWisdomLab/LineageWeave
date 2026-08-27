@@ -11,6 +11,8 @@ deterministic `lineageweave_post_session_id` in the existing OpenAI-compatible
 `session_id`. The correlation header defined by ADR 0122 carries that same
 value. The ID is derived from `post_id` with a LineageWeave-only UUID namespace;
 it is not a database key and does not require a `user_account + post_id` table.
+An explicitly supplied top-level value must equal the active post session;
+the transport rejects a mismatch instead of silently splitting provenance.
 
 The same metadata object carries non-body provenance hints when available:
 PU, author account ID, corporate-entity code, and source author/company,
