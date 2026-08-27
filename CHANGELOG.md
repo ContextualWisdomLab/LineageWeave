@@ -8,6 +8,12 @@ All notable changes to this project are documented here. Format follows
 
 ### Added
 
+- Live synthetic PostgreSQL integration tests for imported primary Voice
+  history (ADR 0252 / #748): A → B → A at before/between/after knowledge
+  cutoffs, concurrent `voc_type_code` updates, GiST non-overlap, closing a
+  matching additional assignment, and 0237→0243 trigger replay. Tests skip
+  without PostgreSQL and do not close #748 until protected delivery.
+
 - Normalized Voice-of-X composition persistence (ADR 0256): every imported
   primary voice is mirrored into `source_post_voice`; each additional voice
   requires its own PROV-O assertion and truth status. Compound lookup codes,

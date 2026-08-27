@@ -250,6 +250,8 @@ in the same spirit) -- never against real data, per the hard rule above.
 `backend/tests/` and `tests/test_schema.py` are real-integration tests
 against a live local stack (`make up`) and self-skip without one -- see
 [README.md](README.md#local-product-stack-docker-compose).
+`tests/test_source_post_voice_history_live.py` is the same pattern for
+ADR 0252 A → B → A cutoff and concurrent primary-Voice history.
 
 `tests/test_public_docstrings.py` enforces repository-wide docstring
 coverage: every public function and class under `lineageweave/` and
