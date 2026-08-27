@@ -97,6 +97,7 @@ import { AskEvidenceLayerPopup } from "./components/AskEvidenceLayerPopup";
 import { PublicClaimVerification } from "./components/PublicClaimVerification";
 import { PopupCloseButton } from "./components/PopupCloseButton";
 import { SimilarVocPanel } from "./components/SimilarVocPanel";
+import { TeppAcceptedReceipt } from "./components/TeppAcceptedReceipt";
 import { chatEvidenceKindLabel } from "./evidenceKindLabels";
 import { WorkspaceNav, type WorkspaceDestination } from "./components/WorkspaceNav";
 import { OperationsDashboard } from "./components/OperationsDashboard";
@@ -3181,6 +3182,9 @@ function AnalysisRunsPanel({
             {" · "}
             Requested {selected.requested_at.slice(0, 10)}
           </p>
+          {selected.tepp_accepted_receipt && (
+            <TeppAcceptedReceipt />
+          )}
           <AnalysisRunReproducibilityDigests
             codeRevisionSha={selected.code_revision_sha}
             configurationSha256={selected.configuration_sha256}

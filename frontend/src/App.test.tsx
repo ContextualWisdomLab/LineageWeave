@@ -385,6 +385,15 @@ describe("App, authenticated", () => {
             status_label: teppLabel,
             knowledge_cutoff: "2026-01-12T12:00:00Z",
             requested_at: "2026-01-12T12:34:00Z",
+            ...(options?.succeededTeppRun
+              ? {
+                  tepp_accepted_receipt: {
+                    remote_run_id: "tepp-remote-run-1",
+                    accepted_status_code: "accepted",
+                    received_at: "2026-01-12T12:36:00Z",
+                  },
+                }
+              : {}),
             source_counts: [
               {
                 count_type_code: "analysis_count_document",
@@ -3811,6 +3820,10 @@ describe("App, authenticated", () => {
     expect(
       await screen.findByText("These posts are the cutoff corpus this TEPP run measured."),
     ).toBeInTheDocument();
+    expect(screen.getByLabelText("Measurement request accepted")).toHaveTextContent(
+      "Refresh this run to check whether results are ready.",
+    );
+    expect(screen.queryByText("tepp-remote-run-1")).not.toBeInTheDocument();
     expect(screen.queryByText(/replace Failed/i)).not.toBeInTheDocument();
   });
 

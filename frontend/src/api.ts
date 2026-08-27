@@ -1337,6 +1337,12 @@ export interface AnalysisRunVisiblePost {
   live_after_cutoff?: boolean;
 }
 
+export interface AnalysisRunTeppAcceptedReceipt {
+  remote_run_id: string;
+  accepted_status_code: "accepted";
+  received_at: string;
+}
+
 export interface AnalysisRun {
   analysis_run_id: string;
   run_kind_code: AnalysisRunKindCode;
@@ -1359,6 +1365,7 @@ export interface AnalysisRun {
   reconstruction_result_sha256?: string;
   topic_lineage_result?: Record<string, unknown>;
   topic_lineage_result_sha256?: string;
+  tepp_accepted_receipt?: AnalysisRunTeppAcceptedReceipt;
   code_revision_sha?: string;
   configuration_sha256?: string;
 }
