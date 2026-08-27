@@ -1,10 +1,7 @@
-import { AdminPanel } from "./components/AdminPanel";
-import { LeftoverPairList } from "./components/LeftoverPairList";
-import { WorkspaceCalendar } from "./components/WorkspaceCalendar";
 import { focusedGraphMustReset } from "./focusedGraphSelection";
 import { canAuthorVoice, postPrimaryVoiceLabel } from "./voicePerspective";
 
-import { useCallback, useEffect, useEffectEvent, useRef, useState, type ReactNode } from "react";
+import { Component, lazy, Suspense, useCallback, useEffect, useEffectEvent, useRef, useState, type ReactNode } from "react";
 import { useAuth } from "react-oidc-context";
 import {
   askPostChat,
@@ -92,22 +89,17 @@ import {
   fetchTenantConfig,
 } from "./api";
 import { CitationChip } from "./components/CitationChip";
+import { PublicClaimVerification } from "./components/PublicClaimVerification";
 import { OrganizationAliasChip } from "./components/OrganizationAliasChip";
 import { organizationAliasCaption } from "./components/organizationAliasCaption";
 import { CutoffKnownBody } from "./components/CutoffKnownBody";
 import { LineageEntityPicker } from "./components/LineageEntityPicker";
-import { OntologyExplorer } from "./components/OntologyExplorer";
-import { AskEvidenceLayerPopup } from "./components/AskEvidenceLayerPopup";
-import { PublicClaimVerification } from "./components/PublicClaimVerification";
 import { PopupCloseButton } from "./components/PopupCloseButton";
-import { SimilarVocPanel } from "./components/SimilarVocPanel";
 import { TeppAcceptedReceipt } from "./components/TeppAcceptedReceipt";
 import { chatEvidenceKindLabel } from "./evidenceKindLabels";
 import { WorkspaceNav, type WorkspaceDestination } from "./components/WorkspaceNav";
-import { OperationsDashboard } from "./components/OperationsDashboard";
 import { OccupationRatingProfile } from "./components/OccupationRatingProfile";
 import { initialWorkspaceDestination } from "./gnbChrome";
-import { LineageDag } from "./LineageDag";
 import { PostBody } from "./PostBody";
 import { decodeHtmlEntities } from "./postBodyDisplay";
 import { FiveW1H } from "./components/FiveW1H";
@@ -128,6 +120,41 @@ import {
   useLocale,
 } from "./i18n";
 import "./App.css";
+
+const AdminPanel = lazy(() => import("./components/AdminPanel").then((module) => ({ default: module.AdminPanel })));
+const AskEvidenceLayerPopup = lazy(() => import("./components/AskEvidenceLayerPopup").then((module) => ({ default: module.AskEvidenceLayerPopup })));
+const LeftoverPairList = lazy(() => import("./components/LeftoverPairList").then((module) => ({ default: module.LeftoverPairList })));
+const LineageDag = lazy(() => import("./LineageDag").then((module) => ({ default: module.LineageDag })));
+const OntologyExplorer = lazy(() => import("./components/OntologyExplorer").then((module) => ({ default: module.OntologyExplorer })));
+const OperationsDashboard = lazy(() => import("./components/OperationsDashboard").then((module) => ({ default: module.OperationsDashboard })));
+const SimilarVocPanel = lazy(() => import("./components/SimilarVocPanel").then((module) => ({ default: module.SimilarVocPanel })));
+const WorkspaceCalendar = lazy(() => import("./components/WorkspaceCalendar").then((module) => ({ default: module.WorkspaceCalendar })));
+
+function SurfaceFallback() {
+  return <p role="status">{t("Loading...")}</p>;
+}
+
+export class SurfaceBoundary extends Component<{ children: ReactNode }, { failed: boolean }> {
+  state = { failed: false };
+
+  static getDerivedStateFromError() {
+    return { failed: true };
+  }
+
+  render() {
+    if (this.state.failed) {
+      return (
+        <section role="alert" aria-live="assertive">
+          <p>{t("This view is unavailable. Refresh once; if it fails again, contact your administrator.")}</p>
+          <button type="button" className="btn-secondary" onClick={() => window.location.reload()}>
+            {t("Refresh")}
+          </button>
+        </section>
+      );
+    }
+    return <Suspense fallback={<SurfaceFallback />}>{this.props.children}</Suspense>;
+  }
+}
 
 function orchestratorUnavailableMessage(err: unknown, action: string): string {
   if (err instanceof BackendError && err.status === 503) {
@@ -518,7 +545,9 @@ function EventLineageSection({
   return (
     <>
       {scoped.nodes.length > 0 && onSelectPost && (
-        <LineageDag graph={scoped} onSelectPost={onSelectPost} currentPostId={postId} />
+        <SurfaceBoundary>
+          <LineageDag graph={scoped} onSelectPost={onSelectPost} currentPostId={postId} />
+        </SurfaceBoundary>
       )}
       {scoped.nodes.length > 0 && currentNextAction ? (
         <p className="post-meta" role="status" aria-label={t("Event Lineage next action")}>
@@ -1360,13 +1389,15 @@ function KeymanPanel({
         <ChatPanel postId={postId} accessToken={accessToken} nameFirstAsk />
       ) : null}
       {ontologyOpen ? (
-        <OntologyExplorer
-          accessToken={accessToken}
-          focusNodeType={selectedFocus?.nodeTypeCode ?? NODE_POST}
-          focusNodeId={selectedFocus?.nodeId ?? postId}
-          onSelectPost={onSelectPost}
-          onOpenEvidence={onSelectPost}
-        />
+        <SurfaceBoundary>
+          <OntologyExplorer
+            accessToken={accessToken}
+            focusNodeType={selectedFocus?.nodeTypeCode ?? NODE_POST}
+            focusNodeId={selectedFocus?.nodeId ?? postId}
+            onSelectPost={onSelectPost}
+            onOpenEvidence={onSelectPost}
+          />
+        </SurfaceBoundary>
       ) : null}
     </>
   );
@@ -2657,35 +2688,37 @@ function PostDetailPopup({
               }}
             />
 
-            <SimilarVocPanel
-              items={similarVoc}
-              error={similarVocError}
-              onOpenPost={(candidatePostId) => onSelectPost?.(candidatePostId)}
-              loadingMore={similarVocLoadingMore}
-              onLoadMore={similarVocNextOffset === null ? null : () => {
-                if (similarVocLoadingMoreRef.current) return;
-                const requestScope = similarVocScopeRef.current;
-                similarVocLoadingMoreRef.current = true;
-                setSimilarVocLoadingMore(true);
-                setSimilarVocError(null);
-                fetchSimilarVoc(accessToken, postId, similarVocNextOffset)
-                  .then((result) => {
-                    if (similarVocScopeRef.current !== requestScope) return;
-                    setSimilarVoc((current) => [...(current ?? []), ...result.items]);
-                    setSimilarVocNextOffset(result.next_offset);
-                  })
-                  .catch(() => {
-                    if (similarVocScopeRef.current === requestScope) {
-                      setSimilarVocError("이전 VOC를 더 불러오지 못했습니다. 다시 시도하세요.");
-                    }
-                  })
-                  .finally(() => {
-                    if (similarVocScopeRef.current !== requestScope) return;
-                    similarVocLoadingMoreRef.current = false;
-                    setSimilarVocLoadingMore(false);
-                  });
-              }}
-            />
+            <SurfaceBoundary>
+              <SimilarVocPanel
+                            items={similarVoc}
+                            error={similarVocError}
+                            onOpenPost={(candidatePostId) => onSelectPost?.(candidatePostId)}
+                            loadingMore={similarVocLoadingMore}
+                            onLoadMore={similarVocNextOffset === null ? null : () => {
+                              if (similarVocLoadingMoreRef.current) return;
+                              const requestScope = similarVocScopeRef.current;
+                              similarVocLoadingMoreRef.current = true;
+                              setSimilarVocLoadingMore(true);
+                              setSimilarVocError(null);
+                              fetchSimilarVoc(accessToken, postId, similarVocNextOffset)
+                                .then((result) => {
+                                  if (similarVocScopeRef.current !== requestScope) return;
+                                  setSimilarVoc((current) => [...(current ?? []), ...result.items]);
+                                  setSimilarVocNextOffset(result.next_offset);
+                                })
+                                .catch(() => {
+                                  if (similarVocScopeRef.current === requestScope) {
+                                    setSimilarVocError("이전 VOC를 더 불러오지 못했습니다. 다시 시도하세요.");
+                                  }
+                                })
+                                .finally(() => {
+                                  if (similarVocScopeRef.current !== requestScope) return;
+                                  similarVocLoadingMoreRef.current = false;
+                                  setSimilarVocLoadingMore(false);
+                                });
+                            }}
+              />
+            </SurfaceBoundary>
 
             <RelatedPostsSection lineage={lineage} onSelectPost={onSelectPost} />
 
@@ -3604,12 +3637,14 @@ function CalendarPanel({
   if (calendar === null) return <p role="status">{t("Loading calendar...")}</p>;
 
   return (
-    <WorkspaceCalendar
-      calendar={calendar}
-      onSelectPost={onSelectPost}
-      headingId={headingId}
-      heading={heading ?? t("Calendar")}
-    />
+    <SurfaceBoundary>
+      <WorkspaceCalendar
+        calendar={calendar}
+        onSelectPost={onSelectPost}
+        headingId={headingId}
+        heading={heading ?? t("Calendar")}
+      />
+    </SurfaceBoundary>
   );
 }
 
@@ -3830,18 +3865,20 @@ function ReportsPanel({
               </p>
             )}
             {report.leftover_pairs && report.leftover_pairs.length > 0 && (
-              <LeftoverPairList
-                pairs={report.leftover_pairs}
-                criterionLabel={criterionShortLabel}
-                onSelectPost={(pair) => {
-                  onSelectPost(pair.post_id, {
-                    fromLeftoverPair: {
-                      pairKind: pair.pair_kind === "farthest" ? "farthest" : "closest",
-                      criterionCode: pair.criterion_code,
-                    },
-                  });
-                }}
-              />
+              <SurfaceBoundary>
+                <LeftoverPairList
+                  pairs={report.leftover_pairs}
+                  criterionLabel={criterionShortLabel}
+                  onSelectPost={(pair) => {
+                    onSelectPost(pair.post_id, {
+                      fromLeftoverPair: {
+                        pairKind: pair.pair_kind === "farthest" ? "farthest" : "closest",
+                        criterionCode: pair.criterion_code,
+                      },
+                    });
+                  }}
+                />
+              </SurfaceBoundary>
             )}
             {report.members.length > 0 && (
               <ul className="ticket-list">
@@ -5109,7 +5146,9 @@ export function AskAgentPanel({
             </aside>
           ) : null}
           {answer.next_action ? <p className="post-meta">{t(answer.next_action)}</p> : null}
-          <PublicClaimVerification claims={answer.external_claims ?? []} />
+          <SurfaceBoundary>
+            <PublicClaimVerification claims={answer.external_claims ?? []} />
+          </SurfaceBoundary>
           {answer.delivery ? (
             <aside className="ask-delivery" aria-label={t("Report · alert · MCP")}>
               <h4>{t("Report · alert · MCP")}</h4>
@@ -5180,26 +5219,30 @@ export function AskAgentPanel({
             </>
           )}
           {answer.lineage_graph && answer.lineage_graph.nodes.length > 0 ? (
-            <LineageDag graph={answer.lineage_graph} onSelectPost={onOpenPost} />
+            <SurfaceBoundary>
+              <LineageDag graph={answer.lineage_graph} onSelectPost={onOpenPost} />
+            </SurfaceBoundary>
           ) : null}
         </section>
       )}
       {evidenceLayerPostId && answer ? (
-        <AskEvidenceLayerPopup
-          postId={evidenceLayerPostId}
-          postTitle={
-            answer.cited_posts?.find((post) => post.post_id === evidenceLayerPostId)?.post_title ??
-            evidenceLayerPostId
-          }
-          facts={
-            answer.cited_post_evidence?.find((item) => item.post_id === evidenceLayerPostId)?.facts ?? []
-          }
-          images={
-            answer.cited_post_images?.filter((image) => image.post_id === evidenceLayerPostId) ?? []
-          }
-          onClose={() => setEvidenceLayerPostId(null)}
-          onOpenPost={onOpenPost}
-        />
+        <SurfaceBoundary>
+          <AskEvidenceLayerPopup
+            postId={evidenceLayerPostId}
+            postTitle={
+              answer.cited_posts?.find((post) => post.post_id === evidenceLayerPostId)?.post_title ??
+              evidenceLayerPostId
+            }
+            facts={
+              answer.cited_post_evidence?.find((item) => item.post_id === evidenceLayerPostId)?.facts ?? []
+            }
+            images={
+              answer.cited_post_images?.filter((image) => image.post_id === evidenceLayerPostId) ?? []
+            }
+            onClose={() => setEvidenceLayerPostId(null)}
+            onOpenPost={onOpenPost}
+          />
+        </SurfaceBoundary>
       ) : null}
     </section>
   );
@@ -5318,7 +5361,7 @@ export default function App({ showLabPanels = false }: { showLabPanels?: boolean
       />
       <main>
         {destination === "dashboard" ? (
-          <>
+          <SurfaceBoundary>
             <OperationsDashboard
               accessToken={accessToken}
               onOpenPost={(postId) => {
@@ -5327,7 +5370,7 @@ export default function App({ showLabPanels = false }: { showLabPanels?: boolean
               }}
             />
             <OccupationRatingProfile accessToken={accessToken} />
-          </>
+          </SurfaceBoundary>
         ) : null}
         {destination === "board" ? (
           <PostList
@@ -5362,7 +5405,11 @@ export default function App({ showLabPanels = false }: { showLabPanels?: boolean
             }}
           />
         ) : null}
-        {destination === "admin" && accessToken ? <AdminPanel currentBrandName={brandName} onBrandNameChange={setBrandName} accessToken={accessToken} /> : null}
+        {destination === "admin" && accessToken ? (
+            <SurfaceBoundary>
+              <AdminPanel currentBrandName={brandName} onBrandNameChange={setBrandName} accessToken={accessToken} />
+            </SurfaceBoundary>
+          ) : null}
       </main>
       <footer className="app-footer" role="contentinfo">
         <div className="app-footer-title">
