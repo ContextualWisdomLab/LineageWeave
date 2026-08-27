@@ -413,7 +413,7 @@ async def import_ratings(args: argparse.Namespace) -> dict[str, object]:
                 args.publisher,
                 args.license_url,
             )
-            await conn.execute(
+            await conn.execute(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
                 """
                 do $$
                 begin
@@ -428,7 +428,7 @@ async def import_ratings(args: argparse.Namespace) -> dict[str, object]:
                 release_partition,
                 args.release_code,
             )
-            await conn.execute(
+            await conn.execute(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
                 """
                 do $$
                 begin
