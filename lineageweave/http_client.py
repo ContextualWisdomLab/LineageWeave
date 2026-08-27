@@ -78,6 +78,11 @@ def json_request_body(
         if include_orchestrator_session:
             session_id = request_metadata.get("lineageweave_post_session_id")
             if session_id:
+                supplied_session_id = request_payload.get("session_id")
+                if supplied_session_id is not None and supplied_session_id != session_id:
+                    raise ValueError(
+                        "payload session_id does not match the active post session"
+                    )
                 request_payload["session_id"] = session_id
     return json.dumps(request_payload).encode("utf-8")
 

@@ -228,7 +228,16 @@ async def test_mcp_tools_delegate_to_current_service_once(monkeypatch) -> None:
 
     async def read(**kwargs):
         assert kwargs["account"] is account
-        return {"ask_job_id": str(kwargs["ask_job_id"]), "job_status_code": "running"}
+        return {
+            "ask_job_id": str(kwargs["ask_job_id"]),
+            "job_status_code": "succeeded",
+            "answer": {
+                "cited_source_references": [{
+                    "post_id": "post-1",
+                    "evidence_url": "https://example.com/source",
+                }],
+            },
+        }
 
     monkeypatch.setattr(mcp_server, "submit_global_ask_service", submit)
     monkeypatch.setattr(mcp_server, "read_global_ask_job_service", read)
@@ -268,6 +277,9 @@ async def test_mcp_tools_delegate_to_current_service_once(monkeypatch) -> None:
             {"ask_job_id": "00000000-0000-0000-0000-000000000123"},
         )
         assert running.is_error is False
+        assert running.structured_content["answer"]["cited_source_references"][0][
+            "evidence_url"
+        ] == "https://example.com/source"
         invalid = await client.call_tool(
             "read_global_ask_job", {"ask_job_id": "not-a-uuid"}
         )
