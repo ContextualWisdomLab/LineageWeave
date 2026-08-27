@@ -1079,6 +1079,44 @@ export function fetchWorkerFunctionConstructCatalog(
   accessToken: string,
 ): Promise<WorkerFunctionConstructCatalogPayload> {
   return backendFetch("/api/ontology/worker-function-constructs", accessToken);
+xport interface OccupationalConstructSearchHit {
+  construct_id: string;
+  construct_iri: string;
+  construct_family_code: string;
+  preferred_label: string;
+  vocabulary_version: string;
+  supporting_post_id: string;
+  supporting_post_title: string;
+  evidence_text: string;
+  truth_status_code: string;
+}
+
+export interface OccupationalConstructSearchPage {
+  query: string;
+  family_code: string | null;
+  next_cursor: string | null;
+  hits: OccupationalConstructSearchHit[];
+}
+
+export interface OccupationalConstructSearchQuery {
+  query: string;
+  family?: string;
+  knowledgeCutoff?: string;
+  cursor?: string;
+  limit?: number;
+}
+
+export function fetchOccupationalConstructSearch(
+  accessToken: string,
+  query: OccupationalConstructSearchQuery,
+): Promise<OccupationalConstructSearchPage> {
+  const params = new URLSearchParams({ q: query.query });
+  if (query.family) params.set("family", query.family);
+  if (query.knowledgeCutoff) params.set("knowledge_cutoff", query.knowledgeCutoff);
+  if (query.cursor) params.set("cursor", query.cursor);
+  if (query.limit != null) params.set("limit", String(query.limit));
+  return backendFetch(`/api/occupational-constructs/search?${params.toString()}`, accessToken);
+(feat(ontology): search assertion-backed occupational constructs)
 }
 
 export function extractPostKeymen(

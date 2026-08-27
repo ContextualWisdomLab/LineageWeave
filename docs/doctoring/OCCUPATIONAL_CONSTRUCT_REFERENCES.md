@@ -14,7 +14,9 @@ source actually supports and which tempting inferences remain prohibited.
 - The O*NET 31.0 Content Model Reference publishes 3,006 hierarchy elements.
   ADR 0250 admits only the source-defined cognitive-ability (`1.A.1`), work-
   style (`1.D`), and work-activity (`4.A`) roots and descendants; it preserves
-  blank descriptions as unavailable and stores no occupation rating.
+  blank descriptions as unavailable and stores no occupation rating. ADR 0256
+  searches those official labels only through ABAC-visible supporting Posts;
+  a catalog row without visible evidence is not a hit.
 - The O*NET Content Model separates worker characteristics and requirements
   from occupational requirements. It does not make FJA worker functions
   equivalent to abilities, dispositions, or affect.
