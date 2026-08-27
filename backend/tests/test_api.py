@@ -231,6 +231,19 @@ _EVENT_OCCURRED_AT_MIGRATION = (
     / "migrations"
     / "0183_source_post_event_occurred_at.sql"
 )
+_ONTOLOGY_TRUTH_STATUS_MIGRATION = (
+    Path(__file__).resolve().parents[2] / "migrations" / "0175_ontology_truth_status.sql"
+)
+_OCCUPATIONAL_CONSTRUCT_MIGRATION = (
+    Path(__file__).resolve().parents[2]
+    / "migrations"
+    / "0238_occupational_construct_assertion.sql"
+)
+_OCCUPATIONAL_CATALOG_MIGRATION = (
+    Path(__file__).resolve().parents[2]
+    / "migrations"
+    / "0239_occupational_construct_catalog.sql"
+)
 
 
 def _postgres_available() -> bool:
@@ -383,12 +396,17 @@ def seeded_db(demo_analyst_token):
             cur.execute(_LEFTOVER_MAP_COVERAGE_MIGRATION.read_text())
             cur.execute(_GLOBAL_ASK_JOB_MIGRATION.read_text())
             cur.execute(_GLOBAL_ASK_SCOPE_MIGRATION.read_text())
-            cur.execute(_GLOBAL_ASK_EVIDENCE_SEARCH_MIGRATION.read_text())
+            for statement in _GLOBAL_ASK_EVIDENCE_SEARCH_MIGRATION.read_text().split(";\n\n"):
+                if statement.strip():
+                    cur.execute(statement + ";")
             cur.execute(_GLOBAL_ASK_KNOWLEDGE_CUTOFF_MIGRATION.read_text())
             cur.execute(_GLOBAL_ASK_PUBLIC_VERIFICATION_MIGRATION.read_text())
             cur.execute(_EVENT_OCCURRED_AT_MIGRATION.read_text())
+            cur.execute(_ONTOLOGY_TRUTH_STATUS_MIGRATION.read_text())
             cur.execute(_LEFTOVER_MAP_AXIS_MIGRATION.read_text())
             cur.execute(_CHANNEL_EVIDENCE_MIGRATION.read_text())
+            cur.execute(_OCCUPATIONAL_CONSTRUCT_MIGRATION.read_text())
+            cur.execute(_OCCUPATIONAL_CATALOG_MIGRATION.read_text())
             cur.execute(_LEFTOVER_MAP_UNEXPLAINED_MIGRATION.read_text())
             cur.execute(_LEFTOVER_MAP_CROSS_SHARE_MIGRATION.read_text())
             cur.execute(_LEFTOVER_MAP_RECONSTRUCTION_MIGRATION.read_text())
@@ -1943,6 +1961,76 @@ def test_post_detail_exposes_explicit_and_semantic_project_evidence(
     )
     assert listed_post["project_evidence"][0]["project_name"] == "Semantic project"
     assert listed_post["project_evidence"][0]["provenance"] == "post_project_mention.evidence_text"
+
+
+def test_post_detail_exposes_evidence_bound_occupational_construct(
+    client, demo_analyst_token, seeded_db
+) -> None:
+    """The authorized detail projection preserves its exact synthetic evidence."""
+    conn = psycopg2.connect(seeded_db["dsn"])
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                insert into post_content_unit
+                    (post_id, unit_index, unit_kind_code, unit_text)
+                values (%s, 90, 'plain_text', %s)
+                returning post_content_unit_id
+                """,
+                (
+                    seeded_db["public_post_id"],
+                    "Synthetic record requires oral comprehension.",
+                ),
+            )
+            unit_id = cur.fetchone()[0]
+            cur.execute(
+                """
+                insert into occupational_construct_vocabulary
+                    (vocabulary_iri, version_label, license_iri, attribution_text)
+                values (%s, '31.0', %s, 'Synthetic O*NET attribution')
+                returning vocabulary_id
+                """,
+                (
+                    "https://www.onetcenter.org/database.html",
+                    "https://creativecommons.org/licenses/by/4.0/",
+                ),
+            )
+            vocabulary_id = cur.fetchone()[0]
+            cur.execute(
+                """
+                insert into occupational_construct
+                    (vocabulary_id, construct_iri, construct_family_code, preferred_label)
+                values (%s, %s, 'cognitive_ability', 'Oral Comprehension')
+                returning construct_id
+                """,
+                (vocabulary_id, "https://data.onetcenter.org/element/1.A.1.a.1"),
+            )
+            construct_id = cur.fetchone()[0]
+            cur.execute(
+                """
+                insert into post_occupational_construct_assertion
+                    (post_id, post_content_unit_id, construct_id, evidence_text,
+                     truth_status_code, extraction_method, orchestrator_session_id)
+                values (%s, %s, %s, 'oral comprehension', 'truth_inferred',
+                        'contextual_orchestrator_structured', 'synthetic-session')
+                """,
+                (seeded_db["public_post_id"], unit_id, construct_id),
+            )
+        conn.commit()
+    finally:
+        conn.close()
+
+    response = client.get(
+        f"/api/posts/{seeded_db['public_post_id']}",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert response.status_code == 200
+    assertions = response.json()["occupational_construct_assertions"]
+    assert assertions[0]["preferred_label"] == "Oral Comprehension"
+    assert assertions[0]["evidence_text"] == "oral comprehension"
+    assert assertions[0]["provenance"] == (
+        "post_occupational_construct_assertion.evidence_text"
+    )
 
 
 def test_post_detail_as_of_returns_the_cutoff_known_body(

@@ -17,7 +17,7 @@ from types import ModuleType
 from urllib.parse import urlsplit
 
 from rdflib import Graph, URIRef
-from rdflib.namespace import OWL, RDF, RDFS, SH, SKOS
+from rdflib.namespace import OWL, PROV, RDF, RDFS, SH, SKOS
 
 try:
     from scripts.ontology_site_contract import public_fragment
@@ -33,7 +33,15 @@ SHAPES_RELATIVE_PATH = Path("docs/ontology/lineageweave-kg-shapes.ttl")
 #: lowercase form is the deprecated compatibility vocabulary.
 CANONICAL_NAMESPACE = "https://contextualwisdomlab.github.io/LineageWeave/ontology#"
 DEPRECATED_NAMESPACE = "https://contextualwisdomlab.github.io/lineageweave/ontology#"
-STANDARD_SHACL_PATHS = frozenset({RDF.subject, RDF.predicate, RDF.object})
+STANDARD_SHACL_PATHS = frozenset(
+    {
+        RDF.subject,
+        RDF.predicate,
+        RDF.object,
+        PROV.wasDerivedFrom,
+        PROV.generatedAtTime,
+    }
+)
 
 _MAPPING_FOR_KIND = {
     OWL.Class: OWL.equivalentClass,
@@ -139,9 +147,9 @@ def validate_shapes_graph(shapes: Graph, canonical: Graph) -> None:
     """Reject SHACL shapes whose targets dangle outside the ontology.
 
     A shape that targets a class absent from the canonical graph, or
-    constrains a path neither declared there nor one of RDF's three
-    reification predicates, would silently validate nothing -- the
-    publication boundary refuses it instead (ADR 0207 decision 10).
+    constrains a path neither declared there nor an allowlisted RDF
+    reification/PROV-O provenance predicate, would silently validate nothing
+    -- the publication boundary refuses it instead (ADR 0207 decision 10).
     Only URI-valued targets and paths are checked; literal sh:path values
     are not part of this contract.
     """

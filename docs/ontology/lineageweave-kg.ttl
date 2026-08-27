@@ -438,6 +438,55 @@
     rdfs:range xsd:decimal .
 
 #################################################################
+# Evidence-bound occupational constructs (ADR 0248).
+#################################################################
+
+:OccupationalConstruct a owl:Class ;
+    rdfs:label "Occupational construct"@en ;
+    rdfs:comment "A governed cognitive, dispositional, behavioral, or affective concept referenced by authorized record evidence; it is not itself a person-level measurement."@en .
+
+:CognitiveAbility a owl:Class ;
+    rdfs:subClassOf :OccupationalConstruct ;
+    rdfs:label "Cognitive ability"@en .
+
+:WorkStyle a owl:Class ;
+    rdfs:subClassOf :OccupationalConstruct ;
+    rdfs:label "Work style"@en ;
+    rdfs:comment "A personality tendency exhibited at work; not a mood or emotion."@en .
+
+:WorkActivity a owl:Class ;
+    rdfs:subClassOf :OccupationalConstruct ;
+    rdfs:label "Work activity"@en .
+
+:AffectiveReaction a owl:Class ;
+    rdfs:subClassOf :OccupationalConstruct ;
+    rdfs:label "Affective reaction"@en ;
+    rdfs:comment "An evidence-supported reaction represented with an explicitly identified EmotionML-compatible vocabulary; no default emotion category is inferred."@en .
+
+:PerformanceBehavior a owl:Class ;
+    rdfs:subClassOf :OccupationalConstruct ;
+    rdfs:label "Performance behavior"@en .
+
+:supportsOccupationalConstruct a owl:ObjectProperty ;
+    rdfs:domain :Post ;
+    rdfs:range :OccupationalConstruct ;
+    rdfs:label "supports occupational construct"@en ;
+    rdfs:comment "Record evidence supports discussion of a construct; this does not assert a person trait, score, job requirement, or cause."@en .
+
+:OccupationalConstructAssertion a owl:Class ;
+    rdfs:subClassOf rdf:Statement,
+        [ a owl:Restriction ; owl:onProperty rdf:subject ; owl:allValuesFrom :Post ],
+        [ a owl:Restriction ; owl:onProperty rdf:predicate ; owl:hasValue :supportsOccupationalConstruct ],
+        [ a owl:Restriction ; owl:onProperty rdf:object ; owl:allValuesFrom :OccupationalConstruct ] ;
+    rdfs:label "Occupational construct assertion"@en ;
+    rdfs:comment "A provenance-bearing reified statement that one authorized Post contains evidence supporting an occupational construct."@en .
+
+:constructEvidence a owl:DatatypeProperty ;
+    rdfs:domain :OccupationalConstructAssertion ;
+    rdfs:range xsd:string ;
+    rdfs:label "construct evidence"@en .
+
+#################################################################
 # Worker-function taxonomy (ADR 0232).
 #
 # The Dictionary of Occupational Titles' Data/People/Things worker
