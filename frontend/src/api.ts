@@ -1079,7 +1079,7 @@ export function fetchWorkerFunctionConstructCatalog(
   accessToken: string,
 ): Promise<WorkerFunctionConstructCatalogPayload> {
   return backendFetch("/api/ontology/worker-function-constructs", accessToken);
-xport interface OccupationalConstructSearchHit {
+export interface OccupationalConstructSearchHit {
   construct_id: string;
   construct_iri: string;
   construct_family_code: string;
