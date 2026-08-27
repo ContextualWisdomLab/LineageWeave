@@ -2183,7 +2183,7 @@ describe("App, authenticated", () => {
       "hint-disclosure",
     );
 
-    const authorSection = screen.getByRole("region", { name: "Source author evidence" });
+    const authorSection = screen.getByRole("region", { name: "Author context" });
     expect(within(authorSection).getByText("AUTH-HINT · Hint only").closest("details")).toHaveClass(
       "hint-disclosure",
     );
@@ -2456,13 +2456,13 @@ describe("App, authenticated", () => {
     await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
 
     await waitFor(() => expect(screen.getByText("이것은 요약입니다.")).toBeInTheDocument());
-    const provenance = screen.getByText("Evidence provenance").closest("details");
+    const provenance = screen.getByText("Why this item is listed").closest("details");
     expect(provenance).not.toBeNull();
     expect(provenance).not.toHaveAttribute("open");
-    await userEvent.click(screen.getByText("Evidence provenance"));
-    expect(screen.getByText(/Ontology class:/)).toBeInTheDocument();
-    expect(screen.getByText(/Extraction source: Semantic extraction/)).toBeInTheDocument();
-    expect(screen.getByText(/Evidence field: Stored semantic evidence/)).toBeInTheDocument();
+    await userEvent.click(screen.getByText("Why this item is listed"));
+    expect(screen.getByText(/Category:/)).toBeInTheDocument();
+    expect(screen.getByText(/How this item was found: Semantic extraction/)).toBeInTheDocument();
+    expect(screen.getByText(/Recorded evidence: Stored semantic evidence/)).toBeInTheDocument();
     expect(screen.queryByText("contextual_orchestrator_semantic")).not.toBeInTheDocument();
     expect(screen.queryByText("https://contextualwisdomlab.github.io/LineageWeave/ontology#Project")).not.toBeInTheDocument();
     expect(screen.getByText("첫 번째 이벤트")).toBeInTheDocument();
@@ -2697,9 +2697,7 @@ describe("App, authenticated", () => {
 
     await waitFor(() =>
       expect(
-        screen.getByText(
-          "Verification is unavailable because public search is not configured yet. Ask an administrator to enable it, then retry.",
-        ),
+        screen.getByText("Verification unavailable (search is not configured)."),
       ).toBeInTheDocument(),
     );
     expect(screen.queryByText(/HTTP 503/)).not.toBeInTheDocument();
@@ -3257,7 +3255,7 @@ describe("App, authenticated", () => {
     expect(list).toHaveTextContent("TEPP measurement · Failed · Demo Corp");
     expect(list).toHaveTextContent("Period report · Succeeded · Demo Corp");
     expect(list).toHaveTextContent(
-      "Open this run to see why it failed, then connect the measurement service and re-run.",
+      "Open this run to see why it failed, then retry with the latest available records.",
     );
     expect(list).toHaveTextContent("3 documents");
     expect(list).not.toHaveTextContent("postgresql://");
@@ -3440,8 +3438,9 @@ describe("App, authenticated", () => {
     );
     expect(lineageButton).not.toHaveTextContent("measurement service");
     expect(teppButton).toHaveTextContent(
-      "Open this run to see why it failed, then connect the measurement service and re-run.",
+      "Open this run to see why it failed, then retry with the latest available records.",
     );
+    expect(teppButton).not.toHaveTextContent("measurement service");
     expect(teppButton).not.toHaveTextContent("reconstruction");
   });
 
@@ -3729,7 +3728,7 @@ describe("App, authenticated", () => {
     ).not.toBeInTheDocument();
     expect(
       await screen.findByText(
-        "No posts were available at this cutoff for the period report. Open a later run, or ask an administrator to capture a newer snapshot.",
+        "No posts were available at this cutoff for the period report. Open a later run or retry after a newer snapshot is available.",
       ),
     ).toBeInTheDocument();
   });
