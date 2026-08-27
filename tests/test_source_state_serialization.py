@@ -80,6 +80,7 @@ def test_voice_loader_projects_evidence_availability_not_assertion_ids() -> None
             assert "provenance_assertion_id is not null as evidence_available" in query
             assert "voice.effective_from <= $2" in query
             assert "$2 < voice.effective_to" in query
+            assert "voice.effective_to is null or $2 < voice.effective_to" in query
             assert post_id == "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"
             assert effective_cutoff == datetime(2026, 1, 1, tzinfo=UTC)
             return [

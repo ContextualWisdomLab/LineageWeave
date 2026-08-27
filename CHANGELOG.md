@@ -9,6 +9,12 @@ All notable changes to this project are documented here. Format follows
 ### Added
 
 - Normalized Voice-of-X composition persistence (ADR 0256): every imported
+- Imported primary Voice changes now retain non-overlapping effective intervals
+  (ADR 0252), including recurring A → B → A values. Live, knowledge-cutoff,
+  and ontology-snapshot reads select the same period contract; PostgreSQL
+  rejects overlapping primary intervals instead of relying on application
+  ordering.
+- Normalized Voice-of-X composition persistence (ADR 0251): every imported
   primary voice is mirrored into `source_post_voice`; each additional voice
   requires its own PROV-O assertion and truth status. Compound lookup codes,
   keyword inference, confidence thresholds, and invented weights remain out of
