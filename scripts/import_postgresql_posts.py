@@ -621,28 +621,29 @@ async def import_rows(args: argparse.Namespace) -> dict[str, object]:
                 event_occurred_at,
                 preserve_existing_body,
             )
-            metadata = build_post_llm_metadata(
-                str(post_id),
-                {
-                    "author_account_id": account_id,
-                    "source_process_unit_code": _value(row, mapping.source_business_unit),
-                    "source_author_code": _value(row, mapping.author_code),
-                    "source_company_code": _value(row, mapping.company_code),
-                    "source_customer_code": _value(row, mapping.customer_code),
-                    "source_project_code": _value(row, mapping.project_code),
-                    "source_sales_pool_code": _value(row, mapping.sales_pool),
-                },
-            )
-            with use_llm_metadata(metadata):
-                await persist_post_content(
-                    target,
+            if not preserve_existing_body:
+                metadata = build_post_llm_metadata(
                     str(post_id),
-                    effective_body,
-                    vision_client=vision_client,
-                    embedding_client=embedding_client,
-                    structure_client=structure_client,
-                    post_title=title,
+                    {
+                        "author_account_id": account_id,
+                        "source_process_unit_code": _value(row, mapping.source_business_unit),
+                        "source_author_code": _value(row, mapping.author_code),
+                        "source_company_code": _value(row, mapping.company_code),
+                        "source_customer_code": _value(row, mapping.customer_code),
+                        "source_project_code": _value(row, mapping.project_code),
+                        "source_sales_pool_code": _value(row, mapping.sales_pool),
+                    },
                 )
+                with use_llm_metadata(metadata):
+                    await persist_post_content(
+                        target,
+                        str(post_id),
+                        effective_body,
+                        vision_client=vision_client,
+                        embedding_client=embedding_client,
+                        structure_client=structure_client,
+                        post_title=title,
+                    )
             imported += 1
         cleanup = await cleanup_synthetic_seed(target, apply=True)
         # A fresh corpus has no activated estimate yet (chicken-and-egg:

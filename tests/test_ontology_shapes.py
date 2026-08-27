@@ -120,6 +120,12 @@ def test_sparql_constraints_declare_their_prefixes() -> None:
     constraints = set(shapes.subjects(RDF.type, SH.SPARQLConstraint))
     assert constraints
     assert all((constraint, SH.prefixes, None) in shapes for constraint in constraints)
+    declared_prefixes = {
+        str(prefix)
+        for declaration in shapes.objects(None, SH.declare)
+        for prefix in shapes.objects(declaration, SH.prefix)
+    }
+    assert {"lw", "rdf"} <= declared_prefixes
 
 
 def test_representative_db_projection_passes_validation() -> None:
