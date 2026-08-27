@@ -650,3 +650,34 @@ review latency are never blockers — keep working while they settle.
 
 Citations in doctoring and ADRs use APA 7th. Do not invent a heuristic where
 the papers leave the decision undecided.
+
+## 12. Delivery snapshot (2026-08-27)
+
+Fresh merges on protected `main`, verified from PR lifecycle state and
+post-merge reruns (not transferable evidence for later heads):
+
+| PR | Delivery | Governing ADR / reference |
+| ---: | --- | --- |
+| #750 | Leftover-map unexplained leftover share persisted (`report_leftover_map_unexplained_share`, share `s = U² / R²`) | ADR 0233 |
+| #749 | Authorized job-family/job-series import snapshots (`0223_authorized_job_architecture`) | ADR 0263 |
+| #747 | Current product and MCP manuals (`docs/manuals/*`, contract tests) | ADR 0118-family |
+| #754 | Customer-actionable copy and ADR 0237 accelerator runtime boundary; share/bookmark/verification call sites reworded and ko/zh/ja/vi translations completed after review | ADR 0237 |
+| #742 | Evidence-bound product-operations relations (stack base) | ADR 0235 |
+| #743 | Imported occupation-rating source catalog (stack base) | ADR 0260 |
+| #745 | Occupation catalog title filter (stack base) | ADR 0262 |
+| #746 | Rating-source occupation selector (stack base) | ADR 0261 |
+| #740 | Occupation rating evidence view (stack base) | ADR 0259 |
+| #732 | O*NET content-model published linkages (stack base) | ADR 0256 |
+| #720 | Cancel stale test runs on PR close | — |
+| #716 | Prioritized evidence-bound operations backfill | — |
+| #711 | Pinned validated structured-workflow runtime | — |
+| #704 | Current-main external lineage contract publication | — |
+
+Rebased and re-pushed onto current `main` (checks running at this snapshot):
+#700 source-conversation-turn contract (ADR 0238), #658 optional Global Ask
+knowledge cutoff (ADR 0216). Both unreviewed until exact-head checks pass.
+
+The ONET stack rows above landed into their stacked base branches rather than
+`main`; their content reaches `main` only if the base branch continues into a
+`main`-bound PR. Each base branch is recorded in the PR's `baseRefName` and
+remains the owner's responsibility to promote.
