@@ -21,7 +21,6 @@ All notable changes to this project are documented here. Format follows
   cognitive-ability, work-style, and work-activity Content Model element with
   stable IRIs, descriptions, attribution, and a deterministic source digest;
   conflicting release metadata fails closed (ADR 0250).
-
 - The DOT/FJA Data/People/Things worker-function taxonomy is now published
   in the canonical ontology: all 24 worker functions carry the official
   Dictionary of Occupational Titles Appendix B definitions verbatim, their
