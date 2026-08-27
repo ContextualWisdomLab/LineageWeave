@@ -57,7 +57,7 @@ def test_post_filter_options_use_one_authorized_source_scan() -> None:
     assert "cross join lateral" in query
     assert "('post_visibility', post.visibility_code)" in query
     assert "left join source_post_voice voice" in query
-    assert "voice.effective_to is null" in query
+    assert query.count("voice.effective_to is null") == 1
     assert "('voc_type', coalesce(voice.voice_type_code, post.voc_type_code))" in query
     assert "post.corporate_entity_id::text = any($1::text[])" in query
     assert "post.process_unit_id::text = any($2::text[])" in query

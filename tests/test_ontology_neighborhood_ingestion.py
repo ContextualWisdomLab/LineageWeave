@@ -1044,6 +1044,7 @@ def test_load_voice_assignments_preserves_truth_and_customer_safe_provenance() -
         "coalesce($2::timestamptz, $3::timestamptz) < voice.effective_to"
         in conn.calls[0][0]
     )
+    assert "$2::timestamptz is null and voice.effective_to is null" not in conn.calls[0][0]
     assert "voice.recorded_at <= $3" in conn.calls[0][0]
     assert conn.calls[0][1] == ([POST_ID], T0, T0)
 
