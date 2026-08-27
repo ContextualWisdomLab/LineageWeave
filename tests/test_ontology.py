@@ -365,6 +365,22 @@ def test_node_attribute_datatype_properties_project_real_columns() -> None:
     assert (LW.hasPostType, RDFS.range, SKOS.Concept) in graph
 
 
+def test_semantic_location_properties_carry_derived_place_and_region() -> None:
+    """ADR 0246: derived semantic locations bind the place name a post
+    expresses and the ISO 3166-1 alpha-2 region as instance data -- they
+    are DATATYPE properties of the derived :Location node, not relational
+    column projections, so the ADR 0207 column discipline does not apply.
+    """
+    graph = load_ontology()
+    assert (LW.locationName, RDF.type, OWL.DatatypeProperty) in graph, "locationName"
+    assert (LW.locationName, RDFS.domain, LW.Location) in graph
+    assert (LW.locationName, RDFS.range, XSD.string) in graph
+    assert (LW.countryCode, RDF.type, OWL.DatatypeProperty) in graph
+    assert (LW.countryCode, RDFS.domain, LW.Location) in graph
+    assert (LW.countryCode, RDFS.range, XSD.string) in graph
+    assert "ISO 3166-1" in str(graph.value(LW.countryCode, RDFS.comment))
+
+
 def test_shared_timestamps_declare_no_domain_to_avoid_multi_domain_entailment() -> None:
     """Two rdfs:domain statements would entail every subject belongs to
     both classes -- the trap the cross-post edges already avoid. Shared

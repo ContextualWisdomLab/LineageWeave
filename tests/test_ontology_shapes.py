@@ -447,3 +447,29 @@ def test_confidence_boundary_values_are_inclusive() -> None:
         )
         conforms, report_text = _conforms(data)
         assert conforms, f"{value} rejected:\n{report_text}"
+
+
+def test_derived_location_with_place_and_region_passes_validation() -> None:
+    """ADR 0246: a semantic :Location instance may carry the derived place
+    name plus an ISO 3166-1 alpha-2 country/region code as instance data."""
+    data = _representative_projection()
+    LWn = Namespace(LW)
+    site = URIRef(LW + "location-plant-a")
+    data.add((site, RDF.type, LWn.Location))
+    data.add((site, LWn.locationName, Literal("Anaerobic digester plant site")))
+    data.add((site, LWn.countryCode, Literal("KR")))
+    conforms, report_text = _conforms(data)
+    assert conforms, report_text
+
+
+def test_derived_location_rejects_a_non_uppercase_country_code() -> None:
+    """A :Location carrying a phrase instead of an ISO 3166-1 alpha-2 code
+    fails closed with the country-code property named."""
+    data = _representative_projection()
+    LWn = Namespace(LW)
+    site = URIRef(LW + "location-plant")
+    data.add((site, RDF.type, LWn.Location))
+    data.add((site, LWn.countryCode, Literal("korea")))
+    conforms, report_text = _conforms(data)
+    assert not conforms
+    assert "countryCode" in report_text

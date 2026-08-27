@@ -270,3 +270,25 @@
         sh:path :semanticEvidence ; sh:minCount 1 ; sh:maxCount 1 ;
         sh:datatype xsd:string ; sh:minLength 1 ; sh:pattern "\\S"
     ] .
+
+:LocationShape a sh:NodeShape ;
+    rdfs:label "Location shape" ;
+    rdfs:comment "A derived semantic location is meaningful only when it carries either the place name the content expresses (:locationName) or a governed region (:countryCode). ADR 0246: the export-source geographic data carries a country/region and an optional descriptor; both stay instance data, never recorded identifiers." ;
+    sh:targetClass :Location ;
+    sh:property [
+        sh:path :locationName ;
+        sh:name "location name" ;
+        sh:description "The place a post's content names; at most one per derived location node." ;
+        sh:maxCount 1 ;
+        sh:datatype xsd:string ;
+        sh:minLength 1 ;
+        sh:pattern "\\S" ;
+    ] ;
+    sh:property [
+        sh:path :countryCode ;
+        sh:name "country code" ;
+        sh:description "ISO 3166-1 alpha-2 country or region code, optionally allowing the caller-authored 'EU' region marker; keeps raw codes instance data." ;
+        sh:maxCount 1 ;
+        sh:datatype xsd:string ;
+        sh:pattern "^[A-Z]{2}$" ;
+    ] .

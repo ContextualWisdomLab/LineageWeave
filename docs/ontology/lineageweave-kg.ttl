@@ -540,6 +540,28 @@
 :hasRelevantTimeInterval a owl:ObjectProperty ; rdfs:domain :Post ; rdfs:range :RelevantTimeInterval ; rdfs:label "has relevant time interval"@en .
 :hasQuantityMeasurement a owl:ObjectProperty ; rdfs:domain :Post ; rdfs:range :QuantityMeasurement ; rdfs:label "has quantity or measurement"@en .
 
+# Semantic-location properties (ADR 0246). A :Location instance names the
+# place a post's content actually mentions (a plant site, an office floor, a
+# destination city); :countryCode is the ISO 3166-1 alpha-2 country/region
+# code of that place as instance data. These are DATATYPE properties of the
+# *derived semantic node*, so the "column-projection only" discipline for
+# the relational source tables does not apply here -- the same precedent as
+# :projectEvidence / :semanticConfidence on the derived :ProjectMention.
+# The raw source code set this layer binds (land1_field, admin_txt) stays
+# outside the relational ontology vocabulary; source values are instance
+# data and are never retained in repository artifacts.
+:locationName a owl:DatatypeProperty ;
+    rdfs:domain :Location ;
+    rdfs:range xsd:string ;
+    rdfs:label "location name"@en ;
+    rdfs:comment "The place a post's content names, as surfaced by derived content semantics. Named locations let a buyer see which site each recorded concern belongs to."@en .
+
+:countryCode a owl:DatatypeProperty ;
+    rdfs:domain :Location ;
+    rdfs:range xsd:string ;
+    rdfs:label "country code"@en ;
+    rdfs:comment "ISO 3166-1 alpha-2 code (International Organization for Standardization, 2020) identifying the country or region of the :Location instance. 'EU' is carried as an instance region code where a caller's authored data groups a region; no scheme is minted until a governed code vocabulary is required."@en .
+
 :SemanticContentAssertion a owl:Class ;
     rdfs:subClassOf rdf:Statement, prov:Entity ;
     rdfs:label "Semantic content assertion"@en ;

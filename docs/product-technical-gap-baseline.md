@@ -733,6 +733,28 @@ review latency are never blockers — keep working while they settle.
 7. Fix only evidence-backed failures and repeat the protected merge gate.
 8. Refresh this file each loop with the exact queue state.
 
+## 12. Export-source ontology coverage (ADR 0246)
+
+The authorized export source was audited at the aggregate-only boundary
+(ADR 0001 / 0242 decision 5): no source value, title, identifier,
+organization, or artifact path is retained here.
+
+Coverage result: the export rows are expressible through the published
+ontology. The governed five-value source document type (VOC family) maps 1:1
+onto the `postTypeScheme` concepts; authored title/body, content-semantic
+classes, and PROV attribution cover the business-document content; raw ERP
+lifecycle and classification codes stay instance literals under the
+`sourceStageCode` / `sourceDetailStateCode` discipline (ADR 0241) without a
+minted scheme.
+
+The single semantic-layer gap the audit surfaced -- a derived place node
+could not carry the place name or region -- is closed by ADR 0246:
+`:locationName` and an ISO 3166-1 country/region `:countryCode` datatype
+properties on the derived `:Location` node, validated closed-world by the
+new SHACL `:LocationShape`. Raw codes remain ungoverned instance data until
+a caller governs their code system. Supporting evidence is in
+`docs/doctoring/export-source-ontology-coverage.md`.
+
 ## 11. Spec pointers (derive, do not fork)
 
 - Product/architecture: `ARCHITECTURE.md`, `AGENTS.md`, `CLAUDE.md`
