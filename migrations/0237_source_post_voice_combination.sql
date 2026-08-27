@@ -129,7 +129,8 @@ update source_post_voice voice
 
 insert into source_post_voice
     (post_id, voice_type_code, is_primary, truth_status_code, effective_from)
-select post.post_id, post.voc_type_code, true, 'truth_observed', post.created_at
+select post.post_id, post.voc_type_code, true, 'truth_observed',
+       least(post.created_at, clock_timestamp())
   from source_post post
  where not exists (
     select 1 from source_post_voice voice
@@ -159,7 +160,7 @@ begin
         new.voc_type_code,
         true,
         'truth_observed',
-        case when tg_op = 'INSERT' then new.created_at else change_at end
+        case when tg_op = 'INSERT' then least(new.created_at, change_at) else change_at end
     )
     on conflict (post_id, voice_type_code) where effective_to is null do update
     set is_primary = true,
