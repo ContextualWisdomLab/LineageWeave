@@ -1,4 +1,4 @@
-# ADR 0257: Authorized occupational construct catalog search
+# ADR 0265: Authorized occupational construct catalog search
 
 **Status:** Accepted
 **Date:** 2026-08-27

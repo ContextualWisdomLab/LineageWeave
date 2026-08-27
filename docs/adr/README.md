@@ -28,7 +28,7 @@ decision from them.
 | [`temporal-topic-context-influence-research.md`](../temporal-topic-context-influence-research.md) | [0210](0210-temporal-topic-context-influence-dashboard.md) |
 | [`python-mathematical-compute-boundary-audit.md`](../doctoring/python-mathematical-compute-boundary-audit.md) | [0208](0208-externalize-local-mathematical-compute.md) |
 | [`WORKER_FUNCTION_TAXONOMY_REFERENCES.md`](../doctoring/WORKER_FUNCTION_TAXONOMY_REFERENCES.md) | [0232](0232-worker-function-taxonomy-in-the-published-ontology.md) |
-| [`OCCUPATIONAL_CONSTRUCT_REFERENCES.md`](../doctoring/OCCUPATIONAL_CONSTRUCT_REFERENCES.md) | [0248](0248-occupational-construct-evidence-boundary.md), [0250](0250-official-occupational-construct-catalog-sync.md), [0253](0253-catalog-bound-occupational-construct-extraction.md), [0255](0255-occupational-construct-ontology-navigation.md), [0257](0257-occupational-construct-catalog-search.md) |
+| [`OCCUPATIONAL_CONSTRUCT_REFERENCES.md`](../doctoring/OCCUPATIONAL_CONSTRUCT_REFERENCES.md) | [0248](0248-occupational-construct-evidence-boundary.md), [0250](0250-official-occupational-construct-catalog-sync.md), [0253](0253-catalog-bound-occupational-construct-extraction.md), [0255](0255-occupational-construct-ontology-navigation.md), [0265](0265-occupational-construct-catalog-search.md) |
 | [`IOPSY_TAXONOMY_REFERENCES.md`](../doctoring/IOPSY_TAXONOMY_REFERENCES.md) | [0251](0251-fja-iopsy-cognitive-affective-behavioral-ontology.md) |
 
 | [`OCCUPATIONAL_CONSTRUCT_REFERENCES.md`](../doctoring/OCCUPATIONAL_CONSTRUCT_REFERENCES.md) | [0248](0248-occupational-construct-evidence-boundary.md) |
