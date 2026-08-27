@@ -1,0 +1,1448 @@
+soc_code,preferred_title,classification_level,broader_soc_code
+11-0000,Management Occupations,major_group,
+11-1000,Top Executives,minor_group,11-0000
+11-1010,Chief Executives,broad_occupation,11-1000
+11-1011,Chief Executives,detailed_occupation,11-1010
+11-1020,General and Operations Managers,broad_occupation,11-1000
+11-1021,General and Operations Managers,detailed_occupation,11-1020
+11-1030,Legislators,broad_occupation,11-1000
+11-1031,Legislators,detailed_occupation,11-1030
+11-2000,"Advertising, Marketing, Promotions, Public Relations, and Sales Managers",minor_group,11-0000
+11-2010,Advertising and Promotions Managers,broad_occupation,11-2000
+11-2011,Advertising and Promotions Managers,detailed_occupation,11-2010
+11-2020,Marketing and Sales Managers,broad_occupation,11-2000
+11-2021,Marketing Managers,detailed_occupation,11-2020
+11-2022,Sales Managers,detailed_occupation,11-2020
+11-2030,Public Relations and Fundraising Managers,broad_occupation,11-2000
+11-2032,Public Relations Managers,detailed_occupation,11-2030
+11-2033,Fundraising Managers,detailed_occupation,11-2030
+11-3000,Operations Specialties Managers,minor_group,11-0000
+11-3010,Administrative Services and Facilities Managers,broad_occupation,11-3000
+11-3012,Administrative Services Managers,detailed_occupation,11-3010
+11-3013,Facilities Managers,detailed_occupation,11-3010
+11-3020,Computer and Information Systems Managers,broad_occupation,11-3000
+11-3021,Computer and Information Systems Managers,detailed_occupation,11-3020
+11-3030,Financial Managers,broad_occupation,11-3000
+11-3031,Financial Managers,detailed_occupation,11-3030
+11-3050,Industrial Production Managers,broad_occupation,11-3000
+11-3051,Industrial Production Managers,detailed_occupation,11-3050
+11-3060,Purchasing Managers,broad_occupation,11-3000
+11-3061,Purchasing Managers,detailed_occupation,11-3060
+11-3070,"Transportation, Storage, and Distribution Managers",broad_occupation,11-3000
+11-3071,"Transportation, Storage, and Distribution Managers",detailed_occupation,11-3070
+11-3110,Compensation and Benefits Managers,broad_occupation,11-3000
+11-3111,Compensation and Benefits Managers,detailed_occupation,11-3110
+11-3120,Human Resources Managers,broad_occupation,11-3000
+11-3121,Human Resources Managers,detailed_occupation,11-3120
+11-3130,Training and Development Managers,broad_occupation,11-3000
+11-3131,Training and Development Managers,detailed_occupation,11-3130
+11-9000,Other Management Occupations,minor_group,11-0000
+11-9010,"Farmers, Ranchers, and Other Agricultural Managers",broad_occupation,11-9000
+11-9013,"Farmers, Ranchers, and Other Agricultural Managers",detailed_occupation,11-9010
+11-9020,Construction Managers,broad_occupation,11-9000
+11-9021,Construction Managers,detailed_occupation,11-9020
+11-9030,Education and Childcare Administrators,broad_occupation,11-9000
+11-9031,"Education and Childcare Administrators, Preschool and Daycare",detailed_occupation,11-9030
+11-9032,"Education Administrators, Kindergarten through Secondary",detailed_occupation,11-9030
+11-9033,"Education Administrators, Postsecondary",detailed_occupation,11-9030
+11-9039,"Education Administrators, All Other",detailed_occupation,11-9030
+11-9040,Architectural and Engineering Managers,broad_occupation,11-9000
+11-9041,Architectural and Engineering Managers,detailed_occupation,11-9040
+11-9050,Food Service Managers,broad_occupation,11-9000
+11-9051,Food Service Managers,detailed_occupation,11-9050
+11-9070,Entertainment and Recreation Managers,broad_occupation,11-9000
+11-9071,Gambling Managers,detailed_occupation,11-9070
+11-9072,"Entertainment and Recreation Managers, Except Gambling",detailed_occupation,11-9070
+11-9080,Lodging Managers,broad_occupation,11-9000
+11-9081,Lodging Managers,detailed_occupation,11-9080
+11-9110,Medical and Health Services Managers,broad_occupation,11-9000
+11-9111,Medical and Health Services Managers,detailed_occupation,11-9110
+11-9120,Natural Sciences Managers,broad_occupation,11-9000
+11-9121,Natural Sciences Managers,detailed_occupation,11-9120
+11-9130,Postmasters and Mail Superintendents,broad_occupation,11-9000
+11-9131,Postmasters and Mail Superintendents,detailed_occupation,11-9130
+11-9140,"Property, Real Estate, and Community Association Managers",broad_occupation,11-9000
+11-9141,"Property, Real Estate, and Community Association Managers",detailed_occupation,11-9140
+11-9150,Social and Community Service Managers,broad_occupation,11-9000
+11-9151,Social and Community Service Managers,detailed_occupation,11-9150
+11-9160,Emergency Management Directors,broad_occupation,11-9000
+11-9161,Emergency Management Directors,detailed_occupation,11-9160
+11-9170,Personal Service Managers,broad_occupation,11-9000
+11-9171,Funeral Home Managers,detailed_occupation,11-9170
+11-9179,"Personal Service Managers, All Other",detailed_occupation,11-9170
+11-9190,Miscellaneous Managers,broad_occupation,11-9000
+11-9199,"Managers, All Other",detailed_occupation,11-9190
+13-0000,Business and Financial Operations Occupations,major_group,
+13-1000,Business Operations Specialists,minor_group,13-0000
+13-1010,"Agents and Business Managers of Artists, Performers, and Athletes",broad_occupation,13-1000
+13-1011,"Agents and Business Managers of Artists, Performers, and Athletes",detailed_occupation,13-1010
+13-1020,Buyers and Purchasing Agents,broad_occupation,13-1000
+13-1021,"Buyers and Purchasing Agents, Farm Products",detailed_occupation,13-1020
+13-1022,"Wholesale and Retail Buyers, Except Farm Products",detailed_occupation,13-1020
+13-1023,"Purchasing Agents, Except Wholesale, Retail, and Farm Products",detailed_occupation,13-1020
+13-1030,"Claims Adjusters, Appraisers, Examiners, and Investigators",broad_occupation,13-1000
+13-1031,"Claims Adjusters, Examiners, and Investigators",detailed_occupation,13-1030
+13-1032,"Insurance Appraisers, Auto Damage",detailed_occupation,13-1030
+13-1040,Compliance Officers,broad_occupation,13-1000
+13-1041,Compliance Officers,detailed_occupation,13-1040
+13-1050,Cost Estimators,broad_occupation,13-1000
+13-1051,Cost Estimators,detailed_occupation,13-1050
+13-1070,Human Resources Workers,broad_occupation,13-1000
+13-1071,Human Resources Specialists,detailed_occupation,13-1070
+13-1074,Farm Labor Contractors,detailed_occupation,13-1070
+13-1075,Labor Relations Specialists,detailed_occupation,13-1070
+13-1080,Logisticians and Project Management Specialists,broad_occupation,13-1000
+13-1081,Logisticians,detailed_occupation,13-1080
+13-1082,Project Management Specialists,detailed_occupation,13-1080
+13-1110,Management Analysts,broad_occupation,13-1000
+13-1111,Management Analysts,detailed_occupation,13-1110
+13-1120,"Meeting, Convention, and Event Planners",broad_occupation,13-1000
+13-1121,"Meeting, Convention, and Event Planners",detailed_occupation,13-1120
+13-1130,Fundraisers,broad_occupation,13-1000
+13-1131,Fundraisers,detailed_occupation,13-1130
+13-1140,"Compensation, Benefits, and Job Analysis Specialists",broad_occupation,13-1000
+13-1141,"Compensation, Benefits, and Job Analysis Specialists",detailed_occupation,13-1140
+13-1150,Training and Development Specialists,broad_occupation,13-1000
+13-1151,Training and Development Specialists,detailed_occupation,13-1150
+13-1160,Market Research Analysts and Marketing Specialists,broad_occupation,13-1000
+13-1161,Market Research Analysts and Marketing Specialists,detailed_occupation,13-1160
+13-1190,Miscellaneous Business Operations Specialists,broad_occupation,13-1000
+13-1199,"Business Operations Specialists, All Other",detailed_occupation,13-1190
+13-2000,Financial Specialists,minor_group,13-0000
+13-2010,Accountants and Auditors,broad_occupation,13-2000
+13-2011,Accountants and Auditors,detailed_occupation,13-2010
+13-2020,Property Appraisers and Assessors,broad_occupation,13-2000
+13-2022,Appraisers of Personal and Business Property,detailed_occupation,13-2020
+13-2023,Appraisers and Assessors of Real Estate,detailed_occupation,13-2020
+13-2030,Budget Analysts,broad_occupation,13-2000
+13-2031,Budget Analysts,detailed_occupation,13-2030
+13-2040,Credit Analysts,broad_occupation,13-2000
+13-2041,Credit Analysts,detailed_occupation,13-2040
+13-2050,Financial Analysts and Advisors,broad_occupation,13-2000
+13-2051,Financial and Investment Analysts,detailed_occupation,13-2050
+13-2052,Personal Financial Advisors,detailed_occupation,13-2050
+13-2053,Insurance Underwriters,detailed_occupation,13-2050
+13-2054,Financial Risk Specialists,detailed_occupation,13-2050
+13-2060,Financial Examiners,broad_occupation,13-2000
+13-2061,Financial Examiners,detailed_occupation,13-2060
+13-2070,Credit Counselors and Loan Officers,broad_occupation,13-2000
+13-2071,Credit Counselors,detailed_occupation,13-2070
+13-2072,Loan Officers,detailed_occupation,13-2070
+13-2080,"Tax Examiners, Collectors and Preparers, and Revenue Agents",broad_occupation,13-2000
+13-2081,"Tax Examiners and Collectors, and Revenue Agents",detailed_occupation,13-2080
+13-2082,Tax Preparers,detailed_occupation,13-2080
+13-2090,Miscellaneous Financial Specialists,broad_occupation,13-2000
+13-2099,"Financial Specialists, All Other",detailed_occupation,13-2090
+15-0000,Computer and Mathematical Occupations,major_group,
+15-1200,Computer Occupations,minor_group,15-0000
+15-1210,Computer and Information Analysts,broad_occupation,15-1200
+15-1211,Computer Systems Analysts,detailed_occupation,15-1210
+15-1212,Information Security Analysts,detailed_occupation,15-1210
+15-1220,Computer and Information Research Scientists,broad_occupation,15-1200
+15-1221,Computer and Information Research Scientists,detailed_occupation,15-1220
+15-1230,Computer Support Specialists,broad_occupation,15-1200
+15-1231,Computer Network Support Specialists,detailed_occupation,15-1230
+15-1232,Computer User Support Specialists,detailed_occupation,15-1230
+15-1240,Database and Network Administrators and Architects,broad_occupation,15-1200
+15-1241,Computer Network Architects,detailed_occupation,15-1240
+15-1242,Database Administrators,detailed_occupation,15-1240
+15-1243,Database Architects,detailed_occupation,15-1240
+15-1244,Network and Computer Systems Administrators,detailed_occupation,15-1240
+15-1250,"Software and Web Developers, Programmers, and Testers",broad_occupation,15-1200
+15-1251,Computer Programmers,detailed_occupation,15-1250
+15-1252,Software Developers,detailed_occupation,15-1250
+15-1253,Software Quality Assurance Analysts and Testers,detailed_occupation,15-1250
+15-1254,Web Developers,detailed_occupation,15-1250
+15-1255,Web and Digital Interface Designers,detailed_occupation,15-1250
+15-1290,Miscellaneous Computer Occupations,broad_occupation,15-1200
+15-1299,"Computer Occupations, All Other",detailed_occupation,15-1290
+15-2000,Mathematical Science Occupations,minor_group,15-0000
+15-2010,Actuaries,broad_occupation,15-2000
+15-2011,Actuaries,detailed_occupation,15-2010
+15-2020,Mathematicians,broad_occupation,15-2000
+15-2021,Mathematicians,detailed_occupation,15-2020
+15-2030,Operations Research Analysts,broad_occupation,15-2000
+15-2031,Operations Research Analysts,detailed_occupation,15-2030
+15-2040,Statisticians,broad_occupation,15-2000
+15-2041,Statisticians,detailed_occupation,15-2040
+15-2050,Data Scientists,broad_occupation,15-2000
+15-2051,Data Scientists,detailed_occupation,15-2050
+15-2090,Miscellaneous Mathematical Science Occupations,broad_occupation,15-2000
+15-2099,"Mathematical Science Occupations, All Other",detailed_occupation,15-2090
+17-0000,Architecture and Engineering Occupations,major_group,
+17-1000,"Architects, Surveyors, and Cartographers",minor_group,17-0000
+17-1010,"Architects, Except Naval",broad_occupation,17-1000
+17-1011,"Architects, Except Landscape and Naval",detailed_occupation,17-1010
+17-1012,Landscape Architects,detailed_occupation,17-1010
+17-1020,"Surveyors, Cartographers, and Photogrammetrists",broad_occupation,17-1000
+17-1021,Cartographers and Photogrammetrists,detailed_occupation,17-1020
+17-1022,Surveyors,detailed_occupation,17-1020
+17-2000,Engineers,minor_group,17-0000
+17-2010,Aerospace Engineers,broad_occupation,17-2000
+17-2011,Aerospace Engineers,detailed_occupation,17-2010
+17-2020,Agricultural Engineers,broad_occupation,17-2000
+17-2021,Agricultural Engineers,detailed_occupation,17-2020
+17-2030,Bioengineers and Biomedical Engineers,broad_occupation,17-2000
+17-2031,Bioengineers and Biomedical Engineers,detailed_occupation,17-2030
+17-2040,Chemical Engineers,broad_occupation,17-2000
+17-2041,Chemical Engineers,detailed_occupation,17-2040
+17-2050,Civil Engineers,broad_occupation,17-2000
+17-2051,Civil Engineers,detailed_occupation,17-2050
+17-2060,Computer Hardware Engineers,broad_occupation,17-2000
+17-2061,Computer Hardware Engineers,detailed_occupation,17-2060
+17-2070,Electrical and Electronics Engineers,broad_occupation,17-2000
+17-2071,Electrical Engineers,detailed_occupation,17-2070
+17-2072,"Electronics Engineers, Except Computer",detailed_occupation,17-2070
+17-2080,Environmental Engineers,broad_occupation,17-2000
+17-2081,Environmental Engineers,detailed_occupation,17-2080
+17-2110,"Industrial Engineers, Including Health and Safety",broad_occupation,17-2000
+17-2111,"Health and Safety Engineers, Except Mining Safety Engineers and Inspectors",detailed_occupation,17-2110
+17-2112,Industrial Engineers,detailed_occupation,17-2110
+17-2120,Marine Engineers and Naval Architects,broad_occupation,17-2000
+17-2121,Marine Engineers and Naval Architects,detailed_occupation,17-2120
+17-2130,Materials Engineers,broad_occupation,17-2000
+17-2131,Materials Engineers,detailed_occupation,17-2130
+17-2140,Mechanical Engineers,broad_occupation,17-2000
+17-2141,Mechanical Engineers,detailed_occupation,17-2140
+17-2150,"Mining and Geological Engineers, Including Mining Safety Engineers",broad_occupation,17-2000
+17-2151,"Mining and Geological Engineers, Including Mining Safety Engineers",detailed_occupation,17-2150
+17-2160,Nuclear Engineers,broad_occupation,17-2000
+17-2161,Nuclear Engineers,detailed_occupation,17-2160
+17-2170,Petroleum Engineers,broad_occupation,17-2000
+17-2171,Petroleum Engineers,detailed_occupation,17-2170
+17-2190,Miscellaneous Engineers,broad_occupation,17-2000
+17-2199,"Engineers, All Other",detailed_occupation,17-2190
+17-3000,"Drafters, Engineering Technicians, and Mapping Technicians",minor_group,17-0000
+17-3010,Drafters,broad_occupation,17-3000
+17-3011,Architectural and Civil Drafters,detailed_occupation,17-3010
+17-3012,Electrical and Electronics Drafters,detailed_occupation,17-3010
+17-3013,Mechanical Drafters,detailed_occupation,17-3010
+17-3019,"Drafters, All Other",detailed_occupation,17-3010
+17-3020,"Engineering Technologists and Technicians, Except Drafters",broad_occupation,17-3000
+17-3021,Aerospace Engineering and Operations Technologists and Technicians,detailed_occupation,17-3020
+17-3022,Civil Engineering Technologists and Technicians,detailed_occupation,17-3020
+17-3023,Electrical and Electronic Engineering Technologists and Technicians,detailed_occupation,17-3020
+17-3024,Electro-Mechanical and Mechatronics Technologists and Technicians,detailed_occupation,17-3020
+17-3025,Environmental Engineering Technologists and Technicians,detailed_occupation,17-3020
+17-3026,Industrial Engineering Technologists and Technicians,detailed_occupation,17-3020
+17-3027,Mechanical Engineering Technologists and Technicians,detailed_occupation,17-3020
+17-3028,Calibration Technologists and Technicians,detailed_occupation,17-3020
+17-3029,"Engineering Technologists and Technicians, Except Drafters, All Other",detailed_occupation,17-3020
+17-3030,Surveying and Mapping Technicians,broad_occupation,17-3000
+17-3031,Surveying and Mapping Technicians,detailed_occupation,17-3030
+19-0000,"Life, Physical, and Social Science Occupations",major_group,
+19-1000,Life Scientists,minor_group,19-0000
+19-1010,Agricultural and Food Scientists,broad_occupation,19-1000
+19-1011,Animal Scientists,detailed_occupation,19-1010
+19-1012,Food Scientists and Technologists,detailed_occupation,19-1010
+19-1013,Soil and Plant Scientists,detailed_occupation,19-1010
+19-1020,Biological Scientists,broad_occupation,19-1000
+19-1021,Biochemists and Biophysicists,detailed_occupation,19-1020
+19-1022,Microbiologists,detailed_occupation,19-1020
+19-1023,Zoologists and Wildlife Biologists,detailed_occupation,19-1020
+19-1029,"Biological Scientists, All Other",detailed_occupation,19-1020
+19-1030,Conservation Scientists and Foresters,broad_occupation,19-1000
+19-1031,Conservation Scientists,detailed_occupation,19-1030
+19-1032,Foresters,detailed_occupation,19-1030
+19-1040,Medical Scientists,broad_occupation,19-1000
+19-1041,Epidemiologists,detailed_occupation,19-1040
+19-1042,"Medical Scientists, Except Epidemiologists",detailed_occupation,19-1040
+19-1090,Miscellaneous Life Scientists,broad_occupation,19-1000
+19-1099,"Life Scientists, All Other",detailed_occupation,19-1090
+19-2000,Physical Scientists,minor_group,19-0000
+19-2010,Astronomers and Physicists,broad_occupation,19-2000
+19-2011,Astronomers,detailed_occupation,19-2010
+19-2012,Physicists,detailed_occupation,19-2010
+19-2020,Atmospheric and Space Scientists,broad_occupation,19-2000
+19-2021,Atmospheric and Space Scientists,detailed_occupation,19-2020
+19-2030,Chemists and Materials Scientists,broad_occupation,19-2000
+19-2031,Chemists,detailed_occupation,19-2030
+19-2032,Materials Scientists,detailed_occupation,19-2030
+19-2040,Environmental Scientists and Geoscientists,broad_occupation,19-2000
+19-2041,"Environmental Scientists and Specialists, Including Health",detailed_occupation,19-2040
+19-2042,"Geoscientists, Except Hydrologists and Geographers",detailed_occupation,19-2040
+19-2043,Hydrologists,detailed_occupation,19-2040
+19-2090,Miscellaneous Physical Scientists,broad_occupation,19-2000
+19-2099,"Physical Scientists, All Other",detailed_occupation,19-2090
+19-3000,Social Scientists and Related Workers,minor_group,19-0000
+19-3010,Economists,broad_occupation,19-3000
+19-3011,Economists,detailed_occupation,19-3010
+19-3020,Survey Researchers,broad_occupation,19-3000
+19-3022,Survey Researchers,detailed_occupation,19-3020
+19-3030,Psychologists,broad_occupation,19-3000
+19-3032,Industrial-Organizational Psychologists,detailed_occupation,19-3030
+19-3033,Clinical and Counseling Psychologists,detailed_occupation,19-3030
+19-3034,School Psychologists,detailed_occupation,19-3030
+19-3039,"Psychologists, All Other",detailed_occupation,19-3030
+19-3040,Sociologists,broad_occupation,19-3000
+19-3041,Sociologists,detailed_occupation,19-3040
+19-3050,Urban and Regional Planners,broad_occupation,19-3000
+19-3051,Urban and Regional Planners,detailed_occupation,19-3050
+19-3090,Miscellaneous Social Scientists and Related Workers,broad_occupation,19-3000
+19-3091,Anthropologists and Archeologists,detailed_occupation,19-3090
+19-3092,Geographers,detailed_occupation,19-3090
+19-3093,Historians,detailed_occupation,19-3090
+19-3094,Political Scientists,detailed_occupation,19-3090
+19-3099,"Social Scientists and Related Workers, All Other",detailed_occupation,19-3090
+19-4000,"Life, Physical, and Social Science Technicians",minor_group,19-0000
+19-4010,Agricultural and Food Science Technicians,broad_occupation,19-4000
+19-4012,Agricultural Technicians,detailed_occupation,19-4010
+19-4013,Food Science Technicians,detailed_occupation,19-4010
+19-4020,Biological Technicians,broad_occupation,19-4000
+19-4021,Biological Technicians,detailed_occupation,19-4020
+19-4030,Chemical Technicians,broad_occupation,19-4000
+19-4031,Chemical Technicians,detailed_occupation,19-4030
+19-4040,Environmental Science and Geoscience Technicians,broad_occupation,19-4000
+19-4042,"Environmental Science and Protection Technicians, Including Health",detailed_occupation,19-4040
+19-4043,"Geological Technicians, Except Hydrologic Technicians",detailed_occupation,19-4040
+19-4044,Hydrologic Technicians,detailed_occupation,19-4040
+19-4050,Nuclear Technicians,broad_occupation,19-4000
+19-4051,Nuclear Technicians,detailed_occupation,19-4050
+19-4060,Social Science Research Assistants,broad_occupation,19-4000
+19-4061,Social Science Research Assistants,detailed_occupation,19-4060
+19-4070,Forest and Conservation Technicians,broad_occupation,19-4000
+19-4071,Forest and Conservation Technicians,detailed_occupation,19-4070
+19-4090,"Miscellaneous Life, Physical, and Social Science Technicians",broad_occupation,19-4000
+19-4092,Forensic Science Technicians,detailed_occupation,19-4090
+19-4099,"Life, Physical, and Social Science Technicians, All Other",detailed_occupation,19-4090
+19-5000,Occupational Health and Safety Specialists and Technicians,minor_group,19-0000
+19-5010,Occupational Health and Safety Specialists and Technicians,broad_occupation,19-5000
+19-5011,Occupational Health and Safety Specialists,detailed_occupation,19-5010
+19-5012,Occupational Health and Safety Technicians,detailed_occupation,19-5010
+21-0000,Community and Social Service Occupations,major_group,
+21-1000,"Counselors, Social Workers, and Other Community and Social Service Specialists",minor_group,21-0000
+21-1010,Counselors,broad_occupation,21-1000
+21-1011,Substance Abuse and Behavioral Disorder Counselors,detailed_occupation,21-1010
+21-1012,"Educational, Guidance, and Career Counselors and Advisors",detailed_occupation,21-1010
+21-1013,Marriage and Family Therapists,detailed_occupation,21-1010
+21-1014,Mental Health Counselors,detailed_occupation,21-1010
+21-1015,Rehabilitation Counselors,detailed_occupation,21-1010
+21-1019,"Counselors, All Other",detailed_occupation,21-1010
+21-1020,Social Workers,broad_occupation,21-1000
+21-1021,"Child, Family, and School Social Workers",detailed_occupation,21-1020
+21-1022,Healthcare Social Workers,detailed_occupation,21-1020
+21-1023,Mental Health and Substance Abuse Social Workers,detailed_occupation,21-1020
+21-1029,"Social Workers, All Other",detailed_occupation,21-1020
+21-1090,Miscellaneous Community and Social Service Specialists,broad_occupation,21-1000
+21-1091,Health Education Specialists,detailed_occupation,21-1090
+21-1092,Probation Officers and Correctional Treatment Specialists,detailed_occupation,21-1090
+21-1093,Social and Human Service Assistants,detailed_occupation,21-1090
+21-1094,Community Health Workers,detailed_occupation,21-1090
+21-1099,"Community and Social Service Specialists, All Other",detailed_occupation,21-1090
+21-2000,Religious Workers,minor_group,21-0000
+21-2010,Clergy,broad_occupation,21-2000
+21-2011,Clergy,detailed_occupation,21-2010
+21-2020,"Directors, Religious Activities and Education",broad_occupation,21-2000
+21-2021,"Directors, Religious Activities and Education",detailed_occupation,21-2020
+21-2090,Miscellaneous Religious Workers,broad_occupation,21-2000
+21-2099,"Religious Workers, All Other",detailed_occupation,21-2090
+23-0000,Legal Occupations,major_group,
+23-1000,"Lawyers, Judges, and Related Workers",minor_group,23-0000
+23-1010,Lawyers and Judicial Law Clerks,broad_occupation,23-1000
+23-1011,Lawyers,detailed_occupation,23-1010
+23-1012,Judicial Law Clerks,detailed_occupation,23-1010
+23-1020,"Judges, Magistrates, and Other Judicial Workers",broad_occupation,23-1000
+23-1021,"Administrative Law Judges, Adjudicators, and Hearing Officers",detailed_occupation,23-1020
+23-1022,"Arbitrators, Mediators, and Conciliators",detailed_occupation,23-1020
+23-1023,"Judges, Magistrate Judges, and Magistrates",detailed_occupation,23-1020
+23-2000,Legal Support Workers,minor_group,23-0000
+23-2010,Paralegals and Legal Assistants,broad_occupation,23-2000
+23-2011,Paralegals and Legal Assistants,detailed_occupation,23-2010
+23-2090,Miscellaneous Legal Support Workers,broad_occupation,23-2000
+23-2093,"Title Examiners, Abstractors, and Searchers",detailed_occupation,23-2090
+23-2099,"Legal Support Workers, All Other",detailed_occupation,23-2090
+25-0000,Educational Instruction and Library Occupations,major_group,
+25-1000,Postsecondary Teachers,minor_group,25-0000
+25-1010,"Business Teachers, Postsecondary",broad_occupation,25-1000
+25-1011,"Business Teachers, Postsecondary",detailed_occupation,25-1010
+25-1020,"Math and Computer Science Teachers, Postsecondary",broad_occupation,25-1000
+25-1021,"Computer Science Teachers, Postsecondary",detailed_occupation,25-1020
+25-1022,"Mathematical Science Teachers, Postsecondary",detailed_occupation,25-1020
+25-1030,"Engineering and Architecture Teachers, Postsecondary",broad_occupation,25-1000
+25-1031,"Architecture Teachers, Postsecondary",detailed_occupation,25-1030
+25-1032,"Engineering Teachers, Postsecondary",detailed_occupation,25-1030
+25-1040,"Life Sciences Teachers, Postsecondary",broad_occupation,25-1000
+25-1041,"Agricultural Sciences Teachers, Postsecondary",detailed_occupation,25-1040
+25-1042,"Biological Science Teachers, Postsecondary",detailed_occupation,25-1040
+25-1043,"Forestry and Conservation Science Teachers, Postsecondary",detailed_occupation,25-1040
+25-1050,"Physical Sciences Teachers, Postsecondary",broad_occupation,25-1000
+25-1051,"Atmospheric, Earth, Marine, and Space Sciences Teachers, Postsecondary",detailed_occupation,25-1050
+25-1052,"Chemistry Teachers, Postsecondary",detailed_occupation,25-1050
+25-1053,"Environmental Science Teachers, Postsecondary",detailed_occupation,25-1050
+25-1054,"Physics Teachers, Postsecondary",detailed_occupation,25-1050
+25-1060,"Social Sciences Teachers, Postsecondary",broad_occupation,25-1000
+25-1061,"Anthropology and Archeology Teachers, Postsecondary",detailed_occupation,25-1060
+25-1062,"Area, Ethnic, and Cultural Studies Teachers, Postsecondary",detailed_occupation,25-1060
+25-1063,"Economics Teachers, Postsecondary",detailed_occupation,25-1060
+25-1064,"Geography Teachers, Postsecondary",detailed_occupation,25-1060
+25-1065,"Political Science Teachers, Postsecondary",detailed_occupation,25-1060
+25-1066,"Psychology Teachers, Postsecondary",detailed_occupation,25-1060
+25-1067,"Sociology Teachers, Postsecondary",detailed_occupation,25-1060
+25-1069,"Social Sciences Teachers, Postsecondary, All Other",detailed_occupation,25-1060
+25-1070,"Health Teachers, Postsecondary",broad_occupation,25-1000
+25-1071,"Health Specialties Teachers, Postsecondary",detailed_occupation,25-1070
+25-1072,"Nursing Instructors and Teachers, Postsecondary",detailed_occupation,25-1070
+25-1080,"Education and Library Science Teachers, Postsecondary",broad_occupation,25-1000
+25-1081,"Education Teachers, Postsecondary",detailed_occupation,25-1080
+25-1082,"Library Science Teachers, Postsecondary",detailed_occupation,25-1080
+25-1110,"Law, Criminal Justice, and Social Work Teachers, Postsecondary",broad_occupation,25-1000
+25-1111,"Criminal Justice and Law Enforcement Teachers, Postsecondary",detailed_occupation,25-1110
+25-1112,"Law Teachers, Postsecondary",detailed_occupation,25-1110
+25-1113,"Social Work Teachers, Postsecondary",detailed_occupation,25-1110
+25-1120,"Arts, Communications, History, and Humanities Teachers, Postsecondary",broad_occupation,25-1000
+25-1121,"Art, Drama, and Music Teachers, Postsecondary",detailed_occupation,25-1120
+25-1122,"Communications Teachers, Postsecondary",detailed_occupation,25-1120
+25-1123,"English Language and Literature Teachers, Postsecondary",detailed_occupation,25-1120
+25-1124,"Foreign Language and Literature Teachers, Postsecondary",detailed_occupation,25-1120
+25-1125,"History Teachers, Postsecondary",detailed_occupation,25-1120
+25-1126,"Philosophy and Religion Teachers, Postsecondary",detailed_occupation,25-1120
+25-1190,Miscellaneous Postsecondary Teachers,broad_occupation,25-1000
+25-1192,"Family and Consumer Sciences Teachers, Postsecondary",detailed_occupation,25-1190
+25-1193,"Recreation and Fitness Studies Teachers, Postsecondary",detailed_occupation,25-1190
+25-1194,"Career/Technical Education Teachers, Postsecondary",detailed_occupation,25-1190
+25-1199,"Postsecondary Teachers, All Other",detailed_occupation,25-1190
+25-2000,"Preschool, Elementary, Middle, Secondary, and Special Education Teachers",minor_group,25-0000
+25-2010,Preschool and Kindergarten Teachers,broad_occupation,25-2000
+25-2011,"Preschool Teachers, Except Special Education",detailed_occupation,25-2010
+25-2012,"Kindergarten Teachers, Except Special Education",detailed_occupation,25-2010
+25-2020,Elementary and Middle School Teachers,broad_occupation,25-2000
+25-2021,"Elementary School Teachers, Except Special Education",detailed_occupation,25-2020
+25-2022,"Middle School Teachers, Except Special and Career/Technical Education",detailed_occupation,25-2020
+25-2023,"Career/Technical Education Teachers, Middle School",detailed_occupation,25-2020
+25-2030,Secondary School Teachers,broad_occupation,25-2000
+25-2031,"Secondary School Teachers, Except Special and Career/Technical Education",detailed_occupation,25-2030
+25-2032,"Career/Technical Education Teachers, Secondary School",detailed_occupation,25-2030
+25-2050,Special Education Teachers,broad_occupation,25-2000
+25-2051,"Special Education Teachers, Preschool",detailed_occupation,25-2050
+25-2055,"Special Education Teachers, Kindergarten",detailed_occupation,25-2050
+25-2056,"Special Education Teachers, Elementary School",detailed_occupation,25-2050
+25-2057,"Special Education Teachers, Middle School",detailed_occupation,25-2050
+25-2058,"Special Education Teachers, Secondary School",detailed_occupation,25-2050
+25-2059,"Special Education Teachers, All Other",detailed_occupation,25-2050
+25-3000,Other Teachers and Instructors,minor_group,25-0000
+25-3010,"Adult Basic Education, Adult Secondary Education, and English as a Second Language Instructors",broad_occupation,25-3000
+25-3011,"Adult Basic Education, Adult Secondary Education, and English as a Second Language Instructors",detailed_occupation,25-3010
+25-3020,Self-Enrichment Teachers,broad_occupation,25-3000
+25-3021,Self-Enrichment Teachers,detailed_occupation,25-3020
+25-3030,"Substitute Teachers, Short-Term",broad_occupation,25-3000
+25-3031,"Substitute Teachers, Short-Term",detailed_occupation,25-3030
+25-3040,Tutors,broad_occupation,25-3000
+25-3041,Tutors,detailed_occupation,25-3040
+25-3090,Miscellaneous Teachers and Instructors,broad_occupation,25-3000
+25-3099,"Teachers and Instructors, All Other",detailed_occupation,25-3090
+25-4000,"Librarians, Curators, and Archivists",minor_group,25-0000
+25-4010,"Archivists, Curators, and Museum Technicians",broad_occupation,25-4000
+25-4011,Archivists,detailed_occupation,25-4010
+25-4012,Curators,detailed_occupation,25-4010
+25-4013,Museum Technicians and Conservators,detailed_occupation,25-4010
+25-4020,Librarians and Media Collections Specialists,broad_occupation,25-4000
+25-4022,Librarians and Media Collections Specialists,detailed_occupation,25-4020
+25-4030,Library Technicians,broad_occupation,25-4000
+25-4031,Library Technicians,detailed_occupation,25-4030
+25-9000,Other Educational Instruction and Library Occupations,minor_group,25-0000
+25-9020,Farm and Home Management Educators,broad_occupation,25-9000
+25-9021,Farm and Home Management Educators,detailed_occupation,25-9020
+25-9030,Instructional Coordinators,broad_occupation,25-9000
+25-9031,Instructional Coordinators,detailed_occupation,25-9030
+25-9040,Teaching Assistants,broad_occupation,25-9000
+25-9042,"Teaching Assistants, Preschool, Elementary, Middle, and Secondary School, Except Special Education",detailed_occupation,25-9040
+25-9043,"Teaching Assistants, Special Education",detailed_occupation,25-9040
+25-9044,"Teaching Assistants, Postsecondary",detailed_occupation,25-9040
+25-9049,"Teaching Assistants, All Other",detailed_occupation,25-9040
+25-9090,Miscellaneous Educational Instruction and Library Workers,broad_occupation,25-9000
+25-9099,"Educational Instruction and Library Workers, All Other",detailed_occupation,25-9090
+27-0000,"Arts, Design, Entertainment, Sports, and Media Occupations",major_group,
+27-1000,Art and Design Workers,minor_group,27-0000
+27-1010,Artists and Related Workers,broad_occupation,27-1000
+27-1011,Art Directors,detailed_occupation,27-1010
+27-1012,Craft Artists,detailed_occupation,27-1010
+27-1013,"Fine Artists, Including Painters, Sculptors, and Illustrators",detailed_occupation,27-1010
+27-1014,Special Effects Artists and Animators,detailed_occupation,27-1010
+27-1019,"Artists and Related Workers, All Other",detailed_occupation,27-1010
+27-1020,Designers,broad_occupation,27-1000
+27-1021,Commercial and Industrial Designers,detailed_occupation,27-1020
+27-1022,Fashion Designers,detailed_occupation,27-1020
+27-1023,Floral Designers,detailed_occupation,27-1020
+27-1024,Graphic Designers,detailed_occupation,27-1020
+27-1025,Interior Designers,detailed_occupation,27-1020
+27-1026,Merchandise Displayers and Window Trimmers,detailed_occupation,27-1020
+27-1027,Set and Exhibit Designers,detailed_occupation,27-1020
+27-1029,"Designers, All Other",detailed_occupation,27-1020
+27-2000,"Entertainers and Performers, Sports and Related Workers",minor_group,27-0000
+27-2010,"Actors, Producers, and Directors",broad_occupation,27-2000
+27-2011,Actors,detailed_occupation,27-2010
+27-2012,Producers and Directors,detailed_occupation,27-2010
+27-2020,"Athletes, Coaches, Umpires, and Related Workers",broad_occupation,27-2000
+27-2021,Athletes and Sports Competitors,detailed_occupation,27-2020
+27-2022,Coaches and Scouts,detailed_occupation,27-2020
+27-2023,"Umpires, Referees, and Other Sports Officials",detailed_occupation,27-2020
+27-2030,Dancers and Choreographers,broad_occupation,27-2000
+27-2031,Dancers,detailed_occupation,27-2030
+27-2032,Choreographers,detailed_occupation,27-2030
+27-2040,"Musicians, Singers, and Related Workers",broad_occupation,27-2000
+27-2041,Music Directors and Composers,detailed_occupation,27-2040
+27-2042,Musicians and Singers,detailed_occupation,27-2040
+27-2090,"Miscellaneous Entertainers and Performers, Sports and Related Workers",broad_occupation,27-2000
+27-2091,"Disc Jockeys, Except Radio",detailed_occupation,27-2090
+27-2099,"Entertainers and Performers, Sports and Related Workers, All Other",detailed_occupation,27-2090
+27-3000,Media and Communication Workers,minor_group,27-0000
+27-3010,Broadcast Announcers and Radio Disc Jockeys,broad_occupation,27-3000
+27-3011,Broadcast Announcers and Radio Disc Jockeys,detailed_occupation,27-3010
+27-3020,"News Analysts, Reporters and Journalists",broad_occupation,27-3000
+27-3023,"News Analysts, Reporters, and Journalists",detailed_occupation,27-3020
+27-3030,Public Relations Specialists,broad_occupation,27-3000
+27-3031,Public Relations Specialists,detailed_occupation,27-3030
+27-3040,Writers and Editors,broad_occupation,27-3000
+27-3041,Editors,detailed_occupation,27-3040
+27-3042,Technical Writers,detailed_occupation,27-3040
+27-3043,Writers and Authors,detailed_occupation,27-3040
+27-3090,Miscellaneous Media and Communication Workers,broad_occupation,27-3000
+27-3091,Interpreters and Translators,detailed_occupation,27-3090
+27-3092,Court Reporters and Simultaneous Captioners,detailed_occupation,27-3090
+27-3099,"Media and Communication Workers, All Other",detailed_occupation,27-3090
+27-4000,Media and Communication Equipment Workers,minor_group,27-0000
+27-4010,"Broadcast, Sound, and Lighting Technicians",broad_occupation,27-4000
+27-4011,Audio and Video Technicians,detailed_occupation,27-4010
+27-4012,Broadcast Technicians,detailed_occupation,27-4010
+27-4014,Sound Engineering Technicians,detailed_occupation,27-4010
+27-4015,Lighting Technicians,detailed_occupation,27-4010
+27-4020,Photographers,broad_occupation,27-4000
+27-4021,Photographers,detailed_occupation,27-4020
+27-4030,"Television, Video, and Film Camera Operators and Editors",broad_occupation,27-4000
+27-4031,"Camera Operators, Television, Video, and Film",detailed_occupation,27-4030
+27-4032,Film and Video Editors,detailed_occupation,27-4030
+27-4090,Miscellaneous Media and Communication Equipment Workers,broad_occupation,27-4000
+27-4099,"Media and Communication Equipment Workers, All Other",detailed_occupation,27-4090
+29-0000,Healthcare Practitioners and Technical Occupations,major_group,
+29-1000,Healthcare Diagnosing or Treating Practitioners,minor_group,29-0000
+29-1010,Chiropractors,broad_occupation,29-1000
+29-1011,Chiropractors,detailed_occupation,29-1010
+29-1020,Dentists,broad_occupation,29-1000
+29-1021,"Dentists, General",detailed_occupation,29-1020
+29-1022,Oral and Maxillofacial Surgeons,detailed_occupation,29-1020
+29-1023,Orthodontists,detailed_occupation,29-1020
+29-1024,Prosthodontists,detailed_occupation,29-1020
+29-1029,"Dentists, All Other Specialists",detailed_occupation,29-1020
+29-1030,Dietitians and Nutritionists,broad_occupation,29-1000
+29-1031,Dietitians and Nutritionists,detailed_occupation,29-1030
+29-1040,Optometrists,broad_occupation,29-1000
+29-1041,Optometrists,detailed_occupation,29-1040
+29-1050,Pharmacists,broad_occupation,29-1000
+29-1051,Pharmacists,detailed_occupation,29-1050
+29-1070,Physician Assistants,broad_occupation,29-1000
+29-1071,Physician Assistants,detailed_occupation,29-1070
+29-1080,Podiatrists,broad_occupation,29-1000
+29-1081,Podiatrists,detailed_occupation,29-1080
+29-1120,Therapists,broad_occupation,29-1000
+29-1122,Occupational Therapists,detailed_occupation,29-1120
+29-1123,Physical Therapists,detailed_occupation,29-1120
+29-1124,Radiation Therapists,detailed_occupation,29-1120
+29-1125,Recreational Therapists,detailed_occupation,29-1120
+29-1126,Respiratory Therapists,detailed_occupation,29-1120
+29-1127,Speech-Language Pathologists,detailed_occupation,29-1120
+29-1128,Exercise Physiologists,detailed_occupation,29-1120
+29-1129,"Therapists, All Other",detailed_occupation,29-1120
+29-1130,Veterinarians,broad_occupation,29-1000
+29-1131,Veterinarians,detailed_occupation,29-1130
+29-1140,Registered Nurses,broad_occupation,29-1000
+29-1141,Registered Nurses,detailed_occupation,29-1140
+29-1150,Nurse Anesthetists,broad_occupation,29-1000
+29-1151,Nurse Anesthetists,detailed_occupation,29-1150
+29-1160,Nurse Midwives,broad_occupation,29-1000
+29-1161,Nurse Midwives,detailed_occupation,29-1160
+29-1170,Nurse Practitioners,broad_occupation,29-1000
+29-1171,Nurse Practitioners,detailed_occupation,29-1170
+29-1180,Audiologists,broad_occupation,29-1000
+29-1181,Audiologists,detailed_occupation,29-1180
+29-1210,Physicians,broad_occupation,29-1000
+29-1211,Anesthesiologists,detailed_occupation,29-1210
+29-1212,Cardiologists,detailed_occupation,29-1210
+29-1213,Dermatologists,detailed_occupation,29-1210
+29-1214,Emergency Medicine Physicians,detailed_occupation,29-1210
+29-1215,Family Medicine Physicians,detailed_occupation,29-1210
+29-1216,General Internal Medicine Physicians,detailed_occupation,29-1210
+29-1217,Neurologists,detailed_occupation,29-1210
+29-1218,Obstetricians and Gynecologists,detailed_occupation,29-1210
+29-1221,"Pediatricians, General",detailed_occupation,29-1210
+29-1222,"Physicians, Pathologists",detailed_occupation,29-1210
+29-1223,Psychiatrists,detailed_occupation,29-1210
+29-1224,Radiologists,detailed_occupation,29-1210
+29-1229,"Physicians, All Other",detailed_occupation,29-1210
+29-1240,Surgeons,broad_occupation,29-1000
+29-1241,"Ophthalmologists, Except Pediatric",detailed_occupation,29-1240
+29-1242,"Orthopedic Surgeons, Except Pediatric",detailed_occupation,29-1240
+29-1243,Pediatric Surgeons,detailed_occupation,29-1240
+29-1249,"Surgeons, All Other",detailed_occupation,29-1240
+29-1290,Miscellaneous Healthcare Diagnosing or Treating Practitioners,broad_occupation,29-1000
+29-1291,Acupuncturists,detailed_occupation,29-1290
+29-1292,Dental Hygienists,detailed_occupation,29-1290
+29-1299,"Healthcare Diagnosing or Treating Practitioners, All Other",detailed_occupation,29-1290
+29-2000,Health Technologists and Technicians,minor_group,29-0000
+29-2010,Clinical Laboratory Technologists and Technicians,broad_occupation,29-2000
+29-2011,Medical and Clinical Laboratory Technologists,detailed_occupation,29-2010
+29-2012,Medical and Clinical Laboratory Technicians,detailed_occupation,29-2010
+29-2030,Diagnostic Related Technologists and Technicians,broad_occupation,29-2000
+29-2031,Cardiovascular Technologists and Technicians,detailed_occupation,29-2030
+29-2032,Diagnostic Medical Sonographers,detailed_occupation,29-2030
+29-2033,Nuclear Medicine Technologists,detailed_occupation,29-2030
+29-2034,Radiologic Technologists and Technicians,detailed_occupation,29-2030
+29-2035,Magnetic Resonance Imaging Technologists,detailed_occupation,29-2030
+29-2036,Medical Dosimetrists,detailed_occupation,29-2030
+29-2040,Emergency Medical Technicians and Paramedics,broad_occupation,29-2000
+29-2042,Emergency Medical Technicians,detailed_occupation,29-2040
+29-2043,Paramedics,detailed_occupation,29-2040
+29-2050,Health Practitioner Support Technologists and Technicians,broad_occupation,29-2000
+29-2051,Dietetic Technicians,detailed_occupation,29-2050
+29-2052,Pharmacy Technicians,detailed_occupation,29-2050
+29-2053,Psychiatric Technicians,detailed_occupation,29-2050
+29-2055,Surgical Technologists,detailed_occupation,29-2050
+29-2056,Veterinary Technologists and Technicians,detailed_occupation,29-2050
+29-2057,Ophthalmic Medical Technicians,detailed_occupation,29-2050
+29-2060,Licensed Practical and Licensed Vocational Nurses,broad_occupation,29-2000
+29-2061,Licensed Practical and Licensed Vocational Nurses,detailed_occupation,29-2060
+29-2070,Medical Records Specialists,broad_occupation,29-2000
+29-2072,Medical Records Specialists,detailed_occupation,29-2070
+29-2080,"Opticians, Dispensing",broad_occupation,29-2000
+29-2081,"Opticians, Dispensing",detailed_occupation,29-2080
+29-2090,Miscellaneous Health Technologists and Technicians,broad_occupation,29-2000
+29-2091,Orthotists and Prosthetists,detailed_occupation,29-2090
+29-2092,Hearing Aid Specialists,detailed_occupation,29-2090
+29-2099,"Health Technologists and Technicians, All Other",detailed_occupation,29-2090
+29-9000,Other Healthcare Practitioners and Technical Occupations,minor_group,29-0000
+29-9020,Health Information Technologists and Medical Registrars,broad_occupation,29-9000
+29-9021,Health Information Technologists and Medical Registrars,detailed_occupation,29-9020
+29-9090,Miscellaneous Health Practitioners and Technical Workers,broad_occupation,29-9000
+29-9091,Athletic Trainers,detailed_occupation,29-9090
+29-9092,Genetic Counselors,detailed_occupation,29-9090
+29-9093,Surgical Assistants,detailed_occupation,29-9090
+29-9099,"Healthcare Practitioners and Technical Workers, All Other",detailed_occupation,29-9090
+31-0000,Healthcare Support Occupations,major_group,
+31-1100,"Home Health and Personal Care Aides; and Nursing Assistants, Orderlies, and Psychiatric Aides",minor_group,31-0000
+31-1120,Home Health and Personal Care Aides,broad_occupation,31-1100
+31-1121,Home Health Aides,detailed_occupation,31-1120
+31-1122,Personal Care Aides,detailed_occupation,31-1120
+31-1130,"Nursing Assistants, Orderlies, and Psychiatric Aides",broad_occupation,31-1100
+31-1131,Nursing Assistants,detailed_occupation,31-1130
+31-1132,Orderlies,detailed_occupation,31-1130
+31-1133,Psychiatric Aides,detailed_occupation,31-1130
+31-2000,Occupational Therapy and Physical Therapist Assistants and Aides,minor_group,31-0000
+31-2010,Occupational Therapy Assistants and Aides,broad_occupation,31-2000
+31-2011,Occupational Therapy Assistants,detailed_occupation,31-2010
+31-2012,Occupational Therapy Aides,detailed_occupation,31-2010
+31-2020,Physical Therapist Assistants and Aides,broad_occupation,31-2000
+31-2021,Physical Therapist Assistants,detailed_occupation,31-2020
+31-2022,Physical Therapist Aides,detailed_occupation,31-2020
+31-9000,Other Healthcare Support Occupations,minor_group,31-0000
+31-9010,Massage Therapists,broad_occupation,31-9000
+31-9011,Massage Therapists,detailed_occupation,31-9010
+31-9090,Miscellaneous Healthcare Support Occupations,broad_occupation,31-9000
+31-9091,Dental Assistants,detailed_occupation,31-9090
+31-9092,Medical Assistants,detailed_occupation,31-9090
+31-9093,Medical Equipment Preparers,detailed_occupation,31-9090
+31-9094,Medical Transcriptionists,detailed_occupation,31-9090
+31-9095,Pharmacy Aides,detailed_occupation,31-9090
+31-9096,Veterinary Assistants and Laboratory Animal Caretakers,detailed_occupation,31-9090
+31-9097,Phlebotomists,detailed_occupation,31-9090
+31-9099,"Healthcare Support Workers, All Other",detailed_occupation,31-9090
+33-0000,Protective Service Occupations,major_group,
+33-1000,Supervisors of Protective Service Workers,minor_group,33-0000
+33-1010,First-Line Supervisors of Law Enforcement Workers,broad_occupation,33-1000
+33-1011,First-Line Supervisors of Correctional Officers,detailed_occupation,33-1010
+33-1012,First-Line Supervisors of Police and Detectives,detailed_occupation,33-1010
+33-1020,First-Line Supervisors of Firefighting and Prevention Workers,broad_occupation,33-1000
+33-1021,First-Line Supervisors of Firefighting and Prevention Workers,detailed_occupation,33-1020
+33-1090,"Miscellaneous First-Line Supervisors, Protective Service Workers",broad_occupation,33-1000
+33-1091,First-Line Supervisors of Security Workers,detailed_occupation,33-1090
+33-1099,"First-Line Supervisors of Protective Service Workers, All Other",detailed_occupation,33-1090
+33-2000,Firefighting and Prevention Workers,minor_group,33-0000
+33-2010,Firefighters,broad_occupation,33-2000
+33-2011,Firefighters,detailed_occupation,33-2010
+33-2020,Fire Inspectors,broad_occupation,33-2000
+33-2021,Fire Inspectors and Investigators,detailed_occupation,33-2020
+33-2022,Forest Fire Inspectors and Prevention Specialists,detailed_occupation,33-2020
+33-3000,Law Enforcement Workers,minor_group,33-0000
+33-3010,"Bailiffs, Correctional Officers, and Jailers",broad_occupation,33-3000
+33-3011,Bailiffs,detailed_occupation,33-3010
+33-3012,Correctional Officers and Jailers,detailed_occupation,33-3010
+33-3020,Detectives and Criminal Investigators,broad_occupation,33-3000
+33-3021,Detectives and Criminal Investigators,detailed_occupation,33-3020
+33-3030,Fish and Game Wardens,broad_occupation,33-3000
+33-3031,Fish and Game Wardens,detailed_occupation,33-3030
+33-3040,Parking Enforcement Workers,broad_occupation,33-3000
+33-3041,Parking Enforcement Workers,detailed_occupation,33-3040
+33-3050,Police Officers,broad_occupation,33-3000
+33-3051,Police and Sheriff’s Patrol Officers,detailed_occupation,33-3050
+33-3052,Transit and Railroad Police,detailed_occupation,33-3050
+33-9000,Other Protective Service Workers,minor_group,33-0000
+33-9010,Animal Control Workers,broad_occupation,33-9000
+33-9011,Animal Control Workers,detailed_occupation,33-9010
+33-9020,Private Detectives and Investigators,broad_occupation,33-9000
+33-9021,Private Detectives and Investigators,detailed_occupation,33-9020
+33-9030,Security Guards and Gambling Surveillance Officers,broad_occupation,33-9000
+33-9031,Gambling Surveillance Officers and Gambling Investigators,detailed_occupation,33-9030
+33-9032,Security Guards,detailed_occupation,33-9030
+33-9090,Miscellaneous Protective Service Workers,broad_occupation,33-9000
+33-9091,Crossing Guards and Flaggers,detailed_occupation,33-9090
+33-9092,"Lifeguards, Ski Patrol, and Other Recreational Protective Service Workers",detailed_occupation,33-9090
+33-9093,Transportation Security Screeners,detailed_occupation,33-9090
+33-9094,School Bus Monitors,detailed_occupation,33-9090
+33-9099,"Protective Service Workers, All Other",detailed_occupation,33-9090
+35-0000,Food Preparation and Serving Related Occupations,major_group,
+35-1000,Supervisors of Food Preparation and Serving Workers,minor_group,35-0000
+35-1010,Supervisors of Food Preparation and Serving Workers,broad_occupation,35-1000
+35-1011,Chefs and Head Cooks,detailed_occupation,35-1010
+35-1012,First-Line Supervisors of Food Preparation and Serving Workers,detailed_occupation,35-1010
+35-2000,Cooks and Food Preparation Workers,minor_group,35-0000
+35-2010,Cooks,broad_occupation,35-2000
+35-2011,"Cooks, Fast Food",detailed_occupation,35-2010
+35-2012,"Cooks, Institution and Cafeteria",detailed_occupation,35-2010
+35-2013,"Cooks, Private Household",detailed_occupation,35-2010
+35-2014,"Cooks, Restaurant",detailed_occupation,35-2010
+35-2015,"Cooks, Short Order",detailed_occupation,35-2010
+35-2019,"Cooks, All Other",detailed_occupation,35-2010
+35-2020,Food Preparation Workers,broad_occupation,35-2000
+35-2021,Food Preparation Workers,detailed_occupation,35-2020
+35-3000,Food and Beverage Serving Workers,minor_group,35-0000
+35-3010,Bartenders,broad_occupation,35-3000
+35-3011,Bartenders,detailed_occupation,35-3010
+35-3020,Fast Food and Counter Workers,broad_occupation,35-3000
+35-3023,Fast Food and Counter Workers,detailed_occupation,35-3020
+35-3030,Waiters and Waitresses,broad_occupation,35-3000
+35-3031,Waiters and Waitresses,detailed_occupation,35-3030
+35-3040,"Food Servers, Nonrestaurant",broad_occupation,35-3000
+35-3041,"Food Servers, Nonrestaurant",detailed_occupation,35-3040
+35-9000,Other Food Preparation and Serving Related Workers,minor_group,35-0000
+35-9010,Dining Room and Cafeteria Attendants and Bartender Helpers,broad_occupation,35-9000
+35-9011,Dining Room and Cafeteria Attendants and Bartender Helpers,detailed_occupation,35-9010
+35-9020,Dishwashers,broad_occupation,35-9000
+35-9021,Dishwashers,detailed_occupation,35-9020
+35-9030,"Hosts and Hostesses, Restaurant, Lounge, and Coffee Shop",broad_occupation,35-9000
+35-9031,"Hosts and Hostesses, Restaurant, Lounge, and Coffee Shop",detailed_occupation,35-9030
+35-9090,Miscellaneous Food Preparation and Serving Related Workers,broad_occupation,35-9000
+35-9099,"Food Preparation and Serving Related Workers, All Other",detailed_occupation,35-9090
+37-0000,Building and Grounds Cleaning and Maintenance Occupations,major_group,
+37-1000,Supervisors of Building and Grounds Cleaning and Maintenance Workers,minor_group,37-0000
+37-1010,First-Line Supervisors of Building and Grounds Cleaning and Maintenance Workers,broad_occupation,37-1000
+37-1011,First-Line Supervisors of Housekeeping and Janitorial Workers,detailed_occupation,37-1010
+37-1012,"First-Line Supervisors of Landscaping, Lawn Service, and Groundskeeping Workers",detailed_occupation,37-1010
+37-2000,Building Cleaning and Pest Control Workers,minor_group,37-0000
+37-2010,Building Cleaning Workers,broad_occupation,37-2000
+37-2011,"Janitors and Cleaners, Except Maids and Housekeeping Cleaners",detailed_occupation,37-2010
+37-2012,Maids and Housekeeping Cleaners,detailed_occupation,37-2010
+37-2019,"Building Cleaning Workers, All Other",detailed_occupation,37-2010
+37-2020,Pest Control Workers,broad_occupation,37-2000
+37-2021,Pest Control Workers,detailed_occupation,37-2020
+37-3000,Grounds Maintenance Workers,minor_group,37-0000
+37-3010,Grounds Maintenance Workers,broad_occupation,37-3000
+37-3011,Landscaping and Groundskeeping Workers,detailed_occupation,37-3010
+37-3012,"Pesticide Handlers, Sprayers, and Applicators, Vegetation",detailed_occupation,37-3010
+37-3013,Tree Trimmers and Pruners,detailed_occupation,37-3010
+37-3019,"Grounds Maintenance Workers, All Other",detailed_occupation,37-3010
+39-0000,Personal Care and Service Occupations,major_group,
+39-1000,Supervisors of Personal Care and Service Workers,minor_group,39-0000
+39-1010,First-Line Supervisors of Entertainment and Recreation Workers,broad_occupation,39-1000
+39-1013,First-Line Supervisors of Gambling Services Workers,detailed_occupation,39-1010
+39-1014,"First-Line Supervisors of Entertainment and Recreation Workers, Except Gambling Services",detailed_occupation,39-1010
+39-1020,First-Line Supervisors of Personal Service Workers,broad_occupation,39-1000
+39-1022,First-Line Supervisors of Personal Service Workers,detailed_occupation,39-1020
+39-2000,Animal Care and Service Workers,minor_group,39-0000
+39-2010,Animal Trainers,broad_occupation,39-2000
+39-2011,Animal Trainers,detailed_occupation,39-2010
+39-2020,Animal Caretakers,broad_occupation,39-2000
+39-2021,Animal Caretakers,detailed_occupation,39-2020
+39-3000,Entertainment Attendants and Related Workers,minor_group,39-0000
+39-3010,Gambling Services Workers,broad_occupation,39-3000
+39-3011,Gambling Dealers,detailed_occupation,39-3010
+39-3012,Gambling and Sports Book Writers and Runners,detailed_occupation,39-3010
+39-3019,"Gambling Service Workers, All Other",detailed_occupation,39-3010
+39-3020,Motion Picture Projectionists,broad_occupation,39-3000
+39-3021,Motion Picture Projectionists,detailed_occupation,39-3020
+39-3030,"Ushers, Lobby Attendants, and Ticket Takers",broad_occupation,39-3000
+39-3031,"Ushers, Lobby Attendants, and Ticket Takers",detailed_occupation,39-3030
+39-3090,Miscellaneous Entertainment Attendants and Related Workers,broad_occupation,39-3000
+39-3091,Amusement and Recreation Attendants,detailed_occupation,39-3090
+39-3092,Costume Attendants,detailed_occupation,39-3090
+39-3093,"Locker Room, Coatroom, and Dressing Room Attendants",detailed_occupation,39-3090
+39-3099,"Entertainment Attendants and Related Workers, All Other",detailed_occupation,39-3090
+39-4000,Funeral Service Workers,minor_group,39-0000
+39-4010,Embalmers and Crematory Operators,broad_occupation,39-4000
+39-4011,Embalmers,detailed_occupation,39-4010
+39-4012,Crematory Operators,detailed_occupation,39-4010
+39-4020,Funeral Attendants,broad_occupation,39-4000
+39-4021,Funeral Attendants,detailed_occupation,39-4020
+39-4030,"Morticians, Undertakers, and Funeral Arrangers",broad_occupation,39-4000
+39-4031,"Morticians, Undertakers, and Funeral Arrangers",detailed_occupation,39-4030
+39-5000,Personal Appearance Workers,minor_group,39-0000
+39-5010,"Barbers, Hairdressers, Hairstylists and Cosmetologists",broad_occupation,39-5000
+39-5011,Barbers,detailed_occupation,39-5010
+39-5012,"Hairdressers, Hairstylists, and Cosmetologists",detailed_occupation,39-5010
+39-5090,Miscellaneous Personal Appearance Workers,broad_occupation,39-5000
+39-5091,"Makeup Artists, Theatrical and Performance",detailed_occupation,39-5090
+39-5092,Manicurists and Pedicurists,detailed_occupation,39-5090
+39-5093,Shampooers,detailed_occupation,39-5090
+39-5094,Skincare Specialists,detailed_occupation,39-5090
+39-6000,"Baggage Porters, Bellhops, and Concierges",minor_group,39-0000
+39-6010,"Baggage Porters, Bellhops, and Concierges",broad_occupation,39-6000
+39-6011,Baggage Porters and Bellhops,detailed_occupation,39-6010
+39-6012,Concierges,detailed_occupation,39-6010
+39-7000,Tour and Travel Guides,minor_group,39-0000
+39-7010,Tour and Travel Guides,broad_occupation,39-7000
+39-7011,Tour Guides and Escorts,detailed_occupation,39-7010
+39-7012,Travel Guides,detailed_occupation,39-7010
+39-9000,Other Personal Care and Service Workers,minor_group,39-0000
+39-9010,Childcare Workers,broad_occupation,39-9000
+39-9011,Childcare Workers,detailed_occupation,39-9010
+39-9030,Recreation and Fitness Workers,broad_occupation,39-9000
+39-9031,Exercise Trainers and Group Fitness Instructors,detailed_occupation,39-9030
+39-9032,Recreation Workers,detailed_occupation,39-9030
+39-9040,Residential Advisors,broad_occupation,39-9000
+39-9041,Residential Advisors,detailed_occupation,39-9040
+39-9090,Miscellaneous Personal Care and Service Workers,broad_occupation,39-9000
+39-9099,"Personal Care and Service Workers, All Other",detailed_occupation,39-9090
+41-0000,Sales and Related Occupations,major_group,
+41-1000,Supervisors of Sales Workers,minor_group,41-0000
+41-1010,First-Line Supervisors of Sales Workers,broad_occupation,41-1000
+41-1011,First-Line Supervisors of Retail Sales Workers,detailed_occupation,41-1010
+41-1012,First-Line Supervisors of Non-Retail Sales Workers,detailed_occupation,41-1010
+41-2000,Retail Sales Workers,minor_group,41-0000
+41-2010,Cashiers,broad_occupation,41-2000
+41-2011,Cashiers,detailed_occupation,41-2010
+41-2012,Gambling Change Persons and Booth Cashiers,detailed_occupation,41-2010
+41-2020,Counter and Rental Clerks and Parts Salespersons,broad_occupation,41-2000
+41-2021,Counter and Rental Clerks,detailed_occupation,41-2020
+41-2022,Parts Salespersons,detailed_occupation,41-2020
+41-2030,Retail Salespersons,broad_occupation,41-2000
+41-2031,Retail Salespersons,detailed_occupation,41-2030
+41-3000,"Sales Representatives, Services",minor_group,41-0000
+41-3010,Advertising Sales Agents,broad_occupation,41-3000
+41-3011,Advertising Sales Agents,detailed_occupation,41-3010
+41-3020,Insurance Sales Agents,broad_occupation,41-3000
+41-3021,Insurance Sales Agents,detailed_occupation,41-3020
+41-3030,"Securities, Commodities, and Financial Services Sales Agents",broad_occupation,41-3000
+41-3031,"Securities, Commodities, and Financial Services Sales Agents",detailed_occupation,41-3030
+41-3040,Travel Agents,broad_occupation,41-3000
+41-3041,Travel Agents,detailed_occupation,41-3040
+41-3090,"Miscellaneous Sales Representatives, Services",broad_occupation,41-3000
+41-3091,"Sales Representatives of Services, Except Advertising, Insurance, Financial Services, and Travel",detailed_occupation,41-3090
+41-4000,"Sales Representatives, Wholesale and Manufacturing",minor_group,41-0000
+41-4010,"Sales Representatives, Wholesale and Manufacturing",broad_occupation,41-4000
+41-4011,"Sales Representatives, Wholesale and Manufacturing, Technical and Scientific Products",detailed_occupation,41-4010
+41-4012,"Sales Representatives, Wholesale and Manufacturing, Except Technical and Scientific Products",detailed_occupation,41-4010
+41-9000,Other Sales and Related Workers,minor_group,41-0000
+41-9010,"Models, Demonstrators, and Product Promoters",broad_occupation,41-9000
+41-9011,Demonstrators and Product Promoters,detailed_occupation,41-9010
+41-9012,Models,detailed_occupation,41-9010
+41-9020,Real Estate Brokers and Sales Agents,broad_occupation,41-9000
+41-9021,Real Estate Brokers,detailed_occupation,41-9020
+41-9022,Real Estate Sales Agents,detailed_occupation,41-9020
+41-9030,Sales Engineers,broad_occupation,41-9000
+41-9031,Sales Engineers,detailed_occupation,41-9030
+41-9040,Telemarketers,broad_occupation,41-9000
+41-9041,Telemarketers,detailed_occupation,41-9040
+41-9090,Miscellaneous Sales and Related Workers,broad_occupation,41-9000
+41-9091,"Door-to-Door Sales Workers, News and Street Vendors, and Related Workers",detailed_occupation,41-9090
+41-9099,"Sales and Related Workers, All Other",detailed_occupation,41-9090
+43-0000,Office and Administrative Support Occupations,major_group,
+43-1000,Supervisors of Office and Administrative Support Workers,minor_group,43-0000
+43-1010,First-Line Supervisors of Office and Administrative Support Workers,broad_occupation,43-1000
+43-1011,First-Line Supervisors of Office and Administrative Support Workers,detailed_occupation,43-1010
+43-2000,Communications Equipment Operators,minor_group,43-0000
+43-2010,"Switchboard Operators, Including Answering Service",broad_occupation,43-2000
+43-2011,"Switchboard Operators, Including Answering Service",detailed_occupation,43-2010
+43-2020,Telephone Operators,broad_occupation,43-2000
+43-2021,Telephone Operators,detailed_occupation,43-2020
+43-2090,Miscellaneous Communications Equipment Operators,broad_occupation,43-2000
+43-2099,"Communications Equipment Operators, All Other",detailed_occupation,43-2090
+43-3000,Financial Clerks,minor_group,43-0000
+43-3010,Bill and Account Collectors,broad_occupation,43-3000
+43-3011,Bill and Account Collectors,detailed_occupation,43-3010
+43-3020,Billing and Posting Clerks,broad_occupation,43-3000
+43-3021,Billing and Posting Clerks,detailed_occupation,43-3020
+43-3030,"Bookkeeping, Accounting, and Auditing Clerks",broad_occupation,43-3000
+43-3031,"Bookkeeping, Accounting, and Auditing Clerks",detailed_occupation,43-3030
+43-3040,Gambling Cage Workers,broad_occupation,43-3000
+43-3041,Gambling Cage Workers,detailed_occupation,43-3040
+43-3050,Payroll and Timekeeping Clerks,broad_occupation,43-3000
+43-3051,Payroll and Timekeeping Clerks,detailed_occupation,43-3050
+43-3060,Procurement Clerks,broad_occupation,43-3000
+43-3061,Procurement Clerks,detailed_occupation,43-3060
+43-3070,Tellers,broad_occupation,43-3000
+43-3071,Tellers,detailed_occupation,43-3070
+43-3090,Miscellaneous Financial Clerks,broad_occupation,43-3000
+43-3099,"Financial Clerks, All Other",detailed_occupation,43-3090
+43-4000,Information and Record Clerks,minor_group,43-0000
+43-4010,Brokerage Clerks,broad_occupation,43-4000
+43-4011,Brokerage Clerks,detailed_occupation,43-4010
+43-4020,Correspondence Clerks,broad_occupation,43-4000
+43-4021,Correspondence Clerks,detailed_occupation,43-4020
+43-4030,"Court, Municipal, and License Clerks",broad_occupation,43-4000
+43-4031,"Court, Municipal, and License Clerks",detailed_occupation,43-4030
+43-4040,"Credit Authorizers, Checkers, and Clerks",broad_occupation,43-4000
+43-4041,"Credit Authorizers, Checkers, and Clerks",detailed_occupation,43-4040
+43-4050,Customer Service Representatives,broad_occupation,43-4000
+43-4051,Customer Service Representatives,detailed_occupation,43-4050
+43-4060,"Eligibility Interviewers, Government Programs",broad_occupation,43-4000
+43-4061,"Eligibility Interviewers, Government Programs",detailed_occupation,43-4060
+43-4070,File Clerks,broad_occupation,43-4000
+43-4071,File Clerks,detailed_occupation,43-4070
+43-4080,"Hotel, Motel, and Resort Desk Clerks",broad_occupation,43-4000
+43-4081,"Hotel, Motel, and Resort Desk Clerks",detailed_occupation,43-4080
+43-4110,"Interviewers, Except Eligibility and Loan",broad_occupation,43-4000
+43-4111,"Interviewers, Except Eligibility and Loan",detailed_occupation,43-4110
+43-4120,"Library Assistants, Clerical",broad_occupation,43-4000
+43-4121,"Library Assistants, Clerical",detailed_occupation,43-4120
+43-4130,Loan Interviewers and Clerks,broad_occupation,43-4000
+43-4131,Loan Interviewers and Clerks,detailed_occupation,43-4130
+43-4140,New Accounts Clerks,broad_occupation,43-4000
+43-4141,New Accounts Clerks,detailed_occupation,43-4140
+43-4150,Order Clerks,broad_occupation,43-4000
+43-4151,Order Clerks,detailed_occupation,43-4150
+43-4160,"Human Resources Assistants, Except Payroll and Timekeeping",broad_occupation,43-4000
+43-4161,"Human Resources Assistants, Except Payroll and Timekeeping",detailed_occupation,43-4160
+43-4170,Receptionists and Information Clerks,broad_occupation,43-4000
+43-4171,Receptionists and Information Clerks,detailed_occupation,43-4170
+43-4180,Reservation and Transportation Ticket Agents and Travel Clerks,broad_occupation,43-4000
+43-4181,Reservation and Transportation Ticket Agents and Travel Clerks,detailed_occupation,43-4180
+43-4190,Miscellaneous Information and Record Clerks,broad_occupation,43-4000
+43-4199,"Information and Record Clerks, All Other",detailed_occupation,43-4190
+43-5000,"Material Recording, Scheduling, Dispatching, and Distributing Workers",minor_group,43-0000
+43-5010,Cargo and Freight Agents,broad_occupation,43-5000
+43-5011,Cargo and Freight Agents,detailed_occupation,43-5010
+43-5020,Couriers and Messengers,broad_occupation,43-5000
+43-5021,Couriers and Messengers,detailed_occupation,43-5020
+43-5030,Dispatchers,broad_occupation,43-5000
+43-5031,Public Safety Telecommunicators,detailed_occupation,43-5030
+43-5032,"Dispatchers, Except Police, Fire, and Ambulance",detailed_occupation,43-5030
+43-5040,"Meter Readers, Utilities",broad_occupation,43-5000
+43-5041,"Meter Readers, Utilities",detailed_occupation,43-5040
+43-5050,Postal Service Workers,broad_occupation,43-5000
+43-5051,Postal Service Clerks,detailed_occupation,43-5050
+43-5052,Postal Service Mail Carriers,detailed_occupation,43-5050
+43-5053,"Postal Service Mail Sorters, Processors, and Processing Machine Operators",detailed_occupation,43-5050
+43-5060,"Production, Planning, and Expediting Clerks",broad_occupation,43-5000
+43-5061,"Production, Planning, and Expediting Clerks",detailed_occupation,43-5060
+43-5070,"Shipping, Receiving, and Inventory Clerks",broad_occupation,43-5000
+43-5071,"Shipping, Receiving, and Inventory Clerks",detailed_occupation,43-5070
+43-5110,"Weighers, Measurers, Checkers, and Samplers, Recordkeeping",broad_occupation,43-5000
+43-5111,"Weighers, Measurers, Checkers, and Samplers, Recordkeeping",detailed_occupation,43-5110
+43-6000,Secretaries and Administrative Assistants,minor_group,43-0000
+43-6010,Secretaries and Administrative Assistants,broad_occupation,43-6000
+43-6011,Executive Secretaries and Executive Administrative Assistants,detailed_occupation,43-6010
+43-6012,Legal Secretaries and Administrative Assistants,detailed_occupation,43-6010
+43-6013,Medical Secretaries and Administrative Assistants,detailed_occupation,43-6010
+43-6014,"Secretaries and Administrative Assistants, Except Legal, Medical, and Executive",detailed_occupation,43-6010
+43-9000,Other Office and Administrative Support Workers,minor_group,43-0000
+43-9020,Data Entry and Information Processing Workers,broad_occupation,43-9000
+43-9021,Data Entry Keyers,detailed_occupation,43-9020
+43-9022,Word Processors and Typists,detailed_occupation,43-9020
+43-9030,Desktop Publishers,broad_occupation,43-9000
+43-9031,Desktop Publishers,detailed_occupation,43-9030
+43-9040,Insurance Claims and Policy Processing Clerks,broad_occupation,43-9000
+43-9041,Insurance Claims and Policy Processing Clerks,detailed_occupation,43-9040
+43-9050,"Mail Clerks and Mail Machine Operators, Except Postal Service",broad_occupation,43-9000
+43-9051,"Mail Clerks and Mail Machine Operators, Except Postal Service",detailed_occupation,43-9050
+43-9060,"Office Clerks, General",broad_occupation,43-9000
+43-9061,"Office Clerks, General",detailed_occupation,43-9060
+43-9070,"Office Machine Operators, Except Computer",broad_occupation,43-9000
+43-9071,"Office Machine Operators, Except Computer",detailed_occupation,43-9070
+43-9080,Proofreaders and Copy Markers,broad_occupation,43-9000
+43-9081,Proofreaders and Copy Markers,detailed_occupation,43-9080
+43-9110,Statistical Assistants,broad_occupation,43-9000
+43-9111,Statistical Assistants,detailed_occupation,43-9110
+43-9190,Miscellaneous Office and Administrative Support Workers,broad_occupation,43-9000
+43-9199,"Office and Administrative Support Workers, All Other",detailed_occupation,43-9190
+45-0000,"Farming, Fishing, and Forestry Occupations",major_group,
+45-1000,"Supervisors of Farming, Fishing, and Forestry Workers",minor_group,45-0000
+45-1010,"First-Line Supervisors of Farming, Fishing, and Forestry Workers",broad_occupation,45-1000
+45-1011,"First-Line Supervisors of Farming, Fishing, and Forestry Workers",detailed_occupation,45-1010
+45-2000,Agricultural Workers,minor_group,45-0000
+45-2010,Agricultural Inspectors,broad_occupation,45-2000
+45-2011,Agricultural Inspectors,detailed_occupation,45-2010
+45-2020,Animal Breeders,broad_occupation,45-2000
+45-2021,Animal Breeders,detailed_occupation,45-2020
+45-2040,"Graders and Sorters, Agricultural Products",broad_occupation,45-2000
+45-2041,"Graders and Sorters, Agricultural Products",detailed_occupation,45-2040
+45-2090,Miscellaneous Agricultural Workers,broad_occupation,45-2000
+45-2091,Agricultural Equipment Operators,detailed_occupation,45-2090
+45-2092,"Farmworkers and Laborers, Crop, Nursery, and Greenhouse",detailed_occupation,45-2090
+45-2093,"Farmworkers, Farm, Ranch, and Aquacultural Animals",detailed_occupation,45-2090
+45-2099,"Agricultural Workers, All Other",detailed_occupation,45-2090
+45-3000,Fishing and Hunting Workers,minor_group,45-0000
+45-3030,Fishing and Hunting Workers,broad_occupation,45-3000
+45-3031,Fishing and Hunting Workers,detailed_occupation,45-3030
+45-4000,"Forest, Conservation, and Logging Workers",minor_group,45-0000
+45-4010,Forest and Conservation Workers,broad_occupation,45-4000
+45-4011,Forest and Conservation Workers,detailed_occupation,45-4010
+45-4020,Logging Workers,broad_occupation,45-4000
+45-4021,Fallers,detailed_occupation,45-4020
+45-4022,Logging Equipment Operators,detailed_occupation,45-4020
+45-4023,Log Graders and Scalers,detailed_occupation,45-4020
+45-4029,"Logging Workers, All Other",detailed_occupation,45-4020
+47-0000,Construction and Extraction Occupations,major_group,
+47-1000,Supervisors of Construction and Extraction Workers,minor_group,47-0000
+47-1010,First-Line Supervisors of Construction Trades and Extraction Workers,broad_occupation,47-1000
+47-1011,First-Line Supervisors of Construction Trades and Extraction Workers,detailed_occupation,47-1010
+47-2000,Construction Trades Workers,minor_group,47-0000
+47-2010,Boilermakers,broad_occupation,47-2000
+47-2011,Boilermakers,detailed_occupation,47-2010
+47-2020,"Brickmasons, Blockmasons, and Stonemasons",broad_occupation,47-2000
+47-2021,Brickmasons and Blockmasons,detailed_occupation,47-2020
+47-2022,Stonemasons,detailed_occupation,47-2020
+47-2030,Carpenters,broad_occupation,47-2000
+47-2031,Carpenters,detailed_occupation,47-2030
+47-2040,"Carpet, Floor, and Tile Installers and Finishers",broad_occupation,47-2000
+47-2041,Carpet Installers,detailed_occupation,47-2040
+47-2042,"Floor Layers, Except Carpet, Wood, and Hard Tiles",detailed_occupation,47-2040
+47-2043,Floor Sanders and Finishers,detailed_occupation,47-2040
+47-2044,Tile and Stone Setters,detailed_occupation,47-2040
+47-2050,"Cement Masons, Concrete Finishers, and Terrazzo Workers",broad_occupation,47-2000
+47-2051,Cement Masons and Concrete Finishers,detailed_occupation,47-2050
+47-2053,Terrazzo Workers and Finishers,detailed_occupation,47-2050
+47-2060,Construction Laborers,broad_occupation,47-2000
+47-2061,Construction Laborers,detailed_occupation,47-2060
+47-2070,Construction Equipment Operators,broad_occupation,47-2000
+47-2071,"Paving, Surfacing, and Tamping Equipment Operators",detailed_occupation,47-2070
+47-2072,Pile Driver Operators,detailed_occupation,47-2070
+47-2073,Operating Engineers and Other Construction Equipment Operators,detailed_occupation,47-2070
+47-2080,"Drywall Installers, Ceiling Tile Installers, and Tapers",broad_occupation,47-2000
+47-2081,Drywall and Ceiling Tile Installers,detailed_occupation,47-2080
+47-2082,Tapers,detailed_occupation,47-2080
+47-2110,Electricians,broad_occupation,47-2000
+47-2111,Electricians,detailed_occupation,47-2110
+47-2120,Glaziers,broad_occupation,47-2000
+47-2121,Glaziers,detailed_occupation,47-2120
+47-2130,Insulation Workers,broad_occupation,47-2000
+47-2131,"Insulation Workers, Floor, Ceiling, and Wall",detailed_occupation,47-2130
+47-2132,"Insulation Workers, Mechanical",detailed_occupation,47-2130
+47-2140,Painters and Paperhangers,broad_occupation,47-2000
+47-2141,"Painters, Construction and Maintenance",detailed_occupation,47-2140
+47-2142,Paperhangers,detailed_occupation,47-2140
+47-2150,"Pipelayers, Plumbers, Pipefitters, and Steamfitters",broad_occupation,47-2000
+47-2151,Pipelayers,detailed_occupation,47-2150
+47-2152,"Plumbers, Pipefitters, and Steamfitters",detailed_occupation,47-2150
+47-2160,Plasterers and Stucco Masons,broad_occupation,47-2000
+47-2161,Plasterers and Stucco Masons,detailed_occupation,47-2160
+47-2170,Reinforcing Iron and Rebar Workers,broad_occupation,47-2000
+47-2171,Reinforcing Iron and Rebar Workers,detailed_occupation,47-2170
+47-2180,Roofers,broad_occupation,47-2000
+47-2181,Roofers,detailed_occupation,47-2180
+47-2210,Sheet Metal Workers,broad_occupation,47-2000
+47-2211,Sheet Metal Workers,detailed_occupation,47-2210
+47-2220,Structural Iron and Steel Workers,broad_occupation,47-2000
+47-2221,Structural Iron and Steel Workers,detailed_occupation,47-2220
+47-2230,Solar Photovoltaic Installers,broad_occupation,47-2000
+47-2231,Solar Photovoltaic Installers,detailed_occupation,47-2230
+47-3000,"Helpers, Construction Trades",minor_group,47-0000
+47-3010,"Helpers, Construction Trades",broad_occupation,47-3000
+47-3011,"Helpers--Brickmasons, Blockmasons, Stonemasons, and Tile and Marble Setters",detailed_occupation,47-3010
+47-3012,Helpers--Carpenters,detailed_occupation,47-3010
+47-3013,Helpers--Electricians,detailed_occupation,47-3010
+47-3014,"Helpers--Painters, Paperhangers, Plasterers, and Stucco Masons",detailed_occupation,47-3010
+47-3015,"Helpers--Pipelayers, Plumbers, Pipefitters, and Steamfitters",detailed_occupation,47-3010
+47-3016,Helpers--Roofers,detailed_occupation,47-3010
+47-3019,"Helpers, Construction Trades, All Other",detailed_occupation,47-3010
+47-4000,Other Construction and Related Workers,minor_group,47-0000
+47-4010,Construction and Building Inspectors,broad_occupation,47-4000
+47-4011,Construction and Building Inspectors,detailed_occupation,47-4010
+47-4020,Elevator and Escalator Installers and Repairers,broad_occupation,47-4000
+47-4021,Elevator and Escalator Installers and Repairers,detailed_occupation,47-4020
+47-4030,Fence Erectors,broad_occupation,47-4000
+47-4031,Fence Erectors,detailed_occupation,47-4030
+47-4040,Hazardous Materials Removal Workers,broad_occupation,47-4000
+47-4041,Hazardous Materials Removal Workers,detailed_occupation,47-4040
+47-4050,Highway Maintenance Workers,broad_occupation,47-4000
+47-4051,Highway Maintenance Workers,detailed_occupation,47-4050
+47-4060,Rail-Track Laying and Maintenance Equipment Operators,broad_occupation,47-4000
+47-4061,Rail-Track Laying and Maintenance Equipment Operators,detailed_occupation,47-4060
+47-4070,Septic Tank Servicers and Sewer Pipe Cleaners,broad_occupation,47-4000
+47-4071,Septic Tank Servicers and Sewer Pipe Cleaners,detailed_occupation,47-4070
+47-4090,Miscellaneous Construction and Related Workers,broad_occupation,47-4000
+47-4091,Segmental Pavers,detailed_occupation,47-4090
+47-4099,"Construction and Related Workers, All Other",detailed_occupation,47-4090
+47-5000,Extraction Workers,minor_group,47-0000
+47-5010,"Derrick, Rotary Drill, and Service Unit Operators, Oil and Gas",broad_occupation,47-5000
+47-5011,"Derrick Operators, Oil and Gas",detailed_occupation,47-5010
+47-5012,"Rotary Drill Operators, Oil and Gas",detailed_occupation,47-5010
+47-5013,"Service Unit Operators, Oil and Gas",detailed_occupation,47-5010
+47-5020,Surface Mining Machine Operators and Earth Drillers,broad_occupation,47-5000
+47-5022,"Excavating and Loading Machine and Dragline Operators, Surface Mining",detailed_occupation,47-5020
+47-5023,"Earth Drillers, Except Oil and Gas",detailed_occupation,47-5020
+47-5030,"Explosives Workers, Ordnance Handling Experts, and Blasters",broad_occupation,47-5000
+47-5032,"Explosives Workers, Ordnance Handling Experts, and Blasters",detailed_occupation,47-5030
+47-5040,Underground Mining Machine Operators,broad_occupation,47-5000
+47-5041,Continuous Mining Machine Operators,detailed_occupation,47-5040
+47-5043,"Roof Bolters, Mining",detailed_occupation,47-5040
+47-5044,"Loading and Moving Machine Operators, Underground Mining",detailed_occupation,47-5040
+47-5049,"Underground Mining Machine Operators, All Other",detailed_occupation,47-5040
+47-5050,"Rock Splitters, Quarry",broad_occupation,47-5000
+47-5051,"Rock Splitters, Quarry",detailed_occupation,47-5050
+47-5070,"Roustabouts, Oil and Gas",broad_occupation,47-5000
+47-5071,"Roustabouts, Oil and Gas",detailed_occupation,47-5070
+47-5080,Helpers--Extraction Workers,broad_occupation,47-5000
+47-5081,Helpers--Extraction Workers,detailed_occupation,47-5080
+47-5090,Miscellaneous Extraction Workers,broad_occupation,47-5000
+47-5099,"Extraction Workers, All Other",detailed_occupation,47-5090
+49-0000,"Installation, Maintenance, and Repair Occupations",major_group,
+49-1000,"Supervisors of Installation, Maintenance, and Repair Workers",minor_group,49-0000
+49-1010,"First-Line Supervisors of Mechanics, Installers, and Repairers",broad_occupation,49-1000
+49-1011,"First-Line Supervisors of Mechanics, Installers, and Repairers",detailed_occupation,49-1010
+49-2000,"Electrical and Electronic Equipment Mechanics, Installers, and Repairers",minor_group,49-0000
+49-2010,"Computer, Automated Teller, and Office Machine Repairers",broad_occupation,49-2000
+49-2011,"Computer, Automated Teller, and Office Machine Repairers",detailed_occupation,49-2010
+49-2020,Radio and Telecommunications Equipment Installers and Repairers,broad_occupation,49-2000
+49-2021,"Radio, Cellular, and Tower Equipment Installers and Repairers",detailed_occupation,49-2020
+49-2022,"Telecommunications Equipment Installers and Repairers, Except Line Installers",detailed_occupation,49-2020
+49-2090,"Miscellaneous Electrical and Electronic Equipment Mechanics, Installers, and Repairers",broad_occupation,49-2000
+49-2091,Avionics Technicians,detailed_occupation,49-2090
+49-2092,"Electric Motor, Power Tool, and Related Repairers",detailed_occupation,49-2090
+49-2093,"Electrical and Electronics Installers and Repairers, Transportation Equipment",detailed_occupation,49-2090
+49-2094,"Electrical and Electronics Repairers, Commercial and Industrial Equipment",detailed_occupation,49-2090
+49-2095,"Electrical and Electronics Repairers, Powerhouse, Substation, and Relay",detailed_occupation,49-2090
+49-2096,"Electronic Equipment Installers and Repairers, Motor Vehicles",detailed_occupation,49-2090
+49-2097,Audiovisual Equipment Installers and Repairers,detailed_occupation,49-2090
+49-2098,Security and Fire Alarm Systems Installers,detailed_occupation,49-2090
+49-3000,"Vehicle and Mobile Equipment Mechanics, Installers, and Repairers",minor_group,49-0000
+49-3010,Aircraft Mechanics and Service Technicians,broad_occupation,49-3000
+49-3011,Aircraft Mechanics and Service Technicians,detailed_occupation,49-3010
+49-3020,Automotive Technicians and Repairers,broad_occupation,49-3000
+49-3021,Automotive Body and Related Repairers,detailed_occupation,49-3020
+49-3022,Automotive Glass Installers and Repairers,detailed_occupation,49-3020
+49-3023,Automotive Service Technicians and Mechanics,detailed_occupation,49-3020
+49-3030,Bus and Truck Mechanics and Diesel Engine Specialists,broad_occupation,49-3000
+49-3031,Bus and Truck Mechanics and Diesel Engine Specialists,detailed_occupation,49-3030
+49-3040,Heavy Vehicle and Mobile Equipment Service Technicians and Mechanics,broad_occupation,49-3000
+49-3041,Farm Equipment Mechanics and Service Technicians,detailed_occupation,49-3040
+49-3042,"Mobile Heavy Equipment Mechanics, Except Engines",detailed_occupation,49-3040
+49-3043,Rail Car Repairers,detailed_occupation,49-3040
+49-3050,Small Engine Mechanics,broad_occupation,49-3000
+49-3051,Motorboat Mechanics and Service Technicians,detailed_occupation,49-3050
+49-3052,Motorcycle Mechanics,detailed_occupation,49-3050
+49-3053,Outdoor Power Equipment and Other Small Engine Mechanics,detailed_occupation,49-3050
+49-3090,"Miscellaneous Vehicle and Mobile Equipment Mechanics, Installers, and Repairers",broad_occupation,49-3000
+49-3091,Bicycle Repairers,detailed_occupation,49-3090
+49-3092,Recreational Vehicle Service Technicians,detailed_occupation,49-3090
+49-3093,Tire Repairers and Changers,detailed_occupation,49-3090
+49-9000,"Other Installation, Maintenance, and Repair Occupations",minor_group,49-0000
+49-9010,Control and Valve Installers and Repairers,broad_occupation,49-9000
+49-9011,Mechanical Door Repairers,detailed_occupation,49-9010
+49-9012,"Control and Valve Installers and Repairers, Except Mechanical Door",detailed_occupation,49-9010
+49-9020,"Heating, Air Conditioning, and Refrigeration Mechanics and Installers",broad_occupation,49-9000
+49-9021,"Heating, Air Conditioning, and Refrigeration Mechanics and Installers",detailed_occupation,49-9020
+49-9030,Home Appliance Repairers,broad_occupation,49-9000
+49-9031,Home Appliance Repairers,detailed_occupation,49-9030
+49-9040,"Industrial Machinery Installation, Repair, and Maintenance Workers",broad_occupation,49-9000
+49-9041,Industrial Machinery Mechanics,detailed_occupation,49-9040
+49-9043,"Maintenance Workers, Machinery",detailed_occupation,49-9040
+49-9044,Millwrights,detailed_occupation,49-9040
+49-9045,"Refractory Materials Repairers, Except Brickmasons",detailed_occupation,49-9040
+49-9050,Line Installers and Repairers,broad_occupation,49-9000
+49-9051,Electrical Power-Line Installers and Repairers,detailed_occupation,49-9050
+49-9052,Telecommunications Line Installers and Repairers,detailed_occupation,49-9050
+49-9060,Precision Instrument and Equipment Repairers,broad_occupation,49-9000
+49-9061,Camera and Photographic Equipment Repairers,detailed_occupation,49-9060
+49-9062,Medical Equipment Repairers,detailed_occupation,49-9060
+49-9063,Musical Instrument Repairers and Tuners,detailed_occupation,49-9060
+49-9064,Watch and Clock Repairers,detailed_occupation,49-9060
+49-9069,"Precision Instrument and Equipment Repairers, All Other",detailed_occupation,49-9060
+49-9070,"Maintenance and Repair Workers, General",broad_occupation,49-9000
+49-9071,"Maintenance and Repair Workers, General",detailed_occupation,49-9070
+49-9080,Wind Turbine Service Technicians,broad_occupation,49-9000
+49-9081,Wind Turbine Service Technicians,detailed_occupation,49-9080
+49-9090,"Miscellaneous Installation, Maintenance, and Repair Workers",broad_occupation,49-9000
+49-9091,"Coin, Vending, and Amusement Machine Servicers and Repairers",detailed_occupation,49-9090
+49-9092,Commercial Divers,detailed_occupation,49-9090
+49-9094,Locksmiths and Safe Repairers,detailed_occupation,49-9090
+49-9095,Manufactured Building and Mobile Home Installers,detailed_occupation,49-9090
+49-9096,Riggers,detailed_occupation,49-9090
+49-9097,Signal and Track Switch Repairers,detailed_occupation,49-9090
+49-9098,"Helpers--Installation, Maintenance, and Repair Workers",detailed_occupation,49-9090
+49-9099,"Installation, Maintenance, and Repair Workers, All Other",detailed_occupation,49-9090
+51-0000,Production Occupations,major_group,
+51-1000,Supervisors of Production Workers,minor_group,51-0000
+51-1010,First-Line Supervisors of Production and Operating Workers,broad_occupation,51-1000
+51-1011,First-Line Supervisors of Production and Operating Workers,detailed_occupation,51-1010
+51-2000,Assemblers and Fabricators,minor_group,51-0000
+51-2010,"Aircraft Structure, Surfaces, Rigging, and Systems Assemblers",broad_occupation,51-2000
+51-2011,"Aircraft Structure, Surfaces, Rigging, and Systems Assemblers",detailed_occupation,51-2010
+51-2020,"Electrical, Electronics, and Electromechanical Assemblers",broad_occupation,51-2000
+51-2021,"Coil Winders, Tapers, and Finishers",detailed_occupation,51-2020
+51-2022,Electrical and Electronic Equipment Assemblers,detailed_occupation,51-2020
+51-2023,Electromechanical Equipment Assemblers,detailed_occupation,51-2020
+51-2030,Engine and Other Machine Assemblers,broad_occupation,51-2000
+51-2031,Engine and Other Machine Assemblers,detailed_occupation,51-2030
+51-2040,Structural Metal Fabricators and Fitters,broad_occupation,51-2000
+51-2041,Structural Metal Fabricators and Fitters,detailed_occupation,51-2040
+51-2050,Fiberglass Laminators and Fabricators,broad_occupation,51-2000
+51-2051,Fiberglass Laminators and Fabricators,detailed_occupation,51-2050
+51-2060,Timing Device Assemblers and Adjusters,broad_occupation,51-2000
+51-2061,Timing Device Assemblers and Adjusters,detailed_occupation,51-2060
+51-2090,Miscellaneous Assemblers and Fabricators,broad_occupation,51-2000
+51-2092,Team Assemblers,detailed_occupation,51-2090
+51-2099,"Assemblers and Fabricators, All Other",detailed_occupation,51-2090
+51-3000,Food Processing Workers,minor_group,51-0000
+51-3010,Bakers,broad_occupation,51-3000
+51-3011,Bakers,detailed_occupation,51-3010
+51-3020,"Butchers and Other Meat, Poultry, and Fish Processing Workers",broad_occupation,51-3000
+51-3021,Butchers and Meat Cutters,detailed_occupation,51-3020
+51-3022,"Meat, Poultry, and Fish Cutters and Trimmers",detailed_occupation,51-3020
+51-3023,Slaughterers and Meat Packers,detailed_occupation,51-3020
+51-3090,Miscellaneous Food Processing Workers,broad_occupation,51-3000
+51-3091,"Food and Tobacco Roasting, Baking, and Drying Machine Operators and Tenders",detailed_occupation,51-3090
+51-3092,Food Batchmakers,detailed_occupation,51-3090
+51-3093,Food Cooking Machine Operators and Tenders,detailed_occupation,51-3090
+51-3099,"Food Processing Workers, All Other",detailed_occupation,51-3090
+51-4000,Metal Workers and Plastic Workers,minor_group,51-0000
+51-4020,"Forming Machine Setters, Operators, and Tenders, Metal and Plastic",broad_occupation,51-4000
+51-4021,"Extruding and Drawing Machine Setters, Operators, and Tenders, Metal and Plastic",detailed_occupation,51-4020
+51-4022,"Forging Machine Setters, Operators, and Tenders, Metal and Plastic",detailed_occupation,51-4020
+51-4023,"Rolling Machine Setters, Operators, and Tenders, Metal and Plastic",detailed_occupation,51-4020
+51-4030,"Machine Tool Cutting Setters, Operators, and Tenders, Metal and Plastic",broad_occupation,51-4000
+51-4031,"Cutting, Punching, and Press Machine Setters, Operators, and Tenders, Metal and Plastic",detailed_occupation,51-4030
+51-4032,"Drilling and Boring Machine Tool Setters, Operators, and Tenders, Metal and Plastic",detailed_occupation,51-4030
+51-4033,"Grinding, Lapping, Polishing, and Buffing Machine Tool Setters, Operators, and Tenders, Metal and Plastic",detailed_occupation,51-4030
+51-4034,"Lathe and Turning Machine Tool Setters, Operators, and Tenders, Metal and Plastic",detailed_occupation,51-4030
+51-4035,"Milling and Planing Machine Setters, Operators, and Tenders, Metal and Plastic",detailed_occupation,51-4030
+51-4040,Machinists,broad_occupation,51-4000
+51-4041,Machinists,detailed_occupation,51-4040
+51-4050,"Metal Furnace Operators, Tenders, Pourers, and Casters",broad_occupation,51-4000
+51-4051,Metal-Refining Furnace Operators and Tenders,detailed_occupation,51-4050
+51-4052,"Pourers and Casters, Metal",detailed_occupation,51-4050
+51-4060,"Model Makers and Patternmakers, Metal and Plastic",broad_occupation,51-4000
+51-4061,"Model Makers, Metal and Plastic",detailed_occupation,51-4060
+51-4062,"Patternmakers, Metal and Plastic",detailed_occupation,51-4060
+51-4070,"Molders and Molding Machine Setters, Operators, and Tenders, Metal and Plastic",broad_occupation,51-4000
+51-4071,Foundry Mold and Coremakers,detailed_occupation,51-4070
+51-4072,"Molding, Coremaking, and Casting Machine Setters, Operators, and Tenders, Metal and Plastic",detailed_occupation,51-4070
+51-4080,"Multiple Machine Tool Setters, Operators, and Tenders, Metal and Plastic",broad_occupation,51-4000
+51-4081,"Multiple Machine Tool Setters, Operators, and Tenders, Metal and Plastic",detailed_occupation,51-4080
+51-4110,Tool and Die Makers,broad_occupation,51-4000
+51-4111,Tool and Die Makers,detailed_occupation,51-4110
+51-4120,"Welding, Soldering, and Brazing Workers",broad_occupation,51-4000
+51-4121,"Welders, Cutters, Solderers, and Brazers",detailed_occupation,51-4120
+51-4122,"Welding, Soldering, and Brazing Machine Setters, Operators, and Tenders",detailed_occupation,51-4120
+51-4190,Miscellaneous Metal Workers and Plastic Workers,broad_occupation,51-4000
+51-4191,"Heat Treating Equipment Setters, Operators, and Tenders, Metal and Plastic",detailed_occupation,51-4190
+51-4192,"Layout Workers, Metal and Plastic",detailed_occupation,51-4190
+51-4193,"Plating Machine Setters, Operators, and Tenders, Metal and Plastic",detailed_occupation,51-4190
+51-4194,"Tool Grinders, Filers, and Sharpeners",detailed_occupation,51-4190
+51-4199,"Metal Workers and Plastic Workers, All Other",detailed_occupation,51-4190
+51-5100,Printing Workers,minor_group,51-0000
+51-5110,Printing Workers,broad_occupation,51-5100
+51-5111,Prepress Technicians and Workers,detailed_occupation,51-5110
+51-5112,Printing Press Operators,detailed_occupation,51-5110
+51-5113,Print Binding and Finishing Workers,detailed_occupation,51-5110
+51-6000,"Textile, Apparel, and Furnishings Workers",minor_group,51-0000
+51-6010,Laundry and Dry-Cleaning Workers,broad_occupation,51-6000
+51-6011,Laundry and Dry-Cleaning Workers,detailed_occupation,51-6010
+51-6020,"Pressers, Textile, Garment, and Related Materials",broad_occupation,51-6000
+51-6021,"Pressers, Textile, Garment, and Related Materials",detailed_occupation,51-6020
+51-6030,Sewing Machine Operators,broad_occupation,51-6000
+51-6031,Sewing Machine Operators,detailed_occupation,51-6030
+51-6040,Shoe and Leather Workers,broad_occupation,51-6000
+51-6041,Shoe and Leather Workers and Repairers,detailed_occupation,51-6040
+51-6042,Shoe Machine Operators and Tenders,detailed_occupation,51-6040
+51-6050,"Tailors, Dressmakers, and Sewers",broad_occupation,51-6000
+51-6051,"Sewers, Hand",detailed_occupation,51-6050
+51-6052,"Tailors, Dressmakers, and Custom Sewers",detailed_occupation,51-6050
+51-6060,"Textile Machine Setters, Operators, and Tenders",broad_occupation,51-6000
+51-6061,Textile Bleaching and Dyeing Machine Operators and Tenders,detailed_occupation,51-6060
+51-6062,"Textile Cutting Machine Setters, Operators, and Tenders",detailed_occupation,51-6060
+51-6063,"Textile Knitting and Weaving Machine Setters, Operators, and Tenders",detailed_occupation,51-6060
+51-6064,"Textile Winding, Twisting, and Drawing Out Machine Setters, Operators, and Tenders",detailed_occupation,51-6060
+51-6090,"Miscellaneous Textile, Apparel, and Furnishings Workers",broad_occupation,51-6000
+51-6091,"Extruding and Forming Machine Setters, Operators, and Tenders, Synthetic and Glass Fibers",detailed_occupation,51-6090
+51-6092,Fabric and Apparel Patternmakers,detailed_occupation,51-6090
+51-6093,Upholsterers,detailed_occupation,51-6090
+51-6099,"Textile, Apparel, and Furnishings Workers, All Other",detailed_occupation,51-6090
+51-7000,Woodworkers,minor_group,51-0000
+51-7010,Cabinetmakers and Bench Carpenters,broad_occupation,51-7000
+51-7011,Cabinetmakers and Bench Carpenters,detailed_occupation,51-7010
+51-7020,Furniture Finishers,broad_occupation,51-7000
+51-7021,Furniture Finishers,detailed_occupation,51-7020
+51-7030,"Model Makers and Patternmakers, Wood",broad_occupation,51-7000
+51-7031,"Model Makers, Wood",detailed_occupation,51-7030
+51-7032,"Patternmakers, Wood",detailed_occupation,51-7030
+51-7040,"Woodworking Machine Setters, Operators, and Tenders",broad_occupation,51-7000
+51-7041,"Sawing Machine Setters, Operators, and Tenders, Wood",detailed_occupation,51-7040
+51-7042,"Woodworking Machine Setters, Operators, and Tenders, Except Sawing",detailed_occupation,51-7040
+51-7090,Miscellaneous Woodworkers,broad_occupation,51-7000
+51-7099,"Woodworkers, All Other",detailed_occupation,51-7090
+51-8000,Plant and System Operators,minor_group,51-0000
+51-8010,"Power Plant Operators, Distributors, and Dispatchers",broad_occupation,51-8000
+51-8011,Nuclear Power Reactor Operators,detailed_occupation,51-8010
+51-8012,Power Distributors and Dispatchers,detailed_occupation,51-8010
+51-8013,Power Plant Operators,detailed_occupation,51-8010
+51-8020,Stationary Engineers and Boiler Operators,broad_occupation,51-8000
+51-8021,Stationary Engineers and Boiler Operators,detailed_occupation,51-8020
+51-8030,Water and Wastewater Treatment Plant and System Operators,broad_occupation,51-8000
+51-8031,Water and Wastewater Treatment Plant and System Operators,detailed_occupation,51-8030
+51-8090,Miscellaneous Plant and System Operators,broad_occupation,51-8000
+51-8091,Chemical Plant and System Operators,detailed_occupation,51-8090
+51-8092,Gas Plant Operators,detailed_occupation,51-8090
+51-8093,"Petroleum Pump System Operators, Refinery Operators, and Gaugers",detailed_occupation,51-8090
+51-8099,"Plant and System Operators, All Other",detailed_occupation,51-8090
+51-9000,Other Production Occupations,minor_group,51-0000
+51-9010,"Chemical Processing Machine Setters, Operators, and Tenders",broad_occupation,51-9000
+51-9011,Chemical Equipment Operators and Tenders,detailed_occupation,51-9010
+51-9012,"Separating, Filtering, Clarifying, Precipitating, and Still Machine Setters, Operators, and Tenders",detailed_occupation,51-9010
+51-9020,"Crushing, Grinding, Polishing, Mixing, and Blending Workers",broad_occupation,51-9000
+51-9021,"Crushing, Grinding, and Polishing Machine Setters, Operators, and Tenders",detailed_occupation,51-9020
+51-9022,"Grinding and Polishing Workers, Hand",detailed_occupation,51-9020
+51-9023,"Mixing and Blending Machine Setters, Operators, and Tenders",detailed_occupation,51-9020
+51-9030,Cutting Workers,broad_occupation,51-9000
+51-9031,"Cutters and Trimmers, Hand",detailed_occupation,51-9030
+51-9032,"Cutting and Slicing Machine Setters, Operators, and Tenders",detailed_occupation,51-9030
+51-9040,"Extruding, Forming, Pressing, and Compacting Machine Setters, Operators, and Tenders",broad_occupation,51-9000
+51-9041,"Extruding, Forming, Pressing, and Compacting Machine Setters, Operators, and Tenders",detailed_occupation,51-9040
+51-9050,"Furnace, Kiln, Oven, Drier, and Kettle Operators and Tenders",broad_occupation,51-9000
+51-9051,"Furnace, Kiln, Oven, Drier, and Kettle Operators and Tenders",detailed_occupation,51-9050
+51-9060,"Inspectors, Testers, Sorters, Samplers, and Weighers",broad_occupation,51-9000
+51-9061,"Inspectors, Testers, Sorters, Samplers, and Weighers",detailed_occupation,51-9060
+51-9070,Jewelers and Precious Stone and Metal Workers,broad_occupation,51-9000
+51-9071,Jewelers and Precious Stone and Metal Workers,detailed_occupation,51-9070
+51-9080,Dental and Ophthalmic Laboratory Technicians and Medical Appliance Technicians,broad_occupation,51-9000
+51-9081,Dental Laboratory Technicians,detailed_occupation,51-9080
+51-9082,Medical Appliance Technicians,detailed_occupation,51-9080
+51-9083,Ophthalmic Laboratory Technicians,detailed_occupation,51-9080
+51-9110,Packaging and Filling Machine Operators and Tenders,broad_occupation,51-9000
+51-9111,Packaging and Filling Machine Operators and Tenders,detailed_occupation,51-9110
+51-9120,Painting Workers,broad_occupation,51-9000
+51-9123,"Painting, Coating, and Decorating Workers",detailed_occupation,51-9120
+51-9124,"Coating, Painting, and Spraying Machine Setters, Operators, and Tenders",detailed_occupation,51-9120
+51-9140,Semiconductor Processing Technicians,broad_occupation,51-9000
+51-9141,Semiconductor Processing Technicians,detailed_occupation,51-9140
+51-9150,Photographic Process Workers and Processing Machine Operators,broad_occupation,51-9000
+51-9151,Photographic Process Workers and Processing Machine Operators,detailed_occupation,51-9150
+51-9160,Computer Numerically Controlled Tool Operators and Programmers,broad_occupation,51-9000
+51-9161,Computer Numerically Controlled Tool Operators,detailed_occupation,51-9160
+51-9162,Computer Numerically Controlled Tool Programmers,detailed_occupation,51-9160
+51-9190,Miscellaneous Production Workers,broad_occupation,51-9000
+51-9191,Adhesive Bonding Machine Operators and Tenders,detailed_occupation,51-9190
+51-9192,"Cleaning, Washing, and Metal Pickling Equipment Operators and Tenders",detailed_occupation,51-9190
+51-9193,Cooling and Freezing Equipment Operators and Tenders,detailed_occupation,51-9190
+51-9194,Etchers and Engravers,detailed_occupation,51-9190
+51-9195,"Molders, Shapers, and Casters, Except Metal and Plastic",detailed_occupation,51-9190
+51-9196,"Paper Goods Machine Setters, Operators, and Tenders",detailed_occupation,51-9190
+51-9197,Tire Builders,detailed_occupation,51-9190
+51-9198,Helpers--Production Workers,detailed_occupation,51-9190
+51-9199,"Production Workers, All Other",detailed_occupation,51-9190
+53-0000,Transportation and Material Moving Occupations,major_group,
+53-1000,Supervisors of Transportation and Material Moving Workers,minor_group,53-0000
+53-1040,First-Line Supervisors of Transportation and Material Moving Workers,broad_occupation,53-1000
+53-1041,Aircraft Cargo Handling Supervisors,detailed_occupation,53-1040
+53-1042,"First-Line Supervisors of Helpers, Laborers, and Material Movers, Hand",detailed_occupation,53-1040
+53-1043,First-Line Supervisors of Material-Moving Machine and Vehicle Operators,detailed_occupation,53-1040
+53-1044,First-Line Supervisors of Passenger Attendants,detailed_occupation,53-1040
+53-1049,"First-Line Supervisors of Transportation Workers, All Other",detailed_occupation,53-1040
+53-2000,Air Transportation Workers,minor_group,53-0000
+53-2010,Aircraft Pilots and Flight Engineers,broad_occupation,53-2000
+53-2011,"Airline Pilots, Copilots, and Flight Engineers",detailed_occupation,53-2010
+53-2012,Commercial Pilots,detailed_occupation,53-2010
+53-2020,Air Traffic Controllers and Airfield Operations Specialists,broad_occupation,53-2000
+53-2021,Air Traffic Controllers,detailed_occupation,53-2020
+53-2022,Airfield Operations Specialists,detailed_occupation,53-2020
+53-2030,Flight Attendants,broad_occupation,53-2000
+53-2031,Flight Attendants,detailed_occupation,53-2030
+53-3000,Motor Vehicle Operators,minor_group,53-0000
+53-3010,"Ambulance Drivers and Attendants, Except Emergency Medical Technicians",broad_occupation,53-3000
+53-3011,"Ambulance Drivers and Attendants, Except Emergency Medical Technicians",detailed_occupation,53-3010
+53-3030,Driver/Sales Workers and Truck Drivers,broad_occupation,53-3000
+53-3031,Driver/Sales Workers,detailed_occupation,53-3030
+53-3032,Heavy and Tractor-Trailer Truck Drivers,detailed_occupation,53-3030
+53-3033,Light Truck Drivers,detailed_occupation,53-3030
+53-3050,Passenger Vehicle Drivers,broad_occupation,53-3000
+53-3051,"Bus Drivers, School",detailed_occupation,53-3050
+53-3052,"Bus Drivers, Transit and Intercity",detailed_occupation,53-3050
+53-3053,Shuttle Drivers and Chauffeurs,detailed_occupation,53-3050
+53-3054,Taxi Drivers,detailed_occupation,53-3050
+53-3090,Miscellaneous Motor Vehicle Operators,broad_occupation,53-3000
+53-3099,"Motor Vehicle Operators, All Other",detailed_occupation,53-3090
+53-4000,Rail Transportation Workers,minor_group,53-0000
+53-4010,Locomotive Engineers and Operators,broad_occupation,53-4000
+53-4011,Locomotive Engineers,detailed_occupation,53-4010
+53-4013,"Rail Yard Engineers, Dinkey Operators, and Hostlers",detailed_occupation,53-4010
+53-4020,"Railroad Brake, Signal, and Switch Operators and Locomotive Firers",broad_occupation,53-4000
+53-4022,"Railroad Brake, Signal, and Switch Operators and Locomotive Firers",detailed_occupation,53-4020
+53-4030,Railroad Conductors and Yardmasters,broad_occupation,53-4000
+53-4031,Railroad Conductors and Yardmasters,detailed_occupation,53-4030
+53-4040,Subway and Streetcar Operators,broad_occupation,53-4000
+53-4041,Subway and Streetcar Operators,detailed_occupation,53-4040
+53-4090,Miscellaneous Rail Transportation Workers,broad_occupation,53-4000
+53-4099,"Rail Transportation Workers, All Other",detailed_occupation,53-4090
+53-5000,Water Transportation Workers,minor_group,53-0000
+53-5010,Sailors and Marine Oilers,broad_occupation,53-5000
+53-5011,Sailors and Marine Oilers,detailed_occupation,53-5010
+53-5020,Ship and Boat Captains and Operators,broad_occupation,53-5000
+53-5021,"Captains, Mates, and Pilots of Water Vessels",detailed_occupation,53-5020
+53-5022,Motorboat Operators,detailed_occupation,53-5020
+53-5030,Ship Engineers,broad_occupation,53-5000
+53-5031,Ship Engineers,detailed_occupation,53-5030
+53-6000,Other Transportation Workers,minor_group,53-0000
+53-6010,Bridge and Lock Tenders,broad_occupation,53-6000
+53-6011,Bridge and Lock Tenders,detailed_occupation,53-6010
+53-6020,Parking Attendants,broad_occupation,53-6000
+53-6021,Parking Attendants,detailed_occupation,53-6020
+53-6030,Transportation Service Attendants,broad_occupation,53-6000
+53-6031,Automotive and Watercraft Service Attendants,detailed_occupation,53-6030
+53-6032,Aircraft Service Attendants,detailed_occupation,53-6030
+53-6040,Traffic Technicians,broad_occupation,53-6000
+53-6041,Traffic Technicians,detailed_occupation,53-6040
+53-6050,Transportation Inspectors,broad_occupation,53-6000
+53-6051,Transportation Inspectors,detailed_occupation,53-6050
+53-6060,Passenger Attendants,broad_occupation,53-6000
+53-6061,Passenger Attendants,detailed_occupation,53-6060
+53-6090,Miscellaneous Transportation Workers,broad_occupation,53-6000
+53-6099,"Transportation Workers, All Other",detailed_occupation,53-6090
+53-7000,Material Moving Workers,minor_group,53-0000
+53-7010,Conveyor Operators and Tenders,broad_occupation,53-7000
+53-7011,Conveyor Operators and Tenders,detailed_occupation,53-7010
+53-7020,Crane and Tower Operators,broad_occupation,53-7000
+53-7021,Crane and Tower Operators,detailed_occupation,53-7020
+53-7030,Dredge Operators,broad_occupation,53-7000
+53-7031,Dredge Operators,detailed_occupation,53-7030
+53-7040,Hoist and Winch Operators,broad_occupation,53-7000
+53-7041,Hoist and Winch Operators,detailed_occupation,53-7040
+53-7050,Industrial Truck and Tractor Operators,broad_occupation,53-7000
+53-7051,Industrial Truck and Tractor Operators,detailed_occupation,53-7050
+53-7060,Laborers and Material Movers,broad_occupation,53-7000
+53-7061,Cleaners of Vehicles and Equipment,detailed_occupation,53-7060
+53-7062,"Laborers and Freight, Stock, and Material Movers, Hand",detailed_occupation,53-7060
+53-7063,Machine Feeders and Offbearers,detailed_occupation,53-7060
+53-7064,"Packers and Packagers, Hand",detailed_occupation,53-7060
+53-7065,Stockers and Order Fillers,detailed_occupation,53-7060
+53-7070,Pumping Station Operators,broad_occupation,53-7000
+53-7071,Gas Compressor and Gas Pumping Station Operators,detailed_occupation,53-7070
+53-7072,"Pump Operators, Except Wellhead Pumpers",detailed_occupation,53-7070
+53-7073,Wellhead Pumpers,detailed_occupation,53-7070
+53-7080,Refuse and Recyclable Material Collectors,broad_occupation,53-7000
+53-7081,Refuse and Recyclable Material Collectors,detailed_occupation,53-7080
+53-7120,"Tank Car, Truck, and Ship Loaders",broad_occupation,53-7000
+53-7121,"Tank Car, Truck, and Ship Loaders",detailed_occupation,53-7120
+53-7190,Miscellaneous Material Moving Workers,broad_occupation,53-7000
+53-7199,"Material Moving Workers, All Other",detailed_occupation,53-7190
+55-0000,Military Specific Occupations,major_group,
+55-1000,Military Officer Special and Tactical Operations Leaders,minor_group,55-0000
+55-1010,Military Officer Special and Tactical Operations Leaders,broad_occupation,55-1000
+55-1011,Air Crew Officers,detailed_occupation,55-1010
+55-1012,Aircraft Launch and Recovery Officers,detailed_occupation,55-1010
+55-1013,Armored Assault Vehicle Officers,detailed_occupation,55-1010
+55-1014,Artillery and Missile Officers,detailed_occupation,55-1010
+55-1015,Command and Control Center Officers,detailed_occupation,55-1010
+55-1016,Infantry Officers,detailed_occupation,55-1010
+55-1017,Special Forces Officers,detailed_occupation,55-1010
+55-1019,"Military Officer Special and Tactical Operations Leaders, All Other",detailed_occupation,55-1010
+55-2000,First-Line Enlisted Military Supervisors,minor_group,55-0000
+55-2010,First-Line Enlisted Military Supervisors,broad_occupation,55-2000
+55-2011,First-Line Supervisors of Air Crew Members,detailed_occupation,55-2010
+55-2012,First-Line Supervisors of Weapons Specialists/Crew Members,detailed_occupation,55-2010
+55-2013,First-Line Supervisors of All Other Tactical Operations Specialists,detailed_occupation,55-2010
+55-3000,Military Enlisted Tactical Operations and Air/Weapons Specialists and Crew Members,minor_group,55-0000
+55-3010,Military Enlisted Tactical Operations and Air/Weapons Specialists and Crew Members,broad_occupation,55-3000
+55-3011,Air Crew Members,detailed_occupation,55-3010
+55-3012,Aircraft Launch and Recovery Specialists,detailed_occupation,55-3010
+55-3013,Armored Assault Vehicle Crew Members,detailed_occupation,55-3010
+55-3014,Artillery and Missile Crew Members,detailed_occupation,55-3010
+55-3015,Command and Control Center Specialists,detailed_occupation,55-3010
+55-3016,Infantry,detailed_occupation,55-3010
+55-3018,Special Forces,detailed_occupation,55-3010
+55-3019,"Military Enlisted Tactical Operations and Air/Weapons Specialists and Crew Members, All Other",detailed_occupation,55-3010

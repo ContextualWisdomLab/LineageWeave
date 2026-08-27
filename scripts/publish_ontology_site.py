@@ -26,6 +26,10 @@ except ModuleNotFoundError:  # direct execution with ``scripts`` as sys.path[0]
 
 OUTPUT_MARKER = ".lineageweave-ontology-site"
 SOURCE_RELATIVE_PATH = Path("docs/ontology/lineageweave-kg.ttl")
+SOURCE_FRAGMENT_RELATIVE_PATHS = (
+    Path("docs/ontology/soc-2018-structure.ttl"),
+    Path("docs/ontology/onet-31-content-model.ttl"),
+)
 PROV_PROFILE_RELATIVE_PATH = Path("docs/ontology/prov-o-support-profile.ttl")
 COMPATIBILITY_RELATIVE_PATH = Path("docs/ontology/namespace-compatibility.ttl")
 SHAPES_RELATIVE_PATH = Path("docs/ontology/lineageweave-kg-shapes.ttl")
@@ -214,6 +218,7 @@ def publish_site(repository_root: Path, output_dir: Path) -> None:
     """Validate sources and publish one safely replaceable static site tree."""
     root = repository_root.resolve()
     source = root / SOURCE_RELATIVE_PATH
+    fragments = tuple(root / path for path in SOURCE_FRAGMENT_RELATIVE_PATHS)
     profile = root / PROV_PROFILE_RELATIVE_PATH
     compatibility_source = root / COMPATIBILITY_RELATIVE_PATH
     shapes_source = root / SHAPES_RELATIVE_PATH
@@ -227,10 +232,15 @@ def publish_site(repository_root: Path, output_dir: Path) -> None:
         )
     if not shapes_source.is_file():
         raise FileNotFoundError(f"SHACL shapes graph is missing: {shapes_source}")
+    for fragment in fragments:
+        if not fragment.is_file():
+            raise FileNotFoundError(f"ontology source fragment is missing: {fragment}")
 
     output = _validate_output_directory(output_dir, source, profile)
     renderer = _load_renderer(root)
     graph = Graph().parse(source, format="turtle")
+    for fragment in fragments:
+        graph.parse(fragment, format="turtle")
     Graph().parse(profile, format="turtle")
     compatibility_graph = Graph().parse(compatibility_source, format="turtle")
     shapes_graph = Graph().parse(shapes_source, format="turtle")

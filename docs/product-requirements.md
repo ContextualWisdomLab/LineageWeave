@@ -72,7 +72,39 @@ and lookup round-trip isolation are enforced by
 `tests/test_worker_function_taxonomy.py`; `tests/test_ontology.py`
 continues to pass unchanged.
 
-### PRD-FR-2B — Evidence-bound occupational constructs
+### PRD-FR-2B — Occupational classification and worker-characteristic taxonomy
+
+- Publish all four levels of the 2018 Standard Occupational Classification:
+  23 major groups, 98 minor groups, 459 broad occupations, and 867 detailed
+  occupations with exact source parents, titles, and codes (ADR 0252), plus
+  the four O*NET 31.0 job-zone categories with
+  published names and source values 2 through 5 (ADR 0245).
+- Publish the worker-characteristic families that work-related
+  cognition, affect, and behavior resolve into: Fleishman's four ability
+  domains, Holland's six RIASEC interest types with the published
+  hexagonal adjacency relation, the six explicitly legacy O*NET work-value
+  clusters, and
+  the seven higher-order dimensions of the revised O*NET Work Styles
+  structure.
+- Publish all 3,006 O*NET 31.0 Content Model Reference elements with exact
+  identifiers, names, descriptions, and source-defined outline parents
+  (ADR 0255). Treat the six roots and 18 second-level branches as navigation
+  classes, never occupation ratings, person traits, scores, or weights.
+- Declare typed derivation properties from classifications to
+  characteristics but assert no instance binding; binding requires a
+  versioned released source profile imported with provenance in its own
+  decision.
+- Expose everything through a deterministic application read model with
+  fail-closed lookups; carry no numeric importance or level rating from
+  any occupational profile.
+
+Acceptance: completeness counts, verbatim titles, closed RIASEC
+vocabulary, exact published adjacency pairs, deterministic ordering,
+canonical namespace, and lookup round-trip isolation are enforced by
+`tests/test_io_taxonomy.py`, `tests/test_soc_2018_hierarchy.py`, and
+`tests/test_onet_content_model.py`;
+`tests/test_ontology.py` continues to pass unchanged.
+### PRD-FR-2C — Evidence-bound occupational constructs
 
 - Keep cognitive abilities, work styles, work activities, affective
   reactions, and performance behaviors as non-equivalent construct classes

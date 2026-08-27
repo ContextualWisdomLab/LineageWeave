@@ -1,5 +1,67 @@
 # Product & Technical Gap Baseline
 
+> Current queue overlay: 2026-08-27 KST. Protected `main` was
+> `ff7431bd1851c03e737808d22c6a2d43968582f9`; 33 PRs and 10 issues were
+> open. This overlay supersedes the older queue count and exact-head table
+> below, which remain historical evidence. Re-fetch the head, checks, reviews,
+> threads, applicable rulesets, and merge SHA immediately before any lifecycle
+> claim. No local branch or stacked-branch result is protected-main evidence.
+
+## Current occupational semantic-layer gap
+
+The current candidate stack publishes a provenance-safe classification
+foundation: ADR 0252 adds the complete 2018 SOC hierarchy (23 major groups,
+98 minor groups, 459 broad occupations, and 867 detailed occupations) above
+ADR 0255's candidate full O*NET 31.0 Content Model Reference (3,006 concepts),
+and ADR 0245's four O*NET 31.0 Job Zone categories, six RIASEC interest
+types and their published adjacency, six explicitly legacy work-value clusters, seven
+revised work-style dimensions, and four ability domains. It asserts no
+occupation-to-characteristic instance profile or employer job architecture and
+therefore does **not** yet satisfy requested job-family and job-series coverage
+of work cognition, affect, behavior, or their empirical relations. This is an
+explicit unavailable state, not a reason to infer mappings from labels.
+
+| Gap | Current evidence | Acceptance requirement |
+|---|---|---|
+| Classification depth | ADR 0252's candidate branch imports all 1,447 official 2018 SOC nodes with source-declared hierarchy, pinned XLSX/CSV digests, a deterministic Turtle renderer, and fail-closed read model | Pass exact-head review/checks and protected merge; add ISCO/ESCO crosswalks only where the publishing authority supplies them |
+| Construct granularity | ADR 0255's candidate branch publishes all 3,006 O*NET 31.0 Content Model Reference concepts with exact IDs, names, descriptions, and source-defined parents; it imports no ratings or person assertions | Pass exact-head review/checks and protected merge; import separately released occupation-element observations only through the provenance contract below |
+| Occupation-to-construct relations | ADR 0245 deliberately declares relation properties without instance assertions | Persist released source observations with source version, occupation code, element identifier, scale identifier, value, sample/error metadata when supplied, and provenance; never invent or locally normalize a weight |
+| Job-family and job-series semantics | No authoritative employer-specific job architecture is present | Define an organization-neutral import contract that preserves the authorized source hierarchy and distinguishes standard occupation codes from employer job families/series; no label-based binding |
+| Temporal and multilevel interpretation | Static vocabulary only; no person-level inference is asserted | Version valid and transaction time, preserve occupation/organization/unit nesting and multiple membership, and require TEPP or the owning Rust psychometric service before any calibrated temporal or multilevel result |
+| Product consumption | The read model has no persisted semantic-layer consumer or authenticated UI evidence | Add a provenance-bearing API and accessible ontology exploration flow, then verify synthetic Storybook edge states plus authenticated aggregate runtime evidence without exposing identifying records |
+
+### Current exact-head PR queue
+
+| PR | Exact observed head | Base | Observed gate state |
+|---:|---|---|---|
+| #724 | `10c3af40` | `feat/io-occupational-taxonomy` | unstable; Devin Review pending; CodeRabbit passed |
+| #719 | `6ee2278a` | `feat/io-psych-construct-ontology` | unstable; full tests, frontend, CodeRabbit, and Devin Review passed |
+| #718 | `2723fea3` | `feat/fja-worker-function-ontology` | unstable; full tests, frontend, CodeRabbit, and Devin Review passed |
+| #717 | `771a8edf` | `feat/voice-of-x-complete-taxonomy` | unstable; 1 pending check(s) |
+| #716 | `8b54b2f7` | `fix/structured-workflow-exact-pin` | clean; no non-passing check observed |
+| #714 | `aa93318f` | `main` | blocked; no non-passing check observed |
+| #713 | `cc3dfc14` | `main` | blocked; review required; 13 pending check(s) |
+| #711 | `8902e37f` | `feat/dashboard-case-metrics` | clean; no non-passing check observed |
+| #710 | `8df04b68` | `main` | blocked; review required; no non-passing check observed |
+| #709 | `8ef4090c` | `main` | blocked; review required; 11 pending check(s) |
+| #704 | `027323cf` | `main` | blocked; review required; 2 failed check(s) |
+| #702 | `5de66ab9` | `main` | blocked; review required; 2 pending check(s) |
+| #701 | `cc3351a9` | `main` | blocked; review required; 1 failed check(s) |
+| #700 | `1bc99eca` | `main` | blocked; review required; 1 failed check(s) |
+| #680 | `efe864e5` | `main` | blocked; 1 failed check(s) |
+| #679 | `13ecf41d` | `main` | blocked; no non-passing check observed |
+| #672 | `a3e87a89` | `main` | blocked; review required; 1 failed check(s) |
+| #668 | `1194f44d` | `main` | blocked; review required; 1 failed check(s) |
+| #667 | `c2d11a8a` | `main` | blocked; review required; 2 pending check(s) |
+| #658 | `15d670f0` | `main` | blocked; review required; 1 failed check(s) |
+| #657 | `9f71681c` | `main` | blocked; review required; 1 failed check(s) |
+| #644 | `f53dd28e` | `main` | blocked; review required; 1 failed check(s) |
+| #643 | `8767de1b` | `main` | blocked; review required; 1 failed check(s); 1 pending check(s) |
+| #640 | `5594029c` | `main` | blocked; no non-passing check observed |
+| #639 | `2f4b1bff` | `main` | blocked; review required; 1 failed check(s) |
+| #632 | `24262a99` | `main` | blocked; review required; 1 failed check(s) |
+| #629 | `b721b0f2` | `main` | blocked; review required; 1 failed check(s) |
+
 > Dashboard delivery snapshot: 2026-08-26 07:15 KST. Protected `main` was
 > `494b54e2245040bcf02b45376f221c37cd437e76`. This local branch is not
 > protected-main release evidence.
