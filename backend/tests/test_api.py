@@ -261,6 +261,11 @@ _VOICE_ASSIGNMENT_MIGRATION = (
     / "migrations"
     / "0237_source_post_voice_combination.sql"
 )
+_VOICE_HISTORY_MIGRATION = (
+    Path(__file__).resolve().parents[2]
+    / "migrations"
+    / "0238_source_post_voice_history.sql"
+)
 _OCCUPATIONAL_CONSTRUCT_MIGRATION = (
     Path(__file__).resolve().parents[2]
     / "migrations"
@@ -270,11 +275,6 @@ _OCCUPATIONAL_CATALOG_MIGRATION = (
     Path(__file__).resolve().parents[2]
     / "migrations"
     / "0239_occupational_construct_catalog.sql"
-)
-_VOICE_HISTORY_MIGRATION = (
-    Path(__file__).resolve().parents[2]
-    / "migrations"
-    / "0238_source_post_voice_history.sql"
 )
 
 
@@ -458,8 +458,8 @@ def seeded_db(demo_analyst_token):
             cur.execute(_ONTOLOGY_TRUTH_STATUS_MIGRATION.read_text())
             cur.execute(_VOICE_TAXONOMY_MIGRATION.read_text())
             cur.execute(_VOICE_ASSIGNMENT_MIGRATION.read_text())
-            cur.execute(_LEFTOVER_MAP_UNEXPLAINED_SHARE_MIGRATION.read_text())
             cur.execute(_VOICE_HISTORY_MIGRATION.read_text())
+            cur.execute(_LEFTOVER_MAP_UNEXPLAINED_SHARE_MIGRATION.read_text())
             cur.execute(
                 "insert into common_lookup_value (lookup_category, lookup_code, lookup_label) values "
                 "('corporate_entity_level', 'group', 'Group'), "
@@ -4916,33 +4916,6 @@ def test_primary_voice_history_survives_concurrent_changes_and_cutoff_reads(
             future.result()
 
     with closing(psycopg2.connect(seeded_db["dsn"])) as conn, conn.cursor() as cur:
-def test_primary_voice_history_survives_a_b_a_cutoffs(
-    client, demo_analyst_token, seeded_db
-) -> None:
-    """Real PostgreSQL and API reads preserve each imported primary interval."""
-    with closing(psycopg2.connect(seeded_db["dsn"])) as conn, conn.cursor() as cur:
-        cur.execute(
-            """
-            insert into source_post
-                (author_account_id, corporate_entity_id, post_title, post_body,
-                 voc_type_code, visibility_code, created_at, updated_at)
-            select author_account_id, corporate_entity_id,
-                   'Synthetic Voice history', 'Synthetic interval evidence',
-                   'voc', 'public', created_at, updated_at
-              from source_post
-             where post_id = %s
-            returning post_id
-            """,
-            (seeded_db["own_private_post_id"],),
-        )
-        post_id = str(cur.fetchone()[0])
-        conn.commit()
-
-        cur.execute(
-            "update source_post set voc_type_code = 'vob' where post_id = %s",
-            (post_id,),
-        )
-        conn.commit()
         cur.execute(
             "update source_post set voc_type_code = 'voc' where post_id = %s",
             (post_id,),
@@ -4975,91 +4948,6 @@ def test_primary_voice_history_survives_a_b_a_cutoffs(
             voice for voice in response.json()["voice_types"] if voice["is_primary"]
         ]
         assert [voice["code"] for voice in primaries] == [voice_type_code]
-
-        cur.execute(
-            """
-            select voice_type_code, effective_from, effective_to
-              from source_post_voice
-             where post_id = %s and is_primary
-             order by effective_from
-            """,
-            (post_id,),
-        )
-        periods = cur.fetchall()
-
-    assert [row[0] for row in periods] == ["voc", "vob", "voc"]
-    assert periods[0][2] == periods[1][1]
-    assert periods[1][2] == periods[2][1]
-    assert periods[2][2] is None
-
-    headers = {"Authorization": f"Bearer {demo_analyst_token}"}
-    cutoffs = (
-        periods[0][1] + (periods[0][2] - periods[0][1]) / 2,
-        periods[1][1] + (periods[1][2] - periods[1][1]) / 2,
-        periods[2][1],
-    )
-    for cutoff, expected in zip(cutoffs, ("voc", "vob", "voc"), strict=True):
-        response = client.get(
-            f"/api/posts/{post_id}",
-            params={"as_of": cutoff.isoformat()},
-            headers=headers,
-        )
-        assert response.status_code == 200, response.text
-        primary = [
-            voice for voice in response.json()["voice_types"] if voice["is_primary"]
-        ]
-        assert [voice["code"] for voice in primary] == [expected]
-
-
-def test_concurrent_primary_voice_updates_keep_non_overlapping_history(seeded_db) -> None:
-    """Waiting source updates use lock-time clocks and leave one current primary."""
-    with closing(psycopg2.connect(seeded_db["dsn"])) as conn, conn.cursor() as cur:
-        cur.execute(
-            """
-            insert into source_post
-                (author_account_id, corporate_entity_id, post_title, post_body,
-                 voc_type_code, visibility_code, created_at, updated_at)
-            select author_account_id, corporate_entity_id,
-                   'Synthetic concurrent Voice history', 'Synthetic lock evidence',
-                   'voc', 'public', created_at, updated_at
-              from source_post
-             where post_id = %s
-            returning post_id
-            """,
-            (seeded_db["own_private_post_id"],),
-        )
-        post_id = str(cur.fetchone()[0])
-        conn.commit()
-
-    def update_primary(code: str) -> None:
-        with closing(psycopg2.connect(seeded_db["dsn"])) as conn, conn.cursor() as cur:
-            cur.execute(
-                "update source_post set voc_type_code = %s where post_id = %s",
-                (code, post_id),
-            )
-            conn.commit()
-
-    with ThreadPoolExecutor(max_workers=2) as executor:
-        list(executor.map(update_primary, ("vob", "vop")))
-
-    with closing(psycopg2.connect(seeded_db["dsn"])) as conn, conn.cursor() as cur:
-        cur.execute(
-            """
-            select voice_type_code, effective_from, effective_to
-              from source_post_voice
-             where post_id = %s and is_primary
-             order by effective_from
-            """,
-            (post_id,),
-        )
-        periods = cur.fetchall()
-
-    assert len(periods) == 3
-    assert periods[0][0] == "voc"
-    assert {periods[1][0], periods[2][0]} == {"vob", "vop"}
-    assert periods[0][2] == periods[1][1]
-    assert periods[1][2] == periods[2][1]
-    assert periods[2][2] is None
 
 
 def test_tickets_list_is_empty_before_any_created(client, demo_analyst_token, seeded_db) -> None:

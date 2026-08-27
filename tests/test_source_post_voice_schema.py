@@ -25,9 +25,10 @@ def test_voice_combination_schema_is_normalized_and_evidence_bearing() -> None:
     assert "effective_from timestamptz not null" in sql
     assert "true, 'truth_observed'" in sql
     assert "where is_primary" in sql
-    assert "select post.post_id, post.voc_type_code, true, 'truth_observed', post.created_at" in sql
+    assert "select post.post_id, post.voc_type_code, true, 'truth_observed'" in sql
+    assert "least(post.created_at, clock_timestamp())" in sql
     assert "change_at timestamptz := clock_timestamp()" in sql
-    assert "case when tg_op = 'insert' then new.created_at else change_at end" in sql
+    assert "case when tg_op = 'insert' then least(new.created_at, change_at) else change_at end" in sql
     assert "after insert on source_post" in sql
     assert "after update of voc_type_code on source_post" in sql
     assert "when (old.voc_type_code is distinct from new.voc_type_code)" in sql
