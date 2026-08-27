@@ -148,6 +148,13 @@ from backend.app.post_content_queue import (
 from backend.app.occupational_construct_ingestion import (
     load_occupational_construct_assertions,
 )
+from backend.app.occupational_construct_search import (
+    OccupationalConstructSearchError,
+    occupational_construct_search_error_detail,
+    occupational_construct_search_http_status,
+    search_page_to_payload,
+    search_visible_occupational_constructs,
+)
 from backend.app.post_content_worker import run_post_content_worker
 from backend.app.post_eligibility import SOURCE_POST_ELIGIBILITY_SQL, source_post_visible
 from backend.app.post_evaluation_ingestion import (
@@ -2543,6 +2550,43 @@ async def read_rating_source_occupations(
             data_release_code=data_release_code,
             source_table_code=source_table_code,
         )
+
+
+@app.get("/api/occupational-constructs/search")
+async def search_occupational_constructs(
+    q: str = Query(..., min_length=1),
+    family: str | None = Query(None),
+    knowledge_cutoff: str | None = Query(None),
+    cursor: str | None = Query(None),
+    limit: int | None = Query(None),
+    account: CurrentAccount = Depends(get_current_account),
+    pool: asyncpg.Pool = Depends(get_pool),
+) -> dict[str, Any]:
+    """Assertion-backed catalog matches the reviewer may already open."""
+    _require_post_read(account)
+    cutoff_clock = None
+    if knowledge_cutoff:
+        try:
+            cutoff_clock = parse_as_of_clock(knowledge_cutoff)
+        except ValueError as exc:
+            raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, str(exc)) from exc
+    try:
+        async with pool.acquire() as conn:
+            page = await search_visible_occupational_constructs(
+                conn,
+                query=q,
+                family_code=family,
+                knowledge_cutoff=cutoff_clock,
+                cursor=cursor,
+                limit=limit,
+                can_see_post=lambda row: _can_see_post(account, row),
+            )
+    except OccupationalConstructSearchError as exc:
+        raise HTTPException(
+            occupational_construct_search_http_status(exc),
+            occupational_construct_search_error_detail(exc),
+        ) from None
+    return search_page_to_payload(page)
 
 
 @app.get("/api/posts/{post_id}/counterparties")
