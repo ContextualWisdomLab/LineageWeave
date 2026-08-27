@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Build the deterministic static LineageWeave ontology documentation site.
 
-The source Turtle ontology remains authoritative. This builder publishes a
+The governed Turtle source tree remains authoritative. This builder publishes a
 human-readable, fragment-addressable HTML view plus equivalent JSON-LD and
 N-Triples files without introducing a second ontology source of truth.
 """
@@ -46,6 +46,11 @@ CANONICAL_LINK_SUPPRESSION = (
     "-- canonical metadata fetches no subresource -->"
 )
 SOURCE_RELATIVE_PATH = Path("docs/ontology/lineageweave-kg.ttl")
+SOURCE_FRAGMENT_RELATIVE_PATHS = (
+    Path("docs/ontology/soc-2018-structure.ttl"),
+    Path("docs/ontology/onet-31-content-model.ttl"),
+    Path("docs/ontology/onet-31-content-model-linkages.ttl"),
+)
 PROV_PROFILE_RELATIVE_PATH = Path("docs/ontology/prov-o-support-profile.ttl")
 COMPATIBILITY_RELATIVE_PATH = Path("docs/ontology/namespace-compatibility.ttl")
 TERM_TYPES: tuple[tuple[str, URIRef], ...] = (
@@ -113,8 +118,8 @@ def _canonicalize_json(value: Any, parent_key: str | None = None) -> Any:
     return value
 
 
-def _write_serializations(graph: Graph, ontology_dir: Path) -> None:
-    """Write deterministic JSON-LD and line-sorted N-Triples serializations."""
+def _write_serializations(graph: Graph, ontology_dir: Path) -> str:
+    """Write deterministic serializations and return canonical RDF lines."""
     canonical_graph = to_canonical_graph(graph)
     raw_jsonld = canonical_graph.serialize(format="json-ld", auto_compact=False)
     parsed_jsonld = json.loads(raw_jsonld)
@@ -130,6 +135,7 @@ def _write_serializations(graph: Graph, ontology_dir: Path) -> None:
         "\n".join(nt_lines) + "\n",
         encoding="utf-8",
     )
+    return "\n".join(nt_lines) + "\n"
 
 
 def _render_link(value: URIRef, ontology_subjects: set[URIRef]) -> str:
@@ -369,7 +375,7 @@ def _render_ontology_page(graph: Graph, source_sha256: str) -> tuple[str, int]:
         '<section aria-labelledby="downloads-heading">'
         '<h2 id="downloads-heading">Machine-readable artifacts</h2>'
         '<div class="downloads">'
-        '<a href="ontology.ttl" type="text/turtle">Turtle <small>authoritative source</small></a>'
+        '<a href="ontology.ttl" type="text/turtle">Turtle <small>generated equivalent</small></a>'
         '<a href="ontology.jsonld" type="application/ld+json">JSON-LD <small>generated equivalent</small></a>'
         '<a href="ontology.nt" type="application/n-triples">N-Triples <small>generated equivalent</small></a>'
         '<a href="prov-o-support-profile.ttl" type="text/turtle">PROV-O support profile</a>'
@@ -387,7 +393,7 @@ def _render_ontology_page(graph: Graph, source_sha256: str) -> tuple[str, int]:
         f"{nav}</ul></nav>"
         f"{term_sections}"
         "</main>"
-        '<footer><p>Generated deterministically from <code>docs/ontology/lineageweave-kg.ttl</code>. No analytics or external scripts.</p></footer>'
+        '<footer><p>Generated deterministically from the governed <code>docs/ontology/</code> source tree. No analytics or external scripts.</p></footer>'
         "</body>\n</html>\n",
         term_count,
     )
@@ -414,7 +420,7 @@ def _render_root_page() -> str:
 
 def _write_manifest(
     ontology_dir: Path,
-    source: Path,
+    sources: tuple[Path, ...],
     graph: Graph,
     term_count: int,
 ) -> None:
@@ -433,9 +439,19 @@ def _write_manifest(
         ],
         "shapes_path": SHAPES_RELATIVE_PATH.as_posix(),
         "ontology_triple_count": len(graph),
+        "ontology_ttl_sha256": _sha256(ontology_dir / "ontology.ttl"),
         "ontology_unique_term_count": term_count,
-        "source_path": SOURCE_RELATIVE_PATH.as_posix(),
-        "source_sha256": _sha256(source),
+        "source_tree_sha256": hashlib.sha256(
+            b"".join(source.read_bytes() for source in sources)
+        ).hexdigest(),
+        "source_files": [
+            {"path": path.as_posix(), "sha256": _sha256(source)}
+            for path, source in zip(
+                (SOURCE_RELATIVE_PATH, *SOURCE_FRAGMENT_RELATIVE_PATHS),
+                sources,
+                strict=True,
+            )
+        ],
     }
     (ontology_dir / "manifest.json").write_text(
         json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
@@ -448,6 +464,7 @@ def build_site(repository_root: Path, output_dir: Path) -> None:
     root = repository_root.resolve()
     output = output_dir.resolve()
     source = root / SOURCE_RELATIVE_PATH
+    fragments = tuple(root / path for path in SOURCE_FRAGMENT_RELATIVE_PATHS)
     prov_profile = root / PROV_PROFILE_RELATIVE_PATH
     compatibility = root / COMPATIBILITY_RELATIVE_PATH
     shapes = root / SHAPES_RELATIVE_PATH
@@ -459,6 +476,9 @@ def build_site(repository_root: Path, output_dir: Path) -> None:
         raise FileNotFoundError(f"namespace compatibility vocabulary is missing: {compatibility}")
     if not shapes.is_file():
         raise FileNotFoundError(f"SHACL shapes graph is missing: {shapes}")
+    for fragment in fragments:
+        if not fragment.is_file():
+            raise FileNotFoundError(f"ontology source fragment is missing: {fragment}")
 
     if output.exists():
         raise FileExistsError(
@@ -469,18 +489,26 @@ def build_site(repository_root: Path, output_dir: Path) -> None:
     ontology_dir.mkdir(parents=True)
 
     graph = Graph().parse(source, format="turtle")
-    source_sha256 = _sha256(source)
+    for fragment in fragments:
+        graph.parse(fragment, format="turtle")
+    sources = (source, *fragments)
+    source_sha256 = hashlib.sha256(
+        b"".join(path.read_bytes() for path in sources)
+    ).hexdigest()
     ontology_html, term_count = _render_ontology_page(graph, source_sha256)
 
     (output / ".nojekyll").write_text("", encoding="utf-8")
     (output / "index.html").write_text(_render_root_page(), encoding="utf-8")
     (ontology_dir / "index.html").write_text(ontology_html, encoding="utf-8")
-    shutil.copyfile(source, ontology_dir / "ontology.ttl")
     shutil.copyfile(prov_profile, ontology_dir / "prov-o-support-profile.ttl")
     shutil.copyfile(compatibility, ontology_dir / "namespace-compatibility.ttl")
     shutil.copyfile(shapes, ontology_dir / "lineageweave-kg-shapes.ttl")
-    _write_serializations(graph, ontology_dir)
-    _write_manifest(ontology_dir, source, graph, term_count)
+    canonical_rdf = _write_serializations(graph, ontology_dir)
+    # N-Triples is a strict subset of Turtle. Publishing the canonical graph
+    # avoids joining independent Turtle documents whose prefix/base scopes
+    # are document-local, while retaining a deterministic .ttl representation.
+    (ontology_dir / "ontology.ttl").write_text(canonical_rdf, encoding="utf-8")
+    _write_manifest(ontology_dir, sources, graph, term_count)
     (output / "robots.txt").write_text(
         "User-agent: *\nAllow: /\nSitemap: " f"{PUBLIC_BASE_URL}/sitemap.xml\n",
         encoding="utf-8",

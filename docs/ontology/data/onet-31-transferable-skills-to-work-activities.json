@@ -1,0 +1,774 @@
+{
+  "table_id": "transferable_skills_to_work_activities",
+  "title": "Transferable Skills to Work Activities",
+  "description": "Provide linkages between transferable skills and relevant work activities.",
+  "data_dictionary": "https://www.onetcenter.org/dictionary/31.0/json/transferable_skills_to_work_activities.html",
+  "column": [
+    {
+      "column_id": "transferable_skills_element_id",
+      "optional": false,
+      "title": "Transferable Skills Element ID",
+      "description": "Content Model Outline Position",
+      "type": "Text",
+      "format": "Character Varying(20)"
+    },
+    {
+      "column_id": "transferable_skills_element_name",
+      "optional": false,
+      "title": "Transferable Skills Element Name",
+      "description": "Content Model Element Name",
+      "type": "Text",
+      "format": "Character Varying(150)"
+    },
+    {
+      "column_id": "work_activities_element_id",
+      "optional": false,
+      "title": "Work Activities Element ID",
+      "description": "Content Model Outline Position",
+      "type": "Text",
+      "format": "Character Varying(20)"
+    },
+    {
+      "column_id": "work_activities_element_name",
+      "optional": false,
+      "title": "Work Activities Element Name",
+      "description": "Content Model Element Name",
+      "type": "Text",
+      "format": "Character Varying(150)"
+    }
+  ],
+  "row": [
+    {
+      "transferable_skills_element_id": "2.B.1.a",
+      "transferable_skills_element_name": "Social Perceptiveness",
+      "work_activities_element_id": "4.A.4.a.1",
+      "work_activities_element_name": "Interpreting the Meaning of Information for Others"
+    },
+    {
+      "transferable_skills_element_id": "2.B.1.a",
+      "transferable_skills_element_name": "Social Perceptiveness",
+      "work_activities_element_id": "4.A.4.a.3",
+      "work_activities_element_name": "Communicating with People Outside the Organization"
+    },
+    {
+      "transferable_skills_element_id": "2.B.1.a",
+      "transferable_skills_element_name": "Social Perceptiveness",
+      "work_activities_element_id": "4.A.4.a.4",
+      "work_activities_element_name": "Establishing and Maintaining Interpersonal Relationships"
+    },
+    {
+      "transferable_skills_element_id": "2.B.1.a",
+      "transferable_skills_element_name": "Social Perceptiveness",
+      "work_activities_element_id": "4.A.4.a.5",
+      "work_activities_element_name": "Assisting and Caring for Others"
+    },
+    {
+      "transferable_skills_element_id": "2.B.1.a",
+      "transferable_skills_element_name": "Social Perceptiveness",
+      "work_activities_element_id": "4.A.4.a.6",
+      "work_activities_element_name": "Selling or Influencing Others"
+    },
+    {
+      "transferable_skills_element_id": "2.B.1.a",
+      "transferable_skills_element_name": "Social Perceptiveness",
+      "work_activities_element_id": "4.A.4.a.7",
+      "work_activities_element_name": "Resolving Conflicts and Negotiating with Others"
+    },
+    {
+      "transferable_skills_element_id": "2.B.1.a",
+      "transferable_skills_element_name": "Social Perceptiveness",
+      "work_activities_element_id": "4.A.4.a.8",
+      "work_activities_element_name": "Performing for or Working Directly with the Public"
+    },
+    {
+      "transferable_skills_element_id": "2.B.1.a",
+      "transferable_skills_element_name": "Social Perceptiveness",
+      "work_activities_element_id": "4.A.4.b.1",
+      "work_activities_element_name": "Coordinating the Work and Activities of Others"
+    },
+    {
+      "transferable_skills_element_id": "2.B.1.a",
+      "transferable_skills_element_name": "Social Perceptiveness",
+      "work_activities_element_id": "4.A.4.b.2",
+      "work_activities_element_name": "Developing and Building Teams"
+    },
+    {
+      "transferable_skills_element_id": "2.B.1.a",
+      "transferable_skills_element_name": "Social Perceptiveness",
+      "work_activities_element_id": "4.A.4.b.3",
+      "work_activities_element_name": "Training and Teaching Others"
+    },
+    {
+      "transferable_skills_element_id": "2.B.1.a",
+      "transferable_skills_element_name": "Social Perceptiveness",
+      "work_activities_element_id": "4.A.4.b.4",
+      "work_activities_element_name": "Guiding, Directing, and Motivating Subordinates"
+    },
+    {
+      "transferable_skills_element_id": "2.B.1.a",
+      "transferable_skills_element_name": "Social Perceptiveness",
+      "work_activities_element_id": "4.A.4.b.5",
+      "work_activities_element_name": "Coaching and Developing Others"
+    },
+    {
+      "transferable_skills_element_id": "2.B.1.a",
+      "transferable_skills_element_name": "Social Perceptiveness",
+      "work_activities_element_id": "4.A.4.b.6",
+      "work_activities_element_name": "Providing Consultation and Advice to Others"
+    },
+    {
+      "transferable_skills_element_id": "2.B.1.a",
+      "transferable_skills_element_name": "Social Perceptiveness",
+      "work_activities_element_id": "4.A.4.c.2",
+      "work_activities_element_name": "Staffing Organizational Units"
+    },
+    {
+      "transferable_skills_element_id": "2.B.1.b",
+      "transferable_skills_element_name": "Coordination",
+      "work_activities_element_id": "4.A.2.b.5",
+      "work_activities_element_name": "Scheduling Work and Activities"
+    },
+    {
+      "transferable_skills_element_id": "2.B.1.b",
+      "transferable_skills_element_name": "Coordination",
+      "work_activities_element_id": "4.A.4.a.4",
+      "work_activities_element_name": "Establishing and Maintaining Interpersonal Relationships"
+    },
+    {
+      "transferable_skills_element_id": "2.B.1.b",
+      "transferable_skills_element_name": "Coordination",
+      "work_activities_element_id": "4.A.4.a.5",
+      "work_activities_element_name": "Assisting and Caring for Others"
+    },
+    {
+      "transferable_skills_element_id": "2.B.1.b",
+      "transferable_skills_element_name": "Coordination",
+      "work_activities_element_id": "4.A.4.a.6",
+      "work_activities_element_name": "Selling or Influencing Others"
+    },
+    {
+      "transferable_skills_element_id": "2.B.1.b",
+      "transferable_skills_element_name": "Coordination",
+      "work_activities_element_id": "4.A.4.a.7",
+      "work_activities_element_name": "Resolving Conflicts and Negotiating with Others"
+    },
+    {
+      "transferable_skills_element_id": "2.B.1.b",
+      "transferable_skills_element_name": "Coordination",
+      "work_activities_element_id": "4.A.4.a.8",
+      "work_activities_element_name": "Performing for or Working Directly with the Public"
+    },
+    {
+      "transferable_skills_element_id": "2.B.1.b",
+      "transferable_skills_element_name": "Coordination",
+      "work_activities_element_id": "4.A.4.b.1",
+      "work_activities_element_name": "Coordinating the Work and Activities of Others"
+    },
+    {
+      "transferable_skills_element_id": "2.B.1.b",
+      "transferable_skills_element_name": "Coordination",
+      "work_activities_element_id": "4.A.4.b.2",
+      "work_activities_element_name": "Developing and Building Teams"
+    },
+    {
+      "transferable_skills_element_id": "2.B.1.b",
+      "transferable_skills_element_name": "Coordination",
+      "work_activities_element_id": "4.A.4.b.3",
+      "work_activities_element_name": "Training and Teaching Others"
+    },
+    {
+      "transferable_skills_element_id": "2.B.1.b",
+      "transferable_skills_element_name": "Coordination",
+      "work_activities_element_id": "4.A.4.b.4",
+      "work_activities_element_name": "Guiding, Directing, and Motivating Subordinates"
+    },
+    {
+      "transferable_skills_element_id": "2.B.1.b",
+      "transferable_skills_element_name": "Coordination",
+      "work_activities_element_id": "4.A.4.b.5",
+      "work_activities_element_name": "Coaching and Developing Others"
+    },
+    {
+      "transferable_skills_element_id": "2.B.1.b",
+      "transferable_skills_element_name": "Coordination",
+      "work_activities_element_id": "4.A.4.b.6",
+      "work_activities_element_name": "Providing Consultation and Advice to Others"
+    },
+    {
+      "transferable_skills_element_id": "2.B.1.c",
+      "transferable_skills_element_name": "Persuasion",
+      "work_activities_element_id": "4.A.4.a.3",
+      "work_activities_element_name": "Communicating with People Outside the Organization"
+    },
+    {
+      "transferable_skills_element_id": "2.B.1.c",
+      "transferable_skills_element_name": "Persuasion",
+      "work_activities_element_id": "4.A.4.a.4",
+      "work_activities_element_name": "Establishing and Maintaining Interpersonal Relationships"
+    },
+    {
+      "transferable_skills_element_id": "2.B.1.c",
+      "transferable_skills_element_name": "Persuasion",
+      "work_activities_element_id": "4.A.4.a.6",
+      "work_activities_element_name": "Selling or Influencing Others"
+    },
+    {
+      "transferable_skills_element_id": "2.B.1.c",
+      "transferable_skills_element_name": "Persuasion",
+      "work_activities_element_id": "4.A.4.a.7",
+      "work_activities_element_name": "Resolving Conflicts and Negotiating with Others"
+    },
+    {
+      "transferable_skills_element_id": "2.B.1.c",
+      "transferable_skills_element_name": "Persuasion",
+      "work_activities_element_id": "4.A.4.b.1",
+      "work_activities_element_name": "Coordinating the Work and Activities of Others"
+    },
+    {
+      "transferable_skills_element_id": "2.B.1.c",
+      "transferable_skills_element_name": "Persuasion",
+      "work_activities_element_id": "4.A.4.b.2",
+      "work_activities_element_name": "Developing and Building Teams"
+    },
+    {
+      "transferable_skills_element_id": "2.B.1.c",
+      "transferable_skills_element_name": "Persuasion",
+      "work_activities_element_id": "4.A.4.b.4",
+      "work_activities_element_name": "Guiding, Directing, and Motivating Subordinates"
+    },
+    {
+      "transferable_skills_element_id": "2.B.1.c",
+      "transferable_skills_element_name": "Persuasion",
+      "work_activities_element_id": "4.A.4.b.5",
+      "work_activities_element_name": "Coaching and Developing Others"
+    },
+    {
+      "transferable_skills_element_id": "2.B.1.c",
+      "transferable_skills_element_name": "Persuasion",
+      "work_activities_element_id": "4.A.4.b.6",
+      "work_activities_element_name": "Providing Consultation and Advice to Others"
+    },
+    {
+      "transferable_skills_element_id": "2.B.1.c",
+      "transferable_skills_element_name": "Persuasion",
+      "work_activities_element_id": "4.A.4.c.2",
+      "work_activities_element_name": "Staffing Organizational Units"
+    },
+    {
+      "transferable_skills_element_id": "2.B.1.d",
+      "transferable_skills_element_name": "Negotiation",
+      "work_activities_element_id": "4.A.4.a.7",
+      "work_activities_element_name": "Resolving Conflicts and Negotiating with Others"
+    },
+    {
+      "transferable_skills_element_id": "2.B.1.d",
+      "transferable_skills_element_name": "Negotiation",
+      "work_activities_element_id": "4.A.4.b.1",
+      "work_activities_element_name": "Coordinating the Work and Activities of Others"
+    },
+    {
+      "transferable_skills_element_id": "2.B.1.d",
+      "transferable_skills_element_name": "Negotiation",
+      "work_activities_element_id": "4.A.4.b.2",
+      "work_activities_element_name": "Developing and Building Teams"
+    },
+    {
+      "transferable_skills_element_id": "2.B.1.d",
+      "transferable_skills_element_name": "Negotiation",
+      "work_activities_element_id": "4.A.4.b.4",
+      "work_activities_element_name": "Guiding, Directing, and Motivating Subordinates"
+    },
+    {
+      "transferable_skills_element_id": "2.B.1.d",
+      "transferable_skills_element_name": "Negotiation",
+      "work_activities_element_id": "4.A.4.c.2",
+      "work_activities_element_name": "Staffing Organizational Units"
+    },
+    {
+      "transferable_skills_element_id": "2.B.1.e",
+      "transferable_skills_element_name": "Instructing",
+      "work_activities_element_id": "4.A.3.b.2",
+      "work_activities_element_name": "Drafting, Laying Out, and Specifying Technical Devices, Parts, and Equipment"
+    },
+    {
+      "transferable_skills_element_id": "2.B.1.e",
+      "transferable_skills_element_name": "Instructing",
+      "work_activities_element_id": "4.A.4.a.1",
+      "work_activities_element_name": "Interpreting the Meaning of Information for Others"
+    },
+    {
+      "transferable_skills_element_id": "2.B.1.e",
+      "transferable_skills_element_name": "Instructing",
+      "work_activities_element_id": "4.A.4.b.3",
+      "work_activities_element_name": "Training and Teaching Others"
+    },
+    {
+      "transferable_skills_element_id": "2.B.1.e",
+      "transferable_skills_element_name": "Instructing",
+      "work_activities_element_id": "4.A.4.b.4",
+      "work_activities_element_name": "Guiding, Directing, and Motivating Subordinates"
+    },
+    {
+      "transferable_skills_element_id": "2.B.1.e",
+      "transferable_skills_element_name": "Instructing",
+      "work_activities_element_id": "4.A.4.b.5",
+      "work_activities_element_name": "Coaching and Developing Others"
+    },
+    {
+      "transferable_skills_element_id": "2.B.1.e",
+      "transferable_skills_element_name": "Instructing",
+      "work_activities_element_id": "4.A.4.b.6",
+      "work_activities_element_name": "Providing Consultation and Advice to Others"
+    },
+    {
+      "transferable_skills_element_id": "2.B.1.f",
+      "transferable_skills_element_name": "Service Orientation",
+      "work_activities_element_id": "4.A.4.a.3",
+      "work_activities_element_name": "Communicating with People Outside the Organization"
+    },
+    {
+      "transferable_skills_element_id": "2.B.1.f",
+      "transferable_skills_element_name": "Service Orientation",
+      "work_activities_element_id": "4.A.4.a.4",
+      "work_activities_element_name": "Establishing and Maintaining Interpersonal Relationships"
+    },
+    {
+      "transferable_skills_element_id": "2.B.1.f",
+      "transferable_skills_element_name": "Service Orientation",
+      "work_activities_element_id": "4.A.4.a.5",
+      "work_activities_element_name": "Assisting and Caring for Others"
+    },
+    {
+      "transferable_skills_element_id": "2.B.1.f",
+      "transferable_skills_element_name": "Service Orientation",
+      "work_activities_element_id": "4.A.4.a.6",
+      "work_activities_element_name": "Selling or Influencing Others"
+    },
+    {
+      "transferable_skills_element_id": "2.B.1.f",
+      "transferable_skills_element_name": "Service Orientation",
+      "work_activities_element_id": "4.A.4.a.7",
+      "work_activities_element_name": "Resolving Conflicts and Negotiating with Others"
+    },
+    {
+      "transferable_skills_element_id": "2.B.1.f",
+      "transferable_skills_element_name": "Service Orientation",
+      "work_activities_element_id": "4.A.4.a.8",
+      "work_activities_element_name": "Performing for or Working Directly with the Public"
+    },
+    {
+      "transferable_skills_element_id": "2.B.1.f",
+      "transferable_skills_element_name": "Service Orientation",
+      "work_activities_element_id": "4.A.4.b.1",
+      "work_activities_element_name": "Coordinating the Work and Activities of Others"
+    },
+    {
+      "transferable_skills_element_id": "2.B.1.f",
+      "transferable_skills_element_name": "Service Orientation",
+      "work_activities_element_id": "4.A.4.b.2",
+      "work_activities_element_name": "Developing and Building Teams"
+    },
+    {
+      "transferable_skills_element_id": "2.B.1.f",
+      "transferable_skills_element_name": "Service Orientation",
+      "work_activities_element_id": "4.A.4.b.3",
+      "work_activities_element_name": "Training and Teaching Others"
+    },
+    {
+      "transferable_skills_element_id": "2.B.1.f",
+      "transferable_skills_element_name": "Service Orientation",
+      "work_activities_element_id": "4.A.4.b.4",
+      "work_activities_element_name": "Guiding, Directing, and Motivating Subordinates"
+    },
+    {
+      "transferable_skills_element_id": "2.B.1.f",
+      "transferable_skills_element_name": "Service Orientation",
+      "work_activities_element_id": "4.A.4.b.5",
+      "work_activities_element_name": "Coaching and Developing Others"
+    },
+    {
+      "transferable_skills_element_id": "2.B.1.f",
+      "transferable_skills_element_name": "Service Orientation",
+      "work_activities_element_id": "4.A.4.b.6",
+      "work_activities_element_name": "Providing Consultation and Advice to Others"
+    },
+    {
+      "transferable_skills_element_id": "2.B.2.i",
+      "transferable_skills_element_name": "Complex Problem Solving",
+      "work_activities_element_id": "4.A.2.b.1",
+      "work_activities_element_name": "Making Decisions and Solving Problems"
+    },
+    {
+      "transferable_skills_element_id": "2.B.2.i",
+      "transferable_skills_element_name": "Complex Problem Solving",
+      "work_activities_element_id": "4.A.2.b.4",
+      "work_activities_element_name": "Developing Objectives and Strategies"
+    },
+    {
+      "transferable_skills_element_id": "2.B.2.i",
+      "transferable_skills_element_name": "Complex Problem Solving",
+      "work_activities_element_id": "4.A.2.b.6",
+      "work_activities_element_name": "Organizing, Planning, and Prioritizing Work"
+    },
+    {
+      "transferable_skills_element_id": "2.B.2.i",
+      "transferable_skills_element_name": "Complex Problem Solving",
+      "work_activities_element_id": "4.A.3.b.1",
+      "work_activities_element_name": "Working with Computers"
+    },
+    {
+      "transferable_skills_element_id": "2.B.2.i",
+      "transferable_skills_element_name": "Complex Problem Solving",
+      "work_activities_element_id": "4.A.3.b.4",
+      "work_activities_element_name": "Repairing and Maintaining Mechanical Equipment"
+    },
+    {
+      "transferable_skills_element_id": "2.B.2.i",
+      "transferable_skills_element_name": "Complex Problem Solving",
+      "work_activities_element_id": "4.A.3.b.5",
+      "work_activities_element_name": "Repairing and Maintaining Electronic Equipment"
+    },
+    {
+      "transferable_skills_element_id": "2.B.2.i",
+      "transferable_skills_element_name": "Complex Problem Solving",
+      "work_activities_element_id": "4.A.4.b.6",
+      "work_activities_element_name": "Providing Consultation and Advice to Others"
+    },
+    {
+      "transferable_skills_element_id": "2.B.2.i",
+      "transferable_skills_element_name": "Complex Problem Solving",
+      "work_activities_element_id": "4.A.4.c.3",
+      "work_activities_element_name": "Monitoring and Controlling Resources"
+    },
+    {
+      "transferable_skills_element_id": "2.B.3.b",
+      "transferable_skills_element_name": "Technology Design",
+      "work_activities_element_id": "4.A.2.b.2",
+      "work_activities_element_name": "Thinking Creatively"
+    },
+    {
+      "transferable_skills_element_id": "2.B.3.c",
+      "transferable_skills_element_name": "Equipment Selection",
+      "work_activities_element_id": "4.A.3.b.4",
+      "work_activities_element_name": "Repairing and Maintaining Mechanical Equipment"
+    },
+    {
+      "transferable_skills_element_id": "2.B.3.c",
+      "transferable_skills_element_name": "Equipment Selection",
+      "work_activities_element_id": "4.A.3.b.5",
+      "work_activities_element_name": "Repairing and Maintaining Electronic Equipment"
+    },
+    {
+      "transferable_skills_element_id": "2.B.3.e",
+      "transferable_skills_element_name": "Programming",
+      "work_activities_element_id": "4.A.3.b.1",
+      "work_activities_element_name": "Working with Computers"
+    },
+    {
+      "transferable_skills_element_id": "2.B.3.g",
+      "transferable_skills_element_name": "Operations Monitoring",
+      "work_activities_element_id": "4.A.1.a.2",
+      "work_activities_element_name": "Monitoring Processes, Materials, or Surroundings"
+    },
+    {
+      "transferable_skills_element_id": "2.B.3.g",
+      "transferable_skills_element_name": "Operations Monitoring",
+      "work_activities_element_id": "4.A.1.b.2",
+      "work_activities_element_name": "Inspecting Equipment, Structures, or Materials"
+    },
+    {
+      "transferable_skills_element_id": "2.B.3.g",
+      "transferable_skills_element_name": "Operations Monitoring",
+      "work_activities_element_id": "4.A.3.a.3",
+      "work_activities_element_name": "Controlling Machines and Processes"
+    },
+    {
+      "transferable_skills_element_id": "2.B.3.g",
+      "transferable_skills_element_name": "Operations Monitoring",
+      "work_activities_element_id": "4.A.3.a.4",
+      "work_activities_element_name": "Operating Vehicles, Mechanized Devices, or Equipment"
+    },
+    {
+      "transferable_skills_element_id": "2.B.3.g",
+      "transferable_skills_element_name": "Operations Monitoring",
+      "work_activities_element_id": "4.A.3.b.4",
+      "work_activities_element_name": "Repairing and Maintaining Mechanical Equipment"
+    },
+    {
+      "transferable_skills_element_id": "2.B.3.g",
+      "transferable_skills_element_name": "Operations Monitoring",
+      "work_activities_element_id": "4.A.3.b.5",
+      "work_activities_element_name": "Repairing and Maintaining Electronic Equipment"
+    },
+    {
+      "transferable_skills_element_id": "2.B.3.h",
+      "transferable_skills_element_name": "Operation and Control",
+      "work_activities_element_id": "4.A.3.a.3",
+      "work_activities_element_name": "Controlling Machines and Processes"
+    },
+    {
+      "transferable_skills_element_id": "2.B.3.h",
+      "transferable_skills_element_name": "Operation and Control",
+      "work_activities_element_id": "4.A.3.a.4",
+      "work_activities_element_name": "Operating Vehicles, Mechanized Devices, or Equipment"
+    },
+    {
+      "transferable_skills_element_id": "2.B.3.j",
+      "transferable_skills_element_name": "Equipment Maintenance",
+      "work_activities_element_id": "4.A.3.b.4",
+      "work_activities_element_name": "Repairing and Maintaining Mechanical Equipment"
+    },
+    {
+      "transferable_skills_element_id": "2.B.3.j",
+      "transferable_skills_element_name": "Equipment Maintenance",
+      "work_activities_element_id": "4.A.3.b.5",
+      "work_activities_element_name": "Repairing and Maintaining Electronic Equipment"
+    },
+    {
+      "transferable_skills_element_id": "2.B.3.k",
+      "transferable_skills_element_name": "Troubleshooting",
+      "work_activities_element_id": "4.A.1.b.2",
+      "work_activities_element_name": "Inspecting Equipment, Structures, or Materials"
+    },
+    {
+      "transferable_skills_element_id": "2.B.3.k",
+      "transferable_skills_element_name": "Troubleshooting",
+      "work_activities_element_id": "4.A.3.b.4",
+      "work_activities_element_name": "Repairing and Maintaining Mechanical Equipment"
+    },
+    {
+      "transferable_skills_element_id": "2.B.3.k",
+      "transferable_skills_element_name": "Troubleshooting",
+      "work_activities_element_id": "4.A.3.b.5",
+      "work_activities_element_name": "Repairing and Maintaining Electronic Equipment"
+    },
+    {
+      "transferable_skills_element_id": "2.B.3.l",
+      "transferable_skills_element_name": "Repairing",
+      "work_activities_element_id": "4.A.3.b.4",
+      "work_activities_element_name": "Repairing and Maintaining Mechanical Equipment"
+    },
+    {
+      "transferable_skills_element_id": "2.B.3.l",
+      "transferable_skills_element_name": "Repairing",
+      "work_activities_element_id": "4.A.3.b.5",
+      "work_activities_element_name": "Repairing and Maintaining Electronic Equipment"
+    },
+    {
+      "transferable_skills_element_id": "2.B.3.m",
+      "transferable_skills_element_name": "Quality Control Analysis",
+      "work_activities_element_id": "4.A.1.b.2",
+      "work_activities_element_name": "Inspecting Equipment, Structures, or Materials"
+    },
+    {
+      "transferable_skills_element_id": "2.B.3.m",
+      "transferable_skills_element_name": "Quality Control Analysis",
+      "work_activities_element_id": "4.A.3.b.4",
+      "work_activities_element_name": "Repairing and Maintaining Mechanical Equipment"
+    },
+    {
+      "transferable_skills_element_id": "2.B.3.m",
+      "transferable_skills_element_name": "Quality Control Analysis",
+      "work_activities_element_id": "4.A.3.b.5",
+      "work_activities_element_name": "Repairing and Maintaining Electronic Equipment"
+    },
+    {
+      "transferable_skills_element_id": "2.B.4.e",
+      "transferable_skills_element_name": "Judgment and Decision Making",
+      "work_activities_element_id": "4.A.1.b.3",
+      "work_activities_element_name": "Estimating the Quantifiable Characteristics of Products, Events, or Information"
+    },
+    {
+      "transferable_skills_element_id": "2.B.4.e",
+      "transferable_skills_element_name": "Judgment and Decision Making",
+      "work_activities_element_id": "4.A.2.b.1",
+      "work_activities_element_name": "Making Decisions and Solving Problems"
+    },
+    {
+      "transferable_skills_element_id": "2.B.4.e",
+      "transferable_skills_element_name": "Judgment and Decision Making",
+      "work_activities_element_id": "4.A.2.b.4",
+      "work_activities_element_name": "Developing Objectives and Strategies"
+    },
+    {
+      "transferable_skills_element_id": "2.B.4.e",
+      "transferable_skills_element_name": "Judgment and Decision Making",
+      "work_activities_element_id": "4.A.2.b.6",
+      "work_activities_element_name": "Organizing, Planning, and Prioritizing Work"
+    },
+    {
+      "transferable_skills_element_id": "2.B.4.e",
+      "transferable_skills_element_name": "Judgment and Decision Making",
+      "work_activities_element_id": "4.A.4.b.3",
+      "work_activities_element_name": "Training and Teaching Others"
+    },
+    {
+      "transferable_skills_element_id": "2.B.4.e",
+      "transferable_skills_element_name": "Judgment and Decision Making",
+      "work_activities_element_id": "4.A.4.b.6",
+      "work_activities_element_name": "Providing Consultation and Advice to Others"
+    },
+    {
+      "transferable_skills_element_id": "2.B.4.e",
+      "transferable_skills_element_name": "Judgment and Decision Making",
+      "work_activities_element_id": "4.A.4.c.2",
+      "work_activities_element_name": "Staffing Organizational Units"
+    },
+    {
+      "transferable_skills_element_id": "2.B.4.e",
+      "transferable_skills_element_name": "Judgment and Decision Making",
+      "work_activities_element_id": "4.A.4.c.3",
+      "work_activities_element_name": "Monitoring and Controlling Resources"
+    },
+    {
+      "transferable_skills_element_id": "2.B.4.g",
+      "transferable_skills_element_name": "Systems Analysis",
+      "work_activities_element_id": "4.A.2.b.4",
+      "work_activities_element_name": "Developing Objectives and Strategies"
+    },
+    {
+      "transferable_skills_element_id": "2.B.4.g",
+      "transferable_skills_element_name": "Systems Analysis",
+      "work_activities_element_id": "4.A.2.b.6",
+      "work_activities_element_name": "Organizing, Planning, and Prioritizing Work"
+    },
+    {
+      "transferable_skills_element_id": "2.B.4.g",
+      "transferable_skills_element_name": "Systems Analysis",
+      "work_activities_element_id": "4.A.3.b.1",
+      "work_activities_element_name": "Working with Computers"
+    },
+    {
+      "transferable_skills_element_id": "2.B.4.g",
+      "transferable_skills_element_name": "Systems Analysis",
+      "work_activities_element_id": "4.A.4.b.6",
+      "work_activities_element_name": "Providing Consultation and Advice to Others"
+    },
+    {
+      "transferable_skills_element_id": "2.B.4.h",
+      "transferable_skills_element_name": "Systems Evaluation",
+      "work_activities_element_id": "4.A.2.b.1",
+      "work_activities_element_name": "Making Decisions and Solving Problems"
+    },
+    {
+      "transferable_skills_element_id": "2.B.4.h",
+      "transferable_skills_element_name": "Systems Evaluation",
+      "work_activities_element_id": "4.A.2.b.4",
+      "work_activities_element_name": "Developing Objectives and Strategies"
+    },
+    {
+      "transferable_skills_element_id": "2.B.4.h",
+      "transferable_skills_element_name": "Systems Evaluation",
+      "work_activities_element_id": "4.A.4.b.6",
+      "work_activities_element_name": "Providing Consultation and Advice to Others"
+    },
+    {
+      "transferable_skills_element_id": "2.B.5.a",
+      "transferable_skills_element_name": "Time Management",
+      "work_activities_element_id": "4.A.2.b.3",
+      "work_activities_element_name": "Updating and Using Relevant Knowledge"
+    },
+    {
+      "transferable_skills_element_id": "2.B.5.a",
+      "transferable_skills_element_name": "Time Management",
+      "work_activities_element_id": "4.A.2.b.5",
+      "work_activities_element_name": "Scheduling Work and Activities"
+    },
+    {
+      "transferable_skills_element_id": "2.B.5.a",
+      "transferable_skills_element_name": "Time Management",
+      "work_activities_element_id": "4.A.2.b.6",
+      "work_activities_element_name": "Organizing, Planning, and Prioritizing Work"
+    },
+    {
+      "transferable_skills_element_id": "2.B.5.a",
+      "transferable_skills_element_name": "Time Management",
+      "work_activities_element_id": "4.A.4.b.1",
+      "work_activities_element_name": "Coordinating the Work and Activities of Others"
+    },
+    {
+      "transferable_skills_element_id": "2.B.5.a",
+      "transferable_skills_element_name": "Time Management",
+      "work_activities_element_id": "4.A.4.b.4",
+      "work_activities_element_name": "Guiding, Directing, and Motivating Subordinates"
+    },
+    {
+      "transferable_skills_element_id": "2.B.5.a",
+      "transferable_skills_element_name": "Time Management",
+      "work_activities_element_id": "4.A.4.c.1",
+      "work_activities_element_name": "Performing Administrative Activities"
+    },
+    {
+      "transferable_skills_element_id": "2.B.5.b",
+      "transferable_skills_element_name": "Management of Financial Resources",
+      "work_activities_element_id": "4.A.1.b.3",
+      "work_activities_element_name": "Estimating the Quantifiable Characteristics of Products, Events, or Information"
+    },
+    {
+      "transferable_skills_element_id": "2.B.5.b",
+      "transferable_skills_element_name": "Management of Financial Resources",
+      "work_activities_element_id": "4.A.4.c.3",
+      "work_activities_element_name": "Monitoring and Controlling Resources"
+    },
+    {
+      "transferable_skills_element_id": "2.B.5.c",
+      "transferable_skills_element_name": "Management of Material Resources",
+      "work_activities_element_id": "4.A.1.b.3",
+      "work_activities_element_name": "Estimating the Quantifiable Characteristics of Products, Events, or Information"
+    },
+    {
+      "transferable_skills_element_id": "2.B.5.c",
+      "transferable_skills_element_name": "Management of Material Resources",
+      "work_activities_element_id": "4.A.4.c.3",
+      "work_activities_element_name": "Monitoring and Controlling Resources"
+    },
+    {
+      "transferable_skills_element_id": "2.B.5.d",
+      "transferable_skills_element_name": "Management of Personnel Resources",
+      "work_activities_element_id": "4.A.2.b.5",
+      "work_activities_element_name": "Scheduling Work and Activities"
+    },
+    {
+      "transferable_skills_element_id": "2.B.5.d",
+      "transferable_skills_element_name": "Management of Personnel Resources",
+      "work_activities_element_id": "4.A.4.b.1",
+      "work_activities_element_name": "Coordinating the Work and Activities of Others"
+    },
+    {
+      "transferable_skills_element_id": "2.B.5.d",
+      "transferable_skills_element_name": "Management of Personnel Resources",
+      "work_activities_element_id": "4.A.4.b.2",
+      "work_activities_element_name": "Developing and Building Teams"
+    },
+    {
+      "transferable_skills_element_id": "2.B.5.d",
+      "transferable_skills_element_name": "Management of Personnel Resources",
+      "work_activities_element_id": "4.A.4.b.3",
+      "work_activities_element_name": "Training and Teaching Others"
+    },
+    {
+      "transferable_skills_element_id": "2.B.5.d",
+      "transferable_skills_element_name": "Management of Personnel Resources",
+      "work_activities_element_id": "4.A.4.b.4",
+      "work_activities_element_name": "Guiding, Directing, and Motivating Subordinates"
+    },
+    {
+      "transferable_skills_element_id": "2.B.5.d",
+      "transferable_skills_element_name": "Management of Personnel Resources",
+      "work_activities_element_id": "4.A.4.b.5",
+      "work_activities_element_name": "Coaching and Developing Others"
+    },
+    {
+      "transferable_skills_element_id": "2.B.5.d",
+      "transferable_skills_element_name": "Management of Personnel Resources",
+      "work_activities_element_id": "4.A.4.c.2",
+      "work_activities_element_name": "Staffing Organizational Units"
+    },
+    {
+      "transferable_skills_element_id": "2.B.5.d",
+      "transferable_skills_element_name": "Management of Personnel Resources",
+      "work_activities_element_id": "4.A.4.c.3",
+      "work_activities_element_name": "Monitoring and Controlling Resources"
+    }
+  ]
+}

@@ -86,7 +86,9 @@ flowchart LR
 | `commitment_extraction.py` | Pluggable LLM derivation of a customer commitment (promise + deadline) from a post; `Null` default, `ContextualOrchestrator` real impl |
 | `temporal_expressions.py` | Pure Korean relative-time resolver for Global Ask (ADR 0150) |
 | `ask_time_axis.py` | Event-time vs ingestion-time clock choice for that window (ADR 0202) |
-| `ontology.py` | Loads `docs/ontology/lineageweave-kg.ttl`, the formal OWL 2/RDFS/SKOS vocabulary for the Knowledge Graph's node/edge types (ADR 0004) |
+| `ontology.py` | Loads the governed Turtle source tree (`lineageweave-kg.ttl` plus generated fragments), the formal OWL 2/RDFS/SKOS vocabulary for the Knowledge Graph's node/edge types, source taxonomies, and published O*NET linkages (ADR 0004, ADR 0252, ADR 0255, ADR 0256) |
+| `backend/app/occupation_rating_ingestion.py` | Projects authenticated occupation-rating evidence plus persisted source and represented-occupation catalogs (ADR 0258, ADR 0260, ADR 0261) |
+| `frontend/src/components/OccupationRatingProfile.tsx` | Selects an imported source, filters stored occupation titles without ranking, and reads exact Dashboard evidence while preserving absence, uncertainty, and warning semantics (ADR 0259–0262) |
 | `ontology_neighborhood.py` | Bounded typed ontology/provenance neighborhood (ADR 0184); PostgreSQL stays authoritative, OWL subclass is not an instance edge |
 | `ontology_source_cursor.py` | Opaque HMAC source-window continuation (ADR 0124); keyset pagination, never OFFSET |
 | `period_report.py` | Fit GRM/GPCM on persisted IRT rows, FIPC-select, EAP-score a period (ADR 0003 slice 3; Bock & Mislevy, 1982) |
@@ -679,7 +681,8 @@ vocabulary (`node_type`, `edge_type`, `entity_relationship_type`,
 `person_side`, `corporate_entity_level`) actually matches what the
 Ontology/Semantic-Layer claim implies.
 
-`docs/ontology/lineageweave-kg.ttl` is a real OWL 2 / RDFS / SKOS
+`docs/ontology/lineageweave-kg.ttl` and its deterministic governed fragments
+are a real OWL 2 / RDFS / SKOS
 ontology in Turtle syntax: classes for `Post`/`Person`/`CorporateEntity`
 (with `OurSidePerson`/`CounterpartyPerson` subclasses), object
 properties for each `edge_type_code` and `entity_relationship_type`
@@ -693,7 +696,7 @@ specification over it, in the same sense W3C's own stack uses "semantic
 layer" (RDFS/OWL as the governed conceptual layer over raw data), not a
 separate BI-metrics product and not a parallel triple store.
 
-`lineageweave/ontology.py` parses the Turtle file once with `rdflib`
+`lineageweave/ontology.py` parses the Turtle source tree once with `rdflib`
 (pure Python, no Rust toolchain, unlike `fast-mlsirm`) and exposes the
 vocabulary as importable IRI constants, so application code has one
 canonical name per class/property instead of re-typing lookup codes as
@@ -709,6 +712,19 @@ must not declare a term for a code nothing actually seeds. This is the
 enforcement mechanism: a future PR that adds a new `edge_type` or
 `entity_relationship_type` code without updating the ontology fails
 this test, not just a docstring's word.
+
+### Authorized job architecture snapshots
+
+The public SOC/O*NET vocabulary and an employer's job architecture remain
+different graphs. ADR 0263 adds an organization-scoped PostgreSQL source
+boundary for private job-family/job-series snapshots: immutable source
+metadata owns normalized nodes, source-declared broader/narrower edges, and
+optional explicit bindings to a versioned external occupation scheme. An edge
+table preserves multiple-family membership; the importer rejects cycles and
+never derives a parent or binding from a label or code pattern. The snapshot
+is source evidence only. It does not create a person, post, organizational
+unit, competency, score, weight, or ontology assertion, and runtime rows never
+enter repository artifacts.
 
 ## Phase 6c: post content normalization before any LLM/embedding call
 

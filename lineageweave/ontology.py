@@ -42,10 +42,24 @@ LW = Namespace("https://contextualwisdomlab.github.io/LineageWeave/ontology#")
 LOOKUP_CODE = LW.lookupCode
 
 _ONTOLOGY_PATH = Path(__file__).resolve().parents[1] / "docs" / "ontology" / "lineageweave-kg.ttl"
+_ONTOLOGY_FRAGMENT_PATHS = (
+    Path(__file__).resolve().parents[1]
+    / "docs"
+    / "ontology"
+    / "soc-2018-structure.ttl",
+    Path(__file__).resolve().parents[1]
+    / "docs"
+    / "ontology"
+    / "onet-31-content-model.ttl",
+    Path(__file__).resolve().parents[1]
+    / "docs"
+    / "ontology"
+    / "onet-31-content-model-linkages.ttl",
+)
 
 
 def load_ontology() -> Graph:
-    """Parses `docs/ontology/lineageweave-kg.ttl` fresh. Callers that
+    """Parse the governed Turtle source tree fresh. Callers that
     need it repeatedly should cache the result themselves (see
     `ONTOLOGY` below for the module-level singleton); this function
     exists separately so tests can load a fresh graph without relying
@@ -53,6 +67,8 @@ def load_ontology() -> Graph:
     """
     graph = Graph()
     graph.parse(_ONTOLOGY_PATH, format="turtle")
+    for fragment in _ONTOLOGY_FRAGMENT_PATHS:
+        graph.parse(fragment, format="turtle")
     return graph
 
 

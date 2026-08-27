@@ -3,6 +3,10 @@
 **Status:** Accepted
 **Date:** 2026-08-26
 **Extends:** [ADR 0004](0004-knowledge-graph-ontology.md), [ADR 0145](0145-psychometric-channel-weight-estimation.md), [ADR 0207](0207-repository-case-ontology-namespace-canonical.md), [ADR 0232](0232-worker-function-taxonomy-in-the-published-ontology.md)
+<<<<<<< HEAD
+=======
+**Superseded in part by:** [ADR 0252](0252-complete-2018-soc-hierarchy.md), which expands the major-group-only scheme into the complete 2018 SOC hierarchy.
+>>>>>>> origin/feat/onet-rating-occupation-filter
 
 ## Context
 
