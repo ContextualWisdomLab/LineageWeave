@@ -13,17 +13,11 @@ from __future__ import annotations
 import hashlib
 
 import pytest
-<<<<<<< HEAD
-from rdflib import Graph, Literal
-from rdflib.namespace import RDF, SKOS
 
-from lineageweave.ontology import LW, all_declared_lookup_codes
-=======
 from rdflib import Graph, Literal, URIRef
 from rdflib.namespace import RDF, SKOS
 
 from lineageweave.ontology import LW, load_ontology
->>>>>>> origin/main
 from lineageweave import worker_function_taxonomy as taxonomy
 from lineageweave.worker_function_taxonomy import (
     WORKER_FUNCTION_DOMAINS,
@@ -97,16 +91,10 @@ def test_worker_functions_carry_no_lookup_code() -> None:
     from lineageweave.ontology import iri_for_lookup_code
 
     assert iri_for_lookup_code("worker_function_data_synthesizing") is None
-<<<<<<< HEAD
-    # The pre-existing governed vocabulary is unchanged in size: the 31
-    # lookup codes the schema seeded before this ADR are still all there
-    # is.
-    assert len(all_declared_lookup_codes()) == 31
-=======
+
     graph = load_ontology()
     for record in worker_function_records():
         assert (URIRef(record.iri), LW.lookupCode, None) not in graph
->>>>>>> origin/main
 
 
 @pytest.mark.parametrize(

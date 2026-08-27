@@ -1,6 +1,6 @@
 # O*NET 31.0 Content Model Reference evidence
 
-This supporting note records the source governed by ADR 0255. It introduces
+This supporting note records the source governed by ADR 0264. It introduces
 no architecture decision.
 
 ## Source and reproduction

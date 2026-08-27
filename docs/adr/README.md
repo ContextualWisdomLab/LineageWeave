@@ -31,7 +31,7 @@ decision from them.
 <<<<<<< HEAD
 | [`IO_OCCUPATIONAL_TAXONOMY_REFERENCES.md`](../doctoring/IO_OCCUPATIONAL_TAXONOMY_REFERENCES.md) | [0245](0245-io-occupational-taxonomy-in-the-published-ontology.md) |
 | [`OCCUPATIONAL_CONSTRUCT_REFERENCES.md`](../doctoring/OCCUPATIONAL_CONSTRUCT_REFERENCES.md) | [0248](0248-occupational-construct-evidence-boundary.md) |
-| [`ONET_31_CONTENT_MODEL_REFERENCES.md`](../doctoring/ONET_31_CONTENT_MODEL_REFERENCES.md) | [0255](0255-onet-31-content-model-ontology.md) |
+| [`ONET_31_CONTENT_MODEL_REFERENCES.md`](../doctoring/ONET_31_CONTENT_MODEL_REFERENCES.md) | [0264](0264-onet-31-content-model-ontology.md) |
 | [`SOC_2018_HIERARCHY_REFERENCES.md`](../doctoring/SOC_2018_HIERARCHY_REFERENCES.md) | [0252](0252-complete-2018-soc-hierarchy.md) |
 | [`ONET_31_LINKAGE_REFERENCES.md`](../doctoring/ONET_31_LINKAGE_REFERENCES.md) | [0256](0256-onet-content-model-published-linkages.md) |
 | [`ONET_RATING_STORE_REFERENCES.md`](../doctoring/ONET_RATING_STORE_REFERENCES.md) | [0257](0257-onet-occupation-rating-observation-store.md) |
