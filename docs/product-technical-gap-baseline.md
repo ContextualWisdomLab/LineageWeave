@@ -1,5 +1,25 @@
 # Product & Technical Gap Baseline
 
+> Exact-head loop overlay: 2026-08-28 KST. Protected `main` was
+> `bbb191924e9881a5201f1ecf63c854d92992cc1c`; seven PRs and nine issues were
+> open. PR #763 was `b51d3bd8872b` and PR #762 was `e6ca33dba1b5`; both were
+> mergeable, normal squash auto-merge was enabled, exact-head Checks were still
+> running, and no qualifying independent approval existed. PRs #702
+> (`93e7b81d096d`), #679 (`135dfe7c4266`), #672 (`a3e87a89185f`), #667
+> (`0c0f4af572a9`), and #640 (`bd73e0a43ae1`) remained draft and dirty against
+> `main`. Central ruleset 18156473 and repository no-force-push ruleset
+> 21065108 remain active. This overlay supersedes every older queue count below.
+> Checks from older heads, stacked bases, or merged PRs are not transferred.
+>
+> Current-runtime boundary: the official Compose project was healthy at the
+> HTTP health route, but its PostgreSQL schema did not yet contain
+> `source_post_voice`; therefore no current Voice-history aggregate,
+> authenticated project-history API result, or rendered authenticated UI result
+> is claimed. Older aggregate observations below remain dated supporting
+> evidence, not confirmation of this exact head. The checked repository names
+> are `ContextualWisdomLab/LineageWeave`, `RankWeave`, `ThreadWeave`, `TEPP`,
+> and lowercase canonical `ContextualWisdomLab/disksage`.
+
 > Voice-of-X delivery snapshot: 2026-08-27 KST. Protected `main` was
 > `ff7431bd1851c03e737808d22c6a2d43968582f9`; PR #713 was
 > `850494c3861703862a76cfe564381a41243c6c2d`; stacked PR #717 was
@@ -781,6 +801,9 @@ post-merge reruns (not transferable evidence for later heads):
 | ---: | --- | --- |
 | #644 | Native workspace surface split: 9 conditionally rendered components as lazy() dynamic imports behind a SurfaceBoundary error boundary (fallback spinner, alert + admin-guidance recovery). Build emits 9 chunks (1.5-37 kB) with main bundle 543 kB; 460 frontend tests, tsc, Storybook build green. PublicClaimVerification stays eager for synchronous Ask rendering | ADR 0220-adjacent |
 | #643 | Shared token-backed StatusNotice with success/unavailable/retry states (ADR 0220), WorkspaceCalendar auth-unavailable copy, 5-locale i18n; Full suite 22m54s green | ADR 0220 |
+| #643 | Shared StatusNotice (ADR 0220): success/unavailable/retry states, WorkspaceCalendar auth-unavailable copy, 5-locale i18n; CI Full suite 22m54s green | ADR 0220 |
+| #644 | Native workspace surface split: 9 conditionally rendered components as lazy() dynamic imports behind a SurfaceBoundary error boundary; build emits 9 chunks (1.5-37 kB), main bundle 543 kB; 470 frontend tests, tsc, Storybook green | — |
+| #762 | Evidence-bound project history (ADR 0243): /api/projects/{key}/history endpoint, project_history.py projection, fetchProjectHistory client, standalone ProjectHistoryTimeline component; supersedes #668 (3-way merge kept only the additive +2279/-0, dropping the branch's 8k shared-file reverts; popup UI hookup deferred as a scoped follow-up) | ADR 0243 |
 | #761 | Temporal imported-primary Voice history (ADR 0252): migration 0243 (`effective_to` + GiST primary-period exclusion + synchronize trigger), refined 0237 `least()` effective_from backfill, `effective_from/effective_to` dataclass/export + `coalesce($2,$3)` cutoff predicate. Completes the half-shipped main layer that queried `voice.effective_to` against a missing column. CI Full suite 19m13s green | ADR 0252 |
 | #629 | Provider work released before embedding pool bound; landing reads bounded (k6-verified concurrency); merged with strix-only infra timeout (Full suite + all other gates green) | — |
 | #750 | Leftover-map unexplained leftover share persisted (`report_leftover_map_unexplained_share`, share `s = U² / R²`) | ADR 0233 |

@@ -166,6 +166,11 @@ from backend.app.occupation_rating_ingestion import (
     fetch_occupation_ratings,
     fetch_rating_source_occupations,
 )
+from backend.app.project_history import (
+    ProjectHistoryNotFound,
+    ProjectHistoryRequestError,
+    fetch_project_history_projection,
+)
 from backend.app.post_summary_ingestion import (
     fetch_persisted_summary,
     persist_post_summary,
@@ -2587,6 +2592,33 @@ async def search_occupational_constructs(
             occupational_construct_search_error_detail(exc),
         ) from None
     return search_page_to_payload(page)
+
+@app.get("/api/projects/{project_key}/history")
+async def read_project_history(
+    project_key: str,
+    focus_post_id: UUID | None = Query(None),
+    knowledge_cutoff: str | None = Query(None),
+    account: CurrentAccount = Depends(get_current_account),
+    pool: asyncpg.Pool = Depends(get_pool),
+) -> dict[str, Any]:
+    """Return one authorization-bounded project-history evidence projection."""
+
+    _require_post_read(account)
+    try:
+        cutoff = parse_as_of_clock(knowledge_cutoff) if knowledge_cutoff else datetime.now(timezone.utc)
+        async with pool.acquire() as conn:
+            return await fetch_project_history_projection(
+                conn,
+                project_key=project_key,
+                focus_post_id=str(focus_post_id) if focus_post_id else None,
+                knowledge_cutoff=cutoff,
+                corporate_entity_ids=sorted(account.corporate_entity_ids),
+                process_unit_ids=sorted(account.process_unit_ids),
+            )
+    except ProjectHistoryRequestError as exc:
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, str(exc)) from exc
+    except ProjectHistoryNotFound:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "project history not found") from None
 
 
 @app.get("/api/posts/{post_id}/counterparties")
