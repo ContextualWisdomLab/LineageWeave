@@ -100,6 +100,7 @@ import { SimilarVocPanel } from "./components/SimilarVocPanel";
 import { chatEvidenceKindLabel } from "./evidenceKindLabels";
 import { WorkspaceNav, type WorkspaceDestination } from "./components/WorkspaceNav";
 import { OperationsDashboard } from "./components/OperationsDashboard";
+import { OccupationRatingProfile } from "./components/OccupationRatingProfile";
 import { initialWorkspaceDestination } from "./gnbChrome";
 import { LineageDag } from "./LineageDag";
 import { PostBody } from "./PostBody";
@@ -5119,13 +5120,16 @@ export default function App({ showLabPanels = false }: { showLabPanels?: boolean
       />
       <main>
         {destination === "dashboard" ? (
-          <OperationsDashboard
-            accessToken={accessToken}
-            onOpenPost={(postId) => {
-              setPostToOpen(postId);
-              setDestination("board");
-            }}
-          />
+          <>
+            <OperationsDashboard
+              accessToken={accessToken}
+              onOpenPost={(postId) => {
+                setPostToOpen(postId);
+                setDestination("board");
+              }}
+            />
+            <OccupationRatingProfile accessToken={accessToken} />
+          </>
         ) : null}
         {destination === "board" ? (
           <PostList

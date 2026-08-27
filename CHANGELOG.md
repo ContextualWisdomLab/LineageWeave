@@ -8,6 +8,17 @@ All notable changes to this project are documented here. Format follows
 
 ### Added
 
+- Each imported rating source now exposes its exact represented O*NET-SOC
+  code/title catalog, and the Dashboard uses that catalog instead of requiring
+  users to know or type an occupation code (ADR 0261).
+- Occupation evidence source selection now comes from an authenticated catalog
+  of actually imported rating artifacts, with release, publisher, license,
+  digest, URL, and row-count provenance and fail-closed loading/empty/error
+  states (ADR 0260).
+- The existing Dashboard now includes an authenticated occupation-evidence
+  view with exact source selection, sample/error context, textual suppression
+  warnings, artifact links, responsive table access, and distinct unavailable
+  versus empty next actions (ADR 0259).
 - Authenticated occupation profiles can now read one exact imported
   release/source with rating and scale artifact provenance, exact decimal
   strings, uncertainty, suppression/relevance flags, and explicit unavailable

@@ -29,46 +29,57 @@ explicit unavailable state, not a reason to infer mappings from labels.
 | Occupation-to-construct relations | ADR 0257 defines a candidate 3NF, release/source-partitioned immutable observation store and deterministic pinned-CSV importer preserving value, optional category, sample/error/CI, suppression, relevance, exact `MM/YYYY` source update month, source digest, and domain provenance. The official O*NET 31.0 Abilities file (94,640 rows, 910 occupations, 52 elements; SHA-256 `7e9cd79791ce6014e1d26d0a449ae5b1e7aa7ef52d39b3934c3bb8d438104b88`) and all 33 Scales Reference rows (SHA-256 `bcba23858ce21ecaacbde303a8993e35d46724b4afb8c9ec2b10e04f42adcfc9`) imported into a throwaway local PostgreSQL database with all 94,640 observations, 55 suppression flags, 7,572 not-relevant flags, and source months from `12/2004` through `08/2026`; every scale retained `scales_reference` artifact provenance, the database was dropped afterward, and no corpus is committed or claimed deployed | Pass exact-head review/checks and protected merge; validate and import every selected official rating artifact through an authorized runtime, returning only aggregate evidence; never invent or locally normalize a weight |
 | Job-family and job-series semantics | No authoritative employer-specific job architecture is present | Define an organization-neutral import contract that preserves the authorized source hierarchy and distinguishes standard occupation codes from employer job families/series; no label-based binding |
 | Temporal and multilevel interpretation | Static vocabulary only; no person-level inference is asserted | Version valid and transaction time, preserve occupation/organization/unit nesting and multiple membership, and require TEPP or the owning Rust psychometric service before any calibrated temporal or multilevel result |
-| Product consumption | ADR 0258 defines a candidate authenticated occupation-rating API that distinguishes unavailable source from empty profile and returns exact decimal/uncertainty/warning/artifact provenance without ranking; accessible UI and authenticated runtime evidence remain absent | Pass exact-head review/checks and protected merge; add the accessible exploration UI, synthetic Storybook unavailable/empty/suppressed/paginated states, screenshots, and authenticated aggregate runtime evidence without exposing identifying records |
+| Product consumption | ADR 0258 defines a candidate authenticated occupation-rating API; ADR 0259 adds a candidate Dashboard evidence view; ADR 0260 replaces release/source code entry with persisted artifact selection; ADR 0261 replaces occupation-code entry with stored titles represented in that source. Component/API/PostgreSQL tests and Storybook scenes cover value/error/warning, absence, source/occupation selection, stale-response, pagination, and safe-link contracts; populated synthetic scenes were visually audited at 1440×900 and 390×844. Protected delivery and authenticated runtime evidence remain absent | Pass exact-head review/checks and protected merge; verify the authenticated catalogs, profile API, and rendered Dashboard against an authorized imported source using only aggregate/non-identifying evidence |
 
 ### Current exact-head PR queue
 
 | PR | Exact observed head | Base | Observed gate state |
 |---:|---|---|---|
-| #735 | `56d8cbfa` | `feat/onet-occupation-ratings-contract` | clean immediately after exact parent merge; hosted checks had not yet registered on this head, so this is not merge-readiness evidence |
-| #734 | `0dedf33b` | `feat/onet-content-model-linkages` | unstable; two hosted gates pending after exact parent reconciliation |
-| #732 | `3e30402d` | `feat/onet-31-content-model-ontology` | unstable; one hosted gate pending after exact parent reconciliation |
-| #731 | `9654bb8b` | `feat/soc-2018-full-hierarchy` | unstable; one hosted gate pending after exact parent reconciliation |
-| #724 | `fdec8f65` | `feat/io-occupational-taxonomy` | clean; hosted gates passed; parent-first stack gate remains |
-| #719 | `6ee2278a` | `feat/io-psych-construct-ontology` | unstable; full tests, frontend, CodeRabbit, and Devin Review passed |
-| #718 | `2723fea3` | `feat/fja-worker-function-ontology` | unstable; full tests, frontend, CodeRabbit, and Devin Review passed |
-| #717 | `771a8edf` | `feat/voice-of-x-complete-taxonomy` | unstable; 1 pending check(s) |
-| #716 | `8b54b2f7` | `fix/structured-workflow-exact-pin` | clean; no non-passing check observed |
-| #714 | `aa93318f` | `main` | blocked; no non-passing check observed |
-| #713 | `cc3dfc14` | `main` | blocked; review required; 13 pending check(s) |
-| #711 | `8902e37f` | `feat/dashboard-case-metrics` | clean; no non-passing check observed |
-| #710 | `8df04b68` | `main` | blocked; review required; no non-passing check observed |
-| #709 | `8ef4090c` | `main` | blocked; review required; 11 pending check(s) |
-| #704 | `027323cf` | `main` | blocked; review required; 2 failed check(s) |
-| #702 | `5de66ab9` | `main` | blocked; review required; 2 pending check(s) |
-| #701 | `cc3351a9` | `main` | blocked; review required; 1 failed check(s) |
-| #700 | `1bc99eca` | `main` | blocked; review required; 1 failed check(s) |
-| #680 | `efe864e5` | `main` | blocked; 1 failed check(s) |
-| #679 | `13ecf41d` | `main` | blocked; no non-passing check observed |
-| #672 | `a3e87a89` | `main` | blocked; review required; 1 failed check(s) |
-| #668 | `1194f44d` | `main` | blocked; review required; 1 failed check(s) |
-| #667 | `c2d11a8a` | `main` | blocked; review required; 2 pending check(s) |
-| #658 | `15d670f0` | `main` | blocked; review required; 1 failed check(s) |
-| #657 | `9f71681c` | `main` | blocked; review required; 1 failed check(s) |
-| #644 | `f53dd28e` | `main` | blocked; review required; 1 failed check(s) |
-| #643 | `8767de1b` | `main` | blocked; review required; 1 failed check(s); 1 pending check(s) |
-| #640 | `5594029c` | `main` | blocked; no non-passing check observed |
-| #639 | `2f4b1bff` | `main` | blocked; review required; 1 failed check(s) |
-| #632 | `24262a99` | `main` | blocked; review required; 1 failed check(s) |
-| #629 | `b721b0f2` | `main` | blocked; review required; 1 failed check(s) |
+| #740 | `52814353` | `feat/onet-rating-read-api` | unstable; three non-passing hosted contexts after opening the occupation evidence UI PR |
+| #739 | `9a3f380f` | `feat/operations-candidate-priority` | unstable; two non-passing hosted contexts |
+| #738 | `026ba803` | `feat/onet-rating-importer` | unstable; one hosted context still running after exact parent reconciliation; unresolved review threads 0 |
+| #735 | `b0355999` | `feat/onet-occupation-ratings-contract` | unstable; one non-passing hosted context |
+| #734 | `4c3677af` | `feat/onet-content-model-linkages` | clean snapshot; parent-first stack gate remains |
+| #733 | `b53c1edd` | `feat/io-psych-construct-extraction` | unstable; two non-passing hosted contexts |
+| #732 | `7f60aa8e` | `feat/onet-31-content-model-ontology` | clean snapshot; parent-first stack gate remains |
+| #731 | `b3b9b360` | `feat/soc-2018-full-hierarchy` | clean snapshot; parent-first stack gate remains |
+| #728 | `e52a8272` | `feat/dashboard-case-metrics` | clean snapshot; parent-first stack gate remains |
+| #726 | `d6a12fbb` | `feat/io-psych-construct-catalog` | unstable; one non-passing hosted context |
+| #724 | `1d2f8052` | `feat/io-occupational-taxonomy` | clean snapshot; parent-first stack gate remains |
+| #723 | `316fc190` | `feat/io-psych-construct-persistence` | clean snapshot; parent-first stack gate remains |
+| #721 | `9214c50f` | `feat/io-psych-construct-ontology` | clean snapshot; parent-first stack gate remains |
+| #720 | `dda0531d` | `main` | blocked; review required; one non-passing hosted context |
+| #719 | `6ee2278a` | `feat/io-psych-construct-ontology` | clean snapshot; parent-first stack gate remains |
+| #718 | `2723fea3` | `feat/fja-worker-function-ontology` | clean snapshot; parent-first stack gate remains |
+| #717 | `bf355876` | `feat/voice-of-x-complete-taxonomy` | unstable; one non-passing hosted context |
+| #716 | `0a8bd0b6` | `fix/structured-workflow-exact-pin` | unstable; two non-passing hosted contexts |
+| #714 | `76a602c8` | `main` | blocked; one non-passing hosted context |
+| #713 | `850494c3` | `main` | blocked; review required; one non-passing hosted context |
+| #711 | `05e5f520` | `feat/dashboard-case-metrics` | clean snapshot; parent-first stack gate remains |
+| #710 | `27a917ee` | `main` | blocked; review required |
+| #709 | `8ef4090c` | `main` | blocked; review required; all hosted checks passed; auto-merge awaits the independent approval gate |
+| #704 | `7b9a70ee` | `main` | blocked; review required; one non-passing hosted context |
+| #702 | `05bdd5b7` | `main` | blocked; two non-passing hosted contexts |
+| #701 | `cc3351a9` | `main` | blocked; review required; one non-passing hosted context |
+| #700 | `1bc99eca` | `main` | blocked; review required; one non-passing hosted context |
+| #680 | `b05e3100` | `main` | blocked; one non-passing hosted context |
+| #679 | `135dfe7c` | `main` | blocked; review required; two non-passing hosted contexts |
+| #672 | `a3e87a89` | `main` | blocked; review required; one non-passing hosted context |
+| #668 | `234f975b` | `main` | blocked; review required; three non-passing hosted contexts |
+| #667 | `92a64c40` | `main` | blocked; one non-passing hosted context |
+| #658 | `15d670f0` | `main` | blocked; review required; one non-passing hosted context |
+| #657 | `9f71681c` | `main` | blocked; review required; one non-passing hosted context |
+| #644 | `f53dd28e` | `main` | blocked; review required; one non-passing hosted context |
+| #643 | `8767de1b` | `main` | blocked; review required; one non-passing hosted context |
+| #640 | `ebfe60af` | `main` | blocked; one non-passing hosted context |
+| #639 | `2f4b1bff` | `main` | blocked; review required; one non-passing hosted context |
+| #632 | `24262a99` | `main` | blocked; review required; one non-passing hosted context |
+| #629 | `b721b0f2` | `main` | blocked; review required; one non-passing hosted context |
 
-> Dashboard delivery snapshot: 2026-08-26 07:15 KST. Protected `main` was
-> `494b54e2245040bcf02b45376f221c37cd437e76`. This local branch is not
+> Dashboard delivery snapshot: 2026-08-27 05:40 KST. Protected `main` was
+> `ff7431bd1851c03e737808d22c6a2d43968582f9`. `mergeStateStatus` and hosted
+> context counts are observations, not protected merge-readiness evidence.
+> This local branch is not
 > protected-main release evidence.
 
 ## Operations Dashboard PRD/TRD traceability
