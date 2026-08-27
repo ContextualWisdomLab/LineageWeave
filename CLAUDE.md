@@ -42,7 +42,8 @@ Opening a cutoff-rewritten title shows **Body this run knew** from
 `source_post_revision` beside the live rewrite, with both clocks named.
 Compare those two texts before treating the live body as reconstructed
 evidence; do not invent an earlier sentence when no revision covers the
-cutoff.
+cutoff. Global Ask optional `knowledge_cutoff` uses the same cover
+(ADR 0216).
 
 ## Where the rest lives
 

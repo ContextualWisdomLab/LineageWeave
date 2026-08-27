@@ -335,6 +335,9 @@ v0.88.0). Do not invent a theta.
 Opening a cutoff-rewritten title shows **Body this run knew** from
 `source_post_revision` beside the live rewrite (ADR 0025 / v2.1.0).
 Do not invent the earlier sentence when no revision covers the cutoff.
+Global Ask uses the same revision cover when `knowledge_cutoff` is set
+(ADR 0216 / #271); omit the field to keep the live-query contract, and
+never substitute a live body for a missing historical cover.
 
 A corporate-entity similarity result has three outcomes: unique, miss,
 or tie (ADR 0026). A tie is not a miss. Keep the organization name
