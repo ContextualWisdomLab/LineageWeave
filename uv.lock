@@ -685,11 +685,7 @@ wheels = [
 
 [[package]]
 name = "lineageweave"
-<<<<<<< HEAD
 version = "2.20.0"
-=======
-version = "2.19.0"
->>>>>>> origin/main
 source = { editable = "." }
 dependencies = [
     { name = "certifi" },
