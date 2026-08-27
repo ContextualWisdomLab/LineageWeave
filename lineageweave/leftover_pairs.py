@@ -1,7 +1,7 @@
 """Jeon leftover post–criterion pairs after a main-effect IRT.
 
 Implements ADR 0048 as amended by ADR 0119, ADR 0163, ADR 0164, ADR 0182,
-and ADR 0185.
+ADR 0185, ADR 0201, and ADR 0233.
 
 Does not import ``fast_mlsirm`` or ``period_report``. A Gabriel biplot
 of the residual ``R = Y − E[Y|θ, item]`` supplies person and item
@@ -25,10 +25,11 @@ further names leftover-map cross share ``x = 2 R̂ U / R²`` of the raw
 residual after that same truncated two-axis reconstruction,
 so the identity remainder left by the truncation is not confused with
 leftover residual ``R``, leftover-map distance ``d``, or unexplained
-leftover ``U``. Explained leftover share ``e = R̂² / R²`` and
-unexplained leftover share ``s = U² / R²`` are not persisted. Signed
-reconstruction ``R̂`` is persisted so ``U + R̂ = R`` stays auditable. ``x``
-may be negative when reconstruction and unexplained leftover have opposite signs.
+leftover ``U``. Each pair also names leftover-map unexplained leftover
+share ``s = U² / R²`` of raw residual (ADR 0233). Explained leftover
+share ``e = R̂² / R²`` is not persisted. Signed reconstruction ``R̂`` is
+persisted so ``U + R̂ = R`` stays auditable. ``x`` may be negative when
+reconstruction and unexplained leftover have opposite signs.
 """
 
 from __future__ import annotations
@@ -59,6 +60,7 @@ class LeftoverPair:
     leftover_map_unexplained: float | None = None
     leftover_map_cross_share: float | None = None
     leftover_map_reconstruction: float | None = None
+    leftover_map_unexplained_share: float | None = None
 
 
 @dataclass(frozen=True)
@@ -99,11 +101,13 @@ def leftover_pairs_from_residual(
     expected ``E[Y|θ, item]``. Stored leftover-map rank is the number
     of Gabriel singular values above the floor. When Gabriel coordinates
     exist, unexplained leftover ``U = R − R̂`` names the leftover cell
-    the two-axis map does not reconstruct, and leftover-map cross share
+    the two-axis map does not reconstruct, leftover-map cross share
     ``x = 2 R̂ U / R²`` names the identity remainder of raw residual
     ``R`` after two-axis reconstruction ``R̂ = ξ_{1:2} · ζ_{1:2}`` and
-    unexplained leftover ``U = R − R̂``. Signed ``R̂`` is persisted with
-    ``U`` so their raw-residual identity stays auditable. Without a complete-case map there is no pair
+    unexplained leftover ``U = R − R̂``, and leftover-map unexplained
+    leftover share ``s = U² / R²`` names the square share of that
+    leftover. Signed ``R̂`` is persisted with ``U`` so their raw-residual
+    identity stays auditable. Without a complete-case map there is no pair
     to name (ADR 0168); the caller reads coverage counts instead of a
     center-distance stand-in pair.
     """
@@ -156,7 +160,7 @@ def leftover_map_from_residual(
     candidates: list[
         tuple[
             float, str, str, float, float, float,
-            float | None, float | None, float | None,
+            float | None, float | None, float | None, float | None,
         ]
     ] = []
     if person_pos is not None and item_pos is not None:
@@ -180,6 +184,7 @@ def leftover_map_from_residual(
             residual_cell = float(residual[person, item])
             unexplained = _unexplained_leftover(residual_cell, reconstruction)
             share = _leftover_map_cross_share(residual_cell, reconstruction)
+            unexplained_share = _leftover_map_unexplained_share(residual_cell, reconstruction)
             candidates.append(
                 _candidate_row(
                     post_ids,
@@ -193,6 +198,7 @@ def leftover_map_from_residual(
                     unexplained,
                     share,
                     reconstruction if np.isfinite(reconstruction) else None,
+                    unexplained_share,
                 )
             )
     if not candidates:
@@ -244,6 +250,25 @@ def _leftover_map_cross_share(residual: float, reconstruction: float) -> float |
     return None
 
 
+def _leftover_map_unexplained_share(residual: float, reconstruction: float) -> float | None:
+    """Return ``s = U² / R²`` when both terms are finite; otherwise omit.
+
+    Unexplained leftover ``U = R − R̂`` is computed internally.
+    ``s`` is nonnegative because it is a square share. A rank-0 origin
+    cell stores ``0.0`` when ``R = R̂ = U = 0``. A finite share greater
+    than 1 is stored when ``|U| > |R|``; do not clamp.
+    """
+    if not np.isfinite(residual) or not np.isfinite(reconstruction):
+        return None
+    unexplained = float(residual - reconstruction)
+    if abs(residual) > _LEFTOVER_SINGULAR_FLOOR:
+        share = float((unexplained * unexplained) / (residual * residual))
+        return share if np.isfinite(share) else None
+    if abs(reconstruction) <= _LEFTOVER_SINGULAR_FLOOR and abs(unexplained) <= _LEFTOVER_SINGULAR_FLOOR:
+        return 0.0
+    return None
+
+
 def _candidate_row(
     post_ids: list[str],
     item_codes: tuple[str, ...],
@@ -256,11 +281,12 @@ def _candidate_row(
     leftover_map_unexplained: float | None,
     leftover_map_cross_share: float | None,
     leftover_map_reconstruction: float | None,
+    leftover_map_unexplained_share: float | None,
 ) -> tuple[
     float, str, str, float, float, float,
-    float | None, float | None, float | None,
+    float | None, float | None, float | None, float | None,
 ]:
-    """One observed cell: distance, ids, residual, Y, E, U, cross share, R̂."""
+    """One observed cell: distance, ids, residual, Y, E, U, cross share, R̂, s."""
     leftover_residual = float(residual[person, item])
     observed_response = float(matrix[person, item])
     expected_response = float(expected[person, item])
@@ -276,6 +302,7 @@ def _candidate_row(
         leftover_map_unexplained,
         leftover_map_cross_share,
         leftover_map_reconstruction,
+        leftover_map_unexplained_share,
     )
 
 
@@ -283,7 +310,7 @@ def _pair_from_candidate(
     pair_kind: str,
     row: tuple[
         float, str, str, float, float, float,
-        float | None, float | None, float | None,
+        float | None, float | None, float | None, float | None,
     ],
     leftover_map_rank: int,
 ) -> LeftoverPair:
@@ -302,6 +329,7 @@ def _pair_from_candidate(
         leftover_map_unexplained=row[6],
         leftover_map_cross_share=row[7],
         leftover_map_reconstruction=row[8],
+        leftover_map_unexplained_share=row[9],
     )
 
 

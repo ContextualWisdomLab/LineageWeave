@@ -1053,6 +1053,7 @@ export interface LeftoverPair {
   leftover_map_unexplained?: number | null;
   leftover_map_cross_share?: number | null;
   leftover_map_reconstruction?: number | null;
+  leftover_map_unexplained_share?: number | null;
 }
 
 export interface LeftoverMapAxis {

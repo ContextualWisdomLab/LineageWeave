@@ -271,16 +271,19 @@ stops startup instead of leaving a healthy-looking partial schema, and
 application code must not compensate for a missing table.
 
 Period leftover pairs (ADR 0017 / 0018 / 0048 / 0049 / 0119 / 0158 / 0162 /
-0163 / 0164 / 0182 / 0201) are computed in `lineageweave/leftover_pairs.py` from the
+0163 / 0164 / 0182 / 0185 / 0201 / 0233) are computed in `lineageweave/leftover_pairs.py` from the
 residual after a real GRM/GPCM score, never invented. Distances are
 Euclidean on the two-dimensional Gabriel leftover map; missing cells stay
 out of the factorization. Closest and farthest post–criterion pairs
 persist to `report_leftover_pair` with signed residual `R`, observed
 `Y`, and expected `E[Y|θ, item]` so `R = Y − E` remains auditable,
 plus leftover-map rank so rank 0 is not read as structure,
-unexplained leftover, and the ADR 0201 reconstruction evidence. ADR 0201
-is the sole normative reconstruction formula, storage, and audit contract;
-do not duplicate or reinterpret it here. The pairs sit above the member
+unexplained leftover, the ADR 0201 reconstruction evidence, ADR 0185
+cross-share evidence, and ADR 0233 unexplained leftover share
+`s = U² / R²`. ADR 0201 is the sole normative reconstruction formula,
+storage, and audit contract; do not duplicate or reinterpret it here.
+ADR 0233 is the sole unexplained leftover share contract; do not persist
+leftover-map explained share `e` here. The pairs sit above the member
 list so a click opens that post with the leftover criterion current
 in Post quality (ADR 0158). Leftover-map axis share (ADR 0148) is Gabriel inertia of
 residual SVD axes 1 and 2 and persists to `report_leftover_map_axis`.

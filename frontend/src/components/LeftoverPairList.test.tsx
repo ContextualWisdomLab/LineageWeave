@@ -125,7 +125,61 @@ describe("LeftoverPairList", () => {
     expect(screen.getByRole("button")).toHaveTextContent(expectedAction);
   });
 
-  it("names leftover-map reconstruction so the next click opens that post", () => {
+  it("names leftover-map unexplained leftover share so the next click opens that post", () => {
+    render(
+      <LeftoverPairList
+        pairs={[
+          {
+            ...PAIRS[0],
+            leftover_map_unexplained: 0.05,
+            leftover_map_reconstruction: 0.35,
+            leftover_map_cross_share: 0.12,
+            leftover_map_unexplained_share: 0.02,
+          },
+        ]}
+        criterionLabel={criterionLabel}
+        onSelectPost={vi.fn()}
+      />,
+    );
+
+    const closest = screen.getByRole("button");
+    expect(closest).toHaveTextContent(
+      "Leftover map leaves unexplained leftover share 0.02 of raw residual after IRT main effects. Open this post to read sales-lead.",
+    );
+    expect(closest).toHaveTextContent("U²/R² 0.02");
+    expect(closest).toHaveTextContent("2R̂U/R² 0.12");
+    expect(closest).toHaveTextContent("R̂ +0.35");
+    expect(closest).toHaveTextContent("U +0.05");
+    expect(closest).toHaveTextContent("R +0.40");
+    expect(closest).toHaveTextContent("d 0.12");
+  });
+
+  it("keeps leftover-map cross share guidance when unexplained leftover share is missing", () => {
+    render(
+      <LeftoverPairList
+        pairs={[
+          {
+            ...PAIRS[0],
+            leftover_map_unexplained: 0.05,
+            leftover_map_reconstruction: 0.35,
+            leftover_map_cross_share: 0.12,
+          },
+        ]}
+        criterionLabel={criterionLabel}
+        onSelectPost={vi.fn()}
+      />,
+    );
+
+    const closest = screen.getByRole("button");
+    expect(closest).toHaveTextContent(
+      "Two leftover-map axes leave identity remainder 0.12 of raw residual after IRT main effects. Open this post to read sales-lead.",
+    );
+    expect(closest).toHaveTextContent("2R̂U/R² 0.12");
+    expect(closest).toHaveTextContent("R̂ +0.35");
+    expect(closest).not.toHaveTextContent("U²/R²");
+  });
+
+  it("keeps leftover-map reconstruction guidance when unexplained leftover share is missing", () => {
     render(
       <LeftoverPairList
         pairs={[
