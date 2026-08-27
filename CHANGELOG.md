@@ -8,6 +8,15 @@ All notable changes to this project are documented here. Format follows
 
 ### Added
 
+- Failed measurement and topic-lineage views can request and start a new
+  immutable current-snapshot run while retaining the Failed history.
+- Analysis-run next actions, empty-snapshot guidance, and selected-post
+  guidance now follow the active English, Korean, Chinese, Japanese, or
+  Vietnamese locale. Customer copy describes the next product action without
+  exposing internal measurement transport boundaries; Storybook includes
+  desktop and phone status matrices.
+- Account-owned per-post Ask conversations can be listed, reopened, and
+  continued with current authorization reapplied to cited evidence (ADR 0235).
 - Persist explicit paragraph, list, table, MathML formula, and caller-parsed
   conversation-turn semantic-unit kinds without inferring absent boundaries.
 - Event Lineage now persists each reconstructed connection's independent
@@ -104,6 +113,10 @@ All notable changes to this project are documented here. Format follows
   invent a leftover score.
 
 ### Changed
+
+- Ontology documentation now distinguishes the canonical dereferenceable
+  namespace from the published mapping document for legacy lowercase IRIs;
+  no customer or consumer is directed to a lowercase path that returns 404.
 
 - ADRs 0011 and 0065 now include APA 7th References for the dated W3C
   PROV-O and PROV-DM Recommendations (30 April 2013). Decisions are

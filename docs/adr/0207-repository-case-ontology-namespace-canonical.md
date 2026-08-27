@@ -4,6 +4,7 @@
 **Date:** 2026-08-25
 **Supersedes:** [ADR 0157](0157-public-ontology-namespace-identity.md)
 **Resolves:** [#372](https://github.com/ContextualWisdomLab/LineageWeave/issues/372)
+**Amended by:** [ADR 0236](0236-legacy-ontology-namespace-publication.md)
 
 ## Context
 
@@ -46,14 +47,15 @@ fail loudly instead of silently polluting downstream graphs.
    `https://contextualwisdomlab.github.io/LineageWeave/ontology#`. New runtime
    values, RDF exports, database rows, examples, API payloads, and generated
    Pages artifacts mint only repository-case term IRIs.
-2. The lowercase namespace is now the deprecated compatibility namespace. It
-   remains dereferenceable through the published compatibility vocabulary and
-   is never reused for different meanings.
-3. The publication slice serves both namespace documents with `200 OK`. The
-   repository-case document is authoritative; the lowercase document identifies
+2. The lowercase namespace is now the deprecated compatibility namespace and
+   is never reused for different meanings. ADR 0236 clarifies that its current
+   `404` path is not described as dereferenceable.
+3. The publication slice serves the repository-case namespace document and
+   its `namespace-compatibility.ttl` mapping document with `200 OK`. The
+   repository-case document is authoritative; the mapping document identifies
    it via `dcterms:isReplacedBy`, carries `owl:deprecated true`, and holds only
-   validated mappings. A redirect alone remains insufficient, per ADR 0157's
-   reasoning, which applies symmetrically.
+   validated mappings. It does not make the lowercase namespace path a served
+   document (ADR 0236).
 4. Compatibility mappings are generated between the two parsed graphs and
    emitted only when local-name uniqueness, term kind, and defining semantics
    match: class-to-class `owl:equivalentClass`; property-to-same-kind
@@ -128,8 +130,8 @@ interoperability defect.
 
 - One canonical namespace aligned with the served Pages path; new producers
   are unambiguous.
-- The lowercase compatibility vocabulary remains resolvable indefinitely;
-  existing serialized graphs keep resolving through validated mappings.
+- The compatibility mapping document remains resolvable indefinitely;
+  existing serialized graphs can translate through validated mappings.
 - Stored-value migration runs through `scripts/migrate_legacy_namespace.py`
   with its existing dry-run/refusal discipline, direction reversed.
 - Runtime constants, Turtle/JSON-LD/N-Triples, support profile, API and
@@ -139,8 +141,8 @@ interoperability defect.
 
 ## Verification
 
-- Exact `200` responses for both namespace documents and representative
-  fragments, with the repository-case document identified as canonical.
+- Exact `200` responses for the canonical namespace and compatibility mapping
+  documents, plus explicit `404` evidence for the unserved lowercase path.
 - RDF graph-isomorphism and term-kind tests for every emitted mapping; no
   duplicate local fragments across namespaces.
 - Consumer fixtures prove old lowercase graphs still resolve and new

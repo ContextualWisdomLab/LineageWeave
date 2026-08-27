@@ -79,7 +79,9 @@ describe("i18n", () => {
     "No observed calendar events are available.",
     "Open this observed occurrence. It is not a LineageWeave commitment.",
     "Collect stronger authoritative evidence before accepting the claim.",
-    "Inspect the authorized cited posts and their evidence.",
+    "Ask about a specific claim or narrow the time range, then retry.",
+    "Ask a workspace administrator to enable public verification, then retry.",
+    "Open supporting post",
     "Review unavailable historical channels before relying on this cutoff answer.",
     "Compare these cutoff-grounded citations with live evidence next.",
   ] as const;

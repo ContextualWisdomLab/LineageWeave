@@ -1,6 +1,6 @@
 # ADR 0230: pnpm build-script allowlist
 
-**Status:** Accepted  
+**Status:** Accepted
 **Date:** 2026-08-26
 
 ## Context

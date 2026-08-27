@@ -324,11 +324,14 @@ A run-bearing analysis-run registry empties only after an unrevoked
 (ADR 0020 / v0.87.0). The documented phrase is not a secret. Do not
 expose purge on a public HTTP route.
 
-`POST /api/analysis-runs` records Pending lineage only (ADR 0017 /
-v2.7.1). TEPP and period-report kinds 422 before any snapshot write.
-`POST /api/analysis-runs/{id}/start` reconstructs a Pending lineage
-cutoff bag through `reconstruct()` / `lineage_edge_specs` (ADR 0021 /
-v0.88.0). Do not invent a theta.
+`POST /api/analysis-runs` records Pending lineage, TEPP measurement, and
+topic-lineage requests (ADR 0017 / ADR 0022); period-report and unknown kinds
+422 before any snapshot write. A Failed measurement remains terminal, while
+Retry creates and starts a new current-snapshot request through the outbox and
+`tepp_client`. `POST /api/analysis-runs/{id}/start` reconstructs a Pending
+lineage cutoff bag through `reconstruct()` / `lineage_edge_specs` (ADR 0021 /
+v0.88.0) or submits supported measurement work through `tepp_client`. Do not
+invent a theta.
 Opening a cutoff-rewritten title shows **Body this run knew** from
 `source_post_revision` beside the live rewrite (ADR 0025 / v2.1.0).
 Do not invent the earlier sentence when no revision covers the cutoff.
@@ -375,8 +378,9 @@ A manual dispatch from another ref is not a publication path. The
 repository-case public namespace
 `https://contextualwisdomlab.github.io/LineageWeave/ontology#` is
 canonical ([ADR 0207](docs/adr/0207-repository-case-ontology-namespace-canonical.md),
-superseding ADR 0157, resolving issue #372); the lowercase form is a
-deprecated compatibility vocabulary with validated term-kind mappings.
+superseding ADR 0157 and amended by ADR 0236); the lowercase form is a
+deprecated compatibility identifier mapped by a published compatibility
+vocabulary, not a separately served namespace.
 New runtime values, exports, fixtures, and database rows mint only
 repository-case IRIs; `scripts/migrate_legacy_namespace.py` rewrites
 stored lowercase IRIs (dry-run by default, never touching provenance

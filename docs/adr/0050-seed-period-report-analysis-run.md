@@ -37,7 +37,8 @@ on a path that is not allowed to (ADR 0021 / ADR 0022 / ADR 0023).
   body.
 - Home next-action copy for a Succeeded report stays empty. Failed
   report fixtures still say rebuild the period report.
-- `POST /api/analysis-runs` stays lineage-only (ADR 0017).
+- `POST /api/analysis-runs` accepts lineage and TEPP-backed work but still
+  rejects period-report (ADR 0017).
   `POST /api/analysis-runs/{id}/start` stays 422 for this kind.
   This slice does not add a Request period-report button, does not
   enqueue outbox work, and does not call TEPP.

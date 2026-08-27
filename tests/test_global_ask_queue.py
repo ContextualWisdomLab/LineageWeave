@@ -111,6 +111,29 @@ def test_public_verification_requires_public_capability_and_internal_citation() 
     assert client.calls == 0
 
 
+def test_no_public_claim_next_action_opens_authorized_evidence() -> None:
+    """Customer copy names the evidence action, not an internal boundary."""
+
+    next_action = global_ask_queue._verification_next_action(
+        cv.VERIFICATION_NO_PUBLIC_CLAIMS
+    )
+
+    assert next_action == "Ask about a specific claim or narrow the time range, then retry."
+    assert "internal" not in next_action.lower()
+
+
+def test_unavailable_public_verification_guides_the_reader_without_service_names() -> None:
+    """Unavailable verification names the customer action, not its providers."""
+
+    next_action = global_ask_queue._verification_next_action(
+        cv.VERIFICATION_UNAVAILABLE
+    )
+
+    assert next_action == (
+        "Ask a workspace administrator to enable public verification, then retry."
+    )
+    assert "orchestrator" not in next_action.lower()
+
 def test_public_verification_keeps_external_urls_out_of_internal_citations() -> None:
     """A verified URL remains external evidence, never a cited post id."""
 
@@ -398,9 +421,7 @@ def test_unexpected_job_failure_settles_with_a_generic_detail_not_the_raw_except
     assert "failure_detail" in settle_query
     failure_detail = settle_args[-1]
     assert secret_bearing_message not in failure_detail
-    assert failure_detail == (
-        "Ask Agent is unavailable: contextual-orchestrator returned no complete evidence object"
-    )
+    assert failure_detail == global_ask_queue._ASK_RETRY_MESSAGE
 
 
 def test_permission_and_connection_errors_keep_their_pre_authored_safe_message(
@@ -463,7 +484,7 @@ def test_job_deadline_timeout_settles_with_a_specific_but_still_generic_detail(
     )
 
     _settle_query, settle_args = connection.executed[-1]
-    assert settle_args[-1] == f"job exceeded the {global_ask_queue.JOB_DEADLINE_SECONDS}s deadline"
+    assert settle_args[-1] == global_ask_queue._ASK_RETRY_MESSAGE
 
 
 def test_job_visibility_never_expands_past_queued_scope() -> None:

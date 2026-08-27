@@ -344,13 +344,14 @@ async def gather_chat_sources(
     if vision_client is None:
         vision_client = NullImageContentClient()
 
-    this_post = await conn.fetchrow(
+    this_post = await conn.fetchrow(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
         "select post_id, post_title, post_body, source_system_code, source_record_key, "
         "source_author_code, source_author_name, source_company_code, source_company_name, "
         "source_process_unit_code, source_process_unit_name, "
         "source_sales_pool_code, source_sales_pool_name, "
         "source_customer_code, source_customer_name, source_project_code, "
-        "source_project_name from source_post where post_id = $1",
+        "source_project_name from source_post where post_id = $1 and "
+        f"{SOURCE_POST_ELIGIBILITY_SQL.format(alias='source_post')}",
         post_id,
     )
     if this_post is None:
@@ -380,14 +381,15 @@ async def gather_chat_sources(
             )
         ]
 
-    rows = await conn.fetch(
+    rows = await conn.fetch(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
         "select post_id, post_title, post_body, visibility_code, corporate_entity_id, process_unit_id, "
         "source_system_code, source_record_key, source_author_code, source_author_name, "
         "source_company_code, source_company_name, source_process_unit_code, "
         "source_process_unit_name, source_sales_pool_code, source_sales_pool_name, "
         "source_customer_code, source_customer_name, "
         "source_project_code, source_project_name "
-        "from source_post where post_id = any($1::uuid[]) "
+        "from source_post where post_id = any($1::uuid[]) and "
+        f"{SOURCE_POST_ELIGIBILITY_SQL.format(alias='source_post')} "
         "order by array_position($1::uuid[], post_id) limit $2",
         candidate_ids,
         _POST_CHAT_CANDIDATE_LIMIT,

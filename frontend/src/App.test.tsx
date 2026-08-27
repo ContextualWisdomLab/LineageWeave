@@ -2,6 +2,7 @@ import { fireEvent, render, screen, waitFor, within } from "@testing-library/rea
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import App from "./App";
+import type { AnalysisRunKindCode } from "./api";
 import { setLocale } from "./i18n";
 import { OIDC_RETURN_URL_STORAGE_KEY } from "./oidcReturnUrl";
 
@@ -101,11 +102,15 @@ describe("App, authenticated", () => {
     searchUnavailable?: boolean;
     verificationEvidenceUrl?: string | null;
     failedLineageRun?: boolean;
+    failLineageCreateOnce?: boolean;
+    failMeasurementStartOnce?: boolean;
+    secondFailedTeppRun?: boolean;
     runningLineageRun?: boolean;
     failedReportRun?: boolean;
     succeededReportRun?: boolean;
     succeededTeppRun?: boolean;
     pendingTeppRun?: boolean;
+    cancelledRunKind?: AnalysisRunKindCode;
     pluralAffiliations?: boolean;
     deferMe?: boolean;
     deferPostOne?: boolean;
@@ -122,6 +127,8 @@ describe("App, authenticated", () => {
     askDelivery?: boolean;
     lineageIsolationReason?: "comparison_candidates_available" | "no_comparison_group";
   }): ReturnType<typeof vi.fn> & { releaseMe: () => void; releasePostOne: () => void } {
+    let lineageCreateFailed = false;
+    let measurementStartFailed = false;
     const statusLabel: Record<string, string> = {
       open: "Open",
       in_progress: "In progress",
@@ -161,6 +168,27 @@ describe("App, authenticated", () => {
           releasePostOne = resolve;
         })
       : Promise.resolve();
+    const cancelledRun = options?.cancelledRunKind
+      ? {
+          analysis_run_id: "run-demo-cancelled",
+          run_kind_code: options.cancelledRunKind,
+          run_kind_label: {
+            analysis_run_lineage: "Lineage reconstruction",
+            analysis_run_tepp: "TEPP measurement",
+            analysis_run_topic_lineage: "Topic lineage",
+            analysis_run_report: "Period report",
+          }[options.cancelledRunKind],
+          scope_kind_code: "analysis_scope_corporate_entity",
+          scope_kind_label: "Corporate entity",
+          scope_entity_name: "Demo Corp",
+          status_code: "analysis_status_cancelled" as const,
+          status_label: "Cancelled",
+          knowledge_cutoff: "2026-01-12T12:00:00Z",
+          requested_at: "2026-01-12T12:42:00Z",
+          source_counts: [],
+          visible_posts: [],
+        }
+      : null;
 
     const fetchMock = vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
       const url = String(input);
@@ -246,7 +274,8 @@ describe("App, authenticated", () => {
           return Promise.resolve(
             new Response(
               JSON.stringify({
-                detail: "Commitment extraction is unavailable: set ORCHESTRATOR_BASE_URL / ORCHESTRATOR_API_KEY",
+                detail:
+                  "Commitment extraction is unavailable. Retry in a moment. If this continues, contact your workspace administrator.",
               }),
               { status: 503, headers: { "Content-Type": "application/json" } },
             ),
@@ -268,6 +297,9 @@ describe("App, authenticated", () => {
         return Promise.resolve(
           jsonResponse({ post_id: "post-1", has_commitment: true, ticket }),
         );
+      }
+      if (url.endsWith("/api/analysis-runs/run-demo-cancelled") && cancelledRun) {
+        return Promise.resolve(jsonResponse(cancelledRun));
       }
       if (url.endsWith("/api/analysis-runs/run-demo-report")) {
         const reportSucceeded = !options?.failedReportRun;
@@ -381,6 +413,7 @@ describe("App, authenticated", () => {
             scope_kind_code: "analysis_scope_corporate_entity",
             scope_kind_label: "Corporate entity",
             scope_entity_name: "Demo Corp",
+            scope_corporate_entity_id: "corp-demo",
             status_code: teppStatus,
             status_label: teppLabel,
             knowledge_cutoff: "2026-01-12T12:00:00Z",
@@ -604,6 +637,7 @@ describe("App, authenticated", () => {
             scope_kind_code: "analysis_scope_corporate_entity",
             scope_kind_label: "Corporate entity",
             scope_entity_name: "Demo Corp",
+            scope_corporate_entity_id: "corp-demo",
             status_code: "analysis_status_failed",
             status_label: "Failed",
             failure_code: "tepp_not_available",
@@ -641,20 +675,96 @@ describe("App, authenticated", () => {
           }),
         );
       }
+      if (url.endsWith("/api/analysis-runs/run-demo-tepp-retry/start") && method === "POST") {
+        if (options?.failMeasurementStartOnce && !measurementStartFailed) {
+          measurementStartFailed = true;
+          return Promise.resolve(
+            new Response(JSON.stringify({ detail: "The response was interrupted." }), {
+              status: 503,
+              headers: { "Content-Type": "application/json" },
+            }),
+          );
+        }
+        createdPendingTepp = {
+          analysis_run_id: "run-demo-tepp-retry",
+          run_kind_code: "analysis_run_tepp",
+          run_kind_label: "TEPP measurement",
+          scope_kind_code: "analysis_scope_corporate_entity",
+          scope_kind_label: "Corporate entity",
+          scope_entity_name: "Demo Corp",
+          scope_corporate_entity_id: "corp-demo",
+          status_code: "analysis_status_failed",
+          status_label: "Failed",
+          failure_code: "tepp_not_available",
+          knowledge_cutoff: "2026-01-13T12:00:00Z",
+          requested_at: "2026-01-13T12:01:00Z",
+          source_counts: [],
+          visible_posts: [],
+        };
+        return Promise.resolve(jsonResponse(createdPendingTepp));
+      }
+      if (url.endsWith("/api/analysis-runs/run-demo-tepp-two")) {
+        return Promise.resolve(
+          jsonResponse({
+            analysis_run_id: "run-demo-tepp-two",
+            run_kind_code: "analysis_run_tepp",
+            run_kind_label: "TEPP measurement",
+            scope_kind_code: "analysis_scope_corporate_entity",
+            scope_kind_label: "Corporate entity",
+            scope_entity_name: "Other Demo Corp",
+            scope_corporate_entity_id: "corp-other",
+            status_code: "analysis_status_failed",
+            status_label: "Failed",
+            failure_code: "tepp_not_available",
+            knowledge_cutoff: "2026-01-12T12:00:00Z",
+            requested_at: "2026-01-12T12:39:00Z",
+            source_counts: [],
+            visible_posts: [],
+          }),
+        );
+      }
       if (url.endsWith("/api/analysis-runs") && method === "POST") {
         const payload = init?.body ? JSON.parse(String(init.body)) : {};
-        if (payload.run_kind_code === "analysis_run_tepp" || payload.run_kind_code === "analysis_run_report") {
+        if (
+          payload.run_kind_code === "analysis_run_lineage" &&
+          options?.failLineageCreateOnce &&
+          !lineageCreateFailed
+        ) {
+          lineageCreateFailed = true;
+          return Promise.resolve(
+            new Response(JSON.stringify({ detail: "The response was interrupted." }), {
+              status: 503,
+              headers: { "Content-Type": "application/json" },
+            }),
+          );
+        }
+        if (payload.run_kind_code === "analysis_run_report") {
           return Promise.resolve(
             new Response(
               JSON.stringify({
-                detail:
-                  payload.run_kind_code === "analysis_run_tepp"
-                    ? "Connect a TEPP transport from a Failed TEPP row; this endpoint does not invent a measurement."
-                    : "Rebuild the period report from the Reports panel.",
+                detail: "Rebuild the period report from the Reports panel.",
               }),
               { status: 422, headers: { "Content-Type": "application/json" } },
             ),
           );
+        }
+        if (payload.run_kind_code === "analysis_run_tepp") {
+          createdPendingTepp = {
+            analysis_run_id: "run-demo-tepp-retry",
+            run_kind_code: "analysis_run_tepp",
+            run_kind_label: "TEPP measurement",
+            scope_kind_code: "analysis_scope_corporate_entity",
+            scope_kind_label: "Corporate entity",
+            scope_entity_name: "Demo Corp",
+            scope_corporate_entity_id: "corp-demo",
+            status_code: "analysis_status_pending",
+            status_label: "Pending",
+            knowledge_cutoff: "2026-01-13T12:00:00Z",
+            requested_at: "2026-01-13T12:01:00Z",
+            source_counts: [],
+            visible_posts: [],
+          };
+          return Promise.resolve(new Response(JSON.stringify(createdPendingTepp), { status: 201 }));
         }
         const created = {
           analysis_run_id: "run-demo-lineage-pending",
@@ -686,8 +796,27 @@ describe("App, authenticated", () => {
         return Promise.resolve(
           jsonResponse({
             analysis_runs: [
+              ...(cancelledRun ? [cancelledRun] : []),
               ...(createdPendingLineage ? [createdPendingLineage] : []),
               ...(createdPendingTepp ? [createdPendingTepp] : []),
+              ...(options?.secondFailedTeppRun
+                ? [
+                    {
+                      analysis_run_id: "run-demo-tepp-two",
+                      run_kind_code: "analysis_run_tepp" as const,
+                      run_kind_label: "TEPP measurement",
+                      scope_kind_code: "analysis_scope_corporate_entity",
+                      scope_kind_label: "Corporate entity",
+                      scope_entity_name: "Other Demo Corp",
+                      scope_corporate_entity_id: "corp-other",
+                      status_code: "analysis_status_failed" as const,
+                      status_label: "Failed",
+                      knowledge_cutoff: "2026-01-12T12:00:00Z",
+                      requested_at: "2026-01-12T12:39:00Z",
+                      source_counts: [],
+                    },
+                  ]
+                : []),
               {
                 analysis_run_id: "run-demo-lineage",
                 run_kind_code: "analysis_run_lineage",
@@ -725,6 +854,7 @@ describe("App, authenticated", () => {
                 scope_kind_code: "analysis_scope_corporate_entity",
                 scope_kind_label: "Corporate entity",
                 scope_entity_name: "Demo Corp",
+                scope_corporate_entity_id: "corp-demo",
                 status_code: options?.succeededTeppRun
                   ? "analysis_status_succeeded"
                   : options?.pendingTeppRun
@@ -1344,7 +1474,8 @@ describe("App, authenticated", () => {
           return Promise.resolve(
             new Response(
               JSON.stringify({
-                detail: "Keymen extraction is unavailable: set ORCHESTRATOR_BASE_URL / ORCHESTRATOR_API_KEY",
+                detail:
+                  "Keymen extraction is unavailable. Retry in a moment. If this continues, contact your workspace administrator.",
               }),
               { status: 503, headers: { "Content-Type": "application/json" } },
             ),
@@ -1357,7 +1488,8 @@ describe("App, authenticated", () => {
           return Promise.resolve(
             new Response(
               JSON.stringify({
-                detail: "Post evaluation is unavailable: set ORCHESTRATOR_BASE_URL / ORCHESTRATOR_API_KEY",
+                detail:
+                  "Post evaluation is unavailable. Retry in a moment. If this continues, contact your workspace administrator.",
               }),
               { status: 503, headers: { "Content-Type": "application/json" } },
             ),
@@ -1629,6 +1761,7 @@ describe("App, authenticated", () => {
                 relationship_label: "Voice of Customer",
                 verification_status_code: "verify_pending",
                 verification_evidence_url: null,
+                verification_evidence_post_id: "post-1",
                 corporate_entity_id: "corp-1",
                 ...demoOrgAlias,
               },
@@ -1648,7 +1781,10 @@ describe("App, authenticated", () => {
         if (options?.searchUnavailable) {
           return Promise.resolve(
             new Response(
-              JSON.stringify({ detail: "Relation verification is unavailable: set SEARXNG_BASE_URL" }),
+              JSON.stringify({
+                detail:
+                  "Relation verification is temporarily unavailable. Retry in a moment. If this continues, contact your workspace administrator.",
+              }),
               { status: 503, headers: { "Content-Type": "application/json" } },
             ),
           );
@@ -1707,7 +1843,8 @@ describe("App, authenticated", () => {
           return Promise.resolve(
             new Response(
               JSON.stringify({
-                detail: "Post chat is unavailable: set ORCHESTRATOR_BASE_URL / ORCHESTRATOR_API_KEY",
+                detail:
+                  "Post chat is unavailable. Retry in a moment. If this continues, contact your workspace administrator.",
               }),
               { status: 503, headers: { "Content-Type": "application/json" } },
             ),
@@ -2628,7 +2765,11 @@ describe("App, authenticated", () => {
     await userEvent.click(screen.getByRole("button", { name: /^ask$/i }));
 
     await waitFor(() =>
-      expect(screen.getByText("Chat is temporarily unavailable. Saved evidence is still available.")).toBeInTheDocument(),
+      expect(
+        screen.getByText(
+          "Chat is temporarily unavailable. Review the saved evidence below, then retry in a moment.",
+        ),
+      ).toBeInTheDocument(),
     );
     expect(screen.queryByText(/HTTP 503/)).not.toBeInTheDocument();
     expect(screen.queryByPlaceholderText(/what happened/i)).not.toBeInTheDocument();
@@ -2652,7 +2793,11 @@ describe("App, authenticated", () => {
     await userEvent.click(await screen.findByRole("button", { name: /evaluate post/i }));
 
     await waitFor(() =>
-      expect(screen.getByText("Evaluation is temporarily unavailable. Saved evidence is still available.")).toBeInTheDocument(),
+      expect(
+        screen.getByText(
+          "Evaluation is temporarily unavailable. Review the saved evidence below, then retry in a moment.",
+        ),
+      ).toBeInTheDocument(),
     );
     expect(screen.queryByText(/HTTP 503/)).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /evaluate post/i })).not.toBeInTheDocument();
@@ -2666,7 +2811,11 @@ describe("App, authenticated", () => {
     await userEvent.click(await screen.findByRole("button", { name: /extract keymen/i }));
 
     await waitFor(() =>
-      expect(screen.getByText("Keymen extraction is temporarily unavailable. Saved evidence is still available.")).toBeInTheDocument(),
+      expect(
+        screen.getByText(
+          "Keymen extraction is temporarily unavailable. Review the saved evidence below, then retry in a moment.",
+        ),
+      ).toBeInTheDocument(),
     );
     expect(screen.queryByText(/HTTP 503/)).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /extract keymen/i })).not.toBeInTheDocument();
@@ -2681,7 +2830,9 @@ describe("App, authenticated", () => {
 
     await waitFor(() =>
       expect(
-        screen.getByText("Commitment derivation is temporarily unavailable. Saved evidence is still available."),
+        screen.getByText(
+          "Commitment derivation is temporarily unavailable. Review the saved evidence below, then retry in a moment.",
+        ),
       ).toBeInTheDocument(),
     );
     expect(screen.queryByText(/HTTP 503/)).not.toBeInTheDocument();
@@ -2696,7 +2847,11 @@ describe("App, authenticated", () => {
     await userEvent.click(await screen.findByRole("button", { name: /verify against web search/i }));
 
     await waitFor(() =>
-      expect(screen.getByText("Verification unavailable (search is not configured).")).toBeInTheDocument(),
+      expect(
+        screen.getByText(
+          "Verification is temporarily unavailable. Retry in a moment; if this continues, contact your workspace administrator.",
+        ),
+      ).toBeInTheDocument(),
     );
     expect(screen.queryByText(/HTTP 503/)).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /verify against web search/i })).not.toBeInTheDocument();
@@ -2926,6 +3081,15 @@ describe("App, authenticated", () => {
       "Ada West (Our side)",
     );
     expect(screen.queryByRole("button", { name: "Counterparty org: Northridge Grid" })).not.toBeInTheDocument();
+  });
+
+  it("opens a counterparty supporting post without exposing its storage boundary", async () => {
+    stubBackend();
+    render(<App showLabPanels />);
+    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
+
+    expect(await screen.findByRole("button", { name: "Open supporting post" })).toBeInTheDocument();
+    expect(screen.queryByText(/internal evidence/i)).not.toBeInTheDocument();
   });
 
   it("links a verification badge only for http(s) evidence URLs", async () => {
@@ -3249,7 +3413,7 @@ describe("App, authenticated", () => {
     expect(list).toHaveTextContent("TEPP measurement · Failed · Demo Corp");
     expect(list).toHaveTextContent("Period report · Succeeded · Demo Corp");
     expect(list).toHaveTextContent(
-      "Open this run to see why it failed, then connect the measurement service and re-run.",
+      "Open this run to see why it failed, then choose Retry measurement.",
     );
     expect(list).toHaveTextContent("3 documents");
     expect(list).not.toHaveTextContent("postgresql://");
@@ -3347,7 +3511,7 @@ describe("App, authenticated", () => {
     ).toBeInTheDocument();
     const teppHistory = screen.getByRole("list", { name: "Analysis run status history" });
     expect(teppHistory).toHaveTextContent("Failed 2026-01-12 12:37 · tepp_not_available");
-    expect(screen.getByText(/cutoff corpus TEPP would measure/i)).toBeInTheDocument();
+    expect(screen.getByText(/selected for measurement at this snapshot/i)).toBeInTheDocument();
     expect(teppHistory).not.toHaveTextContent("Succeeded");
   });
 
@@ -3399,7 +3563,44 @@ describe("App, authenticated", () => {
     expect(screen.queryByRole("heading", { name: "Body this run knew" })).not.toBeInTheDocument();
   });
 
-  it("tells a running lineage run to refresh the durable outbox", async () => {
+  it.each([
+    ["analysis_run_lineage", "Request a new lineage reconstruction from a current snapshot."],
+    [
+      "analysis_run_tepp",
+      "Ask an administrator to restore measurement and submit a new run from a current snapshot.",
+    ],
+    [
+      "analysis_run_topic_lineage",
+      "Ask an administrator to restore topic-lineage analysis and submit a new run from a current snapshot.",
+    ],
+    ["analysis_run_report", "Rebuild the period report from a current snapshot."],
+  ] satisfies [AnalysisRunKindCode, string][])(
+    "gives a cancelled %s run its kind-exact next action",
+    async (runKindCode, nextAction) => {
+      stubBackend({ cancelledRunKind: runKindCode });
+      render(<App showLabPanels />);
+
+      const cancelledRunButton = await screen.findByRole("button", {
+        name: /Open analysis run: .* · Cancelled · Demo Corp/,
+      });
+      expect(cancelledRunButton).toHaveTextContent(`This run was cancelled. ${nextAction}`);
+      await userEvent.click(cancelledRunButton);
+      expect(screen.getAllByText(`This run was cancelled. ${nextAction}`)).not.toHaveLength(0);
+      expect(screen.queryByRole("button", { name: /Start/ })).not.toBeInTheDocument();
+    },
+  );
+
+  it("shows analysis-run next actions in the selected locale", async () => {
+    setLocale("ko");
+    stubBackend({ cancelledRunKind: "analysis_run_lineage" });
+    render(<App showLabPanels />);
+
+    expect(await screen.findByText(
+      "이 실행은 취소되었습니다. 현재 스냅샷에서 새 계보 재구성을 요청하세요.",
+    )).toBeInTheDocument();
+  });
+
+  it("tells a running lineage run how to check for results", async () => {
     stubBackend({ runningLineageRun: true });
     render(<App showLabPanels />);
 
@@ -3407,12 +3608,12 @@ describe("App, authenticated", () => {
       name: "Open analysis run: Lineage reconstruction · Running · Demo Corp",
     });
     expect(lineageButton).toHaveTextContent(
-      "Refresh this run. Start already queued the work on the durable outbox.",
+      "This run is in progress. Refresh it to check for results.",
     );
     await userEvent.click(lineageButton);
     expect(screen.getByRole("button", { name: "Start reconstruction" })).toBeInTheDocument();
     expect(
-      screen.getAllByText("Refresh this run. Start already queued the work on the durable outbox."),
+      screen.getAllByText("This run is in progress. Refresh it to check for results."),
     ).not.toHaveLength(0);
   });
 
@@ -3432,7 +3633,7 @@ describe("App, authenticated", () => {
     );
     expect(lineageButton).not.toHaveTextContent("measurement service");
     expect(teppButton).toHaveTextContent(
-      "Open this run to see why it failed, then connect the measurement service and re-run.",
+      "Open this run to see why it failed, then choose Retry measurement.",
     );
     expect(teppButton).not.toHaveTextContent("reconstruction");
   });
@@ -3721,7 +3922,7 @@ describe("App, authenticated", () => {
     ).not.toBeInTheDocument();
     expect(
       await screen.findByText(
-        "No posts were available at this cutoff for the period report. Open a later run, or ask an administrator to capture a newer snapshot.",
+        "No posts were available at this snapshot for the period report. Open a later run, or ask an administrator to capture a newer snapshot.",
       ),
     ).toBeInTheDocument();
   });
@@ -3736,13 +3937,13 @@ describe("App, authenticated", () => {
       }),
     );
     expect(
-      await screen.findByText("These posts are the cutoff corpus TEPP will measure once this run finishes."),
+      await screen.findByText("Start this run to submit these posts for measurement. A result is not guaranteed."),
     ).toBeInTheDocument();
     expect(screen.queryByText(/replace Failed/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/this TEPP run measured/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/Reconstruction has not started yet/)).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Start reconstruction" })).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Start TEPP measurement" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Start measurement" })).toBeInTheDocument();
   });
 
   it("starts a pending TEPP run through tepp_client and does not invent a theta", async () => {
@@ -3754,7 +3955,7 @@ describe("App, authenticated", () => {
         name: "Open analysis run: TEPP measurement · Pending · Demo Corp",
       }),
     );
-    await userEvent.click(screen.getByRole("button", { name: "Start TEPP measurement" }));
+    await userEvent.click(screen.getByRole("button", { name: "Start measurement" }));
     expect(
       await screen.findByRole("heading", { name: "TEPP measurement · Failed · Demo Corp" }),
     ).toBeInTheDocument();
@@ -3767,7 +3968,7 @@ describe("App, authenticated", () => {
     expect(startCall?.[1]?.method).toBe("POST");
   });
 
-  it("does not invent a Pending TEPP row from a Failed TEPP run", async () => {
+  it("requests and starts a new measurement from a Failed run", async () => {
     const fetchMock = stubBackend();
     render(<App showLabPanels />);
 
@@ -3776,18 +3977,100 @@ describe("App, authenticated", () => {
         name: "Open analysis run: TEPP measurement · Failed · Demo Corp",
       }),
     );
-    expect(
-      await screen.findByText(
-        "Connect a TEPP transport from this Failed row. Request a lineage reconstruction does not invent a measurement.",
-      ),
-    ).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Request a new TEPP measurement" })).not.toBeInTheDocument();
-    expect(screen.queryByRole("heading", { name: "TEPP measurement · Pending · Demo Corp" })).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Retry measurement" }));
+    await waitFor(() =>
+      expect(
+        fetchMock.mock.calls.some((call) =>
+          String(call[0]).endsWith("/api/analysis-runs/run-demo-tepp-retry/start"),
+        ),
+      ).toBe(true),
+    );
+    const createCall = fetchMock.mock.calls.find(
+      (call) => String(call[0]).endsWith("/api/analysis-runs") && call[1]?.method === "POST",
+    );
+    expect(JSON.parse(String(createCall?.[1]?.body))).toMatchObject({
+      run_kind_code: "analysis_run_tepp",
+      corporate_entity_id: "corp-demo",
+    });
     expect(
       fetchMock.mock.calls.some(
-        (call) => String(call[0]).endsWith("/api/analysis-runs") && call[1]?.method === "POST",
+        (call) =>
+          String(call[0]).endsWith("/api/analysis-runs/run-demo-tepp-retry/start") &&
+          call[1]?.method === "POST",
       ),
-    ).toBe(false);
+    ).toBe(true);
+  });
+
+  it("does not reuse an interrupted lineage request key for measurement retry", async () => {
+    const fetchMock = stubBackend({ failLineageCreateOnce: true });
+    render(<App showLabPanels />);
+
+    await userEvent.click(
+      await screen.findByRole("button", { name: "Request a lineage reconstruction" }),
+    );
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "Request a lineage reconstruction" })).toBeEnabled(),
+    );
+    await userEvent.click(
+      screen.getByRole("button", {
+        name: "Open analysis run: TEPP measurement · Failed · Demo Corp",
+      }),
+    );
+    await userEvent.click(screen.getByRole("button", { name: "Retry measurement" }));
+
+    const createBodies = fetchMock.mock.calls
+      .filter(
+        (call) => String(call[0]).endsWith("/api/analysis-runs") && call[1]?.method === "POST",
+      )
+      .map((call) => JSON.parse(String(call[1]?.body)));
+    expect(createBodies).toHaveLength(2);
+    expect(createBodies[0].run_kind_code).toBe("analysis_run_lineage");
+    expect(createBodies[1].run_kind_code).toBe("analysis_run_tepp");
+    expect(createBodies[1].idempotency_key).not.toBe(createBodies[0].idempotency_key);
+  });
+
+  it("retains each interrupted measurement retry key across run switches", async () => {
+    const fetchMock = stubBackend({
+      failMeasurementStartOnce: true,
+      secondFailedTeppRun: true,
+    });
+    render(<App showLabPanels />);
+
+    await userEvent.click(
+      await screen.findByRole("button", {
+        name: "Open analysis run: TEPP measurement · Failed · Demo Corp",
+      }),
+    );
+    await userEvent.click(screen.getByRole("button", { name: "Retry measurement" }));
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "Retry measurement" })).toBeEnabled(),
+    );
+    await userEvent.click(
+      screen.getByRole("button", {
+        name: "Open analysis run: TEPP measurement · Failed · Other Demo Corp",
+      }),
+    );
+    await userEvent.click(screen.getByRole("button", { name: "Retry measurement" }));
+    const originalRun = screen
+      .getAllByRole("button", {
+        name: "Open analysis run: TEPP measurement · Failed · Demo Corp",
+      })
+      .find((button) => button.textContent?.includes("3 documents"));
+    expect(originalRun).toBeDefined();
+    await userEvent.click(originalRun!);
+    await userEvent.click(screen.getByRole("button", { name: "Retry measurement" }));
+
+    const retries = fetchMock.mock.calls
+      .filter(
+        (call) => String(call[0]).endsWith("/api/analysis-runs") && call[1]?.method === "POST",
+      )
+      .map((call) => JSON.parse(String(call[1]?.body)));
+    expect(retries).toHaveLength(3);
+    expect(retries[0].corporate_entity_id).toBe("corp-demo");
+    expect(retries[1].corporate_entity_id).toBe("corp-other");
+    expect(retries[1].idempotency_key).not.toBe(retries[0].idempotency_key);
+    expect(retries[2].corporate_entity_id).toBe("corp-demo");
+    expect(retries[2].idempotency_key).toBe(retries[0].idempotency_key);
   });
 
   it("does not tell a succeeded TEPP run to replace Failed", async () => {
@@ -3800,7 +4083,7 @@ describe("App, authenticated", () => {
       }),
     );
     expect(
-      await screen.findByText("These posts are the cutoff corpus this TEPP run measured."),
+      await screen.findByText("LineageWeave measured these posts in this run."),
     ).toBeInTheDocument();
     expect(screen.queryByText(/replace Failed/i)).not.toBeInTheDocument();
   });

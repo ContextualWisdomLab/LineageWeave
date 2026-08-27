@@ -5,7 +5,7 @@ from datetime import datetime, timezone
 
 from backend.app.analysis_run_ingestion import (
     AnalysisRunCreateError,
-    _require_lineage_create_kind,
+    _require_requestable_run_kind,
     _resolve_corporate_entity_id,
     create_pending_analysis_run,
     live_write_after_cutoff,
@@ -139,33 +139,27 @@ def test_live_write_clock_is_distinct_from_the_cutoff_admission_clock() -> None:
     assert live_write_after_cutoff(datetime(2026, 1, 13, 9, 0), cutoff) is True
 
 
-def test_create_rejects_tepp_and_report_kinds_without_a_fake_score() -> None:
-    """POST must not record a TEPP row that never called tepp_client."""
-    with pytest.raises(AnalysisRunCreateError) as tepp:
-        _require_lineage_create_kind("analysis_run_tepp")
-    assert tepp.value.status_code == 422
-    assert "invent a measurement" in tepp.value.detail
-    with pytest.raises(AnalysisRunCreateError) as topic_lineage:
-        _require_lineage_create_kind("analysis_run_topic_lineage")
-    assert topic_lineage.value.status_code == 422
-    assert "invent a topic model" in topic_lineage.value.detail
+def test_create_accepts_pending_analysis_requests_without_claiming_results() -> None:
+    """Pending measurement requests are work records, not calibrated results."""
+    _require_requestable_run_kind("analysis_run_lineage")
+    _require_requestable_run_kind("analysis_run_tepp")
+    _require_requestable_run_kind("analysis_run_topic_lineage")
     with pytest.raises(AnalysisRunCreateError) as report:
-        _require_lineage_create_kind("analysis_run_report")
+        _require_requestable_run_kind("analysis_run_report")
     assert report.value.status_code == 422
     assert "Reports panel" in report.value.detail
     with pytest.raises(AnalysisRunCreateError) as unknown:
-        _require_lineage_create_kind("analysis_run_unknown")
+        _require_requestable_run_kind("analysis_run_unknown")
     assert unknown.value.status_code == 422
-    assert "Only lineage reconstruction" in unknown.value.detail
-    _require_lineage_create_kind("analysis_run_lineage")
+    assert "supported analysis run kind" in unknown.value.detail
 
 
-def test_create_pending_rejects_tepp_before_touching_the_registry() -> None:
-    """Kind rejection happens before any snapshot or run insert."""
+def test_create_pending_rejects_unknown_kind_before_touching_the_registry() -> None:
+    """Unknown kind rejection happens before any snapshot or run insert."""
 
     class ForbiddenConnection:
         def __getattr__(self, name: str) -> object:
-            raise AttributeError(f"TEPP create must not touch the registry ({name})")
+            raise AttributeError(f"unknown create must not touch the registry ({name})")
 
     async def _run() -> None:
         with pytest.raises(AnalysisRunCreateError) as err:
@@ -173,14 +167,14 @@ def test_create_pending_rejects_tepp_before_touching_the_registry() -> None:
                 ForbiddenConnection(),  # type: ignore[arg-type]
                 account_id="acct-1",
                 affiliated_entity_ids=["corp-1"],
-                run_kind_code="analysis_run_tepp",
+                run_kind_code="analysis_run_unknown",
                 scope_kind_code="analysis_scope_corporate_entity",
                 corporate_entity_id="corp-1",
                 knowledge_cutoff=_CUTOFF,
                 idempotency_key="client-key-1",
             )
         assert err.value.status_code == 422
-        assert "invent a measurement" in err.value.detail
+        assert "supported analysis run kind" in err.value.detail
 
     asyncio.run(_run())
 

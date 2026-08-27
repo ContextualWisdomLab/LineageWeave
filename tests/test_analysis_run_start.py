@@ -492,6 +492,29 @@ def test_configured_tepp_client_does_not_expose_provider_error(monkeypatch) -> N
     assert "raw-tepp-provider-secret" not in str(exc_info.value)
 
 
+def test_lineage_provider_failure_returns_customer_action(monkeypatch) -> None:
+    """Lineage failures expose a retry action, not the provider boundary."""
+    plan = analysis_run_start._DeliveryPlan(
+        "analysis_run_lineage",
+        datetime(2026, 8, 27, tzinfo=timezone.utc),
+        {},
+        weights={"llm": 1.0},
+    )
+
+    def fail(*_args, **_kwargs):
+        raise analysis_run_start._AdjudicationProviderError("raw-provider-secret")
+
+    monkeypatch.setattr(analysis_run_start, "lineage_edge_specs", fail)
+    with pytest.raises(AnalysisRunStartError) as exc_info:
+        analysis_run_start._execute_delivery_plan(plan, TeppClient(), object())
+
+    assert exc_info.value.status_code == 503
+    assert "Start this run again" in exc_info.value.detail
+    assert "workspace administrator" in exc_info.value.detail
+    assert "provider" not in exc_info.value.detail
+    assert "contextual-orchestrator" not in exc_info.value.detail
+
+
 def test_hidden_run_start_is_not_found() -> None:
     """Operators get a 404 next action, not an internal exception name."""
     error = AnalysisRunStartError(404, "This analysis run is not visible.")

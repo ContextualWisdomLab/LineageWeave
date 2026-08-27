@@ -1,8 +1,8 @@
 # ADR 0222: Project nodes in the ontology neighborhood
 
-**Status:** Accepted  
-**Date:** 2026-08-26  
-**Extends:** [ADR 0036](0036-semantic-project-and-keyman-evidence.md), [ADR 0184](0184-ontology-provenance-explorer.md)  
+**Status:** Accepted
+**Date:** 2026-08-26
+**Extends:** [ADR 0036](0036-semantic-project-and-keyman-evidence.md), [ADR 0184](0184-ontology-provenance-explorer.md)
 **Figma:** File ID `1Su3lDRmiZdcUs47t1QwIX`
 
 ## Context

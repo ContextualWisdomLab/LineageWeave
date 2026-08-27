@@ -231,6 +231,11 @@ _EVENT_OCCURRED_AT_MIGRATION = (
     / "migrations"
     / "0183_source_post_event_occurred_at.sql"
 )
+_POST_ASK_HISTORY_MIGRATION = (
+    Path(__file__).resolve().parents[2]
+    / "migrations"
+    / "0223_post_ask_conversation_history.sql"
+)
 
 
 def _postgres_available() -> bool:
@@ -392,6 +397,7 @@ def seeded_db(demo_analyst_token):
             cur.execute(_LEFTOVER_MAP_UNEXPLAINED_MIGRATION.read_text())
             cur.execute(_LEFTOVER_MAP_CROSS_SHARE_MIGRATION.read_text())
             cur.execute(_LEFTOVER_MAP_RECONSTRUCTION_MIGRATION.read_text())
+            cur.execute(_POST_ASK_HISTORY_MIGRATION.read_text())
             cur.execute(
                 "insert into common_lookup_value (lookup_category, lookup_code, lookup_label) values "
                 "('corporate_entity_level', 'group', 'Group'), "
@@ -1054,9 +1060,10 @@ def test_create_analysis_run_records_pending_without_inventing_a_score(
             "idempotency_key": "buyer-create-tepp",
         },
     )
-    assert tepp.status_code == 422
-    assert "invent a measurement" in tepp.json()["detail"]
-    assert "theta" not in tepp.json()["detail"].lower()
+    assert tepp.status_code == 201
+    assert tepp.json()["status_label"] == "Pending"
+    assert tepp.json()["scope_corporate_entity_id"] == seeded_db["own_corp_id"]
+    assert "theta" not in str(tepp.json()).lower()
 
     report = client.post(
         "/api/analysis-runs",
@@ -1213,63 +1220,9 @@ def test_start_analysis_run_recovers_the_a100_fork(
             "idempotency_key": "buyer-start-tepp-2026-w07",
         },
     )
-    assert tepp_create.status_code == 422
-    assert "invent a measurement" in tepp_create.json()["detail"]
-
-    admin_conn = psycopg2.connect(seeded_db["dsn"])
-    admin_conn.autocommit = True
-    try:
-        with admin_conn.cursor() as cur:
-            cur.execute(
-                "select requested_by_account_id from analysis_run where analysis_run_id = %s",
-                (run_id,),
-            )
-            requester_id = cur.fetchone()[0]
-            cur.execute(
-                """
-                insert into analysis_source_snapshot
-                    (snapshot_sha256, source_contract_version,
-                     maximum_available_time, captured_at)
-                values (%s, 'source-contract-v1',
-                        '2026-02-15T00:00:00Z', '2026-02-15T00:05:00Z')
-                returning analysis_source_snapshot_id
-                """,
-                ("f" * 64,),
-            )
-            tepp_snapshot_id = cur.fetchone()[0]
-            cur.execute(
-                """
-                insert into analysis_run
-                    (analysis_source_snapshot_id, run_kind_code, idempotency_key,
-                     requested_by_account_id, knowledge_cutoff,
-                     configuration_schema_version, configuration_sha256,
-                     code_revision_sha, requested_at)
-                values (%s, 'analysis_run_tepp', 'buyer-start-tepp-seeded',
-                        %s, '2026-02-15T00:00:00Z', 'tepp-run-v1', %s, %s,
-                        '2026-02-15T12:30:00Z')
-                returning analysis_run_id
-                """,
-                (tepp_snapshot_id, requester_id, "a" * 64, "b" * 40),
-            )
-            tepp_run_id = str(cur.fetchone()[0])
-            cur.execute(
-                """
-                insert into analysis_run_scope
-                    (analysis_run_id, scope_kind_code, corporate_entity_id)
-                values (%s, 'analysis_scope_corporate_entity', %s)
-                """,
-                (tepp_run_id, seeded_db["own_corp_id"]),
-            )
-            cur.execute(
-                """
-                insert into analysis_run_status_event
-                    (analysis_run_id, status_ordinal, status_code, occurred_at)
-                values (%s, 1, 'analysis_status_pending', '2026-02-15T12:31:00Z')
-                """,
-                (tepp_run_id,),
-            )
-    finally:
-        admin_conn.close()
+    assert tepp_create.status_code == 201
+    assert tepp_create.json()["status_label"] == "Pending"
+    tepp_run_id = tepp_create.json()["analysis_run_id"]
 
     measured = client.post(
         f"/api/analysis-runs/{tepp_run_id}/start",
@@ -3928,7 +3881,8 @@ def test_post_chat_malformed_provider_reply_is_unavailable(
 
     assert response.status_code == 503
     assert response.json()["detail"] == (
-        "Post chat is temporarily unavailable. Saved evidence is still available."
+        "Post chat is temporarily unavailable. Review the saved evidence, then "
+        "retry in a moment. If this continues, contact your workspace administrator."
     )
 
 
@@ -4017,6 +3971,7 @@ def test_keymen_provider_error_does_not_leak_raw_error(
 
     assert response.status_code == 503
     assert "raw-keyman-provider-secret" not in response.text
+    assert response.json()["detail"].endswith("contact your workspace administrator.")
 
 
 def test_evaluation_provider_error_does_not_leak_raw_error(
@@ -4042,6 +3997,7 @@ def test_evaluation_provider_error_does_not_leak_raw_error(
 
     assert response.status_code == 503
     assert "raw-evaluation-provider-secret" not in response.text
+    assert response.json()["detail"].endswith("contact your workspace administrator.")
 
 
 def test_commitment_provider_error_does_not_leak_raw_error(
@@ -4067,6 +4023,7 @@ def test_commitment_provider_error_does_not_leak_raw_error(
 
     assert response.status_code == 503
     assert "raw-commitment-provider-secret" not in response.text
+    assert response.json()["detail"].endswith("contact your workspace administrator.")
 
 
 def test_summary_enrichment_provider_error_does_not_leak_raw_error(
@@ -4094,6 +4051,7 @@ def test_summary_enrichment_provider_error_does_not_leak_raw_error(
 
     assert response.status_code == 503
     assert "raw-summary-provider-secret" not in response.text
+    assert response.json()["detail"].endswith("contact your workspace administrator.")
 
 
 def test_evaluate_is_unavailable_without_orchestrator(client, demo_analyst_token, seeded_db) -> None:

@@ -32,5 +32,11 @@ https://www.w3.org/community/reports/design-tokens/CG-FINAL-format-20251028/
 Storybook. (2026). *Storybook for React & Vite*.
 https://storybook.js.org/docs/get-started/frameworks/react-vite
 
+`Workspace/ChatPanel` covers seeded-only, saved-history, narrow mobile, and
+provider-neutral unavailable states for the ADR 0235 list/select/new
+conversation controls. The unavailable scene keeps saved evidence visible and
+tells the reader to review it before retrying; its 1440x900 and 390x844 renders
+were inspected on 2026-08-27.
+
 World Wide Web Consortium. (2024). *Web Content Accessibility Guidelines
 (WCAG) 2.2* (W3C Recommendation). https://www.w3.org/TR/WCAG22/

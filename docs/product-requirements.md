@@ -40,8 +40,9 @@ edge exposes the same authorized endpoints and evidence through API and UI.
 
 ### PRD-FR-2 — Ontology and semantic layer
 
-- Publish one canonical repository-case OWL/RDFS/SKOS vocabulary with a
-  dereferenceable lowercase compatibility vocabulary.
+- Publish one dereferenceable canonical repository-case OWL/RDFS/SKOS
+  vocabulary plus a public term-kind-safe mapping document for deprecated
+  lowercase compatibility identifiers.
 - Project typed Post, Person, CorporateEntity, Team, Project, and governed
   relationship evidence from PostgreSQL without creating a second mutable
   source of truth.
@@ -146,6 +147,8 @@ knowledge cutoff, status, citations, and limitations; cross-account reads are
 
 - Consume TEPP accepted/completed wire contracts and fast-mlsirm outputs; do
   not reimplement their arithmetic.
+- Let an authorized user request and start a new current-snapshot measurement
+  after a Failed run without mutating the terminal run history.
 - Use only provenance-bearing estimated weights anchored by independent
   lineage evidence.
 - Keep calibrated measurement, reconstruction relevance, and external truth
@@ -242,7 +245,7 @@ current boundary until that repository adopts one.
 | `ContextualWisdomLab/keyverse` | `docs/PRD.md` | Production OIDC/JWKS/identity control plane; local demo Keycloak is not Keyverse |
 | `ContextualWisdomLab/RankWeave` | No standalone PRD; `README.md`, `ARCHITECTURE.md` | Store-agnostic ranking/fusion dependency; caller owns channels and authorization |
 | `ContextualWisdomLab/ThreadWeave` | `docs/PRD.md` | Deterministic reference-thread assembly dependency; LineageWeave owns records and persistence |
-| `ContextualWisdomLab/DiskSage` | No standalone PRD; `docs/superpowers/specs/2026-07-10-disksage-design.md` | Prospective storage-policy boundary; no current runtime integration |
+| `ContextualWisdomLab/disksage` | No standalone PRD; `docs/superpowers/specs/2026-07-10-disksage-design.md` | Prospective storage-policy boundary; no current runtime integration |
 | `ContextualWisdomLab/wardnet` | No standalone PRD; `README.md`, `docs/architecture.md` | Prospective gateway/network-policy boundary; no current runtime integration |
 | `ContextualWisdomLab/naruon` | Scoped `docs/topic-intelligence/PRD.md` only | Owns observed calendar/email projections; LineageWeave owns commitments and combined display |
 | `ContextualWisdomLab/LineageWeave` | This PRD, with ADRs normative | Evidence BI/orchestration, lineage, semantic projection, API, and UI owner |

@@ -20,10 +20,20 @@ authorization, provenance persistence, and UI projection only. The current
 Python IRT/report, residual-map, similarity, graph-ranking, and fusion paths
 are explicitly inventoried migration debt rather than evidence that this
 repository owns their mathematics. They move by construct to TEPP,
-fast-mlsirm, or RankWeave after versioned Rust CPU/GPU owner contracts pass
-recovery/equivalence checks; affected product paths fail closed during each
-cutover rather than substituting a local estimate. See
+fast-mlsirm, or RankWeave after each owner's versioned contract passes
+recovery/equivalence checks; TEPP and fast-mlsirm own Rust scientific compute,
+while RankWeave owns its existing retrieval and comparison implementation.
+Affected product paths fail closed during each cutover rather than substituting
+a local estimate. See
 `docs/doctoring/python-mathematical-compute-boundary-audit.md`.
+
+ADR 0237 also keeps accelerator deployment outside this repository. MLX runs
+as a native Apple-silicon inference service behind contextual-orchestrator;
+scientific CPU/CUDA/OpenCL profiles belong to TEPP or fast-mlsirm. RankWeave
+remains the dependency-free Python retrieval-fusion/evaluation owner behind its
+published contract. LineageWeave Compose therefore does not reserve devices or
+mount host drivers; its provider-neutral connectors consume versioned results
+and fail closed when an owning service is unavailable.
 
 ## Data flow
 

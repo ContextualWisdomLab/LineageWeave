@@ -2,6 +2,7 @@ import { AdminPanel } from "./components/AdminPanel";
 import { LeftoverPairList } from "./components/LeftoverPairList";
 import { WorkspaceCalendar } from "./components/WorkspaceCalendar";
 import { focusedGraphMustReset } from "./focusedGraphSelection";
+import { analysisRunText } from "./analysisRunI18n";
 
 import { useCallback, useEffect, useEffectEvent, useRef, useState, type ReactNode } from "react";
 import { useAuth } from "react-oidc-context";
@@ -27,6 +28,8 @@ import {
   fetchPostActivity,
   fetchPostBookmark,
   fetchPostChat,
+  fetchPostChatConversation,
+  fetchPostChatConversations,
   fetchPostAffiliateTree,
   fetchPostCounterparties,
   fetchPostEvaluation,
@@ -58,6 +61,8 @@ import {
   type CalendarResponse,
   type ChatAnswer,
   type ChatExchange,
+  type PostAskConversationSummary,
+  type PostAskConversationPage,
   type CorporateEntityRef,
   type CustomerMasterEntity,
   type CustomerMasterResponse,
@@ -125,7 +130,7 @@ import "./App.css";
 
 function orchestratorUnavailableMessage(err: unknown, action: string): string {
   if (err instanceof BackendError && err.status === 503) {
-    return `${action} ${t("is temporarily unavailable.")} ${t("Saved evidence is still available.")}`;
+    return `${action} ${t("is temporarily unavailable.")} ${t("Review the saved evidence below, then retry in a moment.")}`;
   }
   return String(err);
 }
@@ -157,7 +162,9 @@ function LanguageSwitcher({ accessToken }: { accessToken?: string }) {
 
 function searchUnavailableMessage(err: unknown): string {
   if (err instanceof BackendError && err.status === 503) {
-    return t("Verification unavailable (search is not configured).");
+    return t(
+      "Verification is temporarily unavailable. Retry in a moment; if this continues, contact your workspace administrator.",
+    );
   }
   return String(err);
 }
@@ -257,7 +264,15 @@ function ChatCitations({
   );
 }
 
-function ChatPanel({
+function appendUniqueConversations(
+  current: PostAskConversationSummary[],
+  incoming: PostAskConversationSummary[],
+): PostAskConversationSummary[] {
+  const conversationIds = new Set(current.map((conversation) => conversation.conversation_id));
+  return [...current, ...incoming.filter((conversation) => !conversationIds.has(conversation.conversation_id))];
+}
+
+export function ChatPanel({
   postId,
   accessToken,
   nameFirstAsk,
@@ -268,30 +283,117 @@ function ChatPanel({
 }) {
   const [question, setQuestion] = useState("");
   const [exchanges, setExchanges] = useState<ChatExchange[]>([]);
+  const [seededExchanges, setSeededExchanges] = useState<ChatExchange[]>([]);
+  const [conversations, setConversations] = useState<PostAskConversationSummary[]>([]);
+  const [conversationCursor, setConversationCursor] = useState<PostAskConversationPage["next_cursor"]>(null);
+  const [conversationOlderCursor, setConversationOlderCursor] = useState<string | null>(null);
+  const [conversationId, setConversationId] = useState<string | null>(null);
+  const [historyError, setHistoryError] = useState<string | null>(null);
   const [answer, setAnswer] = useState<ChatAnswer | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [conversationLoading, setConversationLoading] = useState(false);
   const [evidencePostId, setEvidencePostId] = useState<string | null>(null);
   const [seededOnly, setSeededOnly] = useState(false);
+  const conversationListRequest = useRef(0);
+  const conversationRequest = useRef(0);
+  const askRequest = useRef(0);
 
   useEffect(() => {
+    let active = true;
+    ++conversationListRequest.current;
+    ++conversationRequest.current;
+    ++askRequest.current;
+    setQuestion("");
     setExchanges([]);
+    setSeededExchanges([]);
+    setConversations([]);
+    setConversationId(null);
+    setHistoryError(null);
+    setConversationCursor(null);
+    setConversationOlderCursor(null);
     setAnswer(null);
     setError(null);
+    setLoading(false);
+    setConversationLoading(false);
     setSeededOnly(false);
     setEvidencePostId(null);
     fetchPostChat(accessToken, postId)
-      .then((history) => setExchanges(history.exchanges))
-      .catch(() => setExchanges([]));
+      .then((history) => {
+        if (active) {
+          setSeededExchanges(history.exchanges);
+          setExchanges(history.exchanges);
+        }
+      })
+      .catch(() => { if (active) setExchanges([]); });
+    fetchPostChatConversations(accessToken, postId)
+      .then((page) => {
+        if (active) {
+          setConversations(page.conversations);
+          setConversationCursor(page.next_cursor ?? null);
+        }
+      })
+      .catch(() => { if (active) setHistoryError(t("Conversation history could not be loaded. Start a new conversation or try again later.")); });
+    return () => { active = false; };
   }, [postId, accessToken]);
 
+  async function selectConversation(nextId: string) {
+    const requestId = ++conversationRequest.current;
+    setConversationLoading(true);
+    setHistoryError(null);
+    setAnswer(null);
+    try {
+      const conversation = await fetchPostChatConversation(accessToken, postId, nextId);
+      if (requestId !== conversationRequest.current) return;
+      setConversationId(conversation.conversation_id);
+      setExchanges(conversation.exchanges);
+      setConversationOlderCursor(conversation.older_cursor ?? null);
+    } catch {
+      if (requestId !== conversationRequest.current) return;
+      setHistoryError(t("Conversation history could not be loaded. Start a new conversation or try again later."));
+    } finally {
+      if (requestId === conversationRequest.current) setConversationLoading(false);
+    }
+  }
+
+  function startNewConversation() {
+    ++conversationRequest.current;
+    setConversationLoading(false);
+    setConversationId(null);
+    setConversationOlderCursor(null);
+    setExchanges(seededExchanges);
+    setQuestion("");
+    setAnswer(null);
+    setError(null);
+    setHistoryError(null);
+  }
+
   async function handleAsk(asked = question) {
-    if (!asked.trim()) return;
+    if (!asked.trim() || conversationLoading) return;
+    const requestId = ++askRequest.current;
+    const requestedConversationId = conversationId;
     setLoading(true);
     setError(null);
     try {
-      const result = await askPostChat(accessToken, postId, asked);
+      const result = await askPostChat(accessToken, postId, asked, requestedConversationId);
+      if (requestId !== askRequest.current) return;
+      const startsConversation = requestedConversationId === null
+        || (result.conversation_id !== undefined && result.conversation_id !== requestedConversationId);
       setAnswer(result);
+      if (result.conversation_id) {
+        setConversationId(result.conversation_id);
+        setConversations((current) => [
+          {
+            conversation_id: result.conversation_id!,
+            title: current.find((row) => row.conversation_id === result.conversation_id)?.title ?? asked.trim().slice(0, 80),
+            updated_at: new Date().toISOString(),
+            turn_count: (current.find((row) => row.conversation_id === result.conversation_id)?.turn_count ?? 0) + 1,
+          },
+          ...current.filter((row) =>
+            row.conversation_id !== result.conversation_id
+            && row.conversation_id !== requestedConversationId),
+        ]);
+      }
       setExchanges((prev) => {
         const next: ChatExchange = {
           question_text: asked.trim(),
@@ -299,15 +401,16 @@ function ChatPanel({
           cited_post_ids: result.cited_post_ids,
           cited_posts: result.cited_posts,
         };
-        return [...prev.filter((row) => row.question_text !== next.question_text), next];
+        return startsConversation ? [next] : [...prev, next];
       });
     } catch (err) {
+      if (requestId !== askRequest.current) return;
       setError(orchestratorUnavailableMessage(err, "Chat"));
       if (err instanceof BackendError && err.status === 503) {
         setSeededOnly(true);
       }
     } finally {
-      setLoading(false);
+      if (requestId === askRequest.current) setLoading(false);
     }
   }
 
@@ -316,19 +419,21 @@ function ChatPanel({
   const firstCitedTitle =
     exchanges[0]?.cited_posts?.[0]?.post_title ??
     (firstCitedPostId ? firstCitedPostId.slice(0, 8) : null);
-  const landedEvidencePostId = nameFirstAsk ? (evidencePostId ?? firstCitedPostId) : null;
+  const showNamedSeed = Boolean(nameFirstAsk && conversationId === null && exchanges[0]);
+  const landedEvidencePostId = showNamedSeed ? (evidencePostId ?? firstCitedPostId) : null;
+  const chatBusy = loading || conversationLoading;
 
   return (
     <section className="popup-section chat-section">
       <h3 id="post-ask" tabIndex={-1}>
         {t("Ask about this lineage")}
       </h3>
-      {nameFirstAsk && exchanges[0] ? (
+      {showNamedSeed ? (
         <p className="post-meta" role="status" aria-label={t("Ask seed next action")}>
           {firstAskNextAction(exchanges[0].question_text)}
         </p>
       ) : null}
-      {nameFirstAsk && exchanges[0] ? (
+      {showNamedSeed ? (
         <div key={`seeded-${exchanges[0].question_text}`} className="chat-answer">
           <p className="chat-question">{exchanges[0].question_text}</p>
           <p>{exchanges[0].answer_text}</p>
@@ -342,12 +447,12 @@ function ChatPanel({
           />
         </div>
       ) : null}
-      {nameFirstAsk && firstCitedTitle ? (
+      {showNamedSeed && firstCitedTitle ? (
         <p className="post-meta" role="status" aria-label={t("Ask citation next action")}>
           {firstCitedNextAction(firstCitedTitle)}
         </p>
       ) : null}
-      {nameFirstAsk && landedEvidencePostId ? (
+      {showNamedSeed && landedEvidencePostId ? (
         <EvidencePanel
           postId={landedEvidencePostId}
           accessToken={accessToken}
@@ -358,21 +463,79 @@ function ChatPanel({
           }
         />
       ) : null}
-      {nameFirstAsk && firstCitedTitle && landedEvidencePostId ? (
+      {showNamedSeed && firstCitedTitle && landedEvidencePostId ? (
         <p className="post-meta" role="status" aria-label={t("Evidence next action")}>
           {landedEvidenceNextAction(firstCitedTitle)}
         </p>
       ) : null}
+      <div className="chat-history-controls">
+        <label>
+          <span>{t("Conversation history")}</span>
+          <select
+            value={conversationId ?? ""}
+            onChange={(event) => event.target.value ? void selectConversation(event.target.value) : startNewConversation()}
+            disabled={loading}
+          >
+            <option value="">{t("New conversation")}</option>
+            {conversations.map((conversation) => (
+              <option key={conversation.conversation_id} value={conversation.conversation_id}>
+                {conversation.title ?? t("New conversation")} ({conversation.turn_count})
+              </option>
+            ))}
+          </select>
+        </label>
+        {conversationCursor ? (
+          <button type="button" onClick={async () => {
+            const requestId = ++conversationListRequest.current;
+            try {
+              const page = await fetchPostChatConversations(accessToken, postId, conversationCursor);
+              if (requestId !== conversationListRequest.current) return;
+              setConversations((current) => appendUniqueConversations(current, page.conversations));
+              setConversationCursor(page.next_cursor ?? null);
+            } catch {
+              if (requestId !== conversationListRequest.current) return;
+              setHistoryError(t("Conversation history could not be loaded. Start a new conversation or try again later."));
+            }
+          }} disabled={loading}>{t("Load more")}</button>
+        ) : null}
+        <button type="button" onClick={startNewConversation} disabled={loading}>
+          {t("New conversation")}
+        </button>
+      </div>
+      {conversationId && conversationOlderCursor ? (
+        <button type="button" onClick={async () => {
+          const requestId = ++conversationRequest.current;
+          setConversationLoading(true);
+          try {
+            const conversation = await fetchPostChatConversation(
+              accessToken,
+              postId,
+              conversationId,
+              Number(conversationOlderCursor),
+            );
+            if (requestId !== conversationRequest.current) return;
+            setExchanges((current) => [...conversation.exchanges, ...current]);
+            setConversationOlderCursor(conversation.older_cursor ?? null);
+          } catch {
+            if (requestId !== conversationRequest.current) return;
+            setHistoryError(t("Conversation history could not be loaded. Start a new conversation or try again later."));
+          } finally {
+            if (requestId === conversationRequest.current) setConversationLoading(false);
+          }
+        }} disabled={chatBusy}>{t("Load earlier messages")}</button>
+      ) : null}
+      {historyError ? <p className="error" role="alert">{historyError}</p> : null}
       {!seededOnly && (
         <div className="chat-input-row">
           <input
             type="text"
             value={question}
+            disabled={chatBusy}
             onChange={(event) => setQuestion(event.target.value)}
             onKeyDown={(event) => event.key === "Enter" && handleAsk()}
             placeholder={t("What happened between these events?")}
           />
-          <button onClick={() => handleAsk()} disabled={loading || !question.trim()}>
+          <button onClick={() => handleAsk()} disabled={chatBusy || !question.trim()}>
             {loading ? t("Asking...") : t("Ask")}
           </button>
         </div>
@@ -384,13 +547,13 @@ function ChatPanel({
       )}
       {exchanges.length > 0 && (
         <div className="chat-suggestions">
-          {exchanges.map((exchange) => (
+          {exchanges.map((exchange, index) => (
             <button
-              key={exchange.question_text}
+              key={exchange.turn_id ?? `suggestion-${index}`}
               className="chat-suggestion-chip"
               aria-label={tf("Ask seeded question: {question}", { question: exchange.question_text })}
               aria-current={
-                nameFirstAsk && exchanges[0]?.question_text === exchange.question_text
+                showNamedSeed && index === 0
                   ? "true"
                   : undefined
               }
@@ -407,12 +570,9 @@ function ChatPanel({
       )}
       {error && <p className="error">{error}</p>}
       {exchanges
-        .filter(
-          (exchange) =>
-            !(nameFirstAsk && exchange.question_text === exchanges[0]?.question_text),
-        )
-        .map((exchange) => (
-        <div key={`seeded-${exchange.question_text}`} className="chat-answer">
+        .slice(showNamedSeed ? 1 : 0)
+        .map((exchange, index) => (
+        <div key={exchange.turn_id ?? `answer-${index}`} className="chat-answer">
           <p className="chat-question">{exchange.question_text}</p>
           <p>{exchange.answer_text}</p>
           <ChatCitations
@@ -432,7 +592,7 @@ function ChatPanel({
           />
         </div>
       )}
-      {!nameFirstAsk && evidencePostId ? (
+      {!showNamedSeed && evidencePostId ? (
         <EvidencePanel
           postId={evidencePostId}
           accessToken={accessToken}
@@ -1556,7 +1716,7 @@ function CounterpartyPanel({
                 className="keyman-select"
                 onClick={() => onSelectPost(c.verification_evidence_post_id!)}
               >
-                View internal evidence
+                {t("Open supporting post")}
               </button>
             ) : null}
           </li>
@@ -2673,13 +2833,13 @@ function analysisRunNextAction(run: AnalysisRun): string | null {
     case "analysis_status_pending":
       switch (run.run_kind_code) {
         case "analysis_run_lineage":
-          return "Open this run, then start reconstruction. Reconstruction has not started yet.";
+          return analysisRunText("pendingLineage");
         case "analysis_run_tepp":
-          return "Open this run to confirm which posts TEPP will measure. Measurement has not started yet — this is not a calibrated result.";
+          return analysisRunText("pendingMeasurement");
         case "analysis_run_topic_lineage":
-          return "Open this run to confirm which posts TEPP will thread into topic lineage. Topic-lineage analysis has not started yet — this is not a calibrated topic result.";
+          return analysisRunText("pendingTopicLineage");
         case "analysis_run_report":
-          return "Open this run to confirm which posts the period report will use. The report has not been built yet.";
+          return analysisRunText("pendingReport");
         default: {
           const unexpected: never = run.run_kind_code;
           return unexpected;
@@ -2688,22 +2848,36 @@ function analysisRunNextAction(run: AnalysisRun): string | null {
     case "analysis_status_failed":
       switch (run.run_kind_code) {
         case "analysis_run_tepp":
-          return "Open this run to see why it failed, then connect the measurement service and re-run.";
+          return analysisRunText("failedMeasurement");
         case "analysis_run_topic_lineage":
-          return "Open this run to see why it failed, then connect the TEPP transport and re-run.";
+          return analysisRunText("failedTopicLineage");
         case "analysis_run_lineage":
-          return "Open this run to see why it failed, then retry reconstruction from a current snapshot.";
+          return analysisRunText("failedLineage");
         case "analysis_run_report":
-          return "Open this run to see why it failed, then rebuild the period report from a current snapshot.";
+          return analysisRunText("failedReport");
         default: {
           const unexpected: never = run.run_kind_code;
           return unexpected;
         }
       }
     case "analysis_status_running":
-      return "Refresh this run. Start already queued the work on the durable outbox.";
-    case "analysis_status_succeeded":
+      return analysisRunText("running");
     case "analysis_status_cancelled":
+      switch (run.run_kind_code) {
+        case "analysis_run_lineage":
+          return analysisRunText("cancelledLineage");
+        case "analysis_run_tepp":
+          return analysisRunText("cancelledMeasurement");
+        case "analysis_run_topic_lineage":
+          return analysisRunText("cancelledTopicLineage");
+        case "analysis_run_report":
+          return analysisRunText("cancelledReport");
+        default: {
+          const unexpected: never = run.run_kind_code;
+          return unexpected;
+        }
+      }
+    case "analysis_status_succeeded":
     case null:
       return null;
     default: {
@@ -2719,25 +2893,13 @@ function analysisRunNextAction(run: AnalysisRun): string | null {
 function analysisRunEmptyPostsHint(run: AnalysisRun): string {
   switch (run.run_kind_code) {
     case "analysis_run_tepp":
-      return (
-        "No posts were available at this cutoff for TEPP to measure. " +
-        "Open a later run, or ask an administrator to capture a newer snapshot."
-      );
+      return analysisRunText("emptyMeasurement");
     case "analysis_run_topic_lineage":
-      return (
-        "No posts were available at this cutoff for topic-lineage analysis. " +
-        "Open a later run, or ask an administrator to capture a newer snapshot."
-      );
+      return analysisRunText("emptyTopicLineage");
     case "analysis_run_lineage":
-      return (
-        "No posts were available at this cutoff for reconstruction. " +
-        "Open a later run, or ask an administrator to capture a newer snapshot."
-      );
+      return analysisRunText("emptyLineage");
     case "analysis_run_report":
-      return (
-        "No posts were available at this cutoff for the period report. " +
-        "Open a later run, or ask an administrator to capture a newer snapshot."
-      );
+      return analysisRunText("emptyReport");
     default: {
       const unexpected: never = run.run_kind_code;
       return unexpected;
@@ -2754,28 +2916,28 @@ function analysisRunEmptyPostsHint(run: AnalysisRun): string {
 function analysisRunCorpusHint(run: AnalysisRun): string | null {
   const isTopicLineage = run.run_kind_code === "analysis_run_topic_lineage";
   if (run.run_kind_code !== "analysis_run_tepp" && !isTopicLineage) return null;
-  const service = isTopicLineage ? "topic-lineage" : "TEPP";
-  const result = isTopicLineage ? "a topic-identity result" : "a calibrated result";
-  const verb = isTopicLineage ? "thread" : "measure";
-  const verbPast = isTopicLineage ? "threaded" : "measured";
   switch (run.status_code) {
     case "analysis_status_failed":
-      return (
-        `These posts are the cutoff corpus ${service} would ${verb}. Connect a TEPP ` +
-        `transport, then re-run, to replace Failed with ${result}.`
+      return analysisRunText(
+        isTopicLineage ? "corpusFailedTopicLineage" : "corpusFailedMeasurement",
       );
     case "analysis_status_succeeded":
-      return `These posts are the cutoff corpus this ${service} run ${verbPast}.`;
+      return analysisRunText(
+        isTopicLineage ? "corpusSucceededTopicLineage" : "corpusSucceededMeasurement",
+      );
     case "analysis_status_pending":
     case "analysis_status_running":
-      return `These posts are the cutoff corpus ${service} will ${verb} once this run finishes.`;
+      return analysisRunText(
+        isTopicLineage ? "corpusPendingTopicLineage" : "corpusPendingMeasurement",
+      );
     case "analysis_status_cancelled":
-      return (
-        `These posts are the cutoff corpus this ${service} run would have ${verbPast}. ` +
-        `The run was cancelled before ${result}.`
+      return analysisRunText(
+        isTopicLineage ? "corpusCancelledTopicLineage" : "corpusCancelledMeasurement",
       );
     case null:
-      return `These posts are the cutoff corpus attached to this ${service} run.`;
+      return analysisRunText(
+        isTopicLineage ? "corpusAttachedTopicLineage" : "corpusAttachedMeasurement",
+      );
     default: {
       const unexpected: never = run.status_code;
       return unexpected;
@@ -2901,7 +3063,7 @@ function analysisRunCanStart(run: AnalysisRun): boolean {
 
 function analysisRunStartLabel(run: AnalysisRun): string {
   if (run.run_kind_code === "analysis_run_tepp") {
-    return "Start TEPP measurement";
+    return "Start measurement";
   }
   if (run.run_kind_code === "analysis_run_topic_lineage") {
     return "Start topic lineage";
@@ -2909,12 +3071,12 @@ function analysisRunStartLabel(run: AnalysisRun): string {
   return "Start reconstruction";
 }
 
-/** Failed TEPP/topic-lineage is terminal. Create cannot invent a Pending row. */
-function analysisRunCanRequestTeppRetry(run: AnalysisRun): boolean {
+function analysisRunCanRetryMeasurement(run: AnalysisRun): boolean {
   return (
     (run.run_kind_code === "analysis_run_tepp" ||
       run.run_kind_code === "analysis_run_topic_lineage") &&
-    run.status_code === "analysis_status_failed"
+    run.status_code === "analysis_status_failed" &&
+    Boolean(run.scope_corporate_entity_id)
   );
 }
 
@@ -3013,7 +3175,8 @@ function AnalysisRunsPanel({
   const [requesting, setRequesting] = useState(false);
   const [starting, setStarting] = useState(false);
   const [selectedEntityId, setSelectedEntityId] = useState("");
-  const inFlightKeyRef = useRef<string | null>(null);
+  const lineageRequestKeyRef = useRef<string | null>(null);
+  const measurementRetryKeyRef = useRef(new Map<string, string>());
   const entitiesReady = corporateEntities !== null && entitiesLoadError === null;
   const requestLabel = requesting
     ? "Recording the run..."
@@ -3049,10 +3212,10 @@ function AnalysisRunsPanel({
     }
     setError(null);
     setRequesting(true);
-    if (inFlightKeyRef.current === null) {
-      inFlightKeyRef.current = crypto.randomUUID();
+    if (lineageRequestKeyRef.current === null) {
+      lineageRequestKeyRef.current = crypto.randomUUID();
     }
-    const idempotencyKey = inFlightKeyRef.current;
+    const idempotencyKey = lineageRequestKeyRef.current;
     try {
       const created = await createAnalysisRun(accessToken, {
         run_kind_code: "analysis_run_lineage",
@@ -3062,12 +3225,12 @@ function AnalysisRunsPanel({
       const listed = await fetchAnalysisRuns(accessToken);
       setRuns(listed.analysis_runs);
       setSelected(created);
-      inFlightKeyRef.current = null;
+      lineageRequestKeyRef.current = null;
     } catch (err) {
       if (err instanceof BackendError && err.status === 409) {
-        inFlightKeyRef.current = null;
+        lineageRequestKeyRef.current = null;
         setError(
-          "This request key already names a different reconstruction. Request again to start a new run.",
+          "This request key already names a different analysis. Request again to start a new run.",
         );
       } else {
         setError(err instanceof BackendError ? err.message : String(err));
@@ -3087,6 +3250,37 @@ function AnalysisRunsPanel({
       setRuns(listed.analysis_runs);
       setSelected(started);
     } catch (err) {
+      setError(err instanceof BackendError ? err.message : String(err));
+    } finally {
+      setStarting(false);
+    }
+  }
+
+  async function handleRetryMeasurement() {
+    if (!selected || !analysisRunCanRetryMeasurement(selected)) return;
+    setError(null);
+    setStarting(true);
+    const sourceRunId = selected.analysis_run_id;
+    let idempotencyKey = measurementRetryKeyRef.current.get(sourceRunId);
+    if (!idempotencyKey) {
+      idempotencyKey = crypto.randomUUID();
+      measurementRetryKeyRef.current.set(sourceRunId, idempotencyKey);
+    }
+    try {
+      const created = await createAnalysisRun(accessToken, {
+        run_kind_code: selected.run_kind_code,
+        corporate_entity_id: selected.scope_corporate_entity_id,
+        idempotency_key: idempotencyKey,
+      });
+      const started = await startAnalysisRun(accessToken, created.analysis_run_id);
+      const listed = await fetchAnalysisRuns(accessToken);
+      setRuns(listed.analysis_runs);
+      setSelected(started);
+      measurementRetryKeyRef.current.delete(sourceRunId);
+    } catch (err) {
+      if (err instanceof BackendError && err.status === 409) {
+        measurementRetryKeyRef.current.delete(sourceRunId);
+      }
       setError(err instanceof BackendError ? err.message : String(err));
     } finally {
       setStarting(false);
@@ -3153,7 +3347,7 @@ function AnalysisRunsPanel({
             return (
               <li key={run.analysis_run_id} className="ticket-list-item">
                 <button
-                  className="post-list-item"
+                  className={`post-list-item analysis-run-item${documentCount ? " has-document-count" : ""}${nextAction ? " has-next-action" : ""}`}
                   aria-label={`Open analysis run: ${caption}`}
                   onClick={() => void handleOpen(run.analysis_run_id)}
                 >
@@ -3193,21 +3387,31 @@ function AnalysisRunsPanel({
             >
               {starting
                 ? selected.run_kind_code === "analysis_run_tepp"
-                  ? "Submitting the TEPP request..."
+                  ? "Starting measurement..."
                   : selected.run_kind_code === "analysis_run_topic_lineage"
                     ? "Submitting the topic-lineage request..."
                     : "Reconstructing the cutoff bag..."
                 : analysisRunStartLabel(selected)}
             </button>
           )}
-          {analysisRunCanRequestTeppRetry(selected) && (
-            <p className="post-meta">
-              {selected.run_kind_code === "analysis_run_topic_lineage"
-                ? "Connect a TEPP transport from this Failed row. Request a " +
-                  "lineage reconstruction does not invent a topic model."
-                : "Connect a TEPP transport from this Failed row. Request a lineage " +
-                  "reconstruction does not invent a measurement."}
-            </p>
+          {analysisRunCanRetryMeasurement(selected) && (
+            <button
+              className="keyman-select"
+              disabled={starting}
+              onClick={() => void handleRetryMeasurement()}
+            >
+              {starting
+                ? analysisRunText(
+                    selected.run_kind_code === "analysis_run_topic_lineage"
+                      ? "retryingTopicLineage"
+                      : "retryingMeasurement",
+                  )
+                : analysisRunText(
+                    selected.run_kind_code === "analysis_run_topic_lineage"
+                      ? "retryTopicLineage"
+                      : "retryMeasurement",
+                  )}
+            </button>
           )}
           {analysisRunReportPeriod(selected) && onSelectReportPeriod && (
             <button

@@ -135,6 +135,14 @@ from backend.app.post_chat_ingestion import (
     gather_chat_sources,
     persist_post_chat,
 )
+from backend.app.post_ask_history import (
+    PostAskConversationNotFound,
+    PostAskEvidenceChanged,
+    conversation_exists as post_ask_conversation_exists,
+    fetch_conversation as fetch_post_ask_conversation,
+    list_conversations as list_post_ask_conversations,
+    persist_turn as persist_post_ask_turn,
+)
 from backend.app.post_content_queue import (
     ensure_post_content_job,
     post_content_api_status,
@@ -332,6 +340,10 @@ async def lifespan(app: FastAPI):
 
 
 logger = logging.getLogger(__name__)
+_POST_CHAT_RETRY_DETAIL = (
+    "Post chat is temporarily unavailable. Review the saved evidence, then "
+    "retry in a moment. If this continues, contact your workspace administrator."
+)
 
 app = FastAPI(title="LineageWeave API", lifespan=lifespan)
 app.add_middleware(
@@ -1258,12 +1270,12 @@ async def resolve_customer_master_hint(
             # verify-relations' identical try/except).
             raise HTTPException(
                 status.HTTP_503_SERVICE_UNAVAILABLE,
-                "Hint resolution is unavailable: the orchestrator or search provider did not respond",
+                "Hint resolution is temporarily unavailable. Retry in a moment. If this continues, contact your workspace administrator.",
             ) from exc
         except Exception as exc:  # noqa: BLE001 - provider boundary is fail-closed.
             raise HTTPException(
                 status.HTTP_503_SERVICE_UNAVAILABLE,
-                "Hint resolution is unavailable: the orchestrator or search provider did not respond",
+                "Hint resolution is temporarily unavailable. Retry in a moment. If this continues, contact your workspace administrator.",
             ) from exc
     if resolution is None:
         raise HTTPException(
@@ -1308,8 +1320,7 @@ async def rebuild_lineage_graph(
     except ChannelWeightsNotEstimated as exc:
         raise HTTPException(
             status.HTTP_503_SERVICE_UNAVAILABLE,
-            "Channel weights are not estimated yet. Run "
-            "scripts/estimate_channel_weights.py, then rebuild again.",
+            "Lineage calibration evidence is unavailable. Ask your workspace administrator to complete calibration, then rebuild again.",
         ) from exc
     except (HttpClientError, OSError) as exc:
         # This can issue up to MAXIMUM_LIVE_LLM_PAIR_EVALUATIONS sequential
@@ -1319,7 +1330,7 @@ async def rebuild_lineage_graph(
         # discipline as this file's other orchestrator call sites.
         raise HTTPException(
             status.HTTP_503_SERVICE_UNAVAILABLE,
-            "Lineage rebuild is unavailable: the orchestrator did not respond",
+            "Lineage rebuild is temporarily unavailable. Retry in a moment. If this continues, contact your workspace administrator.",
         ) from exc
     return {"edge_count": len(edges)}
 
@@ -1874,7 +1885,7 @@ async def read_similar_voc(
     if client is None:
         raise HTTPException(
             status.HTTP_503_SERVICE_UNAVAILABLE,
-            "similar VOC inference is unavailable; configure contextual-orchestrator and retry",
+            "Similar VOC evidence is unavailable. Retry in a moment. If this continues, contact your workspace administrator.",
         )
     async with pool.acquire() as conn:
         # Safe SQL: the sole interpolation is the closed eligibility fragment; request and identity values remain asyncpg parameters.
@@ -2347,7 +2358,7 @@ async def verify_post_entity_relationships(
     if not client.available:
         raise HTTPException(
             status.HTTP_503_SERVICE_UNAVAILABLE,
-            "Relation verification is unavailable: set SEARXNG_BASE_URL",
+            "Relation verification is temporarily unavailable. Retry in a moment. If this continues, contact your workspace administrator.",
         )
     try:
         verified = await verify_post_relations_from_pool(
@@ -2361,12 +2372,12 @@ async def verify_post_entity_relationships(
         # provider failure into a clean 503 rather than persisting a miss.
         raise HTTPException(
             status.HTTP_503_SERVICE_UNAVAILABLE,
-            "Relation verification is unavailable: the search provider did not respond",
+            "Relation verification is temporarily unavailable. Retry in a moment. If this continues, contact your workspace administrator.",
         ) from exc
     except Exception as exc:  # noqa: BLE001 - provider boundary is fail-closed.
         raise HTTPException(
             status.HTTP_503_SERVICE_UNAVAILABLE,
-            "Relation verification is unavailable: the search provider did not respond",
+            "Relation verification is temporarily unavailable. Retry in a moment. If this continues, contact your workspace administrator.",
         ) from exc
     await publish_activity_event(
         valkey,
@@ -2411,7 +2422,7 @@ async def extract_post_keymen(
         if not keyman_client.available:
             raise HTTPException(
                 status.HTTP_503_SERVICE_UNAVAILABLE,
-                "Keymen extraction is unavailable: set ORCHESTRATOR_BASE_URL / ORCHESTRATOR_API_KEY",
+                "Keymen extraction is unavailable. Retry in a moment. If this continues, contact your workspace administrator.",
             )
         relationship_client = _entity_relationship_client()
         async with pool.acquire() as conn:
@@ -2441,12 +2452,12 @@ async def extract_post_keymen(
             except (HttpClientError, KeyError, OSError, TypeError, ValueError, RuntimeError) as exc:
                 raise HTTPException(
                     status.HTTP_503_SERVICE_UNAVAILABLE,
-                    "Keymen extraction is unavailable: contextual-orchestrator or corroboration provider returned no complete evidence object",
+                    "Keymen extraction is unavailable. Retry in a moment. If this continues, contact your workspace administrator.",
                 ) from exc
             except Exception as exc:  # noqa: BLE001 - provider boundary is fail-closed.
                 raise HTTPException(
                     status.HTTP_503_SERVICE_UNAVAILABLE,
-                    "Keymen extraction is unavailable: contextual-orchestrator or corroboration provider returned no complete evidence object",
+                    "Keymen extraction is unavailable. Retry in a moment. If this continues, contact your workspace administrator.",
                 ) from exc
             # Live bug (2026-08-19): an organization affiliated ONLY with an
             # our_side person (our own factory, our own affiliate) got fed
@@ -2470,12 +2481,12 @@ async def extract_post_keymen(
             except (HttpClientError, KeyError, OSError, TypeError, ValueError, RuntimeError) as exc:
                 raise HTTPException(
                     status.HTTP_503_SERVICE_UNAVAILABLE,
-                    "Keymen extraction is unavailable: contextual-orchestrator or corroboration provider returned no complete evidence object",
+                    "Keymen extraction is unavailable. Retry in a moment. If this continues, contact your workspace administrator.",
                 ) from exc
             except Exception as exc:  # noqa: BLE001 - provider boundary is fail-closed.
                 raise HTTPException(
                     status.HTTP_503_SERVICE_UNAVAILABLE,
-                    "Keymen extraction is unavailable: contextual-orchestrator or corroboration provider returned no complete evidence object",
+                    "Keymen extraction is unavailable. Retry in a moment. If this continues, contact your workspace administrator.",
                 ) from exc
             async with conn.transaction():
                 await persist_edges_for_post(conn, post_id)
@@ -2625,12 +2636,12 @@ async def evaluate_post(
         except (HttpClientError, KeyError, OSError, TypeError, ValueError, RuntimeError) as exc:
             raise HTTPException(
                 status.HTTP_503_SERVICE_UNAVAILABLE,
-                "Post evaluation is unavailable: contextual-orchestrator returned no complete evidence object",
+                "Post evaluation is unavailable. Retry in a moment. If this continues, contact your workspace administrator.",
             ) from exc
         except Exception as exc:  # noqa: BLE001 - provider boundary is fail-closed.
             raise HTTPException(
                 status.HTTP_503_SERVICE_UNAVAILABLE,
-                "Post evaluation is unavailable: contextual-orchestrator returned no complete evidence object",
+                "Post evaluation is unavailable. Retry in a moment. If this continues, contact your workspace administrator.",
             ) from exc
     await publish_activity_event(
         valkey,
@@ -2897,7 +2908,7 @@ async def read_post_summary(
                     return stale_fallback("orchestrator_unavailable")
                 raise HTTPException(
                     status.HTTP_503_SERVICE_UNAVAILABLE,
-                    "Post summary is unavailable: set ORCHESTRATOR_BASE_URL / ORCHESTRATOR_API_KEY",
+                    "Post summary is unavailable. Retry in a moment. If this continues, contact your workspace administrator.",
                 )
             context_hints = await _load_post_semantic_hints(conn, post_id)
             summarize_with_hints = getattr(client, "summarize_with_hints", None)
@@ -2915,14 +2926,14 @@ async def read_post_summary(
                     return stale_fallback("orchestrator_failure", exc)
                 raise HTTPException(
                     status.HTTP_503_SERVICE_UNAVAILABLE,
-                    "Post summary is unavailable: contextual-orchestrator returned no complete evidence object",
+                    "Post summary is unavailable. Retry in a moment. If this continues, contact your workspace administrator.",
                 ) from exc
             except Exception as exc:  # noqa: BLE001 - provider boundary is fail-closed.
                 if stale is not None:
                     return stale_fallback("orchestrator_unexpected_failure", exc)
                 raise HTTPException(
                     status.HTTP_503_SERVICE_UNAVAILABLE,
-                    "Post summary is unavailable: contextual-orchestrator returned no complete evidence object",
+                    "Post summary is unavailable. Retry in a moment. If this continues, contact your workspace administrator.",
                 ) from exc
             try:
                 payload = await persist_post_summary(
@@ -2938,7 +2949,7 @@ async def read_post_summary(
                     return stale_fallback("summary_persist_failure", exc)
                 raise HTTPException(
                     status.HTTP_503_SERVICE_UNAVAILABLE,
-                    "Post summary is unavailable: contextual-orchestrator or corroboration provider returned no complete evidence object",
+                    "Post summary is unavailable. Retry in a moment. If this continues, contact your workspace administrator.",
                 ) from exc
         content_complete = await post_content_is_complete(
             conn,
@@ -2990,6 +3001,7 @@ class ChatRequest(BaseModel):
     """JSON body for ``POST /api/posts/{post_id}/chat``."""
 
     question: str
+    conversation_id: UUID | None = None
 
 
 class GlobalAskRequest(BaseModel):
@@ -2998,6 +3010,59 @@ class GlobalAskRequest(BaseModel):
     question: str
     verify_external: bool = False
     knowledge_cutoff: str | None = None
+
+
+async def _persist_post_ask_turn(
+    conn: asyncpg.Connection,
+    account: CurrentAccount,
+    post_id: str,
+    conversation_id: UUID | None,
+    question: str,
+    answer_text: str,
+    source_post_ids: list[str],
+    cited_post_ids: list[str],
+    *,
+    recover_deleted_conversation: bool = False,
+) -> UUID:
+    """Persist a completed turn after reauthorizing every gathered source.
+
+    A conversation confirmed before answer work can disappear before this
+    commit. In that narrow case, the completed answer starts a new owned
+    conversation after the same transactional source reauthorization.
+    """
+    try:
+        return await persist_post_ask_turn(
+            conn,
+            account.user_account_id,
+            post_id,
+            conversation_id,
+            question,
+            answer_text,
+            source_post_ids,
+            cited_post_ids,
+            can_see_post=lambda row: _can_see_post(account, row),
+        )
+    except PostAskEvidenceChanged as exc:
+        raise HTTPException(
+            status.HTTP_503_SERVICE_UNAVAILABLE,
+            "Post chat is temporarily unavailable because authorized evidence changed. Retry the question.",
+        ) from exc
+    except PostAskConversationNotFound as exc:
+        if recover_deleted_conversation and conversation_id is not None:
+            return await _persist_post_ask_turn(
+                conn,
+                account,
+                post_id,
+                None,
+                question,
+                answer_text,
+                source_post_ids,
+                cited_post_ids,
+            )
+        raise HTTPException(
+            status.HTTP_404_NOT_FOUND,
+            "This conversation is no longer available. Choose another conversation or start a new one.",
+        ) from exc
 
 
 @app.get("/api/posts/{post_id}/chat")
@@ -3044,16 +3109,36 @@ async def chat_about_post(
     post = await _load_visible_post(post_id, account, pool)
     post_metadata = build_post_llm_metadata(post_id, post)
     async with pool.acquire() as conn:
+        if request.conversation_id is not None and not await post_ask_conversation_exists(
+            conn, account.user_account_id, post_id, request.conversation_id
+        ):
+            raise HTTPException(
+                status.HTTP_404_NOT_FOUND,
+                "This conversation is no longer available. Choose another conversation or start a new one.",
+            )
+        conversation_was_confirmed = request.conversation_id is not None
         stored = await fetch_persisted_chat(conn, post_id, question)
         if stored is not None:
             source_ids = [post_id]
             source_ids.extend(cid for cid in stored["cited_post_ids"] if cid != post_id)
+            conversation_id = await _persist_post_ask_turn(
+                conn,
+                account,
+                post_id,
+                request.conversation_id,
+                question,
+                stored["answer_text"],
+                source_ids,
+                list(stored["cited_post_ids"]),
+                recover_deleted_conversation=conversation_was_confirmed,
+            )
             return {
                 "post_id": post_id,
                 "answer_text": stored["answer_text"],
                 "cited_post_ids": stored["cited_post_ids"],
                 "cited_posts": stored["cited_posts"],
                 "source_post_ids": source_ids,
+                "conversation_id": str(conversation_id),
             }
     with use_llm_metadata(post_metadata):
         with traced(
@@ -3070,8 +3155,7 @@ async def chat_about_post(
                     )
                     raise HTTPException(
                         status.HTTP_503_SERVICE_UNAVAILABLE,
-                        "Post chat is temporarily unavailable. "
-                        "Saved evidence is still available.",
+                        _POST_CHAT_RETRY_DETAIL,
                     )
                 async with pool.acquire() as conn:
                     sources = await gather_chat_sources(
@@ -3094,19 +3178,29 @@ async def chat_about_post(
                 record_server_failure("post_chat", exc, outcome="provider_unavailable")
                 raise HTTPException(
                     status.HTTP_503_SERVICE_UNAVAILABLE,
-                    "Post chat is temporarily unavailable. "
-                    "Saved evidence is still available.",
+                    _POST_CHAT_RETRY_DETAIL,
                 ) from exc
             except Exception as exc:
                 record_server_failure("post_chat", exc, outcome="internal_error")
                 raise HTTPException(
                     status.HTTP_503_SERVICE_UNAVAILABLE,
-                    "Post chat is temporarily unavailable. "
-                    "Saved evidence is still available.",
+                    _POST_CHAT_RETRY_DETAIL,
                 ) from exc
     cited_ids = list(answer.cited_post_ids)
+    source_ids = [source.post_id for source in sources]
     async with pool.acquire() as conn:
         await persist_post_chat(conn, post_id, question, answer.answer_text, cited_ids)
+        conversation_id = await _persist_post_ask_turn(
+            conn,
+            account,
+            post_id,
+            request.conversation_id,
+            question,
+            answer.answer_text,
+            source_ids,
+            cited_ids,
+            recover_deleted_conversation=request.conversation_id is not None,
+        )
     await publish_activity_event(
         valkey,
         post_id,
@@ -3119,8 +3213,65 @@ async def chat_about_post(
         "answer_text": answer.answer_text,
         "cited_post_ids": cited_ids,
         "cited_posts": cited_post_summaries(sources, cited_ids),
-        "source_post_ids": [source.post_id for source in sources],
+        "source_post_ids": source_ids,
+        "conversation_id": str(conversation_id),
     }
+
+
+@app.get("/api/posts/{post_id}/chat/conversations")
+async def read_post_chat_conversations(
+    post_id: str,
+    limit: int = Query(50, ge=1, le=50),
+    before_created_at: datetime | None = Query(None),
+    before_conversation_id: UUID | None = Query(None),
+    account: CurrentAccount = Depends(get_current_account),
+    pool: asyncpg.Pool = Depends(get_pool),
+) -> dict[str, Any]:
+    """List this account's saved Ask conversations on one visible post."""
+    await _load_visible_post(post_id, account, pool)
+    if (before_created_at is None) != (before_conversation_id is None):
+        raise HTTPException(
+            status.HTTP_422_UNPROCESSABLE_CONTENT,
+            "before_created_at and before_conversation_id must be provided together",
+        )
+    async with pool.acquire() as conn:
+        return await list_post_ask_conversations(
+            conn,
+            account.user_account_id,
+            post_id,
+            limit=limit,
+            before_created_at=before_created_at,
+            before_conversation_id=before_conversation_id,
+        )
+
+
+@app.get("/api/posts/{post_id}/chat/conversations/{conversation_id}")
+async def read_post_chat_conversation(
+    post_id: str,
+    conversation_id: UUID,
+    limit: int = Query(50, ge=1, le=50),
+    before_turn: int | None = Query(None, ge=1),
+    account: CurrentAccount = Depends(get_current_account),
+    pool: asyncpg.Pool = Depends(get_pool),
+) -> dict[str, Any]:
+    """Load one owned transcript with currently authorized citations."""
+    await _load_visible_post(post_id, account, pool)
+    async with pool.acquire() as conn:
+        conversation = await fetch_post_ask_conversation(
+            conn,
+            account.user_account_id,
+            post_id,
+            conversation_id,
+            lambda row: _can_see_post(account, row),
+            turn_limit=limit,
+            before_turn_ordinal=before_turn,
+        )
+    if conversation is None:
+        raise HTTPException(
+            status.HTTP_404_NOT_FOUND,
+            "This conversation is no longer available. Choose another conversation or start a new one.",
+        )
+    return conversation
 
 
 @app.post("/api/ask", status_code=status.HTTP_202_ACCEPTED)
@@ -3383,7 +3534,7 @@ async def derive_post_commitment(
         if not client.available:
             raise HTTPException(
                 status.HTTP_503_SERVICE_UNAVAILABLE,
-                "Commitment derivation is unavailable: set ORCHESTRATOR_BASE_URL / ORCHESTRATOR_API_KEY",
+                "Commitment derivation is unavailable. Retry in a moment. If this continues, contact your workspace administrator.",
             )
         async with pool.acquire() as conn:
             body_row = await conn.fetchrow("select post_body from source_post where post_id = $1", post_id)
@@ -3404,12 +3555,12 @@ async def derive_post_commitment(
         except (HttpClientError, KeyError, OSError, TypeError, ValueError, RuntimeError) as exc:
             raise HTTPException(
                 status.HTTP_503_SERVICE_UNAVAILABLE,
-                "Commitment derivation is unavailable: contextual-orchestrator returned no complete evidence object",
+                "Commitment derivation is unavailable. Retry in a moment. If this continues, contact your workspace administrator.",
             ) from exc
         except Exception as exc:  # noqa: BLE001 - provider boundary is fail-closed.
             raise HTTPException(
                 status.HTTP_503_SERVICE_UNAVAILABLE,
-                "Commitment derivation is unavailable: contextual-orchestrator returned no complete evidence object",
+                "Commitment derivation is unavailable. Retry in a moment. If this continues, contact your workspace administrator.",
             ) from exc
     if not commitment.has_commitment:
         return {"post_id": str(post["post_id"]), "has_commitment": False, "ticket": None}
@@ -3461,8 +3612,8 @@ class CreateAnalysisRunRequest(BaseModel):
     """JSON body for ``POST /api/analysis-runs``.
 
     Omitting ``corporate_entity_id`` uses the account's sole affiliation.
-    Only ``analysis_run_lineage`` is accepted. Reconstruction and TEPP
-    execution stay later slices; this write records Pending lineage only.
+    Lineage, measurement, and topic-lineage requests are accepted. Execution
+    stays on the start/outbox path; this write records Pending only.
     """
 
     run_kind_code: str = "analysis_run_lineage"
@@ -3478,12 +3629,12 @@ async def create_analysis_run(
     account: CurrentAccount = Depends(get_current_account),
     pool: asyncpg.Pool = Depends(get_pool),
 ) -> dict[str, Any]:
-    """Record a Pending lineage run on an authorized cutoff capture.
+    """Record a Pending analysis request on an authorized cutoff capture.
 
     post_read is enough: the caller requests a run of a corp they
-    already walk. TEPP and period-report kinds are 422 so this path
-    cannot invent a measurement. Hidden scopes 404. A matching
-    idempotent retry returns the same run.
+    already walk. Measurement work remains Pending until the TEPP start
+    path submits it; period-report stays on its rebuild path. Hidden scopes
+    404. A matching idempotent retry returns the same run.
     """
     _require_post_read(account)
     async with pool.acquire() as conn:
