@@ -14,6 +14,7 @@ vi.mock("../api", async (importOriginal) => {
 const POST_ID = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa1";
 const PERSON_ID = "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbb1";
 const CORP_ID = "cccccccc-cccc-cccc-cccc-ccccccccccc1";
+const CONSTRUCT_ID = "99999999-9999-9999-9999-999999999999";
 
 function neighborhood(overrides: Partial<OntologyNeighborhoodPayload> = {}): OntologyNeighborhoodPayload {
   return {
@@ -455,5 +456,51 @@ describe("OntologyExplorer", () => {
       `lw:node/node_person/${PERSON_ID}`,
       "lw:edge/mentions:post-person",
     ]);
+  });
+
+  it("labels and filters distinct work evidence without exposing its node code", async () => {
+    render(
+      <OntologyExplorer
+        focusNodeType="node_post"
+        focusNodeId={POST_ID}
+        neighborhood={neighborhood({
+          nodes: [
+            neighborhood().nodes[0],
+            {
+              node_id: CONSTRUCT_ID,
+              node_type_code: "node_occupational_construct",
+              ontology_class_iri: "https://example.test/OccupationalConstruct",
+              display_label: "Problem Sensitivity",
+              truth_status_code: null,
+              valid_from: null,
+              valid_to: null,
+              recorded_at: null,
+              evidence_count: 1,
+              shape_code: "rounded-rectangle",
+            },
+          ],
+          edges: [],
+          exact_value_rows: [],
+        })}
+      />,
+    );
+
+    expect(screen.getAllByText("Work evidence").length).toBeGreaterThan(0);
+    expect(
+      screen.getByText(/Select a work-evidence node to review the records that support it/),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Select node: Work evidence Problem Sensitivity" }),
+    ).toHaveClass("ontology-node-occupational-construct");
+    expect(document.querySelectorAll(".ontology-node-occupational-construct rect")).toHaveLength(1);
+    expect(screen.queryByText("node_occupational_construct")).not.toBeInTheDocument();
+
+    await userEvent.type(
+      screen.getByLabelText("Search within this neighborhood"),
+      "Demo public post",
+    );
+    expect(
+      screen.queryByText("Select a work-evidence node to review the records that support it."),
+    ).not.toBeInTheDocument();
   });
 });

@@ -8,71 +8,36 @@ All notable changes to this project are documented here. Format follows
 
 ### Added
 
-- Occupation evidence now filters the imported occupation catalog by published
-  title or retained code without ranking or typed-code fallback, and fails
-  closed when the filter matches nothing (ADR 0262).
-- Each imported rating source now exposes its exact represented O*NET-SOC
-  code/title catalog, and the Dashboard uses that catalog instead of requiring
-  users to know or type an occupation code (ADR 0261).
-- Occupation evidence source selection now comes from an authenticated catalog
-  of actually imported rating artifacts, with release, publisher, license,
-  digest, URL, and row-count provenance and fail-closed loading/empty/error
-  states (ADR 0260).
-- The existing Dashboard now includes an authenticated occupation-evidence
-  view with exact source selection, sample/error context, textual suppression
-  warnings, artifact links, responsive table access, and distinct unavailable
-  versus empty next actions (ADR 0259).
-- Authenticated occupation profiles can now read one exact imported
-  release/source with rating and scale artifact provenance, exact decimal
-  strings, uncertainty, suppression/relevance flags, and explicit unavailable
-  versus empty outcomes. The endpoint derives no ranking or recommendation
-  (ADR 0258).
-- O*NET occupation-rating source evidence now has a replay-safe PostgreSQL
-  contract with normalized release, source-table, scale, occupation, element,
-  and observation tables. Exact release/source LIST partitions fail closed;
-  nullable categories remain idempotent identities, divergent duplicates and
-  truncation fail closed, and no source value is promoted to a local weight or
-  person score. A pinned CSV importer validates rating and scale-reference
-  digests, row counts, source identities, scale bounds, uncertainty, flags,
-  and exact update months before immutable transactional insertion. Task
-  Ratings remain outside this content-model-element store pending their own
-  normalized identity contract (ADR 0257).
-- All eight O*NET 31.0 published linkage tables now contribute 1,417 directed
-  Ability/Essential Skill/Transferable Skill/Work Style relations to Work
-  Activities and Work Context. Every direct relation has an exact reified
-  PROV source-table assertion; no confidence, causal effect, rating, or weight
-  is inferred (ADR 0256).
-- The complete O*NET 31.0 Content Model Reference is now a deterministic
-  3,006-concept SKOS fragment with exact source IDs, names, descriptions, and
-  documented outline parents (ADR 0255). Its read model fails closed on
-  malformed hierarchy data; no occupation rating, person trait, score,
-  weight, or inferred crosswalk is introduced.
-- The complete 2018 SOC hierarchy is now published as a deterministic
-  ontology fragment: 23 major groups, 98 minor groups, 459 broad occupations,
-  and 867 detailed occupations retain their official codes, titles, levels,
-  and source-declared parents (ADR 0252). The read model supports fail-closed
-  lookup across all 1,447 nodes; no employer job-family mapping, weight, or
-  person-level inference is introduced.
-- The occupational-classification and worker-characteristic taxonomy is now
-  published in the canonical ontology: all 23 major groups of the 2018
-  Standard Occupational Classification (the O*NET job families) carry
-  official titles and codes verbatim, the four O*NET 31.0 job-zone categories
-  carry their published names and source values, and source-native
-  worker-characteristic families are addressable -- Fleishman's four ability domains,
-  Holland's six RIASEC interest types with the published hexagonal adjacency,
-  the six legacy O*NET work-value clusters, and the seven higher-order
-  revised O*NET Work Styles dimensions (ADR 0245). Typed derivation properties from
-  classifications to characteristics are declared but assert no instance
-  binding; a deterministic application read model
-  (`lineageweave.io_taxonomy`) exposes fail-closed lookups, and no numeric
-  importance or level rating is imported. Each scheme links to versioned
-  PROV source entities with publisher/creator and rights/license metadata;
-  the stable O*NET 31.0 Job Zone JSON carries its verified SHA-256.
+
 - Evidence-bound occupational construct semantics now keep cognitive
   abilities, work styles, work activities, affective reactions, performance
   behaviors, and FJA worker functions distinct. Record-to-construct links
   require a reified evidence span and PROV-O derivation/time; unsupported
   DPT-to-psychology crosswalks and local scores remain unavailable (ADR 0248).
+
+- Versioned occupational construct vocabularies and semantic-unit assertions
+  now persist in normalized tables. Database and application validation require
+  same-Post verbatim evidence, and authorized Post detail exposes provenance
+  without internal identifiers or numerical scores (ADR 0249).
+- An operator-only O*NET 31.0 catalog synchronizer now imports every official
+  cognitive-ability, work-style, and work-activity Content Model element with
+  stable IRIs, descriptions, attribution, and a deterministic source digest;
+  conflicting release metadata fails closed (ADR 0250).
+- Post-content ingestion now traverses bounded official O*NET hierarchy nodes
+  through contextual-orchestrator's multi-agent conduct workflow and persists
+  only exact catalog IRIs with verbatim semantic-unit evidence. A digest-bound
+  run ledger preserves successful empty extraction without inventing a signal
+  (ADR 0253).
+- Authorized Post detail now shows O*NET work evidence with its verbatim source
+  span, explicit inference status, and official definition action. Complete
+  empty, processing, and unavailable states stay distinct and localized rather
+  than collapsing into a blank panel. Historical cutoff reads omit live
+  assertions and direct the reviewer to the cutoff-known body (ADR 0254).
+- Assertion-backed occupational constructs now appear in the authorized
+  ontology neighborhood with persisted truth status, cutoff-safe availability,
+  exact Post evidence, and fail-closed conflicting truth. The projection
+  duplicates no `knowledge_graph_edge` row and creates no person trait or score
+  (ADR 0255).
 
 - The DOT/FJA Data/People/Things worker-function taxonomy is now published
   in the canonical ontology: all 24 worker functions carry the official

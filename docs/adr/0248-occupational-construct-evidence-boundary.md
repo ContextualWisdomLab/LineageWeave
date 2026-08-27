@@ -68,8 +68,9 @@ affective science has no single default category set.
   evidence relationship without claiming that the first source mention is a
   measured person attribute.
 - Complete O*NET breadth remains available through its maintained RDF graph;
-  runtime ingestion and persistence are still unavailable until a connector
-  and normalized assertion tables are accepted and shipped.
+  ADRs 0249 and 0250 add normalized assertion persistence and official catalog
+  synchronization. ADR 0253 supplies catalog-bound record extraction through
+  contextual-orchestrator without a local similarity or scoring heuristic.
 - Actual affect stays absent unless the evidence names a conforming affect
   vocabulary and supports the reaction; work style is never relabeled affect.
 - Unsupported equivalence and causal links fail closed rather than becoming
