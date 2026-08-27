@@ -99,8 +99,8 @@ def read_job_architecture(
 ]:
     """Return exact nodes, hierarchy edges, and explicit occupation bindings."""
     nodes: dict[str, JobArchitectureNode] = {}
-    edges: set[JobArchitectureEdge] = set()
-    bindings: set[OccupationBinding] = set()
+    edges: dict[tuple[str, str], JobArchitectureEdge] = {}
+    bindings: dict[tuple[str, str, str, str], OccupationBinding] = {}
     row_count = 0
     with path.open(encoding="utf-8-sig", newline="") as handle:
         reader = csv.DictReader(handle)
@@ -136,12 +136,21 @@ def read_job_architecture(
             if parent:
                 if not hierarchy_relation:
                     raise ValueError(f"missing hierarchy relation at row {line_number}")
-                edges.add(JobArchitectureEdge(parent, code, hierarchy_relation))
+                edge = JobArchitectureEdge(parent, code, hierarchy_relation)
+                edge_key = (parent, code)
+                if edge_key in edges and edges[edge_key] != edge:
+                    raise ValueError(f"conflicting hierarchy relation at row {line_number}")
+                edges[edge_key] = edge
             scheme = row["Occupation Scheme IRI"].strip()
             version = row["Occupation Scheme Version"].strip()
             occupation = row["Occupation Code"].strip()
             occupation_relation = row["Occupation Relation"].strip()
-            supplied = (bool(scheme), bool(version), bool(occupation))
+            supplied = (
+                bool(scheme),
+                bool(version),
+                bool(occupation),
+                bool(occupation_relation),
+            )
             if any(supplied) and not all(supplied):
                 raise ValueError(f"partial occupation binding at row {line_number}")
             if all(supplied):
@@ -155,45 +164,44 @@ def read_job_architecture(
                     raise ValueError(f"invalid occupation scheme IRI at row {line_number}")
                 if not occupation_relation:
                     raise ValueError(f"missing binding relation at row {line_number}")
-                bindings.add(
-                    OccupationBinding(
-                        code,
-                        scheme,
-                        version,
-                        occupation,
-                        occupation_relation,
-                    )
+                binding = OccupationBinding(
+                    code,
+                    scheme,
+                    version,
+                    occupation,
+                    occupation_relation,
                 )
+                binding_key = (code, scheme, version, occupation)
+                if binding_key in bindings and bindings[binding_key] != binding:
+                    raise ValueError(f"conflicting occupation relation at row {line_number}")
+                bindings[binding_key] = binding
     if not nodes:
         raise ValueError("job architecture file has no rows")
-    for edge in edges:
+    for edge in edges.values():
         if edge.broader_code not in nodes:
             raise ValueError(f"unknown parent node: {edge.broader_code}")
         if edge.broader_code == edge.narrower_code:
             raise ValueError(f"self hierarchy edge: {edge.broader_code}")
     children: dict[str, set[str]] = {code: set() for code in nodes}
-    for edge in edges:
+    incoming = dict.fromkeys(nodes, 0)
+    for edge in edges.values():
         children[edge.broader_code].add(edge.narrower_code)
-    visiting: set[str] = set()
-    visited: set[str] = set()
-
-    def visit(code: str) -> None:
-        if code in visiting:
-            raise ValueError(f"cyclic job architecture hierarchy: {code}")
-        if code in visited:
-            return
-        visiting.add(code)
+        incoming[edge.narrower_code] += 1
+    ready = [code for code, count in incoming.items() if count == 0]
+    visited = 0
+    while ready:
+        code = ready.pop()
+        visited += 1
         for child in children[code]:
-            visit(child)
-        visiting.remove(code)
-        visited.add(code)
-
-    for code in nodes:
-        visit(code)
+            incoming[child] -= 1
+            if incoming[child] == 0:
+                ready.append(child)
+    if visited != len(nodes):
+        raise ValueError("cyclic job architecture hierarchy")
     return (
         list(nodes.values()),
-        sorted(edges, key=repr),
-        sorted(bindings, key=repr),
+        sorted(edges.values(), key=repr),
+        sorted(bindings.values(), key=repr),
         row_count,
     )
 
