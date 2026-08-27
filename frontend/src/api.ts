@@ -1208,6 +1208,16 @@ interface AskJobStatus {
   failure_detail?: string | null;
 }
 
+export function optionalKnowledgeCutoffIso(value: string): string | undefined {
+  const input = value.trim();
+  if (!input) return undefined;
+  const parsed = new Date(input);
+  if (Number.isNaN(parsed.getTime())) {
+    throw new RangeError("invalid knowledge cutoff");
+  }
+  return parsed.toISOString();
+}
+
 /** Submit the question as an asynchronous job and poll it to completion.
  * The signature and resolved value are unchanged from the old synchronous
  * call, so callers (AskAgentPanel) keep their existing pending/complete

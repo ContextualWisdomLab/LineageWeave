@@ -8,6 +8,7 @@ import { useAuth } from "react-oidc-context";
 import {
   askPostChat,
   askAgent,
+  optionalKnowledgeCutoffIso,
   BackendError,
   createAnalysisRun,
   startAnalysisRun,
@@ -4830,11 +4831,11 @@ export function AskAgentPanel({
   onOpenPost: (postId: string) => void;
 }) {
   const [question, setQuestion] = useState("");
+  const [knowledgeCutoff, setKnowledgeCutoff] = useState("");
   const [answer, setAnswer] = useState<AskAgentResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [asking, setAsking] = useState(false);
   const [verifyExternal, setVerifyExternal] = useState(false);
-  const [knowledgeCutoff, setKnowledgeCutoff] = useState("");
   const [evidenceLayerPostId, setEvidenceLayerPostId] = useState<string | null>(null);
   const now = new Date();
   const localKnowledgeCutoffMax = new Date(
@@ -4844,6 +4845,14 @@ export function AskAgentPanel({
   async function handleAsk() {
     const normalized = question.trim();
     if (!normalized) return;
+    let cutoff: string | undefined;
+    try {
+      cutoff = optionalKnowledgeCutoffIso(knowledgeCutoff);
+    } catch {
+      setAnswer(null);
+      setError(t("Enter a valid knowledge cutoff, then ask again."));
+      return;
+    }
     setAsking(true);
     setError(null);
     try {
@@ -4852,7 +4861,7 @@ export function AskAgentPanel({
           accessToken,
           normalized,
           verifyExternal,
-          knowledgeCutoff ? new Date(knowledgeCutoff).toISOString() : undefined,
+          cutoff,
         ),
       );
     } catch (err) {
@@ -4888,13 +4897,15 @@ export function AskAgentPanel({
           <span>{t("Check eligible public claims")}</span>
         </label>
         <label className="ask-agent-field">
-          <span>{t("Knowledge cutoff (optional)")}</span>
+          <span>{t("Use evidence available by (optional)")}</span>
           <input
             type="datetime-local"
+            aria-label={t("Use evidence available by (optional)")}
             value={knowledgeCutoff}
             max={localKnowledgeCutoffMax}
             onChange={(event) => setKnowledgeCutoff(event.target.value)}
           />
+          <small>{t("Choose a time on this device, or leave blank to use the latest evidence.")}</small>
         </label>
         <button className="btn-primary" onClick={() => void handleAsk()} disabled={asking || !question.trim()}>
           {asking ? t("Asking...") : t("Ask")}
@@ -4911,7 +4922,7 @@ export function AskAgentPanel({
                 {answer.grounding_status === "fully_cutoff_grounded"
                   ? t("Fully cutoff-grounded")
                   : t("Partially cutoff-grounded")}
-                {` · ${answer.knowledge_cutoff}`}
+                {` · ${new Date(answer.knowledge_cutoff).toLocaleString()}`}
               </p>
               {answer.limitations?.length ? (
                 <p role="alert">
@@ -4952,6 +4963,9 @@ export function AskAgentPanel({
                         </span>
                       ) : null}
                     </button>
+                    {post.historical_body_unavailable ? (
+                      <p className="post-meta">{t("Historical body unavailable")}</p>
+                    ) : null}
                     <button
                       type="button"
                       className="citation-chip"

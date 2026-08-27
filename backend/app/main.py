@@ -3161,6 +3161,9 @@ async def ask_agent(
     polls ``GET /api/ask/jobs/{id}`` for the settled answer. Submission
     still fails fast on the states that cannot ever succeed (blank
     question, missing permission, unconfigured orchestrator).
+
+    Optional ``knowledge_cutoff`` selects retained evidence available at
+    that clock. Omitting it keeps the live-query contract (ADR 0216).
     """
     return await submit_global_ask(
         pool=pool,

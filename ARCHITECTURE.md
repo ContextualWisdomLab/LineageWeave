@@ -240,7 +240,9 @@ Each direct edge includes `interval_relation_code` /
 `interval_relation_label` computed from the posts' observed windows.
 Global Ask merges cited threads from one post/edge fetch pair and
 caps the payload at the landing node bound, keeping cited posts first
-(ADR 0169). Open a cited post to read the focused thread.
+(ADR 0169). Optional `knowledge_cutoff` on `POST /api/ask` selects the
+covering `source_post_revision` and never substitutes a live body
+(ADR 0216). Open a cited post to read the focused thread.
 `POST /api/lineage/rebuild` (`post_admin`) re-runs `reconstruct()` over
 every `source_post` and atomically rewrites edges, channel signals, and
 Allen interval relations. Reconstruct grouping is

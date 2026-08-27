@@ -218,7 +218,6 @@ def _seoul_today() -> date:
 
 _POST_CHAT_CANDIDATE_LIMIT = 32
 
-
 def _source_hint_facts(row: Any) -> tuple[str, ...]:
     """Render raw source fields as explicitly weak, column-level evidence."""
     facts: list[str] = []
@@ -863,6 +862,8 @@ async def gather_global_chat_sources(
     # `find_linked_post_ids`'s `.direct` set used by the post-scoped chat
     # flow. Only the top match is expanded so lower-ranked semantic candidates
     # cannot each pull a separate lineage chain into the bounded context.
+    # Cutoff answers skip this expansion: reconstructed edges have no
+    # available-time contract and must not leak later neighbors (ADR 0216).
     lineage_neighbor_ids: list[str] = []
     lineage_anchor_id = candidate_ids[0] if candidate_ids else None
     if lineage_anchor_id and knowledge_cutoff is None:
