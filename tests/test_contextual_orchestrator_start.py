@@ -37,6 +37,19 @@ def test_bootstrap_does_not_patch_upstream_model_classes() -> None:
     assert "_apply_provider_models" not in module.__dict__
 
 
+def test_container_pin_verifies_provider_host_cli_contract() -> None:
+    """The image build fails if its immutable upstream drops the forwarded flag."""
+    dockerfile = (
+        Path(__file__).parents[1]
+        / "docker"
+        / "contextual-orchestrator"
+        / "Dockerfile"
+    ).read_text(encoding="utf-8")
+
+    assert "python -m contextual_orchestrator --help" in dockerfile
+    assert "grep -q -- '--allowed-provider-host'" in dockerfile
+
+
 def test_provider_api_url_is_canonical_over_compatibility_aliases(monkeypatch) -> None:
     module = _load_start_module()
     monkeypatch.setenv("LLM_GATEWAY_API_URL", "https://canonical.example/v1")
@@ -53,6 +66,29 @@ def test_gateway_api_key_accepts_local_compatibility_alias(monkeypatch) -> None:
     monkeypatch.setenv("LLM_API_KEY", "compatibility-key")
 
     assert module._pop_first_env("LLM_GATEWAY_API_KEY", "LLM_API_KEY") == "compatibility-key"
+
+
+def test_gateway_host_requires_an_explicit_matching_allowlist(monkeypatch) -> None:
+    """The bootstrap cannot inherit upstream's open public-host default."""
+    module = _load_start_module()
+    monkeypatch.delenv("CONTEXTUAL_ORCHESTRATOR_ALLOWED_PROVIDER_HOSTS", raising=False)
+    with pytest.raises(SystemExit, match="ALLOWED_PROVIDER_HOSTS is required"):
+        module._allowed_provider_hosts("https://gateway.example/v1")
+
+    monkeypatch.setenv(
+        "CONTEXTUAL_ORCHESTRATOR_ALLOWED_PROVIDER_HOSTS", "other.example"
+    )
+    with pytest.raises(SystemExit, match="not in the provider allowlist"):
+        module._allowed_provider_hosts("https://gateway.example/v1")
+
+    monkeypatch.setenv(
+        "CONTEXTUAL_ORCHESTRATOR_ALLOWED_PROVIDER_HOSTS",
+        " gateway.example., OTHER.EXAMPLE ",
+    )
+    assert module._allowed_provider_hosts("https://GATEWAY.EXAMPLE/v1") == (
+        "gateway.example",
+        "other.example",
+    )
 
 
 def test_provider_key_is_not_aliased_as_gateway_transport(monkeypatch) -> None:
@@ -112,6 +148,10 @@ def test_bootstrap_leaves_embedding_selection_to_the_orchestrator(monkeypatch) -
     monkeypatch.setenv("CONTEXTUAL_ORCHESTRATOR_TOKEN", "orchestrator-token")
     monkeypatch.setenv("LLM_GATEWAY_API_URL", "https://gateway.example")
     monkeypatch.setenv("LLM_GATEWAY_EMBEDDING_MODEL", "embedding-model")
+    monkeypatch.setenv(
+        "CONTEXTUAL_ORCHESTRATOR_ALLOWED_PROVIDER_HOSTS",
+        " secondary.example, gateway.example,secondary.example ",
+    )
 
     module.main()
 
@@ -119,6 +159,11 @@ def test_bootstrap_leaves_embedding_selection_to_the_orchestrator(monkeypatch) -
     assert isinstance(argv, list)
     assert "--embedding-provider-url" not in argv
     assert "--embedding-model" not in argv
+    assert argv.count("--allowed-provider-host") == 2
+    assert argv[argv.index("--allowed-provider-host") + 1] == "gateway.example"
+    assert argv[argv.index("--allowed-provider-host", argv.index("--allowed-provider-host") + 1) + 1] == (
+        "secondary.example"
+    )
     assert captured["credentials"] == [
         ("LLM_GATEWAY_API_KEY", "provider-key"),
         ("OPENAI_API_KEY", "openai-key"),
@@ -138,5 +183,6 @@ def test_bootstrap_leaves_embedding_selection_to_the_orchestrator(monkeypatch) -
     } & os.environ.keys()
     agents = captured["agents"]
     assert isinstance(agents, dict)
+    assert agents["agents"][0]["provider_name"] == "configured_gateway"
     assert not [agent for agent in agents["agents"] if "embedding" in agent.get("tags", [])]
     assert "LLM_GATEWAY_EMBEDDING_MODEL" not in os.environ

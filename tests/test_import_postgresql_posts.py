@@ -51,9 +51,20 @@ def test_real_source_grouping_remains_the_derived_grouping() -> None:
     ) == ("thread-a", "secondary-a", "thread-a", "secondary-a")
 
 
+@pytest.mark.parametrize(
+    ("body_column", "source_body", "effective_body", "preserve_existing_body"),
+    [
+        ("body", "Synthetic customer-safe evidence body.", "Synthetic customer-safe evidence body.", False),
+        (None, None, "Previously imported authoritative body.", True),
+    ],
+)
 def test_import_rows_persists_raw_and_derived_grouping_values(
     monkeypatch,
     tmp_path: Path,
+    body_column: str | None,
+    source_body: str | None,
+    effective_body: str,
+    preserve_existing_body: bool,
 ) -> None:
     """One synthetic import carries provenance and reconstruction fields together."""
     query_file = tmp_path / "synthetic-query.sql"
@@ -61,13 +72,15 @@ def test_import_rows_persists_raw_and_derived_grouping_values(
     row = {
         "record_key": "record-1",
         "title": "Synthetic lineage follow-up",
-        "body": "Synthetic customer-safe evidence body.",
         "created_at": datetime(2026, 1, 2, tzinfo=UTC),
         "draft_state": "published",
         "thread": "record-1",
         "secondary": "document-1",
         "project": "project-1",
+        "voc_type": "VOC",
     }
+    if source_body is not None:
+        row["body"] = source_body
 
     class FakeConnection:
         def __init__(self, *, source: bool) -> None:
@@ -82,6 +95,10 @@ def test_import_rows_persists_raw_and_derived_grouping_values(
         async def execute(self, query: str, *args: object):
             self.executions.append((query, args))
 
+        async def fetchval(self, query: str, *args: object):
+            self.executions.append((query, args))
+            return effective_body
+
         async def close(self) -> None:
             self.closed = True
 
@@ -95,8 +112,10 @@ def test_import_rows_persists_raw_and_derived_grouping_values(
     async def fake_scope(_conn, _args):
         return "account-1", "corporate-1", "process-unit-1"
 
-    async def no_content(*_args, **_kwargs) -> None:
-        return None
+    persisted_bodies: list[str] = []
+
+    async def no_content(_conn, _post_id, body: str, **_kwargs) -> None:
+        persisted_bodies.append(body)
 
     async def no_cleanup(*_args, **_kwargs) -> dict[str, int]:
         return {"synthetic_rows_removed": 0}
@@ -118,8 +137,7 @@ def test_import_rows_persists_raw_and_derived_grouping_values(
         lambda *_args: object(),
     )
 
-    args = _parser().parse_args(
-        [
+    command = [
             "--source-dsn",
             "postgresql://synthetic-source",
             "--target-dsn",
@@ -132,10 +150,10 @@ def test_import_rows_persists_raw_and_derived_grouping_values(
             "record_key",
             "--title-column",
             "title",
-            "--body-column",
-            "body",
             "--created-at-column",
             "created_at",
+            "--voc-type-column",
+            "voc_type",
             "--draft-column",
             "draft_state",
             "--exclude-draft-value",
@@ -153,7 +171,13 @@ def test_import_rows_persists_raw_and_derived_grouping_values(
             "--process-unit-code",
             "synthetic-pu",
         ]
-    )
+    if body_column is None:
+        command.extend(
+            ["--no-body-dimension-evidence", "synthetic export has no body dimension"]
+        )
+    else:
+        command.extend(["--body-column", body_column])
+    args = _parser().parse_args(command)
 
     result = asyncio.run(import_rows(args))
 
@@ -168,14 +192,25 @@ def test_import_rows_persists_raw_and_derived_grouping_values(
         "",
         "project-1",
     )
-    assert source_post_args[-1] is None
-    assert result == {
+    assert source_post_args[32] is None
+    assert source_post_args[33] is preserve_existing_body
+    assert not any(
+        "insert into source_post_revision" in query
+        for query, _call_args in target.executions
+    )
+    assert persisted_bodies == ([] if preserve_existing_body else [effective_body])
+    expected_result: dict[str, object] = {
         "source_rows": 1,
         "imported_rows": 1,
         "skipped_rows": 0,
         "lineage_edges": 0,
         "synthetic_rows_removed": 0,
     }
+    if preserve_existing_body:
+        expected_result["no_body_dimension_evidence"] = (
+            "synthetic export has no body dimension"
+        )
+    assert result == expected_result
     assert source.closed and target.closed
 
 
@@ -184,14 +219,14 @@ def test_import_rows_persists_raw_and_derived_grouping_values(
     [("VOC", "voc"), ("VOCC", "vocc"), ("VOCO", "voco"), ("VOM", "vom"), ("VOP", "vop")],
 )
 def test_importer_preserves_source_voc_type_vocabulary(source_value: str, expected: str) -> None:
-    assert _normalize_voc_type(source_value, mapped=True) == expected
+    assert _normalize_voc_type(source_value) == expected
 
 
 def test_importer_rejects_unknown_or_empty_mapped_voc_type() -> None:
     with pytest.raises(ValueError, match="unsupported source VOC type"):
-        _normalize_voc_type("not-a-voc-type", mapped=True)
+        _normalize_voc_type("not-a-voc-type")
     with pytest.raises(ValueError, match="mapped source VOC type is empty"):
-        _normalize_voc_type("", mapped=True)
+        _normalize_voc_type("")
 
 
 def test_source_state_exclusion_uses_only_explicit_caller_values() -> None:
@@ -215,13 +250,19 @@ def test_importer_rejects_mapping_the_pu_column_as_sales_pool() -> None:
 
 
 def test_importer_preflights_identity_and_body_before_target_mutation() -> None:
-    mapping = SimpleNamespace(record_key="record_key", body="body", draft="draft_state", deleted=None)
+    mapping = SimpleNamespace(
+        record_key="record_key",
+        body="body",
+        voc_type="voc_type",
+        draft="draft_state",
+        deleted=None,
+    )
 
     with pytest.raises(ValueError, match="source record key cannot be empty at source row 2"):
         _validate_source_rows(
             [
-                {"record_key": "one", "body": "body", "draft_state": "N"},
-                {"record_key": "", "body": "body", "draft_state": "N"},
+                {"record_key": "one", "body": "body", "voc_type": "VOC", "draft_state": "N"},
+                {"record_key": "", "body": "body", "voc_type": "VOC", "draft_state": "N"},
             ],
             mapping,
             ["Y"],
@@ -230,16 +271,64 @@ def test_importer_preflights_identity_and_body_before_target_mutation() -> None:
 
     with pytest.raises(ValueError, match="source post body cannot be empty at source row 1"):
         _validate_source_rows(
-            [{"record_key": "one", "body": "", "draft_state": "N"}], mapping, ["Y"], []
+            [{"record_key": "one", "body": "", "voc_type": "VOC", "draft_state": "N"}], mapping, ["Y"], []
         )
 
 
+def test_importer_accepts_explicitly_evidenced_missing_body_dimension() -> None:
+    mapping = SimpleNamespace(
+        record_key="record_key", body=None, voc_type="voc_type", draft="draft_state", deleted=None
+    )
+    evidence = (
+        "aggregate source inspection found no non-empty body values while "
+        "titles and structured dimensions remained populated"
+    )
+
+    _validate_source_rows(
+        [{"record_key": "one", "voc_type": "VOC", "draft_state": "published"}],
+        mapping,
+        ["draft"],
+        [],
+        "",
+        evidence,
+    )
+
+    with pytest.raises(ValueError, match="requires an operator evidence statement"):
+        _validate_source_rows(
+            [{"record_key": "one", "voc_type": "VOC", "draft_state": "published"}],
+            mapping,
+            ["draft"],
+            [],
+            "",
+            "   ",
+        )
+
+
+def test_importer_requires_exactly_one_body_evidence_door() -> None:
+    with pytest.raises(SystemExit):
+        _parser().parse_args(
+            [
+                "--source-dsn", "postgresql://source",
+                "--target-dsn", "postgresql://target",
+                "--query-file", "query.sql",
+                "--source-system-code", "source",
+                "--record-key-column", "record_key",
+                "--title-column", "title",
+                "--body-column", "body",
+                "--no-body-dimension-evidence", "body is absent from this source export",
+                "--created-at-column", "created_at",
+                "--author-subject-id", "subject",
+                "--corporate-entity-code", "corp",
+                "--process-unit-code", "pu",
+            ]
+        )
+
 def test_importer_keeps_source_record_key_separate_from_source_uuid() -> None:
-    mapping = SimpleNamespace(post_id="guid_field")
+    mapping = SimpleNamespace(post_id="synthetic_post_id")
     source_uuid = "01234567-89ab-cdef-0123-456789abcdef"
 
     assert _source_post_id(
-        {"guid_field": source_uuid}, mapping, "source", "human-entered-source-key"
+        {"synthetic_post_id": source_uuid}, mapping, "source", "human-entered-source-key"
     ) == uuid.UUID(source_uuid)
 
 
@@ -252,13 +341,15 @@ def test_importer_derives_legacy_post_uuid_without_a_post_id_mapping() -> None:
 
 
 def test_importer_rejects_duplicate_active_source_identity() -> None:
-    mapping = SimpleNamespace(record_key="record_key", body="body", draft="draft_state", deleted=None)
+    mapping = SimpleNamespace(
+        record_key="record_key", body="body", voc_type="voc_type", draft="draft_state", deleted=None
+    )
 
     with pytest.raises(ValueError, match="duplicate source record key at source rows 1 and 2"):
         _validate_source_rows(
             [
-                {"record_key": "same", "body": "first", "draft_state": "N"},
-                {"record_key": "same", "body": "second", "draft_state": "N"},
+                {"record_key": "same", "body": "first", "voc_type": "VOC", "draft_state": "N"},
+                {"record_key": "same", "body": "second", "voc_type": "VOC", "draft_state": "N"},
             ],
             mapping,
             ["Y"],
@@ -271,6 +362,7 @@ def test_importer_allows_repeated_lookup_keys_when_source_uuids_are_distinct() -
         record_key="record_key",
         post_id="post_id",
         body="body",
+        voc_type="voc_type",
         draft="draft_state",
         deleted=None,
     )
@@ -281,12 +373,14 @@ def test_importer_allows_repeated_lookup_keys_when_source_uuids_are_distinct() -
                 "record_key": "same",
                 "post_id": "01234567-89ab-cdef-0123-456789abcdef",
                 "body": "first",
+                "voc_type": "VOC",
                 "draft_state": "N",
             },
             {
                 "record_key": "same",
                 "post_id": "11234567-89ab-cdef-0123-456789abcdef",
                 "body": "second",
+                "voc_type": "VOC",
                 "draft_state": "N",
             },
         ],
@@ -331,11 +425,12 @@ def test_importer_has_no_unknown_publication_state_bypass() -> None:
 
 def test_no_draft_dimension_evidence_is_an_explicit_audited_door() -> None:
     """An export with no authorship-draft dimension passes only with the
-    operator's written evidence; the note cannot be a placeholder and
-    cannot be combined with a mapped draft column.
+    operator's written evidence and cannot be combined with a mapped draft
+    column. Evidence quality remains an operator/governance responsibility;
+    text length is not a validity proxy.
     """
     no_draft_mapping = SimpleNamespace(
-        record_key="record_key", body="body", draft=None, deleted=None
+        record_key="record_key", body="body", voc_type="voc_type", draft=None, deleted=None
     )
     evidence = (
         "every candidate draft column is NULL across the export and the "
@@ -343,21 +438,20 @@ def test_no_draft_dimension_evidence_is_an_explicit_audited_door() -> None:
         "real document"
     )
     _validate_source_rows(
-        [{"record_key": "one", "body": "body"}],
+        [{"record_key": "one", "body": "body", "voc_type": "VOC"}],
         no_draft_mapping,
         [],
         [],
         evidence,
     )
 
-    with pytest.raises(ValueError, match="at least 40 characters"):
-        _validate_source_rows(
-            [{"record_key": "one", "body": "body"}],
-            no_draft_mapping,
-            [],
-            [],
-            "no drafts",
-        )
+    _validate_source_rows(
+        [{"record_key": "one", "body": "body", "voc_type": "VOC"}],
+        no_draft_mapping,
+        [],
+        [],
+        "operator attestation",
+    )
 
     draft_mapping = SimpleNamespace(
         record_key="record_key", body="body", draft="draft_state", deleted=None
@@ -392,6 +486,7 @@ def test_importer_does_not_select_a_provider_embedding_model(monkeypatch) -> Non
             "--title-column", "title",
             "--body-column", "body",
             "--created-at-column", "created_at",
+            "--voc-type-column", "voc_type",
             "--author-subject-id", "subject",
             "--corporate-entity-code", "corp",
             "--process-unit-code", "pu",
@@ -412,6 +507,7 @@ def test_importer_accepts_explicit_source_name_mappings() -> None:
             "--title-column", "title",
             "--body-column", "body",
             "--created-at-column", "created_at",
+            "--voc-type-column", "voc_type",
             "--author-subject-id", "subject",
             "--corporate-entity-code", "corp",
             "--process-unit-code", "pu",

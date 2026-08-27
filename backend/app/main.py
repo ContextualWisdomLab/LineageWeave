@@ -1967,6 +1967,9 @@ async def _load_post_semantic_hints(conn: asyncpg.Connection, post_id: str) -> s
                source_customer.entity_name as source_customer_catalog_name,
                post.source_project_code,
                post.source_project_name,
+               post.voc_type_code,
+               post.source_stage_code,
+               post.source_detail_state_code,
                post.secondary_grouping_key as project_field,
                customer.entity_name as customer_name,
                affiliated.entity_name as author_affiliation_name
@@ -2038,6 +2041,9 @@ async def _load_post_semantic_hints(conn: asyncpg.Connection, post_id: str) -> s
         source_customer_catalog_name=first["source_customer_catalog_name"],
         source_project_code=first["source_project_code"],
         source_project_name=first["source_project_name"],
+        source_voc_type_code=first["voc_type_code"],
+        source_stage_code=first["source_stage_code"],
+        source_detail_state_code=first["source_detail_state_code"],
         source_context_present=source_context_present,
     )
 

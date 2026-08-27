@@ -1,0 +1,751 @@
+import hashlib
+import json
+import threading
+from copy import deepcopy
+from dataclasses import asdict
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from pathlib import Path
+
+import pytest
+from fast_mlsirm import SamplingStratum, finite_population_proportion_design
+from lineageweave.prov_o import PROV
+
+from scripts.audit_source_content_semantics import (
+    SEMANTIC_DIMENSION_TERM_IRIS,
+    SEMANTIC_DIMENSIONS,
+    _ontology_terms,
+    _parser,
+    _post_json_with_deadline,
+    _prompt,
+    _response_format,
+    aggregate_results,
+    audit_attempt_provenance,
+    parse_batch_result,
+    selected_contents,
+    terminal_semantic_coverage_evidence,
+    validate_probability_sample_manifest,
+    validate_sampling_design_artifact,
+)
+
+_TERM_IRI = "https://example.test/ontology#Event"
+_SUPPORTING_TERMS = {
+    "event_or_activity": (_TERM_IRI,),
+    "other_unmodeled_meaning": (),
+}
+
+
+def test_cli_defaults_to_the_internal_orchestrator_credential() -> None:
+    """The audit must not send a provider credential to the internal service."""
+    action = next(
+        action
+        for action in _parser()._actions
+        if action.dest == "gateway_api_key_env"
+    )
+
+    assert action.default == "CONTEXTUAL_ORCHESTRATOR_TOKEN"
+    design_action = next(
+        action
+        for action in _parser()._actions
+        if action.dest == "sample_design_artifact_file"
+    )
+    assert design_action.required is True
+    attempt_action = next(
+        action for action in _parser()._actions if action.dest == "attempt_evidence_file"
+    )
+    assert attempt_action.required is True
+
+
+def test_audit_uses_the_orchestrator_owned_auto_route() -> None:
+    """The audit names no provider model and leaves discovery upstream."""
+    source = Path("scripts/audit_source_content_semantics.py").read_text()
+
+    assert '"model": "orchestrator/auto"' in source
+    assert '"model": "contextual-orchestrator"' not in source
+
+
+def test_provider_deadline_must_be_positive() -> None:
+    """The hard wall-clock boundary cannot be disabled accidentally."""
+    with pytest.raises(ValueError, match="timeout must be positive"):
+        _post_json_with_deadline(
+            "https://example.test",
+            {},
+            headers={},
+            timeout=0,
+        )
+
+
+def test_provider_deadline_accepts_response_larger_than_queue_pipe() -> None:
+    """The parent drains a valid large result before waiting for child shutdown."""
+    body = json.dumps({"trace": "x" * 262_144}).encode()
+
+    class Handler(BaseHTTPRequestHandler):
+        def do_POST(self) -> None:  # noqa: N802
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+
+        def log_message(self, _format: str, *_args: object) -> None:
+            return
+
+    server = ThreadingHTTPServer(("127.0.0.1", 0), Handler)
+    thread = threading.Thread(target=server.serve_forever)
+    thread.start()
+    try:
+        result = _post_json_with_deadline(
+            f"http://127.0.0.1:{server.server_port}/conduct",
+            {},
+            headers={},
+            timeout=5,
+        )
+    finally:
+        server.shutdown()
+        thread.join()
+        server.server_close()
+
+    assert len(result["trace"]) == 262_144
+
+
+def test_provider_deadline_preserves_explicit_audit_session() -> None:
+    """A spawned request retains the non-identifying audit correlation id."""
+    received_session_id = ""
+    received_metadata: dict[str, object] = {}
+    body = b'{"ok":true}'
+
+    class Handler(BaseHTTPRequestHandler):
+        def do_POST(self) -> None:  # noqa: N802
+            nonlocal received_metadata, received_session_id
+            received_session_id = self.headers.get(
+                "x-lineageweave-session-id", ""
+            )
+            received = json.loads(
+                self.rfile.read(int(self.headers.get("Content-Length", "0")))
+            )
+            received_metadata = received.get("metadata", {})
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+
+        def log_message(self, _format: str, *_args: object) -> None:
+            return
+
+    server = ThreadingHTTPServer(("127.0.0.1", 0), Handler)
+    thread = threading.Thread(target=server.serve_forever)
+    thread.start()
+    try:
+        result = _post_json_with_deadline(
+            f"http://127.0.0.1:{server.server_port}/conduct",
+            {},
+            headers={"x-lineageweave-session-id": "semantic-audit:synthetic"},
+            timeout=5,
+        )
+    finally:
+        server.shutdown()
+        thread.join()
+        server.server_close()
+
+    assert result == {"ok": True}
+    assert received_session_id == "semantic-audit:synthetic"
+    assert received_metadata == {"session_id": "semantic-audit:synthetic"}
+
+
+def test_audit_contract_distinguishes_instance_data_from_schema_gaps() -> None:
+    """Private names and values do not require private ontology vocabulary."""
+    prompt = _prompt(
+        {"event_or_activity": (_TERM_IRI,)},
+        ["Synthetic event at a synthetic facility"],
+    )
+
+    assert "as instance data, not missing schema terms" in prompt
+    assert "no supplied class/property can represent it" in prompt
+    assert "do not select ontology terms or decide coverage" in prompt
+    assert "PUBLIC SUPPORT PROFILE" in prompt
+    assert "ONTOLOGY TERMS" not in prompt
+
+
+def test_audit_structured_output_binds_the_exact_batch_cardinality() -> None:
+    """Schema validation and the parser both retain every submitted item."""
+    response_format = _response_format(10)
+    schema = response_format["json_schema"]["schema"]
+
+    assert schema["properties"]["input_count"] == {"const": 10}
+    items = schema["properties"]["items"]
+    assert items["minItems"] == items["maxItems"] == 10
+    assert items["items"]["properties"]["item_index"] == {
+        "type": "integer",
+        "minimum": 0,
+        "maximum": 9,
+    }
+
+
+def _probability_manifest() -> dict[str, object]:
+    """Return a synthetic stratified sample-audit contract."""
+    digest = "a" * 64
+    manifest: dict[str, object] = {
+        "contract_kind": "lineageweave.semantic_coverage_probability_sample",
+        "contract_version": 3,
+        "population_size": 1000,
+        "sample_size": 80,
+        "design_code": "stratified_random_without_replacement",
+        "provider_failures_retained": True,
+        "strata": [
+            {
+                "stratum_code": "synthetic-a",
+                "population_size": 600,
+                "sample_size": 48,
+                "inclusion_probability_numerator": 48,
+                "inclusion_probability_denominator": 600,
+                "selection_frame_sha256": digest,
+            },
+            {
+                "stratum_code": "synthetic-b",
+                "population_size": 400,
+                "sample_size": 32,
+                "inclusion_probability_numerator": 32,
+                "inclusion_probability_denominator": 400,
+                "selection_frame_sha256": "b" * 64,
+            },
+        ],
+        "selected_units": [
+            {
+                "ordinal": ordinal,
+                "selection_token_sha256": hashlib.sha256(
+                    f"synthetic-token-{ordinal}".encode()
+                ).hexdigest(),
+                "stratum_code": "synthetic-a" if ordinal < 48 else "synthetic-b",
+            }
+            for ordinal in range(80)
+        ],
+        "selection_manifest_sha256": "",
+    }
+    manifest["selection_manifest_sha256"] = hashlib.sha256(
+        json.dumps(
+            manifest["selected_units"], sort_keys=True, separators=(",", ":")
+        ).encode()
+    ).hexdigest()
+    return manifest
+
+
+def _rust_design_artifact() -> dict[str, object]:
+    """Return the Rust-owned design matching the synthetic sample manifest."""
+    design = finite_population_proportion_design(
+        1000,
+        0.95,
+        0.1055,
+        [SamplingStratum(600, 0.5), SamplingStratum(400, 0.5)],
+        allocation_method="proportional",
+    )
+    return json.loads(json.dumps(asdict(design), sort_keys=True))
+
+
+def _simple_probability_evidence() -> tuple[dict[str, object], dict[str, object]]:
+    """Return a synthetic one-stratum manifest and its exact Rust design."""
+    design = finite_population_proportion_design(
+        1000,
+        0.95,
+        0.1,
+        [SamplingStratum(1000, 0.5)],
+        allocation_method="proportional",
+    )
+    selected_units = [
+        {
+            "ordinal": ordinal,
+            "selection_token_sha256": hashlib.sha256(
+                f"synthetic-simple-token-{ordinal}".encode()
+            ).hexdigest(),
+            "stratum_code": "synthetic-simple",
+        }
+        for ordinal in range(design.sample_size)
+    ]
+    manifest: dict[str, object] = {
+        "contract_kind": "lineageweave.semantic_coverage_probability_sample",
+        "contract_version": 3,
+        "population_size": design.population_size,
+        "sample_size": design.sample_size,
+        "design_code": "simple_random_without_replacement",
+        "provider_failures_retained": True,
+        "strata": [
+            {
+                "stratum_code": "synthetic-simple",
+                "population_size": design.population_size,
+                "sample_size": design.sample_size,
+                "inclusion_probability_numerator": design.sample_size,
+                "inclusion_probability_denominator": design.population_size,
+                "selection_frame_sha256": "c" * 64,
+            }
+        ],
+        "selected_units": selected_units,
+        "selection_manifest_sha256": hashlib.sha256(
+            json.dumps(selected_units, sort_keys=True, separators=(",", ":")).encode()
+        ).hexdigest(),
+    }
+    return manifest, json.loads(json.dumps(asdict(design), sort_keys=True))
+
+
+def test_parser_rejects_the_observed_100_to_60_cardinality_mismatch() -> None:
+    payload = {
+        "input_count": 60,
+        "items": [
+            {
+                "item_index": index,
+                "semantic_dimensions": ["event_or_activity"],
+            }
+            for index in range(60)
+        ],
+    }
+
+    with pytest.raises(ValueError, match="input_count"):
+        parse_batch_result(json.dumps(payload), 100, _SUPPORTING_TERMS)
+
+
+def test_valid_batches_aggregate_without_source_values() -> None:
+    rows = parse_batch_result(
+        '{"input_count":2,"items":['
+        '{"item_index":0,"semantic_dimensions":["other_unmodeled_meaning"]},'
+        '{"item_index":1,"semantic_dimensions":["event_or_activity"]}]}',
+        expected_count=2,
+        supporting_terms_by_dimension=_SUPPORTING_TERMS,
+    )
+
+    result = aggregate_results([rows], [4])
+
+    assert rows[1]["supporting_term_iris"] == [_TERM_IRI]
+    assert result == {
+        "complete": True,
+        "sample_count": 2,
+        "covered_count": 1,
+        "uncovered_count": 1,
+        "missing_semantic_dimension_counts": {"other_unmodeled_meaning": 1},
+        "batch_count": 1,
+        "minimum_trace_step_count": 4,
+        "maximum_trace_step_count": 4,
+    }
+
+
+def test_parser_rejects_ungoverned_dimensions() -> None:
+    with pytest.raises(ValueError, match="ungoverned"):
+        parse_batch_result(
+            '{"input_count":1,"items":['
+            '{"item_index":0,"semantic_dimensions":["invented"]}]}',
+            expected_count=1,
+            supporting_terms_by_dimension=_SUPPORTING_TERMS,
+        )
+
+
+def test_parser_reports_a_dimension_when_its_ontology_terms_are_absent() -> None:
+    """Classification and deterministic schema support remain separate evidence."""
+    rows = parse_batch_result(
+        '{"input_count":1,"items":['
+        '{"item_index":0,"semantic_dimensions":["event_or_activity"]}]}',
+        expected_count=1,
+        supporting_terms_by_dimension={"event_or_activity": ()},
+    )
+
+    assert rows[0]["covered"] is False
+    assert rows[0]["missing_semantic_dimensions"] == ["event_or_activity"]
+
+
+@pytest.mark.parametrize(
+    ("dimensions", "message"),
+    [
+        ([], "ungoverned dimension"),
+        (["event_or_activity", "event_or_activity"], "duplicate semantic"),
+    ],
+)
+def test_parser_requires_auditable_noncontradictory_verdicts(
+    dimensions: list[str],
+    message: str,
+) -> None:
+    """Empty or duplicated content classifications fail closed."""
+    payload = {
+        "input_count": 1,
+        "items": [
+            {
+                "item_index": 0,
+                "semantic_dimensions": dimensions,
+            }
+        ],
+    }
+
+    with pytest.raises(ValueError, match=message):
+        parse_batch_result(json.dumps(payload), 1, _SUPPORTING_TERMS)
+
+
+def test_ontology_contract_contains_public_semantics_not_only_local_names() -> None:
+    """Coverage decisions receive term kinds and meaning-bearing RDF relations."""
+    terms = _ontology_terms(Path("docs/ontology/lineageweave-kg.ttl"))
+
+    assert terms
+    assert all(term["iri"] and term["kinds"] for term in terms)
+    assert any(term["labels"] for term in terms)
+    assert any(term["domains"] or term["ranges"] for term in terms)
+    by_iri = {term["iri"]: term for term in terms}
+    namespace = "https://contextualwisdomlab.github.io/LineageWeave/ontology#"
+    assert "http://www.w3.org/ns/prov#Entity" in by_iri[namespace + "Post"]["superclasses"]
+    assert "http://www.w3.org/ns/prov#Person" in by_iri[namespace + "Person"]["superclasses"]
+    assert "http://www.w3.org/ns/prov#wasDerivedFrom" in by_iri[
+        namespace + "wasDerivedFromPost"
+    ]["superproperties"]
+    assert by_iri["http://www.w3.org/ns/prov#Activity"]["kinds"] == [
+        "http://www.w3.org/2002/07/owl#Class"
+    ]
+    assert by_iri["http://www.w3.org/ns/prov#wasInformedBy"]["qualification"] == {
+        "qualification_relation": "http://www.w3.org/ns/prov#qualifiedCommunication",
+        "influence_class": "http://www.w3.org/ns/prov#Communication",
+        "influencer_relation": "http://www.w3.org/ns/prov#activity",
+    }
+    assert set(SEMANTIC_DIMENSION_TERM_IRIS) == SEMANTIC_DIMENSIONS
+    assert SEMANTIC_DIMENSION_TERM_IRIS["other_unmodeled_meaning"] == ()
+    for dimension in SEMANTIC_DIMENSIONS - {"other_unmodeled_meaning"}:
+        assert set(SEMANTIC_DIMENSION_TERM_IRIS[dimension]) <= set(by_iri)
+
+
+def test_ontology_contract_requires_the_governed_prov_support_profile(
+    tmp_path: Path,
+) -> None:
+    """A partial ontology bundle fails instead of changing coverage semantics."""
+    ontology_path = tmp_path / "lineageweave-kg.ttl"
+    ontology_path.write_bytes(Path("docs/ontology/lineageweave-kg.ttl").read_bytes())
+
+    with pytest.raises(FileNotFoundError, match="PROV-O support profile"):
+        _ontology_terms(ontology_path)
+
+
+def test_probability_sample_manifest_preserves_design_evidence() -> None:
+    """The audit preserves selection evidence without claiming corpus inference."""
+    manifest = _probability_manifest()
+    result, membership = validate_probability_sample_manifest(manifest, 80)
+
+    assert result == {
+        "design_code": "stratified_random_without_replacement",
+        "population_size": 1000,
+        "sample_size": 80,
+        "stratum_count": 2,
+        "selection_manifest_sha256": manifest["selection_manifest_sha256"],
+        "corpus_inference_available": False,
+    }
+    assert len(membership) == 80
+
+
+def test_rust_sampling_design_replays_and_binds_the_manifest() -> None:
+    """Caller hashes cannot replace exact package-owned Rust replay evidence."""
+    manifest = _probability_manifest()
+    artifact = _rust_design_artifact()
+
+    result = validate_sampling_design_artifact(artifact, manifest)
+
+    assert result["sampling_design_verified"] is True
+    assert result["corpus_inference_available"] is False
+    assert result["artifact_sha256"] == artifact["artifact_sha256"]
+    artifact["sample_size"] = 79
+    with pytest.raises(ValueError, match="Rust replay"):
+        validate_sampling_design_artifact(artifact, manifest)
+
+
+def test_rust_sampling_design_rejects_every_unbound_boundary() -> None:
+    """Malformed, unreplayable, or manifest-divergent artifacts fail closed."""
+    manifest = _probability_manifest()
+    artifact = _rust_design_artifact()
+
+    wrong_fields = deepcopy(artifact)
+    wrong_fields.pop("source_sha256")
+    with pytest.raises(ValueError, match="fields"):
+        validate_sampling_design_artifact(wrong_fields, manifest)
+
+    no_strata = deepcopy(artifact)
+    no_strata["strata"] = []
+    with pytest.raises(ValueError, match="ordered strata"):
+        validate_sampling_design_artifact(no_strata, manifest)
+
+    malformed_stratum = deepcopy(artifact)
+    malformed_stratum["strata"][0]["unsupported"] = True
+    with pytest.raises(ValueError, match="strata are invalid"):
+        validate_sampling_design_artifact(malformed_stratum, manifest)
+
+    unreplayable = deepcopy(artifact)
+    unreplayable["allocation_method"] = "caller_guess"
+    with pytest.raises(ValueError, match="cannot be replayed"):
+        validate_sampling_design_artifact(unreplayable, manifest)
+
+    missing_manifest_strata = deepcopy(manifest)
+    missing_manifest_strata["strata"] = None
+    with pytest.raises(TypeError, match="strata are unavailable"):
+        validate_sampling_design_artifact(artifact, missing_manifest_strata)
+
+    wrong_total = deepcopy(manifest)
+    wrong_total["sample_size"] = 79
+    with pytest.raises(ValueError, match="totals"):
+        validate_sampling_design_artifact(artifact, wrong_total)
+
+    wrong_allocation = deepcopy(manifest)
+    wrong_allocation["strata"][0]["sample_size"] = 47
+    wrong_allocation["strata"][1]["sample_size"] = 33
+    with pytest.raises(ValueError, match="allocation"):
+        validate_sampling_design_artifact(artifact, wrong_allocation)
+
+    wrong_ratio = deepcopy(manifest)
+    wrong_ratio["strata"][0]["inclusion_probability_numerator"] = 47
+    with pytest.raises(ValueError, match="inclusion ratios"):
+        validate_sampling_design_artifact(artifact, wrong_ratio)
+
+
+def test_terminal_semantic_coverage_binds_exact_interval_and_audit() -> None:
+    """A complete SRSWOR result receives Rust inference and an aggregate identity."""
+    manifest, artifact = _simple_probability_evidence()
+    sample_design, _ = validate_probability_sample_manifest(
+        manifest, manifest["sample_size"]
+    )
+    validate_sampling_design_artifact(artifact, manifest)
+    sample_count = manifest["sample_size"]
+    assert isinstance(sample_count, int)
+    aggregate = {
+        "complete": True,
+        "sample_count": sample_count,
+        "covered_count": sample_count,
+        "uncovered_count": 0,
+        "missing_semantic_dimension_counts": {},
+        "batch_count": 10,
+        "minimum_trace_step_count": 2,
+        "maximum_trace_step_count": 4,
+    }
+    ontology_path = Path("docs/ontology/lineageweave-kg.ttl")
+    ontology_sha256 = hashlib.sha256(ontology_path.read_bytes()).hexdigest()
+    completed_attempt = audit_attempt_provenance(
+        selection_manifest_sha256=sample_design["selection_manifest_sha256"],
+        sampling_design_sha256=artifact["artifact_sha256"],
+        ontology_sha256=ontology_sha256,
+        status_code="completed",
+        accepted_count=sample_count,
+    )
+
+    result = terminal_semantic_coverage_evidence(
+        artifact,
+        sample_design,
+        aggregate,
+        ontology_path,
+        completed_attempt,
+    )
+
+    assert result["corpus_inference_available"] is True
+    terminal = result["rust_terminal_artifact"]
+    assert isinstance(terminal, dict)
+    assert terminal["design_artifact_sha256"] == artifact["artifact_sha256"]
+    assert terminal["estimated_proportion"] == 1.0
+    assert terminal["lower_proportion"] < 1.0
+    assert terminal["upper_proportion"] == 1.0
+    assert len(result["ontology_sha256"]) == 64
+    assert len(result["audit_artifact_sha256"]) == 64
+    assert len(result["prov_o_sha256"]) == 64
+    prov_o = result["prov_o"]
+    assert isinstance(prov_o, dict)
+    relations = {assertion["relation_iri"] for assertion in prov_o["assertions"]}
+    assert relations == {
+        str(PROV.used),
+        str(PROV.wasDerivedFrom),
+        str(PROV.wasGeneratedBy),
+    }
+    assert len(prov_o["resource_types"]) == 7
+    assert len(prov_o["assertions"]) == 11
+
+
+def test_rejected_attempt_retains_prov_without_becoming_a_coverage_result() -> None:
+    """A failed batch remains auditable but cannot claim terminal inference."""
+    evidence = audit_attempt_provenance(
+        selection_manifest_sha256="a" * 64,
+        sampling_design_sha256="b" * 64,
+        ontology_sha256="c" * 64,
+        status_code="rejected",
+        accepted_count=30,
+        failed_batch_index=3,
+        failure_code="ValueError",
+    )
+
+    assert evidence["status_code"] == "rejected"
+    assert evidence["accepted_count"] == 30
+    assert evidence["failed_batch_index"] == 3
+    assert evidence["audit_session_id"].startswith("semantic-audit:")
+    completed = audit_attempt_provenance(
+        selection_manifest_sha256="a" * 64,
+        sampling_design_sha256="b" * 64,
+        ontology_sha256="c" * 64,
+        status_code="completed",
+        accepted_count=381,
+    )
+    assert completed["audit_session_id"] == evidence["audit_session_id"]
+    assert "corpus_inference_available" not in evidence
+    assert len(evidence["prov_o_sha256"]) == 64
+    prov_o = evidence["prov_o"]
+    assert isinstance(prov_o, dict)
+    relations = {assertion["relation_iri"] for assertion in prov_o["assertions"]}
+    assert relations == {
+        str(PROV.used),
+        str(PROV.wasDerivedFrom),
+        str(PROV.wasGeneratedBy),
+    }
+    assert len(prov_o["resource_types"]) == 5
+    assert len(prov_o["assertions"]) == 7
+
+
+def test_terminal_semantic_coverage_fails_closed_or_stays_unavailable() -> None:
+    """Partial/tampered SRSWOR and unsupported stratified inference never open."""
+    stratified_manifest = _probability_manifest()
+    stratified_design, _ = validate_probability_sample_manifest(
+        stratified_manifest, 80
+    )
+    unavailable = terminal_semantic_coverage_evidence(
+        _rust_design_artifact(),
+        stratified_design,
+        {"complete": True, "sample_count": 80},
+        Path("docs/ontology/lineageweave-kg.ttl"),
+        {},
+    )
+    assert unavailable == {
+        "corpus_inference_available": False,
+        "corpus_inference_unavailable_reason": (
+            "stratified_terminal_estimator_not_available"
+        ),
+    }
+
+    manifest, artifact = _simple_probability_evidence()
+    sample_design, _ = validate_probability_sample_manifest(
+        manifest, manifest["sample_size"]
+    )
+    sample_count = manifest["sample_size"]
+    assert isinstance(sample_count, int)
+    ontology_path = Path("docs/ontology/lineageweave-kg.ttl")
+    ontology_sha256 = hashlib.sha256(ontology_path.read_bytes()).hexdigest()
+    incomplete = {
+        "complete": True,
+        "sample_count": sample_count - 1,
+        "covered_count": sample_count - 1,
+        "uncovered_count": 0,
+    }
+    incomplete_attempt = audit_attempt_provenance(
+        selection_manifest_sha256=sample_design["selection_manifest_sha256"],
+        sampling_design_sha256=artifact["artifact_sha256"],
+        ontology_sha256=ontology_sha256,
+        status_code="completed",
+        accepted_count=sample_count - 1,
+    )
+    with pytest.raises(ValueError, match="complete design-sized"):
+        terminal_semantic_coverage_evidence(
+            artifact,
+            sample_design,
+            incomplete,
+            ontology_path,
+            incomplete_attempt,
+        )
+    tampered = deepcopy(artifact)
+    tampered["artifact_sha256"] = "f" * 64
+    complete_attempt = audit_attempt_provenance(
+        selection_manifest_sha256=sample_design["selection_manifest_sha256"],
+        sampling_design_sha256=tampered["artifact_sha256"],
+        ontology_sha256=ontology_sha256,
+        status_code="completed",
+        accepted_count=sample_count,
+    )
+    with pytest.raises(ValueError, match="does not match"):
+        terminal_semantic_coverage_evidence(
+            tampered,
+            sample_design,
+            {
+                "complete": True,
+                "sample_count": sample_count,
+                "covered_count": sample_count,
+                "uncovered_count": 0,
+            },
+            ontology_path,
+            complete_attempt,
+        )
+
+
+@pytest.mark.parametrize(
+    ("field", "value", "message"),
+    [
+        ("design_code", "deterministic_windows", "probability design"),
+        ("provider_failures_retained", False, "retain provider failures"),
+        ("contract_version", 1, "unsupported"),
+    ],
+)
+def test_probability_sample_manifest_rejects_noninferential_contracts(
+    field: str, value: object, message: str
+) -> None:
+    """Deterministic windows and undocumented targets cannot imply corpus coverage."""
+    manifest = _probability_manifest()
+    manifest[field] = value
+
+    with pytest.raises(ValueError, match=message):
+        validate_probability_sample_manifest(manifest, 80)
+
+
+def test_probability_sample_manifest_requires_known_stratum_inclusion_probability() -> (
+    None
+):
+    """Every stratum retains an exact inclusion ratio and frame digest."""
+    manifest = _probability_manifest()
+    strata = manifest["strata"]
+    assert isinstance(strata, list) and isinstance(strata[0], dict)
+    strata[0]["inclusion_probability_numerator"] = "unknown"
+
+    with pytest.raises(ValueError, match="exact sample/population inclusion ratio"):
+        validate_probability_sample_manifest(manifest, 80)
+
+
+def test_probability_manifest_inclusion_probability_matches_sampling_fraction() -> None:
+    """A declared probability cannot contradict the selected stratum fraction."""
+    manifest = _probability_manifest()
+    strata = manifest["strata"]
+    assert isinstance(strata, list) and isinstance(strata[0], dict)
+    strata[0]["inclusion_probability_numerator"] = 300
+
+    with pytest.raises(ValueError, match="exact sample/population inclusion ratio"):
+        validate_probability_sample_manifest(manifest, 80)
+
+
+@pytest.mark.parametrize(
+    ("field", "value", "message"),
+    [
+        ("population_size", 601, "stratum populations"),
+        ("sample_size", 47, "stratum samples"),
+    ],
+)
+def test_probability_manifest_stratum_totals_match_declared_totals(
+    field: str, value: int, message: str
+) -> None:
+    """Stratum totals cannot contradict the declared sample population."""
+    manifest = _probability_manifest()
+    strata = manifest["strata"]
+    assert isinstance(strata, list) and isinstance(strata[0], dict)
+    strata[0][field] = value
+
+    with pytest.raises(ValueError, match=message):
+        validate_probability_sample_manifest(manifest, 80)
+
+
+def test_probability_manifest_selected_units_match_each_stratum_sample() -> None:
+    """Selected-unit membership must realize every declared stratum count."""
+    manifest = _probability_manifest()
+    selected_units = manifest["selected_units"]
+    assert isinstance(selected_units, list) and isinstance(selected_units[0], dict)
+    selected_units[0]["stratum_code"] = "synthetic-b"
+
+    with pytest.raises(ValueError, match="selected-unit strata"):
+        validate_probability_sample_manifest(manifest, 80)
+
+
+def test_selected_contents_bind_query_order_to_owner_tokens() -> None:
+    """A different query row cannot masquerade as the Rust-selected member."""
+    token = "synthetic-owner-token"
+    membership = ((hashlib.sha256(token.encode()).hexdigest(), "synthetic-a"),)
+
+    assert selected_contents(
+        [{"selection_token": token, "content_text": "Synthetic content"}], membership
+    ) == ["Synthetic content"]
+    with pytest.raises(ValueError, match="membership"):
+        selected_contents(
+            [{"selection_token": "replacement", "content_text": "Synthetic content"}],
+            membership,
+        )

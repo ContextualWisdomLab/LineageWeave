@@ -11,6 +11,7 @@ import os
 import sys
 import json
 from pathlib import Path
+from urllib.parse import urlsplit
 
 
 def _pop_first_env(*names: str) -> str:
@@ -21,6 +22,29 @@ def _pop_first_env(*names: str) -> str:
         if value and not first:
             first = value
     return first
+
+
+def _allowed_provider_hosts(provider_url: str) -> tuple[str, ...]:
+    """Require the configured gateway host in an explicit outbound allowlist."""
+    provider_host = (urlsplit(provider_url).hostname or "").rstrip(".").casefold()
+    allowed_hosts = tuple(
+        sorted(
+            {
+                value.strip().rstrip(".").casefold()
+                for value in os.environ.get(
+                    "CONTEXTUAL_ORCHESTRATOR_ALLOWED_PROVIDER_HOSTS", ""
+                ).split(",")
+                if value.strip()
+            }
+        )
+    )
+    if not provider_host:
+        raise SystemExit("LLM_GATEWAY_API_URL must contain a hostname")
+    if not allowed_hosts:
+        raise SystemExit("CONTEXTUAL_ORCHESTRATOR_ALLOWED_PROVIDER_HOSTS is required")
+    if provider_host not in allowed_hosts:
+        raise SystemExit("LLM_GATEWAY_API_URL hostname is not in the provider allowlist")
+    return allowed_hosts
 
 
 def main() -> None:
@@ -48,6 +72,7 @@ def main() -> None:
         raise SystemExit("LLM_GATEWAY_API_URL or LLM_GATEWAY_URL is required to start the gateway")
     if not provider_url.rstrip("/").endswith("/v1"):
         provider_url = provider_url.rstrip("/") + "/v1"
+    allowed_provider_hosts = _allowed_provider_hosts(provider_url)
     raw_limit = os.environ.pop("LLM_GATEWAY_MAX_OUTPUT_TOKENS", "4096").strip()
     try:
         max_output_tokens = int(raw_limit)
@@ -67,6 +92,7 @@ def main() -> None:
     for agent in agents["agents"]:
         agent["base_url"] = provider_url
         agent["credential_key"] = "LLM_GATEWAY_API_KEY"
+        agent["provider_name"] = "configured_gateway"
         agent.setdefault("provider_protocol", "auto")
     os.environ.pop("LLM_GATEWAY_EMBEDDING_MODEL", None)
     agents_path.write_text(json.dumps(agents), encoding="utf-8")
@@ -97,6 +123,8 @@ def main() -> None:
         "--max-body-bytes",
         str(max_body_bytes),
     ]
+    for allowed_host in allowed_provider_hosts:
+        sys.argv.extend(("--allowed-provider-host", allowed_host))
     del provider_url
     del auth_token
     from contextual_orchestrator.__main__ import main as serve

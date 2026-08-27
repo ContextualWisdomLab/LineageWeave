@@ -1,7 +1,231 @@
 # Product & Technical Gap Baseline
 
-> Dashboard delivery snapshot: 2026-08-26 07:15 KST. Protected `main` was
-> `494b54e2245040bcf02b45376f221c37cd437e76`. This local branch is not
+## Authorized source semantic-coverage audit
+
+An aggregate-only inspection on 2026-08-26 found 43,814 source rows with
+43,814 non-empty titles and zero non-empty bodies. Structured coverage was
+40,001 customer-code rows (91.3%), 4,490 project-code rows (10.2%), 43,812
+VOC process-unit rows, and complete process-unit, sales-pool, actor, lineage,
+and source-artifact provenance fields. No source value, identifier,
+organization, table name, or artifact path is retained here.
+A 2026-08-27 aggregate follow-up found that the 43,814 rows normalize to
+43,707 distinct document keys. The key audit found exactly 43,707 semantic
+document nodes, all 43,707 matched, with
+zero source-only and zero semantic-only keys. Every semantic document has a
+nonblank title, summary, event, stage, status, content manifest, and at least
+one knowledge-graph edge carrying that document as evidence.
+The aggregate is reproducible with
+`scripts/audit_source_semantic_coverage.py`; table and column mappings remain
+runtime inputs rather than committed source identifiers.
+
+Semantic-layer referential checks found no unknown ontology term references,
+no missing graph endpoints, and no confidence values outside `[0, 1]`.
+All 832,696 observed knowledge-graph edges carry a direct evidence identifier,
+and no edge uses an ungoverned evidence status. Of 6,046 inferred edges, 3,024
+lack a direct evidence identifier; all 166 predicted edges lack one. Those
+3,190 document-to-document edges span 5,080 distinct documents and have a
+nonblank reason, but none joins to the current lineage edge set and only one
+joins to an inference candidate with evidence. A direct evidence identifier is
+not required to mislabel an inference or prediction as observed. Its generation
+or derivation nevertheless requires qualified provenance, and the authorized
+source-adjacent analysis database has zero of the 14 normalized PROV-O tables
+required by ADR 0011. This is not a reason to mutate the source database:
+replaying the application Compose target deployed all 14 tables and populated
+the canonical 30 classes, 50 relations, and 14 qualification definitions. The
+remaining gap is linkage: the 3,190 analysis edges are not bound to target
+PROV resources, activities, assertions, or qualifications. Do not present them
+as source-backed facts or qualified derivations until that normalized linkage
+is persisted.
+The export names 117 distinct opaque source-artifact references. A protected
+runtime search found 117 local MHTML files whose complete SHA-256 digests match
+the artifact catalog exactly. Replaying all 12.1 GB through the non-rendering
+`mhtml-etl-gateway` parser succeeded for 117/117 artifacts, produced exactly
+43,814 rows, found exactly one body-candidate header in every artifact, and
+found zero nonblank body cells. The database's zero-body result is therefore
+faithful to the complete authorized source bytes, not an ETL omission. Body
+semantics remain honestly unavailable unless a different authoritative source
+is connected; titles must not be copied into bodies.
+
+The current semantic layer is therefore **not sufficient for the source
+content as a whole**. It covers typed Post, Person, CorporateEntity, Team,
+Project candidates, raw source context hints, lineage keys, and temporal
+provenance, but it cannot derive body semantic units, embeddings, summaries,
+VISION evidence, or body-grounded ontology assertions from this export.
+ADR 0240 and the PostgreSQL importer now accept an explicitly evidenced
+missing-body dimension without copying titles into bodies. This makes the
+structured records importable while keeping body-derived capabilities
+unavailable instead of fabricated.
+ADR 0241 additionally carries the governed VOC type and raw source stage/detail
+state into contextual-orchestrator hints with exact column provenance. The
+available reference catalog contains examples rather than complete code-system
+definitions, so raw stage/detail values are retained only as source-code RDF
+literals and hints; they are not minted as classified ontology concepts.
+
+An ADR 0242 private-content audit then validated eight disjoint deterministic
+windows of ten titles (80/80 ordered outputs, four orchestration trace steps
+per window). This is pipeline acceptance evidence only: the windows were not a
+probability sample, had no known inclusion probabilities, and had no declared
+confidence or margin-of-error target. Its observed counts found zero sampled
+titles whose material meaning was completely expressible by the published
+ontology. Missing dimensions in those 80 pipeline items were observed for
+event/activity (55), product/service (37), communication/document type (33),
+organization role (26), topic/domain (26), location/geography (24), commercial
+transaction (18), facility/asset/equipment (17), status/stage (16),
+requirement/issue/risk (15), time interval/deadline (13), and
+quantity/measurement (6); a title may contribute to several dimensions. Two
+remaining ten-title windows were not accepted after provider failures, so this
+is explicitly an 80-record pipeline result, not a probability-sample, 100-record,
+or corpus claim.
+The reusable audit now rejects the previously observed 100-input/60-output
+response, requires every ordered item plus a multi-agent trace, and prints only
+complete non-identifying aggregates. It additionally fails closed unless the
+caller supplies probability-sample manifest v3 with exact per-stratum
+inclusion-probability numerator/denominator pairs, per-stratum frame digests,
+ordered owner-token membership
+digests, retained provider failures, and a canonical selection-manifest digest.
+LineageWeave validates sample identity and completeness. Historical sample
+outputs still emit `corpus_inference_available=false` because they predate a
+bound terminal estimator/variance/interval artifact and cannot be upgraded by
+copying their aggregate counts into a new envelope.
+The current candidate consumer separately replays the immutable
+`fast-mlsirm.sampling-design.v1` Rust artifact and binds its population,
+ordered stratum populations, total sample size, allocation, and exact `(n_h,
+N_h)` inclusion ratios to the selected frame manifest. That proves design arithmetic provenance, not achieved
+semantic-coverage inference. Merged stacked fast-mlsirm PR #1458 adds the separate
+`fast-mlsirm.achieved-proportion.v1` Rust artifact for a complete one-stratum
+SRSWOR sample: it binds the design artifact and attests the achieved
+sample-proportion estimator, SRSWOR design variance, and exact Wang/Konijn
+equal-tailed hypergeometric interval. Its exhaustive small-population tests and
+Wang published-table oracle pass; the complete fast-mlsirm Python suite passed
+6,677 tests with 15 skips. LineageWeave's candidate consumer additionally
+binds the terminal artifact, selection-manifest digest, current ontology
+SHA-256, aggregate verdicts, and trace-count bounds into one audit SHA-256.
+It also emits a validated aggregate-only PROV-O graph linking the audit entity
+and activity to the selection manifest, Rust design, matching completed
+attempt, ontology, and terminal Rust entities by content-addressed URNs; no
+source record identifier is exposed. A terminal result is rejected when that
+attempt does not match the selection, design, ontology, and accepted count.
+This capability is not runtime evidence for the historical samples and is not
+protected-integrated while prerequisite fast-mlsirm PR #1445 remains open;
+stacked PR #1458 is merged into that still-unmerged feature branch, not
+protected `main`.
+
+The next runtime-only acceptance frame contains 43,814 eligible titles. With
+the ADR 0242 predeclared 95% confidence, five-percentage-point margin, and NIST
+conservative unknown-proportion input `p=0.5`, the pinned Rust design artifact
+selected 381 SRSWOR units. The ordered selection tokens and source query remain
+outside git. Early executions were correctly rejected rather than partially
+persisted: one credential boundary returned 401, an old local orchestrator
+exceeded its request-body contract, and the then-current structured path first
+omitted the multi-agent trace and later accepted a provider response that
+violated the exact batch cardinality schema. contextual-orchestrator PR #891
+now carries the upstream candidate repairs: structured trace disclosure through
+the audited trace-read boundary, removal of mock seed agents after successful
+provider discovery, and response-format capability selection from explicit
+provider catalog evidence. The candidate audit now also retains an owner-only,
+aggregate PROV-O attempt artifact from the start of execution: the activity
+uses the content-addressed selection manifest, Rust design artifact, and
+ontology, while a rejection records only accepted-item count, failed batch,
+and bounded error class. A stable non-identifying audit session, derived from
+those same input hashes, now crosses the spawned provider boundary and is
+bound to the request header, metadata, local telemetry, and attempt so
+orchestration trace is not detached from PROV.
+It never promotes partial verdicts to corpus inference
+or exposes source identifiers. No 381-unit coverage estimate is accepted until
+all 39 batches complete against one unchanged manifest.
+
+A runtime-only simple random sample without replacement then selected 100 new
+records from an eligible frame of 43,714. The pre-augmentation audit accepted
+all 100 ordered outputs in ten batches, with four contextual-orchestrator trace
+steps for every batch and no provider failure; 0/100 were completely covered.
+After adding public, standards-aligned content classes/properties plus a
+PROV-O-derived semantic-assertion and SHACL evidence contract, the exact same
+selection manifest again accepted 100/100 outputs with the same trace bounds:
+20/100 were completely covered and 80/100 remained uncovered. The remaining
+sample-level missing-dimension counts were event/activity (32),
+facility/asset/equipment (35), organization role (35), other unmodeled meaning
+(28), product/service (27), requirement/issue/risk (23), location/geography
+(16), commercial transaction (14), project/initiative (14), status/stage (14),
+topic/domain (10), communication/document type (8), time interval/deadline (5),
+person/actor (4), and quantity/measurement (4). These are same-sample audit
+counts, not estimated corpus prevalence or a confidence interval.
+
+A second runtime-only simple random sample without replacement selected 100
+records from the current 43,814-record eligible title frame. Under the old
+ambiguous rubric, two complete same-sample runs disagreed materially (20/100
+versus 10/100 covered), so neither result is accepted as stable semantic-gap
+evidence. ADR 0242 now distinguishes source-specific instance data from a
+missing public schema term and supplies the audit with the existing canonical
+PROV-O registry rather than only its import/mapping profile. On the exact same
+selection manifest, that revision produced 100/100 covered, zero failures, ten
+batches, and four trace steps per batch in two consecutive runs.
+
+A further independently selected 100-record sample then exposed a remaining
+measurement flaw: asking the model to select ontology IRIs yielded 79/100 once,
+then failed closed on an invented near-match; replacing long IRIs with numeric
+ids avoided that syntax error but changed the verdict to 50/100. The accepted
+contract now separates the tasks: contextual-orchestrator classifies only the
+governed semantic dimensions, while LineageWeave deterministically resolves
+those dimensions against present class/property IRIs. On the unchanged second
+manifest, this contract produced 100/100 covered, zero failures, ten batches,
+and four trace steps per batch in two consecutive runs. These results prove
+repeatable coverage of two sampled title sets only; they are not a corpus
+estimate and do not repair the export's zero-body evidence gap.
+
+A governed-stratum runtime-only audit then used five source-type strata with 20
+records selected without replacement from each stratum (100 total). The exact
+manifest produced 100/100 covered, zero failures, ten batches, and four trace
+steps per batch in two consecutive runs. Balanced allocation here broadens
+type-level diagnostic coverage; it is not a population-weighted estimator and
+still emits `corpus_inference_available=false`.
+
+A separate non-probability diagnostic excluded the first deterministic 100
+records and selected 100 records from each of five event/update-time strata
+(500 total). Every stratum again had 100/100 governed VOC type, stage, and
+detail-state values but 0/100 non-empty bodies. Across the 500 records,
+customer code was present for 447, project code for 50, country code for 486,
+and due-date text for 0. Each stratum retained all five governed VOC types;
+stage had 2–4 distinct raw values, detail state 3–4, and country 9–14. This
+observed the same missing-body boundary and structured hint availability in
+each diagnostic stratum; it is not probability-sample or corpus-prevalence
+evidence and supplies no confidence interval.
+The advertised deployment alias needed by this multi-agent path is repaired in
+the canonical contextual-orchestrator PR #868. PR #870 was closed unmerged
+after its explicit-conduct regression was composed into #868; until #868's
+exact head passes its protected checks and independent review, the runtime path
+remains candidate evidence.
+LineageWeave's Compose bootstrap now also forwards the normalized configured
+provider-host allowlist to the orchestrator CLI; without that handoff, runtime
+discovery silently retained a blank model placeholder despite valid gateway
+credentials and model inventory.
+
+Remaining acceptance gaps:
+
+- protected-integrate fast-mlsirm PR #1445 (including merged stack #1458), then run a new complete
+  one-stratum probability sample through the exact terminal artifact before
+  making any corpus coverage estimate; the stratified path remains explicitly
+  unavailable until it has its own governed estimator, covariance, and
+  interval;
+- continue periodic independent and governed-stratum probability samples as
+  the source changes; the 381-unit one-stratum design supports only overall
+  eligible-frame prevalence, while rare semantic-dimension or category
+  precision remains unavailable until governance predeclares the strata,
+  category estimand, and acceptance precision and fast-mlsirm attests a matching
+  stratified terminal estimator, covariance, and interval artifact; reconcile
+  any newly uncovered meaning with public standards before adding a schema term,
+  and never mint source-local codes as public concepts;
+- connect an authoritative body/file source and prove non-zero, ordered
+  semantic-unit persistence before claiming PRD-FR-4 corpus coverage;
+- obtain governed source definitions before mapping grade, inspection,
+  lifecycle-detail, country, due-date, or artifact fields to ontology terms;
+- publish only terms with domain/range, provenance, SHACL, API, and rendered
+  acceptance evidence; opaque source codes remain raw hints until then;
+- run an authenticated import/backfill and report only non-identifying
+  aggregate counts for content units, embeddings, proposed/verified facts,
+  and unavailable channels.
+
+> Dashboard delivery snapshot: 2026-08-26 19:30 KST. Protected `main` was
+> `ff7431bd1851c03e737808d22c6a2d43968582f9`. This local branch is not
 > protected-main release evidence.
 
 ## Operations Dashboard PRD/TRD traceability
@@ -60,14 +284,14 @@ only aggregate, non-identifying evidence to this repository.
 
 ### Exact open-PR boundary
 
-At this snapshot there were 11 open PRs and 10 open issues. PRs #660 and #659
-merged to protected `main`; PR #666 remains only non-default-branch stack
-composition inside #663. Every remaining open head required refreshed hosted
-gates and/or independent review after the base changed. These observations are
-not merge readiness. Re-fetch exact heads, unresolved threads, checks,
-approvals, rulesets, and merge SHA before any lifecycle claim.
+At this snapshot there were 17 open PRs and 10 open issues. The exact-head
+inventory in section 1 is authoritative for this snapshot. Every open head
+remained blocked on hosted gates and/or independent review. These observations
+are not merge readiness. Re-fetch exact heads,
+unresolved threads, checks, approvals, rulesets, and merge SHA before any
+lifecycle claim.
 
-> Audit snapshot: 2026-08-26 07:15 KST (refreshed by the autonomous merge
+> Audit snapshot: 2026-08-26 19:30 KST (refreshed by the autonomous merge
 > loop). This repository records synthetic fixtures and aggregate,
 > non-identifying runtime evidence only. Open PRs and local checks are not
 > protected-default-branch release evidence. Identifying post identifiers,
@@ -76,25 +300,31 @@ approvals, rulesets, and merge SHA before any lifecycle claim.
 
 ## 1. Exact-head and governance evidence
 
-The protected default branch was `494b54e2245040bcf02b45376f221c37cd437e76`
-when this baseline was refreshed. The live queue contained 11 open PRs and 10
+The protected default branch was `ff7431bd1851c03e737808d22c6a2d43968582f9`
+when this baseline was refreshed. The live queue contained 17 open PRs and 10
 open issues. The exact-head inventory below supersedes older per-PR snapshots
 elsewhere in this document; those older rows remain useful historical delivery
 context only.
 
 | PR | Exact observed head | Merge/check state at this snapshot |
 | ---: | --- | --- |
-| #667 | `3bc662d7` | refreshes protected-main and open-queue documentation evidence; base conflict remains to be repaired |
-| #663 | `6fd2f701` | combined Project ontology candidate plus #666's non-default-branch removal of sampled region-coverage arithmetic; base conflict remains to be repaired |
-| #658 | `f007a5ed` | evidence-honest Global Ask cutoff; hosted checks and independent review required |
-| #657 | `2d9b43b7` | TEPP asynchronous lifecycle persistence while unpublished producer work stays unavailable; hosted checks and independent review required |
-| #644 | `ed8d97f3` | native frontend surface code splitting; hosted checks and independent review required |
-| #643 | `7fb4d18c` | shared token-backed status notice; hosted checks and independent review required |
-| #640 | `2d50fa01` | dashboard case metrics and project journeys; base conflict remains to be repaired |
-| #639 | `48065ad1` | restores Running action and Compose contracts; hosted checks and independent review required |
-| #632 | `29aee18d` | graph-fact provenance, public verification, MCP admission, and k6 evidence; hosted checks and independent review required |
-| #631 | `665046dc` (observed parent) | decomposes closed PR #490; this merge refresh advances its head and restarts hosted review evidence |
-| #629 | `0138db5f` | provider-work release and bounded landing reads refreshed onto protected `main`; hosted checks and independent review restarted |
+| #703 | `e5a483e2` | stacked on #640; conflicting and not eligible to retarget or merge before the parent reaches protected `main` |
+| #702 | `e4c61407` | mergeable but blocked; exact-head checks and independent review required |
+| #701 | `cc3351a9` | mergeable but blocked; exact-head checks and independent review required |
+| #700 | `495b4504` | mergeable but blocked; exact-head checks and independent review required |
+| #680 | `ff4d9eaf` | mergeable but blocked; exact-head checks and independent review required |
+| #679 | `e26a7208` | mergeable but blocked; exact-head checks and independent review required |
+| #672 | `f78f036c` | mergeable but blocked; exact-head checks and independent review required |
+| #668 | `f9c4bd65` | mergeable but blocked; exact-head checks and independent review required |
+| #667 | `1754b2c2` | mergeable but blocked; exact-head checks and independent review required |
+| #658 | `0ae09b83` | mergeable but blocked; exact-head checks and independent review required |
+| #657 | `9f71681c` | mergeable but blocked; exact-head checks and independent review required |
+| #644 | `f53dd28e` | mergeable but blocked; exact-head checks and independent review required |
+| #643 | `42ba340e` | mergeable but blocked; exact-head checks and independent review required |
+| #640 | `26bfea65` | mergeable but blocked; exact-head checks and independent review required; parent of #703 |
+| #639 | `f1d7aaaa` | mergeable but blocked; exact-head checks and independent review required |
+| #632 | `24262a99` | mergeable but blocked; exact-head checks and independent review required |
+| #629 | `b721b0f2` | mergeable but blocked; exact-head checks and independent review required |
 
 No row above is merge evidence. Immediately before any lifecycle action,
 re-fetch the head, unresolved threads, formal reviews, rulesets, and same-head
@@ -361,7 +591,8 @@ this file per §3.5 of the prior snapshot).
 
 | Gap | Current evidence | Acceptance requirement |
 | --- | --- | --- |
-| Protected release | 12 open PRs at snapshot, all targeting `main` with normal auto-merge enabled. None has the required independent approval, and running checks on #631/#632/#663 are not treated as blockers for safe work on other PRs. #666's merge into the non-default #663 branch is not protected-main delivery | Terminal exact-head checks, no unresolved threads, two independent approvals including last-push approval, protected squash-merge SHA |
+| Local lineage and organization scoring ownership | Protected `main` still executes Python elapsed-day decay, numeric secondary-key scoring, `SequenceMatcher` label/entity similarity, weight renormalization, a 50-record recency window, and fixed `0.3`/`0.6` decision floors. ADR 0208 froze this class of work, but no open PR supplies the complete owner artifacts and no repository currently accepts corporate-master entity resolution. TEPP project-history is temporal association only; current RankWeave APIs do not return the ADR 0245 Rust-computed edge or entity-resolution envelopes. Open PR #704 exact head `2948812e` adds a useful external evidence contract but reuses `_best_parent`/`active_weights` and locally computes window counts and contribution arithmetic, so it is not replacement-owner evidence | Land the versioned owner contracts in the construct-owning repositories, including snapshot/cutoff, separate evidence availability, method/model version, uncertainty/completion, digest, abstention/tie, and non-causal status. Then add strict LineageWeave adapters and persisted provenance before deleting `channels.py` scoring, local reconstruction normalization/window/floor decisions, and corporate `SequenceMatcher`/threshold binding. Missing owner evidence must produce no edge or catalog identity; do not transfer the existing heuristics upstream |
+| Protected release | 17 open PRs at snapshot. Sixteen target `main` with normal auto-merge enabled; stacked child #703 targets #640 and must wait for its parent, then retarget to `main` and collect fresh evidence. None has the required independent approval, and queued checks are not treated as blockers for safe work on other PRs | Terminal exact-head checks, no unresolved threads, the current ruleset's one independent approval, and protected squash-merge SHA |
 | CI queue release latency | Two Tests runs for already merged PRs occupied the available runner slots while 54 newer runs remained queued. Manual cancellation released the stale work, but the central close workflow was itself queued behind those runs. #634 merged into #631's non-default branch and reuses the repository's existing per-PR concurrency group so a jobless close event can cancel obsolete Tests work before runner allocation; this is not protected-main delivery | Merge #631 through its refreshed protected gate; close a synthetic PR while its Tests run is active and verify the old run becomes cancelled, the close-event jobs remain skipped, and a newer exact-head run starts without manual intervention |
 | Evidence-grounded operations workspace | Protected-main #614 delivers governed semantic Ask, live Similar VOC, disjoint pending/failed analysis metrics, full Storybook state inventory, and current desktop/mobile screenshot evidence. Authorized-corpus backfill acceptance remains unavailable | Perform authenticated authorized-corpus acceptance with aggregate evidence and retain fail-closed no-match behavior |
 | Shared frontend gate | The ADR 0109 login repair is on protected `main`; eight older branches carried the defect and received the same verified repair this loop (#521–#560) | Keep every future branch cut from post-repair bases; re-verify with frontend lint/test/build before push |
