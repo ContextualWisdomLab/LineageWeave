@@ -99,6 +99,29 @@ projects assertion-backed constructs into the existing ABAC-filtered ontology
 neighborhood without duplicating graph storage or promoting truth. Catalog
 search remains unavailable.
 
+### PRD-FR-2C — FJA I/O-Psychology cognitive, affective & behavioral semantic layer
+
+- Project the DOT/FJA Data/People/Things worker functions into their
+  grounded nomological network of cognitive, affective, and behavioral
+  I/O-Psychology constructs (ADR 0251): information processing, mental
+  workload, executive functioning, and appraisal; emotional labor,
+  burnout, engagement, psychological safety, and commitment; task,
+  citizenship, counterproductive, safety, proactive, adaptive, and
+  withdrawal behavior.
+- Declare each construct with its psychological dimension and an APA 7th
+  literature anchor; keep `:CognitiveConstruct` / `:AffectiveConstruct` /
+  `:BehavioralConstruct` disjoint and validate with SHACL.
+- Keep FJA-derived constructs distinct from ADR 0248's evidence-bound
+  O*NET-style occupational construct classes: no crosswalk, equivalence,
+  or implied fit is asserted.
+- Carry no numeric weight: the layer is a semantic taxonomy, never a
+  calibrated measurement (ADR 0145 governs estimation).
+
+Acceptance: `tests/test_iopsy_taxonomy.py` enforces construct coverage,
+literature-anchored metadata, fail-closed lookups, per-function profile
+completeness, and composite-job aggregation; `tests/test_ontology_shapes.py`
+validates the disjoint SHACL shapes.
+
 ### PRD-FR-3 — Bounded ontology exploration
 
 - Apply RBAC/ABAC, source eligibility, and knowledge cutoff before graph
