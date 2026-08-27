@@ -1,0 +1,601 @@
+"""Execute the external lineage contract through the core reconstruction kernel.
+
+This adapter is deliberately store-agnostic. It accepts an already parsed,
+caller-authorized request, applies available-time cutoff rules, invokes the
+existing deterministic/optional-LLM reconstruction kernel, and returns only
+opaque caller references plus evidence-bounded result metadata.
+"""
+
+from __future__ import annotations
+
+import math
+from collections import defaultdict
+from dataclasses import replace
+
+from .adjudication_client import (
+    AdjudicationClient,
+    NullAdjudicationClient,
+)
+from .channel_weight_estimation import ChannelWeightEstimate
+from .external_lineage_contract import (
+    CONTRACT_VERSION,
+    ChannelEvidence,
+    LineageAnalysisRequest,
+    LineageAnalysisResult,
+    LineageContractError,
+    LineageEdgeResult,
+    LineageEvidenceRecord,
+    LineageLimitation,
+    ProjectProjection,
+    parse_lineage_analysis_request,
+    result_digest,
+    serialize_lineage_analysis_request,
+)
+from .models import Record
+from .reconstruct import _best_parent, active_weights
+
+
+def _contract_error(code: str, message: str, field: str | None = None) -> None:
+    """Raise a stable execution-time contract error."""
+
+    raise LineageContractError(code, message, field=field)
+
+
+class _BoundedAdjudicationClient:
+    """Keep provider channel scores inside the fusion contract boundary."""
+
+    available = True
+
+    def __init__(self, client: AdjudicationClient) -> None:
+        """Wrap one available client without changing its provider behavior."""
+
+        self._client = client
+
+    def judge(self, candidate_label: str, record_label: str) -> float:
+        """Return one finite unit-interval score or fail with a stable code."""
+
+        try:
+            score = self._client.judge(candidate_label, record_label)
+        except Exception as exc:
+            raise LineageContractError(
+                "llm_channel_error",
+                "LLM channel returned an unusable provider response",
+                field="llm",
+            ) from exc
+        if isinstance(score, bool) or not isinstance(score, (int, float)):
+            _contract_error(
+                "channel_score_out_of_bounds",
+                "LLM channel score must be finite and within 0..1",
+                "llm",
+            )
+        number = float(score)
+        if not math.isfinite(number) or not 0.0 <= number <= 1.0:
+            _contract_error(
+                "channel_score_out_of_bounds",
+                "LLM channel score must be finite and within 0..1",
+                "llm",
+            )
+        return number
+
+
+def _validated_request(request: LineageAnalysisRequest) -> LineageAnalysisRequest:
+    """Round-trip a dataclass through the public parser before execution."""
+
+    return parse_lineage_analysis_request(
+        serialize_lineage_analysis_request(request)
+    )
+
+
+def _validate_explicit_parent_relations(
+    records: tuple[LineageEvidenceRecord, ...],
+) -> None:
+    """Validate caller-observed parent relations before cutoff filtering."""
+
+    by_ref = {record.evidence_ref: record for record in records}
+    for child in records:
+        explicit = child.explicit_parent
+        if explicit is None:
+            continue
+        if explicit.evidence_ref == child.evidence_ref:
+            _contract_error(
+                "explicit_parent_self_reference",
+                "an evidence record cannot be its own parent",
+                child.evidence_ref,
+            )
+        parent = by_ref.get(explicit.evidence_ref)
+        if parent is None:
+            _contract_error(
+                "explicit_parent_missing",
+                "explicit parent is absent from the request",
+                child.evidence_ref,
+            )
+        if parent.group_ref != child.group_ref:
+            _contract_error(
+                "explicit_parent_group_mismatch",
+                "explicit parent and child must share one group",
+                child.evidence_ref,
+            )
+        if parent.occurred_at > child.occurred_at:
+            _contract_error(
+                "explicit_parent_after_child",
+                "explicit parent occurs after the child",
+                child.evidence_ref,
+            )
+
+    parent_by_child = {
+        child.evidence_ref: child.explicit_parent.evidence_ref
+        for child in records
+        if child.explicit_parent is not None
+    }
+    for start_ref in parent_by_child:
+        current_ref = start_ref
+        visited: set[str] = set()
+        while current_ref in parent_by_child:
+            if current_ref in visited:
+                _contract_error(
+                    "explicit_parent_cycle",
+                    "explicit parent relations must form an acyclic graph",
+                    start_ref,
+                )
+            visited.add(current_ref)
+            current_ref = parent_by_child[current_ref]
+
+
+def _selected_llm(
+    request: LineageAnalysisRequest,
+    llm: AdjudicationClient | None,
+    weight_estimate: ChannelWeightEstimate | None,
+) -> tuple[AdjudicationClient, str]:
+    """Apply the explicit LLM admission policy and return its result status."""
+
+    if not request.policy.allow_llm:
+        return NullAdjudicationClient(), "not_requested"
+    if (
+        llm is None
+        or not getattr(llm, "available", False)
+        or weight_estimate is None
+        or "llm" not in weight_estimate.weights
+    ):
+        return NullAdjudicationClient(), "unavailable"
+    return _BoundedAdjudicationClient(llm), "completed"
+
+
+def _included_records(
+    request: LineageAnalysisRequest,
+) -> tuple[
+    tuple[LineageEvidenceRecord, ...],
+    tuple[LineageEvidenceRecord, ...],
+]:
+    """Partition evidence by available time, not occurrence time."""
+
+    if request.knowledge_cutoff is None:
+        return request.records, ()
+    included = tuple(
+        record
+        for record in request.records
+        if record.available_at <= request.knowledge_cutoff
+    )
+    excluded = tuple(
+        record
+        for record in request.records
+        if record.available_at > request.knowledge_cutoff
+    )
+    return included, excluded
+
+
+def _ordered_contract_groups(
+    records: tuple[LineageEvidenceRecord, ...],
+) -> tuple[tuple[LineageEvidenceRecord, ...], ...]:
+    """Return deterministic groups ordered by time and opaque reference."""
+
+    grouped: dict[str, list[LineageEvidenceRecord]] = defaultdict(list)
+    for record in records:
+        grouped[record.group_ref].append(record)
+    return tuple(
+        tuple(
+            sorted(
+                grouped[group_ref],
+                key=lambda item: (item.occurred_at, item.evidence_ref),
+            )
+        )
+        for group_ref in sorted(grouped)
+    )
+
+
+def _has_inference_candidate(
+    records: tuple[LineageEvidenceRecord, ...],
+) -> bool:
+    """Return whether a same-group predecessor could support inference."""
+
+    return any(
+        index > 0 and record.explicit_parent is None
+        for group_records in _ordered_contract_groups(records)
+        for index, record in enumerate(group_records)
+    )
+
+
+def _pair_evaluation_count(
+    records: tuple[LineageEvidenceRecord, ...],
+    candidate_window: int,
+) -> int:
+    """Count only candidate pairs that require inferred parent selection."""
+
+    included_refs = {record.evidence_ref for record in records}
+    explicit_children_by_parent: dict[str, set[str]] = defaultdict(set)
+    for record in records:
+        if (
+            record.explicit_parent is not None
+            and record.explicit_parent.evidence_ref in included_refs
+        ):
+            explicit_children_by_parent[
+                record.explicit_parent.evidence_ref
+            ].add(record.evidence_ref)
+
+    def explicit_descendants(evidence_ref: str) -> set[str]:
+        """Return observed descendants excluded from the pair-work budget."""
+
+        descendants: set[str] = set()
+        pending = list(explicit_children_by_parent.get(evidence_ref, ()))
+        while pending:
+            descendant = pending.pop()
+            if descendant in descendants:
+                continue
+            descendants.add(descendant)
+            pending.extend(explicit_children_by_parent.get(descendant, ()))
+        return descendants
+
+    pair_count = 0
+    for group_records in _ordered_contract_groups(records):
+        for index, record in enumerate(group_records):
+            if record.explicit_parent is not None:
+                continue
+            candidates = group_records[max(0, index - candidate_window) : index]
+            descendants = explicit_descendants(record.evidence_ref)
+            pair_count += sum(
+                candidate.evidence_ref not in descendants
+                for candidate in candidates
+            )
+    return pair_count
+
+
+def _enforce_pair_budget(
+    records: tuple[LineageEvidenceRecord, ...],
+    request: LineageAnalysisRequest,
+) -> int:
+    """Reject excess pair work before optional LLM/provider activity."""
+
+    pair_count = _pair_evaluation_count(
+        records,
+        request.policy.candidate_window,
+    )
+    if pair_count > request.policy.maximum_pair_evaluations:
+        _contract_error(
+            "pair_evaluation_budget_exceeded",
+            "candidate-pair work exceeds the declared maximum",
+            "policy.maximum_pair_evaluations",
+        )
+    return pair_count
+
+
+def _core_record(record: LineageEvidenceRecord) -> Record:
+    """Convert one contract record to the core reconstruction shape."""
+
+    return Record(
+        record_id=record.evidence_ref,
+        group_key=record.group_ref,
+        label=record.label,
+        occurred_at=record.occurred_at,
+        secondary_key=record.secondary_key or "",
+    )
+
+
+def _channel_evidence(
+    channel_scores: dict[str, float],
+    weights: dict[str, float],
+) -> tuple[ChannelEvidence, ...]:
+    """Project finite active scores with their normalized contributions."""
+
+    projected: list[ChannelEvidence] = []
+    for channel_code in sorted(channel_scores):
+        score = float(channel_scores[channel_code])
+        weight = float(weights[channel_code])
+        contribution = score * weight
+        values = (score, weight, contribution)
+        if not all(
+            math.isfinite(value) and 0.0 <= value <= 1.0
+            for value in values
+        ):
+            _contract_error(
+                "channel_score_out_of_bounds",
+                "channel values must be finite within 0..1",
+                channel_code,
+            )
+        projected.append(
+            ChannelEvidence(
+                channel_code,
+                score,
+                weight,
+                contribution,
+            )
+        )
+    return tuple(projected)
+
+
+def _inferred_edges(
+    records: tuple[LineageEvidenceRecord, ...],
+    llm: AdjudicationClient,
+    request: LineageAnalysisRequest,
+    weight_estimate: ChannelWeightEstimate,
+) -> list[LineageEdgeResult]:
+    """Select inferred parents without rescoring explicit observed children."""
+
+    if not records:
+        return []
+    if not weight_estimate.estimation_method_code.strip():
+        _contract_error(
+            "weight_provenance_missing",
+            "channel weights require an estimation method code",
+            "weight_estimate.estimation_method_code",
+        )
+    if weight_estimate.sample_pair_count < 1:
+        _contract_error(
+            "weight_provenance_missing",
+            "channel weights require a positive estimation sample count",
+            "weight_estimate.sample_pair_count",
+        )
+    required_channels = {"temporal", "secondary_key", "text"}
+    if not required_channels.issubset(weight_estimate.weights):
+        _contract_error(
+            "weight_channels_missing",
+            "the estimate must cover every deterministic reconstruction channel",
+            "weight_estimate.weights",
+        )
+    weights = active_weights(llm, weight_estimate.weights)
+    if not weights or not math.isclose(sum(weights.values()), 1.0, abs_tol=1e-9):
+        _contract_error(
+            "weight_sum_mismatch",
+            "active estimated channel weights must normalize to one",
+            "weight_estimate.weights",
+        )
+    included_refs = {record.evidence_ref for record in records}
+    explicit_children_by_parent: dict[str, set[str]] = defaultdict(set)
+    for record in records:
+        if (
+            record.explicit_parent is not None
+            and record.explicit_parent.evidence_ref in included_refs
+        ):
+            explicit_children_by_parent[
+                record.explicit_parent.evidence_ref
+            ].add(record.evidence_ref)
+
+    def explicit_descendants(evidence_ref: str) -> set[str]:
+        """Return observed descendants that cannot become inferred parents."""
+
+        descendants: set[str] = set()
+        pending = list(explicit_children_by_parent.get(evidence_ref, ()))
+        while pending:
+            descendant = pending.pop()
+            if descendant in descendants:
+                continue
+            descendants.add(descendant)
+            pending.extend(explicit_children_by_parent.get(descendant, ()))
+        return descendants
+
+    edges: list[LineageEdgeResult] = []
+    for group_records in _ordered_contract_groups(records):
+        core_records = [_core_record(record) for record in group_records]
+        for index, source_record in enumerate(group_records):
+            if source_record.explicit_parent is not None:
+                continue
+            candidates = core_records[
+                max(0, index - request.policy.candidate_window) : index
+            ]
+            cycle_forming_parents = explicit_descendants(
+                source_record.evidence_ref
+            )
+            candidates = [
+                candidate
+                for candidate in candidates
+                if candidate.record_id not in cycle_forming_parents
+            ]
+            parent_choice = _best_parent(
+                core_records[index],
+                candidates,
+                llm,
+                weights,
+                request.policy.minimum_fused_score,
+            )
+            if parent_choice is None:
+                continue
+            parent, fused_score, channel_scores = parent_choice
+            edges.append(
+                LineageEdgeResult(
+                    parent_evidence_ref=parent.record_id,
+                    child_evidence_ref=source_record.evidence_ref,
+                    relation_type_code="reconstructed_continuation",
+                    truth_status_code="inferred",
+                    fused_score=float(fused_score),
+                    channel_evidence=_channel_evidence(
+                        channel_scores,
+                        weights,
+                    ),
+                )
+            )
+    return edges
+
+
+def _explicit_edges(
+    included: tuple[LineageEvidenceRecord, ...],
+) -> tuple[
+    list[LineageEdgeResult],
+    set[str],
+    list[LineageLimitation],
+]:
+    """Project included caller-observed parent relations ahead of inference."""
+
+    included_refs = {record.evidence_ref for record in included}
+    edges: list[LineageEdgeResult] = []
+    explicit_children: set[str] = set()
+    limitations: list[LineageLimitation] = []
+    for child in included:
+        explicit = child.explicit_parent
+        if explicit is None:
+            continue
+        explicit_children.add(child.evidence_ref)
+        if explicit.evidence_ref not in included_refs:
+            limitations.append(
+                LineageLimitation(
+                    "explicit_parent_after_cutoff",
+                    child.evidence_ref,
+                    (
+                        "The caller-observed parent was unavailable at "
+                        "the requested cutoff."
+                    ),
+                )
+            )
+            continue
+        edges.append(
+            LineageEdgeResult(
+                parent_evidence_ref=explicit.evidence_ref,
+                child_evidence_ref=child.evidence_ref,
+                relation_type_code=explicit.relation_code,
+                truth_status_code="observed",
+                fused_score=1.0,
+                channel_evidence=(
+                    ChannelEvidence(
+                        explicit.relation_code,
+                        1.0,
+                        1.0,
+                        1.0,
+                    ),
+                ),
+            )
+        )
+    return edges, explicit_children, limitations
+
+
+def _project_groups(
+    records: tuple[LineageEvidenceRecord, ...],
+) -> tuple[ProjectProjection, ...]:
+    """Group included project evidence without crossing caller groups."""
+
+    grouped: dict[tuple[str, str], list[str]] = defaultdict(list)
+    for record in records:
+        if record.project_ref is not None:
+            grouped[(record.group_ref, record.project_ref)].append(
+                record.evidence_ref
+            )
+    return tuple(
+        ProjectProjection(
+            group_ref,
+            project_ref,
+            tuple(sorted(evidence_refs)),
+            "proposed",
+        )
+        for (group_ref, project_ref), evidence_refs in sorted(
+            grouped.items()
+        )
+    )
+
+
+def analyze_external_lineage(
+    request: LineageAnalysisRequest,
+    *,
+    llm: AdjudicationClient | None = None,
+    weight_estimate: ChannelWeightEstimate | None = None,
+) -> LineageAnalysisResult:
+    """Analyze bounded caller evidence and return a deterministic result.
+
+    The function performs no persistence or network access itself. An optional
+    client is used only when ``request.policy.allow_llm`` is true and the
+    supplied client explicitly reports availability.
+    """
+
+    validated = _validated_request(request)
+    _validate_explicit_parent_relations(validated.records)
+    included, excluded = _included_records(validated)
+    _enforce_pair_budget(included, validated)
+    selected_llm, llm_status = _selected_llm(validated, llm, weight_estimate)
+
+    inferred = (
+        _inferred_edges(included, selected_llm, validated, weight_estimate)
+        if weight_estimate is not None
+        else []
+    )
+    explicit, explicit_children, explicit_limitations = _explicit_edges(
+        included
+    )
+    edges = [
+        edge
+        for edge in inferred
+        if edge.child_evidence_ref not in explicit_children
+    ]
+    edges.extend(explicit)
+
+    limitations = [
+        LineageLimitation(
+            "evidence_after_cutoff_excluded",
+            record.evidence_ref,
+            (
+                "Evidence was first available after the requested "
+                "knowledge cutoff."
+            ),
+        )
+        for record in excluded
+    ]
+    if weight_estimate is None and _has_inference_candidate(included):
+        limitations.append(
+            LineageLimitation(
+                "channel_weights_unavailable",
+                None,
+                (
+                    "No provenance-bearing psychometric channel-weight estimate "
+                    "was supplied, so inferred continuation edges are unavailable."
+                ),
+            )
+        )
+    limitations.extend(explicit_limitations)
+
+    edge_order = {
+        record.evidence_ref: (record.group_ref, record.occurred_at, record.evidence_ref)
+        for record in included
+    }
+    result = LineageAnalysisResult(
+        contract_version=CONTRACT_VERSION,
+        analysis_id=validated.analysis_id,
+        analysis_scope_code=validated.analysis_scope_code,
+        knowledge_cutoff=validated.knowledge_cutoff,
+        included_evidence_refs=tuple(
+            sorted(record.evidence_ref for record in included)
+        ),
+        excluded_evidence_refs=tuple(
+            sorted(record.evidence_ref for record in excluded)
+        ),
+        llm_status_code=llm_status,  # type: ignore[arg-type]
+        edges=tuple(
+            sorted(
+                edges,
+                key=lambda item: (
+                    edge_order[item.child_evidence_ref],
+                    item.parent_evidence_ref,
+                    item.relation_type_code,
+                ),
+            )
+        ),
+        project_projections=_project_groups(included),
+        limitations=tuple(
+            sorted(
+                limitations,
+                key=lambda item: (
+                    item.limitation_code,
+                    item.evidence_ref or "",
+                    item.message,
+                ),
+            )
+        ),
+        result_digest="",
+    )
+    return replace(
+        result,
+        result_digest=result_digest(result),
+    )

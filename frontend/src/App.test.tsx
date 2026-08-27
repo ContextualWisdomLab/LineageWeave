@@ -2,6 +2,7 @@ import { fireEvent, render, screen, waitFor, within } from "@testing-library/rea
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import App from "./App";
+import { optionalKnowledgeCutoffIso } from "./api";
 import { setLocale } from "./i18n";
 import { OIDC_RETURN_URL_STORAGE_KEY } from "./oidcReturnUrl";
 
@@ -25,6 +26,16 @@ beforeEach(() => {
     signinRedirect,
     signoutRedirect,
   };
+});
+
+it("normalizes valid knowledge cutoffs and rejects invalid input", () => {
+  expect(optionalKnowledgeCutoffIso("")).toBeUndefined();
+  expect(optionalKnowledgeCutoffIso("2026-01-15T12:00")).toBe(
+    new Date("2026-01-15T12:00").toISOString(),
+  );
+  expect(() => optionalKnowledgeCutoffIso("not-a-date")).toThrow(
+    "invalid knowledge cutoff",
+  );
 });
 
 afterEach(() => {
@@ -117,6 +128,8 @@ describe("App, authenticated", () => {
     staleSummary?: boolean;
     contentAfterSummary?: boolean;
     organizationAliases?: boolean;
+    combinedVoices?: boolean;
+    omitVoiceOptions?: boolean;
     askLineageGraph?: boolean;
     askImageCitation?: boolean;
     askDelivery?: boolean;
@@ -385,6 +398,15 @@ describe("App, authenticated", () => {
             status_label: teppLabel,
             knowledge_cutoff: "2026-01-12T12:00:00Z",
             requested_at: "2026-01-12T12:34:00Z",
+            ...(options?.succeededTeppRun
+              ? {
+                  tepp_accepted_receipt: {
+                    remote_run_id: "tepp-remote-run-1",
+                    accepted_status_code: "accepted",
+                    received_at: "2026-01-12T12:36:00Z",
+                  },
+                }
+              : {}),
             source_counts: [
               {
                 count_type_code: "analysis_count_document",
@@ -993,6 +1015,7 @@ describe("App, authenticated", () => {
                     leftover_map_rank: 1,
                     leftover_map_cross_share: 0.12,
                     leftover_map_reconstruction: 0.35,
+                    leftover_map_unexplained_share: 0.02,
                   },
                   {
                     pair_kind: "farthest",
@@ -1007,6 +1030,7 @@ describe("App, authenticated", () => {
                     leftover_map_rank: 1,
                     leftover_map_cross_share: -0.24,
                     leftover_map_reconstruction: -0.85,
+                    leftover_map_unexplained_share: 0.05,
                   },
                 ],
                 leftover_map_axes: [
@@ -1143,6 +1167,26 @@ describe("App, authenticated", () => {
                       post_title: "Public post",
                       voc_type_code: "voc",
                       voc_type_label: "Voice of Customer",
+                      ...(options?.combinedVoices
+                        ? {
+                            voice_types: [
+                              {
+                                code: "voc",
+                                label: "Voice of Customer",
+                                is_primary: true,
+                                truth_status_code: "truth_observed",
+                                evidence_available: false,
+                              },
+                              {
+                                code: "vops",
+                                label: "Voice of Process",
+                                is_primary: false,
+                                truth_status_code: "truth_observed",
+                                evidence_available: true,
+                              },
+                            ],
+                          }
+                        : {}),
                       visibility_code: "public",
                       visibility_label: "Public",
                       created_at: "2026-01-01T00:00:00Z",
@@ -1151,10 +1195,22 @@ describe("App, authenticated", () => {
                   total_count: 1,
                   limit: 50,
                   offset: 0,
-                  voc_type_options: [
-                    { code: "voc", label: "Voice of Customer" },
-                    { code: "vop", label: "Voice of Partner" },
-                  ],
+                  ...(options?.omitVoiceOptions
+                    ? {}
+                    : {
+                        voc_type_options: [
+                          { code: "voc", label: "Voice of Customer" },
+                          { code: "vop", label: "Voice of Partner" },
+                          ...(options?.combinedVoices
+                            ? [{ code: "vops", label: "Voice of Process" }]
+                            : []),
+                        ],
+                        voice_type_catalog: [
+                          { code: "voc", label: "Voice of Customer" },
+                          { code: "vop", label: "Voice of Partner" },
+                          { code: "vos", label: "Voice of Supplier" },
+                        ],
+                      }),
                   visibility_options: [{ code: "public", label: "Public" }],
                 },
           ),
@@ -1948,6 +2004,41 @@ describe("App, authenticated", () => {
     return Object.assign(fetchMock, { releaseMe, releasePostOne });
   }
 
+  it("shows all evidence-bearing Voice-of-X labels on a post card", async () => {
+    stubBackend({ combinedVoices: true });
+    render(<App />);
+
+    expect(
+      await screen.findByText("Voice of Customer (Observed) + Voice of Process (Observed)"),
+    ).toBeInTheDocument();
+  });
+
+  it("keeps a post whose additional voice matches the board filter", async () => {
+    stubBackend({ combinedVoices: true });
+    render(<App />);
+
+    await screen.findByRole("button", { name: "View post: Public post" });
+    await userEvent.click(screen.getByRole("checkbox", { name: "Voice of Process" }));
+    expect(screen.getByRole("button", { name: "View post: Public post" })).toBeInTheDocument();
+  });
+
+  it("offers additional voices when filter options are omitted", async () => {
+    stubBackend({ combinedVoices: true, omitVoiceOptions: true });
+    render(<App />);
+
+    expect(await screen.findByRole("checkbox", { name: "Voice of Process" })).toBeInTheDocument();
+  });
+
+  it("offers an unused governed Voice when an administrator connects evidence", async () => {
+    stubBackend({ admin: true });
+    render(<App />);
+
+    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
+
+    expect(await screen.findByRole("option", { name: "Voice of Supplier" })).toBeInTheDocument();
+    expect(screen.queryByRole("checkbox", { name: "Voice of Supplier" })).not.toBeInTheDocument();
+  });
+
   it("renders safe Ask Agent evidence under each cited post", async () => {
     stubBackend();
     render(<App />);
@@ -1960,6 +2051,35 @@ describe("App, authenticated", () => {
     expect(screen.getByText("Semantic project", { exact: true })).toBeInTheDocument();
     expect(screen.getByText(/project: Semantic project \| evidence: Body evidence/)).toBeInTheDocument();
     expect(screen.queryByText(/ontology_iri|contextual_orchestrator/i)).not.toBeInTheDocument();
+  });
+
+  it("converts the local knowledge cutoff to UTC for Global Ask", async () => {
+    const fetchMock = stubBackend();
+    render(<App />);
+    expect(await screen.findByRole("button", { name: "View post: Public post" })).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Ask Agent" }));
+    expect(screen.getByLabelText("Use evidence available by (optional)")).toBeInTheDocument();
+    expect(screen.getByText("Choose a time on this device, or leave blank to use the latest evidence.")).toBeInTheDocument();
+    await userEvent.type(screen.getByRole("textbox", { name: "Ask a question" }), "Phoenix?");
+    await userEvent.type(
+      screen.getByLabelText("Use evidence available by (optional)"),
+      "2026-01-15T12:00",
+    );
+    await userEvent.click(screen.getByRole("button", { name: "Ask" }));
+    expect(
+      await screen.findByText("The cited project is supported by the stored semantic evidence."),
+    ).toBeInTheDocument();
+    const askCall = fetchMock.mock.calls.find(
+      ([input, init]) => String(input).endsWith("/api/ask") && (init as RequestInit | undefined)?.method === "POST",
+    );
+    expect(askCall).toBeTruthy();
+    const askInit = askCall?.[1] as RequestInit | undefined;
+    expect(askInit).toBeDefined();
+    expect(JSON.parse(String(askInit?.body))).toEqual({
+      question: "Phoenix?",
+      verify_external: false,
+      knowledge_cutoff: new Date("2026-01-15T12:00").toISOString(),
+    });
   });
 
   it("localizes Ask delivery copy instead of rendering Korean literals in English", async () => {
@@ -2183,7 +2303,7 @@ describe("App, authenticated", () => {
       "hint-disclosure",
     );
 
-    const authorSection = screen.getByRole("region", { name: "Source author evidence" });
+    const authorSection = screen.getByRole("region", { name: "Author context" });
     expect(within(authorSection).getByText("AUTH-HINT · Hint only").closest("details")).toHaveClass(
       "hint-disclosure",
     );
@@ -2456,13 +2576,13 @@ describe("App, authenticated", () => {
     await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
 
     await waitFor(() => expect(screen.getByText("이것은 요약입니다.")).toBeInTheDocument());
-    const provenance = screen.getByText("Evidence provenance").closest("details");
+    const provenance = screen.getByText("Why this item is listed").closest("details");
     expect(provenance).not.toBeNull();
     expect(provenance).not.toHaveAttribute("open");
-    await userEvent.click(screen.getByText("Evidence provenance"));
-    expect(screen.getByText(/Ontology class:/)).toBeInTheDocument();
-    expect(screen.getByText(/Extraction source: Semantic extraction/)).toBeInTheDocument();
-    expect(screen.getByText(/Evidence field: Stored semantic evidence/)).toBeInTheDocument();
+    await userEvent.click(screen.getByText("Why this item is listed"));
+    expect(screen.getByText(/Category:/)).toBeInTheDocument();
+    expect(screen.getByText(/How this item was found: Semantic extraction/)).toBeInTheDocument();
+    expect(screen.getByText(/Recorded evidence: Stored semantic evidence/)).toBeInTheDocument();
     expect(screen.queryByText("contextual_orchestrator_semantic")).not.toBeInTheDocument();
     expect(screen.queryByText("https://contextualwisdomlab.github.io/LineageWeave/ontology#Project")).not.toBeInTheDocument();
     expect(screen.getByText("첫 번째 이벤트")).toBeInTheDocument();
@@ -2696,7 +2816,11 @@ describe("App, authenticated", () => {
     await userEvent.click(await screen.findByRole("button", { name: /verify against web search/i }));
 
     await waitFor(() =>
-      expect(screen.getByText("Verification unavailable (search is not configured).")).toBeInTheDocument(),
+      expect(
+        screen.getByText(
+          "Verification is unavailable because public search is not configured yet. Ask an administrator to enable it, then retry.",
+        ),
+      ).toBeInTheDocument(),
     );
     expect(screen.queryByText(/HTTP 503/)).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /verify against web search/i })).not.toBeInTheDocument();
@@ -3088,11 +3212,15 @@ describe("App, authenticated", () => {
     );
   });
 
-  it("names RankWeave unavailability on home rankings instead of inventing a fused score", async () => {
+  it("names rankings unavailability on home rankings instead of inventing a score", async () => {
     stubBackend();
     render(<App />);
 
-    expect(await screen.findByText("Rankings · RankWeave not available")).toBeInTheDocument();
+    expect(
+      await screen.findByText(
+        "Rankings are not available right now. Reopen this post later to load them.",
+      ),
+    ).toBeInTheDocument();
     expect(screen.queryByText("Pricing renegotiation: revised quote sent")).not.toBeInTheDocument();
   });
 
@@ -3196,11 +3324,11 @@ describe("App, authenticated", () => {
       name: /open ranking: public post/i,
     });
     expect(rankingButton).toHaveTextContent("Public post");
-    expect(rankingButton).toHaveTextContent("Rankings · rankweave");
+    expect(rankingButton).toHaveTextContent("Rankings");
     expect(rankingButton).toHaveTextContent("rank 1");
     expect(
       screen.getByText(
-        "RankWeave fused newest-first and title-overlap ranks. This is not a calibrated score.",
+        "Rankings combine newest-first and title-overlap evidence and are not calibrated scores. Open a ranked post to see its evidence.",
       ),
     ).toBeInTheDocument();
     expect(
@@ -3249,7 +3377,7 @@ describe("App, authenticated", () => {
     expect(list).toHaveTextContent("TEPP measurement · Failed · Demo Corp");
     expect(list).toHaveTextContent("Period report · Succeeded · Demo Corp");
     expect(list).toHaveTextContent(
-      "Open this run to see why it failed, then connect the measurement service and re-run.",
+      "Open this run to see why it failed, then retry with the latest available records.",
     );
     expect(list).toHaveTextContent("3 documents");
     expect(list).not.toHaveTextContent("postgresql://");
@@ -3410,7 +3538,9 @@ describe("App, authenticated", () => {
       "Refresh this run. Start already queued the work on the durable outbox.",
     );
     await userEvent.click(lineageButton);
-    expect(screen.getByRole("button", { name: "Start reconstruction" })).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Start reconstruction" }),
+    ).not.toBeInTheDocument();
     expect(
       screen.getAllByText("Refresh this run. Start already queued the work on the durable outbox."),
     ).not.toHaveLength(0);
@@ -3432,8 +3562,9 @@ describe("App, authenticated", () => {
     );
     expect(lineageButton).not.toHaveTextContent("measurement service");
     expect(teppButton).toHaveTextContent(
-      "Open this run to see why it failed, then connect the measurement service and re-run.",
+      "Open this run to see why it failed, then retry with the latest available records.",
     );
+    expect(teppButton).not.toHaveTextContent("measurement service");
     expect(teppButton).not.toHaveTextContent("reconstruction");
   });
 
@@ -3721,7 +3852,7 @@ describe("App, authenticated", () => {
     ).not.toBeInTheDocument();
     expect(
       await screen.findByText(
-        "No posts were available at this cutoff for the period report. Open a later run, or ask an administrator to capture a newer snapshot.",
+        "No posts were available at this cutoff for the period report. Open a later run or retry after a newer snapshot is available.",
       ),
     ).toBeInTheDocument();
   });
@@ -3802,6 +3933,10 @@ describe("App, authenticated", () => {
     expect(
       await screen.findByText("These posts are the cutoff corpus this TEPP run measured."),
     ).toBeInTheDocument();
+    expect(screen.getByLabelText("Measurement request accepted")).toHaveTextContent(
+      "Refresh this run to check whether results are ready.",
+    );
+    expect(screen.queryByText("tepp-remote-run-1")).not.toBeInTheDocument();
     expect(screen.queryByText(/replace Failed/i)).not.toBeInTheDocument();
   });
 
@@ -3979,27 +4114,29 @@ describe("App, authenticated", () => {
       name: /open leftover farthest pair: specification revision requested/i,
     });
     expect(closestPair).toHaveTextContent("Closest leftover: Public post · sales-lead");
-    // Leftover-map cross share is present, so it names the next action
-    // instead of the rank/observed-expected chain (ADR 0185).
+    // Leftover-map unexplained leftover share is present, so it names the
+    // next action instead of leftover-map cross share (ADR 0233).
     expect(closestPair).toHaveTextContent(
-      "Two leftover-map axes leave identity remainder 0.12 of raw residual after IRT main effects. Open this post to read sales-lead.",
+      "Leftover map leaves unexplained leftover share 0.02 of raw residual after IRT main effects. Open this post to read sales-lead.",
     );
     expect(closestPair).toHaveTextContent("R +0.40");
     expect(closestPair).toHaveTextContent("Y 2.40 · E 2.00");
     expect(closestPair).toHaveTextContent("rank 1");
     expect(closestPair).toHaveTextContent("U +0.05");
+    expect(closestPair).toHaveTextContent("U²/R² 0.02");
     expect(closestPair).toHaveTextContent("2R̂U/R² 0.12");
     expect(closestPair).toHaveTextContent("R̂ +0.35");
     expect(closestPair).toHaveTextContent("d 0.12");
     expect(closestPair).toHaveAccessibleName("Open leftover closest pair: Public post · sales-lead");
     expect(farthestPair).toHaveTextContent("Farthest leftover: Specification revision requested · negative");
     expect(farthestPair).toHaveTextContent(
-      "Two leftover-map axes leave identity remainder -0.24 of raw residual after IRT main effects. Open this post to read negative.",
+      "Leftover map leaves unexplained leftover share 0.05 of raw residual after IRT main effects. Open this post to read negative.",
     );
     expect(farthestPair).toHaveTextContent("R −1.10");
     expect(farthestPair).toHaveTextContent("Y 0.90 · E 2.00");
     expect(farthestPair).toHaveTextContent("rank 1");
     expect(farthestPair).toHaveTextContent("U −0.25");
+    expect(farthestPair).toHaveTextContent("U²/R² 0.05");
     expect(farthestPair).toHaveTextContent("2R̂U/R² -0.24");
     expect(farthestPair).toHaveTextContent("R̂ −0.85");
     expect(farthestPair).toHaveTextContent("d 1.84");

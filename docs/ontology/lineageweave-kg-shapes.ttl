@@ -23,10 +23,11 @@
 #
 # Every sh:targetClass must live in the canonical repository-case namespace;
 # sh:path may additionally use RDF's subject/predicate/object reification
-# predicates. scripts/publish_ontology_site.py fails closed on every other
-# external or dangling target so a renamed term cannot silently orphan its
-# shape. tests/test_ontology_shapes.py validates this graph against the
-# ontology source with pyshacl, plus negative violation tests.
+# predicates and PROV-O's derivation/time predicates.
+# scripts/publish_ontology_site.py fails closed on every other external or
+# dangling target so a renamed term cannot silently orphan its shape.
+# tests/test_ontology_shapes.py validates this graph against the ontology
+# source with pyshacl, plus negative violation tests.
 #################################################################
 
 <https://contextualwisdomlab.github.io/LineageWeave/ontology/lineageweave-kg-shapes.ttl>
@@ -166,6 +167,86 @@
         sh:datatype xsd:string ;
     ] .
 
+:VoiceAssignmentShape a sh:NodeShape ;
+    rdfs:label "Voice assignment shape" ;
+    sh:targetClass :VoiceAssignment ;
+    sh:property [
+        sh:path :assignedVoiceType ;
+        sh:name "assigned voice type" ;
+        sh:description "Every qualified assignment names exactly one governed atomic Voice-of-X concept." ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:class <http://www.w3.org/2004/02/skos/core#Concept> ;
+    ] ;
+    sh:property [
+        sh:path :primaryVoiceAssignment ;
+        sh:name "primary voice assignment" ;
+        sh:description "The imported-primary marker is explicit and single-valued." ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:datatype xsd:boolean ;
+    ] ;
+    sh:property [
+        sh:path :voiceAssignmentEvidence ;
+        sh:name "voice assignment evidence" ;
+        sh:description "Every assignment retains exactly one authorized supporting source post." ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:class :Post ;
+    ] .
+
+:OccupationalConstructAssertionShape a sh:NodeShape ;
+    rdfs:label "Occupational construct assertion shape" ;
+    sh:targetClass :OccupationalConstructAssertion ;
+    sh:property [
+        sh:path rdf:subject ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:class :Post ;
+    ] ;
+    sh:property [
+        sh:path rdf:predicate ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:hasValue :supportsOccupationalConstruct ;
+    ] ;
+    sh:property [
+        sh:path rdf:object ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:class :OccupationalConstruct ;
+    ] ;
+    sh:property [
+        sh:path :constructEvidence ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:datatype xsd:string ;
+        sh:minLength 1 ;
+    ] ;
+    sh:property [
+        sh:path <http://www.w3.org/ns/prov#wasDerivedFrom> ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:class :Post ;
+    ] ;
+    sh:property [
+        sh:path <http://www.w3.org/ns/prov#generatedAtTime> ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:datatype xsd:dateTime ;
+    ] ;
+    sh:sparql [
+        a sh:SPARQLConstraint ;
+        sh:message "prov:wasDerivedFrom must identify the same Post as rdf:subject." ;
+        sh:select """
+            SELECT $this WHERE {
+                $this <http://www.w3.org/1999/02/22-rdf-syntax-ns#subject> ?post ;
+                      <http://www.w3.org/ns/prov#wasDerivedFrom> ?source .
+                FILTER (?post != ?source)
+            }
+        """ ;
+    ] .
+
 :OurSidePersonShape a sh:NodeShape ;
     rdfs:label "Our-side person shape" ;
     sh:comment "Closed-world complement of :OurSidePerson owl:disjointWith :CounterpartyPerson: an instance of one can never be typed as the other." ;
@@ -183,3 +264,47 @@
         a sh:NodeShape ;
         sh:class :OurSidePerson ;
     ] .
+
+:IOPsyConstructShape a sh:NodeShape ;
+    rdfs:label "I/O psychology construct shape" ;
+    sh:comment "Every I/O psychology construct carries a dimension classification and an APA 7th theoretical basis citation (ADR 0251)." ;
+    sh:targetClass :IOPsyConstruct ;
+    sh:property [
+        sh:path :constructDimension ;
+        sh:name "construct dimension" ;
+        sh:description "Every construct carries a valid dimension classification string." ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:datatype xsd:string ;
+        sh:minLength 1 ;
+    ] ;
+    sh:property [
+        sh:path :constructTheoreticalBasis ;
+        sh:name "theoretical basis" ;
+        sh:description "Every construct carries its APA 7th literature anchor citation." ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:datatype xsd:string ;
+        sh:minLength 1 ;
+    ] .
+
+:CognitiveConstructShape a sh:NodeShape ;
+    rdfs:label "Cognitive construct shape" ;
+    sh:comment "Closed-world complement: a cognitive construct is never typed as affective or behavioral." ;
+    sh:targetClass :CognitiveConstruct ;
+    sh:not [ a sh:NodeShape ; sh:class :AffectiveConstruct ] ;
+    sh:not [ a sh:NodeShape ; sh:class :BehavioralConstruct ] .
+
+:AffectiveConstructShape a sh:NodeShape ;
+    rdfs:label "Affective construct shape" ;
+    sh:comment "Closed-world complement: an affective construct is never typed as cognitive or behavioral." ;
+    sh:targetClass :AffectiveConstruct ;
+    sh:not [ a sh:NodeShape ; sh:class :CognitiveConstruct ] ;
+    sh:not [ a sh:NodeShape ; sh:class :BehavioralConstruct ] .
+
+:BehavioralConstructShape a sh:NodeShape ;
+    rdfs:label "Behavioral construct shape" ;
+    sh:comment "Closed-world complement: a behavioral construct is never typed as cognitive or affective." ;
+    sh:targetClass :BehavioralConstruct ;
+    sh:not [ a sh:NodeShape ; sh:class :CognitiveConstruct ] ;
+    sh:not [ a sh:NodeShape ; sh:class :AffectiveConstruct ] .

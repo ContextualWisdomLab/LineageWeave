@@ -55,6 +55,7 @@ describe("i18n", () => {
     "Leftover map leaves unexplained U {value} after IRT main effects. Open this post to read {criterion}.",
     "Leftover map reconstructs R̂ {value} after IRT main effects. Open this post to read {criterion}.",
     "Two leftover-map axes leave identity remainder {value} of raw residual after IRT main effects. Open this post to read {criterion}.",
+    "Leftover map leaves unexplained leftover share {value} of raw residual after IRT main effects. Open this post to read {criterion}.",
     "Read observed Y {observed} and expected E {expected} after IRT main effects, then open this post.",
     "Leftover map has no leftover structure after IRT main effects. Open this post.",
     "Leftover map rank {rank} after IRT main effects. Open this post.",
@@ -73,7 +74,7 @@ describe("i18n", () => {
     "This is an ontology neighborhood, not Event Lineage.",
     "Rankings",
     "Title overlap",
-    "RankWeave fused newest-first and title-overlap ranks. This is not a calibrated score.",
+    "Rankings combine newest-first and title-overlap evidence and are not calibrated scores. Open a ranked post to see its evidence.",
     "Workspace navigation",
     "Observed calendar events",
     "No observed calendar events are available.",
@@ -220,6 +221,33 @@ describe("i18n", () => {
   });
 
   it.each([
+    [
+      "ko",
+      "잔여 지도가 IRT 주효과 이후 원시 잔차의 설명되지 않은 잔여 비율 0.02을(를) 남깁니다. sales-lead 기준을 읽으려면 이 글을 여세요.",
+    ],
+    [
+      "zh",
+      "残差图在 IRT 主效应后留下原始残差的未解释残余份额 0.02。打开这篇帖子阅读 sales-lead。",
+    ],
+    [
+      "ja",
+      "残差マップはIRT主効果後の生の残差の未説明残差シェア 0.02 を残します。この投稿を開いて sales-lead を読んでください。",
+    ],
+    [
+      "vi",
+      "Bản đồ phần dư để lại tỷ phần phần dư chưa giải thích 0.02 của phần dư thô sau hiệu ứng chính IRT. Mở bài viết này để đọc sales-lead.",
+    ],
+  ] as const)("formats leftover-map unexplained leftover share next action in %s", (locale, expected) => {
+    setLocale(locale);
+    expect(
+      tf(
+        "Leftover map leaves unexplained leftover share {value} of raw residual after IRT main effects. Open this post to read {criterion}.",
+        { value: "0.02", criterion: "sales-lead" },
+      ),
+    ).toBe(expected);
+  });
+
+  it.each([
     ["ko", "IRT 주효과 이후 관측 Y 2.40와 기대 E 2.00를 읽은 다음, 이 글을 여세요."],
     ["zh", "阅读 IRT 主效应后的观测 Y 2.40 与期望 E 2.00，然后打开这篇帖子。"],
     ["ja", "IRT主効果後の観測 Y 2.40 と期待 E 2.00 を読んでから、この投稿を開いてください。"],
@@ -305,6 +333,21 @@ describe("i18n", () => {
 });
 
 describe("locale-aware source labels", () => {
+  const allVoiceLabels = [
+    "Voice of Customer",
+    "Voice of Customer's Customer",
+    "Voice of Competitor",
+    "Voice of Market",
+    "Voice of Partner",
+    "Voice of Supplier",
+    "Voice of Employee",
+    "Voice of Business",
+    "Voice of Regulator",
+    "Voice of Investor",
+    "Voice of Society",
+    "Voice of Process",
+  ] as const;
+
   it.each([
     ["en", "Voice of Customer", "Public"],
     ["ko", "고객의 소리", "공개"],
@@ -316,4 +359,12 @@ describe("locale-aware source labels", () => {
     expect(t("Voice of Customer")).toBe(customerVoice);
     expect(t("Public")).toBe(visibility);
   });
+
+  it.each(["ko", "zh", "ja", "vi"] as const)(
+    "translates every governed atomic Voice label in %s",
+    (locale) => {
+      setLocale(locale);
+      for (const label of allVoiceLabels) expect(t(label)).not.toBe(label);
+    },
+  );
 });

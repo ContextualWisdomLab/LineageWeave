@@ -271,16 +271,19 @@ stops startup instead of leaving a healthy-looking partial schema, and
 application code must not compensate for a missing table.
 
 Period leftover pairs (ADR 0017 / 0018 / 0048 / 0049 / 0119 / 0158 / 0162 /
-0163 / 0164 / 0182 / 0201) are computed in `lineageweave/leftover_pairs.py` from the
+0163 / 0164 / 0182 / 0185 / 0201 / 0233) are computed in `lineageweave/leftover_pairs.py` from the
 residual after a real GRM/GPCM score, never invented. Distances are
 Euclidean on the two-dimensional Gabriel leftover map; missing cells stay
 out of the factorization. Closest and farthest post–criterion pairs
 persist to `report_leftover_pair` with signed residual `R`, observed
 `Y`, and expected `E[Y|θ, item]` so `R = Y − E` remains auditable,
 plus leftover-map rank so rank 0 is not read as structure,
-unexplained leftover, and the ADR 0201 reconstruction evidence. ADR 0201
-is the sole normative reconstruction formula, storage, and audit contract;
-do not duplicate or reinterpret it here. The pairs sit above the member
+unexplained leftover, the ADR 0201 reconstruction evidence, ADR 0185
+cross-share evidence, and ADR 0233 unexplained leftover share
+`s = U² / R²`. ADR 0201 is the sole normative reconstruction formula,
+storage, and audit contract; do not duplicate or reinterpret it here.
+ADR 0233 is the sole unexplained leftover share contract; do not persist
+leftover-map explained share `e` here. The pairs sit above the member
 list so a click opens that post with the leftover criterion current
 in Post quality (ADR 0158). Leftover-map axis share (ADR 0148) is Gabriel inertia of
 residual SVD axes 1 and 2 and persists to `report_leftover_map_axis`.
@@ -288,6 +291,13 @@ Rank-0 residuals emit two zero-share axes; the shares are report-level
 and are not a leftover score. Complete-case coverage (ADR 0168) persists to
 `report_leftover_map_coverage` and captions the pair list with how
 many scored posts entered the map.
+
+Authorized occupational construct catalog search (ADR 0257) matches official
+O*NET preferred labels or descriptions only when a source-eligible, ABAC-visible
+Post supports that construct. Hidden Posts, withdrawn truth, and conflicting
+truth statuses omit the hit. Clicking a hit opens that Post. Do not return
+catalog rows as a vocabulary oracle, scores, or person traits. Continuation
+is a construct-IRI keyset; never OFFSET.
 
 Global Ask relative-time filters (ADR 0150 / 0202) bind to
 `source_post.event_occurred_at` and fall back to `created_at` only
@@ -332,6 +342,9 @@ v0.88.0). Do not invent a theta.
 Opening a cutoff-rewritten title shows **Body this run knew** from
 `source_post_revision` beside the live rewrite (ADR 0025 / v2.1.0).
 Do not invent the earlier sentence when no revision covers the cutoff.
+Global Ask uses the same revision cover when `knowledge_cutoff` is set
+(ADR 0216 / #271); omit the field to keep the live-query contract, and
+never substitute a live body for a missing historical cover.
 
 A corporate-entity similarity result has three outcomes: unique, miss,
 or tie (ADR 0026). A tie is not a miss. Keep the organization name

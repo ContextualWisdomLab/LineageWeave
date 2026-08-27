@@ -2,16 +2,19 @@ import { AdminPanel } from "./components/AdminPanel";
 import { LeftoverPairList } from "./components/LeftoverPairList";
 import { WorkspaceCalendar } from "./components/WorkspaceCalendar";
 import { focusedGraphMustReset } from "./focusedGraphSelection";
+import { canAuthorVoice, postPrimaryVoiceLabel } from "./voicePerspective";
 
 import { useCallback, useEffect, useEffectEvent, useRef, useState, type ReactNode } from "react";
 import { useAuth } from "react-oidc-context";
 import {
   askPostChat,
   askAgent,
+  optionalKnowledgeCutoffIso,
   BackendError,
   createAnalysisRun,
   startAnalysisRun,
   createPostTicket,
+  createPostVoiceAssignment,
   deriveCommitment,
   evaluatePost,
   extractPostKeymen,
@@ -77,6 +80,7 @@ import {
   type PeriodReportIndex,
   type PeriodReports,
   type PostLineage,
+  type PostVoiceType,
   type PostSummary,
   type PostSortOrder,
   type RankingList,
@@ -97,9 +101,11 @@ import { AskEvidenceLayerPopup } from "./components/AskEvidenceLayerPopup";
 import { PublicClaimVerification } from "./components/PublicClaimVerification";
 import { PopupCloseButton } from "./components/PopupCloseButton";
 import { SimilarVocPanel } from "./components/SimilarVocPanel";
+import { TeppAcceptedReceipt } from "./components/TeppAcceptedReceipt";
 import { chatEvidenceKindLabel } from "./evidenceKindLabels";
 import { WorkspaceNav, type WorkspaceDestination } from "./components/WorkspaceNav";
 import { OperationsDashboard } from "./components/OperationsDashboard";
+import { OccupationRatingProfile } from "./components/OccupationRatingProfile";
 import { initialWorkspaceDestination } from "./gnbChrome";
 import { LineageDag } from "./LineageDag";
 import { PostBody } from "./PostBody";
@@ -157,7 +163,7 @@ function LanguageSwitcher({ accessToken }: { accessToken?: string }) {
 
 function searchUnavailableMessage(err: unknown): string {
   if (err instanceof BackendError && err.status === 503) {
-    return t("Verification unavailable (search is not configured).");
+    return t("Verification is unavailable because public search is not configured yet. Ask an administrator to enable it, then retry.");
   }
   return String(err);
 }
@@ -1218,7 +1224,7 @@ function KeymanPanel({
           onClick={() => setOntologyOpen((open) => !open)}
           aria-expanded={ontologyOpen}
         >
-          {t("Inspect ontology neighborhood")}
+          {t("View related information")}
         </button>
         {canExtract && !orchestratorOff && (
           <details className="operator-action-tools">
@@ -1232,7 +1238,7 @@ function KeymanPanel({
       {error && <p className="error">{error}</p>}
       {sourceAuthorContext ? (
         <details className="keyman-source-context">
-          <summary>{t("Source author evidence")} · {t("Hint only")}</summary>
+          <summary>{t("Author context")} · {t("Hint only")}</summary>
           <p>
             <strong>
               {sourceAuthorContext.source_author_name || sourceAuthorContext.source_author_code || t("Unknown")}
@@ -1727,10 +1733,28 @@ const ACTIVITY_TYPE_LABELS: Record<string, string> = {
   relations_verified: "Relations verified",
   post_evaluated: "Post evaluated",
   chat_answered: "Chat answered",
+  voice_assignment_added: "Voice perspective connected",
 };
 
 function activityTypeLabel(eventType: string): string {
   return t(ACTIVITY_TYPE_LABELS[eventType] ?? eventType);
+}
+
+const VOICE_TRUTH_LABELS: Record<string, string> = {
+  truth_authoritative: "Authoritative",
+  truth_observed: "Observed",
+  truth_inferred: "Inferred",
+  truth_proposed: "Proposed",
+  truth_superseded: "Superseded",
+  truth_rejected: "Rejected",
+};
+
+function voiceTruthLabel(truthStatusCode: string): string {
+  return t(VOICE_TRUTH_LABELS[truthStatusCode] ?? "Status unavailable");
+}
+
+function voiceDisplayLabel(voice: PostVoiceType): string {
+  return `${t(voice.label)} (${voiceTruthLabel(voice.truth_status_code)})`;
 }
 
 function ActivityPanel({ postId, accessToken }: { postId: string; accessToken: string }) {
@@ -1776,6 +1800,113 @@ function ActivityPanel({ postId, accessToken }: { postId: string; accessToken: s
   );
 }
 
+export function VoicePerspectiveList({ voices }: { voices: PostVoiceType[] }) {
+  return (
+    <section className="popup-section" aria-label={t("Recorded perspectives")}>
+      <h3>{t("Recorded perspectives")}</h3>
+      <ul className="ticket-list">
+        {voices.map((voice) => (
+          <li key={voice.code} className="ticket-list-item">
+            <span className="ticket-title">{voiceDisplayLabel(voice)}</span>
+            <span className="post-meta">
+              {t(voice.is_primary ? "Imported from source" : "Evidence connected")}
+            </span>
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+
+const VOICE_TRUTH_OPTIONS = [
+  "truth_authoritative",
+  "truth_observed",
+  "truth_inferred",
+  "truth_proposed",
+  "truth_superseded",
+  "truth_rejected",
+];
+
+export function VoiceAssignmentForm({
+  voices,
+  options,
+  onSave,
+}: {
+  voices: PostVoiceType[];
+  options: PostFilterOption[];
+  onSave: (voiceTypeCode: string, truthStatusCode: string) => Promise<void>;
+}) {
+  const assigned = new Set(voices.map((voice) => voice.code));
+  const available = options.filter((option) => !assigned.has(option.code));
+  const [voiceTypeCode, setVoiceTypeCode] = useState("");
+  const [truthStatusCode, setTruthStatusCode] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function submit(event: React.FormEvent) {
+    event.preventDefault();
+    if (!voiceTypeCode || !truthStatusCode || saving) return;
+    setSaving(true);
+    setSaved(false);
+    setError(null);
+    try {
+      await onSave(voiceTypeCode, truthStatusCode);
+      setVoiceTypeCode("");
+      setTruthStatusCode("");
+      setSaved(true);
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : t("Perspective could not be connected."));
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  if (available.length === 0) return null;
+  return (
+    <section className="popup-section" aria-label={t("Connect another perspective")}>
+      <h3>{t("Connect another perspective")}</h3>
+      <p className="post-meta">{t("This post will be recorded as the evidence.")}</p>
+      <form className="admin-form voice-assignment-form" onSubmit={submit}>
+        <label>
+          {t("Perspective")}
+          <select
+            value={voiceTypeCode}
+            onChange={(event) => setVoiceTypeCode(event.target.value)}
+            disabled={saving}
+            required
+          >
+            <option value="">{t("Choose a perspective")}</option>
+            {available.map((option) => (
+              <option key={option.code} value={option.code}>{t(option.label)}</option>
+            ))}
+          </select>
+        </label>
+        <label>
+          {t("Evidence status")}
+          <select
+            value={truthStatusCode}
+            onChange={(event) => setTruthStatusCode(event.target.value)}
+            disabled={saving}
+            required
+          >
+            <option value="">{t("Choose an evidence status")}</option>
+            {VOICE_TRUTH_OPTIONS.map((code) => (
+              <option key={code} value={code}>{voiceTruthLabel(code)}</option>
+            ))}
+          </select>
+        </label>
+        <button type="submit" className="btn-primary" disabled={saving || !voiceTypeCode || !truthStatusCode}>
+          {t(saving ? "Connecting..." : "Connect perspective")}
+        </button>
+        {saved ? <p className="voice-assignment-feedback" role="status">{t("Perspective connected.")}</p> : null}
+        {error ? <p role="alert" className="error voice-assignment-feedback">{error}</p> : null}
+      </form>
+    </section>
+  );
+}
+
+
 function PostDetailPopup({
   postId,
   accessToken,
@@ -1788,6 +1919,7 @@ function PostDetailPopup({
   onClose,
   onSelectPost,
   onSearch,
+  voiceOptions = [],
 }: {
   postId: string;
   accessToken: string;
@@ -1800,6 +1932,7 @@ function PostDetailPopup({
   onClose: () => void;
   onSelectPost?: (postId: string) => void;
   onSearch?: (query: string) => void;
+  voiceOptions?: PostFilterOption[];
 }) {
   const [post, setPost] = useState<PostDetail | null>(null);
   const [imageContent, setImageContent] = useState<PostImageContent[]>([]);
@@ -2044,10 +2177,10 @@ function PostDetailPopup({
         setPostActionStatus(t("Permanent link copied."));
         return;
       }
-      setPostActionStatus(t("Share unavailable."));
+      setPostActionStatus(t("Sharing did not start. Copy the link from the browser address bar to share this post."));
     } catch (err) {
       if (err instanceof DOMException && err.name === "AbortError") return;
-      setPostActionStatus(t("Share unavailable."));
+      setPostActionStatus(t("Sharing did not start. Copy the link from the browser address bar to share this post."));
     }
   }
 
@@ -2058,7 +2191,7 @@ function PostDetailPopup({
       const next = await setPostBookmark(accessToken, postId, !bookmarked);
       setBookmarked(next.bookmarked);
     } catch {
-      setPostActionStatus(t("Bookmark unavailable."));
+      setPostActionStatus(t("Bookmark could not be saved. Try again in a moment; the post itself stays open."));
     } finally {
       setBookmarkSaving(false);
     }
@@ -2101,10 +2234,32 @@ function PostDetailPopup({
           <>
             <h2 id="post-detail-title">{post.post_title}</h2>
             <p className="post-meta">
-              {post.voc_type_label ?? post.voc_type_code} &middot;{" "}
+              {t(postPrimaryVoiceLabel(post, knowledgeCutoff))} &middot;{" "}
               {post.visibility_label ?? post.visibility_code} &middot;{" "}
               {new Date(post.created_at).toLocaleString()}
             </p>
+            {post.voice_types?.length ? <VoicePerspectiveList voices={post.voice_types} /> : null}
+            {canAuthorVoice(canExtract, knowledgeCutoff) ? (
+              <VoiceAssignmentForm
+                voices={post.voice_types ?? []}
+                options={voiceOptions}
+                onSave={async (voiceTypeCode, truthStatusCode) => {
+                  const assignment = await createPostVoiceAssignment(
+                    accessToken,
+                    postId,
+                    voiceTypeCode,
+                    truthStatusCode,
+                  );
+                  setPost((current) => current ? {
+                    ...current,
+                    voice_types: [
+                      ...(current.voice_types ?? []).filter((voice) => voice.code !== assignment.code),
+                      assignment,
+                    ],
+                  } : current);
+                }}
+              />
+            ) : null}
             <div className="post-actions" role="group" aria-label={t("Post actions")}>
               <button type="button" onClick={() => void sharePost()}>
                 {t("Share")}
@@ -2145,7 +2300,9 @@ function PostDetailPopup({
                 <PostBody body={post.post_body} imageContent={imageContent} structureUnits={structureUnits} />
               ) : (
                 <p className="popup-placeholder" role="status">
-                  {t("Source body was not imported; summary and semantic extraction are unavailable.")}
+                  {t(
+                    "The original text of this post was not imported, so its summary and semantic extraction are unavailable. Open the post directly or ask the source owner to re-import it with its body.",
+                  )}
                 </p>
               )}
             </section>
@@ -2167,8 +2324,8 @@ function PostDetailPopup({
               post.source_project_name ||
               post.source_system_code ||
               post.source_record_key) && (
-              <section className="popup-section" aria-label={t("Original source state")}>
-                <h3>{t("Original source state")}</h3>
+              <section className="popup-section" aria-label={t("Earlier source version")}>
+                <h3>{t("Earlier source version")}</h3>
                 <dl>
                   {post.source_stage_code ? (
                     <>
@@ -2279,15 +2436,15 @@ function PostDetailPopup({
                     </>
                   ) : null}
                 </dl>
-                <p className="post-meta">{t("Raw source codes are shown; no state label was inferred.")}</p>
+                <p className="post-meta">{t("Use these recorded details to confirm the record with your source system.")}</p>
               </section>
             )}
 
 					<FiveW1H slots={fiveW1H?.slots ?? null} />
 
 				{post.project_evidence && post.project_evidence.length > 0 ? (
-              <section className="popup-section" aria-label={t("Projects / semantic evidence")}>
-                <h3>{t("Projects / semantic evidence")}</h3>
+              <section className="popup-section" aria-label={t("Related projects")}>
+                <h3>{t("Related projects")}</h3>
                 <ul>
                   {post.project_evidence.map((project) => (
                     <li key={`${project.resolution_status}:${project.project_key}`}>
@@ -2306,15 +2463,15 @@ function PostDetailPopup({
                         : `(${Math.round(project.confidence * 100)}%)`}
                       : {project.evidence}
                       <details className="semantic-provenance">
-                        <summary>{t("Evidence provenance")}</summary>
+                        <summary>{t("Why this item is listed")}</summary>
                         <span className="post-badge">
-                          {t("Ontology class")}: {t(project.ontology_label ?? "Project")}
+                          {t("Category")}: {t(project.ontology_label ?? "Project")}
                         </span>
                         <span className="post-badge">
-                          {t("Extraction source")}: {projectExtractionLabel(project.extraction_method)}
+                          {t("How this item was found")}: {projectExtractionLabel(project.extraction_method)}
                         </span>
                         <span className="post-badge">
-                          {t("Evidence field")}: {projectProvenanceLabel(project.provenance)}
+                          {t("Recorded evidence")}: {projectProvenanceLabel(project.provenance)}
                         </span>
                       </details>
                     </li>
@@ -2688,9 +2845,9 @@ function analysisRunNextAction(run: AnalysisRun): string | null {
     case "analysis_status_failed":
       switch (run.run_kind_code) {
         case "analysis_run_tepp":
-          return "Open this run to see why it failed, then connect the measurement service and re-run.";
+          return "Open this run to see why it failed, then retry with the latest available records.";
         case "analysis_run_topic_lineage":
-          return "Open this run to see why it failed, then connect the TEPP transport and re-run.";
+          return "Open this run to see why it failed, then retry with the latest available records.";
         case "analysis_run_lineage":
           return "Open this run to see why it failed, then retry reconstruction from a current snapshot.";
         case "analysis_run_report":
@@ -2721,22 +2878,22 @@ function analysisRunEmptyPostsHint(run: AnalysisRun): string {
     case "analysis_run_tepp":
       return (
         "No posts were available at this cutoff for TEPP to measure. " +
-        "Open a later run, or ask an administrator to capture a newer snapshot."
+        "Open a later run or retry after a newer snapshot is available."
       );
     case "analysis_run_topic_lineage":
       return (
         "No posts were available at this cutoff for topic-lineage analysis. " +
-        "Open a later run, or ask an administrator to capture a newer snapshot."
+        "Open a later run or retry after a newer snapshot is available."
       );
     case "analysis_run_lineage":
       return (
         "No posts were available at this cutoff for reconstruction. " +
-        "Open a later run, or ask an administrator to capture a newer snapshot."
+        "Open a later run or retry after a newer snapshot is available."
       );
     case "analysis_run_report":
       return (
         "No posts were available at this cutoff for the period report. " +
-        "Open a later run, or ask an administrator to capture a newer snapshot."
+        "Open a later run or retry after a newer snapshot is available."
       );
     default: {
       const unexpected: never = run.run_kind_code;
@@ -2894,8 +3051,7 @@ function analysisRunCanStart(run: AnalysisRun): boolean {
     (run.run_kind_code === "analysis_run_lineage" ||
       run.run_kind_code === "analysis_run_tepp" ||
       run.run_kind_code === "analysis_run_topic_lineage") &&
-    (run.status_code === "analysis_status_pending" ||
-      run.status_code === "analysis_status_running")
+    run.status_code === "analysis_status_pending"
   );
 }
 
@@ -3139,8 +3295,8 @@ function AnalysisRunsPanel({
       {(error || entitiesLoadError) && <p className="error">{error ?? entitiesLoadError}</p>}
       {runs.length === 0 ? (
         <p className="popup-placeholder">
-          No analysis runs visible to this account yet. Request a lineage
-          reconstruction, or ask an administrator to run make seed.
+          No analysis runs are visible to this account yet. Add source records,
+          then request a new analysis run.
         </p>
       ) : (
         <ul className="ticket-list" aria-label="Analysis runs">
@@ -3179,6 +3335,9 @@ function AnalysisRunsPanel({
             {" · "}
             Requested {selected.requested_at.slice(0, 10)}
           </p>
+          {selected.tepp_accepted_receipt && (
+            <TeppAcceptedReceipt />
+          )}
           <AnalysisRunReproducibilityDigests
             codeRevisionSha={selected.code_revision_sha}
             configurationSha256={selected.configuration_sha256}
@@ -3361,28 +3520,30 @@ function RankingsPanel({
         <h2>{t("Rankings")}</h2>
         {ranking && (
           <span className="post-badge">
-            {ranking.status === "accepted"
-              ? "rankweave"
-              : `rankweave · ${ranking.status_reason ?? "unavailable"}`}
+            {t("Rankings")}
           </span>
         )}
       </div>
       {error && <p className="error">{error}</p>}
       {ranking === null && !error && <p role="status">{t("Loading rankings...")}</p>}
       {ranking && ranking.status === "unavailable" && (
-        <p className="popup-placeholder">{t("Rankings · RankWeave not available")}</p>
+        <p className="popup-placeholder">
+          {t("Rankings are not available right now. Reopen this post later to load them.")}
+        </p>
       )}
       {ranking && ranking.status === "accepted" && ranking.rankings.length === 0 && (
-        <p className="popup-placeholder">{t("No fused rankings from RankWeave.")}</p>
+        <p className="popup-placeholder">
+          {t("No ranked posts yet. Ranked posts appear after the next rankings refresh.")}
+        </p>
       )}
       {ranking && ranking.rankings.length > 0 && (
         <>
           <p className="ranking-channel-evidence-copy">
             {t(
-              "RankWeave fused newest-first and title-overlap ranks. This is not a calibrated score.",
+              "Rankings combine newest-first and title-overlap evidence and are not calibrated scores. Open a ranked post to see its evidence.",
             )}
           </p>
-          <ul className="ticket-list" aria-label={t("Fused rankings")}>
+          <ul className="ticket-list" aria-label={t("Ranked posts")}>
             {ranking.rankings.map((hit) => (
               <li key={hit.post_id} className="ticket-list-item ranking-hit">
                 <button
@@ -3391,7 +3552,7 @@ function RankingsPanel({
                   onClick={() => onSelectPost(hit.post_id)}
                 >
                   <span className="ticket-title">{hit.post_title}</span>
-                  <span className="post-badge">{t("Rankings · rankweave")}</span>
+                  <span className="post-badge">{t("Rankings")}</span>
                   <span className="post-badge">{tf("rank {rank}", { rank: String(hit.fused_rank) })}</span>
                 </button>
                 {(hit.channel_evidence ?? []).length > 0 ? (
@@ -3909,6 +4070,7 @@ function PostList({
   const [searchQuery, setSearchQuery] = useState("");
   const [typeFilter, setTypeFilter] = useState<string[]>([]);
   const [vocTypeFilterOptions, setVocTypeFilterOptions] = useState<PostFilterOption[]>([]);
+  const [voiceTypeCatalog, setVoiceTypeCatalog] = useState<PostFilterOption[]>([]);
   const [visibilityFilter, setVisibilityFilter] = useState("all");
   const [visibilityFilterOptions, setVisibilityFilterOptions] = useState<PostFilterOption[]>([]);
   const [sortOrder, setSortOrder] = useState<BoardSortOrder>("newest");
@@ -4007,6 +4169,7 @@ function PostList({
       setPosts(response.posts);
       setTotalPosts(response.total_count);
       setVocTypeFilterOptions(response.voc_type_options ?? []);
+      setVoiceTypeCatalog(response.voice_type_catalog ?? response.voc_type_options ?? []);
       setVisibilityFilterOptions(response.visibility_options ?? []);
       setCurrentPage(page);
     } catch (err) {
@@ -4077,15 +4240,32 @@ function PostList({
         }));
   const vocTypeOptions = vocTypeFilterOptions.length
     ? vocTypeFilterOptions
-    : Array.from(new Set(loadedPosts.map((post) => post.voc_type_code)))
+    : Array.from(
+        new Set(
+          loadedPosts.flatMap((post) =>
+            post.voice_types?.length
+              ? post.voice_types.map((voice) => voice.code)
+              : [post.voc_type_code],
+          ),
+        ),
+      )
         .sort()
         .map((code) => ({
           code,
-          label: loadedPosts.find((post) => post.voc_type_code === code)?.voc_type_label ?? code,
+          label:
+            loadedPosts
+              .flatMap((post) => post.voice_types ?? [])
+              .find((voice) => voice.code === code)?.label ??
+            loadedPosts.find((post) => post.voc_type_code === code)?.voc_type_label ??
+            code,
         }));
   const filteredPosts = loadedPosts
     .filter((post) => {
-      const matchesType = typeFilter.length === 0 || typeFilter.includes(post.voc_type_code);
+      const matchesType =
+        typeFilter.length === 0 ||
+        (post.voice_types?.length
+          ? post.voice_types.some((voice) => typeFilter.includes(voice.code))
+          : typeFilter.includes(post.voc_type_code));
       const matchesVisibility = visibilityFilter === "all" || post.visibility_code === visibilityFilter;
       return matchesType && matchesVisibility;
     })
@@ -4273,7 +4453,12 @@ function PostList({
                         </span>
                       </span>
                       <span className="post-card-badges">
-                        <span className="post-badge">{t(post.voc_type_label ?? post.voc_type_code)}</span>
+                        <span className="post-badge">
+                          {(post.voice_types?.length
+                            ? post.voice_types.map(voiceDisplayLabel)
+                            : [t(post.voc_type_label ?? post.voc_type_code)]
+                          ).join(" + ")}
+                        </span>
                         <span className="post-badge">{t(post.visibility_label ?? post.visibility_code)}</span>
                         {post.source_detail_state_code ? (
                           <span className="post-badge">
@@ -4380,6 +4565,7 @@ function PostList({
           onClose={closeSelectedPost}
           onSelectPost={selectPost}
           onSearch={searchBoard}
+          voiceOptions={voiceTypeCatalog}
         />
       )}
     </section>
@@ -4735,7 +4921,7 @@ function CustomerMasterPanel({
       ) : null}
       {master && master.source_author_hints.length > 0 ? (
         <section className="customer-keymen" aria-labelledby="source-author-evidence-heading">
-          <h3 id="source-author-evidence-heading">{t("Source author evidence")}</h3>
+          <h3 id="source-author-evidence-heading">{t("Author context")}</h3>
           {master.source_author_hints.length > HINT_RENDER_LIMIT && (
             <p className="post-meta">
               {tf("Showing the first {shown} of {total} observed source authors, ranked by post count.", {
@@ -4822,11 +5008,11 @@ export function AskAgentPanel({
   onOpenPost: (postId: string) => void;
 }) {
   const [question, setQuestion] = useState("");
+  const [knowledgeCutoff, setKnowledgeCutoff] = useState("");
   const [answer, setAnswer] = useState<AskAgentResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [asking, setAsking] = useState(false);
   const [verifyExternal, setVerifyExternal] = useState(false);
-  const [knowledgeCutoff, setKnowledgeCutoff] = useState("");
   const [evidenceLayerPostId, setEvidenceLayerPostId] = useState<string | null>(null);
   const now = new Date();
   const localKnowledgeCutoffMax = new Date(
@@ -4836,6 +5022,14 @@ export function AskAgentPanel({
   async function handleAsk() {
     const normalized = question.trim();
     if (!normalized) return;
+    let cutoff: string | undefined;
+    try {
+      cutoff = optionalKnowledgeCutoffIso(knowledgeCutoff);
+    } catch {
+      setAnswer(null);
+      setError(t("Enter a valid knowledge cutoff, then ask again."));
+      return;
+    }
     setAsking(true);
     setError(null);
     try {
@@ -4844,7 +5038,7 @@ export function AskAgentPanel({
           accessToken,
           normalized,
           verifyExternal,
-          knowledgeCutoff ? new Date(knowledgeCutoff).toISOString() : undefined,
+          cutoff,
         ),
       );
     } catch (err) {
@@ -4880,13 +5074,15 @@ export function AskAgentPanel({
           <span>{t("Check eligible public claims")}</span>
         </label>
         <label className="ask-agent-field">
-          <span>{t("Knowledge cutoff (optional)")}</span>
+          <span>{t("Use evidence available by (optional)")}</span>
           <input
             type="datetime-local"
+            aria-label={t("Use evidence available by (optional)")}
             value={knowledgeCutoff}
             max={localKnowledgeCutoffMax}
             onChange={(event) => setKnowledgeCutoff(event.target.value)}
           />
+          <small>{t("Choose a time on this device, or leave blank to use the latest evidence.")}</small>
         </label>
         <button className="btn-primary" onClick={() => void handleAsk()} disabled={asking || !question.trim()}>
           {asking ? t("Asking...") : t("Ask")}
@@ -4903,7 +5099,7 @@ export function AskAgentPanel({
                 {answer.grounding_status === "fully_cutoff_grounded"
                   ? t("Fully cutoff-grounded")
                   : t("Partially cutoff-grounded")}
-                {` · ${answer.knowledge_cutoff}`}
+                {` · ${new Date(answer.knowledge_cutoff).toLocaleString()}`}
               </p>
               {answer.limitations?.length ? (
                 <p role="alert">
@@ -4944,6 +5140,9 @@ export function AskAgentPanel({
                         </span>
                       ) : null}
                     </button>
+                    {post.historical_body_unavailable ? (
+                      <p className="post-meta">{t("Historical body unavailable")}</p>
+                    ) : null}
                     <button
                       type="button"
                       className="citation-chip"
@@ -5119,13 +5318,16 @@ export default function App({ showLabPanels = false }: { showLabPanels?: boolean
       />
       <main>
         {destination === "dashboard" ? (
-          <OperationsDashboard
-            accessToken={accessToken}
-            onOpenPost={(postId) => {
-              setPostToOpen(postId);
-              setDestination("board");
-            }}
-          />
+          <>
+            <OperationsDashboard
+              accessToken={accessToken}
+              onOpenPost={(postId) => {
+                setPostToOpen(postId);
+                setDestination("board");
+              }}
+            />
+            <OccupationRatingProfile accessToken={accessToken} />
+          </>
         ) : null}
         {destination === "board" ? (
           <PostList

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from dataclasses import replace
 from datetime import datetime, timedelta, timezone
 
 import pytest
@@ -13,21 +14,25 @@ from lineageweave.knowledge_graph import (
     EDGE_MENTION_ORGANIZATION,
     EDGE_MENTION_PROJECT,
     EDGE_MENTION_TEAM,
+    EDGE_SUPPORTS_OCCUPATIONAL_CONSTRUCT,
     EDGE_TEAM_AFFILIATION,
     NODE_CORPORATE_ENTITY,
     NODE_PERSON,
     NODE_POST,
+    NODE_OCCUPATIONAL_CONSTRUCT,
     NODE_PROJECT,
     NODE_TEAM,
 )
 from lineageweave.ontology import LW, ontology_node_iri
 from lineageweave.ontology_neighborhood import (
+    HARD_MAXIMUM_NODES,
     PROPERTY_AFFILIATED_WITH,
     PROPERTY_CO_MENTIONED_WITH,
     PROPERTY_MENTIONS,
     PROPERTY_MENTIONS_ORGANIZATION,
     PROPERTY_MENTIONS_PROJECT,
     PROPERTY_MENTIONS_TEAM,
+    PROPERTY_SUPPORTS_OCCUPATIONAL_CONSTRUCT,
     PROPERTY_OWL_SUBCLASS_OF,
     PROPERTY_SKOS_BROADER,
     PROPERTY_TEAM_AFFILIATED_WITH,
@@ -36,12 +41,12 @@ from lineageweave.ontology_neighborhood import (
     TRUTH_INFERRED,
     TRUTH_OBSERVED,
     TRUTH_PROPOSED,
-    HARD_MAXIMUM_NODES,
     NeighborhoodFact,
     OntologyGraphEdge,
-    OntologyNodeMetadata,
     OntologyNeighborhood,
     OntologyNeighborhoodError,
+    OntologyNodeMetadata,
+    OntologyVoiceAssignment,
     assemble_ontology_neighborhood,
     canonicalize_property_code,
     fact_from_knowledge_graph_edge,
@@ -55,6 +60,7 @@ GROUP_ID = "dddddddd-dddd-dddd-dddd-ddddddddddd1"
 HIDDEN_PERSON = "eeeeeeee-eeee-eeee-eeee-eeeeeeeeeee1"
 TEAM_ID = "ffffffff-ffff-ffff-ffff-fffffffffff1"
 PROJECT_ID = "demo-project"
+CONSTRUCT_ID = "99999999-9999-9999-9999-999999999999"
 TZ = timezone.utc
 T0 = datetime(2026, 1, 10, 12, 0, tzinfo=TZ)
 T_LATE = datetime(2026, 1, 20, 12, 0, tzinfo=TZ)
@@ -70,6 +76,7 @@ def _labels() -> dict[tuple[str, str], str]:
         (NODE_PERSON, HIDDEN_PERSON): "Hidden Person",
         (NODE_TEAM, TEAM_ID): "Demo Team",
         (NODE_PROJECT, PROJECT_ID): "Demo Project",
+        (NODE_OCCUPATIONAL_CONSTRUCT, CONSTRUCT_ID): "Problem Sensitivity",
     }
 
 
@@ -185,6 +192,40 @@ def test_post_mentions_project_round_trips_as_proposed_evidence() -> None:
     assert edge.truth_status_code == TRUTH_PROPOSED
     assert project.ontology_class_iri == str(LW.Project)
     assert project.shape_code == "diamond"
+
+
+def test_post_supports_occupational_construct_without_truth_promotion() -> None:
+    fact = fact_from_knowledge_graph_edge(
+        source_node_type_code=NODE_POST,
+        source_node_id=POST_ID,
+        target_node_type_code=NODE_OCCUPATIONAL_CONSTRUCT,
+        target_node_id=CONSTRUCT_ID,
+        edge_type_code=EDGE_SUPPORTS_OCCUPATIONAL_CONSTRUCT,
+        recorded_at=T0,
+        evidence_references=(POST_ID,),
+        provenance_reference="post_occupational_construct_assertion",
+        truth_status_code=TRUTH_INFERRED,
+    )
+    neighborhood = assemble_ontology_neighborhood(
+        focus_node_type_code=NODE_POST,
+        focus_node_id=POST_ID,
+        facts=[fact],
+        labels=_labels(),
+        allowed_property_codes=["edge_supports_occupational_construct"],
+    )
+
+    edge = neighborhood.edges[0]
+    construct = next(
+        node
+        for node in neighborhood.nodes
+        if node.node_type_code == NODE_OCCUPATIONAL_CONSTRUCT
+    )
+    assert edge.property_code == PROPERTY_SUPPORTS_OCCUPATIONAL_CONSTRUCT
+    assert edge.ontology_property_iri == str(LW.supportsOccupationalConstruct)
+    assert edge.truth_status_code == TRUTH_INFERRED
+    assert edge.evidence_references == (POST_ID,)
+    assert construct.ontology_class_iri == str(LW.OccupationalConstruct)
+    assert construct.shape_code == "rounded-rectangle"
 
 
 def test_jsonld_keeps_colliding_identifiers_typed() -> None:
@@ -853,6 +894,69 @@ def test_node_bound_truncation_drops_cursor_and_jsonld_rejects_dangling() -> Non
     assert exact_values.value.code == "dangling_endpoint"
     rows = neighborhood.exact_value_rows()
     assert rows == ()
+
+
+def test_voice_assignments_join_exact_csv_rows_and_jsonld() -> None:
+    """One authorized post exports the same qualified voice through both projections."""
+    neighborhood = assemble_ontology_neighborhood(
+        focus_node_type_code=NODE_POST,
+        focus_node_id=POST_ID,
+        facts=[],
+        labels=_labels(),
+    )
+    assignment = OntologyVoiceAssignment(
+        post_id=POST_ID,
+        voice_type_code="vops",
+        voice_type_iri=str(LW.voiceOfProcessType),
+        voice_type_label="Voice of Process",
+        is_primary=False,
+        truth_status_code=TRUTH_OBSERVED,
+        recorded_at=T0,
+        provenance_reference="Evidence-backed additional voice",
+        evidence_post_id=POST_ID,
+    )
+    neighborhood = replace(neighborhood, voice_assignments=(assignment,))
+
+    row = neighborhood.exact_value_rows()[0]
+    assert row["property_code"] == "hasVoiceAssignment"
+    assert row["target_label"] == "Voice of Process"
+    assert row["evidence_post_id"] == POST_ID
+    assert row["evidence_count"] == "1"
+    graph = neighborhood.jsonld_document()["@graph"]
+    assignment_iri = str(LW[f"voice-assignment/{POST_ID}/vops"])
+    projected = next(item for item in graph if item.get("@id") == assignment_iri)
+    post_projection = next(
+        item
+        for item in graph
+        if item.get("@id") == ontology_node_iri(NODE_POST, POST_ID)
+        and str(LW.hasVoiceAssignment) in item
+    )
+    assert post_projection[str(LW.hasVoiceAssignment)] == [{"@id": assignment_iri}]
+    assert projected[str(LW.assignedVoiceType)] == {"@id": str(LW.voiceOfProcessType)}
+    assert projected[str(LW.voiceAssignmentEvidence)] == {
+        "@id": ontology_node_iri(NODE_POST, POST_ID)
+    }
+    assert projected["prov:wasDerivedFrom"] == {
+        "@id": ontology_node_iri(NODE_POST, POST_ID)
+    }
+
+    hidden_evidence = replace(assignment, evidence_post_id=None)
+    hidden_row = replace(
+        neighborhood, voice_assignments=(hidden_evidence,)
+    ).exact_value_rows()[0]
+    assert hidden_row["evidence_post_id"] == ""
+    assert hidden_row["evidence_count"] == "0"
+    hidden_projection = next(
+        item
+        for item in replace(neighborhood, voice_assignments=(hidden_evidence,))
+        .jsonld_document()["@graph"]
+        if item.get("@id") == assignment_iri
+    )
+    assert str(LW.voiceAssignmentEvidence) not in hidden_projection
+    assert "prov:wasDerivedFrom" not in hidden_projection
+
+    with pytest.raises(OntologyNeighborhoodError, match="offset-aware"):
+        replace(assignment, recorded_at=T0.replace(tzinfo=None))
 
 
 def test_node_bound_truncation_keeps_nearer_hop_over_farther_alphabetically_earlier_type() -> None:

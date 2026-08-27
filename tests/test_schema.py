@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import asyncio
 import os
+import subprocess
 import uuid
 from pathlib import Path
 from urllib.parse import urlsplit, urlunsplit
@@ -26,6 +27,10 @@ import psycopg2.errors
 import pytest
 
 from backend.app.post_chat_ingestion import gather_global_chat_sources
+from lineageweave.occupational_construct_catalog import (
+    catalog_content_sha256,
+    sync_onet_construct_catalog,
+)
 
 _ADMIN_DSN = os.environ.get(
     "LINEAGEWEAVE_TEST_POSTGRES_ADMIN_DSN", "postgresql://localhost/postgres"
@@ -39,6 +44,34 @@ _PROJECT_MENTION_MIGRATION = (
 )
 _POST_CONTENT_MIGRATION = (
     Path(__file__).resolve().parents[1] / "migrations" / "0026_post_content_artifacts.sql"
+)
+_POST_CONTENT_QUEUE_MIGRATION = (
+    Path(__file__).resolve().parents[1]
+    / "migrations"
+    / "0050_post_content_ingestion_queue.sql"
+)
+_ONTOLOGY_TRUTH_STATUS_MIGRATION = (
+    Path(__file__).resolve().parents[1] / "migrations" / "0175_ontology_truth_status.sql"
+)
+_OCCUPATIONAL_CONSTRUCT_MIGRATION = (
+    Path(__file__).resolve().parents[1]
+    / "migrations"
+    / "0238_occupational_construct_assertion.sql"
+)
+_OCCUPATIONAL_CATALOG_MIGRATION = (
+    Path(__file__).resolve().parents[1]
+    / "migrations"
+    / "0239_occupational_construct_catalog.sql"
+)
+_OCCUPATIONAL_EXTRACTION_MIGRATION = (
+    Path(__file__).resolve().parents[1]
+    / "migrations"
+    / "0240_occupational_construct_extraction_run.sql"
+)
+_SOURCE_CONVERSATION_TURN_EVIDENCE_MIGRATION = (
+    Path(__file__).resolve().parents[1]
+    / "migrations"
+    / "0233_source_conversation_turn_evidence.sql"
 )
 _SOURCE_STATE_MIGRATION = (
     Path(__file__).resolve().parents[1] / "migrations" / "0033_source_state_provenance.sql"
@@ -92,6 +125,11 @@ _LEFTOVER_MAP_RECONSTRUCTION_MIGRATION = (
     Path(__file__).resolve().parents[1]
     / "migrations"
     / "0206_report_leftover_map_reconstruction.sql"
+)
+_LEFTOVER_MAP_UNEXPLAINED_SHARE_MIGRATION = (
+    Path(__file__).resolve().parents[1]
+    / "migrations"
+    / "0233_report_leftover_map_unexplained_share.sql"
 )
 _LEFTOVER_MAP_AXIS_MIGRATION = (
     Path(__file__).resolve().parents[1]
@@ -161,6 +199,12 @@ def schema_db():
             with conn.cursor() as cur:
                 cur.execute(_MIGRATION_PATH.read_text())
                 cur.execute(_POST_CONTENT_MIGRATION.read_text())
+                cur.execute(_POST_CONTENT_QUEUE_MIGRATION.read_text())
+                cur.execute(_ONTOLOGY_TRUTH_STATUS_MIGRATION.read_text())
+                cur.execute(_OCCUPATIONAL_CONSTRUCT_MIGRATION.read_text())
+                cur.execute(_OCCUPATIONAL_CATALOG_MIGRATION.read_text())
+                cur.execute(_OCCUPATIONAL_EXTRACTION_MIGRATION.read_text())
+                cur.execute(_SOURCE_CONVERSATION_TURN_EVIDENCE_MIGRATION.read_text())
                 cur.execute(_PROJECT_MENTION_MIGRATION.read_text())
                 cur.execute(_SOURCE_STATE_MIGRATION.read_text())
                 cur.execute(_SOURCE_CONTEXT_MIGRATION.read_text())
@@ -180,6 +224,7 @@ def schema_db():
                 cur.execute(_LEFTOVER_MAP_UNEXPLAINED_MIGRATION.read_text())
                 cur.execute(_LEFTOVER_MAP_CROSS_SHARE_MIGRATION.read_text())
                 cur.execute(_LEFTOVER_MAP_RECONSTRUCTION_MIGRATION.read_text())
+                cur.execute(_LEFTOVER_MAP_UNEXPLAINED_SHARE_MIGRATION.read_text())
                 cur.execute(_SOURCE_EVENT_TIME_MIGRATION.read_text())
                 cur.execute(_GLOBAL_ASK_JOB_MIGRATION.read_text())
                 cur.execute(_GLOBAL_ASK_SCOPE_MIGRATION.read_text())
@@ -187,12 +232,20 @@ def schema_db():
                 # PostgreSQL objects instead of merely inspecting SQL text.
                 cur.execute(_GLOBAL_ASK_JOB_MIGRATION.read_text())
                 cur.execute(_GLOBAL_ASK_SCOPE_MIGRATION.read_text())
-                # psql sends each statement independently, which is required
-                # by CREATE INDEX CONCURRENTLY. psycopg2 treats a multi-
-                # statement execute as one transaction even with autocommit.
-                for statement in _GLOBAL_ASK_EVIDENCE_SEARCH_MIGRATION.read_text().split(";\n\n"):
-                    if statement.strip():
-                        cur.execute(statement + ";")
+                # Match ADR 0166's production migration executor instead of
+                # maintaining a fixture-owned SQL parser.
+                subprocess.run(
+                    [
+                        "psql",
+                        "-X",
+                        "-v",
+                        "ON_ERROR_STOP=1",
+                        db_dsn,
+                        "-f",
+                        str(_GLOBAL_ASK_EVIDENCE_SEARCH_MIGRATION),
+                    ],
+                    check=True,
+                )
             # Migration replay needs autocommit for concurrent indexes, while
             # tests need transactions for savepoints and rollback assertions.
             conn.autocommit = False
@@ -252,8 +305,86 @@ def test_migration_applies_cleanly(schema_db) -> None:
         "global_ask_job",
         "global_ask_job_corporate_entity_scope",
         "global_ask_job_process_unit_scope",
+        "occupational_construct_vocabulary",
+        "occupational_construct",
+        "post_occupational_construct_assertion",
+        "post_occupational_construct_extraction",
     }
     assert expected <= tables
+
+
+def test_occupational_catalog_metadata_columns_exist(schema_db) -> None:
+    """The real schema preserves catalog descriptions and release integrity."""
+    with schema_db.cursor() as cur:
+        cur.execute(
+            """
+            select table_name, column_name
+              from information_schema.columns
+             where (table_name, column_name) in (
+                 ('occupational_construct_vocabulary', 'source_content_sha256'),
+                 ('occupational_construct', 'construct_description')
+             )
+            """
+        )
+        columns = set(cur.fetchall())
+    assert columns == {
+        ("occupational_construct_vocabulary", "source_content_sha256"),
+        ("occupational_construct", "construct_description"),
+    }
+
+
+def test_occupational_catalog_sync_persists_exact_rows(schema_db) -> None:
+    """The real PostgreSQL path atomically stores the governed catalog subset."""
+    payload = {
+        "table_id": "content_model_reference",
+        "row": [
+            {
+                "element_id": "1.A.1.a.1",
+                "element_name": "Synthetic cognitive ability",
+                "description": "Synthetic description.",
+            },
+            {
+                "element_id": "1.D.1",
+                "element_name": "Synthetic work style",
+                "description": "",
+            },
+            {
+                "element_id": "4.A.1",
+                "element_name": "Synthetic work activity",
+                "description": None,
+            },
+        ],
+    }
+
+    async def synchronize() -> int:
+        parsed_admin_dsn = urlsplit(_ADMIN_DSN)
+        db_dsn = urlunsplit(
+            parsed_admin_dsn._replace(path=f"/{schema_db.info.dbname}")
+        )
+        conn = await asyncpg.connect(db_dsn)
+        try:
+            return await sync_onet_construct_catalog(
+                conn,
+                payload,
+                expected_source_sha256=catalog_content_sha256(payload),
+            )
+        finally:
+            await conn.close()
+
+    assert asyncio.run(synchronize()) == 3
+    with schema_db.cursor() as cur:
+        cur.execute(
+            """
+            select construct_family_code, preferred_label, construct_description
+              from occupational_construct
+             order by construct_family_code
+            """
+        )
+        assert cur.fetchall() == [
+            ("cognitive_ability", "Synthetic cognitive ability", "Synthetic description."),
+            ("work_activity", "Synthetic work activity", None),
+            ("work_style", "Synthetic work style", None),
+        ]
 
 
 def test_global_ask_evidence_search_indexes_exist_on_normalized_tables(schema_db) -> None:
@@ -655,7 +786,7 @@ def test_leftover_pair_names_nullable_cross_share_column(schema_db) -> None:
     assert columns["leftover_residual"] == "NO"
     assert columns["leftover_distance"] == "NO"
     assert "leftover_map_explained_share" not in columns
-    assert "leftover_map_unexplained_share" not in columns
+    assert columns["leftover_map_unexplained_share"] == "YES"
     assert columns["leftover_map_reconstruction"] == "YES"
     with schema_db.cursor() as cur:
         cur.execute(

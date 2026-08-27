@@ -143,6 +143,21 @@ def test_render_term_uses_skos_preferred_label_without_rdfs_label() -> None:
     assert 'aria-label="Link to Human label"' in rendered
 
 
+def test_render_term_exposes_worker_function_domain_and_rank() -> None:
+    """Published worker functions show their defining FJA coordinates."""
+    builder = _load_builder()
+    graph = Graph()
+    term = builder.URIRef("https://example.test/ontology#Analyzing")
+    graph.add((term, builder.RDF.type, builder.SKOS.Concept))
+    graph.add((term, builder.CANONICAL_FJA_DOMAIN_PREDICATE, builder.Literal("data")))
+    graph.add((term, builder.CANONICAL_FJA_RANK_PREDICATE, builder.Literal(2)))
+
+    rendered = builder._render_term(graph, term, {term})
+
+    assert "<dt>FJA domain</dt><dd><code>data</code></dd>" in rendered
+    assert "<dt>FJA rank</dt><dd><code>2</code></dd>" in rendered
+
+
 def test_render_term_href_decodes_to_its_html_id() -> None:
     builder = _load_builder()
     graph = Graph()

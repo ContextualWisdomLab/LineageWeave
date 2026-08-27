@@ -40,12 +40,17 @@ and consumer migration plan.
 3. Publish equivalent machine-readable artifacts beside the HTML:
    `ontology.ttl`, `ontology.jsonld`, `ontology.nt`, the PROV-O support profile,
    and a source-digest manifest.
-4. Preserve `lineageweave-kg.ttl` byte-for-byte as the published Turtle
-   artifact. JSON-LD and N-Triples are generated from a canonicalized RDF graph
-   and are tested for semantic isomorphism with the source.
+4. For a single governed Turtle source, preserve `lineageweave-kg.ttl`
+   byte-for-byte as the published Turtle artifact. When a later accepted ADR
+   adds governed fragments, publish the merged graph as deterministic canonical
+   RDF that parses as Turtle; test every machine format for semantic
+   isomorphism with the complete source graph. Never concatenate independent
+   Turtle documents because their prefix and base declarations have
+   document-local scope.
 5. Do not add a build timestamp. The same source tree must produce the same
-   artifact bytes. The manifest records the source SHA-256 and the complete
-   published ontology-directory inventory instead.
+   artifact bytes. The manifest records every governed source path and SHA-256,
+   the ordered source-tree SHA-256, and the complete published
+   ontology-directory inventory instead.
 6. Run publication through `scripts/publish_ontology_site.py`, a fail-closed
    boundary that rejects duplicate HTML fragments, non-HTTP(S) linked IRIs,
    symlink outputs, source-overlapping outputs, and replacement of directories

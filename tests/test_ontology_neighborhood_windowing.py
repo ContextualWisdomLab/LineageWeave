@@ -447,6 +447,7 @@ def test_source_continuation_uses_sealed_snapshot_and_rechecks_page_endpoints(mo
     monkeypatch.setattr(ingestion, "_load_skos_facts", fake_skos)
     monkeypatch.setattr(ingestion, "_load_labels", fake_labels)
     monkeypatch.setattr(ingestion, "_load_node_metadata", fake_metadata)
+    monkeypatch.setattr(ingestion, "_load_voice_assignments", fake_skos)
     monkeypatch.setattr(ingestion, "verify_source_cursor", fake_verify)
     monkeypatch.setattr(ingestion, "mint_source_cursor", fake_mint)
 

@@ -106,13 +106,13 @@ def _parse_content_length(
         return _INVALID_LENGTH
     if not decoded or not decoded.isdecimal():
         return _INVALID_LENGTH
-    normalized = decoded.lstrip("0") or "0"
-    maximum = str(maximum_bytes)
-    if len(normalized) > len(maximum) or (
-        len(normalized) == len(maximum) and normalized > maximum
+    significant = decoded.lstrip("0") or "0"
+    maximum_text = str(maximum_bytes)
+    if len(significant) > len(maximum_text) or (
+        len(significant) == len(maximum_text) and significant > maximum_text
     ):
         return maximum_bytes + 1
-    return int(normalized, 10)
+    return int(significant, 10)
 
 
 async def _send_error(send: Send, status_code: int, error_code: str) -> None:

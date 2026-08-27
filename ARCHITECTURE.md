@@ -25,6 +25,13 @@ recovery/equivalence checks; affected product paths fail closed during each
 cutover rather than substituting a local estimate. See
 `docs/doctoring/python-mathematical-compute-boundary-audit.md`.
 
+ADR 0237 also keeps accelerator deployment outside this repository. MLX runs
+as a native Apple-silicon inference service behind contextual-orchestrator;
+scientific CPU/CUDA/OpenCL profiles belong to TEPP or fast-mlsirm. RankWeave
+remains the dependency-free Python retrieval-fusion/evaluation owner behind its
+published contract. LineageWeave Compose therefore does not reserve devices or
+mount host drivers; its provider-neutral connectors consume versioned results
+and fail closed when an owning service is unavailable.
 ## Data flow
 
 ```mermaid
@@ -79,8 +86,12 @@ flowchart LR
 | `commitment_extraction.py` | Pluggable LLM derivation of a customer commitment (promise + deadline) from a post; `Null` default, `ContextualOrchestrator` real impl |
 | `temporal_expressions.py` | Pure Korean relative-time resolver for Global Ask (ADR 0150) |
 | `ask_time_axis.py` | Event-time vs ingestion-time clock choice for that window (ADR 0202) |
-| `ontology.py` | Loads `docs/ontology/lineageweave-kg.ttl`, the formal OWL 2/RDFS/SKOS vocabulary for the Knowledge Graph's node/edge types (ADR 0004) |
+| `ontology.py` | Loads the governed Turtle source tree (`lineageweave-kg.ttl` plus generated fragments), the formal OWL 2/RDFS/SKOS vocabulary for the Knowledge Graph's node/edge types, source taxonomies, and published O*NET linkages (ADR 0004, ADR 0252, ADR 0255, ADR 0256) |
+| `backend/app/occupation_rating_ingestion.py` | Projects authenticated occupation-rating evidence plus persisted source and represented-occupation catalogs (ADR 0258, ADR 0260, ADR 0261) |
+| `frontend/src/components/OccupationRatingProfile.tsx` | Selects an imported source, filters stored occupation titles without ranking, and reads exact Dashboard evidence while preserving absence, uncertainty, and warning semantics (ADR 0259–0262) |
 | `ontology_neighborhood.py` | Bounded typed ontology/provenance neighborhood (ADR 0184); PostgreSQL stays authoritative, OWL subclass is not an instance edge |
+| `occupational_construct_catalog.py` | Official O*NET 31.0 construct catalog sync (ADR 0250); no ratings or invented IRIs |
+| `backend/app/occupational_construct_search.py` | Authorized catalog-label search over assertion-backed constructs (ADR 0257); hidden Posts never mint a hit |
 | `ontology_source_cursor.py` | Opaque HMAC source-window continuation (ADR 0124); keyset pagination, never OFFSET |
 | `period_report.py` | Fit GRM/GPCM on persisted IRT rows, FIPC-select, EAP-score a period (ADR 0003 slice 3; Bock & Mislevy, 1982) |
 | `fixtures.py` | Synthetic demo dataset -- no real data ships in this repo |
@@ -233,7 +244,9 @@ Each direct edge includes `interval_relation_code` /
 `interval_relation_label` computed from the posts' observed windows.
 Global Ask merges cited threads from one post/edge fetch pair and
 caps the payload at the landing node bound, keeping cited posts first
-(ADR 0169). Open a cited post to read the focused thread.
+(ADR 0169). Optional `knowledge_cutoff` on `POST /api/ask` selects the
+covering `source_post_revision` and never substitutes a live body
+(ADR 0216). Open a cited post to read the focused thread.
 `POST /api/lineage/rebuild` (`post_admin`) re-runs `reconstruct()` over
 every `source_post` and atomically rewrites edges, channel signals, and
 Allen interval relations. Reconstruct grouping is
@@ -360,6 +373,21 @@ than exposing the generic PROV-O `Person` class as business context.
 `voc_type_label` / `visibility_label` from `common_lookup_value` so
 the list badge and popup meta show `Voice of Customer` / `Public`
 instead of raw codes.
+
+`POST /api/posts/{post_id}/voice-assignments` lets a `post_admin` add one
+governed atomic Voice with an explicit truth state and an ABAC-visible evidence
+Post. The server creates the normalized PROV-O derivation and assignment in one
+transaction; clients never submit an internal assertion id, and this route
+cannot replace the imported primary Voice.
+The bounded ontology response carries a visible Voice assignment's evidence
+Post id alongside its exact-value row. The exact-value table therefore offers
+separate carrying-Post and derivation-evidence actions; hidden evidence removes
+the additional assignment before serialization rather than leaking its id or
+showing a fabricated count.
+The live Post popup exposes the route only to its existing `post_admin`
+permission result and only outside knowledge-cutoff views. Its form excludes
+already assigned catalog options, requires an explicit truth state, and uses
+the open Post as evidence so the UI never asks for an internal Post id.
 
 `GET /api/posts/{post_id}/voc-evidence` returns the
 `common_lookup_value` label for the post's `voc_type_code` plus the
@@ -609,9 +637,10 @@ information at the group's mean θ (Lord, 1980 max-info CAT). Rankings
 persist to `report_item_information`. After those IRT main effects,
 residual SVD leftover pairs on two Gabriel axes (Jeon et al., 2021;
 ADR 0017 / 0048 / 0049 / 0119 / 0148 / 0158 / 0162 / 0163 / 0164 / 0168 /
-0182 / 0185 / 0201) persist to `report_leftover_pair` with signed residual `R`,
+0182 / 0185 / 0201 / 0233) persist to `report_leftover_pair` with signed residual `R`,
 observed `Y`, expected `E[Y|θ, item]`, full leftover-map rank, unexplained
-leftover, ADR 0201 reconstruction evidence, and ADR 0185 cross-share evidence.
+leftover, ADR 0201 reconstruction evidence, ADR 0185 cross-share evidence,
+and ADR 0233 unexplained leftover share `s`.
 Those ADRs are the normative mathematical and storage contracts. Leftover-map axis share
 (Gabriel inertia of residual SVD axes 1 and 2; ADR 0148) persists to
 `report_leftover_map_axis`. Complete-case leftover-map coverage (ADR
@@ -654,7 +683,8 @@ vocabulary (`node_type`, `edge_type`, `entity_relationship_type`,
 `person_side`, `corporate_entity_level`) actually matches what the
 Ontology/Semantic-Layer claim implies.
 
-`docs/ontology/lineageweave-kg.ttl` is a real OWL 2 / RDFS / SKOS
+`docs/ontology/lineageweave-kg.ttl` and its deterministic governed fragments
+are a real OWL 2 / RDFS / SKOS
 ontology in Turtle syntax: classes for `Post`/`Person`/`CorporateEntity`
 (with `OurSidePerson`/`CounterpartyPerson` subclasses), object
 properties for each `edge_type_code` and `entity_relationship_type`
@@ -668,7 +698,7 @@ specification over it, in the same sense W3C's own stack uses "semantic
 layer" (RDFS/OWL as the governed conceptual layer over raw data), not a
 separate BI-metrics product and not a parallel triple store.
 
-`lineageweave/ontology.py` parses the Turtle file once with `rdflib`
+`lineageweave/ontology.py` parses the Turtle source tree once with `rdflib`
 (pure Python, no Rust toolchain, unlike `fast-mlsirm`) and exposes the
 vocabulary as importable IRI constants, so application code has one
 canonical name per class/property instead of re-typing lookup codes as
@@ -684,6 +714,19 @@ must not declare a term for a code nothing actually seeds. This is the
 enforcement mechanism: a future PR that adds a new `edge_type` or
 `entity_relationship_type` code without updating the ontology fails
 this test, not just a docstring's word.
+
+### Authorized job architecture snapshots
+
+The public SOC/O*NET vocabulary and an employer's job architecture remain
+different graphs. ADR 0263 adds an organization-scoped PostgreSQL source
+boundary for private job-family/job-series snapshots: immutable source
+metadata owns normalized nodes, source-declared broader/narrower edges, and
+optional explicit bindings to a versioned external occupation scheme. An edge
+table preserves multiple-family membership; the importer rejects cycles and
+never derives a parent or binding from a label or code pattern. The snapshot
+is source evidence only. It does not create a person, post, organizational
+unit, competency, score, weight, or ontology assertion, and runtime rows never
+enter repository artifacts.
 
 ## Phase 6c: post content normalization before any LLM/embedding call
 

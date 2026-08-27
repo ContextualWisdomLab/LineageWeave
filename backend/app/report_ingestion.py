@@ -447,8 +447,8 @@ async def persist_period_report(
                 pair_kind, post_id, criterion_code, leftover_distance, leftover_residual,
                 observed_response, expected_response, leftover_map_rank,
                 leftover_map_unexplained, leftover_map_cross_share,
-                leftover_map_reconstruction
-            ) values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15)
+                leftover_map_reconstruction, leftover_map_unexplained_share
+            ) values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16)
             """,
             grouping_kind,
             grouping_key,
@@ -465,6 +465,7 @@ async def persist_period_report(
             pair.leftover_map_unexplained,
             pair.leftover_map_cross_share,
             pair.leftover_map_reconstruction,
+            pair.leftover_map_unexplained_share,
         )
     for axis in report.leftover_map_axes:
         await conn.execute(
@@ -652,7 +653,7 @@ async def fetch_period_reports(
                lp.leftover_distance, lp.leftover_residual,
                lp.observed_response, lp.expected_response, lp.leftover_map_rank,
                lp.leftover_map_unexplained, lp.leftover_map_cross_share,
-               lp.leftover_map_reconstruction, p.post_title,
+               lp.leftover_map_reconstruction, lp.leftover_map_unexplained_share, p.post_title,
                p.visibility_code, p.corporate_entity_id, p.process_unit_id,
                ({_SOURCE_CONTEXT_PRESENT_SQL}) as has_real_source_context
         from report_leftover_pair lp
@@ -808,6 +809,11 @@ async def fetch_period_reports(
                             None
                             if row["leftover_map_reconstruction"] is None
                             else float(row["leftover_map_reconstruction"])
+                        ),
+                        "leftover_map_unexplained_share": (
+                            None
+                            if row["leftover_map_unexplained_share"] is None
+                            else float(row["leftover_map_unexplained_share"])
                         ),
                         "visibility_code": row["visibility_code"],
                         "corporate_entity_id": str(row["corporate_entity_id"]),

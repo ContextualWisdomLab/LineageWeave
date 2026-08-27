@@ -3,7 +3,11 @@
 from datetime import datetime, timezone
 from pathlib import Path
 
-from backend.app.source_post_revision import parse_as_of_clock, revision_covers_clock
+from backend.app.source_post_revision import (
+    fetch_known_at_revisions,
+    parse_as_of_clock,
+    revision_covers_clock,
+)
 
 _ROOT = Path(__file__).resolve().parents[1]
 _MIGRATION = _ROOT / "migrations" / "0024_source_post_revision.sql"
@@ -59,3 +63,13 @@ def test_revision_migration_records_title_or_body_rewrites_only() -> None:
     assert seed.index("0024_source_post_revision.sql") < seed.index(
         "0025_role_person_catalog_identity.sql"
     )
+
+
+def test_batch_revision_lookup_omits_missing_covers() -> None:
+    import inspect
+
+    source = inspect.getsource(fetch_known_at_revisions)
+    assert "source_post_revision" in source
+    assert "written_at <= $2" in source
+    assert "superseded_at is null or superseded_at > $2" in source
+    assert "never a live body" in source.lower() or "Missing covers are omitted" in source

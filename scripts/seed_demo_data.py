@@ -127,6 +127,7 @@ def seed(
             cur.execute((migrations / "0182_report_leftover_map_unexplained.sql").read_text())
             cur.execute((migrations / "0185_report_leftover_map_cross_share.sql").read_text())
             cur.execute((migrations / "0206_report_leftover_map_reconstruction.sql").read_text())
+            cur.execute((migrations / "0233_report_leftover_map_unexplained_share.sql").read_text())
             cur.execute((migrations / "0060_role_responsibility_agent_type.sql").read_text())
             cur.execute((migrations / "0013_person_job_title.sql").read_text())
             cur.execute((migrations / "0014_role_responsibility_team_actor_type.sql").read_text())
@@ -1400,8 +1401,8 @@ def _persist_seed_period_report(
             "pair_kind, post_id, criterion_code, leftover_distance, leftover_residual, "
             "observed_response, expected_response, leftover_map_rank, "
             "leftover_map_unexplained, leftover_map_cross_share, "
-            "leftover_map_reconstruction"
-            ") values (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)",
+            "leftover_map_reconstruction, leftover_map_unexplained_share"
+            ") values (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)",
             (
                 grouping_kind,
                 grouping_key,
@@ -1418,6 +1419,7 @@ def _persist_seed_period_report(
                 pair.leftover_map_unexplained,
                 pair.leftover_map_cross_share,
                 pair.leftover_map_reconstruction,
+                pair.leftover_map_unexplained_share,
             ),
         )
     for axis in report.leftover_map_axes:

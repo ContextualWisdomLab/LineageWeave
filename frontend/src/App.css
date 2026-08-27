@@ -526,6 +526,51 @@
   color: var(--text-h);
 }
 
+.voice-assignment-form {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(12rem, 1fr)) auto;
+  align-items: end;
+  gap: var(--space-panel-block);
+}
+
+.voice-assignment-form label {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-control-gap);
+  color: var(--text-h);
+  font-weight: 600;
+}
+
+.voice-assignment-form select,
+.voice-assignment-form button {
+  min-height: var(--size-touch-target);
+}
+
+.voice-assignment-form select {
+  width: 100%;
+  padding-inline: var(--space-chip-inline);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-control);
+  background: var(--surface);
+  color: var(--text-h);
+  font: inherit;
+}
+
+.voice-assignment-feedback {
+  grid-column: 1 / -1;
+  margin: 0;
+}
+
+@media (max-width: 768px) {
+  .voice-assignment-form {
+    grid-template-columns: 1fr;
+  }
+
+  .voice-assignment-form button {
+    width: 100%;
+  }
+}
+
 .lineage-dag-group {
   margin: 0 0 1.25rem;
 }
@@ -1177,6 +1222,38 @@
   margin: 0.75rem 0;
 }
 
+.occupational-construct-catalog-search {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-control-gap, 0.75rem);
+  margin: 0.75rem 0 1rem;
+  padding: var(--space-panel-block, 0.75rem);
+  border: 1px solid var(--color-table-border, var(--border));
+  border-radius: var(--radius-panel, 0.5rem);
+}
+
+.occupational-construct-catalog-search-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-control-gap, 0.75rem);
+  align-items: flex-end;
+}
+
+.occupational-construct-catalog-search-form .ontology-search {
+  flex: 1 1 12rem;
+  margin: 0;
+}
+
+.occupational-construct-catalog-search-form button,
+.occupational-construct-catalog-search .post-list-item {
+  min-height: var(--size-control-min, 44px);
+}
+
+.occupational-construct-catalog-search q {
+  display: block;
+  overflow-wrap: anywhere;
+}
+
 .ontology-graph {
   max-width: 100%;
   overflow: visible;
@@ -1224,6 +1301,10 @@
 
 .ontology-node-team {
   fill: var(--ontology-node-team-fill);
+}
+
+.ontology-node-occupational-construct {
+  fill: var(--ontology-node-occupational-construct-fill);
 }
 
 .ontology-node-project {
@@ -1439,8 +1520,44 @@
 .dashboard-case-card dd { margin: 0; font-weight: 600; }
 .dashboard-case-card button { margin-top: auto; }
 
+.occupation-rating-profile {
+  max-width: 1440px;
+  margin: 0 auto 2rem;
+  padding: 2rem;
+  color: var(--color-text-heading);
+}
+
+.occupation-rating-form {
+  display: grid;
+  grid-template-columns: minmax(16rem, 1fr) minmax(18rem, 1.4fr) auto;
+  align-items: end;
+  gap: var(--space-control-gap);
+  margin: 1rem 0;
+}
+
+.occupation-rating-form label,
+.occupation-rating-occupation-select,
+.occupation-rating-source {
+  display: grid;
+  gap: var(--space-control-gap);
+}
+
+.occupation-rating-form input,
+.occupation-rating-form select { min-height: var(--size-control-min); }
+.occupation-rating-source { grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr)); margin: 1rem 0; }
+.occupation-rating-scroll-hint { display: none; }
+.occupation-rating-table { overflow-x: auto; border: 1px solid var(--color-border); }
+.occupation-rating-table table { width: 100%; min-width: 64rem; border-collapse: collapse; }
+.occupation-rating-table caption { padding: 0.75rem; text-align: left; }
+.occupation-rating-table th,
+.occupation-rating-table td { padding: 0.75rem; border-bottom: 1px solid var(--color-border); text-align: left; vertical-align: top; }
+.occupation-rating-table small { display: block; color: var(--color-text); }
+
 @media (max-width: 900px) {
   .operations-dashboard { padding: 1rem; }
+  .occupation-rating-profile { padding: 1rem; }
+  .occupation-rating-form { grid-template-columns: 1fr; }
+  .occupation-rating-scroll-hint { display: block; }
   .operations-dashboard-heading { align-items: start; flex-direction: column; }
   .dashboard-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .dashboard-case-grid { grid-template-columns: 1fr; }
