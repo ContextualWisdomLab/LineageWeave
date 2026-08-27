@@ -21,10 +21,13 @@ from backend.app.post_eligibility import SOURCE_POST_ELIGIBILITY_SQL
 from lineageweave.knowledge_graph import (
     EDGE_MENTION_PROJECT,
     NODE_CORPORATE_ENTITY,
+    NODE_OCCUPATIONAL_CONSTRUCT,
     NODE_PERSON,
     NODE_POST,
     NODE_PROJECT,
     NODE_TEAM,
+    EDGE_MENTION_PROJECT,
+    EDGE_SUPPORTS_OCCUPATIONAL_CONSTRUCT,
 )
 from lineageweave.ontology import iri_for_lookup_code
 from lineageweave.ontology_neighborhood import (
@@ -199,6 +202,26 @@ async def visible_post_ids_for_focus(
             snapshot_at,
         )
         return [str(row["post_id"]) for row in rows if can_see_post(row)]
+    if focus_node_type_code == NODE_OCCUPATIONAL_CONSTRUCT:
+        query = f"""
+            select post.post_id, post.visibility_code,
+                   post.corporate_entity_id, post.process_unit_id
+              from post_occupational_construct_assertion assertion
+              join source_post post on post.post_id = assertion.post_id
+             where assertion.construct_id = $1::uuid
+               and {SOURCE_POST_ELIGIBILITY_SQL.format(alias='post')}
+               and ($2::timestamptz is null
+                    or greatest(post.created_at, assertion.generated_at) <= $2::timestamptz)
+               and ($3::timestamptz is null
+                    or greatest(post.created_at, assertion.generated_at) <= $3::timestamptz)
+        """
+        rows = await conn.fetch(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
+            query,
+            focus_node_id,
+            knowledge_cutoff,
+            snapshot_at,
+        )
+        return [str(row["post_id"]) for row in rows if can_see_post(row)]
     raise OntologyNeighborhoodError("unknown_node_type", f"unknown node type {focus_node_type_code!r}")
 
 
@@ -210,7 +233,7 @@ async def _visible_post_ids_by_nodes(
     knowledge_cutoff: datetime | None = None,
     snapshot_at: datetime | None = None,
 ) -> dict[tuple[str, str], list[str]]:
-    """Load evidence visibility for all endpoint nodes in five bounded queries.
+    """Load evidence visibility for all endpoint nodes in bounded type queries.
 
     The neighborhood can contain many endpoints. Grouping ids by node type
     preserves the same ABAC predicate as the single-node readers while
@@ -305,6 +328,22 @@ async def _visible_post_ids_by_nodes(
                     or greatest(post.created_at, mention.created_at) <= $3::timestamptz)
             """,
         ),
+        (
+            NODE_OCCUPATIONAL_CONSTRUCT,
+            """
+            select post.post_id, post.visibility_code,
+                   post.corporate_entity_id, post.process_unit_id,
+                   assertion.construct_id as node_id
+              from post_occupational_construct_assertion assertion
+              join source_post post on post.post_id = assertion.post_id
+             where assertion.construct_id = any($1::uuid[])
+               and {eligibility}
+               and ($2::timestamptz is null
+                    or greatest(post.created_at, assertion.generated_at) <= $2::timestamptz)
+               and ($3::timestamptz is null
+                    or greatest(post.created_at, assertion.generated_at) <= $3::timestamptz)
+            """,
+        ),
     )
     for node_type, template in queries:
         ids = ids_by_type[node_type]
@@ -355,6 +394,11 @@ async def focus_catalog_exists(
         return await corporate_entity_exists(conn, focus_node_id)
     if focus_node_type_code == NODE_TEAM:
         return await team_exists(conn, focus_node_id)
+    if focus_node_type_code == NODE_OCCUPATIONAL_CONSTRUCT:
+        row = await conn.fetchrow(
+            "select 1 from occupational_construct where construct_id = $1", focus_node_id
+        )
+        return row is not None
     raise OntologyNeighborhoodError("unknown_node_type", f"unknown node type {focus_node_type_code!r}")
 
 
@@ -414,6 +458,24 @@ async def _load_facts(
                     or greatest(post.created_at, mention.created_at) <= $6::timestamptz)
                and ($7::timestamptz is null
                     or greatest(post.created_at, mention.created_at) <= $7::timestamptz)
+            union all
+            select 'node_post'::text as source_node_type_code,
+                   assertion.post_id::text as source_node_id,
+                   'node_occupational_construct'::text as target_node_type_code,
+                   assertion.construct_id::text as target_node_id,
+                   'edge_supports_occupational_construct'::text as edge_type_code,
+                   min(assertion.truth_status_code)::text as truth_status_code,
+                   min(greatest(post.created_at, assertion.generated_at)) as available_at,
+                   array[assertion.post_id::text] as evidence_ids
+              from post_occupational_construct_assertion assertion
+              join source_post post on post.post_id = assertion.post_id
+             where assertion.post_id = any($1::uuid[])
+               and ($6::timestamptz is null
+                    or greatest(post.created_at, assertion.generated_at) <= $6::timestamptz)
+               and ($7::timestamptz is null
+                    or greatest(post.created_at, assertion.generated_at) <= $7::timestamptz)
+             group by assertion.post_id, assertion.construct_id
+            having count(distinct assertion.truth_status_code) = 1
         ), reachable(node_type_code, node_id, depth) as (
             values ($2::text, $3::text, 0)
             union
@@ -517,7 +579,11 @@ async def _load_facts(
                 provenance_reference=(
                     "post_project_mention"
                     if row["edge_type_code"] == EDGE_MENTION_PROJECT
-                    else "knowledge_graph_edge"
+                    else (
+                        "post_occupational_construct_assertion"
+                        if row["edge_type_code"] == EDGE_SUPPORTS_OCCUPATIONAL_CONSTRUCT
+                        else "knowledge_graph_edge"
+                    )
                 ),
                 truth_status_code=truth_status_code,
             )
@@ -591,14 +657,18 @@ async def _load_labels(
     *,
     knowledge_cutoff: datetime | None = None,
     snapshot_at: datetime | None = None,
+    focus_node_type_code: str | None = None,
+    focus_node_id: str | None = None,
+    visible_post_ids: list[str] | None = None,
 ) -> dict[tuple[str, str], str]:
     """Load only non-empty buyer-visible labels for fact endpoints."""
-    ids_by_type = _node_ids_by_type(facts)
+    ids_by_type = _node_ids_by_type(facts, focus_node_type_code, focus_node_id)
     person_ids = ids_by_type[NODE_PERSON]
     post_ids = ids_by_type[NODE_POST]
     corp_ids = ids_by_type[NODE_CORPORATE_ENTITY]
     team_ids = ids_by_type[NODE_TEAM]
     project_ids = ids_by_type[NODE_PROJECT]
+    construct_ids = ids_by_type[NODE_OCCUPATIONAL_CONSTRUCT]
     labels: dict[tuple[str, str], str] = {}
     if person_ids:
         for row in await conn.fetch(
@@ -663,6 +733,33 @@ async def _load_labels(
                     labels[(NODE_PROJECT, str(row["node_id"]))] = str(
                         row["display_label"]
                     )
+    if construct_ids and visible_post_ids:
+        for row in await conn.fetch(
+            """
+            select construct.construct_id, construct.preferred_label
+              from occupational_construct construct
+             where construct.construct_id = any($1::uuid[])
+               and exists (
+                   select 1
+                     from post_occupational_construct_assertion assertion
+                     join source_post post on post.post_id = assertion.post_id
+                    where assertion.construct_id = construct.construct_id
+                      and assertion.post_id = any($2::uuid[])
+                      and ($3::timestamptz is null
+                           or greatest(post.created_at, assertion.generated_at) <= $3::timestamptz)
+                      and ($4::timestamptz is null
+                           or greatest(post.created_at, assertion.generated_at) <= $4::timestamptz)
+               )
+            """,
+            construct_ids,
+            visible_post_ids,
+            knowledge_cutoff,
+            snapshot_at,
+        ):
+            if row["preferred_label"]:
+                labels[(NODE_OCCUPATIONAL_CONSTRUCT, str(row["construct_id"]))] = str(
+                    row["preferred_label"]
+                )
     return labels
 
 
@@ -1103,6 +1200,9 @@ async def visible_ontology_neighborhood(
         facts,
         knowledge_cutoff=knowledge_cutoff,
         snapshot_at=snapshot_at,
+        focus_node_type_code=focus_node_type_code,
+        focus_node_id=focus_node_id,
+        visible_post_ids=frozen_posts,
     )
     if hasattr(conn, "fetchval"):
         if focus_node_type_code == NODE_POST:

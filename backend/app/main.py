@@ -141,6 +141,9 @@ from backend.app.post_content_queue import (
     post_content_is_complete,
     publish_post_content_event,
 )
+from backend.app.occupational_construct_ingestion import (
+    load_occupational_construct_assertions,
+)
 from backend.app.post_content_worker import run_post_content_worker
 from backend.app.post_eligibility import SOURCE_POST_ELIGIBILITY_SQL, source_post_visible
 from backend.app.post_evaluation_ingestion import (
@@ -169,6 +172,7 @@ from backend.app.source_post_voice_ingestion import (
     persist_additional_voice_assignment,
 )
 from lineageweave.adjudication_client import (
+    AdjudicationClientError,
     ContextualOrchestratorAdjudicationClient,
     NullAdjudicationClient,
 )
@@ -1358,7 +1362,7 @@ async def rebuild_lineage_graph(
             "Channel weights are not estimated yet. Run "
             "scripts/estimate_channel_weights.py, then rebuild again.",
         ) from exc
-    except (HttpClientError, OSError) as exc:
+    except (AdjudicationClientError, HttpClientError, OSError) as exc:
         # This can issue up to MAXIMUM_LIVE_LLM_PAIR_EVALUATIONS sequential
         # adjudication calls across the whole corpus (lineage_ingestion.py);
         # a transient orchestrator hiccup on any one of them must not
@@ -1706,6 +1710,7 @@ async def read_post(
     body before treating the live text as reconstructed evidence.
     """
     _require_post_read(account)
+    settings = load_settings()
     as_of_clock = None
     if as_of is not None:
         try:
@@ -1739,6 +1744,23 @@ async def read_post(
             conn, post_id, row["source_project_code"], row["source_project_name"]
         )
         voice_types = await _load_post_voice_types(conn, post_id, as_of_clock)
+        if as_of_clock is None:
+            occupational_construct_assertions = (
+                await load_occupational_construct_assertions(conn, post_id)
+            )
+            occupational_construct_evidence_status = (
+                await load_occupational_construct_evidence_status(
+                    conn,
+                    post_id,
+                    evidence_configured=bool(
+                        settings.orchestrator_base_url
+                        and settings.orchestrator_api_key
+                    ),
+                )
+            )
+        else:
+            occupational_construct_assertions = []
+            occupational_construct_evidence_status = "historical_unavailable"
         known_at = None
         if as_of_clock is not None:
             known_at = await fetch_known_at_revision(conn, post_id, as_of_clock)
@@ -1747,6 +1769,7 @@ async def read_post(
         "post_body": row["post_body"],
         "project_evidence": project_evidence,
         "voice_types": voice_types,
+        "occupational_construct_assertions": occupational_construct_assertions,
     }
     if known_at is not None:
         payload["known_at"] = known_at
@@ -3282,6 +3305,9 @@ async def ask_agent(
     polls ``GET /api/ask/jobs/{id}`` for the settled answer. Submission
     still fails fast on the states that cannot ever succeed (blank
     question, missing permission, unconfigured orchestrator).
+
+    Optional ``knowledge_cutoff`` selects retained evidence available at
+    that clock. Omitting it keeps the live-query contract (ADR 0216).
     """
     return await submit_global_ask(
         pool=pool,

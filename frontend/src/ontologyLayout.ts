@@ -23,7 +23,9 @@ export type OntologyLayout = {
 export const ONTOLOGY_NODE_LABEL_WIDTH = 184;
 
 const COLUMN_GAP = 260;
-const ROW_GAP = 88;
+// Two-line node labels occupy the lower half of a row; 128px keeps the next
+// relation label out of that label box at the shared-column midpoint.
+const ROW_GAP = 128;
 const LEFT = ONTOLOGY_NODE_LABEL_WIDTH / 2 + 20;
 const TOP = 48;
 const ONTOLOGY_NAMESPACE = "https://contextualwisdomlab.github.io/LineageWeave/ontology#";

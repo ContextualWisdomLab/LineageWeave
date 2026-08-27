@@ -191,6 +191,11 @@ _LEFTOVER_MAP_RECONSTRUCTION_MIGRATION = (
     / "migrations"
     / "0206_report_leftover_map_reconstruction.sql"
 )
+_LEFTOVER_MAP_UNEXPLAINED_SHARE_MIGRATION = (
+    Path(__file__).resolve().parents[2]
+    / "migrations"
+    / "0233_report_leftover_map_unexplained_share.sql"
+)
 _GLOBAL_ASK_JOB_MIGRATION = (
     Path(__file__).resolve().parents[2]
     / "migrations"
@@ -255,6 +260,17 @@ _VOICE_ASSIGNMENT_MIGRATION = (
     Path(__file__).resolve().parents[2]
     / "migrations"
     / "0237_source_post_voice_combination.sql"
+    Path(__file__).resolve().parents[2] / "migrations" / "0175_ontology_truth_status.sql"
+)
+_OCCUPATIONAL_CONSTRUCT_MIGRATION = (
+    Path(__file__).resolve().parents[2]
+    / "migrations"
+    / "0238_occupational_construct_assertion.sql"
+)
+_OCCUPATIONAL_CATALOG_MIGRATION = (
+    Path(__file__).resolve().parents[2]
+    / "migrations"
+    / "0239_occupational_construct_catalog.sql"
 )
 
 
@@ -421,17 +437,24 @@ def seeded_db(demo_analyst_token):
                 sql = statement.strip()
                 if sql:
                     cur.execute(sql)
+            for statement in _GLOBAL_ASK_EVIDENCE_SEARCH_MIGRATION.read_text().split(";\n\n"):
+                if statement.strip():
+                    cur.execute(statement + ";")
             cur.execute(_GLOBAL_ASK_KNOWLEDGE_CUTOFF_MIGRATION.read_text())
             cur.execute(_GLOBAL_ASK_PUBLIC_VERIFICATION_MIGRATION.read_text())
             cur.execute(_EVENT_OCCURRED_AT_MIGRATION.read_text())
+            cur.execute(_ONTOLOGY_TRUTH_STATUS_MIGRATION.read_text())
             cur.execute(_LEFTOVER_MAP_AXIS_MIGRATION.read_text())
             cur.execute(_CHANNEL_EVIDENCE_MIGRATION.read_text())
+            cur.execute(_OCCUPATIONAL_CONSTRUCT_MIGRATION.read_text())
+            cur.execute(_OCCUPATIONAL_CATALOG_MIGRATION.read_text())
             cur.execute(_LEFTOVER_MAP_UNEXPLAINED_MIGRATION.read_text())
             cur.execute(_LEFTOVER_MAP_CROSS_SHARE_MIGRATION.read_text())
             cur.execute(_LEFTOVER_MAP_RECONSTRUCTION_MIGRATION.read_text())
             cur.execute(_ONTOLOGY_TRUTH_STATUS_MIGRATION.read_text())
             cur.execute(_VOICE_TAXONOMY_MIGRATION.read_text())
             cur.execute(_VOICE_ASSIGNMENT_MIGRATION.read_text())
+            cur.execute(_LEFTOVER_MAP_UNEXPLAINED_SHARE_MIGRATION.read_text())
             cur.execute(
                 "insert into common_lookup_value (lookup_category, lookup_code, lookup_label) values "
                 "('corporate_entity_level', 'group', 'Group'), "
@@ -1996,6 +2019,100 @@ def test_post_detail_exposes_explicit_and_semantic_project_evidence(
     )
     assert listed_post["project_evidence"][0]["project_name"] == "Semantic project"
     assert listed_post["project_evidence"][0]["provenance"] == "post_project_mention.evidence_text"
+
+
+def test_post_detail_exposes_evidence_bound_occupational_construct(
+    client, demo_analyst_token, seeded_db
+) -> None:
+    """The authorized detail projection preserves its exact synthetic evidence."""
+    conn = psycopg2.connect(seeded_db["dsn"])
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                insert into post_content_unit
+                    (post_id, unit_index, unit_kind_code, unit_text)
+                values (%s, 90, 'plain_text', %s)
+                returning post_content_unit_id
+                """,
+                (
+                    seeded_db["public_post_id"],
+                    "Synthetic record requires oral comprehension.",
+                ),
+            )
+            unit_id = cur.fetchone()[0]
+            cur.execute(
+                """
+                insert into occupational_construct_vocabulary
+                    (vocabulary_iri, version_label, license_iri, attribution_text)
+                values (%s, '31.0', %s, 'Synthetic O*NET attribution')
+                returning vocabulary_id
+                """,
+                (
+                    "https://www.onetcenter.org/database.html",
+                    "https://creativecommons.org/licenses/by/4.0/",
+                ),
+            )
+            vocabulary_id = cur.fetchone()[0]
+            cur.execute(
+                """
+                insert into occupational_construct
+                    (vocabulary_id, construct_iri, construct_family_code, preferred_label)
+                values (%s, %s, 'cognitive_ability', 'Oral Comprehension')
+                returning construct_id
+                """,
+                (vocabulary_id, "https://data.onetcenter.org/element/1.A.1.a.1"),
+            )
+            construct_id = cur.fetchone()[0]
+            cur.execute(
+                """
+                insert into post_occupational_construct_assertion
+                    (post_id, post_content_unit_id, construct_id, evidence_text,
+                     truth_status_code, extraction_method, orchestrator_session_id)
+                values (%s, %s, %s, 'oral comprehension', 'truth_inferred',
+                        'contextual_orchestrator_structured', 'synthetic-session')
+                """,
+                (seeded_db["public_post_id"], unit_id, construct_id),
+            )
+        conn.commit()
+    finally:
+        conn.close()
+
+    response = client.get(
+        f"/api/posts/{seeded_db['public_post_id']}",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert response.status_code == 200
+    assertions = response.json()["occupational_construct_assertions"]
+    assert assertions[0]["preferred_label"] == "Oral Comprehension"
+    assert assertions[0]["evidence_text"] == "oral comprehension"
+    assert assertions[0]["provenance"] == (
+        "post_occupational_construct_assertion.evidence_text"
+    )
+
+    conn = psycopg2.connect(seeded_db["dsn"])
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                update post_content_ingestion_job
+                   set source_body_sha256 = %s,
+                       status_code = 'post_content_ingestion_failed'
+                 where post_id = %s
+                """,
+                ("f" * 64, seeded_db["public_post_id"]),
+            )
+        conn.commit()
+    finally:
+        conn.close()
+
+    stale = client.get(
+        f"/api/posts/{seeded_db['public_post_id']}",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert stale.status_code == 200
+    assert stale.json()["occupational_construct_evidence_status"] == "unavailable"
+    assert stale.json()["occupational_construct_assertions"] == []
 
 
 def test_post_detail_as_of_returns_the_cutoff_known_body(
@@ -5885,10 +6002,15 @@ def test_seed_period_report_surfaces_on_get_reports(client, demo_analyst_token, 
         if share is not None:
             assert not math.isnan(share)
             assert not math.isinf(share)
+        unexplained_share = pair.get("leftover_map_unexplained_share")
+        assert unexplained_share is None or isinstance(unexplained_share, (int, float))
+        if unexplained_share is not None:
+            assert not math.isnan(unexplained_share)
+            assert not math.isinf(unexplained_share)
+            assert unexplained_share >= 0.0
         if unexplained is not None and reconstruction is not None:
             assert unexplained + reconstruction == pytest.approx(pair["leftover_residual"])
         assert "leftover_map_explained_share" not in pair
-        assert "leftover_map_unexplained_share" not in pair
     leftover_axes = high_report.get("leftover_map_axes", [])
     assert [axis["axis_index"] for axis in leftover_axes] == [1, 2]
     assert all(axis["leftover_singular_value"] >= 0 for axis in leftover_axes)
@@ -5949,6 +6071,11 @@ def test_seed_period_report_surfaces_on_get_reports(client, demo_analyst_token, 
     assert all(
         pair.get("leftover_map_reconstruction") is None
         or isinstance(pair["leftover_map_reconstruction"], (int, float))
+        for pair in leftover_thread.get("leftover_pairs", [])
+    )
+    assert all(
+        "leftover_map_unexplained_share" not in pair
+        and "leftover_map_explained_share" not in pair
         for pair in leftover_thread.get("leftover_pairs", [])
     )
 

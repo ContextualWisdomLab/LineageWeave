@@ -26,6 +26,10 @@ from backend.app.post_content_queue import (
     transition_post_content_job,
 )
 from backend.app.operations_case_ingestion import persist_operations_cases
+from backend.app.occupational_construct_ingestion import (
+    extract_occupational_construct_assertions,
+    persist_occupational_construct_assertions,
+)
 from backend.app.post_chat_ingestion import gather_chat_sources
 from lineageweave.embedding_client import EmbeddingClient
 from lineageweave.http_client import HttpClientError
@@ -35,6 +39,9 @@ from lineageweave.observability import record_server_failure, traced
 from lineageweave.operations_case_analysis import (
     ContextualOrchestratorOperationsCaseAnalysisClient,
     OperationsEvidenceSource,
+)
+from lineageweave.occupational_construct_extraction import (
+    ContextualOrchestratorOccupationalConstructExtractionClient,
 )
 from lineageweave.post_content_normalization import normalize_post_body
 from lineageweave.post_content_persistence import persist_post_content
@@ -170,7 +177,15 @@ async def _claim_job(
                         source_body_digest,
                     )
                 )
-                if content_complete and case_complete:
+                construct_complete = not require_structure or bool(
+                    await conn.fetchval(
+                        "select exists (select 1 from post_occupational_construct_extraction "
+                        "where post_id = $1 and source_body_sha256 = $2)",
+                        post_id,
+                        source_body_digest,
+                    )
+                )
+                if content_complete and case_complete and construct_complete:
                     return None
             if status_code == RUNNING and row["job_started_at"] is not None:
                 stale = await conn.fetchval(
@@ -355,6 +370,23 @@ async def process_post_content_job(
                         raw_body,
                         metadata["lineageweave_post_session_id"],
                         cases,
+                    )
+                construct_client = (
+                    ContextualOrchestratorOccupationalConstructExtractionClient(
+                        settings.orchestrator_base_url,
+                        settings.orchestrator_api_key,
+                    )
+                )
+                assertions = await extract_occupational_construct_assertions(
+                    pool, post_id, construct_client
+                )
+                async with pool.acquire() as conn:
+                    await persist_occupational_construct_assertions(
+                        conn,
+                        post_id,
+                        metadata["lineageweave_post_session_id"],
+                        assertions,
+                        source_body_sha256=source_body_digest,
                     )
             async with pool.acquire() as conn:
                 complete = await post_content_is_complete(

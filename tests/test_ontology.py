@@ -21,10 +21,12 @@ from lineageweave.knowledge_graph import (
     EDGE_CO_MENTION,
     EDGE_MENTION,
     EDGE_MENTION_PROJECT,
+    EDGE_SUPPORTS_OCCUPATIONAL_CONSTRUCT,
     NODE_CORPORATE_ENTITY,
     NODE_PERSON,
     NODE_POST,
     NODE_PROJECT,
+    NODE_OCCUPATIONAL_CONSTRUCT,
 )
 from lineageweave.ontology import (
     LOOKUP_CODE,
@@ -44,6 +46,7 @@ _SEED_SCRIPT_PATH = (
 # text -- read alongside it below so the round-trip still sees them:
 # 0012 (ADR 0006: prov_person/prov_organization), 0014 (ADR 0007:
 # prov_team), 0016 (ADR 0009: node_team/edge_mention_team/
+
 # edge_team_affiliation/edge_mention_organization), 0042 (ADR 0207:
 # the original five voc_type post-type codes) + 0235 (ADR 0246: the
 # seven further Voice-of-X post-type codes), and
@@ -59,12 +62,13 @@ _ADDITIONAL_LOOKUP_MIGRATION_PATHS = (
     / "migrations"
     / "0016_cross_post_actor_identity.sql",
     Path(__file__).resolve().parents[1] / "migrations" / "0042_voc_type_vocabulary.sql",
+    Path(__file__).resolve().parents[1] / "migrations" / "0220_ontology_project_node.sql",
     Path(__file__).resolve().parents[1]
     / "migrations"
     / "0235_voice_of_x_post_taxonomy.sql",
     Path(__file__).resolve().parents[1]
     / "migrations"
-    / "0220_ontology_project_node.sql",
+    / "0241_occupational_construct_ontology_navigation.sql",
 )
 
 # The categories this ontology covers (ADR 0004's scope, extended by
@@ -137,9 +141,11 @@ def test_knowledge_graph_lookup_constants_are_declared_in_the_ontology() -> None
         NODE_CORPORATE_ENTITY,
         NODE_POST,
         NODE_PROJECT,
+        NODE_OCCUPATIONAL_CONSTRUCT,
         EDGE_MENTION,
         EDGE_AFFILIATION,
         EDGE_MENTION_PROJECT,
+        EDGE_SUPPORTS_OCCUPATIONAL_CONSTRUCT,
         EDGE_CO_MENTION,
     ):
         assert code in declared, (

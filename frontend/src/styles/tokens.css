@@ -110,6 +110,7 @@
   --ontology-node-person-fill: #ede7f6;
   --ontology-node-organization-fill: #fff3e0;
   --ontology-node-team-fill: #e0f2f1;
+  --ontology-node-occupational-construct-fill: #e8eaf6;
   --ontology-node-project-fill: var(--color-accent-background);
   --ontology-node-generic-fill: var(--color-background);
 
@@ -222,6 +223,7 @@
     --ontology-node-person-fill: #30234d;
     --ontology-node-organization-fill: #4b2e1d;
     --ontology-node-team-fill: #123f3b;
+    --ontology-node-occupational-construct-fill: #2f2a5e;
     --ontology-node-project-fill: var(--color-accent-background);
     --ontology-node-generic-fill: var(--color-background);
 

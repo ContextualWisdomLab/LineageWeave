@@ -110,6 +110,13 @@ export interface PostKnownAt {
 
 export interface PostDetail extends PostSummary {
   post_body: string;
+  occupational_construct_assertions: OccupationalConstructAssertion[];
+  occupational_construct_evidence_status:
+    | "complete"
+    | "processing"
+    | "unavailable"
+    | "setup_required"
+    | "historical_unavailable";
   known_at?: PostKnownAt;
 }
 
@@ -274,6 +281,20 @@ export interface ProjectEvidence {
   provenance: string;
 }
 
+export interface OccupationalConstructAssertion {
+  construct_iri: string;
+  construct_family_code: string;
+  preferred_label: string;
+  vocabulary_iri: string;
+  vocabulary_version: string;
+  evidence_text: string;
+  truth_status_code: string;
+  extraction_method: string;
+  generated_at: string;
+  unit_index: number;
+  provenance: string;
+}
+
 export interface PostAiSummary {
   post_id: string;
   korean_summary: string;
@@ -335,6 +356,13 @@ export interface CitedPostRef {
   live_changed_after_cutoff?: boolean;
   historical_body_unavailable?: boolean;
   unavailable_channels?: string[];
+  evidence_open_action?: EvidenceOpenAction;
+}
+
+export interface EvidenceOpenAction {
+  action_kind: "open_cited_content_unit";
+  post_id: string;
+  unit_index: number;
 }
 
 export interface CitedPostEvidenceFact {
@@ -1072,6 +1100,7 @@ export interface LeftoverPair {
   leftover_map_unexplained?: number | null;
   leftover_map_cross_share?: number | null;
   leftover_map_reconstruction?: number | null;
+  leftover_map_unexplained_share?: number | null;
 }
 
 export interface LeftoverMapAxis {
@@ -1219,6 +1248,16 @@ interface AskJobStatus {
   failure_detail?: string | null;
 }
 
+export function optionalKnowledgeCutoffIso(value: string): string | undefined {
+  const input = value.trim();
+  if (!input) return undefined;
+  const parsed = new Date(input);
+  if (Number.isNaN(parsed.getTime())) {
+    throw new RangeError("invalid knowledge cutoff");
+  }
+  return parsed.toISOString();
+}
+
 /** Submit the question as an asynchronous job and poll it to completion.
  * The signature and resolved value are unchanged from the old synchronous
  * call, so callers (AskAgentPanel) keep their existing pending/complete
@@ -1356,6 +1395,12 @@ export interface AnalysisRunVisiblePost {
   live_after_cutoff?: boolean;
 }
 
+export interface AnalysisRunTeppAcceptedReceipt {
+  remote_run_id: string;
+  accepted_status_code: "accepted";
+  received_at: string;
+}
+
 export interface AnalysisRun {
   analysis_run_id: string;
   run_kind_code: AnalysisRunKindCode;
@@ -1378,6 +1423,7 @@ export interface AnalysisRun {
   reconstruction_result_sha256?: string;
   topic_lineage_result?: Record<string, unknown>;
   topic_lineage_result_sha256?: string;
+  tepp_accepted_receipt?: AnalysisRunTeppAcceptedReceipt;
   code_revision_sha?: string;
   configuration_sha256?: string;
 }

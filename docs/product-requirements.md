@@ -68,6 +68,101 @@ evidence as distinct actions;
 the authoring form has explicit selections, permission/cutoff gating, retryable
 feedback, keyboard labels, and desktop/mobile Storybook evidence.
 
+### PRD-FR-2A — Worker-function taxonomy
+
+- Publish the DOT/FJA Data/People/Things worker functions (24 concepts,
+  official definitions verbatim) in the canonical ontology namespace
+  (ADR 0232), each with its definitional ordinal rank. Do not infer a
+  DOT-to-O*NET or Fleishman crosswalk that the authorities do not publish.
+- Expose the taxonomy through a deterministic application read model with
+  fail-closed lookups; an absent function is an honest unknown.
+- Carry no numeric weight from the taxonomy: ranks are scale positions,
+  never calibrated weights.
+
+Acceptance: completeness, full verbatim definitions, deterministic ordering,
+and lookup round-trip isolation are enforced by
+`tests/test_worker_function_taxonomy.py`; `tests/test_ontology.py`
+continues to pass unchanged.
+
+### PRD-FR-2B — Evidence-bound occupational constructs
+
+- Keep cognitive abilities, work styles, work activities, affective
+  reactions, and performance behaviors as non-equivalent construct classes
+  (ADR 0248). FJA worker functions remain separate.
+- Reuse official external identifiers and source-published relationships;
+  never infer a DPT-to-psychology crosswalk or relabel work style as affect.
+- Bind a construct to record content only through a provenance-bearing,
+  evidence-cited assertion. Do not promote record evidence to a person trait,
+  score, causal effect, or job requirement.
+
+Acceptance: SHACL rejects incomplete assertions; ontology tests prohibit FJA
+equivalence and require exact Post/evidence/PROV statement structure. ADR 0249
+adds normalized, semantic-unit-bound persistence and an authorized Post-detail
+projection. ADR 0250 synchronizes all official O*NET cognitive-ability,
+work-style, and work-activity Content Model elements into that versioned
+registry without importing ratings. Search, graph navigation, extraction, and
+UI remain unavailable until their separate ADR acceptance. ADR 0253 adds
+catalog-bound semantic-unit extraction through contextual-orchestrator's
+multi-agent conduct path; exact offered IRIs and verbatim spans are required,
+and a digest-bound run record distinguishes a supported empty result from an
+unavailable provider. ADR 0254 adds the authorized Post-detail evidence review
+surface and honest complete, processing, and unavailable states. ADR 0255
+projects assertion-backed constructs into the existing ABAC-filtered ontology
+neighborhood without duplicating graph storage or promoting truth. Catalog
+search remains unavailable.
+
+### PRD-FR-2C — FJA I/O-Psychology cognitive, affective & behavioral semantic layer
+
+- Project the DOT/FJA Data/People/Things worker functions into their
+  grounded nomological network of cognitive, affective, and behavioral
+  I/O-Psychology constructs (ADR 0251): information processing, mental
+  workload, executive functioning, and appraisal; emotional labor,
+  burnout, engagement, psychological safety, and commitment; task,
+  citizenship, counterproductive, safety, proactive, adaptive, and
+  withdrawal behavior.
+- Declare each construct with its psychological dimension and an APA 7th
+  literature anchor; keep `:CognitiveConstruct` / `:AffectiveConstruct` /
+  `:BehavioralConstruct` disjoint and validate with SHACL.
+- Keep FJA-derived constructs distinct from ADR 0248's evidence-bound
+  O*NET-style occupational construct classes: no crosswalk, equivalence,
+  or implied fit is asserted.
+- Carry no numeric weight: the layer is a semantic taxonomy, never a
+  calibrated measurement (ADR 0145 governs estimation).
+
+Acceptance: `tests/test_iopsy_taxonomy.py` enforces construct coverage,
+literature-anchored metadata, fail-closed lookups, per-function profile
+completeness, and composite-job aggregation; `tests/test_ontology_shapes.py`
+validates the disjoint SHACL shapes.
+
+
+
+### PRD-FR-2B-2 — Occupational classification and worker-characteristic taxonomy
+
+- Publish the 23 major groups of the 2018 Standard Occupational
+  Classification (the O*NET job-family grouping) with official titles
+  and codes verbatim, plus the four O*NET 31.0 job-zone categories with
+  published names and source values 2 through 5 (ADR 0245).
+- Publish the worker-characteristic families that work-related
+  cognition, affect, and behavior resolve into: Fleishman's four ability
+  domains, Holland's six RIASEC interest types with the published
+  hexagonal adjacency relation, the six explicitly legacy O*NET work-value
+  clusters, and
+  the seven higher-order dimensions of the revised O*NET Work Styles
+  structure.
+- Declare typed derivation properties from classifications to
+  characteristics but assert no instance binding; binding requires a
+  versioned released source profile imported with provenance in its own
+  decision.
+- Expose everything through a deterministic application read model with
+  fail-closed lookups; carry no numeric importance or level rating from
+  any occupational profile.
+
+Acceptance: completeness counts, verbatim titles, closed RIASEC
+vocabulary, exact published adjacency pairs, deterministic ordering,
+canonical namespace, and lookup round-trip isolation are enforced by
+`tests/test_io_taxonomy.py`; `tests/test_ontology.py` continues to pass
+unchanged.
+
 ### PRD-FR-3 — Bounded ontology exploration
 
 - Apply RBAC/ABAC, source eligibility, and knowledge cutoff before graph
@@ -233,6 +328,7 @@ A release claim requires one exact protected-main head that proves:
 - Asynchronous delivery and database-pool isolation: ADR 0204, ADR 0213.
 - Knowledge Graph, ontology, and provenance: ADR 0004, ADR 0011, ADR 0065,
   ADR 0184, ADR 0207, ADR 0222, ADR 0246, ADR 0256.
+  ADR 0184, ADR 0207, ADR 0222, ADR 0246.
 - Semantic units and retrieval: ADR 0047, ADR 0062, ADR 0102, ADR 0217.
 - LLM/model boundary: ADR 0070, ADR 0072, ADR 0076, ADR 0079.
 - Measurement: ADR 0003, ADR 0145, ADR 0200, ADR 0205.

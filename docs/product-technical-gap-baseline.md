@@ -6,6 +6,16 @@
 > audited at implementation head
 > `d5fe4828e9005f0157c308e8ea3c3a590cdf465b`. This candidate and the
 > historical evidence below are not protected-main release evidence.
+> Loop snapshot: 2026-08-27. Protected `main` advanced through the
+> I/O-Psychology job-family and occupational-classification delivery: PRs
+> #709 (DOT/FJA worker functions, ADR 0232), #718 (evidence-bound construct
+> classes, ADR 0248), +#726 (catalog-bound construct extraction, ADR 0253),
+> #733 (construct evidence navigation, ADR 0255), #713 (Voice-of-X ADR 0246),
+> #753 (FJA I/O-Psychology semantic layer, ADR 0251), #751 (SOC/O*NET/RIASEC
+> taxonomy, ADR 0245), #749 (authorized job-family and job-series snapshot
+> import, ADR 0263), #657 (TEPP lifecycle evidence), #704, #720, and #754 are
+> now merged. The still-open queue is carried in section 1. No row below is
+> release evidence until re-verified on a specific head.
 
 ## Voice-of-X product and technical gap
 
@@ -142,12 +152,95 @@ therefore necessary on that exact base, yet overlap #713 and must be reconciled
 when the stack is eventually rebuilt on protected `main`; neither branch is a
 second taxonomy authority, and pre-parent Checks cannot transfer across that
 restack.
+The remaining user-visible gap is evidence-bearing composition. A post still
+has one source-provided `voc_type_code`; the product cannot yet represent a
+single record that intentionally carries multiple independently evidenced
+voices, nor expose the combination in filters, exports, or the ontology
+neighborhood. Do not solve this by adding every Cartesian-product code. The
+acceptance boundary for a later ADR is a normalized, provenance-bearing
+multi-voice association that:
+
+1. preserves the imported primary voice without reclassification;
+2. records each additional voice with its own source/evidence and truth state;
+3. keeps post voice distinct from named-counterparty relationship, actor role,
+   topic, channel, lifecycle, and stakeholder-salience attributes;
+4. returns only authorized associations through API, JSON-LD, CSV, filters,
+   and UI; and
+5. proves zero-, one-, and multi-voice states with synthetic fixtures,
+   migration replay, ontology/SHACL, API, accessibility, and Storybook edge
+   tests before any release claim.
+
+At this snapshot the repository had 23 open PRs and 10 open issues. PR #713
+was `MERGEABLE` but policy-blocked: exact-head backend, frontend, CodeQL,
+ontology-publication, Semgrep, OSV, Trivy, Scorecard, Noema, Devin, and
+CodeRabbit checks were successful; `coverage-source-tree` was queued; Strix
+failed closed with `STRIX_PROVIDER_UNAVAILABLE`; and an independent approval
+was still required. Auto-merge remains enabled. No self-approval, admin bypass,
+or stale-head check transfer is permitted.
 
 References for this gap use the APA 7 entries in ADR 0246. Current supporting
 standards pages were rechecked on 2026-08-27: ISO 26000:2010 remains applicable
 to all organization types and AA1000SES v3 is under development for a planned
 2027 release, so the repository continues to cite the published AA1000SES
 (2015) contract rather than treating the draft as adopted policy.
+
+> Current queue overlay: 2026-08-27 KST. Protected `main` was
+> `ff7431bd1851c03e737808d22c6a2d43968582f9`; 26 PRs and 10 issues were
+> open. This overlay supersedes the older queue count and exact-head table
+> below, which remain historical evidence. Re-fetch the head, checks, reviews,
+> threads, applicable rulesets, and merge SHA immediately before any lifecycle
+> claim. No local branch or stacked-branch result is protected-main evidence.
+
+## Current occupational semantic-layer gap
+
+ADR 0245's candidate branch publishes only a provenance-safe classification
+foundation: 23 2018 SOC major groups, four O*NET 31.0 Job Zone categories, six RIASEC interest
+types and their published adjacency, six explicitly legacy work-value clusters, seven
+revised work-style dimensions, and four ability domains. It asserts no
+occupation-to-characteristic instance profile and therefore does **not** yet
+satisfy the requested job-family, job-series, and occupation-level coverage of
+work cognition, affect, behavior, or their empirical relations. This is an
+explicit unavailable state, not a reason to infer mappings from labels.
+
+| Gap | Current evidence | Acceptance requirement |
+|---|---|---|
+| Classification depth | ADR 0245 and `lineageweave/io_taxonomy.py` expose SOC major groups only; schemes now name versioned PROV source entities and the stable O*NET 31.0 Job Zone JSON digest | Import a versioned authoritative classification release with provenance-preserving major, minor, broad, and detailed occupation identifiers; add ISCO/ESCO crosswalks only where the publishing authority supplies them |
+| Construct granularity | The candidate ontology exposes 23 high-level characteristic concepts | Publish source-versioned O*NET abilities, skills, knowledge, work activities, work context, interests, and work styles without collapsing cognition, affect, and behavior into one dimension; preserve removed Work Values only as versioned legacy content |
+| Occupation-to-construct relations | ADR 0245 deliberately declares relation properties without instance assertions | Persist released source observations with source version, occupation code, element identifier, scale identifier, value, sample/error metadata when supplied, and provenance; never invent or locally normalize a weight |
+| Job-family and job-series semantics | No authoritative employer-specific job architecture is present | Define an organization-neutral import contract that preserves the authorized source hierarchy and distinguishes standard occupation codes from employer job families/series; no label-based binding |
+| Temporal and multilevel interpretation | Static vocabulary only; no person-level inference is asserted | Version valid and transaction time, preserve occupation/organization/unit nesting and multiple membership, and require TEPP or the owning Rust psychometric service before any calibrated temporal or multilevel result |
+| Product consumption | The read model has no persisted semantic-layer consumer or authenticated UI evidence | Add a provenance-bearing API and accessible ontology exploration flow, then verify synthetic Storybook edge states plus authenticated aggregate runtime evidence without exposing identifying records |
+
+### Current exact-head PR queue
+
+| PR | Exact observed head | Base | Observed gate state |
+|---:|---|---|---|
+| #719 | `0cea830a` | `feat/fja-worker-function-ontology` | unstable; 1 pending check(s) |
+| #718 | `a3fb32bb` | `feat/fja-worker-function-ontology` | clean; no non-passing check observed |
+| #717 | `771a8edf` | `feat/voice-of-x-complete-taxonomy` | unstable; 1 pending check(s) |
+| #716 | `8b54b2f7` | `fix/structured-workflow-exact-pin` | clean; no non-passing check observed |
+| #714 | `aa93318f` | `main` | blocked; no non-passing check observed |
+| #713 | `cc3dfc14` | `main` | blocked; review required; 13 pending check(s) |
+| #711 | `8902e37f` | `feat/dashboard-case-metrics` | clean; no non-passing check observed |
+| #710 | `8df04b68` | `main` | blocked; review required; no non-passing check observed |
+| #709 | `8ef4090c` | `main` | blocked; review required; 11 pending check(s) |
+| #704 | `027323cf` | `main` | blocked; review required; 2 failed check(s) |
+| #702 | `5de66ab9` | `main` | blocked; review required; 2 pending check(s) |
+| #701 | `cc3351a9` | `main` | blocked; review required; 1 failed check(s) |
+| #700 | `1bc99eca` | `main` | blocked; review required; 1 failed check(s) |
+| #680 | `efe864e5` | `main` | blocked; 1 failed check(s) |
+| #679 | `13ecf41d` | `main` | blocked; no non-passing check observed |
+| #672 | `a3e87a89` | `main` | blocked; review required; 1 failed check(s) |
+| #668 | `1194f44d` | `main` | blocked; review required; 1 failed check(s) |
+| #667 | `c2d11a8a` | `main` | blocked; review required; 2 pending check(s) |
+| #658 | `15d670f0` | `main` | blocked; review required; 1 failed check(s) |
+| #657 | `9f71681c` | `main` | blocked; review required; 1 failed check(s) |
+| #644 | `f53dd28e` | `main` | blocked; review required; 1 failed check(s) |
+| #643 | `8767de1b` | `main` | blocked; review required; 1 failed check(s); 1 pending check(s) |
+| #640 | `5594029c` | `main` | blocked; no non-passing check observed |
+| #639 | `2f4b1bff` | `main` | blocked; review required; 1 failed check(s) |
+| #632 | `24262a99` | `main` | blocked; review required; 1 failed check(s) |
+| #629 | `b721b0f2` | `main` | blocked; review required; 1 failed check(s) |
 
 > Dashboard delivery snapshot: 2026-08-26 07:15 KST. Protected `main` was
 > `494b54e2245040bcf02b45376f221c37cd437e76`. This local branch is not
@@ -395,6 +488,12 @@ Substantially present on protected `main`:
   baseline entry is stale).
 - Semantic paragraph/list/table/image-region units that preserve the source
   representation and provenance instead of flattening it into one body string.
+- FJA→I/O-Psychology semantic layer (ADR 0251): the published DOT/FJA
+  Data/People/Things worker functions (ADR 0232) project into disjoint
+  cognitive, affective, and behavioral constructs with APA 7th anchors,
+  SHACL validation, and a deterministic typed read model
+  (`lineageweave/iopsy_taxonomy.py`); no fitted weight or O*NET/ADR 0248
+  crosswalk is asserted (ADR 0145).
 - Contextual-orchestrator boundaries for adjudication, extraction, summaries,
   chat, embeddings, and VISION; null channels remain unavailable and are
   dropped from score fusion.
@@ -503,7 +602,7 @@ this file per §3.5 of the prior snapshot).
 | #277 | TEPP: persist accepted receipts, poll completed results, keep measurement authority distinct | #657 consumer lifecycle; executable producer route remains unavailable |
 | #280 | Full project-lifecycle history and handover intervals | #640 adds case/project journeys and #663 adds evidence-backed Project exploration; authoritative lifecycle reconciliation remains #284 |
 | #284 | Authoritative lifecycle ingestion and idempotent reconciliation | No active delivery PR confirmed |
-| #338 | Evidence-bounded email/project lineage contract for Naruon consumption | Missing on protected `main`; #343 merged only into a non-default stack, while #355 is a distinct calendar-consumer contract and is not delivery evidence for email/project lineage |
+| #338 | Evidence-bounded email/project lineage contract for Naruon consumption | #704 recreates the provider-side contract on current `main` without arbitrary fusion weights; #343 remains only a non-default-stack merge and #355 is a distinct calendar contract |
 | #611 | Decompose closed PR #490 ADR 0133–0137 evidence without transferring stale branch state | #631 supplies the current-main inventory only; focused implementation PRs and tests for every unmet criterion are still required |
 
 ## 5. Open product and technical gaps
@@ -533,7 +632,9 @@ this file per §3.5 of the prior snapshot).
 | Design tokens and repeated objects | Token extraction started; sanitized Figma Event Lineage desktop/mobile frames exist, while other repeated product surfaces remain incomplete | Tokens in CSS + Storybook stories for board, popup, DAG, Ask, calendar, forms, charts; same-viewport Figma/runtime visual comparison before release |
 | Frontend delivery performance | #644 implements a native dynamic-import boundary for conditional workspace surfaces and retains accessible loading/error states; exact-head checks passed but the PR is not protected-main evidence | Merge #644 normally, rebuild the protected-main production bundle, and retain the measured chunk inventory rather than raising the warning limit |
 | External integrations | Search, Zotero, calendar, Keyverse, orchestrator, RankWeave, ThreadWeave, TEPP, DiskSage, wardnet | Provider conformance, failure/reconciliation behavior, and provenance-bearing integration evidence |
+| Naruon email/project lineage | #704 provides a strict store-agnostic v1 contract, opaque evidence references, observed/inferred truth separation, knowledge-cutoff admission, and explicit unavailable states. Inferred edges require an injected provenance-bearing fast-mlsirm estimate; no local default weight exists | Merge #704 through protected `main`, publish an immutable attested artifact, then enable the Naruon consumer only against that released version and its contract fixtures |
 | MSA / modular reuse | LineageWeave must run standalone and as a consumer of org packages | Do not reimplement RankWeave/TEPP/orchestrator/ThreadWeave/Keyverse; fix upstream and PR there |
+| Accelerator runtime ownership | ADR 0076/0208 already prohibit local model and mathematical ownership; ADR 0237 now defines MLX as a native orchestrator-side service and TEPP/fast-mlsirm CUDA/OpenCL/CPU profiles as scientific-compute-owner deployments, so LineageWeave Compose remains device-neutral. RankWeave remains the dependency-free Python retrieval-fusion/evaluation owner behind its published contract | TEPP and fast-mlsirm must publish deterministic CPU recovery plus conformance evidence for every advertised CUDA/OpenCL profile; contextual-orchestrator must prove native MLX availability through its provider-neutral health/contract boundary. LineageWeave accepts only versioned, provenance-bearing envelopes and fails closed when the owner is unavailable |
 | Product contract authority | The current LineageWeave PRD records exact-case ecosystem authorities. TEPP, fast-mlsirm, keyverse, ThreadWeave, and RankWeave PR #41 have standalone PRDs; RankWeave's remains unmerged. contextual-orchestrator, disksage, and wardnet still rely on product/architecture documents, and naruon has only a scoped Topic Intelligence PRD | Keep ADRs normative, preserve canonical repository case in machine references, land the pending PRDs, and add standalone PRDs in each remaining owning repository before cross-product release claims exceed its documented boundary |
 | Release quality | PR #660 is now on protected `main`; its pre-merge full Python suite passed 1,352 tests with 17 skips, but release-wide frontend, Storybook, security, browser, and runtime acceptance remain unproven on one exact protected head | Repository-wide coverage, docstrings, Storybook, security, browser, and release evidence on one exact head |
 | PII | Masking would paralyze the product; ADR 0001 forbids identifying artifacts in git | ABAC + authorized runtime; synthetic fixtures in git; no mask-in-place that drops names the operator must read |
@@ -670,3 +771,34 @@ review latency are never blockers — keep working while they settle.
 
 Citations in doctoring and ADRs use APA 7th. Do not invent a heuristic where
 the papers leave the decision undecided.
+
+## 12. Delivery snapshot (2026-08-27)
+
+Fresh merges on protected `main`, verified from PR lifecycle state and
+post-merge reruns (not transferable evidence for later heads):
+
+| PR | Delivery | Governing ADR / reference |
+| ---: | --- | --- |
+| #750 | Leftover-map unexplained leftover share persisted (`report_leftover_map_unexplained_share`, share `s = U² / R²`) | ADR 0233 |
+| #749 | Authorized job-family/job-series import snapshots (`0223_authorized_job_architecture`) | ADR 0263 |
+| #747 | Current product and MCP manuals (`docs/manuals/*`, contract tests) | ADR 0118-family |
+| #754 | Customer-actionable copy and ADR 0237 accelerator runtime boundary; share/bookmark/verification call sites reworded and ko/zh/ja/vi translations completed after review | ADR 0237 |
+| #742 | Evidence-bound product-operations relations (stack base) | ADR 0235 |
+| #743 | Imported occupation-rating source catalog (stack base) | ADR 0260 |
+| #745 | Occupation catalog title filter (stack base) | ADR 0262 |
+| #746 | Rating-source occupation selector (stack base) | ADR 0261 |
+| #740 | Occupation rating evidence view (stack base) | ADR 0259 |
+| #732 | O*NET content-model published linkages (stack base) | ADR 0256 |
+| #720 | Cancel stale test runs on PR close | — |
+| #716 | Prioritized evidence-bound operations backfill | — |
+| #711 | Pinned validated structured-workflow runtime | — |
+| #704 | Current-main external lineage contract publication | — |
+
+Rebased and re-pushed onto current `main` (checks running at this snapshot):
+#700 source-conversation-turn contract (ADR 0238), #658 optional Global Ask
+knowledge cutoff (ADR 0216). Both unreviewed until exact-head checks pass.
+
+The ONET stack rows above landed into their stacked base branches rather than
+`main`; their content reaches `main` only if the base branch continues into a
+`main`-bound PR. Each base branch is recorded in the PR's `baseRefName` and
+remains the owner's responsibility to promote.

@@ -297,6 +297,16 @@ def test_shapes_validation_rejects_dangling_targets_and_outside_namespace() -> N
     )
 
 
+def test_shapes_validation_allows_only_governed_external_statement_paths() -> None:
+    """RDF reification and adopted PROV paths are the external-path allowlist."""
+    publisher = _load_publisher()
+    from rdflib.namespace import PROV
+
+    assert PROV.wasDerivedFrom in publisher.STANDARD_SHACL_PATHS
+    assert PROV.generatedAtTime in publisher.STANDARD_SHACL_PATHS
+    assert URIRef("https://example.test/arbitrary") not in publisher.STANDARD_SHACL_PATHS
+
+
 def test_main_publishes_site(tmp_path: Path) -> None:
     publisher = _load_publisher()
     repository = _repository_fixture(tmp_path)

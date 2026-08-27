@@ -131,6 +131,7 @@ NODE_CORPORATE_ENTITY = "node_corporate_entity"
 NODE_POST = "node_post"
 NODE_TEAM = "node_team"
 NODE_PROJECT = "node_project"
+NODE_OCCUPATIONAL_CONSTRUCT = "node_occupational_construct"
 EDGE_MENTION = "edge_mention"
 EDGE_AFFILIATION = "edge_affiliation"
 EDGE_CO_MENTION = "edge_co_mention"
@@ -144,6 +145,7 @@ EDGE_MENTION_TEAM = "edge_mention_team"
 EDGE_TEAM_AFFILIATION = "edge_team_affiliation"
 EDGE_MENTION_ORGANIZATION = "edge_mention_organization"
 EDGE_MENTION_PROJECT = "edge_mention_project"
+EDGE_SUPPORTS_OCCUPATIONAL_CONSTRUCT = "edge_supports_occupational_construct"
 
 
 @dataclass(frozen=True)

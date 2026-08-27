@@ -9,6 +9,7 @@ import { useAuth } from "react-oidc-context";
 import {
   askPostChat,
   askAgent,
+  optionalKnowledgeCutoffIso,
   BackendError,
   createAnalysisRun,
   startAnalysisRun,
@@ -100,6 +101,7 @@ import { AskEvidenceLayerPopup } from "./components/AskEvidenceLayerPopup";
 import { PublicClaimVerification } from "./components/PublicClaimVerification";
 import { PopupCloseButton } from "./components/PopupCloseButton";
 import { SimilarVocPanel } from "./components/SimilarVocPanel";
+import { TeppAcceptedReceipt } from "./components/TeppAcceptedReceipt";
 import { chatEvidenceKindLabel } from "./evidenceKindLabels";
 import { WorkspaceNav, type WorkspaceDestination } from "./components/WorkspaceNav";
 import { OperationsDashboard } from "./components/OperationsDashboard";
@@ -160,7 +162,7 @@ function LanguageSwitcher({ accessToken }: { accessToken?: string }) {
 
 function searchUnavailableMessage(err: unknown): string {
   if (err instanceof BackendError && err.status === 503) {
-    return t("Verification unavailable (search is not configured).");
+    return t("Verification is unavailable because public search is not configured yet. Ask an administrator to enable it, then retry.");
   }
   return String(err);
 }
@@ -1221,7 +1223,7 @@ function KeymanPanel({
           onClick={() => setOntologyOpen((open) => !open)}
           aria-expanded={ontologyOpen}
         >
-          {t("Inspect ontology neighborhood")}
+          {t("View related information")}
         </button>
         {canExtract && !orchestratorOff && (
           <details className="operator-action-tools">
@@ -1235,7 +1237,7 @@ function KeymanPanel({
       {error && <p className="error">{error}</p>}
       {sourceAuthorContext ? (
         <details className="keyman-source-context">
-          <summary>{t("Source author evidence")} · {t("Hint only")}</summary>
+          <summary>{t("Author context")} · {t("Hint only")}</summary>
           <p>
             <strong>
               {sourceAuthorContext.source_author_name || sourceAuthorContext.source_author_code || t("Unknown")}
@@ -2174,10 +2176,10 @@ function PostDetailPopup({
         setPostActionStatus(t("Permanent link copied."));
         return;
       }
-      setPostActionStatus(t("Share unavailable."));
+      setPostActionStatus(t("Sharing did not start. Copy the link from the browser address bar to share this post."));
     } catch (err) {
       if (err instanceof DOMException && err.name === "AbortError") return;
-      setPostActionStatus(t("Share unavailable."));
+      setPostActionStatus(t("Sharing did not start. Copy the link from the browser address bar to share this post."));
     }
   }
 
@@ -2188,7 +2190,7 @@ function PostDetailPopup({
       const next = await setPostBookmark(accessToken, postId, !bookmarked);
       setBookmarked(next.bookmarked);
     } catch {
-      setPostActionStatus(t("Bookmark unavailable."));
+      setPostActionStatus(t("Bookmark could not be saved. Try again in a moment; the post itself stays open."));
     } finally {
       setBookmarkSaving(false);
     }
@@ -2297,7 +2299,9 @@ function PostDetailPopup({
                 <PostBody body={post.post_body} imageContent={imageContent} structureUnits={structureUnits} />
               ) : (
                 <p className="popup-placeholder" role="status">
-                  {t("Source body was not imported; summary and semantic extraction are unavailable.")}
+                  {t(
+                    "The original text of this post was not imported, so its summary and semantic extraction are unavailable. Open the post directly or ask the source owner to re-import it with its body.",
+                  )}
                 </p>
               )}
             </section>
@@ -2319,8 +2323,8 @@ function PostDetailPopup({
               post.source_project_name ||
               post.source_system_code ||
               post.source_record_key) && (
-              <section className="popup-section" aria-label={t("Original source state")}>
-                <h3>{t("Original source state")}</h3>
+              <section className="popup-section" aria-label={t("Earlier source version")}>
+                <h3>{t("Earlier source version")}</h3>
                 <dl>
                   {post.source_stage_code ? (
                     <>
@@ -2431,15 +2435,15 @@ function PostDetailPopup({
                     </>
                   ) : null}
                 </dl>
-                <p className="post-meta">{t("Raw source codes are shown; no state label was inferred.")}</p>
+                <p className="post-meta">{t("Use these recorded details to confirm the record with your source system.")}</p>
               </section>
             )}
 
 					<FiveW1H slots={fiveW1H?.slots ?? null} />
 
 				{post.project_evidence && post.project_evidence.length > 0 ? (
-              <section className="popup-section" aria-label={t("Projects / semantic evidence")}>
-                <h3>{t("Projects / semantic evidence")}</h3>
+              <section className="popup-section" aria-label={t("Related projects")}>
+                <h3>{t("Related projects")}</h3>
                 <ul>
                   {post.project_evidence.map((project) => (
                     <li key={`${project.resolution_status}:${project.project_key}`}>
@@ -2458,15 +2462,15 @@ function PostDetailPopup({
                         : `(${Math.round(project.confidence * 100)}%)`}
                       : {project.evidence}
                       <details className="semantic-provenance">
-                        <summary>{t("Evidence provenance")}</summary>
+                        <summary>{t("Why this item is listed")}</summary>
                         <span className="post-badge">
-                          {t("Ontology class")}: {t(project.ontology_label ?? "Project")}
+                          {t("Category")}: {t(project.ontology_label ?? "Project")}
                         </span>
                         <span className="post-badge">
-                          {t("Extraction source")}: {projectExtractionLabel(project.extraction_method)}
+                          {t("How this item was found")}: {projectExtractionLabel(project.extraction_method)}
                         </span>
                         <span className="post-badge">
-                          {t("Evidence field")}: {projectProvenanceLabel(project.provenance)}
+                          {t("Recorded evidence")}: {projectProvenanceLabel(project.provenance)}
                         </span>
                       </details>
                     </li>
@@ -2840,9 +2844,9 @@ function analysisRunNextAction(run: AnalysisRun): string | null {
     case "analysis_status_failed":
       switch (run.run_kind_code) {
         case "analysis_run_tepp":
-          return "Open this run to see why it failed, then connect the measurement service and re-run.";
+          return "Open this run to see why it failed, then retry with the latest available records.";
         case "analysis_run_topic_lineage":
-          return "Open this run to see why it failed, then connect the TEPP transport and re-run.";
+          return "Open this run to see why it failed, then retry with the latest available records.";
         case "analysis_run_lineage":
           return "Open this run to see why it failed, then retry reconstruction from a current snapshot.";
         case "analysis_run_report":
@@ -2873,22 +2877,22 @@ function analysisRunEmptyPostsHint(run: AnalysisRun): string {
     case "analysis_run_tepp":
       return (
         "No posts were available at this cutoff for TEPP to measure. " +
-        "Open a later run, or ask an administrator to capture a newer snapshot."
+        "Open a later run or retry after a newer snapshot is available."
       );
     case "analysis_run_topic_lineage":
       return (
         "No posts were available at this cutoff for topic-lineage analysis. " +
-        "Open a later run, or ask an administrator to capture a newer snapshot."
+        "Open a later run or retry after a newer snapshot is available."
       );
     case "analysis_run_lineage":
       return (
         "No posts were available at this cutoff for reconstruction. " +
-        "Open a later run, or ask an administrator to capture a newer snapshot."
+        "Open a later run or retry after a newer snapshot is available."
       );
     case "analysis_run_report":
       return (
         "No posts were available at this cutoff for the period report. " +
-        "Open a later run, or ask an administrator to capture a newer snapshot."
+        "Open a later run or retry after a newer snapshot is available."
       );
     default: {
       const unexpected: never = run.run_kind_code;
@@ -3291,8 +3295,8 @@ function AnalysisRunsPanel({
       {(error || entitiesLoadError) && <p className="error">{error ?? entitiesLoadError}</p>}
       {runs.length === 0 ? (
         <p className="popup-placeholder">
-          No analysis runs visible to this account yet. Request a lineage
-          reconstruction, or ask an administrator to run make seed.
+          No analysis runs are visible to this account yet. Add source records,
+          then request a new analysis run.
         </p>
       ) : (
         <ul className="ticket-list" aria-label="Analysis runs">
@@ -3331,6 +3335,9 @@ function AnalysisRunsPanel({
             {" · "}
             Requested {selected.requested_at.slice(0, 10)}
           </p>
+          {selected.tepp_accepted_receipt && (
+            <TeppAcceptedReceipt />
+          )}
           <AnalysisRunReproducibilityDigests
             codeRevisionSha={selected.code_revision_sha}
             configurationSha256={selected.configuration_sha256}
@@ -3513,28 +3520,30 @@ function RankingsPanel({
         <h2>{t("Rankings")}</h2>
         {ranking && (
           <span className="post-badge">
-            {ranking.status === "accepted"
-              ? "rankweave"
-              : `rankweave · ${ranking.status_reason ?? "unavailable"}`}
+            {t("Rankings")}
           </span>
         )}
       </div>
       {error && <p className="error">{error}</p>}
       {ranking === null && !error && <p role="status">{t("Loading rankings...")}</p>}
       {ranking && ranking.status === "unavailable" && (
-        <p className="popup-placeholder">{t("Rankings · RankWeave not available")}</p>
+        <p className="popup-placeholder">
+          {t("Rankings are not available right now. Reopen this post later to load them.")}
+        </p>
       )}
       {ranking && ranking.status === "accepted" && ranking.rankings.length === 0 && (
-        <p className="popup-placeholder">{t("No fused rankings from RankWeave.")}</p>
+        <p className="popup-placeholder">
+          {t("No ranked posts yet. Ranked posts appear after the next rankings refresh.")}
+        </p>
       )}
       {ranking && ranking.rankings.length > 0 && (
         <>
           <p className="ranking-channel-evidence-copy">
             {t(
-              "RankWeave fused newest-first and title-overlap ranks. This is not a calibrated score.",
+              "Rankings combine newest-first and title-overlap evidence and are not calibrated scores. Open a ranked post to see its evidence.",
             )}
           </p>
-          <ul className="ticket-list" aria-label={t("Fused rankings")}>
+          <ul className="ticket-list" aria-label={t("Ranked posts")}>
             {ranking.rankings.map((hit) => (
               <li key={hit.post_id} className="ticket-list-item ranking-hit">
                 <button
@@ -3543,7 +3552,7 @@ function RankingsPanel({
                   onClick={() => onSelectPost(hit.post_id)}
                 >
                   <span className="ticket-title">{hit.post_title}</span>
-                  <span className="post-badge">{t("Rankings · rankweave")}</span>
+                  <span className="post-badge">{t("Rankings")}</span>
                   <span className="post-badge">{tf("rank {rank}", { rank: String(hit.fused_rank) })}</span>
                 </button>
                 {(hit.channel_evidence ?? []).length > 0 ? (
@@ -4912,7 +4921,7 @@ function CustomerMasterPanel({
       ) : null}
       {master && master.source_author_hints.length > 0 ? (
         <section className="customer-keymen" aria-labelledby="source-author-evidence-heading">
-          <h3 id="source-author-evidence-heading">{t("Source author evidence")}</h3>
+          <h3 id="source-author-evidence-heading">{t("Author context")}</h3>
           {master.source_author_hints.length > HINT_RENDER_LIMIT && (
             <p className="post-meta">
               {tf("Showing the first {shown} of {total} observed source authors, ranked by post count.", {
@@ -4999,11 +5008,11 @@ export function AskAgentPanel({
   onOpenPost: (postId: string) => void;
 }) {
   const [question, setQuestion] = useState("");
+  const [knowledgeCutoff, setKnowledgeCutoff] = useState("");
   const [answer, setAnswer] = useState<AskAgentResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [asking, setAsking] = useState(false);
   const [verifyExternal, setVerifyExternal] = useState(false);
-  const [knowledgeCutoff, setKnowledgeCutoff] = useState("");
   const [evidenceLayerPostId, setEvidenceLayerPostId] = useState<string | null>(null);
   const now = new Date();
   const localKnowledgeCutoffMax = new Date(
@@ -5013,6 +5022,14 @@ export function AskAgentPanel({
   async function handleAsk() {
     const normalized = question.trim();
     if (!normalized) return;
+    let cutoff: string | undefined;
+    try {
+      cutoff = optionalKnowledgeCutoffIso(knowledgeCutoff);
+    } catch {
+      setAnswer(null);
+      setError(t("Enter a valid knowledge cutoff, then ask again."));
+      return;
+    }
     setAsking(true);
     setError(null);
     try {
@@ -5021,7 +5038,7 @@ export function AskAgentPanel({
           accessToken,
           normalized,
           verifyExternal,
-          knowledgeCutoff ? new Date(knowledgeCutoff).toISOString() : undefined,
+          cutoff,
         ),
       );
     } catch (err) {
@@ -5057,13 +5074,15 @@ export function AskAgentPanel({
           <span>{t("Check eligible public claims")}</span>
         </label>
         <label className="ask-agent-field">
-          <span>{t("Knowledge cutoff (optional)")}</span>
+          <span>{t("Use evidence available by (optional)")}</span>
           <input
             type="datetime-local"
+            aria-label={t("Use evidence available by (optional)")}
             value={knowledgeCutoff}
             max={localKnowledgeCutoffMax}
             onChange={(event) => setKnowledgeCutoff(event.target.value)}
           />
+          <small>{t("Choose a time on this device, or leave blank to use the latest evidence.")}</small>
         </label>
         <button className="btn-primary" onClick={() => void handleAsk()} disabled={asking || !question.trim()}>
           {asking ? t("Asking...") : t("Ask")}
@@ -5080,7 +5099,7 @@ export function AskAgentPanel({
                 {answer.grounding_status === "fully_cutoff_grounded"
                   ? t("Fully cutoff-grounded")
                   : t("Partially cutoff-grounded")}
-                {` · ${answer.knowledge_cutoff}`}
+                {` · ${new Date(answer.knowledge_cutoff).toLocaleString()}`}
               </p>
               {answer.limitations?.length ? (
                 <p role="alert">
@@ -5121,6 +5140,9 @@ export function AskAgentPanel({
                         </span>
                       ) : null}
                     </button>
+                    {post.historical_body_unavailable ? (
+                      <p className="post-meta">{t("Historical body unavailable")}</p>
+                    ) : null}
                     <button
                       type="button"
                       className="citation-chip"

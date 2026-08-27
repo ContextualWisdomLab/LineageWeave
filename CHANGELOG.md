@@ -37,6 +37,59 @@ All notable changes to this project are documented here. Format follows
   Society, and Process as source-post categories. Ontology SKOS concepts and
   idempotent migration 0235 stay in round-trip sync; counterparty relationships
   remain a separate evidence contract.
+
+- The DOT/FJA Data/People/Things worker functions now project into a
+  disjoint Industrial & Organizational (I/O) Psychology semantic layer
+  (ADR 0251): cognitive, affective, and behavioral constructs (information
+  processing, mental workload, executive functioning, appraisal; emotional
+  labor, burnout, engagement, psychological safety, commitment; task,
+  citizenship, counterproductive, safety, proactive, adaptive, service,
+  leadership, and withdrawal behavior) carry psychological dimensions and
+  APA 7th literature anchors, validate under new SHACL shapes, and surface
+  through a deterministic typed read model
+  (`lineageweave.iopsy_taxonomy`). No numeric weight, O*NET crosswalk, or
+  ADR 0248 equivalence is asserted (ADR 0145 still governs estimation).
+- Evidence-bound occupational construct semantics now keep cognitive
+  abilities, work styles, work activities, affective reactions, performance
+  behaviors, and FJA worker functions distinct. Record-to-construct links
+  require a reified evidence span and PROV-O derivation/time; unsupported
+  DPT-to-psychology crosswalks and local scores remain unavailable (ADR 0248).
+- Versioned occupational construct vocabularies and semantic-unit assertions
+  now persist in normalized tables. Database and application validation require
+  same-Post verbatim evidence, and authorized Post detail exposes provenance
+  without internal identifiers or numerical scores (ADR 0249).
+- An operator-only O*NET 31.0 catalog synchronizer now imports every official
+  cognitive-ability, work-style, and work-activity Content Model element with
+  stable IRIs, descriptions, attribution, and a deterministic source digest;
+  conflicting release metadata fails closed (ADR 0250).
+
+- The occupational-classification and worker-characteristic taxonomy is now
+  published in the canonical ontology: all 23 major groups of the 2018
+  Standard Occupational Classification (the O*NET job families) carry
+  official titles and codes verbatim, the four O*NET 31.0 job-zone categories
+  carry their published names and source values, and source-native
+  worker-characteristic families are addressable -- Fleishman's four ability domains,
+  Holland's six RIASEC interest types with the published hexagonal adjacency,
+  the six legacy O*NET work-value clusters, and the seven higher-order
+  revised O*NET Work Styles dimensions (ADR 0245). Typed derivation properties from
+  classifications to characteristics are declared but assert no instance
+  binding; a deterministic application read model
+  (`lineageweave.io_taxonomy`) exposes fail-closed lookups, and no numeric
+  importance or level rating is imported. Each scheme links to versioned
+  PROV source entities with publisher/creator and rights/license metadata;
+  the stable O*NET 31.0 Job Zone JSON carries its verified SHA-256.
+- The DOT/FJA Data/People/Things worker-function taxonomy is now published
+  in the canonical ontology: all 24 worker functions carry the official
+  Dictionary of Occupational Titles Appendix B definitions verbatim, their
+  definitional ordinal ranks (ADR 0232). No DOT-to-O*NET or Fleishman
+  crosswalk is inferred without an authoritative mapping source. A
+  deterministic application read
+  model (`lineageweave.worker_function_taxonomy`) exposes fail-closed
+  lookups; ranks are scale positions and are never used as weights.
+- Global Ask accepts an optional UTC `knowledge_cutoff`. Dated questions
+  retrieve only posts available by that clock, cite the retained
+  `source_post_revision`, and name when a historical body was not kept.
+  Omitting the cutoff keeps the live-query contract (ADR 0216 / #271).
 - Persist explicit paragraph, list, table, MathML formula, and caller-parsed
   conversation-turn semantic-unit kinds without inferring absent boundaries.
 - Event Lineage now persists each reconstructed connection's independent
@@ -125,6 +178,16 @@ All notable changes to this project are documented here. Format follows
   clamped. Two-axis reconstruction `R̂` stays internal; unexplained
   leftover remains the ADR 0182 value `U = R − R̂`. Explained leftover share
   `e` and unexplained leftover share `s` are not persisted here.
+
+- Period leftover pair rows now name leftover-map unexplained leftover share
+  `s = U² / R²` of raw residual next to leftover-map distance `d`, then
+  open that post (Gabriel, 1971; Jeon et al., 2021, eq. 3; ADR 0233). After
+  `make seed`, closest and farthest leftover pairs sit above the member
+  list with `U²/R²` next to `d`. A missing share omits the badge rather
+  than inventing a leftover score. A share greater than 1 is shown, never
+  clamped. Two-axis reconstruction `R̂` and leftover-map cross share `x`
+  stay as already persisted. Explained leftover share `e` is not persisted
+  here.
 
 - The grouping comparison strip now names leftover post–criterion
   pairs on each visible row (ADR 0149). After `make seed`, open a
