@@ -260,7 +260,6 @@ _VOICE_ASSIGNMENT_MIGRATION = (
     Path(__file__).resolve().parents[2]
     / "migrations"
     / "0237_source_post_voice_combination.sql"
-    Path(__file__).resolve().parents[2] / "migrations" / "0175_ontology_truth_status.sql"
 )
 _OCCUPATIONAL_CONSTRUCT_MIGRATION = (
     Path(__file__).resolve().parents[2]
