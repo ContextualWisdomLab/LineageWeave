@@ -1488,8 +1488,44 @@
 .dashboard-case-card dd { margin: 0; font-weight: 600; }
 .dashboard-case-card button { margin-top: auto; }
 
+.occupation-rating-profile {
+  max-width: 1440px;
+  margin: 0 auto 2rem;
+  padding: 2rem;
+  color: var(--color-text-heading);
+}
+
+.occupation-rating-form {
+  display: grid;
+  grid-template-columns: minmax(16rem, 1fr) minmax(18rem, 1.4fr) auto;
+  align-items: end;
+  gap: var(--space-control-gap);
+  margin: 1rem 0;
+}
+
+.occupation-rating-form label,
+.occupation-rating-occupation-select,
+.occupation-rating-source {
+  display: grid;
+  gap: var(--space-control-gap);
+}
+
+.occupation-rating-form input,
+.occupation-rating-form select { min-height: var(--size-control-min); }
+.occupation-rating-source { grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr)); margin: 1rem 0; }
+.occupation-rating-scroll-hint { display: none; }
+.occupation-rating-table { overflow-x: auto; border: 1px solid var(--color-border); }
+.occupation-rating-table table { width: 100%; min-width: 64rem; border-collapse: collapse; }
+.occupation-rating-table caption { padding: 0.75rem; text-align: left; }
+.occupation-rating-table th,
+.occupation-rating-table td { padding: 0.75rem; border-bottom: 1px solid var(--color-border); text-align: left; vertical-align: top; }
+.occupation-rating-table small { display: block; color: var(--color-text); }
+
 @media (max-width: 900px) {
   .operations-dashboard { padding: 1rem; }
+  .occupation-rating-profile { padding: 1rem; }
+  .occupation-rating-form { grid-template-columns: 1fr; }
+  .occupation-rating-scroll-hint { display: block; }
   .operations-dashboard-heading { align-items: start; flex-direction: column; }
   .dashboard-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .dashboard-case-grid { grid-template-columns: 1fr; }
