@@ -39,6 +39,16 @@ class _FailingClient:
         raise self._exc
 
 
+class _EmbeddingClient:
+    """Deterministic available embedding channel for Ask diagnostics."""
+
+    available = True
+    resolved_model = "synthetic-embedding"
+
+    def embed(self, _text: str) -> list[float]:
+        return [1.0, 0.0]
+
+
 def _call_ask(monkeypatch: pytest.MonkeyPatch, exc: BaseException) -> None:
     async def _sources(*args: object, **kwargs: object) -> list[object]:
         return [SimpleNamespace(post_id="synthetic-post-1")]
@@ -53,6 +63,7 @@ def _call_ask(monkeypatch: pytest.MonkeyPatch, exc: BaseException) -> None:
                 process_unit_ids=set(),
                 process_scope_limited=False,
                 chat_client=_FailingClient(exc),
+                embedding_client=_EmbeddingClient(),
             )
         )
     assert raised.value.status_code == 503
@@ -150,6 +161,7 @@ def test_global_ask_source_gather_failure_is_classified(
                 process_unit_ids=set(),
                 process_scope_limited=False,
                 chat_client=_FailingClient(RuntimeError("unused")),
+                embedding_client=_EmbeddingClient(),
             )
         )
     assert raised.value.status_code == 503

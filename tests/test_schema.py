@@ -154,6 +154,14 @@ _LEFTOVER_MAP_UNEXPLAINED_MIGRATION = (
     / "migrations"
     / "0182_report_leftover_map_unexplained.sql"
 )
+_GLOBAL_ASK_JOB_MIGRATION = (
+    Path(__file__).resolve().parents[1] / "migrations" / "0165_global_ask_job.sql"
+)
+_GLOBAL_ASK_SCOPE_MIGRATION = (
+    Path(__file__).resolve().parents[1]
+    / "migrations"
+    / "0203_global_ask_authorization_scope.sql"
+)
 
 
 def _postgres_available() -> bool:
@@ -218,6 +226,12 @@ def schema_db():
                 cur.execute(_LEFTOVER_MAP_RECONSTRUCTION_MIGRATION.read_text())
                 cur.execute(_LEFTOVER_MAP_UNEXPLAINED_SHARE_MIGRATION.read_text())
                 cur.execute(_SOURCE_EVENT_TIME_MIGRATION.read_text())
+                cur.execute(_GLOBAL_ASK_JOB_MIGRATION.read_text())
+                cur.execute(_GLOBAL_ASK_SCOPE_MIGRATION.read_text())
+                # Exercise the production replay contract against the same
+                # PostgreSQL objects instead of merely inspecting SQL text.
+                cur.execute(_GLOBAL_ASK_JOB_MIGRATION.read_text())
+                cur.execute(_GLOBAL_ASK_SCOPE_MIGRATION.read_text())
                 # Match ADR 0166's production migration executor instead of
                 # maintaining a fixture-owned SQL parser.
                 subprocess.run(
@@ -288,6 +302,9 @@ def test_migration_applies_cleanly(schema_db) -> None:
         "post_summary_action",
         "post_chat_result",
         "post_chat_citation",
+        "global_ask_job",
+        "global_ask_job_corporate_entity_scope",
+        "global_ask_job_process_unit_scope",
         "occupational_construct_vocabulary",
         "occupational_construct",
         "post_occupational_construct_assertion",

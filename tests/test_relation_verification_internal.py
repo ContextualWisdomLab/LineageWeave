@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import asyncio
 
+import pytest
+
 from backend.app.relation_verification_ingestion import (
     verify_post_relations,
     verify_post_relations_from_pool,
@@ -18,12 +20,14 @@ class _Connection:
         self.update_status = update_status
         self.fetchrow_args: tuple[object, ...] | None = None
         self.execute_args: tuple[object, ...] | None = None
+        self.execute_calls: list[tuple[object, ...]] = []
 
     async def fetch(self, query: str, post_id: str):
         assert "verification_status_code = 'verify_pending'" in query
         return [
             {
                 "counterparty_entity_name": "Example Partner",
+                "relationship_type_code": "partner",
                 "relationship_label": "Partner",
             }
         ]
@@ -36,7 +40,9 @@ class _Connection:
 
     async def execute(self, query: str, *args: object):
         assert "verification_evidence_post_id = $5" in query
+        assert "$5::uuid is null or exists" in query
         self.execute_args = args
+        self.execute_calls.append(args)
         return self.update_status
 
     def transaction(self):
@@ -52,7 +58,7 @@ class _Transaction:
 
 
 class _Acquire:
-    def __init__(self, pool: "_Pool") -> None:
+    def __init__(self, pool: _Pool) -> None:
         self.pool = pool
 
     async def __aenter__(self):
@@ -99,6 +105,7 @@ def test_relation_verification_persists_authorized_internal_evidence() -> None:
         STATUS_CORROBORATED,
         "https://example.test/evidence",
         "internal-post",
+        "partner",
     )
 
 
@@ -109,7 +116,8 @@ def test_relation_verification_keeps_external_result_when_internal_search_misses
 
     assert verified[0].verification_evidence_post_id is None
     assert conn.execute_args is not None
-    assert conn.execute_args[-1] is None
+    assert conn.execute_args[-2] is None
+    assert conn.execute_args[-1] == "partner"
 
 
 def test_pool_connection_is_released_during_external_verification() -> None:
@@ -139,3 +147,45 @@ def test_pool_verification_counts_only_rows_settled_by_this_worker() -> None:
     )
 
     assert verified == []
+
+
+def test_pool_verification_persists_completed_rows_before_provider_failure() -> None:
+    """A later provider failure does not roll back an earlier completed row."""
+
+    class _TwoRelationConnection(_Connection):
+        async def fetch(self, query: str, post_id: str):
+            assert "verification_status_code = 'verify_pending'" in query
+            return [
+                {
+                    "counterparty_entity_name": "Example Partner",
+                    "relationship_type_code": "partner",
+                    "relationship_label": "Partner",
+                },
+                {
+                    "counterparty_entity_name": "Example Supplier",
+                    "relationship_type_code": "supplier",
+                    "relationship_label": "Supplier",
+                },
+            ]
+
+    class _FailingSecondVerifier:
+        def verify(
+            self, organization_name: str, relationship_label: str
+        ) -> RelationVerificationResult:
+            if organization_name == "Example Supplier":
+                raise RuntimeError("synthetic provider failure")
+            return RelationVerificationResult(
+                STATUS_CORROBORATED, "https://example.test/evidence"
+            )
+
+    conn = _TwoRelationConnection(None)
+
+    with pytest.raises(RuntimeError, match="synthetic provider failure"):
+        asyncio.run(
+            verify_post_relations_from_pool(
+                _Pool(conn), _FailingSecondVerifier(), "origin-post"
+            )
+        )
+
+    assert len(conn.execute_calls) == 1
+    assert conn.execute_calls[0][-1] == "partner"

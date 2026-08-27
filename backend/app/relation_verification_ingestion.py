@@ -30,6 +30,7 @@ class VerifiedRelation:
 @dataclass(frozen=True)
 class _PendingRelation:
     counterparty_entity_name: str
+    relationship_type_code: str
     relationship_label: str
     internal_evidence_post_id: str | None
 
@@ -114,7 +115,8 @@ async def verify_post_relations(
     """
     rows = await conn.fetch(
         """
-        select c.counterparty_entity_name, v.lookup_label as relationship_label
+        select c.counterparty_entity_name, c.relationship_type_code,
+               v.lookup_label as relationship_label
         from post_counterparty_entity c
         join common_lookup_value v on v.lookup_code = c.relationship_type_code
         where c.post_id = $1 and c.verification_status_code = 'verify_pending'
@@ -137,7 +139,7 @@ async def verify_post_relations(
             row["counterparty_entity_name"],
             row["relationship_label"],
         )
-        await conn.execute(
+        update_status = await conn.execute(
             """
             update post_counterparty_entity
             set verification_status_code = $3,
@@ -145,21 +147,29 @@ async def verify_post_relations(
                 verification_evidence_post_id = $5,
                 verification_checked_at = now()
             where post_id = $1 and counterparty_entity_name = $2
+              and verification_status_code = 'verify_pending'
+              and relationship_type_code = $6
+              and ($5::uuid is null or exists (
+                  select 1 from source_post evidence
+                  where evidence.post_id = $5::uuid
+              ))
             """,
             post_id,
             row["counterparty_entity_name"],
             result.status_code,
             result.evidence_url,
             internal_evidence_post_id,
+            row["relationship_type_code"],
         )
-        verified.append(
-            VerifiedRelation(
-                counterparty_entity_name=row["counterparty_entity_name"],
-                verification_status_code=result.status_code,
-                verification_evidence_url=result.evidence_url,
-                verification_evidence_post_id=internal_evidence_post_id,
+        if update_status == "UPDATE 1":
+            verified.append(
+                VerifiedRelation(
+                    counterparty_entity_name=row["counterparty_entity_name"],
+                    verification_status_code=result.status_code,
+                    verification_evidence_url=result.evidence_url,
+                    verification_evidence_post_id=internal_evidence_post_id,
+                )
             )
-        )
     return verified
 
 
@@ -173,7 +183,8 @@ async def verify_post_relations_from_pool(
     async with pool.acquire() as conn:
         rows = await conn.fetch(
             """
-            select c.counterparty_entity_name, v.lookup_label as relationship_label
+            select c.counterparty_entity_name, c.relationship_type_code,
+                   v.lookup_label as relationship_label
             from post_counterparty_entity c
             join common_lookup_value v on v.lookup_code = c.relationship_type_code
             where c.post_id = $1 and c.verification_status_code = 'verify_pending'
@@ -184,6 +195,7 @@ async def verify_post_relations_from_pool(
         pending = [
             _PendingRelation(
                 str(row["counterparty_entity_name"]),
+                str(row["relationship_type_code"]),
                 str(row["relationship_label"]),
                 await _find_internal_evidence_post(
                     conn,
@@ -203,18 +215,13 @@ async def verify_post_relations_from_pool(
             relation.counterparty_entity_name,
             relation.relationship_label,
         )
-        verified.append(
-            VerifiedRelation(
-                relation.counterparty_entity_name,
-                result.status_code,
-                result.evidence_url,
-                relation.internal_evidence_post_id,
-            )
+        completed = VerifiedRelation(
+            relation.counterparty_entity_name,
+            result.status_code,
+            result.evidence_url,
+            relation.internal_evidence_post_id,
         )
-
-    persisted = []
-    async with pool.acquire() as conn, conn.transaction():
-        for relation in verified:
+        async with pool.acquire() as conn:
             update_status = await conn.execute(
                 """
                 update post_counterparty_entity
@@ -224,13 +231,19 @@ async def verify_post_relations_from_pool(
                     verification_checked_at = now()
                 where post_id = $1 and counterparty_entity_name = $2
                   and verification_status_code = 'verify_pending'
+                  and relationship_type_code = $6
+                  and ($5::uuid is null or exists (
+                      select 1 from source_post evidence
+                      where evidence.post_id = $5::uuid
+                  ))
                 """,
                 post_id,
-                relation.counterparty_entity_name,
-                relation.verification_status_code,
-                relation.verification_evidence_url,
-                relation.verification_evidence_post_id,
+                completed.counterparty_entity_name,
+                completed.verification_status_code,
+                completed.verification_evidence_url,
+                completed.verification_evidence_post_id,
+                relation.relationship_type_code,
             )
-            if update_status == "UPDATE 1":
-                persisted.append(relation)
-    return persisted
+        if update_status == "UPDATE 1":
+            verified.append(completed)
+    return verified
