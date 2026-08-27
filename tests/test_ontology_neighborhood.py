@@ -912,6 +912,7 @@ def test_voice_assignments_join_exact_csv_rows_and_jsonld() -> None:
         is_primary=False,
         truth_status_code=TRUTH_OBSERVED,
         recorded_at=T0,
+        effective_from=T0,
         provenance_reference="Evidence-backed additional voice",
         evidence_post_id=POST_ID,
     )
