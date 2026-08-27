@@ -168,6 +168,7 @@ from backend.app.report_ingestion import (
 )
 from backend.app.source_post_revision import fetch_known_at_revision, parse_as_of_clock
 from lineageweave.adjudication_client import (
+    AdjudicationClientError,
     ContextualOrchestratorAdjudicationClient,
     NullAdjudicationClient,
 )
@@ -1314,7 +1315,7 @@ async def rebuild_lineage_graph(
             "Channel weights are not estimated yet. Run "
             "scripts/estimate_channel_weights.py, then rebuild again.",
         ) from exc
-    except (HttpClientError, OSError) as exc:
+    except (AdjudicationClientError, HttpClientError, OSError) as exc:
         # This can issue up to MAXIMUM_LIVE_LLM_PAIR_EVALUATIONS sequential
         # adjudication calls across the whole corpus (lineage_ingestion.py);
         # a transient orchestrator hiccup on any one of them must not

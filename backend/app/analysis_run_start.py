@@ -24,7 +24,6 @@ from backend.app.analysis_run_ingestion import (
     AnalysisRunCreateError,
     fetch_visible_analysis_run,
 )
-from backend.app.post_eligibility import SOURCE_POST_ELIGIBILITY_SQL
 from backend.app.analysis_run_outbox import (
     latest_outbox_delivery_is_claimed,
     latest_outbox_delivery_is_delivered,
@@ -34,7 +33,11 @@ from backend.app.lineage_ingestion import (
     load_estimated_channel_weights,
     records_from_source_posts,
 )
-from lineageweave.adjudication_client import AdjudicationClient
+from backend.app.post_eligibility import SOURCE_POST_ELIGIBILITY_SQL
+from lineageweave.adjudication_client import (
+    AdjudicationClient,
+    AdjudicationClientError,
+)
 from lineageweave.http_client import HttpClientError, post_json
 from lineageweave.lineage_persistence import lineage_edge_specs
 from lineageweave.models import Edge
@@ -83,7 +86,13 @@ class _ProviderBoundaryAdjudication:
         """Score one candidate pair, typing provider failures as such."""
         try:
             return self._inner.judge(candidate_label, record_label)
-        except (HttpClientError, OSError, ValueError, TypeError) as exc:
+        except (
+            AdjudicationClientError,
+            HttpClientError,
+            OSError,
+            ValueError,
+            TypeError,
+        ) as exc:
             raise _AdjudicationProviderError(str(exc)) from exc
 
 

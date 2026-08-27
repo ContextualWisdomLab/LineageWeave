@@ -28,6 +28,7 @@ if str(REPOSITORY_ROOT) not in sys.path:
 
 from backend.app.lineage_ingestion import ChannelWeightsNotEstimated, rebuild_lineage
 from lineageweave.adjudication_client import (
+    AdjudicationClientError,
     ContextualOrchestratorAdjudicationClient,
     NullAdjudicationClient,
 )
@@ -50,6 +51,32 @@ _VOC_TYPE_ALIASES = {
     "vom": "vom",
     "vop": "vop",
 }
+
+
+async def _lineage_rebuild_summary(target: Any, adjudication_client: Any) -> dict[str, object]:
+    """Rebuild lineage without turning optional provider output into import loss."""
+
+    try:
+        edges = await rebuild_lineage(target, llm=adjudication_client)
+        return {"lineage_edges": len(edges)}
+    except ChannelWeightsNotEstimated as exc:
+        return {
+            "lineage_edges": None,
+            "lineage_rebuild_skipped": (
+                f"{exc} -- after this import, run "
+                "scripts/estimate_channel_weights.py and then "
+                "POST /api/lineage/rebuild"
+            ),
+        }
+    except AdjudicationClientError as exc:
+        return {
+            "lineage_edges": None,
+            "lineage_rebuild_unavailable": (
+                f"{exc} -- imported source rows remain persisted; retry "
+                "POST /api/lineage/rebuild after the orchestrator returns "
+                "a valid confidence response"
+            ),
+        }
 
 
 def _normalize_voc_type(value: Any, *, mapped: bool) -> str:
@@ -648,18 +675,9 @@ async def import_rows(args: argparse.Namespace) -> dict[str, object]:
         # reconstruction never falls back to hand-picked constants
         # (ADR 0200 point 1). Skip the rebuild with a next-action note
         # instead of failing the whole import.
-        try:
-            edges = await rebuild_lineage(target, llm=adjudication_client)
-            lineage_summary: dict[str, object] = {"lineage_edges": len(edges)}
-        except ChannelWeightsNotEstimated as exc:
-            lineage_summary = {
-                "lineage_edges": None,
-                "lineage_rebuild_skipped": (
-                    f"{exc} -- after this import, run "
-                    "scripts/estimate_channel_weights.py and then "
-                    "POST /api/lineage/rebuild"
-                ),
-            }
+        lineage_summary = await _lineage_rebuild_summary(
+            target, adjudication_client
+        )
         summary: dict[str, object] = {
             "source_rows": len(rows),
             "imported_rows": imported,

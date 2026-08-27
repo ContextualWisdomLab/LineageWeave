@@ -28,6 +28,10 @@ class AdjudicationClient(Protocol):
         raise NotImplementedError
 
 
+class AdjudicationClientError(RuntimeError):
+    """The provider returned an unusable adjudication response."""
+
+
 class NullAdjudicationClient:
     """No LLM orchestrator configured -- the llm channel is skipped."""
 
@@ -39,6 +43,20 @@ class NullAdjudicationClient:
 
 
 _CONFIDENCE_PATTERN = re.compile(r"([01](?:\.\d+)?)")
+_STRICT_CONFIDENCE_PATTERN = re.compile(r"(?:0(?:\.\d+)?|1(?:\.0+)?)")
+
+
+def parse_confidence_response(content: object) -> float:
+    """Parse the provider's number-only confidence response strictly."""
+
+    if not isinstance(content, str):
+        raise AdjudicationClientError("provider confidence response was not text")
+    normalized = content.strip()
+    if _STRICT_CONFIDENCE_PATTERN.fullmatch(normalized) is None:
+        raise AdjudicationClientError(
+            "provider confidence response was not a number in 0..1"
+        )
+    return float(normalized)
 
 
 def judge_prompt(candidate_label: str, record_label: str) -> str:
@@ -107,5 +125,7 @@ class ContextualOrchestratorAdjudicationClient:
         try:
             content = chat_completion_content(body)
         except (TypeError, ValueError) as exc:
-            raise HttpClientError("adjudication response did not contain text") from exc
-        return parse_confidence(content)
+            raise AdjudicationClientError(
+                "provider response did not contain one chat message"
+            ) from exc
+        return parse_confidence_response(content)
