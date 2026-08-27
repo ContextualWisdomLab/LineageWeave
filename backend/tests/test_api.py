@@ -4905,7 +4905,13 @@ def test_calendar_is_empty_before_any_commitment(client, demo_analyst_token, see
     assert payload["commitments"] == []
     assert payload["events"] == []
     assert payload["calendar_sources"]["naruon_available"] is False
-    assert "Connect the Naruon calendar projection" in payload["calendar_sources"]["naruon_next_action"]
+    next_action = payload["calendar_sources"]["naruon_next_action"]
+    assert next_action == (
+        "Ask your workspace administrator to enable calendar access. "
+        "Open a commitment below to read its source post."
+    )
+    assert "Naruon" not in next_action
+    assert "projection" not in next_action
     assert "caldav_available" not in payload["calendar_sources"]
 
 

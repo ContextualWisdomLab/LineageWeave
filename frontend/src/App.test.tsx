@@ -830,7 +830,7 @@ describe("App, authenticated", () => {
             calendar_sources: {
               naruon_available: false,
               naruon_next_action:
-                "Connect the Naruon calendar projection. Open a commitment below to read that post.",
+                "Ask your workspace administrator to enable calendar access. Open a commitment below to read its source post.",
             },
           }),
         );
@@ -4352,6 +4352,9 @@ describe("App, authenticated", () => {
     await userEvent.click(await screen.findByRole("button", { name: "달력" }));
     expect(screen.getByRole("heading", { name: "달력" })).toBeInTheDocument();
     expect(screen.getByText("이 범위의 일정을 아직 받을 수 없습니다")).toBeInTheDocument();
+    expect(
+      screen.getByRole("region", { name: /^Unavailable:/ }),
+    ).toHaveTextContent("이 범위의 일정을 아직 받을 수 없습니다");
     expect(screen.getByRole("heading", { name: "Observed calendar events" })).toBeInTheDocument();
     expect(screen.queryByText(/CalDAV/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/Buyer|Cubee/i)).not.toBeInTheDocument();

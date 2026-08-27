@@ -1570,3 +1570,94 @@
     --color-dashboard-surface: #1f2028;
   }
 }
+
+.status-notice {
+  display: grid;
+  gap: var(--space-control-gap);
+  margin-top: var(--space-panel-block);
+  padding: var(--space-panel-block);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-panel);
+}
+
+.status-notice-heading {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-chip-gap);
+  margin: 0;
+  font-size: var(--font-size-badge);
+  font-weight: 600;
+}
+
+.status-notice-glyph {
+  font-size: 0.7em;
+  line-height: 1;
+}
+
+.status-notice-message,
+.status-notice-next-action {
+  margin: 0;
+  font-size: 0.85rem;
+}
+
+.status-notice-retry {
+  justify-self: start;
+  min-height: var(--size-control-min);
+}
+
+.ask-agent-form {
+  display: grid;
+  gap: var(--space-control-gap);
+  max-width: 42rem;
+}
+
+.ask-agent-field {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.ask-agent-field textarea,
+.ask-agent-field input {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: var(--size-control-min);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-control);
+  background: var(--color-background);
+  color: var(--color-text);
+  font: inherit;
+  padding: 0.65rem;
+}
+
+.ask-agent-checkbox {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: var(--size-control-min);
+}
+
+.ask-agent-form > .btn-primary {
+  justify-self: start;
+  min-height: var(--size-control-min);
+}
+
+.status-notice-kind-success {
+  background: var(--badge-status-success-bg);
+  color: var(--badge-status-success-text);
+}
+
+.status-notice-kind-unavailable {
+  background: var(--badge-status-pending-bg);
+  color: var(--badge-status-pending-text);
+}
+
+.status-notice-kind-retry {
+  background: var(--badge-status-danger-bg);
+  color: var(--badge-status-danger-text);
+}
+
+.keyman-select {
+  background: none;
+  border: none;
+  padding: 0;
+  color: inherit;

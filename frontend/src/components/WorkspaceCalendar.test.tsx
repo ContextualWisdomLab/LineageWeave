@@ -25,7 +25,7 @@ const unavailable: CalendarResponse = {
   calendar_sources: {
     naruon_available: false,
     naruon_next_action:
-      "Connect the Naruon calendar projection. Open a commitment below to read that post.",
+      "Ask your workspace administrator to enable calendar access. Open a commitment below to read its source post.",
   },
 };
 
@@ -43,6 +43,11 @@ describe("WorkspaceCalendar", () => {
 
     expect(screen.getByRole("heading", { name: "달력" })).toBeInTheDocument();
     expect(screen.getByText(CALENDAR_CONSUME_UNAVAILABLE)).toBeInTheDocument();
+    const notice = screen.getByRole("region", { name: /^Unavailable:/ });
+    expect(notice).toHaveTextContent(CALENDAR_CONSUME_UNAVAILABLE);
+    expect(notice).toHaveTextContent("enable calendar access");
+    expect(notice).not.toHaveTextContent(/Naruon|provider|model|transport|environment/i);
+    expect(screen.queryByRole("status")).not.toBeInTheDocument();
     expect(screen.queryByText(/CalDAV/i)).not.toBeInTheDocument();
     await userEvent.click(
       screen.getByRole("button", { name: /open commitment for: public post/i }),
@@ -81,6 +86,7 @@ describe("WorkspaceCalendar", () => {
     );
 
     expect(screen.getByText("Customer review")).toBeInTheDocument();
+    expect(screen.queryByText("summary_visible")).not.toBeInTheDocument();
     expect(
       screen.getByText("Open this observed occurrence. It is not a LineageWeave commitment."),
     ).toBeInTheDocument();
