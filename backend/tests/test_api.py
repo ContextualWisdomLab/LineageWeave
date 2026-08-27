@@ -264,7 +264,7 @@ _VOICE_ASSIGNMENT_MIGRATION = (
 _VOICE_HISTORY_MIGRATION = (
     Path(__file__).resolve().parents[2]
     / "migrations"
-    / "0238_source_post_voice_history.sql"
+    / "0243_source_post_voice_history.sql"
 )
 _OCCUPATIONAL_CONSTRUCT_MIGRATION = (
     Path(__file__).resolve().parents[2]
