@@ -2697,7 +2697,9 @@ describe("App, authenticated", () => {
 
     await waitFor(() =>
       expect(
-        screen.getByText("Verification unavailable (search is not configured)."),
+        screen.getByText(
+          "Verification is unavailable because public search is not configured yet. Ask an administrator to enable it, then retry.",
+        ),
       ).toBeInTheDocument(),
     );
     expect(screen.queryByText(/HTTP 503/)).not.toBeInTheDocument();

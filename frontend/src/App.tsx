@@ -157,7 +157,7 @@ function LanguageSwitcher({ accessToken }: { accessToken?: string }) {
 
 function searchUnavailableMessage(err: unknown): string {
   if (err instanceof BackendError && err.status === 503) {
-    return t("Verification unavailable (search is not configured).");
+    return t("Verification is unavailable because public search is not configured yet. Ask an administrator to enable it, then retry.");
   }
   return String(err);
 }
@@ -2044,10 +2044,10 @@ function PostDetailPopup({
         setPostActionStatus(t("Permanent link copied."));
         return;
       }
-      setPostActionStatus(t("Share unavailable."));
+      setPostActionStatus(t("Sharing did not start. Copy the link from the browser address bar to share this post."));
     } catch (err) {
       if (err instanceof DOMException && err.name === "AbortError") return;
-      setPostActionStatus(t("Share unavailable."));
+      setPostActionStatus(t("Sharing did not start. Copy the link from the browser address bar to share this post."));
     }
   }
 
@@ -2058,7 +2058,7 @@ function PostDetailPopup({
       const next = await setPostBookmark(accessToken, postId, !bookmarked);
       setBookmarked(next.bookmarked);
     } catch {
-      setPostActionStatus(t("Bookmark unavailable."));
+      setPostActionStatus(t("Bookmark could not be saved. Try again in a moment; the post itself stays open."));
     } finally {
       setBookmarkSaving(false);
     }
