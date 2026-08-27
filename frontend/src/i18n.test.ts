@@ -76,6 +76,9 @@ describe("i18n", () => {
     "Title overlap",
     "Rankings combine newest-first and title-overlap evidence and are not calibrated scores. Open a ranked post to see its evidence.",
     "Workspace navigation",
+    "Project history",
+    "Open project history: {name}",
+    "Loading project history. Review the timeline when it appears.",
     "Observed calendar events",
     "No observed calendar events are available.",
     "Open this observed occurrence. It is not a LineageWeave commitment.",
@@ -129,6 +132,17 @@ describe("i18n", () => {
     expect(getLocale()).toBe(locale);
     expect(t("Related posts")).toBe(expected);
     expect(document.documentElement.lang).toBe(locale);
+  });
+
+  it.each([
+    ["ko", "프로젝트 이력", "프로젝트 이력 열기: DEMO"],
+    ["zh", "项目历史", "打开项目历史：DEMO"],
+    ["ja", "プロジェクト履歴", "プロジェクト履歴を開く: DEMO"],
+    ["vi", "Lịch sử dự án", "Mở lịch sử dự án: DEMO"],
+  ] as const)("translates project history actions in %s", (locale, heading, action) => {
+    setLocale(locale);
+    expect(t("Project history")).toBe(heading);
+    expect(tf("Open project history: {name}", { name: "DEMO" })).toBe(action);
   });
 
   it.each([
