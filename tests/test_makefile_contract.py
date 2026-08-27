@@ -11,6 +11,9 @@ def test_makefile_runtime_targets_use_locked_uv_environment() -> None:
     )
 
     assert "uv run --locked python scripts/smoke_test_oidc.py" in makefile
-    assert "uv run --locked python scripts/seed_demo_data.py" in makefile
+    assert (
+        "uv run --locked --extra dev --extra backend "
+        "python scripts/seed_demo_data.py"
+    ) in makefile
     assert "\n\tpython3 scripts/smoke_test_oidc.py" not in makefile
     assert "\n\tpython3 scripts/seed_demo_data.py" not in makefile
