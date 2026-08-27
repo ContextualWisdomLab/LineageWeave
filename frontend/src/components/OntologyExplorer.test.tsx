@@ -456,7 +456,6 @@ describe("OntologyExplorer", () => {
       "lw:edge/mentions:post-person",
     ]);
   });
-=======
 
   it("labels and filters distinct work evidence without exposing its node code", async () => {
     render(

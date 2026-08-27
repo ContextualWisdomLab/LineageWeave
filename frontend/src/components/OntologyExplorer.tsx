@@ -201,7 +201,6 @@ export function OntologyExplorer({
           <p>
             {t("This is an ontology neighborhood, not Event Lineage.")}{" "}
             {t("Event Lineage shows reconstructed post-to-post parents. This graph shows typed people, organizations, teams, projects, and posts.")}
-=======
             {visible?.nodes.some((node) => node.node_type_code === "node_occupational_construct")
               ? ` ${occupationalConstructText("Select a work-evidence node to review the records that support it.")}`
               : ""}
