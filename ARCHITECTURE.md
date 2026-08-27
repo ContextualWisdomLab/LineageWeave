@@ -366,6 +366,11 @@ governed atomic Voice with an explicit truth state and an ABAC-visible evidence
 Post. The server creates the normalized PROV-O derivation and assignment in one
 transaction; clients never submit an internal assertion id, and this route
 cannot replace the imported primary Voice.
+Imported-primary changes are retained in `source_post_voice` as non-overlapping
+half-open effective intervals (ADR 0252). The database closes the current row
+and opens the new observed primary at one statement instant; live reads select
+the open interval, cutoff reads select the containing interval, and an ontology
+continuation without an explicit cutoff uses its frozen snapshot instant.
 The bounded ontology response carries a visible Voice assignment's evidence
 Post id alongside its exact-value row. The exact-value table therefore offers
 separate carrying-Post and derivation-evidence actions; hidden evidence removes

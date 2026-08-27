@@ -9,8 +9,9 @@ decision from them.
 
 | Supporting document | Normative ADR |
 |---|---|
-| [`product-requirements.md`](../product-requirements.md) | Product requirements projection across the ADR set; ADRs remain normative |
+| [`product-requirements.md`](../product-requirements.md) | Product requirements projection across the ADR set; ADRs remain normative, including [0252](0252-temporal-primary-voice-history.md) |
 | [`product-technical-gap-baseline.md`](../product-technical-gap-baseline.md) | Product/technical traceability projection across the ADR set; ADRs remain normative |
+| [`voice-combination-technical-requirements.md`](../voice-combination-technical-requirements.md) | [0246](0246-expanded-voice-of-x-post-taxonomy.md), [0251](0251-evidence-bearing-voice-combinations.md), [0252](0252-temporal-primary-voice-history.md) |
 | [`lineage-bi-research-notes.md`](../lineage-bi-research-notes.md) | [0084](0084-lineage-research-grounding.md), [0062](0062-semantic-unit-embedding.md), [0064](0064-lineage-evidence-and-tree-assembly.md), [0024](0024-rankweave-fusion-fail-closed.md), [0165](0165-quantity-script-display.md), [0167](0167-rankweave-ranking-channel-evidence.md), [0169](0169-ask-batched-lineage-graph.md), [0172](0172-event-lineage-channel-evidence.md), [0202](0202-ask-event-time-filter.md), [0223](0223-explicit-semantic-content-unit-kinds.md) |
 | [`PROV_O_IMPLEMENTATION.md`](../PROV_O_IMPLEMENTATION.md) | [0065](0065-prov-o-provenance-boundary.md) |
 | [`PROV_O_IMPLEMENTATION_MATRIX.md`](../PROV_O_IMPLEMENTATION_MATRIX.md) | [0065](0065-prov-o-provenance-boundary.md) |

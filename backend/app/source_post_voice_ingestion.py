@@ -145,7 +145,7 @@ async def persist_additional_voice_assignment(
                 (post_id, voice_type_code, is_primary, truth_status_code,
                  provenance_assertion_id, effective_from, recorded_at)
             values ($1::uuid, $2, false, $3, $4::uuid, now(), now())
-            on conflict (post_id, voice_type_code) do update
+            on conflict (post_id, voice_type_code) where effective_to is null do update
             set truth_status_code = excluded.truth_status_code,
                 provenance_assertion_id = excluded.provenance_assertion_id,
                 recorded_at = now()

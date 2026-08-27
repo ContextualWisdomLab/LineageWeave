@@ -220,7 +220,9 @@ class OntologyVoiceAssignment:
     is_primary: bool
     truth_status_code: str
     recorded_at: datetime
+    effective_from: datetime
     provenance_reference: str
+    effective_to: datetime | None = None
     evidence_post_id: str | None = None
 
     def __post_init__(self) -> None:
@@ -245,6 +247,16 @@ class OntologyVoiceAssignment:
         if self.recorded_at.tzinfo is None:
             raise OntologyNeighborhoodError(
                 "naive_timestamp", "voice assignment recorded_at must be offset-aware"
+            )
+        if self.effective_from.tzinfo is None or (
+            self.effective_to is not None and self.effective_to.tzinfo is None
+        ):
+            raise OntologyNeighborhoodError(
+                "naive_timestamp", "voice assignment effective bounds must be offset-aware"
+            )
+        if self.effective_to is not None and self.effective_from >= self.effective_to:
+            raise OntologyNeighborhoodError(
+                "invalid_interval", "voice assignment effective interval is empty or inverted"
             )
 
 
@@ -310,8 +322,10 @@ class OntologyNeighborhood:
                     "target_type_code": "node_voice_type",
                     "truth_status_code": assignment.truth_status_code,
                     "recorded_at": assignment.recorded_at.isoformat(),
-                    "valid_from": "",
-                    "valid_to": "",
+                    "valid_from": assignment.effective_from.isoformat(),
+                    "valid_to": assignment.effective_to.isoformat()
+                    if assignment.effective_to
+                    else "",
                     "evidence_count": "1" if assignment.evidence_post_id or assignment.is_primary else "0",
                     "evidence_post_id": assignment.evidence_post_id or (
                         assignment.post_id if assignment.is_primary else ""
@@ -400,23 +414,24 @@ class OntologyNeighborhood:
                 if evidence_iri is not None
                 else {}
             )
-            graph.append(
-                {
-                    "@id": assignment_iri,
-                    "@type": str(LW.VoiceAssignment),
-                    str(LW.assignedVoiceType): {"@id": assignment.voice_type_iri},
-                    str(LW.primaryVoiceAssignment): {
-                        "@value": assignment.is_primary,
-                        "@type": "xsd:boolean",
-                    },
-                    **provenance,
-                    "lw:truthStatus": assignment.truth_status_code,
-                    "prov:generatedAtTime": {
-                        "@value": assignment.recorded_at.isoformat(),
-                        "@type": "xsd:dateTimeStamp",
-                    },
-                }
+            item: dict[str, object] = {
+                "@id": assignment_iri,
+                "@type": str(LW.VoiceAssignment),
+                str(LW.assignedVoiceType): {"@id": assignment.voice_type_iri},
+                str(LW.primaryVoiceAssignment): {
+                    "@value": assignment.is_primary,
+                    "@type": "xsd:boolean",
+                },
+                **provenance,
+                "lw:truthStatus": assignment.truth_status_code,
+            }
+            _add_jsonld_times(
+                item,
+                assignment.recorded_at,
+                assignment.effective_from,
+                assignment.effective_to,
             )
+            graph.append(item)
             graph.append(
                 {
                     "@id": assignment.voice_type_iri,

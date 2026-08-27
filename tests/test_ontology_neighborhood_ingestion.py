@@ -832,6 +832,8 @@ def test_focus_label_fetch_may_be_empty_when_facts_already_labeled() -> None:
                 "is_primary": True,
                 "truth_status_code": "truth_observed",
                 "recorded_at": T0,
+                "effective_from": T0,
+                "effective_to": None,
                 "has_assertion": False,
                 "evidence_post_id": None,
             }
@@ -905,6 +907,8 @@ def test_load_voice_assignments_preserves_truth_and_customer_safe_provenance() -
                     "is_primary": True,
                     "truth_status_code": "truth_observed",
                     "recorded_at": T0,
+                    "effective_from": T0,
+                    "effective_to": None,
                     "has_assertion": False,
                     "evidence_post_id": None,
                 },
@@ -915,6 +919,8 @@ def test_load_voice_assignments_preserves_truth_and_customer_safe_provenance() -
                     "is_primary": False,
                     "truth_status_code": "truth_observed",
                     "recorded_at": T0,
+                    "effective_from": T0,
+                    "effective_to": None,
                     "has_assertion": True,
                     "evidence_post_id": POST_ID,
                 },
@@ -932,7 +938,14 @@ def test_load_voice_assignments_preserves_truth_and_customer_safe_provenance() -
     assert assignments[1].evidence_post_id == POST_ID
     assert "evidence.node_id = any($1::uuid[])" in conn.calls[0][0]
     assert "voice.is_primary or evidence.node_id = any($1::uuid[])" in conn.calls[0][0]
-    assert "voice.effective_from <= $2" in conn.calls[0][0]
+    assert (
+        "voice.effective_from <= coalesce($2::timestamptz, $3::timestamptz)"
+        in conn.calls[0][0]
+    )
+    assert (
+        "coalesce($2::timestamptz, $3::timestamptz) < voice.effective_to"
+        in conn.calls[0][0]
+    )
     assert "voice.recorded_at <= $3" in conn.calls[0][0]
     assert conn.calls[0][1] == ([POST_ID], T0, T0)
 

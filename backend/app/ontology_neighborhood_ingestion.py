@@ -769,6 +769,10 @@ def neighborhood_to_payload(neighborhood: OntologyNeighborhood) -> dict[str, Any
                 "is_primary": assignment.is_primary,
                 "truth_status_code": assignment.truth_status_code,
                 "recorded_at": assignment.recorded_at.isoformat(),
+                "effective_from": assignment.effective_from.isoformat(),
+                "effective_to": assignment.effective_to.isoformat()
+                if assignment.effective_to
+                else None,
                 "provenance_reference": assignment.provenance_reference,
                 "evidence_post_id": assignment.evidence_post_id,
             }
@@ -793,6 +797,7 @@ async def _load_voice_assignments(
         """
         select voice.post_id, voice.voice_type_code, lookup.lookup_label, voice.is_primary,
                voice.truth_status_code, voice.recorded_at,
+               voice.effective_from, voice.effective_to,
                case when evidence.node_id = any($1::uuid[]) then evidence.node_id end
                    as evidence_post_id
           from source_post_voice voice
@@ -806,7 +811,11 @@ async def _load_voice_assignments(
            and evidence.node_type_code = 'node_post'
          where voice.post_id = any($1::uuid[])
            and (voice.is_primary or evidence.node_id = any($1::uuid[]))
-           and ($2::timestamptz is null or voice.effective_from <= $2)
+           and voice.effective_from <= coalesce($2::timestamptz, $3::timestamptz)
+           and (
+               voice.effective_to is null
+               or coalesce($2::timestamptz, $3::timestamptz) < voice.effective_to
+           )
            and voice.recorded_at <= $3::timestamptz
          order by voice.post_id, voice.is_primary desc,
                   lookup.display_order, voice.voice_type_code
@@ -831,6 +840,8 @@ async def _load_voice_assignments(
                 is_primary=row["is_primary"],
                 truth_status_code=row["truth_status_code"],
                 recorded_at=row["recorded_at"],
+                effective_from=row["effective_from"],
+                effective_to=row["effective_to"],
                 provenance_reference=(
                     "Evidence-backed additional voice"
                     if not row["is_primary"]
