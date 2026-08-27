@@ -23,21 +23,22 @@ class ProjectHistoryConnection(Protocol):
 
 
 _ELIGIBILITY = SOURCE_POST_ELIGIBILITY_SQL.format(alias="post")
+_ASCII_EDGE_WHITESPACE = r"E' \t\n\r\f\v'"
 _PROJECT_MATCH = """
 (
-    lower(btrim(normalize(coalesce(post.source_project_code, ''), NFKC))) = $1
-    or lower(btrim(normalize(coalesce(post.source_project_name, ''), NFKC))) = $1
+    lower(btrim(normalize(coalesce(post.source_project_code, ''), NFKC), {whitespace})) = $1
+    or lower(btrim(normalize(coalesce(post.source_project_name, ''), NFKC), {whitespace})) = $1
     or exists (
         select 1
           from post_project_mention mention
          where mention.post_id = post.post_id
            and (
-                lower(btrim(normalize(mention.project_key, NFKC))) = $1
-                or lower(btrim(normalize(mention.project_name, NFKC))) = $1
+                lower(btrim(normalize(mention.project_key, NFKC), {whitespace})) = $1
+                or lower(btrim(normalize(mention.project_name, NFKC), {whitespace})) = $1
            )
     )
 )
-"""
+""".format(whitespace=_ASCII_EDGE_WHITESPACE)
 _EVENT_SQL = f"""
 select post.post_id,
        post.post_title,
@@ -85,7 +86,7 @@ select post.post_id,
        'source_post.source_project_code'::text as provenance
   from source_post post
  where post.post_id = any($1::uuid[])
-   and lower(btrim(normalize(coalesce(post.source_project_code, ''), NFKC))) = $2
+   and lower(btrim(normalize(coalesce(post.source_project_code, ''), NFKC), {whitespace})) = $2
 union all
 select post.post_id,
        'source_project_name'::text,
@@ -95,7 +96,7 @@ select post.post_id,
        'source_post.source_project_name'::text
   from source_post post
  where post.post_id = any($1::uuid[])
-   and lower(btrim(normalize(coalesce(post.source_project_name, ''), NFKC))) = $2
+   and lower(btrim(normalize(coalesce(post.source_project_name, ''), NFKC), {whitespace})) = $2
 union all
 select mention.post_id,
        'semantic_project_key'::text,
@@ -105,7 +106,7 @@ select mention.post_id,
        'post_project_mention.project_key'::text
   from post_project_mention mention
  where mention.post_id = any($1::uuid[])
-   and lower(btrim(normalize(mention.project_key, NFKC))) = $2
+   and lower(btrim(normalize(mention.project_key, NFKC), {whitespace})) = $2
 union all
 select mention.post_id,
        'semantic_project_name'::text,
@@ -115,9 +116,9 @@ select mention.post_id,
        'post_project_mention.project_name'::text
   from post_project_mention mention
  where mention.post_id = any($1::uuid[])
-   and lower(btrim(normalize(mention.project_name, NFKC))) = $2
+   and lower(btrim(normalize(mention.project_name, NFKC), {whitespace})) = $2
 order by post_id, match_kind_code, matched_value
-"""
+""".format(whitespace=_ASCII_EDGE_WHITESPACE)
 _ROLE_SQL = """
 select role.post_id,
        role.actor_name,
@@ -144,6 +145,10 @@ class ProjectHistoryNotFound(LookupError):
     """No authorized project history matched the requested identity."""
 
 
+class ProjectHistoryRequestError(ValueError):
+    """The caller supplied a project-history parameter outside its contract."""
+
+
 async def fetch_project_history_projection(
     conn: ProjectHistoryConnection,
     *,
@@ -164,8 +169,11 @@ async def fetch_project_history_projection(
     """
 
     if limit < 1 or limit > PROJECT_HISTORY_MAXIMUM_LIMIT:
-        raise ValueError("project history limit is outside the supported bound")
-    normalized_key = normalize_project_key(project_key)
+        raise ProjectHistoryRequestError("project history limit is outside the supported bound")
+    try:
+        normalized_key = normalize_project_key(project_key)
+    except ValueError as exc:
+        raise ProjectHistoryRequestError(str(exc)) from exc
     rows = list(
         await conn.fetch(
             _EVENT_SQL,

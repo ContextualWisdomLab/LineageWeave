@@ -40,9 +40,8 @@ export function ProjectHistoryTimeline({
   const instanceId = useId();
   const panelId = `${instanceId}-project-history-panel`;
   const headingId = `${instanceId}-project-history-heading`;
-  const [selectedEventId, setSelectedEventId] = useState(() =>
-    initialEventId(projection.events, projection.focus_event_id),
-  );
+  const resetEventId = initialEventId(projection.events, projection.focus_event_id);
+  const [selectedEventId, setSelectedEventId] = useState(() => resetEventId);
   const tabRefs = useRef<Array<HTMLButtonElement | null>>([]);
   const eventById = new Map(projection.events.map((event) => [event.event_id, event]));
   const selectedEvent =
@@ -55,8 +54,8 @@ export function ProjectHistoryTimeline({
   const selectedTabId = selectedIndex >= 0 ? `${instanceId}-project-history-tab-${selectedIndex}` : undefined;
 
   useEffect(() => {
-    setSelectedEventId(initialEventId(projection.events, projection.focus_event_id));
-  }, [projection.normalized_project_key, projection.focus_event_id, projection.events]);
+    setSelectedEventId(resetEventId);
+  }, [projection.normalized_project_key, projection.focus_event_id, resetEventId]);
 
   function selectAt(index: number) {
     const bounded = Math.max(0, Math.min(index, projection.events.length - 1));

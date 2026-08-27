@@ -131,4 +131,23 @@ describe("ProjectHistoryTimeline", () => {
     const panel = screen.getByRole("tabpanel");
     expect(panel).toHaveAttribute("aria-labelledby", specTab.id);
   });
+
+  it("preserves the selected tab when a parent recreates an equal events array", () => {
+    const { rerender } = render(
+      <ProjectHistoryTimeline projection={projection} onOpenPost={vi.fn()} />,
+    );
+    fireEvent.click(screen.getByRole("tab", { name: /Specification changed/ }));
+
+    rerender(
+      <ProjectHistoryTimeline
+        projection={{ ...projection, events: [...projection.events] }}
+        onOpenPost={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByRole("tab", { name: /Specification changed/ })).toHaveAttribute(
+      "aria-selected",
+      "true",
+    );
+  });
 });

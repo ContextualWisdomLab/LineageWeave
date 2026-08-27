@@ -5,7 +5,10 @@ from __future__ import annotations
 import asyncio
 from datetime import datetime, timezone
 
-from backend.app.project_history import fetch_project_history_projection
+from backend.app.project_history import (
+    ProjectHistoryRequestError,
+    fetch_project_history_projection,
+)
 
 
 class _Connection:
@@ -54,6 +57,46 @@ def test_project_history_query_binds_corporate_and_process_scopes() -> None:
     assert result["events"][0]["event_type_code"] == "source_recorded"
     assert result["events"][0]["occurred_at"] == "2025-12-20T00:00:00Z"
     assert result["events"][0]["time_basis_code"] == "document_time"
+
+
+def test_project_history_query_uses_the_same_ascii_edge_whitespace_as_python() -> None:
+    """SQL and Python must normalize tab-delimited source keys identically."""
+
+    connection = _Connection()
+    asyncio.run(
+        fetch_project_history_projection(
+            connection,
+            project_key="\tP-100\n",
+            focus_post_id=None,
+            knowledge_cutoff=datetime(2026, 2, 1, tzinfo=timezone.utc),
+            corporate_entity_ids=[],
+            process_unit_ids=[],
+        )
+    )
+    event_query, event_args = connection.calls[0]
+    assert "btrim(normalize(coalesce(post.source_project_code, ''), NFKC), E'" in event_query
+    assert event_args[0] == "p-100"
+
+
+def test_project_history_rejects_invalid_request_parameters_explicitly() -> None:
+    """Caller input errors use the request-error type, not internal ValueError."""
+
+    connection = _Connection()
+    try:
+        asyncio.run(
+            fetch_project_history_projection(
+                connection,
+                project_key=" ",
+                focus_post_id=None,
+                knowledge_cutoff=datetime(2026, 2, 1, tzinfo=timezone.utc),
+                corporate_entity_ids=[],
+                process_unit_ids=[],
+            )
+        )
+    except ProjectHistoryRequestError:
+        pass
+    else:
+        raise AssertionError("blank project key was accepted")
 
 
 def test_truncated_focus_does_not_claim_a_responsibility_transition_across_omitted_events() -> None:

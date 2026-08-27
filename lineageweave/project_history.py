@@ -26,6 +26,7 @@ PROJECT_HISTORY_MAX_PATHS_PER_EVENT = 32
 _VOC_CODES = frozenset({"voc", "vocc", "voco", "vom", "vop"})
 _TRUTH_ORDER = {"observed": 0, "inferred": 1}
 _DISPLAY_NAME_ORDER = {"source_project_name": 0, "semantic_project_name": 1}
+_ASCII_EDGE_WHITESPACE = " \t\n\r\f\v"
 
 
 def normalize_project_key(value: str) -> str:
@@ -36,7 +37,7 @@ def normalize_project_key(value: str) -> str:
     fail closed.
     """
 
-    normalized = normalize("NFKC", value).strip().lower()
+    normalized = normalize("NFKC", value).strip(_ASCII_EDGE_WHITESPACE).lower()
     if not normalized:
         raise ValueError("project key must not be empty")
     if len(normalized.encode("utf-8")) > 256:

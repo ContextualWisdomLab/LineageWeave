@@ -168,6 +168,7 @@ from backend.app.occupation_rating_ingestion import (
 )
 from backend.app.project_history import (
     ProjectHistoryNotFound,
+    ProjectHistoryRequestError,
     fetch_project_history_projection,
 )
 from backend.app.post_summary_ingestion import (
@@ -2614,7 +2615,7 @@ async def read_project_history(
                 corporate_entity_ids=sorted(account.corporate_entity_ids),
                 process_unit_ids=sorted(account.process_unit_ids),
             )
-    except ValueError as exc:
+    except ProjectHistoryRequestError as exc:
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, str(exc)) from exc
     except ProjectHistoryNotFound:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "project history not found") from None
