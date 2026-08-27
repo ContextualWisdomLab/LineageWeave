@@ -234,3 +234,170 @@ def test_client_configuration_fails_closed() -> None:
             "secret",
             maximum_results=0,
         )
+
+
+def test_claim_kind_classifies_project_ontology_and_plain_facts() -> None:
+    """The fact-kind classifier maps source conventions to claim kinds."""
+    assert cv._claim_kind("project: Apollo | evidence: launch") == "semantic_project"
+    assert cv._claim_kind("ontology_iri: https://example.test/ontology#Project") == (
+        "ontology_reference"
+    )
+    assert cv._claim_kind("node_team A --edge_affiliation--> node_organization B") == (
+        "knowledge_graph_relation"
+    )
+    assert cv._claim_kind("plain customer-safe sentence") is None
+
+
+def test_safe_external_document_rejects_malformed_and_non_http_urls() -> None:
+    """Only well-formed http(s), reachable documents are admissible."""
+    assert cv._safe_external_document("not-a-dict") is None
+    assert cv._safe_external_document({}) is None
+    assert cv._safe_external_document({"url": "  "}) is None
+    assert cv._safe_external_document({"url": "file:///etc/passwd"}) is None
+    assert cv._safe_external_document({"url": "javascript:alert(1)"}) is None
+    assert cv._safe_external_document({"url": ""}) is None
+
+
+def test_null_claim_verification_client_raises_unavailable_runtime_error() -> None:
+    """An unavailable client signals the missing capability contractually."""
+    client = cv.NullClaimVerificationClient()
+    assert client.available is False
+    with pytest.raises(RuntimeError, match="not configured"):
+        client.verify(_public_claim("Acme launch?"))
+
+
+@pytest.mark.parametrize("maximum_results", [1, 2])
+def test_search_bounds_results_to_maximum(monkeypatch, maximum_results: int) -> None:
+    """At most ``maximum_results`` unique admissible documents are kept."""
+    from lineageweave import claim_verification as cv_mod
+
+    def fake_search(_url, *, timeout, service_peer_name="searxng"):  # noqa: ANN001
+        return {
+            "results": [
+                {"url": f"https://example.test/doc/{index}", "title": f"Doc {index}"}
+                for index in range(6)
+            ]
+        }
+
+    monkeypatch.setattr(cv_mod, "get_json", fake_search)
+    client = cv.SearxngOrchestratedClaimVerificationClient(
+        "https://searxng.test",
+        "https://orchestrator.test",
+        "synthetic-key",
+        maximum_results=maximum_results,
+    )
+    documents = client._search(_public_claim("Acme launch?"))
+    assert len(documents) == maximum_results
+
+
+def test_claim_result_to_payload_serializes_without_mixing_identifiers() -> None:
+    """The payload keeps external URLs separate from internal post ids."""
+    result = cv.ClaimVerificationResult(
+        claim_text="Is Apollo at Acme?",
+        claim_kind="knowledge_graph_relation",
+        status_code=cv.CLAIM_SUPPORTED,
+        rationale="Public search corroborates",
+        source_post_ids=("11111111-1111-1111-1111-111111111111",),
+        evidence=(
+            cv.ExternalEvidenceDocument("Acme", "https://example.test/a", "snippet"),
+        ),
+    )
+    payload = result.to_payload()
+    assert payload["claim_text"] == "Is Apollo at Acme?"
+    assert payload["claim_kind"] == "knowledge_graph_relation"
+    assert payload["status_code"] == cv.CLAIM_SUPPORTED
+    assert payload["source_post_ids"] == ["11111111-1111-1111-1111-111111111111"]
+    assert payload["evidence"][0]["url"] == "https://example.test/a"
+
+
+def test_public_claim_candidates_skip_overlong_facts() -> None:
+    """Facts whose cleaned text exceeds 800 characters never become claims."""
+    long_fact = "project: " + ("x" * 900) + " | evidence: short"
+    source = cv.GlobalAskSourceDocument(
+        post_id="11111111-1111-1111-1111-111111111111",
+        post_title="Public evidence",
+        post_body="Long fact body",
+        external_claim_facts=(long_fact,),
+    )
+    assert cv.public_claim_candidates([source], "Long", maximum_claims=4) == ()
+
+
+def test_ontology_lookup_codes_reject_zero_budget_and_blank_question() -> None:
+    """A zero budget or a blank question nominates nothing."""
+    assert cv.ontology_lookup_codes_for_question("anything", maximum_codes=0) == ()
+    assert cv.ontology_lookup_codes_for_question("   ", maximum_codes=8) == ()
+
+
+def test_ontology_lookup_codes_match_an_explicit_ontology_iri() -> None:
+    """A question naming an ontology IRI nominates that entity's lookup code."""
+    codes = cv.ontology_lookup_codes_for_question(
+        "https://contextualwisdomlab.github.io/LineageWeave/ontology#post",
+        maximum_codes=16,
+    )
+    assert "node_post" in codes
+
+
+def test_ontology_lookup_codes_deduplicate_like_matches() -> None:
+    """Repeated candidates collapse through the final deduplication."""
+    codes = cv.ontology_lookup_codes_for_question(
+        "post post post post project project",
+        maximum_codes=16,
+    )
+    assert len(codes) == len(set(codes))
+
+
+def test_search_non_list_results_return_empty() -> None:
+    """A malformed search body with no results list yields no evidence."""
+    from lineageweave import claim_verification as cv_mod
+
+    def fake_search(_url, *, timeout, service_peer_name="searxng"):  # noqa: ANN001
+        return {"results": "not-a-list"}
+
+    monkeypatch = pytest.MonkeyPatch()
+    monkeypatch.setattr(cv_mod, "get_json", fake_search)
+    client = cv.SearxngOrchestratedClaimVerificationClient(
+        "https://searxng.test",
+        "https://orchestrator.test",
+        "synthetic-key",
+        maximum_results=5,
+    )
+    assert client._search(_public_claim("Acme launch?")) == ()
+    monkeypatch.undo()
+
+
+def test_search_deduplicates_repeated_admissible_documents() -> None:
+    """Duplicate URLs collapse before the maximum-result budget applies."""
+    from lineageweave import claim_verification as cv_mod
+
+    def fake_search(_url, *, timeout, service_peer_name="searxng"):  # noqa: ANN001
+        return {
+            "results": [
+                {"url": "https://example.test/a", "title": "A"},
+                {"url": "https://example.test/a", "title": "A-again"},
+                {"url": "https://example.test/b", "title": "B"},
+            ]
+        }
+
+    monkeypatch = pytest.MonkeyPatch()
+    monkeypatch.setattr(cv_mod, "get_json", fake_search)
+    client = cv.SearxngOrchestratedClaimVerificationClient(
+        "https://searxng.test",
+        "https://orchestrator.test",
+        "synthetic-key",
+        maximum_results=5,
+    )
+    documents = client._search(_public_claim("Acme launch?"))
+    assert {document.url for document in documents} == {
+        "https://example.test/a",
+        "https://example.test/b",
+    }
+    monkeypatch.undo()
+
+
+def _public_claim(text: str) -> cv.PublicClaimCandidate:
+    """One minimal PublicClaimCandidate for client-contract tests."""
+    return cv.PublicClaimCandidate(
+        claim_text=text,
+        claim_kind="knowledge_graph_relation",
+        source_post_ids=("11111111-1111-1111-1111-111111111111",),
+    )
