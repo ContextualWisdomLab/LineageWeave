@@ -6,6 +6,7 @@ import argparse
 import asyncio
 import csv
 import hashlib
+import re
 import json
 import re
 from dataclasses import dataclass
@@ -404,6 +405,16 @@ async def import_ratings(args: argparse.Namespace) -> dict[str, object]:
             source_literal = await conn.fetchval(
                 "select quote_literal($1)", args.source_table_code
             )
+            release_identifier = await conn.fetchval(
+                "select quote_ident($1)", release_partition
+            )
+            source_identifier = await conn.fetchval(
+                "select quote_ident($1)", source_partition
+            )
+            if not re.fullmatch(r"[a-z][a-z0-9_]*", release_identifier):
+                raise ValueError("invalid release partition identifier")
+            if not re.fullmatch(r"[a-z][a-z0-9_]*", source_identifier):
+                raise ValueError("invalid source partition identifier")
             await conn.execute(
                 """insert into occupational_data_release
                        (data_release_code, release_version, source_publisher_name, source_license_url)
@@ -415,10 +426,34 @@ async def import_ratings(args: argparse.Namespace) -> dict[str, object]:
                 args.license_url,
             )
             await conn.execute(
-                f"create table if not exists {release_partition} partition of occupational_rating_observation for values in ({release_literal}) partition by list (source_table_code)"
+                """
+                do $$
+                begin
+                  execute format(
+                    'create table if not exists %I partition of occupational_rating_observation '
+                    'for values in (%L) partition by list (source_table_code)',
+                    $1, $2
+                  );
+                end
+                $$;
+                """,
+                release_identifier,
+                args.release_code,
             )
             await conn.execute(
-                f"create table if not exists {source_partition} partition of {release_partition} for values in ({source_literal})"
+                """
+                do $$
+                begin
+                  execute format(
+                    'create table if not exists %I partition of %I for values in (%L)',
+                    $1, $2, $3
+                  );
+                end
+                $$;
+                """,
+                source_identifier,
+                release_identifier,
+                args.source_table_code,
             )
             await conn.execute(
                 """insert into occupational_source_table
