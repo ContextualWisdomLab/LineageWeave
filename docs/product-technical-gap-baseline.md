@@ -1,9 +1,15 @@
 # Product & Technical Gap Baseline
 
-> Voice-of-X delivery snapshot: 2026-08-27 KST. Protected `main` was
-> `ff7431bd1851c03e737808d22c6a2d43968582f9`; PR #713 was
-> `fea73e19c8b9662b4e6c3c842f1edaa6a3ef6d63`. This candidate and the
-> historical evidence below are not protected-main release evidence.
+> Loop snapshot: 2026-08-27. Protected `main` advanced through the
+> I/O-Psychology job-family and occupational-classification delivery: PRs
+> #709 (DOT/FJA worker functions, ADR 0232), #718 (evidence-bound construct
+> classes, ADR 0248), +#726 (catalog-bound construct extraction, ADR 0253),
+> #733 (construct evidence navigation, ADR 0255), #713 (Voice-of-X ADR 0246),
+> #753 (FJA I/O-Psychology semantic layer, ADR 0251), #751 (SOC/O*NET/RIASEC
+> taxonomy, ADR 0245), #749 (authorized job-family and job-series snapshot
+> import, ADR 0263), #657 (TEPP lifecycle evidence), #704, #720, and #754 are
+> now merged. The still-open queue is carried in section 1. No row below is
+> release evidence until re-verified on a specific head.
 
 ## Voice-of-X product and technical gap
 
