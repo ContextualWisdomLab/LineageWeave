@@ -147,7 +147,7 @@ export const ExternalInformationEmpty: Story = {
     const canvas = within(canvasElement);
     await expect(canvas.getByRole("status")).toHaveTextContent("No external information was classified");
     await expect(canvas.queryByText("All posts")).not.toBeInTheDocument();
-    await expect(canvas.queryByText("Classified events")).not.toBeInTheDocument();
+    await expect(canvas.queryByText("Cited case events")).not.toBeInTheDocument();
     await expect(canvas.queryByText("Awaiting analysis")).not.toBeInTheDocument();
     await expect(canvas.queryByText("Analysis failed")).not.toBeInTheDocument();
   },

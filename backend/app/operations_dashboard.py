@@ -189,14 +189,6 @@ async def fetch_operations_dashboard(
                 )
         )
         select (select count(*) from visible_post) as total_post_count,
-               (select count(*)
-                  from post_summary_event summary_event
-                 where exists (
-                     select 1 from classified
-                      where classified.post_id = summary_event.post_id
-                        and ($5::boolean is false
-                             or classified.case_kind_code = 'external_information')
-                 )) as total_event_count,
                (select count(distinct post_id) from classified
                  where case_kind_code = 'external_information') as external_post_count,
                (select count(*) from scoped_post
@@ -225,10 +217,7 @@ async def fetch_operations_dashboard(
                coalesce(post.event_occurred_at, post.created_at) as occurred_at,
                coalesce(nullif(btrim(post.source_project_name), ''), project.primary_project_name)
                    as project_name,
-               coalesce(project.project_names, array[]::text[]) as project_names,
-               (select count(*)::int
-                  from post_summary_event summary_event
-                 where summary_event.post_id = classification.post_id) as event_count
+               coalesce(project.project_names, array[]::text[]) as project_names
           from operations_case_classification classification
           join source_post post on post.post_id = classification.post_id
           join source_post evidence_post
@@ -441,8 +430,11 @@ async def fetch_operations_dashboard(
     case_event_counts: dict[str, int] = {}
     for row in case_rows:
         kind = row["case_kind_code"]
-        case_post_ids.setdefault(kind, set()).add(str(row["post_id"]))
-        case_event_counts[kind] = case_event_counts.get(kind, 0) + int(row["event_count"])
+        post_id = str(row["post_id"])
+        case_post_ids.setdefault(kind, set()).add(post_id)
+        case_event_counts[kind] = case_event_counts.get(kind, 0) + len(
+            milestones.get((post_id, kind), ())
+        )
     projected_cases = []
     lifecycle_metrics = {
         lifecycle_code: {
@@ -493,7 +485,7 @@ async def fetch_operations_dashboard(
         "period_end": period_end.isoformat() if period_end else None,
         "period_time_axis_code": "event_occurred_at",
         "total_post_count": total,
-        "total_event_count": int(metrics["total_event_count"]),
+        "total_event_count": sum(case_event_counts.values()),
         "external_post_count": external,
         "external_percent": external * 100 / total if total else 0.0,
         "pending_analysis_count": int(metrics["pending_analysis_count"]),
