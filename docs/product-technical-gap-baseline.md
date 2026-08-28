@@ -1,5 +1,19 @@
 # Product & Technical Gap Baseline
 
+> Exact-head loop overlay: 2026-08-28 16:05 KST. Protected `main` is
+> `fc13acaa20adca11968238e398d4aafcf62b6cee` (v2.23.0 leftover-map
+> explained leftover share, #775). Open ready PRs still lack independent
+> APPROVE. #782 leftover-map coordinates (v2.24.0 / ADR 0267) is on
+> `e2d13019004a5d8c019fecf7a39ceeef4093b8dd`; Strix fail-closed and no
+> independent APPROVE. Drafts remain dirty against `main`. #96 stays
+> closed as a weaker duplicate of #91. GitHub writes through MCP succeed.
+>
+> Next buyer increment on this cycle: leftover-map graphic display
+> of already-persisted `ξ_{1:2}` / `ζ_{1:2}` (ADR 0268 / v2.25.0).
+> UI-only; no new columns. `R̂` and `d` already are inner product and
+> length. Do not invent leftover scores. Do not mix into dashboard
+> stacks #640/#778/#781.
+
 > Exact-head loop overlay: 2026-08-28 13:00 KST. Protected `main` is
 > `fc13acaa20adca11968238e398d4aafcf62b6cee` (v2.23.0 leftover-map
 > explained leftover share, #775). Open ready PRs still lack independent

@@ -8,6 +8,16 @@ All notable changes to this project are documented here. Format follows
 
 ### Added
 
+- Period leftover pairs now draw the leftover-map graphic display of
+  persisted `ξ_{1:2}` and `ζ_{1:2}` (ADR 0268 / v2.25.0). After
+  `make seed`, closest and farthest leftover pairs sit above the
+  member list with the Gabriel biplot of already-named coordinates;
+  click a post marker or a pair button opens that post. Omit the plot
+  when no pair has four finite leftover-map coordinates. Rank-0 unused
+  axes plot at the origin. When coordinates, reconstruction, and
+  distance are finite, `R̂ = ξ · ζ` and `d = ‖ξ − ζ‖`. Never invent
+  a leftover score or a theta. No new columns.
+
 - Period leftover pair rows now name leftover-map coordinates `ξ_{1:2}`
   and `ζ_{1:2}` after two-axis Gabriel reconstruction (ADR 0267 /
   v2.24.0). After `make seed`, closest and farthest leftover pairs sit

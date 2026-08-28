@@ -33,6 +33,7 @@ import {
   formatLeftoverMapUnexplainedShare,
   LEFTOVER_MAP_UNEXPLAINED_SHARE_ACTION,
 } from "../leftoverMapUnexplainedShare";
+import { LeftoverMapPlot } from "./LeftoverMapPlot";
 
 export type LeftoverPairListProps = {
   pairs: LeftoverPair[];
@@ -53,8 +54,10 @@ export type LeftoverPairListProps = {
  * falls back in order — leftover-map coordinates, explained leftover
  * share, unexplained leftover share, cross share, reconstruction,
  * unexplained leftover, then the existing residual/rank/observed-expected
- * next action. Every badge still renders together before opening the
- * named post.
+ * next action. When four finite coordinates exist, ADR 0268 draws the
+ * leftover-map graphic display above the pair buttons; click a post
+ * marker opens that post. Every badge still renders together before
+ * opening the named post.
  */
 export function LeftoverPairList({
   pairs,
@@ -65,8 +68,14 @@ export function LeftoverPairList({
     return null;
   }
   return (
-    <ul className="ticket-list" aria-label={t("Leftover pairs")}>
-      {pairs.map((pair) => {
+    <div>
+      <LeftoverMapPlot
+        pairs={pairs}
+        criterionLabel={criterionLabel}
+        onSelectPost={onSelectPost}
+      />
+      <ul className="ticket-list" aria-label={t("Leftover pairs")}>
+        {pairs.map((pair) => {
         const kindLabel =
           pair.pair_kind === "farthest" ? t("Farthest leftover") : t("Closest leftover");
         const criterion = criterionLabel(pair.criterion_code);
@@ -228,6 +237,7 @@ export function LeftoverPairList({
           </li>
         );
       })}
-    </ul>
+      </ul>
+    </div>
   );
 }

@@ -58,6 +58,14 @@ describe("i18n", () => {
     "Leftover map leaves unexplained leftover share {value} of raw residual after IRT main effects. Open this post to read {criterion}.",
     "Leftover map leaves explained leftover share {value} of raw residual after IRT main effects. Open this post to read {criterion}.",
     "Leftover map places this post at ξ {person} and the criterion at ζ {item} after IRT main effects. Open this post to read {criterion}.",
+    "Leftover-map graphic display",
+    "Leftover map",
+    "Post ξ",
+    "Criterion ζ",
+    "leftover-map axis 1",
+    "leftover-map axis 2",
+    "Leftover map after IRT main effects. Click a post marker to open that post. The plot does not invent a leftover score.",
+    "Open leftover-map post {title} at ξ {person}",
     "Read observed Y {observed} and expected E {expected} after IRT main effects, then open this post.",
     "Leftover map has no leftover structure after IRT main effects. Open this post.",
     "Leftover map rank {rank} after IRT main effects. Open this post.",
@@ -313,6 +321,29 @@ describe("i18n", () => {
       tf(
         "Leftover map places this post at ξ {person} and the criterion at ζ {item} after IRT main effects. Open this post to read {criterion}.",
         { person: "(+0.50, +0.10)", item: "(+0.50, −0.02)", criterion: "sales-lead" },
+      ),
+    ).toBe(expected);
+  });
+
+  it.each([
+    [
+      "ko",
+      "IRT 주효과 이후 잔여 지도입니다. 글 표식을 눌러 그 글을 여세요. 이 그림은 잔여 점수를 만들어내지 않습니다.",
+    ],
+    ["zh", "IRT 主效应后的残差图。点击帖子标记打开该帖子。此图不会虚构残差分数。"],
+    [
+      "ja",
+      "IRT主効果後の残差マップです。投稿マーカーをクリックしてその投稿を開いてください。この図は残差スコアを作りません。",
+    ],
+    [
+      "vi",
+      "Bản đồ phần dư sau hiệu ứng chính IRT. Nhấn dấu bài viết để mở bài đó. Hình này không tạo ra điểm phần dư.",
+    ],
+  ] as const)("formats leftover-map graphic display caption in %s", (locale, expected) => {
+    setLocale(locale);
+    expect(
+      t(
+        "Leftover map after IRT main effects. Click a post marker to open that post. The plot does not invent a leftover score.",
       ),
     ).toBe(expected);
   });

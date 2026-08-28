@@ -273,7 +273,7 @@ stops startup instead of leaving a healthy-looking partial schema, and
 application code must not compensate for a missing table.
 
 Period leftover pairs (ADR 0017 / 0018 / 0048 / 0049 / 0119 / 0158 / 0162 /
-0163 / 0164 / 0182 / 0185 / 0201 / 0233 / 0266 / 0267) are computed in `lineageweave/leftover_pairs.py` from the
+0163 / 0164 / 0182 / 0185 / 0201 / 0233 / 0266 / 0267 / 0268) are computed in `lineageweave/leftover_pairs.py` from the
 residual after a real GRM/GPCM score, never invented. Distances are
 Euclidean on the two-dimensional Gabriel leftover map; missing cells stay
 out of the factorization. Closest and farthest post–criterion pairs
@@ -288,7 +288,10 @@ ADR 0201 is the sole normative reconstruction formula,
 storage, and audit contract; do not duplicate or reinterpret it here.
 ADR 0233 is the sole unexplained leftover share contract. ADR 0266 is
 the sole explained leftover share contract. ADR 0267 is the sole
-leftover-map coordinate contract. When `R`, `R̂`, `U`, `x`,
+leftover-map coordinate contract. ADR 0268 is the sole leftover-map
+graphic-display contract: draw persisted `ξ` and `ζ` above the pair
+buttons; omit the plot when coordinates are missing; click a post
+marker to open that post. When `R`, `R̂`, `U`, `x`,
 `s`, and `e` are finite, `e + s + x = 1`. When coordinates,
 reconstruction, and distance are finite, `R̂ = ξ · ζ` and
 `d = ‖ξ − ζ‖`. The pairs sit above the member
