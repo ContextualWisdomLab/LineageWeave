@@ -20,8 +20,10 @@ from backend.app.main import (
     _vision_client,
 )
 from backend.app.post_content_worker import run_post_content_worker
+from backend.app.topic_influence_worker import run_topic_influence_worker
 from backend.app.worker_health import run_worker_heartbeat
 from lineageweave.observability import configure_telemetry, shutdown_telemetry
+from lineageweave.topic_influence_client import HttpTopicInfluenceClient
 
 
 async def run_worker_process() -> None:
@@ -30,7 +32,7 @@ async def run_worker_process() -> None:
     settings = load_settings()
     pool = await create_pool(settings.database_url)
     valkey = create_valkey_client(settings.valkey_url)
-    workers = (
+    workers = [
         asyncio.create_task(run_worker_heartbeat()),
         asyncio.create_task(
             run_analysis_run_worker(
@@ -65,7 +67,20 @@ async def run_worker_process() -> None:
                 claim_verification_factory=_claim_verification_client_factory,
             )
         ),
-    )
+    ]
+    topic_influence_url = getattr(settings, "topic_influence_transport_url", "")
+    if topic_influence_url:
+        workers.append(
+            asyncio.create_task(
+                run_topic_influence_worker(
+                    pool,
+                    lambda: HttpTopicInfluenceClient(
+                        topic_influence_url,
+                        getattr(settings, "topic_influence_api_key", ""),
+                    ),
+                )
+            )
+        )
     try:
         await asyncio.gather(*workers)
     finally:

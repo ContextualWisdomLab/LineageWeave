@@ -12,6 +12,13 @@ All notable changes to this project are documented here. Format follows
 
 ### Added
 
+- Temporal topic influence now has a durable external-production path: the
+  worker binds the exact completed TEPP artifact, posterior draws, and
+  business-unit/PU/team/person memberships into a content-addressed request,
+  then persists only a complete, converged, identified, parity-passed
+  fast-mlsirm result. Missing owner transport, changed evidence, partial rows,
+  or digest mismatch remains unavailable without local scoring (ADR 0210).
+
 - Evidence Operations now presents cited claim, rebid, handover, external,
   product, and Voice evidence with explicit unavailable states and source-open
   actions. Durable analysis and bounded backfill run only in the dedicated

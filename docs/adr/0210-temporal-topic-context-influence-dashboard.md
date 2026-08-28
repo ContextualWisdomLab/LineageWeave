@@ -1,7 +1,8 @@
 # ADR 0210: TEPP temporal topics and fast-mlsirm context influence
 
 - Status: Accepted
-- Implementation maturity: consumer projection candidate; accepted producer result unavailable
+- Implementation maturity: consumer projection and fail-closed producer delivery candidate;
+  accepted upstream numerical result unavailable
 - Date: 2026-08-25
 - Depends on: ADR 0132 (TEPP topic-lineage boundary), ADR 0206 (operations Dashboard)
 - Upstream authorities: TEPP ADR 0012; fast-mlsirm ADR 0002 and ADR 0007
@@ -136,6 +137,25 @@ ties, producer diagnostics, and provenance rather than computing or
 renormalizing scores. The frontend renders an exact-value table alongside the
 temporal topic view, uses text/pattern as well as color for topic state, and
 supports keyboard, touch, reduced motion, narrow viewports, and screen readers.
+
+The durable worker submits only when the topic run is independently evidenced
+by both its TEPP acceptance receipt and its completed, digest-bound topic
+artifact. The request contains every posterior draw and every source-derived
+business-unit, PU, team, and person membership. It is content-addressed before
+the database lease is released. The worker admits only a complete Cartesian
+set of post-membership-topic rows whose request, TEPP run, snapshot, cutoff,
+membership fingerprint, producer revision, convergence, identification,
+backend parity, and artifact digest all match. It recomputes the request digest
+inside the persistence transaction so a changed input cannot receive a stale
+result. Provider work holds neither a database transaction nor a pool lease.
+
+This delivery path does not make the feature available by itself. The
+configured owner endpoint must implement the domain-neutral continuous
+posterior case-deletion estimand in Rust. fast-mlsirm's crossed weighted
+multiple-membership MAP contract supplies the reusable membership design and
+identification boundary; its binary response kernel is not applied to TEPP
+coordinates. Until the continuous result contract is released, the job remains
+unconfigured or records a bounded failure and the Dashboard stays unavailable.
 
 The LineageWeave consumer projection is allowed to land before activation. In
 that state, it reports which exact producer contract is not persisted and

@@ -47,8 +47,8 @@ def test_api_lifespan_opens_clients_without_starting_queue_workers(monkeypatch) 
     assert valkey.closed
 
 
-def test_worker_process_owns_all_three_durable_consumers(monkeypatch) -> None:
-    """Analysis, post-content, and Global Ask queues share one worker owner."""
+def test_worker_process_owns_all_configured_durable_consumers(monkeypatch) -> None:
+    """Analysis, content, Ask, and configured influence work share one owner."""
     pool = _Closable()
     valkey = _Closable()
     calls: list[str] = []
@@ -58,6 +58,8 @@ def test_worker_process_owns_all_three_durable_consumers(monkeypatch) -> None:
         valkey_url="valkey",
         tepp_transport_url="",
         tepp_api_key="",
+        topic_influence_transport_url="http://measurement.test",
+        topic_influence_api_key="synthetic-token",
         orchestrator_answer_timeout_seconds=570.0,
     )
 
@@ -93,10 +95,15 @@ def test_worker_process_owns_all_three_durable_consumers(monkeypatch) -> None:
         worker, "run_post_content_worker", lambda *a, **kw: called("content", *a, **kw)
     )
     monkeypatch.setattr(worker, "run_global_ask_worker", global_ask)
+    monkeypatch.setattr(
+        worker,
+        "run_topic_influence_worker",
+        lambda *a, **kw: called("topic_influence", *a, **kw),
+    )
 
     asyncio.run(worker.run_worker_process())
 
-    assert calls[:3] == ["analysis", "content", "global_ask"]
+    assert calls[:4] == ["analysis", "content", "global_ask", "topic_influence"]
     assert global_ask_kwargs["semantic_query_factory"]() is semantic_client
     assert global_ask_kwargs["claim_verification_factory"]() is verification_client
     assert calls[-1] == "shutdown"

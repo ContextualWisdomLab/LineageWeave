@@ -197,7 +197,8 @@ def test_public_claim_envelope_migration_is_replay_safe_and_provenance_bound() -
     assert "provenance_assertion_id uuid not null" in sql
     assert "prov_was_derived_from" in sql
     assert "evidence_post_id is distinct from new.source_post_id" in sql
-    assert "case when count(binding.node_id) = 1 then min(binding.node_id) end" in sql
+    assert "case when count(binding.node_id) = 1" in sql
+    assert "then (array_agg(binding.node_id))[1]" in sql
     assert "group by assertion.relation_code" in sql
     assert "public_claim_requires_public_post" in sql
     assert "on conflict (lookup_code) do nothing" in sql
@@ -277,6 +278,21 @@ def test_topic_lineage_result_migration_is_idempotent_for_replay() -> None:
 
     assert "create table if not exists analysis_run_topic_lineage_result" in migration
     assert "create index if not exists" in migration
+
+
+def test_topic_influence_job_migration_is_replay_safe_and_fail_closed() -> None:
+    """Existing TEPP projections gain one durable, score-free producer lease."""
+    sql = (
+        Path(__file__).resolve().parents[1]
+        / "migrations"
+        / "0259_topic_influence_job.sql"
+    ).read_text(encoding="utf-8").casefold()
+
+    assert "create table if not exists topic_influence_job" in sql
+    assert "create trigger topic_model_run_influence_queue" in sql
+    assert "on conflict (topic_model_run_id) do nothing" in sql
+    assert "where status_code = 'queued'" in sql
+    assert "influence_value" not in sql
 
 
 def test_tepp_receipt_migration_is_replayable_and_digest_bound() -> None:
