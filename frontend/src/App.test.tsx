@@ -1741,6 +1741,33 @@ describe("App, authenticated", () => {
         }
         return Promise.resolve(jsonResponse({ verified: [] }));
       }
+      if (url.endsWith("/api/posts/post-1/research-citations")) {
+        return Promise.resolve(
+          jsonResponse({
+            post_id: "post-1",
+            visibility_code: "public",
+            citations:
+              method === "POST"
+                ? [
+                    {
+                      lead_kind_code: "research_lead_source_unit",
+                      lead_source_unit_id: "unit-synthetic",
+                      lead_image_region_id: null,
+                      lead_excerpt_text: "Synthetic highlighted passage",
+                      search_query_text: "synthetic evidence query",
+                      evidence_url: "https://evidence.example/source",
+                      evidence_title_text: "Synthetic cited source",
+                      evidence_excerpt_text: "Synthetic public evidence excerpt",
+                      judgment_code: "research_supported",
+                      rationale_text: "The cited source supports the highlighted passage.",
+                      next_action_text: "Open the cited source and compare the passage.",
+                    },
+                  ]
+                : [],
+            unavailable_reason: null,
+          }),
+        );
+      }
       if (url.endsWith("/api/posts/post-1/lineage")) {
         return Promise.resolve(
           jsonResponse({
@@ -3119,6 +3146,25 @@ describe("App, authenticated", () => {
         expect.stringContaining("/api/posts/post-1/verify-relations"),
         expect.objectContaining({ method: "POST" }),
       ),
+    );
+  });
+
+  it("lets a post administrator research and open a cited public source", async () => {
+    const fetchMock = stubBackend({ admin: true });
+    render(<App showLabPanels />);
+
+    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
+    await userEvent.click(await screen.findByRole("button", { name: "Research public sources" }));
+
+    await waitFor(() =>
+      expect(fetchMock).toHaveBeenCalledWith(
+        expect.stringContaining("/api/posts/post-1/research-citations"),
+        expect.objectContaining({ method: "POST" }),
+      ),
+    );
+    expect(await screen.findByRole("link", { name: "Synthetic cited source" })).toHaveAttribute(
+      "href",
+      "https://evidence.example/source",
     );
   });
 
