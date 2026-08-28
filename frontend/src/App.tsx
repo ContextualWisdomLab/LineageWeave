@@ -2928,13 +2928,13 @@ function analysisRunNextAction(run: AnalysisRun): string | null {
     case "analysis_status_pending":
       switch (run.run_kind_code) {
         case "analysis_run_lineage":
-          return "Open this run, then start reconstruction. Reconstruction has not started yet.";
+          return t("Open this run, then start reconstruction. Reconstruction has not started yet.");
         case "analysis_run_tepp":
-          return "Open this run to confirm the posts included in measurement, then start it.";
+          return t("Open this run to confirm the posts included in measurement, then start it.");
         case "analysis_run_topic_lineage":
-          return "Open this run to confirm the posts and time period included in topic analysis, then start it.";
+          return t("Open this run to confirm the posts and time period included in topic analysis, then start it.");
         case "analysis_run_report":
-          return "Open this run to confirm which posts the period report will use. The report has not been built yet.";
+          return t("Open this run to confirm which posts the period report will use. The report has not been built yet.");
         default: {
           const unexpected: never = run.run_kind_code;
           return unexpected;
@@ -2943,20 +2943,20 @@ function analysisRunNextAction(run: AnalysisRun): string | null {
     case "analysis_status_failed":
       switch (run.run_kind_code) {
         case "analysis_run_tepp":
-          return "Open this run to see why it failed, then retry with the latest available records.";
+          return t("Open this run to see why it failed, then retry with the latest available records.");
         case "analysis_run_topic_lineage":
-          return "Open this run to see why it failed, then retry with the latest available records.";
+          return t("Open this run to see why it failed, then retry with the latest available records.");
         case "analysis_run_lineage":
-          return "Open this run to see why it failed, then retry reconstruction from a current snapshot.";
+          return t("Open this run to see why it failed, then retry reconstruction from a current snapshot.");
         case "analysis_run_report":
-          return "Open this run to see why it failed, then rebuild the period report from a current snapshot.";
+          return t("Open this run to see why it failed, then rebuild the period report from a current snapshot.");
         default: {
           const unexpected: never = run.run_kind_code;
           return unexpected;
         }
       }
     case "analysis_status_running":
-      return "Refresh this run. Start already queued the work on the durable outbox.";
+      return t("Refresh this run. Start already queued the work on the durable outbox.");
     case "analysis_status_succeeded":
     case "analysis_status_cancelled":
     case null:

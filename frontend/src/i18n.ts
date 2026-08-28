@@ -52,8 +52,55 @@ const OPERATIONS_TRANSLATIONS: Record<"zh" | "ja" | "vi", Record<string, string>
   },
 };
 
+const ANALYSIS_RUN_ACTION_TRANSLATIONS: Record<
+  "ko" | "zh" | "ja" | "vi",
+  Record<string, string>
+> = {
+  ko: {
+    "Open this run, then start reconstruction. Reconstruction has not started yet.": "이 실행을 열고 이벤트 이력 재구성을 시작하세요. 아직 재구성이 시작되지 않았습니다.",
+    "Open this run to confirm the posts included in measurement, then start it.": "이 실행을 열어 측정 대상 글을 확인한 뒤 측정을 시작하세요.",
+    "Open this run to confirm the posts and time period included in topic analysis, then start it.": "이 실행을 열어 주제 분석 대상 글과 기간을 확인한 뒤 분석을 시작하세요.",
+    "Open this run to confirm which posts the period report will use. The report has not been built yet.": "이 실행을 열어 기간 리포트에 사용할 글을 확인하세요. 아직 리포트가 생성되지 않았습니다.",
+    "Open this run to see why it failed, then retry with the latest available records.": "이 실행을 열어 실패 원인을 확인한 뒤 최신 기록으로 다시 시도하세요.",
+    "Open this run to see why it failed, then retry reconstruction from a current snapshot.": "이 실행을 열어 실패 원인을 확인한 뒤 현재 스냅샷으로 재구성을 다시 시도하세요.",
+    "Open this run to see why it failed, then rebuild the period report from a current snapshot.": "이 실행을 열어 실패 원인을 확인한 뒤 현재 스냅샷으로 기간 리포트를 다시 생성하세요.",
+    "Refresh this run. Start already queued the work on the durable outbox.": "이 실행을 새로 고치세요. 시작 요청이 이미 처리 대기열에 등록되었습니다.",
+  },
+  zh: {
+    "Open this run, then start reconstruction. Reconstruction has not started yet.": "打开此运行并开始事件历程重建。重建尚未开始。",
+    "Open this run to confirm the posts included in measurement, then start it.": "打开此运行，确认纳入测量的文章后开始测量。",
+    "Open this run to confirm the posts and time period included in topic analysis, then start it.": "打开此运行，确认主题分析包含的文章和期间后开始分析。",
+    "Open this run to confirm which posts the period report will use. The report has not been built yet.": "打开此运行，确认周期报告将使用的文章。报告尚未生成。",
+    "Open this run to see why it failed, then retry with the latest available records.": "打开此运行查看失败原因，然后使用最新记录重试。",
+    "Open this run to see why it failed, then retry reconstruction from a current snapshot.": "打开此运行查看失败原因，然后从当前快照重新重建。",
+    "Open this run to see why it failed, then rebuild the period report from a current snapshot.": "打开此运行查看失败原因，然后从当前快照重新生成周期报告。",
+    "Refresh this run. Start already queued the work on the durable outbox.": "刷新此运行。启动请求已进入处理队列。",
+  },
+  ja: {
+    "Open this run, then start reconstruction. Reconstruction has not started yet.": "この実行を開き、イベント履歴の再構成を開始してください。再構成はまだ始まっていません。",
+    "Open this run to confirm the posts included in measurement, then start it.": "この実行を開いて測定対象の投稿を確認し、測定を開始してください。",
+    "Open this run to confirm the posts and time period included in topic analysis, then start it.": "この実行を開いてトピック分析の対象投稿と期間を確認し、分析を開始してください。",
+    "Open this run to confirm which posts the period report will use. The report has not been built yet.": "この実行を開いて期間レポートに使用する投稿を確認してください。レポートはまだ作成されていません。",
+    "Open this run to see why it failed, then retry with the latest available records.": "この実行を開いて失敗理由を確認し、最新の記録で再試行してください。",
+    "Open this run to see why it failed, then retry reconstruction from a current snapshot.": "この実行を開いて失敗理由を確認し、現在のスナップショットから再構成を再試行してください。",
+    "Open this run to see why it failed, then rebuild the period report from a current snapshot.": "この実行を開いて失敗理由を確認し、現在のスナップショットから期間レポートを再作成してください。",
+    "Refresh this run. Start already queued the work on the durable outbox.": "この実行を更新してください。開始要求はすでに処理待ちに登録されています。",
+  },
+  vi: {
+    "Open this run, then start reconstruction. Reconstruction has not started yet.": "Mở lần chạy này rồi bắt đầu tái dựng lịch sử sự kiện. Việc tái dựng chưa bắt đầu.",
+    "Open this run to confirm the posts included in measurement, then start it.": "Mở lần chạy này, xác nhận các bài viết được đo lường rồi bắt đầu.",
+    "Open this run to confirm the posts and time period included in topic analysis, then start it.": "Mở lần chạy này, xác nhận bài viết và khoảng thời gian phân tích chủ đề rồi bắt đầu.",
+    "Open this run to confirm which posts the period report will use. The report has not been built yet.": "Mở lần chạy này để xác nhận các bài viết dùng cho báo cáo theo kỳ. Báo cáo chưa được tạo.",
+    "Open this run to see why it failed, then retry with the latest available records.": "Mở lần chạy này để xem nguyên nhân thất bại rồi thử lại với bản ghi mới nhất.",
+    "Open this run to see why it failed, then retry reconstruction from a current snapshot.": "Mở lần chạy này để xem nguyên nhân thất bại rồi tái dựng lại từ ảnh chụp hiện tại.",
+    "Open this run to see why it failed, then rebuild the period report from a current snapshot.": "Mở lần chạy này để xem nguyên nhân thất bại rồi tạo lại báo cáo theo kỳ từ ảnh chụp hiện tại.",
+    "Refresh this run. Start already queued the work on the durable outbox.": "Làm mới lần chạy này. Yêu cầu bắt đầu đã được đưa vào hàng đợi xử lý.",
+  },
+};
+
 const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
   ko: {
+    ...ANALYSIS_RUN_ACTION_TRANSLATIONS.ko,
     "Lineage reconstruction": "이벤트 이력 재구성",
     "Calibrated event measurement": "보정된 이벤트 측정",
     "Time-based topic analysis": "시간 흐름별 주제 분석",
@@ -740,6 +787,7 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
   },
   zh: {
     ...OPERATIONS_TRANSLATIONS.zh,
+    ...ANALYSIS_RUN_ACTION_TRANSLATIONS.zh,
     "Lineage reconstruction": "事件历程重建",
     "Calibrated event measurement": "校准事件测量",
     "Time-based topic analysis": "时序主题分析",
@@ -1323,6 +1371,7 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
   },
   ja: {
     ...OPERATIONS_TRANSLATIONS.ja,
+    ...ANALYSIS_RUN_ACTION_TRANSLATIONS.ja,
     "Lineage reconstruction": "イベント履歴の再構成",
     "Calibrated event measurement": "校正済みイベント測定",
     "Time-based topic analysis": "時系列トピック分析",
@@ -1910,6 +1959,7 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
   },
   vi: {
     ...OPERATIONS_TRANSLATIONS.vi,
+    ...ANALYSIS_RUN_ACTION_TRANSLATIONS.vi,
     "Lineage reconstruction": "Tái dựng lịch sử sự kiện",
     "Calibrated event measurement": "Đo lường sự kiện đã hiệu chỉnh",
     "Time-based topic analysis": "Phân tích chủ đề theo thời gian",

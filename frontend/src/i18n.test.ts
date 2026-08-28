@@ -112,6 +112,25 @@ describe("i18n", () => {
     },
   );
 
+  it.each(["ko", "zh", "ja", "vi"] as const)(
+    "translates every analysis-run next action in %s",
+    (locale) => {
+      setLocale(locale);
+      for (const key of [
+        "Open this run, then start reconstruction. Reconstruction has not started yet.",
+        "Open this run to confirm the posts included in measurement, then start it.",
+        "Open this run to confirm the posts and time period included in topic analysis, then start it.",
+        "Open this run to confirm which posts the period report will use. The report has not been built yet.",
+        "Open this run to see why it failed, then retry with the latest available records.",
+        "Open this run to see why it failed, then retry reconstruction from a current snapshot.",
+        "Open this run to see why it failed, then rebuild the period report from a current snapshot.",
+        "Refresh this run. Start already queued the work on the durable outbox.",
+      ]) {
+        expect(t(key), `${locale}:${key}`).not.toBe(key);
+      }
+    },
+  );
+
   it.each([
     ["en", "Workspace navigation"],
     ["ko", "워크스페이스 메뉴"],
