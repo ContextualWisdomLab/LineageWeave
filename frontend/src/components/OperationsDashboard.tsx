@@ -23,6 +23,52 @@ const topicStateLabels = {
   reactivated: "Reactivated",
 } as const;
 
+const caseKindLabels: Record<string, string> = {
+  claim_investigation: "Claim investigation",
+  rebid_handover: "Rebid and handover",
+  external_information: "Procurement notices and market trends",
+  repeat_issue: "Repeat issue",
+};
+
+const lifecycleKindLabels: Record<string, string> = {
+  claim_investigation: "Claim investigation",
+  rebid_response: "Rebid response",
+  handover_gap: "Handover gap",
+};
+
+const milestoneTypeLabels: Record<string, string> = {
+  claim_received: "Claim received",
+  cause_confirmed: "Cause confirmed",
+  rebid_response_requested: "Rebid response requested",
+  rebid_decision_recorded: "Rebid decision recorded",
+  handover_started: "Handover started",
+  handover_accepted: "Handover accepted",
+};
+
+const lifecycleStatusLabels: Record<string, string> = {
+  resolved: "Resolved",
+  open: "Open",
+  evidence_missing: "Insufficient measurement evidence",
+};
+
+const timeAxisLabels: Record<string, string> = {
+  event_occurred_at: "Event time",
+  created_at: "Record creation time",
+};
+
+function localizedCodeLabel(code: string, sourceLabel: string, labels: Record<string, string>): string {
+  const translationKey = labels[code];
+  return translationKey ? t(translationKey) : sourceLabel;
+}
+
+function localizedPeriodLabel(data: OperationsDashboardResponse): string {
+  if (data.period_time_axis_code !== "event_occurred_at") return data.period_label;
+  if (data.period_start && data.period_end) return tf("{start} ~ {end} · Event time", { start: data.period_start, end: data.period_end });
+  if (data.period_start) return tf("{start} or later · Event time", { start: data.period_start });
+  if (data.period_end) return tf("Through {end} · Event time", { end: data.period_end });
+  return t("All time · Event time");
+}
+
 type Props = {
   accessToken: string;
   externalOnly?: boolean;
@@ -110,7 +156,7 @@ export function OperationsDashboardView({ data, externalOnly = false, onOpenPost
   return (
     <section className="operations-dashboard" aria-labelledby="dashboard-heading">
       <header className="operations-dashboard-heading">
-        <div><p className="dashboard-eyebrow">{data.period_label}</p><h2 id="dashboard-heading">{externalOnly ? t("External information") : t("Operations evidence dashboard")}</h2></div>
+        <div><p className="dashboard-eyebrow">{localizedPeriodLabel(data)}</p><h2 id="dashboard-heading">{externalOnly ? t("External information") : t("Operations evidence dashboard")}</h2></div>
         <p>{t("Select a metric to review the next action in its evidence post.")}</p>
       </header>
       <dl className="dashboard-metrics">
@@ -126,7 +172,7 @@ export function OperationsDashboardView({ data, externalOnly = false, onOpenPost
           <dl className="dashboard-metrics">
             {data.case_metrics.map((metric) => (
               <div key={metric.case_kind_code}>
-                <dt>{metric.case_kind_label}</dt>
+                <dt>{localizedCodeLabel(metric.case_kind_code, metric.case_kind_label, caseKindLabels)}</dt>
                 <dd>{tf("{events} events · {posts} posts", { events: metric.event_count, posts: metric.post_count })}</dd>
               </div>
             ))}
@@ -140,7 +186,7 @@ export function OperationsDashboardView({ data, externalOnly = false, onOpenPost
           <dl className="dashboard-lifecycle-metrics">
             {data.lifecycle_metrics.map((metric) => (
               <div key={metric.lifecycle_kind_code}>
-                <dt>{metric.lifecycle_kind_label}</dt>
+                <dt>{localizedCodeLabel(metric.lifecycle_kind_code, metric.lifecycle_kind_label, lifecycleKindLabels)}</dt>
                 <dd>{tf("Open {open} · resolved {resolved} · insufficient measurement evidence {missing}", { open: metric.open_case_count, resolved: metric.resolved_case_count, missing: metric.evidence_missing_case_count })}</dd>
               </div>
             ))}
@@ -161,7 +207,7 @@ export function OperationsDashboardView({ data, externalOnly = false, onOpenPost
                   <li key={`${event.post_id}-${event.case_kind_code}`}>
                     <button type="button" onClick={() => onOpenPost(event.post_id)}>
                       <time dateTime={event.occurred_at}>{event.occurred_at.slice(0, 10)}</time>
-                      <span>{event.case_kind_label}</span>
+                      <span>{localizedCodeLabel(event.case_kind_code, event.case_kind_label, caseKindLabels)}</span>
                     </button>
                   </li>
                 ))}
@@ -173,21 +219,21 @@ export function OperationsDashboardView({ data, externalOnly = false, onOpenPost
       <div className="dashboard-case-grid">
         {cases.map((item) => (
           <article key={`${item.post_id}-${item.case_kind_code}`} className="dashboard-case-card">
-            <div className="dashboard-case-title"><span>{item.case_kind_label}</span><strong>{item.project_name ?? t("Analyzing project connection")}</strong></div>
+            <div className="dashboard-case-title"><span>{localizedCodeLabel(item.case_kind_code, item.case_kind_label, caseKindLabels)}</span><strong>{item.project_name ?? t("Analyzing project connection")}</strong></div>
             <h3>{item.summary_text}</h3>
             <blockquote>{item.evidence_text}</blockquote>
             {item.lifecycles.length ? (
               <section className="dashboard-case-lifecycles" aria-label={t("Observed processing intervals")}>
                 {item.lifecycles.map((lifecycle) => (
                   <article key={lifecycle.lifecycle_kind_code} className="dashboard-lifecycle-row">
-                    <header><h4>{lifecycle.lifecycle_kind_label}</h4><strong>{lifecycle.status_label}</strong></header>
+                    <header><h4>{localizedCodeLabel(lifecycle.lifecycle_kind_code, lifecycle.lifecycle_kind_label, lifecycleKindLabels)}</h4><strong>{localizedCodeLabel(lifecycle.status_code, lifecycle.status_label, lifecycleStatusLabels)}</strong></header>
                     {lifecycle.elapsed_seconds !== null ? <p>{t("Confirmed elapsed time")} <b>{formatElapsed(lifecycle.elapsed_seconds)}</b></p> : <p>{t("Elapsed time is calculated when all required start and end event evidence is observed.")}</p>}
                     <ol>
                       {[lifecycle.start_milestone, lifecycle.end_milestone].filter((milestone) => milestone !== null).map((milestone) => (
                         <li key={milestone.milestone_type_code}>
                           <time dateTime={milestone.observed_at}>{milestone.observed_at}</time>
-                          <span>{milestone.milestone_type_label} · {milestone.time_axis_label}</span>
-                          <button type="button" className="btn-link" onClick={() => onOpenPost(milestone.evidence_post_id)}>{tf("Open {label} evidence", { label: milestone.milestone_type_label })}</button>
+                          <span>{localizedCodeLabel(milestone.milestone_type_code, milestone.milestone_type_label, milestoneTypeLabels)} · {localizedCodeLabel(milestone.time_axis_code, milestone.time_axis_label, timeAxisLabels)}</span>
+                          <button type="button" className="btn-link" onClick={() => onOpenPost(milestone.evidence_post_id)}>{tf("Open {label} evidence", { label: localizedCodeLabel(milestone.milestone_type_code, milestone.milestone_type_label, milestoneTypeLabels) })}</button>
                         </li>
                       ))}
                     </ol>

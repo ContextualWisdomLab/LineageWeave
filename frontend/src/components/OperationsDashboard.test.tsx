@@ -22,6 +22,9 @@ beforeEach(() => {
 
 const data: OperationsDashboardResponse = {
   period_label: "2026-08-01–2026-08-25 · Event time",
+  period_start: "2026-08-01",
+  period_end: "2026-08-25",
+  period_time_axis_code: "event_occurred_at",
   total_post_count: 20,
   total_event_count: 8,
   external_post_count: 5,
@@ -66,7 +69,17 @@ describe("OperationsDashboardView", () => {
     expect(screen.getByRole("heading", { name: "Operations evidence dashboard" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Topic model influence over time" })).toBeInTheDocument();
     expect(screen.getByText("Post influence is not available yet.")).toBeInTheDocument();
+    expect(screen.getByText("2026-08-01 ~ 2026-08-25 · Event time")).toBeInTheDocument();
+    expect(screen.getAllByText("Claim investigation").length).toBeGreaterThan(0);
+    expect(screen.getByText("Claim received · Event time")).toBeInTheDocument();
     expect(screen.queryByText("운영 근거 Dashboard")).not.toBeInTheDocument();
+    expect(screen.queryByText("클레임 원인 규명")).not.toBeInTheDocument();
+  });
+
+  it("preserves an unknown code's source label", () => {
+    setLocale("en");
+    render(<OperationsDashboardView data={{ ...data, case_metrics: [{ case_kind_code: "future_case", case_kind_label: "Source-defined label", event_count: 1, post_count: 1 }], cases: [] }} onOpenPost={() => undefined} />);
+    expect(screen.getByText("Source-defined label")).toBeInTheDocument();
   });
 
   it("distinguishes posts, events, percentages and opens evidence", async () => {

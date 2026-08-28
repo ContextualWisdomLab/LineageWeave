@@ -170,6 +170,9 @@ async def test_dashboard_uses_abac_event_clock_and_persisted_evidence() -> None:
     )
 
     assert result["period_label"] == "2026-08-01 ~ 2026-08-31 · Event 발생일"
+    assert result["period_start"] == "2026-08-01"
+    assert result["period_end"] == "2026-08-31"
+    assert result["period_time_axis_code"] == "event_occurred_at"
     assert result["external_percent"] == 25.0
     assert result["failed_analysis_count"] == 2
     assert result["case_metrics"] == [

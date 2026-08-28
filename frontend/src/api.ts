@@ -99,6 +99,9 @@ export interface OperationsDashboardCase {
 
 export interface OperationsDashboardResponse {
   period_label: string;
+  period_start?: string | null;
+  period_end?: string | null;
+  period_time_axis_code?: "event_occurred_at";
   total_post_count: number;
   total_event_count: number;
   external_post_count: number;

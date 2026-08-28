@@ -481,6 +481,9 @@ async def fetch_operations_dashboard(
         )
     return {
         "period_label": _period_label(period_start, period_end),
+        "period_start": period_start.isoformat() if period_start else None,
+        "period_end": period_end.isoformat() if period_end else None,
+        "period_time_axis_code": "event_occurred_at",
         "total_post_count": total,
         "total_event_count": int(metrics["total_event_count"]),
         "external_post_count": external,
