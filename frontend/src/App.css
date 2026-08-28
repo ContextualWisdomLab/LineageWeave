@@ -1502,6 +1502,29 @@
 .dashboard-journey button { display: grid; gap: 0.25rem; min-width: 10rem; min-height: var(--size-control-min); padding: 0.75rem; border: 1px solid var(--color-border); background: var(--color-background); color: var(--color-text-heading); text-align: left; }
 .dashboard-journey time { color: var(--color-text); font-size: 0.75rem; }
 
+.dashboard-topic-table-scroll {
+  max-width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.dashboard-topic-table-scroll table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.dashboard-topic-table-scroll th,
+.dashboard-topic-table-scroll td {
+  padding: var(--space-control-gap);
+  border-bottom: 1px solid var(--color-border);
+  text-align: left;
+  vertical-align: top;
+}
+
+.dashboard-topic-table-scroll .btn-link {
+  min-height: var(--size-touch-target);
+}
+
 .dashboard-case-card {
   display: flex;
   flex-direction: column;

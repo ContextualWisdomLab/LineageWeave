@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { expect, within } from "storybook/test";
+import { expect, userEvent, within } from "storybook/test";
 import { OperationsDashboard, OperationsDashboardView } from "./OperationsDashboard";
 import "../App.css";
 
@@ -43,10 +43,10 @@ export const EvidenceReady: Story = {
   },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    await expect(canvas.getByText("9건 · 22.5%")).toBeInTheDocument();
-    await expect(canvas.getByText("7 Event · 5글")).toBeVisible();
-    await expect(canvas.getByText("3일 3시간 30분 0초")).toBeVisible();
-    await expect(canvas.getAllByRole("button", { name: "분류 근거 글 열기" })[0]).toBeVisible();
+    await expect(canvas.getByText("9 posts · 22.5%")).toBeInTheDocument();
+    await expect(canvas.getByText("7 events · 5 posts")).toBeVisible();
+    await expect(canvas.getByText("3d 3h 30m 0s")).toBeVisible();
+    await expect(canvas.getAllByRole("button", { name: "Open classification evidence" })[0]).toBeVisible();
   },
 };
 
@@ -96,10 +96,42 @@ export const TopicInfluenceAccepted: Story = {
   },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    await expect(canvas.getByRole("heading", { name: "시간 흐름별 주요 글" })).toBeVisible();
-    await expect(canvas.getByText(/휴면 \/ 재활성/)).toBeVisible();
+    await expect(canvas.getByRole("heading", { name: "Important posts over time" })).toBeVisible();
+    await expect(canvas.getByText(/Dormant \/ Reactivated/)).toBeVisible();
     await expect(canvas.getAllByText("4.25")).toHaveLength(3);
-    await expect(canvas.getByText(/영향도와 불확실성을 함께 비교하고 같은 값은 동점으로 확인하세요/)).toBeVisible();
+    await expect(canvas.getByText(/Compare influence and uncertainty together; identical values are ties/)).toBeVisible();
+  },
+};
+
+export const TopicInfluenceDark: Story = {
+  ...TopicInfluenceAccepted,
+  parameters: { chromatic: { prefersColorScheme: "dark" } },
+};
+
+export const TopicInfluenceReducedMotion: Story = {
+  ...TopicInfluenceAccepted,
+  parameters: { chromatic: { prefersReducedMotion: "reduce" } },
+};
+
+export const TopicInfluenceKeyboard: Story = {
+  ...TopicInfluenceAccepted,
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await userEvent.tab();
+    await expect(canvas.getByRole("region", { name: "Synthetic Energy Division influence table" })).toBeVisible();
+    const evidenceButton = canvas.getAllByRole("button", { name: "Open membership evidence" })[0];
+    evidenceButton.focus();
+    await expect(evidenceButton).toHaveFocus();
+    await userEvent.keyboard("{Enter}");
+  },
+};
+
+export const TopicInfluenceTouch: Story = {
+  ...TopicInfluenceAccepted,
+  parameters: { viewport: { defaultViewport: "mobile1" } },
+  play: async ({ canvasElement }) => {
+    const button = within(canvasElement).getAllByRole("button", { name: "Open influential post" })[0];
+    await expect(button).toBeVisible();
   },
 };
 
@@ -113,11 +145,11 @@ export const ExternalInformationEmpty: Story = {
   },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    await expect(canvas.getByRole("status")).toHaveTextContent("분류된 외부 정보가 없습니다");
-    await expect(canvas.queryByText("전체 글")).not.toBeInTheDocument();
-    await expect(canvas.queryByText("분류 Event")).not.toBeInTheDocument();
-    await expect(canvas.queryByText("분석 대기")).not.toBeInTheDocument();
-    await expect(canvas.queryByText("분석 실패")).not.toBeInTheDocument();
+    await expect(canvas.getByRole("status")).toHaveTextContent("No external information was classified");
+    await expect(canvas.queryByText("All posts")).not.toBeInTheDocument();
+    await expect(canvas.queryByText("Classified events")).not.toBeInTheDocument();
+    await expect(canvas.queryByText("Awaiting analysis")).not.toBeInTheDocument();
+    await expect(canvas.queryByText("Analysis failed")).not.toBeInTheDocument();
   },
 };
 
@@ -127,7 +159,7 @@ export const RequiredFactMissing: Story = {
     onOpenPost: () => undefined,
   },
   play: async ({ canvasElement }) => {
-    await expect(within(canvasElement).getByText(/수주 Pool: 관련 근거를 찾으면 자동으로 다시 분석합니다. 이후 결과를 다시 확인하세요/)).toBeVisible();
+    await expect(within(canvasElement).getByText(/Sales pool: Find and connect the related evidence, then review the refreshed result/)).toBeVisible();
   },
 };
 
@@ -137,7 +169,7 @@ export const AnalysisPendingAndMissingEvidence: Story = {
     onOpenPost: () => undefined,
   },
   play: async ({ canvasElement }) => {
-    await expect(within(canvasElement).getByRole("status")).toHaveTextContent("분석 대기 건부터 처리하세요");
+    await expect(within(canvasElement).getByRole("status")).toHaveTextContent("Process the awaiting items first");
   },
 };
 
@@ -147,7 +179,7 @@ export const AnalysisFailed: Story = {
     onOpenPost: () => undefined,
   },
   play: async ({ canvasElement }) => {
-    await expect(within(canvasElement).getByRole("alert")).toHaveTextContent("재처리한 뒤 근거 누락 여부를 다시 확인하세요");
+    await expect(within(canvasElement).getByRole("alert")).toHaveTextContent("Reprocess 2 failed analyses");
   },
 };
 
@@ -161,8 +193,8 @@ export const LoadError: Story = {
   },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    await expect(canvas.findByRole("alert")).resolves.toHaveTextContent("불러오지 못했습니다");
-    await expect(canvas.getByRole("button", { name: "다시 시도" })).toBeVisible();
+    await expect(canvas.findByRole("alert")).resolves.toHaveTextContent("could not be loaded");
+    await expect(canvas.getByRole("button", { name: "Retry" })).toBeVisible();
   },
 };
 
