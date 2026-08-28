@@ -3,7 +3,10 @@
 from __future__ import annotations
 
 import asyncio
+from contextlib import asynccontextmanager
 from types import SimpleNamespace
+
+import pytest
 
 from backend.app import main, worker
 
@@ -71,6 +74,12 @@ def test_worker_process_owns_all_three_durable_consumers(monkeypatch) -> None:
     monkeypatch.setattr(worker, "load_settings", lambda: settings)
     monkeypatch.setattr(worker, "create_pool", lambda _url: _async_value(pool))
     monkeypatch.setattr(worker, "create_valkey_client", lambda _url: valkey)
+
+    @asynccontextmanager
+    async def lease(_pool):
+        yield
+
+    monkeypatch.setattr(worker, "_single_worker_lease", lease)
     monkeypatch.setattr(worker, "configure_telemetry", lambda _name: None)
     monkeypatch.setattr(worker, "shutdown_telemetry", lambda: calls.append("shutdown"))
     monkeypatch.setattr(worker, "configured_tepp_client", lambda *_args: object())
@@ -102,6 +111,61 @@ def test_worker_process_owns_all_three_durable_consumers(monkeypatch) -> None:
     assert calls[-1] == "shutdown"
     assert pool.closed
     assert valkey.closed
+
+
+def test_worker_process_lease_fails_closed_for_a_second_replica() -> None:
+    """A PostgreSQL session lease enforces the single stream-consumer contract."""
+    calls: list[str] = []
+
+    class Connection:
+        async def fetchval(self, query: str, name: str) -> bool:
+            assert "hashtextextended($1, 0)" in query
+            assert name == worker._WORKER_LEASE_NAME
+            calls.append("unlock" if "unlock" in query else "lock")
+            return calls == ["lock"]
+
+    class Acquire:
+        async def __aenter__(self):
+            return Connection()
+
+        async def __aexit__(self, *_args):
+            return None
+
+    class Pool:
+        def acquire(self):
+            return Acquire()
+
+    async def accepted() -> None:
+        async with worker._single_worker_lease(Pool()):
+            calls.append("owned")
+
+    asyncio.run(accepted())
+    assert calls == ["lock", "owned", "unlock"]
+
+    calls.clear()
+
+    class RejectedConnection(Connection):
+        async def fetchval(self, query: str, name: str) -> bool:
+            assert "pg_try_advisory_lock" in query
+            assert name == worker._WORKER_LEASE_NAME
+            calls.append("rejected")
+            return False
+
+    class RejectedAcquire(Acquire):
+        async def __aenter__(self):
+            return RejectedConnection()
+
+    class RejectedPool(Pool):
+        def acquire(self):
+            return RejectedAcquire()
+
+    async def rejected() -> None:
+        async with worker._single_worker_lease(RejectedPool()):
+            raise AssertionError("a second worker must not start")
+
+    with pytest.raises(RuntimeError, match="already owns the lease"):
+        asyncio.run(rejected())
+    assert calls == ["rejected"]
 
 
 async def _async_value(value):

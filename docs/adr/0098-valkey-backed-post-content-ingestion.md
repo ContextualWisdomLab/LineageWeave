@@ -37,6 +37,11 @@ placed in a stream message.
    not repeatedly publish only the first bounded page while later rows starve.
    The worker trims the Valkey stream through its consumed cursor; producers
    never trim unread wake-ups by an approximate length limit.
+   This cursor contract has exactly one process owner. The worker process must
+   acquire its PostgreSQL session advisory lease before starting any durable
+   consumer; a second replica fails closed before it can read or trim the
+   stream. Horizontal worker replication requires a successor ADR and a native
+   consumer-group acknowledgement contract.
 4. The worker reuses the existing contextual-orchestrator client factories for
    VISION, structure, and embeddings. It preserves one post session and the
    bounded provenance metadata from `llm_context`; no raw provider call, model
