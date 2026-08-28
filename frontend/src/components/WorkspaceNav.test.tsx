@@ -31,10 +31,10 @@ describe("WorkspaceNav", () => {
 
   it.each([
     ["en", ["Dashboard", "External information", "Board", "Customer master", "Calendar", "Ask Agent"]],
-    ["ko", ["대시보드", "외부 정보", "게시판", "고객 마스터", "캘린더", "Ask Agent"]],
-    ["zh", ["仪表板", "外部信息", "看板", "客户主数据", "日历", "Ask Agent"]],
-    ["ja", ["ダッシュボード", "外部情報", "掲示板", "顧客マスター", "カレンダー", "Ask Agent"]],
-    ["vi", ["Bảng điều khiển", "Thông tin bên ngoài", "Bảng tin", "Danh mục khách hàng", "Lịch", "Ask Agent"]],
+    ["ko", ["대시보드", "외부 정보", "게시판", "고객 마스터", "캘린더", "에이전트에게 질문"]],
+    ["zh", ["仪表板", "外部信息", "看板", "客户主数据", "日历", "询问智能助手"]],
+    ["ja", ["ダッシュボード", "外部情報", "掲示板", "顧客マスター", "カレンダー", "エージェントに質問"]],
+    ["vi", ["Bảng điều khiển", "Thông tin bên ngoài", "Bảng tin", "Danh mục khách hàng", "Lịch", "Hỏi trợ lý"]],
   ] as const)("localizes every GNB label in %s", (locale, expected) => {
     setLocale(locale);
     render(<WorkspaceNav destination="ask" onChange={vi.fn()} />);

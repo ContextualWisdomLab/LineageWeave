@@ -44,7 +44,7 @@ export const EvidenceReady: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     await expect(canvas.getByText("9건 · 22.5%")).toBeInTheDocument();
-    await expect(canvas.getByText("7 Event · 5글")).toBeVisible();
+    await expect(canvas.getByText("사건 7건 · 글 5건")).toBeVisible();
     await expect(canvas.getByText("3일 3시간 30분 0초")).toBeVisible();
     await expect(canvas.getAllByRole("button", { name: "분류 근거 글 열기" })[0]).toBeVisible();
   },
@@ -96,7 +96,7 @@ export const TopicInfluenceAccepted: Story = {
   },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    await expect(canvas.getByRole("heading", { name: "시간 흐름별 Topic model influence" })).toBeVisible();
+    await expect(canvas.getByRole("heading", { name: "시간 흐름별 주제 영향도" })).toBeVisible();
     await expect(canvas.getByText(/휴면 \/ 재활성/)).toBeVisible();
     await expect(canvas.getAllByText("4.25")).toHaveLength(3);
     await expect(canvas.getByText(/영향도와 불확실성을 함께 비교하고 같은 값은 동점으로 확인하세요/)).toBeVisible();
@@ -115,7 +115,7 @@ export const ExternalInformationEmpty: Story = {
     const canvas = within(canvasElement);
     await expect(canvas.getByRole("status")).toHaveTextContent("분류된 외부 정보가 없습니다");
     await expect(canvas.queryByText("전체 글")).not.toBeInTheDocument();
-    await expect(canvas.queryByText("분류 Event")).not.toBeInTheDocument();
+    await expect(canvas.queryByText("분류 사건")).not.toBeInTheDocument();
     await expect(canvas.queryByText("분석 대기")).not.toBeInTheDocument();
     await expect(canvas.queryByText("분석 실패")).not.toBeInTheDocument();
   },

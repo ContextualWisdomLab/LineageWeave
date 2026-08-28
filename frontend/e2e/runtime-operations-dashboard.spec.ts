@@ -57,13 +57,13 @@ test("renders the authenticated operations Dashboard with grounded cases", async
   await language.selectOption("ko");
   await expect(page.locator("html")).toHaveAttribute("lang", "ko");
   await expect(page.getByRole("heading", { name: "운영 근거 대시보드" })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "시간 흐름별 Topic model influence" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "시간 흐름별 주제 영향도" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "글 유형 근거 현황" })).toBeVisible();
   const koreanNavigation = page.getByRole("navigation", { name: "워크스페이스 메뉴" });
-  for (const label of ["대시보드", "외부 정보", "게시판", "고객 마스터", "캘린더", "Ask Agent"]) {
+  for (const label of ["대시보드", "외부 정보", "게시판", "고객 마스터", "캘린더", "에이전트에게 질문"]) {
     await expect(koreanNavigation.getByRole("button", { name: label, exact: true })).toBeVisible();
   }
   await expect(page.getByText("Operations evidence dashboard")).toHaveCount(0);
-  await expect(page.getByText("전체 기간 · Event 발생일", { exact: true })).toBeVisible();
+  await expect(page.getByText("전체 기간 · 사건 발생일", { exact: true })).toBeVisible();
   await expect(page.getByText("클레임 원인 규명", { exact: true }).first()).toBeVisible();
 });

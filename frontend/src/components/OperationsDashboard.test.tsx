@@ -85,7 +85,7 @@ describe("OperationsDashboardView", () => {
   it("distinguishes posts, events, percentages and opens evidence", async () => {
     const onOpenPost = vi.fn();
     render(<OperationsDashboardView data={data} onOpenPost={onOpenPost} />);
-    expect(screen.getByText("3 Event · 2글")).toBeInTheDocument();
+    expect(screen.getByText("사건 3건 · 글 2건")).toBeInTheDocument();
     expect(screen.getByText("5건 · 25.0%")).toBeInTheDocument();
     expect(screen.getByText("원인 수주")).toBeInTheDocument();
     expect(screen.getByText(/수주 Pool: 관련 근거를 찾으면 자동으로 다시 분석합니다. 이후 결과를 다시 확인하세요/)).toBeInTheDocument();
@@ -111,7 +111,7 @@ describe("OperationsDashboardView", () => {
       end_milestone: null,
     };
     render(<OperationsDashboardView data={{ ...data, cases: [{ ...data.cases[0], lifecycles: [openLifecycle] }] }} onOpenPost={() => undefined} />);
-    expect(screen.getByText("경과 시간은 필요한 시작·종료 Event 근거가 모두 관측될 때 계산됩니다.")).toBeInTheDocument();
+    expect(screen.getByText("경과 시간은 필요한 시작·종료 사건 근거가 모두 관측될 때 계산됩니다.")).toBeInTheDocument();
   });
 
   it("shows an actionable empty external-information state", () => {
@@ -120,7 +120,7 @@ describe("OperationsDashboardView", () => {
     expect(screen.queryByText("분석 대기")).not.toBeInTheDocument();
     expect(screen.queryByText("분석 실패")).not.toBeInTheDocument();
     expect(screen.queryByText("전체 글")).not.toBeInTheDocument();
-    expect(screen.queryByText("분류 Event")).not.toBeInTheDocument();
+    expect(screen.queryByText("분류 사건")).not.toBeInTheDocument();
   });
 
   it("shows external information as a share of all visible posts in the GNB view", () => {
@@ -151,7 +151,7 @@ describe("OperationsDashboardView", () => {
     const earlier = { ...data.cases[0], post_id: "post-earlier", occurred_at: "2026-08-01T00:00:00Z", project_names: ["Synthetic Grid Upgrade"] };
     render(<OperationsDashboardView data={{ ...data, cases: [later, earlier] }} onOpenPost={() => undefined} />);
 
-    expect(screen.getByRole("heading", { name: "프로젝트별 관측 Event" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "프로젝트별 관측 사건" })).toBeInTheDocument();
     expect(screen.queryByRole("heading", { name: "프로젝트 여정" })).not.toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Synthetic Relay Renewal" })).toBeInTheDocument();
     const primaryJourney = screen.getByRole("heading", { name: "Synthetic Grid Upgrade" }).parentElement;
