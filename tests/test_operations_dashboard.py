@@ -90,7 +90,6 @@ class _Connection:
                 "project_name": "Synthetic Project",
                     "project_names": ["Synthetic Project", "Synthetic Secondary Project"],
                     "occurred_at": datetime(2026, 8, 12, tzinfo=timezone.utc),
-                    "event_count": 2,
             }
         ]
 
@@ -315,6 +314,13 @@ async def test_dashboard_uses_abac_event_clock_and_persisted_evidence() -> None:
         in case_query
     )
     assert "observed_at nulls last" in conn.queries[5][0]
+    metrics_query = conn.queries[0][0]
+    assert "post_summary_event" not in metrics_query
+    assert "post_summary_event" not in case_query
+    milestone_query = conn.queries[5][0]
+    assert "join source_post evidence_post" in milestone_query
+    assert "evidence_post.post_id = milestone.evidence_post_id" in milestone_query
+    assert "evidence_post.visibility_code = 'public'" in milestone_query
     for evidence_query in (
         conn.queries[0][0],
         conn.queries[1][0],
@@ -325,6 +331,61 @@ async def test_dashboard_uses_abac_event_clock_and_persisted_evidence() -> None:
         assert "evidence_post.corporate_entity_id::text = any($1::text[])" in evidence_query
     missing_query = conn.queries[4][0]
     assert "($6::jsonb -> fact.case_kind_code) ? fact.fact_type_code" in missing_query
+
+
+@pytest.mark.anyio
+async def test_dashboard_counts_each_case_milestone_set_once() -> None:
+    """Multiple classification evidence rows cannot duplicate one case's events."""
+
+    class DuplicateClassificationConnection(_Connection):
+        async def fetch(self, query: str, *args: object) -> list[dict[str, object]]:
+            rows = await super().fetch(query, *args)
+            if "operations_case_classification classification" in query:
+                return [rows[0], {**rows[0], "evidence_post_id": "00000000-0000-0000-0000-000000000003"}]
+            return rows
+
+    result = await fetch_operations_dashboard(DuplicateClassificationConnection(), [])
+
+    assert result["total_event_count"] == 2
+    assert result["case_metrics"][0]["event_count"] == 2
+
+
+@pytest.mark.anyio
+async def test_dashboard_headline_excludes_hidden_milestone_evidence() -> None:
+    """Headline and per-type counts share the evidence-visible milestone rows."""
+
+    class HiddenMilestoneConnection(_Connection):
+        async def fetch(self, query: str, *args: object) -> list[dict[str, object]]:
+            if "operations_case_milestone milestone" in query:
+                self.queries.append((query, args))
+                return []
+            return await super().fetch(query, *args)
+
+    result = await fetch_operations_dashboard(HiddenMilestoneConnection(), [])
+
+    assert result["total_event_count"] == 0
+    assert sum(metric["event_count"] for metric in result["case_metrics"]) == 0
+
+
+@pytest.mark.anyio
+async def test_dashboard_event_counts_exclude_hidden_classification_evidence() -> None:
+    """A milestone cannot outlive the visible classification that owns it."""
+
+    class HiddenClassificationConnection(_Connection):
+        async def fetch(self, query: str, *args: object) -> list[dict[str, object]]:
+            if (
+                "from operations_case_classification classification" in query
+                and "operations_case_fact" not in query
+            ):
+                self.queries.append((query, args))
+                return []
+            return await super().fetch(query, *args)
+
+    result = await fetch_operations_dashboard(HiddenClassificationConnection(), [])
+
+    assert result["cases"] == []
+    assert result["total_event_count"] == 0
+    assert sum(metric["event_count"] for metric in result["case_metrics"]) == 0
 
 
 @pytest.mark.anyio
@@ -576,7 +637,6 @@ async def test_external_information_projects_a_typed_prov_o_relation() -> None:
                 "project_name": "Synthetic Project",
                 "project_names": ["Synthetic Project"],
                 "occurred_at": datetime(2026, 8, 12, tzinfo=timezone.utc),
-                "event_count": 1,
             }]
 
     result = await fetch_operations_dashboard(ExternalConnection(), [])

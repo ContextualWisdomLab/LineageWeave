@@ -2,6 +2,7 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { fetchOperationsDashboard, fetchVoiceTaxonomySummary, type OperationsDashboardResponse } from "../api";
+import { setLocale } from "../i18n";
 import { OperationsDashboard, OperationsDashboardView } from "./OperationsDashboard";
 
 vi.mock("../api", async (importOriginal) => ({
@@ -11,6 +12,7 @@ vi.mock("../api", async (importOriginal) => ({
 }));
 
 beforeEach(() => {
+  setLocale("ko");
   vi.mocked(fetchVoiceTaxonomySummary).mockReset().mockResolvedValue({
     total_eligible: 0, classified_unique: 0, multi_membership: 0,
     source_count: 0, derived_count: 0, unavailable: 0, disagreement: 0,
@@ -61,10 +63,10 @@ describe("OperationsDashboardView", () => {
   it("distinguishes posts, events, percentages and opens evidence", async () => {
     const onOpenPost = vi.fn();
     render(<OperationsDashboardView data={data} onOpenPost={onOpenPost} />);
-    expect(screen.getByText("3 Event · 2글")).toBeInTheDocument();
+    expect(screen.getByText("사건 Event 3건 · 글 2건")).toBeInTheDocument();
     expect(screen.getByText("5건 · 25.0%")).toBeInTheDocument();
     expect(screen.getByText("원인 수주")).toBeInTheDocument();
-    expect(screen.getByText(/수주 Pool: 관련 근거를 찾으면 자동으로 다시 분석합니다. 이후 결과를 다시 확인하세요/)).toBeInTheDocument();
+    expect(screen.getByText(/수주 Pool: 관련 근거를 찾아 연결한 뒤 갱신된 결과를 확인하세요/)).toBeInTheDocument();
     expect(screen.getByText("2일 3시간 30분 0초")).toBeInTheDocument();
     expect(screen.getByText(/진행 중 1건 · 종료 확인 0건/)).toBeInTheDocument();
     await userEvent.click(screen.getByRole("button", { name: "분류 근거 글 열기" }));
@@ -73,6 +75,54 @@ describe("OperationsDashboardView", () => {
     expect(onOpenPost).toHaveBeenCalledWith("evidence-post-2");
     await userEvent.click(screen.getByRole("button", { name: "클레임 접수 근거 열기" }));
     expect(onOpenPost).toHaveBeenCalledWith("evidence-post-1");
+  });
+
+  it.each([
+    ["en", "Operations evidence dashboard", "All posts", "Important posts over time"],
+    ["zh", "运营证据看板", "全部文章", "时序重要文章"],
+    ["ja", "運用エビデンスダッシュボード", "すべての投稿", "時系列の重要投稿"],
+    ["vi", "Bảng điều khiển bằng chứng vận hành", "Tất cả bài viết", "Bài viết quan trọng theo thời gian"],
+  ] as const)("renders localized dashboard actions in %s", (locale, heading, allPosts, importantPosts) => {
+    setLocale(locale);
+    render(<OperationsDashboardView data={data} onOpenPost={() => undefined} />);
+    expect(screen.getByRole("heading", { name: heading })).toBeInTheDocument();
+    expect(screen.getByText(allPosts)).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: importantPosts })).toBeInTheDocument();
+    expect(screen.queryByText("운영 근거 대시보드")).not.toBeInTheDocument();
+    if (locale !== "en") expect(screen.queryByText("Operations evidence dashboard")).not.toBeInTheDocument();
+    expect(screen.queryByText(/TEPP|fast-mlsirm|transport|topic-lineage/i)).not.toBeInTheDocument();
+  });
+
+  it("keeps the server next action for an unknown lifecycle status", () => {
+    setLocale("en");
+    const future = {
+      ...data.cases[0].lifecycles[0],
+      status_code: "future_status" as never,
+      status_label: "Future status",
+      next_action_text: "Open the cited evidence, then choose the next owner.",
+    };
+    render(<OperationsDashboardView data={{ ...data, cases: [{ ...data.cases[0], lifecycles: [future] }] }} onOpenPost={() => undefined} />);
+
+    expect(screen.getByText(/Open the cited evidence, then choose the next owner/)).toBeInTheDocument();
+  });
+
+  it.each([
+    ["en", "Open the available evidence, then confirm the next action."],
+    ["ko", "확인 가능한 근거를 연 뒤 다음 조치를 확인하세요."],
+    ["zh", "打开可用证据，然后确认下一步行动。"],
+    ["ja", "確認できる根拠を開き、次の行動を確認してください。"],
+    ["vi", "Mở bằng chứng hiện có rồi xác nhận hành động tiếp theo."],
+  ] as const)("keeps an actionable fallback for an unknown lifecycle status in %s", (locale, nextAction) => {
+    setLocale(locale);
+    const future = {
+      ...data.cases[0].lifecycles[0],
+      status_code: "future_status" as never,
+      status_label: "Future status",
+      next_action_text: undefined as unknown as string,
+    };
+    render(<OperationsDashboardView data={{ ...data, cases: [{ ...data.cases[0], lifecycles: [future] }] }} onOpenPost={() => undefined} />);
+
+    expect(screen.getByText(new RegExp(nextAction.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")))).toBeInTheDocument();
   });
 
   it("does not imply that only the end evidence is missing", () => {
@@ -96,7 +146,7 @@ describe("OperationsDashboardView", () => {
     expect(screen.queryByText("분석 대기")).not.toBeInTheDocument();
     expect(screen.queryByText("분석 실패")).not.toBeInTheDocument();
     expect(screen.queryByText("전체 글")).not.toBeInTheDocument();
-    expect(screen.queryByText("분류 Event")).not.toBeInTheDocument();
+    expect(screen.queryByText("근거 확인된 사건 Event")).not.toBeInTheDocument();
   });
 
   it("does not label a scoped external count with a corpus-wide rate", () => {
@@ -245,7 +295,7 @@ describe("OperationsDashboardView", () => {
     });
     render(<OperationsDashboard accessToken="synthetic-token" onOpenPost={() => undefined} />);
 
-    expect(await screen.findByText("Dashboard 근거를 불러오지 못했습니다.")).toBeInTheDocument();
+    expect(await screen.findByText("대시보드 근거를 불러오지 못했습니다.")).toBeInTheDocument();
     expect(await screen.findByRole("heading", { name: "Voice evidence overview" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "다시 시도" })).toBeInTheDocument();
   });
@@ -257,7 +307,7 @@ describe("OperationsDashboard", () => {
     vi.mocked(fetchVoiceTaxonomySummary).mockImplementation(() => new Promise(() => undefined));
     render(<OperationsDashboard accessToken="synthetic-token" onOpenPost={() => undefined} />);
     expect(screen.getAllByRole("status")).toHaveLength(1);
-    expect(screen.getByRole("status")).toHaveTextContent("Dashboard 근거를 불러오는 중입니다.");
+    expect(screen.getByRole("status")).toHaveTextContent("대시보드 근거를 불러오는 중입니다.");
     expect(screen.getByRole("status")).toHaveTextContent("Loading voice evidence...");
   });
 });

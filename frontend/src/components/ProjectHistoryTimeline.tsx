@@ -259,6 +259,11 @@ export function ProjectHistoryTimeline({
                     <span className="project-history-truth">
                       {projectHistoryText(locale, "inferred")}
                     </span>
+                    {path.edges.some((edge) => edge.temporal_evidence != null) ? (
+                      <span className="project-history-truth">
+                        {projectHistoryText(locale, "timeOrderChecked")}
+                      </span>
+                    ) : null}
                   </li>
                 ))}
               </ul>

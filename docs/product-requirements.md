@@ -386,8 +386,9 @@ stale evidence from a previously opened post.
 ### PRD-FR-5A — Opt-in public claim verification
 
 - Persist an explicit per-question opt-in before any external search begins.
-- Nominate only cited, public semantic/KG facts; source bodies, private facts,
-  personal facts, and measurement outputs never become external queries.
+- Admit only persisted, provenance-bearing claims for exact cited public posts;
+  source bodies, private facts, personal facts, measurement outputs, and claims
+  nominated from question-token overlap never become external queries (ADR 0269).
 - Retrieve bounded public evidence through SearXNG and adjudicate through
   contextual-orchestrator's verification mode.
 - Report supported, refuted, and not-enough-information outcomes without
@@ -398,6 +399,8 @@ stale evidence from a previously opened post.
 Acceptance: leaving the control off causes no public request; hidden or
 uncited facts cause no public request; unavailable services fail closed; and
 each displayed public judgment retains its originating internal evidence IDs.
+An absent or unauthorized persisted envelope performs no external request and
+reports that no public claim is available rather than fabricating admission.
 
 ### PRD-FR-5B — Knowledge-cutoff Global Ask
 
@@ -453,9 +456,15 @@ comes from the cited answer rather than frontend inference.
 - Persist closed-vocabulary milestones for claim, rebid, and handover. Report
   open, resolved, and evidence-missing counts and elapsed time only between two
   observed endpoints; never invent an endpoint or delay threshold.
+- Count Events per work type only from those cited, normalized milestones.
+  Never copy a Post's general summary Events into each case classification;
+  a case with no supported milestone reports zero Events.
 - Present project-specific journeys only from accepted evidence-bearing
   predecessor and branch relations. A timestamp sort may be labeled observed
   events, but never promoted to a journey.
+- Attach digest-bound interval-consistency evidence only to an already
+  admitted predecessor edge. Temporal order alone never creates a predecessor,
+  branch, responsibility handoff, or causal transition (ADR 0270).
 
 Acceptance: every populated fact, lifecycle endpoint, membership, and journey
 event opens an authorized evidence post; an incomplete provenance chain fails

@@ -28,6 +28,11 @@ export interface ProjectHistoryPathEdge {
   parent_event_id: string;
   child_event_id: string;
   fused_score: number;
+  temporal_evidence?: {
+    truth_status_code: ProjectHistoryTruthStatus;
+    interval_relations: string[];
+    artifact_digest_sha256: string;
+  } | null;
 }
 
 export interface ProjectHistoryPriorPath {
@@ -113,6 +118,7 @@ const MESSAGE_KEYS = [
   "priorHistory",
   "noPriorHistory",
   "inferredBoundary",
+  "timeOrderChecked",
   "projectEvidence",
   "sourceRecordEvidence",
   "supportingRecordEvidence",
@@ -164,6 +170,7 @@ const EN: Record<ProjectHistoryMessageKey, string> = {
   priorHistory: "Related prior history",
   noPriorHistory: "No visible prior lineage path is recorded for this event.",
   inferredBoundary: "This is inferred related history, not causality or an authoritative assignment record.",
+  timeOrderChecked: "Time order checked. Open the records above to compare the supporting dates.",
   projectEvidence: "Project identity evidence",
   sourceRecordEvidence: "Source record",
   supportingRecordEvidence: "Supporting record",
@@ -212,6 +219,7 @@ const MESSAGES: Record<Locale, Record<ProjectHistoryMessageKey, string>> = {
     priorHistory: "관련 과거 이력",
     noPriorHistory: "이 이벤트로 이어지는 공개 가능한 이전 계보가 없습니다.",
     inferredBoundary: "이는 추론된 관련 이력이며 인과관계나 권위 있는 인사 배정 기록이 아닙니다.",
+    timeOrderChecked: "시간 순서를 확인했습니다. 위 기록을 열어 근거 날짜를 비교하세요.",
     projectEvidence: "프로젝트 식별 근거",
     sourceRecordEvidence: "원천 기록",
     supportingRecordEvidence: "뒷받침 기록",
@@ -257,6 +265,7 @@ const MESSAGES: Record<Locale, Record<ProjectHistoryMessageKey, string>> = {
     priorHistory: "相关既往历史",
     noPriorHistory: "此事件没有可见的既往谱系路径。",
     inferredBoundary: "这是推断的相关历史，并非因果关系或权威任命记录。",
+    timeOrderChecked: "时间顺序已核验。请打开上方记录比较依据日期。",
     projectEvidence: "项目身份依据",
     sourceRecordEvidence: "来源记录",
     supportingRecordEvidence: "支持记录",
@@ -302,6 +311,7 @@ const MESSAGES: Record<Locale, Record<ProjectHistoryMessageKey, string>> = {
     priorHistory: "関連する過去履歴",
     noPriorHistory: "このイベントに至る可視の過去系譜はありません。",
     inferredBoundary: "これは推論された関連履歴であり、因果関係や権威ある配属記録ではありません。",
+    timeOrderChecked: "時間順序を確認しました。上の記録を開いて根拠の日付を比較してください。",
     projectEvidence: "プロジェクト識別根拠",
     sourceRecordEvidence: "元レコード",
     supportingRecordEvidence: "根拠レコード",
@@ -347,6 +357,7 @@ const MESSAGES: Record<Locale, Record<ProjectHistoryMessageKey, string>> = {
     priorHistory: "Lịch sử trước đó có liên quan",
     noPriorHistory: "Không có đường dẫn lịch sử trước đó khả kiến cho sự kiện này.",
     inferredBoundary: "Đây là lịch sử liên quan được suy luận, không phải quan hệ nhân quả hay hồ sơ phân công có thẩm quyền.",
+    timeOrderChecked: "Thứ tự thời gian đã được kiểm tra. Hãy mở các bản ghi trên để so sánh ngày làm căn cứ.",
     projectEvidence: "Bằng chứng nhận dạng dự án",
     sourceRecordEvidence: "Bản ghi nguồn",
     supportingRecordEvidence: "Bản ghi hỗ trợ",

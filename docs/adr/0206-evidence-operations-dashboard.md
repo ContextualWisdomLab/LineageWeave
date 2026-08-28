@@ -28,11 +28,16 @@ provenance.
 2. Dashboard requests are bounded by an inclusive event-time period.
    `source_post.event_occurred_at` is the primary clock and `created_at` is the
    explicit fallback, matching ADR 0202. The response names that clock.
-3. Every count is authorization-filtered before aggregation. Event count is
-   the number of persisted `post_summary_event` rows for the classified,
-   visible posts; post count is the distinct count of those posts. Neither
-   substitutes for the other, and no event is invented when a summary event
-   row is absent.
+3. Every count is authorization-filtered before aggregation. A case Event
+   count is the number of persisted `operations_case_milestone` rows joined by
+   both `post_id` and `case_kind_code` to the classified, visible cases; post
+   count is the distinct count of those posts. A general
+   `post_summary_event` is not copied into every classification on its Post.
+   Case kinds without an explicitly cited milestone therefore report zero
+   case Events. Neither count substitutes for the other, and no event is
+   invented when a case-specific milestone is absent. The existing composite
+   primary/foreign keys keep this relation in third normal form, while the
+   case-kind/time index keeps aggregation independent of one Post hot key.
    Analysis-pending and ingestion-failed post counts are disjoint: a failed
    current job is shown as retryable failure, never hidden inside the pending
    count or interpreted as a negative classification.
@@ -204,9 +209,21 @@ treated as a negative case.
   rendered desktop and narrow layouts.
 - `scripts/accept_operations_dashboard_runtime.sh` fails closed on the exact
   orchestrator image revision, performs the explicit structured-readiness
-  refresh only after operator opt-in, verifies one normalized preferred
-  candidate and a positive grounded-case aggregate delta, then exercises the
-  authenticated Dashboard API and rendered UI without printing source rows.
+  refresh only after operator opt-in, and polls that asynchronous job only at
+  the positive integer cadence declared by the orchestrator's admission
+  contract. A missing or malformed cadence is unavailable, not permission to
+  invent a local interval. This response field is owned by
+  `ContextualWisdomLab/contextual-orchestrator` PR #907; LineageWeave consumes
+  it without duplicating the rate-window calculation. The runner treats the
+  durable content ledger as resumable rather than assuming an empty queue. It
+  binds evidence to the exact worker image revision and container start instant,
+  then accepts either an eligible, current-source-digest grounded analysis
+  written by that deployment or observes both analysis and grounded aggregate
+  counts advance while an eligible queued/running item already exists. It never
+  resets, fabricates, or re-enqueues work for acceptance, and it fails closed
+  when neither form of evidence exists. Counts are distinct by post and remain
+  aggregate-only. The runner then exercises the authenticated Dashboard API and
+  rendered UI without printing source rows.
   The same operator-declared run invokes `scripts/k6_operations_dashboard.js`
   with explicit VUs and duration; it observes Dashboard reads only, defines no
   performance threshold, and keeps its summary outside the repository. The

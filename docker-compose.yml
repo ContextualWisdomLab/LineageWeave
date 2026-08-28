@@ -105,7 +105,9 @@ services:
     build:
       context: ./docker/contextual-orchestrator
       dockerfile: Dockerfile
-    image: ${COMPOSE_PROJECT_NAME:-lineageweave}-orchestrator:1a40e0f7ad10d1a24137d69d20e44fc9a5dcdd89
+      args:
+        CONTEXTUAL_ORCHESTRATOR_SOURCE_REVISION: 3558a9a3aeb985282b255fcd80bb2201c19ae54b
+    image: ${COMPOSE_PROJECT_NAME:-lineageweave}-orchestrator:3558a9a3aeb985282b255fcd80bb2201c19ae54b
     env_file:
       - ${HOME}/.env
     environment:
@@ -182,9 +184,15 @@ services:
       # LLM_GATEWAY_API_KEY in the orchestrator's private env file.
       ORCHESTRATOR_BASE_URL: ${ORCHESTRATOR_BASE_URL:-http://orchestrator:8000}
       ORCHESTRATOR_API_KEY: ${ORCHESTRATOR_API_KEY:-${CONTEXTUAL_ORCHESTRATOR_TOKEN:-lineageweave-orchestrator-dev-only}}
+      ORCHESTRATOR_ROUTING_ENDPOINT: ${ORCHESTRATOR_ROUTING_ENDPOINT:-}
       SEARXNG_BASE_URL: http://searxng:8080
       TEPP_TRANSPORT_URL: ${TEPP_TRANSPORT_URL:-}
       TEPP_API_KEY: ${TEPP_API_KEY:-}
+      TOPIC_INFLUENCE_TRANSPORT_URL: ${TOPIC_INFLUENCE_TRANSPORT_URL:-}
+      TOPIC_INFLUENCE_API_KEY: ${TOPIC_INFLUENCE_API_KEY:-}
+      TOPIC_INFLUENCE_REQUEST_TIMEOUT_SECONDS: ${TOPIC_INFLUENCE_REQUEST_TIMEOUT_SECONDS:-}
+      TOPIC_INFLUENCE_LEASE_TIMEOUT_SECONDS: ${TOPIC_INFLUENCE_LEASE_TIMEOUT_SECONDS:-}
+      TOPIC_INFLUENCE_POLL_SECONDS: ${TOPIC_INFLUENCE_POLL_SECONDS:-}
       CALDAV_BASE_URL: ${CALDAV_BASE_URL:-}
       NARUON_CALENDAR_BASE_URL: ${NARUON_CALENDAR_BASE_URL:-}
       NARUON_CALENDAR_SERVICE_TOKEN: ${NARUON_CALENDAR_SERVICE_TOKEN:-}
@@ -245,6 +253,8 @@ services:
     build:
       context: .
       dockerfile: backend/Dockerfile
+      args:
+        LINEAGEWEAVE_SOURCE_REVISION: ${LINEAGEWEAVE_SOURCE_REVISION:-unknown}
     command: ["uvicorn", "backend.app.mcp_server:app", "--host", "0.0.0.0", "--port", "8001"]
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER:-lineageweave}:${POSTGRES_PASSWORD:-lineageweave_dev_only}@postgres:5432/${POSTGRES_DB:-lineageweave}
@@ -265,6 +275,7 @@ services:
       VALKEY_URL: redis://valkey:6379/0
       ORCHESTRATOR_BASE_URL: ${ORCHESTRATOR_BASE_URL:-http://orchestrator:8000}
       ORCHESTRATOR_API_KEY: ${ORCHESTRATOR_API_KEY:-${CONTEXTUAL_ORCHESTRATOR_TOKEN:-lineageweave-orchestrator-dev-only}}
+      ORCHESTRATOR_ROUTING_ENDPOINT: ${ORCHESTRATOR_ROUTING_ENDPOINT:-}
       MCP_RESOURCE_URL: http://localhost:18001/mcp
       MCP_AUDIENCE: http://localhost:18001/mcp
       MCP_ALLOWED_HOSTS: localhost:*,127.0.0.1:*,mcp:8001

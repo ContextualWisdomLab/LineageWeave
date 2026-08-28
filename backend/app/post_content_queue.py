@@ -3,8 +3,8 @@
 from __future__ import annotations
 
 import hashlib
-from datetime import timedelta
 from dataclasses import dataclass
+from datetime import datetime, timedelta
 from typing import Any
 
 import asyncpg
@@ -32,6 +32,15 @@ class PostContentJobRequest:
     source_body_sha256: str
     status_code: str
     should_publish: bool
+
+
+@dataclass(frozen=True)
+class PostContentRecoveryPage:
+    """One fair recovery page and the keyset needed for the next page."""
+
+    published_count: int
+    next_eligible_at: datetime | None
+    next_post_id: str | None
 
 
 def source_body_sha256(body: str) -> str:
@@ -150,6 +159,17 @@ async def publish_post_content_event(
     except redis.RedisError:
         return None
     return str(entry_id)
+
+
+async def trim_post_content_events_through(client: redis.Redis, entry_id: str) -> None:
+    """Trim only wake-ups at or before the worker's consumed cursor."""
+    milliseconds, sequence = entry_id.split("-", 1)
+    exclusive_minimum = f"{int(milliseconds)}-{int(sequence) + 1}"
+    await client.xtrim(
+        POST_CONTENT_STREAM_KEY,
+        minid=exclusive_minimum,
+        approximate=False,
+    )
 
 
 async def _record_status(
@@ -384,20 +404,13 @@ async def ensure_post_content_job(
 POST_CONTENT_BACKFILL_CANDIDATE_SQL = f"""
         select post.post_id, post.post_body
           from source_post post
-          left join post_content_ingestion_job job on job.post_id = post.post_id
-          left join operations_case_analysis analysis
-            on analysis.post_id = post.post_id
-           and analysis.source_body_sha256 = job.source_body_sha256
-          left join post_product_analysis product_analysis
-            on product_analysis.post_id = post.post_id
-           and product_analysis.source_body_sha256 = job.source_body_sha256
-          left join (
-              select distinct project.post_id
-                from post_project_mention project
-               where nullif(btrim(project.ontology_iri), '') is not null
-          ) ontology_project on ontology_project.post_id = post.post_id
          where {SOURCE_POST_ELIGIBILITY_SQL.format(alias='post')}
-           and (job.post_id is null or job.status_code = $1)
+           and not exists (
+               select 1
+                 from post_content_ingestion_job job
+                where job.post_id = post.post_id
+                  and job.status_code is distinct from $1
+           )
            and (
                not exists (
                    select 1 from post_content_unit unit
@@ -436,14 +449,45 @@ POST_CONTENT_BACKFILL_CANDIDATE_SQL = f"""
                           or structure.decision_source_code = 'unresolved'
                       )
                ))
-               or ($3::boolean and analysis.post_id is null)
-               or ($3::boolean and product_analysis.post_id is null)
+               or ($3::boolean and not exists (
+                   select 1
+                     from post_content_ingestion_job job
+                     join operations_case_analysis analysis
+                       on analysis.post_id = job.post_id
+                      and analysis.source_body_sha256 = job.source_body_sha256
+                    where job.post_id = post.post_id
+               ))
+               or ($3::boolean and not exists (
+                   select 1
+                     from post_content_ingestion_job job
+                     join post_product_analysis product_analysis
+                       on product_analysis.post_id = job.post_id
+                      and product_analysis.source_body_sha256 = job.source_body_sha256
+                    where job.post_id = post.post_id
+               ))
            )
            and ($5::boolean = (
                    $3::boolean
-                   and ontology_project.post_id is not null
-                   and job.source_body_sha256 is not null
-                   and analysis.post_id is null
+                   and exists (
+                       select 1
+                         from post_project_mention project
+                        where project.post_id = post.post_id
+                          and nullif(btrim(project.ontology_iri), '') is not null
+                   )
+                   and exists (
+                       select 1
+                         from post_content_ingestion_job job
+                        where job.post_id = post.post_id
+                          and job.source_body_sha256 is not null
+                   )
+                   and not exists (
+                       select 1
+                         from post_content_ingestion_job job
+                         join operations_case_analysis analysis
+                           on analysis.post_id = job.post_id
+                          and analysis.source_body_sha256 = job.source_body_sha256
+                        where job.post_id = post.post_id
+                   )
                ))
          order by coalesce(post.event_occurred_at, post.created_at),
                   post.created_at,
@@ -717,41 +761,58 @@ async def republish_queued_post_content_jobs(
     pool: asyncpg.Pool,
     *,
     limit: int = 100,
-) -> int:
-    """Recover queued rows and stale running leases when Valkey lost wake-ups."""
-    async with pool.acquire() as conn:
-        rows = await conn.fetch(
+    after_eligible_at: datetime | None = None,
+    after_post_id: str | None = None,
+) -> PostContentRecoveryPage:
+    """Republish one keyset page without starving rows beyond the first page."""
+    if (after_eligible_at is None) != (after_post_id is None):
+        raise ValueError("recovery keyset requires both eligible_at and post_id")
+
+    async def _fetch_page(
+        conn: asyncpg.Connection,
+        cursor_at: datetime | None,
+        cursor_id: str | None,
+    ) -> list[asyncpg.Record]:
+        return await conn.fetch(
             """
-            select post_id, source_body_sha256
-            from post_content_ingestion_job
-            where (
-                status_code = $1
-                and (
-                    next_attempt_at <= now()
-                    or (
-                        next_attempt_at is null
-                        and (
-                            attempt_count = 0
-                            or queued_at <= now() - $2::interval
-                        )
-                    )
-                )
+            with recovery_candidate as (
+                select post_id,
+                       source_body_sha256,
+                       case
+                           when status_code = $1 then
+                               case
+                                   when next_attempt_at is not null then next_attempt_at
+                                   when attempt_count = 0 then queued_at
+                                   else queued_at + $2::interval
+                               end
+                           when status_code = $3 and started_at is not null then
+                               started_at + $4::interval
+                       end as eligible_at
+                from post_content_ingestion_job
+                where status_code in ($1, $3)
             )
-               or (
-                    status_code = $3
-                    and started_at is not null
-                    and started_at < now() - $4::interval
-               )
-            order by queued_at
-            limit $5
+            select post_id, source_body_sha256, eligible_at
+            from recovery_candidate
+            where eligible_at <= now()
+              and ($5::timestamptz is null or (eligible_at, post_id) > ($5, $6::uuid))
+            order by eligible_at, post_id
+            limit $7
             """,
             QUEUED,
             POST_CONTENT_RETRY_INTERVAL,
             RUNNING,
             STALE_RUNNING_INTERVAL,
+            cursor_at,
+            cursor_id,
             limit,
         )
+
+    async with pool.acquire() as conn:
+        rows = await _fetch_page(conn, after_eligible_at, after_post_id)
+        if not rows and after_eligible_at is not None:
+            rows = await _fetch_page(conn, None, None)
     published = 0
+    last_published_row: asyncpg.Record | None = None
     for row in rows:
         if await publish_post_content_event(
             client,
@@ -759,7 +820,20 @@ async def republish_queued_post_content_jobs(
             source_body_digest=str(row["source_body_sha256"]),
         ):
             published += 1
-    return published
+            last_published_row = row
+        else:
+            break
+    if last_published_row is None:
+        return PostContentRecoveryPage(
+            0,
+            after_eligible_at,
+            after_post_id,
+        )
+    return PostContentRecoveryPage(
+        published,
+        last_published_row["eligible_at"],
+        str(last_published_row["post_id"]),
+    )
 
 
 def serialize_job_row(row: Any) -> dict[str, Any]:

@@ -2904,7 +2904,13 @@ function PostDetailPopup({
 }
 
 function analysisRunCaption(run: AnalysisRun): string {
-  return [run.run_kind_label, run.status_label, run.scope_entity_name ?? run.scope_kind_label]
+  const customerKindLabel = {
+    analysis_run_lineage: "Lineage reconstruction",
+    analysis_run_tepp: "Calibrated event measurement",
+    analysis_run_topic_lineage: "Time-based topic analysis",
+    analysis_run_report: "Period report",
+  }[run.run_kind_code];
+  return [customerKindLabel ? t(customerKindLabel) : null, run.status_label, run.scope_entity_name ?? run.scope_kind_label]
     .filter(Boolean)
     .join(" · ");
 }
@@ -2922,13 +2928,13 @@ function analysisRunNextAction(run: AnalysisRun): string | null {
     case "analysis_status_pending":
       switch (run.run_kind_code) {
         case "analysis_run_lineage":
-          return "Open this run, then start reconstruction. Reconstruction has not started yet.";
+          return t("Open this run, then start reconstruction. Reconstruction has not started yet.");
         case "analysis_run_tepp":
-          return "Open this run to confirm which posts TEPP will measure. Measurement has not started yet — this is not a calibrated result.";
+          return t("Open this run to confirm the posts included in measurement, then start it.");
         case "analysis_run_topic_lineage":
-          return "Open this run to confirm which posts TEPP will thread into topic lineage. Topic-lineage analysis has not started yet — this is not a calibrated topic result.";
+          return t("Open this run to confirm the posts and time period included in topic analysis, then start it.");
         case "analysis_run_report":
-          return "Open this run to confirm which posts the period report will use. The report has not been built yet.";
+          return t("Open this run to confirm which posts the period report will use. The report has not been built yet.");
         default: {
           const unexpected: never = run.run_kind_code;
           return unexpected;
@@ -2937,20 +2943,20 @@ function analysisRunNextAction(run: AnalysisRun): string | null {
     case "analysis_status_failed":
       switch (run.run_kind_code) {
         case "analysis_run_tepp":
-          return "Open this run to see why it failed, then retry with the latest available records.";
+          return t("Open this run to see why it failed, then retry with the latest available records.");
         case "analysis_run_topic_lineage":
-          return "Open this run to see why it failed, then retry with the latest available records.";
+          return t("Open this run to see why it failed, then retry with the latest available records.");
         case "analysis_run_lineage":
-          return "Open this run to see why it failed, then retry reconstruction from a current snapshot.";
+          return t("Open this run to see why it failed, then retry reconstruction from a current snapshot.");
         case "analysis_run_report":
-          return "Open this run to see why it failed, then rebuild the period report from a current snapshot.";
+          return t("Open this run to see why it failed, then rebuild the period report from a current snapshot.");
         default: {
           const unexpected: never = run.run_kind_code;
           return unexpected;
         }
       }
     case "analysis_status_running":
-      return "Refresh this run. Start already queued the work on the durable outbox.";
+      return t("Refresh this run. Start already queued the work on the durable outbox.");
     case "analysis_status_succeeded":
     case "analysis_status_cancelled":
     case null:
@@ -2966,32 +2972,26 @@ function analysisRunNextAction(run: AnalysisRun): string | null {
  * Empty-corpus copy that tells the operator what to do next.
  */
 function analysisRunEmptyPostsHint(run: AnalysisRun): string {
+  let analysis: string;
   switch (run.run_kind_code) {
     case "analysis_run_tepp":
-      return (
-        "No posts were available at this cutoff for TEPP to measure. " +
-        "Open a later run or retry after a newer snapshot is available."
-      );
+      analysis = t("calibrated measurement");
+      break;
     case "analysis_run_topic_lineage":
-      return (
-        "No posts were available at this cutoff for topic-lineage analysis. " +
-        "Open a later run or retry after a newer snapshot is available."
-      );
+      analysis = t("time-based topic analysis");
+      break;
     case "analysis_run_lineage":
-      return (
-        "No posts were available at this cutoff for reconstruction. " +
-        "Open a later run or retry after a newer snapshot is available."
-      );
+      analysis = t("reconstruction");
+      break;
     case "analysis_run_report":
-      return (
-        "No posts were available at this cutoff for the period report. " +
-        "Open a later run or retry after a newer snapshot is available."
-      );
+      analysis = t("the period report");
+      break;
     default: {
       const unexpected: never = run.run_kind_code;
       return unexpected;
     }
   }
+  return tf("No posts were available at this cutoff for {analysis}. Open a later run or retry after a newer snapshot is available.", { analysis });
 }
 
 /**
@@ -3003,28 +3003,19 @@ function analysisRunEmptyPostsHint(run: AnalysisRun): string {
 function analysisRunCorpusHint(run: AnalysisRun): string | null {
   const isTopicLineage = run.run_kind_code === "analysis_run_topic_lineage";
   if (run.run_kind_code !== "analysis_run_tepp" && !isTopicLineage) return null;
-  const service = isTopicLineage ? "topic-lineage" : "TEPP";
-  const result = isTopicLineage ? "a topic-identity result" : "a calibrated result";
-  const verb = isTopicLineage ? "thread" : "measure";
-  const verbPast = isTopicLineage ? "threaded" : "measured";
+  const analysis = t(isTopicLineage ? "time-based topic analysis" : "calibrated measurement");
   switch (run.status_code) {
     case "analysis_status_failed":
-      return (
-        `These posts are the cutoff corpus ${service} would ${verb}. Connect a TEPP ` +
-        `transport, then re-run, to replace Failed with ${result}.`
-      );
+      return tf("These posts were selected for {analysis}. Review the failure details, then retry with the latest available records.", { analysis });
     case "analysis_status_succeeded":
-      return `These posts are the cutoff corpus this ${service} run ${verbPast}.`;
+      return tf("These posts were included in this {analysis} result.", { analysis });
     case "analysis_status_pending":
     case "analysis_status_running":
-      return `These posts are the cutoff corpus ${service} will ${verb} once this run finishes.`;
+      return tf("These posts will be included when {analysis} finishes.", { analysis });
     case "analysis_status_cancelled":
-      return (
-        `These posts are the cutoff corpus this ${service} run would have ${verbPast}. ` +
-        `The run was cancelled before ${result}.`
-      );
+      return tf("These posts were selected for {analysis}. Start a new run if the result is still needed.", { analysis });
     case null:
-      return `These posts are the cutoff corpus attached to this ${service} run.`;
+      return tf("These posts are selected for {analysis}.", { analysis });
     default: {
       const unexpected: never = run.status_code;
       return unexpected;
@@ -3149,10 +3140,10 @@ function analysisRunCanStart(run: AnalysisRun): boolean {
 
 function analysisRunStartLabel(run: AnalysisRun): string {
   if (run.run_kind_code === "analysis_run_tepp") {
-    return "Start TEPP measurement";
+    return "Start calibrated measurement";
   }
   if (run.run_kind_code === "analysis_run_topic_lineage") {
-    return "Start topic lineage";
+    return "Start time-based topic analysis";
   }
   return "Start reconstruction";
 }
@@ -3444,9 +3435,9 @@ function AnalysisRunsPanel({
             >
               {starting
                 ? selected.run_kind_code === "analysis_run_tepp"
-                  ? "Submitting the TEPP request..."
+                  ? "Starting calibrated measurement..."
                   : selected.run_kind_code === "analysis_run_topic_lineage"
-                    ? "Submitting the topic-lineage request..."
+                    ? "Starting time-based topic analysis..."
                     : "Reconstructing the cutoff bag..."
                 : analysisRunStartLabel(selected)}
             </button>
@@ -3454,10 +3445,8 @@ function AnalysisRunsPanel({
           {analysisRunCanRequestTeppRetry(selected) && (
             <p className="post-meta">
               {selected.run_kind_code === "analysis_run_topic_lineage"
-                ? "Connect a TEPP transport from this Failed row. Request a " +
-                  "lineage reconstruction does not invent a topic model."
-                : "Connect a TEPP transport from this Failed row. Request a lineage " +
-                  "reconstruction does not invent a measurement."}
+                ? "Review the failure details, confirm the selected posts and period, then start a new topic analysis."
+                : "Review the failure details, confirm the selected posts and cutoff, then start a new calibrated measurement."}
             </p>
           )}
           {analysisRunReportPeriod(selected) && onSelectReportPeriod && (

@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import json
+
 import pytest
 
 from lineageweave import http_client
@@ -187,16 +189,27 @@ def test_post_json_adds_context_metadata_when_payload_omits_it(
     assert b'"lineageweave_post_id": "synthetic-post"' in captured_body
 
 
+@pytest.mark.parametrize(
+    ("status", "error_code"),
+    [(429, "rate_limit_exceeded"), (503, "no_viable_agent")],
+)
 def test_post_json_exposes_only_validated_admission_deferral(
     monkeypatch: pytest.MonkeyPatch,
+    status: int,
+    error_code: str,
 ) -> None:
     """The exact bounded retry contract becomes a typed control signal."""
 
     def deferred_request(*_args: object, **kwargs: object) -> tuple[int, bytes]:
         kwargs["response_control_headers"]["retry-after"] = "30"
         return (
-            503,
-            b'{"error":{"code":"no_viable_agent","detail":{"retry_after_seconds":30}}}',
+            status,
+            json.dumps({
+                "error": {
+                    "code": error_code,
+                    "detail": {"retry_after_seconds": 30},
+                }
+            }).encode("utf-8"),
         )
 
     monkeypatch.setattr(http_client, "_request", deferred_request)
@@ -209,23 +222,76 @@ def test_post_json_exposes_only_validated_admission_deferral(
         )
 
     assert captured.value.retry_after_seconds == 30
-    assert "no_viable_agent" not in str(captured.value)
+    assert error_code not in str(captured.value)
 
 
+@pytest.mark.parametrize(
+    ("status", "error_code"),
+    [(429, "rate_limit_exceeded"), (503, "no_viable_agent")],
+)
 def test_post_json_rejects_mismatched_admission_delay(
     monkeypatch: pytest.MonkeyPatch,
+    status: int,
+    error_code: str,
 ) -> None:
     """Conflicting header/body delays remain an ordinary unavailable response."""
 
     def mismatched_request(*_args: object, **kwargs: object) -> tuple[int, bytes]:
         kwargs["response_control_headers"]["retry-after"] = "31"
         return (
-            503,
-            b'{"error":{"code":"no_viable_agent","detail":{"retry_after_seconds":30}}}',
+            status,
+            json.dumps({
+                "error": {
+                    "code": error_code,
+                    "detail": {"retry_after_seconds": 30},
+                }
+            }).encode("utf-8"),
         )
 
     monkeypatch.setattr(http_client, "_request", mismatched_request)
-    with pytest.raises(http_client.HttpClientError, match="HTTP 503") as captured:
+    with pytest.raises(http_client.HttpClientError, match=f"HTTP {status}") as captured:
+        http_client.post_json(
+            "https://gateway.example/v1/chat/completions",
+            {},
+            headers={},
+            timeout=1,
+        )
+
+    assert not isinstance(captured.value, http_client.HttpAdmissionDeferred)
+
+
+@pytest.mark.parametrize(
+    ("status", "error_code"),
+    [(429, "rate_limit_exceeded"), (503, "no_viable_agent")],
+)
+@pytest.mark.parametrize(
+    ("retry_after", "detail_seconds"),
+    [(None, 30), ("30", None), ("0", 0), ("30", True), ("+30", 30)],
+)
+def test_post_json_rejects_missing_or_malformed_admission_delay(
+    monkeypatch: pytest.MonkeyPatch,
+    status: int,
+    error_code: str,
+    retry_after: str | None,
+    detail_seconds: object,
+) -> None:
+    """Incomplete or non-canonical admission controls fail closed."""
+
+    def malformed_request(*_args: object, **kwargs: object) -> tuple[int, bytes]:
+        if retry_after is not None:
+            kwargs["response_control_headers"]["retry-after"] = retry_after
+        return (
+            status,
+            json.dumps({
+                "error": {
+                    "code": error_code,
+                    "detail": {"retry_after_seconds": detail_seconds},
+                }
+            }).encode("utf-8"),
+        )
+
+    monkeypatch.setattr(http_client, "_request", malformed_request)
+    with pytest.raises(http_client.HttpClientError, match=f"HTTP {status}") as captured:
         http_client.post_json(
             "https://gateway.example/v1/chat/completions",
             {},

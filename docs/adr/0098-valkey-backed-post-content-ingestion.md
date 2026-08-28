@@ -32,6 +32,28 @@ placed in a stream message.
    permits three attempts, then records terminal
    `post_content_ingestion_attempt_limit`; duplicate wake-ups cannot reopen a
    terminal failure. A changed source digest starts a new budget.
+   Recovery walks the ready ledger with the deterministic
+   `(eligible_at, post_id)` keyset and wraps only after reaching the end. The
+   derived `eligible_at` is the row's existing eligibility instant: an
+   explicit `next_attempt_at`, `queued_at` for an initial attempt,
+   `queued_at + five minutes` for a retry without an explicit instant, or
+   `started_at + fifteen minutes` for a stale running lease. The same derived
+   value is used by both the due predicate and cursor ordering, so a retry that
+   becomes due after the cursor advanced remains ahead of that cursor. It must
+   not repeatedly publish only the first bounded page while later rows starve.
+   The cursor advances only through the contiguous successfully published
+   prefix; a Valkey failure leaves the first unpublished row eligible for the
+   next recovery cycle instead of postponing it until a full wrap.
+   The worker trims the Valkey stream through its consumed cursor. Producers
+   retain the existing approximate 1,000-entry bound so a worker outage cannot
+   grow the non-authoritative transport without limit; if that bound drops an
+   unread wake-up, fair ledger recovery republishes its row on a later page.
+   This cursor contract has exactly one process owner. The worker process must
+   acquire its PostgreSQL session advisory lease before starting any durable
+   consumer; a second replica fails closed before it can read or trim the
+   stream. Shutdown cancels and joins every consumer before releasing that
+   lease. Horizontal worker replication requires a successor ADR and a native
+   consumer-group acknowledgement contract.
 4. The worker reuses the existing contextual-orchestrator client factories for
    VISION, structure, and embeddings. It preserves one post session and the
    bounded provenance metadata from `llm_context`; no raw provider call, model
@@ -83,6 +105,17 @@ normalized PostgreSQL ledger is scanned and queued/stale rows are republished
 after the cursor is established. This prevents a restart from replaying an
 unbounded historical stream before processing current work.
 
+Within one worker lifetime, the recovery keyset cursor advances by effective
+eligibility across every ready queued or stale-running lease and wraps at the
+end. This is publication
+reachability, not a change to retry order, attempt budgets, or provider
+admission. Wake-up cleanup is consumption-bound while the worker is available:
+a successful batch advances the consumer cursor and then removes entries
+through that cursor. During an outage, the pre-existing producer bound limits
+transport growth. PostgreSQL remains authoritative, so a wake-up removed by
+that bound is recovered by the advancing keyset rather than being lost behind
+page one.
+
 Lease recovery also fences completion by `attempt_count`. A worker whose
 15-minute lease was reclaimed may finish after the replacement worker has
 started; its success, retry, or terminal failure transition is accepted only
@@ -102,6 +135,14 @@ excluded, so successive cycles make durable corpus progress without duplicate
 work or an unbounded HTTP request. Candidate selection and broker recovery are
 independent: either failure is recorded and retried on the next cycle without
 stopping the worker.
+
+The bounded candidate scan uses the partial
+`source_post_content_backfill_candidate_idx` on the candidate query's event-time
+fallback and deterministic tie-breakers. Its partial predicate excludes drafts
+and deleted rows; the query retains the shared source-context predicate. This
+lets PostgreSQL stop after the requested ordered page instead of evaluating
+content completeness across the whole source corpus. It does not change
+eligibility or completeness semantics.
 
 The CLI retains the same per-query bound. `--all-pages` repeats that governed
 producer until the current candidate set is empty; progress remains visible in

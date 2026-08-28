@@ -52,6 +52,34 @@ the canonical stack under a different project name.
   Host/Origin, request-size, and k6-evidenced quota values described in the
   [MCP manual](mcp-manual.md).
 
+For authenticated runtime acceptance, start the exact-revision stack with the
+MCP profile and declare separate provider-probe and readiness-observation
+budgets. `ORCHESTRATOR_PROBE_TIMEOUT_SECONDS` accepts 0.1 through 30 seconds;
+`ORCHESTRATOR_READINESS_TIMEOUT_SECONDS` is the positive-integer wall-clock
+budget for the asynchronous job. The acceptance runner reads the cached agent
+catalog inside the orchestrator container, probes only active agents belonging
+to the configured gateway for the structured workflow used by content
+analysis, and fails closed if no such agent becomes ready. While the job is
+pending, the runner accepts only the positive integer polling cadence declared
+by contextual-orchestrator (upstream PR #907) and never substitutes a local
+polling interval.
+
+Declare `OPERATIONS_CASE_ACCEPTANCE_TIMEOUT_SECONDS` and
+`OPERATIONS_CASE_POLL_SECONDS` as separate positive-integer observation inputs.
+The runner does not enqueue a demonstration record or assume a fresh ledger. It
+first accepts aggregate grounded evidence produced since the exact worker
+container started. If none exists yet, an eligible queued/running record with no
+current-source-digest analysis must already be present; the runner then waits
+for both deployment-bound analysis and grounded aggregate counts to advance.
+It fails closed when neither path is available. Source rows and record
+identifiers remain inside the database and are never printed.
+
+The 2026-08-26 diagnostic run supplied `MCP_RATE_LIMIT_REQUESTS=1000` and
+`MCP_RATE_LIMIT_WINDOW_SECONDS=60` only to its acceptance invocation. Those
+observed inputs are neither source defaults nor a production capacity SLO;
+repeat k6 measurement in the target deployment before selecting production
+quota values.
+
 ## Durable asynchronous work
 
 The API enqueues Ask and content-analysis work; workers perform provider calls

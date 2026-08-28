@@ -3,9 +3,14 @@
 > Current rebuild overlay: 2026-08-28 KST. Protected `main` is
 > `ff7431bd1851c03e737808d22c6a2d43968582f9`; PR #640 is a ready-for-review
 > current-main semantic rebuild at `f0bc98eef238b7a03d4227ab909c8de296041f36`.
-> PR #778 remains remotely at `3d38f48dd3ca7e939b60f80f34ca61260c377818`;
-> its locally tested restack candidate before this documentation-only update
-> was `572ef39bf0f31882a8b1cb920f69b66d38176dab`. The open queue has 14 PRs:
+> PR #778 is remotely published at
+> `b87b186dd7213dc59d8e933e7d8c3f330598470f`; PR #781's last remote
+> exact-head evidence before this overlay is
+> `760d05896f96e5ce7fb9df0e4b62369448913fbd` and remains candidate-only.
+> Its contextual-orchestrator runtime is pinned to open upstream PR #857 exact
+> `3558a9a3aeb985282b255fcd80bb2201c19ae54b`; this candidate is not
+> protected-main evidence.
+> The open queue has 14 PRs:
 > #783, #782, #781, #780, #778, #774, #772, #771, #770, #702, #679, #672,
 > #667, and #640; #702/#679/#672/#667 remain drafts. Local candidate tests do
 > not transfer to the remote PR head or protected `main`. Exact-head Compose,
@@ -288,15 +293,15 @@ explicit unavailable state, not a reason to infer mappings from labels.
 
 | Requirement | Evidence contract | Delivery state |
 |---|---|---|
-| Claim cause delay: order, specification change, originating order, sales pool, Event/post counts | ADR 0206; contextual-orchestrator case classification with cited spans; Event Lineage context | Candidate implementation; authenticated runtime acceptance pending |
-| Rebid/handover: discussion, counterparties, our owner, decisions, Event/post counts | ADR 0206; normalized case facts plus persisted summary actions/roles | Candidate implementation; corpus backfill pending |
+| Claim cause delay: order, specification change, originating order, sales pool, Event/post counts | ADR 0206; contextual-orchestrator case classification with cited spans; case-specific normalized milestones | Candidate implementation counts only cited claim milestones instead of duplicating every Post summary Event; authenticated runtime acceptance pending |
+| Rebid/handover: discussion, counterparties, our owner, decisions, Event/post counts | ADR 0206; normalized case facts and case-specific normalized milestones | Candidate implementation counts only cited rebid/handover milestones; corpus backfill pending |
 | External information count/rate and sales/project relation | ADR 0206; semantic `external_information` classification inside Dashboard GNB | Candidate implementation; no separate Board by product decision |
 | Project-specific journey | Explicit source/semantic project membership plus event-time ordering | Candidate API and ordered journey UI implemented; authenticated runtime acceptance pending |
 | Repeat issue to design improvement | `repeat_issue`, `issue_pattern`, and `improvement_action` cited facts | Candidate semantic contract; design-system connector acceptance pending |
 | Natural-language Ask with evidence, report, alert, MCP | Persisted semantic-unit embeddings plus versioned delivery/resource contract | Candidate implementation uses whole-question embedding retrieval with no lexical fallback; authenticated runtime acceptance pending |
 | Similar VOC, customer cohort, prior action | Persisted repeat-issue candidate semantics plus orchestrator pair adjudication and extractive evidence | Candidate live post endpoint and post-detail UI implemented; authenticated runtime acceptance pending |
 | TEPP independent Event Lineage anchor | Accepted, persisted TEPP criterion bound to exact snapshot/cutoff before fast-mlsirm activation | Consumer PR #606 is on protected main; TEPP producer PR #237 remains open, so no end-to-end accepted artifact is release evidence yet |
-| Temporal Lineage topics and multilevel important posts | ADR 0210; TEPP posterior topic/plausible-value contract followed by fast-mlsirm observed-information case-deletion influence | Product/technical contract is protected on `main`; neither required Rust CPU/GPU producer envelope is shipped, so the Dashboard surface remains unavailable (ADR 0208: no local Python substitute) |
+| Temporal Lineage topics and multilevel important posts | ADR 0210; TEPP posterior topic/plausible-value contract followed by fast-mlsirm observed-information case-deletion influence | The stacked successor adds a durable, short-transaction producer request, exact accepted TEPP posterior run/snapshot/cutoff/artifact binding, four-level source-membership admission, complete-result validation, and normalized persistence. It does not misbind the older topic-lineage envelope or calibrated-measurement receipt to this scientifically distinct posterior projection. Incomplete evidence is stored until a new evidence event, expired work follows an operator-declared lease that strictly exceeds the request timeout, changed input automatically produces a fresh request, and exact request, membership, and result artifact bytes are digest-verified before parsing. The Dashboard remains unavailable until TEPP publishes the full posterior/membership artifact and fast-mlsirm publishes the domain-neutral continuous-posterior Rust result endpoint; the crossed weighted MAP binary kernel is not misapplied and no local Python substitute exists |
 
 ### Technical contract and flow
 
@@ -654,6 +659,7 @@ this file per §3.5 of the prior snapshot).
 | Gap | Current evidence | Acceptance requirement |
 | --- | --- | --- |
 | Protected release | 12 open PRs at snapshot, all targeting `main` with normal auto-merge enabled. None has the required independent approval, and running checks on #631/#632/#663 are not treated as blockers for safe work on other PRs. #666's merge into the non-default #663 branch is not protected-main delivery | Terminal exact-head checks, no unresolved threads, two independent approvals including last-push approval, protected squash-merge SHA |
+| Orchestrator admission and readiness | LineageWeave PR #781 consumes contextual-orchestrator PR #907's exact positive-integer `Retry-After`/detail agreement and admission-derived readiness polling cadence. Both #907 and its parent #857 are open stacks, so the pin is candidate integration evidence only | Merge #857 then #907 through their protected gates, repin the protected upstream merge commit, rebuild the exact LineageWeave images, and prove structured readiness plus deferred backfill recovery without exhausting the declared admission window |
 | CI queue release latency | Two Tests runs for already merged PRs occupied the available runner slots while 54 newer runs remained queued. Manual cancellation released the stale work, but the central close workflow was itself queued behind those runs. #634 merged into #631's non-default branch and reuses the repository's existing per-PR concurrency group so a jobless close event can cancel obsolete Tests work before runner allocation; this is not protected-main delivery | Merge #631 through its refreshed protected gate; close a synthetic PR while its Tests run is active and verify the old run becomes cancelled, the close-event jobs remain skipped, and a newer exact-head run starts without manual intervention |
 | Evidence-grounded operations workspace | Protected-main #614 delivers governed semantic Ask, live Similar VOC, disjoint pending/failed analysis metrics, full Storybook state inventory, and current desktop/mobile screenshot evidence. Authorized-corpus backfill acceptance remains unavailable | Perform authenticated authorized-corpus acceptance with aggregate evidence and retain fail-closed no-match behavior |
 | Shared frontend gate | The ADR 0109 login repair is on protected `main`; eight older branches carried the defect and received the same verified repair this loop (#521–#560) | Keep every future branch cut from post-repair bases; re-verify with frontend lint/test/build before push |
@@ -830,7 +836,7 @@ post-merge reruns (not transferable evidence for later heads):
 | ---: | --- | --- |
 | #643 | Shared StatusNotice (ADR 0220): success/unavailable/retry states, WorkspaceCalendar auth-unavailable copy, 5-locale i18n; CI Full suite 22m54s green | ADR 0220 |
 | #644 | Native workspace surface split: 9 conditionally rendered components as lazy() dynamic imports behind a SurfaceBoundary error boundary; build emits 9 chunks (1.5-37 kB), main bundle 543 kB; 470 frontend tests, tsc, Storybook green | — |
-| #762 | Evidence-bound project history (ADR 0243): /api/projects/{key}/history endpoint, project_history.py projection, fetchProjectHistory client, standalone ProjectHistoryTimeline component; supersedes #668 (3-way merge kept only the additive +2279/-0, dropping the branch's 8k shared-file reverts; popup UI hookup deferred as a scoped follow-up) | ADR 0243 |
+| #762 | Evidence-bound project history (ADR 0243): /api/projects/{key}/history endpoint, project_history.py projection, fetchProjectHistory client, standalone ProjectHistoryTimeline component; supersedes #668 (3-way merge kept only the additive +2279/-0, dropping the branch's 8k shared-file reverts; popup UI hookup deferred as a scoped follow-up). ADR 0270 successor work admits digest-bound interval evidence only for existing lineage edges; it does not promote time order to a business transition. | ADR 0243, ADR 0270 |
 | #763 | Live-PostgreSQL A→B→A Voice history validation (ADR 0252) proving effective_from/effective_to interval replacement across repeated primary-Voice imports | ADR 0252 |
 | #764 | Test-only coverage lift: observability 78%→96%, post_summary 77%→89%, claim_verification 86%→99%; package line coverage 93.5%→95% (484→371 missing); 1651 Python tests green | — |
 | #761 | Temporal imported-primary Voice history (ADR 0252): migration 0243 (`effective_to` + GiST primary-period exclusion + synchronize trigger), refined 0237 `least()` effective_from backfill, `effective_from/effective_to` dataclass/export + `coalesce($2,$3)` cutoff predicate. Completes the half-shipped main layer that queried `voice.effective_to` against a missing column. CI Full suite 19m13s green | ADR 0252 |

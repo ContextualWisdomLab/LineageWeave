@@ -10,10 +10,19 @@ from backend.app import global_ask_queue
 from backend.app.global_ask_queue import load_job_visibility
 from lineageweave import claim_verification as cv
 from lineageweave.post_chat import ChatAnswer, ChatSourceDocument
+from lineageweave.public_claim_envelope import PersistedPublicClaimEnvelope
 
 
 class _AvailableClient:
     available = True
+
+
+def test_public_claim_load_deduplicates_resource_bindings() -> None:
+    """A duplicate resource binding must not duplicate one admitted envelope."""
+    sql = global_ask_queue._AUTHORIZED_PUBLIC_CLAIM_ENVELOPES_SQL.casefold()
+    assert "exists (" in sql
+    assert "from provenance_resource_binding evidence" in sql
+    assert "join provenance_resource_binding evidence" not in sql
 
 
 class _Connection:
@@ -153,6 +162,14 @@ def test_public_verification_keeps_external_urls_out_of_internal_citations() -> 
             ["public-post"],
             verify_external=True,
             client=client,
+            persisted_envelopes=(
+                PersistedPublicClaimEnvelope(
+                    public_claim_envelope_id="envelope-1",
+                    source_post_id="public-post",
+                    claim_kind_code="claim_public_event",
+                    claim_text="Synthetic public event.",
+                ),
+            ),
         )
     )
 
@@ -160,6 +177,85 @@ def test_public_verification_keeps_external_urls_out_of_internal_citations() -> 
     assert results[0].source_post_ids == ("public-post",)
     assert results[0].evidence[0].url == "https://example.com/evidence"
     assert results[0].evidence[0].url not in results[0].source_post_ids
+
+
+def test_persisted_envelope_is_production_admission_not_question_overlap() -> None:
+    """A stored cited envelope reaches the verifier without token nomination."""
+
+    client = _VerificationClient()
+    envelope = PersistedPublicClaimEnvelope(
+        public_claim_envelope_id="envelope-1",
+        source_post_id="public-post",
+        claim_kind_code="claim_public_event",
+        claim_text="Synthetic launch happened.",
+    )
+
+    status_code, results = asyncio.run(
+        global_ask_queue._verify_public_claims(
+            "A question with no overlapping words",
+            [],
+            ["public-post"],
+            verify_external=True,
+            client=client,
+            persisted_envelopes=(envelope,),
+        )
+    )
+
+    assert status_code == cv.VERIFICATION_COMPLETED
+    assert results[0].claim_text == "Synthetic launch happened."
+    assert results[0].source_post_ids == ("public-post",)
+
+
+def test_omitted_persisted_envelopes_fail_closed_without_token_overlap() -> None:
+    """A future caller cannot restore legacy question-token nomination."""
+    client = _VerificationClient()
+    source = cv.GlobalAskSourceDocument(
+        "public-post",
+        "Synthetic launch",
+        "Synthetic launch happened.",
+        external_claim_facts=("event: Synthetic launch | evidence: public",),
+    )
+
+    status_code, results = asyncio.run(
+        global_ask_queue._verify_public_claims(
+            "When did the Synthetic launch happen?",
+            [source],
+            ["public-post"],
+            verify_external=True,
+            client=client,
+        )
+    )
+
+    assert status_code == cv.VERIFICATION_NO_PUBLIC_CLAIMS
+    assert results == ()
+    assert client.calls == 0
+
+
+def test_persisted_envelope_must_name_a_cited_post() -> None:
+    """A stored but uncited envelope never crosses the public verifier."""
+
+    client = _VerificationClient()
+    envelope = PersistedPublicClaimEnvelope(
+        public_claim_envelope_id="envelope-1",
+        source_post_id="other-public-post",
+        claim_kind_code="claim_public_relationship",
+        claim_text="Synthetic organizations announced a relationship.",
+    )
+
+    status_code, results = asyncio.run(
+        global_ask_queue._verify_public_claims(
+            "relationship",
+            [],
+            ["cited-public-post"],
+            verify_external=True,
+            client=client,
+            persisted_envelopes=(envelope,),
+        )
+    )
+
+    assert status_code == cv.VERIFICATION_NO_PUBLIC_CLAIMS
+    assert results == ()
+    assert client.calls == 0
 
 
 def test_malformed_public_verification_is_unavailable() -> None:
@@ -189,6 +285,14 @@ def test_malformed_public_verification_is_unavailable() -> None:
                 ["public-post"],
                 verify_external=True,
                 client=MalformedClient(),
+                persisted_envelopes=(
+                    PersistedPublicClaimEnvelope(
+                        public_claim_envelope_id="envelope-1",
+                        source_post_id="public-post",
+                        claim_kind_code="claim_public_event",
+                        claim_text="Synthetic public event.",
+                    ),
+                ),
             )
         )
 

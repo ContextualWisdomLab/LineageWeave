@@ -6,7 +6,32 @@ All notable changes to this project are documented here. Format follows
 
 ## [Unreleased]
 
+- Post-content recovery now keys every initial attempt, retry, and stale lease
+  by its exact eligibility instant, so work that becomes due after the durable
+  cursor advances is reached without waiting for a full ledger wrap.
+
+- Global Ask public verification now admits only bounded, provenance-bearing
+  persisted claims attached to exact cited public posts; missing admission
+  fails closed without token-overlap egress.
+
 ### Added
+
+- Temporal topic influence now has a durable external-production path: the
+  worker binds the exact completed TEPP artifact, posterior draws, and
+  business-unit/PU/team/person memberships into a content-addressed request,
+  then persists only a complete, converged, identified, parity-passed
+  fast-mlsirm result. Missing owner transport, partial rows, or digest mismatch
+  remains unavailable without local scoring. Time-valid membership slices
+  remain distinct; incomplete evidence enters an event-woken awaiting state;
+  expired work is reclaimed only from its declared request/lease contract,
+  whose lease must strictly exceed the request timeout for persistence; and
+  every terminal transition matches a unique lease token. Evidence changed
+  during computation releases a fresh request automatically.
+  LineageWeave-owned request and membership bytes and producer-owned result
+  bytes are SHA-256 verified before parsing, so admission never depends on
+  cross-language JSON reserialization. Other
+  retries use only an exact remote delay or an explicit operator requeue
+  (ADR 0210).
 
 - Evidence Operations now presents cited claim, rebid, handover, external,
   product, and Voice evidence with explicit unavailable states and source-open
@@ -224,6 +249,13 @@ All notable changes to this project are documented here. Format follows
 
 ### Fixed
 
+- Public-claim provenance validation now selects its sole UUID binding without
+  calling PostgreSQL's unavailable `min(uuid)` aggregate, so fresh schema
+  replays accept valid provenance-bound public claims.
+- Post-content wake-up recovery now advances through every ready ledger page
+  with a deterministic keyset, while Valkey trims only entries already
+  consumed by the worker. Large backfills can no longer replay the same first
+  page until a later queued record starves or its unread wake-up is trimmed.
 - Full-corpus Event Lineage rebuilds now count candidate pairs before provider
   work and omit the optional LLM channel above the 5,000-pair ADR budget,
   preventing millions of synchronous orchestrator calls while retaining one

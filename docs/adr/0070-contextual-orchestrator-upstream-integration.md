@@ -38,6 +38,15 @@ must include its own unit and integration tests and be merged through its
 normal review process. LineageWeave then pins the reviewed immutable upstream
 commit in its Docker build and uses only the published orchestrator contract.
 
+An operator may set `ORCHESTRATOR_ROUTING_ENDPOINT` at the backend, worker,
+and MCP process boundary. LineageWeave adds that opaque selector as
+`routing.endpoint` only to contextual-orchestrator requests whose parsed path
+is exactly `/v1/chat/completions` or `/v1/responses`. Existing routing fields
+are preserved; a non-object routing value or a conflicting endpoint fails
+before transport. The selector is not applied to embeddings, batch routes,
+model discovery, or other HTTP services, and an unset selector retains the
+existing automatic routing behavior.
+
 Until that commit is available, the affected capability is unavailable rather
 than silently routed through a local patch or a guessed model. A LineageWeave
 change is complete only when the pinned upstream commit starts successfully

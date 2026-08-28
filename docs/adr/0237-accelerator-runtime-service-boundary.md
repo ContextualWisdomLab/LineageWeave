@@ -1,7 +1,7 @@
 # ADR 0237 — Accelerator runtimes stay behind owning service contracts
 
-**Decision status:** Accepted  
-**Date:** 2026-08-26  
+**Decision status:** Accepted
+**Date:** 2026-08-26
 **Related:** ADR 0076, ADR 0083, ADR 0208
 
 ## Context

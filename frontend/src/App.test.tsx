@@ -3483,7 +3483,7 @@ describe("App, authenticated", () => {
     expect(await screen.findByRole("heading", { name: "Analysis runs" })).toBeInTheDocument();
     const list = screen.getByRole("list", { name: "Analysis runs" });
     expect(list).toHaveTextContent("Lineage reconstruction · Succeeded · Demo Corp");
-    expect(list).toHaveTextContent("TEPP measurement · Failed · Demo Corp");
+    expect(list).toHaveTextContent("Calibrated event measurement · Failed · Demo Corp");
     expect(list).toHaveTextContent("Period report · Succeeded · Demo Corp");
     expect(list).toHaveTextContent(
       "Open this run to see why it failed, then retry with the latest available records.",
@@ -3576,15 +3576,15 @@ describe("App, authenticated", () => {
 
     await userEvent.click(
       screen.getByRole("button", {
-        name: "Open analysis run: TEPP measurement · Failed · Demo Corp",
+        name: "Open analysis run: Calibrated event measurement · Failed · Demo Corp",
       }),
     );
     expect(
-      await screen.findByRole("heading", { name: "TEPP measurement · Failed · Demo Corp" }),
+      await screen.findByRole("heading", { name: "Calibrated event measurement · Failed · Demo Corp" }),
     ).toBeInTheDocument();
     const teppHistory = screen.getByRole("list", { name: "Analysis run status history" });
     expect(teppHistory).toHaveTextContent("Failed 2026-01-12 12:37 · tepp_not_available");
-    expect(screen.getByText(/cutoff corpus TEPP would measure/i)).toBeInTheDocument();
+    expect(screen.getByText(/selected for calibrated measurement/i)).toBeInTheDocument();
     expect(teppHistory).not.toHaveTextContent("Succeeded");
   });
 
@@ -3664,7 +3664,7 @@ describe("App, authenticated", () => {
       name: "Open analysis run: Lineage reconstruction · Failed · Demo Corp",
     });
     const teppButton = screen.getByRole("button", {
-      name: "Open analysis run: TEPP measurement · Failed · Demo Corp",
+      name: "Open analysis run: Calibrated event measurement · Failed · Demo Corp",
     });
     expect(lineageButton).toHaveTextContent(
       "Open this run to see why it failed, then retry reconstruction from a current snapshot.",
@@ -3972,17 +3972,17 @@ describe("App, authenticated", () => {
 
     await userEvent.click(
       await screen.findByRole("button", {
-        name: "Open analysis run: TEPP measurement · Pending · Demo Corp",
+        name: "Open analysis run: Calibrated event measurement · Pending · Demo Corp",
       }),
     );
     expect(
-      await screen.findByText("These posts are the cutoff corpus TEPP will measure once this run finishes."),
+      await screen.findByText("These posts will be included when calibrated measurement finishes."),
     ).toBeInTheDocument();
     expect(screen.queryByText(/replace Failed/i)).not.toBeInTheDocument();
-    expect(screen.queryByText(/this TEPP run measured/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/were included in this calibrated measurement result/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/Reconstruction has not started yet/)).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Start reconstruction" })).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Start TEPP measurement" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Start calibrated measurement" })).toBeInTheDocument();
   });
 
   it("starts a pending TEPP run through tepp_client and does not invent a theta", async () => {
@@ -3991,12 +3991,12 @@ describe("App, authenticated", () => {
 
     await userEvent.click(
       await screen.findByRole("button", {
-        name: "Open analysis run: TEPP measurement · Pending · Demo Corp",
+        name: "Open analysis run: Calibrated event measurement · Pending · Demo Corp",
       }),
     );
-    await userEvent.click(screen.getByRole("button", { name: "Start TEPP measurement" }));
+    await userEvent.click(screen.getByRole("button", { name: "Start calibrated measurement" }));
     expect(
-      await screen.findByRole("heading", { name: "TEPP measurement · Failed · Demo Corp" }),
+      await screen.findByRole("heading", { name: "Calibrated event measurement · Failed · Demo Corp" }),
     ).toBeInTheDocument();
     expect(screen.getByText(/tepp_not_available/)).toBeInTheDocument();
     expect(screen.queryByText(/theta/i)).not.toBeInTheDocument();
@@ -4013,16 +4013,16 @@ describe("App, authenticated", () => {
 
     await userEvent.click(
       await screen.findByRole("button", {
-        name: "Open analysis run: TEPP measurement · Failed · Demo Corp",
+        name: "Open analysis run: Calibrated event measurement · Failed · Demo Corp",
       }),
     );
     expect(
       await screen.findByText(
-        "Connect a TEPP transport from this Failed row. Request a lineage reconstruction does not invent a measurement.",
+        "Review the failure details, confirm the selected posts and cutoff, then start a new calibrated measurement.",
       ),
     ).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Request a new TEPP measurement" })).not.toBeInTheDocument();
-    expect(screen.queryByRole("heading", { name: "TEPP measurement · Pending · Demo Corp" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "Calibrated event measurement · Pending · Demo Corp" })).not.toBeInTheDocument();
     expect(
       fetchMock.mock.calls.some(
         (call) => String(call[0]).endsWith("/api/analysis-runs") && call[1]?.method === "POST",
@@ -4036,11 +4036,11 @@ describe("App, authenticated", () => {
 
     await userEvent.click(
       await screen.findByRole("button", {
-        name: "Open analysis run: TEPP measurement · Succeeded · Demo Corp",
+        name: "Open analysis run: Calibrated event measurement · Succeeded · Demo Corp",
       }),
     );
     expect(
-      await screen.findByText("These posts are the cutoff corpus this TEPP run measured."),
+      await screen.findByText("These posts were included in this calibrated measurement result."),
     ).toBeInTheDocument();
     expect(screen.getByLabelText("Measurement request accepted")).toHaveTextContent(
       "Refresh this run to check whether results are ready.",

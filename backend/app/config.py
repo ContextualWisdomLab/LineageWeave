@@ -62,6 +62,11 @@ class Settings:
     source_research_maximum_results: int | None
     tepp_transport_url: str
     tepp_api_key: str
+    topic_influence_transport_url: str
+    topic_influence_api_key: str
+    topic_influence_request_timeout_seconds: int | None
+    topic_influence_lease_timeout_seconds: int | None
+    topic_influence_poll_seconds: int | None
     caldav_base_url: str
     naruon_calendar_base_url: str
     naruon_calendar_service_token: str
@@ -215,6 +220,21 @@ def load_settings() -> Settings:
         ),
         tepp_transport_url=os.environ.get("TEPP_TRANSPORT_URL", ""),
         tepp_api_key=os.environ.get("TEPP_API_KEY", "").strip(),
+        topic_influence_transport_url=os.environ.get(
+            "TOPIC_INFLUENCE_TRANSPORT_URL", ""
+        ).strip(),
+        topic_influence_api_key=os.environ.get(
+            "TOPIC_INFLUENCE_API_KEY", ""
+        ).strip(),
+        topic_influence_request_timeout_seconds=_optional_positive_int(
+            "TOPIC_INFLUENCE_REQUEST_TIMEOUT_SECONDS"
+        ),
+        topic_influence_lease_timeout_seconds=_optional_positive_int(
+            "TOPIC_INFLUENCE_LEASE_TIMEOUT_SECONDS"
+        ),
+        topic_influence_poll_seconds=_optional_positive_int(
+            "TOPIC_INFLUENCE_POLL_SECONDS"
+        ),
         caldav_base_url=os.environ.get("CALDAV_BASE_URL", "").strip(),
         naruon_calendar_base_url=os.environ.get("NARUON_CALENDAR_BASE_URL", "").strip(),
         naruon_calendar_service_token=os.environ.get(

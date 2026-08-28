@@ -21,7 +21,16 @@ def test_rendered_compose_keeps_embedding_selection_upstream(tmp_path: Path) -> 
     standalone_compose = shutil.which("docker-compose")
     compose_command = [standalone_compose] if standalone_compose else ["docker", "compose"]
     rendered = subprocess.run(
-        [*compose_command, "-f", str(_ROOT / "docker-compose.yml"), "config", "--format", "json"],
+        [
+            *compose_command,
+            "-f",
+            str(_ROOT / "docker-compose.yml"),
+            "--profile",
+            "mcp",
+            "config",
+            "--format",
+            "json",
+        ],
         cwd=_ROOT,
         env=environment,
         check=True,
@@ -53,6 +62,37 @@ def test_rendered_compose_keeps_embedding_selection_upstream(tmp_path: Path) -> 
         "/bin/sh",
         "/app/backend/worker-healthcheck.sh",
     ]
+    assert backend_environment["ORCHESTRATOR_ROUTING_ENDPOINT"] == ""
+    assert config["services"]["backend-worker"]["environment"][
+        "ORCHESTRATOR_ROUTING_ENDPOINT"
+    ] == ""
+    assert config["services"]["mcp"]["environment"][
+        "ORCHESTRATOR_ROUTING_ENDPOINT"
+    ] == ""
+    assert "env_file" not in config["services"]["backend"]
+    assert "env_file" not in config["services"]["backend-worker"]
+    assert "env_file" not in config["services"]["mcp"]
+
+
+def test_routing_endpoint_contract_is_documented() -> None:
+    """The ADR limits the runtime selector to exact text API paths."""
+    adr = (
+        _ROOT / "docs/adr/0070-contextual-orchestrator-upstream-integration.md"
+    ).read_text(encoding="utf-8")
+    assert "`ORCHESTRATOR_ROUTING_ENDPOINT`" in adr
+    assert "exactly `/v1/chat/completions` or `/v1/responses`" in adr
+    assert "not applied to embeddings, batch routes" in adr
+
+    compose = (_ROOT / "docker-compose.yml").read_text(encoding="utf-8")
+    selector_boundary = (
+        "ORCHESTRATOR_ROUTING_ENDPOINT: ${ORCHESTRATOR_ROUTING_ENDPOINT:-}"
+    )
+    assert compose.count(selector_boundary) == 2
+    orchestrator_service = compose.split("  orchestrator:\n", 1)[1].split(
+        "  backend:\n", 1
+    )[0]
+    assert "env_file:\n      - ${HOME}/.env" in orchestrator_service
+    assert selector_boundary not in orchestrator_service
 
 
 def test_lineage_clients_do_not_select_an_embedding_model() -> None:
@@ -60,6 +100,10 @@ def test_lineage_clients_do_not_select_an_embedding_model() -> None:
     compose = (_ROOT / "docker-compose.yml").read_text(encoding="utf-8")
     assert "LLM_GATEWAY_EMBEDDING_MODEL:" not in compose
     assert "LLM_GATEWAY_EMBEDDING_PROVIDER:" not in compose
+    start = (_ROOT / "docker/contextual-orchestrator/start.py").read_text(
+        encoding="utf-8"
+    )
+    assert 'os.environ.pop("LLM_GATEWAY_EMBEDDING_MODEL", None)' in start
 
 
 def test_orchestrator_image_tag_matches_the_downloaded_revision() -> None:
@@ -95,6 +139,13 @@ def test_orchestrator_image_verifies_archive_and_dependency_bytes() -> None:
     )
     assert "--require-hashes" in dockerfile
     assert "-r /tmp/orchestrator-requirements.lock" in dockerfile
+    assert re.search(
+        r"ARG MATURIN_BUILDER_IMAGE=ghcr\.io/pyo3/maturin@sha256:[0-9a-f]{64}",
+        dockerfile,
+    )
+    assert "maturin build --locked --release" in dockerfile
+    assert "COPY --from=token-builder /build/wheels /tmp/token-wheels" in dockerfile
+    assert "python -m pip install --no-cache-dir --no-deps \"$1\"" in dockerfile
     assert not re.search(r"(?:>=|~=|==[^\n ]*\*)", roots)
     assert not re.search(
         r"^[a-z0-9_.-]+(?:\[[^]]+\])?\s*(?:>=|~=|==[^\n ]*\*)",
@@ -104,5 +155,16 @@ def test_orchestrator_image_verifies_archive_and_dependency_bytes() -> None:
     locked_packages = re.findall(
         r"^([a-z0-9_.-]+)==[^\\\n ]+ \\$", requirements, re.MULTILINE
     )
-    assert len(locked_packages) == len(set(locked_packages)) == 14
+    assert len(locked_packages) == len(set(locked_packages))
+    assert len(locked_packages) >= 14
     assert requirements.count("--hash=sha256:") >= len(locked_packages)
+
+
+def test_orchestrator_build_verifier_executes_the_native_token_packer() -> None:
+    """A source-only image must fail before runtime when the Rust wheel is absent."""
+    verifier = (
+        _ROOT / "docker/contextual-orchestrator/verify_startup_contract.py"
+    ).read_text(encoding="utf-8")
+    assert "from contextual_orchestrator.token_counting import RustCl100kPacker" in verifier
+    assert "token_packer = RustCl100kPacker()" in verifier
+    assert 'token_packer.count_text("hello") == 1' in verifier

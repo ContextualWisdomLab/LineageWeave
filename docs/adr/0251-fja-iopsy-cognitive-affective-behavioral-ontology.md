@@ -1,7 +1,7 @@
 # ADR 0251: I/O Psychology Cognitive, Affective, and Behavioral Ontology and Semantic Layer
 
-**Status:** Accepted  
-**Date:** 2026-08-27  
+**Status:** Accepted
+**Date:** 2026-08-27
 **Deciders:** LineageWeave Architecture, ContextualWisdomLab Core
 
 ---

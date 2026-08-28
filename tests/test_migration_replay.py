@@ -184,6 +184,27 @@ def test_global_ask_migrations_are_safe_to_replay() -> None:
     assert "create table if not exists global_ask_job_process_unit_scope" in scope_sql
 
 
+def test_public_claim_envelope_migration_is_replay_safe_and_provenance_bound() -> None:
+    """Persisted public egress admission requires the exact PROV-O source post."""
+
+    sql = (
+        Path(__file__).resolve().parents[1]
+        / "migrations"
+        / "0257_public_claim_envelope.sql"
+    ).read_text(encoding="utf-8").casefold()
+
+    assert "create table if not exists public_claim_envelope" in sql
+    assert "provenance_assertion_id uuid not null" in sql
+    assert "prov_was_derived_from" in sql
+    assert "evidence_post_id is distinct from new.source_post_id" in sql
+    assert "when count(binding.node_id) = 1" in sql
+    assert "then (array_agg(binding.node_id))[1]" in sql
+    assert "min(binding.node_id)" not in sql
+    assert "group by assertion.relation_code" in sql
+    assert "public_claim_requires_public_post" in sql
+    assert "on conflict (lookup_code) do nothing" in sql
+
+
 def test_channel_weight_migration_preserves_raw_source_grouping() -> None:
     migration = (
         Path(__file__).resolve().parents[1]
@@ -258,6 +279,56 @@ def test_topic_lineage_result_migration_is_idempotent_for_replay() -> None:
 
     assert "create table if not exists analysis_run_topic_lineage_result" in migration
     assert "create index if not exists" in migration
+
+
+def test_topic_influence_job_migration_is_replay_safe_and_fail_closed() -> None:
+    """Existing TEPP projections gain one durable, score-free producer lease."""
+    sql = (
+        Path(__file__).resolve().parents[1]
+        / "migrations"
+        / "0260_topic_influence_job.sql"
+    ).read_text(encoding="utf-8").casefold()
+
+    assert "create table if not exists topic_influence_job" in sql
+    assert "not_before" in sql
+    assert "lease_expires_at" in sql
+    assert "awaiting_evidence" in sql
+    assert "wake_topic_influence_job_for_analysis" in sql
+    assert "topic_model_run_influence_wake" in sql
+    assert "analysis_run_influence_wake" in sql
+    assert "drop trigger if exists topic_tepp_receipt_influence_wake" in sql
+    assert "create trigger topic_tepp_receipt_influence_wake" not in sql
+    assert "drop trigger if exists topic_terminal_influence_wake" in sql
+    assert "create trigger topic_terminal_influence_wake" not in sql
+    assert "after insert or update on topic_post_coordinate" in sql
+    assert "after insert or update on topic_context_membership" in sql
+    assert "after insert or update on topic_definition" in sql
+    assert "create trigger topic_provenance_binding_influence_wake" in sql
+    assert "after insert or update on provenance_resource_binding" in sql
+    assert "new.node_type_code = 'node_post'" in sql
+    assert "old.node_type_code = 'node_post'" in sql
+    assert "assertion.relation_code = 'prov_was_derived_from'" in sql
+    assert "membership.source_post_id = new.node_id" in sql
+    assert "membership.source_post_id = old.node_id" in sql
+    assert "create trigger topic_provenance_assertion_influence_wake" in sql
+    assert (
+        "after update of object_resource_id, relation_code on provenance_assertion"
+        in sql
+    )
+    assert "membership.provenance_assertion_id = new.assertion_id" in sql
+    assert "add column if not exists lease_expires_at" in sql
+    assert "drop constraint if exists topic_influence_job_check" in sql
+    assert "and (lease_expires_at is null or lease_token is null)" in sql
+    assert "add column if not exists lease_token uuid" in sql
+    prelease_recovery = sql.split("update topic_influence_job", 1)[1].split(
+        "alter table topic_influence_job", 1
+    )[0]
+    assert "lease_expires_at = null" in prelease_recovery
+    assert "lease_token = null" in prelease_recovery
+    assert "create trigger topic_model_run_influence_queue" in sql
+    assert "on conflict (topic_model_run_id) do nothing" in sql
+    assert "where status_code = 'queued'" in sql
+    assert "influence_value" not in sql
 
 
 def test_tepp_receipt_migration_is_replayable_and_digest_bound() -> None:

@@ -214,6 +214,9 @@ async def test_post_content_batch_advances_past_a_malformed_event(monkeypatch):
     monkeypatch.setattr(post_content_worker, "process_post_content_job", fake_process)
 
     class MalformedValkey:
+        def __init__(self) -> None:
+            self.trimmed: list[tuple[str, str, bool]] = []
+
         async def xread(self, _streams, *, count, block):
             assert (count, block) == (10, 1000)
             return [
@@ -232,14 +235,22 @@ async def test_post_content_batch_advances_past_a_malformed_event(monkeypatch):
                 )
             ]
 
+        async def xtrim(self, key, *, minid, approximate):
+            self.trimmed.append((key, minid, approximate))
+            return 2
+
+    client = MalformedValkey()
     assert await post_content_worker.consume_post_content_stream_once(
-        MalformedValkey(),
+        client,
         _Pool(),
         last_id="0-0",
         vision_factory=lambda: None,
         embedding_factory=lambda: None,
         structure_factory=lambda: None,
     ) == "1-1"
+    assert client.trimmed == [
+        (post_content_worker.POST_CONTENT_STREAM_KEY, "1-2", False)
+    ]
     assert calls[0]["post_id"] == "00000000-0000-0000-0000-000000000001"
     assert calls[0]["source_body_digest"] == "a" * 64
 

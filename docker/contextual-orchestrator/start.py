@@ -23,6 +23,24 @@ def _pop_first_env(*names: str) -> str:
     return first
 
 
+def _configured_agents(agents: dict[str, object], provider_url: str) -> dict[str, object]:
+    """Bind seed agents to the trusted configured-gateway discovery boundary."""
+    configured = json.loads(json.dumps(agents))
+    raw_agents = configured.get("agents")
+    if not isinstance(raw_agents, list):
+        raise SystemExit("agents.json must contain an agents list")
+    for agent in raw_agents:
+        if not isinstance(agent, dict):
+            raise SystemExit("agents.json entries must be objects")
+        agent["base_url"] = provider_url
+        agent["credential_key"] = "LLM_GATEWAY_API_KEY"
+        agent["provider_name"] = "configured_gateway"
+        if not str(agent.get("model", "")).strip():
+            agent["tags"] = list(dict.fromkeys((*agent.get("tags", []), "bootstrap_seed")))
+        agent.setdefault("provider_protocol", "auto")
+    return configured
+
+
 def main() -> None:
     """Register the provider credential and delegate to the upstream server."""
     gateway_key = _pop_first_env("LLM_GATEWAY_API_KEY", "LLM_API_KEY")
@@ -48,6 +66,7 @@ def main() -> None:
         raise SystemExit("LLM_GATEWAY_API_URL or LLM_GATEWAY_URL is required to start the gateway")
     if not provider_url.rstrip("/").endswith("/v1"):
         provider_url = provider_url.rstrip("/") + "/v1"
+    batch_registry_url = os.environ.pop("BATCH_JOB_REGISTRY_VALKEY_URL", "").strip()
     raw_limit = os.environ.pop("LLM_GATEWAY_MAX_OUTPUT_TOKENS", "4096").strip()
     try:
         max_output_tokens = int(raw_limit)
@@ -63,20 +82,22 @@ def main() -> None:
     if not 64 * 1024 <= max_body_bytes <= 64 * 1024 * 1024:
         raise SystemExit("CONTEXTUAL_ORCHESTRATOR_MAX_BODY_BYTES must be between 65536 and 67108864")
     agents_path = Path("/tmp/lineageweave-agents.json")
-    agents = json.loads(Path("/app/agents.json").read_text(encoding="utf-8"))
-    for agent in agents["agents"]:
-        agent["base_url"] = provider_url
-        agent["credential_key"] = "LLM_GATEWAY_API_KEY"
-        agent.setdefault("provider_protocol", "auto")
+    agents = _configured_agents(
+        json.loads(Path("/app/agents.json").read_text(encoding="utf-8")),
+        provider_url,
+    )
     os.environ.pop("LLM_GATEWAY_EMBEDDING_MODEL", None)
     agents_path.write_text(json.dumps(agents), encoding="utf-8")
 
     from contextual_orchestrator.credentials import register_credential
 
     register_credential("LLM_GATEWAY_API_KEY", gateway_key)
+    if batch_registry_url:
+        register_credential("batch_job_registry_valkey_url", batch_registry_url)
     for credential_name, credential_value in provider_credentials.items():
         register_credential(credential_name, credential_value)
     del gateway_key
+    del batch_registry_url
     del provider_credentials
     sys.argv = [
         "contextual_orchestrator",
@@ -84,7 +105,6 @@ def main() -> None:
         "--agents",
         str(agents_path),
         "--auto-discover-model-agents",
-        "--allow-discovery-failures",
         "--host",
         "0.0.0.0",
         "--port",

@@ -237,6 +237,7 @@ _LATE_REPLAYABLE_MIGRATIONS = tuple(
         "0250_operations_case_analysis_input.sql",
         "0251_product_semantic_catalog.sql",
         "0253_voice_semantic_taxonomy.sql",
+        "0257_public_claim_envelope.sql",
     )
 )
 
@@ -5677,6 +5678,47 @@ def test_ask_public_verification_is_opt_in_and_separate_from_post_citations(
                     'synthetic_test')
             """,
             (seeded_db["public_post_id"],),
+        )
+        cur.execute(
+            "insert into provenance_resource (resource_iri, resource_label) "
+            "values ('urn:lineageweave:test:public-claim', 'Synthetic public claim') "
+            "returning resource_id"
+        )
+        claim_resource_id = cur.fetchone()[0]
+        cur.execute(
+            "insert into provenance_resource_type (resource_id, class_code) "
+            "values (%s, 'prov_entity')",
+            (claim_resource_id,),
+        )
+        cur.execute(
+            "insert into provenance_resource (resource_iri, resource_label) "
+            "values ('urn:lineageweave:test:public-post-evidence', 'Synthetic source post') "
+            "returning resource_id"
+        )
+        post_resource_id = cur.fetchone()[0]
+        cur.execute(
+            "insert into provenance_resource_type (resource_id, class_code) "
+            "values (%s, 'prov_entity')",
+            (post_resource_id,),
+        )
+        cur.execute(
+            "insert into provenance_resource_binding (resource_id, node_type_code, node_id) "
+            "values (%s, 'node_post', %s)",
+            (post_resource_id, seeded_db["public_post_id"]),
+        )
+        cur.execute(
+            "insert into provenance_assertion "
+            "(subject_resource_id, relation_code, object_resource_id) "
+            "values (%s, 'prov_was_derived_from', %s) returning assertion_id",
+            (claim_resource_id, post_resource_id),
+        )
+        assertion_id = cur.fetchone()[0]
+        cur.execute(
+            "insert into public_claim_envelope "
+            "(source_post_id, provenance_assertion_id, claim_kind_code, claim_text, egress_eligible) "
+            "values (%s, %s, 'claim_public_event', "
+            "'Synthetic Apollo event was published.', true)",
+            (seeded_db["public_post_id"], assertion_id),
         )
         conn.commit()
 
