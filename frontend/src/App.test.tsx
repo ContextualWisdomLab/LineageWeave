@@ -163,6 +163,7 @@ describe("App, authenticated", () => {
     askDelivery?: boolean;
     lineageIsolationReason?: "comparison_candidates_available" | "no_comparison_group";
     privateResearch?: boolean;
+    researchGetFailure?: boolean;
   }): ReturnType<typeof vi.fn> & { releaseMe: () => void; releasePostOne: () => void } {
     const statusLabel: Record<string, string> = {
       open: "Open",
@@ -1743,6 +1744,9 @@ describe("App, authenticated", () => {
         return Promise.resolve(jsonResponse({ verified: [] }));
       }
       if (url.endsWith("/api/posts/post-1/research-citations")) {
+        if (method !== "POST" && options?.researchGetFailure) {
+          return Promise.resolve(new Response("unavailable", { status: 503 }));
+        }
         return Promise.resolve(
           jsonResponse({
             post_id: "post-1",
@@ -3180,6 +3184,21 @@ describe("App, authenticated", () => {
     await waitFor(() =>
       expect(screen.queryByRole("button", { name: "Research public sources" })).toBeNull(),
     );
+  });
+
+  it("keeps the public research retry available after a citation-load failure", async () => {
+    const fetchMock = stubBackend({ admin: true, researchGetFailure: true });
+    render(<App showLabPanels />);
+
+    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
+    await userEvent.click(await screen.findByRole("button", { name: "Research public sources" }));
+    await waitFor(() =>
+      expect(fetchMock).toHaveBeenCalledWith(
+        expect.stringContaining("/api/posts/post-1/research-citations"),
+        expect.objectContaining({ method: "POST" }),
+      ),
+    );
+    expect(await screen.findByRole("link", { name: "Synthetic cited source" })).toBeVisible();
   });
 
   it("lets post_admin extract Keymen from the popup", async () => {
