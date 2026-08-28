@@ -8,6 +8,7 @@ from typing import Any, Protocol
 
 from backend.app.post_eligibility import SOURCE_POST_ELIGIBILITY_SQL
 from lineageweave.ontology import LW
+from lineageweave.operations_case_analysis import REQUIRED_FACT_TYPES
 from lineageweave.prov_o import PROV_RELATIONS
 
 
@@ -311,10 +312,17 @@ async def fetch_operations_dashboard(
           join source_post evidence_post on evidence_post.post_id = fact.evidence_post_id
          where {visible}
            and not ({visible_evidence})
+           and ($6::jsonb -> fact.case_kind_code) ? fact.fact_type_code
            and ($5::boolean is false or fact.case_kind_code = 'external_information')
          order by post_id, case_kind_code, fact_type_code
         """,
         *args,
+        json.dumps(
+            {
+                case_kind: sorted(fact_types)
+                for case_kind, fact_types in REQUIRED_FACT_TYPES.items()
+            }
+        ),
     )
     milestone_rows = await conn.fetch(
         f"""

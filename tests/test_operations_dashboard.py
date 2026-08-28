@@ -1,10 +1,12 @@
 """Focused tests for the operational dashboard evidence projection."""
 
 from datetime import date, datetime, timezone
+import json
 
 import pytest
 
 from backend.app.operations_dashboard import _project_lifecycles, fetch_operations_dashboard
+from lineageweave.operations_case_analysis import REQUIRED_FACT_TYPES
 
 
 class _Connection:
@@ -296,7 +298,16 @@ async def test_dashboard_uses_abac_event_clock_and_persisted_evidence() -> None:
             date(2026, 8, 1),
             date(2026, 8, 31),
         )
-        assert args[4:] == ((False,) if "$5" in query else ())
+        if "$6" in query:
+            assert args[4] is False
+            assert args[5] == json.dumps(
+                {
+                    case_kind: sorted(fact_types)
+                    for case_kind, fact_types in REQUIRED_FACT_TYPES.items()
+                }
+            )
+        else:
+            assert args[4:] == ((False,) if "$5" in query else ())
     case_query = conn.queries[1][0]
     assert "order by primary_mention.confidence desc" in case_query
     assert (
@@ -312,6 +323,8 @@ async def test_dashboard_uses_abac_event_clock_and_persisted_evidence() -> None:
     ):
         assert "join source_post evidence_post" in evidence_query
         assert "evidence_post.corporate_entity_id::text = any($1::text[])" in evidence_query
+    missing_query = conn.queries[4][0]
+    assert "($6::jsonb -> fact.case_kind_code) ? fact.fact_type_code" in missing_query
 
 
 @pytest.mark.anyio
@@ -478,7 +491,7 @@ async def test_external_scope_filters_cases_without_shrinking_coverage_denominat
     assert metrics_args[-1] is True
     for query, args in conn.queries[1:]:
         assert "$5::boolean" in query
-        assert args[-1] is True
+        assert args[4] is True
 
 
 @pytest.mark.anyio
