@@ -99,6 +99,7 @@ def test_safe_attributes_bounds_string_length_and_keeps_scalars() -> None:
     assert sanitized["lineageweave.failure_outcome"] == "internal_error"
 
 
+@pytest.mark.filterwarnings("error::DeprecationWarning")
 def test_configure_telemetry_success_installs_providers(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

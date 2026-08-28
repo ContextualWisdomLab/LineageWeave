@@ -25,7 +25,10 @@ must not be cited as protected organization evidence.
    endpoints. The service resource name is lineageweave unless the operator
    overrides it with the standard OTEL_SERVICE_NAME variable. A blank or unset
    endpoint leaves the SDK unconfigured so a later operator value can still
-   enable export.
+   enable export. Correlated Python logs use the maintained
+   `opentelemetry-instrumentation-logging` handler with the same explicit
+   `LoggerProvider`; the deprecated SDK `LoggingHandler` is not a runtime
+   compatibility path.
 2. Every contextual-orchestrator POST carries the existing
    `lineageweave_post_session_id` as both the top-level payload `session_id`
    and `X-LineageWeave-Session-Id`. The orchestrator binds it to the request
@@ -73,6 +76,10 @@ GRC dashboards.
 OpenTelemetry Authors. (n.d.). *Manual instrumentation with OpenTelemetry
 Python*. Retrieved August 21, 2026, from
 https://opentelemetry.io/docs/languages/python/instrumentation/
+
+OpenTelemetry Authors. (n.d.). *OpenTelemetry logging instrumentation*.
+Retrieved August 28, 2026, from
+https://opentelemetry-python-contrib.readthedocs.io/en/latest/instrumentation/logging/logging.html
 
 OpenTelemetry Authors. (n.d.). *Service semantic conventions*. Retrieved
 August 21, 2026, from https://opentelemetry.io/docs/specs/semconv/registry/attributes/service/
