@@ -34,12 +34,11 @@ class TopicInfluenceInvalidResponse(ValueError):
     """Raised when a result is incomplete or not bound to its request."""
 
 
-def canonical_sha256(value: object) -> str:
-    """Hash one LineageWeave-owned JSON request identity deterministically."""
-    payload = json.dumps(
-        value, ensure_ascii=False, separators=(",", ":"), sort_keys=True
+def _json_artifact_bytes(value: object) -> bytes:
+    """Encode one LineageWeave-owned request artifact for exact transport."""
+    return json.dumps(
+        value, ensure_ascii=False, separators=(",", ":"), allow_nan=False
     ).encode("utf-8")
-    return hashlib.sha256(payload).hexdigest()
 
 
 @dataclass(frozen=True)
@@ -47,11 +46,12 @@ class TopicInfluenceRequest:
     """One immutable TEPP posterior and multiple-membership evidence request."""
 
     payload: dict[str, Any]
+    artifact_bytes: bytes
 
     @property
     def request_sha256(self) -> str:
         """Return the content identity of the exact producer input."""
-        return canonical_sha256(self.payload)
+        return hashlib.sha256(self.artifact_bytes).hexdigest()
 
     @property
     def membership_fingerprint_sha256(self) -> str:
@@ -59,8 +59,11 @@ class TopicInfluenceRequest:
         return str(self.payload["membership_fingerprint_sha256"])
 
     def to_json(self) -> dict[str, Any]:
-        """Serialize the bounded request with its independently checkable digest."""
-        return {**self.payload, "request_sha256": self.request_sha256}
+        """Transport exact owned bytes and the opaque identity the producer echoes."""
+        return {
+            "request_sha256": self.request_sha256,
+            "request_base64": base64.b64encode(self.artifact_bytes).decode("ascii"),
+        }
 
 
 @dataclass(frozen=True)
@@ -190,15 +193,21 @@ def build_topic_influence_request(
             row["membership_id"],
         )
     )
+    membership_artifact_bytes = _json_artifact_bytes(membership_material)
     payload = {
         "schema_version": REQUEST_SCHEMA_VERSION,
         "requested_result_schema_version": RESULT_SCHEMA_VERSION,
         "tepp_run": tepp_run,
         "topic_indices": sorted(topics),
         "observations": observations,
-        "membership_fingerprint_sha256": canonical_sha256(membership_material),
+        "membership_artifact_base64": base64.b64encode(
+            membership_artifact_bytes
+        ).decode("ascii"),
+        "membership_fingerprint_sha256": hashlib.sha256(
+            membership_artifact_bytes
+        ).hexdigest(),
     }
-    return TopicInfluenceRequest(payload)
+    return TopicInfluenceRequest(payload, _json_artifact_bytes(payload))
 
 
 def validate_topic_influence_result(
@@ -230,11 +239,14 @@ def validate_topic_influence_result(
         raise TopicInfluenceInvalidResponse("topic influence artifact envelope is invalid")
     try:
         artifact_bytes = base64.b64decode(encoded, validate=True)
-        decoded = json.loads(artifact_bytes)
-    except (binascii.Error, UnicodeDecodeError, json.JSONDecodeError) as exc:
+    except binascii.Error as exc:
         raise TopicInfluenceInvalidResponse("topic influence artifact bytes are invalid") from exc
     if hashlib.sha256(artifact_bytes).hexdigest() != artifact_sha256:
         raise TopicInfluenceInvalidResponse("topic influence artifact digest is invalid")
+    try:
+        decoded = json.loads(artifact_bytes)
+    except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+        raise TopicInfluenceInvalidResponse("topic influence artifact bytes are invalid") from exc
     if not isinstance(decoded, dict) or set(decoded) != required:
         raise TopicInfluenceInvalidResponse("topic influence result shape is invalid")
     response = decoded

@@ -21,8 +21,9 @@ All notable changes to this project are documented here. Format follows
   remain distinct; incomplete evidence enters an event-woken awaiting state;
   expired work is reclaimed only from its declared request/lease contract; and
   evidence changed during computation releases a fresh request automatically.
-  Producer-owned raw artifact bytes are SHA-256 verified before parsing, so
-  admission never depends on cross-language JSON reserialization. Other
+  LineageWeave-owned request and membership bytes and producer-owned result
+  bytes are SHA-256 verified before parsing, so admission never depends on
+  cross-language JSON reserialization. Other
   retries use only an exact remote delay or an explicit operator requeue
   (ADR 0210).
 

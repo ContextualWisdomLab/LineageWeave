@@ -163,12 +163,13 @@ topic digest, coordinate, definition, or membership event. If evidence changes
 during computation, the stale lease is released immediately and the next claim
 rebuilds the request.
 
-The producer returns its result as base64-encoded raw JSON artifact bytes plus
-the SHA-256 of those exact bytes. LineageWeave verifies the bytes before UTF-8
-decoding or JSON parsing and never reserializes producer floats to verify that
-digest. The request and membership digests are LineageWeave-owned opaque
-identities which the producer echoes unchanged. This avoids inventing a local
-canonical-JSON dialect or depending on Python and Rust float formatting
+LineageWeave sends the request and membership design as base64-encoded raw JSON
+artifact bytes with the SHA-256 of those exact bytes. The producer verifies and
+parses those bytes, then echoes both LineageWeave-owned opaque identities
+unchanged. The producer returns its result through the same raw-byte envelope.
+LineageWeave verifies the result bytes before UTF-8 decoding or JSON parsing and
+never reserializes producer floats to verify any digest. This avoids inventing
+a canonical-JSON dialect or depending on Python and Rust float formatting
 coincidence; adopting RFC 8785 remains unavailable until both deployed sides
 implement and pass the same official vectors.
 

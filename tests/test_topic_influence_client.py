@@ -18,7 +18,6 @@ from lineageweave.topic_influence_client import (
     TopicInfluenceClient,
     TopicInfluenceInvalidResponse,
     build_topic_influence_request,
-    canonical_sha256,
 )
 from lineageweave.http_client import HttpAdmissionDeferred
 from lineageweave import topic_influence_client
@@ -123,6 +122,23 @@ def test_client_accepts_only_complete_digest_bound_result() -> None:
     assert len(result.payload["influences"]) == 8
 
 
+def test_request_digest_covers_lineage_owned_raw_wire_bytes() -> None:
+    """The producer receives exact request bytes and echoes their opaque digest."""
+    request = _request()
+    wire = request.to_json()
+
+    assert set(wire) == {"request_sha256", "request_base64"}
+    raw = base64.b64decode(wire["request_base64"], validate=True)
+    assert hashlib.sha256(raw).hexdigest() == wire["request_sha256"]
+    assert json.loads(raw) == request.payload
+    membership_raw = base64.b64decode(
+        request.payload["membership_artifact_base64"], validate=True
+    )
+    assert hashlib.sha256(membership_raw).hexdigest() == (
+        request.membership_fingerprint_sha256
+    )
+
+
 def test_artifact_digest_covers_producer_supplied_raw_bytes() -> None:
     """Admission hashes exact producer bytes rather than reserializing floats."""
     request = _request()
@@ -135,6 +151,20 @@ def test_artifact_digest_covers_producer_supplied_raw_bytes() -> None:
 
     assert TopicInfluenceClient(lambda _payload: first, lease_timeout_seconds=17).estimate(request)
     assert TopicInfluenceClient(lambda _payload: second, lease_timeout_seconds=17).estimate(request)
+
+
+def test_artifact_digest_is_checked_before_json_parse() -> None:
+    """Tampered producer bytes fail their digest before any JSON interpretation."""
+    request = _request()
+    response = {
+        "artifact_sha256": "e" * 64,
+        "artifact_base64": base64.b64encode(b"not-json").decode("ascii"),
+    }
+
+    with pytest.raises(TopicInfluenceInvalidResponse, match="digest is invalid"):
+        TopicInfluenceClient(
+            lambda _payload: response, lease_timeout_seconds=17
+        ).estimate(request)
 
 
 @pytest.mark.parametrize("mutation", ["request", "digest", "partial", "nonfinite"])
