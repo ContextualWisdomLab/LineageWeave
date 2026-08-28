@@ -201,6 +201,43 @@ describe("ontologyLayout", () => {
     ]);
   });
 
+  it("exports additional Voice derivation evidence from the assignment authority", () => {
+    const source = payload();
+    const assignment = {
+      post_id: POST_ID,
+      voice_type_code: "voc_customer",
+      voice_type_iri: "https://example.test/voice/customer",
+      voice_type_label: "Voice of Customer",
+      is_primary: false,
+      truth_status_code: "truth_observed",
+      recorded_at: "2026-01-10T12:00:00+00:00",
+      provenance_reference: "prov:assignment",
+      evidence_post_id: EVIDENCE_POST_ID,
+    };
+    const voiceRow = {
+      ...source.exact_value_rows[0],
+      edge_id: `voice-assignment:${POST_ID}:voc_customer`,
+      property_code: "hasVoiceAssignment",
+      property_label: "Voice carried by this post",
+      target_node_id: assignment.voice_type_code,
+      target_label: assignment.voice_type_label,
+      target_type_code: "node_voice_type",
+      evidence_post_id: undefined,
+    };
+
+    const csv = neighborhoodCsv({
+      ...source,
+      voice_assignments: [assignment],
+      exact_value_rows: [voiceRow],
+    });
+
+    expect(csv.split("\n")[1].split(",").slice(-3)).toEqual([
+      "",
+      POST_ID,
+      EVIDENCE_POST_ID,
+    ]);
+  });
+
   it("merges JSON-LD properties and multi-value relations for one paged subject", () => {
     const source = payload();
     const postIri = `${ONTOLOGY_NAMESPACE}node/node_post/${POST_ID}`;
