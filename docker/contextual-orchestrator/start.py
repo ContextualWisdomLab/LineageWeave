@@ -7,9 +7,9 @@ process environment before request handling begins.
 
 from __future__ import annotations
 
+import json
 import os
 import sys
-import json
 from pathlib import Path
 
 
@@ -21,6 +21,26 @@ def _pop_first_env(*names: str) -> str:
         if value and not first:
             first = value
     return first
+
+
+def _configured_agents(agents: dict[str, object], provider_url: str) -> dict[str, object]:
+    """Bind seed agents to the trusted configured-gateway discovery boundary."""
+    configured = json.loads(json.dumps(agents))
+    raw_agents = configured.get("agents")
+    if not isinstance(raw_agents, list):
+        raise SystemExit("agents.json must contain an agents list")
+    for agent in raw_agents:
+        if not isinstance(agent, dict):
+            raise SystemExit("agents.json entries must be objects")
+        agent["base_url"] = provider_url
+        agent["credential_key"] = "LLM_GATEWAY_API_KEY"
+        agent["provider_name"] = "configured_gateway"
+        if not str(agent.get("model", "")).strip():
+            agent["tags"] = list(
+                dict.fromkeys((*agent.get("tags", []), "bootstrap_seed"))
+            )
+        agent.setdefault("provider_protocol", "auto")
+    return configured
 
 
 def main() -> None:
@@ -64,16 +84,10 @@ def main() -> None:
     if not 64 * 1024 <= max_body_bytes <= 64 * 1024 * 1024:
         raise SystemExit("CONTEXTUAL_ORCHESTRATOR_MAX_BODY_BYTES must be between 65536 and 67108864")
     agents_path = Path("/tmp/lineageweave-agents.json")
-    agents = json.loads(Path("/app/agents.json").read_text(encoding="utf-8"))
-    for agent in agents["agents"]:
-        agent["base_url"] = provider_url
-        agent["credential_key"] = "LLM_GATEWAY_API_KEY"
-        agent["provider_name"] = "configured_gateway"
-        if not str(agent.get("model", "")).strip():
-            agent["tags"] = list(
-                dict.fromkeys((*agent.get("tags", []), "bootstrap_seed"))
-            )
-        agent.setdefault("provider_protocol", "auto")
+    agents = _configured_agents(
+        json.loads(Path("/app/agents.json").read_text(encoding="utf-8")),
+        provider_url,
+    )
     agents_path.write_text(json.dumps(agents), encoding="utf-8")
 
     from contextual_orchestrator.credentials import register_credential

@@ -15,7 +15,7 @@ multi-agent.
 ## Decision
 
 `docker/contextual-orchestrator/Dockerfile` pins the downloaded archive to
-candidate commit `014ef8085b1f0eb530a5384b7122f8e1f91264ef` from upstream PR #902. The pin remains explicit
+candidate commit `4dbf04c267457d6caabadb1c62748368cf552088` from upstream PR #902. The pin remains explicit
 and immutable for isolated acceptance; it is not protected-main release
 evidence, a moving `main` reference, or a LineageWeave monkey patch. Promotion
 remains blocked until the stacked upstream PR and its base satisfy protected
