@@ -853,12 +853,12 @@ async def _recover_post_content_jobs(
         page = await republish_queued_post_content_jobs(
             client,
             pool,
-            after_queued_at=recovery_cursor[0] if recovery_cursor else None,
+            after_eligible_at=recovery_cursor[0] if recovery_cursor else None,
             after_post_id=recovery_cursor[1] if recovery_cursor else None,
         )
         recovery_cursor = (
-            (page.next_queued_at, page.next_post_id)
-            if page.next_queued_at is not None and page.next_post_id is not None
+            (page.next_eligible_at, page.next_post_id)
+            if page.next_eligible_at is not None and page.next_post_id is not None
             else None
         )
     except Exception as exc:  # noqa: BLE001 - broker recovery is independent of selection.

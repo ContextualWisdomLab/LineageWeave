@@ -6,6 +6,10 @@ All notable changes to this project are documented here. Format follows
 
 ## [Unreleased]
 
+- Post-content recovery now keys every initial attempt, retry, and stale lease
+  by its exact eligibility instant, so work that becomes due after the durable
+  cursor advances is reached without waiting for a full ledger wrap.
+
 - Global Ask public verification now admits only bounded, provenance-bearing
   persisted claims attached to exact cited public posts; missing admission
   fails closed without token-overlap egress.
