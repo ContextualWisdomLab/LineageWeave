@@ -217,6 +217,29 @@ def test_post_json_uses_deployment_routing_endpoint(monkeypatch) -> None:
     }
 
 
+def test_post_json_blank_override_keeps_deployment_routing_endpoint(monkeypatch) -> None:
+    """A blank per-call value cannot silently disable deployment routing."""
+    monkeypatch.setenv(
+        "ORCHESTRATOR_ROUTING_ENDPOINT", "https://deployment.example/v1"
+    )
+    server, base = _serve(_JsonHandler)
+    try:
+        body = post_json(
+            f"{base}/v1/responses",
+            {},
+            headers={},
+            timeout=2.0,
+            routing_endpoint="  ",
+        )
+    finally:
+        server.shutdown()
+        server.server_close()
+
+    assert body["echo"]["routing"] == {
+        "endpoint": "https://deployment.example/v1"
+    }
+
+
 def test_post_json_accepts_matching_existing_routing_endpoint() -> None:
     """A caller-provided matching selector is preserved without conflict."""
     server, base = _serve(_JsonHandler)
