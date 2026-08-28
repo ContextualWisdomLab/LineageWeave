@@ -167,6 +167,13 @@ function searchUnavailableMessage(err: unknown): string {
   return String(err);
 }
 
+function researchUnavailableMessage(err: unknown): string {
+  if (err instanceof BackendError && err.status === 503) {
+    return t("Public source research is unavailable. Review the post's saved evidence, then try again later.");
+  }
+  return String(err);
+}
+
 const CRITERION_SHORT_LABEL: Record<string, string> = {
   general_sentiment_positive: "constructive",
   general_sentiment_negative: "negative",
@@ -2576,7 +2583,7 @@ function PostDetailPopup({
                   })
                   .catch((err) => {
                     if (researchScopeRef.current === requestScope) {
-                      setResearchError(searchUnavailableMessage(err));
+                      setResearchError(researchUnavailableMessage(err));
                     }
                   })
                   .finally(() => {

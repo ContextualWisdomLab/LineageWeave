@@ -1672,6 +1672,14 @@ describe("App, authenticated", () => {
         return Promise.resolve(jsonResponse({ verified: [] }));
       }
       if (url.endsWith("/api/posts/post-1/research-citations") && method === "POST") {
+        if (options?.searchUnavailable) {
+          return Promise.resolve(
+            new Response(
+              JSON.stringify({ detail: "Source research is unavailable: set SEARXNG_BASE_URL" }),
+              { status: 503, headers: { "Content-Type": "application/json" } },
+            ),
+          );
+        }
         return researchReady.then(() =>
           jsonResponse({
             post_id: "post-1",
@@ -3077,6 +3085,21 @@ describe("App, authenticated", () => {
     expect(
       await screen.findByRole("link", { name: "Public Apollo evidence" }),
     ).toHaveAttribute("href", "https://example.com/apollo");
+  });
+
+  it("gives a source-research next action when public search is unavailable", async () => {
+    stubBackend({ admin: true, searchUnavailable: true });
+    render(<App showLabPanels />);
+
+    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
+    await userEvent.click(await screen.findByRole("button", { name: /research public sources/i }));
+
+    expect(
+      await screen.findByText(
+        "Public source research is unavailable. Review the post's saved evidence, then try again later.",
+      ),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/HTTP 503/)).not.toBeInTheDocument();
   });
 
   it("does not apply a completed research request after switching posts", async () => {
