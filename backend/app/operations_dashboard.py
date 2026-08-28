@@ -427,12 +427,14 @@ async def fetch_operations_dashboard(
     total = int(metrics["total_post_count"])
     external = int(metrics["external_post_count"])
     case_post_ids: dict[str, set[str]] = {}
+    case_event_counts: dict[str, int] = {}
     for row in case_rows:
         kind = row["case_kind_code"]
-        case_post_ids.setdefault(kind, set()).add(str(row["post_id"]))
-    case_event_counts: dict[str, int] = {}
-    for (_post_id, kind), case_milestones in milestones.items():
-        case_event_counts[kind] = case_event_counts.get(kind, 0) + len(case_milestones)
+        post_id = str(row["post_id"])
+        case_post_ids.setdefault(kind, set()).add(post_id)
+        case_event_counts[kind] = case_event_counts.get(kind, 0) + len(
+            milestones.get((post_id, kind), ())
+        )
     projected_cases = []
     lifecycle_metrics = {
         lifecycle_code: {
