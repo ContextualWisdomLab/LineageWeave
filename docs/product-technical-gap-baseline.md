@@ -3,12 +3,13 @@
 > Dashboard delivery snapshot: 2026-08-28. Protected `main` is
 > `edf22ee39aee2a8481f9bda8fff59801821e79c2`. Dashboard PR #640 exact
 > observed head is `5fd50962c43717dbd73c9ee73aa5bf106507118a`; this branch is not
-> protected-main release evidence. The queue contains eleven open PRs: five
+> protected-main release evidence. The queue contains twelve open PRs: five
 > non-drafts are `BLOCKED` (#770, #771, #772, #774, and #775), five drafts are
-> `DIRTY` against `main` (#640, #667, #672, #679, and #702), and repair PR #778
-> is an `UNSTABLE` candidate whose implementation-and-review head immediately
+> `DIRTY` against `main` (#640, #667, #672, #679, and #702), repair PR #778 is
+> `CLEAN` against #640, and new non-draft PR #780 remains review-blocked. Repair
+> PR #778's implementation head immediately
 > before this documentation-only snapshot was
-> `f5706e8f6ce2975d940d7b849f36ba4604afb337`; hosted checks must run again on
+> `959695dd7647b229957bfde82e645283686a6829`; hosted checks must run again on
 > the resulting documentation head. PR #776
 > restored the reviewed #742 product-relation slice as #640 commit `1640ce08`;
 > PR #777 then corrected its live integration assertion as `5fd50962`. A
