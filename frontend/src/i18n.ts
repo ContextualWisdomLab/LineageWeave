@@ -65,6 +65,7 @@ const ANALYSIS_RUN_ACTION_TRANSLATIONS: Record<
     "Open this run to see why it failed, then retry reconstruction from a current snapshot.": "이 실행을 열어 실패 원인을 확인한 뒤 현재 스냅샷으로 재구성을 다시 시도하세요.",
     "Open this run to see why it failed, then rebuild the period report from a current snapshot.": "이 실행을 열어 실패 원인을 확인한 뒤 현재 스냅샷으로 기간 리포트를 다시 생성하세요.",
     "Refresh this run. Start already queued the work on the durable outbox.": "이 실행을 새로 고치세요. 시작 요청이 이미 처리 대기열에 등록되었습니다.",
+    "Open the available evidence, then confirm the next action.": "확인 가능한 근거를 연 뒤 다음 조치를 확인하세요.",
   },
   zh: {
     "Open this run, then start reconstruction. Reconstruction has not started yet.": "打开此运行并开始事件历程重建。重建尚未开始。",
@@ -75,6 +76,7 @@ const ANALYSIS_RUN_ACTION_TRANSLATIONS: Record<
     "Open this run to see why it failed, then retry reconstruction from a current snapshot.": "打开此运行查看失败原因，然后从当前快照重新重建。",
     "Open this run to see why it failed, then rebuild the period report from a current snapshot.": "打开此运行查看失败原因，然后从当前快照重新生成周期报告。",
     "Refresh this run. Start already queued the work on the durable outbox.": "刷新此运行。启动请求已进入处理队列。",
+    "Open the available evidence, then confirm the next action.": "打开可用证据，然后确认下一步行动。",
   },
   ja: {
     "Open this run, then start reconstruction. Reconstruction has not started yet.": "この実行を開き、イベント履歴の再構成を開始してください。再構成はまだ始まっていません。",
@@ -85,6 +87,7 @@ const ANALYSIS_RUN_ACTION_TRANSLATIONS: Record<
     "Open this run to see why it failed, then retry reconstruction from a current snapshot.": "この実行を開いて失敗理由を確認し、現在のスナップショットから再構成を再試行してください。",
     "Open this run to see why it failed, then rebuild the period report from a current snapshot.": "この実行を開いて失敗理由を確認し、現在のスナップショットから期間レポートを再作成してください。",
     "Refresh this run. Start already queued the work on the durable outbox.": "この実行を更新してください。開始要求はすでに処理待ちに登録されています。",
+    "Open the available evidence, then confirm the next action.": "確認できる根拠を開き、次の行動を確認してください。",
   },
   vi: {
     "Open this run, then start reconstruction. Reconstruction has not started yet.": "Mở lần chạy này rồi bắt đầu tái dựng lịch sử sự kiện. Việc tái dựng chưa bắt đầu.",
@@ -95,6 +98,7 @@ const ANALYSIS_RUN_ACTION_TRANSLATIONS: Record<
     "Open this run to see why it failed, then retry reconstruction from a current snapshot.": "Mở lần chạy này để xem nguyên nhân thất bại rồi tái dựng lại từ ảnh chụp hiện tại.",
     "Open this run to see why it failed, then rebuild the period report from a current snapshot.": "Mở lần chạy này để xem nguyên nhân thất bại rồi tạo lại báo cáo theo kỳ từ ảnh chụp hiện tại.",
     "Refresh this run. Start already queued the work on the durable outbox.": "Làm mới lần chạy này. Yêu cầu bắt đầu đã được đưa vào hàng đợi xử lý.",
+    "Open the available evidence, then confirm the next action.": "Mở bằng chứng hiện có rồi xác nhận hành động tiếp theo.",
   },
 };
 
