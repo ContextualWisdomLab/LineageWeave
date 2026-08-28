@@ -32,6 +32,7 @@ import {
   fetchPostEvaluation,
   fetchPostKeymen,
   fetchPostLineage,
+  fetchPostResearchCitations,
   fetchPostFiveW1H,
   fetchPostSummary,
   fetchPostTickets,
@@ -47,6 +48,7 @@ import {
   fetchRelatedTeam,
   rebuildLineage,
   rebuildPeriodReports,
+  researchPostSources,
   setPostBookmark,
   setPreferredLocale,
   updateTicketStatus,
@@ -67,6 +69,7 @@ import {
   type LineageGraph,
   type Keyman,
   type SourceAuthorContext,
+  type SourceResearchCitation,
   type PostAiSummary,
   type PostFiveW1H,
   type PostDetail,
@@ -96,6 +99,7 @@ import { CutoffKnownBody } from "./components/CutoffKnownBody";
 import { LineageEntityPicker } from "./components/LineageEntityPicker";
 import { PopupCloseButton } from "./components/PopupCloseButton";
 import { TeppAcceptedReceipt } from "./components/TeppAcceptedReceipt";
+import { SourceResearchPanel } from "./components/SourceResearchPanel";
 import { WorkspaceNav, type WorkspaceDestination } from "./components/WorkspaceNav";
 import { OccupationRatingProfile } from "./components/OccupationRatingProfile";
 import { AskAnswerTimeline } from "./components/AskAnswerTimeline";
@@ -1981,6 +1985,11 @@ function PostDetailPopup({
   const [keymen, setKeymen] = useState<Keyman[] | null>(null);
   const [sourceAuthorContext, setSourceAuthorContext] = useState<SourceAuthorContext | null>(null);
   const [counterparties, setCounterparties] = useState<Counterparty[] | null>(null);
+  const [researchCitations, setResearchCitations] = useState<SourceResearchCitation[]>([]);
+  const [researchUnavailable, setResearchUnavailable] = useState<string | null>(null);
+  const [researchError, setResearchError] = useState<string | null>(null);
+  const [researching, setResearching] = useState(false);
+  const researchRequestRef = useRef(0);
   const [lineage, setLineage] = useState<PostLineage | null>(null);
   const [affiliateTrees, setAffiliateTrees] = useState<AffiliateNode[] | null>(null);
   const [vocEvidence, setVocEvidence] = useState<VocEvidence | null>(null);
@@ -2073,6 +2082,23 @@ function PostDetailPopup({
       .catch(() => setCounterparties([]));
   }
 
+  async function handleResearchSources() {
+    const requestId = ++researchRequestRef.current;
+    setResearching(true);
+    setResearchError(null);
+    try {
+      const result = await researchPostSources(accessToken, postId);
+      if (requestId !== researchRequestRef.current) return;
+      setResearchCitations(result.citations);
+      setResearchUnavailable(result.unavailable_reason ?? null);
+    } catch {
+      if (requestId !== researchRequestRef.current) return;
+      setResearchError(t("Public research could not be completed. Narrow the evidence and try again."));
+    } finally {
+      if (requestId === researchRequestRef.current) setResearching(false);
+    }
+  }
+
   useEffect(() => {
     setPost(null);
     setStructureUnits([]);
@@ -2086,6 +2112,11 @@ function PostDetailPopup({
     setKeymen(null);
     setSourceAuthorContext(null);
     setCounterparties(null);
+    setResearchCitations([]);
+    setResearchUnavailable(null);
+    setResearchError(null);
+    setResearching(false);
+    const researchRequestId = ++researchRequestRef.current;
     setLineage(null);
     setAffiliateTrees(null);
     setVocEvidence(null);
@@ -2145,6 +2176,16 @@ function PostDetailPopup({
     fetchPostCounterparties(accessToken, postId)
       .then((r) => setCounterparties(r.counterparties))
       .catch(() => setCounterparties([]));
+    fetchPostResearchCitations(accessToken, postId)
+      .then((result) => {
+        if (researchRequestId !== researchRequestRef.current) return;
+        setResearchCitations(result.citations);
+        setResearchUnavailable(result.unavailable_reason ?? null);
+      })
+      .catch(() => {
+        if (researchRequestId !== researchRequestRef.current) return;
+        setResearchUnavailable(t("No public research citations yet."));
+      });
     fetchPostLineage(accessToken, postId).then(setLineage).catch(() => setLineage(null));
     fetchPostAffiliateTree(accessToken, postId)
       .then((r) => setAffiliateTrees(r.trees))
@@ -2838,6 +2879,15 @@ function PostDetailPopup({
                 }}
               />
             )}
+
+            <SourceResearchPanel
+              citations={researchCitations}
+              unavailableReason={researchUnavailable}
+              canResearch={canExtract}
+              researching={researching}
+              error={researchError}
+              onResearch={handleResearchSources}
+            />
 
             <IssueTicketPanel postId={postId} accessToken={accessToken} canExtract={canExtract} />
 
