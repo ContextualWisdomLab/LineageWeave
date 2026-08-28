@@ -138,9 +138,16 @@ renormalizing scores. The frontend renders an exact-value table alongside the
 temporal topic view, uses text/pattern as well as color for topic state, and
 supports keyboard, touch, reduced motion, narrow viewports, and screen readers.
 
-The durable worker submits only when the topic run is independently evidenced
-by both its TEPP acceptance receipt and its completed, digest-bound topic
-artifact. The request contains every posterior draw and every source-derived
+The durable worker submits only from the accepted, normalized
+`tepp.topic_context_posterior.v1` projection. Its TEPP run identity, immutable
+source snapshot, knowledge cutoff, producer-contract version, posterior-draw
+identity, and upstream artifact digest are required fields; its coordinates,
+memberships, and provenance must be complete. The older
+`analysis_run_topic_lineage_result` stores a distinct topic-identity/CHRONOS
+envelope with a LineageWeave-computed envelope digest, while
+`analysis_run_tepp_receipt` records calibrated-measurement transport
+acceptance. Neither is evidence for this posterior projection and their
+identifiers or digests must not be equated with it. The request contains every posterior draw and every source-derived
 business-unit, PU, team, and person membership present in the run. The run
 must cover all four dimensions, while an individual post may belong only to
 the dimensions supported by its evidence and may retain several time-valid
@@ -159,8 +166,8 @@ The deployment declares request and lease timeout seconds together. The lease
 must strictly exceed the request timeout so the operator-declared difference
 remains available for result validation and persistence. A running row becomes
 claimable only after that recorded lease expiry. Incomplete input moves to a
-typed awaiting-evidence state and is woken only by a new TEPP terminal receipt,
-topic model, analysis cutoff/snapshot binding, coordinate, definition, or
+typed awaiting-evidence state and is woken only by a new accepted topic model,
+analysis cutoff/snapshot binding, coordinate, definition, or
 membership event. Source snapshots themselves are immutable under ADR 0018.
 If evidence changes during computation, the stale lease is released immediately
 and the next claim rebuilds the request. Invalid optional influence transport

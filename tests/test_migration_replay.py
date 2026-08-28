@@ -296,6 +296,10 @@ def test_topic_influence_job_migration_is_replay_safe_and_fail_closed() -> None:
     assert "wake_topic_influence_job_for_analysis" in sql
     assert "topic_model_run_influence_wake" in sql
     assert "analysis_run_influence_wake" in sql
+    assert "drop trigger if exists topic_tepp_receipt_influence_wake" in sql
+    assert "create trigger topic_tepp_receipt_influence_wake" not in sql
+    assert "drop trigger if exists topic_terminal_influence_wake" in sql
+    assert "create trigger topic_terminal_influence_wake" not in sql
     assert "after insert or update on topic_post_coordinate" in sql
     assert "after insert or update on topic_context_membership" in sql
     assert "after insert or update on topic_definition" in sql

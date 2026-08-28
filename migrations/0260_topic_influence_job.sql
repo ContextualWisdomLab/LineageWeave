@@ -215,13 +215,11 @@ create trigger topic_provenance_assertion_influence_wake
 after update of object_resource_id, relation_code on provenance_assertion
 for each row execute function wake_topic_influence_job_for_provenance_assertion();
 
+-- Older topic-lineage envelopes and calibrated-measurement receipts are not
+-- the accepted posterior projection. Remove candidate triggers that could
+-- wake this queue from those scientifically distinct records.
 drop trigger if exists topic_tepp_receipt_influence_wake on analysis_run_tepp_receipt;
-create trigger topic_tepp_receipt_influence_wake after insert or update on analysis_run_tepp_receipt
-for each row execute function wake_topic_influence_job_for_analysis();
-
 drop trigger if exists topic_terminal_influence_wake on analysis_run_topic_lineage_result;
-create trigger topic_terminal_influence_wake after insert or update on analysis_run_topic_lineage_result
-for each row execute function wake_topic_influence_job_for_analysis();
 
 insert into topic_influence_job (topic_model_run_id, status_code)
 select model.topic_model_run_id, 'queued'

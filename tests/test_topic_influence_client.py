@@ -563,8 +563,8 @@ def test_claim_scans_past_incomplete_evidence(
     assert sum("awaiting_evidence" in sql for sql in statements) == 11
 
 
-def test_loader_requires_receipt_bound_complete_tepp_evidence() -> None:
-    """The database projection becomes a request only with every evidence row."""
+def test_loader_requires_the_accepted_normalized_tepp_projection() -> None:
+    """The accepted posterior projection, not an older result table, is admitted."""
     now = datetime(2026, 1, 1, tzinfo=timezone.utc)
 
     class Connection:
@@ -574,7 +574,9 @@ def test_loader_requires_receipt_bound_complete_tepp_evidence() -> None:
             return False
 
         async def fetchrow(self, sql, *_args):
-            assert "analysis_run_tepp_receipt" in sql
+            assert "analysis_run_tepp_receipt" not in sql
+            assert "analysis_run_topic_lineage_result" not in sql
+            assert "model.tepp_schema_version = 'tepp.topic_context_posterior.v1'" in sql
             return {
                 "topic_model_run_id": "model-1",
                 "tepp_run_id": "tepp-synthetic-1",

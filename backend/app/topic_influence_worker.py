@@ -49,22 +49,13 @@ async def load_topic_influence_request(
         select model.topic_model_run_id, model.tepp_run_id,
                model.tepp_artifact_sha256, model.posterior_draw_set_id,
                model.posterior_draw_count, model.coordinate_kind_code,
-               snapshot.snapshot_sha256, analysis.knowledge_cutoff,
-               terminal.remote_run_id as terminal_remote_run_id,
-               terminal.result_sha256, receipt.remote_run_id as receipt_remote_run_id
+               snapshot.snapshot_sha256, analysis.knowledge_cutoff
           from topic_model_run model
           join analysis_run analysis on analysis.analysis_run_id = model.analysis_run_id
           join analysis_source_snapshot snapshot
             on snapshot.analysis_source_snapshot_id = analysis.analysis_source_snapshot_id
-          join analysis_run_topic_lineage_result terminal
-            on terminal.analysis_run_id = analysis.analysis_run_id
-          join analysis_run_tepp_receipt receipt
-            on receipt.analysis_run_id = analysis.analysis_run_id
          where model.topic_model_run_id = $1
            and model.tepp_schema_version = 'tepp.topic_context_posterior.v1'
-           and terminal.remote_run_id = model.tepp_run_id
-           and receipt.remote_run_id = model.tepp_run_id
-           and terminal.result_sha256 = model.tepp_artifact_sha256
         """,
         topic_model_run_id,
     )
