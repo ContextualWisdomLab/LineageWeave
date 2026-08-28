@@ -23,7 +23,11 @@ from pyshacl import validate as shacl_validate
 from rdflib import Graph, Literal, Namespace, URIRef
 from rdflib.namespace import RDF, XSD
 
-from lineageweave.ontology import project_product_relation_rdf, project_project_mention_rdf
+from lineageweave.ontology import (
+    project_product_catalog_rdf,
+    project_product_relation_rdf,
+    project_project_mention_rdf,
+)
 
 ROOT = Path(__file__).resolve().parents[1]
 KG_PATH = ROOT / "docs" / "ontology" / "lineageweave-kg.ttl"
@@ -193,6 +197,35 @@ def test_product_relation_projection_passes_validation_and_closed_codes() -> Non
             post_title="Synthetic relation source",
             post_body="Synthetic evidence",
             post_created_at=datetime(2026, 8, 27, tzinfo=timezone.utc),
+        )
+
+
+def test_catalog_product_projection_preserves_identity_and_hierarchy() -> None:
+    """One explicit catalog row publishes its stable code, label, and parent."""
+    data = project_product_catalog_rdf(
+        product_id="00000000-0000-0000-0000-000000000101",
+        product_code="SYNTHETIC-MODEL-Q",
+        preferred_label="Synthetic Model Q",
+        product_level_code="product_model",
+        parent_product_id="00000000-0000-0000-0000-000000000102",
+    )
+    conforms, report_text = _conforms(data)
+    assert conforms, report_text
+    product = URIRef(LW + "node/product/00000000-0000-0000-0000-000000000101")
+    assert (product, RDF.type, URIRef(LW + "CatalogProduct")) in data
+    assert (product, URIRef(LW + "productCatalogCode"), Literal("SYNTHETIC-MODEL-Q")) in data
+    assert (
+        product,
+        URIRef(LW + "parentProduct"),
+        URIRef(LW + "node/product/00000000-0000-0000-0000-000000000102"),
+    ) in data
+
+    with pytest.raises(ValueError, match="outside"):
+        project_product_catalog_rdf(
+            product_id="synthetic-product",
+            product_code="SYNTHETIC",
+            preferred_label="Synthetic",
+            product_level_code="other",
         )
 
 

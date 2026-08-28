@@ -14,7 +14,23 @@ describe("ProductEvidenceList", () => {
       evidence_text: "Synthetic Model Q",
       evidence_post_id: "synthetic-post",
     }]} />);
-    expect(screen.getByRole("status")).toHaveTextContent("product catalog");
+    expect(screen.getByRole("status")).toHaveTextContent("distinguish the matching products");
+  });
+
+  it.each([
+    ["missing", "register this cited product"],
+    ["unavailable", "after catalog access is restored"],
+  ] as const)("gives the %s outcome its own next action", (resolution_status_code, expected) => {
+    render(<ProductEvidenceList onOpenPost={vi.fn()} products={[{
+      mention_ordinal: 0,
+      extracted_product_name: "Synthetic Model Q",
+      canonical_product_name: null,
+      product_level_code: null,
+      resolution_status_code,
+      evidence_text: "Synthetic Model Q",
+      evidence_post_id: "synthetic-post",
+    }]} />);
+    expect(screen.getByRole("status")).toHaveTextContent(expected);
   });
 
   it("shows the authorized target and opens each distinct evidence post", async () => {
@@ -23,6 +39,7 @@ describe("ProductEvidenceList", () => {
       mention_ordinal: 0,
       extracted_product_name: "Synthetic Model Q",
       canonical_product_name: "Synthetic Model Q",
+      product_catalog_code: "SYNTHETIC-MODEL-Q",
       product_level_code: "product_model",
       resolution_status_code: "unique",
       evidence_text: "Synthetic Model Q",
@@ -37,6 +54,7 @@ describe("ProductEvidenceList", () => {
       }],
     }]} />);
     expect(screen.getByText("Synthetic Project")).toBeInTheDocument();
+    expect(screen.getByText("SYNTHETIC-MODEL-Q")).toBeInTheDocument();
     expect(screen.getByText(/supports Synthetic Project/)).toBeInTheDocument();
     await userEvent.click(screen.getByRole("button", { name: "Open product evidence post" }));
     expect(onOpenPost).toHaveBeenCalledWith("synthetic-post");

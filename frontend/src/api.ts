@@ -265,6 +265,9 @@ export interface ProductEvidence {
   extracted_product_name: string;
   resolution_status_code: "unique" | "missing" | "tie" | "unavailable";
   canonical_product_name: string | null;
+  product_catalog_id?: string | null;
+  product_catalog_code?: string | null;
+  ontology_iri?: string | null;
   product_level_code: "product_group" | "product_model" | "variant" | "trade_item" | null;
   evidence_text: string;
   evidence_post_id: string;

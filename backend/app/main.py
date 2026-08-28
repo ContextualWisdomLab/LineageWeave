@@ -144,6 +144,12 @@ from backend.app.post_content_queue import (
     publish_post_content_event,
     source_body_sha256,
 )
+from backend.app.product_catalog_provisioning import (
+    ProductCatalogImport,
+    ProductCatalogParentMissing,
+    ProductCatalogProvisioningConflict,
+    provision_product_catalog_entry,
+)
 from backend.app.occupational_construct_ingestion import (
     load_occupational_construct_assertions,
     load_occupational_construct_evidence_status,
@@ -235,7 +241,7 @@ from lineageweave.observability import (
     shutdown_telemetry,
     traced,
 )
-from lineageweave.ontology import LW
+from lineageweave.ontology import LW, ontology_node_iri
 from lineageweave.ontology_neighborhood import (
     DEFAULT_MAXIMUM_DEPTH,
     DEFAULT_MAXIMUM_EDGES,
@@ -908,6 +914,66 @@ class PostContentBackfillRequest(BaseModel):
     """Bounded operator request for durable semantic-content ingestion."""
 
     limit: int = Field(default=100, ge=1, le=200)
+
+
+class ProductCatalogProvisionRequest(BaseModel):
+    """One explicit governed product-master source row."""
+
+    preferred_label: str = Field(min_length=1)
+    product_level_code: Literal[
+        "product_group", "product_model", "variant", "trade_item"
+    ]
+    parent_product_code: str | None = None
+    aliases: tuple[str, ...] = ()
+    source_corporate_entity_id: UUID
+    source_system_code: str = Field(pattern=r"^[a-z][a-z0-9_]{0,62}$")
+    source_record_key: str = Field(min_length=1)
+
+
+@app.put("/api/product-catalog/{product_code}")
+async def provision_product_catalog(
+    request: ProductCatalogProvisionRequest,
+    product_code: str = Path(min_length=1),
+    account: CurrentAccount = Depends(get_current_account),
+    pool: asyncpg.Pool = Depends(get_pool),
+) -> dict[str, object]:
+    """Provision one source-bound product identity without inferred aliases."""
+    _require_post_admin(account)
+    corporate_entity_id = str(request.source_corporate_entity_id)
+    if corporate_entity_id not in account.corporate_entity_ids:
+        raise HTTPException(
+            status.HTTP_403_FORBIDDEN,
+            "the product source is outside your organization scope",
+        )
+    entry = ProductCatalogImport(
+        product_code=product_code,
+        preferred_label=request.preferred_label,
+        product_level_code=request.product_level_code,
+        parent_product_code=request.parent_product_code,
+        aliases=request.aliases,
+        corporate_entity_id=corporate_entity_id,
+        source_system_code=request.source_system_code,
+        source_record_key=request.source_record_key,
+    )
+    async with pool.acquire() as conn:
+        try:
+            result = await provision_product_catalog_entry(
+                conn,
+                entry,
+                imported_by_account_id=account.user_account_id,
+            )
+        except ProductCatalogParentMissing as exc:
+            raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, str(exc)) from exc
+        except ProductCatalogProvisioningConflict as exc:
+            raise HTTPException(status.HTTP_409_CONFLICT, str(exc)) from exc
+        except ValueError as exc:
+            raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, str(exc)) from exc
+    return {
+        **result,
+        "product_catalog_code": product_code.strip(),
+        "ontology_iri": ontology_node_iri("product", str(result["product_catalog_id"])),
+        "next_action": "제품 분석을 다시 실행한 뒤 원문 근거와 연결 결과를 확인하세요.",
+    }
 
 
 @app.post("/api/post-content/backfill", status_code=status.HTTP_202_ACCEPTED)
@@ -1868,6 +1934,7 @@ async def read_post(
         product_rows = await conn.fetch(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
             "select mention.mention_ordinal, mention.extracted_product_name, "
             "mention.resolution_status_code, catalog.canonical_product_name, "
+            "catalog.product_catalog_id, catalog.product_catalog_code, "
             "catalog.product_level_code, mention.evidence_text, "
             "mention.evidence_post_id, evidence_post.visibility_code, "
             "evidence_post.corporate_entity_id, evidence_post.process_unit_id "
@@ -1985,6 +2052,13 @@ async def read_post(
                 "extracted_product_name": item["extracted_product_name"],
                 "resolution_status_code": item["resolution_status_code"],
                 "canonical_product_name": item["canonical_product_name"],
+                "product_catalog_id": item["product_catalog_id"],
+                "product_catalog_code": item["product_catalog_code"],
+                "ontology_iri": (
+                    ontology_node_iri("product", str(item["product_catalog_id"]))
+                    if item["product_catalog_id"] is not None
+                    else None
+                ),
                 "product_level_code": item["product_level_code"],
                 "evidence_text": item["evidence_text"],
                 "evidence_post_id": item["evidence_post_id"],

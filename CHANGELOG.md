@@ -12,6 +12,13 @@ All notable changes to this project are documented here. Format follows
 
 ### Added
 
+- Governed product-catalog provisioning now accepts only explicit product
+  master rows with authorized source-record provenance, a canonical payload
+  digest, and source-linked aliases. Replays are idempotent, contradictory
+  definitions fail closed, and unresolved Post evidence tells the reader the
+  next catalog action without creating identities from model output, keywords,
+  fuzzy matches, or generic source categories.
+
 - Evidence Operations now presents cited claim, rebid, handover, external,
   product, and Voice evidence with explicit unavailable states and source-open
   actions. Durable analysis and bounded backfill run only in the dedicated

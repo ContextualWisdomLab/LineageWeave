@@ -39,6 +39,34 @@ Relations to operational facts and project mentions use foreign keys to the
 existing normalized stores. These typed relations are an ontology navigation
 projection, not Event Lineage.
 
+An authorized catalog manager provisions identity through
+`PUT /api/product-catalog/{product_code}`. Every add-only row supplies an
+explicit product code, preferred label, level, optional already-provisioned
+parent code, corporate-entity-scoped source system and source record key, and
+explicit aliases. LineageWeave calculates a canonical SHA-256 digest of that
+payload and stores it in `product_catalog_source_record`; each alias is linked
+to the same source record through `product_catalog_alias_source`. A replay of
+the same key and digest is idempotent. A changed source definition, changed
+catalog definition, missing parent, or normalized alias collision fails closed
+instead of updating identity in place. Concurrent first imports of one product
+code are serialized with a transaction-scoped database lock.
+
+These source and alias-evidence tables are third-normal-form append-only
+records. Their corporate-entity/source-record primary keys distribute ordinary
+imports, while product-first and source-first reverse indexes support both
+resolution and stewardship without a single timestamp hot key. The literal
+source category `기타` is never a product identity, alias, or evidence source
+by itself; it can become relevant only when an authorized source record
+explicitly provisions a product.
+
+An exact catalog identity projects as `CatalogProduct`, a subclass of
+`Product`, with one stable `productCatalogCode`, one
+`preferredProductLabel`, one closed `productLevelCode`, and at most one
+`parentProduct` IRI. `CatalogProductShape` validates that projection. A unique
+Post resolution returns the catalog id, code, and canonical product IRI so a
+reader can follow the same identity into ontology navigation; missing, tied,
+and unavailable outcomes return none of those bindings.
+
 The extraction request enumerates the request-scoped normalized target IDs
 that the authorized focal post may relate to. contextual-orchestrator returns
 one structured object containing mentions and relations; each relation names
@@ -98,6 +126,8 @@ cannot reveal a product span cited only by evidence the reader cannot access.
   response, so one acceptable mention cannot conceal an unsafe edge.
 - Catalog stewardship is required before missing or tied mentions can become
   linked products.
+- Catalog managers can now provision that stewardship evidence without a
+  model, keyword list, fuzzy match, or direct database edit.
 - High-volume deployments can partition mention and relation tables by a
   future tenant/time key without changing their logical contract; indexes put
   lookup keys before post identifiers to avoid one hot post partition.

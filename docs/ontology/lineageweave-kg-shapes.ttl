@@ -272,6 +272,25 @@
         sh:class :Post ;
     ] .
 
+:CatalogProductShape a sh:NodeShape ;
+    rdfs:label "Governed catalog product shape" ;
+    sh:targetClass :CatalogProduct ;
+    sh:property [
+        sh:path :productCatalogCode ; sh:minCount 1 ; sh:maxCount 1 ;
+        sh:datatype xsd:string ; sh:minLength 1 ;
+    ] ;
+    sh:property [
+        sh:path :preferredProductLabel ; sh:minCount 1 ; sh:maxCount 1 ;
+        sh:datatype xsd:string ; sh:minLength 1 ;
+    ] ;
+    sh:property [
+        sh:path :productLevelCode ; sh:minCount 1 ; sh:maxCount 1 ;
+        sh:in ("product_group" "product_model" "variant" "trade_item") ;
+    ] ;
+    sh:property [
+        sh:path :parentProduct ; sh:maxCount 1 ; sh:nodeKind sh:IRI ;
+    ] .
+
 :ProductRelationAssertionShape a sh:NodeShape ;
     rdfs:label "Evidence-bound product relation shape" ;
     sh:targetClass :ProductRelationAssertion ;

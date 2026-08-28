@@ -124,6 +124,14 @@ retain them in governed storage, do not expose or log them as customer content.
 - **Product mention is missing, tied, or unavailable:** repair or review the
   governed product catalog and rerun extraction. Do not bind by display-name
   similarity alone.
+- **A governed product is absent:** an account with `post_admin` submits
+  `PUT /api/product-catalog/{product_code}` with the explicit product-master
+  label, level, source organization/system/record, optional existing parent,
+  and source-supported aliases. Preserve the returned digest with the import
+  evidence. On `409`, reconcile the source-master conflict instead of changing
+  the catalog implicitly; on `422`, provision the named parent or correct the
+  invalid row. Then rerun product analysis and open the cited post to verify the
+  connection.
 - **Project journey is unavailable:** verify an accepted TEPP result exists for
   the exact snapshot and cutoff. Do not substitute chronological sorting.
 - **Related public source is absent:** verify publication eligibility and the

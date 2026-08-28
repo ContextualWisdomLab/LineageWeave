@@ -270,6 +270,41 @@ def project_product_relation_rdf(
     return graph
 
 
+def project_product_catalog_rdf(
+    *,
+    product_id: str,
+    product_code: str,
+    preferred_label: str,
+    product_level_code: str,
+    parent_product_id: str | None = None,
+) -> Graph:
+    """Project one governed catalog identity and its explicit hierarchy."""
+    if not all(value.strip() for value in (product_id, product_code, preferred_label)):
+        raise ValueError("product id, code, and preferred label must be non-empty")
+    if product_level_code not in {
+        "product_group",
+        "product_model",
+        "variant",
+        "trade_item",
+    }:
+        raise ValueError("product level is outside the governed catalog")
+    if parent_product_id is not None and (
+        not parent_product_id.strip() or parent_product_id == product_id
+    ):
+        raise ValueError("parent product must be non-empty and distinct")
+    product = URIRef(LW[f"node/product/{quote(product_id, safe='')}"])
+    graph = Graph()
+    graph.bind("lw", LW)
+    graph.add((product, RDF.type, LW.CatalogProduct))
+    graph.add((product, LW.productCatalogCode, Literal(product_code)))
+    graph.add((product, LW.preferredProductLabel, Literal(preferred_label)))
+    graph.add((product, LW.productLevelCode, Literal(product_level_code)))
+    if parent_product_id is not None:
+        parent = URIRef(LW[f"node/product/{quote(parent_product_id, safe='')}"])
+        graph.add((product, LW.parentProduct, parent))
+    return graph
+
+
 __all__ = [
     "LOOKUP_CODE",
     "LW",
@@ -283,6 +318,7 @@ __all__ = [
     "load_ontology",
     "ontology_node_iri",
     "ontology_annotations",
+    "project_product_catalog_rdf",
     "project_project_mention_rdf",
     "project_product_relation_rdf",
 ]

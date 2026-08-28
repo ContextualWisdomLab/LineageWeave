@@ -585,6 +585,23 @@
     rdfs:label "Product"@en ;
     rdfs:comment "A governed product catalog identity at group, model, variant, or trade-item level."@en .
 
+:CatalogProduct a owl:Class ;
+    rdfs:subClassOf :Product ;
+    rdfs:label "Catalog product"@en ;
+    rdfs:comment "An explicitly provisioned product identity with a stable catalog code and hierarchy level."@en .
+
+:productCatalogCode a owl:DatatypeProperty ;
+    rdfs:domain :CatalogProduct ; rdfs:range xsd:string .
+
+:preferredProductLabel a owl:DatatypeProperty ;
+    rdfs:domain :CatalogProduct ; rdfs:range xsd:string .
+
+:productLevelCode a owl:DatatypeProperty ;
+    rdfs:domain :CatalogProduct ; rdfs:range xsd:string .
+
+:parentProduct a owl:ObjectProperty ;
+    rdfs:domain :CatalogProduct ; rdfs:range :CatalogProduct .
+
 :ProductMention a owl:Class ;
     rdfs:label "Product mention"@en ;
     rdfs:comment "A source-span-bound product mention with a fail-closed catalog resolution outcome."@en .
