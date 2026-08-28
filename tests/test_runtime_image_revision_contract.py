@@ -48,6 +48,9 @@ def test_runtime_acceptance_checks_every_product_image_revision() -> None:
     )
     assert "for service_name in backend backend-worker mcp frontend; do" in runner
     assert "lineageweave-${service_name}-1" in runner
+    assert '[[ ",${COMPOSE_PROFILES:-}," == *,mcp,* ]]' in runner
+    assert "docker inspect lineageweave-mcp-1 >/dev/null 2>&1" in runner
+    assert "start the accepted stack with COMPOSE_PROFILES=mcp" in runner
 
 
 def test_synthetic_acceptance_never_enables_provider_calls() -> None:

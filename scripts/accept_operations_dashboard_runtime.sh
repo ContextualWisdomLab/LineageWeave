@@ -14,6 +14,10 @@ export COMPOSE_FILE=docker-compose.yml
 : "${K6_VUS:?Set the declared Dashboard concurrency}"
 : "${K6_DURATION:?Set the declared Dashboard observation duration, including its unit}"
 : "${BACKEND_READINESS_TIMEOUT_SECONDS:?Set the declared backend readiness budget}"
+[[ ",${COMPOSE_PROFILES:-}," == *,mcp,* ]] || {
+  echo "start the accepted stack with COMPOSE_PROFILES=mcp so MCP evidence is included" >&2
+  exit 2
+}
 [[ "$ALLOW_PROVIDER_CALLS" == "1" ]] || { echo "provider calls are not authorized" >&2; exit 2; }
 [[ "$EXPECTED_LINEAGEWEAVE_REVISION" =~ ^[0-9a-f]{40}$ ]] || {
   echo "EXPECTED_LINEAGEWEAVE_REVISION must be a full commit SHA" >&2
@@ -80,6 +84,10 @@ done
 actual_revision="$(docker inspect lineageweave-orchestrator-1 --format '{{ index .Config.Labels "org.opencontainers.image.revision" }}')"
 [[ "$actual_revision" == "$EXPECTED_ORCHESTRATOR_REVISION" ]] || {
   echo "orchestrator image revision does not match the accepted revision" >&2
+  exit 2
+}
+docker inspect lineageweave-mcp-1 >/dev/null 2>&1 || {
+  echo "start the accepted stack with COMPOSE_PROFILES=mcp before running acceptance" >&2
   exit 2
 }
 for service_name in backend backend-worker mcp frontend; do
