@@ -114,6 +114,13 @@ def test_catalog_provisioning_replay_is_idempotent() -> None:
     assert not any(query.startswith("insert into") for query, _args in conn.calls)
 
 
+def test_catalog_digest_normalizes_the_parent_code_used_for_lookup() -> None:
+    """Equivalent explicit parent codes retain one replay identity."""
+    assert _entry(parent_product_code=" SYNTHETIC-GROUP ").source_payload_sha256() == (
+        _entry(parent_product_code="SYNTHETIC-GROUP").source_payload_sha256()
+    )
+
+
 def test_catalog_provisioning_rejects_source_or_catalog_redefinition() -> None:
     """A stable code/source key cannot silently acquire new semantics."""
     entry = _entry()

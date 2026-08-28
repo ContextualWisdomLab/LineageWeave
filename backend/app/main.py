@@ -329,7 +329,7 @@ app = FastAPI(title="LineageWeave API", lifespan=lifespan)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=load_settings().frontend_origins,
-    allow_methods=["GET", "POST", "PATCH"],
+    allow_methods=["GET", "POST", "PATCH", "PUT"],
     allow_headers=["Authorization"],
 )
 

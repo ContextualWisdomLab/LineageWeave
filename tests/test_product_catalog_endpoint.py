@@ -5,6 +5,7 @@ from contextlib import asynccontextmanager
 from uuid import UUID
 
 import pytest
+from fastapi.testclient import TestClient
 
 from backend.app import main
 from backend.app.auth import CurrentAccount
@@ -57,6 +58,20 @@ def test_product_catalog_endpoint_requires_admin_and_source_scope() -> None:
                 )
             )
         assert raised.value.status_code == 403
+
+
+def test_product_catalog_endpoint_allows_browser_put_preflight() -> None:
+    """The configured frontend can reach the governed PUT route."""
+    response = TestClient(main.app).options(
+        "/api/product-catalog/SYNTHETIC-MODEL-Q",
+        headers={
+            "Origin": "http://localhost:5173",
+            "Access-Control-Request-Method": "PUT",
+            "Access-Control-Request-Headers": "Authorization",
+        },
+    )
+    assert response.status_code == 200
+    assert "PUT" in response.headers["access-control-allow-methods"]
 
 
 def test_product_catalog_endpoint_returns_the_next_valid_action(

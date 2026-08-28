@@ -50,7 +50,11 @@ class ProductCatalogImport:
         payload = {
             "aliases": self.normalized_aliases(),
             "corporate_entity_id": self.corporate_entity_id,
-            "parent_product_code": self.parent_product_code,
+            "parent_product_code": (
+                self.parent_product_code.strip()
+                if self.parent_product_code is not None
+                else None
+            ),
             "preferred_label": self.preferred_label.strip(),
             "product_code": self.product_code.strip(),
             "product_level_code": self.product_level_code,
