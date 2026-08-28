@@ -2080,9 +2080,15 @@ def test_post_detail_returns_authorized_product_evidence(
     assert response.json()["product_evidence"] == [{
         "mention_ordinal": 0,
         "extracted_product_name": "Synthetic Model Q",
-        "resolution_status_code": "unique",
-        "canonical_product_name": "Synthetic Model Q",
-        "product_level_code": "product_model",
+            "resolution_status_code": "unique",
+            "canonical_product_name": "Synthetic Model Q",
+            "product_catalog_id": str(catalog_id),
+            "product_catalog_code": "SYNTH-Q",
+            "ontology_iri": (
+                "https://contextualwisdomlab.github.io/LineageWeave/ontology#"
+                f"node/product/{catalog_id}"
+            ),
+            "product_level_code": "product_model",
         "evidence_text": "Synthetic evidence",
         "evidence_post_id": seeded_db["public_post_id"],
         "relations": [{
