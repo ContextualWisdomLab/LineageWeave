@@ -6,8 +6,10 @@
 > protected-main release evidence. The queue contains eleven open PRs: five
 > non-drafts are `BLOCKED` (#770, #771, #772, #774, and #775), five drafts are
 > `DIRTY` against `main` (#640, #667, #672, #679, and #702), and repair PR #778
-> is an `UNSTABLE` candidate at exact head
-> `e3656642adb7e575f5581aad6888e792d7146a82` while hosted checks run. PR #776
+> is an `UNSTABLE` candidate whose implementation-and-review head immediately
+> before this documentation-only snapshot was
+> `f5706e8f6ce2975d940d7b849f36ba4604afb337`; hosted checks must run again on
+> the resulting documentation head. PR #776
 > restored the reviewed #742 product-relation slice as #640 commit `1640ce08`;
 > PR #777 then corrected its live integration assertion as `5fd50962`. A
 > five-second squash-order race had merged #711 into #640 before #716 reached
