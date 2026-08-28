@@ -459,6 +459,9 @@ comes from the cited answer rather than frontend inference.
 - Present project-specific journeys only from accepted evidence-bearing
   predecessor and branch relations. A timestamp sort may be labeled observed
   events, but never promoted to a journey.
+- Attach digest-bound interval-consistency evidence only to an already
+  admitted predecessor edge. Temporal order alone never creates a predecessor,
+  branch, responsibility handoff, or causal transition (ADR 0270).
 
 Acceptance: every populated fact, lifecycle endpoint, membership, and journey
 event opens an authorized evidence post; an incomplete provenance chain fails
