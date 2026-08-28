@@ -14,7 +14,7 @@
 > gate and the runtime evidence is collected. Canonical remote names were
 > rechecked as `ContextualWisdomLab/LineageWeave`, `RankWeave`, `ThreadWeave`,
 > lowercase `disksage`, `TEPP`, `contextual-orchestrator`, and `fast-mlsirm`.
-> The 16:46 KST queue audit also found PR #782 proposing ADR 0267 / migration
+> The 17:59 KST queue audit also found PR #782 proposing ADR 0267 / migration
 > 0245 / v2.24.0 on the same protected-main base. Its buyer-visible coordinates
 > are backed by additional projection from the frozen local NumPy residual-map
 > debt, while ADR 0208 assigns residual interaction maps and their coordinates
@@ -23,10 +23,13 @@
 > accepted owner artifact. It therefore remains a conflicting candidate, not a
 > protected-main capability or a permissible continuation of the product Gap
 > slice; no local reimplementation or heuristic substitute is authorized. Its
-> stacked child #783 proposes v2.25.0 rendering on that unaccepted parent and
-> has a failing exact-head frontend check; it cannot be retargeted or treated as
-> product evidence before the parent ownership conflict is resolved and the
-> child is revalidated from a new exact head.
+> stacked child #783 proposes v2.25.0 rendering on that unaccepted parent. Its
+> prior TypeScript build failure and anisotropic plot scale were repaired at a
+> new exact head with focused layout tests, type checking, lint, production
+> build, and Storybook build evidence; refreshed hosted checks are pending. It
+> still cannot be retargeted or treated as product evidence before the parent
+> ownership conflict is resolved, the parent is protected-merged first, and the
+> child is retargeted to `main` and revalidated from another new exact head.
 >
 > Exact-head loop overlay: 2026-08-28 10:00 KST. Protected `main` was
 > `edf22ee39aee2a8481f9bda8fff59801821e79c2` (#773 similar-VOC coverage).
