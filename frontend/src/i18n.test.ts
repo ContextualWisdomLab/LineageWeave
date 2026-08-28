@@ -87,6 +87,8 @@ describe("i18n", () => {
     "Inspect the authorized cited posts and their evidence.",
     "Review unavailable historical channels before relying on this cutoff answer.",
     "Compare these cutoff-grounded citations with live evidence next.",
+    "Ask a workspace administrator to enable public verification, then retry.",
+    "Ask about a specific claim or narrow the time range, then retry.",
   ] as const;
 
   it("supports the five product locales", () => {
