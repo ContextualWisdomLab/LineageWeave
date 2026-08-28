@@ -5,9 +5,9 @@ from datetime import datetime, timezone
 from lineageweave.fixtures import sample_records
 from scripts.seed_demo_data import seed_reconstruction_edges
 
-# Synthetic unit-test fusion weights (org policy allows synthetic data
-# in unit tests); `make seed` itself passes its fast-mlsirm demo-design
-# estimate (ADR 0145, second amendment).
+# Synthetic unit-test fusion weights (org policy allows synthetic data in
+# unit tests). ``make seed`` never activates them; it omits reconstruction
+# until fitted, independently anchored owner evidence exists (ADR 0205).
 _SYNTHETIC_WEIGHTS = {"temporal": 0.5, "secondary_key": 0.34, "text": 0.16}
 
 
