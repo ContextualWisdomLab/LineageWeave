@@ -1,7 +1,7 @@
 import { fireEvent, render, screen, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { ANALYST_GNB_LABELS, initialWorkspaceDestination } from "../gnbChrome";
-import { SUPPORTED_LOCALES, setLocale } from "../i18n";
+import { setLocale } from "../i18n";
 import { WorkspaceNav } from "./WorkspaceNav";
 
 afterEach(() => {
@@ -21,29 +21,26 @@ describe("WorkspaceNav", () => {
     expect(nav).toHaveAccessibleName("Workspace navigation");
     const buttons = within(nav).getAllByRole("button");
     expect(buttons.map((button) => button.textContent)).toEqual(ANALYST_GNB_LABELS);
-    expect(screen.getByRole("button", { name: "게시판" })).toHaveAttribute("aria-current", "page");
-    expect(screen.getByRole("button", { name: "고객 마스터" })).not.toHaveAttribute("aria-current");
-    expect(screen.getByRole("button", { name: "달력" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Board" })).toHaveAttribute("aria-current", "page");
+    expect(screen.getByRole("button", { name: "Customer master" })).not.toHaveAttribute("aria-current");
+    expect(screen.getByRole("button", { name: "Calendar" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Ask Agent" })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Admin" })).not.toBeInTheDocument();
-    expect(nav.textContent).not.toMatch(/Buyer|Cubee|Customer master/i);
+    expect(nav.textContent).not.toMatch(/Buyer|Cubee/i);
   });
 
-  it.each(SUPPORTED_LOCALES)("keeps the five Korean GNB labels in %s", (locale) => {
+  it.each([
+    ["en", ["Dashboard", "External information", "Board", "Customer master", "Calendar", "Ask Agent"]],
+    ["ko", ["대시보드", "외부 정보", "게시판", "고객 마스터", "캘린더", "Ask Agent"]],
+    ["zh", ["仪表板", "外部信息", "看板", "客户主数据", "日历", "Ask Agent"]],
+    ["ja", ["ダッシュボード", "外部情報", "掲示板", "顧客マスター", "カレンダー", "Ask Agent"]],
+    ["vi", ["Bảng điều khiển", "Thông tin bên ngoài", "Bảng tin", "Danh mục khách hàng", "Lịch", "Ask Agent"]],
+  ] as const)("localizes every GNB label in %s", (locale, expected) => {
     setLocale(locale);
     render(<WorkspaceNav destination="ask" onChange={vi.fn()} />);
 
     const nav = screen.getByRole("navigation");
-    expect(within(nav).getAllByRole("button").map((button) => button.textContent)).toEqual([
-      "Dashboard",
-      "외부 정보",
-      "게시판",
-      "고객 마스터",
-      "달력",
-      "Ask Agent",
-    ]);
-    expect(screen.queryByRole("button", { name: "Board" })).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Customer master" })).not.toBeInTheDocument();
+    expect(within(nav).getAllByRole("button").map((button) => button.textContent)).toEqual(expected);
     expect(nav.textContent).not.toMatch(/Buyer|Cubee/);
   });
 
@@ -53,14 +50,14 @@ describe("WorkspaceNav", () => {
     const nav = screen.getByRole("navigation");
     expect(within(nav).queryByRole("button", { name: /Admin|관리자/i })).not.toBeInTheDocument();
     expect(nav.textContent).not.toMatch(/Weekly VOC|newspaper|주간|월간/i);
-    expect(screen.queryByRole("button", { name: "게시판" })).not.toHaveAttribute("aria-current");
+    expect(screen.queryByRole("button", { name: "Board" })).not.toHaveAttribute("aria-current");
   });
 
   it("reports navigation changes", () => {
     const onChange = vi.fn();
     render(<WorkspaceNav destination="board" onChange={onChange} />);
 
-    fireEvent.click(screen.getByRole("button", { name: "달력" }));
+    fireEvent.click(screen.getByRole("button", { name: "Calendar" }));
     expect(onChange).toHaveBeenCalledWith("calendar");
   });
 });

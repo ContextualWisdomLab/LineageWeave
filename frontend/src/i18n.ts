@@ -19,6 +19,7 @@ const STORAGE_KEY = "lineageweave.locale";
 
 const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
   ko: {
+    Dashboard: "대시보드",
     "Claim investigation": "클레임 원인 규명", "Rebid and handover": "재입찰 · 인수인계", "Procurement notices and market trends": "발주 공고 · 시장 동향", "Repeat issue": "반복 이슈",
     "Rebid response": "재입찰 대응", "Handover gap": "인수인계 공백", "Claim received": "클레임 접수", "Cause confirmed": "원인 확정", "Rebid response requested": "재입찰 대응 요청", "Rebid decision recorded": "재입찰 의사결정", "Handover started": "인수인계 시작", "Handover accepted": "인수 확인",
     Resolved: "종료 확인", Open: "진행 중", "Insufficient measurement evidence": "측정 근거 부족", "Event time": "Event 발생일", "Record creation time": "기록 생성일",
@@ -617,6 +618,7 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
       "IRT 주효과 이후 잔여 맵 랭크 0은 잔여 구조가 없음을 뜻합니다. 관측 Y {observed}와 기대 E {expected}를 읽은 다음, 이 글을 여세요.",
   },
   zh: {
+    Dashboard: "仪表板",
     "Claim investigation": "索赔原因调查", "Rebid and handover": "重新投标与交接", "Procurement notices and market trends": "采购公告与市场趋势", "Repeat issue": "重复问题",
     "Rebid response": "重新投标响应", "Handover gap": "交接缺口", "Claim received": "收到索赔", "Cause confirmed": "原因已确认", "Rebid response requested": "已请求重新投标响应", "Rebid decision recorded": "已记录重新投标决定", "Handover started": "交接已开始", "Handover accepted": "交接已确认",
     Resolved: "已解决", Open: "处理中", "Insufficient measurement evidence": "测量证据不足", "Event time": "事件时间", "Record creation time": "记录创建时间",
@@ -1200,6 +1202,7 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
       "残余图秩 0 表示 IRT 主效应后没有残余结构。阅读观测 Y {observed} 与期望 E {expected}，然后打开这篇帖子。",
   },
   ja: {
+    Dashboard: "ダッシュボード",
     "Claim investigation": "クレーム原因調査", "Rebid and handover": "再入札と引き継ぎ", "Procurement notices and market trends": "調達公告と市場動向", "Repeat issue": "反復問題",
     "Rebid response": "再入札対応", "Handover gap": "引き継ぎの空白", "Claim received": "クレーム受付", "Cause confirmed": "原因確認", "Rebid response requested": "再入札対応依頼", "Rebid decision recorded": "再入札意思決定", "Handover started": "引き継ぎ開始", "Handover accepted": "引き継ぎ確認",
     Resolved: "解決済み", Open: "対応中", "Insufficient measurement evidence": "測定根拠不足", "Event time": "イベント時刻", "Record creation time": "記録作成時刻",
@@ -1786,6 +1789,7 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
       "残差マップランク 0 は IRT 主効果後に残差構造がないことを示します。観測 Y {observed} と期待 E {expected} を読んでから、この投稿を開いてください。",
   },
   vi: {
+    Dashboard: "Bảng điều khiển",
     "Claim investigation": "Điều tra nguyên nhân khiếu nại", "Rebid and handover": "Đấu thầu lại và bàn giao", "Procurement notices and market trends": "Thông báo mua sắm và xu hướng thị trường", "Repeat issue": "Vấn đề lặp lại",
     "Rebid response": "Phản hồi đấu thầu lại", "Handover gap": "Khoảng trống bàn giao", "Claim received": "Đã nhận khiếu nại", "Cause confirmed": "Đã xác nhận nguyên nhân", "Rebid response requested": "Đã yêu cầu phản hồi đấu thầu lại", "Rebid decision recorded": "Đã ghi nhận quyết định đấu thầu lại", "Handover started": "Đã bắt đầu bàn giao", "Handover accepted": "Đã xác nhận bàn giao",
     Resolved: "Đã giải quyết", Open: "Đang xử lý", "Insufficient measurement evidence": "Không đủ bằng chứng đo lường", "Event time": "Thời điểm sự kiện", "Record creation time": "Thời điểm tạo bản ghi",
