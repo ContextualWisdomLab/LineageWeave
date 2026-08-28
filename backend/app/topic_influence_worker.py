@@ -87,6 +87,26 @@ async def load_topic_influence_request(
         """,
         topic_model_run_id,
     )
+    has_unbound_membership = await conn.fetchval(
+        """
+        select exists (
+            select 1
+              from topic_context_membership membership
+              left join provenance_assertion assertion
+                on assertion.assertion_id = membership.provenance_assertion_id
+               and assertion.relation_code = 'prov_was_derived_from'
+              left join provenance_resource_binding evidence
+                on evidence.resource_id = assertion.object_resource_id
+               and evidence.node_type_code = 'node_post'
+               and evidence.node_id = membership.source_post_id
+             where membership.topic_model_run_id = $1
+               and (assertion.assertion_id is null or evidence.resource_id is null)
+        )
+        """,
+        topic_model_run_id,
+    )
+    if has_unbound_membership:
+        raise ValueError("topic membership provenance is incomplete")
     observations: list[dict[str, Any]] = []
     for post in posts:
         post_id = str(post["source_post_id"])

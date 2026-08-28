@@ -527,6 +527,11 @@ def test_loader_requires_receipt_bound_complete_tepp_evidence() -> None:
     now = datetime(2026, 1, 1, tzinfo=timezone.utc)
 
     class Connection:
+        async def fetchval(self, sql, *_args):
+            assert "assertion.assertion_id is null" in sql
+            assert "evidence.resource_id is null" in sql
+            return False
+
         async def fetchrow(self, sql, *_args):
             assert "analysis_run_tepp_receipt" in sql
             return {
@@ -581,6 +586,42 @@ def test_loader_requires_receipt_bound_complete_tepp_evidence() -> None:
 
     assert request.payload["tepp_run"]["tepp_artifact_sha256"] == "a" * 64
     assert len(request.payload["observations"][0]["memberships"]) == 4
+
+
+def test_loader_rejects_a_partially_bound_membership_set() -> None:
+    """One missing provenance binding cannot silently narrow the fitted run."""
+    now = datetime(2026, 1, 1, tzinfo=timezone.utc)
+
+    class Connection:
+        async def fetchrow(self, _sql, *_args):
+            return {
+                "topic_model_run_id": "model-1",
+                "tepp_run_id": "tepp-synthetic-1",
+                "tepp_artifact_sha256": "a" * 64,
+                "posterior_draw_set_id": "draws-1",
+                "posterior_draw_count": 1,
+                "coordinate_kind_code": "plausible_value",
+                "snapshot_sha256": "b" * 64,
+                "knowledge_cutoff": now,
+            }
+
+        async def fetch(self, sql, *_args):
+            if "from topic_definition" in sql:
+                return [{"topic_index": 0}]
+            if "select distinct membership.source_post_id" in sql:
+                return [{"source_post_id": "post-1", "event_time": now}]
+            raise AssertionError("membership rows must not load after the failed fence")
+
+        async def fetchval(self, sql, *_args):
+            assert "left join provenance_resource_binding" in sql
+            return True
+
+    with pytest.raises(ValueError, match="provenance is incomplete"):
+        asyncio.run(
+            topic_influence_worker.load_topic_influence_request(
+                Connection(), "model-1"
+            )
+        )
 
 
 def test_persistence_rechecks_digest_and_writes_every_validated_row(monkeypatch) -> None:
