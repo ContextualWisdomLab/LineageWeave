@@ -9,7 +9,6 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 NUMERICAL_OWNER_MODULES = {"fast_mlsirm", "numpy", "rankweave", "scipy", "sklearn"}
 KNOWN_LOCAL_NUMERICAL_FILES = {
-    "lineageweave/channel_weight_estimation.py",
     "lineageweave/leftover_pairs.py",
     "lineageweave/period_report.py",
     "lineageweave/post_evaluation.py",

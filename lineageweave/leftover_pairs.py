@@ -118,7 +118,12 @@ def leftover_map_from_residual(
             model_expected = float(expected[int(person), int(item)])
             residual = float(result.residual[local_person, local_item])
             cross_share = float(result.cross_share[local_person, local_item])
-            explained_share = float(result.explained_share[local_person, local_item])
+            explained_cells = getattr(result, "explained_share", None)
+            explained_share = (
+                float(explained_cells[local_person, local_item])
+                if explained_cells is not None
+                else None
+            )
             candidates.append(
                 (
                     float(result.distance[local_person, local_item]),
@@ -130,7 +135,11 @@ def leftover_map_from_residual(
                     float(result.unexplained[local_person, local_item]),
                     cross_share if np.isfinite(cross_share) else None,
                     float(result.reconstruction[local_person, local_item]),
-                    explained_share if np.isfinite(explained_share) else None,
+                    (
+                        explained_share
+                        if explained_share is not None and np.isfinite(explained_share)
+                        else None
+                    ),
                 )
             )
     closest = min(candidates, key=lambda row: (row[0], row[1], row[2]))

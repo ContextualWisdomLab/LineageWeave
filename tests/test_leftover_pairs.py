@@ -38,7 +38,10 @@ def test_rust_map_projects_pairs_axes_and_coverage() -> None:
         )
         assert pair.leftover_map_unexplained is not None
         assert pair.leftover_map_reconstruction is not None
-        assert pair.leftover_map_explained_share is not None
+        # Protected fast-mlsirm may omit a not-yet-published optional cell.
+        # The consumer keeps the nullable product field unknown instead of
+        # recomputing the mathematical quantity in Python.
+        assert pair.leftover_map_explained_share is None
 
 
 def test_explained_share_is_projected_from_rust_without_recomputation(

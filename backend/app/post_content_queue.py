@@ -616,7 +616,8 @@ async def requeue_failed_post_content_jobs(
     requests: list[PostContentJobRequest] = []
     async with pool.acquire() as conn:
         async with conn.transaction():
-            rows = await conn.fetch(
+            # Safe SQL: the eligibility predicate is an immutable schema fragment; values are bound.
+            rows = await conn.fetch(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
                 f"""
                 select post.post_id, post.post_body
                   from post_content_ingestion_job job

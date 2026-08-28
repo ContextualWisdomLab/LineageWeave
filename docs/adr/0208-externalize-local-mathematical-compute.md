@@ -87,6 +87,11 @@ different responsibility.
   Gabriel SVD, axis inertia, distance, reconstruction, unexplained residual,
   cross share, and coverage arithmetic were deleted from LineageWeave Python.
   Product-side identifier attachment and closest/farthest selection remain.
+  Protected-main commit `45627700c26c29bca150896a9519a9b7426acb56`
+  does not publish an `explained_share` result cell. The nullable product field
+  therefore remains unknown for that owner version; LineageWeave must not
+  reconstruct the missing value in Python. A future protected owner envelope
+  may populate it without changing this fail-closed consumer rule.
 - Rankings call RankWeave's classic or convex-weighted RRF owner path and
   project its exact channel contributions. LineageWeave no longer evaluates
   the reciprocal-rank contribution formula. RankWeave's Rust CPU/GPU migration
