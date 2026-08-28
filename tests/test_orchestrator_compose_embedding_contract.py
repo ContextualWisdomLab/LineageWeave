@@ -135,6 +135,13 @@ def test_orchestrator_image_verifies_archive_and_dependency_bytes() -> None:
     )
     assert "--require-hashes" in dockerfile
     assert "-r /tmp/orchestrator-requirements.lock" in dockerfile
+    assert re.search(
+        r"ARG MATURIN_BUILDER_IMAGE=ghcr\.io/pyo3/maturin@sha256:[0-9a-f]{64}",
+        dockerfile,
+    )
+    assert "maturin build --locked --release" in dockerfile
+    assert "COPY --from=token-builder /build/wheels /tmp/token-wheels" in dockerfile
+    assert "python -m pip install --no-cache-dir --no-deps \"$1\"" in dockerfile
     assert not re.search(r"(?:>=|~=|==[^\n ]*\*)", roots)
     assert not re.search(
         r"^[a-z0-9_.-]+(?:\[[^]]+\])?\s*(?:>=|~=|==[^\n ]*\*)",
@@ -147,3 +154,13 @@ def test_orchestrator_image_verifies_archive_and_dependency_bytes() -> None:
     assert len(locked_packages) == len(set(locked_packages))
     assert len(locked_packages) >= 14
     assert requirements.count("--hash=sha256:") >= len(locked_packages)
+
+
+def test_orchestrator_build_verifier_executes_the_native_token_packer() -> None:
+    """A source-only image must fail before runtime when the Rust wheel is absent."""
+    verifier = (
+        _ROOT / "docker/contextual-orchestrator/verify_startup_contract.py"
+    ).read_text(encoding="utf-8")
+    assert "from contextual_orchestrator.token_counting import RustCl100kPacker" in verifier
+    assert "token_packer = RustCl100kPacker()" in verifier
+    assert 'token_packer.count_text("hello") == 1' in verifier
