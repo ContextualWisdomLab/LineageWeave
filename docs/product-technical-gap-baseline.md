@@ -497,10 +497,16 @@ public history. Do not reproduce or hint at its value. Historical remediation
 requires the ADR 0001 incident process and security/privacy-owner coordination;
 never force-push or delete evidence ad hoc.
 
-The Grok durable hourly loop and the central thin GitHub Actions caller
-ContextualWisdomLab/.github#1259 (minute 4, `pr-review-fix-scheduler.yml`)
-both target this repository. Do not add a LineageWeave-local duplicate
-workflow. ContextualWisdomLab/.github#1258 merged at exact head `897819c4` to
+The former central caller PRs ContextualWisdomLab/.github#1259 and #1288 both
+closed without merge and therefore are not scheduler evidence. Open
+ContextualWisdomLab/.github#1380 is a bounded hourly PR review-and-repair caller;
+it does not discover or implement product gaps. LineageWeave still has no
+local, manual opt-in entrypoint for commercial product-development work. The
+central commercial coordinator's maintainer mutation credential was
+unavailable or unverified at the last bounded runtime and failed before
+repository inventory, so autonomous hourly product development remains an
+explicit unverified gap; no credential is inferred or added here.
+ContextualWisdomLab/.github#1258 merged at exact head `897819c4` to
 repair the pnpm/coverage-evidence workflow; newly created exact PR heads must
 still prove the runtime behavior because merged workflow source alone is not
 check evidence.
@@ -733,7 +739,7 @@ of leverage; open connector PRs there when the defect is upstream:
 6. **ThreadWeave** — tree assembly.
 7. **Naruon** — calendar and email/project lineage projection (#336, #338, #355).
 8. **DiskSage / wardnet** — storage and network policy as needed.
-9. **ContextualWisdomLab/.github** — required review workflows (OpenCode, Strix, Noema) and the LineageWeave hourly caller (#1259). If stacked PRs miss central review or coverage-evidence fails on pnpm 9 (`--trust-lockfile` is pnpm 11.3) or a missing Vitest coverage provider, fix the org workflow (#1258), not a local bypass.
+9. **ContextualWisdomLab/.github** — required review workflows (OpenCode, Strix, Noema) and bounded hourly PR review/repair (#1380 candidate). This does not replace a commercial product-gap coordinator. If stacked PRs miss central review or coverage-evidence fails on pnpm 9 (`--trust-lockfile` is pnpm 11.3) or a missing Vitest coverage provider, fix the org workflow (#1258), not a local bypass.
 
 ## 8. Public ontology publication boundary
 
@@ -773,8 +779,11 @@ each: check reviews → repair → re-verify Checks → merge → continue. Chec
 review latency are never blockers — keep working while they settle.
 
 1. Revalidate Strix after merged ContextualWisdomLab/.github#1320, reconcile
-   open .github#1263, and land the atomic hourly LineageWeave caller in open
-   .github#1288 only through their protected gates.
+   open .github#1263, and verify open .github#1380 only as bounded hourly PR
+   review/repair through its protected gates. Keep commercial product-gap
+   development unavailable until a local manual opt-in entrypoint and the
+   central coordinator's maintainer mutation credential are independently
+   verified; closed-unmerged #1259/#1288 provide no delivery evidence.
 2. Process main-targeted PRs #629, #631, #632, #639, #640, #643, #644, #657,
    #658, #659, #660, and #663 only after each exact head shows terminal green
    required checks plus current-head independent approval. Treat #666's
