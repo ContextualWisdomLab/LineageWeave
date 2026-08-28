@@ -2910,7 +2910,7 @@ function analysisRunCaption(run: AnalysisRun): string {
     analysis_run_topic_lineage: "Time-based topic analysis",
     analysis_run_report: "Period report",
   }[run.run_kind_code];
-  return [customerKindLabel, run.status_label, run.scope_entity_name ?? run.scope_kind_label]
+  return [customerKindLabel ? t(customerKindLabel) : null, run.status_label, run.scope_entity_name ?? run.scope_kind_label]
     .filter(Boolean)
     .join(" · ");
 }
@@ -2928,13 +2928,13 @@ function analysisRunNextAction(run: AnalysisRun): string | null {
     case "analysis_status_pending":
       switch (run.run_kind_code) {
         case "analysis_run_lineage":
-          return "Open this run, then start reconstruction. Reconstruction has not started yet.";
+          return t("Open this run, then start reconstruction. Reconstruction has not started yet.");
         case "analysis_run_tepp":
-          return "Open this run to confirm the posts included in measurement, then start it.";
+          return t("Open this run to confirm the posts included in measurement, then start it.");
         case "analysis_run_topic_lineage":
-          return "Open this run to confirm the posts and time period included in topic analysis, then start it.";
+          return t("Open this run to confirm the posts and time period included in topic analysis, then start it.");
         case "analysis_run_report":
-          return "Open this run to confirm which posts the period report will use. The report has not been built yet.";
+          return t("Open this run to confirm which posts the period report will use. The report has not been built yet.");
         default: {
           const unexpected: never = run.run_kind_code;
           return unexpected;
@@ -2943,20 +2943,20 @@ function analysisRunNextAction(run: AnalysisRun): string | null {
     case "analysis_status_failed":
       switch (run.run_kind_code) {
         case "analysis_run_tepp":
-          return "Open this run to see why it failed, then retry with the latest available records.";
+          return t("Open this run to see why it failed, then retry with the latest available records.");
         case "analysis_run_topic_lineage":
-          return "Open this run to see why it failed, then retry with the latest available records.";
+          return t("Open this run to see why it failed, then retry with the latest available records.");
         case "analysis_run_lineage":
-          return "Open this run to see why it failed, then retry reconstruction from a current snapshot.";
+          return t("Open this run to see why it failed, then retry reconstruction from a current snapshot.");
         case "analysis_run_report":
-          return "Open this run to see why it failed, then rebuild the period report from a current snapshot.";
+          return t("Open this run to see why it failed, then rebuild the period report from a current snapshot.");
         default: {
           const unexpected: never = run.run_kind_code;
           return unexpected;
         }
       }
     case "analysis_status_running":
-      return "Refresh this run. Start already queued the work on the durable outbox.";
+      return t("Refresh this run. Start already queued the work on the durable outbox.");
     case "analysis_status_succeeded":
     case "analysis_status_cancelled":
     case null:
@@ -2972,32 +2972,26 @@ function analysisRunNextAction(run: AnalysisRun): string | null {
  * Empty-corpus copy that tells the operator what to do next.
  */
 function analysisRunEmptyPostsHint(run: AnalysisRun): string {
+  let analysis: string;
   switch (run.run_kind_code) {
     case "analysis_run_tepp":
-      return (
-        "No posts were available at this cutoff for calibrated measurement. " +
-        "Open a later run or retry after a newer snapshot is available."
-      );
+      analysis = t("calibrated measurement");
+      break;
     case "analysis_run_topic_lineage":
-      return (
-        "No posts were available at this cutoff for time-based topic analysis. " +
-        "Open a later run or retry after a newer snapshot is available."
-      );
+      analysis = t("time-based topic analysis");
+      break;
     case "analysis_run_lineage":
-      return (
-        "No posts were available at this cutoff for reconstruction. " +
-        "Open a later run or retry after a newer snapshot is available."
-      );
+      analysis = t("reconstruction");
+      break;
     case "analysis_run_report":
-      return (
-        "No posts were available at this cutoff for the period report. " +
-        "Open a later run or retry after a newer snapshot is available."
-      );
+      analysis = t("the period report");
+      break;
     default: {
       const unexpected: never = run.run_kind_code;
       return unexpected;
     }
   }
+  return tf("No posts were available at this cutoff for {analysis}. Open a later run or retry after a newer snapshot is available.", { analysis });
 }
 
 /**
@@ -3009,19 +3003,19 @@ function analysisRunEmptyPostsHint(run: AnalysisRun): string {
 function analysisRunCorpusHint(run: AnalysisRun): string | null {
   const isTopicLineage = run.run_kind_code === "analysis_run_topic_lineage";
   if (run.run_kind_code !== "analysis_run_tepp" && !isTopicLineage) return null;
-  const analysis = isTopicLineage ? "time-based topic analysis" : "calibrated measurement";
+  const analysis = t(isTopicLineage ? "time-based topic analysis" : "calibrated measurement");
   switch (run.status_code) {
     case "analysis_status_failed":
-      return `These posts were selected for ${analysis}. Review the failure details, then retry with the latest available records.`;
+      return tf("These posts were selected for {analysis}. Review the failure details, then retry with the latest available records.", { analysis });
     case "analysis_status_succeeded":
-      return `These posts were included in this ${analysis} result.`;
+      return tf("These posts were included in this {analysis} result.", { analysis });
     case "analysis_status_pending":
     case "analysis_status_running":
-      return `These posts will be included when ${analysis} finishes.`;
+      return tf("These posts will be included when {analysis} finishes.", { analysis });
     case "analysis_status_cancelled":
-      return `These posts were selected for ${analysis}. Start a new run if the result is still needed.`;
+      return tf("These posts were selected for {analysis}. Start a new run if the result is still needed.", { analysis });
     case null:
-      return `These posts are selected for ${analysis}.`;
+      return tf("These posts are selected for {analysis}.", { analysis });
     default: {
       const unexpected: never = run.status_code;
       return unexpected;

@@ -1,7 +1,8 @@
 # ADR 0210: TEPP temporal topics and fast-mlsirm context influence
 
 - Status: Accepted
-- Implementation maturity: consumer projection candidate; accepted producer result unavailable
+- Implementation maturity: consumer projection and fail-closed producer delivery candidate;
+  accepted upstream numerical result unavailable
 - Date: 2026-08-25
 - Depends on: ADR 0132 (TEPP topic-lineage boundary), ADR 0206 (operations Dashboard)
 - Upstream authorities: TEPP ADR 0012; fast-mlsirm ADR 0002 and ADR 0007
@@ -136,6 +137,66 @@ ties, producer diagnostics, and provenance rather than computing or
 renormalizing scores. The frontend renders an exact-value table alongside the
 temporal topic view, uses text/pattern as well as color for topic state, and
 supports keyboard, touch, reduced motion, narrow viewports, and screen readers.
+
+The durable worker submits only from the accepted, normalized
+`tepp.topic_context_posterior.v1` projection. Its TEPP run identity, immutable
+source snapshot, knowledge cutoff, producer-contract version, posterior-draw
+identity, and upstream artifact digest are required fields; its coordinates,
+memberships, and provenance must be complete. The older
+`analysis_run_topic_lineage_result` stores a distinct topic-identity/CHRONOS
+envelope with a LineageWeave-computed envelope digest, while
+`analysis_run_tepp_receipt` records calibrated-measurement transport
+acceptance. Neither is evidence for this posterior projection and their
+identifiers or digests must not be equated with it. The request contains every posterior draw and every source-derived
+business-unit, PU, team, and person membership present in the run. The run
+must cover all four dimensions, while an individual post may belong only to
+the dimensions supported by its evidence and may retain several time-valid
+slices for one context. It is content-addressed before
+the database lease is released. The worker admits only a complete Cartesian
+set of post-membership-topic rows whose request, TEPP run, snapshot, cutoff,
+membership fingerprint, producer revision, convergence, identification,
+backend parity, and artifact digest all match. It recomputes the request digest
+inside the persistence transaction so a changed input cannot receive a stale
+result. Provider work holds neither a database transaction nor a pool lease.
+Incomplete older evidence is scanned past rather than pinning the queue. An
+exact remote `Retry-After` requeues at that admitted instant; all other
+failures require an explicit operator requeue after their cause is corrected,
+so the worker never invents a retry interval.
+The deployment declares request and lease timeout seconds together. The lease
+must strictly exceed the request timeout so the operator-declared difference
+remains available for result validation and persistence. A running row becomes
+claimable only after that recorded lease expiry. Incomplete input moves to a
+typed awaiting-evidence state and is woken only by a new accepted topic model,
+analysis cutoff/snapshot binding, coordinate, definition, or
+membership event. Source snapshots themselves are immutable under ADR 0018.
+If evidence changes during computation, the stale lease is released immediately
+and the next claim rebuilds the request. Invalid optional influence transport
+configuration disables only this consumer; analysis, content, and Ask work
+continues. The deployment also declares the positive poll interval. A transient
+database claim failure waits that exact interval rather than terminating the
+shared durable-worker task.
+Each claim also receives a unique database lease token. Success, failure,
+remote defer, and changed-input release update a running row only when that
+exact token still owns it, so safety does not rely only on the process-wide
+advisory lock.
+
+LineageWeave sends the request and membership design as base64-encoded raw JSON
+artifact bytes with the SHA-256 of those exact bytes. The producer verifies and
+parses those bytes, then echoes both LineageWeave-owned opaque identities
+unchanged. The producer returns its result through the same raw-byte envelope.
+LineageWeave verifies the result bytes before UTF-8 decoding or JSON parsing and
+never reserializes producer floats to verify any digest. This avoids inventing
+a canonical-JSON dialect or depending on Python and Rust float formatting
+coincidence; adopting RFC 8785 remains unavailable until both deployed sides
+implement and pass the same official vectors.
+
+This delivery path does not make the feature available by itself. The
+configured owner endpoint must implement the domain-neutral continuous
+posterior case-deletion estimand in Rust. fast-mlsirm's crossed weighted
+multiple-membership MAP contract supplies the reusable membership design and
+identification boundary; its binary response kernel is not applied to TEPP
+coordinates. Until the continuous result contract is released, the job remains
+unconfigured or records a bounded failure and the Dashboard stays unavailable.
 
 The LineageWeave consumer projection is allowed to land before activation. In
 that state, it reports which exact producer contract is not persisted and

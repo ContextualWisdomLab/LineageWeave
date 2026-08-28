@@ -760,6 +760,70 @@ def test_invalid_product_output_keeps_the_job_retryable(monkeypatch) -> None:
     ]
 
 
+def test_occupational_construct_failure_keeps_its_own_stage(monkeypatch) -> None:
+    """Construct extraction failures are not mislabeled as product failures."""
+    failed_stages: list[str | None] = []
+
+    async def claim(*_args, **_kwargs):
+        return _row(RUNNING, 1)
+
+    async def fail_construct(*_args, **_kwargs):
+        raise ValueError("synthetic construct response")
+
+    async def finish_failed(_pool, _post_id, **kwargs):
+        failed_stages.append(kwargs.get("channel_stage_code"))
+
+    monkeypatch.setattr(post_content_worker, "_claim_job", claim)
+    monkeypatch.setattr(
+        post_content_worker,
+        "load_settings",
+        lambda: SimpleNamespace(
+            orchestrator_base_url="gateway", orchestrator_api_key="key"
+        ),
+    )
+    monkeypatch.setattr(
+        post_content_worker,
+        "_operations_evidence_sources",
+        lambda *_args, **_kwargs: asyncio.sleep(
+            0,
+            result=(OperationsEvidenceSource("post-1", "Synthetic", "Evidence"),),
+        ),
+    )
+    monkeypatch.setattr(
+        post_content_worker,
+        "_persist_operations_case_analysis_if_needed",
+        lambda *_args, **_kwargs: asyncio.sleep(0),
+    )
+    monkeypatch.setattr(
+        post_content_worker,
+        "_persist_product_analysis_if_needed",
+        lambda *_args, **_kwargs: asyncio.sleep(0),
+    )
+    monkeypatch.setattr(
+        post_content_worker, "extract_occupational_construct_assertions", fail_construct
+    )
+    monkeypatch.setattr(post_content_worker, "_finish_failed_job", finish_failed)
+    monkeypatch.setattr(
+        post_content_worker,
+        "record_server_failure",
+        lambda *_args, **_kwargs: None,
+    )
+    client = SimpleNamespace(available=True, resolved_model="synthetic-model")
+
+    asyncio.run(
+        post_content_worker.process_post_content_job(
+            _Pool(_Connection()),
+            post_id="00000000-0000-0000-0000-000000000001",
+            source_body_digest="a" * 64,
+            vision_factory=lambda: client,
+            embedding_factory=lambda: client,
+            structure_factory=lambda: client,
+        )
+    )
+
+    assert failed_stages == ["occupational_construct"]
+
+
 def test_case_analysis_persists_before_content_provider_failure(monkeypatch) -> None:
     """Independent case evidence survives a later structure or embedding outage."""
     connection = _Connection(values=[False, 2])
@@ -1134,8 +1198,12 @@ def test_recovery_enqueues_next_bounded_page_then_republishes(
             "require_structure": True,
         }
 
-    async def republish(actual_client: object, actual_pool: object) -> None:
+    async def republish(
+        actual_client: object, actual_pool: object, **kwargs: object
+    ) -> object:
         calls.append(("republish", actual_pool, actual_client))
+        assert kwargs == {"after_eligible_at": None, "after_post_id": None}
+        return SimpleNamespace(next_eligible_at=None, next_post_id=None)
 
     monkeypatch.setattr(
         post_content_worker,
