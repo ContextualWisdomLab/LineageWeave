@@ -65,11 +65,11 @@ def test_bounded_backfill_is_idempotent_and_broker_loss_stays_recoverable(
         async def fetch(self, query: str, *args: object) -> list[dict[str, str]]:
             assert "source_draft_code" in query
             assert "source_deleted_flag" in query
-            assert "job.post_id is null or job.status_code = $1" in query
-            assert "left join operations_case_analysis analysis" in query
-            assert "analysis.post_id = post.post_id" in query
+            assert "job.status_code is distinct from $1" in query
+            assert "join operations_case_analysis analysis" in query
+            assert "analysis.post_id = job.post_id" in query
             assert "analysis.source_body_sha256 = job.source_body_sha256" in query
-            assert "left join post_product_analysis product_analysis" in query
+            assert "join post_product_analysis product_analysis" in query
             assert "from post_project_mention project" in query
             assert "nullif(btrim(project.ontology_iri), '') is not null" in query
             assert "job.source_body_sha256 is not null" in query
