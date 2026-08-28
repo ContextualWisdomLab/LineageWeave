@@ -15,6 +15,8 @@ export COMPOSE_FILE=docker-compose.yml
 : "${BACKEND_READINESS_TIMEOUT_SECONDS:?Set the declared backend readiness budget}"
 : "${ORCHESTRATOR_PROBE_TIMEOUT_SECONDS:?Set the declared per-agent provider probe timeout (0.1 through 30 seconds)}"
 : "${ORCHESTRATOR_READINESS_TIMEOUT_SECONDS:?Set the declared readiness-job observation budget}"
+: "${OPERATIONS_CASE_ACCEPTANCE_TIMEOUT_SECONDS:?Set the declared operations-case observation budget}"
+: "${OPERATIONS_CASE_POLL_SECONDS:?Set the declared operations-case observation cadence}"
 [[ ",${COMPOSE_PROFILES:-}," == *,mcp,* ]] || {
   echo "start the accepted stack with COMPOSE_PROFILES=mcp so MCP evidence is included" >&2
   exit 2
@@ -81,6 +83,14 @@ jq -en --arg value "$ORCHESTRATOR_PROBE_TIMEOUT_SECONDS" \
   echo "ORCHESTRATOR_READINESS_TIMEOUT_SECONDS must be a positive integer" >&2
   exit 2
 }
+[[ "$OPERATIONS_CASE_ACCEPTANCE_TIMEOUT_SECONDS" =~ ^[1-9][0-9]*$ ]] || {
+  echo "OPERATIONS_CASE_ACCEPTANCE_TIMEOUT_SECONDS must be a positive integer" >&2
+  exit 2
+}
+[[ "$OPERATIONS_CASE_POLL_SECONDS" =~ ^[1-9][0-9]*$ ]] || {
+  echo "OPERATIONS_CASE_POLL_SECONDS must be a positive integer" >&2
+  exit 2
+}
 [[ "$LINEAGEWEAVE_RUNTIME_ASK_TIMEOUT_SECONDS" =~ ^[1-9][0-9]*$ ]] || {
   echo "LINEAGEWEAVE_RUNTIME_ASK_TIMEOUT_SECONDS must be a positive integer" >&2
   exit 2
@@ -106,6 +116,11 @@ for service_name in backend backend-worker mcp frontend; do
     exit 2
   }
 done
+worker_started_at="$(docker inspect lineageweave-backend-worker-1 --format '{{.State.StartedAt}}')"
+[[ -n "$worker_started_at" && "$worker_started_at" != "0001-01-01T00:00:00Z" ]] || {
+  echo "backend worker has no exact deployment start instant" >&2
+  exit 1
+}
 frontend_issuer="$(docker inspect lineageweave-frontend-1 --format '{{ index .Config.Labels "io.contextualwisdomlab.lineageweave.oidc-issuer" }}')"
 frontend_backend_url="$(docker inspect lineageweave-frontend-1 --format '{{ index .Config.Labels "io.contextualwisdomlab.lineageweave.backend-url" }}')"
 [[ "$frontend_issuer" == "$LINEAGEWEAVE_OIDC_ISSUER" ]] || {
@@ -251,66 +266,81 @@ done
 }
 
 aggregate_sql="
-with preferred as (
-    select post.post_id
+with eligible_jobs as materialized (
+    select post.post_id, job.source_body_sha256, job.status_code
       from source_post post
       join post_content_ingestion_job job on job.post_id = post.post_id
      where ${source_post_eligibility_sql}
-       and job.status_code = 'post_content_ingestion_succeeded'
        and exists (
            select 1 from post_project_mention project
             where project.post_id = post.post_id
               and nullif(btrim(project.ontology_iri), '') is not null
        )
+), inflight as (
+    select job.post_id
+      from eligible_jobs job
+     where job.status_code in (
+               'post_content_ingestion_queued',
+               'post_content_ingestion_running'
+           )
        and not exists (
            select 1 from operations_case_analysis analysis
-            where analysis.post_id = post.post_id
+            where analysis.post_id = job.post_id
               and analysis.source_body_sha256 = job.source_body_sha256
        )
-), grounded as (
-    select distinct classification.post_id, classification.case_kind_code
-      from operations_case_classification classification
-     where nullif(btrim(classification.evidence_text), '') is not null
-       and classification.evidence_post_id is not null
-       and classification.evidence_input_sha256 is not null
+), deployed_analyses as (
+    select analysis.post_id
+      from eligible_jobs job
+      join operations_case_analysis analysis
+        on analysis.post_id = job.post_id
+       and analysis.source_body_sha256 = job.source_body_sha256
+     where analysis.analyzed_at >= :'deployment_started_at'::timestamptz
+), deployed_grounded as (
+    select analysis.post_id
+      from deployed_analyses analysis
+     where exists (
+         select 1 from operations_case_classification classification
+          where classification.post_id = analysis.post_id
+            and nullif(btrim(classification.evidence_text), '') is not null
+            and classification.evidence_post_id is not null
+            and classification.evidence_input_sha256 is not null
+     )
 )
-select (select count(*) from preferred),
-       (select count(*) from operations_case_analysis),
-       (select count(*) from grounded);
+select (select count(distinct post_id) from inflight),
+       (select count(distinct post_id) from deployed_analyses),
+       (select count(distinct post_id) from deployed_grounded);
 "
 
-IFS='|' read -r preferred_before analysis_before grounded_before <<<"$(
+IFS='|' read -r inflight_before analysis_before grounded_before <<<"$(
   docker exec "$POSTGRES_CONTAINER" psql -X -U lineageweave -d lineageweave \
-    -AtF '|' -c "$aggregate_sql"
+    -v deployment_started_at="$worker_started_at" -AtF '|' -c "$aggregate_sql"
 )"
-[[ "$preferred_before" == "1" ]] || {
-  echo "expected exactly one normalized preferred candidate; observed $preferred_before" >&2
-  exit 1
-}
-
-curl_json "$LINEAGEWEAVE_ACCESS_TOKEN" POST \
-  "$BACKEND_URL/api/post-content/backfill" '{"limit":1}' \
-  | jq -e '.selected_posts == 1 and .queued_posts == 1' >/dev/null
-
-deadline=$((SECONDS + 600))
-while (( SECONDS < deadline )); do
-  IFS='|' read -r preferred_after analysis_after grounded_after <<<"$(
+if (( grounded_before > 0 )); then
+  inflight_after="$inflight_before"
+  analysis_after="$analysis_before"
+  grounded_after="$grounded_before"
+else
+  (( inflight_before > 0 )) || {
+    echo "no deployment-grounded analysis or active eligible candidate is available" >&2
+    exit 1
+  }
+  deadline=$((SECONDS + OPERATIONS_CASE_ACCEPTANCE_TIMEOUT_SECONDS))
+  while (( SECONDS < deadline )); do
+    IFS='|' read -r inflight_after analysis_after grounded_after <<<"$(
     docker exec "$POSTGRES_CONTAINER" psql -X -U lineageweave -d lineageweave \
-      -AtF '|' -c "$aggregate_sql"
-  )"
-  if [[ "$preferred_after" == "0" \
-     && "$analysis_after" -gt "$analysis_before" \
-     && "$grounded_after" -gt "$grounded_before" ]]; then
-    break
-  fi
-  sleep 2
-done
-[[ "${preferred_after:-1}" == "0" \
-   && "${analysis_after:-0}" -gt "$analysis_before" \
-   && "${grounded_after:-0}" -gt "$grounded_before" ]] || {
-  echo "grounded operations-case acceptance did not complete before the deadline" >&2
-  exit 1
-}
+      -v deployment_started_at="$worker_started_at" -AtF '|' -c "$aggregate_sql"
+    )"
+    if (( analysis_after > analysis_before && grounded_after > grounded_before )); then
+      break
+    fi
+    sleep "$OPERATIONS_CASE_POLL_SECONDS"
+  done
+  (( ${analysis_after:-0} > analysis_before \
+     && ${grounded_after:-0} > grounded_before )) || {
+    echo "grounded operations-case acceptance did not complete before the deadline" >&2
+    exit 1
+  }
+fi
 
 curl_json "$LINEAGEWEAVE_ACCESS_TOKEN" GET "$BACKEND_URL/api/dashboard" \
   | jq -e '.cases | length > 0' >/dev/null
@@ -327,5 +357,5 @@ k6 run --vus "$K6_VUS" --duration "$K6_DURATION" \
 jq -e '.metrics.checks.fails == 0 and .metrics.http_req_failed.value == 0' \
   "$K6_SUMMARY_PATH" >/dev/null
 
-printf 'operations-dashboard-runtime-acceptance-ok preferred=%s analysis_delta=%s grounded_delta=%s\n' \
-  "$preferred_after" "$((analysis_after - analysis_before))" "$((grounded_after - grounded_before))"
+printf 'operations-dashboard-runtime-acceptance-ok inflight=%s deployment_analysis=%s deployment_grounded=%s\n' \
+  "$inflight_after" "$analysis_after" "$grounded_after"

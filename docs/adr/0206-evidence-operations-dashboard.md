@@ -209,9 +209,16 @@ treated as a negative case.
   contract. A missing or malformed cadence is unavailable, not permission to
   invent a local interval. This response field is owned by
   `ContextualWisdomLab/contextual-orchestrator` PR #907; LineageWeave consumes
-  it without duplicating the rate-window calculation. The runner verifies one normalized preferred
-  candidate and a positive grounded-case aggregate delta, then exercises the
-  authenticated Dashboard API and rendered UI without printing source rows.
+  it without duplicating the rate-window calculation. The runner treats the
+  durable content ledger as resumable rather than assuming an empty queue. It
+  binds evidence to the exact worker image revision and container start instant,
+  then accepts either an eligible, current-source-digest grounded analysis
+  written by that deployment or observes both analysis and grounded aggregate
+  counts advance while an eligible queued/running item already exists. It never
+  resets, fabricates, or re-enqueues work for acceptance, and it fails closed
+  when neither form of evidence exists. Counts are distinct by post and remain
+  aggregate-only. The runner then exercises the authenticated Dashboard API and
+  rendered UI without printing source rows.
   The same operator-declared run invokes `scripts/k6_operations_dashboard.js`
   with explicit VUs and duration; it observes Dashboard reads only, defines no
   performance threshold, and keeps its summary outside the repository. The

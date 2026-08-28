@@ -628,6 +628,7 @@ async def process_post_content_job(
                     settings.orchestrator_api_key,
                     evidence_sources,
                 )
+                channel_stage_code = "product_analysis"
                 try:
                     await _persist_product_analysis_if_needed(
                         pool,

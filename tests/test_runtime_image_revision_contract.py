@@ -76,6 +76,27 @@ def test_provider_acceptance_reuses_shared_post_eligibility_sql() -> None:
     assert "where ${source_post_eligibility_sql}" in runner
 
 
+def test_provider_acceptance_observes_the_resumed_content_ledger() -> None:
+    """Acceptance must reuse current work and prove deployment-bound evidence."""
+    runner = (_ROOT / "scripts" / "accept_operations_dashboard_runtime.sh").read_text(
+        encoding="utf-8"
+    )
+    assert "OPERATIONS_CASE_ACCEPTANCE_TIMEOUT_SECONDS" in runner
+    assert "OPERATIONS_CASE_POLL_SECONDS" in runner
+    assert "docker inspect lineageweave-backend-worker-1" in runner
+    assert "{{.State.StartedAt}}" in runner
+    assert '-v deployment_started_at="$worker_started_at"' in runner
+    assert "analysis.analyzed_at >= :'deployment_started_at'::timestamptz" in runner
+    assert "analysis.source_body_sha256 = job.source_body_sha256" in runner
+    assert "'post_content_ingestion_queued'" in runner
+    assert "'post_content_ingestion_running'" in runner
+    assert "count(distinct post_id)" in runner
+    assert 'sleep "$OPERATIONS_CASE_POLL_SECONDS"' in runner
+    assert "/api/post-content/backfill" not in runner
+    assert "expected exactly one normalized preferred candidate" not in runner
+    assert "post_id=%" not in runner
+
+
 def test_provider_acceptance_uses_bounded_async_gateway_readiness() -> None:
     """Runtime acceptance must probe only the declared gateway access list."""
     runner = (_ROOT / "scripts" / "accept_operations_dashboard_runtime.sh").read_text(

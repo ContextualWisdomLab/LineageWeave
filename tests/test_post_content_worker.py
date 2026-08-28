@@ -663,6 +663,7 @@ def test_invalid_product_output_keeps_the_job_retryable(monkeypatch) -> None:
     outcomes: list[str] = []
     persisted: list[str] = []
     failures: list[tuple[str, str]] = []
+    failed_stages: list[str | None] = []
     channel_order: list[str] = []
 
     async def claim(*_args, **_kwargs):
@@ -681,6 +682,9 @@ def test_invalid_product_output_keeps_the_job_retryable(monkeypatch) -> None:
 
     async def finish(_pool, _post_id, status, **_kwargs):
         outcomes.append(status)
+
+    async def finish_failed(_pool, _post_id, **kwargs):
+        failed_stages.append(kwargs.get("channel_stage_code"))
 
     monkeypatch.setattr(post_content_worker, "_claim_job", claim)
     monkeypatch.setattr(
@@ -727,6 +731,7 @@ def test_invalid_product_output_keeps_the_job_retryable(monkeypatch) -> None:
         post_content_worker, "_requeue_project_missing_case_jobs", lambda *_args: asyncio.sleep(0)
     )
     monkeypatch.setattr(post_content_worker, "_finish_job", finish)
+    monkeypatch.setattr(post_content_worker, "_finish_failed_job", finish_failed)
     monkeypatch.setattr(
         post_content_worker,
         "record_server_failure",
@@ -748,6 +753,7 @@ def test_invalid_product_output_keeps_the_job_retryable(monkeypatch) -> None:
     assert persisted == ["cases"]
     assert channel_order == ["cases", "product"]
     assert outcomes == []
+    assert failed_stages == ["product_analysis"]
     assert failures == [
         ("product_semantic_ingestion", "provider_unavailable"),
         ("post_content_ingestion", "internal_error"),

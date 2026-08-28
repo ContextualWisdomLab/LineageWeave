@@ -64,6 +64,16 @@ pending, the runner accepts only the positive integer polling cadence declared
 by contextual-orchestrator (upstream PR #907) and never substitutes a local
 polling interval.
 
+Declare `OPERATIONS_CASE_ACCEPTANCE_TIMEOUT_SECONDS` and
+`OPERATIONS_CASE_POLL_SECONDS` as separate positive-integer observation inputs.
+The runner does not enqueue a demonstration record or assume a fresh ledger. It
+first accepts aggregate grounded evidence produced since the exact worker
+container started. If none exists yet, an eligible queued/running record with no
+current-source-digest analysis must already be present; the runner then waits
+for both deployment-bound analysis and grounded aggregate counts to advance.
+It fails closed when neither path is available. Source rows and record
+identifiers remain inside the database and are never printed.
+
 The 2026-08-26 diagnostic run supplied `MCP_RATE_LIMIT_REQUESTS=1000` and
 `MCP_RATE_LIMIT_WINDOW_SECONDS=60` only to its acceptance invocation. Those
 observed inputs are neither source defaults nor a production capacity SLO;
