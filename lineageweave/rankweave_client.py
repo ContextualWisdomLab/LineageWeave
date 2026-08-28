@@ -153,6 +153,22 @@ def _evidence_from_owner_hit(hit: object) -> tuple["RankingChannelEvidence", ...
         for contribution in getattr(hit, "channel_contributions", ())
         if contribution.rank is not None and contribution.weight > 0
     ]
+    if not collected and getattr(hit, "channel_ranks", None):
+        rw = _import_rankweave()
+        collected = [
+            (
+                str(channel_name),
+                int(channel_rank),
+                1.0,
+                float(
+                    rw.reciprocal_rank_fusion_score(
+                        {str(channel_name): int(channel_rank)},
+                        DEFAULT_RANK_CONSTANT_ETA,
+                    )
+                ),
+            )
+            for channel_name, channel_rank in hit.channel_ranks
+        ]
     collected.sort(key=lambda item: (-item[3], item[0]))
     return tuple(
         RankingChannelEvidence(

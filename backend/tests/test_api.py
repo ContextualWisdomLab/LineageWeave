@@ -236,6 +236,26 @@ _LATE_REPLAYABLE_MIGRATIONS = tuple(
 )
 
 
+def _run_global_ask_once(client, job_id: str) -> None:
+    """Run one dedicated-worker Ask delivery through the TestClient event loop."""
+    from backend.app import main
+    from backend.app.global_ask_queue import process_global_ask_job
+
+    async def _settle() -> None:
+        await process_global_ask_job(
+            client.app.state.pool,
+            job_id=job_id,
+            chat_factory=lambda: main._post_chat_client(
+                timeout=main.load_settings().orchestrator_answer_timeout_seconds
+            ),
+            embedding_factory=main._embedding_client,
+            semantic_query_factory=main._semantic_query_client,
+            claim_verification_factory=main._claim_verification_client_factory,
+        )
+
+    client.portal.call(_settle)
+
+
 def test_dashboard_external_query_reaches_projection(
     client, demo_analyst_token, monkeypatch
 ) -> None:
@@ -4411,6 +4431,7 @@ def test_global_ask_provider_error_does_not_leak_raw_error(
     )
     assert submitted.status_code == 202
     job_id = submitted.json()["ask_job_id"]
+    _run_global_ask_once(client, job_id)
 
     deadline = _time.monotonic() + 30
     body: dict = {}
@@ -5586,6 +5607,7 @@ def test_ask_queues_a_job_and_polls_it_to_a_settled_answer(
     assert submitted.status_code == 202
     job_id = submitted.json()["ask_job_id"]
     assert submitted.json()["job_status_code"] == "queued"
+    _run_global_ask_once(client, job_id)
 
     deadline = _time.monotonic() + 30
     body: dict = {}
@@ -5665,6 +5687,7 @@ def test_ask_public_verification_is_opt_in_and_separate_from_post_citations(
     )
     assert submitted.status_code == 202
     job_id = submitted.json()["ask_job_id"]
+    _run_global_ask_once(client, job_id)
 
     deadline = _time.monotonic() + 30
     body: dict = {}
