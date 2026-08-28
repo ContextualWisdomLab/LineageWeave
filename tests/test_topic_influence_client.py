@@ -514,6 +514,11 @@ def test_claim_scans_past_incomplete_evidence(monkeypatch) -> None:
     assert claimed[:2] == ("complete", request)
     assert uuid.UUID(claimed[2])
     assert any("lease_expires_at <= clock_timestamp()" in sql for sql in statements)
+    assert any(
+        "lease_expires_at <= clock_timestamp()" in sql
+        and "request_sha256 = null" in sql
+        for sql in statements
+    )
     assert sum("awaiting_evidence" in sql for sql in statements) == 11
 
 

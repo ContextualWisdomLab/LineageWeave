@@ -178,6 +178,7 @@ async def claim_topic_influence_job(
                set status_code = 'queued', started_at = null,
                    lease_expires_at = null, completed_at = null,
                    lease_token = null, failure_code = null,
+                   request_sha256 = null,
                    not_before = clock_timestamp()
              where status_code = 'running'
                and lease_expires_at <= clock_timestamp()
