@@ -8,10 +8,11 @@
 
 Amends [ADR 0048](0048-persist-lsirm-leftover-pairs.md),
 [ADR 0049](0049-leftover-pair-report-ui.md), and
-[ADR 0201](0201-leftover-map-reconstruction.md). Independent of leftover-map
+[ADR 0201](0201-leftover-map-reconstruction.md). Builds on ADR 0201's
+leftover-map reconstruction. Coordinate publication is independent of the
 explained leftover share ([ADR 0266](0266-leftover-map-explained-share.md)),
-leftover-map unexplained leftover share ([ADR 0233](0233-leftover-map-unexplained-share.md)),
-and leftover-map reconstruction ([ADR 0201](0201-leftover-map-reconstruction.md)).
+and leftover-map unexplained leftover share
+([ADR 0233](0233-leftover-map-unexplained-share.md)).
 
 ## Context
 
@@ -45,7 +46,7 @@ reconstruction (0201 / migration 0206), leftover-map cross share
 expected `E`, leftover-map rank, two-axis leftover-map distance,
 leftover coverage, leftover-map axis share (0148), leftover
 interaction-map persistence, occupational construct catalog search
-(0265), I/O occupational taxonomy (0245), or source-post voice
+(0265), I/O occupational taxonomy (ADR 0245), or source-post voice
 history (migration 0243).
 
 ## Decision

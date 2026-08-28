@@ -39,8 +39,9 @@ leftover-map cross share next to distance when finite. When four finite
 coordinates exist, the leftover-map graphic display of those positions
 sits above the pair buttons (ADR 0268); click a post marker to open
 that post. Leftover-map axis share captions those leftover-map axes
-when finite (ADR 0269). The next action names every available
-measurement before opening the post; no amendment hides another, rank 0
+when finite (ADR 0269). The pair renders every available finite measurement.
+The next action uses the first available value in the priority below; no
+amendment hides another badge, rank 0
 explicitly names no leftover structure, and unexplained leftover names
 "leftover map leaves unexplained `U` after IRT main effects; open this
 post to read the named criterion" when present. When leftover-map

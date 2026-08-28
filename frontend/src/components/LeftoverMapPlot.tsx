@@ -83,7 +83,7 @@ export function LeftoverMapPlot({
         <svg
           className="leftover-map-plot-svg"
           viewBox={`0 0 ${layout.width} ${layout.height}`}
-          role="img"
+          role="group"
           aria-label={t("Leftover map")}
         >
           <line

@@ -1042,7 +1042,7 @@ describe("App, authenticated", () => {
                     expected_response: 2.0,
                     leftover_map_rank: 1,
                     leftover_map_cross_share: 0.12,
-                    leftover_map_reconstruction: 0.35,
+                    leftover_map_reconstruction: 0.248,
                     leftover_map_unexplained_share: 0.02,
                     leftover_map_explained_share: 0.76,
                     leftover_map_person_axis_1: 0.5,
@@ -1055,14 +1055,14 @@ describe("App, authenticated", () => {
                     post_id: "post-2",
                     post_title: "Specification revision requested",
                     criterion_code: "general_sentiment_negative",
-                    leftover_distance: 1.84,
+                    leftover_distance: 2.0,
                     leftover_residual: -1.1,
                     leftover_map_unexplained: -0.25,
                     observed_response: 0.9,
                     expected_response: 2.0,
                     leftover_map_rank: 1,
                     leftover_map_cross_share: -0.24,
-                    leftover_map_reconstruction: -0.85,
+                    leftover_map_reconstruction: -0.95,
                     leftover_map_unexplained_share: 0.05,
                     leftover_map_explained_share: 0.60,
                     leftover_map_person_axis_1: 0.9,
@@ -4172,7 +4172,7 @@ describe("App, authenticated", () => {
     expect(closestPair).toHaveTextContent("U²/R² 0.02");
     expect(closestPair).toHaveTextContent("R̂²/R² 0.76");
     expect(closestPair).toHaveTextContent("2R̂U/R² 0.12");
-    expect(closestPair).toHaveTextContent("R̂ +0.35");
+    expect(closestPair).toHaveTextContent("R̂ +0.25");
     expect(closestPair).toHaveTextContent("ξ (+0.50, +0.10) ζ (+0.50, −0.02)");
     expect(closestPair).toHaveTextContent("d 0.12");
     expect(closestPair).toHaveAccessibleName("Open leftover closest pair: Public post · sales-lead");
@@ -4187,9 +4187,13 @@ describe("App, authenticated", () => {
     expect(farthestPair).toHaveTextContent("U²/R² 0.05");
     expect(farthestPair).toHaveTextContent("R̂²/R² 0.60");
     expect(farthestPair).toHaveTextContent("2R̂U/R² -0.24");
-    expect(farthestPair).toHaveTextContent("R̂ −0.85");
+    expect(farthestPair).toHaveTextContent("R̂ −0.95");
     expect(farthestPair).toHaveTextContent("ξ (+0.90, +0.80) ζ (−0.70, −0.40)");
-    expect(farthestPair).toHaveTextContent("d 1.84");
+    expect(farthestPair).toHaveTextContent("d 2.00");
+    expect(0.5 * 0.5 + 0.1 * -0.02).toBeCloseTo(0.248);
+    expect(Math.hypot(0.5 - 0.5, 0.1 - -0.02)).toBeCloseTo(0.12);
+    expect(0.9 * -0.7 + 0.8 * -0.4).toBeCloseTo(-0.95);
+    expect(Math.hypot(0.9 - -0.7, 0.8 - -0.4)).toBeCloseTo(2.0);
     const memberButton = screen.getByRole("button", { name: /open report post: public post/i });
     expect(coverageCaption.compareDocumentPosition(closestPair) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(closestPair.compareDocumentPosition(memberButton) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
