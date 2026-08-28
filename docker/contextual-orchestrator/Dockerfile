@@ -4,7 +4,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends curl build-esse
     && curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | \
        sh -s -- -y --profile minimal --default-toolchain 1.97.1
 ENV PATH=/root/.cargo/bin:$PATH
-ADD https://github.com/ContextualWisdomLab/contextual-orchestrator/archive/cb4d5bca47481a2a0f27eb078287167884a085a3.tar.gz /tmp/contextual-orchestrator.tar.gz
+ADD https://github.com/ContextualWisdomLab/contextual-orchestrator/archive/eee5323f07be40c3852fa68d73949161609a3ce5.tar.gz /tmp/contextual-orchestrator.tar.gz
 RUN mkdir /tmp/contextual-orchestrator \
     && tar -xzf /tmp/contextual-orchestrator.tar.gz --strip-components=1 -C /tmp/contextual-orchestrator \
     && python -m pip install --no-cache-dir 'maturin>=1.8,<2' \
@@ -13,14 +13,14 @@ RUN mkdir /tmp/contextual-orchestrator \
 FROM python:3.12-slim@sha256:423ed6ab25b1921a477529254bfeeabf5855151dc2c3141699a1bfc852199fbf
 
 LABEL org.opencontainers.image.source="https://github.com/ContextualWisdomLab/contextual-orchestrator" \
-      org.opencontainers.image.revision="cb4d5bca47481a2a0f27eb078287167884a085a3"
+      org.opencontainers.image.revision="eee5323f07be40c3852fa68d73949161609a3ce5"
 
 WORKDIR /app
 
 # Reuse the upstream implementation without copying it into LineageWeave.
 # Pin the runtime to a reviewed immutable upstream commit; model selection,
 # structured synthesis, and reasoning policy stay in contextual-orchestrator.
-ADD https://github.com/ContextualWisdomLab/contextual-orchestrator/archive/cb4d5bca47481a2a0f27eb078287167884a085a3.tar.gz /tmp/contextual-orchestrator.tar.gz
+ADD https://github.com/ContextualWisdomLab/contextual-orchestrator/archive/eee5323f07be40c3852fa68d73949161609a3ce5.tar.gz /tmp/contextual-orchestrator.tar.gz
 RUN mkdir /tmp/contextual-orchestrator \
     && tar -xzf /tmp/contextual-orchestrator.tar.gz --strip-components=1 -C /tmp/contextual-orchestrator \
     && cp -R /tmp/contextual-orchestrator/contextual_orchestrator /app/contextual_orchestrator \
