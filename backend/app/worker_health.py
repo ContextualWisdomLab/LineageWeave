@@ -38,7 +38,9 @@ def heartbeat_has_advanced(
     try:
         previous = int(state_path.read_text(encoding="ascii"))
     except (FileNotFoundError, ValueError):
-        pass
+        # A missing or malformed probe state is an absent prior baseline. The
+        # current worker heartbeat becomes the next probe's baseline below.
+        previous = None
     state_path.write_text(str(current), encoding="ascii")
     return current >= 0 and (previous is None or current > previous)
 

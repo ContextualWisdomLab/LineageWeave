@@ -433,3 +433,82 @@ def test_contextual_orchestrator_summarizes_a_non_trivial_post() -> None:
     assert len(summary.key_events) >= 1
     people_named = {rr.actor_name for rr in summary.roles_and_responsibilities}
     assert any("Jordan" in name or "Priya" in name for name in people_named)
+
+
+def test_non_object_json_summary_returns_none() -> None:
+    """A JSON non-object response is a missing summary, not an empty one."""
+    from lineageweave.post_summary import parse_summary_response
+
+    assert parse_summary_response("[1, 2, 3]") is None
+    assert parse_summary_response('"just a string"') is None
+
+
+def test_dict_key_event_and_role_guards_are_dropped_individually() -> None:
+    """Invalid dict key events and roles fail closed without killing the parse."""
+    from lineageweave.post_summary import parse_summary_response
+
+    content = (
+        '{"korean_summary":"요약", '
+        '"key_events":['
+        '{"event_text":"도면 검토", "project_key":"HVDC Pilot"},'
+        '{"event_text":"  ", "project_key":"x"},'
+        '{"event": null, "project_name":null},'
+        '"문자열 이벤트"'
+        "], "
+        '"roles_and_responsibilities":['
+        '{"actor_name":"홍길동", "responsibility":"검토", "actor_type":"person", '
+        '"affiliated_organization_name":"당사"},'
+        '{"actor_name": 7, "responsibility":"검토"},'
+        '"not-a-dict-role"'
+        "], "
+        '"project_mentions":[], "major_event_actions":[], "five_w1h_evidence":[]}'
+    )
+    summary = parse_summary_response(content)
+    assert summary is not None
+    assert summary.key_events == ("도면 검토", "문자열 이벤트")
+    assert summary.key_event_details[0].project_key == "hvdc-pilot"
+    assert [role.actor_name for role in summary.roles_and_responsibilities] == [
+        "홍길동"
+    ]
+
+
+def test_dict_project_mentions_with_defaults_and_bounds() -> None:
+    """Project-mention dict rows accept defaults and drop bad confidence."""
+    from lineageweave.post_summary import parse_summary_response
+
+    content = (
+        '{"korean_summary":"요약", "key_events":[], '
+        '"project_mentions":['
+        '{"project_name":"HVDC Pilot", "canonical_name":"hvdc-pilot", '
+        '"evidence":"문서 근거", "confidence":0.9},'
+        '{"project_name":"Bad", "canonical_name":"bad", '
+        '"evidence":"문서 근거", "confidence":"nonsense"}'
+        "], "
+        '"major_event_actions":[], "five_w1h_evidence":[]}'
+    )
+    summary = parse_summary_response(content)
+    assert summary is not None
+    assert len(summary.project_mentions) == 1
+    assert summary.project_mentions[0].project_name == "HVDC Pilot"
+
+
+def test_dict_major_event_actions_drop_non_string_rows_and_preserve_others() -> None:
+    """Action dict rows with non-string text are dropped; others are kept."""
+    from lineageweave.post_summary import parse_summary_response
+
+    content = (
+        '{"korean_summary":"요약", "key_events":[], '
+        '"major_event_actions":['
+        '{"action_text":"변경 승인", "project_name":null, '
+        '"requester_name":"홍길동", "processor_name":null, "evidence_text":"근거"},'
+        '{"action_text": 7, "evidence_text":"근거"},'
+        '{"action_text":"실패", "evidence_text":"근거", "confidence":"bad"}'
+        "], "
+        '"project_mentions":[], "five_w1h_evidence":[]}'
+    )
+    summary = parse_summary_response(content)
+    assert summary is not None
+    assert [action.action_text for action in summary.major_event_actions] == [
+        "변경 승인",
+        "실패",
+    ]

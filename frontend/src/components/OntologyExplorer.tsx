@@ -8,6 +8,8 @@ import {
 } from "../api";
 import { t, tf } from "../i18n";
 import { ontologyExplorerText } from "../ontologyExplorerI18n";
+import { occupationalConstructText } from "../occupationalConstructI18n";
+import { OccupationalConstructCatalogSearch } from "./OccupationalConstructCatalogSearch";
 import {
   accumulateNeighborhoodPages,
   filterNeighborhood,
@@ -43,6 +45,7 @@ const NODE_TYPE_LABEL: Record<string, string> = {
   node_corporate_entity: "Organization",
   node_team: "Team",
   node_project: "Project",
+  node_occupational_construct: "Work evidence",
 };
 
 const NODE_TYPE_CLASS: Record<string, string> = {
@@ -51,6 +54,7 @@ const NODE_TYPE_CLASS: Record<string, string> = {
   node_corporate_entity: "ontology-node-organization",
   node_team: "ontology-node-team",
   node_project: "ontology-node-project",
+  node_occupational_construct: "ontology-node-occupational-construct",
 };
 
 const TRUTH_LABEL: Record<string, string> = {
@@ -61,6 +65,12 @@ const TRUTH_LABEL: Record<string, string> = {
   truth_superseded: "Superseded",
   truth_rejected: "Rejected",
 };
+
+function nodeTypeLabel(nodeTypeCode: string): string {
+  return nodeTypeCode === "node_occupational_construct"
+    ? occupationalConstructText("Work evidence")
+    : t(NODE_TYPE_LABEL[nodeTypeCode] ?? nodeTypeCode);
+}
 
 function nodeKey(node: Pick<OntologyGraphNodePayload, "node_type_code" | "node_id">): string {
   return `${node.node_type_code}:${node.node_id}`;
@@ -193,14 +203,16 @@ export function OntologyExplorer({
   }
 
   return (
-    <section className="ontology-explorer" aria-label={t("Ontology neighborhood")}>
+    <section className="ontology-explorer" aria-label={t("View related information")}>
       <header className="ontology-explorer-header">
         <div>
-          <p className="section-eyebrow">{t("Ontology neighborhood")}</p>
-          <h3>{t("Typed relations, not Event Lineage")}</h3>
+          <p className="section-eyebrow">{t("Related information")}</p>
+          <h3>{t("View related information")}</h3>
           <p>
-            {t("This is an ontology neighborhood, not Event Lineage.")}{" "}
-            {t("Event Lineage shows reconstructed post-to-post parents. This graph shows typed people, organizations, teams, projects, and posts.")}
+            {t("Review related records and open a source post for details.")}
+            {visible?.nodes.some((node) => node.node_type_code === "node_occupational_construct")
+              ? ` ${occupationalConstructText("Select a work-evidence node to review the records that support it.")}`
+              : ""}
           </p>
         </div>
         <div className="ontology-explorer-actions">
@@ -218,6 +230,11 @@ export function OntologyExplorer({
           </button>
         </div>
       </header>
+      <OccupationalConstructCatalogSearch
+        accessToken={accessToken}
+        knowledgeCutoff={knowledgeCutoff}
+        onSelectPost={onSelectPost ?? onOpenEvidence}
+      />
       <label className="ontology-search">
         {t("Search within this neighborhood")}
         <input
@@ -259,6 +276,8 @@ export function OntologyExplorer({
               setSelectedEdgeId(edgeId);
               setSelectedNodeKey(null);
             }}
+            onOpenPost={(postId) => (onSelectPost ?? onOpenEvidence)?.(postId)}
+            onOpenEvidence={(postId) => (onOpenEvidence ?? onSelectPost)?.(postId)}
           />
         </>
       ) : null}
@@ -327,13 +346,13 @@ function statusMessage(
   }
   const messages: Record<OntologyExplorerStatus, string> = {
     ready: "",
-    loading: t("Loading ontology neighborhood..."),
-    empty: t("No visible ontology relations for this focus. Open a Keyman or affiliated organization next."),
-    truncated: t("Neighborhood truncated. Page visible relations, then inspect one edge."),
-    denied: t("Access denied for this ontology neighborhood. Open a visible post next."),
-    stale: t("This neighborhood is bound to a knowledge cutoff. Compare with live evidence next."),
-    rejected: t("Rejected proposal. Open the evidence and do not treat it as authoritative."),
-    error: t("Ontology neighborhood is unavailable. Open a visible post next."),
+    loading: t("Loading related information..."),
+    empty: t("No related information is available. Open a visible post next."),
+    truncated: t("Some related information is not shown. Open a source post to continue."),
+    denied: t("Related information is unavailable for this record. Open a visible post next."),
+    stale: t("This information reflects an earlier view. Compare it with the current record next."),
+    rejected: t("This suggestion was not accepted. Open the evidence to review it."),
+    error: t("Related information is unavailable. Open a visible post next."),
   };
   const text = messages[status];
   if (!text) return null;
@@ -355,6 +374,7 @@ function OntologyLegend() {
         <li>{t("Organization")} — {t("hexagon")}</li>
         <li>{t("Team")} — {t("rounded rectangle")}</li>
         <li>{t("Project")} — {t("diamond")}</li>
+        <li>{occupationalConstructText("Work evidence")} — {t("rounded rectangle")}</li>
       </ul>
       <ul>
         <li>{t("Authoritative")}</li>
@@ -388,10 +408,11 @@ function OntologyGraph({
       width="100%"
       height={Math.max(180, layout.height)}
     >
-      <title>{t("Ontology neighborhood")}</title>
+      <title>{t("View related information")}</title>
       {layout.edges.map((edge) => {
         const midX = (edge.fromX + edge.toX) / 2;
         const midY = (edge.fromY + edge.toY) / 2;
+        const labelY = midY + Math.sign(edge.toY - edge.fromY) * 28 - 18;
         const selected = edge.edge_id === selectedEdgeId;
         return (
           <g key={edge.edge_id}>
@@ -402,7 +423,7 @@ function OntologyGraph({
             <text
               className="ontology-edge-label"
               x={midX}
-              y={midY - 18}
+              y={labelY}
               textAnchor="middle"
             >
               {edge.property_label} · {t(TRUTH_LABEL[edge.truth_status_code] ?? edge.truth_status_code)}
@@ -442,7 +463,7 @@ function OntologyGraph({
           transform={`translate(${node.x}, ${node.y})`}
           role="button"
           tabIndex={0}
-          aria-label={tf("Select node: {label}", { label: `${t(NODE_TYPE_LABEL[node.node_type_code] ?? node.node_type_code)} ${node.display_label}` })}
+          aria-label={tf("Select node: {label}", { label: `${nodeTypeLabel(node.node_type_code)} ${node.display_label}` })}
           aria-pressed={nodeKey(node) === selectedNodeKey ? "true" : "false"}
           onClick={() => onSelectNode(node)}
           onKeyDown={(event) => {
@@ -462,7 +483,7 @@ function OntologyGraph({
           >
             <div aria-hidden="true">
               <span>{node.display_label}</span>
-              <small>{t(NODE_TYPE_LABEL[node.node_type_code] ?? node.node_type_code)}</small>
+              <small>{nodeTypeLabel(node.node_type_code)}</small>
             </div>
           </foreignObject>
         </g>
@@ -491,11 +512,20 @@ function OntologyExactValueTable({
   payload,
   selectedEdgeId,
   onSelectEdge,
+  onOpenPost,
+  onOpenEvidence,
 }: {
   payload: OntologyNeighborhoodPayload;
   selectedEdgeId: string | null;
   onSelectEdge: (edgeId: string) => void;
+  onOpenPost: (postId: string) => void;
+  onOpenEvidence: (postId: string) => void;
 }) {
+  const postLabels = new Map(
+    payload.nodes
+      .filter((node) => node.node_type_code === "node_post")
+      .map((node) => [node.node_id, node.display_label]),
+  );
   return (
     <div
       className="ontology-exact-values"
@@ -505,7 +535,7 @@ function OntologyExactValueTable({
     >
       <h4>{t("Exact values")}</h4>
       {payload.exact_value_rows.length === 0 ? (
-        <p>{t("No visible ontology relations for this focus. Open a Keyman or affiliated organization next.")}</p>
+        <p>{t("No related information is available. Open a visible post next.")}</p>
       ) : (
         <table>
           <caption>{t("Exact values")}</caption>
@@ -525,7 +555,19 @@ function OntologyExactValueTable({
             {payload.exact_value_rows.map((row) => (
               <tr key={row.edge_id} className={row.edge_id === selectedEdgeId ? "is-selected" : undefined}>
                 <td>
-                  <button type="button" onClick={() => onSelectEdge(row.edge_id)}>
+                  <button
+                    type="button"
+                    aria-label={
+                      row.property_code === "hasVoiceAssignment"
+                        ? tf("Open post: {label}", { label: row.source_label })
+                        : undefined
+                    }
+                    onClick={() =>
+                      row.property_code === "hasVoiceAssignment"
+                        ? onOpenPost(row.source_node_id)
+                        : onSelectEdge(row.edge_id)
+                    }
+                  >
                     {row.source_label}
                   </button>
                 </td>
@@ -534,7 +576,19 @@ function OntologyExactValueTable({
                 <td>{t(TRUTH_LABEL[row.truth_status_code] ?? row.truth_status_code)}</td>
                 <td>{row.valid_from.slice(0, 10) || t("Unknown")}</td>
                 <td>{row.valid_to.slice(0, 10) || t("Unknown")}</td>
-                <td>{row.evidence_count}</td>
+                <td>
+                  {row.property_code === "hasVoiceAssignment" && row.evidence_post_id ? (
+                    <button
+                      type="button"
+                      aria-label={tf("Open evidence: {title}", {
+                        title: postLabels.get(row.evidence_post_id) ?? row.evidence_post_id,
+                      })}
+                      onClick={() => onOpenEvidence(row.evidence_post_id as string)}
+                    >
+                      {postLabels.get(row.evidence_post_id) ?? row.evidence_post_id}
+                    </button>
+                  ) : row.evidence_count}
+                </td>
                 <td>{row.recorded_at.slice(0, 10)}</td>
               </tr>
             ))}
@@ -562,9 +616,9 @@ function OntologyNodeDrawer({
     <aside className="ontology-drawer" aria-label={t("Node evidence")}>
       <h4>{node.display_label}</h4>
       <p>
-        {t(NODE_TYPE_LABEL[node.node_type_code] ?? node.node_type_code)} · {t(TRUTH_LABEL[node.truth_status_code ?? ""] ?? node.truth_status_code ?? "Unknown")}
+        {nodeTypeLabel(node.node_type_code)} · {t(TRUTH_LABEL[node.truth_status_code ?? ""] ?? node.truth_status_code ?? "Unknown")}
       </p>
-      <p>{t("Ontology class")}: {node.ontology_class_iri}</p>
+      <p>{t("Category")}: {node.ontology_class_iri}</p>
       <p>{t("Recorded at")}: {node.recorded_at?.slice(0, 10) ?? t("Unknown")}</p>
       <div className="ontology-explorer-actions">
         {canRefocus ? (
@@ -578,7 +632,7 @@ function OntologyNodeDrawer({
           </button>
         ) : null}
         <button type="button" onClick={onClose}>
-          {t("Close ontology details")}
+          {t("Close record details")}
         </button>
       </div>
     </aside>
@@ -636,7 +690,7 @@ function OntologyEdgeDrawer({
         </p>
       )}
       <button type="button" onClick={onClose}>
-        {t("Close ontology details")}
+        {t("Close record details")}
       </button>
     </aside>
   );

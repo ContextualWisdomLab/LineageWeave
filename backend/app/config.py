@@ -214,7 +214,7 @@ def load_settings() -> Settings:
             "SOURCE_RESEARCH_MAXIMUM_RESULTS"
         ),
         tepp_transport_url=os.environ.get("TEPP_TRANSPORT_URL", ""),
-        tepp_api_key=os.environ.get("TEPP_API_KEY", ""),
+        tepp_api_key=os.environ.get("TEPP_API_KEY", "").strip(),
         caldav_base_url=os.environ.get("CALDAV_BASE_URL", "").strip(),
         naruon_calendar_base_url=os.environ.get("NARUON_CALENDAR_BASE_URL", "").strip(),
         naruon_calendar_service_token=os.environ.get(

@@ -1,7 +1,7 @@
 import type { ProductEvidence } from "../api";
 import { t } from "../i18n";
 
-export function ProductEvidenceList({ products }: { products: ProductEvidence[] }) {
+export function ProductEvidenceList({ products, onOpenPost }: { products: ProductEvidence[]; onOpenPost: (postId: string) => void }) {
   return (
     <section className="popup-section" aria-label={t("Product evidence")}>
       <h3>{t("Product evidence")}</h3>
@@ -10,10 +10,12 @@ export function ProductEvidenceList({ products }: { products: ProductEvidence[] 
           <li key={`${product.evidence_post_id}-${product.mention_ordinal}`}>
             <strong>{product.canonical_product_name ?? product.extracted_product_name}</strong>
             <p>{product.evidence_text}</p>
+            <button type="button" className="btn-link" onClick={() => onOpenPost(product.evidence_post_id)}>{t("Open product evidence post")}</button>
             {(product.relations ?? []).map((relation) => (
-              <p key={`${relation.target_kind_code}-${relation.target_id}-${relation.relation_type_code}`}>
-                <strong>{relation.target_label}</strong> · {relation.evidence_text}
-              </p>
+              <div key={`${relation.target_kind_code}-${relation.target_id}-${relation.relation_type_code}`}>
+                <p><strong>{relation.target_label}</strong> · {relation.evidence_text}</p>
+                {relation.evidence_post_id !== product.evidence_post_id ? <button type="button" className="btn-link" onClick={() => onOpenPost(relation.evidence_post_id)}>{t("Open relationship evidence post")}</button> : null}
+              </div>
             ))}
             {product.resolution_status_code !== "unique" ? (
               <p className="popup-placeholder" role="status">

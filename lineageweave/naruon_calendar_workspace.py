@@ -18,7 +18,8 @@ from .naruon_calendar_projection import (
 )
 
 NARUON_CALENDAR_UNAVAILABLE_NEXT_ACTION = (
-    "Connect the Naruon calendar projection. Open a commitment below to read that post."
+    "Ask your workspace administrator to enable calendar access. "
+    "Open a commitment below to read its source post."
 )
 _DEFAULT_WINDOW = timedelta(days=31)
 

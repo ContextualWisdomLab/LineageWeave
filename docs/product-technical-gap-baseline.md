@@ -1,79 +1,302 @@
 # Product & Technical Gap Baseline
 
-> Dashboard delivery snapshot: 2026-08-28. Protected `main` is
-> `edf22ee39aee2a8481f9bda8fff59801821e79c2`. Dashboard PR #640 exact
-> observed head is `5fd50962c43717dbd73c9ee73aa5bf106507118a`; this branch is not
-> protected-main release evidence. The queue contains twelve open PRs: five
-> non-drafts are `BLOCKED` (#770, #771, #772, #774, and #775), five drafts are
-> `DIRTY` against `main` (#640, #667, #672, #679, and #702), repair PR #778 is
-> `CLEAN` against #640, and new non-draft PR #780 remains review-blocked. Repair
-> PR #778's implementation head immediately
-> before this documentation-only snapshot was
-> `60150d8c752d1ff24aa902805dd1615c5eca85e5`; hosted checks must run again on
-> the resulting documentation head. PR #776
-> restored the reviewed #742 product-relation slice as #640 commit `1640ce08`;
-> PR #777 then corrected its live integration assertion as `5fd50962`. A
-> five-second squash-order race had merged #711 into #640 before #716 reached
-> #711, so candidate PR #778 reapplies the exact #716 squash delta whose parent
-> is the already-delivered #711 head while preserving #776/#777 and the newer
-> canonical Compose, worker, Voice-taxonomy, and product-relation contracts.
-> The earlier exact-head browser audit exposed the missing mobile navigation
-> content; it is contradictory evidence, not acceptance. Final authenticated
-> desktop/mobile screenshots, asynchronous worker proof, and k6 evidence must
-> be rebuilt from the repaired exact head after its hosted checks complete.
-> Authenticated gateway discovery remains an upstream blocker: the reviewed
-> contextual-orchestrator PR #868 candidate omits the required Rust token-counter
-> crate and therefore cannot build the canonical image. This branch retains the
-> prior immutable runtime pin and fails closed until the owner publishes one
-> coherent protected revision containing both contracts.
+> Current rebuild overlay: 2026-08-28 KST. Protected `main` is
+> `ff7431bd1851c03e737808d22c6a2d43968582f9`; PR #640 is a ready-for-review
+> current-main semantic rebuild at `f0bc98eef238b7a03d4227ab909c8de296041f36`.
+> PR #778 is remotely published at
+> `f27f427d0fb4cc41944fb9814b084806cc327916`; PR #781 is being restacked on
+> that exact parent and remains candidate-only. The open queue has 14 PRs:
+> #783, #782, #781, #780, #778, #774, #772, #771, #770, #702, #679, #672,
+> #667, and #640; #702/#679/#672/#667 remain drafts. Local candidate tests do
+> not transfer to the remote PR head or protected `main`. Exact-head Compose,
+> browser, load, and backfill acceptance remains pending. This
+> overlay supersedes every older queue count below while the dated historical
+> snapshots remain supporting evidence only.
+>
+> Next buyer increment on this cycle: leftover-map explained leftover
+> share `e = R̂² / R²` (ADR 0266 / migration 0244 / v2.23.0) so
+> `e + s + x = 1` is buyer-auditable. Do not persist leftover-map
+> coordinates in this slice.
+
+> Exact-head loop overlay: 2026-08-28 KST. Protected `main` was
+> `bbb191924e9881a5201f1ecf63c854d92992cc1c`; seven PRs and nine issues were
+> open. PR #763 was `b51d3bd8872b` and PR #762 was `e6ca33dba1b5`; both were
+> mergeable, normal squash auto-merge was enabled, exact-head Checks were still
+> running, and no qualifying independent approval existed. PRs #702
+> (`93e7b81d096d`), #679 (`135dfe7c4266`), #672 (`a3e87a89185f`), #667
+> (`0c0f4af572a9`), and #640 (`bd73e0a43ae1`) remained draft and dirty against
+> `main`. Central ruleset 18156473 and repository no-force-push ruleset
+> 21065108 remain active. This overlay supersedes every older queue count below.
+> Checks from older heads, stacked bases, or merged PRs are not transferred.
+>
+> Current-runtime boundary: the official Compose project was healthy at the
+> HTTP health route, but its PostgreSQL schema did not yet contain
+> `source_post_voice`; therefore no current Voice-history aggregate,
+> authenticated project-history API result, or rendered authenticated UI result
+> is claimed. Older aggregate observations below remain dated supporting
+> evidence, not confirmation of this exact head. The checked repository names
+> are `ContextualWisdomLab/LineageWeave`, `RankWeave`, `ThreadWeave`, `TEPP`,
+> and lowercase canonical `ContextualWisdomLab/disksage`.
+
+> Voice-of-X delivery snapshot: 2026-08-27 KST. Protected `main` was
+> `ff7431bd1851c03e737808d22c6a2d43968582f9`; PR #713 was
+> `850494c3861703862a76cfe564381a41243c6c2d`; stacked PR #717 was
+> audited at implementation head
+> `d5fe4828e9005f0157c308e8ea3c3a590cdf465b`. This candidate and the
+> historical evidence below are not protected-main release evidence.
+> Loop snapshot: 2026-08-27. Protected `main` advanced through the
+> I/O-Psychology job-family and occupational-classification delivery: PRs
+> #709 (DOT/FJA worker functions, ADR 0232), #718 (evidence-bound construct
+> classes, ADR 0248), +#726 (catalog-bound construct extraction, ADR 0253),
+> #733 (construct evidence navigation, ADR 0255), #713 (Voice-of-X ADR 0246),
+> #753 (FJA I/O-Psychology semantic layer, ADR 0251), #751 (SOC/O*NET/RIASEC
+> taxonomy, ADR 0245), #749 (authorized job-family and job-series snapshot
+> import, ADR 0263), #657 (TEPP lifecycle evidence), #704, #720, and #754 are
+> now merged. The still-open queue is carried in section 1. No row below is
+> release evidence until re-verified on a specific head.
+
+## Voice-of-X product and technical gap
+
+ADR 0246 and PR #713 add Supplier, Employee, Business, Regulator, Investor,
+Society, and Process to the original Customer, Customer's Customer,
+Competitor, Market, and Partner source-post vocabulary. The migration,
+published SKOS concepts, product requirements, changelog, and ontology
+round-trip tests agree on the twelve codes. The design is organization-type
+neutral: public bodies, nonprofits, communities, and automated processes do
+not need to be forced into a B2B2C customer chain.
+
+The phrase "all Voice-of-X combinations" does not have a standards-backed
+finite enumeration. ISO's own stakeholder-category guidance says that the
+relevant category set varies by committee and subject; ISO 26000 requires
+stakeholder identification and engagement across organizational contexts;
+AA1000SES requires an inclusive, continuing identification process; and
+Mitchell, Agle, and Wood (1997) model stakeholder salience from combinations
+of power, legitimacy, and urgency rather than a fixed industry-role list.
+Accordingly, ADR 0246 keeps the controlled vocabulary extensible and refuses
+keyword inference, defaults, invented weights, or an asserted exhaustive
+cross-product.
+
+ADR 0256 and migration 0237 now define the persistence contract for
+evidence-bearing composition. A post keeps one source-provided
+`voc_type_code`, mirrored as its sole primary association, while every
+additional voice requires a normalized PROV-O assertion and explicit truth
+status. Half-open assignment intervals preserve a backfilled primary at
+historical cutoffs, close a replaced primary without deleting it, and permit a
+later return to the same Voice. The #717 candidate therefore addresses #748's
+A → B → A storage root cause without adding Cartesian-product codes. Protected
+delivery and synthetic PostgreSQL concurrency/cutoff evidence remain required.
+The remaining acceptance boundary is:
+
+1. preserve the imported primary voice without reclassification (implemented
+   in the candidate migration; migration 0237 replayed twice successfully on
+   an isolated PostgreSQL stack on 2026-08-27, including both primary-sync
+   triggers; a synthetic real-OIDC PostgreSQL API write also proved that the
+   imported primary remains unchanged);
+2. record each additional voice with its own source/evidence and truth state
+   (schema-enforced and candidate `post_admin` API plus live Post-popup
+   authoring implemented; synthetic authenticated PostgreSQL integration
+   proved denial before permission, the authorized write, and its normalized
+   PROV-O derivation on 2026-08-27);
+3. keeps post voice distinct from named-counterparty relationship, actor role,
+   topic, channel, lifecycle, and stakeholder-salience attributes;
+4. return only authorized associations through API, JSON-LD, CSV, filters,
+   and UI (candidate API list/detail, filters, combined post-card labels,
+   qualified JSON-LD, exact-value CSV, SHACL, and source-post evidence
+   navigation implemented; the board re-filter matches every associated voice
+   and all twelve governed atomic labels are localized across English, Korean,
+   Chinese, Japanese, and Vietnamese; one bounded query projects assignments
+   for every authorized Post even when another node type is the focus; post
+   detail lists primary and evidence-connected perspectives separately and
+   honors its knowledge cutoff; client-side JSON-LD filtering retains only
+   exact canonical repository-case node and Voice-assignment IRIs rather than
+   accepting cross-origin suffix matches; the exact-value row exposes distinct
+   carrying-Post and authorized derivation-evidence actions, while hidden
+   evidence emits neither an identifier nor a fabricated evidence count;
+   paged JSON-LD merges properties for one subject and unions its multi-Voice
+   relation rather than overwriting an earlier page); and
+5. proves zero-, one-, and multi-voice states with synthetic fixtures,
+   migration replay, ontology/SHACL, API, accessibility, and Storybook edge
+   tests before any release claim. The candidate `CombinedVoiceEvidence` scene
+   covers primary-plus-additional assignments; desktop and mobile screenshots
+   were inspected on 2026-08-27. At 390 CSS pixels the document did not
+   overflow, the named exact-value region remained horizontally scrollable,
+   and the source-post evidence action remained visible and labeled. The
+   `Post/Recorded perspectives` desktop and 390-pixel scenes were also inspected
+   on 2026-08-27; both kept each complete Voice label paired with its imported
+   or evidence-connected state without clipping or horizontal overflow. The
+   `Post/Connect perspective` ready/success scenes were inspected at 1440 and
+   390 CSS pixels on 2026-08-27: labels stay above controls, the mobile form is
+   a single column, controls meet the 44-pixel touch target, and no horizontal
+   overflow was visible.
+
+At this snapshot the repository had 42 open PRs and 11 open issues. PR #713
+head `850494c3` includes the review-driven localization of all twelve governed
+Voice labels. Its frontend, ontology publication, static-analysis, dependency,
+coverage, full-suite, CodeRabbit, Devin, and OpenCode checks passed. Strix
+failed closed before producing a vulnerability report:
+the primary NVIDIA NIM model returned HTTP 429, one configured fallback had
+reached end of life, and the OpenAI fallback reported exhausted credits. A
+same-head retry completed on 2026-08-27 with the explicit
+`STRIX_PROVIDER_UNAVAILABLE` annotation and again produced no vulnerability
+report. This
+is provider/control-plane unavailability, not a vulnerability result or
+permission to transfer an older success. Auto-merge remains enabled, while an
+independent approval is still required. PR #717 implementation head
+`d5fe4828` merges that
+parent change without force-pushing and separates the complete governed Voice
+catalog used for authoring from usage-derived Board filters, so an authorized
+administrator can attach a Voice that no visible Post carries yet. It also
+labels Voice exact-value navigation as opening the carrying Post rather than
+misrepresenting that Post as the separately recorded derivation evidence. Its
+CodeRabbit and hosted Frontend/Storybook checks passed at predecessor head
+`ebb4ef1d`; refreshed checks for exact head `d5fe4828` were queued. Focused local
+backend tests, frontend type checking/lint, and the new unused-Voice authoring
+regression passed, and the exact-value navigation tests, lint, and type check
+passed after the label repair. The paged JSON-LD union regression and Voice
+evidence navigation suite passed 23 focused frontend tests; 48 focused backend
+ontology/docstring tests also passed. The full backend suite at predecessor
+head `ebb4ef1d` passed 1,366 tests with 148 environment-dependent skips. The
+real-integration fixture now applies
+the existing migration 0042 before the expanded taxonomy migrations instead
+of seeding an incomplete or duplicate legacy catalog; the exact
+`d5fe4828` authenticated post-list integration passed in 91.54 seconds. The
+wider local frontend run had 400 passes and eight five-second timeouts under
+concurrent backend-suite load; a later App-only run had 94 passes and five
+five-second timeouts, while the hosted Frontend/Storybook job passed on
+`ebb4ef1d`. Neither local timeout run is promoted to full-suite success. An initial
+authenticated integration attempt was unavailable while Keycloak initialized;
+a later retry against the shared synthetic stack succeeded in 56.18 seconds
+and proved the permission, API, PostgreSQL,
+PROV-O, and primary-preservation assertions; no identifying source data was
+used or retained. No self-approval, admin bypass, or stale-head check transfer
+is permitted.
+
+Stacked PR #717 carries ADR 0256, migration 0237, qualified
+ontology terms, persistence/API/UI tests, and the category-validation review
+repairs plus a local candidate admin write path that creates its PROV-O
+derivation from an authorized evidence Post. Its JSON-LD projection names that
+evidence Post only when it is in the authorized visible set and omits the whole
+additional assignment otherwise, preserving the SHACL evidence minimum without
+substituting the assigned Post. It targets
+#713's branch, not protected `main`;
+its checks and review are candidate evidence only. After
+#713 reaches protected main, #717 must be synchronized, retargeted to `main`,
+and revalidated on its then-current head.
+
+Downstream Dashboard repair PR #737 exact head `a837ee5d` is stacked on base
+`7c7bb2cf`, which contains migration 0235 through a non-#713 composition but
+does not contain #713's twelve-label locale update. Its added Voice labels are
+therefore necessary on that exact base, yet overlap #713 and must be reconciled
+when the stack is eventually rebuilt on protected `main`; neither branch is a
+second taxonomy authority, and pre-parent Checks cannot transfer across that
+restack.
+The remaining user-visible gap is evidence-bearing composition. A post still
+has one source-provided `voc_type_code`; the product cannot yet represent a
+single record that intentionally carries multiple independently evidenced
+voices, nor expose the combination in filters, exports, or the ontology
+neighborhood. Do not solve this by adding every Cartesian-product code. The
+acceptance boundary for a later ADR is a normalized, provenance-bearing
+multi-voice association that:
+
+1. preserves the imported primary voice without reclassification;
+2. records each additional voice with its own source/evidence and truth state;
+3. keeps post voice distinct from named-counterparty relationship, actor role,
+   topic, channel, lifecycle, and stakeholder-salience attributes;
+4. returns only authorized associations through API, JSON-LD, CSV, filters,
+   and UI; and
+5. proves zero-, one-, and multi-voice states with synthetic fixtures,
+   migration replay, ontology/SHACL, API, accessibility, and Storybook edge
+   tests before any release claim.
+
+At this snapshot the repository had 23 open PRs and 10 open issues. PR #713
+was `MERGEABLE` but policy-blocked: exact-head backend, frontend, CodeQL,
+ontology-publication, Semgrep, OSV, Trivy, Scorecard, Noema, Devin, and
+CodeRabbit checks were successful; `coverage-source-tree` was queued; Strix
+failed closed with `STRIX_PROVIDER_UNAVAILABLE`; and an independent approval
+was still required. Auto-merge remains enabled. No self-approval, admin bypass,
+or stale-head check transfer is permitted.
+
+References for this gap use the APA 7 entries in ADR 0246. Current supporting
+standards pages were rechecked on 2026-08-27: ISO 26000:2010 remains applicable
+to all organization types and AA1000SES v3 is under development for a planned
+2027 release, so the repository continues to cite the published AA1000SES
+(2015) contract rather than treating the draft as adopted policy.
+
+> Current queue overlay: 2026-08-27 KST. Protected `main` was
+> `ff7431bd1851c03e737808d22c6a2d43968582f9`; 26 PRs and 10 issues were
+> open. This overlay supersedes the older queue count and exact-head table
+> below, which remain historical evidence. Re-fetch the head, checks, reviews,
+> threads, applicable rulesets, and merge SHA immediately before any lifecycle
+> claim. No local branch or stacked-branch result is protected-main evidence.
+
+## Current occupational semantic-layer gap
+
+ADR 0245's candidate branch publishes only a provenance-safe classification
+foundation: 23 2018 SOC major groups, four O*NET 31.0 Job Zone categories, six RIASEC interest
+types and their published adjacency, six explicitly legacy work-value clusters, seven
+revised work-style dimensions, and four ability domains. It asserts no
+occupation-to-characteristic instance profile and therefore does **not** yet
+satisfy the requested job-family, job-series, and occupation-level coverage of
+work cognition, affect, behavior, or their empirical relations. This is an
+explicit unavailable state, not a reason to infer mappings from labels.
+
+| Gap | Current evidence | Acceptance requirement |
+|---|---|---|
+| Classification depth | ADR 0245 and `lineageweave/io_taxonomy.py` expose SOC major groups only; schemes now name versioned PROV source entities and the stable O*NET 31.0 Job Zone JSON digest | Import a versioned authoritative classification release with provenance-preserving major, minor, broad, and detailed occupation identifiers; add ISCO/ESCO crosswalks only where the publishing authority supplies them |
+| Construct granularity | The candidate ontology exposes 23 high-level characteristic concepts | Publish source-versioned O*NET abilities, skills, knowledge, work activities, work context, interests, and work styles without collapsing cognition, affect, and behavior into one dimension; preserve removed Work Values only as versioned legacy content |
+| Occupation-to-construct relations | ADR 0245 deliberately declares relation properties without instance assertions | Persist released source observations with source version, occupation code, element identifier, scale identifier, value, sample/error metadata when supplied, and provenance; never invent or locally normalize a weight |
+| Job-family and job-series semantics | No authoritative employer-specific job architecture is present | Define an organization-neutral import contract that preserves the authorized source hierarchy and distinguishes standard occupation codes from employer job families/series; no label-based binding |
+| Temporal and multilevel interpretation | Static vocabulary only; no person-level inference is asserted | Version valid and transaction time, preserve occupation/organization/unit nesting and multiple membership, and require TEPP or the owning Rust psychometric service before any calibrated temporal or multilevel result |
+| Product consumption | The read model has no persisted semantic-layer consumer or authenticated UI evidence | Add a provenance-bearing API and accessible ontology exploration flow, then verify synthetic Storybook edge states plus authenticated aggregate runtime evidence without exposing identifying records |
+
+### Current exact-head PR queue
+
+| PR | Exact observed head | Base | Observed gate state |
+|---:|---|---|---|
+| #719 | `0cea830a` | `feat/fja-worker-function-ontology` | unstable; 1 pending check(s) |
+| #718 | `a3fb32bb` | `feat/fja-worker-function-ontology` | clean; no non-passing check observed |
+| #717 | `771a8edf` | `feat/voice-of-x-complete-taxonomy` | unstable; 1 pending check(s) |
+| #716 | `8b54b2f7` | `fix/structured-workflow-exact-pin` | clean; no non-passing check observed |
+| #714 | `aa93318f` | `main` | blocked; no non-passing check observed |
+| #713 | `cc3dfc14` | `main` | blocked; review required; 13 pending check(s) |
+| #711 | `8902e37f` | `feat/dashboard-case-metrics` | clean; no non-passing check observed |
+| #710 | `8df04b68` | `main` | blocked; review required; no non-passing check observed |
+| #709 | `8ef4090c` | `main` | blocked; review required; 11 pending check(s) |
+| #704 | `027323cf` | `main` | blocked; review required; 2 failed check(s) |
+| #702 | `5de66ab9` | `main` | blocked; review required; 2 pending check(s) |
+| #701 | `cc3351a9` | `main` | blocked; review required; 1 failed check(s) |
+| #700 | `1bc99eca` | `main` | blocked; review required; 1 failed check(s) |
+| #680 | `efe864e5` | `main` | blocked; 1 failed check(s) |
+| #679 | `13ecf41d` | `main` | blocked; no non-passing check observed |
+| #672 | `a3e87a89` | `main` | blocked; review required; 1 failed check(s) |
+| #668 | `1194f44d` | `main` | blocked; review required; 1 failed check(s) |
+| #667 | `c2d11a8a` | `main` | blocked; review required; 2 pending check(s) |
+| #658 | `15d670f0` | `main` | blocked; review required; 1 failed check(s) |
+| #657 | `9f71681c` | `main` | blocked; review required; 1 failed check(s) |
+| #644 | `f53dd28e` | `main` | blocked; review required; 1 failed check(s) |
+| #643 | `8767de1b` | `main` | blocked; review required; 1 failed check(s); 1 pending check(s) |
+| #640 | `5594029c` | `main` | blocked; no non-passing check observed |
+| #639 | `2f4b1bff` | `main` | blocked; review required; 1 failed check(s) |
+| #632 | `24262a99` | `main` | blocked; review required; 1 failed check(s) |
+| #629 | `b721b0f2` | `main` | blocked; review required; 1 failed check(s) |
+
+> Dashboard delivery snapshot: 2026-08-26 07:15 KST. Protected `main` was
+> `494b54e2245040bcf02b45376f221c37cd437e76`. This local branch is not
+> protected-main release evidence.
 
 ## Operations Dashboard PRD/TRD traceability
 
-ADR 0224 reconciles the observed `lw*` test projects with the complete
-`lineageweave` Compose boundary. A historical Dashboard candidate exercised
-all eight declared services with 27 synthetic posts: live OIDC/JWKS
-verification passed, the latest topic-coordinate migration tables were
-present, Ask reached `succeeded`, and a 2-VU 20-second authenticated k6
-observation completed 162 HTTP requests with zero failures. That run predates
-the current #640 head. The canonical containers currently return HTTP 200 from
-backend `/healthz` and the frontend root, but their Compose labels do not prove
-the source commit; therefore neither the running stack nor the historical k6
-run is exact-head authenticated acceptance. Exact-head desktop/mobile
-screenshots and k6 remain required after #640 is rebuilt from its current
-exact head. Historical test projects are retired only by their exact Compose
-project label and without named-volume deletion. PR #678 implementation head
-`da98de07` fixes the default project name; its follow-up exact-label audit also
-removed the remaining identifiable isolated test containers while preserving
-named volumes.
-
 | Requirement | Evidence contract | Delivery state |
 |---|---|---|
-| Claim cause delay: order, specification change, originating order, sales pool, Event/post counts | ADR 0206; contextual-orchestrator case classification and `claim_received` → `cause_confirmed` milestones with cited spans and observed source clocks | Stacked candidate reports open/resolved/evidence-missing counts and exact elapsed time only for paired observed endpoints; every required answer and endpoint is cited or explicitly missing. Historical synthetic runtime passed, while current exact-head authenticated acceptance and authorized-corpus re-analysis remain pending. |
-| Rebid/handover: discussion, counterparties, our owner, decisions, Event/post counts | ADR 0206; normalized case facts plus separate rebid-response and handover milestone pairs | Stacked candidate reports open/resolved/evidence-missing rebid and handover lifecycles without a delay threshold or invented elapsed endpoint. Historical synthetic runtime passed, while current exact-head authenticated acceptance and authorized-corpus re-analysis remain pending. |
-| External information count/rate and sales/project relation | ADR 0206; semantic `external_information` classification inside Dashboard GNB | Candidate GNB destination filters the Dashboard to external evidence; no separate Board by product decision. Historical synthetic runtime returned the honest zero-result state; current exact-head authenticated acceptance remains pending. |
-| Project-specific journey | Explicit source/semantic project membership plus provenance-bearing TEPP TDT/CHRONOS predecessor, branch, and transition results | Candidate API preserves every explicit project membership, but its local event-time sort is only an observed-event list. It is no longer labeled as a Project Journey. Full journey delivery remains open until the accepted TEPP producer artifact is persisted and rendered; no fixed sales/order start or nearest-date edge is accepted. |
-| Apple-Silicon mathematical acceleration | ADR 0226 macOS-native Rust owner service with authenticated MLX Metal execution receipts | Normative boundary applies to accepted TEPP and fast-mlsirm Rust kernels; their owner implementations and actual Metal parity receipts remain required before activation. RankWeave's current dependency-free Python retrieval-fusion/evaluation contract is not Rust acceleration evidence and is not required to adopt MLX; a future Rust vector-scoring owner remains a separately accepted contract gap. |
-| Ask answer citation-to-event navigation | ADR 0225; authorized cited source, observed source clock, focused evidence layer, and full-post navigation | Stacked candidate renders numbered answer citations and chronologically ordered evidence cards with bidirectional focus. Event and record clocks stay distinct; this list does not claim a Project Journey. Storybook and component interaction evidence are included; authenticated runtime screenshots remain required at the exact candidate head. |
+| Claim cause delay: order, specification change, originating order, sales pool, Event/post counts | ADR 0206; contextual-orchestrator case classification with cited spans; Event Lineage context | Candidate implementation; authenticated runtime acceptance pending |
+| Rebid/handover: discussion, counterparties, our owner, decisions, Event/post counts | ADR 0206; normalized case facts plus persisted summary actions/roles | Candidate implementation; corpus backfill pending |
+| External information count/rate and sales/project relation | ADR 0206; semantic `external_information` classification inside Dashboard GNB | Candidate implementation; no separate Board by product decision |
+| Project-specific journey | Explicit source/semantic project membership plus event-time ordering | Candidate API and ordered journey UI implemented; authenticated runtime acceptance pending |
 | Repeat issue to design improvement | `repeat_issue`, `issue_pattern`, and `improvement_action` cited facts | Candidate semantic contract; design-system connector acceptance pending |
-| Natural-language Ask with evidence, report, alert, MCP | Persisted semantic-unit embeddings plus versioned delivery/resource contract | Candidate implementation uses whole-question embedding retrieval with no lexical fallback. Post-scoped evidence collection follows exact persisted `project_key` membership, and newly analyzed project evidence durably requeues completed sibling analyses that still have missing facts. Case-analysis reuse is bound to the exact ordered authorized evidence window and context, so the unchanged focal record re-analyzes when that window changes. Canonical acceptance completed one provider-backed 2,048-input batch and atomically persisted 2,048 semantic-unit vectors (6,291,456 dimension values) with zero duplicate units and post-scoped session mismatch count 0. The provider step was durable before persistence, while normalized dimension insertion required about four minutes, peaked near one CPU of PostgreSQL, and showed no database wait event or OOM. The remaining product gap is a measured storage-throughput boundary: preserve atomic replacement and normalized auditability while reducing dimension-write CPU and operator-memory cost through a separately reviewed database contract; do not weaken WAL durability or expose partially replaced vectors. |
+| Natural-language Ask with evidence, report, alert, MCP | Persisted semantic-unit embeddings plus versioned delivery/resource contract | Candidate implementation uses whole-question embedding retrieval with no lexical fallback; authenticated runtime acceptance pending |
 | Similar VOC, customer cohort, prior action | Persisted repeat-issue candidate semantics plus orchestrator pair adjudication and extractive evidence | Candidate live post endpoint and post-detail UI implemented; authenticated runtime acceptance pending |
-| TEPP independent Event Lineage anchor | Accepted, persisted TEPP criterion bound to exact snapshot/cutoff before fast-mlsirm activation | LineageWeave consumer PR #606 and TEPP protected `main` `b03cc378` are delivered. TEPP #237 merged as `eec86be7`, #247 with #251–#254 content merged as `2f2119df`, and #257 merged as `51b4997b` with strict v2 contracts. The remaining gap is a complete estimator that assembles those accepted artifacts with a unique anchor, fitted event-time mass, incident relation/membership deletion, and real estimator-bound MLX parity; local or fallback weights remain prohibited. |
-| Temporal Lineage topics and multilevel important posts | ADR 0210; TEPP posterior topic/plausible-value contract followed by fast-mlsirm observed-information case-deletion influence | This stacked candidate adds normalized persistence, exact run/snapshot/cutoff binding, pre-aggregation scope authorization, API diagnostics, and populated/unavailable Storybook surfaces. TEPP's fail-closed input validation, full joint precision, deterministic joint plausible-value draws, canonical research register, and strict v2 producer contracts are on protected `main` through `b03cc378`. Runtime remains honestly unavailable until the complete estimator assembles an accepted unique anchor, fitted event-time mass, incident relation/membership deletion, and estimator-bound MLX parity; no local Python, hand-authored weight, or fallback score is accepted. |
-| PostgreSQL WAL/checkpoint and worker memory pressure | ADR 0227 and ADR 0247; aligned PostgreSQL counter deltas plus unchanged-container Docker/cgroup v2 evidence | Candidate PostgreSQL procedure emits a content-authenticated restart/rollback plan while retaining unmeasured settings and durability. The current cumulative counters establish sustained historical WAL/checkpoint pressure but do not replace a representative aligned apply window. A prior worker exit 137 is not attributable after container recreation: the current healthy worker has no configured service memory limit/reservation, and a one-second non-identifying observation showed an approximately 109 MiB cgroup lifetime peak with no new local pressure/OOM event. That idle window is not capacity acceptance. Capture the declared representative workload before recreation; do not add a limit or headroom multiplier until that evidence supports a separately accepted capacity boundary. |
-
-Customer-copy audit began at #640 exact `c142c4ea` and was delivered by #727
-at merge `353dfd01`; it retained the ADR-required
-measurement-administrator terms and explicit ontology/provenance inspection
-labels. Two general-reader gaps were isolated: Customer Master explained the
-ontology/semantic implementation boundary instead of the evidence action, and
-Global Ask called authorized workspace evidence "internal" posts. The stacked
-copy repair tells the reader to compare the source identifier with related
-posts and organization evidence, and reuses the authorized-citation action.
-Five-locale consistency, rendered component tests, and desktop/narrow
-Storybook scenes cover the Customer Master repair. Follow-up #730 renders the
-Global Ask no-public-claim result and its next action in desktop and narrow
-scenes delivered at merge `b3befa8b`. `프로젝트별 관측 Event` and ADR 0210's exact
-`model influence` estimand name remain unchanged.
+| TEPP independent Event Lineage anchor | Accepted, persisted TEPP criterion bound to exact snapshot/cutoff before fast-mlsirm activation | Consumer PR #606 is on protected main; TEPP producer PR #237 remains open, so no end-to-end accepted artifact is release evidence yet |
+| Temporal Lineage topics and multilevel important posts | ADR 0210; TEPP posterior topic/plausible-value contract followed by fast-mlsirm observed-information case-deletion influence | Product/technical contract is protected on `main`; neither required Rust CPU/GPU producer envelope is shipped, so the Dashboard surface remains unavailable (ADR 0208: no local Python substitute) |
 
 ### Technical contract and flow
 
@@ -97,103 +320,23 @@ Security/operability: every aggregation applies `post_read` plus row-level
 corporate-entity visibility before counting; source-body digests invalidate
 stale inference; provider errors persist no positive/negative result; PII
 remains authorized at the UI boundary and is excluded from telemetry. The
-tables use composite keys and bounded kind-first indexes. Production hot-path
-acceptance uses `scripts/explain_post_content_backfill.py` on an anonymized
-runtime snapshot; the exact candidate SQL runs in a rolled-back transaction
-and emits aggregate plan/buffer metrics only. A deployment-specific
-capacity/SLO remains separate from this query-shape evidence.
-
-On an isolated exact-schema synthetic snapshot based on #716 `c01de078`
-(20,000 eligible posts and jobs, 9,927 ontology-backed project mentions, and
-4,951 current operations analyses), a consecutive rolled-back comparison
-returned the same 200-row priority page in 2,056.629 ms before and 1,327.868 ms
-after the change. Root shared-hit blocks fell from 275,642 to 100,514; both
-plans recorded zero shared reads and zero temporary reads/writes. The former
-plan made 20,000 correlated project probes and 9,927 correlated
-operations-analysis probes, while the semantics-equivalent two-tier query
-removes the corpus-wide priority `CASE` and its extra correlated priority
-subplans. The reproducible summary includes both relation plan-node counts and
-actual scan-loop totals so a single nested-loop node cannot be mislabeled as a
-single execution.
-The plan remains `Limit -> LockRows -> Sort`; `SKIP LOCKED` and the transaction
-boundary therefore remain intact, and the remaining tier runs only when the
-priority tier cannot fill the requested page. A separate remaining-tier
-observation returned 200 rows in 12,649.654 ms with 241,317 root shared-hit
-blocks and no reads or temporary spill; it is retained as the next
-distribution-specific optimization target, not hidden by the priority-path
-improvement. These observations establish query shape only, not a deployment
-capacity or latency SLO.
+tables use composite keys and bounded kind-first indexes; production hot-path
+acceptance still requires `EXPLAIN (ANALYZE, BUFFERS)` on an anonymized runtime
+snapshot.
 
 ### Historical UI audit evidence
 
 The `f0b96029` Storybook build was rendered at 1440×1100 and 402×1200 with
 synthetic evidence; `416fd19d` changes only post-navigation request isolation.
 Desktop inspection showed all four case kinds, five non-conflated metrics,
-project-observed-event ordering, cited facts, and evidence actions without horizontal
+project-journey ordering, cited facts, and evidence actions without horizontal
 card overflow. Narrow inspection showed two-column metrics, readable cards and
-44px-class actions; the project event list remains intentionally horizontally
+44px-class actions; the project journey remains intentionally horizontally
 scrollable. No identifying runtime record or screenshot is committed. The
 `EvidenceReady`, `NarrowViewport`, `AnalysisPendingAndMissingEvidence`,
 `AnalysisFailed`, and `LoadError` scenes cover the ADR 0206 state inventory.
-The current #640 candidate adds `ExternalInformationEmpty`; its Storybook
-build was inspected at 1440×1000 and 390×844 and exposes neither corpus-wide
-total/pending/failed counts nor a misleading corpus failure alert in that scoped
-destination. Screenshots remain local synthetic audit evidence and are not
-committed.
-The stacked topic-context consumer adds `TopicInfluenceAccepted` and the
-unavailable topic section in `EvidenceReady`. Synthetic screenshots were
-inspected at 1440×1200 and 390×844. At 390px the page had zero document-level
-horizontal overflow while each exact-value table retained its named,
-keyboard-focusable 332px viewport over 784px of table content. The new source
-actions measured 54px high; sampled heading, caption, and table-header contrast
-was 20.15:1, 5.73:1, and 18.62:1. Authenticated runtime evidence remains
-required before protected delivery can be claimed.
 Authenticated authorized-corpus acceptance remains separate and may return
 only aggregate, non-identifying evidence to this repository.
-
-The 2026-08-26 canonical runtime audit found the Ask composer visually
-compressed even though its asynchronous enqueue path remained responsive. The
-current stacked candidate replaces that loose control row with a labeled form,
-a stable submit action, and a separate live status. Component screenshot
-acceptance remains pending until the candidate image is rebuilt. This is not
-protected-main delivery evidence.
-
-The current candidate was also re-rendered from the isolated synthetic stack
-at 1440×1100 and 402×1200 after the touch-target repair. Both viewports had
-document width equal to viewport width, no browser console/page errors, and no
-visible button or link below the shared 24px WCAG 2.2 minimum target token.
-The screenshots remain local `/tmp` audit artifacts and are not committed.
-
-At the repaired dashboard head, the `EvidenceReady` and `NarrowViewport`
-stories were re-rendered locally with synthetic data at desktop and iPhone
-13 viewports. The desktop shows separate Event/post values and evidence
-actions; the narrow view preserves readable cards and 44px-class actions while
-keeping the multi-step project event list horizontally scrollable. These images
-remain local audit evidence and are not committed.
-An authenticated synthetic OIDC audit then found that the mobile breakpoint
-hid the entire GNB despite having no drawer implementation. Candidate
-`6b195171` keeps the same semantic navigation in a keyboard-accessible
-horizontal viewport. The 390×844 rerender showed the GNB, one `main`, zero
-unnamed controls, no document-level horizontal overflow, and visible keyboard
-focus. Candidate `1fb65c2e` fixed the root cause of the isolated 401: Compose
-passed canonical `VITE_KEYVERSE_*` build arguments while the frontend image
-consumed different names and silently compiled the default issuer. A fresh OIDC
-browser context then rendered the authenticated synthetic Dashboard at
-1440×1000 and 390×844 with 27 total posts, one classified Event/post, 24
-pending analyses, zero failures, and honest unavailable TEPP/fast-mlsirm
-producer contracts. Both viewports had one `main`, one navigation landmark,
-zero unnamed controls, visible first-tab focus, no document horizontal
-overflow, no console errors, and no HTTP 4xx/5xx. Screenshots remain local and
-uncommitted.
-The same candidate then ran the complete Python/backend suite with
-`DeprecationWarning` promoted to an error: 1,372 tests passed and 17 declared
-integration/provider tests skipped. The run exposed one stale async-queue test
-that implicitly depended on unavailable semantic retrieval; the repaired test
-injects the queue computation boundary, while dedicated retrieval tests retain
-the no-keyword, fail-closed embedding contract. Starlette's maintained
-`httpx2` TestClient dependency and FastAPI's RFC 9110 422 constant remove the
-observed deprecations without suppression. This remains local exact-head
-regression evidence, not hosted-gate or protected-main evidence.
 
 ### Exact open-PR boundary
 
@@ -204,7 +347,7 @@ gates and/or independent review after the base changed. These observations are
 not merge readiness. Re-fetch exact heads, unresolved threads, checks,
 approvals, rulesets, and merge SHA before any lifecycle claim.
 
-> Audit snapshot: 2026-08-26 07:26 KST (refreshed by the autonomous merge
+> Audit snapshot: 2026-08-26 07:15 KST (refreshed by the autonomous merge
 > loop). This repository records synthetic fixtures and aggregate,
 > non-identifying runtime evidence only. Open PRs and local checks are not
 > protected-default-branch release evidence. Identifying post identifiers,
@@ -221,39 +364,28 @@ context only.
 
 | PR | Exact observed head | Merge/check state at this snapshot |
 | ---: | --- | --- |
-| #681 | `3e0fa644` | stacked fast-mlsirm pair-posterior contract pin; exact-head checks queued and independent review required |
-| #667 | `425de329` | current governance/gap evidence refresh; exact-head checks and independent review required |
-| #663 | `e65fd29c` | consolidates project ontology traversal and #632 content; exact-head checks and independent review required |
-| #658 | `f497a6e8` | evidence-honest Global Ask cutoff with revision-interval live-after semantics |
-| #657 | `a59a2023` | fail-closed TEPP asynchronous lifecycle persistence; executable producer evidence remains required |
-| #644 | `ed8d97f3` | native-surface code splitting with modal-focus regression coverage |
-| #643 | `7fb4d18c` | accessible status-notice surfaces |
-| #640 | `d314855c` | operations-dashboard contract alignment; exact-head checks queued and independent review required |
-| #639 | `8da485d3` | exact-head checks and independent review required |
-| #632 | `cad4debf` | semantic provenance repair structurally included by #663 |
-| #631 | `e6b4f0c4` | documentation-only queue snapshot requires current-main refresh or closure |
-| #629 | `c95f931d` | exact-head checks and independent review required |
+| #667 | `3bc662d7` | refreshes protected-main and open-queue documentation evidence; base conflict remains to be repaired |
+| #663 | `6fd2f701` | combined Project ontology candidate plus #666's non-default-branch removal of sampled region-coverage arithmetic; base conflict remains to be repaired |
+| #658 | `f007a5ed` | evidence-honest Global Ask cutoff; hosted checks and independent review required |
+| #657 | `2d9b43b7` | TEPP asynchronous lifecycle persistence while unpublished producer work stays unavailable; hosted checks and independent review required |
+| #644 | `ed8d97f3` | native frontend surface code splitting; hosted checks and independent review required |
+| #643 | `7fb4d18c` | shared token-backed status notice; hosted checks and independent review required |
+| #640 | `2d50fa01` | dashboard case metrics and project journeys; base conflict remains to be repaired |
+| #639 | `48065ad1` | restores Running action and Compose contracts; hosted checks and independent review required |
+| #632 | `29aee18d` | graph-fact provenance, public verification, MCP admission, and k6 evidence; hosted checks and independent review required |
+| #631 | `665046dc` (observed parent) | decomposes closed PR #490; this merge refresh advances its head and restarts hosted review evidence |
+| #629 | `0138db5f` | provider-work release and bounded landing reads refreshed onto protected `main`; hosted checks and independent review restarted |
 
 No row above is merge evidence. Immediately before any lifecycle action,
 re-fetch the head, unresolved threads, formal reviews, rulesets, and same-head
 check conclusions. In particular, queued checks are infrastructure state and
 do not transfer evidence from an earlier SHA.
 
-PR #664 merged as `b2e48d5b0db59f5aa434e2a293cd182ee810c019`
-into #660's non-default branch. Its semantic-unit implementation is therefore
-stack evidence only until #660 passed protected `main` through merge
-`7e9030c9a8ee2684e680c63013b304b435ba646e`; the subsequent ontology
-readability stack reached protected `main` as `494b54e2245040bcf02b45376f221c37cd437e76`.
-
 PR #607 first merged as `61fd631c7bb3c57113fd19763c2c43161eeb2824`
 into #606's non-default branch. PR #606 subsequently passed the protected gate,
 so the combined TEPP-consumer and operations-dashboard implementation is now
-on `main`. TEPP producer #237 subsequently merged as `eec86be7`; topic work
-#247 with #251–#254 content merged as `2f2119df`, and strict v2 contracts from
-#257 merged as `51b4997b` into protected TEPP `main` `b03cc378`. End-to-end
-estimator acceptance remains unavailable until one estimator assembles those
-accepted artifacts with a unique anchor, fitted event-time mass, incident
-relation/membership deletion, and real estimator-bound MLX parity.
+on `main`; the still-open TEPP producer PR #237 keeps end-to-end anchor
+acceptance unavailable.
 
 PR #604 was closed unmerged after its exact OIDC repair was composed into #605;
 its green or pending checks are not delivery evidence. PR #482 merged as
@@ -366,10 +498,16 @@ public history. Do not reproduce or hint at its value. Historical remediation
 requires the ADR 0001 incident process and security/privacy-owner coordination;
 never force-push or delete evidence ad hoc.
 
-The Grok durable hourly loop and the central thin GitHub Actions caller
-ContextualWisdomLab/.github#1259 (minute 4, `pr-review-fix-scheduler.yml`)
-both target this repository. Do not add a LineageWeave-local duplicate
-workflow. ContextualWisdomLab/.github#1258 merged at exact head `897819c4` to
+The former central caller PRs ContextualWisdomLab/.github#1259 and #1288 both
+closed without merge and therefore are not scheduler evidence. Open
+ContextualWisdomLab/.github#1380 is a bounded hourly PR review-and-repair caller;
+it does not discover or implement product gaps. LineageWeave still has no
+local, manual opt-in entrypoint for commercial product-development work. The
+central commercial coordinator's maintainer mutation credential was
+unavailable or unverified at the last bounded runtime and failed before
+repository inventory, so autonomous hourly product development remains an
+explicit unverified gap; no credential is inferred or added here.
+ContextualWisdomLab/.github#1258 merged at exact head `897819c4` to
 repair the pnpm/coverage-evidence workflow; newly created exact PR heads must
 still prove the runtime behavior because merged workflow source alone is not
 check evidence.
@@ -394,6 +532,12 @@ Substantially present on protected `main`:
   baseline entry is stale).
 - Semantic paragraph/list/table/image-region units that preserve the source
   representation and provenance instead of flattening it into one body string.
+- FJA→I/O-Psychology semantic layer (ADR 0251): the published DOT/FJA
+  Data/People/Things worker functions (ADR 0232) project into disjoint
+  cognitive, affective, and behavioral constructs with APA 7th anchors,
+  SHACL validation, and a deterministic typed read model
+  (`lineageweave/iopsy_taxonomy.py`); no fitted weight or O*NET/ADR 0248
+  crosswalk is asserted (ADR 0145).
 - Contextual-orchestrator boundaries for adjudication, extraction, summaries,
   chat, embeddings, and VISION; null channels remain unavailable and are
   dropped from score fusion.
@@ -497,45 +641,46 @@ this file per §3.5 of the prior snapshot).
 | #79 | Milestone 2: port verified direct-PostgreSQL analysis into the protected architecture | analysis-run registry on `main`; remaining runtime bridge |
 | #87 | Milestone 2.1 normalized runtime-analysis schema bridge | related analysis-run work |
 | #269 | Authenticated Global Ask MCP browser-safe and admission-bounded | Ask stack |
-| #271 | Evidence-honest knowledge-cutoff scope on Global Ask | Ask stack |
-| #272 | Verify Global Ask KG/ontology/semantic claims with public SearXNG evidence | Ask stack |
-| #274 | Persist and explain Event Lineage channel evidence | #387 |
-| #277 | TEPP: persist accepted receipts, poll completed results, keep measurement authority distinct | #468, #417 |
-| #280 | Full project-lifecycle history and handover intervals | The current stacked candidate covers observed claim, rebid-response, and handover endpoint pairs; cross-record business-case identity remains unavailable unless an explicit source identifier is persisted, so project/similarity proximity is not used as a substitute |
+| #271 | Evidence-honest knowledge-cutoff scope on Global Ask | #658; still open and not protected-main evidence |
+| #272 | Verify Global Ask KG/ontology/semantic claims with public SearXNG evidence | #632 preserves internal provenance; public verification acceptance remains open |
+| #277 | TEPP: persist accepted receipts, poll completed results, keep measurement authority distinct | #657 consumer lifecycle; executable producer route remains unavailable |
+| #280 | Full project-lifecycle history and handover intervals | #640 adds case/project journeys and #663 adds evidence-backed Project exploration; authoritative lifecycle reconciliation remains #284 |
 | #284 | Authoritative lifecycle ingestion and idempotent reconciliation | No active delivery PR confirmed |
-| #338 | Evidence-bounded email/project lineage contract for Naruon consumption | Missing on protected `main`; #343 merged only into a non-default stack, while #355 is a distinct calendar-consumer contract and is not delivery evidence for email/project lineage |
+| #338 | Evidence-bounded email/project lineage contract for Naruon consumption | #704 recreates the provider-side contract on current `main` without arbitrary fusion weights; #343 remains only a non-default-stack merge and #355 is a distinct calendar contract |
 | #611 | Decompose closed PR #490 ADR 0133–0137 evidence without transferring stale branch state | #631 supplies the current-main inventory only; focused implementation PRs and tests for every unmet criterion are still required |
 
 ## 5. Open product and technical gaps
 
 | Gap | Current evidence | Acceptance requirement |
 | --- | --- | --- |
-| Customer and operator guidance | Current-stack user, MCP, and operations manuals now cover Dashboard evidence, all twelve Voice categories, product catalog review, durable Ask jobs and related public originals, canonical Compose/OIDC/session handling, worker recovery, k6 observation, and unavailable TEPP measurement. Contract tests bind the manuals to current tools, API type inventory, commands, and cross-links | Keep the manuals in the release link-check/test gate and repeat the documented authenticated synthetic recovery and k6 procedures at the protected release SHA; update guidance whenever a public tool, status, or recovery owner changes |
-| Protected release | 11 open PRs at the 07:26 KST snapshot; the exact-head inventory in section 1 records their current evidence boundaries | Terminal exact-head checks, no unresolved threads, independent exact-head approvals, protected squash-merge SHA |
-| Evidence-grounded operations workspace | Protected-main #614 delivers governed semantic Ask, live Similar VOC, disjoint pending/failed analysis metrics, full Storybook state inventory, and current desktop/mobile screenshot evidence. The current Dashboard stack adds a candidate `post_admin`-gated, 1--200-row durable semantic-backfill enqueue path that never runs providers in HTTP. The enabled worker now admits one bounded incomplete page before each recovery sweep; active and terminal jobs remain excluded, failures do not stop the worker, and explicit CLI continuation/retry persists every page before broker wake-ups. Authorized-corpus acceptance remains unavailable | Land the candidate, then perform authenticated authorized-corpus acceptance with aggregate queued/published/recovery and derived-evidence counts while retaining fail-closed no-match behavior |
+| Protected release | 12 open PRs at snapshot, all targeting `main` with normal auto-merge enabled. None has the required independent approval, and running checks on #631/#632/#663 are not treated as blockers for safe work on other PRs. #666's merge into the non-default #663 branch is not protected-main delivery | Terminal exact-head checks, no unresolved threads, two independent approvals including last-push approval, protected squash-merge SHA |
+| CI queue release latency | Two Tests runs for already merged PRs occupied the available runner slots while 54 newer runs remained queued. Manual cancellation released the stale work, but the central close workflow was itself queued behind those runs. #634 merged into #631's non-default branch and reuses the repository's existing per-PR concurrency group so a jobless close event can cancel obsolete Tests work before runner allocation; this is not protected-main delivery | Merge #631 through its refreshed protected gate; close a synthetic PR while its Tests run is active and verify the old run becomes cancelled, the close-event jobs remain skipped, and a newer exact-head run starts without manual intervention |
+| Evidence-grounded operations workspace | Protected-main #614 delivers governed semantic Ask, live Similar VOC, disjoint pending/failed analysis metrics, full Storybook state inventory, and current desktop/mobile screenshot evidence. Authorized-corpus backfill acceptance remains unavailable | Perform authenticated authorized-corpus acceptance with aggregate evidence and retain fail-closed no-match behavior |
 | Shared frontend gate | The ADR 0109 login repair is on protected `main`; eight older branches carried the defect and received the same verified repair this loop (#521–#560) | Keep every future branch cut from post-repair bases; re-verify with frontend lint/test/build before push |
 | Identifying baseline regression | `main` gap file listed real post identifiers; separately, closed #506 and pre-existing public history contain a private runtime source-table identifier, while current `main` and #507 trees are clean | Land this non-identifying rewrite, then coordinate ADR 0001 history remediation with security/privacy owners; do not reproduce the value, force-push, or delete evidence ad hoc |
 | Authorized-corpus runtime | Repository tests use synthetic fixtures; private records remain outside git | Authenticated runtime validation returning only aggregate, non-identifying evidence |
-| Concurrent web responsiveness | ADR 0204 releases pooled transactions during provider work. Candidate `361641ec` completed a freshly built, isolated, authenticated 4-VU/30-second k6 run over 27 synthetic posts: 3,898 requests, 0 failures, HTTP p95 194.70 ms, reader p95 204.06 ms, and Ask enqueue 104.90 ms. Earlier candidate observations remain in the operability record. These are local correctness/concurrency observations, not a product guarantee | Repeat on the protected merge SHA and a representative deployment/corpus with declared CPU, memory, database pool, worker concurrency, and raw output; approve an SLO only from that capacity evidence |
+| Concurrent web responsiveness | ADR 0204 releases pooled transactions during provider work, and the synthetic Compose boundary has an authenticated k6 E2E harness for Ask enqueue, concurrent reads, and job polling. PR #633's measured landing-query and event-loop work merged into open parent #629 rather than protected `main`; its aggregate observation improved 25-VU throughput but did not establish a latency SLO. The current exact #629 also persists each completed relation verification before propagating a later provider failure | Land #629 through its refreshed protected gate, rebuild that exact-head application image, and repeat `make load-http` with declared environment concurrency/window and retained raw distributions/resource configuration; set no SLO until representative capacity evidence is approved |
 | Image understanding | Region, OCR, and description work exists across active heads (#405, #419), but current runtime acceptance has not yet proved table-image structure, complete region coverage, or summary/image readiness together | Orchestrator-backed rendered workflow, original/derived asset provenance, region-before-OCR processing, and honest unsupported states; reconcile ADR 0052's image-bearing summary readiness with ADR 0098 before changing sequencing |
-| Semantic source rendering | ADR 0223 and migration 0221 give new paragraph, list, table, MathML formula, and caller-parsed conversation-turn units explicit persisted kinds without rewriting historical rows; image regions remain ordered normalized children under ADR 0091. This branch is candidate evidence, not protected-main delivery | Land the exact-head candidate, then prove an authorized semantic-only query retrieves each persisted unit kind and gather authenticated browser evidence that nesting, continuation alignment, formula units, and image regions retain source order |
-| Event and project semantics | Multi-project mentions, project-bound actions, 5W1H, requester/processor, and semantic relations exist in ADR 0036/0052/0100/0111/0129 and active stacks | Aggregate authenticated evidence must show distinct projects and events, explicit requester/processor and real R&R, normalized relative time, and product/entity relations without promoting attendance or co-occurrence |
+| Semantic source rendering | Paragraph, table, list, formula, and indentation work exists across stacks (#394, #427, #448–#450); #515 adds synthetic backend/frontend parity for deterministic rows/cells, footnote boundaries, and encoded scripts | Land the #427 → #515 stack, then gather authenticated browser evidence that list nesting, continuation alignment, and formula units render without authoring-layout artifacts |
+| Event and project semantics | #663 is the largest current user-visible gap slice: evidence-backed Project nodes, bounded traversal, cutoff/snapshot fencing, exact-value table parity, and localized graph labels. Focus visibility, label-bound, and temporal test-double regressions are repaired. #666's heuristic removal is composed into this parent but is not separately protected-main evidence. #640 separately adds project journeys without claiming authoritative lifecycle status | Combined #663 must pass exact-head checks and independent approval before protected merge. Aggregate authenticated evidence must still prove distinct projects/events and handover intervals without promoting co-occurrence |
+| Voice primary history | Protected `main` `bbb19192` includes ADR 0252 / #761 (migration 0243, GiST primary-period exclusion, `clock_timestamp()` after the source-row lock, API/ontology half-open cutoff SQL). v2.22.1 adds synthetic PostgreSQL integration tests for A → B → A at before/between/after cutoffs, concurrent primary updates, additional-assignment close, and 0237→0243 trigger replay. This is not yet protected-main evidence | Land the live-test slice through the protected gate with independent exact-head APPROVE; close #748 only after that protected delivery |
+| Knowledge Graph readability | #659 recreates the token-backed node-type repair on current `main`, including regression coverage; it is open and therefore not protected-main evidence | Merge #659 normally, then verify light/dark contrast, keyboard graph navigation, full labels, and evidence tables in the authenticated rendered surface |
 | Product semantic identity | ADR 0228 and migration 0228 define normalized product group/model/variant/trade-item identities, scoped GTIN/MPN keys, and fail-closed unique/tie/missing/unavailable resolution. The stacked product-relation candidate now validates contextual structured output solely against request-scoped normalized operations/project targets, persists closed typed relations atomically with verbatim provenance, exposes ABAC-filtered Post/Dashboard reads, and projects a SHACL-governed RDF assertion. Focused synthetic backend/ontology/docstring tests pass at the candidate head; protected delivery and an authorized aggregate runtime remain unproven | Merge the exact stack through protected gates, pin the protected contextual-orchestrator merge SHA, then record aggregate-only backfill outcomes and authenticated desktop/mobile rendered evidence without exposing runtime rows |
 | Voice semantic taxonomy | ADRs 0244/0246 and migrations 0230/0235 preserve the twelve-value source-post scheme separately from the six-value post-scoped organization relationship scheme, retain source/derived disagreement and multi-membership, and provide authorized overlap-aware aggregate filters. The Dashboard API returns every persisted category dynamically; PR #736 exact `2f5d9ee8` still typed and labeled only `voc`/`vocc`/`voco`/`vom`/`vop`, so `vos`/`voe`/`vob`/`vor`/`voi`/`voso`/`vops` could not render. This stacked repair covers all twelve with locale and component tests. Candidate Storybook evidence remains synthetic; no private-corpus derived assertion count is recorded | Land the stack, run bounded orchestrator backfill, and verify aggregate-only source/derived/disagreement/unavailable counts at one declared cutoff without exposing record identities |
-| Knowledge Graph readability | The black evidence-node root cause is an undefined-token fallback; the design-token repair and long-label/evidence-table coverage remain only on closed, unmerged #490, not protected `main` | Recreate the token repair on a current base and deliver it through protected `main`, then verify light/dark contrast, keyboard graph navigation, full labels, and evidence tables in the authenticated rendered surface |
 | Source-code lookup UX | Source state/detail codes remain evidence-bearing machine values and current detail presentation is dense | Catalog-backed display labels with raw-code provenance, compact 5W1H/source-detail hierarchy, keyboard access, and no unsupported customer/project binding |
 | Calendar / Naruon | #355 delivered the projection contract; v2.17.0 wires operator consumption without forwarding the end-user token. Naruon producer, provider/consumer fixtures, and protected merge remain open (#336) | Verify observed events against the published schema without invented events; keep commitments available when the channel is unwired |
 | SKOS organization aliases | Catalog binding and chip caption live on #480 / #482 | One catalog row per corroborated org; companion caption is hint-only until bound |
 | Event Lineage evidence | Channel evidence and Allen relations live on #387 / #484 | Persist channel scores, explain them in the popup, never invent a fused score |
-| Scientific measurement | Durable accepted TEPP receipts and LineageWeave #614's exact accepted snapshot/cutoff/run/pair-count consumer are protected. TEPP protected `main` `b03cc378` includes producer #237 (`eec86be7`), topic #247 plus #251–#254 (`2f2119df`), and strict v2 contracts from #257 (`51b4997b`). fast-mlsirm PR #1423 is merged, but its protected contract correctly validates the anchor/evidence and returns estimation unavailable because independent pair-level outcomes are not yet present. Local Python simulation, dichotomization, 2PL fitting, normalization, and unanchored persistence are removed; non-measurement projection tests use explicit synthetic inputs without treating them as estimator evidence. | Deliver the complete owner estimator that assembles the accepted artifacts with a unique anchor, fitted event-time mass, incident relation/membership deletion, and real estimator-bound MLX parity. Retain owner-repository true-parameter recovery and never substitute local weights. |
-| Python mathematical-compute boundary | ADR 0208's first deletion slice consumes fast-mlsirm protected-main Rust `residual_interaction_map` and `polytomous_expected_response`; local Gabriel SVD, distance, reconstruction, shares, expected-category and duplicate likelihood formulas are deleted. This stack also removes local RRF contribution arithmetic and corrects the invalid all-ones call to RankWeave's convex API through RankWeave #47 (`f92c3a2c`), but RankWeave #47 remains Python and is not the final Rust CPU/GPU execution contract. The backend pins current fast-mlsirm protected main `45627700c26c29bca150896a9519a9b7426acb56`; PR #1423 merged as `99eb70913ef9e7749333c2f0059ea11a4be0fb4d` and deliberately does not fit weights. The former LineageWeave Python channel-weight estimator and both operator persistence paths now fail before database/provider work. The stacked deletion slice removes production-unused Python cosine/max-pooling helpers and freezes the one active direct-vector path with an AST inventory. Global Ask cosine remains Python migration debt because no accepted versioned Rust retrieval-scoring contract exists; embedding backfill performs only exact request-envelope sizing, advertised-ceiling validation, vector-shape validation, and persistence, not token estimation, model selection, or vector algebra. contextual-orchestrator owns automatic model discovery, selection, tokenization, packing, and provider execution. The doctoring inventory still names period calibration, time-decay and string similarity, cosine, graph ranking, and fusion debt. | Land the contextual-orchestrator owner changes through their protected gates. Land a versioned Rust RankWeave envelope for authorization-visible semantic-unit scoring with model/version provenance, input digest, deterministic CPU/GPU parity, finite dimensions, ranked evidence, and explicit failure. Then switch Global Ask to strict envelope validation, prove authorized semantic retrieval and zero-provider fail-closed behavior, and delete `KNOWN_LOCAL_DIRECT_VECTOR_ARITHMETIC`. Keep channel weights unavailable until fast-mlsirm publishes fitted, independently anchored owner evidence. |
+| Scientific measurement | Durable accepted TEPP receipts and LineageWeave #614's exact accepted snapshot/cutoff/run/pair-count consumer are protected; TEPP #237 remains open, so no registered producer artifact exists yet. #387 removes inferred/default persistence weights, but several older reconstruction tests still pass hand-authored numeric dictionaries that are not estimator evidence | Land TEPP #237 through its protected gate, then replace remaining reconstruction-test constants with provenance-bearing fast-mlsirm estimates over synthetic fixtures. Retain true-parameter RMSE recovery as the acceptance bar |
 | Asynchronous authorization | Protected `main` rebuilds Global Ask worker scope after the bearer token leaves the request; #468 now persists exact Keyverse organization/process-unit scope in 3NF child tables and intersects it with current affiliations | Land #468 through the protected gate; prove a second affiliation and a revoked process unit cannot widen delayed-job evidence |
 | Planned-facility intent | Planned-facility relationship intent remains only on closed, unmerged #490; earlier stack-only merges were not protected delivery | Recreate the evidence-backed slice on a current base and land through protected `main` before a release claim |
 | Accessibility and responsive UX | #602 delivered base post-detail modal semantics; #605 adds selected-post refocus, collapsed/hidden/inert/CSS-invisible focus exclusion across both modal types, readable evidence separators, focused tests, and desktop/mobile Storybook screenshots | Land #605 through the protected gate, then complete screen-reader and authenticated Playwright acceptance on the exact release head |
 | Design tokens and repeated objects | Token extraction started; sanitized Figma Event Lineage desktop/mobile frames exist, while other repeated product surfaces remain incomplete | Tokens in CSS + Storybook stories for board, popup, DAG, Ask, calendar, forms, charts; same-viewport Figma/runtime visual comparison before release |
 | Frontend delivery performance | #644 implements a native dynamic-import boundary for conditional workspace surfaces and retains accessible loading/error states; exact-head checks passed but the PR is not protected-main evidence | Merge #644 normally, rebuild the protected-main production bundle, and retain the measured chunk inventory rather than raising the warning limit |
 | External integrations | Search, Zotero, calendar, Keyverse, orchestrator, RankWeave, ThreadWeave, TEPP, DiskSage, wardnet | Provider conformance, failure/reconciliation behavior, and provenance-bearing integration evidence |
+| Naruon email/project lineage | #704 provides a strict store-agnostic v1 contract, opaque evidence references, observed/inferred truth separation, knowledge-cutoff admission, and explicit unavailable states. Inferred edges require an injected provenance-bearing fast-mlsirm estimate; no local default weight exists | Merge #704 through protected `main`, publish an immutable attested artifact, then enable the Naruon consumer only against that released version and its contract fixtures |
 | MSA / modular reuse | LineageWeave must run standalone and as a consumer of org packages | Do not reimplement RankWeave/TEPP/orchestrator/ThreadWeave/Keyverse; fix upstream and PR there |
+| Accelerator runtime ownership | ADR 0076/0208 already prohibit local model and mathematical ownership; ADR 0237 now defines MLX as a native orchestrator-side service and TEPP/fast-mlsirm CUDA/OpenCL/CPU profiles as scientific-compute-owner deployments, so LineageWeave Compose remains device-neutral. RankWeave remains the dependency-free Python retrieval-fusion/evaluation owner behind its published contract | TEPP and fast-mlsirm must publish deterministic CPU recovery plus conformance evidence for every advertised CUDA/OpenCL profile; contextual-orchestrator must prove native MLX availability through its provider-neutral health/contract boundary. LineageWeave accepts only versioned, provenance-bearing envelopes and fails closed when the owner is unavailable |
 | Product contract authority | The current LineageWeave PRD records exact-case ecosystem authorities. TEPP, fast-mlsirm, keyverse, ThreadWeave, and RankWeave PR #41 have standalone PRDs; RankWeave's remains unmerged. contextual-orchestrator, disksage, and wardnet still rely on product/architecture documents, and naruon has only a scoped Topic Intelligence PRD | Keep ADRs normative, preserve canonical repository case in machine references, land the pending PRDs, and add standalone PRDs in each remaining owning repository before cross-product release claims exceed its documented boundary |
 | Release quality | PR #660 is now on protected `main`; its pre-merge full Python suite passed 1,352 tests with 17 skips, but release-wide frontend, Storybook, security, browser, and runtime acceptance remain unproven on one exact protected head | Repository-wide coverage, docstrings, Storybook, security, browser, and release evidence on one exact head |
 | PII | Masking would paralyze the product; ADR 0001 forbids identifying artifacts in git | ABAC + authorized runtime; synthetic fixtures in git; no mask-in-place that drops names the operator must read |
@@ -552,7 +697,7 @@ give this delivery matrix:
 
 | Closed-branch decision | Current-main classification | Smallest remaining delivery |
 | --- | --- | --- |
-| ADR 0133 source-reference research | PR #714 ADR 0248 is stacked on the current Dashboard/Ask branch and adds the remaining lead-to-citation slice: public-only source-unit/image-region leads, SearXNG search, public-target SSRF/redirect-rejected retrieval, orchestrator `mode=verify`, 3NF `source_research_citation`, and the same persisted related-document links in REST/UI/report/MCP Ask delivery. It is open-PR evidence until protected merge. Distinct from ADR 0215, which still never fetches result URLs | Land ADR 0248 through independent exact-head approval; keep private posts fail-closed, recheck publication/cutoff eligibility at Ask delivery, and do not mix Global Ask snippet verification into this table |
+| ADR 0133 source-reference research | Partial foundation: protected `main` has the self-hosted SearXNG relation-verification client and fail-closed configuration, but it verifies an already extracted relation. It has no source-unit/image-region lead, cited-resource retrieval, claim judgment, or normalized research citation workflow | One post-scoped lead-to-citation slice that reuses the self-hosted SearXNG search boundary, adds public-target SSRF/redirect rejection for result retrieval, and judges through contextual-orchestrator with explicit unavailable outcomes |
 | ADR 0134 token-backed exception messages | Partial: sanitized next-action failures exist, but no shared token-backed exception component or complete Storybook error inventory exists | Migrate one existing unavailable flow to one shared accessible alert and verify its success, unavailable, and retry states |
 | ADR 0135 kind/status-exact analysis actions | Partial: protected `main` has kind-aware start/retry controls plus normative analysis-run, TEPP, cutoff-body, and channel-evidence contracts; it does not contain the closed branch's unified guidance component or its full kind × status interaction inventory | Test the current run-kind/status matrix first, then add only a proven missing state/control pair rather than copying the closed-branch function |
 | ADR 0136 per-post Ask history | Partial: `post_chat_result` / `post_chat_citation`, the authorized post Chat API, and its linear exchange history are on protected `main`. Account-and-post-scoped sessions, ordered turns, list/select/new controls, and batched citation reauthorization are not | Define the 3NF account/post session boundary, bounded batch reauthorization, and one authorized list/load/write path before adding the conversation picker |
@@ -595,7 +740,7 @@ of leverage; open connector PRs there when the defect is upstream:
 6. **ThreadWeave** — tree assembly.
 7. **Naruon** — calendar and email/project lineage projection (#336, #338, #355).
 8. **DiskSage / wardnet** — storage and network policy as needed.
-9. **ContextualWisdomLab/.github** — required review workflows (OpenCode, Strix, Noema) and the LineageWeave hourly caller (#1259). If stacked PRs miss central review or coverage-evidence fails on pnpm 9 (`--trust-lockfile` is pnpm 11.3) or a missing Vitest coverage provider, fix the org workflow (#1258), not a local bypass.
+9. **ContextualWisdomLab/.github** — required review workflows (OpenCode, Strix, Noema) and bounded hourly PR review/repair (#1380 candidate). This does not replace a commercial product-gap coordinator. If stacked PRs miss central review or coverage-evidence fails on pnpm 9 (`--trust-lockfile` is pnpm 11.3) or a missing Vitest coverage provider, fix the org workflow (#1258), not a local bypass.
 
 ## 8. Public ontology publication boundary
 
@@ -635,8 +780,11 @@ each: check reviews → repair → re-verify Checks → merge → continue. Chec
 review latency are never blockers — keep working while they settle.
 
 1. Revalidate Strix after merged ContextualWisdomLab/.github#1320, reconcile
-   open .github#1263, and land the atomic hourly LineageWeave caller in open
-   .github#1288 only through their protected gates.
+   open .github#1263, and verify open .github#1380 only as bounded hourly PR
+   review/repair through its protected gates. Keep commercial product-gap
+   development unavailable until a local manual opt-in entrypoint and the
+   central coordinator's maintainer mutation credential are independently
+   verified; closed-unmerged #1259/#1288 provide no delivery evidence.
 2. Process main-targeted PRs #629, #631, #632, #639, #640, #643, #644, #657,
    #658, #659, #660, and #663 only after each exact head shows terminal green
    required checks plus current-head independent approval. Treat #666's
@@ -672,3 +820,40 @@ review latency are never blockers — keep working while they settle.
 
 Citations in doctoring and ADRs use APA 7th. Do not invent a heuristic where
 the papers leave the decision undecided.
+
+## 12. Delivery snapshot (2026-08-27)
+
+Fresh merges on protected `main`, verified from PR lifecycle state and
+post-merge reruns (not transferable evidence for later heads):
+
+| PR | Delivery | Governing ADR / reference |
+| ---: | --- | --- |
+| #643 | Shared StatusNotice (ADR 0220): success/unavailable/retry states, WorkspaceCalendar auth-unavailable copy, 5-locale i18n; CI Full suite 22m54s green | ADR 0220 |
+| #644 | Native workspace surface split: 9 conditionally rendered components as lazy() dynamic imports behind a SurfaceBoundary error boundary; build emits 9 chunks (1.5-37 kB), main bundle 543 kB; 470 frontend tests, tsc, Storybook green | — |
+| #762 | Evidence-bound project history (ADR 0243): /api/projects/{key}/history endpoint, project_history.py projection, fetchProjectHistory client, standalone ProjectHistoryTimeline component; supersedes #668 (3-way merge kept only the additive +2279/-0, dropping the branch's 8k shared-file reverts; popup UI hookup deferred as a scoped follow-up) | ADR 0243 |
+| #763 | Live-PostgreSQL A→B→A Voice history validation (ADR 0252) proving effective_from/effective_to interval replacement across repeated primary-Voice imports | ADR 0252 |
+| #764 | Test-only coverage lift: observability 78%→96%, post_summary 77%→89%, claim_verification 86%→99%; package line coverage 93.5%→95% (484→371 missing); 1651 Python tests green | — |
+| #761 | Temporal imported-primary Voice history (ADR 0252): migration 0243 (`effective_to` + GiST primary-period exclusion + synchronize trigger), refined 0237 `least()` effective_from backfill, `effective_from/effective_to` dataclass/export + `coalesce($2,$3)` cutoff predicate. Completes the half-shipped main layer that queried `voice.effective_to` against a missing column. CI Full suite 19m13s green | ADR 0252 |
+| #629 | Provider work released before embedding pool bound; landing reads bounded (k6-verified concurrency); merged with strix-only infra timeout (Full suite + all other gates green) | — |
+| #750 | Leftover-map unexplained leftover share persisted (`report_leftover_map_unexplained_share`, share `s = U² / R²`) | ADR 0233 |
+| #749 | Authorized job-family/job-series import snapshots (`0223_authorized_job_architecture`) | ADR 0263 |
+| #759 | ***Promoted** the ONET rating-store stack to `main`: migrations 0222/0223, authenticated rating/rating-sources/rating-occupations endpoints, `OccupationRatingProfile` UI + stories, rating client functions, import scripts, ADR 0252–0263 references. Semgrep SQLi nullified by PL/pgSQL `format(%I/%L)` DDL + documented `nosemgrep`; 1583 Python + 447 frontend tests green | ADR 0257–0263 |
+| #747 | Current product and MCP manuals (`docs/manuals/*`, contract tests) | ADR 0118-family |
+| #754 | Customer-actionable copy and ADR 0237 accelerator runtime boundary; share/bookmark/verification call sites reworded and ko/zh/ja/vi translations completed after review | ADR 0237 |
+| #700 | Source conversation-turn evidence ingestion (`0233_source_conversation_turn_evidence`, choke/adjacency resilience) | ADR 0238 |
+| #658 | Optional Global Ask knowledge cutoff honoring `source_post_revision` cover | ADR 0216 |
+| #632 | Graph-fact source provenance preserved through MCP streaming + verified psql-parity migration fixture | ADR 0166 |
+| #742 | Evidence-bound product-operations relations (stack base) | ADR 0235 |
+| #743 | Imported occupation-rating source catalog (stack base) | ADR 0260 |
+| #745 | Occupation catalog title filter (stack base) | ADR 0262 |
+| #746 | Rating-source occupation selector (stack base) | ADR 0261 |
+| #740 | Occupation rating evidence view (stack base) | ADR 0259 |
+| #720 | Cancel stale test runs on PR close | — |
+| #716 | Prioritized evidence-bound operations backfill | — |
+| #711 | Pinned validated structured-workflow runtime | — |
+| #704 | Current-main external lineage contract publication | — |
+
+The ONET rows stacked into base branches (#743/#745/#746/#740/#732) reached
+`main` together through the #759 promotion; their per-base merge records are
+historical evidence only. The job-architecture artifact ship originally via
+#749 is now re-verified on `main` from the promotion.

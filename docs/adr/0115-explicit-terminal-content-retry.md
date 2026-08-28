@@ -39,4 +39,4 @@ backfill.
 
 ## References
 
-- [ADR 0098: Durable post-content ingestion](0098-durable-post-content-ingestion.md)
+- [ADR 0098: Durable post-content ingestion](0098-valkey-backed-post-content-ingestion.md)

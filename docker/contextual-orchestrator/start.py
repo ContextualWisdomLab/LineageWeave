@@ -7,9 +7,9 @@ process environment before request handling begins.
 
 from __future__ import annotations
 
-import json
 import os
 import sys
+import json
 from pathlib import Path
 
 
@@ -36,9 +36,7 @@ def _configured_agents(agents: dict[str, object], provider_url: str) -> dict[str
         agent["credential_key"] = "LLM_GATEWAY_API_KEY"
         agent["provider_name"] = "configured_gateway"
         if not str(agent.get("model", "")).strip():
-            agent["tags"] = list(
-                dict.fromkeys((*agent.get("tags", []), "bootstrap_seed"))
-            )
+            agent["tags"] = list(dict.fromkeys((*agent.get("tags", []), "bootstrap_seed")))
         agent.setdefault("provider_protocol", "auto")
     return configured
 

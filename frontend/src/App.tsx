@@ -1,17 +1,17 @@
-import { AdminPanel } from "./components/AdminPanel";
-import { LeftoverPairList } from "./components/LeftoverPairList";
-import { WorkspaceCalendar } from "./components/WorkspaceCalendar";
 import { focusedGraphMustReset } from "./focusedGraphSelection";
+import { canAuthorVoice, postPrimaryVoiceLabel } from "./voicePerspective";
 
-import { useCallback, useEffect, useEffectEvent, useRef, useState, type ReactNode } from "react";
+import { Component, lazy, Suspense, useCallback, useEffect, useEffectEvent, useRef, useState, type ReactNode } from "react";
 import { useAuth } from "react-oidc-context";
 import {
   askPostChat,
   askAgent,
+  optionalKnowledgeCutoffIso,
   BackendError,
   createAnalysisRun,
   startAnalysisRun,
   createPostTicket,
+  createPostVoiceAssignment,
   deriveCommitment,
   evaluatePost,
   extractPostKeymen,
@@ -51,8 +51,6 @@ import {
   setPreferredLocale,
   updateTicketStatus,
   verifyPostRelations,
-  fetchPostResearchCitations,
-  researchPostSources,
   type ActivityEvent,
   type AskAgentResponse,
   type AffiliateNode,
@@ -79,6 +77,7 @@ import {
   type PeriodReportIndex,
   type PeriodReports,
   type PostLineage,
+  type PostVoiceType,
   type PostSummary,
   type PostSortOrder,
   type RankingList,
@@ -87,25 +86,22 @@ import {
   type RelatedNodeType,
   type VocEvidence,
   type SimilarVocItem,
-  type SourceResearchCitation,
   fetchTenantConfig,
 } from "./api";
 import { CitationChip } from "./components/CitationChip";
+import { PublicClaimVerification } from "./components/PublicClaimVerification";
 import { OrganizationAliasChip } from "./components/OrganizationAliasChip";
 import { organizationAliasCaption } from "./components/organizationAliasCaption";
 import { CutoffKnownBody } from "./components/CutoffKnownBody";
 import { LineageEntityPicker } from "./components/LineageEntityPicker";
-import { OntologyExplorer } from "./components/OntologyExplorer";
-import { AskEvidenceLayerPopup } from "./components/AskEvidenceLayerPopup";
-import { AskAnswerTimeline } from "./components/AskAnswerTimeline";
-import { PublicClaimVerification } from "./components/PublicClaimVerification";
 import { PopupCloseButton } from "./components/PopupCloseButton";
-import { SimilarVocPanel } from "./components/SimilarVocPanel";
-import { SourceResearchPanel } from "./components/SourceResearchPanel";
+import { TeppAcceptedReceipt } from "./components/TeppAcceptedReceipt";
 import { WorkspaceNav, type WorkspaceDestination } from "./components/WorkspaceNav";
-import { OperationsDashboard } from "./components/OperationsDashboard";
+import { OccupationRatingProfile } from "./components/OccupationRatingProfile";
+import { AskAnswerTimeline } from "./components/AskAnswerTimeline";
+import { ProductEvidenceList } from "./components/ProductEvidenceList";
+import { StatusNotice } from "./components/StatusNotice";
 import { initialWorkspaceDestination } from "./gnbChrome";
-import { LineageDag } from "./LineageDag";
 import { PostBody } from "./PostBody";
 import { decodeHtmlEntities } from "./postBodyDisplay";
 import { FiveW1H } from "./components/FiveW1H";
@@ -126,7 +122,41 @@ import {
   useLocale,
 } from "./i18n";
 import "./App.css";
-import { ProductEvidenceList } from "./components/ProductEvidenceList";
+
+const AdminPanel = lazy(() => import("./components/AdminPanel").then((module) => ({ default: module.AdminPanel })));
+const AskEvidenceLayerPopup = lazy(() => import("./components/AskEvidenceLayerPopup").then((module) => ({ default: module.AskEvidenceLayerPopup })));
+const LeftoverPairList = lazy(() => import("./components/LeftoverPairList").then((module) => ({ default: module.LeftoverPairList })));
+const LineageDag = lazy(() => import("./LineageDag").then((module) => ({ default: module.LineageDag })));
+const OntologyExplorer = lazy(() => import("./components/OntologyExplorer").then((module) => ({ default: module.OntologyExplorer })));
+const OperationsDashboard = lazy(() => import("./components/OperationsDashboard").then((module) => ({ default: module.OperationsDashboard })));
+const SimilarVocPanel = lazy(() => import("./components/SimilarVocPanel").then((module) => ({ default: module.SimilarVocPanel })));
+const WorkspaceCalendar = lazy(() => import("./components/WorkspaceCalendar").then((module) => ({ default: module.WorkspaceCalendar })));
+
+function SurfaceFallback() {
+  return <p role="status">{t("Loading...")}</p>;
+}
+
+export class SurfaceBoundary extends Component<{ children: ReactNode }, { failed: boolean }> {
+  state = { failed: false };
+
+  static getDerivedStateFromError() {
+    return { failed: true };
+  }
+
+  render() {
+    if (this.state.failed) {
+      return (
+        <section role="alert" aria-live="assertive">
+          <p>{t("This view is unavailable. Refresh once; if it fails again, contact your administrator.")}</p>
+          <button type="button" className="btn-secondary" onClick={() => window.location.reload()}>
+            {t("Refresh")}
+          </button>
+        </section>
+      );
+    }
+    return <Suspense fallback={<SurfaceFallback />}>{this.props.children}</Suspense>;
+  }
+}
 
 function orchestratorUnavailableMessage(err: unknown, action: string): string {
   if (err instanceof BackendError && err.status === 503) {
@@ -162,14 +192,7 @@ function LanguageSwitcher({ accessToken }: { accessToken?: string }) {
 
 function searchUnavailableMessage(err: unknown): string {
   if (err instanceof BackendError && err.status === 503) {
-    return t("Verification unavailable (search is not configured).");
-  }
-  return String(err);
-}
-
-function researchUnavailableMessage(err: unknown): string {
-  if (err instanceof BackendError && err.status === 503) {
-    return t("Public source research is unavailable. Review the post's saved evidence, then try again later.");
+    return t("Verification is unavailable because public search is not configured yet. Ask an administrator to enable it, then retry.");
   }
   return String(err);
 }
@@ -524,7 +547,9 @@ function EventLineageSection({
   return (
     <>
       {scoped.nodes.length > 0 && onSelectPost && (
-        <LineageDag graph={scoped} onSelectPost={onSelectPost} currentPostId={postId} />
+        <SurfaceBoundary>
+          <LineageDag graph={scoped} onSelectPost={onSelectPost} currentPostId={postId} />
+        </SurfaceBoundary>
       )}
       {scoped.nodes.length > 0 && currentNextAction ? (
         <p className="post-meta" role="status" aria-label={t("Event Lineage next action")}>
@@ -813,7 +838,7 @@ const PROJECT_EXTRACTION_LABELS: Record<string, string> = {
 const PROJECT_PROVENANCE_LABELS: Record<string, string> = {
   "source_post.source_project_code": "Source project code",
   "source_post.source_project_name": "Source project name",
-  "post_project_mention.evidence_text": "Stored semantic evidence",
+  "post_project_mention.evidence_text": "Project evidence from this post",
 };
 
 function projectExtractionLabel(method: string): string {
@@ -1230,7 +1255,7 @@ function KeymanPanel({
           onClick={() => setOntologyOpen((open) => !open)}
           aria-expanded={ontologyOpen}
         >
-          {t("Inspect ontology neighborhood")}
+          {t("View related information")}
         </button>
         {canExtract && !orchestratorOff && (
           <details className="operator-action-tools">
@@ -1244,7 +1269,7 @@ function KeymanPanel({
       {error && <p className="error">{error}</p>}
       {sourceAuthorContext ? (
         <details className="keyman-source-context">
-          <summary>{t("Source author evidence")} · {t("Hint only")}</summary>
+          <summary>{t("Author context")} · {t("Hint only")}</summary>
           <p>
             <strong>
               {sourceAuthorContext.source_author_name || sourceAuthorContext.source_author_code || t("Unknown")}
@@ -1366,13 +1391,15 @@ function KeymanPanel({
         <ChatPanel postId={postId} accessToken={accessToken} nameFirstAsk />
       ) : null}
       {ontologyOpen ? (
-        <OntologyExplorer
-          accessToken={accessToken}
-          focusNodeType={selectedFocus?.nodeTypeCode ?? NODE_POST}
-          focusNodeId={selectedFocus?.nodeId ?? postId}
-          onSelectPost={onSelectPost}
-          onOpenEvidence={onSelectPost}
-        />
+        <SurfaceBoundary>
+          <OntologyExplorer
+            accessToken={accessToken}
+            focusNodeType={selectedFocus?.nodeTypeCode ?? NODE_POST}
+            focusNodeId={selectedFocus?.nodeId ?? postId}
+            onSelectPost={onSelectPost}
+            onOpenEvidence={onSelectPost}
+          />
+        </SurfaceBoundary>
       ) : null}
     </>
   );
@@ -1568,7 +1595,7 @@ function CounterpartyPanel({
                 className="keyman-select"
                 onClick={() => onSelectPost(c.verification_evidence_post_id!)}
               >
-                {t("Open supporting post")}
+                Open cited post
               </button>
             ) : null}
           </li>
@@ -1737,13 +1764,30 @@ const ACTIVITY_TYPE_LABELS: Record<string, string> = {
   commitment_derived: "Commitment derived",
   keymen_extracted: "Keymen extracted",
   relations_verified: "Relations verified",
-  source_research_checked: "Public sources reviewed",
   post_evaluated: "Post evaluated",
   chat_answered: "Chat answered",
+  voice_assignment_added: "Voice perspective connected",
 };
 
 function activityTypeLabel(eventType: string): string {
   return t(ACTIVITY_TYPE_LABELS[eventType] ?? eventType);
+}
+
+const VOICE_TRUTH_LABELS: Record<string, string> = {
+  truth_authoritative: "Authoritative",
+  truth_observed: "Observed",
+  truth_inferred: "Inferred",
+  truth_proposed: "Proposed",
+  truth_superseded: "Superseded",
+  truth_rejected: "Rejected",
+};
+
+function voiceTruthLabel(truthStatusCode: string): string {
+  return t(VOICE_TRUTH_LABELS[truthStatusCode] ?? "Status unavailable");
+}
+
+function voiceDisplayLabel(voice: PostVoiceType): string {
+  return `${t(voice.label)} (${voiceTruthLabel(voice.truth_status_code)})`;
 }
 
 function ActivityPanel({ postId, accessToken }: { postId: string; accessToken: string }) {
@@ -1789,6 +1833,113 @@ function ActivityPanel({ postId, accessToken }: { postId: string; accessToken: s
   );
 }
 
+export function VoicePerspectiveList({ voices }: { voices: PostVoiceType[] }) {
+  return (
+    <section className="popup-section" aria-label={t("Recorded perspectives")}>
+      <h3>{t("Recorded perspectives")}</h3>
+      <ul className="ticket-list">
+        {voices.map((voice) => (
+          <li key={voice.code} className="ticket-list-item">
+            <span className="ticket-title">{voiceDisplayLabel(voice)}</span>
+            <span className="post-meta">
+              {t(voice.is_primary ? "Imported from source" : "Evidence connected")}
+            </span>
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+
+const VOICE_TRUTH_OPTIONS = [
+  "truth_authoritative",
+  "truth_observed",
+  "truth_inferred",
+  "truth_proposed",
+  "truth_superseded",
+  "truth_rejected",
+];
+
+export function VoiceAssignmentForm({
+  voices,
+  options,
+  onSave,
+}: {
+  voices: PostVoiceType[];
+  options: PostFilterOption[];
+  onSave: (voiceTypeCode: string, truthStatusCode: string) => Promise<void>;
+}) {
+  const assigned = new Set(voices.map((voice) => voice.code));
+  const available = options.filter((option) => !assigned.has(option.code));
+  const [voiceTypeCode, setVoiceTypeCode] = useState("");
+  const [truthStatusCode, setTruthStatusCode] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function submit(event: React.FormEvent) {
+    event.preventDefault();
+    if (!voiceTypeCode || !truthStatusCode || saving) return;
+    setSaving(true);
+    setSaved(false);
+    setError(null);
+    try {
+      await onSave(voiceTypeCode, truthStatusCode);
+      setVoiceTypeCode("");
+      setTruthStatusCode("");
+      setSaved(true);
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : t("Perspective could not be connected."));
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  if (available.length === 0) return null;
+  return (
+    <section className="popup-section" aria-label={t("Connect another perspective")}>
+      <h3>{t("Connect another perspective")}</h3>
+      <p className="post-meta">{t("This post will be recorded as the evidence.")}</p>
+      <form className="admin-form voice-assignment-form" onSubmit={submit}>
+        <label>
+          {t("Perspective")}
+          <select
+            value={voiceTypeCode}
+            onChange={(event) => setVoiceTypeCode(event.target.value)}
+            disabled={saving}
+            required
+          >
+            <option value="">{t("Choose a perspective")}</option>
+            {available.map((option) => (
+              <option key={option.code} value={option.code}>{t(option.label)}</option>
+            ))}
+          </select>
+        </label>
+        <label>
+          {t("Evidence status")}
+          <select
+            value={truthStatusCode}
+            onChange={(event) => setTruthStatusCode(event.target.value)}
+            disabled={saving}
+            required
+          >
+            <option value="">{t("Choose an evidence status")}</option>
+            {VOICE_TRUTH_OPTIONS.map((code) => (
+              <option key={code} value={code}>{voiceTruthLabel(code)}</option>
+            ))}
+          </select>
+        </label>
+        <button type="submit" className="btn-primary" disabled={saving || !voiceTypeCode || !truthStatusCode}>
+          {t(saving ? "Connecting..." : "Connect perspective")}
+        </button>
+        {saved ? <p className="voice-assignment-feedback" role="status">{t("Perspective connected.")}</p> : null}
+        {error ? <p role="alert" className="error voice-assignment-feedback">{error}</p> : null}
+      </form>
+    </section>
+  );
+}
+
+
 function PostDetailPopup({
   postId,
   accessToken,
@@ -1801,6 +1952,7 @@ function PostDetailPopup({
   onClose,
   onSelectPost,
   onSearch,
+  voiceOptions = [],
 }: {
   postId: string;
   accessToken: string;
@@ -1813,6 +1965,7 @@ function PostDetailPopup({
   onClose: () => void;
   onSelectPost?: (postId: string) => void;
   onSearch?: (query: string) => void;
+  voiceOptions?: PostFilterOption[];
 }) {
   const [post, setPost] = useState<PostDetail | null>(null);
   const [imageContent, setImageContent] = useState<PostImageContent[]>([]);
@@ -1835,15 +1988,9 @@ function PostDetailPopup({
   const [similarVocError, setSimilarVocError] = useState<string | null>(null);
   const [similarVocNextOffset, setSimilarVocNextOffset] = useState<number | null>(null);
   const [similarVocLoadingMore, setSimilarVocLoadingMore] = useState(false);
-  const [researchCitations, setResearchCitations] = useState<SourceResearchCitation[]>([]);
-  const [researchUnavailable, setResearchUnavailable] = useState<string | null>(null);
-  const [researching, setResearching] = useState(false);
-  const [researchError, setResearchError] = useState<string | null>(null);
   const similarVocLoadingMoreRef = useRef(false);
   const similarVocScopeRef = useRef({ postId });
   if (similarVocScopeRef.current.postId !== postId) similarVocScopeRef.current = { postId };
-  const researchScopeRef = useRef({ postId });
-  if (researchScopeRef.current.postId !== postId) researchScopeRef.current = { postId };
   const [evaluation, setEvaluation] = useState<EvaluationResponse[] | null>(null);
   const [focusPerson, setFocusPerson] = useState<{ personId: string; personName: string } | null>(null);
   const [focusEntity, setFocusEntity] = useState<{ entityId: string; entityName: string } | null>(null);
@@ -1947,10 +2094,6 @@ function PostDetailPopup({
     setSimilarVocNextOffset(null);
     setSimilarVocLoadingMore(false);
     similarVocLoadingMoreRef.current = false;
-    setResearchCitations([]);
-    setResearchUnavailable(null);
-    setResearching(false);
-    setResearchError(null);
     setEvaluation(null);
     setFocusPerson(null);
     setFocusEntity(null);
@@ -2007,18 +2150,6 @@ function PostDetailPopup({
       .then((r) => setAffiliateTrees(r.trees))
       .catch(() => setAffiliateTrees([]));
     fetchPostVocEvidence(accessToken, postId).then(setVocEvidence).catch(() => setVocEvidence(null));
-    const researchLoadScope = researchScopeRef.current;
-    fetchPostResearchCitations(accessToken, postId)
-      .then((result) => {
-        if (disposed || researchScopeRef.current !== researchLoadScope) return;
-        setResearchCitations(result.citations);
-        setResearchUnavailable(result.unavailable_reason ?? null);
-      })
-      .catch(() => {
-        if (disposed || researchScopeRef.current !== researchLoadScope) return;
-        setResearchCitations([]);
-        setResearchUnavailable(null);
-      });
     fetchSimilarVoc(accessToken, postId)
       .then((result) => {
         if (disposed) return;
@@ -2079,10 +2210,10 @@ function PostDetailPopup({
         setPostActionStatus(t("Permanent link copied."));
         return;
       }
-      setPostActionStatus(t("Share unavailable."));
+      setPostActionStatus(t("Sharing did not start. Copy the link from the browser address bar to share this post."));
     } catch (err) {
       if (err instanceof DOMException && err.name === "AbortError") return;
-      setPostActionStatus(t("Share unavailable."));
+      setPostActionStatus(t("Sharing did not start. Copy the link from the browser address bar to share this post."));
     }
   }
 
@@ -2093,7 +2224,7 @@ function PostDetailPopup({
       const next = await setPostBookmark(accessToken, postId, !bookmarked);
       setBookmarked(next.bookmarked);
     } catch {
-      setPostActionStatus(t("Bookmark unavailable."));
+      setPostActionStatus(t("Bookmark could not be saved. Try again in a moment; the post itself stays open."));
     } finally {
       setBookmarkSaving(false);
     }
@@ -2136,10 +2267,32 @@ function PostDetailPopup({
           <>
             <h2 id="post-detail-title">{post.post_title}</h2>
             <p className="post-meta">
-              {post.voc_type_label ?? post.voc_type_code} &middot;{" "}
+              {t(postPrimaryVoiceLabel(post, knowledgeCutoff))} &middot;{" "}
               {post.visibility_label ?? post.visibility_code} &middot;{" "}
               {new Date(post.created_at).toLocaleString()}
             </p>
+            {post.voice_types?.length ? <VoicePerspectiveList voices={post.voice_types} /> : null}
+            {canAuthorVoice(canExtract, knowledgeCutoff) ? (
+              <VoiceAssignmentForm
+                voices={post.voice_types ?? []}
+                options={voiceOptions}
+                onSave={async (voiceTypeCode, truthStatusCode) => {
+                  const assignment = await createPostVoiceAssignment(
+                    accessToken,
+                    postId,
+                    voiceTypeCode,
+                    truthStatusCode,
+                  );
+                  setPost((current) => current ? {
+                    ...current,
+                    voice_types: [
+                      ...(current.voice_types ?? []).filter((voice) => voice.code !== assignment.code),
+                      assignment,
+                    ],
+                  } : current);
+                }}
+              />
+            ) : null}
             <div className="post-actions" role="group" aria-label={t("Post actions")}>
               <button type="button" onClick={() => void sharePost()}>
                 {t("Share")}
@@ -2180,11 +2333,19 @@ function PostDetailPopup({
                 <PostBody body={post.post_body} imageContent={imageContent} structureUnits={structureUnits} />
               ) : (
                 <p className="popup-placeholder" role="status">
-                  {t("Source body was not imported; summary and semantic extraction are unavailable.")}
+                  {t(
+                    "The original text of this post was not imported, so its summary and semantic extraction are unavailable. Open the post directly or ask the source owner to re-import it with its body.",
+                  )}
                 </p>
               )}
             </section>
-            {post.product_evidence?.length ? <ProductEvidenceList products={post.product_evidence} /> : null}
+            {post.product_evidence_status?.status_code === "complete" && post.product_evidence?.length ? (
+              <ProductEvidenceList products={post.product_evidence} onOpenPost={(evidencePostId) => onSelectPost?.(evidencePostId)} />
+            ) : post.product_evidence_status?.status_code === "complete" ? (
+              <StatusNotice kind="success" message={t("No product was identified in this post.")} nextAction={post.product_evidence_status.next_action} />
+            ) : (
+              <StatusNotice kind="unavailable" message={post.product_evidence_status?.status_code === "processing" ? t("Product evidence analysis is in progress.") : post.product_evidence_status?.status_code === "historical_unavailable" ? t("Historical product evidence is not available.") : t("Product evidence is not available yet.")} nextAction={post.product_evidence_status?.next_action ?? t("Refresh this post after product analysis is available.")} />
+            )}
             {(post.source_stage_code ||
               post.source_detail_state_code ||
               post.source_draft_code ||
@@ -2203,8 +2364,8 @@ function PostDetailPopup({
               post.source_project_name ||
               post.source_system_code ||
               post.source_record_key) && (
-              <section className="popup-section" aria-label={t("Original source state")}>
-                <h3>{t("Original source state")}</h3>
+              <section className="popup-section" aria-label={t("Earlier source version")}>
+                <h3>{t("Earlier source version")}</h3>
                 <dl>
                   {post.source_stage_code ? (
                     <>
@@ -2315,15 +2476,15 @@ function PostDetailPopup({
                     </>
                   ) : null}
                 </dl>
-                <p className="post-meta">{t("Raw source codes are shown; no state label was inferred.")}</p>
+                <p className="post-meta">{t("Use these recorded details to confirm the record with your source system.")}</p>
               </section>
             )}
 
 					<FiveW1H slots={fiveW1H?.slots ?? null} />
 
 				{post.project_evidence && post.project_evidence.length > 0 ? (
-              <section className="popup-section" aria-label={t("Projects / semantic evidence")}>
-                <h3>{t("Projects / semantic evidence")}</h3>
+              <section className="popup-section" aria-label={t("Related projects")}>
+                <h3>{t("Related projects")}</h3>
                 <ul>
                   {post.project_evidence.map((project) => (
                     <li key={`${project.resolution_status}:${project.project_key}`}>
@@ -2342,15 +2503,15 @@ function PostDetailPopup({
                         : `(${Math.round(project.confidence * 100)}%)`}
                       : {project.evidence}
                       <details className="semantic-provenance">
-                        <summary>{t("Evidence provenance")}</summary>
+                        <summary>{t("Why this item is listed")}</summary>
                         <span className="post-badge">
-                          {t("Ontology class")}: {t(project.ontology_label ?? "Project")}
+                          {t("Category")}: {t(project.ontology_label ?? "Project")}
                         </span>
                         <span className="post-badge">
-                          {t("Extraction source")}: {projectExtractionLabel(project.extraction_method)}
+                          {t("How this item was found")}: {projectExtractionLabel(project.extraction_method)}
                         </span>
                         <span className="post-badge">
-                          {t("Evidence field")}: {projectProvenanceLabel(project.provenance)}
+                          {t("Recorded evidence")}: {projectProvenanceLabel(project.provenance)}
                         </span>
                       </details>
                     </li>
@@ -2536,63 +2697,37 @@ function PostDetailPopup({
               }}
             />
 
-            <SimilarVocPanel
-              items={similarVoc}
-              error={similarVocError}
-              onOpenPost={(candidatePostId) => onSelectPost?.(candidatePostId)}
-              loadingMore={similarVocLoadingMore}
-              onLoadMore={similarVocNextOffset === null ? null : () => {
-                if (similarVocLoadingMoreRef.current) return;
-                const requestScope = similarVocScopeRef.current;
-                similarVocLoadingMoreRef.current = true;
-                setSimilarVocLoadingMore(true);
-                setSimilarVocError(null);
-                fetchSimilarVoc(accessToken, postId, similarVocNextOffset)
-                  .then((result) => {
-                    if (similarVocScopeRef.current !== requestScope) return;
-                    setSimilarVoc((current) => [...(current ?? []), ...result.items]);
-                    setSimilarVocNextOffset(result.next_offset);
-                  })
-                  .catch(() => {
-                    if (similarVocScopeRef.current === requestScope) {
-                      setSimilarVocError("이전 VOC를 더 불러오지 못했습니다. 다시 시도하세요.");
-                    }
-                  })
-                  .finally(() => {
-                    if (similarVocScopeRef.current !== requestScope) return;
-                    similarVocLoadingMoreRef.current = false;
-                    setSimilarVocLoadingMore(false);
-                  });
-              }}
-            />
-
-            <SourceResearchPanel
-              citations={researchCitations}
-              unavailableReason={researchUnavailable}
-              canResearch={canExtract && post.visibility_code === "public"}
-              researching={researching}
-              error={researchError}
-              onResearch={() => {
-                const requestScope = { postId };
-                researchScopeRef.current = requestScope;
-                setResearching(true);
-                setResearchError(null);
-                researchPostSources(accessToken, postId)
-                  .then((result) => {
-                    if (researchScopeRef.current !== requestScope) return;
-                    setResearchCitations(result.citations);
-                    setResearchUnavailable(result.unavailable_reason ?? null);
-                  })
-                  .catch((err) => {
-                    if (researchScopeRef.current === requestScope) {
-                      setResearchError(researchUnavailableMessage(err));
-                    }
-                  })
-                  .finally(() => {
-                    if (researchScopeRef.current === requestScope) setResearching(false);
-                  });
-              }}
-            />
+            <SurfaceBoundary>
+              <SimilarVocPanel
+                            items={similarVoc}
+                            error={similarVocError}
+                            onOpenPost={(candidatePostId) => onSelectPost?.(candidatePostId)}
+                            loadingMore={similarVocLoadingMore}
+                            onLoadMore={similarVocNextOffset === null ? null : () => {
+                              if (similarVocLoadingMoreRef.current) return;
+                              const requestScope = similarVocScopeRef.current;
+                              similarVocLoadingMoreRef.current = true;
+                              setSimilarVocLoadingMore(true);
+                              setSimilarVocError(null);
+                              fetchSimilarVoc(accessToken, postId, similarVocNextOffset)
+                                .then((result) => {
+                                  if (similarVocScopeRef.current !== requestScope) return;
+                                  setSimilarVoc((current) => [...(current ?? []), ...result.items]);
+                                  setSimilarVocNextOffset(result.next_offset);
+                                })
+                                .catch(() => {
+                                  if (similarVocScopeRef.current === requestScope) {
+                                    setSimilarVocError("이전 VOC를 더 불러오지 못했습니다. 다시 시도하세요.");
+                                  }
+                                })
+                                .finally(() => {
+                                  if (similarVocScopeRef.current !== requestScope) return;
+                                  similarVocLoadingMoreRef.current = false;
+                                  setSimilarVocLoadingMore(false);
+                                });
+                            }}
+              />
+            </SurfaceBoundary>
 
             <RelatedPostsSection lineage={lineage} onSelectPost={onSelectPost} />
 
@@ -2719,13 +2854,7 @@ function PostDetailPopup({
 }
 
 function analysisRunCaption(run: AnalysisRun): string {
-  const kindLabel =
-    run.run_kind_code === "analysis_run_tepp"
-      ? "Temporal measurement"
-      : run.run_kind_code === "analysis_run_topic_lineage"
-        ? "Topic journey analysis"
-        : run.run_kind_label;
-  return [kindLabel, run.status_label, run.scope_entity_name ?? run.scope_kind_label]
+  return [run.run_kind_label, run.status_label, run.scope_entity_name ?? run.scope_kind_label]
     .filter(Boolean)
     .join(" · ");
 }
@@ -2745,9 +2874,9 @@ function analysisRunNextAction(run: AnalysisRun): string | null {
         case "analysis_run_lineage":
           return "Open this run, then start reconstruction. Reconstruction has not started yet.";
         case "analysis_run_tepp":
-          return "Open this run to confirm the source posts, then start temporal measurement.";
+          return "Open this run to confirm which posts TEPP will measure. Measurement has not started yet — this is not a calibrated result.";
         case "analysis_run_topic_lineage":
-          return "Open this run to confirm the source posts, then start topic journey analysis.";
+          return "Open this run to confirm which posts TEPP will thread into topic lineage. Topic-lineage analysis has not started yet — this is not a calibrated topic result.";
         case "analysis_run_report":
           return "Open this run to confirm which posts the period report will use. The report has not been built yet.";
         default: {
@@ -2758,9 +2887,9 @@ function analysisRunNextAction(run: AnalysisRun): string | null {
     case "analysis_status_failed":
       switch (run.run_kind_code) {
         case "analysis_run_tepp":
-          return "Open this run to review the failure, ask an administrator to restore analysis, then re-run.";
+          return "Open this run to see why it failed, then retry with the latest available records.";
         case "analysis_run_topic_lineage":
-          return "Open this run to review the failure, ask an administrator to restore analysis, then re-run.";
+          return "Open this run to see why it failed, then retry with the latest available records.";
         case "analysis_run_lineage":
           return "Open this run to see why it failed, then retry reconstruction from a current snapshot.";
         case "analysis_run_report":
@@ -2771,7 +2900,7 @@ function analysisRunNextAction(run: AnalysisRun): string | null {
         }
       }
     case "analysis_status_running":
-      return "Refresh this run to see the latest progress.";
+      return "Refresh this run. Start already queued the work on the durable outbox.";
     case "analysis_status_succeeded":
     case "analysis_status_cancelled":
     case null:
@@ -2790,23 +2919,23 @@ function analysisRunEmptyPostsHint(run: AnalysisRun): string {
   switch (run.run_kind_code) {
     case "analysis_run_tepp":
       return (
-        "No posts were available at this cutoff for temporal measurement. " +
-        "Open a later run, or ask an administrator to capture a newer snapshot."
+        "No posts were available at this cutoff for TEPP to measure. " +
+        "Open a later run or retry after a newer snapshot is available."
       );
     case "analysis_run_topic_lineage":
       return (
         "No posts were available at this cutoff for topic-lineage analysis. " +
-        "Open a later run, or ask an administrator to capture a newer snapshot."
+        "Open a later run or retry after a newer snapshot is available."
       );
     case "analysis_run_lineage":
       return (
         "No posts were available at this cutoff for reconstruction. " +
-        "Open a later run, or ask an administrator to capture a newer snapshot."
+        "Open a later run or retry after a newer snapshot is available."
       );
     case "analysis_run_report":
       return (
         "No posts were available at this cutoff for the period report. " +
-        "Open a later run, or ask an administrator to capture a newer snapshot."
+        "Open a later run or retry after a newer snapshot is available."
       );
     default: {
       const unexpected: never = run.run_kind_code;
@@ -2824,15 +2953,15 @@ function analysisRunEmptyPostsHint(run: AnalysisRun): string {
 function analysisRunCorpusHint(run: AnalysisRun): string | null {
   const isTopicLineage = run.run_kind_code === "analysis_run_topic_lineage";
   if (run.run_kind_code !== "analysis_run_tepp" && !isTopicLineage) return null;
-  const service = isTopicLineage ? "topic journey analysis" : "temporal measurement";
-  const result = isTopicLineage ? "a topic journey result" : "a calibrated result";
+  const service = isTopicLineage ? "topic-lineage" : "TEPP";
+  const result = isTopicLineage ? "a topic-identity result" : "a calibrated result";
   const verb = isTopicLineage ? "thread" : "measure";
   const verbPast = isTopicLineage ? "threaded" : "measured";
   switch (run.status_code) {
     case "analysis_status_failed":
       return (
-        `These posts are the source set ${service} would ${verb}. ` +
-        `Ask an administrator to restore analysis, then re-run to produce ${result}.`
+        `These posts are the cutoff corpus ${service} would ${verb}. Connect a TEPP ` +
+        `transport, then re-run, to replace Failed with ${result}.`
       );
     case "analysis_status_succeeded":
       return `These posts are the cutoff corpus this ${service} run ${verbPast}.`;
@@ -2964,17 +3093,16 @@ function analysisRunCanStart(run: AnalysisRun): boolean {
     (run.run_kind_code === "analysis_run_lineage" ||
       run.run_kind_code === "analysis_run_tepp" ||
       run.run_kind_code === "analysis_run_topic_lineage") &&
-    (run.status_code === "analysis_status_pending" ||
-      run.status_code === "analysis_status_running")
+    run.status_code === "analysis_status_pending"
   );
 }
 
 function analysisRunStartLabel(run: AnalysisRun): string {
   if (run.run_kind_code === "analysis_run_tepp") {
-    return "Start temporal measurement";
+    return "Start TEPP measurement";
   }
   if (run.run_kind_code === "analysis_run_topic_lineage") {
-    return "Start topic journey analysis";
+    return "Start topic lineage";
   }
   return "Start reconstruction";
 }
@@ -3209,8 +3337,8 @@ function AnalysisRunsPanel({
       {(error || entitiesLoadError) && <p className="error">{error ?? entitiesLoadError}</p>}
       {runs.length === 0 ? (
         <p className="popup-placeholder">
-          No analysis runs visible to this account yet. Request a lineage
-          reconstruction, or ask an administrator to run make seed.
+          No analysis runs are visible to this account yet. Add source records,
+          then request a new analysis run.
         </p>
       ) : (
         <ul className="ticket-list" aria-label="Analysis runs">
@@ -3249,6 +3377,9 @@ function AnalysisRunsPanel({
             {" · "}
             Requested {selected.requested_at.slice(0, 10)}
           </p>
+          {selected.tepp_accepted_receipt && (
+            <TeppAcceptedReceipt />
+          )}
           <AnalysisRunReproducibilityDigests
             codeRevisionSha={selected.code_revision_sha}
             configurationSha256={selected.configuration_sha256}
@@ -3263,9 +3394,9 @@ function AnalysisRunsPanel({
             >
               {starting
                 ? selected.run_kind_code === "analysis_run_tepp"
-                  ? "Starting temporal measurement..."
+                  ? "Submitting the TEPP request..."
                   : selected.run_kind_code === "analysis_run_topic_lineage"
-                    ? "Starting topic journey analysis..."
+                    ? "Submitting the topic-lineage request..."
                     : "Reconstructing the cutoff bag..."
                 : analysisRunStartLabel(selected)}
             </button>
@@ -3273,8 +3404,10 @@ function AnalysisRunsPanel({
           {analysisRunCanRequestTeppRetry(selected) && (
             <p className="post-meta">
               {selected.run_kind_code === "analysis_run_topic_lineage"
-                ? "Ask an administrator to restore topic journey analysis, then re-run this source set."
-                : "Ask an administrator to restore temporal measurement, then re-run this source set."}
+                ? "Connect a TEPP transport from this Failed row. Request a " +
+                  "lineage reconstruction does not invent a topic model."
+                : "Connect a TEPP transport from this Failed row. Request a lineage " +
+                  "reconstruction does not invent a measurement."}
             </p>
           )}
           {analysisRunReportPeriod(selected) && onSelectReportPeriod && (
@@ -3420,7 +3553,7 @@ function RankingsPanel({
     setError(null);
     fetchRankings(accessToken)
       .then(setRanking)
-      .catch(() => setError(t("Rankings could not be loaded. Retry in a moment.")));
+      .catch((err) => setError(String(err)));
   }, [accessToken]);
 
   return (
@@ -3429,28 +3562,30 @@ function RankingsPanel({
         <h2>{t("Rankings")}</h2>
         {ranking && (
           <span className="post-badge">
-            {ranking.status === "accepted"
-              ? t("Evidence combined")
-              : t("Evidence needed")}
+            {t("Rankings")}
           </span>
         )}
       </div>
       {error && <p className="error">{error}</p>}
       {ranking === null && !error && <p role="status">{t("Loading rankings...")}</p>}
       {ranking && ranking.status === "unavailable" && (
-        <p className="popup-placeholder">{t("Rankings are not ready. Refresh after the source evidence is connected.")}</p>
+        <p className="popup-placeholder">
+          {t("Rankings are not available right now. Reopen this post later to load them.")}
+        </p>
       )}
       {ranking && ranking.status === "accepted" && ranking.rankings.length === 0 && (
-        <p className="popup-placeholder">{t("No comparable posts are visible. Check the period and access scope.")}</p>
+        <p className="popup-placeholder">
+          {t("No ranked posts yet. Ranked posts appear after the next rankings refresh.")}
+        </p>
       )}
       {ranking && ranking.rankings.length > 0 && (
         <>
           <p className="ranking-channel-evidence-copy">
             {t(
-              "Compare recency and content-relevance evidence, then open the source post before acting. This rank is not a performance score.",
+              "Rankings combine newest-first and title-overlap evidence and are not calibrated scores. Open a ranked post to see its evidence.",
             )}
           </p>
-          <ul className="ticket-list" aria-label={t("Evidence")}>
+          <ul className="ticket-list" aria-label={t("Ranked posts")}>
             {ranking.rankings.map((hit) => (
               <li key={hit.post_id} className="ticket-list-item ranking-hit">
                 <button
@@ -3459,7 +3594,7 @@ function RankingsPanel({
                   onClick={() => onSelectPost(hit.post_id)}
                 >
                   <span className="ticket-title">{hit.post_title}</span>
-                  <span className="post-badge">{t("Evidence ranking")}</span>
+                  <span className="post-badge">{t("Rankings")}</span>
                   <span className="post-badge">{tf("rank {rank}", { rank: String(hit.fused_rank) })}</span>
                 </button>
                 {(hit.channel_evidence ?? []).length > 0 ? (
@@ -3511,12 +3646,14 @@ function CalendarPanel({
   if (calendar === null) return <p role="status">{t("Loading calendar...")}</p>;
 
   return (
-    <WorkspaceCalendar
-      calendar={calendar}
-      onSelectPost={onSelectPost}
-      headingId={headingId}
-      heading={heading ?? t("Calendar")}
-    />
+    <SurfaceBoundary>
+      <WorkspaceCalendar
+        calendar={calendar}
+        onSelectPost={onSelectPost}
+        headingId={headingId}
+        heading={heading ?? t("Calendar")}
+      />
+    </SurfaceBoundary>
   );
 }
 
@@ -3737,18 +3874,20 @@ function ReportsPanel({
               </p>
             )}
             {report.leftover_pairs && report.leftover_pairs.length > 0 && (
-              <LeftoverPairList
-                pairs={report.leftover_pairs}
-                criterionLabel={criterionShortLabel}
-                onSelectPost={(pair) => {
-                  onSelectPost(pair.post_id, {
-                    fromLeftoverPair: {
-                      pairKind: pair.pair_kind === "farthest" ? "farthest" : "closest",
-                      criterionCode: pair.criterion_code,
-                    },
-                  });
-                }}
-              />
+              <SurfaceBoundary>
+                <LeftoverPairList
+                  pairs={report.leftover_pairs}
+                  criterionLabel={criterionShortLabel}
+                  onSelectPost={(pair) => {
+                    onSelectPost(pair.post_id, {
+                      fromLeftoverPair: {
+                        pairKind: pair.pair_kind === "farthest" ? "farthest" : "closest",
+                        criterionCode: pair.criterion_code,
+                      },
+                    });
+                  }}
+                />
+              </SurfaceBoundary>
             )}
             {report.members.length > 0 && (
               <ul className="ticket-list">
@@ -3977,6 +4116,7 @@ function PostList({
   const [searchQuery, setSearchQuery] = useState("");
   const [typeFilter, setTypeFilter] = useState<string[]>([]);
   const [vocTypeFilterOptions, setVocTypeFilterOptions] = useState<PostFilterOption[]>([]);
+  const [voiceTypeCatalog, setVoiceTypeCatalog] = useState<PostFilterOption[]>([]);
   const [visibilityFilter, setVisibilityFilter] = useState("all");
   const [visibilityFilterOptions, setVisibilityFilterOptions] = useState<PostFilterOption[]>([]);
   const [sortOrder, setSortOrder] = useState<BoardSortOrder>("newest");
@@ -4075,6 +4215,7 @@ function PostList({
       setPosts(response.posts);
       setTotalPosts(response.total_count);
       setVocTypeFilterOptions(response.voc_type_options ?? []);
+      setVoiceTypeCatalog(response.voice_type_catalog ?? response.voc_type_options ?? []);
       setVisibilityFilterOptions(response.visibility_options ?? []);
       setCurrentPage(page);
     } catch (err) {
@@ -4145,15 +4286,32 @@ function PostList({
         }));
   const vocTypeOptions = vocTypeFilterOptions.length
     ? vocTypeFilterOptions
-    : Array.from(new Set(loadedPosts.map((post) => post.voc_type_code)))
+    : Array.from(
+        new Set(
+          loadedPosts.flatMap((post) =>
+            post.voice_types?.length
+              ? post.voice_types.map((voice) => voice.code)
+              : [post.voc_type_code],
+          ),
+        ),
+      )
         .sort()
         .map((code) => ({
           code,
-          label: loadedPosts.find((post) => post.voc_type_code === code)?.voc_type_label ?? code,
+          label:
+            loadedPosts
+              .flatMap((post) => post.voice_types ?? [])
+              .find((voice) => voice.code === code)?.label ??
+            loadedPosts.find((post) => post.voc_type_code === code)?.voc_type_label ??
+            code,
         }));
   const filteredPosts = loadedPosts
     .filter((post) => {
-      const matchesType = typeFilter.length === 0 || typeFilter.includes(post.voc_type_code);
+      const matchesType =
+        typeFilter.length === 0 ||
+        (post.voice_types?.length
+          ? post.voice_types.some((voice) => typeFilter.includes(voice.code))
+          : typeFilter.includes(post.voc_type_code));
       const matchesVisibility = visibilityFilter === "all" || post.visibility_code === visibilityFilter;
       return matchesType && matchesVisibility;
     })
@@ -4341,7 +4499,12 @@ function PostList({
                         </span>
                       </span>
                       <span className="post-card-badges">
-                        <span className="post-badge">{t(post.voc_type_label ?? post.voc_type_code)}</span>
+                        <span className="post-badge">
+                          {(post.voice_types?.length
+                            ? post.voice_types.map(voiceDisplayLabel)
+                            : [t(post.voc_type_label ?? post.voc_type_code)]
+                          ).join(" + ")}
+                        </span>
                         <span className="post-badge">{t(post.visibility_label ?? post.visibility_code)}</span>
                         {post.source_detail_state_code ? (
                           <span className="post-badge">
@@ -4448,6 +4611,7 @@ function PostList({
           onClose={closeSelectedPost}
           onSelectPost={selectPost}
           onSearch={searchBoard}
+          voiceOptions={voiceTypeCatalog}
         />
       )}
     </section>
@@ -4457,6 +4621,15 @@ function PostList({
 interface CustomerEntityTreeNode {
   entity: CustomerMasterEntity;
   children: CustomerEntityTreeNode[];
+}
+
+/** Guides a reader from an unresolved source identifier to customer evidence. */
+export function CustomerLinkingGuidance() {
+  return (
+    <p className="workspace-destination-intro">
+      {t("Before linking a customer, compare the source identifier with the related posts and organization evidence.")}
+    </p>
+  );
 }
 
 // Live bug (2026-08-19): Customer Master's own entity list rendered every
@@ -4703,6 +4876,7 @@ function CustomerMasterPanel({
       <p className="section-eyebrow">{t("Authorized customer scope")}</p>
       <h2 id="customer-master-heading">{t("Customer master")}</h2>
       <p className="workspace-destination-intro">{t("Customer entities available to this account.")}</p>
+      <CustomerLinkingGuidance />
       {error ? <p className="error">{error}</p> : null}
       {master === null && !error ? <p role="status">{t("Loading customer master...")}</p> : null}
       {master?.corporate_entities.length === 0 ? (
@@ -4750,7 +4924,9 @@ function CustomerMasterPanel({
       {master && master.source_customer_hints.length > 0 ? (
         <section className="customer-keymen" aria-labelledby="observed-customer-evidence-heading">
           <h3 id="observed-customer-evidence-heading">{t("Observed customer evidence")}</h3>
-          <CustomerLinkingGuidance />
+          <p className="workspace-destination-intro">
+            {t("Source identifiers are hints only; ontology and semantic evidence must resolve them before binding a customer.")}
+          </p>
           {master.source_customer_hints.length > HINT_RENDER_LIMIT && (
             <p className="post-meta">
               {tf("Showing the first {shown} of {total} observed customer identifiers, ranked by post count.", {
@@ -4801,7 +4977,7 @@ function CustomerMasterPanel({
       ) : null}
       {master && master.source_author_hints.length > 0 ? (
         <section className="customer-keymen" aria-labelledby="source-author-evidence-heading">
-          <h3 id="source-author-evidence-heading">{t("Source author evidence")}</h3>
+          <h3 id="source-author-evidence-heading">{t("Author context")}</h3>
           {master.source_author_hints.length > HINT_RENDER_LIMIT && (
             <p className="post-meta">
               {tf("Showing the first {shown} of {total} observed source authors, ranked by post count.", {
@@ -4880,15 +5056,6 @@ function CustomerMasterPanel({
   );
 }
 
-/** Guides a reader from an unresolved source identifier to customer evidence. */
-export function CustomerLinkingGuidance() {
-  return (
-    <p className="workspace-destination-intro">
-      {t("Before linking a customer, compare the source identifier with the related posts and organization evidence.")}
-    </p>
-  );
-}
-
 export function AskAgentPanel({
   accessToken,
   onOpenPost,
@@ -4897,12 +5064,12 @@ export function AskAgentPanel({
   onOpenPost: (postId: string) => void;
 }) {
   const [question, setQuestion] = useState("");
+  const [knowledgeCutoff, setKnowledgeCutoff] = useState("");
   const [answer, setAnswer] = useState<AskAgentResponse | null>(null);
   const [answeredQuestion, setAnsweredQuestion] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [asking, setAsking] = useState(false);
   const [verifyExternal, setVerifyExternal] = useState(false);
-  const [knowledgeCutoff, setKnowledgeCutoff] = useState("");
   const [evidenceLayerPostId, setEvidenceLayerPostId] = useState<string | null>(null);
   const now = new Date();
   const localKnowledgeCutoffMax = new Date(
@@ -4912,17 +5079,24 @@ export function AskAgentPanel({
   async function handleAsk() {
     const normalized = question.trim();
     if (!normalized) return;
+    let cutoff: string | undefined;
+    try {
+      cutoff = optionalKnowledgeCutoffIso(knowledgeCutoff);
+    } catch {
+      setAnswer(null);
+      setError(t("Enter a valid knowledge cutoff, then ask again."));
+      return;
+    }
     setAsking(true);
     setError(null);
     try {
-      setAnswer(
-        await askAgent(
+      const response = await askAgent(
           accessToken,
           normalized,
           verifyExternal,
-          knowledgeCutoff ? new Date(knowledgeCutoff).toISOString() : undefined,
-        ),
-      );
+          cutoff,
+        );
+      setAnswer(response);
       setAnsweredQuestion(normalized);
     } catch (err) {
       setAnswer(null);
@@ -4933,16 +5107,13 @@ export function AskAgentPanel({
   }
 
   return (
-    <section className="workspace-destination ask-agent-panel" aria-labelledby="ask-agent-heading">
+    <section className="workspace-destination" aria-labelledby="ask-agent-heading">
       <p className="section-eyebrow">{t("Evidence-grounded questions")}</p>
       <h2 id="ask-agent-heading">{t("Ask Agent")}</h2>
       <p className="workspace-destination-intro">{t("Questions use authorized posts and their evidence.")}</p>
       {error ? <p className="error">{error}</p> : null}
-      <form className="ask-agent-composer" onSubmit={(event) => {
-        event.preventDefault();
-        void handleAsk();
-      }}>
-        <label className="ask-agent-source">
+      <div className="ask-agent-form">
+        <label className="ask-agent-field">
           <span>{t("Ask a question")}</span>
           <textarea
             aria-label={t("Ask a question")}
@@ -4960,21 +5131,20 @@ export function AskAgentPanel({
           <span>{t("Check eligible public claims")}</span>
         </label>
         <label className="ask-agent-field">
-          <span>{t("Knowledge cutoff (optional)")}</span>
+          <span>{t("Use evidence available by (optional)")}</span>
           <input
             type="datetime-local"
+            aria-label={t("Use evidence available by (optional)")}
             value={knowledgeCutoff}
             max={localKnowledgeCutoffMax}
             onChange={(event) => setKnowledgeCutoff(event.target.value)}
           />
+          <small>{t("Choose a time on this device, or leave blank to use the latest evidence.")}</small>
         </label>
-        <div className="ask-agent-actions">
-          <button type="submit" className="btn-primary" disabled={asking || !question.trim()}>
-            {t("Ask")}
-          </button>
-          {asking ? <span role="status">{t("Asking...")}</span> : null}
-        </div>
-      </form>
+        <button className="btn-primary" onClick={() => void handleAsk()} disabled={asking || !question.trim()}>
+          {asking ? t("Asking...") : t("Ask")}
+        </button>
+      </div>
       {answer && (
         <section className="popup-section" aria-label={t("Answer")}>
           <h3>{t("Answer")}</h3>
@@ -4992,7 +5162,7 @@ export function AskAgentPanel({
                 {answer.grounding_status === "fully_cutoff_grounded"
                   ? t("Fully cutoff-grounded")
                   : t("Partially cutoff-grounded")}
-                {` · ${answer.knowledge_cutoff}`}
+                {` · ${new Date(answer.knowledge_cutoff).toLocaleString()}`}
               </p>
               {answer.limitations?.length ? (
                 <p role="alert">
@@ -5001,7 +5171,9 @@ export function AskAgentPanel({
               ) : null}
             </aside>
           ) : null}
-          <PublicClaimVerification claims={answer.external_claims ?? []} />
+          <SurfaceBoundary>
+            <PublicClaimVerification claims={answer.external_claims ?? []} />
+          </SurfaceBoundary>
           {answer.delivery ? (
             <aside className="ask-delivery" aria-label={t("Report · alert · MCP")}>
               <h4>{t("Report · alert · MCP")}</h4>
@@ -5017,26 +5189,30 @@ export function AskAgentPanel({
             </aside>
           ) : null}
           {answer.lineage_graph && answer.lineage_graph.nodes.length > 0 ? (
-            <LineageDag graph={answer.lineage_graph} onSelectPost={onOpenPost} />
+            <SurfaceBoundary>
+              <LineageDag graph={answer.lineage_graph} onSelectPost={onOpenPost} />
+            </SurfaceBoundary>
           ) : null}
         </section>
       )}
       {evidenceLayerPostId && answer ? (
-        <AskEvidenceLayerPopup
-          postId={evidenceLayerPostId}
-          postTitle={
-            answer.cited_posts?.find((post) => post.post_id === evidenceLayerPostId)?.post_title ??
-            evidenceLayerPostId
-          }
-          facts={
-            answer.cited_post_evidence?.find((item) => item.post_id === evidenceLayerPostId)?.facts ?? []
-          }
-          images={
-            answer.cited_post_images?.filter((image) => image.post_id === evidenceLayerPostId) ?? []
-          }
-          onClose={() => setEvidenceLayerPostId(null)}
-          onOpenPost={onOpenPost}
-        />
+        <SurfaceBoundary>
+          <AskEvidenceLayerPopup
+            postId={evidenceLayerPostId}
+            postTitle={
+              answer.cited_posts?.find((post) => post.post_id === evidenceLayerPostId)?.post_title ??
+              evidenceLayerPostId
+            }
+            facts={
+              answer.cited_post_evidence?.find((item) => item.post_id === evidenceLayerPostId)?.facts ?? []
+            }
+            images={
+              answer.cited_post_images?.filter((image) => image.post_id === evidenceLayerPostId) ?? []
+            }
+            onClose={() => setEvidenceLayerPostId(null)}
+            onOpenPost={onOpenPost}
+          />
+        </SurfaceBoundary>
       ) : null}
     </section>
   );
@@ -5155,23 +5331,28 @@ export default function App({ showLabPanels = false }: { showLabPanels?: boolean
       />
       <main>
         {destination === "dashboard" ? (
-          <OperationsDashboard
-            accessToken={accessToken}
-            onOpenPost={(postId) => {
-              setPostToOpen(postId);
-              setDestination("board");
-            }}
-          />
+          <SurfaceBoundary>
+            <OperationsDashboard
+              accessToken={accessToken}
+              onOpenPost={(postId) => {
+                setPostToOpen(postId);
+                setDestination("board");
+              }}
+            />
+            <OccupationRatingProfile accessToken={accessToken} />
+          </SurfaceBoundary>
         ) : null}
         {destination === "external" ? (
-          <OperationsDashboard
-            accessToken={accessToken}
-            externalOnly
-            onOpenPost={(postId) => {
-              setPostToOpen(postId);
-              setDestination("board");
-            }}
-          />
+          <SurfaceBoundary>
+            <OperationsDashboard
+              accessToken={accessToken}
+              externalOnly
+              onOpenPost={(postId) => {
+                setPostToOpen(postId);
+                setDestination("board");
+              }}
+            />
+          </SurfaceBoundary>
         ) : null}
         {destination === "board" ? (
           <PostList
@@ -5189,7 +5370,7 @@ export default function App({ showLabPanels = false }: { showLabPanels?: boolean
             <CalendarPanel
               accessToken={accessToken}
               headingId="calendar-heading"
-              heading="달력"
+              heading={t("Calendar")}
               onSelectPost={(postId) => {
                 setPostToOpen(postId);
                 setDestination("board");
@@ -5206,7 +5387,11 @@ export default function App({ showLabPanels = false }: { showLabPanels?: boolean
             }}
           />
         ) : null}
-        {destination === "admin" && accessToken ? <AdminPanel currentBrandName={brandName} onBrandNameChange={setBrandName} accessToken={accessToken} /> : null}
+        {destination === "admin" && accessToken ? (
+            <SurfaceBoundary>
+              <AdminPanel currentBrandName={brandName} onBrandNameChange={setBrandName} accessToken={accessToken} />
+            </SurfaceBoundary>
+          ) : null}
       </main>
       <footer className="app-footer" role="contentinfo">
         <div className="app-footer-title">

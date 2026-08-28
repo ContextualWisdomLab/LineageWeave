@@ -1,6 +1,8 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
+import { expect, within } from "storybook/test";
 import { WorkspaceCalendar } from "./WorkspaceCalendar";
 import type { CalendarResponse } from "../api";
+import "../App.css";
 
 const unavailable: CalendarResponse = {
   events: [],
@@ -22,7 +24,7 @@ const unavailable: CalendarResponse = {
   calendar_sources: {
     naruon_available: false,
     naruon_next_action:
-      "Connect the Naruon calendar projection. Open a commitment below to read that post.",
+      "Ask your workspace administrator to enable calendar access. Open a commitment below to read its source post.",
   },
 };
 
@@ -63,8 +65,24 @@ export default meta;
 
 type Story = StoryObj<typeof meta>;
 
-export const NaruonUnavailable: Story = {};
+export const NaruonUnavailable: Story = {
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const notice = canvas.getByRole("region", { name: /^Unavailable:/ });
+    await expect(notice).toHaveTextContent("이 범위의 일정을 아직 받을 수 없습니다");
+    await expect(notice).toHaveTextContent("enable calendar access");
+    await expect(notice).not.toHaveTextContent(/Naruon|provider|model|transport|environment/i);
+    await expect(
+      canvas.getByRole("button", { name: /open commitment for: public post/i }),
+    ).toBeVisible();
+  },
+};
 
 export const ObservedOccurrence: Story = {
   args: { calendar: observed },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(canvas.getByText("Customer review")).toBeVisible();
+    await expect(canvas.queryByText("summary_visible")).not.toBeInTheDocument();
+  },
 };

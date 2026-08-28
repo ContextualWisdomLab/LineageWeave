@@ -56,6 +56,22 @@ def normalize_chat_question(question: str) -> str:
 
 
 @dataclass(frozen=True)
+class EvidenceOpenAction:
+    """Authorized locator for opening one cited unit without source internals."""
+
+    post_id: str
+    unit_index: int
+
+    def to_payload(self) -> dict[str, str | int]:
+        """Return a stable API action without the caller's opaque reference."""
+        return {
+            "action_kind": "open_cited_content_unit",
+            "post_id": self.post_id,
+            "unit_index": self.unit_index,
+        }
+
+
+@dataclass(frozen=True)
 class ChatSourceDocument:
     """One numbered post and its persisted evidence for chat reasoning."""
 
@@ -72,6 +88,7 @@ class ChatSourceDocument:
     unavailable_channels: tuple[str, ...] = field(default_factory=tuple)
     observed_at: str | None = None
     time_axis_code: str | None = None
+    evidence_open_action: EvidenceOpenAction | None = None
 
 
 @dataclass(frozen=True)
@@ -87,22 +104,29 @@ class ChatAnswer:
 def cited_post_summaries(
     sources: list[ChatSourceDocument] | tuple[ChatSourceDocument, ...],
     cited_post_ids: tuple[str, ...] | list[str],
-) -> list[dict[str, str | bool | list[str] | None]]:
+) -> list[dict[str, object]]:
     """Titles for cited ids, in citation order. Unknown ids are dropped.
 
     The sliding evidence chip must show the source post's title, not a
     truncated UUID -- a missing title is omitted, never invented.
+    Cutoff citations also name the retained revision and limitation flags.
     """
     by_id = {source.post_id: source for source in sources}
-    citations: list[dict[str, str | bool | list[str] | None]] = []
+    citations: list[dict[str, object]] = []
     for post_id in cited_post_ids:
         source = by_id.get(post_id)
         if source is None:
             continue
-        citation: dict[str, str | bool | list[str] | None] = {
+        citation: dict[str, object] = {
             "post_id": post_id,
             "post_title": source.post_title,
         }
+        if (
+            source.evidence_open_action is not None
+            and source.evidence_open_action.post_id == post_id
+            and source.evidence_open_action.unit_index >= 0
+        ):
+            citation["evidence_open_action"] = source.evidence_open_action.to_payload()
         if source.knowledge_cutoff is not None:
             citation.update(
                 {
@@ -177,6 +201,7 @@ def _buyer_evidence_kind(fact: str) -> str:
     return "source_field"
 
 
+
 def _buyer_evidence_text(fact: str) -> str:
     cleaned = re.sub(r"\s*\|\s*(?:ontology_iri|extraction_method|confidence):\s*[^|\[]+", "", fact)
     cleaned = re.sub(r"\s*\[provenance=[^]]+\]", "", cleaned)
@@ -244,9 +269,6 @@ sources don't actually support an answer (say so instead of guessing).
 Do not output a reasoning trace. Return the JSON object immediately.
 
 For every part of your answer, track which source number(s) it came from.
-If the question asks for a commercial response, include a concise commercial
-perspective only when the cited event progression supports it; otherwise say
-what evidence is still needed. Never infer it from chronology alone.
 
 Reply with ONLY a JSON object (no markdown fences, no prose) with exactly
 these fields:
@@ -265,9 +287,6 @@ _CODE_FENCE_PATTERN = re.compile(r"```(?:json)?\s*(.*?)\s*```", re.DOTALL)
 _CHAT_REQUEST_PROMPT_TEMPLATE = """\
 Answer the question using ONLY the numbered source documents below. Do not
 use outside knowledge or guess. Be concise and preserve the evidence facts.
-If the question asks for a commercial response, include a concise commercial
-perspective only when the cited event progression supports it; otherwise say
-what evidence is still needed. Never infer it from chronology alone.
 Write the answer first, then a new line exactly beginning CITED SOURCES:
 followed by the 1-based source numbers separated by commas. Cite every
 source the answer used; write NONE when the sources do not support an answer.

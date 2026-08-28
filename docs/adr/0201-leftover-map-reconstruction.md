@@ -2,7 +2,7 @@
 
 **Decision status:** Accepted
 **Date:** 2026-08-25
-**Amended by:** [ADR 0232](0232-leftover-map-explained-share.md) (leftover-map explained share `e = R̂² / R²`)
+**Amended by:** [ADR 0266](0266-leftover-map-explained-share.md) (leftover-map explained share `e = R̂² / R²`)
 
 Amends [ADR 0048](0048-persist-lsirm-leftover-pairs.md),
 [ADR 0049](0049-leftover-pair-report-ui.md), and

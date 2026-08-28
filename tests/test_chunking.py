@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import pytest
+
 from lineageweave.chunking import (
     ConversationTurn,
     chunk_by_conversation_turn,
@@ -624,3 +626,59 @@ def test_chunk_by_source_body_maps_plain_caret_quantities() -> None:
     chunks = chunk_by_source_body("Reserve 12 m^3 and 10^{-3} M stock.")
 
     assert chunks[0].text == "Reserve 12 m³ and 10⁻³ M stock."
+
+
+@pytest.mark.parametrize(
+    ("value", "expected"),
+    [
+        ("1px", 0),  # rounds below one eight-pixel unit
+        ("16px", 2),
+        ("1em", 2),
+        ("0", 0),
+        ("-4px", 0),
+        ("10pt", 2),
+        ("garbage", 0),
+        ("", 0),
+    ],
+)
+def test_length_to_indent_units_clamps_rounds_and_rejects(value: str, expected: int) -> None:
+    from lineageweave.chunking import _length_to_indent_units
+
+    assert _length_to_indent_units(value) == expected
+
+
+@pytest.mark.parametrize(
+    ("raw", "expected"),
+    [
+        ("10px", "10px"),
+        ("10px 20px", "20px"),
+        ("10px 20px 30px", "20px"),
+        ("10px 20px 30px 40px", "40px"),
+        ("", ""),
+    ],
+)
+def test_shorthand_left_value_picks_the_box_model_slot(raw: str, expected: str) -> None:
+    from lineageweave.chunking import _shorthand_left_value
+
+    assert _shorthand_left_value(raw) == expected
+
+
+def test_chunk_by_sentence_returns_empty_for_no_sentences() -> None:
+    from lineageweave.chunking import chunk_by_sentence
+
+    assert chunk_by_sentence("   ") == []
+
+
+def test_decode_data_uri_image_accepts_png_and_rejects_malformed() -> None:
+    import base64
+
+    from lineageweave.chunking import _decode_data_uri_image
+
+    png = base64.b64encode(b"\x89PNG\r\n\x1a\n").decode("ascii")
+    mime, raw = _decode_data_uri_image(f"data:image/png;base64,{png}")
+    assert mime == "image/png"
+    assert raw == b"\x89PNG\r\n\x1a\n"
+
+    assert _decode_data_uri_image("http://example.test/image.png") is None
+    assert _decode_data_uri_image("data:image/png,notbase64") is None
+    assert _decode_data_uri_image("data:image/png;base64,%%%bad") is None

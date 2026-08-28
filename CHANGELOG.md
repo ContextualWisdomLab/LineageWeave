@@ -6,88 +6,110 @@ All notable changes to this project are documented here. Format follows
 
 ## [Unreleased]
 
-### Changed
-
-- Embedding transport now validates provider envelopes without retaining
-  production-unused Python cosine and chunk-max arithmetic. Active semantic
-  retrieval remains explicitly unavailable for migration until a versioned
-  Rust owner contract is accepted; no local or database substitute is added.
-
-- Ask Agent now searches posts with the same persisted semantic project key as
-  part of its authorized evidence window before re-analysis. Missing evidence
-  remains a retry state rather than a request for the reader to attach an
-  original; newly analyzed project evidence now requeues completed sibling
-  analyses that still have missing facts. Case-analysis reuse now binds to a
-  digest of the exact ordered authorized evidence window and context, so an
-  unchanged focal body is re-analyzed when new sibling evidence arrives. The
-  composer now uses an accessible form with a stable action and separate
-  progress status.
-
-- Docker Compose now has one canonical `lineageweave` project containing the
-  complete synthetic product stack. The backend receives the existing TEPP API
-  credential contract, and the OIDC smoke target installs its declared backend
-  dependencies before verifying the live Keycloak signature.
-- Rankings now call RankWeave's parameter-free classic RRF path when no
-  calibrated weights exist and project RankWeave-owned channel contributions;
-  the prior local contribution arithmetic and invalid all-ones call to the
-  convex-weight API were removed.
-
-- Period-report leftover maps now consume fast-mlsirm's protected Rust
-  residual-interaction and expected-response contracts. Local Python Gabriel
-  SVD, distance, reconstruction, share, expectation, and duplicate likelihood
-  arithmetic were removed; owner failures remain unavailable rather than
-  triggering a local substitute.
-
-- Dashboard evidence-link hit areas now honor the shared minimum control-size token on touch layouts.
-- The external-information GNB keeps all authorized in-period posts as its coverage denominator while filtering the displayed case rows.
-
-- Async Ask queue tests now isolate queue settlement from semantic retrieval,
-  and the development test stack follows Starlette's maintained `httpx2`
-  `TestClient` contract. FastAPI 422 responses use the RFC 9110 constant, so
-  deprecation failures are repaired rather than suppressed.
-- ADRs 0011 and 0065 now include APA 7th References for the dated W3C
-  PROV-O and PROV-DM Recommendations (30 April 2013). Decisions are
-  unchanged.
-
 ### Added
 
-- Customer, MCP-client, and operator manuals now describe the shipped
-  Dashboard, twelve Voice categories, product evidence, asynchronous Ask
-  citations and related public originals, canonical Compose stack, OIDC/MCP
-  session handling, k6 observation procedure, and fail-closed TEPP boundary.
-  Each unavailable result points to a recovery action instead of exposing an
-  internal model or provider choice.
+- Evidence Operations now presents cited claim, rebid, handover, external,
+  product, and Voice evidence with explicit unavailable states and source-open
+  actions. Durable analysis and bounded backfill run only in the dedicated
+  backend worker, while the web process remains responsive; topic-context
+  results fail closed when their authorized provenance is incomplete.
 
-- Public posts can research a highlighted passage or image detail against a
-  cited public page (ADR 0248 / remaining ADR 0133). SearXNG finds candidates;
-  retrieval refuses redirects and non-global targets; contextual-orchestrator
-  judges in `mode=verify`. Private posts fail closed without sending content,
-  and absent explicit source-research resource budgets keep the channel unavailable.
-  After seed, open a public post and choose **Research public sources**, then
-  open the cited public resource and compare it with that highlighted content.
+- Period leftover pair rows now name leftover-map explained leftover share
+  `e = R̂² / R²` of raw residual after two-axis Gabriel reconstruction
+  (ADR 0266 / v2.23.0). After `make seed`, closest and farthest leftover
+  pairs sit above the member list with `R̂²/R²` next to leftover-map
+  distance `d`; click opens that post. A share greater than 1 is shown,
+  never clamped. When `R`, `R̂`, `U`, `x`, `s`, and `e` are finite,
+  `e + s + x = 1`. Never invent a leftover score or a theta.
+
+- Live synthetic PostgreSQL integration tests for imported primary Voice
+  history (ADR 0252 / #748): A → B → A at before/between/after knowledge
+  cutoffs, concurrent `voc_type_code` updates, GiST non-overlap, closing a
+  matching additional assignment, and 0237→0243 trigger replay. Tests skip
+  without PostgreSQL and do not close #748 until protected delivery.
+
+- Normalized Voice-of-X composition persistence (ADR 0256): every imported
+  primary voice is mirrored into `source_post_voice`; each additional voice
+  requires its own PROV-O assertion and truth status. Compound lookup codes,
+  keyword inference, confidence thresholds, and invented weights remain out of
+  the contract; the ontology publishes qualified `VoiceAssignment` resources,
+  authorized post responses expose the assignments, filters match any assigned
+  voice, post cards display combined labels, and the authorized neighborhood
+  carries the assignments through SHACL-validated JSON-LD, exact-value CSV,
+  and source-post evidence navigation. Storybook includes the combined primary
+  plus additional Voice evidence state for desktop and narrow-screen audit.
+  Board filters match additional as well as primary voices, labels retain the
+  active locale, and cutoff reads use assignment-effective time rather than
+  migration recording time. All twelve governed atomic Voice labels are
+  translated across the five supported product locales. Ontology neighborhoods
+  load assignments for every authorized visible Post in one bounded query,
+  including Person-, Organization-, Team-, and Project-focused exploration. A
+  governed `post_admin` API creates each additional assignment and its
+  `prov:wasDerivedFrom` assertion atomically from an ABAC-visible evidence Post;
+  callers cannot replace the imported primary or supply an assertion UUID.
+  Post detail lists the primary and evidence-connected perspectives separately,
+  with localized provenance cues and knowledge-cutoff filtering. A
+  permission- and cutoff-gated popup form connects an unassigned Voice with an
+  explicit truth state and the open Post as evidence; localized success/error
+  feedback and responsive Storybook scenes cover the write interaction.
 - Expanded Voice-of-X post taxonomy (ADR 0246): the governed `voc_type`
   scheme adds Voice of Supplier, Employee, Business, Regulator, Investor,
-  Society, and Process as source-post categories. Ontology, SHACL, the
-  replay-safe lookup migration, and source-preserving assertions stay in sync;
-  counterparty relationships remain a separate evidence contract.
+  Society, and Process as source-post categories. Ontology SKOS concepts and
+  idempotent migration 0235 stay in round-trip sync; counterparty relationships
+  remain a separate evidence contract.
 
-- PostgreSQL Compose now has a plan-first automatic tuning procedure that
-  samples aligned WAL/checkpoint counters and container resources, calculates
-  only segment- and checkpoint-bound settings, validates an auditable plan,
-  preserves durability, and applies or rolls back solely through an approved
-  controlled restart.
+- The DOT/FJA Data/People/Things worker functions now project into a
+  disjoint Industrial & Organizational (I/O) Psychology semantic layer
+  (ADR 0251): cognitive, affective, and behavioral constructs (information
+  processing, mental workload, executive functioning, appraisal; emotional
+  labor, burnout, engagement, psychological safety, commitment; task,
+  citizenship, counterproductive, safety, proactive, adaptive, service,
+  leadership, and withdrawal behavior) carry psychological dimensions and
+  APA 7th literature anchors, validate under new SHACL shapes, and surface
+  through a deterministic typed read model
+  (`lineageweave.iopsy_taxonomy`). No numeric weight, O*NET crosswalk, or
+  ADR 0248 equivalence is asserted (ADR 0145 still governs estimation).
+- Evidence-bound occupational construct semantics now keep cognitive
+  abilities, work styles, work activities, affective reactions, performance
+  behaviors, and FJA worker functions distinct. Record-to-construct links
+  require a reified evidence span and PROV-O derivation/time; unsupported
+  DPT-to-psychology crosswalks and local scores remain unavailable (ADR 0248).
+- Versioned occupational construct vocabularies and semantic-unit assertions
+  now persist in normalized tables. Database and application validation require
+  same-Post verbatim evidence, and authorized Post detail exposes provenance
+  without internal identifiers or numerical scores (ADR 0249).
+- An operator-only O*NET 31.0 catalog synchronizer now imports every official
+  cognitive-ability, work-style, and work-activity Content Model element with
+  stable IRIs, descriptions, attribution, and a deterministic source digest;
+  conflicting release metadata fails closed (ADR 0250).
 
-- Global Ask answers now link numbered citations to authorized event cards in
-  both directions. Each card names event time or the record-time fallback and
-  opens the focused evidence layer or full source post without inventing a
-  Project Journey.
-
-- ADR 0210's Dashboard consumer now persists a normalized, exact-provenance
-  projection for TEPP temporal topics and fast-mlsirm case-deletion model
-  influence. The API authorizes the fitted analysis scope before returning
-  rows; the UI preserves ties, multiple membership, uncertainty, time states,
-  and source links, and otherwise names the missing producer contract without
-  calculating a local score.
+- The occupational-classification and worker-characteristic taxonomy is now
+  published in the canonical ontology: all 23 major groups of the 2018
+  Standard Occupational Classification (the O*NET job families) carry
+  official titles and codes verbatim, the four O*NET 31.0 job-zone categories
+  carry their published names and source values, and source-native
+  worker-characteristic families are addressable -- Fleishman's four ability domains,
+  Holland's six RIASEC interest types with the published hexagonal adjacency,
+  the six legacy O*NET work-value clusters, and the seven higher-order
+  revised O*NET Work Styles dimensions (ADR 0245). Typed derivation properties from
+  classifications to characteristics are declared but assert no instance
+  binding; a deterministic application read model
+  (`lineageweave.io_taxonomy`) exposes fail-closed lookups, and no numeric
+  importance or level rating is imported. Each scheme links to versioned
+  PROV source entities with publisher/creator and rights/license metadata;
+  the stable O*NET 31.0 Job Zone JSON carries its verified SHA-256.
+- The DOT/FJA Data/People/Things worker-function taxonomy is now published
+  in the canonical ontology: all 24 worker functions carry the official
+  Dictionary of Occupational Titles Appendix B definitions verbatim, their
+  definitional ordinal ranks (ADR 0232). No DOT-to-O*NET or Fleishman
+  crosswalk is inferred without an authoritative mapping source. A
+  deterministic application read
+  model (`lineageweave.worker_function_taxonomy`) exposes fail-closed
+  lookups; ranks are scale positions and are never used as weights.
+- Global Ask accepts an optional UTC `knowledge_cutoff`. Dated questions
+  retrieve only posts available by that clock, cite the retained
+  `source_post_revision`, and name when a historical body was not kept.
+  Omitting the cutoff keeps the live-query contract (ADR 0216 / #271).
 - Persist explicit paragraph, list, table, MathML formula, and caller-parsed
   conversation-turn semantic-unit kinds without inferring absent boundaries.
 - Event Lineage now persists each reconstructed connection's independent
@@ -177,12 +199,28 @@ All notable changes to this project are documented here. Format follows
   leftover remains the ADR 0182 value `U = R − R̂`. Explained leftover share
   `e` and unexplained leftover share `s` are not persisted here.
 
+- Period leftover pair rows now name leftover-map unexplained leftover share
+  `s = U² / R²` of raw residual next to leftover-map distance `d`, then
+  open that post (Gabriel, 1971; Jeon et al., 2021, eq. 3; ADR 0233). After
+  `make seed`, closest and farthest leftover pairs sit above the member
+  list with `U²/R²` next to `d`. A missing share omits the badge rather
+  than inventing a leftover score. A share greater than 1 is shown, never
+  clamped. Two-axis reconstruction `R̂` and leftover-map cross share `x`
+  stay as already persisted. Explained leftover share `e` is not persisted
+  here.
+
 - The grouping comparison strip now names leftover post–criterion
   pairs on each visible row (ADR 0149). After `make seed`, open a
   leftover pair on A-100 from the strip to read that post. A leftover
   pair for a hidden post is omitted. Distances come from the same
   authorized leftover store as the period-report list; they do not
   invent a leftover score.
+
+### Changed
+
+- ADRs 0011 and 0065 now include APA 7th References for the dated W3C
+  PROV-O and PROV-DM Recommendations (30 April 2013). Decisions are
+  unchanged.
 
 ### Fixed
 

@@ -8,6 +8,7 @@ from typing import Any, Protocol
 
 from backend.app.post_eligibility import SOURCE_POST_ELIGIBILITY_SQL
 from lineageweave.ontology import LW
+from lineageweave.operations_case_analysis import REQUIRED_FACT_TYPES
 from lineageweave.prov_o import PROV_RELATIONS
 
 
@@ -311,10 +312,17 @@ async def fetch_operations_dashboard(
           join source_post evidence_post on evidence_post.post_id = fact.evidence_post_id
          where {visible}
            and not ({visible_evidence})
+           and ($6::jsonb -> fact.case_kind_code) ? fact.fact_type_code
            and ($5::boolean is false or fact.case_kind_code = 'external_information')
          order by post_id, case_kind_code, fact_type_code
         """,
         *args,
+        json.dumps(
+            {
+                case_kind: sorted(fact_types)
+                for case_kind, fact_types in REQUIRED_FACT_TYPES.items()
+            }
+        ),
     )
     milestone_rows = await conn.fetch(
         f"""
@@ -344,7 +352,7 @@ async def fetch_operations_dashboard(
         {
             "status_code": "not_applicable",
             "reason_code": "external_information_view",
-            "next_action": "전체 Dashboard로 전환해 Topic model influence를 확인하세요.",
+            "next_action": "전체 Dashboard로 전환해 주요 글과 조직별 변화를 확인하세요.",
             "required_contracts": [],
             "model_run": None,
             "topics": [],
@@ -421,7 +429,7 @@ async def fetch_operations_dashboard(
                 "observed_at": row["observed_at"].isoformat(),
                 "time_axis_code": row["time_axis_code"],
                 "time_axis_label": (
-                    "Event 발생일"
+                    "사건 발생일"
                     if row["time_axis_code"] == "event_occurred_at"
                     else "기록 생성일"
                 ),
@@ -521,7 +529,7 @@ def _project_lifecycles(
         if start and end:
             elapsed_seconds = int((datetime.fromisoformat(end["observed_at"]) - datetime.fromisoformat(start["observed_at"])).total_seconds())
             status_code = "resolved"
-            next_action = "시작·종료 Event 근거를 열어 경과 시간을 검토하세요."
+            next_action = "시작·종료 사건 근거를 열어 경과 시간을 검토하세요."
         elif start:
             elapsed_seconds = None
             status_code = "open"
@@ -609,6 +617,21 @@ async def _fetch_topic_context_dashboard(
                    coalesce(post.event_occurred_at, post.created_at) as occurred_at
               from source_post post
              where {visible_post_sql}
+        ), candidate_runs as (
+            select model.topic_model_run_id,
+                   influence_run.topic_influence_run_id,
+                   influence_run.accepted_at
+              from topic_model_run model
+              join analysis_run analysis on analysis.analysis_run_id = model.analysis_run_id
+              join analysis_run_scope scope on scope.analysis_run_id = analysis.analysis_run_id
+              join topic_influence_run influence_run
+                on influence_run.topic_model_run_id = model.topic_model_run_id
+             where {authorized_model_scope}
+        ), selected as (
+            select *
+              from candidate_runs
+             order by accepted_at desc, topic_model_run_id, topic_influence_run_id
+             limit 1
         ), eligible as (
             select model.topic_model_run_id, model.tepp_run_id, model.tepp_snapshot_id,
                    model.tepp_schema_version, model.tepp_model_contract_version,
@@ -629,22 +652,40 @@ async def _fetch_topic_context_dashboard(
                    activity.valid_to as activity_valid_to,
                    membership.dimension_code, membership.context_id,
                    context.context_label, membership.membership_weight,
-                   membership.evidence_sha256 as membership_evidence_sha256,
+                   membership_evidence.node_id as membership_evidence_post_id,
                    membership.source_post_id, visible_post.occurred_at,
                    influence.influence_value,
                    influence.uncertainty_method_code,
                    influence.uncertainty_lower_value,
                    influence.uncertainty_upper_value,
                    influence.diagnostic_status_code,
-                   influence_run.accepted_at
+                   influence_run.accepted_at,
+                   visible_post.post_id is not null
+                   and activity.topic_model_run_id is not null
+                   and membership_evidence_visible.post_id is not null
+                   and not exists (
+                       select 1
+                         from topic_lineage_relation checked_relation
+                         left join provenance_assertion checked_assertion
+                           on checked_assertion.assertion_id = checked_relation.provenance_assertion_id
+                         left join provenance_resource_binding checked_evidence
+                           on checked_evidence.resource_id = checked_assertion.object_resource_id
+                          and checked_evidence.node_type_code = 'node_post'
+                         left join visible_post checked_visible
+                           on checked_visible.post_id = checked_evidence.node_id
+                        where checked_relation.topic_model_run_id = selected.topic_model_run_id
+                          and checked_visible.post_id is null
+                   ) as provenance_complete
               from topic_post_context_influence influence
               join topic_influence_run influence_run
                 on influence_run.topic_model_run_id = influence.topic_model_run_id
                and influence_run.topic_influence_run_id = influence.topic_influence_run_id
+              join selected
+                on selected.topic_model_run_id = influence.topic_model_run_id
+               and selected.topic_influence_run_id = influence.topic_influence_run_id
               join topic_model_run model
-                on model.topic_model_run_id = influence.topic_model_run_id
+                on model.topic_model_run_id = selected.topic_model_run_id
               join analysis_run analysis on analysis.analysis_run_id = model.analysis_run_id
-              join analysis_run_scope scope on scope.analysis_run_id = analysis.analysis_run_id
               join analysis_source_snapshot snapshot
                 on snapshot.analysis_source_snapshot_id = analysis.analysis_source_snapshot_id
               join topic_context_membership membership
@@ -654,20 +695,21 @@ async def _fetch_topic_context_dashboard(
                 on context.topic_model_run_id = membership.topic_model_run_id
                and context.dimension_code = membership.dimension_code
                and context.context_id = membership.context_id
-              join visible_post on visible_post.post_id = membership.source_post_id
-              join topic_activity_interval activity
+              left join visible_post on visible_post.post_id = membership.source_post_id
+              left join provenance_assertion membership_assertion
+                on membership_assertion.assertion_id = membership.provenance_assertion_id
+              left join provenance_resource_binding membership_evidence
+                on membership_evidence.resource_id = membership_assertion.object_resource_id
+               and membership_evidence.node_type_code = 'node_post'
+              left join visible_post membership_evidence_visible
+                on membership_evidence_visible.post_id = membership_evidence.node_id
+              left join topic_activity_interval activity
                 on activity.topic_model_run_id = influence.topic_model_run_id
                and activity.topic_index = influence.topic_index
                and visible_post.occurred_at >= activity.valid_from
                and visible_post.occurred_at < activity.valid_to
-             where visible_post.occurred_at >= membership.valid_from
+               and visible_post.occurred_at >= membership.valid_from
                and visible_post.occurred_at < membership.valid_to
-               and {authorized_model_scope}
-        ), selected as (
-            select topic_model_run_id, topic_influence_run_id
-              from eligible
-             order by accepted_at desc, topic_model_run_id, topic_influence_run_id
-             limit 1
         )
         select eligible.*,
                coalesce((
@@ -676,15 +718,21 @@ async def _fetch_topic_context_dashboard(
                               'source_topic_index', relation.source_topic_index,
                               'target_topic_index', relation.target_topic_index,
                               'event_time', relation.event_time,
-                              'evidence_sha256', relation.evidence_sha256
+                              'evidence_post_id', relation_evidence.node_id
                           ) order by relation.event_time, relation.relation_ordinal)
                      from topic_lineage_relation relation
+                     join provenance_assertion relation_assertion
+                       on relation_assertion.assertion_id = relation.provenance_assertion_id
+                     join provenance_resource_binding relation_evidence
+                       on relation_evidence.resource_id = relation_assertion.object_resource_id
+                      and relation_evidence.node_type_code = 'node_post'
+                     join visible_post relation_evidence_visible
+                       on relation_evidence_visible.post_id = relation_evidence.node_id
                     where relation.topic_model_run_id = eligible.topic_model_run_id
                       and (relation.source_topic_index = eligible.topic_index
                            or relation.target_topic_index = eligible.topic_index)
                ), '[]'::jsonb) as lineage_events
           from eligible
-          join selected using (topic_model_run_id, topic_influence_run_id)
          order by eligible.topic_index,
                   case eligible.dimension_code
                       when 'business_unit' then 0
@@ -714,9 +762,9 @@ async def _fetch_topic_context_dashboard(
                 else "tepp_topic_posterior_not_persisted"
             ),
             "next_action": (
-                "동일 TEPP run·snapshot·cutoff에 결합된 fast-mlsirm 결과를 완료하세요."
+                "선택한 범위의 글 영향도 분석 결과를 먼저 완료하세요."
                 if tepp_ready
-                else "TEPP posterior topic 계약 결과를 먼저 완료하세요."
+                else "선택한 범위의 시간 흐름 분석 결과를 먼저 완료하세요."
             ),
             "required_contracts": [
                 {
@@ -732,6 +780,27 @@ async def _fetch_topic_context_dashboard(
                         if fast_mlsirm_ready
                         else "not_persisted"
                     ),
+                },
+            ],
+            "model_run": None,
+            "topics": [],
+        }
+
+    if not all(bool(row["provenance_complete"]) for row in rows):
+        return {
+            "status_code": "unavailable",
+            "reason_code": "topic_context_provenance_not_navigable",
+            "next_action": "조직 소속과 주제 변화의 근거 글 연결을 완료한 뒤 다시 확인하세요.",
+            "required_contracts": [
+                {
+                    "authority": "TEPP",
+                    "schema_version": rows[0]["tepp_schema_version"],
+                    "state_code": "evidence_link_unavailable",
+                },
+                {
+                    "authority": "fast-mlsirm",
+                    "schema_version": rows[0]["fast_mlsirm_schema_version"],
+                    "state_code": "evidence_link_unavailable",
                 },
             ],
             "model_run": None,
@@ -792,14 +861,14 @@ async def _fetch_topic_context_dashboard(
                 "uncertainty_upper_value": float(row["uncertainty_upper_value"]),
                 "diagnostic_status_code": row["diagnostic_status_code"],
                 "membership_weight": float(row["membership_weight"]),
-                "membership_evidence_sha256": row["membership_evidence_sha256"],
+                "membership_evidence_post_id": str(row["membership_evidence_post_id"]),
             }
         )
 
     return {
         "status_code": "accepted",
         "reason_code": None,
-        "next_action": "Topic과 조직 수준을 선택해 model influence와 근거 글을 확인하세요.",
+        "next_action": "주제와 조직 범위를 선택해 영향이 큰 글과 근거를 확인하세요.",
         "required_contracts": [
             {"authority": "TEPP", "schema_version": first["tepp_schema_version"], "state_code": "persisted"},
             {"authority": "fast-mlsirm", "schema_version": first["fast_mlsirm_schema_version"], "state_code": "persisted"},
@@ -828,9 +897,9 @@ async def _fetch_topic_context_dashboard(
 def _period_label(period_start: date | None, period_end: date | None) -> str:
     """Format the exact event-time interval represented by the projection."""
     if period_start and period_end:
-        return f"{period_start.isoformat()} ~ {period_end.isoformat()} · Event 발생일"
+        return f"{period_start.isoformat()} ~ {period_end.isoformat()} · 사건 발생일"
     if period_start:
-        return f"{period_start.isoformat()} 이후 · Event 발생일"
+        return f"{period_start.isoformat()} 이후 · 사건 발생일"
     if period_end:
-        return f"{period_end.isoformat()} 이전 · Event 발생일"
-    return "전체 기간 · Event 발생일"
+        return f"{period_end.isoformat()} 이전 · 사건 발생일"
+    return "전체 기간 · 사건 발생일"

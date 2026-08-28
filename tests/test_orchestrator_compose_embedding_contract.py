@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import os
 from pathlib import Path
+import re
 import shutil
 import subprocess
 
@@ -99,3 +100,50 @@ def test_lineage_clients_do_not_select_an_embedding_model() -> None:
     compose = (_ROOT / "docker-compose.yml").read_text(encoding="utf-8")
     assert "LLM_GATEWAY_EMBEDDING_MODEL:" not in compose
     assert "LLM_GATEWAY_EMBEDDING_PROVIDER:" not in compose
+
+
+def test_orchestrator_image_tag_matches_the_downloaded_revision() -> None:
+    """Prevent a cached image tag from claiming a different source revision."""
+    compose = (_ROOT / "docker-compose.yml").read_text(encoding="utf-8")
+    dockerfile = (_ROOT / "docker/contextual-orchestrator/Dockerfile").read_text(
+        encoding="utf-8"
+    )
+    image_match = re.search(r"-orchestrator:([0-9a-f]{40})", compose)
+    archive_match = re.search(r"archive/([0-9a-f]{40})\.tar\.gz", dockerfile)
+    assert image_match is not None
+    assert archive_match is not None
+    assert image_match.group(1) == archive_match.group(1)
+
+
+def test_orchestrator_image_verifies_archive_and_dependency_bytes() -> None:
+    """Require byte verification for upstream source and all installed wheels."""
+    dockerfile = (_ROOT / "docker/contextual-orchestrator/Dockerfile").read_text(
+        encoding="utf-8"
+    )
+    requirements = (
+        _ROOT / "docker/contextual-orchestrator/requirements.lock"
+    ).read_text(encoding="utf-8")
+    roots = (_ROOT / "docker/contextual-orchestrator/requirements.in").read_text(
+        encoding="utf-8"
+    )
+
+    assert re.search(
+        r"ADD --checksum=sha256:[0-9a-f]{64} "
+        r"https://github\.com/ContextualWisdomLab/contextual-orchestrator/archive/"
+        r"[0-9a-f]{40}\.tar\.gz ",
+        dockerfile,
+    )
+    assert "--require-hashes" in dockerfile
+    assert "-r /tmp/orchestrator-requirements.lock" in dockerfile
+    assert not re.search(r"(?:>=|~=|==[^\n ]*\*)", roots)
+    assert not re.search(
+        r"^[a-z0-9_.-]+(?:\[[^]]+\])?\s*(?:>=|~=|==[^\n ]*\*)",
+        requirements,
+        re.MULTILINE,
+    )
+    locked_packages = re.findall(
+        r"^([a-z0-9_.-]+)==[^\\\n ]+ \\$", requirements, re.MULTILINE
+    )
+    assert len(locked_packages) == len(set(locked_packages))
+    assert len(locked_packages) >= 14
+    assert requirements.count("--hash=sha256:") >= len(locked_packages)

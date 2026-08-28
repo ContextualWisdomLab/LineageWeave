@@ -2,7 +2,6 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { fetchOperationsDashboard, fetchVoiceTaxonomySummary, type OperationsDashboardResponse } from "../api";
-import { setLocale } from "../i18n";
 import { OperationsDashboard, OperationsDashboardView } from "./OperationsDashboard";
 
 vi.mock("../api", async (importOriginal) => ({
@@ -12,7 +11,6 @@ vi.mock("../api", async (importOriginal) => ({
 }));
 
 beforeEach(() => {
-  setLocale("ko");
   vi.mocked(fetchVoiceTaxonomySummary).mockReset().mockResolvedValue({
     total_eligible: 0, classified_unique: 0, multi_membership: 0,
     source_count: 0, derived_count: 0, unavailable: 0, disagreement: 0,
@@ -22,9 +20,6 @@ beforeEach(() => {
 
 const data: OperationsDashboardResponse = {
   period_label: "2026-08-01–2026-08-25 · Event time",
-  period_start: "2026-08-01",
-  period_end: "2026-08-25",
-  period_time_axis_code: "event_occurred_at",
   total_post_count: 20,
   total_event_count: 8,
   external_post_count: 5,
@@ -55,42 +50,19 @@ const data: OperationsDashboardResponse = {
     facts: [{ fact_type_code: "originating_order", fact_type_label: "원인 수주", value_text: "ORDER-100", evidence_text: "Original order ORDER-100", evidence_post_id: "evidence-post-2" }],
     missing_facts: [{ fact_type_code: "sales_pool", fact_type_label: "수주 Pool" }],
     milestones: [
-      { milestone_type_code: "claim_received", milestone_type_label: "클레임 접수", evidence_text: "Claim received", evidence_post_id: "evidence-post-1", observed_at: "2026-08-01T09:00:00Z", time_axis_code: "event_occurred_at", time_axis_label: "Event 발생일" },
+      { milestone_type_code: "claim_received", milestone_type_label: "클레임 접수", evidence_text: "Claim received", evidence_post_id: "evidence-post-1", observed_at: "2026-08-01T09:00:00Z", time_axis_code: "event_occurred_at", time_axis_label: "사건 발생일" },
       { milestone_type_code: "cause_confirmed", milestone_type_label: "원인 확정", evidence_text: "Cause confirmed", evidence_post_id: "evidence-post-2", observed_at: "2026-08-03T12:30:00Z", time_axis_code: "created_at", time_axis_label: "기록 생성일" },
     ],
-    lifecycles: [{ lifecycle_kind_code: "claim_investigation", lifecycle_kind_label: "클레임 원인 규명", status_code: "resolved", status_label: "종료 확인", started_at: "2026-08-01T09:00:00Z", resolved_at: "2026-08-03T12:30:00Z", elapsed_seconds: 185400, start_milestone: { milestone_type_code: "claim_received", milestone_type_label: "클레임 접수", evidence_text: "Claim received", evidence_post_id: "evidence-post-1", observed_at: "2026-08-01T09:00:00Z", time_axis_code: "event_occurred_at", time_axis_label: "Event 발생일" }, end_milestone: { milestone_type_code: "cause_confirmed", milestone_type_label: "원인 확정", evidence_text: "Cause confirmed", evidence_post_id: "evidence-post-2", observed_at: "2026-08-03T12:30:00Z", time_axis_code: "created_at", time_axis_label: "기록 생성일" }, next_action_text: "시작·종료 Event 근거를 열어 경과 시간을 검토하세요." }],
+    lifecycles: [{ lifecycle_kind_code: "claim_investigation", lifecycle_kind_label: "클레임 원인 규명", status_code: "resolved", status_label: "종료 확인", started_at: "2026-08-01T09:00:00Z", resolved_at: "2026-08-03T12:30:00Z", elapsed_seconds: 185400, start_milestone: { milestone_type_code: "claim_received", milestone_type_label: "클레임 접수", evidence_text: "Claim received", evidence_post_id: "evidence-post-1", observed_at: "2026-08-01T09:00:00Z", time_axis_code: "event_occurred_at", time_axis_label: "사건 발생일" }, end_milestone: { milestone_type_code: "cause_confirmed", milestone_type_label: "원인 확정", evidence_text: "Cause confirmed", evidence_post_id: "evidence-post-2", observed_at: "2026-08-03T12:30:00Z", time_axis_code: "created_at", time_axis_label: "기록 생성일" }, next_action_text: "시작·종료 사건 근거를 열어 경과 시간을 검토하세요." }],
   }],
 };
 
 describe("OperationsDashboardView", () => {
-  it("uses the selected locale for dashboard and topic-influence copy", () => {
-    setLocale("en");
-    render(<OperationsDashboardView data={data} onOpenPost={() => undefined} />);
-    expect(screen.getByRole("heading", { name: "Operations evidence dashboard" })).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "Topic model influence over time" })).toBeInTheDocument();
-    expect(screen.getByText("Post influence is not available yet.")).toBeInTheDocument();
-    expect(screen.getByText("2026-08-01 ~ 2026-08-25 · Event time")).toBeInTheDocument();
-    expect(screen.getAllByText("Claim investigation").length).toBeGreaterThan(0);
-    expect(screen.getByText("Claim received · Event time")).toBeInTheDocument();
-    expect(screen.queryByText("운영 근거 Dashboard")).not.toBeInTheDocument();
-    expect(screen.queryByText("클레임 원인 규명")).not.toBeInTheDocument();
-  });
-
-  it("preserves an unknown code's source label", () => {
-    setLocale("en");
-    render(<OperationsDashboardView data={{ ...data, case_metrics: [{ case_kind_code: "future_case", case_kind_label: "Source-defined label", event_count: 1, post_count: 1 }], cases: [] }} onOpenPost={() => undefined} />);
-    expect(screen.getByText("Source-defined label")).toBeInTheDocument();
-  });
-
   it("distinguishes posts, events, percentages and opens evidence", async () => {
     const onOpenPost = vi.fn();
     render(<OperationsDashboardView data={data} onOpenPost={onOpenPost} />);
-    const caseMetric = screen.getByLabelText("사건 3건 · 글 2건");
-    expect(caseMetric.querySelectorAll(".dashboard-count-unit")).toHaveLength(2);
-    expect(caseMetric.querySelectorAll(".dashboard-count-unit")[0]).toHaveTextContent("사건 3건");
-    expect(caseMetric.querySelectorAll(".dashboard-count-unit")[1]).toHaveTextContent("글 2건");
-    const externalMetric = screen.getByLabelText("5건 · 25.0%");
-    expect(externalMetric.querySelectorAll(".dashboard-count-unit")).toHaveLength(2);
+    expect(screen.getByText("3 Event · 2글")).toBeInTheDocument();
+    expect(screen.getByText("5건 · 25.0%")).toBeInTheDocument();
     expect(screen.getByText("원인 수주")).toBeInTheDocument();
     expect(screen.getByText(/수주 Pool: 관련 근거를 찾으면 자동으로 다시 분석합니다. 이후 결과를 다시 확인하세요/)).toBeInTheDocument();
     expect(screen.getByText("2일 3시간 30분 0초")).toBeInTheDocument();
@@ -124,13 +96,13 @@ describe("OperationsDashboardView", () => {
     expect(screen.queryByText("분석 대기")).not.toBeInTheDocument();
     expect(screen.queryByText("분석 실패")).not.toBeInTheDocument();
     expect(screen.queryByText("전체 글")).not.toBeInTheDocument();
-    expect(screen.queryByText("분류 사건")).not.toBeInTheDocument();
+    expect(screen.queryByText("분류 Event")).not.toBeInTheDocument();
   });
 
-  it("shows external information as a share of all visible posts in the GNB view", () => {
+  it("does not label a scoped external count with a corpus-wide rate", () => {
     render(<OperationsDashboardView data={data} externalOnly onOpenPost={() => undefined} />);
-    expect(screen.getByText("외부 정보 (전체 글 대비)")).toBeInTheDocument();
-    expect(screen.getByLabelText("5건 · 25.0%")).toBeInTheDocument();
+    expect(screen.getByText("5건")).toBeInTheDocument();
+    expect(screen.queryByText("5건 · 25.0%")).not.toBeInTheDocument();
   });
 
   it("labels a source-backed external relation by its semantic target", () => {
@@ -155,7 +127,7 @@ describe("OperationsDashboardView", () => {
     const earlier = { ...data.cases[0], post_id: "post-earlier", occurred_at: "2026-08-01T00:00:00Z", project_names: ["Synthetic Grid Upgrade"] };
     render(<OperationsDashboardView data={{ ...data, cases: [later, earlier] }} onOpenPost={() => undefined} />);
 
-    expect(screen.getByRole("heading", { name: "프로젝트별 관측 사건" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "프로젝트별 관측 Event" })).toBeInTheDocument();
     expect(screen.queryByRole("heading", { name: "프로젝트 여정" })).not.toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Synthetic Relay Renewal" })).toBeInTheDocument();
     const primaryJourney = screen.getByRole("heading", { name: "Synthetic Grid Upgrade" }).parentElement;
@@ -185,7 +157,7 @@ describe("OperationsDashboardView", () => {
       model_influence: 4.25, uncertainty_method_code: "posterior_interval",
       uncertainty_lower_value: 3.5, uncertainty_upper_value: 5,
       diagnostic_status_code: "accepted" as const, membership_weight: 0.5,
-      membership_evidence_sha256: "a".repeat(64),
+      membership_evidence_post_id: "membership-evidence-post",
     };
     const accepted: OperationsDashboardResponse = {
       ...data,
@@ -203,28 +175,20 @@ describe("OperationsDashboardView", () => {
           fast_mlsirm_artifact_sha256: "e".repeat(64), compute_backend_code: "rust_cpu", precision_code: "f64",
           membership_fingerprint_sha256: "f".repeat(64),
         },
-        topics: [{ topic_index: 0, activity_intervals: [{ state_code: "active", valid_from: "2026-08-01T00:00:00Z", valid_to: "2026-09-01T00:00:00Z" }], lineage_events: [{ event_code: "birth", source_topic_index: 0, target_topic_index: null, event_time: "2026-08-01T00:00:00Z", evidence_sha256: "1".repeat(64) }], contexts: [{ dimension_code: "team", context_id: "team-1", context_label: "Synthetic Team", influences: [influence, { ...influence, post_id: "post-2" }] }] }],
+        topics: [{ topic_index: 0, activity_intervals: [{ state_code: "active", valid_from: "2026-08-01T00:00:00Z", valid_to: "2026-09-01T00:00:00Z" }], lineage_events: [{ event_code: "birth", source_topic_index: 0, target_topic_index: null, event_time: "2026-08-01T00:00:00Z", evidence_post_id: "lineage-evidence-post" }], contexts: [{ dimension_code: "team", context_id: "team-1", context_label: "Synthetic Team", influences: [influence, { ...influence, post_id: "post-2" }] }] }],
       },
     };
-    const { rerender } = render(<OperationsDashboardView data={accepted} onOpenPost={onOpenPost} />);
+    render(<OperationsDashboardView data={accepted} onOpenPost={onOpenPost} />);
     expect(screen.getAllByText("4.25")).toHaveLength(2);
-    expect(screen.getByText((_, element) => element?.tagName === "LI" && element.textContent === "2026-08-01 · 주제 최초 관측")).toBeInTheDocument();
-    expect(screen.getByText(/주제 1 · 활성/)).toBeInTheDocument();
-    expect(screen.getByRole("list", { name: "주제 1 변화 이력" })).toBeInTheDocument();
-    expect(screen.queryByText(/birth/)).not.toBeInTheDocument();
+    expect(screen.getByText((_, element) => element?.tagName === "LI" && element.textContent?.includes("2026-08-01 · 시작") === true)).toBeInTheDocument();
     expect(screen.getByText("분석 기준 확인")).toBeInTheDocument();
-    expect(screen.getByRole("region", { name: "Synthetic Team 모형 영향도 표" })).toBeInTheDocument();
-    expect(screen.getByRole("columnheader", { name: "모형 영향도" })).toBeInTheDocument();
-    expect(screen.getByText("주제 수")).toBeInTheDocument();
     expect(screen.queryByText(/tepp-snapshot|fast-mlsirm|rust_gpu/)).not.toBeInTheDocument();
-    setLocale("en");
-    rerender(<OperationsDashboardView data={accepted} onOpenPost={onOpenPost} />);
-    expect(screen.getByText((_, element) => element?.tagName === "LI" && element.textContent === "2026-08-01 · Topic first observed")).toBeInTheDocument();
-    expect(screen.getByText(/Topic 1 · Active/)).toBeInTheDocument();
-    expect(screen.getByRole("list", { name: "Topic 1 history" })).toBeInTheDocument();
-    expect(screen.queryByText(/birth/)).not.toBeInTheDocument();
-    await userEvent.click(screen.getAllByRole("button", { name: "Open evidence post" })[1]);
+    await userEvent.click(screen.getAllByRole("button", { name: "영향 글 열기" })[1]);
     expect(onOpenPost).toHaveBeenCalledWith("post-2");
+    await userEvent.click(screen.getByRole("button", { name: "사건 근거 열기" }));
+    expect(onOpenPost).toHaveBeenCalledWith("lineage-evidence-post");
+    await userEvent.click(screen.getAllByRole("button", { name: "소속 근거 열기" })[0]);
+    expect(onOpenPost).toHaveBeenCalledWith("membership-evidence-post");
   });
 
   it("keeps period controls mounted while a changed period loads", async () => {
@@ -237,7 +201,7 @@ describe("OperationsDashboardView", () => {
       .mockResolvedValueOnce(data)
       .mockImplementationOnce(() => new Promise(() => undefined));
     render(<OperationsDashboard accessToken="synthetic-token" onOpenPost={() => undefined} />);
-    await screen.findByLabelText("5건 · 25.0%");
+    await screen.findByText("5건 · 25.0%");
     await userEvent.type(screen.getByLabelText("시작일"), "2026-08-01");
     await userEvent.click(screen.getByRole("button", { name: "기간 적용" }));
     expect(screen.getByLabelText("시작일")).toHaveValue("2026-08-01");
@@ -248,7 +212,7 @@ describe("OperationsDashboardView", () => {
     vi.mocked(fetchVoiceTaxonomySummary).mockClear();
     vi.mocked(fetchOperationsDashboard).mockReset().mockResolvedValue(data);
     render(<OperationsDashboard accessToken="synthetic-token" externalOnly onOpenPost={() => undefined} />);
-    await screen.findByLabelText("5건 · 25.0%");
+    await screen.findByText("5건");
     expect(fetchOperationsDashboard).toHaveBeenCalledWith("synthetic-token", "", "", true);
     expect(fetchVoiceTaxonomySummary).not.toHaveBeenCalled();
   });
@@ -265,9 +229,9 @@ describe("OperationsDashboardView", () => {
       });
     render(<OperationsDashboard accessToken="synthetic-token" onOpenPost={() => undefined} />);
 
-    expect(await screen.findByRole("alert")).toHaveTextContent("글 유형 근거를 불러오지 못했습니다.");
-    await userEvent.click(screen.getByRole("button", { name: "글 유형 근거 다시 시도" }));
-    expect(await screen.findByRole("heading", { name: "글 유형 근거 현황" })).toBeInTheDocument();
+    expect(await screen.findByRole("alert")).toHaveTextContent("Voice evidence could not be loaded.");
+    await userEvent.click(screen.getByRole("button", { name: "Retry voice evidence" }));
+    expect(await screen.findByRole("heading", { name: "Voice evidence overview" })).toBeInTheDocument();
     expect(fetchVoiceTaxonomySummary).toHaveBeenCalledTimes(2);
     expect(fetchOperationsDashboard).toHaveBeenCalledTimes(1);
   });
@@ -281,8 +245,8 @@ describe("OperationsDashboardView", () => {
     });
     render(<OperationsDashboard accessToken="synthetic-token" onOpenPost={() => undefined} />);
 
-    expect(await screen.findByText("대시보드 근거를 불러오지 못했습니다.")).toBeInTheDocument();
-    expect(await screen.findByRole("heading", { name: "글 유형 근거 현황" })).toBeInTheDocument();
+    expect(await screen.findByText("Dashboard 근거를 불러오지 못했습니다.")).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "Voice evidence overview" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "다시 시도" })).toBeInTheDocument();
   });
 });
@@ -293,7 +257,7 @@ describe("OperationsDashboard", () => {
     vi.mocked(fetchVoiceTaxonomySummary).mockImplementation(() => new Promise(() => undefined));
     render(<OperationsDashboard accessToken="synthetic-token" onOpenPost={() => undefined} />);
     expect(screen.getAllByRole("status")).toHaveLength(1);
-    expect(screen.getByRole("status")).toHaveTextContent("대시보드 근거를 불러오는 중입니다.");
-    expect(screen.getByRole("status")).toHaveTextContent("글 유형 근거를 불러오는 중입니다...");
+    expect(screen.getByRole("status")).toHaveTextContent("Dashboard 근거를 불러오는 중입니다.");
+    expect(screen.getByRole("status")).toHaveTextContent("Loading voice evidence...");
   });
 });

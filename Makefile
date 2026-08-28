@@ -28,7 +28,7 @@ smoke:
 # is not empty (see scripts/seed_demo_data.py). Run after `up`.
 seed:
 	@test -n "$${KEYCLOAK_ADMIN_PASSWORD:-}" || { echo "KEYCLOAK_ADMIN_PASSWORD is required" >&2; exit 1; }; \
-	uv run --locked python scripts/seed_demo_data.py
+	uv run --locked --extra dev --extra backend python scripts/seed_demo_data.py
 
 # Authenticated Compose measurement with no invented pass/fail threshold.
 # The operator must supply a representative concurrency and observation window.

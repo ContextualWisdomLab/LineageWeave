@@ -19,9 +19,9 @@ from decimal import Decimal
 from pathlib import Path
 
 import pytest
+from pyshacl import validate as shacl_validate
 from rdflib import Graph, Literal, Namespace, URIRef
 from rdflib.namespace import RDF, XSD
-from pyshacl import validate as shacl_validate
 
 from lineageweave.ontology import project_product_relation_rdf, project_project_mention_rdf
 
@@ -73,6 +73,11 @@ def _representative_projection() -> Graph:
             Literal("2026-08-25T01:23:45+00:00", datatype=XSD.dateTime),
         )
     )
+    voice_assignment = URIRef(LW + "voice-assignment/post-alpha/voc")
+    data.add((voice_assignment, RDF.type, LWn.VoiceAssignment))
+    data.add((voice_assignment, LWn.assignedVoiceType, LWn.voiceOfCustomerType))
+    data.add((voice_assignment, LWn.primaryVoiceAssignment, Literal(True)))
+    data.add((voice_assignment, LWn.voiceAssignmentEvidence, post))
     person = URIRef(LW + "person-okonkwo")
     data.add((person, RDF.type, LWn.Person))
     data.add((person, LWn.personName, Literal("Sam Okonkwo")))
@@ -102,6 +107,19 @@ def _representative_projection() -> Graph:
     )
     data.add((mention, LWn.projectEvidence, Literal("proj-alpha kickoff cited verbatim.")))
     return data
+
+
+def test_voice_assignment_requires_source_evidence() -> None:
+    """A projected Voice assignment without its authorized source post fails closed."""
+    data = _representative_projection()
+    LWn = Namespace(LW)
+    assignment = URIRef(LW + "voice-assignment/post-alpha/voc")
+    data.remove((assignment, LWn.voiceAssignmentEvidence, None))
+
+    conforms, report = _conforms(data)
+
+    assert conforms is False
+    assert "voice assignment evidence" in report.lower()
 
 
 def test_shipped_shapes_conform_to_shacl_specification() -> None:

@@ -1,10 +1,12 @@
 """Focused tests for the operational dashboard evidence projection."""
 
 from datetime import date, datetime, timezone
+import json
 
 import pytest
 
 from backend.app.operations_dashboard import _project_lifecycles, fetch_operations_dashboard
+from lineageweave.operations_case_analysis import REQUIRED_FACT_TYPES
 
 
 class _Connection:
@@ -102,7 +104,7 @@ def test_projected_start_with_unavailable_end_remains_open() -> None:
         "evidence_post_id": "synthetic-start",
         "observed_at": "2026-08-01T09:00:00+00:00",
         "time_axis_code": "event_occurred_at",
-        "time_axis_label": "Event 발생일",
+        "time_axis_label": "사건 발생일",
     }
 
     lifecycle = _project_lifecycles("claim_investigation", [start], set())[0]
@@ -169,10 +171,7 @@ async def test_dashboard_uses_abac_event_clock_and_persisted_evidence() -> None:
         date(2026, 8, 31),
     )
 
-    assert result["period_label"] == "2026-08-01 ~ 2026-08-31 · Event 발생일"
-    assert result["period_start"] == "2026-08-01"
-    assert result["period_end"] == "2026-08-31"
-    assert result["period_time_axis_code"] == "event_occurred_at"
+    assert result["period_label"] == "2026-08-01 ~ 2026-08-31 · 사건 발생일"
     assert result["external_percent"] == 25.0
     assert result["failed_analysis_count"] == 2
     assert result["case_metrics"] == [
@@ -241,7 +240,7 @@ async def test_dashboard_uses_abac_event_clock_and_persisted_evidence() -> None:
                     "evidence_post_id": "00000000-0000-0000-0000-000000000001",
                     "observed_at": "2026-08-01T09:00:00+00:00",
                     "time_axis_code": "event_occurred_at",
-                    "time_axis_label": "Event 발생일",
+                    "time_axis_label": "사건 발생일",
                 },
                 {
                     "milestone_type_code": "cause_confirmed",
@@ -269,7 +268,7 @@ async def test_dashboard_uses_abac_event_clock_and_persisted_evidence() -> None:
                         "evidence_post_id": "00000000-0000-0000-0000-000000000001",
                         "observed_at": "2026-08-01T09:00:00+00:00",
                         "time_axis_code": "event_occurred_at",
-                        "time_axis_label": "Event 발생일",
+                        "time_axis_label": "사건 발생일",
                     },
                     "end_milestone": {
                         "milestone_type_code": "cause_confirmed",
@@ -280,7 +279,7 @@ async def test_dashboard_uses_abac_event_clock_and_persisted_evidence() -> None:
                         "time_axis_code": "created_at",
                         "time_axis_label": "기록 생성일",
                     },
-                    "next_action_text": "시작·종료 Event 근거를 열어 경과 시간을 검토하세요.",
+                    "next_action_text": "시작·종료 사건 근거를 열어 경과 시간을 검토하세요.",
                 }
             ],
         }
@@ -299,7 +298,16 @@ async def test_dashboard_uses_abac_event_clock_and_persisted_evidence() -> None:
             date(2026, 8, 1),
             date(2026, 8, 31),
         )
-        assert args[4:] == ((False,) if "$5" in query else ())
+        if "$6" in query:
+            assert args[4] is False
+            assert args[5] == json.dumps(
+                {
+                    case_kind: sorted(fact_types)
+                    for case_kind, fact_types in REQUIRED_FACT_TYPES.items()
+                }
+            )
+        else:
+            assert args[4:] == ((False,) if "$5" in query else ())
     case_query = conn.queries[1][0]
     assert "order by primary_mention.confidence desc" in case_query
     assert (
@@ -315,6 +323,8 @@ async def test_dashboard_uses_abac_event_clock_and_persisted_evidence() -> None:
     ):
         assert "join source_post evidence_post" in evidence_query
         assert "evidence_post.corporate_entity_id::text = any($1::text[])" in evidence_query
+    missing_query = conn.queries[4][0]
+    assert "($6::jsonb -> fact.case_kind_code) ? fact.fact_type_code" in missing_query
 
 
 @pytest.mark.anyio
@@ -322,6 +332,8 @@ async def test_dashboard_projects_exact_topic_influence_without_local_scoring() 
     """Accepted rows retain ties, membership evidence, and producer identity."""
 
     class TopicConnection(_Connection):
+        provenance_complete = True
+
         async def fetchrow(self, query: str, *args: object) -> dict[str, object]:
             if "tepp_posterior_persisted" in query:
                 self.queries.append((query, args))
@@ -363,14 +375,15 @@ async def test_dashboard_projects_exact_topic_influence_without_local_scoring() 
                 "context_id": "team-synthetic",
                 "context_label": "Synthetic Service Team",
                 "membership_weight": 0.5,
-                "membership_evidence_sha256": "f" * 64,
+                "membership_evidence_post_id": "00000000-0000-0000-0000-000000000099",
                 "occurred_at": datetime(2026, 8, 12, tzinfo=timezone.utc),
                 "influence_value": 4.25,
                 "uncertainty_method_code": "posterior_interval",
                 "uncertainty_lower_value": 3.5,
                 "uncertainty_upper_value": 5.0,
                 "diagnostic_status_code": "accepted",
-                "lineage_events": '[{"event_code":"birth","source_topic_index":0,"target_topic_index":null,"event_time":"2026-08-01T00:00:00+00:00","evidence_sha256":"' + "1" * 64 + '"}]',
+                "provenance_complete": self.provenance_complete,
+                "lineage_events": '[{"event_code":"birth","source_topic_index":0,"target_topic_index":null,"event_time":"2026-08-01T00:00:00+00:00","evidence_post_id":"00000000-0000-0000-0000-000000000098"}]',
             }
             return [
                 {**common, "source_post_id": "00000000-0000-0000-0000-000000000001"},
@@ -389,6 +402,23 @@ async def test_dashboard_projects_exact_topic_influence_without_local_scoring() 
     assert [item["model_influence"] for item in influences] == [4.25, 4.25]
     assert influences[0]["membership_weight"] == 0.5
     assert topic_context["topics"][0]["lineage_events"][0]["event_code"] == "birth"
+    assert topic_context["topics"][0]["lineage_events"][0]["evidence_post_id"].endswith("98")
+    assert influences[0]["membership_evidence_post_id"].endswith("99")
+
+    incomplete = TopicConnection()
+    incomplete.provenance_complete = False
+    unavailable = (await fetch_operations_dashboard(incomplete, []))["topic_context"]
+    assert unavailable["status_code"] == "unavailable"
+    assert unavailable["reason_code"] == "topic_context_provenance_not_navigable"
+    assert unavailable["topics"] == []
+    projection_sql = next(
+        query for query, _args in incomplete.queries
+        if "candidate_runs as" in query
+    )
+    assert projection_sql.index("candidate_runs as") < projection_sql.index("eligible as")
+    assert "left join visible_post checked_visible" in projection_sql
+    assert "left join visible_post on visible_post.post_id = membership.source_post_id" in projection_sql
+    assert "visible_post.post_id is not null" in projection_sql
 
 
 @pytest.mark.anyio
@@ -461,7 +491,7 @@ async def test_external_scope_filters_cases_without_shrinking_coverage_denominat
     assert metrics_args[-1] is True
     for query, args in conn.queries[1:]:
         assert "$5::boolean" in query
-        assert args[-1] is True
+        assert args[4] is True
 
 
 @pytest.mark.anyio
@@ -494,8 +524,8 @@ async def test_dashboard_zero_denominator_and_invalid_period() -> None:
     empty = await fetch_operations_dashboard(EmptyConnection(), [])
     assert empty["external_percent"] == 0.0
     assert all(metric["event_count"] == metric["post_count"] == 0 for metric in empty["case_metrics"])
-    assert (await fetch_operations_dashboard(EmptyConnection(), [], [], date(2026, 8, 1)))["period_label"] == "2026-08-01 이후 · Event 발생일"
-    assert (await fetch_operations_dashboard(EmptyConnection(), [], [], None, date(2026, 8, 31)))["period_label"] == "2026-08-31 이전 · Event 발생일"
+    assert (await fetch_operations_dashboard(EmptyConnection(), [], [], date(2026, 8, 1)))["period_label"] == "2026-08-01 이후 · 사건 발생일"
+    assert (await fetch_operations_dashboard(EmptyConnection(), [], [], None, date(2026, 8, 31)))["period_label"] == "2026-08-31 이전 · 사건 발생일"
     with pytest.raises(ValueError, match="period_start"):
         await fetch_operations_dashboard(
             EmptyConnection(), [], [], date(2026, 9, 1), date(2026, 8, 31)

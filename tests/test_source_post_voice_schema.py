@@ -1,0 +1,54 @@
+"""Static contract tests for ADR 0256's normalized Voice-of-X associations."""
+
+from __future__ import annotations
+
+from pathlib import Path
+
+MIGRATION = (
+    Path(__file__).resolve().parents[1]
+    / "migrations"
+    / "0237_source_post_voice_combination.sql"
+)
+
+
+def test_voice_combination_schema_is_normalized_and_evidence_bearing() -> None:
+    """Additional voices require provenance while the imported primary remains mirrored."""
+    sql = MIGRATION.read_text(encoding="utf-8").lower()
+
+    assert "create table if not exists source_post_voice" in sql
+    assert "voice_assignment_id uuid primary key" in sql
+    assert "effective_to timestamptz" in sql
+    assert "where is_primary and effective_to is null" in sql
+    assert "where effective_to is null" in sql
+    assert "check (is_primary or provenance_assertion_id is not null)" in sql
+    assert "truth_status_code text not null" in sql
+    assert "effective_from timestamptz not null" in sql
+    assert "true, 'truth_observed'" in sql
+    assert "where is_primary" in sql
+    assert "select post.post_id, post.voc_type_code, true, 'truth_observed'" in sql
+    assert "least(post.created_at, clock_timestamp())" in sql
+    assert "change_at timestamptz := clock_timestamp()" in sql
+    assert "case when tg_op = 'insert' then least(new.created_at, change_at) else change_at end" in sql
+    assert "after insert on source_post" in sql
+    assert "after update of voc_type_code on source_post" in sql
+    assert "when (old.voc_type_code is distinct from new.voc_type_code)" in sql
+    assert "on conflict (post_id, voice_type_code) where effective_to is null do update" in sql
+    assert "and not voice.is_primary" in sql
+    assert "set effective_to = change_at" in sql
+    assert "delete from source_post_voice" not in sql
+    assert "primary intervals must not overlap" in sql
+    assert "using errcode = '23p01'" in sql
+    assert "before insert or update on source_post_voice" in sql
+    assert "where lookup_category = 'voc_type'" in sql
+    assert "where lookup_category = 'ontology_truth_status'" in sql
+    assert "errcode = '23514'" in sql
+    assert sql.count("truth_status_code = 'truth_observed'") == 2
+    assert sql.count("provenance_assertion_id = null") == 2
+
+
+def test_voice_combination_migration_uses_no_compound_or_inferred_voice_codes() -> None:
+    """Composition reuses governed atomic codes instead of minting pair codes or heuristics."""
+    sql = MIGRATION.read_text(encoding="utf-8").lower()
+
+    assert "insert into common_lookup_value" not in sql
+    assert "confidence" not in sql

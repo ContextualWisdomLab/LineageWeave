@@ -471,7 +471,7 @@ async def test_retry_after_wrapper_replaces_existing_header(monkeypatch) -> None
         )
 
     sent = []
-    scope = {"type": "http"}
+    scope = {"type": "http", "method": "POST"}
 
     async def send(message):
         """Capture one wrapped ASGI response message."""
@@ -482,6 +482,59 @@ async def test_retry_after_wrapper_replaces_existing_header(monkeypatch) -> None
     )
     assert (b"retry-after", b"7") in sent[0]["headers"]
     assert (b"retry-after", b"999") not in sent[0]["headers"]
+
+
+@pytest.mark.anyio
+async def test_retry_after_wrapper_does_not_buffer_get_streams(monkeypatch) -> None:
+    """GET streams commit response headers without waiting for a body event."""
+    monkeypatch.setenv("MCP_RATE_LIMIT_REQUESTS", "10")
+    monkeypatch.setenv("MCP_RATE_LIMIT_WINDOW_SECONDS", "60")
+    from backend.app import mcp_server
+
+    sent = []
+
+    async def downstream(_scope, _receive, send):
+        await send({"type": "http.response.start", "status": 200, "headers": []})
+        assert sent == [{"type": "http.response.start", "status": 200, "headers": []}]
+
+    async def send(message):
+        sent.append(message)
+
+    await mcp_server.McpRetryAfterHeaderApp(downstream)(
+        {"type": "http", "method": "GET"},
+        lambda: _return({"type": "http.disconnect"}),
+        send,
+    )
+
+
+@pytest.mark.anyio
+async def test_retry_after_wrapper_preserves_non_quota_header(monkeypatch) -> None:
+    """A non-quota POST keeps the downstream Retry-After contract unchanged."""
+    monkeypatch.setenv("MCP_RATE_LIMIT_REQUESTS", "10")
+    monkeypatch.setenv("MCP_RATE_LIMIT_WINDOW_SECONDS", "60")
+    from backend.app import mcp_server
+
+    async def downstream(_scope, _receive, send):
+        await send(
+            {
+                "type": "http.response.start",
+                "status": 503,
+                "headers": [(b"retry-after", b"11")],
+            }
+        )
+        await send({"type": "http.response.body", "body": b"unavailable"})
+
+    sent = []
+
+    async def send(message):
+        sent.append(message)
+
+    await mcp_server.McpRetryAfterHeaderApp(downstream)(
+        {"type": "http", "method": "POST"},
+        lambda: _return({"type": "http.disconnect"}),
+        send,
+    )
+    assert (b"retry-after", b"11") in sent[0]["headers"]
 
 
 @pytest.mark.anyio

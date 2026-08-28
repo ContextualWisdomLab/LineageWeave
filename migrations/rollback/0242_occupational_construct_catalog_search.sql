@@ -1,0 +1,3 @@
+drop index if exists post_occupational_construct_assertion_construct_post_idx;
+drop index if exists occupational_construct_description_trgm_idx;
+drop index if exists occupational_construct_preferred_label_trgm_idx;

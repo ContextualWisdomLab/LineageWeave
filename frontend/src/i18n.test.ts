@@ -11,6 +11,7 @@ import {
   t,
   tf,
 } from "./i18n";
+import { VOICE_LABELS } from "./voicePerspective";
 
 afterEach(() => {
   setLocale("en");
@@ -20,7 +21,6 @@ describe("i18n", () => {
   const requiredSharedLabels = [
     "Language",
     "Evidence",
-    "Evidence ranking",
     "Ask",
     "linked",
     "Post body preview",
@@ -56,7 +56,8 @@ describe("i18n", () => {
     "Leftover map leaves unexplained U {value} after IRT main effects. Open this post to read {criterion}.",
     "Leftover map reconstructs R̂ {value} after IRT main effects. Open this post to read {criterion}.",
     "Two leftover-map axes leave identity remainder {value} of raw residual after IRT main effects. Open this post to read {criterion}.",
-    "Leftover map explains {value} of raw residual after IRT main effects. Open this post to read {criterion}.",
+    "Leftover map leaves unexplained leftover share {value} of raw residual after IRT main effects. Open this post to read {criterion}.",
+    "Leftover map leaves explained leftover share {value} of raw residual after IRT main effects. Open this post to read {criterion}.",
     "Read observed Y {observed} and expected E {expected} after IRT main effects, then open this post.",
     "Leftover map has no leftover structure after IRT main effects. Open this post.",
     "Leftover map rank {rank} after IRT main effects. Open this post.",
@@ -75,26 +76,20 @@ describe("i18n", () => {
     "This is an ontology neighborhood, not Event Lineage.",
     "Rankings",
     "Title overlap",
-    "Evidence combined",
-    "Evidence needed",
-    "Rankings could not be loaded. Retry in a moment.",
-    "Rankings are not ready. Refresh after the source evidence is connected.",
-    "No comparable posts are visible. Check the period and access scope.",
-    "Compare recency and content-relevance evidence, then open the source post before acting. This rank is not a performance score.",
+    "Rankings combine newest-first and title-overlap evidence and are not calibrated scores. Open a ranked post to see its evidence.",
     "Workspace navigation",
+    "Project history",
+    "Open project history: {name}",
+    "Loading project history. Review the timeline when it appears.",
     "Observed calendar events",
     "No observed calendar events are available.",
     "Open this observed occurrence. It is not a LineageWeave commitment.",
     "Collect stronger authoritative evidence before accepting the claim.",
-    "Ask about a specific claim or narrow the time range, then retry.",
-    "Before linking a customer, compare the source identifier with the related posts and organization evidence.",
-    "Ask a workspace administrator to enable public verification, then retry.",
-    "Open supporting post",
+    "Inspect the authorized cited posts and their evidence.",
     "Review unavailable historical channels before relying on this cutoff answer.",
     "Compare these cutoff-grounded citations with live evidence next.",
-    "Source research",
-    "Public sources reviewed",
-    "Open the cited public resource, then compare it with the highlighted passage or image detail from this post.",
+    "Ask a workspace administrator to enable public verification, then retry.",
+    "Ask about a specific claim or narrow the time range, then retry.",
   ] as const;
 
   it("supports the five product locales", () => {
@@ -125,26 +120,14 @@ describe("i18n", () => {
     },
   );
 
-  it.each(["ko", "zh", "ja", "vi"] as const)(
-    "translates dashboard and topic-influence customer copy in %s",
-    (locale) => {
-      setLocale(locale);
-      for (const key of [
-        "Operations evidence dashboard",
-        "Loading dashboard evidence...",
-        "Observed processing intervals",
-        "Post influence",
-        "Topic model influence over time",
-        "Post influence is not available yet.",
-        "Compare influence and uncertainty together; treat equal values as ties.",
-        "Review analysis basis",
-      ]) expect(t(key), `${locale}:${key}`).not.toBe(key);
-    },
-  );
-
-  it("keeps locale-neutral analyst GNB translation keys", () => {
-    expect(ANALYST_GNB_LABELS).toEqual(["Dashboard", "External information", "Board", "Customer master", "Calendar", "Ask Agent"]);
-    expect(ANALYST_GNB_LABELS.join(" ")).not.toMatch(/Buyer|Cubee/);
+  it("keeps locale-neutral GNB keys and renders every Korean action", () => {
+    expect(ANALYST_GNB_LABELS).toEqual([
+      "Dashboard", "External information", "Board", "Customer master", "Calendar", "Ask Agent",
+    ]);
+    setLocale("ko");
+    expect(ANALYST_GNB_LABELS.map((label) => t(label))).toEqual([
+      "대시보드", "외부 정보", "게시판", "고객 마스터", "캘린더", "에이전트에게 질문",
+    ]);
     expect(CALENDAR_CONSUME_UNAVAILABLE).toBe("이 범위의 일정을 아직 받을 수 없습니다");
   });
 
@@ -158,6 +141,17 @@ describe("i18n", () => {
     expect(getLocale()).toBe(locale);
     expect(t("Related posts")).toBe(expected);
     expect(document.documentElement.lang).toBe(locale);
+  });
+
+  it.each([
+    ["ko", "프로젝트 이력", "프로젝트 이력 열기: DEMO"],
+    ["zh", "项目历史", "打开项目历史：DEMO"],
+    ["ja", "プロジェクト履歴", "プロジェクト履歴を開く: DEMO"],
+    ["vi", "Lịch sử dự án", "Mở lịch sử dự án: DEMO"],
+  ] as const)("translates project history actions in %s", (locale, heading, action) => {
+    setLocale(locale);
+    expect(t("Project history")).toBe(heading);
+    expect(tf("Open project history: {name}", { name: "DEMO" })).toBe(action);
   });
 
   it.each([
@@ -250,6 +244,60 @@ describe("i18n", () => {
   });
 
   it.each([
+    [
+      "ko",
+      "잔여 지도가 IRT 주효과 이후 원시 잔차의 설명되지 않은 잔여 비율 0.02을(를) 남깁니다. sales-lead 기준을 읽으려면 이 글을 여세요.",
+    ],
+    [
+      "zh",
+      "残差图在 IRT 主效应后留下原始残差的未解释残余份额 0.02。打开这篇帖子阅读 sales-lead。",
+    ],
+    [
+      "ja",
+      "残差マップはIRT主効果後の生の残差の未説明残差シェア 0.02 を残します。この投稿を開いて sales-lead を読んでください。",
+    ],
+    [
+      "vi",
+      "Bản đồ phần dư để lại tỷ phần phần dư chưa giải thích 0.02 của phần dư thô sau hiệu ứng chính IRT. Mở bài viết này để đọc sales-lead.",
+    ],
+  ] as const)("formats leftover-map unexplained leftover share next action in %s", (locale, expected) => {
+    setLocale(locale);
+    expect(
+      tf(
+        "Leftover map leaves unexplained leftover share {value} of raw residual after IRT main effects. Open this post to read {criterion}.",
+        { value: "0.02", criterion: "sales-lead" },
+      ),
+    ).toBe(expected);
+  });
+
+  it.each([
+    [
+      "ko",
+      "잔여 지도가 IRT 주효과 이후 원시 잔차의 설명된 잔여 비율 0.76을(를) 남깁니다. sales-lead 기준을 읽으려면 이 글을 여세요.",
+    ],
+    [
+      "zh",
+      "残差图在 IRT 主效应后留下原始残差的已解释残余份额 0.76。打开这篇帖子阅读 sales-lead。",
+    ],
+    [
+      "ja",
+      "残差マップはIRT主効果後の生の残差の説明済み残差シェア 0.76 を残します。この投稿を開いて sales-lead を読んでください。",
+    ],
+    [
+      "vi",
+      "Bản đồ phần dư để lại tỷ phần phần dư đã giải thích 0.76 của phần dư thô sau hiệu ứng chính IRT. Mở bài viết này để đọc sales-lead.",
+    ],
+  ] as const)("formats leftover-map explained leftover share next action in %s", (locale, expected) => {
+    setLocale(locale);
+    expect(
+      tf(
+        "Leftover map leaves explained leftover share {value} of raw residual after IRT main effects. Open this post to read {criterion}.",
+        { value: "0.76", criterion: "sales-lead" },
+      ),
+    ).toBe(expected);
+  });
+
+  it.each([
     ["ko", "IRT 주효과 이후 관측 Y 2.40와 기대 E 2.00를 읽은 다음, 이 글을 여세요."],
     ["zh", "阅读 IRT 主效应后的观测 Y 2.40 与期望 E 2.00，然后打开这篇帖子。"],
     ["ja", "IRT主効果後の観測 Y 2.40 と期待 E 2.00 を読んでから、この投稿を開いてください。"],
@@ -332,33 +380,6 @@ describe("i18n", () => {
       ),
     ).toBe(expected);
   });
-
-  it.each([
-    [
-      "ko",
-      "잔여 지도가 IRT 주효과 이후 원잔차의 0.76를 설명합니다. sales-lead 기준을 읽으려면 이 글을 여세요.",
-    ],
-    [
-      "zh",
-      "残差图解释 IRT 主效应后原始残差的 0.76。打开这篇帖子阅读 sales-lead。",
-    ],
-    [
-      "ja",
-      "残差マップはIRT主効果後の生の残差の 0.76 を説明します。この投稿を開いて sales-lead を読んでください。",
-    ],
-    [
-      "vi",
-      "Bản đồ phần dư giải thích 0.76 của phần dư thô sau hiệu ứng chính IRT. Mở bài viết này để đọc sales-lead.",
-    ],
-  ] as const)("formats leftover-map explained share next action in %s", (locale, expected) => {
-    setLocale(locale);
-    expect(
-      tf(
-        "Leftover map explains {value} of raw residual after IRT main effects. Open this post to read {criterion}.",
-        { value: "0.76", criterion: "sales-lead" },
-      ),
-    ).toBe(expected);
-  });
 });
 
 describe("locale-aware source labels", () => {
@@ -374,15 +395,12 @@ describe("locale-aware source labels", () => {
     expect(t("Public")).toBe(visibility);
   });
 
-  it.each([
-    ["en", "Records in multiple voice categories", "Records without voice evidence"],
-    ["ko", "여러 글 유형에 해당하는 기록", "글 유형 근거가 없는 기록"],
-    ["zh", "属于多个声音类别的记录", "缺少声音证据的记录"],
-    ["ja", "複数の声カテゴリに該当する記録", "声の証拠がない記録"],
-    ["vi", "Bản ghi thuộc nhiều nhóm tiếng nói", "Bản ghi không có bằng chứng tiếng nói"],
-  ] as const)("keeps voice-summary metrics specific in %s", (locale, multiple, unavailable) => {
-    setLocale(locale);
-    expect(t("Records in multiple voice categories")).toBe(multiple);
-    expect(t("Records without voice evidence")).toBe(unavailable);
-  });
+  it.each(["ko", "zh", "ja", "vi"] as const)(
+    "translates every governed atomic Voice label in %s",
+    (locale) => {
+      setLocale(locale);
+      expect(Object.keys(VOICE_LABELS)).toHaveLength(12);
+      for (const label of Object.values(VOICE_LABELS)) expect(t(label)).not.toBe(label);
+    },
+  );
 });

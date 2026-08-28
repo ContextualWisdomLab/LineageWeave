@@ -179,6 +179,9 @@ def test_visible_neighbor_evidence_keeps_final_depth_endpoint_authorized(monkeyp
     async def fake_no_skos(*_args: object) -> list[object]:
         return []
 
+    async def fake_no_voices(*_args: object, **_kwargs: object) -> list[object]:
+        return []
+
     async def fake_labels(
         *_args: object, **_kwargs: object
     ) -> dict[tuple[str, str], str]:
@@ -203,6 +206,7 @@ def test_visible_neighbor_evidence_keeps_final_depth_endpoint_authorized(monkeyp
     monkeypatch.setattr(ingestion, "_load_skos_facts", fake_no_skos)
     monkeypatch.setattr(ingestion, "_load_labels", fake_labels)
     monkeypatch.setattr(ingestion, "_load_node_metadata", fake_metadata)
+    monkeypatch.setattr(ingestion, "_load_voice_assignments", fake_no_voices)
 
     neighborhood = asyncio.run(
         ingestion.visible_ontology_neighborhood(

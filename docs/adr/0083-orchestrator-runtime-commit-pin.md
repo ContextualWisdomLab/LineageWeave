@@ -1,4 +1,4 @@
-# ADR 0083: Pin the runtime to an exact contextual-orchestrator candidate
+# ADR 0083: Pin the runtime to the reviewed contextual-orchestrator commit
 
 - Status: Accepted
 - Date: 2026-08-20
@@ -15,11 +15,14 @@ multi-agent.
 ## Decision
 
 `docker/contextual-orchestrator/Dockerfile` pins the downloaded archive to
-candidate commit `4dbf04c267457d6caabadb1c62748368cf552088` from upstream PR #902. The pin remains explicit
-and immutable for isolated acceptance; it is not protected-main release
-evidence, a moving `main` reference, or a LineageWeave monkey patch. Promotion
-remains blocked until the stacked upstream PR and its base satisfy protected
-review and checks.
+commit `4dbf04c267457d6caabadb1c62748368cf552088`. The pin remains explicit
+and immutable until the reviewed upstream change is superseded; it is not a
+moving `main` reference and it is not a LineageWeave monkey patch.
+The Docker builder verifies that archive against its committed SHA-256 before
+extracting it. Runtime Python packages and every transitive dependency are
+installed only from `docker/contextual-orchestrator/requirements.lock` with
+pip's `--require-hashes`; `requirements.in` records the three direct roots and
+the lock-generation command is embedded in the generated artifact.
 
 The runtime contract is:
 
@@ -35,23 +38,22 @@ The runtime contract is:
   reconciliation prompt; independent VISION worker evidence is retained instead.
 - A provider 4xx is reported as a failed orchestration attempt, never as a
   successful empty semantic result.
-- An empty seed model is expanded from configured provider discovery endpoints;
-  provider-declared embedding rows enter the embedding pool but never a chat role.
-- Runtime discovery activates provider-declared chat and embedding capabilities.
-  LineageWeave does not configure or infer an embedding provider/model pair.
+- An empty seed model is expanded from the configured gateway `/v1/models`
+  endpoint; embedding-only rows are not added to the chat agent pool.
+- Chat Completions and Responses may constrain routing to an exact configured
+  endpoint identity; the selector is never forwarded to a provider and is not
+  applied to embeddings or deferred batch work.
 - A batch embedding request may omit `model`; contextual-orchestrator selects
   an embedding-capable model and returns its identity for subsequent batches.
-- A blank embedding input fails before provider selection; it is never sent as
-  a successful empty semantic signal.
-- An explicit remote agent tagged `embedding` uses its provider-backed
-  embedding transport rather than a local placeholder implementation.
 - `json_object`, `json_schema`, and Responses JSON formats run conduct plus
   synthesis. Tool requests never silently fall back to one agent.
 
 ## Consequences
 
-- Isolated Compose acceptance and upstream PR #902 use the same exact candidate
+- Local Compose runtime and the reviewed upstream PR use the same orchestrator
   implementation.
 - Rebuilding the image is required after the upstream pin changes.
+- Updating the upstream pin or an OpenTelemetry root requires review of the
+  new archive digest and regeneration of the complete hash lock.
 - Protected-branch review and merge remain external gates; this pin does not
   bypass upstream review.

@@ -835,7 +835,7 @@ def test_admission_deferral_rejects_stale_lease_without_event() -> None:
 def test_admission_deferral_migration_is_replay_safe() -> None:
     """The normalized retry instant is replay-safe and indexed for recovery."""
     migration = (
-        _ROOT / "migrations" / "0229_post_content_admission_deferral.sql"
+        _ROOT / "migrations" / "0252_post_content_admission_deferral.sql"
     ).read_text()
     assert "add column if not exists next_attempt_at timestamptz" in migration
     assert "create index if not exists post_content_ingestion_next_attempt_idx" in migration
