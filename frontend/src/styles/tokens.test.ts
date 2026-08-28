@@ -188,6 +188,18 @@ describe("design tokens", () => {
     expect(rule).toContain("align-items: center");
   });
 
+  it("keeps localized Dashboard count-unit groups together", () => {
+    const rule = appCss.match(/\.dashboard-count-unit\s*\{[^}]*\}/)?.[0] ?? "";
+    expect(rule).toContain("white-space: nowrap");
+  });
+
+  it("uses token-spaced two-column navigation on phone viewports", () => {
+    const phoneRules = appCss.slice(appCss.indexOf("@media (max-width: 768px)"));
+    expect(phoneRules).toContain("grid-template-columns: repeat(2, minmax(0, 1fr))");
+    expect(phoneRules).toContain("gap: var(--space-control-gap)");
+    expect(phoneRules).toContain("word-break: keep-all");
+  });
+
   it("keeps public-verification layout on shared tokens", () => {
     expect(publicClaimCss).not.toMatch(/#[0-9a-fA-F]{3,8}/);
     for (const token of [
