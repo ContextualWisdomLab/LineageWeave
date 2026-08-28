@@ -653,6 +653,7 @@ async def process_post_content_job(
                         outcome="provider_unavailable",
                     )
                     raise
+                channel_stage_code = "occupational_construct"
                 construct_client = (
                     ContextualOrchestratorOccupationalConstructExtractionClient(
                         settings.orchestrator_base_url,
