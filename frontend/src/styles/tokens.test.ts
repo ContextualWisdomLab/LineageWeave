@@ -193,11 +193,13 @@ describe("design tokens", () => {
     expect(rule).toContain("white-space: nowrap");
   });
 
-  it("uses token-spaced two-column navigation on phone viewports", () => {
-    const phoneRules = appCss.slice(appCss.indexOf("@media (max-width: 768px)"));
-    expect(phoneRules).toContain("grid-template-columns: repeat(2, minmax(0, 1fr))");
-    expect(phoneRules).toContain("gap: var(--space-control-gap)");
-    expect(phoneRules).toContain("word-break: keep-all");
+  it("keeps phone navigation readable without hiding destinations", () => {
+    const phoneRules = [...appCss.matchAll(/@media \(max-width: 768px\)\s*\{[\s\S]*?\n\}/g)]
+      .map((match) => match[0])
+      .find((rule) => rule.includes(".workspace-gnb")) ?? "";
+    expect(phoneRules).toContain("overflow-x: auto");
+    expect(phoneRules).toContain("gap: 0.75rem");
+    expect(phoneRules).not.toMatch(/\.workspace-gnb\s*\{[^}]*display:\s*none/);
   });
 
   it("keeps public-verification layout on shared tokens", () => {

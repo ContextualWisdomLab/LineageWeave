@@ -120,9 +120,14 @@ describe("i18n", () => {
     },
   );
 
-  it("keeps analyst GNB chrome on the Dashboard and four Korean labels", () => {
-    expect(ANALYST_GNB_LABELS).toEqual(["Dashboard", "외부 정보", "게시판", "고객 마스터", "달력", "Ask Agent"]);
-    expect(ANALYST_GNB_LABELS.join(" ")).not.toMatch(/Buyer|Cubee|Board|Customer master/);
+  it("keeps locale-neutral GNB keys and renders every Korean action", () => {
+    expect(ANALYST_GNB_LABELS).toEqual([
+      "Dashboard", "External information", "Board", "Customer master", "Calendar", "Ask Agent",
+    ]);
+    setLocale("ko");
+    expect(ANALYST_GNB_LABELS.map((label) => t(label))).toEqual([
+      "Dashboard", "외부 정보", "게시판", "고객 마스터", "캘린더", "에이전트에게 질문",
+    ]);
     expect(CALENDAR_CONSUME_UNAVAILABLE).toBe("이 범위의 일정을 아직 받을 수 없습니다");
   });
 
