@@ -145,12 +145,15 @@ select edge.parent_post_id, edge.child_post_id, edge.fused_score,
         from project_journey_temporal_relation relation
         join project_journey_temporal_artifact artifact
           on artifact.analysis_run_id = relation.analysis_run_id
+        join analysis_run temporal_run
+          on temporal_run.analysis_run_id = artifact.analysis_run_id
         join project_journey_temporal_relation_kind kind
           on kind.analysis_run_id = relation.analysis_run_id
          and kind.left_post_id = relation.left_post_id
          and kind.right_post_id = relation.right_post_id
        where relation.left_post_id = edge.parent_post_id
          and relation.right_post_id = edge.child_post_id
+         and temporal_run.knowledge_cutoff <= $2
        group by relation.observed, artifact.artifact_digest_sha256, artifact.admitted_at
        order by artifact.admitted_at desc, artifact.artifact_digest_sha256 desc
        limit 1
@@ -239,6 +242,7 @@ async def fetch_project_history_projection(
         conn,
         visible_ids=visible_ids,
         normalized_key=normalized_key,
+        knowledge_cutoff=knowledge_cutoff,
     )
     return build_project_history_projection(
         project_key=project_key,
@@ -257,10 +261,11 @@ async def _fetch_project_children(
     *,
     visible_ids: Sequence[str],
     normalized_key: str,
+    knowledge_cutoff: datetime,
 ) -> tuple[list[Mapping[str, Any]], list[Mapping[str, Any]], list[Mapping[str, Any]]]:
     """Fetch only child evidence whose endpoints are already authorized."""
 
     matches = list(await conn.fetch(_MATCH_SQL, list(visible_ids), normalized_key))
     roles = list(await conn.fetch(_ROLE_SQL, list(visible_ids)))
-    edges = list(await conn.fetch(_EDGE_SQL, list(visible_ids)))
+    edges = list(await conn.fetch(_EDGE_SQL, list(visible_ids), knowledge_cutoff))
     return matches, roles, edges

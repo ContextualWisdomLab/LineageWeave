@@ -33,9 +33,9 @@ A branch is visible only when the independently admitted lineage graph already
 contains that topology. A transition still requires its separately governed
 observed business or responsibility evidence.
 
-The Project History API attaches the newest immutable temporal evidence to
-the corresponding visible edge after ABAC and cutoff filtering select both
-endpoints. The customer UI says what the user can do next—open the supporting
+The Project History API attaches the newest immutable temporal evidence whose
+analysis cutoff does not exceed the requested view cutoff to the corresponding
+visible edge after ABAC selects both endpoints. The customer UI says what the user can do next—open the supporting
 records and compare dates—and never names the calculation module.
 
 GraphML is an equivalent provider export, not the ingestion authority. The
