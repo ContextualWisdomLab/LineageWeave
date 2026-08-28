@@ -563,6 +563,43 @@ def test_claim_scans_past_incomplete_evidence(
     assert sum("awaiting_evidence" in sql for sql in statements) == 11
 
 
+def test_claim_requeues_evidence_that_commits_before_awaiting_transition(
+    monkeypatch,
+) -> None:
+    """The post-transition recheck closes the otherwise lost wakeup window."""
+    statements: list[str] = []
+    loads = 0
+
+    class Connection:
+        async def execute(self, sql, *_args):
+            statements.append(sql)
+            return "UPDATE 1"
+
+        async def fetch(self, _sql):
+            return [{"topic_model_run_id": "model-1"}]
+
+    class Pool:
+        def acquire(self):
+            return _async_context(Connection())
+
+    async def load(_conn, _run_id):
+        nonlocal loads
+        loads += 1
+        if loads == 1:
+            raise ValueError("synthetic evidence not committed")
+        return _request()
+
+    monkeypatch.setattr(topic_influence_worker, "load_topic_influence_request", load)
+
+    assert asyncio.run(topic_influence_worker.claim_topic_influence_job(Pool(), 17)) is None
+    assert loads == 2
+    assert any("status_code = 'awaiting_evidence'" in sql for sql in statements)
+    assert any(
+        "status_code = 'queued'" in sql and "status_code = 'awaiting_evidence'" in sql
+        for sql in statements
+    )
+
+
 def test_loader_requires_the_accepted_normalized_tepp_projection() -> None:
     """The accepted posterior projection, not an older result table, is admitted."""
     now = datetime(2026, 1, 1, tzinfo=timezone.utc)

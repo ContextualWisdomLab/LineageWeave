@@ -225,6 +225,24 @@ async def claim_topic_influence_job(
                     """,
                     run_id,
                 )
+                # Close the transition race without polling incomplete input:
+                # evidence committed before the awaiting update is visible to
+                # this recheck; evidence committed afterwards fires a wake
+                # trigger against the already-awaiting row.
+                try:
+                    await load_topic_influence_request(conn, run_id)
+                except (ValueError, TypeError, KeyError):
+                    continue
+                await conn.execute(
+                    """
+                    update topic_influence_job
+                       set status_code = 'queued', failure_code = null,
+                           completed_at = null, not_before = clock_timestamp()
+                     where topic_model_run_id = $1
+                       and status_code = 'awaiting_evidence'
+                    """,
+                    run_id,
+                )
                 continue
             async with conn.transaction():
                 lease_token = str(uuid.uuid4())

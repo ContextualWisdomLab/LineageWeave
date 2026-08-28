@@ -2972,32 +2972,26 @@ function analysisRunNextAction(run: AnalysisRun): string | null {
  * Empty-corpus copy that tells the operator what to do next.
  */
 function analysisRunEmptyPostsHint(run: AnalysisRun): string {
+  let analysis: string;
   switch (run.run_kind_code) {
     case "analysis_run_tepp":
-      return (
-        "No posts were available at this cutoff for calibrated measurement. " +
-        "Open a later run or retry after a newer snapshot is available."
-      );
+      analysis = t("calibrated measurement");
+      break;
     case "analysis_run_topic_lineage":
-      return (
-        "No posts were available at this cutoff for time-based topic analysis. " +
-        "Open a later run or retry after a newer snapshot is available."
-      );
+      analysis = t("time-based topic analysis");
+      break;
     case "analysis_run_lineage":
-      return (
-        "No posts were available at this cutoff for reconstruction. " +
-        "Open a later run or retry after a newer snapshot is available."
-      );
+      analysis = t("reconstruction");
+      break;
     case "analysis_run_report":
-      return (
-        "No posts were available at this cutoff for the period report. " +
-        "Open a later run or retry after a newer snapshot is available."
-      );
+      analysis = t("the period report");
+      break;
     default: {
       const unexpected: never = run.run_kind_code;
       return unexpected;
     }
   }
+  return tf("No posts were available at this cutoff for {analysis}. Open a later run or retry after a newer snapshot is available.", { analysis });
 }
 
 /**
@@ -3009,19 +3003,19 @@ function analysisRunEmptyPostsHint(run: AnalysisRun): string {
 function analysisRunCorpusHint(run: AnalysisRun): string | null {
   const isTopicLineage = run.run_kind_code === "analysis_run_topic_lineage";
   if (run.run_kind_code !== "analysis_run_tepp" && !isTopicLineage) return null;
-  const analysis = isTopicLineage ? "time-based topic analysis" : "calibrated measurement";
+  const analysis = t(isTopicLineage ? "time-based topic analysis" : "calibrated measurement");
   switch (run.status_code) {
     case "analysis_status_failed":
-      return `These posts were selected for ${analysis}. Review the failure details, then retry with the latest available records.`;
+      return tf("These posts were selected for {analysis}. Review the failure details, then retry with the latest available records.", { analysis });
     case "analysis_status_succeeded":
-      return `These posts were included in this ${analysis} result.`;
+      return tf("These posts were included in this {analysis} result.", { analysis });
     case "analysis_status_pending":
     case "analysis_status_running":
-      return `These posts will be included when ${analysis} finishes.`;
+      return tf("These posts will be included when {analysis} finishes.", { analysis });
     case "analysis_status_cancelled":
-      return `These posts were selected for ${analysis}. Start a new run if the result is still needed.`;
+      return tf("These posts were selected for {analysis}. Start a new run if the result is still needed.", { analysis });
     case null:
-      return `These posts are selected for ${analysis}.`;
+      return tf("These posts are selected for {analysis}.", { analysis });
     default: {
       const unexpected: never = run.status_code;
       return unexpected;

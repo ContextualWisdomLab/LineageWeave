@@ -102,9 +102,44 @@ const ANALYSIS_RUN_ACTION_TRANSLATIONS: Record<
   },
 };
 
+const ANALYSIS_RUN_HINT_TRANSLATIONS: Record<
+  "ko" | "zh" | "ja" | "vi",
+  Record<string, string>
+> = {
+  ko: {
+    "calibrated measurement": "보정 측정", "time-based topic analysis": "시간 흐름별 주제 분석", reconstruction: "재구성", "the period report": "기간 리포트",
+    "No posts were available at this cutoff for {analysis}. Open a later run or retry after a newer snapshot is available.": "이 기준 시점에는 {analysis}에 사용할 글이 없습니다. 이후 실행을 열거나 새 스냅샷이 준비된 뒤 다시 시도하세요.",
+    "These posts were selected for {analysis}. Review the failure details, then retry with the latest available records.": "이 글들은 {analysis} 대상으로 선택되었습니다. 실패 내용을 확인한 뒤 최신 기록으로 다시 시도하세요.",
+    "These posts were included in this {analysis} result.": "이 글들은 이번 {analysis} 결과에 포함되었습니다.", "These posts will be included when {analysis} finishes.": "{analysis}이 완료되면 이 글들이 포함됩니다.",
+    "These posts were selected for {analysis}. Start a new run if the result is still needed.": "이 글들은 {analysis} 대상으로 선택되었습니다. 결과가 여전히 필요하면 새 실행을 시작하세요.", "These posts are selected for {analysis}.": "이 글들은 {analysis} 대상으로 선택되어 있습니다.",
+  },
+  zh: {
+    "calibrated measurement": "校准测量", "time-based topic analysis": "时序主题分析", reconstruction: "重建", "the period report": "周期报告",
+    "No posts were available at this cutoff for {analysis}. Open a later run or retry after a newer snapshot is available.": "此截止时间没有可用于{analysis}的文章。请打开较晚的运行，或在新快照可用后重试。",
+    "These posts were selected for {analysis}. Review the failure details, then retry with the latest available records.": "这些文章已选用于{analysis}。请查看失败详情，然后使用最新记录重试。",
+    "These posts were included in this {analysis} result.": "这些文章已包含在本次{analysis}结果中。", "These posts will be included when {analysis} finishes.": "{analysis}完成后将包含这些文章。",
+    "These posts were selected for {analysis}. Start a new run if the result is still needed.": "这些文章已选用于{analysis}。如果仍需要结果，请开始新的运行。", "These posts are selected for {analysis}.": "这些文章已选用于{analysis}。",
+  },
+  ja: {
+    "calibrated measurement": "校正測定", "time-based topic analysis": "時系列トピック分析", reconstruction: "再構成", "the period report": "期間レポート",
+    "No posts were available at this cutoff for {analysis}. Open a later run or retry after a newer snapshot is available.": "この基準時点では{analysis}に使用できる投稿がありません。後の実行を開くか、新しいスナップショットが利用可能になってから再試行してください。",
+    "These posts were selected for {analysis}. Review the failure details, then retry with the latest available records.": "これらの投稿は{analysis}の対象です。失敗内容を確認し、最新の記録で再試行してください。",
+    "These posts were included in this {analysis} result.": "これらの投稿は今回の{analysis}結果に含まれています。", "These posts will be included when {analysis} finishes.": "{analysis}が完了すると、これらの投稿が含まれます。",
+    "These posts were selected for {analysis}. Start a new run if the result is still needed.": "これらの投稿は{analysis}の対象です。結果が必要な場合は新しい実行を開始してください。", "These posts are selected for {analysis}.": "これらの投稿は{analysis}の対象として選択されています。",
+  },
+  vi: {
+    "calibrated measurement": "đo lường hiệu chỉnh", "time-based topic analysis": "phân tích chủ đề theo thời gian", reconstruction: "tái dựng", "the period report": "báo cáo theo kỳ",
+    "No posts were available at this cutoff for {analysis}. Open a later run or retry after a newer snapshot is available.": "Không có bài viết nào tại mốc này cho {analysis}. Hãy mở lần chạy muộn hơn hoặc thử lại khi có ảnh chụp mới.",
+    "These posts were selected for {analysis}. Review the failure details, then retry with the latest available records.": "Các bài viết này đã được chọn cho {analysis}. Hãy xem chi tiết lỗi rồi thử lại với bản ghi mới nhất.",
+    "These posts were included in this {analysis} result.": "Các bài viết này được đưa vào kết quả {analysis} này.", "These posts will be included when {analysis} finishes.": "Các bài viết này sẽ được đưa vào khi {analysis} hoàn tất.",
+    "These posts were selected for {analysis}. Start a new run if the result is still needed.": "Các bài viết này đã được chọn cho {analysis}. Hãy bắt đầu lần chạy mới nếu vẫn cần kết quả.", "These posts are selected for {analysis}.": "Các bài viết này được chọn cho {analysis}.",
+  },
+};
+
 const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
   ko: {
     ...ANALYSIS_RUN_ACTION_TRANSLATIONS.ko,
+    ...ANALYSIS_RUN_HINT_TRANSLATIONS.ko,
     "Lineage reconstruction": "이벤트 이력 재구성",
     "Calibrated event measurement": "보정된 이벤트 측정",
     "Time-based topic analysis": "시간 흐름별 주제 분석",
@@ -792,6 +827,7 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
   zh: {
     ...OPERATIONS_TRANSLATIONS.zh,
     ...ANALYSIS_RUN_ACTION_TRANSLATIONS.zh,
+    ...ANALYSIS_RUN_HINT_TRANSLATIONS.zh,
     "Lineage reconstruction": "事件历程重建",
     "Calibrated event measurement": "校准事件测量",
     "Time-based topic analysis": "时序主题分析",
@@ -1376,6 +1412,7 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
   ja: {
     ...OPERATIONS_TRANSLATIONS.ja,
     ...ANALYSIS_RUN_ACTION_TRANSLATIONS.ja,
+    ...ANALYSIS_RUN_HINT_TRANSLATIONS.ja,
     "Lineage reconstruction": "イベント履歴の再構成",
     "Calibrated event measurement": "校正済みイベント測定",
     "Time-based topic analysis": "時系列トピック分析",
@@ -1964,6 +2001,7 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
   vi: {
     ...OPERATIONS_TRANSLATIONS.vi,
     ...ANALYSIS_RUN_ACTION_TRANSLATIONS.vi,
+    ...ANALYSIS_RUN_HINT_TRANSLATIONS.vi,
     "Lineage reconstruction": "Tái dựng lịch sử sự kiện",
     "Calibrated event measurement": "Đo lường sự kiện đã hiệu chỉnh",
     "Time-based topic analysis": "Phân tích chủ đề theo thời gian",
