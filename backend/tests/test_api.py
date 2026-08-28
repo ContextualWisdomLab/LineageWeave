@@ -209,6 +209,11 @@ _GLOBAL_ASK_PUBLIC_VERIFICATION_MIGRATION = (
     / "migrations"
     / "0218_global_ask_public_verification.sql"
 )
+_SOURCE_RESEARCH_CITATION_MIGRATION = (
+    Path(__file__).resolve().parents[2]
+    / "migrations"
+    / "0236_source_research_citation.sql"
+)
 _GLOBAL_ASK_KNOWLEDGE_CUTOFF_MIGRATION = (
     Path(__file__).resolve().parents[2]
     / "migrations"
@@ -455,6 +460,7 @@ def seeded_db(demo_analyst_token):
             )
             cur.execute(_GLOBAL_ASK_KNOWLEDGE_CUTOFF_MIGRATION.read_text())
             cur.execute(_GLOBAL_ASK_PUBLIC_VERIFICATION_MIGRATION.read_text())
+            cur.execute(_SOURCE_RESEARCH_CITATION_MIGRATION.read_text())
             cur.execute(_EVENT_OCCURRED_AT_MIGRATION.read_text())
             for migration_path in _PRODUCT_SEMANTIC_MIGRATIONS:
                 cur.execute(migration_path.read_text())
@@ -6325,7 +6331,7 @@ def test_seed_period_report_includes_fixture_event_lineage_posts(
 
 
 def test_seed_period_report_member_click_lands_on_decorated_fixture(
-    client, demo_analyst_token, seeded_db
+    client, demo_analyst_token, seeded_db, monkeypatch
 ) -> None:
     """The first W02 report member must already have Event Lineage,
     Keyman, and evaluation -- otherwise the buyer click opens a dummy
@@ -6361,6 +6367,19 @@ def test_seed_period_report_member_click_lands_on_decorated_fixture(
                 (seeded_db["own_private_post_id"],),
             )
             author_id, corp_id = cur.fetchone()
+            cur.execute(
+                "select channel_code, weight_value from lineage_channel_weight "
+                "where channel_set_code = 'channel_set_deterministic'"
+            )
+            owner_fixture_weights = {code: float(value) for code, value in cur.fetchall()}
+            monkeypatch.setattr(
+                "scripts.seed_demo_data.demo_channel_weight_estimate",
+                lambda: SimpleNamespace(weights=owner_fixture_weights),
+            )
+            monkeypatch.setattr(
+                "scripts.seed_demo_data._persist_demo_channel_weights",
+                lambda _cur, _estimate: None,
+            )
             _seed_reconstructed_lineage(cur, author_id, corp_id, process_unit_id)
             _seed_demo_calendar_commitment(cur, author_id, corp_id, process_unit_id)
             _seed_fixture_evaluations(cur)
