@@ -9,7 +9,7 @@ from typing import Any, Callable
 
 import asyncpg
 
-from lineageweave.http_client import HttpClientError
+from lineageweave.http_client import HttpAdmissionDeferred, HttpClientError
 from lineageweave.topic_influence_client import (
     TopicInfluenceClient,
     TopicInfluenceInvalidResponse,
@@ -172,10 +172,10 @@ async def claim_topic_influence_job(
         candidates = await conn.fetch(
             """
             select topic_model_run_id
-              from topic_influence_job
+             from topic_influence_job
              where status_code = 'queued'
+               and not_before <= clock_timestamp()
              order by queued_at, topic_model_run_id
-             limit 10
             """
         )
         for candidate in candidates:
@@ -304,6 +304,38 @@ async def _fail_job(pool: asyncpg.Pool, run_id: str, failure_code: str) -> None:
         )
 
 
+async def _defer_job(pool: asyncpg.Pool, run_id: str, retry_after_seconds: int) -> None:
+    """Requeue a remotely deferred job at the exact admitted retry instant."""
+    async with pool.acquire() as conn:
+        await conn.execute(
+            """
+            update topic_influence_job
+               set status_code = 'queued', started_at = null, completed_at = null,
+                   failure_code = null,
+                   not_before = clock_timestamp() + make_interval(secs => $2)
+             where topic_model_run_id = $1 and status_code = 'running'
+            """,
+            run_id,
+            retry_after_seconds,
+        )
+
+
+async def requeue_topic_influence_job(pool: asyncpg.Pool, run_id: str) -> bool:
+    """Explicitly requeue one failed job after an operator resolves its cause."""
+    async with pool.acquire() as conn:
+        updated = await conn.fetchval(
+            """
+            update topic_influence_job
+               set status_code = 'queued', started_at = null, completed_at = null,
+                   failure_code = null, not_before = clock_timestamp()
+             where topic_model_run_id = $1 and status_code = 'failed'
+            returning topic_model_run_id
+            """,
+            run_id,
+        )
+    return updated is not None
+
+
 async def process_topic_influence_job(
     pool: asyncpg.Pool, client: TopicInfluenceClient
 ) -> bool:
@@ -315,6 +347,8 @@ async def process_topic_influence_job(
     try:
         result = await asyncio.to_thread(client.estimate, request)
         await persist_topic_influence_result(pool, run_id, request, result)
+    except HttpAdmissionDeferred as exc:
+        await _defer_job(pool, run_id, exc.retry_after_seconds)
     except (TopicInfluenceNotAvailable, HttpClientError, OSError, TimeoutError):
         await _fail_job(pool, run_id, "producer_unavailable")
     except TopicInfluenceInvalidResponse:

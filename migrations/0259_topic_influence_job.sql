@@ -17,6 +17,7 @@ create table if not exists topic_influence_job (
         )
     ),
     queued_at timestamptz not null default clock_timestamp(),
+    not_before timestamptz not null default clock_timestamp(),
     started_at timestamptz,
     completed_at timestamptz,
     check (
@@ -27,7 +28,7 @@ create table if not exists topic_influence_job (
 );
 
 create index if not exists topic_influence_job_queue_idx
-    on topic_influence_job (status_code, queued_at, topic_model_run_id)
+    on topic_influence_job (status_code, not_before, queued_at, topic_model_run_id)
     where status_code = 'queued';
 
 create or replace function queue_topic_influence_job()
@@ -56,4 +57,3 @@ select model.topic_model_run_id, 'queued'
             where influence.topic_model_run_id = model.topic_model_run_id
        )
 on conflict (topic_model_run_id) do nothing;
-

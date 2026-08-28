@@ -141,13 +141,20 @@ supports keyboard, touch, reduced motion, narrow viewports, and screen readers.
 The durable worker submits only when the topic run is independently evidenced
 by both its TEPP acceptance receipt and its completed, digest-bound topic
 artifact. The request contains every posterior draw and every source-derived
-business-unit, PU, team, and person membership. It is content-addressed before
+business-unit, PU, team, and person membership present in the run. The run
+must cover all four dimensions, while an individual post may belong only to
+the dimensions supported by its evidence and may retain several time-valid
+slices for one context. It is content-addressed before
 the database lease is released. The worker admits only a complete Cartesian
 set of post-membership-topic rows whose request, TEPP run, snapshot, cutoff,
 membership fingerprint, producer revision, convergence, identification,
 backend parity, and artifact digest all match. It recomputes the request digest
 inside the persistence transaction so a changed input cannot receive a stale
 result. Provider work holds neither a database transaction nor a pool lease.
+Incomplete older evidence is scanned past rather than pinning the queue. An
+exact remote `Retry-After` requeues at that admitted instant; all other
+failures require an explicit operator requeue after their cause is corrected,
+so the worker never invents a retry interval.
 
 This delivery path does not make the feature available by itself. The
 configured owner endpoint must implement the domain-neutral continuous

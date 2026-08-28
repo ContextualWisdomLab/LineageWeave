@@ -102,7 +102,11 @@ def build_topic_influence_request(
     if len(set(topics)) != len(topics):
         raise ValueError("topic identities must be unique")
 
+    if not observations:
+        raise ValueError("topic observations must be non-empty")
     membership_material: list[dict[str, Any]] = []
+    observed_dimensions: set[str] = set()
+    seen_membership_ids: set[str] = set()
     seen_posts: set[str] = set()
     for observation in observations:
         if set(observation) != {"post_id", "event_time", "coordinates", "memberships"}:
@@ -140,7 +144,6 @@ def build_topic_influence_request(
             actual_coordinates.add(key)
         if actual_coordinates != expected_coordinates:
             raise ValueError("topic coordinates are incomplete")
-        seen_memberships: set[tuple[str, str]] = set()
         for membership in memberships:
             if set(membership) != {
                 "membership_id",
@@ -153,25 +156,30 @@ def build_topic_influence_request(
                 "provenance_assertion_id",
             }:
                 raise ValueError("topic membership shape is invalid")
-            key = (membership["dimension_code"], membership["context_id"])
+            membership_id = membership["membership_id"]
+            dimension = membership["dimension_code"]
+            context_id = membership["context_id"]
             weight = membership["weight"]
             if (
-                key in seen_memberships
-                or key[0] not in _DIMENSIONS
-                or not isinstance(key[1], str)
-                or not key[1].strip()
+                not isinstance(membership_id, str)
+                or not membership_id.strip()
+                or membership_id in seen_membership_ids
+                or dimension not in _DIMENSIONS
+                or not isinstance(context_id, str)
+                or not context_id.strip()
                 or type(weight) not in {int, float}
                 or not math.isfinite(weight)
                 or weight <= 0
                 or not _SHA256.fullmatch(str(membership["evidence_sha256"]))
             ):
                 raise ValueError("topic membership evidence is invalid")
-            seen_memberships.add(key)
+            seen_membership_ids.add(membership_id)
+            observed_dimensions.add(dimension)
             membership_material.append(
                 {"post_id": post_id, **membership}
             )
-        if {dimension for dimension, _context in seen_memberships} != _DIMENSIONS:
-            raise ValueError("topic observation requires all four context dimensions")
+    if observed_dimensions != _DIMENSIONS:
+        raise ValueError("topic run requires evidence across all four context dimensions")
     membership_material.sort(
         key=lambda row: (
             row["post_id"],
@@ -313,5 +321,6 @@ class HttpTopicInfluenceClient(TopicInfluenceClient):
                 payload,
                 headers={"authorization": f"Bearer {api_key}"} if api_key else {},
                 timeout=timeout,
+                service_peer_name="fast-mlsirm",
             )
         )

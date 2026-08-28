@@ -17,7 +17,10 @@ All notable changes to this project are documented here. Format follows
   business-unit/PU/team/person memberships into a content-addressed request,
   then persists only a complete, converged, identified, parity-passed
   fast-mlsirm result. Missing owner transport, changed evidence, partial rows,
-  or digest mismatch remains unavailable without local scoring (ADR 0210).
+  or digest mismatch remains unavailable without local scoring. Time-valid
+  membership slices remain distinct, older incomplete inputs cannot starve
+  ready work, and retries use only an exact remote delay or an explicit
+  operator requeue (ADR 0210).
 
 - Evidence Operations now presents cited claim, rebid, handover, external,
   product, and Voice evidence with explicit unavailable states and source-open

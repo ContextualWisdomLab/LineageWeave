@@ -10,12 +10,15 @@ from datetime import datetime, timezone
 import pytest
 
 from lineageweave.topic_influence_client import (
+    HttpTopicInfluenceClient,
     RESULT_SCHEMA_VERSION,
     TopicInfluenceClient,
     TopicInfluenceInvalidResponse,
     build_topic_influence_request,
     canonical_sha256,
 )
+from lineageweave.http_client import HttpAdmissionDeferred
+from lineageweave import topic_influence_client
 from backend.app import topic_influence_worker
 
 
@@ -147,6 +150,60 @@ def test_request_rejects_incomplete_tepp_posterior_draws() -> None:
         )
 
 
+def test_request_accepts_time_varying_membership_slices() -> None:
+    """Distinct evidence rows may retain the same context across valid times."""
+    request = _request()
+    observations = copy.deepcopy(request.payload["observations"])
+    later = copy.deepcopy(observations[0]["memberships"][0])
+    later["membership_id"] = "membership-later"
+    later["valid_from"] = "2027-01-01T00:00:00+00:00"
+    later["valid_to"] = "2028-01-01T00:00:00+00:00"
+    observations[0]["memberships"].append(later)
+
+    accepted = build_topic_influence_request(
+        tepp_run=dict(request.payload["tepp_run"]),
+        topics=list(request.payload["topic_indices"]),
+        observations=observations,
+    )
+
+    assert len(accepted.payload["observations"][0]["memberships"]) == 5
+
+
+def test_request_requires_four_dimensions_across_run_not_each_post() -> None:
+    """A post carries only evidenced levels while the run covers every level."""
+    request = _request()
+    first = copy.deepcopy(request.payload["observations"][0])
+    second = copy.deepcopy(first)
+    first["memberships"] = first["memberships"][:2]
+    second["post_id"] = "synthetic-post-2"
+    second["memberships"] = second["memberships"][2:]
+    for membership in second["memberships"]:
+        membership["membership_id"] += "-second"
+
+    accepted = build_topic_influence_request(
+        tepp_run=dict(request.payload["tepp_run"]),
+        topics=list(request.payload["topic_indices"]),
+        observations=[first, second],
+    )
+
+    assert [len(row["memberships"]) for row in accepted.payload["observations"]] == [2, 2]
+
+
+def test_http_client_attributes_transport_to_numerical_owner(monkeypatch) -> None:
+    """Topic influence spans identify fast-mlsirm rather than the orchestrator."""
+    request = _request()
+    captured: dict[str, object] = {}
+
+    def post(_url, _payload, **kwargs):
+        captured.update(kwargs)
+        return _response(request)
+
+    monkeypatch.setattr(topic_influence_client, "post_json", post)
+    HttpTopicInfluenceClient("https://synthetic.invalid", "").estimate(request)
+
+    assert captured["service_peer_name"] == "fast-mlsirm"
+
+
 def test_worker_persists_one_valid_result_without_local_math(monkeypatch) -> None:
     """The worker delegates once and passes the validated result to persistence."""
     request = _request()
@@ -224,6 +281,67 @@ def test_worker_distinguishes_unavailable_transport(monkeypatch) -> None:
     )
 
     assert failures == [("model-1", "producer_unavailable")]
+
+
+def test_worker_uses_exact_remote_retry_delay(monkeypatch) -> None:
+    """A remote admission delay requeues exactly, without invented backoff."""
+    request = _request()
+    deferred: list[tuple[str, int]] = []
+
+    async def claim(_pool):
+        return "model-1", request
+
+    async def defer(_pool, run_id, seconds):
+        deferred.append((run_id, seconds))
+
+    def unavailable(_payload):
+        raise HttpAdmissionDeferred(17)
+
+    monkeypatch.setattr(topic_influence_worker, "claim_topic_influence_job", claim)
+    monkeypatch.setattr(topic_influence_worker, "_defer_job", defer)
+
+    asyncio.run(
+        topic_influence_worker.process_topic_influence_job(
+            object(), TopicInfluenceClient(unavailable)
+        )
+    )
+
+    assert deferred == [("model-1", 17)]
+
+
+def test_claim_scans_past_incomplete_evidence(monkeypatch) -> None:
+    """Older incomplete requests cannot starve a later complete request."""
+    request = _request()
+
+    class Connection:
+        async def fetch(self, sql):
+            assert "limit 10" not in sql.lower()
+            assert "not_before <= clock_timestamp()" in sql
+            return [
+                {"topic_model_run_id": f"incomplete-{index}"}
+                for index in range(11)
+            ] + [{"topic_model_run_id": "complete"}]
+
+        def transaction(self):
+            return _async_context(self)
+
+        async def fetchval(self, _sql, run_id, _digest):
+            return run_id
+
+    class Pool:
+        def acquire(self):
+            return _async_context(Connection())
+
+    async def load(_conn, run_id):
+        if run_id != "complete":
+            raise ValueError("synthetic incomplete evidence")
+        return request
+
+    monkeypatch.setattr(topic_influence_worker, "load_topic_influence_request", load)
+
+    claimed = asyncio.run(topic_influence_worker.claim_topic_influence_job(Pool()))
+
+    assert claimed == ("complete", request)
 
 
 def test_loader_requires_receipt_bound_complete_tepp_evidence() -> None:

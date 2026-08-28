@@ -289,6 +289,7 @@ def test_topic_influence_job_migration_is_replay_safe_and_fail_closed() -> None:
     ).read_text(encoding="utf-8").casefold()
 
     assert "create table if not exists topic_influence_job" in sql
+    assert "not_before" in sql
     assert "create trigger topic_model_run_influence_queue" in sql
     assert "on conflict (topic_model_run_id) do nothing" in sql
     assert "where status_code = 'queued'" in sql
