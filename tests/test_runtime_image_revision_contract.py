@@ -7,7 +7,7 @@ _ROOT = Path(__file__).resolve().parents[1]
 
 
 def test_product_images_expose_explicit_source_revision() -> None:
-    """Backend and frontend images must label their operator-supplied revision."""
+    """Every product image must label its operator-supplied source revision."""
     for path in (_ROOT / "backend" / "Dockerfile", _ROOT / "frontend" / "Dockerfile"):
         dockerfile = path.read_text(encoding="utf-8")
         assert "ARG LINEAGEWEAVE_SOURCE_REVISION=unknown" in dockerfile
@@ -19,13 +19,35 @@ def test_product_images_expose_explicit_source_revision() -> None:
     assert "io.contextualwisdomlab.lineageweave.oidc-issuer" in frontend
     assert "io.contextualwisdomlab.lineageweave.backend-url" in frontend
 
+    orchestrator = (
+        _ROOT / "docker" / "contextual-orchestrator" / "Dockerfile"
+    ).read_text(encoding="utf-8")
+    assert "ARG CONTEXTUAL_ORCHESTRATOR_SOURCE_REVISION=unknown" in orchestrator
+    assert (
+        "LABEL org.opencontainers.image.revision="
+        "${CONTEXTUAL_ORCHESTRATOR_SOURCE_REVISION}"
+    ) in orchestrator
+
 
 def test_compose_passes_revision_to_all_product_images() -> None:
     """Compose must pass the same fail-closed revision input to each product build."""
     compose = (_ROOT / "docker-compose.yml").read_text(encoding="utf-8")
     assert compose.count(
         "LINEAGEWEAVE_SOURCE_REVISION: ${LINEAGEWEAVE_SOURCE_REVISION:-unknown}"
-    ) == 3
+    ) == 4
+    assert (
+        "CONTEXTUAL_ORCHESTRATOR_SOURCE_REVISION: "
+        "4dbf04c267457d6caabadb1c62748368cf552088"
+    ) in compose
+
+
+def test_runtime_acceptance_checks_every_product_image_revision() -> None:
+    """Acceptance must reject any stale backend, worker, MCP, or frontend image."""
+    runner = (_ROOT / "scripts" / "accept_operations_dashboard_runtime.sh").read_text(
+        encoding="utf-8"
+    )
+    assert "for service_name in backend backend-worker mcp frontend; do" in runner
+    assert "lineageweave-${service_name}-1" in runner
 
 
 def test_synthetic_acceptance_never_enables_provider_calls() -> None:

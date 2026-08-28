@@ -105,6 +105,8 @@ services:
     build:
       context: ./docker/contextual-orchestrator
       dockerfile: Dockerfile
+      args:
+        CONTEXTUAL_ORCHESTRATOR_SOURCE_REVISION: 4dbf04c267457d6caabadb1c62748368cf552088
     image: ${COMPOSE_PROJECT_NAME:-lineageweave}-orchestrator:4dbf04c267457d6caabadb1c62748368cf552088
     env_file:
       - ${HOME}/.env
@@ -246,6 +248,8 @@ services:
     build:
       context: .
       dockerfile: backend/Dockerfile
+      args:
+        LINEAGEWEAVE_SOURCE_REVISION: ${LINEAGEWEAVE_SOURCE_REVISION:-unknown}
     command: ["uvicorn", "backend.app.mcp_server:app", "--host", "0.0.0.0", "--port", "8001"]
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER:-lineageweave}:${POSTGRES_PASSWORD:-lineageweave_dev_only}@postgres:5432/${POSTGRES_DB:-lineageweave}

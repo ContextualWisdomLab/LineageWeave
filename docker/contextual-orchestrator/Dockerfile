@@ -19,6 +19,9 @@ FROM python:3.12-slim@sha256:423ed6ab25b1921a477529254bfeeabf5855151dc2c3141699a
 
 WORKDIR /app
 
+ARG CONTEXTUAL_ORCHESTRATOR_SOURCE_REVISION=unknown
+LABEL org.opencontainers.image.revision=${CONTEXTUAL_ORCHESTRATOR_SOURCE_REVISION}
+
 # Reuse the upstream implementation without copying it into LineageWeave.
 # Pin the runtime to a reviewed immutable upstream commit; model selection,
 # structured synthesis, and reasoning policy stay in contextual-orchestrator.
