@@ -558,24 +558,17 @@ _DEMO_ESTIMATE_CACHE: list = []
 
 
 def demo_channel_weight_estimate():
-    """Fail closed until the owner publishes fitted demo evidence."""
+    """Return fitted owner evidence, or ``None`` while it is unavailable.
+
+    Synthetic post seeding is independent of calibrated Event Lineage.  The
+    absence of an accepted TEPP-anchored fast-mlsirm artifact therefore drops
+    only reconstruction; it must not abort the rest of ``make seed``.
+    """
     from lineageweave.channel_weight_estimation import estimate_fixture_channel_weights
 
     if not _DEMO_ESTIMATE_CACHE:
         _DEMO_ESTIMATE_CACHE.append(estimate_fixture_channel_weights())
-    estimate = _DEMO_ESTIMATE_CACHE[0]
-    if estimate is None:
-        raise SystemExit(
-            "make seed requires fitted, independently anchored fast-mlsirm "
-            "owner evidence; none is available, so no lineage was fused"
-        )
-    return estimate
-
-
-def _persist_demo_channel_weights(cur, estimate) -> None:
-    """Refuse persistence of any locally constructed demo estimate."""
-    del cur, estimate
-    raise RuntimeError("local demo channel-weight persistence is unavailable")
+    return _DEMO_ESTIMATE_CACHE[0]
 
 
 def _seed_reconstructed_lineage(cur, author_account_id, corporate_entity_id, process_unit_id) -> None:
@@ -596,12 +589,13 @@ def _seed_reconstructed_lineage(cur, author_account_id, corporate_entity_id, pro
     if cur.fetchone() is not None:
         return
 
-    estimate = demo_channel_weight_estimate()
-    _persist_demo_channel_weights(cur, estimate)
-
     persisted = insert_fixture_source_posts(
         cur, author_account_id, corporate_entity_id, process_unit_id
     )
+    estimate = demo_channel_weight_estimate()
+    if estimate is None:
+        return
+
     edges = lineage_edge_specs(persisted, weights=estimate.weights)
     spec = lineage_rebuild_spec(edges, weights=estimate.weights)
     cur.execute("delete from event_lineage_rebuild")
@@ -1631,6 +1625,12 @@ def _seed_demo_analysis_run(cur, requested_by_account_id, corporate_entity_id) -
     shared Demo Corp snapshot so a later TEPP run can attach to the
     same capture.
     """
+    # A Succeeded reconstruction without accepted owner weights would assert
+    # evidence that does not exist.  Other synthetic demo products continue
+    # seeding; only this calibrated run stays absent.
+    if demo_channel_weight_estimate() is None:
+        return
+
     snapshot_id = _ensure_demo_source_snapshot(cur)
     _ensure_demo_source_counts(cur, snapshot_id)
     _ensure_demo_source_snapshot_members(cur, snapshot_id, corporate_entity_id)
@@ -1701,9 +1701,9 @@ def _seed_demo_analysis_run(cur, requested_by_account_id, corporate_entity_id) -
 def seed_reconstruction_edges(rows: list[dict], weights: dict[str, float]) -> tuple:
     """ThreadWeave parent choices and digest for seed and start. Never a theta.
 
-    ``weights`` is required (ADR 0200 point 1): the seed passes its
-    fast-mlsirm demo-design estimate; unit tests inject synthetic
-    weights.
+    ``weights`` is required (ADR 0205). Unit tests may inject synthetic
+    weights to verify plumbing, while ``make seed`` omits reconstruction
+    until fitted, independently anchored owner evidence exists.
     """
     from backend.app.analysis_run_start import reconstruction_result_digest
     from backend.app.lineage_ingestion import records_from_source_posts
@@ -1744,9 +1744,10 @@ def _seed_demo_run_reconstruction(cur, analysis_run_id, corporate_entity_id) -> 
     rows = [dict(zip(columns, row)) for row in cur.fetchall()]
     if not rows:
         return
-    edges, digest = seed_reconstruction_edges(
-        rows, demo_channel_weight_estimate().weights
-    )
+    estimate = demo_channel_weight_estimate()
+    if estimate is None:
+        return
+    edges, digest = seed_reconstruction_edges(rows, estimate.weights)
     finished = datetime(2026, 1, 12, 12, 33, tzinfo=timezone.utc)
     cur.execute(
         """

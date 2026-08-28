@@ -69,11 +69,10 @@ def lineage_edge_specs(
     faked) -- callers that want the highest-weighted reasoning channel
     actually contributing to real reconstructions must pass a real one.
 
-    ``weights`` is required and always a psychometric estimate (ADR
-    0145, second amendment): the persisted fast-mlsirm corpus estimate
-    on product paths, or the demo-design estimate from
-    :func:`~lineageweave.channel_weight_estimation.estimate_fixture_channel_weights`.
-    No hand-picked default exists anywhere.
+    ``weights`` is required and always an accepted, independently anchored
+    owner estimate on product paths (ADR 0205). Synthetic unit tests may pass
+    fixture weights to verify plumbing; demo/product runtime never activates
+    those values. No hand-picked default exists anywhere.
     """
     trees = reconstruct(list(records), llm=llm, weights=weights)
     return [edge for tree in trees for edge in tree.edges]

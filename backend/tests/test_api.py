@@ -6331,11 +6331,13 @@ def test_seed_period_report_includes_fixture_event_lineage_posts(
 
 
 def test_seed_period_report_member_click_lands_on_decorated_fixture(
-    client, demo_analyst_token, seeded_db, monkeypatch
+    client, demo_analyst_token, seeded_db
 ) -> None:
-    """The first W02 report member must already have Event Lineage,
-    Keyman, and evaluation -- otherwise the buyer click opens a dummy
-    high/low band row.
+    """The first W02 report member has buyer evidence without fake lineage.
+
+    Event Lineage remains absent until accepted owner weights exist; that
+    missing calibrated channel must not prevent the synthetic post, Keyman,
+    evaluation, and report surfaces from being seeded.
     """
     from lineageweave.fixtures import fixture_thread_cast, fixture_titles_in_iso_week
     from scripts.seed_demo_data import (
@@ -6367,19 +6369,6 @@ def test_seed_period_report_member_click_lands_on_decorated_fixture(
                 (seeded_db["own_private_post_id"],),
             )
             author_id, corp_id = cur.fetchone()
-            cur.execute(
-                "select channel_code, weight_value from lineage_channel_weight "
-                "where channel_set_code = 'channel_set_deterministic'"
-            )
-            owner_fixture_weights = {code: float(value) for code, value in cur.fetchall()}
-            monkeypatch.setattr(
-                "scripts.seed_demo_data.demo_channel_weight_estimate",
-                lambda: SimpleNamespace(weights=owner_fixture_weights),
-            )
-            monkeypatch.setattr(
-                "scripts.seed_demo_data._persist_demo_channel_weights",
-                lambda _cur, _estimate: None,
-            )
             _seed_reconstructed_lineage(cur, author_id, corp_id, process_unit_id)
             _seed_demo_calendar_commitment(cur, author_id, corp_id, process_unit_id)
             _seed_fixture_evaluations(cur)
@@ -6406,11 +6395,6 @@ def test_seed_period_report_member_click_lands_on_decorated_fixture(
     threads = client.get("/api/reports/thread_group/2026-W02", headers=headers)
     a100 = next(report for report in threads.json()["reports"] if report["grouping_key"] == "A-100")
     post_id = a100["members"][0]["post_id"]
-
-    lineage = client.get(f"/api/posts/{post_id}/lineage", headers=headers)
-    assert lineage.status_code == 200, lineage.text
-    body = lineage.json()
-    assert body["direct"] or body["indirect"]
 
     keymen = client.get(f"/api/posts/{post_id}/keymen", headers=headers)
     assert keymen.status_code == 200, keymen.text

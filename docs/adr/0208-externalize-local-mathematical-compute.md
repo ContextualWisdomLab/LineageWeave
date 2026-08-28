@@ -81,6 +81,10 @@ different responsibility.
   and channel-weight estimation remains unavailable until fast-mlsirm publishes
   fitted owner evidence. No customer projection exposes schema, transport,
   hash, TEPP, or fast-mlsirm internals.
+  Synthetic ``make seed`` continues to provision posts and non-measurement
+  product surfaces while omitting Event Lineage edges and the Succeeded
+  lineage analysis run; unavailable owner evidence never aborts the seed and
+  is never replaced with fixture weights.
 
 - The residual interaction map consumes fast-mlsirm's protected-main
   `residual_interaction_map` and `polytomous_expected_response` contracts.
