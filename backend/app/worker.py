@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import logging
 from contextlib import asynccontextmanager
 from collections.abc import AsyncIterator
 
@@ -30,25 +31,46 @@ from lineageweave.observability import configure_telemetry, shutdown_telemetry
 from lineageweave.topic_influence_client import HttpTopicInfluenceClient
 
 _WORKER_LEASE_NAME = "lineageweave_durable_queue_worker"
+_logger = logging.getLogger(__name__)
 
 
-def _topic_influence_timeouts(settings: object) -> tuple[int, int]:
+def _topic_influence_timeouts(settings: object) -> tuple[int, int, int]:
     """Return a declared request/lease pair with persistence time remaining."""
     request_timeout = getattr(
         settings, "topic_influence_request_timeout_seconds", None
     )
     lease_timeout = getattr(settings, "topic_influence_lease_timeout_seconds", None)
+    poll_seconds = getattr(settings, "topic_influence_poll_seconds", None)
     if (
         type(request_timeout) is not int
         or type(lease_timeout) is not int
         or request_timeout <= 0
         or lease_timeout <= request_timeout
+        or type(poll_seconds) is not int
+        or poll_seconds <= 0
     ):
         raise ValueError(
             "topic influence lease timeout must be a declared positive integer "
-            "strictly greater than the declared positive request timeout"
+            "strictly greater than the declared positive request timeout, with a "
+            "declared positive poll interval"
         )
-    return request_timeout, lease_timeout
+    return request_timeout, lease_timeout, poll_seconds
+
+
+def _optional_topic_influence_timeouts(
+    settings: object, *, configured: bool
+) -> tuple[int, int, int] | None:
+    """Disable only optional influence work when its lease contract is invalid."""
+    if not configured:
+        return None
+    try:
+        return _topic_influence_timeouts(settings)
+    except ValueError:
+        _logger.error(
+            "Topic influence is disabled; declare a positive lease timeout strictly "
+            "greater than its request timeout before enabling this consumer"
+        )
+        return None
 
 
 @asynccontextmanager
@@ -83,8 +105,8 @@ async def run_worker_process() -> None:
             topic_influence_url = getattr(
                 settings, "topic_influence_transport_url", ""
             )
-            influence_timeouts = (
-                _topic_influence_timeouts(settings) if topic_influence_url else None
+            influence_timeouts = _optional_topic_influence_timeouts(
+                settings, configured=bool(topic_influence_url)
             )
             workers = [
                 asyncio.create_task(run_worker_heartbeat()),
@@ -123,7 +145,7 @@ async def run_worker_process() -> None:
                 ),
             ]
             if topic_influence_url and influence_timeouts is not None:
-                request_timeout, lease_timeout = influence_timeouts
+                request_timeout, lease_timeout, poll_seconds = influence_timeouts
                 workers.append(
                     asyncio.create_task(
                         run_topic_influence_worker(
@@ -134,6 +156,7 @@ async def run_worker_process() -> None:
                                 timeout=float(request_timeout),
                                 lease_timeout_seconds=lease_timeout,
                             ),
+                            poll_seconds=float(poll_seconds),
                         )
                     )
                 )

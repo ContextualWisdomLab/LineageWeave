@@ -65,6 +65,7 @@ def test_worker_process_owns_all_configured_durable_consumers(monkeypatch) -> No
         topic_influence_api_key="synthetic-token",
         topic_influence_request_timeout_seconds=11,
         topic_influence_lease_timeout_seconds=17,
+        topic_influence_poll_seconds=13,
         orchestrator_answer_timeout_seconds=570.0,
     )
 
@@ -198,9 +199,36 @@ def test_topic_influence_lease_strictly_exceeds_request(
     settings = SimpleNamespace(
         topic_influence_request_timeout_seconds=request_timeout,
         topic_influence_lease_timeout_seconds=lease_timeout,
+        topic_influence_poll_seconds=13,
     )
 
     with pytest.raises(ValueError, match="strictly greater"):
+        worker._topic_influence_timeouts(settings)
+
+
+def test_invalid_optional_topic_influence_config_is_isolated() -> None:
+    """Invalid optional measurement config cannot stop unrelated consumers."""
+    settings = SimpleNamespace(
+        topic_influence_request_timeout_seconds=11,
+        topic_influence_lease_timeout_seconds=11,
+        topic_influence_poll_seconds=13,
+    )
+
+    assert worker._optional_topic_influence_timeouts(settings, configured=True) is None
+
+
+@pytest.mark.parametrize("poll_seconds", [None, 0, -1, 1.5, True])
+def test_topic_influence_poll_interval_must_be_declared(
+    poll_seconds: object,
+) -> None:
+    """Claim retries cannot use an invented or invalid polling interval."""
+    settings = SimpleNamespace(
+        topic_influence_request_timeout_seconds=11,
+        topic_influence_lease_timeout_seconds=17,
+        topic_influence_poll_seconds=poll_seconds,
+    )
+
+    with pytest.raises(ValueError, match="poll interval"):
         worker._topic_influence_timeouts(settings)
 
 

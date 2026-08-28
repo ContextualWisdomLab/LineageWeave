@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import uuid
 from datetime import datetime, timezone
 from typing import Any, Callable
 
@@ -20,9 +21,6 @@ from lineageweave.topic_influence_client import (
 )
 
 _logger = logging.getLogger(__name__)
-_POLL_SECONDS = 30.0
-
-
 class TopicInfluenceInputChanged(RuntimeError):
     """The source evidence changed after the external computation began."""
 
@@ -171,7 +169,7 @@ async def load_topic_influence_request(
 async def claim_topic_influence_job(
     pool: asyncpg.Pool,
     lease_timeout_seconds: int,
-) -> tuple[str, TopicInfluenceRequest] | None:
+) -> tuple[str, TopicInfluenceRequest, str] | None:
     """Lease the first complete queued request without holding provider I/O open."""
     async with pool.acquire() as conn:
         await conn.execute(
@@ -179,7 +177,8 @@ async def claim_topic_influence_job(
             update topic_influence_job
                set status_code = 'queued', started_at = null,
                    lease_expires_at = null, completed_at = null,
-                   failure_code = null, not_before = clock_timestamp()
+                   lease_token = null, failure_code = null,
+                   not_before = clock_timestamp()
              where status_code = 'running'
                and lease_expires_at <= clock_timestamp()
             """
@@ -210,6 +209,7 @@ async def claim_topic_influence_job(
                 )
                 continue
             async with conn.transaction():
+                lease_token = str(uuid.uuid4())
                 claimed = await conn.fetchval(
                     """
                     update topic_influence_job
@@ -217,6 +217,7 @@ async def claim_topic_influence_job(
                            attempt_count = attempt_count + 1,
                            started_at = clock_timestamp(), completed_at = null,
                            failure_code = null,
+                           lease_token = $4::uuid,
                            lease_expires_at = clock_timestamp()
                                + make_interval(secs => $3)
                      where topic_model_run_id = $1 and status_code = 'queued'
@@ -225,9 +226,10 @@ async def claim_topic_influence_job(
                     run_id,
                     request.request_sha256,
                     lease_timeout_seconds,
+                    lease_token,
                 )
             if claimed is not None:
-                return run_id, request
+                return run_id, request, lease_token
     return None
 
 
@@ -236,6 +238,7 @@ async def persist_topic_influence_result(
     topic_model_run_id: str,
     request: TopicInfluenceRequest,
     result: TopicInfluenceResult,
+    lease_token: str,
 ) -> None:
     """Persist one complete result after rechecking the current input digest."""
     payload = result.payload
@@ -243,14 +246,18 @@ async def persist_topic_influence_result(
         async with conn.transaction():
             job = await conn.fetchrow(
                 """
-                select request_sha256
+                select request_sha256, lease_token::text as lease_token
                   from topic_influence_job
                  where topic_model_run_id = $1 and status_code = 'running'
                  for update
                 """,
                 topic_model_run_id,
             )
-            if job is None or job["request_sha256"] != request.request_sha256:
+            if (
+                job is None
+                or job["request_sha256"] != request.request_sha256
+                or job["lease_token"] != lease_token
+            ):
                 raise ValueError("topic influence job lease no longer matches")
             current = await load_topic_influence_request(conn, topic_model_run_id)
             if current.request_sha256 != request.request_sha256:
@@ -313,29 +320,38 @@ async def persist_topic_influence_result(
                 """
                 update topic_influence_job
                    set status_code = 'succeeded', completed_at = clock_timestamp(),
-                       lease_expires_at = null
+                       lease_expires_at = null, lease_token = null
                  where topic_model_run_id = $1 and status_code = 'running'
+                   and lease_token = $2::uuid
                 """,
                 topic_model_run_id,
+                lease_token,
             )
 
 
-async def _fail_job(pool: asyncpg.Pool, run_id: str, failure_code: str) -> None:
+async def _fail_job(
+    pool: asyncpg.Pool, run_id: str, lease_token: str, failure_code: str
+) -> None:
     """Record a bounded failure without persisting provider content."""
     async with pool.acquire() as conn:
         await conn.execute(
             """
             update topic_influence_job
-               set status_code = 'failed', failure_code = $2,
-                   completed_at = clock_timestamp(), lease_expires_at = null
+               set status_code = 'failed', failure_code = $3,
+                   completed_at = clock_timestamp(), lease_expires_at = null,
+                   lease_token = null
              where topic_model_run_id = $1 and status_code = 'running'
+               and lease_token = $2::uuid
             """,
             run_id,
+            lease_token,
             failure_code,
         )
 
 
-async def _defer_job(pool: asyncpg.Pool, run_id: str, retry_after_seconds: int) -> None:
+async def _defer_job(
+    pool: asyncpg.Pool, run_id: str, lease_token: str, retry_after_seconds: int
+) -> None:
     """Requeue a remotely deferred job at the exact admitted retry instant."""
     async with pool.acquire() as conn:
         await conn.execute(
@@ -343,11 +359,13 @@ async def _defer_job(pool: asyncpg.Pool, run_id: str, retry_after_seconds: int) 
             update topic_influence_job
                set status_code = 'queued', started_at = null, completed_at = null,
                    failure_code = null,
-                   not_before = clock_timestamp() + make_interval(secs => $2),
-                   lease_expires_at = null
+                   not_before = clock_timestamp() + make_interval(secs => $3),
+                   lease_expires_at = null, lease_token = null
              where topic_model_run_id = $1 and status_code = 'running'
+               and lease_token = $2::uuid
             """,
             run_id,
+            lease_token,
             retry_after_seconds,
         )
 
@@ -360,7 +378,7 @@ async def requeue_topic_influence_job(pool: asyncpg.Pool, run_id: str) -> bool:
             update topic_influence_job
                set status_code = 'queued', started_at = null, completed_at = null,
                    failure_code = null, not_before = clock_timestamp(),
-                   lease_expires_at = null
+                   lease_expires_at = null, lease_token = null
              where topic_model_run_id = $1 and status_code = 'failed'
             returning topic_model_run_id
             """,
@@ -369,7 +387,9 @@ async def requeue_topic_influence_job(pool: asyncpg.Pool, run_id: str) -> bool:
     return updated is not None
 
 
-async def _release_changed_job(pool: asyncpg.Pool, run_id: str) -> None:
+async def _release_changed_job(
+    pool: asyncpg.Pool, run_id: str, lease_token: str
+) -> None:
     """Release a stale lease so the next claim rebuilds the changed request."""
     async with pool.acquire() as conn:
         await conn.execute(
@@ -377,10 +397,13 @@ async def _release_changed_job(pool: asyncpg.Pool, run_id: str) -> None:
             update topic_influence_job
                set status_code = 'queued', started_at = null, completed_at = null,
                    failure_code = null, not_before = clock_timestamp(),
-                   lease_expires_at = null, request_sha256 = null
+                   lease_expires_at = null, lease_token = null,
+                   request_sha256 = null
              where topic_model_run_id = $1 and status_code = 'running'
+               and lease_token = $2::uuid
             """,
             run_id,
+            lease_token,
         )
 
 
@@ -391,30 +414,42 @@ async def process_topic_influence_job(
     claimed = await claim_topic_influence_job(pool, client.lease_timeout_seconds)
     if claimed is None:
         return False
-    run_id, request = claimed
+    run_id, request, lease_token = claimed
     try:
         result = await asyncio.to_thread(client.estimate, request)
-        await persist_topic_influence_result(pool, run_id, request, result)
+        await persist_topic_influence_result(
+            pool, run_id, request, result, lease_token
+        )
     except HttpAdmissionDeferred as exc:
-        await _defer_job(pool, run_id, exc.retry_after_seconds)
+        await _defer_job(pool, run_id, lease_token, exc.retry_after_seconds)
     except TopicInfluenceInputChanged:
-        await _release_changed_job(pool, run_id)
+        await _release_changed_job(pool, run_id, lease_token)
     except (TopicInfluenceNotAvailable, HttpClientError, OSError, TimeoutError):
-        await _fail_job(pool, run_id, "producer_unavailable")
+        await _fail_job(pool, run_id, lease_token, "producer_unavailable")
     except TopicInfluenceInvalidResponse:
-        await _fail_job(pool, run_id, "producer_result_invalid")
+        await _fail_job(pool, run_id, lease_token, "producer_result_invalid")
     except Exception:  # noqa: BLE001 - failure is bounded and the worker continues.
         _logger.exception("topic influence production failed")
-        await _fail_job(pool, run_id, "persistence_failed")
+        await _fail_job(pool, run_id, lease_token, "persistence_failed")
     return True
 
 
 async def run_topic_influence_worker(
     pool: asyncpg.Pool,
     client_factory: Callable[[], TopicInfluenceClient],
+    *,
+    poll_seconds: float,
 ) -> None:
     """Poll the durable lease table and keep the shared worker responsive."""
     while True:
-        worked = await process_topic_influence_job(pool, client_factory())
+        try:
+            worked = await process_topic_influence_job(pool, client_factory())
+        except asyncpg.PostgresError:
+            _logger.exception(
+                "Topic influence could not claim database work; verify database "
+                "connectivity before the next poll"
+            )
+            await asyncio.sleep(poll_seconds)
+            continue
         if not worked:
-            await asyncio.sleep(_POLL_SECONDS)
+            await asyncio.sleep(poll_seconds)

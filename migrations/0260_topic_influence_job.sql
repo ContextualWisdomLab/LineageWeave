@@ -20,17 +20,19 @@ create table if not exists topic_influence_job (
     not_before timestamptz not null default clock_timestamp(),
     started_at timestamptz,
     lease_expires_at timestamptz,
+    lease_token uuid,
     completed_at timestamptz,
     check (
-        (status_code = 'queued' and started_at is null and lease_expires_at is null and completed_at is null)
-        or (status_code = 'awaiting_evidence' and started_at is null and lease_expires_at is null and completed_at is not null)
-        or (status_code = 'running' and started_at is not null and lease_expires_at is not null and completed_at is null)
-        or (status_code in ('succeeded', 'failed') and started_at is not null and lease_expires_at is null and completed_at is not null)
+        (status_code = 'queued' and started_at is null and lease_expires_at is null and lease_token is null and completed_at is null)
+        or (status_code = 'awaiting_evidence' and started_at is null and lease_expires_at is null and lease_token is null and completed_at is not null)
+        or (status_code = 'running' and started_at is not null and lease_expires_at is not null and lease_token is not null and completed_at is null)
+        or (status_code in ('succeeded', 'failed') and started_at is not null and lease_expires_at is null and lease_token is null and completed_at is not null)
     )
 );
 
 alter table topic_influence_job
-    add column if not exists lease_expires_at timestamptz;
+    add column if not exists lease_expires_at timestamptz,
+    add column if not exists lease_token uuid;
 
 alter table topic_influence_job
     drop constraint if exists topic_influence_job_status_code_check,
@@ -43,7 +45,8 @@ update topic_influence_job
    set status_code = 'queued', request_sha256 = null, started_at = null,
        completed_at = null, failure_code = null,
        not_before = clock_timestamp()
- where status_code = 'running' and lease_expires_at is null;
+ where status_code = 'running'
+   and (lease_expires_at is null or lease_token is null);
 
 alter table topic_influence_job
     add constraint topic_influence_job_status_code_check
@@ -54,18 +57,22 @@ alter table topic_influence_job
         (status_code = 'queued'
             and started_at is null
             and lease_expires_at is null
+            and lease_token is null
             and completed_at is null)
         or (status_code = 'awaiting_evidence'
             and started_at is null
             and lease_expires_at is null
+            and lease_token is null
             and completed_at is not null)
         or (status_code = 'running'
             and started_at is not null
             and lease_expires_at is not null
+            and lease_token is not null
             and completed_at is null)
         or (status_code in ('succeeded', 'failed')
             and started_at is not null
             and lease_expires_at is null
+            and lease_token is null
             and completed_at is not null)
     );
 
@@ -120,16 +127,28 @@ create trigger topic_model_run_influence_queue
 after insert on topic_model_run
 for each row execute function queue_topic_influence_job();
 
+drop trigger if exists topic_model_run_influence_wake on topic_model_run;
+create trigger topic_model_run_influence_wake after update on topic_model_run
+for each row execute function wake_topic_influence_job_for_model();
+
+drop trigger if exists analysis_run_influence_wake on analysis_run;
+create trigger analysis_run_influence_wake
+after update of knowledge_cutoff, analysis_source_snapshot_id on analysis_run
+for each row execute function wake_topic_influence_job_for_analysis();
+
 drop trigger if exists topic_coordinate_influence_wake on topic_post_coordinate;
-create trigger topic_coordinate_influence_wake after insert on topic_post_coordinate
+create trigger topic_coordinate_influence_wake
+after insert or update on topic_post_coordinate
 for each row execute function wake_topic_influence_job_for_model();
 
 drop trigger if exists topic_membership_influence_wake on topic_context_membership;
-create trigger topic_membership_influence_wake after insert on topic_context_membership
+create trigger topic_membership_influence_wake
+after insert or update on topic_context_membership
 for each row execute function wake_topic_influence_job_for_model();
 
 drop trigger if exists topic_definition_influence_wake on topic_definition;
-create trigger topic_definition_influence_wake after insert on topic_definition
+create trigger topic_definition_influence_wake
+after insert or update on topic_definition
 for each row execute function wake_topic_influence_job_for_model();
 
 drop trigger if exists topic_tepp_receipt_influence_wake on analysis_run_tepp_receipt;

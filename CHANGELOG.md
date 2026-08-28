@@ -25,7 +25,8 @@ All notable changes to this project are documented here. Format follows
   remain distinct; incomplete evidence enters an event-woken awaiting state;
   expired work is reclaimed only from its declared request/lease contract,
   whose lease must strictly exceed the request timeout for persistence; and
-  evidence changed during computation releases a fresh request automatically.
+  every terminal transition matches a unique lease token. Evidence changed
+  during computation releases a fresh request automatically.
   LineageWeave-owned request and membership bytes and producer-owned result
   bytes are SHA-256 verified before parsing, so admission never depends on
   cross-language JSON reserialization. Other

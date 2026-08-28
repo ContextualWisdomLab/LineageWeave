@@ -66,6 +66,7 @@ class Settings:
     topic_influence_api_key: str
     topic_influence_request_timeout_seconds: int | None
     topic_influence_lease_timeout_seconds: int | None
+    topic_influence_poll_seconds: int | None
     caldav_base_url: str
     naruon_calendar_base_url: str
     naruon_calendar_service_token: str
@@ -230,6 +231,9 @@ def load_settings() -> Settings:
         ),
         topic_influence_lease_timeout_seconds=_optional_positive_int(
             "TOPIC_INFLUENCE_LEASE_TIMEOUT_SECONDS"
+        ),
+        topic_influence_poll_seconds=_optional_positive_int(
+            "TOPIC_INFLUENCE_POLL_SECONDS"
         ),
         caldav_base_url=os.environ.get("CALDAV_BASE_URL", "").strip(),
         naruon_calendar_base_url=os.environ.get("NARUON_CALENDAR_BASE_URL", "").strip(),

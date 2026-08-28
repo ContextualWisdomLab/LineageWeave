@@ -160,9 +160,18 @@ must strictly exceed the request timeout so the operator-declared difference
 remains available for result validation and persistence. A running row becomes
 claimable only after that recorded lease expiry. Incomplete input moves to a
 typed awaiting-evidence state and is woken only by a new TEPP terminal receipt,
-topic digest, coordinate, definition, or membership event. If evidence changes
-during computation, the stale lease is released immediately and the next claim
-rebuilds the request.
+topic model, analysis cutoff/snapshot binding, coordinate, definition, or
+membership event. Source snapshots themselves are immutable under ADR 0018.
+If evidence changes during computation, the stale lease is released immediately
+and the next claim rebuilds the request. Invalid optional influence transport
+configuration disables only this consumer; analysis, content, and Ask work
+continues. The deployment also declares the positive poll interval. A transient
+database claim failure waits that exact interval rather than terminating the
+shared durable-worker task.
+Each claim also receives a unique database lease token. Success, failure,
+remote defer, and changed-input release update a running row only when that
+exact token still owns it, so safety does not rely only on the process-wide
+advisory lock.
 
 LineageWeave sends the request and membership design as base64-encoded raw JSON
 artifact bytes with the SHA-256 of those exact bytes. The producer verifies and

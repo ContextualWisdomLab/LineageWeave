@@ -7,6 +7,7 @@ import asyncio
 import base64
 import hashlib
 import json
+import uuid
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 
@@ -23,6 +24,8 @@ from lineageweave.http_client import HttpAdmissionDeferred
 from lineageweave import topic_influence_client
 from backend.app import topic_influence_worker
 from backend.app.config import load_settings
+
+_LEASE_TOKEN = "11111111-1111-4111-8111-111111111111"
 
 
 def _request():
@@ -263,11 +266,13 @@ def test_settings_preserve_declared_request_and_lease_contract(monkeypatch) -> N
     """Runtime timeouts come only from explicit positive deployment values."""
     monkeypatch.setenv("TOPIC_INFLUENCE_REQUEST_TIMEOUT_SECONDS", "11")
     monkeypatch.setenv("TOPIC_INFLUENCE_LEASE_TIMEOUT_SECONDS", "17")
+    monkeypatch.setenv("TOPIC_INFLUENCE_POLL_SECONDS", "13")
 
     settings = load_settings()
 
     assert settings.topic_influence_request_timeout_seconds == 11
     assert settings.topic_influence_lease_timeout_seconds == 17
+    assert settings.topic_influence_poll_seconds == 13
 
 
 @pytest.mark.parametrize("lease_timeout", [0, -1, 1.5, True])
@@ -295,11 +300,12 @@ def test_worker_persists_one_valid_result_without_local_math(monkeypatch) -> Non
     persisted: list[tuple[str, str]] = []
 
     async def claim(_pool, _lease_seconds):
-        return "model-1", request
+        return "model-1", request, _LEASE_TOKEN
 
-    async def persist(_pool, run_id, accepted_request, result):
+    async def persist(_pool, run_id, accepted_request, result, lease_token):
         persisted.append((run_id, result.payload["request_sha256"]))
         assert accepted_request is request
+        assert lease_token == _LEASE_TOKEN
 
     monkeypatch.setattr(topic_influence_worker, "claim_topic_influence_job", claim)
     monkeypatch.setattr(topic_influence_worker, "persist_topic_influence_result", persist)
@@ -320,9 +326,10 @@ def test_worker_records_invalid_result_without_persisting(monkeypatch) -> None:
     failures: list[tuple[str, str]] = []
 
     async def claim(_pool, _lease_seconds):
-        return "model-1", request
+        return "model-1", request, _LEASE_TOKEN
 
-    async def fail(_pool, run_id, code):
+    async def fail(_pool, run_id, lease_token, code):
+        assert lease_token == _LEASE_TOKEN
         failures.append((run_id, code))
 
     async def forbidden(*_args):
@@ -348,9 +355,10 @@ def test_worker_distinguishes_unavailable_transport(monkeypatch) -> None:
     failures: list[tuple[str, str]] = []
 
     async def claim(_pool, _lease_seconds):
-        return "model-1", request
+        return "model-1", request, _LEASE_TOKEN
 
-    async def fail(_pool, run_id, code):
+    async def fail(_pool, run_id, lease_token, code):
+        assert lease_token == _LEASE_TOKEN
         failures.append((run_id, code))
 
     def unavailable(_payload):
@@ -374,9 +382,10 @@ def test_worker_uses_exact_remote_retry_delay(monkeypatch) -> None:
     deferred: list[tuple[str, int]] = []
 
     async def claim(_pool, _lease_seconds):
-        return "model-1", request
+        return "model-1", request, _LEASE_TOKEN
 
-    async def defer(_pool, run_id, seconds):
+    async def defer(_pool, run_id, lease_token, seconds):
+        assert lease_token == _LEASE_TOKEN
         deferred.append((run_id, seconds))
 
     def unavailable(_payload):
@@ -400,12 +409,13 @@ def test_worker_releases_changed_input_for_a_fresh_request(monkeypatch) -> None:
     released: list[str] = []
 
     async def claim(_pool, _lease_seconds):
-        return "model-1", request
+        return "model-1", request, _LEASE_TOKEN
 
     async def changed(*_args):
         raise topic_influence_worker.TopicInfluenceInputChanged("changed")
 
-    async def release(_pool, run_id):
+    async def release(_pool, run_id, lease_token):
+        assert lease_token == _LEASE_TOKEN
         released.append(run_id)
 
     monkeypatch.setattr(topic_influence_worker, "claim_topic_influence_job", claim)
@@ -422,6 +432,33 @@ def test_worker_releases_changed_input_for_a_fresh_request(monkeypatch) -> None:
     )
 
     assert released == ["model-1"]
+
+
+def test_worker_retries_transient_claim_database_failure(monkeypatch) -> None:
+    """One transient claim failure cannot terminate the durable consumer task."""
+    calls: list[str] = []
+
+    async def process(_pool, _client):
+        calls.append("process")
+        if calls.count("process") == 1:
+            raise topic_influence_worker.asyncpg.PostgresError("synthetic unavailable")
+        raise asyncio.CancelledError
+
+    async def sleep(seconds):
+        assert seconds == 13
+        calls.append("sleep")
+
+    monkeypatch.setattr(topic_influence_worker, "process_topic_influence_job", process)
+    monkeypatch.setattr(topic_influence_worker.asyncio, "sleep", sleep)
+
+    with pytest.raises(asyncio.CancelledError):
+        asyncio.run(
+            topic_influence_worker.run_topic_influence_worker(
+                object(), lambda: object(), poll_seconds=13
+            )
+        )
+
+    assert calls == ["process", "sleep", "process"]
 
 
 def test_claim_scans_past_incomplete_evidence(monkeypatch) -> None:
@@ -445,7 +482,9 @@ def test_claim_scans_past_incomplete_evidence(monkeypatch) -> None:
         def transaction(self):
             return _async_context(self)
 
-        async def fetchval(self, _sql, run_id, _digest, _lease_seconds):
+        async def fetchval(
+            self, _sql, run_id, _digest, _lease_seconds, _lease_token
+        ):
             return run_id
 
     class Pool:
@@ -461,7 +500,9 @@ def test_claim_scans_past_incomplete_evidence(monkeypatch) -> None:
 
     claimed = asyncio.run(topic_influence_worker.claim_topic_influence_job(Pool(), 17))
 
-    assert claimed == ("complete", request)
+    assert claimed is not None
+    assert claimed[:2] == ("complete", request)
+    assert uuid.UUID(claimed[2])
     assert any("lease_expires_at <= clock_timestamp()" in sql for sql in statements)
     assert sum("awaiting_evidence" in sql for sql in statements) == 11
 
@@ -540,7 +581,10 @@ def test_persistence_rechecks_digest_and_writes_every_validated_row(monkeypatch)
             return _async_context(self)
 
         async def fetchrow(self, _sql, *_args):
-            return {"request_sha256": request.request_sha256}
+            return {
+                "request_sha256": request.request_sha256,
+                "lease_token": _LEASE_TOKEN,
+            }
 
         async def fetchval(self, sql, *_args):
             self.executed.append(sql)
@@ -562,7 +606,7 @@ def test_persistence_rechecks_digest_and_writes_every_validated_row(monkeypatch)
 
     asyncio.run(
         topic_influence_worker.persist_topic_influence_result(
-            Pool(), "model-1", request, result
+            Pool(), "model-1", request, result, _LEASE_TOKEN
         )
     )
 
@@ -572,6 +616,37 @@ def test_persistence_rechecks_digest_and_writes_every_validated_row(monkeypatch)
     )
     assert influence_inserts == 8
     assert any("status_code = 'succeeded'" in sql for sql in connection.executed)
+    assert any("lease_token = $2::uuid" in sql for sql in connection.executed)
+
+
+def test_every_running_transition_is_bound_to_the_exact_lease() -> None:
+    """A stale worker cannot fail, defer, or release a replacement lease."""
+    statements: list[tuple[str, tuple[object, ...]]] = []
+
+    class Connection:
+        async def execute(self, sql, *args):
+            statements.append((sql, args))
+
+    class Pool:
+        def acquire(self):
+            return _async_context(Connection())
+
+    async def exercise() -> None:
+        await topic_influence_worker._fail_job(
+            Pool(), "model-1", _LEASE_TOKEN, "producer_unavailable"
+        )
+        await topic_influence_worker._defer_job(
+            Pool(), "model-1", _LEASE_TOKEN, 17
+        )
+        await topic_influence_worker._release_changed_job(
+            Pool(), "model-1", _LEASE_TOKEN
+        )
+
+    asyncio.run(exercise())
+
+    assert len(statements) == 3
+    assert all("lease_token = $2::uuid" in sql for sql, _args in statements)
+    assert all(args[1] == _LEASE_TOKEN for _sql, args in statements)
 
 
 @asynccontextmanager
