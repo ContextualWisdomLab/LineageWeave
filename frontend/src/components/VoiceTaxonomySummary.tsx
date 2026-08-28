@@ -1,23 +1,8 @@
 import type { VoiceTaxonomySummary as Summary } from "../api";
-import { t, tf, useLocale } from "../i18n";
-
-const voiceLabels = {
-  voc: "Voice of Customer",
-  vocc: "Voice of Customer's customer",
-  voco: "Voice of Competitor",
-  vom: "Voice of Market",
-  vop: "Voice of Partner",
-  vos: "Voice of Supplier",
-  voe: "Voice of Employee",
-  vob: "Voice of Business",
-  vor: "Voice of Regulator",
-  voi: "Voice of Investor",
-  voso: "Voice of Society",
-  vops: "Voice of Process",
-} as const;
+import { t, tf } from "../i18n";
+import { VOICE_LABELS } from "../voicePerspective";
 
 export function VoiceTaxonomySummary({ data }: { data: Summary }) {
-  useLocale();
   return (
     <section className="operations-dashboard" aria-labelledby="voice-summary-heading">
       <h2 id="voice-summary-heading">{t("Voice evidence overview")}</h2>
@@ -32,7 +17,7 @@ export function VoiceTaxonomySummary({ data }: { data: Summary }) {
       <ul className="evidence-list">
         {data.category_memberships.map((category) => (
           <li key={category.voice_concept_code}>
-            <strong>{t(voiceLabels[category.voice_concept_code])}</strong>{" "}
+            <strong>{t(VOICE_LABELS[category.voice_concept_code])}</strong>{" "}
             {category.post_count.toLocaleString()} ({category.eligible_percentage.toFixed(1)}%)
           </li>
         ))}
