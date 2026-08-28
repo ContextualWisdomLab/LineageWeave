@@ -244,7 +244,7 @@ explicit unavailable state, not a reason to infer mappings from labels.
 | #772 | `main` | no | Checks not terminal; no independent approval observed; normal auto-merge enabled |
 | #774 | `main` | no | Checks not terminal; no independent approval observed; normal auto-merge enabled |
 | #775 | `main` | no | ADR 0233 conflict under review; no independent approval; auto-merge disabled |
-| #777 | `feat/dashboard-case-metrics` | no | stacked on dirty draft #640; Checks not terminal; no independent approval observed; auto-merge off |
+| #778 | `feat/dashboard-case-metrics` | no | stacked on dirty draft #640; Checks not terminal; no independent approval observed; auto-merge off |
 
 > Full head OIDs, review-thread state, and check run URLs are volatile lifecycle
 > evidence and must be re-fetched immediately before any merge or release claim.
