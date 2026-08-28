@@ -23,6 +23,7 @@ const meta = {
         leftover_map_reconstruction: 0.35,
         leftover_map_cross_share: 0.12,
         leftover_map_unexplained_share: 0.02,
+        leftover_map_explained_share: 0.76,
       },
       {
         pair_kind: "farthest",
@@ -38,6 +39,7 @@ const meta = {
         leftover_map_reconstruction: -0.85,
         leftover_map_cross_share: -0.24,
         leftover_map_unexplained_share: 0.05,
+        leftover_map_explained_share: 0.60,
       },
     ],
   },
