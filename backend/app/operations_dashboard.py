@@ -189,14 +189,6 @@ async def fetch_operations_dashboard(
                 )
         )
         select (select count(*) from visible_post) as total_post_count,
-               (select count(*)
-                  from operations_case_milestone milestone
-                  join classified
-                    on classified.post_id = milestone.post_id
-                   and classified.case_kind_code = milestone.case_kind_code
-                 where $5::boolean is false
-                    or classified.case_kind_code = 'external_information')
-                   as total_event_count,
                (select count(distinct post_id) from classified
                  where case_kind_code = 'external_information') as external_post_count,
                (select count(*) from scoped_post
@@ -491,7 +483,7 @@ async def fetch_operations_dashboard(
         "period_end": period_end.isoformat() if period_end else None,
         "period_time_axis_code": "event_occurred_at",
         "total_post_count": total,
-        "total_event_count": int(metrics["total_event_count"]),
+        "total_event_count": sum(case_event_counts.values()),
         "external_post_count": external,
         "external_percent": external * 100 / total if total else 0.0,
         "pending_analysis_count": int(metrics["pending_analysis_count"]),
