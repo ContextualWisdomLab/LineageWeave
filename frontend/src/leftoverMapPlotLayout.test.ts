@@ -82,6 +82,39 @@ describe("layoutLeftoverMapPlot", () => {
     expect(layout?.originY).toBeLessThan(PLOT_HEIGHT - PLOT_PADDING + 0.01);
   });
 
+  it("uses one centered isotropic scale for both leftover-map axes", () => {
+    const layout = layoutLeftoverMapPlot(
+      [
+        pair({
+          leftover_map_person_axis_1: 0,
+          leftover_map_person_axis_2: 0,
+          leftover_map_item_axis_1: 1,
+          leftover_map_item_axis_2: 0,
+        }),
+        pair({
+          pair_kind: "farthest",
+          post_id: "post-demo-spec",
+          criterion_code: "negative_sentiment",
+          leftover_map_person_axis_1: 0,
+          leftover_map_person_axis_2: 0,
+          leftover_map_item_axis_1: 0,
+          leftover_map_item_axis_2: 1,
+        }),
+      ],
+      criterionLabel,
+    );
+    const horizontal = layout?.segments[0];
+    const vertical = layout?.segments[1];
+    expect(horizontal).toBeDefined();
+    expect(vertical).toBeDefined();
+    expect(Math.abs((horizontal?.x2 ?? 0) - (horizontal?.x1 ?? 0))).toBeCloseTo(
+      Math.abs((vertical?.y2 ?? 0) - (vertical?.y1 ?? 0)),
+      5,
+    );
+    expect(layout?.originX).toBeCloseTo(PLOT_WIDTH / 2 - (PLOT_HEIGHT - PLOT_PADDING * 2) / 2, 5);
+    expect(layout?.originY).toBeCloseTo(PLOT_HEIGHT - PLOT_PADDING, 5);
+  });
+
   it("plots a rank-0 origin cell at (0, 0) without inventing leftover structure", () => {
     const layout = layoutLeftoverMapPlot(
       [

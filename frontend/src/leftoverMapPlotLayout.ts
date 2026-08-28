@@ -1,6 +1,7 @@
 /** Gabriel leftover-map graphic display of persisted ``ξ_{1:2}`` / ``ζ_{1:2}``. */
 
 import { formatLeftoverMapCoordinatePair } from "./leftoverMapCoordinates";
+import type { LeftoverPair } from "./api";
 
 export const LEFTOVER_MAP_PLOT_CAPTION =
   "Leftover map after IRT main effects. Click a post marker to open that post. The plot does not invent a leftover score.";
@@ -15,7 +16,7 @@ const UNIT_DISPLAY_SPAN = 2;
 const COLLAPSED_SPAN = 1e-12;
 
 export type LeftoverMapPlottablePair = {
-  pair_kind: "closest" | "farthest";
+  pair_kind: LeftoverPair["pair_kind"];
   post_id: string;
   post_title: string;
   criterion_code: string;
@@ -81,9 +82,14 @@ function toSvg(
 ): { x: number; y: number } {
   const innerW = width - pad * 2;
   const innerH = height - pad * 2;
+  const pixelsPerUnit = Math.min(innerW, innerH) / scaleSpan;
+  const plotWidth = scaleSpan * pixelsPerUnit;
+  const plotHeight = scaleSpan * pixelsPerUnit;
+  const offsetX = pad + (innerW - plotWidth) / 2;
+  const offsetY = pad + (innerH - plotHeight) / 2;
   return {
-    x: pad + ((axis1 - minAxis) / scaleSpan) * innerW,
-    y: pad + ((minAxis + scaleSpan - axis2) / scaleSpan) * innerH,
+    x: offsetX + (axis1 - minAxis) * pixelsPerUnit,
+    y: offsetY + (minAxis + scaleSpan - axis2) * pixelsPerUnit,
   };
 }
 
@@ -159,7 +165,7 @@ export function layoutLeftoverMapPlot(
       });
     }
     segments.push({
-      pairKind: pair.pair_kind,
+      pairKind: pair.pair_kind === "farthest" ? "farthest" : "closest",
       postId: pair.post_id,
       criterionCode: pair.criterion_code,
       x1: personPos.x,
