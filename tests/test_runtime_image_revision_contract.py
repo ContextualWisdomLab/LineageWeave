@@ -76,6 +76,28 @@ def test_provider_acceptance_reuses_shared_post_eligibility_sql() -> None:
     assert "where ${source_post_eligibility_sql}" in runner
 
 
+def test_provider_acceptance_uses_bounded_async_gateway_readiness() -> None:
+    """Runtime acceptance must probe only the declared gateway access list."""
+    runner = (_ROOT / "scripts" / "accept_operations_dashboard_runtime.sh").read_text(
+        encoding="utf-8"
+    )
+    assert "ORCHESTRATOR_PROBE_TIMEOUT_SECONDS" in runner
+    assert "ORCHESTRATOR_READINESS_TIMEOUT_SECONDS" in runner
+    assert "provider_readiness/latest?refresh=true" not in runner
+    assert "docker exec -i" in runner
+    assert "-e ORCHESTRATOR_ADMIN_TOKEN" not in runner
+    assert "CONTEXTUAL_ORCHESTRATOR_TOKEN" in runner
+    assert '.provider == "configured_gateway"' in runner
+    assert '.status != "disabled"' in runner
+    assert "/api/v1/provider_readiness_refreshes" in runner
+    assert 'capability_code:"chat"' in runner
+    assert 'headers["X-Request-Timeout-Ms"] = timeout_ms' in runner
+    assert "remaining_readiness_ms" in runner
+    assert "readiness_deadline - SECONDS" in runner
+    assert "failed|cancelled|expired" in runner
+    assert ".ready_count > 0" in runner
+
+
 def test_runtime_runners_require_distinct_desktop_and_mobile_artifacts() -> None:
     """Both acceptance modes must preserve separate responsive screenshots."""
     for script_name in (

@@ -52,6 +52,20 @@ the canonical stack under a different project name.
   Host/Origin, request-size, and k6-evidenced quota values described in the
   [MCP manual](mcp-manual.md).
 
+For authenticated runtime acceptance, start the exact-revision stack with the
+MCP profile and declare separate provider-probe and readiness-observation
+budgets. `ORCHESTRATOR_PROBE_TIMEOUT_SECONDS` accepts 0.1 through 30 seconds;
+`ORCHESTRATOR_READINESS_TIMEOUT_SECONDS` is the positive-integer wall-clock
+budget for the asynchronous job. The acceptance runner reads the cached agent
+catalog inside the orchestrator container, probes only active agents belonging
+to the configured gateway, and fails closed if no such agent becomes ready.
+
+The 2026-08-26 diagnostic run supplied `MCP_RATE_LIMIT_REQUESTS=1000` and
+`MCP_RATE_LIMIT_WINDOW_SECONDS=60` only to its acceptance invocation. Those
+observed inputs are neither source defaults nor a production capacity SLO;
+repeat k6 measurement in the target deployment before selecting production
+quota values.
+
 ## Durable asynchronous work
 
 The API enqueues Ask and content-analysis work; workers perform provider calls
