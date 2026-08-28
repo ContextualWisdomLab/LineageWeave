@@ -35,9 +35,22 @@ test("renders the authenticated operations Dashboard with grounded cases", async
   );
 
   await page.goto("/");
-  await expect(page.getByRole("heading", { name: "운영 근거 Dashboard" })).toBeVisible();
+  const language = page.locator(".language-switcher select");
+  await language.selectOption("en");
+  await expect(page.locator("html")).toHaveAttribute("lang", "en");
+  await expect(page.getByRole("heading", { name: "Operations evidence dashboard" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Topic model influence over time" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Voice evidence overview" })).toBeVisible();
+  await expect(page.getByText("운영 근거 대시보드")).toHaveCount(0);
   if (requireGroundedCase) {
     await expect(page.locator(".dashboard-case-card").first()).toBeVisible();
   }
   await page.screenshot({ path: screenshotPath, fullPage: true });
+
+  await language.selectOption("ko");
+  await expect(page.locator("html")).toHaveAttribute("lang", "ko");
+  await expect(page.getByRole("heading", { name: "운영 근거 대시보드" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "시간 흐름별 Topic model influence" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "글 유형 근거 현황" })).toBeVisible();
+  await expect(page.getByText("Operations evidence dashboard")).toHaveCount(0);
 });
