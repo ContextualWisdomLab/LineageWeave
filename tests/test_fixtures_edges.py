@@ -10,6 +10,7 @@ image until it fits the vision payload ceiling.
 from __future__ import annotations
 
 import io
+from unittest.mock import patch
 
 from PIL import Image
 
@@ -58,6 +59,8 @@ def test_calendar_commitment_occurred_at_is_a_positive_iso_week_date() -> None:
     value = calendar_commitment_occurred_at()
     assert value.year == 2026
     assert value.month == 1
+    assert value.day == 5
+    assert value.isocalendar().week == 2
 
 
 def test_bounded_jpeg_encodes_a_tiny_image_directly() -> None:
@@ -68,20 +71,17 @@ def test_bounded_jpeg_encodes_a_tiny_image_directly() -> None:
         assert decoded.format == "JPEG"
 
 
-def test_bounded_jpeg_compresses_an_oversized_image_to_fit() -> None:
-    # A huge, high-entropy image never fits at any JPEG quality, forcing
-    # the quality-step loop AND the resize fallback before it returns.
-    image = Image.effect_noise((6000, 6000), 100).convert("RGB")
-    payload = _encode_bounded_jpeg(image)
+def test_bounded_jpeg_resize_fallback_reaches_minimum_size() -> None:
+    image = Image.new("RGB", (8, 8), color=(120, 40, 200))
+    with patch("lineageweave.vision_image._MAX_VISION_IMAGE_BYTES", 1):
+        payload = _encode_bounded_jpeg(image)
     assert len(payload) <= _MAX_VISION_IMAGE_BYTES
     with Image.open(io.BytesIO(payload)) as decoded:
-        w, h = decoded.size
-        # The resize loop must have shrunk it below the original bounds.
-        assert w < 6000 and h < 6000
+        assert decoded.size == (2, 2)
         assert decoded.format == "JPEG"
 
 
-def test_bounded_jpeg_resize_fallback_preserves_a_tiny_image() -> None:
+def test_bounded_jpeg_preserves_a_tiny_image_without_resizing() -> None:
     image = Image.new("RGB", (1, 1), color=(10, 20, 30))
     payload = _encode_bounded_jpeg(image)
     assert len(payload) <= _MAX_VISION_IMAGE_BYTES
