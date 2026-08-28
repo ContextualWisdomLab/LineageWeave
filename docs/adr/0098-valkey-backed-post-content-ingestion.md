@@ -32,6 +32,11 @@ placed in a stream message.
    permits three attempts, then records terminal
    `post_content_ingestion_attempt_limit`; duplicate wake-ups cannot reopen a
    terminal failure. A changed source digest starts a new budget.
+   Recovery walks the ready ledger with the deterministic
+   `(queued_at, post_id)` keyset and wraps only after reaching the end. It must
+   not repeatedly publish only the first bounded page while later rows starve.
+   The worker trims the Valkey stream through its consumed cursor; producers
+   never trim unread wake-ups by an approximate length limit.
 4. The worker reuses the existing contextual-orchestrator client factories for
    VISION, structure, and embeddings. It preserves one post session and the
    bounded provenance metadata from `llm_context`; no raw provider call, model
@@ -82,6 +87,14 @@ not at `0-0`. Historical wake-ups are not authoritative work state; the
 normalized PostgreSQL ledger is scanned and queued/stale rows are republished
 after the cursor is established. This prevents a restart from replaying an
 unbounded historical stream before processing current work.
+
+Within one worker lifetime, the recovery keyset cursor advances across every
+ready queued or stale-running lease and wraps at the end. This is publication
+reachability, not a change to retry order, attempt budgets, or provider
+admission. Wake-up retention is consumption-bound: a successful batch advances
+the consumer cursor and then removes entries through that cursor. A producer
+cannot erase an unread later-page wake-up merely because the stream exceeded a
+fixed approximate length.
 
 Lease recovery also fences completion by `attempt_count`. A worker whose
 15-minute lease was reclaimed may finish after the replacement worker has
