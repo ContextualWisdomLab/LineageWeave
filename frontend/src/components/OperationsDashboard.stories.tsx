@@ -25,7 +25,7 @@ export const EvidenceReady: Story = {
       ],
       topic_context: {
         status_code: "unavailable", reason_code: "tepp_topic_posterior_not_persisted",
-        next_action: "TEPP posterior topic 계약 결과를 먼저 완료하세요.", model_run: null, topics: [],
+        next_action: "Complete the time-based analysis, then review the influential posts.", model_run: null, topics: [],
         required_contracts: [
           { authority: "TEPP", schema_version: "tepp.topic_context_posterior.v1", state_code: "not_persisted" },
           { authority: "fast-mlsirm", schema_version: "fast_mlsirm.topic_context_influence.v1", state_code: "not_persisted" },
