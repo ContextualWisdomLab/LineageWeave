@@ -64,7 +64,9 @@ async def _measure(
     transaction = conn.transaction()
     await transaction.start()
     try:
-        value = await conn.fetchval(
+        # Safe SQL: the statement is the repository-owned immutable candidate
+        # query with a fixed EXPLAIN prefix; every runtime value stays bound.
+        value = await conn.fetchval(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
             "EXPLAIN (ANALYZE, BUFFERS, WAL, FORMAT JSON) "
             + POST_CONTENT_BACKFILL_CANDIDATE_SQL,
             SUCCEEDED,
