@@ -381,28 +381,21 @@ async def ensure_post_content_job(
     )
 
 
-async def enqueue_post_content_backfill(
-    pool: asyncpg.Pool,
-    client: redis.Redis | None,
-    *,
-    limit: int,
-    require_embedding: bool,
-    require_structure: bool,
-) -> dict[str, int]:
-    """Durably enqueue one bounded page of eligible incomplete source posts.
-
-    PostgreSQL is committed before Valkey is touched.  A missing wake-up is
-    therefore recoverable by :func:`republish_queued_post_content_jobs` rather
-    than turning an operator request into lost work.  Active and terminal jobs
-    are excluded so repeated requests neither duplicate work nor reset the
-    explicit retry boundary.
-    """
-    if not 1 <= limit <= 200:
-        raise ValueError("limit must be between 1 and 200")
-    query = f"""
+POST_CONTENT_BACKFILL_CANDIDATE_SQL = f"""
         select post.post_id, post.post_body
           from source_post post
           left join post_content_ingestion_job job on job.post_id = post.post_id
+          left join operations_case_analysis analysis
+            on analysis.post_id = post.post_id
+           and analysis.source_body_sha256 = job.source_body_sha256
+          left join post_product_analysis product_analysis
+            on product_analysis.post_id = post.post_id
+           and product_analysis.source_body_sha256 = job.source_body_sha256
+          left join (
+              select distinct project.post_id
+                from post_project_mention project
+               where nullif(btrim(project.ontology_iri), '') is not null
+          ) ontology_project on ontology_project.post_id = post.post_id
          where {SOURCE_POST_ELIGIBILITY_SQL.format(alias='post')}
            and (job.post_id is null or job.status_code = $1)
            and (
@@ -443,34 +436,74 @@ async def enqueue_post_content_backfill(
                           or structure.decision_source_code = 'unresolved'
                       )
                ))
-               or ($3::boolean and not exists (
-                   select 1
-                     from operations_case_analysis analysis
-                    where analysis.post_id = post.post_id
-                      and analysis.source_body_sha256 = job.source_body_sha256
-               ))
-               or ($3::boolean and not exists (
-                   select 1
-                     from post_product_analysis analysis
-                    where analysis.post_id = post.post_id
-                      and analysis.source_body_sha256 = job.source_body_sha256
-               ))
+               or ($3::boolean and analysis.post_id is null)
+               or ($3::boolean and product_analysis.post_id is null)
            )
-         order by post.created_at, post.post_id
+           and ($5::boolean = (
+                   $3::boolean
+                   and ontology_project.post_id is not null
+                   and job.source_body_sha256 is not null
+                   and analysis.post_id is null
+               ))
+         order by coalesce(post.event_occurred_at, post.created_at),
+                  post.created_at,
+                  post.post_id
          limit $4
          for update of post skip locked
     """
+
+
+async def enqueue_post_content_backfill(
+    pool: asyncpg.Pool,
+    client: redis.Redis | None,
+    *,
+    limit: int,
+    require_embedding: bool,
+    require_structure: bool,
+) -> dict[str, int]:
+    """Durably enqueue one bounded page of eligible incomplete source posts.
+
+    PostgreSQL is committed before Valkey is touched.  A missing wake-up is
+    therefore recoverable by :func:`republish_queued_post_content_jobs` rather
+    than turning an operator request into lost work.  Active and terminal jobs
+    are excluded so repeated requests neither duplicate work nor reset the
+    explicit retry boundary.
+    """
+    if not 1 <= limit <= 200:
+        raise ValueError("limit must be between 1 and 200")
     requests: list[PostContentJobRequest] = []
     async with pool.acquire() as conn:
         async with conn.transaction():
-            # Safe SQL: the eligibility predicate is an immutable schema fragment; values are bound.
-            rows = await conn.fetch(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
-                query,
-                SUCCEEDED,
-                require_embedding,
-                require_structure,
-                limit,
-            )
+            rows = []
+            if require_structure:
+                # Safe SQL: the eligibility predicate is an immutable schema fragment; values are bound.
+                rows = await conn.fetch(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
+                    POST_CONTENT_BACKFILL_CANDIDATE_SQL,
+                    SUCCEEDED,
+                    require_embedding,
+                    require_structure,
+                    limit,
+                    True,
+                )
+            if len(rows) < limit:
+                # Safe SQL: the same immutable candidate statement is reused with bound tier values.
+                rows += await conn.fetch(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
+                    POST_CONTENT_BACKFILL_CANDIDATE_SQL,
+                    SUCCEEDED,
+                    require_embedding,
+                    require_structure,
+                    limit - len(rows),
+                    False,
+                )
+            unique_rows = []
+            seen_post_ids: set[str] = set()
+            for row in rows:
+                post_id = str(row["post_id"])
+                if post_id in seen_post_ids:
+                    continue
+                seen_post_ids.add(post_id)
+                unique_rows.append(row)
+            rows = unique_rows
             for row in rows:
                 post_id = str(row["post_id"])
                 body = str(row["post_body"] or "")
@@ -564,6 +597,63 @@ async def requeue_failed_post_content_job(
         detail_text="operator requested an explicit post-content retry",
     )
     return PostContentJobRequest(post_id, digest, QUEUED, True)
+
+
+async def requeue_failed_post_content_jobs(
+    pool: asyncpg.Pool,
+    client: redis.Redis | None,
+    *,
+    limit: int,
+) -> dict[str, int]:
+    """Requeue one bounded, ledger-backed page of terminal jobs.
+
+    The operator explicitly chooses this recovery path. PostgreSQL commits the
+    reset before Valkey wake-ups are published, so a transport failure remains
+    recoverable from the durable ``queued`` rows.
+    """
+    if not 1 <= limit <= 200:
+        raise ValueError("limit must be between 1 and 200")
+    requests: list[PostContentJobRequest] = []
+    async with pool.acquire() as conn:
+        async with conn.transaction():
+            # Safe SQL: the eligibility predicate is an immutable schema fragment; values are bound.
+            rows = await conn.fetch(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
+                f"""
+                select post.post_id, post.post_body
+                  from post_content_ingestion_job job
+                  join source_post post on post.post_id = job.post_id
+                 where job.status_code = $1
+                   and {SOURCE_POST_ELIGIBILITY_SQL.format(alias='post')}
+                 order by job.updated_at, post.post_id
+                 limit $2
+                   for update of job skip locked
+                """,
+                FAILED,
+                limit,
+            )
+            for row in rows:
+                requests.append(
+                    await requeue_failed_post_content_job(
+                        conn,
+                        str(row["post_id"]),
+                        str(row["post_body"] or ""),
+                    )
+                )
+
+    published = 0
+    for request in requests:
+        if await publish_post_content_event(
+            client,
+            post_id=request.post_id,
+            source_body_digest=request.source_body_sha256,
+        ):
+            published += 1
+    return {
+        "selected_posts": len(requests),
+        "queued_posts": len(requests),
+        "published_events": published,
+        "recovery_pending": len(requests) - published,
+    }
 
 
 async def record_post_content_backfill_success(

@@ -572,6 +572,17 @@ export interface CitedPostImage {
   tags: string[];
 }
 
+export interface AskSourceReference {
+  post_id: string;
+  lead_kind_code: string;
+  evidence_url: string;
+  evidence_title_text: string | null;
+  evidence_excerpt_text: string | null;
+  judgment_code: "research_supported" | "research_refuted";
+  next_action_text: string;
+  checked_at: string;
+}
+
 export interface AskAgentResponse {
   answer_text: string;
   cited_post_ids: string[];
@@ -579,6 +590,7 @@ export interface AskAgentResponse {
   cited_events?: CitedPostEvent[];
   cited_post_evidence?: CitedPostEvidence[];
   cited_post_images?: CitedPostImage[];
+  cited_source_references?: AskSourceReference[];
   source_post_ids: string[];
   external_verification_status?: string;
   external_claims?: ExternalClaim[];
@@ -1321,6 +1333,42 @@ export function verifyPostRelations(
   postId: string,
 ): Promise<{ verified: VerifiedRelation[] }> {
   return backendFetch(`/api/posts/${postId}/verify-relations`, accessToken, { method: "POST" });
+}
+
+export interface SourceResearchCitation {
+  lead_kind_code: string;
+  lead_source_unit_id: string | null;
+  lead_image_region_id: string | null;
+  lead_excerpt_text: string;
+  search_query_text: string;
+  evidence_url: string | null;
+  evidence_title_text: string | null;
+  evidence_excerpt_text: string | null;
+  judgment_code: string;
+  rationale_text: string;
+  next_action_text: string;
+  checked_at?: string;
+}
+
+export interface SourceResearchResponse {
+  post_id: string;
+  visibility_code: string;
+  citations: SourceResearchCitation[];
+  unavailable_reason?: string | null;
+}
+
+export function fetchPostResearchCitations(
+  accessToken: string,
+  postId: string,
+): Promise<SourceResearchResponse> {
+  return backendFetch(`/api/posts/${postId}/research-citations`, accessToken);
+}
+
+export function researchPostSources(
+  accessToken: string,
+  postId: string,
+): Promise<SourceResearchResponse> {
+  return backendFetch(`/api/posts/${postId}/research-citations`, accessToken, { method: "POST" });
 }
 
 export interface EvaluationResponse {

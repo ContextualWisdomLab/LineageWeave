@@ -8,15 +8,10 @@ opaque caller references plus evidence-bounded result metadata.
 
 from __future__ import annotations
 
-import math
 from collections import defaultdict
 from dataclasses import replace
 
-from .adjudication_client import (
-    AdjudicationClient,
-    NullAdjudicationClient,
-)
-from .channel_weight_estimation import ChannelWeightEstimate
+from .adjudication_client import AdjudicationClient
 from .external_lineage_contract import (
     CONTRACT_VERSION,
     ChannelEvidence,
@@ -31,51 +26,12 @@ from .external_lineage_contract import (
     result_digest,
     serialize_lineage_analysis_request,
 )
-from .models import Record
-from .reconstruct import _best_parent, active_weights
 
 
 def _contract_error(code: str, message: str, field: str | None = None) -> None:
     """Raise a stable execution-time contract error."""
 
     raise LineageContractError(code, message, field=field)
-
-
-class _BoundedAdjudicationClient:
-    """Keep provider channel scores inside the fusion contract boundary."""
-
-    available = True
-
-    def __init__(self, client: AdjudicationClient) -> None:
-        """Wrap one available client without changing its provider behavior."""
-
-        self._client = client
-
-    def judge(self, candidate_label: str, record_label: str) -> float:
-        """Return one finite unit-interval score or fail with a stable code."""
-
-        try:
-            score = self._client.judge(candidate_label, record_label)
-        except Exception as exc:
-            raise LineageContractError(
-                "llm_channel_error",
-                "LLM channel returned an unusable provider response",
-                field="llm",
-            ) from exc
-        if isinstance(score, bool) or not isinstance(score, (int, float)):
-            _contract_error(
-                "channel_score_out_of_bounds",
-                "LLM channel score must be finite and within 0..1",
-                "llm",
-            )
-        number = float(score)
-        if not math.isfinite(number) or not 0.0 <= number <= 1.0:
-            _contract_error(
-                "channel_score_out_of_bounds",
-                "LLM channel score must be finite and within 0..1",
-                "llm",
-            )
-        return number
 
 
 def _validated_request(request: LineageAnalysisRequest) -> LineageAnalysisRequest:
@@ -139,25 +95,6 @@ def _validate_explicit_parent_relations(
                 )
             visited.add(current_ref)
             current_ref = parent_by_child[current_ref]
-
-
-def _selected_llm(
-    request: LineageAnalysisRequest,
-    llm: AdjudicationClient | None,
-    weight_estimate: ChannelWeightEstimate | None,
-) -> tuple[AdjudicationClient, str]:
-    """Apply the explicit LLM admission policy and return its result status."""
-
-    if not request.policy.allow_llm:
-        return NullAdjudicationClient(), "not_requested"
-    if (
-        llm is None
-        or not getattr(llm, "available", False)
-        or weight_estimate is None
-        or "llm" not in weight_estimate.weights
-    ):
-        return NullAdjudicationClient(), "unavailable"
-    return _BoundedAdjudicationClient(llm), "completed"
 
 
 def _included_records(
@@ -277,153 +214,6 @@ def _enforce_pair_budget(
     return pair_count
 
 
-def _core_record(record: LineageEvidenceRecord) -> Record:
-    """Convert one contract record to the core reconstruction shape."""
-
-    return Record(
-        record_id=record.evidence_ref,
-        group_key=record.group_ref,
-        label=record.label,
-        occurred_at=record.occurred_at,
-        secondary_key=record.secondary_key or "",
-    )
-
-
-def _channel_evidence(
-    channel_scores: dict[str, float],
-    weights: dict[str, float],
-) -> tuple[ChannelEvidence, ...]:
-    """Project finite active scores with their normalized contributions."""
-
-    projected: list[ChannelEvidence] = []
-    for channel_code in sorted(channel_scores):
-        score = float(channel_scores[channel_code])
-        weight = float(weights[channel_code])
-        contribution = score * weight
-        values = (score, weight, contribution)
-        if not all(
-            math.isfinite(value) and 0.0 <= value <= 1.0
-            for value in values
-        ):
-            _contract_error(
-                "channel_score_out_of_bounds",
-                "channel values must be finite within 0..1",
-                channel_code,
-            )
-        projected.append(
-            ChannelEvidence(
-                channel_code,
-                score,
-                weight,
-                contribution,
-            )
-        )
-    return tuple(projected)
-
-
-def _inferred_edges(
-    records: tuple[LineageEvidenceRecord, ...],
-    llm: AdjudicationClient,
-    request: LineageAnalysisRequest,
-    weight_estimate: ChannelWeightEstimate,
-) -> list[LineageEdgeResult]:
-    """Select inferred parents without rescoring explicit observed children."""
-
-    if not records:
-        return []
-    if not weight_estimate.estimation_method_code.strip():
-        _contract_error(
-            "weight_provenance_missing",
-            "channel weights require an estimation method code",
-            "weight_estimate.estimation_method_code",
-        )
-    if weight_estimate.sample_pair_count < 1:
-        _contract_error(
-            "weight_provenance_missing",
-            "channel weights require a positive estimation sample count",
-            "weight_estimate.sample_pair_count",
-        )
-    required_channels = {"temporal", "secondary_key", "text"}
-    if not required_channels.issubset(weight_estimate.weights):
-        _contract_error(
-            "weight_channels_missing",
-            "the estimate must cover every deterministic reconstruction channel",
-            "weight_estimate.weights",
-        )
-    weights = active_weights(llm, weight_estimate.weights)
-    if not weights or not math.isclose(sum(weights.values()), 1.0, abs_tol=1e-9):
-        _contract_error(
-            "weight_sum_mismatch",
-            "active estimated channel weights must normalize to one",
-            "weight_estimate.weights",
-        )
-    included_refs = {record.evidence_ref for record in records}
-    explicit_children_by_parent: dict[str, set[str]] = defaultdict(set)
-    for record in records:
-        if (
-            record.explicit_parent is not None
-            and record.explicit_parent.evidence_ref in included_refs
-        ):
-            explicit_children_by_parent[
-                record.explicit_parent.evidence_ref
-            ].add(record.evidence_ref)
-
-    def explicit_descendants(evidence_ref: str) -> set[str]:
-        """Return observed descendants that cannot become inferred parents."""
-
-        descendants: set[str] = set()
-        pending = list(explicit_children_by_parent.get(evidence_ref, ()))
-        while pending:
-            descendant = pending.pop()
-            if descendant in descendants:
-                continue
-            descendants.add(descendant)
-            pending.extend(explicit_children_by_parent.get(descendant, ()))
-        return descendants
-
-    edges: list[LineageEdgeResult] = []
-    for group_records in _ordered_contract_groups(records):
-        core_records = [_core_record(record) for record in group_records]
-        for index, source_record in enumerate(group_records):
-            if source_record.explicit_parent is not None:
-                continue
-            candidates = core_records[
-                max(0, index - request.policy.candidate_window) : index
-            ]
-            cycle_forming_parents = explicit_descendants(
-                source_record.evidence_ref
-            )
-            candidates = [
-                candidate
-                for candidate in candidates
-                if candidate.record_id not in cycle_forming_parents
-            ]
-            parent_choice = _best_parent(
-                core_records[index],
-                candidates,
-                llm,
-                weights,
-                request.policy.minimum_fused_score,
-            )
-            if parent_choice is None:
-                continue
-            parent, fused_score, channel_scores = parent_choice
-            edges.append(
-                LineageEdgeResult(
-                    parent_evidence_ref=parent.record_id,
-                    child_evidence_ref=source_record.evidence_ref,
-                    relation_type_code="reconstructed_continuation",
-                    truth_status_code="inferred",
-                    fused_score=float(fused_score),
-                    channel_evidence=_channel_evidence(
-                        channel_scores,
-                        weights,
-                    ),
-                )
-            )
-    return edges
-
-
 def _explicit_edges(
     included: tuple[LineageEvidenceRecord, ...],
 ) -> tuple[
@@ -502,35 +292,27 @@ def analyze_external_lineage(
     request: LineageAnalysisRequest,
     *,
     llm: AdjudicationClient | None = None,
-    weight_estimate: ChannelWeightEstimate | None = None,
+    weight_estimate: object | None = None,
 ) -> LineageAnalysisResult:
     """Analyze bounded caller evidence and return a deterministic result.
 
     The function performs no persistence or network access itself. An optional
-    client is used only when ``request.policy.allow_llm`` is true and the
-    supplied client explicitly reports availability.
+    Inferred reconstruction stays unavailable until an accepted owner artifact
+    is published. The optional arguments remain for source compatibility but
+    cannot activate local scoring or provider calls.
     """
 
     validated = _validated_request(request)
     _validate_explicit_parent_relations(validated.records)
     included, excluded = _included_records(validated)
     _enforce_pair_budget(included, validated)
-    selected_llm, llm_status = _selected_llm(validated, llm, weight_estimate)
-
-    inferred = (
-        _inferred_edges(included, selected_llm, validated, weight_estimate)
-        if weight_estimate is not None
-        else []
-    )
+    del llm, weight_estimate
+    llm_status = "unavailable" if validated.policy.allow_llm else "not_requested"
     explicit, explicit_children, explicit_limitations = _explicit_edges(
         included
     )
-    edges = [
-        edge
-        for edge in inferred
-        if edge.child_evidence_ref not in explicit_children
-    ]
-    edges.extend(explicit)
+    del explicit_children
+    edges = explicit
 
     limitations = [
         LineageLimitation(
@@ -543,7 +325,7 @@ def analyze_external_lineage(
         )
         for record in excluded
     ]
-    if weight_estimate is None and _has_inference_candidate(included):
+    if _has_inference_candidate(included):
         limitations.append(
             LineageLimitation(
                 "channel_weights_unavailable",

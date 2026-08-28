@@ -162,6 +162,8 @@ describe("App, authenticated", () => {
     askImageCitation?: boolean;
     askDelivery?: boolean;
     lineageIsolationReason?: "comparison_candidates_available" | "no_comparison_group";
+    privateResearch?: boolean;
+    researchGetFailure?: boolean;
   }): ReturnType<typeof vi.fn> & { releaseMe: () => void; releasePostOne: () => void } {
     const statusLabel: Record<string, string> = {
       open: "Open",
@@ -1259,7 +1261,7 @@ describe("App, authenticated", () => {
             post_body: options?.postBody ?? "The full body text.",
             voc_type_code: "voc",
             voc_type_label: "Voice of Customer",
-            visibility_code: "public",
+            visibility_code: options?.privateResearch ? "private" : "public",
             visibility_label: "Public",
             project_evidence: [
               {
@@ -1741,6 +1743,38 @@ describe("App, authenticated", () => {
         }
         return Promise.resolve(jsonResponse({ verified: [] }));
       }
+      if (url.endsWith("/api/posts/post-1/research-citations")) {
+        if (method !== "POST" && options?.researchGetFailure) {
+          return Promise.resolve(new Response("unavailable", { status: 503 }));
+        }
+        return Promise.resolve(
+          jsonResponse({
+            post_id: "post-1",
+            visibility_code: "public",
+            citations:
+              method === "POST"
+                ? [
+                    {
+                      lead_kind_code: "research_lead_source_unit",
+                      lead_source_unit_id: "unit-synthetic",
+                      lead_image_region_id: null,
+                      lead_excerpt_text: "Synthetic highlighted passage",
+                      search_query_text: "synthetic evidence query",
+                      evidence_url: "https://evidence.example/source",
+                      evidence_title_text: "Synthetic cited source",
+                      evidence_excerpt_text: "Synthetic public evidence excerpt",
+                      judgment_code: "research_supported",
+                      rationale_text: "The cited source supports the highlighted passage.",
+                      next_action_text: "Open the cited source and compare the passage.",
+                    },
+                  ]
+                : [],
+            unavailable_reason: options?.privateResearch
+              ? "Public-source research is unavailable for this post."
+              : null,
+          }),
+        );
+      }
       if (url.endsWith("/api/posts/post-1/lineage")) {
         return Promise.resolve(
           jsonResponse({
@@ -2210,7 +2244,7 @@ describe("App, authenticated", () => {
     stubBackend();
     render(<App />);
     expect(await screen.findByRole("button", { name: "View post: Public post" })).toBeInTheDocument();
-    await userEvent.click(screen.getByRole("button", { name: "고객 마스터" }));
+    await userEvent.click(screen.getByRole("button", { name: "Customer master" }));
 
     expect(await screen.findByText("Demo Corp")).toBeInTheDocument();
     expect(screen.getByText("DEMO-CORP-01 · Company")).toBeInTheDocument();
@@ -2230,7 +2264,7 @@ describe("App, authenticated", () => {
     stubBackend({ customerEntityHierarchy: true });
     render(<App />);
     expect(await screen.findByRole("button", { name: "View post: Public post" })).toBeInTheDocument();
-    await userEvent.click(screen.getByRole("button", { name: "고객 마스터" }));
+    await userEvent.click(screen.getByRole("button", { name: "Customer master" }));
 
     expect(await screen.findByText("Demo Group")).toBeInTheDocument();
     const subsidiaryRow = screen.getByText("Demo Corp").closest("li");
@@ -2250,7 +2284,7 @@ describe("App, authenticated", () => {
     stubBackend();
     render(<App />);
     expect(await screen.findByRole("button", { name: "View post: Public post" })).toBeInTheDocument();
-    await userEvent.click(screen.getByRole("button", { name: "고객 마스터" }));
+    await userEvent.click(screen.getByRole("button", { name: "Customer master" }));
 
     const entityButton = (await screen.findByText("DEMO-CORP-01 · Company")).closest("button");
     expect(entityButton).not.toBeNull();
@@ -2276,7 +2310,7 @@ describe("App, authenticated", () => {
     stubBackend();
     render(<App />);
     expect(await screen.findByRole("button", { name: "View post: Public post" })).toBeInTheDocument();
-    await userEvent.click(screen.getByRole("button", { name: "고객 마스터" }));
+    await userEvent.click(screen.getByRole("button", { name: "Customer master" }));
 
     expect(await screen.findByText("Northridge Grid")).toBeInTheDocument();
     expect(screen.getByText("Voice of Customer (1), Voice of Competitor (1)")).toBeInTheDocument();
@@ -2298,7 +2332,7 @@ describe("App, authenticated", () => {
     stubBackend({ admin: true, manyCustomerHints: 1 });
     render(<App />);
     expect(await screen.findByRole("button", { name: "View post: Public post" })).toBeInTheDocument();
-    await userEvent.click(screen.getByRole("button", { name: "고객 마스터" }));
+    await userEvent.click(screen.getByRole("button", { name: "Customer master" }));
 
     expect(await screen.findByText("CUST-0")).toBeInTheDocument();
     await userEvent.click(screen.getByRole("button", { name: "Resolve" }));
@@ -2310,7 +2344,7 @@ describe("App, authenticated", () => {
     stubBackend({ manyCustomerHints: 1 });
     render(<App />);
     expect(await screen.findByRole("button", { name: "View post: Public post" })).toBeInTheDocument();
-    await userEvent.click(screen.getByRole("button", { name: "고객 마스터" }));
+    await userEvent.click(screen.getByRole("button", { name: "Customer master" }));
 
     expect(await screen.findByText("CUST-0")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Resolve" })).not.toBeInTheDocument();
@@ -2326,7 +2360,7 @@ describe("App, authenticated", () => {
     stubBackend({ hintRelatedPosts: true });
     render(<App />);
     expect(await screen.findByRole("button", { name: "View post: Public post" })).toBeInTheDocument();
-    await userEvent.click(screen.getByRole("button", { name: "고객 마스터" }));
+    await userEvent.click(screen.getByRole("button", { name: "Customer master" }));
 
     const customerSection = await screen.findByRole("region", { name: "Observed customer evidence" });
     expect(within(customerSection).getByText("Related posts (1)").closest("details")).toHaveClass(
@@ -2352,7 +2386,7 @@ describe("App, authenticated", () => {
     stubBackend({ manyCustomerHints: 45 });
     render(<App />);
     expect(await screen.findByRole("button", { name: "View post: Public post" })).toBeInTheDocument();
-    await userEvent.click(screen.getByRole("button", { name: "고객 마스터" }));
+    await userEvent.click(screen.getByRole("button", { name: "Customer master" }));
 
     expect(await screen.findByText("CUST-0")).toBeInTheDocument();
     expect(screen.getByText(/Showing the first 30 of 45 observed customer identifiers/)).toBeInTheDocument();
@@ -3120,6 +3154,51 @@ describe("App, authenticated", () => {
         expect.objectContaining({ method: "POST" }),
       ),
     );
+  });
+
+  it("lets a post administrator research and open a cited public source", async () => {
+    const fetchMock = stubBackend({ admin: true });
+    render(<App showLabPanels />);
+
+    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
+    await userEvent.click(await screen.findByRole("button", { name: "Research public sources" }));
+
+    await waitFor(() =>
+      expect(fetchMock).toHaveBeenCalledWith(
+        expect.stringContaining("/api/posts/post-1/research-citations"),
+        expect.objectContaining({ method: "POST" }),
+      ),
+    );
+    expect(await screen.findByRole("link", { name: "Synthetic cited source" })).toHaveAttribute(
+      "href",
+      "https://evidence.example/source",
+    );
+  });
+
+  it("keeps public-source research unavailable for a private post administrator", async () => {
+    stubBackend({ admin: true, privateResearch: true });
+    render(<App showLabPanels />);
+
+    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
+    expect(await screen.findByText("Public-source research is unavailable for this post.")).toBeVisible();
+    await waitFor(() =>
+      expect(screen.queryByRole("button", { name: "Research public sources" })).toBeNull(),
+    );
+  });
+
+  it("keeps the public research retry available after a citation-load failure", async () => {
+    const fetchMock = stubBackend({ admin: true, researchGetFailure: true });
+    render(<App showLabPanels />);
+
+    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
+    await userEvent.click(await screen.findByRole("button", { name: "Research public sources" }));
+    await waitFor(() =>
+      expect(fetchMock).toHaveBeenCalledWith(
+        expect.stringContaining("/api/posts/post-1/research-citations"),
+        expect.objectContaining({ method: "POST" }),
+      ),
+    );
+    expect(await screen.findByRole("link", { name: "Synthetic cited source" })).toBeVisible();
   });
 
   it("lets post_admin extract Keymen from the popup", async () => {
@@ -4364,16 +4443,16 @@ describe("App, authenticated", () => {
 
     const nav = await screen.findByRole("navigation", { name: "Workspace navigation" });
     expect(nav).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "게시판" })).toHaveAttribute("aria-current", "page");
+    expect(screen.getByRole("button", { name: "Board" })).toHaveAttribute("aria-current", "page");
     expect(within(nav).getAllByRole("button").map((button) => button.textContent)).toEqual([
       "Dashboard",
-      "외부 정보",
-      "게시판",
-      "고객 마스터",
-      "달력",
+      "External information",
+      "Board",
+      "Customer master",
+      "Calendar",
       "Ask Agent",
     ]);
-    expect(nav.textContent).not.toMatch(/Buyer|Cubee|\bBoard\b|Customer master/i);
+    expect(nav.textContent).not.toMatch(/Buyer|Cubee/i);
     expect(within(nav).queryByRole("button", { name: /Admin|관리자/i })).not.toBeInTheDocument();
     expect(screen.queryByText("Advanced review tools")).not.toBeInTheDocument();
   });
@@ -4382,8 +4461,8 @@ describe("App, authenticated", () => {
     stubBackend();
     render(<App />);
 
-    await userEvent.click(await screen.findByRole("button", { name: "달력" }));
-    expect(screen.getByRole("heading", { name: "달력" })).toBeInTheDocument();
+    await userEvent.click(await screen.findByRole("button", { name: "Calendar" }));
+    expect(screen.getByRole("heading", { name: "Calendar" })).toBeInTheDocument();
     expect(screen.getByText("이 범위의 일정을 아직 받을 수 없습니다")).toBeInTheDocument();
     expect(
       screen.getByRole("region", { name: /^Unavailable:/ }),
@@ -4394,7 +4473,7 @@ describe("App, authenticated", () => {
     await userEvent.click(
       screen.getByRole("button", { name: /open commitment for: public post/i }),
     );
-    expect(await screen.findByRole("button", { name: "게시판" })).toHaveAttribute(
+    expect(await screen.findByRole("button", { name: "Board" })).toHaveAttribute(
       "aria-current",
       "page",
     );

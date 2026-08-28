@@ -21,7 +21,7 @@ export function WorkspaceNav({ destination, onChange, tools }: WorkspaceNavProps
           aria-current={destination === item.id ? "page" : undefined}
           onClick={() => onChange(item.id)}
         >
-          {item.label}
+          {t(item.labelKey)}
         </button>
       ))}
       {tools ? <div className="workspace-gnb-tools">{tools}</div> : null}

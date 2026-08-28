@@ -1,0 +1,44 @@
+.source-research {
+  display: grid;
+  gap: var(--space-panel-block);
+}
+
+.source-research-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-control-gap);
+}
+
+.source-research-header button {
+  min-height: var(--size-control-min);
+}
+
+.source-research-list {
+  display: grid;
+  gap: var(--space-panel-block);
+  margin-block: 0;
+  padding-inline-start: 0;
+  list-style: none;
+}
+
+.source-research-card {
+  display: grid;
+  gap: var(--space-control-gap);
+}
+
+.source-research-card + .source-research-card {
+  border-block-start: 1px solid var(--color-border);
+  padding-block-start: var(--space-panel-block);
+}
+
+.source-research-evidence {
+  display: grid;
+  gap: var(--space-control-gap);
+}
+
+.source-research-evidence a {
+  width: fit-content;
+  min-height: var(--size-control-min);
+}

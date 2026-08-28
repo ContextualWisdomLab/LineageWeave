@@ -1110,3 +1110,61 @@ def test_stale_worker_cannot_mark_recovered_attempt_succeeded() -> None:
     )
 
     assert not any("insert into post_content_ingestion_job_status_event" in query for query, _args in connection.executed)
+
+
+def test_recovery_enqueues_next_bounded_page_then_republishes(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Every recovery cycle advances the durable candidate ledger once."""
+    calls: list[tuple[str, object, object]] = []
+    pool = object()
+    client = object()
+
+    async def enqueue(actual_pool: object, actual_client: object, **kwargs: object) -> None:
+        calls.append(("enqueue", actual_pool, actual_client))
+        assert kwargs == {
+            "limit": 200,
+            "require_embedding": True,
+            "require_structure": True,
+        }
+
+    async def republish(actual_client: object, actual_pool: object) -> None:
+        calls.append(("republish", actual_pool, actual_client))
+
+    monkeypatch.setattr(
+        post_content_worker,
+        "load_settings",
+        lambda: SimpleNamespace(orchestrator_base_url="set", orchestrator_api_key="set"),
+    )
+    monkeypatch.setattr(post_content_worker, "enqueue_post_content_backfill", enqueue)
+    monkeypatch.setattr(post_content_worker, "republish_queued_post_content_jobs", republish)
+
+    asyncio.run(post_content_worker._recover_post_content_jobs(client, pool))
+
+    assert calls == [("enqueue", pool, client), ("republish", pool, client)]
+
+
+def test_recovery_republishes_after_candidate_selection_failure(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A failed page selection cannot suppress recovery of queued jobs."""
+    republished: list[bool] = []
+
+    async def enqueue(*_args: object, **_kwargs: object) -> None:
+        raise RuntimeError("synthetic database failure")
+
+    async def republish(*_args: object, **_kwargs: object) -> None:
+        republished.append(True)
+
+    monkeypatch.setattr(
+        post_content_worker,
+        "load_settings",
+        lambda: SimpleNamespace(orchestrator_base_url="", orchestrator_api_key=""),
+    )
+    monkeypatch.setattr(post_content_worker, "enqueue_post_content_backfill", enqueue)
+    monkeypatch.setattr(post_content_worker, "republish_queued_post_content_jobs", republish)
+    monkeypatch.setattr(post_content_worker, "record_server_failure", lambda *_a, **_k: None)
+
+    asyncio.run(post_content_worker._recover_post_content_jobs(object(), object()))
+
+    assert republished == [True]

@@ -557,80 +557,17 @@ _DEMO_ESTIMATE_CACHE: list = []
 
 
 def demo_channel_weight_estimate():
-    """The demo's fast-mlsirm-estimated fusion weights (ADR 0200 point 1).
+    """Return fitted owner evidence, or ``None`` while it is unavailable.
 
-    No hand-picked fusion weight exists anywhere, the demo included: the
-    seed fits fast-mlsirm's multilevel 2PL over the demo scenario's
-    declared generative design and fuses with those estimates (fitted
-    once per process; the design is seeded, so the estimate is
-    deterministic). When no estimate can be produced the seed stops and
-    names the next action instead of inventing weights.
+    Synthetic post seeding is independent of calibrated Event Lineage.  The
+    absence of an accepted TEPP-anchored fast-mlsirm artifact therefore drops
+    only reconstruction; it must not abort the rest of ``make seed``.
     """
     from lineageweave.channel_weight_estimation import estimate_fixture_channel_weights
 
     if not _DEMO_ESTIMATE_CACHE:
         _DEMO_ESTIMATE_CACHE.append(estimate_fixture_channel_weights())
-    estimate = _DEMO_ESTIMATE_CACHE[0]
-    if estimate is None:
-        raise SystemExit(
-            "make seed estimates its fusion weights with fast-mlsirm and none "
-            "could be produced; install fast-mlsirm from the organization "
-            "repository, then run make seed again"
-        )
-    return estimate
-
-
-def _persist_demo_channel_weights(cur, estimate) -> None:
-    """Persist the demo estimate with full provenance (migration 0200).
-
-    Product reconstruction fails closed without an activated estimate;
-    seeding the demo estimate keeps POST /api/lineage/rebuild and
-    analysis-run start working on a freshly seeded environment. The
-    provenance snapshot digest names the demo's declared generative
-    design, the honest anchor label applies, and the estimator version
-    is the installed fast-mlsirm.
-    """
-    import uuid as uuid_module
-    from datetime import datetime, timezone
-
-    from lineageweave.channel_weight_estimation import fixture_design_digest
-    from scripts.estimate_channel_weights import (
-        UNANCHORED_METHOD_CODE,
-        estimator_version,
-    )
-
-    estimation_run_id = str(uuid_module.uuid4())
-    version = estimator_version()
-    design_digest = fixture_design_digest()
-    knowledge_cutoff = datetime.now(timezone.utc)
-    cur.execute(
-        "delete from lineage_channel_weight "
-        "where channel_set_code = 'channel_set_deterministic'"
-    )
-    for channel, weight in estimate.weights.items():
-        cur.execute(
-            """
-            insert into lineage_channel_weight
-                (channel_set_code, channel_code, weight_value,
-                 estimation_run_id, estimation_method_code,
-                 estimator_version, anchor_method_code,
-                 source_snapshot_sha256, sample_pair_count, knowledge_cutoff,
-                 estimated_at)
-            values ('channel_set_deterministic', %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-            """,
-            (
-                channel,
-                weight,
-                estimation_run_id,
-                estimate.estimation_method_code,
-                version,
-                UNANCHORED_METHOD_CODE,
-                design_digest,
-                estimate.sample_pair_count,
-                knowledge_cutoff,
-                knowledge_cutoff,
-            ),
-        )
+    return _DEMO_ESTIMATE_CACHE[0]
 
 
 def _seed_reconstructed_lineage(cur, author_account_id, corporate_entity_id, process_unit_id) -> None:
@@ -651,12 +588,13 @@ def _seed_reconstructed_lineage(cur, author_account_id, corporate_entity_id, pro
     if cur.fetchone() is not None:
         return
 
-    estimate = demo_channel_weight_estimate()
-    _persist_demo_channel_weights(cur, estimate)
-
     persisted = insert_fixture_source_posts(
         cur, author_account_id, corporate_entity_id, process_unit_id
     )
+    estimate = demo_channel_weight_estimate()
+    if estimate is None:
+        return
+
     edges = lineage_edge_specs(persisted, weights=estimate.weights)
     spec = lineage_rebuild_spec(edges, weights=estimate.weights)
     cur.execute("delete from event_lineage_rebuild")
@@ -1688,6 +1626,12 @@ def _seed_demo_analysis_run(cur, requested_by_account_id, corporate_entity_id) -
     shared Demo Corp snapshot so a later TEPP run can attach to the
     same capture.
     """
+    # A Succeeded reconstruction without accepted owner weights would assert
+    # evidence that does not exist.  Other synthetic demo products continue
+    # seeding; only this calibrated run stays absent.
+    if demo_channel_weight_estimate() is None:
+        return
+
     snapshot_id = _ensure_demo_source_snapshot(cur)
     _ensure_demo_source_counts(cur, snapshot_id)
     _ensure_demo_source_snapshot_members(cur, snapshot_id, corporate_entity_id)
@@ -1758,9 +1702,9 @@ def _seed_demo_analysis_run(cur, requested_by_account_id, corporate_entity_id) -
 def seed_reconstruction_edges(rows: list[dict], weights: dict[str, float]) -> tuple:
     """ThreadWeave parent choices and digest for seed and start. Never a theta.
 
-    ``weights`` is required (ADR 0200 point 1): the seed passes its
-    fast-mlsirm demo-design estimate; unit tests inject synthetic
-    weights.
+    ``weights`` is required (ADR 0205). Unit tests may inject synthetic
+    weights to verify plumbing, while ``make seed`` omits reconstruction
+    until fitted, independently anchored owner evidence exists.
     """
     from backend.app.analysis_run_start import reconstruction_result_digest
     from backend.app.lineage_ingestion import records_from_source_posts
@@ -1801,9 +1745,10 @@ def _seed_demo_run_reconstruction(cur, analysis_run_id, corporate_entity_id) -> 
     rows = [dict(zip(columns, row)) for row in cur.fetchall()]
     if not rows:
         return
-    edges, digest = seed_reconstruction_edges(
-        rows, demo_channel_weight_estimate().weights
-    )
+    estimate = demo_channel_weight_estimate()
+    if estimate is None:
+        return
+    edges, digest = seed_reconstruction_edges(rows, estimate.weights)
     finished = datetime(2026, 1, 12, 12, 33, tzinfo=timezone.utc)
     cur.execute(
         """

@@ -15,6 +15,12 @@ ENV VITE_KEYVERSE_ISSUER=${VITE_KEYVERSE_ISSUER} \
 RUN pnpm run build
 
 FROM nginx:1.27-alpine@sha256:65645c7bb6a0661892a8b03b89d0743208a18dd2f3f17a54ef4b76fb8e2f2a10
+ARG LINEAGEWEAVE_SOURCE_REVISION=unknown
+ARG VITE_KEYVERSE_ISSUER
+ARG VITE_BACKEND_BASE_URL
+LABEL org.opencontainers.image.revision=${LINEAGEWEAVE_SOURCE_REVISION} \
+      io.contextualwisdomlab.lineageweave.oidc-issuer=${VITE_KEYVERSE_ISSUER} \
+      io.contextualwisdomlab.lineageweave.backend-url=${VITE_BACKEND_BASE_URL}
 COPY --from=build /app/dist /usr/share/nginx/html
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 # Official nginx binds :80 as root and writes its pid file to /run/nginx.pid

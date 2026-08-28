@@ -3,20 +3,9 @@
 from __future__ import annotations
 
 from dataclasses import replace
-from functools import lru_cache
-
 import pytest
 
-from lineageweave.channel_weight_estimation import (
-    ChannelWeightEstimate,
-    estimate_channel_weights,
-    simulate_fixture_pair_scores,
-)
-from lineageweave.external_lineage_analysis import (
-    _BoundedAdjudicationClient,
-    _channel_evidence,
-    analyze_external_lineage,
-)
+from lineageweave.external_lineage_analysis import analyze_external_lineage
 from lineageweave.external_lineage_contract import (
     LineageContractError,
     parse_lineage_analysis_request,
@@ -25,24 +14,10 @@ from lineageweave.external_lineage_contract import (
 )
 
 
-@lru_cache(maxsize=1)
-def _estimated_weights() -> ChannelWeightEstimate:
-    """Fit real fast-mlsirm weights over a deterministic synthetic design."""
-
-    pair_scores, group_ids = simulate_fixture_pair_scores()
-    estimate = estimate_channel_weights(pair_scores, group_ids)
-    assert estimate is not None
-    return estimate
-
-
 def _analyze(request, *, llm=None):
-    """Analyze with psychometrically estimated synthetic-fixture weights."""
+    """Analyze through the fail-closed external contract boundary."""
 
-    return analyze_external_lineage(
-        request,
-        llm=llm,
-        weight_estimate=_estimated_weights(),
-    )
+    return analyze_external_lineage(request, llm=llm)
 
 
 class AvailableLlm:
@@ -274,7 +249,7 @@ def test_explicit_rfc_reply_overrides_semantic_parent_and_remains_observed() -> 
     assert child_edges[0].channel_evidence[0].channel_code == "rfc_reply"
 
 
-def test_inferred_edge_exposes_active_channel_weights_and_contributions() -> None:
+def test_unaccepted_local_weight_object_cannot_activate_inference() -> None:
     request = _request(
         [
             _record(
@@ -290,24 +265,12 @@ def test_inferred_edge_exposes_active_channel_weights_and_contributions() -> Non
         ]
     )
 
-    result = _analyze(request)
+    result = analyze_external_lineage(request, weight_estimate=object())
 
-    assert len(result.edges) == 1
-    edge = result.edges[0]
-    assert edge.truth_status_code == "inferred"
-    assert edge.relation_type_code == "reconstructed_continuation"
-    assert {item.channel_code for item in edge.channel_evidence} == {
-        "temporal",
-        "secondary_key",
-        "text",
-    }
-    assert sum(item.weight for item in edge.channel_evidence) == pytest.approx(
-        1.0
-    )
-    assert sum(
-        item.contribution
-        for item in edge.channel_evidence
-    ) == pytest.approx(edge.fused_score)
+    assert result.edges == ()
+    assert [item.limitation_code for item in result.limitations] == [
+        "channel_weights_unavailable"
+    ]
 
 
 @pytest.mark.parametrize(
@@ -343,11 +306,8 @@ def test_llm_policy_is_explicit_and_never_fabricates_absent_scores(
     result = _analyze(request, llm=client)
 
     assert result.llm_status_code == expected_status
-    channels = {
-        channel.channel_code
-        for channel in result.edges[0].channel_evidence
-    }
-    assert ("llm" in channels) is llm_present
+    assert result.edges == ()
+    assert llm_present is False
 
 
 def test_project_projection_is_proposed_and_uses_only_included_evidence() -> None:
@@ -641,39 +601,21 @@ def test_all_evidence_after_cutoff_returns_empty_bounded_result() -> None:
     assert result.project_projections == ()
 
 
-def test_invalid_llm_score_fails_closed_at_provider_boundary() -> None:
-    with pytest.raises(LineageContractError) as captured:
-        _BoundedAdjudicationClient(InvalidLlm()).judge("Phoenix one", "Phoenix two")
+def test_requested_llm_is_not_called_without_owner_weight_artifact() -> None:
+    """An available provider cannot bypass the unavailable owner boundary."""
 
-    assert captured.value.code == "channel_score_out_of_bounds"
+    request = _request(
+        [
+            _record("email:one", "One", "2026-08-20T09:00:00Z"),
+            _record("email:two", "Two", "2026-08-20T09:01:00Z"),
+        ],
+        allow_llm=True,
+    )
 
+    result = _analyze(request, llm=BrokenProviderLlm())
 
-def test_non_numeric_llm_score_fails_closed_at_provider_boundary() -> None:
-    """A provider score with the wrong type becomes a stable contract error."""
-
-    with pytest.raises(LineageContractError) as captured:
-        _BoundedAdjudicationClient(TextLlm()).judge("Phoenix one", "Phoenix two")
-
-    assert captured.value.code == "channel_score_out_of_bounds"
-
-
-def test_raw_provider_response_error_is_stable_at_provider_boundary() -> None:
-    """A raw provider failure is not exposed as an arbitrary exception."""
-
-    with pytest.raises(LineageContractError) as captured:
-        _BoundedAdjudicationClient(BrokenProviderLlm()).judge("Phoenix one", "Phoenix two")
-
-    assert captured.value.code == "llm_channel_error"
-    assert "provider secret" not in str(captured.value)
-
-
-def test_channel_evidence_rejects_invalid_score_before_serialization() -> None:
-    """Defense in depth keeps direct channel projection fail-closed."""
-
-    with pytest.raises(LineageContractError) as captured:
-        _channel_evidence({"text": 2.0}, {"text": 1.0})
-
-    assert captured.value.code == "channel_score_out_of_bounds"
+    assert result.llm_status_code == "unavailable"
+    assert result.edges == ()
 
 
 def test_records_without_project_reference_are_not_projected() -> None:

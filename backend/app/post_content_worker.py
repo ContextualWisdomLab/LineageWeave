@@ -22,6 +22,7 @@ from backend.app.post_content_queue import (
     STALE_RUNNING_INTERVAL,
     SUCCEEDED,
     defer_post_content_job,
+    enqueue_post_content_backfill,
     ensure_post_content_job,
     post_content_is_complete,
     republish_queued_post_content_jobs,
@@ -65,6 +66,7 @@ from lineageweave.product_semantics import (
 
 _logger = logging.getLogger(__name__)
 _RECOVERY_INTERVAL_SECONDS = 30.0
+_RECOVERY_ENQUEUE_LIMIT = 200
 _BROKER_RECOVERY_DELAY_SECONDS = 1.0
 _INCOMPLETE_FAILURE_CODE = "post_content_ingestion_incomplete"
 _ATTEMPT_LIMIT_FAILURE_CODE = "post_content_ingestion_attempt_limit"
@@ -814,6 +816,47 @@ async def consume_post_content_stream_once(
     return last_id
 
 
+async def _recover_post_content_jobs(
+    client: redis.Redis,
+    pool: asyncpg.Pool,
+) -> None:
+    """Persist the next bounded candidate page and republish queued wake-ups."""
+    settings = load_settings()
+    require_orchestrator_evidence = bool(
+        settings.orchestrator_base_url and settings.orchestrator_api_key
+    )
+    try:
+        await enqueue_post_content_backfill(
+            pool,
+            client,
+            limit=_RECOVERY_ENQUEUE_LIMIT,
+            require_embedding=require_orchestrator_evidence,
+            require_structure=require_orchestrator_evidence,
+        )
+    except Exception as exc:  # noqa: BLE001 - the next recovery cycle must remain alive.
+        _logger.warning(
+            "post-content candidate recovery failed; retrying next cycle (error_type=%s)",
+            type(exc).__name__,
+        )
+        record_server_failure(
+            "post_content_candidate_recovery",
+            exc,
+            outcome="provider_unavailable",
+        )
+    try:
+        await republish_queued_post_content_jobs(client, pool)
+    except Exception as exc:  # noqa: BLE001 - broker recovery is independent of selection.
+        _logger.warning(
+            "post-content wake-up recovery failed; retrying next cycle (error_type=%s)",
+            type(exc).__name__,
+        )
+        record_server_failure(
+            "post_content_wakeup_recovery",
+            exc,
+            outcome="provider_unavailable",
+        )
+
+
 async def run_post_content_worker(
     client: redis.Redis,
     pool: asyncpg.Pool,
@@ -828,7 +871,7 @@ async def run_post_content_worker(
     while True:
         now = time.monotonic()
         if now - last_recovery >= _RECOVERY_INTERVAL_SECONDS:
-            await republish_queued_post_content_jobs(client, pool)
+            await _recover_post_content_jobs(client, pool)
             last_recovery = now
         try:
             last_id = await consume_post_content_stream_once(

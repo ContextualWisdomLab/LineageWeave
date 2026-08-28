@@ -4,10 +4,14 @@ from __future__ import annotations
 
 import asyncio
 from pathlib import Path
+import subprocess
 
 import pytest
 
 from backend.app import worker_health
+
+
+_SHELL_PROBE = Path(__file__).parents[1] / "backend" / "worker-healthcheck.sh"
 
 
 def test_health_requires_progress_between_probes(tmp_path: Path) -> None:
@@ -44,3 +48,40 @@ def test_heartbeat_records_before_first_sleep(
     with pytest.raises(asyncio.CancelledError):
         asyncio.run(worker_health.run_worker_heartbeat(heartbeat))
     assert int(heartbeat.read_text(encoding="ascii")) >= 0
+
+
+def test_shell_probe_requires_monotonic_progress(tmp_path: Path) -> None:
+    """The lightweight container probe preserves the Python progress contract."""
+    heartbeat = tmp_path / "heartbeat"
+    state = tmp_path / "state"
+
+    missing = subprocess.run(["/bin/sh", _SHELL_PROBE, heartbeat, state], check=False)
+    assert missing.returncode != 0
+
+    heartbeat.write_text("1", encoding="ascii")
+    first = subprocess.run(
+        ["/bin/sh", _SHELL_PROBE, heartbeat, state],
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    unchanged = subprocess.run(["/bin/sh", _SHELL_PROBE, heartbeat, state], check=False)
+    assert first.returncode == 0
+    assert first.stderr == ""
+    assert unchanged.returncode != 0
+
+    heartbeat.write_text("2", encoding="ascii")
+    advanced = subprocess.run(["/bin/sh", _SHELL_PROBE, heartbeat, state], check=False)
+    assert advanced.returncode == 0
+
+
+def test_shell_probe_rejects_malformed_or_regressed_heartbeat(tmp_path: Path) -> None:
+    """Malformed and decreasing counters fail closed in the container probe."""
+    heartbeat = tmp_path / "heartbeat"
+    state = tmp_path / "state"
+    state.write_text("2\n", encoding="ascii")
+
+    for value in ("not-a-counter\n", "1\n"):
+        heartbeat.write_text(value, encoding="ascii")
+        result = subprocess.run(["/bin/sh", _SHELL_PROBE, heartbeat, state], check=False)
+        assert result.returncode != 0

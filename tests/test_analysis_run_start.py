@@ -2,7 +2,6 @@
 
 import asyncio
 from datetime import datetime, timezone
-from functools import lru_cache
 
 import pytest
 
@@ -15,7 +14,6 @@ from backend.app.analysis_run_start import (
     _persist_tepp_result,
     configured_tepp_client,
     reconstruction_member_ids,
-    reconstruction_result_digest,
     start_kind_rejection,
     start_write_conflict_error,
     tepp_run_request,
@@ -23,12 +21,8 @@ from backend.app.analysis_run_start import (
     topic_lineage_run_request,
     topic_lineage_submit_outcome,
 )
-from backend.app.lineage_ingestion import records_from_source_posts
 from lineageweave.adjudication_client import AdjudicationClientError
-from lineageweave.channel_weight_estimation import estimate_fixture_channel_weights
-from lineageweave.fixtures import sample_records
 from lineageweave.http_client import HttpClientError
-from lineageweave.lineage_persistence import lineage_edge_specs
 from lineageweave.tepp_client import AnalysisRunRequest, TeppClient, TeppNotAvailable
 
 
@@ -47,14 +41,6 @@ def test_adjudication_boundary_types_malformed_provider_reply() -> None:
 
     with pytest.raises(analysis_run_start._AdjudicationProviderError):
         client.judge("synthetic parent", "synthetic child")
-
-@lru_cache(maxsize=1)
-def _estimated_fixture_weights() -> dict[str, float]:
-    """Return the fast-mlsirm estimate or fail the test closed."""
-    estimate = estimate_fixture_channel_weights()
-    assert estimate is not None
-    return estimate.weights
-
 
 @pytest.mark.anyio
 async def test_delivery_releases_pool_during_provider_work_and_closes_run_lock(monkeypatch):
@@ -139,53 +125,6 @@ async def test_delivery_releases_pool_during_provider_work_and_closes_run_lock(m
     assert result == {"status_code": "analysis_status_failed"}
     assert active_pool_leases == 0
     assert lock_connection.closed
-
-
-def test_reconstruction_digest_is_stable_and_ignores_edge_order() -> None:
-    """The same parent choices hash the same way regardless of insert order."""
-    edges = lineage_edge_specs(sample_records(), weights=_estimated_fixture_weights())
-    reversed_edges = list(reversed(edges))
-    assert reconstruction_result_digest(edges) == reconstruction_result_digest(reversed_edges)
-    assert reconstruction_result_digest([]) == reconstruction_result_digest([])
-    assert reconstruction_result_digest(edges) != reconstruction_result_digest([])
-
-
-def test_start_uses_the_same_parent_choices_as_library_reconstruct() -> None:
-    """The product start path must recover the designed A-100 fork.
-
-    fixtures.sample_records() is the synthetic gold tree: rec-002 is the
-    branch point for the revised quote and the delivery question. A start
-    that dropped an edge or invented a parent would fail this check.
-    """
-    weights = _estimated_fixture_weights()
-    edges = lineage_edge_specs(sample_records(), weights=weights)
-    children = {edge.child_id for edge in edges if edge.parent_id == "rec-002"}
-    assert children >= {"rec-003", "rec-004"}
-    assert all(0.0 <= edge.fused_score <= 1.0 for edge in edges)
-    assert "theta" not in reconstruction_result_digest(edges)
-
-
-def test_start_wiring_recovers_a100_from_source_post_rows() -> None:
-    """CI must exercise records_from_source_posts, not only library reconstruct."""
-    rows = [
-        {
-            "post_id": record.record_id,
-            "post_title": record.label,
-            "created_at": record.occurred_at,
-            "thread_group_key": record.group_key,
-            "secondary_grouping_key": record.secondary_key,
-            "process_unit_id": None,
-            "corporate_entity_id": "corp-demo",
-        }
-        for record in sample_records()
-    ]
-    weights = _estimated_fixture_weights()
-    edges = lineage_edge_specs(records_from_source_posts(rows), weights=weights)
-    children = {edge.child_id for edge in edges if edge.parent_id == "rec-002"}
-    assert children >= {"rec-003", "rec-004"}
-    assert reconstruction_result_digest(edges) == reconstruction_result_digest(
-        lineage_edge_specs(sample_records(), weights=weights)
-    )
 
 
 def test_snapshot_members_exclude_a_later_backfill() -> None:

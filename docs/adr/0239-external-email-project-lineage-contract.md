@@ -18,15 +18,13 @@ LineageWeave publishes contract version `1.0.0` through:
 
 The initial implementation is a store-agnostic Python package boundary. It performs no database, mailbox, provider, or network operation. A later service or Naruon plugin adapter must preserve the same JSON Schema and truth boundaries.
 
-Inferred edges additionally require a provenance-bearing
-`ChannelWeightEstimate` produced by the repository's fast-mlsirm measurement
-boundary. The estimate is an injected execution dependency, not caller JSON:
-the external evidence contract cannot assert its own fusion weights. When no
-estimate is available, the adapter still returns caller-observed edges and an
-explicit `channel_weights_unavailable` limitation, but produces no inferred
-edge. The LLM channel is active only when the estimate explicitly includes an
-`llm` item; an available model without such measurement remains unavailable
-for this run.
+Inferred edges remain unavailable until the measurement owner publishes an
+accepted, independently anchored fitted artifact. The external evidence
+contract cannot assert its own fusion weights, and LineageWeave does not fit,
+normalize, simulate, or interpret them in Python. The adapter returns
+caller-observed edges and an explicit `channel_weights_unavailable`
+limitation, but produces no inferred edge. Requesting the optional LLM channel
+therefore reports it unavailable and never activates a provider call.
 
 The caller supplies opaque evidence references, bounded text labels, occurrence and availability clocks, an optional secondary key, an optional project reference, and an optional caller-observed parent relation. Explicit observed parent relations replace an inferred parent for the same child and must form an acyclic graph. Reconstructed continuation remains `inferred`. Project groupings remain `proposed`.
 
@@ -48,7 +46,7 @@ Evidence becoming available after the cutoff is excluded even when it describes 
 - RFC reply/thread evidence stays distinguishable from semantic lineage.
 - Caller-observed children are never disclosed to an optional model merely to calculate an inferred edge that would be discarded.
 - The optional LLM channel is explicit as `not_requested`, `unavailable`, or `completed`; missing output is never zero.
-- Missing or malformed psychometric weight provenance yields no inferred edge; no default, equal, or caller-authored weight is substituted.
+- Until an accepted owner artifact exists, no inferred edge is emitted; no default, equal, simulated, local, or caller-authored weight is substituted.
 - Canonical serialization and SHA-256 digesting are deterministic for a given request or result. Repeatability of model-backed scores additionally requires a pinned LineageWeave release, adjudicator implementation, provider/model revision, and model-side determinism policy.
 - Explicit parent cycles and analysis work above the caller-approved pair budget fail closed before inference.
 - Project evidence can inform Naruon without mutating authoritative project/task/provider state.

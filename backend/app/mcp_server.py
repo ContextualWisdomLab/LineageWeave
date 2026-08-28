@@ -250,7 +250,7 @@ def build_mcp_server(
         "lineageweave",
         title="LineageWeave",
         description="Authenticated provenance-bearing lineage intelligence.",
-        version="2.18.0",
+        version="2.19.0",
         lifespan=lifespan,
         token_verifier=token_verifier or KeyverseMcpTokenVerifier(resolved),
         auth=AuthSettings(

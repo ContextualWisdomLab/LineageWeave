@@ -2,17 +2,14 @@
 
 from __future__ import annotations
 
-from lineageweave.channel_weight_estimation import estimate_fixture_channel_weights
 from lineageweave.external_lineage_analysis import analyze_external_lineage
 from lineageweave.external_lineage_contract import parse_lineage_analysis_request
 
 
 def _analyze(request, *, llm=None):
-    """Analyze with the real synthetic-fixture fast-mlsirm estimate."""
+    """Analyze through the fail-closed external contract boundary."""
 
-    estimate = estimate_fixture_channel_weights()
-    assert estimate is not None
-    return analyze_external_lineage(request, llm=llm, weight_estimate=estimate)
+    return analyze_external_lineage(request, llm=llm)
 
 
 class CountingLlm:
@@ -134,8 +131,8 @@ def test_explicit_parent_chain_spends_no_inference_budget_or_llm_calls() -> None
     ]
 
 
-def test_explicit_child_remains_available_as_a_later_inference_candidate() -> None:
-    """Skipping its own scoring must not remove an explicit child from history."""
+def test_explicit_child_does_not_activate_unavailable_local_inference() -> None:
+    """Observed history remains while unowned inference stays unavailable."""
 
     request = _request(
         [
@@ -158,9 +155,8 @@ def test_explicit_child_remains_available_as_a_later_inference_candidate() -> No
 
     result = _analyze(request)
 
+    assert all(edge.truth_status_code == "observed" for edge in result.edges)
     assert any(
-        edge.parent_evidence_ref == "email:observed-child"
-        and edge.child_evidence_ref == "email:later-child"
-        and edge.truth_status_code == "inferred"
-        for edge in result.edges
+        item.limitation_code == "channel_weights_unavailable"
+        for item in result.limitations
     )

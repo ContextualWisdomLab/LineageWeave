@@ -22,6 +22,7 @@ from backend.app.post_content_queue import (
     enqueue_post_content_backfill,
     record_post_content_backfill_success,
     requeue_failed_post_content_job,
+    requeue_failed_post_content_jobs,
     post_content_api_status,
     post_content_is_complete,
     post_content_stream_fields,
@@ -56,6 +57,8 @@ def test_bounded_backfill_is_idempotent_and_broker_loss_stays_recoverable(
             return None
 
     class Connection:
+        fetch_count = 0
+
         def transaction(self) -> Transaction:
             return Transaction()
 
@@ -63,16 +66,31 @@ def test_bounded_backfill_is_idempotent_and_broker_loss_stays_recoverable(
             assert "source_draft_code" in query
             assert "source_deleted_flag" in query
             assert "job.post_id is null or job.status_code = $1" in query
-            assert "from operations_case_analysis analysis" in query
+            assert "left join operations_case_analysis analysis" in query
             assert "analysis.post_id = post.post_id" in query
             assert "analysis.source_body_sha256 = job.source_body_sha256" in query
-            assert "from post_product_analysis analysis" in query
+            assert "left join post_product_analysis product_analysis" in query
+            assert "from post_project_mention project" in query
+            assert "nullif(btrim(project.ontology_iri), '') is not null" in query
+            assert "job.source_body_sha256 is not null" in query
+            assert query.count("from post_project_mention project") == 1
+            assert "$5::boolean = (" in query
+            assert "coalesce(post.event_occurred_at, post.created_at)" in query
+            assert "post.post_body ilike" not in query.lower()
+            assert "post.post_title ilike" not in query.lower()
             assert "for update of post skip locked" in query.lower()
-            assert args == (SUCCEEDED, True, True, 2)
-            return [
-                {"post_id": "00000000-0000-0000-0000-000000000001", "post_body": "one"},
-                {"post_id": "00000000-0000-0000-0000-000000000002", "post_body": "two"},
-            ]
+            self.fetch_count += 1
+            assert args == (
+                SUCCEEDED,
+                True,
+                True,
+                2 if self.fetch_count == 1 else 1,
+                self.fetch_count == 1,
+            )
+            return [{
+                "post_id": f"00000000-0000-0000-0000-{self.fetch_count:012d}",
+                "post_body": "one" if self.fetch_count == 1 else "two",
+            }]
 
     class Acquire:
         async def __aenter__(self) -> Connection:
@@ -137,6 +155,7 @@ def test_backfill_skips_a_candidate_that_became_complete(
             return Transaction()
 
         async def fetch(self, _query: str, *_args: object) -> list[dict[str, str]]:
+            assert _args[-1] is False
             return [
                 {"post_id": "00000000-0000-0000-0000-000000000001", "post_body": "done"}
             ]
@@ -174,6 +193,76 @@ def test_backfill_skips_a_candidate_that_became_complete(
         "selected_posts": 1,
         "queued_posts": 0,
         "published_events": 0,
+        "recovery_pending": 0,
+    }
+
+
+def test_backfill_deduplicates_a_candidate_that_changes_tier(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A row observed in both READ COMMITTED tier queries is queued only once."""
+
+    class Transaction:
+        async def __aenter__(self) -> None:
+            return None
+
+        async def __aexit__(self, *_args: object) -> None:
+            return None
+
+    candidate = {
+        "post_id": "00000000-0000-0000-0000-000000000001",
+        "post_body": "tier changed",
+    }
+
+    class Connection:
+        def transaction(self) -> Transaction:
+            return Transaction()
+
+        async def fetch(self, _query: str, *_args: object) -> list[dict[str, str]]:
+            return [candidate]
+
+    class Acquire:
+        async def __aenter__(self) -> Connection:
+            return Connection()
+
+        async def __aexit__(self, *_args: object) -> None:
+            return None
+
+    class Pool:
+        def acquire(self) -> Acquire:
+            return Acquire()
+
+    processed_post_ids: list[str] = []
+
+    async def incomplete(*_args: object, **_kwargs: object) -> bool:
+        return False
+
+    async def ensure(
+        _conn: object, post_id: str, body: str, *, content_complete: bool
+    ) -> PostContentJobRequest:
+        processed_post_ids.append(post_id)
+        return PostContentJobRequest(post_id, source_body_sha256(body), QUEUED, True)
+
+    async def publish(*_args: object, **_kwargs: object) -> str:
+        return "1-0"
+
+    from backend.app import post_content_queue
+
+    monkeypatch.setattr(post_content_queue, "post_content_is_complete", incomplete)
+    monkeypatch.setattr(post_content_queue, "ensure_post_content_job", ensure)
+    monkeypatch.setattr(post_content_queue, "publish_post_content_event", publish)
+
+    result = asyncio.run(
+        enqueue_post_content_backfill(
+            Pool(), object(), limit=2, require_embedding=True, require_structure=True
+        )
+    )
+
+    assert processed_post_ids == [candidate["post_id"]]
+    assert result == {
+        "selected_posts": 1,
+        "queued_posts": 1,
+        "published_events": 1,
         "recovery_pending": 0,
     }
 
@@ -558,6 +647,58 @@ def test_explicit_retry_rejects_missing_and_nonterminal_jobs() -> None:
             )
         )
 
+
+def test_explicit_retry_page_commits_before_wakeup() -> None:
+    """A bounded failed page resets in PostgreSQL before publishing events."""
+    from contextlib import asynccontextmanager
+
+    order: list[str] = []
+
+    class Transaction:
+        async def __aenter__(self) -> None:
+            order.append("begin")
+
+        async def __aexit__(self, *_args: object) -> None:
+            order.append("commit")
+
+    class Connection:
+        def transaction(self) -> Transaction:
+            return Transaction()
+
+        async def fetch(self, query: str, *_args: object):
+            assert "for update of job skip locked" in query
+            return [{"post_id": "synthetic-post", "post_body": "synthetic body"}]
+
+        async def fetchrow(self, _query: str, *_args: object):
+            return {"status_code": FAILED}
+
+        async def fetchval(self, _query: str, *_args: object) -> int:
+            return 1
+
+        async def execute(self, _query: str, *_args: object) -> str:
+            return "OK"
+
+    class Pool:
+        @asynccontextmanager
+        async def acquire(self):
+            yield Connection()
+
+    class Client:
+        async def xadd(self, _stream: str, _fields: object, **_kwargs: object) -> str:
+            order.append("publish")
+            return "1-0"
+
+    result = asyncio.run(
+        requeue_failed_post_content_jobs(Pool(), Client(), limit=1)
+    )
+
+    assert result == {
+        "selected_posts": 1,
+        "queued_posts": 1,
+        "published_events": 1,
+        "recovery_pending": 0,
+    }
+    assert order == ["begin", "commit", "publish"]
 
 def test_backfill_success_clears_terminal_error_and_records_succeeded() -> None:
     executed: list[tuple[str, tuple[object, ...]]] = []

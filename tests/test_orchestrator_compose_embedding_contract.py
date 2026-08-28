@@ -50,9 +50,8 @@ def test_rendered_compose_keeps_embedding_selection_upstream(tmp_path: Path) -> 
     ]
     assert config["services"]["backend-worker"]["healthcheck"]["test"] == [
         "CMD",
-        "python",
-        "-m",
-        "backend.app.worker_health",
+        "/bin/sh",
+        "/app/backend/worker-healthcheck.sh",
     ]
 
 

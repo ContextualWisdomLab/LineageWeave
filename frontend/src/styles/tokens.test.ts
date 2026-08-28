@@ -188,6 +188,20 @@ describe("design tokens", () => {
     expect(rule).toContain("align-items: center");
   });
 
+  it("keeps localized Dashboard count-unit groups together", () => {
+    const rule = appCss.match(/\.dashboard-count-unit\s*\{[^}]*\}/)?.[0] ?? "";
+    expect(rule).toContain("white-space: nowrap");
+  });
+
+  it("keeps phone navigation readable without hiding destinations", () => {
+    const phoneRules = [...appCss.matchAll(/@media \(max-width: 768px\)\s*\{[\s\S]*?\n\}/g)]
+      .map((match) => match[0])
+      .find((rule) => rule.includes(".workspace-gnb")) ?? "";
+    expect(phoneRules).toContain("overflow-x: auto");
+    expect(phoneRules).toContain("gap: 0.75rem");
+    expect(phoneRules).not.toMatch(/\.workspace-gnb\s*\{[^}]*display:\s*none/);
+  });
+
   it("keeps public-verification layout on shared tokens", () => {
     expect(publicClaimCss).not.toMatch(/#[0-9a-fA-F]{3,8}/);
     for (const token of [

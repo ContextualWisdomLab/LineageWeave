@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import json
 
+import pytest
+
 import lineageweave.http_client as http_client
 from lineageweave.llm_context import build_post_llm_metadata, use_llm_metadata
 
@@ -11,6 +13,7 @@ def test_post_metadata_is_stable_and_post_specific() -> None:
         "source_process_unit_code": "PU-01",
         "author_account_id": "author-1",
         "corporate_entity_code": "CORP-01",
+        "visibility_code": "public",
     }
     first = build_post_llm_metadata("post-1", values)
     second = build_post_llm_metadata("post-1", values)
@@ -21,6 +24,7 @@ def test_post_metadata_is_stable_and_post_specific() -> None:
     assert first["lineageweave_pu"] == "PU-01"
     assert first["lineageweave_author_id"] == "author-1"
     assert first["lineageweave_corp_code"] == "CORP-01"
+    assert first["lineageweave_visibility"] == "public"
 
 
 def test_http_transport_merges_context_metadata_without_mutating_payload(monkeypatch) -> None:
@@ -121,3 +125,21 @@ def test_orchestrator_session_is_not_invented_or_sent_to_other_peers(monkeypatch
 
     assert "session_id" not in bodies[0]
     assert "session_id" not in bodies[1]
+
+
+def test_orchestrator_rejects_a_caller_session_that_conflicts_with_post_context(
+    monkeypatch,
+) -> None:
+    """A caller cannot silently split one post across orchestrator sessions."""
+    monkeypatch.setattr(http_client, "_request", lambda *_args, **_kwargs: (200, b"{}"))
+    metadata = build_post_llm_metadata("synthetic-post", {})
+
+    with use_llm_metadata(metadata), pytest.raises(
+        ValueError, match="does not match the active post session"
+    ):
+        http_client.post_json(
+            "https://orchestrator.example/v1/chat/completions",
+            {"messages": [], "session_id": "different-session"},
+            headers={},
+            timeout=1,
+        )

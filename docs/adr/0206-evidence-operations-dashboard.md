@@ -170,6 +170,15 @@ provenance.
    lossless human-readable form, names each milestone's clock, and links the
    reader to both endpoint sources. State and next action are conveyed in text
    rather than color alone.
+20. The bounded durable content backfill prefers an eligible post with a
+   canonical `post_project_mention.ontology_iri` projection when its exact
+   queued source-body digest lacks operations analysis. `EXISTS` prevents a
+   multi-project mention fan-out from duplicating the post. The remaining
+   incomplete posts stay in the same fallback queue, ordered after that tier by
+   event time (with the ADR 0202 created-time fallback), created time, and post
+   id before the existing bounded `LIMIT` / `SKIP LOCKED` claim. Titles, body
+   keywords, source lifecycle codes, and inferred stages do not affect this
+   priority.
 
 ## Consequences
 
@@ -193,6 +202,37 @@ treated as a negative case.
   evidence links, keyboard semantics, and non-color status copy.
 - Storybook interaction tests and authenticated browser screenshots audit the
   rendered desktop and narrow layouts.
+- `scripts/accept_operations_dashboard_runtime.sh` fails closed on the exact
+  orchestrator image revision, performs the explicit structured-readiness
+  refresh only after operator opt-in, verifies one normalized preferred
+  candidate and a positive grounded-case aggregate delta, then exercises the
+  authenticated Dashboard API and rendered UI without printing source rows.
+  The same operator-declared run invokes `scripts/k6_operations_dashboard.js`
+  with explicit VUs and duration; it observes Dashboard reads only, defines no
+  performance threshold, and keeps its summary outside the repository. The
+  runner accepts the observation only when the summary records zero failed
+  functional checks and a zero HTTP-request failure rate; this is a correctness
+  postcondition, not a latency or capacity SLO.
+- `scripts/accept_operations_dashboard_synthetic.sh` obtains only the local
+  synthetic Keycloak identity and makes authenticated Dashboard reads without
+  starting content analysis or calling a provider. It rejects backend, worker,
+  or frontend images whose OCI revision label is not the operator-declared
+  exact LineageWeave commit, and keeps distinct desktop/mobile screenshots,
+  browser output, and k6 evidence
+  outside the repository. An empty synthetic case list remains a valid UI/API
+  shape check; it is not evidence that grounded production cases exist.
+- `scripts/explain_post_content_backfill.py` executes the exact bounded
+  candidate SQL with `EXPLAIN (ANALYZE, BUFFERS, WAL, FORMAT JSON)` inside a
+  rolled-back transaction. It reports only aggregate timing, buffer, temporary
+  block, node-kind, and relation-scan counts, so priority-sort, correlated
+  subquery, index, spill, and lock-path evidence is reproducible without
+  emitting source rows.
+- Backfill admission reads the ontology-backed priority tier first and reads
+  the remaining eligible tier only when fewer than the requested bounded page
+  are locked. This preserves the documented total order while avoiding a
+  corpus-wide priority `CASE` sort and its per-row correlated probes.
+  Candidate post identifiers are de-duplicated before mutation because the two
+  `READ COMMITTED` statements may observe a target moving between tiers.
 
 ## References
 

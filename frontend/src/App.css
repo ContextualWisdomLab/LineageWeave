@@ -1486,6 +1486,8 @@
 .dashboard-metrics dt { color: var(--color-text); font-size: 0.875rem; }
 .dashboard-metrics dd { margin: 0.25rem 0 0; font-size: 1.5rem; font-weight: 700; }
 
+.dashboard-count-unit { white-space: nowrap; }
+
 .dashboard-case-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(min(22rem, 100%), 1fr));
