@@ -1,14 +1,15 @@
 # Product & Technical Gap Baseline
 
 > Current rebuild overlay: 2026-08-28 KST. Protected `main` is
-> `fc13acaa20adca11968238e398d4aafcf62b6cee`; draft PR #640 is being
-> rebuilt from that exact base while retaining its prior
-> `5fd50962c43717dbd73c9ee73aa5bf106507118a` history. The open queue has
-> 13 PRs: #781 and #778 were clean at their then-current heads; #782, #780,
-> #774, #772, #771, and #770 still required base or check resolution; draft
-> PRs #702, #679, #672, #667, and #640 remained dirty. Checks and reviews
-> from the pre-rebuild #640 head do not transfer to this candidate. Exact-head
-> Compose, browser, load, and backfill acceptance remains pending. This
+> `ff7431bd1851c03e737808d22c6a2d43968582f9`; PR #640 is a ready-for-review
+> current-main semantic rebuild at `f0bc98eef238b7a03d4227ab909c8de296041f36`.
+> PR #778 remains remotely at `3d38f48dd3ca7e939b60f80f34ca61260c377818`;
+> its locally tested restack candidate before this documentation-only update
+> was `572ef39bf0f31882a8b1cb920f69b66d38176dab`. The open queue has 14 PRs:
+> #783, #782, #781, #780, #778, #774, #772, #771, #770, #702, #679, #672,
+> #667, and #640; #702/#679/#672/#667 remain drafts. Local candidate tests do
+> not transfer to the remote PR head or protected `main`. Exact-head Compose,
+> browser, load, and backfill acceptance remains pending. This
 > overlay supersedes every older queue count below while the dated historical
 > snapshots remain supporting evidence only.
 >
