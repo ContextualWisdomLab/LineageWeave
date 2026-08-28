@@ -50,7 +50,13 @@ def test_api_lifespan_opens_clients_without_starting_queue_workers(monkeypatch) 
     assert valkey.closed
 
 
-def test_worker_process_owns_all_configured_durable_consumers(monkeypatch) -> None:
+@pytest.mark.parametrize(
+    ("topic_influence_url", "expects_topic_consumer"),
+    [("http://measurement.test", True), ("measurement.test/no-scheme", False)],
+)
+def test_worker_process_owns_all_configured_durable_consumers(
+    monkeypatch, topic_influence_url: str, expects_topic_consumer: bool
+) -> None:
     """Analysis, content, Ask, and configured influence work share one owner."""
     pool = _Closable()
     valkey = _Closable()
@@ -61,7 +67,7 @@ def test_worker_process_owns_all_configured_durable_consumers(monkeypatch) -> No
         valkey_url="valkey",
         tepp_transport_url="",
         tepp_api_key="",
-        topic_influence_transport_url="http://measurement.test",
+        topic_influence_transport_url=topic_influence_url,
         topic_influence_api_key="synthetic-token",
         topic_influence_request_timeout_seconds=11,
         topic_influence_lease_timeout_seconds=17,
@@ -119,13 +125,8 @@ def test_worker_process_owns_all_configured_durable_consumers(monkeypatch) -> No
 
     asyncio.run(worker.run_worker_process())
 
-    assert calls[:5] == [
-        "lease_acquired",
-        "analysis",
-        "content",
-        "global_ask",
-        "topic_influence",
-    ]
+    assert calls[:4] == ["lease_acquired", "analysis", "content", "global_ask"]
+    assert ("topic_influence" in calls) is expects_topic_consumer
     assert global_ask_kwargs["semantic_query_factory"]() is semantic_client
     assert global_ask_kwargs["claim_verification_factory"]() is verification_client
     assert calls[-2:] == ["lease_released", "shutdown"]
@@ -214,7 +215,32 @@ def test_invalid_optional_topic_influence_config_is_isolated() -> None:
         topic_influence_poll_seconds=13,
     )
 
-    assert worker._optional_topic_influence_timeouts(settings, configured=True) is None
+    assert (
+        worker._optional_topic_influence_timeouts(
+            settings, transport_url="https://measurement.test"
+        )
+        is None
+    )
+
+
+@pytest.mark.parametrize(
+    "transport_url",
+    ["measurement.test/no-scheme", "file:///tmp/socket", "https:///missing-host", 3],
+)
+def test_invalid_topic_influence_url_is_isolated(transport_url: object) -> None:
+    """Malformed optional endpoints cannot create a doomed consumer task."""
+    settings = SimpleNamespace(
+        topic_influence_request_timeout_seconds=11,
+        topic_influence_lease_timeout_seconds=17,
+        topic_influence_poll_seconds=13,
+    )
+
+    assert (
+        worker._optional_topic_influence_timeouts(
+            settings, transport_url=transport_url
+        )
+        is None
+    )
 
 
 @pytest.mark.parametrize("poll_seconds", [None, 0, -1, 1.5, True])

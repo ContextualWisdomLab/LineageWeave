@@ -6,6 +6,7 @@ import asyncio
 import logging
 from contextlib import asynccontextmanager
 from collections.abc import AsyncIterator
+from urllib.parse import urlsplit
 
 import asyncpg
 
@@ -58,10 +59,27 @@ def _topic_influence_timeouts(settings: object) -> tuple[int, int, int]:
 
 
 def _optional_topic_influence_timeouts(
-    settings: object, *, configured: bool
+    settings: object, *, transport_url: object
 ) -> tuple[int, int, int] | None:
-    """Disable only optional influence work when its lease contract is invalid."""
-    if not configured:
+    """Disable only optional influence work when its endpoint contract is invalid."""
+    if not transport_url:
+        return None
+    if not isinstance(transport_url, str):
+        _logger.error(
+            "Topic influence is disabled; declare an absolute HTTP or HTTPS "
+            "transport URL before enabling this consumer"
+        )
+        return None
+    parsed = urlsplit(transport_url)
+    if (
+        parsed.scheme not in {"http", "https"}
+        or not parsed.netloc
+        or not parsed.hostname
+    ):
+        _logger.error(
+            "Topic influence is disabled; declare an absolute HTTP or HTTPS "
+            "transport URL before enabling this consumer"
+        )
         return None
     try:
         return _topic_influence_timeouts(settings)
@@ -106,7 +124,7 @@ async def run_worker_process() -> None:
                 settings, "topic_influence_transport_url", ""
             )
             influence_timeouts = _optional_topic_influence_timeouts(
-                settings, configured=bool(topic_influence_url)
+                settings, transport_url=topic_influence_url
             )
             workers = [
                 asyncio.create_task(run_worker_heartbeat()),
