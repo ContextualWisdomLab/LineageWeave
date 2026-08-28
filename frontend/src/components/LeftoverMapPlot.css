@@ -59,7 +59,8 @@
 
 .leftover-map-plot-svg {
   display: block;
-  width: 100%;
+  width: 480px;
+  max-width: none;
   height: auto;
 }
 

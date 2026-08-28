@@ -96,7 +96,7 @@ export function LeftoverMapPlot({
           {layout.items.map((marker) => (
             <g key={`item:${marker.id}`} aria-label={`${t("Criterion ζ")} ${marker.label}`}>
               <polygon className="leftover-map-plot-item" points={diamondPoints(marker.x, marker.y, 7)} />
-              <text className="leftover-map-plot-label" x={marker.x + 10} y={marker.y - 8}>
+              <text className="leftover-map-plot-label" x={marker.x + 10} y={marker.y + 14}>
                 {marker.label}
               </text>
             </g>
@@ -123,7 +123,7 @@ export function LeftoverMapPlot({
               >
                 <circle className="leftover-map-plot-person-hit" cx={marker.x} cy={marker.y} r={22} />
                 <circle className="leftover-map-plot-person" cx={marker.x} cy={marker.y} r={6} />
-                <text className="leftover-map-plot-label" x={marker.x + 10} y={marker.y + 4}>
+                <text className="leftover-map-plot-label" x={marker.x + 10} y={marker.y - 10}>
                   {marker.label}
                 </text>
               </g>
