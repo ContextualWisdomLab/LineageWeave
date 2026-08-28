@@ -1,10 +1,11 @@
 import { render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import userEvent from "@testing-library/user-event";
+import { describe, expect, it, vi } from "vitest";
 import { ProductEvidenceList } from "./ProductEvidenceList";
 
 describe("ProductEvidenceList", () => {
   it("shows the next catalog action only for an unresolved identity", () => {
-    render(<ProductEvidenceList products={[{
+    render(<ProductEvidenceList onOpenPost={vi.fn()} products={[{
       mention_ordinal: 0,
       extracted_product_name: "Synthetic Model Q",
       canonical_product_name: null,
@@ -16,8 +17,9 @@ describe("ProductEvidenceList", () => {
     expect(screen.getByRole("status")).toHaveTextContent("product catalog");
   });
 
-  it("shows the authorized target and its cited relationship evidence", () => {
-    render(<ProductEvidenceList products={[{
+  it("shows the authorized target and opens each distinct evidence post", async () => {
+    const onOpenPost = vi.fn();
+    render(<ProductEvidenceList onOpenPost={onOpenPost} products={[{
       mention_ordinal: 0,
       extracted_product_name: "Synthetic Model Q",
       canonical_product_name: "Synthetic Model Q",
@@ -31,10 +33,14 @@ describe("ProductEvidenceList", () => {
         target_id: "synthetic-project",
         target_label: "Synthetic Project",
         evidence_text: "Synthetic Model Q supports Synthetic Project",
-        evidence_post_id: "synthetic-post",
+        evidence_post_id: "synthetic-relation-post",
       }],
     }]} />);
     expect(screen.getByText("Synthetic Project")).toBeInTheDocument();
     expect(screen.getByText(/supports Synthetic Project/)).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Open product evidence post" }));
+    expect(onOpenPost).toHaveBeenCalledWith("synthetic-post");
+    await userEvent.click(screen.getByRole("button", { name: "Open relationship evidence post" }));
+    expect(onOpenPost).toHaveBeenCalledWith("synthetic-relation-post");
   });
 });

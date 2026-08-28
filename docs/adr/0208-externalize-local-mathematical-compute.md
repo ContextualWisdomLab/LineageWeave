@@ -28,10 +28,10 @@ The ecosystem product boundaries are already sufficient:
   CPU/GPU implementation before LineageWeave treats a new result as governed
   numerical evidence.
 
-LineageWeave has no standalone canonical PRD file on this exact head. Until
-one lands, `ARCHITECTURE.md` and the accepted ADR set are the product baseline;
-this absence remains a product-documentation gap, not permission to infer a
-different responsibility.
+[`docs/product-requirements.md`](../product-requirements.md) is the canonical
+product-requirements baseline on this exact head. `ARCHITECTURE.md` and the
+accepted ADR set refine its responsibility boundaries; none of those records
+permits a consumer repository to infer a different numerical owner.
 
 ## Decision
 
@@ -72,30 +72,18 @@ different responsibility.
 ## Implemented migration slices
 
 - The backend dependency is immutably pinned to fast-mlsirm protected-main
-  commit `45627700c26c29bca150896a9519a9b7426acb56`. fast-mlsirm PR #1423 merged
-  as `99eb70913ef9e7749333c2f0059ea11a4be0fb4d`; its protected Rust contract
-  validates a domain-neutral independent criterion anchor and continuous pair
-  evidence, but deliberately returns
-  `IndependentCriterionObservationsUnavailable` instead of fitting weights.
-  Therefore LineageWeave's former Python/NumPy MLS2PLM estimator is disabled
-  and channel-weight estimation remains unavailable until fast-mlsirm publishes
-  fitted owner evidence. No customer projection exposes schema, transport,
-  hash, TEPP, or fast-mlsirm internals.
-  Synthetic ``make seed`` continues to provision posts and non-measurement
-  product surfaces while omitting Event Lineage edges and the Succeeded
-  lineage analysis run; unavailable owner evidence never aborts the seed and
-  is never replaced with fixture weights.
+  commit `d025b7d237d8db7ca97a5611606c6285d5870895`. The TEPP-specific contract
+  proposed by closed, unmerged fast-mlsirm PR #1423 is not an owner contract
+  and is not consumed. Channel-weight estimation remains unavailable until a
+  domain-neutral owner contract lands; the legacy Python estimator remains
+  frozen migration debt and MUST NOT activate calibrated weights. No customer
+  projection exposes schema, transport, hash, TEPP, or fast-mlsirm internals.
 
 - The residual interaction map consumes fast-mlsirm's protected-main
   `residual_interaction_map` and `polytomous_expected_response` contracts.
   Gabriel SVD, axis inertia, distance, reconstruction, unexplained residual,
   cross share, and coverage arithmetic were deleted from LineageWeave Python.
   Product-side identifier attachment and closest/farthest selection remain.
-  Protected-main commit `45627700c26c29bca150896a9519a9b7426acb56`
-  does not publish an `explained_share` result cell. The nullable product field
-  therefore remains unknown for that owner version; LineageWeave must not
-  reconstruct the missing value in Python. A future protected owner envelope
-  may populate it without changing this fail-closed consumer rule.
 - Rankings call RankWeave's classic or convex-weighted RRF owner path and
   project its exact channel contributions. LineageWeave no longer evaluates
   the reciprocal-rank contribution formula. RankWeave's Rust CPU/GPU migration

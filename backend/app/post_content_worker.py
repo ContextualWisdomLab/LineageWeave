@@ -29,6 +29,10 @@ from backend.app.post_content_queue import (
     transition_post_content_job,
 )
 from backend.app.operations_case_ingestion import persist_operations_cases
+from backend.app.occupational_construct_ingestion import (
+    extract_occupational_construct_assertions,
+    persist_occupational_construct_assertions,
+)
 from backend.app.product_semantic_ingestion import (
     persist_product_mentions,
     resolve_product_mentions,
@@ -46,6 +50,9 @@ from lineageweave.operations_case_analysis import (
     ContextualOrchestratorOperationsCaseAnalysisClient,
     OperationsEvidenceSource,
     operations_analysis_input_sha256,
+)
+from lineageweave.occupational_construct_extraction import (
+    ContextualOrchestratorOccupationalConstructExtractionClient,
 )
 from lineageweave.post_content_normalization import normalize_post_body
 from lineageweave.post_content_persistence import persist_post_content
@@ -430,9 +437,18 @@ async def _claim_job(
                         source_body_digest,
                     )
                 )
+                construct_complete = not require_structure or bool(
+                    await conn.fetchval(
+                        "select exists (select 1 from post_occupational_construct_extraction "
+                        "where post_id = $1 and source_body_sha256 = $2)",
+                        post_id,
+                        source_body_digest,
+                    )
+                )
                 if (
                     content_complete
                     and case_complete
+                    and construct_complete
                     and (
                         not require_structure
                         or row["product_analysis_source_body_sha256"]
@@ -632,6 +648,24 @@ async def process_post_content_job(
                         "product_semantic_ingestion",
                         exc,
                         outcome="provider_unavailable",
+                    )
+                    raise
+                construct_client = (
+                    ContextualOrchestratorOccupationalConstructExtractionClient(
+                        settings.orchestrator_base_url,
+                        settings.orchestrator_api_key,
+                    )
+                )
+                assertions = await extract_occupational_construct_assertions(
+                    pool, post_id, construct_client
+                )
+                async with pool.acquire() as conn:
+                    await persist_occupational_construct_assertions(
+                        conn,
+                        post_id,
+                        metadata["lineageweave_post_session_id"],
+                        assertions,
+                        source_body_sha256=source_body_digest,
                     )
             channel_stage_code = "content_normalization"
             normalized = await asyncio.to_thread(

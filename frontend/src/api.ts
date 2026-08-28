@@ -5,6 +5,7 @@ export interface PostSummary {
   post_title: string;
   voc_type_code: string;
   voc_type_label?: string;
+  voice_types?: PostVoiceType[];
   visibility_code: string;
   visibility_label?: string;
   source_stage_code?: string | null;
@@ -32,12 +33,21 @@ export interface PostSummary {
   created_at: string;
 }
 
+export interface PostVoiceType {
+  code: string;
+  label: string;
+  is_primary: boolean;
+  truth_status_code: string;
+  evidence_available: boolean;
+}
+
 export interface PostPage {
   posts: PostSummary[];
   total_count: number;
   limit: number;
   offset: number;
   voc_type_options?: PostFilterOption[];
+  voice_type_catalog?: PostFilterOption[];
   visibility_options?: PostFilterOption[];
 }
 
@@ -99,21 +109,13 @@ export interface OperationsDashboardCase {
 
 export interface OperationsDashboardResponse {
   period_label: string;
-  period_start?: string | null;
-  period_end?: string | null;
-  period_time_axis_code?: "event_occurred_at";
   total_post_count: number;
   total_event_count: number;
   external_post_count: number;
   external_percent: number;
   pending_analysis_count: number;
   failed_analysis_count: number;
-  case_metrics: Array<{
-    case_kind_code: string;
-    case_kind_label: string;
-    event_count: number;
-    post_count: number;
-  }>;
+  case_metrics: Array<{ case_kind_code: string; case_kind_label: string; event_count: number; post_count: number }>;
   lifecycle_metrics: Array<{
     lifecycle_kind_code: string;
     lifecycle_kind_label: string;
@@ -123,34 +125,6 @@ export interface OperationsDashboardResponse {
   }>;
   topic_context: TopicContextDashboard;
   cases: OperationsDashboardCase[];
-}
-
-export interface VoiceTaxonomySummary {
-  total_eligible: number;
-  classified_unique: number;
-  multi_membership: number;
-  source_count: number;
-  derived_count: number;
-  unavailable: number;
-  disagreement: number;
-  counts_overlap: boolean;
-  category_memberships: Array<{
-    voice_concept_code: "voc" | "vocc" | "voco" | "vom" | "vop" | "vos" | "voe" | "vob" | "vor" | "voi" | "voso" | "vops";
-    post_count: number;
-    eligible_percentage: number;
-  }>;
-}
-
-export async function fetchVoiceTaxonomySummary(
-  accessToken: string,
-  dateFrom = "",
-  dateTo = "",
-): Promise<VoiceTaxonomySummary> {
-  const query = new URLSearchParams();
-  if (dateFrom) query.set("date_from", dateFrom);
-  if (dateTo) query.set("date_to", dateTo);
-  const suffix = query.size ? `?${query.toString()}` : "";
-  return backendFetch<VoiceTaxonomySummary>(`/api/voice-taxonomy/summary${suffix}`, accessToken);
 }
 
 export interface TopicContextDashboard {
@@ -191,7 +165,7 @@ export interface TopicContextDashboard {
       source_topic_index: number;
       target_topic_index: number | null;
       event_time: string;
-      evidence_sha256: string;
+      evidence_post_id: string;
     }>;
     contexts: Array<{
       dimension_code: "business_unit" | "process_unit" | "team" | "person";
@@ -207,7 +181,7 @@ export interface TopicContextDashboard {
         uncertainty_upper_value: number;
         diagnostic_status_code: "accepted";
         membership_weight: number;
-        membership_evidence_sha256: string;
+        membership_evidence_post_id: string;
       }>;
     }>;
   }>;
@@ -227,6 +201,34 @@ export function fetchOperationsDashboard(
   return backendFetch(`/api/dashboard${suffix}`, accessToken);
 }
 
+export interface VoiceTaxonomySummary {
+  total_eligible: number;
+  classified_unique: number;
+  multi_membership: number;
+  source_count: number;
+  derived_count: number;
+  disagreement: number;
+  unavailable: number;
+  counts_overlap: boolean;
+  category_memberships: Array<{
+    voice_concept_code: "voc" | "vocc" | "voco" | "vom" | "vop" | "vos" | "voe" | "vob" | "vor" | "voi" | "voso" | "vops";
+    post_count: number;
+    eligible_percentage: number;
+  }>;
+}
+
+export async function fetchVoiceTaxonomySummary(
+  accessToken: string,
+  dateFrom = "",
+  dateTo = "",
+): Promise<VoiceTaxonomySummary> {
+  const query = new URLSearchParams();
+  if (dateFrom) query.set("date_from", dateFrom);
+  if (dateTo) query.set("date_to", dateTo);
+  const suffix = query.size ? `?${query.toString()}` : "";
+  return backendFetch<VoiceTaxonomySummary>(`/api/voice-taxonomy/summary${suffix}`, accessToken);
+}
+
 export interface PostFilterOption {
   code: string;
   label: string;
@@ -243,8 +245,19 @@ export interface PostKnownAt {
 
 export interface PostDetail extends PostSummary {
   post_body: string;
+  occupational_construct_assertions: OccupationalConstructAssertion[];
+  occupational_construct_evidence_status:
+    | "complete"
+    | "processing"
+    | "unavailable"
+    | "setup_required"
+    | "historical_unavailable";
   known_at?: PostKnownAt;
   product_evidence?: ProductEvidence[];
+  product_evidence_status?: {
+    status_code: "complete" | "processing" | "unavailable" | "setup_required" | "historical_unavailable";
+    next_action: string;
+  };
 }
 
 export interface ProductEvidence {
@@ -428,6 +441,20 @@ export interface ProjectEvidence {
   provenance: string;
 }
 
+export interface OccupationalConstructAssertion {
+  construct_iri: string;
+  construct_family_code: string;
+  preferred_label: string;
+  vocabulary_iri: string;
+  vocabulary_version: string;
+  evidence_text: string;
+  truth_status_code: string;
+  extraction_method: string;
+  generated_at: string;
+  unit_index: number;
+  provenance: string;
+}
+
 export interface PostAiSummary {
   post_id: string;
   korean_summary: string;
@@ -489,6 +516,13 @@ export interface CitedPostRef {
   live_changed_after_cutoff?: boolean;
   historical_body_unavailable?: boolean;
   unavailable_channels?: string[];
+  evidence_open_action?: EvidenceOpenAction;
+}
+
+export interface EvidenceOpenAction {
+  action_kind: "open_cited_content_unit";
+  post_id: string;
+  unit_index: number;
 }
 
 export interface CitedPostEvidenceFact {
@@ -538,17 +572,6 @@ export interface CitedPostImage {
   tags: string[];
 }
 
-export interface AskSourceReference {
-  post_id: string;
-  lead_kind_code: string;
-  evidence_url: string;
-  evidence_title_text: string | null;
-  evidence_excerpt_text: string | null;
-  judgment_code: "research_supported" | "research_refuted";
-  next_action_text: string;
-  checked_at: string;
-}
-
 export interface AskAgentResponse {
   answer_text: string;
   cited_post_ids: string[];
@@ -556,7 +579,6 @@ export interface AskAgentResponse {
   cited_events?: CitedPostEvent[];
   cited_post_evidence?: CitedPostEvidence[];
   cited_post_images?: CitedPostImage[];
-  cited_source_references?: AskSourceReference[];
   source_post_ids: string[];
   external_verification_status?: string;
   external_claims?: ExternalClaim[];
@@ -580,14 +602,6 @@ export interface AskAgentResponse {
         api_path: string;
         resource_uri: string;
         evidence_facts: CitedPostEvidenceFact[];
-        source_references: Array<{
-          url: string;
-          title: string | null;
-          excerpt: string | null;
-          judgment_code: string;
-          lead_kind_code: string;
-          next_action: string;
-        }>;
       }>;
     };
     alert: {
@@ -685,6 +699,20 @@ export class BackendError extends Error {
     this.name = "BackendError";
     this.status = status;
   }
+}
+
+export function fetchProjectHistory(
+  accessToken: string,
+  projectKey: string,
+  focusPostId: string,
+  knowledgeCutoff?: string | null,
+): Promise<import("./projectHistory").ProjectHistoryProjection> {
+  const query = new URLSearchParams({ focus_post_id: focusPostId });
+  if (knowledgeCutoff) query.set("knowledge_cutoff", knowledgeCutoff);
+  return backendFetch(
+    `/api/projects/${encodeURIComponent(projectKey)}/history?${query.toString()}`,
+    accessToken,
+  );
 }
 
 async function backendFetch<T>(
@@ -958,6 +986,22 @@ export function fetchPost(
   return backendFetch<PostDetail>(`/api/posts/${postId}${query}`, accessToken);
 }
 
+export function createPostVoiceAssignment(
+  accessToken: string,
+  postId: string,
+  voiceTypeCode: string,
+  truthStatusCode: string,
+): Promise<PostVoiceType> {
+  return backendFetch(`/api/posts/${postId}/voice-assignments`, accessToken, {
+    method: "POST",
+    body: JSON.stringify({
+      voice_type_code: voiceTypeCode,
+      truth_status_code: truthStatusCode,
+      evidence_post_id: postId,
+    }),
+  });
+}
+
 export function fetchPostContent(accessToken: string, postId: string): Promise<PostContentResponse> {
   return backendFetch<PostContentResponse>(`/api/posts/${postId}/content`, accessToken);
 }
@@ -1108,6 +1152,19 @@ export interface OntologyExactValueRow {
   valid_from: string;
   valid_to: string;
   evidence_count: string;
+  evidence_post_id?: string;
+}
+
+export interface OntologyVoiceAssignmentPayload {
+  post_id: string;
+  voice_type_code: string;
+  voice_type_iri: string;
+  voice_type_label: string;
+  is_primary: boolean;
+  truth_status_code: string;
+  recorded_at: string;
+  provenance_reference: string;
+  evidence_post_id: string | null;
 }
 
 export interface OntologyNeighborhoodPayload {
@@ -1119,6 +1176,7 @@ export interface OntologyNeighborhoodPayload {
   nodes: OntologyGraphNodePayload[];
   edges: OntologyGraphEdgePayload[];
   exact_value_rows: OntologyExactValueRow[];
+  voice_assignments?: OntologyVoiceAssignmentPayload[];
   jsonld: Record<string, unknown>;
 }
 
@@ -1152,6 +1210,98 @@ export function fetchOntologyNeighborhood(
   return backendFetch(`/api/ontology/neighborhood?${params.toString()}`, accessToken);
 }
 
+export interface WorkerFunctionConstructPayload {
+  iri: string;
+  category: "cognitive" | "affective" | "behavioral";
+  label: string;
+  dimension: string;
+  theoretical_basis: string;
+  definition: string;
+}
+
+export interface WorkerFunctionProfilePayload {
+  function_domain: "data" | "people" | "things";
+  function_rank: number;
+  function_label: string;
+  cognitive_demands: WorkerFunctionConstructPayload[];
+  mental_workload_demands: WorkerFunctionConstructPayload[];
+  affective_demands: WorkerFunctionConstructPayload[];
+  emotional_labor_demands: WorkerFunctionConstructPayload[];
+  behavioral_manifestations: WorkerFunctionConstructPayload[];
+  psychomotor_behaviors: WorkerFunctionConstructPayload[];
+  interpersonal_behaviors: WorkerFunctionConstructPayload[];
+}
+
+export interface WorkerFunctionRelationPayload {
+  source_iri: string;
+  source_label: string;
+  predicate_iri: string;
+  predicate_label: string;
+  target_iri: string;
+  target_label: string;
+  target_category: string;
+}
+
+export interface WorkerFunctionConstructCatalogPayload {
+  constructs: Partial<
+    Record<"cognitive" | "affective" | "behavioral", WorkerFunctionConstructPayload[]>
+  >;
+  relations: WorkerFunctionRelationPayload[];
+}
+
+export function fetchWorkerFunctionProfile(
+  accessToken: string,
+  domain: string,
+  rank: number,
+): Promise<WorkerFunctionProfilePayload> {
+  return backendFetch(`/api/ontology/worker-functions/${domain}/${rank}`, accessToken);
+}
+
+export function fetchWorkerFunctionConstructCatalog(
+  accessToken: string,
+): Promise<WorkerFunctionConstructCatalogPayload> {
+  return backendFetch("/api/ontology/worker-function-constructs", accessToken);
+}
+
+export interface OccupationalConstructSearchHit {
+  construct_id: string;
+  construct_iri: string;
+  construct_family_code: string;
+  preferred_label: string;
+  vocabulary_version: string;
+  supporting_post_id: string;
+  supporting_post_title: string;
+  evidence_text: string;
+  truth_status_code: string;
+}
+
+export interface OccupationalConstructSearchPage {
+  query: string;
+  family_code: string | null;
+  next_cursor: string | null;
+  hits: OccupationalConstructSearchHit[];
+}
+
+export interface OccupationalConstructSearchQuery {
+  query: string;
+  family?: string;
+  knowledgeCutoff?: string;
+  cursor?: string;
+  limit?: number;
+}
+
+export function fetchOccupationalConstructSearch(
+  accessToken: string,
+  query: OccupationalConstructSearchQuery,
+): Promise<OccupationalConstructSearchPage> {
+  const params = new URLSearchParams({ q: query.query });
+  if (query.family) params.set("family", query.family);
+  if (query.knowledgeCutoff) params.set("knowledge_cutoff", query.knowledgeCutoff);
+  if (query.cursor) params.set("cursor", query.cursor);
+  if (query.limit != null) params.set("limit", String(query.limit));
+  return backendFetch(`/api/occupational-constructs/search?${params.toString()}`, accessToken);
+}
+
 export function extractPostKeymen(
   accessToken: string,
   postId: string,
@@ -1171,42 +1321,6 @@ export function verifyPostRelations(
   postId: string,
 ): Promise<{ verified: VerifiedRelation[] }> {
   return backendFetch(`/api/posts/${postId}/verify-relations`, accessToken, { method: "POST" });
-}
-
-export interface SourceResearchCitation {
-  lead_kind_code: string;
-  lead_source_unit_id: string | null;
-  lead_image_region_id: string | null;
-  lead_excerpt_text: string;
-  search_query_text: string;
-  evidence_url: string | null;
-  evidence_title_text: string | null;
-  evidence_excerpt_text: string | null;
-  judgment_code: string;
-  rationale_text: string;
-  next_action_text: string;
-  checked_at?: string;
-}
-
-export interface SourceResearchResponse {
-  post_id: string;
-  visibility_code: string;
-  citations: SourceResearchCitation[];
-  unavailable_reason?: string | null;
-}
-
-export function fetchPostResearchCitations(
-  accessToken: string,
-  postId: string,
-): Promise<SourceResearchResponse> {
-  return backendFetch(`/api/posts/${postId}/research-citations`, accessToken);
-}
-
-export function researchPostSources(
-  accessToken: string,
-  postId: string,
-): Promise<SourceResearchResponse> {
-  return backendFetch(`/api/posts/${postId}/research-citations`, accessToken, { method: "POST" });
 }
 
 export interface EvaluationResponse {
@@ -1260,6 +1374,7 @@ export interface LeftoverPair {
   leftover_map_unexplained?: number | null;
   leftover_map_cross_share?: number | null;
   leftover_map_reconstruction?: number | null;
+  leftover_map_unexplained_share?: number | null;
   leftover_map_explained_share?: number | null;
 }
 
@@ -1408,6 +1523,16 @@ interface AskJobStatus {
   failure_detail?: string | null;
 }
 
+export function optionalKnowledgeCutoffIso(value: string): string | undefined {
+  const input = value.trim();
+  if (!input) return undefined;
+  const parsed = new Date(input);
+  if (Number.isNaN(parsed.getTime())) {
+    throw new RangeError("invalid knowledge cutoff");
+  }
+  return parsed.toISOString();
+}
+
 /** Submit the question as an asynchronous job and poll it to completion.
  * The signature and resolved value are unchanged from the old synchronous
  * call, so callers (AskAgentPanel) keep their existing pending/complete
@@ -1479,6 +1604,105 @@ export function updateTicketStatus(
   });
 }
 
+export interface OccupationRatingItem {
+  element_id: string;
+  element_name: string;
+  scale_id: string;
+  scale_name: string;
+  minimum_value: string;
+  maximum_value: string;
+  category_value: number | null;
+  data_value: string;
+  sample_size: number | null;
+  standard_error: string | null;
+  lower_ci_bound: string | null;
+  upper_ci_bound: string | null;
+  recommend_suppress: boolean | null;
+  not_relevant: boolean | null;
+  source_updated_month: string | null;
+  domain_source_code: string | null;
+}
+
+export interface OccupationRatingProfile {
+  data_release_code: string;
+  source_table_code: string;
+  onetsoc_code: string;
+  source_available: boolean;
+  source: {
+    source_table_name: string;
+    source_artifact_url: string;
+    source_artifact_sha256: string;
+    source_row_count: number;
+    scale_artifact_url: string | null;
+    scale_artifact_sha256: string | null;
+    scale_source_row_count: number | null;
+  } | null;
+  items: OccupationRatingItem[];
+  next_offset: number | null;
+}
+
+export interface OccupationRatingSource {
+  data_release_code: string;
+  release_version: string;
+  source_publisher_name: string;
+  source_license_url: string;
+  source_table_code: string;
+  source_table_name: string;
+  source_artifact_url: string;
+  source_artifact_sha256: string;
+  source_row_count: number;
+}
+
+export function fetchOccupationRatingSources(
+  accessToken: string,
+): Promise<{ sources: OccupationRatingSource[] }> {
+  return backendFetch("/api/occupation-rating-sources", accessToken);
+}
+
+export interface RatingSourceOccupation {
+  onetsoc_code: string;
+  occupation_title: string;
+}
+
+export function fetchRatingSourceOccupations(
+  accessToken: string,
+  dataReleaseCode: string,
+  sourceTableCode: string,
+): Promise<{
+  data_release_code: string;
+  source_table_code: string;
+  source_available: boolean;
+  occupations: RatingSourceOccupation[];
+}> {
+  const params = new URLSearchParams({
+    data_release_code: dataReleaseCode,
+    source_table_code: sourceTableCode,
+  });
+  return backendFetch(`/api/occupation-rating-occupations?${params.toString()}`, accessToken);
+}
+
+export function fetchOccupationRatings(
+  accessToken: string,
+  query: {
+    onetsocCode: string;
+    dataReleaseCode: string;
+    sourceTableCode: string;
+    limit?: number;
+    offset?: number;
+  },
+): Promise<OccupationRatingProfile> {
+  const params = new URLSearchParams({
+    data_release_code: query.dataReleaseCode,
+    source_table_code: query.sourceTableCode,
+    limit: String(query.limit ?? 100),
+    offset: String(query.offset ?? 0),
+  });
+  return backendFetch(
+    `/api/occupations/${encodeURIComponent(query.onetsocCode)}/ratings?${params.toString()}`,
+    accessToken,
+  );
+}
+
 export function fetchPostActivity(
   accessToken: string,
   postId: string,
@@ -1545,6 +1769,12 @@ export interface AnalysisRunVisiblePost {
   live_after_cutoff?: boolean;
 }
 
+export interface AnalysisRunTeppAcceptedReceipt {
+  remote_run_id: string;
+  accepted_status_code: "accepted";
+  received_at: string;
+}
+
 export interface AnalysisRun {
   analysis_run_id: string;
   run_kind_code: AnalysisRunKindCode;
@@ -1567,6 +1797,7 @@ export interface AnalysisRun {
   reconstruction_result_sha256?: string;
   topic_lineage_result?: Record<string, unknown>;
   topic_lineage_result_sha256?: string;
+  tepp_accepted_receipt?: AnalysisRunTeppAcceptedReceipt;
   code_revision_sha?: string;
   configuration_sha256?: string;
 }

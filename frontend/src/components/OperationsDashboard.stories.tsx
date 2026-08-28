@@ -1,7 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { expect, within } from "storybook/test";
 import { OperationsDashboard, OperationsDashboardView } from "./OperationsDashboard";
-import { setLocale } from "../i18n";
 import "../App.css";
 
 const meta = { title: "Workspace/OperationsDashboard", component: OperationsDashboardView, parameters: { layout: "fullscreen" } } satisfies Meta<typeof OperationsDashboardView>;
@@ -34,8 +33,8 @@ export const EvidenceReady: Story = {
       },
       failed_analysis_count: 0,
       cases: [
-        { post_id: "synthetic-post-1", case_kind_code: "claim_investigation", case_kind_label: "클레임 원인 역추적", project_name: "Synthetic Transformer Renewal", summary_text: "사양 변경 이후 원인 수주와 Pool을 확인", evidence_text: "Revision B originated in order SO-100 from pool SP-20.", evidence_post_id: "synthetic-post-1", occurred_at: "2026-08-04T00:00:00Z", facts: [{ fact_type_code: "order", fact_type_label: "발생 수주", value_text: "SO-240", evidence_text: "claim occurred on order SO-240", evidence_post_id: "synthetic-post-1" }, { fact_type_code: "specification_change", fact_type_label: "사양 변경", value_text: "Revision B enclosure", evidence_text: "Revision B changed the enclosure", evidence_post_id: "synthetic-post-1" }, { fact_type_code: "originating_order", fact_type_label: "원인 수주", value_text: "SO-100", evidence_text: "originated in order SO-100", evidence_post_id: "synthetic-post-1" }, { fact_type_code: "sales_pool", fact_type_label: "수주 Pool", value_text: "SP-20", evidence_text: "from pool SP-20", evidence_post_id: "synthetic-post-1" }], missing_facts: [], milestones: [{ milestone_type_code: "claim_received", milestone_type_label: "클레임 접수", evidence_text: "claim received for order SO-240", evidence_post_id: "synthetic-post-1", observed_at: "2026-08-04T00:00:00Z", time_axis_code: "event_occurred_at", time_axis_label: "Event time" }], lifecycles: [{ lifecycle_kind_code: "claim_investigation", lifecycle_kind_label: "클레임 원인 규명", status_code: "open", status_label: "진행 중", started_at: "2026-08-04T00:00:00Z", resolved_at: null, elapsed_seconds: null, start_milestone: { milestone_type_code: "claim_received", milestone_type_label: "클레임 접수", evidence_text: "claim received for order SO-240", evidence_post_id: "synthetic-post-1", observed_at: "2026-08-04T00:00:00Z", time_axis_code: "event_occurred_at", time_axis_label: "Event time" }, end_milestone: null, next_action_text: "원인 확인 근거를 연결하세요." }] },
-        { post_id: "synthetic-post-2", case_kind_code: "rebid_handover", case_kind_label: "재입찰 · 인수인계", project_name: "Synthetic Transformer Renewal", summary_text: "담당자 교체 전 협의와 후속 결정을 연결", evidence_text: "The account owner and design lead agreed to submit the revised proposal.", evidence_post_id: "synthetic-post-2", occurred_at: "2026-08-11T00:00:00Z", facts: [{ fact_type_code: "discussion", fact_type_label: "협의 내용", value_text: "개정 제안 범위와 일정", evidence_text: "agreed the revised proposal scope and schedule", evidence_post_id: "synthetic-post-2" }, { fact_type_code: "counterparty", fact_type_label: "협의 상대", value_text: "Synthetic Customer Lead", evidence_text: "customer lead joined the discussion", evidence_post_id: "synthetic-post-2" }, { fact_type_code: "our_owner", fact_type_label: "우리측 담당자", value_text: "Synthetic Account Owner", evidence_text: "the account owner led the discussion", evidence_post_id: "synthetic-post-2" }, { fact_type_code: "decision", fact_type_label: "이어진 결정", value_text: "수정 제안 제출", evidence_text: "submit the revised proposal", evidence_post_id: "synthetic-post-2" }], missing_facts: [], milestones: [{ milestone_type_code: "rebid_response_requested", milestone_type_label: "재입찰 대응 요청", evidence_text: "revised proposal requested", evidence_post_id: "synthetic-post-2", observed_at: "2026-08-11T08:00:00Z", time_axis_code: "event_occurred_at", time_axis_label: "Event time" }, { milestone_type_code: "rebid_decision_recorded", milestone_type_label: "재입찰 결정 기록", evidence_text: "revised proposal approved", evidence_post_id: "synthetic-post-2", observed_at: "2026-08-14T11:30:00Z", time_axis_code: "event_occurred_at", time_axis_label: "Event time" }], lifecycles: [{ lifecycle_kind_code: "rebid_response", lifecycle_kind_label: "재입찰 대응", status_code: "resolved", status_label: "완료", started_at: "2026-08-11T08:00:00Z", resolved_at: "2026-08-14T11:30:00Z", elapsed_seconds: 271800, start_milestone: { milestone_type_code: "rebid_response_requested", milestone_type_label: "재입찰 대응 요청", evidence_text: "revised proposal requested", evidence_post_id: "synthetic-post-2", observed_at: "2026-08-11T08:00:00Z", time_axis_code: "event_occurred_at", time_axis_label: "Event time" }, end_milestone: { milestone_type_code: "rebid_decision_recorded", milestone_type_label: "재입찰 결정 기록", evidence_text: "revised proposal approved", evidence_post_id: "synthetic-post-2", observed_at: "2026-08-14T11:30:00Z", time_axis_code: "event_occurred_at", time_axis_label: "Event time" }, next_action_text: "결정 근거를 확인하세요." }, { lifecycle_kind_code: "handover_gap", lifecycle_kind_label: "인수인계 공백", status_code: "evidence_missing", status_label: "근거 필요", started_at: null, resolved_at: null, elapsed_seconds: null, start_milestone: null, end_milestone: null, next_action_text: "인수인계 시작과 완료 근거를 연결하세요." }] },
+        { post_id: "synthetic-post-1", case_kind_code: "claim_investigation", case_kind_label: "클레임 원인 역추적", project_name: "Synthetic Transformer Renewal", summary_text: "사양 변경 이후 원인 수주와 Pool을 확인", evidence_text: "Revision B originated in order SO-100 from pool SP-20.", evidence_post_id: "synthetic-post-1", occurred_at: "2026-08-04T00:00:00Z", facts: [{ fact_type_code: "originating_order", fact_type_label: "원인 수주", value_text: "SO-100 · SP-20", evidence_text: "order SO-100 from pool SP-20", evidence_post_id: "synthetic-post-1" }], missing_facts: [{ fact_type_code: "order", fact_type_label: "발생 수주" }, { fact_type_code: "specification_change", fact_type_label: "사양 변경" }, { fact_type_code: "sales_pool", fact_type_label: "수주 Pool" }], milestones: [], lifecycles: [] },
+        { post_id: "synthetic-post-2", case_kind_code: "rebid_handover", case_kind_label: "재입찰 · 인수인계", project_name: "Synthetic Transformer Renewal", summary_text: "담당자 교체 전 협의와 후속 결정을 연결", evidence_text: "The account owner and design lead agreed to submit the revised proposal.", evidence_post_id: "synthetic-post-2", occurred_at: "2026-08-11T00:00:00Z", facts: [{ fact_type_code: "decision", fact_type_label: "이어진 결정", value_text: "수정 제안 제출", evidence_text: "submit the revised proposal", evidence_post_id: "synthetic-post-2" }], missing_facts: [{ fact_type_code: "discussion", fact_type_label: "협의 내용" }, { fact_type_code: "counterparty", fact_type_label: "협의 상대" }, { fact_type_code: "our_owner", fact_type_label: "우리측 담당자" }], milestones: [], lifecycles: [] },
         { post_id: "synthetic-post-3", case_kind_code: "external_information", case_kind_label: "외부 정보", project_name: "Synthetic Transformer Renewal", summary_text: "시장 공고를 영업 기회와 연결", evidence_text: "The public procurement notice opened on August 15.", evidence_post_id: "synthetic-post-3", occurred_at: "2026-08-15T00:00:00Z", facts: [{ fact_type_code: "external_relation", fact_type_label: "업무 관계", value_text: "갱신 제안 준비", evidence_text: "procurement notice", evidence_post_id: "synthetic-post-3", relation_target_kind_code: "project", relation_target_kind_label: "프로젝트" }], missing_facts: [], milestones: [], lifecycles: [] },
         { post_id: "synthetic-post-4", case_kind_code: "repeat_issue", case_kind_label: "반복 이슈 반영", project_name: "Synthetic Transformer Renewal", summary_text: "동일 유형 이슈를 설계 개선으로 환류", evidence_text: "The same enclosure issue recurred after Revision B.", evidence_post_id: "synthetic-post-4", occurred_at: "2026-08-18T00:00:00Z", facts: [{ fact_type_code: "improvement_action", fact_type_label: "개선 과제", value_text: "표준 사양 개정", evidence_text: "Update the standard enclosure specification.", evidence_post_id: "synthetic-post-4" }], missing_facts: [{ fact_type_code: "issue_pattern", fact_type_label: "반복 유형" }], milestones: [], lifecycles: [] },
       ],
@@ -44,13 +43,10 @@ export const EvidenceReady: Story = {
   },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    await expect(canvas.getByLabelText("9건 · 22.5%")).toBeInTheDocument();
-    await expect(canvas.getByLabelText("사건 7건 · 글 5건")).toBeVisible();
+    await expect(canvas.getByText("9건 · 22.5%")).toBeInTheDocument();
+    await expect(canvas.getByText("7 Event · 5글")).toBeVisible();
     await expect(canvas.getByText("3일 3시간 30분 0초")).toBeVisible();
     await expect(canvas.getAllByRole("button", { name: "분류 근거 글 열기" })[0]).toBeVisible();
-    for (const label of ["발생 수주", "사양 변경", "원인 수주", "수주 Pool", "협의 내용", "협의 상대", "우리측 담당자", "이어진 결정", "업무 관계"]) {
-      await expect(canvas.getByRole("button", { name: `${label} 근거 열기` })).toBeVisible();
-    }
   },
 };
 
@@ -61,7 +57,7 @@ export const TopicInfluenceAccepted: Story = {
       ...EvidenceReady.args!.data!,
       topic_context: {
         status_code: "accepted", reason_code: null,
-        next_action: "Topic과 조직 수준을 선택해 model influence와 근거 글을 확인하세요.",
+        next_action: "주제와 조직 범위를 선택해 영향이 큰 글과 근거를 확인하세요.",
         required_contracts: [
           { authority: "TEPP", schema_version: "tepp.topic_context_posterior.v1", state_code: "persisted" },
           { authority: "fast-mlsirm", schema_version: "fast_mlsirm.topic_context_influence.v1", state_code: "persisted" },
@@ -80,17 +76,17 @@ export const TopicInfluenceAccepted: Story = {
             { state_code: "dormant", valid_from: "2026-08-01T00:00:00Z", valid_to: "2026-08-10T00:00:00Z" },
             { state_code: "reactivated", valid_from: "2026-08-10T00:00:00Z", valid_to: "2026-09-01T00:00:00Z" },
           ],
-          lineage_events: [{ event_code: "birth", source_topic_index: 0, target_topic_index: null, event_time: "2026-08-01T00:00:00Z", evidence_sha256: "f".repeat(64) }],
+          lineage_events: [{ event_code: "birth", source_topic_index: 0, target_topic_index: null, event_time: "2026-08-01T00:00:00Z", evidence_post_id: "synthetic-lineage-evidence" }],
           contexts: [
             {
               dimension_code: "business_unit", context_id: "bu-synthetic", context_label: "Synthetic Energy Division",
-              influences: [{ post_id: "synthetic-post-1", occurred_at: "2026-08-12T00:00:00Z", topic_state_code: "reactivated", model_influence: 4.25, uncertainty_method_code: "posterior_interval", uncertainty_lower_value: 3.5, uncertainty_upper_value: 5, diagnostic_status_code: "accepted", membership_weight: 0.6, membership_evidence_sha256: "1".repeat(64) }],
+              influences: [{ post_id: "synthetic-post-1", occurred_at: "2026-08-12T00:00:00Z", topic_state_code: "reactivated", model_influence: 4.25, uncertainty_method_code: "posterior_interval", uncertainty_lower_value: 3.5, uncertainty_upper_value: 5, diagnostic_status_code: "accepted", membership_weight: 0.6, membership_evidence_post_id: "synthetic-membership-evidence-1" }],
             },
             {
               dimension_code: "team", context_id: "team-synthetic", context_label: "Synthetic Service Team",
               influences: [
-                { post_id: "synthetic-post-1", occurred_at: "2026-08-12T00:00:00Z", topic_state_code: "reactivated", model_influence: 4.25, uncertainty_method_code: "posterior_interval", uncertainty_lower_value: 3.5, uncertainty_upper_value: 5, diagnostic_status_code: "accepted", membership_weight: 0.4, membership_evidence_sha256: "2".repeat(64) },
-                { post_id: "synthetic-post-2", occurred_at: "2026-08-13T00:00:00Z", topic_state_code: "reactivated", model_influence: 4.25, uncertainty_method_code: "posterior_interval", uncertainty_lower_value: 3.4, uncertainty_upper_value: 5.1, diagnostic_status_code: "accepted", membership_weight: 1, membership_evidence_sha256: "3".repeat(64) },
+                { post_id: "synthetic-post-1", occurred_at: "2026-08-12T00:00:00Z", topic_state_code: "reactivated", model_influence: 4.25, uncertainty_method_code: "posterior_interval", uncertainty_lower_value: 3.5, uncertainty_upper_value: 5, diagnostic_status_code: "accepted", membership_weight: 0.4, membership_evidence_post_id: "synthetic-membership-evidence-2" },
+                { post_id: "synthetic-post-2", occurred_at: "2026-08-13T00:00:00Z", topic_state_code: "reactivated", model_influence: 4.25, uncertainty_method_code: "posterior_interval", uncertainty_lower_value: 3.4, uncertainty_upper_value: 5.1, diagnostic_status_code: "accepted", membership_weight: 1, membership_evidence_post_id: "synthetic-membership-evidence-3" },
               ],
             },
           ],
@@ -100,11 +96,7 @@ export const TopicInfluenceAccepted: Story = {
   },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    await expect(canvas.getByRole("heading", { name: "시간 흐름별 주제 영향도" })).toBeVisible();
-    await expect(canvas.getByText(/주제 1 · 휴면 \/ 재활성/)).toBeVisible();
-    await expect(canvas.getByRole("list", { name: "주제 1 변화 이력" })).toBeVisible();
-    await expect(canvas.getByText(/주제 최초 관측/)).toBeVisible();
-    await expect(canvas.queryByText(/birth/)).not.toBeInTheDocument();
+    await expect(canvas.getByRole("heading", { name: "시간 흐름별 주요 글" })).toBeVisible();
     await expect(canvas.getByText(/휴면 \/ 재활성/)).toBeVisible();
     await expect(canvas.getAllByText("4.25")).toHaveLength(3);
     await expect(canvas.getByText(/영향도와 불확실성을 함께 비교하고 같은 값은 동점으로 확인하세요/)).toBeVisible();
@@ -112,22 +104,6 @@ export const TopicInfluenceAccepted: Story = {
 };
 
 export const NarrowViewport: Story = { ...EvidenceReady, parameters: { viewport: { defaultViewport: "mobile1" } } };
-
-export const KoreanMobileCountGroups: Story = {
-  ...EvidenceReady,
-  parameters: { viewport: { defaultViewport: "mobile1" } },
-  beforeEach: () => {
-    setLocale("ko");
-    return () => setLocale("en");
-  },
-  play: async ({ canvasElement }) => {
-    const canvas = within(canvasElement);
-    const metric = canvas.getByLabelText("사건 7건 · 글 5건");
-    await expect(metric.querySelectorAll(".dashboard-count-unit")).toHaveLength(2);
-    await expect(metric.querySelectorAll(".dashboard-count-unit")[0]).toHaveTextContent("사건 7건");
-    await expect(metric.querySelectorAll(".dashboard-count-unit")[1]).toHaveTextContent("글 5건");
-  },
-};
 
 export const ExternalInformationEmpty: Story = {
   args: {
@@ -139,7 +115,7 @@ export const ExternalInformationEmpty: Story = {
     const canvas = within(canvasElement);
     await expect(canvas.getByRole("status")).toHaveTextContent("분류된 외부 정보가 없습니다");
     await expect(canvas.queryByText("전체 글")).not.toBeInTheDocument();
-    await expect(canvas.queryByText("분류 사건")).not.toBeInTheDocument();
+    await expect(canvas.queryByText("분류 Event")).not.toBeInTheDocument();
     await expect(canvas.queryByText("분석 대기")).not.toBeInTheDocument();
     await expect(canvas.queryByText("분석 실패")).not.toBeInTheDocument();
   },

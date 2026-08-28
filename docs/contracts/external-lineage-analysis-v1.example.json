@@ -1,0 +1,41 @@
+{
+  "contract_version": "1.0.0",
+  "analysis_id": "analysis:synthetic-email-lineage-001",
+  "analysis_scope_code": "email_lineage",
+  "knowledge_cutoff": "2026-08-20T09:30:00Z",
+  "policy": {
+    "candidate_window": 50,
+    "maximum_pair_evaluations": 1000,
+    "minimum_fused_score": 0.3,
+    "allow_llm": false
+  },
+  "records": [
+    {
+      "evidence_ref": "email:synthetic-001",
+      "group_ref": "workspace:synthetic",
+      "source_kind_code": "email",
+      "truth_status_code": "observed",
+      "label": "Synthetic proposal review",
+      "occurred_at": "2026-08-20T09:00:00Z",
+      "available_at": "2026-08-20T09:01:00Z",
+      "secondary_key": "provider-thread:synthetic",
+      "project_ref": "project:synthetic",
+      "explicit_parent": null
+    },
+    {
+      "evidence_ref": "email:synthetic-002",
+      "group_ref": "workspace:synthetic",
+      "source_kind_code": "email",
+      "truth_status_code": "observed",
+      "label": "Re: Synthetic proposal review",
+      "occurred_at": "2026-08-20T09:05:00Z",
+      "available_at": "2026-08-20T09:06:00Z",
+      "secondary_key": "provider-thread:synthetic",
+      "project_ref": "project:synthetic",
+      "explicit_parent": {
+        "evidence_ref": "email:synthetic-001",
+        "relation_code": "rfc_reply"
+      }
+    }
+  ]
+}

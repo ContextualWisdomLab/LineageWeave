@@ -65,7 +65,7 @@ def test_provider_key_is_not_aliased_as_gateway_transport(monkeypatch) -> None:
         module.main()
 
 
-def test_bootstrap_delegates_embedding_discovery_upstream(monkeypatch) -> None:
+def test_bootstrap_leaves_embedding_selection_to_the_orchestrator(monkeypatch) -> None:
     module = _load_start_module()
     captured: dict[str, object] = {}
 
@@ -111,7 +111,7 @@ def test_bootstrap_delegates_embedding_discovery_upstream(monkeypatch) -> None:
     monkeypatch.setenv("BYTEZ_API_KEY", "bytez-key")
     monkeypatch.setenv("CONTEXTUAL_ORCHESTRATOR_TOKEN", "orchestrator-token")
     monkeypatch.setenv("LLM_GATEWAY_API_URL", "https://gateway.example")
-    monkeypatch.setenv("BATCH_JOB_REGISTRY_VALKEY_URL", "redis://valkey:6379/1")
+    monkeypatch.setenv("LLM_GATEWAY_EMBEDDING_MODEL", "embedding-model")
 
     module.main()
 
@@ -121,7 +121,6 @@ def test_bootstrap_delegates_embedding_discovery_upstream(monkeypatch) -> None:
     assert "--embedding-model" not in argv
     assert captured["credentials"] == [
         ("LLM_GATEWAY_API_KEY", "provider-key"),
-        ("batch_job_registry_valkey_url", "redis://valkey:6379/1"),
         ("OPENAI_API_KEY", "openai-key"),
         ("OPENROUTER_API_KEY", "openrouter-key"),
         ("NVIDIA_NIM_API_KEY", "nim-key"),
@@ -136,9 +135,8 @@ def test_bootstrap_delegates_embedding_discovery_upstream(monkeypatch) -> None:
         "NVIDIA_NIM_API_KEY",
         "NVIDIA_NIM_API_KEY_SUB",
         "BYTEZ_API_KEY",
-        "BATCH_JOB_REGISTRY_VALKEY_URL",
     } & os.environ.keys()
     agents = captured["agents"]
     assert isinstance(agents, dict)
     assert not [agent for agent in agents["agents"] if "embedding" in agent.get("tags", [])]
-    assert "--auto-discover-model-agents" in argv
+    assert "LLM_GATEWAY_EMBEDDING_MODEL" not in os.environ

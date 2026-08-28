@@ -23,11 +23,11 @@ use them to introduce an untracked architecture decision.
 
 Customer-facing copy must help the reader take the next product action. Do
 not expose implementation boundaries, provider or package names, schema
-versions, internal status/reason codes, environment variables, transport
+versions, internal status or reason codes, environment variables, transport
 setup, hashes, or developer remediation instructions as explanatory UI copy.
-Keep that evidence in governed audit/admin surfaces and logs; translate a
-customer-visible state into the source, decision, retry, or administrator
-action the reader can actually take.
+Keep that evidence in governed audit and administrator surfaces and logs;
+translate a customer-visible state into the source, decision, retry, or
+administrator action the reader can actually take.
 
 ## Hard rule: no real data in repository artifacts
 
@@ -282,6 +282,8 @@ in the same spirit) -- never against real data, per the hard rule above.
 `backend/tests/` and `tests/test_schema.py` are real-integration tests
 against a live local stack (`make up`) and self-skip without one -- see
 [README.md](README.md#local-product-stack-docker-compose).
+`tests/test_source_post_voice_history_live.py` is the same pattern for
+ADR 0252 A → B → A cutoff and concurrent primary-Voice history.
 
 `tests/test_public_docstrings.py` enforces repository-wide docstring
 coverage: every public function and class under `lineageweave/` and
@@ -303,20 +305,21 @@ stops startup instead of leaving a healthy-looking partial schema, and
 application code must not compensate for a missing table.
 
 Period leftover pairs (ADR 0017 / 0018 / 0048 / 0049 / 0119 / 0158 / 0162 /
-0163 / 0164 / 0182 / 0201 / 0208) consume fast-mlsirm's Rust-owned residual
-interaction map after a real GRM/GPCM score, never invented. LineageWeave only
-attaches product identifiers and selects returned cells. Distances are
+0163 / 0164 / 0182 / 0185 / 0201 / 0233 / 0266) are computed in `lineageweave/leftover_pairs.py` from the
+residual after a real GRM/GPCM score, never invented. Distances are
 Euclidean on the two-dimensional Gabriel leftover map; missing cells stay
 out of the factorization. Closest and farthest post–criterion pairs
 persist to `report_leftover_pair` with signed residual `R`, observed
 `Y`, and expected `E[Y|θ, item]` so `R = Y − E` remains auditable,
 plus leftover-map rank so rank 0 is not read as structure,
-unexplained leftover, ADR 0201 reconstruction evidence, leftover-map
-cross share `x`, and leftover-map explained share `e = R̂² / R²` of
-raw residual (ADR 0232). Unexplained leftover share `s` is not
-persisted. ADR 0201 is the sole normative reconstruction formula,
+unexplained leftover, the ADR 0201 reconstruction evidence, ADR 0185
+cross-share evidence, ADR 0233 unexplained leftover share
+`s = U² / R²`, and ADR 0266 explained leftover share `e = R̂² / R²`.
+ADR 0201 is the sole normative reconstruction formula,
 storage, and audit contract; do not duplicate or reinterpret it here.
-The pairs sit above the member
+ADR 0233 is the sole unexplained leftover share contract. ADR 0266 is
+the sole explained leftover share contract. When `R`, `R̂`, `U`, `x`,
+`s`, and `e` are finite, `e + s + x = 1`. The pairs sit above the member
 list so a click opens that post with the leftover criterion current
 in Post quality (ADR 0158). Leftover-map axis share (ADR 0148) is Gabriel inertia of
 residual SVD axes 1 and 2 and persists to `report_leftover_map_axis`.
@@ -324,6 +327,13 @@ Rank-0 residuals emit two zero-share axes; the shares are report-level
 and are not a leftover score. Complete-case coverage (ADR 0168) persists to
 `report_leftover_map_coverage` and captions the pair list with how
 many scored posts entered the map.
+
+Authorized occupational construct catalog search (ADR 0257) matches official
+O*NET preferred labels or descriptions only when a source-eligible, ABAC-visible
+Post supports that construct. Hidden Posts, withdrawn truth, and conflicting
+truth statuses omit the hit. Clicking a hit opens that Post. Do not return
+catalog rows as a vocabulary oracle, scores, or person traits. Continuation
+is a construct-IRI keyset; never OFFSET.
 
 Global Ask relative-time filters (ADR 0150 / 0202) bind to
 `source_post.event_occurred_at` and fall back to `created_at` only
@@ -353,7 +363,11 @@ pnpm run lint && pnpm run test && pnpm run build
 Repeated web objects use `frontend/src/styles/tokens.css`, not inline hex
 (ADR 0099 badge/accent tokens, with dark-mode overrides guarded by
 `tokens.test.ts`); new stories belong in the inventory at
-`docs/storybook-inventory.md`.
+`docs/storybook-inventory.md`. Success, unavailable, and retry copy share
+`StatusNotice` (ADR 0220): Calendar's missing Naruon projection is the first
+migrated flow. Success and unavailable stay a named region (not live
+`role="status"`); retry stays `role="alert"`. Do not add a second placeholder
+or interpolate provider payloads into that notice.
 
 A run-bearing analysis-run registry empties only after an unrevoked
 `analysis_run_retention_grant` and `GRANT analysis_run_retention_admin`
@@ -368,6 +382,9 @@ v0.88.0). Do not invent a theta.
 Opening a cutoff-rewritten title shows **Body this run knew** from
 `source_post_revision` beside the live rewrite (ADR 0025 / v2.1.0).
 Do not invent the earlier sentence when no revision covers the cutoff.
+Global Ask uses the same revision cover when `knowledge_cutoff` is set
+(ADR 0216 / #271); omit the field to keep the live-query contract, and
+never substitute a live body for a missing historical cover.
 
 A corporate-entity similarity result has three outcomes: unique, miss,
 or tie (ADR 0026). A tie is not a miss. Keep the organization name

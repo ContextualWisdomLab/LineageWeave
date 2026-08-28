@@ -97,6 +97,7 @@ def test_visible_neighborhood_canonicalizes_uppercase_uuid_before_traversal(
     monkeypatch.setattr(ingestion, "_load_skos_facts", fake_empty)
     monkeypatch.setattr(ingestion, "_load_labels", fake_labels)
     monkeypatch.setattr(ingestion, "_load_node_metadata", fake_metadata)
+    monkeypatch.setattr(ingestion, "_load_voice_assignments", fake_empty)
     monkeypatch.setattr(ingestion, "assemble_ontology_neighborhood", fake_assemble)
 
     result = asyncio.run(

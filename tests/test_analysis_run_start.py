@@ -10,6 +10,8 @@ from backend.app import analysis_run_start
 from backend.app.analysis_run_ingestion import reconstructed_edge_is_visible
 from backend.app.analysis_run_start import (
     AnalysisRunStartError,
+    _persist_tepp_receipt,
+    _persist_tepp_terminal_result,
     _persist_tepp_result,
     configured_tepp_client,
     reconstruction_member_ids,
@@ -22,15 +24,36 @@ from backend.app.analysis_run_start import (
     topic_lineage_submit_outcome,
 )
 from backend.app.lineage_ingestion import records_from_source_posts
+from lineageweave.adjudication_client import AdjudicationClientError
+from lineageweave.channel_weight_estimation import estimate_fixture_channel_weights
 from lineageweave.fixtures import sample_records
 from lineageweave.http_client import HttpClientError
 from lineageweave.lineage_persistence import lineage_edge_specs
 from lineageweave.tepp_client import AnalysisRunRequest, TeppClient, TeppNotAvailable
 
+
+def test_adjudication_boundary_types_malformed_provider_reply() -> None:
+    """Malformed orchestrator output becomes a controlled provider failure."""
+
+    class MalformedAdjudication:
+        available = True
+
+        def judge(self, candidate_label: str, record_label: str) -> float:
+            raise AdjudicationClientError("synthetic malformed reply")
+
+    client = analysis_run_start._ProviderBoundaryAdjudication(
+        MalformedAdjudication()
+    )
+
+    with pytest.raises(analysis_run_start._AdjudicationProviderError):
+        client.judge("synthetic parent", "synthetic child")
+
 @lru_cache(maxsize=1)
 def _estimated_fixture_weights() -> dict[str, float]:
-    """Return an explicit non-measurement fixture for orchestration tests."""
-    return {"temporal": 0.5, "secondary_key": 0.3, "text": 0.2}
+    """Return the fast-mlsirm estimate or fail the test closed."""
+    estimate = estimate_fixture_channel_weights()
+    assert estimate is not None
+    return estimate.weights
 
 
 @pytest.mark.anyio
@@ -197,8 +220,7 @@ def test_period_report_start_is_unprocessable_and_tepp_is_allowed() -> None:
     report = start_kind_rejection("analysis_run_report")
     assert report is not None
     assert report.status_code == 422
-    assert "invent a measurement" in report.detail
-    assert "period report" in report.detail
+    assert report.detail == "기간 보고서 화면에서 다시 계산하세요."
     assert start_kind_rejection("analysis_run_lineage") is None
     assert start_kind_rejection("analysis_run_tepp") is None
     assert start_kind_rejection("analysis_run_topic_lineage") is None
@@ -210,6 +232,279 @@ def _tepp_request() -> AnalysisRunRequest:
         snapshot_sha256="ab" * 32,
         knowledge_cutoff=datetime(2026, 1, 12, 12, 0, tzinfo=timezone.utc),
         corporate_entity_id="11111111-1111-1111-1111-111111111111",
+    )
+
+
+def test_tepp_delivery_separates_acceptance_from_terminal_measurement() -> None:
+    locked = {
+        "idempotency_key": "buyer-tepp-2026-w07",
+        "snapshot_sha256": "ab" * 32,
+        "knowledge_cutoff": datetime(2026, 1, 12, 12, 0, tzinfo=timezone.utc),
+        "corporate_entity_id": "11111111-1111-1111-1111-111111111111",
+        "remote_run_id": None,
+    }
+    plan = analysis_run_start._DeliveryPlan(
+        "analysis_run_tepp", datetime(2026, 1, 12, tzinfo=timezone.utc), locked
+    )
+    accepted = analysis_run_start._execute_delivery_plan(
+        plan,
+        TeppClient(
+            transport=lambda _payload: {
+                "contract_version": 1,
+                "run_id": "remote-run-1",
+                "run_state": "accepted",
+                "idempotency_key": "buyer-tepp-2026-w07",
+            }
+        ),
+        None,
+    )
+
+    assert accepted.status_code == "analysis_status_running"
+    assert accepted.persist_receipt
+    assert accepted.request == _tepp_request()
+
+
+def test_tepp_delivery_reads_a_stored_remote_run_without_resubmitting() -> None:
+    request = _tepp_request()
+    status = {
+        "contract_version": 1,
+        "run_id": "remote-run-1",
+        "run_state": "running",
+        "idempotency_key": request.idempotency_key,
+        "terminal_result": None,
+    }
+    locked = {
+        "idempotency_key": request.idempotency_key,
+        "snapshot_sha256": request.snapshot_id,
+        "knowledge_cutoff": datetime(2026, 1, 12, 12, 0, tzinfo=timezone.utc),
+        "corporate_entity_id": request.tenant_workspace_id,
+        "remote_run_id": "remote-run-1",
+    }
+    outcome = analysis_run_start._execute_delivery_plan(
+        analysis_run_start._DeliveryPlan(
+            "analysis_run_tepp", datetime(2026, 1, 12, tzinfo=timezone.utc), locked
+        ),
+        TeppClient(
+            transport=lambda _payload: pytest.fail("accepted work was resubmitted"),
+            status_transport=lambda _run_id: status,
+        ),
+        None,
+    )
+
+    assert outcome.status_code == "analysis_status_running"
+    assert not outcome.persist_receipt
+
+
+def test_tepp_delivery_keeps_the_full_terminal_status_for_persistence() -> None:
+    request = _tepp_request()
+    terminal = {
+        "contract_version": 1,
+        "run_id": "remote-run-1",
+        "run_state": "succeeded",
+        "idempotency_key": request.idempotency_key,
+        "tenant_workspace_id": request.tenant_workspace_id,
+        "snapshot_id": request.snapshot_id,
+        "knowledge_cutoff": request.knowledge_cutoff,
+        "model_contract_version": request.model_contract_version,
+        "output_profile": request.output_profile,
+        "result_artifact_id": "artifact-1",
+        "result_sha256": "ab" * 32,
+        "result_schema_version": "tepp-result-v1",
+        "completed_at": "2026-01-13T00:00:00Z",
+        "summary": {
+            "analysis_family": "temporal_topic_measurement",
+            "evidence_count": 1,
+            "statistic_count": 1,
+            "validation_status": "validated",
+        },
+        "failure_code": None,
+    }
+    status = {
+        "contract_version": 1,
+        "run_id": "remote-run-1",
+        "run_state": "succeeded",
+        "idempotency_key": request.idempotency_key,
+        "terminal_result": terminal,
+    }
+    outcome = analysis_run_start._execute_delivery_plan(
+        analysis_run_start._DeliveryPlan(
+            "analysis_run_tepp",
+            datetime(2026, 1, 12, tzinfo=timezone.utc),
+            {
+                "idempotency_key": request.idempotency_key,
+                "snapshot_sha256": request.snapshot_id,
+                "knowledge_cutoff": datetime(2026, 1, 12, 12, tzinfo=timezone.utc),
+                "corporate_entity_id": request.tenant_workspace_id,
+                "remote_run_id": "remote-run-1",
+            },
+        ),
+        TeppClient(status_transport=lambda _run_id: status),
+        None,
+    )
+
+    assert outcome.status_code == "analysis_status_succeeded"
+    assert outcome.persist_terminal_result
+    assert outcome.envelope == status
+
+
+def test_tepp_terminal_result_replay_must_match() -> None:
+    class _Transaction:
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *_args):
+            return False
+
+    class _Connection:
+        def __init__(self) -> None:
+            self.existing = None
+            self.inserted: tuple[object, ...] | None = None
+
+        def transaction(self):
+            return _Transaction()
+
+        async def fetchrow(self, _query: str, *_args: object):
+            return self.existing
+
+        async def execute(self, _query: str, *args: object):
+            self.inserted = args
+
+    envelope = {
+        "contract_version": 1,
+        "run_id": "remote-run-1",
+        "run_state": "succeeded",
+        "terminal_result": {"result_artifact_id": "artifact-1"},
+    }
+    conn = _Connection()
+    assert asyncio.run(
+        _persist_tepp_terminal_result(
+            conn,
+            analysis_run_id="11111111-1111-1111-1111-111111111111",
+            envelope=envelope,
+        )
+    )
+    assert conn.inserted is not None
+    conn.existing = {
+        "remote_run_id": conn.inserted[1],
+        "result_sha256": conn.inserted[3],
+    }
+    assert asyncio.run(
+        _persist_tepp_terminal_result(
+            conn,
+            analysis_run_id="11111111-1111-1111-1111-111111111111",
+            envelope=envelope,
+        )
+    )
+    conn.existing["result_sha256"] = "0" * 64
+    assert not asyncio.run(
+        _persist_tepp_terminal_result(
+            conn,
+            analysis_run_id="11111111-1111-1111-1111-111111111111",
+            envelope=envelope,
+        )
+    )
+
+
+def test_tepp_acceptance_receipt_replay_must_match() -> None:
+    """A provider replay cannot replace the remote identity or evidence digest."""
+
+    class _Transaction:
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *_args):
+            return False
+
+    class _Connection:
+        def __init__(self) -> None:
+            self.existing = None
+            self.inserted: tuple[object, ...] | None = None
+
+        def transaction(self):
+            return _Transaction()
+
+        async def fetchrow(self, _query: str, *_args: object):
+            return self.existing
+
+        async def execute(self, _query: str, *args: object):
+            self.inserted = args
+
+    request = _tepp_request()
+    receipt = {
+        "contract_version": 1,
+        "run_id": "remote-run-1",
+        "run_state": "accepted",
+        "idempotency_key": request.idempotency_key,
+    }
+    conn = _Connection()
+    assert asyncio.run(
+        _persist_tepp_receipt(
+            conn,
+            analysis_run_id="11111111-1111-1111-1111-111111111111",
+            request=request,
+            envelope=receipt,
+        )
+    )
+    assert conn.inserted is not None
+    conn.existing = {
+        "remote_run_id": conn.inserted[1],
+        "request_sha256": conn.inserted[2],
+        "receipt_sha256": conn.inserted[3],
+    }
+    assert asyncio.run(
+        _persist_tepp_receipt(
+            conn,
+            analysis_run_id="11111111-1111-1111-1111-111111111111",
+            request=request,
+            envelope=receipt,
+        )
+    )
+    conn.existing["remote_run_id"] = "changed-run"
+    assert not asyncio.run(
+        _persist_tepp_receipt(
+            conn,
+            analysis_run_id="11111111-1111-1111-1111-111111111111",
+            request=request,
+            envelope=receipt,
+        )
+    )
+
+
+def test_tepp_persistence_conflict_rolls_back_savepoint() -> None:
+    """A provider identity conflict fails closed without aborting its caller."""
+
+    class _Transaction:
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *_args):
+            return False
+
+    class _Connection:
+        def transaction(self):
+            return _Transaction()
+
+        async def fetchrow(self, _query: str, *_args: object):
+            return None
+
+        async def execute(self, _query: str, *_args: object):
+            raise analysis_run_start.asyncpg.UniqueViolationError("duplicate remote run")
+
+    request = _tepp_request()
+    assert not asyncio.run(
+        _persist_tepp_receipt(
+            _Connection(),
+            analysis_run_id="11111111-1111-1111-1111-111111111111",
+            request=request,
+            envelope={"run_id": "remote-run-1", "run_state": "accepted"},
+        )
+    )
+    assert not asyncio.run(
+        _persist_tepp_terminal_result(
+            _Connection(),
+            analysis_run_id="11111111-1111-1111-1111-111111111111",
+            envelope={"run_id": "remote-run-1", "run_state": "succeeded"},
+        )
     )
 
 
@@ -275,6 +570,9 @@ def test_tepp_anchor_projection_accepts_only_the_published_result_contract() -> 
 
         async def execute(self, query: str, *args: object):
             self.queries.append((query, args))
+
+        async def fetchrow(self, _query: str, *_args: object):
+            return None
 
     cutoff = datetime(2026, 1, 12, 12, 0, tzinfo=timezone.utc)
     conn = _Connection()
@@ -388,6 +686,28 @@ def test_topic_lineage_submit_outcome_does_not_persist_an_empty_envelope() -> No
     assert status == "analysis_status_failed"
     assert envelope is None
     assert failure == "tepp_result_not_persisted"
+
+
+def test_topic_lineage_submit_outcome_rejects_strict_async_acceptance() -> None:
+    """Topic lineage has no receipt/resume path, so acceptance fails closed."""
+
+    class _Accepting(TeppClient):
+        def __init__(self) -> None:
+            super().__init__(
+                transport=lambda payload: {
+                    "contract_version": 1,
+                    "run_id": "topic-run-1",
+                    "run_state": "accepted",
+                    "idempotency_key": payload["idempotency_key"],
+                }
+            )
+
+    status, failure, envelope = topic_lineage_submit_outcome(
+        _Accepting(), _topic_lineage_request()
+    )
+    assert status == "analysis_status_failed"
+    assert failure == "tepp_result_not_persisted"
+    assert envelope is None
 
 
 def test_topic_lineage_submit_outcome_rejects_a_contentless_completed_envelope() -> None:

@@ -19,9 +19,10 @@ from __future__ import annotations
 
 import asyncio
 import math
+from collections.abc import Callable, Iterable
 from dataclasses import dataclass
 from datetime import date, datetime
-from typing import Any, Callable, Iterable
+from typing import Any
 from zoneinfo import ZoneInfo
 
 import asyncpg
@@ -44,6 +45,7 @@ from lineageweave.post_chat import (
     CANONICAL_COMMITMENT_QUESTION,
     CANONICAL_INVOLVED_QUESTION,
     ChatSourceDocument,
+    EvidenceOpenAction,
     normalize_chat_question,
 )
 from lineageweave.post_content_normalization import normalize_post_body
@@ -216,7 +218,6 @@ def _seoul_today() -> date:
 
 _POST_CHAT_CANDIDATE_LIMIT = 32
 
-
 def _source_hint_facts(row: Any) -> tuple[str, ...]:
     """Render raw source fields as explicitly weak, column-level evidence."""
     facts: list[str] = []
@@ -325,7 +326,7 @@ async def find_linked_post_ids(conn: asyncpg.Connection, post_id: str) -> Linked
 async def find_project_sibling_post_ids(
     conn: asyncpg.Connection, post_id: str
 ) -> frozenset[str]:
-    """Published posts sharing a persisted project key, for Ask context only."""
+    """Return published posts sharing the focal post's persisted project key."""
     project_rows = await conn.fetch(
         "select distinct project_key from post_project_mention where post_id = $1",
         post_id,
@@ -354,11 +355,9 @@ async def gather_chat_sources(
 ) -> list[ChatSourceDocument]:
     """Post `post_id` plus a bounded, deterministic linked-source window.
 
-    Persisted semantic-project siblings precede direct Event Lineage and
-    indirect Knowledge Graph neighbors; each group is identifier-sorted before
-    ABAC filtering. This gives exact project membership a bounded opportunity
-    to supply the missing original even when graph neighborhoods are dense.
-    The current post plus at most seven visible linked posts become the numbered
+    Direct Event Lineage neighbors precede indirect Knowledge Graph
+    neighbors; both groups are identifier-sorted before ABAC filtering. The
+    current post plus at most seven visible linked posts become the numbered
     source set that `post_chat` citations refer back to. Every source's body
     is normalized (HTML tags/base64 images never reach the reason-and-cite
     LLM call raw) before becoming a `ChatSourceDocument` -- see
@@ -630,6 +629,8 @@ async def gather_global_chat_sources(
                    and edge.edge_type_code = any($3::text[])
             )
             select 'evidence'::text as candidate_channel, candidate.post_id,
+                   null::integer as unit_index,
+                   false as evidence_open_available,
                    row_number() over (
                        order by coalesce(post.event_occurred_at, post.created_at) desc,
                                 candidate.post_id desc
@@ -664,7 +665,9 @@ async def gather_global_chat_sources(
               from unnest($1::double precision[]) with ordinality
                    as vector(dimension_value, ordinality)
         ), unit_similarity as (
-            select unit.post_id, embedding.post_content_embedding_id,
+            select unit.post_id, unit.unit_index,
+                   unit.source_evidence_reference is not null as evidence_open_available,
+                   embedding.post_content_embedding_id,
                    sum(value.dimension_value * question.dimension_value)
                        / nullif(
                            sqrt(sum(value.dimension_value * value.dimension_value)) * $2,
@@ -688,16 +691,26 @@ async def gather_global_chat_sources(
                and {SOURCE_POST_ELIGIBILITY_SQL.format(alias='post')}
                and ($6::date is null or (coalesce(post.event_occurred_at, post.created_at) at time zone 'Asia/Seoul')::date >= $6)
                and ($7::date is null or (coalesce(post.event_occurred_at, post.created_at) at time zone 'Asia/Seoul')::date <= $7)
-             group by unit.post_id, embedding.post_content_embedding_id
+             group by unit.post_id, unit.unit_index, unit.source_evidence_reference,
+                      embedding.post_content_embedding_id
             having count(*) = cardinality($1::double precision[])
-        ), embedding_candidates as (
-            select similarity.post_id,
-                   max(similarity.cosine_similarity) as semantic_score,
-                   max(coalesce(post.event_occurred_at, post.created_at)) as event_clock
+        ), ranked_embedding_units as (
+            select similarity.post_id, similarity.unit_index,
+                   similarity.evidence_open_available,
+                   similarity.cosine_similarity as semantic_score,
+                   coalesce(post.event_occurred_at, post.created_at) as event_clock,
+                   row_number() over (
+                       partition by similarity.post_id
+                       order by similarity.cosine_similarity desc, similarity.unit_index
+                   ) as unit_rank
               from unit_similarity similarity
               join source_post post on post.post_id = similarity.post_id
-             group by similarity.post_id
-             order by semantic_score desc, event_clock desc, similarity.post_id desc
+        ), embedding_candidates as (
+            select post_id, unit_index, evidence_open_available,
+                   semantic_score, event_clock
+              from ranked_embedding_units
+             where unit_rank = 1
+             order by semantic_score desc, event_clock desc, post_id desc
              limit $8
         ), evidence_query as (
             select websearch_to_tsquery('simple', phrase) as terms
@@ -823,10 +836,11 @@ async def gather_global_chat_sources(
              limit $8
         )
         select 'embedding'::text as candidate_channel, post_id,
+               unit_index, evidence_open_available,
                row_number() over (order by semantic_score desc, event_clock desc, post_id desc) as channel_rank
           from embedding_candidates
         union all
-        select 'evidence', post_id,
+        select 'evidence', post_id, null::integer, false,
                row_number() over (order by event_clock desc, post_id desc) as channel_rank
           from authorized_evidence_candidates
          order by candidate_channel, channel_rank
@@ -845,12 +859,24 @@ async def gather_global_chat_sources(
     )
     embedding_candidate_ids: list[str] = []
     evidence_candidate_ids: list[str] = []
+    evidence_open_actions: dict[str, EvidenceOpenAction] = {}
     for row in candidate_rows:
         channel = str(row.get("candidate_channel") or "embedding")
+        post_id = str(row["post_id"])
+        unit_index = row.get("unit_index")
+        if (
+            channel == "embedding"
+            and row.get("evidence_open_available") is True
+            and isinstance(unit_index, int)
+        ):
+            evidence_open_actions.setdefault(
+                post_id,
+                EvidenceOpenAction(post_id=post_id, unit_index=unit_index),
+            )
         target = (
             evidence_candidate_ids if channel == "evidence" else embedding_candidate_ids
         )
-        target.append(str(row["post_id"]))
+        target.append(post_id)
     candidate_ids = _fuse_global_candidate_ids(
         embedding_candidate_ids, evidence_candidate_ids, limit
     )
@@ -862,6 +888,8 @@ async def gather_global_chat_sources(
     # `find_linked_post_ids`'s `.direct` set used by the post-scoped chat
     # flow. Only the top match is expanded so lower-ranked semantic candidates
     # cannot each pull a separate lineage chain into the bounded context.
+    # Cutoff answers skip this expansion: reconstructed edges have no
+    # available-time contract and must not leak later neighbors (ADR 0216).
     lineage_neighbor_ids: list[str] = []
     lineage_anchor_id = candidate_ids[0] if candidate_ids else None
     if lineage_anchor_id and knowledge_cutoff is None:
@@ -983,44 +1011,30 @@ async def gather_global_chat_sources(
                 source_post_revision_id=(
                     revision["source_post_revision_id"] if revision is not None else None
                 ),
-                evidence_available_at=(
-                    revision["written_at"] if revision is not None else None
-                ),
-                knowledge_cutoff=(
-                    knowledge_cutoff.isoformat() if knowledge_cutoff else None
-                ),
+                evidence_available_at=(revision["written_at"] if revision is not None else None),
+                knowledge_cutoff=(knowledge_cutoff.isoformat() if knowledge_cutoff else None),
                 live_changed_after_cutoff=(
                     knowledge_cutoff is not None and row["updated_at"] > knowledge_cutoff
                 ),
                 historical_body_unavailable=historical_body_unavailable,
                 unavailable_channels=(
-                    (
-                        "historical_body",
-                        "semantic_role",
-                        "semantic_keyman",
-                        "knowledge_graph",
-                        "lineage",
-                        "image",
-                    )
+                    ("historical_body", "semantic_role", "semantic_keyman", "knowledge_graph", "lineage", "image")
                     if historical_body_unavailable
-                    else (
-                        (
-                            "semantic_role",
-                            "semantic_keyman",
-                            "knowledge_graph",
-                            "lineage",
-                            "image",
-                        )
-                        if knowledge_cutoff
-                        else ()
-                    )
+                    else (("semantic_role", "semantic_keyman", "knowledge_graph", "lineage", "image") if knowledge_cutoff else ())
                 ),
                 observed_at=observed_at.isoformat() if observed_at else None,
-                time_axis_code="event_occurred_at"
-                if event_occurred_at is not None
-                else "created_at"
-                if created_at is not None
-                else None,
+                time_axis_code=(
+                    "event_occurred_at"
+                    if event_occurred_at is not None
+                    else "created_at"
+                    if created_at is not None
+                    else None
+                ),
+                evidence_open_action=(
+                    None
+                    if post_id in lineage_neighbor_id_set
+                    else evidence_open_actions.get(post_id)
+                ),
                 **source_arguments,
             )
         )

@@ -24,7 +24,7 @@ export function VoiceTaxonomySummary({ data }: { data: Summary }) {
       <p>{tf("Compare voice classifications across {count} visible records.", { count: data.total_eligible.toLocaleString() })}</p>
       <dl className="dashboard-metrics-grid">
         <div><dt>{t("Recorded evidence")}</dt><dd>{data.source_count.toLocaleString()}</dd></div>
-        <div><dt>{t("Stored semantic evidence")}</dt><dd>{data.derived_count.toLocaleString()}</dd></div>
+        <div><dt>{t("Additional classified records")}</dt><dd>{data.derived_count.toLocaleString()}</dd></div>
         <div><dt>{t("Records in multiple voice categories")}</dt><dd>{data.multi_membership.toLocaleString()}</dd></div>
         <div><dt>{t("Needs review")}</dt><dd>{data.disagreement.toLocaleString()}</dd></div>
         <div><dt>{t("Records without voice evidence")}</dt><dd>{data.unavailable.toLocaleString()}</dd></div>

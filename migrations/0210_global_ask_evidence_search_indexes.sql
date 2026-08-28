@@ -1,5 +1,5 @@
 -- Index the normalized evidence fields used to nominate Global Ask sources.
--- Rows remain in their owning 3NF tables; these are expression indexes only.
+-- Rows remain in their owning 3NF tables, and these are expression indexes only.
 
 create index concurrently if not exists post_project_mention_evidence_search_idx
     on post_project_mention using gin (

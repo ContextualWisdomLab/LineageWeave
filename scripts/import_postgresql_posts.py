@@ -14,7 +14,7 @@ import os
 import sys
 import uuid
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -28,9 +28,11 @@ if str(REPOSITORY_ROOT) not in sys.path:
 
 from backend.app.lineage_ingestion import ChannelWeightsNotEstimated, rebuild_lineage
 from lineageweave.adjudication_client import (
+    AdjudicationClientError,
     ContextualOrchestratorAdjudicationClient,
     NullAdjudicationClient,
 )
+from lineageweave.chunking import Chunk, ConversationTurn, chunk_by_conversation_turn
 from lineageweave.embedding_client import orchestrator_embedding_client
 from lineageweave.image_content import orchestrator_vision_client
 from lineageweave.llm_context import build_post_llm_metadata, use_llm_metadata
@@ -42,6 +44,11 @@ from lineageweave.post_structure import (
 from lineageweave.synthetic_seed_cleanup import cleanup_synthetic_seed
 
 SOURCE_NAMESPACE = uuid.UUID("b6e4b1d6-5fd0-4ca1-92b0-8f7a4e2df83e")
+SOURCE_CONVERSATION_TURN_KIND = "lineageweave.source_conversation_turns"
+SOURCE_CONVERSATION_TURN_VERSION = 1
+SOURCE_CONVERSATION_TURN_MAX_COUNT = 32
+SOURCE_CONVERSATION_TURN_MAX_TEXT_LENGTH = 8_000
+SOURCE_CONVERSATION_TURN_MAX_ENVELOPE_BYTES = 24_000
 
 _VOC_TYPE_ALIASES = {
     "voc": "voc",
@@ -50,6 +57,32 @@ _VOC_TYPE_ALIASES = {
     "vom": "vom",
     "vop": "vop",
 }
+
+
+async def _lineage_rebuild_summary(target: Any, adjudication_client: Any) -> dict[str, object]:
+    """Rebuild lineage without turning optional provider output into import loss."""
+
+    try:
+        edges = await rebuild_lineage(target, llm=adjudication_client)
+        return {"lineage_edges": len(edges)}
+    except ChannelWeightsNotEstimated as exc:
+        return {
+            "lineage_edges": None,
+            "lineage_rebuild_skipped": (
+                f"{exc} -- after this import, run "
+                "scripts/estimate_channel_weights.py and then "
+                "POST /api/lineage/rebuild"
+            ),
+        }
+    except AdjudicationClientError as exc:
+        return {
+            "lineage_edges": None,
+            "lineage_rebuild_unavailable": (
+                f"{exc} -- imported source rows remain persisted; retry "
+                "POST /api/lineage/rebuild after the orchestrator returns "
+                "a valid confidence response"
+            ),
+        }
 
 
 def _normalize_voc_type(value: Any, *, mapped: bool) -> str:
@@ -97,6 +130,7 @@ class ColumnMapping:
     project_name: str | None
     thread_group: str | None
     secondary_group: str | None
+    conversation_turns: str | None
 
 
 def _parser() -> argparse.ArgumentParser:
@@ -168,6 +202,10 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument("--source-project-name-column")
     parser.add_argument("--thread-group-column")
     parser.add_argument("--secondary-group-column")
+    parser.add_argument(
+        "--conversation-turns-column",
+        help="optional JSON/JSONB source-conversation-turn envelope column",
+    )
     parser.add_argument("--author-subject-id", required=True)
     parser.add_argument("--corporate-entity-code", required=True)
     parser.add_argument(
@@ -197,7 +235,7 @@ def _value(row: Any, column: str | None, default: Any = None) -> Any:
     """Read an optional mapped field without guessing absent source data."""
     if column is None:
         return default
-    if column not in row.keys():
+    if column not in row.keys():  # noqa: SIM118 - asyncpg.Record membership checks values.
         raise KeyError(f"source query did not return mapped column {column!r}")
     return row[column]
 
@@ -219,7 +257,7 @@ def _timestamp(value: Any) -> datetime:
     """Normalize a source timestamp for asyncpg timestamptz parameters."""
     if not isinstance(value, datetime):
         raise TypeError("created/updated source values must be datetime instances")
-    return value.replace(tzinfo=timezone.utc) if value.tzinfo is None else value
+    return value.replace(tzinfo=UTC) if value.tzinfo is None else value
 
 
 def _source_code_matches(
@@ -235,6 +273,98 @@ def _source_code_matches(
         return False
     normalized = str(value).strip().casefold()
     return normalized in {item.strip().casefold() for item in excluded_values}
+
+
+def _source_conversation_turn_chunks(value: Any) -> list[Chunk] | None:
+    """Validate a versioned caller-parsed turn envelope without inferring speakers."""
+    if value is None:
+        return None
+    if isinstance(value, str):
+        if not value.strip():
+            raise ValueError("conversation-turn envelope cannot be blank")
+        if len(value.encode("utf-8")) > SOURCE_CONVERSATION_TURN_MAX_ENVELOPE_BYTES:
+            raise ValueError("conversation-turn envelope exceeds its bounded contract")
+        try:
+            value = json.loads(value)
+        except json.JSONDecodeError as exc:
+            raise ValueError("conversation-turn envelope is not valid JSON") from exc
+    else:
+        try:
+            serialized = json.dumps(value, ensure_ascii=False, separators=(",", ":"))
+        except (TypeError, ValueError) as exc:
+            raise ValueError("conversation-turn envelope is not JSON-compatible") from exc
+        if len(serialized.encode("utf-8")) > SOURCE_CONVERSATION_TURN_MAX_ENVELOPE_BYTES:
+            raise ValueError("conversation-turn envelope exceeds its bounded contract")
+    if not isinstance(value, dict) or set(value) != {"kind", "version", "turns"}:
+        raise ValueError("conversation-turn envelope must contain exactly kind, version, and turns")
+    if value["kind"] != SOURCE_CONVERSATION_TURN_KIND:
+        raise ValueError("unsupported conversation-turn envelope kind")
+    if (
+        type(value["version"]) is not int
+        or value["version"] != SOURCE_CONVERSATION_TURN_VERSION
+    ):
+        raise ValueError("unsupported conversation-turn envelope version")
+    turns = value["turns"]
+    if (
+        not isinstance(turns, list)
+        or not 1 <= len(turns) <= SOURCE_CONVERSATION_TURN_MAX_COUNT
+    ):
+        raise ValueError("conversation-turn envelope must contain between 1 and 32 turns")
+
+    parsed: list[ConversationTurn] = []
+    for expected_ordinal, turn in enumerate(turns):
+        if not isinstance(turn, dict) or set(turn) != {
+            "ordinal",
+            "speaker",
+            "text",
+            "evidence_reference",
+        }:
+            raise ValueError(
+                "each conversation turn must contain exactly ordinal, speaker, "
+                "text, and evidence_reference"
+            )
+        if type(turn["ordinal"]) is not int or turn["ordinal"] != expected_ordinal:
+            raise ValueError(
+                "conversation-turn ordinals must be unique, contiguous, and in list order"
+            )
+        speaker = turn["speaker"]
+        text = turn["text"]
+        evidence_reference = turn["evidence_reference"]
+        if (
+            not isinstance(speaker, str)
+            or speaker != speaker.strip()
+            or not speaker
+            or "\x00" in speaker
+        ):
+            raise ValueError(
+                "conversation-turn speaker must be a nonblank PostgreSQL text string"
+            )
+        if (
+            not isinstance(text, str)
+            or not text.strip()
+            or len(text) > SOURCE_CONVERSATION_TURN_MAX_TEXT_LENGTH
+            or "\x00" in text
+        ):
+            raise ValueError(
+                "conversation-turn text must be a nonblank bounded PostgreSQL text string"
+            )
+        if (
+            not isinstance(evidence_reference, str)
+            or evidence_reference != evidence_reference.strip()
+            or not evidence_reference
+            or "\x00" in evidence_reference
+        ):
+            raise ValueError(
+                "conversation-turn evidence reference must be a nonblank PostgreSQL text string"
+            )
+        parsed.append(
+            ConversationTurn(
+                sender=speaker,
+                text=text,
+                source_evidence_reference=evidence_reference,
+            )
+        )
+    return chunk_by_conversation_turn(parsed)
 
 
 def _lineage_grouping_values(
@@ -361,6 +491,14 @@ def _validate_source_rows(
             )
         except ValueError as exc:
             raise ValueError(f"invalid source VOC type at source row {row_number}: {exc}") from exc
+        try:
+            _source_conversation_turn_chunks(
+                _value(row, getattr(mapping, "conversation_turns", None))
+            )
+        except ValueError as exc:
+            raise ValueError(
+                f"invalid source conversation turns at source row {row_number}: {exc}"
+            ) from exc
 
 
 async def _ensure_scope(conn: asyncpg.Connection, args: argparse.Namespace) -> tuple[str, str, str]:
@@ -442,6 +580,7 @@ async def import_rows(args: argparse.Namespace) -> dict[str, object]:
         project_name=args.source_project_name_column,
         thread_group=args.thread_group_column,
         secondary_group=args.secondary_group_column,
+        conversation_turns=args.conversation_turns_column,
     )
     _validate_source_mapping(mapping.sales_pool, mapping.source_business_unit)
     query = args.query_file.read_text(encoding="utf-8")
@@ -504,6 +643,9 @@ async def import_rows(args: argparse.Namespace) -> dict[str, object]:
             post_id = _source_post_id(row, mapping, args.source_system_code, record_key)
             title = str(_value(row, mapping.title, "") or "")
             body = str(_value(row, mapping.body, "") or "")
+            conversation_turns = _source_conversation_turn_chunks(
+                _value(row, mapping.conversation_turns)
+            )
             voc_type_code = _normalize_voc_type(
                 _value(row, mapping.voc_type, "voc"),
                 mapped=mapping.voc_type is not None,
@@ -640,6 +782,7 @@ async def import_rows(args: argparse.Namespace) -> dict[str, object]:
                     embedding_client=embedding_client,
                     structure_client=structure_client,
                     post_title=title,
+                    semantic_units=conversation_turns,
                 )
             imported += 1
         cleanup = await cleanup_synthetic_seed(target, apply=True)
@@ -648,18 +791,9 @@ async def import_rows(args: argparse.Namespace) -> dict[str, object]:
         # reconstruction never falls back to hand-picked constants
         # (ADR 0200 point 1). Skip the rebuild with a next-action note
         # instead of failing the whole import.
-        try:
-            edges = await rebuild_lineage(target, llm=adjudication_client)
-            lineage_summary: dict[str, object] = {"lineage_edges": len(edges)}
-        except ChannelWeightsNotEstimated as exc:
-            lineage_summary = {
-                "lineage_edges": None,
-                "lineage_rebuild_skipped": (
-                    f"{exc} -- after this import, run "
-                    "scripts/estimate_channel_weights.py and then "
-                    "POST /api/lineage/rebuild"
-                ),
-            }
+        lineage_summary = await _lineage_rebuild_summary(
+            target, adjudication_client
+        )
         summary: dict[str, object] = {
             "source_rows": len(rows),
             "imported_rows": imported,

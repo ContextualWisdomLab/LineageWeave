@@ -30,9 +30,7 @@ from urllib.parse import urlencode
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 import psycopg2
-from psycopg2 import sql
 
-from backend.app.post_eligibility import SOURCE_POST_ELIGIBILITY_SQL
 from lineageweave.http_client import get_json, get_json_list, post_form
 from lineageweave.post_summary import ACTOR_TYPE_PERSON, POST_SUMMARY_CONTRACT_VERSION
 from lineageweave.tepp_client import AnalysisRunRequest, TeppClient, TeppNotAvailable
@@ -129,7 +127,8 @@ def seed(
             cur.execute((migrations / "0182_report_leftover_map_unexplained.sql").read_text())
             cur.execute((migrations / "0185_report_leftover_map_cross_share.sql").read_text())
             cur.execute((migrations / "0206_report_leftover_map_reconstruction.sql").read_text())
-            cur.execute((migrations / "0236_report_leftover_map_explained_share.sql").read_text())
+            cur.execute((migrations / "0233_report_leftover_map_unexplained_share.sql").read_text())
+            cur.execute((migrations / "0244_report_leftover_map_explained_share.sql").read_text())
             cur.execute((migrations / "0060_role_responsibility_agent_type.sql").read_text())
             cur.execute((migrations / "0013_person_job_title.sql").read_text())
             cur.execute((migrations / "0014_role_responsibility_team_actor_type.sql").read_text())
@@ -1341,8 +1340,9 @@ def _persist_seed_period_report(
             "pair_kind, post_id, criterion_code, leftover_distance, leftover_residual, "
             "observed_response, expected_response, leftover_map_rank, "
             "leftover_map_unexplained, leftover_map_cross_share, "
-            "leftover_map_reconstruction, leftover_map_explained_share"
-            ") values (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)",
+            "leftover_map_reconstruction, leftover_map_unexplained_share, "
+            "leftover_map_explained_share"
+            ") values (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)",
             (
                 grouping_kind,
                 grouping_key,
@@ -1359,6 +1359,7 @@ def _persist_seed_period_report(
                 pair.leftover_map_unexplained,
                 pair.leftover_map_cross_share,
                 pair.leftover_map_reconstruction,
+                pair.leftover_map_unexplained_share,
                 pair.leftover_map_explained_share,
             ),
         )
@@ -2161,16 +2162,8 @@ def _warm_seeded_post_content(
     connection = psycopg2.connect(postgres_dsn)
     try:
         with connection.cursor() as cur:
-            eligibility = sql.SQL(
-                SOURCE_POST_ELIGIBILITY_SQL.format(alias="source_post")
-            )
-            # psycopg2.sql composes only the immutable eligibility policy;
-            # the runtime title pattern remains a bound value below.
-            cur.execute(  # nosemgrep: python.sqlalchemy.security.sqlalchemy-execute-raw-query.sqlalchemy-execute-raw-query
-                sql.SQL(
-                    "select post_id from source_post where post_title like %s and {}"
-                ).format(eligibility),
-                ("Demo %post",),
+            cur.execute(
+                "select post_id from source_post where post_title like 'Demo %post'"
             )
             post_ids = [str(row[0]) for row in cur.fetchall()]
     finally:

@@ -110,7 +110,7 @@ than one large PR:
 8. **Leftover evidence extensions:** unexplained leftover shipped in 2.12.26
    (ADR 0182), cross-share evidence shipped in 2.12.29 (ADR 0185),
    reconstruction evidence shipped in 2.12.31 (ADR 0201), and leftover-map
-   explained share shipped in 2.19.0 (ADR 0232). Do not persist unexplained
+   explained share is governed by ADR 0266. Do not persist unexplained
    leftover share `s` or another unsupported alias.
 9. **Leftover-map axis-share slice** (ADR 0148): persist Gabriel inertia
    `σ_k² / Σ_j σ_j²` of leftover-map axes 1 and 2 on the same residual

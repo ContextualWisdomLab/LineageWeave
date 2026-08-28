@@ -41,8 +41,9 @@ does not repeatedly hash the source corpus; subsequent writes remain covered
 by the trigger. The trigger is installed before the backfill snapshot so a
 concurrent write cannot fall between recovery and normal ingestion coverage.
 A trigger-disabled restore must restore the assertion table with `source_post`;
-if it restores source rows alone, the operator deletes this completion marker
-and replays migration 0230 before normal writes resume.
+if it restores source rows alone, the operator deletes the retained
+`0230_voice_source_assertion_backfill` completion marker and replays migration
+0253 before normal writes resume.
 
 Counts use the same authorized eligible-post denominator at the same cutoff and
 filters. They report source, derived, multi-membership, disagreement, and

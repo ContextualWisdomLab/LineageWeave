@@ -58,4 +58,3 @@ list without guessing from the lineage graph.
   customer-facing copy.
 - Authenticated Compose screenshots cover desktop and narrow viewports with
   synthetic data.
-

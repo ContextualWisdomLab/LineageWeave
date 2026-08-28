@@ -8,12 +8,14 @@ import { filterNeighborhood } from "../ontologyLayout";
 
 vi.mock("../api", async (importOriginal) => {
   const actual = await importOriginal<typeof import("../api")>();
-  return { ...actual, fetchOntologyNeighborhood: vi.fn() };
+  return { ...actual, fetchOntologyNeighborhood: vi.fn(), fetchOccupationalConstructSearch: vi.fn() };
 });
 
 const POST_ID = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa1";
+const EVIDENCE_POST_ID = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa2";
 const PERSON_ID = "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbb1";
 const CORP_ID = "cccccccc-cccc-cccc-cccc-ccccccccccc1";
+const CONSTRUCT_ID = "99999999-9999-9999-9999-999999999999";
 
 function neighborhood(overrides: Partial<OntologyNeighborhoodPayload> = {}): OntologyNeighborhoodPayload {
   return {
@@ -181,10 +183,10 @@ describe("OntologyExplorer", () => {
     await userEvent.click(await screen.findByRole("button", { name: "Select node: Post Demo public post" }));
     expect(screen.getByRole("heading", { name: "Demo public post" })).toBeInTheDocument();
     await userEvent.click(screen.getByRole("button", { name: "Load next relation page" }));
-    expect(await screen.findByText("Loading ontology neighborhood...")).toBeInTheDocument();
+    expect(await screen.findByText("Loading related information...")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Select node: Post Demo public post" })).toBeInTheDocument();
     rejectContinuation(new BackendError("/api/ontology/neighborhood", 500));
-    expect(await screen.findByText("Ontology neighborhood is unavailable. Open a visible post next.")).toBeInTheDocument();
+    expect(await screen.findByText("Related information is unavailable. Open a visible post next.")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Select node: Post Demo public post" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Demo public post" })).toBeInTheDocument();
     expect(fetchNeighborhood).toHaveBeenNthCalledWith(
@@ -211,10 +213,10 @@ describe("OntologyExplorer", () => {
     );
 
     await userEvent.click(await screen.findByRole("button", { name: "Load next relation page" }));
-    expect(await screen.findByText("Ontology neighborhood is unavailable. Open a visible post next.")).toBeInTheDocument();
+    expect(await screen.findByText("Related information is unavailable. Open a visible post next.")).toBeInTheDocument();
     await userEvent.click(screen.getByRole("button", { name: "Load next relation page" }));
     await waitFor(() => expect(fetchNeighborhood).toHaveBeenCalledTimes(3));
-    expect(screen.queryByText("Ontology neighborhood is unavailable. Open a visible post next.")).not.toBeInTheDocument();
+    expect(screen.queryByText("Related information is unavailable. Open a visible post next.")).not.toBeInTheDocument();
     expect(fetchNeighborhood).toHaveBeenNthCalledWith(
       3,
       "synthetic-access-token",
@@ -239,7 +241,7 @@ describe("OntologyExplorer", () => {
 
     expect(
       await screen.findByText(
-        "Access denied for this ontology neighborhood. Open a visible post next.",
+        "Related information is unavailable for this record. Open a visible post next.",
       ),
     ).toBeInTheDocument();
   });
@@ -257,7 +259,7 @@ describe("OntologyExplorer", () => {
       />,
     );
     expect(
-      screen.getByText(/This is an ontology neighborhood, not Event Lineage/),
+      screen.getByText("Review related records and open a source post for details."),
     ).toBeInTheDocument();
     expect(screen.getByRole("columnheader", { name: "Valid from" })).toBeInTheDocument();
     expect(screen.getByRole("columnheader", { name: "Valid to" })).toBeInTheDocument();
@@ -272,6 +274,51 @@ describe("OntologyExplorer", () => {
     await userEvent.click(screen.getByRole("button", { name: `Open evidence: ${POST_ID}` }));
     expect(onOpenEvidence).toHaveBeenCalledWith(POST_ID);
     expect(screen.queryByRole("img")).not.toBeInTheDocument();
+  });
+
+  it("opens the carrying post and its authorized Voice evidence separately", async () => {
+    const onOpenEvidence = vi.fn();
+    const onSelectPost = vi.fn();
+    const source = neighborhood();
+    render(
+      <OntologyExplorer
+        focusNodeType="node_post"
+        focusNodeId={POST_ID}
+        neighborhood={{
+          ...source,
+          exact_value_rows: [
+            ...source.exact_value_rows,
+            {
+              ...source.exact_value_rows[0],
+              edge_id: `voice-assignment:${POST_ID}:voc_customer`,
+              property_code: "hasVoiceAssignment",
+              property_label: "Voice carried by this post",
+              target_node_id: "voc_customer",
+              target_label: "Voice of Customer",
+              target_type_code: "node_voice_type",
+              evidence_post_id: EVIDENCE_POST_ID,
+            },
+          ],
+          nodes: [
+            ...source.nodes,
+            {
+              ...source.nodes[0],
+              node_id: EVIDENCE_POST_ID,
+              display_label: "Demo evidence post",
+            },
+          ],
+        }}
+        onSelectPost={onSelectPost}
+        onOpenEvidence={onOpenEvidence}
+      />,
+    );
+
+    await userEvent.click(
+      screen.getByRole("button", { name: "Open post: Demo public post" }),
+    );
+    expect(onSelectPost).toHaveBeenCalledWith(POST_ID);
+    await userEvent.click(screen.getByRole("button", { name: "Open evidence: Demo evidence post" }));
+    expect(onOpenEvidence).toHaveBeenCalledWith(EVIDENCE_POST_ID);
   });
 
   it("keeps complete long node labels in the rendered graph and exact-value table", () => {
@@ -336,7 +383,7 @@ describe("OntologyExplorer", () => {
     );
     expect(
       screen.getAllByText(
-        "No visible ontology relations for this focus. Open a Keyman or affiliated organization next.",
+        "No related information is available. Open a visible post next.",
       ).length,
     ).toBeGreaterThan(0);
     rerender(
@@ -359,7 +406,7 @@ describe("OntologyExplorer", () => {
         status="denied"
       />,
     );
-    expect(screen.getByText("Access denied for this ontology neighborhood. Open a visible post next.")).toBeInTheDocument();
+    expect(screen.getByText("Related information is unavailable for this record. Open a visible post next.")).toBeInTheDocument();
     rerender(
       <OntologyExplorer
         focusNodeType="node_post"
@@ -371,7 +418,7 @@ describe("OntologyExplorer", () => {
         status="rejected"
       />,
     );
-    expect(screen.getByText("Rejected proposal. Open the evidence and do not treat it as authoritative.")).toBeInTheDocument();
+    expect(screen.getByText("This suggestion was not accepted. Open the evidence to review it.")).toBeInTheDocument();
   });
 
   it("does not hide rejected or cutoff warnings behind truncation", () => {
@@ -387,7 +434,7 @@ describe("OntologyExplorer", () => {
         neighborhood={rejected}
       />,
     );
-    expect(screen.getByText("Rejected proposal. Open the evidence and do not treat it as authoritative.")).toBeInTheDocument();
+    expect(screen.getByText("This suggestion was not accepted. Open the evidence to review it.")).toBeInTheDocument();
     expect(screen.queryByText(/Load the next relation page or inspect one edge/)).not.toBeInTheDocument();
 
     rerender(
@@ -399,7 +446,7 @@ describe("OntologyExplorer", () => {
       />,
     );
     expect(
-      screen.getByText("This neighborhood is bound to a knowledge cutoff. Compare with live evidence next."),
+      screen.getByText("This information reflects an earlier view. Compare it with the current record next."),
     ).toBeInTheDocument();
   });
 
@@ -455,5 +502,68 @@ describe("OntologyExplorer", () => {
       `lw:node/node_person/${PERSON_ID}`,
       "lw:edge/mentions:post-person",
     ]);
+  });
+
+  it("labels and filters distinct work evidence without exposing its node code", async () => {
+    render(
+      <OntologyExplorer
+        focusNodeType="node_post"
+        focusNodeId={POST_ID}
+        neighborhood={neighborhood({
+          nodes: [
+            neighborhood().nodes[0],
+            {
+              node_id: CONSTRUCT_ID,
+              node_type_code: "node_occupational_construct",
+              ontology_class_iri: "https://example.test/OccupationalConstruct",
+              display_label: "Problem Sensitivity",
+              truth_status_code: null,
+              valid_from: null,
+              valid_to: null,
+              recorded_at: null,
+              evidence_count: 1,
+              shape_code: "rounded-rectangle",
+            },
+          ],
+          edges: [],
+          exact_value_rows: [],
+        })}
+      />,
+    );
+
+    expect(screen.getAllByText("Work evidence").length).toBeGreaterThan(0);
+    expect(
+      screen.getByText(/Select a work-evidence node to review the records that support it/),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Select node: Work evidence Problem Sensitivity" }),
+    ).toHaveClass("ontology-node-occupational-construct");
+    expect(document.querySelectorAll(".ontology-node-occupational-construct rect")).toHaveLength(1);
+    expect(screen.queryByText("node_occupational_construct")).not.toBeInTheDocument();
+
+    await userEvent.type(
+      screen.getByLabelText("Search within this neighborhood"),
+      "Demo public post",
+    );
+    expect(
+      screen.queryByText("Select a work-evidence node to review the records that support it."),
+    ).not.toBeInTheDocument();
+  });
+
+  it("hosts authorized catalog search without a second destination", () => {
+    render(
+      <OntologyExplorer
+        focusNodeType="node_post"
+        focusNodeId={POST_ID}
+        neighborhood={neighborhood()}
+      />,
+    );
+    expect(screen.getByRole("heading", { name: "Find work evidence" })).toBeVisible();
+    expect(
+      screen.getByText(
+        "Type two or more letters of a catalog label, then open the supporting record.",
+      ),
+    ).toBeVisible();
+    expect(screen.getByRole("button", { name: "Find matching records" })).toBeVisible();
   });
 });

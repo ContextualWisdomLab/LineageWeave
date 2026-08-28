@@ -62,7 +62,10 @@ export const PartialHistoricalEvidence: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     await userEvent.type(canvas.getByLabelText("Ask a question"), "What was known about Apollo?");
-    await userEvent.type(canvas.getByLabelText("Knowledge cutoff (optional)"), "2026-01-15T12:00");
+    await userEvent.type(
+      canvas.getByLabelText("Use evidence available by (optional)"),
+      "2026-01-15T12:00",
+    );
     await userEvent.click(canvas.getByRole("button", { name: "Ask" }));
     await expect(canvas.findByText(/Partially cutoff-grounded/)).resolves.toBeVisible();
     await expect(canvas.getByRole("alert")).toHaveTextContent("Current-only semantic channels were excluded");

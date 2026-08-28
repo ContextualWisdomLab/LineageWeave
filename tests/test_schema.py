@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import asyncio
 import os
+import subprocess
 import uuid
 from pathlib import Path
 from urllib.parse import urlsplit, urlunsplit
@@ -26,23 +27,51 @@ import psycopg2.errors
 import pytest
 
 from backend.app.post_chat_ingestion import gather_global_chat_sources
+from lineageweave.occupational_construct_catalog import (
+    catalog_content_sha256,
+    sync_onet_construct_catalog,
+)
 
 _ADMIN_DSN = os.environ.get(
     "LINEAGEWEAVE_TEST_POSTGRES_ADMIN_DSN", "postgresql://localhost/postgres"
 )
-_MIGRATION_PATH = (
-    Path(__file__).resolve().parents[1] / "migrations" / "0001_initial_schema.sql"
-)
+_MIGRATION_PATH = Path(__file__).resolve().parents[1] / "migrations" / "0001_initial_schema.sql"
 _MAJOR_EVENT_ACTION_MIGRATION = (
     Path(__file__).resolve().parents[1] / "migrations" / "0100_major_event_action.sql"
 )
 _PROJECT_MENTION_MIGRATION = (
-    Path(__file__).resolve().parents[1]
-    / "migrations"
-    / "0031_semantic_project_mentions.sql"
+    Path(__file__).resolve().parents[1] / "migrations" / "0031_semantic_project_mentions.sql"
 )
 _POST_CONTENT_MIGRATION = (
     Path(__file__).resolve().parents[1] / "migrations" / "0026_post_content_artifacts.sql"
+)
+_POST_CONTENT_QUEUE_MIGRATION = (
+    Path(__file__).resolve().parents[1]
+    / "migrations"
+    / "0050_post_content_ingestion_queue.sql"
+)
+_ONTOLOGY_TRUTH_STATUS_MIGRATION = (
+    Path(__file__).resolve().parents[1] / "migrations" / "0175_ontology_truth_status.sql"
+)
+_OCCUPATIONAL_CONSTRUCT_MIGRATION = (
+    Path(__file__).resolve().parents[1]
+    / "migrations"
+    / "0238_occupational_construct_assertion.sql"
+)
+_OCCUPATIONAL_CATALOG_MIGRATION = (
+    Path(__file__).resolve().parents[1]
+    / "migrations"
+    / "0239_occupational_construct_catalog.sql"
+)
+_OCCUPATIONAL_EXTRACTION_MIGRATION = (
+    Path(__file__).resolve().parents[1]
+    / "migrations"
+    / "0240_occupational_construct_extraction_run.sql"
+)
+_SOURCE_CONVERSATION_TURN_EVIDENCE_MIGRATION = (
+    Path(__file__).resolve().parents[1]
+    / "migrations"
+    / "0233_source_conversation_turn_evidence.sql"
 )
 _SOURCE_STATE_MIGRATION = (
     Path(__file__).resolve().parents[1] / "migrations" / "0033_source_state_provenance.sql"
@@ -97,10 +126,15 @@ _LEFTOVER_MAP_RECONSTRUCTION_MIGRATION = (
     / "migrations"
     / "0206_report_leftover_map_reconstruction.sql"
 )
+_LEFTOVER_MAP_UNEXPLAINED_SHARE_MIGRATION = (
+    Path(__file__).resolve().parents[1]
+    / "migrations"
+    / "0233_report_leftover_map_unexplained_share.sql"
+)
 _LEFTOVER_MAP_EXPLAINED_SHARE_MIGRATION = (
     Path(__file__).resolve().parents[1]
     / "migrations"
-    / "0236_report_leftover_map_explained_share.sql"
+    / "0244_report_leftover_map_explained_share.sql"
 )
 _LEFTOVER_MAP_AXIS_MIGRATION = (
     Path(__file__).resolve().parents[1]
@@ -113,9 +147,7 @@ _GLOBAL_ASK_EVIDENCE_SEARCH_MIGRATION = (
     / "0210_global_ask_evidence_search_indexes.sql"
 )
 _CHANNEL_EVIDENCE_MIGRATION = (
-    Path(__file__).resolve().parents[1]
-    / "migrations"
-    / "0174_post_lineage_edge_signal.sql"
+    Path(__file__).resolve().parents[1] / "migrations" / "0174_post_lineage_edge_signal.sql"
 )
 _LEFTOVER_MAP_COVERAGE_MIGRATION = (
     Path(__file__).resolve().parents[1]
@@ -127,64 +159,13 @@ _LEFTOVER_MAP_UNEXPLAINED_MIGRATION = (
     / "migrations"
     / "0182_report_leftover_map_unexplained.sql"
 )
-_OPERATIONS_CASE_MIGRATION = (
+_GLOBAL_ASK_JOB_MIGRATION = (
+    Path(__file__).resolve().parents[1] / "migrations" / "0165_global_ask_job.sql"
+)
+_GLOBAL_ASK_SCOPE_MIGRATION = (
     Path(__file__).resolve().parents[1]
     / "migrations"
-    / "0208_operations_case_analysis.sql"
-)
-_OPERATIONS_CASE_EVIDENCE_MIGRATION = (
-    Path(__file__).resolve().parents[1]
-    / "migrations"
-    / "0209_operations_case_evidence_source.sql"
-)
-_OPERATIONS_CASE_MISSING_MIGRATION = (
-    Path(__file__).resolve().parents[1]
-    / "migrations"
-    / "0211_operations_case_missing_fact.sql"
-)
-_OPERATIONS_CASE_MILESTONE_MIGRATION = (
-    Path(__file__).resolve().parents[1]
-    / "migrations"
-    / "0215_operations_case_milestone.sql"
-)
-_OPERATIONS_CASE_CONSTRAINT_VALIDATION_MIGRATION = (
-    Path(__file__).resolve().parents[1]
-    / "migrations"
-    / "0216_validate_operations_case_constraints.sql"
-)
-_OPERATIONS_CASE_INPUT_MIGRATION = (
-    Path(__file__).resolve().parents[1]
-    / "migrations"
-    / "0222_operations_case_analysis_input.sql"
-)
-_ANALYSIS_RUN_REGISTRY_MIGRATION = (
-    Path(__file__).resolve().parents[1] / "migrations" / "0018_analysis_run_registry.sql"
-)
-_PROV_O_MIGRATION = (
-    Path(__file__).resolve().parents[1] / "migrations" / "0017_prov_o_standard_relations.sql"
-)
-_TOPIC_CONTEXT_INFLUENCE_MIGRATION = (
-    Path(__file__).resolve().parents[1]
-    / "migrations"
-    / "0214_topic_context_influence_projection.sql"
-)
-_TOPIC_LINEAGE_KIND_MIGRATION = (
-    Path(__file__).resolve().parents[1] / "migrations" / "0131_analysis_run_topic_lineage_kind.sql"
-)
-_OPERATIONS_EXTERNAL_RELATION_MIGRATION = (
-    Path(__file__).resolve().parents[1]
-    / "migrations"
-    / "0213_operations_external_relation_target.sql"
-)
-_PRODUCT_SEMANTIC_MIGRATION = (
-    Path(__file__).resolve().parents[1]
-    / "migrations"
-    / "0228_product_semantic_catalog.sql"
-)
-_VOICE_SEMANTIC_MIGRATION = (
-    Path(__file__).resolve().parents[1]
-    / "migrations"
-    / "0230_voice_semantic_taxonomy.sql"
+    / "0203_global_ask_authorization_scope.sql"
 )
 
 
@@ -222,9 +203,13 @@ def schema_db():
         try:
             with conn.cursor() as cur:
                 cur.execute(_MIGRATION_PATH.read_text())
-                cur.execute(_PROV_O_MIGRATION.read_text())
-                cur.execute(_ANALYSIS_RUN_REGISTRY_MIGRATION.read_text())
-                cur.execute(_TOPIC_LINEAGE_KIND_MIGRATION.read_text())
+                cur.execute(_POST_CONTENT_MIGRATION.read_text())
+                cur.execute(_POST_CONTENT_QUEUE_MIGRATION.read_text())
+                cur.execute(_ONTOLOGY_TRUTH_STATUS_MIGRATION.read_text())
+                cur.execute(_OCCUPATIONAL_CONSTRUCT_MIGRATION.read_text())
+                cur.execute(_OCCUPATIONAL_CATALOG_MIGRATION.read_text())
+                cur.execute(_OCCUPATIONAL_EXTRACTION_MIGRATION.read_text())
+                cur.execute(_SOURCE_CONVERSATION_TURN_EVIDENCE_MIGRATION.read_text())
                 cur.execute(_PROJECT_MENTION_MIGRATION.read_text())
                 cur.execute(_SOURCE_STATE_MIGRATION.read_text())
                 cur.execute(_SOURCE_CONTEXT_MIGRATION.read_text())
@@ -244,20 +229,31 @@ def schema_db():
                 cur.execute(_LEFTOVER_MAP_UNEXPLAINED_MIGRATION.read_text())
                 cur.execute(_LEFTOVER_MAP_CROSS_SHARE_MIGRATION.read_text())
                 cur.execute(_LEFTOVER_MAP_RECONSTRUCTION_MIGRATION.read_text())
+                cur.execute(_LEFTOVER_MAP_UNEXPLAINED_SHARE_MIGRATION.read_text())
                 cur.execute(_LEFTOVER_MAP_EXPLAINED_SHARE_MIGRATION.read_text())
-                cur.execute(_OPERATIONS_CASE_MIGRATION.read_text())
-                cur.execute(_OPERATIONS_CASE_EVIDENCE_MIGRATION.read_text())
-                cur.execute(_OPERATIONS_CASE_MISSING_MIGRATION.read_text())
-                cur.execute(_TOPIC_CONTEXT_INFLUENCE_MIGRATION.read_text())
-                cur.execute(_OPERATIONS_EXTERNAL_RELATION_MIGRATION.read_text())
-                cur.execute(_OPERATIONS_CASE_MILESTONE_MIGRATION.read_text())
-                cur.execute(_OPERATIONS_CASE_CONSTRAINT_VALIDATION_MIGRATION.read_text())
-                cur.execute(_OPERATIONS_CASE_INPUT_MIGRATION.read_text())
-                cur.execute(_PRODUCT_SEMANTIC_MIGRATION.read_text())
-                cur.execute(_VOICE_SEMANTIC_MIGRATION.read_text())
-            # Migrations intentionally run in autocommit mode to match psql
-            # and support concurrent indexes. Tests use savepoints, so return
-            # the connection to transactional mode before yielding it.
+                cur.execute(_SOURCE_EVENT_TIME_MIGRATION.read_text())
+                cur.execute(_GLOBAL_ASK_JOB_MIGRATION.read_text())
+                cur.execute(_GLOBAL_ASK_SCOPE_MIGRATION.read_text())
+                # Exercise the production replay contract against the same
+                # PostgreSQL objects instead of merely inspecting SQL text.
+                cur.execute(_GLOBAL_ASK_JOB_MIGRATION.read_text())
+                cur.execute(_GLOBAL_ASK_SCOPE_MIGRATION.read_text())
+                # Match ADR 0166's production migration executor instead of
+                # maintaining a fixture-owned SQL parser.
+                subprocess.run(
+                    [
+                        "psql",
+                        "-X",
+                        "-v",
+                        "ON_ERROR_STOP=1",
+                        db_dsn,
+                        "-f",
+                        str(_GLOBAL_ASK_EVIDENCE_SEARCH_MIGRATION),
+                    ],
+                    check=True,
+                )
+            # Migration replay needs autocommit for concurrent indexes, while
+            # tests need transactions for savepoints and rollback assertions.
             conn.autocommit = False
             yield conn
         finally:
@@ -312,474 +308,257 @@ def test_migration_applies_cleanly(schema_db) -> None:
         "post_summary_action",
         "post_chat_result",
         "post_chat_citation",
-        "operations_case_analysis",
-        "operations_case_classification",
-        "operations_case_fact",
-        "operations_case_missing_fact",
-        "operations_case_milestone",
-        "operations_case_missing_milestone",
-        "topic_model_run",
-        "topic_definition",
-        "topic_activity_interval",
-        "topic_lineage_relation",
-        "topic_post_coordinate",
-        "topic_context_definition",
-        "topic_context_membership",
-        "topic_influence_run",
-        "topic_post_context_influence",
+        "global_ask_job",
+        "global_ask_job_corporate_entity_scope",
+        "global_ask_job_process_unit_scope",
+        "occupational_construct_vocabulary",
+        "occupational_construct",
+        "post_occupational_construct_assertion",
+        "post_occupational_construct_extraction",
     }
     assert expected <= tables
 
 
-def test_voice_source_backfill_installs_trigger_before_snapshot() -> None:
-    """Concurrent writes are covered before the one-time snapshot starts."""
-    migration_sql = _VOICE_SEMANTIC_MIGRATION.read_text()
-    assert migration_sql.index("create trigger source_post_voice_assertion_reconcile") < (
-        migration_sql.index("do $source_assertion_backfill$")
-    )
-
-
-def test_voice_source_backfill_completion_is_atomic_and_replay_skips_scan(
-    schema_db,
-) -> None:
-    """An interrupted backfill resumes, while a completed one defers to triggers."""
-    post_id = uuid.uuid4()
-    account_id = uuid.uuid4()
-    migration_sql = _VOICE_SEMANTIC_MIGRATION.read_text()
+def test_occupational_catalog_metadata_columns_exist(schema_db) -> None:
+    """The real schema preserves catalog descriptions and release integrity."""
     with schema_db.cursor() as cur:
         cur.execute(
-            "insert into common_lookup_value "
-            "(lookup_category, lookup_code, lookup_label) values "
-            "('corporate_entity_level', 'replay_level', 'Replay level'), "
-            "('post_visibility', 'replay_visibility', 'Replay visibility'), "
-            "('voc_type', 'voc', 'Voice of Customer')"
+            """
+            select table_name, column_name
+              from information_schema.columns
+             where (table_name, column_name) in (
+                 ('occupational_construct_vocabulary', 'source_content_sha256'),
+                 ('occupational_construct', 'construct_description')
+             )
+            """
         )
-        cur.execute(
-            "insert into corporate_entity "
-            "(corporate_entity_code, entity_name, entity_level_code) "
-            "values ('REPLAY-ENTITY', 'Replay Entity', 'replay_level') "
-            "returning corporate_entity_id"
-        )
-        entity_id = cur.fetchone()[0]
-        cur.execute(
-            "insert into user_account "
-            "(user_account_id, external_subject_id, display_name, email_address) "
-            "values (%s, %s, 'Replay Author', %s)",
-            (str(account_id), f"replay-{account_id}", f"replay-{account_id}@example.invalid"),
-        )
-        cur.execute(
-            "insert into source_post "
-            "(post_id, author_account_id, corporate_entity_id, post_title, "
-            "post_body, voc_type_code, visibility_code, created_at) "
-            "values (%s, %s, %s, 'Replay post', 'Replay body', 'voc', "
-            "'replay_visibility', current_timestamp)",
-            (str(post_id), str(account_id), str(entity_id)),
-        )
-        cur.execute(
-            "delete from data_migration_completion "
-            "where migration_code = '0230_voice_source_assertion_backfill'"
-        )
-        cur.execute(
-            "delete from post_voice_classification_assertion where post_id = %s",
-            (str(post_id),),
-        )
-        cur.execute("savepoint before_interrupted_backfill")
-        cur.execute(migration_sql)
-        cur.execute(
-            "select count(*) from data_migration_completion "
-            "where migration_code = '0230_voice_source_assertion_backfill'"
-        )
-        assert cur.fetchone() == (1,)
-        cur.execute(
-            "select count(*) from post_voice_classification_assertion "
-            "where post_id = %s and assertion_status_code = 'source'",
-            (str(post_id),),
-        )
-        assert cur.fetchone() == (1,)
-
-        cur.execute("rollback to savepoint before_interrupted_backfill")
-        cur.execute(
-            "select count(*) from data_migration_completion "
-            "where migration_code = '0230_voice_source_assertion_backfill'"
-        )
-        assert cur.fetchone() == (0,)
-        cur.execute(migration_sql)
-
-        # Removing a projection after completion proves replay no longer runs
-        # the historical source-table backfill.
-        cur.execute(
-            "delete from post_voice_classification_assertion where post_id = %s",
-            (str(post_id),),
-        )
-        cur.execute(migration_sql)
-        cur.execute(
-            "select count(*) from post_voice_classification_assertion "
-            "where post_id = %s and assertion_status_code = 'source'",
-            (str(post_id),),
-        )
-        assert cur.fetchone() == (0,)
-
-        # New and revised rows remain covered by the transactional trigger.
-        cur.execute(
-            "update source_post set post_body = post_body || ' revised' "
-            "where post_id = %s",
-            (str(post_id),),
-        )
-        cur.execute(
-            "select count(*) from post_voice_classification_assertion "
-            "where post_id = %s and assertion_status_code = 'source' "
-            "and valid_to is null",
-            (str(post_id),),
-        )
-        assert cur.fetchone() == (1,)
-
-        # A separately governed expanded post code follows the same source-
-        # preserving trigger path; it never becomes an organization relation.
-        cur.execute(
-            "insert into common_lookup_value "
-            "(lookup_category, lookup_code, lookup_label) "
-            "values ('voc_type', 'voe', 'Voice of Employee')"
-        )
-        cur.execute(
-            "update source_post set voc_type_code = 'voe' where post_id = %s",
-            (str(post_id),),
-        )
-        cur.execute(
-            "select voice_concept_code from post_voice_classification_assertion "
-            "where post_id = %s and assertion_status_code = 'source' "
-            "and valid_to is null",
-            (str(post_id),),
-        )
-        assert cur.fetchone() == ("voe",)
-    schema_db.rollback()
-
-
-def test_operations_case_constraints_are_validated(schema_db) -> None:
-    """Deferred dashboard checks finish validated after the follow-up migration."""
-    names = {
-        "operations_case_fact_relation_target_kind_check",
-        "operations_case_milestone_kind_type_check",
-        "operations_case_missing_milestone_kind_type_check",
+        columns = set(cur.fetchall())
+    assert columns == {
+        ("occupational_construct_vocabulary", "source_content_sha256"),
+        ("occupational_construct", "construct_description"),
     }
+
+
+def test_occupational_catalog_sync_persists_exact_rows(schema_db) -> None:
+    """The real PostgreSQL path atomically stores the governed catalog subset."""
+    payload = {
+        "table_id": "content_model_reference",
+        "row": [
+            {
+                "element_id": "1.A.1.a.1",
+                "element_name": "Synthetic cognitive ability",
+                "description": "Synthetic description.",
+            },
+            {
+                "element_id": "1.D.1",
+                "element_name": "Synthetic work style",
+                "description": "",
+            },
+            {
+                "element_id": "4.A.1",
+                "element_name": "Synthetic work activity",
+                "description": None,
+            },
+        ],
+    }
+
+    async def synchronize() -> int:
+        parsed_admin_dsn = urlsplit(_ADMIN_DSN)
+        db_dsn = urlunsplit(
+            parsed_admin_dsn._replace(path=f"/{schema_db.info.dbname}")
+        )
+        conn = await asyncpg.connect(db_dsn)
+        try:
+            return await sync_onet_construct_catalog(
+                conn,
+                payload,
+                expected_source_sha256=catalog_content_sha256(payload),
+            )
+        finally:
+            await conn.close()
+
+    assert asyncio.run(synchronize()) == 3
     with schema_db.cursor() as cur:
         cur.execute(
-            "select conname, convalidated from pg_constraint where conname = any(%s)",
-            (list(names),),
+            """
+            select construct_family_code, preferred_label, construct_description
+              from occupational_construct
+             order by construct_family_code
+            """
         )
-        constraints = dict(cur.fetchall())
-    assert constraints == {name: True for name in names}
+        assert cur.fetchall() == [
+            ("cognitive_ability", "Synthetic cognitive ability", "Synthetic description."),
+            ("work_activity", "Synthetic work activity", None),
+            ("work_style", "Synthetic work style", None),
+        ]
 
 
-def test_operations_case_input_fingerprint_rejects_malformed_digest(schema_db) -> None:
-    """The input fingerprint is nullable only for honest historical unknowns."""
+def test_global_ask_evidence_search_indexes_exist_on_normalized_tables(schema_db) -> None:
+    """The real PostgreSQL schema owns all nine evidence-search indexes."""
     with schema_db.cursor() as cur:
         cur.execute(
-            "select is_nullable from information_schema.columns "
-            "where table_name = 'operations_case_analysis' "
-            "and column_name = 'analysis_input_sha256'"
+            """
+            select indexname
+              from pg_indexes
+             where schemaname = 'public'
+               and (indexname like '%_evidence_search_idx'
+                    or indexname = 'knowledge_graph_edge_type_search_idx')
+             order by indexname
+            """
         )
-        assert cur.fetchone() == ("YES",)
-        cur.execute(
-            "select pg_get_constraintdef(oid) from pg_constraint "
-            "where conname = 'operations_case_analysis_input_digest_check'"
-        )
-        definition = cur.fetchone()[0]
-    assert "analysis_input_sha256 IS NULL" in definition
-    assert "^[0-9a-f]{64}$" in definition
+        index_names = [row[0] for row in cur.fetchall()]
+
+    assert index_names == [
+        "cataloged_person_evidence_search_idx",
+        "cataloged_team_evidence_search_idx",
+        "common_lookup_value_evidence_search_idx",
+        "corporate_entity_evidence_search_idx",
+        "knowledge_graph_edge_type_search_idx",
+        "person_affiliation_evidence_search_idx",
+        "post_project_mention_evidence_search_idx",
+        "post_summary_role_evidence_search_idx",
+        "source_post_title_evidence_search_idx",
+    ]
 
 
-def test_operations_case_milestones_reject_cross_kind_types(schema_db) -> None:
-    """Observed and missing endpoints accept only the activity set for their case."""
-    post_id = uuid.uuid4()
-    account_id = uuid.uuid4()
+def test_global_ask_nominates_a_live_semantic_only_post(schema_db) -> None:
+    """Real PostgreSQL retrieves a post whose query term exists only in evidence."""
+    post_id = "30000000-0000-0000-0000-000000000001"
     with schema_db.cursor() as cur:
         cur.execute(
             """
             insert into common_lookup_value
                 (lookup_category, lookup_code, lookup_label)
-            values ('corporate_entity_level', 'synthetic_level', 'Synthetic level'),
-                   ('voc_type', 'synthetic_voc', 'Synthetic VOC'),
-                   ('post_visibility', 'synthetic_visibility', 'Synthetic visibility')
-            """,
+            values
+                ('corporate_entity_level', 'semantic_test_level', 'Synthetic level'),
+                ('voc_type', 'semantic_test_voc', 'Synthetic VOC'),
+                ('post_visibility', 'semantic_test_public', 'Synthetic public'),
+                ('person_side', 'semantic_test_person_side', 'Synthetic person side'),
+                ('node_type', 'node_person', 'Person'),
+                ('node_type', 'node_corporate_entity', 'Corporate entity'),
+                ('edge_type', 'edge_affiliation', 'Affiliated with')
+            """
         )
         cur.execute(
-            "insert into corporate_entity "
-            "(corporate_entity_code, entity_name, entity_level_code) "
-            "values ('SYNTHETIC-CASE', 'Synthetic Case Entity', 'synthetic_level') "
-            "returning corporate_entity_id"
+            """
+            insert into corporate_entity
+                (corporate_entity_id, corporate_entity_code, entity_name,
+                 entity_level_code)
+            values
+                ('10000000-0000-0000-0000-000000000001', 'SYNTH-CORP',
+                 'Synthetic Corp', 'semantic_test_level')
+            """
         )
-        entity_id = cur.fetchone()[0]
         cur.execute(
-            "insert into user_account "
-            "(user_account_id, external_subject_id, display_name, email_address) "
-            "values (%s, %s, 'Synthetic Author', %s)",
-            (str(account_id), f"synthetic-{account_id}", f"synthetic-{account_id}@example.invalid"),
+            """
+            insert into user_account
+                (user_account_id, external_subject_id, display_name, email_address)
+            values
+                ('20000000-0000-0000-0000-000000000001', 'synthetic-subject',
+                 'Synthetic User', 'synthetic@example.invalid')
+            """
         )
         cur.execute(
             """
             insert into source_post
                 (post_id, author_account_id, corporate_entity_id, post_title,
-                 post_body, voc_type_code, visibility_code, created_at)
-            values (%s, %s, %s, 'Synthetic claim', 'Synthetic claim evidence',
-                    'synthetic_voc', 'synthetic_visibility', '2026-08-01T00:00:00Z')
+                 post_body, voc_type_code, visibility_code)
+            values
+                (%s, '20000000-0000-0000-0000-000000000001',
+                 '10000000-0000-0000-0000-000000000001', 'Neutral title',
+                 'Neutral body', 'semantic_test_voc', 'semantic_test_public')
             """,
-            (str(post_id), str(account_id), str(entity_id)),
+            (post_id,),
         )
         cur.execute(
             """
-            insert into operations_case_analysis
-                (post_id, source_body_sha256, orchestrator_session_id)
-            values (%s, %s, 'synthetic-session')
+            insert into post_project_mention
+                (post_id, project_key, project_name, evidence_text, confidence,
+                 ontology_iri, extraction_method)
+            values
+                (%s, 'semantic-project', 'Exclusive Semantic Project',
+                 'Synthetic project evidence', 1.000,
+                 'https://contextualwisdomlab.github.io/LineageWeave/ontology#Project',
+                 'synthetic_test')
             """,
-            (str(post_id), "a" * 64),
+            (post_id,),
         )
         cur.execute(
             """
-            insert into operations_case_classification
-                (post_id, case_kind_code, summary_text, evidence_text,
-                 evidence_post_id, evidence_input_sha256)
-            values (%s, 'claim_investigation', 'Synthetic summary',
-                    'Synthetic claim evidence', %s, %s)
-            """,
-            (str(post_id), str(post_id), "a" * 64),
-        )
-        invalid_statements = (
+            insert into cataloged_person
+                (person_id, person_name, person_side_code, last_known_job_title)
+            values
+                ('40000000-0000-0000-0000-000000000001', 'Synthetic Expert',
+                 'semantic_test_person_side', 'Synthetic Reviewer')
             """
-            insert into operations_case_milestone
-                (post_id, case_kind_code, milestone_type_code, evidence_text,
-                 evidence_post_id, evidence_input_sha256, observed_at, time_axis_code)
-            values (%s, 'claim_investigation', 'handover_started',
-                    'Synthetic claim evidence', %s, %s,
-                    '2026-08-01T00:00:00Z', 'created_at')
-            """,
-            """
-            insert into operations_case_missing_milestone
-                (post_id, case_kind_code, milestone_type_code)
-            values (%s, 'claim_investigation', 'handover_started')
-            """,
         )
-        parameters = (
-            (str(post_id), str(post_id), "a" * 64),
-            (str(post_id),),
-        )
-        for index, (statement, values) in enumerate(zip(invalid_statements, parameters, strict=True)):
-            savepoint = f"invalid_milestone_kind_{index}"
-            cur.execute(f"savepoint {savepoint}")
-            with pytest.raises(psycopg2.errors.CheckViolation):
-                cur.execute(statement, values)
-            cur.execute(f"rollback to savepoint {savepoint}")
-    schema_db.rollback()
-
-
-def test_operations_case_constraint_migrations_replay(schema_db) -> None:
-    """Constraint installation and validation remain safe under startup replay."""
-    with schema_db.cursor() as cur:
-        cur.execute(_OPERATIONS_EXTERNAL_RELATION_MIGRATION.read_text())
-        cur.execute(_OPERATIONS_CASE_MILESTONE_MIGRATION.read_text())
         cur.execute(
             """
-            select conname, convalidated
-              from pg_constraint
-             where conname in (
-                 'operations_case_fact_relation_target_kind_check',
-                 'operations_case_milestone_kind_type_check',
-                 'operations_case_missing_milestone_kind_type_check'
-             )
+            insert into person_affiliation
+                (person_id, affiliated_organization_name,
+                 affiliated_corporate_entity_id, role_title)
+            values
+                ('40000000-0000-0000-0000-000000000001', 'Synthetic Corp',
+                 '10000000-0000-0000-0000-000000000001', 'Synthetic Reviewer')
             """
         )
-        assert dict(cur.fetchall()) == {
-            "operations_case_fact_relation_target_kind_check": False,
-            "operations_case_milestone_kind_type_check": False,
-            "operations_case_missing_milestone_kind_type_check": False,
-        }
-        cur.execute(_OPERATIONS_CASE_CONSTRAINT_VALIDATION_MIGRATION.read_text())
         cur.execute(
             """
-            select bool_and(convalidated)
-              from pg_constraint
-             where conname in (
-                 'operations_case_fact_relation_target_kind_check',
-                 'operations_case_milestone_kind_type_check',
-                 'operations_case_missing_milestone_kind_type_check'
-             )
+            insert into post_person_mention (post_id, person_id, mention_context)
+            values (%s, '40000000-0000-0000-0000-000000000001', 'Synthetic evidence')
+            """,
+            (post_id,),
+        )
+        cur.execute(
+            """
+            insert into knowledge_graph_edge
+                (knowledge_graph_edge_id, source_node_type_code, source_node_id,
+                 target_node_type_code, target_node_id, edge_type_code)
+            values
+                ('50000000-0000-0000-0000-000000000001', 'node_person',
+                 '40000000-0000-0000-0000-000000000001',
+                 'node_corporate_entity',
+                 '10000000-0000-0000-0000-000000000001', 'edge_affiliation')
             """
         )
-        assert cur.fetchone()[0] is True
     schema_db.commit()
+    async_dsn = urlunsplit(
+        urlsplit(_ADMIN_DSN)._replace(path=f"/{schema_db.info.dbname}")
+    )
 
-
-def test_topic_influence_schema_binds_exact_producer_provenance(schema_db) -> None:
-    """Accepted influence runs cannot cross a TEPP run, snapshot, or cutoff."""
-    with schema_db.cursor() as cur:
-        cur.execute(
-            """
-            select tgname
-              from pg_trigger
-             where tgname = 'topic_influence_run_binding_check'
-               and not tgisinternal
-            """
-        )
-        assert cur.fetchone() == ("topic_influence_run_binding_check",)
-        cur.execute(
-            """
-            select tgname
-              from pg_trigger
-             where tgname = 'topic_model_run_binding_check'
-               and not tgisinternal
-            """
-        )
-        assert cur.fetchone() == ("topic_model_run_binding_check",)
-        cur.execute(
-            """
-            select conname
-              from pg_constraint
-             where conrelid = 'topic_post_context_influence'::regclass
-               and contype = 'f'
-            """
-        )
-        foreign_keys = {row[0] for row in cur.fetchall()}
-    assert len(foreign_keys) == 3
-
-    with schema_db.cursor() as cur:
-        cur.execute(
-            """
-            select column_name, is_nullable
-              from information_schema.columns
-             where table_name in ('topic_lineage_relation', 'topic_context_membership')
-               and column_name = 'provenance_assertion_id'
-            """
-        )
-        assert cur.fetchall() == [
-            ("provenance_assertion_id", "NO"),
-            ("provenance_assertion_id", "NO"),
-        ]
-        cur.execute(
-            """
-            select count(*)
-              from pg_constraint
-             where conrelid = 'topic_post_coordinate'::regclass
-               and contype = 'f'
-            """
-        )
-        assert cur.fetchone() == (3,)
-        cur.execute(
-            """
-            select tgname
-              from pg_trigger
-             where tgname in (
-                 'topic_post_coordinate_draw_check',
-                 'topic_lineage_relation_provenance_check',
-                 'topic_context_membership_provenance_check',
-                 'topic_evidence_provenance_relation_protect'
-             )
-               and not tgisinternal
-            """
-        )
-        assert {row[0] for row in cur.fetchall()} == {
-            "topic_post_coordinate_draw_check",
-            "topic_lineage_relation_provenance_check",
-            "topic_context_membership_provenance_check",
-            "topic_evidence_provenance_relation_protect",
-        }
-
-    account_id = uuid.uuid4()
-    snapshot_id = uuid.uuid4()
-    run_id = uuid.uuid4()
-    with schema_db.cursor() as cur:
-        cur.execute(
-            "insert into user_account (user_account_id, external_subject_id, display_name, email_address) values (%s, %s, %s, %s)",
-            (str(account_id), f"synthetic-{account_id}", "Synthetic Reviewer", f"synthetic-{account_id}@example.invalid"),
-        )
-        cur.execute(
-            """
-            insert into analysis_source_snapshot
-                (analysis_source_snapshot_id, snapshot_sha256, source_contract_version,
-                 maximum_available_time, captured_at, created_at)
-            values (%s, %s, 'synthetic-v1', '2026-08-01T00:00:00Z',
-                    '2026-08-02T00:00:00Z', '2026-08-03T00:00:00Z')
-            """,
-            (str(snapshot_id), "a" * 64),
-        )
-        cur.execute(
-            """
-            insert into analysis_run
-                (analysis_run_id, analysis_source_snapshot_id, run_kind_code,
-                 requested_by_account_id, idempotency_key, knowledge_cutoff,
-                 configuration_schema_version, configuration_sha256,
-                 code_revision_sha, requested_at)
-            values (%s, %s, 'analysis_run_topic_lineage', %s, 'synthetic-topic-run',
-                    '2026-08-01T00:00:00Z', 'synthetic-v1', %s, %s,
-                    '2026-08-04T00:00:00Z')
-            """,
-            (str(run_id), str(snapshot_id), str(account_id), "b" * 64, "c" * 40),
-        )
-        cur.execute("savepoint topic_model_mismatch")
-        with pytest.raises(psycopg2.errors.RaiseException, match="topic_model_run_provenance_binding_mismatch"):
-            cur.execute(
-                """
-                insert into topic_model_run
-                    (analysis_run_id, tepp_run_id, tepp_snapshot_id,
-                     tepp_schema_version, tepp_model_contract_version,
-                     tepp_artifact_sha256, reported_source_snapshot_sha256,
-                     reported_knowledge_cutoff, posterior_draw_set_id,
-                     posterior_draw_count, topic_count, coordinate_kind_code,
-                     inference_status_code)
-                values (%s, 'tepp-mismatch', 'snapshot-mismatch',
-                        'tepp.topic_context_posterior.v1', 'trsl-tm-v1', %s, %s,
-                        '2026-08-01T00:00:00Z', 'draws-1', 8, 2,
-                        'logistic_normal_coordinate',
-                        'posterior_topic_coordinates_not_importance')
-                """,
-                (str(run_id), "d" * 64, "e" * 64),
+    async def retrieve(question: str) -> list:
+        # Reuse the fixture DSN so password-authenticated CI databases keep
+        # the same credentials as the psycopg2 migration connection.
+        conn = await asyncpg.connect(async_dsn)
+        try:
+            return await gather_global_chat_sources(
+                conn,
+                lambda row: row["visibility_code"] == "semantic_test_public",
+                ["10000000-0000-0000-0000-000000000001"],
+                question=question,
+                question_embedding=([1.0, 0.0], "synthetic-model", 1.0),
+                limit=4,
             )
-        cur.execute("rollback to savepoint topic_model_mismatch")
-        cur.execute(
-            """
-            insert into topic_model_run
-                (analysis_run_id, tepp_run_id, tepp_snapshot_id,
-                 tepp_schema_version, tepp_model_contract_version,
-                 tepp_artifact_sha256, reported_source_snapshot_sha256,
-                 reported_knowledge_cutoff, posterior_draw_set_id,
-                 posterior_draw_count, topic_count, coordinate_kind_code,
-                 inference_status_code)
-            values (%s, 'tepp-accepted', 'snapshot-accepted',
-                    'tepp.topic_context_posterior.v1', 'trsl-tm-v1', %s, %s,
-                    '2026-08-01T00:00:00Z', 'draws-1', 8, 2,
-                    'logistic_normal_coordinate',
-                    'posterior_topic_coordinates_not_importance')
-            returning topic_model_run_id
-            """,
-            (str(run_id), "d" * 64, "a" * 64),
-        )
-        model_id = cur.fetchone()[0]
-        cur.execute("savepoint topic_influence_mismatch")
-        with pytest.raises(psycopg2.errors.RaiseException, match="topic_influence_provenance_binding_mismatch"):
-            cur.execute(
-                """
-                insert into topic_influence_run
-                    (topic_model_run_id, fast_mlsirm_schema_version,
-                     fast_mlsirm_version, fast_mlsirm_code_revision,
-                     fast_mlsirm_artifact_sha256, reported_tepp_run_id,
-                     reported_snapshot_sha256, reported_knowledge_cutoff,
-                     membership_fingerprint_sha256, compute_backend_code,
-                     precision_code, posterior_draw_coverage,
-                     convergence_status_code, identification_status_code,
-                     parity_status_code)
-                values (%s, 'fast_mlsirm.topic_context_influence.v1', '0.1.0',
-                        %s, %s, 'different-tepp-run', %s,
-                        '2026-08-01T00:00:00Z', %s, 'rust_cpu', 'f64', 8,
-                        'converged', 'identified', 'passed')
-                """,
-                (model_id, "f" * 40, "1" * 64, "a" * 64, "2" * 64),
+        finally:
+            await conn.close()
+
+    sources = asyncio.run(retrieve("Exclusive Semantic Project"))
+
+    assert [source.post_id for source in sources] == [post_id]
+    assert any(
+        "Exclusive Semantic Project" in fact for fact in sources[0].evidence_facts
+    )
+    assert [source.post_id for source in asyncio.run(retrieve("Synthetic Expert"))] == [
+        post_id
+    ]
+    assert [
+        source.post_id
+        for source in asyncio.run(
+            retrieve(
+                "https://contextualwisdomlab.github.io/LineageWeave/ontology#affiliatedWith"
             )
-        cur.execute("rollback to savepoint topic_influence_mismatch")
-
-
-def test_topic_influence_projection_migration_replays(schema_db) -> None:
-    """The additive topic projection remains safe under sorted startup replay."""
-    with schema_db.cursor() as cur:
-        cur.execute(_TOPIC_CONTEXT_INFLUENCE_MIGRATION.read_text())
-    schema_db.commit()
+        )
+    ] == [post_id]
 
 
 def test_post_lineage_edge_requires_an_allen_interval_code(schema_db) -> None:
@@ -1013,7 +792,7 @@ def test_leftover_pair_names_nullable_cross_share_column(schema_db) -> None:
     assert columns["leftover_residual"] == "NO"
     assert columns["leftover_distance"] == "NO"
     assert columns["leftover_map_explained_share"] == "YES"
-    assert "leftover_map_unexplained_share" not in columns
+    assert columns["leftover_map_unexplained_share"] == "YES"
     assert columns["leftover_map_reconstruction"] == "YES"
     with schema_db.cursor() as cur:
         cur.execute(
@@ -1022,34 +801,6 @@ def test_leftover_pair_names_nullable_cross_share_column(schema_db) -> None:
             from pg_constraint
             where conrelid = 'report_leftover_pair'::regclass
               and conname like '%share%chk'
-            """
-        )
-        assert cur.fetchall() == []
-
-
-def test_leftover_pair_names_nullable_explained_share_column(schema_db) -> None:
-    """Every install path preserves legacy pairs while naming leftover-map explained share."""
-    with schema_db.cursor() as cur:
-        cur.execute(
-            """
-            select column_name, is_nullable
-            from information_schema.columns
-            where table_name = 'report_leftover_pair'
-            """
-        )
-        columns = dict(cur.fetchall())
-    assert columns["leftover_map_explained_share"] == "YES"
-    assert columns["leftover_residual"] == "NO"
-    assert columns["leftover_distance"] == "NO"
-    assert "leftover_map_unexplained_share" not in columns
-    assert columns["leftover_map_reconstruction"] == "YES"
-    with schema_db.cursor() as cur:
-        cur.execute(
-            """
-            select conname
-            from pg_constraint
-            where conrelid = 'report_leftover_pair'::regclass
-              and conname like '%explained_share%chk%'
             """
         )
         assert cur.fetchall() == []

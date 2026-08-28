@@ -1,0 +1,8 @@
+.git
+.codegraph
+.venv
+frontend/node_modules
+frontend/dist
+frontend/storybook-static
+**/__pycache__
+**/.pytest_cache

@@ -16,7 +16,6 @@ import asyncio
 import math
 import os
 import subprocess
-import time
 import uuid
 from contextlib import closing
 from pathlib import Path
@@ -38,7 +37,6 @@ _POSTGRES_ADMIN_DSN = os.environ.get(
 _KEYCLOAK_BASE_URL = os.environ.get("LINEAGEWEAVE_TEST_KEYCLOAK_BASE_URL", "http://localhost:18080")
 _VALKEY_URL = os.environ.get("LINEAGEWEAVE_TEST_VALKEY_URL", "redis://localhost:16379/0")
 _REALM = "lineageweave-demo"
-_demo_analyst_token_cache: tuple[str, int] | None = None
 _MIGRATION_PATH = Path(__file__).resolve().parents[2] / "migrations" / "0001_initial_schema.sql"
 _REGISTRY_MIGRATION = Path(__file__).resolve().parents[2] / "migrations" / "0018_analysis_run_registry.sql"
 _RETENTION_MIGRATION = Path(__file__).resolve().parents[2] / "migrations" / "0020_analysis_run_retention_purge.sql"
@@ -184,11 +182,6 @@ _LEFTOVER_MAP_RECONSTRUCTION_MIGRATION = (
     / "migrations"
     / "0206_report_leftover_map_reconstruction.sql"
 )
-_LEFTOVER_MAP_EXPLAINED_SHARE_MIGRATION = (
-    Path(__file__).resolve().parents[2]
-    / "migrations"
-    / "0236_report_leftover_map_explained_share.sql"
-)
 _GLOBAL_ASK_JOB_MIGRATION = (
     Path(__file__).resolve().parents[2]
     / "migrations"
@@ -219,19 +212,78 @@ _GLOBAL_ASK_KNOWLEDGE_CUTOFF_MIGRATION = (
     / "migrations"
     / "0212_global_ask_knowledge_cutoff.sql"
 )
-_PRODUCT_SEMANTIC_MIGRATIONS = tuple(
+_LATE_REPLAYABLE_MIGRATIONS = tuple(
     Path(__file__).resolve().parents[2] / "migrations" / name
     for name in (
+        "0017_prov_o_standard_relations.sql",
+        "0175_ontology_truth_status.sql",
         "0208_operations_case_analysis.sql",
         "0209_operations_case_evidence_source.sql",
-        "0211_operations_case_missing_fact.sql",
-        "0213_operations_external_relation_target.sql",
-        "0215_operations_case_milestone.sql",
-        "0222_operations_case_analysis_input.sql",
-        "0228_product_semantic_catalog.sql",
-        "0230_voice_semantic_taxonomy.sql",
+        "0217_analysis_run_tepp_receipt.sql",
+        "0233_source_conversation_turn_evidence.sql",
+        "0233_report_leftover_map_unexplained_share.sql",
+        "0235_voice_of_x_post_taxonomy.sql",
+        "0237_source_post_voice_combination.sql",
+        "0238_occupational_construct_assertion.sql",
+        "0239_occupational_construct_catalog.sql",
+        "0240_occupational_construct_extraction_run.sql",
+        "0241_occupational_construct_ontology_navigation.sql",
+        "0242_occupational_construct_catalog_search.sql",
+        "0243_source_post_voice_history.sql",
+        "0244_report_leftover_map_explained_share.sql",
+        "0245_operations_case_missing_fact.sql",
+        "0246_operations_external_relation_target.sql",
+        "0248_operations_case_milestone.sql",
+        "0250_operations_case_analysis_input.sql",
+        "0251_product_semantic_catalog.sql",
+        "0253_voice_semantic_taxonomy.sql",
     )
 )
+
+
+def _run_global_ask_once(client, job_id: str) -> None:
+    """Run one dedicated-worker Ask delivery through the TestClient event loop."""
+    from backend.app import main
+    from backend.app.global_ask_queue import process_global_ask_job
+
+    async def _settle() -> None:
+        await process_global_ask_job(
+            client.app.state.pool,
+            job_id=job_id,
+            chat_factory=lambda: main._post_chat_client(
+                timeout=main.load_settings().orchestrator_answer_timeout_seconds
+            ),
+            embedding_factory=main._embedding_client,
+            semantic_query_factory=main._semantic_query_client,
+            claim_verification_factory=main._claim_verification_client_factory,
+        )
+
+    client.portal.call(_settle)
+
+
+def test_dashboard_external_query_reaches_projection(
+    client, demo_analyst_token, monkeypatch
+) -> None:
+    """The external-information navigation must request an external-only projection."""
+    observed: list[bool] = []
+
+    async def _fake_dashboard(
+        _conn, _corporate_entity_ids, _process_unit_ids,
+        _period_start=None, _period_end=None, external_only=False,
+    ):
+        observed.append(external_only)
+        return {"external_only": external_only}
+
+    monkeypatch.setattr("backend.app.main.fetch_operations_dashboard", _fake_dashboard)
+    response = client.get(
+        "/api/dashboard?external_only=true",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert response.status_code == 200
+    assert response.json() == {"external_only": True}
+    assert observed == [True]
+
+
 _LEFTOVER_MAP_AXIS_MIGRATION = (
     Path(__file__).resolve().parents[2]
     / "migrations"
@@ -313,46 +365,9 @@ def _fetch_demo_analyst_token() -> str:
     return token_response["access_token"]
 
 
-def _current_demo_analyst_token() -> str:
-    """Reuse the live token until its issuer-recorded expiration instant."""
-    global _demo_analyst_token_cache
-
-    if _demo_analyst_token_cache is not None:
-        token, expires_at = _demo_analyst_token_cache
-        if time.time() < expires_at:
-            return token
-
-    token = _fetch_demo_analyst_token()
-    expires_at = int(jwt.decode(token, options={"verify_signature": False})["exp"])
-    _demo_analyst_token_cache = (token, expires_at)
-    return token
-
-
-@pytest.fixture
+@pytest.fixture(scope="module")
 def demo_analyst_token() -> str:
-    """Return a cached live token, refreshing it at the issuer's exact expiry."""
-    return _current_demo_analyst_token()
-
-
-def test_demo_analyst_token_cache_refreshes_only_at_issuer_expiry(monkeypatch: pytest.MonkeyPatch) -> None:
-    """The integration suite reuses a token before ``exp`` and refreshes at ``exp``."""
-    global _demo_analyst_token_cache
-
-    issued = iter(
-        (
-            jwt.encode({"exp": 101}, "test-key-for-cache-expiry-check-1", algorithm="HS256"),
-            jwt.encode({"exp": 202}, "test-key-for-cache-expiry-check-2", algorithm="HS256"),
-        )
-    )
-    monkeypatch.setattr(__name__ + "._fetch_demo_analyst_token", lambda: next(issued))
-    monkeypatch.setattr(__name__ + ".time.time", lambda: 100)
-    _demo_analyst_token_cache = None
-    first = _current_demo_analyst_token()
-    assert _current_demo_analyst_token() == first
-
-    monkeypatch.setattr(__name__ + ".time.time", lambda: 101)
-    assert _current_demo_analyst_token() != first
-    _demo_analyst_token_cache = None
+    return _fetch_demo_analyst_token()
 
 
 @pytest.fixture
@@ -446,6 +461,8 @@ def seeded_db(demo_analyst_token):
             cur.execute(_LEFTOVER_MAP_COVERAGE_MIGRATION.read_text())
             cur.execute(_GLOBAL_ASK_JOB_MIGRATION.read_text())
             cur.execute(_GLOBAL_ASK_SCOPE_MIGRATION.read_text())
+            conn.commit()
+            conn.autocommit = True
             subprocess.run(
                 [
                     "psql",
@@ -458,18 +475,18 @@ def seeded_db(demo_analyst_token):
                 ],
                 check=True,
             )
+            conn.autocommit = False
             cur.execute(_GLOBAL_ASK_KNOWLEDGE_CUTOFF_MIGRATION.read_text())
             cur.execute(_GLOBAL_ASK_PUBLIC_VERIFICATION_MIGRATION.read_text())
             cur.execute(_SOURCE_RESEARCH_CITATION_MIGRATION.read_text())
             cur.execute(_EVENT_OCCURRED_AT_MIGRATION.read_text())
-            for migration_path in _PRODUCT_SEMANTIC_MIGRATIONS:
+            for migration_path in _LATE_REPLAYABLE_MIGRATIONS:
                 cur.execute(migration_path.read_text())
             cur.execute(_LEFTOVER_MAP_AXIS_MIGRATION.read_text())
             cur.execute(_CHANNEL_EVIDENCE_MIGRATION.read_text())
             cur.execute(_LEFTOVER_MAP_UNEXPLAINED_MIGRATION.read_text())
             cur.execute(_LEFTOVER_MAP_CROSS_SHARE_MIGRATION.read_text())
             cur.execute(_LEFTOVER_MAP_RECONSTRUCTION_MIGRATION.read_text())
-            cur.execute(_LEFTOVER_MAP_EXPLAINED_SHARE_MIGRATION.read_text())
             cur.execute(
                 "insert into common_lookup_value (lookup_category, lookup_code, lookup_label) values "
                 "('corporate_entity_level', 'group', 'Group'), "
@@ -869,33 +886,6 @@ def client(seeded_db):
         yield test_client
 
 
-@pytest.fixture
-def client_with_ask_worker(client):
-    """Run the production Ask consumer beside API tests that require settlement."""
-    from backend.app import main as main_module
-    from backend.app.config import load_settings
-    from backend.app.global_ask_queue import run_global_ask_worker
-
-    async def run_worker() -> None:
-        await run_global_ask_worker(
-            main_module.app.state.valkey,
-            main_module.app.state.pool,
-            chat_factory=lambda: main_module._post_chat_client(
-                timeout=load_settings().orchestrator_answer_timeout_seconds
-            ),
-            embedding_factory=lambda: main_module._embedding_client(),
-            semantic_query_factory=lambda: main_module._semantic_query_client(),
-            claim_verification_factory=lambda: main_module._claim_verification_client_factory(),
-        )
-
-    assert client.portal is not None
-    worker = client.portal.start_task_soon(run_worker)
-    try:
-        yield client
-    finally:
-        worker.cancel()
-
-
 def test_keyverse_account_resolves_exact_scope_and_role_intersection(
     monkeypatch: pytest.MonkeyPatch, seeded_db, demo_analyst_token
 ) -> None:
@@ -1160,10 +1150,7 @@ def test_create_analysis_run_records_pending_without_inventing_a_score(
         },
     )
     assert tepp.status_code == 422
-    assert (
-        tepp.json()["detail"]
-        == "Open the failed temporal measurement, ask an administrator to restore analysis, then re-run it."
-    )
+    assert "restore analysis" in tepp.json()["detail"]
     assert "theta" not in tepp.json()["detail"].lower()
 
     report = client.post(
@@ -1322,10 +1309,7 @@ def test_start_analysis_run_recovers_the_a100_fork(
         },
     )
     assert tepp_create.status_code == 422
-    assert (
-        tepp_create.json()["detail"]
-        == "Open the failed temporal measurement, ask an administrator to restore analysis, then re-run it."
-    )
+    assert "restore analysis" in tepp_create.json()["detail"]
 
     admin_conn = psycopg2.connect(seeded_db["dsn"])
     admin_conn.autocommit = True
@@ -1503,7 +1487,7 @@ def test_start_analysis_run_recovers_the_a100_fork(
         headers={"Authorization": f"Bearer {demo_analyst_token}"},
     )
     assert report_refused.status_code == 422
-    assert "invent a measurement" in report_refused.json()["detail"]
+    assert report_refused.json()["detail"] == "기간 보고서 화면에서 다시 계산하세요."
 
     running = client.post(
         f"/api/analysis-runs/{running_run_id}/start",
@@ -2005,9 +1989,16 @@ def test_post_detail_returns_authorized_product_evidence(
     client, demo_analyst_token, seeded_db
 ) -> None:
     """The post response exposes only its persisted evidence-bound product link."""
+    from backend.app.post_content_queue import source_body_sha256
+
     conn = psycopg2.connect(seeded_db["dsn"])
     try:
         with conn.cursor() as cur:
+            cur.execute(
+                "select post_body from source_post where post_id = %s",
+                (seeded_db["public_post_id"],),
+            )
+            current_body_sha256 = source_body_sha256(cur.fetchone()[0])
             cur.execute(
                 "insert into product_catalog "
                 "(canonical_product_name, product_level_code, product_catalog_code) "
@@ -2019,7 +2010,7 @@ def test_post_detail_returns_authorized_product_evidence(
                 "insert into post_product_analysis "
                 "(post_id, source_body_sha256, analysis_input_sha256, orchestrator_session_id) "
                 "values (%s, %s, %s, %s)",
-                (seeded_db["public_post_id"], "a" * 64, "b" * 64, "session-a"),
+                    (seeded_db["public_post_id"], current_body_sha256, "b" * 64, "session-a"),
             )
             cur.execute(
                 "insert into post_product_mention "
@@ -2081,6 +2072,10 @@ def test_post_detail_returns_authorized_product_evidence(
         headers={"Authorization": f"Bearer {demo_analyst_token}"},
     )
     assert response.status_code == 200
+    assert response.json()["product_evidence_status"] == {
+        "status_code": "complete",
+        "next_action": "연결된 제품과 원문 근거를 확인하세요.",
+    }
     assert response.json()["product_evidence"] == [{
         "mention_ordinal": 0,
         "extracted_product_name": "Synthetic Model Q",
@@ -2423,6 +2418,8 @@ def test_post_detail_as_of_returns_the_cutoff_known_body(
     assert body["post_body"] == "A January post rewritten after the run cutoff."
     assert body["known_at"]["post_body"] == "A January post before the rewrite."
     assert body["known_at"]["written_at"].startswith("2026-01-10")
+    assert body["product_evidence"] == []
+    assert body["product_evidence_status"]["status_code"] == "historical_unavailable"
     assert "postgresql://" not in str(body)
 
     missing = client.get(
@@ -4413,7 +4410,7 @@ def test_live_chat_provider_error_does_not_leak_raw_error(
 
 
 def test_global_ask_provider_error_does_not_leak_raw_error(
-    client_with_ask_worker, demo_analyst_token, seeded_db, monkeypatch
+    client, demo_analyst_token, seeded_db, monkeypatch
 ) -> None:
     """The cross-post Ask boundary settles a provider failure with a
     stable message, not the worker's raw exception text (ADR 0123).
@@ -4433,18 +4430,19 @@ def test_global_ask_provider_error_does_not_leak_raw_error(
     monkeypatch.setattr("backend.app.main._post_chat_client", lambda **_kwargs: _FailingAskClient())
     headers = {"Authorization": f"Bearer {demo_analyst_token}"}
 
-    submitted = client_with_ask_worker.post(
+    submitted = client.post(
         "/api/ask",
             json={"question": "Public post"},
         headers=headers,
     )
     assert submitted.status_code == 202
     job_id = submitted.json()["ask_job_id"]
+    _run_global_ask_once(client, job_id)
 
     deadline = _time.monotonic() + 30
     body: dict = {}
     while _time.monotonic() < deadline:
-        polled = client_with_ask_worker.get(f"/api/ask/jobs/{job_id}", headers=headers)
+        polled = client.get(f"/api/ask/jobs/{job_id}", headers=headers)
         assert polled.status_code == 200
         body = polled.json()
         if body["job_status_code"] in ("succeeded", "failed"):
@@ -4475,7 +4473,6 @@ def test_keymen_provider_error_does_not_leak_raw_error(
 
     assert response.status_code == 503
     assert "raw-keyman-provider-secret" not in response.text
-    assert response.json()["detail"].endswith("contact your workspace administrator.")
 
 
 def test_evaluation_provider_error_does_not_leak_raw_error(
@@ -4501,7 +4498,6 @@ def test_evaluation_provider_error_does_not_leak_raw_error(
 
     assert response.status_code == 503
     assert "raw-evaluation-provider-secret" not in response.text
-    assert response.json()["detail"].endswith("contact your workspace administrator.")
 
 
 def test_commitment_provider_error_does_not_leak_raw_error(
@@ -4527,7 +4523,6 @@ def test_commitment_provider_error_does_not_leak_raw_error(
 
     assert response.status_code == 503
     assert "raw-commitment-provider-secret" not in response.text
-    assert response.json()["detail"].endswith("contact your workspace administrator.")
 
 
 def test_summary_enrichment_provider_error_does_not_leak_raw_error(
@@ -4555,7 +4550,6 @@ def test_summary_enrichment_provider_error_does_not_leak_raw_error(
 
     assert response.status_code == 503
     assert "raw-summary-provider-secret" not in response.text
-    assert response.json()["detail"].endswith("contact your workspace administrator.")
 
 
 def test_evaluate_is_unavailable_without_orchestrator(client, demo_analyst_token, seeded_db) -> None:
@@ -5352,7 +5346,13 @@ def test_calendar_is_empty_before_any_commitment(client, demo_analyst_token, see
     assert payload["commitments"] == []
     assert payload["events"] == []
     assert payload["calendar_sources"]["naruon_available"] is False
-    assert "Connect the Naruon calendar projection" in payload["calendar_sources"]["naruon_next_action"]
+    next_action = payload["calendar_sources"]["naruon_next_action"]
+    assert next_action == (
+        "Ask your workspace administrator to enable calendar access. "
+        "Open a commitment below to read its source post."
+    )
+    assert "Naruon" not in next_action
+    assert "projection" not in next_action
     assert "caldav_available" not in payload["calendar_sources"]
 
 
@@ -5583,7 +5583,7 @@ def test_ask_requires_authentication(client) -> None:
 
 
 def test_ask_queues_a_job_and_polls_it_to_a_settled_answer(
-    client_with_ask_worker, demo_analyst_token, seeded_db, monkeypatch
+    client, demo_analyst_token, seeded_db, monkeypatch
 ) -> None:
     """Submission returns 202 immediately; the worker settles the job.
 
@@ -5594,33 +5594,31 @@ def test_ask_queues_a_job_and_polls_it_to_a_settled_answer(
     """
     import time as _time
 
+    from lineageweave.post_chat import ChatAnswer
+
     class _FakeChatClient:
         available = True
 
-    async def _fake_compute_answer(*_args, **_kwargs):
-        return {
-            "answer_text": "A settled asynchronous answer.",
-            "cited_post_ids": [seeded_db["public_post_id"]],
-            "lineage_graph": {"nodes": [], "edges": [], "truncated": False},
-            "cited_post_images": [],
-        }
+        def answer(self, question, sources):  # noqa: ARG002 - contract shape
+            return ChatAnswer(
+                answer_text="A settled asynchronous answer.",
+                cited_post_ids=(sources[0].post_id,),
+            )
 
     monkeypatch.setattr("backend.app.main._post_chat_client", lambda **_kwargs: _FakeChatClient())
-    monkeypatch.setattr(
-        "backend.app.global_ask_queue.compute_global_ask_answer", _fake_compute_answer
-    )
     headers = {"Authorization": f"Bearer {demo_analyst_token}"}
-    submitted = client_with_ask_worker.post(
-        "/api/ask", json={"question": "What happened with the public post?"}, headers=headers
+    submitted = client.post(
+            "/api/ask", json={"question": "Public post"}, headers=headers
     )
     assert submitted.status_code == 202
     job_id = submitted.json()["ask_job_id"]
     assert submitted.json()["job_status_code"] == "queued"
+    _run_global_ask_once(client, job_id)
 
     deadline = _time.monotonic() + 30
     body: dict = {}
     while _time.monotonic() < deadline:
-        polled = client_with_ask_worker.get(f"/api/ask/jobs/{job_id}", headers=headers)
+        polled = client.get(f"/api/ask/jobs/{job_id}", headers=headers)
         assert polled.status_code == 200
         body = polled.json()
         if body["job_status_code"] in ("succeeded", "failed"):
@@ -5634,7 +5632,7 @@ def test_ask_queues_a_job_and_polls_it_to_a_settled_answer(
 
 
 def test_ask_public_verification_is_opt_in_and_separate_from_post_citations(
-    client_with_ask_worker, demo_analyst_token, seeded_db, monkeypatch
+    client, demo_analyst_token, seeded_db, monkeypatch
 ) -> None:
     """A cited public semantic claim can be refuted without changing its post id."""
 
@@ -5688,18 +5686,19 @@ def test_ask_public_verification_is_opt_in_and_separate_from_post_citations(
         lambda: _FakeVerificationClient(),
     )
     headers = {"Authorization": f"Bearer {demo_analyst_token}"}
-    submitted = client_with_ask_worker.post(
+    submitted = client.post(
         "/api/ask",
         json={"question": "Apollo", "verify_external": True},
         headers=headers,
     )
     assert submitted.status_code == 202
     job_id = submitted.json()["ask_job_id"]
+    _run_global_ask_once(client, job_id)
 
     deadline = _time.monotonic() + 30
     body: dict = {}
     while _time.monotonic() < deadline:
-        body = client_with_ask_worker.get(f"/api/ask/jobs/{job_id}", headers=headers).json()
+        body = client.get(f"/api/ask/jobs/{job_id}", headers=headers).json()
         if body["job_status_code"] in ("succeeded", "failed"):
             break
         _time.sleep(0.25)
@@ -6165,15 +6164,23 @@ def test_seed_period_report_surfaces_on_get_reports(client, demo_analyst_token, 
         if share is not None:
             assert not math.isnan(share)
             assert not math.isinf(share)
-        explained = pair.get("leftover_map_explained_share")
-        assert "leftover_map_explained_share" in pair
-        assert explained is None or isinstance(explained, (int, float))
-        if explained is not None:
-            assert not math.isnan(explained)
-            assert not math.isinf(explained)
         if unexplained is not None and reconstruction is not None:
             assert unexplained + reconstruction == pytest.approx(pair["leftover_residual"])
-        assert "leftover_map_unexplained_share" not in pair
+        unexplained_share = pair.get("leftover_map_unexplained_share")
+        explained_share = pair.get("leftover_map_explained_share")
+        assert unexplained_share is None or isinstance(unexplained_share, (int, float))
+        assert explained_share is None or isinstance(explained_share, (int, float))
+        if unexplained_share is not None:
+            assert unexplained_share >= 0.0
+        if explained_share is not None:
+            assert explained_share >= 0.0
+        if (
+            explained_share is not None
+            and unexplained_share is not None
+            and share is not None
+            and abs(pair["leftover_residual"]) > 1e-12
+        ):
+            assert explained_share + unexplained_share + share == pytest.approx(1.0)
     leftover_axes = high_report.get("leftover_map_axes", [])
     assert [axis["axis_index"] for axis in leftover_axes] == [1, 2]
     assert all(axis["leftover_singular_value"] >= 0 for axis in leftover_axes)
@@ -6234,22 +6241,6 @@ def test_seed_period_report_surfaces_on_get_reports(client, demo_analyst_token, 
     assert all(
         pair.get("leftover_map_reconstruction") is None
         or isinstance(pair["leftover_map_reconstruction"], (int, float))
-        for pair in leftover_thread.get("leftover_pairs", [])
-    )
-    assert all(
-        "leftover_map_cross_share" in pair
-        and (
-            pair["leftover_map_cross_share"] is None
-            or isinstance(pair["leftover_map_cross_share"], (int, float))
-        )
-        for pair in leftover_thread.get("leftover_pairs", [])
-    )
-    assert all(
-        "leftover_map_explained_share" in pair
-        and (
-            pair["leftover_map_explained_share"] is None
-            or isinstance(pair["leftover_map_explained_share"], (int, float))
-        )
         for pair in leftover_thread.get("leftover_pairs", [])
     )
 

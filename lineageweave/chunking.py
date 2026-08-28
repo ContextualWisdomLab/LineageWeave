@@ -396,6 +396,9 @@ class Chunk:
         declared_indent_width: indentation declared by HTML/CSS/OOXML or a
             nested list container. Source-only leading spaces are excluded so
             callers can distinguish authored structure from visual alignment.
+        source_evidence_reference: optional opaque caller-owned reference for
+            an explicitly parsed source unit. LineageWeave stores but never
+            interprets this value.
     """
 
     text: str
@@ -406,6 +409,7 @@ class Chunk:
     style: str | None = None
     indent_width: int = 0
     declared_indent_width: int = 0
+    source_evidence_reference: str | None = None
 
 
 def chunk_by_paragraph(text: str) -> list[Chunk]:
@@ -850,6 +854,7 @@ class ConversationTurn:
 
     sender: str
     text: str
+    source_evidence_reference: str | None = None
 
 
 def chunk_by_conversation_turn(turns: list[ConversationTurn]) -> list[Chunk]:
@@ -861,6 +866,12 @@ def chunk_by_conversation_turn(turns: list[ConversationTurn]) -> list[Chunk]:
     """
     non_empty_turns = [turn for turn in turns if turn.text.strip()]
     return [
-        Chunk(text=turn.text, unit_type="conversation_turn", index=i, label=turn.sender)
+        Chunk(
+            text=turn.text,
+            unit_type="conversation_turn",
+            index=i,
+            label=turn.sender,
+            source_evidence_reference=turn.source_evidence_reference,
+        )
         for i, turn in enumerate(non_empty_turns)
     ]

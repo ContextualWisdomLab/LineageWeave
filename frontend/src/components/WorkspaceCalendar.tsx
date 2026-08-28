@@ -1,4 +1,5 @@
 import { EvidenceStatusMark } from "./EvidenceStatusMark";
+import { StatusNotice } from "./StatusNotice";
 import { CALENDAR_CONSUME_UNAVAILABLE } from "../gnbChrome";
 import type { CalendarResponse, NaruonCalendarEvent } from "../api";
 import { t } from "../i18n";
@@ -32,11 +33,15 @@ export function WorkspaceCalendar({
       <h2 id={headingId}>{heading}</h2>
       <section className="popup-section" aria-labelledby={`${headingId}-observed`}>
         <h3 id={`${headingId}-observed`}>{t("Observed calendar events")}</h3>
-        {events.length === 0 ? (
+        {!naruonAvailable ? (
+          <StatusNotice
+            kind="unavailable"
+            message={failClosedCopy}
+            nextAction={naruonNextAction ?? undefined}
+          />
+        ) : events.length === 0 ? (
           <p className="popup-placeholder">
-            {naruonAvailable
-              ? t("No observed calendar events are available.")
-              : failClosedCopy}
+            {t("No observed calendar events are available.")}
           </p>
         ) : (
           <ul className="ticket-list" aria-label={t("Observed calendar events")}>
@@ -45,9 +50,6 @@ export function WorkspaceCalendar({
             ))}
           </ul>
         )}
-        {!naruonAvailable && naruonNextAction ? (
-          <p className="popup-placeholder">{naruonNextAction}</p>
-        ) : null}
       </section>
       <section className="popup-section" aria-labelledby={`${headingId}-commitments`}>
         <h3 id={`${headingId}-commitments`}>{t("Upcoming commitments")}</h3>
@@ -92,7 +94,6 @@ function ObservedEventRow({ event }: { event: NaruonCalendarEvent }) {
         <EvidenceStatusMark status="evidence" />
         <span className="ticket-title">{event.display_text}</span>
         <span className="post-badge">{event.starts_at}</span>
-        <span className="post-badge">{event.disclosure_code}</span>
         <span className="post-badge">
           {t("Open this observed occurrence. It is not a LineageWeave commitment.")}
         </span>

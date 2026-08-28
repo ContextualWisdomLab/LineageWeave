@@ -43,7 +43,7 @@ links.
 
 ## Related
 
-- [ADR 0006](0006-provenance-role-responsibility.md)
-- [ADR 0052](0052-semantic-post-summary-contract.md)
+- [ADR 0006](0006-role-responsibility-agent-ontology.md)
+- [ADR 0052](0052-plain-orchestrator-semantic-evidence.md)
 - [ADR 0076](0076-paper-grounded-model-policy.md)
 - W3C. (2013). *PROV-O: The PROV ontology*. https://www.w3.org/TR/prov-o/

@@ -1,85 +1,27 @@
 import { useEffect, useState } from "react";
 import { fetchOperationsDashboard, fetchVoiceTaxonomySummary, type OperationsDashboardResponse, type VoiceTaxonomySummary as VoiceSummary } from "../api";
-import { t, tf } from "../i18n";
+import { t } from "../i18n";
 import { VoiceTaxonomySummary } from "./VoiceTaxonomySummary";
-
-function MetricCountGroups({ label }: { label: string }) {
-  const groups = label.split(" · ");
-  return <>{groups.map((group, index) => <span key={`${group}-${index}`} aria-hidden="true">{index ? " · " : ""}<span className="dashboard-count-unit">{group}</span></span>)}</>;
-}
 
 function formatElapsed(seconds: number): string {
   const days = Math.floor(seconds / 86_400);
   const hours = Math.floor((seconds % 86_400) / 3_600);
   const minutes = Math.floor((seconds % 3_600) / 60);
-  return tf("{days}d {hours}h {minutes}m {seconds}s", { days, hours, minutes, seconds: seconds % 60 });
+  return `${days}일 ${hours}시간 ${minutes}분 ${seconds % 60}초`;
 }
 
 const dimensionLabels = {
-  business_unit: "Business unit",
+  business_unit: "사업부",
   process_unit: "PU",
-  team: "Team",
-  person: "Person",
+  team: "팀",
+  person: "개인",
 } as const;
 
 const topicStateLabels = {
-  active: "Active",
-  dormant: "Dormant",
-  reactivated: "Reactivated",
+  active: "활성",
+  dormant: "휴면",
+  reactivated: "재활성",
 } as const;
-
-const caseKindLabels: Record<string, string> = {
-  claim_investigation: "Claim investigation",
-  rebid_handover: "Rebid and handover",
-  external_information: "Procurement notices and market trends",
-  repeat_issue: "Repeat issue",
-};
-
-const lifecycleKindLabels: Record<string, string> = {
-  claim_investigation: "Claim investigation",
-  rebid_response: "Rebid response",
-  handover_gap: "Handover gap",
-};
-
-const milestoneTypeLabels: Record<string, string> = {
-  claim_received: "Claim received",
-  cause_confirmed: "Cause confirmed",
-  rebid_response_requested: "Rebid response requested",
-  rebid_decision_recorded: "Rebid decision recorded",
-  handover_started: "Handover started",
-  handover_accepted: "Handover accepted",
-};
-
-const lifecycleStatusLabels: Record<string, string> = {
-  resolved: "Resolved",
-  open: "Open",
-  evidence_missing: "Insufficient measurement evidence",
-};
-
-const timeAxisLabels: Record<string, string> = {
-  event_occurred_at: "Event time",
-  created_at: "Record creation time",
-};
-
-const topicLineageEventLabels: Record<"birth" | "split" | "merge" | "retirement", string> = {
-  birth: "Topic first observed",
-  split: "Topic branched",
-  merge: "Topics combined",
-  retirement: "Topic no longer observed",
-};
-
-function localizedCodeLabel(code: string, sourceLabel: string, labels: Record<string, string>): string {
-  const translationKey = labels[code];
-  return translationKey ? t(translationKey) : sourceLabel;
-}
-
-function localizedPeriodLabel(data: OperationsDashboardResponse): string {
-  if (data.period_time_axis_code !== "event_occurred_at") return data.period_label;
-  if (data.period_start && data.period_end) return tf("{start} ~ {end} · Event time", { start: data.period_start, end: data.period_end });
-  if (data.period_start) return tf("{start} or later · Event time", { start: data.period_start });
-  if (data.period_end) return tf("Through {end} · Event time", { end: data.period_end });
-  return t("All time · Event time");
-}
 
 type Props = {
   accessToken: string;
@@ -125,15 +67,15 @@ export function OperationsDashboard({ accessToken, externalOnly = false, onOpenP
       event.preventDefault();
       setSubmittedPeriod([periodStart, periodEnd]);
     }}>
-      <label>{t("Start date")}<input type="date" value={periodStart} max={periodEnd || undefined} onChange={(event) => setPeriodStart(event.target.value)} /></label>
-      <label>{t("End date")}<input type="date" value={periodEnd} min={periodStart || undefined} onChange={(event) => setPeriodEnd(event.target.value)} /></label>
-      <button type="submit" className="btn-secondary">{t("Apply period")}</button>
+      <label>시작일<input type="date" value={periodStart} max={periodEnd || undefined} onChange={(event) => setPeriodStart(event.target.value)} /></label>
+      <label>종료일<input type="date" value={periodEnd} min={periodStart || undefined} onChange={(event) => setPeriodEnd(event.target.value)} /></label>
+      <button type="submit" className="btn-secondary">기간 적용</button>
     </form>
     {error ? (
       <section className="operations-dashboard" aria-labelledby="dashboard-heading">
-        <h2 id="dashboard-heading">{t("Operations evidence dashboard")}</h2>
-        <p role="alert">{t("Dashboard evidence could not be loaded.")}</p>
-        <button type="button" className="btn-secondary" onClick={() => setRetryCount((count) => count + 1)}>{t("Retry")}</button>
+        <h2 id="dashboard-heading">운영 근거 Dashboard</h2>
+        <p role="alert">Dashboard 근거를 불러오지 못했습니다.</p>
+        <button type="button" className="btn-secondary" onClick={() => setRetryCount((count) => count + 1)}>다시 시도</button>
       </section>
     ) : data ? (
       <OperationsDashboardView data={data} externalOnly={externalOnly} onOpenPost={onOpenPost} />
@@ -148,7 +90,7 @@ export function OperationsDashboard({ accessToken, externalOnly = false, onOpenP
     ) : null}
     {(!data && !error) || (!externalOnly && !voiceSummary && !voiceSummaryError) ? (
       <div role="status">
-        {!data && !error ? <p>{t("Loading dashboard evidence...")}</p> : null}
+        {!data && !error ? <p>Dashboard 근거를 불러오는 중입니다.</p> : null}
         {!externalOnly && !voiceSummary && !voiceSummaryError ? <p>{t("Loading voice evidence...")}</p> : null}
       </div>
     ) : null}
@@ -168,24 +110,24 @@ export function OperationsDashboardView({ data, externalOnly = false, onOpenPost
   return (
     <section className="operations-dashboard" aria-labelledby="dashboard-heading">
       <header className="operations-dashboard-heading">
-        <div><p className="dashboard-eyebrow">{localizedPeriodLabel(data)}</p><h2 id="dashboard-heading">{externalOnly ? t("External information") : t("Operations evidence dashboard")}</h2></div>
-        <p>{t("Select a metric to review the next action in its evidence post.")}</p>
+        <div><p className="dashboard-eyebrow">{data.period_label}</p><h2 id="dashboard-heading">{externalOnly ? "외부 정보" : "운영 근거 Dashboard"}</h2></div>
+        <p>수치를 선택하면 근거 글에서 다음 조치를 확인할 수 있습니다.</p>
       </header>
       <dl className="dashboard-metrics">
-        {!externalOnly ? <div><dt>{t("All posts")}</dt><dd>{data.total_post_count}</dd></div> : null}
-        {!externalOnly ? <div><dt>{t("Classified events")}</dt><dd>{data.total_event_count}</dd></div> : null}
-        <div><dt>{t("External information (share of all posts)")}</dt><dd aria-label={tf("{count} records · {percent}%", { count: data.external_post_count, percent: data.external_percent.toFixed(1) })}><MetricCountGroups label={tf("{count} records · {percent}%", { count: data.external_post_count, percent: data.external_percent.toFixed(1) })} /></dd></div>
-        {!externalOnly ? <div><dt>{t("Analysis pending")}</dt><dd>{data.pending_analysis_count}</dd></div> : null}
-        {!externalOnly ? <div><dt>{t("Analysis failed")}</dt><dd>{data.failed_analysis_count}</dd></div> : null}
+        {!externalOnly ? <div><dt>전체 글</dt><dd>{data.total_post_count}</dd></div> : null}
+        {!externalOnly ? <div><dt>분류 Event</dt><dd>{data.total_event_count}</dd></div> : null}
+        <div><dt>외부 정보</dt><dd>{data.external_post_count}건{externalOnly ? "" : ` · ${data.external_percent.toFixed(1)}%`}</dd></div>
+        {!externalOnly ? <div><dt>분석 대기</dt><dd>{data.pending_analysis_count}</dd></div> : null}
+        {!externalOnly ? <div><dt>분석 실패</dt><dd>{data.failed_analysis_count}</dd></div> : null}
       </dl>
       {!externalOnly ? (
         <section className="dashboard-case-metrics" aria-labelledby="case-metrics-heading">
-          <h3 id="case-metrics-heading">{t("Status by work type")}</h3>
+          <h3 id="case-metrics-heading">업무 유형별 현황</h3>
           <dl className="dashboard-metrics">
             {data.case_metrics.map((metric) => (
               <div key={metric.case_kind_code}>
-                <dt>{localizedCodeLabel(metric.case_kind_code, metric.case_kind_label, caseKindLabels)}</dt>
-                <dd aria-label={tf("{events} events · {posts} posts", { events: metric.event_count, posts: metric.post_count })}><MetricCountGroups label={tf("{events} events · {posts} posts", { events: metric.event_count, posts: metric.post_count })} /></dd>
+                <dt>{metric.case_kind_label}</dt>
+                <dd>{metric.event_count} Event · {metric.post_count}글</dd>
               </div>
             ))}
           </dl>
@@ -193,13 +135,13 @@ export function OperationsDashboardView({ data, externalOnly = false, onOpenPost
       ) : null}
       {!externalOnly ? (
         <section className="dashboard-lifecycle-summary" aria-labelledby="lifecycle-summary-heading">
-          <h3 id="lifecycle-summary-heading">{t("Observed processing intervals")}</h3>
-          <p>{t("Compare elapsed time for items with observed start and end events.")}</p>
+          <h3 id="lifecycle-summary-heading">관측된 처리 구간</h3>
+          <p>시작과 종료 Event가 확인된 항목의 경과 시간을 비교하세요.</p>
           <dl className="dashboard-lifecycle-metrics">
             {data.lifecycle_metrics.map((metric) => (
               <div key={metric.lifecycle_kind_code}>
-                <dt>{localizedCodeLabel(metric.lifecycle_kind_code, metric.lifecycle_kind_label, lifecycleKindLabels)}</dt>
-                <dd>{tf("Open {open} · resolved {resolved} · insufficient measurement evidence {missing}", { open: metric.open_case_count, resolved: metric.resolved_case_count, missing: metric.evidence_missing_case_count })}</dd>
+                <dt>{metric.lifecycle_kind_label}</dt>
+                <dd>진행 중 {metric.open_case_count}건 · 종료 확인 {metric.resolved_case_count}건 · 측정 근거 부족 {metric.evidence_missing_case_count}건</dd>
               </div>
             ))}
           </dl>
@@ -210,7 +152,7 @@ export function OperationsDashboardView({ data, externalOnly = false, onOpenPost
       ) : null}
       {!externalOnly && observedProjectEvents.length ? (
         <section className="dashboard-journeys" aria-labelledby="project-observed-events-heading">
-          <h3 id="project-observed-events-heading">{t("Observed events by project")}</h3>
+          <h3 id="project-observed-events-heading">프로젝트별 관측 Event</h3>
           {observedProjectEvents.map(([project, events]) => (
             <div key={project} className="dashboard-journey">
               <h4>{project}</h4>
@@ -219,7 +161,7 @@ export function OperationsDashboardView({ data, externalOnly = false, onOpenPost
                   <li key={`${event.post_id}-${event.case_kind_code}`}>
                     <button type="button" onClick={() => onOpenPost(event.post_id)}>
                       <time dateTime={event.occurred_at}>{event.occurred_at.slice(0, 10)}</time>
-                      <span>{localizedCodeLabel(event.case_kind_code, event.case_kind_label, caseKindLabels)}</span>
+                      <span>{event.case_kind_label}</span>
                     </button>
                   </li>
                 ))}
@@ -231,44 +173,44 @@ export function OperationsDashboardView({ data, externalOnly = false, onOpenPost
       <div className="dashboard-case-grid">
         {cases.map((item) => (
           <article key={`${item.post_id}-${item.case_kind_code}`} className="dashboard-case-card">
-            <div className="dashboard-case-title"><span>{localizedCodeLabel(item.case_kind_code, item.case_kind_label, caseKindLabels)}</span><strong>{item.project_name ?? t("Analyzing project connection")}</strong></div>
+            <div className="dashboard-case-title"><span>{item.case_kind_label}</span><strong>{item.project_name ?? "프로젝트 연결 분석 중"}</strong></div>
             <h3>{item.summary_text}</h3>
             <blockquote>{item.evidence_text}</blockquote>
             {item.lifecycles.length ? (
-              <section className="dashboard-case-lifecycles" aria-label={t("Observed processing intervals")}>
+              <section className="dashboard-case-lifecycles" aria-label="관측된 처리 구간">
                 {item.lifecycles.map((lifecycle) => (
                   <article key={lifecycle.lifecycle_kind_code} className="dashboard-lifecycle-row">
-                    <header><h4>{localizedCodeLabel(lifecycle.lifecycle_kind_code, lifecycle.lifecycle_kind_label, lifecycleKindLabels)}</h4><strong>{localizedCodeLabel(lifecycle.status_code, lifecycle.status_label, lifecycleStatusLabels)}</strong></header>
-                    {lifecycle.elapsed_seconds !== null ? <p>{t("Confirmed elapsed time")} <b>{formatElapsed(lifecycle.elapsed_seconds)}</b></p> : <p>{t("Elapsed time is calculated when all required start and end event evidence is observed.")}</p>}
+                    <header><h4>{lifecycle.lifecycle_kind_label}</h4><strong>{lifecycle.status_label}</strong></header>
+                    {lifecycle.elapsed_seconds !== null ? <p>확정 경과 시간 <b>{formatElapsed(lifecycle.elapsed_seconds)}</b></p> : <p>경과 시간은 필요한 시작·종료 사건 근거가 모두 관측될 때 계산됩니다.</p>}
                     <ol>
                       {[lifecycle.start_milestone, lifecycle.end_milestone].filter((milestone) => milestone !== null).map((milestone) => (
                         <li key={milestone.milestone_type_code}>
                           <time dateTime={milestone.observed_at}>{milestone.observed_at}</time>
-                          <span>{localizedCodeLabel(milestone.milestone_type_code, milestone.milestone_type_label, milestoneTypeLabels)} · {localizedCodeLabel(milestone.time_axis_code, milestone.time_axis_label, timeAxisLabels)}</span>
-                          <button type="button" className="btn-link" onClick={() => onOpenPost(milestone.evidence_post_id)}>{tf("Open {label} evidence", { label: localizedCodeLabel(milestone.milestone_type_code, milestone.milestone_type_label, milestoneTypeLabels) })}</button>
+                          <span>{milestone.milestone_type_label} · {milestone.time_axis_label}</span>
+                          <button type="button" className="btn-link" onClick={() => onOpenPost(milestone.evidence_post_id)}>{milestone.milestone_type_label} 근거 열기</button>
                         </li>
                       ))}
                     </ol>
-                    <p className="dashboard-next-action">{t("Next action:")} {lifecycle.next_action_text}</p>
+                    <p className="dashboard-next-action">다음 조치: {lifecycle.next_action_text}</p>
                   </article>
                 ))}
               </section>
             ) : null}
-            <dl>{item.facts.map((fact) => <div key={`${fact.fact_type_code}-${fact.value_text}`}><dt>{fact.fact_type_label}{fact.relation_target_kind_label ? ` · ${fact.relation_target_kind_label}` : ""}</dt><dd>{fact.value_text} <button type="button" className="btn-link" onClick={() => onOpenPost(fact.evidence_post_id)}>{tf("Open {label} evidence", { label: fact.fact_type_label })}</button></dd></div>)}</dl>
+            <dl>{item.facts.map((fact) => <div key={`${fact.fact_type_code}-${fact.value_text}`}><dt>{fact.fact_type_label}{fact.relation_target_kind_label ? ` · ${fact.relation_target_kind_label}` : ""}</dt><dd>{fact.value_text} <button type="button" className="btn-link" onClick={() => onOpenPost(fact.evidence_post_id)}>{fact.fact_type_label} 근거 열기</button></dd></div>)}</dl>
             {item.missing_facts.length ? (
-              <section className="dashboard-missing-facts" aria-label={t("Items requiring additional review")}>
-                <h4>{t("Additional review needed")}</h4>
-                <ul>{item.missing_facts.map((fact) => <li key={fact.fact_type_code}>{fact.fact_type_label}: {t("When related evidence is found, this will be analyzed again automatically. Review the result afterward.")}</li>)}</ul>
+              <section className="dashboard-missing-facts" aria-label="추가 확인이 필요한 항목">
+                <h4>추가 확인 필요</h4>
+                <ul>{item.missing_facts.map((fact) => <li key={fact.fact_type_code}>{fact.fact_type_label}: 관련 근거를 찾으면 자동으로 다시 분석합니다. 이후 결과를 다시 확인하세요.</li>)}</ul>
               </section>
             ) : null}
-            <button type="button" className="btn-secondary" onClick={() => onOpenPost(item.evidence_post_id)}>{t("Open classification evidence post")}</button>
+            <button type="button" className="btn-secondary" onClick={() => onOpenPost(item.evidence_post_id)}>분류 근거 글 열기</button>
           </article>
         ))}
       </div>
       {cases.length === 0 && (externalOnly || data.failed_analysis_count === 0) ? (
-        <p role="status">{externalOnly ? t("No external information was classified in the selected period. Check the period or access scope.") : data.pending_analysis_count > 0 ? t("No evidence analysis was completed in the selected period. Process pending analyses first.") : t("No evidence can be analyzed in the selected period. Check the period or access scope.")}</p>
+        <p role="status">{externalOnly ? "선택 기간에 분류된 외부 정보가 없습니다. 기간이나 접근 범위를 확인하세요." : data.pending_analysis_count > 0 ? "선택 기간에 분석 완료된 근거가 없습니다. 분석 대기 건부터 처리하세요." : "선택 기간에 분석할 수 있는 근거가 없습니다. 기간이나 접근 범위를 확인하세요."}</p>
       ) : null}
-      {!externalOnly && data.failed_analysis_count > 0 ? <p role="alert">{tf("Reprocess {count} failed analyses, then review missing evidence again.", { count: data.failed_analysis_count })}</p> : null}
+      {!externalOnly && data.failed_analysis_count > 0 ? <p role="alert">분석 실패 {data.failed_analysis_count}건을 재처리한 뒤 근거 누락 여부를 다시 확인하세요.</p> : null}
     </section>
   );
 }
@@ -279,46 +221,46 @@ export function TopicContextInfluence({ data, onOpenPost }: { data: OperationsDa
   return (
     <section className="dashboard-topic-context" aria-labelledby="topic-context-heading">
       <header>
-        <div><p className="dashboard-eyebrow">{t("Post influence")}</p><h3 id="topic-context-heading">{t("Topic model influence over time")}</h3></div>
-        <p>{t("This measures how much the topic- and organization-level model changes when the post is excluded, not business value.")}</p>
+        <div><p className="dashboard-eyebrow">글 영향도</p><h3 id="topic-context-heading">시간 흐름별 주요 글</h3></div>
+        <p>글을 제외했을 때 주제 흐름과 조직별 결과가 얼마나 달라지는지 확인하세요.</p>
       </header>
       {topicContext.status_code === "unavailable" ? (
         <div className="dashboard-topic-unavailable" role="status">
-          <strong>{t("Post influence is not available yet.")}</strong>
-          <p>{t("Review the event time and organizational membership of the posts being analyzed, then run the analysis again.")}</p>
+          <strong>글 영향도를 아직 확인할 수 없습니다.</strong>
+          <p>분석 대상 글의 사건 시점과 조직 소속을 확인한 뒤 다시 분석하세요.</p>
         </div>
       ) : (
         <>
-          <p>{t("Compare each post's influence and uncertainty, then review the source evidence.")}</p>
+          <p>각 글의 영향도와 불확실성을 비교하고 원문 근거를 확인하세요.</p>
           <div className="dashboard-topic-list">
             {topicContext.topics.map((topic) => (
               <details key={topic.topic_index} className="dashboard-topic" open>
-                <summary>{tf("Topic {topic}", { topic: topic.topic_index + 1 })} · {topic.activity_intervals.map((interval) => t(topicStateLabels[interval.state_code])).join(" / ")}</summary>
-                <ul className="dashboard-topic-timeline" aria-label={tf("Topic {topic} time states", { topic: topic.topic_index + 1 })}>
+                <summary>주제 {topic.topic_index + 1} · {topic.activity_intervals.map((interval) => topicStateLabels[interval.state_code]).join(" / ")}</summary>
+                <ul className="dashboard-topic-timeline" aria-label={`주제 ${topic.topic_index + 1} 시간 상태`}>
                   {topic.activity_intervals.map((interval) => (
                     <li key={`${interval.valid_from}-${interval.state_code}`}>
-                      <strong>{t(topicStateLabels[interval.state_code])}</strong> <time dateTime={interval.valid_from}>{interval.valid_from.slice(0, 10)}</time>–<time dateTime={interval.valid_to}>{interval.valid_to.slice(0, 10)}</time>
+                      <strong>{topicStateLabels[interval.state_code]}</strong> <time dateTime={interval.valid_from}>{interval.valid_from.slice(0, 10)}</time>–<time dateTime={interval.valid_to}>{interval.valid_to.slice(0, 10)}</time>
                     </li>
                   ))}
                 </ul>
-                {topic.lineage_events.length ? <ul className="dashboard-topic-lineage" aria-label={tf("Topic {topic} history", { topic: topic.topic_index + 1 })}>
-                  {topic.lineage_events.map((event) => <li key={`${event.event_time}-${event.event_code}-${event.target_topic_index ?? "none"}`}><time dateTime={event.event_time}>{event.event_time.slice(0, 10)}</time> · {t(topicLineageEventLabels[event.event_code])}{event.target_topic_index === null ? "" : ` → ${tf("Topic {topic}", { topic: event.target_topic_index + 1 })}`}</li>)}
+                {topic.lineage_events.length ? <ul className="dashboard-topic-lineage" aria-label={`주제 ${topic.topic_index + 1} 변화 이력`}>
+                  {topic.lineage_events.map((event) => <li key={`${event.event_time}-${event.event_code}-${event.target_topic_index ?? "none"}`}><time dateTime={event.event_time}>{event.event_time.slice(0, 10)}</time> · {({ birth: "시작", split: "분기", merge: "통합", retirement: "종료" } as const)[event.event_code]}{event.target_topic_index === null ? "" : ` → 주제 ${event.target_topic_index + 1}`} <button type="button" className="btn-link" onClick={() => onOpenPost(event.evidence_post_id)}>사건 근거 열기</button></li>)}
                 </ul> : null}
                 {topic.contexts.map((context) => (
                   <section key={`${context.dimension_code}-${context.context_id}`} className="dashboard-topic-context-group" aria-labelledby={`topic-${topic.topic_index}-${context.dimension_code}-${context.context_id}`}>
-                    <h4 id={`topic-${topic.topic_index}-${context.dimension_code}-${context.context_id}`}>{t(dimensionLabels[context.dimension_code])} · {context.context_label}</h4>
-                    <div className="dashboard-topic-table-scroll" tabIndex={0} role="region" aria-label={tf("{context} model influence table", { context: context.context_label })}>
+                    <h4 id={`topic-${topic.topic_index}-${context.dimension_code}-${context.context_id}`}>{dimensionLabels[context.dimension_code]} · {context.context_label}</h4>
+                    <div className="dashboard-topic-table-scroll" tabIndex={0} role="region" aria-label={`${context.context_label} 영향도 표`}>
                       <table>
-                        <caption>{t("Compare influence and uncertainty together; treat equal values as ties.")}</caption>
-                        <thead><tr><th scope="col">{t("Event occurred")}</th><th scope="col">{t("State")}</th><th scope="col">{t("Model influence")}</th><th scope="col">{t("Uncertainty")}</th><th scope="col">{t("Membership evidence")}</th><th scope="col">{t("Source post")}</th></tr></thead>
+                        <caption>영향도와 불확실성을 함께 비교하고 같은 값은 동점으로 확인하세요.</caption>
+                        <thead><tr><th scope="col">사건 발생일</th><th scope="col">상태</th><th scope="col">영향도</th><th scope="col">불확실성</th><th scope="col">소속 반영값</th><th scope="col">근거</th></tr></thead>
                         <tbody>{context.influences.map((influence) => (
-                          <tr key={`${influence.post_id}-${influence.membership_evidence_sha256}`}>
+                          <tr key={`${influence.post_id}-${influence.membership_evidence_post_id}`}>
                             <td><time dateTime={influence.occurred_at}>{influence.occurred_at.slice(0, 10)}</time></td>
-                            <td>{t(topicStateLabels[influence.topic_state_code])}</td>
+                            <td>{topicStateLabels[influence.topic_state_code]}</td>
                             <td><data value={influence.model_influence}>{influence.model_influence}</data></td>
                             <td>{influence.uncertainty_lower_value}–{influence.uncertainty_upper_value}</td>
                             <td>{influence.membership_weight}</td>
-                            <td><button type="button" className="btn-link" onClick={() => onOpenPost(influence.post_id)}>{t("Open evidence post")}</button></td>
+                            <td><button type="button" className="btn-link" onClick={() => onOpenPost(influence.membership_evidence_post_id)}>소속 근거 열기</button> <button type="button" className="btn-link" onClick={() => onOpenPost(influence.post_id)}>영향 글 열기</button></td>
                           </tr>
                         ))}</tbody>
                       </table>
@@ -330,10 +272,10 @@ export function TopicContextInfluence({ data, onOpenPost }: { data: OperationsDa
           </div>
           {topicContext.model_run ? (
             <details className="dashboard-topic-provenance">
-              <summary>{t("Review analysis basis")}</summary>
+              <summary>분석 기준 확인</summary>
               <dl>
-                <div><dt>{t("Knowledge cutoff")}</dt><dd><time dateTime={topicContext.model_run.knowledge_cutoff}>{topicContext.model_run.knowledge_cutoff}</time></dd></div>
-                <div><dt>{t("Topic count")}</dt><dd>{topicContext.model_run.topic_count}</dd></div>
+                <div><dt>반영 기준 시각</dt><dd><time dateTime={topicContext.model_run.knowledge_cutoff}>{topicContext.model_run.knowledge_cutoff}</time></dd></div>
+                <div><dt>주제 수</dt><dd>{topicContext.model_run.topic_count}</dd></div>
               </dl>
             </details>
           ) : null}

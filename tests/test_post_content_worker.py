@@ -388,6 +388,14 @@ def test_incomplete_provider_output_is_requeued_with_a_failure_code(monkeypatch)
         ),
     )
     monkeypatch.setattr(post_content_worker, "persist_operations_cases", persist)
+    monkeypatch.setattr(
+        post_content_worker,
+        "extract_occupational_construct_assertions",
+        lambda *_args, **_kwargs: asyncio.sleep(0, result=()),
+    )
+    monkeypatch.setattr(
+        post_content_worker, "persist_occupational_construct_assertions", persist
+    )
     client = SimpleNamespace(available=True)
 
     asyncio.run(
@@ -606,6 +614,16 @@ def test_sibling_requeue_failure_preserves_completed_primary_job(monkeypatch) ->
     )
     monkeypatch.setattr(
         post_content_worker,
+        "extract_occupational_construct_assertions",
+        lambda *_args, **_kwargs: asyncio.sleep(0, result=()),
+    )
+    monkeypatch.setattr(
+        post_content_worker,
+        "persist_occupational_construct_assertions",
+        lambda *_args, **_kwargs: asyncio.sleep(0),
+    )
+    monkeypatch.setattr(
+        post_content_worker,
         "_operations_evidence_sources",
         lambda *_args, **_kwargs: asyncio.sleep(
             0,
@@ -640,8 +658,8 @@ def test_sibling_requeue_failure_preserves_completed_primary_job(monkeypatch) ->
     assert outcomes == [SUCCEEDED]
 
 
-def test_invalid_product_output_does_not_block_primary_post_evidence(monkeypatch) -> None:
-    """Optional product extraction cannot discard structure, embedding, or cases."""
+def test_invalid_product_output_keeps_the_job_retryable(monkeypatch) -> None:
+    """A missing product signal cannot be mislabeled as a succeeded job."""
     outcomes: list[str] = []
     persisted: list[str] = []
     failures: list[tuple[str, str]] = []
@@ -688,6 +706,16 @@ def test_invalid_product_output_does_not_block_primary_post_evidence(monkeypatch
         "_persist_operations_case_analysis_if_needed",
         persist_cases,
     )
+    monkeypatch.setattr(
+        post_content_worker,
+        "extract_occupational_construct_assertions",
+        lambda *_args, **_kwargs: asyncio.sleep(0, result=()),
+    )
+    monkeypatch.setattr(
+        post_content_worker,
+        "persist_occupational_construct_assertions",
+        lambda *_args, **_kwargs: asyncio.sleep(0),
+    )
     monkeypatch.setattr(post_content_worker, "normalize_post_body", lambda *_args: object())
     monkeypatch.setattr(post_content_worker, "persist_post_content", persist_content)
     monkeypatch.setattr(
@@ -717,10 +745,13 @@ def test_invalid_product_output_does_not_block_primary_post_evidence(monkeypatch
         )
     )
 
-    assert persisted == ["cases", "content"]
+    assert persisted == ["cases"]
     assert channel_order == ["cases", "product"]
-    assert outcomes == [SUCCEEDED]
-    assert failures == [("product_semantic_ingestion", "provider_unavailable")]
+    assert outcomes == []
+    assert failures == [
+        ("product_semantic_ingestion", "provider_unavailable"),
+        ("post_content_ingestion", "internal_error"),
+    ]
 
 
 def test_case_analysis_persists_before_content_provider_failure(monkeypatch) -> None:

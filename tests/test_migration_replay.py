@@ -72,6 +72,32 @@ def test_semantic_content_unit_kind_migration_is_replay_safe() -> None:
         assert f"'{unit_kind}'" in sql
 
 
+def test_source_conversation_turn_evidence_migration_is_replay_safe() -> None:
+    sql = (
+        Path(__file__).resolve().parents[1]
+        / "migrations"
+        / "0233_source_conversation_turn_evidence.sql"
+    ).read_text(encoding="utf-8").lower()
+
+    assert "add column if not exists source_evidence_reference" in sql
+    assert "if not exists" in sql
+    assert "post_content_unit_source_evidence_reference_check" in sql
+    assert "octet_length(source_evidence_reference) <= 24000" in sql
+
+
+def test_source_conversation_turn_evidence_rollback_matches_forward_number() -> None:
+    """Operators can locate the rollback by the forward migration number."""
+    rollback_path = (
+        Path(__file__).resolve().parents[1]
+        / "migrations"
+        / "rollback"
+        / "0233_source_conversation_turn_evidence.sql"
+    )
+
+    assert rollback_path.exists()
+    assert "source_evidence_reference" in rollback_path.read_text(encoding="utf-8")
+
+
 def test_interval_relation_foreign_key_validation_is_separate() -> None:
     """Installing the FK must not scan a large existing edge table."""
 
@@ -109,18 +135,18 @@ def test_migrate_sh_replays_leftover_map_axis_migration_on_existing_volumes() ->
 
 
 def test_migrate_sh_replays_leftover_map_explained_share_on_existing_volumes() -> None:
-    """migrate.sh's replay window must cover 0232 (leftover-map explained share).
+    """migrate.sh's replay window covers ADR 0266's explained-share column.
 
     Volumes created before leftover-map explained share shipped never get
-    leftover_map_explained_share unless migrate.sh replays 0236 on every
+    leftover_map_explained_share unless migrate.sh replays 0244 on every
     ``docker compose up``. GET /api/reports/{grouping}/{period} then 500s
     on undefined_column the first time a period actually has leftover pairs.
 
-    ADR 0166's general four-digit filename boundary covers 0232 without a
+    ADR 0166's general four-digit filename boundary covers 0244 without a
     per-migration allowlist entry. The column add is nullable and
     idempotent so a second start does not invent a leftover score.
     """
-    migration_name = "0236_report_leftover_map_explained_share.sql"
+    migration_name = "0244_report_leftover_map_explained_share.sql"
     migration_path = Path(__file__).resolve().parents[1] / "migrations" / migration_name
     assert migration_path.exists()
     assert re.fullmatch(r"[0-9]{4}_.+\.sql", migration_name)
@@ -141,6 +167,21 @@ def test_tenant_settings_migration_is_safe_to_replay() -> None:
 
     assert "create table if not exists tenant_settings" in sql
     assert "on conflict (id) do nothing" in sql
+
+
+def test_global_ask_migrations_are_safe_to_replay() -> None:
+    """Fresh Compose databases also run the existing-volume migration service."""
+    migrations = Path(__file__).resolve().parents[1] / "migrations"
+    job_sql = (migrations / "0165_global_ask_job.sql").read_text(encoding="utf-8").casefold()
+    scope_sql = (migrations / "0203_global_ask_authorization_scope.sql").read_text(
+        encoding="utf-8"
+    ).casefold()
+
+    assert "create table if not exists global_ask_job" in job_sql
+    assert "create index if not exists global_ask_job_account_idx" in job_sql
+    assert "create index if not exists global_ask_job_queued_idx" in job_sql
+    assert "create table if not exists global_ask_job_corporate_entity_scope" in scope_sql
+    assert "create table if not exists global_ask_job_process_unit_scope" in scope_sql
 
 
 def test_channel_weight_migration_preserves_raw_source_grouping() -> None:
@@ -219,6 +260,36 @@ def test_topic_lineage_result_migration_is_idempotent_for_replay() -> None:
     assert "create index if not exists" in migration
 
 
+def test_tepp_receipt_migration_is_replayable_and_digest_bound() -> None:
+    """Accepted transport evidence survives every-start migration replay."""
+    migration_name = "0217_analysis_run_tepp_receipt.sql"
+    sql = (
+        Path(__file__).resolve().parents[1] / "migrations" / migration_name
+    ).read_text(encoding="utf-8").casefold()
+
+    assert re.fullmatch(r"[0-9]{4}_.+\.sql", migration_name)
+    assert "create table if not exists analysis_run_tepp_receipt" in sql
+    assert "remote_run_id text not null unique" in sql
+    assert "request_sha256 ~ '^[0-9a-f]{64}$'" in sql
+    assert "receipt_sha256 ~ '^[0-9a-f]{64}$'" in sql
+    assert "accepted_status_code = 'accepted'" in sql
+    assert "create index if not exists" in sql
+
+
+def test_tepp_receipt_read_requires_the_replayed_schema() -> None:
+    """A missing required table must fail before it poisons a claim transaction."""
+    source = (
+        Path(__file__).resolve().parents[1]
+        / "backend"
+        / "app"
+        / "analysis_run_ingestion.py"
+    ).read_text(encoding="utf-8")
+    receipt_block = source.split('if row["run_kind_code"] == _TEPP_RUN_KIND:', 1)[1]
+    receipt_block = receipt_block.split("return detail", 1)[0]
+
+    assert "from analysis_run_tepp_receipt" in receipt_block
+    assert "UndefinedTableError" not in receipt_block
+
 def test_global_ask_job_migrations_are_idempotent_for_replay() -> None:
     """Existing volumes must replay the queue and authorization scope safely."""
     migrations = Path(__file__).resolve().parents[1] / "migrations"
@@ -266,7 +337,7 @@ def test_post_content_failure_validation_migration_is_replay_safe() -> None:
     sql = (
         Path(__file__).resolve().parents[1]
         / "migrations"
-        / "0234_post_content_failure_validation.sql"
+        / "0256_post_content_failure_validation.sql"
     ).read_text(encoding="utf-8")
 
     assert sql.count("add column if not exists") == 2

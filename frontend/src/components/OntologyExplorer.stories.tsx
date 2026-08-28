@@ -6,6 +6,7 @@ const POST_ID = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa1";
 const PERSON_ID = "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbb1";
 const CORP_ID = "cccccccc-cccc-cccc-cccc-ccccccccccc1";
 const PROJECT_ID = `${POST_ID}/demo-project`;
+const CONSTRUCT_ID = "99999999-9999-9999-9999-999999999999";
 
 const demoNeighborhood: OntologyNeighborhoodPayload = {
   focus_node_id: POST_ID,
@@ -62,6 +63,18 @@ const demoNeighborhood: OntologyNeighborhoodPayload = {
       evidence_count: 1,
       shape_code: "diamond",
     },
+    {
+      node_id: CONSTRUCT_ID,
+      node_type_code: "node_occupational_construct",
+      ontology_class_iri: "https://contextualwisdomlab.github.io/LineageWeave/ontology#OccupationalConstruct",
+      display_label: "Problem Sensitivity",
+      truth_status_code: null,
+      valid_from: null,
+      valid_to: null,
+      recorded_at: null,
+      evidence_count: 1,
+      shape_code: "rounded-rectangle",
+    },
   ],
   edges: [
     {
@@ -110,6 +123,22 @@ const demoNeighborhood: OntologyNeighborhoodPayload = {
       valid_to: null,
       recorded_at: "2026-01-10T12:00:00+00:00",
       provenance_reference: "post_project_mention",
+      evidence_references: [POST_ID],
+    },
+    {
+      edge_id: `supportsOccupationalConstruct:node_post:${POST_ID}:node_occupational_construct:${CONSTRUCT_ID}`,
+      source_node_type_code: "node_post",
+      source_node_id: POST_ID,
+      target_node_type_code: "node_occupational_construct",
+      target_node_id: CONSTRUCT_ID,
+      property_code: "supportsOccupationalConstruct",
+      ontology_property_iri: "https://contextualwisdomlab.github.io/LineageWeave/ontology#supportsOccupationalConstruct",
+      property_label: "supports construct",
+      truth_status_code: "truth_inferred",
+      valid_from: null,
+      valid_to: null,
+      recorded_at: "2026-01-11T12:00:00+00:00",
+      provenance_reference: "post_occupational_construct_assertion",
       evidence_references: [POST_ID],
     },
   ],
@@ -165,6 +194,23 @@ const demoNeighborhood: OntologyNeighborhoodPayload = {
       valid_to: "",
       evidence_count: "1",
     },
+    {
+      edge_id: `supportsOccupationalConstruct:node_post:${POST_ID}:node_occupational_construct:${CONSTRUCT_ID}`,
+      source_node_id: POST_ID,
+      source_label: "Demo public post",
+      source_type_code: "node_post",
+      property_code: "supportsOccupationalConstruct",
+      property_label: "supports construct",
+      ontology_property_iri: "https://contextualwisdomlab.github.io/LineageWeave/ontology#supportsOccupationalConstruct",
+      target_node_id: CONSTRUCT_ID,
+      target_label: "Problem Sensitivity",
+      target_type_code: "node_occupational_construct",
+      truth_status_code: "truth_inferred",
+      recorded_at: "2026-01-11T12:00:00+00:00",
+      valid_from: "",
+      valid_to: "",
+      evidence_count: "1",
+    },
   ],
   jsonld: {
     "@context": { lw: "https://contextualwisdomlab.github.io/LineageWeave/ontology#" },
@@ -213,6 +259,51 @@ const rejectedNeighborhood: OntologyNeighborhoodPayload = {
   ],
 };
 
+const combinedVoiceNeighborhood: OntologyNeighborhoodPayload = {
+  ...demoNeighborhood,
+  voice_assignments: [
+    {
+      post_id: POST_ID,
+      voice_type_code: "voc",
+      voice_type_iri: "https://contextualwisdomlab.github.io/LineageWeave/ontology#voiceOfCustomerType",
+      voice_type_label: "Voice of Customer",
+      is_primary: true,
+      truth_status_code: "truth_observed",
+      recorded_at: "2026-01-10T12:00:00+00:00",
+      provenance_reference: "Imported primary voice",
+      evidence_post_id: null,
+    },
+    {
+      post_id: POST_ID,
+      voice_type_code: "vops",
+      voice_type_iri: "https://contextualwisdomlab.github.io/LineageWeave/ontology#voiceOfProcessType",
+      voice_type_label: "Voice of Process",
+      is_primary: false,
+      truth_status_code: "truth_observed",
+      recorded_at: "2026-01-10T12:00:00+00:00",
+      provenance_reference: "Evidence-backed additional voice",
+      evidence_post_id: POST_ID,
+    },
+  ],
+  exact_value_rows: [
+    ...demoNeighborhood.exact_value_rows,
+    ...[
+      ["voc", "Voice of Customer"],
+      ["vops", "Voice of Process"],
+    ].map(([code, label]) => ({
+      ...demoNeighborhood.exact_value_rows[0],
+      edge_id: `voice-assignment:${POST_ID}:${code}`,
+      property_code: "hasVoiceAssignment",
+      property_label: "Voice carried by this post",
+      ontology_property_iri: "https://contextualwisdomlab.github.io/LineageWeave/ontology#hasVoiceAssignment",
+      target_node_id: code,
+      target_label: label,
+      target_type_code: "node_voice_type",
+      evidence_post_id: POST_ID,
+    })),
+  ],
+};
+
 const meta = {
   title: "Evidence/OntologyExplorer",
   component: OntologyExplorer,
@@ -228,6 +319,17 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 
 export const DesktopNeighborhood: Story = {};
+
+export const CombinedVoiceEvidence: Story = {
+  args: { neighborhood: combinedVoiceNeighborhood },
+  play: ({ canvasElement }) => {
+    const evidence = canvasElement.querySelector<HTMLButtonElement>(
+      'button[aria-label="Open evidence: Demo public post"]',
+    );
+    if (!evidence) throw new Error("Voice assignment evidence control was not rendered");
+    evidence.focus();
+  },
+};
 
 export const LongLabelsAndEvidenceTable: Story = {
   args: {

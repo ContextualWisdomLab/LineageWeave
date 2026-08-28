@@ -105,10 +105,10 @@ _OPERATIONS_EVIDENCE_MIGRATION = (
     Path(__file__).resolve().parents[1] / "migrations" / "0209_operations_case_evidence_source.sql"
 )
 _OPERATIONS_INPUT_MIGRATION = (
-    Path(__file__).resolve().parents[1] / "migrations" / "0222_operations_case_analysis_input.sql"
+    Path(__file__).resolve().parents[1] / "migrations" / "0250_operations_case_analysis_input.sql"
 )
 _PRODUCT_SEMANTIC_MIGRATION = (
-    Path(__file__).resolve().parents[1] / "migrations" / "0228_product_semantic_catalog.sql"
+    Path(__file__).resolve().parents[1] / "migrations" / "0251_product_semantic_catalog.sql"
 )
 
 
