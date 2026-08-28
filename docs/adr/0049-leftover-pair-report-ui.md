@@ -11,7 +11,8 @@
 [ADR 0201](0201-leftover-map-reconstruction.md) (signed reconstruction R̂);
 [ADR 0233](0233-leftover-map-unexplained-share.md) (unexplained leftover share s);
 [ADR 0266](0266-leftover-map-explained-share.md) (explained leftover share e);
-[ADR 0267](0267-leftover-map-coordinates.md) (leftover-map coordinates ξ, ζ)
+[ADR 0267](0267-leftover-map-coordinates.md) (leftover-map coordinates ξ, ζ);
+[ADR 0268](0268-leftover-map-graphic-display.md) (leftover-map graphic display)
 
 ## Context
 
@@ -33,7 +34,10 @@ unexplained leftover `U`, signed reconstruction `R̂` when finite,
 leftover-map unexplained leftover share `s = U² / R²` when finite,
 leftover-map explained leftover share `e = R̂² / R²` when finite,
 leftover-map coordinates `ξ_{1:2}` and `ζ_{1:2}` when finite, and
-leftover-map cross share next to distance when finite. The next action names every available
+leftover-map cross share next to distance when finite. When four finite
+coordinates exist, the leftover-map graphic display of those positions
+sits above the pair buttons (ADR 0268); click a post marker to open
+that post. The next action names every available
 measurement before opening the post; no amendment hides another, rank 0
 explicitly names no leftover structure, and unexplained leftover names
 "leftover map leaves unexplained `U` after IRT main effects; open this
@@ -57,6 +61,8 @@ Explained leftover share naming is
 [ADR 0266](0266-leftover-map-explained-share.md).
 Leftover-map coordinate naming is
 [ADR 0267](0267-leftover-map-coordinates.md).
+Leftover-map graphic display is
+[ADR 0268](0268-leftover-map-graphic-display.md).
 
 After `make seed`, closest and farthest leftover pairs sit above the
 member list. Click a pair to open that post with the leftover

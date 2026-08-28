@@ -1,0 +1,123 @@
+.leftover-map-plot {
+  margin: 0 0 var(--space-panel-block);
+  padding: var(--space-panel-block);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-panel);
+  background: var(--color-background);
+}
+
+.leftover-map-plot-caption {
+  margin: 0 0 var(--space-control-gap);
+  color: var(--color-text);
+  font-size: 0.85rem;
+  line-height: 1.45;
+}
+
+.leftover-map-plot-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-chip-gap) var(--space-chip-inline);
+  margin: 0 0 var(--space-control-gap);
+  padding: 0;
+  list-style: none;
+  color: var(--color-text-heading);
+  font-size: 0.8rem;
+}
+
+.leftover-map-plot-legend-swatch {
+  display: inline-block;
+  width: 0.7rem;
+  height: 0.7rem;
+  margin-right: var(--space-chip-gap);
+  vertical-align: -0.05rem;
+  border: 1px solid var(--color-border);
+}
+
+.leftover-map-plot-legend-swatch.person {
+  border-radius: 999px;
+  background: var(--color-primary);
+}
+
+.leftover-map-plot-legend-swatch.item {
+  background: var(--color-palette-blue-mid);
+  transform: rotate(45deg);
+}
+
+.leftover-map-plot-viewport {
+  max-width: 100%;
+  overflow-x: auto;
+  overscroll-behavior-inline: contain;
+  scrollbar-gutter: stable;
+  -webkit-overflow-scrolling: touch;
+}
+
+.leftover-map-plot-viewport:focus-visible {
+  outline: 2px solid var(--color-focus-border);
+  outline-offset: 2px;
+  border-radius: var(--radius-control);
+}
+
+.leftover-map-plot-svg {
+  display: block;
+  width: 480px;
+  max-width: none;
+  height: auto;
+}
+
+.leftover-map-plot-axis {
+  stroke: var(--color-border);
+  stroke-width: 1;
+}
+
+.leftover-map-plot-segment {
+  fill: none;
+  stroke: var(--color-palette-gray-400);
+  stroke-width: 1;
+  stroke-dasharray: 4 3;
+}
+
+.leftover-map-plot-segment.closest {
+  stroke: var(--color-primary);
+}
+
+.leftover-map-plot-segment.farthest {
+  stroke: var(--color-text);
+}
+
+.leftover-map-plot-item {
+  fill: var(--color-palette-blue-mid);
+}
+
+.leftover-map-plot-person {
+  fill: var(--color-primary);
+}
+
+.leftover-map-plot-person-hit {
+  fill: transparent;
+}
+
+.leftover-map-plot-marker:focus-visible .leftover-map-plot-person,
+.leftover-map-plot-marker:focus-visible .leftover-map-plot-person-hit {
+  outline: none;
+}
+
+.leftover-map-plot-marker:focus-visible {
+  outline: 2px solid var(--color-focus-border);
+  outline-offset: 2px;
+}
+
+.leftover-map-plot-label {
+  fill: var(--color-text-heading);
+  font-size: 0.7rem;
+}
+
+.leftover-map-plot-axis-label {
+  fill: var(--color-text);
+  font-size: 0.7rem;
+}
+
+@media (max-width: 768px) {
+  .leftover-map-plot {
+    padding: var(--space-control-gap);
+  }
+}

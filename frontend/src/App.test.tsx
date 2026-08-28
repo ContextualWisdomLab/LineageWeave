@@ -4143,6 +4143,12 @@ describe("App, authenticated", () => {
     expect(screen.getByRole("button", { name: /open report post: public post/i })).toHaveTextContent("Open");
     expect(screen.getByRole("button", { name: /open report post: public post/i })).toHaveTextContent("due 2026-01-12");
     expect(screen.getByLabelText("Leftover pairs")).toBeInTheDocument();
+    expect(screen.getByLabelText("Leftover-map graphic display")).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", {
+        name: /open leftover-map post public post at ξ \(\+0\.50, \+0\.10\)/i,
+      }),
+    ).toBeInTheDocument();
     expect(screen.getByLabelText("Leftover map coverage")).toHaveTextContent(
       "Leftover map used 2 of 3 scored posts (complete-case)",
     );

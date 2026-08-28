@@ -147,7 +147,9 @@ describe("LeftoverPairList", () => {
       />,
     );
 
-    const closest = screen.getByRole("button");
+    const closest = screen.getByRole("button", {
+      name: "Open leftover closest pair: Public post · sales-lead",
+    });
     expect(closest).toHaveTextContent(
       "Leftover map places this post at ξ (+0.50, +0.10) and the criterion at ζ (+0.50, −0.02) after IRT main effects. Open this post to read sales-lead.",
     );
@@ -159,6 +161,43 @@ describe("LeftoverPairList", () => {
     expect(closest).toHaveTextContent("U +0.05");
     expect(closest).toHaveTextContent("R +0.40");
     expect(closest).toHaveTextContent("d 0.12");
+    expect(screen.getByLabelText("Leftover-map graphic display")).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", {
+        name: "Open leftover-map post Public post at ξ (+0.50, +0.10)",
+      }),
+    ).toBeInTheDocument();
+  });
+
+  it("opens the named post from a leftover-map graphic display marker", async () => {
+    const onSelectPost = vi.fn();
+    render(
+      <LeftoverPairList
+        pairs={[
+          {
+            ...PAIRS[0],
+            leftover_map_person_axis_1: 0.5,
+            leftover_map_person_axis_2: 0.1,
+            leftover_map_item_axis_1: 0.5,
+            leftover_map_item_axis_2: -0.02,
+          },
+        ]}
+        criterionLabel={criterionLabel}
+        onSelectPost={onSelectPost}
+      />,
+    );
+
+    await userEvent.click(
+      screen.getByRole("button", {
+        name: "Open leftover-map post Public post at ξ (+0.50, +0.10)",
+      }),
+    );
+    expect(onSelectPost).toHaveBeenCalledWith(
+      expect.objectContaining({
+        post_id: "post-demo-public",
+        criterion_code: "sales_lead_quality",
+      }),
+    );
   });
 
   it("names leftover-map explained leftover share so the next click opens that post", () => {

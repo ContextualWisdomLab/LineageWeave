@@ -3,6 +3,9 @@
 **Decision status:** Accepted
 **Date:** 2026-08-28
 
+**Amended by:** [ADR 0268](0268-leftover-map-graphic-display.md)
+(leftover-map graphic display)
+
 Amends [ADR 0048](0048-persist-lsirm-leftover-pairs.md),
 [ADR 0049](0049-leftover-pair-report-ui.md), and
 [ADR 0201](0201-leftover-map-reconstruction.md). Independent of leftover-map
@@ -99,8 +102,8 @@ axis share, leftover pairs on the grouping comparison strip, two-axis
 leftover-map distance, leftover-map rank, leftover-map inner product,
 leftover-map cosine, leftover-map length, leftover-map reconstruction,
 leftover-map unexplained leftover, leftover-map cross share,
-leftover-map unexplained leftover share, and leftover-map explained
-leftover share.
+leftover-map unexplained leftover share, leftover-map explained
+leftover share, and leftover-map graphic display.
 
 ## References
 
