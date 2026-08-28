@@ -1,7 +1,7 @@
 """Leftover post–criterion pairs after the main-effect IRT.
 
 Covers ADR 0048 as amended by ADR 0119, ADR 0148, ADR 0163, ADR 0164,
-ADR 0182, ADR 0185, ADR 0201, and ADR 0233.
+ADR 0182, ADR 0185, ADR 0201, ADR 0233, and ADR 0266.
 
 Uses a constructed residual matrix so the closest and farthest pair
 are known without calling ``fit_polytomous``. Loads
@@ -59,9 +59,9 @@ def _assert_residual_reconciles(pair) -> None:
     )
 
 
-def _assert_never_persists_explained_share(pair) -> None:
-    """Unexplained leftover share is persisted; explained leftover share is not."""
-    assert not hasattr(pair, "leftover_map_explained_share")
+def _assert_persists_explained_share(pair) -> None:
+    """Explained leftover share is persisted with unexplained leftover share."""
+    assert hasattr(pair, "leftover_map_explained_share")
     assert hasattr(pair, "leftover_map_unexplained_share")
 
 
@@ -115,11 +115,13 @@ def test_leftover_residual_biplot_separates_aligned_and_opposed_cells() -> None:
     assert farthest.leftover_map_cross_share == pytest.approx(0.0, abs=1e-6)
     assert closest.leftover_map_unexplained_share == pytest.approx(0.0, abs=1e-6)
     assert farthest.leftover_map_unexplained_share == pytest.approx(0.0, abs=1e-6)
+    assert closest.leftover_map_explained_share == pytest.approx(0.0, abs=1e-6)
+    assert farthest.leftover_map_explained_share == pytest.approx(1.0, abs=1e-6)
     assert closest.leftover_map_reconstruction == pytest.approx(0.0, abs=1e-6)
     assert farthest.leftover_map_reconstruction == pytest.approx(-2.0, abs=1e-6)
     for pair in pairs:
         _assert_residual_reconciles(pair)
-        _assert_never_persists_explained_share(pair)
+        _assert_persists_explained_share(pair)
         assert pair.leftover_map_rank == 1
     coverage = leftover_map_coverage_from_residual(post_ids, item_codes, matrix, expected)
     assert coverage.map_post_count == 3
@@ -151,6 +153,8 @@ def test_zero_residual_still_emits_stable_leftover_pairs() -> None:
     assert pairs[1].leftover_map_cross_share == pytest.approx(0.0)
     assert pairs[0].leftover_map_unexplained_share == pytest.approx(0.0)
     assert pairs[1].leftover_map_unexplained_share == pytest.approx(0.0)
+    assert pairs[0].leftover_map_explained_share == pytest.approx(0.0)
+    assert pairs[1].leftover_map_explained_share == pytest.approx(0.0)
     assert pairs[0].leftover_map_reconstruction == pytest.approx(0.0)
     assert pairs[1].leftover_map_reconstruction == pytest.approx(0.0)
     for pair in pairs:
@@ -179,6 +183,7 @@ def test_rank_zero_nonzero_constant_residual_keeps_raw_identity() -> None:
         assert pair.leftover_map_reconstruction == pytest.approx(0.0)
         assert pair.leftover_map_unexplained == pytest.approx(1.0)
         assert pair.leftover_map_unexplained_share == pytest.approx(1.0)
+        assert pair.leftover_map_explained_share == pytest.approx(0.0)
         assert pair.leftover_map_unexplained + pair.leftover_map_reconstruction == pytest.approx(
             pair.leftover_residual
         )
@@ -214,6 +219,7 @@ def test_partial_observation_does_not_treat_missing_as_zero_residual() -> None:
         assert pair.leftover_map_unexplained == pytest.approx(0.0, abs=1e-6)
         assert pair.leftover_map_cross_share == pytest.approx(0.0, abs=1e-6)
         assert pair.leftover_map_unexplained_share == pytest.approx(0.0, abs=1e-6)
+        assert pair.leftover_map_explained_share == pytest.approx(1.0, abs=1e-6)
     coverage = leftover_map_coverage_from_residual(post_ids, item_codes, matrix, expected)
     assert coverage.map_post_count == 2
     assert coverage.scored_post_count == 3
@@ -288,6 +294,7 @@ def test_leftover_residual_rejects_database_tolerance_boundary() -> None:
             None,
             None,
             None,
+            None,
         )
 
 
@@ -340,7 +347,7 @@ def test_rank_one_nonzero_center_is_disclosed_by_raw_residual_cross_share() -> N
     assert farthest.leftover_map_cross_share != pytest.approx(farthest.leftover_residual)
     for pair in pairs:
         _assert_residual_reconciles(pair)
-        _assert_never_persists_explained_share(pair)
+        _assert_persists_explained_share(pair)
 
 
 def test_rank_one_leftover_map_puts_all_inertia_on_axis_one() -> None:
@@ -498,7 +505,8 @@ def test_unexplained_and_cross_share_are_identity_remainder_terms() -> None:
         unexplained_share = (expected_unexplained * expected_unexplained) / (residual * residual)
         assert pair.leftover_map_cross_share == pytest.approx(expected_share)
         assert pair.leftover_map_unexplained_share == pytest.approx(unexplained_share)
-        assert explained_share + unexplained_share + expected_share == pytest.approx(1.0)
+        assert pair.leftover_map_explained_share == pytest.approx(explained_share)
+        assert pair.leftover_map_explained_share + pair.leftover_map_unexplained_share + pair.leftover_map_cross_share == pytest.approx(1.0)
         if abs(expected_share) > 1e-6:
             saw_nonzero_cross = True
         assert pair.leftover_map_cross_share != pytest.approx(pair.leftover_residual)
@@ -508,8 +516,18 @@ def test_unexplained_and_cross_share_are_identity_remainder_terms() -> None:
         # Gabriel inner product.
         assert pair.leftover_distance == pytest.approx(float(map_distances[person, item]))
         assert pair.leftover_map_rank == rank
-        _assert_never_persists_explained_share(pair)
+        _assert_persists_explained_share(pair)
     assert saw_nonzero_cross
+
+
+def test_explained_share_stores_square_share_of_raw_residual() -> None:
+    """e = R̂² / R² is stored; a share greater than 1 is not clamped."""
+    assert leftover._leftover_map_explained_share(1.0, 2.0) == pytest.approx(4.0)
+    assert leftover._leftover_map_explained_share(1.0, 0.0) == pytest.approx(0.0)
+    assert leftover._leftover_map_explained_share(2.0, 2.0) == pytest.approx(1.0)
+    assert leftover._leftover_map_explained_share(0.0, 0.0) == pytest.approx(0.0)
+    assert leftover._leftover_map_explained_share(float("nan"), 1.0) is None
+    assert leftover._leftover_map_explained_share(1.0, float("inf")) is None
 
 
 def test_unexplained_share_stores_square_share_of_raw_residual() -> None:
@@ -600,7 +618,7 @@ def test_leftover_map_rank_rejects_negative_rank() -> None:
     with pytest.raises(ValueError, match="non-negative integer"):
         leftover._pair_from_candidate(
             PAIR_KIND_CLOSEST,
-            (0.0, "public-post", "sales_lead_specificity", 0.0, 1.0, 1.0, None, None, None, None),
+            (0.0, "public-post", "sales_lead_specificity", 0.0, 1.0, 1.0, None, None, None, None, None),
             -1,
         )
 
@@ -616,6 +634,9 @@ def test_small_finite_residual_keeps_cross_share() -> None:
     assert share == pytest.approx(0.5)
     unexplained_share = leftover._leftover_map_unexplained_share(1e-7, 5e-8)
     assert unexplained_share == pytest.approx(0.25)
+    explained_share = leftover._leftover_map_explained_share(1e-7, 5e-8)
+    assert explained_share == pytest.approx(0.25)
+    assert explained_share + unexplained_share + share == pytest.approx(1.0)
 
 
 def test_leftover_is_unavailable_without_a_complete_case_rectangle() -> None:
