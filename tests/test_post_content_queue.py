@@ -919,6 +919,70 @@ def test_recovery_keyset_reaches_later_pages_and_wraps() -> None:
     assert wrapped.next_post_id == rows[1]["post_id"]
 
 
+def test_recovery_cursor_stops_before_a_failed_wakeup() -> None:
+    """A broker outage retries the first unpublished row before later pages."""
+    from contextlib import asynccontextmanager
+
+    from backend.app.post_content_queue import republish_queued_post_content_jobs
+
+    queued_at = datetime(2026, 1, 1, tzinfo=UTC)
+    rows = [
+        {
+            "post_id": f"00000000-0000-0000-0000-{index + 1:012d}",
+            "source_body_sha256": str(index + 1) * 64,
+            "queued_at": queued_at + timedelta(seconds=index),
+        }
+        for index in range(2)
+    ]
+
+    class FakeConnection:
+        async def fetch(self, _query: str, *args: object):
+            cursor_at, cursor_id = args[-3:-1]
+            if cursor_at is None:
+                return rows
+            return [
+                row
+                for row in rows
+                if (row["queued_at"], row["post_id"]) > (cursor_at, cursor_id)
+            ]
+
+    class FakePool:
+        @asynccontextmanager
+        async def acquire(self):
+            yield FakeConnection()
+
+    class FakeClient:
+        def __init__(self) -> None:
+            self.calls = 0
+
+        async def xadd(self, *_args, **_kwargs):
+            self.calls += 1
+            if self.calls == 2:
+                raise post_content_queue.redis.RedisError("synthetic broker outage")
+            return str(self.calls)
+
+    from backend.app import post_content_queue
+
+    client = FakeClient()
+    first = asyncio.run(
+        republish_queued_post_content_jobs(client, FakePool(), limit=2)
+    )
+    assert first.published_count == 1
+    assert first.next_post_id == rows[0]["post_id"]
+
+    second = asyncio.run(
+        republish_queued_post_content_jobs(
+            client,
+            FakePool(),
+            limit=2,
+            after_queued_at=first.next_queued_at,
+            after_post_id=first.next_post_id,
+        )
+    )
+    assert second.published_count == 1
+    assert second.next_post_id == rows[1]["post_id"]
+
+
 def test_admission_deferral_requeues_exact_lease_without_consuming_attempt() -> None:
     """A readiness miss records timing and fences the running attempt."""
     executed: list[tuple[str, tuple[object, ...]]] = []

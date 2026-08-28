@@ -35,6 +35,9 @@ placed in a stream message.
    Recovery walks the ready ledger with the deterministic
    `(queued_at, post_id)` keyset and wraps only after reaching the end. It must
    not repeatedly publish only the first bounded page while later rows starve.
+   The cursor advances only through the contiguous successfully published
+   prefix; a Valkey failure leaves the first unpublished row eligible for the
+   next recovery cycle instead of postponing it until a full wrap.
    The worker trims the Valkey stream through its consumed cursor. Producers
    retain the existing approximate 1,000-entry bound so a worker outage cannot
    grow the non-authoritative transport without limit; if that bound drops an
@@ -42,7 +45,8 @@ placed in a stream message.
    This cursor contract has exactly one process owner. The worker process must
    acquire its PostgreSQL session advisory lease before starting any durable
    consumer; a second replica fails closed before it can read or trim the
-   stream. Horizontal worker replication requires a successor ADR and a native
+   stream. Shutdown cancels and joins every consumer before releasing that
+   lease. Horizontal worker replication requires a successor ADR and a native
    consumer-group acknowledgement contract.
 4. The worker reuses the existing contextual-orchestrator client factories for
    VISION, structure, and embeddings. It preserves one post session and the

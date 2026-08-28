@@ -57,7 +57,6 @@ async def run_worker_process() -> None:
     settings = load_settings()
     pool = await create_pool(settings.database_url)
     valkey = create_valkey_client(settings.valkey_url)
-    workers: tuple[asyncio.Task[None], ...] = ()
     try:
         async with _single_worker_lease(pool):
             workers = (
@@ -96,11 +95,13 @@ async def run_worker_process() -> None:
                     )
                 ),
             )
-            await asyncio.gather(*workers)
+            try:
+                await asyncio.gather(*workers)
+            finally:
+                for worker in workers:
+                    worker.cancel()
+                await asyncio.gather(*workers, return_exceptions=True)
     finally:
-        for worker in workers:
-            worker.cancel()
-        await asyncio.gather(*workers, return_exceptions=True)
         try:
             await pool.close()
         finally:

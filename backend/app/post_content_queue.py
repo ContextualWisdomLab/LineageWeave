@@ -815,6 +815,7 @@ async def republish_queued_post_content_jobs(
         if not rows and after_queued_at is not None:
             rows = await _fetch_page(conn, None, None)
     published = 0
+    last_published_row: asyncpg.Record | None = None
     for row in rows:
         if await publish_post_content_event(
             client,
@@ -822,12 +823,19 @@ async def republish_queued_post_content_jobs(
             source_body_digest=str(row["source_body_sha256"]),
         ):
             published += 1
-    if not rows:
-        return PostContentRecoveryPage(0, None, None)
+            last_published_row = row
+        else:
+            break
+    if last_published_row is None:
+        return PostContentRecoveryPage(
+            0,
+            after_queued_at,
+            after_post_id,
+        )
     return PostContentRecoveryPage(
         published,
-        rows[-1]["queued_at"],
-        str(rows[-1]["post_id"]),
+        last_published_row["queued_at"],
+        str(last_published_row["post_id"]),
     )
 
 

@@ -77,7 +77,11 @@ def test_worker_process_owns_all_three_durable_consumers(monkeypatch) -> None:
 
     @asynccontextmanager
     async def lease(_pool):
-        yield
+        calls.append("lease_acquired")
+        try:
+            yield
+        finally:
+            calls.append("lease_released")
 
     monkeypatch.setattr(worker, "_single_worker_lease", lease)
     monkeypatch.setattr(worker, "configure_telemetry", lambda _name: None)
@@ -105,10 +109,10 @@ def test_worker_process_owns_all_three_durable_consumers(monkeypatch) -> None:
 
     asyncio.run(worker.run_worker_process())
 
-    assert calls[:3] == ["analysis", "content", "global_ask"]
+    assert calls[:4] == ["lease_acquired", "analysis", "content", "global_ask"]
     assert global_ask_kwargs["semantic_query_factory"]() is semantic_client
     assert global_ask_kwargs["claim_verification_factory"]() is verification_client
-    assert calls[-1] == "shutdown"
+    assert calls[-2:] == ["lease_released", "shutdown"]
     assert pool.closed
     assert valkey.closed
 
