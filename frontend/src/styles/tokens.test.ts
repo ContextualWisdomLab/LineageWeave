@@ -7,10 +7,20 @@ import { describe, expect, it } from "vitest";
 const here = dirname(fileURLToPath(import.meta.url));
 const tokensCss = readFileSync(join(here, "tokens.css"), "utf-8");
 const appCss = readFileSync(join(here, "..", "App.css"), "utf-8");
+const indexCss = readFileSync(join(here, "..", "index.css"), "utf-8");
 const publicClaimCss = readFileSync(
   join(here, "..", "components", "PublicClaimVerification.css"),
   "utf-8",
 );
+
+describe("reduced motion", () => {
+  it("removes animation and transition motion when the user requests it", () => {
+    const reducedMotion = indexCss.split("@media (prefers-reduced-motion: reduce)")[1];
+    expect(reducedMotion).toContain("animation: none !important");
+    expect(reducedMotion).toContain("transition: none !important");
+    expect(reducedMotion).toContain("scroll-behavior: auto !important");
+  });
+});
 
 const [lightBlock, darkBlock] = tokensCss.split("@media (prefers-color-scheme: dark)");
 

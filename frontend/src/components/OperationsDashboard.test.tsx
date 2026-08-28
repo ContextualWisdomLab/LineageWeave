@@ -2,6 +2,7 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { fetchOperationsDashboard, fetchVoiceTaxonomySummary, type OperationsDashboardResponse } from "../api";
+import { setLocale } from "../i18n";
 import { OperationsDashboard, OperationsDashboardView } from "./OperationsDashboard";
 
 vi.mock("../api", async (importOriginal) => ({
@@ -11,6 +12,7 @@ vi.mock("../api", async (importOriginal) => ({
 }));
 
 beforeEach(() => {
+  setLocale("ko");
   vi.mocked(fetchVoiceTaxonomySummary).mockReset().mockResolvedValue({
     total_eligible: 0, classified_unique: 0, multi_membership: 0,
     source_count: 0, derived_count: 0, unavailable: 0, disagreement: 0,
@@ -64,7 +66,7 @@ describe("OperationsDashboardView", () => {
     expect(screen.getByText("3 Event · 2글")).toBeInTheDocument();
     expect(screen.getByText("5건 · 25.0%")).toBeInTheDocument();
     expect(screen.getByText("원인 수주")).toBeInTheDocument();
-    expect(screen.getByText(/수주 Pool: 관련 근거를 찾으면 자동으로 다시 분석합니다. 이후 결과를 다시 확인하세요/)).toBeInTheDocument();
+    expect(screen.getByText(/수주 Pool: 관련 근거를 찾아 연결한 뒤 갱신된 결과를 확인하세요/)).toBeInTheDocument();
     expect(screen.getByText("2일 3시간 30분 0초")).toBeInTheDocument();
     expect(screen.getByText(/진행 중 1건 · 종료 확인 0건/)).toBeInTheDocument();
     await userEvent.click(screen.getByRole("button", { name: "분류 근거 글 열기" }));
@@ -73,6 +75,16 @@ describe("OperationsDashboardView", () => {
     expect(onOpenPost).toHaveBeenCalledWith("evidence-post-2");
     await userEvent.click(screen.getByRole("button", { name: "클레임 접수 근거 열기" }));
     expect(onOpenPost).toHaveBeenCalledWith("evidence-post-1");
+  });
+
+  it.each(["en", "zh", "ja", "vi"] as const)("keeps dashboard chrome free of Korean-only copy in %s", (locale) => {
+    setLocale(locale);
+    render(<OperationsDashboardView data={data} onOpenPost={() => undefined} />);
+    expect(screen.getByRole("heading", { name: "Operations evidence dashboard" })).toBeInTheDocument();
+    expect(screen.getByText("All posts")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Important posts over time" })).toBeInTheDocument();
+    expect(screen.queryByText("운영 근거 대시보드")).not.toBeInTheDocument();
+    expect(screen.queryByText(/TEPP|fast-mlsirm|transport|topic-lineage/i)).not.toBeInTheDocument();
   });
 
   it("does not imply that only the end evidence is missing", () => {
@@ -245,7 +257,7 @@ describe("OperationsDashboardView", () => {
     });
     render(<OperationsDashboard accessToken="synthetic-token" onOpenPost={() => undefined} />);
 
-    expect(await screen.findByText("Dashboard 근거를 불러오지 못했습니다.")).toBeInTheDocument();
+    expect(await screen.findByText("대시보드 근거를 불러오지 못했습니다.")).toBeInTheDocument();
     expect(await screen.findByRole("heading", { name: "Voice evidence overview" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "다시 시도" })).toBeInTheDocument();
   });
@@ -257,7 +269,7 @@ describe("OperationsDashboard", () => {
     vi.mocked(fetchVoiceTaxonomySummary).mockImplementation(() => new Promise(() => undefined));
     render(<OperationsDashboard accessToken="synthetic-token" onOpenPost={() => undefined} />);
     expect(screen.getAllByRole("status")).toHaveLength(1);
-    expect(screen.getByRole("status")).toHaveTextContent("Dashboard 근거를 불러오는 중입니다.");
+    expect(screen.getByRole("status")).toHaveTextContent("대시보드 근거를 불러오는 중입니다.");
     expect(screen.getByRole("status")).toHaveTextContent("Loading voice evidence...");
   });
 });
