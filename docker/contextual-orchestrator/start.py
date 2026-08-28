@@ -68,6 +68,11 @@ def main() -> None:
     for agent in agents["agents"]:
         agent["base_url"] = provider_url
         agent["credential_key"] = "LLM_GATEWAY_API_KEY"
+        agent["provider_name"] = "configured_gateway"
+        if not str(agent.get("model", "")).strip():
+            agent["tags"] = list(
+                dict.fromkeys((*agent.get("tags", []), "bootstrap_seed"))
+            )
         agent.setdefault("provider_protocol", "auto")
     agents_path.write_text(json.dumps(agents), encoding="utf-8")
 

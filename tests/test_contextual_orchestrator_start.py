@@ -141,4 +141,8 @@ def test_bootstrap_delegates_embedding_discovery_upstream(monkeypatch) -> None:
     agents = captured["agents"]
     assert isinstance(agents, dict)
     assert not [agent for agent in agents["agents"] if "embedding" in agent.get("tags", [])]
+    assert agents["agents"][0]["provider_name"] == "configured_gateway"
+    assert agents["agents"][0]["base_url"] == "https://gateway.example/v1"
+    assert agents["agents"][0]["credential_key"] == "LLM_GATEWAY_API_KEY"
+    assert agents["agents"][0]["tags"] == ["bootstrap_seed"]
     assert "--auto-discover-model-agents" in argv
