@@ -41,6 +41,8 @@ class ProductCatalogImport:
         """Return unique explicit aliases, including the preferred label."""
         values: dict[str, str] = {}
         for alias in (self.preferred_label, *self.aliases):
+            if "\x00" in alias:
+                raise ValueError("product aliases must be valid PostgreSQL text")
             normalized = normalize_product_alias(alias)
             if not normalized:
                 raise ValueError("product aliases must not be blank")
@@ -104,8 +106,9 @@ async def provision_product_catalog_entry(
         raise ValueError("source system code is outside the governed vocabulary")
     if entry.product_level_code not in _PRODUCT_LEVEL_CODES:
         raise ValueError("product level code is outside the governed vocabulary")
-    if entry.parent_product_code is not None and not entry.parent_product_code.strip():
-        raise ValueError("parent product code must be nonblank when supplied")
+    if entry.parent_product_code is not None:
+        if not entry.parent_product_code.strip() or "\x00" in entry.parent_product_code:
+            raise ValueError("parent product code must be valid nonblank PostgreSQL text")
     aliases = entry.normalized_aliases()
     digest = entry.source_payload_sha256()
     async with conn.transaction():

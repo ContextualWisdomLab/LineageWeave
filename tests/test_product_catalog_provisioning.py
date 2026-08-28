@@ -164,6 +164,18 @@ def test_catalog_provisioning_requires_parent_and_unambiguous_aliases() -> None:
         )
     with pytest.raises(ValueError, match="normalize"):
         _entry(aliases=("Model  Q", "model q")).normalized_aliases()
+    with pytest.raises(ValueError, match="PostgreSQL text"):
+        _entry(aliases=("Model\x00Q",)).normalized_aliases()
+    invalid_parent = _Connection()
+    with pytest.raises(ValueError, match="parent product code"):
+        asyncio.run(
+            provision_product_catalog_entry(
+                invalid_parent,
+                _entry(parent_product_code="SYNTHETIC\x00GROUP"),
+                imported_by_account_id=str(UUID(int=301)),
+            )
+        )
+    assert invalid_parent.calls == []
 
 
 def test_catalog_provisioning_rejects_unknown_product_level_before_database() -> None:
