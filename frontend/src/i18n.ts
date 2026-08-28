@@ -589,6 +589,7 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Criterion ζ": "기준 ζ",
     "leftover-map axis 1": "잔여 지도 축 1",
     "leftover-map axis 2": "잔여 지도 축 2",
+    "leftover-map axis {axis} ({share}%)": "잔여 지도 축 {axis} ({share}%)",
     "Leftover map after IRT main effects. Click a post marker to open that post. The plot does not invent a leftover score.":
       "IRT 주효과 이후 잔여 지도입니다. 글 표식을 눌러 그 글을 여세요. 이 그림은 잔여 점수를 만들어내지 않습니다.",
     "Open leftover-map post {title} at ξ {person}":
@@ -1166,6 +1167,7 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Criterion ζ": "准则 ζ",
     "leftover-map axis 1": "残差图轴 1",
     "leftover-map axis 2": "残差图轴 2",
+    "leftover-map axis {axis} ({share}%)": "残差图轴 {axis} ({share}%)",
     "Leftover map after IRT main effects. Click a post marker to open that post. The plot does not invent a leftover score.":
       "IRT 主效应后的残差图。点击帖子标记打开该帖子。此图不会虚构残差分数。",
     "Open leftover-map post {title} at ξ {person}":
@@ -1747,6 +1749,7 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Criterion ζ": "基準 ζ",
     "leftover-map axis 1": "残差マップ軸 1",
     "leftover-map axis 2": "残差マップ軸 2",
+    "leftover-map axis {axis} ({share}%)": "残差マップ軸 {axis} ({share}%)",
     "Leftover map after IRT main effects. Click a post marker to open that post. The plot does not invent a leftover score.":
       "IRT主効果後の残差マップです。投稿マーカーをクリックしてその投稿を開いてください。この図は残差スコアを作りません。",
     "Open leftover-map post {title} at ξ {person}":
@@ -2328,6 +2331,7 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Criterion ζ": "Tiêu chí ζ",
     "leftover-map axis 1": "trục bản đồ phần dư 1",
     "leftover-map axis 2": "trục bản đồ phần dư 2",
+    "leftover-map axis {axis} ({share}%)": "trục bản đồ phần dư {axis} ({share}%)",
     "Leftover map after IRT main effects. Click a post marker to open that post. The plot does not invent a leftover score.":
       "Bản đồ phần dư sau hiệu ứng chính IRT. Nhấn dấu bài viết để mở bài đó. Hình này không tạo ra điểm phần dư.",
     "Open leftover-map post {title} at ξ {person}":

@@ -12,7 +12,8 @@
 [ADR 0233](0233-leftover-map-unexplained-share.md) (unexplained leftover share s);
 [ADR 0266](0266-leftover-map-explained-share.md) (explained leftover share e);
 [ADR 0267](0267-leftover-map-coordinates.md) (leftover-map coordinates ξ, ζ);
-[ADR 0268](0268-leftover-map-graphic-display.md) (leftover-map graphic display)
+[ADR 0268](0268-leftover-map-graphic-display.md) (leftover-map graphic display);
+[ADR 0269](0269-leftover-map-axis-share-plot.md) (leftover-map axis share on the graphic display)
 
 ## Context
 
@@ -37,7 +38,8 @@ leftover-map coordinates `ξ_{1:2}` and `ζ_{1:2}` when finite, and
 leftover-map cross share next to distance when finite. When four finite
 coordinates exist, the leftover-map graphic display of those positions
 sits above the pair buttons (ADR 0268); click a post marker to open
-that post. The next action names every available
+that post. Leftover-map axis share captions those leftover-map axes
+when finite (ADR 0269). The next action names every available
 measurement before opening the post; no amendment hides another, rank 0
 explicitly names no leftover structure, and unexplained leftover names
 "leftover map leaves unexplained `U` after IRT main effects; open this

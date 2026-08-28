@@ -64,6 +64,7 @@ describe("i18n", () => {
     "Criterion ζ",
     "leftover-map axis 1",
     "leftover-map axis 2",
+    "leftover-map axis {axis} ({share}%)",
     "Leftover map after IRT main effects. Click a post marker to open that post. The plot does not invent a leftover score.",
     "Open leftover-map post {title} at ξ {person}",
     "Read observed Y {observed} and expected E {expected} after IRT main effects, then open this post.",
@@ -346,6 +347,16 @@ describe("i18n", () => {
         "Leftover map after IRT main effects. Click a post marker to open that post. The plot does not invent a leftover score.",
       ),
     ).toBe(expected);
+  });
+
+  it.each([
+    ["ko", "잔여 지도 축 1 (82%)"],
+    ["zh", "残差图轴 1 (82%)"],
+    ["ja", "残差マップ軸 1 (82%)"],
+    ["vi", "trục bản đồ phần dư 1 (82%)"],
+  ] as const)("formats leftover-map plot axis share in %s", (locale, expected) => {
+    setLocale(locale);
+    expect(tf("leftover-map axis {axis} ({share}%)", { axis: 1, share: "82" })).toBe(expected);
   });
 
   it.each([

@@ -8,6 +8,16 @@ All notable changes to this project are documented here. Format follows
 
 ### Added
 
+- Period leftover pairs now caption leftover-map graphic-display axes
+  with persisted leftover-map axis share `σ_k² / Σ_j σ_j²` (ADR 0269 /
+  v2.26.0). After `make seed`, closest and farthest leftover pairs sit
+  above the member list with the Gabriel biplot of already-named
+  coordinates, and each leftover-map axis names its inertia share;
+  click a post marker or a pair button opens that post. Rank-0
+  zero-share axes still name 0%. A missing or non-finite share omits
+  that axis badge and keeps the existing leftover-map axis text. Never
+  invent a leftover score or a theta. No new columns.
+
 - Period leftover pairs now draw the leftover-map graphic display of
   persisted `ξ_{1:2}` and `ζ_{1:2}` (ADR 0268 / v2.25.0). After
   `make seed`, closest and farthest leftover pairs sit above the

@@ -1,6 +1,11 @@
-import type { LeftoverPair } from "../api";
+import type { LeftoverMapAxis, LeftoverPair } from "../api";
 import { t, tf } from "../i18n";
 import { formatLeftoverMapCoordinatePair } from "../leftoverMapCoordinates";
+import {
+  formatLeftoverMapPlotAxisShare,
+  leftoverShareForAxis,
+  LEFTOVER_MAP_PLOT_AXIS_SHARE,
+} from "../leftoverMapPlotAxisShare";
 import {
   firstPlottablePairForPost,
   layoutLeftoverMapPlot,
@@ -11,6 +16,7 @@ import "./LeftoverMapPlot.css";
 
 export type LeftoverMapPlotProps = {
   pairs: LeftoverPair[];
+  leftoverMapAxes?: LeftoverMapAxis[];
   criterionLabel: (criterionCode: string) => string;
   onSelectPost: (pair: LeftoverPair) => void;
 };
@@ -19,15 +25,32 @@ function diamondPoints(x: number, y: number, radius: number): string {
   return `${x},${y - radius} ${x + radius},${y} ${x},${y + radius} ${x - radius},${y}`;
 }
 
+function leftoverMapPlotAxisText(
+  axisIndex: 1 | 2,
+  leftoverMapAxes: LeftoverMapAxis[] | undefined,
+): string {
+  const percent = formatLeftoverMapPlotAxisShare(
+    leftoverShareForAxis(leftoverMapAxes, axisIndex),
+  );
+  if (percent === null) {
+    return t(axisIndex === 1 ? "leftover-map axis 1" : "leftover-map axis 2");
+  }
+  return tf(LEFTOVER_MAP_PLOT_AXIS_SHARE, { axis: axisIndex, share: percent });
+}
+
 /**
  * Gabriel leftover-map graphic display of persisted ``ξ_{1:2}`` / ``ζ_{1:2}``.
  *
  * Person markers are posts; item markers are leftover criteria. Click a
- * post marker to open that post. Omit the plot when no pair has four
+ * post marker to open that post. Caption leftover-map axes with persisted
+ * Gabriel inertia share when finite, including rank-0 zero-share axes.
+ * Omit that axis badge when share is missing or non-finite and keep the
+ * existing leftover-map axis text. Omit the plot when no pair has four
  * finite leftover-map coordinates. Never invent a leftover score.
  */
 export function LeftoverMapPlot({
   pairs,
+  leftoverMapAxes,
   criterionLabel,
   onSelectPost,
 }: LeftoverMapPlotProps) {
@@ -78,10 +101,10 @@ export function LeftoverMapPlot({
             y2={layout.originY}
           />
           <text className="leftover-map-plot-axis-label" x={layout.width - 8} y={layout.originY - 8} textAnchor="end">
-            {t("leftover-map axis 1")}
+            {leftoverMapPlotAxisText(1, leftoverMapAxes)}
           </text>
           <text className="leftover-map-plot-axis-label" x={layout.originX + 8} y={16}>
-            {t("leftover-map axis 2")}
+            {leftoverMapPlotAxisText(2, leftoverMapAxes)}
           </text>
           {layout.segments.map((segment) => (
             <line

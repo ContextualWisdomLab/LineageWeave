@@ -8,6 +8,10 @@ const meta = {
     criterionLabel: (code: string) =>
       code === "sales_lead_quality" ? "sales-lead" : "negative",
     onSelectPost: () => undefined,
+    leftoverMapAxes: [
+      { axis_index: 1, leftover_singular_value: 1.84, leftover_share: 0.82 },
+      { axis_index: 2, leftover_singular_value: 0.86, leftover_share: 0.18 },
+    ],
     pairs: [
       {
         pair_kind: "closest",

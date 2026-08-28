@@ -182,6 +182,10 @@ describe("LeftoverPairList", () => {
             leftover_map_item_axis_2: -0.02,
           },
         ]}
+        leftoverMapAxes={[
+          { axis_index: 1, leftover_singular_value: 1.84, leftover_share: 0.82 },
+          { axis_index: 2, leftover_singular_value: 0.86, leftover_share: 0.18 },
+        ]}
         criterionLabel={criterionLabel}
         onSelectPost={onSelectPost}
       />,
@@ -192,6 +196,8 @@ describe("LeftoverPairList", () => {
         name: "Open leftover-map post Public post at ξ (+0.50, +0.10)",
       }),
     );
+    expect(screen.getByText("leftover-map axis 1 (82%)")).toBeInTheDocument();
+    expect(screen.getByText("leftover-map axis 2 (18%)")).toBeInTheDocument();
     expect(onSelectPost).toHaveBeenCalledWith(
       expect.objectContaining({
         post_id: "post-demo-public",
