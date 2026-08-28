@@ -220,8 +220,7 @@ def test_period_report_start_is_unprocessable_and_tepp_is_allowed() -> None:
     report = start_kind_rejection("analysis_run_report")
     assert report is not None
     assert report.status_code == 422
-    assert "invent a measurement" in report.detail
-    assert "period report" in report.detail
+    assert report.detail == "기간 보고서 화면에서 다시 계산하세요."
     assert start_kind_rejection("analysis_run_lineage") is None
     assert start_kind_rejection("analysis_run_tepp") is None
     assert start_kind_rejection("analysis_run_topic_lineage") is None
