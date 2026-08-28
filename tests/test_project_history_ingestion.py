@@ -57,6 +57,13 @@ def test_project_history_query_binds_corporate_and_process_scopes() -> None:
     assert result["events"][0]["event_type_code"] == "source_recorded"
     assert result["events"][0]["occurred_at"] == "2025-12-20T00:00:00Z"
     assert result["events"][0]["time_basis_code"] == "document_time"
+    edge_query, edge_args = next(
+        (query, args) for query, args in connection.calls if "from post_lineage_edge" in query
+    )
+    assert "project_journey_temporal_relation" in edge_query
+    assert "project_journey_temporal_relation_kind" in edge_query
+    assert "temporal_run.knowledge_cutoff <= $2" in edge_query
+    assert edge_args[1] == datetime(2026, 2, 1, tzinfo=timezone.utc)
 
 
 def test_project_history_query_uses_the_same_ascii_edge_whitespace_as_python() -> None:
