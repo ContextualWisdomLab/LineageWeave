@@ -162,6 +162,14 @@ def test_public_verification_keeps_external_urls_out_of_internal_citations() -> 
             ["public-post"],
             verify_external=True,
             client=client,
+            persisted_envelopes=(
+                PersistedPublicClaimEnvelope(
+                    public_claim_envelope_id="envelope-1",
+                    source_post_id="public-post",
+                    claim_kind_code="claim_public_event",
+                    claim_text="Synthetic public event.",
+                ),
+            ),
         )
     )
 
@@ -196,6 +204,31 @@ def test_persisted_envelope_is_production_admission_not_question_overlap() -> No
     assert status_code == cv.VERIFICATION_COMPLETED
     assert results[0].claim_text == "Synthetic launch happened."
     assert results[0].source_post_ids == ("public-post",)
+
+
+def test_omitted_persisted_envelopes_fail_closed_without_token_overlap() -> None:
+    """A future caller cannot restore legacy question-token nomination."""
+    client = _VerificationClient()
+    source = cv.GlobalAskSourceDocument(
+        "public-post",
+        "Synthetic launch",
+        "Synthetic launch happened.",
+        external_claim_facts=("event: Synthetic launch | evidence: public",),
+    )
+
+    status_code, results = asyncio.run(
+        global_ask_queue._verify_public_claims(
+            "When did the Synthetic launch happen?",
+            [source],
+            ["public-post"],
+            verify_external=True,
+            client=client,
+        )
+    )
+
+    assert status_code == cv.VERIFICATION_NO_PUBLIC_CLAIMS
+    assert results == ()
+    assert client.calls == 0
 
 
 def test_persisted_envelope_must_name_a_cited_post() -> None:
@@ -252,6 +285,14 @@ def test_malformed_public_verification_is_unavailable() -> None:
                 ["public-post"],
                 verify_external=True,
                 client=MalformedClient(),
+                persisted_envelopes=(
+                    PersistedPublicClaimEnvelope(
+                        public_claim_envelope_id="envelope-1",
+                        source_post_id="public-post",
+                        claim_kind_code="claim_public_event",
+                        claim_text="Synthetic public event.",
+                    ),
+                ),
             )
         )
 

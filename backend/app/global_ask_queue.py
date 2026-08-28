@@ -38,7 +38,6 @@ from lineageweave.claim_verification import (
     ClaimVerificationClient,
     ClaimVerificationResult,
     NullClaimVerificationClient,
-    public_claim_candidates,
 )
 from lineageweave.embedding_client import EmbeddingClient, NullEmbeddingClient
 from lineageweave.http_client import HttpClientError
@@ -219,27 +218,18 @@ async def _verify_public_claims(
     *,
     verify_external: bool,
     client: ClaimVerificationClient,
-    persisted_envelopes: tuple[PersistedPublicClaimEnvelope, ...] | None = None,
+    persisted_envelopes: tuple[PersistedPublicClaimEnvelope, ...] = (),
 ) -> tuple[str, tuple[ClaimVerificationResult, ...]]:
     """Verify only cited claims explicitly marked safe for public egress.
 
-    Production passes persisted envelopes.  The legacy source projection is
-    retained only as an explicit compatibility seam for callers that have not
-    adopted the admission store; Global Ask never uses that heuristic path.
+    Only persisted admission envelopes may cross the public verifier. Omitting
+    them fails closed; question-token overlap is not an admission mechanism.
     """
 
     if not verify_external:
         return VERIFICATION_SKIPPED, ()
     cited_ids = frozenset(cited_post_ids)
-    claims = (
-        tuple(envelope.verification_candidate() for envelope in persisted_envelopes)
-        if persisted_envelopes is not None
-        else tuple(
-            claim
-            for claim in public_claim_candidates(sources, question)
-            if set(claim.source_post_ids).issubset(cited_ids)
-        )
-    )
+    claims = tuple(envelope.verification_candidate() for envelope in persisted_envelopes)
     claims = tuple(
         claim for claim in claims if set(claim.source_post_ids).issubset(cited_ids)
     )
