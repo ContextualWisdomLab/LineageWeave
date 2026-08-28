@@ -15,7 +15,7 @@ multi-agent.
 ## Decision
 
 `docker/contextual-orchestrator/Dockerfile` pins the downloaded archive to
-commit `1a40e0f7ad10d1a24137d69d20e44fc9a5dcdd89`. The pin remains explicit
+commit `4dbf04c267457d6caabadb1c62748368cf552088`. The pin remains explicit
 and immutable until the reviewed upstream change is superseded; it is not a
 moving `main` reference and it is not a LineageWeave monkey patch.
 The Docker builder verifies that archive against its committed SHA-256 before
@@ -40,6 +40,9 @@ The runtime contract is:
   successful empty semantic result.
 - An empty seed model is expanded from the configured gateway `/v1/models`
   endpoint; embedding-only rows are not added to the chat agent pool.
+- Chat Completions and Responses may constrain routing to an exact configured
+  endpoint identity; the selector is never forwarded to a provider and is not
+  applied to embeddings or deferred batch work.
 - A batch embedding request may omit `model`; contextual-orchestrator selects
   an embedding-capable model and returns its identity for subsequent batches.
 - `json_object`, `json_schema`, and Responses JSON formats run conduct plus

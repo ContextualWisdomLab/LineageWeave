@@ -51,6 +51,13 @@ test("renders the authenticated operations Dashboard with grounded cases", async
   }
   if (requireGroundedCase) {
     await expect(page.locator(".dashboard-case-card").first()).toBeVisible();
+    const evidenceAction = page.locator(".dashboard-case-card button").first();
+    await expect(evidenceAction).toBeVisible();
+    await evidenceAction.click();
+    const evidenceDialog = page.getByRole("dialog");
+    await expect(evidenceDialog).toBeVisible();
+    await evidenceDialog.getByRole("button", { name: "Close" }).click();
+    await expect(evidenceDialog).not.toBeVisible();
   }
   await page.screenshot({ path: screenshotPath, fullPage: true });
 

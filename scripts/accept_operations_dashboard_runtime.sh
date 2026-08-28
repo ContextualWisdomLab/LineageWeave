@@ -5,35 +5,56 @@ export COMPOSE_FILE=docker-compose.yml
 : "${ALLOW_PROVIDER_CALLS:?Set ALLOW_PROVIDER_CALLS=1 only after the readiness-lease fix is deployed}"
 : "${EXPECTED_ORCHESTRATOR_REVISION:?Set the exact merged contextual-orchestrator revision}"
 : "${EXPECTED_LINEAGEWEAVE_REVISION:?Set the exact LineageWeave revision used for the images}"
-: "${ORCHESTRATOR_ADMIN_TOKEN:?Set the runtime admin token}"
 : "${LINEAGEWEAVE_ACCESS_TOKEN:?Set an authorized post_admin access token}"
 : "${LINEAGEWEAVE_OIDC_ISSUER:?Set the frontend OIDC issuer}"
 : "${LINEAGEWEAVE_OIDC_CLIENT_ID:?Set the frontend OIDC client id}"
+: "${LINEAGEWEAVE_RUNTIME_ASK_QUESTION:?Set one non-identifying runtime Ask question}"
+: "${LINEAGEWEAVE_RUNTIME_ASK_TIMEOUT_SECONDS:?Set the declared runtime Ask observation budget}"
 : "${K6_VUS:?Set the declared Dashboard concurrency}"
 : "${K6_DURATION:?Set the declared Dashboard observation duration, including its unit}"
 : "${BACKEND_READINESS_TIMEOUT_SECONDS:?Set the declared backend readiness budget}"
+: "${ORCHESTRATOR_PROBE_TIMEOUT_SECONDS:?Set the declared per-agent provider probe timeout (0.1 through 30 seconds)}"
+: "${ORCHESTRATOR_READINESS_TIMEOUT_SECONDS:?Set the declared readiness-job observation budget}"
+[[ ",${COMPOSE_PROFILES:-}," == *,mcp,* ]] || {
+  echo "start the accepted stack with COMPOSE_PROFILES=mcp so MCP evidence is included" >&2
+  exit 2
+}
 [[ "$ALLOW_PROVIDER_CALLS" == "1" ]] || { echo "provider calls are not authorized" >&2; exit 2; }
 [[ "$EXPECTED_LINEAGEWEAVE_REVISION" =~ ^[0-9a-f]{40}$ ]] || {
   echo "EXPECTED_LINEAGEWEAVE_REVISION must be a full commit SHA" >&2
   exit 2
 }
 
-ORCHESTRATOR_URL="${ORCHESTRATOR_URL:-http://localhost:18000}"
 BACKEND_URL="${BACKEND_URL:-http://localhost:18420}"
 LINEAGEWEAVE_E2E_BASE_URL="${LINEAGEWEAVE_E2E_BASE_URL:-http://localhost:15173}"
 POSTGRES_CONTAINER="${POSTGRES_CONTAINER:-lineageweave-postgres-1}"
 SCREENSHOT_DESKTOP_PATH="${SCREENSHOT_DESKTOP_PATH:-/tmp/lineageweave-operations-dashboard-runtime-desktop.png}"
 SCREENSHOT_MOBILE_PATH="${SCREENSHOT_MOBILE_PATH:-/tmp/lineageweave-operations-dashboard-runtime-mobile.png}"
+ASK_SCREENSHOT_DESKTOP_PATH="${ASK_SCREENSHOT_DESKTOP_PATH:-/tmp/lineageweave-ask-runtime-desktop.png}"
+ASK_SCREENSHOT_MOBILE_PATH="${ASK_SCREENSHOT_MOBILE_PATH:-/tmp/lineageweave-ask-runtime-mobile.png}"
 E2E_OUTPUT_DIR="${E2E_OUTPUT_DIR:-/tmp/lineageweave-operations-dashboard-e2e}"
 K6_SUMMARY_PATH="${K6_SUMMARY_PATH:-/tmp/lineageweave-operations-dashboard-k6.json}"
 repository_root="$(git rev-parse --show-toplevel)"
-for screenshot_path in "$SCREENSHOT_DESKTOP_PATH" "$SCREENSHOT_MOBILE_PATH"; do
+screenshot_paths=("$SCREENSHOT_DESKTOP_PATH" "$SCREENSHOT_MOBILE_PATH" "$ASK_SCREENSHOT_DESKTOP_PATH" "$ASK_SCREENSHOT_MOBILE_PATH")
+for screenshot_path in "${screenshot_paths[@]}"; do
   case "$screenshot_path" in
     "$repository_root"/*) echo "runtime screenshots must stay outside the repository" >&2; exit 2 ;;
   esac
 done
+for ((left_index = 0; left_index < ${#screenshot_paths[@]}; left_index++)); do
+  for ((right_index = left_index + 1; right_index < ${#screenshot_paths[@]}; right_index++)); do
+    [[ "${screenshot_paths[$left_index]}" != "${screenshot_paths[$right_index]}" ]] || {
+      echo "runtime screenshots require four distinct paths" >&2
+      exit 2
+    }
+  done
+done
 [[ "$SCREENSHOT_DESKTOP_PATH" != "$SCREENSHOT_MOBILE_PATH" ]] || {
   echo "desktop and mobile screenshots require distinct paths" >&2
+  exit 2
+}
+[[ "$ASK_SCREENSHOT_DESKTOP_PATH" != "$ASK_SCREENSHOT_MOBILE_PATH" ]] || {
+  echo "Ask desktop and mobile screenshots require distinct paths" >&2
   exit 2
 }
 case "$E2E_OUTPUT_DIR" in
@@ -51,6 +72,19 @@ esac
   echo "BACKEND_READINESS_TIMEOUT_SECONDS must be a positive integer" >&2
   exit 2
 }
+jq -en --arg value "$ORCHESTRATOR_PROBE_TIMEOUT_SECONDS" \
+  '($value | tonumber) >= 0.1 and ($value | tonumber) <= 30' >/dev/null || {
+  echo "ORCHESTRATOR_PROBE_TIMEOUT_SECONDS must be between 0.1 and 30" >&2
+  exit 2
+}
+[[ "$ORCHESTRATOR_READINESS_TIMEOUT_SECONDS" =~ ^[1-9][0-9]*$ ]] || {
+  echo "ORCHESTRATOR_READINESS_TIMEOUT_SECONDS must be a positive integer" >&2
+  exit 2
+}
+[[ "$LINEAGEWEAVE_RUNTIME_ASK_TIMEOUT_SECONDS" =~ ^[1-9][0-9]*$ ]] || {
+  echo "LINEAGEWEAVE_RUNTIME_ASK_TIMEOUT_SECONDS must be a positive integer" >&2
+  exit 2
+}
 
 for command_name in curl docker jq corepack k6 uv; do
   command -v "$command_name" >/dev/null || { echo "$command_name is required" >&2; exit 2; }
@@ -61,7 +95,11 @@ actual_revision="$(docker inspect lineageweave-orchestrator-1 --format '{{ index
   echo "orchestrator image revision does not match the accepted revision" >&2
   exit 2
 }
-for service_name in backend backend-worker frontend; do
+docker inspect lineageweave-mcp-1 >/dev/null 2>&1 || {
+  echo "start the accepted stack with COMPOSE_PROFILES=mcp before running acceptance" >&2
+  exit 2
+}
+for service_name in backend backend-worker mcp frontend; do
   product_revision="$(docker inspect "lineageweave-${service_name}-1" --format '{{ index .Config.Labels "org.opencontainers.image.revision" }}')"
   [[ "$product_revision" == "$EXPECTED_LINEAGEWEAVE_REVISION" ]] || {
     echo "lineageweave-${service_name}-1 image revision does not match the accepted revision" >&2
@@ -108,11 +146,96 @@ EOF
   fi
 }
 
-# This explicit refresh is the first provider call. The revision gate above
-# prevents an older runtime from reacquiring readiness work without the lease fix.
-curl_json "$ORCHESTRATOR_ADMIN_TOKEN" GET \
-  "$ORCHESTRATOR_URL/api/v1/provider_readiness/latest?refresh=true" \
-  | jq -e '.status == "ready" and .ready_agent_count > 0' >/dev/null
+orchestrator_json() {
+  local method="$1" path="$2" body="${3:-}" request_timeout_ms="$4"
+  docker exec -i \
+    lineageweave-orchestrator-1 \
+    python - "$method" "$path" "$body" "$request_timeout_ms" <<'PY'
+import os
+import sys
+import urllib.request
+
+method, path, body, timeout_ms = sys.argv[1:]
+headers = {
+    "Authorization": f"Bearer {os.environ['CONTEXTUAL_ORCHESTRATOR_TOKEN']}"
+}
+data = None
+if body:
+    headers["Content-Type"] = "application/json"
+    data = body.encode("utf-8")
+if timeout_ms:
+    headers["X-Request-Timeout-Ms"] = timeout_ms
+request = urllib.request.Request(
+    f"http://127.0.0.1:8000{path}",
+    data=data,
+    headers=headers,
+    method=method,
+)
+with urllib.request.urlopen(request, timeout=max(float(timeout_ms) / 1000, 1.0)) as response:
+    sys.stdout.write(response.read().decode("utf-8"))
+PY
+}
+
+# This explicit bounded refresh is the first provider call. Read the cached
+# catalog first and probe only active agents from the configured gateway.
+readiness_deadline=$((SECONDS + ORCHESTRATOR_READINESS_TIMEOUT_SECONDS))
+remaining_readiness_ms() {
+  local remaining_seconds=$((readiness_deadline - SECONDS))
+  (( remaining_seconds > 0 )) || return 1
+  printf '%d' "$((remaining_seconds * 1000))"
+}
+readiness_timeout_ms="$(remaining_readiness_ms)" || {
+  echo "provider readiness exhausted its declared observation budget before catalog read" >&2
+  exit 1
+}
+cached_readiness="$(orchestrator_json GET \
+  /api/v1/provider_readiness/latest "" "$readiness_timeout_ms")"
+configured_agent_ids="$(jq -ce \
+  '[.items[] | select(.provider == "configured_gateway" and .status != "disabled") | .agent_id] | unique | select(length > 0)' \
+  <<<"$cached_readiness")" || {
+  echo "no active configured-gateway agents are available for readiness verification" >&2
+  exit 1
+}
+readiness_request="$(jq -cn \
+  --argjson agent_ids "$configured_agent_ids" \
+  --argjson timeout_seconds "$ORCHESTRATOR_PROBE_TIMEOUT_SECONDS" \
+  '{agent_ids:$agent_ids,capability_code:"chat",timeout_seconds:$timeout_seconds}')"
+readiness_timeout_ms="$(remaining_readiness_ms)" || {
+  echo "provider readiness exhausted its declared observation budget before job submission" >&2
+  exit 1
+}
+readiness_job="$(orchestrator_json POST \
+  /api/v1/provider_readiness_refreshes "$readiness_request" "$readiness_timeout_ms")"
+readiness_job_id="$(jq -er '.job_id | select(type == "string" and length > 0)' \
+  <<<"$readiness_job")"
+while (( SECONDS < readiness_deadline )); do
+  readiness_timeout_ms="$(remaining_readiness_ms)" || break
+  readiness_job="$(orchestrator_json GET \
+    "/api/v1/provider_readiness_refreshes/$readiness_job_id" "" "$readiness_timeout_ms")"
+  readiness_status="$(jq -er '.status' <<<"$readiness_job")"
+  case "$readiness_status" in
+    completed)
+      jq -e '.ready_count > 0' <<<"$readiness_job" >/dev/null || {
+        echo "provider readiness completed without an available configured-gateway agent" >&2
+        exit 1
+      }
+      break
+      ;;
+    queued|running) sleep 1 ;;
+    failed|cancelled|expired)
+      echo "provider readiness ended before an agent became available; restore access and rerun acceptance" >&2
+      exit 1
+      ;;
+    *)
+      echo "provider readiness returned an unsupported job state" >&2
+      exit 1
+      ;;
+  esac
+done
+[[ "${readiness_status:-}" == "completed" ]] || {
+  echo "provider readiness did not complete within the declared observation budget" >&2
+  exit 1
+}
 
 aggregate_sql="
 with preferred as (
@@ -181,8 +304,9 @@ curl_json "$LINEAGEWEAVE_ACCESS_TOKEN" GET "$BACKEND_URL/api/dashboard" \
 
 export LINEAGEWEAVE_ACCESS_TOKEN LINEAGEWEAVE_OIDC_ISSUER LINEAGEWEAVE_OIDC_CLIENT_ID
 export LINEAGEWEAVE_E2E_BASE_URL SCREENSHOT_DESKTOP_PATH SCREENSHOT_MOBILE_PATH
+export ASK_SCREENSHOT_DESKTOP_PATH ASK_SCREENSHOT_MOBILE_PATH
 (cd frontend && corepack pnpm exec playwright test \
-  e2e/runtime-operations-dashboard.spec.ts --output "$E2E_OUTPUT_DIR")
+  e2e/runtime-operations-dashboard.spec.ts e2e/runtime-ask-evidence.spec.ts --output "$E2E_OUTPUT_DIR")
 
 export BACKEND_URL LINEAGEWEAVE_ACCESS_TOKEN K6_VUS K6_DURATION
 k6 run --vus "$K6_VUS" --duration "$K6_DURATION" \

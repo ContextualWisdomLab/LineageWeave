@@ -1,7 +1,7 @@
 # ADR 0257: O*NET occupation-rating observation store
 
-**Status:** Accepted  
-**Date:** 2026-08-27  
+**Status:** Accepted
+**Date:** 2026-08-27
 **Extends:** ADR 0166, ADR 0255, ADR 0256
 
 ## Context

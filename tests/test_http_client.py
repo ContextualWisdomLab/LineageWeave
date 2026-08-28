@@ -152,6 +152,156 @@ def test_post_json_posts_json_to_http_endpoint() -> None:
     assert _JsonHandler.received["authorization"] == "Bearer test-token"
 
 
+@pytest.mark.parametrize("path", ["/v1/chat/completions", "/v1/responses"])
+def test_post_json_adds_explicit_routing_endpoint_to_supported_paths(path: str) -> None:
+    """An explicit opaque selector is scoped to the two orchestrator APIs."""
+    server, base = _serve(_JsonHandler)
+    try:
+        body = post_json(
+            f"{base}{path}",
+            {"routing": {"region": "synthetic"}},
+            headers={},
+            timeout=2.0,
+            routing_endpoint="https://selected.example/v1",
+        )
+    finally:
+        server.shutdown()
+        server.server_close()
+
+    assert body["echo"]["routing"] == {
+        "region": "synthetic",
+        "endpoint": "https://selected.example/v1",
+    }
+
+
+@pytest.mark.parametrize(
+    "path", ["/v1/embeddings", "/v1/batches", "/v1/chat/completions/"]
+)
+def test_post_json_does_not_route_other_paths(path: str) -> None:
+    """Embeddings, batches, and non-exact paths retain their original body."""
+    server, base = _serve(_JsonHandler)
+    try:
+        body = post_json(
+            f"{base}{path}",
+            {"input": "synthetic"},
+            headers={},
+            timeout=2.0,
+            routing_endpoint="https://selected.example/v1",
+        )
+    finally:
+        server.shutdown()
+        server.server_close()
+
+    assert body["echo"] == {"input": "synthetic"}
+
+
+def test_post_json_uses_deployment_routing_endpoint(monkeypatch) -> None:
+    """The runtime selector is the default when a call has no override."""
+    monkeypatch.setenv(
+        "ORCHESTRATOR_ROUTING_ENDPOINT", "https://deployment.example/v1"
+    )
+    server, base = _serve(_JsonHandler)
+    try:
+        body = post_json(
+            f"{base}/v1/responses",
+            {},
+            headers={},
+            timeout=2.0,
+        )
+    finally:
+        server.shutdown()
+        server.server_close()
+
+    assert body["echo"]["routing"] == {
+        "endpoint": "https://deployment.example/v1"
+    }
+
+
+def test_post_json_blank_override_keeps_deployment_routing_endpoint(monkeypatch) -> None:
+    """A blank per-call value cannot silently disable deployment routing."""
+    monkeypatch.setenv(
+        "ORCHESTRATOR_ROUTING_ENDPOINT", "https://deployment.example/v1"
+    )
+    server, base = _serve(_JsonHandler)
+    try:
+        body = post_json(
+            f"{base}/v1/responses",
+            {},
+            headers={},
+            timeout=2.0,
+            routing_endpoint="  ",
+        )
+    finally:
+        server.shutdown()
+        server.server_close()
+
+    assert body["echo"]["routing"] == {
+        "endpoint": "https://deployment.example/v1"
+    }
+
+
+def test_post_json_accepts_matching_existing_routing_endpoint() -> None:
+    """A caller-provided matching selector is preserved without conflict."""
+    server, base = _serve(_JsonHandler)
+    try:
+        body = post_json(
+            f"{base}/v1/chat/completions",
+            {"routing": {"endpoint": "https://selected.example/v1"}},
+            headers={},
+            timeout=2.0,
+            routing_endpoint="https://selected.example/v1",
+        )
+    finally:
+        server.shutdown()
+        server.server_close()
+
+    assert body["echo"]["routing"] == {
+        "endpoint": "https://selected.example/v1"
+    }
+
+
+def test_post_json_unset_routing_endpoint_preserves_payload(monkeypatch) -> None:
+    """An unset deployment selector preserves automatic routing behavior."""
+    monkeypatch.delenv("ORCHESTRATOR_ROUTING_ENDPOINT", raising=False)
+    server, base = _serve(_JsonHandler)
+    try:
+        body = post_json(
+            f"{base}/v1/chat/completions",
+            {"messages": []},
+            headers={},
+            timeout=2.0,
+        )
+    finally:
+        server.shutdown()
+        server.server_close()
+
+    assert body["echo"] == {"messages": []}
+
+
+@pytest.mark.parametrize(
+    "routing, message",
+    [
+        ("invalid", "routing must be an object"),
+        (
+            {"endpoint": "https://different.example/v1"},
+            "routing.endpoint conflicts",
+        ),
+    ],
+)
+def test_post_json_rejects_invalid_or_conflicting_routing(
+    routing: object, message: str
+) -> None:
+    """Malformed or conflicting caller routing fails before transport."""
+    with pytest.raises(ValueError, match=message):
+        post_json(
+            "https://orchestrator.example/v1/chat/completions",
+            {"routing": routing},
+            headers={},
+            timeout=1.0,
+            routing_endpoint="https://selected.example/v1",
+        )
+
+
 def test_get_json_fetches_json_from_http_endpoint() -> None:
     _JsonHandler.received = {}
     server, base = _serve(_JsonHandler)

@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import http.client
 import json
+import os
 import ssl
 from collections.abc import Callable
 from urllib.parse import urlencode, urlparse
@@ -28,6 +29,7 @@ from .observability import current_session_id, inject_trace_context, traced
 _SSL_CONTEXT = ssl.create_default_context(cafile=certifi.where())
 _ALLOWED_SCHEMES = frozenset({"http", "https"})
 _SESSION_HEADER_PEERS = frozenset({"contextual-orchestrator", "tepp"})
+_ROUTABLE_ORCHESTRATOR_PATHS = frozenset({"/v1/chat/completions", "/v1/responses"})
 
 
 class HttpClientError(RuntimeError):
@@ -292,6 +294,7 @@ def post_json(
     headers: dict[str, str],
     timeout: float,
     service_peer_name: str = "contextual-orchestrator",
+    routing_endpoint: str | None = None,
 ) -> dict:
     """POST ``payload`` as JSON to ``url`` and return the decoded object.
 
@@ -300,8 +303,34 @@ def post_json(
         HttpClientError: the server responded with HTTP >= 400 or non-JSON.
 
     ``service_peer_name`` is a bounded service name used for the request span.
+    ``routing_endpoint`` overrides the deployment selector for this call.
     """
-    hostname = urlparse(url).hostname or url
+    parsed_url = urlparse(url)
+    hostname = parsed_url.hostname or url
+    if routing_endpoint is not None and not isinstance(routing_endpoint, str):
+        raise ValueError("routing_endpoint must be a string")
+    explicit_selector = routing_endpoint.strip() if routing_endpoint is not None else ""
+    selector = explicit_selector or os.environ.get(
+        "ORCHESTRATOR_ROUTING_ENDPOINT", ""
+    ).strip()
+    request_payload = payload
+    if (
+        selector
+        and service_peer_name == "contextual-orchestrator"
+        and parsed_url.path in _ROUTABLE_ORCHESTRATOR_PATHS
+    ):
+        existing_routing = payload.get("routing")
+        if existing_routing is None:
+            request_payload = {**payload, "routing": {"endpoint": selector}}
+        elif not isinstance(existing_routing, dict):
+            raise ValueError("routing must be an object")
+        elif existing_routing.get("endpoint") not in (None, selector):
+            raise ValueError("routing.endpoint conflicts with the requested endpoint")
+        elif existing_routing.get("endpoint") is None:
+            request_payload = {
+                **payload,
+                "routing": {**existing_routing, "endpoint": selector},
+            }
     request_headers = {"content-type": "application/json", **headers}
     session_id = current_session_id()
     if session_id:
@@ -320,7 +349,7 @@ def post_json(
             "POST",
             url,
             body=json_request_body(
-                payload,
+                request_payload,
                 include_orchestrator_session=(
                     service_peer_name == "contextual-orchestrator"
                 ),

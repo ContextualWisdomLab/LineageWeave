@@ -1,7 +1,7 @@
 # ADR 0263: Authorized job-family and job-series snapshot import
 
-**Status:** Accepted  
-**Date:** 2026-08-27  
+**Status:** Accepted
+**Date:** 2026-08-27
 **Extends:** ADR 0001, ADR 0065, ADR 0248, ADR 0252
 
 ## Context

@@ -1,8 +1,8 @@
 # ADR 0219 — Persist TEPP acceptance and consume terminal results
 
-**Decision status:** Accepted on this active PR; not protected-main truth until merge  
-**Date:** 2026-08-26  
-**Depends on:** ADR 0022, ADR 0023, ADR 0204; TEPP PR #157  
+**Decision status:** Accepted on this active PR; not protected-main truth until merge
+**Date:** 2026-08-26
+**Depends on:** ADR 0022, ADR 0023, ADR 0204; TEPP PR #157
 **Refs:** LineageWeave issue #277; TEPP issues #156 and #249
 
 ## Context
