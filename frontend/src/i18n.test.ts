@@ -126,7 +126,7 @@ describe("i18n", () => {
     ]);
     setLocale("ko");
     expect(ANALYST_GNB_LABELS.map((label) => t(label))).toEqual([
-      "Dashboard", "외부 정보", "게시판", "고객 마스터", "캘린더", "에이전트에게 질문",
+      "대시보드", "외부 정보", "게시판", "고객 마스터", "캘린더", "에이전트에게 질문",
     ]);
     expect(CALENDAR_CONSUME_UNAVAILABLE).toBe("이 범위의 일정을 아직 받을 수 없습니다");
   });

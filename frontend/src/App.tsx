@@ -5370,7 +5370,7 @@ export default function App({ showLabPanels = false }: { showLabPanels?: boolean
             <CalendarPanel
               accessToken={accessToken}
               headingId="calendar-heading"
-              heading="달력"
+              heading={t("Calendar")}
               onSelectPost={(postId) => {
                 setPostToOpen(postId);
                 setDestination("board");

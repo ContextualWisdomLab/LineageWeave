@@ -51,6 +51,7 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Authenticated, but no access token was returned.": "인증되었지만 액세스 토큰이 반환되지 않았습니다.",
     "Log in": "로그인",
     "Log out": "로그아웃",
+    Dashboard: "대시보드",
     Calendar: "캘린더",
     Rankings: "순위",
     "Rankings are not available right now. Reopen this post later to load them.":
@@ -637,6 +638,7 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Authenticated, but no access token was returned.": "已完成身份验证，但未返回访问令牌。",
     "Log in": "登录",
     "Log out": "退出登录",
+    Dashboard: "仪表板",
     Calendar: "日历",
     Rankings: "排名",
     "Rankings are not available right now. Reopen this post later to load them.":
@@ -773,7 +775,7 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "No posts match the current filters.": "没有文章符合当前筛选条件。",
     "Customer master": "客户主数据",
     "External information": "外部信息",
-    "Ask Agent": "向智能助手提问",
+    "Ask Agent": "询问智能助手",
     "Workspace navigation": "工作区导航",
     "Authorized customer scope": "已授权的客户范围",
     "Customer entities available to this account.": "此账户可用的客户实体。",
@@ -1238,6 +1240,7 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Authenticated, but no access token was returned.": "認証済みですが、アクセストークンが返されませんでした。",
     "Log in": "ログイン",
     "Log out": "ログアウト",
+    Dashboard: "ダッシュボード",
     Calendar: "カレンダー",
     Rankings: "ランキング",
     "Rankings are not available right now. Reopen this post later to load them.":
@@ -1819,6 +1822,7 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Authenticated, but no access token was returned.": "Đã xác thực nhưng không nhận được mã thông báo truy cập.",
     "Log in": "Đăng nhập",
     "Log out": "Đăng xuất",
+    Dashboard: "Bảng điều khiển",
     Calendar: "Lịch",
     Rankings: "Xếp hạng",
     "Rankings are not available right now. Reopen this post later to load them.":

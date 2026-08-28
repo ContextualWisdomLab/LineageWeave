@@ -2210,7 +2210,7 @@ describe("App, authenticated", () => {
     stubBackend();
     render(<App />);
     expect(await screen.findByRole("button", { name: "View post: Public post" })).toBeInTheDocument();
-    await userEvent.click(screen.getByRole("button", { name: "고객 마스터" }));
+    await userEvent.click(screen.getByRole("button", { name: "Customer master" }));
 
     expect(await screen.findByText("Demo Corp")).toBeInTheDocument();
     expect(screen.getByText("DEMO-CORP-01 · Company")).toBeInTheDocument();
@@ -2230,7 +2230,7 @@ describe("App, authenticated", () => {
     stubBackend({ customerEntityHierarchy: true });
     render(<App />);
     expect(await screen.findByRole("button", { name: "View post: Public post" })).toBeInTheDocument();
-    await userEvent.click(screen.getByRole("button", { name: "고객 마스터" }));
+    await userEvent.click(screen.getByRole("button", { name: "Customer master" }));
 
     expect(await screen.findByText("Demo Group")).toBeInTheDocument();
     const subsidiaryRow = screen.getByText("Demo Corp").closest("li");
@@ -2250,7 +2250,7 @@ describe("App, authenticated", () => {
     stubBackend();
     render(<App />);
     expect(await screen.findByRole("button", { name: "View post: Public post" })).toBeInTheDocument();
-    await userEvent.click(screen.getByRole("button", { name: "고객 마스터" }));
+    await userEvent.click(screen.getByRole("button", { name: "Customer master" }));
 
     const entityButton = (await screen.findByText("DEMO-CORP-01 · Company")).closest("button");
     expect(entityButton).not.toBeNull();
@@ -2276,7 +2276,7 @@ describe("App, authenticated", () => {
     stubBackend();
     render(<App />);
     expect(await screen.findByRole("button", { name: "View post: Public post" })).toBeInTheDocument();
-    await userEvent.click(screen.getByRole("button", { name: "고객 마스터" }));
+    await userEvent.click(screen.getByRole("button", { name: "Customer master" }));
 
     expect(await screen.findByText("Northridge Grid")).toBeInTheDocument();
     expect(screen.getByText("Voice of Customer (1), Voice of Competitor (1)")).toBeInTheDocument();
@@ -2298,7 +2298,7 @@ describe("App, authenticated", () => {
     stubBackend({ admin: true, manyCustomerHints: 1 });
     render(<App />);
     expect(await screen.findByRole("button", { name: "View post: Public post" })).toBeInTheDocument();
-    await userEvent.click(screen.getByRole("button", { name: "고객 마스터" }));
+    await userEvent.click(screen.getByRole("button", { name: "Customer master" }));
 
     expect(await screen.findByText("CUST-0")).toBeInTheDocument();
     await userEvent.click(screen.getByRole("button", { name: "Resolve" }));
@@ -2310,7 +2310,7 @@ describe("App, authenticated", () => {
     stubBackend({ manyCustomerHints: 1 });
     render(<App />);
     expect(await screen.findByRole("button", { name: "View post: Public post" })).toBeInTheDocument();
-    await userEvent.click(screen.getByRole("button", { name: "고객 마스터" }));
+    await userEvent.click(screen.getByRole("button", { name: "Customer master" }));
 
     expect(await screen.findByText("CUST-0")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Resolve" })).not.toBeInTheDocument();
@@ -2326,7 +2326,7 @@ describe("App, authenticated", () => {
     stubBackend({ hintRelatedPosts: true });
     render(<App />);
     expect(await screen.findByRole("button", { name: "View post: Public post" })).toBeInTheDocument();
-    await userEvent.click(screen.getByRole("button", { name: "고객 마스터" }));
+    await userEvent.click(screen.getByRole("button", { name: "Customer master" }));
 
     const customerSection = await screen.findByRole("region", { name: "Observed customer evidence" });
     expect(within(customerSection).getByText("Related posts (1)").closest("details")).toHaveClass(
@@ -2352,7 +2352,7 @@ describe("App, authenticated", () => {
     stubBackend({ manyCustomerHints: 45 });
     render(<App />);
     expect(await screen.findByRole("button", { name: "View post: Public post" })).toBeInTheDocument();
-    await userEvent.click(screen.getByRole("button", { name: "고객 마스터" }));
+    await userEvent.click(screen.getByRole("button", { name: "Customer master" }));
 
     expect(await screen.findByText("CUST-0")).toBeInTheDocument();
     expect(screen.getByText(/Showing the first 30 of 45 observed customer identifiers/)).toBeInTheDocument();
@@ -4364,16 +4364,16 @@ describe("App, authenticated", () => {
 
     const nav = await screen.findByRole("navigation", { name: "Workspace navigation" });
     expect(nav).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "게시판" })).toHaveAttribute("aria-current", "page");
+    expect(screen.getByRole("button", { name: "Board" })).toHaveAttribute("aria-current", "page");
     expect(within(nav).getAllByRole("button").map((button) => button.textContent)).toEqual([
       "Dashboard",
-      "외부 정보",
-      "게시판",
-      "고객 마스터",
-      "달력",
+      "External information",
+      "Board",
+      "Customer master",
+      "Calendar",
       "Ask Agent",
     ]);
-    expect(nav.textContent).not.toMatch(/Buyer|Cubee|\bBoard\b|Customer master/i);
+    expect(nav.textContent).not.toMatch(/Buyer|Cubee/i);
     expect(within(nav).queryByRole("button", { name: /Admin|관리자/i })).not.toBeInTheDocument();
     expect(screen.queryByText("Advanced review tools")).not.toBeInTheDocument();
   });
@@ -4382,8 +4382,8 @@ describe("App, authenticated", () => {
     stubBackend();
     render(<App />);
 
-    await userEvent.click(await screen.findByRole("button", { name: "달력" }));
-    expect(screen.getByRole("heading", { name: "달력" })).toBeInTheDocument();
+    await userEvent.click(await screen.findByRole("button", { name: "Calendar" }));
+    expect(screen.getByRole("heading", { name: "Calendar" })).toBeInTheDocument();
     expect(screen.getByText("이 범위의 일정을 아직 받을 수 없습니다")).toBeInTheDocument();
     expect(
       screen.getByRole("region", { name: /^Unavailable:/ }),
@@ -4394,7 +4394,7 @@ describe("App, authenticated", () => {
     await userEvent.click(
       screen.getByRole("button", { name: /open commitment for: public post/i }),
     );
-    expect(await screen.findByRole("button", { name: "게시판" })).toHaveAttribute(
+    expect(await screen.findByRole("button", { name: "Board" })).toHaveAttribute(
       "aria-current",
       "page",
     );
