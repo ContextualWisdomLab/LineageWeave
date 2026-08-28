@@ -15,7 +15,7 @@ multi-agent.
 ## Decision
 
 `docker/contextual-orchestrator/Dockerfile` pins the downloaded archive to
-commit `60c567c7d47aea3536ee7a7cceedbb4cd09f1c1c` from stacked upstream PR
+commit `41d7110d0f2553f4fabb3fdfb06a4b8ff0cc984a` from stacked upstream PR
 #907. The candidate pin supplies the exact `Retry-After` admission deferral and
 rate-budget-derived readiness polling cadence consumed by this stack. PR #907
 remains open over PR #857, so neither the candidate pin nor local runtime
