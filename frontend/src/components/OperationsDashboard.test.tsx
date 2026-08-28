@@ -63,7 +63,7 @@ describe("OperationsDashboardView", () => {
   it("distinguishes posts, events, percentages and opens evidence", async () => {
     const onOpenPost = vi.fn();
     render(<OperationsDashboardView data={data} onOpenPost={onOpenPost} />);
-    expect(screen.getByText("3 Event · 2글")).toBeInTheDocument();
+    expect(screen.getByText("사건 Event 3건 · 글 2건")).toBeInTheDocument();
     expect(screen.getByText("5건 · 25.0%")).toBeInTheDocument();
     expect(screen.getByText("원인 수주")).toBeInTheDocument();
     expect(screen.getByText(/수주 Pool: 관련 근거를 찾아 연결한 뒤 갱신된 결과를 확인하세요/)).toBeInTheDocument();
@@ -108,7 +108,7 @@ describe("OperationsDashboardView", () => {
     expect(screen.queryByText("분석 대기")).not.toBeInTheDocument();
     expect(screen.queryByText("분석 실패")).not.toBeInTheDocument();
     expect(screen.queryByText("전체 글")).not.toBeInTheDocument();
-    expect(screen.queryByText("분류 Event")).not.toBeInTheDocument();
+    expect(screen.queryByText("근거 확인된 사건 Event")).not.toBeInTheDocument();
   });
 
   it("does not label a scoped external count with a corpus-wide rate", () => {

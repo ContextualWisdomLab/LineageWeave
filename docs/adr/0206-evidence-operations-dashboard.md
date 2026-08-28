@@ -28,11 +28,16 @@ provenance.
 2. Dashboard requests are bounded by an inclusive event-time period.
    `source_post.event_occurred_at` is the primary clock and `created_at` is the
    explicit fallback, matching ADR 0202. The response names that clock.
-3. Every count is authorization-filtered before aggregation. Event count is
-   the number of persisted `post_summary_event` rows for the classified,
-   visible posts; post count is the distinct count of those posts. Neither
-   substitutes for the other, and no event is invented when a summary event
-   row is absent.
+3. Every count is authorization-filtered before aggregation. A case Event
+   count is the number of persisted `operations_case_milestone` rows joined by
+   both `post_id` and `case_kind_code` to the classified, visible cases; post
+   count is the distinct count of those posts. A general
+   `post_summary_event` is not copied into every classification on its Post.
+   Case kinds without an explicitly cited milestone therefore report zero
+   case Events. Neither count substitutes for the other, and no event is
+   invented when a case-specific milestone is absent. The existing composite
+   primary/foreign keys keep this relation in third normal form, while the
+   case-kind/time index keeps aggregation independent of one Post hot key.
    Analysis-pending and ingestion-failed post counts are disjoint: a failed
    current job is shown as retryable failure, never hidden inside the pending
    count or interpreted as a negative classification.

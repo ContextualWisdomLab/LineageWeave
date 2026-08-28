@@ -183,7 +183,7 @@ export function OperationsDashboardView({ data, externalOnly = false, onOpenPost
       </header>
       <dl className="dashboard-metrics">
         {!externalOnly ? <div><dt>{t("All posts")}</dt><dd>{data.total_post_count}</dd></div> : null}
-        {!externalOnly ? <div><dt>{t("Classified events")}</dt><dd>{data.total_event_count}</dd></div> : null}
+        {!externalOnly ? <div><dt>{t("Cited case events")}</dt><dd>{data.total_event_count}</dd></div> : null}
         <div><dt>{t("External information")}</dt><dd>{tf(externalOnly ? "{count} posts" : "{count} posts · {percent}%", { count: data.external_post_count, percent: data.external_percent.toFixed(1) })}</dd></div>
         {!externalOnly ? <div><dt>{t("Awaiting analysis")}</dt><dd>{data.pending_analysis_count}</dd></div> : null}
         {!externalOnly ? <div><dt>{t("Analysis failed")}</dt><dd>{data.failed_analysis_count}</dd></div> : null}
@@ -195,7 +195,7 @@ export function OperationsDashboardView({ data, externalOnly = false, onOpenPost
             {data.case_metrics.map((metric) => (
               <div key={metric.case_kind_code}>
                 <dt>{controlledLabel(metric.case_kind_code, metric.case_kind_label, caseKindLabels)}</dt>
-                <dd>{tf("{events} events · {posts} posts", { events: metric.event_count, posts: metric.post_count })}</dd>
+                <dd>{tf("{events} case events · {posts} posts", { events: metric.event_count, posts: metric.post_count })}</dd>
               </div>
             ))}
           </dl>
