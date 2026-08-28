@@ -13,7 +13,7 @@ dependencies = [
   "pillow>=12.3.0",
   # RankWeave has no PyPI release yet; pinned to a specific commit (not a
   # floating branch ref) for reproducible installs, per org convention.
-  "rankweave @ git+https://github.com/ContextualWisdomLab/RankWeave.git@61c49c50d3b4a24fc9bd7c6d3a7f2f4ba19d7be6",
+  "rankweave @ git+https://github.com/ContextualWisdomLab/RankWeave.git@3cdd53bd1fb031efddb604a321c6897c58df65be",
   # Explicit CA bundle for http_client HTTPS posts -- some interpreter
   # distributions don't reliably inherit the OS trust store.
   "certifi>=2024.0.0",
