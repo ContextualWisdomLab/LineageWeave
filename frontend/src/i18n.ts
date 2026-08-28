@@ -17,8 +17,133 @@ export function isSupportedLocale(value: unknown): value is Locale {
 
 const STORAGE_KEY = "lineageweave.locale";
 
+const OPERATIONS_TRANSLATIONS: Record<"zh" | "ja" | "vi", Record<string, string>> = {
+  zh: {
+    "Start date": "开始日期", "End date": "结束日期", "Apply period": "应用期间",
+    "Operations evidence dashboard": "运营证据看板", "Dashboard evidence could not be loaded.": "无法加载看板证据。", "Loading dashboard evidence...": "正在加载看板证据…",
+    "Select a value, then open its source post to confirm the next action.": "选择一个数值，然后打开来源文章确认下一步行动。", "All posts": "全部文章", "Cited case events": "有证据的案例事件",
+    "{count} posts": "{count}篇", "{count} posts · {percent}%": "{count}篇 · {percent}%", "Awaiting analysis": "等待分析", "Analysis failed": "分析失败",
+    "Status by work type": "按工作类型查看状态", "{events} case events · {posts} posts": "{events}个案例事件 · {posts}篇文章", "Observed processing intervals": "已观测处理区间",
+    "Compare elapsed time for items with observed start and end events.": "比较已观测到开始和结束事件的项目耗时。", "{open} in progress · {resolved} completed · {missing} need timing evidence": "进行中{open}项 · 已完成{resolved}项 · {missing}项需要时间证据",
+    "Observed events by project": "按项目查看已观测事件", "Finding a related project": "正在查找相关项目", "Confirmed elapsed time": "已确认耗时",
+    "Elapsed time is calculated after both required start and end evidence are observed.": "只有观测到所需的开始和结束证据后才计算耗时。", "{days}d {hours}h {minutes}m {seconds}s": "{days}天 {hours}小时 {minutes}分 {seconds}秒",
+    "Open {label} evidence": "打开{label}证据", "Items requiring additional evidence": "需要补充证据的项目", "Additional evidence needed": "需要补充证据",
+    "{label}: Find and connect the related evidence, then review the refreshed result.": "{label}：查找并关联相关证据，然后查看更新结果。", "Open classification evidence": "打开分类证据",
+    "No external information was classified in this period. Check the period or your access scope.": "此期间没有已分类的外部信息。请检查期间或访问范围。", "No evidence has completed analysis in this period. Process the awaiting items first.": "此期间没有完成分析的证据。请先处理等待项目。", "No evidence can be analyzed in this period. Check the period or your access scope.": "此期间没有可分析的证据。请检查期间或访问范围。", "Reprocess {count} failed analyses, then check again for missing evidence.": "重新处理{count}项失败分析，然后再次检查缺失证据。",
+    "Post influence": "文章影响力", "Important posts over time": "时序重要文章", "Compare how topic trends and organization-level results change when a post is excluded.": "比较排除一篇文章后主题趋势和组织层级结果的变化。", "Post influence is not available yet.": "暂时无法查看文章影响力。", "Confirm event dates and organization memberships for the selected posts, then run the analysis again.": "确认所选文章的事件日期和组织归属后重新分析。", "Compare each post's influence and uncertainty, then open its source evidence.": "比较每篇文章的影响力和不确定性，然后打开来源证据。",
+    "Topic {number}": "主题{number}", "Topic {number} status over time": "主题{number}的时序状态", "Topic {number} change history": "主题{number}的变更历史", Active: "活跃", Dormant: "休眠", Reactivated: "重新活跃", Started: "开始", Split: "分化", Merged: "合并", Ended: "结束", "Business unit": "事业部", "Open event evidence": "打开事件证据", "{label} influence table": "{label}影响力表", "Compare influence and uncertainty together; identical values are ties.": "同时比较影响力和不确定性；相同数值表示并列。", "Event date": "事件日期", Status: "状态", Influence: "影响力", Uncertainty: "不确定性", "Membership value": "归属值", "Open membership evidence": "打开归属证据", "Open influential post": "打开重要文章", "Review analysis basis": "查看分析依据", "Knowledge cutoff": "知识截止时间", "Topic count": "主题数",
+    "Claim investigation": "索赔原因调查", "Rebid and handover": "重新投标与交接", "Recurring issue": "重复问题", "Affected order": "受影响订单", "Specification change": "规格变更", "Originating order": "原因订单", "Sales pool": "订单池", Discussion: "协商内容", Counterparty: "协商方", "Our owner": "我方负责人", Decision: "后续决策", "Business relationship": "业务关系", "Recurring pattern": "重复模式", "Improvement action": "改进措施", "Rebid response": "重新投标应对", "Handover gap": "交接空缺", "In progress": "进行中", Completed: "已完成", "Timing evidence needed": "需要时间证据", "Claim received": "收到索赔", "Cause confirmed": "原因已确认", "Rebid started": "重新投标已开始", "Response submitted": "应对已提交", "Handover started": "交接已开始", "Handover completed": "交接已完成", "Record creation date": "记录创建日期", Order: "订单", Sales: "销售", "Business management": "业务管理", "Open the start evidence and track the next observed event.": "打开开始证据并跟踪下一个观测事件。", "Open the start and end evidence, then review the elapsed time.": "打开开始和结束证据，然后查看耗时。", "Find and connect the required start and end evidence, then review the refreshed interval.": "查找并关联所需的开始和结束证据，然后查看更新后的区间。",
+    "Report · alert · MCP": "报告 · 提醒 · MCP", "{count} evidence documents are linked to this report.": "此报告关联了{count}份证据文档。", "You can subscribe to evidence-change alerts.": "您可以订阅证据变更提醒。", "Connect evidence to enable change-alert subscriptions.": "关联证据以启用变更提醒订阅。",
+  },
+  ja: {
+    "Start date": "開始日", "End date": "終了日", "Apply period": "期間を適用",
+    "Operations evidence dashboard": "運用エビデンスダッシュボード", "Dashboard evidence could not be loaded.": "ダッシュボードの根拠を読み込めませんでした。", "Loading dashboard evidence...": "ダッシュボードの根拠を読み込み中…",
+    "Select a value, then open its source post to confirm the next action.": "値を選び、元の投稿を開いて次の行動を確認してください。", "All posts": "すべての投稿", "Cited case events": "根拠付きケースイベント", "{count} posts": "{count}件", "{count} posts · {percent}%": "{count}件 · {percent}%", "Awaiting analysis": "分析待ち", "Analysis failed": "分析失敗", "Status by work type": "業務種別の状況", "{events} case events · {posts} posts": "ケースイベント{events}件 · 投稿{posts}件", "Observed processing intervals": "観測済み処理区間", "Compare elapsed time for items with observed start and end events.": "開始と終了イベントが観測された項目の経過時間を比較してください。", "{open} in progress · {resolved} completed · {missing} need timing evidence": "進行中{open}件 · 完了{resolved}件 · 時間根拠が必要{missing}件", "Observed events by project": "プロジェクト別の観測イベント", "Finding a related project": "関連プロジェクトを確認中", "Confirmed elapsed time": "確定経過時間", "Elapsed time is calculated after both required start and end evidence are observed.": "必要な開始・終了根拠が両方観測された後に経過時間を計算します。", "{days}d {hours}h {minutes}m {seconds}s": "{days}日 {hours}時間 {minutes}分 {seconds}秒", "Open {label} evidence": "{label}の根拠を開く", "Items requiring additional evidence": "追加根拠が必要な項目", "Additional evidence needed": "追加根拠が必要", "{label}: Find and connect the related evidence, then review the refreshed result.": "{label}：関連根拠を見つけて接続し、更新結果を確認してください。", "Open classification evidence": "分類根拠を開く", "No external information was classified in this period. Check the period or your access scope.": "この期間に分類された外部情報はありません。期間またはアクセス範囲を確認してください。", "No evidence has completed analysis in this period. Process the awaiting items first.": "この期間に分析完了した根拠はありません。分析待ちを先に処理してください。", "No evidence can be analyzed in this period. Check the period or your access scope.": "この期間に分析できる根拠はありません。期間またはアクセス範囲を確認してください。", "Reprocess {count} failed analyses, then check again for missing evidence.": "失敗した分析{count}件を再処理し、根拠の不足を再確認してください。",
+    "Post influence": "投稿の影響度", "Important posts over time": "時系列の重要投稿", "Compare how topic trends and organization-level results change when a post is excluded.": "投稿を除外したときのトピック推移と組織階層別結果の変化を比較してください。", "Post influence is not available yet.": "投稿の影響度はまだ確認できません。", "Confirm event dates and organization memberships for the selected posts, then run the analysis again.": "選択した投稿のイベント日と組織所属を確認してから再分析してください。", "Compare each post's influence and uncertainty, then open its source evidence.": "各投稿の影響度と不確実性を比較し、元の根拠を開いてください。", "Topic {number}": "トピック{number}", "Topic {number} status over time": "トピック{number}の時系列状態", "Topic {number} change history": "トピック{number}の変更履歴", Active: "活動中", Dormant: "休止", Reactivated: "再活性", Started: "開始", Split: "分岐", Merged: "統合", Ended: "終了", "Business unit": "事業部", "Open event evidence": "イベント根拠を開く", "{label} influence table": "{label}の影響度表", "Compare influence and uncertainty together; identical values are ties.": "影響度と不確実性を併せて比較し、同じ値は同順位として確認してください。", "Event date": "イベント日", Status: "状態", Influence: "影響度", Uncertainty: "不確実性", "Membership value": "所属値", "Open membership evidence": "所属根拠を開く", "Open influential post": "重要投稿を開く", "Review analysis basis": "分析根拠を確認", "Knowledge cutoff": "知識の基準時刻", "Topic count": "トピック数",
+    "Claim investigation": "クレーム原因調査", "Rebid and handover": "再入札と引継ぎ", "Recurring issue": "反復問題", "Affected order": "発生受注", "Specification change": "仕様変更", "Originating order": "原因受注", "Sales pool": "受注プール", Discussion: "協議内容", Counterparty: "協議相手", "Our owner": "当社担当者", Decision: "後続決定", "Business relationship": "業務関係", "Recurring pattern": "反復パターン", "Improvement action": "改善対応", "Rebid response": "再入札対応", "Handover gap": "引継ぎ空白", "In progress": "進行中", Completed: "完了", "Timing evidence needed": "時間根拠が必要", "Claim received": "クレーム受付", "Cause confirmed": "原因確定", "Rebid started": "再入札開始", "Response submitted": "対応提出", "Handover started": "引継ぎ開始", "Handover completed": "引継ぎ完了", "Record creation date": "記録作成日", Order: "受注", Sales: "営業", "Business management": "事業管理", "Open the start evidence and track the next observed event.": "開始根拠を開き、次の観測イベントを追跡してください。", "Open the start and end evidence, then review the elapsed time.": "開始・終了根拠を開き、経過時間を確認してください。", "Find and connect the required start and end evidence, then review the refreshed interval.": "必要な開始・終了根拠を見つけて接続し、更新区間を確認してください。",
+    "Report · alert · MCP": "レポート · 通知 · MCP", "{count} evidence documents are linked to this report.": "このレポートには{count}件の根拠文書が関連付けられています。", "You can subscribe to evidence-change alerts.": "根拠変更の通知を購読できます。", "Connect evidence to enable change-alert subscriptions.": "根拠を接続して変更通知の購読を有効にしてください。",
+  },
+  vi: {
+    "Start date": "Ngày bắt đầu", "End date": "Ngày kết thúc", "Apply period": "Áp dụng khoảng thời gian",
+    "Operations evidence dashboard": "Bảng điều khiển bằng chứng vận hành", "Dashboard evidence could not be loaded.": "Không thể tải bằng chứng của bảng điều khiển.", "Loading dashboard evidence...": "Đang tải bằng chứng của bảng điều khiển…", "Select a value, then open its source post to confirm the next action.": "Chọn một giá trị rồi mở bài nguồn để xác nhận hành động tiếp theo.", "All posts": "Tất cả bài viết", "Cited case events": "Sự kiện có bằng chứng", "{count} posts": "{count} bài", "{count} posts · {percent}%": "{count} bài · {percent}%", "Awaiting analysis": "Đang chờ phân tích", "Analysis failed": "Phân tích thất bại", "Status by work type": "Trạng thái theo loại công việc", "{events} case events · {posts} posts": "{events} sự kiện · {posts} bài viết", "Observed processing intervals": "Khoảng xử lý đã quan sát", "Compare elapsed time for items with observed start and end events.": "So sánh thời gian đã qua của các mục có sự kiện bắt đầu và kết thúc được quan sát.", "{open} in progress · {resolved} completed · {missing} need timing evidence": "{open} đang xử lý · {resolved} hoàn tất · {missing} cần bằng chứng thời gian", "Observed events by project": "Sự kiện đã quan sát theo dự án", "Finding a related project": "Đang tìm dự án liên quan", "Confirmed elapsed time": "Thời gian đã xác nhận", "Elapsed time is calculated after both required start and end evidence are observed.": "Thời gian chỉ được tính sau khi quan sát đủ bằng chứng bắt đầu và kết thúc.", "{days}d {hours}h {minutes}m {seconds}s": "{days} ngày {hours} giờ {minutes} phút {seconds} giây", "Open {label} evidence": "Mở bằng chứng {label}", "Items requiring additional evidence": "Mục cần thêm bằng chứng", "Additional evidence needed": "Cần thêm bằng chứng", "{label}: Find and connect the related evidence, then review the refreshed result.": "{label}: Tìm và liên kết bằng chứng liên quan rồi xem kết quả đã cập nhật.", "Open classification evidence": "Mở bằng chứng phân loại", "No external information was classified in this period. Check the period or your access scope.": "Không có thông tin bên ngoài được phân loại trong khoảng này. Hãy kiểm tra thời gian hoặc phạm vi truy cập.", "No evidence has completed analysis in this period. Process the awaiting items first.": "Không có bằng chứng hoàn tất phân tích trong khoảng này. Hãy xử lý các mục đang chờ trước.", "No evidence can be analyzed in this period. Check the period or your access scope.": "Không có bằng chứng có thể phân tích trong khoảng này. Hãy kiểm tra thời gian hoặc phạm vi truy cập.", "Reprocess {count} failed analyses, then check again for missing evidence.": "Xử lý lại {count} phân tích thất bại rồi kiểm tra lại bằng chứng còn thiếu.",
+    "Post influence": "Mức ảnh hưởng của bài viết", "Important posts over time": "Bài viết quan trọng theo thời gian", "Compare how topic trends and organization-level results change when a post is excluded.": "So sánh thay đổi của xu hướng chủ đề và kết quả theo cấp tổ chức khi loại một bài viết.", "Post influence is not available yet.": "Chưa thể xem mức ảnh hưởng của bài viết.", "Confirm event dates and organization memberships for the selected posts, then run the analysis again.": "Xác nhận ngày sự kiện và đơn vị tổ chức của các bài đã chọn rồi chạy lại phân tích.", "Compare each post's influence and uncertainty, then open its source evidence.": "So sánh ảnh hưởng và độ bất định của từng bài rồi mở bằng chứng nguồn.", "Topic {number}": "Chủ đề {number}", "Topic {number} status over time": "Trạng thái theo thời gian của chủ đề {number}", "Topic {number} change history": "Lịch sử thay đổi của chủ đề {number}", Active: "Đang hoạt động", Dormant: "Tạm ngưng", Reactivated: "Hoạt động lại", Started: "Bắt đầu", Split: "Tách", Merged: "Hợp nhất", Ended: "Kết thúc", "Business unit": "Khối kinh doanh", "Open event evidence": "Mở bằng chứng sự kiện", "{label} influence table": "Bảng ảnh hưởng {label}", "Compare influence and uncertainty together; identical values are ties.": "So sánh đồng thời ảnh hưởng và độ bất định; giá trị giống nhau là đồng hạng.", "Event date": "Ngày sự kiện", Status: "Trạng thái", Influence: "Ảnh hưởng", Uncertainty: "Độ bất định", "Membership value": "Giá trị thành viên", "Open membership evidence": "Mở bằng chứng thành viên", "Open influential post": "Mở bài viết quan trọng", "Review analysis basis": "Xem cơ sở phân tích", "Knowledge cutoff": "Mốc dữ liệu", "Topic count": "Số chủ đề",
+    "Claim investigation": "Điều tra nguyên nhân khiếu nại", "Rebid and handover": "Đấu thầu lại và bàn giao", "Recurring issue": "Vấn đề lặp lại", "Affected order": "Đơn hàng bị ảnh hưởng", "Specification change": "Thay đổi thông số", "Originating order": "Đơn hàng nguyên nhân", "Sales pool": "Nhóm đơn hàng", Discussion: "Nội dung trao đổi", Counterparty: "Đối tác trao đổi", "Our owner": "Người phụ trách", Decision: "Quyết định tiếp theo", "Business relationship": "Quan hệ nghiệp vụ", "Recurring pattern": "Mẫu lặp lại", "Improvement action": "Hành động cải tiến", "Rebid response": "Ứng phó đấu thầu lại", "Handover gap": "Khoảng trống bàn giao", "In progress": "Đang xử lý", Completed: "Hoàn tất", "Timing evidence needed": "Cần bằng chứng thời gian", "Claim received": "Đã nhận khiếu nại", "Cause confirmed": "Đã xác nhận nguyên nhân", "Rebid started": "Đã bắt đầu đấu thầu lại", "Response submitted": "Đã gửi phản hồi", "Handover started": "Đã bắt đầu bàn giao", "Handover completed": "Đã hoàn tất bàn giao", "Record creation date": "Ngày tạo bản ghi", Order: "Đơn hàng", Sales: "Bán hàng", "Business management": "Quản lý kinh doanh", "Open the start evidence and track the next observed event.": "Mở bằng chứng bắt đầu và theo dõi sự kiện được quan sát tiếp theo.", "Open the start and end evidence, then review the elapsed time.": "Mở bằng chứng bắt đầu và kết thúc rồi xem thời gian đã qua.", "Find and connect the required start and end evidence, then review the refreshed interval.": "Tìm và liên kết bằng chứng bắt đầu, kết thúc cần thiết rồi xem khoảng thời gian đã cập nhật.",
+    "Report · alert · MCP": "Báo cáo · cảnh báo · MCP", "{count} evidence documents are linked to this report.": "Có {count} tài liệu bằng chứng được liên kết với báo cáo này.", "You can subscribe to evidence-change alerts.": "Bạn có thể đăng ký cảnh báo thay đổi bằng chứng.", "Connect evidence to enable change-alert subscriptions.": "Liên kết bằng chứng để bật đăng ký cảnh báo thay đổi.",
+  },
+};
+
+const ANALYSIS_RUN_ACTION_TRANSLATIONS: Record<
+  "ko" | "zh" | "ja" | "vi",
+  Record<string, string>
+> = {
+  ko: {
+    "Open this run, then start reconstruction. Reconstruction has not started yet.": "이 실행을 열고 이벤트 이력 재구성을 시작하세요. 아직 재구성이 시작되지 않았습니다.",
+    "Open this run to confirm the posts included in measurement, then start it.": "이 실행을 열어 측정 대상 글을 확인한 뒤 측정을 시작하세요.",
+    "Open this run to confirm the posts and time period included in topic analysis, then start it.": "이 실행을 열어 주제 분석 대상 글과 기간을 확인한 뒤 분석을 시작하세요.",
+    "Open this run to confirm which posts the period report will use. The report has not been built yet.": "이 실행을 열어 기간 리포트에 사용할 글을 확인하세요. 아직 리포트가 생성되지 않았습니다.",
+    "Open this run to see why it failed, then retry with the latest available records.": "이 실행을 열어 실패 원인을 확인한 뒤 최신 기록으로 다시 시도하세요.",
+    "Open this run to see why it failed, then retry reconstruction from a current snapshot.": "이 실행을 열어 실패 원인을 확인한 뒤 현재 스냅샷으로 재구성을 다시 시도하세요.",
+    "Open this run to see why it failed, then rebuild the period report from a current snapshot.": "이 실행을 열어 실패 원인을 확인한 뒤 현재 스냅샷으로 기간 리포트를 다시 생성하세요.",
+    "Refresh this run. Start already queued the work on the durable outbox.": "이 실행을 새로 고치세요. 시작 요청이 이미 처리 대기열에 등록되었습니다.",
+    "Open the available evidence, then confirm the next action.": "확인 가능한 근거를 연 뒤 다음 조치를 확인하세요.",
+  },
+  zh: {
+    "Open this run, then start reconstruction. Reconstruction has not started yet.": "打开此运行并开始事件历程重建。重建尚未开始。",
+    "Open this run to confirm the posts included in measurement, then start it.": "打开此运行，确认纳入测量的文章后开始测量。",
+    "Open this run to confirm the posts and time period included in topic analysis, then start it.": "打开此运行，确认主题分析包含的文章和期间后开始分析。",
+    "Open this run to confirm which posts the period report will use. The report has not been built yet.": "打开此运行，确认周期报告将使用的文章。报告尚未生成。",
+    "Open this run to see why it failed, then retry with the latest available records.": "打开此运行查看失败原因，然后使用最新记录重试。",
+    "Open this run to see why it failed, then retry reconstruction from a current snapshot.": "打开此运行查看失败原因，然后从当前快照重新重建。",
+    "Open this run to see why it failed, then rebuild the period report from a current snapshot.": "打开此运行查看失败原因，然后从当前快照重新生成周期报告。",
+    "Refresh this run. Start already queued the work on the durable outbox.": "刷新此运行。启动请求已进入处理队列。",
+    "Open the available evidence, then confirm the next action.": "打开可用证据，然后确认下一步行动。",
+  },
+  ja: {
+    "Open this run, then start reconstruction. Reconstruction has not started yet.": "この実行を開き、イベント履歴の再構成を開始してください。再構成はまだ始まっていません。",
+    "Open this run to confirm the posts included in measurement, then start it.": "この実行を開いて測定対象の投稿を確認し、測定を開始してください。",
+    "Open this run to confirm the posts and time period included in topic analysis, then start it.": "この実行を開いてトピック分析の対象投稿と期間を確認し、分析を開始してください。",
+    "Open this run to confirm which posts the period report will use. The report has not been built yet.": "この実行を開いて期間レポートに使用する投稿を確認してください。レポートはまだ作成されていません。",
+    "Open this run to see why it failed, then retry with the latest available records.": "この実行を開いて失敗理由を確認し、最新の記録で再試行してください。",
+    "Open this run to see why it failed, then retry reconstruction from a current snapshot.": "この実行を開いて失敗理由を確認し、現在のスナップショットから再構成を再試行してください。",
+    "Open this run to see why it failed, then rebuild the period report from a current snapshot.": "この実行を開いて失敗理由を確認し、現在のスナップショットから期間レポートを再作成してください。",
+    "Refresh this run. Start already queued the work on the durable outbox.": "この実行を更新してください。開始要求はすでに処理待ちに登録されています。",
+    "Open the available evidence, then confirm the next action.": "確認できる根拠を開き、次の行動を確認してください。",
+  },
+  vi: {
+    "Open this run, then start reconstruction. Reconstruction has not started yet.": "Mở lần chạy này rồi bắt đầu tái dựng lịch sử sự kiện. Việc tái dựng chưa bắt đầu.",
+    "Open this run to confirm the posts included in measurement, then start it.": "Mở lần chạy này, xác nhận các bài viết được đo lường rồi bắt đầu.",
+    "Open this run to confirm the posts and time period included in topic analysis, then start it.": "Mở lần chạy này, xác nhận bài viết và khoảng thời gian phân tích chủ đề rồi bắt đầu.",
+    "Open this run to confirm which posts the period report will use. The report has not been built yet.": "Mở lần chạy này để xác nhận các bài viết dùng cho báo cáo theo kỳ. Báo cáo chưa được tạo.",
+    "Open this run to see why it failed, then retry with the latest available records.": "Mở lần chạy này để xem nguyên nhân thất bại rồi thử lại với bản ghi mới nhất.",
+    "Open this run to see why it failed, then retry reconstruction from a current snapshot.": "Mở lần chạy này để xem nguyên nhân thất bại rồi tái dựng lại từ ảnh chụp hiện tại.",
+    "Open this run to see why it failed, then rebuild the period report from a current snapshot.": "Mở lần chạy này để xem nguyên nhân thất bại rồi tạo lại báo cáo theo kỳ từ ảnh chụp hiện tại.",
+    "Refresh this run. Start already queued the work on the durable outbox.": "Làm mới lần chạy này. Yêu cầu bắt đầu đã được đưa vào hàng đợi xử lý.",
+    "Open the available evidence, then confirm the next action.": "Mở bằng chứng hiện có rồi xác nhận hành động tiếp theo.",
+  },
+};
+
+const ANALYSIS_RUN_HINT_TRANSLATIONS: Record<
+  "ko" | "zh" | "ja" | "vi",
+  Record<string, string>
+> = {
+  ko: {
+    "calibrated measurement": "보정 측정", "time-based topic analysis": "시간 흐름별 주제 분석", reconstruction: "재구성", "the period report": "기간 리포트",
+    "No posts were available at this cutoff for {analysis}. Open a later run or retry after a newer snapshot is available.": "이 기준 시점에는 {analysis}에 사용할 글이 없습니다. 이후 실행을 열거나 새 스냅샷이 준비된 뒤 다시 시도하세요.",
+    "These posts were selected for {analysis}. Review the failure details, then retry with the latest available records.": "이 글들은 {analysis} 대상으로 선택되었습니다. 실패 내용을 확인한 뒤 최신 기록으로 다시 시도하세요.",
+    "These posts were included in this {analysis} result.": "이 글들은 이번 {analysis} 결과에 포함되었습니다.", "These posts will be included when {analysis} finishes.": "{analysis}이 완료되면 이 글들이 포함됩니다.",
+    "These posts were selected for {analysis}. Start a new run if the result is still needed.": "이 글들은 {analysis} 대상으로 선택되었습니다. 결과가 여전히 필요하면 새 실행을 시작하세요.", "These posts are selected for {analysis}.": "이 글들은 {analysis} 대상으로 선택되어 있습니다.",
+  },
+  zh: {
+    "calibrated measurement": "校准测量", "time-based topic analysis": "时序主题分析", reconstruction: "重建", "the period report": "周期报告",
+    "No posts were available at this cutoff for {analysis}. Open a later run or retry after a newer snapshot is available.": "此截止时间没有可用于{analysis}的文章。请打开较晚的运行，或在新快照可用后重试。",
+    "These posts were selected for {analysis}. Review the failure details, then retry with the latest available records.": "这些文章已选用于{analysis}。请查看失败详情，然后使用最新记录重试。",
+    "These posts were included in this {analysis} result.": "这些文章已包含在本次{analysis}结果中。", "These posts will be included when {analysis} finishes.": "{analysis}完成后将包含这些文章。",
+    "These posts were selected for {analysis}. Start a new run if the result is still needed.": "这些文章已选用于{analysis}。如果仍需要结果，请开始新的运行。", "These posts are selected for {analysis}.": "这些文章已选用于{analysis}。",
+  },
+  ja: {
+    "calibrated measurement": "校正測定", "time-based topic analysis": "時系列トピック分析", reconstruction: "再構成", "the period report": "期間レポート",
+    "No posts were available at this cutoff for {analysis}. Open a later run or retry after a newer snapshot is available.": "この基準時点では{analysis}に使用できる投稿がありません。後の実行を開くか、新しいスナップショットが利用可能になってから再試行してください。",
+    "These posts were selected for {analysis}. Review the failure details, then retry with the latest available records.": "これらの投稿は{analysis}の対象です。失敗内容を確認し、最新の記録で再試行してください。",
+    "These posts were included in this {analysis} result.": "これらの投稿は今回の{analysis}結果に含まれています。", "These posts will be included when {analysis} finishes.": "{analysis}が完了すると、これらの投稿が含まれます。",
+    "These posts were selected for {analysis}. Start a new run if the result is still needed.": "これらの投稿は{analysis}の対象です。結果が必要な場合は新しい実行を開始してください。", "These posts are selected for {analysis}.": "これらの投稿は{analysis}の対象として選択されています。",
+  },
+  vi: {
+    "calibrated measurement": "đo lường hiệu chỉnh", "time-based topic analysis": "phân tích chủ đề theo thời gian", reconstruction: "tái dựng", "the period report": "báo cáo theo kỳ",
+    "No posts were available at this cutoff for {analysis}. Open a later run or retry after a newer snapshot is available.": "Không có bài viết nào tại mốc này cho {analysis}. Hãy mở lần chạy muộn hơn hoặc thử lại khi có ảnh chụp mới.",
+    "These posts were selected for {analysis}. Review the failure details, then retry with the latest available records.": "Các bài viết này đã được chọn cho {analysis}. Hãy xem chi tiết lỗi rồi thử lại với bản ghi mới nhất.",
+    "These posts were included in this {analysis} result.": "Các bài viết này được đưa vào kết quả {analysis} này.", "These posts will be included when {analysis} finishes.": "Các bài viết này sẽ được đưa vào khi {analysis} hoàn tất.",
+    "These posts were selected for {analysis}. Start a new run if the result is still needed.": "Các bài viết này đã được chọn cho {analysis}. Hãy bắt đầu lần chạy mới nếu vẫn cần kết quả.", "These posts are selected for {analysis}.": "Các bài viết này được chọn cho {analysis}.",
+  },
+};
+
 const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
   ko: {
+    ...ANALYSIS_RUN_ACTION_TRANSLATIONS.ko,
+    ...ANALYSIS_RUN_HINT_TRANSLATIONS.ko,
+    "Lineage reconstruction": "이벤트 이력 재구성",
+    "Calibrated event measurement": "보정된 이벤트 측정",
+    "Time-based topic analysis": "시간 흐름별 주제 분석",
+    "Period report": "기간 리포트",
     "Start date": "시작일",
     "End date": "종료일",
     "Apply period": "기간 적용",
@@ -700,6 +825,13 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
       "IRT 주효과 이후 잔여 맵 랭크 0은 잔여 구조가 없음을 뜻합니다. 관측 Y {observed}와 기대 E {expected}를 읽은 다음, 이 글을 여세요.",
   },
   zh: {
+    ...OPERATIONS_TRANSLATIONS.zh,
+    ...ANALYSIS_RUN_ACTION_TRANSLATIONS.zh,
+    ...ANALYSIS_RUN_HINT_TRANSLATIONS.zh,
+    "Lineage reconstruction": "事件历程重建",
+    "Calibrated event measurement": "校准事件测量",
+    "Time-based topic analysis": "时序主题分析",
+    "Period report": "周期报告",
     "Connect another perspective": "关联另一个观点",
     "This post will be recorded as the evidence.": "此文章将被记录为证据。",
     Perspective: "观点",
@@ -1278,6 +1410,13 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
       "残余图秩 0 表示 IRT 主效应后没有残余结构。阅读观测 Y {observed} 与期望 E {expected}，然后打开这篇帖子。",
   },
   ja: {
+    ...OPERATIONS_TRANSLATIONS.ja,
+    ...ANALYSIS_RUN_ACTION_TRANSLATIONS.ja,
+    ...ANALYSIS_RUN_HINT_TRANSLATIONS.ja,
+    "Lineage reconstruction": "イベント履歴の再構成",
+    "Calibrated event measurement": "校正済みイベント測定",
+    "Time-based topic analysis": "時系列トピック分析",
+    "Period report": "期間レポート",
     "Connect another perspective": "別の観点を関連付ける",
     "This post will be recorded as the evidence.": "この投稿が根拠として記録されます。",
     Perspective: "観点",
@@ -1860,6 +1999,13 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
       "残差マップランク 0 は IRT 主効果後に残差構造がないことを示します。観測 Y {observed} と期待 E {expected} を読んでから、この投稿を開いてください。",
   },
   vi: {
+    ...OPERATIONS_TRANSLATIONS.vi,
+    ...ANALYSIS_RUN_ACTION_TRANSLATIONS.vi,
+    ...ANALYSIS_RUN_HINT_TRANSLATIONS.vi,
+    "Lineage reconstruction": "Tái dựng lịch sử sự kiện",
+    "Calibrated event measurement": "Đo lường sự kiện đã hiệu chỉnh",
+    "Time-based topic analysis": "Phân tích chủ đề theo thời gian",
+    "Period report": "Báo cáo theo kỳ",
     "Connect another perspective": "Liên kết góc nhìn khác",
     "This post will be recorded as the evidence.": "Bài đăng này sẽ được ghi nhận làm bằng chứng.",
     Perspective: "Góc nhìn",

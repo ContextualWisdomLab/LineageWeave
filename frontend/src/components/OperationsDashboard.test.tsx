@@ -77,14 +77,52 @@ describe("OperationsDashboardView", () => {
     expect(onOpenPost).toHaveBeenCalledWith("evidence-post-1");
   });
 
-  it.each(["en", "zh", "ja", "vi"] as const)("keeps dashboard chrome free of Korean-only copy in %s", (locale) => {
+  it.each([
+    ["en", "Operations evidence dashboard", "All posts", "Important posts over time"],
+    ["zh", "运营证据看板", "全部文章", "时序重要文章"],
+    ["ja", "運用エビデンスダッシュボード", "すべての投稿", "時系列の重要投稿"],
+    ["vi", "Bảng điều khiển bằng chứng vận hành", "Tất cả bài viết", "Bài viết quan trọng theo thời gian"],
+  ] as const)("renders localized dashboard actions in %s", (locale, heading, allPosts, importantPosts) => {
     setLocale(locale);
     render(<OperationsDashboardView data={data} onOpenPost={() => undefined} />);
-    expect(screen.getByRole("heading", { name: "Operations evidence dashboard" })).toBeInTheDocument();
-    expect(screen.getByText("All posts")).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "Important posts over time" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: heading })).toBeInTheDocument();
+    expect(screen.getByText(allPosts)).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: importantPosts })).toBeInTheDocument();
     expect(screen.queryByText("운영 근거 대시보드")).not.toBeInTheDocument();
+    if (locale !== "en") expect(screen.queryByText("Operations evidence dashboard")).not.toBeInTheDocument();
     expect(screen.queryByText(/TEPP|fast-mlsirm|transport|topic-lineage/i)).not.toBeInTheDocument();
+  });
+
+  it("keeps the server next action for an unknown lifecycle status", () => {
+    setLocale("en");
+    const future = {
+      ...data.cases[0].lifecycles[0],
+      status_code: "future_status" as never,
+      status_label: "Future status",
+      next_action_text: "Open the cited evidence, then choose the next owner.",
+    };
+    render(<OperationsDashboardView data={{ ...data, cases: [{ ...data.cases[0], lifecycles: [future] }] }} onOpenPost={() => undefined} />);
+
+    expect(screen.getByText(/Open the cited evidence, then choose the next owner/)).toBeInTheDocument();
+  });
+
+  it.each([
+    ["en", "Open the available evidence, then confirm the next action."],
+    ["ko", "확인 가능한 근거를 연 뒤 다음 조치를 확인하세요."],
+    ["zh", "打开可用证据，然后确认下一步行动。"],
+    ["ja", "確認できる根拠を開き、次の行動を確認してください。"],
+    ["vi", "Mở bằng chứng hiện có rồi xác nhận hành động tiếp theo."],
+  ] as const)("keeps an actionable fallback for an unknown lifecycle status in %s", (locale, nextAction) => {
+    setLocale(locale);
+    const future = {
+      ...data.cases[0].lifecycles[0],
+      status_code: "future_status" as never,
+      status_label: "Future status",
+      next_action_text: undefined as unknown as string,
+    };
+    render(<OperationsDashboardView data={{ ...data, cases: [{ ...data.cases[0], lifecycles: [future] }] }} onOpenPost={() => undefined} />);
+
+    expect(screen.getByText(new RegExp(nextAction.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")))).toBeInTheDocument();
   });
 
   it("does not imply that only the end evidence is missing", () => {

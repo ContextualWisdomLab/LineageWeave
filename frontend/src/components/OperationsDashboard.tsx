@@ -259,7 +259,7 @@ export function OperationsDashboardView({ data, externalOnly = false, onOpenPost
                         </li>
                       ))}
                     </ol>
-                    <p className="dashboard-next-action">{t("Next action")}: {t(lifecycleNextActions[lifecycle.status_code])}</p>
+                    <p className="dashboard-next-action">{t("Next action")}: {t(lifecycleNextActions[lifecycle.status_code] ?? lifecycle.next_action_text ?? "Open the available evidence, then confirm the next action.")}</p>
                   </article>
                 ))}
               </section>

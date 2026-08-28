@@ -18,6 +18,18 @@ afterEach(() => {
 });
 
 describe("i18n", () => {
+  it.each([
+    ["ko", "이 기준 시점에는 시간 흐름별 주제 분석에 사용할 글이 없습니다. 이후 실행을 열거나 새 스냅샷이 준비된 뒤 다시 시도하세요.", "시간 흐름별 주제 분석이 완료되면 이 글들이 포함됩니다."],
+    ["zh", "此截止时间没有可用于时序主题分析的文章。请打开较晚的运行，或在新快照可用后重试。", "时序主题分析完成后将包含这些文章。"],
+    ["ja", "この基準時点では時系列トピック分析に使用できる投稿がありません。後の実行を開くか、新しいスナップショットが利用可能になってから再試行してください。", "時系列トピック分析が完了すると、これらの投稿が含まれます。"],
+    ["vi", "Không có bài viết nào tại mốc này cho phân tích chủ đề theo thời gian. Hãy mở lần chạy muộn hơn hoặc thử lại khi có ảnh chụp mới.", "Các bài viết này sẽ được đưa vào khi phân tích chủ đề theo thời gian hoàn tất."],
+  ] as const)("localizes analysis-run empty and corpus next actions in %s", (locale, empty, corpus) => {
+    setLocale(locale);
+    const analysis = t("time-based topic analysis");
+    expect(tf("No posts were available at this cutoff for {analysis}. Open a later run or retry after a newer snapshot is available.", { analysis })).toBe(empty);
+    expect(tf("These posts will be included when {analysis} finishes.", { analysis })).toBe(corpus);
+  });
+
   const requiredSharedLabels = [
     "Language",
     "Evidence",
@@ -96,6 +108,40 @@ describe("i18n", () => {
     expect(SUPPORTED_LOCALES).toEqual(["en", "ko", "zh", "ja", "vi"]);
     expect(Object.keys(LOCALE_LABELS)).toHaveLength(5);
   });
+
+  it.each(["ko", "zh", "ja", "vi"] as const)(
+    "translates customer-facing analysis run kinds in %s",
+    (locale) => {
+      setLocale(locale);
+      for (const key of [
+        "Lineage reconstruction",
+        "Calibrated event measurement",
+        "Time-based topic analysis",
+        "Period report",
+      ]) {
+        expect(t(key), `${locale}:${key}`).not.toBe(key);
+      }
+    },
+  );
+
+  it.each(["ko", "zh", "ja", "vi"] as const)(
+    "translates every analysis-run next action in %s",
+    (locale) => {
+      setLocale(locale);
+      for (const key of [
+        "Open this run, then start reconstruction. Reconstruction has not started yet.",
+        "Open this run to confirm the posts included in measurement, then start it.",
+        "Open this run to confirm the posts and time period included in topic analysis, then start it.",
+        "Open this run to confirm which posts the period report will use. The report has not been built yet.",
+        "Open this run to see why it failed, then retry with the latest available records.",
+        "Open this run to see why it failed, then retry reconstruction from a current snapshot.",
+        "Open this run to see why it failed, then rebuild the period report from a current snapshot.",
+        "Refresh this run. Start already queued the work on the durable outbox.",
+      ]) {
+        expect(t(key), `${locale}:${key}`).not.toBe(key);
+      }
+    },
+  );
 
   it.each([
     ["en", "Workspace navigation"],
