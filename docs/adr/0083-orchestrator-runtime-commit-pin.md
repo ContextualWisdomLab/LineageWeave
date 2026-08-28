@@ -18,6 +18,11 @@ multi-agent.
 commit `1a40e0f7ad10d1a24137d69d20e44fc9a5dcdd89`. The pin remains explicit
 and immutable until the reviewed upstream change is superseded; it is not a
 moving `main` reference and it is not a LineageWeave monkey patch.
+The Docker builder verifies that archive against its committed SHA-256 before
+extracting it. Runtime Python packages and every transitive dependency are
+installed only from `docker/contextual-orchestrator/requirements.lock` with
+pip's `--require-hashes`; `requirements.in` records the three direct roots and
+the lock-generation command is embedded in the generated artifact.
 
 The runtime contract is:
 
@@ -45,5 +50,7 @@ The runtime contract is:
 - Local Compose runtime and the reviewed upstream PR use the same orchestrator
   implementation.
 - Rebuilding the image is required after the upstream pin changes.
+- Updating the upstream pin or an OpenTelemetry root requires review of the
+  new archive digest and regeneration of the complete hash lock.
 - Protected-branch review and merge remain external gates; this pin does not
   bypass upstream review.

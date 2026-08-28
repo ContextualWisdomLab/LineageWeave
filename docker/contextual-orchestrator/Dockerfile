@@ -5,16 +5,16 @@ WORKDIR /app
 # Reuse the upstream implementation without copying it into LineageWeave.
 # Pin the runtime to a reviewed immutable upstream commit; model selection,
 # structured synthesis, and reasoning policy stay in contextual-orchestrator.
-ADD https://github.com/ContextualWisdomLab/contextual-orchestrator/archive/1a40e0f7ad10d1a24137d69d20e44fc9a5dcdd89.tar.gz /tmp/contextual-orchestrator.tar.gz
+ADD --checksum=sha256:243e3efa9a0c2a07cd02e4620c7a40fee8b8d9c04d7df394136ab60f2635a45d https://github.com/ContextualWisdomLab/contextual-orchestrator/archive/1a40e0f7ad10d1a24137d69d20e44fc9a5dcdd89.tar.gz /tmp/contextual-orchestrator.tar.gz
+COPY requirements.lock /tmp/orchestrator-requirements.lock
 RUN mkdir /tmp/contextual-orchestrator \
     && tar -xzf /tmp/contextual-orchestrator.tar.gz --strip-components=1 -C /tmp/contextual-orchestrator \
     && cp -R /tmp/contextual-orchestrator/contextual_orchestrator /app/contextual_orchestrator \
     && cp -R /tmp/contextual-orchestrator/examples /app/examples \
     && rm -rf /tmp/contextual-orchestrator /tmp/contextual-orchestrator.tar.gz \
-    && python -m pip install --no-cache-dir \
-        'opentelemetry-api>=1.30.0' \
-        'opentelemetry-sdk>=1.30.0' \
-        'opentelemetry-exporter-otlp-proto-http>=1.30.0' \
+    && python -m pip install --no-cache-dir --require-hashes \
+        -r /tmp/orchestrator-requirements.lock \
+    && rm /tmp/orchestrator-requirements.lock \
     && useradd --uid 10001 --no-create-home orchestrator
 
 COPY agents.json /app/agents.json

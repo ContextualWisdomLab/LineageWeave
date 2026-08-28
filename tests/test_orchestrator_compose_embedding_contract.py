@@ -74,3 +74,36 @@ def test_orchestrator_image_tag_matches_the_downloaded_revision() -> None:
     assert image_match is not None
     assert archive_match is not None
     assert image_match.group(1) == archive_match.group(1)
+
+
+def test_orchestrator_image_verifies_archive_and_dependency_bytes() -> None:
+    """Require byte verification for upstream source and all installed wheels."""
+    dockerfile = (_ROOT / "docker/contextual-orchestrator/Dockerfile").read_text(
+        encoding="utf-8"
+    )
+    requirements = (
+        _ROOT / "docker/contextual-orchestrator/requirements.lock"
+    ).read_text(encoding="utf-8")
+    roots = (_ROOT / "docker/contextual-orchestrator/requirements.in").read_text(
+        encoding="utf-8"
+    )
+
+    assert re.search(
+        r"ADD --checksum=sha256:[0-9a-f]{64} "
+        r"https://github\.com/ContextualWisdomLab/contextual-orchestrator/archive/"
+        r"[0-9a-f]{40}\.tar\.gz ",
+        dockerfile,
+    )
+    assert "--require-hashes" in dockerfile
+    assert "-r /tmp/orchestrator-requirements.lock" in dockerfile
+    assert not re.search(r"(?:>=|~=|==[^\n ]*\*)", roots)
+    assert not re.search(
+        r"^[a-z0-9_.-]+(?:\[[^]]+\])?\s*(?:>=|~=|==[^\n ]*\*)",
+        requirements,
+        re.MULTILINE,
+    )
+    locked_packages = re.findall(
+        r"^([a-z0-9_.-]+)==[^\\\n ]+ \\$", requirements, re.MULTILINE
+    )
+    assert len(locked_packages) == len(set(locked_packages)) == 14
+    assert requirements.count("--hash=sha256:") >= len(locked_packages)
