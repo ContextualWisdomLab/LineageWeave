@@ -8,7 +8,7 @@
 > exact-head evidence before this overlay is
 > `760d05896f96e5ce7fb9df0e4b62369448913fbd` and remains candidate-only.
 > Its contextual-orchestrator runtime is pinned to open upstream PR #857 exact
-> `2712827bfebd8be39e25c24924ad1f18522fd5f9`; this candidate is not
+> `3558a9a3aeb985282b255fcd80bb2201c19ae54b`; this candidate is not
 > protected-main evidence.
 > The open queue has 14 PRs:
 > #783, #782, #781, #780, #778, #774, #772, #771, #770, #702, #679, #672,
