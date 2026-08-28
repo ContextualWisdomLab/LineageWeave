@@ -1,7 +1,7 @@
 # Product & Technical Gap Baseline
 
 > Exact-head Voice export and authority audit: 2026-08-28 KST. Protected
-> `main` was `edf22ee39aee2a8481f9bda8fff59801821e79c2`; eleven PRs and nine
+> `main` was `fc13acaa20adca11968238e398d4aafcf62b6cee`; twelve PRs and nine
 > issues were open. The largest directly actionable Voice acceptance gap on
 > this head was export ambiguity: the rendered exact-value table already
 > offered separate actions for the carrying Post and derivation-evidence Post,
@@ -14,6 +14,22 @@
 > gate and the runtime evidence is collected. Canonical remote names were
 > rechecked as `ContextualWisdomLab/LineageWeave`, `RankWeave`, `ThreadWeave`,
 > lowercase `disksage`, `TEPP`, `contextual-orchestrator`, and `fast-mlsirm`.
+>
+> Exact-head loop overlay: 2026-08-28 10:00 KST. Protected `main` was
+> `edf22ee39aee2a8481f9bda8fff59801821e79c2` (#773 similar-VOC coverage).
+> Open ready PRs: #772 (ask_time_axis coverage), #771 (fixtures/vision
+> coverage), #770 (project-history empty-state). Auto-merge squash is
+> enabled on all three; none has an independent APPROVE (only bot
+> COMMENT). Drafts #702, #679, #672, #667, #640 remain dirty against
+> `main`. #96 stays closed as a weaker duplicate of #91. Writes through
+> the Grok GitHub App now succeed (comment/close/auto-merge/update-branch)
+> despite empty `X-OAuth-Scopes`; git push is the remaining probe this
+> cycle. This overlay supersedes every older queue count below.
+>
+> Next buyer increment on this cycle: leftover-map explained leftover
+> share `e = R̂² / R²` (ADR 0266 / migration 0244 / v2.23.0) so
+> `e + s + x = 1` is buyer-auditable. Do not persist leftover-map
+> coordinates in this slice.
 > Exact-head loop overlay: 2026-08-28 KST. Protected `main` was
 > `bbb191924e9881a5201f1ecf63c854d92992cc1c`; seven PRs and nine issues were
 > open. PR #763 was `b51d3bd8872b` and PR #762 was `e6ca33dba1b5`; both were
