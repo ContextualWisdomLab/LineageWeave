@@ -70,6 +70,13 @@ async def run_worker_process() -> None:
     ]
     topic_influence_url = getattr(settings, "topic_influence_transport_url", "")
     if topic_influence_url:
+        request_timeout = getattr(settings, "topic_influence_request_timeout_seconds", None)
+        lease_timeout = getattr(settings, "topic_influence_lease_timeout_seconds", None)
+        if request_timeout is None or lease_timeout is None or lease_timeout < request_timeout:
+            raise ValueError(
+                "topic influence transport requires declared positive request and lease "
+                "timeouts, with lease timeout not shorter than request timeout"
+            )
         workers.append(
             asyncio.create_task(
                 run_topic_influence_worker(
@@ -77,6 +84,8 @@ async def run_worker_process() -> None:
                     lambda: HttpTopicInfluenceClient(
                         topic_influence_url,
                         getattr(settings, "topic_influence_api_key", ""),
+                        timeout=float(request_timeout),
+                        lease_timeout_seconds=lease_timeout,
                     ),
                 )
             )

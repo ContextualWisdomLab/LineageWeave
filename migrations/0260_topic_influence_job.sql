@@ -5,7 +5,7 @@ create table if not exists topic_influence_job (
     topic_model_run_id uuid primary key
         references topic_model_run (topic_model_run_id) on delete cascade,
     status_code text not null
-        check (status_code in ('queued', 'running', 'succeeded', 'failed')),
+        check (status_code in ('queued', 'awaiting_evidence', 'running', 'succeeded', 'failed')),
     request_sha256 text check (request_sha256 ~ '^[0-9a-f]{64}$'),
     attempt_count integer not null default 0 check (attempt_count >= 0),
     failure_code text check (
@@ -19,13 +19,55 @@ create table if not exists topic_influence_job (
     queued_at timestamptz not null default clock_timestamp(),
     not_before timestamptz not null default clock_timestamp(),
     started_at timestamptz,
+    lease_expires_at timestamptz,
     completed_at timestamptz,
     check (
-        (status_code = 'queued' and started_at is null and completed_at is null)
-        or (status_code = 'running' and started_at is not null and completed_at is null)
-        or (status_code in ('succeeded', 'failed') and started_at is not null and completed_at is not null)
+        (status_code = 'queued' and started_at is null and lease_expires_at is null and completed_at is null)
+        or (status_code = 'awaiting_evidence' and started_at is null and lease_expires_at is null and completed_at is not null)
+        or (status_code = 'running' and started_at is not null and lease_expires_at is not null and completed_at is null)
+        or (status_code in ('succeeded', 'failed') and started_at is not null and lease_expires_at is null and completed_at is not null)
     )
 );
+
+alter table topic_influence_job
+    add column if not exists lease_expires_at timestamptz;
+
+alter table topic_influence_job
+    drop constraint if exists topic_influence_job_status_code_check,
+    drop constraint if exists topic_influence_job_check;
+
+-- A pre-lease branch deployment cannot supply a declared expiry after the
+-- fact. Release that interrupted claim; the next worker claim records the
+-- configured lease contract before invoking the producer.
+update topic_influence_job
+   set status_code = 'queued', request_sha256 = null, started_at = null,
+       completed_at = null, failure_code = null,
+       not_before = clock_timestamp()
+ where status_code = 'running' and lease_expires_at is null;
+
+alter table topic_influence_job
+    add constraint topic_influence_job_status_code_check
+        check (status_code in (
+            'queued', 'awaiting_evidence', 'running', 'succeeded', 'failed'
+        )),
+    add constraint topic_influence_job_check check (
+        (status_code = 'queued'
+            and started_at is null
+            and lease_expires_at is null
+            and completed_at is null)
+        or (status_code = 'awaiting_evidence'
+            and started_at is null
+            and lease_expires_at is null
+            and completed_at is not null)
+        or (status_code = 'running'
+            and started_at is not null
+            and lease_expires_at is not null
+            and completed_at is null)
+        or (status_code in ('succeeded', 'failed')
+            and started_at is not null
+            and lease_expires_at is null
+            and completed_at is not null)
+    );
 
 create index if not exists topic_influence_job_queue_idx
     on topic_influence_job (status_code, not_before, queued_at, topic_model_run_id)
@@ -43,10 +85,60 @@ begin
 end
 $$;
 
+create or replace function wake_topic_influence_job_for_model()
+returns trigger
+language plpgsql
+as $$
+begin
+    update topic_influence_job
+       set status_code = 'queued', failure_code = null, completed_at = null,
+           not_before = clock_timestamp()
+     where topic_model_run_id = new.topic_model_run_id
+       and status_code = 'awaiting_evidence';
+    return new;
+end
+$$;
+
+create or replace function wake_topic_influence_job_for_analysis()
+returns trigger
+language plpgsql
+as $$
+begin
+    update topic_influence_job job
+       set status_code = 'queued', failure_code = null, completed_at = null,
+           not_before = clock_timestamp()
+      from topic_model_run model
+     where model.analysis_run_id = new.analysis_run_id
+       and job.topic_model_run_id = model.topic_model_run_id
+       and job.status_code = 'awaiting_evidence';
+    return new;
+end
+$$;
+
 drop trigger if exists topic_model_run_influence_queue on topic_model_run;
 create trigger topic_model_run_influence_queue
 after insert on topic_model_run
 for each row execute function queue_topic_influence_job();
+
+drop trigger if exists topic_coordinate_influence_wake on topic_post_coordinate;
+create trigger topic_coordinate_influence_wake after insert on topic_post_coordinate
+for each row execute function wake_topic_influence_job_for_model();
+
+drop trigger if exists topic_membership_influence_wake on topic_context_membership;
+create trigger topic_membership_influence_wake after insert on topic_context_membership
+for each row execute function wake_topic_influence_job_for_model();
+
+drop trigger if exists topic_definition_influence_wake on topic_definition;
+create trigger topic_definition_influence_wake after insert on topic_definition
+for each row execute function wake_topic_influence_job_for_model();
+
+drop trigger if exists topic_tepp_receipt_influence_wake on analysis_run_tepp_receipt;
+create trigger topic_tepp_receipt_influence_wake after insert or update on analysis_run_tepp_receipt
+for each row execute function wake_topic_influence_job_for_analysis();
+
+drop trigger if exists topic_terminal_influence_wake on analysis_run_topic_lineage_result;
+create trigger topic_terminal_influence_wake after insert or update on analysis_run_topic_lineage_result
+for each row execute function wake_topic_influence_job_for_analysis();
 
 insert into topic_influence_job (topic_model_run_id, status_code)
 select model.topic_model_run_id, 'queued'

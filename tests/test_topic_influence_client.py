@@ -4,6 +4,9 @@ from __future__ import annotations
 
 import copy
 import asyncio
+import base64
+import hashlib
+import json
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 
@@ -20,6 +23,7 @@ from lineageweave.topic_influence_client import (
 from lineageweave.http_client import HttpAdmissionDeferred
 from lineageweave import topic_influence_client
 from backend.app import topic_influence_worker
+from backend.app.config import load_settings
 
 
 def _request():
@@ -68,8 +72,8 @@ def _request():
     )
 
 
-def _response(request):
-    response = {
+def _artifact(request):
+    return {
         "schema_version": RESULT_SCHEMA_VERSION,
         "request_sha256": request.request_sha256,
         "tepp_run_id": "tepp-synthetic-1",
@@ -99,41 +103,60 @@ def _response(request):
             for topic in (0, 1)
         ],
     }
-    response["artifact_sha256"] = canonical_sha256(response)
-    return response
+
+
+def _response(request, artifact=None):
+    payload = artifact if artifact is not None else _artifact(request)
+    raw = json.dumps(payload, ensure_ascii=False, separators=(",", ":"), allow_nan=False).encode()
+    return {
+        "artifact_sha256": hashlib.sha256(raw).hexdigest(),
+        "artifact_base64": base64.b64encode(raw).decode("ascii"),
+    }
 
 
 def test_client_accepts_only_complete_digest_bound_result() -> None:
     """Every post-membership-topic cell remains exact and auditable."""
     request = _request()
-    result = TopicInfluenceClient(lambda _payload: _response(request)).estimate(request)
+    result = TopicInfluenceClient(lambda _payload: _response(request), lease_timeout_seconds=17).estimate(request)
 
     assert result.payload["artifact_sha256"] == _response(request)["artifact_sha256"]
     assert len(result.payload["influences"]) == 8
+
+
+def test_artifact_digest_covers_producer_supplied_raw_bytes() -> None:
+    """Admission hashes exact producer bytes rather than reserializing floats."""
+    request = _request()
+    first = _response(request)
+    differently_formatted = json.dumps(_artifact(request), indent=2).encode()
+    second = {
+        "artifact_sha256": hashlib.sha256(differently_formatted).hexdigest(),
+        "artifact_base64": base64.b64encode(differently_formatted).decode("ascii"),
+    }
+
+    assert TopicInfluenceClient(lambda _payload: first, lease_timeout_seconds=17).estimate(request)
+    assert TopicInfluenceClient(lambda _payload: second, lease_timeout_seconds=17).estimate(request)
 
 
 @pytest.mark.parametrize("mutation", ["request", "digest", "partial", "nonfinite"])
 def test_client_rejects_mixed_or_incomplete_results(mutation: str) -> None:
     """No mismatched, partial, or non-finite producer row reaches persistence."""
     request = _request()
-    response = copy.deepcopy(_response(request))
+    artifact = copy.deepcopy(_artifact(request))
+    response = _response(request, artifact)
     if mutation == "request":
-        response["request_sha256"] = "e" * 64
+        artifact["request_sha256"] = "e" * 64
+        response = _response(request, artifact)
     elif mutation == "digest":
         response["artifact_sha256"] = "e" * 64
     elif mutation == "partial":
-        response["influences"].pop()
-        response["artifact_sha256"] = canonical_sha256(
-            {key: value for key, value in response.items() if key != "artifact_sha256"}
-        )
+        artifact["influences"].pop()
+        response = _response(request, artifact)
     else:
-        response["influences"][0]["influence_value"] = float("nan")
-        response["artifact_sha256"] = canonical_sha256(
-            {key: value for key, value in response.items() if key != "artifact_sha256"}
-        )
+        artifact["influences"][0]["influence_value"] = "not-finite"
+        response = _response(request, artifact)
 
     with pytest.raises(TopicInfluenceInvalidResponse):
-        TopicInfluenceClient(lambda _payload: response).estimate(request)
+        TopicInfluenceClient(lambda _payload: response, lease_timeout_seconds=17).estimate(request)
 
 
 def test_request_rejects_incomplete_tepp_posterior_draws() -> None:
@@ -199,9 +222,41 @@ def test_http_client_attributes_transport_to_numerical_owner(monkeypatch) -> Non
         return _response(request)
 
     monkeypatch.setattr(topic_influence_client, "post_json", post)
-    HttpTopicInfluenceClient("https://synthetic.invalid", "").estimate(request)
+    HttpTopicInfluenceClient(
+        "https://synthetic.invalid", "", timeout=11.0, lease_timeout_seconds=17
+    ).estimate(request)
 
     assert captured["service_peer_name"] == "fast-mlsirm"
+
+
+def test_settings_preserve_declared_request_and_lease_contract(monkeypatch) -> None:
+    """Runtime timeouts come only from explicit positive deployment values."""
+    monkeypatch.setenv("TOPIC_INFLUENCE_REQUEST_TIMEOUT_SECONDS", "11")
+    monkeypatch.setenv("TOPIC_INFLUENCE_LEASE_TIMEOUT_SECONDS", "17")
+
+    settings = load_settings()
+
+    assert settings.topic_influence_request_timeout_seconds == 11
+    assert settings.topic_influence_lease_timeout_seconds == 17
+
+
+@pytest.mark.parametrize("lease_timeout", [0, -1, 1.5, True])
+def test_client_rejects_undeclared_or_invalid_lease(lease_timeout: object) -> None:
+    """A worker cannot invent or weaken the provider request lease."""
+    with pytest.raises(ValueError, match="positive integer"):
+        TopicInfluenceClient(lambda _payload: {}, lease_timeout_seconds=lease_timeout)
+
+
+@pytest.mark.parametrize("request_timeout", [0, -1, float("inf"), True])
+def test_http_client_rejects_invalid_request_timeout(request_timeout: object) -> None:
+    """The outbound request contract requires a positive finite timeout."""
+    with pytest.raises(ValueError, match="positive finite"):
+        HttpTopicInfluenceClient(
+            "https://synthetic.invalid",
+            "",
+            timeout=request_timeout,
+            lease_timeout_seconds=17,
+        )
 
 
 def test_worker_persists_one_valid_result_without_local_math(monkeypatch) -> None:
@@ -209,7 +264,7 @@ def test_worker_persists_one_valid_result_without_local_math(monkeypatch) -> Non
     request = _request()
     persisted: list[tuple[str, str]] = []
 
-    async def claim(_pool):
+    async def claim(_pool, _lease_seconds):
         return "model-1", request
 
     async def persist(_pool, run_id, accepted_request, result):
@@ -221,7 +276,7 @@ def test_worker_persists_one_valid_result_without_local_math(monkeypatch) -> Non
 
     worked = asyncio.run(
         topic_influence_worker.process_topic_influence_job(
-            object(), TopicInfluenceClient(lambda _payload: _response(request))
+            object(), TopicInfluenceClient(lambda _payload: _response(request), lease_timeout_seconds=17)
         )
     )
 
@@ -234,7 +289,7 @@ def test_worker_records_invalid_result_without_persisting(monkeypatch) -> None:
     request = _request()
     failures: list[tuple[str, str]] = []
 
-    async def claim(_pool):
+    async def claim(_pool, _lease_seconds):
         return "model-1", request
 
     async def fail(_pool, run_id, code):
@@ -249,7 +304,7 @@ def test_worker_records_invalid_result_without_persisting(monkeypatch) -> None:
 
     worked = asyncio.run(
         topic_influence_worker.process_topic_influence_job(
-            object(), TopicInfluenceClient(lambda _payload: {})
+            object(), TopicInfluenceClient(lambda _payload: {}, lease_timeout_seconds=17)
         )
     )
 
@@ -262,7 +317,7 @@ def test_worker_distinguishes_unavailable_transport(monkeypatch) -> None:
     request = _request()
     failures: list[tuple[str, str]] = []
 
-    async def claim(_pool):
+    async def claim(_pool, _lease_seconds):
         return "model-1", request
 
     async def fail(_pool, run_id, code):
@@ -276,7 +331,7 @@ def test_worker_distinguishes_unavailable_transport(monkeypatch) -> None:
 
     asyncio.run(
         topic_influence_worker.process_topic_influence_job(
-            object(), TopicInfluenceClient(unavailable)
+            object(), TopicInfluenceClient(unavailable, lease_timeout_seconds=17)
         )
     )
 
@@ -288,7 +343,7 @@ def test_worker_uses_exact_remote_retry_delay(monkeypatch) -> None:
     request = _request()
     deferred: list[tuple[str, int]] = []
 
-    async def claim(_pool):
+    async def claim(_pool, _lease_seconds):
         return "model-1", request
 
     async def defer(_pool, run_id, seconds):
@@ -302,18 +357,53 @@ def test_worker_uses_exact_remote_retry_delay(monkeypatch) -> None:
 
     asyncio.run(
         topic_influence_worker.process_topic_influence_job(
-            object(), TopicInfluenceClient(unavailable)
+            object(), TopicInfluenceClient(unavailable, lease_timeout_seconds=17)
         )
     )
 
     assert deferred == [("model-1", 17)]
 
 
+def test_worker_releases_changed_input_for_a_fresh_request(monkeypatch) -> None:
+    """A changed digest is re-leased instead of becoming operator-only failure."""
+    request = _request()
+    released: list[str] = []
+
+    async def claim(_pool, _lease_seconds):
+        return "model-1", request
+
+    async def changed(*_args):
+        raise topic_influence_worker.TopicInfluenceInputChanged("changed")
+
+    async def release(_pool, run_id):
+        released.append(run_id)
+
+    monkeypatch.setattr(topic_influence_worker, "claim_topic_influence_job", claim)
+    monkeypatch.setattr(topic_influence_worker, "persist_topic_influence_result", changed)
+    monkeypatch.setattr(topic_influence_worker, "_release_changed_job", release)
+
+    asyncio.run(
+        topic_influence_worker.process_topic_influence_job(
+            object(),
+            TopicInfluenceClient(
+                lambda _payload: _response(request), lease_timeout_seconds=17
+            ),
+        )
+    )
+
+    assert released == ["model-1"]
+
+
 def test_claim_scans_past_incomplete_evidence(monkeypatch) -> None:
     """Older incomplete requests cannot starve a later complete request."""
     request = _request()
+    statements: list[str] = []
 
     class Connection:
+        async def execute(self, sql, *_args):
+            statements.append(sql)
+            return "UPDATE 1"
+
         async def fetch(self, sql):
             assert "limit 10" not in sql.lower()
             assert "not_before <= clock_timestamp()" in sql
@@ -325,7 +415,7 @@ def test_claim_scans_past_incomplete_evidence(monkeypatch) -> None:
         def transaction(self):
             return _async_context(self)
 
-        async def fetchval(self, _sql, run_id, _digest):
+        async def fetchval(self, _sql, run_id, _digest, _lease_seconds):
             return run_id
 
     class Pool:
@@ -339,9 +429,11 @@ def test_claim_scans_past_incomplete_evidence(monkeypatch) -> None:
 
     monkeypatch.setattr(topic_influence_worker, "load_topic_influence_request", load)
 
-    claimed = asyncio.run(topic_influence_worker.claim_topic_influence_job(Pool()))
+    claimed = asyncio.run(topic_influence_worker.claim_topic_influence_job(Pool(), 17))
 
     assert claimed == ("complete", request)
+    assert any("lease_expires_at <= clock_timestamp()" in sql for sql in statements)
+    assert sum("awaiting_evidence" in sql for sql in statements) == 11
 
 
 def test_loader_requires_receipt_bound_complete_tepp_evidence() -> None:
@@ -408,7 +500,7 @@ def test_loader_requires_receipt_bound_complete_tepp_evidence() -> None:
 def test_persistence_rechecks_digest_and_writes_every_validated_row(monkeypatch) -> None:
     """The short transaction stores the run, all rows, and terminal lease."""
     request = _request()
-    result = TopicInfluenceClient(lambda _payload: _response(request)).estimate(request)
+    result = TopicInfluenceClient(lambda _payload: _response(request), lease_timeout_seconds=17).estimate(request)
 
     class Connection:
         def __init__(self):

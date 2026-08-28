@@ -60,6 +60,8 @@ def test_worker_process_owns_all_configured_durable_consumers(monkeypatch) -> No
         tepp_api_key="",
         topic_influence_transport_url="http://measurement.test",
         topic_influence_api_key="synthetic-token",
+        topic_influence_request_timeout_seconds=11,
+        topic_influence_lease_timeout_seconds=17,
         orchestrator_answer_timeout_seconds=570.0,
     )
 

@@ -8,6 +8,8 @@ defined by ADR 0210.
 from __future__ import annotations
 
 import hashlib
+import base64
+import binascii
 import json
 import math
 import re
@@ -33,7 +35,7 @@ class TopicInfluenceInvalidResponse(ValueError):
 
 
 def canonical_sha256(value: object) -> str:
-    """Hash one JSON-compatible contract value deterministically."""
+    """Hash one LineageWeave-owned JSON request identity deterministically."""
     payload = json.dumps(
         value, ensure_ascii=False, separators=(",", ":"), sort_keys=True
     ).encode("utf-8")
@@ -212,7 +214,6 @@ def validate_topic_influence_result(
         "membership_fingerprint_sha256",
         "producer_version",
         "code_revision",
-        "artifact_sha256",
         "compute_backend_code",
         "precision_code",
         "posterior_draw_coverage",
@@ -221,8 +222,22 @@ def validate_topic_influence_result(
         "parity_status_code",
         "influences",
     }
-    if not isinstance(response, dict) or set(response) != required:
+    if not isinstance(response, dict) or set(response) != {"artifact_sha256", "artifact_base64"}:
         raise TopicInfluenceInvalidResponse("topic influence result shape is invalid")
+    artifact_sha256 = response["artifact_sha256"]
+    encoded = response["artifact_base64"]
+    if not _SHA256.fullmatch(str(artifact_sha256)) or not isinstance(encoded, str):
+        raise TopicInfluenceInvalidResponse("topic influence artifact envelope is invalid")
+    try:
+        artifact_bytes = base64.b64decode(encoded, validate=True)
+        decoded = json.loads(artifact_bytes)
+    except (binascii.Error, UnicodeDecodeError, json.JSONDecodeError) as exc:
+        raise TopicInfluenceInvalidResponse("topic influence artifact bytes are invalid") from exc
+    if hashlib.sha256(artifact_bytes).hexdigest() != artifact_sha256:
+        raise TopicInfluenceInvalidResponse("topic influence artifact digest is invalid")
+    if not isinstance(decoded, dict) or set(decoded) != required:
+        raise TopicInfluenceInvalidResponse("topic influence result shape is invalid")
+    response = decoded
     tepp = request.payload["tepp_run"]
     if (
         response["schema_version"] != RESULT_SCHEMA_VERSION
@@ -243,10 +258,6 @@ def validate_topic_influence_result(
         or not response["producer_version"].strip()
     ):
         raise TopicInfluenceInvalidResponse("topic influence result binding is invalid")
-    material = {key: value for key, value in response.items() if key != "artifact_sha256"}
-    if response["artifact_sha256"] != canonical_sha256(material):
-        raise TopicInfluenceInvalidResponse("topic influence artifact digest is invalid")
-
     expected = {
         (observation["post_id"], membership["membership_id"], topic)
         for observation in request.payload["observations"]
@@ -289,7 +300,7 @@ def validate_topic_influence_result(
         actual.add(key)
     if actual != expected:
         raise TopicInfluenceInvalidResponse("topic influence result is incomplete")
-    return TopicInfluenceResult(response)
+    return TopicInfluenceResult({**response, "artifact_sha256": artifact_sha256})
 
 
 class TopicInfluenceClient:
@@ -300,8 +311,13 @@ class TopicInfluenceClient:
     def __init__(
         self,
         transport: Callable[[dict[str, Any]], object],
+        *,
+        lease_timeout_seconds: int,
     ) -> None:
+        if type(lease_timeout_seconds) is not int or lease_timeout_seconds <= 0:
+            raise ValueError("lease_timeout_seconds must be a positive integer")
         self._transport = transport
+        self.lease_timeout_seconds = lease_timeout_seconds
 
     def estimate(self, request: TopicInfluenceRequest) -> TopicInfluenceResult:
         """Return only a request-bound, complete result envelope."""
@@ -311,9 +327,22 @@ class TopicInfluenceClient:
 class HttpTopicInfluenceClient(TopicInfluenceClient):
     """Use the owner service's versioned topic-influence endpoint."""
 
-    def __init__(self, base_url: str, api_key: str, *, timeout: float = 600.0) -> None:
+    def __init__(
+        self,
+        base_url: str,
+        api_key: str,
+        *,
+        timeout: float,
+        lease_timeout_seconds: int,
+    ) -> None:
         if not base_url.strip():
             raise TopicInfluenceNotAvailable("fast-mlsirm topic influence is unavailable")
+        if (
+            type(timeout) not in {int, float}
+            or not math.isfinite(timeout)
+            or timeout <= 0
+        ):
+            raise ValueError("timeout must be a positive finite number")
         url = f"{base_url.rstrip('/')}/v1/topic-context-influence"
         super().__init__(
             lambda payload: post_json(
@@ -322,5 +351,6 @@ class HttpTopicInfluenceClient(TopicInfluenceClient):
                 headers={"authorization": f"Bearer {api_key}"} if api_key else {},
                 timeout=timeout,
                 service_peer_name="fast-mlsirm",
-            )
+            ),
+            lease_timeout_seconds=lease_timeout_seconds,
         )

@@ -155,6 +155,22 @@ Incomplete older evidence is scanned past rather than pinning the queue. An
 exact remote `Retry-After` requeues at that admitted instant; all other
 failures require an explicit operator requeue after their cause is corrected,
 so the worker never invents a retry interval.
+The deployment declares request and lease timeout seconds together, and the
+lease may not be shorter than the request timeout. A running row becomes
+claimable only after that recorded lease expiry. Incomplete input moves to a
+typed awaiting-evidence state and is woken only by a new TEPP terminal receipt,
+topic digest, coordinate, definition, or membership event. If evidence changes
+during computation, the stale lease is released immediately and the next claim
+rebuilds the request.
+
+The producer returns its result as base64-encoded raw JSON artifact bytes plus
+the SHA-256 of those exact bytes. LineageWeave verifies the bytes before UTF-8
+decoding or JSON parsing and never reserializes producer floats to verify that
+digest. The request and membership digests are LineageWeave-owned opaque
+identities which the producer echoes unchanged. This avoids inventing a local
+canonical-JSON dialect or depending on Python and Rust float formatting
+coincidence; adopting RFC 8785 remains unavailable until both deployed sides
+implement and pass the same official vectors.
 
 This delivery path does not make the feature available by itself. The
 configured owner endpoint must implement the domain-neutral continuous
