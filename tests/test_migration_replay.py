@@ -285,7 +285,7 @@ def test_topic_influence_job_migration_is_replay_safe_and_fail_closed() -> None:
     sql = (
         Path(__file__).resolve().parents[1]
         / "migrations"
-        / "0259_topic_influence_job.sql"
+        / "0260_topic_influence_job.sql"
     ).read_text(encoding="utf-8").casefold()
 
     assert "create table if not exists topic_influence_job" in sql
