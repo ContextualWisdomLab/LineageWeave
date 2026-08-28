@@ -434,6 +434,37 @@ def test_worker_releases_changed_input_for_a_fresh_request(monkeypatch) -> None:
     assert released == ["model-1"]
 
 
+def test_worker_discards_a_result_after_losing_its_exact_lease(monkeypatch) -> None:
+    """A stale result cannot relabel or mutate the replacement worker's lease."""
+    request = _request()
+    failures: list[str] = []
+
+    async def claim(_pool, _lease_seconds):
+        return "model-1", request, _LEASE_TOKEN
+
+    async def persist(*_args):
+        raise topic_influence_worker.TopicInfluenceLeaseLost("synthetic reclaim")
+
+    async def fail(*_args):
+        failures.append("failed")
+
+    monkeypatch.setattr(topic_influence_worker, "claim_topic_influence_job", claim)
+    monkeypatch.setattr(topic_influence_worker, "persist_topic_influence_result", persist)
+    monkeypatch.setattr(topic_influence_worker, "_fail_job", fail)
+
+    worked = asyncio.run(
+        topic_influence_worker.process_topic_influence_job(
+            object(),
+            TopicInfluenceClient(
+                lambda _payload: _response(request), lease_timeout_seconds=17
+            ),
+        )
+    )
+
+    assert worked is True
+    assert failures == []
+
+
 @pytest.mark.parametrize(
     "failure",
     [
@@ -471,7 +502,17 @@ def test_worker_retries_transient_claim_database_failure(
     assert calls == ["process", "sleep", "process"]
 
 
-def test_claim_scans_past_incomplete_evidence(monkeypatch) -> None:
+@pytest.mark.parametrize(
+    "incomplete_error",
+    [
+        ValueError("synthetic incomplete evidence"),
+        TypeError("synthetic invalid evidence type"),
+        KeyError("synthetic missing evidence field"),
+    ],
+)
+def test_claim_scans_past_incomplete_evidence(
+    monkeypatch, incomplete_error: Exception
+) -> None:
     """Older incomplete requests cannot starve a later complete request."""
     request = _request()
     statements: list[str] = []
@@ -503,7 +544,7 @@ def test_claim_scans_past_incomplete_evidence(monkeypatch) -> None:
 
     async def load(_conn, run_id):
         if run_id != "complete":
-            raise ValueError("synthetic incomplete evidence")
+            raise incomplete_error
         return request
 
     monkeypatch.setattr(topic_influence_worker, "load_topic_influence_request", load)
@@ -740,7 +781,27 @@ def test_every_running_transition_is_bound_to_the_exact_lease() -> None:
 
     assert len(statements) == 3
     assert all("lease_token = $2::uuid" in sql for sql, _args in statements)
+    assert all("request_sha256 = null" in sql for sql, _args in statements)
     assert all(args[1] == _LEASE_TOKEN for _sql, args in statements)
+
+
+def test_operator_requeue_clears_the_failed_request_identity() -> None:
+    """A fresh operator admission cannot retain the failed attempt digest."""
+    statements: list[str] = []
+
+    class Connection:
+        async def fetchval(self, sql, *_args):
+            statements.append(sql)
+            return "model-1"
+
+    class Pool:
+        def acquire(self):
+            return _async_context(Connection())
+
+    assert asyncio.run(
+        topic_influence_worker.requeue_topic_influence_job(Pool(), "model-1")
+    )
+    assert "request_sha256 = null" in statements[0]
 
 
 @asynccontextmanager

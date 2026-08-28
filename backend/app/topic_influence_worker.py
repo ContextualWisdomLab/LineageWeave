@@ -21,8 +21,14 @@ from lineageweave.topic_influence_client import (
 )
 
 _logger = logging.getLogger(__name__)
+
+
 class TopicInfluenceInputChanged(RuntimeError):
     """The source evidence changed after the external computation began."""
+
+
+class TopicInfluenceLeaseLost(RuntimeError):
+    """A different worker already owns or completed the claimed lease."""
 
 
 def _iso(value: object) -> str:
@@ -217,7 +223,7 @@ async def claim_topic_influence_job(
             run_id = str(candidate["topic_model_run_id"])
             try:
                 request = await load_topic_influence_request(conn, run_id)
-            except ValueError:
+            except (ValueError, TypeError, KeyError):
                 await conn.execute(
                     """
                     update topic_influence_job
@@ -279,7 +285,9 @@ async def persist_topic_influence_result(
                 or job["request_sha256"] != request.request_sha256
                 or job["lease_token"] != lease_token
             ):
-                raise ValueError("topic influence job lease no longer matches")
+                raise TopicInfluenceLeaseLost(
+                    "topic influence job lease no longer matches"
+                )
             try:
                 current = await load_topic_influence_request(conn, topic_model_run_id)
             except ValueError as exc:
@@ -365,7 +373,7 @@ async def _fail_job(
             update topic_influence_job
                set status_code = 'failed', failure_code = $3,
                    completed_at = clock_timestamp(), lease_expires_at = null,
-                   lease_token = null
+                   lease_token = null, request_sha256 = null
              where topic_model_run_id = $1 and status_code = 'running'
                and lease_token = $2::uuid
             """,
@@ -386,7 +394,8 @@ async def _defer_job(
                set status_code = 'queued', started_at = null, completed_at = null,
                    failure_code = null,
                    not_before = clock_timestamp() + make_interval(secs => $3),
-                   lease_expires_at = null, lease_token = null
+                   lease_expires_at = null, lease_token = null,
+                   request_sha256 = null
              where topic_model_run_id = $1 and status_code = 'running'
                and lease_token = $2::uuid
             """,
@@ -404,7 +413,8 @@ async def requeue_topic_influence_job(pool: asyncpg.Pool, run_id: str) -> bool:
             update topic_influence_job
                set status_code = 'queued', started_at = null, completed_at = null,
                    failure_code = null, not_before = clock_timestamp(),
-                   lease_expires_at = null, lease_token = null
+                   lease_expires_at = null, lease_token = null,
+                   request_sha256 = null
              where topic_model_run_id = $1 and status_code = 'failed'
             returning topic_model_run_id
             """,
@@ -450,6 +460,8 @@ async def process_topic_influence_job(
         await _defer_job(pool, run_id, lease_token, exc.retry_after_seconds)
     except TopicInfluenceInputChanged:
         await _release_changed_job(pool, run_id, lease_token)
+    except TopicInfluenceLeaseLost:
+        _logger.info("Topic influence lease changed before result persistence")
     except (TopicInfluenceNotAvailable, HttpClientError, OSError, TimeoutError):
         await _fail_job(pool, run_id, lease_token, "producer_unavailable")
     except TopicInfluenceInvalidResponse:
