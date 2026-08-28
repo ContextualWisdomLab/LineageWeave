@@ -45,8 +45,8 @@ describe("OperationsDashboardView", () => {
     const onRetry = vi.fn();
     render(<OperationsDashboardView data={{ ...data, failed_analysis_count: 2, cases: [] }} onOpenPost={() => undefined} onRetry={onRetry} />);
     expect(screen.getByText("분석 실패").nextElementSibling).toHaveTextContent("2");
-    expect(screen.getByRole("alert")).toHaveTextContent("재처리한 뒤 근거 누락 여부를 다시 확인하세요");
-    await userEvent.click(screen.getByRole("button", { name: "실패 건 다시 처리" }));
+    expect(screen.getByRole("alert")).toHaveTextContent("최신 분석 상태를 다시 확인하세요");
+    await userEvent.click(screen.getByRole("button", { name: "최신 상태 확인" }));
     expect(onRetry).toHaveBeenCalledTimes(1);
     expect(screen.queryByRole("region", { name: /Unavailable/ })).not.toBeInTheDocument();
   });

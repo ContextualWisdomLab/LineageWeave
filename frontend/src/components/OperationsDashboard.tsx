@@ -123,9 +123,9 @@ export function OperationsDashboardView({ data, externalOnly = false, onOpenPost
       {data.failed_analysis_count > 0 ? (
         <StatusNotice
           kind="retry"
-          message={`분석 결과 ${data.failed_analysis_count}건을 사용할 수 없습니다.`}
-          nextAction="분석 실패 건을 재처리한 뒤 근거 누락 여부를 다시 확인하세요."
-          retryLabel="실패 건 다시 처리"
+          message="분석 결과를 사용할 수 없습니다."
+          nextAction="같은 기간의 최신 분석 상태를 다시 확인하세요."
+          retryLabel="최신 상태 확인"
           onRetry={onRetry}
         />
       ) : null}

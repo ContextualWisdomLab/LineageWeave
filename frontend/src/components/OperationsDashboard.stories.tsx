@@ -50,7 +50,7 @@ export const AnalysisFailed: Story = {
     onRetry: () => undefined,
   },
   play: async ({ canvasElement }) => {
-    await expect(within(canvasElement).getByRole("alert")).toHaveTextContent("재처리한 뒤 근거 누락 여부를 다시 확인하세요");
+    await expect(within(canvasElement).getByRole("alert")).toHaveTextContent("최신 분석 상태를 다시 확인하세요");
   },
 };
 
