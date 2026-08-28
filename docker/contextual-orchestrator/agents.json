@@ -3,7 +3,6 @@
     {
       "id": "multimodal_reasoning_agent",
       "model": "",
-      "provider_name": "configured_gateway",
       "provider_protocol": "auto",
       "base_url": "https://integrate.api.nvidia.com/v1",
       "credential_key": "LLM_GATEWAY_API_KEY",
@@ -13,8 +12,7 @@
         "planning",
         "verification",
         "extraction",
-        "vision",
-        "bootstrap_seed"
+        "vision"
       ],
       "priority": 1
     }

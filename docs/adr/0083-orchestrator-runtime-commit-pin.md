@@ -15,7 +15,7 @@ multi-agent.
 ## Decision
 
 `docker/contextual-orchestrator/Dockerfile` pins the downloaded archive to
-commit `b716ddd63d8cba91536ddc2f4d976a5f2612f2ab` from upstream PR #868. The pin remains explicit
+commit `88873d8c6f3b8a5a57915e9f4c167ece92fe9ca2`. The pin remains explicit
 and immutable until the reviewed upstream change is superseded; it is not a
 moving `main` reference and it is not a LineageWeave monkey patch.
 
@@ -35,10 +35,6 @@ The runtime contract is:
   successful empty semantic result.
 - An empty seed model is expanded from configured provider discovery endpoints;
   provider-declared embedding rows enter the embedding pool but never a chat role.
-- The blank bootstrap seed identifies the allowlisted gateway as
-  `configured_gateway`; authenticated catalog discovery replaces that seed with
-  provider-declared agents and then disables the seed. LineageWeave never orders
-  or selects models by name.
 - Runtime discovery activates provider-declared chat and embedding capabilities.
   LineageWeave does not configure or infer an embedding provider/model pair.
 - A batch embedding request may omit `model`; contextual-orchestrator selects

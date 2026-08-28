@@ -21,6 +21,11 @@
 > content; it is contradictory evidence, not acceptance. Final authenticated
 > desktop/mobile screenshots, asynchronous worker proof, and k6 evidence must
 > be rebuilt from the repaired exact head after its hosted checks complete.
+> Authenticated gateway discovery remains an upstream blocker: the reviewed
+> contextual-orchestrator PR #868 candidate omits the required Rust token-counter
+> crate and therefore cannot build the canonical image. This branch retains the
+> prior immutable runtime pin and fails closed until the owner publishes one
+> coherent protected revision containing both contracts.
 
 ## Operations Dashboard PRD/TRD traceability
 
