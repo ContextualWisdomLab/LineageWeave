@@ -18,6 +18,7 @@ from contextual_orchestrator.orchestrator import (
     TaskOrchestrator,
     load_agents,
 )
+from contextual_orchestrator.server import _run_with_routing_endpoint
 from start import _configured_agents
 
 
@@ -25,7 +26,7 @@ def main() -> None:
     """Prove wrapper output expands into a same-origin concrete serving pool."""
     gateway_origin = "https://gateway.synthetic.example/v1"
     configured = _configured_agents(
-        {"agents": [{"id": "configured_gateway_seed", "model": "", "tags": []}]},
+        json.loads(Path("/app/agents.json").read_text(encoding="utf-8")),
         gateway_origin,
     )
     with TemporaryDirectory() as directory:
@@ -79,6 +80,21 @@ def main() -> None:
     assert len(active_gateway) == 1
     assert active_gateway[0].model == "catalog-chat-model"
     assert all(agent.model for agent in orchestrator.agents)
+    session_metadata = {"session_id": "synthetic-post-session"}
+
+    def selected_request() -> dict[str, str]:
+        candidates = orchestrator._ranked_agents("synthetic request", "worker")
+        assert [agent.id for agent in candidates] == [active_gateway[0].id]
+        return session_metadata
+
+    result = _run_with_routing_endpoint(
+        orchestrator,
+        {"endpoint": "https://gateway.synthetic.example"},
+        TaskOrchestrator.GATEWAY_DEFAULT_MODEL,
+        selected_request,
+    )
+    assert result == {"session_id": "synthetic-post-session"}
+    assert session_metadata == {"session_id": "synthetic-post-session"}
 
 
 if __name__ == "__main__":
