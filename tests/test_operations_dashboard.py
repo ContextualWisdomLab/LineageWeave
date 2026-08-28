@@ -334,6 +334,23 @@ async def test_dashboard_uses_abac_event_clock_and_persisted_evidence() -> None:
 
 
 @pytest.mark.anyio
+async def test_dashboard_counts_each_case_milestone_set_once() -> None:
+    """Multiple classification evidence rows cannot duplicate one case's events."""
+
+    class DuplicateClassificationConnection(_Connection):
+        async def fetch(self, query: str, *args: object) -> list[dict[str, object]]:
+            rows = await super().fetch(query, *args)
+            if "operations_case_classification classification" in query:
+                return [rows[0], {**rows[0], "evidence_post_id": "00000000-0000-0000-0000-000000000003"}]
+            return rows
+
+    result = await fetch_operations_dashboard(DuplicateClassificationConnection(), [])
+
+    assert result["total_event_count"] == 2
+    assert result["case_metrics"][0]["event_count"] == 2
+
+
+@pytest.mark.anyio
 async def test_dashboard_headline_excludes_hidden_milestone_evidence() -> None:
     """Headline and per-type counts share the evidence-visible milestone rows."""
 
