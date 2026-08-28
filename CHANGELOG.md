@@ -16,11 +16,15 @@ All notable changes to this project are documented here. Format follows
   worker binds the exact completed TEPP artifact, posterior draws, and
   business-unit/PU/team/person memberships into a content-addressed request,
   then persists only a complete, converged, identified, parity-passed
-  fast-mlsirm result. Missing owner transport, changed evidence, partial rows,
-  or digest mismatch remains unavailable without local scoring. Time-valid
-  membership slices remain distinct, older incomplete inputs cannot starve
-  ready work, and retries use only an exact remote delay or an explicit
-  operator requeue (ADR 0210).
+  fast-mlsirm result. Missing owner transport, partial rows, or digest mismatch
+  remains unavailable without local scoring. Time-valid membership slices
+  remain distinct; incomplete evidence enters an event-woken awaiting state;
+  expired work is reclaimed only from its declared request/lease contract; and
+  evidence changed during computation releases a fresh request automatically.
+  Producer-owned raw artifact bytes are SHA-256 verified before parsing, so
+  admission never depends on cross-language JSON reserialization. Other
+  retries use only an exact remote delay or an explicit operator requeue
+  (ADR 0210).
 
 - Evidence Operations now presents cited claim, rebid, handover, external,
   product, and Voice evidence with explicit unavailable states and source-open
