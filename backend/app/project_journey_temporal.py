@@ -17,17 +17,17 @@ class TemporalArtifactConnection(Protocol):
     async def fetchrow(self, query: str, *args: object) -> Any:
         """Read one binding row."""
 
-        ...
+        pass
 
     async def execute(self, query: str, *args: object) -> Any:
         """Execute one immutable persistence statement."""
 
-        ...
+        pass
 
     async def executemany(self, query: str, args: list[tuple[object, ...]]) -> Any:
         """Execute bounded normalized child inserts."""
 
-        ...
+        pass
 
 
 class TemporalArtifactAdmissionError(ValueError):
