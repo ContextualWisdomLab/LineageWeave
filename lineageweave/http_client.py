@@ -307,14 +307,12 @@ def post_json(
     """
     parsed_url = urlparse(url)
     hostname = parsed_url.hostname or url
-    selector = (
-        os.environ.get("ORCHESTRATOR_ROUTING_ENDPOINT", "")
-        if routing_endpoint is None
-        else routing_endpoint
-    )
-    if not isinstance(selector, str):
+    if routing_endpoint is not None and not isinstance(routing_endpoint, str):
         raise ValueError("routing_endpoint must be a string")
-    selector = selector.strip()
+    explicit_selector = routing_endpoint.strip() if routing_endpoint is not None else ""
+    selector = explicit_selector or os.environ.get(
+        "ORCHESTRATOR_ROUTING_ENDPOINT", ""
+    ).strip()
     request_payload = payload
     if (
         selector
