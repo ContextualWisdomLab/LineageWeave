@@ -838,7 +838,7 @@ const PROJECT_EXTRACTION_LABELS: Record<string, string> = {
 const PROJECT_PROVENANCE_LABELS: Record<string, string> = {
   "source_post.source_project_code": "Source project code",
   "source_post.source_project_name": "Source project name",
-  "post_project_mention.evidence_text": "Stored semantic evidence",
+  "post_project_mention.evidence_text": "Project evidence from this post",
 };
 
 function projectExtractionLabel(method: string): string {
