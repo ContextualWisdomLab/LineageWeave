@@ -878,7 +878,7 @@ A public post may send an existing semantic unit or image-region excerpt
 to self-hosted SearXNG, retrieve one cited public page under SSRF and
 redirect rejection, and ask contextual-orchestrator to judge in
 `mode="verify"`. Private posts fail closed without egress. Citations
-persist to `source_research_citation` (migration 0236, ADR 0248). The
+persist to `source_research_citation` (migration 0236, ADR 0268). The
 reader next action is to open the cited public resource and compare it
 with the highlighted passage or image detail. Global Ask still never
 fetches result URLs.
