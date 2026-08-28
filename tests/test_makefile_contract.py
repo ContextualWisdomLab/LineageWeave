@@ -10,7 +10,7 @@ def test_makefile_runtime_targets_use_locked_uv_environment() -> None:
         encoding="utf-8"
     )
 
-    assert "uv run --locked python scripts/smoke_test_oidc.py" in makefile
+    assert "uv run --locked --extra dev python scripts/smoke_test_oidc.py" in makefile
     assert (
         "uv run --locked --extra dev --extra backend "
         "python scripts/seed_demo_data.py"
