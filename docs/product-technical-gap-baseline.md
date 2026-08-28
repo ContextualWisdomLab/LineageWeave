@@ -1,5 +1,21 @@
 # Product & Technical Gap Baseline
 
+> Exact-head loop overlay: 2026-08-28 10:00 KST. Protected `main` was
+> `edf22ee39aee2a8481f9bda8fff59801821e79c2` (#773 similar-VOC coverage).
+> Open ready PRs: #772 (ask_time_axis coverage), #771 (fixtures/vision
+> coverage), #770 (project-history empty-state). Auto-merge squash is
+> enabled on all three; none has an independent APPROVE (only bot
+> COMMENT). Drafts #702, #679, #672, #667, #640 remain dirty against
+> `main`. #96 stays closed as a weaker duplicate of #91. Writes through
+> the Grok GitHub App now succeed (comment/close/auto-merge/update-branch)
+> despite empty `X-OAuth-Scopes`; git push is the remaining probe this
+> cycle. This overlay supersedes every older queue count below.
+>
+> Next buyer increment on this cycle: leftover-map explained leftover
+> share `e = R̂² / R²` (ADR 0266 / migration 0244 / v2.23.0) so
+> `e + s + x = 1` is buyer-auditable. Do not persist leftover-map
+> coordinates in this slice.
+
 > Exact-head loop overlay: 2026-08-28 KST. Protected `main` was
 > `e4f1049677cd7bc00c66b6343f06aa525ffc2627`; five PRs and nine issues were
 > open. PRs #702
