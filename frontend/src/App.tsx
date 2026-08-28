@@ -1987,6 +1987,7 @@ function PostDetailPopup({
   const [counterparties, setCounterparties] = useState<Counterparty[] | null>(null);
   const [researchCitations, setResearchCitations] = useState<SourceResearchCitation[]>([]);
   const [researchUnavailable, setResearchUnavailable] = useState<string | null>(null);
+  const [researchVisibility, setResearchVisibility] = useState<string | null>(null);
   const [researchError, setResearchError] = useState<string | null>(null);
   const [researching, setResearching] = useState(false);
   const researchRequestRef = useRef(0);
@@ -2091,6 +2092,7 @@ function PostDetailPopup({
       if (requestId !== researchRequestRef.current) return;
       setResearchCitations(result.citations);
       setResearchUnavailable(result.unavailable_reason ?? null);
+      setResearchVisibility(result.visibility_code);
     } catch {
       if (requestId !== researchRequestRef.current) return;
       setResearchError(t("Public research could not be completed. Narrow the evidence and try again."));
@@ -2114,6 +2116,7 @@ function PostDetailPopup({
     setCounterparties(null);
     setResearchCitations([]);
     setResearchUnavailable(null);
+    setResearchVisibility(null);
     setResearchError(null);
     setResearching(false);
     const researchRequestId = ++researchRequestRef.current;
@@ -2181,10 +2184,12 @@ function PostDetailPopup({
         if (researchRequestId !== researchRequestRef.current) return;
         setResearchCitations(result.citations);
         setResearchUnavailable(result.unavailable_reason ?? null);
+        setResearchVisibility(result.visibility_code);
       })
       .catch(() => {
         if (researchRequestId !== researchRequestRef.current) return;
         setResearchUnavailable(t("No public research citations yet."));
+        setResearchVisibility(null);
       });
     fetchPostLineage(accessToken, postId).then(setLineage).catch(() => setLineage(null));
     fetchPostAffiliateTree(accessToken, postId)
@@ -2883,7 +2888,9 @@ function PostDetailPopup({
             <SourceResearchPanel
               citations={researchCitations}
               unavailableReason={researchUnavailable}
-              canResearch={canExtract}
+              canResearch={
+                canExtract && researchVisibility === "public" && researchUnavailable === null
+              }
               researching={researching}
               error={researchError}
               onResearch={handleResearchSources}

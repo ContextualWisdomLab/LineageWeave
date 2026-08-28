@@ -162,6 +162,7 @@ describe("App, authenticated", () => {
     askImageCitation?: boolean;
     askDelivery?: boolean;
     lineageIsolationReason?: "comparison_candidates_available" | "no_comparison_group";
+    privateResearch?: boolean;
   }): ReturnType<typeof vi.fn> & { releaseMe: () => void; releasePostOne: () => void } {
     const statusLabel: Record<string, string> = {
       open: "Open",
@@ -1259,7 +1260,7 @@ describe("App, authenticated", () => {
             post_body: options?.postBody ?? "The full body text.",
             voc_type_code: "voc",
             voc_type_label: "Voice of Customer",
-            visibility_code: "public",
+            visibility_code: options?.privateResearch ? "private" : "public",
             visibility_label: "Public",
             project_evidence: [
               {
@@ -1764,7 +1765,9 @@ describe("App, authenticated", () => {
                     },
                   ]
                 : [],
-            unavailable_reason: null,
+            unavailable_reason: options?.privateResearch
+              ? "Public-source research is unavailable for this post."
+              : null,
           }),
         );
       }
@@ -3165,6 +3168,17 @@ describe("App, authenticated", () => {
     expect(await screen.findByRole("link", { name: "Synthetic cited source" })).toHaveAttribute(
       "href",
       "https://evidence.example/source",
+    );
+  });
+
+  it("keeps public-source research unavailable for a private post administrator", async () => {
+    stubBackend({ admin: true, privateResearch: true });
+    render(<App showLabPanels />);
+
+    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
+    expect(await screen.findByText("Public-source research is unavailable for this post.")).toBeVisible();
+    await waitFor(() =>
+      expect(screen.queryByRole("button", { name: "Research public sources" })).toBeNull(),
     );
   });
 
