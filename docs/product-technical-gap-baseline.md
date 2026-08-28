@@ -14,7 +14,6 @@
 > gate and the runtime evidence is collected. Canonical remote names were
 > rechecked as `ContextualWisdomLab/LineageWeave`, `RankWeave`, `ThreadWeave`,
 > lowercase `disksage`, `TEPP`, `contextual-orchestrator`, and `fast-mlsirm`.
-
 > Exact-head loop overlay: 2026-08-28 KST. Protected `main` was
 > `bbb191924e9881a5201f1ecf63c854d92992cc1c`; seven PRs and nine issues were
 > open. PR #763 was `b51d3bd8872b` and PR #762 was `e6ca33dba1b5`; both were

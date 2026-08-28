@@ -146,9 +146,9 @@ export function neighborhoodCsv(payload: OntologyNeighborhoodPayload): string {
     "truth_status_code",
     "recorded_at",
     "ontology_property_iri",
+    "evidence_post_id",
     "carrying_post_id",
     "derivation_evidence_post_id",
-    "evidence_post_id",
   ];
   const lines = [header.join(",")];
   for (const row of payload.exact_value_rows) {

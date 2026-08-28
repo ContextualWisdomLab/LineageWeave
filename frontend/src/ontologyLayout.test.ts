@@ -8,6 +8,7 @@ import {
 } from "./ontologyLayout";
 
 const POST_ID = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa1";
+const EVIDENCE_POST_ID = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa2";
 const PERSON_ID = "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbb1";
 const CORP_ID = "cccccccc-cccc-cccc-cccc-ccccccccccc1";
 const ONTOLOGY_NAMESPACE = "https://contextualwisdomlab.github.io/LineageWeave/ontology#";
@@ -126,7 +127,7 @@ describe("ontologyLayout", () => {
       truth_status_code: "truth_observed",
       recorded_at: "2026-01-10T12:00:00+00:00",
       provenance_reference: "Evidence-backed additional voice",
-      evidence_post_id: POST_ID,
+      evidence_post_id: EVIDENCE_POST_ID,
     };
     const row = {
       ...source.exact_value_rows[0],
@@ -136,7 +137,7 @@ describe("ontologyLayout", () => {
       target_node_id: assignment.voice_type_code,
       target_label: assignment.voice_type_label,
       target_type_code: "node_voice_type",
-      evidence_post_id: POST_ID,
+      evidence_post_id: EVIDENCE_POST_ID,
     };
     const withVoice = {
       ...source,
@@ -152,12 +153,12 @@ describe("ontologyLayout", () => {
 
     const csv = neighborhoodCsv(withVoice);
     expect(csv).toContain("Voice of Customer");
-    expect(csv.split("\n")[0]).toContain("evidence_post_id");
-    expect(csv.split("\n")[0]).toContain("carrying_post_id");
-    expect(csv.split("\n")[0]).toContain("derivation_evidence_post_id");
+    expect(csv.split("\n")[0]).toBe(
+      "edge_id,source_label,property_label,target_label,truth_status_code,recorded_at,ontology_property_iri,evidence_post_id,carrying_post_id,derivation_evidence_post_id",
+    );
     expect(csv).toContain(POST_ID);
     const voiceCsvRow = csv.split("\n").find((row) => row.includes("Voice of Customer"));
-    expect(voiceCsvRow).toContain(`${POST_ID},${POST_ID},${POST_ID}`);
+    expect(voiceCsvRow).toContain(`${EVIDENCE_POST_ID},${POST_ID},${EVIDENCE_POST_ID}`);
     expect(filterNeighborhood(withVoice, "customer")!.voice_assignments).toEqual([assignment]);
     expect(filterNeighborhood(withVoice, "missing")!.voice_assignments).toEqual([assignment]);
     expect(accumulateNeighborhoodPages(source, withVoice).voice_assignments).toEqual([assignment]);
