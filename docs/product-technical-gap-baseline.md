@@ -1,7 +1,7 @@
 # Product & Technical Gap Baseline
 
 > Exact-head loop overlay: 2026-08-28 KST. Protected `main` includes the
-> merged #773 coverage delivery. Eight PRs and nine issues are currently open.
+> merged #773 coverage delivery. Eleven PRs and nine issues are currently open.
 > The queue below was queried against each PR's current head and base; mutable
 > full commit IDs remain in the live GitHub evidence rather than this baseline.
 > No qualifying independent approval or protected merge is inferred from local
@@ -235,13 +235,16 @@ explicit unavailable state, not a reason to infer mappings from labels.
 | PR | Base | Draft | Review / Checks / merge state |
 |---:|---|---|---|
 | #640 | `main` | yes | dirty; Checks not terminal; no independent approval observed; auto-merge off |
-| #667 | `main` | yes | dirty; Checks not terminal; independent approval required; auto-merge off |
-| #672 | `main` | yes | dirty; Checks not terminal; independent approval required; auto-merge off |
-| #679 | `main` | yes | dirty; Checks not terminal; independent approval required; auto-merge off |
-| #702 | `main` | yes | dirty; `strix` failed; independent approval required; auto-merge off |
-| #770 | `main` | no | Checks not terminal; independent approval required; normal auto-merge enabled |
-| #771 | `main` | no | Checks not terminal; independent approval required; normal auto-merge enabled |
-| #772 | `main` | no | Checks not terminal; review required; normal auto-merge enabled |
+| #667 | `main` | yes | dirty; Checks not terminal; no independent approval observed; auto-merge off |
+| #672 | `main` | yes | dirty; Checks not terminal; no independent approval observed; auto-merge off |
+| #679 | `main` | yes | dirty; Checks not terminal; no independent approval observed; auto-merge off |
+| #702 | `main` | yes | dirty; an informational current-head review thread remains; no independent approval observed; auto-merge off |
+| #770 | `main` | no | Checks not terminal; no independent approval observed; normal auto-merge enabled |
+| #771 | `main` | no | Checks not terminal; no independent approval observed; normal auto-merge enabled |
+| #772 | `main` | no | Checks not terminal; no independent approval observed; normal auto-merge enabled |
+| #774 | `main` | no | Checks not terminal; no independent approval observed; normal auto-merge enabled |
+| #775 | `main` | no | ADR 0233 conflict under review; no independent approval; auto-merge disabled |
+| #777 | `feat/dashboard-case-metrics` | no | stacked on dirty draft #640; Checks not terminal; no independent approval observed; auto-merge off |
 
 > Full head OIDs, review-thread state, and check run URLs are volatile lifecycle
 > evidence and must be re-fetched immediately before any merge or release claim.
