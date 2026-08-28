@@ -3,13 +3,15 @@
 > Dashboard delivery snapshot: 2026-08-28. Protected `main` is
 > `edf22ee39aee2a8481f9bda8fff59801821e79c2`. Dashboard PR #640 exact
 > observed head is `5fd50962c43717dbd73c9ee73aa5bf106507118a`; this branch is not
-> protected-main release evidence. The queue contains ten open PRs: five
-> non-drafts are `BLOCKED` (#770, #771, #772, #774, and #775), and five drafts
-> are `DIRTY` against `main` (#640, #667, #672, #679, and #702). PR #776
+> protected-main release evidence. The queue contains eleven open PRs: five
+> non-drafts are `BLOCKED` (#770, #771, #772, #774, and #775), five drafts are
+> `DIRTY` against `main` (#640, #667, #672, #679, and #702), and repair PR #778
+> is an `UNSTABLE` candidate at exact head
+> `e3656642adb7e575f5581aad6888e792d7146a82` while hosted checks run. PR #776
 > restored the reviewed #742 product-relation slice as #640 commit `1640ce08`;
 > PR #777 then corrected its live integration assertion as `5fd50962`. A
 > five-second squash-order race had merged #711 into #640 before #716 reached
-> #711, so the present repair reapplies the exact #716 squash delta whose parent
+> #711, so candidate PR #778 reapplies the exact #716 squash delta whose parent
 > is the already-delivered #711 head while preserving #776/#777 and the newer
 > canonical Compose, worker, Voice-taxonomy, and product-relation contracts.
 > The earlier exact-head browser audit exposed the missing mobile navigation
