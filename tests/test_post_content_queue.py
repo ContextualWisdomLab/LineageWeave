@@ -44,6 +44,43 @@ def test_stream_is_a_wakeup_and_never_contains_a_body() -> None:
     assert source_body_sha256("body") != source_body_sha256("changed")
 
 
+def test_worker_outage_keeps_the_wakeup_transport_bounded() -> None:
+    """Producer traffic cannot grow the non-authoritative stream without limit."""
+    from backend.app.post_content_queue import publish_post_content_event
+
+    class Client:
+        def __init__(self) -> None:
+            self.entries: list[dict[str, str]] = []
+
+        async def xadd(
+            self,
+            _stream: str,
+            fields: dict[str, str],
+            *,
+            maxlen: int,
+            approximate: bool,
+        ) -> str:
+            assert maxlen == 1000
+            assert approximate is True
+            self.entries.append(fields)
+            self.entries = self.entries[-maxlen:]
+            return f"1-{len(self.entries)}"
+
+    client = Client()
+
+    async def publish_corpus() -> None:
+        for index in range(1005):
+            await publish_post_content_event(
+                client,
+                post_id=f"00000000-0000-0000-0000-{index:012d}",
+                source_body_digest="a" * 64,
+            )
+
+    asyncio.run(publish_corpus())
+    assert len(client.entries) == 1000
+    assert client.entries[0]["post_id"].endswith("000000000005")
+
+
 def test_bounded_backfill_is_idempotent_and_broker_loss_stays_recoverable(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -836,7 +873,16 @@ def test_recovery_keyset_reaches_later_pages_and_wraps() -> None:
         def __init__(self) -> None:
             self.published: list[str] = []
 
-        async def xadd(self, _stream: str, fields: dict[str, str]) -> str:
+        async def xadd(
+            self,
+            _stream: str,
+            fields: dict[str, str],
+            *,
+            maxlen: int,
+            approximate: bool,
+        ) -> str:
+            assert maxlen == 1000
+            assert approximate is True
             self.published.append(fields["post_id"])
             return str(len(self.published))
 

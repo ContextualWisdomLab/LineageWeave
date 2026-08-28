@@ -35,8 +35,10 @@ placed in a stream message.
    Recovery walks the ready ledger with the deterministic
    `(queued_at, post_id)` keyset and wraps only after reaching the end. It must
    not repeatedly publish only the first bounded page while later rows starve.
-   The worker trims the Valkey stream through its consumed cursor; producers
-   never trim unread wake-ups by an approximate length limit.
+   The worker trims the Valkey stream through its consumed cursor. Producers
+   retain the existing approximate 1,000-entry bound so a worker outage cannot
+   grow the non-authoritative transport without limit; if that bound drops an
+   unread wake-up, fair ledger recovery republishes its row on a later page.
    This cursor contract has exactly one process owner. The worker process must
    acquire its PostgreSQL session advisory lease before starting any durable
    consumer; a second replica fails closed before it can read or trim the
@@ -96,10 +98,12 @@ unbounded historical stream before processing current work.
 Within one worker lifetime, the recovery keyset cursor advances across every
 ready queued or stale-running lease and wraps at the end. This is publication
 reachability, not a change to retry order, attempt budgets, or provider
-admission. Wake-up retention is consumption-bound: a successful batch advances
-the consumer cursor and then removes entries through that cursor. A producer
-cannot erase an unread later-page wake-up merely because the stream exceeded a
-fixed approximate length.
+admission. Wake-up cleanup is consumption-bound while the worker is available:
+a successful batch advances the consumer cursor and then removes entries
+through that cursor. During an outage, the pre-existing producer bound limits
+transport growth. PostgreSQL remains authoritative, so a wake-up removed by
+that bound is recovered by the advancing keyset rather than being lost behind
+page one.
 
 Lease recovery also fences completion by `attempt_count`. A worker whose
 15-minute lease was reclaimed may finish after the replacement worker has

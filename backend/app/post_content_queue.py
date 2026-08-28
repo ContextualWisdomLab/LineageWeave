@@ -153,6 +153,8 @@ async def publish_post_content_event(
                     post_id=post_id,
                     source_body_digest=source_body_digest,
                 ),
+                maxlen=1000,
+                approximate=True,
             )
     except redis.RedisError:
         return None
