@@ -148,6 +148,17 @@ def _prior_paths(
                 "parent_event_id": parent,
                 "child_event_id": child,
                 "fused_score": _score(row["fused_score"]),
+                "temporal_evidence": (
+                    {
+                        "truth_status_code": (
+                            "observed" if row.get("temporal_observed") else "inferred"
+                        ),
+                        "interval_relations": list(row.get("allen_relations") or ()),
+                        "artifact_digest_sha256": row.get("artifact_digest_sha256"),
+                    }
+                    if row.get("artifact_digest_sha256") is not None
+                    else None
+                ),
             }
         )
     for edges in reverse_edges.values():
