@@ -1,4 +1,4 @@
-# ADR 0083: Pin the runtime to the reviewed contextual-orchestrator commit
+# ADR 0083: Pin the runtime to an exact contextual-orchestrator candidate
 
 - Status: Accepted
 - Date: 2026-08-20
@@ -15,9 +15,11 @@ multi-agent.
 ## Decision
 
 `docker/contextual-orchestrator/Dockerfile` pins the downloaded archive to
-commit `88873d8c6f3b8a5a57915e9f4c167ece92fe9ca2`. The pin remains explicit
-and immutable until the reviewed upstream change is superseded; it is not a
-moving `main` reference and it is not a LineageWeave monkey patch.
+candidate commit `cb4d5bca47481a2a0f27eb078287167884a085a3` from upstream PR #902. The pin remains explicit
+and immutable for isolated acceptance; it is not protected-main release
+evidence, a moving `main` reference, or a LineageWeave monkey patch. Promotion
+remains blocked until the stacked upstream PR and its base satisfy protected
+review and checks.
 
 The runtime contract is:
 
@@ -48,7 +50,7 @@ The runtime contract is:
 
 ## Consequences
 
-- Local Compose runtime and the reviewed upstream PR use the same orchestrator
+- Isolated Compose acceptance and upstream PR #902 use the same exact candidate
   implementation.
 - Rebuilding the image is required after the upstream pin changes.
 - Protected-branch review and merge remain external gates; this pin does not
