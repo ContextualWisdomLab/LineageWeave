@@ -755,8 +755,9 @@ def test_persistence_rechecks_digest_and_writes_every_validated_row(monkeypatch)
     assert any("lease_token = $2::uuid" in sql for sql in connection.executed)
 
 
+@pytest.mark.parametrize("error_type", [ValueError, TypeError, KeyError])
 def test_persistence_treats_newly_incomplete_evidence_as_changed_input(
-    monkeypatch,
+    monkeypatch, error_type: type[Exception],
 ) -> None:
     """Evidence withdrawn during compute must return to automatic admission."""
     request = _request()
@@ -779,7 +780,7 @@ def test_persistence_treats_newly_incomplete_evidence_as_changed_input(
             return _async_context(Connection())
 
     async def incomplete(_conn, _run_id):
-        raise ValueError("synthetic evidence withdrawn")
+        raise error_type("synthetic evidence withdrawn")
 
     monkeypatch.setattr(
         topic_influence_worker, "load_topic_influence_request", incomplete

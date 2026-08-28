@@ -299,7 +299,7 @@ async def persist_topic_influence_result(
                 )
             try:
                 current = await load_topic_influence_request(conn, topic_model_run_id)
-            except ValueError as exc:
+            except (ValueError, TypeError, KeyError) as exc:
                 raise TopicInfluenceInputChanged(
                     "topic influence evidence became incomplete during computation"
                 ) from exc
