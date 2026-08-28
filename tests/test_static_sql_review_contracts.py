@@ -19,6 +19,7 @@ SQL_REVIEW_PATHS = (
     "backend/app/entity_relationship_ingestion.py",
     "backend/app/knowledge_graph.py",
     "backend/app/main.py",
+    "backend/app/post_content_queue.py",
     "backend/app/report_ingestion.py",
     "lineageweave/synthetic_seed_cleanup.py",
     "scripts/backfill_post_content.py",
@@ -28,7 +29,7 @@ SQL_REVIEW_PATHS = (
 )
 ASYNC_STATEMENT_METHODS = {"execute", "fetch", "fetchrow", "fetchval"}
 SQL_REVIEW_RULE = "python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli"
-EXPECTED_SQL_SUPPRESSION_COUNT = 36
+EXPECTED_SQL_SUPPRESSION_COUNT = 39
 
 
 @pytest.mark.parametrize("relative_path", SQL_REVIEW_PATHS)

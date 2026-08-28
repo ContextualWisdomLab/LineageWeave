@@ -158,13 +158,11 @@ def start_kind_rejection(run_kind_code: str) -> AnalysisRunStartError | None:
     if run_kind_code == _REPORT_KIND:
         return AnalysisRunStartError(
             422,
-            "Rebuild the period report from the reports panel. "
-            "This start path does not invent a measurement.",
+            "기간 보고서 화면에서 다시 계산하세요.",
         )
     return AnalysisRunStartError(
         422,
-        "Start reconstructs a Pending lineage run or submits TEPP. "
-        "This start path does not invent a measurement.",
+        "지원되는 분석 유형을 선택한 뒤 다시 시작하세요.",
     )
 
 

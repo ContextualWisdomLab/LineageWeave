@@ -27,10 +27,12 @@ must not be cited as protected organization evidence.
    endpoint leaves the SDK unconfigured so a later operator value can still
    enable export.
 2. Every contextual-orchestrator POST carries the existing
-   `lineageweave_post_session_id` as `X-LineageWeave-Session-Id`. The
-   orchestrator binds it to the request context and adds it to provider spans,
-   so chat, Responses, structured output, VISION, and embedding work for one
-   post can be investigated together.
+   `lineageweave_post_session_id` as both the top-level payload `session_id`
+   and `X-LineageWeave-Session-Id`. The orchestrator binds it to the request
+   context and adds it to provider spans, so chat, Responses, structured
+   output, VISION, and embedding work for one post can be investigated
+   together. The post identifier remains authorized provenance metadata and
+   is not copied into the public response.
 3. LineageWeave emits bounded HTTP and Valkey operation spans. HTTP client
    failures follow the OpenTelemetry HTTP semantic conventions: error
    responses and invalid response bodies end the client span with an error.

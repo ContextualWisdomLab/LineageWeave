@@ -21,6 +21,14 @@ documents unless an ADR explicitly promotes a decision from them --
 to its governing ADR. Update research notes as literature changes; never
 use them to introduce an untracked architecture decision.
 
+Customer-facing copy must help the reader take the next product action. Do
+not expose implementation boundaries, provider or package names, schema
+versions, internal status or reason codes, environment variables, transport
+setup, hashes, or developer remediation instructions as explanatory UI copy.
+Keep that evidence in governed audit and administrator surfaces and logs;
+translate a customer-visible state into the source, decision, retry, or
+administrator action the reader can actually take.
+
 ## Hard rule: no real data in repository artifacts
 
 This repository ships **synthetic fixtures only** (`lineageweave/fixtures.py`)
@@ -236,6 +244,20 @@ vector degrades that pair back to difflib; it never fabricates a score.
   decision first.
 
 ## Tests
+
+### Isolated Compose lifecycle
+
+- The canonical standalone Compose project is `lineageweave` (ADR 0224).
+- A test, review, or stacked-PR environment may use an explicit isolated
+  project name only while that environment is needed. Once its stated test or
+  review objective has succeeded, preserve the relevant evidence and port any
+  required behavior into the canonical Compose contract, then run `docker
+  compose -p <exact-project> down` so its containers and network do not become
+  a second production-looking stack.
+- Never use `down -v` or otherwise delete named volumes without separate,
+  explicit authorization. Resolve the exact project from Compose labels before
+  cleanup; never target a glob, directory root, or another agent's active
+  environment.
 
 ```bash
 # backend extra compiles fast-mlsirm's PyO3 core -- needs rustc 1.97.1

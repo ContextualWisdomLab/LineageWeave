@@ -96,9 +96,11 @@ import { CutoffKnownBody } from "./components/CutoffKnownBody";
 import { LineageEntityPicker } from "./components/LineageEntityPicker";
 import { PopupCloseButton } from "./components/PopupCloseButton";
 import { TeppAcceptedReceipt } from "./components/TeppAcceptedReceipt";
-import { chatEvidenceKindLabel } from "./evidenceKindLabels";
 import { WorkspaceNav, type WorkspaceDestination } from "./components/WorkspaceNav";
 import { OccupationRatingProfile } from "./components/OccupationRatingProfile";
+import { AskAnswerTimeline } from "./components/AskAnswerTimeline";
+import { ProductEvidenceList } from "./components/ProductEvidenceList";
+import { StatusNotice } from "./components/StatusNotice";
 import { initialWorkspaceDestination } from "./gnbChrome";
 import { PostBody } from "./PostBody";
 import { decodeHtmlEntities } from "./postBodyDisplay";
@@ -2337,6 +2339,13 @@ function PostDetailPopup({
                 </p>
               )}
             </section>
+            {post.product_evidence_status?.status_code === "complete" && post.product_evidence?.length ? (
+              <ProductEvidenceList products={post.product_evidence} onOpenPost={(evidencePostId) => onSelectPost?.(evidencePostId)} />
+            ) : post.product_evidence_status?.status_code === "complete" ? (
+              <StatusNotice kind="success" message={t("No product was identified in this post.")} nextAction={post.product_evidence_status.next_action} />
+            ) : (
+              <StatusNotice kind="unavailable" message={post.product_evidence_status?.status_code === "processing" ? t("Product evidence analysis is in progress.") : post.product_evidence_status?.status_code === "historical_unavailable" ? t("Historical product evidence is not available.") : t("Product evidence is not available yet.")} nextAction={post.product_evidence_status?.next_action ?? t("Refresh this post after product analysis is available.")} />
+            )}
             {(post.source_stage_code ||
               post.source_detail_state_code ||
               post.source_draft_code ||
@@ -4614,6 +4623,15 @@ interface CustomerEntityTreeNode {
   children: CustomerEntityTreeNode[];
 }
 
+/** Guides a reader from an unresolved source identifier to customer evidence. */
+export function CustomerLinkingGuidance() {
+  return (
+    <p className="workspace-destination-intro">
+      {t("Before linking a customer, compare the source identifier with the related posts and organization evidence.")}
+    </p>
+  );
+}
+
 // Live bug (2026-08-19): Customer Master's own entity list rendered every
 // corporate_entity as an independent top-level row, even though the API
 // already carries parent_entity_id and the codebase already knows how to
@@ -4858,6 +4876,7 @@ function CustomerMasterPanel({
       <p className="section-eyebrow">{t("Authorized customer scope")}</p>
       <h2 id="customer-master-heading">{t("Customer master")}</h2>
       <p className="workspace-destination-intro">{t("Customer entities available to this account.")}</p>
+      <CustomerLinkingGuidance />
       {error ? <p className="error">{error}</p> : null}
       {master === null && !error ? <p role="status">{t("Loading customer master...")}</p> : null}
       {master?.corporate_entities.length === 0 ? (
@@ -5047,6 +5066,7 @@ export function AskAgentPanel({
   const [question, setQuestion] = useState("");
   const [knowledgeCutoff, setKnowledgeCutoff] = useState("");
   const [answer, setAnswer] = useState<AskAgentResponse | null>(null);
+  const [answeredQuestion, setAnsweredQuestion] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [asking, setAsking] = useState(false);
   const [verifyExternal, setVerifyExternal] = useState(false);
@@ -5070,14 +5090,14 @@ export function AskAgentPanel({
     setAsking(true);
     setError(null);
     try {
-      setAnswer(
-        await askAgent(
+      const response = await askAgent(
           accessToken,
           normalized,
           verifyExternal,
           cutoff,
-        ),
-      );
+        );
+      setAnswer(response);
+      setAnsweredQuestion(normalized);
     } catch (err) {
       setAnswer(null);
       setError(orchestratorUnavailableMessage(err, t("Ask Agent")));
@@ -5128,7 +5148,13 @@ export function AskAgentPanel({
       {answer && (
         <section className="popup-section" aria-label={t("Answer")}>
           <h3>{t("Answer")}</h3>
-          {answer.answer_text ? <p>{answer.answer_text}</p> : null}
+          <AskAnswerTimeline
+            key={answeredQuestion}
+            question={answeredQuestion}
+            answer={answer}
+            onOpenEvidence={setEvidenceLayerPostId}
+            onOpenPost={onOpenPost}
+          />
           {answer.knowledge_cutoff ? (
             <aside className="ask-delivery" aria-label={t("Knowledge-cutoff grounding")}>
               <h4>{t("Knowledge-cutoff grounding")}</h4>
@@ -5145,7 +5171,6 @@ export function AskAgentPanel({
               ) : null}
             </aside>
           ) : null}
-          {answer.next_action ? <p className="post-meta">{t(answer.next_action)}</p> : null}
           <SurfaceBoundary>
             <PublicClaimVerification claims={answer.external_claims ?? []} />
           </SurfaceBoundary>
@@ -5163,61 +5188,6 @@ export function AskAgentPanel({
               <code>{answer.delivery.report.source_documents[0]?.resource_uri ?? "lineageweave://posts"}</code>
             </aside>
           ) : null}
-          {answer.cited_posts && answer.cited_posts.length > 0 && (
-            <>
-              <h4>{t("Cited posts")}</h4>
-              <ul className="related-post-list">
-                {answer.cited_posts.map((post) => (
-                  <li key={post.post_id}>
-                    <button className="post-list-item" onClick={() => onOpenPost(post.post_id)}>
-                      <strong>{post.post_title}</strong>
-                      {post.source_post_revision_id ? (
-                        <span className="post-meta">
-                          {t("Retained revision")}
-                          {post.evidence_available_at ? ` · ${post.evidence_available_at}` : ""}
-                          {post.live_changed_after_cutoff ? ` · ${t("Live source changed later")}` : ""}
-                        </span>
-                      ) : null}
-                    </button>
-                    {post.historical_body_unavailable ? (
-                      <p className="post-meta">{t("Historical body unavailable")}</p>
-                    ) : null}
-                    <button
-                      type="button"
-                      className="citation-chip"
-                      onClick={() => setEvidenceLayerPostId(post.post_id)}
-                    >
-                      {t("View evidence")}
-                    </button>
-                    {answer.cited_post_evidence?.find((item) => item.post_id === post.post_id)?.facts.length ? (
-                      <ul className="post-evidence-list" aria-label={t("Evidence facts")}>
-                        {answer.cited_post_evidence
-                          .find((item) => item.post_id === post.post_id)
-                          ?.facts.map((fact, index) => (
-                            <li key={`${fact.kind}:${fact.text}:${index}`}>
-                              <span>{chatEvidenceKindLabel(fact.kind)}</span>
-                              <span>{fact.text}</span>
-                            </li>
-                          ))}
-                      </ul>
-                    ) : null}
-                    {answer.cited_post_images
-                      ?.filter((image) => image.post_id === post.post_id)
-                      .map((image) => (
-                        <p
-                          key={`${image.post_id}:${image.unit_index}`}
-                          className="post-meta ask-agent-image-citation"
-                        >
-                          {t("Image evidence")}: {image.caption?.trim() ? image.caption : t("Untitled image")}
-                          {image.extracted_text ? ` — ${image.extracted_text}` : ""}
-                          {image.tags.length ? ` — ${t("Image tags")}: ${image.tags.join(", ")}` : ""}
-                        </p>
-                      ))}
-                  </li>
-                ))}
-              </ul>
-            </>
-          )}
           {answer.lineage_graph && answer.lineage_graph.nodes.length > 0 ? (
             <SurfaceBoundary>
               <LineageDag graph={answer.lineage_graph} onSelectPost={onOpenPost} />
@@ -5370,6 +5340,18 @@ export default function App({ showLabPanels = false }: { showLabPanels?: boolean
               }}
             />
             <OccupationRatingProfile accessToken={accessToken} />
+          </SurfaceBoundary>
+        ) : null}
+        {destination === "external" ? (
+          <SurfaceBoundary>
+            <OperationsDashboard
+              accessToken={accessToken}
+              externalOnly
+              onOpenPost={(postId) => {
+                setPostToOpen(postId);
+                setDestination("board");
+              }}
+            />
           </SurfaceBoundary>
         ) : null}
         {destination === "board" ? (

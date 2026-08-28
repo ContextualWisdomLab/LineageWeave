@@ -1,7 +1,7 @@
 # ADR 0210: TEPP temporal topics and fast-mlsirm context influence
 
 - Status: Accepted
-- Implementation maturity: producer-contract required; consumer projection not yet shipped
+- Implementation maturity: consumer projection candidate; accepted producer result unavailable
 - Date: 2026-08-25
 - Depends on: ADR 0132 (TEPP topic-lineage boundary), ADR 0206 (operations Dashboard)
 - Upstream authorities: TEPP ADR 0012; fast-mlsirm ADR 0002 and ADR 0007
@@ -87,7 +87,15 @@ The accepted TEPP result schema must include:
 
 LineageWeave verifies the exact snapshot and cutoff before persisting a 3NF
 projection. It does not inspect TEPP's private tables or reinterpret posterior
-coordinates.
+coordinates. `topic_model_run.coordinate_kind_code` fixes one representation
+for the run; `topic_post_coordinate` stores one finite value per run, post,
+topic, and posterior-draw ordinal, and the ordinal must belong to the run's
+declared draw set. Topic-lineage and context-membership evidence
+each references a normalized `provenance_assertion` whose canonical relation is
+`prov:wasDerivedFrom`; its SHA-256 remains an integrity field rather than a
+substitute for provenance. Import materializes that assertion through
+`lineageweave.prov_o.ProvGraph` so PROV-O hierarchy and qualified-relation
+implications remain the shared standard projection.
 
 TEPP protected main currently exposes `tepp.trsl_topic_lineage.v1`, a
 digest-bound CPU-`f64` artifact containing fitted forward sequence edges and
@@ -116,7 +124,7 @@ another dimension.
 
 ### LineageWeave consumer and persistence
 
-Use normalized objects such as `topic_model_run`, `topic_definition`,
+Use normalized objects `topic_model_run`, `topic_definition`,
 `topic_activity_interval`, `topic_lineage_relation`, `topic_post_coordinate`,
 `topic_context_membership`, `topic_influence_run`, and
 `topic_post_context_influence`. Large result tables are partitioned by tenant
@@ -128,6 +136,13 @@ ties, producer diagnostics, and provenance rather than computing or
 renormalizing scores. The frontend renders an exact-value table alongside the
 temporal topic view, uses text/pattern as well as color for topic state, and
 supports keyboard, touch, reduced motion, narrow viewports, and screen readers.
+
+The LineageWeave consumer projection is allowed to land before activation. In
+that state, it reports which exact producer contract is not persisted and
+returns no topic, influence, rank, or fallback value. An accepted result is
+readable only when its analysis-run scope is wholly authorized for the caller;
+filtering individual result rows after a broader fit is insufficient because
+the fitted value would still include hidden observations.
 
 ```mermaid
 sequenceDiagram

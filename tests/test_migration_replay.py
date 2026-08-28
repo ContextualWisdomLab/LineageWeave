@@ -134,6 +134,29 @@ def test_migrate_sh_replays_leftover_map_axis_migration_on_existing_volumes() ->
     assert int(migration_name[:4]) >= 12
 
 
+def test_migrate_sh_replays_leftover_map_explained_share_on_existing_volumes() -> None:
+    """migrate.sh's replay window covers ADR 0266's explained-share column.
+
+    Volumes created before leftover-map explained share shipped never get
+    leftover_map_explained_share unless migrate.sh replays 0244 on every
+    ``docker compose up``. GET /api/reports/{grouping}/{period} then 500s
+    on undefined_column the first time a period actually has leftover pairs.
+
+    ADR 0166's general four-digit filename boundary covers 0244 without a
+    per-migration allowlist entry. The column add is nullable and
+    idempotent so a second start does not invent a leftover score.
+    """
+    migration_name = "0244_report_leftover_map_explained_share.sql"
+    migration_path = Path(__file__).resolve().parents[1] / "migrations" / migration_name
+    assert migration_path.exists()
+    assert re.fullmatch(r"[0-9]{4}_.+\.sql", migration_name)
+    assert int(migration_name[:4]) >= 12
+    sql = migration_path.read_text(encoding="utf-8").casefold()
+    assert "add column if not exists leftover_map_explained_share" in sql
+    assert "add column if not exists leftover_map_unexplained_share" not in sql
+    assert "check (" not in sql
+
+
 def test_tenant_settings_migration_is_safe_to_replay() -> None:
     """The newest migration must survive migrate.sh's every-start replay."""
     sql = (
@@ -306,3 +329,17 @@ def test_global_ask_knowledge_cutoff_is_replay_safe() -> None:
     assert "knowledge_cutoff timestamptz" in sql
     assert "add column if not exists" in sql
     assert "data_type <> 'timestamp with time zone'" in sql
+
+
+def test_post_content_failure_validation_migration_is_replay_safe() -> None:
+    """The union-free validation migration replays without losing its constraint."""
+
+    sql = (
+        Path(__file__).resolve().parents[1]
+        / "migrations"
+        / "0256_post_content_failure_validation.sql"
+    ).read_text(encoding="utf-8")
+
+    assert sql.count("add column if not exists") == 2
+    assert "drop constraint if exists post_content_failure_validation_check" in sql
+    assert "failure_validation_code = 'operations_case_evidence_contract'" in sql

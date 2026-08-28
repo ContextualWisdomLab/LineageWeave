@@ -34,7 +34,7 @@ stays auditable from persisted `R`, `R̂`, `U`, `x`, and `s`.
 
 The unprotected-stack reconstructions for neighbouring leftover facts
 use 0183 for unexplained leftover share. The dashboard stack already
-uses **0232** for leftover-map explained leftover share (PR #728) and
+uses **0266** for leftover-map explained leftover share and
 **0222** for operations-case analysis input. This protected-main
 increment uses **0233** (migration **0233**) so it does not collide with
 GNB chrome (0183), ontology explorer (0184), leftover-map cross share
@@ -42,7 +42,7 @@ GNB chrome (0183), ontology explorer (0184), leftover-map cross share
 residual disclosure, leftover observed `Y` / expected `E`, leftover-map
 rank, two-axis leftover-map distance, leftover coverage, leftover-map
 axis share (0148), leftover interaction-map persistence, leftover-map
-explained leftover share (0232 on the dashboard stack), or
+explained leftover share (ADR 0266), or
 operations-case analysis input (0222 on that stack).
 
 ## Decision

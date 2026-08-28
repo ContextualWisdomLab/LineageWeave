@@ -23,7 +23,7 @@ from pyshacl import validate as shacl_validate
 from rdflib import Graph, Literal, Namespace, URIRef
 from rdflib.namespace import RDF, XSD
 
-from lineageweave.ontology import project_project_mention_rdf
+from lineageweave.ontology import project_product_relation_rdf, project_project_mention_rdf
 
 ROOT = Path(__file__).resolve().parents[1]
 KG_PATH = ROOT / "docs" / "ontology" / "lineageweave-kg.ttl"
@@ -161,6 +161,67 @@ def test_schema_shaped_project_row_projection_passes_validation() -> None:
     assert (mention, RDF.subject, None) in data
     assert (mention, RDF.predicate, LWn.mentionsProject) in data
     assert (mention, RDF.object, project) in data
+
+
+def test_product_relation_projection_passes_validation_and_closed_codes() -> None:
+    """The production projector emits a complete evidence-bound relation."""
+    data = project_product_relation_rdf(
+        post_id="aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa1",
+        mention_ordinal=0,
+        product_id="synthetic-product",
+        target_kind_code="project",
+        target_id="synthetic-project",
+        relation_type_code="used_by_project",
+        evidence_text="Synthetic Product supports Synthetic Project",
+        evidence_input_sha256="a" * 64,
+        post_title="Synthetic relation source",
+        post_body="Synthetic Product supports Synthetic Project",
+        post_created_at=datetime(2026, 8, 27, tzinfo=timezone.utc),
+    )
+    conforms, report_text = _conforms(data)
+    assert conforms, report_text
+    with pytest.raises(ValueError, match="relation type"):
+        project_product_relation_rdf(
+            post_id="aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa1",
+            mention_ordinal=0,
+            product_id="synthetic-product",
+            target_kind_code="project",
+            target_id="synthetic-project",
+            relation_type_code="concerns_product",
+            evidence_text="Synthetic evidence",
+            evidence_input_sha256="a" * 64,
+            post_title="Synthetic relation source",
+            post_body="Synthetic evidence",
+            post_created_at=datetime(2026, 8, 27, tzinfo=timezone.utc),
+        )
+
+
+def test_product_relation_assertion_identity_retains_distinct_predicates() -> None:
+    """Two supported claims for one target remain separate RDF assertions."""
+    kwargs = {
+        "post_id": "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa1",
+        "mention_ordinal": 0,
+        "product_id": "synthetic-product",
+        "target_kind_code": "operations_fact",
+        "target_id": "synthetic-fact",
+        "evidence_text": "Synthetic Product changes the observed fact",
+        "evidence_input_sha256": "a" * 64,
+        "post_title": "Synthetic relation source",
+        "post_body": "Synthetic Product changes the observed fact",
+        "post_created_at": datetime(2026, 8, 27, tzinfo=timezone.utc),
+    }
+    data = project_product_relation_rdf(
+        **kwargs, relation_type_code="concerns_product"
+    ) + project_product_relation_rdf(
+        **kwargs, relation_type_code="changes_product"
+    )
+
+    LWn = Namespace(LW)
+    assertions = set(data.subjects(RDF.type, LWn.ProductRelationAssertion))
+    assert len(assertions) == 2
+    assert {
+        data.value(assertion, RDF.predicate) for assertion in assertions
+    } == {LWn.concernsProduct, LWn.changesProduct}
 
 
 @pytest.mark.parametrize(
@@ -308,3 +369,50 @@ def test_confidence_boundary_values_are_inclusive() -> None:
         )
         conforms, report_text = _conforms(data)
         assert conforms, f"{value} rejected:\n{report_text}"
+
+
+def test_derived_voice_assertion_requires_receipt_and_ordered_source_span() -> None:
+    """Derived voice RDF cannot omit the receipt or its exact source span."""
+    data = _representative_projection()
+    voice = URIRef(LW + "voice-assertion-alpha")
+    post = URIRef(LW + "post-alpha")
+    prov = Namespace("http://www.w3.org/ns/prov#")
+    LWn = Namespace(LW)
+    for predicate, value in (
+        (RDF.type, LWn.PostVoiceClassificationAssertion),
+        (LWn.voiceConceptCode, Literal("voc")),
+        (LWn.voiceAssertionStatus, Literal("derived")),
+        (LWn.voiceEvidenceDigest, Literal("a" * 64)),
+        (LWn.sourceRevisionDigest, Literal("b" * 64)),
+        (prov.wasDerivedFrom, post),
+    ):
+        data.add((voice, predicate, value))
+
+    conforms, report_text = _conforms(data)
+    assert not conforms
+    assert "orchestratorModelReceipt" in report_text
+
+    data.add((voice, LWn.orchestratorModelReceipt, Literal("synthetic-receipt")))
+    data.add((voice, LWn.evidenceSpanStart, Literal(0, datatype=XSD.integer)))
+    data.add((voice, LWn.evidenceSpanEnd, Literal(12, datatype=XSD.integer)))
+    conforms, report_text = _conforms(data)
+    assert conforms, report_text
+
+
+@pytest.mark.parametrize("voice_code", ("vos", "voe", "vob", "vor", "voi", "voso", "vops"))
+def test_expanded_source_post_voice_codes_conform(voice_code: str) -> None:
+    """ADR 0246 post codes validate without becoming organization relations."""
+    data = _representative_projection()
+    LWn = Namespace(LW)
+    voice = URIRef(LW + f"voice-assertion-{voice_code}")
+    for predicate, value in (
+        (RDF.type, LWn.PostVoiceClassificationAssertion),
+        (LWn.voiceConceptCode, Literal(voice_code)),
+        (LWn.voiceAssertionStatus, Literal("source")),
+        (LWn.voiceEvidenceDigest, Literal("a" * 64)),
+        (LWn.sourceRevisionDigest, Literal("b" * 64)),
+        (Namespace("http://www.w3.org/ns/prov#").wasDerivedFrom, URIRef(LW + "post-alpha")),
+    ):
+        data.add((voice, predicate, value))
+    conforms, report_text = _conforms(data)
+    assert conforms, report_text

@@ -14,7 +14,7 @@ describe("WorkspaceNav", () => {
     expect(initialWorkspaceDestination("", false)).toBe("dashboard");
   });
 
-  it("renders the Dashboard and four analyst destinations and marks the current page", () => {
+  it("renders the Dashboard and five analyst destinations and marks the current page", () => {
     render(<WorkspaceNav destination="board" onChange={vi.fn()} />);
 
     const nav = screen.getByRole("navigation");
@@ -29,13 +29,14 @@ describe("WorkspaceNav", () => {
     expect(nav.textContent).not.toMatch(/Buyer|Cubee|Customer master/i);
   });
 
-  it.each(SUPPORTED_LOCALES)("keeps the four Korean GNB labels in %s", (locale) => {
+  it.each(SUPPORTED_LOCALES)("keeps the five Korean GNB labels in %s", (locale) => {
     setLocale(locale);
     render(<WorkspaceNav destination="ask" onChange={vi.fn()} />);
 
     const nav = screen.getByRole("navigation");
     expect(within(nav).getAllByRole("button").map((button) => button.textContent)).toEqual([
       "Dashboard",
+      "외부 정보",
       "게시판",
       "고객 마스터",
       "달력",

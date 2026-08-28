@@ -3,10 +3,8 @@
 Embedding a whole flattened document as one vector buries a short relevant
 passage under everything else in the same document -- the embedding
 averages over content that has nothing to do with the query. Splitting
-into meaning-identifiable units first, embedding each unit, and comparing
-at the unit level (see :func:`chunked_max_similarity` in
-:mod:`lineageweave.embedding_client`) keeps a genuinely relevant unit's
-signal from being diluted by everything around it.
+into meaning-identifiable units first lets an external retrieval owner score
+an authorized, provenance-bearing unit instead of a flattened document.
 
 Four unit types, each grounded in a boundary concept that already has a
 name in the literature or a relevant standard rather than an arbitrary

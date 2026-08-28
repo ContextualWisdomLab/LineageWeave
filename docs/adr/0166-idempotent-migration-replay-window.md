@@ -29,6 +29,13 @@ notation is an optional extension and cannot be required by this script.
   PostgreSQL idempotency such as `IF NOT EXISTS` and `ON CONFLICT`; a migration
   that cannot be made idempotent requires a migration ledger ADR before it is
   added.
+- A later replayed migration that supersedes and drops an earlier index also
+  supersedes that earlier migration's create operation. The earlier file keeps
+  its sorted schema boundary but must not recreate a corpus-wide index that the
+  next file immediately drops. The current body-search example keeps the
+  `pg_trgm` extension in 0035 while 0036 solely owns the normalized search
+  indexes. This avoids a complete GIN build/drop cycle on every startup without
+  skipping the successor's correctness boundary.
 - Execute each accepted file with `psql -X -v ON_ERROR_STOP=1`. A failed
   migration stops startup instead of leaving a healthy-looking partial schema.
 - Tests must cover the stable 0012 boundary and the idempotency of any changed
@@ -38,8 +45,18 @@ notation is an optional extension and cannot be required by this script.
 
 Existing volumes receive migrations such as 0103, 0163, and 0164 without a
 whitelist edit. Invalidly named files and the non-idempotent bootstrap family do
-not replay. This remains a bounded no-ledger design; introduce a durable
-migration ledger before any post-0011 migration needs exactly-once semantics.
+not replay. Most migrations remain native-idempotent and need no ledger.
+Migration 0230's initial source-assertion data backfill is the first exception:
+hashing every eligible source body made each otherwise-idempotent startup
+replay scan the entire corpus. The normalized `data_migration_completion`
+ledger records only that bounded backfill after its insert and repair finish in
+the same PostgreSQL transaction. An interruption rolls back both writes and
+marker, so replay retries safely. A transaction-scoped advisory lock serializes
+the marker check across concurrent startup attempts, preventing two complete
+corpus scans before either can commit. After completion, the 0230 source-post
+trigger owns every new or revised row and startup skips the historical scan.
+The ledger does not replace schema migration replay or permit application code
+to compensate for missing schema.
 
 ## References
 

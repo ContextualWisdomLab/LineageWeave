@@ -77,10 +77,11 @@ must never be returned through a buyer-facing API or persisted failure detail.
   application or be assumed available on an external gateway.
 - LineageWeave does not configure an embedding model. Its first batch request
   omits `model`; contextual-orchestrator selects a provider-neutral embedding
-  model and returns that identity on submission and polling responses.
-  LineageWeave binds that identity for later batches and persists it with every
-  vector. A missing or changed identity, or an incomplete vector batch, fails
-  closed and cannot make post content complete.
+  model from its discovered provider catalog and returns that identity on
+  submission and polling responses. LineageWeave binds that identity for later
+  batches and persists it with every vector. A missing or changed identity, or
+  an incomplete vector batch, fails closed and cannot make post content
+  complete.
 - `LLM_API_KEY`, `LLM_API_GATEWAY`, and `LLM_GATEWAY_URL` are compatibility
   aliases only; `LLM_GATEWAY_API_KEY` and `LLM_GATEWAY_API_URL` are the
   canonical names for

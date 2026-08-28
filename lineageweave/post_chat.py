@@ -86,6 +86,8 @@ class ChatSourceDocument:
     live_changed_after_cutoff: bool = False
     historical_body_unavailable: bool = False
     unavailable_channels: tuple[str, ...] = field(default_factory=tuple)
+    observed_at: str | None = None
+    time_axis_code: str | None = None
     evidence_open_action: EvidenceOpenAction | None = None
 
 
@@ -153,6 +155,24 @@ def historical_body_limitations(
         }
         for source in sources
         if source.historical_body_unavailable
+    ]
+
+
+def cited_post_events(
+    sources: list[ChatSourceDocument] | tuple[ChatSourceDocument, ...],
+    cited_post_ids: tuple[str, ...] | list[str],
+) -> list[dict[str, str | None]]:
+    """Return cited event clocks in citation order without inventing time."""
+    by_id = {source.post_id: source for source in sources}
+    return [
+        {
+            "post_id": source.post_id,
+            "post_title": source.post_title,
+            "observed_at": source.observed_at,
+            "time_axis_code": source.time_axis_code,
+        }
+        for post_id in cited_post_ids
+        if (source := by_id.get(post_id)) is not None
     ]
 
 

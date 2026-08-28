@@ -323,6 +323,30 @@ async def find_linked_post_ids(conn: asyncpg.Connection, post_id: str) -> Linked
     return LinkedPostIds(direct=direct_ids - {post_id}, indirect=indirect_ids - direct_ids)
 
 
+async def find_project_sibling_post_ids(
+    conn: asyncpg.Connection, post_id: str
+) -> frozenset[str]:
+    """Return published posts sharing the focal post's persisted project key."""
+    project_rows = await conn.fetch(
+        "select distinct project_key from post_project_mention where post_id = $1",
+        post_id,
+    )
+    project_keys = [str(row["project_key"]) for row in project_rows]
+    if not project_keys:
+        return frozenset()
+    rows = await conn.fetch(
+        "select distinct ppm.post_id from post_project_mention ppm "
+        "join source_post sp on sp.post_id = ppm.post_id "
+        "where ppm.project_key = any($1::text[]) and ppm.post_id <> $2 "
+        f"and {SOURCE_POST_ELIGIBILITY_SQL.format(alias='sp')} "
+        "order by ppm.post_id limit $3",
+        project_keys,
+        post_id,
+        _POST_CHAT_CANDIDATE_LIMIT,
+    )
+    return frozenset(str(row["post_id"]) for row in rows)
+
+
 async def gather_chat_sources(
     conn: asyncpg.Connection,
     post_id: str,
@@ -364,9 +388,11 @@ async def gather_chat_sources(
     )
 
     linked = await find_linked_post_ids(conn, post_id)
+    project_sibling_ids = await find_project_sibling_post_ids(conn, post_id)
     candidate_ids = [
-        *sorted(linked.direct),
-        *sorted(linked.indirect),
+        *sorted(project_sibling_ids),
+        *sorted(linked.direct - project_sibling_ids),
+        *sorted(linked.indirect - project_sibling_ids),
     ][:_POST_CHAT_CANDIDATE_LIMIT]
     if not candidate_ids:
         graph_facts = await _graph_facts_for_posts(conn, [source_id])
@@ -967,6 +993,9 @@ async def gather_global_chat_sources(
             source_arguments["external_claim_facts"] = (
                 semantic_facts.get(post_id, ()) + post_graph_facts
             )
+        event_occurred_at = row.get("event_occurred_at")
+        created_at = row.get("created_at")
+        observed_at = event_occurred_at or created_at
         sources.append(
             source_type(
                 post_id,
@@ -992,6 +1021,14 @@ async def gather_global_chat_sources(
                     ("historical_body", "semantic_role", "semantic_keyman", "knowledge_graph", "lineage", "image")
                     if historical_body_unavailable
                     else (("semantic_role", "semantic_keyman", "knowledge_graph", "lineage", "image") if knowledge_cutoff else ())
+                ),
+                observed_at=observed_at.isoformat() if observed_at else None,
+                time_axis_code=(
+                    "event_occurred_at"
+                    if event_occurred_at is not None
+                    else "created_at"
+                    if created_at is not None
+                    else None
                 ),
                 evidence_open_action=(
                     None

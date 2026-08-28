@@ -180,6 +180,14 @@ describe("design tokens", () => {
     expect(citationChipBlock).toContain("align-items: center");
   });
 
+  it("gives Dashboard evidence links the shared minimum touch target", () => {
+    const rule = appCss.match(/\.btn-link\s*\{[^}]*\}/)?.[0] ?? "";
+    expect(rule, ".btn-link rule not found in App.css").not.toBe("");
+    expect(rule).toContain("min-height: var(--size-control-min)");
+    expect(rule).toContain("display: inline-flex");
+    expect(rule).toContain("align-items: center");
+  });
+
   it("keeps public-verification layout on shared tokens", () => {
     expect(publicClaimCss).not.toMatch(/#[0-9a-fA-F]{3,8}/);
     for (const token of [

@@ -33,7 +33,7 @@ decision from them.
 | [`OCCUPATIONAL_CONSTRUCT_REFERENCES.md`](../doctoring/OCCUPATIONAL_CONSTRUCT_REFERENCES.md) | [0248](0248-occupational-construct-evidence-boundary.md), [0250](0250-official-occupational-construct-catalog-sync.md), [0253](0253-catalog-bound-occupational-construct-extraction.md), [0255](0255-occupational-construct-ontology-navigation.md), [0265](0265-occupational-construct-catalog-search.md) |
 | [`IOPSY_TAXONOMY_REFERENCES.md`](../doctoring/IOPSY_TAXONOMY_REFERENCES.md) | [0251](0251-fja-iopsy-cognitive-affective-behavioral-ontology.md) |
 
-| [`IO_OCCUPATIONAL_TAXONOMY_REFERENCES.md`](../doctoring/IO_OCCUPATIONAL_TAXONOMY_REFERENCES.md) | [0245](0245-io-occupational-taxonomy-in-the-published-ontology.md) |
+| [`IO_OCCUPATIONAL_TAXONOMY_REFERENCES.md`](../doctoring/IO_OCCUPATIONAL_TAXONOMY_REFERENCES.md) | [0245](0245-io-occupational-taxonomy-in-the-published-ontology.md), [0267](0267-complete-2018-soc-hierarchy.md) |
 
 | [`ANALYSIS_RUN_REGISTRY_REFERENCES.md`](../doctoring/ANALYSIS_RUN_REGISTRY_REFERENCES.md) | [0013](0013-normalized-analysis-run-registry.md)-[0022](0022-authorized-tepp-start.md) registry family, [0017](0017-authorized-analysis-run-create.md), [0020](0020-analysis-run-retention-purge.md), [0021](0021-authorized-analysis-run-start.md) |
 | [`DESIGN_TOKEN_REFERENCES.md`](../doctoring/DESIGN_TOKEN_REFERENCES.md) | [0099](0099-badge-and-accent-color-tokens.md), [0118](0118-uiux-standard-guide-v3-design-overhaul.md) |

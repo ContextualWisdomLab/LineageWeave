@@ -225,6 +225,12 @@
   background: var(--color-btn-secondary-hover);
 }
 
+.btn-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--size-control-min);
+}
+
 /* Language Switcher */
 .language-switcher {
   display: inline-flex;
@@ -1180,11 +1186,20 @@
   /* Phone Breakpoint (<768px) */
   
   .workspace-gnb {
-    display: none; /* Replaced by drawer on mobile */
+    overflow-x: auto;
+    overscroll-behavior-inline: contain;
+    gap: 0.75rem;
+    padding: 0 1rem;
+    scrollbar-width: thin;
+  }
+
+  .workspace-gnb-item,
+  .workspace-gnb-tools {
+    flex: 0 0 auto;
   }
 
   .mobile-drawer-trigger {
-    display: block;
+    display: none;
   }
 
   .app-header {

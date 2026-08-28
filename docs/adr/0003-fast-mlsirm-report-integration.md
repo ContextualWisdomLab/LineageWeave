@@ -108,9 +108,10 @@ than one large PR:
    public Rust-backed prediction API (upstream PR #1279); LineageWeave must
    not reproduce GRM/GPCM parameter conventions locally.
 8. **Leftover evidence extensions:** unexplained leftover shipped in 2.12.26
-   (ADR 0182), cross-share evidence shipped in 2.12.29 (ADR 0185), and
-   reconstruction evidence is Unreleased for 2.12.31 (ADR 0201). Do not
-   persist explained share, unexplained share, or another unsupported alias.
+   (ADR 0182), cross-share evidence shipped in 2.12.29 (ADR 0185),
+   reconstruction evidence shipped in 2.12.31 (ADR 0201), and leftover-map
+   explained share is governed by ADR 0266. Do not persist unexplained
+   leftover share `s` or another unsupported alias.
 9. **Leftover-map axis-share slice** (ADR 0148): persist Gabriel inertia
    `σ_k² / Σ_j σ_j²` of leftover-map axes 1 and 2 on the same residual
    SVD. Rank-0 residuals emit two zero-share axes. Do not invent a

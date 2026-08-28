@@ -32,7 +32,7 @@ import asyncpg
 import redis.asyncio as redis
 from fastapi import Depends, FastAPI, HTTPException, Path, Query, status
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from lineageweave.claim_verification import (
     NullClaimVerificationClient,
@@ -47,6 +47,7 @@ from backend.app.activity_stream import (
     ticket_created_summary,
     ticket_status_changed_summary,
 )
+from backend.app.voice_taxonomy import load_voice_taxonomy_summary
 from backend.app.affiliate_tree_ingestion import (
     fetch_affiliate_forest,
     fetch_voc_evidence,
@@ -140,13 +141,16 @@ from backend.app.post_chat_ingestion import (
     persist_post_chat,
 )
 from backend.app.post_content_queue import (
+    enqueue_post_content_backfill,
     ensure_post_content_job,
     post_content_api_status,
     post_content_is_complete,
     publish_post_content_event,
+    source_body_sha256,
 )
 from backend.app.occupational_construct_ingestion import (
     load_occupational_construct_assertions,
+    load_occupational_construct_evidence_status,
 )
 from backend.app.occupational_construct_search import (
     OccupationalConstructSearchError,
@@ -601,6 +605,21 @@ def _can_see_post(account: CurrentAccount, post: asyncpg.Record) -> bool:
     )
 
 
+def _can_see_product_relation_target(
+    account: CurrentAccount, relation: asyncpg.Record
+) -> bool:
+    """Apply ABAC to the normalized target's own evidence post."""
+    return source_post_visible(
+        {
+            "visibility_code": relation["target_visibility_code"],
+            "corporate_entity_id": relation["target_corporate_entity_id"],
+            "process_unit_id": relation["target_process_unit_id"],
+        },
+        account.corporate_entity_ids,
+        account.process_unit_ids,
+    )
+
+
 def _is_synthetic_demo_member(member: dict[str, Any], demo_entity_ids: set[str]) -> bool:
     """Identify one pure seed row without hiding real rows sharing its entity."""
     return bool(demo_entity_ids) and member["corporate_entity_id"] in demo_entity_ids and not bool(
@@ -885,6 +904,7 @@ async def read_me(
 async def operations_dashboard(
     period_start: date | None = Query(None),
     period_end: date | None = Query(None),
+    external_only: bool = Query(False),
     account: CurrentAccount = Depends(get_current_account),
     pool: asyncpg.Pool = Depends(get_pool),
 ) -> dict[str, Any]:
@@ -898,6 +918,7 @@ async def operations_dashboard(
                 account.process_unit_ids,
                 period_start,
                 period_end,
+                external_only,
             )
         except ValueError as exc:
             raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, str(exc)) from exc
@@ -907,6 +928,34 @@ class LocalePreferenceRequest(BaseModel):
     """Body of a PATCH /api/me/preferences request."""
 
     preferred_locale: Literal["en", "ko", "zh", "ja", "vi"]
+
+
+class PostContentBackfillRequest(BaseModel):
+    """Bounded operator request for durable semantic-content ingestion."""
+
+    limit: int = Field(default=100, ge=1, le=200)
+
+
+@app.post("/api/post-content/backfill", status_code=status.HTTP_202_ACCEPTED)
+async def queue_post_content_backfill(
+    request: PostContentBackfillRequest,
+    account: CurrentAccount = Depends(get_current_account),
+    pool: asyncpg.Pool = Depends(get_pool),
+    valkey: redis.Redis = Depends(get_valkey),
+) -> dict[str, int]:
+    """Queue one bounded corpus page and return before semantic work runs."""
+    _require_post_admin(account)
+    settings = load_settings()
+    require_orchestrator_evidence = bool(
+        settings.orchestrator_base_url and settings.orchestrator_api_key
+    )
+    return await enqueue_post_content_backfill(
+        pool,
+        valkey,
+        limit=request.limit,
+        require_embedding=require_orchestrator_evidence,
+        require_structure=require_orchestrator_evidence,
+    )
 
 
 class CustomerHintResolveRequest(BaseModel):
@@ -1715,6 +1764,65 @@ async def list_posts(
     }
 
 
+@app.get("/api/voice-taxonomy/summary")
+async def read_voice_taxonomy_summary(
+    date_from: date | None = None,
+    date_to: date | None = None,
+    corporate_entity_id: UUID | None = None,
+    process_unit_id: UUID | None = None,
+    team_id: UUID | None = None,
+    person_id: UUID | None = None,
+    product_catalog_id: UUID | None = None,
+    project_key: str | None = Query(default=None, max_length=200),
+    account: CurrentAccount = Depends(get_current_account),
+    pool: asyncpg.Pool = Depends(get_pool),
+) -> dict[str, Any]:
+    """Return overlapping source and derived Voice counts for the selected scope."""
+    _require_post_read(account)
+    if date_from is not None and date_to is not None and date_to < date_from:
+        raise HTTPException(
+            status.HTTP_422_UNPROCESSABLE_CONTENT,
+            "Choose an end time after the start time, then review the updated scope.",
+        )
+    async with pool.acquire() as conn:
+        excluded_entity_ids: tuple[str, ...] = ()
+        if await has_real_source_context(conn, list(account.corporate_entity_ids)):
+            excluded_entity_ids = tuple(sorted(await fetch_demo_corporate_entity_ids(conn)))
+        summary = await load_voice_taxonomy_summary(
+            conn,
+            authorized_corporate_entity_ids=tuple(str(value) for value in account.corporate_entity_ids),
+            authorized_process_unit_ids=tuple(str(value) for value in account.process_unit_ids),
+            date_from=date_from,
+            date_to=date_to,
+            corporate_entity_id=str(corporate_entity_id) if corporate_entity_id else None,
+            process_unit_id=str(process_unit_id) if process_unit_id else None,
+            team_id=str(team_id) if team_id else None,
+            person_id=str(person_id) if person_id else None,
+            product_catalog_id=str(product_catalog_id) if product_catalog_id else None,
+            project_key=project_key.strip() if project_key and project_key.strip() else None,
+            excluded_corporate_entity_ids=excluded_entity_ids,
+        )
+    total = int(summary["total_eligible"])
+    raw_category_counts = summary["category_post_counts"]
+    category_counts = (
+        json.loads(raw_category_counts)
+        if isinstance(raw_category_counts, str)
+        else dict(raw_category_counts)
+    )
+    return {
+        **{key: value for key, value in summary.items() if key != "category_post_counts"},
+        "category_memberships": [
+            {
+                "voice_concept_code": code,
+                "post_count": int(count),
+                "eligible_percentage": (float(count) / total * 100.0) if total else 0.0,
+            }
+            for code, count in sorted(category_counts.items())
+        ],
+        "counts_overlap": True,
+    }
+
+
 @app.get("/api/posts/{post_id}")
 async def read_post(
     post_id: str,
@@ -1782,6 +1890,71 @@ async def read_post(
         else:
             occupational_construct_assertions = []
             occupational_construct_evidence_status = "historical_unavailable"
+        # Safe SQL: the eligibility predicate is an immutable schema fragment; post id is bound.
+        product_rows = await conn.fetch(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
+            "select mention.mention_ordinal, mention.extracted_product_name, "
+            "mention.resolution_status_code, catalog.canonical_product_name, "
+            "catalog.product_level_code, mention.evidence_text, "
+            "mention.evidence_post_id, evidence_post.visibility_code, "
+            "evidence_post.corporate_entity_id, evidence_post.process_unit_id "
+            "from post_product_mention mention "
+            "left join product_catalog catalog "
+            "on catalog.product_catalog_id = mention.product_catalog_id "
+            "join source_post evidence_post "
+            "on evidence_post.post_id = mention.evidence_post_id "
+            "where mention.post_id = $1 and "
+            f"{SOURCE_POST_ELIGIBILITY_SQL.format(alias='evidence_post')} "
+            "order by mention.mention_ordinal",
+            post_id,
+        ) if as_of_clock is None else []
+        # Safe SQL: the eligibility predicate is an immutable schema fragment; post id is bound.
+        product_relation_rows = await conn.fetch(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
+            "select relation.mention_ordinal, relation.relation_type_code, "
+            "'operations_fact' as target_kind_code, "
+            "'operations_fact:' || relation.case_kind_code || ':' || relation.fact_ordinal::text as target_id, "
+            "fact.value_text as target_label, relation.evidence_text, "
+            "relation.evidence_post_id, evidence_post.visibility_code, "
+            "evidence_post.corporate_entity_id, evidence_post.process_unit_id, "
+            "target_evidence_post.visibility_code as target_visibility_code, "
+            "target_evidence_post.corporate_entity_id as target_corporate_entity_id, "
+            "target_evidence_post.process_unit_id as target_process_unit_id "
+            "from product_operations_fact_relation relation "
+            "join operations_case_fact fact on fact.post_id = relation.post_id "
+            "and fact.case_kind_code = relation.case_kind_code "
+            "and fact.fact_ordinal = relation.fact_ordinal "
+            "join source_post evidence_post on evidence_post.post_id = relation.evidence_post_id "
+            "join source_post target_evidence_post on target_evidence_post.post_id = fact.evidence_post_id "
+            "where relation.post_id = $1 and "
+            f"{SOURCE_POST_ELIGIBILITY_SQL.format(alias='evidence_post')} and "
+            f"{SOURCE_POST_ELIGIBILITY_SQL.format(alias='target_evidence_post')} "
+            "union all "
+            "select relation.mention_ordinal, relation.relation_type_code, "
+            "'project' as target_kind_code, 'project:' || relation.project_key as target_id, "
+            "project.project_name as target_label, relation.evidence_text, "
+            "relation.evidence_post_id, evidence_post.visibility_code, "
+            "evidence_post.corporate_entity_id, evidence_post.process_unit_id, "
+            "evidence_post.visibility_code as target_visibility_code, "
+            "evidence_post.corporate_entity_id as target_corporate_entity_id, "
+            "evidence_post.process_unit_id as target_process_unit_id "
+            "from product_project_relation relation "
+            "join post_project_mention project on project.post_id = relation.post_id "
+            "and project.project_key = relation.project_key "
+            "join source_post evidence_post on evidence_post.post_id = relation.evidence_post_id "
+            "where relation.post_id = $1 and "
+            f"{SOURCE_POST_ELIGIBILITY_SQL.format(alias='evidence_post')} "
+            "order by mention_ordinal, target_kind_code, target_id",
+            post_id,
+        ) if as_of_clock is None else []
+        current_body_sha256 = source_body_sha256(row["post_body"])
+        product_analysis_state = await conn.fetchrow(
+            "select exists(select 1 from post_product_analysis "
+            "where post_id = $1 and source_body_sha256 = $2) as analysis_present, "
+            "(select status_code from post_content_ingestion_job "
+            "where post_id = $1 and source_body_sha256 = $2 "
+            "order by updated_at desc limit 1) as job_status_code",
+            post_id,
+            current_body_sha256,
+        ) if as_of_clock is None else None
         known_at = None
         if as_of_clock is not None:
             known_at = await fetch_known_at_revision(conn, post_id, as_of_clock)
@@ -1791,6 +1964,74 @@ async def read_post(
         "project_evidence": project_evidence,
         "voice_types": voice_types,
         "occupational_construct_assertions": occupational_construct_assertions,
+        "product_evidence_status": (
+            {
+                "status_code": "historical_unavailable",
+                "next_action": "현재 글의 제품 근거와 당시 본문을 구분해 확인하세요.",
+            }
+            if as_of_clock is not None
+            else
+            {
+                "status_code": "complete",
+                "next_action": (
+                    "연결된 제품과 원문 근거를 확인하세요."
+                    if product_rows
+                    else "원문을 열어 제품 언급이 없는지 확인하세요."
+                ),
+            }
+            if product_analysis_state and product_analysis_state["analysis_present"]
+            else {
+                "status_code": (
+                    "processing"
+                    if product_analysis_state
+                    and product_analysis_state["job_status_code"]
+                    in {"post_content_ingestion_queued", "post_content_ingestion_running"}
+                    else (
+                        "setup_required"
+                        if not (settings.orchestrator_base_url and settings.orchestrator_api_key)
+                        else "unavailable"
+                    )
+                ),
+                "next_action": (
+                    "분석이 끝난 뒤 제품 근거를 다시 확인하세요."
+                    if product_analysis_state
+                    and product_analysis_state["job_status_code"]
+                    in {"post_content_ingestion_queued", "post_content_ingestion_running"}
+                    else (
+                        "관리자에게 제품 분석 사용 설정을 요청한 뒤 다시 확인하세요."
+                        if not (settings.orchestrator_base_url and settings.orchestrator_api_key)
+                        else "제품 분석을 다시 실행한 뒤 결과를 확인하세요."
+                    )
+                ),
+            }
+        ),
+        "product_evidence": [
+            {
+                "mention_ordinal": item["mention_ordinal"],
+                "extracted_product_name": item["extracted_product_name"],
+                "resolution_status_code": item["resolution_status_code"],
+                "canonical_product_name": item["canonical_product_name"],
+                "product_level_code": item["product_level_code"],
+                "evidence_text": item["evidence_text"],
+                "evidence_post_id": item["evidence_post_id"],
+                "relations": [
+                    {
+                        "relation_type_code": relation["relation_type_code"],
+                        "target_kind_code": relation["target_kind_code"],
+                        "target_id": relation["target_id"],
+                        "target_label": relation["target_label"],
+                        "evidence_text": relation["evidence_text"],
+                        "evidence_post_id": relation["evidence_post_id"],
+                    }
+                    for relation in product_relation_rows
+                    if relation["mention_ordinal"] == item["mention_ordinal"]
+                    and _can_see_post(account, relation)
+                    and _can_see_product_relation_target(account, relation)
+                ],
+            }
+            for item in product_rows
+            if _can_see_post(account, item)
+        ],
     }
     if known_at is not None:
         payload["known_at"] = known_at

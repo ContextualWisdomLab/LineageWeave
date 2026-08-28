@@ -655,14 +655,12 @@ def _require_lineage_create_kind(run_kind_code: str) -> None:
     if run_kind_code == _TEPP_RUN_KIND:
         raise AnalysisRunCreateError(
             422,
-            "Connect a TEPP transport from a Failed TEPP row; this endpoint "
-            "does not invent a measurement.",
+            "Open the failed temporal measurement, ask an administrator to restore analysis, then re-run it.",
         )
     if run_kind_code == _TOPIC_LINEAGE_RUN_KIND:
         raise AnalysisRunCreateError(
             422,
-            "Connect a TEPP transport from a Failed topic-lineage row; this "
-            "endpoint does not invent a topic model.",
+            "Open the failed topic journey analysis, ask an administrator to restore analysis, then re-run it.",
         )
     if run_kind_code == _REPORT_RUN_KIND:
         raise AnalysisRunCreateError(

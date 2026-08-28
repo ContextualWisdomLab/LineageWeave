@@ -357,6 +357,9 @@ dangling endpoints fail closed; fixed input produces stable page boundaries.
 - Preserve source representation and derive ordered paragraph, list, table,
   formula, conversation-turn, and image-region semantic units.
 - Route embeddings, LLM, and VISION through contextual-orchestrator.
+- Let an authorized administrator enqueue only a bounded page of eligible,
+  incomplete posts into the durable worker ledger; acknowledge before model
+  work and recover a missing broker wake-up from PostgreSQL.
 - Apply authorization/time/process scope before ranking and again before
   response delivery.
 - Keep internal post citations separate from external public citations.
@@ -424,6 +427,60 @@ the retained revision and full/partial grounding state.
 Acceptance: MCP and REST produce the same scope snapshot, verification opt-in,
 knowledge cutoff, status, citations, and limitations; cross-account reads are
 404-equivalent; and exhaustion returns the bounded actual retry interval.
+
+### PRD-FR-5D — Ask citation and event navigation
+
+- Link each numbered Ask citation to one authorized event card and preserve the
+  same number when cards are ordered by observed time.
+- Move focus citation-to-card and card-to-citation, then open the existing
+  evidence layer or full source post.
+- Name `event_occurred_at` or the `created_at` fallback; never turn chronology
+  into a project start, predecessor, branch, or recommended response.
+
+Acceptance: keyboard selection works in both directions, every card opens its
+authorized source, missing time stays explicit, and any commercial next action
+comes from the cited answer rather than frontend inference.
+
+### PRD-FR-5E — Evidence-backed operations Dashboard
+
+- For claim investigation, show the occurrence order, specification change,
+  originating order, and sales-pool value only from authorized source spans.
+- For rebid and handover, show the discussion, counterparties, our owner, and
+  subsequent decision only from authorized source spans.
+- Count external-information posts and events, report their share of all
+  eligible posts in the selected period, and link their order, project, sales,
+  and business relations to the exact supporting post.
+- Persist closed-vocabulary milestones for claim, rebid, and handover. Report
+  open, resolved, and evidence-missing counts and elapsed time only between two
+  observed endpoints; never invent an endpoint or delay threshold.
+- Present project-specific journeys only from accepted evidence-bearing
+  predecessor and branch relations. A timestamp sort may be labeled observed
+  events, but never promoted to a journey.
+
+Acceptance: every populated fact, lifecycle endpoint, membership, and journey
+event opens an authorized evidence post; an incomplete provenance chain fails
+closed instead of returning a partial fitted result.
+
+### PRD-FR-5F — Product and Voice semantic evidence
+
+- Extract product mentions through contextual-orchestrator from authorized
+  semantic units and resolve only against normalized product group, model,
+  variant, and trade-item identities with scoped GTIN or MPN identifiers.
+- Keep unique, tied, missing, unavailable, processing, and successfully empty
+  outcomes distinct; source changes invalidate derived analysis and failures
+  remain durable and retryable.
+- Link product relations to projects and operational facts through authorized
+  evidence posts, and suppress live product inference in a historical view
+  until a cutoff-bound product contract exists.
+- Keep source-post Voice categories (`voc`, `vocc`, `voco`, `vom`, `vop`,
+  `vos`, `voe`, `vob`, `vor`, `voi`, `voso`, `vops`) separate from
+  organization relationship categories. Preserve source and derived
+  multi-membership and disclose overlaps and disagreement without forced
+  selection.
+
+Acceptance: zero products is shown only after a completed current-input
+analysis; absent or failed analysis provides the next valid action, and every
+displayed product or Voice assertion retains navigable authorized provenance.
 
 ### PRD-FR-6 — Measurement boundary
 
@@ -504,8 +561,10 @@ A release claim requires one exact protected-main head that proves:
 - Asynchronous delivery and database-pool isolation: ADR 0204, ADR 0213.
 - Knowledge Graph, ontology, and provenance: ADR 0004, ADR 0011, ADR 0065,
   ADR 0184, ADR 0207, ADR 0222, ADR 0246, ADR 0256.
-  ADR 0184, ADR 0207, ADR 0222, ADR 0246.
-- Semantic units and retrieval: ADR 0047, ADR 0062, ADR 0102, ADR 0217.
+- Semantic units and retrieval: ADR 0047, ADR 0062, ADR 0098, ADR 0102,
+  ADR 0217.
+- Evidence operations, products, and Voice: ADR 0206, ADR 0210, ADR 0225,
+  ADR 0228, ADR 0244, ADR 0246.
 - LLM/model boundary: ADR 0070, ADR 0072, ADR 0076, ADR 0079.
 - Measurement: ADR 0003, ADR 0145, ADR 0200, ADR 0205.
 - UX and publication: ADR 0118, ADR 0159.

@@ -1,15 +1,16 @@
 # Product & Technical Gap Baseline
 
-> Exact-head loop overlay: 2026-08-28 10:00 KST. Protected `main` was
-> `edf22ee39aee2a8481f9bda8fff59801821e79c2` (#773 similar-VOC coverage).
-> Open ready PRs: #772 (ask_time_axis coverage), #771 (fixtures/vision
-> coverage), #770 (project-history empty-state). Auto-merge squash is
-> enabled on all three; none has an independent APPROVE (only bot
-> COMMENT). Drafts #702, #679, #672, #667, #640 remain dirty against
-> `main`. #96 stays closed as a weaker duplicate of #91. Writes through
-> the Grok GitHub App now succeed (comment/close/auto-merge/update-branch)
-> despite empty `X-OAuth-Scopes`; git push is the remaining probe this
-> cycle. This overlay supersedes every older queue count below.
+> Current rebuild overlay: 2026-08-28 KST. Protected `main` is
+> `fc13acaa20adca11968238e398d4aafcf62b6cee`; draft PR #640 is being
+> rebuilt from that exact base while retaining its prior
+> `5fd50962c43717dbd73c9ee73aa5bf106507118a` history. The open queue has
+> 13 PRs: #781 and #778 were clean at their then-current heads; #782, #780,
+> #774, #772, #771, and #770 still required base or check resolution; draft
+> PRs #702, #679, #672, #667, and #640 remained dirty. Checks and reviews
+> from the pre-rebuild #640 head do not transfer to this candidate. Exact-head
+> Compose, browser, load, and backfill acceptance remains pending. This
+> overlay supersedes every older queue count below while the dated historical
+> snapshots remain supporting evidence only.
 >
 > Next buyer increment on this cycle: leftover-map explained leftover
 > share `e = R̂² / R²` (ADR 0266 / migration 0244 / v2.23.0) so
@@ -657,6 +658,8 @@ this file per §3.5 of the prior snapshot).
 | Event and project semantics | #663 is the largest current user-visible gap slice: evidence-backed Project nodes, bounded traversal, cutoff/snapshot fencing, exact-value table parity, and localized graph labels. Focus visibility, label-bound, and temporal test-double regressions are repaired. #666's heuristic removal is composed into this parent but is not separately protected-main evidence. #640 separately adds project journeys without claiming authoritative lifecycle status | Combined #663 must pass exact-head checks and independent approval before protected merge. Aggregate authenticated evidence must still prove distinct projects/events and handover intervals without promoting co-occurrence |
 | Voice primary history | Protected `main` `bbb19192` includes ADR 0252 / #761 (migration 0243, GiST primary-period exclusion, `clock_timestamp()` after the source-row lock, API/ontology half-open cutoff SQL). v2.22.1 adds synthetic PostgreSQL integration tests for A → B → A at before/between/after cutoffs, concurrent primary updates, additional-assignment close, and 0237→0243 trigger replay. This is not yet protected-main evidence | Land the live-test slice through the protected gate with independent exact-head APPROVE; close #748 only after that protected delivery |
 | Knowledge Graph readability | #659 recreates the token-backed node-type repair on current `main`, including regression coverage; it is open and therefore not protected-main evidence | Merge #659 normally, then verify light/dark contrast, keyboard graph navigation, full labels, and evidence tables in the authenticated rendered surface |
+| Product semantic identity | ADR 0228 and migration 0228 define normalized product group/model/variant/trade-item identities, scoped GTIN/MPN keys, and fail-closed unique/tie/missing/unavailable resolution. The stacked product-relation candidate now validates contextual structured output solely against request-scoped normalized operations/project targets, persists closed typed relations atomically with verbatim provenance, exposes ABAC-filtered Post/Dashboard reads, and projects a SHACL-governed RDF assertion. Focused synthetic backend/ontology/docstring tests pass at the candidate head; protected delivery and an authorized aggregate runtime remain unproven | Merge the exact stack through protected gates, pin the protected contextual-orchestrator merge SHA, then record aggregate-only backfill outcomes and authenticated desktop/mobile rendered evidence without exposing runtime rows |
+| Voice semantic taxonomy | ADRs 0244/0246 and migrations 0230/0235 preserve the twelve-value source-post scheme separately from the six-value post-scoped organization relationship scheme, retain source/derived disagreement and multi-membership, and provide authorized overlap-aware aggregate filters. The Dashboard API returns every persisted category dynamically; PR #736 exact `2f5d9ee8` still typed and labeled only `voc`/`vocc`/`voco`/`vom`/`vop`, so `vos`/`voe`/`vob`/`vor`/`voi`/`voso`/`vops` could not render. This stacked repair covers all twelve with locale and component tests. Candidate Storybook evidence remains synthetic; no private-corpus derived assertion count is recorded | Land the stack, run bounded orchestrator backfill, and verify aggregate-only source/derived/disagreement/unavailable counts at one declared cutoff without exposing record identities |
 | Source-code lookup UX | Source state/detail codes remain evidence-bearing machine values and current detail presentation is dense | Catalog-backed display labels with raw-code provenance, compact 5W1H/source-detail hierarchy, keyboard access, and no unsupported customer/project binding |
 | Calendar / Naruon | #355 delivered the projection contract; v2.17.0 wires operator consumption without forwarding the end-user token. Naruon producer, provider/consumer fixtures, and protected merge remain open (#336) | Verify observed events against the published schema without invented events; keep commitments available when the channel is unwired |
 | SKOS organization aliases | Catalog binding and chip caption live on #480 / #482 | One catalog row per corroborated org; companion caption is hint-only until bound |

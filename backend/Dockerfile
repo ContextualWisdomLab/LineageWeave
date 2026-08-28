@@ -20,18 +20,23 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | \
     sh -s -- -y --profile minimal --default-toolchain 1.97.1
-ENV PATH="/app/.venv/bin:/root/.cargo/bin:${PATH}"
+ENV PATH="/app/.venv/bin:/root/.cargo/bin:${PATH}" \
+    UV_LINK_MODE=copy
 
 COPY pyproject.toml uv.lock README.md ./
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv sync --frozen --no-dev --extra backend --no-install-project --no-editable
 COPY lineageweave ./lineageweave
 COPY backend ./backend
+COPY scripts/backfill_post_embeddings.py ./scripts/backfill_post_embeddings.py
 # lineageweave/ontology.py resolves this path relative to itself
 # (parents[1] = /app) -- ADR 0004.
 COPY docs/ontology ./docs/ontology
 
 # Install exactly the committed universal lock. --no-editable prevents a
 # runtime dependency on source-tree editability while retaining package data.
-RUN uv sync --frozen --no-dev --extra backend --no-editable \
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv sync --frozen --no-dev --extra backend --no-editable \
     && chown -R appuser:appuser /app
 
 USER appuser

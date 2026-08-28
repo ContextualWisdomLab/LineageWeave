@@ -207,6 +207,58 @@ _GLOBAL_ASK_KNOWLEDGE_CUTOFF_MIGRATION = (
     / "migrations"
     / "0212_global_ask_knowledge_cutoff.sql"
 )
+_LATE_REPLAYABLE_MIGRATIONS = tuple(
+    Path(__file__).resolve().parents[2] / "migrations" / name
+    for name in (
+        "0017_prov_o_standard_relations.sql",
+        "0175_ontology_truth_status.sql",
+        "0208_operations_case_analysis.sql",
+        "0209_operations_case_evidence_source.sql",
+        "0217_analysis_run_tepp_receipt.sql",
+        "0233_source_conversation_turn_evidence.sql",
+        "0233_report_leftover_map_unexplained_share.sql",
+        "0235_voice_of_x_post_taxonomy.sql",
+        "0237_source_post_voice_combination.sql",
+        "0238_occupational_construct_assertion.sql",
+        "0239_occupational_construct_catalog.sql",
+        "0240_occupational_construct_extraction_run.sql",
+        "0241_occupational_construct_ontology_navigation.sql",
+        "0242_occupational_construct_catalog_search.sql",
+        "0243_source_post_voice_history.sql",
+        "0244_report_leftover_map_explained_share.sql",
+        "0245_operations_case_missing_fact.sql",
+        "0246_operations_external_relation_target.sql",
+        "0248_operations_case_milestone.sql",
+        "0250_operations_case_analysis_input.sql",
+        "0251_product_semantic_catalog.sql",
+        "0253_voice_semantic_taxonomy.sql",
+    )
+)
+
+
+def test_dashboard_external_query_reaches_projection(
+    client, demo_analyst_token, monkeypatch
+) -> None:
+    """The external-information navigation must request an external-only projection."""
+    observed: list[bool] = []
+
+    async def _fake_dashboard(
+        _conn, _corporate_entity_ids, _process_unit_ids,
+        _period_start=None, _period_end=None, external_only=False,
+    ):
+        observed.append(external_only)
+        return {"external_only": external_only}
+
+    monkeypatch.setattr("backend.app.main.fetch_operations_dashboard", _fake_dashboard)
+    response = client.get(
+        "/api/dashboard?external_only=true",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert response.status_code == 200
+    assert response.json() == {"external_only": True}
+    assert observed == [True]
+
+
 _LEFTOVER_MAP_AXIS_MIGRATION = (
     Path(__file__).resolve().parents[2]
     / "migrations"
@@ -402,6 +454,8 @@ def seeded_db(demo_analyst_token):
             cur.execute(_GLOBAL_ASK_KNOWLEDGE_CUTOFF_MIGRATION.read_text())
             cur.execute(_GLOBAL_ASK_PUBLIC_VERIFICATION_MIGRATION.read_text())
             cur.execute(_EVENT_OCCURRED_AT_MIGRATION.read_text())
+            for migration_path in _LATE_REPLAYABLE_MIGRATIONS:
+                cur.execute(migration_path.read_text())
             cur.execute(_LEFTOVER_MAP_AXIS_MIGRATION.read_text())
             cur.execute(_CHANNEL_EVIDENCE_MIGRATION.read_text())
             cur.execute(_LEFTOVER_MAP_UNEXPLAINED_MIGRATION.read_text())
@@ -1070,7 +1124,7 @@ def test_create_analysis_run_records_pending_without_inventing_a_score(
         },
     )
     assert tepp.status_code == 422
-    assert "invent a measurement" in tepp.json()["detail"]
+    assert "restore analysis" in tepp.json()["detail"]
     assert "theta" not in tepp.json()["detail"].lower()
 
     report = client.post(
@@ -1229,7 +1283,7 @@ def test_start_analysis_run_recovers_the_a100_fork(
         },
     )
     assert tepp_create.status_code == 422
-    assert "invent a measurement" in tepp_create.json()["detail"]
+    assert "restore analysis" in tepp_create.json()["detail"]
 
     admin_conn = psycopg2.connect(seeded_db["dsn"])
     admin_conn.autocommit = True
@@ -1407,7 +1461,7 @@ def test_start_analysis_run_recovers_the_a100_fork(
         headers={"Authorization": f"Bearer {demo_analyst_token}"},
     )
     assert report_refused.status_code == 422
-    assert "invent a measurement" in report_refused.json()["detail"]
+    assert report_refused.json()["detail"] == "기간 보고서 화면에서 다시 계산하세요."
 
     running = client.post(
         f"/api/analysis-runs/{running_run_id}/start",
@@ -1905,6 +1959,364 @@ def test_post_detail_uses_lookup_labels_not_raw_codes(client, demo_analyst_token
     assert body["visibility_label"] == "Public"
 
 
+def test_post_detail_returns_authorized_product_evidence(
+    client, demo_analyst_token, seeded_db
+) -> None:
+    """The post response exposes only its persisted evidence-bound product link."""
+    from backend.app.post_content_queue import source_body_sha256
+
+    conn = psycopg2.connect(seeded_db["dsn"])
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                "select post_body from source_post where post_id = %s",
+                (seeded_db["public_post_id"],),
+            )
+            current_body_sha256 = source_body_sha256(cur.fetchone()[0])
+            cur.execute(
+                "insert into product_catalog "
+                "(canonical_product_name, product_level_code, product_catalog_code) "
+                "values (%s, %s, %s) returning product_catalog_id",
+                ("Synthetic Model Q", "product_model", "SYNTH-Q"),
+            )
+            catalog_id = cur.fetchone()[0]
+            cur.execute(
+                "insert into post_product_analysis "
+                "(post_id, source_body_sha256, analysis_input_sha256, orchestrator_session_id) "
+                "values (%s, %s, %s, %s)",
+                    (seeded_db["public_post_id"], current_body_sha256, "b" * 64, "session-a"),
+            )
+            cur.execute(
+                "insert into post_product_mention "
+                "(post_id, mention_ordinal, product_catalog_id, extracted_product_name, "
+                "resolution_status_code, evidence_text, evidence_post_id, evidence_input_sha256) "
+                "values (%s, 0, %s, %s, 'unique', %s, %s, %s)",
+                (
+                    seeded_db["public_post_id"], catalog_id, "Synthetic Model Q",
+                    "Synthetic evidence", seeded_db["public_post_id"], "c" * 64,
+                ),
+            )
+            cur.execute(
+                "insert into post_project_mention "
+                "(post_id, project_key, project_name, evidence_text, confidence, "
+                "ontology_iri, extraction_method) values (%s, %s, %s, %s, %s, %s, %s) "
+                "on conflict (post_id, project_key) do nothing",
+                (
+                    seeded_db["public_post_id"],
+                    "synthetic-product-project",
+                    "Synthetic Product Project",
+                    "Synthetic evidence",
+                    1,
+                    "https://contextualwisdomlab.github.io/LineageWeave/ontology#Project",
+                    "synthetic_fixture",
+                ),
+            )
+            cur.execute(
+                "insert into product_project_relation "
+                "(post_id, mention_ordinal, project_key, relation_type_code, "
+                "evidence_text, evidence_post_id, evidence_input_sha256) "
+                "values (%s, 0, %s, 'used_by_project', %s, %s, %s)",
+                (
+                    seeded_db["public_post_id"],
+                    "synthetic-product-project",
+                    "Synthetic evidence",
+                    seeded_db["public_post_id"],
+                    "c" * 64,
+                ),
+            )
+            cur.execute(
+                "insert into post_product_mention "
+                "(post_id, mention_ordinal, extracted_product_name, "
+                "resolution_status_code, evidence_text, evidence_post_id, "
+                "evidence_input_sha256) "
+                "values (%s, 1, %s, 'missing', %s, %s, %s)",
+                (
+                    seeded_db["public_post_id"],
+                    "Hidden Synthetic Model",
+                    "Hidden synthetic evidence",
+                    seeded_db["other_private_post_id"],
+                    "d" * 64,
+                ),
+            )
+        conn.commit()
+    finally:
+        conn.close()
+    response = client.get(
+        f"/api/posts/{seeded_db['public_post_id']}",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert response.status_code == 200
+    assert response.json()["product_evidence_status"] == {
+        "status_code": "complete",
+        "next_action": "연결된 제품과 원문 근거를 확인하세요.",
+    }
+    assert response.json()["product_evidence"] == [{
+        "mention_ordinal": 0,
+        "extracted_product_name": "Synthetic Model Q",
+        "resolution_status_code": "unique",
+        "canonical_product_name": "Synthetic Model Q",
+        "product_level_code": "product_model",
+        "evidence_text": "Synthetic evidence",
+        "evidence_post_id": seeded_db["public_post_id"],
+        "relations": [{
+            "relation_type_code": "used_by_project",
+            "target_kind_code": "project",
+            "target_id": "project:synthetic-product-project",
+            "target_label": "Synthetic Product Project",
+            "evidence_text": "Synthetic evidence",
+            "evidence_post_id": seeded_db["public_post_id"],
+        }],
+    }]
+
+
+def test_voice_taxonomy_summary_uses_visible_post_denominator(
+    client, demo_analyst_token, seeded_db
+) -> None:
+    """Counts include visible unavailable posts and disclose overlap semantics."""
+    conn = psycopg2.connect(seeded_db["dsn"])
+    try:
+        with conn.cursor() as cur:
+            cur.execute("delete from post_voice_classification_assertion")
+            cur.execute(
+                "insert into post_voice_classification_assertion "
+                "(post_id, voice_concept_code, assertion_status_code, evidence_sha256, "
+                "source_revision_digest) select post_id, 'voc', 'source', repeat('a', 64), "
+                "repeat('b', 64) from source_post"
+            )
+        conn.commit()
+    finally:
+        conn.close()
+    response = client.get(
+        "/api/voice-taxonomy/summary",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert response.status_code == 200, response.text
+    payload = response.json()
+    assert payload["total_eligible"] == 4
+    assert payload["source_count"] == 4
+    assert payload["counts_overlap"] is True
+    assert payload["category_memberships"] == [{
+        "voice_concept_code": "voc",
+        "post_count": 4,
+        "eligible_percentage": 100.0,
+    }]
+    assert "category_post_counts" not in payload
+
+
+def test_voice_source_ingestion_is_available_for_future_business_event(
+    seeded_db,
+) -> None:
+    """Ingestion records a source label immediately, not at event time."""
+    conn = psycopg2.connect(seeded_db["dsn"])
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                "delete from post_voice_classification_assertion where post_id = %s",
+                (seeded_db["public_post_id"],),
+            )
+            cur.execute(
+                "update source_post set post_body = post_body, "
+                "event_occurred_at = '2999-01-01T00:00:00Z' where post_id = %s",
+                (seeded_db["public_post_id"],),
+            )
+            cur.execute(
+                "select classification_assertion_id, valid_from "
+                "from post_voice_classification_assertion "
+                "where post_id = %s and assertion_status_code = 'source' "
+                "and voice_concept_code = 'voc'",
+                (seeded_db["public_post_id"],),
+            )
+            first_assertion_id, valid_from = cur.fetchone()
+            assert valid_from is None
+            cur.execute(
+                "update source_post set post_body = post_body || ' revised' "
+                "where post_id = %s",
+                (seeded_db["public_post_id"],),
+            )
+            cur.execute(
+                "update source_post set post_body = post_body where post_id = %s",
+                (seeded_db["public_post_id"],),
+            )
+            cur.execute(
+                "select count(*), count(*) filter (where valid_to is null), "
+                "count(*) filter (where classification_assertion_id = %s "
+                "and valid_to is not null), "
+                "max(supersedes_assertion_id::text) filter (where valid_to is null) "
+                "from post_voice_classification_assertion where post_id = %s "
+                "and assertion_status_code = 'source'",
+                (first_assertion_id, seeded_db["public_post_id"]),
+            )
+            assert cur.fetchone() == (
+                2,
+                1,
+                1,
+                str(first_assertion_id),
+            )
+        conn.commit()
+    finally:
+        conn.close()
+
+
+def test_derived_voice_assertion_requires_model_receipt(seeded_db) -> None:
+    """A derived classification cannot persist without its model receipt."""
+    conn = psycopg2.connect(seeded_db["dsn"])
+    try:
+        with conn.cursor() as cur, pytest.raises(psycopg2.errors.CheckViolation):
+            cur.execute(
+                "insert into post_voice_classification_assertion "
+                "(post_id, voice_concept_code, assertion_status_code, evidence_span_start, "
+                "evidence_span_end, evidence_sha256, source_revision_digest) "
+                "values (%s, 'voc', 'derived', 0, 1, repeat('a', 64), repeat('b', 64))",
+                (seeded_db["public_post_id"],),
+            )
+    finally:
+        conn.close()
+
+
+def test_voice_source_reconcile_preserves_other_sourced_memberships(seeded_db) -> None:
+    """A body revision supersedes its source label without erasing another source."""
+    conn = psycopg2.connect(seeded_db["dsn"])
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                "insert into post_voice_classification_assertion "
+                "(post_id, voice_concept_code, assertion_status_code, evidence_sha256, "
+                "source_revision_digest) values (%s, 'vom', 'source', repeat('a', 64), "
+                "repeat('b', 64))",
+                (seeded_db["public_post_id"],),
+            )
+            cur.execute(
+                "update source_post set post_body = post_body || ' revised' where post_id = %s",
+                (seeded_db["public_post_id"],),
+            )
+            cur.execute(
+                "select voice_concept_code from post_voice_classification_assertion "
+                "where post_id = %s and assertion_status_code = 'source' "
+                "and valid_to is null order by voice_concept_code",
+                (seeded_db["public_post_id"],),
+            )
+            assert [row[0] for row in cur.fetchall()] == ["voc", "vom"]
+    finally:
+        conn.close()
+
+
+def test_voice_assertion_rejects_duplicate_open_scope(seeded_db) -> None:
+    """One post, status, and concept cannot have two current assertions."""
+    conn = psycopg2.connect(seeded_db["dsn"])
+    try:
+        with conn.cursor() as cur:
+            cur.execute("delete from post_voice_classification_assertion")
+            cur.execute(
+                "insert into post_voice_classification_assertion "
+                "(post_id, voice_concept_code, assertion_status_code, evidence_sha256, "
+                "source_revision_digest) values (%s, 'voc', 'source', repeat('a', 64), "
+                "repeat('b', 64))",
+                (seeded_db["public_post_id"],),
+            )
+            with pytest.raises(psycopg2.errors.UniqueViolation):
+                cur.execute(
+                    "insert into post_voice_classification_assertion "
+                    "(post_id, voice_concept_code, assertion_status_code, evidence_sha256, "
+                    "source_revision_digest) values (%s, 'voc', 'source', repeat('c', 64), "
+                    "repeat('d', 64))",
+                    (seeded_db["public_post_id"],),
+                )
+    finally:
+        conn.close()
+
+
+def test_voice_taxonomy_matching_multi_membership_is_not_a_disagreement(
+    client, demo_analyst_token, seeded_db
+) -> None:
+    """Matching source and derived concept sets remain agreement evidence."""
+    conn = psycopg2.connect(seeded_db["dsn"])
+    try:
+        with conn.cursor() as cur:
+            cur.execute("delete from post_voice_classification_assertion")
+            for status_code in ("source", "derived"):
+                for concept_code in ("voc", "vom"):
+                    cur.execute(
+                        "insert into post_voice_classification_assertion "
+                        "(post_id, voice_concept_code, assertion_status_code, "
+                        "evidence_span_start, evidence_span_end, evidence_sha256, "
+                        "source_revision_digest, orchestrator_model_receipt) "
+                        "values (%s, %s, %s, %s, %s, repeat(%s, 64), repeat(%s, 64), %s)",
+                        (
+                            seeded_db["public_post_id"],
+                            concept_code,
+                            status_code,
+                            0 if status_code == "derived" else None,
+                            1 if status_code == "derived" else None,
+                            "a" if concept_code == "voc" else "b",
+                            "c" if concept_code == "voc" else "d",
+                            "synthetic-receipt" if status_code == "derived" else None,
+                        ),
+                    )
+        conn.commit()
+    finally:
+        conn.close()
+
+    response = client.get(
+        "/api/voice-taxonomy/summary",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert response.status_code == 200, response.text
+    payload = response.json()
+    assert payload["multi_membership"] == 1
+    assert payload["disagreement"] == 0
+
+
+def test_voice_taxonomy_excludes_assertions_before_their_validity_window(
+    client, demo_analyst_token, seeded_db
+) -> None:
+    """A future assertion is unavailable until its recorded validity begins."""
+    conn = psycopg2.connect(seeded_db["dsn"])
+    try:
+        with conn.cursor() as cur:
+            cur.execute("delete from post_voice_classification_assertion")
+            cur.execute(
+                "insert into post_voice_classification_assertion "
+                "(post_id, voice_concept_code, assertion_status_code, "
+                "evidence_sha256, source_revision_digest, valid_from) "
+                "values (%s, 'voc', 'source', repeat('a', 64), repeat('b', 64), "
+                "'2999-01-01T00:00:00Z')",
+                (seeded_db["public_post_id"],),
+            )
+        conn.commit()
+    finally:
+        conn.close()
+
+    response = client.get(
+        "/api/voice-taxonomy/summary",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert response.status_code == 200, response.text
+    payload = response.json()
+    assert payload["source_count"] == 0
+    assert payload["unavailable"] == payload["total_eligible"]
+
+
+def test_voice_taxonomy_summary_rejects_reversed_period(
+    client, demo_analyst_token
+) -> None:
+    response = client.get(
+        "/api/voice-taxonomy/summary?date_from=2026-02-01&date_to=2026-01-01",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert response.status_code == 422
+    assert "Choose an end time" in response.json()["detail"]
+
+
+def test_voice_taxonomy_summary_accepts_one_calendar_day(
+    client, demo_analyst_token
+) -> None:
+    response = client.get(
+        "/api/voice-taxonomy/summary?date_from=2026-01-01&date_to=2026-01-01",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert response.status_code == 200
+
+
 def test_post_detail_exposes_explicit_and_semantic_project_evidence(
     client, demo_analyst_token, seeded_db
 ) -> None:
@@ -1980,6 +2392,8 @@ def test_post_detail_as_of_returns_the_cutoff_known_body(
     assert body["post_body"] == "A January post rewritten after the run cutoff."
     assert body["known_at"]["post_body"] == "A January post before the rewrite."
     assert body["known_at"]["written_at"].startswith("2026-01-10")
+    assert body["product_evidence"] == []
+    assert body["product_evidence_status"]["status_code"] == "historical_unavailable"
     assert "postgresql://" not in str(body)
 
     missing = client.get(
