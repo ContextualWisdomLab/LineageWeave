@@ -259,7 +259,12 @@ async def persist_topic_influence_result(
                 or job["lease_token"] != lease_token
             ):
                 raise ValueError("topic influence job lease no longer matches")
-            current = await load_topic_influence_request(conn, topic_model_run_id)
+            try:
+                current = await load_topic_influence_request(conn, topic_model_run_id)
+            except ValueError as exc:
+                raise TopicInfluenceInputChanged(
+                    "topic influence evidence became incomplete during computation"
+                ) from exc
             if current.request_sha256 != request.request_sha256:
                 raise TopicInfluenceInputChanged(
                     "topic influence input changed during computation"

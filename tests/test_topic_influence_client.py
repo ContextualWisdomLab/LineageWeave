@@ -629,6 +629,44 @@ def test_persistence_rechecks_digest_and_writes_every_validated_row(monkeypatch)
     assert any("lease_token = $2::uuid" in sql for sql in connection.executed)
 
 
+def test_persistence_treats_newly_incomplete_evidence_as_changed_input(
+    monkeypatch,
+) -> None:
+    """Evidence withdrawn during compute must return to automatic admission."""
+    request = _request()
+    result = TopicInfluenceClient(
+        lambda _payload: _response(request), lease_timeout_seconds=17
+    ).estimate(request)
+
+    class Connection:
+        def transaction(self):
+            return _async_context(self)
+
+        async def fetchrow(self, _sql, *_args):
+            return {
+                "request_sha256": request.request_sha256,
+                "lease_token": _LEASE_TOKEN,
+            }
+
+    class Pool:
+        def acquire(self):
+            return _async_context(Connection())
+
+    async def incomplete(_conn, _run_id):
+        raise ValueError("synthetic evidence withdrawn")
+
+    monkeypatch.setattr(
+        topic_influence_worker, "load_topic_influence_request", incomplete
+    )
+
+    with pytest.raises(topic_influence_worker.TopicInfluenceInputChanged):
+        asyncio.run(
+            topic_influence_worker.persist_topic_influence_result(
+                Pool(), "model-1", request, result, _LEASE_TOKEN
+            )
+        )
+
+
 def test_every_running_transition_is_bound_to_the_exact_lease() -> None:
     """A stale worker cannot fail, defer, or release a replacement lease."""
     statements: list[tuple[str, tuple[object, ...]]] = []
