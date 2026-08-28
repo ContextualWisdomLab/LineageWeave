@@ -166,6 +166,20 @@ def test_catalog_provisioning_requires_parent_and_unambiguous_aliases() -> None:
         _entry(aliases=("Model  Q", "model q")).normalized_aliases()
 
 
+def test_catalog_provisioning_rejects_unknown_product_level_before_database() -> None:
+    """Direct callers receive a domain error before a constraint failure."""
+    conn = _Connection()
+    with pytest.raises(ValueError, match="product level code"):
+        asyncio.run(
+            provision_product_catalog_entry(
+                conn,
+                _entry(product_level_code="invented_level"),
+                imported_by_account_id=str(UUID(int=301)),
+            )
+        )
+    assert conn.calls == []
+
+
 def test_catalog_provenance_schema_is_replay_safe_normalized_and_indexed() -> None:
     """The migration preserves source aliases and both lookup directions."""
     sql = Path("migrations/0261_product_catalog_source_provenance.sql").read_text()

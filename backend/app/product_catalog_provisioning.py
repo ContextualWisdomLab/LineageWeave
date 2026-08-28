@@ -11,6 +11,11 @@ from typing import Any, Protocol
 from lineageweave.product_semantics import normalize_product_alias
 
 
+_PRODUCT_LEVEL_CODES = frozenset(
+    {"product_group", "product_model", "variant", "trade_item"}
+)
+
+
 class ProductCatalogProvisioningConflict(ValueError):
     """An existing source or product identity contradicts the import row."""
 
@@ -97,6 +102,8 @@ async def provision_product_catalog_entry(
             raise ValueError(f"{name} must be nonblank PostgreSQL text")
     if not re.fullmatch(r"[a-z][a-z0-9_]{0,62}", entry.source_system_code):
         raise ValueError("source system code is outside the governed vocabulary")
+    if entry.product_level_code not in _PRODUCT_LEVEL_CODES:
+        raise ValueError("product level code is outside the governed vocabulary")
     if entry.parent_product_code is not None and not entry.parent_product_code.strip():
         raise ValueError("parent product code must be nonblank when supplied")
     aliases = entry.normalized_aliases()
