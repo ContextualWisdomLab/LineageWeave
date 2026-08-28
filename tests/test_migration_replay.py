@@ -299,6 +299,19 @@ def test_topic_influence_job_migration_is_replay_safe_and_fail_closed() -> None:
     assert "after insert or update on topic_post_coordinate" in sql
     assert "after insert or update on topic_context_membership" in sql
     assert "after insert or update on topic_definition" in sql
+    assert "create trigger topic_provenance_binding_influence_wake" in sql
+    assert "after insert or update on provenance_resource_binding" in sql
+    assert "new.node_type_code = 'node_post'" in sql
+    assert "old.node_type_code = 'node_post'" in sql
+    assert "assertion.relation_code = 'prov_was_derived_from'" in sql
+    assert "membership.source_post_id = new.node_id" in sql
+    assert "membership.source_post_id = old.node_id" in sql
+    assert "create trigger topic_provenance_assertion_influence_wake" in sql
+    assert (
+        "after update of object_resource_id, relation_code on provenance_assertion"
+        in sql
+    )
+    assert "membership.provenance_assertion_id = new.assertion_id" in sql
     assert "add column if not exists lease_expires_at" in sql
     assert "drop constraint if exists topic_influence_job_check" in sql
     assert "and (lease_expires_at is null or lease_token is null)" in sql

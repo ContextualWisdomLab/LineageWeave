@@ -152,6 +152,69 @@ create trigger topic_definition_influence_wake
 after insert or update on topic_definition
 for each row execute function wake_topic_influence_job_for_model();
 
+create or replace function wake_topic_influence_job_for_provenance_binding()
+returns trigger
+language plpgsql
+as $$
+begin
+    update topic_influence_job job
+       set status_code = 'queued', failure_code = null, completed_at = null,
+           not_before = clock_timestamp()
+      from topic_context_membership membership
+      join provenance_assertion assertion
+        on assertion.assertion_id = membership.provenance_assertion_id
+       and assertion.relation_code = 'prov_was_derived_from'
+     where assertion.object_resource_id = new.resource_id
+       and new.node_type_code = 'node_post'
+       and membership.source_post_id = new.node_id
+       and job.topic_model_run_id = membership.topic_model_run_id
+       and job.status_code = 'awaiting_evidence';
+    if tg_op = 'UPDATE' then
+        update topic_influence_job job
+           set status_code = 'queued', failure_code = null, completed_at = null,
+               not_before = clock_timestamp()
+          from topic_context_membership membership
+          join provenance_assertion assertion
+            on assertion.assertion_id = membership.provenance_assertion_id
+           and assertion.relation_code = 'prov_was_derived_from'
+         where assertion.object_resource_id = old.resource_id
+           and old.node_type_code = 'node_post'
+           and membership.source_post_id = old.node_id
+           and job.topic_model_run_id = membership.topic_model_run_id
+           and job.status_code = 'awaiting_evidence';
+    end if;
+    return new;
+end
+$$;
+
+drop trigger if exists topic_provenance_binding_influence_wake
+    on provenance_resource_binding;
+create trigger topic_provenance_binding_influence_wake
+after insert or update on provenance_resource_binding
+for each row execute function wake_topic_influence_job_for_provenance_binding();
+
+create or replace function wake_topic_influence_job_for_provenance_assertion()
+returns trigger
+language plpgsql
+as $$
+begin
+    update topic_influence_job job
+       set status_code = 'queued', failure_code = null, completed_at = null,
+           not_before = clock_timestamp()
+      from topic_context_membership membership
+     where membership.provenance_assertion_id = new.assertion_id
+       and job.topic_model_run_id = membership.topic_model_run_id
+       and job.status_code = 'awaiting_evidence';
+    return new;
+end
+$$;
+
+drop trigger if exists topic_provenance_assertion_influence_wake
+    on provenance_assertion;
+create trigger topic_provenance_assertion_influence_wake
+after update of object_resource_id, relation_code on provenance_assertion
+for each row execute function wake_topic_influence_job_for_provenance_assertion();
+
 drop trigger if exists topic_tepp_receipt_influence_wake on analysis_run_tepp_receipt;
 create trigger topic_tepp_receipt_influence_wake after insert or update on analysis_run_tepp_receipt
 for each row execute function wake_topic_influence_job_for_analysis();
