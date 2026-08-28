@@ -42,6 +42,46 @@ class ResolvedProductMention:
     product_catalog_id: str | None
 
 
+@dataclass(frozen=True)
+class ProductRelationTarget:
+    """One authorized normalized relation target offered to extraction."""
+
+    target_id: str
+    target_kind_code: str
+    label: str
+    target_locator: tuple[str, ...]
+
+
+@dataclass(frozen=True)
+class ProductRelation:
+    """One validated closed-vocabulary relation to an authorized target."""
+
+    mention_ordinal: int
+    target_id: str
+    target_kind_code: str
+    relation_type_code: str
+    evidence_text: str
+    evidence_post_id: str
+    evidence_input_sha256: str
+    target_locator: tuple[str, ...]
+
+
+@dataclass(frozen=True)
+class ProductExtraction:
+    """Validated product mentions and their authorized typed relations."""
+
+    mentions: tuple[ProductMention, ...]
+    relations: tuple[ProductRelation, ...]
+
+
+_RELATION_TYPES = {
+    "operations_fact": frozenset(
+        {"concerns_product", "changes_product", "originates_from_product", "senses_product"}
+    ),
+    "project": frozenset({"used_by_project"}),
+}
+
+
 def normalize_product_alias(value: str) -> str:
     """Normalize catalog lookup text without deriving identity from keywords."""
     return " ".join(unicodedata.normalize("NFKC", value).casefold().split())
@@ -49,10 +89,24 @@ def normalize_product_alias(value: str) -> str:
 
 def product_analysis_input_sha256(
     sources: tuple[ProductEvidenceSource, ...],
+    targets: tuple[ProductRelationTarget, ...] = (),
 ) -> str:
     """Digest the exact ordered authorized source window used for extraction."""
     encoded = json.dumps(
-        [(source.post_id, source.input_sha256) for source in sources],
+        {
+            "sources": [
+                (source.post_id, source.input_sha256) for source in sources
+            ],
+            "targets": [
+                (
+                    target.target_id,
+                    target.target_kind_code,
+                    target.label,
+                    target.target_locator,
+                )
+                for target in targets
+            ],
+        },
         separators=(",", ":"),
         ensure_ascii=False,
     ).encode("utf-8")
@@ -60,19 +114,25 @@ def product_analysis_input_sha256(
 
 
 def parse_product_mentions(
-    content: str, sources: tuple[ProductEvidenceSource, ...]
-) -> tuple[ProductMention, ...] | None:
+    content: str,
+    sources: tuple[ProductEvidenceSource, ...],
+    targets: tuple[ProductRelationTarget, ...] = (),
+) -> ProductExtraction | None:
     """Validate structured output against exact authorized source spans."""
     source_by_id = {source.post_id: source for source in sources}
     try:
         payload = json.loads(content)
     except json.JSONDecodeError:
         return None
-    if not isinstance(payload, list):
+    if not isinstance(payload, dict):
+        return None
+    raw_mentions = payload.get("mentions")
+    raw_relations = payload.get("relations")
+    if not isinstance(raw_mentions, list) or not isinstance(raw_relations, list):
         return None
     mentions: list[ProductMention] = []
     seen: set[tuple[str, str, str]] = set()
-    for item in payload:
+    for item in raw_mentions:
         if not isinstance(item, dict):
             return None
         name = item.get("product_name")
@@ -93,7 +153,50 @@ def parse_product_mentions(
             return None
         seen.add(key)
         mentions.append(ProductMention(name.strip(), evidence, post_id, source.input_sha256))
-    return tuple(mentions)
+    targets_by_id = {target.target_id: target for target in targets}
+    if len(targets_by_id) != len(targets):
+        return None
+    relations: list[ProductRelation] = []
+    seen_relations: set[tuple[int, str, str]] = set()
+    for item in raw_relations:
+        if not isinstance(item, dict):
+            return None
+        ordinal = item.get("mention_ordinal")
+        target_id = item.get("target_id")
+        relation_type = item.get("relation_type_code")
+        evidence = item.get("evidence_text")
+        evidence_post_id = item.get("evidence_post_id")
+        target = targets_by_id.get(target_id)
+        source = source_by_id.get(evidence_post_id)
+        if (
+            type(ordinal) is not int
+            or ordinal < 0
+            or ordinal >= len(mentions)
+            or target is None
+            or relation_type not in _RELATION_TYPES.get(target.target_kind_code, ())
+            or not isinstance(evidence, str)
+            or not evidence.strip()
+            or source is None
+            or evidence not in source.text
+        ):
+            return None
+        key = (ordinal, target_id, relation_type)
+        if key in seen_relations:
+            return None
+        seen_relations.add(key)
+        relations.append(
+            ProductRelation(
+                ordinal,
+                target_id,
+                target.target_kind_code,
+                relation_type,
+                evidence,
+                evidence_post_id,
+                source.input_sha256,
+                target.target_locator,
+            )
+        )
+    return ProductExtraction(tuple(mentions), tuple(relations))
 
 
 def resolve_product_mention(
@@ -110,14 +213,20 @@ def resolve_product_mention(
     )
 
 
-_PROMPT = """Extract product entities from the authorized sources semantically.
-Do not classify by keywords or tags and do not invent a product. Return ONLY a
-JSON array. Each object has product_name, evidence_post_id, and evidence_text.
-evidence_text must be a verbatim span that identifies the product in that same
-source. Return [] when no source span supports a product entity.
+_PROMPT = """Extract product entities and supported typed relationships from the
+authorized sources semantically. Do not classify by keywords, tags, or span
+overlap and do not invent a product or target. Return ONLY one JSON object with
+mentions and relations arrays. Each mention has product_name, evidence_post_id,
+and evidence_text. Each relation has mention_ordinal, target_id,
+relation_type_code, evidence_post_id, and evidence_text. Use only the supplied
+target_id and its allowed relation codes. Evidence must be a verbatim source
+span. Return empty arrays when the sources support no product or relationship.
 
 Authorized sources:
 {sources}
+
+Authorized normalized targets:
+{targets}
 """
 
 
@@ -132,27 +241,52 @@ class ContextualOrchestratorProductExtractionClient:
         self._timeout = timeout
 
     def extract(
-        self, sources: tuple[ProductEvidenceSource, ...]
-    ) -> tuple[ProductMention, ...]:
+        self,
+        sources: tuple[ProductEvidenceSource, ...],
+        targets: tuple[ProductRelationTarget, ...] = (),
+        *,
+        session_id: str | None = None,
+    ) -> ProductExtraction:
         """Return only fully validated, source-bound product mentions."""
+        if session_id is not None and not session_id.strip():
+            raise ValueError("session_id must be non-empty when provided")
+        payload = {
+            "model": "orchestrator/auto",
+            "messages": [
+                {
+                    "role": "user",
+                    "content": _PROMPT.format(
+                        sources="\n\n".join(
+                            f"post_id={source.post_id}\n{source.text}"
+                            for source in sources
+                        ),
+                        targets=json.dumps(
+                            [
+                                {
+                                    "target_id": target.target_id,
+                                    "target_kind_code": target.target_kind_code,
+                                    "label": target.label,
+                                    "allowed_relation_type_codes": sorted(
+                                        _RELATION_TYPES[target.target_kind_code]
+                                    ),
+                                }
+                                for target in targets
+                            ],
+                            ensure_ascii=False,
+                            separators=(",", ":"),
+                        ),
+                    ),
+                }
+            ],
+            "mode": "auto",
+            "reasoning_effort": "auto",
+            "response_format": {"type": "json_object"},
+        }
+        if session_id is not None:
+            payload["session_id"] = session_id
         response = post_json(
             f"{self._base_url}/v1/chat/completions",
-            {
-                "model": "orchestrator/auto",
-                "messages": [
-                    {
-                        "role": "user",
-                        "content": _PROMPT.format(
-                            sources="\n\n".join(
-                                f"post_id={source.post_id}\n{source.text}"
-                                for source in sources
-                            )
-                        ),
-                    }
-                ],
-                "mode": "auto",
-                "reasoning_effort": "auto",
-            },
+            payload,
             timeout=self._timeout,
             headers={
                 "authorization": f"Bearer {self._api_key}",
@@ -165,7 +299,7 @@ class ContextualOrchestratorProductExtractionClient:
             raise RuntimeError(
                 "contextual-orchestrator returned invalid product evidence"
             ) from exc
-        parsed = parse_product_mentions(content, sources)
+        parsed = parse_product_mentions(content, sources, targets)
         if parsed is None:
             raise RuntimeError("contextual-orchestrator returned invalid product evidence")
         return parsed

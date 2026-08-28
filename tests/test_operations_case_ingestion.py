@@ -56,8 +56,9 @@ def test_digest_and_atomic_normalized_persistence() -> None:
         analysis_input_sha256="b" * 64,
     ))
     assert len(source_body_digest("source")) == 64
-    assert "delete from operations_case_analysis" in conn.calls[0][0]
-    assert conn.calls[1][1][-1] == "b" * 64
+    assert "delete from post_product_analysis" in conn.calls[0][0]
+    assert "delete from operations_case_analysis" in conn.calls[1][0]
+    assert conn.calls[2][1][-1] == "b" * 64
     assert conn.batches == [
         [("post-1", "claim_investigation", 0, "order", "A-1", "source", "post-1", digest, None)]
     ]
@@ -70,7 +71,8 @@ def test_persists_supported_empty_analysis() -> None:
         conn, "post-1", "ordinary", "session-1", (),
         analysis_input_sha256="b" * 64,
     ))
-    assert len(conn.calls) == 2
+    assert len(conn.calls) == 3
+    assert "delete from post_product_analysis" in conn.calls[0][0]
     assert conn.batches == []
 
 

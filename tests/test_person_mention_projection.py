@@ -98,6 +98,18 @@ _SOURCE_NAMED_HINTS_MIGRATION = (
 _SOURCE_ORG_NAMED_HINTS_MIGRATION = (
     Path(__file__).resolve().parents[1] / "migrations" / "0039_source_org_named_hints.sql"
 )
+_OPERATIONS_CASE_MIGRATION = (
+    Path(__file__).resolve().parents[1] / "migrations" / "0208_operations_case_analysis.sql"
+)
+_OPERATIONS_EVIDENCE_MIGRATION = (
+    Path(__file__).resolve().parents[1] / "migrations" / "0209_operations_case_evidence_source.sql"
+)
+_OPERATIONS_INPUT_MIGRATION = (
+    Path(__file__).resolve().parents[1] / "migrations" / "0222_operations_case_analysis_input.sql"
+)
+_PRODUCT_SEMANTIC_MIGRATION = (
+    Path(__file__).resolve().parents[1] / "migrations" / "0228_product_semantic_catalog.sql"
+)
 
 
 def _postgres_available() -> bool:
@@ -165,6 +177,10 @@ def projection_database() -> str:
                 cursor.execute(_MAJOR_EVENT_ACTION_MIGRATION.read_text(encoding="utf-8"))
                 cursor.execute(_PROJECT_BOUND_ACTION_MIGRATION.read_text(encoding="utf-8"))
                 cursor.execute(_PROJECT_BOUND_EVENT_MIGRATION.read_text(encoding="utf-8"))
+                cursor.execute(_OPERATIONS_CASE_MIGRATION.read_text(encoding="utf-8"))
+                cursor.execute(_OPERATIONS_EVIDENCE_MIGRATION.read_text(encoding="utf-8"))
+                cursor.execute(_OPERATIONS_INPUT_MIGRATION.read_text(encoding="utf-8"))
+                cursor.execute(_PRODUCT_SEMANTIC_MIGRATION.read_text(encoding="utf-8"))
                 cursor.execute(
                     """
                     insert into common_lookup_value
