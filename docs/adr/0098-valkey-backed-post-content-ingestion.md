@@ -96,7 +96,19 @@ Operational backfill MUST use `scripts/queue_post_content_backfill.py` or
 `POST /api/post-content/backfill`; both call the same producer. The HTTP
 entry point requires `post_admin`, accepts only a 1--200 row page, and returns
 HTTP 202 after committing the ledger and attempting wake-ups; it never runs a
-provider in the request. The CLI has the same bound and no whole-corpus mode.
+provider in the request. Each worker recovery cycle also persists one bounded
+page before republishing queued wake-ups. Active and terminal jobs remain
+excluded, so successive cycles make durable corpus progress without duplicate
+work or an unbounded HTTP request. Candidate selection and broker recovery are
+independent: either failure is recorded and retried on the next cycle without
+stopping the worker.
+
+The CLI retains the same per-query bound. `--all-pages` repeats that governed
+producer until the current candidate set is empty; progress remains visible in
+the normalized job ledger after every page. Terminal failures are never reset
+implicitly. An operator may combine `--retry-failed --all-pages` only after the
+failed dependency has been restored; each failed page uses the existing
+explicit retry transition and commits before its wake-ups.
 The producer applies `SOURCE_POST_ELIGIBILITY_SQL`, locks source rows with
 `SKIP LOCKED`, selects only new or incomplete-succeeded jobs, rechecks the
 shared completeness predicate, and records the existing job state in

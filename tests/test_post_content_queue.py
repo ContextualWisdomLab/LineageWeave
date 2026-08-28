@@ -22,6 +22,7 @@ from backend.app.post_content_queue import (
     enqueue_post_content_backfill,
     record_post_content_backfill_success,
     requeue_failed_post_content_job,
+    requeue_failed_post_content_jobs,
     post_content_api_status,
     post_content_is_complete,
     post_content_stream_fields,
@@ -646,6 +647,58 @@ def test_explicit_retry_rejects_missing_and_nonterminal_jobs() -> None:
             )
         )
 
+
+def test_explicit_retry_page_commits_before_wakeup() -> None:
+    """A bounded failed page resets in PostgreSQL before publishing events."""
+    from contextlib import asynccontextmanager
+
+    order: list[str] = []
+
+    class Transaction:
+        async def __aenter__(self) -> None:
+            order.append("begin")
+
+        async def __aexit__(self, *_args: object) -> None:
+            order.append("commit")
+
+    class Connection:
+        def transaction(self) -> Transaction:
+            return Transaction()
+
+        async def fetch(self, query: str, *_args: object):
+            assert "for update of job skip locked" in query
+            return [{"post_id": "synthetic-post", "post_body": "synthetic body"}]
+
+        async def fetchrow(self, _query: str, *_args: object):
+            return {"status_code": FAILED}
+
+        async def fetchval(self, _query: str, *_args: object) -> int:
+            return 1
+
+        async def execute(self, _query: str, *_args: object) -> str:
+            return "OK"
+
+    class Pool:
+        @asynccontextmanager
+        async def acquire(self):
+            yield Connection()
+
+    class Client:
+        async def xadd(self, _stream: str, _fields: object, **_kwargs: object) -> str:
+            order.append("publish")
+            return "1-0"
+
+    result = asyncio.run(
+        requeue_failed_post_content_jobs(Pool(), Client(), limit=1)
+    )
+
+    assert result == {
+        "selected_posts": 1,
+        "queued_posts": 1,
+        "published_events": 1,
+        "recovery_pending": 0,
+    }
+    assert order == ["begin", "commit", "publish"]
 
 def test_backfill_success_clears_terminal_error_and_records_succeeded() -> None:
     executed: list[tuple[str, tuple[object, ...]]] = []

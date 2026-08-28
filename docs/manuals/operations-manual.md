@@ -66,6 +66,11 @@ For an incident:
    connectivity, and the owner service's readiness.
 3. Restore the failed dependency before retrying. Do not convert an unavailable
    provider response into a negative classification.
+4. The enabled worker admits the next bounded incomplete page every recovery
+   cycle. For an operator-controlled catch-up, run
+   `scripts/queue_post_content_backfill.py --all-pages`; after restoring a
+   terminal dependency, add `--retry-failed`. Both modes persist each page
+   before publishing wake-ups and report aggregate counts only.
 4. For one terminal content job, run
    `uv run python scripts/requeue_failed_post_content.py --post-id <post-id>`
    from the governed operator environment. This preserves the original source
