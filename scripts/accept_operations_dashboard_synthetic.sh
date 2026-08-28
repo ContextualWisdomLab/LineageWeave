@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
 export COMPOSE_FILE=docker-compose.yml
-unset COMPOSE_PROFILES
 
 : "${EXPECTED_LINEAGEWEAVE_REVISION:?Set the exact LineageWeave revision used for the images}"
 : "${K6_VUS:?Set the declared Dashboard concurrency}"

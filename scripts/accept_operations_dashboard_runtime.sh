@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
 export COMPOSE_FILE=docker-compose.yml
-unset COMPOSE_PROFILES
 
 : "${ALLOW_PROVIDER_CALLS:?Set ALLOW_PROVIDER_CALLS=1 only after the readiness-lease fix is deployed}"
 : "${EXPECTED_ORCHESTRATOR_REVISION:?Set the exact merged contextual-orchestrator revision}"

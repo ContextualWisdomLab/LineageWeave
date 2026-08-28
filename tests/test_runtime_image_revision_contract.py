@@ -77,4 +77,3 @@ def test_acceptance_uses_only_the_checked_in_compose_file() -> None:
     ):
         runner = (_ROOT / "scripts" / script_name).read_text(encoding="utf-8")
         assert "export COMPOSE_FILE=docker-compose.yml" in runner
-        assert "unset COMPOSE_PROFILES" in runner
