@@ -13,7 +13,7 @@ const voiceLabels = {
   vor: "Voice of Regulator",
   voi: "Voice of Investor",
   voso: "Voice of Society",
-  vops: "Voice of Prospective customer",
+  vops: "Voice of Process",
 } as const;
 
 export function VoiceTaxonomySummary({ data }: { data: Summary }) {
