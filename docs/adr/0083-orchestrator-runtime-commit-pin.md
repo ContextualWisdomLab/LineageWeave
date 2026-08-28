@@ -15,7 +15,7 @@ multi-agent.
 ## Decision
 
 `docker/contextual-orchestrator/Dockerfile` pins the downloaded archive to
-commit `2712827bfebd8be39e25c24924ad1f18522fd5f9` from upstream PR #857.
+commit `3558a9a3aeb985282b255fcd80bb2201c19ae54b` from upstream PR #857.
 The candidate pin supplies exact `Retry-After` admission deferral,
 rate-budget-derived readiness polling cadence, and endpoint-scoped structured
 admission. Readiness now measures both the internal JSON-Schema judge and the
@@ -60,6 +60,8 @@ The runtime contract is:
 - Asynchronous provider-readiness jobs declare the positive integer polling
   cadence derived from the server's configured admission window; consumers do
   not invent a polling interval.
+- One candidate's bounded probe failure records that candidate as not ready;
+  it does not discard successful readiness evidence from other candidates.
 
 ## Consequences
 
