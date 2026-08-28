@@ -86,6 +86,7 @@ def main() -> None:
         json.loads(Path("/app/agents.json").read_text(encoding="utf-8")),
         provider_url,
     )
+    os.environ.pop("LLM_GATEWAY_EMBEDDING_MODEL", None)
     agents_path.write_text(json.dumps(agents), encoding="utf-8")
 
     from contextual_orchestrator.credentials import register_credential

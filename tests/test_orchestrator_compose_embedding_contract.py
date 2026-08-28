@@ -100,6 +100,10 @@ def test_lineage_clients_do_not_select_an_embedding_model() -> None:
     compose = (_ROOT / "docker-compose.yml").read_text(encoding="utf-8")
     assert "LLM_GATEWAY_EMBEDDING_MODEL:" not in compose
     assert "LLM_GATEWAY_EMBEDDING_PROVIDER:" not in compose
+    start = (_ROOT / "docker/contextual-orchestrator/start.py").read_text(
+        encoding="utf-8"
+    )
+    assert 'os.environ.pop("LLM_GATEWAY_EMBEDDING_MODEL", None)' in start
 
 
 def test_orchestrator_image_tag_matches_the_downloaded_revision() -> None:
