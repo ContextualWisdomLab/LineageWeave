@@ -28,10 +28,10 @@ The ecosystem product boundaries are already sufficient:
   CPU/GPU implementation before LineageWeave treats a new result as governed
   numerical evidence.
 
-LineageWeave has no standalone canonical PRD file on this exact head. Until
-one lands, `ARCHITECTURE.md` and the accepted ADR set are the product baseline;
-this absence remains a product-documentation gap, not permission to infer a
-different responsibility.
+[`docs/product-requirements.md`](../product-requirements.md) is the canonical
+product-requirements baseline on this exact head. `ARCHITECTURE.md` and the
+accepted ADR set refine its responsibility boundaries; none of those records
+permits a consumer repository to infer a different numerical owner.
 
 ## Decision
 
@@ -72,7 +72,7 @@ different responsibility.
 ## Implemented migration slices
 
 - The backend dependency is immutably pinned to fast-mlsirm protected-main
-  commit `09f762ded35786dd1078222a4577ff09d649816f`. The TEPP-specific contract
+  commit `d025b7d237d8db7ca97a5611606c6285d5870895`. The TEPP-specific contract
   proposed by closed, unmerged fast-mlsirm PR #1423 is not an owner contract
   and is not consumed. Channel-weight estimation remains unavailable until a
   domain-neutral owner contract lands; the legacy Python estimator remains

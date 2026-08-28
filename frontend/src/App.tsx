@@ -1595,7 +1595,7 @@ function CounterpartyPanel({
                 className="keyman-select"
                 onClick={() => onSelectPost(c.verification_evidence_post_id!)}
               >
-                View internal evidence
+                Open cited post
               </button>
             ) : null}
           </li>

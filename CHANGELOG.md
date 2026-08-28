@@ -8,6 +8,12 @@ All notable changes to this project are documented here. Format follows
 
 ### Added
 
+- Evidence Operations now presents cited claim, rebid, handover, external,
+  product, and Voice evidence with explicit unavailable states and source-open
+  actions. Durable analysis and bounded backfill run only in the dedicated
+  backend worker, while the web process remains responsive; topic-context
+  results fail closed when their authorized provenance is incomplete.
+
 - Period leftover pair rows now name leftover-map explained leftover share
   `e = R̂² / R²` of raw residual after two-axis Gabriel reconstruction
   (ADR 0266 / v2.23.0). After `make seed`, closest and farthest leftover
