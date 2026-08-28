@@ -23,7 +23,8 @@ All notable changes to this project are documented here. Format follows
   fast-mlsirm result. Missing owner transport, partial rows, or digest mismatch
   remains unavailable without local scoring. Time-valid membership slices
   remain distinct; incomplete evidence enters an event-woken awaiting state;
-  expired work is reclaimed only from its declared request/lease contract; and
+  expired work is reclaimed only from its declared request/lease contract,
+  whose lease must strictly exceed the request timeout for persistence; and
   evidence changed during computation releases a fresh request automatically.
   LineageWeave-owned request and membership bytes and producer-owned result
   bytes are SHA-256 verified before parsing, so admission never depends on

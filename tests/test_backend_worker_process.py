@@ -187,6 +187,23 @@ def test_worker_process_lease_fails_closed_for_a_second_replica() -> None:
     assert calls == ["rejected"]
 
 
+@pytest.mark.parametrize(
+    ("request_timeout", "lease_timeout"),
+    [(11, 11), (11, 10), (0, 17), (11, 0), (True, 17), (11, True)],
+)
+def test_topic_influence_lease_strictly_exceeds_request(
+    request_timeout: object, lease_timeout: object
+) -> None:
+    """The declared lease retains time for persistence after request return."""
+    settings = SimpleNamespace(
+        topic_influence_request_timeout_seconds=request_timeout,
+        topic_influence_lease_timeout_seconds=lease_timeout,
+    )
+
+    with pytest.raises(ValueError, match="strictly greater"):
+        worker._topic_influence_timeouts(settings)
+
+
 async def _async_value(value):
     """Return one test double through an awaitable seam."""
     return value

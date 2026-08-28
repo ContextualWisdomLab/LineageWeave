@@ -155,8 +155,9 @@ Incomplete older evidence is scanned past rather than pinning the queue. An
 exact remote `Retry-After` requeues at that admitted instant; all other
 failures require an explicit operator requeue after their cause is corrected,
 so the worker never invents a retry interval.
-The deployment declares request and lease timeout seconds together, and the
-lease may not be shorter than the request timeout. A running row becomes
+The deployment declares request and lease timeout seconds together. The lease
+must strictly exceed the request timeout so the operator-declared difference
+remains available for result validation and persistence. A running row becomes
 claimable only after that recorded lease expiry. Incomplete input moves to a
 typed awaiting-evidence state and is woken only by a new TEPP terminal receipt,
 topic digest, coordinate, definition, or membership event. If evidence changes

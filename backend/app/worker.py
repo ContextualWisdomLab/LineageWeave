@@ -32,6 +32,25 @@ from lineageweave.topic_influence_client import HttpTopicInfluenceClient
 _WORKER_LEASE_NAME = "lineageweave_durable_queue_worker"
 
 
+def _topic_influence_timeouts(settings: object) -> tuple[int, int]:
+    """Return a declared request/lease pair with persistence time remaining."""
+    request_timeout = getattr(
+        settings, "topic_influence_request_timeout_seconds", None
+    )
+    lease_timeout = getattr(settings, "topic_influence_lease_timeout_seconds", None)
+    if (
+        type(request_timeout) is not int
+        or type(lease_timeout) is not int
+        or request_timeout <= 0
+        or lease_timeout <= request_timeout
+    ):
+        raise ValueError(
+            "topic influence lease timeout must be a declared positive integer "
+            "strictly greater than the declared positive request timeout"
+        )
+    return request_timeout, lease_timeout
+
+
 @asynccontextmanager
 async def _single_worker_lease(pool: asyncpg.Pool) -> AsyncIterator[None]:
     """Fail a second worker process before two stream cursors can race."""
@@ -61,6 +80,12 @@ async def run_worker_process() -> None:
     valkey = create_valkey_client(settings.valkey_url)
     try:
         async with _single_worker_lease(pool):
+            topic_influence_url = getattr(
+                settings, "topic_influence_transport_url", ""
+            )
+            influence_timeouts = (
+                _topic_influence_timeouts(settings) if topic_influence_url else None
+            )
             workers = [
                 asyncio.create_task(run_worker_heartbeat()),
                 asyncio.create_task(
@@ -97,26 +122,8 @@ async def run_worker_process() -> None:
                     )
                 ),
             ]
-            topic_influence_url = getattr(
-                settings, "topic_influence_transport_url", ""
-            )
-            if topic_influence_url:
-                request_timeout = getattr(
-                    settings, "topic_influence_request_timeout_seconds", None
-                )
-                lease_timeout = getattr(
-                    settings, "topic_influence_lease_timeout_seconds", None
-                )
-                if (
-                    request_timeout is None
-                    or lease_timeout is None
-                    or lease_timeout < request_timeout
-                ):
-                    raise ValueError(
-                        "topic influence transport requires declared positive request "
-                        "and lease timeouts, with lease timeout not shorter than "
-                        "request timeout"
-                    )
+            if topic_influence_url and influence_timeouts is not None:
+                request_timeout, lease_timeout = influence_timeouts
                 workers.append(
                     asyncio.create_task(
                         run_topic_influence_worker(
