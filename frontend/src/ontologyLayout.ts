@@ -146,13 +146,23 @@ export function neighborhoodCsv(payload: OntologyNeighborhoodPayload): string {
     "truth_status_code",
     "recorded_at",
     "ontology_property_iri",
+    "carrying_post_id",
+    "derivation_evidence_post_id",
     "evidence_post_id",
   ];
   const lines = [header.join(",")];
   for (const row of payload.exact_value_rows) {
     lines.push(
       header
-        .map((key) => csvCell(String(row[key as keyof typeof row] ?? "")))
+        .map((key) => {
+          if (key === "carrying_post_id") {
+            return csvCell(row.property_code === "hasVoiceAssignment" ? row.source_node_id : "");
+          }
+          if (key === "derivation_evidence_post_id") {
+            return csvCell(row.property_code === "hasVoiceAssignment" ? row.evidence_post_id ?? "" : "");
+          }
+          return csvCell(String(row[key as keyof typeof row] ?? ""));
+        })
         .join(","),
     );
   }

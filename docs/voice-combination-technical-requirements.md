@@ -1,6 +1,6 @@
 # Voice-of-X Combination Technical Requirements
 
-This supporting TRD projects ADR 0246, ADR 0251, and ADR 0252. Those ADRs are
+This supporting TRD projects ADR 0246, ADR 0256, and ADR 0252. Those ADRs are
 normative when this document and an implementation differ.
 
 ## Scope

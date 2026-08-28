@@ -153,7 +153,11 @@ describe("ontologyLayout", () => {
     const csv = neighborhoodCsv(withVoice);
     expect(csv).toContain("Voice of Customer");
     expect(csv.split("\n")[0]).toContain("evidence_post_id");
+    expect(csv.split("\n")[0]).toContain("carrying_post_id");
+    expect(csv.split("\n")[0]).toContain("derivation_evidence_post_id");
     expect(csv).toContain(POST_ID);
+    const voiceCsvRow = csv.split("\n").find((row) => row.includes("Voice of Customer"));
+    expect(voiceCsvRow).toContain(`${POST_ID},${POST_ID},${POST_ID}`);
     expect(filterNeighborhood(withVoice, "customer")!.voice_assignments).toEqual([assignment]);
     expect(filterNeighborhood(withVoice, "missing")!.voice_assignments).toEqual([assignment]);
     expect(accumulateNeighborhoodPages(source, withVoice).voice_assignments).toEqual([assignment]);

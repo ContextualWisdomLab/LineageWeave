@@ -1,5 +1,20 @@
 # Product & Technical Gap Baseline
 
+> Exact-head Voice export and authority audit: 2026-08-28 KST. Protected
+> `main` was `edf22ee39aee2a8481f9bda8fff59801821e79c2`; eleven PRs and nine
+> issues were open. The largest directly actionable Voice acceptance gap on
+> this head was export ambiguity: the rendered exact-value table already
+> offered separate actions for the carrying Post and derivation-evidence Post,
+> while CSV exposed only `evidence_post_id`. The current candidate adds explicit
+> `carrying_post_id` and `derivation_evidence_post_id` columns without replacing
+> the compatibility field. It also repairs an ADR-number collision: Voice
+> combinations are governed by ADR 0256, while ADR 0251 governs the distinct
+> FJA/I-O-Psychology layer. Protected delivery and authenticated PostgreSQL/UI
+> acceptance remain unavailable until this candidate passes its exact-head
+> gate and the runtime evidence is collected. Canonical remote names were
+> rechecked as `ContextualWisdomLab/LineageWeave`, `RankWeave`, `ThreadWeave`,
+> lowercase `disksage`, `TEPP`, `contextual-orchestrator`, and `fast-mlsirm`.
+
 > Exact-head loop overlay: 2026-08-28 KST. Protected `main` was
 > `bbb191924e9881a5201f1ecf63c854d92992cc1c`; seven PRs and nine issues were
 > open. PR #763 was `b51d3bd8872b` and PR #762 was `e6ca33dba1b5`; both were
