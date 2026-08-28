@@ -49,10 +49,10 @@ class HttpClientError(RuntimeError):
         self.retryable = retryable
 
 class HttpAdmissionDeferred(HttpClientError):
-    """The orchestrator admitted no provider work and supplied an exact retry delay."""
+    """The orchestrator deferred provider work and supplied an exact retry delay."""
 
     def __init__(self, retry_after_seconds: int) -> None:
-        super().__init__("remote service has no viable agent yet")
+        super().__init__("remote service deferred provider admission")
         self.retry_after_seconds = retry_after_seconds
 
 
@@ -367,26 +367,28 @@ def post_json(
                 error_payload = _decode_json_object(raw, hostname).get("error")
             except HttpClientError:
                 error_payload = None
-            if status == 503:
+            admission_code = (
+                error_payload.get("code") if isinstance(error_payload, dict) else None
+            )
+            if (status, admission_code) in {
+                (429, "rate_limit_exceeded"),
+                (503, "no_viable_agent"),
+            }:
+                detail = error_payload.get("detail")
+                retry_after = response_control_headers.get("retry-after", "")
+                detail_seconds = (
+                    detail.get("retry_after_seconds")
+                    if isinstance(detail, dict)
+                    else None
+                )
                 if (
-                    isinstance(error_payload, dict)
-                    and error_payload.get("code") == "no_viable_agent"
+                    retry_after.isascii()
+                    and retry_after.isdigit()
+                    and int(retry_after) > 0
+                    and type(detail_seconds) is int
+                    and detail_seconds == int(retry_after)
                 ):
-                    detail = error_payload.get("detail")
-                    retry_after = response_control_headers.get("retry-after", "")
-                    detail_seconds = (
-                        detail.get("retry_after_seconds")
-                        if isinstance(detail, dict)
-                        else None
-                    )
-                    if (
-                        retry_after.isascii()
-                        and retry_after.isdigit()
-                        and int(retry_after) > 0
-                        and type(detail_seconds) is int
-                        and detail_seconds == int(retry_after)
-                    ):
-                        raise HttpAdmissionDeferred(detail_seconds)
+                    raise HttpAdmissionDeferred(detail_seconds)
             error_code = (
                 error_payload.get("code")
                 if isinstance(error_payload, dict)

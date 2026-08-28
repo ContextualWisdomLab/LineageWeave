@@ -199,7 +199,7 @@ configured_agent_ids="$(jq -ce \
 readiness_request="$(jq -cn \
   --argjson agent_ids "$configured_agent_ids" \
   --argjson timeout_seconds "$ORCHESTRATOR_PROBE_TIMEOUT_SECONDS" \
-  '{agent_ids:$agent_ids,capability_code:"chat",timeout_seconds:$timeout_seconds}')"
+  '{agent_ids:$agent_ids,capability_code:"structured",timeout_seconds:$timeout_seconds}')"
 readiness_timeout_ms="$(remaining_readiness_ms)" || {
   echo "provider readiness exhausted its declared observation budget before job submission" >&2
   exit 1
@@ -209,9 +209,6 @@ readiness_job="$(orchestrator_json POST \
 readiness_job_id="$(jq -er '.job_id | select(type == "string" and length > 0)' \
   <<<"$readiness_job")"
 while (( SECONDS < readiness_deadline )); do
-  readiness_timeout_ms="$(remaining_readiness_ms)" || break
-  readiness_job="$(orchestrator_json GET \
-    "/api/v1/provider_readiness_refreshes/$readiness_job_id" "" "$readiness_timeout_ms")"
   readiness_status="$(jq -er '.status' <<<"$readiness_job")"
   case "$readiness_status" in
     completed)
@@ -221,7 +218,23 @@ while (( SECONDS < readiness_deadline )); do
       }
       break
       ;;
-    queued|running) sleep 1 ;;
+    queued|running)
+      readiness_poll_after_ms="$(jq -er \
+        '.poll_after_ms | select(type == "number" and floor == . and . > 0)' \
+        <<<"$readiness_job")" || {
+        echo "provider readiness did not declare a valid polling cadence" >&2
+        exit 1
+      }
+      readiness_timeout_ms="$(remaining_readiness_ms)" || break
+      (( readiness_poll_after_ms < readiness_timeout_ms )) || break
+      readiness_poll_seconds="$(jq -nr \
+        --argjson poll_after_ms "$readiness_poll_after_ms" \
+        '$poll_after_ms / 1000')"
+      sleep "$readiness_poll_seconds"
+      readiness_timeout_ms="$(remaining_readiness_ms)" || break
+      readiness_job="$(orchestrator_json GET \
+        "/api/v1/provider_readiness_refreshes/$readiness_job_id" "" "$readiness_timeout_ms")"
+      ;;
     failed|cancelled|expired)
       echo "provider readiness ended before an agent became available; restore access and rerun acceptance" >&2
       exit 1

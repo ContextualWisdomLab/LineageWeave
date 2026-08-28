@@ -37,7 +37,7 @@ def test_compose_passes_revision_to_all_product_images() -> None:
     ) == 4
     assert (
         "CONTEXTUAL_ORCHESTRATOR_SOURCE_REVISION: "
-        "4dbf04c267457d6caabadb1c62748368cf552088"
+        "60c567c7d47aea3536ee7a7cceedbb4cd09f1c1c"
     ) in compose
 
 
@@ -90,10 +90,14 @@ def test_provider_acceptance_uses_bounded_async_gateway_readiness() -> None:
     assert '.provider == "configured_gateway"' in runner
     assert '.status != "disabled"' in runner
     assert "/api/v1/provider_readiness_refreshes" in runner
-    assert 'capability_code:"chat"' in runner
+    assert 'capability_code:"structured"' in runner
+    assert 'capability_code:"chat"' not in runner
     assert 'headers["X-Request-Timeout-Ms"] = timeout_ms' in runner
     assert "remaining_readiness_ms" in runner
     assert "readiness_deadline - SECONDS" in runner
+    assert '.poll_after_ms | select(type == "number" and floor == . and . > 0)' in runner
+    assert 'sleep "$readiness_poll_seconds"' in runner
+    assert "queued|running) sleep 1" not in runner
     assert "failed|cancelled|expired" in runner
     assert ".ready_count > 0" in runner
 

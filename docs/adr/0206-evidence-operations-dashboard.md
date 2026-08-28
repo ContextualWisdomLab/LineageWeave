@@ -204,7 +204,12 @@ treated as a negative case.
   rendered desktop and narrow layouts.
 - `scripts/accept_operations_dashboard_runtime.sh` fails closed on the exact
   orchestrator image revision, performs the explicit structured-readiness
-  refresh only after operator opt-in, verifies one normalized preferred
+  refresh only after operator opt-in, and polls that asynchronous job only at
+  the positive integer cadence declared by the orchestrator's admission
+  contract. A missing or malformed cadence is unavailable, not permission to
+  invent a local interval. This response field is owned by
+  `ContextualWisdomLab/contextual-orchestrator` PR #907; LineageWeave consumes
+  it without duplicating the rate-window calculation. The runner verifies one normalized preferred
   candidate and a positive grounded-case aggregate delta, then exercises the
   authenticated Dashboard API and rendered UI without printing source rows.
   The same operator-declared run invokes `scripts/k6_operations_dashboard.js`

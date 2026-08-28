@@ -32,6 +32,14 @@ Missing or malformed evidence remains unavailable; it is never converted into
 a fabricated negative result. Existing input-validation errors outside a
 provider boundary retain their client-actionable 422 detail.
 
+Provider admission deferral is a narrow control exception. HTTP 503
+`no_viable_agent` and HTTP 429 `rate_limit_exceeded` become a retryable worker
+signal only when the orchestrator returns the same positive integer delay in
+both `Retry-After` and `error.detail.retry_after_seconds`. A missing,
+malformed, or conflicting value remains an ordinary unavailable response.
+This consumes the upstream contract introduced by contextual-orchestrator PR
+#907 without exposing its error body to the product surface.
+
 ## Consequences
 
 - API clients receive a safe retry/configuration action rather than provider

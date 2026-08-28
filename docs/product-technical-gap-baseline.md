@@ -4,9 +4,12 @@
 > `ff7431bd1851c03e737808d22c6a2d43968582f9`; PR #640 is a ready-for-review
 > current-main semantic rebuild at `f0bc98eef238b7a03d4227ab909c8de296041f36`.
 > PR #778 is remotely published at
-> `b87b186dd7213dc59d8e933e7d8c3f330598470f`; PR #781's tested
-> implementation head before this documentation-only snapshot is
-> `c151027764046444041fbf7762288968465f4f48` and remains candidate-only.
+> `b87b186dd7213dc59d8e933e7d8c3f330598470f`; PR #781's last remote
+> exact-head evidence before this overlay is
+> `760d05896f96e5ce7fb9df0e4b62369448913fbd` and remains candidate-only.
+> Its contextual-orchestrator runtime is pinned to stacked upstream PR #907
+> exact `60c567c7d47aea3536ee7a7cceedbb4cd09f1c1c` over open PR #857; neither
+> open upstream head is protected-main evidence.
 > The open queue has 14 PRs:
 > #783, #782, #781, #780, #778, #774, #772, #771, #770, #702, #679, #672,
 > #667, and #640; #702/#679/#672/#667 remain drafts. Local candidate tests do
@@ -656,6 +659,7 @@ this file per §3.5 of the prior snapshot).
 | Gap | Current evidence | Acceptance requirement |
 | --- | --- | --- |
 | Protected release | 12 open PRs at snapshot, all targeting `main` with normal auto-merge enabled. None has the required independent approval, and running checks on #631/#632/#663 are not treated as blockers for safe work on other PRs. #666's merge into the non-default #663 branch is not protected-main delivery | Terminal exact-head checks, no unresolved threads, two independent approvals including last-push approval, protected squash-merge SHA |
+| Orchestrator admission and readiness | LineageWeave PR #781 consumes contextual-orchestrator PR #907's exact positive-integer `Retry-After`/detail agreement and admission-derived readiness polling cadence. Both #907 and its parent #857 are open stacks, so the pin is candidate integration evidence only | Merge #857 then #907 through their protected gates, repin the protected upstream merge commit, rebuild the exact LineageWeave images, and prove structured readiness plus deferred backfill recovery without exhausting the declared admission window |
 | CI queue release latency | Two Tests runs for already merged PRs occupied the available runner slots while 54 newer runs remained queued. Manual cancellation released the stale work, but the central close workflow was itself queued behind those runs. #634 merged into #631's non-default branch and reuses the repository's existing per-PR concurrency group so a jobless close event can cancel obsolete Tests work before runner allocation; this is not protected-main delivery | Merge #631 through its refreshed protected gate; close a synthetic PR while its Tests run is active and verify the old run becomes cancelled, the close-event jobs remain skipped, and a newer exact-head run starts without manual intervention |
 | Evidence-grounded operations workspace | Protected-main #614 delivers governed semantic Ask, live Similar VOC, disjoint pending/failed analysis metrics, full Storybook state inventory, and current desktop/mobile screenshot evidence. Authorized-corpus backfill acceptance remains unavailable | Perform authenticated authorized-corpus acceptance with aggregate evidence and retain fail-closed no-match behavior |
 | Shared frontend gate | The ADR 0109 login repair is on protected `main`; eight older branches carried the defect and received the same verified repair this loop (#521–#560) | Keep every future branch cut from post-repair bases; re-verify with frontend lint/test/build before push |
