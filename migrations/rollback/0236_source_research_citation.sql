@@ -1,4 +1,4 @@
--- ADR 0248 rollback for migration 0236.
+-- ADR 0268 rollback for migration 0236.
 drop index if exists source_research_citation_region_uidx;
 drop index if exists source_research_citation_unit_uidx;
 drop index if exists source_research_citation_post_idx;

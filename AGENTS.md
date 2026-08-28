@@ -212,7 +212,7 @@ adjudication does -- never a raw LLM API. Demo TEPP seed goes through
 envelope is Failed (`tepp_not_available` / `tepp_result_not_persisted`),
 never a fabricated theta or a local psychometric substitute.
 
-Public source-reference research (ADR 0248) is a post-scoped write action
+Public source-reference research (ADR 0268) is a post-scoped write action
 on existing semantic units or image regions. Only `visibility_code=public`
 posts may send lead text to SearXNG or retrieve a result URL. Private posts
 fail closed without egress. Redirects and non-global targets are rejected.
