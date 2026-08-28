@@ -434,14 +434,24 @@ def test_worker_releases_changed_input_for_a_fresh_request(monkeypatch) -> None:
     assert released == ["model-1"]
 
 
-def test_worker_retries_transient_claim_database_failure(monkeypatch) -> None:
+@pytest.mark.parametrize(
+    "failure",
+    [
+        topic_influence_worker.asyncpg.PostgresError("synthetic unavailable"),
+        OSError("synthetic connection unavailable"),
+        TimeoutError("synthetic connection timeout"),
+    ],
+)
+def test_worker_retries_transient_claim_database_failure(
+    monkeypatch, failure: Exception
+) -> None:
     """One transient claim failure cannot terminate the durable consumer task."""
     calls: list[str] = []
 
     async def process(_pool, _client):
         calls.append("process")
         if calls.count("process") == 1:
-            raise topic_influence_worker.asyncpg.PostgresError("synthetic unavailable")
+            raise failure
         raise asyncio.CancelledError
 
     async def sleep(seconds):

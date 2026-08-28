@@ -303,6 +303,11 @@ def test_topic_influence_job_migration_is_replay_safe_and_fail_closed() -> None:
     assert "drop constraint if exists topic_influence_job_check" in sql
     assert "and (lease_expires_at is null or lease_token is null)" in sql
     assert "add column if not exists lease_token uuid" in sql
+    prelease_recovery = sql.split("update topic_influence_job", 1)[1].split(
+        "alter table topic_influence_job", 1
+    )[0]
+    assert "lease_expires_at = null" in prelease_recovery
+    assert "lease_token = null" in prelease_recovery
     assert "create trigger topic_model_run_influence_queue" in sql
     assert "on conflict (topic_model_run_id) do nothing" in sql
     assert "where status_code = 'queued'" in sql

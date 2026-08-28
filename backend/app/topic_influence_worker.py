@@ -444,7 +444,7 @@ async def run_topic_influence_worker(
     while True:
         try:
             worked = await process_topic_influence_job(pool, client_factory())
-        except asyncpg.PostgresError:
+        except (asyncpg.PostgresError, OSError, TimeoutError):
             _logger.exception(
                 "Topic influence could not claim database work; verify database "
                 "connectivity before the next poll"

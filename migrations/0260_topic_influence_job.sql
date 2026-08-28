@@ -44,7 +44,8 @@ alter table topic_influence_job
 update topic_influence_job
    set status_code = 'queued', request_sha256 = null, started_at = null,
        completed_at = null, failure_code = null,
-       not_before = clock_timestamp()
+       not_before = clock_timestamp(),
+       lease_expires_at = null, lease_token = null
  where status_code = 'running'
    and (lease_expires_at is null or lease_token is null);
 
