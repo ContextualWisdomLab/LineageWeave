@@ -97,6 +97,21 @@ describe("i18n", () => {
     expect(Object.keys(LOCALE_LABELS)).toHaveLength(5);
   });
 
+  it.each(["ko", "zh", "ja", "vi"] as const)(
+    "translates customer-facing analysis run kinds in %s",
+    (locale) => {
+      setLocale(locale);
+      for (const key of [
+        "Lineage reconstruction",
+        "Calibrated event measurement",
+        "Time-based topic analysis",
+        "Period report",
+      ]) {
+        expect(t(key), `${locale}:${key}`).not.toBe(key);
+      }
+    },
+  );
+
   it.each([
     ["en", "Workspace navigation"],
     ["ko", "워크스페이스 메뉴"],

@@ -2910,7 +2910,7 @@ function analysisRunCaption(run: AnalysisRun): string {
     analysis_run_topic_lineage: "Time-based topic analysis",
     analysis_run_report: "Period report",
   }[run.run_kind_code];
-  return [customerKindLabel, run.status_label, run.scope_entity_name ?? run.scope_kind_label]
+  return [customerKindLabel ? t(customerKindLabel) : null, run.status_label, run.scope_entity_name ?? run.scope_kind_label]
     .filter(Boolean)
     .join(" · ");
 }
