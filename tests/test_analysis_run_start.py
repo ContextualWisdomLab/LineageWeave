@@ -22,7 +22,6 @@ from backend.app.analysis_run_start import (
     topic_lineage_submit_outcome,
 )
 from backend.app.lineage_ingestion import records_from_source_posts
-from lineageweave.channel_weight_estimation import estimate_fixture_channel_weights
 from lineageweave.fixtures import sample_records
 from lineageweave.http_client import HttpClientError
 from lineageweave.lineage_persistence import lineage_edge_specs
@@ -30,10 +29,8 @@ from lineageweave.tepp_client import AnalysisRunRequest, TeppClient, TeppNotAvai
 
 @lru_cache(maxsize=1)
 def _estimated_fixture_weights() -> dict[str, float]:
-    """Return the fast-mlsirm estimate or fail the test closed."""
-    estimate = estimate_fixture_channel_weights()
-    assert estimate is not None
-    return estimate.weights
+    """Return an explicit non-measurement fixture for orchestration tests."""
+    return {"temporal": 0.5, "secondary_key": 0.3, "text": 0.2}
 
 
 @pytest.mark.anyio

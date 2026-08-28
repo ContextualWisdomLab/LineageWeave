@@ -21,7 +21,6 @@ from backend.app.lineage_ingestion import (
     records_from_source_posts,
     visible_lineage_graph,
 )
-from lineageweave.channel_weight_estimation import estimate_fixture_channel_weights
 from lineageweave.fixtures import sample_records
 from lineageweave.lineage_persistence import lineage_edge_specs, quantize_signal_value
 from lineageweave.models import Edge, Record
@@ -29,10 +28,8 @@ from lineageweave.models import Edge, Record
 
 @lru_cache(maxsize=1)
 def _fixture_weights() -> dict[str, float]:
-    """Return the fast-mlsirm estimate for the declared synthetic design."""
-    estimate = estimate_fixture_channel_weights()
-    assert estimate is not None
-    return estimate.weights
+    """Return an explicit non-measurement fixture for projection tests."""
+    return {"temporal": 0.5, "secondary_key": 0.3, "text": 0.2}
 def test_missing_weight_table_is_detected_without_an_aborting_query() -> None:
     class MissingTableConnection:
         async def fetchval(self, query: str):

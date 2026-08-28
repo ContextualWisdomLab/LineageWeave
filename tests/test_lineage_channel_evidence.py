@@ -9,8 +9,6 @@ import pytest
 
 from lineageweave.channel_weight_estimation import (
     estimate_channel_weights,
-    estimate_fixture_channel_weights,
-    simulate_fixture_pair_scores,
 )
 from lineageweave.fixtures import sample_records
 from lineageweave.lineage_persistence import (
@@ -31,10 +29,8 @@ _ROOT = Path(__file__).resolve().parents[1]
 
 @lru_cache(maxsize=1)
 def _estimated_weights() -> dict[str, float]:
-    """Return fast-mlsirm estimates for the declared synthetic design."""
-    estimate = estimate_fixture_channel_weights()
-    assert estimate is not None
-    return estimate.weights
+    """Return an explicit non-measurement fixture for projection tests."""
+    return {"temporal": 0.5, "secondary_key": 0.3, "text": 0.2}
 
 
 def _no_llm_edge() -> Edge:
@@ -100,7 +96,8 @@ def test_rebuild_accepts_expected_multi_channel_quantization_error() -> None:
 
 def test_duplicated_text_proxy_cannot_invent_an_llm_weight() -> None:
     """A copied text score is not an independent LLM validity anchor."""
-    pair_scores, group_ids = simulate_fixture_pair_scores()
+    pair_scores = [{"temporal": 0.8, "secondary_key": 0.6, "text": 0.4}]
+    group_ids = [0]
     assert (
         estimate_channel_weights(
             [{**scores, "llm": scores["text"]} for scores in pair_scores],

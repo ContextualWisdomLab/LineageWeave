@@ -51,6 +51,8 @@ def _snapshot(**changes: object) -> dict[str, object]:
             "fsync": "on",
             "full_page_writes": "on",
             "synchronous_commit": "on",
+            "default_transaction_isolation": "read committed",
+            "transaction_isolation": "read committed",
         },
     }
     snapshot.update(changes)
@@ -83,6 +85,8 @@ def test_plan_uses_measured_checkpoint_interval_and_segment_boundary() -> None:
     # 600 MiB / 60 s * 300 s = 3000 MiB, rounded to a 16 MiB WAL segment.
     assert plan["proposed"]["max_wal_size_bytes"] == 3008 * tuning.MIB
     assert plan["proposed"]["wal_buffers_bytes"] == 16 * tuning.MIB
+    assert plan["proposed"]["default_transaction_isolation"] == "read committed"
+    assert plan["proposed"]["transaction_isolation"] == "read committed"
     assert plan["evidence"]["checkpoints_requested"] == 4
     assert plan["retained_unmeasured"]["effective_io_concurrency"] == 1
     assert plan["retained_unmeasured"]["wal_compression"] == "off"
@@ -127,6 +131,11 @@ def test_plan_keeps_historical_pressure_distinct_from_idle_sample() -> None:
             _snapshot(settings={**_snapshot()["settings"], "fsync": "off"}),
             _snapshot(settings={**_snapshot()["settings"], "fsync": "off"}),
             "durability setting fsync",
+        ),
+        (
+            _snapshot(settings={**_snapshot()["settings"], "transaction_isolation": "serializable"}),
+            _snapshot(settings={**_snapshot()["settings"], "transaction_isolation": "serializable"}),
+            "isolation changed from the approved default",
         ),
     ],
 )
@@ -420,6 +429,7 @@ def test_controlled_restart_rejects_approval_and_missing_rollback(tmp_path: Path
     [
         ({"wal_buffers_bytes": 8 * tuning.MIB}, "did not apply wal_buffers"),
         ({"synchronous_commit": "remote_apply"}, "did not preserve synchronous_commit"),
+        ({"transaction_isolation": "serializable"}, "did not preserve transaction_isolation"),
     ],
 )
 def test_controlled_restart_verifies_applied_settings(

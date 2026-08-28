@@ -19,6 +19,7 @@ const STORAGE_KEY = "lineageweave.locale";
 
 const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
   ko: {
+    "Topic {topic}": "주제 {topic}", "Topic {topic} history": "주제 {topic} 변화 이력", "Topic first observed": "주제 최초 관측", "Topic branched": "주제 분기", "Topics combined": "주제 결합", "Topic no longer observed": "주제 관측 종료",
     Dashboard: "대시보드",
     "Claim investigation": "클레임 원인 규명", "Rebid and handover": "재입찰 · 인수인계", "Procurement notices and market trends": "발주 공고 · 시장 동향", "Repeat issue": "반복 이슈",
     "Rebid response": "재입찰 대응", "Handover gap": "인수인계 공백", "Claim received": "클레임 접수", "Cause confirmed": "원인 확정", "Rebid response requested": "재입찰 대응 요청", "Rebid decision recorded": "재입찰 의사결정", "Handover started": "인수인계 시작", "Handover accepted": "인수 확인",
@@ -35,7 +36,7 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Open {label} evidence": "{label} 근거 열기", "Next action:": "다음 조치:", "Items requiring additional review": "추가 확인이 필요한 항목", "Additional review needed": "추가 확인 필요", "When related evidence is found, this will be analyzed again automatically. Review the result afterward.": "관련 근거를 찾으면 자동으로 다시 분석합니다. 이후 결과를 다시 확인하세요.", "Open classification evidence post": "분류 근거 글 열기",
     "No external information was classified in the selected period. Check the period or access scope.": "선택 기간에 분류된 외부 정보가 없습니다. 기간이나 접근 범위를 확인하세요.", "No evidence analysis was completed in the selected period. Process pending analyses first.": "선택 기간에 분석 완료된 근거가 없습니다. 분석 대기 건부터 처리하세요.", "No evidence can be analyzed in the selected period. Check the period or access scope.": "선택 기간에 분석할 수 있는 근거가 없습니다. 기간이나 접근 범위를 확인하세요.", "Reprocess {count} failed analyses, then review missing evidence again.": "분석 실패 {count}건을 재처리한 뒤 근거 누락 여부를 다시 확인하세요.",
     "Post influence": "글 영향도", "Topic model influence over time": "시간 흐름별 주제 영향도", "This measures how much the topic- and organization-level model changes when the post is excluded, not business value.": "글을 제외했을 때 주제와 조직별 분석 결과가 얼마나 달라지는지 보여줍니다. 사업 가치 점수가 아닙니다.", "Post influence is not available yet.": "글 영향도를 아직 확인할 수 없습니다.", "Review the event time and organizational membership of the posts being analyzed, then run the analysis again.": "분석 대상 글의 사건 시점과 조직 소속을 확인한 뒤 다시 분석하세요.", "Compare each post's influence and uncertainty, then review the source evidence.": "각 글의 영향도와 불확실성을 비교하고 원문 근거를 확인하세요.",
-    "Topic {topic} time states": "Topic {topic} 시간 상태", "{context} model influence table": "{context} model influence 표", "Compare influence and uncertainty together; treat equal values as ties.": "영향도와 불확실성을 함께 비교하고 같은 값은 동점으로 확인하세요.", State: "상태", "Model influence": "Model influence", Uncertainty: "불확실성", "Membership evidence": "소속 근거", "Source post": "원문", "Review analysis basis": "분석 기준 확인", "Knowledge cutoff": "반영 기준 시각", "Topic count": "Topic 수",
+    "Topic {topic} time states": "주제 {topic} 시간 상태", "{context} model influence table": "{context} 모형 영향도 표", "Compare influence and uncertainty together; treat equal values as ties.": "영향도와 불확실성을 함께 비교하고 같은 값은 동점으로 확인하세요.", State: "상태", "Model influence": "모형 영향도", Uncertainty: "불확실성", "Membership evidence": "소속 근거", "Source post": "원문", "Review analysis basis": "분석 기준 확인", "Knowledge cutoff": "반영 기준 시각", "Topic count": "주제 수",
     "Unknown": "알 수 없음",
     Language: "언어",
     unresolved: "미해결",
@@ -618,6 +619,7 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
       "IRT 주효과 이후 잔여 맵 랭크 0은 잔여 구조가 없음을 뜻합니다. 관측 Y {observed}와 기대 E {expected}를 읽은 다음, 이 글을 여세요.",
   },
   zh: {
+    "Topic {topic}": "主题 {topic}", "Topic {topic} history": "主题 {topic} 变化记录", "Topic first observed": "首次观察到主题", "Topic branched": "主题分支", "Topics combined": "主题合并", "Topic no longer observed": "主题不再被观察",
     Dashboard: "仪表板",
     "Claim investigation": "索赔原因调查", "Rebid and handover": "重新投标与交接", "Procurement notices and market trends": "采购公告与市场趋势", "Repeat issue": "重复问题",
     "Rebid response": "重新投标响应", "Handover gap": "交接缺口", "Claim received": "收到索赔", "Cause confirmed": "原因已确认", "Rebid response requested": "已请求重新投标响应", "Rebid decision recorded": "已记录重新投标决定", "Handover started": "交接已开始", "Handover accepted": "交接已确认",
@@ -1202,6 +1204,7 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
       "残余图秩 0 表示 IRT 主效应后没有残余结构。阅读观测 Y {observed} 与期望 E {expected}，然后打开这篇帖子。",
   },
   ja: {
+    "Topic {topic}": "トピック {topic}", "Topic {topic} history": "トピック {topic} の変化履歴", "Topic first observed": "トピックを初めて観測", "Topic branched": "トピックが分岐", "Topics combined": "トピックが結合", "Topic no longer observed": "トピックの観測終了",
     Dashboard: "ダッシュボード",
     "Claim investigation": "クレーム原因調査", "Rebid and handover": "再入札と引き継ぎ", "Procurement notices and market trends": "調達公告と市場動向", "Repeat issue": "反復問題",
     "Rebid response": "再入札対応", "Handover gap": "引き継ぎの空白", "Claim received": "クレーム受付", "Cause confirmed": "原因確認", "Rebid response requested": "再入札対応依頼", "Rebid decision recorded": "再入札意思決定", "Handover started": "引き継ぎ開始", "Handover accepted": "引き継ぎ確認",
@@ -1789,6 +1792,7 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
       "残差マップランク 0 は IRT 主効果後に残差構造がないことを示します。観測 Y {observed} と期待 E {expected} を読んでから、この投稿を開いてください。",
   },
   vi: {
+    "Topic {topic}": "Chủ đề {topic}", "Topic {topic} history": "Lịch sử thay đổi của chủ đề {topic}", "Topic first observed": "Chủ đề được quan sát lần đầu", "Topic branched": "Chủ đề phân nhánh", "Topics combined": "Các chủ đề được hợp nhất", "Topic no longer observed": "Chủ đề không còn được quan sát",
     Dashboard: "Bảng điều khiển",
     "Claim investigation": "Điều tra nguyên nhân khiếu nại", "Rebid and handover": "Đấu thầu lại và bàn giao", "Procurement notices and market trends": "Thông báo mua sắm và xu hướng thị trường", "Repeat issue": "Vấn đề lặp lại",
     "Rebid response": "Phản hồi đấu thầu lại", "Handover gap": "Khoảng trống bàn giao", "Claim received": "Đã nhận khiếu nại", "Cause confirmed": "Đã xác nhận nguyên nhân", "Rebid response requested": "Đã yêu cầu phản hồi đấu thầu lại", "Rebid decision recorded": "Đã ghi nhận quyết định đấu thầu lại", "Handover started": "Đã bắt đầu bàn giao", "Handover accepted": "Đã xác nhận bàn giao",

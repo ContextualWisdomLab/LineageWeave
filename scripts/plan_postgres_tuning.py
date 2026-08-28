@@ -18,6 +18,7 @@ MIB = 1024 * 1024
 KIB = 1024
 SUPPORTED_SERVER_MAJOR = 16
 DURABILITY_SETTINGS = ("fsync", "full_page_writes", "synchronous_commit")
+ISOLATION_SETTINGS = ("default_transaction_isolation", "transaction_isolation")
 TUNED_COMPOSE_FILE = "docker-compose.postgres-tuned.yml"
 
 SNAPSHOT_SQL = r"""
@@ -45,6 +46,8 @@ SELECT json_build_object(
     'fsync', current_setting('fsync'),
     'full_page_writes', current_setting('full_page_writes'),
     'synchronous_commit', current_setting('synchronous_commit')
+    ,'default_transaction_isolation', current_setting('default_transaction_isolation')
+    ,'transaction_isolation', current_setting('transaction_isolation')
   )
 )
 FROM pg_stat_wal AS w CROSS JOIN pg_stat_bgwriter AS b;
@@ -135,6 +138,18 @@ def _durability_value(settings: Mapping[str, Any], field: str) -> str:
     return value
 
 
+def _require_isolation_invariant(settings: Mapping[str, Any]) -> str:
+    """Validate the measured session/default isolation without selecting one."""
+    allowed = {"read uncommitted", "read committed", "repeatable read", "serializable"}
+    default_value = str(settings.get("default_transaction_isolation", "")).lower()
+    transaction_value = str(settings.get("transaction_isolation", "")).lower()
+    if default_value not in allowed or transaction_value not in allowed:
+        raise TuningPlanError("transaction isolation evidence is unavailable or unsupported")
+    if default_value != transaction_value:
+        raise TuningPlanError("transaction isolation changed from the approved default")
+    return default_value
+
+
 def build_plan(observation: Observation) -> dict[str, Any]:
     """Build an evidence-derived, restart-only PostgreSQL tuning plan."""
     if observation.elapsed_seconds <= 0:
@@ -154,6 +169,7 @@ def build_plan(observation: Observation) -> dict[str, Any]:
     if before_settings != after_settings:
         raise TuningPlanError("PostgreSQL settings changed during the observation")
     _require_durability(after_settings)
+    isolation_value = _require_isolation_invariant(after_settings)
 
     segment_bytes = _integer(
         observation.after.get("wal_segment_size_bytes"), "wal_segment_size_bytes"
@@ -236,6 +252,8 @@ def build_plan(observation: Observation) -> dict[str, Any]:
                 field: _durability_value(after_settings, field)
                 for field in DURABILITY_SETTINGS
             },
+            "default_transaction_isolation": isolation_value,
+            "transaction_isolation": isolation_value,
         },
         "rollback": {
             "max_wal_size_bytes": current_max_wal,
@@ -243,6 +261,8 @@ def build_plan(observation: Observation) -> dict[str, Any]:
             "fsync": str(after_settings["fsync"]),
             "full_page_writes": str(after_settings["full_page_writes"]),
             "synchronous_commit": str(after_settings["synchronous_commit"]),
+            "default_transaction_isolation": str(after_settings["default_transaction_isolation"]),
+            "transaction_isolation": str(after_settings["transaction_isolation"]),
         },
         "retained_unmeasured": {
             name: after_settings.get(name)
@@ -395,6 +415,7 @@ def controlled_restart(plan: Mapping[str, Any], env_path: Path, approval: str) -
         if _integer(current.get(field), field) != _integer(rollback.get(field), field):
             raise TuningPlanError(f"current {field} no longer matches the audited plan")
     _require_durability(current)
+    _require_isolation_invariant(current)
     validate_compose(plan, env_path)
     _run(
         [
@@ -409,6 +430,9 @@ def controlled_restart(plan: Mapping[str, Any], env_path: Path, approval: str) -
         if _integer(applied.get(field), field) != _integer(proposed.get(field), field):
             raise TuningPlanError(f"PostgreSQL did not apply {field}")
     for field in DURABILITY_SETTINGS:
+        if str(applied.get(field, "")).lower() != str(proposed.get(field, "")).lower():
+            raise TuningPlanError(f"PostgreSQL did not preserve {field}")
+    for field in ISOLATION_SETTINGS:
         if str(applied.get(field, "")).lower() != str(proposed.get(field, "")).lower():
             raise TuningPlanError(f"PostgreSQL did not preserve {field}")
 

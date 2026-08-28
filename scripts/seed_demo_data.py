@@ -558,15 +558,7 @@ _DEMO_ESTIMATE_CACHE: list = []
 
 
 def demo_channel_weight_estimate():
-    """The demo's fast-mlsirm-estimated fusion weights (ADR 0200 point 1).
-
-    No hand-picked fusion weight exists anywhere, the demo included: the
-    seed fits fast-mlsirm's multilevel 2PL over the demo scenario's
-    declared generative design and fuses with those estimates (fitted
-    once per process; the design is seeded, so the estimate is
-    deterministic). When no estimate can be produced the seed stops and
-    names the next action instead of inventing weights.
-    """
+    """Fail closed until the owner publishes fitted demo evidence."""
     from lineageweave.channel_weight_estimation import estimate_fixture_channel_weights
 
     if not _DEMO_ESTIMATE_CACHE:
@@ -574,64 +566,16 @@ def demo_channel_weight_estimate():
     estimate = _DEMO_ESTIMATE_CACHE[0]
     if estimate is None:
         raise SystemExit(
-            "make seed estimates its fusion weights with fast-mlsirm and none "
-            "could be produced; install fast-mlsirm from the organization "
-            "repository, then run make seed again"
+            "make seed requires fitted, independently anchored fast-mlsirm "
+            "owner evidence; none is available, so no lineage was fused"
         )
     return estimate
 
 
 def _persist_demo_channel_weights(cur, estimate) -> None:
-    """Persist the demo estimate with full provenance (migration 0200).
-
-    Product reconstruction fails closed without an activated estimate;
-    seeding the demo estimate keeps POST /api/lineage/rebuild and
-    analysis-run start working on a freshly seeded environment. The
-    provenance snapshot digest names the demo's declared generative
-    design, the honest anchor label applies, and the estimator version
-    is the installed fast-mlsirm.
-    """
-    import uuid as uuid_module
-    from datetime import datetime, timezone
-
-    from lineageweave.channel_weight_estimation import fixture_design_digest
-    from scripts.estimate_channel_weights import (
-        UNANCHORED_METHOD_CODE,
-        estimator_version,
-    )
-
-    estimation_run_id = str(uuid_module.uuid4())
-    version = estimator_version()
-    design_digest = fixture_design_digest()
-    knowledge_cutoff = datetime.now(timezone.utc)
-    cur.execute(
-        "delete from lineage_channel_weight "
-        "where channel_set_code = 'channel_set_deterministic'"
-    )
-    for channel, weight in estimate.weights.items():
-        cur.execute(
-            """
-            insert into lineage_channel_weight
-                (channel_set_code, channel_code, weight_value,
-                 estimation_run_id, estimation_method_code,
-                 estimator_version, anchor_method_code,
-                 source_snapshot_sha256, sample_pair_count, knowledge_cutoff,
-                 estimated_at)
-            values ('channel_set_deterministic', %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-            """,
-            (
-                channel,
-                weight,
-                estimation_run_id,
-                estimate.estimation_method_code,
-                version,
-                UNANCHORED_METHOD_CODE,
-                design_digest,
-                estimate.sample_pair_count,
-                knowledge_cutoff,
-                knowledge_cutoff,
-            ),
-        )
+    """Refuse persistence of any locally constructed demo estimate."""
+    del cur, estimate
+    raise RuntimeError("local demo channel-weight persistence is unavailable")
 
 
 def _seed_reconstructed_lineage(cur, author_account_id, corporate_entity_id, process_unit_id) -> None:

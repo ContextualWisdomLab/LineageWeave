@@ -56,6 +56,13 @@ const timeAxisLabels: Record<string, string> = {
   created_at: "Record creation time",
 };
 
+const topicLineageEventLabels: Record<"birth" | "split" | "merge" | "retirement", string> = {
+  birth: "Topic first observed",
+  split: "Topic branched",
+  merge: "Topics combined",
+  retirement: "Topic no longer observed",
+};
+
 function localizedCodeLabel(code: string, sourceLabel: string, labels: Record<string, string>): string {
   const translationKey = labels[code];
   return translationKey ? t(translationKey) : sourceLabel;
@@ -281,7 +288,7 @@ export function TopicContextInfluence({ data, onOpenPost }: { data: OperationsDa
           <div className="dashboard-topic-list">
             {topicContext.topics.map((topic) => (
               <details key={topic.topic_index} className="dashboard-topic" open>
-                <summary>Topic {topic.topic_index + 1} · {topic.activity_intervals.map((interval) => t(topicStateLabels[interval.state_code])).join(" / ")}</summary>
+                <summary>{tf("Topic {topic}", { topic: topic.topic_index + 1 })} · {topic.activity_intervals.map((interval) => t(topicStateLabels[interval.state_code])).join(" / ")}</summary>
                 <ul className="dashboard-topic-timeline" aria-label={tf("Topic {topic} time states", { topic: topic.topic_index + 1 })}>
                   {topic.activity_intervals.map((interval) => (
                     <li key={`${interval.valid_from}-${interval.state_code}`}>
@@ -289,8 +296,8 @@ export function TopicContextInfluence({ data, onOpenPost }: { data: OperationsDa
                     </li>
                   ))}
                 </ul>
-                {topic.lineage_events.length ? <ul className="dashboard-topic-lineage" aria-label={`Topic ${topic.topic_index + 1} lineage Event`}>
-                  {topic.lineage_events.map((event) => <li key={`${event.event_time}-${event.event_code}-${event.target_topic_index ?? "none"}`}><time dateTime={event.event_time}>{event.event_time.slice(0, 10)}</time> · {event.event_code}{event.target_topic_index === null ? "" : ` → Topic ${event.target_topic_index + 1}`}</li>)}
+                {topic.lineage_events.length ? <ul className="dashboard-topic-lineage" aria-label={tf("Topic {topic} history", { topic: topic.topic_index + 1 })}>
+                  {topic.lineage_events.map((event) => <li key={`${event.event_time}-${event.event_code}-${event.target_topic_index ?? "none"}`}><time dateTime={event.event_time}>{event.event_time.slice(0, 10)}</time> · {t(topicLineageEventLabels[event.event_code])}{event.target_topic_index === null ? "" : ` → ${tf("Topic {topic}", { topic: event.target_topic_index + 1 })}`}</li>)}
                 </ul> : null}
                 {topic.contexts.map((context) => (
                   <section key={`${context.dimension_code}-${context.context_id}`} className="dashboard-topic-context-group" aria-labelledby={`topic-${topic.topic_index}-${context.dimension_code}-${context.context_id}`}>

@@ -72,12 +72,15 @@ different responsibility.
 ## Implemented migration slices
 
 - The backend dependency is immutably pinned to fast-mlsirm protected-main
-  commit `09f762ded35786dd1078222a4577ff09d649816f`. The TEPP-specific contract
-  proposed by closed, unmerged fast-mlsirm PR #1423 is not an owner contract
-  and is not consumed. Channel-weight estimation remains unavailable until a
-  domain-neutral owner contract lands; the legacy Python estimator remains
-  frozen migration debt and MUST NOT activate calibrated weights. No customer
-  projection exposes schema, transport, hash, TEPP, or fast-mlsirm internals.
+  commit `45627700c26c29bca150896a9519a9b7426acb56`. fast-mlsirm PR #1423 merged
+  as `99eb70913ef9e7749333c2f0059ea11a4be0fb4d`; its protected Rust contract
+  validates a domain-neutral independent criterion anchor and continuous pair
+  evidence, but deliberately returns
+  `IndependentCriterionObservationsUnavailable` instead of fitting weights.
+  Therefore LineageWeave's former Python/NumPy MLS2PLM estimator is disabled
+  and channel-weight estimation remains unavailable until fast-mlsirm publishes
+  fitted owner evidence. No customer projection exposes schema, transport,
+  hash, TEPP, or fast-mlsirm internals.
 
 - The residual interaction map consumes fast-mlsirm's protected-main
   `residual_interaction_map` and `polytomous_expected_response` contracts.

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import re
 from collections import Counter
 from pathlib import Path
@@ -118,7 +119,7 @@ def test_role_catalog_identity_migration_is_wired() -> None:
 
 def test_orchestrator_runtime_pin_matches_adr() -> None:
     """The image pin and ADR must describe the same immutable upstream commit."""
-    expected_embedding_contract_commit = "88873d8c6f3b8a5a57915e9f4c167ece92fe9ca2"
+    expected_embedding_contract_commit = "b716ddd63d8cba91536ddc2f4d976a5f2612f2ab"
     dockerfile = (
         _ROOT / "docker" / "contextual-orchestrator" / "Dockerfile"
     ).read_text(encoding="utf-8")
@@ -145,6 +146,13 @@ def test_orchestrator_runtime_pin_matches_adr() -> None:
     assert "import cryptography, jsonschema, redis" in dockerfile
     assert "opentelemetry.exporter.otlp.proto.http import trace_exporter" in dockerfile
     assert "'jsonschema>=4.23,<5'" not in dockerfile
+    agents = json.loads(
+        (_ROOT / "docker" / "contextual-orchestrator" / "agents.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    assert agents["agents"][0]["provider_name"] == "configured_gateway"
+    assert "bootstrap_seed" in agents["agents"][0]["tags"]
 
 
 def test_embedding_bootstrap_contract_keeps_request_model_free() -> None:

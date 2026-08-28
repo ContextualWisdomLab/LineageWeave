@@ -106,6 +106,27 @@ stale evidence from a previously opened post. An open lifecycle has a cited
 start, a missing end, and nullable elapsed time; a resolved lifecycle links both
 endpoint sources and names the source clock used for each instant.
 
+### PRD-FR-5D — Evidence operations dashboard questions
+
+- For claim investigation, show the evidence-bearing occurrence order,
+  specification change, originating order, and sales-pool reference; keep a
+  missing fact explicit rather than inferring it from nearby text.
+- For rebid and handover, show the cited discussion, counterparties, our
+  responsible owner, and the decision that followed.
+- For external sensing, show the visible-source count and rate for the selected
+  period and cite each supported relation to an order, project, sales activity,
+  or business activity.
+- Show a project-specific journey only from persisted, evidence-bearing temporal
+  predecessor and branch relations. A journey may start with a prior project,
+  external signal, discussion, direct award, tender notice, or customer request;
+  it must not assume a fixed sales-lead or order start.
+
+Acceptance: the dashboard answers each question quantitatively (event and post
+counts, plus the external-information denominator) and qualitatively through an
+authorized source link. Missing relations remain missing, and chronology alone
+never becomes a predecessor or branch. ADR 0206 governs evidence operations and
+ADR 0210 governs the persisted temporal topic/context projection.
+
 ### PRD-FR-5A — Ask answer evidence navigation
 
 - Link each numbered Ask citation to one authorized event card and preserve the

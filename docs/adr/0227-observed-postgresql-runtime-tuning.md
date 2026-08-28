@@ -27,6 +27,7 @@ operator-declared observation duration and records:
 - PostgreSQL version and statistics-reset instants;
 - `pg_stat_wal` and checkpoint deltas;
 - current durability and tuning settings;
+- the default and current transaction isolation levels;
 - `wal_segment_size` and the existing `checkpoint_timeout`;
 - container memory limit, data-filesystem free bytes, and current `pg_wal`
   bytes.
@@ -60,6 +61,12 @@ or storage latency/IOPS evidence that the WAL/checkpoint observation does not
 provide. A CPU-bound index scan is explicitly not storage-concurrency evidence.
 
 `fsync`, `full_page_writes`, and `synchronous_commit` must all remain enabled.
+Transaction isolation is a correctness invariant, not a WAL-throughput knob.
+The planner records both `default_transaction_isolation` and the observation
+session's `transaction_isolation`, rejects a mismatch or a change across the
+measurement/restart boundary, and never chooses a stronger or weaker level
+from WAL statistics. Any isolation-policy change requires a separate approved
+decision and concurrency evidence.
 The generated environment file is consumed only by the explicit
 `docker-compose.postgres-tuned.yml` overlay during a controlled PostgreSQL
 restart. The base Compose file remains the rollback path: remove the overlay

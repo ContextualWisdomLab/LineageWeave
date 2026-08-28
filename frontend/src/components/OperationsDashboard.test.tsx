@@ -202,12 +202,24 @@ describe("OperationsDashboardView", () => {
         topics: [{ topic_index: 0, activity_intervals: [{ state_code: "active", valid_from: "2026-08-01T00:00:00Z", valid_to: "2026-09-01T00:00:00Z" }], lineage_events: [{ event_code: "birth", source_topic_index: 0, target_topic_index: null, event_time: "2026-08-01T00:00:00Z", evidence_sha256: "1".repeat(64) }], contexts: [{ dimension_code: "team", context_id: "team-1", context_label: "Synthetic Team", influences: [influence, { ...influence, post_id: "post-2" }] }] }],
       },
     };
-    render(<OperationsDashboardView data={accepted} onOpenPost={onOpenPost} />);
+    const { rerender } = render(<OperationsDashboardView data={accepted} onOpenPost={onOpenPost} />);
     expect(screen.getAllByText("4.25")).toHaveLength(2);
-    expect(screen.getByText((_, element) => element?.tagName === "LI" && element.textContent === "2026-08-01 · birth")).toBeInTheDocument();
+    expect(screen.getByText((_, element) => element?.tagName === "LI" && element.textContent === "2026-08-01 · 주제 최초 관측")).toBeInTheDocument();
+    expect(screen.getByText(/주제 1 · 활성/)).toBeInTheDocument();
+    expect(screen.getByRole("list", { name: "주제 1 변화 이력" })).toBeInTheDocument();
+    expect(screen.queryByText(/birth/)).not.toBeInTheDocument();
     expect(screen.getByText("분석 기준 확인")).toBeInTheDocument();
+    expect(screen.getByRole("region", { name: "Synthetic Team 모형 영향도 표" })).toBeInTheDocument();
+    expect(screen.getByRole("columnheader", { name: "모형 영향도" })).toBeInTheDocument();
+    expect(screen.getByText("주제 수")).toBeInTheDocument();
     expect(screen.queryByText(/tepp-snapshot|fast-mlsirm|rust_gpu/)).not.toBeInTheDocument();
-    await userEvent.click(screen.getAllByRole("button", { name: "근거 글 열기" })[1]);
+    setLocale("en");
+    rerender(<OperationsDashboardView data={accepted} onOpenPost={onOpenPost} />);
+    expect(screen.getByText((_, element) => element?.tagName === "LI" && element.textContent === "2026-08-01 · Topic first observed")).toBeInTheDocument();
+    expect(screen.getByText(/Topic 1 · Active/)).toBeInTheDocument();
+    expect(screen.getByRole("list", { name: "Topic 1 history" })).toBeInTheDocument();
+    expect(screen.queryByText(/birth/)).not.toBeInTheDocument();
+    await userEvent.click(screen.getAllByRole("button", { name: "Open evidence post" })[1]);
     expect(onOpenPost).toHaveBeenCalledWith("post-2");
   });
 
