@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import App from "./App";
@@ -110,6 +110,7 @@ describe("App, authenticated", () => {
     deferMe?: boolean;
     deferPostOne?: boolean;
     deferResearch?: boolean;
+    deferResearchLoad?: boolean;
     postTwoPrivate?: boolean;
     meFailed?: boolean;
     postBody?: string;
@@ -127,6 +128,7 @@ describe("App, authenticated", () => {
     releaseMe: () => void;
     releasePostOne: () => void;
     releaseResearch: () => void;
+    releaseResearchLoad: () => void;
   } {
     const statusLabel: Record<string, string> = {
       open: "Open",
@@ -172,6 +174,13 @@ describe("App, authenticated", () => {
     const researchReady = options?.deferResearch
       ? new Promise<void>((resolve) => {
           releaseResearch = resolve;
+        })
+      : Promise.resolve();
+
+    let releaseResearchLoad = () => {};
+    const researchLoadReady = options?.deferResearchLoad
+      ? new Promise<void>((resolve) => {
+          releaseResearchLoad = resolve;
         })
       : Promise.resolve();
 
@@ -1704,7 +1713,9 @@ describe("App, authenticated", () => {
         );
       }
       if (url.endsWith("/api/posts/post-1/research-citations")) {
-        return Promise.resolve(jsonResponse({ post_id: "post-1", visibility_code: "public", citations: [] }));
+        return researchLoadReady.then(() =>
+          jsonResponse({ post_id: "post-1", visibility_code: "public", citations: [] }),
+        );
       }
       if (url.endsWith("/api/posts/post-1/lineage")) {
         return Promise.resolve(
@@ -2004,7 +2015,12 @@ describe("App, authenticated", () => {
       return Promise.reject(new Error(`unexpected fetch: ${method} ${url}`));
     });
     vi.stubGlobal("fetch", fetchMock);
-    return Object.assign(fetchMock, { releaseMe, releasePostOne, releaseResearch });
+    return Object.assign(fetchMock, {
+      releaseMe,
+      releasePostOne,
+      releaseResearch,
+      releaseResearchLoad,
+    });
   }
 
   it("renders safe Ask Agent evidence under each cited post", async () => {
@@ -3115,6 +3131,21 @@ describe("App, authenticated", () => {
     await waitFor(() =>
       expect(screen.queryByRole("link", { name: "Public Apollo evidence" })).not.toBeInTheDocument(),
     );
+  });
+
+  it("does not let the initial citation load overwrite freshly researched evidence", async () => {
+    const fetchMock = stubBackend({ admin: true, deferResearchLoad: true });
+    render(<App showLabPanels />);
+
+    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
+    await userEvent.click(await screen.findByRole("button", { name: /research public sources/i }));
+    expect(await screen.findByRole("link", { name: "Public Apollo evidence" })).toBeInTheDocument();
+
+    await act(async () => {
+      fetchMock.releaseResearchLoad();
+      await Promise.resolve();
+    });
+    expect(screen.getByRole("link", { name: "Public Apollo evidence" })).toBeInTheDocument();
   });
 
   it("does not offer public-source research for a private post", async () => {

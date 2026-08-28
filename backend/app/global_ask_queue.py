@@ -381,6 +381,7 @@ async def compute_global_ask_answer(
             "cited_events": [],
             "source_post_ids": [source.post_id for source in sources],
             "cited_post_evidence": [],
+            "cited_source_references": [],
             "lineage_graph": {"nodes": [], "edges": [], "truncated": False},
             "cited_post_images": [],
             "external_verification_status": verification_status,

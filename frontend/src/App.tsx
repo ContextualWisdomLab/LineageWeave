@@ -2007,14 +2007,15 @@ function PostDetailPopup({
       .then((r) => setAffiliateTrees(r.trees))
       .catch(() => setAffiliateTrees([]));
     fetchPostVocEvidence(accessToken, postId).then(setVocEvidence).catch(() => setVocEvidence(null));
+    const researchLoadScope = researchScopeRef.current;
     fetchPostResearchCitations(accessToken, postId)
       .then((result) => {
-        if (disposed) return;
+        if (disposed || researchScopeRef.current !== researchLoadScope) return;
         setResearchCitations(result.citations);
         setResearchUnavailable(result.unavailable_reason ?? null);
       })
       .catch(() => {
-        if (disposed) return;
+        if (disposed || researchScopeRef.current !== researchLoadScope) return;
         setResearchCitations([]);
         setResearchUnavailable(null);
       });
@@ -2572,7 +2573,8 @@ function PostDetailPopup({
               researching={researching}
               error={researchError}
               onResearch={() => {
-                const requestScope = researchScopeRef.current;
+                const requestScope = { postId };
+                researchScopeRef.current = requestScope;
                 setResearching(true);
                 setResearchError(null);
                 researchPostSources(accessToken, postId)

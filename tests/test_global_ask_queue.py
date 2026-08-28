@@ -256,6 +256,7 @@ def test_question_embedding_finishes_before_global_ask_acquires_a_pool_slot(
     )
 
     assert payload["source_post_ids"] == []
+    assert payload["cited_source_references"] == []
     assert pool.active == 0
 
 
