@@ -21,6 +21,7 @@ decision from them.
 | [`storybook-inventory.md`](../storybook-inventory.md) | [0118](0118-uiux-standard-guide-v3-design-overhaul.md), [0184](0184-ontology-provenance-explorer.md), [0222](0222-project-nodes-in-ontology-neighborhood.md), [0256](0256-evidence-bearing-voice-combinations.md) |
 | [`POSTGRESQL_CONCURRENCY_REFERENCES.md`](../doctoring/POSTGRESQL_CONCURRENCY_REFERENCES.md) | [0204](0204-analysis-run-short-transaction-delivery.md), [0213](0213-global-ask-embedding-pool-release.md) |
 | [`GLOBAL_ASK_PUBLIC_VERIFICATION_REFERENCES.md`](../doctoring/GLOBAL_ASK_PUBLIC_VERIFICATION_REFERENCES.md) | [0215](0215-global-ask-public-claim-verification.md) |
+| Persisted public-claim admission | [0269](0269-persisted-public-claim-admission.md) |
 | [`GLOBAL_ASK_KNOWLEDGE_CUTOFF_REFERENCES.md`](../doctoring/GLOBAL_ASK_KNOWLEDGE_CUTOFF_REFERENCES.md) | [0216](0216-global-ask-knowledge-cutoff.md) |
 | [`GLOBAL_ASK_QUERY_REWRITE_REFERENCES.md`](../doctoring/GLOBAL_ASK_QUERY_REWRITE_REFERENCES.md) | [0217](0217-evidence-constrained-semantic-query-rewrite.md) |
 | [`MCP_GLOBAL_ASK_REFERENCES.md`](../doctoring/MCP_GLOBAL_ASK_REFERENCES.md) | [0218](0218-current-contract-mcp-global-ask.md) |

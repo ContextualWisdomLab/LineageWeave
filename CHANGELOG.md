@@ -6,6 +6,10 @@ All notable changes to this project are documented here. Format follows
 
 ## [Unreleased]
 
+- Global Ask public verification now admits only bounded, provenance-bearing
+  persisted claims attached to exact cited public posts; missing admission
+  fails closed without token-overlap egress.
+
 ### Added
 
 - Evidence Operations now presents cited claim, rebid, handover, external,
