@@ -1,7 +1,7 @@
 # Product & Technical Gap Baseline
 
-> Exact-head Voice export and authority audit: 2026-08-28 KST. Protected
-> `main` was `fc13acaa20adca11968238e398d4aafcf62b6cee`; fourteen PRs and nine
+> Exact-head Voice export and authority audit: 2026-08-28 22:43 KST. Protected
+> `main` was `fc13acaa20adca11968238e398d4aafcf62b6cee`; thirteen PRs and nine
 > issues were open. The largest directly actionable Voice acceptance gap on
 > this head was export ambiguity: the rendered exact-value table already
 > offered separate actions for the carrying Post and derivation-evidence Post,
@@ -30,18 +30,19 @@
 > still cannot be retargeted or treated as product evidence before the parent
 > ownership conflict is resolved, the parent is protected-merged first, and the
 > child is retargeted to `main` and revalidated from another new exact head.
-> The same exact-head inventory now includes stacked PR #786 at
-> `5933d555616e`, targeting PR #640's `feat/dashboard-case-metrics` branch.
+> The same exact-head inventory now includes stacked PR #786, targeting PR
+> #640's `feat/dashboard-case-metrics` branch.
 > It is candidate-only evidence: #640 must protected-merge first, then #786
 > must be retargeted to `main` and all head-bound checks, reviews, API/runtime
 > evidence, and release/ADR/schema compatibility must be collected again.
 > PR #782 also currently carries 2.24.0, 2.25.0, and 2.26.0 changelog and ADR
 > material in one head; those later slices do not cure the ADR 0208 ownership
 > conflict and cannot be treated as separately delivered releases.
-> New stacked candidates #792 (`7bc1d710c243`) and #794
-> (`fe31db80a0e3`) target #786's branch, not protected `main`; they cannot
-> transfer checks or acceptance evidence across the required parent-first
-> merges and retargets.
+> The refreshed inventory has thirteen open PRs and nine open issues. Stacked
+> candidate #792 targets #786's branch, not protected `main`. PR #794 merged
+> into that same stack branch, so its merge is not protected-main delivery and
+> does not satisfy the requirement to merge #640 first, retarget each child to
+> `main`, and collect new exact-head checks, reviews, and runtime evidence.
 >
 > Exact-head loop overlay: 2026-08-28 10:00 KST. Protected `main` was
 > `edf22ee39aee2a8481f9bda8fff59801821e79c2` (#773 similar-VOC coverage).
