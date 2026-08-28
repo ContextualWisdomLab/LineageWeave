@@ -6,6 +6,7 @@ import asyncio
 import logging
 import time
 from collections.abc import Callable
+from datetime import datetime
 from uuid import UUID
 
 import asyncpg
@@ -26,6 +27,7 @@ from backend.app.post_content_queue import (
     ensure_post_content_job,
     post_content_is_complete,
     republish_queued_post_content_jobs,
+    trim_post_content_events_through,
     transition_post_content_job,
 )
 from backend.app.operations_case_ingestion import persist_operations_cases
@@ -651,6 +653,7 @@ async def process_post_content_job(
                         outcome="provider_unavailable",
                     )
                     raise
+                channel_stage_code = "occupational_construct"
                 construct_client = (
                     ContextualOrchestratorOccupationalConstructExtractionClient(
                         settings.orchestrator_base_url,
@@ -814,13 +817,15 @@ async def consume_post_content_stream_once(
                         structure_factory=structure_factory,
                     )
                 last_id = str(entry_id)
+        await trim_post_content_events_through(client, last_id)
     return last_id
 
 
 async def _recover_post_content_jobs(
     client: redis.Redis,
     pool: asyncpg.Pool,
-) -> None:
+    recovery_cursor: tuple[datetime, str] | None = None,
+) -> tuple[datetime, str] | None:
     """Persist the next bounded candidate page and republish queued wake-ups."""
     settings = load_settings()
     require_orchestrator_evidence = bool(
@@ -845,7 +850,17 @@ async def _recover_post_content_jobs(
             outcome="provider_unavailable",
         )
     try:
-        await republish_queued_post_content_jobs(client, pool)
+        page = await republish_queued_post_content_jobs(
+            client,
+            pool,
+            after_queued_at=recovery_cursor[0] if recovery_cursor else None,
+            after_post_id=recovery_cursor[1] if recovery_cursor else None,
+        )
+        recovery_cursor = (
+            (page.next_queued_at, page.next_post_id)
+            if page.next_queued_at is not None and page.next_post_id is not None
+            else None
+        )
     except Exception as exc:  # noqa: BLE001 - broker recovery is independent of selection.
         _logger.warning(
             "post-content wake-up recovery failed; retrying next cycle (error_type=%s)",
@@ -856,6 +871,7 @@ async def _recover_post_content_jobs(
             exc,
             outcome="provider_unavailable",
         )
+    return recovery_cursor
 
 
 async def run_post_content_worker(
@@ -869,10 +885,13 @@ async def run_post_content_worker(
     """Run the at-least-once consumer and periodically recover queued rows."""
     last_id = await _stream_tail(client)
     last_recovery = 0.0
+    recovery_cursor: tuple[datetime, str] | None = None
     while True:
         now = time.monotonic()
         if now - last_recovery >= _RECOVERY_INTERVAL_SECONDS:
-            await _recover_post_content_jobs(client, pool)
+            recovery_cursor = await _recover_post_content_jobs(
+                client, pool, recovery_cursor
+            )
             last_recovery = now
         try:
             last_id = await consume_post_content_stream_once(

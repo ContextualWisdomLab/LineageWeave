@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import re
-from datetime import timedelta
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 import pytest
@@ -42,6 +42,43 @@ def test_stream_is_a_wakeup_and_never_contains_a_body() -> None:
     assert "body" not in fields.values()
     assert source_body_sha256("body") == source_body_sha256("body")
     assert source_body_sha256("body") != source_body_sha256("changed")
+
+
+def test_worker_outage_keeps_the_wakeup_transport_bounded() -> None:
+    """Producer traffic cannot grow the non-authoritative stream without limit."""
+    from backend.app.post_content_queue import publish_post_content_event
+
+    class Client:
+        def __init__(self) -> None:
+            self.entries: list[dict[str, str]] = []
+
+        async def xadd(
+            self,
+            _stream: str,
+            fields: dict[str, str],
+            *,
+            maxlen: int,
+            approximate: bool,
+        ) -> str:
+            assert maxlen == 1000
+            assert approximate is True
+            self.entries.append(fields)
+            self.entries = self.entries[-maxlen:]
+            return f"1-{len(self.entries)}"
+
+    client = Client()
+
+    async def publish_corpus() -> None:
+        for index in range(1005):
+            await publish_post_content_event(
+                client,
+                post_id=f"00000000-0000-0000-0000-{index:012d}",
+                source_body_digest="a" * 64,
+            )
+
+    asyncio.run(publish_corpus())
+    assert len(client.entries) == 1000
+    assert client.entries[0]["post_id"].endswith("000000000005")
 
 
 def test_bounded_backfill_is_idempotent_and_broker_loss_stays_recoverable(
@@ -418,6 +455,7 @@ def test_republish_query_recovers_due_queue_and_stale_running_leases() -> None:
                 {
                     "post_id": "00000000-0000-0000-0000-000000000001",
                     "source_body_sha256": "a" * 64,
+                    "queued_at": "2026-01-01T00:00:00Z",
                 }
             ]
 
@@ -444,9 +482,10 @@ def test_republish_query_recovers_due_queue_and_stale_running_leases() -> None:
     original = post_content_queue.publish_post_content_event
     post_content_queue.publish_post_content_event = publish
     try:
-        assert asyncio.run(
+        page = asyncio.run(
             post_content_queue.republish_queued_post_content_jobs(Client(), Pool())
-        ) == 1
+        )
+        assert page.published_count == 1
     finally:
         post_content_queue.publish_post_content_event = original
     assert published == [("00000000-0000-0000-0000-000000000001", "a" * 64)]
@@ -745,8 +784,16 @@ def test_recovery_republishes_due_rows_in_queued_at_order() -> None:
             self.query = query
             self.args = args
             return [
-                {"post_id": "first", "source_body_sha256": "a" * 64},
-                {"post_id": "second", "source_body_sha256": "b" * 64},
+                {
+                    "post_id": "first",
+                    "source_body_sha256": "a" * 64,
+                    "queued_at": "2026-01-01T00:00:00Z",
+                },
+                {
+                    "post_id": "second",
+                    "source_body_sha256": "b" * 64,
+                    "queued_at": "2026-01-01T00:00:01Z",
+                },
             ]
 
     class FakePool:
@@ -767,16 +814,173 @@ def test_recovery_republishes_due_rows_in_queued_at_order() -> None:
 
     connection = FakeConnection()
     client = FakeClient()
-    published = asyncio.run(
+    page = asyncio.run(
         republish_queued_post_content_jobs(client, FakePool(connection), limit=2)
     )
 
-    assert published == 2
+    assert page.published_count == 2
+    assert page.next_post_id == "second"
     assert client.events == [("first", "a" * 64), ("second", "b" * 64)]
     assert "next_attempt_at <= now()" in connection.query
     assert "queued_at <= now() - $2::interval" in connection.query
-    assert "order by queued_at" in connection.query
-    assert connection.args == (QUEUED, POST_CONTENT_RETRY_INTERVAL, RUNNING, STALE_RUNNING_INTERVAL, 2)
+    assert "order by queued_at, post_id" in connection.query
+    assert connection.args == (
+        QUEUED,
+        POST_CONTENT_RETRY_INTERVAL,
+        RUNNING,
+        STALE_RUNNING_INTERVAL,
+        None,
+        None,
+        2,
+    )
+
+
+def test_recovery_keyset_reaches_later_pages_and_wraps() -> None:
+    """Repeated recovery reaches every ready row instead of replaying page one."""
+    from contextlib import asynccontextmanager
+
+    from backend.app.post_content_queue import republish_queued_post_content_jobs
+
+    queued_at = [
+        datetime(2026, 1, 1, 0, 0, index, tzinfo=UTC) for index in range(3)
+    ]
+    rows = [
+        {
+            "post_id": f"00000000-0000-0000-0000-{index + 1:012d}",
+            "source_body_sha256": str(index + 1) * 64,
+            "queued_at": queued_at[index],
+        }
+        for index in range(3)
+    ]
+
+    class FakeConnection:
+        async def fetch(self, _query: str, *args: object):
+            cursor_at, cursor_id, limit = args[-3:]
+            if cursor_at is None:
+                return rows[: int(limit)]
+            return [
+                row
+                for row in rows
+                if (row["queued_at"], row["post_id"]) > (cursor_at, cursor_id)
+            ][: int(limit)]
+
+    class FakePool:
+        @asynccontextmanager
+        async def acquire(self):
+            yield FakeConnection()
+
+    class FakeClient:
+        def __init__(self) -> None:
+            self.published: list[str] = []
+
+        async def xadd(
+            self,
+            _stream: str,
+            fields: dict[str, str],
+            *,
+            maxlen: int,
+            approximate: bool,
+        ) -> str:
+            assert maxlen == 1000
+            assert approximate is True
+            self.published.append(fields["post_id"])
+            return str(len(self.published))
+
+    client = FakeClient()
+    first = asyncio.run(
+        republish_queued_post_content_jobs(client, FakePool(), limit=2)
+    )
+    second = asyncio.run(
+        republish_queued_post_content_jobs(
+            client,
+            FakePool(),
+            limit=2,
+            after_queued_at=first.next_queued_at,
+            after_post_id=first.next_post_id,
+        )
+    )
+    wrapped = asyncio.run(
+        republish_queued_post_content_jobs(
+            client,
+            FakePool(),
+            limit=2,
+            after_queued_at=second.next_queued_at,
+            after_post_id=second.next_post_id,
+        )
+    )
+
+    assert client.published == [
+        rows[0]["post_id"],
+        rows[1]["post_id"],
+        rows[2]["post_id"],
+        rows[0]["post_id"],
+        rows[1]["post_id"],
+    ]
+    assert wrapped.next_post_id == rows[1]["post_id"]
+
+
+def test_recovery_cursor_stops_before_a_failed_wakeup() -> None:
+    """A broker outage retries the first unpublished row before later pages."""
+    from contextlib import asynccontextmanager
+
+    from backend.app.post_content_queue import republish_queued_post_content_jobs
+
+    queued_at = datetime(2026, 1, 1, tzinfo=UTC)
+    rows = [
+        {
+            "post_id": f"00000000-0000-0000-0000-{index + 1:012d}",
+            "source_body_sha256": str(index + 1) * 64,
+            "queued_at": queued_at + timedelta(seconds=index),
+        }
+        for index in range(2)
+    ]
+
+    class FakeConnection:
+        async def fetch(self, _query: str, *args: object):
+            cursor_at, cursor_id = args[-3:-1]
+            if cursor_at is None:
+                return rows
+            return [
+                row
+                for row in rows
+                if (row["queued_at"], row["post_id"]) > (cursor_at, cursor_id)
+            ]
+
+    class FakePool:
+        @asynccontextmanager
+        async def acquire(self):
+            yield FakeConnection()
+
+    class FakeClient:
+        def __init__(self) -> None:
+            self.calls = 0
+
+        async def xadd(self, *_args, **_kwargs):
+            self.calls += 1
+            if self.calls == 2:
+                raise post_content_queue.redis.RedisError("synthetic broker outage")
+            return str(self.calls)
+
+    from backend.app import post_content_queue
+
+    client = FakeClient()
+    first = asyncio.run(
+        republish_queued_post_content_jobs(client, FakePool(), limit=2)
+    )
+    assert first.published_count == 1
+    assert first.next_post_id == rows[0]["post_id"]
+
+    second = asyncio.run(
+        republish_queued_post_content_jobs(
+            client,
+            FakePool(),
+            limit=2,
+            after_queued_at=first.next_queued_at,
+            after_post_id=first.next_post_id,
+        )
+    )
+    assert second.published_count == 1
+    assert second.next_post_id == rows[1]["post_id"]
 
 
 def test_admission_deferral_requeues_exact_lease_without_consuming_attempt() -> None:
