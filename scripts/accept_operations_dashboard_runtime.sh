@@ -10,6 +10,7 @@ export COMPOSE_FILE=docker-compose.yml
 : "${LINEAGEWEAVE_OIDC_ISSUER:?Set the frontend OIDC issuer}"
 : "${LINEAGEWEAVE_OIDC_CLIENT_ID:?Set the frontend OIDC client id}"
 : "${LINEAGEWEAVE_RUNTIME_ASK_QUESTION:?Set one non-identifying runtime Ask question}"
+: "${LINEAGEWEAVE_RUNTIME_ASK_TIMEOUT_SECONDS:?Set the declared runtime Ask observation budget}"
 : "${K6_VUS:?Set the declared Dashboard concurrency}"
 : "${K6_DURATION:?Set the declared Dashboard observation duration, including its unit}"
 : "${BACKEND_READINESS_TIMEOUT_SECONDS:?Set the declared backend readiness budget}"
@@ -65,6 +66,10 @@ esac
 }
 [[ "$BACKEND_READINESS_TIMEOUT_SECONDS" =~ ^[1-9][0-9]*$ ]] || {
   echo "BACKEND_READINESS_TIMEOUT_SECONDS must be a positive integer" >&2
+  exit 2
+}
+[[ "$LINEAGEWEAVE_RUNTIME_ASK_TIMEOUT_SECONDS" =~ ^[1-9][0-9]*$ ]] || {
+  echo "LINEAGEWEAVE_RUNTIME_ASK_TIMEOUT_SECONDS must be a positive integer" >&2
   exit 2
 }
 

@@ -85,9 +85,14 @@ def test_provider_runtime_exercises_dashboard_and_ask_evidence_navigation() -> N
     assert "ASK_SCREENSHOT_DESKTOP_PATH" in ask_spec
     assert "ASK_SCREENSHOT_MOBILE_PATH" in ask_spec
     assert "LINEAGEWEAVE_RUNTIME_ASK_QUESTION" in runner
-    assert "MINIMUM_TOKEN_LIFETIME_SECONDS" in ask_spec
+    assert "LINEAGEWEAVE_RUNTIME_ASK_TIMEOUT_SECONDS" in runner
+    assert "LINEAGEWEAVE_RUNTIME_ASK_TIMEOUT_SECONDS" in ask_spec
+    assert "MINIMUM_TOKEN_LIFETIME_SECONDS" not in ask_spec
     assert "expires_at: expiresAt" in ask_spec
     assert "Date.now() / 1000) +" not in ask_spec
+    assert "timeoutSeconds * 1000" in ask_spec
+    assert "< timeoutSeconds" in ask_spec
+    assert "620_000" not in ask_spec
 
 
 def test_acceptance_uses_only_the_checked_in_compose_file() -> None:
