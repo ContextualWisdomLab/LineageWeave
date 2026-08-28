@@ -311,9 +311,15 @@ select (select count(distinct post_id) from inflight),
        (select count(distinct post_id) from deployed_grounded);
 "
 
+run_operations_case_aggregate() {
+  printf '%s\n' "$aggregate_sql" \
+    | docker exec -i "$POSTGRES_CONTAINER" \
+        psql -X -U lineageweave -d lineageweave \
+          -v deployment_started_at="$worker_started_at" -AtF '|'
+}
+
 IFS='|' read -r inflight_before analysis_before grounded_before <<<"$(
-  docker exec "$POSTGRES_CONTAINER" psql -X -U lineageweave -d lineageweave \
-    -v deployment_started_at="$worker_started_at" -AtF '|' -c "$aggregate_sql"
+  run_operations_case_aggregate
 )"
 if (( grounded_before > 0 )); then
   inflight_after="$inflight_before"
@@ -327,8 +333,7 @@ else
   deadline=$((SECONDS + OPERATIONS_CASE_ACCEPTANCE_TIMEOUT_SECONDS))
   while (( SECONDS < deadline )); do
     IFS='|' read -r inflight_after analysis_after grounded_after <<<"$(
-    docker exec "$POSTGRES_CONTAINER" psql -X -U lineageweave -d lineageweave \
-      -v deployment_started_at="$worker_started_at" -AtF '|' -c "$aggregate_sql"
+      run_operations_case_aggregate
     )"
     if (( analysis_after > analysis_before && grounded_after > grounded_before )); then
       break

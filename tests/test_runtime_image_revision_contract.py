@@ -91,6 +91,10 @@ def test_provider_acceptance_observes_the_resumed_content_ledger() -> None:
     assert "'post_content_ingestion_queued'" in runner
     assert "'post_content_ingestion_running'" in runner
     assert "count(distinct post_id)" in runner
+    assert "run_operations_case_aggregate" in runner
+    assert "printf '%s\\n' \"$aggregate_sql\"" in runner
+    assert 'docker exec -i "$POSTGRES_CONTAINER"' in runner
+    assert '-c "$aggregate_sql"' not in runner
     assert 'sleep "$OPERATIONS_CASE_POLL_SECONDS"' in runner
     assert "/api/post-content/backfill" not in runner
     assert "expected exactly one normalized preferred candidate" not in runner
