@@ -16,6 +16,13 @@ All notable changes to this project are documented here. Format follows
 
 ### Added
 
+- Governed product-catalog provisioning now accepts only explicit product
+  master rows with authorized source-record provenance, a canonical payload
+  digest, and source-linked aliases. Replays are idempotent, contradictory
+  definitions fail closed, and unresolved Post evidence tells the reader the
+  next catalog action without creating identities from model output, keywords,
+  fuzzy matches, or generic source categories.
+
 - Temporal topic influence now has a durable external-production path: the
   worker binds the exact completed TEPP artifact, posterior draws, and
   business-unit/PU/team/person memberships into a content-addressed request,

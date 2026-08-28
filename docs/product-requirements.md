@@ -472,6 +472,16 @@ closed instead of returning a partial fitted result.
 
 ### PRD-FR-5F — Product and Voice semantic evidence
 
+An authorized catalog manager shall be able to add an explicit product-master
+row through a governed API. The request shall include the product code,
+preferred label, hierarchy level, optional existing parent, authorized source
+system and record, corporate-entity scope, and explicit aliases. The product
+shall retain a server-calculated payload digest and alias-level source links;
+identical replay shall be idempotent and contradictory replay shall fail
+closed. Extracted mentions continue to resolve only as unique, missing, tied,
+or unavailable. Neither a model, keyword, fuzzy match, nor a source `기타`
+value may create or revise catalog identity.
+
 - Extract product mentions through contextual-orchestrator from authorized
   semantic units and resolve only against normalized product group, model,
   variant, and trade-item identities with scoped GTIN or MPN identifiers.
