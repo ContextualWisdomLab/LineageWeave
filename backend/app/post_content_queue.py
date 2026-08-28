@@ -3,8 +3,8 @@
 from __future__ import annotations
 
 import hashlib
-from datetime import timedelta
 from dataclasses import dataclass
+from datetime import datetime, timedelta
 from typing import Any
 
 import asyncpg
@@ -32,6 +32,15 @@ class PostContentJobRequest:
     source_body_sha256: str
     status_code: str
     should_publish: bool
+
+
+@dataclass(frozen=True)
+class PostContentRecoveryPage:
+    """One fair recovery page and the keyset needed for the next page."""
+
+    published_count: int
+    next_queued_at: datetime | None
+    next_post_id: str | None
 
 
 def source_body_sha256(body: str) -> str:
@@ -150,6 +159,17 @@ async def publish_post_content_event(
     except redis.RedisError:
         return None
     return str(entry_id)
+
+
+async def trim_post_content_events_through(client: redis.Redis, entry_id: str) -> None:
+    """Trim only wake-ups at or before the worker's consumed cursor."""
+    milliseconds, sequence = entry_id.split("-", 1)
+    exclusive_minimum = f"{int(milliseconds)}-{int(sequence) + 1}"
+    await client.xtrim(
+        POST_CONTENT_STREAM_KEY,
+        minid=exclusive_minimum,
+        approximate=False,
+    )
 
 
 async def _record_status(
@@ -741,41 +761,61 @@ async def republish_queued_post_content_jobs(
     pool: asyncpg.Pool,
     *,
     limit: int = 100,
-) -> int:
-    """Recover queued rows and stale running leases when Valkey lost wake-ups."""
-    async with pool.acquire() as conn:
-        rows = await conn.fetch(
+    after_queued_at: datetime | None = None,
+    after_post_id: str | None = None,
+) -> PostContentRecoveryPage:
+    """Republish one keyset page without starving rows beyond the first page."""
+    if (after_queued_at is None) != (after_post_id is None):
+        raise ValueError("recovery keyset requires both queued_at and post_id")
+
+    async def _fetch_page(
+        conn: asyncpg.Connection,
+        cursor_at: datetime | None,
+        cursor_id: str | None,
+    ) -> list[asyncpg.Record]:
+        return await conn.fetch(
             """
-            select post_id, source_body_sha256
+            select post_id, source_body_sha256, queued_at
             from post_content_ingestion_job
             where (
-                status_code = $1
-                and (
-                    next_attempt_at <= now()
-                    or (
-                        next_attempt_at is null
-                        and (
-                            attempt_count = 0
-                            or queued_at <= now() - $2::interval
+                (
+                    status_code = $1
+                    and (
+                        next_attempt_at <= now()
+                        or (
+                            next_attempt_at is null
+                            and (
+                                attempt_count = 0
+                                or queued_at <= now() - $2::interval
+                            )
                         )
                     )
                 )
-            )
-               or (
+                or (
                     status_code = $3
                     and started_at is not null
                     and started_at < now() - $4::interval
-               )
-            order by queued_at
-            limit $5
+                )
+            )
+              and ($5::timestamptz is null or (queued_at, post_id) > ($5, $6::uuid))
+            order by queued_at, post_id
+            limit $7
             """,
             QUEUED,
             POST_CONTENT_RETRY_INTERVAL,
             RUNNING,
             STALE_RUNNING_INTERVAL,
+            cursor_at,
+            cursor_id,
             limit,
         )
+
+    async with pool.acquire() as conn:
+        rows = await _fetch_page(conn, after_queued_at, after_post_id)
+        if not rows and after_queued_at is not None:
+            rows = await _fetch_page(conn, None, None)
     published = 0
+    last_published_row: asyncpg.Record | None = None
     for row in rows:
         if await publish_post_content_event(
             client,
@@ -783,7 +823,20 @@ async def republish_queued_post_content_jobs(
             source_body_digest=str(row["source_body_sha256"]),
         ):
             published += 1
-    return published
+            last_published_row = row
+        else:
+            break
+    if last_published_row is None:
+        return PostContentRecoveryPage(
+            0,
+            after_queued_at,
+            after_post_id,
+        )
+    return PostContentRecoveryPage(
+        published,
+        last_published_row["queued_at"],
+        str(last_published_row["post_id"]),
+    )
 
 
 def serialize_job_row(row: Any) -> dict[str, Any]:
