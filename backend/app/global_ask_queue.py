@@ -117,13 +117,16 @@ _AUTHORIZED_PUBLIC_CLAIM_ENVELOPES_SQL = """
       join provenance_assertion assertion
         on assertion.assertion_id = envelope.provenance_assertion_id
        and assertion.relation_code = 'prov_was_derived_from'
-      join provenance_resource_binding evidence
-        on evidence.resource_id = assertion.object_resource_id
-       and evidence.node_type_code = 'node_post'
-       and evidence.node_id = envelope.source_post_id
      where envelope.egress_eligible
        and post.visibility_code = 'public'
        and envelope.source_post_id = any($1::uuid[])
+       and exists (
+           select 1
+             from provenance_resource_binding evidence
+            where evidence.resource_id = assertion.object_resource_id
+              and evidence.node_type_code = 'node_post'
+              and evidence.node_id = envelope.source_post_id
+       )
        and ($2::timestamptz is null or (
             envelope.created_at <= $2 and post.created_at <= $2
        ))

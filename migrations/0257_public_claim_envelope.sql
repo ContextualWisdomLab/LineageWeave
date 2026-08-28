@@ -44,13 +44,15 @@ begin
 
     select post.visibility_code into visibility
       from source_post post where post.post_id = new.source_post_id;
-    select assertion.relation_code, binding.node_id
+    select assertion.relation_code,
+           case when count(binding.node_id) = 1 then min(binding.node_id) end
       into provenance_relation, evidence_post_id
       from provenance_assertion assertion
-      join provenance_resource_binding binding
+      left join provenance_resource_binding binding
         on binding.resource_id = assertion.object_resource_id
        and binding.node_type_code = 'node_post'
-     where assertion.assertion_id = new.provenance_assertion_id;
+     where assertion.assertion_id = new.provenance_assertion_id
+     group by assertion.relation_code;
 
     if new.egress_eligible and visibility is distinct from 'public' then
         raise exception 'public_claim_requires_public_post';

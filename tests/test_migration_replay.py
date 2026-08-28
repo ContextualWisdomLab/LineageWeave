@@ -197,6 +197,8 @@ def test_public_claim_envelope_migration_is_replay_safe_and_provenance_bound() -
     assert "provenance_assertion_id uuid not null" in sql
     assert "prov_was_derived_from" in sql
     assert "evidence_post_id is distinct from new.source_post_id" in sql
+    assert "case when count(binding.node_id) = 1 then min(binding.node_id) end" in sql
+    assert "group by assertion.relation_code" in sql
     assert "public_claim_requires_public_post" in sql
     assert "on conflict (lookup_code) do nothing" in sql
 

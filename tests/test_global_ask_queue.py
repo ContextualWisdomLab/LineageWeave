@@ -17,6 +17,14 @@ class _AvailableClient:
     available = True
 
 
+def test_public_claim_load_deduplicates_resource_bindings() -> None:
+    """A duplicate resource binding must not duplicate one admitted envelope."""
+    sql = global_ask_queue._AUTHORIZED_PUBLIC_CLAIM_ENVELOPES_SQL.casefold()
+    assert "exists (" in sql
+    assert "from provenance_resource_binding evidence" in sql
+    assert "join provenance_resource_binding evidence" not in sql
+
+
 class _Connection:
     def __init__(self, row: dict[str, object] | None) -> None:
         self.row = row
