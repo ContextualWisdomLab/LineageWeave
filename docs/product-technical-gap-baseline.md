@@ -7,9 +7,9 @@
 > `b87b186dd7213dc59d8e933e7d8c3f330598470f`; PR #781's last remote
 > exact-head evidence before this overlay is
 > `760d05896f96e5ce7fb9df0e4b62369448913fbd` and remains candidate-only.
-> Its contextual-orchestrator runtime is pinned to stacked upstream PR #907
-> exact `41d7110d0f2553f4fabb3fdfb06a4b8ff0cc984a` over open PR #857; neither
-> open upstream head is protected-main evidence.
+> Its contextual-orchestrator runtime is pinned to open upstream PR #857 exact
+> `3558a9a3aeb985282b255fcd80bb2201c19ae54b`; this candidate is not
+> protected-main evidence.
 > The open queue has 14 PRs:
 > #783, #782, #781, #780, #778, #774, #772, #771, #770, #702, #679, #672,
 > #667, and #640; #702/#679/#672/#667 remain drafts. Local candidate tests do
