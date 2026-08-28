@@ -228,6 +228,9 @@ All notable changes to this project are documented here. Format follows
 
 ### Fixed
 
+- Public-claim provenance validation now selects its sole UUID binding without
+  calling PostgreSQL's unavailable `min(uuid)` aggregate, so fresh schema
+  replays accept valid provenance-bound public claims.
 - Post-content wake-up recovery now advances through every ready ledger page
   with a deterministic keyset, while Valkey trims only entries already
   consumed by the worker. Large backfills can no longer replay the same first

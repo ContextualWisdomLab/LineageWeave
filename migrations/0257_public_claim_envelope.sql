@@ -45,7 +45,10 @@ begin
     select post.visibility_code into visibility
       from source_post post where post.post_id = new.source_post_id;
     select assertion.relation_code,
-           case when count(binding.node_id) = 1 then min(binding.node_id) end
+           case
+               when count(binding.node_id) = 1
+               then (array_agg(binding.node_id))[1]
+           end
       into provenance_relation, evidence_post_id
       from provenance_assertion assertion
       left join provenance_resource_binding binding
