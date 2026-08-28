@@ -456,6 +456,9 @@ comes from the cited answer rather than frontend inference.
 - Persist closed-vocabulary milestones for claim, rebid, and handover. Report
   open, resolved, and evidence-missing counts and elapsed time only between two
   observed endpoints; never invent an endpoint or delay threshold.
+- Count Events per work type only from those cited, normalized milestones.
+  Never copy a Post's general summary Events into each case classification;
+  a case with no supported milestone reports zero Events.
 - Present project-specific journeys only from accepted evidence-bearing
   predecessor and branch relations. A timestamp sort may be labeled observed
   events, but never promoted to a journey.

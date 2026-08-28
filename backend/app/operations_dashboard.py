@@ -190,13 +190,13 @@ async def fetch_operations_dashboard(
         )
         select (select count(*) from visible_post) as total_post_count,
                (select count(*)
-                  from post_summary_event summary_event
-                 where exists (
-                     select 1 from classified
-                      where classified.post_id = summary_event.post_id
-                        and ($5::boolean is false
-                             or classified.case_kind_code = 'external_information')
-                 )) as total_event_count,
+                  from operations_case_milestone milestone
+                  join classified
+                    on classified.post_id = milestone.post_id
+                   and classified.case_kind_code = milestone.case_kind_code
+                 where $5::boolean is false
+                    or classified.case_kind_code = 'external_information')
+                   as total_event_count,
                (select count(distinct post_id) from classified
                  where case_kind_code = 'external_information') as external_post_count,
                (select count(*) from scoped_post
@@ -225,10 +225,7 @@ async def fetch_operations_dashboard(
                coalesce(post.event_occurred_at, post.created_at) as occurred_at,
                coalesce(nullif(btrim(post.source_project_name), ''), project.primary_project_name)
                    as project_name,
-               coalesce(project.project_names, array[]::text[]) as project_names,
-               (select count(*)::int
-                  from post_summary_event summary_event
-                 where summary_event.post_id = classification.post_id) as event_count
+               coalesce(project.project_names, array[]::text[]) as project_names
           from operations_case_classification classification
           join source_post post on post.post_id = classification.post_id
           join source_post evidence_post
@@ -438,11 +435,12 @@ async def fetch_operations_dashboard(
     total = int(metrics["total_post_count"])
     external = int(metrics["external_post_count"])
     case_post_ids: dict[str, set[str]] = {}
-    case_event_counts: dict[str, int] = {}
     for row in case_rows:
         kind = row["case_kind_code"]
         case_post_ids.setdefault(kind, set()).add(str(row["post_id"]))
-        case_event_counts[kind] = case_event_counts.get(kind, 0) + int(row["event_count"])
+    case_event_counts: dict[str, int] = {}
+    for (_post_id, kind), case_milestones in milestones.items():
+        case_event_counts[kind] = case_event_counts.get(kind, 0) + len(case_milestones)
     projected_cases = []
     lifecycle_metrics = {
         lifecycle_code: {

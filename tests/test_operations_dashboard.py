@@ -90,7 +90,6 @@ class _Connection:
                 "project_name": "Synthetic Project",
                     "project_names": ["Synthetic Project", "Synthetic Secondary Project"],
                     "occurred_at": datetime(2026, 8, 12, tzinfo=timezone.utc),
-                    "event_count": 2,
             }
         ]
 
@@ -315,6 +314,11 @@ async def test_dashboard_uses_abac_event_clock_and_persisted_evidence() -> None:
         in case_query
     )
     assert "observed_at nulls last" in conn.queries[5][0]
+    metrics_query = conn.queries[0][0]
+    assert "from operations_case_milestone milestone" in metrics_query
+    assert "classified.case_kind_code = milestone.case_kind_code" in metrics_query
+    assert "post_summary_event" not in metrics_query
+    assert "post_summary_event" not in case_query
     for evidence_query in (
         conn.queries[0][0],
         conn.queries[1][0],
@@ -576,7 +580,6 @@ async def test_external_information_projects_a_typed_prov_o_relation() -> None:
                 "project_name": "Synthetic Project",
                 "project_names": ["Synthetic Project"],
                 "occurred_at": datetime(2026, 8, 12, tzinfo=timezone.utc),
-                "event_count": 1,
             }]
 
     result = await fetch_operations_dashboard(ExternalConnection(), [])
