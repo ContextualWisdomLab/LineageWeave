@@ -133,8 +133,28 @@ select role.post_id,
  order by role.post_id, role.actor_type_code, role.actor_name, role.responsibility
 """
 _EDGE_SQL = """
-select edge.parent_post_id, edge.child_post_id, edge.fused_score
+select edge.parent_post_id, edge.child_post_id, edge.fused_score,
+       temporal.observed as temporal_observed,
+       temporal.allen_relations,
+       temporal.artifact_digest_sha256
   from post_lineage_edge edge
+  left join lateral (
+      select relation.observed,
+             array_agg(kind.relation_code order by kind.relation_ordinal) as allen_relations,
+             artifact.artifact_digest_sha256
+        from project_journey_temporal_relation relation
+        join project_journey_temporal_artifact artifact
+          on artifact.analysis_run_id = relation.analysis_run_id
+        join project_journey_temporal_relation_kind kind
+          on kind.analysis_run_id = relation.analysis_run_id
+         and kind.left_post_id = relation.left_post_id
+         and kind.right_post_id = relation.right_post_id
+       where relation.left_post_id = edge.parent_post_id
+         and relation.right_post_id = edge.child_post_id
+       group by relation.observed, artifact.artifact_digest_sha256, artifact.admitted_at
+       order by artifact.admitted_at desc, artifact.artifact_digest_sha256 desc
+       limit 1
+  ) temporal on true
  where edge.parent_post_id = any($1::uuid[])
    and edge.child_post_id = any($1::uuid[])
  order by edge.child_post_id, edge.parent_post_id

@@ -57,7 +57,14 @@ def test_prior_paths_keep_the_first_deterministic_shortest_route_per_predecessor
     paths = _prior_paths(
         ["award", "spec-a", "spec-b", "delivery"],
         [
-            {"parent_post_id": "award", "child_post_id": "spec-a", "fused_score": 0.9},
+            {
+                "parent_post_id": "award",
+                "child_post_id": "spec-a",
+                "fused_score": 0.9,
+                "temporal_observed": True,
+                "allen_relations": ["before"],
+                "artifact_digest_sha256": "a" * 64,
+            },
             {"parent_post_id": "award", "child_post_id": "spec-b", "fused_score": 0.8},
             {"parent_post_id": "spec-a", "child_post_id": "delivery", "fused_score": 0.7},
             {"parent_post_id": "spec-b", "child_post_id": "delivery", "fused_score": 0.6},
@@ -68,3 +75,9 @@ def test_prior_paths_keep_the_first_deterministic_shortest_route_per_predecessor
 
     award_paths = [path for path in paths["delivery"] if path["source_event_id"] == "award"]
     assert [path["event_ids"] for path in award_paths] == [["award", "spec-a", "delivery"]]
+    assert award_paths[0]["edges"][0]["temporal_evidence"] == {
+        "truth_status_code": "observed",
+        "interval_relations": ["before"],
+        "artifact_digest_sha256": "a" * 64,
+    }
+    assert award_paths[0]["edges"][1]["temporal_evidence"] is None

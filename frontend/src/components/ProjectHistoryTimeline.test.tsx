@@ -87,7 +87,16 @@ const projection: ProjectHistoryProjection = {
           target_event_id: "voc",
           event_ids: ["award", "spec", "voc"],
           edges: [
-            { parent_event_id: "award", child_event_id: "spec", fused_score: 0.91 },
+            {
+              parent_event_id: "award",
+              child_event_id: "spec",
+              fused_score: 0.91,
+              temporal_evidence: {
+                truth_status_code: "inferred",
+                interval_relations: ["before"],
+                artifact_digest_sha256: "a".repeat(64),
+              },
+            },
             { parent_event_id: "spec", child_event_id: "voc", fused_score: 0.73 },
           ],
           minimum_fused_score: 0.73,
@@ -114,6 +123,7 @@ describe("ProjectHistoryTimeline", () => {
     expect(screen.queryByText("document_time")).not.toBeInTheDocument();
     expect(screen.getByText("delivery")).toBeInTheDocument();
     expect(screen.getByText("delivered")).toBeInTheDocument();
+    expect(screen.getByText(/Time order checked/)).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: /open source record: VOC received/i }));
     expect(onOpenPost).toHaveBeenCalledWith("post-voc");
