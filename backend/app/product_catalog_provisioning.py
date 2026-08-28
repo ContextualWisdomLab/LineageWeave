@@ -77,15 +77,15 @@ class ProductCatalogImport:
 class _Connection(Protocol):
     def transaction(self) -> Any:
         """Open an atomic database transaction."""
-        ...
+        pass
 
     async def fetchrow(self, query: str, *args: object) -> Any:
         """Fetch one row."""
-        ...
+        pass
 
     async def execute(self, query: str, *args: object) -> Any:
         """Execute one parameterized statement."""
-        ...
+        pass
 
 
 async def provision_product_catalog_entry(
