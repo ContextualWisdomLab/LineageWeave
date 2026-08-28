@@ -351,6 +351,27 @@ async def test_dashboard_headline_excludes_hidden_milestone_evidence() -> None:
 
 
 @pytest.mark.anyio
+async def test_dashboard_event_counts_exclude_hidden_classification_evidence() -> None:
+    """A milestone cannot outlive the visible classification that owns it."""
+
+    class HiddenClassificationConnection(_Connection):
+        async def fetch(self, query: str, *args: object) -> list[dict[str, object]]:
+            if (
+                "from operations_case_classification classification" in query
+                and "operations_case_fact" not in query
+            ):
+                self.queries.append((query, args))
+                return []
+            return await super().fetch(query, *args)
+
+    result = await fetch_operations_dashboard(HiddenClassificationConnection(), [])
+
+    assert result["cases"] == []
+    assert result["total_event_count"] == 0
+    assert sum(metric["event_count"] for metric in result["case_metrics"]) == 0
+
+
+@pytest.mark.anyio
 async def test_dashboard_projects_exact_topic_influence_without_local_scoring() -> None:
     """Accepted rows retain ties, membership evidence, and producer identity."""
 
