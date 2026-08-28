@@ -33,7 +33,13 @@ placed in a stream message.
    `post_content_ingestion_attempt_limit`; duplicate wake-ups cannot reopen a
    terminal failure. A changed source digest starts a new budget.
    Recovery walks the ready ledger with the deterministic
-   `(queued_at, post_id)` keyset and wraps only after reaching the end. It must
+   `(eligible_at, post_id)` keyset and wraps only after reaching the end. The
+   derived `eligible_at` is the row's existing eligibility instant: an
+   explicit `next_attempt_at`, `queued_at` for an initial attempt,
+   `queued_at + five minutes` for a retry without an explicit instant, or
+   `started_at + fifteen minutes` for a stale running lease. The same derived
+   value is used by both the due predicate and cursor ordering, so a retry that
+   becomes due after the cursor advanced remains ahead of that cursor. It must
    not repeatedly publish only the first bounded page while later rows starve.
    The cursor advances only through the contiguous successfully published
    prefix; a Valkey failure leaves the first unpublished row eligible for the
@@ -99,8 +105,9 @@ normalized PostgreSQL ledger is scanned and queued/stale rows are republished
 after the cursor is established. This prevents a restart from replaying an
 unbounded historical stream before processing current work.
 
-Within one worker lifetime, the recovery keyset cursor advances across every
-ready queued or stale-running lease and wraps at the end. This is publication
+Within one worker lifetime, the recovery keyset cursor advances by effective
+eligibility across every ready queued or stale-running lease and wraps at the
+end. This is publication
 reachability, not a change to retry order, attempt budgets, or provider
 admission. Wake-up cleanup is consumption-bound while the worker is available:
 a successful batch advances the consumer cursor and then removes entries
