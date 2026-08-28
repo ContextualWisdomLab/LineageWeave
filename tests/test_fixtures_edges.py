@@ -10,9 +10,7 @@ image until it fits the vision payload ceiling.
 from __future__ import annotations
 
 import io
-import math
 
-import pytest
 from PIL import Image
 
 from lineageweave.fixtures import (
