@@ -4,8 +4,10 @@
 > `ff7431bd1851c03e737808d22c6a2d43968582f9`; PR #640 is a ready-for-review
 > current-main semantic rebuild at `f0bc98eef238b7a03d4227ab909c8de296041f36`.
 > PR #778 is remotely published at
-> `f27f427d0fb4cc41944fb9814b084806cc327916`; PR #781 is being restacked on
-> that exact parent and remains candidate-only. The open queue has 14 PRs:
+> `b87b186dd7213dc59d8e933e7d8c3f330598470f`; PR #781's tested
+> implementation head before this documentation-only snapshot is
+> `c151027764046444041fbf7762288968465f4f48` and remains candidate-only.
+> The open queue has 14 PRs:
 > #783, #782, #781, #780, #778, #774, #772, #771, #770, #702, #679, #672,
 > #667, and #640; #702/#679/#672/#667 remain drafts. Local candidate tests do
 > not transfer to the remote PR head or protected `main`. Exact-head Compose,
