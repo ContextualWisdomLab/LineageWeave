@@ -71,14 +71,7 @@ def test_bounded_jpeg_encodes_a_tiny_image_directly() -> None:
 def test_bounded_jpeg_compresses_an_oversized_image_to_fit() -> None:
     # A huge, high-entropy image never fits at any JPEG quality, forcing
     # the quality-step loop AND the resize fallback before it returns.
-    import random
-
-    image = Image.new("RGB", (6000, 6000))
-    random.seed(7)
-    pixels = image.load()
-    for y in range(0, 6000, 2):
-        for x in range(0, 6000, 2):
-            pixels[x, y] = (random.randrange(256), random.randrange(256), random.randrange(256))
+    image = Image.effect_noise((6000, 6000), 100).convert("RGB")
     payload = _encode_bounded_jpeg(image)
     assert len(payload) <= _MAX_VISION_IMAGE_BYTES
     with Image.open(io.BytesIO(payload)) as decoded:
