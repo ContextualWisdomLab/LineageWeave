@@ -103,5 +103,7 @@ def test_product_catalog_endpoint_returns_the_next_valid_action(
     assert result["ontology_iri"].endswith(
         "#node/product/00000000-0000-0000-0000-000000000101"
     )
-    assert result["next_action"] == "제품 분석을 다시 실행한 뒤 원문 근거와 연결 결과를 확인하세요."
+    assert result["next_action"] == (
+        "Run product analysis again, then review source evidence and linked products."
+    )
     assert observed["imported_by_account_id"].endswith("301")

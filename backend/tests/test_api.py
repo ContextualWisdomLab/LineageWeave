@@ -2075,7 +2075,7 @@ def test_post_detail_returns_authorized_product_evidence(
     assert response.status_code == 200
     assert response.json()["product_evidence_status"] == {
         "status_code": "complete",
-        "next_action": "연결된 제품과 원문 근거를 확인하세요.",
+        "next_action": "Open the linked products and source evidence.",
     }
     assert response.json()["product_evidence"] == [{
         "mention_ordinal": 0,

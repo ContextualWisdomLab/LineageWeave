@@ -972,7 +972,7 @@ async def provision_product_catalog(
         **result,
         "product_catalog_code": product_code.strip(),
         "ontology_iri": ontology_node_iri("product", str(result["product_catalog_id"])),
-        "next_action": "제품 분석을 다시 실행한 뒤 원문 근거와 연결 결과를 확인하세요.",
+        "next_action": "Run product analysis again, then review source evidence and linked products.",
     }
 
 
@@ -2008,16 +2008,16 @@ async def read_post(
         "product_evidence_status": (
             {
                 "status_code": "historical_unavailable",
-                "next_action": "현재 글의 제품 근거와 당시 본문을 구분해 확인하세요.",
+                "next_action": "Review this post's product evidence separately from the historical body.",
             }
             if as_of_clock is not None
             else
             {
                 "status_code": "complete",
                 "next_action": (
-                    "연결된 제품과 원문 근거를 확인하세요."
+                    "Open the linked products and source evidence."
                     if product_rows
-                    else "원문을 열어 제품 언급이 없는지 확인하세요."
+                    else "Open the source text and confirm that no product was mentioned."
                 ),
             }
             if product_analysis_state and product_analysis_state["analysis_present"]
@@ -2034,14 +2034,14 @@ async def read_post(
                     )
                 ),
                 "next_action": (
-                    "분석이 끝난 뒤 제품 근거를 다시 확인하세요."
+                    "Review product evidence again after analysis finishes."
                     if product_analysis_state
                     and product_analysis_state["job_status_code"]
                     in {"post_content_ingestion_queued", "post_content_ingestion_running"}
                     else (
-                        "관리자에게 제품 분석 사용 설정을 요청한 뒤 다시 확인하세요."
+                        "Ask an administrator to enable product analysis, then review this post again."
                         if not (settings.orchestrator_base_url and settings.orchestrator_api_key)
-                        else "제품 분석을 다시 실행한 뒤 결과를 확인하세요."
+                        else "Run product analysis again, then review the result."
                     )
                 ),
             }

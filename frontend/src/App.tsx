@@ -2383,9 +2383,9 @@ function PostDetailPopup({
             {post.product_evidence_status?.status_code === "complete" && post.product_evidence?.length ? (
               <ProductEvidenceList products={post.product_evidence} onOpenPost={(evidencePostId) => onSelectPost?.(evidencePostId)} />
             ) : post.product_evidence_status?.status_code === "complete" ? (
-              <StatusNotice kind="success" message={t("No product was identified in this post.")} nextAction={post.product_evidence_status.next_action} />
+              <StatusNotice kind="success" message={t("No product was identified in this post.")} nextAction={t(post.product_evidence_status.next_action)} />
             ) : (
-              <StatusNotice kind="unavailable" message={post.product_evidence_status?.status_code === "processing" ? t("Product evidence analysis is in progress.") : post.product_evidence_status?.status_code === "historical_unavailable" ? t("Historical product evidence is not available.") : t("Product evidence is not available yet.")} nextAction={post.product_evidence_status?.next_action ?? t("Refresh this post after product analysis is available.")} />
+              <StatusNotice kind="unavailable" message={post.product_evidence_status?.status_code === "processing" ? t("Product evidence analysis is in progress.") : post.product_evidence_status?.status_code === "historical_unavailable" ? t("Historical product evidence is not available.") : t("Product evidence is not available yet.")} nextAction={post.product_evidence_status?.next_action ? t(post.product_evidence_status.next_action) : t("Refresh this post after product analysis is available.")} />
             )}
             {(post.source_stage_code ||
               post.source_detail_state_code ||
