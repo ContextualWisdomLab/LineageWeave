@@ -25,3 +25,30 @@ export async function loginAsDemoAnalyst(page: Page): Promise<void> {
   await page.getByRole("button", { name: "Sign In" }).click();
   await page.waitForURL((url) => !url.pathname.includes("/realms/"));
 }
+
+/** Authenticate with the acceptance token when supplied, otherwise use demo OIDC. */
+export async function loginAsRuntimeReader(page: Page): Promise<void> {
+  const token = process.env.LINEAGEWEAVE_ACCESS_TOKEN;
+  const issuer = process.env.LINEAGEWEAVE_OIDC_ISSUER;
+  const clientId = process.env.LINEAGEWEAVE_OIDC_CLIENT_ID;
+  if (!token || !issuer || !clientId) {
+    await loginAsDemoAnalyst(page);
+    return;
+  }
+  await page.addInitScript(
+    ({ accessToken, storageKey }) => {
+      localStorage.setItem(
+        storageKey,
+        JSON.stringify({
+          access_token: accessToken,
+          token_type: "Bearer",
+          expires_at: Math.floor(Date.now() / 1000) + 300,
+          profile: { sub: "runtime-acceptance" },
+          scope: "openid",
+        }),
+      );
+    },
+    { accessToken: token, storageKey: `oidc.user:${issuer}:${clientId}` },
+  );
+  await page.goto("/");
+}

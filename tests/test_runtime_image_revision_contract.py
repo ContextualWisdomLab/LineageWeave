@@ -67,6 +67,23 @@ def test_runtime_runners_require_distinct_desktop_and_mobile_artifacts() -> None
         assert '"${BACKEND_URL%/}/healthz"' in runner
 
 
+def test_provider_runtime_exercises_dashboard_and_ask_evidence_navigation() -> None:
+    """Committed runtime acceptance preserves both evidence-bearing customer flows."""
+    runner = (_ROOT / "scripts" / "accept_operations_dashboard_runtime.sh").read_text(
+        encoding="utf-8"
+    )
+    dashboard_spec = (_ROOT / "frontend/e2e/runtime-operations-dashboard.spec.ts").read_text(
+        encoding="utf-8"
+    )
+    ask_spec = (_ROOT / "frontend/e2e/ask-agent.spec.ts").read_text(encoding="utf-8")
+    assert "e2e/runtime-operations-dashboard.spec.ts e2e/ask-agent.spec.ts" in runner
+    assert "evidenceDialog" in dashboard_spec
+    assert "ASK_SCREENSHOT_DESKTOP_PATH" in runner
+    assert "ASK_SCREENSHOT_MOBILE_PATH" in runner
+    assert "ASK_SCREENSHOT_DESKTOP_PATH" in ask_spec
+    assert "ASK_SCREENSHOT_MOBILE_PATH" in ask_spec
+
+
 def test_acceptance_uses_only_the_checked_in_compose_file() -> None:
     """Host-level Compose overrides must not alter the accepted product stack."""
     makefile = (_ROOT / "Makefile").read_text(encoding="utf-8")

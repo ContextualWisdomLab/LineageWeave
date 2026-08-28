@@ -24,16 +24,22 @@ LINEAGEWEAVE_E2E_BASE_URL="${LINEAGEWEAVE_E2E_BASE_URL:-http://localhost:15173}"
 POSTGRES_CONTAINER="${POSTGRES_CONTAINER:-lineageweave-postgres-1}"
 SCREENSHOT_DESKTOP_PATH="${SCREENSHOT_DESKTOP_PATH:-/tmp/lineageweave-operations-dashboard-runtime-desktop.png}"
 SCREENSHOT_MOBILE_PATH="${SCREENSHOT_MOBILE_PATH:-/tmp/lineageweave-operations-dashboard-runtime-mobile.png}"
+ASK_SCREENSHOT_DESKTOP_PATH="${ASK_SCREENSHOT_DESKTOP_PATH:-/tmp/lineageweave-ask-runtime-desktop.png}"
+ASK_SCREENSHOT_MOBILE_PATH="${ASK_SCREENSHOT_MOBILE_PATH:-/tmp/lineageweave-ask-runtime-mobile.png}"
 E2E_OUTPUT_DIR="${E2E_OUTPUT_DIR:-/tmp/lineageweave-operations-dashboard-e2e}"
 K6_SUMMARY_PATH="${K6_SUMMARY_PATH:-/tmp/lineageweave-operations-dashboard-k6.json}"
 repository_root="$(git rev-parse --show-toplevel)"
-for screenshot_path in "$SCREENSHOT_DESKTOP_PATH" "$SCREENSHOT_MOBILE_PATH"; do
+for screenshot_path in "$SCREENSHOT_DESKTOP_PATH" "$SCREENSHOT_MOBILE_PATH" "$ASK_SCREENSHOT_DESKTOP_PATH" "$ASK_SCREENSHOT_MOBILE_PATH"; do
   case "$screenshot_path" in
     "$repository_root"/*) echo "runtime screenshots must stay outside the repository" >&2; exit 2 ;;
   esac
 done
 [[ "$SCREENSHOT_DESKTOP_PATH" != "$SCREENSHOT_MOBILE_PATH" ]] || {
   echo "desktop and mobile screenshots require distinct paths" >&2
+  exit 2
+}
+[[ "$ASK_SCREENSHOT_DESKTOP_PATH" != "$ASK_SCREENSHOT_MOBILE_PATH" ]] || {
+  echo "Ask desktop and mobile screenshots require distinct paths" >&2
   exit 2
 }
 case "$E2E_OUTPUT_DIR" in
@@ -181,8 +187,9 @@ curl_json "$LINEAGEWEAVE_ACCESS_TOKEN" GET "$BACKEND_URL/api/dashboard" \
 
 export LINEAGEWEAVE_ACCESS_TOKEN LINEAGEWEAVE_OIDC_ISSUER LINEAGEWEAVE_OIDC_CLIENT_ID
 export LINEAGEWEAVE_E2E_BASE_URL SCREENSHOT_DESKTOP_PATH SCREENSHOT_MOBILE_PATH
+export ASK_SCREENSHOT_DESKTOP_PATH ASK_SCREENSHOT_MOBILE_PATH
 (cd frontend && corepack pnpm exec playwright test \
-  e2e/runtime-operations-dashboard.spec.ts --output "$E2E_OUTPUT_DIR")
+  e2e/runtime-operations-dashboard.spec.ts e2e/ask-agent.spec.ts --output "$E2E_OUTPUT_DIR")
 
 export BACKEND_URL LINEAGEWEAVE_ACCESS_TOKEN K6_VUS K6_DURATION
 k6 run --vus "$K6_VUS" --duration "$K6_DURATION" \
