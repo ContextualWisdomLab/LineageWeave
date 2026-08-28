@@ -1,7 +1,7 @@
 # Product & Technical Gap Baseline
 
 > Exact-head Voice export and authority audit: 2026-08-28 KST. Protected
-> `main` was `fc13acaa20adca11968238e398d4aafcf62b6cee`; twelve PRs and nine
+> `main` was `fc13acaa20adca11968238e398d4aafcf62b6cee`; thirteen PRs and nine
 > issues were open. The largest directly actionable Voice acceptance gap on
 > this head was export ambiguity: the rendered exact-value table already
 > offered separate actions for the carrying Post and derivation-evidence Post,
@@ -14,6 +14,15 @@
 > gate and the runtime evidence is collected. Canonical remote names were
 > rechecked as `ContextualWisdomLab/LineageWeave`, `RankWeave`, `ThreadWeave`,
 > lowercase `disksage`, `TEPP`, `contextual-orchestrator`, and `fast-mlsirm`.
+> The 14:20 KST queue audit also found PR #782 proposing ADR 0267 / migration
+> 0245 / v2.24.0 on the same protected-main base. Its buyer-visible coordinates
+> are backed by additional projection from the frozen local NumPy residual-map
+> debt, while ADR 0208 assigns residual interaction maps and their coordinates
+> to fast-mlsirm's Rust result contract. The owner already returns person and
+> item coordinates, but this candidate does not consume and persist that
+> accepted owner artifact. It therefore remains a conflicting candidate, not a
+> protected-main capability or a permissible continuation of the product Gap
+> slice; no local reimplementation or heuristic substitute is authorized.
 >
 > Exact-head loop overlay: 2026-08-28 10:00 KST. Protected `main` was
 > `edf22ee39aee2a8481f9bda8fff59801821e79c2` (#773 similar-VOC coverage).
