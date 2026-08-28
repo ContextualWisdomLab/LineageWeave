@@ -384,20 +384,13 @@ async def ensure_post_content_job(
 POST_CONTENT_BACKFILL_CANDIDATE_SQL = f"""
         select post.post_id, post.post_body
           from source_post post
-          left join post_content_ingestion_job job on job.post_id = post.post_id
-          left join operations_case_analysis analysis
-            on analysis.post_id = post.post_id
-           and analysis.source_body_sha256 = job.source_body_sha256
-          left join post_product_analysis product_analysis
-            on product_analysis.post_id = post.post_id
-           and product_analysis.source_body_sha256 = job.source_body_sha256
-          left join (
-              select distinct project.post_id
-                from post_project_mention project
-               where nullif(btrim(project.ontology_iri), '') is not null
-          ) ontology_project on ontology_project.post_id = post.post_id
          where {SOURCE_POST_ELIGIBILITY_SQL.format(alias='post')}
-           and (job.post_id is null or job.status_code = $1)
+           and not exists (
+               select 1
+                 from post_content_ingestion_job job
+                where job.post_id = post.post_id
+                  and job.status_code is distinct from $1
+           )
            and (
                not exists (
                    select 1 from post_content_unit unit
@@ -436,14 +429,45 @@ POST_CONTENT_BACKFILL_CANDIDATE_SQL = f"""
                           or structure.decision_source_code = 'unresolved'
                       )
                ))
-               or ($3::boolean and analysis.post_id is null)
-               or ($3::boolean and product_analysis.post_id is null)
+               or ($3::boolean and not exists (
+                   select 1
+                     from post_content_ingestion_job job
+                     join operations_case_analysis analysis
+                       on analysis.post_id = job.post_id
+                      and analysis.source_body_sha256 = job.source_body_sha256
+                    where job.post_id = post.post_id
+               ))
+               or ($3::boolean and not exists (
+                   select 1
+                     from post_content_ingestion_job job
+                     join post_product_analysis product_analysis
+                       on product_analysis.post_id = job.post_id
+                      and product_analysis.source_body_sha256 = job.source_body_sha256
+                    where job.post_id = post.post_id
+               ))
            )
            and ($5::boolean = (
                    $3::boolean
-                   and ontology_project.post_id is not null
-                   and job.source_body_sha256 is not null
-                   and analysis.post_id is null
+                   and exists (
+                       select 1
+                         from post_project_mention project
+                        where project.post_id = post.post_id
+                          and nullif(btrim(project.ontology_iri), '') is not null
+                   )
+                   and exists (
+                       select 1
+                         from post_content_ingestion_job job
+                        where job.post_id = post.post_id
+                          and job.source_body_sha256 is not null
+                   )
+                   and not exists (
+                       select 1
+                         from post_content_ingestion_job job
+                         join operations_case_analysis analysis
+                           on analysis.post_id = job.post_id
+                          and analysis.source_body_sha256 = job.source_body_sha256
+                        where job.post_id = post.post_id
+                   )
                ))
          order by coalesce(post.event_occurred_at, post.created_at),
                   post.created_at,

@@ -103,6 +103,14 @@ work or an unbounded HTTP request. Candidate selection and broker recovery are
 independent: either failure is recorded and retried on the next cycle without
 stopping the worker.
 
+The bounded candidate scan uses the partial
+`source_post_content_backfill_candidate_idx` on the candidate query's event-time
+fallback and deterministic tie-breakers. Its partial predicate excludes drafts
+and deleted rows; the query retains the shared source-context predicate. This
+lets PostgreSQL stop after the requested ordered page instead of evaluating
+content completeness across the whole source corpus. It does not change
+eligibility or completeness semantics.
+
 The CLI retains the same per-query bound. `--all-pages` repeats that governed
 producer until the current candidate set is empty; progress remains visible in
 the normalized job ledger after every page. Terminal failures are never reset
