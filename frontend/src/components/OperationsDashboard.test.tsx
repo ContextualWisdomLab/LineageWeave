@@ -27,7 +27,7 @@ const data = {
 describe("OperationsDashboardView", () => {
   it("distinguishes posts, events, percentages and opens evidence", async () => {
     const onOpenPost = vi.fn();
-    render(<OperationsDashboardView data={data} onOpenPost={onOpenPost} />);
+    render(<OperationsDashboardView data={data} onOpenPost={onOpenPost} onRetry={() => undefined} />);
     expect(screen.getByText("5건 · 25.0%")).toBeInTheDocument();
     expect(screen.getByText("원인 수주")).toBeInTheDocument();
     await userEvent.click(screen.getByRole("button", { name: "분류 근거 글 열기" }));
@@ -37,14 +37,17 @@ describe("OperationsDashboardView", () => {
   });
 
   it("shows an actionable empty external-information state", () => {
-    render(<OperationsDashboardView data={data} externalOnly onOpenPost={() => undefined} />);
+    render(<OperationsDashboardView data={data} externalOnly onOpenPost={() => undefined} onRetry={() => undefined} />);
     expect(screen.getByRole("region", { name: /Unavailable/ })).toHaveTextContent("분석 대기 건부터 처리하세요");
   });
 
-  it("separates failed analysis from pending work and gives the next action", () => {
-    render(<OperationsDashboardView data={{ ...data, failed_analysis_count: 2, cases: [] }} onOpenPost={() => undefined} />);
+  it("separates failed analysis from pending work and gives the next action", async () => {
+    const onRetry = vi.fn();
+    render(<OperationsDashboardView data={{ ...data, failed_analysis_count: 2, cases: [] }} onOpenPost={() => undefined} onRetry={onRetry} />);
     expect(screen.getByText("분석 실패").nextElementSibling).toHaveTextContent("2");
     expect(screen.getByRole("alert")).toHaveTextContent("재처리한 뒤 근거 누락 여부를 다시 확인하세요");
+    await userEvent.click(screen.getByRole("button", { name: "실패 건 다시 처리" }));
+    expect(onRetry).toHaveBeenCalledTimes(1);
     expect(screen.queryByRole("region", { name: /Unavailable/ })).not.toBeInTheDocument();
   });
 

@@ -48,7 +48,12 @@ export function OperationsDashboard({ accessToken, externalOnly = false, onOpenP
         />
       </section>
     ) : data ? (
-      <OperationsDashboardView data={data} externalOnly={externalOnly} onOpenPost={onOpenPost} />
+      <OperationsDashboardView
+        data={data}
+        externalOnly={externalOnly}
+        onOpenPost={onOpenPost}
+        onRetry={() => setRetryCount((count) => count + 1)}
+      />
     ) : (
       <p role="status">Dashboard 근거를 불러오는 중입니다.</p>
     )}
@@ -56,7 +61,7 @@ export function OperationsDashboard({ accessToken, externalOnly = false, onOpenP
 }
 
 /** Renders a completed Dashboard response for runtime and Storybook scenes. */
-export function OperationsDashboardView({ data, externalOnly = false, onOpenPost }: { data: OperationsDashboardResponse; externalOnly?: boolean; onOpenPost: (postId: string) => void }) {
+export function OperationsDashboardView({ data, externalOnly = false, onOpenPost, onRetry }: { data: OperationsDashboardResponse; externalOnly?: boolean; onOpenPost: (postId: string) => void; onRetry: () => void }) {
   const cases = externalOnly ? data.cases.filter((item) => item.case_kind_code === "external_information") : data.cases;
   const journeys = Object.entries(
     cases.reduce<Record<string, typeof cases>>((groups, item) => {
@@ -120,6 +125,8 @@ export function OperationsDashboardView({ data, externalOnly = false, onOpenPost
           kind="retry"
           message={`분석 결과 ${data.failed_analysis_count}건을 사용할 수 없습니다.`}
           nextAction="분석 실패 건을 재처리한 뒤 근거 누락 여부를 다시 확인하세요."
+          retryLabel="실패 건 다시 처리"
+          onRetry={onRetry}
         />
       ) : null}
     </section>

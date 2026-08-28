@@ -21,6 +21,7 @@ export const EvidenceReady: Story = {
       ],
     },
     onOpenPost: () => undefined,
+    onRetry: () => undefined,
   },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
@@ -35,6 +36,7 @@ export const AnalysisPendingAndMissingEvidence: Story = {
   args: {
     data: { ...EvidenceReady.args!.data!, total_event_count: 0, pending_analysis_count: 3, cases: [] },
     onOpenPost: () => undefined,
+    onRetry: () => undefined,
   },
   play: async ({ canvasElement }) => {
     await expect(within(canvasElement).getByRole("region", { name: /Unavailable/ })).toHaveTextContent("분석 대기 건부터 처리하세요");
@@ -45,6 +47,7 @@ export const AnalysisFailed: Story = {
   args: {
     data: { ...EvidenceReady.args!.data!, pending_analysis_count: 0, failed_analysis_count: 2, cases: [] },
     onOpenPost: () => undefined,
+    onRetry: () => undefined,
   },
   play: async ({ canvasElement }) => {
     await expect(within(canvasElement).getByRole("alert")).toHaveTextContent("재처리한 뒤 근거 누락 여부를 다시 확인하세요");
