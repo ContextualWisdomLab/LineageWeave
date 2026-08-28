@@ -8,6 +8,10 @@ const meta = {
     criterionLabel: (code: string) =>
       code === "sales_lead_quality" ? "sales-lead" : "negative",
     onSelectPost: () => undefined,
+    leftoverMapAxes: [
+      { axis_index: 1, leftover_singular_value: 1.84, leftover_share: 0.82 },
+      { axis_index: 2, leftover_singular_value: 0.86, leftover_share: 0.18 },
+    ],
     pairs: [
       {
         pair_kind: "closest",
@@ -61,6 +65,10 @@ export const ClosestAndFarthest: Story = {};
 
 export const RankZeroOrigin: Story = {
   args: {
+    leftoverMapAxes: [
+      { axis_index: 1, leftover_singular_value: 0, leftover_share: 0 },
+      { axis_index: 2, leftover_singular_value: 0, leftover_share: 0 },
+    ],
     pairs: [
       {
         pair_kind: "closest",
@@ -83,6 +91,10 @@ export const RankZeroOrigin: Story = {
 
 export const MissingCoordinates: Story = {
   args: {
+    leftoverMapAxes: [
+      { axis_index: 1, leftover_singular_value: 1.84, leftover_share: 0.82 },
+      { axis_index: 2, leftover_singular_value: 0.86, leftover_share: 0.18 },
+    ],
     pairs: [
       {
         pair_kind: "closest",
@@ -93,6 +105,14 @@ export const MissingCoordinates: Story = {
         leftover_residual: 0.4,
         leftover_map_rank: 1,
       },
+    ],
+  },
+};
+
+export const MissingAxisShare: Story = {
+  args: {
+    leftoverMapAxes: [
+      { axis_index: 1, leftover_singular_value: 1.84, leftover_share: Number.NaN },
     ],
   },
 };

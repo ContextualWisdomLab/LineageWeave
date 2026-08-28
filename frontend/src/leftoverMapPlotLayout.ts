@@ -1,4 +1,6 @@
-/** Gabriel leftover-map graphic display of persisted ``ξ_{1:2}`` / ``ζ_{1:2}``. */
+/** Gabriel leftover-map graphic display of persisted ``ξ_{1:2}`` / ``ζ_{1:2}``.
+ *  Leftover-map axis share captions axes 1 and 2 when finite (ADR 0269).
+ */
 
 import { formatLeftoverMapCoordinatePair } from "./leftoverMapCoordinates";
 import type { LeftoverPair } from "./api";

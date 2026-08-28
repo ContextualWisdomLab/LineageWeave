@@ -1,5 +1,24 @@
 # Product & Technical Gap Baseline
 
+> Exact-head loop overlay: 2026-08-28 19:15 KST. Protected `main` is
+> `fc13acaa20adca11968238e398d4aafcf62b6cee` (v2.23.0 leftover-map
+> explained leftover share, #775). Open ready PRs still lack independent
+> APPROVE. #782 leftover-map coordinates + graphic display (v2.24.0 /
+> v2.25.0 / ADR 0267 / ADR 0268) is on
+> `2f7e9c8df695f12d03964d5caa68fa3355bdd923`; Strix fail-closed and no
+> independent APPROVE. Drafts remain dirty against `main`. #96 stays
+> closed as a weaker duplicate of #91. GitHub writes through MCP succeed
+> (comment/create-branch/git push/auto-merge). Copilot review is not
+> independent APPROVE. Do not self-approve.
+>
+> Next buyer increment on this cycle: leftover-map axis share on the
+> graphic display (ADR 0269 / v2.26.0). Caption plot axes with persisted
+> ADR 0148 `leftover_map_axes` inertia `σ_k² / Σ_j σ_j²`. UI-only; no
+> new columns. Rank-0 zero-share axes still named. Missing/non-finite
+> share omits that axis badge and keeps existing leftover-map axis
+> text. Do not invent leftover scores. Do not mix into dashboard stacks
+> #640/#778/#781.
+
 > Exact-head loop overlay: 2026-08-28 16:05 KST. Protected `main` is
 > `fc13acaa20adca11968238e398d4aafcf62b6cee` (v2.23.0 leftover-map
 > explained leftover share, #775). Open ready PRs still lack independent

@@ -1,4 +1,4 @@
-import type { LeftoverPair } from "../api";
+import type { LeftoverMapAxis, LeftoverPair } from "../api";
 import { t, tf } from "../i18n";
 import {
   formatLeftoverMapCrossShare,
@@ -37,6 +37,7 @@ import { LeftoverMapPlot } from "./LeftoverMapPlot";
 
 export type LeftoverPairListProps = {
   pairs: LeftoverPair[];
+  leftoverMapAxes?: LeftoverMapAxis[];
   criterionLabel: (criterionCode: string) => string;
   onSelectPost: (pair: LeftoverPair) => void;
 };
@@ -56,11 +57,13 @@ export type LeftoverPairListProps = {
  * unexplained leftover, then the existing residual/rank/observed-expected
  * next action. When four finite coordinates exist, ADR 0268 draws the
  * leftover-map graphic display above the pair buttons; click a post
- * marker opens that post. Every badge still renders together before
- * opening the named post.
+ * marker opens that post. ADR 0269 captions those leftover-map axes with
+ * persisted leftover-map axis share when finite. Every badge still
+ * renders together before opening the named post.
  */
 export function LeftoverPairList({
   pairs,
+  leftoverMapAxes,
   criterionLabel,
   onSelectPost,
 }: LeftoverPairListProps) {
@@ -71,6 +74,7 @@ export function LeftoverPairList({
     <div>
       <LeftoverMapPlot
         pairs={pairs}
+        leftoverMapAxes={leftoverMapAxes}
         criterionLabel={criterionLabel}
         onSelectPost={onSelectPost}
       />

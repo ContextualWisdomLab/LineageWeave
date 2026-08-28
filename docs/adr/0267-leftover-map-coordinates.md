@@ -103,7 +103,8 @@ leftover-map distance, leftover-map rank, leftover-map inner product,
 leftover-map cosine, leftover-map length, leftover-map reconstruction,
 leftover-map unexplained leftover, leftover-map cross share,
 leftover-map unexplained leftover share, leftover-map explained
-leftover share, and leftover-map graphic display.
+leftover share, leftover-map graphic display, and leftover-map axis
+share on the graphic display.
 
 ## References
 
