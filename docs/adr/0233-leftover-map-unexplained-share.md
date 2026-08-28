@@ -3,6 +3,9 @@
 **Decision status:** Accepted
 **Date:** 2026-08-27
 
+**Amended by:** [ADR 0266](0266-leftover-map-explained-share.md)
+(explained leftover share e)
+
 Amends [ADR 0048](0048-persist-lsirm-leftover-pairs.md) and
 [ADR 0049](0049-leftover-pair-report-ui.md). Independent of leftover-map
 cross share ([ADR 0185](0185-leftover-map-cross-share.md)) and leftover-map
@@ -21,8 +24,8 @@ leftover `U` as the leftover the truncated map cannot reconstruct,
 even though `s` is the square share of that leftover.
 
 This increment persists leftover-map unexplained leftover share `s`.
-It does not persist leftover-map explained leftover share `e`, does
-not persist leftover-map coordinates, does not name leftover-map inner
+Leftover-map explained leftover share `e` is persisted independently by
+[ADR 0266](0266-leftover-map-explained-share.md). It does not persist leftover-map coordinates, does not name leftover-map inner
 product, cosine, or length, and does not land Post quality on the
 leftover criterion. Leftover-map distance stays two-axis Euclidean.
 Reconstruction `R̂` and unexplained leftover `U` remain the same
@@ -59,8 +62,8 @@ value. A rank-0 constant residual with `R̂ = 0` stores `1.0` (`s = U² / R²`
 with `U = R`). A non-finite share stores null rather than inventing a
 leftover score. `s` is nonnegative because it is a square share; a
 finite share greater than 1 is stored when `|U| > |R|`. Do not add an
-upper-bound CHECK. This increment does not introduce
-`leftover_map_explained_share`.
+upper-bound CHECK. Leftover-map explained leftover share `e` is
+persisted independently by ADR 0266.
 
 The pair button shows `U²/R² {share}` next to leftover-map
 distance `d` when the value is a finite number. Next action: leftover

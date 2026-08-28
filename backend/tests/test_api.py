@@ -5723,8 +5723,21 @@ def test_seed_period_report_surfaces_on_get_reports(client, demo_analyst_token, 
             assert not math.isinf(share)
         if unexplained is not None and reconstruction is not None:
             assert unexplained + reconstruction == pytest.approx(pair["leftover_residual"])
-        assert "leftover_map_explained_share" not in pair
-        assert "leftover_map_unexplained_share" not in pair
+        unexplained_share = pair.get("leftover_map_unexplained_share")
+        explained_share = pair.get("leftover_map_explained_share")
+        assert unexplained_share is None or isinstance(unexplained_share, (int, float))
+        assert explained_share is None or isinstance(explained_share, (int, float))
+        if unexplained_share is not None:
+            assert unexplained_share >= 0.0
+        if explained_share is not None:
+            assert explained_share >= 0.0
+        if (
+            explained_share is not None
+            and unexplained_share is not None
+            and share is not None
+            and abs(pair["leftover_residual"]) > 1e-12
+        ):
+            assert explained_share + unexplained_share + share == pytest.approx(1.0)
     leftover_axes = high_report.get("leftover_map_axes", [])
     assert [axis["axis_index"] for axis in leftover_axes] == [1, 2]
     assert all(axis["leftover_singular_value"] >= 0 for axis in leftover_axes)

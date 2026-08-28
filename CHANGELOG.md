@@ -8,6 +8,14 @@ All notable changes to this project are documented here. Format follows
 
 ### Added
 
+- Period leftover pair rows now name leftover-map explained leftover share
+  `e = R̂² / R²` of raw residual after two-axis Gabriel reconstruction
+  (ADR 0266 / v2.23.0). After `make seed`, closest and farthest leftover
+  pairs sit above the member list with `R̂²/R²` next to leftover-map
+  distance `d`; click opens that post. A share greater than 1 is shown,
+  never clamped. When `R`, `R̂`, `U`, `x`, `s`, and `e` are finite,
+  `e + s + x = 1`. Never invent a leftover score or a theta.
+
 - Live synthetic PostgreSQL integration tests for imported primary Voice
   history (ADR 0252 / #748): A → B → A at before/between/after knowledge
   cutoffs, concurrent `voc_type_code` updates, GiST non-overlap, closing a
