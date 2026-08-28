@@ -9,6 +9,7 @@ export COMPOSE_FILE=docker-compose.yml
 : "${LINEAGEWEAVE_ACCESS_TOKEN:?Set an authorized post_admin access token}"
 : "${LINEAGEWEAVE_OIDC_ISSUER:?Set the frontend OIDC issuer}"
 : "${LINEAGEWEAVE_OIDC_CLIENT_ID:?Set the frontend OIDC client id}"
+: "${LINEAGEWEAVE_RUNTIME_ASK_QUESTION:?Set one non-identifying runtime Ask question}"
 : "${K6_VUS:?Set the declared Dashboard concurrency}"
 : "${K6_DURATION:?Set the declared Dashboard observation duration, including its unit}"
 : "${BACKEND_READINESS_TIMEOUT_SECONDS:?Set the declared backend readiness budget}"
@@ -29,10 +30,19 @@ ASK_SCREENSHOT_MOBILE_PATH="${ASK_SCREENSHOT_MOBILE_PATH:-/tmp/lineageweave-ask-
 E2E_OUTPUT_DIR="${E2E_OUTPUT_DIR:-/tmp/lineageweave-operations-dashboard-e2e}"
 K6_SUMMARY_PATH="${K6_SUMMARY_PATH:-/tmp/lineageweave-operations-dashboard-k6.json}"
 repository_root="$(git rev-parse --show-toplevel)"
-for screenshot_path in "$SCREENSHOT_DESKTOP_PATH" "$SCREENSHOT_MOBILE_PATH" "$ASK_SCREENSHOT_DESKTOP_PATH" "$ASK_SCREENSHOT_MOBILE_PATH"; do
+screenshot_paths=("$SCREENSHOT_DESKTOP_PATH" "$SCREENSHOT_MOBILE_PATH" "$ASK_SCREENSHOT_DESKTOP_PATH" "$ASK_SCREENSHOT_MOBILE_PATH")
+for screenshot_path in "${screenshot_paths[@]}"; do
   case "$screenshot_path" in
     "$repository_root"/*) echo "runtime screenshots must stay outside the repository" >&2; exit 2 ;;
   esac
+done
+for ((left_index = 0; left_index < ${#screenshot_paths[@]}; left_index++)); do
+  for ((right_index = left_index + 1; right_index < ${#screenshot_paths[@]}; right_index++)); do
+    [[ "${screenshot_paths[$left_index]}" != "${screenshot_paths[$right_index]}" ]] || {
+      echo "runtime screenshots require four distinct paths" >&2
+      exit 2
+    }
+  done
 done
 [[ "$SCREENSHOT_DESKTOP_PATH" != "$SCREENSHOT_MOBILE_PATH" ]] || {
   echo "desktop and mobile screenshots require distinct paths" >&2
@@ -189,7 +199,7 @@ export LINEAGEWEAVE_ACCESS_TOKEN LINEAGEWEAVE_OIDC_ISSUER LINEAGEWEAVE_OIDC_CLIE
 export LINEAGEWEAVE_E2E_BASE_URL SCREENSHOT_DESKTOP_PATH SCREENSHOT_MOBILE_PATH
 export ASK_SCREENSHOT_DESKTOP_PATH ASK_SCREENSHOT_MOBILE_PATH
 (cd frontend && corepack pnpm exec playwright test \
-  e2e/runtime-operations-dashboard.spec.ts e2e/ask-agent.spec.ts --output "$E2E_OUTPUT_DIR")
+  e2e/runtime-operations-dashboard.spec.ts e2e/runtime-ask-evidence.spec.ts --output "$E2E_OUTPUT_DIR")
 
 export BACKEND_URL LINEAGEWEAVE_ACCESS_TOKEN K6_VUS K6_DURATION
 k6 run --vus "$K6_VUS" --duration "$K6_DURATION" \

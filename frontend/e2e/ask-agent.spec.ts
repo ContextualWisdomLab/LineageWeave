@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { loginAsRuntimeReader } from "./support/auth.ts";
+import { loginAsDemoAnalyst } from "./support/auth.ts";
 
 /**
  * Exercises the four Ask Agent capabilities end to end: relative-time-scoped
@@ -27,7 +27,7 @@ test.beforeEach(async ({ page }) => {
   // so it is the answer deadline plus generous setup slack, not a sum of
   // ideal-case steps.
   test.setTimeout(ASK_ANSWER_TIMEOUT_MS + 420_000);
-  await loginAsRuntimeReader(page);
+  await loginAsDemoAnalyst(page);
   await page.locator(".language-switcher select").selectOption("en");
   await page.getByRole("button", { name: "Ask Agent" }).click();
 });
@@ -67,15 +67,10 @@ test("cites persisted image evidence when a cited post has an embedded image", a
   await expect(imageEvidence.first()).toBeVisible();
 });
 
-test("opens cited-post evidence in a Layer Popup without leaving the answer", async ({ page }, testInfo) => {
+test("opens cited-post evidence in a Layer Popup without leaving the answer", async ({ page }) => {
   await page.getByRole("textbox", { name: "Ask a question" }).fill("Which project did Ada West discuss during the initial site visit?");
   await page.getByRole("button", { name: "Ask", exact: true }).click();
   await expect(page.getByRole("heading", { name: "Cited posts" })).toBeVisible({ timeout: ASK_ANSWER_TIMEOUT_MS });
-  const screenshotPath =
-    testInfo.project.name === "chromium-mobile"
-      ? process.env.ASK_SCREENSHOT_MOBILE_PATH
-      : process.env.ASK_SCREENSHOT_DESKTOP_PATH;
-  if (screenshotPath) await page.screenshot({ path: screenshotPath, fullPage: true });
 
   const viewEvidence = page.getByRole("button", { name: "View evidence" }).first();
   await viewEvidence.click();

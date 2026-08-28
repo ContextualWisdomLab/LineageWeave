@@ -75,13 +75,19 @@ def test_provider_runtime_exercises_dashboard_and_ask_evidence_navigation() -> N
     dashboard_spec = (_ROOT / "frontend/e2e/runtime-operations-dashboard.spec.ts").read_text(
         encoding="utf-8"
     )
-    ask_spec = (_ROOT / "frontend/e2e/ask-agent.spec.ts").read_text(encoding="utf-8")
-    assert "e2e/runtime-operations-dashboard.spec.ts e2e/ask-agent.spec.ts" in runner
+    ask_spec = (_ROOT / "frontend/e2e/runtime-ask-evidence.spec.ts").read_text(
+        encoding="utf-8"
+    )
+    assert "e2e/runtime-operations-dashboard.spec.ts e2e/runtime-ask-evidence.spec.ts" in runner
     assert "evidenceDialog" in dashboard_spec
     assert "ASK_SCREENSHOT_DESKTOP_PATH" in runner
     assert "ASK_SCREENSHOT_MOBILE_PATH" in runner
     assert "ASK_SCREENSHOT_DESKTOP_PATH" in ask_spec
     assert "ASK_SCREENSHOT_MOBILE_PATH" in ask_spec
+    assert "LINEAGEWEAVE_RUNTIME_ASK_QUESTION" in runner
+    assert "MINIMUM_TOKEN_LIFETIME_SECONDS" in ask_spec
+    assert "expires_at: expiresAt" in ask_spec
+    assert "Date.now() / 1000) +" not in ask_spec
 
 
 def test_acceptance_uses_only_the_checked_in_compose_file() -> None:
