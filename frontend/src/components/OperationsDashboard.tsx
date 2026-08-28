@@ -3,6 +3,11 @@ import { fetchOperationsDashboard, fetchVoiceTaxonomySummary, type OperationsDas
 import { t, tf } from "../i18n";
 import { VoiceTaxonomySummary } from "./VoiceTaxonomySummary";
 
+function MetricCountGroups({ label }: { label: string }) {
+  const groups = label.split(" · ");
+  return <>{groups.map((group, index) => <span key={`${group}-${index}`} aria-hidden="true">{index ? " · " : ""}<span className="dashboard-count-unit">{group}</span></span>)}</>;
+}
+
 function formatElapsed(seconds: number): string {
   const days = Math.floor(seconds / 86_400);
   const hours = Math.floor((seconds % 86_400) / 3_600);
@@ -169,7 +174,7 @@ export function OperationsDashboardView({ data, externalOnly = false, onOpenPost
       <dl className="dashboard-metrics">
         {!externalOnly ? <div><dt>{t("All posts")}</dt><dd>{data.total_post_count}</dd></div> : null}
         {!externalOnly ? <div><dt>{t("Classified events")}</dt><dd>{data.total_event_count}</dd></div> : null}
-        <div><dt>{t("External information (share of all posts)")}</dt><dd>{tf("{count} records · {percent}%", { count: data.external_post_count, percent: data.external_percent.toFixed(1) })}</dd></div>
+        <div><dt>{t("External information (share of all posts)")}</dt><dd aria-label={tf("{count} records · {percent}%", { count: data.external_post_count, percent: data.external_percent.toFixed(1) })}><MetricCountGroups label={tf("{count} records · {percent}%", { count: data.external_post_count, percent: data.external_percent.toFixed(1) })} /></dd></div>
         {!externalOnly ? <div><dt>{t("Analysis pending")}</dt><dd>{data.pending_analysis_count}</dd></div> : null}
         {!externalOnly ? <div><dt>{t("Analysis failed")}</dt><dd>{data.failed_analysis_count}</dd></div> : null}
       </dl>
@@ -180,7 +185,7 @@ export function OperationsDashboardView({ data, externalOnly = false, onOpenPost
             {data.case_metrics.map((metric) => (
               <div key={metric.case_kind_code}>
                 <dt>{localizedCodeLabel(metric.case_kind_code, metric.case_kind_label, caseKindLabels)}</dt>
-                <dd>{tf("{events} events · {posts} posts", { events: metric.event_count, posts: metric.post_count })}</dd>
+                <dd aria-label={tf("{events} events · {posts} posts", { events: metric.event_count, posts: metric.post_count })}><MetricCountGroups label={tf("{events} events · {posts} posts", { events: metric.event_count, posts: metric.post_count })} /></dd>
               </div>
             ))}
           </dl>

@@ -1345,10 +1345,10 @@
 
   .workspace-gnb {
     display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     height: auto;
-    gap: 0;
-    padding: 0 1rem;
+    gap: var(--space-control-gap);
+    padding: var(--space-control-gap) 1rem;
   }
 
   .workspace-gnb-item {
@@ -1356,6 +1356,8 @@
     justify-content: center;
     padding: 0 0.25rem;
     text-align: center;
+    min-width: 0;
+    word-break: keep-all;
   }
 
   .workspace-gnb-tools {
@@ -1616,6 +1618,7 @@
 .dashboard-metrics > div:last-child { border-right: 0; }
 .dashboard-metrics dt { color: var(--color-text); font-size: 0.875rem; }
 .dashboard-metrics dd { margin: 0.25rem 0 0; font-size: 1.5rem; font-weight: 700; }
+.dashboard-count-unit { white-space: nowrap; }
 .dashboard-case-metrics .dashboard-metrics { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 
 .dashboard-lifecycle-summary { margin: 1.5rem 0; }

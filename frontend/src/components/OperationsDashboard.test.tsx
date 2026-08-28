@@ -85,8 +85,12 @@ describe("OperationsDashboardView", () => {
   it("distinguishes posts, events, percentages and opens evidence", async () => {
     const onOpenPost = vi.fn();
     render(<OperationsDashboardView data={data} onOpenPost={onOpenPost} />);
-    expect(screen.getByText("사건 3건 · 글 2건")).toBeInTheDocument();
-    expect(screen.getByText("5건 · 25.0%")).toBeInTheDocument();
+    const caseMetric = screen.getByLabelText("사건 3건 · 글 2건");
+    expect(caseMetric.querySelectorAll(".dashboard-count-unit")).toHaveLength(2);
+    expect(caseMetric.querySelectorAll(".dashboard-count-unit")[0]).toHaveTextContent("사건 3건");
+    expect(caseMetric.querySelectorAll(".dashboard-count-unit")[1]).toHaveTextContent("글 2건");
+    const externalMetric = screen.getByLabelText("5건 · 25.0%");
+    expect(externalMetric.querySelectorAll(".dashboard-count-unit")).toHaveLength(2);
     expect(screen.getByText("원인 수주")).toBeInTheDocument();
     expect(screen.getByText(/수주 Pool: 관련 근거를 찾으면 자동으로 다시 분석합니다. 이후 결과를 다시 확인하세요/)).toBeInTheDocument();
     expect(screen.getByText("2일 3시간 30분 0초")).toBeInTheDocument();
@@ -126,7 +130,7 @@ describe("OperationsDashboardView", () => {
   it("shows external information as a share of all visible posts in the GNB view", () => {
     render(<OperationsDashboardView data={data} externalOnly onOpenPost={() => undefined} />);
     expect(screen.getByText("외부 정보 (전체 글 대비)")).toBeInTheDocument();
-    expect(screen.getByText("5건 · 25.0%")).toBeInTheDocument();
+    expect(screen.getByLabelText("5건 · 25.0%")).toBeInTheDocument();
   });
 
   it("labels a source-backed external relation by its semantic target", () => {
@@ -233,7 +237,7 @@ describe("OperationsDashboardView", () => {
       .mockResolvedValueOnce(data)
       .mockImplementationOnce(() => new Promise(() => undefined));
     render(<OperationsDashboard accessToken="synthetic-token" onOpenPost={() => undefined} />);
-    await screen.findByText("5건 · 25.0%");
+    await screen.findByLabelText("5건 · 25.0%");
     await userEvent.type(screen.getByLabelText("시작일"), "2026-08-01");
     await userEvent.click(screen.getByRole("button", { name: "기간 적용" }));
     expect(screen.getByLabelText("시작일")).toHaveValue("2026-08-01");
@@ -244,7 +248,7 @@ describe("OperationsDashboardView", () => {
     vi.mocked(fetchVoiceTaxonomySummary).mockClear();
     vi.mocked(fetchOperationsDashboard).mockReset().mockResolvedValue(data);
     render(<OperationsDashboard accessToken="synthetic-token" externalOnly onOpenPost={() => undefined} />);
-    await screen.findByText("5건 · 25.0%");
+    await screen.findByLabelText("5건 · 25.0%");
     expect(fetchOperationsDashboard).toHaveBeenCalledWith("synthetic-token", "", "", true);
     expect(fetchVoiceTaxonomySummary).not.toHaveBeenCalled();
   });

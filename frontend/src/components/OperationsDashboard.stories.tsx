@@ -1,6 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { expect, within } from "storybook/test";
 import { OperationsDashboard, OperationsDashboardView } from "./OperationsDashboard";
+import { setLocale } from "../i18n";
 import "../App.css";
 
 const meta = { title: "Workspace/OperationsDashboard", component: OperationsDashboardView, parameters: { layout: "fullscreen" } } satisfies Meta<typeof OperationsDashboardView>;
@@ -43,8 +44,8 @@ export const EvidenceReady: Story = {
   },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    await expect(canvas.getByText("9건 · 22.5%")).toBeInTheDocument();
-    await expect(canvas.getByText("사건 7건 · 글 5건")).toBeVisible();
+    await expect(canvas.getByLabelText("9건 · 22.5%")).toBeInTheDocument();
+    await expect(canvas.getByLabelText("사건 7건 · 글 5건")).toBeVisible();
     await expect(canvas.getByText("3일 3시간 30분 0초")).toBeVisible();
     await expect(canvas.getAllByRole("button", { name: "분류 근거 글 열기" })[0]).toBeVisible();
     for (const label of ["발생 수주", "사양 변경", "원인 수주", "수주 Pool", "협의 내용", "협의 상대", "우리측 담당자", "이어진 결정", "업무 관계"]) {
@@ -111,6 +112,22 @@ export const TopicInfluenceAccepted: Story = {
 };
 
 export const NarrowViewport: Story = { ...EvidenceReady, parameters: { viewport: { defaultViewport: "mobile1" } } };
+
+export const KoreanMobileCountGroups: Story = {
+  ...EvidenceReady,
+  parameters: { viewport: { defaultViewport: "mobile1" } },
+  beforeEach: () => {
+    setLocale("ko");
+    return () => setLocale("en");
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const metric = canvas.getByLabelText("사건 7건 · 글 5건");
+    await expect(metric.querySelectorAll(".dashboard-count-unit")).toHaveLength(2);
+    await expect(metric.querySelectorAll(".dashboard-count-unit")[0]).toHaveTextContent("사건 7건");
+    await expect(metric.querySelectorAll(".dashboard-count-unit")[1]).toHaveTextContent("글 5건");
+  },
+};
 
 export const ExternalInformationEmpty: Story = {
   args: {
