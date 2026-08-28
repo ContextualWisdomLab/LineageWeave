@@ -52,6 +52,10 @@ from lineageweave.post_chat import (
     cited_post_summaries,
     historical_body_limitations,
 )
+from lineageweave.public_claim_envelope import (
+    PersistedPublicClaimEnvelope,
+    envelope_from_authorized_row,
+)
 from lineageweave.semantic_query import NullSemanticQueryClient, SemanticQueryClient
 from lineageweave.temporal_expressions import resolve_korean_relative_time
 
@@ -102,6 +106,30 @@ _STREAM_MAX_LENGTH = 1000
 _WORKER_CONCURRENCY = 4
 
 _logger = logging.getLogger(__name__)
+
+_AUTHORIZED_PUBLIC_CLAIM_ENVELOPES_SQL = """
+    select envelope.public_claim_envelope_id,
+           envelope.source_post_id,
+           envelope.claim_kind_code,
+           envelope.claim_text
+      from public_claim_envelope envelope
+      join source_post post on post.post_id = envelope.source_post_id
+      join provenance_assertion assertion
+        on assertion.assertion_id = envelope.provenance_assertion_id
+       and assertion.relation_code = 'prov_was_derived_from'
+      join provenance_resource_binding evidence
+        on evidence.resource_id = assertion.object_resource_id
+       and evidence.node_type_code = 'node_post'
+       and evidence.node_id = envelope.source_post_id
+     where envelope.egress_eligible
+       and post.visibility_code = 'public'
+       and envelope.source_post_id = any($1::uuid[])
+       and ($2::timestamptz is null or (
+            envelope.created_at <= $2 and post.created_at <= $2
+       ))
+     order by envelope.created_at, envelope.public_claim_envelope_id
+     limit 4
+"""
 
 
 class _SafeJobError(Exception):
@@ -188,16 +216,29 @@ async def _verify_public_claims(
     *,
     verify_external: bool,
     client: ClaimVerificationClient,
+    persisted_envelopes: tuple[PersistedPublicClaimEnvelope, ...] | None = None,
 ) -> tuple[str, tuple[ClaimVerificationResult, ...]]:
-    """Verify only cited claims explicitly marked safe for public egress."""
+    """Verify only cited claims explicitly marked safe for public egress.
+
+    Production passes persisted envelopes.  The legacy source projection is
+    retained only as an explicit compatibility seam for callers that have not
+    adopted the admission store; Global Ask never uses that heuristic path.
+    """
 
     if not verify_external:
         return VERIFICATION_SKIPPED, ()
     cited_ids = frozenset(cited_post_ids)
+    claims = (
+        tuple(envelope.verification_candidate() for envelope in persisted_envelopes)
+        if persisted_envelopes is not None
+        else tuple(
+            claim
+            for claim in public_claim_candidates(sources, question)
+            if set(claim.source_post_ids).issubset(cited_ids)
+        )
+    )
     claims = tuple(
-        claim
-        for claim in public_claim_candidates(sources, question)
-        if set(claim.source_post_ids).issubset(cited_ids)
+        claim for claim in claims if set(claim.source_post_ids).issubset(cited_ids)
     )
     if not claims:
         return VERIFICATION_NO_PUBLIC_CLAIMS, ()
@@ -216,6 +257,28 @@ async def _verify_public_claims(
         result
         for result in results
         if set(result.source_post_ids).issubset(cited_ids)
+    )
+
+
+async def load_authorized_public_claim_envelopes(
+    conn: asyncpg.Connection,
+    cited_post_ids: list[str],
+    *,
+    knowledge_cutoff: datetime | None,
+) -> tuple[PersistedPublicClaimEnvelope, ...]:
+    """Load bounded persisted claims for exact cited public evidence posts."""
+
+    if not cited_post_ids:
+        return ()
+    rows = await conn.fetch(
+        _AUTHORIZED_PUBLIC_CLAIM_ENVELOPES_SQL,
+        cited_post_ids,
+        knowledge_cutoff,
+    )
+    return tuple(
+        envelope
+        for row in rows
+        if (envelope := envelope_from_authorized_row(row)) is not None
     )
 
 
@@ -372,6 +435,7 @@ async def compute_global_ask_answer(
             [],
             verify_external=verify_external,
             client=verification_client,
+            persisted_envelopes=(),
         )
         delivery = build_ask_delivery("", (), ())
         return {
@@ -433,14 +497,16 @@ async def compute_global_ask_answer(
             _ASK_RETRY_MESSAGE,
         ) from exc
     cited_ids = list(answer.cited_post_ids)
-    verification_status, external_claims = await _verify_public_claims(
-        question_text,
-        usable_sources,
-        cited_ids,
-        verify_external=verify_external,
-        client=verification_client,
-    )
     async with pool.acquire() as conn:
+        persisted_envelopes = (
+            await load_authorized_public_claim_envelopes(
+                conn,
+                cited_ids,
+                knowledge_cutoff=knowledge_cutoff,
+            )
+            if verify_external
+            else ()
+        )
         if knowledge_cutoff is None:
             lineage_graph = await lineage_graphs_for_posts(conn, can_see, cited_ids)
             images = await cited_post_images(conn, cited_ids)
@@ -452,6 +518,14 @@ async def compute_global_ask_answer(
             cited_ids,
             checked_by=knowledge_cutoff,
         )
+    verification_status, external_claims = await _verify_public_claims(
+        question_text,
+        usable_sources,
+        cited_ids,
+        verify_external=verify_external,
+        client=verification_client,
+        persisted_envelopes=persisted_envelopes,
+    )
     cited_posts = cited_post_summaries(usable_sources, cited_ids)
     cited_events = cited_post_events(usable_sources, cited_ids)
     cited_evidence = cited_post_evidence(usable_sources, cited_ids)

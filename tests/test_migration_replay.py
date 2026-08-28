@@ -184,6 +184,23 @@ def test_global_ask_migrations_are_safe_to_replay() -> None:
     assert "create table if not exists global_ask_job_process_unit_scope" in scope_sql
 
 
+def test_public_claim_envelope_migration_is_replay_safe_and_provenance_bound() -> None:
+    """Persisted public egress admission requires the exact PROV-O source post."""
+
+    sql = (
+        Path(__file__).resolve().parents[1]
+        / "migrations"
+        / "0257_public_claim_envelope.sql"
+    ).read_text(encoding="utf-8").casefold()
+
+    assert "create table if not exists public_claim_envelope" in sql
+    assert "provenance_assertion_id uuid not null" in sql
+    assert "prov_was_derived_from" in sql
+    assert "evidence_post_id is distinct from new.source_post_id" in sql
+    assert "public_claim_requires_public_post" in sql
+    assert "on conflict (lookup_code) do nothing" in sql
+
+
 def test_channel_weight_migration_preserves_raw_source_grouping() -> None:
     migration = (
         Path(__file__).resolve().parents[1]
