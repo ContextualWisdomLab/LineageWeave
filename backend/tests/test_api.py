@@ -5670,40 +5670,55 @@ def test_ask_public_verification_is_opt_in_and_separate_from_post_citations(
     with closing(psycopg2.connect(seeded_db["dsn"])) as conn, conn.cursor() as cur:
         cur.execute(
             """
-            with claim_resource as (
-                insert into provenance_resource (resource_iri, resource_label)
-                values ('urn:lineageweave:test:public-claim', 'Synthetic public claim')
-                returning resource_id
-            ), claim_type as (
-                insert into provenance_resource_type (resource_id, class_code)
-                select resource_id, 'prov_entity' from claim_resource
-            ), post_resource as (
-                insert into provenance_resource (resource_iri, resource_label)
-                values ('urn:lineageweave:test:public-post-evidence', 'Synthetic source post')
-                returning resource_id
-            ), post_type as (
-                insert into provenance_resource_type (resource_id, class_code)
-                select resource_id, 'prov_entity' from post_resource
-            ), post_binding as (
-                insert into provenance_resource_binding
-                    (resource_id, node_type_code, node_id)
-                select resource_id, 'node_post', %s from post_resource
-            ), assertion as (
-                insert into provenance_assertion
-                    (subject_resource_id, relation_code, object_resource_id)
-                select claim_resource.resource_id, 'prov_was_derived_from',
-                       post_resource.resource_id
-                  from claim_resource, post_resource
-                returning assertion_id
-            )
-            insert into public_claim_envelope
-                (source_post_id, provenance_assertion_id, claim_kind_code,
-                 claim_text, egress_eligible)
-            select %s, assertion_id, 'claim_public_event',
-                   'Synthetic Apollo event was published.', true
-              from assertion
+            insert into post_project_mention
+                (post_id, project_key, project_name, evidence_text, confidence,
+                 ontology_iri, extraction_method)
+            values (%s, 'synthetic-apollo', 'Apollo', 'Public project evidence',
+                    1.0, 'https://contextualwisdomlab.github.io/LineageWeave/ontology#Project',
+                    'synthetic_test')
             """,
-            (seeded_db["public_post_id"], seeded_db["public_post_id"]),
+            (seeded_db["public_post_id"],),
+        )
+        cur.execute(
+            "insert into provenance_resource (resource_iri, resource_label) "
+            "values ('urn:lineageweave:test:public-claim', 'Synthetic public claim') "
+            "returning resource_id"
+        )
+        claim_resource_id = cur.fetchone()[0]
+        cur.execute(
+            "insert into provenance_resource_type (resource_id, class_code) "
+            "values (%s, 'prov_entity')",
+            (claim_resource_id,),
+        )
+        cur.execute(
+            "insert into provenance_resource (resource_iri, resource_label) "
+            "values ('urn:lineageweave:test:public-post-evidence', 'Synthetic source post') "
+            "returning resource_id"
+        )
+        post_resource_id = cur.fetchone()[0]
+        cur.execute(
+            "insert into provenance_resource_type (resource_id, class_code) "
+            "values (%s, 'prov_entity')",
+            (post_resource_id,),
+        )
+        cur.execute(
+            "insert into provenance_resource_binding (resource_id, node_type_code, node_id) "
+            "values (%s, 'node_post', %s)",
+            (post_resource_id, seeded_db["public_post_id"]),
+        )
+        cur.execute(
+            "insert into provenance_assertion "
+            "(subject_resource_id, relation_code, object_resource_id) "
+            "values (%s, 'prov_was_derived_from', %s) returning assertion_id",
+            (claim_resource_id, post_resource_id),
+        )
+        assertion_id = cur.fetchone()[0]
+        cur.execute(
+            "insert into public_claim_envelope "
+            "(source_post_id, provenance_assertion_id, claim_kind_code, claim_text, egress_eligible) "
+            "values (%s, %s, 'claim_public_event', "
+            "'Synthetic Apollo event was published.', true)",
+            (seeded_db["public_post_id"], assertion_id),
         )
         conn.commit()
 
