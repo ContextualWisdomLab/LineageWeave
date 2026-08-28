@@ -2086,7 +2086,7 @@ def test_post_detail_returns_authorized_product_evidence(
         "relations": [{
             "relation_type_code": "used_by_project",
             "target_kind_code": "project",
-            "target_id": "synthetic-product-project",
+            "target_id": "project:synthetic-product-project",
             "target_label": "Synthetic Product Project",
             "evidence_text": "Synthetic evidence",
             "evidence_post_id": seeded_db["public_post_id"],
