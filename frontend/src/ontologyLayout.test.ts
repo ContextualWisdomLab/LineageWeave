@@ -194,7 +194,11 @@ describe("ontologyLayout", () => {
       exact_value_rows: [primaryRow],
     });
 
-    expect(csv.split("\n")[1]).toContain(`${POST_ID},${POST_ID},`);
+    expect(csv.split("\n")[1].split(",").slice(-3)).toEqual([
+      POST_ID,
+      POST_ID,
+      "",
+    ]);
   });
 
   it("merges JSON-LD properties and multi-value relations for one paged subject", () => {
