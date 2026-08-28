@@ -138,6 +138,11 @@ export function layoutOntologyNeighborhood(payload: OntologyNeighborhoodPayload)
 }
 
 export function neighborhoodCsv(payload: OntologyNeighborhoodPayload): string {
+  const derivedVoiceAssignments = new Set(
+    (payload.voice_assignments ?? [])
+      .filter((assignment) => !assignment.is_primary)
+      .map((assignment) => `${assignment.post_id}\u0000${assignment.voice_type_code}`),
+  );
   const header = [
     "edge_id",
     "source_label",
@@ -159,7 +164,12 @@ export function neighborhoodCsv(payload: OntologyNeighborhoodPayload): string {
             return csvCell(row.property_code === "hasVoiceAssignment" ? row.source_node_id : "");
           }
           if (key === "derivation_evidence_post_id") {
-            return csvCell(row.property_code === "hasVoiceAssignment" ? row.evidence_post_id ?? "" : "");
+            const assignmentKey = `${row.source_node_id}\u0000${row.target_node_id}`;
+            return csvCell(
+              row.property_code === "hasVoiceAssignment" && derivedVoiceAssignments.has(assignmentKey)
+                ? row.evidence_post_id ?? ""
+                : "",
+            );
           }
           return csvCell(String(row[key as keyof typeof row] ?? ""));
         })

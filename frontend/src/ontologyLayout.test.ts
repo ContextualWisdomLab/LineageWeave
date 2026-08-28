@@ -164,6 +164,39 @@ describe("ontologyLayout", () => {
     expect(accumulateNeighborhoodPages(source, withVoice).voice_assignments).toEqual([assignment]);
   });
 
+  it("does not label imported primary evidence as derivation evidence in CSV", () => {
+    const source = payload();
+    const primary = {
+      post_id: POST_ID,
+      voice_type_code: "voc_customer",
+      voice_type_iri: "https://example.test/voice/customer",
+      voice_type_label: "Voice of Customer",
+      is_primary: true,
+      truth_status_code: "truth_observed",
+      recorded_at: "2026-01-10T12:00:00+00:00",
+      provenance_reference: "Imported primary voice",
+      evidence_post_id: POST_ID,
+    };
+    const primaryRow = {
+      ...source.exact_value_rows[0],
+      edge_id: `voice-assignment:${POST_ID}:voc_customer`,
+      property_code: "hasVoiceAssignment",
+      property_label: "Voice carried by this post",
+      target_node_id: primary.voice_type_code,
+      target_label: primary.voice_type_label,
+      target_type_code: "node_voice_type",
+      evidence_post_id: POST_ID,
+    };
+
+    const csv = neighborhoodCsv({
+      ...source,
+      voice_assignments: [primary],
+      exact_value_rows: [primaryRow],
+    });
+
+    expect(csv.split("\n")[1]).toContain(`${POST_ID},${POST_ID},`);
+  });
+
   it("merges JSON-LD properties and multi-value relations for one paged subject", () => {
     const source = payload();
     const postIri = `${ONTOLOGY_NAMESPACE}node/node_post/${POST_ID}`;
