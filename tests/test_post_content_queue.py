@@ -447,7 +447,8 @@ def test_republish_query_recovers_due_queue_and_stale_running_leases() -> None:
         async def fetch(self, query: str, *args: object):
             assert "status_code = $1" in query
             assert "status_code = $3" in query
-            assert "started_at < now() - $4::interval" in query
+            assert "started_at + $4::interval" in query
+            assert "eligible_at <= now()" in query
             assert args[0] == QUEUED
             assert args[2] == RUNNING
             assert args[1] == POST_CONTENT_RETRY_INTERVAL
@@ -455,7 +456,7 @@ def test_republish_query_recovers_due_queue_and_stale_running_leases() -> None:
                 {
                     "post_id": "00000000-0000-0000-0000-000000000001",
                     "source_body_sha256": "a" * 64,
-                    "queued_at": "2026-01-01T00:00:00Z",
+                    "eligible_at": "2026-01-01T00:00:00Z",
                 }
             ]
 
@@ -770,7 +771,7 @@ def test_backfill_success_clears_terminal_error_and_records_succeeded() -> None:
     assert executed[1][1][-1] == "operator backfill persisted post-content evidence"
 
 
-def test_recovery_republishes_due_rows_in_queued_at_order() -> None:
+def test_recovery_republishes_due_rows_in_effective_eligibility_order() -> None:
     from contextlib import asynccontextmanager
 
     from backend.app.post_content_queue import republish_queued_post_content_jobs
@@ -787,12 +788,12 @@ def test_recovery_republishes_due_rows_in_queued_at_order() -> None:
                 {
                     "post_id": "first",
                     "source_body_sha256": "a" * 64,
-                    "queued_at": "2026-01-01T00:00:00Z",
+                    "eligible_at": "2026-01-01T00:00:00Z",
                 },
                 {
                     "post_id": "second",
                     "source_body_sha256": "b" * 64,
-                    "queued_at": "2026-01-01T00:00:01Z",
+                    "eligible_at": "2026-01-01T00:00:01Z",
                 },
             ]
 
@@ -821,9 +822,12 @@ def test_recovery_republishes_due_rows_in_queued_at_order() -> None:
     assert page.published_count == 2
     assert page.next_post_id == "second"
     assert client.events == [("first", "a" * 64), ("second", "b" * 64)]
-    assert "next_attempt_at <= now()" in connection.query
-    assert "queued_at <= now() - $2::interval" in connection.query
-    assert "order by queued_at, post_id" in connection.query
+    assert "when next_attempt_at is not null then next_attempt_at" in connection.query
+    assert "when attempt_count = 0 then queued_at" in connection.query
+    assert "else queued_at + $2::interval" in connection.query
+    assert "started_at + $4::interval" in connection.query
+    assert "where eligible_at <= now()" in connection.query
+    assert "order by eligible_at, post_id" in connection.query
     assert connection.args == (
         QUEUED,
         POST_CONTENT_RETRY_INTERVAL,
@@ -848,7 +852,7 @@ def test_recovery_keyset_reaches_later_pages_and_wraps() -> None:
         {
             "post_id": f"00000000-0000-0000-0000-{index + 1:012d}",
             "source_body_sha256": str(index + 1) * 64,
-            "queued_at": queued_at[index],
+            "eligible_at": queued_at[index],
         }
         for index in range(3)
     ]
@@ -861,7 +865,7 @@ def test_recovery_keyset_reaches_later_pages_and_wraps() -> None:
             return [
                 row
                 for row in rows
-                if (row["queued_at"], row["post_id"]) > (cursor_at, cursor_id)
+                if (row["eligible_at"], row["post_id"]) > (cursor_at, cursor_id)
             ][: int(limit)]
 
     class FakePool:
@@ -895,7 +899,7 @@ def test_recovery_keyset_reaches_later_pages_and_wraps() -> None:
             client,
             FakePool(),
             limit=2,
-            after_queued_at=first.next_queued_at,
+            after_eligible_at=first.next_eligible_at,
             after_post_id=first.next_post_id,
         )
     )
@@ -904,7 +908,7 @@ def test_recovery_keyset_reaches_later_pages_and_wraps() -> None:
             client,
             FakePool(),
             limit=2,
-            after_queued_at=second.next_queued_at,
+            after_eligible_at=second.next_eligible_at,
             after_post_id=second.next_post_id,
         )
     )
@@ -919,6 +923,66 @@ def test_recovery_keyset_reaches_later_pages_and_wraps() -> None:
     assert wrapped.next_post_id == rows[1]["post_id"]
 
 
+def test_recovery_reaches_retry_when_it_becomes_due_after_cursor_advanced() -> None:
+    """A newly due retry remains ahead by its exact eligibility instant."""
+    from contextlib import asynccontextmanager
+
+    from backend.app.post_content_queue import republish_queued_post_content_jobs
+
+    initial_at = datetime(2026, 1, 1, tzinfo=UTC)
+    retry_eligible_at = initial_at + timedelta(minutes=5)
+    rows = [
+        {
+            "post_id": "00000000-0000-0000-0000-000000000001",
+            "source_body_sha256": "a" * 64,
+            "eligible_at": initial_at,
+        }
+    ]
+
+    class FakeConnection:
+        async def fetch(self, _query: str, *args: object):
+            cursor_at, cursor_id, limit = args[-3:]
+            return [
+                row
+                for row in rows
+                if cursor_at is None
+                or (row["eligible_at"], row["post_id"]) > (cursor_at, cursor_id)
+            ][: int(limit)]
+
+    class FakePool:
+        @asynccontextmanager
+        async def acquire(self):
+            yield FakeConnection()
+
+    class FakeClient:
+        async def xadd(self, *_args: object, **_kwargs: object) -> str:
+            return "1-0"
+
+    client = FakeClient()
+    first = asyncio.run(
+        republish_queued_post_content_jobs(client, FakePool(), limit=1)
+    )
+    rows.append(
+        {
+            "post_id": "00000000-0000-0000-0000-000000000002",
+            "source_body_sha256": "b" * 64,
+            "eligible_at": retry_eligible_at,
+        }
+    )
+    second = asyncio.run(
+        republish_queued_post_content_jobs(
+            client,
+            FakePool(),
+            limit=1,
+            after_eligible_at=first.next_eligible_at,
+            after_post_id=first.next_post_id,
+        )
+    )
+
+    assert second.next_eligible_at == retry_eligible_at
+    assert second.next_post_id == rows[1]["post_id"]
+
+
 def test_recovery_cursor_stops_before_a_failed_wakeup() -> None:
     """A broker outage retries the first unpublished row before later pages."""
     from contextlib import asynccontextmanager
@@ -930,7 +994,7 @@ def test_recovery_cursor_stops_before_a_failed_wakeup() -> None:
         {
             "post_id": f"00000000-0000-0000-0000-{index + 1:012d}",
             "source_body_sha256": str(index + 1) * 64,
-            "queued_at": queued_at + timedelta(seconds=index),
+            "eligible_at": queued_at + timedelta(seconds=index),
         }
         for index in range(2)
     ]
@@ -943,7 +1007,7 @@ def test_recovery_cursor_stops_before_a_failed_wakeup() -> None:
             return [
                 row
                 for row in rows
-                if (row["queued_at"], row["post_id"]) > (cursor_at, cursor_id)
+                if (row["eligible_at"], row["post_id"]) > (cursor_at, cursor_id)
             ]
 
     class FakePool:
@@ -975,7 +1039,7 @@ def test_recovery_cursor_stops_before_a_failed_wakeup() -> None:
             client,
             FakePool(),
             limit=2,
-            after_queued_at=first.next_queued_at,
+            after_eligible_at=first.next_eligible_at,
             after_post_id=first.next_post_id,
         )
     )

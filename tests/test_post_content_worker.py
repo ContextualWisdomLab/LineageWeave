@@ -1202,8 +1202,8 @@ def test_recovery_enqueues_next_bounded_page_then_republishes(
         actual_client: object, actual_pool: object, **kwargs: object
     ) -> object:
         calls.append(("republish", actual_pool, actual_client))
-        assert kwargs == {"after_queued_at": None, "after_post_id": None}
-        return SimpleNamespace(next_queued_at=None, next_post_id=None)
+        assert kwargs == {"after_eligible_at": None, "after_post_id": None}
+        return SimpleNamespace(next_eligible_at=None, next_post_id=None)
 
     monkeypatch.setattr(
         post_content_worker,
