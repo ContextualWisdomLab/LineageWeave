@@ -122,7 +122,7 @@ describe("OperationsDashboardView", () => {
     };
     render(<OperationsDashboardView data={{ ...data, cases: [{ ...data.cases[0], lifecycles: [future] }] }} onOpenPost={() => undefined} />);
 
-    expect(screen.getByText(new RegExp(nextAction.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")))).toBeInTheDocument();
+    expect(screen.getByText(nextAction, { exact: false })).toBeInTheDocument();
   });
 
   it("does not imply that only the end evidence is missing", () => {
