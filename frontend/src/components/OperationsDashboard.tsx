@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { fetchOperationsDashboard, type OperationsDashboardResponse } from "../api";
+import { StatusNotice } from "./StatusNotice";
 
 type Props = {
   accessToken: string;
@@ -38,8 +39,13 @@ export function OperationsDashboard({ accessToken, externalOnly = false, onOpenP
     {error ? (
       <section className="operations-dashboard" aria-labelledby="dashboard-heading">
         <h2 id="dashboard-heading">운영 근거 Dashboard</h2>
-        <p role="alert">Dashboard 근거를 불러오지 못했습니다.</p>
-        <button type="button" className="btn-secondary" onClick={() => setRetryCount((count) => count + 1)}>다시 시도</button>
+        <StatusNotice
+          kind="retry"
+          message="Dashboard 근거를 불러오지 못했습니다."
+          nextAction="연결 상태를 확인한 뒤 같은 기간으로 다시 시도하세요."
+          retryLabel="다시 시도"
+          onRetry={() => setRetryCount((count) => count + 1)}
+        />
       </section>
     ) : data ? (
       <OperationsDashboardView data={data} externalOnly={externalOnly} onOpenPost={onOpenPost} />
@@ -103,9 +109,19 @@ export function OperationsDashboardView({ data, externalOnly = false, onOpenPost
         ))}
       </div>
       {cases.length === 0 && data.failed_analysis_count === 0 ? (
-        <p role="status">{data.pending_analysis_count > 0 ? "선택 기간에 분석 완료된 근거가 없습니다. 분석 대기 건부터 처리하세요." : "선택 기간에 분석할 수 있는 근거가 없습니다. 기간이나 접근 범위를 확인하세요."}</p>
+        <StatusNotice
+          kind="unavailable"
+          message={data.pending_analysis_count > 0 ? "선택 기간에 분석 완료된 근거가 없습니다." : "선택 기간에 분석할 수 있는 근거가 없습니다."}
+          nextAction={data.pending_analysis_count > 0 ? "분석 대기 건부터 처리하세요." : "기간이나 접근 범위를 확인하세요."}
+        />
       ) : null}
-      {data.failed_analysis_count > 0 ? <p role="alert">분석 실패 {data.failed_analysis_count}건을 재처리한 뒤 근거 누락 여부를 다시 확인하세요.</p> : null}
+      {data.failed_analysis_count > 0 ? (
+        <StatusNotice
+          kind="retry"
+          message={`분석 결과 ${data.failed_analysis_count}건을 사용할 수 없습니다.`}
+          nextAction="분석 실패 건을 재처리한 뒤 근거 누락 여부를 다시 확인하세요."
+        />
+      ) : null}
     </section>
   );
 }

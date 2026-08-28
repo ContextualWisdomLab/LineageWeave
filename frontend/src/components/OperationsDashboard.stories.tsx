@@ -37,7 +37,7 @@ export const AnalysisPendingAndMissingEvidence: Story = {
     onOpenPost: () => undefined,
   },
   play: async ({ canvasElement }) => {
-    await expect(within(canvasElement).getByRole("status")).toHaveTextContent("분석 대기 건부터 처리하세요");
+    await expect(within(canvasElement).getByRole("region", { name: /Unavailable/ })).toHaveTextContent("분석 대기 건부터 처리하세요");
   },
 };
 

@@ -1,24 +1,23 @@
 # Product & Technical Gap Baseline
 
-> Exact-head loop overlay: 2026-08-28 KST. Protected `main` was
-> `bbb191924e9881a5201f1ecf63c854d92992cc1c`; seven PRs and nine issues were
-> open. PR #763 was `b51d3bd8872b` and PR #762 was `e6ca33dba1b5`; both were
-> mergeable, normal squash auto-merge was enabled, exact-head Checks were still
-> running, and no qualifying independent approval existed. PRs #702
-> (`93e7b81d096d`), #679 (`135dfe7c4266`), #672 (`a3e87a89185f`), #667
-> (`0c0f4af572a9`), and #640 (`bd73e0a43ae1`) remained draft and dirty against
-> `main`. Central ruleset 18156473 and repository no-force-push ruleset
-> 21065108 remain active. This overlay supersedes every older queue count below.
-> Checks from older heads, stacked bases, or merged PRs are not transferred.
+> Exact-head loop overlay: 2026-08-28 KST. Protected `main` includes the
+> merged #773 coverage delivery. Eight PRs and nine issues are currently open.
+> The queue below was queried against each PR's current head and base; mutable
+> full commit IDs remain in the live GitHub evidence rather than this baseline.
+> No qualifying independent approval or protected merge is inferred from local
+> tests, bot comments, auto-merge, or a queued check. Central ruleset 18156473
+> and repository no-force-push ruleset 21065108 remain active. This overlay
+> supersedes every older queue count below. Checks from older heads, stacked
+> bases, or merged PRs are not transferred.
 >
-> Current-runtime boundary: the official Compose project was healthy at the
-> HTTP health route, but its PostgreSQL schema did not yet contain
-> `source_post_voice`; therefore no current Voice-history aggregate,
-> authenticated project-history API result, or rendered authenticated UI result
-> is claimed. Older aggregate observations below remain dated supporting
-> evidence, not confirmation of this exact head. The checked repository names
-> are `ContextualWisdomLab/LineageWeave`, `RankWeave`, `ThreadWeave`, `TEPP`,
-> and lowercase canonical `ContextualWisdomLab/disksage`.
+> Current-runtime boundary: this loop did not collect authenticated PostgreSQL
+> API evidence or a rendered authenticated product result. Voice history,
+> project history, and Dashboard acceptance therefore remain unverified for
+> protected `main`; older aggregate observations below are dated supporting
+> evidence only. The checked canonical repositories are
+> `ContextualWisdomLab/LineageWeave`, `ContextualWisdomLab/RankWeave`,
+> `ContextualWisdomLab/ThreadWeave`, `ContextualWisdomLab/TEPP`, and
+> `ContextualWisdomLab/disksage`.
 
 > Voice-of-X delivery snapshot: 2026-08-27 KST. Protected `main` was
 > `ff7431bd1851c03e737808d22c6a2d43968582f9`; PR #713 was
@@ -233,38 +232,21 @@ explicit unavailable state, not a reason to infer mappings from labels.
 
 ### Current exact-head PR queue
 
-| PR | Exact observed head | Base | Observed gate state |
+| PR | Base | Draft | Review / Checks / merge state |
 |---:|---|---|---|
-| #719 | `0cea830a` | `feat/fja-worker-function-ontology` | unstable; 1 pending check(s) |
-| #718 | `a3fb32bb` | `feat/fja-worker-function-ontology` | clean; no non-passing check observed |
-| #717 | `771a8edf` | `feat/voice-of-x-complete-taxonomy` | unstable; 1 pending check(s) |
-| #716 | `8b54b2f7` | `fix/structured-workflow-exact-pin` | clean; no non-passing check observed |
-| #714 | `aa93318f` | `main` | blocked; no non-passing check observed |
-| #713 | `cc3dfc14` | `main` | blocked; review required; 13 pending check(s) |
-| #711 | `8902e37f` | `feat/dashboard-case-metrics` | clean; no non-passing check observed |
-| #710 | `8df04b68` | `main` | blocked; review required; no non-passing check observed |
-| #709 | `8ef4090c` | `main` | blocked; review required; 11 pending check(s) |
-| #704 | `027323cf` | `main` | blocked; review required; 2 failed check(s) |
-| #702 | `5de66ab9` | `main` | blocked; review required; 2 pending check(s) |
-| #701 | `cc3351a9` | `main` | blocked; review required; 1 failed check(s) |
-| #700 | `1bc99eca` | `main` | blocked; review required; 1 failed check(s) |
-| #680 | `efe864e5` | `main` | blocked; 1 failed check(s) |
-| #679 | `13ecf41d` | `main` | blocked; no non-passing check observed |
-| #672 | `a3e87a89` | `main` | blocked; review required; 1 failed check(s) |
-| #668 | `1194f44d` | `main` | blocked; review required; 1 failed check(s) |
-| #667 | `c2d11a8a` | `main` | blocked; review required; 2 pending check(s) |
-| #658 | `15d670f0` | `main` | blocked; review required; 1 failed check(s) |
-| #657 | `9f71681c` | `main` | blocked; review required; 1 failed check(s) |
-| #644 | `f53dd28e` | `main` | blocked; review required; 1 failed check(s) |
-| #643 | `8767de1b` | `main` | blocked; review required; 1 failed check(s); 1 pending check(s) |
-| #640 | `5594029c` | `main` | blocked; no non-passing check observed |
-| #639 | `2f4b1bff` | `main` | blocked; review required; 1 failed check(s) |
-| #632 | `24262a99` | `main` | blocked; review required; 1 failed check(s) |
-| #629 | `b721b0f2` | `main` | blocked; review required; 1 failed check(s) |
+| #640 | `main` | yes | dirty; Checks not terminal; no independent approval observed; auto-merge off |
+| #667 | `main` | yes | dirty; Checks not terminal; independent approval required; auto-merge off |
+| #672 | `main` | yes | dirty; Checks not terminal; independent approval required; auto-merge off |
+| #679 | `main` | yes | dirty; Checks not terminal; independent approval required; auto-merge off |
+| #702 | `main` | yes | dirty; `strix` failed; independent approval required; auto-merge off |
+| #770 | `main` | no | Checks not terminal; independent approval required; normal auto-merge enabled |
+| #771 | `main` | no | Checks not terminal; independent approval required; normal auto-merge enabled |
+| #772 | `main` | no | Checks not terminal; review required; normal auto-merge enabled |
 
-> Dashboard delivery snapshot: 2026-08-26 07:15 KST. Protected `main` was
-> `494b54e2245040bcf02b45376f221c37cd437e76`. This local branch is not
-> protected-main release evidence.
+> Full head OIDs, review-thread state, and check run URLs are volatile lifecycle
+> evidence and must be re-fetched immediately before any merge or release claim.
+> This document records the buyer-facing consequence and gate state, not a
+> substitute for that exact-head audit.
 
 ## Operations Dashboard PRD/TRD traceability
 
@@ -275,6 +257,7 @@ explicit unavailable state, not a reason to infer mappings from labels.
 | External information count/rate and sales/project relation | ADR 0206; semantic `external_information` classification inside Dashboard GNB | Candidate implementation; no separate Board by product decision |
 | Project-specific journey | Explicit source/semantic project membership plus event-time ordering | Candidate API and ordered journey UI implemented; authenticated runtime acceptance pending |
 | Repeat issue to design improvement | `repeat_issue`, `issue_pattern`, and `improvement_action` cited facts | Candidate semantic contract; design-system connector acceptance pending |
+| Shared status reporting | ADR 0220's `StatusNotice` distinguishes unavailable and retryable states with a named next action | Candidate Dashboard migration reuses the shared component and regression coverage; protected runtime acceptance remains pending |
 | Natural-language Ask with evidence, report, alert, MCP | Persisted semantic-unit embeddings plus versioned delivery/resource contract | Candidate implementation uses whole-question embedding retrieval with no lexical fallback; authenticated runtime acceptance pending |
 | Similar VOC, customer cohort, prior action | Persisted repeat-issue candidate semantics plus orchestrator pair adjudication and extractive evidence | Candidate live post endpoint and post-detail UI implemented; authenticated runtime acceptance pending |
 | TEPP independent Event Lineage anchor | Accepted, persisted TEPP criterion bound to exact snapshot/cutoff before fast-mlsirm activation | Consumer PR #606 is on protected main; TEPP producer PR #237 remains open, so no end-to-end accepted artifact is release evidence yet |
