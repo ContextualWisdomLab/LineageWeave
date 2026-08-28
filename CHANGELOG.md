@@ -8,6 +8,15 @@ All notable changes to this project are documented here. Format follows
 
 ### Added
 
+- Period leftover pair rows now name leftover-map coordinates `ξ_{1:2}`
+  and `ζ_{1:2}` after two-axis Gabriel reconstruction (ADR 0267 /
+  v2.24.0). After `make seed`, closest and farthest leftover pairs sit
+  above the member list with `ξ (x, y) ζ (x, y)` next to leftover-map
+  distance `d`; click opens that post. Rank-0 unused axes store `0.0`.
+  When coordinates, reconstruction, and distance are finite,
+  `R̂ = ξ · ζ` and `d = ‖ξ − ζ‖`. Never invent a leftover score or a
+  theta.
+
 - Period leftover pair rows now name leftover-map explained leftover share
   `e = R̂² / R²` of raw residual after two-axis Gabriel reconstruction
   (ADR 0266 / v2.23.0). After `make seed`, closest and farthest leftover

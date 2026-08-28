@@ -5,6 +5,11 @@ import {
   LEFTOVER_MAP_CROSS_SHARE_ACTION,
 } from "../leftoverMapCrossShare";
 import {
+  formatLeftoverMapCoordinatePair,
+  formatLeftoverMapCoordinates,
+  LEFTOVER_MAP_COORDINATES_ACTION,
+} from "../leftoverMapCoordinates";
+import {
   formatLeftoverMapReconstruction,
   LEFTOVER_MAP_RECONSTRUCTION_ACTION,
 } from "../leftoverMapReconstruction";
@@ -42,14 +47,14 @@ export type LeftoverPairListProps = {
  * ``R = Y − E[Y|θ, item]`` (Jeon et al., 2021, eq. 3 input). Unexplained
  * leftover ``U = R − R̂`` after two-axis Gabriel reconstruction (ADR 0182)
  * takes priority over the residual/observed-expected/rank next action
- * when finite. When leftover-map explained leftover share
- * ``e = R̂² / R²`` is also present (ADR 0266), it names the next action
- * instead of leftover-map unexplained leftover share; a missing or
- * non-finite value falls back in order — explained leftover share,
- * unexplained leftover share, cross share, reconstruction, unexplained
- * leftover, then the existing residual/rank/observed-expected next
- * action. Every badge still renders together before opening the named
- * post.
+ * when finite. When leftover-map coordinates ``ξ_{1:2}`` and ``ζ_{1:2}``
+ * are also present (ADR 0267), they name the next action instead of
+ * leftover-map explained leftover share; a missing or non-finite value
+ * falls back in order — leftover-map coordinates, explained leftover
+ * share, unexplained leftover share, cross share, reconstruction,
+ * unexplained leftover, then the existing residual/rank/observed-expected
+ * next action. Every badge still renders together before opening the
+ * named post.
  */
 export function LeftoverPairList({
   pairs,
@@ -78,6 +83,12 @@ export function LeftoverPairList({
         const explainedShareBadge = formatLeftoverMapExplainedShare(
           pair.leftover_map_explained_share,
         );
+        const coordinatesBadge = formatLeftoverMapCoordinates(
+          pair.leftover_map_person_axis_1,
+          pair.leftover_map_person_axis_2,
+          pair.leftover_map_item_axis_1,
+          pair.leftover_map_item_axis_2,
+        );
         const crossShareBadge = formatLeftoverMapCrossShare(pair.leftover_map_cross_share);
         const reconstruction = formatLeftoverMapReconstruction(
           pair.leftover_map_reconstruction,
@@ -96,8 +107,22 @@ export function LeftoverPairList({
           pair.leftover_map_cross_share != null && Number.isFinite(pair.leftover_map_cross_share)
             ? pair.leftover_map_cross_share.toFixed(2)
             : "—";
+        const personCoordinateValue = formatLeftoverMapCoordinatePair(
+          pair.leftover_map_person_axis_1,
+          pair.leftover_map_person_axis_2,
+        );
+        const itemCoordinateValue = formatLeftoverMapCoordinatePair(
+          pair.leftover_map_item_axis_1,
+          pair.leftover_map_item_axis_2,
+        );
         let nextAction: string;
-        if (explainedShareBadge !== null) {
+        if (coordinatesBadge !== null && personCoordinateValue !== null && itemCoordinateValue !== null) {
+          nextAction = tf(LEFTOVER_MAP_COORDINATES_ACTION, {
+            person: personCoordinateValue,
+            item: itemCoordinateValue,
+            criterion,
+          });
+        } else if (explainedShareBadge !== null) {
           nextAction = tf(LEFTOVER_MAP_EXPLAINED_SHARE_ACTION, {
             value: explainedShareValue,
             criterion,
@@ -197,6 +222,7 @@ export function LeftoverPairList({
               ) : null}
               {crossShareBadge ? <span className="post-badge">{crossShareBadge}</span> : null}
               {reconstruction ? <span className="post-badge">{reconstruction}</span> : null}
+              {coordinatesBadge ? <span className="post-badge">{coordinatesBadge}</span> : null}
               <span className="post-badge">d {pair.leftover_distance.toFixed(2)}</span>
             </button>
           </li>

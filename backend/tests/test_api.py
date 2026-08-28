@@ -5731,6 +5731,26 @@ def test_seed_period_report_surfaces_on_get_reports(client, demo_analyst_token, 
             assert unexplained_share >= 0.0
         if explained_share is not None:
             assert explained_share >= 0.0
+        person_axis_1 = pair.get("leftover_map_person_axis_1")
+        person_axis_2 = pair.get("leftover_map_person_axis_2")
+        item_axis_1 = pair.get("leftover_map_item_axis_1")
+        item_axis_2 = pair.get("leftover_map_item_axis_2")
+        axes = (person_axis_1, person_axis_2, item_axis_1, item_axis_2)
+        if any(axis is None for axis in axes):
+            assert axes == (None, None, None, None)
+        else:
+            for axis in axes:
+                assert isinstance(axis, (int, float))
+                assert not math.isnan(axis)
+                assert not math.isinf(axis)
+            reconstruction = pair.get("leftover_map_reconstruction")
+            if reconstruction is not None:
+                assert reconstruction == pytest.approx(
+                    person_axis_1 * item_axis_1 + person_axis_2 * item_axis_2
+                )
+            assert pair["leftover_distance"] == pytest.approx(
+                math.hypot(person_axis_1 - item_axis_1, person_axis_2 - item_axis_2)
+            )
         if (
             explained_share is not None
             and unexplained_share is not None

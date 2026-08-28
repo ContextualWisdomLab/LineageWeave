@@ -57,6 +57,7 @@ describe("i18n", () => {
     "Two leftover-map axes leave identity remainder {value} of raw residual after IRT main effects. Open this post to read {criterion}.",
     "Leftover map leaves unexplained leftover share {value} of raw residual after IRT main effects. Open this post to read {criterion}.",
     "Leftover map leaves explained leftover share {value} of raw residual after IRT main effects. Open this post to read {criterion}.",
+    "Leftover map places this post at ξ {person} and the criterion at ζ {item} after IRT main effects. Open this post to read {criterion}.",
     "Read observed Y {observed} and expected E {expected} after IRT main effects, then open this post.",
     "Leftover map has no leftover structure after IRT main effects. Open this post.",
     "Leftover map rank {rank} after IRT main effects. Open this post.",
@@ -285,6 +286,33 @@ describe("i18n", () => {
       tf(
         "Leftover map leaves explained leftover share {value} of raw residual after IRT main effects. Open this post to read {criterion}.",
         { value: "0.76", criterion: "sales-lead" },
+      ),
+    ).toBe(expected);
+  });
+
+  it.each([
+    [
+      "ko",
+      "잔여 지도가 IRT 주효과 이후 이 글을 ξ (+0.50, +0.10)에, 기준을 ζ (+0.50, −0.02)에 둡니다. sales-lead 기준을 읽으려면 이 글을 여세요.",
+    ],
+    [
+      "zh",
+      "残差图在 IRT 主效应后将这篇帖子放在 ξ (+0.50, +0.10)，将准则放在 ζ (+0.50, −0.02)。打开这篇帖子阅读 sales-lead。",
+    ],
+    [
+      "ja",
+      "残差マップはIRT主効果後にこの投稿を ξ (+0.50, +0.10) に、基準を ζ (+0.50, −0.02) に置きます。この投稿を開いて sales-lead を読んでください。",
+    ],
+    [
+      "vi",
+      "Bản đồ phần dư đặt bài viết này tại ξ (+0.50, +0.10) và tiêu chí tại ζ (+0.50, −0.02) sau hiệu ứng chính IRT. Mở bài viết này để đọc sales-lead.",
+    ],
+  ] as const)("formats leftover-map coordinates next action in %s", (locale, expected) => {
+    setLocale(locale);
+    expect(
+      tf(
+        "Leftover map places this post at ξ {person} and the criterion at ζ {item} after IRT main effects. Open this post to read {criterion}.",
+        { person: "(+0.50, +0.10)", item: "(+0.50, −0.02)", criterion: "sales-lead" },
       ),
     ).toBe(expected);
   });

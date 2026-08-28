@@ -1,5 +1,16 @@
 # Product & Technical Gap Baseline
 
+> Exact-head loop overlay: 2026-08-28 13:00 KST. Protected `main` is
+> `fc13acaa20adca11968238e398d4aafcf62b6cee` (v2.23.0 leftover-map
+> explained leftover share, #775). Open ready PRs still lack independent
+> APPROVE. Drafts remain dirty against `main`. #96 stays closed as a
+> weaker duplicate of #91. GitHub writes through `gh` succeed.
+>
+> Next buyer increment on this cycle: leftover-map coordinates
+> `ξ_{1:2}` / `ζ_{1:2}` (ADR 0267 / migration 0245 / v2.24.0) so
+> `R̂ = ξ · ζ` and `d = ‖ξ − ζ‖` are buyer-auditable. Do not name
+> leftover-map inner product, cosine, or length as separate columns.
+
 > Exact-head loop overlay: 2026-08-28 10:00 KST. Protected `main` was
 > `edf22ee39aee2a8481f9bda8fff59801821e79c2` (#773 similar-VOC coverage).
 > Open ready PRs: #772 (ask_time_axis coverage), #771 (fixtures/vision

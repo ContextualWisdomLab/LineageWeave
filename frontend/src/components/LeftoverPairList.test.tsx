@@ -125,6 +125,42 @@ describe("LeftoverPairList", () => {
     expect(screen.getByRole("button")).toHaveTextContent(expectedAction);
   });
 
+  it("names leftover-map coordinates so the next click opens that post", () => {
+    render(
+      <LeftoverPairList
+        pairs={[
+          {
+            ...PAIRS[0],
+            leftover_map_unexplained: 0.05,
+            leftover_map_reconstruction: 0.35,
+            leftover_map_cross_share: 0.12,
+            leftover_map_unexplained_share: 0.02,
+            leftover_map_explained_share: 0.76,
+            leftover_map_person_axis_1: 0.5,
+            leftover_map_person_axis_2: 0.1,
+            leftover_map_item_axis_1: 0.5,
+            leftover_map_item_axis_2: -0.02,
+          },
+        ]}
+        criterionLabel={criterionLabel}
+        onSelectPost={vi.fn()}
+      />,
+    );
+
+    const closest = screen.getByRole("button");
+    expect(closest).toHaveTextContent(
+      "Leftover map places this post at ξ (+0.50, +0.10) and the criterion at ζ (+0.50, −0.02) after IRT main effects. Open this post to read sales-lead.",
+    );
+    expect(closest).toHaveTextContent("ξ (+0.50, +0.10) ζ (+0.50, −0.02)");
+    expect(closest).toHaveTextContent("R̂²/R² 0.76");
+    expect(closest).toHaveTextContent("U²/R² 0.02");
+    expect(closest).toHaveTextContent("2R̂U/R² 0.12");
+    expect(closest).toHaveTextContent("R̂ +0.35");
+    expect(closest).toHaveTextContent("U +0.05");
+    expect(closest).toHaveTextContent("R +0.40");
+    expect(closest).toHaveTextContent("d 0.12");
+  });
+
   it("names leftover-map explained leftover share so the next click opens that post", () => {
     render(
       <LeftoverPairList
@@ -153,6 +189,33 @@ describe("LeftoverPairList", () => {
     expect(closest).toHaveTextContent("R̂ +0.35");
     expect(closest).toHaveTextContent("U +0.05");
     expect(closest).toHaveTextContent("R +0.40");
+    expect(closest).toHaveTextContent("d 0.12");
+  });
+
+  it("keeps leftover-map explained leftover share guidance when leftover-map coordinates are missing", () => {
+    render(
+      <LeftoverPairList
+        pairs={[
+          {
+            ...PAIRS[0],
+            leftover_map_unexplained: 0.05,
+            leftover_map_reconstruction: 0.35,
+            leftover_map_cross_share: 0.12,
+            leftover_map_unexplained_share: 0.02,
+            leftover_map_explained_share: 0.76,
+          },
+        ]}
+        criterionLabel={criterionLabel}
+        onSelectPost={vi.fn()}
+      />,
+    );
+
+    const closest = screen.getByRole("button");
+    expect(closest).toHaveTextContent(
+      "Leftover map leaves explained leftover share 0.76 of raw residual after IRT main effects. Open this post to read sales-lead.",
+    );
+    expect(closest).toHaveTextContent("R̂²/R² 0.76");
+    expect(closest).not.toHaveTextContent("ξ");
     expect(closest).toHaveTextContent("d 0.12");
   });
 

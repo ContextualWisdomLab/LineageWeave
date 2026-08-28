@@ -10,7 +10,8 @@
 [ADR 0185](0185-leftover-map-cross-share.md) (leftover-map cross share);
 [ADR 0201](0201-leftover-map-reconstruction.md) (signed reconstruction R̂);
 [ADR 0233](0233-leftover-map-unexplained-share.md) (unexplained leftover share s);
-[ADR 0266](0266-leftover-map-explained-share.md) (explained leftover share e)
+[ADR 0266](0266-leftover-map-explained-share.md) (explained leftover share e);
+[ADR 0267](0267-leftover-map-coordinates.md) (leftover-map coordinates ξ, ζ)
 
 ## Context
 
@@ -30,16 +31,16 @@ title, criterion short label, signed residual `R`, two-axis leftover-map
 distance, full map rank, observed `Y`, expected `E` when finite,
 unexplained leftover `U`, signed reconstruction `R̂` when finite,
 leftover-map unexplained leftover share `s = U² / R²` when finite,
-leftover-map explained leftover share `e = R̂² / R²` when finite, and
+leftover-map explained leftover share `e = R̂² / R²` when finite,
+leftover-map coordinates `ξ_{1:2}` and `ζ_{1:2}` when finite, and
 leftover-map cross share next to distance when finite. The next action names every available
 measurement before opening the post; no amendment hides another, rank 0
 explicitly names no leftover structure, and unexplained leftover names
 "leftover map leaves unexplained `U` after IRT main effects; open this
 post to read the named criterion" when present. When leftover-map
-explained leftover share is also present, the next action instead names
-the square share `e` of raw residual two leftover-map axes reconstruct
-after IRT main effects. A missing or non-finite value falls back in order —
-explained leftover share, then unexplained leftover share, then cross share, then reconstruction, then
+coordinates are also present, the next action instead names the two-axis
+positions `ξ` and `ζ` after IRT main effects. A missing or non-finite value falls back in order —
+leftover-map coordinates, then explained leftover share, then unexplained leftover share, then cross share, then reconstruction, then
 unexplained leftover, then rank / observed `Y` / expected `E`, then the
 existing residual next action. Clicking the button opens that post with
 leftover focus so Post quality marks the named criterion current
@@ -54,6 +55,8 @@ Unexplained leftover share naming is
 [ADR 0233](0233-leftover-map-unexplained-share.md).
 Explained leftover share naming is
 [ADR 0266](0266-leftover-map-explained-share.md).
+Leftover-map coordinate naming is
+[ADR 0267](0267-leftover-map-coordinates.md).
 
 After `make seed`, closest and farthest leftover pairs sit above the
 member list. Click a pair to open that post with the leftover

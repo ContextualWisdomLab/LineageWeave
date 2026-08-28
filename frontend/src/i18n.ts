@@ -581,6 +581,8 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
       "잔여 지도가 IRT 주효과 이후 원시 잔차의 설명되지 않은 잔여 비율 {value}을(를) 남깁니다. {criterion} 기준을 읽으려면 이 글을 여세요.",
     "Leftover map leaves explained leftover share {value} of raw residual after IRT main effects. Open this post to read {criterion}.":
       "잔여 지도가 IRT 주효과 이후 원시 잔차의 설명된 잔여 비율 {value}을(를) 남깁니다. {criterion} 기준을 읽으려면 이 글을 여세요.",
+    "Leftover map places this post at ξ {person} and the criterion at ζ {item} after IRT main effects. Open this post to read {criterion}.":
+      "잔여 지도가 IRT 주효과 이후 이 글을 ξ {person}에, 기준을 ζ {item}에 둡니다. {criterion} 기준을 읽으려면 이 글을 여세요.",
     "Read observed Y {observed} and expected E {expected} after IRT main effects, then open this post.":
       "IRT 주효과 이후 관측 Y {observed}와 기대 E {expected}를 읽은 다음, 이 글을 여세요.",
     "Leftover map has no leftover structure after IRT main effects. Open this post.":
@@ -1146,6 +1148,8 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
       "残差图在 IRT 主效应后留下原始残差的未解释残余份额 {value}。打开这篇帖子阅读 {criterion}。",
     "Leftover map leaves explained leftover share {value} of raw residual after IRT main effects. Open this post to read {criterion}.":
       "残差图在 IRT 主效应后留下原始残差的已解释残余份额 {value}。打开这篇帖子阅读 {criterion}。",
+    "Leftover map places this post at ξ {person} and the criterion at ζ {item} after IRT main effects. Open this post to read {criterion}.":
+      "残差图在 IRT 主效应后将这篇帖子放在 ξ {person}，将准则放在 ζ {item}。打开这篇帖子阅读 {criterion}。",
     "Read observed Y {observed} and expected E {expected} after IRT main effects, then open this post.":
       "阅读 IRT 主效应后的观测 Y {observed} 与期望 E {expected}，然后打开这篇帖子。",
     "Leftover map has no leftover structure after IRT main effects. Open this post.":
@@ -1715,6 +1719,8 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
       "残差マップはIRT主効果後の生の残差の未説明残差シェア {value} を残します。この投稿を開いて {criterion} を読んでください。",
     "Leftover map leaves explained leftover share {value} of raw residual after IRT main effects. Open this post to read {criterion}.":
       "残差マップはIRT主効果後の生の残差の説明済み残差シェア {value} を残します。この投稿を開いて {criterion} を読んでください。",
+    "Leftover map places this post at ξ {person} and the criterion at ζ {item} after IRT main effects. Open this post to read {criterion}.":
+      "残差マップはIRT主効果後にこの投稿を ξ {person} に、基準を ζ {item} に置きます。この投稿を開いて {criterion} を読んでください。",
     "Read observed Y {observed} and expected E {expected} after IRT main effects, then open this post.":
       "IRT主効果後の観測 Y {observed} と期待 E {expected} を読んでから、この投稿を開いてください。",
     "Leftover map has no leftover structure after IRT main effects. Open this post.":
@@ -2284,6 +2290,8 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
       "Bản đồ phần dư để lại tỷ phần phần dư chưa giải thích {value} của phần dư thô sau hiệu ứng chính IRT. Mở bài viết này để đọc {criterion}.",
     "Leftover map leaves explained leftover share {value} of raw residual after IRT main effects. Open this post to read {criterion}.":
       "Bản đồ phần dư để lại tỷ phần phần dư đã giải thích {value} của phần dư thô sau hiệu ứng chính IRT. Mở bài viết này để đọc {criterion}.",
+    "Leftover map places this post at ξ {person} and the criterion at ζ {item} after IRT main effects. Open this post to read {criterion}.":
+      "Bản đồ phần dư đặt bài viết này tại ξ {person} và tiêu chí tại ζ {item} sau hiệu ứng chính IRT. Mở bài viết này để đọc {criterion}.",
     "Read observed Y {observed} and expected E {expected} after IRT main effects, then open this post.":
       "Đọc Y quan sát {observed} và E kỳ vọng {expected} sau hiệu ứng chính IRT, rồi mở bài viết này.",
     "Leftover map has no leftover structure after IRT main effects. Open this post.":

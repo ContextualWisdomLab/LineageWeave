@@ -9,7 +9,8 @@
 [ADR 0185](0185-leftover-map-cross-share.md) (leftover-map cross share);
 [ADR 0201](0201-leftover-map-reconstruction.md) (signed reconstruction R̂);
 [ADR 0233](0233-leftover-map-unexplained-share.md) (unexplained leftover share s);
-[ADR 0266](0266-leftover-map-explained-share.md) (explained leftover share e)
+[ADR 0266](0266-leftover-map-explained-share.md) (explained leftover share e);
+[ADR 0267](0267-leftover-map-coordinates.md) (leftover-map coordinates ξ, ζ)
 
 ## Context
 
@@ -61,6 +62,9 @@ residual so the leftover the truncated map reconstructs is not read as
 leftover residual `R`, leftover-map distance `d`, unexplained leftover
 `U`, leftover-map cross share `x`, or unexplained leftover share `s`.
 When `R`, `R̂`, `U`, `x`, `s`, and `e` are finite, `e + s + x = 1`.
+ADR 0267 persists leftover-map coordinates `ξ_{1:2}` and `ζ_{1:2}` so
+reconstruction `R̂ = ξ · ζ` and distance `d = ‖ξ − ζ‖` stay auditable
+from the pair row.
 
 Cascade the rows with `report_period_score`. A leftover post must
 also be a `report_member_score` row, and the leftover criterion
