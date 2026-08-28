@@ -125,6 +125,23 @@ describe("i18n", () => {
     },
   );
 
+  it.each(["ko", "zh", "ja", "vi"] as const)(
+    "translates dashboard and topic-influence customer copy in %s",
+    (locale) => {
+      setLocale(locale);
+      for (const key of [
+        "Operations evidence dashboard",
+        "Loading dashboard evidence...",
+        "Observed processing intervals",
+        "Post influence",
+        "Topic model influence over time",
+        "Post influence is not available yet.",
+        "Compare influence and uncertainty together; treat equal values as ties.",
+        "Review analysis basis",
+      ]) expect(t(key), `${locale}:${key}`).not.toBe(key);
+    },
+  );
+
   it("keeps analyst GNB chrome on the Dashboard and four Korean labels", () => {
     expect(ANALYST_GNB_LABELS).toEqual(["Dashboard", "외부 정보", "게시판", "고객 마스터", "달력", "Ask Agent"]);
     expect(ANALYST_GNB_LABELS.join(" ")).not.toMatch(/Buyer|Cubee|Board|Customer master/);

@@ -2,6 +2,7 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { fetchOperationsDashboard, fetchVoiceTaxonomySummary, type OperationsDashboardResponse } from "../api";
+import { setLocale } from "../i18n";
 import { OperationsDashboard, OperationsDashboardView } from "./OperationsDashboard";
 
 vi.mock("../api", async (importOriginal) => ({
@@ -11,6 +12,7 @@ vi.mock("../api", async (importOriginal) => ({
 }));
 
 beforeEach(() => {
+  setLocale("ko");
   vi.mocked(fetchVoiceTaxonomySummary).mockReset().mockResolvedValue({
     total_eligible: 0, classified_unique: 0, multi_membership: 0,
     source_count: 0, derived_count: 0, unavailable: 0, disagreement: 0,
@@ -58,6 +60,15 @@ const data: OperationsDashboardResponse = {
 };
 
 describe("OperationsDashboardView", () => {
+  it("uses the selected locale for dashboard and topic-influence copy", () => {
+    setLocale("en");
+    render(<OperationsDashboardView data={data} onOpenPost={() => undefined} />);
+    expect(screen.getByRole("heading", { name: "Operations evidence dashboard" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Topic model influence over time" })).toBeInTheDocument();
+    expect(screen.getByText("Post influence is not available yet.")).toBeInTheDocument();
+    expect(screen.queryByText("운영 근거 Dashboard")).not.toBeInTheDocument();
+  });
+
   it("distinguishes posts, events, percentages and opens evidence", async () => {
     const onOpenPost = vi.fn();
     render(<OperationsDashboardView data={data} onOpenPost={onOpenPost} />);
@@ -225,9 +236,9 @@ describe("OperationsDashboardView", () => {
       });
     render(<OperationsDashboard accessToken="synthetic-token" onOpenPost={() => undefined} />);
 
-    expect(await screen.findByRole("alert")).toHaveTextContent("Voice evidence could not be loaded.");
-    await userEvent.click(screen.getByRole("button", { name: "Retry voice evidence" }));
-    expect(await screen.findByRole("heading", { name: "Voice evidence overview" })).toBeInTheDocument();
+    expect(await screen.findByRole("alert")).toHaveTextContent("글 유형 근거를 불러오지 못했습니다.");
+    await userEvent.click(screen.getByRole("button", { name: "글 유형 근거 다시 시도" }));
+    expect(await screen.findByRole("heading", { name: "글 유형 근거 현황" })).toBeInTheDocument();
     expect(fetchVoiceTaxonomySummary).toHaveBeenCalledTimes(2);
     expect(fetchOperationsDashboard).toHaveBeenCalledTimes(1);
   });
@@ -241,8 +252,8 @@ describe("OperationsDashboardView", () => {
     });
     render(<OperationsDashboard accessToken="synthetic-token" onOpenPost={() => undefined} />);
 
-    expect(await screen.findByText("Dashboard 근거를 불러오지 못했습니다.")).toBeInTheDocument();
-    expect(await screen.findByRole("heading", { name: "Voice evidence overview" })).toBeInTheDocument();
+    expect(await screen.findByText("대시보드 근거를 불러오지 못했습니다.")).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "글 유형 근거 현황" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "다시 시도" })).toBeInTheDocument();
   });
 });
@@ -253,7 +264,7 @@ describe("OperationsDashboard", () => {
     vi.mocked(fetchVoiceTaxonomySummary).mockImplementation(() => new Promise(() => undefined));
     render(<OperationsDashboard accessToken="synthetic-token" onOpenPost={() => undefined} />);
     expect(screen.getAllByRole("status")).toHaveLength(1);
-    expect(screen.getByRole("status")).toHaveTextContent("Dashboard 근거를 불러오는 중입니다.");
-    expect(screen.getByRole("status")).toHaveTextContent("Loading voice evidence...");
+    expect(screen.getByRole("status")).toHaveTextContent("대시보드 근거를 불러오는 중입니다.");
+    expect(screen.getByRole("status")).toHaveTextContent("글 유형 근거를 불러오는 중입니다...");
   });
 });
