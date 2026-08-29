@@ -1,7 +1,7 @@
 # Product & Technical Gap Baseline
 
-> Exact-head Voice export and authority audit: 2026-08-30 08:00 KST. Protected
-> `main` was `fc13acaa20adca11968238e398d4aafcf62b6cee`; sixteen PRs and nine
+> Exact-head Voice export and authority audit: 2026-08-30 08:05 KST. Protected
+> `main` was `fc13acaa20adca11968238e398d4aafcf62b6cee`; sixteen PRs and ten
 > issues were open. The largest directly actionable Voice acceptance gap on
 > this head was export ambiguity: the rendered exact-value table already
 > offered separate actions for the carrying Post and derivation-evidence Post,
@@ -14,6 +14,12 @@
 > gate and the runtime evidence is collected. Canonical remote names were
 > rechecked as `ContextualWisdomLab/LineageWeave`, `RankWeave`, `ThreadWeave`,
 > lowercase `disksage`, `TEPP`, `contextual-orchestrator`, and `fast-mlsirm`.
+> The supporting PRD still duplicates PRD-FR-2A, PRD-FR-2B, and PRD-FR-2C,
+> cites absent ADR 0264, and also assigns occupational linkage to ADR 0256.
+> Accepted ADR 0256 instead governs Voice composition. Issue #807 tracks the
+> authority reconciliation and unique-reference regression. Until that work
+> lands, those later duplicate occupational claims are unverified supporting
+> text, not accepted ADR or protected-main product evidence.
 > The 17:59 KST queue audit also found PR #782 proposing ADR 0267 / migration
 > 0245 / v2.24.0 on the same protected-main base. Its buyer-visible coordinates
 > are backed by additional projection from the frozen local NumPy residual-map
@@ -37,7 +43,7 @@
 > PR #782 also currently carries 2.24.0, 2.25.0, and 2.26.0 changelog and ADR
 > material in one head; those later slices do not cure the ADR 0208 ownership
 > conflict and cannot be treated as separately delivered releases.
-> The refreshed inventory has sixteen open PRs and nine open issues. PR #780's
+> The refreshed inventory has sixteen open PRs and ten open issues. PR #780's
 > exact-value export repair remains candidate-only: all review threads are
 > resolved and the focused frontend suite passes, but independent approval and
 > required current-head review/security verdicts remain unsatisfied. Normal
