@@ -8,6 +8,17 @@ All notable changes to this project are documented here. Format follows
 
 ### Added
 
+- Period leftover pairs now caption leftover-map graphic-display pair
+  segments with persisted leftover-map distance `d` (ADR 0271 /
+  v2.28.0). After `make seed`, closest and farthest leftover pairs sit
+  above the member list with the Gabriel biplot of already-named
+  coordinates, leftover-map axis share when finite, axis ticks that
+  match `ξ (x, y) ζ (x, y)` on the pair row, and pair segments that
+  match `d` on the pair row; click a post marker or a pair button
+  opens that post. A missing or non-finite `d` omits that segment
+  caption. Do not invent `d` from plotted coordinates. Never invent a
+  leftover score or a theta. No new columns.
+
 - Period leftover pairs now caption leftover-map graphic-display axes
   with persisted leftover-map coordinate ticks (ADR 0270 / v2.27.0).
   After `make seed`, closest and farthest leftover pairs sit above the

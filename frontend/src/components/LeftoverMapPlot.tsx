@@ -11,6 +11,7 @@ import {
   layoutLeftoverMapPlot,
   LEFTOVER_MAP_PLOT_CAPTION,
   LEFTOVER_MAP_PLOT_POST_ACTION,
+  LEFTOVER_MAP_PLOT_SEGMENT_DISTANCE,
   LEFTOVER_MAP_PLOT_TICK,
 } from "../leftoverMapPlotLayout";
 import "./LeftoverMapPlot.css";
@@ -46,10 +47,12 @@ function leftoverMapPlotAxisText(
  * post marker to open that post. Caption leftover-map axes with persisted
  * Gabriel inertia share when finite, including rank-0 zero-share axes.
  * Axis ticks name persisted leftover-map coordinates so ξ / ζ on the
- * pair row match the plot. Omit that axis badge when share is missing or
- * non-finite and keep the existing leftover-map axis text. Omit the plot
- * when no pair has four finite leftover-map coordinates. Never invent a
- * leftover score.
+ * pair row match the plot. Pair segments name persisted leftover-map
+ * distance ``d`` so the pair-row badge matches the graphic. Omit that
+ * segment caption when distance is missing or non-finite. Omit that axis
+ * badge when share is missing or non-finite and keep the existing
+ * leftover-map axis text. Omit the plot when no pair has four finite
+ * leftover-map coordinates. Never invent a leftover score.
  */
 export function LeftoverMapPlot({
   pairs,
@@ -127,14 +130,28 @@ export function LeftoverMapPlot({
             </g>
           ))}
           {layout.segments.map((segment) => (
-            <line
-              key={`${segment.pairKind}:${segment.postId}:${segment.criterionCode}`}
-              className={`leftover-map-plot-segment ${segment.pairKind}`}
-              x1={segment.x1}
-              y1={segment.y1}
-              x2={segment.x2}
-              y2={segment.y2}
-            />
+            <g key={`${segment.pairKind}:${segment.postId}:${segment.criterionCode}`}>
+              <line
+                className={`leftover-map-plot-segment ${segment.pairKind}`}
+                x1={segment.x1}
+                y1={segment.y1}
+                x2={segment.x2}
+                y2={segment.y2}
+              />
+              {segment.distanceLabel !== null ? (
+                <text
+                  className="leftover-map-plot-segment-label"
+                  x={segment.labelX}
+                  y={segment.labelY}
+                  textAnchor="middle"
+                  aria-label={tf(LEFTOVER_MAP_PLOT_SEGMENT_DISTANCE, {
+                    label: segment.distanceLabel,
+                  })}
+                >
+                  {segment.distanceLabel}
+                </text>
+              ) : null}
+            </g>
           ))}
           {layout.items.map((marker) => (
             <g key={`item:${marker.id}`} aria-label={`${t("Criterion ζ")} ${marker.label}`}>
