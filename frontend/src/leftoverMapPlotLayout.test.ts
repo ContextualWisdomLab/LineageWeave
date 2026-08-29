@@ -23,6 +23,7 @@ function pair(
     leftover_map_item_axis_1: 0.5,
     leftover_map_item_axis_2: -0.02,
     leftover_distance: 0.12,
+    leftover_map_reconstruction: 0.248,
     ...overrides,
   };
 }
@@ -264,6 +265,85 @@ describe("layoutLeftoverMapPlot", () => {
     );
     expect(layout?.segments[0]?.distanceLabel).toBe("d 0.12");
     expect(layout?.segments[0]?.distanceLabel).not.toBe("d 1.00");
+  });
+
+  it("names persisted leftover-map reconstruction on pair segments without inventing a leftover score", () => {
+    const layout = layoutLeftoverMapPlot(
+      [
+        pair(),
+        pair({
+          pair_kind: "farthest",
+          post_id: "post-demo-spec",
+          criterion_code: "negative_sentiment",
+          leftover_map_person_axis_1: 0.9,
+          leftover_map_person_axis_2: 0.8,
+          leftover_map_item_axis_1: -0.7,
+          leftover_map_item_axis_2: -0.4,
+          leftover_distance: 1.84,
+          leftover_map_reconstruction: -0.95,
+        }),
+      ],
+      criterionLabel,
+    );
+    expect(layout?.segments.map((segment) => segment.reconstructionLabel)).toEqual([
+      "R\u0302 +0.25",
+      "R\u0302 \u22120.95",
+    ]);
+    expect(layout?.segments[0]?.reconstructionX).toBeCloseTo(layout?.segments[0]?.labelX ?? 0, 5);
+    expect(layout?.segments[0]?.reconstructionY).toBeGreaterThan(layout?.segments[0]?.labelY ?? 0);
+  });
+
+  it("omits a leftover-map reconstruction caption when R̂ is missing or non-finite", () => {
+    const layout = layoutLeftoverMapPlot(
+      [
+        pair({ leftover_map_reconstruction: null }),
+        pair({
+          pair_kind: "farthest",
+          leftover_map_reconstruction: Number.NaN,
+          leftover_map_item_axis_1: -0.7,
+          leftover_map_item_axis_2: -0.4,
+          criterion_code: "negative_sentiment",
+        }),
+      ],
+      criterionLabel,
+    );
+    expect(layout?.segments.map((segment) => segment.reconstructionLabel)).toEqual([null, null]);
+    expect(layout?.segments.map((segment) => segment.distanceLabel)).toEqual(["d 0.12", "d 0.12"]);
+  });
+
+  it("does not invent leftover-map reconstruction from plotted coordinates", () => {
+    const layout = layoutLeftoverMapPlot(
+      [
+        pair({
+          leftover_map_person_axis_1: 1,
+          leftover_map_person_axis_2: 0,
+          leftover_map_item_axis_1: 1,
+          leftover_map_item_axis_2: 0,
+          leftover_map_reconstruction: 0.35,
+        }),
+      ],
+      criterionLabel,
+    );
+    expect(layout?.segments[0]?.reconstructionLabel).toBe("R\u0302 +0.35");
+    expect(layout?.segments[0]?.reconstructionLabel).not.toBe("R\u0302 +1.00");
+  });
+
+  it("names rank-0 origin reconstruction R̂ 0.00 when that persisted value is finite", () => {
+    const layout = layoutLeftoverMapPlot(
+      [
+        pair({
+          leftover_map_person_axis_1: 0,
+          leftover_map_person_axis_2: 0,
+          leftover_map_item_axis_1: 0,
+          leftover_map_item_axis_2: 0,
+          leftover_distance: 0,
+          leftover_map_reconstruction: 0,
+        }),
+      ],
+      criterionLabel,
+    );
+    expect(layout?.segments[0]?.reconstructionLabel).toBe("R\u0302 0.00");
+    expect(layout?.segments[0]?.distanceLabel).toBe("d 0.00");
   });
 });
 

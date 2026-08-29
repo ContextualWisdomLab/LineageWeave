@@ -14,7 +14,8 @@
 [ADR 0268](0268-leftover-map-graphic-display.md) (leftover-map graphic display);
 [ADR 0269](0269-leftover-map-axis-share-plot.md) (leftover-map axis share on the graphic display);
 [ADR 0270](0270-leftover-map-coordinate-ticks.md) (leftover-map coordinate ticks);
-[ADR 0271](0271-leftover-map-segment-distance.md) (leftover-map distance on pair segments)
+[ADR 0271](0271-leftover-map-segment-distance.md) (leftover-map distance on pair segments);
+[ADR 0272](0272-leftover-map-segment-reconstruction.md) (leftover-map reconstruction on pair segments)
 
 ## Context
 
@@ -74,7 +75,8 @@ those leftover-map axes with persisted leftover-map axis share; it
 adds no columns. ADR 0270 ticks leftover-map axes at persisted `ξ` /
 `ζ` coordinates; it adds no columns. ADR 0271 captions leftover-map
 pair segments with persisted leftover-map distance `d`; it adds no
-columns.
+columns. ADR 0272 captions leftover-map pair segments with persisted
+leftover-map reconstruction `R̂`; it adds no columns.
 
 Cascade the rows with `report_period_score`. A leftover post must
 also be a `report_member_score` row, and the leftover criterion
