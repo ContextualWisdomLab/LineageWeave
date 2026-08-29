@@ -1,15 +1,17 @@
 /** Gabriel leftover-map graphic display of persisted ``ξ_{1:2}`` / ``ζ_{1:2}``.
  *  Leftover-map axis share captions axes 1 and 2 when finite (ADR 0269).
  *  Axis ticks name persisted leftover-map coordinates (ADR 0270).
- *  Pair segments name persisted leftover-map distance ``d`` (ADR 0271).
+ *  Pair segments name persisted leftover-map distance ``d`` (ADR 0271)
+ *  and persisted leftover-map reconstruction ``R̂`` (ADR 0272).
  */
 
 import { formatLeftoverMapCoordinatePair } from "./leftoverMapCoordinates";
+import { formatLeftoverMapReconstruction } from "./leftoverMapReconstruction";
 import { formatSignedLeftoverValue } from "./leftoverMapUnexplained";
 import type { LeftoverPair } from "./api";
 
 export const LEFTOVER_MAP_PLOT_CAPTION =
-  "Leftover map after IRT main effects. Axis ticks name persisted leftover-map coordinates. Pair segments name leftover-map distance d. Click a post marker to open that post. The plot does not invent a leftover score.";
+  "Leftover map after IRT main effects. Axis ticks name persisted leftover-map coordinates. Pair segments name leftover-map distance d and leftover-map reconstruction R̂. Click a post marker to open that post. The plot does not invent a leftover score.";
 
 export const LEFTOVER_MAP_PLOT_POST_ACTION =
   "Open leftover-map post {title} at ξ {person}";
@@ -20,6 +22,9 @@ export const LEFTOVER_MAP_PLOT_TICK =
 export const LEFTOVER_MAP_PLOT_SEGMENT_DISTANCE =
   "leftover-map distance {label}";
 
+export const LEFTOVER_MAP_PLOT_SEGMENT_RECONSTRUCTION =
+  "leftover-map reconstruction {label}";
+
 export const PLOT_WIDTH = 480;
 export const PLOT_HEIGHT = 320;
 export const PLOT_PADDING = 40;
@@ -27,6 +32,7 @@ export const PLOT_TICK_LENGTH = 6;
 const UNIT_DISPLAY_SPAN = 2;
 const COLLAPSED_SPAN = 1e-12;
 const COINCIDENT_LABEL_OFFSET = 14;
+const RECONSTRUCTION_LABEL_OFFSET = 12;
 
 export type LeftoverMapPlottablePair = {
   pair_kind: LeftoverPair["pair_kind"];
@@ -34,6 +40,7 @@ export type LeftoverMapPlottablePair = {
   post_title: string;
   criterion_code: string;
   leftover_distance?: number | null;
+  leftover_map_reconstruction?: number | null;
   leftover_map_person_axis_1?: number | null;
   leftover_map_person_axis_2?: number | null;
   leftover_map_item_axis_1?: number | null;
@@ -59,8 +66,11 @@ export type LeftoverMapPlotSegment = {
   x2: number;
   y2: number;
   distanceLabel: string | null;
+  reconstructionLabel: string | null;
   labelX: number;
   labelY: number;
+  reconstructionX: number;
+  reconstructionY: number;
 };
 
 export type LeftoverMapPlotTick = {
@@ -274,6 +284,19 @@ export function layoutLeftoverMapPlot(
       pair.leftover_map_item_axis_2 as number,
     );
     const distanceLabel = formatLeftoverMapDistance(pair.leftover_distance);
+    const reconstructionLabel = formatLeftoverMapReconstruction(
+      pair.leftover_map_reconstruction,
+    );
+    const labelPosition = leftoverMapSegmentLabelPosition(
+      personPos.x,
+      personPos.y,
+      itemPos.x,
+      itemPos.y,
+    );
+    const reconstructionY =
+      reconstructionLabel !== null && distanceLabel !== null
+        ? labelPosition.labelY + RECONSTRUCTION_LABEL_OFFSET
+        : labelPosition.labelY;
     segments.push({
       pairKind: pair.pair_kind === "farthest" ? "farthest" : "closest",
       postId: pair.post_id,
@@ -283,7 +306,10 @@ export function layoutLeftoverMapPlot(
       x2: itemPos.x,
       y2: itemPos.y,
       distanceLabel,
-      ...leftoverMapSegmentLabelPosition(personPos.x, personPos.y, itemPos.x, itemPos.y),
+      reconstructionLabel,
+      reconstructionX: labelPosition.labelX,
+      reconstructionY,
+      ...labelPosition,
     });
   }
 

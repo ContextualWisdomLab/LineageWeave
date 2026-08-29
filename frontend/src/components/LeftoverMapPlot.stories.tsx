@@ -80,6 +80,7 @@ export const RankZeroOrigin: Story = {
         observed_response: 1,
         expected_response: 1,
         leftover_map_rank: 0,
+        leftover_map_reconstruction: 0,
         leftover_map_person_axis_1: 0,
         leftover_map_person_axis_2: 0,
         leftover_map_item_axis_1: 0,
