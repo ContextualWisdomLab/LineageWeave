@@ -45,13 +45,16 @@ describe("LeftoverMapPlot", () => {
     expect(screen.getByLabelText("Leftover-map graphic display")).toBeInTheDocument();
     expect(
       screen.getByText(
-        "Leftover map after IRT main effects. Click a post marker to open that post. The plot does not invent a leftover score.",
+        "Leftover map after IRT main effects. Axis ticks name persisted leftover-map coordinates. Click a post marker to open that post. The plot does not invent a leftover score.",
       ),
     ).toBeInTheDocument();
     expect(screen.getByText("Post ξ")).toBeInTheDocument();
     expect(screen.getByText("Criterion ζ")).toBeInTheDocument();
     expect(screen.getByText("leftover-map axis 1")).toBeInTheDocument();
     expect(screen.getByText("leftover-map axis 2")).toBeInTheDocument();
+    expect(screen.getByLabelText("leftover-map axis 1 tick +0.50")).toBeInTheDocument();
+    expect(screen.getByLabelText("leftover-map axis 2 tick −0.02")).toBeInTheDocument();
+    expect(screen.getByLabelText("leftover-map axis 1 tick 0.00")).toBeInTheDocument();
 
     const postMarker = screen.getByRole("button", {
       name: "Open leftover-map post Public post at ξ (+0.50, +0.10)",
@@ -117,6 +120,8 @@ describe("LeftoverMapPlot", () => {
     ).toBeInTheDocument();
     expect(screen.getByText("leftover-map axis 1 (0%)")).toBeInTheDocument();
     expect(screen.getByText("leftover-map axis 2 (0%)")).toBeInTheDocument();
+    expect(screen.getAllByLabelText("leftover-map axis 1 tick 0.00").length).toBeGreaterThan(0);
+    expect(screen.queryByLabelText("leftover-map axis 1 tick +1.00")).not.toBeInTheDocument();
   });
 
   it("captions leftover-map axes with persisted leftover-map axis share", () => {

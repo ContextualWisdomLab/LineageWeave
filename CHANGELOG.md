@@ -9,6 +9,16 @@ All notable changes to this project are documented here. Format follows
 ### Added
 
 - Period leftover pairs now caption leftover-map graphic-display axes
+  with persisted leftover-map coordinate ticks (ADR 0270 / v2.27.0).
+  After `make seed`, closest and farthest leftover pairs sit above the
+  member list with the Gabriel biplot of already-named coordinates,
+  leftover-map axis share when finite, and axis ticks that match
+  `ξ (x, y) ζ (x, y)` on the pair row; click a post marker or a pair
+  button opens that post. Origin is always named `0`. Rank-0 unused
+  axes do not invent `−1` / `+1` drawing-scale ticks. Never invent a
+  leftover score or a theta. No new columns.
+
+- Period leftover pairs now caption leftover-map graphic-display axes
   with persisted leftover-map axis share `σ_k² / Σ_j σ_j²` (ADR 0269 /
   v2.26.0). After `make seed`, closest and farthest leftover pairs sit
   above the member list with the Gabriel biplot of already-named

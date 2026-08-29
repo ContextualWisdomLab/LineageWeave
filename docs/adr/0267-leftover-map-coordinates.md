@@ -4,15 +4,19 @@
 **Date:** 2026-08-28
 
 **Amended by:** [ADR 0268](0268-leftover-map-graphic-display.md)
-(leftover-map graphic display)
+(leftover-map graphic display);
+[ADR 0270](0270-leftover-map-coordinate-ticks.md)
+(leftover-map coordinate ticks)
 
 Amends [ADR 0048](0048-persist-lsirm-leftover-pairs.md),
 [ADR 0049](0049-leftover-pair-report-ui.md), and
 [ADR 0201](0201-leftover-map-reconstruction.md). Builds on ADR 0201's
 leftover-map reconstruction. Coordinate publication is independent of the
 explained leftover share ([ADR 0266](0266-leftover-map-explained-share.md)),
-and leftover-map unexplained leftover share
-([ADR 0233](0233-leftover-map-unexplained-share.md)).
+leftover-map unexplained leftover share
+([ADR 0233](0233-leftover-map-unexplained-share.md)), and leftover-map
+axis share on the graphic display
+([ADR 0269](0269-leftover-map-axis-share-plot.md)).
 
 ## Context
 
@@ -104,8 +108,8 @@ leftover-map distance, leftover-map rank, leftover-map inner product,
 leftover-map cosine, leftover-map length, leftover-map reconstruction,
 leftover-map unexplained leftover, leftover-map cross share,
 leftover-map unexplained leftover share, leftover-map explained
-leftover share, leftover-map graphic display, and leftover-map axis
-share on the graphic display.
+leftover share, leftover-map graphic display, leftover-map axis
+share on the graphic display, and leftover-map coordinate ticks.
 
 ## References
 
