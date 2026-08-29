@@ -12,7 +12,9 @@
 [ADR 0272](0272-leftover-map-segment-reconstruction.md)
 (leftover-map reconstruction on pair segments);
 [ADR 0273](0273-leftover-map-segment-explained-share.md)
-(leftover-map explained leftover share on pair segments)
+(leftover-map explained leftover share on pair segments);
+[ADR 0274](0274-leftover-map-segment-unexplained-share.md)
+(leftover-map unexplained leftover share on pair segments)
 
 Amends [ADR 0049](0049-leftover-pair-report-ui.md) and
 [ADR 0267](0267-leftover-map-coordinates.md). Independent of leftover-map
@@ -89,7 +91,8 @@ leftover-map axes when finite (ADR 0269). Leftover-map axis ticks name
 persisted `ξ` / `ζ` coordinates (ADR 0270). Pair segments name
 persisted leftover-map distance `d` (ADR 0271). Pair segments name
 persisted leftover-map reconstruction `R̂` (ADR 0272). Pair segments name
-persisted leftover-map explained leftover share `e` (ADR 0273). When coordinates, reconstruction, and
+persisted leftover-map explained leftover share `e` (ADR 0273). Pair segments name
+persisted leftover-map unexplained leftover share `s` (ADR 0274). When coordinates, reconstruction, and
 distance are all finite, `R̂ = ξ_{1:2} · ζ_{1:2}` and
 `d = ‖ξ_{1:2} − ζ_{1:2}‖` remain the same identities already
 persisted by ADR 0267.

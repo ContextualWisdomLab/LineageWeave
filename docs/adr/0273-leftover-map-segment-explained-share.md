@@ -3,6 +3,9 @@
 **Decision status:** Accepted
 **Date:** 2026-08-29
 
+**Amended by:** [ADR 0274](0274-leftover-map-segment-unexplained-share.md)
+(leftover-map unexplained leftover share on pair segments)
+
 Amends [ADR 0268](0268-leftover-map-graphic-display.md) and
 [ADR 0049](0049-leftover-pair-report-ui.md). Independent of leftover-map
 reconstruction on pair segments
@@ -84,7 +87,8 @@ and `ζ`, leftover-map axes name persisted Gabriel inertia share when
 finite, leftover-map axis ticks name the same coordinates shown on
 the pair row, pair segments name persisted leftover-map distance `d`,
 persisted leftover-map reconstruction `R̂`, and persisted leftover-map
-explained leftover share `e`; click a post marker or a pair button
+explained leftover share `e`, and pair segments name persisted leftover-map
+unexplained leftover share `s` (ADR 0274); click a post marker or a pair button
 opens that post. Hidden posts stay hidden. Rank-0 unused axes still
 plot at the origin, still name zero leftover-map axis share with a `0`
 tick, still name `d 0.00` when that distance is persisted, still name

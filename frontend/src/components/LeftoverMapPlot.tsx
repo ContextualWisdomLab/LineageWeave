@@ -14,6 +14,7 @@ import {
   LEFTOVER_MAP_PLOT_SEGMENT_DISTANCE,
   LEFTOVER_MAP_PLOT_SEGMENT_EXPLAINED_SHARE,
   LEFTOVER_MAP_PLOT_SEGMENT_RECONSTRUCTION,
+  LEFTOVER_MAP_PLOT_SEGMENT_UNEXPLAINED_SHARE,
   LEFTOVER_MAP_PLOT_TICK,
 } from "../leftoverMapPlotLayout";
 import "./LeftoverMapPlot.css";
@@ -50,12 +51,14 @@ function leftoverMapPlotAxisText(
  * Gabriel inertia share when finite, including rank-0 zero-share axes.
  * Axis ticks name persisted leftover-map coordinates so ξ / ζ on the
  * pair row match the plot. Pair segments name persisted leftover-map
- * distance ``d``, leftover-map reconstruction ``R̂``, and leftover-map
- * explained leftover share ``e`` so the pair-row badges match the graphic.
+ * distance ``d``, leftover-map reconstruction ``R̂``, leftover-map
+ * explained leftover share ``e``, and leftover-map unexplained leftover
+ * share ``s`` so the pair-row badges match the graphic.
  * Omit that distance caption when ``d`` is missing or non-finite. Omit
  * that reconstruction caption when ``R̂`` is missing or non-finite. Omit
  * that explained leftover share caption when ``e`` is missing or
- * non-finite. Omit that axis badge when share is missing or non-finite
+ * non-finite. Omit that unexplained leftover share caption when ``s`` is
+ * missing or non-finite. Omit that axis badge when share is missing or non-finite
  * and keep the existing leftover-map axis text. Omit the plot when no
  * pair has four finite leftover-map coordinates. Never invent a leftover
  * score.
@@ -181,6 +184,19 @@ export function LeftoverMapPlot({
                   })}
                 >
                   {segment.explainedShareLabel}
+                </text>
+              ) : null}
+              {segment.unexplainedShareLabel !== null ? (
+                <text
+                  className="leftover-map-plot-segment-label leftover-map-plot-segment-unexplained-share"
+                  x={segment.unexplainedShareX}
+                  y={segment.unexplainedShareY}
+                  textAnchor="middle"
+                  aria-label={tf(LEFTOVER_MAP_PLOT_SEGMENT_UNEXPLAINED_SHARE, {
+                    label: segment.unexplainedShareLabel,
+                  })}
+                >
+                  {segment.unexplainedShareLabel}
                 </text>
               ) : null}
             </g>

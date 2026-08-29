@@ -9,6 +9,21 @@ All notable changes to this project are documented here. Format follows
 ### Added
 
 - Period leftover pairs now caption leftover-map graphic-display pair
+  segments with persisted leftover-map unexplained leftover share
+  `s = U² / R²` (ADR 0274 / v2.31.0). After `make seed`, closest and
+  farthest leftover pairs sit above the member list with the Gabriel
+  biplot of already-named coordinates, leftover-map axis share when
+  finite, axis ticks that match `ξ (x, y) ζ (x, y)` on the pair row,
+  pair segments that match `d` on the pair row, pair segments that
+  match `R̂` on the pair row, pair segments that match `R̂²/R²` on
+  the pair row, and pair segments that match `U²/R²` on the pair
+  row; click a post marker or a pair button opens that post. A
+  missing or non-finite `s` omits that unexplained leftover share
+  caption. A share greater than 1 is shown, never clamped. Do not
+  invent `s` from `U` and `R` or from plotted coordinates. Never
+  invent a leftover score or a theta. No new columns.
+
+- Period leftover pairs now caption leftover-map graphic-display pair
   segments with persisted leftover-map explained leftover share
   `e = R̂² / R²` (ADR 0273 / v2.30.0). After `make seed`, closest and
   farthest leftover pairs sit above the member list with the Gabriel

@@ -1,5 +1,38 @@
 # Product & Technical Gap Baseline
 
+> Exact-head loop overlay: 2026-08-29 20:20 KST. Protected `main` is
+> `fc13acaa20adca11968238e398d4aafcf62b6cee` (v2.23.0 leftover-map
+> explained leftover share, #775). Open ready PRs still lack independent
+> APPROVE. #782 leftover-map coordinates + graphic + axis share + ticks
+> + distance (v2.24.0–v2.28.0 / ADR 0267–0271) is on
+> `9bdd3e4d6e47a34ac22fca228b8d2a23d8cecca9` with auto-merge SQUASH
+> armed. Independent APPROVE is still required for protected main.
+> #802 leftover-map explained leftover share on pair segments (v2.30.0
+> / ADR 0273), replaying v2.29 reconstruction captions, is stacked on
+> leftover-coordinates at `79ec22f0a4b7236ab06500c7bf8f392da6a9419b`.
+> Leave #802 open for independent review. Do not squash-merge stacked
+> leftover PRs onto an unprotected leftover base. Auto-merge squash
+> remains armed on #782/#780/#774/#772/#771/#770. Drafts remain dirty
+> against `main`. #96 stays closed as a weaker duplicate of #91
+> (`state_reason` still 403). GitHub writes through `gh`/MCP succeed
+> (comment/create-PR/auto-merge). Copilot review is not independent
+> APPROVE. Do not self-approve.
+>
+> Next buyer increment on this cycle: leftover-map unexplained leftover
+> share `s` on graphic-display pair segments (ADR 0274 / v2.31.0)
+> delivered locally on
+> `feat/leftover-map-segment-unexplained-share-v2310`. Caption each
+> closest/farthest segment with persisted leftover-map unexplained
+> leftover share so the pair-row `U²/R²` badge matches the graphic.
+> UI-only; no new columns. Missing/non-finite `s` omits that unexplained
+> leftover share caption. A share greater than 1 is shown, never
+> clamped. Do not invent `s` from `U` and `R` or from plotted
+> coordinates. Do not invent leftover scores. Stack onto leftover branch
+> `feat/leftover-map-segment-explained-share-v2300`; leave the PR open
+> for independent review. Do not squash-merge onto the leftover base.
+> The following buyer increment is leftover-map cross share `x` on pair
+> segments so `e + s + x = 1` is graphic-auditable.
+
 > Exact-head loop overlay: 2026-08-29 20:00 KST. Protected `main` is
 > `fc13acaa20adca11968238e398d4aafcf62b6cee` (v2.23.0 leftover-map
 > explained leftover share, #775). Open ready PRs still lack independent

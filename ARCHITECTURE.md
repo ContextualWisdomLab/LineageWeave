@@ -637,7 +637,7 @@ information at the group's mean θ (Lord, 1980 max-info CAT). Rankings
 persist to `report_item_information`. After those IRT main effects,
 residual SVD leftover pairs on two Gabriel axes (Jeon et al., 2021;
 ADR 0017 / 0048 / 0049 / 0119 / 0148 / 0158 / 0162 / 0163 / 0164 / 0168 /
-0182 / 0185 / 0201 / 0233 / 0266 / 0267 / 0268 / 0269 / 0270 / 0271 / 0272 / 0273) persist to `report_leftover_pair` with signed residual `R`,
+0182 / 0185 / 0201 / 0233 / 0266 / 0267 / 0268 / 0269 / 0270 / 0271 / 0272 / 0273 / 0274) persist to `report_leftover_pair` with signed residual `R`,
 observed `Y`, expected `E[Y|θ, item]`, full leftover-map rank, unexplained
 leftover, ADR 0201 reconstruction evidence, ADR 0185 cross-share evidence,
 ADR 0233 unexplained leftover share `s`, ADR 0266 explained leftover
@@ -650,7 +650,8 @@ badge matches the plot. ADR 0271 captions leftover-map pair segments
 with persisted leftover-map distance `d`. ADR 0272 captions leftover-map
 pair segments with persisted leftover-map reconstruction `R̂`. ADR 0273
 captions leftover-map pair segments with persisted leftover-map
-explained leftover share `e`. Click a post marker or a pair button
+explained leftover share `e`. ADR 0274 captions leftover-map pair
+segments with persisted leftover-map unexplained leftover share `s`. Click a post marker or a pair button
 opens that post. Those ADRs are the normative mathematical, storage, and
 display contracts. Leftover-map axis share
 (Gabriel inertia of residual SVD axes 1 and 2; ADR 0148) persists to

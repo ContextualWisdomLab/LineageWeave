@@ -4,7 +4,9 @@
 **Date:** 2026-08-27
 
 **Amended by:** [ADR 0266](0266-leftover-map-explained-share.md)
-(explained leftover share e)
+(explained leftover share e);
+[ADR 0274](0274-leftover-map-segment-unexplained-share.md)
+(leftover-map unexplained leftover share on graphic-display pair segments)
 
 Amends [ADR 0048](0048-persist-lsirm-leftover-pairs.md) and
 [ADR 0049](0049-leftover-pair-report-ui.md). Independent of leftover-map
