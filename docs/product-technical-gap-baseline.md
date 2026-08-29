@@ -1,7 +1,7 @@
 # Product & Technical Gap Baseline
 
-> Exact-head Voice export and authority audit: 2026-08-30 06:38 KST. Protected
-> `main` was `fc13acaa20adca11968238e398d4aafcf62b6cee`; fifteen PRs and nine
+> Exact-head Voice export and authority audit: 2026-08-30 08:00 KST. Protected
+> `main` was `fc13acaa20adca11968238e398d4aafcf62b6cee`; sixteen PRs and nine
 > issues were open. The largest directly actionable Voice acceptance gap on
 > this head was export ambiguity: the rendered exact-value table already
 > offered separate actions for the carrying Post and derivation-evidence Post,
@@ -18,12 +18,17 @@
 > 0245 / v2.24.0 on the same protected-main base. Its buyer-visible coordinates
 > are backed by additional projection from the frozen local NumPy residual-map
 > debt, while ADR 0208 assigns residual interaction maps and their coordinates
-> to fast-mlsirm's Rust result contract. The owner already returns person and
-> item coordinates, but this candidate does not consume and persist that
-> accepted owner artifact. It therefore remains a conflicting candidate, not a
-> protected-main capability or a permissible continuation of the product Gap
-> slice; no local reimplementation or heuristic substitute is authorized. Its
-> open stacked children #802 through #805 continue the same leftover-map
+> to fast-mlsirm's Rust result contract. fast-mlsirm PR #1417 publishes the
+> versioned Rust result envelope for person/item coordinates and retained-cell
+> interpretation; its exact head has passed the Rust, Python, package, GPU,
+> fuzz, dependency, and static-analysis gates, but protected delivery remains
+> unavailable pending the current required security verdict and independent
+> approval. Normal squash auto-merge is enabled. LineageWeave #782 does not
+> consume and persist that owner artifact. It therefore remains a conflicting
+> candidate, not a protected-main capability or a permissible continuation of
+> the product Gap slice; no local reimplementation or heuristic substitute is
+> authorized. Its
+> open stacked children #802 through #806 continue the same leftover-map
 > segment series. None can be treated as protected-main evidence: #782 must
 > resolve the ADR 0208 ownership conflict and protected-merge first, after which
 > each surviving child must be retargeted to `main` in parent order and collect
@@ -32,7 +37,7 @@
 > PR #782 also currently carries 2.24.0, 2.25.0, and 2.26.0 changelog and ADR
 > material in one head; those later slices do not cure the ADR 0208 ownership
 > conflict and cannot be treated as separately delivered releases.
-> The refreshed inventory has fifteen open PRs and nine open issues. PR #780's
+> The refreshed inventory has sixteen open PRs and nine open issues. PR #780's
 > exact-value export repair remains candidate-only: all review threads are
 > resolved and the focused frontend suite passes, but independent approval and
 > required current-head review/security verdicts remain unsatisfied. Normal
