@@ -15,6 +15,7 @@ const PAIRS: LeftoverPair[] = [
     leftover_map_reconstruction: 0.248,
     leftover_map_explained_share: 0.76,
     leftover_map_unexplained_share: 0.02,
+    leftover_map_cross_share: 0.12,
     leftover_map_person_axis_1: 0.5,
     leftover_map_person_axis_2: 0.1,
     leftover_map_item_axis_1: 0.5,
@@ -30,6 +31,7 @@ const PAIRS: LeftoverPair[] = [
     leftover_map_reconstruction: -0.95,
     leftover_map_explained_share: 0.6,
     leftover_map_unexplained_share: 0.05,
+    leftover_map_cross_share: -0.24,
     leftover_map_person_axis_1: 0.9,
     leftover_map_person_axis_2: 0.8,
     leftover_map_item_axis_1: -0.7,
@@ -51,7 +53,7 @@ describe("LeftoverMapPlot", () => {
     expect(screen.getByLabelText("Leftover-map graphic display")).toBeInTheDocument();
     expect(
       screen.getByText(
-        "Leftover map after IRT main effects. Axis ticks name persisted leftover-map coordinates. Pair segments name leftover-map distance d, leftover-map reconstruction R̂, leftover-map explained leftover share e, and leftover-map unexplained leftover share s. Click a post marker to open that post. The plot does not invent a leftover score.",
+        "Leftover map after IRT main effects. Axis ticks name persisted leftover-map coordinates. Pair segments name leftover-map distance d, leftover-map reconstruction R̂, leftover-map explained leftover share e, leftover-map unexplained leftover share s, and leftover-map cross share x. Click a post marker to open that post. The plot does not invent a leftover score.",
       ),
     ).toBeInTheDocument();
     expect(screen.getByText("Post ξ")).toBeInTheDocument();
@@ -69,6 +71,8 @@ describe("LeftoverMapPlot", () => {
     expect(screen.getByLabelText("leftover-map explained leftover share R̂²/R² 0.60")).toBeInTheDocument();
     expect(screen.getByLabelText("leftover-map unexplained leftover share U²/R² 0.02")).toBeInTheDocument();
     expect(screen.getByLabelText("leftover-map unexplained leftover share U²/R² 0.05")).toBeInTheDocument();
+    expect(screen.getByLabelText("leftover-map cross share 2R̂U/R² 0.12")).toBeInTheDocument();
+    expect(screen.getByLabelText("leftover-map cross share 2R̂U/R² -0.24")).toBeInTheDocument();
 
     const postMarker = screen.getByRole("button", {
       name: "Open leftover-map post Public post at ξ (+0.50, +0.10)",
@@ -118,6 +122,7 @@ describe("LeftoverMapPlot", () => {
             leftover_map_reconstruction: 0,
             leftover_map_explained_share: 0,
             leftover_map_unexplained_share: 0,
+            leftover_map_cross_share: 0,
             leftover_map_person_axis_1: 0,
             leftover_map_person_axis_2: 0,
             leftover_map_item_axis_1: 0,
@@ -143,6 +148,7 @@ describe("LeftoverMapPlot", () => {
     expect(screen.getByLabelText("leftover-map reconstruction R̂ 0.00")).toBeInTheDocument();
     expect(screen.getByLabelText("leftover-map explained leftover share R̂²/R² 0.00")).toBeInTheDocument();
     expect(screen.getByLabelText("leftover-map unexplained leftover share U²/R² 0.00")).toBeInTheDocument();
+    expect(screen.getByLabelText("leftover-map cross share 2R̂U/R² 0.00")).toBeInTheDocument();
   });
 
   it("captions leftover-map axes with persisted leftover-map axis share", () => {
@@ -284,5 +290,35 @@ describe("LeftoverMapPlot", () => {
     expect(screen.queryByLabelText(/leftover-map unexplained leftover share/)).not.toBeInTheDocument();
     expect(screen.getByLabelText("leftover-map explained leftover share R̂²/R² 0.76")).toBeInTheDocument();
     expect(screen.getByLabelText("leftover-map reconstruction R̂ +0.25")).toBeInTheDocument();
+  });
+
+  it("omits leftover-map cross share on a pair segment when x is missing", () => {
+    render(
+      <LeftoverMapPlot
+        pairs={[
+          {
+            pair_kind: "closest",
+            post_id: "post-demo-public",
+            post_title: "Public post",
+            criterion_code: "sales_lead_quality",
+            leftover_distance: 0.12,
+            leftover_residual: 0.4,
+            leftover_map_reconstruction: 0.248,
+            leftover_map_explained_share: 0.76,
+            leftover_map_unexplained_share: 0.02,
+            leftover_map_cross_share: Number.NaN,
+            leftover_map_person_axis_1: 0.5,
+            leftover_map_person_axis_2: 0.1,
+            leftover_map_item_axis_1: 0.5,
+            leftover_map_item_axis_2: -0.02,
+          },
+        ]}
+        criterionLabel={criterionLabel}
+        onSelectPost={vi.fn()}
+      />,
+    );
+    expect(screen.queryByLabelText(/leftover-map cross share/)).not.toBeInTheDocument();
+    expect(screen.getByLabelText("leftover-map unexplained leftover share U²/R² 0.02")).toBeInTheDocument();
+    expect(screen.getByLabelText("leftover-map explained leftover share R̂²/R² 0.76")).toBeInTheDocument();
   });
 });

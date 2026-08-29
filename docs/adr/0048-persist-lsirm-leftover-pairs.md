@@ -17,7 +17,8 @@
 [ADR 0271](0271-leftover-map-segment-distance.md) (leftover-map distance on pair segments);
 [ADR 0272](0272-leftover-map-segment-reconstruction.md) (leftover-map reconstruction on pair segments);
 [ADR 0273](0273-leftover-map-segment-explained-share.md) (leftover-map explained leftover share on pair segments);
-[ADR 0274](0274-leftover-map-segment-unexplained-share.md) (leftover-map unexplained leftover share on pair segments)
+[ADR 0274](0274-leftover-map-segment-unexplained-share.md) (leftover-map unexplained leftover share on pair segments);
+[ADR 0275](0275-leftover-map-segment-cross-share.md) (leftover-map cross share on pair segments)
 
 ## Context
 
@@ -82,7 +83,8 @@ leftover-map reconstruction `R̂`; it adds no columns. ADR 0273 captions
 leftover-map pair segments with persisted leftover-map explained leftover
 share `e`; it adds no columns. ADR 0274 captions leftover-map pair
 segments with persisted leftover-map unexplained leftover share `s`; it
-adds no columns.
+adds no columns. ADR 0275 captions leftover-map pair segments with
+persisted leftover-map cross share `x`; it adds no columns.
 
 Cascade the rows with `report_period_score`. A leftover post must
 also be a `report_member_score` row, and the leftover criterion

@@ -26,6 +26,7 @@ function pair(
     leftover_map_reconstruction: 0.248,
     leftover_map_explained_share: 0.76,
     leftover_map_unexplained_share: 0.02,
+    leftover_map_cross_share: 0.12,
     ...overrides,
   };
 }
@@ -452,6 +453,7 @@ describe("layoutLeftoverMapPlot", () => {
           leftover_map_reconstruction: -0.95,
           leftover_map_explained_share: 0.6,
           leftover_map_unexplained_share: 0.05,
+          leftover_map_cross_share: -0.24,
         }),
       ],
       criterionLabel,
@@ -518,10 +520,107 @@ describe("layoutLeftoverMapPlot", () => {
           leftover_map_reconstruction: 0,
           leftover_map_explained_share: 0,
           leftover_map_unexplained_share: 0,
+          leftover_map_cross_share: 0,
         }),
       ],
       criterionLabel,
     );
+    expect(layout?.segments[0]?.unexplainedShareLabel).toBe("U\u00b2/R\u00b2 0.00");
+    expect(layout?.segments[0]?.explainedShareLabel).toBe("R\u0302\u00b2/R\u00b2 0.00");
+    expect(layout?.segments[0]?.reconstructionLabel).toBe("R\u0302 0.00");
+    expect(layout?.segments[0]?.distanceLabel).toBe("d 0.00");
+  });
+
+  it("names persisted leftover-map cross share on pair segments without inventing a leftover score", () => {
+    const layout = layoutLeftoverMapPlot(
+      [
+        pair(),
+        pair({
+          pair_kind: "farthest",
+          post_id: "post-demo-spec",
+          criterion_code: "negative_sentiment",
+          leftover_map_person_axis_1: 0.9,
+          leftover_map_person_axis_2: 0.8,
+          leftover_map_item_axis_1: -0.7,
+          leftover_map_item_axis_2: -0.4,
+          leftover_distance: 1.84,
+          leftover_map_reconstruction: -0.95,
+          leftover_map_explained_share: 0.6,
+          leftover_map_unexplained_share: 0.05,
+          leftover_map_cross_share: -0.24,
+        }),
+      ],
+      criterionLabel,
+    );
+    expect(layout?.segments.map((segment) => segment.crossShareLabel)).toEqual([
+      "2R\u0302U/R\u00b2 0.12",
+      "2R\u0302U/R\u00b2 -0.24",
+    ]);
+    expect(layout?.segments[0]?.crossShareX).toBeCloseTo(layout?.segments[0]?.labelX ?? 0, 5);
+    expect(layout?.segments[0]?.crossShareY).toBeGreaterThan(
+      layout?.segments[0]?.unexplainedShareY ?? 0,
+    );
+  });
+
+  it("omits a leftover-map cross share caption when x is missing or non-finite", () => {
+    const layout = layoutLeftoverMapPlot(
+      [
+        pair({ leftover_map_cross_share: null }),
+        pair({
+          pair_kind: "farthest",
+          leftover_map_cross_share: Number.NaN,
+          leftover_map_item_axis_1: -0.7,
+          leftover_map_item_axis_2: -0.4,
+          criterion_code: "negative_sentiment",
+        }),
+      ],
+      criterionLabel,
+    );
+    expect(layout?.segments.map((segment) => segment.crossShareLabel)).toEqual([null, null]);
+    expect(layout?.segments.map((segment) => segment.unexplainedShareLabel)).toEqual([
+      "U\u00b2/R\u00b2 0.02",
+      "U\u00b2/R\u00b2 0.02",
+    ]);
+  });
+
+  it("does not invent leftover-map cross share from reconstruction or residual", () => {
+    const layout = layoutLeftoverMapPlot(
+      [
+        pair({
+          leftover_map_person_axis_1: 1,
+          leftover_map_person_axis_2: 0,
+          leftover_map_item_axis_1: 1,
+          leftover_map_item_axis_2: 0,
+          leftover_map_reconstruction: 1,
+          leftover_map_explained_share: 0.76,
+          leftover_map_unexplained_share: 0.02,
+          leftover_map_cross_share: 0.12,
+        }),
+      ],
+      criterionLabel,
+    );
+    expect(layout?.segments[0]?.crossShareLabel).toBe("2R\u0302U/R\u00b2 0.12");
+    expect(layout?.segments[0]?.crossShareLabel).not.toBe("2R\u0302U/R\u00b2 1.00");
+  });
+
+  it("names rank-0 origin leftover-map cross share x 0.00 when that persisted value is finite", () => {
+    const layout = layoutLeftoverMapPlot(
+      [
+        pair({
+          leftover_map_person_axis_1: 0,
+          leftover_map_person_axis_2: 0,
+          leftover_map_item_axis_1: 0,
+          leftover_map_item_axis_2: 0,
+          leftover_distance: 0,
+          leftover_map_reconstruction: 0,
+          leftover_map_explained_share: 0,
+          leftover_map_unexplained_share: 0,
+          leftover_map_cross_share: 0,
+        }),
+      ],
+      criterionLabel,
+    );
+    expect(layout?.segments[0]?.crossShareLabel).toBe("2R\u0302U/R\u00b2 0.00");
     expect(layout?.segments[0]?.unexplainedShareLabel).toBe("U\u00b2/R\u00b2 0.00");
     expect(layout?.segments[0]?.explainedShareLabel).toBe("R\u0302\u00b2/R\u00b2 0.00");
     expect(layout?.segments[0]?.reconstructionLabel).toBe("R\u0302 0.00");

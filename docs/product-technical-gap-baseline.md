@@ -1,5 +1,40 @@
 # Product & Technical Gap Baseline
 
+> Exact-head loop overlay: 2026-08-29 23:10 KST. Protected `main` is
+> `fc13acaa20adca11968238e398d4aafcf62b6cee` (v2.23.0 leftover-map
+> explained leftover share, #775). Open ready PRs still lack independent
+> APPROVE. #782 leftover-map coordinates + graphic + axis share + ticks
+> + distance (v2.24.0–v2.28.0 / ADR 0267–0271) is on
+> `9bdd3e4d6e47a34ac22fca228b8d2a23d8cecca9` with auto-merge SQUASH
+> armed. Independent APPROVE is still required for protected main.
+> #802 leftover-map explained leftover share on pair segments (v2.30.0
+> / ADR 0273) is stacked on leftover-coordinates at
+> `79ec22f0a4b7236ab06500c7bf8f392da6a9419b`. #803 leftover-map
+> unexplained leftover share on pair segments (v2.31.0 / ADR 0274) is
+> stacked on #802 at `089a15713736cbecd4141d460c43d985d3973a92`. Leave
+> #782/#802/#803 open for independent review. Do not squash-merge stacked
+> leftover PRs onto an unprotected leftover base. Auto-merge squash
+> remains armed on #782/#780/#774/#772/#771/#770. Drafts remain dirty
+> against `main`. #96 is already gone (`Could not resolve to an Issue
+> with the number of 96`). GitHub writes through `gh`/MCP succeed
+> (comment/create-PR/auto-merge). Copilot review is not independent
+> APPROVE. Do not self-approve.
+>
+> Next buyer increment on this cycle: leftover-map cross share `x` on
+> graphic-display pair segments (ADR 0275 / v2.32.0) delivered locally on
+> `feat/leftover-map-segment-cross-share-v2320`. Caption each
+> closest/farthest segment with persisted leftover-map cross share so
+> the pair-row `2R̂U/R²` badge matches the graphic and
+> `e + s + x = 1` is graphic-auditable. UI-only; no new columns.
+> Missing/non-finite `x` omits that leftover-map cross share caption. A
+> finite negative share is shown; do not clamp to nonnegative. Do not
+> invent `x` from `R̂`, `U`, and `R` or from plotted coordinates. Do not
+> invent leftover scores. Stack onto leftover branch
+> `feat/leftover-map-segment-unexplained-share-v2310`; leave the PR open
+> for independent review. Do not squash-merge onto the leftover base.
+> Do not persist leftover-map inner product, cosine, or length as
+> separate columns.
+
 > Exact-head loop overlay: 2026-08-29 20:20 KST. Protected `main` is
 > `fc13acaa20adca11968238e398d4aafcf62b6cee` (v2.23.0 leftover-map
 > explained leftover share, #775). Open ready PRs still lack independent

@@ -65,7 +65,8 @@ export type LeftoverPairListProps = {
  * ``R̂`` on those pair segments. ADR 0273 names persisted leftover-map
  * explained leftover share ``e`` on those pair segments. ADR 0274 names
  * persisted leftover-map unexplained leftover share ``s`` on those pair
- * segments. Every badge still
+ * segments. ADR 0275 names persisted leftover-map cross share ``x`` on
+ * those pair segments. Every badge still
  * renders together before opening the named post.
  */
 export function LeftoverPairList({

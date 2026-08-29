@@ -2,6 +2,8 @@
 
 **Decision status:** Accepted
 **Date:** 2026-08-29
+**Amended by:** [ADR 0275](0275-leftover-map-segment-cross-share.md)
+(leftover-map cross share on pair segments)
 
 Amends [ADR 0268](0268-leftover-map-graphic-display.md) and
 [ADR 0049](0049-leftover-pair-report-ui.md). Independent of leftover-map
@@ -88,13 +90,15 @@ finite, leftover-map axis ticks name the same coordinates shown on
 the pair row, pair segments name persisted leftover-map distance `d`,
 persisted leftover-map reconstruction `R̂`, persisted leftover-map
 explained leftover share `e`, and persisted leftover-map unexplained
-leftover share `s`; click a post marker or a pair button opens that
+leftover share `s`, and pair segments name persisted leftover-map
+cross share `x` (ADR 0275); click a post marker or a pair button opens that
 post. Hidden posts stay hidden. Rank-0 unused axes still plot at the
 origin, still name zero leftover-map axis share with a `0` tick, still
 name `d 0.00` when that distance is persisted, still name `R̂ 0.00`
 when that reconstruction is persisted, still name `R̂²/R² 0.00` when
 that explained leftover share is persisted, and still name `U²/R² 0.00`
-when that unexplained leftover share is persisted. When `R`, `R̂`, `U`,
+when that unexplained leftover share is persisted, and still name `2R̂U/R² 0.00`
+when that leftover-map cross share is persisted. When `R`, `R̂`, `U`,
 `x`, `s`, and `e` are all finite, `e + s + x = 1` remains the same
 identity already persisted by ADR 0233 and ADR 0266.
 
