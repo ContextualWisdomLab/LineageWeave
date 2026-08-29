@@ -1,7 +1,7 @@
 # Product & Technical Gap Baseline
 
-> Exact-head Voice export and authority audit: 2026-08-29 02:16 KST. Protected
-> `main` was `fc13acaa20adca11968238e398d4aafcf62b6cee`; twelve PRs and nine
+> Exact-head Voice export and authority audit: 2026-08-30 06:38 KST. Protected
+> `main` was `fc13acaa20adca11968238e398d4aafcf62b6cee`; fifteen PRs and nine
 > issues were open. The largest directly actionable Voice acceptance gap on
 > this head was export ambiguity: the rendered exact-value table already
 > offered separate actions for the carrying Post and derivation-evidence Post,
@@ -23,29 +23,20 @@
 > accepted owner artifact. It therefore remains a conflicting candidate, not a
 > protected-main capability or a permissible continuation of the product Gap
 > slice; no local reimplementation or heuristic substitute is authorized. Its
-> stacked child #783 proposes v2.25.0 rendering on that unaccepted parent. Its
-> prior TypeScript build failure and anisotropic plot scale were repaired at a
-> new exact head with focused layout tests, type checking, lint, production
-> build, and Storybook build evidence; refreshed hosted checks are pending. It
-> still cannot be retargeted or treated as product evidence before the parent
-> ownership conflict is resolved, the parent is protected-merged first, and the
-> child is retargeted to `main` and revalidated from another new exact head.
-> The same exact-head inventory now includes stacked PR #786, targeting PR
-> #640's `feat/dashboard-case-metrics` branch.
-> It is candidate-only evidence: #640 must protected-merge first, then #786
-> must be retargeted to `main` and all head-bound checks, reviews, API/runtime
-> evidence, and release/ADR/schema compatibility must be collected again.
+> open stacked children #802 through #805 continue the same leftover-map
+> segment series. None can be treated as protected-main evidence: #782 must
+> resolve the ADR 0208 ownership conflict and protected-merge first, after which
+> each surviving child must be retargeted to `main` in parent order and collect
+> fresh exact-head checks, independent approval, API/runtime evidence, and
+> release/ADR/schema compatibility evidence.
 > PR #782 also currently carries 2.24.0, 2.25.0, and 2.26.0 changelog and ADR
 > material in one head; those later slices do not cure the ADR 0208 ownership
 > conflict and cannot be treated as separately delivered releases.
-> The refreshed inventory has twelve open PRs and nine open issues. Stacked
-> candidate #792 targets #786's branch, not protected `main`. PR #794 merged
-> into that same stack branch, so its merge is not protected-main delivery and
-> does not satisfy the requirement to merge #640 first, retarget each child to
-> `main`, and collect new exact-head checks, reviews, and runtime evidence.
-> The only currently open child in that stack is #798, based on #640 rather
-> than protected `main`; its catalog-provisioning behavior is likewise
-> candidate-only until #640 merges first and #798 is retargeted and revalidated.
+> The refreshed inventory has fifteen open PRs and nine open issues. PR #780's
+> exact-value export repair remains candidate-only: all review threads are
+> resolved and the focused frontend suite passes, but independent approval and
+> required current-head review/security verdicts remain unsatisfied. Normal
+> squash auto-merge stays enabled; no self-approval or policy bypass is used.
 >
 > Exact-head loop overlay: 2026-08-28 10:00 KST. Protected `main` was
 > `edf22ee39aee2a8481f9bda8fff59801821e79c2` (#773 similar-VOC coverage).
