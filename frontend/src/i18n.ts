@@ -593,8 +593,9 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "leftover-map axis {axis} tick {value}": "잔여 지도 축 {axis} 눈금 {value}",
     "leftover-map distance {label}": "잔여 지도 거리 {label}",
     "leftover-map reconstruction {label}": "잔여 지도 재구성 {label}",
-    "Leftover map after IRT main effects. Axis ticks name persisted leftover-map coordinates. Pair segments name leftover-map distance d and leftover-map reconstruction R̂. Click a post marker to open that post. The plot does not invent a leftover score.":
-      "IRT 주효과 이후 잔여 지도입니다. 축 눈금은 저장된 잔여 지도 좌표입니다. 쌍 선분은 잔여 지도 거리 d와 잔여 지도 재구성 R̂입니다. 글 표식을 눌러 그 글을 여세요. 이 그림은 잔여 점수를 만들어내지 않습니다.",
+    "leftover-map explained leftover share {label}": "잔여 지도 설명 잔여 점유율 {label}",
+    "Leftover map after IRT main effects. Axis ticks name persisted leftover-map coordinates. Pair segments name leftover-map distance d, leftover-map reconstruction R̂, and leftover-map explained leftover share e. Click a post marker to open that post. The plot does not invent a leftover score.":
+      "IRT 주효과 이후 잔여 지도입니다. 축 눈금은 저장된 잔여 지도 좌표입니다. 쌍 선분은 잔여 지도 거리 d, 잔여 지도 재구성 R̂, 잔여 지도 설명 잔여 점유율 e입니다. 글 표식을 눌러 그 글을 여세요. 이 그림은 잔여 점수를 만들어내지 않습니다.",
     "Open leftover-map post {title} at ξ {person}":
       "잔여 지도 글 {title} 열기 (ξ {person})",
     "Read observed Y {observed} and expected E {expected} after IRT main effects, then open this post.":
@@ -1174,8 +1175,9 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "leftover-map axis {axis} tick {value}": "残差图轴 {axis} 刻度 {value}",
     "leftover-map distance {label}": "残差图距离 {label}",
     "leftover-map reconstruction {label}": "残差图重建 {label}",
-    "Leftover map after IRT main effects. Axis ticks name persisted leftover-map coordinates. Pair segments name leftover-map distance d and leftover-map reconstruction R̂. Click a post marker to open that post. The plot does not invent a leftover score.":
-      "IRT 主效应后的残差图。轴刻度标出已保存的残差图坐标。配对线段标出残差图距离 d 与残差图重建 R̂。点击帖子标记打开该帖子。此图不会虚构残差分数。",
+    "leftover-map explained leftover share {label}": "残差图已解释残差份额 {label}",
+    "Leftover map after IRT main effects. Axis ticks name persisted leftover-map coordinates. Pair segments name leftover-map distance d, leftover-map reconstruction R̂, and leftover-map explained leftover share e. Click a post marker to open that post. The plot does not invent a leftover score.":
+      "IRT 主效应后的残差图。轴刻度标出已保存的残差图坐标。配对线段标出残差图距离 d、残差图重建 R̂ 与残差图已解释残差份额 e。点击帖子标记打开该帖子。此图不会虚构残差分数。",
     "Open leftover-map post {title} at ξ {person}":
       "打开残差图帖子 {title}（ξ {person}）",
     "Read observed Y {observed} and expected E {expected} after IRT main effects, then open this post.":
@@ -1759,8 +1761,9 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "leftover-map axis {axis} tick {value}": "残差マップ軸 {axis} 目盛 {value}",
     "leftover-map distance {label}": "残差マップ距離 {label}",
     "leftover-map reconstruction {label}": "残差マップ再構成 {label}",
-    "Leftover map after IRT main effects. Axis ticks name persisted leftover-map coordinates. Pair segments name leftover-map distance d and leftover-map reconstruction R̂. Click a post marker to open that post. The plot does not invent a leftover score.":
-      "IRT主効果後の残差マップです。軸目盛は保存済みの残差マップ座標です。ペア線分は残差マップ距離 d と残差マップ再構成 R̂ です。投稿マーカーをクリックしてその投稿を開いてください。この図は残差スコアを作りません。",
+    "leftover-map explained leftover share {label}": "残差マップ説明済み残差割合 {label}",
+    "Leftover map after IRT main effects. Axis ticks name persisted leftover-map coordinates. Pair segments name leftover-map distance d, leftover-map reconstruction R̂, and leftover-map explained leftover share e. Click a post marker to open that post. The plot does not invent a leftover score.":
+      "IRT主効果後の残差マップです。軸目盛は保存済みの残差マップ座標です。ペア線分は残差マップ距離 d、残差マップ再構成 R̂、残差マップ説明済み残差割合 e です。投稿マーカーをクリックしてその投稿を開いてください。この図は残差スコアを作りません。",
     "Open leftover-map post {title} at ξ {person}":
       "残差マップの投稿 {title} を開く（ξ {person}）",
     "Read observed Y {observed} and expected E {expected} after IRT main effects, then open this post.":
@@ -2344,8 +2347,9 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "leftover-map axis {axis} tick {value}": "vạch trục bản đồ phần dư {axis} {value}",
     "leftover-map distance {label}": "khoảng cách bản đồ phần dư {label}",
     "leftover-map reconstruction {label}": "tái dựng bản đồ phần dư {label}",
-    "Leftover map after IRT main effects. Axis ticks name persisted leftover-map coordinates. Pair segments name leftover-map distance d and leftover-map reconstruction R̂. Click a post marker to open that post. The plot does not invent a leftover score.":
-      "Bản đồ phần dư sau hiệu ứng chính IRT. Vạch trục ghi tọa độ bản đồ phần dư đã lưu. Đoạn cặp ghi khoảng cách bản đồ phần dư d và tái dựng bản đồ phần dư R̂. Nhấn dấu bài viết để mở bài đó. Hình này không tạo ra điểm phần dư.",
+    "leftover-map explained leftover share {label}": "phần dư giải thích bản đồ phần dư {label}",
+    "Leftover map after IRT main effects. Axis ticks name persisted leftover-map coordinates. Pair segments name leftover-map distance d, leftover-map reconstruction R̂, and leftover-map explained leftover share e. Click a post marker to open that post. The plot does not invent a leftover score.":
+      "Bản đồ phần dư sau hiệu ứng chính IRT. Vạch trục ghi tọa độ bản đồ phần dư đã lưu. Đoạn cặp ghi khoảng cách bản đồ phần dư d, tái dựng bản đồ phần dư R̂ và phần dư giải thích e. Nhấn dấu bài viết để mở bài đó. Hình này không tạo ra điểm phần dư.",
     "Open leftover-map post {title} at ξ {person}":
       "Mở bài viết bản đồ phần dư {title} tại ξ {person}",
     "Read observed Y {observed} and expected E {expected} after IRT main effects, then open this post.":

@@ -4,7 +4,9 @@
 **Date:** 2026-08-29
 
 **Amended by:** [ADR 0272](0272-leftover-map-segment-reconstruction.md)
-(leftover-map reconstruction on pair segments)
+(leftover-map reconstruction on pair segments);
+[ADR 0273](0273-leftover-map-segment-explained-share.md)
+(leftover-map explained leftover share on pair segments)
 
 Amends [ADR 0268](0268-leftover-map-graphic-display.md) and
 [ADR 0049](0049-leftover-pair-report-ui.md). Independent of leftover-map

@@ -1,17 +1,19 @@
 /** Gabriel leftover-map graphic display of persisted ``ξ_{1:2}`` / ``ζ_{1:2}``.
  *  Leftover-map axis share captions axes 1 and 2 when finite (ADR 0269).
  *  Axis ticks name persisted leftover-map coordinates (ADR 0270).
- *  Pair segments name persisted leftover-map distance ``d`` (ADR 0271)
- *  and persisted leftover-map reconstruction ``R̂`` (ADR 0272).
+ *  Pair segments name persisted leftover-map distance ``d`` (ADR 0271),
+ *  persisted leftover-map reconstruction ``R̂`` (ADR 0272), and persisted
+ *  leftover-map explained leftover share ``e`` (ADR 0273).
  */
 
 import { formatLeftoverMapCoordinatePair } from "./leftoverMapCoordinates";
+import { formatLeftoverMapExplainedShare } from "./leftoverMapExplainedShare";
 import { formatLeftoverMapReconstruction } from "./leftoverMapReconstruction";
 import { formatSignedLeftoverValue } from "./leftoverMapUnexplained";
 import type { LeftoverPair } from "./api";
 
 export const LEFTOVER_MAP_PLOT_CAPTION =
-  "Leftover map after IRT main effects. Axis ticks name persisted leftover-map coordinates. Pair segments name leftover-map distance d and leftover-map reconstruction R̂. Click a post marker to open that post. The plot does not invent a leftover score.";
+  "Leftover map after IRT main effects. Axis ticks name persisted leftover-map coordinates. Pair segments name leftover-map distance d, leftover-map reconstruction R̂, and leftover-map explained leftover share e. Click a post marker to open that post. The plot does not invent a leftover score.";
 
 export const LEFTOVER_MAP_PLOT_POST_ACTION =
   "Open leftover-map post {title} at ξ {person}";
@@ -24,6 +26,9 @@ export const LEFTOVER_MAP_PLOT_SEGMENT_DISTANCE =
 
 export const LEFTOVER_MAP_PLOT_SEGMENT_RECONSTRUCTION =
   "leftover-map reconstruction {label}";
+
+export const LEFTOVER_MAP_PLOT_SEGMENT_EXPLAINED_SHARE =
+  "leftover-map explained leftover share {label}";
 
 export const PLOT_WIDTH = 480;
 export const PLOT_HEIGHT = 320;
@@ -41,6 +46,7 @@ export type LeftoverMapPlottablePair = {
   criterion_code: string;
   leftover_distance?: number | null;
   leftover_map_reconstruction?: number | null;
+  leftover_map_explained_share?: number | null;
   leftover_map_person_axis_1?: number | null;
   leftover_map_person_axis_2?: number | null;
   leftover_map_item_axis_1?: number | null;
@@ -67,10 +73,13 @@ export type LeftoverMapPlotSegment = {
   y2: number;
   distanceLabel: string | null;
   reconstructionLabel: string | null;
+  explainedShareLabel: string | null;
   labelX: number;
   labelY: number;
   reconstructionX: number;
   reconstructionY: number;
+  explainedShareX: number;
+  explainedShareY: number;
 };
 
 export type LeftoverMapPlotTick = {
@@ -202,6 +211,10 @@ function leftoverMapSegmentLabelPosition(
   };
 }
 
+function leftoverMapStackedCaptionY(labelY: number, stackedAbove: number): number {
+  return stackedAbove > 0 ? labelY + stackedAbove * RECONSTRUCTION_LABEL_OFFSET : labelY;
+}
+
 export function layoutLeftoverMapPlot(
   pairs: LeftoverMapPlottablePair[],
   criterionLabel: (criterionCode: string) => string,
@@ -287,16 +300,23 @@ export function layoutLeftoverMapPlot(
     const reconstructionLabel = formatLeftoverMapReconstruction(
       pair.leftover_map_reconstruction,
     );
+    const explainedShareLabel = formatLeftoverMapExplainedShare(
+      pair.leftover_map_explained_share,
+    );
     const labelPosition = leftoverMapSegmentLabelPosition(
       personPos.x,
       personPos.y,
       itemPos.x,
       itemPos.y,
     );
-    const reconstructionY =
-      reconstructionLabel !== null && distanceLabel !== null
-        ? labelPosition.labelY + RECONSTRUCTION_LABEL_OFFSET
-        : labelPosition.labelY;
+    const reconstructionY = leftoverMapStackedCaptionY(
+      labelPosition.labelY,
+      distanceLabel !== null && reconstructionLabel !== null ? 1 : 0,
+    );
+    const explainedShareY = leftoverMapStackedCaptionY(
+      labelPosition.labelY,
+      (distanceLabel !== null ? 1 : 0) + (reconstructionLabel !== null ? 1 : 0),
+    );
     segments.push({
       pairKind: pair.pair_kind === "farthest" ? "farthest" : "closest",
       postId: pair.post_id,
@@ -307,8 +327,11 @@ export function layoutLeftoverMapPlot(
       y2: itemPos.y,
       distanceLabel,
       reconstructionLabel,
+      explainedShareLabel,
       reconstructionX: labelPosition.labelX,
       reconstructionY,
+      explainedShareX: labelPosition.labelX,
+      explainedShareY,
       ...labelPosition,
     });
   }
