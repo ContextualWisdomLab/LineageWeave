@@ -1,6 +1,7 @@
 /** Gabriel leftover-map graphic display of persisted ``ξ_{1:2}`` / ``ζ_{1:2}``.
  *  Leftover-map axis share captions axes 1 and 2 when finite (ADR 0269).
  *  Axis ticks name persisted leftover-map coordinates (ADR 0270).
+ *  Pair segments name persisted leftover-map distance ``d`` (ADR 0271).
  */
 
 import { formatLeftoverMapCoordinatePair } from "./leftoverMapCoordinates";
@@ -8,7 +9,7 @@ import { formatSignedLeftoverValue } from "./leftoverMapUnexplained";
 import type { LeftoverPair } from "./api";
 
 export const LEFTOVER_MAP_PLOT_CAPTION =
-  "Leftover map after IRT main effects. Axis ticks name persisted leftover-map coordinates. Click a post marker to open that post. The plot does not invent a leftover score.";
+  "Leftover map after IRT main effects. Axis ticks name persisted leftover-map coordinates. Pair segments name leftover-map distance d. Click a post marker to open that post. The plot does not invent a leftover score.";
 
 export const LEFTOVER_MAP_PLOT_POST_ACTION =
   "Open leftover-map post {title} at ξ {person}";
@@ -16,18 +17,23 @@ export const LEFTOVER_MAP_PLOT_POST_ACTION =
 export const LEFTOVER_MAP_PLOT_TICK =
   "leftover-map axis {axis} tick {value}";
 
+export const LEFTOVER_MAP_PLOT_SEGMENT_DISTANCE =
+  "leftover-map distance {label}";
+
 export const PLOT_WIDTH = 480;
 export const PLOT_HEIGHT = 320;
 export const PLOT_PADDING = 40;
 export const PLOT_TICK_LENGTH = 6;
 const UNIT_DISPLAY_SPAN = 2;
 const COLLAPSED_SPAN = 1e-12;
+const COINCIDENT_LABEL_OFFSET = 14;
 
 export type LeftoverMapPlottablePair = {
   pair_kind: LeftoverPair["pair_kind"];
   post_id: string;
   post_title: string;
   criterion_code: string;
+  leftover_distance?: number | null;
   leftover_map_person_axis_1?: number | null;
   leftover_map_person_axis_2?: number | null;
   leftover_map_item_axis_1?: number | null;
@@ -52,6 +58,9 @@ export type LeftoverMapPlotSegment = {
   y1: number;
   x2: number;
   y2: number;
+  distanceLabel: string | null;
+  labelX: number;
+  labelY: number;
 };
 
 export type LeftoverMapPlotTick = {
@@ -74,6 +83,13 @@ export type LeftoverMapPlotLayout = {
   segments: LeftoverMapPlotSegment[];
   ticks: LeftoverMapPlotTick[];
 };
+
+export function formatLeftoverMapDistance(value: number | null | undefined): string | null {
+  if (value == null || !Number.isFinite(value)) {
+    return null;
+  }
+  return `d ${value.toFixed(2)}`;
+}
 
 export function hasLeftoverMapPlotCoordinates(
   pair: LeftoverMapPlottablePair,
@@ -163,6 +179,19 @@ function leftoverMapCoordinateTicks(
   return ticks;
 }
 
+function leftoverMapSegmentLabelPosition(
+  x1: number,
+  y1: number,
+  x2: number,
+  y2: number,
+): { labelX: number; labelY: number } {
+  const coincident = Math.abs(x1 - x2) < 0.01 && Math.abs(y1 - y2) < 0.01;
+  return {
+    labelX: (x1 + x2) / 2,
+    labelY: coincident ? (y1 + y2) / 2 - COINCIDENT_LABEL_OFFSET : (y1 + y2) / 2,
+  };
+}
+
 export function layoutLeftoverMapPlot(
   pairs: LeftoverMapPlottablePair[],
   criterionLabel: (criterionCode: string) => string,
@@ -244,6 +273,7 @@ export function layoutLeftoverMapPlot(
       pair.leftover_map_person_axis_2 as number,
       pair.leftover_map_item_axis_2 as number,
     );
+    const distanceLabel = formatLeftoverMapDistance(pair.leftover_distance);
     segments.push({
       pairKind: pair.pair_kind === "farthest" ? "farthest" : "closest",
       postId: pair.post_id,
@@ -252,6 +282,8 @@ export function layoutLeftoverMapPlot(
       y1: personPos.y,
       x2: itemPos.x,
       y2: itemPos.y,
+      distanceLabel,
+      ...leftoverMapSegmentLabelPosition(personPos.x, personPos.y, itemPos.x, itemPos.y),
     });
   }
 

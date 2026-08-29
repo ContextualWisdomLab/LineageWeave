@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import type { LeftoverMapPlottablePair } from "./leftoverMapPlotLayout";
 import {
   firstPlottablePairForPost,
+  formatLeftoverMapDistance,
   hasLeftoverMapPlotCoordinates,
   layoutLeftoverMapPlot,
   PLOT_HEIGHT,
@@ -21,6 +22,7 @@ function pair(
     leftover_map_person_axis_2: 0.1,
     leftover_map_item_axis_1: 0.5,
     leftover_map_item_axis_2: -0.02,
+    leftover_distance: 0.12,
     ...overrides,
   };
 }
@@ -204,6 +206,73 @@ describe("layoutLeftoverMapPlot", () => {
     expect(layout?.ticks.some((tick) => tick.label === "+1.00" || tick.label === "\u22121.00")).toBe(
       false,
     );
+  });
+
+  it("names persisted leftover-map distance on pair segments without inventing a leftover score", () => {
+    const layout = layoutLeftoverMapPlot(
+      [
+        pair(),
+        pair({
+          pair_kind: "farthest",
+          post_id: "post-demo-spec",
+          criterion_code: "negative_sentiment",
+          leftover_map_person_axis_1: 0.9,
+          leftover_map_person_axis_2: 0.8,
+          leftover_map_item_axis_1: -0.7,
+          leftover_map_item_axis_2: -0.4,
+          leftover_distance: 1.84,
+        }),
+      ],
+      criterionLabel,
+    );
+    expect(layout?.segments.map((segment) => segment.distanceLabel)).toEqual(["d 0.12", "d 1.84"]);
+    expect(layout?.segments[0]?.labelX).toBeCloseTo(
+      ((layout?.segments[0]?.x1 ?? 0) + (layout?.segments[0]?.x2 ?? 0)) / 2,
+      5,
+    );
+  });
+
+  it("omits a leftover-map distance caption when d is missing or non-finite", () => {
+    const layout = layoutLeftoverMapPlot(
+      [
+        pair({ leftover_distance: null }),
+        pair({
+          pair_kind: "farthest",
+          leftover_distance: Number.NaN,
+          leftover_map_item_axis_1: -0.7,
+          leftover_map_item_axis_2: -0.4,
+          criterion_code: "negative_sentiment",
+        }),
+      ],
+      criterionLabel,
+    );
+    expect(layout?.segments.map((segment) => segment.distanceLabel)).toEqual([null, null]);
+  });
+
+  it("does not invent leftover-map distance from plotted coordinates", () => {
+    const layout = layoutLeftoverMapPlot(
+      [
+        pair({
+          leftover_map_person_axis_1: 0,
+          leftover_map_person_axis_2: 0,
+          leftover_map_item_axis_1: 1,
+          leftover_map_item_axis_2: 0,
+          leftover_distance: 0.12,
+        }),
+      ],
+      criterionLabel,
+    );
+    expect(layout?.segments[0]?.distanceLabel).toBe("d 0.12");
+    expect(layout?.segments[0]?.distanceLabel).not.toBe("d 1.00");
+  });
+});
+
+describe("formatLeftoverMapDistance", () => {
+  it("formats persisted leftover-map distance without inventing a leftover score", () => {
+    expect(formatLeftoverMapDistance(0.12)).toBe("d 0.12");
+    expect(formatLeftoverMapDistance(0)).toBe("d 0.00");
+    expect(formatLeftoverMapDistance(null)).toBeNull();
+    expect(formatLeftoverMapDistance(Number.NaN)).toBeNull();
   });
 });
 

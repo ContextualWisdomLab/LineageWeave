@@ -12,6 +12,8 @@ leftover-map unexplained leftover share
 ([ADR 0233](0233-leftover-map-unexplained-share.md)), leftover-map
 reconstruction ([ADR 0201](0201-leftover-map-reconstruction.md)), and
 leftover-map axis share persistence ([ADR 0148](0148-leftover-map-axis-share.md)).
+Independent of leftover-map distance on pair segments
+([ADR 0271](0271-leftover-map-segment-distance.md)).
 
 ## Context
 
@@ -90,7 +92,8 @@ inner product, leftover-map cosine, leftover-map length, leftover-map
 reconstruction, leftover-map unexplained leftover, leftover-map cross
 share, leftover-map unexplained leftover share, leftover-map explained
 leftover share, leftover-map coordinate persistence, leftover-map
-graphic display, and leftover-map axis share on the graphic display.
+graphic display, leftover-map axis share on the graphic display, and
+leftover-map distance on pair segments.
 
 ## References
 

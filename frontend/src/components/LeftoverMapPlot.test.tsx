@@ -45,7 +45,7 @@ describe("LeftoverMapPlot", () => {
     expect(screen.getByLabelText("Leftover-map graphic display")).toBeInTheDocument();
     expect(
       screen.getByText(
-        "Leftover map after IRT main effects. Axis ticks name persisted leftover-map coordinates. Click a post marker to open that post. The plot does not invent a leftover score.",
+        "Leftover map after IRT main effects. Axis ticks name persisted leftover-map coordinates. Pair segments name leftover-map distance d. Click a post marker to open that post. The plot does not invent a leftover score.",
       ),
     ).toBeInTheDocument();
     expect(screen.getByText("Post ξ")).toBeInTheDocument();
@@ -55,6 +55,8 @@ describe("LeftoverMapPlot", () => {
     expect(screen.getByLabelText("leftover-map axis 1 tick +0.50")).toBeInTheDocument();
     expect(screen.getByLabelText("leftover-map axis 2 tick −0.02")).toBeInTheDocument();
     expect(screen.getByLabelText("leftover-map axis 1 tick 0.00")).toBeInTheDocument();
+    expect(screen.getByLabelText("leftover-map distance d 0.12")).toBeInTheDocument();
+    expect(screen.getByLabelText("leftover-map distance d 1.84")).toBeInTheDocument();
 
     const postMarker = screen.getByRole("button", {
       name: "Open leftover-map post Public post at ξ (+0.50, +0.10)",
@@ -122,6 +124,7 @@ describe("LeftoverMapPlot", () => {
     expect(screen.getByText("leftover-map axis 2 (0%)")).toBeInTheDocument();
     expect(screen.getAllByLabelText("leftover-map axis 1 tick 0.00").length).toBeGreaterThan(0);
     expect(screen.queryByLabelText("leftover-map axis 1 tick +1.00")).not.toBeInTheDocument();
+    expect(screen.getByLabelText("leftover-map distance d 0.00")).toBeInTheDocument();
   });
 
   it("captions leftover-map axes with persisted leftover-map axis share", () => {
@@ -155,5 +158,30 @@ describe("LeftoverMapPlot", () => {
     expect(screen.getByText("leftover-map axis 2")).toBeInTheDocument();
     expect(screen.queryByText(/leftover-map axis 1 \(/)).not.toBeInTheDocument();
     expect(screen.queryByText(/leftover-map axis 2 \(/)).not.toBeInTheDocument();
+  });
+
+  it("omits leftover-map distance on a pair segment when d is missing", () => {
+    render(
+      <LeftoverMapPlot
+        pairs={[
+          {
+            pair_kind: "closest",
+            post_id: "post-demo-public",
+            post_title: "Public post",
+            criterion_code: "sales_lead_quality",
+            leftover_distance: Number.NaN,
+            leftover_residual: 0.4,
+            leftover_map_person_axis_1: 0.5,
+            leftover_map_person_axis_2: 0.1,
+            leftover_map_item_axis_1: 0.5,
+            leftover_map_item_axis_2: -0.02,
+          },
+        ]}
+        criterionLabel={criterionLabel}
+        onSelectPost={vi.fn()}
+      />,
+    );
+    expect(screen.queryByLabelText(/leftover-map distance/)).not.toBeInTheDocument();
+    expect(screen.getByLabelText("leftover-map axis 1 tick +0.50")).toBeInTheDocument();
   });
 });

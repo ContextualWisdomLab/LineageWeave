@@ -1,5 +1,28 @@
 # Product & Technical Gap Baseline
 
+> Exact-head loop overlay: 2026-08-29 13:20 KST. Protected `main` is
+> `fc13acaa20adca11968238e398d4aafcf62b6cee` (v2.23.0 leftover-map
+> explained leftover share, #775). Open ready PRs still lack independent
+> APPROVE. #782 leftover-map coordinates + graphic + axis share + ticks
+> (v2.24.0–v2.27.0 / ADR 0267–0270) is on
+> `2a203bf8b75b987ba899a0006a312d81259b9124` after #799 squash-merged
+> into the unprotected leftover branch. Auto-merge squash remains armed
+> on #782/#780/#774/#772/#771/#770. Independent APPROVE is still
+> required for protected main. Drafts remain dirty against `main`. #96
+> stays closed as a weaker duplicate of #91. GitHub writes through
+> `gh`/MCP succeed. Copilot review is not independent APPROVE. Do not
+> self-approve. Do not `gh pr merge` stacked leftover PRs onto an
+> unprotected leftover base.
+>
+> Next buyer increment on this cycle: leftover-map distance on
+> graphic-display pair segments (ADR 0271 / v2.28.0). Caption each
+> closest/farthest segment with persisted leftover-map distance `d` so
+> the pair-row badge matches the graphic line. UI-only; no new columns.
+> Missing/non-finite `d` omits that segment caption. Do not invent `d`
+> from plotted coordinates. Do not invent leftover scores. Stack onto
+> leftover branch `feat/leftover-map-coordinates-v2240`; leave the PR
+> open for independent review.
+
 > Exact-head loop overlay: 2026-08-29 13:15 KST. Protected `main` is
 > `fc13acaa20adca11968238e398d4aafcf62b6cee` (v2.23.0 leftover-map
 > explained leftover share, #775). Open ready PRs still lack independent
