@@ -65,7 +65,8 @@ describe("i18n", () => {
     "leftover-map axis 1",
     "leftover-map axis 2",
     "leftover-map axis {axis} ({share}%)",
-    "Leftover map after IRT main effects. Click a post marker to open that post. The plot does not invent a leftover score.",
+    "leftover-map axis {axis} tick {value}",
+    "Leftover map after IRT main effects. Axis ticks name persisted leftover-map coordinates. Click a post marker to open that post. The plot does not invent a leftover score.",
     "Open leftover-map post {title} at ξ {person}",
     "Read observed Y {observed} and expected E {expected} after IRT main effects, then open this post.",
     "Leftover map has no leftover structure after IRT main effects. Open this post.",
@@ -329,24 +330,34 @@ describe("i18n", () => {
   it.each([
     [
       "ko",
-      "IRT 주효과 이후 잔여 지도입니다. 글 표식을 눌러 그 글을 여세요. 이 그림은 잔여 점수를 만들어내지 않습니다.",
+      "IRT 주효과 이후 잔여 지도입니다. 축 눈금은 저장된 잔여 지도 좌표입니다. 글 표식을 눌러 그 글을 여세요. 이 그림은 잔여 점수를 만들어내지 않습니다.",
     ],
-    ["zh", "IRT 主效应后的残差图。点击帖子标记打开该帖子。此图不会虚构残差分数。"],
+    ["zh", "IRT 主效应后的残差图。轴刻度标出已保存的残差图坐标。点击帖子标记打开该帖子。此图不会虚构残差分数。"],
     [
       "ja",
-      "IRT主効果後の残差マップです。投稿マーカーをクリックしてその投稿を開いてください。この図は残差スコアを作りません。",
+      "IRT主効果後の残差マップです。軸目盛は保存済みの残差マップ座標です。投稿マーカーをクリックしてその投稿を開いてください。この図は残差スコアを作りません。",
     ],
     [
       "vi",
-      "Bản đồ phần dư sau hiệu ứng chính IRT. Nhấn dấu bài viết để mở bài đó. Hình này không tạo ra điểm phần dư.",
+      "Bản đồ phần dư sau hiệu ứng chính IRT. Vạch trục ghi tọa độ bản đồ phần dư đã lưu. Nhấn dấu bài viết để mở bài đó. Hình này không tạo ra điểm phần dư.",
     ],
   ] as const)("formats leftover-map graphic display caption in %s", (locale, expected) => {
     setLocale(locale);
     expect(
       t(
-        "Leftover map after IRT main effects. Click a post marker to open that post. The plot does not invent a leftover score.",
+        "Leftover map after IRT main effects. Axis ticks name persisted leftover-map coordinates. Click a post marker to open that post. The plot does not invent a leftover score.",
       ),
     ).toBe(expected);
+  });
+
+  it.each([
+    ["ko", "잔여 지도 축 1 눈금 +0.50"],
+    ["zh", "残差图轴 1 刻度 +0.50"],
+    ["ja", "残差マップ軸 1 目盛 +0.50"],
+    ["vi", "vạch trục bản đồ phần dư 1 +0.50"],
+  ] as const)("formats leftover-map coordinate ticks in %s", (locale, expected) => {
+    setLocale(locale);
+    expect(tf("leftover-map axis {axis} tick {value}", { axis: 1, value: "+0.50" })).toBe(expected);
   });
 
   it.each([

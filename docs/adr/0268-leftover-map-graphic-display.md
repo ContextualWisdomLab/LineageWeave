@@ -4,7 +4,9 @@
 **Date:** 2026-08-28
 
 **Amended by:** [ADR 0269](0269-leftover-map-axis-share-plot.md)
-(leftover-map axis share on the graphic display)
+(leftover-map axis share on the graphic display);
+[ADR 0270](0270-leftover-map-coordinate-ticks.md)
+(leftover-map coordinate ticks)
 
 Amends [ADR 0049](0049-leftover-pair-report-ui.md) and
 [ADR 0267](0267-leftover-map-coordinates.md). Independent of leftover-map
@@ -77,7 +79,8 @@ After `make seed`, closest and farthest leftover pairs sit above the
 member list with the leftover-map graphic display of persisted `ξ`
 and `ζ`; click a post marker or a pair button opens that post.
 Hidden posts stay hidden. Leftover-map axis share captions those
-leftover-map axes when finite (ADR 0269). When coordinates, reconstruction, and
+leftover-map axes when finite (ADR 0269). Leftover-map axis ticks name
+persisted `ξ` / `ζ` coordinates (ADR 0270). When coordinates, reconstruction, and
 distance are all finite, `R̂ = ξ_{1:2} · ζ_{1:2}` and
 `d = ‖ξ_{1:2} − ζ_{1:2}‖` remain the same identities already
 persisted by ADR 0267.
@@ -92,8 +95,8 @@ leftover-map distance, leftover-map rank, leftover-map inner product,
 leftover-map cosine, leftover-map length, leftover-map reconstruction,
 leftover-map unexplained leftover, leftover-map cross share,
 leftover-map unexplained leftover share, leftover-map explained
-leftover share, leftover-map coordinate persistence, and leftover-map
-axis share on the graphic display.
+leftover share, leftover-map coordinate persistence, leftover-map
+axis share on the graphic display, and leftover-map coordinate ticks.
 
 ## References
 

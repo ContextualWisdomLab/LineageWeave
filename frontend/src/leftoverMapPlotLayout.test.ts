@@ -160,6 +160,51 @@ describe("layoutLeftoverMapPlot", () => {
     expect(layout?.persons.map((marker) => marker.id)).toEqual(["post-demo-public"]);
     expect(layout?.segments).toHaveLength(1);
   });
+
+  it("names persisted leftover-map coordinates as axis ticks without inventing a leftover score", () => {
+    const layout = layoutLeftoverMapPlot(
+      [
+        pair(),
+        pair({
+          pair_kind: "farthest",
+          post_id: "post-demo-spec",
+          criterion_code: "negative_sentiment",
+          leftover_map_person_axis_1: 0.9,
+          leftover_map_person_axis_2: 0.8,
+          leftover_map_item_axis_1: -0.7,
+          leftover_map_item_axis_2: -0.4,
+        }),
+      ],
+      criterionLabel,
+    );
+    const axis1 = layout?.ticks.filter((tick) => tick.axis === 1).map((tick) => tick.label);
+    const axis2 = layout?.ticks.filter((tick) => tick.axis === 2).map((tick) => tick.label);
+    expect(axis1).toEqual(expect.arrayContaining(["0.00", "+0.50", "+0.90", "\u22120.70"]));
+    expect(axis2).toEqual(expect.arrayContaining(["0.00", "+0.10", "\u22120.02", "+0.80", "\u22120.40"]));
+    expect(axis1).toHaveLength(4);
+    expect(axis2).toHaveLength(5);
+    const originAxis1 = layout?.ticks.find((tick) => tick.axis === 1 && tick.value === 0);
+    expect(originAxis1).toMatchObject({ x: layout?.originX, y: layout?.originY, label: "0.00" });
+  });
+
+  it("does not invent drawing-scale leftover-map ticks on a rank-0 origin cell", () => {
+    const layout = layoutLeftoverMapPlot(
+      [
+        pair({
+          leftover_map_person_axis_1: 0,
+          leftover_map_person_axis_2: 0,
+          leftover_map_item_axis_1: 0,
+          leftover_map_item_axis_2: 0,
+        }),
+      ],
+      criterionLabel,
+    );
+    expect(layout?.ticks.map((tick) => tick.label)).toEqual(["0.00", "0.00"]);
+    expect(layout?.ticks.every((tick) => tick.value === 0)).toBe(true);
+    expect(layout?.ticks.some((tick) => tick.label === "+1.00" || tick.label === "\u22121.00")).toBe(
+      false,
+    );
+  });
 });
 
 describe("firstPlottablePairForPost", () => {

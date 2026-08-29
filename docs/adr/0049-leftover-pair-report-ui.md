@@ -13,7 +13,8 @@
 [ADR 0266](0266-leftover-map-explained-share.md) (explained leftover share e);
 [ADR 0267](0267-leftover-map-coordinates.md) (leftover-map coordinates ξ, ζ);
 [ADR 0268](0268-leftover-map-graphic-display.md) (leftover-map graphic display);
-[ADR 0269](0269-leftover-map-axis-share-plot.md) (leftover-map axis share on the graphic display)
+[ADR 0269](0269-leftover-map-axis-share-plot.md) (leftover-map axis share on the graphic display);
+[ADR 0270](0270-leftover-map-coordinate-ticks.md) (leftover-map coordinate ticks)
 
 ## Context
 
@@ -39,7 +40,8 @@ leftover-map cross share next to distance when finite. When four finite
 coordinates exist, the leftover-map graphic display of those positions
 sits above the pair buttons (ADR 0268); click a post marker to open
 that post. Leftover-map axis share captions those leftover-map axes
-when finite (ADR 0269). The pair renders every available finite measurement.
+when finite (ADR 0269). Leftover-map axis ticks name persisted `ξ` /
+`ζ` coordinates (ADR 0270). The pair renders every available finite measurement.
 The next action uses the first available value in the priority below; no
 amendment hides another badge, rank 0
 explicitly names no leftover structure, and unexplained leftover names
@@ -66,6 +68,10 @@ Leftover-map coordinate naming is
 [ADR 0267](0267-leftover-map-coordinates.md).
 Leftover-map graphic display is
 [ADR 0268](0268-leftover-map-graphic-display.md).
+Leftover-map axis share on the graphic display is
+[ADR 0269](0269-leftover-map-axis-share-plot.md).
+Leftover-map coordinate ticks are
+[ADR 0270](0270-leftover-map-coordinate-ticks.md).
 
 After `make seed`, closest and farthest leftover pairs sit above the
 member list. Click a pair to open that post with the leftover

@@ -58,7 +58,9 @@ export type LeftoverPairListProps = {
  * next action. When four finite coordinates exist, ADR 0268 draws the
  * leftover-map graphic display above the pair buttons; click a post
  * marker opens that post. ADR 0269 captions those leftover-map axes with
- * persisted leftover-map axis share when finite. Every badge still
+ * persisted leftover-map axis share when finite. ADR 0270 ticks those
+ * leftover-map axes at persisted ``ξ`` / ``ζ`` so the pair-row badge matches
+ * the plot. Every badge still
  * renders together before opening the named post.
  */
 export function LeftoverPairList({

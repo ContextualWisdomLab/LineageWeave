@@ -9,6 +9,8 @@ explained leftover share ([ADR 0266](0266-leftover-map-explained-share.md)),
 leftover-map unexplained leftover share ([ADR 0233](0233-leftover-map-unexplained-share.md)),
 leftover-map reconstruction ([ADR 0201](0201-leftover-map-reconstruction.md)),
 and leftover-map coordinates ([ADR 0267](0267-leftover-map-coordinates.md)).
+Independent of leftover-map coordinate ticks
+([ADR 0270](0270-leftover-map-coordinate-ticks.md)).
 
 ## Context
 
@@ -78,8 +80,8 @@ strip, two-axis leftover-map distance, leftover-map rank, leftover-map
 inner product, leftover-map cosine, leftover-map length, leftover-map
 reconstruction, leftover-map unexplained leftover, leftover-map cross
 share, leftover-map unexplained leftover share, leftover-map explained
-leftover share, leftover-map coordinate persistence, and leftover-map
-graphic display.
+leftover share, leftover-map coordinate persistence, leftover-map
+graphic display, and leftover-map coordinate ticks.
 
 ## References
 

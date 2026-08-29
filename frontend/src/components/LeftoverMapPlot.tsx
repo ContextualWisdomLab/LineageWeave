@@ -11,6 +11,7 @@ import {
   layoutLeftoverMapPlot,
   LEFTOVER_MAP_PLOT_CAPTION,
   LEFTOVER_MAP_PLOT_POST_ACTION,
+  LEFTOVER_MAP_PLOT_TICK,
 } from "../leftoverMapPlotLayout";
 import "./LeftoverMapPlot.css";
 
@@ -44,9 +45,11 @@ function leftoverMapPlotAxisText(
  * Person markers are posts; item markers are leftover criteria. Click a
  * post marker to open that post. Caption leftover-map axes with persisted
  * Gabriel inertia share when finite, including rank-0 zero-share axes.
- * Omit that axis badge when share is missing or non-finite and keep the
- * existing leftover-map axis text. Omit the plot when no pair has four
- * finite leftover-map coordinates. Never invent a leftover score.
+ * Axis ticks name persisted leftover-map coordinates so ξ / ζ on the
+ * pair row match the plot. Omit that axis badge when share is missing or
+ * non-finite and keep the existing leftover-map axis text. Omit the plot
+ * when no pair has four finite leftover-map coordinates. Never invent a
+ * leftover score.
  */
 export function LeftoverMapPlot({
   pairs,
@@ -106,6 +109,23 @@ export function LeftoverMapPlot({
           <text className="leftover-map-plot-axis-label" x={layout.originX + 8} y={16}>
             {leftoverMapPlotAxisText(2, leftoverMapAxes)}
           </text>
+          {layout.ticks.map((tick) => (
+            <g
+              key={`tick:${tick.axis}:${tick.label}`}
+              className="leftover-map-plot-tick"
+              aria-label={tf(LEFTOVER_MAP_PLOT_TICK, { axis: tick.axis, value: tick.label })}
+            >
+              <line x1={tick.x} y1={tick.y} x2={tick.tickX2} y2={tick.tickY2} />
+              <text
+                className="leftover-map-plot-tick-label"
+                x={tick.axis === 1 ? tick.x : tick.tickX2 - 2}
+                y={tick.axis === 1 ? tick.tickY2 + 12 : tick.y + 4}
+                textAnchor={tick.axis === 1 ? "middle" : "end"}
+              >
+                {tick.label}
+              </text>
+            </g>
+          ))}
           {layout.segments.map((segment) => (
             <line
               key={`${segment.pairKind}:${segment.postId}:${segment.criterionCode}`}
