@@ -4241,6 +4241,9 @@ describe("App, authenticated", () => {
 
     expect(await screen.findByLabelText("Grouping comparison")).toBeInTheDocument();
     expect(
+      within(screen.getByLabelText("Grouping comparison")).queryByLabelText("Leftover map coverage"),
+    ).not.toBeInTheDocument();
+    expect(
       within(screen.getByLabelText("Grouping comparison")).queryByLabelText("Leftover map item coverage"),
     ).not.toBeInTheDocument();
     expect(

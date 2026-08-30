@@ -120,12 +120,15 @@ import {
   useLocale,
 } from "./i18n";
 import {
+  leftoverMapCoverageCounts,
   leftoverMapIncompleteItemCount,
   leftoverMapIncompletePostCount,
   leftoverMapItemCoverageCounts,
+  LEFTOVER_MAP_LIST_COVERAGE_LABEL,
   LEFTOVER_MAP_LIST_INCOMPLETE_ITEM_LABEL,
   LEFTOVER_MAP_LIST_INCOMPLETE_POST_LABEL,
   LEFTOVER_MAP_LIST_ITEM_COVERAGE_LABEL,
+  LEFTOVER_MAP_PLOT_COVERAGE,
   LEFTOVER_MAP_PLOT_INCOMPLETE_ITEM,
   LEFTOVER_MAP_PLOT_INCOMPLETE_POST,
   LEFTOVER_MAP_PLOT_ITEM_COVERAGE,
@@ -3823,6 +3826,7 @@ function ReportsPanel({
         aria-label={openedGroupingLabel ? "Opened grouping report" : "Period report groups"}
       >
         {orderedReports.map((report) => {
+          const coverageCounts = leftoverMapCoverageCounts(report.leftover_map_coverage);
           const itemCoverageCounts = leftoverMapItemCoverageCounts(report.leftover_map_coverage);
           const incompletePostCount = leftoverMapIncompletePostCount(report.leftover_map_coverage);
           const incompleteItemCount = leftoverMapIncompleteItemCount(report.leftover_map_coverage);
@@ -3856,14 +3860,11 @@ function ReportsPanel({
                 {report.selected_items[0].information.toFixed(2)}
               </span>
             )}
-            {report.leftover_map_coverage && report.leftover_map_coverage.scored_post_count > 0 && (
-              <p className="post-meta" role="note" aria-label={t("Leftover map coverage")}>
-                {tf("Leftover map used {used} of {scored} scored posts (complete-case)", {
-                  used: report.leftover_map_coverage.map_post_count,
-                  scored: report.leftover_map_coverage.scored_post_count,
-                })}
+            {coverageCounts !== null ? (
+              <p className="post-meta" role="note" aria-label={t(LEFTOVER_MAP_LIST_COVERAGE_LABEL)}>
+                {tf(LEFTOVER_MAP_PLOT_COVERAGE, coverageCounts)}
               </p>
-            )}
+            ) : null}
             {itemCoverageCounts !== null ? (
               <p className="post-meta" role="note" aria-label={t(LEFTOVER_MAP_LIST_ITEM_COVERAGE_LABEL)}>
                 {tf(LEFTOVER_MAP_PLOT_ITEM_COVERAGE, itemCoverageCounts)}

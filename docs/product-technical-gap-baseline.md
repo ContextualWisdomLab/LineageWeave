@@ -1,5 +1,64 @@
 # Product & Technical Gap Baseline
 
+> Exact-head loop overlay: 2026-08-30 22:30 KST. Protected `main` is
+> `cb187cadee5fb6c46d8a944815ccc154a1e028d1` after unauthorized squash
+> of leftover-map coordinates (v2.24.0 / #782). Revert #808
+> (`revert-pr782-unauthorized` @ `1af3e53e`) restores `main` toward
+> `fc13acaa` (v2.23.0) and still needs independent APPROVE. GitHub
+> writes work (comment/close/create-PR/push). Token still has empty
+> `X-OAuth-Scopes`; repo permission is ADMIN. Open leftover stack
+> still lacks independent APPROVE. Do not self-approve.
+> #782 leftover-map coordinates through pair-segment distance
+> (v2.24.0–v2.28.0 / ADR 0267–0271) is `9bdd3e4d`. #802 explained
+> leftover share on pair segments (v2.30.0 / ADR 0273, includes v2.29
+> reconstruction) is `79ec22f0`. #803 unexplained leftover share on pair
+> segments (v2.31.0 / ADR 0274) is `089a1571`. #804 leftover-map cross
+> share on pair segments (v2.32.0 / ADR 0275) is `c513002b`. #805 leftover-map
+> unexplained leftover `U` on pair segments (v2.33.0 / ADR 0276) is
+> `e3fdfd74`. #806 leftover residual `R` on pair segments (v2.34.0 /
+> ADR 0277) is `33f6c3dd`. #809 leftover observed `Y` on pair segments
+> (v2.35.0 / ADR 0278) is `b334b00e`. #810 leftover expected `E` on pair
+> segments (v2.36.0 / ADR 0279) is `6e37757a`. #811 leftover-map rank on
+> pair segments (v2.37.0 / ADR 0280) is `e626a1d0`. #812 leftover-map
+> complete-case coverage on the graphic (v2.38.0 / ADR 0281) is `64964cb6`.
+> #813 leftover-map item complete-case coverage on the graphic (v2.39.0 /
+> ADR 0282) is `de2a8a8b`. #814 leftover-map incomplete post coverage on
+> the graphic (v2.40.0 / ADR 0283) is `77292872`. #815 leftover-map
+> incomplete item coverage on the graphic (v2.41.0 / ADR 0284) is
+> `63092de`. #816 leftover-map item complete-case coverage on the pair
+> list (v2.42.0 / ADR 0285) is `1e3d13e`. #817 leftover-map incomplete
+> post coverage on the pair list (v2.43.0 / ADR 0286) is `ef30930`.
+> #818 leftover-map incomplete item coverage on the pair list
+> (v2.44.0 / ADR 0287) is `aa32089`. Leave
+> #782/#802/#803/#804/#805/#806/#808/#809/#810/#811/#812/#813/#814/#815/#816/#817/#818 open for
+> independent review. Do not squash-merge stacked leftover PRs onto an
+> unprotected leftover base. Do not merge #808 without independent APPROVE.
+> Strix on #782 failed closed at `Run Strix (quick)`; do not weaken
+> fail-closed on `Vulnerabilities [1-9]`. Org Strix `ModelBehaviorError`
+> classifier is already on ContextualWisdomLab/.github. Copilot review is
+> not independent APPROVE. Issues #79 and #87 stay open. #96 is already
+> closed. Only collaborator is `seonghobae`; no independent reviewer can
+> be requested from this token.
+>
+> Next buyer increment on this cycle: leftover-map post complete-case
+> coverage fail-closed on the pair list (ADR 0288 / v2.45.0) delivered
+> locally on `feat/leftover-map-list-post-coverage-helper-v2450`. Caption
+> the pair-list note with persisted leftover-map post complete-case
+> coverage only when leftoverMapCoverageCounts returns usable complete-case
+> integers so used-greater-than-scored, negative, or non-integer payloads
+> cannot caption a contradictory `used N of M scored posts` note. UI-only;
+> no new columns. Missing, non-integer, negative used, non-positive scored,
+> or used-greater-than-scored coverage omits that leftover-map coverage
+> note. Coverage `0 of M` is shown when persisted. Do not invent post
+> coverage from plotted marker count, leftover-map distance, leftover-map
+> rank, leftover-map item coverage, leftover-map incomplete post coverage,
+> leftover-map incomplete item coverage, or the count of unused axes. Do
+> not invent leftover scores. Stack onto leftover branch
+> `feat/leftover-map-list-incomplete-item-v2440` / #818; leave the PR open
+> for independent review. Do not squash-merge onto the leftover base. Do
+> not persist leftover-map inner product, cosine, or length as separate
+> columns. Grouping comparison strip (ADR 0149) does not gain this caption.
+
 > Exact-head loop overlay: 2026-08-30 22:18 KST. Protected `main` is
 > `cb187cadee5fb6c46d8a944815ccc154a1e028d1` after unauthorized squash
 > of leftover-map coordinates (v2.24.0 / #782). Revert #808
