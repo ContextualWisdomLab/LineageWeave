@@ -82,6 +82,7 @@ describe("i18n", () => {
     "Leftover map comparison incomplete posts",
     "Leftover map comparison incomplete items",
     "Leftover map comparison reconstruction",
+    "Leftover map comparison explained leftover share",
     "Leftover-map graphic item coverage",
     "Leftover map item coverage",
     "Leftover map incomplete posts",
@@ -434,6 +435,19 @@ describe("i18n", () => {
     setLocale(locale);
     expect(t("Leftover map comparison reconstruction")).toBe(expected);
   });
+
+  it.each([
+    ["ko", "잔여 지도 비교 설명 잔여 점유율"],
+    ["zh", "残差地图比较已解释残差份额"],
+    ["ja", "残差マップの比較説明済み残差割合"],
+    ["vi", "Phần dư giải thích so sánh bản đồ phần dư"],
+  ] as const)(
+    "formats leftover map comparison explained leftover share label in %s",
+    (locale, expected) => {
+      setLocale(locale);
+      expect(t("Leftover map comparison explained leftover share")).toBe(expected);
+    },
+  );
 
   it.each([
     ["ko", "잔여 지도 그림 기준 포함 범위"],

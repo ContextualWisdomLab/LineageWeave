@@ -20,8 +20,9 @@
  *  (ADR 0289), grouping comparison item complete-case coverage
  *  (ADR 0290), grouping comparison incomplete post coverage
  *  (ADR 0291), grouping comparison incomplete item coverage
- *  (ADR 0292), and grouping comparison reconstruction
- *  (ADR 0293) caption the pair list or the grouping comparison strip,
+ *  (ADR 0292), grouping comparison reconstruction
+ *  (ADR 0293), and grouping comparison explained leftover share
+ *  (ADR 0294) caption the pair list or the grouping comparison strip,
  *  not this graphic layout.
  */
 
