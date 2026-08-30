@@ -4570,9 +4570,14 @@ describe("App, authenticated", () => {
     ).toHaveLength(1);
     expect(
       within(screen.getByLabelText("Grouping comparison")).getByLabelText(
-        "leftover residual R +0.40",
+        "leftover map comparison graphic residual R +0.40",
       ),
     ).toHaveTextContent("R +0.40");
+    expect(
+      within(screen.getByLabelText("Grouping comparison")).queryByLabelText(
+        "leftover residual R +0.40",
+      ),
+    ).not.toBeInTheDocument();
     expect(
       within(screen.getByLabelText("Grouping comparison")).getAllByLabelText(
         "Leftover map comparison residual",

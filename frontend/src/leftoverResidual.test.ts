@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { formatLeftoverMapResidual, formatLeftoverResidual, LEFTOVER_MAP_COMPARE_RESIDUAL_LABEL } from "./leftoverResidual";
+import {
+  formatLeftoverMapResidual,
+  formatLeftoverResidual,
+  LEFTOVER_MAP_COMPARE_PLOT_SEGMENT_RESIDUAL,
+  LEFTOVER_MAP_COMPARE_RESIDUAL_LABEL,
+} from "./leftoverResidual";
 
 describe("formatLeftoverResidual", () => {
   it("keeps a signed residual without inventing a leftover score", () => {
@@ -27,5 +32,18 @@ describe("formatLeftoverMapResidual", () => {
   it("keeps the grouping comparison residual label distinct from the graphic residual label", () => {
     expect(LEFTOVER_MAP_COMPARE_RESIDUAL_LABEL).toBe("Leftover map comparison residual");
     expect(LEFTOVER_MAP_COMPARE_RESIDUAL_LABEL).not.toBe("leftover residual {label}");
+  });
+
+  it("keeps the grouping comparison graphic residual label distinct from the graphic and strip labels", () => {
+    expect(LEFTOVER_MAP_COMPARE_PLOT_SEGMENT_RESIDUAL).toBe(
+      "leftover map comparison graphic residual {label}",
+    );
+    expect(LEFTOVER_MAP_COMPARE_PLOT_SEGMENT_RESIDUAL).not.toBe("leftover residual {label}");
+    expect(LEFTOVER_MAP_COMPARE_PLOT_SEGMENT_RESIDUAL).not.toBe(
+      LEFTOVER_MAP_COMPARE_RESIDUAL_LABEL,
+    );
+    expect(LEFTOVER_MAP_COMPARE_PLOT_SEGMENT_RESIDUAL).not.toBe(
+      "leftover map comparison graphic unexplained leftover {label}",
+    );
   });
 });

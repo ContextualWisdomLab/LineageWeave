@@ -1,5 +1,24 @@
 # Product & Technical Gap Baseline
 
+> Exact-head loop overlay: 2026-08-31 08:19 KST. Protected `main` is
+> `cb187cadee5fb6c46d8a944815ccc154a1e028d1`. Writes work. Do not
+> self-approve. #854 leftover-map unexplained leftover on the grouping comparison leftover-map
+> graphic (v2.71.0 / ADR 0314) is `935cdea`, stacked on #853 @ `c4f79bc`. Independent
+> APPROVE is missing; Copilot review requested this cycle. Next buyer increment on this
+> cycle: leftover residual on the grouping comparison leftover-map
+> graphic (ADR 0315 / v2.72.0) delivered locally on
+> `feat/leftover-map-compare-plot-residual-v2720`. Caption persisted leftover residual
+> `R` on that comparison graphic from already-named leftover_residual. Distinct
+> accessible name `leftover map comparison graphic residual {label}`. Omit when
+> formatLeftoverMapResidual fail-closes. Do not caption leftover observed on that
+> comparison graphic with a distinct name this increment. Do not invent `R` from
+> `Y` and `E`, from `U` and `R̂`, leftover-map reconstruction, leftover-map unexplained leftover,
+> leftover-map distance, plotted coordinates, leftover-map rank, leftover-map axis share,
+> leftover-map post coverage, leftover-map item coverage, leftover-map incomplete post coverage,
+> leftover-map incomplete item coverage, leftover pair count, or the count of unused
+> axes. Stack onto #854. Leave open for independent review. Do not squash-merge. Do not
+> self-approve. Issues #79 and #87 stay open. Do not merge #808 without independent APPROVE.
+
 > Exact-head loop overlay: 2026-08-31 07:21 KST. Protected `main` is
 > `cb187cadee5fb6c46d8a944815ccc154a1e028d1`. Writes work. Do not
 > self-approve. #853 leftover-map cross share on the grouping comparison leftover-map
