@@ -1,5 +1,24 @@
 # Product & Technical Gap Baseline
 
+> Exact-head review-repair overlay: 2026-08-30 22:31 KST. Protected `main`
+> remains `cb187cadee5fb6c46d8a944815ccc154a1e028d1`; twenty-five open PRs and
+> ten open issues were enumerated in one fresh snapshot. PR #780's current
+> implementation-evidence revision is
+> `047b73010bff5c29847cb4b35a1308c77d14939b`; this later documentation-only
+> overlay records that point-in-time evidence without presenting itself as the
+> implementation revision. Exact-head review found that the first inverse-link
+> SHACL repair still allowed an unrelated second Post to claim the same Voice
+> assignment. The minimal root repair validates both directions, so one
+> assignment cannot belong to multiple Posts, and adds a negative regression.
+> All 52 focused ontology, SHACL, neighborhood, and Voice-authority tests pass.
+> Current-head hosted checks were restarted and normal squash auto-merge remains
+> enabled, but independent approval, terminal required review/security verdicts,
+> protected merge, merge SHA, and authenticated rendered-stack acceptance are
+> still unavailable. No stale evidence, self-approval, bypass, or force push is
+> used. The carrying Post and derivation-evidence Post remain separate across
+> exact-value UI/CSV and JSON-LD; imported primary Voices do not acquire an
+> invented derivation.
+>
 > Exact-head review-repair overlay: 2026-08-30 21:23 KST. Protected `main`
 > remains `cb187cadee5fb6c46d8a944815ccc154a1e028d1`; twenty open PRs and ten
 > open issues were freshly enumerated. PR #780's current implementation
