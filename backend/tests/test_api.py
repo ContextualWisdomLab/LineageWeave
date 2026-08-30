@@ -1999,6 +1999,9 @@ def test_authenticated_ontology_neighborhood_reads_primary_voice_from_postgresql
         "https://contextualwisdomlab.github.io/LineageWeave/ontology#voiceAssignmentEvidence"
         not in projected
     )
+    assert projected[
+        "https://contextualwisdomlab.github.io/LineageWeave/ontology#voiceAssignmentCarryingPost"
+    ] == {"@id": f"https://contextualwisdomlab.github.io/LineageWeave/ontology#post/{post_id}"}
 
 
 def test_post_detail_exposes_explicit_and_semantic_project_evidence(

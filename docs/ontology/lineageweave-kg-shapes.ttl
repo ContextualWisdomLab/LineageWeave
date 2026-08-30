@@ -187,12 +187,31 @@
         sh:datatype xsd:boolean ;
     ] ;
     sh:property [
-        sh:path :voiceAssignmentEvidence ;
-        sh:name "voice assignment evidence" ;
-        sh:description "Every assignment retains exactly one authorized supporting source post." ;
+        sh:path :voiceAssignmentCarryingPost ;
+        sh:name "voice assignment carrying post" ;
+        sh:description "Every assignment names exactly one authorized Post that carries it without implying derivation." ;
         sh:minCount 1 ;
         sh:maxCount 1 ;
         sh:class :Post ;
+    ] ;
+    sh:property [
+        sh:path :voiceAssignmentEvidence ;
+        sh:name "voice assignment derivation evidence" ;
+        sh:description "An additional assignment retains exactly one authorized evidence Post; imported primary assignments have none." ;
+        sh:maxCount 1 ;
+        sh:class :Post ;
+    ] ;
+    sh:sparql [
+        a sh:SPARQLConstraint ;
+        sh:message "Additional Voice assignments require derivation evidence; primary assignments must not claim it." ;
+        sh:select """
+            SELECT $this WHERE {
+                $this :primaryVoiceAssignment ?primary .
+                OPTIONAL { $this :voiceAssignmentEvidence ?evidence . }
+                FILTER ((?primary = false && !BOUND(?evidence)) ||
+                        (?primary = true && BOUND(?evidence)))
+            }
+        """ ;
     ] .
 
 :OccupationalConstructAssertionShape a sh:NodeShape ;

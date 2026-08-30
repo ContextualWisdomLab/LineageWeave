@@ -934,6 +934,9 @@ def test_voice_assignments_join_exact_csv_rows_and_jsonld() -> None:
     )
     assert post_projection[str(LW.hasVoiceAssignment)] == [{"@id": assignment_iri}]
     assert projected[str(LW.assignedVoiceType)] == {"@id": str(LW.voiceOfProcessType)}
+    assert projected[str(LW.voiceAssignmentCarryingPost)] == {
+        "@id": ontology_node_iri(NODE_POST, POST_ID)
+    }
     assert projected[str(LW.voiceAssignmentEvidence)] == {
         "@id": ontology_node_iri(NODE_POST, POST_ID)
     }
@@ -965,6 +968,9 @@ def test_voice_assignments_join_exact_csv_rows_and_jsonld() -> None:
     )
     assert str(LW.voiceAssignmentEvidence) not in primary_projection
     assert "prov:wasDerivedFrom" not in primary_projection
+    assert primary_projection[str(LW.voiceAssignmentCarryingPost)] == {
+        "@id": ontology_node_iri(NODE_POST, POST_ID)
+    }
 
     with pytest.raises(OntologyNeighborhoodError, match="offset-aware"):
         replace(assignment, recorded_at=T0.replace(tzinfo=None))

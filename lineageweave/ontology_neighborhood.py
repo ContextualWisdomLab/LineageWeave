@@ -431,6 +431,9 @@ class OntologyNeighborhood:
                 "@id": assignment_iri,
                 "@type": str(LW.VoiceAssignment),
                 str(LW.assignedVoiceType): {"@id": assignment.voice_type_iri},
+                str(LW.voiceAssignmentCarryingPost): {
+                    "@id": ontology_node_iri(NODE_POST, assignment.post_id)
+                },
                 str(LW.primaryVoiceAssignment): {
                     "@value": assignment.is_primary,
                     "@type": "xsd:boolean",
