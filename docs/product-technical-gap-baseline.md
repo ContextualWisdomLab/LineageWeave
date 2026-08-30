@@ -1,5 +1,23 @@
 # Product & Technical Gap Baseline
 
+> Exact-head loop overlay: 2026-08-31 01:40 KST. Protected `main` is
+> `cb187cadee5fb6c46d8a944815ccc154a1e028d1`. Writes work. Do not
+> self-approve. #835 leftover residual `R` on grouping comparison
+> leftover-pair buttons (v2.55.0 / ADR 0298) is `a825c33`, stacked on
+> #833 @ `18d89b4`. Parallel residual #834 on #832 is a competing stack;
+> leave both open. Next buyer increment on this cycle: leftover observed
+> `Y` on grouping comparison leftover-pair buttons (ADR 0299 / v2.56.0)
+> delivered locally on `feat/leftover-map-compare-observed-v2560`. Caption
+> each strip leftover-pair button through formatLeftoverMapObserved with
+> distinct aria-label `Leftover map comparison observed`. UI-only; no new
+> columns. Missing or non-finite `Y` omits that badge independently of
+> `R`, `U`, `x`, `s`, `e`, `R̂`, `d`, and coverage notes. Do not invent
+> `Y` from `R` and `E`. A finite negative leftover is shown, never
+> clamped. Stack onto #835. Leave open for independent review. Do not
+> squash-merge. Issues #79 and #87 stay open. #96 is already closed. Do
+> not merge #808 without independent APPROVE.
+
+
 > Exact-head loop overlay: 2026-08-31 01:30 KST. Protected `main` is
 > `cb187cadee5fb6c46d8a944815ccc154a1e028d1`. Writes work. Do not
 > self-approve. #833 leftover-map unexplained leftover `U` on grouping
