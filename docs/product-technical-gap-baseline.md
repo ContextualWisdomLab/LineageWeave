@@ -1,5 +1,22 @@
 # Product & Technical Gap Baseline
 
+> Exact-head review-repair overlay: 2026-08-30 20:18 KST. Protected `main`
+> remains `cb187cadee5fb6c46d8a944815ccc154a1e028d1`; twenty-one PRs and ten
+> issues are open. PR #780's current implementation revision is
+> `d56e86048cfe62a92d0e6cfa0e5085eb1bc78c34`. Exact-head review exposed a
+> real ontology/SHACL conflict: removing invented derivation from imported
+> primary Voices also removed the source-Post relation that the published
+> `VoiceAssignmentShape` required. The minimal root repair adds the distinct
+> `voiceAssignmentCarryingPost` relation for every assignment, keeps
+> `voiceAssignmentEvidence` as a `prov:wasDerivedFrom` subproperty only for
+> genuine additional assignments, and aligns ADR 0256, the ontology, SHACL,
+> JSON-LD projection, authenticated API assertion, and regression tests.
+> Seventy-five focused Python tests and all 533 frontend tests pass on that
+> implementation revision. Hosted Checks, independent approval, protected
+> merge, and a rendered authenticated-stack recheck remain unavailable on the
+> moved head; older check/review evidence is not transferred. Normal merge
+> governance remains in force with no self-approval, bypass, or force push.
+>
 > Exact-head development-loop overlay: 2026-08-30 19:20 KST. Protected `main`
 > remains `cb187cadee5fb6c46d8a944815ccc154a1e028d1`; eighteen PRs and ten
 > issues are open. PR #780's exact implementation-evidence revision is
