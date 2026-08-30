@@ -3,9 +3,11 @@
 > Exact-head development-loop overlay: 2026-08-31 04:03 KST.
 > Protected `main` remains `cb187cadee5fb6c46d8a944815ccc154a1e028d1`;
 > forty-nine open PRs and ten open issues were enumerated in one fresh
-> snapshot. PR #780 is open at
-> `16883d9a221e09aac2230a85d4a314c41bb08929`, with every review thread
-> resolved and normal squash auto-merge armed. The exact-head focused
+> snapshot. PR #780's latest product implementation revision is
+> `16883d9a221e09aac2230a85d4a314c41bb08929`; this documentation-only overlay
+> records the subsequent queue audit without relabeling itself as that
+> implementation revision. Every review thread is resolved and normal squash
+> auto-merge is armed. The focused
 > authenticated/ontology regression selection passes (36 tests), as does the
 > complete frontend suite (533 tests). Current-head GitHub evidence includes
 > successful backend/frontend, ontology-publication, CodeQL, Semgrep, OSV,
