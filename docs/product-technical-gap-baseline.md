@@ -1,30 +1,31 @@
 # Product & Technical Gap Baseline
 
-> Exact-head development-loop overlay: 2026-08-31 04:03 KST.
+> Exact-head development-loop overlay: 2026-08-31 07:43 KST.
 > Protected `main` remains `cb187cadee5fb6c46d8a944815ccc154a1e028d1`;
-> forty-nine open PRs and ten open issues were enumerated in one fresh
+> fifty-nine open PRs and ten open issues were enumerated in fresh
 > snapshot. PR #780's latest product implementation revision is
-> `16883d9a221e09aac2230a85d4a314c41bb08929`; this documentation-only overlay
-> records the subsequent queue audit without relabeling itself as that
-> implementation revision. Every review thread is resolved and normal squash
-> auto-merge is armed. The focused
-> authenticated/ontology regression selection passes (36 tests), as does the
-> complete frontend suite (533 tests). Current-head GitHub evidence includes
-> successful backend/frontend, ontology-publication, CodeQL, Semgrep, OSV,
-> Trivy, Scorecard, Noema, and scheduler checks. The required workflow
-> bootstrap and dependency review remain failed: the first still
+> `4b45377bbadf6fdff023daeb34f82a46661e44de`. Every review thread is resolved
+> and normal squash auto-merge remains armed. The focused ontology regression
+> selection passes (53 tests); the affected frontend selection passes (29
+> tests), lint succeeds, and the production frontend build succeeds. Fresh
+> desktop and mobile Storybook renders keep the carrying Post visible while
+> the horizontally scrolled evidence action is focused. Current-head GitHub
+> checks are still running and therefore are not delivery proof. The required
+> workflow bootstrap and dependency review already fail closed: the first still
 > depends on the candidate-only central workflow repair in
 > `ContextualWisdomLab/.github#1420`, while the latter is a fail-closed
 > dependency-graph 403 rather than a product-test failure. Strix is successful
-> on this head.
+> only on the prior head and remains unverified on this head.
 > Independent approval is still absent, so protected merge and merge SHA are
 > unavailable. The largest directly actionable Voice acceptance gap in this
 > PR remains implemented only on the candidate head: exact-value UI and CSV
 > distinguish the carrying Post from genuine derivation evidence, additional
 > Voices retain authorized Post evidence, PROV-O derivation, truth status, and
 > cutoff behavior, and primary Voices do not acquire an invented derivation.
-> Authenticated PostgreSQL/API and desktop/mobile rendered evidence exist for
-> this exact candidate head, but are not relabeled as protected-main delivery.
+> Authenticated PostgreSQL/API evidence exists on the unchanged implementation
+> ancestor; the current exact head has fresh desktop/mobile rendered evidence
+> but awaits current-head hosted integration checks. Neither is relabeled as
+> protected-main delivery.
 > The supporting PRD's duplicate occupational requirement identifiers and
 > stale ADR references remain an authority-document gap tracked by issue #807;
 > they are not promoted over accepted ADRs. No self-approval, bypass, force
