@@ -8,6 +8,9 @@ export const LEFTOVER_MAP_RECONSTRUCTION_ACTION =
 export const LEFTOVER_MAP_COMPARE_RECONSTRUCTION_LABEL =
   "Leftover map comparison reconstruction";
 
+export const LEFTOVER_MAP_COMPARE_PLOT_SEGMENT_RECONSTRUCTION =
+  "leftover map comparison graphic reconstruction {label}";
+
 const RECONSTRUCTION_BADGE = "R\u0302";
 
 export function formatLeftoverMapReconstruction(value: number | null | undefined): string | null {

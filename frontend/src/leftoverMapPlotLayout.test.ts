@@ -7,6 +7,7 @@ import {
   layoutLeftoverMapPlot,
   LEFTOVER_MAP_COMPARE_PLOT_CAPTION,
   LEFTOVER_MAP_COMPARE_PLOT_LABEL,
+  LEFTOVER_MAP_COMPARE_PLOT_SEGMENT_RECONSTRUCTION,
   LEFTOVER_MAP_COMPARE_PLOT_SVG,
   PLOT_HEIGHT,
   PLOT_PADDING,
@@ -1203,5 +1204,17 @@ describe("leftover map comparison graphic labels", () => {
     expect(LEFTOVER_MAP_COMPARE_PLOT_CAPTION).toContain("already-named coordinates");
     expect(LEFTOVER_MAP_COMPARE_PLOT_LABEL).not.toBe("Leftover-map graphic display");
     expect(LEFTOVER_MAP_COMPARE_PLOT_SVG).not.toBe("Leftover map");
+  });
+
+  it("stays distinct from leftover-map reconstruction copy", () => {
+    expect(LEFTOVER_MAP_COMPARE_PLOT_SEGMENT_RECONSTRUCTION).toBe(
+      "leftover map comparison graphic reconstruction {label}",
+    );
+    expect(LEFTOVER_MAP_COMPARE_PLOT_SEGMENT_RECONSTRUCTION).not.toBe(
+      "leftover-map reconstruction {label}",
+    );
+    expect(LEFTOVER_MAP_COMPARE_PLOT_SEGMENT_RECONSTRUCTION).not.toBe(
+      "Leftover map comparison reconstruction",
+    );
   });
 });

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   formatLeftoverMapReconstruction,
+  LEFTOVER_MAP_COMPARE_PLOT_SEGMENT_RECONSTRUCTION,
   LEFTOVER_MAP_COMPARE_RECONSTRUCTION_LABEL,
 } from "./leftoverMapReconstruction";
 
@@ -21,5 +22,17 @@ describe("formatLeftoverMapReconstruction", () => {
   it("keeps the grouping comparison reconstruction label distinct from the graphic reconstruction label", () => {
     expect(LEFTOVER_MAP_COMPARE_RECONSTRUCTION_LABEL).toBe("Leftover map comparison reconstruction");
     expect(LEFTOVER_MAP_COMPARE_RECONSTRUCTION_LABEL).not.toBe("leftover-map reconstruction {label}");
+  });
+
+  it("keeps the grouping comparison graphic reconstruction label distinct from the graphic and strip labels", () => {
+    expect(LEFTOVER_MAP_COMPARE_PLOT_SEGMENT_RECONSTRUCTION).toBe(
+      "leftover map comparison graphic reconstruction {label}",
+    );
+    expect(LEFTOVER_MAP_COMPARE_PLOT_SEGMENT_RECONSTRUCTION).not.toBe(
+      "leftover-map reconstruction {label}",
+    );
+    expect(LEFTOVER_MAP_COMPARE_PLOT_SEGMENT_RECONSTRUCTION).not.toBe(
+      LEFTOVER_MAP_COMPARE_RECONSTRUCTION_LABEL,
+    );
   });
 });
