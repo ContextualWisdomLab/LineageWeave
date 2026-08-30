@@ -215,6 +215,11 @@ _OCCUPATIONAL_CONSTRUCT_ASSERTION_MIGRATION = (
     / "migrations"
     / "0238_occupational_construct_assertion.sql"
 )
+_OCCUPATIONAL_CONSTRUCT_EXTRACTION_MIGRATION = (
+    Path(__file__).resolve().parents[2]
+    / "migrations"
+    / "0240_occupational_construct_extraction_run.sql"
+)
 _LEFTOVER_MAP_EXPLAINED_SHARE_MIGRATION = (
     Path(__file__).resolve().parents[2]
     / "migrations"
@@ -456,6 +461,7 @@ def seeded_db(demo_analyst_token):
             cur.execute(_VOICE_TAXONOMY_MIGRATION.read_text())
             cur.execute(_SOURCE_POST_VOICE_MIGRATION.read_text())
             cur.execute(_OCCUPATIONAL_CONSTRUCT_ASSERTION_MIGRATION.read_text())
+            cur.execute(_OCCUPATIONAL_CONSTRUCT_EXTRACTION_MIGRATION.read_text())
             cur.execute(_SOURCE_POST_VOICE_HISTORY_MIGRATION.read_text())
             cur.execute(_LEFTOVER_MAP_EXPLAINED_SHARE_MIGRATION.read_text())
             cur.execute(_LEFTOVER_MAP_COORDINATES_MIGRATION.read_text())
