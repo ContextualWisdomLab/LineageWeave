@@ -5,6 +5,9 @@ import { formatSignedLeftoverValue } from "./leftoverMapUnexplained";
 export const LEFTOVER_MAP_COORDINATES_ACTION =
   "Leftover map places this post at ξ {person} and the criterion at ζ {item} after IRT main effects. Open this post to read {criterion}.";
 
+export const LEFTOVER_MAP_COMPARE_COORDINATES_LABEL =
+  "Leftover map comparison coordinates";
+
 const PERSON_BADGE = "\u03BE";
 const ITEM_BADGE = "\u03B6";
 
