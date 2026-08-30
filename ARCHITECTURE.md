@@ -637,7 +637,7 @@ information at the group's mean θ (Lord, 1980 max-info CAT). Rankings
 persist to `report_item_information`. After those IRT main effects,
 residual SVD leftover pairs on two Gabriel axes (Jeon et al., 2021;
 ADR 0017 / 0048 / 0049 / 0119 / 0148 / 0158 / 0162 / 0163 / 0164 / 0168 /
-0182 / 0185 / 0201 / 0233 / 0266 / 0267 / 0268 / 0269 / 0270 / 0271 / 0272 / 0273 / 0274 / 0275 / 0276 / 0277 / 0278 / 0279 / 0280 / 0281 / 0282 / 0283 / 0284 / 0285 / 0286 / 0287 / 0288) persist to `report_leftover_pair` with signed residual `R`,
+0182 / 0185 / 0201 / 0233 / 0266 / 0267 / 0268 / 0269 / 0270 / 0271 / 0272 / 0273 / 0274 / 0275 / 0276 / 0277 / 0278 / 0279 / 0280 / 0281 / 0282 / 0283 / 0284 / 0285 / 0286 / 0287 / 0288 / 0289) persist to `report_leftover_pair` with signed residual `R`,
 observed `Y`, expected `E[Y|θ, item]`, full leftover-map rank, unexplained
 leftover, ADR 0201 reconstruction evidence, ADR 0185 cross-share evidence,
 ADR 0233 unexplained leftover share `s`, ADR 0266 explained leftover
@@ -667,7 +667,9 @@ item coverage. ADR 0285 captions the leftover pair list with persisted leftover-
 item complete-case coverage. ADR 0286 captions the leftover pair list with persisted leftover-map
 incomplete post coverage. ADR 0287 captions the leftover pair list with persisted leftover-map
 incomplete item coverage. ADR 0288 fail-closes leftover-map post complete-case coverage
-on the leftover pair list through leftoverMapCoverageCounts. Click a post marker or a pair button
+on the leftover pair list through leftoverMapCoverageCounts. ADR 0289 captions the
+grouping comparison strip with persisted leftover-map post complete-case coverage
+through leftoverMapCoverageCounts. Click a post marker or a pair button
 opens that post. Those ADRs are the normative mathematical, storage, and
 display contracts. Leftover-map axis share
 (Gabriel inertia of residual SVD axes 1 and 2; ADR 0148) persists to
@@ -684,7 +686,8 @@ including on the pair list. Results persist to
 `GET /api/reports/{grouping}` lists the trend;
 `GET /api/reports/{grouping}/{period}` is ABAC-filtered;
 `GET /api/reports/compare/{period}` is the home-page grouping strip
-and carries the same ABAC-filtered leftover pairs (ADR 0149);
+and carries the same ABAC-filtered leftover pairs (ADR 0149) plus persisted
+leftover-map complete-case coverage (ADR 0289);
 `POST .../rebuild` scores every grouping kind (post_admin). `make seed`
 folds A-100/B-200 Event Lineage fixtures (and the Riverbend calendar
 post) that already have constructed IRT cells into the same shared

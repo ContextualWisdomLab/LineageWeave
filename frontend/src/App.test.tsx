@@ -890,6 +890,14 @@ describe("App, authenticated", () => {
                 mean_theta: 0.81,
                 post_count: 4,
                 link_method: "fipc",
+                leftover_map_coverage: {
+                  map_post_count: 5,
+                  scored_post_count: 3,
+                  map_item_count: 2,
+                  scored_item_count: 2,
+                  incomplete_post_count: 0,
+                  incomplete_item_count: 0,
+                },
               },
               {
                 grouping_kind: "corporate_entity",
@@ -916,6 +924,14 @@ describe("App, authenticated", () => {
                     leftover_residual: 0.4,
                   },
                 ],
+                leftover_map_coverage: {
+                  map_post_count: 2,
+                  scored_post_count: 3,
+                  map_item_count: 2,
+                  scored_item_count: 2,
+                  incomplete_post_count: 1,
+                  incomplete_item_count: 0,
+                },
               },
             ],
           }),
@@ -4243,6 +4259,16 @@ describe("App, authenticated", () => {
     expect(
       within(screen.getByLabelText("Grouping comparison")).queryByLabelText("Leftover map coverage"),
     ).not.toBeInTheDocument();
+    expect(
+      within(screen.getByLabelText("Grouping comparison")).getByLabelText(
+        "Leftover map comparison coverage",
+      ),
+    ).toHaveTextContent("Leftover map used 2 of 3 scored posts (complete-case)");
+    expect(
+      within(screen.getByLabelText("Grouping comparison")).getAllByLabelText(
+        "Leftover map comparison coverage",
+      ),
+    ).toHaveLength(1);
     expect(
       within(screen.getByLabelText("Grouping comparison")).queryByLabelText("Leftover map item coverage"),
     ).not.toBeInTheDocument();
