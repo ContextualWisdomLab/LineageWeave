@@ -1,5 +1,22 @@
 # Product & Technical Gap Baseline
 
+> Exact-head authenticated-acceptance overlay: 2026-08-30 23:59 KST.
+> Protected `main` remains `cb187cadee5fb6c46d8a944815ccc154a1e028d1`;
+> thirty-three open PRs and ten open issues were enumerated in one fresh
+> snapshot. PR #780's authenticated PostgreSQL/API acceptance revision is
+> `dd674eb9b90734e8ae5f900c4a3fc82bd213bafd`; this later documentation-only
+> overlay does not relabel itself as that implementation revision. The live
+> synthetic Keycloak/PostgreSQL test exposed a stale test oracle that expected
+> a private `post/{id}` IRI even though the canonical neighborhood projection
+> uses the governed `node/node_post/{id}` identity for every Post node. The
+> minimal repair changes only that assertion, and the genuine authenticated
+> API test now passes. Carrying-Post and derivation-evidence relations remain
+> distinct, and no hidden Post is substituted. Rendered authenticated UI,
+> terminal hosted Checks, independent approval, protected merge, and merge SHA
+> remain unavailable on this moved head. The central binary-evidence root fix
+> is still candidate-only in `ContextualWisdomLab/.github#1420`; no local
+> workflow weakening, self-approval, bypass, or force push is used.
+>
 > Exact-head review-repair overlay: 2026-08-30 22:31 KST. Protected `main`
 > remains `cb187cadee5fb6c46d8a944815ccc154a1e028d1`; twenty-five open PRs and
 > ten open issues were enumerated in one fresh snapshot. PR #780's current
