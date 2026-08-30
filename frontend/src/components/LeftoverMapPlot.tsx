@@ -14,6 +14,7 @@ import {
   LEFTOVER_MAP_PLOT_SEGMENT_CROSS_SHARE,
   LEFTOVER_MAP_PLOT_SEGMENT_DISTANCE,
   LEFTOVER_MAP_PLOT_SEGMENT_EXPLAINED_SHARE,
+  LEFTOVER_MAP_PLOT_SEGMENT_OBSERVED,
   LEFTOVER_MAP_PLOT_SEGMENT_RECONSTRUCTION,
   LEFTOVER_MAP_PLOT_SEGMENT_RESIDUAL,
   LEFTOVER_MAP_PLOT_SEGMENT_UNEXPLAINED,
@@ -57,8 +58,8 @@ function leftoverMapPlotAxisText(
  * distance ``d``, leftover-map reconstruction ``R̂``, leftover-map
  * explained leftover share ``e``, leftover-map unexplained leftover
  * share ``s``, leftover-map cross share ``x``, leftover-map
- * unexplained leftover ``U``, and leftover residual ``R`` so the
- * pair-row badges match the graphic.
+ * unexplained leftover ``U``, leftover residual ``R``, and leftover
+ * observed ``Y`` so the pair-row badges match the graphic.
  * Omit that distance caption when ``d`` is missing or non-finite. Omit
  * that reconstruction caption when ``R̂`` is missing or non-finite. Omit
  * that explained leftover share caption when ``e`` is missing or
@@ -66,7 +67,8 @@ function leftoverMapPlotAxisText(
  * missing or non-finite. Omit that leftover-map cross share caption when
  * ``x`` is missing or non-finite. Omit that unexplained leftover caption
  * when ``U`` is missing or non-finite. Omit that leftover residual
- * caption when ``R`` is missing or non-finite. Omit that axis badge when share is
+ * caption when ``R`` is missing or non-finite. Omit that leftover observed
+ * caption when ``Y`` is missing or non-finite. Omit that axis badge when share is
  * missing or non-finite and keep the existing leftover-map axis text.
  * Omit the plot when no pair has four finite leftover-map coordinates.
  * Never invent a leftover score.
@@ -244,6 +246,19 @@ export function LeftoverMapPlot({
                   })}
                 >
                   {segment.residualLabel}
+                </text>
+              ) : null}
+              {segment.observedLabel !== null ? (
+                <text
+                  className="leftover-map-plot-segment-label leftover-map-plot-segment-observed"
+                  x={segment.observedX}
+                  y={segment.observedY}
+                  textAnchor="middle"
+                  aria-label={tf(LEFTOVER_MAP_PLOT_SEGMENT_OBSERVED, {
+                    label: segment.observedLabel,
+                  })}
+                >
+                  {segment.observedLabel}
                 </text>
               ) : null}
             </g>
