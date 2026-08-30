@@ -1,15 +1,14 @@
-# ADR 0314 — Name leftover-map unexplained leftover on the grouping comparison leftover-map graphic
+# ADR 0315 — Name leftover residual on the grouping comparison leftover-map graphic
 
 **Decision status:** Accepted
 **Date:** 2026-08-31
 
-**Amended by:** [ADR 0315](0315-leftover-map-compare-plot-residual.md)
-(leftover residual on the grouping comparison leftover-map graphic)
-
-Amends leftover-map unexplained leftover on graphic-display pair segments
-([ADR 0276](0276-leftover-map-segment-unexplained-leftover.md)), leftover-map
-unexplained leftover on grouping comparison strip pair rows
-([ADR 0297](0297-leftover-map-compare-unexplained.md)), leftover-map
+Amends leftover residual on graphic-display pair segments
+([ADR 0277](0277-leftover-map-segment-residual.md)), leftover residual
+on grouping comparison strip pair rows
+([ADR 0298](0298-leftover-map-compare-residual.md)), leftover-map
+unexplained leftover on the grouping comparison leftover-map graphic
+([ADR 0314](0314-leftover-map-compare-plot-unexplained-leftover.md)), leftover-map
 cross share on the grouping comparison leftover-map graphic
 ([ADR 0313](0313-leftover-map-compare-plot-cross-share.md)), leftover-map
 unexplained leftover share on the grouping comparison leftover-map graphic
@@ -29,8 +28,8 @@ complete-case coverage on the grouping comparison leftover-map graphic
 on the grouping comparison leftover-map graphic
 ([ADR 0305](0305-leftover-map-compare-plot-axis-share.md)), leftover-map graphic
 display on the grouping comparison strip
-([ADR 0304](0304-leftover-map-compare-graphic.md)), leftover-map unexplained leftover
-persistence ([ADR 0182](0182-leftover-map-unexplained.md)), leftover pairs on
+([ADR 0304](0304-leftover-map-compare-graphic.md)), leftover residual
+disclosure ([ADR 0162](0162-leftover-residual-disclosure.md)), leftover pairs on
 the grouping comparison strip
 ([ADR 0149](0149-leftover-pairs-on-comparison-strip.md)), leftover-map
 coordinates on the compare leftover-pair payload
@@ -60,9 +59,8 @@ incomplete post coverage on the grouping comparison strip
 complete-case coverage on the grouping comparison strip
 ([ADR 0290](0290-leftover-map-compare-item-coverage.md)), leftover-map
 complete-case coverage on the grouping comparison strip
-([ADR 0289](0289-leftover-map-compare-coverage.md)), leftover residual
-disclosure ([ADR 0162](0162-leftover-residual-disclosure.md)), leftover
-observed `Y` / expected `E` ([ADR 0163](0163-leftover-observed-expected.md)), leftover-map unexplained leftover persistence ([ADR 0182](0182-leftover-map-unexplained.md)),
+([ADR 0289](0289-leftover-map-compare-coverage.md)), leftover observed `Y` /
+expected `E` ([ADR 0163](0163-leftover-observed-expected.md)), leftover-map unexplained leftover persistence ([ADR 0182](0182-leftover-map-unexplained.md)),
 leftover-map rank ([ADR 0164](0164-leftover-map-rank.md)), leftover-map rank on pair
 segments ([ADR 0280](0280-leftover-map-segment-rank.md)), leftover-map coordinate ticks
 ([ADR 0270](0270-leftover-map-coordinate-ticks.md)), leftover-map graphic display
@@ -84,7 +82,9 @@ explained leftover share persistence ([ADR 0266](0266-leftover-map-explained-sha
 ([ADR 0273](0273-leftover-map-segment-explained-share.md)), leftover-map cross share on pair segments
 ([ADR 0275](0275-leftover-map-segment-cross-share.md)), leftover-map cross share persistence
 ([ADR 0185](0185-leftover-map-cross-share.md)), leftover-map cross share on grouping comparison strip pair rows
-([ADR 0296](0296-leftover-map-compare-cross-share.md)), and leftover-map coordinates
+([ADR 0296](0296-leftover-map-compare-cross-share.md)), leftover-map unexplained leftover on pair segments
+([ADR 0276](0276-leftover-map-segment-unexplained-leftover.md)), leftover residual on pair segments
+([ADR 0277](0277-leftover-map-segment-residual.md)), leftover-map coordinates
 ([ADR 0267](0267-leftover-map-coordinates.md)). Independent of leftover-map
 post complete-case coverage fail-closed on the pair list
 ([ADR 0288](0288-leftover-map-list-post-coverage-helper.md)), leftover-map
@@ -95,53 +95,48 @@ post coverage on the pair list
 complete-case coverage on the pair list
 ([ADR 0285](0285-leftover-map-list-item-coverage.md)), leftover expected on pair
 segments ([ADR 0279](0279-leftover-map-segment-expected.md)), leftover observed
-on pair segments ([ADR 0278](0278-leftover-map-segment-observed.md)), leftover
-residual on pair segments ([ADR 0277](0277-leftover-map-segment-residual.md)),
-leftover-map unexplained leftover on pair segments
-([ADR 0276](0276-leftover-map-segment-unexplained-leftover.md)), leftover-map
+on pair segments ([ADR 0278](0278-leftover-map-segment-observed.md)), leftover-map
 distance on pair segments ([ADR 0271](0271-leftover-map-segment-distance.md)),
-leftover-map unexplained leftover on pair segments
-([ADR 0276](0276-leftover-map-segment-unexplained-leftover.md)), leftover residual
-on pair segments ([ADR 0277](0277-leftover-map-segment-residual.md)), and leftover residual
-on the grouping comparison leftover-map graphic.
+and leftover observed on the grouping comparison leftover-map graphic.
 
 ## Context
 
-ADR 0182 already persists leftover-map unexplained leftover
-`U = R − R̂` after two-axis Gabriel reconstruction. ADR 0276 already captions
+ADR 0162 already persists leftover residual
+`R = Y − E[Y|θ, item]` after IRT main effects. ADR 0277 already captions
 period-report leftover-map pair segments with
-`leftover-map unexplained leftover {label}` when that leftover-map unexplained leftover is
-finite. ADR 0297 already captions grouping comparison leftover-pair
-buttons with that same persisted leftover-map unexplained leftover under accessible name
-`Leftover map comparison unexplained leftover`. ADR 0313 already captions
-leftover-map cross share on the grouping comparison leftover-map graphic.
-The comparison graphic still reuses hyphen
-`leftover-map unexplained leftover {label}`, so a buyer who compares leftover
+`leftover residual {label}` when that leftover residual is
+finite. ADR 0298 already captions grouping comparison leftover-pair
+buttons with that same persisted leftover residual under accessible name
+`Leftover map comparison residual`. ADR 0314 already captions
+leftover-map unexplained leftover on the grouping comparison leftover-map graphic.
+The comparison graphic still reuses
+`leftover residual {label}`, so a buyer who compares leftover
 pairs can treat the period-report graphic caption as the comparison graphic
-leftover-map unexplained leftover even after the strip names `U`. Hiding a distinct
-comparison-graphic leftover-map unexplained leftover caption lets leftover-map
-cross share `x` or leftover residual `R` be read as leftover-map
-unexplained leftover without a next action. When `R`, `R̂`, and `U` are
-finite, `U + R̂ = R`; the comparison graphic must name the same
-persisted `U` the pair row and strip already show. A finite negative leftover is
+leftover residual even after the strip names `R`. Hiding a distinct
+comparison-graphic leftover residual caption lets leftover-map
+unexplained leftover `U` or leftover observed `Y` be read as leftover residual
+without a next action. When `Y`, `E`, and `R` are
+finite, `Y − E = R`; the comparison graphic must name the same
+persisted `R` the pair row and strip already show. A finite negative leftover is
 shown, never clamped.
 
-This increment captions leftover-map unexplained leftover on the grouping
-comparison leftover-map graphic from already-named leftover-map unexplained
-leftover through formatLeftoverMapUnexplained. Comparison copy uses the accessible
-name `leftover map comparison graphic unexplained leftover {label}` so it stays
-distinct from hyphen `leftover-map unexplained leftover {label}` on the
-period-report graphic and from strip `Leftover map comparison unexplained leftover`.
-It does not add columns. It does not recompute leftover-map unexplained leftover
-from `R` and `R̂`, leftover-map reconstruction, leftover residual, leftover-map distance,
+This increment captions leftover residual on the grouping
+comparison leftover-map graphic from already-named leftover residual
+through formatLeftoverMapResidual. Comparison copy uses the accessible
+name `leftover map comparison graphic leftover residual {label}` so it stays
+distinct from `leftover residual {label}` on the
+period-report graphic and from strip `Leftover map comparison residual`.
+It does not add columns. It does not recompute leftover residual
+from `Y` and `E`, from `U` and `R̂`, leftover-map reconstruction, leftover-map unexplained leftover, leftover-map distance,
 plotted coordinates, leftover-map rank, leftover-map axis share, leftover-map post
 coverage, leftover-map item coverage, leftover-map incomplete post coverage,
 leftover-map incomplete item coverage, leftover pair count, or the count of unused
 axes. Do not invent a leftover score. Do not invent a theta.
 
 The dashboard stack already used neighbouring leftover facts under other
-numbers. This protected increment uses **0314** so it does not collide with
-leftover-map cross share on the grouping comparison leftover-map graphic
+numbers. This protected increment uses **0315** so it does not collide with
+leftover-map unexplained leftover on the grouping comparison leftover-map graphic
+(0314), leftover-map cross share on the grouping comparison leftover-map graphic
 (0313), leftover-map unexplained leftover share on the grouping comparison leftover-map graphic
 (0312), leftover-map explained leftover share on the grouping comparison leftover-map graphic
 (0311), leftover-map reconstruction on the grouping comparison leftover-map graphic
@@ -151,21 +146,22 @@ graphic (0308), leftover-map item complete-case coverage on the grouping compari
 graphic (0307), leftover-map complete-case coverage on the grouping comparison
 leftover-map graphic (0306), leftover-map axis share on the grouping comparison leftover-map
 graphic (0305), leftover-map graphic display on the grouping comparison strip
-(0304), leftover-map unexplained leftover on grouping comparison strip pair rows
-(0297), leftover-map unexplained leftover on pair segments (0276), leftover-map
-unexplained leftover persistence (0182), leftover-map graphic display (0268), leftover-map
+(0304), leftover residual on grouping comparison strip pair rows
+(0298), leftover residual on pair segments (0277), leftover residual
+disclosure (0162), leftover-map graphic display (0268), leftover-map
 coordinates (0267), or the dashboard stacks.
 
 ## Decision
 
 On the grouping comparison leftover-map graphic, caption each pair segment
-with persisted leftover-map unexplained leftover when formatLeftoverMapUnexplained
-returns a usable badge, next to leftover-map cross share `x`. Use the
-distinct accessible name `leftover map comparison graphic unexplained leftover {label}`
-so the graphic caption is not the strip badge (`Leftover map comparison unexplained leftover`)
-and is not the period-report graphic caption (`leftover-map unexplained leftover {label}`).
-A missing or non-finite `U` omits that leftover-map comparison graphic
-unexplained leftover caption and keeps leftover-map cross share `x` when
+with persisted leftover residual when formatLeftoverMapResidual
+returns a usable badge, next to leftover-map unexplained leftover `U`. Use the
+distinct accessible name `leftover map comparison graphic leftover residual {label}`
+so the graphic caption is not the strip badge (`Leftover map comparison residual`)
+and is not the period-report graphic caption (`leftover residual {label}`).
+A missing or non-finite `R` omits that leftover-map comparison graphic
+leftover residual caption and keeps leftover-map unexplained leftover `U` when
+formatLeftoverMapUnexplained returns a usable badge, leftover-map cross share `x` when
 formatLeftoverMapCrossShare returns a usable badge, leftover-map unexplained leftover share `s` when
 formatLeftoverMapUnexplainedShare returns a usable badge, leftover-map explained leftover share `e` when
 formatLeftoverMapExplainedShare returns a usable badge, leftover-map reconstruction `R̂` when
@@ -178,27 +174,28 @@ posts when leftoverMapIncompletePostCount returns a usable dropped integer,
 leftover-map comparison graphic incomplete items when leftoverMapIncompleteItemCount
 returns a usable dropped integer, leftover-map rank when that rank is a non-negative
 integer, leftover expected `E` when finite, leftover observed `Y` when finite,
-leftover residual `R` when finite, leftover-map reconstruction `R̂` when
-finite, leftover-map distance `d`, plus the strip leftover-map unexplained leftover badge.
-Rank-0 origin cells still name `U 0.00` when that persisted leftover-map
-unexplained leftover is finite. A finite negative leftover is shown, never clamped. Do not invent `U` from
-`R` and `R̂`, leftover-map reconstruction, leftover residual, leftover-map distance,
+leftover-map reconstruction `R̂` when
+finite, leftover-map distance `d`, plus the strip leftover residual badge.
+Rank-0 origin cells still name `R 0.00` when that persisted leftover
+residual is finite. A finite negative leftover is shown, never clamped. Do not invent `R` from
+`Y` and `E`, from `U` and `R̂`, leftover-map reconstruction, leftover-map unexplained leftover, leftover-map distance,
 plotted coordinates, leftover-map rank, leftover-map axis share, leftover-map post
 coverage, leftover-map item coverage, leftover-map incomplete post coverage,
 leftover-map incomplete item coverage, leftover pair count, or the count of unused
 axes. Click a post marker to open that post.
 
-Leftover-map unexplained leftover omits independently of leftover-map cross share captions,
+Leftover residual omits independently of leftover-map unexplained leftover captions,
+leftover-map cross share captions,
 unexplained leftover share captions, explained leftover share captions, reconstruction captions,
-coverage notes, and leftover-map distance. A missing leftover-map
-unexplained leftover omits leftover-map comparison graphic unexplained leftover and keeps
-a usable leftover-map cross share caption, a usable unexplained leftover share caption, a usable explained leftover share caption, a usable reconstruction caption, a usable
+coverage notes, and leftover-map distance. A missing leftover
+residual omits leftover-map comparison graphic leftover residual and keeps
+a usable leftover-map unexplained leftover caption, a usable leftover-map cross share caption, a usable unexplained leftover share caption, a usable explained leftover share caption, a usable reconstruction caption, a usable
 distance caption, a usable post caption, a usable item caption, a usable incomplete
 posts caption, and a usable incomplete items caption.
 
-This increment does not caption leftover residual `R` on the comparison graphic
-with a distinct comparison-graphic name. That leftover residual already sits on
-the strip through ADR 0298. A finite negative leftover on neighbouring fields is shown,
+This increment does not caption leftover observed `Y` on the comparison graphic
+with a distinct comparison-graphic name. That leftover observed already sits on
+the strip through ADR 0299. A finite negative leftover on neighbouring fields is shown,
 never clamped.
 
 Do not add SQL migrations. Do not edit shipped migrations. Do not persist inner
@@ -208,11 +205,11 @@ score. Do not invent a theta.
 ## Consequences
 
 After `make seed`, grouping comparison leftover pairs that already show
-the leftover-map graphic of persisted `ξ` / `ζ` also name leftover-map
-unexplained leftover on that graphic when formatLeftoverMapUnexplained
+the leftover-map graphic of persisted `ξ` / `ζ` also name leftover
+residual on that graphic when formatLeftoverMapResidual
 returns a usable badge. Rank-0 unused axes still plot at
-the origin and still name `U 0.00` when that persisted leftover-map
-unexplained leftover is finite. Click a post marker or a pair button opens that post. Hidden posts
+the origin and still name `R 0.00` when that persisted leftover
+residual is finite. Click a post marker or a pair button opens that post. Hidden posts
 stay hidden. When `Y`, `E`, and `R` are finite, `Y − E = R`. When `R`, `R̂`,
 and `U` are finite, `U + R̂ = R`. When `R`, `R̂`, `U`, `x`, `s`, and `e` are
 finite, `e + s + x = 1`. When coordinates, reconstruction, and distance
@@ -248,6 +245,7 @@ reconstruction persistence, leftover-map reconstruction on the grouping
 comparison leftover-map graphic, leftover-map explained leftover share on the grouping
 comparison leftover-map graphic, leftover-map unexplained leftover share on the grouping
 comparison leftover-map graphic, leftover-map cross share on the grouping
+comparison leftover-map graphic, leftover-map unexplained leftover on the grouping
 comparison leftover-map graphic, leftover-map item complete-case coverage on the
 graphic display, leftover-map item complete-case coverage on the pair list,
 leftover-map incomplete post coverage on the graphic display, leftover-map
@@ -262,7 +260,7 @@ coverage on the grouping comparison leftover-map graphic, leftover-map
 incomplete post coverage on the grouping comparison leftover-map graphic,
 leftover-map incomplete item coverage on the grouping comparison leftover-map
 graphic, leftover-map axis share on the grouping comparison leftover-map graphic,
-and leftover residual on the grouping comparison leftover-map graphic.
+and leftover observed on the grouping comparison leftover-map graphic.
 
 ## References
 
@@ -271,13 +269,12 @@ unobserved item–respondent interactions: A latent space item response
 model with interaction map. *Psychometrika, 86*(2), 378–403.
 https://doi.org/10.1007/s11336-021-09762-5
 (LSIRM interaction `−γ‖ξ_j − ζ_i‖` after main effects
-`α_j − β_i`; typically `p = 2` for the interaction map. Gabriel
-reconstruction of the leftover cell is the two-axis inner product
-`R̂ = ξ_{1:2} · ζ_{1:2}`. Unexplained leftover is `U = R − R̂`. Grouping comparison leftover-map
-unexplained leftover captions that persisted leftover on the grouping comparison leftover-map
-graphic only when formatLeftoverMapUnexplained returns a usable badge.
-Rank-0 unused axes still name `U 0.00` when that leftover-map
-unexplained leftover is stored. A finite negative leftover is shown, never clamped.)
+`α_j − β_i`; typically `p = 2` for the interaction map. Residual after
+IRT main effects is `R = Y − E[Y|θ, item]`. Grouping comparison leftover
+residual captions that persisted leftover on the grouping comparison leftover-map
+graphic only when formatLeftoverMapResidual returns a usable badge.
+Rank-0 unused axes still name `R 0.00` when that leftover
+residual is stored. A finite negative leftover is shown, never clamped.)
 
 Gabriel, K. R. (1971). The biplot graphic display of matrices with
 application to principal component analysis. *Biometrika, 58*(3),
