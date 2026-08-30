@@ -57,6 +57,18 @@ describe("i18n", () => {
     "Two leftover-map axes leave identity remainder {value} of raw residual after IRT main effects. Open this post to read {criterion}.",
     "Leftover map leaves unexplained leftover share {value} of raw residual after IRT main effects. Open this post to read {criterion}.",
     "Leftover map leaves explained leftover share {value} of raw residual after IRT main effects. Open this post to read {criterion}.",
+    "Leftover map places this post at ξ {person} and the criterion at ζ {item} after IRT main effects. Open this post to read {criterion}.",
+    "Leftover-map graphic display",
+    "Leftover map",
+    "Post ξ",
+    "Criterion ζ",
+    "leftover-map axis 1",
+    "leftover-map axis 2",
+    "leftover-map axis {axis} ({share}%)",
+    "leftover-map axis {axis} tick {value}",
+    "leftover-map distance {label}",
+    "Leftover map after IRT main effects. Axis ticks name persisted leftover-map coordinates. Pair segments name leftover-map distance d. Click a post marker to open that post. The plot does not invent a leftover score.",
+    "Open leftover-map post {title} at ξ {person}",
     "Read observed Y {observed} and expected E {expected} after IRT main effects, then open this post.",
     "Leftover map has no leftover structure after IRT main effects. Open this post.",
     "Leftover map rank {rank} after IRT main effects. Open this post.",
@@ -287,6 +299,86 @@ describe("i18n", () => {
         { value: "0.76", criterion: "sales-lead" },
       ),
     ).toBe(expected);
+  });
+
+  it.each([
+    [
+      "ko",
+      "잔여 지도가 IRT 주효과 이후 이 글을 ξ (+0.50, +0.10)에, 기준을 ζ (+0.50, −0.02)에 둡니다. sales-lead 기준을 읽으려면 이 글을 여세요.",
+    ],
+    [
+      "zh",
+      "残差图在 IRT 主效应后将这篇帖子放在 ξ (+0.50, +0.10)，将准则放在 ζ (+0.50, −0.02)。打开这篇帖子阅读 sales-lead。",
+    ],
+    [
+      "ja",
+      "残差マップはIRT主効果後にこの投稿を ξ (+0.50, +0.10) に、基準を ζ (+0.50, −0.02) に置きます。この投稿を開いて sales-lead を読んでください。",
+    ],
+    [
+      "vi",
+      "Bản đồ phần dư đặt bài viết này tại ξ (+0.50, +0.10) và tiêu chí tại ζ (+0.50, −0.02) sau hiệu ứng chính IRT. Mở bài viết này để đọc sales-lead.",
+    ],
+  ] as const)("formats leftover-map coordinates next action in %s", (locale, expected) => {
+    setLocale(locale);
+    expect(
+      tf(
+        "Leftover map places this post at ξ {person} and the criterion at ζ {item} after IRT main effects. Open this post to read {criterion}.",
+        { person: "(+0.50, +0.10)", item: "(+0.50, −0.02)", criterion: "sales-lead" },
+      ),
+    ).toBe(expected);
+  });
+
+  it.each([
+    [
+      "ko",
+      "IRT 주효과 이후 잔여 지도입니다. 축 눈금은 저장된 잔여 지도 좌표입니다. 쌍 선분은 잔여 지도 거리 d입니다. 글 표식을 눌러 그 글을 여세요. 이 그림은 잔여 점수를 만들어내지 않습니다.",
+    ],
+    ["zh", "IRT 主效应后的残差图。轴刻度标出已保存的残差图坐标。配对线段标出残差图距离 d。点击帖子标记打开该帖子。此图不会虚构残差分数。"],
+    [
+      "ja",
+      "IRT主効果後の残差マップです。軸目盛は保存済みの残差マップ座標です。ペア線分は残差マップ距離 d です。投稿マーカーをクリックしてその投稿を開いてください。この図は残差スコアを作りません。",
+    ],
+    [
+      "vi",
+      "Bản đồ phần dư sau hiệu ứng chính IRT. Vạch trục ghi tọa độ bản đồ phần dư đã lưu. Đoạn cặp ghi khoảng cách bản đồ phần dư d. Nhấn dấu bài viết để mở bài đó. Hình này không tạo ra điểm phần dư.",
+    ],
+  ] as const)("formats leftover-map graphic display caption in %s", (locale, expected) => {
+    setLocale(locale);
+    expect(
+      t(
+        "Leftover map after IRT main effects. Axis ticks name persisted leftover-map coordinates. Pair segments name leftover-map distance d. Click a post marker to open that post. The plot does not invent a leftover score.",
+      ),
+    ).toBe(expected);
+  });
+
+  it.each([
+    ["ko", "잔여 지도 축 1 눈금 +0.50"],
+    ["zh", "残差图轴 1 刻度 +0.50"],
+    ["ja", "残差マップ軸 1 目盛 +0.50"],
+    ["vi", "vạch trục bản đồ phần dư 1 +0.50"],
+  ] as const)("formats leftover-map coordinate ticks in %s", (locale, expected) => {
+    setLocale(locale);
+    expect(tf("leftover-map axis {axis} tick {value}", { axis: 1, value: "+0.50" })).toBe(expected);
+  });
+
+  it.each([
+    ["ko", "잔여 지도 거리 d 0.12"],
+    ["zh", "残差图距离 d 0.12"],
+    ["ja", "残差マップ距離 d 0.12"],
+    ["vi", "khoảng cách bản đồ phần dư d 0.12"],
+  ] as const)("formats leftover-map segment distance in %s", (locale, expected) => {
+    setLocale(locale);
+    expect(tf("leftover-map distance {label}", { label: "d 0.12" })).toBe(expected);
+  });
+
+  it.each([
+    ["ko", "잔여 지도 축 1 (82%)"],
+    ["zh", "残差图轴 1 (82%)"],
+    ["ja", "残差マップ軸 1 (82%)"],
+    ["vi", "trục bản đồ phần dư 1 (82%)"],
+  ] as const)("formats leftover-map plot axis share in %s", (locale, expected) => {
+    setLocale(locale);
+    expect(tf("leftover-map axis {axis} ({share}%)", { axis: 1, share: "82" })).toBe(expected);
   });
 
   it.each([
