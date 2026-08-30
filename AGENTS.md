@@ -591,6 +591,16 @@ and leftover-map comparison graphic incomplete items when those helpers return u
 leftover-map rank, leftover-map axis share, leftover-map post coverage, leftover-map item coverage,
 leftover-map incomplete post coverage, leftover-map incomplete item coverage, leftover pair
 count, or the count of unused axes.
+ADR 0316 captions leftover observed on that grouping comparison leftover-map
+graphic when formatLeftoverMapObserved returns a usable badge; a missing or
+non-finite `Y` omits that leftover-map comparison graphic leftover observed caption and keeps
+leftover residual `R`, leftover-map unexplained leftover `U`, leftover-map cross share `x`, leftover-map unexplained leftover share `s`, leftover-map explained leftover share `e`, leftover-map reconstruction `R̂`, leftover-map distance `d`, leftover-map comparison graphic coverage,
+leftover-map comparison graphic item coverage, leftover-map comparison graphic incomplete posts,
+and leftover-map comparison graphic incomplete items when those helpers return usable integers. Do not invent
+`Y` from `R` and `E`, leftover residual, leftover-map unexplained leftover, leftover-map reconstruction, leftover-map distance, plotted coordinates,
+leftover-map rank, leftover-map axis share, leftover-map post coverage, leftover-map item coverage,
+leftover-map incomplete post coverage, leftover-map incomplete item coverage, leftover pair
+count, or the count of unused axes.
 When `R`, `R̂`, `U`, `x`,
 `s`, and `e` are finite, `e + s + x = 1`. When `Y`, `E`, and `R` are
 finite, `Y − E = R`. When `R`, `R̂`, and `U` are
@@ -671,6 +681,9 @@ that grouping comparison leftover-map graphic with persisted leftover-map unexpl
 Grouping comparison leftover residual (ADR 0315) captions
 that grouping comparison leftover-map graphic with persisted leftover residual
 `R` when formatLeftoverMapResidual returns a usable badge.
+Grouping comparison leftover observed (ADR 0316) captions
+that grouping comparison leftover-map graphic with persisted leftover observed
+`Y` when formatLeftoverMapObserved returns a usable badge.
 Item complete-case coverage
 (ADR 0282) captions the leftover-map graphic with how many scored criteria
 entered the map. Item complete-case coverage on the pair list (ADR 0285)

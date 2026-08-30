@@ -3,6 +3,9 @@
 **Decision status:** Accepted
 **Date:** 2026-08-31
 
+**Amended by:** [ADR 0316](0316-leftover-map-compare-plot-observed.md)
+(leftover observed on the grouping comparison leftover-map graphic)
+
 Amends leftover residual on graphic-display pair segments
 ([ADR 0277](0277-leftover-map-segment-residual.md)), leftover residual
 on grouping comparison strip pair rows
@@ -193,9 +196,9 @@ a usable leftover-map unexplained leftover caption, a usable leftover-map cross 
 distance caption, a usable post caption, a usable item caption, a usable incomplete
 posts caption, and a usable incomplete items caption.
 
-This increment does not caption leftover observed `Y` on the comparison graphic
-with a distinct comparison-graphic name. That leftover observed already sits on
-the strip through ADR 0299. A finite negative leftover on neighbouring fields is shown,
+This increment does not caption leftover expected `E` on the comparison graphic
+with a distinct comparison-graphic name. Leftover observed `Y` on that comparison
+graphic is [ADR 0316](0316-leftover-map-compare-plot-observed.md). A finite negative leftover on neighbouring fields is shown,
 never clamped.
 
 Do not add SQL migrations. Do not edit shipped migrations. Do not persist inner
