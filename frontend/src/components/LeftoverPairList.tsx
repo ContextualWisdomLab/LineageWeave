@@ -98,7 +98,8 @@ export type LeftoverPairListProps = {
  * buttons, not this pair list. ADR 0298 names persisted leftover residual on
  * grouping comparison leftover-pair buttons, not this pair list. ADR 0299 names
  * persisted leftover observed on grouping comparison leftover-pair buttons, not
- * this pair list. Every badge still
+ * this pair list. ADR 0300 names persisted leftover expected on grouping
+ * comparison leftover-pair buttons, not this pair list. Every badge still
  * renders together before opening the named post.
  */
 export function LeftoverPairList({
