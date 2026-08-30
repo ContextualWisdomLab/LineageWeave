@@ -35,8 +35,9 @@
  *  (ADR 0304), grouping comparison leftover-map axis share on that
  *  graphic (ADR 0305), grouping comparison leftover-map complete-case
  *  coverage on that graphic (ADR 0306), grouping comparison leftover-map
- *  item complete-case coverage on that graphic (ADR 0307), and grouping comparison leftover-map
- *  incomplete post coverage on that graphic (ADR 0308) caption the pair list or the grouping comparison
+ *  item complete-case coverage on that graphic (ADR 0307), grouping comparison leftover-map
+ *  incomplete post coverage on that graphic (ADR 0308), and grouping comparison leftover-map
+ *  incomplete item coverage on that graphic (ADR 0309) caption the pair list or the grouping comparison
  *  strip. ADR 0304 reuses this graphic layout on the grouping comparison
  *  strip. ADR 0305 captions leftover-map axis share on that comparison
  *  graphic from already-named leftover-map axes. ADR 0306 captions leftover-map
@@ -44,8 +45,8 @@
  *  coverage. ADR 0307 captions leftover-map item complete-case coverage on that
  *  comparison graphic from already-named leftover-map coverage. ADR 0308 captions leftover-map
  *  incomplete post coverage on that comparison graphic from already-named leftover-map
- *  coverage and does not caption leftover-map incomplete item coverage on that
- *  comparison plot.
+ *  coverage. ADR 0309 captions leftover-map incomplete item coverage on that
+ *  comparison graphic from already-named leftover-map coverage.
  */
 
 import { formatLeftoverMapCoordinatePair } from "./leftoverMapCoordinates";
