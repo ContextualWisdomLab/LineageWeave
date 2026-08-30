@@ -273,7 +273,7 @@ stops startup instead of leaving a healthy-looking partial schema, and
 application code must not compensate for a missing table.
 
 Period leftover pairs (ADR 0017 / 0018 / 0048 / 0049 / 0119 / 0158 / 0162 /
-0163 / 0164 / 0182 / 0185 / 0201 / 0233 / 0266 / 0267 / 0268 / 0269 / 0270 / 0271 / 0272 / 0273 / 0274 / 0275 / 0276 / 0277 / 0278) are computed in `lineageweave/leftover_pairs.py` from the
+0163 / 0164 / 0182 / 0185 / 0201 / 0233 / 0266 / 0267 / 0268 / 0269 / 0270 / 0271 / 0272 / 0273 / 0274 / 0275 / 0276 / 0277 / 0278 / 0279) are computed in `lineageweave/leftover_pairs.py` from the
 residual after a real GRM/GPCM score, never invented. Distances are
 Euclidean on the two-dimensional Gabriel leftover map; missing cells stay
 out of the factorization. Closest and farthest post–criterion pairs
@@ -329,6 +329,10 @@ residual caption and does not invent `R` from `Y` and `E`, from `U` and
 segments with persisted leftover observed `Y` so the pair-row `Y` badge
 matches the graphic; a missing or non-finite `Y` omits that leftover
 observed caption and does not invent `Y` from `R` and `E` or from plotted
+coordinates. ADR 0279 captions leftover-map pair
+segments with persisted leftover expected `E` so the pair-row `E` badge
+matches the graphic; a missing or non-finite `E` omits that leftover
+expected caption and does not invent `E` from `Y` and `R` or from plotted
 coordinates. When `R`, `R̂`, `U`, `x`,
 `s`, and `e` are finite, `e + s + x = 1`. When `Y`, `E`, and `R` are
 finite, `Y − E = R`. When `R`, `R̂`, and `U` are

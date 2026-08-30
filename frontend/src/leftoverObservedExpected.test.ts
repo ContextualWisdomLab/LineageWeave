@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { formatLeftoverMapObserved, formatLeftoverObservedExpected } from "./leftoverObservedExpected";
+import {
+  formatLeftoverMapExpected,
+  formatLeftoverMapObserved,
+  formatLeftoverObservedExpected,
+} from "./leftoverObservedExpected";
 
 describe("formatLeftoverObservedExpected", () => {
   it("names observed Y and expected E without inventing a leftover score", () => {
@@ -29,5 +33,21 @@ describe("formatLeftoverMapObserved", () => {
     expect(formatLeftoverMapObserved(undefined)).toBeNull();
     expect(formatLeftoverMapObserved(Number.NaN)).toBeNull();
     expect(formatLeftoverMapObserved(Number.POSITIVE_INFINITY)).toBeNull();
+  });
+});
+
+describe("formatLeftoverMapExpected", () => {
+  it("names leftover expected without inventing a leftover score", () => {
+    expect(formatLeftoverMapExpected(2.0)).toBe("E 2.00");
+    expect(formatLeftoverMapExpected(0.9)).toBe("E 0.90");
+    expect(formatLeftoverMapExpected(0)).toBe("E 0.00");
+    expect(formatLeftoverMapExpected(-1.1)).toBe("E -1.10");
+  });
+
+  it("omits the badge when leftover expected is missing or non-finite", () => {
+    expect(formatLeftoverMapExpected(null)).toBeNull();
+    expect(formatLeftoverMapExpected(undefined)).toBeNull();
+    expect(formatLeftoverMapExpected(Number.NaN)).toBeNull();
+    expect(formatLeftoverMapExpected(Number.POSITIVE_INFINITY)).toBeNull();
   });
 });

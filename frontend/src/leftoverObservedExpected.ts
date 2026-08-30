@@ -21,3 +21,10 @@ export function formatLeftoverMapObserved(value: number | null | undefined): str
   }
   return `Y ${value.toFixed(2)}`;
 }
+
+export function formatLeftoverMapExpected(value: number | null | undefined): string | null {
+  if (value == null || !Number.isFinite(value)) {
+    return null;
+  }
+  return `E ${value.toFixed(2)}`;
+}

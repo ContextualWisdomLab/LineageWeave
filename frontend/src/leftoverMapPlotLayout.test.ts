@@ -942,6 +942,119 @@ describe("layoutLeftoverMapPlot", () => {
     expect(layout?.segments[0]?.reconstructionLabel).toBe("R\u0302 0.00");
     expect(layout?.segments[0]?.distanceLabel).toBe("d 0.00");
   });
+
+  it("names persisted leftover expected on pair segments without inventing a leftover score", () => {
+    const layout = layoutLeftoverMapPlot(
+      [
+        pair({ observed_response: 2.4, expected_response: 2.0 }),
+        pair({
+          pair_kind: "farthest",
+          post_id: "post-demo-spec",
+          criterion_code: "negative_sentiment",
+          leftover_map_person_axis_1: 0.9,
+          leftover_map_person_axis_2: 0.8,
+          leftover_map_item_axis_1: -0.7,
+          leftover_map_item_axis_2: -0.4,
+          leftover_distance: 1.84,
+          leftover_map_reconstruction: -0.95,
+          leftover_map_explained_share: 0.6,
+          leftover_map_unexplained_share: 0.05,
+          leftover_map_cross_share: -0.24,
+          leftover_map_unexplained: -0.25,
+          leftover_residual: -1.1,
+          observed_response: 0.9,
+          expected_response: 2.0,
+        }),
+      ],
+      criterionLabel,
+    );
+    expect(layout?.segments.map((segment) => segment.expectedLabel)).toEqual([
+      "E 2.00",
+      "E 2.00",
+    ]);
+    expect(layout?.segments[0]?.expectedX).toBeCloseTo(layout?.segments[0]?.labelX ?? 0, 5);
+    expect(layout?.segments[0]?.expectedY).toBeGreaterThan(
+      layout?.segments[0]?.observedY ?? 0,
+    );
+  });
+
+  it("omits a leftover expected caption when E is missing or non-finite", () => {
+    const layout = layoutLeftoverMapPlot(
+      [
+        pair({ observed_response: 2.4, expected_response: null }),
+        pair({
+          pair_kind: "farthest",
+          observed_response: 2.4,
+          expected_response: Number.NaN,
+          leftover_map_item_axis_1: -0.7,
+          leftover_map_item_axis_2: -0.4,
+          criterion_code: "negative_sentiment",
+        }),
+      ],
+      criterionLabel,
+    );
+    expect(layout?.segments.map((segment) => segment.expectedLabel)).toEqual([null, null]);
+    expect(layout?.segments.map((segment) => segment.observedLabel)).toEqual([
+      "Y 2.40",
+      "Y 2.40",
+    ]);
+  });
+
+  it("does not invent leftover expected from observed and residual", () => {
+    const layout = layoutLeftoverMapPlot(
+      [
+        pair({
+          leftover_map_person_axis_1: 1,
+          leftover_map_person_axis_2: 0,
+          leftover_map_item_axis_1: 1,
+          leftover_map_item_axis_2: 0,
+          leftover_map_reconstruction: 1,
+          leftover_map_explained_share: 0.76,
+          leftover_map_unexplained_share: 0.02,
+          leftover_map_cross_share: 0.12,
+          leftover_map_unexplained: 0.05,
+          leftover_residual: 0.4,
+          observed_response: 2.4,
+          expected_response: 9.9,
+        }),
+      ],
+      criterionLabel,
+    );
+    expect(layout?.segments[0]?.expectedLabel).toBe("E 9.90");
+    expect(layout?.segments[0]?.expectedLabel).not.toBe("E 2.00");
+  });
+
+  it("names rank-0 origin leftover expected E 0.00 when that persisted value is finite", () => {
+    const layout = layoutLeftoverMapPlot(
+      [
+        pair({
+          leftover_map_person_axis_1: 0,
+          leftover_map_person_axis_2: 0,
+          leftover_map_item_axis_1: 0,
+          leftover_map_item_axis_2: 0,
+          leftover_distance: 0,
+          leftover_map_reconstruction: 0,
+          leftover_map_explained_share: 0,
+          leftover_map_unexplained_share: 0,
+          leftover_map_cross_share: 0,
+          leftover_map_unexplained: 0,
+          leftover_residual: 0,
+          observed_response: 0,
+          expected_response: 0,
+        }),
+      ],
+      criterionLabel,
+    );
+    expect(layout?.segments[0]?.expectedLabel).toBe("E 0.00");
+    expect(layout?.segments[0]?.observedLabel).toBe("Y 0.00");
+    expect(layout?.segments[0]?.residualLabel).toBe("R 0.00");
+    expect(layout?.segments[0]?.unexplainedLeftoverLabel).toBe("U 0.00");
+    expect(layout?.segments[0]?.crossShareLabel).toBe("2R\u0302U/R\u00b2 0.00");
+    expect(layout?.segments[0]?.unexplainedShareLabel).toBe("U\u00b2/R\u00b2 0.00");
+    expect(layout?.segments[0]?.explainedShareLabel).toBe("R\u0302\u00b2/R\u00b2 0.00");
+    expect(layout?.segments[0]?.reconstructionLabel).toBe("R\u0302 0.00");
+    expect(layout?.segments[0]?.distanceLabel).toBe("d 0.00");
+  });
 });
 
 describe("formatLeftoverMapDistance", () => {
