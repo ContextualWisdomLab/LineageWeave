@@ -272,6 +272,8 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
       "잔여 지도는 채점된 글 {scored}개 중 {used}개를 사용했습니다(완전사례)",
     "Leftover map used {used} of {scored} scored criteria (complete-case)":
       "잔여 지도는 채점된 기준 {scored}개 중 {used}개를 사용했습니다(완전사례)",
+    "Leftover map dropped {dropped} incomplete posts":
+      "잔여 지도는 불완전 글 {dropped}개를 제외했습니다",
     "Event Lineage": "이벤트 계보",
     "Related posts": "관련 글",
     "Related to": "관련 대상:",
@@ -605,8 +607,9 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "leftover-map rank {label}": "잔여 지도 순위 {label}",
     "Leftover-map graphic coverage": "잔여 지도 그림 포함 범위",
     "Leftover-map graphic item coverage": "잔여 지도 그림 기준 포함 범위",
-    "Leftover map after IRT main effects. Axis ticks name persisted leftover-map coordinates. Pair segments name leftover-map distance d, leftover-map reconstruction R̂, leftover-map explained leftover share e, leftover-map unexplained leftover share s, leftover-map cross share x, leftover-map unexplained leftover U, leftover residual R, leftover observed Y, leftover expected E, and leftover-map rank. The plot names leftover-map complete-case coverage and leftover-map item complete-case coverage when persisted. Click a post marker to open that post. The plot does not invent a leftover score.":
-      "IRT 주효과 이후 잔여 지도입니다. 축 눈금은 저장된 잔여 지도 좌표입니다. 쌍 선분은 잔여 지도 거리 d, 잔여 지도 재구성 R̂, 잔여 지도 설명 잔여 점유율 e, 잔여 지도 미설명 잔여 점유율 s, 잔여 지도 교차 점유율 x, 잔여 지도 미설명 잔여 U, 잔여 R, 관측 Y, 기대 E, 잔여 지도 순위입니다. 저장된 완전사례 포함 범위와 기준 포함 범위가 있으면 그림이 그 범위를 표시합니다. 글 표식을 눌러 그 글을 여세요. 이 그림은 잔여 점수를 만들어내지 않습니다.",
+    "Leftover-map graphic incomplete posts": "잔여 지도 그림 불완전 글",
+    "Leftover map after IRT main effects. Axis ticks name persisted leftover-map coordinates. Pair segments name leftover-map distance d, leftover-map reconstruction R̂, leftover-map explained leftover share e, leftover-map unexplained leftover share s, leftover-map cross share x, leftover-map unexplained leftover U, leftover residual R, leftover observed Y, leftover expected E, and leftover-map rank. The plot names leftover-map complete-case coverage, leftover-map item complete-case coverage, and leftover-map incomplete post coverage when persisted. Click a post marker to open that post. The plot does not invent a leftover score.":
+      "IRT 주효과 이후 잔여 지도입니다. 축 눈금은 저장된 잔여 지도 좌표입니다. 쌍 선분은 잔여 지도 거리 d, 잔여 지도 재구성 R̂, 잔여 지도 설명 잔여 점유율 e, 잔여 지도 미설명 잔여 점유율 s, 잔여 지도 교차 점유율 x, 잔여 지도 미설명 잔여 U, 잔여 R, 관측 Y, 기대 E, 잔여 지도 순위입니다. 저장된 완전사례 포함 범위와 기준 포함 범위와 불완전 글이 있으면 그림이 그 범위를 표시합니다. 글 표식을 눌러 그 글을 여세요. 이 그림은 잔여 점수를 만들어내지 않습니다.",
     "Open leftover-map post {title} at ξ {person}":
       "잔여 지도 글 {title} 열기 (ξ {person})",
     "Read observed Y {observed} and expected E {expected} after IRT main effects, then open this post.":
@@ -869,6 +872,8 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
       "残差地图使用了 {scored} 篇已评分帖文中的 {used} 篇（完全案例）",
     "Leftover map used {used} of {scored} scored criteria (complete-case)":
       "残差地图使用了 {scored} 个已评分准则中的 {used} 个（完全案例）",
+    "Leftover map dropped {dropped} incomplete posts":
+      "残差地图排除了 {dropped} 篇不完整帖文",
     "Event Lineage": "事件谱系",
     "Related posts": "相关文章",
     "Related to": "相关对象：",
@@ -1198,8 +1203,9 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "leftover-map rank {label}": "残差图秩 {label}",
     "Leftover-map graphic coverage": "残差图图形覆盖范围",
     "Leftover-map graphic item coverage": "残差图图形准则覆盖范围",
-    "Leftover map after IRT main effects. Axis ticks name persisted leftover-map coordinates. Pair segments name leftover-map distance d, leftover-map reconstruction R̂, leftover-map explained leftover share e, leftover-map unexplained leftover share s, leftover-map cross share x, leftover-map unexplained leftover U, leftover residual R, leftover observed Y, leftover expected E, and leftover-map rank. The plot names leftover-map complete-case coverage and leftover-map item complete-case coverage when persisted. Click a post marker to open that post. The plot does not invent a leftover score.":
-      "IRT 主效应后的残差图。轴刻度标出已保存的残差图坐标。配对线段标出残差图距离 d、残差图重建 R̂、残差图已解释残差份额 e、残差图未解释残差份额 s、残差图交叉份额 x、残差图未解释残差 U、残差 R、观测 Y、期望 E 与残差图秩。图在已保存时标出完全案例覆盖范围与准则完全案例覆盖范围。点击帖子标记打开该帖子。此图不会虚构残差分数。",
+    "Leftover-map graphic incomplete posts": "残差图图形不完整帖文",
+    "Leftover map after IRT main effects. Axis ticks name persisted leftover-map coordinates. Pair segments name leftover-map distance d, leftover-map reconstruction R̂, leftover-map explained leftover share e, leftover-map unexplained leftover share s, leftover-map cross share x, leftover-map unexplained leftover U, leftover residual R, leftover observed Y, leftover expected E, and leftover-map rank. The plot names leftover-map complete-case coverage, leftover-map item complete-case coverage, and leftover-map incomplete post coverage when persisted. Click a post marker to open that post. The plot does not invent a leftover score.":
+      "IRT 主效应后的残差图。轴刻度标出已保存的残差图坐标。配对线段标出残差图距离 d、残差图重建 R̂、残差图已解释残差份额 e、残差图未解释残差份额 s、残差图交叉份额 x、残差图未解释残差 U、残差 R、观测 Y、期望 E 与残差图秩。图在已保存时标出完全案例覆盖范围、准则完全案例覆盖范围与不完整帖文。点击帖子标记打开该帖子。此图不会虚构残差分数。",
     "Open leftover-map post {title} at ξ {person}":
       "打开残差图帖子 {title}（ξ {person}）",
     "Read observed Y {observed} and expected E {expected} after IRT main effects, then open this post.":
@@ -1487,6 +1493,8 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
       "残差マップは採点済み投稿 {scored} 件のうち {used} 件を使いました（完全ケース）",
     "Leftover map used {used} of {scored} scored criteria (complete-case)":
       "残差マップは採点済み基準 {scored} 件のうち {used} 件を使いました（完全ケース）",
+    "Leftover map dropped {dropped} incomplete posts":
+      "残差マップは不完全な投稿 {dropped} 件を除外しました",
     "Event Lineage": "イベント系譜",
     "Related posts": "関連する投稿",
     "Related to": "関連対象：",
@@ -1795,8 +1803,9 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "leftover-map rank {label}": "残差マップ階数 {label}",
     "Leftover-map graphic coverage": "残差マップ図の対象範囲",
     "Leftover-map graphic item coverage": "残差マップ図の基準対象範囲",
-    "Leftover map after IRT main effects. Axis ticks name persisted leftover-map coordinates. Pair segments name leftover-map distance d, leftover-map reconstruction R̂, leftover-map explained leftover share e, leftover-map unexplained leftover share s, leftover-map cross share x, leftover-map unexplained leftover U, leftover residual R, leftover observed Y, leftover expected E, and leftover-map rank. The plot names leftover-map complete-case coverage and leftover-map item complete-case coverage when persisted. Click a post marker to open that post. The plot does not invent a leftover score.":
-      "IRT主効果後の残差マップです。軸目盛は保存済みの残差マップ座標です。ペア線分は残差マップ距離 d、残差マップ再構成 R̂、残差マップ説明済み残差割合 e、残差マップ未説明残差割合 s、残差マップ交差割合 x、残差マップ未説明残差 U、残差 R、観測 Y、期待 E、残差マップ階数です。保存済みの完全ケース対象範囲と基準の完全ケース対象範囲があるときはその範囲を示します。投稿マーカーをクリックしてその投稿を開いてください。この図は残差スコアを作りません。",
+    "Leftover-map graphic incomplete posts": "残差マップ図の不完全投稿",
+    "Leftover map after IRT main effects. Axis ticks name persisted leftover-map coordinates. Pair segments name leftover-map distance d, leftover-map reconstruction R̂, leftover-map explained leftover share e, leftover-map unexplained leftover share s, leftover-map cross share x, leftover-map unexplained leftover U, leftover residual R, leftover observed Y, leftover expected E, and leftover-map rank. The plot names leftover-map complete-case coverage, leftover-map item complete-case coverage, and leftover-map incomplete post coverage when persisted. Click a post marker to open that post. The plot does not invent a leftover score.":
+      "IRT主効果後の残差マップです。軸目盛は保存済みの残差マップ座標です。ペア線分は残差マップ距離 d、残差マップ再構成 R̂、残差マップ説明済み残差割合 e、残差マップ未説明残差割合 s、残差マップ交差割合 x、残差マップ未説明残差 U、残差 R、観測 Y、期待 E、残差マップ階数です。保存済みの完全ケース対象範囲と基準の完全ケース対象範囲と不完全投稿があるときはその範囲を示します。投稿マーカーをクリックしてその投稿を開いてください。この図は残差スコアを作りません。",
     "Open leftover-map post {title} at ξ {person}":
       "残差マップの投稿 {title} を開く（ξ {person}）",
     "Read observed Y {observed} and expected E {expected} after IRT main effects, then open this post.":
@@ -2084,6 +2093,8 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
       "Bản đồ phần dư dùng {used} trên {scored} bài đã chấm (trường hợp đầy đủ)",
     "Leftover map used {used} of {scored} scored criteria (complete-case)":
       "Bản đồ phần dư dùng {used} trên {scored} tiêu chí đã chấm (trường hợp đầy đủ)",
+    "Leftover map dropped {dropped} incomplete posts":
+      "Bản đồ phần dư loại {dropped} bài không đầy đủ",
     "Event Lineage": "Dòng sự kiện",
     "Related posts": "Bài viết liên quan",
     "Related to": "Liên quan đến:",
@@ -2392,8 +2403,9 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "leftover-map rank {label}": "hạng bản đồ phần dư {label}",
     "Leftover-map graphic coverage": "Phạm vi đồ họa bản đồ phần dư",
     "Leftover-map graphic item coverage": "Phạm vi đồ họa tiêu chí bản đồ phần dư",
-    "Leftover map after IRT main effects. Axis ticks name persisted leftover-map coordinates. Pair segments name leftover-map distance d, leftover-map reconstruction R̂, leftover-map explained leftover share e, leftover-map unexplained leftover share s, leftover-map cross share x, leftover-map unexplained leftover U, leftover residual R, leftover observed Y, leftover expected E, and leftover-map rank. The plot names leftover-map complete-case coverage and leftover-map item complete-case coverage when persisted. Click a post marker to open that post. The plot does not invent a leftover score.":
-      "Bản đồ phần dư sau hiệu ứng chính IRT. Vạch trục ghi tọa độ bản đồ phần dư đã lưu. Đoạn cặp ghi khoảng cách bản đồ phần dư d, tái dựng bản đồ phần dư R̂, phần dư giải thích e, phần dư chưa giải thích s, phần giao x, phần dư chưa giải thích U, phần dư R, Y quan sát, E kỳ vọng và hạng bản đồ phần dư. Hình ghi phạm vi trường hợp đầy đủ của bài viết và tiêu chí khi đã lưu. Nhấn dấu bài viết để mở bài đó. Hình này không tạo ra điểm phần dư.",
+    "Leftover-map graphic incomplete posts": "Bài không đầy đủ trên đồ họa bản đồ phần dư",
+    "Leftover map after IRT main effects. Axis ticks name persisted leftover-map coordinates. Pair segments name leftover-map distance d, leftover-map reconstruction R̂, leftover-map explained leftover share e, leftover-map unexplained leftover share s, leftover-map cross share x, leftover-map unexplained leftover U, leftover residual R, leftover observed Y, leftover expected E, and leftover-map rank. The plot names leftover-map complete-case coverage, leftover-map item complete-case coverage, and leftover-map incomplete post coverage when persisted. Click a post marker to open that post. The plot does not invent a leftover score.":
+      "Bản đồ phần dư sau hiệu ứng chính IRT. Vạch trục ghi tọa độ bản đồ phần dư đã lưu. Đoạn cặp ghi khoảng cách bản đồ phần dư d, tái dựng bản đồ phần dư R̂, phần dư giải thích e, phần dư chưa giải thích s, phần giao x, phần dư chưa giải thích U, phần dư R, Y quan sát, E kỳ vọng và hạng bản đồ phần dư. Hình ghi phạm vi trường hợp đầy đủ của bài viết và tiêu chí cùng bài không đầy đủ khi đã lưu. Nhấn dấu bài viết để mở bài đó. Hình này không tạo ra điểm phần dư.",
     "Open leftover-map post {title} at ξ {person}":
       "Mở bài viết bản đồ phần dư {title} tại ξ {person}",
     "Read observed Y {observed} and expected E {expected} after IRT main effects, then open this post.":
