@@ -11,6 +11,16 @@
 > desktop/mobile rendered evidence succeed. There are currently fifteen open
 > PRs and ten open issues. Stacked PRs #802 through #806 and #809 must not merge
 > before the parent governance repair and fresh retargeting evidence.
+> The exact-head UI audit found one remaining authority leak in that candidate:
+> an imported primary Voice could still render its carrying Post a second time
+> as derivation evidence because the table read the compatibility field. The
+> minimal repair now uses the authorized non-primary assignment projection as
+> the derivation authority, keeps the primary row as a non-navigation evidence
+> count, and retains the distinct carrying-Post action. Twenty-eight focused
+> frontend tests, lint, type checking, and a production Storybook build passed.
+> Fresh 1440 × 1000 and 390 × 844 renders show one derivation action only on the
+> additional Voice row; these synthetic screenshots are candidate evidence,
+> not authenticated PostgreSQL acceptance or protected-main proof.
 >
 > Exact-head Voice export and authority audit: 2026-08-30 08:05 KST. Protected
 > `main` was `fc13acaa20adca11968238e398d4aafcf62b6cee`; sixteen PRs and ten
