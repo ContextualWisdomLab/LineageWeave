@@ -1,9 +1,9 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { LeftoverPairList } from "./LeftoverPairList";
+import { LeftoverMapPlot } from "./LeftoverMapPlot";
 
 const meta = {
-  title: "Reports/LeftoverPairList",
-  component: LeftoverPairList,
+  title: "Reports/LeftoverMapPlot",
+  component: LeftoverMapPlot,
   args: {
     criterionLabel: (code: string) =>
       code === "sales_lead_quality" ? "sales-lead" : "negative",
@@ -47,7 +47,7 @@ const meta = {
         leftover_map_reconstruction: -0.95,
         leftover_map_cross_share: -0.24,
         leftover_map_unexplained_share: 0.05,
-        leftover_map_explained_share: 0.60,
+        leftover_map_explained_share: 0.6,
         leftover_map_person_axis_1: 0.9,
         leftover_map_person_axis_2: 0.8,
         leftover_map_item_axis_1: -0.7,
@@ -55,7 +55,7 @@ const meta = {
       },
     ],
   },
-} satisfies Meta<typeof LeftoverPairList>;
+} satisfies Meta<typeof LeftoverMapPlot>;
 
 export default meta;
 
@@ -63,8 +63,56 @@ type Story = StoryObj<typeof meta>;
 
 export const ClosestAndFarthest: Story = {};
 
-export const Empty: Story = {
+export const RankZeroOrigin: Story = {
   args: {
-    pairs: [],
+    leftoverMapAxes: [
+      { axis_index: 1, leftover_singular_value: 0, leftover_share: 0 },
+      { axis_index: 2, leftover_singular_value: 0, leftover_share: 0 },
+    ],
+    pairs: [
+      {
+        pair_kind: "closest",
+        post_id: "post-demo-public",
+        post_title: "Public post",
+        criterion_code: "sales_lead_quality",
+        leftover_distance: 0,
+        leftover_residual: 0,
+        observed_response: 1,
+        expected_response: 1,
+        leftover_map_rank: 0,
+        leftover_map_person_axis_1: 0,
+        leftover_map_person_axis_2: 0,
+        leftover_map_item_axis_1: 0,
+        leftover_map_item_axis_2: 0,
+      },
+    ],
+  },
+};
+
+export const MissingCoordinates: Story = {
+  args: {
+    leftoverMapAxes: [
+      { axis_index: 1, leftover_singular_value: 1.84, leftover_share: 0.82 },
+      { axis_index: 2, leftover_singular_value: 0.86, leftover_share: 0.18 },
+    ],
+    pairs: [
+      {
+        pair_kind: "closest",
+        post_id: "post-demo-public",
+        post_title: "Public post",
+        criterion_code: "sales_lead_quality",
+        leftover_distance: 0.12,
+        leftover_residual: 0.4,
+        leftover_map_rank: 1,
+      },
+    ],
+  },
+};
+
+export const MissingAxisShare: Story = {
+  args: {
+    leftoverMapAxes: [
+      { axis_index: 1, leftover_singular_value: 1.84, leftover_share: Number.NaN },
+    ],
   },
 };
