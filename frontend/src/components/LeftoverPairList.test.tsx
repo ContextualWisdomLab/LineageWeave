@@ -186,6 +186,14 @@ describe("LeftoverPairList", () => {
           { axis_index: 1, leftover_singular_value: 1.84, leftover_share: 0.82 },
           { axis_index: 2, leftover_singular_value: 0.86, leftover_share: 0.18 },
         ]}
+        leftoverMapCoverage={{
+          map_post_count: 2,
+          scored_post_count: 3,
+          map_item_count: 2,
+          scored_item_count: 2,
+          incomplete_post_count: 1,
+          incomplete_item_count: 0,
+        }}
         criterionLabel={criterionLabel}
         onSelectPost={onSelectPost}
       />,
@@ -198,6 +206,9 @@ describe("LeftoverPairList", () => {
     );
     expect(screen.getByText("leftover-map axis 1 (82%)")).toBeInTheDocument();
     expect(screen.getByText("leftover-map axis 2 (18%)")).toBeInTheDocument();
+    expect(screen.getByLabelText("Leftover-map graphic coverage")).toHaveTextContent(
+      "Leftover map used 2 of 3 scored posts (complete-case)",
+    );
     expect(onSelectPost).toHaveBeenCalledWith(
       expect.objectContaining({
         post_id: "post-demo-public",
