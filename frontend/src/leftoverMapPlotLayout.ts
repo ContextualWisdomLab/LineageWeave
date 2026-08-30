@@ -39,8 +39,9 @@
  *  incomplete post coverage on that graphic (ADR 0308), grouping comparison leftover-map
  *  incomplete item coverage on that graphic (ADR 0309), grouping comparison leftover-map
  *  reconstruction on that graphic (ADR 0310), grouping comparison leftover-map
- *  explained leftover share on that graphic (ADR 0311), and grouping comparison leftover-map
- *  unexplained leftover share on that graphic (ADR 0312) caption the pair list or the grouping comparison
+ *  explained leftover share on that graphic (ADR 0311), grouping comparison leftover-map
+ *  unexplained leftover share on that graphic (ADR 0312), and grouping comparison leftover-map
+ *  cross share on that graphic (ADR 0313) caption the pair list or the grouping comparison
  *  strip. ADR 0304 reuses this graphic layout on the grouping comparison
  *  strip. ADR 0305 captions leftover-map axis share on that comparison
  *  graphic from already-named leftover-map axes. ADR 0306 captions leftover-map
@@ -54,7 +55,9 @@
  *  ADR 0311 captions leftover-map explained leftover share on that comparison graphic from
  *  already-named leftover-map explained leftover share. ADR 0312 captions leftover-map
  *  unexplained leftover share on that comparison graphic from already-named leftover-map
- *  unexplained leftover share.
+ *  unexplained leftover share. ADR 0313 captions leftover-map
+ *  cross share on that comparison graphic from already-named leftover-map
+ *  cross share.
  */
 
 import { formatLeftoverMapCoordinatePair } from "./leftoverMapCoordinates";
@@ -107,6 +110,8 @@ export { LEFTOVER_MAP_COMPARE_PLOT_SEGMENT_UNEXPLAINED_SHARE } from "./leftoverM
 
 export const LEFTOVER_MAP_PLOT_SEGMENT_CROSS_SHARE =
   "leftover-map cross share {label}";
+
+export { LEFTOVER_MAP_COMPARE_PLOT_SEGMENT_CROSS_SHARE } from "./leftoverMapCrossShare";
 
 export const LEFTOVER_MAP_PLOT_SEGMENT_UNEXPLAINED =
   "leftover-map unexplained leftover {label}";

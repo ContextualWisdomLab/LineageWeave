@@ -6,6 +6,9 @@ export const LEFTOVER_MAP_CROSS_SHARE_ACTION =
 export const LEFTOVER_MAP_COMPARE_CROSS_SHARE_LABEL =
   "Leftover map comparison cross share";
 
+export const LEFTOVER_MAP_COMPARE_PLOT_SEGMENT_CROSS_SHARE =
+  "leftover map comparison graphic cross share {label}";
+
 export function formatLeftoverMapCrossShare(
   value: number | null | undefined,
 ): string | null {
