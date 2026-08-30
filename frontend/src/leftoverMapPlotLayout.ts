@@ -16,8 +16,9 @@
  *  complete-case coverage fail-closed through leftoverMapCoverageCounts
  *  (ADR 0288), pair-list item complete-case coverage (ADR 0285), pair-list
  *  incomplete post coverage (ADR 0286), pair-list incomplete item
- *  coverage (ADR 0287), and grouping comparison complete-case coverage
- *  (ADR 0289) caption the pair list or the grouping comparison strip,
+ *  coverage (ADR 0287), grouping comparison complete-case coverage
+ *  (ADR 0289), and grouping comparison item complete-case coverage
+ *  (ADR 0290) caption the pair list or the grouping comparison strip,
  *  not this graphic layout.
  */
 

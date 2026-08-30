@@ -83,7 +83,9 @@ export type LeftoverPairListProps = {
  * leftover-map post complete-case coverage through leftoverMapCoverageCounts so
  * used-greater-than-scored, negative, or non-integer counts omit that note. ADR 0289
  * names persisted leftover-map post complete-case coverage on the grouping
- * comparison strip, not this pair list. Every badge still
+ * comparison strip, not this pair list. ADR 0290 names persisted leftover-map
+ * item complete-case coverage on the grouping comparison strip, not this pair
+ * list. Every badge still
  * renders together before opening the named post.
  */
 export function LeftoverPairList({

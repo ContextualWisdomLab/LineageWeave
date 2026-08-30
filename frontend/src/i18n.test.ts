@@ -78,6 +78,7 @@ describe("i18n", () => {
     "leftover-map rank {label}",
     "Leftover-map graphic coverage",
     "Leftover map comparison coverage",
+    "Leftover map comparison item coverage",
     "Leftover-map graphic item coverage",
     "Leftover map item coverage",
     "Leftover map incomplete posts",
@@ -389,6 +390,16 @@ describe("i18n", () => {
   ] as const)("formats leftover map comparison coverage label in %s", (locale, expected) => {
     setLocale(locale);
     expect(t("Leftover map comparison coverage")).toBe(expected);
+  });
+
+  it.each([
+    ["ko", "잔여 지도 비교 기준 포함 범위"],
+    ["zh", "残差地图比较准则覆盖范围"],
+    ["ja", "残差マップの比較基準対象範囲"],
+    ["vi", "Phạm vi so sánh tiêu chí bản đồ phần dư"],
+  ] as const)("formats leftover map comparison item coverage label in %s", (locale, expected) => {
+    setLocale(locale);
+    expect(t("Leftover map comparison item coverage")).toBe(expected);
   });
 
   it.each([
