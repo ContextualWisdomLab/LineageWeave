@@ -93,6 +93,7 @@ describe("i18n", () => {
     "Leftover map comparison unexplained leftover share",
     "leftover map comparison graphic cross share {label}",
     "Leftover map comparison cross share",
+    "leftover map comparison graphic unexplained leftover {label}",
     "Leftover map comparison unexplained leftover",
     "Leftover map comparison residual",
     "Leftover map comparison observed",
@@ -556,6 +557,23 @@ describe("i18n", () => {
       expect(
         tf("leftover map comparison graphic cross share {label}", {
           label: "2R̂U/R² 0.12",
+        }),
+      ).toBe(expected);
+    },
+  );
+
+  it.each([
+    ["ko", "잔여 지도 비교 그림 미설명 잔여 U +0.05"],
+    ["zh", "残差地图比较图形未解释残差 U +0.05"],
+    ["ja", "残差マップの比較図未説明残差 U +0.05"],
+    ["vi", "phần dư chưa giải thích đồ họa so sánh U +0.05"],
+  ] as const)(
+    "formats leftover map comparison graphic unexplained leftover in %s",
+    (locale, expected) => {
+      setLocale(locale);
+      expect(
+        tf("leftover map comparison graphic unexplained leftover {label}", {
+          label: "U +0.05",
         }),
       ).toBe(expected);
     },

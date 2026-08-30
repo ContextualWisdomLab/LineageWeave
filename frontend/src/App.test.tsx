@@ -4550,9 +4550,14 @@ describe("App, authenticated", () => {
     ).toHaveLength(1);
     expect(
       within(screen.getByLabelText("Grouping comparison")).getByLabelText(
-        "leftover-map unexplained leftover U +0.05",
+        "leftover map comparison graphic unexplained leftover U +0.05",
       ),
     ).toHaveTextContent("U +0.05");
+    expect(
+      within(screen.getByLabelText("Grouping comparison")).queryByLabelText(
+        "leftover-map unexplained leftover U +0.05",
+      ),
+    ).not.toBeInTheDocument();
     expect(
       within(screen.getByLabelText("Grouping comparison")).getByLabelText(
         "Leftover map comparison unexplained leftover",

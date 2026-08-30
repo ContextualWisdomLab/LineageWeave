@@ -3,6 +3,7 @@ import {
   formatLeftoverMapUnexplained,
   formatSignedLeftoverValue,
   LEFTOVER_MAP_COMPARE_UNEXPLAINED_LABEL,
+  LEFTOVER_MAP_COMPARE_PLOT_SEGMENT_UNEXPLAINED,
 } from "./leftoverMapUnexplained";
 
 describe("formatLeftoverMapUnexplained", () => {
@@ -27,6 +28,21 @@ describe("formatLeftoverMapUnexplained", () => {
     );
     expect(LEFTOVER_MAP_COMPARE_UNEXPLAINED_LABEL).not.toBe(
       "leftover-map unexplained leftover {label}",
+    );
+  });
+
+  it("keeps the grouping comparison graphic unexplained leftover label distinct from the graphic and strip labels", () => {
+    expect(LEFTOVER_MAP_COMPARE_PLOT_SEGMENT_UNEXPLAINED).toBe(
+      "leftover map comparison graphic unexplained leftover {label}",
+    );
+    expect(LEFTOVER_MAP_COMPARE_PLOT_SEGMENT_UNEXPLAINED).not.toBe(
+      "leftover-map unexplained leftover {label}",
+    );
+    expect(LEFTOVER_MAP_COMPARE_PLOT_SEGMENT_UNEXPLAINED).not.toBe(
+      LEFTOVER_MAP_COMPARE_UNEXPLAINED_LABEL,
+    );
+    expect(LEFTOVER_MAP_COMPARE_PLOT_SEGMENT_UNEXPLAINED).not.toBe(
+      "leftover map comparison graphic unexplained leftover share {label}",
     );
   });
 });
