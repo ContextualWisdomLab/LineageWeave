@@ -84,7 +84,7 @@ and lookup round-trip isolation are enforced by
 `tests/test_worker_function_taxonomy.py`; `tests/test_ontology.py`
 continues to pass unchanged.
 
-### PRD-FR-2B — Occupational classification and worker-characteristic taxonomy
+### PRD-FR-2L — Occupational classification and worker-characteristic taxonomy
 
 - Publish the 23 major groups of the 2018 Standard Occupational
   Classification and the four O*NET 31.0 job-zone categories with exact
@@ -112,7 +112,7 @@ unchanged. Minor, broad, and detailed SOC levels and the complete O*NET
 Content Model remain unavailable until a governing ADR accepts their pinned
 source and publication contract.
 
-### PRD-FR-2C — Evidence-bound occupational constructs
+### PRD-FR-2B — Evidence-bound occupational constructs
 
 - Keep cognitive abilities, work styles, work activities, affective
   reactions, and performance behaviors as non-equivalent construct classes
@@ -125,12 +125,13 @@ source and publication contract.
 
 Acceptance: SHACL rejects incomplete record assertions; ontology tests
 prohibit FJA equivalence and require exact Post/evidence/PROV statement
-structure. ADRs 0249, 0250, and 0253–0255 govern normalized persistence,
-the pinned catalog, contextual-orchestrator extraction, review UI, and graph
-projection. Unsupported O*NET linkage tables remain unavailable; Voice
-combination ADR 0256 is not occupational authority.
+structure. ADRs 0249, 0250, 0253, and 0255 govern normalized persistence,
+the pinned catalog, contextual-orchestrator extraction, and graph projection.
+The review UI remains unavailable without its own accepted ADR. Unsupported
+O*NET linkage tables remain unavailable; Voice combination ADR 0256 is not
+occupational authority.
 
-### PRD-FR-2K — FJA I/O-Psychology semantic layer
+### PRD-FR-2C — FJA I/O-Psychology semantic layer
 
 - Project DOT/FJA Data/People/Things worker functions into the grounded
   cognitive, affective, and behavioral I/O-Psychology construct taxonomy

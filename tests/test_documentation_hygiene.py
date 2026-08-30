@@ -17,7 +17,10 @@ _ROLE_CATALOG_COLUMNS = (
 )
 _ADR_NAME = re.compile(r"^(?P<number>[0-9]{4})-.+\.md$")
 _PRD_REQUIREMENT_HEADING = re.compile(r"^### (?P<identifier>PRD-FR-[0-9A-Z-]+)\b", re.MULTILINE)
-_PRD_ADR_REFERENCE = re.compile(r"\bADRs?\s+(?P<number>[0-9]{4})\b")
+_PRD_ADR_CLAUSE = re.compile(r"\bADRs?\s+(?P<references>[^.;)]*)")
+_ADR_NUMBER_OR_RANGE = re.compile(
+    r"(?P<start>[0-9]{4})(?:\s*[–-]\s*(?P<end>[0-9]{4}))?"
+)
 _PRIVATE_POST_IDENTIFIER = re.compile(
     r"(?i)"
     r"\b[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\b"
@@ -87,7 +90,14 @@ def test_product_requirement_identifiers_are_unique() -> None:
 def test_product_requirement_adr_references_exist() -> None:
     """Direct ADR references in the supporting PRD resolve to normative records."""
     product_requirements = _PRODUCT_REQUIREMENTS.read_text(encoding="utf-8")
-    referenced_numbers = set(_PRD_ADR_REFERENCE.findall(product_requirements))
+    referenced_numbers: set[str] = set()
+    for clause in _PRD_ADR_CLAUSE.finditer(product_requirements):
+        for reference in _ADR_NUMBER_OR_RANGE.finditer(clause.group("references")):
+            start = int(reference.group("start"))
+            end = int(reference.group("end") or start)
+            referenced_numbers.update(f"{number:04d}" for number in range(start, end + 1))
+
+    assert {"0249", "0250", "0253", "0255"} <= referenced_numbers
     available_numbers = {
         match.group("number")
         for path in _ADR_DIRECTORY.glob("*.md")
@@ -96,6 +106,20 @@ def test_product_requirement_adr_references_exist() -> None:
 
     missing = sorted(referenced_numbers - available_numbers)
     assert missing == [], f"PRD references missing ADRs: {missing}"
+
+
+def test_adr_product_requirement_references_exist() -> None:
+    """Accepted ADR traceability cannot point at a removed PRD requirement."""
+    product_requirements = _PRODUCT_REQUIREMENTS.read_text(encoding="utf-8")
+    available_identifiers = set(_PRD_REQUIREMENT_HEADING.findall(product_requirements))
+    referenced_identifiers: set[str] = set()
+    for path in _ADR_DIRECTORY.glob("*.md"):
+        referenced_identifiers.update(
+            re.findall(r"\bPRD-FR-[0-9A-Z-]+\b", path.read_text(encoding="utf-8"))
+        )
+
+    missing = sorted(referenced_identifiers - available_identifiers)
+    assert missing == [], f"ADRs reference missing PRD requirements: {missing}"
 
 
 def test_fetch_persisted_summary_reads_stored_catalog_ids() -> None:
