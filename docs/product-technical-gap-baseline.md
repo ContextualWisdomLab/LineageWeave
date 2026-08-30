@@ -1,19 +1,20 @@
 # Product & Technical Gap Baseline
 
-> Exact-head development-loop overlay: 2026-08-31 02:57 KST.
+> Exact-head development-loop overlay: 2026-08-31 04:03 KST.
 > Protected `main` remains `cb187cadee5fb6c46d8a944815ccc154a1e028d1`;
-> forty-five open PRs and ten open issues were enumerated in one fresh
+> forty-nine open PRs and ten open issues were enumerated in one fresh
 > snapshot. PR #780 is open at
-> `d8bda6d4ef7bbef81ff0cad7e5f06d7106f64b09`, with every review thread
+> `16883d9a221e09aac2230a85d4a314c41bb08929`, with every review thread
 > resolved and normal squash auto-merge armed. The exact-head focused
 > authenticated/ontology regression selection passes (36 tests), as does the
 > complete frontend suite (533 tests). Current-head GitHub evidence includes
 > successful backend/frontend, ontology-publication, CodeQL, Semgrep, OSV,
 > Trivy, Scorecard, Noema, and scheduler checks. The required workflow
-> bootstrap, Strix, and dependency review remain failed: the first still
+> bootstrap and dependency review remain failed: the first still
 > depends on the candidate-only central workflow repair in
-> `ContextualWisdomLab/.github#1420`, while the latter two remain fail-closed
-> external review/dependency-graph outcomes rather than product-test failures.
+> `ContextualWisdomLab/.github#1420`, while the latter is a fail-closed
+> dependency-graph 403 rather than a product-test failure. Strix is successful
+> on this head.
 > Independent approval is still absent, so protected merge and merge SHA are
 > unavailable. The largest directly actionable Voice acceptance gap in this
 > PR remains implemented only on the candidate head: exact-value UI and CSV
