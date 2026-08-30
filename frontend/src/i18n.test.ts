@@ -86,6 +86,7 @@ describe("i18n", () => {
     "Leftover map comparison incomplete items",
     "Leftover map comparison graphic incomplete items",
     "Leftover map comparison reconstruction",
+    "leftover map comparison graphic reconstruction {label}",
     "Leftover map comparison explained leftover share",
     "Leftover map comparison unexplained leftover share",
     "Leftover map comparison cross share",
@@ -492,6 +493,18 @@ describe("i18n", () => {
   ] as const)("formats leftover map comparison reconstruction label in %s", (locale, expected) => {
     setLocale(locale);
     expect(t("Leftover map comparison reconstruction")).toBe(expected);
+  });
+
+  it.each([
+    ["ko", "잔여 지도 비교 그림 재구성 R̂ +0.35"],
+    ["zh", "残差地图比较图形重建 R̂ +0.35"],
+    ["ja", "残差マップの比較図再構成 R̂ +0.35"],
+    ["vi", "tái dựng đồ họa so sánh bản đồ phần dư R̂ +0.35"],
+  ] as const)("formats leftover map comparison graphic reconstruction in %s", (locale, expected) => {
+    setLocale(locale);
+    expect(tf("leftover map comparison graphic reconstruction {label}", { label: "R̂ +0.35" })).toBe(
+      expected,
+    );
   });
 
   it.each([

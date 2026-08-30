@@ -4469,10 +4469,15 @@ describe("App, authenticated", () => {
       ),
     ).not.toBeInTheDocument();
     expect(
+      within(screen.getByLabelText("Grouping comparison")).getByLabelText(
+        "leftover map comparison graphic reconstruction R̂ +0.25",
+      ),
+    ).toHaveTextContent("R̂ +0.25");
+    expect(
       within(screen.getByLabelText("Grouping comparison")).queryByLabelText(
         /leftover-map reconstruction/,
       ),
-    ).toHaveTextContent("R̂ +0.25");
+    ).not.toBeInTheDocument();
     expect(
       within(screen.getByLabelText("Grouping comparison")).getByLabelText(
         "Leftover map comparison reconstruction",
