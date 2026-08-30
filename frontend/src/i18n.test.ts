@@ -91,6 +91,12 @@ describe("i18n", () => {
     "Leftover map comparison expected",
     "Leftover map comparison rank",
     "Leftover map comparison coordinates",
+    "Leftover map comparison graphic",
+    "Leftover map comparison",
+    "leftover map comparison axis 1",
+    "leftover map comparison axis 2",
+    "leftover map comparison axis {axis} ({share}%)",
+    "Leftover map comparison graphic of already-named coordinates. Click a post marker to open that post. The plot does not invent a leftover score.",
     "Leftover-map graphic item coverage",
     "Leftover map item coverage",
     "Leftover map incomplete posts",
@@ -558,6 +564,34 @@ describe("i18n", () => {
     (locale, expected) => {
       setLocale(locale);
       expect(t("Leftover map comparison coordinates")).toBe(expected);
+    },
+  );
+
+  it.each([
+    ["ko", "잔여 지도 비교 그림"],
+    ["zh", "残差地图比较图形"],
+    ["ja", "残差マップの比較図"],
+    ["vi", "Đồ họa so sánh bản đồ phần dư"],
+  ] as const)(
+    "formats leftover map comparison graphic label in %s",
+    (locale, expected) => {
+      setLocale(locale);
+      expect(t("Leftover map comparison graphic")).toBe(expected);
+    },
+  );
+
+  it.each([
+    ["ko", "잔여 지도 비교 축 1 (82%)"],
+    ["zh", "残差地图比较轴 1 (82%)"],
+    ["ja", "残差マップの比較軸 1 (82%)"],
+    ["vi", "trục so sánh bản đồ phần dư 1 (82%)"],
+  ] as const)(
+    "formats leftover map comparison axis share label in %s",
+    (locale, expected) => {
+      setLocale(locale);
+      expect(tf("leftover map comparison axis {axis} ({share}%)", { axis: 1, share: "82" })).toBe(
+        expected,
+      );
     },
   );
 

@@ -31,9 +31,12 @@
  *  (ADR 0300), grouping comparison leftover-map rank
  *  (ADR 0301), grouping comparison leftover-map coordinates
  *  (ADR 0302), grouping comparison leftover-map coordinates payload
- *  (ADR 0303), and grouping comparison leftover-map graphic display
- *  (ADR 0304) caption the pair list or the grouping comparison strip.
- *  ADR 0304 reuses this graphic layout on the grouping comparison strip.
+ *  (ADR 0303), grouping comparison leftover-map graphic display
+ *  (ADR 0304), and grouping comparison leftover-map axis share on that
+ *  graphic (ADR 0305) caption the pair list or the grouping comparison
+ *  strip. ADR 0304 reuses this graphic layout on the grouping comparison
+ *  strip. ADR 0305 captions leftover-map axis share on that comparison
+ *  graphic from already-named leftover-map axes.
  */
 
 import { formatLeftoverMapCoordinatePair } from "./leftoverMapCoordinates";
@@ -52,6 +55,13 @@ import type { LeftoverPair } from "./api";
 
 export const LEFTOVER_MAP_PLOT_CAPTION =
   "Leftover map after IRT main effects. Axis ticks name persisted leftover-map coordinates. Pair segments name leftover-map distance d, leftover-map reconstruction R̂, leftover-map explained leftover share e, leftover-map unexplained leftover share s, leftover-map cross share x, leftover-map unexplained leftover U, leftover residual R, leftover observed Y, leftover expected E, and leftover-map rank. The plot names leftover-map complete-case coverage, leftover-map item complete-case coverage, leftover-map incomplete post coverage, and leftover-map incomplete item coverage when persisted. Click a post marker to open that post. The plot does not invent a leftover score.";
+
+export const LEFTOVER_MAP_COMPARE_PLOT_LABEL = "Leftover map comparison graphic";
+
+export const LEFTOVER_MAP_COMPARE_PLOT_CAPTION =
+  "Leftover map comparison graphic of already-named coordinates. Click a post marker to open that post. The plot does not invent a leftover score.";
+
+export const LEFTOVER_MAP_COMPARE_PLOT_SVG = "Leftover map comparison";
 
 export const LEFTOVER_MAP_PLOT_POST_ACTION =
   "Open leftover-map post {title} at ξ {person}";

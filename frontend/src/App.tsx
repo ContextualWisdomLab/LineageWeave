@@ -4093,7 +4093,9 @@ function ReportsPanel({
                 <SurfaceBoundary>
                   <LeftoverMapPlot
                     pairs={row.leftover_pairs}
+                    leftoverMapAxes={row.leftover_map_axes}
                     criterionLabel={criterionShortLabel}
+                    variant="comparison"
                     onSelectPost={(pair) => {
                       onSelectPost(pair.post_id, {
                         fromLeftoverPair: {

@@ -1088,6 +1088,23 @@ async def fetch_period_comparison(
     leftover_coverage_by_key = {
         (row["grouping_kind"], row["grouping_key"]): row for row in leftover_coverage
     }
+    leftover_axes = await conn.fetch(
+        """
+        select grouping_kind, grouping_key, axis_index, leftover_singular_value, leftover_share
+        from report_leftover_map_axis
+        where period_code = $1 and rubric_version = $2
+          and grouping_kind = any($3::text[])
+        order by grouping_kind, grouping_key, axis_index
+        """,
+        period_code,
+        RUBRIC_VERSION,
+        list(GROUPING_KINDS),
+    )
+    leftover_axes_by_key: dict[tuple[str, str], list[asyncpg.Record]] = defaultdict(list)
+    for axis_row in leftover_axes:
+        leftover_axes_by_key[(axis_row["grouping_kind"], axis_row["grouping_key"])].append(
+            axis_row
+        )
     payload: list[dict[str, Any]] = []
     for row in rows:
         label = await resolve_grouping_label(conn, row["grouping_kind"], row["grouping_key"])
@@ -1154,6 +1171,16 @@ async def fetch_period_comparison(
                 "leftover_map_coverage": _leftover_map_coverage_payload(
                     leftover_coverage_by_key.get((row["grouping_kind"], row["grouping_key"]))
                 ),
+                "leftover_map_axes": [
+                    {
+                        "axis_index": int(axis_row["axis_index"]),
+                        "leftover_singular_value": float(axis_row["leftover_singular_value"]),
+                        "leftover_share": float(axis_row["leftover_share"]),
+                    }
+                    for axis_row in leftover_axes_by_key.get(
+                        (row["grouping_kind"], row["grouping_key"]), []
+                    )
+                ],
             }
         )
     return payload

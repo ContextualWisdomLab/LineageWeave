@@ -5,6 +5,9 @@ import {
   formatLeftoverMapDistance,
   hasLeftoverMapPlotCoordinates,
   layoutLeftoverMapPlot,
+  LEFTOVER_MAP_COMPARE_PLOT_CAPTION,
+  LEFTOVER_MAP_COMPARE_PLOT_LABEL,
+  LEFTOVER_MAP_COMPARE_PLOT_SVG,
   PLOT_HEIGHT,
   PLOT_PADDING,
   PLOT_WIDTH,
@@ -1190,5 +1193,15 @@ describe("firstPlottablePairForPost", () => {
     const farthest = pair({ pair_kind: "farthest", leftover_map_item_axis_1: -0.2 });
     expect(firstPlottablePairForPost([closest, farthest], "post-demo-public")).toBe(closest);
     expect(firstPlottablePairForPost([pair({ leftover_map_person_axis_1: null })], "post-demo-public")).toBeNull();
+  });
+});
+
+describe("leftover map comparison graphic labels", () => {
+  it("stays distinct from leftover-map graphic display copy", () => {
+    expect(LEFTOVER_MAP_COMPARE_PLOT_LABEL).toBe("Leftover map comparison graphic");
+    expect(LEFTOVER_MAP_COMPARE_PLOT_SVG).toBe("Leftover map comparison");
+    expect(LEFTOVER_MAP_COMPARE_PLOT_CAPTION).toContain("already-named coordinates");
+    expect(LEFTOVER_MAP_COMPARE_PLOT_LABEL).not.toBe("Leftover-map graphic display");
+    expect(LEFTOVER_MAP_COMPARE_PLOT_SVG).not.toBe("Leftover map");
   });
 });
