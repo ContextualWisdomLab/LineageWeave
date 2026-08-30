@@ -71,13 +71,17 @@ def test_bounded_jpeg_encodes_a_tiny_image_directly() -> None:
         assert decoded.format == "JPEG"
 
 
-def test_bounded_jpeg_resize_fallback_reaches_minimum_size() -> None:
-    image = Image.new("RGB", (8, 8), color=(120, 40, 200))
-    with patch("lineageweave.vision_image._MAX_VISION_IMAGE_BYTES", 1):
+def test_bounded_jpeg_resize_fallback_honors_patched_ceiling() -> None:
+    image = Image.effect_noise((32, 32), 100).convert("RGB")
+    forced_ceiling = 400
+    with patch(
+        "lineageweave.vision_image._MAX_VISION_IMAGE_BYTES", forced_ceiling
+    ):
         payload = _encode_bounded_jpeg(image)
-    assert len(payload) <= _MAX_VISION_IMAGE_BYTES
+    assert len(payload) <= forced_ceiling
     with Image.open(io.BytesIO(payload)) as decoded:
-        assert decoded.size == (2, 2)
+        assert decoded.width < image.width
+        assert decoded.height < image.height
         assert decoded.format == "JPEG"
 
 
