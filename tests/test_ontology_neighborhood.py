@@ -956,6 +956,16 @@ def test_voice_assignments_join_exact_csv_rows_and_jsonld() -> None:
     assert str(LW.voiceAssignmentEvidence) not in hidden_projection
     assert "prov:wasDerivedFrom" not in hidden_projection
 
+    imported_primary = replace(assignment, is_primary=True, evidence_post_id=None)
+    primary_projection = next(
+        item
+        for item in replace(neighborhood, voice_assignments=(imported_primary,))
+        .jsonld_document()["@graph"]
+        if item.get("@id") == assignment_iri
+    )
+    assert str(LW.voiceAssignmentEvidence) not in primary_projection
+    assert "prov:wasDerivedFrom" not in primary_projection
+
     with pytest.raises(OntologyNeighborhoodError, match="offset-aware"):
         replace(assignment, recorded_at=T0.replace(tzinfo=None))
 

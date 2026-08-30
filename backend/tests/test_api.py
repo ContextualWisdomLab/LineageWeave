@@ -38,6 +38,9 @@ _KEYCLOAK_BASE_URL = os.environ.get("LINEAGEWEAVE_TEST_KEYCLOAK_BASE_URL", "http
 _VALKEY_URL = os.environ.get("LINEAGEWEAVE_TEST_VALKEY_URL", "redis://localhost:16379/0")
 _REALM = "lineageweave-demo"
 _MIGRATION_PATH = Path(__file__).resolve().parents[2] / "migrations" / "0001_initial_schema.sql"
+_PROV_O_MIGRATION = (
+    Path(__file__).resolve().parents[2] / "migrations" / "0017_prov_o_standard_relations.sql"
+)
 _REGISTRY_MIGRATION = Path(__file__).resolve().parents[2] / "migrations" / "0018_analysis_run_registry.sql"
 _RETENTION_MIGRATION = Path(__file__).resolve().parents[2] / "migrations" / "0020_analysis_run_retention_purge.sql"
 _RECONSTRUCTION_MIGRATION = (
@@ -187,6 +190,31 @@ _LEFTOVER_MAP_UNEXPLAINED_SHARE_MIGRATION = (
     / "migrations"
     / "0233_report_leftover_map_unexplained_share.sql"
 )
+_VOICE_TAXONOMY_MIGRATION = (
+    Path(__file__).resolve().parents[2]
+    / "migrations"
+    / "0235_voice_of_x_post_taxonomy.sql"
+)
+_ONTOLOGY_TRUTH_STATUS_MIGRATION = (
+    Path(__file__).resolve().parents[2]
+    / "migrations"
+    / "0175_ontology_truth_status.sql"
+)
+_SOURCE_POST_VOICE_MIGRATION = (
+    Path(__file__).resolve().parents[2]
+    / "migrations"
+    / "0237_source_post_voice_combination.sql"
+)
+_SOURCE_POST_VOICE_HISTORY_MIGRATION = (
+    Path(__file__).resolve().parents[2]
+    / "migrations"
+    / "0243_source_post_voice_history.sql"
+)
+_OCCUPATIONAL_CONSTRUCT_ASSERTION_MIGRATION = (
+    Path(__file__).resolve().parents[2]
+    / "migrations"
+    / "0238_occupational_construct_assertion.sql"
+)
 _LEFTOVER_MAP_EXPLAINED_SHARE_MIGRATION = (
     Path(__file__).resolve().parents[2]
     / "migrations"
@@ -332,6 +360,7 @@ def seeded_db(demo_analyst_token):
     try:
         with conn.cursor() as cur:
             cur.execute(_MIGRATION_PATH.read_text())
+            cur.execute(_PROV_O_MIGRATION.read_text())
             cur.execute(_REGISTRY_MIGRATION.read_text())
             cur.execute(_RETENTION_MIGRATION.read_text())
             cur.execute(_RECONSTRUCTION_MIGRATION.read_text())
@@ -423,6 +452,11 @@ def seeded_db(demo_analyst_token):
             cur.execute(_LEFTOVER_MAP_CROSS_SHARE_MIGRATION.read_text())
             cur.execute(_LEFTOVER_MAP_RECONSTRUCTION_MIGRATION.read_text())
             cur.execute(_LEFTOVER_MAP_UNEXPLAINED_SHARE_MIGRATION.read_text())
+            cur.execute(_ONTOLOGY_TRUTH_STATUS_MIGRATION.read_text())
+            cur.execute(_VOICE_TAXONOMY_MIGRATION.read_text())
+            cur.execute(_SOURCE_POST_VOICE_MIGRATION.read_text())
+            cur.execute(_OCCUPATIONAL_CONSTRUCT_ASSERTION_MIGRATION.read_text())
+            cur.execute(_SOURCE_POST_VOICE_HISTORY_MIGRATION.read_text())
             cur.execute(_LEFTOVER_MAP_EXPLAINED_SHARE_MIGRATION.read_text())
             cur.execute(_LEFTOVER_MAP_COORDINATES_MIGRATION.read_text())
             cur.execute(
@@ -1921,6 +1955,50 @@ def test_post_detail_uses_lookup_labels_not_raw_codes(client, demo_analyst_token
     assert body["voc_type_label"] == "Voice of Customer"
     assert body["visibility_code"] == "public"
     assert body["visibility_label"] == "Public"
+
+
+def test_authenticated_ontology_neighborhood_reads_primary_voice_from_postgresql(
+    client, demo_analyst_token, seeded_db
+) -> None:
+    """The authenticated API preserves carrying evidence without inventing derivation."""
+    post_id = seeded_db["own_private_post_id"]
+    response = client.get(
+        "/api/ontology/neighborhood",
+        params={"focus_node_type": "node_post", "focus_node_id": post_id},
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+
+    assert response.status_code == 200, response.text
+    payload = response.json()
+    primary = next(
+        assignment
+        for assignment in payload["voice_assignments"]
+        if assignment["is_primary"] and assignment["post_id"] == post_id
+    )
+    assert primary["post_id"] == post_id
+    assert primary["voice_type_code"] == "voc"
+    assert primary["truth_status_code"] == "truth_observed"
+    assert primary["evidence_post_id"] is None
+
+    row = next(
+        row
+        for row in payload["exact_value_rows"]
+        if row["property_code"] == "hasVoiceAssignment"
+        and row["source_node_id"] == post_id
+    )
+    assert row["source_node_id"] == post_id
+    assert row["evidence_post_id"] == post_id
+
+    assignment_iri = (
+        "https://contextualwisdomlab.github.io/LineageWeave/ontology#"
+        f"voice-assignment/{post_id}/voc"
+    )
+    projected = next(item for item in payload["jsonld"]["@graph"] if item.get("@id") == assignment_iri)
+    assert "prov:wasDerivedFrom" not in projected
+    assert (
+        "https://contextualwisdomlab.github.io/LineageWeave/ontology#voiceAssignmentEvidence"
+        not in projected
+    )
 
 
 def test_post_detail_exposes_explicit_and_semantic_project_evidence(
