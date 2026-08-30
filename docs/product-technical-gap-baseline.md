@@ -2,8 +2,10 @@
 
 > Exact-head development-loop overlay: 2026-08-30 16:45 KST. Protected `main`
 > remains `cb187cadee5fb6c46d8a944815ccc154a1e028d1`; eighteen PRs and ten
-> issues are open. PR #780 is at
-> `56f2103a30cb7f34fe508f46c16b24fa2e2beb28`: its full hosted backend and
+> issues are open. The exact Voice implementation revision reviewed for PR
+> #780 is `56f2103a30cb7f34fe508f46c16b24fa2e2beb28`; the later candidate head
+> `280ba699ac05298281476b6968c84dbfff9bd2f0` changes only documentation and
+> authority-contract tests relative to that implementation. Its full hosted backend and
 > frontend tests are successful, its three current review threads are
 > informational confirmations, and local focused evidence is 31 Python tests
 > plus 533 frontend tests, lint, type checking, and production build. The
