@@ -31,8 +31,9 @@
  *  (ADR 0300), grouping comparison leftover-map rank
  *  (ADR 0301), grouping comparison leftover-map coordinates
  *  (ADR 0302), grouping comparison leftover-map coordinates payload
- *  (ADR 0303), and grouping comparison leftover-map axis share
- *  (ADR 0304) caption the pair list or the grouping comparison strip,
+ *  (ADR 0303), grouping comparison leftover-map axis share
+ *  (ADR 0304), and grouping comparison leftover-map rank payload
+ *  (ADR 0305) caption the pair list or the grouping comparison strip,
  *  not this graphic layout.
  */
 
