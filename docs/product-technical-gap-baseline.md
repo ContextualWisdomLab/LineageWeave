@@ -2,9 +2,10 @@
 
 > Exact-head development-loop overlay: 2026-08-30 19:20 KST. Protected `main`
 > remains `cb187cadee5fb6c46d8a944815ccc154a1e028d1`; eighteen PRs and ten
-> issues are open. PR #780's latest published head is
-> `5fb95e45b3a1f070e40eb84d4f0d99c3625d7a9c`; the reviewed working candidate
-> `43dfcca20667e79e2c461b38b8fc15a0e2927e4d` adds the missing authenticated
+> issues are open. PR #780's exact implementation-evidence revision is
+> `43dfcca20667e79e2c461b38b8fc15a0e2927e4d`; later commits in this candidate
+> update only this point-in-time evidence overlay. That revision adds the
+> missing authenticated
 > PostgreSQL API acceptance and the minimal root repair it exposed. The real
 > query failed before returning any neighborhood because PostgreSQL rejected
 > an ungrouped `knowledge_graph_edge.created_at`; the candidate now groups the
