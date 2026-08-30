@@ -482,6 +482,14 @@ compares leftover pairs can match the pair-row coordinate badge on live
 responses; a missing axis stays null and does not invent coordinates from
 leftover-map rank, leftover-map distance, leftover-map reconstruction, or
 leftover residual. The strip does not gain the leftover-map graphic.
+ADR 0304 captions the grouping comparison strip with persisted leftover-map
+axis share through leftoverMapCompareAxisShare so a buyer who compares leftover
+pairs can read Gabriel inertia of residual SVD axes 1 and 2 for that grouping;
+a missing or non-finite share omits that leftover-map comparison axis share
+badge and does not invent leftover-map axis share from leftover-map singular
+value, leftover pair count, or plotted marker count. Share `0` is shown when
+persisted, including rank-0 unused axes. The strip does not gain leftover-map
+singular values or the leftover-map graphic.
 When `R`, `R̂`, `U`, `x`,
 `s`, and `e` are finite, `e + s + x = 1`. When `Y`, `E`, and `R` are
 finite, `Y − E = R`. When `R`, `R̂`, and `U` are
@@ -526,6 +534,8 @@ Grouping comparison leftover-map coordinates (ADR 0302) captions grouping compar
 buttons with persisted leftover-map coordinates `ξ` / `ζ`.
 Grouping comparison leftover-map coordinates payload (ADR 0303) returns persisted leftover-map
 coordinates `ξ` / `ζ` on `GET /api/reports/compare/{period}` leftover pairs.
+Grouping comparison leftover-map axis share (ADR 0304) captions the grouping comparison
+strip with persisted leftover-map axis share.
 Item complete-case coverage
 (ADR 0282) captions the leftover-map graphic with how many scored criteria
 entered the map. Item complete-case coverage on the pair list (ADR 0285)
