@@ -3868,6 +3868,7 @@ function ReportsPanel({
               <SurfaceBoundary>
                 <LeftoverPairList
                   pairs={report.leftover_pairs}
+                  leftoverMapAxes={report.leftover_map_axes}
                   criterionLabel={criterionShortLabel}
                   onSelectPost={(pair) => {
                     onSelectPost(pair.post_id, {

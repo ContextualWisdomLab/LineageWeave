@@ -1,7 +1,7 @@
 """Jeon leftover post–criterion pairs after a main-effect IRT.
 
 Implements ADR 0048 as amended by ADR 0119, ADR 0163, ADR 0164, ADR 0182,
-ADR 0185, ADR 0201, ADR 0233, and ADR 0266.
+ADR 0185, ADR 0201, ADR 0233, ADR 0266, and ADR 0267.
 
 Does not import ``fast_mlsirm`` or ``period_report``. A Gabriel biplot
 of the residual ``R = Y − E[Y|θ, item]`` supplies person and item
@@ -28,9 +28,12 @@ leftover residual ``R``, leftover-map distance ``d``, or unexplained
 leftover ``U``. Each pair also names leftover-map unexplained leftover
 share ``s = U² / R²`` of raw residual (ADR 0233) and leftover-map
 explained leftover share ``e = R̂² / R²`` of raw residual (ADR 0266).
-Signed reconstruction ``R̂`` is persisted so ``U + R̂ = R`` stays
-auditable and ``e + s + x = 1`` stays auditable from persisted
-``R``, ``R̂``, ``U``, ``x``, ``s``, and ``e``. ``x`` may be negative when
+Each pair further names leftover-map coordinates ``ξ_{1:2}`` and
+``ζ_{1:2}`` (ADR 0267) so reconstruction ``R̂ = ξ · ζ`` and distance
+``d = ‖ξ − ζ‖`` stay auditable from the same pair row. Signed
+reconstruction ``R̂`` is persisted so ``U + R̂ = R`` stays auditable
+and ``e + s + x = 1`` stays auditable from persisted ``R``, ``R̂``,
+``U``, ``x``, ``s``, and ``e``. ``x`` may be negative when
 reconstruction and unexplained leftover have opposite signs.
 """
 
@@ -64,6 +67,10 @@ class LeftoverPair:
     leftover_map_reconstruction: float | None = None
     leftover_map_unexplained_share: float | None = None
     leftover_map_explained_share: float | None = None
+    leftover_map_person_axis_1: float | None = None
+    leftover_map_person_axis_2: float | None = None
+    leftover_map_item_axis_1: float | None = None
+    leftover_map_item_axis_2: float | None = None
 
 
 @dataclass(frozen=True)
@@ -109,8 +116,10 @@ def leftover_pairs_from_residual(
     ``R`` after two-axis reconstruction ``R̂ = ξ_{1:2} · ζ_{1:2}`` and
     unexplained leftover ``U = R − R̂``, leftover-map unexplained
     leftover share ``s = U² / R²`` names the square share of that
-    leftover, and leftover-map explained leftover share ``e = R̂² / R²``
-    names the square share the truncated map reconstructs. Signed ``R̂``
+    leftover, leftover-map explained leftover share ``e = R̂² / R²``
+    names the square share the truncated map reconstructs, and leftover-map
+    coordinates ``ξ_{1:2}`` / ``ζ_{1:2}`` name the two-axis positions
+    so ``R̂ = ξ · ζ`` and ``d = ‖ξ − ζ‖`` stay auditable. Signed ``R̂``
     is persisted with ``U``, ``s``, and ``e`` so their raw-residual
     identity stays auditable. Without a complete-case map there is no pair
     to name (ADR 0168); the caller reads coverage counts instead of a
@@ -166,6 +175,7 @@ def leftover_map_from_residual(
         tuple[
             float, str, str, float, float, float,
             float | None, float | None, float | None, float | None, float | None,
+            float | None, float | None, float | None, float | None,
         ]
     ] = []
     if person_pos is not None and item_pos is not None:
@@ -178,19 +188,21 @@ def leftover_map_from_residual(
         for person, item in observed:
             if person not in local_person or item not in local_item:
                 continue
-            distance = float(
-                np.linalg.norm(person_xy[local_person[person]] - item_xy[local_item[item]])
-            )
+            person_coord = person_xy[local_person[person]]
+            item_coord = item_xy[local_item[item]]
+            distance = float(np.linalg.norm(person_coord - item_coord))
             if not np.isfinite(distance):
                 continue
-            reconstruction = float(
-                np.dot(person_xy[local_person[person]], item_xy[local_item[item]])
-            )
+            reconstruction = float(np.dot(person_coord, item_coord))
             residual_cell = float(residual[person, item])
             unexplained = _unexplained_leftover(residual_cell, reconstruction)
             share = _leftover_map_cross_share(residual_cell, reconstruction)
             unexplained_share = _leftover_map_unexplained_share(residual_cell, reconstruction)
             explained_share = _leftover_map_explained_share(residual_cell, reconstruction)
+            coordinates = _leftover_map_coordinates(person_coord, item_coord)
+            person_axis_1, person_axis_2, item_axis_1, item_axis_2 = (
+                coordinates if coordinates is not None else (None, None, None, None)
+            )
             candidates.append(
                 _candidate_row(
                     post_ids,
@@ -206,6 +218,10 @@ def leftover_map_from_residual(
                     reconstruction if np.isfinite(reconstruction) else None,
                     unexplained_share,
                     explained_share,
+                    person_axis_1,
+                    person_axis_2,
+                    item_axis_1,
+                    item_axis_2,
                 )
             )
     if not candidates:
@@ -296,6 +312,32 @@ def _leftover_map_explained_share(residual: float, reconstruction: float) -> flo
     return None
 
 
+def _leftover_map_coordinates(
+    person_xy: np.ndarray,
+    item_xy: np.ndarray,
+) -> tuple[float, float, float, float] | None:
+    """Return two-axis ``ξ`` and ``ζ`` when all four values are finite.
+
+    Rank-0 unused axes already pad with 0. A non-finite coordinate omits
+    all four rather than inventing a leftover score. Callers persist the
+    four together so reconstruction ``R̂ = ξ · ζ`` and distance
+    ``d = ‖ξ − ζ‖`` stay auditable from the same pair row.
+    """
+    person = np.asarray(person_xy, dtype=np.float64).reshape(-1)
+    item = np.asarray(item_xy, dtype=np.float64).reshape(-1)
+    if person.size < _LEFTOVER_MAP_AXES or item.size < _LEFTOVER_MAP_AXES:
+        return None
+    coords = (
+        float(person[0]),
+        float(person[1]),
+        float(item[0]),
+        float(item[1]),
+    )
+    if not all(np.isfinite(value) for value in coords):
+        return None
+    return coords
+
+
 def _candidate_row(
     post_ids: list[str],
     item_codes: tuple[str, ...],
@@ -310,11 +352,16 @@ def _candidate_row(
     leftover_map_reconstruction: float | None,
     leftover_map_unexplained_share: float | None,
     leftover_map_explained_share: float | None,
+    leftover_map_person_axis_1: float | None,
+    leftover_map_person_axis_2: float | None,
+    leftover_map_item_axis_1: float | None,
+    leftover_map_item_axis_2: float | None,
 ) -> tuple[
     float, str, str, float, float, float,
     float | None, float | None, float | None, float | None, float | None,
+    float | None, float | None, float | None, float | None,
 ]:
-    """One observed cell: distance, ids, residual, Y, E, U, cross share, R̂, s, e."""
+    """One observed cell: distance, ids, residual, Y, E, U, cross share, R̂, s, e, ξ, ζ."""
     leftover_residual = float(residual[person, item])
     observed_response = float(matrix[person, item])
     expected_response = float(expected[person, item])
@@ -332,6 +379,10 @@ def _candidate_row(
         leftover_map_reconstruction,
         leftover_map_unexplained_share,
         leftover_map_explained_share,
+        leftover_map_person_axis_1,
+        leftover_map_person_axis_2,
+        leftover_map_item_axis_1,
+        leftover_map_item_axis_2,
     )
 
 
@@ -340,6 +391,7 @@ def _pair_from_candidate(
     row: tuple[
         float, str, str, float, float, float,
         float | None, float | None, float | None, float | None, float | None,
+        float | None, float | None, float | None, float | None,
     ],
     leftover_map_rank: int,
 ) -> LeftoverPair:
@@ -360,6 +412,10 @@ def _pair_from_candidate(
         leftover_map_reconstruction=row[8],
         leftover_map_unexplained_share=row[9],
         leftover_map_explained_share=row[10],
+        leftover_map_person_axis_1=row[11],
+        leftover_map_person_axis_2=row[12],
+        leftover_map_item_axis_1=row[13],
+        leftover_map_item_axis_2=row[14],
     )
 
 
@@ -497,7 +553,9 @@ def _pad_map_axes(positions: np.ndarray) -> np.ndarray:
     Hidden SVD axes after the second are dropped so reconstruction is
     ``ξ_{1:2} · ζ_{1:2}``, not the full-rank inner product. That
     reconstruction is persisted with unexplained leftover and cross share so
-    the raw-residual identity remains auditable.
+    the raw-residual identity remains auditable. The padded coordinates
+    themselves persist so ``R̂ = ξ · ζ`` and ``d = ‖ξ − ζ‖`` stay
+    auditable from the pair row.
     """
     padded = np.zeros((positions.shape[0], _LEFTOVER_MAP_AXES), dtype=np.float64)
     width = min(_LEFTOVER_MAP_AXES, positions.shape[1])
