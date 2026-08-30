@@ -1280,6 +1280,7 @@ export interface GroupingComparisonRow {
   post_count: number;
   link_method: string;
   leftover_pairs?: LeftoverPair[];
+  leftover_map_coverage?: LeftoverMapCoverage | null;
 }
 
 export interface PeriodComparison {

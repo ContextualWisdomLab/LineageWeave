@@ -5829,6 +5829,19 @@ def test_seed_period_report_surfaces_on_get_reports(client, demo_analyst_token, 
     assert leftover_kinds <= {"closest", "farthest"}
     assert all(pair["post_title"] for pair in leftover_thread.get("leftover_pairs", []))
     assert all(pair["leftover_distance"] >= 0 for pair in leftover_thread.get("leftover_pairs", []))
+    leftover_compare_coverage = leftover_thread.get("leftover_map_coverage")
+    assert leftover_compare_coverage is not None
+    assert leftover_compare_coverage["map_post_count"] <= leftover_compare_coverage["scored_post_count"]
+    assert leftover_compare_coverage["scored_post_count"] > 0
+    assert leftover_compare_coverage["incomplete_post_count"] == (
+        leftover_compare_coverage["scored_post_count"] - leftover_compare_coverage["map_post_count"]
+    )
+    assert leftover_compare_coverage["map_item_count"] <= leftover_compare_coverage["scored_item_count"]
+    assert leftover_compare_coverage["map_post_count"] != len(
+        leftover_thread.get("leftover_pairs", [])
+    ) or leftover_compare_coverage["scored_post_count"] > len(
+        leftover_thread.get("leftover_pairs", [])
+    )
     assert all(
         {"visibility_code", "corporate_entity_id", "process_unit_id"}.isdisjoint(pair)
         for pair in leftover_thread.get("leftover_pairs", [])
