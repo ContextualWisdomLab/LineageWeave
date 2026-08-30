@@ -33,6 +33,20 @@ _FORBIDDEN_MARKERS = (
 )
 
 
+def _adr_is_current(content: str) -> bool:
+    """Return false only for an ADR whose own status fully retires it."""
+    inline_status = re.search(
+        r"(?im)^(?:[-*]\s*)?(?:\*\*)?(?:decision\s+)?status(?:\*\*)?\s*:\s*(.+)$",
+        content,
+    )
+    if inline_status is not None:
+        status = inline_status.group(1).strip().casefold()
+    else:
+        section_status = re.search(r"(?im)^## Status\s*\n\s*([^\n]+)", content)
+        status = section_status.group(1).strip().casefold() if section_status else ""
+    return not status.startswith(("retired", "superseded by"))
+
+
 def test_adr_numbers_are_unique_and_documents_are_not_placeholders() -> None:
     """Every committed ADR number identifies one substantive UTF-8 document."""
     paths = sorted(_ADR_DIRECTORY.glob("*.md"))
@@ -87,6 +101,15 @@ def test_product_requirement_identifiers_are_unique() -> None:
     assert duplicates == [], f"duplicate PRD requirement identifiers: {duplicates}"
 
 
+def test_retired_adr_status_is_excluded_without_hiding_partial_amendments() -> None:
+    """Only a fully retired or superseded ADR leaves current PRD traceability."""
+    assert not _adr_is_current("# ADR\n\n- Status: Superseded by ADR 0002\n")
+    assert not _adr_is_current("# ADR\n\n## Status\n\nRetired\n")
+    assert _adr_is_current(
+        "# ADR\n\n**Decision status:** Accepted, point 3 superseded by ADR 0002\n"
+    )
+
+
 def test_product_requirement_adr_references_exist() -> None:
     """Direct ADR references in the supporting PRD resolve to normative records."""
     product_requirements = _PRODUCT_REQUIREMENTS.read_text(encoding="utf-8")
@@ -95,6 +118,9 @@ def test_product_requirement_adr_references_exist() -> None:
         for reference in _ADR_NUMBER_OR_RANGE.finditer(clause.group("references")):
             start = int(reference.group("start"))
             end = int(reference.group("end") or start)
+            assert start <= end, (
+                f"descending ADR range in product requirements: {start:04d}-{end:04d}"
+            )
             referenced_numbers.update(f"{number:04d}" for number in range(start, end + 1))
 
     assert {"0249", "0250", "0253", "0255"} <= referenced_numbers
@@ -114,9 +140,11 @@ def test_adr_product_requirement_references_exist() -> None:
     available_identifiers = set(_PRD_REQUIREMENT_HEADING.findall(product_requirements))
     referenced_identifiers: set[str] = set()
     for path in _ADR_DIRECTORY.glob("*.md"):
-        referenced_identifiers.update(
-            re.findall(r"\bPRD-FR-[0-9A-Z-]+\b", path.read_text(encoding="utf-8"))
-        )
+        content = path.read_text(encoding="utf-8")
+        if _adr_is_current(content):
+            referenced_identifiers.update(
+                re.findall(r"\bPRD-FR-[0-9A-Z-]+\b", content)
+            )
 
     missing = sorted(referenced_identifiers - available_identifiers)
     assert missing == [], f"ADRs reference missing PRD requirements: {missing}"

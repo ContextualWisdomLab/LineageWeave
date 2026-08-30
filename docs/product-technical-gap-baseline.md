@@ -6,11 +6,10 @@
 > it while exact-head required controls were not successful; this is a
 > governance violation, not protected-delivery proof. Draft revert #808 is
 > `1af3e53e55d7a1c8572ab514d14d06c615c7c0d0` and also lacks independent
-> approval, so it remains unmerged. There are 50 open PRs and 10 open issues.
+> approval, so it remains unmerged. There are 55 open PRs and 10 open issues.
 > Main-based ready PRs #771, #772, #774, and #780 retain normal squash
 > auto-merge and remain blocked on an independent approval plus exact-head
 > required checks. Drafts and dirty branches are candidate evidence only.
->
 > Canonical remote names rechecked this cycle are
 > `ContextualWisdomLab/LineageWeave`, `ContextualWisdomLab/RankWeave`,
 > `ContextualWisdomLab/ThreadWeave`, `ContextualWisdomLab/disksage`, and
