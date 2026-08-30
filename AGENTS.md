@@ -273,7 +273,7 @@ stops startup instead of leaving a healthy-looking partial schema, and
 application code must not compensate for a missing table.
 
 Period leftover pairs (ADR 0017 / 0018 / 0048 / 0049 / 0119 / 0158 / 0162 /
-0163 / 0164 / 0182 / 0185 / 0201 / 0233 / 0266 / 0267 / 0268 / 0269 / 0270 / 0271 / 0272 / 0273 / 0274 / 0275 / 0276 / 0277 / 0278 / 0279 / 0280 / 0281 / 0282 / 0283 / 0284 / 0285 / 0286 / 0287 / 0288 / 0289 / 0290 / 0291 / 0292 / 0293 / 0294 / 0295 / 0296 / 0297 / 0298 / 0299 / 0300 / 0301 / 0302 / 0303 / 0304 / 0305 / 0306 / 0307 / 0308 / 0309 / 0310 / 0311 / 0312 / 0313) are computed in `lineageweave/leftover_pairs.py` from the
+0163 / 0164 / 0182 / 0185 / 0201 / 0233 / 0266 / 0267 / 0268 / 0269 / 0270 / 0271 / 0272 / 0273 / 0274 / 0275 / 0276 / 0277 / 0278 / 0279 / 0280 / 0281 / 0282 / 0283 / 0284 / 0285 / 0286 / 0287 / 0288 / 0289 / 0290 / 0291 / 0292 / 0293 / 0294 / 0295 / 0296 / 0297 / 0298 / 0299 / 0300 / 0301 / 0302 / 0303 / 0304 / 0305 / 0306 / 0307 / 0308 / 0309 / 0310 / 0311 / 0312 / 0313 / 0314) are computed in `lineageweave/leftover_pairs.py` from the
 residual after a real GRM/GPCM score, never invented. Distances are
 Euclidean on the two-dimensional Gabriel leftover map; missing cells stay
 out of the factorization. Closest and farthest post–criterion pairs
@@ -571,6 +571,16 @@ and leftover-map comparison graphic incomplete items when those helpers return u
 leftover-map rank, leftover-map axis share, leftover-map post coverage, leftover-map item coverage,
 leftover-map incomplete post coverage, leftover-map incomplete item coverage, leftover pair
 count, or the count of unused axes.
+ADR 0314 captions leftover-map unexplained leftover on that grouping comparison leftover-map
+graphic when formatLeftoverMapUnexplained returns a usable badge; a missing or
+non-finite `U` omits that leftover-map comparison graphic unexplained leftover caption and keeps
+leftover-map cross share `x`, leftover-map unexplained leftover share `s`, leftover-map explained leftover share `e`, leftover-map reconstruction `R̂`, leftover-map distance `d`, leftover-map comparison graphic coverage,
+leftover-map comparison graphic item coverage, leftover-map comparison graphic incomplete posts,
+and leftover-map comparison graphic incomplete items when those helpers return usable integers. Do not invent
+`U` from `R` and `R̂`, leftover-map reconstruction, leftover residual, leftover-map distance, plotted coordinates,
+leftover-map rank, leftover-map axis share, leftover-map post coverage, leftover-map item coverage,
+leftover-map incomplete post coverage, leftover-map incomplete item coverage, leftover pair
+count, or the count of unused axes.
 When `R`, `R̂`, `U`, `x`,
 `s`, and `e` are finite, `e + s + x = 1`. When `Y`, `E`, and `R` are
 finite, `Y − E = R`. When `R`, `R̂`, and `U` are
@@ -645,6 +655,9 @@ share `s` when formatLeftoverMapUnexplainedShare returns a usable badge.
 Grouping comparison leftover-map cross share (ADR 0313) captions
 that grouping comparison leftover-map graphic with persisted leftover-map cross
 share `x` when formatLeftoverMapCrossShare returns a usable badge.
+Grouping comparison leftover-map unexplained leftover (ADR 0314) captions
+that grouping comparison leftover-map graphic with persisted leftover-map unexplained leftover
+`U` when formatLeftoverMapUnexplained returns a usable badge.
 Item complete-case coverage
 (ADR 0282) captions the leftover-map graphic with how many scored criteria
 entered the map. Item complete-case coverage on the pair list (ADR 0285)
