@@ -6,6 +6,9 @@ export const LEFTOVER_MAP_UNEXPLAINED_SHARE_ACTION =
 export const LEFTOVER_MAP_COMPARE_UNEXPLAINED_SHARE_LABEL =
   "Leftover map comparison unexplained leftover share";
 
+export const LEFTOVER_MAP_COMPARE_PLOT_SEGMENT_UNEXPLAINED_SHARE =
+  "leftover map comparison graphic unexplained leftover share {label}";
+
 export function formatLeftoverMapUnexplainedShare(
   value: number | null | undefined,
 ): string | null {
