@@ -3,6 +3,9 @@
 export const LEFTOVER_MAP_CROSS_SHARE_ACTION =
   "Two leftover-map axes leave identity remainder {value} of raw residual after IRT main effects. Open this post to read {criterion}.";
 
+export const LEFTOVER_MAP_COMPARE_CROSS_SHARE_LABEL =
+  "Leftover map comparison cross share";
+
 export function formatLeftoverMapCrossShare(
   value: number | null | undefined,
 ): string | null {

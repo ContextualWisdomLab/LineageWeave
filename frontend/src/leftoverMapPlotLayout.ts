@@ -22,8 +22,9 @@
  *  (ADR 0291), grouping comparison incomplete item coverage
  *  (ADR 0292), grouping comparison reconstruction
  *  (ADR 0293), grouping comparison explained leftover share
- *  (ADR 0294), and grouping comparison unexplained leftover share
- *  (ADR 0295) caption the pair list or the grouping comparison strip,
+ *  (ADR 0294), grouping comparison unexplained leftover share
+ *  (ADR 0295), and grouping comparison leftover-map cross share
+ *  (ADR 0296) caption the pair list or the grouping comparison strip,
  *  not this graphic layout.
  */
 
