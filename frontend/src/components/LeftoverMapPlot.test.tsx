@@ -164,8 +164,8 @@ describe("LeftoverMapPlot", () => {
     expect(
       screen.getByRole("button", { name: "Open leftover-map post Public post at ξ (0.00, 0.00)" }),
     ).toBeInTheDocument();
-    expect(screen.getByText("leftover-map axis 1 (0%)")).toBeInTheDocument();
-    expect(screen.getByText("leftover-map axis 2 (0%)")).toBeInTheDocument();
+    expect(screen.getByText("leftover-map axis 1 σ 0.00 (0%)")).toBeInTheDocument();
+    expect(screen.getByText("leftover-map axis 2 σ 0.00 (0%)")).toBeInTheDocument();
     expect(screen.getAllByLabelText("leftover-map axis 1 tick 0.00").length).toBeGreaterThan(0);
     expect(screen.queryByLabelText("leftover-map axis 1 tick +1.00")).not.toBeInTheDocument();
     expect(screen.getByLabelText("leftover-map distance d 0.00")).toBeInTheDocument();
@@ -180,7 +180,7 @@ describe("LeftoverMapPlot", () => {
     expect(screen.getByLabelText("leftover-map rank rank 0")).toBeInTheDocument();
   });
 
-  it("captions leftover-map axes with persisted leftover-map axis share", () => {
+  it("captions leftover-map axes with persisted leftover-map singular values and leftover-map axis share", () => {
     render(
       <LeftoverMapPlot
         pairs={PAIRS}
@@ -192,11 +192,11 @@ describe("LeftoverMapPlot", () => {
         onSelectPost={vi.fn()}
       />,
     );
-    expect(screen.getByText("leftover-map axis 1 (82%)")).toBeInTheDocument();
-    expect(screen.getByText("leftover-map axis 2 (18%)")).toBeInTheDocument();
+    expect(screen.getByText("leftover-map axis 1 σ 1.84 (82%)")).toBeInTheDocument();
+    expect(screen.getByText("leftover-map axis 2 σ 0.86 (18%)")).toBeInTheDocument();
   });
 
-  it("keeps existing leftover-map axis text when share is missing or non-finite", () => {
+  it("captions leftover-map axes with persisted leftover-map singular values when share is missing or non-finite", () => {
     render(
       <LeftoverMapPlot
         pairs={PAIRS}
@@ -207,10 +207,27 @@ describe("LeftoverMapPlot", () => {
         onSelectPost={vi.fn()}
       />,
     );
-    expect(screen.getByText("leftover-map axis 1")).toBeInTheDocument();
+    expect(screen.getByText("leftover-map axis 1 σ 1.84")).toBeInTheDocument();
     expect(screen.getByText("leftover-map axis 2")).toBeInTheDocument();
     expect(screen.queryByText(/leftover-map axis 1 \(/)).not.toBeInTheDocument();
     expect(screen.queryByText(/leftover-map axis 2 \(/)).not.toBeInTheDocument();
+  });
+
+  it("keeps leftover-map axis share when singular value is missing, non-finite, or negative", () => {
+    render(
+      <LeftoverMapPlot
+        pairs={PAIRS}
+        leftoverMapAxes={[
+          { axis_index: 1, leftover_singular_value: Number.NaN, leftover_share: 0.82 },
+          { axis_index: 2, leftover_singular_value: -0.01, leftover_share: 0.18 },
+        ]}
+        criterionLabel={criterionLabel}
+        onSelectPost={vi.fn()}
+      />,
+    );
+    expect(screen.getByText("leftover-map axis 1 (82%)")).toBeInTheDocument();
+    expect(screen.getByText("leftover-map axis 2 (18%)")).toBeInTheDocument();
+    expect(screen.queryByText(/σ /)).not.toBeInTheDocument();
   });
 
   it("omits leftover-map distance on a pair segment when d is missing", () => {

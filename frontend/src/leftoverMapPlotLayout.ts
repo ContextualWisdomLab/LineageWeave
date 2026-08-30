@@ -1,5 +1,8 @@
 /** Gabriel leftover-map graphic display of persisted ``ξ_{1:2}`` / ``ζ_{1:2}``.
  *  Leftover-map axis share captions axes 1 and 2 when finite (ADR 0269).
+ *  Leftover-map singular values caption axes 1 and 2 when finite and
+ *  non-negative (ADR 0289). Do not invent ``σ_k`` from leftover-map axis
+ *  share.
  *  Axis ticks name persisted leftover-map coordinates (ADR 0270).
  *  Pair segments name persisted leftover-map distance ``d`` (ADR 0271),
  *  persisted leftover-map reconstruction ``R̂`` (ADR 0272), persisted

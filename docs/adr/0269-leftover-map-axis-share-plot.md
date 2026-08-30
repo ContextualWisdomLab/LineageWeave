@@ -2,6 +2,8 @@
 
 **Decision status:** Accepted
 **Date:** 2026-08-28
+**Amended by:** [ADR 0289](0289-leftover-map-plot-singular.md)
+(leftover-map singular values on the graphic display)
 
 Amends [ADR 0148](0148-leftover-map-axis-share.md) and
 [ADR 0268](0268-leftover-map-graphic-display.md). Independent of leftover-map

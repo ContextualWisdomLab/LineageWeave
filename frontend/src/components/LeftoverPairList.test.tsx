@@ -204,8 +204,8 @@ describe("LeftoverPairList", () => {
         name: "Open leftover-map post Public post at ξ (+0.50, +0.10)",
       }),
     );
-    expect(screen.getByText("leftover-map axis 1 (82%)")).toBeInTheDocument();
-    expect(screen.getByText("leftover-map axis 2 (18%)")).toBeInTheDocument();
+    expect(screen.getByText("leftover-map axis 1 σ 1.84 (82%)")).toBeInTheDocument();
+    expect(screen.getByText("leftover-map axis 2 σ 0.86 (18%)")).toBeInTheDocument();
     expect(screen.getByLabelText("Leftover-map graphic coverage")).toHaveTextContent(
       "Leftover map used 2 of 3 scored posts (complete-case)",
     );

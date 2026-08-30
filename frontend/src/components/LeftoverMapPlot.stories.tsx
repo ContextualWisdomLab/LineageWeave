@@ -137,3 +137,11 @@ export const MissingAxisShare: Story = {
     ],
   },
 };
+
+export const MissingAxisSingular: Story = {
+  args: {
+    leftoverMapAxes: [
+      { axis_index: 1, leftover_singular_value: Number.NaN, leftover_share: 0.82 },
+    ],
+  },
+};
