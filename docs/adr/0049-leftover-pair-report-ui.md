@@ -23,7 +23,8 @@
 [ADR 0276](0276-leftover-map-segment-unexplained-leftover.md) (leftover-map unexplained leftover on pair segments);
 [ADR 0277](0277-leftover-map-segment-residual.md) (leftover residual on pair segments);
 [ADR 0278](0278-leftover-map-segment-observed.md) (leftover observed Y on pair segments);
-[ADR 0279](0279-leftover-map-segment-expected.md) (leftover expected E on pair segments)
+[ADR 0279](0279-leftover-map-segment-expected.md) (leftover expected E on pair segments);
+[ADR 0280](0280-leftover-map-segment-rank.md) (leftover-map rank on pair segments)
 
 ## Context
 
@@ -59,7 +60,8 @@ cross share `x` (ADR 0275). Pair segments name persisted leftover-map
 unexplained leftover `U` (ADR 0276). Pair segments name persisted leftover
 residual `R` (ADR 0277). Pair segments name persisted leftover observed
 `Y` (ADR 0278). Pair segments name persisted leftover expected
-`E` (ADR 0279). The pair renders every available finite measurement.
+`E` (ADR 0279). Pair segments name persisted leftover-map rank
+(ADR 0280). The pair renders every available finite measurement.
 The next action uses the first available value in the priority below; no
 amendment hides another badge, rank 0
 explicitly names no leftover structure, and unexplained leftover names
@@ -108,6 +110,8 @@ Leftover observed Y on pair segments is
 [ADR 0278](0278-leftover-map-segment-observed.md).
 Leftover expected E on pair segments is
 [ADR 0279](0279-leftover-map-segment-expected.md).
+Leftover-map rank on pair segments is
+[ADR 0280](0280-leftover-map-segment-rank.md).
 
 After `make seed`, closest and farthest leftover pairs sit above the
 member list. Click a pair to open that post with the leftover

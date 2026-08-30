@@ -7,13 +7,15 @@
  *  leftover-map unexplained leftover share ``s`` (ADR 0274), persisted
  *  leftover-map cross share ``x`` (ADR 0275), persisted leftover-map
  *  unexplained leftover ``U`` (ADR 0276), persisted leftover residual
- *  ``R`` (ADR 0277), persisted leftover observed ``Y`` (ADR 0278), and
- *  persisted leftover expected ``E`` (ADR 0279).
+ *  ``R`` (ADR 0277), persisted leftover observed ``Y`` (ADR 0278),
+ *  persisted leftover expected ``E`` (ADR 0279), and persisted leftover-map
+ *  rank (ADR 0280).
  */
 
 import { formatLeftoverMapCoordinatePair } from "./leftoverMapCoordinates";
 import { formatLeftoverMapCrossShare } from "./leftoverMapCrossShare";
 import { formatLeftoverMapExplainedShare } from "./leftoverMapExplainedShare";
+import { formatLeftoverMapRank } from "./leftoverMapRank";
 import { formatLeftoverMapReconstruction } from "./leftoverMapReconstruction";
 import {
   formatLeftoverMapUnexplained,
@@ -25,7 +27,7 @@ import { formatLeftoverMapResidual } from "./leftoverResidual";
 import type { LeftoverPair } from "./api";
 
 export const LEFTOVER_MAP_PLOT_CAPTION =
-  "Leftover map after IRT main effects. Axis ticks name persisted leftover-map coordinates. Pair segments name leftover-map distance d, leftover-map reconstruction R̂, leftover-map explained leftover share e, leftover-map unexplained leftover share s, leftover-map cross share x, leftover-map unexplained leftover U, leftover residual R, leftover observed Y, and leftover expected E. Click a post marker to open that post. The plot does not invent a leftover score.";
+  "Leftover map after IRT main effects. Axis ticks name persisted leftover-map coordinates. Pair segments name leftover-map distance d, leftover-map reconstruction R̂, leftover-map explained leftover share e, leftover-map unexplained leftover share s, leftover-map cross share x, leftover-map unexplained leftover U, leftover residual R, leftover observed Y, leftover expected E, and leftover-map rank. Click a post marker to open that post. The plot does not invent a leftover score.";
 
 export const LEFTOVER_MAP_PLOT_POST_ACTION =
   "Open leftover-map post {title} at ξ {person}";
@@ -60,6 +62,9 @@ export const LEFTOVER_MAP_PLOT_SEGMENT_OBSERVED =
 export const LEFTOVER_MAP_PLOT_SEGMENT_EXPECTED =
   "leftover expected {label}";
 
+export const LEFTOVER_MAP_PLOT_SEGMENT_RANK =
+  "leftover-map rank {label}";
+
 export const PLOT_WIDTH = 480;
 export const PLOT_HEIGHT = 320;
 export const PLOT_PADDING = 40;
@@ -83,6 +88,7 @@ export type LeftoverMapPlottablePair = {
   leftover_residual?: number | null;
   observed_response?: number | null;
   expected_response?: number | null;
+  leftover_map_rank?: number | null;
   leftover_map_person_axis_1?: number | null;
   leftover_map_person_axis_2?: number | null;
   leftover_map_item_axis_1?: number | null;
@@ -116,6 +122,7 @@ export type LeftoverMapPlotSegment = {
   residualLabel: string | null;
   observedLabel: string | null;
   expectedLabel: string | null;
+  rankLabel: string | null;
   labelX: number;
   labelY: number;
   reconstructionX: number;
@@ -134,6 +141,8 @@ export type LeftoverMapPlotSegment = {
   observedY: number;
   expectedX: number;
   expectedY: number;
+  rankX: number;
+  rankY: number;
 };
 
 export type LeftoverMapPlotTick = {
@@ -367,6 +376,7 @@ export function layoutLeftoverMapPlot(
     const residualLabel = formatLeftoverMapResidual(pair.leftover_residual);
     const observedLabel = formatLeftoverMapObserved(pair.observed_response);
     const expectedLabel = formatLeftoverMapExpected(pair.expected_response);
+    const rankLabel = formatLeftoverMapRank(pair.leftover_map_rank);
     const labelPosition = leftoverMapSegmentLabelPosition(
       personPos.x,
       personPos.y,
@@ -432,6 +442,18 @@ export function layoutLeftoverMapPlot(
         (residualLabel !== null ? 1 : 0) +
         (observedLabel !== null ? 1 : 0),
     );
+    const rankY = leftoverMapStackedCaptionY(
+      labelPosition.labelY,
+      (distanceLabel !== null ? 1 : 0) +
+        (reconstructionLabel !== null ? 1 : 0) +
+        (explainedShareLabel !== null ? 1 : 0) +
+        (unexplainedShareLabel !== null ? 1 : 0) +
+        (crossShareLabel !== null ? 1 : 0) +
+        (unexplainedLeftoverLabel !== null ? 1 : 0) +
+        (residualLabel !== null ? 1 : 0) +
+        (observedLabel !== null ? 1 : 0) +
+        (expectedLabel !== null ? 1 : 0),
+    );
     segments.push({
       pairKind: pair.pair_kind === "farthest" ? "farthest" : "closest",
       postId: pair.post_id,
@@ -449,6 +471,7 @@ export function layoutLeftoverMapPlot(
       residualLabel,
       observedLabel,
       expectedLabel,
+      rankLabel,
       reconstructionX: labelPosition.labelX,
       reconstructionY,
       explainedShareX: labelPosition.labelX,
@@ -465,6 +488,8 @@ export function layoutLeftoverMapPlot(
       observedY,
       expectedX: labelPosition.labelX,
       expectedY,
+      rankX: labelPosition.labelX,
+      rankY,
       ...labelPosition,
     });
   }
