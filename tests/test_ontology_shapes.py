@@ -78,6 +78,7 @@ def _representative_projection() -> Graph:
     data.add((voice_assignment, LWn.assignedVoiceType, LWn.voiceOfCustomerType))
     data.add((voice_assignment, LWn.primaryVoiceAssignment, Literal(True)))
     data.add((voice_assignment, LWn.voiceAssignmentCarryingPost, post))
+    data.add((post, LWn.hasVoiceAssignment, voice_assignment))
     person = URIRef(LW + "person-okonkwo")
     data.add((person, RDF.type, LWn.Person))
     data.add((person, LWn.personName, Literal("Sam Okonkwo")))
@@ -120,6 +121,21 @@ def test_voice_assignment_requires_carrying_post() -> None:
 
     assert conforms is False
     assert "voice assignment carrying post" in report.lower()
+
+
+def test_voice_assignment_rejects_mismatched_carrying_post() -> None:
+    """The carrying Post and inverse assignment link must identify one pair."""
+    data = _representative_projection()
+    LWn = Namespace(LW)
+    assignment = URIRef(LW + "voice-assignment/post-alpha/voc")
+    other_post = URIRef(LW + "post-beta")
+    data.add((other_post, RDF.type, LWn.Post))
+    data.set((assignment, LWn.voiceAssignmentCarryingPost, other_post))
+
+    conforms, report = _conforms(data)
+
+    assert conforms is False
+    assert "carrying post must link" in report.lower()
 
 
 def test_additional_voice_assignment_requires_derivation_evidence() -> None:
