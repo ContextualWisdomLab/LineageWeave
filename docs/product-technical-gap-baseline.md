@@ -1,5 +1,24 @@
 # Product & Technical Gap Baseline
 
+> Exact-head loop overlay: 2026-08-31 05:02 KST. Protected `main` is
+> `cb187cadee5fb6c46d8a944815ccc154a1e028d1`. Writes work. Do not
+> self-approve. #845 leftover-map coverage on the grouping comparison leftover-map
+> graphic (v2.63.0 / ADR 0306) is `7c026df`, stacked on #844 @ `95538f9`.
+> Next buyer increment on this cycle: leftover-map item complete-case coverage on
+> the grouping comparison leftover-map graphic (ADR 0307 / v2.64.0) delivered
+> locally on `feat/leftover-map-compare-plot-item-coverage-v2640`. Caption leftover
+> map used N of M scored criteria (complete-case) on that comparison graphic from
+> already-named leftover_map_coverage. Distinct accessible name `Leftover map
+> comparison graphic item coverage`. Omit when leftoverMapItemCoverageCounts
+> fail-closes. Do not caption leftover-map incomplete coverage on that comparison
+> graphic this increment. Do not invent leftover-map item coverage from plotted
+> criterion marker count, leftover pair count, leftover-map rank, leftover-map
+> distance, leftover-map axis share, leftover-map reconstruction, leftover-map
+> post coverage, leftover-map incomplete post coverage, leftover-map incomplete
+> item coverage, or the count of unused axes. Stack onto #845. Leave open for
+> independent review. Do not squash-merge. Issues #79 and #87 stay open. #96 is
+> already closed. Do not merge #808 without independent APPROVE.
+
 > Exact-head loop overlay: 2026-08-31 04:23 KST. Protected `main` is
 > `cb187cadee5fb6c46d8a944815ccc154a1e028d1`. Writes work. Do not
 > self-approve. #844 leftover-map axis share on the grouping comparison leftover-map
