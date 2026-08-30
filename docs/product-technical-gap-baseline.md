@@ -1,24 +1,28 @@
 # Product & Technical Gap Baseline
 
-> Exact-head development-loop overlay: 2026-08-31 07:43 KST.
+> Exact-head development-loop overlay: 2026-08-31 09:00 KST.
 > Protected `main` remains `cb187cadee5fb6c46d8a944815ccc154a1e028d1`;
-> fifty-nine open PRs and ten open issues were enumerated in fresh
-> snapshot. PR #780's latest product implementation revision is
-> `4b45377bbadf6fdff023daeb34f82a46661e44de`. Every review thread is resolved
+> sixty open PRs and ten open issues were enumerated in a fresh snapshot.
+> PR #780's exact head is `48392a8a258cb1e2e1c70af04be769f9996e433e`.
+> Every review thread is resolved
 > and normal squash auto-merge remains armed. The focused ontology regression
-> selection passes (53 tests); the affected frontend selection passes (29
+> selection passes (37 tests); the affected frontend selection passes (29
 > tests), lint succeeds, and the production frontend build succeeds. Fresh
-> desktop and mobile Storybook renders keep the carrying Post visible while
-> the horizontally scrolled evidence action is focused. Current-head GitHub
-> checks are still running and therefore are not delivery proof. The required
-> workflow bootstrap and dependency review already fail closed: the first still
-> depends on the candidate-only central workflow repair in
-> `ContextualWisdomLab/.github#1420`, while the latter is a fail-closed
+> inspection of the committed desktop and mobile Storybook renders keeps the
+> carrying Post visible while the horizontally scrolled evidence action is
+> focused. Current-head GitHub checks are terminal but not successful. The
+> required workflow bootstrap and dependency review fail closed: the first
+> still depends on the candidate-only central workflow repair in
+> `ContextualWisdomLab/.github#1420` at
+> `78f890ec28919192aa7e99ed8ac061687d795c98`, where 92 focused policy tests
+> pass with 100% statement and branch coverage and normal squash auto-merge is
+> armed; the latter is a fail-closed
 > dependency-graph 403 rather than a product-test failure. Strix is successful
-> only on the prior head and remains unverified on this head.
+> on this exact head. The central repair still awaits its current-head OpenCode
+> verdict and independent approval and is not protected-main workflow evidence.
 > Independent approval is still absent, so protected merge and merge SHA are
 > unavailable. The largest directly actionable Voice acceptance gap in this
-> PR remains implemented only on the candidate head: exact-value UI and CSV
+> PR remains implemented only on this candidate head: exact-value UI and CSV
 > distinguish the carrying Post from genuine derivation evidence, additional
 > Voices retain authorized Post evidence, PROV-O derivation, truth status, and
 > cutoff behavior, and primary Voices do not acquire an invented derivation.
@@ -28,7 +32,9 @@
 > protected-main delivery.
 > The supporting PRD's duplicate occupational requirement identifiers and
 > stale ADR references remain an authority-document gap tracked by issue #807;
-> they are not promoted over accepted ADRs. No self-approval, bypass, force
+> PR #847 is a green candidate repair with normal auto-merge, but it still lacks
+> independent approval and therefore is not promoted over accepted ADRs. No
+> self-approval, bypass, force
 > push, invented weight, heuristic classification, or hidden-evidence
 > substitution is used.
 >
