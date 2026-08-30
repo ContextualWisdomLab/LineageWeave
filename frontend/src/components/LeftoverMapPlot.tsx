@@ -34,6 +34,7 @@ import {
   LEFTOVER_MAP_COMPARE_PLOT_LABEL,
   LEFTOVER_MAP_COMPARE_PLOT_SVG,
   LEFTOVER_MAP_COMPARE_PLOT_SEGMENT_RECONSTRUCTION,
+  LEFTOVER_MAP_COMPARE_PLOT_SEGMENT_EXPLAINED_SHARE,
   LEFTOVER_MAP_PLOT_CAPTION,
   LEFTOVER_MAP_PLOT_POST_ACTION,
   LEFTOVER_MAP_PLOT_SEGMENT_CROSS_SHARE,
@@ -141,6 +142,9 @@ function leftoverMapPlotAxisText(
  * comparison graphic incomplete items labels. ADR 0310 captions leftover-map
  * reconstruction on that comparison graphic from already-named leftover-map
  * reconstruction with distinct leftover map comparison graphic reconstruction
+ * labels. ADR 0311 captions leftover-map explained leftover share on that
+ * comparison graphic from already-named leftover-map explained leftover share
+ * with distinct leftover map comparison graphic explained leftover share
  * labels.
  * Never invent a leftover score.
  */
@@ -326,9 +330,12 @@ export function LeftoverMapPlot({
                   x={segment.explainedShareX}
                   y={segment.explainedShareY}
                   textAnchor="middle"
-                  aria-label={tf(LEFTOVER_MAP_PLOT_SEGMENT_EXPLAINED_SHARE, {
-                    label: segment.explainedShareLabel,
-                  })}
+                  aria-label={tf(
+                    variant === "comparison"
+                      ? LEFTOVER_MAP_COMPARE_PLOT_SEGMENT_EXPLAINED_SHARE
+                      : LEFTOVER_MAP_PLOT_SEGMENT_EXPLAINED_SHARE,
+                    { label: segment.explainedShareLabel },
+                  )}
                 >
                   {segment.explainedShareLabel}
                 </text>
