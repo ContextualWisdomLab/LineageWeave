@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   formatLeftoverMapExplainedShare,
   LEFTOVER_MAP_COMPARE_EXPLAINED_SHARE_LABEL,
+  LEFTOVER_MAP_COMPARE_PLOT_SEGMENT_EXPLAINED_SHARE,
 } from "./leftoverMapExplainedShare";
 
 describe("formatLeftoverMapExplainedShare", () => {
@@ -25,6 +26,18 @@ describe("formatLeftoverMapExplainedShare", () => {
     );
     expect(LEFTOVER_MAP_COMPARE_EXPLAINED_SHARE_LABEL).not.toBe(
       "leftover-map explained leftover share {label}",
+    );
+  });
+
+  it("keeps the grouping comparison graphic explained leftover share label distinct from the graphic and strip labels", () => {
+    expect(LEFTOVER_MAP_COMPARE_PLOT_SEGMENT_EXPLAINED_SHARE).toBe(
+      "leftover map comparison graphic explained leftover share {label}",
+    );
+    expect(LEFTOVER_MAP_COMPARE_PLOT_SEGMENT_EXPLAINED_SHARE).not.toBe(
+      "leftover-map explained leftover share {label}",
+    );
+    expect(LEFTOVER_MAP_COMPARE_PLOT_SEGMENT_EXPLAINED_SHARE).not.toBe(
+      LEFTOVER_MAP_COMPARE_EXPLAINED_SHARE_LABEL,
     );
   });
 });

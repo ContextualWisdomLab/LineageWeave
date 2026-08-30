@@ -3,6 +3,9 @@
 **Decision status:** Accepted
 **Date:** 2026-08-30
 
+**Amended by:** [ADR 0311](0311-leftover-map-compare-plot-explained-share.md)
+(leftover-map explained leftover share on the grouping comparison leftover-map graphic)
+
 Amends leftover pairs on the grouping comparison strip
 ([ADR 0149](0149-leftover-pairs-on-comparison-strip.md)), leftover-map
 explained leftover share persistence

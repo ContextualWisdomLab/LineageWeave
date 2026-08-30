@@ -87,6 +87,7 @@ describe("i18n", () => {
     "Leftover map comparison graphic incomplete items",
     "Leftover map comparison reconstruction",
     "leftover map comparison graphic reconstruction {label}",
+    "leftover map comparison graphic explained leftover share {label}",
     "Leftover map comparison explained leftover share",
     "Leftover map comparison unexplained leftover share",
     "Leftover map comparison cross share",
@@ -506,6 +507,23 @@ describe("i18n", () => {
       expected,
     );
   });
+
+  it.each([
+    ["ko", "잔여 지도 비교 그림 설명 잔여 점유율 R̂²/R² 0.76"],
+    ["zh", "残差地图比较图形已解释残差份额 R̂²/R² 0.76"],
+    ["ja", "残差マップの比較図説明済み残差割合 R̂²/R² 0.76"],
+    ["vi", "phần dư giải thích đồ họa so sánh bản đồ phần dư R̂²/R² 0.76"],
+  ] as const)(
+    "formats leftover map comparison graphic explained leftover share in %s",
+    (locale, expected) => {
+      setLocale(locale);
+      expect(
+        tf("leftover map comparison graphic explained leftover share {label}", {
+          label: "R̂²/R² 0.76",
+        }),
+      ).toBe(expected);
+    },
+  );
 
   it.each([
     ["ko", "잔여 지도 비교 설명 잔여 점유율"],

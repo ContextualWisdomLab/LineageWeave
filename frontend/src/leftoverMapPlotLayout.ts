@@ -37,8 +37,9 @@
  *  coverage on that graphic (ADR 0306), grouping comparison leftover-map
  *  item complete-case coverage on that graphic (ADR 0307), grouping comparison leftover-map
  *  incomplete post coverage on that graphic (ADR 0308), grouping comparison leftover-map
- *  incomplete item coverage on that graphic (ADR 0309), and grouping comparison leftover-map
- *  reconstruction on that graphic (ADR 0310) caption the pair list or the grouping comparison
+ *  incomplete item coverage on that graphic (ADR 0309), grouping comparison leftover-map
+ *  reconstruction on that graphic (ADR 0310), and grouping comparison leftover-map
+ *  explained leftover share on that graphic (ADR 0311) caption the pair list or the grouping comparison
  *  strip. ADR 0304 reuses this graphic layout on the grouping comparison
  *  strip. ADR 0305 captions leftover-map axis share on that comparison
  *  graphic from already-named leftover-map axes. ADR 0306 captions leftover-map
@@ -49,6 +50,8 @@
  *  coverage. ADR 0309 captions leftover-map incomplete item coverage on that
  *  comparison graphic from already-named leftover-map coverage. ADR 0310 captions leftover-map
  *  reconstruction on that comparison graphic from already-named leftover-map reconstruction.
+ *  ADR 0311 captions leftover-map explained leftover share on that comparison graphic from
+ *  already-named leftover-map explained leftover share.
  */
 
 import { formatLeftoverMapCoordinatePair } from "./leftoverMapCoordinates";
@@ -91,6 +94,8 @@ export { LEFTOVER_MAP_COMPARE_PLOT_SEGMENT_RECONSTRUCTION } from "./leftoverMapR
 
 export const LEFTOVER_MAP_PLOT_SEGMENT_EXPLAINED_SHARE =
   "leftover-map explained leftover share {label}";
+
+export { LEFTOVER_MAP_COMPARE_PLOT_SEGMENT_EXPLAINED_SHARE } from "./leftoverMapExplainedShare";
 
 export const LEFTOVER_MAP_PLOT_SEGMENT_UNEXPLAINED_SHARE =
   "leftover-map unexplained leftover share {label}";
