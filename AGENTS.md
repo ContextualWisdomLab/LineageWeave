@@ -273,7 +273,7 @@ stops startup instead of leaving a healthy-looking partial schema, and
 application code must not compensate for a missing table.
 
 Period leftover pairs (ADR 0017 / 0018 / 0048 / 0049 / 0119 / 0158 / 0162 /
-0163 / 0164 / 0182 / 0185 / 0201 / 0233 / 0266 / 0267 / 0268 / 0269 / 0270 / 0271 / 0272 / 0273 / 0274 / 0275 / 0276 / 0277 / 0278 / 0279 / 0280 / 0281 / 0282 / 0283 / 0284 / 0285 / 0286 / 0287 / 0288 / 0289 / 0290 / 0291 / 0292 / 0293 / 0294) are computed in `lineageweave/leftover_pairs.py` from the
+0163 / 0164 / 0182 / 0185 / 0201 / 0233 / 0266 / 0267 / 0268 / 0269 / 0270 / 0271 / 0272 / 0273 / 0274 / 0275 / 0276 / 0277 / 0278 / 0279 / 0280 / 0281 / 0282 / 0283 / 0284 / 0285 / 0286 / 0287 / 0288 / 0289 / 0290 / 0291 / 0292 / 0293 / 0294 / 0295) are computed in `lineageweave/leftover_pairs.py` from the
 residual after a real GRM/GPCM score, never invented. Distances are
 Euclidean on the two-dimensional Gabriel leftover map; missing cells stay
 out of the factorization. Closest and farthest post–criterion pairs
@@ -428,6 +428,12 @@ compares leftover pairs can match the pair-row `R̂²/R²` badge; a missing or n
 `e` omits that leftover-map comparison explained leftover share badge and does not invent
 `e` from `R̂` and `R` or from leftover-map distance. The strip does not gain the
 leftover-map graphic.
+ADR 0295 captions grouping comparison leftover-pair buttons with persisted leftover-map
+unexplained leftover share `s` through formatLeftoverMapUnexplainedShare so a buyer who
+compares leftover pairs can match the pair-row `U²/R²` badge; a missing or non-finite
+`s` omits that leftover-map comparison unexplained leftover share badge and does not invent
+`s` from `U` and `R` or from leftover-map distance. The strip does not gain the
+leftover-map graphic.
 When `R`, `R̂`, `U`, `x`,
 `s`, and `e` are finite, `e + s + x = 1`. When `Y`, `E`, and `R` are
 finite, `Y − E = R`. When `R`, `R̂`, and `U` are
@@ -454,6 +460,8 @@ Grouping comparison reconstruction (ADR 0293) captions grouping comparison lefto
 buttons with persisted leftover-map reconstruction `R̂`.
 Grouping comparison explained leftover share (ADR 0294) captions grouping comparison leftover-pair
 buttons with persisted leftover-map explained leftover share `e`.
+Grouping comparison unexplained leftover share (ADR 0295) captions grouping comparison leftover-pair
+buttons with persisted leftover-map unexplained leftover share `s`.
 Item complete-case coverage
 (ADR 0282) captions the leftover-map graphic with how many scored criteria
 entered the map. Item complete-case coverage on the pair list (ADR 0285)
