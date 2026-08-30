@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   formatLeftoverMapUnexplained,
   formatSignedLeftoverValue,
+  LEFTOVER_MAP_COMPARE_UNEXPLAINED_LABEL,
 } from "./leftoverMapUnexplained";
 
 describe("formatLeftoverMapUnexplained", () => {
@@ -18,5 +19,17 @@ describe("formatLeftoverMapUnexplained", () => {
     expect(formatLeftoverMapUnexplained(undefined)).toBeNull();
     expect(formatLeftoverMapUnexplained(Number.NaN)).toBeNull();
     expect(formatLeftoverMapUnexplained(Number.POSITIVE_INFINITY)).toBeNull();
+  });
+
+  it("keeps the grouping comparison unexplained leftover label distinct from the graphic unexplained leftover label", () => {
+    expect(LEFTOVER_MAP_COMPARE_UNEXPLAINED_LABEL).toBe(
+      "Leftover map comparison unexplained leftover",
+    );
+    expect(LEFTOVER_MAP_COMPARE_UNEXPLAINED_LABEL).not.toBe(
+      "leftover-map unexplained leftover {label}",
+    );
+    expect(LEFTOVER_MAP_COMPARE_UNEXPLAINED_LABEL).not.toBe(
+      "Leftover map comparison unexplained leftover share",
+    );
   });
 });
