@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import type { LeftoverMapCoverage } from "./api";
 import {
   leftoverMapCoverageCounts,
+  leftoverMapIncompleteItemCount,
   leftoverMapIncompletePostCount,
   leftoverMapItemCoverageCounts,
 } from "./leftoverMapCoverage";
@@ -126,6 +127,45 @@ describe("leftoverMapIncompletePostCount", () => {
     ).toBeNull();
     expect(leftoverMapIncompletePostCount(coverage({ incomplete_post_count: 1 }))).not.toEqual({
       dropped: 2,
+    });
+  });
+});
+
+describe("leftoverMapIncompleteItemCount", () => {
+  it("names persisted leftover-map incomplete item coverage without inventing a leftover score", () => {
+    expect(leftoverMapIncompleteItemCount(coverage())).toEqual({ dropped: 0 });
+    expect(
+      leftoverMapIncompleteItemCount(
+        coverage({ map_item_count: 0, scored_item_count: 2, incomplete_item_count: 2 }),
+      ),
+    ).toEqual({ dropped: 2 });
+    expect(
+      leftoverMapIncompleteItemCount(
+        coverage({ map_item_count: 1, scored_item_count: 2, incomplete_item_count: 1 }),
+      ),
+    ).toEqual({ dropped: 1 });
+  });
+
+  it("omits incomplete item coverage when the dropped count is missing or not a usable integer", () => {
+    expect(leftoverMapIncompleteItemCount(null)).toBeNull();
+    expect(leftoverMapIncompleteItemCount(undefined)).toBeNull();
+    expect(leftoverMapIncompleteItemCount(coverage({ incomplete_item_count: -1 }))).toBeNull();
+    expect(leftoverMapIncompleteItemCount(coverage({ incomplete_item_count: 1.5 }))).toBeNull();
+    expect(leftoverMapIncompleteItemCount(coverage({ incomplete_item_count: Number.NaN }))).toBeNull();
+  });
+
+  it("does not invent leftover-map incomplete items from scored minus used or from plotted criterion marker count", () => {
+    expect(
+      leftoverMapIncompleteItemCount(
+        coverage({
+          map_item_count: 2,
+          scored_item_count: 2,
+          incomplete_item_count: 1,
+        }),
+      ),
+    ).toBeNull();
+    expect(leftoverMapIncompleteItemCount(coverage({ incomplete_item_count: 0 }))).not.toEqual({
+      dropped: 1,
     });
   });
 });
