@@ -687,6 +687,8 @@ ADR 0297 captions grouping comparison leftover-pair buttons with persisted lefto
 unexplained leftover `U` through formatLeftoverMapUnexplained.
 ADR 0298 captions grouping comparison leftover-pair buttons with persisted leftover
 residual `R` through formatLeftoverMapResidual.
+ADR 0299 captions grouping comparison leftover-pair buttons with persisted leftover
+observed `Y` through formatLeftoverMapObserved.
 Click a post marker or a pair button
 opens that post. Those ADRs are the normative mathematical, storage, and
 display contracts. Leftover-map axis share
@@ -712,8 +714,9 @@ incomplete item coverage (ADR 0292), leftover-map reconstruction `R̂`
 (ADR 0294), leftover-map unexplained leftover share `s`
 (ADR 0295), leftover-map cross share `x`
 (ADR 0296), leftover-map unexplained leftover `U`
-(ADR 0297), and leftover residual `R`
-(ADR 0298);
+(ADR 0297), leftover residual `R`
+(ADR 0298), and leftover observed `Y`
+(ADR 0299);
 `POST .../rebuild` scores every grouping kind (post_admin). `make seed`
 folds A-100/B-200 Event Lineage fixtures (and the Riverbend calendar
 post) that already have constructed IRT cells into the same shared
