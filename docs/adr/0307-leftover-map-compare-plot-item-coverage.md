@@ -1,13 +1,14 @@
-# ADR 0306 — Name leftover-map complete-case coverage on the grouping comparison leftover-map graphic
+# ADR 0307 — Name leftover-map item complete-case coverage on the grouping comparison leftover-map graphic
 
 **Decision status:** Accepted
 **Date:** 2026-08-31
 
-**Amended by:** [ADR 0307](0307-leftover-map-compare-plot-item-coverage.md)
-(leftover-map item complete-case coverage on the grouping comparison leftover-map graphic)
-
-Amends leftover-map complete-case coverage on the graphic display
-([ADR 0281](0281-leftover-map-plot-coverage.md)), leftover-map graphic
+Amends leftover-map item complete-case coverage on the graphic display
+([ADR 0282](0282-leftover-map-plot-item-coverage.md)), leftover-map item
+complete-case coverage on the grouping comparison strip
+([ADR 0290](0290-leftover-map-compare-item-coverage.md)), leftover-map
+complete-case coverage on the grouping comparison leftover-map graphic
+([ADR 0306](0306-leftover-map-compare-plot-coverage.md)), leftover-map graphic
 display on the grouping comparison strip
 ([ADR 0304](0304-leftover-map-compare-graphic.md)), leftover-map axis share
 on the grouping comparison leftover-map graphic
@@ -41,9 +42,7 @@ reconstruction on grouping comparison strip pair rows
 incomplete item coverage on the grouping comparison strip
 ([ADR 0292](0292-leftover-map-compare-incomplete-item.md)), leftover-map
 incomplete post coverage on the grouping comparison strip
-([ADR 0291](0291-leftover-map-compare-incomplete-post.md)), leftover-map item
-complete-case coverage on the grouping comparison strip
-([ADR 0290](0290-leftover-map-compare-item-coverage.md)), leftover-map
+([ADR 0291](0291-leftover-map-compare-incomplete-post.md)), leftover-map
 complete-case coverage on the grouping comparison strip
 ([ADR 0289](0289-leftover-map-compare-coverage.md)), leftover residual
 disclosure ([ADR 0162](0162-leftover-residual-disclosure.md)), leftover
@@ -54,7 +53,9 @@ leftover-map reconstruction persistence
 ([ADR 0280](0280-leftover-map-segment-rank.md)), leftover-map coordinate ticks
 ([ADR 0270](0270-leftover-map-coordinate-ticks.md)), leftover-map graphic display
 ([ADR 0268](0268-leftover-map-graphic-display.md)), leftover-map axis share on
-the graphic display ([ADR 0269](0269-leftover-map-axis-share-plot.md)), and leftover-map coordinates
+the graphic display ([ADR 0269](0269-leftover-map-axis-share-plot.md)), leftover-map
+complete-case coverage on the graphic display
+([ADR 0281](0281-leftover-map-plot-coverage.md)), and leftover-map coordinates
 ([ADR 0267](0267-leftover-map-coordinates.md)). Independent of leftover-map
 post complete-case coverage fail-closed on the pair list
 ([ADR 0288](0288-leftover-map-list-post-coverage-helper.md)), leftover-map
@@ -67,9 +68,7 @@ complete-case coverage on the pair list
 item coverage on the graphic display
 ([ADR 0284](0284-leftover-map-plot-incomplete-item.md)), leftover-map incomplete
 post coverage on the graphic display
-([ADR 0283](0283-leftover-map-plot-incomplete.md)), leftover-map item
-complete-case coverage on the graphic display
-([ADR 0282](0282-leftover-map-plot-item-coverage.md)), leftover expected on pair
+([ADR 0283](0283-leftover-map-plot-incomplete.md)), leftover expected on pair
 segments ([ADR 0279](0279-leftover-map-segment-expected.md)), leftover observed
 on pair segments ([ADR 0278](0278-leftover-map-segment-observed.md)), leftover
 residual on pair segments ([ADR 0277](0277-leftover-map-segment-residual.md)),
@@ -87,86 +86,94 @@ leftover-map cross share persistence ([ADR 0185](0185-leftover-map-cross-share.m
 unexplained leftover share persistence
 ([ADR 0233](0233-leftover-map-unexplained-share.md)), leftover-map explained leftover
 share persistence ([ADR 0266](0266-leftover-map-explained-share.md)), leftover-map
-item complete-case coverage on the grouping comparison leftover-map graphic, leftover-map
 incomplete post coverage on the grouping comparison leftover-map graphic, and leftover-map
 incomplete item coverage on the grouping comparison leftover-map graphic.
 
 ## Context
 
-ADR 0168 already persists one `report_leftover_map_coverage` row per period
-report. ADR 0281 already captions the period-report leftover-map graphic with
-`Leftover map used N of M scored posts (complete-case)` under accessible name
-`Leftover-map graphic coverage`. ADR 0289 already captions the grouping
-comparison strip with that same body under accessible name
-`Leftover map comparison coverage`. ADR 0304 already draws the leftover-map
-graphic of persisted `ξ_{1:2}` / `ζ_{1:2}` above grouping comparison leftover-pair
-buttons. ADR 0305 already captions leftover-map axis share on that graphic.
-The comparison graphic still omits leftover-map coverage, so a buyer who reads
-two pair markers can treat those markers as the scored-post census even after
-the strip note names `2 of 3`. Incomplete rows are dropped from Gabriel
-factorization; hiding coverage on the comparison graphic lets a sparse post
-with one missing criterion vanish without a next action.
+ADR 0168 already persists `map_item_count` / `scored_item_count` on
+`report_leftover_map_coverage`. ADR 0282 already captions the period-report
+leftover-map graphic with `Leftover map used N of M scored criteria
+(complete-case)` under accessible name `Leftover-map graphic item coverage`.
+ADR 0290 already captions the grouping comparison strip with that same body
+under accessible name `Leftover map comparison item coverage`. ADR 0304
+already draws the leftover-map graphic of persisted `ξ_{1:2}` / `ζ_{1:2}`
+above grouping comparison leftover-pair buttons. ADR 0306 already captions
+leftover-map complete-case coverage on that graphic. The comparison graphic
+still omits leftover-map item coverage, so a buyer who reads two criterion
+diamonds can treat those markers as the scored-criterion census even after
+the strip note names `2 of 2`. Incomplete columns are dropped from Gabriel
+factorization; hiding item coverage on the comparison graphic lets a sparse
+criterion with one missing post vanish without a next action.
 
-This increment captions leftover-map complete-case coverage on the grouping
-comparison leftover-map graphic from already-named `leftover_map_coverage`.
-Comparison copy uses the accessible name
-`Leftover map comparison graphic coverage` so it stays distinct from hyphen
-`Leftover-map graphic coverage` on the period-report graphic and from strip
-`Leftover map comparison coverage`. It does not add columns. It does not
-recompute leftover-map coverage from leftover-map rank, leftover-map
-distance, leftover expected, leftover observed, leftover residual,
-leftover-map reconstruction, leftover-map unexplained leftover,
-leftover-map axis share, leftover-map item coverage, leftover-map
-incomplete post coverage, leftover-map incomplete item coverage, plotted
-marker count, leftover pair count, or the count of unused axes. It does
-not persist leftover-map inner product, cosine, or length as separate
-columns. Do not invent a leftover score. Do not invent a theta.
+This increment captions leftover-map item complete-case coverage on the
+grouping comparison leftover-map graphic from already-named
+`leftover_map_coverage`. Comparison copy uses the accessible name
+`Leftover map comparison graphic item coverage` so it stays distinct from
+hyphen `Leftover-map graphic item coverage` on the period-report graphic
+and from strip `Leftover map comparison item coverage`. It does not add
+columns. It does not recompute leftover-map item coverage from leftover-map
+rank, leftover-map distance, leftover expected, leftover observed, leftover
+residual, leftover-map reconstruction, leftover-map unexplained leftover,
+leftover-map axis share, leftover-map post coverage, leftover-map incomplete
+post coverage, leftover-map incomplete item coverage, plotted criterion
+marker count, leftover pair count, or the count of unused axes. It does not
+persist leftover-map inner product, cosine, or length as separate columns.
+Do not invent a leftover score. Do not invent a theta.
 
 The dashboard stack already used neighbouring leftover facts under other
-numbers. This protected increment uses **0306** so it does not collide with
-leftover-map axis share on the grouping comparison leftover-map graphic (0305), leftover-map
-graphic display on the grouping comparison strip (0304), leftover-map
-coordinates on the compare leftover-pair payload (0303), leftover-map
-coordinates on grouping comparison strip pair rows (0302), leftover-map
-rank on grouping comparison strip pair rows (0301), leftover-map complete-case
-coverage on the graphic display (0281), leftover-map complete-case coverage
-on the grouping comparison strip (0289), leftover-map graphic display (0268), leftover-map coordinates (0267), or
-the dashboard stacks.
+numbers. This protected increment uses **0307** so it does not collide with
+leftover-map complete-case coverage on the grouping comparison leftover-map
+graphic (0306), leftover-map axis share on the grouping comparison leftover-map
+graphic (0305), leftover-map graphic display on the grouping comparison strip
+(0304), leftover-map coordinates on the compare leftover-pair payload (0303),
+leftover-map coordinates on grouping comparison strip pair rows (0302),
+leftover-map rank on grouping comparison strip pair rows (0301), leftover-map
+item complete-case coverage on the graphic display (0282), leftover-map item
+complete-case coverage on the grouping comparison strip (0290), leftover-map
+graphic display (0268), leftover-map coordinates (0267), or the dashboard
+stacks.
 
 ## Decision
 
 On the grouping comparison leftover-map graphic, caption persisted leftover-map
-complete-case coverage as `Leftover map used N of M scored posts
-(complete-case)`, using the same `map_post_count` / `scored_post_count`
-integers the strip note already shows through leftoverMapCoverageCounts.
-Use the distinct accessible name `Leftover map comparison graphic coverage`
-so the graphic caption is not the strip note (`Leftover map comparison coverage`)
-and is not the period-report graphic caption (`Leftover-map graphic coverage`).
-A missing coverage row, a non-integer count, a negative used count, a
-non-positive scored count, or used greater than scored omits that leftover-map
-comparison graphic coverage caption and keeps leftover map comparison axis
-share when finite, leftover map comparison axis text, leftover-map rank when
-that rank is a non-negative integer, leftover expected `E` when finite,
-leftover observed `Y` when finite, leftover residual `R` when finite,
-leftover-map unexplained leftover `U` when finite, leftover-map cross share
-`x` when finite, leftover-map unexplained leftover share `s` when finite,
-leftover-map explained leftover share `e` when finite, leftover-map
-reconstruction `R̂` when finite, leftover-map distance `d`, plus the strip
-coverage notes. Coverage `0 of M` is shown when that persisted used count
-is a non-negative integer and scored is a positive integer. Rank-0 origin
-cells still name coverage when that coverage is persisted. Do not invent
-coverage from plotted marker count, leftover pair count, leftover-map rank,
-leftover-map distance, leftover-map axis share, leftover expected, leftover
-observed, leftover residual, leftover-map reconstruction, leftover-map
-unexplained leftover, leftover-map item coverage, leftover-map incomplete
-post coverage, leftover-map incomplete item coverage, or the count of unused
-axes. Click a post marker to open that post.
+item complete-case coverage as `Leftover map used N of M scored criteria
+(complete-case)`, using the same `map_item_count` / `scored_item_count`
+integers the strip note already shows through leftoverMapItemCoverageCounts.
+Use the distinct accessible name `Leftover map comparison graphic item coverage`
+so the graphic caption is not the strip note (`Leftover map comparison item
+coverage`) and is not the period-report graphic caption (`Leftover-map graphic
+item coverage`). A missing coverage row, a non-integer count, a negative used
+count, a non-positive scored count, or used greater than scored omits that
+leftover-map comparison graphic item coverage caption and keeps leftover-map
+comparison graphic coverage when leftoverMapCoverageCounts returns usable
+complete-case integers, leftover map comparison axis share when finite,
+leftover map comparison axis text, leftover-map rank when that rank is a
+non-negative integer, leftover expected `E` when finite, leftover observed `Y`
+when finite, leftover residual `R` when finite, leftover-map unexplained leftover
+`U` when finite, leftover-map cross share `x` when finite, leftover-map
+unexplained leftover share `s` when finite, leftover-map explained leftover
+share `e` when finite, leftover-map reconstruction `R̂` when finite,
+leftover-map distance `d`, plus the strip coverage notes. Coverage `0 of M` is
+shown when that persisted used count is a non-negative integer and scored is a
+positive integer. Rank-0 origin cells still name item coverage when that item
+coverage is persisted. Do not invent item coverage from plotted criterion
+marker count, leftover pair count, leftover-map rank, leftover-map distance,
+leftover-map axis share, leftover expected, leftover observed, leftover
+residual, leftover-map reconstruction, leftover-map unexplained leftover,
+leftover-map post coverage, leftover-map incomplete post coverage, leftover-map
+incomplete item coverage, or the count of unused axes. Click a post marker to
+open that post.
 
-This increment does not caption leftover-map item complete-case coverage,
-leftover-map incomplete post coverage, or leftover-map incomplete item
-coverage on the comparison graphic. Those notes already sit on the strip
-through ADR 0290–0292. A finite negative leftover on neighbouring fields is
-shown, never clamped.
+Post coverage and item coverage omit independently. A used-greater-than-scored
+post count omits leftover-map comparison graphic coverage and keeps a usable
+item caption. A used-greater-than-scored item count omits leftover-map
+comparison graphic item coverage and keeps a usable post caption.
+
+This increment does not caption leftover-map incomplete post coverage or
+leftover-map incomplete item coverage on the comparison graphic. Those notes
+already sit on the strip through ADR 0291–0292. A finite negative leftover on
+neighbouring fields is shown, never clamped.
 
 Do not add SQL migrations. Do not edit shipped migrations. Do not persist inner
 product, cosine, or length as separate columns. Do not invent a leftover
@@ -176,10 +183,10 @@ score. Do not invent a theta.
 
 After `make seed`, grouping comparison leftover pairs that already show
 the leftover-map graphic of persisted `ξ` / `ζ` also name leftover-map
-complete-case coverage on that graphic when leftoverMapCoverageCounts
+item complete-case coverage on that graphic when leftoverMapItemCoverageCounts
 returns usable complete-case integers. Rank-0 unused axes still plot at
-the origin and still name coverage when that coverage is persisted. Click
-a post marker or a pair button opens that post. Hidden posts stay hidden.
+the origin and still name item coverage when that item coverage is persisted.
+Click a post marker or a pair button opens that post. Hidden posts stay hidden.
 When `Y`, `E`, and `R` are finite, `Y − E = R`. When `R`, `R̂`, and `U`
 are finite, `U + R̂ = R`. When `R`, `R̂`, `U`, `x`, `s`, and `e` are
 finite, `e + s + x = 1`. When coordinates, reconstruction, and distance
@@ -221,10 +228,10 @@ coverage on the graphic display, leftover-map incomplete item coverage on
 the pair list, leftover-map post complete-case coverage fail-closed on the
 pair list, leftover-map rank persistence, leftover-map coordinate
 persistence, leftover-map coordinate ticks, leftover-map complete-case
-coverage on the graphic display, leftover-map axis share on the grouping
-comparison leftover-map graphic, leftover-map item complete-case coverage
-on the grouping comparison leftover-map graphic, leftover-map incomplete
-post coverage on the grouping comparison leftover-map graphic, and leftover-map
+coverage on the graphic display, leftover-map complete-case coverage on the
+grouping comparison leftover-map graphic, leftover-map axis share on the
+grouping comparison leftover-map graphic, leftover-map incomplete post
+coverage on the grouping comparison leftover-map graphic, and leftover-map
 incomplete item coverage on the grouping comparison leftover-map graphic.
 
 ## References
@@ -234,13 +241,13 @@ unobserved item–respondent interactions: A latent space item response
 model with interaction map. *Psychometrika, 86*(2), 378–403.
 https://doi.org/10.1007/s11336-021-09762-5
 (LSIRM interaction `−γ‖ξ_j − ζ_i‖` after main effects
-`α_j − β_i`; typically `p = 2` for the interaction map. Incomplete rows
-are dropped from the complete-case residual rectangle; coverage names how
-many scored posts entered that factorization. Grouping comparison leftover-map
-complete-case coverage captions those persisted used/scored post counts on
-the grouping comparison leftover-map graphic only when leftoverMapCoverageCounts
-returns usable complete-case integers. Rank-0 unused axes still name coverage
-when that coverage is stored.)
+`α_j − β_i`; typically `p = 2` for the interaction map. Incomplete columns
+are dropped from the complete-case residual rectangle; item coverage names how
+many scored criteria entered that factorization. Grouping comparison leftover-map
+item complete-case coverage captions those persisted used/scored criterion counts
+on the grouping comparison leftover-map graphic only when leftoverMapItemCoverageCounts
+returns usable complete-case integers. Rank-0 unused axes still name item coverage
+when that item coverage is stored.)
 
 Gabriel, K. R. (1971). The biplot graphic display of matrices with
 application to principal component analysis. *Biometrika, 58*(3),

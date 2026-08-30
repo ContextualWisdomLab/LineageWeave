@@ -918,9 +918,13 @@ describe("LeftoverMapPlot", () => {
     expect(screen.getByLabelText("Leftover map comparison graphic coverage")).toHaveTextContent(
       "Leftover map used 2 of 3 scored posts (complete-case)",
     );
+    expect(screen.getByLabelText("Leftover map comparison graphic item coverage")).toHaveTextContent(
+      "Leftover map used 2 of 2 scored criteria (complete-case)",
+    );
     expect(screen.queryByLabelText("Leftover-map graphic coverage")).not.toBeInTheDocument();
     expect(screen.queryByLabelText("Leftover map comparison coverage")).not.toBeInTheDocument();
     expect(screen.queryByLabelText("Leftover-map graphic item coverage")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Leftover map comparison item coverage")).not.toBeInTheDocument();
     expect(screen.queryByLabelText("Leftover-map graphic incomplete posts")).not.toBeInTheDocument();
     expect(screen.queryByLabelText("Leftover-map graphic incomplete items")).not.toBeInTheDocument();
     expect(screen.getByText("leftover map comparison axis 1 (82%)")).toBeInTheDocument();
@@ -964,7 +968,65 @@ describe("LeftoverMapPlot", () => {
       />,
     );
     expect(screen.queryByLabelText("Leftover map comparison graphic coverage")).not.toBeInTheDocument();
+    expect(screen.getByLabelText("Leftover map comparison graphic item coverage")).toHaveTextContent(
+      "Leftover map used 2 of 2 scored criteria (complete-case)",
+    );
     expect(screen.queryByLabelText("Leftover-map graphic coverage")).not.toBeInTheDocument();
+    expect(screen.getByText("leftover map comparison axis 1 (82%)")).toBeInTheDocument();
+  });
+
+  it("omits leftover-map comparison graphic item coverage when item coverage is missing or not usable", () => {
+    const { rerender } = render(
+      <LeftoverMapPlot
+        pairs={PAIRS}
+        leftoverMapAxes={[
+          { axis_index: 1, leftover_singular_value: 1.84, leftover_share: 0.82 },
+          { axis_index: 2, leftover_singular_value: 0.86, leftover_share: 0.18 },
+        ]}
+        leftoverMapCoverage={{
+          map_post_count: 2,
+          scored_post_count: 3,
+          map_item_count: 3,
+          scored_item_count: 2,
+          incomplete_post_count: 1,
+          incomplete_item_count: 0,
+        }}
+        criterionLabel={criterionLabel}
+        onSelectPost={vi.fn()}
+        variant="comparison"
+      />,
+    );
+    expect(screen.getByLabelText("Leftover map comparison graphic coverage")).toHaveTextContent(
+      "Leftover map used 2 of 3 scored posts (complete-case)",
+    );
+    expect(screen.queryByLabelText("Leftover map comparison graphic item coverage")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Leftover-map graphic item coverage")).not.toBeInTheDocument();
+    expect(screen.getByText("leftover map comparison axis 1 (82%)")).toBeInTheDocument();
+    rerender(
+      <LeftoverMapPlot
+        pairs={PAIRS}
+        leftoverMapAxes={[
+          { axis_index: 1, leftover_singular_value: 1.84, leftover_share: 0.82 },
+          { axis_index: 2, leftover_singular_value: 0.86, leftover_share: 0.18 },
+        ]}
+        leftoverMapCoverage={{
+          map_post_count: 2,
+          scored_post_count: 3,
+          map_item_count: -1,
+          scored_item_count: 2,
+          incomplete_post_count: 1,
+          incomplete_item_count: 0,
+        }}
+        criterionLabel={criterionLabel}
+        onSelectPost={vi.fn()}
+        variant="comparison"
+      />,
+    );
+    expect(screen.getByLabelText("Leftover map comparison graphic coverage")).toHaveTextContent(
+      "Leftover map used 2 of 3 scored posts (complete-case)",
+    );
+    expect(screen.queryByLabelText("Leftover map comparison graphic item coverage")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Leftover-map graphic item coverage")).not.toBeInTheDocument();
     expect(screen.getByText("leftover map comparison axis 1 (82%)")).toBeInTheDocument();
   });
 
@@ -1003,6 +1065,9 @@ describe("LeftoverMapPlot", () => {
     );
     expect(screen.getByLabelText("Leftover map comparison graphic coverage")).toHaveTextContent(
       "Leftover map used 0 of 3 scored posts (complete-case)",
+    );
+    expect(screen.getByLabelText("Leftover map comparison graphic item coverage")).toHaveTextContent(
+      "Leftover map used 0 of 2 scored criteria (complete-case)",
     );
     expect(screen.queryByLabelText("Leftover-map graphic coverage")).not.toBeInTheDocument();
     expect(screen.queryByLabelText("Leftover-map graphic item coverage")).not.toBeInTheDocument();

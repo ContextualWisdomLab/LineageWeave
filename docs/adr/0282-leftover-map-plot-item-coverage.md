@@ -3,6 +3,9 @@
 **Decision status:** Accepted
 **Date:** 2026-08-30
 
+**Amended by:** [ADR 0307](0307-leftover-map-compare-plot-item-coverage.md)
+(leftover-map item complete-case coverage on the grouping comparison leftover-map graphic)
+
 Amends [ADR 0268](0268-leftover-map-graphic-display.md),
 [ADR 0049](0049-leftover-pair-report-ui.md), and leftover-map complete-case
 coverage ([ADR 0168](0168-leftover-map-complete-case-coverage.md)). Independent of
