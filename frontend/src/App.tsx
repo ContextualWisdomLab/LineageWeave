@@ -162,7 +162,9 @@ import {
   LEFTOVER_MAP_COMPARE_RESIDUAL_LABEL,
 } from "./leftoverResidual";
 import {
+  formatLeftoverMapExpected,
   formatLeftoverMapObserved,
+  LEFTOVER_MAP_COMPARE_EXPECTED_LABEL,
   LEFTOVER_MAP_COMPARE_OBSERVED_LABEL,
 } from "./leftoverObservedExpected";
 import "./App.css";
@@ -4104,6 +4106,7 @@ function ReportsPanel({
                     );
                     const residual = formatLeftoverMapResidual(pair.leftover_residual);
                     const observed = formatLeftoverMapObserved(pair.observed_response);
+                    const expected = formatLeftoverMapExpected(pair.expected_response);
                     return (
                       <li
                         key={`${row.grouping_kind}:${row.grouping_key}:${pair.pair_kind}:${pair.post_id}:${pair.criterion_code}`}
@@ -4184,6 +4187,14 @@ function ReportsPanel({
                               aria-label={t(LEFTOVER_MAP_COMPARE_OBSERVED_LABEL)}
                             >
                               {observed}
+                            </span>
+                          ) : null}
+                          {expected ? (
+                            <span
+                              className="post-badge"
+                              aria-label={t(LEFTOVER_MAP_COMPARE_EXPECTED_LABEL)}
+                            >
+                              {expected}
                             </span>
                           ) : null}
                         </button>

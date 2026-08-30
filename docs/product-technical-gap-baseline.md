@@ -1,5 +1,22 @@
 # Product & Technical Gap Baseline
 
+> Exact-head loop overlay: 2026-08-31 01:45 KST. Protected `main` is
+> `cb187cadee5fb6c46d8a944815ccc154a1e028d1`. Writes work. Do not
+> self-approve. #836 leftover observed `Y` on grouping comparison
+> leftover-pair buttons (v2.56.0 / ADR 0299) is `ada0c86`, stacked on
+> #835 @ `a825c33`. Next buyer increment on this cycle: leftover expected
+> `E` on grouping comparison leftover-pair buttons (ADR 0300 / v2.57.0)
+> delivered locally on `feat/leftover-map-compare-expected-v2570`. Caption
+> each strip leftover-pair button through formatLeftoverMapExpected with
+> distinct aria-label `Leftover map comparison expected`. UI-only; no new
+> columns. Missing or non-finite `E` omits that badge independently of
+> `Y`, `R`, `U`, `x`, `s`, `e`, `R̂`, `d`, and coverage notes. Do not invent
+> `E` from `Y` and `R`. A finite negative leftover is shown, never
+> clamped. Stack onto #836. Leave open for independent review. Do not
+> squash-merge. Issues #79 and #87 stay open. #96 is already closed. Do
+> not merge #808 without independent APPROVE.
+
+
 > Exact-head loop overlay: 2026-08-31 01:40 KST. Protected `main` is
 > `cb187cadee5fb6c46d8a944815ccc154a1e028d1`. Writes work. Do not
 > self-approve. #835 leftover residual `R` on grouping comparison
