@@ -167,6 +167,10 @@ import {
   LEFTOVER_MAP_COMPARE_EXPECTED_LABEL,
   LEFTOVER_MAP_COMPARE_OBSERVED_LABEL,
 } from "./leftoverObservedExpected";
+import {
+  formatLeftoverMapRank,
+  LEFTOVER_MAP_COMPARE_RANK_LABEL,
+} from "./leftoverMapRank";
 import "./App.css";
 
 const AdminPanel = lazy(() => import("./components/AdminPanel").then((module) => ({ default: module.AdminPanel })));
@@ -4107,6 +4111,7 @@ function ReportsPanel({
                     const residual = formatLeftoverMapResidual(pair.leftover_residual);
                     const observed = formatLeftoverMapObserved(pair.observed_response);
                     const expected = formatLeftoverMapExpected(pair.expected_response);
+                    const rank = formatLeftoverMapRank(pair.leftover_map_rank);
                     return (
                       <li
                         key={`${row.grouping_kind}:${row.grouping_key}:${pair.pair_kind}:${pair.post_id}:${pair.criterion_code}`}
@@ -4195,6 +4200,14 @@ function ReportsPanel({
                               aria-label={t(LEFTOVER_MAP_COMPARE_EXPECTED_LABEL)}
                             >
                               {expected}
+                            </span>
+                          ) : null}
+                          {rank ? (
+                            <span
+                              className="post-badge"
+                              aria-label={t(LEFTOVER_MAP_COMPARE_RANK_LABEL)}
+                            >
+                              {rank}
                             </span>
                           ) : null}
                         </button>

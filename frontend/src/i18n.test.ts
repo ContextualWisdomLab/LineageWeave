@@ -89,6 +89,7 @@ describe("i18n", () => {
     "Leftover map comparison residual",
     "Leftover map comparison observed",
     "Leftover map comparison expected",
+    "Leftover map comparison rank",
     "Leftover-map graphic item coverage",
     "Leftover map item coverage",
     "Leftover map incomplete posts",
@@ -530,6 +531,19 @@ describe("i18n", () => {
     (locale, expected) => {
       setLocale(locale);
       expect(t("Leftover map comparison expected")).toBe(expected);
+    },
+  );
+
+  it.each([
+    ["ko", "잔여 지도 비교 순위"],
+    ["zh", "残差地图比较秩"],
+    ["ja", "残差マップの比較階数"],
+    ["vi", "Hạng so sánh bản đồ phần dư"],
+  ] as const)(
+    "formats leftover map comparison rank label in %s",
+    (locale, expected) => {
+      setLocale(locale);
+      expect(t("Leftover map comparison rank")).toBe(expected);
     },
   );
 
