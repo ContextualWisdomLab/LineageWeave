@@ -51,6 +51,14 @@ describe("OperationsDashboardView", () => {
     expect(screen.queryByRole("region", { name: /Unavailable/ })).not.toBeInTheDocument();
   });
 
+  it("keeps usable evidence explicit when only some analyses failed", () => {
+    render(<OperationsDashboardView data={{ ...data, failed_analysis_count: 1 }} onOpenPost={() => undefined} onRetry={() => undefined} />);
+
+    expect(screen.getByRole("alert")).toHaveTextContent("일부 분석 결과를 사용할 수 없습니다");
+    expect(screen.getByRole("alert")).toHaveTextContent("표시된 근거는 계속 확인할 수 있습니다");
+    expect(screen.getByRole("button", { name: "분류 근거 글 열기" })).toBeVisible();
+  });
+
   it("uses the shared retry notice and retries the same dashboard request", async () => {
     vi.mocked(fetchOperationsDashboard)
       .mockRejectedValueOnce(new Error("synthetic transport failure"))
