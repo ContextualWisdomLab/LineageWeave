@@ -8,6 +8,17 @@ All notable changes to this project are documented here. Format follows
 
 ### Added
 
+- Period leftover pairs now caption leftover-axis report badges with persisted
+  leftover-map singular values `σ_k` (ADR 0290 / v2.47.0). After `make seed`,
+  leftover-axis badges name persisted leftover-map singular values when finite
+  together with persisted leftover-map axis share; leftover-map graphic axes
+  name those same singular values; click a leftover pair opens that post. A
+  missing, non-finite, or negative singular value omits that `σ` badge and
+  keeps `leftover axis {k} {share}%`. Rank-0 unused axes still name `σ 0.00`.
+  Pair-list leftover-axis badges stay distinct from leftover-map graphic axis
+  captions. Do not invent `σ_k` from leftover-map axis share. Never invent a
+  leftover score or a theta. No new columns.
+
 - Period leftover pairs now caption leftover-map graphic axes with persisted
   leftover-map singular values `σ_k` (ADR 0289 / v2.46.0). After `make seed`,
   closest and farthest leftover pairs sit above the member list with the

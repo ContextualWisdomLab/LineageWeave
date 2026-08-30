@@ -273,7 +273,7 @@ stops startup instead of leaving a healthy-looking partial schema, and
 application code must not compensate for a missing table.
 
 Period leftover pairs (ADR 0017 / 0018 / 0048 / 0049 / 0119 / 0158 / 0162 /
-0163 / 0164 / 0182 / 0185 / 0201 / 0233 / 0266 / 0267 / 0268 / 0269 / 0270 / 0271 / 0272 / 0273 / 0274 / 0275 / 0276 / 0277 / 0278 / 0279 / 0280 / 0281 / 0282 / 0283 / 0284 / 0285 / 0286 / 0287 / 0288 / 0289) are computed in `lineageweave/leftover_pairs.py` from the
+0163 / 0164 / 0182 / 0185 / 0201 / 0233 / 0266 / 0267 / 0268 / 0269 / 0270 / 0271 / 0272 / 0273 / 0274 / 0275 / 0276 / 0277 / 0278 / 0279 / 0280 / 0281 / 0282 / 0283 / 0284 / 0285 / 0286 / 0287 / 0288 / 0289 / 0290) are computed in `lineageweave/leftover_pairs.py` from the
 residual after a real GRM/GPCM score, never invented. Distances are
 Euclidean on the two-dimensional Gabriel leftover map; missing cells stay
 out of the factorization. Closest and farthest post–criterion pairs
@@ -299,7 +299,11 @@ captions those leftover-map axes with persisted leftover-map singular
 values `σ_k` when finite and non-negative, including rank-0 zero
 singular values; a missing, non-finite, or negative singular value omits
 that `σ` badge independently of leftover-map axis share and does not
-invent `σ_k` from leftover-map axis share. ADR 0270
+invent `σ_k` from leftover-map axis share. ADR 0290 captions leftover-axis
+report badges with persisted leftover-map singular values `σ_k` when finite
+and non-negative, independently of leftover-map graphic axes; a missing,
+non-finite, or negative singular value omits that `σ` badge and keeps
+`leftover axis {k} {share}%`. ADR 0270
 ticks leftover-map axes at the origin and at each unique finite
 persisted `ξ` / `ζ` coordinate so the pair-row badge matches the
 plot; rank-0 unused axes name only `0` and do not invent drawing-scale
@@ -395,6 +399,12 @@ singular values `σ_k` so leftover-map axis share is not read as leftover-map
 structure without the Gabriel scale that produced it; a missing, non-finite,
 or negative singular value omits that `σ` badge independently of leftover-map
 axis share and does not invent `σ_k` from leftover-map axis share.
+ADR 0290 captions leftover-axis report badges with persisted leftover-map
+singular values `σ_k` so leftover-map axis share is not read as leftover-map
+structure without the Gabriel scale that produced it; a missing, non-finite,
+or negative singular value omits that `σ` badge and keeps
+`leftover axis {k} {share}%` and does not invent `σ_k` from leftover-map
+axis share.
 When `R`, `R̂`, `U`, `x`,
 `s`, and `e` are finite, `e + s + x = 1`. When `Y`, `E`, and `R` are
 finite, `Y − E = R`. When `R`, `R̂`, and `U` are
@@ -407,7 +417,9 @@ residual SVD axes 1 and 2 and persists to `report_leftover_map_axis`.
 Rank-0 residuals emit two zero-share axes; the shares are report-level
 and are not a leftover score. Leftover-map singular values on the graphic
 display (ADR 0289) name persisted `σ_k` on those leftover-map axes when
-finite. Complete-case coverage (ADR 0168) persists to
+finite. Leftover-map singular values on leftover-axis badges (ADR 0290) name
+the same persisted `σ_k` on leftover-axis report badges when finite.
+Complete-case coverage (ADR 0168) persists to
 `report_leftover_map_coverage` and captions the pair list and the leftover-map
 graphic with how many scored posts entered the map. Pair-list post complete-case
 coverage (ADR 0288) fail-closes that pair-list note through leftoverMapCoverageCounts.

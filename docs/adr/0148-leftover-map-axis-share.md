@@ -5,7 +5,9 @@
 **Amended by:** [ADR 0269](0269-leftover-map-axis-share-plot.md)
 (leftover-map axis share on the graphic display);
 [ADR 0289](0289-leftover-map-plot-singular.md)
-(leftover-map singular values on the graphic display)
+(leftover-map singular values on the graphic display);
+[ADR 0290](0290-leftover-map-axis-singular.md)
+(leftover-map singular values on leftover-axis badges)
 
 ## Context
 
