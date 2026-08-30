@@ -89,7 +89,8 @@ export type LeftoverPairListProps = {
  * grouping comparison strip, not this pair list. ADR 0292 names persisted leftover-map
  * incomplete item coverage on the grouping comparison strip, not this pair list. ADR 0293
  * names persisted leftover-map axis share on the grouping comparison strip, not this pair
- * list. Every badge still
+ * list. ADR 0294 names persisted leftover-map singular values on the grouping comparison
+ * strip, not this pair list. Every badge still
  * renders together before opening the named post.
  */
 export function LeftoverPairList({

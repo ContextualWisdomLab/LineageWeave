@@ -677,6 +677,8 @@ ADR 0292 captions the grouping comparison strip with persisted leftover-map inco
 item coverage through leftoverMapIncompleteItemCount.
 ADR 0293 captions the grouping comparison strip with persisted leftover-map axis share
 through leftoverMapCompareAxisShare.
+ADR 0294 captions the grouping comparison strip with persisted leftover-map singular
+values through leftoverMapCompareAxisSingular.
 Click a post marker or a pair button
 opens that post. Those ADRs are the normative mathematical, storage, and
 display contracts. Leftover-map axis share

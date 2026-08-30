@@ -1,7 +1,7 @@
 import { focusedGraphMustReset } from "./focusedGraphSelection";
 import { canAuthorVoice, postPrimaryVoiceLabel } from "./voicePerspective";
 
-import { Component, lazy, Suspense, useCallback, useEffect, useEffectEvent, useRef, useState, type ReactNode } from "react";
+import { Component, Fragment, lazy, Suspense, useCallback, useEffect, useEffectEvent, useRef, useState, type ReactNode } from "react";
 import { useAuth } from "react-oidc-context";
 import {
   askPostChat,
@@ -139,8 +139,11 @@ import {
 } from "./leftoverMapCoverage";
 import {
   leftoverMapCompareAxisShare,
+  leftoverMapCompareAxisSingular,
   LEFTOVER_MAP_COMPARE_AXIS_SHARE,
   LEFTOVER_MAP_COMPARE_AXIS_SHARE_LABEL,
+  LEFTOVER_MAP_COMPARE_AXIS_SINGULAR,
+  LEFTOVER_MAP_COMPARE_AXIS_SINGULAR_LABEL,
 } from "./leftoverMapCompareAxis";
 import "./App.css";
 
@@ -4056,17 +4059,29 @@ function ReportsPanel({
               ) : null}
               {row.leftover_map_axes?.map((axis) => {
                 const comparisonAxisShare = leftoverMapCompareAxisShare(axis);
-                if (comparisonAxisShare === null) {
+                const comparisonAxisSingular = leftoverMapCompareAxisSingular(axis);
+                if (comparisonAxisShare === null && comparisonAxisSingular === null) {
                   return null;
                 }
                 return (
-                  <span
-                    key={axis.axis_index}
-                    className="post-badge"
-                    aria-label={t(LEFTOVER_MAP_COMPARE_AXIS_SHARE_LABEL)}
-                  >
-                    {tf(LEFTOVER_MAP_COMPARE_AXIS_SHARE, comparisonAxisShare)}
-                  </span>
+                  <Fragment key={axis.axis_index}>
+                    {comparisonAxisShare !== null ? (
+                      <span
+                        className="post-badge"
+                        aria-label={t(LEFTOVER_MAP_COMPARE_AXIS_SHARE_LABEL)}
+                      >
+                        {tf(LEFTOVER_MAP_COMPARE_AXIS_SHARE, comparisonAxisShare)}
+                      </span>
+                    ) : null}
+                    {comparisonAxisSingular !== null ? (
+                      <span
+                        className="post-badge"
+                        aria-label={t(LEFTOVER_MAP_COMPARE_AXIS_SINGULAR_LABEL)}
+                      >
+                        {tf(LEFTOVER_MAP_COMPARE_AXIS_SINGULAR, comparisonAxisSingular)}
+                      </span>
+                    ) : null}
+                  </Fragment>
                 );
               })}
               {row.leftover_pairs && row.leftover_pairs.length > 0 && (

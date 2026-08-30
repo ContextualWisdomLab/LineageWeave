@@ -422,8 +422,16 @@ pairs can read Gabriel inertia of residual SVD axes 1 and 2 for that grouping;
 a missing or non-finite share omits that leftover-map comparison axis share
 badge and does not invent leftover-map axis share from leftover-map singular
 value, leftover pair count, or plotted marker count. Share `0` is shown when
-persisted, including rank-0 unused axes. The strip does not gain leftover-map
+persisted, including rank-0 unused axes. ADR 0293 does not caption leftover-map
 singular values or the leftover-map graphic.
+ADR 0294 captions the grouping comparison strip with persisted leftover-map
+singular values through leftoverMapCompareAxisSingular so a buyer who compares leftover
+pairs can read the Gabriel scale of residual SVD axes 1 and 2 for that grouping;
+a missing, non-finite, or negative leftover-map singular value omits that leftover-map
+comparison axis singular badge independently of leftover-map comparison axis share
+and does not invent leftover-map singular value from leftover-map axis share, leftover
+pair count, or plotted marker count. Rank-0 leftover-map singular value `0` is shown
+when persisted. The strip does not gain the leftover-map graphic.
 When `R`, `R̂`, `U`, `x`,
 `s`, and `e` are finite, `e + s + x = 1`. When `Y`, `E`, and `R` are
 finite, `Y − E = R`. When `R`, `R̂`, and `U` are
@@ -446,6 +454,10 @@ Grouping comparison incomplete post coverage (ADR 0291) captions the grouping
 comparison strip with how many scored posts stayed out of each grouping's map.
 Grouping comparison incomplete item coverage (ADR 0292) captions the grouping
 comparison strip with how many scored criteria stayed out of each grouping's map.
+Grouping comparison leftover-map axis share (ADR 0293) captions the grouping
+comparison strip with Gabriel inertia of residual SVD axes.
+Grouping comparison leftover-map singular values (ADR 0294) captions the grouping
+comparison strip with the Gabriel scale of those axes.
 Item complete-case coverage
 (ADR 0282) captions the leftover-map graphic with how many scored criteria
 entered the map. Item complete-case coverage on the pair list (ADR 0285)

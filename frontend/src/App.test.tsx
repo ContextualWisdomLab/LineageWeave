@@ -4357,7 +4357,30 @@ describe("App, authenticated", () => {
       within(screen.getByLabelText("Grouping comparison")).queryByText(/leftover-map axis 1/),
     ).not.toBeInTheDocument();
     expect(
-      within(screen.getByLabelText("Grouping comparison")).queryByText(/σ 1\.84/),
+      within(screen.getByLabelText("Grouping comparison")).getAllByLabelText(
+        "Leftover map comparison axis singular",
+      ),
+    ).toHaveLength(4);
+    expect(
+      within(screen.getByLabelText("Grouping comparison")).getAllByLabelText(
+        "Leftover map comparison axis singular",
+      )[0],
+    ).toHaveTextContent("leftover map comparison axis 1 σ 0.00");
+    expect(
+      within(screen.getByLabelText("Grouping comparison")).getByText(
+        "leftover map comparison axis 1 σ 1.84",
+      ),
+    ).toBeInTheDocument();
+    expect(
+      within(screen.getByLabelText("Grouping comparison")).getByText(
+        "leftover map comparison axis 2 σ 0.86",
+      ),
+    ).toBeInTheDocument();
+    expect(
+      within(screen.getByLabelText("Grouping comparison")).queryByText("leftover axis 1 σ 1.84 82%"),
+    ).not.toBeInTheDocument();
+    expect(
+      within(screen.getByLabelText("Grouping comparison")).queryByText("leftover-map axis 1 σ 1.84"),
     ).not.toBeInTheDocument();
     expect(
       screen.getByRole("button", { name: "Compare Business unit (PU): Demo Report High, mean θ 0.81" }),

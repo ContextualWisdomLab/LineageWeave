@@ -1,5 +1,37 @@
 # Product & Technical Gap Baseline
 
+> Exact-head loop overlay: 2026-08-31 00:35 KST. Protected `main` is
+> `cb187cadee5fb6c46d8a944815ccc154a1e028d1` after unauthorized squash
+> of leftover-map coordinates (v2.24.0 / #782). Revert #808
+> (`revert-pr782-unauthorized` @ `1af3e53e`) restores `main` toward
+> `fc13acaa` (v2.23.0) and still needs independent APPROVE. GitHub
+> writes work (comment/close/create-PR/push). Token still has empty
+> `X-OAuth-Scopes`; repo permission is ADMIN. Open leftover stack
+> still lacks independent APPROVE. Do not self-approve.
+> #825 leftover-map incomplete item coverage on the grouping comparison
+> strip (v2.49.0 / ADR 0292) is `bca6baa`. #828 leftover-map axis share
+> on the grouping comparison strip (v2.50.0 / ADR 0293) is `e791376`.
+> Leave #782/#802/#803/#804/#805/#806/#808/#809/#810/#811/#812/#813/#814/#815/#816/#817/#818/#819/#821/#822/#823/#824/#825/#828 open for
+> independent review. Do not squash-merge stacked leftover PRs onto an
+> unprotected leftover base. Do not merge #808 without independent APPROVE.
+> Copilot review is not independent APPROVE. Issues #79 and #87 stay open.
+> #96 is already closed. Only collaborator is `seonghobae`.
+>
+> Next buyer increment on this cycle: leftover-map singular values on the
+> grouping comparison strip (ADR 0294 / v2.51.0) on
+> `feat/leftover-map-compare-axis-singular-v2510`. Caption persisted
+> leftover_singular_value already on GET /api/reports/compare/{period}
+> through leftoverMapCompareAxisSingular with distinct aria-label
+> `Leftover map comparison axis singular` and copy
+> `leftover map comparison axis {axis} σ {value}`. UI-only; no new columns.
+> Missing, non-finite, or negative leftover-map singular value omits that
+> badge independently of leftover-map comparison axis share. Rank-0 `0`
+> is shown when persisted. Do not invent leftover-map singular value from
+> leftover-map axis share. Do not add the leftover-map graphic. Stack onto
+> leftover branch `feat/leftover-map-compare-axis-share-v2500` / #828;
+> leave the PR open for independent review. Do not squash-merge onto the
+> leftover base. Do not invent leftover scores.
+>
 > Exact-head loop overlay: 2026-08-30 23:45 KST. Protected `main` is
 > `cb187cadee5fb6c46d8a944815ccc154a1e028d1` after unauthorized squash
 > of leftover-map coordinates (v2.24.0 / #782). Revert #808
