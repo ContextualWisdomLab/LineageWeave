@@ -1,5 +1,29 @@
 # Product & Technical Gap Baseline
 
+> Exact-head authenticated-render overlay: 2026-08-31 00:42 KST.
+> Protected `main` remains `cb187cadee5fb6c46d8a944815ccc154a1e028d1`;
+> thirty-nine open PRs and ten open issues were enumerated in one fresh
+> snapshot. PR #780's current implementation revision is
+> `a26af45cab561965035e5647f5f15626165479cf`. Rebuilding the official
+> `lineageweave` Compose backend and frontend against that revision exposed a
+> buyer-blocking Post-detail 500: the governed occupational-construct evidence
+> status loader was called but not imported. The minimal root repair restores
+> that owned loader import and updates the authenticated API fixture to replay
+> its existing extraction-run migration instead of relying on test order.
+> Both focused authenticated PostgreSQL/API regressions pass. Genuine Keycloak
+> login and the rebuilt frontend/backend then render the Voice exact-value
+> table at 1440-by-1000 desktop and 390-by-844 mobile viewports; inspected
+> runtime-only screenshots keep the carrying-Post property distinct from the
+> evidence column and were not added to git because the authorized runtime is
+> not synthetic repository material. At this exact head sixteen hosted checks
+> pass, two remain pending, and two fail outside this repository's product
+> implementation: the central PNG workflow bootstrap awaits protected delivery
+> of `ContextualWisdomLab/.github#1420`, while dependency review receives the
+> repository dependency-graph denial. Normal squash auto-merge is armed on
+> both PRs. Independent approval, protected merge, and merge SHA remain
+> unavailable; no self-approval, bypass, workflow weakening, or force push is
+> used.
+>
 > Exact-head authenticated-acceptance overlay: 2026-08-30 23:59 KST.
 > Protected `main` remains `cb187cadee5fb6c46d8a944815ccc154a1e028d1`;
 > thirty-three open PRs and ten open issues were enumerated in one fresh
