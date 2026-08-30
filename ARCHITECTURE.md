@@ -637,7 +637,7 @@ information at the group's mean θ (Lord, 1980 max-info CAT). Rankings
 persist to `report_item_information`. After those IRT main effects,
 residual SVD leftover pairs on two Gabriel axes (Jeon et al., 2021;
 ADR 0017 / 0048 / 0049 / 0119 / 0148 / 0158 / 0162 / 0163 / 0164 / 0168 /
-0182 / 0185 / 0201 / 0233 / 0266 / 0267 / 0268 / 0269 / 0270 / 0271 / 0272 / 0273 / 0274 / 0275 / 0276 / 0277 / 0278 / 0279 / 0280 / 0281) persist to `report_leftover_pair` with signed residual `R`,
+0182 / 0185 / 0201 / 0233 / 0266 / 0267 / 0268 / 0269 / 0270 / 0271 / 0272 / 0273 / 0274 / 0275 / 0276 / 0277 / 0278 / 0279 / 0280 / 0281 / 0282) persist to `report_leftover_pair` with signed residual `R`,
 observed `Y`, expected `E[Y|θ, item]`, full leftover-map rank, unexplained
 leftover, ADR 0201 reconstruction evidence, ADR 0185 cross-share evidence,
 ADR 0233 unexplained leftover share `s`, ADR 0266 explained leftover
@@ -659,13 +659,15 @@ residual `R`. ADR 0278 captions leftover-map pair segments with persisted leftov
 observed `Y`. ADR 0279 captions leftover-map pair segments with persisted leftover
 expected `E`. ADR 0280 captions leftover-map pair segments with persisted leftover-map
 rank. ADR 0281 captions the leftover-map graphic display with persisted leftover-map
-complete-case coverage. Click a post marker or a pair button
+complete-case coverage. ADR 0282 captions the leftover-map graphic display with
+persisted leftover-map item complete-case coverage. Click a post marker or a pair button
 opens that post. Those ADRs are the normative mathematical, storage, and
 display contracts. Leftover-map axis share
 (Gabriel inertia of residual SVD axes 1 and 2; ADR 0148) persists to
 `report_leftover_map_axis`. Complete-case leftover-map coverage (ADR
 0168) persists to `report_leftover_map_coverage` so readers see how
-many scored posts entered the factorization, including on the graphic. Results persist to
+many scored posts entered the factorization, including on the graphic,
+and how many scored criteria entered the factorization on the graphic. Results persist to
 `report_period_score` / `report_member_score`.
 `GET /api/reports/{grouping}` lists the trend;
 `GET /api/reports/{grouping}/{period}` is ABAC-filtered;
