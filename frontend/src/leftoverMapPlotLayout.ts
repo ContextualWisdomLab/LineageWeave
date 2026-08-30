@@ -17,8 +17,9 @@
  *  (ADR 0288), pair-list item complete-case coverage (ADR 0285), pair-list
  *  incomplete post coverage (ADR 0286), pair-list incomplete item
  *  coverage (ADR 0287), grouping comparison complete-case coverage
- *  (ADR 0289), and grouping comparison item complete-case coverage
- *  (ADR 0290) caption the pair list or the grouping comparison strip,
+ *  (ADR 0289), grouping comparison item complete-case coverage
+ *  (ADR 0290), and grouping comparison incomplete post coverage
+ *  (ADR 0291) caption the pair list or the grouping comparison strip,
  *  not this graphic layout.
  */
 
