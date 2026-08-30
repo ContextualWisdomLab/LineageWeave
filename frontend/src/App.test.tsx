@@ -898,6 +898,16 @@ describe("App, authenticated", () => {
                   incomplete_post_count: 0,
                   incomplete_item_count: 0,
                 },
+                leftover_pairs: [
+                  {
+                    pair_kind: "closest",
+                    post_id: "post-2",
+                    post_title: "Specification revision requested",
+                    criterion_code: "general_sentiment_negative",
+                    leftover_distance: 2.0,
+                    leftover_residual: -1.1,
+                  },
+                ],
               },
               {
                 grouping_kind: "corporate_entity",
@@ -922,6 +932,7 @@ describe("App, authenticated", () => {
                     criterion_code: "sales_lead_specificity",
                     leftover_distance: 0.12,
                     leftover_residual: 0.4,
+                    leftover_map_reconstruction: 0.248,
                   },
                 ],
                 leftover_map_coverage: {
@@ -4324,6 +4335,31 @@ describe("App, authenticated", () => {
       ),
     ).not.toBeInTheDocument();
     expect(
+      within(screen.getByLabelText("Grouping comparison")).queryByLabelText(
+        /leftover-map reconstruction/,
+      ),
+    ).not.toBeInTheDocument();
+    expect(
+      within(screen.getByLabelText("Grouping comparison")).getByLabelText(
+        "Leftover map comparison reconstruction",
+      ),
+    ).toHaveTextContent("R̂ +0.25");
+    expect(
+      within(screen.getByLabelText("Grouping comparison")).getAllByLabelText(
+        "Leftover map comparison reconstruction",
+      ),
+    ).toHaveLength(1);
+    expect(
+      screen.getByRole("button", {
+        name: /open leftover closest pair from comparison: specification revision requested/i,
+      }),
+    ).toHaveTextContent("d 2.00");
+    expect(
+      screen.getByRole("button", {
+        name: /open leftover closest pair from comparison: specification revision requested/i,
+      }),
+    ).not.toHaveTextContent("R̂");
+    expect(
       screen.getByRole("button", { name: "Compare Business unit (PU): Demo Report High, mean θ 0.81" }),
     ).toHaveTextContent("mean θ 0.81");
     await userEvent.click(
@@ -4337,6 +4373,16 @@ describe("App, authenticated", () => {
         name: /open leftover closest pair from comparison: public post/i,
       }),
     ).toHaveTextContent("Closest leftover: Public post · sales-lead");
+    expect(
+      screen.getByRole("button", {
+        name: /open leftover closest pair from comparison: public post/i,
+      }),
+    ).toHaveTextContent("d 0.12");
+    expect(
+      screen.getByRole("button", {
+        name: /open leftover closest pair from comparison: public post/i,
+      }),
+    ).toHaveTextContent("R̂ +0.25");
     await waitFor(() =>
       expect(fetchMock).toHaveBeenCalledWith(
         expect.stringContaining("/api/reports/thread_group/2026-W02"),

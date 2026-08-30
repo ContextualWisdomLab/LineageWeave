@@ -5,6 +5,9 @@ import { formatSignedLeftoverValue } from "./leftoverMapUnexplained";
 export const LEFTOVER_MAP_RECONSTRUCTION_ACTION =
   "Leftover map reconstructs R̂ {value} after IRT main effects. Open this post to read {criterion}.";
 
+export const LEFTOVER_MAP_COMPARE_RECONSTRUCTION_LABEL =
+  "Leftover map comparison reconstruction";
+
 const RECONSTRUCTION_BADGE = "R\u0302";
 
 export function formatLeftoverMapReconstruction(value: number | null | undefined): string | null {
