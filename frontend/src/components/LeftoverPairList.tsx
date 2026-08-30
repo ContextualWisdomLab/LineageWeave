@@ -93,7 +93,9 @@ export type LeftoverPairListProps = {
  * share on grouping comparison leftover-pair buttons, not this pair list. ADR 0295 names
  * persisted leftover-map unexplained leftover share on grouping comparison leftover-pair
  * buttons, not this pair list. ADR 0296 names persisted leftover-map cross share on
- * grouping comparison leftover-pair buttons, not this pair list. Every badge still
+ * grouping comparison leftover-pair buttons, not this pair list. ADR 0297 names
+ * persisted leftover-map unexplained leftover on grouping comparison leftover-pair
+ * buttons, not this pair list. Every badge still
  * renders together before opening the named post.
  */
 export function LeftoverPairList({
