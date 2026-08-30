@@ -1276,7 +1276,7 @@ describe("leftover map comparison graphic labels", () => {
 
   it("stays distinct from leftover residual copy", () => {
     expect(LEFTOVER_MAP_COMPARE_PLOT_SEGMENT_RESIDUAL).toBe(
-      "leftover map comparison graphic residual {label}",
+      "leftover map comparison graphic leftover residual {label}",
     );
     expect(LEFTOVER_MAP_COMPARE_PLOT_SEGMENT_RESIDUAL).not.toBe(
       "leftover residual {label}",

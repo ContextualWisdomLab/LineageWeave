@@ -95,7 +95,7 @@ describe("i18n", () => {
     "Leftover map comparison cross share",
     "leftover map comparison graphic unexplained leftover {label}",
     "Leftover map comparison unexplained leftover",
-    "leftover map comparison graphic residual {label}",
+    "leftover map comparison graphic leftover residual {label}",
     "Leftover map comparison residual",
     "Leftover map comparison observed",
     "Leftover map comparison expected",
@@ -584,13 +584,13 @@ describe("i18n", () => {
     ["ko", "잔여 지도 비교 그림 잔여 R +0.40"],
     ["zh", "残差地图比较图形残差 R +0.40"],
     ["ja", "残差マップの比較図残差 R +0.40"],
-    ["vi", "phần dư đồ họa so sánh R +0.40"],
+    ["vi", "phần dư đồ họa so sánh bản đồ phần dư R +0.40"],
   ] as const)(
-    "formats leftover map comparison graphic residual in %s",
+    "formats leftover map comparison graphic leftover residual in %s",
     (locale, expected) => {
       setLocale(locale);
       expect(
-        tf("leftover map comparison graphic residual {label}", {
+        tf("leftover map comparison graphic leftover residual {label}", {
           label: "R +0.40",
         }),
       ).toBe(expected);

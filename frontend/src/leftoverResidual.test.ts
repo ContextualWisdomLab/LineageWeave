@@ -34,9 +34,9 @@ describe("formatLeftoverMapResidual", () => {
     expect(LEFTOVER_MAP_COMPARE_RESIDUAL_LABEL).not.toBe("leftover residual {label}");
   });
 
-  it("keeps the grouping comparison graphic residual label distinct from the graphic and strip labels", () => {
+  it("keeps the grouping comparison graphic leftover residual label distinct from the graphic and strip labels", () => {
     expect(LEFTOVER_MAP_COMPARE_PLOT_SEGMENT_RESIDUAL).toBe(
-      "leftover map comparison graphic residual {label}",
+      "leftover map comparison graphic leftover residual {label}",
     );
     expect(LEFTOVER_MAP_COMPARE_PLOT_SEGMENT_RESIDUAL).not.toBe("leftover residual {label}");
     expect(LEFTOVER_MAP_COMPARE_PLOT_SEGMENT_RESIDUAL).not.toBe(

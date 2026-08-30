@@ -23,11 +23,11 @@ All notable changes to this project are documented here. Format follows
   returns a usable badge, leftover-map unexplained leftover share `s` when
   formatLeftoverMapUnexplainedShare returns a usable badge, leftover-map
   cross share `x` when formatLeftoverMapCrossShare returns a usable badge, leftover-map
-  unexplained leftover `U` when formatLeftoverMapUnexplained returns a usable badge, and leftover residual
-  `R` on that grouping comparison leftover-map graphic when
+  unexplained leftover `U` when formatLeftoverMapUnexplained returns a usable badge,
+  and leftover residual `R` on that grouping comparison leftover-map graphic when
   formatLeftoverMapResidual returns a usable badge; click a post marker or a pair
   button opens that post. A missing or non-finite `R` omits that leftover-map
-  comparison graphic residual caption and keeps leftover-map unexplained leftover
+  comparison graphic leftover residual caption and keeps leftover-map unexplained leftover
   `U`, leftover-map cross share `x`, leftover-map unexplained leftover share `s`, leftover-map explained leftover
   share `e`, leftover-map reconstruction `R̂`, leftover-map distance `d`, leftover-map
   comparison graphic coverage, leftover-map comparison graphic item coverage,
@@ -35,8 +35,8 @@ All notable changes to this project are documented here. Format follows
   graphic incomplete items when those helpers return usable integers. Rank-0 origin
   cells still plot at `(0, 0)` and still name `R 0.00` when that persisted leftover
   residual is finite. Comparison copy uses `leftover map comparison graphic
-  residual {label}` so it stays distinct from hyphen `leftover
-  residual {label}` and from strip `Leftover map comparison residual`.
+  leftover residual {label}` so it stays distinct from
+  `leftover residual {label}` and from strip `Leftover map comparison residual`.
   Leftover residual omits independently of leftover-map unexplained leftover,
   leftover-map cross share, leftover-map unexplained leftover share, leftover-map explained leftover share,
   leftover-map reconstruction, leftover-map distance, and coverage notes. This
@@ -46,7 +46,7 @@ All notable changes to this project are documented here. Format follows
   leftover-map rank, leftover-map axis share, leftover expected, leftover observed,
   leftover-map post coverage, leftover-map item coverage, leftover-map incomplete
   post coverage, leftover-map incomplete item coverage, leftover pair count, or the
-  count of unused axes. A finite negative leftover is shown,
+  count of unused axes. A finite negative leftover residual is shown,
   never clamped. Omit the comparison graphic when no leftover pair has four finite
   leftover-map coordinates. Never invent a leftover score or a theta. No new columns.
 

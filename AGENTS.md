@@ -583,7 +583,7 @@ leftover-map incomplete post coverage, leftover-map incomplete item coverage, le
 count, or the count of unused axes.
 ADR 0315 captions leftover residual on that grouping comparison leftover-map
 graphic when formatLeftoverMapResidual returns a usable badge; a missing or
-non-finite `R` omits that leftover-map comparison graphic residual caption and keeps
+non-finite `R` omits that leftover-map comparison graphic leftover residual caption and keeps
 leftover-map unexplained leftover `U`, leftover-map cross share `x`, leftover-map unexplained leftover share `s`, leftover-map explained leftover share `e`, leftover-map reconstruction `R̂`, leftover-map distance `d`, leftover-map comparison graphic coverage,
 leftover-map comparison graphic item coverage, leftover-map comparison graphic incomplete posts,
 and leftover-map comparison graphic incomplete items when those helpers return usable integers. Do not invent

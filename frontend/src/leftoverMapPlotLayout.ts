@@ -41,7 +41,7 @@
  *  reconstruction on that graphic (ADR 0310), grouping comparison leftover-map
  *  explained leftover share on that graphic (ADR 0311), grouping comparison leftover-map
  *  unexplained leftover share on that graphic (ADR 0312), grouping comparison leftover-map
- *  cross share on that graphic (ADR 0313), grouping comparison leftover-map
+ *  cross share on that graphic (ADR 0313), and grouping comparison leftover-map
  *  unexplained leftover on that graphic (ADR 0314), and grouping comparison leftover
  *  residual on that graphic (ADR 0315) caption the pair list or the grouping comparison
  *  strip. ADR 0304 reuses this graphic layout on the grouping comparison
@@ -61,8 +61,8 @@
  *  cross share on that comparison graphic from already-named leftover-map
  *  cross share. ADR 0314 captions leftover-map unexplained leftover on that
  *  comparison graphic from already-named leftover-map unexplained leftover.
- *  ADR 0315 captions leftover residual on that comparison graphic from already-named
- *  leftover residual.
+ *  ADR 0315 captions leftover residual on that comparison graphic from
+ *  already-named leftover residual.
  */
 
 import { formatLeftoverMapCoordinatePair } from "./leftoverMapCoordinates";

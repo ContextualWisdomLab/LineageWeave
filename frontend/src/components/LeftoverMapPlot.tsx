@@ -160,7 +160,7 @@ function leftoverMapPlotAxisText(
  * with distinct leftover map comparison graphic unexplained leftover
  * labels. ADR 0315 captions leftover residual on that
  * comparison graphic from already-named leftover residual
- * with distinct leftover map comparison graphic residual
+ * with distinct leftover map comparison graphic leftover residual
  * labels.
  * Never invent a leftover score.
  */

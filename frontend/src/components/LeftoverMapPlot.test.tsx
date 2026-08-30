@@ -1888,10 +1888,10 @@ describe("LeftoverMapPlot", () => {
       />,
     );
     expect(
-      screen.getByLabelText("leftover map comparison graphic residual R +0.40"),
+      screen.getByLabelText("leftover map comparison graphic leftover residual R +0.40"),
     ).toHaveTextContent("R +0.40");
     expect(
-      screen.getByLabelText("leftover map comparison graphic residual R −1.10"),
+      screen.getByLabelText("leftover map comparison graphic leftover residual R −1.10"),
     ).toHaveTextContent("R −1.10");
     expect(screen.queryByLabelText("leftover residual R +0.40")).not.toBeInTheDocument();
     expect(screen.queryByLabelText("leftover residual R −1.10")).not.toBeInTheDocument();
@@ -1914,7 +1914,7 @@ describe("LeftoverMapPlot", () => {
     expect(screen.getByText("leftover map comparison axis 1 (82%)")).toBeInTheDocument();
   });
 
-  it("omits leftover-map comparison graphic residual when R is missing or not usable", () => {
+  it("omits leftover-map comparison graphic leftover residual when R is missing or not usable", () => {
     render(
       <LeftoverMapPlot
         pairs={[
@@ -1938,7 +1938,7 @@ describe("LeftoverMapPlot", () => {
         variant="comparison"
       />,
     );
-    expect(screen.queryByLabelText(/leftover map comparison graphic residual R/)).not.toBeInTheDocument();
+    expect(screen.queryByLabelText(/leftover map comparison graphic leftover residual R/)).not.toBeInTheDocument();
     expect(screen.queryByLabelText(/^leftover residual R/)).not.toBeInTheDocument();
     expect(
       screen.getByLabelText("leftover map comparison graphic unexplained leftover U +0.05"),
@@ -2001,7 +2001,7 @@ describe("LeftoverMapPlot", () => {
       />,
     );
     expect(
-      screen.getByLabelText("leftover map comparison graphic residual R 0.00"),
+      screen.getByLabelText("leftover map comparison graphic leftover residual R 0.00"),
     ).toHaveTextContent("R 0.00");
     expect(screen.queryByLabelText("leftover residual R 0.00")).not.toBeInTheDocument();
     expect(

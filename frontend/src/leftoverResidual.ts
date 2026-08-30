@@ -24,4 +24,4 @@ export const LEFTOVER_MAP_COMPARE_RESIDUAL_LABEL =
   "Leftover map comparison residual";
 
 export const LEFTOVER_MAP_COMPARE_PLOT_SEGMENT_RESIDUAL =
-  "leftover map comparison graphic residual {label}";
+  "leftover map comparison graphic leftover residual {label}";
