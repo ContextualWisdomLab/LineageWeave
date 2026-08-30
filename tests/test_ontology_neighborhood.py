@@ -976,6 +976,56 @@ def test_voice_assignments_join_exact_csv_rows_and_jsonld() -> None:
         replace(assignment, recorded_at=T0.replace(tzinfo=None))
 
 
+def test_jsonld_keeps_every_voice_for_one_post_in_one_subject_projection() -> None:
+    """Multiple Voice relations for one paged subject cannot overwrite each other."""
+    neighborhood = assemble_ontology_neighborhood(
+        focus_node_type_code=NODE_POST,
+        focus_node_id=POST_ID,
+        facts=[],
+        labels=_labels(),
+    )
+    primary = OntologyVoiceAssignment(
+        post_id=POST_ID,
+        voice_type_code="voc",
+        voice_type_iri=str(LW.voiceOfCustomerType),
+        voice_type_label="Voice of Customer",
+        is_primary=True,
+        truth_status_code=TRUTH_OBSERVED,
+        recorded_at=T0,
+        effective_from=T0,
+        provenance_reference="Imported primary voice",
+        evidence_post_id=None,
+    )
+    additional = replace(
+        primary,
+        voice_type_code="vops",
+        voice_type_iri=str(LW.voiceOfProcessType),
+        voice_type_label="Voice of Process",
+        is_primary=False,
+        provenance_reference="Evidence-backed additional voice",
+        evidence_post_id=POST_ID,
+    )
+
+    graph = replace(
+        neighborhood, voice_assignments=(primary, additional)
+    ).jsonld_document()["@graph"]
+    post_iri = ontology_node_iri(NODE_POST, POST_ID)
+    post_voice_projection = next(
+        item
+        for item in graph
+        if item.get("@id") == post_iri and str(LW.hasVoiceAssignment) in item
+    )
+
+    assert post_voice_projection[str(LW.hasVoiceAssignment)] == [
+        {"@id": str(LW[f"voice-assignment/{POST_ID}/voc"])},
+        {"@id": str(LW[f"voice-assignment/{POST_ID}/vops"])},
+    ]
+    assert sum(
+        item.get("@id") == post_iri and str(LW.hasVoiceAssignment) in item
+        for item in graph
+    ) == 1
+
+
 def test_node_bound_truncation_keeps_nearer_hop_over_farther_alphabetically_earlier_type() -> None:
     """Trim by BFS distance, not by the raw "type:id" key string.
 
