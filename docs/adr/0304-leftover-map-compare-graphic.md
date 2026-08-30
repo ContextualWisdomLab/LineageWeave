@@ -4,7 +4,9 @@
 **Date:** 2026-08-31
 
 **Amended by:** [ADR 0305](0305-leftover-map-compare-plot-axis-share.md)
-(leftover-map axis share on the grouping comparison leftover-map graphic)
+(leftover-map axis share on the grouping comparison leftover-map graphic),
+[ADR 0306](0306-leftover-map-compare-plot-coverage.md)
+(leftover-map complete-case coverage on the grouping comparison leftover-map graphic)
 
 Amends leftover pairs on the grouping comparison strip
 ([ADR 0149](0149-leftover-pairs-on-comparison-strip.md)), leftover-map
