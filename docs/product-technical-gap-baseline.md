@@ -1,5 +1,31 @@
 # Product & Technical Gap Baseline
 
+> Exact-head development-loop overlay: 2026-08-30 16:45 KST. Protected `main`
+> remains `cb187cadee5fb6c46d8a944815ccc154a1e028d1`; eighteen PRs and ten
+> issues are open. PR #780 is at
+> `56f2103a30cb7f34fe508f46c16b24fa2e2beb28`: its full hosted backend and
+> frontend tests are successful, its three current review threads are
+> informational confirmations, and local focused evidence is 31 Python tests
+> plus 533 frontend tests, lint, type checking, and production build. The
+> synthetic 1440-pixel desktop and 390-pixel mobile renders were inspected.
+> The candidate keeps carrying-Post navigation distinct from authorized
+> non-primary derivation evidence and retains multi-property, multi-Voice
+> JSON-LD values while accumulating pages. Authenticated PostgreSQL API and
+> rendered-stack acceptance are still unavailable, so this is not a
+> protected-main product claim. Normal squash auto-merge is enabled only after
+> current required verdicts can succeed; no self-approval or bypass is used.
+> The required Pingora policy currently fails before review because it tries to
+> UTF-8 decode the candidate PNG screenshots. The owner-repository repair is
+> `ContextualWisdomLab/.github#1427` at
+> `ef689f9fe4c0b55aece1e394a29475c96e32c06d`; 49 focused policy tests pass,
+> but that PR is also candidate-only with normal auto-merge awaiting its own
+> exact-head gates. No LineageWeave workaround weakens the central policy.
+> Noema's 413, Strix provider/protocol failure, and dependency-review 403 remain
+> fail-closed external gate evidence, not successful review or vulnerability
+> clearance. Canonical remote identities were freshly checked as
+> `ContextualWisdomLab/LineageWeave`, `RankWeave`, `ThreadWeave`, lowercase
+> `disksage`, `TEPP`, `fast-mlsirm`, and `contextual-orchestrator`.
+>
 > Exact-head merge overlay: 2026-08-30 13:40 KST. Protected `main` is now
 > `cb187cadee5fb6c46d8a944815ccc154a1e028d1`, the squash merge of PR #782.
 > GitHub records no independent `APPROVED` review on that PR, so PR #808 is the
