@@ -54,6 +54,19 @@ export const AnalysisFailed: Story = {
   },
 };
 
+export const PartialAnalysisFailure: Story = {
+  args: {
+    data: { ...EvidenceReady.args!.data!, failed_analysis_count: 1 },
+    onOpenPost: () => undefined,
+    onRetry: () => undefined,
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(canvas.getByRole("alert")).toHaveTextContent("일부 분석 결과를 사용할 수 없습니다");
+    await expect(canvas.getByRole("button", { name: "분류 근거 글 열기" })).toBeVisible();
+  },
+};
+
 export const LoadError: Story = {
   args: EvidenceReady.args,
   render: () => <OperationsDashboard accessToken="synthetic-token" onOpenPost={() => undefined} />,
