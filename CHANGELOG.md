@@ -8,6 +8,67 @@ All notable changes to this project are documented here. Format follows
 
 ### Added
 
+- Period leftover pairs now name leftover-map axis share on the grouping
+  comparison leftover-map graphic (ADR 0305 / v2.62.0). After `make seed`,
+  closest and farthest leftover pairs sit above the member list with the
+  Gabriel biplot of already-named coordinates, leftover-map axis share when
+  finite, leftover-map axis share on the grouping comparison leftover-map
+  graphic when finite, axis ticks that match `ξ (x, y) ζ (x, y)` on the pair
+  row, pair segments that match `d` on the pair row, pair segments that match
+  `R̂` on the pair row, pair segments that match `R̂²/R²` on the pair row,
+  pair segments that match `U²/R²` on the pair row, pair segments that match
+  `2R̂U/R²` on the pair row, pair segments that match `U` on the pair row,
+  pair segments that match `R` on the pair row, pair segments that match `Y`
+  on the pair row, pair segments that match `E` on the pair row, pair segments
+  that match leftover-map rank on the pair row, a plot caption that matches
+  leftover-map complete-case coverage above the pair list, a plot caption that
+  matches leftover-map item complete-case coverage, a plot caption that matches
+  leftover-map incomplete post coverage, a plot caption that matches leftover-map
+  incomplete item coverage, a pair-list note that matches leftover-map post
+  complete-case coverage, a pair-list note that matches leftover-map item
+  complete-case coverage, a pair-list note that matches leftover-map incomplete
+  post coverage, a pair-list note that matches leftover-map incomplete item
+  coverage, a grouping comparison note that matches leftover-map post
+  complete-case coverage, a grouping comparison note that matches leftover-map
+  item complete-case coverage, a grouping comparison note that matches leftover-map
+  incomplete post coverage, a grouping comparison note that matches leftover-map
+  incomplete item coverage, grouping comparison leftover-pair buttons that match
+  leftover-map reconstruction `R̂` on the pair row, grouping comparison leftover-pair
+  buttons that match leftover-map explained leftover share `e` on the pair row,
+  grouping comparison leftover-pair buttons that match leftover-map unexplained
+  leftover share `s` on the pair row, grouping comparison leftover-pair buttons
+  that match leftover-map cross share `x` on the pair row, grouping comparison
+  leftover-pair buttons that match leftover-map unexplained leftover `U` on the
+  pair row, grouping comparison leftover-pair buttons that match leftover residual
+  `R` on the pair row, grouping comparison leftover-pair buttons that match leftover
+  observed `Y` on the pair row, grouping comparison leftover-pair buttons that match
+  leftover expected `E` on the pair row, grouping comparison leftover-pair buttons
+  that match leftover-map rank on the pair row, grouping comparison leftover-pair
+  buttons that match leftover-map coordinates `ξ` / `ζ` on the pair row, a live
+  compare payload that carries those persisted leftover-map coordinates, the
+  grouping comparison leftover-map graphic of those already-named coordinates when
+  four leftover-map axes are finite, and leftover-map axis share on that grouping
+  comparison leftover-map graphic when the persisted share is finite; click a post
+  marker or a pair button opens that post. A missing or non-finite leftover-map
+  axis share omits that leftover-map comparison axis share badge and keeps leftover
+  map comparison axis text, leftover-map rank when that rank is a non-negative
+  integer, leftover expected `E` when finite, leftover observed `Y` when finite,
+  leftover residual `R` when finite, leftover-map unexplained leftover `U` when
+  finite, leftover-map cross share `x` when finite, leftover-map unexplained leftover
+  share `s` when finite, leftover-map explained leftover share `e` when finite,
+  leftover-map reconstruction `R̂` when finite, leftover-map distance `d`, plus
+  the strip coverage notes. Rank-0 origin cells still plot at `(0, 0)` and still
+  name zero leftover-map axis share when those persisted axes are stored. Do not
+  invent leftover-map axis share from leftover-map rank, leftover-map distance,
+  leftover expected, leftover observed, leftover residual, leftover-map
+  reconstruction, leftover-map unexplained leftover, leftover-map post coverage,
+  leftover-map item coverage, leftover-map incomplete post coverage, leftover-map
+  incomplete item coverage, leftover pair count, or the count of unused axes. A
+  finite negative leftover is shown, never clamped. Omit the comparison graphic
+  when no leftover pair has four finite leftover-map coordinates. This increment
+  does not caption leftover-map coverage on the comparison graphic. Never invent
+  a leftover score or a theta. No new columns.
+
 - Period leftover pairs now draw the leftover-map graphic display of
   persisted leftover-map coordinates `ξ` / `ζ` above grouping comparison
   leftover-pair buttons (ADR 0304 / v2.61.0). After `make seed`, closest

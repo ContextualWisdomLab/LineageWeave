@@ -3,6 +3,9 @@
 **Decision status:** Accepted
 **Date:** 2026-08-28
 
+**Amended by:** [ADR 0305](0305-leftover-map-compare-plot-axis-share.md)
+(leftover-map axis share on the grouping comparison leftover-map graphic)
+
 Amends [ADR 0148](0148-leftover-map-axis-share.md) and
 [ADR 0268](0268-leftover-map-graphic-display.md). Independent of leftover-map
 explained leftover share ([ADR 0266](0266-leftover-map-explained-share.md)),
@@ -53,8 +56,8 @@ or non-finite share omits that axis badge and keeps the existing
 leftover-map axis text. Axis 1 and axis 2 stay independently named:
 one missing share does not hide the other. Click a post marker to
 open that post. Criterion markers are not post buttons. The grouping
-comparison strip (ADR 0149) stays on its reduced leftover payload and
-does not gain this caption.
+comparison strip later captions leftover-map axis share on its leftover-map
+graphic from already-named leftover-map axes (ADR 0305).
 
 Do not add SQL. Do not edit shipped migrations. Do not persist inner
 product, cosine, or length as separate columns. Do not invent a

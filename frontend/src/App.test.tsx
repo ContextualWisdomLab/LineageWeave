@@ -946,6 +946,18 @@ describe("App, authenticated", () => {
                     leftover_map_item_axis_2: -0.02,
                   },
                 ],
+                leftover_map_axes: [
+                  {
+                    axis_index: 1,
+                    leftover_singular_value: 1.84,
+                    leftover_share: 0.82,
+                  },
+                  {
+                    axis_index: 2,
+                    leftover_singular_value: 0.86,
+                    leftover_share: 0.18,
+                  },
+                ],
                 leftover_map_coverage: {
                   map_post_count: 2,
                   scored_post_count: 3,
@@ -4181,9 +4193,12 @@ describe("App, authenticated", () => {
     expect(screen.getByRole("button", { name: /open report post: public post/i })).toHaveTextContent("Open");
     expect(screen.getByRole("button", { name: /open report post: public post/i })).toHaveTextContent("due 2026-01-12");
     expect(await screen.findByLabelText("Leftover pairs")).toBeInTheDocument();
-    expect(screen.getAllByLabelText("Leftover-map graphic display")).toHaveLength(2);
+    expect(screen.getByLabelText("Leftover-map graphic display")).toBeInTheDocument();
+    expect(screen.getByLabelText("Leftover map comparison graphic")).toBeInTheDocument();
     expect(screen.getByText("leftover-map axis 1 (82%)")).toBeInTheDocument();
     expect(screen.getByText("leftover-map axis 2 (18%)")).toBeInTheDocument();
+    expect(screen.getByText("leftover map comparison axis 1 (82%)")).toBeInTheDocument();
+    expect(screen.getByText("leftover map comparison axis 2 (18%)")).toBeInTheDocument();
     expect(
       screen.getAllByRole("button", {
         name: /open leftover-map post public post at ξ \(\+0\.50, \+0\.10\)/i,
@@ -4280,14 +4295,35 @@ describe("App, authenticated", () => {
     expect(await screen.findByLabelText("Grouping comparison")).toBeInTheDocument();
     expect(
       await within(screen.getByLabelText("Grouping comparison")).findByLabelText(
-        "Leftover-map graphic display",
+        "Leftover map comparison graphic",
       ),
     ).toBeInTheDocument();
     expect(
       within(screen.getByLabelText("Grouping comparison")).getAllByLabelText(
-        "Leftover-map graphic display",
+        "Leftover map comparison graphic",
       ),
     ).toHaveLength(1);
+    expect(
+      within(screen.getByLabelText("Grouping comparison")).queryByLabelText(
+        "Leftover-map graphic display",
+      ),
+    ).not.toBeInTheDocument();
+    expect(
+      within(screen.getByLabelText("Grouping comparison")).getByText(
+        "leftover map comparison axis 1 (82%)",
+      ),
+    ).toBeInTheDocument();
+    expect(
+      within(screen.getByLabelText("Grouping comparison")).getByText(
+        "leftover map comparison axis 2 (18%)",
+      ),
+    ).toBeInTheDocument();
+    expect(
+      within(screen.getByLabelText("Grouping comparison")).queryByText("leftover-map axis 1 (82%)"),
+    ).not.toBeInTheDocument();
+    expect(
+      within(screen.getByLabelText("Grouping comparison")).queryByText("leftover-map axis 2 (18%)"),
+    ).not.toBeInTheDocument();
     expect(
       within(screen.getByLabelText("Grouping comparison")).getByRole("button", {
         name: "Open leftover-map post Public post at ξ (+0.50, +0.10)",

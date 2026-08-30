@@ -3,6 +3,9 @@
 **Decision status:** Accepted
 **Date:** 2026-08-31
 
+**Amended by:** [ADR 0305](0305-leftover-map-compare-plot-axis-share.md)
+(leftover-map axis share on the grouping comparison leftover-map graphic)
+
 Amends leftover pairs on the grouping comparison strip
 ([ADR 0149](0149-leftover-pairs-on-comparison-strip.md)), leftover-map
 graphic display ([ADR 0268](0268-leftover-map-graphic-display.md)), leftover-map
