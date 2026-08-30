@@ -5,6 +5,8 @@ import {
   leftoverMapIncompleteItemCount,
   leftoverMapIncompletePostCount,
   leftoverMapItemCoverageCounts,
+  LEFTOVER_MAP_LIST_ITEM_COVERAGE_LABEL,
+  LEFTOVER_MAP_PLOT_ITEM_COVERAGE_LABEL,
 } from "./leftoverMapCoverage";
 
 function coverage(overrides: Partial<LeftoverMapCoverage> = {}): LeftoverMapCoverage {
@@ -93,6 +95,12 @@ describe("leftoverMapItemCoverageCounts", () => {
       used: 2,
       scored: 2,
     });
+  });
+
+  it("keeps the pair-list item coverage label distinct from the graphic item coverage label", () => {
+    expect(LEFTOVER_MAP_LIST_ITEM_COVERAGE_LABEL).toBe("Leftover map item coverage");
+    expect(LEFTOVER_MAP_PLOT_ITEM_COVERAGE_LABEL).toBe("Leftover-map graphic item coverage");
+    expect(LEFTOVER_MAP_LIST_ITEM_COVERAGE_LABEL).not.toBe(LEFTOVER_MAP_PLOT_ITEM_COVERAGE_LABEL);
   });
 });
 

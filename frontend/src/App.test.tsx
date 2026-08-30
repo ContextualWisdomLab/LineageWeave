@@ -4154,6 +4154,9 @@ describe("App, authenticated", () => {
     expect(screen.getByLabelText("Leftover map coverage")).toHaveTextContent(
       "Leftover map used 2 of 3 scored posts (complete-case)",
     );
+    expect(screen.getByLabelText("Leftover map item coverage")).toHaveTextContent(
+      "Leftover map used 2 of 2 scored criteria (complete-case)",
+    );
     expect(screen.getByLabelText("Leftover-map graphic coverage")).toHaveTextContent(
       "Leftover map used 2 of 3 scored posts (complete-case)",
     );
@@ -4231,6 +4234,9 @@ describe("App, authenticated", () => {
     render(<App showLabPanels />);
 
     expect(await screen.findByLabelText("Grouping comparison")).toBeInTheDocument();
+    expect(
+      within(screen.getByLabelText("Grouping comparison")).queryByLabelText("Leftover map item coverage"),
+    ).not.toBeInTheDocument();
     expect(
       screen.getByRole("button", { name: "Compare Business unit (PU): Demo Report High, mean θ 0.81" }),
     ).toHaveTextContent("mean θ 0.81");
