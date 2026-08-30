@@ -136,11 +136,6 @@ _LEFTOVER_MAP_EXPLAINED_SHARE_MIGRATION = (
     / "migrations"
     / "0244_report_leftover_map_explained_share.sql"
 )
-_LEFTOVER_MAP_COORDINATES_MIGRATION = (
-    Path(__file__).resolve().parents[1]
-    / "migrations"
-    / "0245_report_leftover_map_coordinates.sql"
-)
 _LEFTOVER_MAP_AXIS_MIGRATION = (
     Path(__file__).resolve().parents[1]
     / "migrations"
@@ -236,7 +231,6 @@ def schema_db():
                 cur.execute(_LEFTOVER_MAP_RECONSTRUCTION_MIGRATION.read_text())
                 cur.execute(_LEFTOVER_MAP_UNEXPLAINED_SHARE_MIGRATION.read_text())
                 cur.execute(_LEFTOVER_MAP_EXPLAINED_SHARE_MIGRATION.read_text())
-                cur.execute(_LEFTOVER_MAP_COORDINATES_MIGRATION.read_text())
                 cur.execute(_SOURCE_EVENT_TIME_MIGRATION.read_text())
                 cur.execute(_GLOBAL_ASK_JOB_MIGRATION.read_text())
                 cur.execute(_GLOBAL_ASK_SCOPE_MIGRATION.read_text())
@@ -800,10 +794,6 @@ def test_leftover_pair_names_nullable_cross_share_column(schema_db) -> None:
     assert columns["leftover_map_explained_share"] == "YES"
     assert columns["leftover_map_unexplained_share"] == "YES"
     assert columns["leftover_map_reconstruction"] == "YES"
-    assert columns["leftover_map_person_axis_1"] == "YES"
-    assert columns["leftover_map_person_axis_2"] == "YES"
-    assert columns["leftover_map_item_axis_1"] == "YES"
-    assert columns["leftover_map_item_axis_2"] == "YES"
     with schema_db.cursor() as cur:
         cur.execute(
             """

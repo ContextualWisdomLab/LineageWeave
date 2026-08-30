@@ -8,56 +8,6 @@ All notable changes to this project are documented here. Format follows
 
 ### Added
 
-- Period leftover pairs now caption leftover-map graphic-display pair
-  segments with persisted leftover-map distance `d` (ADR 0271 /
-  v2.28.0). After `make seed`, closest and farthest leftover pairs sit
-  above the member list with the Gabriel biplot of already-named
-  coordinates, leftover-map axis share when finite, axis ticks that
-  match `ξ (x, y) ζ (x, y)` on the pair row, and pair segments that
-  match `d` on the pair row; click a post marker or a pair button
-  opens that post. A missing or non-finite `d` omits that segment
-  caption. Do not invent `d` from plotted coordinates. Never invent a
-  leftover score or a theta. No new columns.
-
-- Period leftover pairs now caption leftover-map graphic-display axes
-  with persisted leftover-map coordinate ticks (ADR 0270 / v2.27.0).
-  After `make seed`, closest and farthest leftover pairs sit above the
-  member list with the Gabriel biplot of already-named coordinates,
-  leftover-map axis share when finite, and axis ticks that match
-  `ξ (x, y) ζ (x, y)` on the pair row; click a post marker or a pair
-  button opens that post. Origin is always named `0`. Rank-0 unused
-  axes do not invent `−1` / `+1` drawing-scale ticks. Never invent a
-  leftover score or a theta. No new columns.
-
-- Period leftover pairs now caption leftover-map graphic-display axes
-  with persisted leftover-map axis share `σ_k² / Σ_j σ_j²` (ADR 0269 /
-  v2.26.0). After `make seed`, closest and farthest leftover pairs sit
-  above the member list with the Gabriel biplot of already-named
-  coordinates, and each leftover-map axis names its inertia share;
-  click a post marker or a pair button opens that post. Rank-0
-  zero-share axes still name 0%. A missing or non-finite share omits
-  that axis badge and keeps the existing leftover-map axis text. Never
-  invent a leftover score or a theta. No new columns.
-
-- Period leftover pairs now draw the leftover-map graphic display of
-  persisted `ξ_{1:2}` and `ζ_{1:2}` (ADR 0268 / v2.25.0). After
-  `make seed`, closest and farthest leftover pairs sit above the
-  member list with the Gabriel biplot of already-named coordinates;
-  click a post marker or a pair button opens that post. Omit the plot
-  when no pair has four finite leftover-map coordinates. Rank-0 unused
-  axes plot at the origin. When coordinates, reconstruction, and
-  distance are finite, `R̂ = ξ · ζ` and `d = ‖ξ − ζ‖`. Never invent
-  a leftover score or a theta. No new columns.
-
-- Period leftover pair rows now name leftover-map coordinates `ξ_{1:2}`
-  and `ζ_{1:2}` after two-axis Gabriel reconstruction (ADR 0267 /
-  v2.24.0). After `make seed`, closest and farthest leftover pairs sit
-  above the member list with `ξ (x, y) ζ (x, y)` next to leftover-map
-  distance `d`; click opens that post. Rank-0 unused axes store `0.0`.
-  When coordinates, reconstruction, and distance are finite,
-  `R̂ = ξ · ζ` and `d = ‖ξ − ζ‖`. Never invent a leftover score or a
-  theta.
-
 - Period leftover pair rows now name leftover-map explained leftover share
   `e = R̂² / R²` of raw residual after two-axis Gabriel reconstruction
   (ADR 0266 / v2.23.0). After `make seed`, closest and farthest leftover

@@ -448,10 +448,8 @@ async def persist_period_report(
                 observed_response, expected_response, leftover_map_rank,
                 leftover_map_unexplained, leftover_map_cross_share,
                 leftover_map_reconstruction, leftover_map_unexplained_share,
-                leftover_map_explained_share, leftover_map_person_axis_1,
-                leftover_map_person_axis_2, leftover_map_item_axis_1,
-                leftover_map_item_axis_2
-            ) values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21)
+                leftover_map_explained_share
+            ) values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17)
             """,
             grouping_kind,
             grouping_key,
@@ -470,10 +468,6 @@ async def persist_period_report(
             pair.leftover_map_reconstruction,
             pair.leftover_map_unexplained_share,
             pair.leftover_map_explained_share,
-            pair.leftover_map_person_axis_1,
-            pair.leftover_map_person_axis_2,
-            pair.leftover_map_item_axis_1,
-            pair.leftover_map_item_axis_2,
         )
     for axis in report.leftover_map_axes:
         await conn.execute(
@@ -662,9 +656,7 @@ async def fetch_period_reports(
                lp.observed_response, lp.expected_response, lp.leftover_map_rank,
                lp.leftover_map_unexplained, lp.leftover_map_cross_share,
                lp.leftover_map_reconstruction, lp.leftover_map_unexplained_share,
-               lp.leftover_map_explained_share, lp.leftover_map_person_axis_1,
-               lp.leftover_map_person_axis_2, lp.leftover_map_item_axis_1,
-               lp.leftover_map_item_axis_2, p.post_title,
+               lp.leftover_map_explained_share, p.post_title,
                p.visibility_code, p.corporate_entity_id, p.process_unit_id,
                ({_SOURCE_CONTEXT_PRESENT_SQL}) as has_real_source_context
         from report_leftover_pair lp
@@ -830,26 +822,6 @@ async def fetch_period_reports(
                             None
                             if row["leftover_map_explained_share"] is None
                             else float(row["leftover_map_explained_share"])
-                        ),
-                        "leftover_map_person_axis_1": (
-                            None
-                            if row["leftover_map_person_axis_1"] is None
-                            else float(row["leftover_map_person_axis_1"])
-                        ),
-                        "leftover_map_person_axis_2": (
-                            None
-                            if row["leftover_map_person_axis_2"] is None
-                            else float(row["leftover_map_person_axis_2"])
-                        ),
-                        "leftover_map_item_axis_1": (
-                            None
-                            if row["leftover_map_item_axis_1"] is None
-                            else float(row["leftover_map_item_axis_1"])
-                        ),
-                        "leftover_map_item_axis_2": (
-                            None
-                            if row["leftover_map_item_axis_2"] is None
-                            else float(row["leftover_map_item_axis_2"])
                         ),
                         "visibility_code": row["visibility_code"],
                         "corporate_entity_id": str(row["corporate_entity_id"]),

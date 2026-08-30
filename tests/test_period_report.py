@@ -282,27 +282,6 @@ def test_calibrated_report_attaches_leftover_pairs() -> None:
         if pair.leftover_map_explained_share is not None:
             assert np.isfinite(pair.leftover_map_explained_share)
             assert pair.leftover_map_explained_share >= 0.0
-        axes = (
-            pair.leftover_map_person_axis_1,
-            pair.leftover_map_person_axis_2,
-            pair.leftover_map_item_axis_1,
-            pair.leftover_map_item_axis_2,
-        )
-        if any(axis is None for axis in axes):
-            assert axes == (None, None, None, None)
-        else:
-            person_axis_1, person_axis_2, item_axis_1, item_axis_2 = axes
-            assert np.isfinite(person_axis_1)
-            assert np.isfinite(person_axis_2)
-            assert np.isfinite(item_axis_1)
-            assert np.isfinite(item_axis_2)
-            if pair.leftover_map_reconstruction is not None:
-                assert pair.leftover_map_reconstruction == pytest.approx(
-                    person_axis_1 * item_axis_1 + person_axis_2 * item_axis_2
-                )
-            assert pair.leftover_distance == pytest.approx(
-                float(np.hypot(person_axis_1 - item_axis_1, person_axis_2 - item_axis_2))
-            )
         if (
             pair.leftover_map_explained_share is not None
             and pair.leftover_map_unexplained_share is not None
