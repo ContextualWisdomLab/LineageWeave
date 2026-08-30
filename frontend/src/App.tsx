@@ -157,6 +157,10 @@ import {
   formatLeftoverMapUnexplained,
   LEFTOVER_MAP_COMPARE_UNEXPLAINED_LABEL,
 } from "./leftoverMapUnexplained";
+import {
+  formatLeftoverMapResidual,
+  LEFTOVER_MAP_COMPARE_RESIDUAL_LABEL,
+} from "./leftoverResidual";
 import "./App.css";
 
 const AdminPanel = lazy(() => import("./components/AdminPanel").then((module) => ({ default: module.AdminPanel })));
@@ -4094,6 +4098,7 @@ function ReportsPanel({
                     const unexplainedLeftover = formatLeftoverMapUnexplained(
                       pair.leftover_map_unexplained,
                     );
+                    const residual = formatLeftoverMapResidual(pair.leftover_residual);
                     return (
                       <li
                         key={`${row.grouping_kind}:${row.grouping_key}:${pair.pair_kind}:${pair.post_id}:${pair.criterion_code}`}
@@ -4158,6 +4163,14 @@ function ReportsPanel({
                               aria-label={t(LEFTOVER_MAP_COMPARE_UNEXPLAINED_LABEL)}
                             >
                               {unexplainedLeftover}
+                            </span>
+                          ) : null}
+                          {residual ? (
+                            <span
+                              className="post-badge"
+                              aria-label={t(LEFTOVER_MAP_COMPARE_RESIDUAL_LABEL)}
+                            >
+                              {residual}
                             </span>
                           ) : null}
                         </button>
