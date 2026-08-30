@@ -21,6 +21,12 @@ import {
   LEFTOVER_MAP_PLOT_AXIS_SHARE,
 } from "../leftoverMapPlotAxisShare";
 import {
+  formatLeftoverMapPlotAxisSingular,
+  leftoverSingularForAxis,
+  LEFTOVER_MAP_PLOT_AXIS_SINGULAR,
+  LEFTOVER_MAP_PLOT_AXIS_SINGULAR_SHARE,
+} from "../leftoverMapPlotAxisSingular";
+import {
   firstPlottablePairForPost,
   layoutLeftoverMapPlot,
   LEFTOVER_MAP_PLOT_CAPTION,
@@ -58,10 +64,23 @@ function leftoverMapPlotAxisText(
   const percent = formatLeftoverMapPlotAxisShare(
     leftoverShareForAxis(leftoverMapAxes, axisIndex),
   );
-  if (percent === null) {
+  const singular = formatLeftoverMapPlotAxisSingular(
+    leftoverSingularForAxis(leftoverMapAxes, axisIndex),
+  );
+  if (singular === null && percent === null) {
     return t(axisIndex === 1 ? "leftover-map axis 1" : "leftover-map axis 2");
   }
-  return tf(LEFTOVER_MAP_PLOT_AXIS_SHARE, { axis: axisIndex, share: percent });
+  if (singular === null) {
+    return tf(LEFTOVER_MAP_PLOT_AXIS_SHARE, { axis: axisIndex, share: percent });
+  }
+  if (percent === null) {
+    return tf(LEFTOVER_MAP_PLOT_AXIS_SINGULAR, { axis: axisIndex, value: singular });
+  }
+  return tf(LEFTOVER_MAP_PLOT_AXIS_SINGULAR_SHARE, {
+    axis: axisIndex,
+    value: singular,
+    share: percent,
+  });
 }
 
 /**
@@ -69,8 +88,11 @@ function leftoverMapPlotAxisText(
  *
  * Person markers are posts; item markers are leftover criteria. Click a
  * post marker to open that post. Caption leftover-map axes with persisted
- * Gabriel inertia share when finite, including rank-0 zero-share axes.
- * Axis ticks name persisted leftover-map coordinates so ξ / ζ on the
+ * Gabriel singular values when finite and non-negative, including rank-0
+ * zero singular values, and with persisted Gabriel inertia share when
+ * finite, including rank-0 zero-share axes. Do not invent ``σ_k`` from
+ * leftover-map axis share. Axis ticks name persisted leftover-map
+ * coordinates so ξ / ζ on the
  * pair row match the plot. Pair segments name persisted leftover-map
  * distance ``d``, leftover-map reconstruction ``R̂``, leftover-map
  * explained leftover share ``e``, leftover-map unexplained leftover
@@ -98,8 +120,10 @@ function leftoverMapPlotAxisText(
  * caption when incomplete post coverage is missing or not a usable integer.
  * Omit that leftover-map incomplete item caption when incomplete item
  * coverage is missing or not a usable integer.
- * Omit that axis badge when share is
- * missing or non-finite and keep the existing leftover-map axis text.
+ * Omit that axis singular-value badge when ``σ_k`` is missing, non-finite,
+ * or negative, independently of leftover-map axis share. Omit that axis
+ * share badge when share is missing or non-finite and keep the existing
+ * leftover-map axis text, including any leftover-map singular value.
  * Omit the plot when no pair has four finite leftover-map coordinates.
  * Never invent a leftover score.
  */

@@ -8,6 +8,34 @@ All notable changes to this project are documented here. Format follows
 
 ### Added
 
+- Period leftover pairs now caption leftover-map graphic axes with persisted
+  leftover-map singular values `σ_k` (ADR 0289 / v2.46.0). After `make seed`,
+  closest and farthest leftover pairs sit above the member list with the
+  Gabriel biplot of already-named coordinates, leftover-map singular values
+  when finite, leftover-map axis share when finite, axis ticks that match
+  `ξ (x, y) ζ (x, y)` on the pair row, pair segments that match `d` on
+  the pair row, pair segments that match `R̂` on the pair row, pair
+  segments that match `R̂²/R²` on the pair row, pair segments that match
+  `U²/R²` on the pair row, pair segments that match `2R̂U/R²` on the pair
+  row, pair segments that match `U` on the pair row, pair segments that
+  match `R` on the pair row, pair segments that match `Y` on the pair
+  row, pair segments that match `E` on the pair row, pair segments that
+  match leftover-map rank on the pair row, a plot caption that matches
+  leftover-map complete-case coverage above the pair list, a plot caption
+  that matches leftover-map item complete-case coverage, a plot caption
+  that matches leftover-map incomplete post coverage, a plot caption that
+  matches leftover-map incomplete item coverage, a pair-list note that
+  matches leftover-map post complete-case coverage, a pair-list note that
+  matches leftover-map item complete-case coverage, a pair-list note that
+  matches leftover-map incomplete post coverage, and a pair-list note
+  that matches leftover-map incomplete item coverage; click a post marker
+  or a pair button opens that post. A missing, non-finite, or negative
+  singular value omits that `σ` badge independently of leftover-map axis
+  share. Rank-0 unused axes still name `σ 0.00`. Do not invent `σ_k` from
+  leftover-map axis share, leftover-map distance, leftover-map rank, or
+  plotted coordinates. Never invent a leftover score or a theta. No new
+  columns.
+
 - Period leftover pairs now fail-close leftover-map post complete-case
   coverage on the leftover pair list through leftoverMapCoverageCounts
   (ADR 0288 / v2.45.0). After `make seed`, closest and farthest leftover
