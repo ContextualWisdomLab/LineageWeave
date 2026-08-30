@@ -1,5 +1,24 @@
 # Product & Technical Gap Baseline
 
+> Exact-head loop overlay: 2026-08-31 06:45 KST. Protected `main` is
+> `cb187cadee5fb6c46d8a944815ccc154a1e028d1`. Writes work. Do not
+> self-approve. #851 leftover-map explained leftover share on the grouping comparison leftover-map
+> graphic (v2.68.0 / ADR 0311) is `2d6e8e7`, stacked on #850 @ `85451d8`. Independent
+> APPROVE is missing; Copilot review requested this cycle. Next buyer increment on this
+> cycle: leftover-map unexplained leftover share on the grouping comparison leftover-map
+> graphic (ADR 0312 / v2.69.0) delivered locally on
+> `feat/leftover-map-compare-plot-unexplained-share-v2690`. Caption persisted leftover-map
+> unexplained leftover share `s` on that comparison graphic from already-named
+> leftover_map_unexplained_share. Distinct accessible name `leftover map comparison graphic
+> unexplained leftover share {label}`. Omit when formatLeftoverMapUnexplainedShare fail-closes.
+> Do not caption leftover-map cross share on that comparison graphic with a distinct name this
+> increment. Do not invent `s` from `U` and `R`, leftover-map reconstruction, leftover residual,
+> leftover-map distance, plotted coordinates, leftover-map rank, leftover-map axis share,
+> leftover-map post coverage, leftover-map item coverage, leftover-map incomplete post coverage,
+> leftover-map incomplete item coverage, leftover pair count, or the count of unused
+> axes. Stack onto #851. Leave open for independent review. Do not squash-merge. Do not
+> self-approve. Issues #79 and #87 stay open. Do not merge #808 without independent APPROVE.
+
 > Exact-head loop overlay: 2026-08-31 06:30 KST. Protected `main` is
 > `cb187cadee5fb6c46d8a944815ccc154a1e028d1`. Writes work. Do not
 > self-approve. #850 leftover-map reconstruction on the grouping comparison leftover-map

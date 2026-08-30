@@ -4509,10 +4509,15 @@ describe("App, authenticated", () => {
       ),
     ).toHaveLength(1);
     expect(
+      within(screen.getByLabelText("Grouping comparison")).getByLabelText(
+        "leftover map comparison graphic unexplained leftover share U²/R² 0.02",
+      ),
+    ).toHaveTextContent("U²/R² 0.02");
+    expect(
       within(screen.getByLabelText("Grouping comparison")).queryByLabelText(
         /leftover-map unexplained leftover share/,
       ),
-    ).toHaveTextContent("U²/R² 0.02");
+    ).not.toBeInTheDocument();
     expect(
       within(screen.getByLabelText("Grouping comparison")).getByLabelText(
         "Leftover map comparison unexplained leftover share",

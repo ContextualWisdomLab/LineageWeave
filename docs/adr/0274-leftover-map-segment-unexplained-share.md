@@ -3,7 +3,9 @@
 **Decision status:** Accepted
 **Date:** 2026-08-29
 **Amended by:** [ADR 0275](0275-leftover-map-segment-cross-share.md)
-(leftover-map cross share on pair segments)
+(leftover-map cross share on pair segments);
+[ADR 0312](0312-leftover-map-compare-plot-unexplained-share.md)
+(leftover-map unexplained leftover share on the grouping comparison leftover-map graphic)
 
 Amends [ADR 0268](0268-leftover-map-graphic-display.md) and
 [ADR 0049](0049-leftover-pair-report-ui.md). Independent of leftover-map

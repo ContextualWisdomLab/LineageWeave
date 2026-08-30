@@ -281,6 +281,7 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "leftover map comparison graphic explained leftover share {label}":
       "잔여 지도 비교 그림 설명 잔여 점유율 {label}",
     "Leftover map comparison explained leftover share": "잔여 지도 비교 설명 잔여 점유율",
+    "leftover map comparison graphic unexplained leftover share {label}": "잔여 지도 비교 그림 미설명 잔여 점유율 {label}",
     "Leftover map comparison unexplained leftover share": "잔여 지도 비교 미설명 잔여 점유율",
     "Leftover map comparison cross share": "잔여 지도 비교 교차 점유율",
     "Leftover map comparison unexplained leftover": "잔여 지도 비교 미설명 잔여",
@@ -915,6 +916,7 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "leftover map comparison graphic explained leftover share {label}":
       "残差地图比较图形已解释残差份额 {label}",
     "Leftover map comparison explained leftover share": "残差地图比较已解释残差份额",
+    "leftover map comparison graphic unexplained leftover share {label}": "残差地图比较图形未解释残差份额 {label}",
     "Leftover map comparison unexplained leftover share": "残差地图比较未解释残差份额",
     "Leftover map comparison cross share": "残差地图比较交叉份额",
     "Leftover map comparison unexplained leftover": "残差地图比较未解释残差",
@@ -1570,6 +1572,7 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "leftover map comparison graphic explained leftover share {label}":
       "残差マップの比較図説明済み残差割合 {label}",
     "Leftover map comparison explained leftover share": "残差マップの比較説明済み残差割合",
+    "leftover map comparison graphic unexplained leftover share {label}": "残差マップの比較図未説明残差割合 {label}",
     "Leftover map comparison unexplained leftover share": "残差マップの比較未説明残差割合",
     "Leftover map comparison cross share": "残差マップの比較交差割合",
     "Leftover map comparison unexplained leftover": "残差マップの比較未説明残差",
@@ -2204,6 +2207,7 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "leftover map comparison graphic explained leftover share {label}":
       "phần dư giải thích đồ họa so sánh bản đồ phần dư {label}",
     "Leftover map comparison explained leftover share": "Phần dư giải thích so sánh bản đồ phần dư",
+    "leftover map comparison graphic unexplained leftover share {label}": "phần dư chưa giải thích đồ họa so sánh bản đồ phần dư {label}",
     "Leftover map comparison unexplained leftover share": "Phần dư chưa giải thích so sánh bản đồ phần dư",
     "Leftover map comparison cross share": "Phần giao so sánh bản đồ phần dư",
     "Leftover map comparison unexplained leftover": "Phần dư chưa giải thích so sánh",
