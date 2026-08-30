@@ -127,6 +127,7 @@ import {
   LEFTOVER_MAP_COMPARE_COVERAGE_LABEL,
   LEFTOVER_MAP_COMPARE_ITEM_COVERAGE_LABEL,
   LEFTOVER_MAP_COMPARE_INCOMPLETE_POST_LABEL,
+  LEFTOVER_MAP_COMPARE_INCOMPLETE_ITEM_LABEL,
   LEFTOVER_MAP_LIST_COVERAGE_LABEL,
   LEFTOVER_MAP_LIST_INCOMPLETE_ITEM_LABEL,
   LEFTOVER_MAP_LIST_INCOMPLETE_POST_LABEL,
@@ -3995,6 +3996,9 @@ function ReportsPanel({
             const comparisonIncompletePostCount = leftoverMapIncompletePostCount(
               row.leftover_map_coverage,
             );
+            const comparisonIncompleteItemCount = leftoverMapIncompleteItemCount(
+              row.leftover_map_coverage,
+            );
             return (
             <li key={`${row.grouping_kind}:${row.grouping_key}`} className="ticket-list-item">
               <button
@@ -4038,6 +4042,11 @@ function ReportsPanel({
               {comparisonIncompletePostCount !== null ? (
                 <p className="post-meta" role="note" aria-label={t(LEFTOVER_MAP_COMPARE_INCOMPLETE_POST_LABEL)}>
                   {tf(LEFTOVER_MAP_PLOT_INCOMPLETE_POST, comparisonIncompletePostCount)}
+                </p>
+              ) : null}
+              {comparisonIncompleteItemCount !== null ? (
+                <p className="post-meta" role="note" aria-label={t(LEFTOVER_MAP_COMPARE_INCOMPLETE_ITEM_LABEL)}>
+                  {tf(LEFTOVER_MAP_PLOT_INCOMPLETE_ITEM, comparisonIncompleteItemCount)}
                 </p>
               ) : null}
               {row.leftover_pairs && row.leftover_pairs.length > 0 && (
