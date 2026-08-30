@@ -5,8 +5,10 @@ import {
   leftoverMapIncompleteItemCount,
   leftoverMapIncompletePostCount,
   leftoverMapItemCoverageCounts,
+  LEFTOVER_MAP_LIST_INCOMPLETE_ITEM_LABEL,
   LEFTOVER_MAP_LIST_INCOMPLETE_POST_LABEL,
   LEFTOVER_MAP_LIST_ITEM_COVERAGE_LABEL,
+  LEFTOVER_MAP_PLOT_INCOMPLETE_ITEM_LABEL,
   LEFTOVER_MAP_PLOT_INCOMPLETE_POST_LABEL,
   LEFTOVER_MAP_PLOT_ITEM_COVERAGE_LABEL,
 } from "./leftoverMapCoverage";
@@ -183,5 +185,11 @@ describe("leftoverMapIncompleteItemCount", () => {
     expect(leftoverMapIncompleteItemCount(coverage({ incomplete_item_count: 0 }))).not.toEqual({
       dropped: 1,
     });
+  });
+
+  it("keeps the pair-list incomplete item label distinct from the graphic incomplete item label", () => {
+    expect(LEFTOVER_MAP_LIST_INCOMPLETE_ITEM_LABEL).toBe("Leftover map incomplete items");
+    expect(LEFTOVER_MAP_PLOT_INCOMPLETE_ITEM_LABEL).toBe("Leftover-map graphic incomplete items");
+    expect(LEFTOVER_MAP_LIST_INCOMPLETE_ITEM_LABEL).not.toBe(LEFTOVER_MAP_PLOT_INCOMPLETE_ITEM_LABEL);
   });
 });
