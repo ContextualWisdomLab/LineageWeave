@@ -138,6 +138,21 @@ def test_voice_assignment_rejects_mismatched_carrying_post() -> None:
     assert "carrying post must link" in report.lower()
 
 
+def test_voice_assignment_rejects_an_extra_inverse_post_link() -> None:
+    """No second Post may claim an assignment carried by another Post."""
+    data = _representative_projection()
+    LWn = Namespace(LW)
+    assignment = URIRef(LW + "voice-assignment/post-alpha/voc")
+    other_post = URIRef(LW + "post-beta")
+    data.add((other_post, RDF.type, LWn.Post))
+    data.add((other_post, LWn.hasVoiceAssignment, assignment))
+
+    conforms, report = _conforms(data)
+
+    assert conforms is False
+    assert "carrying post must link" in report.lower()
+
+
 def test_additional_voice_assignment_requires_derivation_evidence() -> None:
     """Only an additional Voice must retain a distinct derivation relation."""
     data = _representative_projection()

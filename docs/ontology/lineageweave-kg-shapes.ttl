@@ -217,9 +217,16 @@
         a sh:SPARQLConstraint ;
         sh:message "The carrying Post must link to this Voice assignment." ;
         sh:select """
-            SELECT $this WHERE {
-                $this :voiceAssignmentCarryingPost ?post .
-                FILTER NOT EXISTS { ?post :hasVoiceAssignment $this . }
+            SELECT DISTINCT $this WHERE {
+                {
+                    $this :voiceAssignmentCarryingPost ?post .
+                    FILTER NOT EXISTS { ?post :hasVoiceAssignment $this . }
+                }
+                UNION
+                {
+                    ?post :hasVoiceAssignment $this .
+                    FILTER NOT EXISTS { $this :voiceAssignmentCarryingPost ?post . }
+                }
             }
         """ ;
     ] .
