@@ -1,6 +1,6 @@
 # Product & Technical Gap Baseline
 
-> Exact-head loop overlay: 2026-08-31 01:06 KST. Protected `main` is
+> Exact-head loop overlay: 2026-08-31 01:28 KST. Protected `main` is
 > `cb187cadee5fb6c46d8a944815ccc154a1e028d1` after unauthorized squash
 > of leftover-map coordinates (v2.24.0 / #782). Revert #808
 > (`revert-pr782-unauthorized` @ `1af3e53e`) restores `main` toward
@@ -45,8 +45,10 @@
 > ADR 0294) is `ead81bd`. #829 leftover-map unexplained leftover share
 > `s` on grouping comparison leftover-pair buttons (v2.52.0 / ADR 0295)
 > is `4d82c28`. #831 leftover-map cross share `x` on grouping comparison
-> leftover-pair buttons (v2.53.0 / ADR 0296) is `2cefc0b`. Leave
-> #782/#802/#803/#804/#805/#806/#808/#809/#810/#811/#812/#813/#814/#815/#816/#817/#818/#819/#821/#822/#823/#824/#825/#826/#827/#829/#831 open for
+> leftover-pair buttons (v2.53.0 / ADR 0296) is `2cefc0b`. #832 leftover-map
+> unexplained leftover `U` on grouping comparison leftover-pair buttons
+> (v2.54.0 / ADR 0297) is `1511166`. Leave
+> #782/#802/#803/#804/#805/#806/#808/#809/#810/#811/#812/#813/#814/#815/#816/#817/#818/#819/#821/#822/#823/#824/#825/#826/#827/#829/#831/#832 open for
 > independent review. Do not squash-merge stacked leftover PRs onto an
 > unprotected leftover base. Do not merge #808 without independent APPROVE.
 > Strix on #782 failed closed at `Run Strix (quick)`; do not weaken
@@ -56,27 +58,27 @@
 > closed. Only collaborator is `seonghobae`; no independent reviewer can
 > be requested from this token.
 >
-> Next buyer increment on this cycle: leftover-map unexplained leftover
-> `U` on grouping comparison leftover-pair buttons (ADR 0297 / v2.54.0)
-> delivered locally on `feat/leftover-map-compare-unexplained-leftover-v2540`.
+> Next buyer increment on this cycle: leftover residual
+> `R` on grouping comparison leftover-pair buttons (ADR 0298 / v2.55.0)
+> delivered locally on `feat/leftover-map-compare-leftover-residual-v2550`.
 > Caption each strip leftover-pair button through
-> formatLeftoverMapUnexplained with distinct aria-label
-> `Leftover map comparison unexplained leftover` next to leftover-map cross
-> share `x`, leftover-map unexplained leftover share `s`, leftover-map
-> explained leftover share `e`, leftover-map reconstruction `R̂`, and
-> leftover-map distance `d`. UI-only; no new columns. Missing or non-finite
-> `U` omits that leftover-map comparison unexplained leftover badge
-> independently of `x`, `s`, `e`, `R̂`, `d`, and coverage notes. Do not invent
-> `U` from `R` and `R̂`, leftover-map distance, plotted coordinates,
-> leftover-map reconstruction, leftover residual, leftover-map explained
-> leftover share, leftover-map unexplained leftover share, leftover-map
-> cross share, leftover-map rank, leftover-map post coverage, leftover-map
-> item coverage, leftover-map incomplete post coverage, leftover-map
-> incomplete item coverage, or the count of unused axes. Rank-0 origin
-> cells still name `U 0.00` when finite. A finite negative leftover is
-> shown, never clamped. Do not caption the leftover-map graphic on the
-> strip. Do not invent leftover scores. Stack onto leftover branch
-> `feat/leftover-map-compare-cross-share-v2530` / #831; leave the PR
+> formatLeftoverMapResidual with distinct aria-label
+> `Leftover map comparison leftover residual` next to leftover-map
+> unexplained leftover `U`, leftover-map cross share `x`, leftover-map
+> unexplained leftover share `s`, leftover-map explained leftover share
+> `e`, leftover-map reconstruction `R̂`, and leftover-map distance `d`.
+> UI-only; no new columns. Missing or non-finite `R` omits that leftover-map
+> comparison leftover residual badge independently of `U`, `x`, `s`, `e`,
+> `R̂`, `d`, and coverage notes. Do not invent `R` from `Y` and `E`, from
+> `U` and `R̂`, leftover-map distance, plotted coordinates, leftover-map
+> reconstruction, leftover-map explained leftover share, leftover-map unexplained leftover share, leftover-map cross share,
+> leftover-map rank, leftover-map post coverage, leftover-map item
+> coverage, leftover-map incomplete post coverage, leftover-map incomplete
+> item coverage, or the count of unused axes. Rank-0 origin cells still
+> name `R 0.00` when finite. A finite negative residual is shown, never
+> clamped. Do not caption the leftover-map graphic on the strip. Do not
+> invent leftover scores. Stack onto leftover branch
+> `feat/leftover-map-compare-unexplained-leftover-v2540` / #832; leave the PR
 > open for independent review. Do not squash-merge onto the leftover
 > base. Do not persist leftover-map inner product, cosine, or length as
 > separate columns.

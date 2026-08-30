@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { formatLeftoverMapResidual, formatLeftoverResidual } from "./leftoverResidual";
+import {
+  formatLeftoverMapResidual,
+  formatLeftoverResidual,
+  LEFTOVER_MAP_COMPARE_RESIDUAL_LABEL,
+} from "./leftoverResidual";
 
 describe("formatLeftoverResidual", () => {
   it("keeps a signed residual without inventing a leftover score", () => {
@@ -22,5 +26,12 @@ describe("formatLeftoverMapResidual", () => {
     expect(formatLeftoverMapResidual(undefined)).toBeNull();
     expect(formatLeftoverMapResidual(Number.NaN)).toBeNull();
     expect(formatLeftoverMapResidual(Number.POSITIVE_INFINITY)).toBeNull();
+  });
+
+  it("keeps the grouping comparison leftover residual label distinct from the graphic leftover residual label", () => {
+    expect(LEFTOVER_MAP_COMPARE_RESIDUAL_LABEL).toBe(
+      "Leftover map comparison leftover residual",
+    );
+    expect(LEFTOVER_MAP_COMPARE_RESIDUAL_LABEL).not.toBe("leftover residual {label}");
   });
 });

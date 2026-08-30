@@ -1,4 +1,8 @@
 /** Signed leftover residual ``R = Y − E[Y|θ, item]`` after IRT main effects. */
+
+export const LEFTOVER_MAP_COMPARE_RESIDUAL_LABEL =
+  "Leftover map comparison leftover residual";
+
 export function formatLeftoverResidual(value: number): string {
   if (!Number.isFinite(value)) {
     return "—";
