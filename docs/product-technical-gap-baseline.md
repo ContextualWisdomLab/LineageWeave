@@ -1,5 +1,33 @@
 # Product & Technical Gap Baseline
 
+> Exact-head development-loop overlay: 2026-08-31 02:57 KST.
+> Protected `main` remains `cb187cadee5fb6c46d8a944815ccc154a1e028d1`;
+> forty-five open PRs and ten open issues were enumerated in one fresh
+> snapshot. PR #780 is open at
+> `d8bda6d4ef7bbef81ff0cad7e5f06d7106f64b09`, with every review thread
+> resolved and normal squash auto-merge armed. The exact-head focused
+> authenticated/ontology regression selection passes (36 tests), as does the
+> complete frontend suite (533 tests). Current-head GitHub evidence includes
+> successful backend/frontend, ontology-publication, CodeQL, Semgrep, OSV,
+> Trivy, Scorecard, Noema, and scheduler checks. The required workflow
+> bootstrap, Strix, and dependency review remain failed: the first still
+> depends on the candidate-only central workflow repair in
+> `ContextualWisdomLab/.github#1420`, while the latter two remain fail-closed
+> external review/dependency-graph outcomes rather than product-test failures.
+> Independent approval is still absent, so protected merge and merge SHA are
+> unavailable. The largest directly actionable Voice acceptance gap in this
+> PR remains implemented only on the candidate head: exact-value UI and CSV
+> distinguish the carrying Post from genuine derivation evidence, additional
+> Voices retain authorized Post evidence, PROV-O derivation, truth status, and
+> cutoff behavior, and primary Voices do not acquire an invented derivation.
+> Authenticated PostgreSQL/API and desktop/mobile rendered evidence exist for
+> this exact candidate head, but are not relabeled as protected-main delivery.
+> The supporting PRD's duplicate occupational requirement identifiers and
+> stale ADR references remain an authority-document gap tracked by issue #807;
+> they are not promoted over accepted ADRs. No self-approval, bypass, force
+> push, invented weight, heuristic classification, or hidden-evidence
+> substitution is used.
+>
 > Exact-head authenticated-render overlay: 2026-08-31 00:42 KST.
 > Protected `main` remains `cb187cadee5fb6c46d8a944815ccc154a1e028d1`;
 > thirty-nine open PRs and ten open issues were enumerated in one fresh
