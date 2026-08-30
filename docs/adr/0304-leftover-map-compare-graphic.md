@@ -10,7 +10,9 @@
 [ADR 0307](0307-leftover-map-compare-plot-item-coverage.md)
 (leftover-map item complete-case coverage on the grouping comparison leftover-map graphic),
 [ADR 0308](0308-leftover-map-compare-plot-incomplete-post.md)
-(leftover-map incomplete post coverage on the grouping comparison leftover-map graphic)
+(leftover-map incomplete post coverage on the grouping comparison leftover-map graphic),
+[ADR 0309](0309-leftover-map-compare-plot-incomplete-item.md)
+(leftover-map incomplete item coverage on the grouping comparison leftover-map graphic)
 
 Amends leftover pairs on the grouping comparison strip
 ([ADR 0149](0149-leftover-pairs-on-comparison-strip.md)), leftover-map

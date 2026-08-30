@@ -8,6 +8,40 @@ All notable changes to this project are documented here. Format follows
 
 ### Added
 
+- Period leftover pairs now name leftover-map incomplete item coverage on the
+  grouping comparison leftover-map graphic (ADR 0309 / v2.66.0). After
+  `make seed`, closest and farthest leftover pairs sit above the member list
+  with the Gabriel biplot of already-named coordinates, leftover-map axis share
+  when finite, leftover-map complete-case coverage when leftoverMapCoverageCounts
+  returns usable complete-case integers, leftover-map item complete-case coverage
+  when leftoverMapItemCoverageCounts returns usable complete-case integers,
+  leftover-map incomplete post coverage when leftoverMapIncompletePostCount
+  returns a usable dropped integer, and leftover map dropped N incomplete
+  criteria on that grouping comparison leftover-map graphic when
+  leftoverMapIncompleteItemCount returns a usable dropped integer; click a post
+  marker or a pair button opens that post. A missing, negative, non-integer, or
+  scored-minus-used mismatch omits that leftover-map comparison graphic
+  incomplete items caption and keeps leftover-map comparison graphic coverage,
+  leftover-map comparison graphic item coverage, and leftover-map comparison
+  graphic incomplete posts when those helpers return usable integers. Dropped
+  `0` is shown when that persisted dropped count is a non-negative integer.
+  Rank-0 origin cells still plot at `(0, 0)` and still name incomplete items
+  when that dropped count is persisted. Comparison copy uses `Leftover map
+  comparison graphic incomplete items` so it stays distinct from hyphen
+  `Leftover-map graphic incomplete items` and from strip `Leftover map
+  comparison incomplete items`. Incomplete item coverage omits independently of
+  post coverage, item coverage, and incomplete post coverage. This increment
+  does not caption leftover-map reconstruction on the comparison graphic. Do
+  not invent leftover-map incomplete items from scored minus used, plotted
+  criterion marker count, leftover pair count, leftover-map rank, leftover-map
+  distance, leftover-map axis share, leftover expected, leftover observed,
+  leftover residual, leftover-map reconstruction, leftover-map unexplained
+  leftover, leftover-map post coverage, leftover-map item coverage,
+  leftover-map incomplete post coverage, or the count of unused axes. A finite
+  negative leftover is shown, never clamped. Omit the comparison graphic when
+  no leftover pair has four finite leftover-map coordinates. Never invent a
+  leftover score or a theta. No new columns.
+
 - Period leftover pairs now name leftover-map incomplete post coverage on the
   grouping comparison leftover-map graphic (ADR 0308 / v2.65.0). After
   `make seed`, closest and farthest leftover pairs sit above the member list
@@ -27,8 +61,7 @@ All notable changes to this project are documented here. Format follows
   Comparison copy uses `Leftover map comparison graphic incomplete posts` so it
   stays distinct from hyphen `Leftover-map graphic incomplete posts` and from
   strip `Leftover map comparison incomplete posts`. Incomplete post coverage omits
-  independently of post coverage and item coverage. This increment does not
-  caption leftover-map incomplete item coverage on the comparison graphic. Do
+  independently of post coverage and item coverage. Do
   not invent leftover-map incomplete posts from scored minus used, plotted marker
   count, leftover pair count, leftover-map rank, leftover-map distance,
   leftover-map axis share, leftover expected, leftover observed, leftover residual,

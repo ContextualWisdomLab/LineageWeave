@@ -3,6 +3,9 @@
 **Decision status:** Accepted
 **Date:** 2026-08-31
 
+**Amended by:** [ADR 0309](0309-leftover-map-compare-plot-incomplete-item.md)
+(leftover-map incomplete item coverage on the grouping comparison leftover-map graphic)
+
 Amends leftover-map incomplete post coverage on the graphic display
 ([ADR 0283](0283-leftover-map-plot-incomplete.md)), leftover-map incomplete
 post coverage on the grouping comparison strip
