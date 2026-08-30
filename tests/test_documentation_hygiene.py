@@ -9,12 +9,15 @@ from pathlib import Path
 _ROOT = Path(__file__).resolve().parents[1]
 _ADR_DIRECTORY = _ROOT / "docs" / "adr"
 _PRODUCT_GAP_BASELINE = _ROOT / "docs" / "product-technical-gap-baseline.md"
+_PRODUCT_REQUIREMENTS = _ROOT / "docs" / "product-requirements.md"
 _ROLE_CATALOG_COLUMNS = (
     "cataloged_team_id",
     "cataloged_corporate_entity_id",
     "cataloged_person_id",
 )
 _ADR_NAME = re.compile(r"^(?P<number>[0-9]{4})-.+\.md$")
+_PRD_REQUIREMENT_HEADING = re.compile(r"^### (?P<identifier>PRD-FR-[0-9A-Z-]+)\b", re.MULTILINE)
+_PRD_ADR_REFERENCE = re.compile(r"\bADRs?\s+(?P<number>[0-9]{4})\b")
 _PRIVATE_POST_IDENTIFIER = re.compile(
     r"(?i)"
     r"\b[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\b"
@@ -68,6 +71,31 @@ def test_product_gap_baseline_contains_no_private_post_identifiers() -> None:
 
     match = _PRIVATE_POST_IDENTIFIER.search(baseline)
     assert match is None, f"private post identifier in product-gap baseline: {match.group(0)!r}"
+
+
+def test_product_requirement_identifiers_are_unique() -> None:
+    """Each PRD identifier names one current requirement and acceptance contract."""
+    product_requirements = _PRODUCT_REQUIREMENTS.read_text(encoding="utf-8")
+    identifiers = _PRD_REQUIREMENT_HEADING.findall(product_requirements)
+
+    assert identifiers, "the product requirements must contain numbered requirements"
+    counts = Counter(identifiers)
+    duplicates = sorted(identifier for identifier, count in counts.items() if count > 1)
+    assert duplicates == [], f"duplicate PRD requirement identifiers: {duplicates}"
+
+
+def test_product_requirement_adr_references_exist() -> None:
+    """Direct ADR references in the supporting PRD resolve to normative records."""
+    product_requirements = _PRODUCT_REQUIREMENTS.read_text(encoding="utf-8")
+    referenced_numbers = set(_PRD_ADR_REFERENCE.findall(product_requirements))
+    available_numbers = {
+        match.group("number")
+        for path in _ADR_DIRECTORY.glob("*.md")
+        if (match := _ADR_NAME.fullmatch(path.name)) is not None
+    }
+
+    missing = sorted(referenced_numbers - available_numbers)
+    assert missing == [], f"PRD references missing ADRs: {missing}"
 
 
 def test_fetch_persisted_summary_reads_stored_catalog_ids() -> None:
