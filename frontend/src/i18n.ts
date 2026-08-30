@@ -581,6 +581,21 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
       "잔여 지도가 IRT 주효과 이후 원시 잔차의 설명되지 않은 잔여 비율 {value}을(를) 남깁니다. {criterion} 기준을 읽으려면 이 글을 여세요.",
     "Leftover map leaves explained leftover share {value} of raw residual after IRT main effects. Open this post to read {criterion}.":
       "잔여 지도가 IRT 주효과 이후 원시 잔차의 설명된 잔여 비율 {value}을(를) 남깁니다. {criterion} 기준을 읽으려면 이 글을 여세요.",
+    "Leftover map places this post at ξ {person} and the criterion at ζ {item} after IRT main effects. Open this post to read {criterion}.":
+      "잔여 지도가 IRT 주효과 이후 이 글을 ξ {person}에, 기준을 ζ {item}에 둡니다. {criterion} 기준을 읽으려면 이 글을 여세요.",
+    "Leftover-map graphic display": "잔여 지도 그림 표시",
+    "Leftover map": "잔여 지도",
+    "Post ξ": "글 ξ",
+    "Criterion ζ": "기준 ζ",
+    "leftover-map axis 1": "잔여 지도 축 1",
+    "leftover-map axis 2": "잔여 지도 축 2",
+    "leftover-map axis {axis} ({share}%)": "잔여 지도 축 {axis} ({share}%)",
+    "leftover-map axis {axis} tick {value}": "잔여 지도 축 {axis} 눈금 {value}",
+    "leftover-map distance {label}": "잔여 지도 거리 {label}",
+    "Leftover map after IRT main effects. Axis ticks name persisted leftover-map coordinates. Pair segments name leftover-map distance d. Click a post marker to open that post. The plot does not invent a leftover score.":
+      "IRT 주효과 이후 잔여 지도입니다. 축 눈금은 저장된 잔여 지도 좌표입니다. 쌍 선분은 잔여 지도 거리 d입니다. 글 표식을 눌러 그 글을 여세요. 이 그림은 잔여 점수를 만들어내지 않습니다.",
+    "Open leftover-map post {title} at ξ {person}":
+      "잔여 지도 글 {title} 열기 (ξ {person})",
     "Read observed Y {observed} and expected E {expected} after IRT main effects, then open this post.":
       "IRT 주효과 이후 관측 Y {observed}와 기대 E {expected}를 읽은 다음, 이 글을 여세요.",
     "Leftover map has no leftover structure after IRT main effects. Open this post.":
@@ -1146,6 +1161,21 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
       "残差图在 IRT 主效应后留下原始残差的未解释残余份额 {value}。打开这篇帖子阅读 {criterion}。",
     "Leftover map leaves explained leftover share {value} of raw residual after IRT main effects. Open this post to read {criterion}.":
       "残差图在 IRT 主效应后留下原始残差的已解释残余份额 {value}。打开这篇帖子阅读 {criterion}。",
+    "Leftover map places this post at ξ {person} and the criterion at ζ {item} after IRT main effects. Open this post to read {criterion}.":
+      "残差图在 IRT 主效应后将这篇帖子放在 ξ {person}，将准则放在 ζ {item}。打开这篇帖子阅读 {criterion}。",
+    "Leftover-map graphic display": "残差图图形显示",
+    "Leftover map": "残差图",
+    "Post ξ": "帖子 ξ",
+    "Criterion ζ": "准则 ζ",
+    "leftover-map axis 1": "残差图轴 1",
+    "leftover-map axis 2": "残差图轴 2",
+    "leftover-map axis {axis} ({share}%)": "残差图轴 {axis} ({share}%)",
+    "leftover-map axis {axis} tick {value}": "残差图轴 {axis} 刻度 {value}",
+    "leftover-map distance {label}": "残差图距离 {label}",
+    "Leftover map after IRT main effects. Axis ticks name persisted leftover-map coordinates. Pair segments name leftover-map distance d. Click a post marker to open that post. The plot does not invent a leftover score.":
+      "IRT 主效应后的残差图。轴刻度标出已保存的残差图坐标。配对线段标出残差图距离 d。点击帖子标记打开该帖子。此图不会虚构残差分数。",
+    "Open leftover-map post {title} at ξ {person}":
+      "打开残差图帖子 {title}（ξ {person}）",
     "Read observed Y {observed} and expected E {expected} after IRT main effects, then open this post.":
       "阅读 IRT 主效应后的观测 Y {observed} 与期望 E {expected}，然后打开这篇帖子。",
     "Leftover map has no leftover structure after IRT main effects. Open this post.":
@@ -1715,6 +1745,21 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
       "残差マップはIRT主効果後の生の残差の未説明残差シェア {value} を残します。この投稿を開いて {criterion} を読んでください。",
     "Leftover map leaves explained leftover share {value} of raw residual after IRT main effects. Open this post to read {criterion}.":
       "残差マップはIRT主効果後の生の残差の説明済み残差シェア {value} を残します。この投稿を開いて {criterion} を読んでください。",
+    "Leftover map places this post at ξ {person} and the criterion at ζ {item} after IRT main effects. Open this post to read {criterion}.":
+      "残差マップはIRT主効果後にこの投稿を ξ {person} に、基準を ζ {item} に置きます。この投稿を開いて {criterion} を読んでください。",
+    "Leftover-map graphic display": "残差マップの図表示",
+    "Leftover map": "残差マップ",
+    "Post ξ": "投稿 ξ",
+    "Criterion ζ": "基準 ζ",
+    "leftover-map axis 1": "残差マップ軸 1",
+    "leftover-map axis 2": "残差マップ軸 2",
+    "leftover-map axis {axis} ({share}%)": "残差マップ軸 {axis} ({share}%)",
+    "leftover-map axis {axis} tick {value}": "残差マップ軸 {axis} 目盛 {value}",
+    "leftover-map distance {label}": "残差マップ距離 {label}",
+    "Leftover map after IRT main effects. Axis ticks name persisted leftover-map coordinates. Pair segments name leftover-map distance d. Click a post marker to open that post. The plot does not invent a leftover score.":
+      "IRT主効果後の残差マップです。軸目盛は保存済みの残差マップ座標です。ペア線分は残差マップ距離 d です。投稿マーカーをクリックしてその投稿を開いてください。この図は残差スコアを作りません。",
+    "Open leftover-map post {title} at ξ {person}":
+      "残差マップの投稿 {title} を開く（ξ {person}）",
     "Read observed Y {observed} and expected E {expected} after IRT main effects, then open this post.":
       "IRT主効果後の観測 Y {observed} と期待 E {expected} を読んでから、この投稿を開いてください。",
     "Leftover map has no leftover structure after IRT main effects. Open this post.":
@@ -2284,6 +2329,21 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
       "Bản đồ phần dư để lại tỷ phần phần dư chưa giải thích {value} của phần dư thô sau hiệu ứng chính IRT. Mở bài viết này để đọc {criterion}.",
     "Leftover map leaves explained leftover share {value} of raw residual after IRT main effects. Open this post to read {criterion}.":
       "Bản đồ phần dư để lại tỷ phần phần dư đã giải thích {value} của phần dư thô sau hiệu ứng chính IRT. Mở bài viết này để đọc {criterion}.",
+    "Leftover map places this post at ξ {person} and the criterion at ζ {item} after IRT main effects. Open this post to read {criterion}.":
+      "Bản đồ phần dư đặt bài viết này tại ξ {person} và tiêu chí tại ζ {item} sau hiệu ứng chính IRT. Mở bài viết này để đọc {criterion}.",
+    "Leftover-map graphic display": "Hiển thị đồ họa bản đồ phần dư",
+    "Leftover map": "Bản đồ phần dư",
+    "Post ξ": "Bài viết ξ",
+    "Criterion ζ": "Tiêu chí ζ",
+    "leftover-map axis 1": "trục bản đồ phần dư 1",
+    "leftover-map axis 2": "trục bản đồ phần dư 2",
+    "leftover-map axis {axis} ({share}%)": "trục bản đồ phần dư {axis} ({share}%)",
+    "leftover-map axis {axis} tick {value}": "vạch trục bản đồ phần dư {axis} {value}",
+    "leftover-map distance {label}": "khoảng cách bản đồ phần dư {label}",
+    "Leftover map after IRT main effects. Axis ticks name persisted leftover-map coordinates. Pair segments name leftover-map distance d. Click a post marker to open that post. The plot does not invent a leftover score.":
+      "Bản đồ phần dư sau hiệu ứng chính IRT. Vạch trục ghi tọa độ bản đồ phần dư đã lưu. Đoạn cặp ghi khoảng cách bản đồ phần dư d. Nhấn dấu bài viết để mở bài đó. Hình này không tạo ra điểm phần dư.",
+    "Open leftover-map post {title} at ξ {person}":
+      "Mở bài viết bản đồ phần dư {title} tại ξ {person}",
     "Read observed Y {observed} and expected E {expected} after IRT main effects, then open this post.":
       "Đọc Y quan sát {observed} và E kỳ vọng {expected} sau hiệu ứng chính IRT, rồi mở bài viết này.",
     "Leftover map has no leftover structure after IRT main effects. Open this post.":
