@@ -1,5 +1,40 @@
 # Product & Technical Gap Baseline
 
+> Exact-head loop overlay: 2026-08-31 03:10 KST. Protected `main` is
+> `cb187cadee5fb6c46d8a944815ccc154a1e028d1`. Writes work (close/comment/create-PR/push).
+> Token still has empty `X-OAuth-Scopes`; GitHub App user-to-server writes succeed.
+> Do not self-approve. #840 leftover-map coordinates `ξ` / `ζ` on
+> `GET /api/reports/compare/{period}` leftover pairs (v2.60.0 / ADR 0303) is
+> `cbf994462ec787d4d3e7a2749f913f62fd9c96d0`, stacked on #839 @ `51bf33a`.
+> Devin COMMENTED; no independent APPROVE. Competing #828 leftover-map axis
+> share on grouping comparison (v2.50.0 / ADR 0293) sits on the incomplete-item
+> dead-end, not this stack (0293 here is reconstruction). Next buyer increment
+> on this cycle: leftover-map axis share on the grouping comparison strip
+> (ADR 0304 / v2.61.0) delivered locally on
+> `feat/leftover-map-compare-axis-share-v2610`. Include persisted
+> leftover_map_axes on GET /api/reports/compare/{period} and caption each
+> grouping row through leftoverMapCompareAxisShare with distinct aria-label
+> `Leftover map comparison axis share` and copy
+> `leftover map comparison axis {axis} {share}%`. UI + compare payload;
+> no new columns. Missing or non-finite share omits that leftover-map
+> comparison axis share badge independently of coverage notes, reconstruction,
+> share identities, `Y`/`E`/`R`/`U`/`rank`, and coordinates. Share `0` is
+> shown when persisted, including rank-0 unused axes. Do not invent leftover-map
+> axis share from leftover-map singular value, leftover pair count, plotted
+> marker count, leftover-map distance, leftover-map rank, leftover-map post
+> coverage, leftover-map item coverage, leftover-map incomplete post coverage,
+> leftover-map incomplete item coverage, leftover-map reconstruction,
+> leftover-map unexplained leftover, leftover-map coordinates, or the count of
+> unused axes. Do not caption leftover-map singular values or the leftover-map
+> graphic on the strip. Do not invent leftover scores. Do not persist leftover-map
+> inner product, cosine, or length. Stack onto leftover branch
+> `feat/leftover-map-compare-coordinates-payload-v2600` / #840; leave the PR
+> open for independent review. Do not squash-merge onto the leftover base.
+> Issues #79 and #87 stay open. #96 is already closed. Do not merge #808 without
+> independent APPROVE. Only collaborator is `seonghobae`; no independent
+> reviewer can be requested from this token.
+
+
 > Exact-head loop overlay: 2026-08-31 02:30 KST. Protected `main` is
 > `cb187cadee5fb6c46d8a944815ccc154a1e028d1`. Writes work. Do not
 > self-approve. #839 leftover-map coordinates `ξ` / `ζ` on grouping
