@@ -538,29 +538,28 @@ function OntologyExactValueTable({
     <div
       className="ontology-exact-values"
       role="region"
-      tabIndex={0}
       aria-label={t("Exact values")}
     >
       <h4>{t("Exact values")}</h4>
       {payload.exact_value_rows.length === 0 ? (
         <p>{t("No related information is available. Open a visible post next.")}</p>
       ) : (
-        <table>
-          <caption>{t("Exact values")}</caption>
-          <thead>
-            <tr>
-              <th>{t("Source")}</th>
-              <th>{t("Property")}</th>
-              <th>{t("Target")}</th>
-              <th>{t("Truth status")}</th>
-              <th>{t("Valid from")}</th>
-              <th>{t("Valid to")}</th>
-              <th>{t("Evidence")}</th>
-              <th>{t("Recorded at")}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {payload.exact_value_rows.map((row) => {
+        <div className="ontology-exact-values-scroll" tabIndex={0}>
+          <table aria-label={t("Exact values")}>
+            <thead>
+              <tr>
+                <th>{t("Source")}</th>
+                <th>{t("Property")}</th>
+                <th>{t("Target")}</th>
+                <th>{t("Truth status")}</th>
+                <th>{t("Valid from")}</th>
+                <th>{t("Valid to")}</th>
+                <th>{t("Evidence")}</th>
+                <th>{t("Recorded at")}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {payload.exact_value_rows.map((row) => {
               const derivationEvidencePostId =
                 row.property_code === "hasVoiceAssignment"
                   ? derivationEvidenceByVoice.get(`${row.source_node_id}\u0000${row.target_node_id}`)
@@ -605,9 +604,10 @@ function OntologyExactValueTable({
                   <td>{row.recorded_at.slice(0, 10)}</td>
                 </tr>
               );
-            })}
-          </tbody>
-        </table>
+              })}
+            </tbody>
+          </table>
+        </div>
       )}
     </div>
   );

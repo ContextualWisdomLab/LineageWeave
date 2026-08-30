@@ -138,6 +138,24 @@ function neighborhood(overrides: Partial<OntologyNeighborhoodPayload> = {}): Ont
 }
 
 describe("OntologyExplorer", () => {
+  it("keeps the exact-value heading outside the focusable horizontal scroller", () => {
+    const { container } = render(
+      <OntologyExplorer
+        focusNodeType="node_post"
+        focusNodeId={POST_ID}
+        neighborhood={neighborhood()}
+      />,
+    );
+
+    const region = screen.getByRole("region", { name: "Exact values" });
+    const heading = screen.getByRole("heading", { name: "Exact values" });
+    const scroller = container.querySelector(".ontology-exact-values-scroll");
+    expect(region).toContainElement(heading);
+    expect(scroller).toHaveAttribute("tabindex", "0");
+    expect(scroller).toContainElement(screen.getByRole("table", { name: "Exact values" }));
+    expect(scroller).not.toContainElement(heading);
+  });
+
   it("renders a project node with a text-labeled diamond", () => {
     const payload = neighborhood();
     const projectNode = {
