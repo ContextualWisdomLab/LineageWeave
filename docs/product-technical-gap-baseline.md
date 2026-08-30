@@ -1,5 +1,19 @@
 # Product & Technical Gap Baseline
 
+> Exact-head review-repair overlay: 2026-08-30 21:23 KST. Protected `main`
+> remains `cb187cadee5fb6c46d8a944815ccc154a1e028d1`; twenty open PRs and ten
+> open issues were freshly enumerated. PR #780's current implementation
+> revision is `4fa63302282dc6446cf224794ed8833d5c853d97`. Exact-head review found
+> that SHACL required a carrying Post but did not prove that the same Post's
+> `hasVoiceAssignment` relation referenced the assignment, so contradictory
+> carrying and inverse links could validate. The minimal root repair adds the
+> inverse-link constraint and positive/mismatched regression coverage. All 75
+> focused ontology, SHACL, and neighborhood tests pass. Hosted Checks,
+> independent approval, authenticated rendered-stack acceptance, protected
+> merge, and merge SHA remain unavailable on this moved head; older evidence
+> is not transferred. Normal governance remains in force with no self-approval,
+> admin bypass, or force push.
+>
 > Exact-head review-repair overlay: 2026-08-30 20:18 KST. Protected `main`
 > remains `cb187cadee5fb6c46d8a944815ccc154a1e028d1`; twenty-one PRs and ten
 > issues are open. PR #780's current implementation revision is
