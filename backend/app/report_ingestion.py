@@ -1052,7 +1052,8 @@ async def fetch_period_comparison(
         f"""
         select lp.grouping_kind, lp.grouping_key, lp.pair_kind, lp.post_id,
                lp.criterion_code, lp.leftover_distance, lp.leftover_residual,
-               lp.leftover_map_reconstruction, lp.leftover_map_person_axis_1,
+               lp.leftover_map_reconstruction, lp.leftover_map_rank,
+               lp.leftover_map_person_axis_1,
                lp.leftover_map_person_axis_2, lp.leftover_map_item_axis_1,
                lp.leftover_map_item_axis_2,
                p.post_title, p.visibility_code, p.corporate_entity_id,
@@ -1139,6 +1140,11 @@ async def fetch_period_comparison(
                             None
                             if pair["leftover_map_reconstruction"] is None
                             else float(pair["leftover_map_reconstruction"])
+                        ),
+                        "leftover_map_rank": (
+                            None
+                            if pair["leftover_map_rank"] is None
+                            else int(pair["leftover_map_rank"])
                         ),
                         "leftover_map_person_axis_1": (
                             None

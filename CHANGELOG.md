@@ -8,6 +8,27 @@ All notable changes to this project are documented here. Format follows
 
 ### Added
 
+- Period leftover pairs now return persisted leftover-map rank on
+  `GET /api/reports/compare/{period}` leftover pairs (ADR 0305 / v2.62.0). After
+  `make seed`, grouping comparison leftover-pair buttons that already caption
+  formatLeftoverMapRank can match leftover-map rank on the pair row from the live
+  compare payload, leftover-map axis share badges match leftover-axis report
+  badges from leftover_map_axes, leftover-map coordinates `ξ` / `ζ` match the
+  pair-row badge, leftover-map reconstruction `R̂`, leftover-map explained leftover
+  share `e`, leftover-map unexplained leftover share `s`, leftover-map cross share
+  `x`, leftover-map unexplained leftover `U`, leftover residual `R`, leftover
+  observed `Y`, leftover expected `E`, leftover-map distance `d`, and the strip
+  coverage notes stay on the grouping comparison strip; click a post marker or a
+  pair button opens that post. A missing rank stays null and omits that leftover-map
+  comparison rank badge. Rank-0 origin cells still return `0` when that persisted
+  rank is stored. Do not invent leftover-map rank from leftover-map coordinates,
+  leftover-map distance, leftover-map reconstruction, leftover-map axis share,
+  leftover-map post coverage, leftover-map item coverage, leftover-map incomplete
+  post coverage, leftover-map incomplete item coverage, or the count of unused
+  axes. A finite negative leftover is shown, never clamped. The strip does not
+  gain the leftover-map graphic. Never invent a leftover score or a theta. No new
+  columns.
+
 - Period leftover pairs now return persisted leftover-map axis share on
   `GET /api/reports/compare/{period}` grouping rows and caption the grouping
   comparison strip through leftoverMapCompareAxisShare (ADR 0304 / v2.61.0).

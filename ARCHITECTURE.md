@@ -699,6 +699,8 @@ ADR 0303 returns persisted leftover-map coordinates `ξ` / `ζ` on
 `GET /api/reports/compare/{period}` leftover pairs.
 ADR 0304 captions the grouping comparison strip with persisted leftover-map axis share
 through leftoverMapCompareAxisShare.
+ADR 0305 returns persisted leftover-map rank on
+`GET /api/reports/compare/{period}` leftover pairs.
 Click a post marker or a pair button
 opens that post. Those ADRs are the normative mathematical, storage, and
 display contracts. Leftover-map axis share
@@ -731,7 +733,8 @@ incomplete item coverage (ADR 0292), leftover-map reconstruction `R̂`
 (ADR 0301), leftover-map coordinates `ξ` / `ζ`
 (ADR 0302), leftover-map coordinates on the compare leftover-pair payload
 (ADR 0303), and leftover-map axis share on the grouping comparison strip
-(ADR 0304);
+(ADR 0304), and leftover-map rank on the compare leftover-pair payload
+(ADR 0305);
 `POST .../rebuild` scores every grouping kind (post_admin). `make seed`
 folds A-100/B-200 Event Lineage fixtures (and the Riverbend calendar
 post) that already have constructed IRT cells into the same shared

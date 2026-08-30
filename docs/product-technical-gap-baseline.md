@@ -1,5 +1,30 @@
 # Product & Technical Gap Baseline
 
+> Exact-head loop overlay: 2026-08-31 03:50 KST. Protected `main` is
+> `cb187cadee5fb6c46d8a944815ccc154a1e028d1`. Writes work (close/comment/create-PR/push).
+> Token still has empty `X-OAuth-Scopes`; GitHub App user-to-server writes succeed.
+> Do not self-approve. #842 leftover-map axis share on grouping comparison
+> strip (v2.61.0 / ADR 0304) is `12e40c93acb8473075199d8c8124b85b3d39adff`,
+> stacked on #840 @ `cbf9944`. Competing #828 leftover-map axis share
+> (v2.50.0 / ADR 0293) sits on the incomplete-item dead-end; reconstruction
+> already owns 0293 on this stack. Copilot review cannot be requested (org
+> has one collaborator, `seonghobae`). Next buyer increment on this cycle:
+> leftover-map rank on `GET /api/reports/compare/{period}` leftover pairs
+> (ADR 0305 / v2.62.0) delivered locally on
+> `feat/leftover-map-compare-rank-payload-v2620`. Return persisted
+> leftover_map_rank on each compare leftover pair, preserving nulls and
+> converting stored integers the same way as the detail report. Rank-0 origin
+> cells still return `0` when stored. Missing rank stays null independently of
+> leftover-map axis share, leftover-map coordinates, leftover expected `E`,
+> leftover observed `Y`, leftover residual `R`, leftover-map reconstruction
+> `R̂`, leftover-map distance `d`, and coverage notes. Do not invent leftover-map
+> rank from leftover-map coordinates, leftover-map distance, leftover-map
+> reconstruction, leftover-map axis share, or the count of unused axes. Stack
+> onto #842. Leave open for independent review. Do not squash-merge. Issues
+> #79 and #87 stay open. #96 is already closed. Do not merge #808 without
+> independent APPROVE.
+
+
 > Exact-head loop overlay: 2026-08-31 03:10 KST. Protected `main` is
 > `cb187cadee5fb6c46d8a944815ccc154a1e028d1`. Writes work (close/comment/create-PR/push).
 > Token still has empty `X-OAuth-Scopes`; GitHub App user-to-server writes succeed.
