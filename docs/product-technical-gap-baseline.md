@@ -3,7 +3,9 @@
 > Exact-head development-loop overlay: 2026-08-31 09:00 KST.
 > Protected `main` remains `cb187cadee5fb6c46d8a944815ccc154a1e028d1`;
 > sixty open PRs and ten open issues were enumerated in a fresh snapshot.
-> PR #780's exact head is `48392a8a258cb1e2e1c70af04be769f9996e433e`.
+> PR #780's latest product implementation revision is
+> `4b45377bbadf6fdff023daeb34f82a46661e44de`; this later evidence-only
+> overlay does not transfer hosted evidence from that revision.
 > Every review thread is resolved
 > and normal squash auto-merge remains armed. The focused ontology regression
 > selection passes (37 tests); the affected frontend selection passes (29
@@ -14,7 +16,7 @@
 > required workflow bootstrap and dependency review fail closed: the first
 > still depends on the candidate-only central workflow repair in
 > `ContextualWisdomLab/.github#1420` at
-> `78f890ec28919192aa7e99ed8ac061687d795c98`, where 92 focused policy tests
+> `212ade1d1750e66851bc8ef57defa2c02a899e12`, where 92 focused policy tests
 > pass with 100% statement and branch coverage and normal squash auto-merge is
 > armed; the latter is a fail-closed
 > dependency-graph 403 rather than a product-test failure. Strix is successful
