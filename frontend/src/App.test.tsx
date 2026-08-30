@@ -940,6 +940,10 @@ describe("App, authenticated", () => {
                     observed_response: 2.4,
                     expected_response: 2.0,
                     leftover_map_rank: 1,
+                    leftover_map_person_axis_1: 0.5,
+                    leftover_map_person_axis_2: 0.1,
+                    leftover_map_item_axis_1: 0.5,
+                    leftover_map_item_axis_2: -0.02,
                   },
                 ],
                 leftover_map_coverage: {
@@ -4482,6 +4486,21 @@ describe("App, authenticated", () => {
       ),
     ).toHaveLength(1);
     expect(
+      within(screen.getByLabelText("Grouping comparison")).queryByLabelText(
+        /leftover-map axis/,
+      ),
+    ).not.toBeInTheDocument();
+    expect(
+      within(screen.getByLabelText("Grouping comparison")).getByLabelText(
+        "Leftover map comparison coordinates",
+      ),
+    ).toHaveTextContent("ξ (+0.50, +0.10) ζ (+0.50, −0.02)");
+    expect(
+      within(screen.getByLabelText("Grouping comparison")).getAllByLabelText(
+        "Leftover map comparison coordinates",
+      ),
+    ).toHaveLength(1);
+    expect(
       screen.getByRole("button", {
         name: /open leftover closest pair from comparison: specification revision requested/i,
       }),
@@ -4531,6 +4550,11 @@ describe("App, authenticated", () => {
         name: /open leftover closest pair from comparison: specification revision requested/i,
       }),
     ).not.toHaveTextContent("rank ");
+    expect(
+      screen.getByRole("button", {
+        name: /open leftover closest pair from comparison: specification revision requested/i,
+      }),
+    ).not.toHaveTextContent("ξ");
     expect(
       screen.getByRole("button", { name: "Compare Business unit (PU): Demo Report High, mean θ 0.81" }),
     ).toHaveTextContent("mean θ 0.81");
@@ -4595,6 +4619,11 @@ describe("App, authenticated", () => {
         name: /open leftover closest pair from comparison: public post/i,
       }),
     ).toHaveTextContent("rank 1");
+    expect(
+      screen.getByRole("button", {
+        name: /open leftover closest pair from comparison: public post/i,
+      }),
+    ).toHaveTextContent("ξ (+0.50, +0.10) ζ (+0.50, −0.02)");
     await waitFor(() =>
       expect(fetchMock).toHaveBeenCalledWith(
         expect.stringContaining("/api/reports/thread_group/2026-W02"),

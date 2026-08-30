@@ -171,6 +171,10 @@ import {
   formatLeftoverMapRank,
   LEFTOVER_MAP_COMPARE_RANK_LABEL,
 } from "./leftoverMapRank";
+import {
+  formatLeftoverMapCoordinates,
+  LEFTOVER_MAP_COMPARE_COORDINATES_LABEL,
+} from "./leftoverMapCoordinates";
 import "./App.css";
 
 const AdminPanel = lazy(() => import("./components/AdminPanel").then((module) => ({ default: module.AdminPanel })));
@@ -4112,6 +4116,12 @@ function ReportsPanel({
                     const observed = formatLeftoverMapObserved(pair.observed_response);
                     const expected = formatLeftoverMapExpected(pair.expected_response);
                     const rank = formatLeftoverMapRank(pair.leftover_map_rank);
+                    const coordinates = formatLeftoverMapCoordinates(
+                      pair.leftover_map_person_axis_1,
+                      pair.leftover_map_person_axis_2,
+                      pair.leftover_map_item_axis_1,
+                      pair.leftover_map_item_axis_2,
+                    );
                     return (
                       <li
                         key={`${row.grouping_kind}:${row.grouping_key}:${pair.pair_kind}:${pair.post_id}:${pair.criterion_code}`}
@@ -4208,6 +4218,14 @@ function ReportsPanel({
                               aria-label={t(LEFTOVER_MAP_COMPARE_RANK_LABEL)}
                             >
                               {rank}
+                            </span>
+                          ) : null}
+                          {coordinates ? (
+                            <span
+                              className="post-badge"
+                              aria-label={t(LEFTOVER_MAP_COMPARE_COORDINATES_LABEL)}
+                            >
+                              {coordinates}
                             </span>
                           ) : null}
                         </button>

@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   formatLeftoverMapCoordinatePair,
   formatLeftoverMapCoordinates,
+  LEFTOVER_MAP_COMPARE_COORDINATES_LABEL,
 } from "./leftoverMapCoordinates";
 
 describe("formatLeftoverMapCoordinates", () => {
@@ -23,6 +24,11 @@ describe("formatLeftoverMapCoordinates", () => {
     expect(formatLeftoverMapCoordinates(0, 0, Number.NaN, 0)).toBeNull();
     expect(formatLeftoverMapCoordinates(0, 0, 0, Number.POSITIVE_INFINITY)).toBeNull();
     expect(formatLeftoverMapCoordinates(0, Number.NEGATIVE_INFINITY, 0, 0)).toBeNull();
+  });
+
+  it("keeps the grouping comparison coordinates label distinct from the graphic tick label", () => {
+    expect(LEFTOVER_MAP_COMPARE_COORDINATES_LABEL).toBe("Leftover map comparison coordinates");
+    expect(LEFTOVER_MAP_COMPARE_COORDINATES_LABEL).not.toBe("leftover-map axis {axis} tick {value}");
   });
 });
 
