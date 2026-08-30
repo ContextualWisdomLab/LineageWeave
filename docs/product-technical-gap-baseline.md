@@ -1,21 +1,25 @@
 # Product & Technical Gap Baseline
 
-> Exact-head development-loop overlay: 2026-08-30 16:45 KST. Protected `main`
+> Exact-head development-loop overlay: 2026-08-30 19:20 KST. Protected `main`
 > remains `cb187cadee5fb6c46d8a944815ccc154a1e028d1`; eighteen PRs and ten
-> issues are open. The exact Voice implementation revision reviewed for PR
-> #780 is `56f2103a30cb7f34fe508f46c16b24fa2e2beb28`; the later candidate head
-> `280ba699ac05298281476b6968c84dbfff9bd2f0` changes only documentation and
-> authority-contract tests relative to that implementation. Its full hosted backend and
-> frontend tests are successful, its three current review threads are
-> informational confirmations, and local focused evidence is 31 Python tests
-> plus 533 frontend tests, lint, type checking, and production build. The
-> synthetic 1440-pixel desktop and 390-pixel mobile renders were inspected.
-> The candidate keeps carrying-Post navigation distinct from authorized
-> non-primary derivation evidence and retains multi-property, multi-Voice
-> JSON-LD values while accumulating pages. Authenticated PostgreSQL API and
-> rendered-stack acceptance are still unavailable, so this is not a
-> protected-main product claim. Normal squash auto-merge is enabled only after
-> current required verdicts can succeed; no self-approval or bypass is used.
+> issues are open. PR #780's latest published head is
+> `5fb95e45b3a1f070e40eb84d4f0d99c3625d7a9c`; the reviewed working candidate
+> `43dfcca20667e79e2c461b38b8fc15a0e2927e4d` adds the missing authenticated
+> PostgreSQL API acceptance and the minimal root repair it exposed. The real
+> query failed before returning any neighborhood because PostgreSQL rejected
+> an ungrouped `knowledge_graph_edge.created_at`; the candidate now groups the
+> edge timestamp, migrates the throwaway integration database through the
+> accepted Voice/PROV-O contracts, and proves a genuine Keycloak token can read
+> a synthetic primary Voice. Imported primary carrying evidence remains in the
+> compatibility exact-value row but no longer becomes invented
+> `prov:wasDerivedFrom` or `voiceAssignmentEvidence`. Eighty focused tests,
+> including the authenticated PostgreSQL path, pass. Earlier hosted full
+> backend/frontend tests, 533 frontend tests, lint, type checking, production
+> build, and inspected 1440-pixel desktop/390-pixel mobile synthetic renders
+> remain revision-scoped supporting evidence and must be rerun after publish.
+> Rendered authenticated-stack acceptance is still unavailable, so this is not
+> a protected-main or completed UI acceptance claim. Normal squash auto-merge
+> remains enabled; no self-approval or bypass is used.
 > The required Pingora policy currently fails before review because it tries to
 > UTF-8 decode the candidate PNG screenshots. The owner-repository repair is
 > `ContextualWisdomLab/.github#1427` at
