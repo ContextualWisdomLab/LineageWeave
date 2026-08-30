@@ -180,6 +180,7 @@ import "./App.css";
 const AdminPanel = lazy(() => import("./components/AdminPanel").then((module) => ({ default: module.AdminPanel })));
 const AskEvidenceLayerPopup = lazy(() => import("./components/AskEvidenceLayerPopup").then((module) => ({ default: module.AskEvidenceLayerPopup })));
 const LeftoverPairList = lazy(() => import("./components/LeftoverPairList").then((module) => ({ default: module.LeftoverPairList })));
+const LeftoverMapPlot = lazy(() => import("./components/LeftoverMapPlot").then((module) => ({ default: module.LeftoverMapPlot })));
 const LineageDag = lazy(() => import("./LineageDag").then((module) => ({ default: module.LineageDag })));
 const OntologyExplorer = lazy(() => import("./components/OntologyExplorer").then((module) => ({ default: module.OntologyExplorer })));
 const OperationsDashboard = lazy(() => import("./components/OperationsDashboard").then((module) => ({ default: module.OperationsDashboard })));
@@ -4088,6 +4089,21 @@ function ReportsPanel({
                 </p>
               ) : null}
               {row.leftover_pairs && row.leftover_pairs.length > 0 && (
+                <>
+                <SurfaceBoundary>
+                  <LeftoverMapPlot
+                    pairs={row.leftover_pairs}
+                    criterionLabel={criterionShortLabel}
+                    onSelectPost={(pair) => {
+                      onSelectPost(pair.post_id, {
+                        fromLeftoverPair: {
+                          pairKind: pair.pair_kind === "farthest" ? "farthest" : "closest",
+                          criterionCode: pair.criterion_code,
+                        },
+                      });
+                    }}
+                  />
+                </SurfaceBoundary>
                 <ul className="ticket-list" aria-label={`Leftover pairs for ${row.grouping_label}`}>
                   {row.leftover_pairs.map((pair) => {
                     const kindLabel =
@@ -4233,6 +4249,7 @@ function ReportsPanel({
                     );
                   })}
                 </ul>
+                </>
               )}
             </li>
             );

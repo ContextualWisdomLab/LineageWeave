@@ -1,5 +1,23 @@
 # Product & Technical Gap Baseline
 
+> Exact-head loop overlay: 2026-08-31 03:25 KST. Protected `main` is
+> `cb187cadee5fb6c46d8a944815ccc154a1e028d1`. Writes work. Do not
+> self-approve. #840 leftover-map coordinates `ξ` / `ζ` on
+> `GET /api/reports/compare/{period}` leftover pairs (v2.60.0 / ADR 0303)
+> is `cbf9944`, stacked on #839 @ `51bf33a`. Next buyer increment on this
+> cycle: leftover-map graphic display of already-named `ξ` / `ζ` on the
+> grouping comparison strip (ADR 0304 / v2.61.0) delivered locally on
+> `feat/leftover-map-compare-graphic-v2610`. Reuse LeftoverMapPlot above
+> leftover-pair buttons when four leftover-map axes are finite. Omit the
+> plot when no leftover pair has four finite leftover-map coordinates.
+> Do not caption leftover-map axis share or leftover-map coverage on that
+> comparison graphic. Do not invent coordinates from leftover-map rank,
+> leftover-map distance, or leftover-map reconstruction. Stack onto #840.
+> Leave open for independent review. Do not squash-merge. Issues #79 and
+> #87 stay open. #96 is already closed. Do not merge #808 without
+> independent APPROVE.
+
+
 > Exact-head loop overlay: 2026-08-31 02:30 KST. Protected `main` is
 > `cb187cadee5fb6c46d8a944815ccc154a1e028d1`. Writes work. Do not
 > self-approve. #839 leftover-map coordinates `ξ` / `ζ` on grouping

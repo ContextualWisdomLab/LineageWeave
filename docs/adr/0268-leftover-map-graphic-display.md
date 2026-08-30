@@ -26,7 +26,9 @@
 [ADR 0279](0279-leftover-map-segment-expected.md)
 (leftover expected E on pair segments);
 [ADR 0280](0280-leftover-map-segment-rank.md)
-(leftover-map rank on pair segments)
+(leftover-map rank on pair segments);
+[ADR 0304](0304-leftover-map-compare-graphic.md)
+(leftover-map graphic display on the grouping comparison strip)
 
 Amends [ADR 0049](0049-leftover-pair-report-ui.md) and
 [ADR 0267](0267-leftover-map-coordinates.md). Independent of leftover-map
@@ -87,8 +89,8 @@ that pair from the plot rather than inventing a location. When no
 pair has four finite coordinates, omit the plot and keep the existing
 pair-list next action. Duplicate posts share one person marker;
 duplicate criteria share one item marker. The grouping comparison
-strip (ADR 0149) stays on its reduced leftover payload and does not
-gain this plot.
+strip (ADR 0149) later gains this plot from already-named leftover-map
+coordinates (ADR 0304).
 
 Do not add SQL. Do not edit shipped migrations. Do not persist inner
 product, cosine, or length as separate columns.

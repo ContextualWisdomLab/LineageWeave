@@ -30,9 +30,10 @@
  *  (ADR 0299), grouping comparison leftover expected
  *  (ADR 0300), grouping comparison leftover-map rank
  *  (ADR 0301), grouping comparison leftover-map coordinates
- *  (ADR 0302), and grouping comparison leftover-map coordinates payload
- *  (ADR 0303) caption the pair list or the grouping comparison strip,
- *  not this graphic layout.
+ *  (ADR 0302), grouping comparison leftover-map coordinates payload
+ *  (ADR 0303), and grouping comparison leftover-map graphic display
+ *  (ADR 0304) caption the pair list or the grouping comparison strip.
+ *  ADR 0304 reuses this graphic layout on the grouping comparison strip.
  */
 
 import { formatLeftoverMapCoordinatePair } from "./leftoverMapCoordinates";
