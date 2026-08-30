@@ -709,7 +709,10 @@ comparison leftover-map graphic when leftoverMapCoverageCounts returns usable
 complete-case integers.
 ADR 0307 captions leftover-map item complete-case coverage on that grouping
 comparison leftover-map graphic when leftoverMapItemCoverageCounts returns usable
-complete-case integers and does not caption leftover-map incomplete coverage
+complete-case integers.
+ADR 0308 captions leftover-map incomplete post coverage on that grouping
+comparison leftover-map graphic when leftoverMapIncompletePostCount returns a usable
+dropped integer and does not caption leftover-map incomplete item coverage
 on that comparison plot.
 Click a post marker or a pair button
 opens that post. Those ADRs are the normative mathematical, storage, and
@@ -745,8 +748,9 @@ incomplete item coverage (ADR 0292), leftover-map reconstruction `R̂`
 (ADR 0303), leftover-map graphic display on the grouping comparison strip
 (ADR 0304), leftover-map axis share on the grouping comparison leftover-map
 graphic (ADR 0305), leftover-map complete-case coverage on the grouping
-comparison leftover-map graphic (ADR 0306), and leftover-map item complete-case
-coverage on the grouping comparison leftover-map graphic (ADR 0307);
+comparison leftover-map graphic (ADR 0306), leftover-map item complete-case
+coverage on the grouping comparison leftover-map graphic (ADR 0307), and leftover-map
+incomplete post coverage on the grouping comparison leftover-map graphic (ADR 0308);
 `POST .../rebuild` scores every grouping kind (post_admin). `make seed`
 folds A-100/B-200 Event Lineage fixtures (and the Riverbend calendar
 post) that already have constructed IRT cells into the same shared

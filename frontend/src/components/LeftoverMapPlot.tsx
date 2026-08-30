@@ -8,6 +8,7 @@ import {
   leftoverMapItemCoverageCounts,
   LEFTOVER_MAP_COMPARE_PLOT_COVERAGE_LABEL,
   LEFTOVER_MAP_COMPARE_PLOT_ITEM_COVERAGE_LABEL,
+  LEFTOVER_MAP_COMPARE_PLOT_INCOMPLETE_POST_LABEL,
   LEFTOVER_MAP_PLOT_COVERAGE,
   LEFTOVER_MAP_PLOT_COVERAGE_LABEL,
   LEFTOVER_MAP_PLOT_INCOMPLETE_ITEM,
@@ -129,8 +130,11 @@ function leftoverMapPlotAxisText(
  * comparison plot. ADR 0307 captions leftover-map item complete-case
  * coverage on that comparison graphic from already-named leftover-map
  * coverage with distinct leftover map comparison graphic item coverage
- * labels and does not caption leftover-map incomplete coverage on that
- * comparison plot.
+ * labels and does not caption leftover-map incomplete item coverage on that
+ * comparison plot. ADR 0308 captions leftover-map incomplete post coverage
+ * on that comparison graphic from already-named leftover-map coverage with
+ * distinct leftover map comparison graphic incomplete posts labels and does
+ * not caption leftover-map incomplete item coverage on that comparison plot.
  * Never invent a leftover score.
  */
 export function LeftoverMapPlot({
@@ -191,11 +195,15 @@ export function LeftoverMapPlot({
           {tf(LEFTOVER_MAP_PLOT_ITEM_COVERAGE, itemCoverageCounts)}
         </p>
       ) : null}
-      {variant !== "comparison" && incompletePostCount !== null ? (
+      {incompletePostCount !== null ? (
         <p
           className="leftover-map-plot-incomplete-posts"
           role="note"
-          aria-label={t(LEFTOVER_MAP_PLOT_INCOMPLETE_POST_LABEL)}
+          aria-label={t(
+            variant === "comparison"
+              ? LEFTOVER_MAP_COMPARE_PLOT_INCOMPLETE_POST_LABEL
+              : LEFTOVER_MAP_PLOT_INCOMPLETE_POST_LABEL,
+          )}
         >
           {tf(LEFTOVER_MAP_PLOT_INCOMPLETE_POST, incompletePostCount)}
         </p>
