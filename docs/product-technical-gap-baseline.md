@@ -1,5 +1,31 @@
 # Product & Technical Gap Baseline
 
+> Exact-head loop overlay: 2026-08-31 07:00 KST. Protected `main` is
+> `cb187cadee5fb6c46d8a944815ccc154a1e028d1` (leftover-map coordinates,
+> graphic, axis share, ticks, and segment distance through v2.28.0, #782).
+> The live inventory contains 55 open PRs and 10 open issues. Parent #782 is
+> protected-merged; its first child #802 was therefore retargeted from the
+> merged feature branch to `main`, and its squash-history conflict is repaired
+> without force-push while preserving ADR 0272/0273 and v2.29.0/v2.30.0.
+> #771, #772, #774, and #780 remain exact-head blocked: normal squash
+> auto-merge is armed, no independent APPROVE exists, and failed hosted gates
+> remain fail-closed rather than being treated as product failures. #780's
+> focused Voice authority tests, frontend suite, lint, and build pass locally;
+> its desktop and mobile evidence distinguish the carrying Post action from
+> the separately authorized derivation-evidence action. This is candidate
+> evidence only: authenticated PostgreSQL API and rendered runtime proof are
+> still required before marking the Voice acceptance boundary complete.
+>
+> Highest buyer-visible active gap in this slice: finish the protected parent-
+> first delivery of persisted leftover-map reconstruction `R̂` and explained
+> share `e` on graphic pair segments (#802), without recomputing either value in
+> LineageWeave. The implementation consumes the already persisted owner result,
+> omits missing/non-finite values, and has focused regression coverage. Parallel
+> stacked branches currently reuse release numbers (v2.46.0, v2.47.0, v2.50.0,
+> and v2.61.0); those branches are not release-ready and must be serialized and
+> renumbered after their common parent merges. No stacked child may be retargeted
+> or inherit Checks before its own parent is protected-merged.
+
 > Exact-head loop overlay: 2026-08-29 20:00 KST. Protected `main` is
 > `fc13acaa20adca11968238e398d4aafcf62b6cee` (v2.23.0 leftover-map
 > explained leftover share, #775). Open ready PRs still lack independent
