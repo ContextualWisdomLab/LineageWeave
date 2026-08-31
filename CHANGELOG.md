@@ -8,6 +8,16 @@ All notable changes to this project are documented here. Format follows
 
 ### Added
 
+- Period leftover pairs now caption leftover-map comparison graphic leftover-map post leftover-map origin leftover-map person coordinates
+  through leftoverMapComparePlotPostBadge independently of leftover-map graphic leftover-map post leftover-map origin leftover-map person coordinates (ADR 0349 / v2.106.0). After `make seed`, leftover-map comparison graphic leftover-map
+  post leftover-map origin leftover-map person coordinates name leftover-map origin when leftoverMapPlotCoordinatePairIsOrigin returns true. Distinct accessible name
+  `Open leftover map comparison graphic leftover-map post {title} at leftover-map origin ξ {person}`. Rank-0 unused axes still name leftover-map origin `(0.00, 0.00)`.
+  Non-origin leftover-map comparison graphic leftover-map post leftover-map person coordinates stay
+  `Open leftover map comparison graphic leftover-map post {title} at ξ {person}`. leftoverMapPlotPostBadge stays leftover-map graphic leftover-map
+  post leftover-map origin leftover-map person coordinate keys. leftoverMapComparePlotCriterionBadge stays leftover-map comparison graphic leftover-map criterion leftover-map
+  item coordinate keys this increment. Do not invent leftover-map origin from leftover-map item coordinates `ζ`.
+  Do not mix #877. A finite negative leftover is shown, never clamped. Never invent a leftover score or a theta. No new columns.
+
 - Period leftover pairs now caption leftover-map graphic leftover-map post leftover-map origin leftover-map person coordinates
   through leftoverMapPlotPostBadge independently of leftover-map criterion leftover-map item coordinates (ADR 0348 / v2.105.0). After `make seed`, leftover-map graphic leftover-map
   post leftover-map origin leftover-map person coordinates name leftover-map origin when leftoverMapPlotCoordinatePairIsOrigin returns true. Distinct accessible name

@@ -6,6 +6,7 @@ import {
   leftoverMapPlotPostBadge,
   LEFTOVER_MAP_COMPARE_PLOT_CRITERION,
   LEFTOVER_MAP_COMPARE_PLOT_POST_ACTION,
+  LEFTOVER_MAP_COMPARE_PLOT_POST_ACTION_ORIGIN,
   LEFTOVER_MAP_PLOT_CRITERION,
   LEFTOVER_MAP_PLOT_CRITERION_ORIGIN,
   LEFTOVER_MAP_PLOT_POST_ACTION,
@@ -80,13 +81,22 @@ describe("leftoverMapPlotCoordinatePairIsOrigin", () => {
     expect(leftoverMapPlotPostBadge("Public post", 0, 0)?.key).toBe(LEFTOVER_MAP_PLOT_POST_ACTION_ORIGIN);
     expect(leftoverMapPlotPostBadge("Public post", 0, 0)?.key).not.toBe(LEFTOVER_MAP_PLOT_CRITERION_ORIGIN);
     expect(leftoverMapPlotPostBadge("Public post", 0, 0)?.key).not.toBe(LEFTOVER_MAP_PLOT_POST_ACTION);
+    expect(leftoverMapComparePlotPostBadge("Public post", 0, 0)?.key).toBe(
+      LEFTOVER_MAP_COMPARE_PLOT_POST_ACTION_ORIGIN,
+    );
     expect(leftoverMapComparePlotPostBadge("Public post", 0, 0)?.key).not.toBe(
       LEFTOVER_MAP_PLOT_POST_ACTION_ORIGIN,
+    );
+    expect(leftoverMapComparePlotPostBadge("Public post", 0, 0)?.key).not.toBe(
+      LEFTOVER_MAP_COMPARE_PLOT_POST_ACTION,
     );
     expect(leftoverMapListCriterionBadge("sales-lead", 0, 0)?.key).not.toBe(
       LEFTOVER_MAP_PLOT_CRITERION_ORIGIN,
     );
     expect(leftoverMapListPostBadge("Public post", 0, 0)?.key).not.toBe(LEFTOVER_MAP_PLOT_POST_ACTION_ORIGIN);
+    expect(leftoverMapListPostBadge("Public post", 0, 0)?.key).not.toBe(
+      LEFTOVER_MAP_COMPARE_PLOT_POST_ACTION_ORIGIN,
+    );
   });
 });
 
@@ -108,6 +118,9 @@ describe("leftoverMapListPostBadge", () => {
       values: { title: "Public post", person: "(0.00, 0.00)" },
     });
     expect(leftoverMapListPostBadge("Public post", 0, 0)?.key).not.toBe(LEFTOVER_MAP_PLOT_POST_ACTION_ORIGIN);
+    expect(leftoverMapListPostBadge("Public post", 0, 0)?.key).not.toBe(
+      LEFTOVER_MAP_COMPARE_PLOT_POST_ACTION_ORIGIN,
+    );
   });
 
   it("omits leftover-map person coordinates when ξ is missing or non-finite", () => {
@@ -129,6 +142,7 @@ describe("leftoverMapListPostBadge", () => {
     );
     expect(LEFTOVER_MAP_LIST_POST_ACTION).not.toBe(LEFTOVER_MAP_PLOT_POST_ACTION);
     expect(LEFTOVER_MAP_LIST_POST_ACTION).not.toBe(LEFTOVER_MAP_PLOT_POST_ACTION_ORIGIN);
+    expect(LEFTOVER_MAP_LIST_POST_ACTION).not.toBe(LEFTOVER_MAP_COMPARE_PLOT_POST_ACTION_ORIGIN);
     expect(LEFTOVER_MAP_LIST_POST_ACTION).not.toBe(LEFTOVER_MAP_COMPARE_PLOT_POST_ACTION);
     expect(LEFTOVER_MAP_LIST_POST_ACTION).not.toBe(LEFTOVER_MAP_COMPARE_LIST_POST_ACTION);
     expect(leftoverMapListPostBadge("Public post", 0.5, 0.1)?.key).not.toBe(
@@ -217,6 +231,9 @@ describe("leftoverMapCompareListPostBadge", () => {
       key: LEFTOVER_MAP_COMPARE_LIST_POST_ACTION,
       values: { title: "Public post", person: "(0.00, 0.00)" },
     });
+    expect(leftoverMapCompareListPostBadge("Public post", 0, 0)?.key).not.toBe(
+      LEFTOVER_MAP_COMPARE_PLOT_POST_ACTION_ORIGIN,
+    );
   });
 
   it("omits leftover-map person coordinates when ξ is missing or non-finite", () => {
@@ -241,6 +258,7 @@ describe("leftoverMapCompareListPostBadge", () => {
     expect(LEFTOVER_MAP_COMPARE_LIST_POST_ACTION).not.toBe(LEFTOVER_MAP_LIST_POST_ACTION);
     expect(LEFTOVER_MAP_COMPARE_LIST_POST_ACTION).not.toBe(LEFTOVER_MAP_PLOT_POST_ACTION);
     expect(LEFTOVER_MAP_COMPARE_LIST_POST_ACTION).not.toBe(LEFTOVER_MAP_COMPARE_PLOT_POST_ACTION);
+    expect(LEFTOVER_MAP_COMPARE_LIST_POST_ACTION).not.toBe(LEFTOVER_MAP_COMPARE_PLOT_POST_ACTION_ORIGIN);
     expect(leftoverMapCompareListPostBadge("Public post", 0.5, 0.1)?.key).not.toBe(
       leftoverMapListPostBadge("Public post", 0.5, 0.1)?.key ?? "",
     );

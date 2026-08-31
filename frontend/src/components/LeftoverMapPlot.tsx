@@ -172,7 +172,9 @@ function leftoverMapPlotPostText(
  * returns true. Caption leftover-map comparison graphic leftover-map
  * criterion markers with persisted leftover-map item coordinates ``ζ_{1:2}``
  * when leftoverMapComparePlotCriterionBadge returns a usable leftover-map comparison
- * graphic leftover-map criterion leftover-map item coordinate caption. Caption leftover-map
+ * graphic leftover-map criterion leftover-map item coordinate caption. Caption leftover-map origin on leftover-map comparison graphic leftover-map
+ * post leftover-map person coordinates independently of leftover-map graphic leftover-map post leftover-map origin leftover-map person coordinates when leftoverMapPlotCoordinatePairIsOrigin
+ * returns true. Caption leftover-map
  * comparison graphic leftover-map post markers with persisted leftover-map person coordinates
  * ``ξ_{1:2}`` when leftoverMapComparePlotPostBadge returns a usable leftover-map comparison
  * graphic leftover-map post leftover-map person coordinate caption. Caption leftover-map graphic leftover-map

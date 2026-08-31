@@ -174,6 +174,7 @@ describe("i18n", () => {
     "Open leftover-map post {title} at leftover-map origin ξ {person}",
     "Open leftover-map post {title}",
     "Open leftover map comparison graphic leftover-map post {title} at ξ {person}",
+    "Open leftover map comparison graphic leftover-map post {title} at leftover-map origin ξ {person}",
     "Read observed Y {observed} and expected E {expected} after IRT main effects, then open this post.",
     "Leftover map has no leftover structure after IRT main effects. Open this post.",
     "Leftover map rank {rank} after IRT main effects. Open this post.",
@@ -536,6 +537,24 @@ describe("i18n", () => {
       }),
     ).toBe(expected);
   });
+
+  it.each([
+    ["ko", "잔여 지도 비교 그림 원점 글 Public post 열기 (ξ (0.00, 0.00))"],
+    ["zh", "打开残差地图比较图形原点帖子 Public post（ξ (0.00, 0.00)）"],
+    ["ja", "残差マップの比較図の原点投稿 Public post を開く（ξ (0.00, 0.00)）"],
+    ["vi", "Mở bài gốc đồ họa so sánh bản đồ phần dư Public post tại ξ (0.00, 0.00)"],
+  ] as const)(
+    "formats leftover map comparison graphic leftover-map post leftover-map origin ξ in %s",
+    (locale, expected) => {
+      setLocale(locale);
+      expect(
+        tf("Open leftover map comparison graphic leftover-map post {title} at leftover-map origin ξ {person}", {
+          title: "Public post",
+          person: "(0.00, 0.00)",
+        }),
+      ).toBe(expected);
+    },
+  );
 
   it.each([
     ["ko", "잔여 지도 그림 포함 범위"],
