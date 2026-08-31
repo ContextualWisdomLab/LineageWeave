@@ -45,6 +45,9 @@ derived from either standard or from a rule of thumb.
 7. k6 and database-plan checks enforce the same 20 ms maximum. The gate records
    cold and warm observations separately and fails on any HTTP, authorization,
    schema, citation, or latency failure.
+8. Backend PostgreSQL sessions disable JIT. Runtime plans showed compilation
+   startup dominating the bounded interactive aggregates without changing the
+   result; analytical workers may opt in only with their own measured plan.
 
 ## Consequences
 

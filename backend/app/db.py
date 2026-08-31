@@ -9,7 +9,12 @@ from fastapi import Request
 
 async def create_pool(database_url: str) -> asyncpg.Pool:
     """Open the process-wide asyncpg pool against ``database_url``."""
-    return await asyncpg.create_pool(database_url, min_size=1, max_size=10)
+    return await asyncpg.create_pool(
+        database_url,
+        min_size=1,
+        max_size=10,
+        server_settings={"jit": "off"},
+    )
 
 
 def get_pool(request: Request) -> asyncpg.Pool:
