@@ -596,6 +596,82 @@ def test_voice_admission_defer_waits_for_independent_operations(monkeypatch) -> 
     assert deferred == [(2, 30)]
 
 
+def test_admission_defer_does_not_hide_independent_hard_failure(monkeypatch) -> None:
+    """A hard stage failure consumes its retry even when another stage defers."""
+    failed_stages: list[str | None] = []
+    deferred: list[int] = []
+
+    async def claim(*_args, **_kwargs):
+        return _row(RUNNING, 1)
+
+    async def fail_voice(*_args, **_kwargs):
+        raise ValueError("synthetic invalid Voice response")
+
+    async def defer_operations(*_args, **_kwargs):
+        raise HttpAdmissionDeferred(30)
+
+    async def finish_failed(_pool, _post_id, **kwargs):
+        failed_stages.append(kwargs.get("channel_stage_code"))
+
+    async def defer(*_args, **_kwargs):
+        deferred.append(1)
+        return True
+
+    monkeypatch.setattr(post_content_worker, "_claim_job", claim)
+    monkeypatch.setattr(
+        post_content_worker,
+        "load_settings",
+        lambda: SimpleNamespace(orchestrator_base_url="gateway", orchestrator_api_key="key"),
+    )
+    monkeypatch.setattr(
+        post_content_worker, "_persist_voice_classification_if_needed", fail_voice
+    )
+    monkeypatch.setattr(
+        post_content_worker,
+        "_operations_evidence_sources",
+        lambda *_args, **_kwargs: asyncio.sleep(0, result=()),
+    )
+    monkeypatch.setattr(
+        post_content_worker,
+        "_persist_operations_case_analysis_if_needed",
+        defer_operations,
+    )
+    monkeypatch.setattr(
+        post_content_worker,
+        "extract_occupational_construct_assertions",
+        lambda *_args, **_kwargs: asyncio.sleep(0, result=()),
+    )
+    monkeypatch.setattr(
+        post_content_worker,
+        "persist_occupational_construct_assertions",
+        lambda *_args, **_kwargs: asyncio.sleep(0),
+    )
+    monkeypatch.setattr(post_content_worker, "normalize_post_body", lambda *_args: object())
+    monkeypatch.setattr(
+        post_content_worker, "persist_post_content", lambda *_args, **_kwargs: asyncio.sleep(0)
+    )
+    monkeypatch.setattr(post_content_worker, "_finish_failed_job", finish_failed)
+    monkeypatch.setattr(post_content_worker, "defer_post_content_job", defer)
+    monkeypatch.setattr(
+        post_content_worker, "record_server_failure", lambda *_args, **_kwargs: None
+    )
+    client = SimpleNamespace(available=True, resolved_model="synthetic-model")
+
+    asyncio.run(
+        post_content_worker.process_post_content_job(
+            _Pool(_Connection()),
+            post_id="00000000-0000-0000-0000-000000000001",
+            source_body_digest="a" * 64,
+            vision_factory=lambda: client,
+            embedding_factory=lambda: client,
+            structure_factory=lambda: client,
+        )
+    )
+
+    assert failed_stages == ["voice_classification"]
+    assert deferred == []
+
+
 def test_incomplete_provider_output_is_requeued_with_a_failure_code(monkeypatch) -> None:
     connection = _Connection(values=[False, 2])
     pool = _Pool(connection)
@@ -716,8 +792,8 @@ def test_product_analysis_persists_one_exact_authorized_window(monkeypatch) -> N
             mention=mentions[0], resolution_status_code="missing", product_catalog_id=None
         ),)
 
-    async def persist(*args):
-        events.append(args)
+    async def persist(*args, **kwargs):
+        events.append((args, kwargs))
 
     monkeypatch.setattr(
         post_content_worker,
@@ -754,7 +830,9 @@ def test_product_analysis_persists_one_exact_authorized_window(monkeypatch) -> N
         )
     )
     assert len(events) == 2
-    assert len(events[1][2]) == 64
+    persist_args, persist_kwargs = events[1]
+    assert len(persist_args[2]) == 64
+    assert persist_kwargs == {"expected_operations_input_sha256": None}
     assert submitted_sources[0].text == "Synthetic Product Q"
     assert [source.post_id for source in submitted_sources] == ["post-1"]
     operation_query, operation_args = connection.fetched[0]

@@ -279,6 +279,12 @@ async def persist_post_summary(
             resolved_organization_ids[role_index] = corporate_entity_id
 
     async with conn.transaction():
+        # Product extraction uses this same source-row lock while rechecking
+        # its project targets. Serialize target replacement before invalidation.
+        await conn.execute(
+            "select 1 from source_post where post_id = $1::uuid for update",
+            post_id,
+        )
         await _replace_summary_projection(
             conn,
             post_id,

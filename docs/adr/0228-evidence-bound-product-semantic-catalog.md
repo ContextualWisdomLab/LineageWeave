@@ -93,17 +93,25 @@ the current focal body. A stale target is omitted, never repaired or promoted
 from a catalog hint.
 
 Before replacement, persistence locks the focal source row and recomputes its
-body digest. A stale provider result fails closed without deleting the current
-projection. A current completion stores the source digest, exact request-input
-digest, orchestrator session, and model receipt. Historical completion rows
-without a receipt are unavailable and are selected for bounded retry; they do
-not prove a current analysis.
+body digest and the complete typed-target request digest. Operations and
+project-target replacement take the same source-row lock before invalidating
+the product completion, so a target change either rejects the in-flight result
+or removes it after that result commits. A stale provider result fails closed
+without deleting the current projection. A current completion stores the
+source digest, exact request-input digest, orchestrator session, and model
+receipt. Historical completion rows without a receipt are unavailable and are
+selected for bounded retry; they do not prove a current analysis.
 
 Replacing an operations-fact or project target invalidates the post's product
 analysis before the target projection is replaced. The durable content job
 must extract the relationship evidence again even when the replacement keeps
 the same displayed value; a cascade-deleted relation must never be mistaken
 for an already-complete analysis.
+
+Independent stages all run before the job outcome is chosen. An exact provider
+admission delay defers the attempt only when every recorded stage failure is an
+admission delay. Any ordinary validation or transport failure retains bounded
+failure accounting and cannot be hidden by a later deferred stage.
 
 Post and Dashboard reads re-apply source eligibility and ABAC to every
 relation evidence post. RDF projection uses the same normalized target and
