@@ -8,6 +8,20 @@ All notable changes to this project are documented here. Format follows
 
 ### Added
 
+- Period leftover pairs now caption leftover-map comparison graphic leftover-map axis origin ticks
+  through leftoverMapComparePlotTickAxisBadge independently of leftover-map axis share and leftover-map singular values (ADR 0344 / v2.101.0). After `make seed`, leftover-map comparison graphic leftover-map
+  axis origin ticks name leftover-map origin when leftoverMapPlotTickIsOrigin returns true. Distinct accessible name
+  `leftover map comparison graphic leftover-map axis {axis} origin tick {value}`. Rank-0 unused axes still name leftover-map origin `0.00`. Share and
+  singular omit independently as
+  `leftover map comparison graphic leftover-map axis {axis} origin tick {value} σ {singular}`,
+  `leftover map comparison graphic leftover-map axis {axis} origin tick {value} {share}%`, and
+  `leftover map comparison graphic leftover-map axis {axis} origin tick {value} σ {singular} {share}%`.
+  Non-origin leftover-map comparison graphic leftover-map axis ticks stay
+  `leftover map comparison graphic leftover-map axis {axis} tick {value}`. leftoverMapPlotTickAxisBadge stays leftover-map graphic leftover-map
+  axis origin tick keys. leftoverMapCompareAxisTickBadge and leftoverMapAxisTickBadge stay leftover-map tick keys
+  this increment. Do not invent leftover-map origin from leftover-map axis share or leftover-map singular values `σ_k`.
+  Do not mix #877. A finite negative leftover is shown, never clamped. Never invent a leftover score or a theta. No new columns.
+
 - Period leftover pairs now caption leftover-map graphic leftover-map axis origin ticks
   through leftoverMapPlotTickAxisBadge independently of leftover-map axis share and leftover-map singular values (ADR 0343 / v2.100.0). After `make seed`, leftover-map graphic leftover-map
   axis origin ticks name leftover-map origin when leftoverMapPlotTickIsOrigin returns true. Distinct accessible name
