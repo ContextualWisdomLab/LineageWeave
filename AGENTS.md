@@ -273,7 +273,7 @@ stops startup instead of leaving a healthy-looking partial schema, and
 application code must not compensate for a missing table.
 
 Period leftover pairs (ADR 0017 / 0018 / 0048 / 0049 / 0119 / 0158 / 0162 /
-0163 / 0164 / 0182 / 0185 / 0201 / 0233 / 0266 / 0267 / 0268 / 0269 / 0270 / 0271 / 0272 / 0273 / 0274 / 0275 / 0276 / 0277 / 0278 / 0279 / 0280 / 0281 / 0282 / 0283 / 0284 / 0285 / 0286 / 0287 / 0288 / 0289 / 0290 / 0291 / 0292 / 0293 / 0294 / 0295 / 0296 / 0297 / 0298 / 0299 / 0300 / 0301 / 0302 / 0303 / 0304 / 0305 / 0306 / 0307 / 0308 / 0309 / 0310 / 0311 / 0312 / 0313 / 0314 / 0315 / 0316 / 0317 / 0318 / 0319 / 0320 / 0321 / 0322 / 0323) are computed in `lineageweave/leftover_pairs.py` from the
+0163 / 0164 / 0182 / 0185 / 0201 / 0233 / 0266 / 0267 / 0268 / 0269 / 0270 / 0271 / 0272 / 0273 / 0274 / 0275 / 0276 / 0277 / 0278 / 0279 / 0280 / 0281 / 0282 / 0283 / 0284 / 0285 / 0286 / 0287 / 0288 / 0289 / 0290 / 0291 / 0292 / 0293 / 0294 / 0295 / 0296 / 0297 / 0298 / 0299 / 0300 / 0301 / 0302 / 0303 / 0304 / 0305 / 0306 / 0307 / 0308 / 0309 / 0310 / 0311 / 0312 / 0313 / 0314 / 0315 / 0316 / 0317 / 0318 / 0319 / 0320 / 0321 / 0322 / 0323 / 0324) are computed in `lineageweave/leftover_pairs.py` from the
 residual after a real GRM/GPCM score, never invented. Distances are
 Euclidean on the two-dimensional Gabriel leftover map; missing cells stay
 out of the factorization. Closest and farthest post–criterion pairs
@@ -656,6 +656,11 @@ leftoverMapCompareAxisBadge returns a usable leftover-axis caption. Distinct acc
 name `leftover map comparison leftover axis {axis} σ {value}`. Share and singular value
 omit independently. Rank-0 unused axes still name `σ 0.00`. Do not invent leftover-map
 singular values from leftover-map axis share.
+ADR 0324 captions leftover-map graphic-display axes with persisted leftover-map singular
+values `σ_k` when leftoverMapPlotAxisBadge returns a usable leftover-map axis caption.
+Distinct accessible name `leftover-map axis {axis} σ {value} ({share}%)`. Share and
+singular value omit independently. Rank-0 unused axes still name leftover-map axis
+`σ 0.00`. Do not invent leftover-map singular values from leftover-map axis share.
 When `R`, `R̂`, `U`, `x`,
 `s`, and `e` are finite, `e + s + x = 1`. When `Y`, `E`, and `R` are
 finite, `Y − E = R`. When `R`, `R̂`, and `U` are
@@ -760,6 +765,9 @@ returns a usable finite non-negative value.
 Grouping comparison leftover-axis report badge leftover-map singular values (ADR 0323) captions
 leftover-axis report badges on the grouping comparison strip with persisted leftover-map
 singular values `σ_k` when leftoverMapCompareAxisBadge returns a usable leftover-axis caption.
+Leftover-map graphic-display leftover-map singular values (ADR 0324) captions leftover-map
+graphic-display axes with persisted leftover-map singular values `σ_k` when leftoverMapPlotAxisBadge
+returns a usable leftover-map axis caption.
 Item complete-case coverage
 (ADR 0282) captions the leftover-map graphic with how many scored criteria
 entered the map. Item complete-case coverage on the pair list (ADR 0285)
