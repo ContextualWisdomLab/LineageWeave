@@ -244,10 +244,11 @@ describe("layoutLeftoverMapPlot", () => {
       criterionLabel,
     );
     expect(layout?.segments.map((segment) => segment.distanceLabel)).toEqual(["d 0.12", "d 1.84"]);
-    expect(layout?.segments[0]?.labelX).toBeCloseTo(
-      ((layout?.segments[0]?.x1 ?? 0) + (layout?.segments[0]?.x2 ?? 0)) / 2,
-      5,
-    );
+    const segment = layout?.segments[0];
+    const midpointX = ((segment?.x1 ?? 0) + (segment?.x2 ?? 0)) / 2;
+    const midpointY = ((segment?.y1 ?? 0) + (segment?.y2 ?? 0)) / 2;
+    expect(Math.hypot((segment?.labelX ?? 0) - midpointX, (segment?.labelY ?? 0) - midpointY))
+      .toBeCloseTo(24, 5);
   });
 
   it("omits a leftover-map distance caption when d is missing or non-finite", () => {

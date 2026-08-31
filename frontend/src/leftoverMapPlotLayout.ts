@@ -37,6 +37,7 @@ export const PLOT_TICK_LENGTH = 6;
 const UNIT_DISPLAY_SPAN = 2;
 const COLLAPSED_SPAN = 1e-12;
 const COINCIDENT_LABEL_OFFSET = 14;
+const SEGMENT_LABEL_OFFSET = 24;
 const RECONSTRUCTION_LABEL_OFFSET = 12;
 
 export type LeftoverMapPlottablePair = {
@@ -205,9 +206,20 @@ function leftoverMapSegmentLabelPosition(
   y2: number,
 ): { labelX: number; labelY: number } {
   const coincident = Math.abs(x1 - x2) < 0.01 && Math.abs(y1 - y2) < 0.01;
+  const midpointX = (x1 + x2) / 2;
+  const midpointY = (y1 + y2) / 2;
+  if (coincident) {
+    return {
+      labelX: midpointX,
+      labelY: midpointY - COINCIDENT_LABEL_OFFSET,
+    };
+  }
+  const deltaX = x2 - x1;
+  const deltaY = y2 - y1;
+  const length = Math.hypot(deltaX, deltaY);
   return {
-    labelX: (x1 + x2) / 2,
-    labelY: coincident ? (y1 + y2) / 2 - COINCIDENT_LABEL_OFFSET : (y1 + y2) / 2,
+    labelX: midpointX - (deltaY / length) * SEGMENT_LABEL_OFFSET,
+    labelY: midpointY + (deltaX / length) * SEGMENT_LABEL_OFFSET,
   };
 }
 
