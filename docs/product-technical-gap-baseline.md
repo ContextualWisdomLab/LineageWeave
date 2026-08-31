@@ -1,5 +1,45 @@
 # Product & Technical Gap Baseline
 
+> Exact-head development-loop overlay: 2026-08-31 19:39 KST. Protected
+> `main` remains `cb187cadee5fb6c46d8a944815ccc154a1e028d1`; ninety-one PRs and
+> nine non-PR issues are open. PR #780's exact parent for this evidence-only
+> update is `79dbedf3d8ea86bb17fda2484e22a5b21566a916`, based on `main`.
+> All review threads are resolved and normal squash auto-merge remains armed,
+> but no independent `APPROVED` review exists. Fourteen checks succeed, four
+> fail, and eleven are skipped; none is pending. Product tests, frontend lint,
+> frontend tests/build, ontology publication, CodeQL, Semgrep, OSV, Trivy,
+> Scorecard, the queue scan, CodeRabbit, and Devin succeed on that exact head.
+> The four failures remain fail-closed external or owner-bound evidence gaps:
+> the protected central Pingora policy reads the committed PNG render as
+> UTF-8, Noema times out after the governed contextual-orchestrator sidecar is
+> ready, Strix exhausts the virtual provider route after bounded retries, and
+> GitHub denies dependency-graph comparison with HTTP 403. None is relabeled
+> as product success.
+>
+> The central binary-evidence root repair remains candidate-only in
+> `ContextualWisdomLab/.github#1420` at
+> `b4dfa6163eb58ac9f9b1a240bcfbb5bfda957332`. It is currently behind central
+> `main`, lacks an independent approval, and its hosted OpenCode verdict fails;
+> normal squash auto-merge was re-armed without bypass. PR #847's PRD identity
+> repair remains candidate-only at
+> `a87c6ec96c546c214461727efedeb8e7549d0fdd`, with auto-merge armed and no
+> independent approval. Accepted ADRs therefore remain authoritative.
+>
+> The largest directly actionable buyer gap remains the PR #780 Voice export
+> implementation: exact-value UI and CSV distinguish the carrying Post from
+> genuine derivation evidence; additional Voices preserve an authorized Post,
+> PROV-O derivation, truth status, and cutoff; primary Voices do not acquire an
+> invented derivation; and paged JSON-LD unions same-subject multi-Voice
+> relations. ADR 0246's twelve atomic classifications remain extensible rows,
+> not enumerated combinations. Earlier authenticated synthetic PostgreSQL/API
+> and desktop/mobile rendered evidence remains revision-scoped; protected-main
+> delivery and merge SHA are unavailable. Canonical remotes were freshly
+> verified as `ContextualWisdomLab/LineageWeave`, `RankWeave`, `ThreadWeave`,
+> lowercase `disksage`, `TEPP`, `fast-mlsirm`, and
+> `contextual-orchestrator`. No self-approval, admin bypass, force push,
+> heuristic classification, invented weight, or hidden-evidence substitution
+> was used.
+
 > Development-loop evidence snapshot: 2026-08-31 17:13 KST. Protected
 > `main` is `cb187cadee5fb6c46d8a944815ccc154a1e028d1`; eighty-two PRs and
 > ten non-PR issues are open. PR #780's exact product parent for this
