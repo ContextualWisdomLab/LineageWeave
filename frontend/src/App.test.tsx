@@ -4185,8 +4185,10 @@ describe("App, authenticated", () => {
     expect(screen.getByText("leftover map comparison leftover axis 2 σ 0.86 18%")).toBeInTheDocument();
     expect(screen.getByText("leftover map comparison leftover axis 1 tick +0.50 σ 1.84 82%")).toBeInTheDocument();
     expect(screen.getByText("leftover map comparison leftover axis 2 tick −0.02 σ 0.86 18%")).toBeInTheDocument();
-    expect(screen.getByText("leftover map comparison leftover axis 1 tick 0.00 σ 1.84 82%")).toBeInTheDocument();
-    expect(screen.getByText("leftover map comparison leftover axis 2 tick 0.00 σ 0.86 18%")).toBeInTheDocument();
+    expect(screen.getByText("leftover map comparison leftover axis 1 origin tick 0.00 σ 1.84 82%")).toBeInTheDocument();
+    expect(screen.getByText("leftover map comparison leftover axis 2 origin tick 0.00 σ 0.86 18%")).toBeInTheDocument();
+    expect(screen.queryByText("leftover map comparison leftover axis 1 tick 0.00 σ 1.84 82%")).not.toBeInTheDocument();
+    expect(screen.queryByText("leftover map comparison leftover axis 2 tick 0.00 σ 0.86 18%")).not.toBeInTheDocument();
     expect(screen.getByText("leftover axis 1 tick +0.50 σ 1.84 82%")).toBeInTheDocument();
     expect(screen.getByText("leftover axis 2 tick −0.02 σ 0.86 18%")).toBeInTheDocument();
     expect(screen.getByText("leftover axis 1 tick 0.00 σ 1.84 82%")).toBeInTheDocument();
@@ -4418,14 +4420,19 @@ describe("App, authenticated", () => {
     ).toBeInTheDocument();
     expect(
       within(screen.getByLabelText("Grouping comparison")).getByText(
-        "leftover map comparison leftover axis 1 tick 0.00 σ 1.84 82%",
+        "leftover map comparison leftover axis 1 origin tick 0.00 σ 1.84 82%",
       ),
     ).toBeInTheDocument();
     expect(
       within(screen.getByLabelText("Grouping comparison")).getByText(
-        "leftover map comparison leftover axis 2 tick 0.00 σ 0.86 18%",
+        "leftover map comparison leftover axis 2 origin tick 0.00 σ 0.86 18%",
       ),
     ).toBeInTheDocument();
+    expect(
+      within(screen.getByLabelText("Grouping comparison")).queryByText(
+        "leftover map comparison leftover axis 1 tick 0.00 σ 1.84 82%",
+      ),
+    ).not.toBeInTheDocument();
     expect(
       within(screen.getByLabelText("Grouping comparison")).queryByText(
         "leftover axis 1 tick +0.50 σ 1.84",

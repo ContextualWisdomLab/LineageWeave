@@ -26,6 +26,8 @@
  *  leftoverMapPlotTickAxisBadge, not this helper.
  *  ADR 0344 captions leftover-map comparison graphic leftover-map axis origin ticks as
  *  leftoverMapComparePlotTickAxisBadge, not this helper.
+ *  ADR 0345 captions leftover-map comparison leftover-axis origin ticks as
+ *  leftoverMapCompareAxisTickBadge, not this helper.
  */
 
 import type { LeftoverMapAxis } from "./api";
