@@ -116,6 +116,18 @@ requests for five prepared scopes measured 8.067-9.625 ms. The optimization is
 exact and materially faster, but deterministic 20 ms acceptance remains
 unproven on this host, so activation and authenticated k6 claims stay closed.
 
+Removing Python and the application event loop did not close that proof gap.
+A host-native Rust process used a warmed immutable 6,578-by-3,072 synthetic
+snapshot, four distinct mixed-sign queries, macOS user-initiated QoS, and a
+dedicated Rayon pool. An initial 100-call sweep for every outer worker count
+from one through ten stayed below 20 ms, but ten fresh one-worker processes
+later produced 52.948 ms and 81.775 ms calls. The declared four-vCPU Colima
+Linux scalar profile also failed for every worker count: one through four
+workers had maxima of 82.359, 56.221, 52.808, and 80.210 ms. Startup
+calibration cannot turn a finite passing sample into the required maximum, and
+the owner has no proven service profile for LineageWeave to consume. This ADR
+therefore adds no endpoint setting or native service activation.
+
 ## Consequences
 
 Warm Ask transfers only the query vector and authorized opaque identities to
