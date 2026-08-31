@@ -73,6 +73,16 @@ The runtime contract is:
 - Local Compose runtime and the reviewed upstream PR use the same orchestrator
   implementation.
 - Rebuilding the image is required after the upstream pin changes.
+- Promotion uses `scripts/promote_contextual_orchestrator.sh`. It starts the
+  exact labeled candidate as an isolated Compose container, then asks that
+  candidate's authenticated readiness API to probe only active
+  `configured_gateway` structured agents using the server-declared polling
+  cadence. The canonical service is recreated only after at least one such
+  agent is ready. Missing credentials, endpoint drift, authentication failure,
+  or an unavailable readiness carrier therefore leaves the existing healthy
+  canonical service untouched. The candidate consumes the current
+  `${HOME}/.env` through the existing Compose `env_file`; the promotion path
+  never copies, prints, or introduces another credential source.
 - Updating the upstream pin or an OpenTelemetry root requires review of the
   new archive digest and regeneration of the complete hash lock.
 - Protected-branch review and merge remain external gates; this pin does not
