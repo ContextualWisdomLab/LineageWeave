@@ -643,6 +643,8 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
       "IRT 주효과 이후 잔여 R {residual}. {criterion} 기준을 읽으려면 이 글을 여세요.",
     "Open leftover {kind} pair: {title} · {criterion}":
       "잔여 {kind} 쌍 열기: {title} · {criterion}",
+    "leftover pair leftover-map post {title} at ξ {person}":
+      "잔여 쌍 잔여 지도 글 {title} (ξ {person})",
     "Open this post to read the criterion it sat closest to after main effects.":
       "주효과 이후 가장 가깝게 앉은 기준을 읽으려면 이 글을 여세요.",
     "Open this post to read the criterion it sat farthest from after main effects.":
@@ -1324,6 +1326,8 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
       "IRT 主效应后的残余 R {residual}。打开这篇帖子阅读 {criterion}。",
     "Open leftover {kind} pair: {title} · {criterion}":
       "打开残余 {kind} 配对：{title} · {criterion}",
+    "leftover pair leftover-map post {title} at ξ {person}":
+      "残差配对残差图帖子 {title}（ξ {person}）",
     "Open this post to read the criterion it sat closest to after main effects.":
       "打开这篇帖子，阅读主效应后距离最近的准则。",
     "Open this post to read the criterion it sat farthest from after main effects.":
@@ -2009,6 +2013,8 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
       "IRT主効果後の残差 R {residual}。この投稿を開いて {criterion} を読んでください。",
     "Open leftover {kind} pair: {title} · {criterion}":
       "残差 {kind} ペアを開く: {title} · {criterion}",
+    "leftover pair leftover-map post {title} at ξ {person}":
+      "残差ペアの残差マップ投稿 {title}（ξ {person}）",
     "Open this post to read the criterion it sat closest to after main effects.":
       "主効果後に最も近くなった基準を読むには、この投稿を開いてください。",
     "Open this post to read the criterion it sat farthest from after main effects.":
@@ -2698,6 +2704,8 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
       "Phần dư R {residual} sau hiệu ứng chính IRT. Mở bài viết này để đọc {criterion}.",
     "Open leftover {kind} pair: {title} · {criterion}":
       "Mở cặp phần dư {kind}: {title} · {criterion}",
+    "leftover pair leftover-map post {title} at ξ {person}":
+      "Cặp phần dư bài viết bản đồ phần dư {title} tại ξ {person}",
     "Open this post to read the criterion it sat closest to after main effects.":
       "Mở bài viết này để đọc tiêu chí nằm gần nhất sau hiệu ứng chính.",
     "Open this post to read the criterion it sat farthest from after main effects.":

@@ -125,7 +125,9 @@ comparison graphic leftover-map criterion leftover-map item coordinates independ
 comparison graphic leftover-map post leftover-map person coordinates independently of leftover-map criterion leftover-map item coordinates
 ([ADR 0337](0337-leftover-map-compare-plot-post-coordinates.md)). Independent of leftover-map
 graphic leftover-map post leftover-map person coordinates independently of leftover-map comparison graphic leftover-map post markers
-([ADR 0338](0338-leftover-map-plot-post-coordinates.md)).
+([ADR 0338](0338-leftover-map-plot-post-coordinates.md)). Independent of leftover-map
+pair leftover-map post leftover-map person coordinates independently of leftover-map pair leftover-map criterion leftover-map item coordinates
+([ADR 0339](0339-leftover-map-list-post-coordinates.md)).
 
 ## References
 

@@ -7,6 +7,7 @@ import {
 import {
   formatLeftoverMapCoordinatePair,
   formatLeftoverMapCoordinates,
+  leftoverMapListPostBadge,
   LEFTOVER_MAP_COORDINATES_ACTION,
 } from "../leftoverMapCoordinates";
 import {
@@ -134,7 +135,13 @@ export type LeftoverPairListProps = {
  * singular values on that grouping comparison leftover-map graphic, not this pair list.
  * ADR 0322 captions leftover-map singular values on leftover-axis report badges, not this
  * pair list. ADR 0323 captions leftover-map singular values on leftover-axis report badges
- * on the grouping comparison strip, not this pair list. Every badge still
+ * on the grouping comparison strip, not this pair list. ADR 0335–0338 caption leftover-map graphic
+ * leftover-map criterion leftover-map item coordinates and leftover-map post leftover-map person
+ * coordinates and leftover-map comparison graphic leftover-map criterion leftover-map item
+ * coordinates and leftover-map post leftover-map person coordinates, not this pair list.
+ * ADR 0339 captions leftover-map pair leftover-map post leftover-map person coordinates through leftoverMapListPostBadge
+ * independently of leftover-map pair leftover-map criterion leftover-map item coordinates.
+ * Every badge still
  * renders together before opening the named post.
  */
 export function LeftoverPairList({
@@ -179,6 +186,11 @@ export function LeftoverPairList({
           pair.leftover_map_person_axis_2,
           pair.leftover_map_item_axis_1,
           pair.leftover_map_item_axis_2,
+        );
+        const listPostBadge = leftoverMapListPostBadge(
+          pair.post_title,
+          pair.leftover_map_person_axis_1,
+          pair.leftover_map_person_axis_2,
         );
         const crossShareBadge = formatLeftoverMapCrossShare(pair.leftover_map_cross_share);
         const reconstruction = formatLeftoverMapReconstruction(
@@ -289,11 +301,15 @@ export function LeftoverPairList({
             <button
               type="button"
               className="post-list-item"
-              aria-label={tf("Open leftover {kind} pair: {title} · {criterion}", {
-                kind: pair.pair_kind,
-                title: pair.post_title,
-                criterion,
-              })}
+              aria-label={
+                listPostBadge !== null
+                  ? tf(listPostBadge.key, listPostBadge.values)
+                  : tf("Open leftover {kind} pair: {title} · {criterion}", {
+                      kind: pair.pair_kind,
+                      title: pair.post_title,
+                      criterion,
+                    })
+              }
               title={t("Open this post so the leftover criterion is current in Post quality.")}
               onClick={() => onSelectPost(pair)}
             >

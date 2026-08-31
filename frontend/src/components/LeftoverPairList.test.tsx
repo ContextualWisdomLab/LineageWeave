@@ -148,7 +148,7 @@ describe("LeftoverPairList", () => {
     );
 
     const closest = screen.getByRole("button", {
-      name: "Open leftover closest pair: Public post · sales-lead",
+      name: "leftover pair leftover-map post Public post at ξ (+0.50, +0.10)",
     });
     expect(closest).toHaveTextContent(
       "Leftover map places this post at ξ (+0.50, +0.10) and the criterion at ζ (+0.50, −0.02) after IRT main effects. Open this post to read sales-lead.",
@@ -169,6 +169,95 @@ describe("LeftoverPairList", () => {
     ).toBeInTheDocument();
     expect(screen.getByLabelText("leftover-map criterion sales-lead at ζ (+0.50, −0.02)")).toBeInTheDocument();
     expect(screen.queryByLabelText("Criterion ζ sales-lead")).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", {
+        name: "Open leftover closest pair: Public post · sales-lead",
+      }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("names leftover-map pair leftover-map post leftover-map person coordinates when leftover-map pair leftover-map criterion leftover-map item coordinates are missing", () => {
+    render(
+      <LeftoverPairList
+        pairs={[
+          {
+            ...PAIRS[0],
+            leftover_map_person_axis_1: 0.5,
+            leftover_map_person_axis_2: 0.1,
+            leftover_map_item_axis_1: null,
+            leftover_map_item_axis_2: -0.02,
+          },
+        ]}
+        criterionLabel={criterionLabel}
+        onSelectPost={vi.fn()}
+      />,
+    );
+
+    const closest = screen.getByRole("button", {
+      name: "leftover pair leftover-map post Public post at ξ (+0.50, +0.10)",
+    });
+    expect(closest).toHaveTextContent("Closest leftover: Public post · sales-lead");
+    expect(closest).not.toHaveTextContent("ξ (+0.50, +0.10) ζ");
+    expect(
+      screen.queryByRole("button", {
+        name: "Open leftover closest pair: Public post · sales-lead",
+      }),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Leftover-map graphic display")).not.toBeInTheDocument();
+  });
+
+  it("keeps leftover-map pair leftover-map post leftover-map person coordinates at rank-0 origin", () => {
+    render(
+      <LeftoverPairList
+        pairs={[
+          {
+            ...PAIRS[0],
+            leftover_map_rank: 0,
+            leftover_map_person_axis_1: 0,
+            leftover_map_person_axis_2: 0,
+            leftover_map_item_axis_1: 0,
+            leftover_map_item_axis_2: 0,
+          },
+        ]}
+        criterionLabel={criterionLabel}
+        onSelectPost={vi.fn()}
+      />,
+    );
+
+    expect(
+      screen.getByRole("button", {
+        name: "leftover pair leftover-map post Public post at ξ (0.00, 0.00)",
+      }),
+    ).toBeInTheDocument();
+  });
+
+  it("keeps leftover-map pair leftover-map post leftover-map person coordinates omitted when ξ is missing", () => {
+    render(
+      <LeftoverPairList
+        pairs={[
+          {
+            ...PAIRS[0],
+            leftover_map_person_axis_1: null,
+            leftover_map_person_axis_2: 0.1,
+            leftover_map_item_axis_1: 0.5,
+            leftover_map_item_axis_2: -0.02,
+          },
+        ]}
+        criterionLabel={criterionLabel}
+        onSelectPost={vi.fn()}
+      />,
+    );
+
+    expect(
+      screen.getByRole("button", {
+        name: "Open leftover closest pair: Public post · sales-lead",
+      }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", {
+        name: /leftover pair leftover-map post Public post at ξ/,
+      }),
+    ).not.toBeInTheDocument();
   });
 
   it("opens the named post from a leftover-map graphic display marker", async () => {

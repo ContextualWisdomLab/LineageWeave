@@ -123,7 +123,8 @@ comparison graphic leftover-map axis tick leftover-map axis share independently 
 ([ADR 0331](0331-leftover-map-compare-plot-tick-share-badge.md)). Independent of leftover-map
 graphic display on the grouping comparison strip ([ADR 0304](0304-leftover-map-compare-graphic.md)). Independent of leftover-map
 graphic display ([ADR 0268](0268-leftover-map-graphic-display.md)). Independent of leftover-map
-coordinates ([ADR 0267](0267-leftover-map-coordinates.md)).
+coordinates ([ADR 0267](0267-leftover-map-coordinates.md)). Independent of leftover-map pair leftover-map post leftover-map person coordinates independently of leftover-map pair leftover-map criterion leftover-map item coordinates
+([ADR 0339](0339-leftover-map-list-post-coordinates.md)).
 
 ## References
 
