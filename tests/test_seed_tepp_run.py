@@ -1,10 +1,18 @@
 """Seeded TEPP analysis runs go through tepp_client, never a local model."""
 
+from datetime import datetime, timezone
+
 from lineageweave.tepp_client import AnalysisRunRequest, TeppClient, TeppNotAvailable
 from scripts.seed_demo_data import (
+    DEMO_TEPP_ACCEPTED_IDEMPOTENCY_KEY,
+    DEMO_TEPP_ACCEPTED_REMOTE_RUN_ID,
     _ensure_demo_source_counts,
+    _seed_demo_tepp_accepted_run,
     _seed_demo_tepp_run,
     demo_source_snapshot_sha256,
+    tepp_accepted_seed_client,
+    tepp_accepted_seed_outcome,
+    tepp_accepted_seed_request,
     tepp_seed_outcome,
     tepp_seed_request,
 )
@@ -73,6 +81,41 @@ def test_tepp_seed_outcome_does_not_treat_an_empty_envelope_as_success() -> None
     assert failure == "tepp_result_not_persisted"
 
 
+def test_tepp_seed_outcome_keeps_strict_acceptance_running() -> None:
+    status, failure = tepp_seed_outcome(
+        TeppClient(
+            transport=lambda payload: {
+                "contract_version": 1,
+                "run_id": "tepp-seed-accepted-1",
+                "run_state": "accepted",
+                "idempotency_key": payload["idempotency_key"],
+            }
+        )
+    )
+    assert status == "analysis_status_running"
+    assert failure is None
+
+
+def test_tepp_accepted_seed_request_shares_the_demo_snapshot() -> None:
+    request = tepp_accepted_seed_request()
+    assert request.snapshot_id == demo_source_snapshot_sha256()
+    assert request.idempotency_key == DEMO_TEPP_ACCEPTED_IDEMPOTENCY_KEY
+    assert request.model_contract_version == "tepp-analysis-run-v1"
+    assert "theta" not in str(request.to_json()).casefold()
+
+
+def test_tepp_accepted_seed_outcome_is_running_transport_evidence() -> None:
+    status, failure, envelope = tepp_accepted_seed_outcome(tepp_accepted_seed_client())
+    assert status == "analysis_status_running"
+    assert failure is None
+    assert envelope == {
+        "contract_version": 1,
+        "run_id": DEMO_TEPP_ACCEPTED_REMOTE_RUN_ID,
+        "run_state": "accepted",
+        "idempotency_key": DEMO_TEPP_ACCEPTED_IDEMPOTENCY_KEY,
+    }
+
+
 def test_ensure_demo_source_counts_skips_insert_when_counts_exist() -> None:
     cursor = _CountCursor(existing_counts=True)
     _ensure_demo_source_counts(cursor, "snapshot-1")
@@ -105,10 +148,18 @@ class _TeppSeedCursor:
             return ("snapshot-demo",)
         if last.lstrip().startswith("select") and "from analysis_source_count" in last:
             return None
-        if last.lstrip().startswith("select") and "from analysis_run" in last:
+        if last.lstrip().startswith("select") and "from analysis_run where" in last:
             return None
         if "insert into analysis_run" in last:
             return ("run-demo-tepp",)
+        if last.lstrip().startswith("select") and "from analysis_run_outbox" in last:
+            return None
+        if last.lstrip().startswith("select") and "run.run_kind_code" in last:
+            return (
+                "analysis_run_tepp",
+                datetime(2026, 1, 12, 12, 0, tzinfo=timezone.utc),
+                "ab" * 32,
+            )
         return None
 
 
@@ -130,3 +181,52 @@ def test_seed_demo_tepp_run_inserts_failed_tepp_not_available() -> None:
     assert not any(
         params is not None and "analysis_status_succeeded" in params for params in status_params
     )
+    assert not any("insert into analysis_run_tepp_receipt" in sql for sql in cursor.statements)
+
+
+def test_seed_demo_tepp_accepted_run_stays_running_with_receipt() -> None:
+    cursor = _TeppSeedCursor()
+    _seed_demo_tepp_accepted_run(cursor, "account-1", "corp-1")
+    run_params = [
+        params
+        for sql, params in zip(cursor.statements, cursor.params, strict=True)
+        if "insert into analysis_run" in sql and "analysis_run_tepp" in sql
+    ]
+    assert any(
+        params is not None and DEMO_TEPP_ACCEPTED_IDEMPOTENCY_KEY in params
+        for params in run_params
+    )
+    receipt_params = [
+        params
+        for sql, params in zip(cursor.statements, cursor.params, strict=True)
+        if "insert into analysis_run_tepp_receipt" in sql
+    ]
+    assert receipt_params
+    assert DEMO_TEPP_ACCEPTED_REMOTE_RUN_ID in receipt_params[0]
+    status_params = [
+        params
+        for sql, params in zip(cursor.statements, cursor.params, strict=True)
+        if "insert into analysis_run_status_event" in sql
+    ]
+    assert any(
+        params is not None and "analysis_status_running" in params for params in status_params
+    )
+    assert not any(
+        params is not None and "analysis_status_failed" in params for params in status_params
+    )
+    assert not any(
+        params is not None and "analysis_status_succeeded" in params for params in status_params
+    )
+    delivery_params = [
+        params
+        for sql, params in zip(cursor.statements, cursor.params, strict=True)
+        if "insert into analysis_run_outbox_delivery" in sql
+    ]
+    assert any(
+        params is not None and "analysis_outbox_claimed" in params for params in delivery_params
+    )
+    assert not any(
+        params is not None and "analysis_outbox_delivered" in params
+        for params in delivery_params
+    )
+    assert not any("theta" in str(params).casefold() for params in cursor.params)

@@ -21,14 +21,19 @@ sits on a public HTTP route.
 
 ## Analysis-run seed and run states (ADR 0013 / 0014 / 0024)
 
-`make seed` writes a Demo Corp lineage run, a TEPP run, and a Succeeded
-period-report run on one snapshot. The TEPP path goes through
-`tepp_client`: a missing transport or an unused accepted envelope is
-Failed (`tepp_not_available` / `tepp_result_not_persisted`). Never
-invent a theta or a local psychometric substitute.
+`make seed` writes a Demo Corp lineage run, a Failed TEPP run
+(missing transport), a Running TEPP run with a persisted accepted
+receipt, and a Succeeded period-report run on one snapshot. The TEPP
+path goes through `tepp_client`: a missing transport is Failed
+(`tepp_not_available`); a strict accepted v1 envelope persists as
+transport evidence and stays Running (ADR 0219). An invalid envelope
+is Failed (`tepp_result_not_persisted`). Never invent a theta or a
+local psychometric substitute.
 
 - Failed TEPP is terminal -- open that row and connect a live TEPP
   transport from it.
+- A Running TEPP with an accepted receipt is not a calibrated result --
+  refresh that run to check whether results are ready.
 - A failed lineage row retries reconstruction and does not mention TEPP;
   a failed period-report row rebuilds the report.
 - Pending rows claim nothing: pending TEPP is not a calibrated

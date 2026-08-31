@@ -1,5 +1,22 @@
 # Product & Technical Gap Baseline
 
+> Exact-head loop overlay: 2026-09-01 KST. Protected `main` is
+> `cb187cadee5fb6c46d8a944815ccc154a1e028d1` (v2.24.0 leftover-map
+> coordinates, #782). Package/pyproject versions on that head are 2.28.0.
+> Open ready PRs still lack independent APPROVE. Leftover-map stacked
+> heads through v2.106 are gold-plating and are not this cycle's buyer
+> increment. #96 stays closed as a weaker duplicate of #91. Copilot
+> review is not independent APPROVE. Do not self-approve. Do not merge
+> stacked leftover PRs onto an unprotected leftover base. Issues #79
+> and #87 stay OPEN. Issue #277 stays OPEN: consumer receipt persist is
+> on `main`; producer status HTTP remains unavailable.
+>
+> Next buyer increment on this cycle: seed a Demo Corp Running TEPP
+> accepted receipt (ADR 0219 / v2.29.0) so `make seed` shows
+> "Measurement request accepted. Refresh this run to check whether
+> results are ready." Missing-transport Failed remains. Never invent a
+> GET URL, retry interval, leftover score, or theta.
+
 > Exact-head loop overlay: 2026-08-29 13:20 KST. Protected `main` is
 > `fc13acaa20adca11968238e398d4aafcf62b6cee` (v2.23.0 leftover-map
 > explained leftover share, #775). Open ready PRs still lack independent

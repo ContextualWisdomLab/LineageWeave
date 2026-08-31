@@ -257,11 +257,14 @@ def _tepp_submission(
     client: TeppClient,
     request: AnalysisRunRequest,
 ) -> tuple[str, str, dict[str, Any] | None]:
-    """Submit through ``tepp_client`` and require a completed result envelope.
+    """Submit through ``tepp_client`` and classify the provider envelope.
 
-    TEPP's target HTTP contract is asynchronous. An ``accepted`` response is
-    therefore not a measurement and remains ``tepp_result_not_persisted``.
-    Only a provider-authoritative completed envelope can enter the database.
+    TEPP's target HTTP contract is asynchronous. A strict accepted v1
+    response is transport evidence (ADR 0219), not a measurement: the
+    caller persists ``analysis_run_tepp_receipt`` and leaves the local
+    run Running. Only a provider-authoritative completed envelope can
+    enter ``analysis_run_tepp_result``. An invalid or unpublished shape
+    stays ``tepp_result_not_persisted``.
     """
     try:
         response = client.submit_analysis_run(request)
