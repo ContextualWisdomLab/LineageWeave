@@ -1,5 +1,27 @@
 # Product & Technical Gap Baseline
 
+> Exact-head loop overlay: 2026-08-31 18:20 KST. Protected `main` is
+> `cb187cadee5fb6c46d8a944815ccc154a1e028d1`. Writes work. Do not
+> self-approve. #881 leftover-map person coordinates on leftover-map pair leftover-map
+> post independently of leftover-map pair leftover-map criterion leftover-map item coordinates (v2.96.0 / ADR 0339) is
+> `167888d`, stacked on #880 @ `c69459a`. Independent APPROVE is missing (Devin COMMENTED,
+> not APPROVE). Next buyer increment on this cycle: leftover-map pair leftover-map
+> criterion naming persisted leftover-map item coordinates independently of leftover-map
+> pair leftover-map post leftover-map person coordinates (ADR 0340 / v2.97.0) delivered locally on
+> `feat/leftover-map-list-criterion-coordinates-v2970`. Caption persisted leftover-map
+> item coordinates on leftover-map pair leftover-map criterion when leftoverMapListCriterionBadge
+> returns a usable leftover-map pair leftover-map criterion leftover-map item coordinate caption. Distinct accessible name
+> `leftover pair leftover-map criterion {label} at ζ {item}`.
+> Rank-0 unused axes still name leftover-map item coordinates `(0.00, 0.00)`. A missing or
+> non-finite leftover-map item coordinate pair omits independently of leftover-map pair leftover-map post leftover-map person `ξ`. Leftover-map pair leftover-map post leftover-map person coordinates stay
+> `leftover pair leftover-map post {title} at ξ {person}` this increment. Leftover-map graphic leftover-map criterion markers stay
+> `leftover-map criterion {label} at ζ {item}` this increment. Leftover-map comparison graphic leftover-map criterion markers stay
+> `leftover map comparison graphic leftover-map criterion {label} at ζ {item}` this increment. Do not invent leftover-map
+> item coordinates from leftover-map person coordinates `ξ`. Do not invent leftover-map
+> person coordinates `ξ` from leftover-map item coordinates `ζ`. Do not persist leftover-map inner product, cosine, or length. Stack onto #881.
+> Leave open for independent review. Do not squash-merge. Do not self-approve. Issues #79
+> and #87 stay open. Do not merge #808 without independent APPROVE. Never self-approve. Do not mix #877.
+
 > Exact-head loop overlay: 2026-08-31 17:40 KST. Protected `main` is
 > `cb187cadee5fb6c46d8a944815ccc154a1e028d1`. Writes work. Do not
 > self-approve. #880 leftover-map person coordinates on leftover-map graphic leftover-map

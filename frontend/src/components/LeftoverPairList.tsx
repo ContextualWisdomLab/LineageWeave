@@ -7,6 +7,7 @@ import {
 import {
   formatLeftoverMapCoordinatePair,
   formatLeftoverMapCoordinates,
+  leftoverMapListCriterionBadge,
   leftoverMapListPostBadge,
   LEFTOVER_MAP_COORDINATES_ACTION,
 } from "../leftoverMapCoordinates";
@@ -141,6 +142,8 @@ export type LeftoverPairListProps = {
  * coordinates and leftover-map post leftover-map person coordinates, not this pair list.
  * ADR 0339 captions leftover-map pair leftover-map post leftover-map person coordinates through leftoverMapListPostBadge
  * independently of leftover-map pair leftover-map criterion leftover-map item coordinates.
+ * ADR 0340 captions leftover-map pair leftover-map criterion leftover-map item coordinates through leftoverMapListCriterionBadge
+ * independently of leftover-map pair leftover-map post leftover-map person coordinates.
  * Every badge still
  * renders together before opening the named post.
  */
@@ -191,6 +194,11 @@ export function LeftoverPairList({
           pair.post_title,
           pair.leftover_map_person_axis_1,
           pair.leftover_map_person_axis_2,
+        );
+        const listCriterionBadge = leftoverMapListCriterionBadge(
+          criterion,
+          pair.leftover_map_item_axis_1,
+          pair.leftover_map_item_axis_2,
         );
         const crossShareBadge = formatLeftoverMapCrossShare(pair.leftover_map_cross_share);
         const reconstruction = formatLeftoverMapReconstruction(
@@ -330,6 +338,14 @@ export function LeftoverPairList({
               {crossShareBadge ? <span className="post-badge">{crossShareBadge}</span> : null}
               {reconstruction ? <span className="post-badge">{reconstruction}</span> : null}
               {coordinatesBadge ? <span className="post-badge">{coordinatesBadge}</span> : null}
+              {listCriterionBadge ? (
+                <span
+                  className="post-badge"
+                  aria-label={tf(listCriterionBadge.key, listCriterionBadge.values)}
+                >
+                  {tf(listCriterionBadge.key, listCriterionBadge.values)}
+                </span>
+              ) : null}
               <span className="post-badge">d {pair.leftover_distance.toFixed(2)}</span>
             </button>
           </li>
