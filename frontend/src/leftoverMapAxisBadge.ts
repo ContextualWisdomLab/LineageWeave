@@ -12,6 +12,8 @@
  *  leftoverMapComparePlotTickAxisBadge, not this helper.
  *  ADR 0329 captions leftover-map comparison leftover-axis ticks as
  *  leftoverMapCompareAxisTickBadge, not this helper.
+ *  ADR 0330 names leftover-map leftover-axis ticks leftover-map singular
+ *  values as leftoverMapAxisTickBadge independently of leftover-map axis share.
  */
 
 import type { LeftoverMapAxis } from "./api";
@@ -27,6 +29,10 @@ export const LEFTOVER_MAP_AXIS_BADGE_SHARE = "leftover axis {axis} {share}%";
 export const LEFTOVER_MAP_AXIS_BADGE_SINGULAR = "leftover axis {axis} σ {value} {share}%";
 
 export const LEFTOVER_MAP_AXIS_BADGE_SINGULAR_ONLY = "leftover axis {axis} σ {value}";
+
+export const LEFTOVER_MAP_AXIS_TICK = "leftover axis {axis} tick {value}";
+
+export const LEFTOVER_MAP_AXIS_TICK_SINGULAR = "leftover axis {axis} tick {value} σ {singular}";
 
 export function leftoverMapAxisBadgeShare(
   leftoverShare: LeftoverMapAxis["leftover_share"] | null | undefined,
@@ -63,5 +69,20 @@ export function leftoverMapAxisBadge(
   return {
     key: LEFTOVER_MAP_AXIS_BADGE_SINGULAR,
     values: { axis: axisIndex, value: singular as string, share: percent as string },
+  };
+}
+
+export function leftoverMapAxisTickBadge(
+  axisIndex: number,
+  tickLabel: string,
+  leftoverSingular: number | null | undefined,
+): LeftoverMapCompareAxisBadge {
+  const singular = formatLeftoverMapPlotAxisSingular(leftoverSingular);
+  if (singular === null) {
+    return { key: LEFTOVER_MAP_AXIS_TICK, values: { axis: axisIndex, value: tickLabel } };
+  }
+  return {
+    key: LEFTOVER_MAP_AXIS_TICK_SINGULAR,
+    values: { axis: axisIndex, value: tickLabel, singular },
   };
 }

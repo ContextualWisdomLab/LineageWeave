@@ -699,6 +699,15 @@ axis share. Rank-0 unused axes still name leftover-map comparison leftover-axis 
 `σ 0.00`. Do not invent leftover-map singular values from leftover-map axis share. Do not invent leftover-map
 axis share from leftover-map singular values. This increment does not change leftover-map comparison graphic leftover-map
 axis ticks.
+ADR 0330 captions leftover-axis ticks with persisted leftover-map
+singular values `σ_k` when leftoverMapAxisTickBadge returns a usable leftover-axis
+tick caption. Distinct accessible name
+`leftover axis {axis} tick {value} σ {singular}`. Singular value omits independently
+of leftover-map axis share. Leftover-axis ticks never name leftover-map
+axis share. Rank-0 unused axes still name leftover-axis tick
+`σ 0.00`. Do not invent leftover-map singular values from leftover-map axis share. Do not invent leftover-map
+axis share from leftover-map singular values. This increment does not change leftover-map comparison leftover-axis
+ticks.
 When `R`, `R̂`, `U`, `x`,
 `s`, and `e` are finite, `e + s + x = 1`. When `Y`, `E`, and `R` are
 finite, `Y − E = R`. When `R`, `R̂`, and `U` are

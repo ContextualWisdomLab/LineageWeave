@@ -139,6 +139,7 @@ import {
 } from "./leftoverMapCoverage";
 import {
   leftoverMapAxisBadge,
+  leftoverMapAxisTickBadge,
 } from "./leftoverMapAxisBadge";
 import {
   leftoverMapCompareAxisBadge,
@@ -3964,6 +3965,18 @@ function ReportsPanel({
                 )}
               </p>
             ) : null}
+            {layoutLeftoverMapPlot(report.leftover_pairs ?? [], criterionShortLabel)?.ticks.map((tick) => {
+              const badge = leftoverMapAxisTickBadge(
+                tick.axis,
+                tick.label,
+                leftoverSingularForAxis(report.leftover_map_axes, tick.axis),
+              );
+              return (
+                <span key={`leftover-axis-tick:${tick.axis}:${tick.label}`} className="post-badge">
+                  {tf(badge.key, badge.values)}
+                </span>
+              );
+            })}
             {report.leftover_pairs && report.leftover_pairs.length > 0 && (
               <SurfaceBoundary>
                 <LeftoverPairList

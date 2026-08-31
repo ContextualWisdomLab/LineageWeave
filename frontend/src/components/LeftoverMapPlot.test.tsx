@@ -2716,6 +2716,7 @@ describe("LeftoverMapPlot", () => {
     expect(
       screen.queryByLabelText("leftover map comparison leftover axis 1 tick +0.50 σ 1.84"),
     ).not.toBeInTheDocument();
+    expect(screen.queryByText("leftover axis 1 tick +0.50 σ 1.84")).not.toBeInTheDocument();
     expect(
       screen.getByLabelText("leftover map comparison graphic leftover-map distance d 0.12"),
     ).toHaveTextContent("d 0.12");

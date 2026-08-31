@@ -8,6 +8,27 @@ All notable changes to this project are documented here. Format follows
 
 ### Added
 
+- Period leftover pairs now caption leftover-axis ticks with persisted leftover-map
+  singular values `σ_k` through leftoverMapAxisTickBadge independently of leftover-map
+  axis share (ADR 0330 / v2.87.0). After `make seed`, leftover-axis ticks name
+  persisted leftover-map singular values when leftoverMapAxisTickBadge returns a
+  usable leftover-axis tick `σ` caption even when leftover-map axis share is omitted;
+  click a leftover pair opens that post. A missing, non-finite, or negative singular
+  value omits that `σ` tick caption and keeps `leftover axis {k} tick {value}`.
+  Rank-0 unused axes still name `σ 0.00`. Leftover-axis ticks stay
+  `leftover axis {k} tick {value} σ {singular}` when `σ_k` is finite so they stay
+  distinct from leftover-map comparison leftover-axis ticks
+  `leftover map comparison leftover axis {k} tick {value} σ {singular}`, from leftover-map
+  comparison graphic leftover-map axis ticks
+  `leftover map comparison graphic leftover-map axis {k} tick {value} σ {singular}`, from leftover-map
+  graphic leftover-map axis ticks `leftover-map axis {k} tick {value} σ {singular}`, from leftover-axis
+  `leftover axis {k} σ {value}`, and from leftover-map graphic leftover-map axis
+  `leftover-map axis {k} σ {value}`. Do not invent `σ_k` from leftover-map axis
+  share. Do not invent leftover-map axis share from `σ_k`. Leftover-axis ticks
+  never name leftover-map axis share. This increment does not change leftover-map
+  comparison leftover-axis ticks. A finite negative leftover is shown, never
+  clamped. Never invent a leftover score or a theta. No new columns.
+
 - Period leftover pairs now caption leftover-map comparison leftover-axis
   ticks with persisted leftover-map singular values `σ_k` through
   leftoverMapCompareAxisTickBadge independently of leftover-map axis share
