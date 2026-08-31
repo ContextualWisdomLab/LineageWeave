@@ -147,6 +147,9 @@
  *  item coordinates ζ through leftoverMapCompareListCriterionBadge independently of leftover-map
  *  comparison leftover-pair leftover-map post leftover-map person coordinates ξ, not leftover-map
  *  pair-list leftover-map criterion leftover-map item coordinates.
+ *  ADR 0343 fail-closes leftover-map graphic leftover-map axis origin ticks through
+ *  leftoverMapPlotTickAxisBadge independently of leftover-map axis share and leftover-map
+ *  singular values, not leftover-map comparison graphic leftover-map axis ticks.
  */
 
 import { formatLeftoverMapCoordinatePair } from "./leftoverMapCoordinates";

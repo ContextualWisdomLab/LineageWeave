@@ -1,5 +1,14 @@
 # Product & Technical Gap Baseline
 
+> Exact-head loop overlay: 2026-08-31 18:55 KST. Protected `main` is
+> `cb187cadee5fb6c46d8a944815ccc154a1e028d1`. Writes work. Do not
+> self-approve. #884 leftover-map item coordinates on leftover-map comparison leftover pair leftover-map
+> criterion independently of leftover-map comparison leftover pair leftover-map post leftover-map person coordinates (v2.99.0 / ADR 0342) is
+> `bcbb7ce`, stacked on #883 @ `bdd48e2`. Independent APPROVE is missing. Next buyer increment on this cycle: leftover-map graphic leftover-map
+> axis origin ticks independently of leftover-map axis share and leftover-map singular values as leftoverMapPlotTickAxisBadge (ADR 0343 / v2.100.0) delivered locally on
+> `feat/leftover-map-plot-tick-origin-badge-v21000`. Distinct accessible name
+> `leftover-map axis {axis} origin tick {value}`. Rank-0 unused axes still name leftover-map origin `0.00`. Share and singular omit independently. leftoverMapComparePlotTickAxisBadge stays leftover-map comparison graphic leftover-map axis tick keys. Do not invent leftover-map origin from leftover-map axis share or `σ_k`. Do not mix #877. Stack onto #884. Leave open for independent review. Do not squash-merge. Do not self-approve. Issues #79 and #87 stay open. Do not merge #808 without independent APPROVE.
+
 > Exact-head loop overlay: 2026-08-31 18:50 KST. Protected `main` is
 > `cb187cadee5fb6c46d8a944815ccc154a1e028d1`. Writes work. Do not
 > self-approve. #883 leftover-map person coordinates on leftover-map comparison leftover-pair leftover-map
