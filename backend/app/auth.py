@@ -201,8 +201,12 @@ async def resolve_current_account(
             account_row = await conn.fetchrow(
                 """
                 select account.user_account_id, account.display_name,
-                       account.preferred_locale, affiliation.corporate_entity_id,
-                       affiliation.process_unit_id
+                       account.preferred_locale,
+                       array[affiliation.corporate_entity_id] as corporate_entity_ids,
+                       array[affiliation.process_unit_id] as process_unit_ids,
+                       coalesce(array_agg(distinct permission.permission_code)
+                           filter (where permission.permission_code is not null),
+                           array[]::text[]) as permission_codes
                   from user_account account
                   join account_affiliation affiliation
                     on affiliation.user_account_id = account.user_account_id
@@ -211,17 +215,46 @@ async def resolve_current_account(
                   join process_unit process
                     on process.process_unit_id = affiliation.process_unit_id
                    and process.corporate_entity_id = entity.corporate_entity_id
+                  left join account_role_assignment assignment
+                    on assignment.user_account_id = account.user_account_id
+                  left join access_role role
+                    on role.access_role_id = assignment.access_role_id
+                   and role.role_code = any($4::text[])
+                  left join role_permission permission
+                    on permission.access_role_id = role.access_role_id
                  where account.external_subject_id = $1
                    and entity.corporate_entity_code = $2
                    and process.process_unit_code = $3
+                 group by account.user_account_id, affiliation.corporate_entity_id,
+                          affiliation.process_unit_id
                 """,
                 subject,
                 organization,
                 workspace,
+                token_roles,
             )
         else:
             account_row = await conn.fetchrow(
-                "select user_account_id, display_name, preferred_locale from user_account where external_subject_id = $1",
+                """
+                select account.user_account_id, account.display_name,
+                       account.preferred_locale,
+                       coalesce(array_agg(distinct affiliation.corporate_entity_id)
+                           filter (where affiliation.corporate_entity_id is not null),
+                           array[]::uuid[]) as corporate_entity_ids,
+                       array[]::uuid[] as process_unit_ids,
+                       coalesce(array_agg(distinct permission.permission_code)
+                           filter (where permission.permission_code is not null),
+                           array[]::text[]) as permission_codes
+                  from user_account account
+                  left join account_affiliation affiliation
+                    on affiliation.user_account_id = account.user_account_id
+                  left join account_role_assignment assignment
+                    on assignment.user_account_id = account.user_account_id
+                  left join role_permission permission
+                    on permission.access_role_id = assignment.access_role_id
+                 where account.external_subject_id = $1
+                 group by account.user_account_id
+                """,
                 subject,
             )
         if account_row is None:
@@ -231,47 +264,14 @@ async def resolve_current_account(
                 "(run scripts/seed_demo_data.py, or provision the account, first)",
             )
 
-        if keyverse_scope:
-            entity_rows = [{"corporate_entity_id": account_row["corporate_entity_id"]}]
-            process_rows = [{"process_unit_id": account_row["process_unit_id"]}]
-            permission_rows = await conn.fetch(
-                """
-                select distinct permission.permission_code
-                  from account_role_assignment assignment
-                  join access_role role
-                    on role.access_role_id = assignment.access_role_id
-                  join role_permission permission
-                    on permission.access_role_id = assignment.access_role_id
-                 where assignment.user_account_id = $1
-                   and role.role_code = any($2::text[])
-                """,
-                account_row["user_account_id"],
-                token_roles,
-            )
-        else:
-            entity_rows = await conn.fetch(
-                "select corporate_entity_id from account_affiliation where user_account_id = $1",
-                account_row["user_account_id"],
-            )
-            process_rows = []
-            permission_rows = await conn.fetch(
-                """
-                select distinct rp.permission_code
-                from account_role_assignment ara
-                join role_permission rp on rp.access_role_id = ara.access_role_id
-                where ara.user_account_id = $1
-                """,
-                account_row["user_account_id"],
-            )
-
     return CurrentAccount(
         user_account_id=str(account_row["user_account_id"]),
         external_subject_id=subject,
         display_name=account_row["display_name"],
         preferred_locale=account_row["preferred_locale"],
-        corporate_entity_ids=frozenset(str(row["corporate_entity_id"]) for row in entity_rows),
-        process_unit_ids=frozenset(str(row["process_unit_id"]) for row in process_rows),
-        permission_codes=frozenset(row["permission_code"] for row in permission_rows),
+        corporate_entity_ids=frozenset(str(value) for value in account_row["corporate_entity_ids"]),
+        process_unit_ids=frozenset(str(value) for value in account_row["process_unit_ids"]),
+        permission_codes=frozenset(account_row["permission_codes"]),
     )
 
 
