@@ -19,7 +19,7 @@ import {
   LEFTOVER_MAP_PLOT_AXIS_SHARE,
 } from "./leftoverMapPlotAxisShare";
 import { LEFTOVER_MAP_COMPARE_PLOT_TICK } from "./leftoverMapPlotLayout";
-import { LEFTOVER_MAP_AXIS_BADGE_SINGULAR } from "./leftoverMapAxisBadge";
+import { LEFTOVER_MAP_AXIS_BADGE_SINGULAR, LEFTOVER_MAP_AXIS_BADGE_SINGULAR_ONLY } from "./leftoverMapAxisBadge";
 
 describe("leftoverSingularForAxis", () => {
   const axes = [
@@ -223,6 +223,7 @@ describe("leftover-map graphic-display axis singular badges", () => {
       LEFTOVER_MAP_COMPARE_PLOT_AXIS_SINGULAR_SHARE,
     );
     expect(LEFTOVER_MAP_PLOT_AXIS_SINGULAR).not.toBe(LEFTOVER_MAP_COMPARE_AXIS_SINGULAR);
+    expect(LEFTOVER_MAP_PLOT_AXIS_SINGULAR).not.toBe(LEFTOVER_MAP_AXIS_BADGE_SINGULAR_ONLY);
     expect(LEFTOVER_MAP_PLOT_AXIS_SINGULAR_SHARE).not.toBe(LEFTOVER_MAP_AXIS_BADGE_SINGULAR);
     expect(LEFTOVER_MAP_PLOT_AXIS_SINGULAR_SHARE).not.toBe(LEFTOVER_MAP_PLOT_AXIS_SHARE);
   });

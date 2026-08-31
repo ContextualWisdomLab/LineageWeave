@@ -105,6 +105,9 @@ Independent of leftover-map singular values on leftover-axis report badges
 in the period-report panel ([ADR 0322](0322-leftover-map-axis-singular.md)).
 Independent of leftover-map singular values on leftover-map graphic-display
 axes ([ADR 0324](0324-leftover-map-plot-axis-singular.md)).
+Independent of leftover-map singular values on leftover-axis report badges
+independently of leftover-map axis share
+([ADR 0325](0325-leftover-map-axis-singular-only.md)).
 
 ## References
 

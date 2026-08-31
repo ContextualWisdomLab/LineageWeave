@@ -1,5 +1,24 @@
 # Product & Technical Gap Baseline
 
+> Exact-head loop overlay: 2026-08-31 11:25 KST. Protected `main` is
+> `cb187cadee5fb6c46d8a944815ccc154a1e028d1`. Writes work. Do not
+> self-approve. #865 leftover-map singular values on leftover-map graphic-display
+> axes (v2.81.0 / ADR 0324) is `a3613ac`, stacked on #863 @ `52b3597`. Independent
+> APPROVE is missing. Next buyer increment on this cycle: leftover-map singular
+> values on leftover-axis report badges independently of leftover-map axis share
+> (ADR 0325 / v2.82.0) delivered locally on
+> `feat/leftover-map-axis-singular-only-v2820`. Caption persisted leftover-map
+> singular values `σ_k` on leftover-axis report badges when leftover-map axis
+> share is omitted. Distinct accessible name `leftover axis {axis} σ {value}`.
+> Rank-0 unused axes still name `σ 0.00`. Share and singular value omit
+> independently. Do not invent `σ_k` from leftover-map axis share. Do not invent
+> leftover-map axis share from `σ_k`. Do not change leftover-map singular values
+> on leftover-map graphic-display axes or on leftover-axis report badges on the
+> grouping comparison strip this increment. Stack onto #865. Leave open for
+> independent review. Do not squash-merge. Do not self-approve. Issues #79 and
+> #87 stay open. Do not merge #808 without independent APPROVE. Never
+> self-approve.
+
 > Exact-head loop overlay: 2026-08-31 11:05 KST. Protected `main` is
 > `cb187cadee5fb6c46d8a944815ccc154a1e028d1`. Writes work. Do not
 > self-approve. #863 leftover-map singular values on leftover-axis report badges
