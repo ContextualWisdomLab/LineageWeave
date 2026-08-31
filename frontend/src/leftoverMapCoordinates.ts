@@ -8,8 +8,16 @@ export const LEFTOVER_MAP_COORDINATES_ACTION =
 export const LEFTOVER_MAP_COMPARE_COORDINATES_LABEL =
   "Leftover map comparison coordinates";
 
+export const LEFTOVER_MAP_LIST_POST_ACTION =
+  "leftover pair leftover-map post {title} at ξ {person}";
+
 const PERSON_BADGE = "\u03BE";
 const ITEM_BADGE = "\u03B6";
+
+export type LeftoverMapListPostBadge = {
+  key: string;
+  values: { title: string; person: string };
+};
 
 export function formatLeftoverMapCoordinatePair(
   axis1: number | null | undefined,
@@ -38,4 +46,17 @@ export function formatLeftoverMapCoordinates(
     return null;
   }
   return `${PERSON_BADGE} ${person} ${ITEM_BADGE} ${item}`;
+}
+
+/** ADR 0339 leftover-map pair leftover-map post leftover-map person coordinates ξ. */
+export function leftoverMapListPostBadge(
+  title: string,
+  axis1: number | null | undefined,
+  axis2: number | null | undefined,
+): LeftoverMapListPostBadge | null {
+  const person = formatLeftoverMapCoordinatePair(axis1, axis2);
+  if (person === null) {
+    return null;
+  }
+  return { key: LEFTOVER_MAP_LIST_POST_ACTION, values: { title, person } };
 }

@@ -18,7 +18,9 @@
 [ADR 0337](0337-leftover-map-compare-plot-post-coordinates.md)
 (leftover-map person coordinates on leftover-map comparison graphic leftover-map post markers);
 [ADR 0338](0338-leftover-map-plot-post-coordinates.md)
-(leftover-map person coordinates on leftover-map graphic leftover-map post markers)
+(leftover-map person coordinates on leftover-map graphic leftover-map post markers);
+[ADR 0339](0339-leftover-map-list-post-coordinates.md)
+(leftover-map person coordinates on leftover-map pair leftover-map post independently of leftover-map pair leftover-map criterion leftover-map item coordinates)
 
 Amends leftover pairs on the grouping comparison strip
 ([ADR 0149](0149-leftover-pairs-on-comparison-strip.md)), leftover-map

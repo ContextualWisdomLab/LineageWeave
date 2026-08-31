@@ -3,6 +3,9 @@
 **Decision status:** Accepted
 **Date:** 2026-08-31
 
+**Amended by:** [ADR 0339](0339-leftover-map-list-post-coordinates.md)
+(leftover-map person coordinates on leftover-map pair leftover-map post independently of leftover-map pair leftover-map criterion leftover-map item coordinates)
+
 Amends leftover-map graphic display of persisted coordinates
 ([ADR 0268](0268-leftover-map-graphic-display.md)), leftover-map
 coordinates ([ADR 0267](0267-leftover-map-coordinates.md)), leftover-map
@@ -106,7 +109,8 @@ post ξ markers
 singular values
 ([ADR 0334](0334-leftover-map-axis-tick-share-badge.md)). Independent of leftover-map
 graphic display ([ADR 0268](0268-leftover-map-graphic-display.md)). Independent of leftover-map
-coordinates ([ADR 0267](0267-leftover-map-coordinates.md)).
+coordinates ([ADR 0267](0267-leftover-map-coordinates.md)). Independent of leftover-map pair leftover-map post leftover-map person coordinates independently of leftover-map pair leftover-map criterion leftover-map item coordinates
+([ADR 0339](0339-leftover-map-list-post-coordinates.md)).
 
 ## References
 

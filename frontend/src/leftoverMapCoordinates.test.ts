@@ -1,8 +1,16 @@
 import { describe, expect, it } from "vitest";
 import {
+  leftoverMapComparePlotPostBadge,
+  leftoverMapPlotPostBadge,
+  LEFTOVER_MAP_COMPARE_PLOT_POST_ACTION,
+  LEFTOVER_MAP_PLOT_POST_ACTION,
+} from "./leftoverMapPlotLayout";
+import {
   formatLeftoverMapCoordinatePair,
   formatLeftoverMapCoordinates,
+  leftoverMapListPostBadge,
   LEFTOVER_MAP_COMPARE_COORDINATES_LABEL,
+  LEFTOVER_MAP_LIST_POST_ACTION,
 } from "./leftoverMapCoordinates";
 
 describe("formatLeftoverMapCoordinates", () => {
@@ -41,5 +49,52 @@ describe("formatLeftoverMapCoordinatePair", () => {
   it("omits a pair when either leftover-map axis is missing or non-finite", () => {
     expect(formatLeftoverMapCoordinatePair(null, 0)).toBeNull();
     expect(formatLeftoverMapCoordinatePair(0, Number.NaN)).toBeNull();
+  });
+});
+
+describe("leftoverMapListPostBadge", () => {
+  it("names persisted leftover-map person coordinates without inventing a leftover score", () => {
+    expect(leftoverMapListPostBadge("Public post", 0.5, 0.1)).toEqual({
+      key: LEFTOVER_MAP_LIST_POST_ACTION,
+      values: { title: "Public post", person: "(+0.50, +0.10)" },
+    });
+    expect(leftoverMapListPostBadge("negative", -0.7, -0.4)).toEqual({
+      key: LEFTOVER_MAP_LIST_POST_ACTION,
+      values: { title: "negative", person: "(\u22120.70, \u22120.40)" },
+    });
+  });
+
+  it("names rank-0 origin leftover-map person coordinates as ξ (0.00, 0.00)", () => {
+    expect(leftoverMapListPostBadge("Public post", 0, 0)).toEqual({
+      key: LEFTOVER_MAP_LIST_POST_ACTION,
+      values: { title: "Public post", person: "(0.00, 0.00)" },
+    });
+  });
+
+  it("omits leftover-map person coordinates when ξ is missing or non-finite", () => {
+    expect(leftoverMapListPostBadge("Public post", null, 0.1)).toBeNull();
+    expect(leftoverMapListPostBadge("Public post", 0.5, undefined)).toBeNull();
+    expect(leftoverMapListPostBadge("Public post", Number.NaN, 0.1)).toBeNull();
+    expect(leftoverMapListPostBadge("Public post", 0.5, Number.POSITIVE_INFINITY)).toBeNull();
+  });
+
+  it("names leftover-map pair leftover-map post leftover-map person coordinates independently of leftover-map pair leftover-map criterion leftover-map item coordinates", () => {
+    expect(leftoverMapListPostBadge("Public post", 0.5, 0.1)).not.toBeNull();
+    expect(formatLeftoverMapCoordinates(0.5, 0.1, null, -0.02)).toBeNull();
+    expect(formatLeftoverMapCoordinates(0.5, 0.1, 0.5, Number.NaN)).toBeNull();
+  });
+
+  it("stays distinct from leftover-map graphic leftover-map post markers and leftover-map comparison graphic leftover-map post markers", () => {
+    expect(LEFTOVER_MAP_LIST_POST_ACTION).toBe(
+      "leftover pair leftover-map post {title} at ξ {person}",
+    );
+    expect(LEFTOVER_MAP_LIST_POST_ACTION).not.toBe(LEFTOVER_MAP_PLOT_POST_ACTION);
+    expect(LEFTOVER_MAP_LIST_POST_ACTION).not.toBe(LEFTOVER_MAP_COMPARE_PLOT_POST_ACTION);
+    expect(leftoverMapListPostBadge("Public post", 0.5, 0.1)?.key).not.toBe(
+      leftoverMapPlotPostBadge("Public post", 0.5, 0.1)?.key ?? "",
+    );
+    expect(leftoverMapListPostBadge("Public post", 0.5, 0.1)?.key).not.toBe(
+      leftoverMapComparePlotPostBadge("Public post", 0.5, 0.1)?.key ?? "",
+    );
   });
 });

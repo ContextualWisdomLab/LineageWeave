@@ -8,6 +8,27 @@ All notable changes to this project are documented here. Format follows
 
 ### Added
 
+- Period leftover pairs now caption leftover-map pair leftover-map
+  post with persisted leftover-map person coordinates through leftoverMapListPostBadge
+  independently of leftover-map pair leftover-map criterion leftover-map item coordinates (ADR 0339 / v2.96.0). After `make seed`,
+  leftover-map pair leftover-map post name persisted leftover-map
+  person coordinates when leftoverMapListPostBadge returns a usable leftover-map pair leftover-map post
+  leftover-map person coordinate caption; click a leftover pair or a leftover-map post marker
+  opens that post. A missing or non-finite leftover-map person coordinate pair omits that leftover-map
+  pair leftover-map post leftover-map person coordinate caption and keeps
+  `Open leftover {kind} pair: {title} · {criterion}`.
+  Rank-0 unused axes still name leftover-map person coordinates `(0.00, 0.00)`. Leftover-map pair leftover-map
+  post stay
+  `leftover pair leftover-map post {title} at ξ {person}`
+  when leftover-map person coordinates are finite so they stay distinct from leftover-map graphic leftover-map post markers
+  `Open leftover-map post {title} at ξ {person}` and leftover-map comparison graphic leftover-map post markers
+  `Open leftover map comparison graphic leftover-map post {title} at ξ {person}`. Do not invent leftover-map
+  person coordinates from leftover-map item coordinates `ζ`. Do not invent leftover-map item coordinates `ζ` from leftover-map
+  person coordinates `ξ`. This increment does not change leftover-map graphic leftover-map
+  post markers, leftover-map comparison graphic leftover-map post markers, leftover-map graphic leftover-map criterion markers, leftover-map comparison graphic leftover-map criterion markers, leftover-axis ticks, leftover-map graphic leftover-map axis ticks,
+  leftover-map comparison leftover-axis ticks, or leftover-map comparison graphic leftover-map axis ticks. A finite negative leftover
+  is shown, never clamped. Never invent a leftover score or a theta. No new columns.
+
 - Period leftover pairs now caption leftover-map graphic leftover-map
   post markers with persisted leftover-map person coordinates through leftoverMapPlotPostBadge
   independently of leftover-map comparison graphic leftover-map post markers (ADR 0338 / v2.95.0). After `make seed`,

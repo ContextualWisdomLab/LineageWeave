@@ -36,7 +36,9 @@
 [ADR 0337](0337-leftover-map-compare-plot-post-coordinates.md)
 (leftover-map person coordinates on leftover-map comparison graphic leftover-map post markers);
 [ADR 0338](0338-leftover-map-plot-post-coordinates.md)
-(leftover-map person coordinates on leftover-map graphic leftover-map post markers)
+(leftover-map person coordinates on leftover-map graphic leftover-map post markers);
+[ADR 0339](0339-leftover-map-list-post-coordinates.md)
+(leftover-map person coordinates on leftover-map pair leftover-map post independently of leftover-map pair leftover-map criterion leftover-map item coordinates)
 
 Amends [ADR 0049](0049-leftover-pair-report-ui.md) and
 [ADR 0267](0267-leftover-map-coordinates.md). Independent of leftover-map
