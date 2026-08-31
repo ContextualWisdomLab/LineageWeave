@@ -15,12 +15,13 @@
 > because its protected central policy still attempts to decode the committed
 > PNG render as UTF-8. The owner repair is
 > `ContextualWisdomLab/.github#1420` at
-> `212ade1d1750e66851bc8ef57defa2c02a899e12`: its focused policy contracts,
-> security checks, and coverage succeed, while the authenticated OpenCode
-> verdict and independent approval remain absent. Normal squash auto-merge is
-> armed there, but concurrent central-main movement leaves the branch
-> conflicting, so an automatic update was rejected rather than forcing or
-> bypassing it. The repair remains candidate-only owner evidence.
+> `a3c79864a656b6e7ed1640d905d2335206109927`: the branch was normally merged
+> with the concurrently advanced central `main`, resolving the sole CHANGELOG
+> conflict by retaining both products' entries. All 92 focused policy tests
+> pass locally; fresh exact-head hosted checks are running, and the
+> authenticated OpenCode verdict and independent approval remain absent.
+> Normal squash auto-merge is armed there. The repair remains candidate-only
+> owner evidence.
 >
 > Fresh local verification on PR #780's parent passes 37 focused ontology,
 > SHACL, Voice-authority, and API tests plus 29 affected frontend tests,
