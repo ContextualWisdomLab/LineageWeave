@@ -119,6 +119,10 @@ describe("i18n", () => {
     "leftover map comparison graphic leftover-map axis {axis} tick {value} σ {singular}",
     "leftover map comparison graphic leftover-map axis {axis} tick {value} {share}%",
     "leftover map comparison graphic leftover-map axis {axis} tick {value} σ {singular} {share}%",
+    "leftover map comparison graphic leftover-map axis {axis} origin tick {value}",
+    "leftover map comparison graphic leftover-map axis {axis} origin tick {value} σ {singular}",
+    "leftover map comparison graphic leftover-map axis {axis} origin tick {value} {share}%",
+    "leftover map comparison graphic leftover-map axis {axis} origin tick {value} σ {singular} {share}%",
     "leftover map comparison graphic leftover-map axis {axis} σ {value}",
     "leftover map comparison graphic leftover-map axis {axis} σ {value} ({share}%)",
     "leftover map comparison leftover axis {axis} σ {value}",
@@ -775,7 +779,88 @@ describe("i18n", () => {
   );
 
   it.each([
-    ["ko", "잔여 지도 비교 그림 축 1 σ 1.84"],
+    ["ko", "잔여 지도 비교 그림 축 1 원점 눈금 0.00"],
+    ["zh", "残差地图比较图形轴 1 原点刻度 0.00"],
+    ["ja", "残差マップの比較図軸 1 原点目盛 0.00"],
+    ["vi", "vạch gốc trục đồ họa so sánh bản đồ phần dư 1 0.00"],
+  ] as const)(
+    "formats leftover map comparison graphic leftover-map axis origin ticks in %s",
+    (locale, expected) => {
+      setLocale(locale);
+      expect(
+        tf("leftover map comparison graphic leftover-map axis {axis} origin tick {value}", {
+          axis: 1,
+          value: "0.00",
+        }),
+      ).toBe(expected);
+    },
+  );
+
+  it.each([
+    ["ko", "잔여 지도 비교 그림 축 1 원점 눈금 0.00 σ 1.84"],
+    ["zh", "残差地图比较图形轴 1 原点刻度 0.00 σ 1.84"],
+    ["ja", "残差マップの比較図軸 1 原点目盛 0.00 σ 1.84"],
+    ["vi", "vạch gốc trục đồ họa so sánh bản đồ phần dư 1 0.00 σ 1.84"],
+  ] as const)(
+    "formats leftover map comparison graphic leftover-map axis origin tick leftover-map singular values in %s",
+    (locale, expected) => {
+      setLocale(locale);
+      expect(
+        tf(
+          "leftover map comparison graphic leftover-map axis {axis} origin tick {value} σ {singular}",
+          {
+            axis: 1,
+            value: "0.00",
+            singular: "1.84",
+          },
+        ),
+      ).toBe(expected);
+    },
+  );
+
+  it.each([
+    ["ko", "잔여 지도 비교 그림 축 1 원점 눈금 0.00 82%"],
+    ["zh", "残差地图比较图形轴 1 原点刻度 0.00 82%"],
+    ["ja", "残差マップの比較図軸 1 原点目盛 0.00 82%"],
+    ["vi", "vạch gốc trục đồ họa so sánh bản đồ phần dư 1 0.00 82%"],
+  ] as const)(
+    "formats leftover map comparison graphic leftover-map axis origin tick leftover-map axis share in %s",
+    (locale, expected) => {
+      setLocale(locale);
+      expect(
+        tf("leftover map comparison graphic leftover-map axis {axis} origin tick {value} {share}%", {
+          axis: 1,
+          value: "0.00",
+          share: "82",
+        }),
+      ).toBe(expected);
+    },
+  );
+
+  it.each([
+    ["ko", "잔여 지도 비교 그림 축 1 원점 눈금 0.00 σ 1.84 82%"],
+    ["zh", "残差地图比较图形轴 1 原点刻度 0.00 σ 1.84 82%"],
+    ["ja", "残差マップの比較図軸 1 原点目盛 0.00 σ 1.84 82%"],
+    ["vi", "vạch gốc trục đồ họa so sánh bản đồ phần dư 1 0.00 σ 1.84 82%"],
+  ] as const)(
+    "formats leftover map comparison graphic leftover-map axis origin tick leftover-map singular values and leftover-map axis share in %s",
+    (locale, expected) => {
+      setLocale(locale);
+      expect(
+        tf(
+          "leftover map comparison graphic leftover-map axis {axis} origin tick {value} σ {singular} {share}%",
+          {
+            axis: 1,
+            value: "0.00",
+            singular: "1.84",
+            share: "82",
+          },
+        ),
+      ).toBe(expected);
+    },
+  );
+
+  it.each([
     ["zh", "残差地图比较图形轴 1 σ 1.84"],
     ["ja", "残差マップの比較図軸 1 σ 1.84"],
     ["vi", "trục đồ họa so sánh bản đồ phần dư 1 σ 1.84"],

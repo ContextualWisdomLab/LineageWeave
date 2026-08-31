@@ -1,5 +1,28 @@
 # Product & Technical Gap Baseline
 
+> Exact-head loop overlay: 2026-08-31 16:22 KST. Protected `main` is
+> `cb187cadee5fb6c46d8a944815ccc154a1e028d1`. Writes work. Do not
+> self-approve. #875 leftover-map axis share on leftover-axis ticks independently of leftover-map
+> singular values (v2.91.0 / ADR 0334) is `d19f1fd`, stacked on #874 @ `ba58c21`.
+> Independent APPROVE is missing (Devin COMMENTED, not APPROVE). Next buyer increment on this cycle:
+> leftover-map comparison graphic leftover-map axis origin ticks naming leftover-map origin
+> independently of leftover-map axis share and leftover-map singular values
+> (ADR 0335 / v2.92.0) delivered locally on
+> `feat/leftover-map-compare-plot-tick-origin-badge-v2920`. Caption leftover-map origin `0.00`
+> on leftover-map comparison graphic leftover-map axis ticks when leftoverMapComparePlotTickAxisBadge
+> returns a usable leftover-map origin tick caption even when leftover-map axis share or leftover-map
+> singular values omit. Distinct accessible names
+> `leftover map comparison graphic leftover-map axis {axis} origin tick {value}`,
+> `leftover map comparison graphic leftover-map axis {axis} origin tick {value} {share}%`,
+> `leftover map comparison graphic leftover-map axis {axis} origin tick {value} σ {singular}`, and
+> `leftover map comparison graphic leftover-map axis {axis} origin tick {value} σ {singular} {share}%`.
+> Rank-0 unused axes still name leftover-map origin `0.00` and leftover-map axis share `0%`. Share and
+> singular values omit independently of leftover-map origin. Do not invent leftover-map origin from leftover-map
+> axis share or `σ_k`. Do not invent leftover-map axis share from `σ_k`. Do not invent `σ_k` from leftover-map
+> axis share. Do not persist leftover-map inner product, cosine, or length. Stack onto #875.
+> Leave open for independent review. Do not squash-merge. Do not self-approve. Issues #79
+> and #87 stay open. Do not merge #808 without independent APPROVE. Never self-approve.
+
 > Exact-head loop overlay: 2026-08-31 15:40 KST. Protected `main` is
 > `cb187cadee5fb6c46d8a944815ccc154a1e028d1`. Writes work. Do not
 > self-approve. #874 leftover-map axis share on leftover-map comparison leftover-axis

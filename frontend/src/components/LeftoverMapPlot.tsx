@@ -230,6 +230,9 @@ function leftoverMapPlotTickText(
  * ADR 0332 fail-closes leftover-map graphic leftover-map axis ticks leftover-map
  * axis share through leftoverMapPlotTickAxisBadge independently of leftover-map
  * singular values.
+ * ADR 0335 fail-closes leftover-map comparison graphic leftover-map axis origin ticks
+ * through leftoverMapComparePlotTickAxisBadge independently of leftover-map axis share
+ * and leftover-map singular values.
  * Never invent a leftover score.
  */
 export function LeftoverMapPlot({
