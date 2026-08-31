@@ -33,7 +33,7 @@ import {
   LEFTOVER_MAP_PLOT_AXIS_SHARE,
 } from "./leftoverMapPlotAxisShare";
 import { LEFTOVER_MAP_COMPARE_PLOT_TICK, LEFTOVER_MAP_PLOT_TICK } from "./leftoverMapPlotLayout";
-import { LEFTOVER_MAP_AXIS_BADGE_SINGULAR, LEFTOVER_MAP_AXIS_BADGE_SINGULAR_ONLY } from "./leftoverMapAxisBadge";
+import { LEFTOVER_MAP_AXIS_BADGE_SINGULAR, LEFTOVER_MAP_AXIS_BADGE_SINGULAR_ONLY, leftoverMapAxisTickBadge } from "./leftoverMapAxisBadge";
 
 describe("leftoverSingularForAxis", () => {
   const axes = [
@@ -871,5 +871,9 @@ describe("leftover-map comparison leftover-axis tick leftover-map axis share", (
     expect(leftoverMapCompareAxisTickBadge(1, "+0.50", 1.84, 0.82).key).not.toBe(
       leftoverMapPlotTickAxisBadge(1, "+0.50", 1.84, 0.82).key,
     );
+    expect(leftoverMapCompareAxisTickBadge(1, "+0.50", 1.84, 0.82).key).not.toBe(
+      leftoverMapAxisTickBadge(1, "+0.50", 1.84, 0.82).key,
+    );
   });
 });
+

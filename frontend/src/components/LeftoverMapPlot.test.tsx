@@ -2964,5 +2964,6 @@ describe("LeftoverMapPlot", () => {
     ).not.toBeInTheDocument();
     expect(screen.queryByLabelText("leftover-map axis 1 tick +0.50 σ 1.84")).not.toBeInTheDocument();
     expect(screen.queryByText("leftover axis 1 tick +0.50 82%")).not.toBeInTheDocument();
+    expect(screen.queryByText("leftover axis 1 tick +0.50 σ 1.84 82%")).not.toBeInTheDocument();
   });
 });
