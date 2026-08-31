@@ -1,5 +1,18 @@
 # Product & Technical Gap Baseline
 
+> Exact-head rendered-UX overlay: 2026-08-31 12:16 KST. PR #802
+> implementation revision `1e972d7f6` retains persisted-only `d`, `R̂`, and
+> `e` projection while moving dense segment captions off their plot segments
+> and painting them with the existing background token. The focused 32-test
+> plot selection, frontend lint, production build, and Storybook build pass.
+> Fresh synthetic `Reports/LeftoverMapPlot/ClosestAndFarthest` renders were
+> inspected at 1440-by-1000 and 390-by-844: the three captions are separated
+> from each segment and remain legible over axes; the fixed-width plot remains
+> intentionally horizontally scrollable at mobile width. Screenshots remain
+> temporary audit evidence and are not committed. This later documentation
+> overlay does not inherit those results; exact-head GitHub Checks and an
+> independent approval remain required before protected merge.
+>
 > Exact-head release-contract overlay: 2026-08-31 11:46 KST.
 > Protected `main` remains `cb187cadee5fb6c46d8a944815ccc154a1e028d1`;
 > sixty-nine open PRs and ten open issues were enumerated in a fresh snapshot.
