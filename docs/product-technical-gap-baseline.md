@@ -10,7 +10,6 @@
 > stacked leftover PRs onto an unprotected leftover base. Issues #79
 > and #87 stay OPEN. Issue #277 stays OPEN: consumer receipt persist is
 > on `main`; producer status HTTP remains unavailable.
->
 > Next buyer increment on this cycle: seed a Demo Corp Running TEPP
 > accepted receipt (ADR 0219 / v2.29.0) so `make seed` shows
 > "Measurement request accepted. Refresh this run to check whether

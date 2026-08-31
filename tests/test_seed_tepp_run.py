@@ -115,6 +115,25 @@ def test_tepp_submission_rejects_boolean_contract_version() -> None:
     assert envelope is None
 
 
+def test_tepp_submission_rejects_conflicting_state_aliases() -> None:
+    request = tepp_seed_request()
+    status, failure, envelope = _tepp_submission(
+        TeppClient(
+            transport=lambda payload: {
+                "contract_version": 1,
+                "run_id": "tepp-seed-accepted-1",
+                "status": "accepted",
+                "run_state": "completed",
+                "idempotency_key": payload["idempotency_key"],
+            }
+        ),
+        request,
+    )
+    assert status == "analysis_status_failed"
+    assert failure == "tepp_result_not_persisted"
+    assert envelope is None
+
+
 def test_tepp_accepted_seed_request_shares_the_demo_snapshot() -> None:
     request = tepp_accepted_seed_request("corp-1")
     assert request.snapshot_id == demo_source_snapshot_sha256()

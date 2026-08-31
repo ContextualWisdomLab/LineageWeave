@@ -274,7 +274,11 @@ def _tepp_submission(
         return _FAILED, "tepp_result_not_persisted", None
     if not isinstance(response, dict):
         return _FAILED, "tepp_result_not_persisted", None
-    state = response.get("status") or response.get("run_state")
+    status = response.get("status")
+    run_state = response.get("run_state")
+    if status is not None and run_state is not None and status != run_state:
+        return _FAILED, "tepp_result_not_persisted", None
+    state = status or run_state
     remote_run_id = response.get("analysis_run_id") or response.get("run_id")
     if state == "accepted":
         if (
