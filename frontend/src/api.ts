@@ -94,6 +94,12 @@ export interface OperationsDashboardCase {
   case_kind_label: string;
   project_name: string | null;
   project_names?: string[];
+  projects: Array<{
+    project_key: string;
+    project_name: string;
+    key_provenance: "source_post.source_project_code" | "post_project_mention.project_key";
+    evidence_post_id: string;
+  }>;
   summary_text: string;
   evidence_text: string;
   evidence_post_id: string;
@@ -111,6 +117,7 @@ export interface OperationsDashboardResponse {
   period_label: string;
   period_start?: string | null;
   period_end?: string | null;
+  project_history_knowledge_cutoff?: string | null;
   period_time_axis_code?: "event_occurred_at" | "created_at";
   total_post_count: number;
   total_event_count: number;

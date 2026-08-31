@@ -27,19 +27,27 @@ _ASCII_EDGE_WHITESPACE = r"E' \t\n\r\f\v'"
 _PROJECT_MATCH = """
 (
     lower(btrim(normalize(coalesce(post.source_project_code, ''), NFKC), {whitespace})) = $1
-    or lower(btrim(normalize(coalesce(post.source_project_name, ''), NFKC), {whitespace})) = $1
     or exists (
         select 1
           from post_project_mention mention
          where mention.post_id = post.post_id
-           and (
-                lower(btrim(normalize(mention.project_key, NFKC), {whitespace})) = $1
-                or lower(btrim(normalize(mention.project_name, NFKC), {whitespace})) = $1
-           )
+           and lower(btrim(normalize(mention.project_key, NFKC), {whitespace})) = $1
     )
 )
 """.format(whitespace=_ASCII_EDGE_WHITESPACE)
+_PROJECT_CANDIDATES = """
+matching_post as materialized (
+    select post_id
+      from source_post
+     where lower(btrim(normalize(coalesce(source_project_code, ''), NFKC), {whitespace})) = $1
+    union
+    select post_id
+      from post_project_mention
+     where lower(btrim(normalize(project_key, NFKC), {whitespace})) = $1
+)
+""".format(whitespace=_ASCII_EDGE_WHITESPACE)
 _EVENT_SQL = f"""
+with {_PROJECT_CANDIDATES}
 select post.post_id,
        post.post_title,
        post.created_at,
@@ -47,14 +55,14 @@ select post.post_id,
        post.voc_type_code,
        post.source_stage_code,
        post.source_detail_state_code
-  from source_post post
+  from matching_post matching
+  join source_post post on post.post_id = matching.post_id
  where (post.visibility_code = 'public'
     or (post.corporate_entity_id::text = any($2::text[])
         and (cardinality($3::text[]) = 0
              or post.process_unit_id::text = any($3::text[]))))
    and {_ELIGIBILITY}
    and post.created_at <= $4
-   and {_PROJECT_MATCH}
  order by coalesce(post.event_occurred_at, post.created_at), post.created_at, post.post_id
  limit $5
 """

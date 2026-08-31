@@ -107,6 +107,22 @@ provenance.
    predecessors when the accepted TEPP artifact and source evidence connect
    them. LineageWeave never chooses a fixed first stage or promotes nearest-date
    ordering to a lineage edge.
+   A Dashboard case may open the existing Project History projection only with
+   an explicit project identity from `source_post.source_project_code` or
+   `post_project_mention.project_key`. The response carries that exact key, its
+   provenance field, and the visible post that supplied it separately from the
+   display label. A display name is never converted into a key. The selected
+   case supplies the focus post, while a bounded Dashboard period supplies the
+   server-derived end-of-day `Asia/Seoul` knowledge cutoff for its inclusive
+   `period_end`; this preserves every authorized branch in the selected period
+   without admitting records learned later. With no `period_end`, the client
+   omits the cutoff and retains the Project History endpoint's authoritative
+   current-query contract. The Project History endpoint reapplies source
+   eligibility and the caller's current corporate-entity/process-unit ABAC
+   boundary. A missing key,
+   authorization-filtered result, or failed request remains explicitly
+   unavailable; the Dashboard does not substitute its chronological observed
+   list or invent a lifecycle transition.
 10. A repeat-issue result carries both the issue-pattern evidence and any
    source-supported improvement action. Its Dashboard flow is As-Is evidence
    to To-Be action: rebid history retrieval, originating-order/specification
