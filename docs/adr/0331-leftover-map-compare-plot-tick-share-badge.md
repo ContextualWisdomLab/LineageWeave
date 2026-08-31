@@ -140,7 +140,9 @@ coordinate ticks on the grouping comparison leftover-map graphic
 ([ADR 0320](0320-leftover-map-compare-plot-ticks.md)). Independent of leftover-map
 axis share persistence ([ADR 0148](0148-leftover-map-axis-share.md)). Independent of leftover-map
 graphic leftover-map axis tick leftover-map axis share independently of leftover-map
-singular values ([ADR 0332](0332-leftover-map-plot-tick-share-badge.md)).
+singular values ([ADR 0332](0332-leftover-map-plot-tick-share-badge.md)). Independent of leftover-map
+comparison leftover-axis tick leftover-map axis share independently of leftover-map
+singular values ([ADR 0333](0333-leftover-map-compare-axis-tick-share-badge.md)).
 
 ## References
 

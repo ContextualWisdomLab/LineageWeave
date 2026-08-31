@@ -18,6 +18,8 @@
  *  axis share as leftoverMapComparePlotTickAxisBadge, not this helper.
  *  ADR 0332 captions leftover-map graphic leftover-map axis ticks leftover-map
  *  axis share as leftoverMapPlotTickAxisBadge, not this helper.
+ *  ADR 0333 captions leftover-map comparison leftover-axis ticks leftover-map
+ *  axis share as leftoverMapCompareAxisTickBadge, not this helper.
  */
 
 import type { LeftoverMapAxis } from "./api";
