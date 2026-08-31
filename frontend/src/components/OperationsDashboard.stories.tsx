@@ -15,7 +15,7 @@ const storyProjectHistory = {
   project_name: "Synthetic Transformer Renewal",
   focus_event_id: "synthetic-post-1",
   time_basis_code: "document_time",
-  event_count: 2,
+  event_count: 4,
   distinct_observed_actor_count: 1,
   truncated: false,
   events: [
@@ -26,10 +26,42 @@ const storyProjectHistory = {
       project_matches: [], observed_responsibilities: [], responsibility_transition_code: null, related_prior_paths: [],
     },
     {
+      event_id: "synthetic-design-review", source_post_id: "synthetic-design-review", event_title: "Synthetic design review",
+      event_type_code: "specification_changed", event_type_basis_code: "controlled_source_code", occurred_at: "2026-08-02T00:00:00Z",
+      time_basis_code: "document_time", voc_type_code: null, source_stage_code: "design", source_detail_state_code: null,
+      project_matches: [], observed_responsibilities: [], responsibility_transition_code: "continuous", related_prior_paths: [],
+    },
+    {
+      event_id: "synthetic-supply-review", source_post_id: "synthetic-supply-review", event_title: "Synthetic supply review",
+      event_type_code: "source_recorded", event_type_basis_code: "controlled_source_code", occurred_at: "2026-08-03T00:00:00Z",
+      time_basis_code: "document_time", voc_type_code: null, source_stage_code: "supply", source_detail_state_code: null,
+      project_matches: [], observed_responsibilities: [], responsibility_transition_code: "continuous", related_prior_paths: [],
+    },
+    {
       event_id: "synthetic-post-1", source_post_id: "synthetic-post-1", event_title: "Synthetic claim evidence",
       event_type_code: "voc_received", event_type_basis_code: "controlled_source_code", occurred_at: "2026-08-04T00:00:00Z",
       time_basis_code: "document_time", voc_type_code: "voc", source_stage_code: "review", source_detail_state_code: null,
-      project_matches: [], observed_responsibilities: [{ actor_key: "team:synthetic", actor_name: "Synthetic Review Team", actor_type_code: "prov_organization", affiliated_organization_name: null, responsibility: "Observed review owner", truth_status_code: "observed", provenance: "post_summary_role" }], responsibility_transition_code: "assignment_gap", related_prior_paths: [],
+      project_matches: [], observed_responsibilities: [{ actor_key: "team:synthetic", actor_name: "Synthetic Review Team", actor_type_code: "prov_organization", affiliated_organization_name: null, responsibility: "Observed review owner", truth_status_code: "observed", provenance: "post_summary_role" }], responsibility_transition_code: "assignment_gap",
+      related_prior_paths: [
+        {
+          source_event_id: "synthetic-project-start", target_event_id: "synthetic-post-1",
+          event_ids: ["synthetic-project-start", "synthetic-design-review", "synthetic-post-1"],
+          edges: [
+            { parent_event_id: "synthetic-project-start", child_event_id: "synthetic-design-review", fused_score: 0.91 },
+            { parent_event_id: "synthetic-design-review", child_event_id: "synthetic-post-1", fused_score: 0.87 },
+          ],
+          minimum_fused_score: 0.87, truth_status_code: "inferred", source_relation_code: "post_lineage_edge", provenance: "post_lineage_edge.fused_score",
+        },
+        {
+          source_event_id: "synthetic-project-start", target_event_id: "synthetic-post-1",
+          event_ids: ["synthetic-project-start", "synthetic-supply-review", "synthetic-post-1"],
+          edges: [
+            { parent_event_id: "synthetic-project-start", child_event_id: "synthetic-supply-review", fused_score: 0.88 },
+            { parent_event_id: "synthetic-supply-review", child_event_id: "synthetic-post-1", fused_score: 0.84 },
+          ],
+          minimum_fused_score: 0.84, truth_status_code: "inferred", source_relation_code: "post_lineage_edge", provenance: "post_lineage_edge.fused_score",
+        },
+      ],
     },
   ],
 } satisfies ProjectHistoryProjection;
@@ -104,6 +136,8 @@ export const ProjectHistoryReady: Story = {
     await userEvent.click(historyButtons[0]);
     const focusTab = await canvas.findByRole("tab", { name: /Synthetic claim evidence/ });
     await expect(focusTab).toHaveAttribute("aria-selected", "true");
+    await expect(canvas.getByText("Synthetic project initiated → Synthetic design review → Synthetic claim evidence")).toBeVisible();
+    await expect(canvas.getByText("Synthetic project initiated → Synthetic supply review → Synthetic claim evidence")).toBeVisible();
     focusTab.focus();
     await userEvent.keyboard("{ArrowLeft}");
     await expect(canvas.getByRole("tab", { name: /Synthetic project initiated/ })).toHaveFocus();
