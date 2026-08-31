@@ -773,6 +773,15 @@ person coordinate caption and keeps `Open leftover-map post {title}`. Rank-0 unu
 person coordinates `(0.00, 0.00)`. Do not invent leftover-map person coordinates from leftover-map item coordinates
 `ζ`. Do not invent leftover-map item coordinates `ζ` from leftover-map person coordinates `ξ`. Leftover-map graphic leftover-map
 post markers stay `Open leftover-map post {title} at ξ {person}` this increment.
+ADR 0338 captions leftover-map graphic leftover-map post markers with persisted leftover-map
+person coordinates when leftoverMapPlotPostBadge returns a usable leftover-map graphic leftover-map post leftover-map
+person coordinate caption. Distinct accessible name
+`Open leftover-map post {title} at ξ {person}`.
+A missing or non-finite leftover-map person coordinate pair omits that leftover-map graphic leftover-map post leftover-map
+person coordinate caption and keeps `Open leftover-map post {title}`. Rank-0 unused axes still name leftover-map
+person coordinates `(0.00, 0.00)`. Do not invent leftover-map person coordinates from leftover-map item coordinates
+`ζ`. Do not invent leftover-map item coordinates `ζ` from leftover-map person coordinates `ξ`. Leftover-map comparison graphic leftover-map
+post markers stay `Open leftover map comparison graphic leftover-map post {title} at ξ {person}` this increment.
 When `R`, `R̂`, `U`, `x`,
 `s`, and `e` are finite, `e + s + x = 1`. When `Y`, `E`, and `R` are
 finite, `Y − E = R`. When `R`, `R̂`, and `U` are
@@ -925,6 +934,10 @@ item coordinate caption.
 Leftover-map comparison graphic leftover-map post leftover-map person coordinates independently of leftover-map criterion leftover-map item coordinates
 (ADR 0337) captions leftover-map comparison graphic leftover-map post markers with persisted leftover-map
 person coordinates when leftoverMapComparePlotPostBadge returns a usable leftover-map comparison graphic leftover-map post leftover-map
+person coordinate caption.
+Leftover-map graphic leftover-map post leftover-map person coordinates independently of leftover-map comparison graphic leftover-map post markers
+(ADR 0338) captions leftover-map graphic leftover-map post markers with persisted leftover-map
+person coordinates when leftoverMapPlotPostBadge returns a usable leftover-map graphic leftover-map post leftover-map
 person coordinate caption.
 Item complete-case coverage
 (ADR 0282) captions the leftover-map graphic with how many scored criteria

@@ -12,7 +12,9 @@
 [ADR 0336](0336-leftover-map-compare-plot-criterion-coordinates.md)
 (leftover-map item coordinates on leftover-map comparison graphic leftover-map criterion markers);
 [ADR 0337](0337-leftover-map-compare-plot-post-coordinates.md)
-(leftover-map person coordinates on leftover-map comparison graphic leftover-map post markers)
+(leftover-map person coordinates on leftover-map comparison graphic leftover-map post markers);
+[ADR 0338](0338-leftover-map-plot-post-coordinates.md)
+(leftover-map person coordinates on leftover-map graphic leftover-map post markers)
 
 Amends [ADR 0048](0048-persist-lsirm-leftover-pairs.md),
 [ADR 0049](0049-leftover-pair-report-ui.md), and

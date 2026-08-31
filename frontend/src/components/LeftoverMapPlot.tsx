@@ -1,6 +1,5 @@
 import type { LeftoverMapAxis, LeftoverMapCoverage, LeftoverPair } from "../api";
 import { t, tf } from "../i18n";
-import { formatLeftoverMapCoordinatePair } from "../leftoverMapCoordinates";
 import {
   leftoverMapCoverageCounts,
   leftoverMapIncompleteItemCount,
@@ -37,6 +36,7 @@ import {
   leftoverMapPlotCriterionBadge,
   leftoverMapComparePlotCriterionBadge,
   leftoverMapComparePlotPostBadge,
+  leftoverMapPlotPostBadge,
   LEFTOVER_MAP_COMPARE_PLOT_CAPTION,
   LEFTOVER_MAP_COMPARE_PLOT_LABEL,
   LEFTOVER_MAP_COMPARE_PLOT_SVG,
@@ -51,7 +51,6 @@ import {
   LEFTOVER_MAP_COMPARE_PLOT_SEGMENT_RANK,
   LEFTOVER_MAP_COMPARE_PLOT_SEGMENT_DISTANCE,
   LEFTOVER_MAP_PLOT_CAPTION,
-  LEFTOVER_MAP_PLOT_POST_ACTION,
   LEFTOVER_MAP_PLOT_POST_ACTION_OMITTED,
   LEFTOVER_MAP_PLOT_SEGMENT_CROSS_SHARE,
   LEFTOVER_MAP_PLOT_SEGMENT_DISTANCE,
@@ -152,11 +151,11 @@ function leftoverMapPlotPostText(
     }
     return tf(badge.key, badge.values);
   }
-  const person = formatLeftoverMapCoordinatePair(marker.axis1, marker.axis2) ?? "";
-  return tf(LEFTOVER_MAP_PLOT_POST_ACTION, {
-    title: marker.label,
-    person,
-  });
+  const badge = leftoverMapPlotPostBadge(marker.label, marker.axis1, marker.axis2);
+  if (badge === null) {
+    return tf(LEFTOVER_MAP_PLOT_POST_ACTION_OMITTED, { title: marker.label });
+  }
+  return tf(badge.key, badge.values);
 }
 
 /**
@@ -172,7 +171,10 @@ function leftoverMapPlotPostText(
  * graphic leftover-map criterion leftover-map item coordinate caption. Caption leftover-map
  * comparison graphic leftover-map post markers with persisted leftover-map person coordinates
  * ``ξ_{1:2}`` when leftoverMapComparePlotPostBadge returns a usable leftover-map comparison
- * graphic leftover-map post leftover-map person coordinate caption. Caption leftover-map axes with persisted
+ * graphic leftover-map post leftover-map person coordinate caption. Caption leftover-map graphic leftover-map
+ * post markers with persisted leftover-map person coordinates
+ * ``ξ_{1:2}`` when leftoverMapPlotPostBadge returns a usable leftover-map graphic leftover-map
+ * post leftover-map person coordinate caption. Caption leftover-map axes with persisted
  * leftover-map singular values ``σ_k`` and Gabriel inertia share when finite,
  * including rank-0 zero-share axes.
  * Axis ticks name persisted leftover-map coordinates so ξ / ζ on the

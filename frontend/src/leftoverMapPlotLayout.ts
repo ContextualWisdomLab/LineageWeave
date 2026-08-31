@@ -127,6 +127,10 @@
  *  markers leftover-map person coordinates ξ through leftoverMapComparePlotPostBadge
  *  independently of leftover-map criterion leftover-map item coordinates ζ, not leftover-map
  *  graphic leftover-map post markers.
+ *  ADR 0338 fail-closes leftover-map graphic leftover-map post
+ *  markers leftover-map person coordinates ξ through leftoverMapPlotPostBadge
+ *  independently of leftover-map comparison graphic leftover-map post markers, not leftover-map
+ *  comparison graphic leftover-map post markers.
  */
 
 import { formatLeftoverMapCoordinatePair } from "./leftoverMapCoordinates";
@@ -200,6 +204,18 @@ export function leftoverMapComparePlotCriterionBadge(
     return null;
   }
   return { key: LEFTOVER_MAP_COMPARE_PLOT_CRITERION, values: { label, item } };
+}
+
+export function leftoverMapPlotPostBadge(
+  title: string,
+  axis1: number | null | undefined,
+  axis2: number | null | undefined,
+): LeftoverMapPlotPostBadge | null {
+  const person = formatLeftoverMapCoordinatePair(axis1, axis2);
+  if (person === null) {
+    return null;
+  }
+  return { key: LEFTOVER_MAP_PLOT_POST_ACTION, values: { title, person } };
 }
 
 export function leftoverMapComparePlotPostBadge(

@@ -794,6 +794,9 @@ item coordinate caption independently of leftover-map post ξ markers.
 ADR 0337 captions leftover-map comparison graphic leftover-map post markers with persisted leftover-map
 person coordinates when leftoverMapComparePlotPostBadge returns a usable leftover-map comparison graphic leftover-map post leftover-map
 person coordinate caption independently of leftover-map criterion leftover-map item coordinates.
+ADR 0338 captions leftover-map graphic leftover-map post markers with persisted leftover-map
+person coordinates when leftoverMapPlotPostBadge returns a usable leftover-map graphic leftover-map post leftover-map
+person coordinate caption independently of leftover-map comparison graphic leftover-map post markers.
 Click a post marker or a pair button
 opens that post. Those ADRs are the normative mathematical, storage, and
 display contracts. Leftover-map axis share
@@ -861,7 +864,8 @@ comparison graphic leftover-map axis leftover-map singular values as leftoverMap
 (ADR 0334), leftover-map graphic leftover-map criterion leftover-map item coordinates independently of leftover-map post ξ markers
 (ADR 0335), leftover-map comparison graphic leftover-map criterion leftover-map item coordinates independently of leftover-map post ξ markers
 (ADR 0336), leftover-map comparison graphic leftover-map post leftover-map person coordinates independently of leftover-map criterion leftover-map item coordinates
-(ADR 0337);
+(ADR 0337), leftover-map graphic leftover-map post leftover-map person coordinates independently of leftover-map comparison graphic leftover-map post markers
+(ADR 0338);
 `POST .../rebuild` scores every grouping kind (post_admin). `make seed`
 folds A-100/B-200 Event Lineage fixtures (and the Riverbend calendar
 post) that already have constructed IRT cells into the same shared

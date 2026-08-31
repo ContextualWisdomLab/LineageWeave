@@ -101,6 +101,11 @@ describe("LeftoverMapPlot", () => {
     const postMarker = screen.getByRole("button", {
       name: "Open leftover-map post Public post at ξ (+0.50, +0.10)",
     });
+    expect(
+      screen.queryByRole("button", {
+        name: "Open leftover map comparison graphic leftover-map post Public post at ξ (+0.50, +0.10)",
+      }),
+    ).not.toBeInTheDocument();
     await userEvent.click(postMarker);
     expect(onSelectPost).toHaveBeenCalledWith(
       expect.objectContaining({
