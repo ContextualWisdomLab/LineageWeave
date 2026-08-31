@@ -23,9 +23,10 @@ cleanup() { docker rm -f "$preflight_container" >/dev/null 2>&1 || true; }
 trap cleanup EXIT
 
 docker compose build orchestrator
-image_id="$(docker compose images -q orchestrator)"
-[[ -n "$image_id" ]] || { echo "candidate orchestrator image was not built" >&2; exit 1; }
-image_revision="$(docker image inspect "$image_id" --format '{{index .Config.Labels "org.opencontainers.image.revision"}}')"
+image_ref="$(docker compose config --format json | python -c \
+  'import json, sys; print(json.load(sys.stdin)["services"]["orchestrator"]["image"])')"
+[[ -n "$image_ref" ]] || { echo "candidate orchestrator image was not configured" >&2; exit 1; }
+image_revision="$(docker image inspect "$image_ref" --format '{{index .Config.Labels "org.opencontainers.image.revision"}}')"
 [[ "$image_revision" == "$EXPECTED_ORCHESTRATOR_REVISION" ]] || {
   echo "candidate image revision does not match the requested promotion" >&2
   exit 1

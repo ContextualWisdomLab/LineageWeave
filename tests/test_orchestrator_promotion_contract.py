@@ -17,6 +17,8 @@ def test_promotion_probes_current_compose_env_before_recreate() -> None:
     recreate_at = script.index("docker compose up -d --no-deps orchestrator")
     assert verify_at < recreate_at
     assert "docker compose run -d --no-deps" in script
+    assert 'json.load(sys.stdin)["services"]["orchestrator"]["image"]' in script
+    assert "docker compose images -q" not in script
     assert "--env-file" not in script
     assert "docker run" not in script
     assert "LLM_GATEWAY_API_KEY" not in script
