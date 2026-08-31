@@ -1,13 +1,15 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { fetchOperationsDashboard, fetchVoiceTaxonomySummary, type OperationsDashboardResponse } from "../api";
+import { fetchOperationsDashboard, fetchProjectHistory, fetchVoiceTaxonomySummary, type OperationsDashboardResponse } from "../api";
 import { setLocale } from "../i18n";
+import type { ProjectHistoryProjection } from "../projectHistory";
 import { OperationsDashboard, OperationsDashboardView } from "./OperationsDashboard";
 
 vi.mock("../api", async (importOriginal) => ({
   ...(await importOriginal<typeof import("../api")>()),
   fetchOperationsDashboard: vi.fn(),
+  fetchProjectHistory: vi.fn(),
   fetchVoiceTaxonomySummary: vi.fn(),
 }));
 
@@ -18,12 +20,42 @@ beforeEach(() => {
     source_count: 0, derived_count: 0, unavailable: 0, disagreement: 0,
     counts_overlap: true, category_memberships: [],
   });
+  vi.mocked(fetchProjectHistory).mockReset().mockResolvedValue(projectHistory);
 });
+
+const projectHistory: ProjectHistoryProjection = {
+  contract_version: 1,
+  project_key: "SYNTHETIC-PROJECT-100",
+  normalized_project_key: "synthetic-project-100",
+  project_name: "Synthetic Grid Upgrade",
+  focus_event_id: "post-1",
+  time_basis_code: "document_time",
+  event_count: 2,
+  distinct_observed_actor_count: 0,
+  truncated: false,
+  events: [
+    {
+      event_id: "post-prior", source_post_id: "post-prior", event_title: "Synthetic project start",
+      event_type_code: "source_recorded", event_type_basis_code: "controlled_source_code",
+      occurred_at: "2026-08-02T00:00:00Z", time_basis_code: "document_time", voc_type_code: null,
+      source_stage_code: null, source_detail_state_code: null, project_matches: [],
+      observed_responsibilities: [], responsibility_transition_code: null, related_prior_paths: [],
+    },
+    {
+      event_id: "post-1", source_post_id: "post-1", event_title: "Synthetic claim evidence",
+      event_type_code: "voc_received", event_type_basis_code: "controlled_source_code",
+      occurred_at: "2026-08-12T00:00:00Z", time_basis_code: "document_time", voc_type_code: "voc",
+      source_stage_code: null, source_detail_state_code: null, project_matches: [],
+      observed_responsibilities: [], responsibility_transition_code: "assignment_gap", related_prior_paths: [],
+    },
+  ],
+};
 
 const data: OperationsDashboardResponse = {
   period_label: "2026-08-01–2026-08-25 · Event time",
   period_start: "2026-08-01",
   period_end: "2026-08-25",
+  project_history_knowledge_cutoff: "2026-08-25T23:59:59.999999+09:00",
   period_time_axis_code: "event_occurred_at",
   total_post_count: 20,
   total_event_count: 8,
@@ -51,7 +83,9 @@ const data: OperationsDashboardResponse = {
   },
   cases: [{
     post_id: "post-1", case_kind_code: "claim_investigation", case_kind_label: "클레임 원인 역추적",
-    project_name: "Synthetic Grid Upgrade", summary_text: "사양 변경 이후 원인 수주를 확인했습니다.", evidence_text: "Revision B changed the enclosure.", evidence_post_id: "evidence-post-1", occurred_at: "2026-08-12T00:00:00Z",
+    project_name: "Synthetic Grid Upgrade", project_names: ["Synthetic Grid Upgrade"],
+    projects: [{ project_key: "SYNTHETIC-PROJECT-100", project_name: "Synthetic Grid Upgrade", key_provenance: "source_post.source_project_code", evidence_post_id: "post-1" }],
+    summary_text: "사양 변경 이후 원인 수주를 확인했습니다.", evidence_text: "Revision B changed the enclosure.", evidence_post_id: "evidence-post-1", occurred_at: "2026-08-12T00:00:00Z",
     facts: [{ fact_type_code: "originating_order", fact_type_label: "원인 수주", value_text: "ORDER-100", evidence_text: "Original order ORDER-100", evidence_post_id: "evidence-post-2" }],
     missing_facts: [{ fact_type_code: "sales_pool", fact_type_label: "수주 Pool" }],
     milestones: [
@@ -230,6 +264,13 @@ describe("OperationsDashboardView", () => {
     expect(screen.queryByText("관련 프로젝트를 확인 중")).not.toBeInTheDocument();
   });
 
+  it("leaves project history unavailable instead of deriving a key from its display name", () => {
+    render(<OperationsDashboardView data={{ ...data, cases: [{ ...data.cases[0], projects: [] }] }} onOpenPost={() => undefined} />);
+
+    expect(screen.getByRole("region", { name: /사용할 수 없음/ })).toHaveTextContent("명시된 프로젝트 키가 없습니다");
+    expect(screen.queryByRole("button", { name: /프로젝트 이력 열기/ })).not.toBeInTheDocument();
+  });
+
   it("separates failed analysis from pending work and gives the next action", () => {
     render(<OperationsDashboardView data={{ ...data, failed_analysis_count: 2, cases: [] }} onOpenPost={() => undefined} />);
     expect(screen.getByText("분석 실패").nextElementSibling).toHaveTextContent("2");
@@ -392,6 +433,38 @@ describe("OperationsDashboardView", () => {
 });
 
 describe("OperationsDashboard", () => {
+  it("opens the exact project key at the Dashboard period cutoff and supports timeline keyboard navigation", async () => {
+    vi.mocked(fetchOperationsDashboard).mockResolvedValue(data);
+    render(<OperationsDashboard accessToken="synthetic-token" onOpenPost={() => undefined} />);
+
+    await userEvent.click(await screen.findByRole("button", { name: "프로젝트 이력 열기: Synthetic Grid Upgrade" }));
+
+    expect(fetchProjectHistory).toHaveBeenCalledWith(
+      "synthetic-token",
+      "SYNTHETIC-PROJECT-100",
+      "post-1",
+      "2026-08-25T23:59:59.999999+09:00",
+    );
+    const focusTab = await screen.findByRole("tab", { name: /Synthetic claim evidence/ });
+    expect(focusTab).toHaveAttribute("aria-selected", "true");
+    focusTab.focus();
+    await userEvent.keyboard("{ArrowLeft}");
+    expect(screen.getByRole("tab", { name: /Synthetic project start/ })).toHaveFocus();
+  });
+
+  it("keeps the case visible and offers an exact retry when project history is unavailable", async () => {
+    vi.mocked(fetchOperationsDashboard).mockResolvedValue(data);
+    vi.mocked(fetchProjectHistory).mockRejectedValue(new Error("synthetic unavailable"));
+    render(<OperationsDashboard accessToken="synthetic-token" onOpenPost={() => undefined} />);
+
+    await userEvent.click(await screen.findByRole("button", { name: "프로젝트 이력 열기: Synthetic Grid Upgrade" }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent("프로젝트 이력을 불러오지 못했습니다");
+    expect(screen.getByText(data.cases[0].summary_text)).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "다시 시도" }));
+    expect(fetchProjectHistory).toHaveBeenCalledTimes(2);
+  });
+
   it("announces concurrent dashboard and voice loading through one status region", () => {
     vi.mocked(fetchOperationsDashboard).mockImplementation(() => new Promise(() => undefined));
     vi.mocked(fetchVoiceTaxonomySummary).mockImplementation(() => new Promise(() => undefined));

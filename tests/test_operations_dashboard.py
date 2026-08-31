@@ -234,8 +234,14 @@ class _Connection:
                 "evidence_text": "Synthetic cited sentence",
                 "evidence_post_id": "00000000-0000-0000-0000-000000000002",
                 "project_name": "Synthetic Project",
-                    "project_names": ["Synthetic Project", "Synthetic Secondary Project"],
-                    "occurred_at": datetime(2026, 8, 12, tzinfo=timezone.utc),
+                "project_names": ["Synthetic Project", "Synthetic Secondary Project"],
+                "project_keys": ["SYNTHETIC-PROJECT-100", "synthetic-secondary-project"],
+                "project_key_labels": ["Synthetic Project", "Synthetic Secondary Project"],
+                "project_key_provenances": [
+                    "source_post.source_project_code",
+                    "post_project_mention.project_key",
+                ],
+                "occurred_at": datetime(2026, 8, 12, tzinfo=timezone.utc),
             }
         ]
 
@@ -371,6 +377,9 @@ async def test_dashboard_uses_abac_event_clock_and_persisted_evidence() -> None:
     )
 
     assert result["period_label"] == "2026-08-01 ~ 2026-08-31 · 사건 발생일"
+    assert result["project_history_knowledge_cutoff"] == (
+        "2026-08-31T23:59:59.999999+09:00"
+    )
     assert result["external_percent"] == 25.0
     assert result["failed_analysis_count"] == 2
     assert result["case_metrics"] == [
@@ -411,6 +420,20 @@ async def test_dashboard_uses_abac_event_clock_and_persisted_evidence() -> None:
             "case_kind_label": "클레임 원인 규명",
             "project_name": "Synthetic Project",
             "project_names": ["Synthetic Project", "Synthetic Secondary Project"],
+            "projects": [
+                {
+                    "project_key": "SYNTHETIC-PROJECT-100",
+                    "project_name": "Synthetic Project",
+                    "key_provenance": "source_post.source_project_code",
+                    "evidence_post_id": "00000000-0000-0000-0000-000000000001",
+                },
+                {
+                    "project_key": "synthetic-secondary-project",
+                    "project_name": "Synthetic Secondary Project",
+                    "key_provenance": "post_project_mention.project_key",
+                    "evidence_post_id": "00000000-0000-0000-0000-000000000001",
+                },
+            ],
             "summary_text": "원인 수주가 연결됨",
             "evidence_text": "Synthetic cited sentence",
             "evidence_post_id": "00000000-0000-0000-0000-000000000002",
@@ -483,6 +506,12 @@ async def test_dashboard_uses_abac_event_clock_and_persisted_evidence() -> None:
             ],
         }
     ]
+    case_statement = next(
+        query for query, _ in conn.queries if "from operations_case_classification" in query
+    )
+    assert "post.source_project_code), '')\n                                   as project_key" in case_statement
+    assert "key_mention.project_key), '')" in case_statement
+    assert "select nullif(btrim(post.source_project_name), '')" not in case_statement
     assert result["topic_context"]["status_code"] == "unavailable"
     assert result["topic_context"]["reason_code"] == "tepp_topic_posterior_not_persisted"
     assert len(conn.queries) == 1
@@ -508,6 +537,17 @@ async def test_dashboard_uses_abac_event_clock_and_persisted_evidence() -> None:
     assert "operations_case_missing_fact missing" in query
     assert "($10::jsonb -> fact.case_kind_code) ? fact.fact_type_code" in query
     assert "post_summary_event" not in query
+
+
+@pytest.mark.anyio
+async def test_dashboard_maximum_period_end_has_a_representable_cutoff() -> None:
+    """The maximum accepted date maps directly to its own inclusive last instant."""
+
+    result = await fetch_operations_dashboard(_Connection(), [], [], period_end=date.max)
+
+    assert result["project_history_knowledge_cutoff"] == (
+        "9999-12-31T23:59:59.999999+09:00"
+    )
 
 
 @pytest.mark.anyio
@@ -797,6 +837,9 @@ async def test_external_information_projects_a_typed_prov_o_relation() -> None:
                 "evidence_post_id": "00000000-0000-0000-0000-000000000002",
                 "project_name": "Synthetic Project",
                 "project_names": ["Synthetic Project"],
+                "project_keys": ["synthetic-project"],
+                "project_key_labels": ["Synthetic Project"],
+                "project_key_provenances": ["post_project_mention.project_key"],
                 "occurred_at": datetime(2026, 8, 12, tzinfo=timezone.utc),
             }]
 

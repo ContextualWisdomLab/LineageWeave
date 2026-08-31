@@ -20,8 +20,8 @@ describe("projectHistoryKeys", () => {
     ).toEqual(["Ｐ-100"]);
   });
 
-  it("uses a source identity when project evidence is empty", () => {
-    expect(projectHistoryKeys([], "  ", " P-200 ")).toEqual([" P-200 "]);
+  it("does not promote a source display name to project identity", () => {
+    expect(projectHistoryKeys([], "  ", " P-200 ")).toEqual([]);
   });
 
   it("keeps a distinct explicit source identity beside semantic evidence", () => {

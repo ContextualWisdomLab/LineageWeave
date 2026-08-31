@@ -249,7 +249,7 @@ export function ProjectHistoryTimeline({
             {selectedEvent.related_prior_paths.length > 0 ? (
               <ul className="project-history-paths">
                 {selectedEvent.related_prior_paths.map((path) => (
-                  <li key={`${path.source_event_id}:${path.target_event_id}`}>
+                  <li key={`${path.source_event_id}:${path.target_event_id}:${path.event_ids.join(":")}`}>
                     <p>
                       {path.event_ids
                         .map((eventId) => eventById.get(eventId)?.event_title ?? eventId)

@@ -1,0 +1,2 @@
+drop index if exists post_project_mention_key_identity_idx;
+drop index if exists source_post_project_code_identity_idx;
