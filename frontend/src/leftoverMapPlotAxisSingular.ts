@@ -1,8 +1,16 @@
-/** Caption leftover-map plot axes with persisted Gabriel singular values (ADR 0324). */
+/** Caption leftover-map plot axes with persisted Gabriel singular values.
+ *  ADR 0324 names leftover-map graphic-display leftover-map axis leftover-map
+ *  singular values as leftoverMapPlotAxisBadge.
+ *  ADR 0326 names leftover-map comparison graphic leftover-map axis leftover-map
+ *  singular values as leftoverMapComparePlotAxisBadge.
+ *  ADR 0323 captions leftover-axis report badges on the grouping comparison strip
+ *  as leftoverMapCompareAxisBadge, not leftoverMapComparePlotAxisBadge.
+ */
 
 import type { LeftoverMapAxis } from "./api";
 import {
   formatLeftoverMapPlotAxisShare,
+  LEFTOVER_MAP_COMPARE_PLOT_AXIS_SHARE,
   LEFTOVER_MAP_PLOT_AXIS_SHARE,
 } from "./leftoverMapPlotAxisShare";
 
@@ -106,6 +114,31 @@ export function leftoverMapCompareAxisBadge(
   }
   return {
     key: LEFTOVER_MAP_COMPARE_AXIS_SINGULAR_SHARE,
+    values: { axis: axisIndex, value: singular as string, share: percent as string },
+  };
+}
+
+export function leftoverMapComparePlotAxisBadge(
+  axisIndex: number,
+  leftoverSingular: number | null | undefined,
+  leftoverShare: number | null | undefined,
+): LeftoverMapCompareAxisBadge | null {
+  const singular = formatLeftoverMapPlotAxisSingular(leftoverSingular);
+  const percent = formatLeftoverMapPlotAxisShare(leftoverShare);
+  if (singular === null && percent === null) {
+    return null;
+  }
+  if (singular === null && percent !== null) {
+    return { key: LEFTOVER_MAP_COMPARE_PLOT_AXIS_SHARE, values: { axis: axisIndex, share: percent } };
+  }
+  if (singular !== null && percent === null) {
+    return {
+      key: LEFTOVER_MAP_COMPARE_PLOT_AXIS_SINGULAR,
+      values: { axis: axisIndex, value: singular },
+    };
+  }
+  return {
+    key: LEFTOVER_MAP_COMPARE_PLOT_AXIS_SINGULAR_SHARE,
     values: { axis: axisIndex, value: singular as string, share: percent as string },
   };
 }

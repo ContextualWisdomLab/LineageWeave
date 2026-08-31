@@ -20,18 +20,14 @@ import {
   LEFTOVER_MAP_PLOT_ITEM_COVERAGE_LABEL,
 } from "../leftoverMapCoverage";
 import {
-  formatLeftoverMapPlotAxisShare,
   leftoverShareForAxis,
   LEFTOVER_MAP_COMPARE_PLOT_AXIS_1,
   LEFTOVER_MAP_COMPARE_PLOT_AXIS_2,
-  LEFTOVER_MAP_COMPARE_PLOT_AXIS_SHARE,
 } from "../leftoverMapPlotAxisShare";
 import {
-  formatLeftoverMapPlotAxisSingular,
+  leftoverMapComparePlotAxisBadge,
   leftoverMapPlotAxisBadge,
   leftoverSingularForAxis,
-  LEFTOVER_MAP_COMPARE_PLOT_AXIS_SINGULAR,
-  LEFTOVER_MAP_COMPARE_PLOT_AXIS_SINGULAR_SHARE,
 } from "../leftoverMapPlotAxisSingular";
 import {
   firstPlottablePairForPost,
@@ -89,22 +85,11 @@ function leftoverMapPlotAxisText(
   const leftoverShare = leftoverShareForAxis(leftoverMapAxes, axisIndex);
   const leftoverSingular = leftoverSingularForAxis(leftoverMapAxes, axisIndex);
   if (variant === "comparison") {
-    const percent = formatLeftoverMapPlotAxisShare(leftoverShare);
-    const singular = formatLeftoverMapPlotAxisSingular(leftoverSingular);
-    if (singular === null && percent === null) {
+    const badge = leftoverMapComparePlotAxisBadge(axisIndex, leftoverSingular, leftoverShare);
+    if (badge === null) {
       return t(axisIndex === 1 ? LEFTOVER_MAP_COMPARE_PLOT_AXIS_1 : LEFTOVER_MAP_COMPARE_PLOT_AXIS_2);
     }
-    if (singular === null && percent !== null) {
-      return tf(LEFTOVER_MAP_COMPARE_PLOT_AXIS_SHARE, { axis: axisIndex, share: percent });
-    }
-    if (singular !== null && percent === null) {
-      return tf(LEFTOVER_MAP_COMPARE_PLOT_AXIS_SINGULAR, { axis: axisIndex, value: singular });
-    }
-    return tf(LEFTOVER_MAP_COMPARE_PLOT_AXIS_SINGULAR_SHARE, {
-      axis: axisIndex,
-      value: singular as string,
-      share: percent as string,
-    });
+    return tf(badge.key, badge.values);
   }
   const badge = leftoverMapPlotAxisBadge(axisIndex, leftoverSingular, leftoverShare);
   if (badge === null) {
@@ -210,6 +195,8 @@ function leftoverMapPlotAxisText(
  * report badges on the grouping comparison strip with persisted leftover-map
  * singular values, not this graphic. ADR 0324 captions leftover-map
  * graphic-display axes with persisted leftover-map singular values.
+ * ADR 0326 fail-closes leftover-map comparison graphic leftover-map axis leftover-map
+ * singular values through leftoverMapComparePlotAxisBadge.
  * Never invent a leftover score.
  */
 export function LeftoverMapPlot({
