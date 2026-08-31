@@ -218,6 +218,18 @@ describe("OperationsDashboardView", () => {
     expect(primaryJourney?.querySelectorAll("time")[1]).toHaveAttribute("datetime", later.occurred_at);
   });
 
+  it("shows an exact source project code when no project name was supplied", () => {
+    const sourceCodeCase = {
+      ...data.cases[0],
+      project_name: "SYNTHETIC-PROJECT-100",
+      project_names: ["SYNTHETIC-PROJECT-100"],
+    };
+    render(<OperationsDashboardView data={{ ...data, cases: [sourceCodeCase] }} onOpenPost={() => undefined} />);
+
+    expect(screen.getByRole("heading", { name: "SYNTHETIC-PROJECT-100" })).toBeInTheDocument();
+    expect(screen.queryByText("관련 프로젝트를 확인 중")).not.toBeInTheDocument();
+  });
+
   it("separates failed analysis from pending work and gives the next action", () => {
     render(<OperationsDashboardView data={{ ...data, failed_analysis_count: 2, cases: [] }} onOpenPost={() => undefined} />);
     expect(screen.getByText("분석 실패").nextElementSibling).toHaveTextContent("2");

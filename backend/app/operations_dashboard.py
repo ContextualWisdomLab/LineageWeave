@@ -806,7 +806,8 @@ async def fetch_operations_dashboard(
                classification.summary_text, classification.evidence_text,
                classification.evidence_post_id,
                coalesce(post.event_occurred_at, post.created_at) as occurred_at,
-               coalesce(nullif(btrim(post.source_project_name), ''), project.primary_project_name)
+               coalesce(nullif(btrim(post.source_project_name), ''), project.primary_project_name,
+                        nullif(btrim(post.source_project_code), ''))
                    as project_name,
                coalesce(project.project_names, array[]::text[]) as project_names
           from operations_case_classification classification
@@ -827,7 +828,8 @@ async def fetch_operations_dashboard(
                           limit 1
                      ) as primary_project_name
                 from (
-                    select nullif(btrim(post.source_project_name), '') as project_name
+                    select coalesce(nullif(btrim(post.source_project_name), ''),
+                                    nullif(btrim(post.source_project_code), '')) as project_name
                     union
                     select nullif(btrim(mention.project_name), '')
                       from post_project_mention mention

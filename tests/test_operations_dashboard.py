@@ -44,6 +44,15 @@ def test_dashboard_read_projection_is_transactionally_maintained_and_replay_safe
     assert "group by occurred_date, visibility_code, corporate_entity_id, process_unit_id" in migration
     assert "dashboard_case_rollup_project_mention_trigger" in migration
     assert "dashboard_case_rollup_post_projection_trigger" in migration
+    assert "dashboard_case_rollup_post_project_code_trigger" in migration
+    assert "add column if not exists source_project_code text" in migration
+    assert "projection.source_project_code is distinct from post.source_project_code" in migration
+    assert (
+        "coalesce(nullif(btrim(post.source_project_name), ''), project.primary_project_name,\n"
+        "                    nullif(btrim(post.source_project_code), ''))"
+        in migration
+    )
+    assert "after update of source_project_code on dashboard_post_read_projection" in migration
 
 
 def test_dashboard_rejects_a_rollup_with_any_unauthorized_contributor() -> None:
