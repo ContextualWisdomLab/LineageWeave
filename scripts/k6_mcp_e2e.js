@@ -23,6 +23,13 @@ const jobStateObservations = new Counter("lineageweave_mcp_job_state_observation
 let vuToken;
 let vuSession;
 
+export const options = {
+  thresholds: {
+    lineageweave_mcp_read_duration: ["max<=20"],
+    checks: ["rate==1"],
+  },
+};
+
 function authenticate() {
   const headers = keycloakHost ? { Host: keycloakHost } : {};
   const response = http.post(

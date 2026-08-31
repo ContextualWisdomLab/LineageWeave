@@ -9,6 +9,13 @@ const accessToken = __ENV.LINEAGEWEAVE_ACCESS_TOKEN || "";
 const requireGroundedCase = __ENV.REQUIRE_GROUNDED_CASE !== "false";
 const dashboardDuration = new Trend("lineageweave_operations_dashboard_duration", true);
 
+export const options = {
+  thresholds: {
+    lineageweave_operations_dashboard_duration: ["max<=20"],
+    checks: ["rate==1"],
+  },
+};
+
 export function setup() {
   if (!backendUrl || !accessToken) {
     fail("BACKEND_URL and LINEAGEWEAVE_ACCESS_TOKEN are required");

@@ -1,9 +1,8 @@
 /**
  * Measure authenticated HTTP responsiveness while one synthetic Ask job runs.
  *
- * This is an observation harness, not a release gate: it defines no latency,
- * error-rate, or throughput threshold. The operator supplies concurrency and
- * duration for the environment being measured.
+ * The operator supplies concurrency and duration; every authenticated read
+ * must complete within the product read-latency contract.
  */
 
 import http from "k6/http";
@@ -25,6 +24,14 @@ const askPollDuration = new Trend("lineageweave_ask_poll_duration", true);
 const askStateObservations = new Counter("lineageweave_ask_state_observations");
 
 let vuToken;
+
+export const options = {
+  thresholds: {
+    lineageweave_read_duration: ["max<=20"],
+    lineageweave_ask_poll_duration: ["max<=20"],
+    checks: ["rate==1"],
+  },
+};
 
 function authenticate() {
   const response = http.post(
