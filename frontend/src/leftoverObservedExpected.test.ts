@@ -5,6 +5,7 @@ import {
   formatLeftoverObservedExpected,
   LEFTOVER_MAP_COMPARE_OBSERVED_LABEL,
   LEFTOVER_MAP_COMPARE_EXPECTED_LABEL,
+  LEFTOVER_MAP_COMPARE_PLOT_SEGMENT_OBSERVED,
 } from "./leftoverObservedExpected";
 
 describe("formatLeftoverObservedExpected", () => {
@@ -40,6 +41,19 @@ describe("formatLeftoverMapObserved", () => {
   it("keeps the grouping comparison observed label distinct from the graphic observed label", () => {
     expect(LEFTOVER_MAP_COMPARE_OBSERVED_LABEL).toBe("Leftover map comparison observed");
     expect(LEFTOVER_MAP_COMPARE_OBSERVED_LABEL).not.toBe("leftover observed {label}");
+  });
+
+  it("keeps the grouping comparison graphic leftover observed label distinct from the graphic and strip labels", () => {
+    expect(LEFTOVER_MAP_COMPARE_PLOT_SEGMENT_OBSERVED).toBe(
+      "leftover map comparison graphic leftover observed {label}",
+    );
+    expect(LEFTOVER_MAP_COMPARE_PLOT_SEGMENT_OBSERVED).not.toBe("leftover observed {label}");
+    expect(LEFTOVER_MAP_COMPARE_PLOT_SEGMENT_OBSERVED).not.toBe(
+      LEFTOVER_MAP_COMPARE_OBSERVED_LABEL,
+    );
+    expect(LEFTOVER_MAP_COMPARE_PLOT_SEGMENT_OBSERVED).not.toBe(
+      "leftover map comparison graphic leftover residual {label}",
+    );
   });
 });
 

@@ -2,6 +2,8 @@
 
 **Decision status:** Accepted
 **Date:** 2026-08-30
+**Amended by:** [ADR 0316](0316-leftover-map-compare-plot-observed.md)
+(leftover observed on the grouping comparison leftover-map graphic)
 
 Amends [ADR 0268](0268-leftover-map-graphic-display.md),
 [ADR 0049](0049-leftover-pair-report-ui.md), and leftover observed `Y` /

@@ -3,6 +3,9 @@
 export const LEFTOVER_MAP_COMPARE_OBSERVED_LABEL =
   "Leftover map comparison observed";
 
+export const LEFTOVER_MAP_COMPARE_PLOT_SEGMENT_OBSERVED =
+  "leftover map comparison graphic leftover observed {label}";
+
 export const LEFTOVER_MAP_COMPARE_EXPECTED_LABEL =
   "Leftover map comparison expected";
 
