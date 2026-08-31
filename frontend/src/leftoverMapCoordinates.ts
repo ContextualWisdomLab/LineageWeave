@@ -14,6 +14,9 @@ export const LEFTOVER_MAP_LIST_POST_ACTION =
 export const LEFTOVER_MAP_LIST_CRITERION =
   "leftover pair leftover-map criterion {label} at ζ {item}";
 
+export const LEFTOVER_MAP_COMPARE_LIST_POST_ACTION =
+  "leftover map comparison leftover pair leftover-map post {title} at ξ {person}";
+
 const PERSON_BADGE = "\u03BE";
 const ITEM_BADGE = "\u03B6";
 
@@ -80,4 +83,17 @@ export function leftoverMapListCriterionBadge(
     return null;
   }
   return { key: LEFTOVER_MAP_LIST_CRITERION, values: { label, item } };
+}
+
+/** ADR 0341 leftover-map comparison leftover-pair leftover-map post leftover-map person coordinates ξ. */
+export function leftoverMapCompareListPostBadge(
+  title: string,
+  axis1: number | null | undefined,
+  axis2: number | null | undefined,
+): LeftoverMapListPostBadge | null {
+  const person = formatLeftoverMapCoordinatePair(axis1, axis2);
+  if (person === null) {
+    return null;
+  }
+  return { key: LEFTOVER_MAP_COMPARE_LIST_POST_ACTION, values: { title, person } };
 }

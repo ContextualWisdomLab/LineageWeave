@@ -18,7 +18,9 @@
 [ADR 0339](0339-leftover-map-list-post-coordinates.md)
 (leftover-map person coordinates on leftover-map pair leftover-map post independently of leftover-map pair leftover-map criterion leftover-map item coordinates);
 [ADR 0340](0340-leftover-map-list-criterion-coordinates.md)
-(leftover-map item coordinates on leftover-map pair leftover-map criterion independently of leftover-map pair leftover-map post leftover-map person coordinates)
+(leftover-map item coordinates on leftover-map pair leftover-map criterion independently of leftover-map pair leftover-map post leftover-map person coordinates);
+[ADR 0341](0341-leftover-map-compare-list-post-coordinates.md)
+(leftover-map person coordinates on leftover-map comparison leftover pair leftover-map post independently of leftover-map comparison leftover pair leftover-map criterion leftover-map item coordinates)
 
 Amends [ADR 0048](0048-persist-lsirm-leftover-pairs.md),
 [ADR 0049](0049-leftover-pair-report-ui.md), and

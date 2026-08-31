@@ -3,6 +3,9 @@
 **Decision status:** Accepted
 **Date:** 2026-08-31
 
+**Amended by:** [ADR 0341](0341-leftover-map-compare-list-post-coordinates.md)
+(leftover-map person coordinates on leftover-map comparison leftover pair leftover-map post independently of leftover-map comparison leftover pair leftover-map criterion leftover-map item coordinates)
+
 Amends leftover pairs on the grouping comparison strip
 ([ADR 0149](0149-leftover-pairs-on-comparison-strip.md)), leftover-map
 coordinates ([ADR 0267](0267-leftover-map-coordinates.md)), leftover-map

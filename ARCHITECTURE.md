@@ -803,6 +803,9 @@ person coordinate caption independently of leftover-map pair leftover-map criter
 ADR 0340 captions leftover-map pair leftover-map criterion with persisted leftover-map
 item coordinates when leftoverMapListCriterionBadge returns a usable leftover-map pair leftover-map criterion leftover-map
 item coordinate caption independently of leftover-map pair leftover-map post leftover-map person coordinates.
+ADR 0341 captions leftover-map comparison leftover-pair leftover-map post with persisted leftover-map
+person coordinates when leftoverMapCompareListPostBadge returns a usable leftover-map comparison leftover-pair leftover-map post leftover-map
+person coordinate caption independently of leftover-map comparison leftover-pair leftover-map criterion leftover-map item coordinates.
 Click a post marker or a pair button
 opens that post. Those ADRs are the normative mathematical, storage, and
 display contracts. Leftover-map axis share

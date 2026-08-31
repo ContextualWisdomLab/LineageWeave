@@ -58,6 +58,7 @@ describe("i18n", () => {
     "Open leftover {kind} pair: {title} · {criterion}",
     "leftover pair leftover-map post {title} at ξ {person}",
     "leftover pair leftover-map criterion {label} at ζ {item}",
+    "leftover map comparison leftover pair leftover-map post {title} at ξ {person}",
     "Open this post to read the criterion it sat closest to after main effects.",
     "Open this post to read the criterion it sat farthest from after main effects.",
     "Leftover map leaves unexplained U {value} after IRT main effects. Open this post to read {criterion}.",

@@ -803,6 +803,17 @@ item coordinates `(0.00, 0.00)`. Do not invent leftover-map item coordinates fro
 post leftover-map person coordinates stay `leftover pair leftover-map post {title} at ξ {person}` this increment. Leftover-map graphic leftover-map
 criterion markers stay `leftover-map criterion {label} at ζ {item}` this increment. Leftover-map comparison graphic leftover-map
 criterion markers stay `leftover map comparison graphic leftover-map criterion {label} at ζ {item}` this increment.
+ADR 0341 captions leftover-map comparison leftover-pair leftover-map post with persisted leftover-map
+person coordinates when leftoverMapCompareListPostBadge returns a usable leftover-map comparison leftover-pair leftover-map post leftover-map
+person coordinate caption. Distinct accessible name
+`leftover map comparison leftover pair leftover-map post {title} at ξ {person}`.
+A missing or non-finite leftover-map person coordinate pair omits that leftover-map comparison leftover-pair leftover-map post leftover-map
+person coordinate caption and keeps `Open leftover {kind} pair from comparison: {title} · {criterion}`. Rank-0 unused axes still name leftover-map
+person coordinates `(0.00, 0.00)`. Do not invent leftover-map person coordinates from leftover-map item coordinates
+`ζ`. Do not invent leftover-map item coordinates `ζ` from leftover-map person coordinates `ξ`. Leftover-map pair leftover-map
+post leftover-map person coordinates stay `leftover pair leftover-map post {title} at ξ {person}` this increment. Leftover-map graphic leftover-map
+post markers stay `Open leftover-map post {title} at ξ {person}` this increment. Leftover-map comparison graphic leftover-map
+post markers stay `Open leftover map comparison graphic leftover-map post {title} at ξ {person}` this increment.
 When `R`, `R̂`, `U`, `x`,
 `s`, and `e` are finite, `e + s + x = 1`. When `Y`, `E`, and `R` are
 finite, `Y − E = R`. When `R`, `R̂`, and `U` are
@@ -968,6 +979,10 @@ Leftover-map pair leftover-map criterion leftover-map item coordinates independe
 (ADR 0340) captions leftover-map pair leftover-map criterion with persisted leftover-map
 item coordinates when leftoverMapListCriterionBadge returns a usable leftover-map pair leftover-map criterion leftover-map
 item coordinate caption.
+Leftover-map comparison leftover-pair leftover-map post leftover-map person coordinates independently of leftover-map comparison leftover-pair leftover-map criterion leftover-map item coordinates
+(ADR 0341) captions leftover-map comparison leftover-pair leftover-map post with persisted leftover-map
+person coordinates when leftoverMapCompareListPostBadge returns a usable leftover-map comparison leftover-pair leftover-map post leftover-map
+person coordinate caption.
 Item complete-case coverage
 (ADR 0282) captions the leftover-map graphic with how many scored criteria
 entered the map. Item complete-case coverage on the pair list (ADR 0285)
