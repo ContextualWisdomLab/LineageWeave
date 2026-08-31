@@ -289,8 +289,10 @@ function leftoverMapPlotPostText(
  * singular values.
  * ADR 0345 fail-closes leftover-map comparison leftover-axis origin ticks through
  * leftoverMapCompareAxisTickBadge independently of leftover-map axis share and leftover-map
- * singular values. leftoverMapAxisTickBadge does not name leftover-map origin
- * this increment.
+ * singular values.
+ * ADR 0346 fail-closes leftover-map leftover-axis origin ticks through
+ * leftoverMapAxisTickBadge independently of leftover-map axis share and leftover-map
+ * singular values.
  * Never invent a leftover score.
  */
 export function LeftoverMapPlot({

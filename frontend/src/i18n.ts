@@ -649,6 +649,12 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "leftover axis {axis} tick {value} {share}%": "잔차 축 {axis} 눈금 {value} {share}%",
     "leftover axis {axis} tick {value} σ {singular} {share}%":
       "잔차 축 {axis} 눈금 {value} σ {singular} {share}%",
+    "leftover axis {axis} origin tick {value}": "잔차 축 {axis} 원점 눈금 {value}",
+    "leftover axis {axis} origin tick {value} σ {singular}":
+      "잔차 축 {axis} 원점 눈금 {value} σ {singular}",
+    "leftover axis {axis} origin tick {value} {share}%": "잔차 축 {axis} 원점 눈금 {value} {share}%",
+    "leftover axis {axis} origin tick {value} σ {singular} {share}%":
+      "잔차 축 {axis} 원점 눈금 {value} σ {singular} {share}%",
     "Leftover-map axis share": "잔차 지도 축 비율",
     "Leftover-map axis share is Gabriel inertia of residual SVD axes 1 and 2. Leftover-map singular values are the Gabriel scale of those axes. Open a leftover pair to read the post–criterion cell. The shares and singular values do not invent a leftover score.":
       "잔차 지도 축 비율은 잔차 SVD 축 1과 2의 Gabriel 관성입니다. 잔차 지도 특이값은 그 축의 Gabriel 척도입니다. 글–기준 셀을 읽으려면 잔차 쌍을 여세요. 이 비율과 특이값은 잔차 점수를 만들어내지 않습니다.",
@@ -1361,6 +1367,12 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "leftover axis {axis} tick {value} {share}%": "残差轴 {axis} 刻度 {value} {share}%",
     "leftover axis {axis} tick {value} σ {singular} {share}%":
       "残差轴 {axis} 刻度 {value} σ {singular} {share}%",
+    "leftover axis {axis} origin tick {value}": "残差轴 {axis} 原点刻度 {value}",
+    "leftover axis {axis} origin tick {value} σ {singular}":
+      "残差轴 {axis} 原点刻度 {value} σ {singular}",
+    "leftover axis {axis} origin tick {value} {share}%": "残差轴 {axis} 原点刻度 {value} {share}%",
+    "leftover axis {axis} origin tick {value} σ {singular} {share}%":
+      "残差轴 {axis} 原点刻度 {value} σ {singular} {share}%",
     "Leftover-map axis share": "残差图轴占比",
     "Leftover-map axis share is Gabriel inertia of residual SVD axes 1 and 2. Leftover-map singular values are the Gabriel scale of those axes. Open a leftover pair to read the post–criterion cell. The shares and singular values do not invent a leftover score.":
       "残差图轴占比是残差 SVD 第 1、2 轴的 Gabriel 惯量。残差图奇异值是这些轴的 Gabriel 尺度。打开一个残差配对可查看文章–准则单元格。这些占比和奇异值不会虚构残差分数。",
@@ -2077,6 +2089,12 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "leftover axis {axis} tick {value} {share}%": "残差軸 {axis} 目盛 {value} {share}%",
     "leftover axis {axis} tick {value} σ {singular} {share}%":
       "残差軸 {axis} 目盛 {value} σ {singular} {share}%",
+    "leftover axis {axis} origin tick {value}": "残差軸 {axis} 原点目盛 {value}",
+    "leftover axis {axis} origin tick {value} σ {singular}":
+      "残差軸 {axis} 原点目盛 {value} σ {singular}",
+    "leftover axis {axis} origin tick {value} {share}%": "残差軸 {axis} 原点目盛 {value} {share}%",
+    "leftover axis {axis} origin tick {value} σ {singular} {share}%":
+      "残差軸 {axis} 原点目盛 {value} σ {singular} {share}%",
     "Leftover-map axis share": "残差マップ軸の比率",
     "Leftover-map axis share is Gabriel inertia of residual SVD axes 1 and 2. Leftover-map singular values are the Gabriel scale of those axes. Open a leftover pair to read the post–criterion cell. The shares and singular values do not invent a leftover score.":
       "残差マップ軸の比率は、残差 SVD の第1軸と第2軸の Gabriel 慣性です。残差マップ特異値はそれらの軸の Gabriel 尺度です。投稿–基準セルを読むには残差ペアを開いてください。この比率と特異値から残差スコアを作りません。",
@@ -2797,6 +2815,12 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "leftover axis {axis} tick {value} {share}%": "vạch trục phần dư {axis} {value} {share}%",
     "leftover axis {axis} tick {value} σ {singular} {share}%":
       "vạch trục phần dư {axis} {value} σ {singular} {share}%",
+    "leftover axis {axis} origin tick {value}": "vạch gốc trục phần dư {axis} {value}",
+    "leftover axis {axis} origin tick {value} σ {singular}":
+      "vạch gốc trục phần dư {axis} {value} σ {singular}",
+    "leftover axis {axis} origin tick {value} {share}%": "vạch gốc trục phần dư {axis} {value} {share}%",
+    "leftover axis {axis} origin tick {value} σ {singular} {share}%":
+      "vạch gốc trục phần dư {axis} {value} σ {singular} {share}%",
     "Leftover-map axis share": "Tỷ trọng trục bản đồ phần dư",
     "Leftover-map axis share is Gabriel inertia of residual SVD axes 1 and 2. Leftover-map singular values are the Gabriel scale of those axes. Open a leftover pair to read the post–criterion cell. The shares and singular values do not invent a leftover score.":
       "Tỷ trọng trục bản đồ phần dư là quán tính Gabriel của các trục SVD phần dư 1 và 2. Giá trị kỳ dị bản đồ phần dư là thang Gabriel của các trục đó. Mở một cặp phần dư để đọc ô bài viết–tiêu chí. Các tỷ trọng và giá trị kỳ dị này không tạo ra điểm phần dư.",

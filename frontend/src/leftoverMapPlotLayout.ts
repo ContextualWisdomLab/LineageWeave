@@ -156,6 +156,9 @@
  *  ADR 0345 fail-closes leftover-map comparison leftover-axis origin ticks through
  *  leftoverMapCompareAxisTickBadge independently of leftover-map axis share and leftover-map
  *  singular values, not leftover-map comparison graphic leftover-map axis ticks.
+ *  ADR 0346 fail-closes leftover-map leftover-axis origin ticks through
+ *  leftoverMapAxisTickBadge independently of leftover-map axis share and leftover-map
+ *  singular values, not leftover-map comparison leftover-axis ticks.
  */
 
 import { formatLeftoverMapCoordinatePair } from "./leftoverMapCoordinates";

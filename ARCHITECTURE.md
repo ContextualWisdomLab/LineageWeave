@@ -815,6 +815,8 @@ ADR 0344 captions leftover-map comparison graphic leftover-map axis origin ticks
 returns a leftover-map origin tick caption independently of leftover-map axis share and leftover-map singular values.
 ADR 0345 captions leftover-map comparison leftover-axis origin ticks when leftoverMapCompareAxisTickBadge
 returns a leftover-map origin tick caption independently of leftover-map axis share and leftover-map singular values.
+ADR 0346 captions leftover-map leftover-axis origin ticks when leftoverMapAxisTickBadge
+returns a leftover-map origin tick caption independently of leftover-map axis share and leftover-map singular values.
 Click a post marker or a pair button
 opens that post. Those ADRs are the normative mathematical, storage, and
 display contracts. Leftover-map axis share
