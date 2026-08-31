@@ -26,6 +26,7 @@ import {
 } from "../leftoverMapPlotAxisShare";
 import {
   leftoverMapComparePlotAxisBadge,
+  leftoverMapComparePlotTickAxisBadge,
   leftoverMapPlotAxisBadge,
   leftoverMapPlotTickAxisBadge,
   leftoverSingularForAxis,
@@ -46,7 +47,6 @@ import {
   LEFTOVER_MAP_COMPARE_PLOT_SEGMENT_EXPECTED,
   LEFTOVER_MAP_COMPARE_PLOT_SEGMENT_RANK,
   LEFTOVER_MAP_COMPARE_PLOT_SEGMENT_DISTANCE,
-  LEFTOVER_MAP_COMPARE_PLOT_TICK,
   LEFTOVER_MAP_PLOT_CAPTION,
   LEFTOVER_MAP_PLOT_POST_ACTION,
   LEFTOVER_MAP_PLOT_SEGMENT_CROSS_SHARE,
@@ -104,10 +104,11 @@ function leftoverMapPlotTickText(
   leftoverMapAxes: LeftoverMapAxis[] | undefined,
   variant: LeftoverMapPlotVariant,
 ): string {
-  if (variant === "comparison") {
-    return tf(LEFTOVER_MAP_COMPARE_PLOT_TICK, { axis: axisIndex, value: tickLabel });
-  }
   const leftoverSingular = leftoverSingularForAxis(leftoverMapAxes, axisIndex);
+  if (variant === "comparison") {
+    const badge = leftoverMapComparePlotTickAxisBadge(axisIndex, tickLabel, leftoverSingular);
+    return tf(badge.key, badge.values);
+  }
   const badge = leftoverMapPlotTickAxisBadge(axisIndex, tickLabel, leftoverSingular);
   return tf(badge.key, badge.values);
 }
@@ -213,6 +214,9 @@ function leftoverMapPlotTickText(
  * singular values through leftoverMapComparePlotAxisBadge.
  * ADR 0327 fail-closes leftover-map graphic leftover-map axis ticks leftover-map
  * singular values through leftoverMapPlotTickAxisBadge independently of leftover-map
+ * axis share.
+ * ADR 0328 fail-closes leftover-map comparison graphic leftover-map axis ticks leftover-map
+ * singular values through leftoverMapComparePlotTickAxisBadge independently of leftover-map
  * axis share.
  * Never invent a leftover score.
  */

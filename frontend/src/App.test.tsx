@@ -4699,7 +4699,7 @@ describe("App, authenticated", () => {
     ).not.toBeInTheDocument();
     expect(
       within(screen.getByLabelText("Grouping comparison")).getByLabelText(
-        "leftover map comparison graphic leftover-map axis 1 tick +0.50",
+        "leftover map comparison graphic leftover-map axis 1 tick +0.50 σ 1.84",
       ),
     ).toBeInTheDocument();
     expect(

@@ -6,6 +6,9 @@
  *  ADR 0327 names leftover-map graphic leftover-map axis ticks leftover-map
  *  singular values as leftoverMapPlotTickAxisBadge independently of leftover-map
  *  axis share.
+ *  ADR 0328 names leftover-map comparison graphic leftover-map axis ticks leftover-map
+ *  singular values as leftoverMapComparePlotTickAxisBadge independently of leftover-map
+ *  axis share.
  *  ADR 0323 captions leftover-axis report badges on the grouping comparison strip
  *  as leftoverMapCompareAxisBadge, not leftoverMapComparePlotAxisBadge.
  */
@@ -16,7 +19,10 @@ import {
   LEFTOVER_MAP_COMPARE_PLOT_AXIS_SHARE,
   LEFTOVER_MAP_PLOT_AXIS_SHARE,
 } from "./leftoverMapPlotAxisShare";
-import { LEFTOVER_MAP_PLOT_TICK } from "./leftoverMapPlotLayout";
+import {
+  LEFTOVER_MAP_COMPARE_PLOT_TICK,
+  LEFTOVER_MAP_PLOT_TICK,
+} from "./leftoverMapPlotLayout";
 
 export const LEFTOVER_MAP_PLOT_AXIS_SINGULAR = "leftover-map axis {axis} σ {value}";
 
@@ -31,6 +37,9 @@ export const LEFTOVER_MAP_COMPARE_PLOT_AXIS_SINGULAR_SHARE =
 
 export const LEFTOVER_MAP_PLOT_TICK_SINGULAR =
   "leftover-map axis {axis} tick {value} σ {singular}";
+
+export const LEFTOVER_MAP_COMPARE_PLOT_TICK_SINGULAR =
+  "leftover map comparison graphic leftover-map axis {axis} tick {value} σ {singular}";
 
 export const LEFTOVER_MAP_COMPARE_AXIS_SINGULAR =
   "leftover map comparison leftover axis {axis} σ {value}";
@@ -161,6 +170,21 @@ export function leftoverMapPlotTickAxisBadge(
   }
   return {
     key: LEFTOVER_MAP_PLOT_TICK_SINGULAR,
+    values: { axis: axisIndex, value: tickLabel, singular },
+  };
+}
+
+export function leftoverMapComparePlotTickAxisBadge(
+  axisIndex: number,
+  tickLabel: string,
+  leftoverSingular: number | null | undefined,
+): LeftoverMapCompareAxisBadge {
+  const singular = formatLeftoverMapPlotAxisSingular(leftoverSingular);
+  if (singular === null) {
+    return { key: LEFTOVER_MAP_COMPARE_PLOT_TICK, values: { axis: axisIndex, value: tickLabel } };
+  }
+  return {
+    key: LEFTOVER_MAP_COMPARE_PLOT_TICK_SINGULAR,
     values: { axis: axisIndex, value: tickLabel, singular },
   };
 }
