@@ -70,10 +70,20 @@ test("renders the authenticated operations Dashboard with grounded cases", async
   }
   await page.screenshot({ path: screenshotPath, fullPage: true });
 
+  const refreshedDashboard = page.waitForResponse((response) => {
+    const url = new URL(response.url());
+    return url.pathname === "/api/dashboard" && response.ok();
+  });
+  const refreshedVoiceSummary = page.waitForResponse((response) => {
+    const url = new URL(response.url());
+    return url.pathname === "/api/voice-taxonomy/summary" && response.ok();
+  });
+  await navigation.getByRole("button", { name: "Dashboard", exact: true }).click();
+  await Promise.all([refreshedDashboard, refreshedVoiceSummary]);
   await language.selectOption("ko");
   await expect(page.locator("html")).toHaveAttribute("lang", "ko");
   await expect(page.getByRole("heading", { name: "운영 근거 대시보드" })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "시간 흐름별 주제 영향도" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "시간 흐름별 주요 글" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "글 유형 근거 현황" })).toBeVisible();
   const koreanNavigation = page.getByRole("navigation", { name: "워크스페이스 메뉴" });
   for (const label of ["대시보드", "외부 정보", "게시판", "고객 마스터", "캘린더", "에이전트에게 질문"]) {

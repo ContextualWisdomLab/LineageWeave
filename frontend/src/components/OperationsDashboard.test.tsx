@@ -281,7 +281,7 @@ describe("OperationsDashboardView", () => {
 
     expect(await screen.findByRole("alert")).toHaveTextContent("Voice evidence could not be loaded.");
     await userEvent.click(screen.getByRole("button", { name: "Retry voice evidence" }));
-    expect(await screen.findByRole("heading", { name: "Voice evidence overview" })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "글 유형 근거 현황" })).toBeInTheDocument();
     expect(fetchVoiceTaxonomySummary).toHaveBeenCalledTimes(2);
     expect(fetchOperationsDashboard).toHaveBeenCalledTimes(1);
   });
@@ -296,7 +296,7 @@ describe("OperationsDashboardView", () => {
     render(<OperationsDashboard accessToken="synthetic-token" onOpenPost={() => undefined} />);
 
     expect(await screen.findByText("대시보드 근거를 불러오지 못했습니다.")).toBeInTheDocument();
-    expect(await screen.findByRole("heading", { name: "Voice evidence overview" })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "글 유형 근거 현황" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "다시 시도" })).toBeInTheDocument();
   });
 });
