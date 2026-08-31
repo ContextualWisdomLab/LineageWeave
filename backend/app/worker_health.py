@@ -3,8 +3,10 @@
 from __future__ import annotations
 
 import asyncio
+import fcntl
 from pathlib import Path
 import tempfile
+import threading
 import time
 import uuid
 
@@ -13,6 +15,7 @@ HEARTBEAT_PATH = Path("/tmp/lineageweave-worker-heartbeat")
 HEALTHCHECK_STATE_PATH = Path("/tmp/lineageweave-worker-healthcheck-state")
 _SAMPLE_VERSION = "v1"
 _MAX_MONOTONIC_COUNTER = (1 << 63) - 1
+_PROBE_THREAD_LOCK = threading.Lock()
 
 
 def _parse_sample(value: str) -> tuple[str, int] | None:
@@ -68,9 +71,19 @@ def heartbeat_has_advanced(
     state_path: Path = HEALTHCHECK_STATE_PATH,
 ) -> bool:
     """Return whether the heartbeat advanced since the prior health probe."""
+    lock_path = state_path.with_name(f".{state_path.name}.lock")
+    try:
+        with _PROBE_THREAD_LOCK, lock_path.open("a+b") as lock_file:
+            fcntl.flock(lock_file.fileno(), fcntl.LOCK_EX)
+            return _heartbeat_has_advanced_locked(heartbeat_path, state_path)
+    except (OSError, UnicodeDecodeError):
+        return False
+
+
+def _heartbeat_has_advanced_locked(heartbeat_path: Path, state_path: Path) -> bool:
     try:
         current_text = heartbeat_path.read_text(encoding="ascii")
-    except (FileNotFoundError, UnicodeDecodeError):
+    except FileNotFoundError:
         return False
     current = _parse_sample(current_text)
     if current is None:
@@ -79,8 +92,6 @@ def heartbeat_has_advanced(
         previous = _parse_sample(state_path.read_text(encoding="ascii"))
     except FileNotFoundError:
         previous = None
-    except UnicodeDecodeError:
-        return False
     else:
         if previous is None:
             return False

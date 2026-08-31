@@ -81,14 +81,12 @@ def test_concurrent_python_probes_use_distinct_atomic_state_files(
     current_sample = _sample(_NEW_EPOCH, 2)
     heartbeat.write_text(current_sample, encoding="ascii")
     state.write_text(_sample(_NEW_EPOCH, 1), encoding="ascii")
-    barrier = threading.Barrier(2)
     temporary_paths: list[Path] = []
     original_replace = Path.replace
 
     def synchronized_replace(path: Path, target: Path) -> Path:
         if target == state:
             temporary_paths.append(path)
-            barrier.wait()
         return original_replace(path, target)
 
     monkeypatch.setattr(Path, "replace", synchronized_replace)
@@ -102,9 +100,49 @@ def test_concurrent_python_probes_use_distinct_atomic_state_files(
             )
         )
 
-    assert results == [True, True]
+    assert sorted(results) == [False, True]
     assert len(set(temporary_paths)) == 2
     assert state.read_text(encoding="ascii") == current_sample
+
+
+def test_older_python_probe_cannot_replace_newer_observation(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Probe serialization prevents publication from reversing observation order."""
+    heartbeat = tmp_path / "heartbeat"
+    state = tmp_path / "state"
+    older_sample = _sample(_NEW_EPOCH, 2)
+    newer_sample = _sample(_NEW_EPOCH, 3)
+    heartbeat.write_text(older_sample, encoding="ascii")
+    state.write_text(_sample(_NEW_EPOCH, 1), encoding="ascii")
+    first_observed = threading.Event()
+    resume_first = threading.Event()
+    original_read_text = Path.read_text
+
+    def staged_read_text(path: Path, *args: object, **kwargs: object) -> str:
+        if path == heartbeat and not first_observed.is_set():
+            first_observed.set()
+            assert resume_first.wait(timeout=2)
+            return older_sample
+        return original_read_text(path, *args, **kwargs)
+
+    monkeypatch.setattr(Path, "read_text", staged_read_text)
+    with ThreadPoolExecutor(max_workers=2) as executor:
+        older_probe = executor.submit(
+            worker_health.heartbeat_has_advanced, heartbeat, state
+        )
+        assert first_observed.wait(timeout=2)
+        heartbeat.write_text(newer_sample, encoding="ascii")
+        newer_probe = executor.submit(
+            worker_health.heartbeat_has_advanced, heartbeat, state
+        )
+        resume_first.set()
+
+        assert older_probe.result(timeout=2) is True
+        assert newer_probe.result(timeout=2) is True
+
+    assert state.read_text(encoding="ascii") == newer_sample
+    assert worker_health.heartbeat_has_advanced(heartbeat, state) is False
 
 
 def test_heartbeat_records_before_first_sleep(

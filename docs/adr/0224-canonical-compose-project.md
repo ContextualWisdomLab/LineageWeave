@@ -52,7 +52,10 @@ The Python and POSIX-shell parsers accept the same non-negative signed-64-bit
 counter domain. An existing malformed or out-of-domain heartbeat or baseline
 fails closed instead of becoming progress evidence. Concurrent probes publish
 their baselines through distinct same-directory temporary files and atomic
-replacement, so one probe cannot move another probe's pending state.
+replacement. The Python probe serializes its complete read, compare, and
+publish operation with an in-process mutex and a POSIX advisory file lock; a
+filesystem or lock failure reports unhealthy. Therefore an older observation
+cannot replace a newer published baseline or manufacture later progress.
 Consequently, targeted canonical startup such
 as `docker compose up backend` also starts the worker and does not expose an API
 that can accept durable jobs while no consumer exists. Non-Compose deployments
