@@ -8,6 +8,26 @@ All notable changes to this project are documented here. Format follows
 
 ### Added
 
+- Period leftover pairs now caption leftover-axis report badges with persisted
+  leftover-map singular values `σ_k` independently of leftover-map axis share
+  (ADR 0325 / v2.82.0). After `make seed`, leftover-axis report badges name
+  persisted leftover-map singular values when finite even when leftover-map
+  axis share is omitted; click a leftover pair opens that post. A missing or
+  non-finite leftover-map axis share omits that share caption and keeps
+  `leftover axis {k} σ {value}`. A missing, non-finite, or negative singular
+  value omits that `σ` badge and keeps `leftover axis {k} {share}%`. Rank-0
+  unused axes still name `σ 0.00`. Leftover-axis report badges stay
+  `leftover axis {k} σ {value}` when share is omitted so they stay distinct
+  from leftover-axis `leftover axis {k} σ {value} {share}%`, from hyphen
+  `leftover-map axis {k} σ {value}`, from comparison leftover-axis
+  `leftover map comparison leftover axis {k} σ {value}`, and from comparison
+  graphic `leftover map comparison graphic leftover-map axis {k} σ {value}`.
+  Do not invent `σ_k` from leftover-map axis share. Do not invent leftover-map
+  axis share from `σ_k`. This increment does not change leftover-map singular
+  values on leftover-map graphic-display axes or on leftover-axis report badges
+  on the grouping comparison strip. A finite negative leftover is shown, never
+  clamped. Never invent a leftover score or a theta. No new columns.
+
 - Period leftover pairs now caption leftover-map graphic-display axes with persisted
   leftover-map singular values `σ_k` (ADR 0324 / v2.81.0). After `make seed`, leftover-map
   graphic-display axes name persisted leftover-map singular values when finite together

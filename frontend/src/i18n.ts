@@ -613,6 +613,7 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Valid from": "유효 시작",
     "Valid to": "유효 종료",
     "leftover axis {axis} {share}%": "잔차 축 {axis} {share}%",
+    "leftover axis {axis} σ {value}": "잔차 축 {axis} σ {value}",
     "leftover axis {axis} σ {value} {share}%": "잔차 축 {axis} σ {value} {share}%",
     "Leftover-map axis share": "잔차 지도 축 비율",
     "Leftover-map axis share is Gabriel inertia of residual SVD axes 1 and 2. Leftover-map singular values are the Gabriel scale of those axes. Open a leftover pair to read the post–criterion cell. The shares and singular values do not invent a leftover score.":
@@ -1265,6 +1266,7 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Valid from": "有效起始",
     "Valid to": "有效结束",
     "leftover axis {axis} {share}%": "残差轴 {axis} {share}%",
+    "leftover axis {axis} σ {value}": "残差轴 {axis} σ {value}",
     "leftover axis {axis} σ {value} {share}%": "残差轴 {axis} σ {value} {share}%",
     "Leftover-map axis share": "残差图轴占比",
     "Leftover-map axis share is Gabriel inertia of residual SVD axes 1 and 2. Leftover-map singular values are the Gabriel scale of those axes. Open a leftover pair to read the post–criterion cell. The shares and singular values do not invent a leftover score.":
@@ -1921,6 +1923,7 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Valid from": "有効開始",
     "Valid to": "有効終了",
     "leftover axis {axis} {share}%": "残差軸 {axis} {share}%",
+    "leftover axis {axis} σ {value}": "残差軸 {axis} σ {value}",
     "leftover axis {axis} σ {value} {share}%": "残差軸 {axis} σ {value} {share}%",
     "Leftover-map axis share": "残差マップ軸の比率",
     "Leftover-map axis share is Gabriel inertia of residual SVD axes 1 and 2. Leftover-map singular values are the Gabriel scale of those axes. Open a leftover pair to read the post–criterion cell. The shares and singular values do not invent a leftover score.":
@@ -2580,6 +2583,7 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Valid from": "Hiệu lực từ",
     "Valid to": "Hiệu lực đến",
     "leftover axis {axis} {share}%": "trục phần dư {axis} {share}%",
+    "leftover axis {axis} σ {value}": "trục phần dư {axis} σ {value}",
     "leftover axis {axis} σ {value} {share}%": "trục phần dư {axis} σ {value} {share}%",
     "Leftover-map axis share": "Tỷ trọng trục bản đồ phần dư",
     "Leftover-map axis share is Gabriel inertia of residual SVD axes 1 and 2. Leftover-map singular values are the Gabriel scale of those axes. Open a leftover pair to read the post–criterion cell. The shares and singular values do not invent a leftover score.":

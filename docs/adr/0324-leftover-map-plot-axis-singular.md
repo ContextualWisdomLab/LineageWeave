@@ -113,7 +113,9 @@ Independent of leftover-map singular values on leftover-axis report badges
 singular values on leftover-axis report badges on the grouping comparison
 strip ([ADR 0323](0323-leftover-map-compare-axis-singular.md)). Independent of
 leftover-map singular values on the grouping comparison leftover-map graphic
-([ADR 0321](0321-leftover-map-compare-plot-singular.md)).
+([ADR 0321](0321-leftover-map-compare-plot-singular.md)). Independent of leftover-map
+singular values on leftover-axis report badges independently of leftover-map axis
+share ([ADR 0325](0325-leftover-map-axis-singular-only.md)).
 
 ## References
 

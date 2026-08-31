@@ -4179,6 +4179,8 @@ describe("App, authenticated", () => {
     expect(screen.getAllByText(/CAT: sales-lead I=0\.70/).length).toBeGreaterThan(0);
     expect(screen.getAllByText(/leftover axis 1 σ 1\.84 82%/).length).toBeGreaterThan(0);
     expect(screen.getAllByText(/leftover axis 2 σ 0\.86 18%/).length).toBeGreaterThan(0);
+    expect(screen.queryByText("leftover axis 1 σ 1.84")).not.toBeInTheDocument();
+    expect(screen.queryByText("leftover axis 2 σ 0.86")).not.toBeInTheDocument();
     expect(screen.getByText("leftover map comparison leftover axis 1 σ 1.84 82%")).toBeInTheDocument();
     expect(screen.getByText("leftover map comparison leftover axis 2 σ 0.86 18%")).toBeInTheDocument();
     expect(screen.getByLabelText("Leftover map comparison leftover axis")).toHaveTextContent(

@@ -9,7 +9,9 @@
 [ADR 0323](0323-leftover-map-compare-axis-singular.md)
 (leftover-map singular values on leftover-axis report badges on the grouping comparison strip);
 [ADR 0324](0324-leftover-map-plot-axis-singular.md)
-(leftover-map singular values on leftover-map graphic-display axes)
+(leftover-map singular values on leftover-map graphic-display axes);
+[ADR 0325](0325-leftover-map-axis-singular-only.md)
+(leftover-map singular values on leftover-axis report badges independently of leftover-map axis share)
 
 ## Context
 

@@ -43,6 +43,7 @@ describe("i18n", () => {
     "Page",
     "Answer",
     "leftover axis {axis} {share}%",
+    "leftover axis {axis} σ {value}",
     "leftover axis {axis} σ {value} {share}%",
     "Leftover-map axis share",
     "Leftover-map axis share is Gabriel inertia of residual SVD axes 1 and 2. Leftover-map singular values are the Gabriel scale of those axes. Open a leftover pair to read the post–criterion cell. The shares and singular values do not invent a leftover score.",
@@ -745,6 +746,16 @@ describe("i18n", () => {
     expect(
       tf("leftover axis {axis} σ {value} {share}%", { axis: 1, value: "1.84", share: "82" }),
     ).toBe(expected);
+  });
+
+  it.each([
+    ["ko", "잔차 축 1 σ 1.84"],
+    ["zh", "残差轴 1 σ 1.84"],
+    ["ja", "残差軸 1 σ 1.84"],
+    ["vi", "trục phần dư 1 σ 1.84"],
+  ] as const)("formats leftover-axis badge singular values without share in %s", (locale, expected) => {
+    setLocale(locale);
+    expect(tf("leftover axis {axis} σ {value}", { axis: 1, value: "1.84" })).toBe(expected);
   });
 
   it.each([
