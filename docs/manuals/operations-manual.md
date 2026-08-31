@@ -52,6 +52,24 @@ the canonical stack under a different project name.
   Host/Origin, request-size, and k6-evidenced quota values described in the
   [MCP manual](mcp-manual.md).
 
+## Promote an orchestrator revision safely
+
+Use `scripts/promote_contextual_orchestrator.sh` for an exact reviewed
+revision. Declare `ALLOW_PROVIDER_CALLS=1`, the full
+`EXPECTED_ORCHESTRATOR_REVISION`, and bounded startup, per-agent probe, and
+readiness observation times. The script builds and starts an isolated
+candidate with the current `~/.env`, verifies its revision label, and requires
+authenticated structured readiness before recreating the canonical service.
+The existing canonical service remains untouched when preflight fails.
+
+If preflight reports HTTP 401 or that the configured gateway did not
+authenticate, verify the currently authorized gateway credential and endpoint
+in `~/.env` without printing either value. Have the credential owner renew or
+correct that current runtime entry, then rerun the complete isolated preflight.
+Do not copy a credential into the repository, add a second credential source,
+change the expected revision, or recreate the canonical service to bypass the
+failure.
+
 For authenticated runtime acceptance, start the exact-revision stack with the
 MCP profile and declare separate provider-probe and readiness-observation
 budgets. `ORCHESTRATOR_PROBE_TIMEOUT_SECONDS` accepts 0.1 through 30 seconds;
@@ -129,11 +147,22 @@ retain them in governed storage, do not expose or log them as customer content.
 - **Failed count grows:** inspect safe failure categories and retry through the
   durable queue after the root cause is fixed.
 - **Voice counts are unavailable:** confirm that current source and derived
-  assertions completed. Preserve multi-membership and disagreement; do not
-  coerce a record into one category.
+  assertions completed. The twelve governed Voice codes are multi-label.
+  A current derived completion requires the current source digest and a
+  non-empty analysis receipt; a receipted empty result is a completed analysis
+  with zero supported derived memberships, while a missing receipt remains
+  unavailable for bounded retry. Source and derived histories remain separate,
+  and cutoff reads use the assignment effective then. Retry the Voice stage
+  after its dependency recovers even when operations analysis completed or
+  failed separately. Preserve multi-membership and disagreement; do not coerce
+  a record into one category.
 - **Product mention is missing, tied, or unavailable:** repair or review the
-  governed product catalog and rerun extraction. Do not bind by display-name
-  similarity alone.
+  governed product catalog and rerun product extraction. A current completion
+  requires its analysis receipt plus current source and eligible-target
+  digests. Product extraction runs independently of operations-case analysis,
+  so retry its own stage after a product failure and do not wait for or
+  fabricate an operations result. Historical rows without a receipt remain
+  unavailable. Do not bind by display-name similarity alone.
 - **A governed product is absent:** an account with `post_admin` submits
   `PUT /api/product-catalog/{product_code}` with the explicit product-master
   label, level, source organization/system/record, optional existing parent,
@@ -142,8 +171,12 @@ retain them in governed storage, do not expose or log them as customer content.
   the catalog implicitly; on `422`, provision the named parent or correct the
   invalid row. Then rerun product analysis and open the cited post to verify the
   connection.
-- **Project journey is unavailable:** verify an accepted TEPP result exists for
-  the exact snapshot and cutoff. Do not substitute chronological sorting.
+- **Project journey is unavailable:** first verify that the source record's
+  exact non-empty `source_project_code` was imported and remains visible under
+  the caller's access. Do not bind a project from similar names or text. Then,
+  when temporal corroboration is expected, verify an accepted TEPP result for
+  the exact snapshot, input digest, and cutoff. Do not substitute chronological
+  sorting or reinterpret temporal evidence as a business transition.
 - **Related public source is absent:** verify publication eligibility and the
   governed public-research service. Do not invent or manually insert a title,
   URL, or excerpt.

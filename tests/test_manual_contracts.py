@@ -92,6 +92,8 @@ def test_mcp_manual_names_only_current_tools_and_async_contract() -> None:
     assert "ask_job_id" in manual
     assert "cited_source_references" in manual
     assert "Mcp-Session-Id" in manual
+    assert "no authorized citations" in manual
+    assert "do not turn the empty evidence set into an answer" in manual
 
 
 def test_user_manual_covers_every_supported_voice_code() -> None:
@@ -105,6 +107,15 @@ def test_user_manual_covers_every_supported_voice_code() -> None:
     assert {code.upper() for code in api_codes} == manual_codes
 
 
+def test_user_manual_gives_evidence_bound_semantic_next_actions() -> None:
+    """Buyer guidance must distinguish missing evidence from negative facts."""
+    manual = _text("user-guide.md")
+    assert "source carries the exact\nproject code" in manual
+    assert "A completed answer with no authorized citations" in manual
+    assert "Source categories and supported\nderived categories remain separate" in manual
+    assert "request product reprocessing" in manual
+
+
 def test_operations_manual_names_current_commands_and_fail_closed_measurement() -> None:
     """Require recovery guidance for current Compose, load, and TEPP bounds."""
     manual = _text("operations-manual.md")
@@ -116,3 +127,17 @@ def test_operations_manual_names_current_commands_and_fail_closed_measurement() 
     assert "scripts/requeue_failed_post_content.py" in manual
     assert (ROOT / "scripts" / "requeue_failed_post_content.py").is_file()
     assert "do not manufacture a score" in _text("mcp-manual.md")
+
+
+def test_operations_manual_covers_semantic_recovery_and_safe_promotion() -> None:
+    """Operator actions must preserve receipts, exact binding, and preflight."""
+    manual = _text("operations-manual.md")
+    assert "scripts/promote_contextual_orchestrator.sh" in manual
+    assert "EXPECTED_ORCHESTRATOR_REVISION" in manual
+    assert "HTTP 401" in manual
+    assert "current `~/.env`" in manual
+    assert "existing canonical service remains untouched" in manual
+    assert "twelve governed Voice codes are multi-label" in manual
+    assert "non-empty analysis receipt" in manual
+    assert "Product extraction runs independently" in manual
+    assert "exact non-empty `source_project_code`" in manual
