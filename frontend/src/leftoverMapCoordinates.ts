@@ -7,6 +7,10 @@
  *  post leftover-map person coordinates as leftoverMapPlotPostBadge independently of leftover-map
  *  criterion leftover-map item coordinates. leftoverMapListPostBadge stays leftover-map pair leftover-map
  *  post leftover-map person coordinate keys.
+ *  ADR 0349 names leftover-map origin on leftover-map comparison graphic leftover-map
+ *  post leftover-map person coordinates as leftoverMapComparePlotPostBadge independently of leftover-map
+ *  graphic leftover-map post leftover-map origin leftover-map person coordinates. leftoverMapListPostBadge stays leftover-map pair leftover-map
+ *  post leftover-map person coordinate keys.
  */
 
 import { formatSignedLeftoverValue } from "./leftoverMapUnexplained";
@@ -84,6 +88,8 @@ export function formatLeftoverMapCoordinates(
 /** ADR 0339 leftover-map pair leftover-map post leftover-map person coordinates ξ.
  *  ADR 0348 names leftover-map origin on leftover-map graphic leftover-map post leftover-map
  *  person coordinates as leftoverMapPlotPostBadge, not this helper.
+ *  ADR 0349 names leftover-map origin on leftover-map comparison graphic leftover-map post leftover-map
+ *  person coordinates as leftoverMapComparePlotPostBadge, not this helper.
  */
 export function leftoverMapListPostBadge(
   title: string,

@@ -30,6 +30,7 @@ import {
   LEFTOVER_MAP_PLOT_POST_ACTION_ORIGIN,
   LEFTOVER_MAP_PLOT_POST_ACTION_OMITTED,
   LEFTOVER_MAP_COMPARE_PLOT_POST_ACTION,
+  LEFTOVER_MAP_COMPARE_PLOT_POST_ACTION_ORIGIN,
   LEFTOVER_MAP_PLOT_TICK,
   PLOT_HEIGHT,
   PLOT_PADDING,
@@ -1288,6 +1289,9 @@ describe("leftoverMapComparePlotCriterionBadge", () => {
     expect(leftoverMapComparePlotCriterionBadge("sales-lead", 0, 0)?.key).not.toBe(
       LEFTOVER_MAP_PLOT_CRITERION_ORIGIN,
     );
+    expect(leftoverMapComparePlotCriterionBadge("sales-lead", 0, 0)?.key).not.toBe(
+      LEFTOVER_MAP_COMPARE_PLOT_POST_ACTION_ORIGIN,
+    );
   });
 
   it("omits leftover-map item coordinates when ζ is missing or non-finite", () => {
@@ -1340,6 +1344,9 @@ describe("leftoverMapPlotPostBadge", () => {
     });
     expect(leftoverMapPlotPostBadge("Public post", 0, 0)?.key).not.toBe(LEFTOVER_MAP_PLOT_POST_ACTION);
     expect(leftoverMapPlotPostBadge("Public post", 0, 0)?.key).not.toBe(LEFTOVER_MAP_COMPARE_PLOT_POST_ACTION);
+    expect(leftoverMapPlotPostBadge("Public post", 0, 0)?.key).not.toBe(
+      LEFTOVER_MAP_COMPARE_PLOT_POST_ACTION_ORIGIN,
+    );
     expect(leftoverMapPlotCriterionBadge("sales-lead", 0, 0)?.key).not.toBe(LEFTOVER_MAP_PLOT_POST_ACTION_ORIGIN);
   });
 
@@ -1369,6 +1376,9 @@ describe("leftoverMapPlotPostBadge", () => {
       LEFTOVER_MAP_PLOT_POST_ACTION_ORIGIN,
     );
     expect(leftoverMapPlotPostBadge("Public post", 0.5, 0.1)?.key).not.toBe(
+      LEFTOVER_MAP_COMPARE_PLOT_POST_ACTION_ORIGIN,
+    );
+    expect(leftoverMapPlotPostBadge("Public post", 0.5, 0.1)?.key).not.toBe(
       LEFTOVER_MAP_PLOT_CRITERION,
     );
   });
@@ -1386,13 +1396,22 @@ describe("leftoverMapComparePlotPostBadge", () => {
     });
   });
 
-  it("names rank-0 origin leftover-map person coordinates as ξ (0.00, 0.00)", () => {
+  it("names rank-0 leftover-map origin leftover-map person coordinates independently of leftover-map graphic leftover-map post leftover-map origin leftover-map person coordinates", () => {
     expect(leftoverMapComparePlotPostBadge("Public post", 0, 0)).toEqual({
-      key: LEFTOVER_MAP_COMPARE_PLOT_POST_ACTION,
+      key: LEFTOVER_MAP_COMPARE_PLOT_POST_ACTION_ORIGIN,
       values: { title: "Public post", person: "(0.00, 0.00)" },
     });
     expect(leftoverMapComparePlotPostBadge("Public post", 0, 0)?.key).not.toBe(
+      LEFTOVER_MAP_COMPARE_PLOT_POST_ACTION,
+    );
+    expect(leftoverMapComparePlotPostBadge("Public post", 0, 0)?.key).not.toBe(
       LEFTOVER_MAP_PLOT_POST_ACTION_ORIGIN,
+    );
+    expect(leftoverMapPlotPostBadge("Public post", 0, 0)?.key).not.toBe(
+      LEFTOVER_MAP_COMPARE_PLOT_POST_ACTION_ORIGIN,
+    );
+    expect(leftoverMapComparePlotCriterionBadge("sales-lead", 0, 0)?.key).not.toBe(
+      LEFTOVER_MAP_COMPARE_PLOT_POST_ACTION_ORIGIN,
     );
   });
 
@@ -1407,6 +1426,11 @@ describe("leftoverMapComparePlotPostBadge", () => {
     expect(LEFTOVER_MAP_COMPARE_PLOT_POST_ACTION).toBe(
       "Open leftover map comparison graphic leftover-map post {title} at ξ {person}",
     );
+    expect(LEFTOVER_MAP_COMPARE_PLOT_POST_ACTION_ORIGIN).toBe(
+      "Open leftover map comparison graphic leftover-map post {title} at leftover-map origin ξ {person}",
+    );
+    expect(LEFTOVER_MAP_COMPARE_PLOT_POST_ACTION_ORIGIN).not.toBe(LEFTOVER_MAP_COMPARE_PLOT_POST_ACTION);
+    expect(LEFTOVER_MAP_COMPARE_PLOT_POST_ACTION_ORIGIN).not.toBe(LEFTOVER_MAP_PLOT_POST_ACTION_ORIGIN);
     expect(LEFTOVER_MAP_COMPARE_PLOT_POST_ACTION).not.toBe(LEFTOVER_MAP_PLOT_POST_ACTION);
     expect(LEFTOVER_MAP_COMPARE_PLOT_POST_ACTION).not.toBe(LEFTOVER_MAP_PLOT_POST_ACTION_ORIGIN);
     expect(LEFTOVER_MAP_COMPARE_PLOT_POST_ACTION).not.toBe(LEFTOVER_MAP_PLOT_POST_ACTION_OMITTED);
@@ -1414,6 +1438,9 @@ describe("leftoverMapComparePlotPostBadge", () => {
     expect(LEFTOVER_MAP_COMPARE_PLOT_POST_ACTION).not.toBe(LEFTOVER_MAP_PLOT_CRITERION);
     expect(leftoverMapComparePlotPostBadge("Public post", 0.5, 0.1)?.key).not.toBe(
       LEFTOVER_MAP_PLOT_POST_ACTION,
+    );
+    expect(leftoverMapComparePlotPostBadge("Public post", 0.5, 0.1)?.key).not.toBe(
+      LEFTOVER_MAP_COMPARE_PLOT_POST_ACTION_ORIGIN,
     );
     expect(leftoverMapComparePlotPostBadge("Public post", 0.5, 0.1)?.key).not.toBe(
       leftoverMapPlotPostBadge("Public post", 0.5, 0.1)?.key ?? "",

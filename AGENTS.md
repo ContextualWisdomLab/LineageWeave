@@ -856,6 +856,11 @@ returns a leftover-map origin leftover-map person coordinate caption independent
 `Open leftover-map post {title} at leftover-map origin ξ {person}`. Rank-0 unused axes still name leftover-map origin `(0.00, 0.00)`.
 Do not invent leftover-map origin from leftover-map item coordinates `ζ`. leftoverMapComparePlotPostBadge stays leftover-map comparison graphic leftover-map
 post leftover-map person coordinate keys. leftoverMapPlotCriterionBadge stays leftover-map graphic leftover-map criterion leftover-map origin leftover-map item coordinate keys this increment.
+ADR 0349 captions leftover-map comparison graphic leftover-map post leftover-map origin leftover-map person coordinates with leftover-map origin when leftoverMapComparePlotPostBadge
+returns a leftover-map origin leftover-map person coordinate caption independently of leftover-map graphic leftover-map post leftover-map origin leftover-map person coordinates. Distinct accessible name
+`Open leftover map comparison graphic leftover-map post {title} at leftover-map origin ξ {person}`. Rank-0 unused axes still name leftover-map origin `(0.00, 0.00)`.
+Do not invent leftover-map origin from leftover-map item coordinates `ζ`. leftoverMapPlotPostBadge stays leftover-map graphic leftover-map
+post leftover-map origin leftover-map person coordinate keys. leftoverMapComparePlotCriterionBadge stays leftover-map comparison graphic leftover-map criterion leftover-map item coordinate keys this increment.
 When `R`, `R̂`, `U`, `x`,
 `s`, and `e` are finite, `e + s + x = 1`. When `Y`, `E`, and `R` are
 finite, `Y − E = R`. When `R`, `R̂`, and `U` are
@@ -1041,6 +1046,8 @@ Leftover-map graphic leftover-map criterion leftover-map origin leftover-map ite
 (ADR 0347) captions leftover-map graphic leftover-map criterion leftover-map origin leftover-map item coordinates when leftoverMapPlotCriterionBadge returns a leftover-map origin leftover-map item coordinate caption.
 Leftover-map graphic leftover-map post leftover-map origin leftover-map person coordinates independently of leftover-map criterion leftover-map item coordinates
 (ADR 0348) captions leftover-map graphic leftover-map post leftover-map origin leftover-map person coordinates when leftoverMapPlotPostBadge returns a leftover-map origin leftover-map person coordinate caption.
+Leftover-map comparison graphic leftover-map post leftover-map origin leftover-map person coordinates independently of leftover-map graphic leftover-map post leftover-map origin leftover-map person coordinates
+(ADR 0349) captions leftover-map comparison graphic leftover-map post leftover-map origin leftover-map person coordinates when leftoverMapComparePlotPostBadge returns a leftover-map origin leftover-map person coordinate caption.
 Item complete-case coverage
 (ADR 0282) captions the leftover-map graphic with how many scored criteria
 entered the map. Item complete-case coverage on the pair list (ADR 0285)

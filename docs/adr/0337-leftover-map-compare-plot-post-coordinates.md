@@ -4,7 +4,9 @@
 **Date:** 2026-08-31
 
 **Amended by:** [ADR 0338](0338-leftover-map-plot-post-coordinates.md)
-(leftover-map person coordinates on leftover-map graphic leftover-map post markers)
+(leftover-map person coordinates on leftover-map graphic leftover-map post markers);
+[ADR 0349](0349-leftover-map-compare-plot-post-origin-badge.md)
+(leftover-map origin on leftover-map comparison graphic leftover-map post leftover-map person coordinates independently of leftover-map graphic leftover-map post leftover-map origin leftover-map person coordinates)
 
 Amends leftover-map graphic display of persisted coordinates on the grouping comparison strip
 ([ADR 0304](0304-leftover-map-compare-graphic.md)), leftover-map comparison graphic leftover-map criterion leftover-map item coordinates
