@@ -91,6 +91,9 @@
  *  singular values `σ_k`.
  *  ADR 0326 fail-closes leftover-map comparison graphic leftover-map axis leftover-map
  *  singular values through leftoverMapComparePlotAxisBadge.
+ *  ADR 0327 fail-closes leftover-map graphic leftover-map axis ticks leftover-map
+ *  singular values through leftoverMapPlotTickAxisBadge independently of leftover-map
+ *  axis share.
  */
 
 import { formatLeftoverMapCoordinatePair } from "./leftoverMapCoordinates";

@@ -4,6 +4,7 @@ import {
   leftoverMapCompareAxisBadge,
   leftoverMapComparePlotAxisBadge,
   leftoverMapPlotAxisBadge,
+  leftoverMapPlotTickAxisBadge,
   leftoverSingularForAxis,
   LEFTOVER_MAP_COMPARE_AXIS_CAPTION,
   LEFTOVER_MAP_COMPARE_AXIS_LABEL,
@@ -14,12 +15,13 @@ import {
   LEFTOVER_MAP_COMPARE_PLOT_AXIS_SINGULAR_SHARE,
   LEFTOVER_MAP_PLOT_AXIS_SINGULAR,
   LEFTOVER_MAP_PLOT_AXIS_SINGULAR_SHARE,
+  LEFTOVER_MAP_PLOT_TICK_SINGULAR,
 } from "./leftoverMapPlotAxisSingular";
 import {
   LEFTOVER_MAP_COMPARE_PLOT_AXIS_SHARE,
   LEFTOVER_MAP_PLOT_AXIS_SHARE,
 } from "./leftoverMapPlotAxisShare";
-import { LEFTOVER_MAP_COMPARE_PLOT_TICK } from "./leftoverMapPlotLayout";
+import { LEFTOVER_MAP_COMPARE_PLOT_TICK, LEFTOVER_MAP_PLOT_TICK } from "./leftoverMapPlotLayout";
 import { LEFTOVER_MAP_AXIS_BADGE_SINGULAR, LEFTOVER_MAP_AXIS_BADGE_SINGULAR_ONLY } from "./leftoverMapAxisBadge";
 
 describe("leftoverSingularForAxis", () => {
@@ -301,6 +303,68 @@ describe("leftover-map comparison graphic leftover-map axis singular badges", ()
     expect(leftoverMapComparePlotAxisBadge(1, 1.84, null)?.key).not.toBe(LEFTOVER_MAP_COMPARE_PLOT_TICK);
     expect(leftoverMapComparePlotAxisBadge(1, 1.84, 0.82)?.key).toBe(
       LEFTOVER_MAP_COMPARE_PLOT_AXIS_SINGULAR_SHARE,
+    );
+  });
+});
+
+describe("leftover-map graphic leftover-map axis tick leftover-map singular values", () => {
+  it("names persisted leftover-map singular values on leftover-map graphic leftover-map axis ticks", () => {
+    expect(leftoverMapPlotTickAxisBadge(1, "+0.50", 1.84)).toEqual({
+      key: LEFTOVER_MAP_PLOT_TICK_SINGULAR,
+      values: { axis: 1, value: "+0.50", singular: "1.84" },
+    });
+    expect(leftoverMapPlotTickAxisBadge(2, "−0.02", 0.86)).toEqual({
+      key: LEFTOVER_MAP_PLOT_TICK_SINGULAR,
+      values: { axis: 2, value: "−0.02", singular: "0.86" },
+    });
+  });
+
+  it("names rank-0 zero leftover-map singular values on leftover-map graphic leftover-map axis ticks", () => {
+    expect(leftoverMapPlotTickAxisBadge(1, "0.00", 0)).toEqual({
+      key: LEFTOVER_MAP_PLOT_TICK_SINGULAR,
+      values: { axis: 1, value: "0.00", singular: "0.00" },
+    });
+  });
+
+  it("omits leftover-map singular values independently of leftover-map axis share", () => {
+    expect(leftoverMapPlotTickAxisBadge(1, "+0.50", Number.NaN)).toEqual({
+      key: LEFTOVER_MAP_PLOT_TICK,
+      values: { axis: 1, value: "+0.50" },
+    });
+    expect(leftoverMapPlotTickAxisBadge(2, "−0.02", -0.01)).toEqual({
+      key: LEFTOVER_MAP_PLOT_TICK,
+      values: { axis: 2, value: "−0.02" },
+    });
+    expect(leftoverMapPlotTickAxisBadge(1, "+0.50", 1.84).values.share).toBeUndefined();
+    expect(leftoverMapPlotTickAxisBadge(1, "+0.50", null)).toEqual({
+      key: LEFTOVER_MAP_PLOT_TICK,
+      values: { axis: 1, value: "+0.50" },
+    });
+  });
+
+  it("does not invent leftover-map singular values from leftover-map axis share", () => {
+    expect(leftoverMapPlotTickAxisBadge(1, "+0.50", undefined).key).toBe(LEFTOVER_MAP_PLOT_TICK);
+    expect(leftoverMapPlotTickAxisBadge(1, "+0.50", undefined).values.singular).toBeUndefined();
+  });
+
+  it("does not invent leftover-map axis share from leftover-map singular values", () => {
+    expect(leftoverMapPlotTickAxisBadge(1, "+0.50", 1.84).key).toBe(LEFTOVER_MAP_PLOT_TICK_SINGULAR);
+    expect(leftoverMapPlotTickAxisBadge(1, "+0.50", 1.84).values.share).toBeUndefined();
+  });
+
+  it("stays distinct from leftover-axis, leftover-map graphic axis, comparison leftover-axis, and comparison graphic copy", () => {
+    expect(LEFTOVER_MAP_PLOT_TICK_SINGULAR).toBe("leftover-map axis {axis} tick {value} σ {singular}");
+    expect(LEFTOVER_MAP_PLOT_TICK_SINGULAR).not.toBe(LEFTOVER_MAP_PLOT_TICK);
+    expect(LEFTOVER_MAP_PLOT_TICK_SINGULAR).not.toBe(LEFTOVER_MAP_PLOT_AXIS_SINGULAR);
+    expect(LEFTOVER_MAP_PLOT_TICK_SINGULAR).not.toBe(LEFTOVER_MAP_COMPARE_PLOT_AXIS_SINGULAR);
+    expect(LEFTOVER_MAP_PLOT_TICK_SINGULAR).not.toBe(LEFTOVER_MAP_COMPARE_AXIS_SINGULAR);
+    expect(LEFTOVER_MAP_PLOT_TICK_SINGULAR).not.toBe(LEFTOVER_MAP_AXIS_BADGE_SINGULAR_ONLY);
+    expect(LEFTOVER_MAP_PLOT_TICK_SINGULAR).not.toBe(LEFTOVER_MAP_COMPARE_PLOT_TICK);
+    expect(leftoverMapPlotTickAxisBadge(1, "+0.50", 1.84).key).not.toBe(
+      leftoverMapPlotAxisBadge(1, 1.84, null)?.key,
+    );
+    expect(leftoverMapPlotTickAxisBadge(1, "+0.50", 1.84).key).not.toBe(
+      leftoverMapComparePlotAxisBadge(1, 1.84, null)?.key,
     );
   });
 });
