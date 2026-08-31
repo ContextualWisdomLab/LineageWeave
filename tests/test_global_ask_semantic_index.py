@@ -261,3 +261,17 @@ def test_builder_stays_inactive_without_pinned_owner_contract(monkeypatch) -> No
     )
 
     assert build_global_ask_exact_semantic_index() is None
+
+
+def test_builder_honors_shared_rankweave_disable_switch(monkeypatch) -> None:
+    """The exact owner cannot bypass the repository RankWeave kill switch."""
+    monkeypatch.setattr(
+        "backend.app.config.load_settings",
+        lambda: SimpleNamespace(rankweave_disabled=True),
+    )
+    monkeypatch.setattr(
+        "backend.app.global_ask_semantic_index._import_rankweave",
+        lambda: SimpleNamespace(SemanticUnitExactIndex=_OwnerIndex),
+    )
+
+    assert build_global_ask_exact_semantic_index() is None

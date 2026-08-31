@@ -634,6 +634,10 @@ class GlobalAskExactSemanticIndex:
 
 def build_global_ask_exact_semantic_index() -> GlobalAskExactSemanticIndex | None:
     """Activate only when the pinned RankWeave exposes the accepted contract."""
+    from backend.app.config import load_settings
+
+    if load_settings().rankweave_disabled:
+        return None
     try:
         owner_type = _import_rankweave().SemanticUnitExactIndex
     except (AttributeError, ImportError):
