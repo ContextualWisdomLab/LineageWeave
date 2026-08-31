@@ -16,7 +16,9 @@ singular values ([ADR 0331](0331-leftover-map-compare-plot-tick-share-badge.md))
 comparison leftover-axis tick leftover-map singular values independently of leftover-map
 axis share ([ADR 0329](0329-leftover-map-compare-axis-tick-badge.md)). Independent of leftover-axis
 tick leftover-map singular values independently of leftover-map axis share
-([ADR 0330](0330-leftover-map-axis-tick-badge.md)).
+([ADR 0330](0330-leftover-map-axis-tick-badge.md)). Independent of leftover-map
+comparison leftover-axis tick leftover-map axis share independently of leftover-map
+singular values ([ADR 0333](0333-leftover-map-compare-axis-tick-share-badge.md)).
 
 ## Context
 
@@ -136,7 +138,9 @@ graphic leftover-map axis leftover-map singular values as leftoverMapPlotAxisBad
 ([ADR 0324](0324-leftover-map-plot-axis-singular.md)). Independent of leftover-map
 coordinate ticks on the leftover-map graphic
 ([ADR 0270](0270-leftover-map-coordinate-ticks.md)). Independent of leftover-map
-axis share persistence ([ADR 0148](0148-leftover-map-axis-share.md)).
+axis share persistence ([ADR 0148](0148-leftover-map-axis-share.md)). Independent of leftover-map
+comparison leftover-axis tick leftover-map axis share independently of leftover-map
+singular values ([ADR 0333](0333-leftover-map-compare-axis-tick-share-badge.md)).
 
 ## References
 

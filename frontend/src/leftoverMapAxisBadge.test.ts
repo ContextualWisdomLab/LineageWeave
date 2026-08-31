@@ -196,6 +196,9 @@ describe("leftover-axis leftover-axis tick leftover-map singular values", () => 
       leftoverMapCompareAxisTickBadge(1, "+0.50", 1.84).key,
     );
     expect(leftoverMapAxisTickBadge(1, "+0.50", 1.84).key).not.toBe(
+      leftoverMapCompareAxisTickBadge(1, "+0.50", 1.84, 0.82).key,
+    );
+    expect(leftoverMapAxisTickBadge(1, "+0.50", 1.84).key).not.toBe(
       leftoverMapPlotTickAxisBadge(1, "+0.50", 1.84).key,
     );
     expect(leftoverMapAxisTickBadge(1, "+0.50", 1.84).key).not.toBe(

@@ -313,6 +313,10 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "leftover map comparison leftover axis {axis} tick {value}": "잔여 지도 비교 잔차 축 {axis} 눈금 {value}",
     "leftover map comparison leftover axis {axis} tick {value} σ {singular}":
       "잔여 지도 비교 잔차 축 {axis} 눈금 {value} σ {singular}",
+    "leftover map comparison leftover axis {axis} tick {value} {share}%":
+      "잔여 지도 비교 잔차 축 {axis} 눈금 {value} {share}%",
+    "leftover map comparison leftover axis {axis} tick {value} σ {singular} {share}%":
+      "잔여 지도 비교 잔차 축 {axis} 눈금 {value} σ {singular} {share}%",
     "Leftover map comparison leftover axis": "잔여 지도 비교 잔차 축",
     "Leftover map comparison leftover-axis share is Gabriel inertia of residual SVD axes 1 and 2. Open a leftover pair to read the post–criterion cell. The shares do not invent a leftover score.":
       "잔여 지도 비교 잔차 축 비율은 잔차 SVD 축 1과 2의 Gabriel 관성입니다. 글–기준 셀을 읽으려면 잔차 쌍을 여세요. 이 비율은 잔차 점수를 만들어내지 않습니다.",
@@ -985,6 +989,10 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "leftover map comparison leftover axis {axis} tick {value}": "残差地图比较残差轴 {axis} 刻度 {value}",
     "leftover map comparison leftover axis {axis} tick {value} σ {singular}":
       "残差地图比较残差轴 {axis} 刻度 {value} σ {singular}",
+    "leftover map comparison leftover axis {axis} tick {value} {share}%":
+      "残差地图比较残差轴 {axis} 刻度 {value} {share}%",
+    "leftover map comparison leftover axis {axis} tick {value} σ {singular} {share}%":
+      "残差地图比较残差轴 {axis} 刻度 {value} σ {singular} {share}%",
     "Leftover map comparison leftover axis": "残差地图比较残差轴",
     "Leftover map comparison leftover-axis share is Gabriel inertia of residual SVD axes 1 and 2. Open a leftover pair to read the post–criterion cell. The shares do not invent a leftover score.":
       "残差地图比较残差轴份额是残差 SVD 轴 1 和 2 的 Gabriel 惯性。打开残差对以阅读帖文–准则单元格。这些份额不编造残差分数。",
@@ -1678,6 +1686,10 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "leftover map comparison leftover axis {axis} tick {value}": "残差マップの比較残差軸 {axis} 目盛 {value}",
     "leftover map comparison leftover axis {axis} tick {value} σ {singular}":
       "残差マップの比較残差軸 {axis} 目盛 {value} σ {singular}",
+    "leftover map comparison leftover axis {axis} tick {value} {share}%":
+      "残差マップの比較残差軸 {axis} 目盛 {value} {share}%",
+    "leftover map comparison leftover axis {axis} tick {value} σ {singular} {share}%":
+      "残差マップの比較残差軸 {axis} 目盛 {value} σ {singular} {share}%",
     "Leftover map comparison leftover axis": "残差マップの比較残差軸",
     "Leftover map comparison leftover-axis share is Gabriel inertia of residual SVD axes 1 and 2. Open a leftover pair to read the post–criterion cell. The shares do not invent a leftover score.":
       "残差マップの比較残差軸の割合は残差 SVD 軸 1 と 2 の Gabriel 慣性です。投稿–基準セルを読むには残差ペアを開いてください。この割合は残差スコアを作りません。",
@@ -2354,6 +2366,10 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
       "vạch trục phần dư so sánh bản đồ phần dư {axis} {value}",
     "leftover map comparison leftover axis {axis} tick {value} σ {singular}":
       "vạch trục phần dư so sánh bản đồ phần dư {axis} {value} σ {singular}",
+    "leftover map comparison leftover axis {axis} tick {value} {share}%":
+      "vạch trục phần dư so sánh bản đồ phần dư {axis} {value} {share}%",
+    "leftover map comparison leftover axis {axis} tick {value} σ {singular} {share}%":
+      "vạch trục phần dư so sánh bản đồ phần dư {axis} {value} σ {singular} {share}%",
     "Leftover map comparison leftover axis": "Trục phần dư so sánh bản đồ phần dư",
     "Leftover map comparison leftover-axis share is Gabriel inertia of residual SVD axes 1 and 2. Open a leftover pair to read the post–criterion cell. The shares do not invent a leftover score.":
       "Tỷ phần trục phần dư so sánh bản đồ phần dư là quán tính Gabriel của trục SVD phần dư 1 và 2. Mở cặp phần dư để đọc ô bài–tiêu chí. Các tỷ phần này không tạo ra điểm phần dư.",
