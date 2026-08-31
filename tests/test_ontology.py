@@ -458,6 +458,34 @@ def test_post_voice_additions_do_not_invent_counterparty_relationships() -> None
         assert iri_for_lookup_code(code) is None
 
 
+def test_operations_dashboard_vocabulary_is_declared() -> None:
+    """ADR 0206 API IRIs are real ontology terms with closed typed targets."""
+    graph = load_ontology()
+    for case_class in (
+        LW.ClaimInvestigation,
+        LW.RebidHandover,
+        LW.ExternalInformation,
+        LW.RepeatIssue,
+    ):
+        assert (case_class, RDF.type, OWL.Class) in graph
+        assert (case_class, RDFS.subClassOf, LW.OperationsCase) in graph
+    assert (
+        LW.OperationsCaseFact,
+        RDFS.subClassOf,
+        URIRef("http://www.w3.org/ns/prov#Entity"),
+    ) in graph
+    assert (LW.hasOperationsFact, RDFS.domain, LW.OperationsCase) in graph
+    assert (LW.hasOperationsFact, RDFS.range, LW.OperationsCaseFact) in graph
+    for predicate, target in (
+        (LW.relatesToOrder, LW.Order),
+        (LW.relatesToProject, LW.Project),
+        (LW.relatesToSales, LW.SalesContext),
+        (LW.relatesToBusinessManagement, LW.BusinessManagementContext),
+    ):
+        assert (predicate, RDFS.domain, LW.ExternalInformation) in graph
+        assert (predicate, RDFS.range, target) in graph
+
+
 def test_voice_combinations_use_qualified_assignments() -> None:
     """ADR 0256 composes atomic voices without Cartesian-product terms."""
     graph = load_ontology()

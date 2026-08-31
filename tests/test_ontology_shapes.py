@@ -21,13 +21,17 @@ from pathlib import Path
 import pytest
 from pyshacl import validate as shacl_validate
 from rdflib import Graph, Literal, Namespace, URIRef
+from rdflib.collection import Collection
 from rdflib.namespace import RDF, XSD
+from rdflib.plugins.parsers.jsonld import to_rdf
 
+from backend.app.operations_dashboard import _operations_case_jsonld
 from lineageweave.ontology import (
     project_product_catalog_rdf,
     project_product_relation_rdf,
     project_project_mention_rdf,
 )
+from lineageweave.operations_case_analysis import FACT_TYPES
 
 ROOT = Path(__file__).resolve().parents[1]
 KG_PATH = ROOT / "docs" / "ontology" / "lineageweave-kg.ttl"
@@ -266,6 +270,66 @@ def test_external_sensing_relation_requires_an_operations_fact_subject() -> None
     conforms, report = _conforms(data)
     assert conforms is False
     assert "operational product relation subject" in report
+
+
+def test_dashboard_jsonld_conforms_and_rejects_an_open_fact_code() -> None:
+    """The production Dashboard projection stays inside ADR 0206's closed facts."""
+    projection = _operations_case_jsonld(
+        "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa1",
+        "external_information",
+        "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa2",
+        [{
+            "fact_type_code": "external_relation",
+            "value_text": "Synthetic sales lead",
+            "evidence_post_id": "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa2",
+            "relation_predicate_iri": LW + "relatesToSales",
+            "relation_target_class_iri": LW + "SalesContext",
+        }],
+    )
+    data = Graph()
+    to_rdf(projection, data)
+    evidence_post = URIRef(
+        "urn:lineageweave:post:aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa2"
+    )
+    data.add((evidence_post, URIRef(LW + "postTitle"), Literal("Synthetic lead")))
+    data.add(
+        (
+            evidence_post,
+            URIRef(LW + "postBody"),
+            Literal("Synthetic sales evidence"),
+        )
+    )
+    data.add(
+        (
+            evidence_post,
+            URIRef(LW + "createdAt"),
+            Literal("2026-08-31T00:00:00+00:00", datatype=XSD.dateTime),
+        )
+    )
+
+    conforms, report = _conforms(data)
+    assert conforms, report
+
+    fact = next(data.subjects(RDF.type, URIRef(LW + "OperationsCaseFact")))
+    data.set((fact, URIRef(LW + "factTypeCode"), Literal("invented_fact")))
+    conforms, report = _conforms(data)
+    assert conforms is False
+    assert "factTypeCode" in report
+
+
+def test_dashboard_fact_shape_matches_the_analysis_contract() -> None:
+    """The parser and closed-world SHACL fact vocabularies cannot drift."""
+    shapes = _load_shapes()
+    sh = Namespace("http://www.w3.org/ns/shacl#")
+    fact_shape = URIRef(LW + "OperationsCaseFactShape")
+    fact_type_property = next(
+        prop
+        for prop in shapes.objects(fact_shape, sh.property)
+        if shapes.value(prop, sh.path) == URIRef(LW + "factTypeCode")
+    )
+    allowed = shapes.value(fact_type_property, sh["in"])
+    assert allowed is not None
+    assert {str(value) for value in Collection(shapes, allowed)} == FACT_TYPES
 
 
 def test_catalog_product_projection_preserves_identity_and_hierarchy() -> None:

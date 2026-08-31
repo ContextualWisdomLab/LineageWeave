@@ -302,6 +302,67 @@
         """ ;
     ] .
 
+:OperationsCaseShape a sh:NodeShape ;
+    rdfs:label "Evidence-grounded operations case shape" ;
+    sh:targetClass :ClaimInvestigation, :RebidHandover, :ExternalInformation, :RepeatIssue ;
+    sh:property [
+        sh:path prov:wasDerivedFrom ;
+        sh:minCount 1 ; sh:maxCount 1 ; sh:class :Post ;
+    ] ;
+    sh:property [
+        sh:path :hasOperationsFact ; sh:class :OperationsCaseFact ;
+    ] .
+
+:OperationsCaseFactShape a sh:NodeShape ;
+    rdfs:label "Evidence-grounded operations fact shape" ;
+    # Product-relation fragments may carry only a typed reference to an
+    # OperationsCaseFact. Validate complete Dashboard facts when their
+    # factTypeCode marks the authoritative fact projection.
+    sh:targetSubjectsOf :factTypeCode ;
+    sh:property [
+        sh:path :factTypeCode ; sh:minCount 1 ; sh:maxCount 1 ;
+        sh:in (
+            "order" "specification_change" "originating_order" "sales_pool"
+            "discussion" "counterparty" "our_owner" "decision"
+            "external_relation" "issue_pattern" "improvement_action"
+        ) ;
+    ] ;
+    sh:property [
+        sh:path :factValue ; sh:minCount 1 ; sh:maxCount 1 ;
+        sh:datatype xsd:string ; sh:minLength 1 ;
+    ] ;
+    sh:property [
+        sh:path prov:wasDerivedFrom ;
+        sh:minCount 1 ; sh:maxCount 1 ; sh:class :Post ;
+    ] ;
+    sh:or (
+        [
+            sh:property [ sh:path rdf:subject ; sh:maxCount 0 ] ;
+            sh:property [ sh:path rdf:predicate ; sh:maxCount 0 ] ;
+            sh:property [ sh:path rdf:object ; sh:maxCount 0 ] ;
+        ]
+        [
+            sh:property [ sh:path rdf:subject ; sh:minCount 1 ; sh:maxCount 1 ; sh:class :ExternalInformation ] ;
+            sh:property [ sh:path rdf:predicate ; sh:minCount 1 ; sh:maxCount 1 ; sh:hasValue :relatesToOrder ] ;
+            sh:property [ sh:path rdf:object ; sh:minCount 1 ; sh:maxCount 1 ; sh:class :Order ] ;
+        ]
+        [
+            sh:property [ sh:path rdf:subject ; sh:minCount 1 ; sh:maxCount 1 ; sh:class :ExternalInformation ] ;
+            sh:property [ sh:path rdf:predicate ; sh:minCount 1 ; sh:maxCount 1 ; sh:hasValue :relatesToProject ] ;
+            sh:property [ sh:path rdf:object ; sh:minCount 1 ; sh:maxCount 1 ; sh:class :Project ] ;
+        ]
+        [
+            sh:property [ sh:path rdf:subject ; sh:minCount 1 ; sh:maxCount 1 ; sh:class :ExternalInformation ] ;
+            sh:property [ sh:path rdf:predicate ; sh:minCount 1 ; sh:maxCount 1 ; sh:hasValue :relatesToSales ] ;
+            sh:property [ sh:path rdf:object ; sh:minCount 1 ; sh:maxCount 1 ; sh:class :SalesContext ] ;
+        ]
+        [
+            sh:property [ sh:path rdf:subject ; sh:minCount 1 ; sh:maxCount 1 ; sh:class :ExternalInformation ] ;
+            sh:property [ sh:path rdf:predicate ; sh:minCount 1 ; sh:maxCount 1 ; sh:hasValue :relatesToBusinessManagement ] ;
+            sh:property [ sh:path rdf:object ; sh:minCount 1 ; sh:maxCount 1 ; sh:class :BusinessManagementContext ] ;
+        ]
+    ) .
+
 :ProductMentionShape a sh:NodeShape ;
     rdfs:label "Evidence-bound product mention shape" ;
     sh:targetClass :ProductMention ;
