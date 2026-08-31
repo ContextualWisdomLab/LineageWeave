@@ -35,25 +35,43 @@ post-authorization without approximating or dropping evidence.
    every persisted row digest, concatenates the packed bytes, and asks
    RankWeave to build a complete immutable snapshot. It accepts the snapshot
    only when version, dimension, and candidate count match. Restart recovery
-   repeats the same validation; no query-result cache exists.
-4. Every query selects the complete current ABAC-, eligibility-, model-,
-   dimension-, and event-time-authorized `(post_id, post_content_unit_id)` set
-   as RankWeave's canonical length-prefixed packed identity buffer. RankWeave
-   scores every supplied identity exactly. LineageWeave reauthorizes the exact
-   returned identities in PostgreSQL and rejects a missing result before
-   constructing a source.
-5. Snapshot load, authorization selection, owner invocation, and result
+   repeats the same validation; no query-result cache exists. The durable
+   worker does not advance its readiness heartbeat or consume Ask work until
+   this preparation completes. A request path never builds or replaces a
+   snapshot: a missing or newly stale snapshot is unavailable until the
+   background preparation barrier installs the complete replacement. Before
+   readiness opens, the worker also prepares every distinct authorization
+   scope held by a currently configured `post_read` account: the local
+   all-affiliation scope and each Keyverse-compatible atomic affiliation.
+4. A monotonic authorization version advances on the normalized affiliation,
+   role-permission, process-unit, and source-Post authorities that can change a
+   visible candidate set. For each declared scope and exact projection version,
+   the worker builds one immutable canonical length-prefixed packed identity
+   buffer and binds its scope and byte digests. It executes RankWeave's exact
+   owner preflight plus PostgreSQL result reauthorization for that real scope.
+   Readiness opens only after every declared scope's warm owner-plus-postauth
+   path completes within ADR 0272's 20-millisecond maximum. The preflight
+   result is discarded; it is not answer or authorization caching.
+5. Every query re-reads projection and authorization versions, supplies the
+   matching immutable packed scope to RankWeave, and reauthorizes the exact
+   returned identities in PostgreSQL before constructing a source. An unknown,
+   changed, or unprepared scope fails closed while the background worker
+   prepares it. Event-time filtering is applied during final PostgreSQL
+   reauthorization over the owner's complete exact item ranking, so a cached
+   base scope cannot admit or truncate a date-ineligible result. Request-scoped
+   reauthorization is never reused.
+6. Snapshot load, authorization selection, owner invocation, and result
    verification use one repeatable-read database snapshot. A process lock
    serializes replacement only; warm callers retain one immutable owner
    snapshot and score concurrently. RankWeave's immutable handle provides
    atomic replacement, so an in-flight owner query observes one complete old or
    new snapshot.
-6. The indexed path activates only when the immutable pinned RankWeave revision
+7. The indexed path activates only when the immutable pinned RankWeave revision
    exports its accepted `SemanticUnitExactIndex` contract. The current pin does
    not, so this branch keeps the new path inactive. Missing or malformed owner
    evidence fails the indexed path closed; LineageWeave never substitutes local
    cosine, approximate pgvector, or a partial candidate set.
-7. This decision does not claim ADR 0272 acceptance. Activation requires cold
+8. This decision does not claim ADR 0272 acceptance. Activation requires cold
    and restart recovery, projection maintenance, asyncpg transfer/packing,
    exact owner results, ABAC non-leakage, and the authenticated concurrent k6
    maximum to be measured on the declared Compose runtime.
@@ -92,6 +110,8 @@ makes the indexed channel unavailable and cannot be repaired heuristically.
   owner execution contract.
 - LineageWeave cosine or norm arithmetic: conflicts with ADR 0208.
 - Query-result caching: cannot replace exact authorization at request time.
+- Preflighting a fabricated public or synthetic scope: does not establish the
+  statement, page, owner, and postauthorization path for a configured caller.
 
 ## References
 

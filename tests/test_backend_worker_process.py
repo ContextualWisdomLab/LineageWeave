@@ -34,7 +34,9 @@ def test_api_lifespan_opens_clients_without_starting_queue_workers(monkeypatch) 
     monkeypatch.setattr(main, "create_pool", lambda _url: _async_value(pool))
     monkeypatch.setattr(main, "create_valkey_client", lambda _url: valkey)
     monkeypatch.setattr(main, "warm_oidc_jwks", lambda _settings: _async_value(None))
-    monkeypatch.setattr(main, "_warm_post_detail_read_paths", lambda _pool: _async_value(None))
+    monkeypatch.setattr(
+        main, "_warm_post_detail_read_paths", lambda _pool: _async_value(None)
+    )
     monkeypatch.setattr(main, "configure_telemetry", lambda _name: None)
     monkeypatch.setattr(main, "shutdown_telemetry", lambda: None)
     app = SimpleNamespace(state=SimpleNamespace())
@@ -111,7 +113,9 @@ def test_worker_process_owns_all_configured_durable_consumers(
     monkeypatch.setattr(
         worker, "_claim_verification_client_factory", lambda: verification_client
     )
-    monkeypatch.setattr(worker, "run_worker_heartbeat", lambda: _async_value(None))
+    monkeypatch.setattr(
+        worker, "run_worker_heartbeat", lambda **_kwargs: _async_value(None)
+    )
     monkeypatch.setattr(
         worker, "run_analysis_run_worker", lambda *a, **kw: called("analysis", *a, **kw)
     )
@@ -133,11 +137,16 @@ def test_worker_process_owns_all_configured_durable_consumers(
     asyncio.run(worker.run_worker_process())
 
     assert calls[:5] == [
-        "lease_acquired", "analysis", "content", "global_ask", "voice_taxonomy"
+        "lease_acquired",
+        "analysis",
+        "content",
+        "global_ask",
+        "voice_taxonomy",
     ]
     assert ("topic_influence" in calls) is expects_topic_consumer
     assert global_ask_kwargs["semantic_query_factory"]() is semantic_client
     assert global_ask_kwargs["claim_verification_factory"]() is verification_client
+    assert isinstance(global_ask_kwargs["readiness"], asyncio.Event)
     assert calls[-2:] == ["lease_released", "shutdown"]
     assert pool.closed
     assert valkey.closed
@@ -245,9 +254,7 @@ def test_invalid_topic_influence_url_is_isolated(transport_url: object) -> None:
     )
 
     assert (
-        worker._optional_topic_influence_timeouts(
-            settings, transport_url=transport_url
-        )
+        worker._optional_topic_influence_timeouts(settings, transport_url=transport_url)
         is None
     )
 

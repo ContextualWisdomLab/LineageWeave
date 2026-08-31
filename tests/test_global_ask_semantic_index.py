@@ -40,9 +40,12 @@ class _Connection:
                 "unit_id": "unit-a",
                 "unit_index": 3,
                 "evidence_open_available": True,
+                "date_eligible": True,
             }
         ]
         self.snapshot_fetches = 0
+        self.projection_version = 7
+        self.authorization_version = 11
         self.authorization_queries: list[str] = []
         self.packed_authorization = _pack_authorization(("post-a", "unit-a"))
 
@@ -52,15 +55,27 @@ class _Connection:
 
     async def fetchval(self, query, *args):
         if "projection_version" in query:
-            return 7
+            return self.projection_version
         self.authorization_queries.append(query)
         assert "int8send(count(*))" in query
         return self.packed_authorization
+
+    async def fetchrow(self, query, *args):
+        assert "authorization_version" in query
+        return self.projection_version, self.authorization_version
 
     async def fetch(self, query, *args):
         if "vector_bytes" in query:
             self.snapshot_fetches += 1
             return self.snapshot_rows
+        if "with readers as" in query:
+            return [
+                {
+                    "entity_ids": ["entity-a"],
+                    "process_ids": [],
+                    "process_scope_limited": False,
+                }
+            ]
         self.authorization_queries.append(query)
         return self.authorized_rows
 
@@ -92,6 +107,9 @@ class _OwnerIndex:
         )
         return SimpleNamespace(snapshot=self.snapshot_evidence, results=[result])
 
+    def preflight_authorized_packed(self, model, packed_authorization):
+        return self.rank_authorized_packed(model, [1.0, 0.0], packed_authorization)
+
 
 class _ConcurrentOwnerIndex(_OwnerIndex):
     barrier: threading.Barrier | None = None
@@ -112,8 +130,9 @@ def _pack_authorization(*identities: tuple[str, str]) -> bytes:
 
 
 def _rank(index, conn):
-    return asyncio.run(
-        index.rank_authorized(
+    async def prepared_rank():
+        await index.prepare(conn, model_identity="synthetic-model", vector_dimension=2)
+        return await index.rank_authorized(
             conn,
             model_identity="synthetic-model",
             query_vector=[1.0, 0.0],
@@ -123,7 +142,8 @@ def _rank(index, conn):
             end_date=None,
             limit=4,
         )
-    )
+
+    return asyncio.run(prepared_rank())
 
 
 def test_exact_index_loads_once_then_ranks_only_authorized_ids(monkeypatch) -> None:
@@ -172,6 +192,36 @@ def test_exact_index_rejects_projection_digest_mismatch(monkeypatch) -> None:
 
     with pytest.raises(RankWeaveNotAvailable, match="digest mismatch"):
         _rank(GlobalAskExactSemanticIndex(), conn)
+
+
+def test_request_never_builds_an_unprepared_or_stale_snapshot(monkeypatch) -> None:
+    monkeypatch.setattr(
+        "backend.app.global_ask_semantic_index._import_rankweave",
+        lambda: SimpleNamespace(SemanticUnitExactIndex=_OwnerIndex),
+    )
+    conn = _Connection()
+    index = GlobalAskExactSemanticIndex()
+
+    parameters = {
+        "model_identity": "synthetic-model",
+        "query_vector": [1.0, 0.0],
+        "authorized_corporate_entity_ids": ["entity-a"],
+        "authorized_process_unit_ids": ["unit-a"],
+        "start_date": None,
+        "end_date": None,
+        "limit": 4,
+    }
+    with pytest.raises(RankWeaveNotAvailable, match="not prepared"):
+        asyncio.run(index.rank_authorized(conn, **parameters))
+    assert conn.snapshot_fetches == 0
+
+    asyncio.run(
+        index.prepare(conn, model_identity="synthetic-model", vector_dimension=2)
+    )
+    conn.projection_version = 8
+    with pytest.raises(RankWeaveNotAvailable, match="not prepared"):
+        asyncio.run(index.rank_authorized(conn, **parameters))
+    assert conn.snapshot_fetches == 1
 
 
 def test_warm_immutable_snapshot_allows_concurrent_exact_ranking(monkeypatch) -> None:

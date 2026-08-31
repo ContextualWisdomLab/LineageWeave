@@ -50,6 +50,27 @@ def test_heartbeat_records_before_first_sleep(
     assert int(heartbeat.read_text(encoding="ascii")) >= 0
 
 
+def test_heartbeat_waits_for_required_startup_readiness(tmp_path: Path) -> None:
+    """Cold snapshot preparation cannot publish a healthy worker heartbeat."""
+    heartbeat = tmp_path / "heartbeat"
+
+    async def exercise() -> None:
+        ready = asyncio.Event()
+        task = asyncio.create_task(
+            worker_health.run_worker_heartbeat(heartbeat, ready=ready)
+        )
+        await asyncio.sleep(0)
+        assert not heartbeat.exists()
+        ready.set()
+        await asyncio.sleep(0)
+        assert int(heartbeat.read_text(encoding="ascii")) >= 0
+        task.cancel()
+        with pytest.raises(asyncio.CancelledError):
+            await task
+
+    asyncio.run(exercise())
+
+
 def test_shell_probe_requires_monotonic_progress(tmp_path: Path) -> None:
     """The lightweight container probe preserves the Python progress contract."""
     heartbeat = tmp_path / "heartbeat"
@@ -83,5 +104,7 @@ def test_shell_probe_rejects_malformed_or_regressed_heartbeat(tmp_path: Path) ->
 
     for value in ("not-a-counter\n", "1\n"):
         heartbeat.write_text(value, encoding="ascii")
-        result = subprocess.run(["/bin/sh", _SHELL_PROBE, heartbeat, state], check=False)
+        result = subprocess.run(
+            ["/bin/sh", _SHELL_PROBE, heartbeat, state], check=False
+        )
         assert result.returncode != 0

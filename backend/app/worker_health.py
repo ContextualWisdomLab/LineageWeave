@@ -18,8 +18,14 @@ def record_worker_heartbeat(path: Path = HEARTBEAT_PATH) -> None:
     temporary.replace(path)
 
 
-async def run_worker_heartbeat(path: Path = HEARTBEAT_PATH) -> None:
-    """Record progress once per broker-poll interval until cancelled."""
+async def run_worker_heartbeat(
+    path: Path = HEARTBEAT_PATH,
+    *,
+    ready: asyncio.Event | None = None,
+) -> None:
+    """Record progress only after every required startup barrier is ready."""
+    if ready is not None:
+        await ready.wait()
     while True:
         record_worker_heartbeat(path)
         await asyncio.sleep(1.0)
