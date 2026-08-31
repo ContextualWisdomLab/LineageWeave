@@ -66,6 +66,11 @@ provenance.
 7. Qualitative rows project only persisted evidence:
    project names and evidence spans, source sales-pool code/name, summary
    events, requester/processor action evidence, roles, and Event Lineage links.
+   An explicit non-empty source project code remains project-membership
+   evidence when its source project name is absent. In that case the Dashboard
+   displays and groups by the exact code; it does not derive or fabricate a
+   project name. A source name, when present, remains the preferred display
+   label, followed by a stored semantic mention.
    When the focal post lacks an answer, the orchestrator follows authorized
    Event Lineage and semantic project evidence before concluding the fact is
    absent from the authorized corpus.

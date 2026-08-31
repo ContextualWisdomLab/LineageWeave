@@ -6,6 +6,7 @@ create table if not exists dashboard_post_read_projection (
     visibility_code text not null,
     occurred_date date not null,
     occurred_at timestamptz,
+    source_project_code text,
     source_project_name text,
     active_source boolean not null,
     source_context_present boolean not null,
@@ -17,6 +18,8 @@ alter table dashboard_post_read_projection
     add column if not exists occurred_at timestamptz;
 alter table dashboard_post_read_projection
     add column if not exists source_project_name text;
+alter table dashboard_post_read_projection
+    add column if not exists source_project_code text;
 
 create or replace function refresh_dashboard_post_read_projection(target_post_id uuid)
 returns void
@@ -24,7 +27,7 @@ language sql
 as $$
     insert into dashboard_post_read_projection (
         source_post_id, corporate_entity_id, process_unit_id, visibility_code,
-        occurred_date, occurred_at, source_project_name,
+        occurred_date, occurred_at, source_project_code, source_project_name,
         active_source, source_context_present,
         case_analysis_present, ingestion_failed
     )
@@ -33,6 +36,7 @@ as $$
            (coalesce(post.event_occurred_at, post.created_at)
                at time zone 'Asia/Seoul')::date,
            coalesce(post.event_occurred_at, post.created_at),
+           post.source_project_code,
            post.source_project_name,
            (post.source_draft_code is null or btrim(post.source_draft_code) = '')
                and (post.source_deleted_flag is null or btrim(post.source_deleted_flag) = ''),
@@ -61,6 +65,7 @@ as $$
         visibility_code = excluded.visibility_code,
         occurred_date = excluded.occurred_date,
         occurred_at = excluded.occurred_at,
+        source_project_code = excluded.source_project_code,
         source_project_name = excluded.source_project_name,
         active_source = excluded.active_source,
         source_context_present = excluded.source_context_present,
@@ -106,7 +111,7 @@ $migration$;
 
 insert into dashboard_post_read_projection (
     source_post_id, corporate_entity_id, process_unit_id, visibility_code,
-    occurred_date, occurred_at, source_project_name,
+    occurred_date, occurred_at, source_project_code, source_project_name,
     active_source, source_context_present,
     case_analysis_present, ingestion_failed
 )
@@ -115,6 +120,7 @@ select post.post_id, post.corporate_entity_id, post.process_unit_id,
        (coalesce(post.event_occurred_at, post.created_at)
            at time zone 'Asia/Seoul')::date,
        coalesce(post.event_occurred_at, post.created_at),
+       post.source_project_code,
        post.source_project_name,
        (post.source_draft_code is null or btrim(post.source_draft_code) = '')
            and (post.source_deleted_flag is null or btrim(post.source_deleted_flag) = ''),
@@ -340,7 +346,8 @@ begin
            classification.evidence_post_id,
            classification.summary_text, classification.evidence_text,
            post.occurred_at,
-           coalesce(nullif(btrim(post.source_project_name), ''), project.primary_project_name),
+           coalesce(nullif(btrim(post.source_project_name), ''), project.primary_project_name,
+                    nullif(btrim(post.source_project_code), '')),
            coalesce(project.project_names, array[]::text[]),
            exists (select 1 from operations_case_missing_milestone missing
                     where missing.post_id = classification.post_id
@@ -367,7 +374,8 @@ begin
                             primary_mention.project_name
                    limit 1) as primary_project_name
             from (
-                select nullif(btrim(post.source_project_name), '') as project_name
+                select coalesce(nullif(btrim(post.source_project_name), ''),
+                                nullif(btrim(post.source_project_code), '')) as project_name
                 union
                 select nullif(btrim(mention.project_name), '')
                   from post_project_mention mention
@@ -536,8 +544,21 @@ begin
         after update of occurred_at, source_project_name on dashboard_post_read_projection
         for each row execute function refresh_dashboard_case_rollup_from_post_trigger();
     end if;
+    if not exists (select 1 from pg_trigger where tgrelid = 'dashboard_post_read_projection'::regclass
+                   and tgname = 'dashboard_case_rollup_post_project_code_trigger'
+                   and not tgisinternal) then
+        create trigger dashboard_case_rollup_post_project_code_trigger
+        after update of source_project_code on dashboard_post_read_projection
+        for each row execute function refresh_dashboard_case_rollup_from_post_trigger();
+    end if;
 end
 $migration$;
+
+update dashboard_post_read_projection projection
+   set source_project_code = post.source_project_code
+  from source_post post
+ where post.post_id = projection.source_post_id
+   and projection.source_project_code is distinct from post.source_project_code;
 
 select refresh_dashboard_case_rollup_read_projection(
     classification.post_id, classification.case_kind_code
