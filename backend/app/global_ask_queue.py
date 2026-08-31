@@ -20,7 +20,7 @@ from __future__ import annotations
 import asyncio
 import logging
 import time
-from collections.abc import Callable
+from collections.abc import Awaitable, Callable
 from datetime import date, datetime
 from typing import Any
 
@@ -780,6 +780,7 @@ async def consume_global_ask_stream_once(
         [], ClaimVerificationClient
     ] = NullClaimVerificationClient,
     exact_semantic_index: GlobalAskExactSemanticIndex | None = None,
+    before_dispatch: Callable[[], Awaitable[None]] | None = None,
     limiter: asyncio.Semaphore | None = None,
     tasks: set[asyncio.Task] | None = None,
 ) -> str:
@@ -794,6 +795,11 @@ async def consume_global_ask_stream_once(
     ``limiter`` (direct test calls), jobs are processed inline.
     """
     batches = await client.xread({GLOBAL_ASK_STREAM_KEY: last_id}, count=10, block=1000)
+    if batches and before_dispatch is not None:
+        # Enqueue writes authorization scope rows before publishing this wake-up.
+        # Revalidate after XREAD so neither authorization nor projection changes
+        # observed while blocked can reach the queued -> running claim.
+        await before_dispatch()
     for _stream_name, entries in batches:
         for entry_id, fields in entries:
             job_id = str(fields.get("global_ask_job_id", "")).strip()
@@ -940,11 +946,47 @@ async def run_global_ask_worker(
     if exact_semantic_index is not None:
         exact_semantic_index._bind_pool(pool)
     prepared_identity: tuple[str, int] | None = None
+
+    async def refresh_exact_state() -> None:
+        """Prepare the current exact identity and database versions before dispatch."""
+        nonlocal prepared_identity
+        if exact_semantic_index is None:
+            return
+        try:
+            current_identity = await _discover_global_ask_exact_identity(
+                pool, embedding_factory
+            )
+        except Exception:
+            if readiness is not None:
+                invalidate_worker_readiness(readiness)
+            raise
+        identity_changed = current_identity != prepared_identity
+        prepared = False
+        if not identity_changed:
+            model_identity, vector_dimension = current_identity
+            async with pool.acquire() as conn:
+                prepared = await exact_semantic_index.is_prepared_for(
+                    conn,
+                    model_identity=model_identity,
+                    vector_dimension=vector_dimension,
+                )
+        if identity_changed or not prepared:
+            if readiness is not None and (
+                prepared_identity is not None or readiness.is_set()
+            ):
+                invalidate_worker_readiness(readiness)
+            prepared_identity = await _prepare_global_ask_exact_identity(
+                exact_semantic_index,
+                pool,
+                embedding_factory,
+                current_identity,
+            )
+        if readiness is not None:
+            readiness.set()
+
     while exact_semantic_index is not None and prepared_identity is None:
         try:
-            prepared_identity = await _prepare_global_ask_exact_identity(
-                exact_semantic_index, pool, embedding_factory
-            )
+            await refresh_exact_state()
         except asyncio.CancelledError:
             raise
         except Exception:
@@ -959,41 +1001,7 @@ async def run_global_ask_worker(
     try:
         while True:
             try:
-                if exact_semantic_index is not None and prepared_identity is not None:
-                    try:
-                        current_identity = await _discover_global_ask_exact_identity(
-                            pool, embedding_factory
-                        )
-                    except Exception:
-                        if readiness is not None:
-                            invalidate_worker_readiness(readiness)
-                        raise
-                    if current_identity != prepared_identity:
-                        if readiness is not None:
-                            invalidate_worker_readiness(readiness)
-                        prepared_identity = await _prepare_global_ask_exact_identity(
-                            exact_semantic_index,
-                            pool,
-                            embedding_factory,
-                            current_identity,
-                        )
-                    else:
-                        model_identity, vector_dimension = prepared_identity
-                        async with pool.acquire() as conn:
-                            if not await exact_semantic_index.is_prepared_for(
-                                conn,
-                                model_identity=model_identity,
-                                vector_dimension=vector_dimension,
-                            ):
-                                if readiness is not None:
-                                    invalidate_worker_readiness(readiness)
-                                await exact_semantic_index.prepare(
-                                    conn,
-                                    model_identity=model_identity,
-                                    vector_dimension=vector_dimension,
-                                )
-                    if readiness is not None:
-                        readiness.set()
+                await refresh_exact_state()
                 now = time.monotonic()
                 if now - last_recovery >= _RECOVERY_INTERVAL_SECONDS:
                     await republish_queued_global_ask_jobs(client, pool)
@@ -1007,6 +1015,7 @@ async def run_global_ask_worker(
                     semantic_query_factory=semantic_query_factory,
                     claim_verification_factory=claim_verification_factory,
                     exact_semantic_index=exact_semantic_index,
+                    before_dispatch=refresh_exact_state,
                     limiter=limiter,
                     tasks=tasks,
                 )

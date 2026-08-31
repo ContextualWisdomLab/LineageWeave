@@ -50,6 +50,154 @@ class _Pool:
         yield self.connection
 
 
+def test_stream_wakeup_revalidates_exact_state_before_claim(monkeypatch) -> None:
+    """A version bump observed by XREAD must be repaired before job claim."""
+    events: list[str] = []
+    exact_state_current = True
+
+    class StreamClient:
+        async def xread(self, streams, *, count: int, block: int):
+            nonlocal exact_state_current
+            assert streams == {global_ask_queue.GLOBAL_ASK_STREAM_KEY: "0-0"}
+            assert (count, block) == (10, 1000)
+            events.append("xread")
+            exact_state_current = False
+            return [("stream", [("1-0", {"global_ask_job_id": "job-1"})])]
+
+    async def refresh_exact_state() -> None:
+        nonlocal exact_state_current
+        assert not exact_state_current
+        events.append("refresh")
+        exact_state_current = True
+
+    async def process_job(*_args, **_kwargs) -> None:
+        assert exact_state_current
+        events.append("claim")
+
+    monkeypatch.setattr(global_ask_queue, "process_global_ask_job", process_job)
+
+    last_id = asyncio.run(
+        global_ask_queue.consume_global_ask_stream_once(
+            StreamClient(),
+            object(),
+            last_id="0-0",
+            chat_factory=_AvailableClient,
+            before_dispatch=refresh_exact_state,
+        )
+    )
+
+    assert last_id == "1-0"
+    assert events == ["xread", "refresh", "claim"]
+
+
+def test_stream_wakeup_revalidation_failure_leaves_job_unclaimed(monkeypatch) -> None:
+    """A stale exact snapshot cannot consume the wake-up or claim its job."""
+    claimed = False
+
+    class StreamClient:
+        async def xread(self, _streams, *, count: int, block: int):
+            assert (count, block) == (10, 1000)
+            return [("stream", [("1-0", {"global_ask_job_id": "job-1"})])]
+
+    async def reject_stale_state() -> None:
+        raise global_ask_queue.RankWeaveNotAvailable("synthetic stale snapshot")
+
+    async def process_job(*_args, **_kwargs) -> None:
+        nonlocal claimed
+        claimed = True
+
+    monkeypatch.setattr(global_ask_queue, "process_global_ask_job", process_job)
+
+    with pytest.raises(global_ask_queue.RankWeaveNotAvailable):
+        asyncio.run(
+            global_ask_queue.consume_global_ask_stream_once(
+                StreamClient(),
+                object(),
+                last_id="0-0",
+                chat_factory=_AvailableClient,
+                before_dispatch=reject_stale_state,
+            )
+        )
+
+    assert not claimed
+
+
+def test_worker_reprepares_database_versions_after_stream_wakeup(monkeypatch) -> None:
+    """Authorization or projection drift during XREAD closes readiness first."""
+
+    class IdentityConnection:
+        async def fetch(self, query: str, model_identity: str):
+            assert "embedding_dimension_count" in query
+            assert model_identity == "synthetic-model"
+            return [{"embedding_dimension_count": 2}]
+
+    class ExactIndex:
+        def __init__(self) -> None:
+            self.prepared_count = 0
+            self.current = False
+
+        def _bind_pool(self, _pool) -> None:
+            return None
+
+        async def prepare(self, _conn, **_identity) -> None:
+            self.prepared_count += 1
+            self.current = True
+
+        async def is_prepared_for(self, _conn, **_identity) -> bool:
+            return self.current
+
+    def embedding_factory():
+        return SimpleNamespace(
+            available=True,
+            resolved_model="synthetic-model",
+            batch_capabilities=lambda: None,
+        )
+
+    exact_index = ExactIndex()
+    readiness = asyncio.Event()
+    invalidations = 0
+
+    def invalidate(ready: asyncio.Event) -> None:
+        nonlocal invalidations
+        invalidations += 1
+        ready.clear()
+
+    async def stream_tail(_client) -> str:
+        return "0-0"
+
+    async def republish(_client, _pool) -> None:
+        return None
+
+    async def consume(*_args, **kwargs) -> str:
+        exact_index.current = False
+        assert readiness.is_set()
+        await kwargs["before_dispatch"]()
+        assert exact_index.prepared_count == 2
+        assert readiness.is_set()
+        raise asyncio.CancelledError
+
+    monkeypatch.setattr(global_ask_queue, "invalidate_worker_readiness", invalidate)
+    monkeypatch.setattr(global_ask_queue, "_stream_tail", stream_tail)
+    monkeypatch.setattr(
+        global_ask_queue, "republish_queued_global_ask_jobs", republish
+    )
+    monkeypatch.setattr(global_ask_queue, "consume_global_ask_stream_once", consume)
+
+    with pytest.raises(asyncio.CancelledError):
+        asyncio.run(
+            global_ask_queue.run_global_ask_worker(
+                object(),
+                _Pool(IdentityConnection()),
+                chat_factory=_AvailableClient,
+                embedding_factory=embedding_factory,
+                exact_semantic_index=exact_index,
+                readiness=readiness,
+            )
+        )
+
+    assert invalidations == 1
+
+
 def test_worker_reprepares_when_embedding_model_identity_changes(monkeypatch) -> None:
     """A discovered model replacement closes readiness and prepares before dispatch."""
 
