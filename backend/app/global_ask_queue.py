@@ -455,7 +455,7 @@ async def compute_global_ask_answer(
             "next_action": (
                 "Open the cited posts and compare their retained source text before relying on this answer."
                 if limitations
-                else "No authorized source posts are available for this question."
+                else "Ask about a specific project, person, organization, or time range, then retry."
             ),
             "delivery": delivery,
             "knowledge_cutoff": cutoff_text,

@@ -38,13 +38,14 @@ probe observes its event loop. The probe reads the worker's monotonic heartbeat
 with the image's POSIX shell rather than starting and importing a Python
 process on every interval. This preserves progress detection while preventing
 concurrent health probes from amplifying container-runtime and filesystem load.
-The worker removes both the heartbeat and the probe's prior baseline whenever
-readiness closes. Those files may survive a process or VM restart in the
-container writable layer, while the operating system's monotonic clock restarts
-from a smaller value; monotonic samples are therefore compared only within one
-readiness epoch and never across boots. A transient prerequisite failure closes
-that epoch; successful validation, including an unchanged snapshot identity,
-opens a new epoch and resumes the heartbeat.
+The worker removes both the heartbeat and the probe's prior baseline before it
+publishes the first heartbeat of a process. Those files may survive a process
+or VM restart in the container writable layer while the operating system's
+monotonic clock restarts from a smaller value; monotonic samples are therefore
+compared only within one worker-process epoch and never across boots.
+When a runtime prerequisite closes readiness, the worker removes both files
+again. A successful validation, including an unchanged prepared identity,
+opens a new readiness epoch and resumes the heartbeat.
 Consequently, targeted canonical startup such
 as `docker compose up backend` also starts the worker and does not expose an API
 that can accept durable jobs while no consumer exists. Non-Compose deployments
