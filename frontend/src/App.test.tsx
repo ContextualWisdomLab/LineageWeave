@@ -4664,10 +4664,15 @@ describe("App, authenticated", () => {
       ),
     ).not.toBeInTheDocument();
     expect(
-      within(screen.getByLabelText("Grouping comparison")).getAllByLabelText(
-        /leftover-map axis \d tick/,
-      ).length,
-    ).toBeGreaterThan(0);
+      within(screen.getByLabelText("Grouping comparison")).getByLabelText(
+        "leftover map comparison graphic leftover-map axis 1 tick +0.50",
+      ),
+    ).toBeInTheDocument();
+    expect(
+      within(screen.getByLabelText("Grouping comparison")).queryByLabelText(
+        "leftover-map axis 1 tick +0.50",
+      ),
+    ).not.toBeInTheDocument();
     expect(
       within(screen.getByLabelText("Grouping comparison")).getByLabelText(
         "Leftover map comparison coordinates",

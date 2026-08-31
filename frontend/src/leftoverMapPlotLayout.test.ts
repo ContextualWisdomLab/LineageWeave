@@ -17,7 +17,9 @@ import {
   LEFTOVER_MAP_COMPARE_PLOT_SEGMENT_EXPECTED,
   LEFTOVER_MAP_COMPARE_PLOT_SEGMENT_RANK,
   LEFTOVER_MAP_COMPARE_PLOT_SEGMENT_DISTANCE,
+  LEFTOVER_MAP_COMPARE_PLOT_TICK,
   LEFTOVER_MAP_COMPARE_PLOT_SVG,
+  LEFTOVER_MAP_PLOT_TICK,
   PLOT_HEIGHT,
   PLOT_PADDING,
   PLOT_WIDTH,
@@ -1350,6 +1352,22 @@ describe("leftover map comparison graphic labels", () => {
     );
     expect(LEFTOVER_MAP_COMPARE_PLOT_SEGMENT_DISTANCE).not.toBe(
       LEFTOVER_MAP_COMPARE_PLOT_SEGMENT_RANK,
+    );
+  });
+
+  it("stays distinct from leftover-map coordinate tick copy", () => {
+    expect(LEFTOVER_MAP_COMPARE_PLOT_TICK).toBe(
+      "leftover map comparison graphic leftover-map axis {axis} tick {value}",
+    );
+    expect(LEFTOVER_MAP_COMPARE_PLOT_TICK).not.toBe(
+      "leftover-map axis {axis} tick {value}",
+    );
+    expect(LEFTOVER_MAP_COMPARE_PLOT_TICK).not.toBe(LEFTOVER_MAP_PLOT_TICK);
+    expect(LEFTOVER_MAP_COMPARE_PLOT_TICK).not.toBe(
+      "leftover map comparison axis {axis} ({share}%)",
+    );
+    expect(LEFTOVER_MAP_COMPARE_PLOT_TICK).not.toBe(
+      LEFTOVER_MAP_COMPARE_PLOT_SEGMENT_DISTANCE,
     );
   });
 });

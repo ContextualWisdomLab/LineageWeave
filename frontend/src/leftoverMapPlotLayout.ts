@@ -46,8 +46,9 @@
  *  residual on that graphic (ADR 0315), and grouping comparison leftover
  *  observed on that graphic (ADR 0316), and grouping comparison leftover
  *  expected on that graphic (ADR 0317), and grouping comparison leftover-map
- *  rank on that graphic (ADR 0318), and grouping comparison leftover-map
- *  distance on that graphic (ADR 0319) caption the pair list or the grouping comparison
+ *  rank on that graphic (ADR 0318), grouping comparison leftover-map
+ *  distance on that graphic (ADR 0319), and grouping comparison leftover-map
+ *  coordinate ticks on that graphic (ADR 0320) caption the pair list or the grouping comparison
  *  strip. ADR 0304 reuses this graphic layout on the grouping comparison
  *  strip. ADR 0305 captions leftover-map axis share on that comparison
  *  graphic from already-named leftover-map axes. ADR 0306 captions leftover-map
@@ -75,6 +76,8 @@
  *  already-named leftover-map rank.
  *  ADR 0319 captions leftover-map distance on that comparison graphic from
  *  already-named leftover-map distance.
+ *  ADR 0320 captions leftover-map coordinate ticks on that comparison graphic from
+ *  already-named leftover-map coordinates.
  */
 
 import { formatLeftoverMapCoordinatePair } from "./leftoverMapCoordinates";
@@ -106,6 +109,9 @@ export const LEFTOVER_MAP_PLOT_POST_ACTION =
 
 export const LEFTOVER_MAP_PLOT_TICK =
   "leftover-map axis {axis} tick {value}";
+
+export const LEFTOVER_MAP_COMPARE_PLOT_TICK =
+  "leftover map comparison graphic leftover-map axis {axis} tick {value}";
 
 export const LEFTOVER_MAP_PLOT_SEGMENT_DISTANCE =
   "leftover-map distance {label}";

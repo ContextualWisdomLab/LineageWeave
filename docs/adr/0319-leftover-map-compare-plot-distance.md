@@ -3,6 +3,9 @@
 **Decision status:** Accepted
 **Date:** 2026-08-31
 
+**Amended by:** [ADR 0320](0320-leftover-map-compare-plot-ticks.md)
+(leftover-map coordinate ticks on the grouping comparison leftover-map graphic)
+
 Amends leftover-map distance on graphic-display pair segments
 ([ADR 0271](0271-leftover-map-segment-distance.md)), leftover-map rank
 on the grouping comparison leftover-map graphic
@@ -12,7 +15,7 @@ on the grouping comparison leftover-map graphic
 display on the grouping comparison strip
 ([ADR 0304](0304-leftover-map-compare-graphic.md)), leftover-map coordinates
 ([ADR 0267](0267-leftover-map-coordinates.md)). Independent of leftover-map
-coordinate ticks on the grouping comparison leftover-map graphic.
+singular values on the grouping comparison leftover-map graphic.
 
 ## Context
 
@@ -61,9 +64,10 @@ Leftover-map distance omits independently of leftover-map rank captions.
 A missing leftover-map distance omits leftover-map comparison graphic leftover-map distance and keeps
 a usable leftover-map rank caption.
 
-This increment does not caption leftover-map coordinate ticks on the comparison graphic
-with a distinct comparison-graphic name. Those ticks already sit on the period-report
-graphic through ADR 0270.
+This increment does not caption leftover-map singular values on the comparison graphic
+with a distinct comparison-graphic name. Leftover-map coordinate ticks on that comparison
+graphic are [ADR 0320](0320-leftover-map-compare-plot-ticks.md). Those ticks already sit
+on the period-report graphic through ADR 0270.
 
 Do not add SQL migrations. Do not edit shipped migrations. Do not invent a leftover
 score. Do not invent a theta.
@@ -80,7 +84,7 @@ finite, `R̂ = ξ · ζ` and `d = ‖ξ − ζ‖`.
 
 ## Related
 
-Independent of leftover-map coordinate ticks on the grouping comparison leftover-map graphic.
+Independent of leftover-map singular values on the grouping comparison leftover-map graphic.
 
 ## References
 

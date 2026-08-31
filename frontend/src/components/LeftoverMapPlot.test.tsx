@@ -2548,4 +2548,158 @@ describe("LeftoverMapPlot", () => {
     ).toHaveTextContent("E 0.00");
     expect(screen.getByText("leftover map comparison axis 1 (0%)")).toBeInTheDocument();
   });
+
+  it("names leftover-map coordinate ticks on the comparison graphic with a distinct accessible name", () => {
+    render(
+      <LeftoverMapPlot
+        pairs={PAIRS}
+        leftoverMapAxes={[
+          { axis_index: 1, leftover_singular_value: 1.84, leftover_share: 0.82 },
+          { axis_index: 2, leftover_singular_value: 0.86, leftover_share: 0.18 },
+        ]}
+        leftoverMapCoverage={{
+          map_post_count: 2,
+          scored_post_count: 3,
+          map_item_count: 2,
+          scored_item_count: 2,
+          incomplete_post_count: 1,
+          incomplete_item_count: 0,
+        }}
+        criterionLabel={criterionLabel}
+        onSelectPost={vi.fn()}
+        variant="comparison"
+      />,
+    );
+    expect(
+      screen.getByLabelText("leftover map comparison graphic leftover-map axis 1 tick +0.50"),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByLabelText("leftover map comparison graphic leftover-map axis 2 tick −0.02"),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByLabelText("leftover map comparison graphic leftover-map axis 1 tick 0.00"),
+    ).toBeInTheDocument();
+    expect(screen.queryByLabelText("leftover-map axis 1 tick +0.50")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("leftover-map axis 2 tick −0.02")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("leftover-map axis 1 tick 0.00")).not.toBeInTheDocument();
+    expect(
+      screen.getByLabelText("leftover map comparison graphic leftover-map distance d 0.12"),
+    ).toHaveTextContent("d 0.12");
+    expect(
+      screen.getAllByLabelText("leftover map comparison graphic leftover-map rank rank 1"),
+    ).toHaveLength(2);
+    expect(screen.getByText("leftover map comparison axis 1 (82%)")).toBeInTheDocument();
+  });
+
+  it("omits invented leftover-map comparison graphic leftover-map axis ticks that no persisted coordinate occupies", () => {
+    render(
+      <LeftoverMapPlot
+        pairs={[
+          {
+            ...PAIRS[0],
+            leftover_map_person_axis_1: 0,
+            leftover_map_person_axis_2: 0,
+            leftover_map_item_axis_1: 0,
+            leftover_map_item_axis_2: 0,
+            leftover_map_rank: 0,
+            leftover_distance: 0,
+            leftover_residual: 0,
+            leftover_map_reconstruction: 0,
+            leftover_map_explained_share: 0,
+            leftover_map_unexplained_share: 0,
+            leftover_map_cross_share: 0,
+            leftover_map_unexplained: 0,
+            observed_response: 0,
+            expected_response: 0,
+          },
+        ]}
+        leftoverMapAxes={[
+          { axis_index: 1, leftover_singular_value: 0, leftover_share: 0 },
+          { axis_index: 2, leftover_singular_value: 0, leftover_share: 0 },
+        ]}
+        leftoverMapCoverage={{
+          map_post_count: 0,
+          scored_post_count: 3,
+          map_item_count: 0,
+          scored_item_count: 2,
+          incomplete_post_count: 3,
+          incomplete_item_count: 2,
+        }}
+        criterionLabel={criterionLabel}
+        onSelectPost={vi.fn()}
+        variant="comparison"
+      />,
+    );
+    expect(
+      screen.getAllByLabelText("leftover map comparison graphic leftover-map axis 1 tick 0.00").length,
+    ).toBeGreaterThan(0);
+    expect(
+      screen.queryByLabelText("leftover map comparison graphic leftover-map axis 1 tick +1.00"),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("leftover-map axis 1 tick 0.00")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("leftover-map axis 1 tick +1.00")).not.toBeInTheDocument();
+    expect(
+      screen.getByLabelText("leftover map comparison graphic leftover-map rank rank 0"),
+    ).toHaveTextContent("rank 0");
+    expect(
+      screen.getByLabelText("leftover map comparison graphic leftover-map distance d 0.00"),
+    ).toHaveTextContent("d 0.00");
+    expect(screen.getByText("leftover map comparison axis 1 (0%)")).toBeInTheDocument();
+  });
+
+  it("names rank-0 origin leftover-map coordinate ticks on the comparison graphic", () => {
+    render(
+      <LeftoverMapPlot
+        pairs={[
+          {
+            ...PAIRS[0],
+            leftover_map_person_axis_1: 0,
+            leftover_map_person_axis_2: 0,
+            leftover_map_item_axis_1: 0,
+            leftover_map_item_axis_2: 0,
+            leftover_map_rank: 0,
+            leftover_distance: 0,
+            leftover_residual: 0,
+            leftover_map_reconstruction: 0,
+            leftover_map_explained_share: 0,
+            leftover_map_unexplained_share: 0,
+            leftover_map_cross_share: 0,
+            leftover_map_unexplained: 0,
+            observed_response: 0,
+            expected_response: 0,
+          },
+        ]}
+        leftoverMapAxes={[
+          { axis_index: 1, leftover_singular_value: 0, leftover_share: 0 },
+          { axis_index: 2, leftover_singular_value: 0, leftover_share: 0 },
+        ]}
+        leftoverMapCoverage={{
+          map_post_count: 0,
+          scored_post_count: 3,
+          map_item_count: 0,
+          scored_item_count: 2,
+          incomplete_post_count: 3,
+          incomplete_item_count: 2,
+        }}
+        criterionLabel={criterionLabel}
+        onSelectPost={vi.fn()}
+        variant="comparison"
+      />,
+    );
+    expect(
+      screen.getByLabelText("leftover map comparison graphic leftover-map axis 1 tick 0.00"),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByLabelText("leftover map comparison graphic leftover-map axis 2 tick 0.00"),
+    ).toBeInTheDocument();
+    expect(screen.queryByLabelText("leftover-map axis 1 tick 0.00")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("leftover-map axis 2 tick 0.00")).not.toBeInTheDocument();
+    expect(
+      screen.getByLabelText("leftover map comparison graphic leftover-map rank rank 0"),
+    ).toHaveTextContent("rank 0");
+    expect(
+      screen.getByLabelText("leftover map comparison graphic leftover expected E 0.00"),
+    ).toHaveTextContent("E 0.00");
+    expect(screen.getByText("leftover map comparison axis 1 (0%)")).toBeInTheDocument();
+  });
 });
