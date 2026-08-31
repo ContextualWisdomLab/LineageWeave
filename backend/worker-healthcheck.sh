@@ -10,20 +10,35 @@ set -eu
 heartbeat_path=${1:-/tmp/lineageweave-worker-heartbeat}
 state_path=${2:-/tmp/lineageweave-worker-healthcheck-state}
 
-current_heartbeat=$(cat "$heartbeat_path" 2>/dev/null) || exit 1
-case "$current_heartbeat" in
-    ''|*[!0-9]*) exit 1 ;;
-esac
+current_sample=$(cat "$heartbeat_path" 2>/dev/null) || exit 1
+set -- $current_sample
+[ "$#" -eq 3 ] || exit 1
+current_version=$1
+current_epoch=$2
+current_heartbeat=$3
+[ "$current_version" = v1 ] || exit 1
+[ "${#current_epoch}" -eq 32 ] || exit 1
+case "$current_epoch" in ''|*[!0-9a-f]*) exit 1 ;; esac
+case "$current_heartbeat" in ''|*[!0-9]*) exit 1 ;; esac
 
-if IFS= read -r previous_heartbeat 2>/dev/null < "$state_path"; then
-    case "$previous_heartbeat" in
-        ''|*[!0-9]*) previous_heartbeat= ;;
-    esac
-    if [ -n "$previous_heartbeat" ] && [ "$current_heartbeat" -le "$previous_heartbeat" ]; then
-        exit 1
+if previous_sample=$(cat "$state_path" 2>/dev/null); then
+    set -- $previous_sample
+    if [ "$#" -eq 3 ]; then
+        previous_version=$1
+        previous_epoch=$2
+        previous_heartbeat=$3
+        case "$previous_heartbeat" in ''|*[!0-9]*) previous_heartbeat= ;; esac
+        if [ "$previous_version" = v1 ] \
+            && [ "$previous_epoch" = "$current_epoch" ] \
+            && [ -n "$previous_heartbeat" ] \
+            && [ "$current_heartbeat" -le "$previous_heartbeat" ]; then
+            exit 1
+        fi
     fi
 fi
 
 temporary_state="${state_path}.$$"
-printf '%s\n' "$current_heartbeat" > "$temporary_state"
+trap 'rm -f "$temporary_state"' EXIT HUP INT TERM
+printf '%s\n' "$current_sample" > "$temporary_state"
 mv "$temporary_state" "$state_path"
+trap - EXIT HUP INT TERM

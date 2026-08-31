@@ -43,6 +43,11 @@ publishes the first heartbeat of a process. Those files may survive a process
 or VM restart in the container writable layer while the operating system's
 monotonic clock restarts from a smaller value; monotonic samples are therefore
 compared only within one worker-process epoch and never across boots.
+Each heartbeat and probe baseline carries the same random process-epoch
+identifier beside the monotonic value. A probe compares counters only inside
+one identifier and atomically adopts a changed identifier. Consequently, a
+probe that read the prior files before startup cannot poison the new epoch by
+publishing its stale baseline after the worker reset.
 Consequently, targeted canonical startup such
 as `docker compose up backend` also starts the worker and does not expose an API
 that can accept durable jobs while no consumer exists. Non-Compose deployments
