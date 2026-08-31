@@ -136,17 +136,7 @@ select post.post_id, post.corporate_entity_id, post.process_unit_id,
                where job.post_id = post.post_id
                  and job.status_code = 'post_content_ingestion_failed')
   from source_post post
-on conflict (source_post_id) do update set
-    corporate_entity_id = excluded.corporate_entity_id,
-    process_unit_id = excluded.process_unit_id,
-    visibility_code = excluded.visibility_code,
-    occurred_date = excluded.occurred_date,
-    occurred_at = excluded.occurred_at,
-    source_project_name = excluded.source_project_name,
-    active_source = excluded.active_source,
-    source_context_present = excluded.source_context_present,
-    case_analysis_present = excluded.case_analysis_present,
-    ingestion_failed = excluded.ingestion_failed;
+on conflict (source_post_id) do nothing;
 
 create index if not exists dashboard_post_public_period_idx
     on dashboard_post_read_projection (occurred_date, source_post_id)
@@ -257,7 +247,6 @@ begin
 end
 $migration$;
 
-truncate dashboard_post_daily_summary;
 insert into dashboard_post_daily_summary (
     occurred_date, visibility_code, corporate_entity_id, process_unit_id,
     source_context_present, total_post_count,
@@ -270,7 +259,8 @@ select occurred_date, visibility_code, corporate_entity_id, process_unit_id,
   from dashboard_post_read_projection
  where active_source
  group by occurred_date, visibility_code, corporate_entity_id, process_unit_id,
-          source_context_present;
+          source_context_present
+on conflict do nothing;
 
 -- One row per persisted case keeps exact Event/Post and lifecycle totals out of
 -- the interactive join path. Evidence ids remain explicit so caller ABAC can
@@ -552,7 +542,13 @@ $migration$;
 select refresh_dashboard_case_rollup_read_projection(
     classification.post_id, classification.case_kind_code
 )
-  from operations_case_classification classification;
+  from operations_case_classification classification
+ where not exists (
+     select 1
+       from dashboard_case_rollup_read_projection projection
+      where projection.source_post_id = classification.post_id
+        and projection.case_kind_code = classification.case_kind_code
+ );
 
 create index if not exists dashboard_case_rollup_kind_post_idx
     on dashboard_case_rollup_read_projection (case_kind_code, source_post_id);

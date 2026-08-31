@@ -248,8 +248,9 @@ begin
 end
 $migration$;
 
-truncate customer_master_post_read_projection,
-         customer_hint_group_read_projection, author_hint_group_read_projection;
+do $backfill$
+begin
+if not exists (select 1 from customer_master_post_read_projection) then
 insert into customer_master_post_read_projection (
     post_id, post_title, created_at, visibility_code, corporate_entity_id,
     process_unit_id, customer_code_key, customer_name_group_key, customer_name,
@@ -302,3 +303,6 @@ select post.visibility_code,
    and (post.source_deleted_flag is null or btrim(post.source_deleted_flag) = '')
    and nullif(btrim(post.source_author_code), '') is not null
  group by 1, 2, 3, 4, 5, 6;
+end if;
+end
+$backfill$;
