@@ -16,6 +16,7 @@ from scripts.seed_demo_data import (
     tepp_seed_outcome,
     tepp_seed_request,
 )
+from backend.app.analysis_run_start import _tepp_submission
 
 
 class _RecordingUnavailableClient(TeppClient):
@@ -96,11 +97,31 @@ def test_tepp_seed_outcome_keeps_strict_acceptance_running() -> None:
     assert failure is None
 
 
+def test_tepp_submission_rejects_boolean_contract_version() -> None:
+    request = tepp_seed_request()
+    status, failure, envelope = _tepp_submission(
+        TeppClient(
+            transport=lambda payload: {
+                "contract_version": True,
+                "run_id": "tepp-seed-accepted-1",
+                "run_state": "accepted",
+                "idempotency_key": payload["idempotency_key"],
+            }
+        ),
+        request,
+    )
+    assert status == "analysis_status_failed"
+    assert failure == "tepp_result_not_persisted"
+    assert envelope is None
+
+
 def test_tepp_accepted_seed_request_shares_the_demo_snapshot() -> None:
-    request = tepp_accepted_seed_request()
+    request = tepp_accepted_seed_request("corp-1")
     assert request.snapshot_id == demo_source_snapshot_sha256()
     assert request.idempotency_key == DEMO_TEPP_ACCEPTED_IDEMPOTENCY_KEY
-    assert request.model_contract_version == "tepp-analysis-run-v1"
+    assert request.model_contract_version == "tepp-lineage-criterion-v1"
+    assert request.output_profile == "lineage_pair_criterion_anchor"
+    assert request.tenant_workspace_id == "corp-1"
     assert "theta" not in str(request.to_json()).casefold()
 
 
@@ -151,6 +172,8 @@ class _TeppSeedCursor:
         if last.lstrip().startswith("select") and "from analysis_run where" in last:
             return None
         if "insert into analysis_run" in last:
+            return ("run-demo-tepp",)
+        if "insert into analysis_run_tepp_receipt" in last:
             return ("run-demo-tepp",)
         if last.lstrip().startswith("select") and "from analysis_run_outbox" in last:
             return None
@@ -230,3 +253,28 @@ def test_seed_demo_tepp_accepted_run_stays_running_with_receipt() -> None:
         for params in delivery_params
     )
     assert not any("theta" in str(params).casefold() for params in cursor.params)
+
+
+class _ConflictingReceiptCursor(_TeppSeedCursor):
+    """Model a remote-run uniqueness conflict at receipt insertion."""
+
+    def fetchone(self):
+        if "insert into analysis_run_tepp_receipt" in self.statements[-1]:
+            return None
+        return super().fetchone()
+
+
+def test_seed_demo_tepp_receipt_conflict_fails_instead_of_remaining_running() -> None:
+    cursor = _ConflictingReceiptCursor()
+    _seed_demo_tepp_accepted_run(cursor, "account-1", "corp-1")
+    status_params = [
+        params
+        for sql, params in zip(cursor.statements, cursor.params, strict=True)
+        if "insert into analysis_run_status_event" in sql
+    ]
+    assert any(
+        params is not None
+        and "analysis_status_failed" in params
+        and "tepp_result_not_persisted" in params
+        for params in status_params
+    )

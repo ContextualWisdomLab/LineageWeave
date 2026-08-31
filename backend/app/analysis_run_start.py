@@ -280,6 +280,7 @@ def _tepp_submission(
         if (
             set(response)
             == {"contract_version", "run_id", "run_state", "idempotency_key"}
+            and type(response["contract_version"]) is int
             and response["contract_version"] == 1
             and response["idempotency_key"] == request.idempotency_key
             and isinstance(remote_run_id, str)

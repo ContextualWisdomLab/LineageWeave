@@ -24,6 +24,7 @@ import json
 import os
 import time
 import sys
+from datetime import datetime
 from pathlib import Path
 from urllib.parse import urlencode
 
@@ -1871,16 +1872,17 @@ def tepp_seed_outcome(client: TeppClient | None = None) -> tuple[str, str | None
     return status, failure or None
 
 
-def tepp_accepted_seed_request() -> AnalysisRunRequest:
+def tepp_accepted_seed_request(
+    corporate_entity_id: str = "demo-workspace",
+) -> AnalysisRunRequest:
     """Build the Demo Corp TEPP request whose seed transport accepts v1."""
-    request = tepp_seed_request()
-    return AnalysisRunRequest(
+    from backend.app.analysis_run_start import tepp_run_request
+
+    return tepp_run_request(
         idempotency_key=DEMO_TEPP_ACCEPTED_IDEMPOTENCY_KEY,
-        tenant_workspace_id=request.tenant_workspace_id,
-        snapshot_id=request.snapshot_id,
-        knowledge_cutoff=request.knowledge_cutoff,
-        model_contract_version=request.model_contract_version,
-        output_profile=request.output_profile,
+        snapshot_sha256=demo_source_snapshot_sha256(),
+        knowledge_cutoff=datetime.fromisoformat("2026-01-12T12:00:00+00:00"),
+        corporate_entity_id=corporate_entity_id,
     )
 
 
@@ -1900,12 +1902,15 @@ def tepp_accepted_seed_client() -> TeppClient:
 
 def tepp_accepted_seed_outcome(
     client: TeppClient | None = None,
+    *,
+    corporate_entity_id: str = "demo-workspace",
 ) -> tuple[str, str | None, dict | None]:
     """Classify the accepted-fixture envelope without inventing a theta."""
     from backend.app.analysis_run_start import _tepp_submission
 
     status, failure, envelope = _tepp_submission(
-        client or tepp_accepted_seed_client(), tepp_accepted_seed_request()
+        client or tepp_accepted_seed_client(),
+        tepp_accepted_seed_request(corporate_entity_id),
     )
     return status, failure or None, envelope
 
@@ -1985,13 +1990,29 @@ def _seed_demo_tepp_run(cur, requested_by_account_id, corporate_entity_id) -> No
     _seed_demo_run_outbox(cur, run_id)
 
 
-def _seed_tepp_accepted_receipt(cur, analysis_run_id, request, envelope) -> None:
+def _seed_tepp_accepted_receipt(cur, analysis_run_id, request, envelope) -> bool:
     """Persist TEPP acceptance as transport evidence, never a measurement."""
     remote_run_id = envelope.get("run_id")
     if envelope.get("run_state") != "accepted" or not isinstance(remote_run_id, str):
-        return
+        return False
     request_json = json.dumps(request.to_json(), separators=(",", ":"), sort_keys=True)
     receipt_json = json.dumps(envelope, separators=(",", ":"), sort_keys=True)
+    receipt_values = (
+        remote_run_id,
+        hashlib.sha256(request_json.encode()).hexdigest(),
+        hashlib.sha256(receipt_json.encode()).hexdigest(),
+    )
+    cur.execute(
+        """
+        select remote_run_id, request_sha256, receipt_sha256
+        from analysis_run_tepp_receipt
+        where analysis_run_id = %s
+        """,
+        (analysis_run_id,),
+    )
+    existing = cur.fetchone()
+    if existing is not None:
+        return tuple(existing) == receipt_values
     cur.execute(
         """
         insert into analysis_run_tepp_receipt
@@ -1999,14 +2020,14 @@ def _seed_tepp_accepted_receipt(cur, analysis_run_id, request, envelope) -> None
              accepted_status_code, received_at)
         values (%s, %s, %s, %s, 'accepted', '2026-01-12T12:36:00Z')
         on conflict do nothing
+        returning analysis_run_id
         """,
         (
             analysis_run_id,
-            remote_run_id,
-            hashlib.sha256(request_json.encode()).hexdigest(),
-            hashlib.sha256(receipt_json.encode()).hexdigest(),
+            *receipt_values,
         ),
     )
+    return cur.fetchone() is not None
 
 
 def _seed_demo_tepp_accepted_run(cur, requested_by_account_id, corporate_entity_id) -> None:
@@ -2061,19 +2082,26 @@ def _seed_demo_tepp_accepted_run(cur, requested_by_account_id, corporate_entity_
         """,
         (run_id, corporate_entity_id),
     )
-    status, failure, envelope = tepp_accepted_seed_outcome()
+    request = tepp_accepted_seed_request(str(corporate_entity_id))
+    status, failure, envelope = tepp_accepted_seed_outcome(
+        corporate_entity_id=str(corporate_entity_id)
+    )
     persist_receipt = (
         status == "analysis_status_running"
         and envelope is not None
         and envelope.get("run_state") == "accepted"
     )
     if persist_receipt:
-        _seed_tepp_accepted_receipt(cur, run_id, tepp_accepted_seed_request(), envelope)
+        persist_receipt = _seed_tepp_accepted_receipt(cur, run_id, request, envelope)
+    if persist_receipt:
         events = [
             (1, "analysis_status_pending", "2026-01-12T12:35:00Z", None),
             (2, "analysis_status_running", "2026-01-12T12:36:00Z", None),
         ]
     else:
+        if status == "analysis_status_running":
+            status = "analysis_status_failed"
+            failure = "tepp_result_not_persisted"
         events = [
             (1, "analysis_status_pending", "2026-01-12T12:35:00Z", None),
             (2, "analysis_status_running", "2026-01-12T12:36:00Z", None),

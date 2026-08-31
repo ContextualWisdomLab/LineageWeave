@@ -1,6 +1,6 @@
 # ADR 0219 — Persist TEPP acceptance and consume terminal results
 
-**Decision status:** Accepted; seed visibility on this PR; polling remains blocked on TEPP #249  
+**Decision status:** Accepted; seed visibility on this PR; polling remains blocked on TEPP #249
 **Date:** 2026-08-26  
 **Depends on:** ADR 0022, ADR 0023, ADR 0204; TEPP PR #157  
 **Refs:** LineageWeave issue #277; TEPP issues #156 and #249
