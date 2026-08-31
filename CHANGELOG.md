@@ -16,6 +16,12 @@ All notable changes to this project are documented here. Format follows
 
 ### Added
 
+- Product extraction now uses a strict receipt-bearing orchestrator schema,
+  revalidates the focal source digest under lock, and continues after an
+  independent operations-stage failure. Typed operations/project targets are
+  admitted only from current evidence-bearing assertions; catalog misses
+  remain misses without guessed identities (ADR 0228).
+
 - Derived Voice classification now uses one strict contextual-orchestrator
   receipt over the exact focal Post body, admits all twelve governed Voice
   concepts as evidence-supported multi-label assertions, and preserves the

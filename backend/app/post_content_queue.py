@@ -476,6 +476,7 @@ POST_CONTENT_BACKFILL_CANDIDATE_SQL = f"""
                      join post_product_analysis product_analysis
                        on product_analysis.post_id = job.post_id
                       and product_analysis.source_body_sha256 = job.source_body_sha256
+                      and product_analysis.orchestrator_model_receipt is not null
                     where job.post_id = post.post_id
                ))
                or ($3::boolean and not exists (
@@ -600,7 +601,8 @@ async def enqueue_post_content_backfill(
                             "select exists (select 1 from operations_case_analysis "
                             "where post_id = $1 and source_body_sha256 = $2) "
                             "and exists (select 1 from post_product_analysis "
-                            "where post_id = $1 and source_body_sha256 = $2) "
+                            "where post_id = $1 and source_body_sha256 = $2 "
+                            "and orchestrator_model_receipt is not null) "
                             "and exists (select 1 from post_voice_classification_analysis "
                             "where post_id = $1 and source_body_sha256 = $2)",
                             post_id,

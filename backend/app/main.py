@@ -810,10 +810,8 @@ async def _fetch_post_detail_bundle(
             ) as source_context_required
         ), post as (
             select source_post.*,
-                   (select job.source_body_sha256
-                      from post_content_ingestion_job job
-                     where job.post_id = source_post.post_id
-                     order by job.updated_at desc limit 1) as current_body_sha256
+                   encode(sha256(convert_to(coalesce(source_post.post_body, ''), 'UTF8')), 'hex')
+                       as current_body_sha256
               from source_post cross join corpus_mode
              where source_post.post_id = $1
                and (source_post.source_draft_code is null
@@ -968,6 +966,10 @@ async def _fetch_post_detail_bundle(
                        'relations', coalesce(relations.items, '[]'::jsonb)
                    ) order by mention.mention_ordinal)
                      from post_product_mention mention
+                     join post_product_analysis product_analysis
+                       on product_analysis.post_id = mention.post_id
+                      and product_analysis.orchestrator_model_receipt is not null
+                      and product_analysis.source_body_sha256 = post.current_body_sha256
                      left join product_catalog catalog
                        on catalog.product_catalog_id = mention.product_catalog_id
                      join source_post evidence_post
@@ -979,7 +981,8 @@ async def _fetch_post_detail_bundle(
                    (select jsonb_build_object(
                        'analysis_present', exists(select 1 from post_product_analysis analysis
                            where analysis.post_id = $1
-                             and analysis.source_body_sha256 = post.current_body_sha256),
+                             and analysis.source_body_sha256 = post.current_body_sha256
+                             and analysis.orchestrator_model_receipt is not null),
                        'job_status_code', (select job.status_code
                            from post_content_ingestion_job job
                           where job.post_id = $1

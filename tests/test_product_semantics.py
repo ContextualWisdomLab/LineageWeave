@@ -3,6 +3,7 @@
 from lineageweave.product_semantics import (
     ContextualOrchestratorProductExtractionClient,
     ProductEvidenceSource,
+    ProductExtractionResponseContractError,
     ProductMention,
     ProductRelationTarget,
     normalize_product_alias,
@@ -104,6 +105,7 @@ def test_orchestrator_product_client_uses_auto_and_timeout(monkeypatch) -> None:
     def fake_post(url, payload, *, headers, timeout):
         captured.update(url=url, payload=payload, headers=headers, timeout=timeout)
         return {
+            "id": "product-receipt-a",
             "choices": [
                 {
                     "message": {
@@ -119,10 +121,12 @@ def test_orchestrator_product_client_uses_auto_and_timeout(monkeypatch) -> None:
     result = ContextualOrchestratorProductExtractionClient(
         "https://orchestrator.invalid/", "secret", timeout=12.5
     ).extract((source,), session_id="post-session-a")
-    assert result.mentions[0].evidence_post_id == "post-a"
+    assert result.extraction.mentions[0].evidence_post_id == "post-a"
+    assert result.orchestrator_model_receipt == "product-receipt-a"
     assert captured["url"] == "https://orchestrator.invalid/v1/chat/completions"
     assert captured["payload"]["model"] == "orchestrator/auto"
-    assert captured["payload"]["response_format"] == {"type": "json_object"}
+    assert captured["payload"]["response_format"]["type"] == "json_schema"
+    assert captured["payload"]["response_format"]["json_schema"]["strict"] is True
     assert captured["payload"]["session_id"] == "post-session-a"
     assert captured["headers"] == {
         "authorization": "Bearer secret",
@@ -133,9 +137,12 @@ def test_orchestrator_product_client_uses_auto_and_timeout(monkeypatch) -> None:
 def test_orchestrator_product_client_rejects_invalid_evidence(monkeypatch) -> None:
     monkeypatch.setattr(
         "lineageweave.product_semantics.post_json",
-        lambda *args, **kwargs: {"choices": [{"message": {"content": "{}"}}]},
+        lambda *args, **kwargs: {
+            "id": "product-receipt-a",
+            "choices": [{"message": {"content": "{}"}}],
+        },
     )
-    with pytest.raises(RuntimeError, match="invalid product evidence"):
+    with pytest.raises(ProductExtractionResponseContractError, match="strict evidence"):
         ContextualOrchestratorProductExtractionClient("https://x", "secret").extract(
             (ProductEvidenceSource("post-a", "Synthetic Model Q"),)
         )
@@ -145,9 +152,28 @@ def test_orchestrator_product_client_normalizes_malformed_envelope(monkeypatch) 
     """Malformed provider content is a bounded product-validation failure."""
     monkeypatch.setattr(
         "lineageweave.product_semantics.post_json",
-        lambda *args, **kwargs: {"choices": [{"message": {"content": None}}]},
+        lambda *args, **kwargs: {
+            "id": "product-receipt-a",
+            "choices": [{"message": {"content": None}}],
+        },
     )
-    with pytest.raises(RuntimeError, match="invalid product evidence"):
+    with pytest.raises(ProductExtractionResponseContractError, match="structured content"):
+        ContextualOrchestratorProductExtractionClient("https://x", "secret").extract(
+            (ProductEvidenceSource("post-a", "Synthetic Model Q"),)
+        )
+
+
+def test_orchestrator_product_client_requires_receipt(monkeypatch) -> None:
+    """A strict product payload without a model receipt remains unavailable."""
+    monkeypatch.setattr(
+        "lineageweave.product_semantics.post_json",
+        lambda *args, **kwargs: {
+            "choices": [
+                {"message": {"content": '{"mentions":[],"relations":[]}'}}
+            ]
+        },
+    )
+    with pytest.raises(ProductExtractionResponseContractError, match="receipt id"):
         ContextualOrchestratorProductExtractionClient("https://x", "secret").extract(
             (ProductEvidenceSource("post-a", "Synthetic Model Q"),)
         )

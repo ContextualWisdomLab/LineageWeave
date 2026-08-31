@@ -487,6 +487,12 @@ def _dashboard_single_statement_sql(source_context_required: bool | None) -> str
                )
           from selected_case selected
           join product_operations_fact_relation relation using (post_id, case_kind_code)
+          join post_product_analysis product_analysis
+            on product_analysis.post_id = relation.post_id
+           and product_analysis.orchestrator_model_receipt is not null
+          join post_content_ingestion_job product_job
+            on product_job.post_id = relation.post_id
+           and product_job.source_body_sha256 = product_analysis.source_body_sha256
           join post_product_mention mention
             on mention.post_id = relation.post_id
            and mention.mention_ordinal = relation.mention_ordinal
@@ -895,6 +901,12 @@ async def fetch_operations_dashboard(
                relation.fact_ordinal::bigint
           from selected_case selected
           join product_operations_fact_relation relation using (post_id, case_kind_code)
+          join post_product_analysis product_analysis
+            on product_analysis.post_id = relation.post_id
+           and product_analysis.orchestrator_model_receipt is not null
+          join post_content_ingestion_job product_job
+            on product_job.post_id = relation.post_id
+           and product_job.source_body_sha256 = product_analysis.source_body_sha256
           join post_product_mention mention
             on mention.post_id = relation.post_id
            and mention.mention_ordinal = relation.mention_ordinal

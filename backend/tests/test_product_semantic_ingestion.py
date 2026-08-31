@@ -3,12 +3,15 @@
 from contextlib import asynccontextmanager
 import asyncio
 
+import pytest
+
 from backend.app.product_semantic_ingestion import (
     persist_product_mentions,
     resolve_product_mentions,
 )
 from lineageweave.product_semantics import (
     ProductExtraction,
+    ProductExtractionResult,
     ProductMention,
     ProductRelation,
     ResolvedProductMention,
@@ -27,6 +30,10 @@ class _Connection:
     async def fetch(self, query: str, *args: object) -> list[dict[str, str]]:
         self.calls.append((query, args))
         return self.rows
+
+    async def fetchval(self, query: str, *args: object) -> str:
+        self.calls.append((query, args))
+        return "b" * 64
 
     async def execute(self, query: str, *args: object) -> None:
         self.calls.append((query, args))
@@ -56,12 +63,22 @@ def test_persist_product_mentions_replaces_exact_projection() -> None:
     resolved = ResolvedProductMention(mention, "missing", None)
     asyncio.run(
         persist_product_mentions(
-            connection, "post-a", "b" * 64, "c" * 64, "session-a", (resolved,)
+            connection,
+            "post-a",
+            "c" * 64,
+            "session-a",
+            (resolved,),
+            ProductExtractionResult(
+                "b" * 64,
+                "receipt-a",
+                ProductExtraction((mention,), ()),
+            ),
         )
     )
-    assert len(connection.calls) == 3
-    assert connection.calls[0][1] == ("post-a",)
-    assert connection.calls[2][1] == (
+    assert len(connection.calls) == 4
+    assert "for update" in connection.calls[0][0]
+    assert connection.calls[1][1] == ("post-a",)
+    assert connection.calls[3][1] == (
         "post-a",
         0,
         None,
@@ -90,12 +107,38 @@ def test_persist_product_mentions_writes_authorized_relation_in_same_transaction
         persist_product_mentions(
             connection,
             "post-a",
-            "b" * 64,
             "c" * 64,
             "session-a",
             (ResolvedProductMention(mention, "missing", None),),
-            ProductExtraction((mention,), (relation,)),
+            ProductExtractionResult(
+                "b" * 64,
+                "receipt-a",
+                ProductExtraction((mention,), (relation,)),
+            ),
         )
     )
     assert "insert into product_project_relation" in connection.calls[-1][0]
     assert connection.calls[-1][1][0:4] == ("post-a", 0, "project-a", "used_by_project")
+
+
+def test_persist_product_mentions_rejects_stale_source_revision() -> None:
+    """A provider result cannot replace products after the focal body changes."""
+    connection = _Connection()
+    mention = ProductMention("Product Q", "Product Q", "post-a", "a" * 64)
+    result = ProductExtractionResult(
+        "c" * 64,
+        "receipt-a",
+        ProductExtraction((mention,), ()),
+    )
+    with pytest.raises(ValueError, match="source revision"):
+        asyncio.run(
+            persist_product_mentions(
+                connection,
+                "post-a",
+                "d" * 64,
+                "session-a",
+                (ResolvedProductMention(mention, "missing", None),),
+                result,
+            )
+        )
+    assert len(connection.calls) == 1

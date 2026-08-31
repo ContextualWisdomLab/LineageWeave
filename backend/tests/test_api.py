@@ -256,6 +256,7 @@ _LATE_REPLAYABLE_MIGRATIONS = tuple(
         "0257_public_claim_envelope.sql",
         "0263_voice_taxonomy_read_projection.sql",
         "0271_derived_voice_classification_analysis.sql",
+        "0272_product_analysis_model_receipt.sql",
     )
 )
 
@@ -2158,9 +2159,16 @@ def test_post_detail_returns_authorized_product_evidence(
             catalog_id = cur.fetchone()[0]
             cur.execute(
                 "insert into post_product_analysis "
-                "(post_id, source_body_sha256, analysis_input_sha256, orchestrator_session_id) "
-                "values (%s, %s, %s, %s)",
-                    (seeded_db["public_post_id"], current_body_sha256, "b" * 64, "session-a"),
+                "(post_id, source_body_sha256, analysis_input_sha256, "
+                "orchestrator_session_id, orchestrator_model_receipt) "
+                "values (%s, %s, %s, %s, %s)",
+                (
+                    seeded_db["public_post_id"],
+                    current_body_sha256,
+                    "b" * 64,
+                    "session-a",
+                    "product-receipt-a",
+                ),
             )
             cur.execute(
                 "insert into post_product_mention "
@@ -2249,6 +2257,25 @@ def test_post_detail_returns_authorized_product_evidence(
             "evidence_post_id": seeded_db["public_post_id"],
         }],
     }]
+
+    conn = psycopg2.connect(seeded_db["dsn"])
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                "update post_product_analysis set orchestrator_model_receipt = null "
+                "where post_id = %s",
+                (seeded_db["public_post_id"],),
+            )
+        conn.commit()
+    finally:
+        conn.close()
+    unreceipted = client.get(
+        f"/api/posts/{seeded_db['public_post_id']}",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert unreceipted.status_code == 200
+    assert unreceipted.json()["product_evidence"] == []
+    assert unreceipted.json()["product_evidence_status"]["status_code"] == "setup_required"
 
 
 def test_voice_taxonomy_summary_uses_visible_post_denominator(

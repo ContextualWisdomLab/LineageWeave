@@ -20,6 +20,7 @@ from backend.app.post_content_queue import (
 )
 from lineageweave.http_client import HttpAdmissionDeferred, HttpClientError
 from lineageweave.operations_case_analysis import OperationsEvidenceSource
+from lineageweave.product_semantics import ProductMention
 
 _PRODUCT_ANALYSIS = post_content_worker._persist_product_analysis_if_needed
 _VOICE_CLASSIFICATION = post_content_worker._persist_voice_classification_if_needed
@@ -53,6 +54,7 @@ class _Connection:
         self.row = row
         self.values = list(values or [])
         self.executed: list[tuple[str, tuple[object, ...]]] = []
+        self.fetched: list[tuple[str, tuple[object, ...]]] = []
 
     def transaction(self) -> _Transaction:
         return _Transaction()
@@ -60,7 +62,8 @@ class _Connection:
     async def fetchrow(self, *_args: object):
         return self.row
 
-    async def fetch(self, *_args: object):
+    async def fetch(self, query: str, *args: object):
+        self.fetched.append((query, args))
         return []
 
     async def fetchval(self, query: str, *_args: object):
@@ -376,8 +379,8 @@ def test_successful_job_reclaims_when_voice_receipt_is_missing(monkeypatch) -> N
     assert claimed is row
 
 
-def test_voice_receipt_persists_before_operations_failure(monkeypatch) -> None:
-    """An operations outage cannot suppress an independent Voice producer."""
+def test_independent_receipts_persist_before_operations_failure(monkeypatch) -> None:
+    """An operations outage cannot suppress independent Voice or product producers."""
     persisted: list[str] = []
     failed_stages: list[str | None] = []
 
@@ -386,6 +389,9 @@ def test_voice_receipt_persists_before_operations_failure(monkeypatch) -> None:
 
     async def persist_voice(*_args, **_kwargs):
         persisted.append("voice")
+
+    async def persist_product(*_args, **_kwargs):
+        persisted.append("product")
 
     async def fail_operations(*_args, **_kwargs):
         raise RuntimeError("synthetic operations failure")
@@ -412,6 +418,23 @@ def test_voice_receipt_persists_before_operations_failure(monkeypatch) -> None:
         "_persist_operations_case_analysis_if_needed",
         fail_operations,
     )
+    monkeypatch.setattr(
+        post_content_worker, "_persist_product_analysis_if_needed", persist_product
+    )
+    monkeypatch.setattr(
+        post_content_worker,
+        "extract_occupational_construct_assertions",
+        lambda *_args, **_kwargs: asyncio.sleep(0, result=()),
+    )
+    monkeypatch.setattr(
+        post_content_worker,
+        "persist_occupational_construct_assertions",
+        lambda *_args, **_kwargs: asyncio.sleep(0),
+    )
+    monkeypatch.setattr(post_content_worker, "normalize_post_body", lambda *_args: object())
+    monkeypatch.setattr(
+        post_content_worker, "persist_post_content", lambda *_args, **_kwargs: asyncio.sleep(0)
+    )
     monkeypatch.setattr(post_content_worker, "_finish_failed_job", finish_failed)
     monkeypatch.setattr(
         post_content_worker, "record_server_failure", lambda *_args, **_kwargs: None
@@ -429,7 +452,7 @@ def test_voice_receipt_persists_before_operations_failure(monkeypatch) -> None:
         )
     )
 
-    assert persisted == ["voice"]
+    assert persisted == ["voice", "product"]
     assert failed_stages == ["operations_case"]
 
 
@@ -682,23 +705,10 @@ def test_existing_case_analysis_skips_duplicate_orchestrator_call(monkeypatch) -
 
 
 def test_product_analysis_persists_one_exact_authorized_window(monkeypatch) -> None:
-    """Product extraction reuses authorized sources and persists catalog outcomes."""
+    """Product extraction uses only the exact authorized focal source."""
     connection = _Connection(values=[False])
     events: list[object] = []
     submitted_sources: list[object] = []
-
-    async def evidence_sources(*_args, **_kwargs):
-        return (
-            OperationsEvidenceSource(
-                "post-1",
-                "Synthetic",
-                "Synthetic Product Q\nPersisted semantic evidence:\nproject: Product Alias",
-                source_text="Synthetic Product Q",
-            ),
-            OperationsEvidenceSource(
-                "post-2", "Sibling", "Sibling Product Z", source_text="Sibling Product Z"
-            ),
-        )
 
     async def resolve(_conn, mentions):
         events.append(mentions)
@@ -709,18 +719,22 @@ def test_product_analysis_persists_one_exact_authorized_window(monkeypatch) -> N
     async def persist(*args):
         events.append(args)
 
-    monkeypatch.setattr(post_content_worker, "_operations_evidence_sources", evidence_sources)
     monkeypatch.setattr(
         post_content_worker,
         "ContextualOrchestratorProductExtractionClient",
         lambda *_args: SimpleNamespace(
             extract=lambda sources, targets, session_id: SimpleNamespace(
-                mentions=(
-                    post_content_worker.ProductEvidenceSource(
-                        sources[0].post_id, sources[0].text
+                extraction=SimpleNamespace(
+                    mentions=(
+                        ProductMention(
+                            "Synthetic Product Q",
+                            "Synthetic Product Q",
+                            sources[0].post_id,
+                            sources[0].input_sha256,
+                        ),
                     ),
+                    relations=(),
                 ),
-                relations=(),
             ) if session_id == "session-a" and not submitted_sources.extend(sources) else None,
         ),
     )
@@ -732,27 +746,30 @@ def test_product_analysis_persists_one_exact_authorized_window(monkeypatch) -> N
             _Pool(connection),
             "post-1",
             "a" * 64,
-            {"corporate_entity_id": "corp", "process_unit_id": "pu"},
-            SimpleNamespace(available=True),
+            "Synthetic Product Q",
             "session-a",
             "gateway",
             "key",
+            None,
         )
     )
     assert len(events) == 2
-    assert len(events[1][3]) == 64
+    assert len(events[1][2]) == 64
     assert submitted_sources[0].text == "Synthetic Product Q"
     assert [source.post_id for source in submitted_sources] == ["post-1"]
+    operation_query, operation_args = connection.fetched[0]
+    assert "analysis.source_body_sha256 = $2" in operation_query
+    assert "analysis.analysis_input_sha256 = $3" in operation_query
+    assert operation_args == ("post-1", "a" * 64, None)
+    project_query, project_args = connection.fetched[1]
+    assert "strpos(coalesce(source.post_body, ''), project.evidence_text) > 0" in project_query
+    assert project_args == ("post-1", "a" * 64)
 
 
 def test_product_analysis_skips_same_digest(monkeypatch) -> None:
     """A durable retry does not repeat product extraction for the same input."""
     connection = _Connection(values=[True])
 
-    async def evidence_sources(*_args, **_kwargs):
-        return (OperationsEvidenceSource("post-1", "Synthetic", "Synthetic Product Q"),)
-
-    monkeypatch.setattr(post_content_worker, "_operations_evidence_sources", evidence_sources)
     monkeypatch.setattr(
         post_content_worker,
         "ContextualOrchestratorProductExtractionClient",
@@ -761,8 +778,7 @@ def test_product_analysis_skips_same_digest(monkeypatch) -> None:
     asyncio.run(
         _PRODUCT_ANALYSIS(
             _Pool(connection), "post-1", "a" * 64,
-            {"corporate_entity_id": "corp", "process_unit_id": "pu"},
-            SimpleNamespace(available=True), "session-a", "gateway", "key",
+            "Synthetic Product Q", "session-a", "gateway", "key", None,
         )
     )
 
@@ -977,7 +993,7 @@ def test_invalid_product_output_keeps_the_job_retryable(monkeypatch) -> None:
         )
     )
 
-    assert persisted == ["cases"]
+    assert persisted == ["cases", "content"]
     assert channel_order == ["cases", "product"]
     assert outcomes == []
     assert failed_stages == ["product_analysis"]
@@ -1285,6 +1301,20 @@ def test_no_viable_agent_defers_without_consuming_failure_budget(monkeypatch) ->
         post_content_worker,
         "_operations_evidence_sources",
         evidence_sources,
+    )
+    monkeypatch.setattr(
+        post_content_worker,
+        "extract_occupational_construct_assertions",
+        lambda *_args, **_kwargs: asyncio.sleep(0, result=()),
+    )
+    monkeypatch.setattr(
+        post_content_worker,
+        "persist_occupational_construct_assertions",
+        lambda *_args, **_kwargs: asyncio.sleep(0),
+    )
+    monkeypatch.setattr(post_content_worker, "normalize_post_body", lambda *_args: object())
+    monkeypatch.setattr(
+        post_content_worker, "persist_post_content", lambda *_args, **_kwargs: asyncio.sleep(0)
     )
     monkeypatch.setattr(post_content_worker, "defer_post_content_job", defer)
     monkeypatch.setattr(
