@@ -48,7 +48,7 @@ test("renders the authenticated operations Dashboard with grounded cases", async
   await language.selectOption("en");
   await expect(page.locator("html")).toHaveAttribute("lang", "en");
   await expect(page.getByRole("heading", { name: "Operations evidence dashboard" })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Topic model influence over time" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Important posts over time" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Voice evidence overview" })).toBeVisible();
   const navigation = page.getByRole("navigation", { name: "Workspace navigation" });
   for (const label of ["Dashboard", "External information", "Board", "Customer master", "Calendar", "Ask Agent"]) {
