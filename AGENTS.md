@@ -755,6 +755,15 @@ item coordinate caption and keeps `Criterion ζ {label}`. Rank-0 unused axes sti
 item coordinates `(0.00, 0.00)`. Do not invent leftover-map item coordinates from leftover-map post
 `ξ`. Do not invent leftover-map post `ξ` from leftover-map item coordinates. Leftover-map comparison graphic leftover-map
 criterion markers never name leftover-map item coordinates this increment.
+ADR 0336 captions leftover-map comparison graphic leftover-map criterion markers with persisted leftover-map
+item coordinates when leftoverMapComparePlotCriterionBadge returns a usable leftover-map comparison graphic leftover-map criterion leftover-map
+item coordinate caption. Distinct accessible name
+`leftover map comparison graphic leftover-map criterion {label} at ζ {item}`.
+A missing or non-finite leftover-map item coordinate pair omits that leftover-map comparison graphic leftover-map criterion leftover-map
+item coordinate caption and keeps `Criterion ζ {label}`. Rank-0 unused axes still name leftover-map
+item coordinates `(0.00, 0.00)`. Do not invent leftover-map item coordinates from leftover-map post
+`ξ`. Do not invent leftover-map post `ξ` from leftover-map item coordinates. Leftover-map graphic leftover-map
+criterion markers stay `leftover-map criterion {label} at ζ {item}` this increment.
 When `R`, `R̂`, `U`, `x`,
 `s`, and `e` are finite, `e + s + x = 1`. When `Y`, `E`, and `R` are
 finite, `Y − E = R`. When `R`, `R̂`, and `U` are
@@ -899,6 +908,10 @@ axis share caption.
 Leftover-map graphic leftover-map criterion leftover-map item coordinates independently of leftover-map post ξ markers
 (ADR 0335) captions leftover-map graphic leftover-map criterion markers with persisted leftover-map
 item coordinates when leftoverMapPlotCriterionBadge returns a usable leftover-map criterion leftover-map
+item coordinate caption.
+Leftover-map comparison graphic leftover-map criterion leftover-map item coordinates independently of leftover-map post ξ markers
+(ADR 0336) captions leftover-map comparison graphic leftover-map criterion markers with persisted leftover-map
+item coordinates when leftoverMapComparePlotCriterionBadge returns a usable leftover-map comparison graphic leftover-map criterion leftover-map
 item coordinate caption.
 Item complete-case coverage
 (ADR 0282) captions the leftover-map graphic with how many scored criteria

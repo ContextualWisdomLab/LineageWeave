@@ -119,6 +119,10 @@
  *  leftover-map item coordinates ζ through leftoverMapPlotCriterionBadge
  *  independently of leftover-map post ξ markers, not leftover-map comparison
  *  graphic leftover-map criterion markers.
+ *  ADR 0336 fail-closes leftover-map comparison graphic leftover-map criterion
+ *  markers leftover-map item coordinates ζ through leftoverMapComparePlotCriterionBadge
+ *  independently of leftover-map post ξ markers, not leftover-map graphic leftover-map
+ *  criterion markers.
  */
 
 import { formatLeftoverMapCoordinatePair } from "./leftoverMapCoordinates";
@@ -151,6 +155,9 @@ export const LEFTOVER_MAP_PLOT_POST_ACTION =
 export const LEFTOVER_MAP_PLOT_CRITERION =
   "leftover-map criterion {label} at ζ {item}";
 
+export const LEFTOVER_MAP_COMPARE_PLOT_CRITERION =
+  "leftover map comparison graphic leftover-map criterion {label} at ζ {item}";
+
 export type LeftoverMapPlotCriterionBadge = {
   key: string;
   values: { label: string; item: string };
@@ -166,6 +173,18 @@ export function leftoverMapPlotCriterionBadge(
     return null;
   }
   return { key: LEFTOVER_MAP_PLOT_CRITERION, values: { label, item } };
+}
+
+export function leftoverMapComparePlotCriterionBadge(
+  label: string,
+  axis1: number | null | undefined,
+  axis2: number | null | undefined,
+): LeftoverMapPlotCriterionBadge | null {
+  const item = formatLeftoverMapCoordinatePair(axis1, axis2);
+  if (item === null) {
+    return null;
+  }
+  return { key: LEFTOVER_MAP_COMPARE_PLOT_CRITERION, values: { label, item } };
 }
 
 export const LEFTOVER_MAP_PLOT_TICK =

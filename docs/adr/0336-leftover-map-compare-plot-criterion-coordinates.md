@@ -1,13 +1,12 @@
-# ADR 0335 — Name leftover-map item coordinates on leftover-map graphic leftover-map criterion markers independently of leftover-map post ξ markers
+# ADR 0336 — Name leftover-map item coordinates on leftover-map comparison graphic leftover-map criterion markers independently of leftover-map post ξ markers
 
 **Decision status:** Accepted
 **Date:** 2026-08-31
 
-**Amended by:** [ADR 0336](0336-leftover-map-compare-plot-criterion-coordinates.md)
-(leftover-map item coordinates on leftover-map comparison graphic leftover-map criterion markers)
-
-Amends leftover-map graphic display of persisted coordinates
-([ADR 0268](0268-leftover-map-graphic-display.md)), leftover-map
+Amends leftover-map graphic display of persisted coordinates on the grouping comparison strip
+([ADR 0304](0304-leftover-map-compare-graphic.md)), leftover-map graphic leftover-map criterion leftover-map item coordinates
+([ADR 0335](0335-leftover-map-plot-criterion-coordinates.md)), leftover-map
+graphic display ([ADR 0268](0268-leftover-map-graphic-display.md)), leftover-map
 coordinates ([ADR 0267](0267-leftover-map-coordinates.md)). Independent of leftover-axis
 tick leftover-map axis share independently of leftover-map singular values
 ([ADR 0334](0334-leftover-map-axis-tick-share-badge.md)). Independent of leftover-map
@@ -25,10 +24,11 @@ ADR 0267 already persists two-axis Gabriel person coordinates
 `R̂ = ξ_{1:2} · ζ_{1:2}` and `d = ‖ξ_{1:2} − ζ_{1:2}‖` stay
 auditable. ADR 0268 already draws leftover-map graphic leftover-map
 post markers at persisted `ξ` and leftover-map graphic leftover-map
-criterion markers at persisted `ζ`. Post markers already name
-`Open leftover-map post {title} at ξ {person}`. Those leftover-map
-graphic leftover-map criterion markers still read only
-`Criterion ζ {label}`, so a buyer who reads leftover-map graphic leftover-map
+criterion markers at persisted `ζ`. ADR 0304 reuses that graphic on the grouping
+comparison strip. ADR 0335 already names leftover-map graphic leftover-map
+criterion markers `leftover-map criterion {label} at ζ {item}` independently of leftover-map
+post `ξ` markers. Those leftover-map comparison graphic leftover-map criterion markers still
+read only `Criterion ζ {label}`, so a buyer who reads leftover-map comparison graphic leftover-map
 criterion markers can treat leftover-map location as leftover-map post
 `ξ` without a next action on leftover-map item coordinates. A missing or
 non-finite leftover-map item coordinate pair is not a leftover score and
@@ -36,41 +36,42 @@ must omit independently of leftover-map post `ξ` markers. Rank-0 unused
 axes still persist leftover-map item coordinates `(0.00, 0.00)`. A finite
 negative leftover is shown, never clamped. Do not invent leftover-map
 item coordinates from leftover-map post `ξ`. Do not invent leftover-map
-post `ξ` from leftover-map item coordinates. Leftover-map comparison graphic leftover-map
-criterion markers stay `Criterion ζ {label}` this increment.
+post `ξ` from leftover-map item coordinates. Leftover-map graphic leftover-map
+criterion markers stay `leftover-map criterion {label} at ζ {item}` this increment.
 
-This increment names leftover-map graphic leftover-map criterion markers leftover-map
-item coordinates as leftoverMapPlotCriterionBadge, matching leftover-map
-graphic leftover-map post `ξ` markers. Leftover-map graphic leftover-map
+This increment names leftover-map comparison graphic leftover-map criterion markers leftover-map
+item coordinates as leftoverMapComparePlotCriterionBadge, matching leftover-map
+comparison graphic leftover-map post `ξ` markers. Leftover-map comparison graphic leftover-map
 criterion markers stay
-`leftover-map criterion {label} at ζ {item}`
+`leftover map comparison graphic leftover-map criterion {label} at ζ {item}`
 when leftover-map item coordinates are finite, so they stay distinct from leftover-map
-post markers `Open leftover-map post {title} at ξ {person}` and from leftover-map
-comparison graphic leftover-map criterion markers `Criterion ζ {label}`.
+graphic leftover-map criterion markers `leftover-map criterion {label} at ζ {item}` and from leftover-map
+post markers `Open leftover-map post {title} at ξ {person}`.
 It does not add columns. Do not invent a leftover score. Do not invent a theta.
 
-This protected increment uses **0335** so it does not collide with leftover-axis
-tick leftover-map axis share independently of leftover-map singular values
+This protected increment uses **0336** so it does not collide with leftover-map
+graphic leftover-map criterion leftover-map item coordinates independently of leftover-map post ξ markers
+(0335), leftover-axis tick leftover-map axis share independently of leftover-map singular values
 (0334), leftover-map comparison leftover-axis tick leftover-map axis share independently of leftover-map singular values
 (0333), leftover-map graphic leftover-map axis tick leftover-map axis share independently of leftover-map singular values
 (0332), leftover-map comparison graphic leftover-map axis tick leftover-map axis share independently of leftover-map singular values
-(0331), leftover-map graphic display (0268), leftover-map coordinates (0267),
+(0331), leftover-map graphic display on the grouping comparison strip (0304), leftover-map graphic display (0268), leftover-map coordinates (0267),
 or the dashboard stacks.
 
 ## Decision
 
-On leftover-map graphic leftover-map criterion markers, caption leftover-map
-item coordinates `ζ_{1:2}` when leftoverMapPlotCriterionBadge
-returns a usable leftover-map criterion leftover-map item coordinate caption.
+On leftover-map comparison graphic leftover-map criterion markers, caption leftover-map
+item coordinates `ζ_{1:2}` when leftoverMapComparePlotCriterionBadge
+returns a usable leftover-map comparison graphic leftover-map criterion leftover-map item coordinate caption.
 A missing or non-finite leftover-map item coordinate pair omits that leftover-map
-criterion leftover-map item coordinate caption and keeps
+comparison graphic leftover-map criterion leftover-map item coordinate caption and keeps
 `Criterion ζ {label}`. Rank-0 unused axes still name leftover-map
 item coordinates `(0.00, 0.00)`. Click a leftover pair or a leftover-map
 post marker to open that post. Criterion markers are not post buttons.
 
-Leftover-map graphic leftover-map criterion leftover-map item coordinates omit
+Leftover-map comparison graphic leftover-map criterion leftover-map item coordinates omit
 independently of leftover-map post `ξ` markers. This increment does not
-change leftover-map comparison graphic leftover-map criterion markers,
+change leftover-map graphic leftover-map criterion markers,
 leftover-axis ticks, leftover-map graphic leftover-map axis ticks, leftover-map
 comparison leftover-axis ticks, or leftover-map comparison graphic leftover-map
 axis ticks. This increment does not persist leftover-map inner product, cosine, or length.
@@ -80,24 +81,25 @@ score. Do not invent a theta.
 
 ## Consequences
 
-After `make seed`, leftover-map graphic leftover-map criterion markers name persisted
-leftover-map item coordinates when leftoverMapPlotCriterionBadge returns a usable
-leftover-map criterion leftover-map item coordinate caption; click a leftover pair
+After `make seed`, leftover-map comparison graphic leftover-map criterion markers name persisted
+leftover-map item coordinates when leftoverMapComparePlotCriterionBadge returns a usable
+leftover-map comparison graphic leftover-map criterion leftover-map item coordinate caption; click a leftover pair
 or a leftover-map post marker opens that post. Hidden posts stay hidden. Rank-0 unused
-axes still name leftover-map graphic leftover-map criterion leftover-map item coordinates
-`(0.00, 0.00)`. Leftover-map comparison graphic leftover-map criterion markers stay
-`Criterion ζ {label}`. Leftover-axis tick leftover-map axis share independently of leftover-map
+axes still name leftover-map comparison graphic leftover-map criterion leftover-map item coordinates
+`(0.00, 0.00)`. Leftover-map graphic leftover-map criterion markers stay
+`leftover-map criterion {label} at ζ {item}`. Leftover-map graphic leftover-map criterion leftover-map item coordinates independently of leftover-map
+post ξ markers (ADR 0335), leftover-axis tick leftover-map axis share independently of leftover-map
 singular values (ADR 0334), leftover-map comparison leftover-axis tick leftover-map axis share independently of leftover-map
 singular values (ADR 0333), leftover-map graphic leftover-map axis tick leftover-map axis share independently of leftover-map
 singular values (ADR 0332), leftover-map comparison graphic leftover-map axis tick leftover-map axis share independently of leftover-map
-singular values (ADR 0331), leftover-map graphic display (ADR 0268), and leftover-map
+singular values (ADR 0331), leftover-map graphic display on the grouping comparison strip (ADR 0304), leftover-map graphic display (ADR 0268), and leftover-map
 coordinates (ADR 0267) remain.
 
 ## Related
 
-Independent of leftover-map comparison graphic leftover-map criterion leftover-map item coordinates independently of leftover-map
+Independent of leftover-map graphic leftover-map criterion leftover-map item coordinates independently of leftover-map
 post ξ markers
-([ADR 0336](0336-leftover-map-compare-plot-criterion-coordinates.md)). Independent of leftover-axis tick leftover-map axis share independently of leftover-map
+([ADR 0335](0335-leftover-map-plot-criterion-coordinates.md)). Independent of leftover-axis tick leftover-map axis share independently of leftover-map
 singular values
 ([ADR 0334](0334-leftover-map-axis-tick-share-badge.md)). Independent of leftover-map
 comparison leftover-axis tick leftover-map axis share independently of leftover-map
@@ -107,6 +109,7 @@ graphic leftover-map axis tick leftover-map axis share independently of leftover
 ([ADR 0332](0332-leftover-map-plot-tick-share-badge.md)). Independent of leftover-map
 comparison graphic leftover-map axis tick leftover-map axis share independently of leftover-map singular values
 ([ADR 0331](0331-leftover-map-compare-plot-tick-share-badge.md)). Independent of leftover-map
+graphic display on the grouping comparison strip ([ADR 0304](0304-leftover-map-compare-graphic.md)). Independent of leftover-map
 graphic display ([ADR 0268](0268-leftover-map-graphic-display.md)). Independent of leftover-map
 coordinates ([ADR 0267](0267-leftover-map-coordinates.md)).
 

@@ -119,7 +119,9 @@ singular values on leftover-axis report badges independently of leftover-map axi
 ([ADR 0325](0325-leftover-map-axis-singular-only.md)). Independent of leftover-map
 axis share persistence ([ADR 0148](0148-leftover-map-axis-share.md)). Independent of leftover-map
 graphic leftover-map criterion leftover-map item coordinates independently of leftover-map post ξ markers
-([ADR 0335](0335-leftover-map-plot-criterion-coordinates.md)).
+([ADR 0335](0335-leftover-map-plot-criterion-coordinates.md)). Independent of leftover-map
+comparison graphic leftover-map criterion leftover-map item coordinates independently of leftover-map post ξ markers
+([ADR 0336](0336-leftover-map-compare-plot-criterion-coordinates.md)).
 
 ## References
 

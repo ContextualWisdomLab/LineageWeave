@@ -4213,8 +4213,13 @@ describe("App, authenticated", () => {
     expect(screen.getByLabelText("Leftover map comparison graphic")).toBeInTheDocument();
     expect(screen.getByLabelText("leftover-map criterion sales-lead at ζ (+0.50, −0.02)")).toBeInTheDocument();
     expect(
-      within(screen.getByLabelText("Grouping comparison")).getByLabelText("Criterion ζ sales-lead"),
+      within(screen.getByLabelText("Grouping comparison")).getByLabelText(
+        "leftover map comparison graphic leftover-map criterion sales-lead at ζ (+0.50, −0.02)",
+      ),
     ).toBeInTheDocument();
+    expect(
+      within(screen.getByLabelText("Grouping comparison")).queryByLabelText("Criterion ζ sales-lead"),
+    ).not.toBeInTheDocument();
     expect(
       within(screen.getByLabelText("Grouping comparison")).queryByLabelText(
         "leftover-map criterion sales-lead at ζ (+0.50, −0.02)",

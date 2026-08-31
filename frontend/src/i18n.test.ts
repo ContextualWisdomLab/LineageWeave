@@ -69,6 +69,7 @@ describe("i18n", () => {
     "Post ξ",
     "Criterion ζ",
     "leftover-map criterion {label} at ζ {item}",
+    "leftover map comparison graphic leftover-map criterion {label} at ζ {item}",
     "leftover-map axis 1",
     "leftover-map axis 2",
     "leftover-map axis {axis} ({share}%)",
@@ -440,6 +441,21 @@ describe("i18n", () => {
     setLocale(locale);
     expect(
       tf("leftover-map criterion {label} at ζ {item}", {
+        label: "sales-lead",
+        item: "(+0.50, −0.02)",
+      }),
+    ).toBe(expected);
+  });
+
+  it.each([
+    ["ko", "잔여 지도 비교 그림 기준 sales-lead (ζ (+0.50, −0.02))"],
+    ["zh", "残差地图比较图形准则 sales-lead（ζ (+0.50, −0.02)）"],
+    ["ja", "残差マップの比較図基準 sales-lead（ζ (+0.50, −0.02)）"],
+    ["vi", "tiêu chí đồ họa so sánh bản đồ phần dư sales-lead tại ζ (+0.50, −0.02)"],
+  ] as const)("formats leftover map comparison graphic leftover-map criterion ζ in %s", (locale, expected) => {
+    setLocale(locale);
+    expect(
+      tf("leftover map comparison graphic leftover-map criterion {label} at ζ {item}", {
         label: "sales-lead",
         item: "(+0.50, −0.02)",
       }),
