@@ -17,6 +17,104 @@
 > browser, load, and backfill acceptance remains pending. This
 > overlay supersedes every older queue count below while the dated historical
 > snapshots remain supporting evidence only.
+> Exact-head loop overlay: 2026-08-29 13:20 KST. Protected `main` is
+> `fc13acaa20adca11968238e398d4aafcf62b6cee` (v2.23.0 leftover-map
+> explained leftover share, #775). Open ready PRs still lack independent
+> APPROVE. #782 leftover-map coordinates + graphic + axis share + ticks
+> (v2.24.0–v2.27.0 / ADR 0267–0270) is on
+> `2a203bf8b75b987ba899a0006a312d81259b9124` after #799 squash-merged
+> into the unprotected leftover branch. Auto-merge squash remains armed
+> on #782/#780/#774/#772/#771/#770. Independent APPROVE is still
+> required for protected main. Drafts remain dirty against `main`. #96
+> stays closed as a weaker duplicate of #91. GitHub writes through
+> `gh`/MCP succeed. Copilot review is not independent APPROVE. Do not
+> self-approve. Do not `gh pr merge` stacked leftover PRs onto an
+> unprotected leftover base.
+>
+> Next buyer increment on this cycle: leftover-map distance on
+> graphic-display pair segments (ADR 0271 / v2.28.0). Caption each
+> closest/farthest segment with persisted leftover-map distance `d` so
+> the pair-row badge matches the graphic line. UI-only; no new columns.
+> Missing/non-finite `d` omits that segment caption. Do not invent `d`
+> from plotted coordinates. Do not invent leftover scores. Stack onto
+> leftover branch `feat/leftover-map-coordinates-v2240`; leave the PR
+> open for independent review.
+
+> Exact-head loop overlay: 2026-08-29 13:15 KST. Protected `main` is
+> `fc13acaa20adca11968238e398d4aafcf62b6cee` (v2.23.0 leftover-map
+> explained leftover share, #775). Open ready PRs still lack independent
+> APPROVE. #782 leftover-map coordinates + graphic display + axis share
+> (v2.24.0 / v2.25.0 / v2.26.0 / ADR 0267 / ADR 0268 / ADR 0269) is on
+> `4a0afbf4804d9862bba58869db20ccdfb0a0b37e`; Strix fail-closed and no
+> independent APPROVE. Auto-merge squash remains armed on
+> #782/#780/#774/#772/#771/#770. Drafts remain dirty against `main`.
+> #96 stays closed as a weaker duplicate of #91. GitHub writes through
+> `gh`/MCP succeed (comment/create-branch/auto-merge). `git push` HTTPS
+> still fails (empty `X-OAuth-Scopes`). Copilot review is not
+> independent APPROVE. Do not self-approve.
+>
+> Next buyer increment on this cycle: leftover-map coordinate ticks
+> (ADR 0270 / v2.27.0). Tick leftover-map axes at the origin and at each
+> unique finite persisted `ξ` / `ζ` so pair-row `ξ (x, y) ζ (x, y)`
+> matches the graphic. UI-only; no new columns. Rank-0 unused axes name
+> only `0` and do not invent drawing-scale `−1` / `+1` ticks. Do not
+> invent leftover scores. Do not mix into #782; stack onto leftover
+> branch `feat/leftover-map-coordinates-v2240`.
+
+> Exact-head loop overlay: 2026-08-28 19:15 KST. Protected `main` is
+> `fc13acaa20adca11968238e398d4aafcf62b6cee` (v2.23.0 leftover-map
+> explained leftover share, #775). Open ready PRs still lack independent
+> APPROVE. #782 leftover-map coordinates + graphic display (v2.24.0 /
+> v2.25.0 / ADR 0267 / ADR 0268) is on
+> `2f7e9c8df695f12d03964d5caa68fa3355bdd923`; Strix fail-closed and no
+> independent APPROVE. Drafts remain dirty against `main`. #96 stays
+> closed as a weaker duplicate of #91. GitHub writes through MCP succeed
+> (comment/create-branch/git push/auto-merge). Copilot review is not
+> independent APPROVE. Do not self-approve.
+>
+> Next buyer increment on this cycle: leftover-map axis share on the
+> graphic display (ADR 0269 / v2.26.0). Caption plot axes with persisted
+> ADR 0148 `leftover_map_axes` inertia `σ_k² / Σ_j σ_j²`. UI-only; no
+> new columns. Rank-0 zero-share axes still named. Missing/non-finite
+> share omits that axis badge and keeps existing leftover-map axis
+> text. Do not invent leftover scores. Do not mix into dashboard stacks
+> #640/#778/#781.
+
+> Exact-head loop overlay: 2026-08-28 16:05 KST. Protected `main` is
+> `fc13acaa20adca11968238e398d4aafcf62b6cee` (v2.23.0 leftover-map
+> explained leftover share, #775). Open ready PRs still lack independent
+> APPROVE. #782 leftover-map coordinates (v2.24.0 / ADR 0267) is on
+> `e2d13019004a5d8c019fecf7a39ceeef4093b8dd`; Strix fail-closed and no
+> independent APPROVE. Drafts remain dirty against `main`. #96 stays
+> closed as a weaker duplicate of #91. GitHub writes through MCP succeed.
+>
+> Next buyer increment on this cycle: leftover-map graphic display
+> of already-persisted `ξ_{1:2}` / `ζ_{1:2}` (ADR 0268 / v2.25.0).
+> UI-only; no new columns. `R̂` and `d` already are inner product and
+> length. Do not invent leftover scores. Do not mix into dashboard
+> stacks #640/#778/#781.
+
+> Exact-head loop overlay: 2026-08-28 13:00 KST. Protected `main` is
+> `fc13acaa20adca11968238e398d4aafcf62b6cee` (v2.23.0 leftover-map
+> explained leftover share, #775). Open ready PRs still lack independent
+> APPROVE. Drafts remain dirty against `main`. #96 stays closed as a
+> weaker duplicate of #91. GitHub writes through `gh` succeed.
+>
+> Next buyer increment on this cycle: leftover-map coordinates
+> `ξ_{1:2}` / `ζ_{1:2}` (ADR 0267 / migration 0245 / v2.24.0) so
+> `R̂ = ξ · ζ` and `d = ‖ξ − ζ‖` are buyer-auditable. Do not name
+> leftover-map inner product, cosine, or length as separate columns.
+
+> Exact-head loop overlay: 2026-08-28 10:00 KST. Protected `main` was
+> `edf22ee39aee2a8481f9bda8fff59801821e79c2` (#773 similar-VOC coverage).
+> Open ready PRs: #772 (ask_time_axis coverage), #771 (fixtures/vision
+> coverage), #770 (project-history empty-state). Auto-merge squash is
+> enabled on all three; none has an independent APPROVE (only bot
+> COMMENT). Drafts #702, #679, #672, #667, #640 remain dirty against
+> `main`. #96 stays closed as a weaker duplicate of #91. Writes through
+> the Grok GitHub App now succeed (comment/close/auto-merge/update-branch)
+> despite empty `X-OAuth-Scopes`; git push is the remaining probe this
+> cycle. This overlay supersedes every older queue count below.
 >
 > Next buyer increment on this cycle: leftover-map explained leftover
 > share `e = R̂² / R²` (ADR 0266 / migration 0244 / v2.23.0) so
@@ -683,7 +781,7 @@ this file per §3.5 of the prior snapshot).
 | Accessibility and responsive UX | #602 delivered base post-detail modal semantics; #605 adds selected-post refocus, collapsed/hidden/inert/CSS-invisible focus exclusion across both modal types, readable evidence separators, focused tests, and desktop/mobile Storybook screenshots | Land #605 through the protected gate, then complete screen-reader and authenticated Playwright acceptance on the exact release head |
 | Design tokens and repeated objects | Token extraction started; sanitized Figma Event Lineage desktop/mobile frames exist, while other repeated product surfaces remain incomplete | Tokens in CSS + Storybook stories for board, popup, DAG, Ask, calendar, forms, charts; same-viewport Figma/runtime visual comparison before release |
 | Frontend delivery performance | #644 implements a native dynamic-import boundary for conditional workspace surfaces and retains accessible loading/error states; exact-head checks passed but the PR is not protected-main evidence | Merge #644 normally, rebuild the protected-main production bundle, and retain the measured chunk inventory rather than raising the warning limit |
-| Authenticated read latency | ADR 0271 sets a product-owner-approved 20 ms maximum for every REST `GET` and MCP read, including authorization, database work, projection, and serialization. The Dashboard eligibility predicate repair reduced one observed 43,189-record Voice read from more than 30 seconds to about one second and the Dashboard projection from about 12 seconds to hundreds of milliseconds, but neither result satisfies the SLO. No exact-head cold/warm all-read inventory currently passes | Replace wide-source rescans with maintained bounded read projections, enforce maximum rather than average latency in database and k6 evidence, and keep this gap open until every inventoried read passes cold and warm on the declared canonical deployment |
+| Authenticated read latency | ADR 0272 sets a product-owner-approved 20 ms maximum for every REST `GET` and MCP read, including authorization, database work, projection, and serialization. The Dashboard eligibility predicate repair reduced one observed 43,189-record Voice read from more than 30 seconds to about one second and the Dashboard projection from about 12 seconds to hundreds of milliseconds, but neither result satisfies the SLO. No exact-head cold/warm all-read inventory currently passes | Replace wide-source rescans with maintained bounded read projections, enforce maximum rather than average latency in database and k6 evidence, and keep this gap open until every inventoried read passes cold and warm on the declared canonical deployment |
 | External integrations | Search, Zotero, calendar, Keyverse, orchestrator, RankWeave, ThreadWeave, TEPP, DiskSage, wardnet | Provider conformance, failure/reconciliation behavior, and provenance-bearing integration evidence |
 | Naruon email/project lineage | #704 provides a strict store-agnostic v1 contract, opaque evidence references, observed/inferred truth separation, knowledge-cutoff admission, and explicit unavailable states. Inferred edges require an injected provenance-bearing fast-mlsirm estimate; no local default weight exists | Merge #704 through protected `main`, publish an immutable attested artifact, then enable the Naruon consumer only against that released version and its contract fixtures |
 | MSA / modular reuse | LineageWeave must run standalone and as a consumer of org packages | Do not reimplement RankWeave/TEPP/orchestrator/ThreadWeave/Keyverse; fix upstream and PR there |

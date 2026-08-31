@@ -1,4 +1,4 @@
--- Migration 0262 / ADR 0271: keep authorization reads off the wide source heap.
+-- Migration 0262 / ADR 0272: keep authorization reads off the wide source heap.
 create index concurrently if not exists source_post_active_context_access_idx
     on source_post (
         visibility_code,

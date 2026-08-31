@@ -14,6 +14,6 @@ https://www.iso.org/standard/78176.html
 
 ## Adoption trace
 
-ADR 0271 uses ISO/IEC 25010's product-quality model and ISO/IEC 25023's
+ADR 0272 uses ISO/IEC 25010's product-quality model and ISO/IEC 25023's
 quantitative measurement framing. The 20 ms maximum is the product owner's
 explicit acceptance requirement, not a value supplied by either standard.

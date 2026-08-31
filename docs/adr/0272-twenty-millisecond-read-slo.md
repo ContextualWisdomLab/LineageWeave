@@ -1,4 +1,4 @@
-# ADR 0271: Twenty-millisecond read SLO
+# ADR 0272: Twenty-millisecond read SLO
 
 - Status: Accepted
 - Date: 2026-08-31

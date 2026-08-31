@@ -1427,6 +1427,10 @@ export interface LeftoverPair {
   leftover_map_reconstruction?: number | null;
   leftover_map_unexplained_share?: number | null;
   leftover_map_explained_share?: number | null;
+  leftover_map_person_axis_1?: number | null;
+  leftover_map_person_axis_2?: number | null;
+  leftover_map_item_axis_1?: number | null;
+  leftover_map_item_axis_2?: number | null;
 }
 
 export interface LeftoverMapAxis {

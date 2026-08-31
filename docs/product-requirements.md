@@ -545,7 +545,7 @@ vendor selector, duplicate identity store, or psychometric substitute appears.
 - Every authenticated REST `GET` and MCP read completes service-side response
   production within 20 ms under the declared exact-head deployment and
   workload. Cold and warm maximums are both release gates; timeouts, partial
-  responses, cache-hit-only evidence, and averages do not satisfy ADR 0271.
+  responses, cache-hit-only evidence, and averages do not satisfy ADR 0272.
 - WCAG 2.2 AA, keyboard/touch parity, responsive layouts, reduced motion,
   design tokens, Storybook edge states, and screenshot review apply to every
   customer-facing surface.
