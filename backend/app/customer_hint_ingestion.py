@@ -20,6 +20,7 @@ from lineageweave.image_content import NullImageContentClient
 from lineageweave.organization_name_resolution import resolve_and_verify_organization_name
 from lineageweave.post_content_normalization import normalize_post_body
 from lineageweave.relation_verification import STATUS_CORROBORATED, RelationVerificationClient
+from lineageweave.semantic_hints import customer_hint_trust
 
 
 _EXCERPT_LENGTH = 1500
@@ -40,6 +41,8 @@ async def resolve_customer_hint(
     its account's default placeholder entity, returning the entity
     id/name plus how many posts were reclaimed.
     """
+    if customer_hint_trust(hint_code) == "low":
+        return None
     if not resolution_client.available:
         return None
     # Five rows and 20,000 raw body characters per row bound both transfer and

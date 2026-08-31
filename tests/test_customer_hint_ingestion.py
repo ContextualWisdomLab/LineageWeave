@@ -61,6 +61,25 @@ def test_unavailable_client_resolves_nothing() -> None:
     assert result is None
 
 
+def test_placeholder_hint_never_enters_resolution_or_catalog() -> None:
+    """A generic source category stays a weak hint, never an identity request."""
+
+    class ForbiddenConnection:
+        async def fetch(self, *_args: object) -> None:
+            raise AssertionError("placeholder hint must not read source bodies")
+
+    result = asyncio.run(
+        ingestion.resolve_customer_hint(
+            ForbiddenConnection(),  # type: ignore[arg-type]
+            _Client(),
+            _Client(),
+            "기타",
+        )
+    )
+
+    assert result is None
+
+
 def test_no_sample_posts_resolves_nothing() -> None:
     conn = _Connection(sample_rows=[])
     result = asyncio.run(ingestion.resolve_customer_hint(conn, _Client(), _Client(), "0019999999"))
