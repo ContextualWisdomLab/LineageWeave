@@ -48,13 +48,20 @@ post-authorization without approximating or dropping evidence.
    visible candidate set. For each declared scope and exact projection version,
    the worker builds one immutable canonical length-prefixed packed identity
    buffer and binds its scope and byte digests. It executes RankWeave's exact
-   owner preflight plus PostgreSQL result reauthorization for that real scope.
-   Readiness opens only after every declared scope's warm owner-plus-postauth
-   path completes within ADR 0272's 20-millisecond maximum. The preflight
-   result is discarded; it is not answer or authorization caching.
-5. Every query re-reads projection and authorization versions, supplies the
+   complete-ranking and interval-screened top-k preflights plus PostgreSQL
+   result reauthorization for that real scope. Readiness opens only after
+   every declared scope's warm owner-plus-postauth path completes within ADR
+   0272's 20-millisecond maximum. The preflight results are discarded; they
+   are not answer or authorization caching.
+5. Every query supplies the
    matching immutable packed scope to RankWeave, and reauthorizes the exact
-   returned identities in PostgreSQL before constructing a source. An unknown,
+   returned identities in PostgreSQL before constructing a source. The final
+   repeatable-read query returns current projection and authorization versions
+   beside the rows and fails closed unless both equal the prepared snapshot.
+   Because every `source_post` mutation advances the authorization version,
+   equality proves the eligibility predicate used to build the packed scope is
+   unchanged; final ABAC and native UUID identity joins do not repeat its
+   corpus-wide fallback probe. An unknown,
    changed, or unprepared scope fails closed while the background worker
    prepares it. Event-time filtering is applied during final PostgreSQL
    reauthorization over the owner's complete exact item ranking, so a cached
@@ -76,6 +83,16 @@ post-authorization without approximating or dropping evidence.
    exact owner results, ABAC non-leakage, and the authenticated concurrent k6
    maximum to be measured on the declared Compose runtime.
 
+Requests arriving in the same scheduler turn may share one owner traversal
+only when snapshot, projection version, authorization version, model,
+dimension, exact scope digest, and packed-authorization digest all match.
+No-date requests use RankWeave's exact top-k contract; date-filtered requests
+retain the complete ranking so PostgreSQL filtering cannot hide a later
+eligible result. One fixed-shape `UNNEST` query reauthorizes all reports and
+returns rows partitioned by request. Every request retains its own date
+predicate, result limit, ordered-row validation, and final version check.
+Different scope digests never share owner or database work.
+
 The 2026-08-31 aggregate, non-identifying full-path measurement used the
 declared four-worker CPU profile, 6,578 complete 3,072-dimensional embeddings,
 161,660,928 persisted vector bytes, and a 577,992-byte exact public
@@ -88,6 +105,16 @@ and therefore did not satisfy ADR 0272. Isolated warm phases measured 5.819-
 ranking, and 1.308-3.614 ms for PostgreSQL result reauthorization. Authenticated
 k6 remains an activation gate after the accepted owner revision is pinned into
 the Compose image; these component measurements are not a k6 substitute.
+
+The interval-safe owner plus fixed-shape batch reauthorization later measured
+100 batches of four distinct queries at 15.286 ms minimum, 15.890 ms mean,
+17.232 ms nearest-rank p95, and 22.587 ms maximum on the exact application
+pool; one ten-batch series therefore still failed the maximum. A 500-iteration
+phase trace observed four failures, including a 68.421 ms batch whose owner
+call alone took 61.509 ms while PostgreSQL took 1.231 ms. First accepted
+requests for five prepared scopes measured 8.067-9.625 ms. The optimization is
+exact and materially faster, but deterministic 20 ms acceptance remains
+unproven on this host, so activation and authenticated k6 claims stay closed.
 
 ## Consequences
 

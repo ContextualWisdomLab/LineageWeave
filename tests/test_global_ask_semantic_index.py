@@ -4,6 +4,7 @@ import asyncio
 import hashlib
 import struct
 import threading
+from datetime import date
 from types import SimpleNamespace
 
 import pytest
@@ -44,6 +45,7 @@ class _Connection:
             }
         ]
         self.snapshot_fetches = 0
+        self.version_fetches = 0
         self.projection_version = 7
         self.authorization_version = 11
         self.authorization_queries: list[str] = []
@@ -69,6 +71,7 @@ class _Connection:
 
     async def fetchrow(self, query, *args):
         assert "authorization_version" in query
+        self.version_fetches += 1
         return self.projection_version, self.authorization_version
 
     async def fetch(self, query, *args):
@@ -79,6 +82,49 @@ class _Connection:
             assert "left join account_affiliation" in query
             return self.scope_rows
         self.authorization_queries.append(query)
+        if "authorized on true" in query:
+            sentinel = {
+                "request_id": None,
+                "ordinal": None,
+                "item_id": None,
+                "unit_id": None,
+                "unit_index": None,
+                "evidence_open_available": False,
+                "date_eligible": False,
+                "projection_version": self.projection_version,
+                "authorization_version": self.authorization_version,
+            }
+            requested = (
+                zip(args[5], args[6], args[7], args[8], strict=True)
+                if "from unnest(" in query
+                else (
+                    tuple(args[offset : offset + 4])
+                    for offset in range(5, len(args), 6)
+                )
+            )
+            authorized = [
+                {
+                    **self.authorized_rows[0],
+                    "request_id": request_id,
+                    "ordinal": ordinal,
+                    "item_id": item_id,
+                    "unit_id": unit_id,
+                    "projection_version": self.projection_version,
+                    "authorization_version": self.authorization_version,
+                }
+                for request_id, ordinal, item_id, unit_id in requested
+                if (item_id, unit_id)
+                == (
+                    self.authorized_rows[0]["item_id"],
+                    self.authorized_rows[0]["unit_id"],
+                )
+            ]
+            return authorized or [sentinel]
+        if "projection_state.projection_version = $10" in query and (
+            args[9] != self.projection_version
+            or args[10] != self.authorization_version
+        ):
+            return []
         return self.authorized_rows
 
 
@@ -86,6 +132,7 @@ class _OwnerIndex:
     constructions = 0
     leak = False
     preflight_failure = False
+    top_k_calls: list[tuple[int, int]] = []
 
     def __init__(self, version, model, dimension, candidate_ids, packed_vectors):
         type(self).constructions += 1
@@ -115,14 +162,50 @@ class _OwnerIndex:
             raise ValueError("synthetic preflight failure")
         return self.rank_authorized_packed(model, [1.0, 0.0], packed_authorization)
 
+    def preflight_authorized_top_k_packed(
+        self, model, packed_authorization, top_k
+    ):
+        return self.rank_authorized_top_k_batch_packed(
+            model, [[1.0, 0.0]], packed_authorization, top_k
+        )[0]
+
+    def rank_authorized_batch_packed(self, model, queries, packed_authorization):
+        return [
+            self.rank_authorized_packed(model, query, packed_authorization)
+            for query in queries
+        ]
+
+    def rank_authorized_top_k_batch_packed(
+        self, model, queries, packed_authorization, top_k
+    ):
+        type(self).top_k_calls.append((len(queries), top_k))
+        reports = self.rank_authorized_batch_packed(
+            model, queries, packed_authorization
+        )
+        for report in reports:
+            report.results = report.results[:top_k]
+        return reports
+
 
 class _ConcurrentOwnerIndex(_OwnerIndex):
     barrier: threading.Barrier | None = None
+    batch_sizes: list[int] = []
 
     def rank_authorized_packed(self, model, query, packed_authorization):
         if self.barrier is not None:
             self.barrier.wait(timeout=2)
         return super().rank_authorized_packed(model, query, packed_authorization)
+
+    def rank_authorized_batch_packed(
+        self, model, queries, packed_authorization
+    ):
+        type(self).batch_sizes.append(len(queries))
+        return [
+            _OwnerIndex.rank_authorized_packed(
+                self, model, query, packed_authorization
+            )
+            for query in queries
+        ]
 
 
 def _pack_authorization(*identities: tuple[str, str]) -> bytes:
@@ -228,6 +311,11 @@ def test_request_never_builds_an_unprepared_or_stale_snapshot(monkeypatch) -> No
         asyncio.run(index.rank_authorized(conn, **parameters))
     assert conn.snapshot_fetches == 1
 
+    conn.projection_version = 7
+    conn.authorization_version = 12
+    with pytest.raises(RankWeaveNotAvailable, match="not prepared"):
+        asyncio.run(index.rank_authorized(conn, **parameters))
+
 
 def test_failed_refresh_never_marks_stale_authorization_prepared(monkeypatch) -> None:
     """A replaced owner snapshot cannot reuse authorization from its predecessor."""
@@ -319,15 +407,18 @@ def test_active_scopes_include_public_only_readers(monkeypatch, scope_rows) -> N
 
 def test_warm_immutable_snapshot_allows_concurrent_exact_ranking(monkeypatch) -> None:
     _ConcurrentOwnerIndex.barrier = None
+    _ConcurrentOwnerIndex.batch_sizes = []
+    _ConcurrentOwnerIndex.top_k_calls = []
     monkeypatch.setattr(
         "backend.app.global_ask_semantic_index._import_rankweave",
         lambda: SimpleNamespace(SemanticUnitExactIndex=_ConcurrentOwnerIndex),
     )
     index = GlobalAskExactSemanticIndex()
     _rank(index, _Connection())
+    _ConcurrentOwnerIndex.batch_sizes = []
+    _ConcurrentOwnerIndex.top_k_calls = []
 
     async def rank_twice():
-        _ConcurrentOwnerIndex.barrier = threading.Barrier(2)
         parameters = {
             "model_identity": "synthetic-model",
             "query_vector": [1.0, 0.0],
@@ -337,14 +428,105 @@ def test_warm_immutable_snapshot_allows_concurrent_exact_ranking(monkeypatch) ->
             "end_date": None,
             "limit": 4,
         }
-        return await asyncio.gather(
-            index.rank_authorized(_Connection(), **parameters),
-            index.rank_authorized(_Connection(), **parameters),
+        first_conn = _Connection()
+        second_conn = _Connection()
+        results = await asyncio.gather(
+            index.rank_authorized(first_conn, **parameters),
+            index.rank_authorized(second_conn, **parameters),
+        )
+        return results, first_conn, second_conn
+
+    (first, second), first_conn, second_conn = asyncio.run(rank_twice())
+    assert first == second
+    assert _ConcurrentOwnerIndex.top_k_calls == [(2, 4)]
+    assert _ConcurrentOwnerIndex.batch_sizes == [2]
+    assert first_conn.version_fetches + second_conn.version_fetches == 0
+    assert len(first_conn.authorization_queries) + len(second_conn.authorization_queries) == 1
+    assert any(
+        "authorized on true" in query
+        for query in first_conn.authorization_queries + second_conn.authorization_queries
+    )
+    _ConcurrentOwnerIndex.barrier = None
+
+
+def test_date_filtered_requests_keep_complete_ranking_before_filter(monkeypatch) -> None:
+    """A date predicate cannot use top-k before PostgreSQL applies the date."""
+    _ConcurrentOwnerIndex.batch_sizes = []
+    _ConcurrentOwnerIndex.top_k_calls = []
+    monkeypatch.setattr(
+        "backend.app.global_ask_semantic_index._import_rankweave",
+        lambda: SimpleNamespace(SemanticUnitExactIndex=_ConcurrentOwnerIndex),
+    )
+    index = GlobalAskExactSemanticIndex()
+    _rank(index, _Connection())
+    _ConcurrentOwnerIndex.batch_sizes = []
+    _ConcurrentOwnerIndex.top_k_calls = []
+
+    async def rank_filtered() -> None:
+        conn = _Connection()
+        await index.rank_authorized(
+            conn,
+            model_identity="synthetic-model",
+            query_vector=[1.0, 0.0],
+            authorized_corporate_entity_ids=["entity-a"],
+            authorized_process_unit_ids=["unit-a"],
+            start_date=date(2026, 1, 1),
+            end_date=None,
+            limit=4,
         )
 
-    first, second = asyncio.run(rank_twice())
-    assert first == second
-    _ConcurrentOwnerIndex.barrier = None
+    asyncio.run(rank_filtered())
+    assert _ConcurrentOwnerIndex.top_k_calls == []
+    assert _ConcurrentOwnerIndex.batch_sizes == []
+
+
+def test_distinct_authorization_digests_never_share_an_owner_batch(monkeypatch) -> None:
+    """Scheduler-turn coalescing remains confined to one exact ABAC digest."""
+    _ConcurrentOwnerIndex.top_k_calls = []
+    monkeypatch.setattr(
+        "backend.app.global_ask_semantic_index._import_rankweave",
+        lambda: SimpleNamespace(SemanticUnitExactIndex=_ConcurrentOwnerIndex),
+    )
+    prepare_conn = _Connection()
+    prepare_conn.scope_rows = [
+        {
+            "entity_ids": ["entity-a"],
+            "process_ids": [],
+            "process_scope_limited": False,
+        },
+        {
+            "entity_ids": ["entity-b"],
+            "process_ids": [],
+            "process_scope_limited": False,
+        },
+    ]
+    index = GlobalAskExactSemanticIndex()
+    asyncio.run(
+        index.prepare(
+            prepare_conn, model_identity="synthetic-model", vector_dimension=2
+        )
+    )
+    _ConcurrentOwnerIndex.top_k_calls = []
+
+    async def rank_distinct_scopes() -> None:
+        await asyncio.gather(
+            *(
+                index.rank_authorized(
+                    _Connection(),
+                    model_identity="synthetic-model",
+                    query_vector=[1.0, 0.0],
+                    authorized_corporate_entity_ids=[entity],
+                    authorized_process_unit_ids=[],
+                    start_date=None,
+                    end_date=None,
+                    limit=4,
+                )
+                for entity in ("entity-a", "entity-b")
+            )
+        )
+
+    asyncio.run(rank_distinct_scopes())
+    assert sorted(_ConcurrentOwnerIndex.top_k_calls) == [(1, 4), (1, 4)]
 
 
 def test_builder_stays_inactive_without_pinned_owner_contract(monkeypatch) -> None:
