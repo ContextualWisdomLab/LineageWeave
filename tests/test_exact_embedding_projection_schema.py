@@ -1,7 +1,7 @@
 from pathlib import Path
 
 
-MIGRATION = Path("migrations/0273_exact_embedding_projection.sql")
+MIGRATION = Path("migrations/0274_exact_embedding_projection.sql")
 
 
 def test_exact_projection_is_digest_bound_and_replay_safe() -> None:

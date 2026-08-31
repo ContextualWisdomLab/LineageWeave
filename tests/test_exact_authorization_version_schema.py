@@ -1,7 +1,7 @@
 from pathlib import Path
 
 
-MIGRATION = Path("migrations/0274_global_ask_exact_authorization_version.sql")
+MIGRATION = Path("migrations/0275_global_ask_exact_authorization_version.sql")
 
 
 def test_exact_authorization_version_tracks_every_scope_authority() -> None:
