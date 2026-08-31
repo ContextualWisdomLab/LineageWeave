@@ -1,5 +1,15 @@
 # Product & Technical Gap Baseline
 
+> Exact-head loop overlay: 2026-09-01 02:20 KST. Protected `main` is
+> `cb187cadee5fb6c46d8a944815ccc154a1e028d1`. Writes work. Do not
+> self-approve. #891 leftover-map graphic leftover-map criterion leftover-map origin leftover-map
+> item coordinates independently of leftover-map person coordinates (v2.104.0 / ADR 0347) is
+> `47dd988`, stacked on #889 @ `4bfb490`. Independent APPROVE is missing (Devin COMMENTED,
+> not APPROVE). Next buyer increment on this cycle: leftover-map graphic leftover-map post leftover-map origin leftover-map
+> person coordinates independently of leftover-map criterion leftover-map item coordinates as leftoverMapPlotPostBadge (ADR 0348 / v2.105.0) delivered locally on
+> `feat/leftover-map-plot-post-origin-badge-v21050`. Distinct accessible name
+> `Open leftover-map post {title} at leftover-map origin ξ {person}`. Rank-0 unused axes still name leftover-map origin `(0.00, 0.00)`. leftoverMapComparePlotPostBadge stays leftover-map comparison graphic leftover-map post leftover-map person coordinate keys. leftoverMapPlotCriterionBadge stays leftover-map graphic leftover-map criterion leftover-map origin leftover-map item coordinate keys. Do not invent leftover-map origin from leftover-map item coordinates `ζ`. Do not mix #877. Stack onto #891. Leave open for independent review. Do not squash-merge. Do not self-approve. Issues #79 and #87 stay open. Do not merge #808 without independent APPROVE. #96 closed as weaker duplicate of #91.
+
 > Exact-head loop overlay: 2026-08-31 19:35 KST. Protected `main` is
 > `cb187cadee5fb6c46d8a944815ccc154a1e028d1`. Writes work. Do not
 > self-approve. #889 leftover-map leftover-axis origin ticks independently of leftover-map

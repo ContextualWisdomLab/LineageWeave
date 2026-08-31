@@ -163,6 +163,10 @@
  *  leftover-map item coordinates through leftoverMapPlotCriterionBadge independently of leftover-map
  *  person coordinates ξ, not leftover-map comparison graphic leftover-map criterion leftover-map
  *  item coordinates.
+ *  ADR 0348 fail-closes leftover-map graphic leftover-map post leftover-map origin leftover-map
+ *  person coordinates through leftoverMapPlotPostBadge independently of leftover-map
+ *  criterion leftover-map item coordinates ζ, not leftover-map comparison graphic leftover-map post leftover-map
+ *  person coordinates.
  */
 
 import { formatLeftoverMapCoordinatePair, leftoverMapPlotCoordinatePairIsOrigin } from "./leftoverMapCoordinates";
@@ -191,6 +195,9 @@ export const LEFTOVER_MAP_COMPARE_PLOT_SVG = "Leftover map comparison";
 
 export const LEFTOVER_MAP_PLOT_POST_ACTION =
   "Open leftover-map post {title} at ξ {person}";
+
+export const LEFTOVER_MAP_PLOT_POST_ACTION_ORIGIN =
+  "Open leftover-map post {title} at leftover-map origin ξ {person}";
 
 export const LEFTOVER_MAP_PLOT_POST_ACTION_OMITTED =
   "Open leftover-map post {title}";
@@ -254,7 +261,11 @@ export function leftoverMapPlotPostBadge(
   if (person === null) {
     return null;
   }
-  return { key: LEFTOVER_MAP_PLOT_POST_ACTION, values: { title, person } };
+  const origin = leftoverMapPlotCoordinatePairIsOrigin(person);
+  return {
+    key: origin ? LEFTOVER_MAP_PLOT_POST_ACTION_ORIGIN : LEFTOVER_MAP_PLOT_POST_ACTION,
+    values: { title, person },
+  };
 }
 
 export function leftoverMapComparePlotPostBadge(

@@ -171,6 +171,7 @@ describe("i18n", () => {
     "Leftover map dropped {dropped} incomplete criteria",
     "Leftover map after IRT main effects. Axis ticks name persisted leftover-map coordinates. Pair segments name leftover-map distance d, leftover-map reconstruction R̂, leftover-map explained leftover share e, leftover-map unexplained leftover share s, leftover-map cross share x, leftover-map unexplained leftover U, leftover residual R, leftover observed Y, leftover expected E, and leftover-map rank. The plot names leftover-map complete-case coverage, leftover-map item complete-case coverage, leftover-map incomplete post coverage, and leftover-map incomplete item coverage when persisted. Click a post marker to open that post. The plot does not invent a leftover score.",
     "Open leftover-map post {title} at ξ {person}",
+    "Open leftover-map post {title} at leftover-map origin ξ {person}",
     "Open leftover-map post {title}",
     "Open leftover map comparison graphic leftover-map post {title} at ξ {person}",
     "Read observed Y {observed} and expected E {expected} after IRT main effects, then open this post.",
@@ -483,6 +484,24 @@ describe("i18n", () => {
         tf("leftover-map criterion {label} at leftover-map origin ζ {item}", {
           label: "sales-lead",
           item: "(0.00, 0.00)",
+        }),
+      ).toBe(expected);
+    },
+  );
+
+  it.each([
+    ["ko", "잔여 지도 원점 글 Public post 열기 (ξ (0.00, 0.00))"],
+    ["zh", "打开残差图原点帖子 Public post（ξ (0.00, 0.00)）"],
+    ["ja", "残差マップの原点投稿 Public post を開く（ξ (0.00, 0.00)）"],
+    ["vi", "Mở bài viết gốc bản đồ phần dư Public post tại ξ (0.00, 0.00)"],
+  ] as const)(
+    "formats leftover-map graphic leftover-map post leftover-map origin ξ in %s",
+    (locale, expected) => {
+      setLocale(locale);
+      expect(
+        tf("Open leftover-map post {title} at leftover-map origin ξ {person}", {
+          title: "Public post",
+          person: "(0.00, 0.00)",
         }),
       ).toBe(expected);
     },

@@ -170,8 +170,13 @@ describe("LeftoverMapPlot", () => {
       />,
     );
     expect(
-      screen.getByRole("button", { name: "Open leftover-map post Public post at ξ (0.00, 0.00)" }),
+      screen.getByRole("button", {
+        name: "Open leftover-map post Public post at leftover-map origin ξ (0.00, 0.00)",
+      }),
     ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Open leftover-map post Public post at ξ (0.00, 0.00)" }),
+    ).not.toBeInTheDocument();
     expect(screen.getByLabelText("leftover-map criterion sales-lead at leftover-map origin ζ (0.00, 0.00)")).toBeInTheDocument();
     expect(screen.queryByLabelText("leftover-map criterion sales-lead at ζ (0.00, 0.00)")).not.toBeInTheDocument();
     expect(screen.queryByLabelText("Criterion ζ sales-lead")).not.toBeInTheDocument();
@@ -1005,6 +1010,11 @@ describe("LeftoverMapPlot", () => {
     expect(
       screen.queryByRole("button", {
         name: "Open leftover-map post Public post at ξ (0.00, 0.00)",
+      }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", {
+        name: "Open leftover-map post Public post at leftover-map origin ξ (0.00, 0.00)",
       }),
     ).not.toBeInTheDocument();
     expect(screen.queryByLabelText("Criterion ζ sales-lead")).not.toBeInTheDocument();
