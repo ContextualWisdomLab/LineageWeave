@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import Any, Protocol
 
 from lineageweave.product_semantics import (
-    ProductExtraction,
+    ProductExtractionResult,
     ProductMention,
     ResolvedProductMention,
     normalize_product_alias,
@@ -20,6 +20,10 @@ class _Connection(Protocol):
 
     async def fetch(self, query: str, *args: object) -> list[Any]:
         """Fetch parameterized rows."""
+        pass  # pragma: no cover - structural protocol declaration
+
+    async def fetchval(self, query: str, *args: object) -> Any:
+        """Fetch one scalar value."""
         pass  # pragma: no cover - structural protocol declaration
 
     async def execute(self, query: str, *args: object) -> Any:
@@ -49,23 +53,30 @@ async def resolve_product_mentions(
 async def persist_product_mentions(
     conn: _Connection,
     post_id: str,
-    source_body_sha256: str,
     analysis_input_sha256: str,
     orchestrator_session_id: str,
     mentions: tuple[ResolvedProductMention, ...],
-    extraction: ProductExtraction | None = None,
+    result: ProductExtractionResult,
 ) -> None:
-    """Atomically replace one exact post's product analysis projection."""
+    """Atomically replace products only while their source revision is current."""
     async with conn.transaction():
+        current_digest = await conn.fetchval(
+            "select encode(sha256(convert_to(coalesce(post_body, ''), 'UTF8')), 'hex') "
+            "from source_post where post_id = $1::uuid for update",
+            post_id,
+        )
+        if current_digest != result.source_revision_digest:
+            raise ValueError("product result no longer matches the source revision")
         await conn.execute("delete from post_product_analysis where post_id = $1", post_id)
         await conn.execute(
             "insert into post_product_analysis "
-            "(post_id, source_body_sha256, analysis_input_sha256, orchestrator_session_id) "
-            "values ($1, $2, $3, $4)",
+            "(post_id, source_body_sha256, analysis_input_sha256, orchestrator_session_id, "
+            "orchestrator_model_receipt) values ($1, $2, $3, $4, $5)",
             post_id,
-            source_body_sha256,
+            result.source_revision_digest,
             analysis_input_sha256,
             orchestrator_session_id,
+            result.orchestrator_model_receipt,
         )
         for ordinal, resolved in enumerate(mentions):
             mention = resolved.mention
@@ -83,9 +94,7 @@ async def persist_product_mentions(
                 mention.evidence_post_id,
                 mention.evidence_input_sha256,
             )
-        if extraction is None:
-            return
-        for relation in extraction.relations:
+        for relation in result.extraction.relations:
             if relation.target_kind_code == "operations_fact":
                 target_post_id, case_kind_code, fact_ordinal = relation.target_locator
                 if target_post_id != post_id:

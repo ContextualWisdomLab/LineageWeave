@@ -22,10 +22,12 @@ input provenance for semantic and operational assertions.
 retains that hierarchy. Scoped GTIN and MPN identifiers live in
 `product_catalog_identifier`; an identifier without issuer scope is not an
 identity. `product_catalog_alias` is its normalized lookup vocabulary. Multiple catalog
-identities may intentionally share an alias. A contextual-orchestrator
-structured extraction supplies only product mentions and verbatim source
-spans. LineageWeave validates the span against the authorized source, records
-its post and SHA-256 digest, and resolves the normalized alias with four
+identities may intentionally share an alias. A contextual-orchestrator strict
+`json_schema` extraction supplies only product mentions, typed relations, and
+verbatim source spans. LineageWeave requires the non-empty top-level response
+id as the model receipt, validates each span against the authorized source,
+records its post and caller-computed SHA-256 digest, and resolves the
+normalized alias with four
 outcomes:
 
 - exactly one catalog identity: `unique`, with its foreign key;
@@ -78,6 +80,25 @@ not match the authorized source. Mentions and accepted relations replace the
 prior projection in one transaction. No lexical overlap between mention and
 fact/project evidence creates a relation.
 
+Product extraction is an independent post-content stage. An operations
+evidence or case-analysis failure is remembered for its own retry while the
+focal product request still runs and may persist a receipt-bearing mention
+analysis. The product request reads only the authorized focal body; it does
+not consume an operations summary or fact value to decide whether a product
+exists. Operational facts are optional typed-relation targets only when their
+own current analysis matches both the focal body digest and the exact
+authorized operations-input digest for this attempt. Project targets are
+admitted only while their stored non-empty evidence span is still verbatim in
+the current focal body. A stale target is omitted, never repaired or promoted
+from a catalog hint.
+
+Before replacement, persistence locks the focal source row and recomputes its
+body digest. A stale provider result fails closed without deleting the current
+projection. A current completion stores the source digest, exact request-input
+digest, orchestrator session, and model receipt. Historical completion rows
+without a receipt are unavailable and are selected for bounded retry; they do
+not prove a current analysis.
+
 Replacing an operations-fact or project target invalidates the post's product
 analysis before the target projection is replaced. The durable content job
 must extract the relationship evidence again even when the replacement keeps
@@ -127,6 +148,8 @@ cannot reveal a product span cited only by evidence the reader cannot access.
   normalized objects instead of duplicating unstructured values.
 - A malformed or unauthorized relation invalidates the whole extraction
   response, so one acceptable mention cannot conceal an unsafe edge.
+- Operations outages no longer suppress an otherwise valid product mention
+  receipt; the operations stage retains its independent failure state.
 - Catalog stewardship is required before missing or tied mentions can become
   linked products.
 - Catalog managers can now provision that stewardship evidence without a

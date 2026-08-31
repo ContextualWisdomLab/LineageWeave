@@ -170,17 +170,7 @@ async def _persist_operations_case_analysis_if_needed(
     evidence_sources: tuple[OperationsEvidenceSource, ...] | None = None,
 ) -> None:
     """Persist cases once per exact focal body and authorized evidence window."""
-    context = " | ".join(
-        f"{name}={row[name]}"
-        for name in (
-            "source_project_code",
-            "source_project_name",
-            "source_sales_pool_code",
-            "source_sales_pool_name",
-            "voc_type_code",
-        )
-        if row.get(name) is not None and str(row[name]).strip()
-    )
+    context = _operations_analysis_context(row)
     if evidence_sources is None:
         evidence_sources = await _operations_evidence_sources(
             pool, post_id, row, vision_client
@@ -217,42 +207,55 @@ async def _persist_operations_case_analysis_if_needed(
         )
 
 
+def _operations_analysis_context(row: asyncpg.Record) -> str:
+    """Build the bounded source context shared by digest and case analysis."""
+    return " | ".join(
+        f"{name}={row[name]}"
+        for name in (
+            "source_project_code",
+            "source_project_name",
+            "source_sales_pool_code",
+            "source_sales_pool_name",
+            "voc_type_code",
+        )
+        if row.get(name) is not None and str(row[name]).strip()
+    )
+
+
 async def _persist_product_analysis_if_needed(
     pool: asyncpg.Pool,
     post_id: str,
     source_body_digest: str,
-    row: asyncpg.Record,
-    vision_client: ImageContentClient,
+    raw_body: str,
     session_id: str,
     orchestrator_base_url: str,
     orchestrator_api_key: str,
-    evidence_sources: tuple[OperationsEvidenceSource, ...] | None = None,
+    expected_operations_input_sha256: str | None,
 ) -> None:
-    """Extract and persist products once per exact authorized source window."""
-    operation_sources = evidence_sources
-    if operation_sources is None:
-        operation_sources = await _operations_evidence_sources(
-            pool, post_id, row, vision_client
-        )
-    sources = tuple(
-        ProductEvidenceSource(
-            source.post_id,
-            source.source_text if source.source_text is not None else source.text,
-        )
-        for source in operation_sources
-        if source.post_id == post_id
-    )
+    """Persist focal products independently using only current typed targets."""
+    sources = (ProductEvidenceSource(post_id, raw_body),)
     async with pool.acquire() as conn:
         operation_rows = await conn.fetch(
-            "select case_kind_code, fact_ordinal, fact_type_code, value_text "
-            "from operations_case_fact where post_id = $1 "
-            "order by case_kind_code, fact_ordinal",
+            "select fact.case_kind_code, fact.fact_ordinal, fact.fact_type_code, "
+            "fact.value_text from operations_case_fact fact "
+            "join operations_case_analysis analysis on analysis.post_id = fact.post_id "
+            "where fact.post_id = $1 and analysis.source_body_sha256 = $2 "
+            "and $3::text is not null and analysis.analysis_input_sha256 = $3 "
+            "order by fact.case_kind_code, fact.fact_ordinal",
             post_id,
+            source_body_digest,
+            expected_operations_input_sha256,
         )
         project_rows = await conn.fetch(
-            "select project_key, project_name from post_project_mention "
-            "where post_id = $1 order by project_key",
+            "select project.project_key, project.project_name "
+            "from post_project_mention project join source_post source "
+            "on source.post_id = project.post_id where project.post_id = $1 "
+            "and encode(sha256(convert_to(coalesce(source.post_body, ''), 'UTF8')), 'hex') = $2 "
+            "and btrim(project.evidence_text) <> '' "
+            "and strpos(coalesce(source.post_body, ''), project.evidence_text) > 0 "
+            "order by project.project_key",
             post_id,
+            source_body_digest,
         )
     targets = tuple(
         ProductRelationTarget(
@@ -277,7 +280,8 @@ async def _persist_product_analysis_if_needed(
             await conn.fetchval(
                 "select exists (select 1 from post_product_analysis "
                 "where post_id = $1 and source_body_sha256 = $2 "
-                "and analysis_input_sha256 = $3)",
+                "and analysis_input_sha256 = $3 "
+                "and orchestrator_model_receipt is not null)",
                 post_id,
                 source_body_digest,
                 input_digest,
@@ -288,19 +292,18 @@ async def _persist_product_analysis_if_needed(
     client = ContextualOrchestratorProductExtractionClient(
         orchestrator_base_url, orchestrator_api_key
     )
-    extraction = await asyncio.to_thread(
+    result = await asyncio.to_thread(
         client.extract, sources, targets, session_id=session_id
     )
     async with pool.acquire() as conn:
-        resolved = await resolve_product_mentions(conn, extraction.mentions)
+        resolved = await resolve_product_mentions(conn, result.extraction.mentions)
         await persist_product_mentions(
             conn,
             post_id,
-            source_body_digest,
             input_digest,
             session_id,
             resolved,
-            extraction,
+            result,
         )
 
 
@@ -411,6 +414,7 @@ async def _claim_job(
                            select analysis.source_body_sha256
                              from post_product_analysis analysis
                             where analysis.post_id = p.post_id
+                              and analysis.orchestrator_model_receipt is not null
                        ) as product_analysis_source_body_sha256,
                        (
                            select analysis.source_body_sha256
@@ -658,7 +662,7 @@ async def process_post_content_job(
         structure_client = structure_factory()
         with use_llm_metadata(metadata):
             vision_client = vision_factory()
-            voice_failure: Exception | None = None
+            stage_failures: list[tuple[str, Exception]] = []
             if settings.orchestrator_base_url and settings.orchestrator_api_key:
                 channel_stage_code = "voice_classification"
                 try:
@@ -671,38 +675,30 @@ async def process_post_content_job(
                         settings.orchestrator_api_key,
                     )
                 except HttpAdmissionDeferred as exc:
-                    voice_failure = exc
+                    stage_failures.append(("voice_classification", exc))
                 except (HttpClientError, OSError, RuntimeError, TimeoutError, ValueError) as exc:
-                    voice_failure = exc
+                    stage_failures.append(("voice_classification", exc))
                     _logger.error("derived Voice ingestion failed for post_id=%s", post_id)
                     record_server_failure(
                         "voice_classification_ingestion",
                         exc,
                         outcome="provider_unavailable",
                     )
-                channel_stage_code = "operations_evidence"
-                evidence_sources = await _operations_evidence_sources(
-                    pool, post_id, row, vision_client
-                )
-                channel_stage_code = "operations_case"
-                await _persist_operations_case_analysis_if_needed(
-                    pool,
-                    post_id,
-                    source_body_digest,
-                    raw_body,
-                    row,
-                    vision_client,
-                    metadata["lineageweave_post_session_id"],
-                    settings.orchestrator_base_url,
-                    settings.orchestrator_api_key,
-                    evidence_sources,
-                )
-                channel_stage_code = "product_analysis"
+                expected_operations_input_sha256: str | None = None
                 try:
-                    await _persist_product_analysis_if_needed(
+                    channel_stage_code = "operations_evidence"
+                    evidence_sources = await _operations_evidence_sources(
+                        pool, post_id, row, vision_client
+                    )
+                    expected_operations_input_sha256 = operations_analysis_input_sha256(
+                        evidence_sources, _operations_analysis_context(row)
+                    )
+                    channel_stage_code = "operations_case"
+                    await _persist_operations_case_analysis_if_needed(
                         pool,
                         post_id,
                         source_body_digest,
+                        raw_body,
                         row,
                         vision_client,
                         metadata["lineageweave_post_session_id"],
@@ -710,16 +706,45 @@ async def process_post_content_job(
                         settings.orchestrator_api_key,
                         evidence_sources,
                     )
-                except HttpAdmissionDeferred:
-                    raise
+                except HttpAdmissionDeferred as exc:
+                    stage_failures.append((channel_stage_code, exc))
+                except (
+                    HttpClientError,
+                    KeyError,
+                    OSError,
+                    RuntimeError,
+                    TimeoutError,
+                    ValueError,
+                ) as exc:
+                    stage_failures.append((channel_stage_code, exc))
+                    _logger.error("operations evidence ingestion failed for post_id=%s", post_id)
+                    record_server_failure(
+                        "operations_case_ingestion",
+                        exc,
+                        outcome="provider_unavailable",
+                    )
+                channel_stage_code = "product_analysis"
+                try:
+                    await _persist_product_analysis_if_needed(
+                        pool,
+                        post_id,
+                        source_body_digest,
+                        raw_body,
+                        metadata["lineageweave_post_session_id"],
+                        settings.orchestrator_base_url,
+                        settings.orchestrator_api_key,
+                        expected_operations_input_sha256,
+                    )
+                except HttpAdmissionDeferred as exc:
+                    stage_failures.append(("product_analysis", exc))
                 except (HttpClientError, OSError, RuntimeError, TimeoutError, ValueError) as exc:
+                    stage_failures.append(("product_analysis", exc))
                     _logger.error("product evidence ingestion failed for post_id=%s", post_id)
                     record_server_failure(
                         "product_semantic_ingestion",
                         exc,
                         outcome="provider_unavailable",
                     )
-                    raise
                 channel_stage_code = "occupational_construct"
                 construct_client = (
                     ContextualOrchestratorOccupationalConstructExtractionClient(
@@ -754,9 +779,17 @@ async def process_post_content_job(
                     structure_client=structure_client,
                     post_title=str(row["post_title"]),
                 )
-            if voice_failure is not None:
-                channel_stage_code = "voice_classification"
-                raise voice_failure
+            if stage_failures:
+                selected_stage, selected_failure = next(
+                    (
+                        (stage, failure)
+                        for stage, failure in stage_failures
+                        if isinstance(failure, HttpAdmissionDeferred)
+                    ),
+                    stage_failures[0],
+                )
+                channel_stage_code = selected_stage
+                raise selected_failure
             async with pool.acquire() as conn:
                 complete = await post_content_is_complete(
                     conn,

@@ -74,11 +74,76 @@ class ProductExtraction:
     relations: tuple[ProductRelation, ...]
 
 
+@dataclass(frozen=True)
+class ProductExtractionResult:
+    """One receipt-bearing extraction bound to the exact focal source revision."""
+
+    source_revision_digest: str
+    orchestrator_model_receipt: str
+    extraction: ProductExtraction
+
+
+class ProductExtractionResponseContractError(ValueError):
+    """A structured product response failed its evidence contract."""
+
+    validation_code = "product_extraction_evidence_contract"
+    validation_path = "$.mentions"
+
+
 _RELATION_TYPES = {
     "operations_fact": frozenset(
         {"concerns_product", "changes_product", "originates_from_product", "senses_product"}
     ),
     "project": frozenset({"used_by_project"}),
+}
+
+_RESPONSE_SCHEMA = {
+    "type": "object",
+    "additionalProperties": False,
+    "required": ["mentions", "relations"],
+    "properties": {
+        "mentions": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "additionalProperties": False,
+                "required": ["product_name", "evidence_post_id", "evidence_text"],
+                "properties": {
+                    "product_name": {"type": "string", "minLength": 1},
+                    "evidence_post_id": {"type": "string", "minLength": 1},
+                    "evidence_text": {"type": "string", "minLength": 1},
+                },
+            },
+        },
+        "relations": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "additionalProperties": False,
+                "required": [
+                    "mention_ordinal",
+                    "target_id",
+                    "relation_type_code",
+                    "evidence_post_id",
+                    "evidence_text",
+                ],
+                "properties": {
+                    "mention_ordinal": {"type": "integer", "minimum": 0},
+                    "target_id": {"type": "string", "minLength": 1},
+                    "relation_type_code": {
+                        "type": "string",
+                        "enum": sorted(
+                            relation_code
+                            for relation_codes in _RELATION_TYPES.values()
+                            for relation_code in relation_codes
+                        ),
+                    },
+                    "evidence_post_id": {"type": "string", "minLength": 1},
+                    "evidence_text": {"type": "string", "minLength": 1},
+                },
+            },
+        },
+    },
 }
 
 
@@ -124,7 +189,7 @@ def parse_product_mentions(
         payload = json.loads(content)
     except json.JSONDecodeError:
         return None
-    if not isinstance(payload, dict):
+    if not isinstance(payload, dict) or set(payload) != {"mentions", "relations"}:
         return None
     raw_mentions = payload.get("mentions")
     raw_relations = payload.get("relations")
@@ -133,7 +198,11 @@ def parse_product_mentions(
     mentions: list[ProductMention] = []
     seen: set[tuple[str, str, str]] = set()
     for item in raw_mentions:
-        if not isinstance(item, dict):
+        if not isinstance(item, dict) or set(item) != {
+            "product_name",
+            "evidence_post_id",
+            "evidence_text",
+        }:
             return None
         name = item.get("product_name")
         evidence = item.get("evidence_text")
@@ -159,7 +228,13 @@ def parse_product_mentions(
     relations: list[ProductRelation] = []
     seen_relations: set[tuple[int, str, str]] = set()
     for item in raw_relations:
-        if not isinstance(item, dict):
+        if not isinstance(item, dict) or set(item) != {
+            "mention_ordinal",
+            "target_id",
+            "relation_type_code",
+            "evidence_post_id",
+            "evidence_text",
+        }:
             return None
         ordinal = item.get("mention_ordinal")
         target_id = item.get("target_id")
@@ -197,6 +272,43 @@ def parse_product_mentions(
             )
         )
     return ProductExtraction(tuple(mentions), tuple(relations))
+
+
+def parse_product_extraction_response(
+    response: object,
+    sources: tuple[ProductEvidenceSource, ...],
+    targets: tuple[ProductRelationTarget, ...] = (),
+) -> ProductExtractionResult:
+    """Require an orchestrator receipt and caller-validated product evidence."""
+    if not isinstance(response, dict):
+        raise ProductExtractionResponseContractError(
+            "orchestrator response was not an object"
+        )
+    receipt = response.get("id")
+    if not isinstance(receipt, str) or not receipt.strip():
+        raise ProductExtractionResponseContractError(
+            "orchestrator response omitted its receipt id"
+        )
+    if len(sources) != 1:
+        raise ProductExtractionResponseContractError(
+            "product extraction requires one authorized focal source"
+        )
+    try:
+        content = chat_completion_content(response)
+    except TypeError as exc:
+        raise ProductExtractionResponseContractError(
+            "product response was not valid structured content"
+        ) from exc
+    parsed = parse_product_mentions(content, sources, targets)
+    if parsed is None:
+        raise ProductExtractionResponseContractError(
+            "product response did not match the strict evidence schema"
+        )
+    return ProductExtractionResult(
+        sources[0].input_sha256,
+        receipt.strip(),
+        parsed,
+    )
 
 
 def resolve_product_mention(
@@ -246,7 +358,7 @@ class ContextualOrchestratorProductExtractionClient:
         targets: tuple[ProductRelationTarget, ...] = (),
         *,
         session_id: str | None = None,
-    ) -> ProductExtraction:
+    ) -> ProductExtractionResult:
         """Return only fully validated, source-bound product mentions."""
         if session_id is not None and not session_id.strip():
             raise ValueError("session_id must be non-empty when provided")
@@ -280,7 +392,14 @@ class ContextualOrchestratorProductExtractionClient:
             ],
             "mode": "auto",
             "reasoning_effort": "auto",
-            "response_format": {"type": "json_object"},
+            "response_format": {
+                "type": "json_schema",
+                "json_schema": {
+                    "name": "product_evidence_extraction",
+                    "strict": True,
+                    "schema": _RESPONSE_SCHEMA,
+                },
+            },
         }
         if session_id is not None:
             payload["session_id"] = session_id
@@ -293,13 +412,4 @@ class ContextualOrchestratorProductExtractionClient:
                 "x-request-timeout-ms": str(round(self._timeout * 1000)),
             },
         )
-        try:
-            content = chat_completion_content(response)
-        except TypeError as exc:
-            raise RuntimeError(
-                "contextual-orchestrator returned invalid product evidence"
-            ) from exc
-        parsed = parse_product_mentions(content, sources, targets)
-        if parsed is None:
-            raise RuntimeError("contextual-orchestrator returned invalid product evidence")
-        return parsed
+        return parse_product_extraction_response(response, sources, targets)
