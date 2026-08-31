@@ -3,7 +3,9 @@
 **Decision status:** Accepted
 **Date:** 2026-08-24
 **Amended by:** [ADR 0269](0269-leftover-map-axis-share-plot.md)
-(leftover-map axis share on the graphic display)
+(leftover-map axis share on the graphic display);
+[ADR 0322](0322-leftover-map-axis-singular.md)
+(leftover-map singular values on leftover-axis report badges)
 
 ## Context
 

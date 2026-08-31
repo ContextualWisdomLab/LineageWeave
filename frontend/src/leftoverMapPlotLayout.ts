@@ -81,6 +81,8 @@
  *  already-named leftover-map coordinates.
  *  ADR 0321 captions leftover-map singular values on that comparison graphic from
  *  already-named leftover-map axes.
+ *  ADR 0322 captions leftover-axis report badges with persisted leftover-map
+ *  singular values, not this graphic.
  */
 
 import { formatLeftoverMapCoordinatePair } from "./leftoverMapCoordinates";
