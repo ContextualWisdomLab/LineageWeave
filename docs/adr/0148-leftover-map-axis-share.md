@@ -19,7 +19,9 @@
 [ADR 0328](0328-leftover-map-compare-plot-tick-axis-badge.md)
 (leftover-map comparison graphic leftover-map axis tick leftover-map singular values independently of leftover-map axis share);
 [ADR 0329](0329-leftover-map-compare-axis-tick-badge.md)
-(leftover-map comparison leftover-axis tick leftover-map singular values independently of leftover-map axis share)
+(leftover-map comparison leftover-axis tick leftover-map singular values independently of leftover-map axis share);
+[ADR 0330](0330-leftover-map-axis-tick-badge.md)
+(leftover-axis tick leftover-map singular values independently of leftover-map axis share)
 
 ## Context
 

@@ -116,7 +116,9 @@ report badges independently of leftover-map axis share
 report badges on the grouping comparison strip
 ([ADR 0323](0323-leftover-map-compare-axis-singular.md)). Independent of leftover-map coordinate ticks on the grouping
 comparison leftover-map graphic
-([ADR 0320](0320-leftover-map-compare-plot-ticks.md)).
+([ADR 0320](0320-leftover-map-compare-plot-ticks.md)). Independent of leftover-axis
+tick leftover-map singular values independently of leftover-map axis share
+([ADR 0330](0330-leftover-map-axis-tick-badge.md)).
 
 ## References
 

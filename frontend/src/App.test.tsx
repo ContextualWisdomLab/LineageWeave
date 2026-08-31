@@ -4187,7 +4187,10 @@ describe("App, authenticated", () => {
     expect(screen.getByText("leftover map comparison leftover axis 2 tick −0.02 σ 0.86")).toBeInTheDocument();
     expect(screen.getByText("leftover map comparison leftover axis 1 tick 0.00 σ 1.84")).toBeInTheDocument();
     expect(screen.getByText("leftover map comparison leftover axis 2 tick 0.00 σ 0.86")).toBeInTheDocument();
-    expect(screen.queryByText("leftover axis 1 tick +0.50 σ 1.84")).not.toBeInTheDocument();
+    expect(screen.getByText("leftover axis 1 tick +0.50 σ 1.84")).toBeInTheDocument();
+    expect(screen.getByText("leftover axis 2 tick −0.02 σ 0.86")).toBeInTheDocument();
+    expect(screen.getByText("leftover axis 1 tick 0.00 σ 1.84")).toBeInTheDocument();
+    expect(screen.getByText("leftover axis 2 tick 0.00 σ 0.86")).toBeInTheDocument();
     expect(screen.queryByText("leftover-map axis 1 tick +0.50 σ 1.84")).not.toBeInTheDocument();
     expect(screen.getByLabelText("Leftover map comparison leftover axis")).toHaveTextContent(
       "Open a leftover pair to read the post–criterion cell",

@@ -45,6 +45,8 @@ describe("i18n", () => {
     "leftover axis {axis} {share}%",
     "leftover axis {axis} σ {value}",
     "leftover axis {axis} σ {value} {share}%",
+    "leftover axis {axis} tick {value}",
+    "leftover axis {axis} tick {value} σ {singular}",
     "Leftover-map axis share",
     "Leftover-map axis share is Gabriel inertia of residual SVD axes 1 and 2. Leftover-map singular values are the Gabriel scale of those axes. Open a leftover pair to read the post–criterion cell. The shares and singular values do not invent a leftover score.",
     "Leftover pairs",
@@ -779,6 +781,32 @@ describe("i18n", () => {
   ] as const)("formats leftover-axis badge singular values without share in %s", (locale, expected) => {
     setLocale(locale);
     expect(tf("leftover axis {axis} σ {value}", { axis: 1, value: "1.84" })).toBe(expected);
+  });
+
+  it.each([
+    ["ko", "잔차 축 1 눈금 +0.50"],
+    ["zh", "残差轴 1 刻度 +0.50"],
+    ["ja", "残差軸 1 目盛 +0.50"],
+    ["vi", "vạch trục phần dư 1 +0.50"],
+  ] as const)("formats leftover-axis ticks in %s", (locale, expected) => {
+    setLocale(locale);
+    expect(tf("leftover axis {axis} tick {value}", { axis: 1, value: "+0.50" })).toBe(expected);
+  });
+
+  it.each([
+    ["ko", "잔차 축 1 눈금 +0.50 σ 1.84"],
+    ["zh", "残差轴 1 刻度 +0.50 σ 1.84"],
+    ["ja", "残差軸 1 目盛 +0.50 σ 1.84"],
+    ["vi", "vạch trục phần dư 1 +0.50 σ 1.84"],
+  ] as const)("formats leftover-axis tick singular values in %s", (locale, expected) => {
+    setLocale(locale);
+    expect(
+      tf("leftover axis {axis} tick {value} σ {singular}", {
+        axis: 1,
+        value: "+0.50",
+        singular: "1.84",
+      }),
+    ).toBe(expected);
   });
 
   it.each([

@@ -521,6 +521,8 @@ describe("leftover-map comparison leftover-axis tick leftover-map singular value
     expect(LEFTOVER_MAP_COMPARE_AXIS_TICK_SINGULAR).not.toBe(LEFTOVER_MAP_AXIS_BADGE_SINGULAR_ONLY);
     expect(LEFTOVER_MAP_COMPARE_AXIS_TICK).not.toBe(LEFTOVER_MAP_COMPARE_PLOT_TICK);
     expect(LEFTOVER_MAP_COMPARE_AXIS_TICK).not.toBe(LEFTOVER_MAP_PLOT_TICK);
+    expect(LEFTOVER_MAP_COMPARE_AXIS_TICK_SINGULAR).not.toBe("leftover axis {axis} tick {value} σ {singular}");
+    expect(LEFTOVER_MAP_COMPARE_AXIS_TICK).not.toBe("leftover axis {axis} tick {value}");
     expect(leftoverMapCompareAxisTickBadge(1, "+0.50", 1.84).key).not.toBe(
       leftoverMapComparePlotTickAxisBadge(1, "+0.50", 1.84).key,
     );
