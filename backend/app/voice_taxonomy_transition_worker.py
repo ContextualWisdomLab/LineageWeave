@@ -49,7 +49,8 @@ async def run_voice_taxonomy_transition_worker(database_url: str) -> None:
                 try:
                     await asyncio.wait_for(wake.wait(), timeout=delay)
                 except TimeoutError:
-                    pass
+                    # Reaching the scheduled transition is the expected wake-up path.
+                    continue
     finally:
         await connection.remove_listener(_CHANNEL, notify)
         await connection.close()

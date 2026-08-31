@@ -722,9 +722,6 @@ async def fetch_operations_dashboard(
     )
     conn = _DashboardBundleConnection(bundle)
     visible = _visible_period_sql(source_context_required=source_context_required)
-    visible_evidence = _visible_scope_sql(
-        "evidence_post", source_context_required=source_context_required
-    )
     projected_visible = _visible_projection_period_sql(
         "post", source_context_required=source_context_required
     )
