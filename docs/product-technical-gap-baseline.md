@@ -1,5 +1,45 @@
 # Product & Technical Gap Baseline
 
+> Exact-head development-loop overlay: 2026-08-31 20:49 KST. Protected
+> `main` remains `cb187cadee5fb6c46d8a944815ccc154a1e028d1`; ninety-five PRs and
+> ten non-PR issues are open. PR #780's exact implementation and rendered-
+> evidence parent for this documentation-only update is
+> `8ad7f13a82e75cfc5adf485f455f719dc208201e`, based on `main`. All 24
+> review threads are resolved, no independent `APPROVED` review exists, and
+> normal squash auto-merge was freshly re-armed without bypass. Every check is
+> terminal on that parent. Product tests, frontend lint/tests/build, ontology
+> publication, CodeQL, Semgrep, OSV, Trivy, Scorecard, the queue scan, Strix,
+> CodeRabbit, and Devin succeed. Required-workflow bootstrap, Noema, and
+> dependency review fail closed; they are not relabeled as product success.
+>
+> Fresh local verification passes 37 focused Voice-authority, ontology,
+> SHACL, and authenticated-API tests plus 29 affected frontend tests, frontend
+> lint, type checking, and the production build. Direct inspection of the
+> committed 1440-by-1400 desktop and 390-by-1688 mobile Storybook renders
+> confirms that the exact-value table keeps the carrying Post action distinct
+> from derivation evidence, including the horizontally scrolled narrow view.
+> The candidate preserves ADR 0246's twelve atomic Voice classifications as
+> extensible rows, additional assignments retain an authorized evidence Post,
+> server-created PROV-O derivation, truth status, and cutoff behavior, imported
+> primary Voices acquire no invented derivation, and paged JSON-LD unions
+> same-subject multi-Voice relations. Earlier authenticated PostgreSQL/runtime
+> evidence remains revision-scoped; protected-main delivery and merge SHA are
+> unavailable.
+>
+> The supporting PRD identity repair remains candidate-only in #847 at
+> `a87c6ec96c546c214461727efedeb8e7549d0fdd`, with auto-merge armed, all
+> product checks successful, and dependency review plus OpenCode failing
+> closed; it still lacks an independent approval. The central binary-evidence
+> repair remains candidate-only in `ContextualWisdomLab/.github#1420` at
+> `b4dfa6163eb58ac9f9b1a240bcfbb5bfda957332`; it is behind central `main`,
+> exact-head path policy and OpenCode fail, Noema is cancelled, and auto-merge
+> is currently not armed. Accepted ADRs therefore remain authoritative. Fresh
+> remote verification confirms canonical `ContextualWisdomLab/LineageWeave`,
+> `RankWeave`, `ThreadWeave`, lowercase `disksage`, `TEPP`, `fast-mlsirm`, and
+> `contextual-orchestrator`. No self-approval, admin bypass, force push,
+> heuristic classification, invented weight, or hidden-evidence substitution
+> was used.
+
 > Exact-head development-loop overlay: 2026-08-31 19:39 KST. Protected
 > `main` remains `cb187cadee5fb6c46d8a944815ccc154a1e028d1`; ninety-one PRs and
 > nine non-PR issues are open. PR #780's exact parent for this evidence-only
