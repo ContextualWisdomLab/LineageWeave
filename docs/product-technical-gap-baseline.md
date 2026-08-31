@@ -2,7 +2,7 @@
 
 > Current exact-head overlay: 2026-09-01 KST. Protected `main` is
 > `cb187cadee5fb6c46d8a944815ccc154a1e028d1`; PR #640 evidence is current
-> through parent head `797d18831cb9bd707898d36f8d8555647ef22046`. The PR is
+> through parent head `1788082e5672232118443eda31b5dbe34c4947bf`. The PR is
 > blocked, still requires review, and has required checks queued; auto-merge is
 > armed but is not delivery evidence. The repository has 98 open
 > PRs, including 6 drafts, and 10 open issues. This current overlay supersedes the older dated
@@ -50,7 +50,12 @@
 > Dashboard page included 2 project-bound cases among 20 returned cases, and an
 > exact-code project journey returned one matching event; desktop and mobile
 > browser acceptance rendered the project groups without committing an identifier.
-> Protected-main delivery remains unverified. Global Ask semantic retrieval remains
+> PR #896 merged normally into #640's non-default branch as squash
+> `1788082e5672232118443eda31b5dbe34c4947bf`. Its in-progress hosted backend and
+> frontend jobs were cancelled by that merge and are not green evidence; fresh
+> integrated #640 checks are queued. #896's aggregate runtime evidence proves only
+> the selected Dashboard-to-Project-History path, not the all-read 20 ms contract or
+> #888 activation. Protected-main delivery remains unverified. Global Ask semantic retrieval remains
 > an open upstream runtime gap: the observed batch admission omitted its declared
 > result-retention and polling-cadence fields, so the LineageWeave embedding client
 > correctly failed closed and no source or citation was fabricated. Upstream repair,
@@ -530,7 +535,7 @@ context only.
 | #657 | `2d9b43b7` | TEPP asynchronous lifecycle persistence while unpublished producer work stays unavailable; hosted checks and independent review required |
 | #644 | `ed8d97f3` | native frontend surface code splitting; hosted checks and independent review required |
 | #643 | `7fb4d18c` | shared token-backed status notice; hosted checks and independent review required |
-| #640 | `2d50fa01` | dashboard case metrics and project journeys; base conflict remains to be repaired |
+| #640 | `1788082e` | current integrated dashboard case metrics and project journeys head, including merged stack PR #896; blocked with required checks queued and independent review still required |
 | #639 | `48065ad1` | restores Running action and Compose contracts; hosted checks and independent review required |
 | #632 | `29aee18d` | graph-fact provenance, public verification, MCP admission, and k6 evidence; hosted checks and independent review required |
 | #631 | `665046dc` (observed parent) | decomposes closed PR #490; this merge refresh advances its head and restarts hosted review evidence |
