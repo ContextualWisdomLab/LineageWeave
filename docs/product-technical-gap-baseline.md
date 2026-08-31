@@ -1,5 +1,38 @@
 # Product & Technical Gap Baseline
 
+> Exact-head development-loop overlay: 2026-09-01 07:31 KST. Protected
+> `main` remains `cb187cadee5fb6c46d8a944815ccc154a1e028d1`; ninety-seven PRs
+> and ten non-PR issues are open. PR #780's exact implementation and rendered-
+> evidence parent for this documentation-only update is
+> `948d6e1524d4f203296f5c409dc60f5bd289d9ca`, based directly on that
+> `main`. All 24 review threads are resolved and normal squash auto-merge is
+> armed, but no independent `APPROVED` review exists. Sixteen current-parent
+> checks succeed, ten are skipped, and three fail. The failures remain explicit
+> unavailable evidence: the central Pingora policy decodes a committed PNG as
+> UTF-8, the governed Noema request times out, and GitHub denies the exact
+> dependency comparison with HTTP 403. None is relabeled as product acceptance.
+>
+> Fresh local verification passes 37 focused Voice/ontology/SHACL/API tests and
+> all 534 frontend tests. Direct desktop/mobile render inspection confirms that
+> the carrying-Post action remains distinct from derivation evidence in the
+> exact-value surface, including the horizontally scrolled narrow table. The
+> candidate preserves ADR 0246's twelve extensible atomic Voice rows and ADR
+> 0256's evidence-bearing composition: additional Voices retain authorized Post
+> evidence, server-created PROV-O derivation, truth status, and cutoff; hidden
+> evidence is never replaced with the carrying Post; and paged JSON-LD unions
+> same-subject multi-Voice relations. Earlier authenticated PostgreSQL/API
+> evidence remains revision-scoped. Protected-main delivery, merge SHA, and
+> deployed acceptance remain unavailable.
+>
+> The owner-bound PNG repair remains candidate-only in
+> `ContextualWisdomLab/.github#1466` at
+> `c17841917764960208e89b204c50e527d644db70`; its current OpenCode verdict is
+> changes-requested from failed or cancelled peer checks, Noema/OpenCode reruns
+> are queued, and no independent approval exists. Canonical remote names remain
+> `ContextualWisdomLab/LineageWeave`, `RankWeave`, `ThreadWeave`, lowercase
+> `disksage`, and `TEPP`. No self-approval, admin bypass, force push, invented
+> weight, heuristic classification, or hidden-evidence substitution was used.
+
 > Exact-head development-loop overlay: 2026-09-01 05:14 KST. Protected
 > `main` is `cb187cadee5fb6c46d8a944815ccc154a1e028d1`; ninety-eight PRs and
 > ten non-PR issues are open. PR #780's exact product and rendered-evidence
