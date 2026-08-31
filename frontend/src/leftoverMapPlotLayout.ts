@@ -48,7 +48,8 @@
  *  expected on that graphic (ADR 0317), and grouping comparison leftover-map
  *  rank on that graphic (ADR 0318), grouping comparison leftover-map
  *  distance on that graphic (ADR 0319), and grouping comparison leftover-map
- *  coordinate ticks on that graphic (ADR 0320) caption the pair list or the grouping comparison
+ *  coordinate ticks on that graphic (ADR 0320), and grouping comparison leftover-map
+ *  singular values on that graphic (ADR 0321) caption the pair list or the grouping comparison
  *  strip. ADR 0304 reuses this graphic layout on the grouping comparison
  *  strip. ADR 0305 captions leftover-map axis share on that comparison
  *  graphic from already-named leftover-map axes. ADR 0306 captions leftover-map
@@ -78,6 +79,8 @@
  *  already-named leftover-map distance.
  *  ADR 0320 captions leftover-map coordinate ticks on that comparison graphic from
  *  already-named leftover-map coordinates.
+ *  ADR 0321 captions leftover-map singular values on that comparison graphic from
+ *  already-named leftover-map axes.
  */
 
 import { formatLeftoverMapCoordinatePair } from "./leftoverMapCoordinates";

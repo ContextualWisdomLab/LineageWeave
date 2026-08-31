@@ -7,6 +7,10 @@ import {
   LEFTOVER_MAP_COMPARE_PLOT_AXIS_SHARE,
   LEFTOVER_MAP_PLOT_AXIS_SHARE,
 } from "./leftoverMapPlotAxisShare";
+import {
+  LEFTOVER_MAP_COMPARE_PLOT_AXIS_SINGULAR,
+  LEFTOVER_MAP_COMPARE_PLOT_AXIS_SINGULAR_SHARE,
+} from "./leftoverMapPlotAxisSingular";
 
 describe("leftoverShareForAxis", () => {
   const axes = [
@@ -63,5 +67,9 @@ describe("leftover map comparison axis share labels", () => {
     expect(LEFTOVER_MAP_COMPARE_PLOT_AXIS_SHARE).not.toBe(LEFTOVER_MAP_PLOT_AXIS_SHARE);
     expect(LEFTOVER_MAP_COMPARE_PLOT_AXIS_1).not.toBe("leftover-map axis 1");
     expect(LEFTOVER_MAP_COMPARE_PLOT_AXIS_2).not.toBe("leftover-map axis 2");
+    expect(LEFTOVER_MAP_COMPARE_PLOT_AXIS_SHARE).not.toBe(
+      LEFTOVER_MAP_COMPARE_PLOT_AXIS_SINGULAR_SHARE,
+    );
+    expect(LEFTOVER_MAP_COMPARE_PLOT_AXIS_1).not.toBe(LEFTOVER_MAP_COMPARE_PLOT_AXIS_SINGULAR);
   });
 });

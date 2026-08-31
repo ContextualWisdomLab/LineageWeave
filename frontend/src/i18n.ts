@@ -297,6 +297,9 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Leftover map comparison rank": "잔여 지도 비교 순위",
     "leftover map comparison graphic leftover-map distance {label}": "잔여 지도 비교 그림 거리 {label}",
     "leftover map comparison graphic leftover-map axis {axis} tick {value}": "잔여 지도 비교 그림 축 {axis} 눈금 {value}",
+    "leftover map comparison graphic leftover-map axis {axis} σ {value}": "잔여 지도 비교 그림 축 {axis} σ {value}",
+    "leftover map comparison graphic leftover-map axis {axis} σ {value} ({share}%)":
+      "잔여 지도 비교 그림 축 {axis} σ {value} ({share}%)",
     "Leftover map comparison coordinates": "잔여 지도 비교 좌표",
     "Leftover map comparison graphic": "잔여 지도 비교 그림",
     "Leftover map comparison": "잔여 지도 비교",
@@ -940,6 +943,9 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Leftover map comparison rank": "残差地图比较秩",
     "leftover map comparison graphic leftover-map distance {label}": "残差地图比较图形距离 {label}",
     "leftover map comparison graphic leftover-map axis {axis} tick {value}": "残差地图比较图形轴 {axis} 刻度 {value}",
+    "leftover map comparison graphic leftover-map axis {axis} σ {value}": "残差地图比较图形轴 {axis} σ {value}",
+    "leftover map comparison graphic leftover-map axis {axis} σ {value} ({share}%)":
+      "残差地图比较图形轴 {axis} σ {value} ({share}%)",
     "Leftover map comparison coordinates": "残差地图比较坐标",
     "Leftover map comparison graphic": "残差地图比较图形",
     "Leftover map comparison": "残差地图比较",
@@ -1604,6 +1610,9 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Leftover map comparison rank": "残差マップの比較階数",
     "leftover map comparison graphic leftover-map distance {label}": "残差マップの比較図距離 {label}",
     "leftover map comparison graphic leftover-map axis {axis} tick {value}": "残差マップの比較図軸 {axis} 目盛 {value}",
+    "leftover map comparison graphic leftover-map axis {axis} σ {value}": "残差マップの比較図軸 {axis} σ {value}",
+    "leftover map comparison graphic leftover-map axis {axis} σ {value} ({share}%)":
+      "残差マップの比較図軸 {axis} σ {value} ({share}%)",
     "Leftover map comparison coordinates": "残差マップの比較座標",
     "Leftover map comparison graphic": "残差マップの比較図",
     "Leftover map comparison": "残差マップの比較",
@@ -2247,6 +2256,10 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Leftover map comparison rank": "Hạng so sánh bản đồ phần dư",
     "leftover map comparison graphic leftover-map distance {label}": "khoảng cách đồ họa so sánh bản đồ phần dư {label}",
     "leftover map comparison graphic leftover-map axis {axis} tick {value}": "vạch trục đồ họa so sánh bản đồ phần dư {axis} {value}",
+    "leftover map comparison graphic leftover-map axis {axis} σ {value}":
+      "trục đồ họa so sánh bản đồ phần dư {axis} σ {value}",
+    "leftover map comparison graphic leftover-map axis {axis} σ {value} ({share}%)":
+      "trục đồ họa so sánh bản đồ phần dư {axis} σ {value} ({share}%)",
     "Leftover map comparison coordinates": "Tọa độ so sánh bản đồ phần dư",
     "Leftover map comparison graphic": "Đồ họa so sánh bản đồ phần dư",
     "Leftover map comparison": "So sánh bản đồ phần dư",

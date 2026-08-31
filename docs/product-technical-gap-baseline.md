@@ -1,5 +1,23 @@
 # Product & Technical Gap Baseline
 
+> Exact-head loop overlay: 2026-08-31 10:20 KST. Protected `main` is
+> `cb187cadee5fb6c46d8a944815ccc154a1e028d1`. Writes work. Do not
+> self-approve. #860 leftover-map coordinate ticks on the grouping comparison leftover-map
+> graphic (v2.77.0 / ADR 0320) is `40fa5bd`, stacked on #859 @ `9ba8535`. Independent
+> APPROVE is missing. Next buyer increment on this
+> cycle: leftover-map singular values on the grouping comparison leftover-map
+> graphic (ADR 0321 / v2.78.0) delivered locally on
+> `feat/leftover-map-compare-plot-singular-v2780`. Caption persisted leftover-map
+> singular values `σ_k` on that comparison graphic from already-named leftover-map
+> axes. Distinct accessible name `leftover map comparison graphic leftover-map
+> axis {axis} σ {value}`. Rank-0 unused axes still name `σ 0.00`. Share and
+> singular value omit independently. Do not invent `σ_k` from leftover-map axis
+> share. Do not caption leftover-map singular values on leftover-axis report
+> badges with a distinct name this increment. Stack onto #860.
+> Leave open for independent review. Do not squash-merge. Do not self-approve.
+> Issues #79 and #87 stay open. Do not merge #808 without independent APPROVE.
+> Never self-approve.
+
 > Exact-head loop overlay: 2026-08-31 09:28 KST. Protected `main` is
 > `cb187cadee5fb6c46d8a944815ccc154a1e028d1`. Writes work. Do not
 > self-approve. #859 leftover-map distance on the grouping comparison leftover-map

@@ -28,6 +28,12 @@ import {
   LEFTOVER_MAP_PLOT_AXIS_SHARE,
 } from "../leftoverMapPlotAxisShare";
 import {
+  formatLeftoverMapPlotAxisSingular,
+  leftoverSingularForAxis,
+  LEFTOVER_MAP_COMPARE_PLOT_AXIS_SINGULAR,
+  LEFTOVER_MAP_COMPARE_PLOT_AXIS_SINGULAR_SHARE,
+} from "../leftoverMapPlotAxisSingular";
+import {
   firstPlottablePairForPost,
   layoutLeftoverMapPlot,
   LEFTOVER_MAP_COMPARE_PLOT_CAPTION,
@@ -84,10 +90,23 @@ function leftoverMapPlotAxisText(
     leftoverShareForAxis(leftoverMapAxes, axisIndex),
   );
   if (variant === "comparison") {
-    if (percent === null) {
+    const singular = formatLeftoverMapPlotAxisSingular(
+      leftoverSingularForAxis(leftoverMapAxes, axisIndex),
+    );
+    if (singular === null && percent === null) {
       return t(axisIndex === 1 ? LEFTOVER_MAP_COMPARE_PLOT_AXIS_1 : LEFTOVER_MAP_COMPARE_PLOT_AXIS_2);
     }
-    return tf(LEFTOVER_MAP_COMPARE_PLOT_AXIS_SHARE, { axis: axisIndex, share: percent });
+    if (singular === null) {
+      return tf(LEFTOVER_MAP_COMPARE_PLOT_AXIS_SHARE, { axis: axisIndex, share: percent });
+    }
+    if (percent === null) {
+      return tf(LEFTOVER_MAP_COMPARE_PLOT_AXIS_SINGULAR, { axis: axisIndex, value: singular });
+    }
+    return tf(LEFTOVER_MAP_COMPARE_PLOT_AXIS_SINGULAR_SHARE, {
+      axis: axisIndex,
+      value: singular,
+      share: percent,
+    });
   }
   if (percent === null) {
     return t(axisIndex === 1 ? "leftover-map axis 1" : "leftover-map axis 2");
@@ -129,8 +148,10 @@ function leftoverMapPlotAxisText(
  * caption when incomplete post coverage is missing or not a usable integer.
  * Omit that leftover-map incomplete item caption when incomplete item
  * coverage is missing or not a usable integer.
- * Omit that axis badge when share is
- * missing or non-finite and keep the existing leftover-map axis text.
+ * Omit that axis singular-value badge when ``σ_k`` is missing, non-finite,
+ * or negative, independently of leftover-map axis share. Omit that axis badge when share is
+ * missing or non-finite and keep the existing leftover-map axis text,
+ * including any leftover-map comparison graphic leftover-map axis singular value.
  * Omit the plot when no pair has four finite leftover-map coordinates.
  * ADR 0304 reuses this graphic on the grouping comparison strip from
  * already-named leftover-map coordinates. ADR 0305 captions leftover-map axis
@@ -181,6 +202,9 @@ function leftoverMapPlotAxisText(
  * labels. ADR 0320 captions leftover-map coordinate ticks on that
  * comparison graphic from already-named leftover-map coordinates
  * with distinct leftover map comparison graphic leftover-map axis tick
+ * labels. ADR 0321 captions leftover-map singular values on that
+ * comparison graphic from already-named leftover-map axes
+ * with distinct leftover map comparison graphic leftover-map axis σ
  * labels.
  * Never invent a leftover score.
  */

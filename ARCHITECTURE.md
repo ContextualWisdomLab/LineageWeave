@@ -748,6 +748,8 @@ comparison leftover-map graphic when formatLeftoverMapDistance returns a usable
 badge.
 ADR 0320 captions leftover-map coordinate ticks on that grouping
 comparison leftover-map graphic from already-named leftover-map coordinates.
+ADR 0321 captions leftover-map singular values on that grouping
+comparison leftover-map graphic from already-named leftover-map axes.
 Click a post marker or a pair button
 opens that post. Those ADRs are the normative mathematical, storage, and
 display contracts. Leftover-map axis share
@@ -797,7 +799,8 @@ graphic (ADR 0316), leftover expected on the grouping comparison leftover-map
 graphic (ADR 0317), leftover-map rank on the grouping comparison leftover-map
 graphic (ADR 0318), leftover-map distance on the grouping comparison leftover-map
 graphic (ADR 0319), leftover-map coordinate ticks on the grouping comparison leftover-map
-graphic (ADR 0320);
+graphic (ADR 0320), leftover-map singular values on the grouping comparison leftover-map
+graphic (ADR 0321);
 `POST .../rebuild` scores every grouping kind (post_admin). `make seed`
 folds A-100/B-200 Event Lineage fixtures (and the Riverbend calendar
 post) that already have constructed IRT cells into the same shared

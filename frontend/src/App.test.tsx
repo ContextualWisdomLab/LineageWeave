@@ -4197,8 +4197,8 @@ describe("App, authenticated", () => {
     expect(screen.getByLabelText("Leftover map comparison graphic")).toBeInTheDocument();
     expect(screen.getByText("leftover-map axis 1 (82%)")).toBeInTheDocument();
     expect(screen.getByText("leftover-map axis 2 (18%)")).toBeInTheDocument();
-    expect(screen.getByText("leftover map comparison axis 1 (82%)")).toBeInTheDocument();
-    expect(screen.getByText("leftover map comparison axis 2 (18%)")).toBeInTheDocument();
+    expect(screen.getByText("leftover map comparison graphic leftover-map axis 1 σ 1.84 (82%)")).toBeInTheDocument();
+    expect(screen.getByText("leftover map comparison graphic leftover-map axis 2 σ 0.86 (18%)")).toBeInTheDocument();
     expect(
       screen.getAllByRole("button", {
         name: /open leftover-map post public post at ξ \(\+0\.50, \+0\.10\)/i,
@@ -4322,12 +4322,12 @@ describe("App, authenticated", () => {
     ).not.toBeInTheDocument();
     expect(
       within(screen.getByLabelText("Grouping comparison")).getByText(
-        "leftover map comparison axis 1 (82%)",
+        "leftover map comparison graphic leftover-map axis 1 σ 1.84 (82%)",
       ),
     ).toBeInTheDocument();
     expect(
       within(screen.getByLabelText("Grouping comparison")).getByText(
-        "leftover map comparison axis 2 (18%)",
+        "leftover map comparison graphic leftover-map axis 2 σ 0.86 (18%)",
       ),
     ).toBeInTheDocument();
     expect(
