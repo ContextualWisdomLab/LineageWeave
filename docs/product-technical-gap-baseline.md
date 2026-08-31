@@ -2,9 +2,11 @@
 
 > Exact-head development-loop overlay: 2026-08-31 22:01 KST. Protected
 > `main` remains `cb187cadee5fb6c46d8a944815ccc154a1e028d1`; ninety-five PRs and
-> ten non-PR issues are open. PR #780's current head is
-> `03276027083a1b5aba5799b473527dd80aab74c0`, based on `main`. All review
-> threads are resolved and normal squash auto-merge is armed, but no
+> ten non-PR issues are open. PR #780's exact product and rendered-evidence
+> parent for this documentation-only update is
+> `03276027083a1b5aba5799b473527dd80aab74c0`, based on `main`; the later
+> documentation revision does not inherit that parent's hosted evidence. All
+> review threads were resolved and normal squash auto-merge was armed, but no
 > independent `APPROVED` review exists. Ten checks succeed, two fail, twelve
 > are skipped, and five remain non-terminal. The two failures remain
 > fail-closed owner/platform evidence gaps: the required review bootstrap does
