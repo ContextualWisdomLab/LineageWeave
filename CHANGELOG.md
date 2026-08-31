@@ -8,6 +8,22 @@ All notable changes to this project are documented here. Format follows
 
 ### Added
 
+- Period leftover pairs now name leftover expected on the grouping
+  comparison leftover-map graphic (ADR 0317 / v2.74.0). After `make seed`,
+  closest and farthest leftover pairs sit above the member list with leftover
+  expected `E` on that grouping comparison leftover-map graphic when
+  formatLeftoverMapExpected returns a usable badge; click a post marker or a pair
+  button opens that post. A missing or non-finite `E` omits that leftover-map
+  comparison graphic leftover expected caption and keeps leftover observed `Y`
+  and leftover residual `R`. Rank-0 origin cells still name `E 0.00` when that
+  persisted leftover expected is finite. Comparison copy uses
+  `leftover map comparison graphic leftover expected {label}` so it stays
+  distinct from `leftover expected {label}` and from strip
+  `Leftover map comparison expected`. This increment does not caption leftover-map
+  rank on the comparison graphic with a distinct name. Do not invent `E` from
+  `Y` and `R`. A finite negative leftover expected is shown, never clamped.
+  Never invent a leftover score or a theta. No new columns.
+
 - Period leftover pairs now name leftover observed on the grouping
   comparison leftover-map graphic (ADR 0316 / v2.73.0). After `make seed`,
   closest and farthest leftover pairs sit above the member list with the

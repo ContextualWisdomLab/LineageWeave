@@ -1,5 +1,21 @@
 # Product & Technical Gap Baseline
 
+> Exact-head loop overlay: 2026-08-31 09:05 KST. Protected `main` is
+> `cb187cadee5fb6c46d8a944815ccc154a1e028d1`. Writes work. Do not
+> self-approve. #856 leftover observed on the grouping comparison leftover-map
+> graphic (v2.73.0 / ADR 0316) is `c7a8680`, stacked on #855 @ `1087b16`.
+> Independent APPROVE is missing. Next buyer increment on this
+> cycle: leftover expected on the grouping comparison leftover-map
+> graphic (ADR 0317 / v2.74.0) delivered locally on
+> `feat/leftover-map-compare-plot-expected-v2740`. Caption persisted leftover
+> expected `E` on that comparison graphic from already-named
+> expected_response. Distinct accessible name `leftover map comparison graphic
+> leftover expected {label}`. Omit when formatLeftoverMapExpected fail-closes.
+> Do not caption leftover-map rank on that comparison graphic with a distinct name this
+> increment. Do not invent `E` from `Y` and `R`. Stack onto #856. Leave open for
+> independent review. Do not squash-merge. Do not self-approve. Issues #79 and #87
+> stay open. Do not merge #808 without independent APPROVE. Never self-approve.
+
 > Exact-head loop overlay: 2026-08-31 08:50 KST. Protected `main` is
 > `cb187cadee5fb6c46d8a944815ccc154a1e028d1`. Writes work. Do not
 > self-approve. #855 leftover residual on the grouping comparison leftover-map
