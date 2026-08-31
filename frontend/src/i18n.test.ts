@@ -70,6 +70,7 @@ describe("i18n", () => {
     "leftover-map axis {axis} σ {value}",
     "leftover-map axis {axis} σ {value} ({share}%)",
     "leftover-map axis {axis} tick {value}",
+    "leftover-map axis {axis} tick {value} σ {singular}",
     "leftover-map distance {label}",
     "leftover-map reconstruction {label}",
     "leftover-map explained leftover share {label}",
@@ -1008,6 +1009,22 @@ describe("i18n", () => {
   ] as const)("formats leftover-map coordinate ticks in %s", (locale, expected) => {
     setLocale(locale);
     expect(tf("leftover-map axis {axis} tick {value}", { axis: 1, value: "+0.50" })).toBe(expected);
+  });
+
+  it.each([
+    ["ko", "잔여 지도 축 1 눈금 +0.50 σ 1.84"],
+    ["zh", "残差图轴 1 刻度 +0.50 σ 1.84"],
+    ["ja", "残差マップ軸 1 目盛 +0.50 σ 1.84"],
+    ["vi", "vạch trục bản đồ phần dư 1 +0.50 σ 1.84"],
+  ] as const)("formats leftover-map graphic leftover-map axis tick singular values in %s", (locale, expected) => {
+    setLocale(locale);
+    expect(
+      tf("leftover-map axis {axis} tick {value} σ {singular}", {
+        axis: 1,
+        value: "+0.50",
+        singular: "1.84",
+      }),
+    ).toBe(expected);
   });
 
   it.each([

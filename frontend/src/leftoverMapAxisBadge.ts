@@ -6,6 +6,8 @@
  *  ADR 0324 captions leftover-map graphic-display axes, not this helper.
  *  ADR 0326 captions leftover-map comparison graphic leftover-map axes as
  *  leftoverMapComparePlotAxisBadge, not this helper.
+ *  ADR 0327 captions leftover-map graphic leftover-map axis ticks as
+ *  leftoverMapPlotTickAxisBadge, not this helper.
  */
 
 import type { LeftoverMapAxis } from "./api";

@@ -27,6 +27,7 @@ import {
 import {
   leftoverMapComparePlotAxisBadge,
   leftoverMapPlotAxisBadge,
+  leftoverMapPlotTickAxisBadge,
   leftoverSingularForAxis,
 } from "../leftoverMapPlotAxisSingular";
 import {
@@ -58,7 +59,6 @@ import {
   LEFTOVER_MAP_PLOT_SEGMENT_RESIDUAL,
   LEFTOVER_MAP_PLOT_SEGMENT_UNEXPLAINED,
   LEFTOVER_MAP_PLOT_SEGMENT_UNEXPLAINED_SHARE,
-  LEFTOVER_MAP_PLOT_TICK,
 } from "../leftoverMapPlotLayout";
 import "./LeftoverMapPlot.css";
 
@@ -95,6 +95,20 @@ function leftoverMapPlotAxisText(
   if (badge === null) {
     return t(axisIndex === 1 ? "leftover-map axis 1" : "leftover-map axis 2");
   }
+  return tf(badge.key, badge.values);
+}
+
+function leftoverMapPlotTickText(
+  axisIndex: number,
+  tickLabel: string,
+  leftoverMapAxes: LeftoverMapAxis[] | undefined,
+  variant: LeftoverMapPlotVariant,
+): string {
+  if (variant === "comparison") {
+    return tf(LEFTOVER_MAP_COMPARE_PLOT_TICK, { axis: axisIndex, value: tickLabel });
+  }
+  const leftoverSingular = leftoverSingularForAxis(leftoverMapAxes, axisIndex);
+  const badge = leftoverMapPlotTickAxisBadge(axisIndex, tickLabel, leftoverSingular);
   return tf(badge.key, badge.values);
 }
 
@@ -197,6 +211,9 @@ function leftoverMapPlotAxisText(
  * graphic-display axes with persisted leftover-map singular values.
  * ADR 0326 fail-closes leftover-map comparison graphic leftover-map axis leftover-map
  * singular values through leftoverMapComparePlotAxisBadge.
+ * ADR 0327 fail-closes leftover-map graphic leftover-map axis ticks leftover-map
+ * singular values through leftoverMapPlotTickAxisBadge independently of leftover-map
+ * axis share.
  * Never invent a leftover score.
  */
 export function LeftoverMapPlot({
@@ -324,11 +341,11 @@ export function LeftoverMapPlot({
             <g
               key={`tick:${tick.axis}:${tick.label}`}
               className="leftover-map-plot-tick"
-              aria-label={tf(
-                variant === "comparison"
-                  ? LEFTOVER_MAP_COMPARE_PLOT_TICK
-                  : LEFTOVER_MAP_PLOT_TICK,
-                { axis: tick.axis, value: tick.label },
+              aria-label={leftoverMapPlotTickText(
+                tick.axis,
+                tick.label,
+                leftoverMapAxes,
+                variant,
               )}
             >
               <line x1={tick.x} y1={tick.y} x2={tick.tickX2} y2={tick.tickY2} />
