@@ -18,13 +18,14 @@ from contextual_orchestrator.orchestrator import (
     TaskOrchestrator,
     load_agents,
 )
-from contextual_orchestrator import _token_packer
+from contextual_orchestrator.token_counting import RustCl100kPacker
 from start import _configured_agents
 
 
 def main() -> None:
     """Prove wrapper output expands into a same-origin concrete serving pool."""
-    assert _token_packer.count_cl100k("hello") == 1
+    token_packer = RustCl100kPacker()
+    assert token_packer.count_text("hello") == 1
 
     gateway_origin = "https://gateway.synthetic.example/v1"
     configured = _configured_agents(
