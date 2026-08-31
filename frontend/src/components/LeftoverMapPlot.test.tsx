@@ -2695,16 +2695,19 @@ describe("LeftoverMapPlot", () => {
       />,
     );
     expect(
-      screen.getByLabelText("leftover map comparison graphic leftover-map axis 1 tick +0.50 σ 1.84"),
+      screen.getByLabelText("leftover map comparison graphic leftover-map axis 1 tick +0.50 σ 1.84 82%"),
     ).toBeInTheDocument();
     expect(
-      screen.getByLabelText("leftover map comparison graphic leftover-map axis 2 tick −0.02 σ 0.86"),
+      screen.getByLabelText("leftover map comparison graphic leftover-map axis 2 tick −0.02 σ 0.86 18%"),
     ).toBeInTheDocument();
     expect(
-      screen.getByLabelText("leftover map comparison graphic leftover-map axis 1 tick 0.00 σ 1.84"),
+      screen.getByLabelText("leftover map comparison graphic leftover-map axis 1 tick 0.00 σ 1.84 82%"),
     ).toBeInTheDocument();
     expect(
       screen.queryByLabelText("leftover map comparison graphic leftover-map axis 1 tick +0.50"),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByLabelText("leftover map comparison graphic leftover-map axis 1 tick +0.50 σ 1.84"),
     ).not.toBeInTheDocument();
     expect(screen.queryByLabelText("leftover-map axis 1 tick +0.50")).not.toBeInTheDocument();
     expect(screen.queryByLabelText("leftover-map axis 1 tick +0.50 σ 1.84")).not.toBeInTheDocument();
@@ -2766,7 +2769,7 @@ describe("LeftoverMapPlot", () => {
       />,
     );
     expect(
-      screen.getAllByLabelText("leftover map comparison graphic leftover-map axis 1 tick 0.00 σ 0.00").length,
+      screen.getAllByLabelText("leftover map comparison graphic leftover-map axis 1 tick 0.00 σ 0.00 0%").length,
     ).toBeGreaterThan(0);
     expect(
       screen.queryByLabelText("leftover map comparison graphic leftover-map axis 1 tick +1.00"),
@@ -2822,10 +2825,10 @@ describe("LeftoverMapPlot", () => {
       />,
     );
     expect(
-      screen.getByLabelText("leftover map comparison graphic leftover-map axis 1 tick 0.00 σ 0.00"),
+      screen.getByLabelText("leftover map comparison graphic leftover-map axis 1 tick 0.00 σ 0.00 0%"),
     ).toBeInTheDocument();
     expect(
-      screen.getByLabelText("leftover map comparison graphic leftover-map axis 2 tick 0.00 σ 0.00"),
+      screen.getByLabelText("leftover map comparison graphic leftover-map axis 2 tick 0.00 σ 0.00 0%"),
     ).toBeInTheDocument();
     expect(screen.queryByLabelText("leftover-map axis 1 tick 0.00")).not.toBeInTheDocument();
     expect(screen.queryByLabelText("leftover-map axis 2 tick 0.00")).not.toBeInTheDocument();
@@ -2884,15 +2887,44 @@ describe("LeftoverMapPlot", () => {
       />,
     );
     expect(
-      screen.getByLabelText("leftover map comparison graphic leftover-map axis 1 tick +0.50"),
+      screen.getByLabelText("leftover map comparison graphic leftover-map axis 1 tick +0.50 82%"),
     ).toBeInTheDocument();
     expect(
-      screen.getByLabelText("leftover map comparison graphic leftover-map axis 2 tick −0.02"),
+      screen.getByLabelText("leftover map comparison graphic leftover-map axis 2 tick −0.02 18%"),
     ).toBeInTheDocument();
     expect(
       screen.queryByLabelText("leftover map comparison graphic leftover-map axis 1 tick +0.50 σ 1.84"),
     ).not.toBeInTheDocument();
     expect(screen.getByText("leftover map comparison axis 1 (82%)")).toBeInTheDocument();
     expect(screen.getByText("leftover map comparison axis 2 (18%)")).toBeInTheDocument();
+  });
+
+  it("captions leftover-map comparison graphic leftover-map axis ticks with leftover-map axis share independently of leftover-map singular values", () => {
+    render(
+      <LeftoverMapPlot
+        pairs={PAIRS}
+        leftoverMapAxes={[
+          { axis_index: 1, leftover_singular_value: 1.84, leftover_share: 0.82 },
+          { axis_index: 2, leftover_singular_value: Number.NaN, leftover_share: 0.18 },
+        ]}
+        criterionLabel={criterionLabel}
+        onSelectPost={vi.fn()}
+        variant="comparison"
+      />,
+    );
+    expect(
+      screen.getByLabelText("leftover map comparison graphic leftover-map axis 1 tick +0.50 σ 1.84 82%"),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByLabelText("leftover map comparison graphic leftover-map axis 2 tick −0.02 18%"),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByLabelText("leftover map comparison graphic leftover-map axis 1 tick +0.50 σ 1.84"),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByLabelText("leftover map comparison graphic leftover-map axis 2 tick −0.02 σ 0.86"),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("leftover-map axis 1 tick +0.50 σ 1.84")).not.toBeInTheDocument();
+    expect(screen.queryByText("leftover axis 1 tick +0.50 82%")).not.toBeInTheDocument();
   });
 });

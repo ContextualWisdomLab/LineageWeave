@@ -1,5 +1,27 @@
 # Product & Technical Gap Baseline
 
+> Exact-head loop overlay: 2026-08-31 13:56 KST. Protected `main` is
+> `cb187cadee5fb6c46d8a944815ccc154a1e028d1`. Writes work. Do not
+> self-approve. #871 leftover-map singular values on leftover-axis ticks
+> independently of leftover-map axis share (v2.87.0 / ADR 0330) is
+> `e9e4c2a`, stacked on #870 @ `b086d97`. Independent APPROVE is missing. Next
+> buyer increment on this cycle: leftover-map comparison graphic leftover-map axis
+> ticks naming persisted leftover-map axis share independently of leftover-map
+> singular values (ADR 0331 / v2.88.0) delivered locally on
+> `feat/leftover-map-compare-plot-tick-share-badge-v2880`. Caption persisted leftover-map
+> axis share on leftover-map comparison graphic leftover-map axis ticks when leftoverMapComparePlotTickAxisBadge
+> returns a usable leftover-map axis tick leftover-map axis share caption even when leftover-map
+> singular values omit. Distinct accessible names
+> `leftover map comparison graphic leftover-map axis {axis} tick {value} {share}%` and
+> `leftover map comparison graphic leftover-map axis {axis} tick {value} σ {singular} {share}%`.
+> Rank-0 unused axes still name leftover-map axis share `0%`. Share omits independently of
+> leftover-map singular values. Leftover-map graphic leftover-map axis ticks, leftover-map
+> comparison leftover-axis ticks, and leftover-axis ticks never name leftover-map axis share.
+> Do not invent leftover-map axis share from `σ_k`. Do not invent `σ_k` from leftover-map
+> axis share. Do not persist leftover-map inner product, cosine, or length. Stack onto #871.
+> Leave open for independent review. Do not squash-merge. Do not self-approve. Issues #79
+> and #87 stay open. Do not merge #808 without independent APPROVE. Never self-approve.
+
 > Exact-head loop overlay: 2026-08-31 13:28 KST. Protected `main` is
 > `cb187cadee5fb6c46d8a944815ccc154a1e028d1`. Writes work. Do not
 > self-approve. #870 leftover-map singular values on leftover-map comparison leftover-axis

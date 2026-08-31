@@ -106,7 +106,13 @@ function leftoverMapPlotTickText(
 ): string {
   const leftoverSingular = leftoverSingularForAxis(leftoverMapAxes, axisIndex);
   if (variant === "comparison") {
-    const badge = leftoverMapComparePlotTickAxisBadge(axisIndex, tickLabel, leftoverSingular);
+    const leftoverShare = leftoverShareForAxis(leftoverMapAxes, axisIndex);
+    const badge = leftoverMapComparePlotTickAxisBadge(
+      axisIndex,
+      tickLabel,
+      leftoverSingular,
+      leftoverShare,
+    );
     return tf(badge.key, badge.values);
   }
   const badge = leftoverMapPlotTickAxisBadge(axisIndex, tickLabel, leftoverSingular);
@@ -218,6 +224,9 @@ function leftoverMapPlotTickText(
  * ADR 0328 fail-closes leftover-map comparison graphic leftover-map axis ticks leftover-map
  * singular values through leftoverMapComparePlotTickAxisBadge independently of leftover-map
  * axis share.
+ * ADR 0331 fail-closes leftover-map comparison graphic leftover-map axis ticks leftover-map
+ * axis share through leftoverMapComparePlotTickAxisBadge independently of leftover-map
+ * singular values.
  * Never invent a leftover score.
  */
 export function LeftoverMapPlot({

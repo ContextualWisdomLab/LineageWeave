@@ -14,6 +14,8 @@
  *  leftoverMapCompareAxisTickBadge, not this helper.
  *  ADR 0330 names leftover-map leftover-axis ticks leftover-map singular
  *  values as leftoverMapAxisTickBadge independently of leftover-map axis share.
+ *  ADR 0331 captions leftover-map comparison graphic leftover-map axis ticks leftover-map
+ *  axis share as leftoverMapComparePlotTickAxisBadge, not this helper.
  */
 
 import type { LeftoverMapAxis } from "./api";
