@@ -1998,39 +1998,45 @@ async def list_posts(
             # Safe SQL: candidate SQL is closed schema text; every request value is bound.
             candidate_rows = await conn.fetch(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
                 f"""
-                with body_candidate as materialized (
+                with matched as (
                     select projection.post_id,
-                           case when projection.post_body_search_prefix
-                                      like '%' || lower($1) || '%'
-                                then 0 else 1 end as body_priority,
+                           true as body_match, 0 as body_priority,
                            ts_rank(projection.post_body_search_vector,
                                    plainto_tsquery('simple', $1)) as body_rank
                       from post_list_read_projection projection
                      where projection.post_body_search_prefix like '%' || lower($1) || '%'
-                        or projection.post_body_search_vector @@ plainto_tsquery('simple', $1)
-                ), candidate as (
-                    select body.post_id, true as body_match,
-                           body.body_priority, body.body_rank
-                      from body_candidate body
+                    union all
+                    select projection.post_id, true, 1,
+                           ts_rank(projection.post_body_search_vector,
+                                   plainto_tsquery('simple', $1))
+                      from post_list_read_projection projection
+                     where projection.post_body_search_vector @@ plainto_tsquery('simple', $1)
                     union all
                     select projection.post_id, false, 2, 0::real
                       from post_list_read_projection projection
-                     where (
-                           projection.search_source_exact_text like '%' || lower($1) || '%'
-                        or projection.search_related_master_exact_text like '%' || lower($1) || '%'
-                        or (
-                            char_length($1) >= 3 and (
-                                (projection.search_normalized_post_id % lower($1)
-                                 and similarity(projection.search_normalized_post_id, lower($1)) >= 0.78)
-                                or (projection.search_source_record_key % lower($1)
-                                    and similarity(projection.search_source_record_key, lower($1)) >= 0.78)
-                            )
-                        )
-                       )
-                       and not exists (
-                           select 1 from body_candidate body
-                            where body.post_id = projection.post_id
-                       )
+                     where projection.search_source_exact_text like '%' || lower($1) || '%'
+                    union all
+                    select projection.post_id, false, 2, 0::real
+                      from post_list_read_projection projection
+                     where projection.search_related_master_exact_text like '%' || lower($1) || '%'
+                    union all
+                    select projection.post_id, false, 2, 0::real
+                      from post_list_read_projection projection
+                     where char_length($1) >= 3
+                       and projection.search_normalized_post_id % lower($1)
+                       and similarity(projection.search_normalized_post_id, lower($1)) >= 0.78
+                    union all
+                    select projection.post_id, false, 2, 0::real
+                      from post_list_read_projection projection
+                     where char_length($1) >= 3
+                       and projection.search_source_record_key % lower($1)
+                       and similarity(projection.search_source_record_key, lower($1)) >= 0.78
+                ), candidate as (
+                    select post_id, bool_or(body_match) as body_match,
+                           min(body_priority) as body_priority,
+                           max(body_rank) as body_rank
+                      from matched
+                     group by post_id
                 ), authorized as (
                     select candidate.post_id, candidate.body_match,
                            candidate.body_priority, candidate.body_rank

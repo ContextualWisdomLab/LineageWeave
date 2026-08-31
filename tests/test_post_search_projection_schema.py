@@ -8,6 +8,7 @@ TRIGGER_RELEVANCE = ROOT / "migrations" / "0270_post_search_trigger_relevance.sq
 POST_LIST_PROJECTION = ROOT / "migrations" / "0265_post_list_read_projection_index.sql"
 DASHBOARD_PROJECTION = ROOT / "migrations" / "0264_dashboard_post_read_projection.sql"
 MASTER_GROUP_PROJECTION = ROOT / "migrations" / "0266_customer_master_group_read_projection.sql"
+BACKEND_MAIN = ROOT / "backend" / "app" / "main.py"
 
 
 def test_member_preferences_do_not_refresh_authored_post_search_rows() -> None:
@@ -45,3 +46,17 @@ def test_large_read_projection_backfills_do_not_rewrite_on_replay() -> None:
     assert "where not exists ( select 1 from dashboard_case_rollup_read_projection" in dashboard_sql
     assert "truncate customer_master_post_read_projection" not in master_sql
     assert "if not exists (select 1 from customer_master_post_read_projection) then" in master_sql
+
+
+def test_post_search_uses_independently_indexable_match_branches() -> None:
+    """Search must not combine six indexed predicates into one broad OR scan."""
+    source = " ".join(BACKEND_MAIN.read_text(encoding="utf-8").lower().split())
+    search_sql = source.split("with matched as (", maxsplit=1)[1].split(
+        "), authorized as (", maxsplit=1
+    )[0]
+
+    assert search_sql.count("union all") == 5
+    assert "bool_or(body_match)" in search_sql
+    assert "min(body_priority)" in search_sql
+    assert "max(body_rank)" in search_sql
+    assert "body_candidate as materialized" not in search_sql
