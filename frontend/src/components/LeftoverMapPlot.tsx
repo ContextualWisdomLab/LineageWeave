@@ -43,6 +43,7 @@ import {
   LEFTOVER_MAP_COMPARE_PLOT_SEGMENT_EXPECTED,
   LEFTOVER_MAP_COMPARE_PLOT_SEGMENT_RANK,
   LEFTOVER_MAP_COMPARE_PLOT_SEGMENT_DISTANCE,
+  LEFTOVER_MAP_COMPARE_PLOT_TICK,
   LEFTOVER_MAP_PLOT_CAPTION,
   LEFTOVER_MAP_PLOT_POST_ACTION,
   LEFTOVER_MAP_PLOT_SEGMENT_CROSS_SHARE,
@@ -177,6 +178,9 @@ function leftoverMapPlotAxisText(
  * labels. ADR 0319 captions leftover-map distance on that
  * comparison graphic from already-named leftover-map distance
  * with distinct leftover map comparison graphic leftover-map distance
+ * labels. ADR 0320 captions leftover-map coordinate ticks on that
+ * comparison graphic from already-named leftover-map coordinates
+ * with distinct leftover map comparison graphic leftover-map axis tick
  * labels.
  * Never invent a leftover score.
  */
@@ -305,7 +309,12 @@ export function LeftoverMapPlot({
             <g
               key={`tick:${tick.axis}:${tick.label}`}
               className="leftover-map-plot-tick"
-              aria-label={tf(LEFTOVER_MAP_PLOT_TICK, { axis: tick.axis, value: tick.label })}
+              aria-label={tf(
+                variant === "comparison"
+                  ? LEFTOVER_MAP_COMPARE_PLOT_TICK
+                  : LEFTOVER_MAP_PLOT_TICK,
+                { axis: tick.axis, value: tick.label },
+              )}
             >
               <line x1={tick.x} y1={tick.y} x2={tick.tickX2} y2={tick.tickY2} />
               <text
