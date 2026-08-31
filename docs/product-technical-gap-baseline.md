@@ -1,5 +1,42 @@
 # Product & Technical Gap Baseline
 
+> Development-loop evidence snapshot: 2026-08-31 17:13 KST. Protected
+> `main` is `cb187cadee5fb6c46d8a944815ccc154a1e028d1`; eighty-two PRs and
+> ten non-PR issues are open. PR #780's exact product parent for this
+> documentation snapshot is `e71895c06282692570ca683a726e7c8de3ec8c08`,
+> based on `main`, with no
+> independent `APPROVED` review. Fourteen checks succeed, three fail, one is
+> still running, and eleven are skipped. The product tests are green; the
+> failures are fail-closed owner gates: dependency-graph comparison is denied
+> with HTTP 403, the required central policy attempts to decode a PNG as
+> UTF-8, and the review identity cannot be verified after the governed
+> review service starts. This evidence-only update does not transfer those
+> results to itself, and pending work is not promoted to completion.
+>
+> The reusable central-policy root repair remains candidate-only in
+> `ContextualWisdomLab/.github#1420`. Its exact head is now
+> `a8dcb8d12001eb09af462d98782bba219b8ed562` after a normal merge of current
+> central `main`; the sole CHANGELOG conflict retained both independently
+> owned entries. The focused policy and queue-contract selection passes 166
+> tests. Eighteen hosted checks succeed while six run and four queue. It still
+> lacks an independent approval. GitHub's GraphQL quota prevented enabling
+> normal auto-merge on both PRs in this snapshot; `auto_merge` is therefore
+> honestly recorded as unavailable rather than armed. No bypass or
+> self-approval was attempted.
+>
+> The largest directly actionable buyer gap remains implemented on PR #780:
+> exact-value UI and CSV distinguish the carrying Post from genuine
+> derivation evidence, additional Voices preserve authorized Post evidence,
+> PROV-O derivation, truth status, and cutoff, and paged JSON-LD unions
+> same-subject multi-Voice relations. The candidate keeps ADR 0246's twelve
+> atomic Voices extensible and does not enumerate combinations. Fresh local
+> verification passes 37 focused Python tests and 29 frontend tests plus
+> frontend lint, type checking, and production build. Direct inspection of
+> the committed desktop and mobile Storybook renders confirms the narrow
+> exact-value view keeps carrying and evidence actions distinct. Earlier
+> authenticated synthetic PostgreSQL/API evidence is revision-scoped;
+> protected-main delivery and merge SHA remain unavailable.
+>
 > Development-loop evidence snapshot: 2026-08-31 14:58 KST. Protected
 > `main` is `cb187cadee5fb6c46d8a944815ccc154a1e028d1`; seventy-eight PRs and
 > ten issues are open. PR #780's exact product parent is
