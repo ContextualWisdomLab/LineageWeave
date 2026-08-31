@@ -110,7 +110,9 @@ singular values on leftover-map graphic-display axes
 singular values on leftover-axis report badges independently of leftover-map axis
 share ([ADR 0325](0325-leftover-map-axis-singular-only.md)). Independent of leftover-map
 coordinate ticks on the grouping comparison leftover-map graphic
-([ADR 0320](0320-leftover-map-compare-plot-ticks.md)).
+([ADR 0320](0320-leftover-map-compare-plot-ticks.md)). Independent of leftover-map
+comparison leftover-axis tick leftover-map singular values independently of leftover-map axis share
+([ADR 0329](0329-leftover-map-compare-axis-tick-badge.md)).
 
 ## References
 

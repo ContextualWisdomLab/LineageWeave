@@ -142,11 +142,13 @@ import {
 } from "./leftoverMapAxisBadge";
 import {
   leftoverMapCompareAxisBadge,
+  leftoverMapCompareAxisTickBadge,
   leftoverSingularForAxis,
   LEFTOVER_MAP_COMPARE_AXIS_CAPTION,
   LEFTOVER_MAP_COMPARE_AXIS_LABEL,
 } from "./leftoverMapPlotAxisSingular";
 import { leftoverShareForAxis } from "./leftoverMapPlotAxisShare";
+import { layoutLeftoverMapPlot } from "./leftoverMapPlotLayout";
 import {
   formatLeftoverMapReconstruction,
   LEFTOVER_MAP_COMPARE_RECONSTRUCTION_LABEL,
@@ -4139,6 +4141,18 @@ function ReportsPanel({
                   {t(LEFTOVER_MAP_COMPARE_AXIS_CAPTION)}
                 </p>
               ) : null}
+              {layoutLeftoverMapPlot(row.leftover_pairs ?? [], criterionShortLabel)?.ticks.map((tick) => {
+                const badge = leftoverMapCompareAxisTickBadge(
+                  tick.axis,
+                  tick.label,
+                  leftoverSingularForAxis(row.leftover_map_axes, tick.axis),
+                );
+                return (
+                  <span key={`leftover-axis-tick:${tick.axis}:${tick.label}`} className="post-badge">
+                    {tf(badge.key, badge.values)}
+                  </span>
+                );
+              })}
               {row.leftover_pairs && row.leftover_pairs.length > 0 && (
                 <>
                 <SurfaceBoundary>
