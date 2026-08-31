@@ -3,8 +3,10 @@
 from __future__ import annotations
 
 import asyncio
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 import subprocess
+import threading
 
 import pytest
 
@@ -55,6 +57,54 @@ def test_out_of_domain_heartbeat_or_baseline_fails_closed(tmp_path: Path) -> Non
     state.write_text(oversized, encoding="ascii")
     assert worker_health.heartbeat_has_advanced(heartbeat, state) is False
     assert state.read_text(encoding="ascii") == oversized
+
+
+def test_non_ascii_heartbeat_or_baseline_fails_closed(tmp_path: Path) -> None:
+    """Undecodable progress evidence preserves the boolean health contract."""
+    heartbeat = tmp_path / "heartbeat"
+    state = tmp_path / "state"
+
+    heartbeat.write_bytes(b"\xff")
+    assert worker_health.heartbeat_has_advanced(heartbeat, state) is False
+
+    heartbeat.write_text(_sample(_NEW_EPOCH, 2), encoding="ascii")
+    state.write_bytes(b"\xff")
+    assert worker_health.heartbeat_has_advanced(heartbeat, state) is False
+
+
+def test_concurrent_python_probes_use_distinct_atomic_state_files(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Concurrent probes cannot move or delete another probe's pending state."""
+    heartbeat = tmp_path / "heartbeat"
+    state = tmp_path / "state"
+    current_sample = _sample(_NEW_EPOCH, 2)
+    heartbeat.write_text(current_sample, encoding="ascii")
+    state.write_text(_sample(_NEW_EPOCH, 1), encoding="ascii")
+    barrier = threading.Barrier(2)
+    temporary_paths: list[Path] = []
+    original_replace = Path.replace
+
+    def synchronized_replace(path: Path, target: Path) -> Path:
+        if target == state:
+            temporary_paths.append(path)
+            barrier.wait()
+        return original_replace(path, target)
+
+    monkeypatch.setattr(Path, "replace", synchronized_replace)
+    with ThreadPoolExecutor(max_workers=2) as executor:
+        results = list(
+            executor.map(
+                lambda _index: worker_health.heartbeat_has_advanced(
+                    heartbeat, state
+                ),
+                range(2),
+            )
+        )
+
+    assert results == [True, True]
+    assert len(set(temporary_paths)) == 2
+    assert state.read_text(encoding="ascii") == current_sample
 
 
 def test_heartbeat_records_before_first_sleep(

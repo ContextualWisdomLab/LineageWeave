@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 from pathlib import Path
+import tempfile
 import time
 import uuid
 
@@ -69,7 +70,7 @@ def heartbeat_has_advanced(
     """Return whether the heartbeat advanced since the prior health probe."""
     try:
         current_text = heartbeat_path.read_text(encoding="ascii")
-    except FileNotFoundError:
+    except (FileNotFoundError, UnicodeDecodeError):
         return False
     current = _parse_sample(current_text)
     if current is None:
@@ -78,12 +79,24 @@ def heartbeat_has_advanced(
         previous = _parse_sample(state_path.read_text(encoding="ascii"))
     except FileNotFoundError:
         previous = None
+    except UnicodeDecodeError:
+        return False
     else:
         if previous is None:
             return False
-    temporary = state_path.with_suffix(".tmp")
-    temporary.write_text(current_text, encoding="ascii")
-    temporary.replace(state_path)
+    with tempfile.NamedTemporaryFile(
+        mode="w",
+        encoding="ascii",
+        dir=state_path.parent,
+        prefix=f".{state_path.name}.",
+        delete=False,
+    ) as temporary_file:
+        temporary_file.write(current_text)
+        temporary = Path(temporary_file.name)
+    try:
+        temporary.replace(state_path)
+    finally:
+        temporary.unlink(missing_ok=True)
     return previous is None or current[0] != previous[0] or current[1] > previous[1]
 
 
