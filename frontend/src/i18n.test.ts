@@ -77,6 +77,7 @@ describe("i18n", () => {
     "Post ξ",
     "Criterion ζ",
     "leftover-map criterion {label} at ζ {item}",
+    "leftover-map criterion {label} at leftover-map origin ζ {item}",
     "leftover map comparison graphic leftover-map criterion {label} at ζ {item}",
     "leftover-map axis 1",
     "leftover-map axis 2",
@@ -468,6 +469,24 @@ describe("i18n", () => {
       }),
     ).toBe(expected);
   });
+
+  it.each([
+    ["ko", "잔여 지도 원점 기준 sales-lead (ζ (0.00, 0.00))"],
+    ["zh", "残差图原点准则 sales-lead（ζ (0.00, 0.00)）"],
+    ["ja", "残差マップの原点基準 sales-lead（ζ (0.00, 0.00)）"],
+    ["vi", "tiêu chí gốc bản đồ phần dư sales-lead tại ζ (0.00, 0.00)"],
+  ] as const)(
+    "formats leftover-map graphic leftover-map criterion leftover-map origin ζ in %s",
+    (locale, expected) => {
+      setLocale(locale);
+      expect(
+        tf("leftover-map criterion {label} at leftover-map origin ζ {item}", {
+          label: "sales-lead",
+          item: "(0.00, 0.00)",
+        }),
+      ).toBe(expected);
+    },
+  );
 
   it.each([
     ["ko", "잔여 지도 비교 그림 기준 sales-lead (ζ (+0.50, −0.02))"],

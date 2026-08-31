@@ -83,7 +83,9 @@ axis share and leftover-map singular values
 comparison graphic leftover-map axis origin ticks independently of leftover-map axis share and leftover-map singular values
 ([ADR 0344](0344-leftover-map-compare-plot-tick-origin-badge.md)). Independent of leftover-map
 graphic leftover-map axis origin ticks independently of leftover-map axis share and leftover-map singular values
-([ADR 0343](0343-leftover-map-plot-tick-origin-badge.md)). Independent of leftover-axis
+([ADR 0343](0343-leftover-map-plot-tick-origin-badge.md)). Independent of leftover-map
+graphic leftover-map criterion leftover-map origin leftover-map item coordinates independently of leftover-map
+person coordinates ([ADR 0347](0347-leftover-map-plot-criterion-origin-badge.md)). Independent of leftover-axis
 ticks leftover-map axis share independently of leftover-map
 singular values ([ADR 0334](0334-leftover-map-axis-tick-share-badge.md)). Independent of leftover-axis
 ticks leftover-map singular values independently of leftover-map

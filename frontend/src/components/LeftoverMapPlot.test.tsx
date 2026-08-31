@@ -172,7 +172,8 @@ describe("LeftoverMapPlot", () => {
     expect(
       screen.getByRole("button", { name: "Open leftover-map post Public post at ξ (0.00, 0.00)" }),
     ).toBeInTheDocument();
-    expect(screen.getByLabelText("leftover-map criterion sales-lead at ζ (0.00, 0.00)")).toBeInTheDocument();
+    expect(screen.getByLabelText("leftover-map criterion sales-lead at leftover-map origin ζ (0.00, 0.00)")).toBeInTheDocument();
+    expect(screen.queryByLabelText("leftover-map criterion sales-lead at ζ (0.00, 0.00)")).not.toBeInTheDocument();
     expect(screen.queryByLabelText("Criterion ζ sales-lead")).not.toBeInTheDocument();
     expect(screen.getByText("leftover-map axis 1 σ 0.00 (0%)")).toBeInTheDocument();
     expect(screen.getByText("leftover-map axis 2 σ 0.00 (0%)")).toBeInTheDocument();
@@ -1008,6 +1009,9 @@ describe("LeftoverMapPlot", () => {
     ).not.toBeInTheDocument();
     expect(screen.queryByLabelText("Criterion ζ sales-lead")).not.toBeInTheDocument();
     expect(screen.queryByLabelText("leftover-map criterion sales-lead at ζ (0.00, 0.00)")).not.toBeInTheDocument();
+    expect(
+      screen.queryByLabelText("leftover-map criterion sales-lead at leftover-map origin ζ (0.00, 0.00)"),
+    ).not.toBeInTheDocument();
   });
 
   it("keeps leftover map comparison axis text when share is missing or non-finite", () => {

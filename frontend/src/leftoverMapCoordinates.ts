@@ -1,4 +1,9 @@
-/** Two-axis leftover-map coordinates ``ξ_{1:2}`` and ``ζ_{1:2}``. */
+/** Two-axis leftover-map coordinates ``ξ_{1:2}`` and ``ζ_{1:2}``.
+ *  ADR 0347 names leftover-map origin on leftover-map graphic leftover-map
+ *  criterion leftover-map item coordinates as leftoverMapPlotCriterionBadge
+ *  independently of leftover-map person coordinates. leftoverMapListCriterionBadge
+ *  stays leftover-map pair leftover-map criterion leftover-map item coordinate keys.
+ */
 
 import { formatSignedLeftoverValue } from "./leftoverMapUnexplained";
 
@@ -48,6 +53,16 @@ export function formatLeftoverMapCoordinatePair(
   return `(${first}, ${second})`;
 }
 
+/** True when the formatted leftover-map coordinate pair is leftover-map origin
+ *  `(formatSignedLeftoverValue(0), formatSignedLeftoverValue(0))`. Rank-0 unused
+ *  axes still name leftover-map origin `(0.00, 0.00)`. Do not invent leftover-map
+ *  origin from leftover-map person coordinates ξ.
+ */
+export function leftoverMapPlotCoordinatePairIsOrigin(pairLabel: string): boolean {
+  const origin = formatLeftoverMapCoordinatePair(0, 0);
+  return origin !== null && pairLabel === origin;
+}
+
 export function formatLeftoverMapCoordinates(
   personAxis1: number | null | undefined,
   personAxis2: number | null | undefined,
@@ -75,7 +90,10 @@ export function leftoverMapListPostBadge(
   return { key: LEFTOVER_MAP_LIST_POST_ACTION, values: { title, person } };
 }
 
-/** ADR 0340 leftover-map pair leftover-map criterion leftover-map item coordinates ζ. */
+/** ADR 0340 leftover-map pair leftover-map criterion leftover-map item coordinates ζ.
+ *  ADR 0347 names leftover-map origin on leftover-map graphic leftover-map criterion
+ *  leftover-map item coordinates as leftoverMapPlotCriterionBadge, not this helper.
+ */
 export function leftoverMapListCriterionBadge(
   label: string,
   axis1: number | null | undefined,

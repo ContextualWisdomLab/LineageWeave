@@ -24,6 +24,7 @@ import {
   LEFTOVER_MAP_COMPARE_PLOT_TICK,
   LEFTOVER_MAP_COMPARE_PLOT_SVG,
   LEFTOVER_MAP_PLOT_CRITERION,
+  LEFTOVER_MAP_PLOT_CRITERION_ORIGIN,
   LEFTOVER_MAP_COMPARE_PLOT_CRITERION,
   LEFTOVER_MAP_PLOT_POST_ACTION,
   LEFTOVER_MAP_PLOT_POST_ACTION_OMITTED,
@@ -1224,11 +1225,14 @@ describe("leftoverMapPlotCriterionBadge", () => {
     });
   });
 
-  it("names rank-0 origin leftover-map item coordinates as ζ (0.00, 0.00)", () => {
+  it("names rank-0 leftover-map origin leftover-map item coordinates independently of leftover-map person coordinates", () => {
     expect(leftoverMapPlotCriterionBadge("sales-lead", 0, 0)).toEqual({
-      key: LEFTOVER_MAP_PLOT_CRITERION,
+      key: LEFTOVER_MAP_PLOT_CRITERION_ORIGIN,
       values: { label: "sales-lead", item: "(0.00, 0.00)" },
     });
+    expect(leftoverMapPlotCriterionBadge("sales-lead", 0, 0)?.key).not.toBe(LEFTOVER_MAP_PLOT_CRITERION);
+    expect(leftoverMapPlotCriterionBadge("sales-lead", 0, 0)?.key).not.toBe(LEFTOVER_MAP_COMPARE_PLOT_CRITERION);
+    expect(leftoverMapPlotPostBadge("Public post", 0, 0)?.key).not.toBe(LEFTOVER_MAP_PLOT_CRITERION_ORIGIN);
   });
 
   it("omits leftover-map item coordinates when ζ is missing or non-finite", () => {
@@ -1240,6 +1244,11 @@ describe("leftoverMapPlotCriterionBadge", () => {
 
   it("stays distinct from leftover-map post ξ markers and leftover-map comparison graphic leftover-map criterion markers", () => {
     expect(LEFTOVER_MAP_PLOT_CRITERION).toBe("leftover-map criterion {label} at ζ {item}");
+    expect(LEFTOVER_MAP_PLOT_CRITERION_ORIGIN).toBe(
+      "leftover-map criterion {label} at leftover-map origin ζ {item}",
+    );
+    expect(LEFTOVER_MAP_PLOT_CRITERION_ORIGIN).not.toBe(LEFTOVER_MAP_PLOT_CRITERION);
+    expect(LEFTOVER_MAP_PLOT_CRITERION_ORIGIN).not.toBe(LEFTOVER_MAP_COMPARE_PLOT_CRITERION);
     expect(LEFTOVER_MAP_PLOT_CRITERION).not.toBe(LEFTOVER_MAP_PLOT_POST_ACTION);
     expect(LEFTOVER_MAP_PLOT_CRITERION).not.toBe("Criterion ζ {label}");
     expect(LEFTOVER_MAP_PLOT_CRITERION).not.toBe("Criterion ζ");
@@ -1273,6 +1282,9 @@ describe("leftoverMapComparePlotCriterionBadge", () => {
       key: LEFTOVER_MAP_COMPARE_PLOT_CRITERION,
       values: { label: "sales-lead", item: "(0.00, 0.00)" },
     });
+    expect(leftoverMapComparePlotCriterionBadge("sales-lead", 0, 0)?.key).not.toBe(
+      LEFTOVER_MAP_PLOT_CRITERION_ORIGIN,
+    );
   });
 
   it("omits leftover-map item coordinates when ζ is missing or non-finite", () => {
@@ -1287,6 +1299,7 @@ describe("leftoverMapComparePlotCriterionBadge", () => {
       "leftover map comparison graphic leftover-map criterion {label} at ζ {item}",
     );
     expect(LEFTOVER_MAP_COMPARE_PLOT_CRITERION).not.toBe(LEFTOVER_MAP_PLOT_CRITERION);
+    expect(LEFTOVER_MAP_COMPARE_PLOT_CRITERION).not.toBe(LEFTOVER_MAP_PLOT_CRITERION_ORIGIN);
     expect(LEFTOVER_MAP_COMPARE_PLOT_CRITERION).not.toBe(LEFTOVER_MAP_PLOT_POST_ACTION);
     expect(LEFTOVER_MAP_COMPARE_PLOT_CRITERION).not.toBe("Criterion ζ {label}");
     expect(LEFTOVER_MAP_COMPARE_PLOT_CRITERION).not.toBe("Criterion ζ");

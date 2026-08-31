@@ -694,6 +694,8 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Post ξ": "글 ξ",
     "Criterion ζ": "기준 ζ",
     "leftover-map criterion {label} at ζ {item}": "잔여 지도 기준 {label} (ζ {item})",
+    "leftover-map criterion {label} at leftover-map origin ζ {item}":
+      "잔여 지도 원점 기준 {label} (ζ {item})",
     "leftover map comparison graphic leftover-map criterion {label} at ζ {item}":
       "잔여 지도 비교 그림 기준 {label} (ζ {item})",
     "Open leftover-map post {title}": "잔여 지도 글 {title} 열기",
@@ -1412,6 +1414,8 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Post ξ": "帖子 ξ",
     "Criterion ζ": "准则 ζ",
     "leftover-map criterion {label} at ζ {item}": "残差图准则 {label}（ζ {item}）",
+    "leftover-map criterion {label} at leftover-map origin ζ {item}":
+      "残差图原点准则 {label}（ζ {item}）",
     "leftover map comparison graphic leftover-map criterion {label} at ζ {item}":
       "残差地图比较图形准则 {label}（ζ {item}）",
     "Open leftover-map post {title}": "打开残差图帖子 {title}",
@@ -2134,6 +2138,8 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Post ξ": "投稿 ξ",
     "Criterion ζ": "基準 ζ",
     "leftover-map criterion {label} at ζ {item}": "残差マップの基準 {label}（ζ {item}）",
+    "leftover-map criterion {label} at leftover-map origin ζ {item}":
+      "残差マップの原点基準 {label}（ζ {item}）",
     "leftover map comparison graphic leftover-map criterion {label} at ζ {item}":
       "残差マップの比較図基準 {label}（ζ {item}）",
     "Open leftover-map post {title}": "残差マップの投稿 {title} を開く",
@@ -2860,6 +2866,8 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Post ξ": "Bài viết ξ",
     "Criterion ζ": "Tiêu chí ζ",
     "leftover-map criterion {label} at ζ {item}": "tiêu chí bản đồ phần dư {label} tại ζ {item}",
+    "leftover-map criterion {label} at leftover-map origin ζ {item}":
+      "tiêu chí gốc bản đồ phần dư {label} tại ζ {item}",
     "leftover map comparison graphic leftover-map criterion {label} at ζ {item}":
       "tiêu chí đồ họa so sánh bản đồ phần dư {label} tại ζ {item}",
     "Open leftover-map post {title}": "Mở bài viết bản đồ phần dư {title}",
