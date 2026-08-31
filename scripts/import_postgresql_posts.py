@@ -56,6 +56,13 @@ _VOC_TYPE_ALIASES = {
     "voco": "voco",
     "vom": "vom",
     "vop": "vop",
+    "vos": "vos",
+    "voe": "voe",
+    "vob": "vob",
+    "vor": "vor",
+    "voi": "voi",
+    "voso": "voso",
+    "vops": "vops",
 }
 
 

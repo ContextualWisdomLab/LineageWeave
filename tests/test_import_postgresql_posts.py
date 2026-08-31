@@ -292,15 +292,29 @@ def test_import_rows_persists_raw_and_derived_grouping_values(
 
 @pytest.mark.parametrize(
     ("source_value", "expected"),
-    [("VOC", "voc"), ("VOCC", "vocc"), ("VOCO", "voco"), ("VOM", "vom"), ("VOP", "vop")],
+    [
+        ("VOC", "voc"),
+        ("VOCC", "vocc"),
+        ("VOCO", "voco"),
+        ("VOM", "vom"),
+        ("VOP", "vop"),
+        ("VOS", "vos"),
+        ("VOE", "voe"),
+        ("VOB", "vob"),
+        ("VOR", "vor"),
+        ("VOI", "voi"),
+        ("VOSO", "voso"),
+        ("VOPS", "vops"),
+    ],
 )
 def test_importer_preserves_source_voc_type_vocabulary(source_value: str, expected: str) -> None:
     assert _normalize_voc_type(source_value, mapped=True) == expected
 
 
 def test_importer_rejects_unknown_or_empty_mapped_voc_type() -> None:
-    with pytest.raises(ValueError, match="unsupported source VOC type"):
-        _normalize_voc_type("not-a-voc-type", mapped=True)
+    for source_value in ("not-a-voc-type", "기타"):
+        with pytest.raises(ValueError, match="unsupported source VOC type"):
+            _normalize_voc_type(source_value, mapped=True)
     with pytest.raises(ValueError, match="mapped source VOC type is empty"):
         _normalize_voc_type("", mapped=True)
 
