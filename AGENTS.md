@@ -637,6 +637,15 @@ that no persisted coordinate occupies. Do not invent leftover-map coordinate tic
 distance, leftover-map rank, leftover expected, leftover observed, leftover residual, leftover-map unexplained leftover, leftover-map reconstruction, leftover-map axis share, leftover-map post coverage, leftover-map item coverage,
 leftover-map incomplete post coverage, leftover-map incomplete item coverage, leftover pair
 count, or the count of unused axes.
+ADR 0321 captions leftover-map singular values on that grouping comparison leftover-map
+graphic from already-named leftover-map axes when that persisted `σ_k` is finite and
+non-negative. Rank-0 unused axes still name leftover-map comparison graphic leftover-map
+axis `σ 0.00`. Share and singular value omit independently. Do not invent leftover-map
+singular values from leftover-map axis share, leftover-map coordinate ticks, leftover-map
+distance, leftover-map rank, leftover expected, leftover observed, leftover residual,
+leftover-map unexplained leftover, leftover-map reconstruction, leftover-map post coverage,
+leftover-map item coverage, leftover-map incomplete post coverage, leftover-map incomplete
+item coverage, leftover pair count, or the count of unused axes.
 When `R`, `R̂`, `U`, `x`,
 `s`, and `e` are finite, `e + s + x = 1`. When `Y`, `E`, and `R` are
 finite, `Y − E = R`. When `R`, `R̂`, and `U` are
@@ -732,6 +741,9 @@ that grouping comparison leftover-map graphic with persisted leftover-map distan
 Grouping comparison leftover-map coordinate ticks (ADR 0320) captions
 that grouping comparison leftover-map graphic with persisted leftover-map coordinate
 ticks at the origin and at each unique finite `ξ` / `ζ` projection.
+Grouping comparison leftover-map singular values (ADR 0321) captions
+that grouping comparison leftover-map graphic with persisted leftover-map singular
+values `σ_k` when leftoverSingularForAxis returns a usable finite non-negative value.
 Item complete-case coverage
 (ADR 0282) captions the leftover-map graphic with how many scored criteria
 entered the map. Item complete-case coverage on the pair list (ADR 0285)

@@ -105,6 +105,8 @@ describe("i18n", () => {
     "Leftover map comparison rank",
     "leftover map comparison graphic leftover-map distance {label}",
     "leftover map comparison graphic leftover-map axis {axis} tick {value}",
+    "leftover map comparison graphic leftover-map axis {axis} σ {value}",
+    "leftover map comparison graphic leftover-map axis {axis} σ {value} ({share}%)",
     "Leftover map comparison coordinates",
     "Leftover map comparison graphic",
     "Leftover map comparison",
@@ -683,6 +685,43 @@ describe("i18n", () => {
         tf("leftover map comparison graphic leftover-map axis {axis} tick {value}", {
           axis: 1,
           value: "+0.50",
+        }),
+      ).toBe(expected);
+    },
+  );
+
+  it.each([
+    ["ko", "잔여 지도 비교 그림 축 1 σ 1.84"],
+    ["zh", "残差地图比较图形轴 1 σ 1.84"],
+    ["ja", "残差マップの比較図軸 1 σ 1.84"],
+    ["vi", "trục đồ họa so sánh bản đồ phần dư 1 σ 1.84"],
+  ] as const)(
+    "formats leftover map comparison graphic leftover-map axis singular values in %s",
+    (locale, expected) => {
+      setLocale(locale);
+      expect(
+        tf("leftover map comparison graphic leftover-map axis {axis} σ {value}", {
+          axis: 1,
+          value: "1.84",
+        }),
+      ).toBe(expected);
+    },
+  );
+
+  it.each([
+    ["ko", "잔여 지도 비교 그림 축 1 σ 1.84 (82%)"],
+    ["zh", "残差地图比较图形轴 1 σ 1.84 (82%)"],
+    ["ja", "残差マップの比較図軸 1 σ 1.84 (82%)"],
+    ["vi", "trục đồ họa so sánh bản đồ phần dư 1 σ 1.84 (82%)"],
+  ] as const)(
+    "formats leftover map comparison graphic leftover-map axis singular share in %s",
+    (locale, expected) => {
+      setLocale(locale);
+      expect(
+        tf("leftover map comparison graphic leftover-map axis {axis} σ {value} ({share}%)", {
+          axis: 1,
+          value: "1.84",
+          share: "82",
         }),
       ).toBe(expected);
     },

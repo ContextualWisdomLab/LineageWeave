@@ -8,6 +8,24 @@ All notable changes to this project are documented here. Format follows
 
 ### Added
 
+- Period leftover pairs now name leftover-map singular values on the grouping
+  comparison leftover-map graphic (ADR 0321 / v2.78.0). After `make seed`,
+  closest and farthest leftover pairs sit above the member list with leftover-map
+  singular values `σ_k` on that grouping comparison leftover-map graphic when
+  those persisted singular values are finite and non-negative; click a post
+  marker or a pair button opens that post. Rank-0 origin cells still name
+  leftover-map comparison graphic leftover-map axis `σ 0.00`. Comparison copy
+  uses `leftover map comparison graphic leftover-map axis {axis} σ {value}` so
+  it stays distinct from `leftover-map axis {axis} σ {value}`, from
+  `leftover axis {axis} σ {value}`, from
+  `leftover map comparison axis {axis} ({share}%)`, and from
+  `leftover map comparison graphic leftover-map axis {axis} tick {value}`.
+  Share and singular value omit independently. Do not invent `σ_k` from
+  leftover-map axis share. This increment does not caption leftover-map
+  singular values on leftover-axis report badges with a distinct name.
+  A finite negative leftover is shown, never clamped. Never invent a leftover
+  score or a theta. No new columns.
+
 - Period leftover pairs now name leftover-map coordinate ticks on the grouping
   comparison leftover-map graphic (ADR 0320 / v2.77.0). After `make seed`,
   closest and farthest leftover pairs sit above the member list with leftover-map
@@ -18,9 +36,8 @@ All notable changes to this project are documented here. Format follows
   `leftover map comparison graphic leftover-map axis {axis} tick {value}` so it
   stays distinct from `leftover-map axis {axis} tick {value}` and from
   `leftover map comparison axis {axis} ({share}%)`. Do not invent evenly spaced
-  ticks that no persisted coordinate occupies. This increment does not caption
-  leftover-map singular values on the comparison graphic with a distinct name.
-  Do not invent leftover-map coordinate ticks from leftover-map distance.
+  ticks that no persisted coordinate occupies. Leftover-map singular values on
+  the comparison graphic are ADR 0321. Do not invent leftover-map coordinate ticks from leftover-map distance.
   A finite negative leftover is shown, never clamped. Never invent a leftover
   score or a theta. No new columns.
 

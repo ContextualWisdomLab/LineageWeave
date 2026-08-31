@@ -3,6 +3,9 @@
 **Decision status:** Accepted
 **Date:** 2026-08-31
 
+**Amended by:** [ADR 0321](0321-leftover-map-compare-plot-singular.md)
+(leftover-map singular values on the grouping comparison leftover-map graphic)
+
 Amends leftover-map coordinate ticks on graphic-display axes
 ([ADR 0270](0270-leftover-map-coordinate-ticks.md)), leftover-map distance
 on the grouping comparison leftover-map graphic
@@ -12,7 +15,7 @@ on the grouping comparison leftover-map graphic
 display on the grouping comparison strip
 ([ADR 0304](0304-leftover-map-compare-graphic.md)), leftover-map coordinates
 ([ADR 0267](0267-leftover-map-coordinates.md)). Independent of leftover-map
-singular values on the grouping comparison leftover-map graphic.
+singular values on leftover-axis report badges.
 
 ## Context
 
@@ -95,7 +98,7 @@ and distance are finite, `R̂ = ξ · ζ` and `d = ‖ξ − ζ‖`.
 
 ## Related
 
-Independent of leftover-map singular values on the grouping comparison leftover-map graphic.
+Independent of leftover-map singular values on leftover-axis report badges.
 
 ## References
 
