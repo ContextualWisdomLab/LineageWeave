@@ -1,5 +1,41 @@
 # Product & Technical Gap Baseline
 
+> Exact-head development-loop overlay: 2026-09-01 01:41 KST. Protected
+> `main` remains `cb187cadee5fb6c46d8a944815ccc154a1e028d1`; ninety-five PRs and
+> ten non-PR issues are open. PR #780 is open at
+> `29c21916de99fbe26b67ef4fe45aa72f26fc0020`, based directly on that
+> `main`. All review threads are resolved and normal squash auto-merge is
+> armed, but no independent `APPROVED` review exists. Fourteen exact-head
+> checks succeed, eleven are skipped, three fail, and Strix remains in
+> progress. The failures remain explicit unavailable evidence: the central
+> bootstrap does not yet admit the committed PNG evidence, the governed
+> review call timed out, and GitHub returned HTTP 403 for the exact-base/head
+> dependency comparison. None is relabeled as product acceptance.
+>
+> The current candidate is still the largest completed buyer-visible gap in
+> this loop: exact-value UI/CSV distinguishes the carrying Post from
+> derivation evidence, additional Voices retain authorized Post evidence,
+> server-created PROV-O derivation, truth status, and cutoff, and paged
+> JSON-LD unions multi-Voice properties for one subject. Regression coverage
+> and the committed 1440-by-1400 desktop and 390-by-1688 mobile Storybook
+> renders remain revision-scoped evidence; protected-main delivery, a merge
+> SHA, and deployed authenticated PostgreSQL/UI acceptance remain unavailable.
+> ADR 0246 owns the twelve extensible atomic classifications and ADR 0256 owns
+> evidence-bearing composition; the supporting PRD's conflicting ADR 0251
+> identity and duplicate occupational requirement identifiers remain
+> candidate-only under #847, not silently reinterpreted here.
+>
+> Pending checks did not stop safe queue work. Exact-head review found no
+> unresolved threads on direct-`main` PRs #771, #772, #774, #802, and #847;
+> normal squash auto-merge is now armed on each, while required independent
+> approval and failed or pending current-head checks remain unsatisfied. PR
+> #640 moved concurrently to a new head during this audit, so its existing
+> auto-merge was preserved and its new evidence was not inherited from the
+> earlier snapshot. Fresh remote-name verification preserves canonical
+> `ContextualWisdomLab/LineageWeave`, `RankWeave`, `ThreadWeave`, lowercase
+> `disksage`, and `TEPP`. No self-approval, admin bypass, force push, invented
+> weight, or heuristic classification was used.
+
 > Exact-head development-loop overlay: 2026-09-01 00:34 KST. Protected
 > `main` remains `cb187cadee5fb6c46d8a944815ccc154a1e028d1`; ninety-five PRs and
 > ten non-PR issues are open. PR #780's exact implementation and rendered-
