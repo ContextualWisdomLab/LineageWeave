@@ -16,6 +16,21 @@ All notable changes to this project are documented here. Format follows
 
 ### Added
 
+- Product extraction now uses a strict receipt-bearing orchestrator schema,
+  revalidates the focal source and complete typed-target digest under a shared
+  replacement lock, and continues after an independent operations-stage
+  failure. Typed operations/project targets are admitted only from current
+  evidence-bearing assertions; catalog misses remain misses without guessed
+  identities, and a later admission delay cannot hide an ordinary stage
+  failure (ADR 0228).
+
+- Derived Voice classification now uses one strict contextual-orchestrator
+  receipt over the exact focal Post body, admits all twelve governed Voice
+  concepts as evidence-supported multi-label assertions, and preserves the
+  imported source category separately. Exact spans and source digests fail
+  closed; valid empty results retain a completion receipt, and operations-case
+  failures no longer suppress the independent Voice stage (ADR 0244).
+
 - Governed product-catalog provisioning now accepts only explicit product
   master rows with authorized source-record provenance, a canonical payload
   digest, and source-linked aliases. Replays are idempotent, contradictory

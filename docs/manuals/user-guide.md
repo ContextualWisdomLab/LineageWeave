@@ -28,7 +28,10 @@ Project sections show the observed records and, when accepted journey evidence
 exists, the supported start, predecessor, branch, and transition. Open each
 milestone before acting: a lead, public notice, customer request, negotiated
 bid, discussion, or earlier project may precede the first order shown on
-screen.
+screen. A record joins a project journey only when its source carries the exact
+project code. If a known project has no journey, ask a source-data steward to
+confirm that code was recorded and imported; do not infer membership from a
+similar project name or nearby record.
 
 ## Review Voice evidence
 
@@ -53,7 +56,11 @@ see. A record may support several categories, so category totals can overlap.
 Review multi-category records, source-versus-derived disagreements, and
 records without supporting evidence before using a category total. A record's
 Voice category does not by itself establish how every organization mentioned
-in that record relates to your organization.
+in that record relates to your organization. Source categories and supported
+derived categories remain separate. A derived category appears only with its
+cited source passage and completed analysis; unavailable analysis is not a
+negative category. At a knowledge cutoff, review the category history that was
+effective then instead of applying today's category retrospectively.
 
 ## Ask with evidence
 
@@ -71,6 +78,10 @@ When the answer appears:
 4. Read limitations and the suggested next action before forwarding a report
    or acting on an alert.
 
+A completed answer with no authorized citations is an honest no-evidence
+result. Narrow the question or ask an administrator to confirm your access;
+do not treat uncited text as evidence or fill the gap from memory.
+
 Enable public verification only when the question contains a claim that needs
 comparison with public information. If verification is unavailable, ask an
 administrator to enable the governed public-research service and retry. A
@@ -86,6 +97,8 @@ Use its evidence sections to:
 - review product mentions at group, model, variant, or trade-item level;
 - ask the product-catalog steward to review a mention marked tied, missing, or
   unavailable before using its relationship;
+- request product reprocessing when its analysis is unavailable, even if case
+  analysis failed separately; one result does not stand in for the other;
 - inspect similar prior issues and their cited actions; and
 - follow Event Lineage without treating ontology neighbors as parent records.
 

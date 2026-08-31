@@ -39,6 +39,12 @@ async def test_operations_dashboard_sql_binds_against_postgres() -> None:
                 "select to_regclass($1)", f"public.{table_name}"
             ) is None:
                 pytest.skip(f"requires the migration that creates {table_name}")
+        if not await connection.fetchval(
+            "select exists (select 1 from information_schema.columns "
+            "where table_schema = 'public' and table_name = 'post_product_analysis' "
+            "and column_name = 'orchestrator_model_receipt')"
+        ):
+            pytest.skip("requires the receipt-bearing product analysis migration")
         result = await fetch_operations_dashboard(connection, [])
         external_result = await fetch_operations_dashboard(connection, [], external_only=True)
     finally:

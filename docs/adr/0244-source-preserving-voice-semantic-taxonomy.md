@@ -58,6 +58,41 @@ the six `rel_` codes only in the organization-relationship scheme, and requires
 derived evidence/digest/receipt/time fields.
 Raw `source_post.voc_type_code` is never updated by this projection.
 
+The post-content worker produces the derived side through one strict
+`json_schema` contextual-orchestrator request over the already-authorized focal
+Post body. The schema admits only the twelve governed post codes and allows one
+assertion per supported code, so the response is multi-label without creating a
+compound code or forced winner. Every item supplies character offsets; the
+consumer accepts it only when those offsets select the returned verbatim span
+from the exact submitted body. The consumer computes both digests itself. It
+never searches for a similar span, repairs an offset, assigns a default, or
+promotes source metadata into evidence.
+
+The non-empty top-level orchestrator response id is the model receipt. A
+missing id, malformed schema result, unsupported or duplicate code, invalid
+offset, or stale source revision fails closed and leaves the derived analysis
+unavailable for bounded retry. A valid empty assertion array is different: its
+receipt and current source digest are persisted in
+`post_voice_classification_analysis` with assertion count zero. That completion
+row prevents repeated inference while retaining zero positive derived
+assertions. A later source revision invalidates completion by digest mismatch;
+replacement persistence closes prior derived assertions and links same-code
+successors without rewriting source assertions.
+
+The completion relation is one current row per Post and the assertion relation
+is indexed by Post, validity, and concept. That shape is third-normalized and
+bounded by the Post corpus plus retained assertion history. It is not
+partitioned without measured write, retention, or lock pressure; the existing
+scope/history indexes are the required access path until such evidence exists.
+
+Voice classification is an independent post-content stage. It runs before the
+operations evidence/case stage and persists transactionally, so an operations
+failure cannot suppress an otherwise valid Voice receipt. A Voice failure is
+remembered while the other independent stages continue; the job succeeds only
+after the Voice stage has a current successful receipt. Product and operations
+facts remain governed by their own evidence contracts and are never fabricated
+to compensate for either stage.
+
 ## Consequences
 
 - Operators can compare original and derived semantics without losing either.

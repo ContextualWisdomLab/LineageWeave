@@ -74,6 +74,19 @@ def test_semantic_content_unit_kind_migration_is_replay_safe() -> None:
         assert f"'{unit_kind}'" in sql
 
 
+def test_product_receipt_migration_is_replay_safe_and_nullable_for_history() -> None:
+    """Existing unreceipted rows survive while only receipts prove completion."""
+    sql = (
+        Path(__file__).resolve().parents[1]
+        / "migrations"
+        / "0272_product_analysis_model_receipt.sql"
+    ).read_text(encoding="utf-8").lower()
+
+    assert "add column if not exists orchestrator_model_receipt text" in sql
+    assert "orchestrator_model_receipt is null" in sql
+    assert "create index if not exists post_product_analysis_receipt_digest_idx" in sql
+
+
 def test_source_conversation_turn_evidence_migration_is_replay_safe() -> None:
     sql = (
         Path(__file__).resolve().parents[1]
@@ -356,6 +369,20 @@ def test_tepp_receipt_migration_is_replayable_and_digest_bound() -> None:
     assert "request_sha256 ~ '^[0-9a-f]{64}$'" in sql
     assert "receipt_sha256 ~ '^[0-9a-f]{64}$'" in sql
     assert "accepted_status_code = 'accepted'" in sql
+    assert "create index if not exists" in sql
+
+
+def test_derived_voice_analysis_receipt_migration_is_replayable() -> None:
+    """A valid empty derived analysis has a replay-safe digest-bound receipt."""
+    sql = (
+        Path(__file__).resolve().parents[1]
+        / "migrations"
+        / "0271_derived_voice_classification_analysis.sql"
+    ).read_text(encoding="utf-8")
+    assert "create table if not exists post_voice_classification_analysis" in sql.lower()
+    assert "source_body_sha256 ~ '^[0-9a-f]{64}$'" in sql
+    assert "assertion_count integer not null check (assertion_count >= 0)" in sql
+    assert "orchestrator_model_receipt text not null" in sql
     assert "create index if not exists" in sql
 
 

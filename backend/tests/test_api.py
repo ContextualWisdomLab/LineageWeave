@@ -255,6 +255,8 @@ _LATE_REPLAYABLE_MIGRATIONS = tuple(
         "0253_voice_semantic_taxonomy.sql",
         "0257_public_claim_envelope.sql",
         "0263_voice_taxonomy_read_projection.sql",
+        "0271_derived_voice_classification_analysis.sql",
+        "0272_product_analysis_model_receipt.sql",
     )
 )
 
@@ -2157,9 +2159,16 @@ def test_post_detail_returns_authorized_product_evidence(
             catalog_id = cur.fetchone()[0]
             cur.execute(
                 "insert into post_product_analysis "
-                "(post_id, source_body_sha256, analysis_input_sha256, orchestrator_session_id) "
-                "values (%s, %s, %s, %s)",
-                    (seeded_db["public_post_id"], current_body_sha256, "b" * 64, "session-a"),
+                "(post_id, source_body_sha256, analysis_input_sha256, "
+                "orchestrator_session_id, orchestrator_model_receipt) "
+                "values (%s, %s, %s, %s, %s)",
+                (
+                    seeded_db["public_post_id"],
+                    current_body_sha256,
+                    "b" * 64,
+                    "session-a",
+                    "product-receipt-a",
+                ),
             )
             cur.execute(
                 "insert into post_product_mention "
@@ -2248,6 +2257,25 @@ def test_post_detail_returns_authorized_product_evidence(
             "evidence_post_id": seeded_db["public_post_id"],
         }],
     }]
+
+    conn = psycopg2.connect(seeded_db["dsn"])
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                "update post_product_analysis set orchestrator_model_receipt = null "
+                "where post_id = %s",
+                (seeded_db["public_post_id"],),
+            )
+        conn.commit()
+    finally:
+        conn.close()
+    unreceipted = client.get(
+        f"/api/posts/{seeded_db['public_post_id']}",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert unreceipted.status_code == 200
+    assert unreceipted.json()["product_evidence"] == []
+    assert unreceipted.json()["product_evidence_status"]["status_code"] == "setup_required"
 
 
 def test_voice_taxonomy_summary_uses_visible_post_denominator(
@@ -2350,6 +2378,30 @@ def test_derived_voice_assertion_requires_model_receipt(seeded_db) -> None:
                 "values (%s, 'voc', 'derived', 0, 1, repeat('a', 64), repeat('b', 64))",
                 (seeded_db["public_post_id"],),
             )
+    finally:
+        conn.close()
+
+
+def test_derived_voice_successful_empty_receipt_is_digest_bound(seeded_db) -> None:
+    """A current zero-assertion result is complete without a fabricated class."""
+    conn = psycopg2.connect(seeded_db["dsn"])
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                "insert into post_voice_classification_analysis "
+                "(post_id, source_body_sha256, orchestrator_model_receipt, assertion_count) "
+                "select post_id, encode(sha256(convert_to(coalesce(post_body, ''), "
+                "'UTF8')), 'hex'), 'chatcmpl-synthetic-empty', 0 from source_post "
+                "where post_id = %s",
+                (seeded_db["public_post_id"],),
+            )
+            cur.execute(
+                "select assertion_count from post_voice_classification_analysis "
+                "where post_id = %s",
+                (seeded_db["public_post_id"],),
+            )
+            assert cur.fetchone() == (0,)
+        conn.commit()
     finally:
         conn.close()
 

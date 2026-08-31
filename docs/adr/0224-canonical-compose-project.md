@@ -46,6 +46,19 @@ compared only within one worker-process epoch and never across boots.
 When a runtime prerequisite closes readiness, the worker removes both files
 again. A successful validation, including an unchanged prepared identity,
 opens a new readiness epoch and resumes the heartbeat.
+Each heartbeat and probe baseline carries the same random process-epoch
+identifier beside the monotonic value. A probe compares counters only inside
+one identifier and atomically adopts a changed identifier. Consequently, a
+probe that read the prior files before startup cannot poison the new epoch by
+publishing its stale baseline after the worker reset.
+The Python and POSIX-shell parsers accept the same non-negative signed-64-bit
+counter domain. An existing malformed or out-of-domain heartbeat or baseline
+fails closed instead of becoming progress evidence. Concurrent probes publish
+their baselines through distinct same-directory temporary files and atomic
+replacement. The Python probe serializes its complete read, compare, and
+publish operation with an in-process mutex and a POSIX advisory file lock; a
+filesystem or lock failure reports unhealthy. Therefore an older observation
+cannot replace a newer published baseline or manufacture later progress.
 Consequently, targeted canonical startup such
 as `docker compose up backend` also starts the worker and does not expose an API
 that can accept durable jobs while no consumer exists. Non-Compose deployments

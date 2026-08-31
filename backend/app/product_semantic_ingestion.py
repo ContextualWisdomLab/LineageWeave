@@ -5,10 +5,13 @@ from __future__ import annotations
 from typing import Any, Protocol
 
 from lineageweave.product_semantics import (
-    ProductExtraction,
+    ProductEvidenceSource,
+    ProductExtractionResult,
     ProductMention,
+    ProductRelationTarget,
     ResolvedProductMention,
     normalize_product_alias,
+    product_analysis_input_sha256,
     resolve_product_mention,
 )
 
@@ -20,6 +23,14 @@ class _Connection(Protocol):
 
     async def fetch(self, query: str, *args: object) -> list[Any]:
         """Fetch parameterized rows."""
+        pass  # pragma: no cover - structural protocol declaration
+
+    async def fetchval(self, query: str, *args: object) -> Any:
+        """Fetch one scalar value."""
+        pass  # pragma: no cover - structural protocol declaration
+
+    async def fetchrow(self, query: str, *args: object) -> Any:
+        """Fetch one row."""
         pass  # pragma: no cover - structural protocol declaration
 
     async def execute(self, query: str, *args: object) -> Any:
@@ -46,26 +57,100 @@ async def resolve_product_mentions(
     return tuple(resolved)
 
 
+async def load_current_product_relation_targets(
+    conn: _Connection,
+    post_id: str,
+    source_body_digest: str,
+    expected_operations_input_sha256: str | None,
+) -> tuple[ProductRelationTarget, ...]:
+    """Load relation targets that remain bound to the exact focal evidence."""
+    operation_rows = await conn.fetch(
+        "select fact.case_kind_code, fact.fact_ordinal, fact.fact_type_code, "
+        "fact.value_text from operations_case_fact fact "
+        "join operations_case_analysis analysis on analysis.post_id = fact.post_id "
+        "where fact.post_id = $1 and analysis.source_body_sha256 = $2 "
+        "and $3::text is not null and analysis.analysis_input_sha256 = $3 "
+        "order by fact.case_kind_code, fact.fact_ordinal",
+        post_id,
+        source_body_digest,
+        expected_operations_input_sha256,
+    )
+    project_rows = await conn.fetch(
+        "select project.project_key, project.project_name "
+        "from post_project_mention project join source_post source "
+        "on source.post_id = project.post_id where project.post_id = $1 "
+        "and encode(sha256(convert_to(coalesce(source.post_body, ''), 'UTF8')), 'hex') = $2 "
+        "and btrim(project.evidence_text) <> '' "
+        "and strpos(coalesce(source.post_body, ''), project.evidence_text) > 0 "
+        "order by project.project_key",
+        post_id,
+        source_body_digest,
+    )
+    return tuple(
+        ProductRelationTarget(
+            f"operations_fact:{row['case_kind_code']}:{row['fact_ordinal']}",
+            "operations_fact",
+            f"{row['fact_type_code']}: {row['value_text']}",
+            (post_id, str(row["case_kind_code"]), str(row["fact_ordinal"])),
+        )
+        for row in operation_rows
+    ) + tuple(
+        ProductRelationTarget(
+            f"project:{row['project_key']}",
+            "project",
+            str(row["project_name"]),
+            (post_id, str(row["project_key"])),
+        )
+        for row in project_rows
+    )
+
+
 async def persist_product_mentions(
     conn: _Connection,
     post_id: str,
-    source_body_sha256: str,
     analysis_input_sha256: str,
     orchestrator_session_id: str,
     mentions: tuple[ResolvedProductMention, ...],
-    extraction: ProductExtraction | None = None,
+    result: ProductExtractionResult,
+    *,
+    expected_operations_input_sha256: str | None,
 ) -> None:
-    """Atomically replace one exact post's product analysis projection."""
+    """Replace products only while their complete evidence window is current."""
     async with conn.transaction():
+        current_source = await conn.fetchrow(
+            "select coalesce(post_body, '') as post_body, "
+            "encode(sha256(convert_to(coalesce(post_body, ''), 'UTF8')), 'hex') "
+            "as source_body_sha256 "
+            "from source_post where post_id = $1::uuid for update",
+            post_id,
+        )
+        if (
+            current_source is None
+            or current_source["source_body_sha256"] != result.source_revision_digest
+        ):
+            raise ValueError("product result no longer matches the source revision")
+        current_targets = await load_current_product_relation_targets(
+            conn,
+            post_id,
+            result.source_revision_digest,
+            expected_operations_input_sha256,
+        )
+        current_input_sha256 = product_analysis_input_sha256(
+            (ProductEvidenceSource(post_id, str(current_source["post_body"])),),
+            current_targets,
+        )
+        if current_input_sha256 != analysis_input_sha256:
+            raise ValueError("product result no longer matches the relation targets")
         await conn.execute("delete from post_product_analysis where post_id = $1", post_id)
         await conn.execute(
             "insert into post_product_analysis "
-            "(post_id, source_body_sha256, analysis_input_sha256, orchestrator_session_id) "
-            "values ($1, $2, $3, $4)",
+            "(post_id, source_body_sha256, analysis_input_sha256, orchestrator_session_id, "
+            "orchestrator_model_receipt) values ($1, $2, $3, $4, $5)",
             post_id,
-            source_body_sha256,
+            result.source_revision_digest,
             analysis_input_sha256,
             orchestrator_session_id,
+            result.orchestrator_model_receipt,
         )
         for ordinal, resolved in enumerate(mentions):
             mention = resolved.mention
@@ -83,9 +168,7 @@ async def persist_product_mentions(
                 mention.evidence_post_id,
                 mention.evidence_input_sha256,
             )
-        if extraction is None:
-            return
-        for relation in extraction.relations:
+        for relation in result.extraction.relations:
             if relation.target_kind_code == "operations_fact":
                 target_post_id, case_kind_code, fact_ordinal = relation.target_locator
                 if target_post_id != post_id:
