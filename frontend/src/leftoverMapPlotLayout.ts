@@ -159,9 +159,13 @@
  *  ADR 0346 fail-closes leftover-map leftover-axis origin ticks through
  *  leftoverMapAxisTickBadge independently of leftover-map axis share and leftover-map
  *  singular values, not leftover-map comparison leftover-axis ticks.
+ *  ADR 0347 fail-closes leftover-map graphic leftover-map criterion leftover-map origin
+ *  leftover-map item coordinates through leftoverMapPlotCriterionBadge independently of leftover-map
+ *  person coordinates ξ, not leftover-map comparison graphic leftover-map criterion leftover-map
+ *  item coordinates.
  */
 
-import { formatLeftoverMapCoordinatePair } from "./leftoverMapCoordinates";
+import { formatLeftoverMapCoordinatePair, leftoverMapPlotCoordinatePairIsOrigin } from "./leftoverMapCoordinates";
 import { formatLeftoverMapCrossShare } from "./leftoverMapCrossShare";
 import { formatLeftoverMapExplainedShare } from "./leftoverMapExplainedShare";
 import { formatLeftoverMapRank } from "./leftoverMapRank";
@@ -197,6 +201,9 @@ export const LEFTOVER_MAP_COMPARE_PLOT_POST_ACTION =
 export const LEFTOVER_MAP_PLOT_CRITERION =
   "leftover-map criterion {label} at ζ {item}";
 
+export const LEFTOVER_MAP_PLOT_CRITERION_ORIGIN =
+  "leftover-map criterion {label} at leftover-map origin ζ {item}";
+
 export const LEFTOVER_MAP_COMPARE_PLOT_CRITERION =
   "leftover map comparison graphic leftover-map criterion {label} at ζ {item}";
 
@@ -219,7 +226,11 @@ export function leftoverMapPlotCriterionBadge(
   if (item === null) {
     return null;
   }
-  return { key: LEFTOVER_MAP_PLOT_CRITERION, values: { label, item } };
+  const origin = leftoverMapPlotCoordinatePairIsOrigin(item);
+  return {
+    key: origin ? LEFTOVER_MAP_PLOT_CRITERION_ORIGIN : LEFTOVER_MAP_PLOT_CRITERION,
+    values: { label, item },
+  };
 }
 
 export function leftoverMapComparePlotCriterionBadge(

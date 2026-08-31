@@ -7,6 +7,7 @@ import {
   LEFTOVER_MAP_COMPARE_PLOT_CRITERION,
   LEFTOVER_MAP_COMPARE_PLOT_POST_ACTION,
   LEFTOVER_MAP_PLOT_CRITERION,
+  LEFTOVER_MAP_PLOT_CRITERION_ORIGIN,
   LEFTOVER_MAP_PLOT_POST_ACTION,
 } from "./leftoverMapPlotLayout";
 import {
@@ -16,6 +17,7 @@ import {
   leftoverMapCompareListCriterionBadge,
   leftoverMapListCriterionBadge,
   leftoverMapListPostBadge,
+  leftoverMapPlotCoordinatePairIsOrigin,
   LEFTOVER_MAP_COMPARE_COORDINATES_LABEL,
   LEFTOVER_MAP_COMPARE_LIST_POST_ACTION,
   LEFTOVER_MAP_COMPARE_LIST_CRITERION,
@@ -59,6 +61,25 @@ describe("formatLeftoverMapCoordinatePair", () => {
   it("omits a pair when either leftover-map axis is missing or non-finite", () => {
     expect(formatLeftoverMapCoordinatePair(null, 0)).toBeNull();
     expect(formatLeftoverMapCoordinatePair(0, Number.NaN)).toBeNull();
+  });
+});
+
+describe("leftoverMapPlotCoordinatePairIsOrigin", () => {
+  it("names leftover-map origin independently of leftover-map person coordinates", () => {
+    expect(leftoverMapPlotCoordinatePairIsOrigin("(0.00, 0.00)")).toBe(true);
+    expect(leftoverMapPlotCoordinatePairIsOrigin("(+0.50, \u22120.02)")).toBe(false);
+    expect(leftoverMapPlotCoordinatePairIsOrigin("(+0.00, 0.00)")).toBe(false);
+    expect(leftoverMapPlotCoordinatePairIsOrigin("(0.00, +0.00)")).toBe(false);
+    expect(leftoverMapPlotCoordinatePairIsOrigin("0.00")).toBe(false);
+    expect(formatLeftoverMapCoordinatePair(0, 0)).toBe("(0.00, 0.00)");
+    expect(leftoverMapPlotCriterionBadge("sales-lead", 0, 0)?.key).toBe(LEFTOVER_MAP_PLOT_CRITERION_ORIGIN);
+    expect(leftoverMapComparePlotCriterionBadge("sales-lead", 0, 0)?.key).not.toBe(
+      LEFTOVER_MAP_PLOT_CRITERION_ORIGIN,
+    );
+    expect(leftoverMapPlotPostBadge("Public post", 0, 0)?.key).not.toBe(LEFTOVER_MAP_PLOT_CRITERION_ORIGIN);
+    expect(leftoverMapListCriterionBadge("sales-lead", 0, 0)?.key).not.toBe(
+      LEFTOVER_MAP_PLOT_CRITERION_ORIGIN,
+    );
   });
 });
 
@@ -151,6 +172,7 @@ describe("leftoverMapListCriterionBadge", () => {
       "leftover pair leftover-map criterion {label} at ζ {item}",
     );
     expect(LEFTOVER_MAP_LIST_CRITERION).not.toBe(LEFTOVER_MAP_PLOT_CRITERION);
+    expect(LEFTOVER_MAP_LIST_CRITERION).not.toBe(LEFTOVER_MAP_PLOT_CRITERION_ORIGIN);
     expect(LEFTOVER_MAP_LIST_CRITERION).not.toBe(LEFTOVER_MAP_COMPARE_PLOT_CRITERION);
     expect(LEFTOVER_MAP_LIST_CRITERION).not.toBe(LEFTOVER_MAP_LIST_POST_ACTION);
     expect(LEFTOVER_MAP_LIST_CRITERION).not.toBe("Criterion ζ {label}");
@@ -264,6 +286,7 @@ describe("leftoverMapCompareListCriterionBadge", () => {
     );
     expect(LEFTOVER_MAP_COMPARE_LIST_CRITERION).not.toBe(LEFTOVER_MAP_LIST_CRITERION);
     expect(LEFTOVER_MAP_COMPARE_LIST_CRITERION).not.toBe(LEFTOVER_MAP_PLOT_CRITERION);
+    expect(LEFTOVER_MAP_COMPARE_LIST_CRITERION).not.toBe(LEFTOVER_MAP_PLOT_CRITERION_ORIGIN);
     expect(LEFTOVER_MAP_COMPARE_LIST_CRITERION).not.toBe(LEFTOVER_MAP_COMPARE_PLOT_CRITERION);
     expect(LEFTOVER_MAP_COMPARE_LIST_CRITERION).not.toBe(LEFTOVER_MAP_COMPARE_LIST_POST_ACTION);
     expect(leftoverMapCompareListCriterionBadge("sales-lead", 0.5, -0.02)?.key).not.toBe(
