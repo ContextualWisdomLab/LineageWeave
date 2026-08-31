@@ -61,10 +61,10 @@ const lifecycleStatusLabels: Record<string, string> = {
 const milestoneLabels: Record<string, string> = {
   claim_received: "Claim received",
   cause_confirmed: "Cause confirmed",
-  rebid_started: "Rebid started",
-  response_submitted: "Response submitted",
+  rebid_response_requested: "Rebid response requested",
+  rebid_decision_recorded: "Rebid decision recorded",
   handover_started: "Handover started",
-  handover_completed: "Handover completed",
+  handover_accepted: "Handover accepted",
 };
 
 const timeAxisLabels: Record<string, string> = {

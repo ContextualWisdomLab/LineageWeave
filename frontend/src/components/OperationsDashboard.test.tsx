@@ -80,6 +80,36 @@ describe("OperationsDashboardView", () => {
     expect(onOpenPost).toHaveBeenCalledWith("evidence-post-1");
   });
 
+  it("uses the governed rebid and handover milestone codes", () => {
+    setLocale("en");
+    const milestone = (milestone_type_code: string, milestone_type_label: string) => ({
+      ...data.cases[0].milestones[0],
+      milestone_type_code,
+      milestone_type_label,
+    });
+    const lifecycles = [
+      {
+        ...data.cases[0].lifecycles[0],
+        lifecycle_kind_code: "rebid_response",
+        start_milestone: milestone("rebid_response_requested", "서버 재입찰 요청"),
+        end_milestone: milestone("rebid_decision_recorded", "서버 재입찰 결정"),
+      },
+      {
+        ...data.cases[0].lifecycles[0],
+        lifecycle_kind_code: "handover_gap",
+        start_milestone: milestone("handover_started", "서버 인수인계 시작"),
+        end_milestone: milestone("handover_accepted", "서버 인수 확인"),
+      },
+    ];
+
+    render(<OperationsDashboardView data={{ ...data, cases: [{ ...data.cases[0], lifecycles }] }} onOpenPost={() => undefined} />);
+
+    expect(screen.getByRole("button", { name: "Open Rebid response requested evidence" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Open Rebid decision recorded evidence" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Open Handover accepted evidence" })).toBeInTheDocument();
+    expect(screen.queryAllByText(/서버 재입찰|서버 인수/)).toHaveLength(0);
+  });
+
   it.each([
     ["en", "Operations evidence dashboard", "All posts", "Important posts over time"],
     ["zh", "运营证据看板", "全部文章", "时序重要文章"],

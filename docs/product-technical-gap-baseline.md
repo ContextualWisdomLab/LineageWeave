@@ -1,8 +1,8 @@
 # Product & Technical Gap Baseline
 
-> Current exact-head overlay: 2026-08-31 KST. Protected `main` is
+> Current exact-head overlay: 2026-09-01 KST. Protected `main` is
 > `cb187cadee5fb6c46d8a944815ccc154a1e028d1`; PR #640 evidence is current
-> through `7ac1b079a535a787831d90749fb9969e9a8844b8`. The repository has 84 open
+> through parent head `190543da022fb34353d14eaabf79f57a744c5889`. The repository has 95 open
 > PRs, including 6 drafts, and 10 open issues. This current overlay supersedes the older dated
 > queue snapshots below; neither branch tests nor the running Compose stack
 > are protected-main delivery evidence.
@@ -16,10 +16,15 @@
 > and provider-embedding runtime candidate; its protected delivery remains a gate
 > before the first bounded terminal retry. Terminal retry and unbounded continuation
 > are now mutually exclusive, so each admitted page must settle before another
-> page is selected. PR #640 now also declares and SHACL-validates the operations-case JSON-LD
-> vocabulary that its Dashboard already emits. No screenshot or identifying
-> runtime record is committed. The exact LineageWeave head passed 2,308 repository
-> tests with 16 integration skips; those branch tests are not protected-main proof.
+> page is selected. PR #640 declares and SHACL-validates the operations-case JSON-LD
+> vocabulary that its Dashboard emits, keeps the packaged fallback graph-isomorphic
+> with the authoritative Turtle, and includes that fallback in built wheels. This is
+> implemented branch evidence; protected-main ontology publication and authenticated
+> installed-runtime acceptance remain unverified. No additional ontology class is
+> missing for the current normalized case, fact, relation, and milestone-code
+> projection. No screenshot or identifying runtime record is committed. The ontology
+> package-fix head passed 2,318 repository tests with 15 integration skips before the
+> subsequent runtime-pin commit; those branch tests are not protected-main proof.
 
 > Current rebuild overlay: 2026-08-28 KST. Protected `main` is
 > `ff7431bd1851c03e737808d22c6a2d43968582f9`; PR #640 is a ready-for-review
@@ -412,6 +417,7 @@ explicit unavailable state, not a reason to infer mappings from labels.
 
 | Requirement | Evidence contract | Delivery state |
 |---|---|---|
+| Operations ontology runtime package | ADR 0206 governed OWL/JSON-LD projection; authoritative Turtle, SHACL, and installed fallback must agree | **Implemented on the PR branch:** the wheel declares the Turtle package data and tests graph isomorphism with the authoritative source. **Unverified:** protected-main Pages publication and authenticated installed-runtime acceptance. No speculative milestone classes are required because the normalized API contract governs milestones by closed codes. |
 | Claim cause delay: order, specification change, originating order, sales pool, Event/post counts | ADR 0206; contextual-orchestrator case classification with cited spans; case-specific normalized milestones | Candidate implementation counts only cited claim milestones instead of duplicating every Post summary Event; authenticated runtime acceptance pending |
 | Rebid/handover: discussion, counterparties, our owner, decisions, Event/post counts | ADR 0206; normalized case facts and case-specific normalized milestones | Candidate implementation counts only cited rebid/handover milestones; corpus backfill pending |
 | External information count/rate and sales/project relation | ADR 0206; semantic `external_information` classification inside Dashboard GNB | Candidate implementation; no separate Board by product decision |
@@ -791,7 +797,7 @@ this file per §3.5 of the prior snapshot).
 | Voice primary history | Protected `main` `bbb19192` includes ADR 0252 / #761 (migration 0243, GiST primary-period exclusion, `clock_timestamp()` after the source-row lock, API/ontology half-open cutoff SQL). v2.22.1 adds synthetic PostgreSQL integration tests for A → B → A at before/between/after cutoffs, concurrent primary updates, additional-assignment close, and 0237→0243 trigger replay. This is not yet protected-main evidence | Land the live-test slice through the protected gate with independent exact-head APPROVE; close #748 only after that protected delivery |
 | Knowledge Graph readability | #659 recreates the token-backed node-type repair on current `main`, including regression coverage; it is open and therefore not protected-main evidence | Merge #659 normally, then verify light/dark contrast, keyboard graph navigation, full labels, and evidence tables in the authenticated rendered surface |
 | Product semantic identity | ADR 0228 and migration 0251 define normalized product group/model/variant/trade-item identities, scoped GTIN/MPN keys, and fail-closed unique/tie/missing/unavailable resolution. The governed provisioning candidate adds an add-only admin contract with explicit product code/label, authorized source-system record, server-calculated digest, and alias-level source evidence; `CatalogProductShape` validates stable code/label/level/parent projection, and unique Post results expose the same catalog id/code/IRI. It never creates identity from model output, keywords, fuzzy similarity, or `기타`. The authorized aggregate snapshot contained 43,189 source posts but zero catalog rows, aliases, resolved mentions, and product relations. Ten analysis rows existed without product mentions. Exact upstream `기타` category presence remains unavailable because no SOURCE DSN was configured in the observed runtime; zero is the canonical observed product-resolution count, not proof that the upstream category is absent. Protected delivery and authenticated rendered acceptance remain unproven | Merge the exact stack through protected gates, configure the authorized SOURCE DSN outside git, import explicit product-master rows, rerun product analysis, and retain only aggregate unique/missing/tie/unavailable plus authenticated desktop/mobile evidence |
-| Voice semantic taxonomy | ADRs 0244/0246 and migrations 0230/0235 preserve the twelve-value source-post scheme separately from the six-value post-scoped organization relationship scheme, retain source/derived disagreement and multi-membership, and provide authorized overlap-aware aggregate filters. PR #640 constrains qualified Voice assignments to those twelve governed concepts, requires their existing truth and source provenance, validates product-relation subject kinds, and carries all twelve labels through the Dashboard and ontology publication. Its current exact head is `59432e845423de63e2768653c8f4481812c30194`; this is branch evidence, not protected-main or private-corpus accuracy evidence. | Land the stack, run bounded orchestrator backfill, and verify aggregate-only source/derived/disagreement/unavailable counts at one declared cutoff without exposing record identities |
+| Voice semantic taxonomy | ADRs 0244/0246 and migrations 0230/0235 preserve the twelve-value source-post scheme separately from the six-value post-scoped organization relationship scheme, retain source/derived disagreement and multi-membership, and provide authorized overlap-aware aggregate filters. PR #640 constrains qualified Voice assignments to those twelve governed concepts, requires their existing truth and source provenance, validates product-relation subject kinds, and carries all twelve labels through the Dashboard and ontology publication. Its current parent head is `190543da022fb34353d14eaabf79f57a744c5889`; this is branch evidence, not protected-main or private-corpus accuracy evidence. | Land the stack, run bounded orchestrator backfill, and verify aggregate-only source/derived/disagreement/unavailable counts at one declared cutoff without exposing record identities |
 | Source-code lookup UX | Source state/detail codes remain evidence-bearing machine values and current detail presentation is dense | Catalog-backed display labels with raw-code provenance, compact 5W1H/source-detail hierarchy, keyboard access, and no unsupported customer/project binding |
 | Calendar / Naruon | #355 delivered the projection contract; v2.17.0 wires operator consumption without forwarding the end-user token. Naruon producer, provider/consumer fixtures, and protected merge remain open (#336) | Verify observed events against the published schema without invented events; keep commitments available when the channel is unwired |
 | SKOS organization aliases | Catalog binding and chip caption live on #480 / #482 | One catalog row per corroborated org; companion caption is hint-only until bound |
