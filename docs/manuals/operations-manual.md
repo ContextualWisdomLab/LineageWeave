@@ -103,6 +103,12 @@ For an incident:
    settles before choosing whether to admit another terminal page. Both modes
    persist each page before publishing wake-ups and report aggregate counts
    only.
+   The post-content consumer is intentionally serial. Do not derive a worker
+   concurrency value from low CPU or memory while it waits on the provider:
+   there is no measured gateway concurrency envelope, and the database pool is
+   shared with the worker lease and other durable consumers. A page can take
+   one provider deadline per attempted record; keep observing the admitted page
+   rather than opening another one.
 5. For one terminal content job, run
    `uv run python scripts/requeue_failed_post_content.py --post-id <post-id>`
    from the governed operator environment. This preserves the original source
