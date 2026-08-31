@@ -15,7 +15,7 @@ multi-agent.
 ## Decision
 
 `docker/contextual-orchestrator/Dockerfile` pins the downloaded archive to
-commit `3558a9a3aeb985282b255fcd80bb2201c19ae54b` from upstream PR #857.
+commit `17a7b13f5317e930bae496e6d65268fb15ac4e34` from upstream PR #857.
 The candidate pin supplies exact `Retry-After` admission deferral,
 rate-budget-derived readiness polling cadence, and endpoint-scoped structured
 admission. Readiness now measures both the internal JSON-Schema judge and the
@@ -62,6 +62,10 @@ The runtime contract is:
   not invent a polling interval.
 - One candidate's bounded probe failure records that candidate as not ready;
   it does not discard successful readiness evidence from other candidates.
+- When persisted readiness admits a structured workflow but every candidate
+  transport fails, the request returns the typed `503 no_viable_agent` and
+  bounded `Retry-After` contract. It never exposes provider detail or reports
+  the exhausted request as an internal server error.
 
 ## Consequences
 

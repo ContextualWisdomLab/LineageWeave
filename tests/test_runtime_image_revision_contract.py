@@ -37,7 +37,7 @@ def test_compose_passes_revision_to_all_product_images() -> None:
     ) == 4
     assert (
         "CONTEXTUAL_ORCHESTRATOR_SOURCE_REVISION: "
-        "3558a9a3aeb985282b255fcd80bb2201c19ae54b"
+        "17a7b13f5317e930bae496e6d65268fb15ac4e34"
     ) in compose
 
 

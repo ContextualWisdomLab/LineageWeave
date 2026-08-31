@@ -302,7 +302,15 @@ async def defer_post_content_job(
             completed_at = null,
             updated_at = now(),
             last_error_code = $6,
-            last_error_detail = $7
+            last_error_detail = $7,
+            failure_channel_stage_code = null,
+            failure_http_status = null,
+            failure_orchestrator_error_code = null,
+            failure_retryable = null,
+            failure_session_correlation_id = null,
+            failure_error_type = null,
+            failure_validation_code = null,
+            failure_validation_path = null
         where post_id = $1
           and status_code = $3
           and attempt_count = $4

@@ -1104,6 +1104,9 @@ def test_admission_deferral_requeues_exact_lease_without_consuming_attempt() -> 
     assert "attempt_count = attempt_count - 1" in update_query
     assert "status_code = $3" in update_query
     assert "next_attempt_at = now() + make_interval(secs => $5)" in update_query
+    assert "failure_channel_stage_code = null" in update_query
+    assert "failure_orchestrator_error_code = null" in update_query
+    assert "failure_validation_path = null" in update_query
     assert update_args[3:5] == (2, 30)
     assert all("provider" not in str(args).casefold() for _query, args in executed)
 
