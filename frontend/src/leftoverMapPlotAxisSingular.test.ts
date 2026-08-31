@@ -876,4 +876,3 @@ describe("leftover-map comparison leftover-axis tick leftover-map axis share", (
     );
   });
 });
-
