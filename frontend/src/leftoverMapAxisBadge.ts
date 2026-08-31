@@ -20,6 +20,8 @@
  *  axis share as leftoverMapPlotTickAxisBadge, not this helper.
  *  ADR 0333 captions leftover-map comparison leftover-axis ticks leftover-map
  *  axis share as leftoverMapCompareAxisTickBadge, not this helper.
+ *  ADR 0334 names leftover-map leftover-axis ticks leftover-map axis share
+ *  as leftoverMapAxisTickBadge independently of leftover-map singular values.
  */
 
 import type { LeftoverMapAxis } from "./api";
@@ -39,6 +41,11 @@ export const LEFTOVER_MAP_AXIS_BADGE_SINGULAR_ONLY = "leftover axis {axis} σ {v
 export const LEFTOVER_MAP_AXIS_TICK = "leftover axis {axis} tick {value}";
 
 export const LEFTOVER_MAP_AXIS_TICK_SINGULAR = "leftover axis {axis} tick {value} σ {singular}";
+
+export const LEFTOVER_MAP_AXIS_TICK_SHARE = "leftover axis {axis} tick {value} {share}%";
+
+export const LEFTOVER_MAP_AXIS_TICK_SINGULAR_SHARE =
+  "leftover axis {axis} tick {value} σ {singular} {share}%";
 
 export function leftoverMapAxisBadgeShare(
   leftoverShare: LeftoverMapAxis["leftover_share"] | null | undefined,
@@ -82,13 +89,27 @@ export function leftoverMapAxisTickBadge(
   axisIndex: number,
   tickLabel: string,
   leftoverSingular: number | null | undefined,
+  leftoverShare?: number | null,
 ): LeftoverMapCompareAxisBadge {
   const singular = formatLeftoverMapPlotAxisSingular(leftoverSingular);
-  if (singular === null) {
+  const percent = leftoverMapAxisBadgeShare(leftoverShare);
+  if (singular === null && percent === null) {
     return { key: LEFTOVER_MAP_AXIS_TICK, values: { axis: axisIndex, value: tickLabel } };
   }
+  if (singular === null && percent !== null) {
+    return {
+      key: LEFTOVER_MAP_AXIS_TICK_SHARE,
+      values: { axis: axisIndex, value: tickLabel, share: percent },
+    };
+  }
+  if (singular !== null && percent === null) {
+    return {
+      key: LEFTOVER_MAP_AXIS_TICK_SINGULAR,
+      values: { axis: axisIndex, value: tickLabel, singular },
+    };
+  }
   return {
-    key: LEFTOVER_MAP_AXIS_TICK_SINGULAR,
-    values: { axis: axisIndex, value: tickLabel, singular },
+    key: LEFTOVER_MAP_AXIS_TICK_SINGULAR_SHARE,
+    values: { axis: axisIndex, value: tickLabel, singular: singular as string, share: percent as string },
   };
 }

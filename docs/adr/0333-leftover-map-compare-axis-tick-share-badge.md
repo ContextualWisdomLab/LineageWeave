@@ -116,7 +116,9 @@ tick leftover-map singular values independently of leftover-map axis share
 ([ADR 0330](0330-leftover-map-axis-tick-badge.md)). Independent of leftover-map
 singular values on leftover-axis report badges on the grouping comparison strip
 ([ADR 0323](0323-leftover-map-compare-axis-singular.md)). Independent of leftover-map
-axis share persistence ([ADR 0148](0148-leftover-map-axis-share.md)).
+axis share persistence ([ADR 0148](0148-leftover-map-axis-share.md)). Independent of leftover-axis
+tick leftover-map axis share independently of leftover-map singular values
+([ADR 0334](0334-leftover-map-axis-tick-share-badge.md)).
 
 ## References
 

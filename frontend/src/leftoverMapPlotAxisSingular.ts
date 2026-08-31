@@ -26,6 +26,9 @@
  *  ADR 0333 names leftover-map comparison leftover-axis ticks leftover-map
  *  axis share as leftoverMapCompareAxisTickBadge independently of leftover-map
  *  singular values.
+ *  ADR 0334 names leftover-map leftover-axis ticks leftover-map
+ *  axis share as leftoverMapAxisTickBadge independently of leftover-map
+ *  singular values.
  */
 
 import type { LeftoverMapAxis } from "./api";

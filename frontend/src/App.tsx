@@ -3970,6 +3970,7 @@ function ReportsPanel({
                 tick.axis,
                 tick.label,
                 leftoverSingularForAxis(report.leftover_map_axes, tick.axis),
+                leftoverShareForAxis(report.leftover_map_axes, tick.axis),
               );
               return (
                 <span key={`leftover-axis-tick:${tick.axis}:${tick.label}`} className="post-badge">
