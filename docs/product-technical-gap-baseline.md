@@ -1,5 +1,28 @@
 # Product & Technical Gap Baseline
 
+> Exact-head release-contract overlay: 2026-08-31 11:46 KST.
+> Protected `main` remains `cb187cadee5fb6c46d8a944815ccc154a1e028d1`;
+> sixty-nine open PRs and ten open issues were enumerated in a fresh snapshot.
+> PR #780 remains on normal squash auto-merge with its exact-head product and
+> frontend checks successful, resolved review threads, and no independent
+> approval; its central required-workflow failures remain external protected
+> delivery blockers, so no merge SHA or protected-main Voice acceptance is
+> claimed. The next direct-to-`main` candidate, PR #802, exposed a release
+> identity conflict: Python package metadata and the frontend named v2.30.0
+> while `lineageweave.__version__` still named v2.20.0. Because that runtime
+> value is persisted as Event Lineage reconstruction provenance, the mismatch
+> was not documentation-only. Implementation revision
+> `88270da43cdb4a75349d10ab612b99690df59f45` synchronizes the runtime identity
+> and adds a repository contract test that binds Python metadata, runtime
+> provenance, and frontend release identity. Fourteen focused persistence,
+> channel-evidence, and release-contract tests pass. This later evidence-only
+> overlay does not transfer those results to its own head; current-head hosted
+> Checks and independent approval remain pending, and normal squash auto-merge
+> is retained. No mathematical value is recomputed in LineageWeave: the
+> leftover-map UI continues to render only persisted owner-produced values and
+> leaves missing or non-finite evidence unavailable. No self-approval, bypass,
+> force push, arbitrary weighting, or hidden-evidence substitution is used.
+>
 > Exact-head loop overlay: 2026-08-31 06:31 KST. Protected `main` is
 > `cb187cadee5fb6c46d8a944815ccc154a1e028d1` (leftover-map coordinates,
 > graphic, axis share, ticks, and segment distance through v2.28.0, #782).
