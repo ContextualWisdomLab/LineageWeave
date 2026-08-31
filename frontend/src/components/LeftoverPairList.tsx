@@ -130,7 +130,10 @@ export type LeftoverPairListProps = {
  * captions leftover-map rank on that grouping comparison leftover-map graphic, not this
  * pair list. ADR 0319 captions leftover-map distance on that grouping comparison leftover-map
  * graphic, not this pair list. ADR 0320 captions leftover-map coordinate ticks on that grouping
- * comparison leftover-map graphic, not this pair list. Every badge still
+ * comparison leftover-map graphic, not this pair list. ADR 0321 captions leftover-map
+ * singular values on that grouping comparison leftover-map graphic, not this pair list.
+ * ADR 0322 captions leftover-map singular values on leftover-axis report badges, not this
+ * pair list. Every badge still
  * renders together before opening the named post.
  */
 export function LeftoverPairList({

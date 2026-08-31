@@ -89,5 +89,8 @@ describe("leftover map comparison graphic leftover-map axis singular labels", ()
     );
     expect(LEFTOVER_MAP_COMPARE_PLOT_AXIS_SINGULAR).not.toBe(LEFTOVER_MAP_COMPARE_PLOT_TICK);
     expect(LEFTOVER_MAP_COMPARE_PLOT_AXIS_SINGULAR).not.toBe("leftover axis {axis} σ {value}");
+    expect(LEFTOVER_MAP_COMPARE_PLOT_AXIS_SINGULAR_SHARE).not.toBe(
+      "leftover axis {axis} σ {value} {share}%",
+    );
   });
 });

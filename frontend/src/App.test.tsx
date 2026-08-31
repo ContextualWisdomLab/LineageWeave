@@ -4177,8 +4177,8 @@ describe("App, authenticated", () => {
     expect(screen.getByText(/TEST-PU-REPORT/)).toBeInTheDocument();
     expect(screen.getAllByText("shared metric").length).toBeGreaterThan(0);
     expect(screen.getAllByText(/CAT: sales-lead I=0\.70/).length).toBeGreaterThan(0);
-    expect(screen.getAllByText(/leftover axis 1 82%/).length).toBeGreaterThan(0);
-    expect(screen.getAllByText(/leftover axis 2 18%/).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/leftover axis 1 σ 1\.84 82%/).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/leftover axis 2 σ 0\.86 18%/).length).toBeGreaterThan(0);
     expect(screen.getByLabelText("Leftover-map axis share")).toHaveTextContent(
       "Open a leftover pair to read the post–criterion cell",
     );
@@ -4335,6 +4335,12 @@ describe("App, authenticated", () => {
     ).not.toBeInTheDocument();
     expect(
       within(screen.getByLabelText("Grouping comparison")).queryByText("leftover-map axis 2 (18%)"),
+    ).not.toBeInTheDocument();
+    expect(
+      within(screen.getByLabelText("Grouping comparison")).queryByText("leftover axis 1 σ 1.84 82%"),
+    ).not.toBeInTheDocument();
+    expect(
+      within(screen.getByLabelText("Grouping comparison")).queryByText("leftover axis 2 σ 0.86 18%"),
     ).not.toBeInTheDocument();
     expect(
       within(screen.getByLabelText("Grouping comparison")).getByRole("button", {

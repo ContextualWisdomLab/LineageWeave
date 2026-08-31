@@ -205,7 +205,8 @@ function leftoverMapPlotAxisText(
  * labels. ADR 0321 captions leftover-map singular values on that
  * comparison graphic from already-named leftover-map axes
  * with distinct leftover map comparison graphic leftover-map axis σ
- * labels.
+ * labels. ADR 0322 captions leftover-axis report badges with persisted
+ * leftover-map singular values, not this graphic.
  * Never invent a leftover score.
  */
 export function LeftoverMapPlot({

@@ -11,7 +11,8 @@ graphic display on the grouping comparison strip
 ([ADR 0304](0304-leftover-map-compare-graphic.md)), leftover-map axis share
 persistence ([ADR 0148](0148-leftover-map-axis-share.md)), leftover-map
 coordinates ([ADR 0267](0267-leftover-map-coordinates.md)). Independent of
-leftover-map singular values on leftover-axis report badges.
+leftover-map singular values on leftover-axis report badges
+([ADR 0322](0322-leftover-map-axis-singular.md)).
 
 ## Context
 
@@ -76,7 +77,8 @@ leftover-map unexplained leftover `U`, leftover-map reconstruction `R̂`,
 and leftover-map comparison graphic coverage notes.
 
 This increment does not caption leftover-map singular values on leftover-axis
-report badges with a distinct comparison-strip name. Those leftover singular
+report badges with a distinct comparison-strip name. Those leftover-axis report
+badges are ADR 0322. Those leftover singular
 values already persist on leftover-map axes through ADR 0148. This increment
 does not persist leftover-map inner product, cosine, or length.
 
@@ -97,7 +99,8 @@ leftover-map axis share is `σ_k² / Σ_j σ_j²`.
 
 ## Related
 
-Independent of leftover-map singular values on leftover-axis report badges.
+Independent of leftover-map singular values on leftover-axis report badges
+([ADR 0322](0322-leftover-map-axis-singular.md)).
 
 ## References
 
