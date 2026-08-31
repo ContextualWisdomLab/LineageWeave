@@ -154,6 +154,7 @@ describe("LeftoverPairList", () => {
       "Leftover map places this post at ξ (+0.50, +0.10) and the criterion at ζ (+0.50, −0.02) after IRT main effects. Open this post to read sales-lead.",
     );
     expect(closest).toHaveTextContent("ξ (+0.50, +0.10) ζ (+0.50, −0.02)");
+    expect(closest).toHaveTextContent("leftover pair leftover-map criterion sales-lead at ζ (+0.50, −0.02)");
     expect(closest).toHaveTextContent("R̂²/R² 0.76");
     expect(closest).toHaveTextContent("U²/R² 0.02");
     expect(closest).toHaveTextContent("2R̂U/R² 0.12");
@@ -168,6 +169,9 @@ describe("LeftoverPairList", () => {
       }),
     ).toBeInTheDocument();
     expect(screen.getByLabelText("leftover-map criterion sales-lead at ζ (+0.50, −0.02)")).toBeInTheDocument();
+    expect(
+      screen.getByLabelText("leftover pair leftover-map criterion sales-lead at ζ (+0.50, −0.02)"),
+    ).toBeInTheDocument();
     expect(screen.queryByLabelText("Criterion ζ sales-lead")).not.toBeInTheDocument();
     expect(
       screen.queryByRole("button", {
@@ -199,6 +203,9 @@ describe("LeftoverPairList", () => {
     expect(closest).toHaveTextContent("Closest leftover: Public post · sales-lead");
     expect(closest).not.toHaveTextContent("ξ (+0.50, +0.10) ζ");
     expect(
+      screen.queryByLabelText("leftover pair leftover-map criterion sales-lead at ζ"),
+    ).not.toBeInTheDocument();
+    expect(
       screen.queryByRole("button", {
         name: "Open leftover closest pair: Public post · sales-lead",
       }),
@@ -229,6 +236,9 @@ describe("LeftoverPairList", () => {
         name: "leftover pair leftover-map post Public post at ξ (0.00, 0.00)",
       }),
     ).toBeInTheDocument();
+    expect(
+      screen.getByLabelText("leftover pair leftover-map criterion sales-lead at ζ (0.00, 0.00)"),
+    ).toBeInTheDocument();
   });
 
   it("keeps leftover-map pair leftover-map post leftover-map person coordinates omitted when ξ is missing", () => {
@@ -258,6 +268,9 @@ describe("LeftoverPairList", () => {
         name: /leftover pair leftover-map post Public post at ξ/,
       }),
     ).not.toBeInTheDocument();
+    expect(
+      screen.getByLabelText("leftover pair leftover-map criterion sales-lead at ζ (+0.50, −0.02)"),
+    ).toBeInTheDocument();
   });
 
   it("opens the named post from a leftover-map graphic display marker", async () => {

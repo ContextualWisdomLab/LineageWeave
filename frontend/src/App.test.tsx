@@ -4300,6 +4300,9 @@ describe("App, authenticated", () => {
     expect(closestPair).toHaveTextContent("2R̂U/R² 0.12");
     expect(closestPair).toHaveTextContent("R̂ +0.25");
     expect(closestPair).toHaveTextContent("ξ (+0.50, +0.10) ζ (+0.50, −0.02)");
+    expect(closestPair).toHaveTextContent(
+      "leftover pair leftover-map criterion sales-lead at ζ (+0.50, −0.02)",
+    );
     expect(closestPair).toHaveTextContent("d 0.12");
     expect(closestPair).toHaveAccessibleName(
       "leftover pair leftover-map post Public post at ξ (+0.50, +0.10)",
@@ -4317,7 +4320,16 @@ describe("App, authenticated", () => {
     expect(farthestPair).toHaveTextContent("2R̂U/R² -0.24");
     expect(farthestPair).toHaveTextContent("R̂ −0.95");
     expect(farthestPair).toHaveTextContent("ξ (+0.90, +0.80) ζ (−0.70, −0.40)");
+    expect(farthestPair).toHaveTextContent(
+      "leftover pair leftover-map criterion negative at ζ (−0.70, −0.40)",
+    );
     expect(farthestPair).toHaveTextContent("d 2.00");
+    expect(
+      screen.getByLabelText("leftover pair leftover-map criterion sales-lead at ζ (+0.50, −0.02)"),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByLabelText("leftover pair leftover-map criterion negative at ζ (−0.70, −0.40)"),
+    ).toBeInTheDocument();
     expect(0.5 * 0.5 + 0.1 * -0.02).toBeCloseTo(0.248);
     expect(Math.hypot(0.5 - 0.5, 0.1 - -0.02)).toBeCloseTo(0.12);
     expect(0.9 * -0.7 + 0.8 * -0.4).toBeCloseTo(-0.95);

@@ -135,6 +135,10 @@
  *  person coordinates ξ through leftoverMapListPostBadge independently of leftover-map
  *  pair-list leftover-map criterion leftover-map item coordinates ζ, not leftover-map
  *  graphic leftover-map post markers.
+ *  ADR 0340 fail-closes leftover-map pair-list leftover-map criterion leftover-map
+ *  item coordinates ζ through leftoverMapListCriterionBadge independently of leftover-map
+ *  pair-list leftover-map post leftover-map person coordinates ξ, not leftover-map
+ *  graphic leftover-map criterion markers.
  */
 
 import { formatLeftoverMapCoordinatePair } from "./leftoverMapCoordinates";
