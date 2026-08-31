@@ -140,4 +140,29 @@ describe("AskAnswerTimeline", () => {
     );
     expect(screen.getByRole("article", { name: "Evidence 1: Record details" })).toBeInTheDocument();
   });
+
+  it("gives a localized next action when no authorized evidence matched", () => {
+    render(
+      <AskAnswerTimeline
+        question="What changed?"
+        answer={{
+          answer_text: "",
+          cited_post_ids: [],
+          source_post_ids: [],
+          next_action: "Ask about a specific project, person, organization, or time range, then retry.",
+        }}
+        onOpenEvidence={() => undefined}
+        onOpenPost={() => undefined}
+      />,
+    );
+
+    const notice = screen.getByRole("region", {
+      name: "Unavailable: This evidence is unavailable. Follow the next action.",
+    });
+    expect(notice).toHaveTextContent("No authorized source posts matched this question.");
+    expect(notice).toHaveTextContent(
+      "Ask about a specific project, person, organization, or time range, then retry.",
+    );
+    expect(screen.queryByText("Answer evidence timeline")).not.toBeInTheDocument();
+  });
 });
