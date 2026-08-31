@@ -2105,6 +2105,15 @@ def test_post_list_supports_bounded_offset_pages(client, demo_analyst_token, see
     assert title_sorted.status_code == 200, title_sorted.text
     assert title_sorted.json()["posts"][0]["post_title"] == "Edited own-corp private post"
 
+    broad_search = client.get(
+        "/api/posts?search=post&limit=2",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert broad_search.status_code == 200, broad_search.text
+    assert len(broad_search.json()["posts"]) == 2
+    assert broad_search.json()["total_count"] == 4
+    assert all(post["post_title"] != "Other-corp private post" for post in broad_search.json()["posts"])
+
     invalid_sort = client.get(
         "/api/posts?sort=unsupported",
         headers={"Authorization": f"Bearer {demo_analyst_token}"},

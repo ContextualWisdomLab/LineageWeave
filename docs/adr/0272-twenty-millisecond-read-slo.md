@@ -137,6 +137,9 @@ derived from either standard or from a rule of thumb.
     Post row in their write transaction. Search no longer uses the former
     0.45 word-similarity guesses; exact evidence and the separately governed
     normalized-identifier recovery path remain searchable.
+    Projection triggers fire only for authoritative columns that contribute to
+    that search text. In particular, a member locale preference write does not
+    rebuild every Post authored by that member.
 
 ## Consequences
 
