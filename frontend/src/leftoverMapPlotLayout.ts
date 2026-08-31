@@ -94,6 +94,9 @@
  *  ADR 0327 fail-closes leftover-map graphic leftover-map axis ticks leftover-map
  *  singular values through leftoverMapPlotTickAxisBadge independently of leftover-map
  *  axis share.
+ *  ADR 0328 fail-closes leftover-map comparison graphic leftover-map axis ticks leftover-map
+ *  singular values through leftoverMapComparePlotTickAxisBadge independently of leftover-map
+ *  axis share.
  */
 
 import { formatLeftoverMapCoordinatePair } from "./leftoverMapCoordinates";

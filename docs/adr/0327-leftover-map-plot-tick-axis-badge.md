@@ -76,7 +76,10 @@ leftover-map graphic leftover-map axis tick `σ` caption.
 
 This increment does not change leftover-map comparison graphic leftover-map axis
 ticks. Those comparison graphic leftover-map axis ticks stay
-`leftover map comparison graphic leftover-map axis {axis} tick {value}` (ADR 0320).
+`leftover map comparison graphic leftover-map axis {axis} tick {value}` (ADR 0320)
+until leftover-map comparison graphic leftover-map axis tick leftover-map singular
+values independently of leftover-map axis share
+([ADR 0328](0328-leftover-map-compare-plot-tick-axis-badge.md)).
 This increment does not persist leftover-map inner product, cosine, or length.
 
 Do not add SQL. Do not edit shipped migrations. Do not invent a leftover
@@ -105,7 +108,9 @@ singular values on leftover-map graphic-display axes
 singular values on leftover-axis report badges independently of leftover-map axis
 share ([ADR 0325](0325-leftover-map-axis-singular-only.md)). Independent of leftover-map
 coordinate ticks on the grouping comparison leftover-map graphic
-([ADR 0320](0320-leftover-map-compare-plot-ticks.md)).
+([ADR 0320](0320-leftover-map-compare-plot-ticks.md)). Independent of leftover-map
+comparison graphic leftover-map axis tick leftover-map singular values independently of leftover-map axis share
+([ADR 0328](0328-leftover-map-compare-plot-tick-axis-badge.md)).
 
 ## References
 

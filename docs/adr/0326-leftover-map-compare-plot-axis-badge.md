@@ -119,7 +119,9 @@ singular values on the grouping comparison leftover-map graphic that still
 inline σ and share ([ADR 0321](0321-leftover-map-compare-plot-singular.md)).
 Independent of leftover-map graphic leftover-map axis tick leftover-map singular
 values independently of leftover-map axis share
-([ADR 0327](0327-leftover-map-plot-tick-axis-badge.md)).
+([ADR 0327](0327-leftover-map-plot-tick-axis-badge.md)). Independent of leftover-map
+comparison graphic leftover-map axis tick leftover-map singular values independently of leftover-map axis share
+([ADR 0328](0328-leftover-map-compare-plot-tick-axis-badge.md)).
 
 ## References
 
