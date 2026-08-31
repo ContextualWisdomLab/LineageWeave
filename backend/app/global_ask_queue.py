@@ -975,8 +975,6 @@ async def run_global_ask_worker(
                             embedding_factory,
                             current_identity,
                         )
-                        if readiness is not None:
-                            readiness.set()
                     else:
                         model_identity, vector_dimension = prepared_identity
                         async with pool.acquire() as conn:
@@ -992,8 +990,8 @@ async def run_global_ask_worker(
                                     model_identity=model_identity,
                                     vector_dimension=vector_dimension,
                                 )
-                                if readiness is not None:
-                                    readiness.set()
+                    if readiness is not None:
+                        readiness.set()
                 now = time.monotonic()
                 if now - last_recovery >= _RECOVERY_INTERVAL_SECONDS:
                     await republish_queued_global_ask_jobs(client, pool)

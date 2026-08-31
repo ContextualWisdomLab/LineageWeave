@@ -42,7 +42,9 @@ The worker removes both the heartbeat and the probe's prior baseline whenever
 readiness closes. Those files may survive a process or VM restart in the
 container writable layer, while the operating system's monotonic clock restarts
 from a smaller value; monotonic samples are therefore compared only within one
-readiness epoch and never across boots.
+readiness epoch and never across boots. A transient prerequisite failure closes
+that epoch; successful validation, including an unchanged snapshot identity,
+opens a new epoch and resumes the heartbeat.
 Consequently, targeted canonical startup such
 as `docker compose up backend` also starts the worker and does not expose an API
 that can accept durable jobs while no consumer exists. Non-Compose deployments

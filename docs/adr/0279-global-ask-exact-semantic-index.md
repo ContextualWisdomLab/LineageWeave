@@ -140,6 +140,10 @@ poll; five through ten CPUs reached respective overall maxima of 79.040,
 therefore not a measured capacity precondition, and the indexed path remains
 inactive.
 
+ADR 0224's readiness-epoch corrections prevent false health after a reboot or
+transient validation failure. They do not change the request path or any
+latency result above, and therefore cannot satisfy ADR 0272's activation gate.
+
 ## Consequences
 
 Warm Ask transfers only the query vector and authorized opaque identities to
