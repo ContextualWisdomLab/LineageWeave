@@ -1,0 +1,213 @@
+from __future__ import annotations
+
+import asyncio
+import hashlib
+import struct
+import threading
+from types import SimpleNamespace
+
+import pytest
+
+from backend.app.global_ask_semantic_index import (
+    GlobalAskExactSemanticIndex,
+    build_global_ask_exact_semantic_index,
+)
+from lineageweave.rankweave_client import RankWeaveNotAvailable
+
+
+class _Transaction:
+    async def __aenter__(self):
+        return self
+
+    async def __aexit__(self, exc_type, exc, traceback):
+        return False
+
+
+class _Connection:
+    def __init__(self) -> None:
+        vector_bytes = struct.pack(">2d", 1.0, 0.0)
+        self.snapshot_rows = [
+            {
+                "item_id": "post-a",
+                "unit_id": "unit-a",
+                "vector_bytes": vector_bytes,
+                "vector_sha256": hashlib.sha256(vector_bytes).hexdigest(),
+            }
+        ]
+        self.authorized_rows = [
+            {
+                "item_id": "post-a",
+                "unit_id": "unit-a",
+                "unit_index": 3,
+                "evidence_open_available": True,
+            }
+        ]
+        self.snapshot_fetches = 0
+        self.authorization_queries: list[str] = []
+        self.packed_authorization = _pack_authorization(("post-a", "unit-a"))
+
+    def transaction(self, **kwargs):
+        assert kwargs == {"isolation": "repeatable_read", "readonly": True}
+        return _Transaction()
+
+    async def fetchval(self, query, *args):
+        if "projection_version" in query:
+            return 7
+        self.authorization_queries.append(query)
+        assert "int8send(count(*))" in query
+        return self.packed_authorization
+
+    async def fetch(self, query, *args):
+        if "vector_bytes" in query:
+            self.snapshot_fetches += 1
+            return self.snapshot_rows
+        self.authorization_queries.append(query)
+        return self.authorized_rows
+
+
+class _OwnerIndex:
+    constructions = 0
+    leak = False
+
+    def __init__(self, version, model, dimension, candidate_ids, packed_vectors):
+        type(self).constructions += 1
+        assert model == "synthetic-model"
+        assert dimension == 2
+        assert candidate_ids == [("post-a", "unit-a")]
+        assert packed_vectors == struct.pack(">2d", 1.0, 0.0)
+        self.snapshot_evidence = SimpleNamespace(
+            snapshot_version=version,
+            vector_dimension=dimension,
+            candidate_count=len(candidate_ids),
+        )
+
+    def rank_authorized_packed(self, model, query, packed_authorization):
+        assert model == "synthetic-model"
+        assert query == [1.0, 0.0]
+        assert packed_authorization == _pack_authorization(("post-a", "unit-a"))
+        result = SimpleNamespace(
+            item_id="hidden-post" if self.leak else "post-a",
+            winning_unit_id="hidden-unit" if self.leak else "unit-a",
+            score=1.0,
+        )
+        return SimpleNamespace(snapshot=self.snapshot_evidence, results=[result])
+
+
+class _ConcurrentOwnerIndex(_OwnerIndex):
+    barrier: threading.Barrier | None = None
+
+    def rank_authorized_packed(self, model, query, packed_authorization):
+        if self.barrier is not None:
+            self.barrier.wait(timeout=2)
+        return super().rank_authorized_packed(model, query, packed_authorization)
+
+
+def _pack_authorization(*identities: tuple[str, str]) -> bytes:
+    packed = struct.pack(">Q", len(identities))
+    for item_id, unit_id in identities:
+        for identity in (item_id, unit_id):
+            encoded = identity.encode()
+            packed += struct.pack(">Q", len(encoded)) + encoded
+    return packed
+
+
+def _rank(index, conn):
+    return asyncio.run(
+        index.rank_authorized(
+            conn,
+            model_identity="synthetic-model",
+            query_vector=[1.0, 0.0],
+            authorized_corporate_entity_ids=["entity-a"],
+            authorized_process_unit_ids=["unit-a"],
+            start_date=None,
+            end_date=None,
+            limit=4,
+        )
+    )
+
+
+def test_exact_index_loads_once_then_ranks_only_authorized_ids(monkeypatch) -> None:
+    _OwnerIndex.constructions = 0
+    _OwnerIndex.leak = False
+    monkeypatch.setattr(
+        "backend.app.global_ask_semantic_index._import_rankweave",
+        lambda: SimpleNamespace(SemanticUnitExactIndex=_OwnerIndex),
+    )
+    conn = _Connection()
+    index = GlobalAskExactSemanticIndex()
+
+    first = _rank(index, conn)
+    second = _rank(index, conn)
+
+    assert first == second
+    assert first[0].post_id == "post-a"
+    assert first[0].unit_index == 3
+    assert conn.snapshot_fetches == 1
+    assert _OwnerIndex.constructions == 1
+    assert all(
+        "post_content_embedding_value" not in sql for sql in conn.authorization_queries
+    )
+    assert all("visibility_code" in sql for sql in conn.authorization_queries)
+
+
+def test_exact_index_rejects_owner_authorization_leak(monkeypatch) -> None:
+    _OwnerIndex.leak = True
+    monkeypatch.setattr(
+        "backend.app.global_ask_semantic_index._import_rankweave",
+        lambda: SimpleNamespace(SemanticUnitExactIndex=_OwnerIndex),
+    )
+
+    with pytest.raises(RankWeaveNotAvailable, match="unauthorized identity"):
+        _rank(GlobalAskExactSemanticIndex(), _Connection())
+    _OwnerIndex.leak = False
+
+
+def test_exact_index_rejects_projection_digest_mismatch(monkeypatch) -> None:
+    monkeypatch.setattr(
+        "backend.app.global_ask_semantic_index._import_rankweave",
+        lambda: SimpleNamespace(SemanticUnitExactIndex=_OwnerIndex),
+    )
+    conn = _Connection()
+    conn.snapshot_rows[0]["vector_sha256"] = "0" * 64
+
+    with pytest.raises(RankWeaveNotAvailable, match="digest mismatch"):
+        _rank(GlobalAskExactSemanticIndex(), conn)
+
+
+def test_warm_immutable_snapshot_allows_concurrent_exact_ranking(monkeypatch) -> None:
+    _ConcurrentOwnerIndex.barrier = None
+    monkeypatch.setattr(
+        "backend.app.global_ask_semantic_index._import_rankweave",
+        lambda: SimpleNamespace(SemanticUnitExactIndex=_ConcurrentOwnerIndex),
+    )
+    index = GlobalAskExactSemanticIndex()
+    _rank(index, _Connection())
+
+    async def rank_twice():
+        _ConcurrentOwnerIndex.barrier = threading.Barrier(2)
+        parameters = {
+            "model_identity": "synthetic-model",
+            "query_vector": [1.0, 0.0],
+            "authorized_corporate_entity_ids": ["entity-a"],
+            "authorized_process_unit_ids": ["unit-a"],
+            "start_date": None,
+            "end_date": None,
+            "limit": 4,
+        }
+        return await asyncio.gather(
+            index.rank_authorized(_Connection(), **parameters),
+            index.rank_authorized(_Connection(), **parameters),
+        )
+
+    first, second = asyncio.run(rank_twice())
+    assert first == second
+    _ConcurrentOwnerIndex.barrier = None
+
+
+def test_builder_stays_inactive_without_pinned_owner_contract(monkeypatch) -> None:
+    monkeypatch.setattr(
+        "backend.app.global_ask_semantic_index._import_rankweave",
+        lambda: SimpleNamespace(),
+    )
+
+    assert build_global_ask_exact_semantic_index() is None

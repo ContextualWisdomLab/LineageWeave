@@ -67,6 +67,10 @@ def test_persist_post_content_writes_units_and_validated_vectors() -> None:
     assert any("delete from post_content_unit" in query for query, _args in conn.executed)
     assert any("post_content_embedding_value" in query for query, _args in conn.executed)
     assert any("post_content_embedding" in query for query in conn.fetched)
+    assert any(
+        "refresh_post_content_embedding_exact_projection" in query
+        for query in conn.fetched
+    )
 
 
 def test_persist_post_content_keeps_units_when_embedding_provider_fails() -> None:

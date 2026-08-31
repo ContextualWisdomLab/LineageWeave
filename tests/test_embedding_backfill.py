@@ -29,6 +29,7 @@ class _Connection:
         self.rows = rows
         self.executemany_calls = []
         self.execute_calls = []
+        self.fetchval_calls = []
         self.transaction_entries = 0
         self.embedding_ids = {
             row["post_content_unit_id"]: uuid.uuid4() for row in rows
@@ -55,6 +56,10 @@ class _Connection:
 
     async def execute(self, query, *args):
         self.execute_calls.append((query, args))
+
+    async def fetchval(self, query, *args):
+        self.fetchval_calls.append((query, args))
+        return 1
 
 
 class _EmbeddingClient:
@@ -108,6 +113,10 @@ def test_bulk_backfill_calls_provider_once_and_persists_in_one_transaction() -> 
         "dimension_values": 4,
         "model": "synthetic-embedding-model",
     }
+    assert any(
+        "refresh_post_content_embedding_exact_projection" in query
+        for query, _args in conn.fetchval_calls
+    )
     assert len(client.calls) == 1
     assert len(client.calls[0][0]) == 2
     assert [item["team"] for item in client.calls[0][1]["input_attributions"]] == [

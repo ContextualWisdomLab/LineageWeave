@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import math
 from datetime import date, datetime, timezone
+from types import SimpleNamespace
 
 from backend.app.post_chat_ingestion import (
     _fuse_global_candidate_ids,
@@ -208,6 +209,60 @@ def test_embedding_match_issues_authorized_unit_action_without_opaque_reference(
     }
     assert "source_evidence_reference" not in citation
     assert "message-part:" not in repr(citation)
+
+
+def test_exact_index_replaces_scalar_embedding_scan_and_preserves_open_action() -> None:
+    """The accepted owner path supplies exact candidates without scalar cosine SQL."""
+    source_row = {
+        "post_id": "matched-post",
+        "post_title": "Matched source",
+        "post_body": "Synthetic source body",
+        "visibility_code": "public",
+        "corporate_entity_id": None,
+        "process_unit_id": None,
+        "created_at": datetime(2026, 8, 25, tzinfo=timezone.utc),
+        "updated_at": datetime(2026, 8, 25, tzinfo=timezone.utc),
+        "event_occurred_at": None,
+    }
+
+    class ExactIndex:
+        async def rank_authorized(self, _conn, **parameters):
+            assert parameters["model_identity"] == "test-embedding"
+            assert parameters["query_vector"] == [1.0, 0.0]
+            return [
+                SimpleNamespace(
+                    post_id="matched-post",
+                    unit_index=3,
+                    evidence_open_available=True,
+                    channel_rank=1,
+                )
+            ]
+
+    class FakeConnection:
+        async def fetch(self, query: str, *args):
+            if "unit_similarity" in query:
+                assert args[10] is False
+                return []
+            if "from post_lineage_edge" in query:
+                return []
+            if "array_position($3::uuid[], post_id)" in query:
+                return [source_row]
+            return []
+
+    sources = asyncio.run(
+        gather_global_chat_sources(
+            FakeConnection(),
+            lambda row: row["visibility_code"] == "public",
+            question="Open the matching evidence",
+            exact_semantic_index=ExactIndex(),
+            limit=1,
+        )
+    )
+
+    assert [source.post_id for source in sources] == ["matched-post"]
+    assert sources[0].evidence_open_action == EvidenceOpenAction(
+        post_id="matched-post", unit_index=3
+    )
 
 
 def test_hidden_embedding_match_cannot_leak_unit_action() -> None:

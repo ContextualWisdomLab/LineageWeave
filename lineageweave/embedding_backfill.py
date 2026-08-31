@@ -180,6 +180,10 @@ async def backfill_post_content_embeddings(
             """,
             values,
         )
+        await conn.fetchval(
+            "select refresh_post_content_embedding_exact_projection($1::uuid[])",
+            embedding_ids,
+        )
     return {
         "selected_units": len(rows),
         "persisted_units": len(rows),

@@ -59,6 +59,10 @@ from lineageweave.semantic_query import NullSemanticQueryClient, SemanticQueryCl
 from lineageweave.temporal_expressions import resolve_korean_relative_time
 
 from .config import GLOBAL_ASK_JOB_DEADLINE_SECONDS
+from .global_ask_semantic_index import (
+    GlobalAskExactSemanticIndex,
+    build_global_ask_exact_semantic_index,
+)
 from .lineage_ingestion import lineage_graphs_for_posts
 from .operability import log_internal_fault, log_provider_unavailable
 from .post_chat_ingestion import (
@@ -350,6 +354,7 @@ async def compute_global_ask_answer(
     chat_client: PostChatClient,
     embedding_client: EmbeddingClient | None = None,
     semantic_query_client: SemanticQueryClient | None = None,
+    exact_semantic_index: GlobalAskExactSemanticIndex | None = None,
     verify_external: bool = False,
     claim_verification_client: ClaimVerificationClient | None = None,
     knowledge_cutoff: datetime | None = None,
@@ -403,6 +408,7 @@ async def compute_global_ask_answer(
                 question_embedding=question_embedding,
                 today=today,
                 embedding_client=NullEmbeddingClient(),
+                exact_semantic_index=exact_semantic_index,
                 knowledge_cutoff=knowledge_cutoff,
             )
     except Exception as exc:
@@ -603,6 +609,7 @@ async def process_global_ask_job(
     claim_verification_factory: Callable[
         [], ClaimVerificationClient
     ] = NullClaimVerificationClient,
+    exact_semantic_index: GlobalAskExactSemanticIndex | None = None,
 ) -> None:
     """Claim, answer, and settle one Ask job.
 
@@ -652,6 +659,7 @@ async def process_global_ask_job(
                 chat_client=chat_client,
                 embedding_client=embedding_factory(),
                 semantic_query_client=semantic_query_factory(),
+                exact_semantic_index=exact_semantic_index,
                 verify_external=bool(row["verify_external_requested"]),
                 claim_verification_client=claim_verification_factory(),
                 knowledge_cutoff=row["knowledge_cutoff"],
@@ -768,6 +776,7 @@ async def consume_global_ask_stream_once(
     embedding_factory: Callable[[], EmbeddingClient] = NullEmbeddingClient,
     semantic_query_factory: Callable[[], SemanticQueryClient] = NullSemanticQueryClient,
     claim_verification_factory: Callable[[], ClaimVerificationClient] = NullClaimVerificationClient,
+    exact_semantic_index: GlobalAskExactSemanticIndex | None = None,
     limiter: asyncio.Semaphore | None = None,
     tasks: set[asyncio.Task] | None = None,
 ) -> str:
@@ -794,6 +803,7 @@ async def consume_global_ask_stream_once(
                         embedding_factory=embedding_factory,
                         semantic_query_factory=semantic_query_factory,
                         claim_verification_factory=claim_verification_factory,
+                        exact_semantic_index=exact_semantic_index,
                     )
                 else:
                     await limiter.acquire()
@@ -805,6 +815,7 @@ async def consume_global_ask_stream_once(
                             embedding_factory=embedding_factory,
                             semantic_query_factory=semantic_query_factory,
                             claim_verification_factory=claim_verification_factory,
+                            exact_semantic_index=exact_semantic_index,
                             limiter=limiter,
                         )
                     )
@@ -823,6 +834,7 @@ async def _process_and_release(
     embedding_factory: Callable[[], EmbeddingClient],
     semantic_query_factory: Callable[[], SemanticQueryClient],
     claim_verification_factory: Callable[[], ClaimVerificationClient],
+    exact_semantic_index: GlobalAskExactSemanticIndex | None,
     limiter: asyncio.Semaphore,
 ) -> None:
     """Run one dispatched job and free its concurrency slot afterwards."""
@@ -834,6 +846,7 @@ async def _process_and_release(
             embedding_factory=embedding_factory,
             semantic_query_factory=semantic_query_factory,
             claim_verification_factory=claim_verification_factory,
+            exact_semantic_index=exact_semantic_index,
         )
     finally:
         limiter.release()
@@ -857,12 +870,16 @@ async def run_global_ask_worker(
     embedding_factory: Callable[[], EmbeddingClient] = NullEmbeddingClient,
     semantic_query_factory: Callable[[], SemanticQueryClient] = NullSemanticQueryClient,
     claim_verification_factory: Callable[[], ClaimVerificationClient] = NullClaimVerificationClient,
+    exact_semantic_index: GlobalAskExactSemanticIndex | None = None,
 ) -> None:
     """Run the at-least-once Ask consumer with periodic queued-row recovery."""
     last_id = await _stream_tail(client)
     last_recovery = 0.0
     limiter = asyncio.Semaphore(_WORKER_CONCURRENCY)
     tasks: set[asyncio.Task] = set()
+    exact_semantic_index = (
+        exact_semantic_index or build_global_ask_exact_semantic_index()
+    )
     try:
         while True:
             try:
@@ -878,6 +895,7 @@ async def run_global_ask_worker(
                     embedding_factory=embedding_factory,
                     semantic_query_factory=semantic_query_factory,
                     claim_verification_factory=claim_verification_factory,
+                    exact_semantic_index=exact_semantic_index,
                     limiter=limiter,
                     tasks=tasks,
                 )

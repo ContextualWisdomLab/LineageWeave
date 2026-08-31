@@ -53,6 +53,7 @@ from lineageweave.rankweave_client import RankWeaveNotAvailable, build_rankweave
 from lineageweave.temporal_expressions import resolve_korean_relative_time
 
 from .config import load_settings
+from .global_ask_semantic_index import GlobalAskExactSemanticIndex
 from .knowledge_graph import hydrate_related_nodes, load_visible_subgraph
 from .post_eligibility import SOURCE_POST_ELIGIBILITY_SQL
 from .source_post_revision import fetch_known_at_revisions
@@ -528,6 +529,7 @@ async def gather_global_chat_sources(
     authorized_process_unit_ids: Iterable[str] = (),
     vision_client: ImageContentClient | None = None,
     embedding_client: EmbeddingClient | None = None,
+    exact_semantic_index: GlobalAskExactSemanticIndex | None = None,
     *,
     question: str | None = None,
     search_phrases: tuple[str, ...] | None = None,
@@ -561,6 +563,8 @@ async def gather_global_chat_sources(
     """
     if limit <= 0:
         return []
+    authorized_entity_ids = list(authorized_corporate_entity_ids)
+    authorized_process_ids = list(authorized_process_unit_ids)
     if vision_client is None:
         vision_client = NullImageContentClient()
     if embedding_client is None:
@@ -592,6 +596,28 @@ async def gather_global_chat_sources(
         "",
         1.0,
     )
+    exact_embedding_rows: list[dict[str, object]] = []
+    if exact_semantic_index is not None and embedding_enabled:
+        exact_candidates = await exact_semantic_index.rank_authorized(
+            conn,
+            model_identity=embedding_model_code,
+            query_vector=question_vector,
+            authorized_corporate_entity_ids=authorized_entity_ids,
+            authorized_process_unit_ids=authorized_process_ids,
+            start_date=resolved_time_range[0] if resolved_time_range else None,
+            end_date=resolved_time_range[1] if resolved_time_range else None,
+            limit=limit,
+        )
+        exact_embedding_rows = [
+            {
+                "candidate_channel": "embedding",
+                "post_id": candidate.post_id,
+                "unit_index": candidate.unit_index,
+                "evidence_open_available": candidate.evidence_open_available,
+                "channel_rank": candidate.channel_rank,
+            }
+            for candidate in exact_candidates
+        ]
     # Safe SQL: the only interpolation is the repository-owned eligibility
     # expression; all request and model values remain asyncpg parameters.
     if knowledge_cutoff is not None:
@@ -651,8 +677,8 @@ async def gather_global_chat_sources(
             list(retrieval_phrases),
             knowledge_cutoff,
             _ontology_lookup_codes_in_question(question),
-            list(authorized_corporate_entity_ids),
-            list(authorized_process_unit_ids),
+            authorized_entity_ids,
+            authorized_process_ids,
             resolved_time_range[0] if resolved_time_range else None,
             resolved_time_range[1] if resolved_time_range else None,
             limit,
@@ -848,15 +874,17 @@ async def gather_global_chat_sources(
         question_vector,
         question_norm,
         embedding_model_code,
-        list(authorized_corporate_entity_ids),
-        list(authorized_process_unit_ids),
+        authorized_entity_ids,
+        authorized_process_ids,
         resolved_time_range[0] if resolved_time_range else None,
         resolved_time_range[1] if resolved_time_range else None,
         limit,
         list(retrieval_phrases),
         _ontology_lookup_codes_in_question(question),
-        embedding_enabled,
+        embedding_enabled and exact_semantic_index is None,
     )
+    if exact_embedding_rows:
+        candidate_rows = [*exact_embedding_rows, *candidate_rows]
     embedding_candidate_ids: list[str] = []
     evidence_candidate_ids: list[str] = []
     evidence_open_actions: dict[str, EvidenceOpenAction] = {}
@@ -937,8 +965,8 @@ async def gather_global_chat_sources(
                   coalesce(event_occurred_at, created_at) desc, post_id desc
          limit $4
         """,
-        list(authorized_corporate_entity_ids),
-        list(authorized_process_unit_ids),
+        authorized_entity_ids,
+        authorized_process_ids,
         candidate_ids,
         limit,
         resolved_time_range[0] if resolved_time_range else None,
