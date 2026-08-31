@@ -20,7 +20,13 @@ settings, and rollback values. Validation renders the Compose configuration but
 does not touch a container.
 
 Apply only in an approved restart window. Copy the printed `plan_id` exactly;
-the procedure rejects a changed plan or a different approval value.
+the procedure rejects a changed plan or a different approval value. Immediately
+before recreation it also re-reads the PostgreSQL major version, WAL,
+durability and isolation settings, active-transaction and waiting-lock totals,
+cgroup memory limit, data-filesystem free bytes, and current `pg_wal` bytes.
+Any mismatch, non-zero transaction/lock total, or insufficient current resource
+measurement aborts without restarting PostgreSQL. Keep the maintenance window
+closed to new work after that final snapshot.
 
 ```bash
 uv run python scripts/plan_postgres_tuning.py apply \
@@ -63,3 +69,9 @@ that its own WAL recycling estimate adapts to prior checkpoint cycles. Run the
 aligned planner across the representative write workload before applying its
 segment-aligned proposal. The snapshot supplies no evidence for changing
 `shared_buffers`, durability, isolation, or storage concurrency.
+
+The canonical capture did not expose `pg_stat_statements`, so historical
+per-query aggregates remain unverified. Do not install or preload the extension
+as part of WAL tuning: that requires its own restart approval and a decision for
+query-text retention. Use the repository's bounded, rollback-only `EXPLAIN`
+procedure when a named operation needs plan evidence.

@@ -31,6 +31,16 @@ SELECT json_build_object(
   'wal_buffers_full', w.wal_buffers_full,
   'checkpoints_timed', b.checkpoints_timed,
   'checkpoints_req', b.checkpoints_req,
+  'active_transaction_count', (
+    SELECT count(*)
+    FROM pg_stat_activity
+    WHERE pid <> pg_backend_pid() AND xact_start IS NOT NULL
+  ),
+  'waiting_lock_count', (
+    SELECT count(*)
+    FROM pg_locks
+    WHERE NOT granted
+  ),
   'wal_segment_size_bytes', pg_size_bytes(current_setting('wal_segment_size')),
   'settings', json_build_object(
   'checkpoint_timeout_seconds',
@@ -150,6 +160,14 @@ def _require_isolation_invariant(settings: Mapping[str, Any]) -> str:
     return default_value
 
 
+def _require_quiescent(snapshot: Mapping[str, Any]) -> None:
+    """Fail closed when another transaction or an ungranted lock exists."""
+    if _integer(snapshot.get("active_transaction_count"), "active_transaction_count"):
+        raise TuningPlanError("active transactions must be zero before restart")
+    if _integer(snapshot.get("waiting_lock_count"), "waiting_lock_count"):
+        raise TuningPlanError("waiting locks must be zero before restart")
+
+
 def build_plan(observation: Observation) -> dict[str, Any]:
     """Build an evidence-derived, restart-only PostgreSQL tuning plan."""
     if observation.elapsed_seconds <= 0:
@@ -238,6 +256,13 @@ def build_plan(observation: Observation) -> dict[str, Any]:
             "cumulative_wal_buffers_full": cumulative_wal_buffers_full,
             "checkpoints_timed": checkpoints_timed,
             "checkpoints_requested": checkpoints_req,
+            "active_transaction_count": _integer(
+                observation.after.get("active_transaction_count"),
+                "active_transaction_count",
+            ),
+            "waiting_lock_count": _integer(
+                observation.after.get("waiting_lock_count"), "waiting_lock_count"
+            ),
             "checkpoint_timeout_seconds": timeout_seconds,
             "wal_segment_size_bytes": segment_bytes,
             "container_memory_limit_bytes": observation.container_memory_limit_bytes,
@@ -407,15 +432,50 @@ def controlled_restart(plan: Mapping[str, Any], env_path: Path, approval: str) -
     """Apply a validated plan only through an explicit PostgreSQL recreation."""
     if approval != plan.get("plan_id"):
         raise TuningPlanError("--approve-plan-id must match the audited plan")
-    current = _settings(_postgres_snapshot())
+    current_snapshot = _postgres_snapshot()
+    current = _settings(current_snapshot)
     rollback = plan.get("rollback")
     if not isinstance(rollback, Mapping):
         raise TuningPlanError("rollback settings are unavailable")
+    evidence = plan.get("evidence")
+    proposed = plan.get("proposed")
+    if not isinstance(evidence, Mapping) or not isinstance(proposed, Mapping):
+        raise TuningPlanError("plan evidence or proposed settings are unavailable")
+    current_major = (
+        _integer(current_snapshot.get("server_version_num"), "server_version_num")
+        // 10000
+    )
+    planned_major = (
+        _integer(evidence.get("server_version_num"), "server_version_num") // 10000
+    )
+    if current_major != planned_major or current_major != SUPPORTED_SERVER_MAJOR:
+        raise TuningPlanError("PostgreSQL server major no longer matches the audited plan")
     for field in ("max_wal_size_bytes", "wal_buffers_bytes"):
         if _integer(current.get(field), field) != _integer(rollback.get(field), field):
             raise TuningPlanError(f"current {field} no longer matches the audited plan")
     _require_durability(current)
     _require_isolation_invariant(current)
+    for field in (*DURABILITY_SETTINGS, *ISOLATION_SETTINGS):
+        if str(current.get(field, "")).lower() != str(rollback.get(field, "")).lower():
+            raise TuningPlanError(f"current {field} no longer matches the audited plan")
+    _require_quiescent(current_snapshot)
+    memory_limit, free_bytes, pg_wal_bytes = _container_resources()
+    current_max_wal = _integer(current.get("max_wal_size_bytes"), "max_wal_size_bytes")
+    proposed_max_wal = _integer(proposed.get("max_wal_size_bytes"), "max_wal_size_bytes")
+    additional_reservation = max(
+        0, proposed_max_wal - max(current_max_wal, pg_wal_bytes)
+    )
+    if additional_reservation > free_bytes:
+        raise TuningPlanError(
+            "current filesystem free space cannot hold the additional WAL reservation"
+        )
+    proposed_wal_buffers = _integer(
+        proposed.get("wal_buffers_bytes"), "wal_buffers_bytes"
+    )
+    if memory_limit is not None and proposed_wal_buffers > memory_limit:
+        raise TuningPlanError(
+            "current container memory limit cannot hold the proposed WAL buffers"
+        )
     validate_compose(plan, env_path)
     _run(
         [
@@ -425,7 +485,6 @@ def controlled_restart(plan: Mapping[str, Any], env_path: Path, approval: str) -
         ]
     )
     applied = _settings(_postgres_snapshot())
-    proposed = plan["proposed"]
     for field in ("max_wal_size_bytes", "wal_buffers_bytes"):
         if _integer(applied.get(field), field) != _integer(proposed.get(field), field):
             raise TuningPlanError(f"PostgreSQL did not apply {field}")

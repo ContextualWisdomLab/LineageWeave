@@ -163,6 +163,10 @@ Use `scripts/explain_post_content_backfill.py` for the bounded backfill plan;
 it rolls back and reports aggregate timing, buffers, temporary blocks, WAL,
 node kinds, and relation scans without exposing rows. Tune only from measured
 evidence, then capture the root-cause fix in Compose/configuration and tests.
+The observed PostgreSQL tuning procedure revalidates exact settings, aggregate
+transaction/lock quiescence, and current cgroup/disk capacity immediately
+before any approved restart; a saved plan is not permission to reuse stale
+runtime evidence.
 
 ## Load and responsiveness verification
 
