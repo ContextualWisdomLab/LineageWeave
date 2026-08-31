@@ -148,17 +148,17 @@ function toSvg(
 }
 
 function uniqueCoordinateTicks(values: number[]): { value: number; label: string }[] {
-  const byLabel = new Map<string, number>();
+  const seen = new Set<number>();
+  const ticks: { value: number; label: string }[] = [];
   for (const value of values) {
     const label = formatSignedLeftoverValue(value);
-    if (label === null) {
+    if (label === null || seen.has(value)) {
       continue;
     }
-    if (!byLabel.has(label)) {
-      byLabel.set(label, value);
-    }
+    seen.add(value);
+    ticks.push({ value, label });
   }
-  return [...byLabel.entries()].map(([label, value]) => ({ value, label }));
+  return ticks;
 }
 
 function leftoverMapCoordinateTicks(

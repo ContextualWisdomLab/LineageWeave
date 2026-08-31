@@ -1,6 +1,6 @@
 # Product & Technical Gap Baseline
 
-> Exact-head loop overlay: 2026-08-31 07:00 KST. Protected `main` is
+> Exact-head loop overlay: 2026-08-31 06:31 KST. Protected `main` is
 > `cb187cadee5fb6c46d8a944815ccc154a1e028d1` (leftover-map coordinates,
 > graphic, axis share, ticks, and segment distance through v2.28.0, #782).
 > The live inventory contains 55 open PRs and 10 open issues. Parent #782 is

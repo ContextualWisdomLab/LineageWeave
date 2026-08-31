@@ -210,6 +210,22 @@ describe("layoutLeftoverMapPlot", () => {
     );
   });
 
+  it("keeps distinct persisted coordinates that share a rounded tick label", () => {
+    const layout = layoutLeftoverMapPlot(
+      [
+        pair({
+          leftover_map_person_axis_1: 0.001,
+          leftover_map_item_axis_1: 0.004,
+        }),
+      ],
+      criterionLabel,
+    );
+    const axis1 = layout?.ticks.filter((tick) => tick.axis === 1);
+    expect(axis1?.map((tick) => tick.value)).toEqual([0, 0.001, 0.004]);
+    expect(axis1?.map((tick) => tick.label)).toEqual(["0.00", "+0.00", "+0.00"]);
+    expect(new Set(axis1?.map((tick) => tick.x))).toHaveProperty("size", 3);
+  });
+
   it("names persisted leftover-map distance on pair segments without inventing a leftover score", () => {
     const layout = layoutLeftoverMapPlot(
       [

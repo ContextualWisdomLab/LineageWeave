@@ -2347,9 +2347,9 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "leftover-map axis {axis} tick {value}": "vạch trục bản đồ phần dư {axis} {value}",
     "leftover-map distance {label}": "khoảng cách bản đồ phần dư {label}",
     "leftover-map reconstruction {label}": "tái dựng bản đồ phần dư {label}",
-    "leftover-map explained leftover share {label}": "phần dư giải thích bản đồ phần dư {label}",
+    "leftover-map explained leftover share {label}": "tỷ phần phần dư được giải thích trên bản đồ phần dư {label}",
     "Leftover map after IRT main effects. Axis ticks name persisted leftover-map coordinates. Pair segments name leftover-map distance d, leftover-map reconstruction R̂, and leftover-map explained leftover share e. Click a post marker to open that post. The plot does not invent a leftover score.":
-      "Bản đồ phần dư sau hiệu ứng chính IRT. Vạch trục ghi tọa độ bản đồ phần dư đã lưu. Đoạn cặp ghi khoảng cách bản đồ phần dư d, tái dựng bản đồ phần dư R̂ và phần dư giải thích e. Nhấn dấu bài viết để mở bài đó. Hình này không tạo ra điểm phần dư.",
+      "Bản đồ phần dư sau hiệu ứng chính IRT. Vạch trục ghi tọa độ bản đồ phần dư đã lưu. Đoạn cặp ghi khoảng cách bản đồ phần dư d, tái dựng bản đồ phần dư R̂ và tỷ phần phần dư được giải thích e. Nhấn dấu bài viết để mở bài đó. Hình này không tạo ra điểm phần dư.",
     "Open leftover-map post {title} at ξ {person}":
       "Mở bài viết bản đồ phần dư {title} tại ξ {person}",
     "Read observed Y {observed} and expected E {expected} after IRT main effects, then open this post.":

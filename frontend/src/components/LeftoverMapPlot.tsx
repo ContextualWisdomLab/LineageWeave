@@ -120,7 +120,7 @@ export function LeftoverMapPlot({
           </text>
           {layout.ticks.map((tick) => (
             <g
-              key={`tick:${tick.axis}:${tick.label}`}
+              key={`tick:${tick.axis}:${tick.value}`}
               className="leftover-map-plot-tick"
               aria-label={tf(LEFTOVER_MAP_PLOT_TICK, { axis: tick.axis, value: tick.label })}
             >
