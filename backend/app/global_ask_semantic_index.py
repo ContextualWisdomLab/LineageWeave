@@ -108,7 +108,7 @@ class GlobalAskExactSemanticIndex:
             f"lineageweave.embedding-projection.v1:{projection_version}:"
             f"{model_identity}:{vector_dimension}"
         )
-        return bool(self._prepared_authorizations) and (
+        return (
             self._matching_snapshot(snapshot_version, model_identity, vector_dimension)
             is not None
             and self._authorization_version == authorization_version
@@ -217,10 +217,6 @@ class GlobalAskExactSemanticIndex:
                             "rankweave_not_available: exact authorization preflight exceeds readiness SLO"
                         )
                 prepared[scope] = prepared_scope
-            if not prepared:
-                raise RankWeaveNotAvailable(
-                    "rankweave_not_available: no configured authorization scope"
-                )
             self._prepared_authorizations = prepared
             self._authorization_version = authorization_version
 

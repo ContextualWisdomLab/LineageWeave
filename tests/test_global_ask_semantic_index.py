@@ -473,6 +473,42 @@ def test_active_scopes_include_effective_queued_job_scope(monkeypatch) -> None:
     assert "job.job_status_code in ('queued', 'running')" in conn.scope_queries[0]
 
 
+def test_installation_without_readers_prepares_empty_scope_set(monkeypatch) -> None:
+    """A clean stack is ready while every undeclared request scope fails closed."""
+    monkeypatch.setattr(
+        "backend.app.global_ask_semantic_index._import_rankweave",
+        lambda: SimpleNamespace(SemanticUnitExactIndex=_OwnerIndex),
+    )
+    conn = _Connection()
+    conn.scope_rows = []
+    index = GlobalAskExactSemanticIndex(_Pool(conn))
+
+    async def exercise() -> None:
+        await index.prepare(
+            conn, model_identity="synthetic-model", vector_dimension=2
+        )
+        assert await index.is_prepared_for(
+            conn, model_identity="synthetic-model", vector_dimension=2
+        )
+        with pytest.raises(RankWeaveNotAvailable, match="scope is not prepared"):
+            await index.rank_authorized(
+                conn,
+                model_identity="synthetic-model",
+                query_vector=[1.0, 0.0],
+                authorized_corporate_entity_ids=[],
+                authorized_process_unit_ids=[],
+                start_date=None,
+                end_date=None,
+                limit=4,
+            )
+        conn.authorization_version += 1
+        assert not await index.is_prepared_for(
+            conn, model_identity="synthetic-model", vector_dimension=2
+        )
+
+    asyncio.run(exercise())
+
+
 def test_empty_authorization_scope_returns_no_candidates_with_current_versions(
     monkeypatch,
 ) -> None:

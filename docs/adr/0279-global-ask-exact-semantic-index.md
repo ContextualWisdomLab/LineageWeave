@@ -76,6 +76,12 @@ post-authorization without approximating or dropping evidence.
    mutations advance the authorization version, so a newly queued historical
    scope closes readiness and is prepared before dispatch. Later grants can
    never widen that captured scope, while revocations still narrow it.
+   A fully migrated installation with no configured `post_read` reader has a
+   valid empty prepared-scope set tied to the current snapshot and
+   authorization version. Any request scope still fails closed because it is
+   absent from that set. Later role or affiliation provisioning advances the
+   authorization version and requires the new real scopes to prepare before
+   readiness reopens.
 5. Every query supplies the
    matching immutable packed scope to RankWeave, and reauthorizes the exact
    returned identities in PostgreSQL before constructing a source. The final
