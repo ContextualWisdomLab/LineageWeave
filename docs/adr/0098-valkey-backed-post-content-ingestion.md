@@ -147,9 +147,13 @@ eligibility or completeness semantics.
 The CLI retains the same per-query bound. `--all-pages` repeats that governed
 producer until the current candidate set is empty; progress remains visible in
 the normalized job ledger after every page. Terminal failures are never reset
-implicitly. An operator may combine `--retry-failed --all-pages` only after the
-failed dependency has been restored; each failed page uses the existing
-explicit retry transition and commits before its wake-ups.
+implicitly. `--retry-failed` and `--all-pages` are mutually exclusive: no
+measured capacity envelope proves that resetting an entire terminal corpus is
+safe. After restoring the failed dependency, an operator retries one bounded
+page, observes aggregate worker, PostgreSQL, Valkey, and orchestrator health
+until that page settles, and only then chooses whether to admit another page.
+Each failed page uses the existing explicit retry transition and commits before
+its wake-ups.
 The producer applies `SOURCE_POST_ELIGIBILITY_SQL`, locks source rows with
 `SKIP LOCKED`, selects only new or incomplete-succeeded jobs, rechecks the
 shared completeness predicate, and records the existing job state in

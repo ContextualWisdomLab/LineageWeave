@@ -96,10 +96,14 @@ For an incident:
    provider response into a negative classification.
 4. The enabled worker admits the next bounded incomplete page every recovery
    cycle. For an operator-controlled catch-up, run
-   `scripts/queue_post_content_backfill.py --all-pages`; after restoring a
-   terminal dependency, add `--retry-failed`. Both modes persist each page
-   before publishing wake-ups and report aggregate counts only.
-4. For one terminal content job, run
+   `scripts/queue_post_content_backfill.py --all-pages`. After restoring a
+   terminal dependency, run `scripts/queue_post_content_backfill.py
+   --retry-failed` for one bounded page. Do not combine those flags: observe
+   aggregate worker, PostgreSQL, Valkey, and orchestrator health until the page
+   settles before choosing whether to admit another terminal page. Both modes
+   persist each page before publishing wake-ups and report aggregate counts
+   only.
+5. For one terminal content job, run
    `uv run python scripts/requeue_failed_post_content.py --post-id <post-id>`
    from the governed operator environment. This preserves the original source
    digest, orchestrator session lineage, and idempotency boundary. Do not edit

@@ -37,15 +37,16 @@ def _parser() -> argparse.ArgumentParser:
         default=os.environ.get("VALKEY_URL", "redis://localhost:16379/0"),
     )
     parser.add_argument("--limit", type=int, choices=range(1, 201), default=100)
-    parser.add_argument(
+    continuation = parser.add_mutually_exclusive_group()
+    continuation.add_argument(
         "--all-pages",
         action="store_true",
         help="persist every currently eligible page, retaining each job in the durable ledger",
     )
-    parser.add_argument(
+    continuation.add_argument(
         "--retry-failed",
         action="store_true",
-        help="explicitly reset terminal jobs before queueing incomplete source posts",
+        help="explicitly reset one bounded terminal-job page before queueing incomplete source posts",
     )
     return parser
 
@@ -61,6 +62,8 @@ async def queue_post_content_backfill(
     """Queue bounded pages through the shared durable producer and ledger."""
     if not 1 <= limit <= 200:
         raise ValueError("limit must be between 1 and 200")
+    if retry_failed and all_pages:
+        raise ValueError("terminal retries require one observed bounded page at a time")
     settings = load_settings()
     require_orchestrator_evidence = bool(
         settings.orchestrator_base_url and settings.orchestrator_api_key

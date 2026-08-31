@@ -18,9 +18,11 @@ def test_parser_and_main_keep_the_operator_page_bounded(
     assert parser.parse_args(["--limit", "200"]).limit == 200
     with pytest.raises(SystemExit):
         parser.parse_args(["--limit", "201"])
+    with pytest.raises(SystemExit):
+        parser.parse_args(["--all-pages", "--retry-failed"])
 
     async def queue(*_args: object, **kwargs: object) -> dict[str, int]:
-        assert kwargs == {"limit": 7, "all_pages": True, "retry_failed": True}
+        assert kwargs == {"limit": 7, "all_pages": False, "retry_failed": True}
         return {"queued_posts": 2}
 
     monkeypatch.setattr(
@@ -31,7 +33,7 @@ def test_parser_and_main_keep_the_operator_page_bounded(
                 target_dsn="postgresql://invalid",
                 valkey_url="redis://invalid",
                 limit=7,
-                all_pages=True,
+                all_pages=False,
                 retry_failed=True,
             )
         ),
@@ -110,10 +112,24 @@ def test_script_rejects_unbounded_limits_before_connecting(limit: int) -> None:
         )
 
 
-def test_all_pages_retries_failed_then_exhausts_incomplete_rows(
+def test_script_rejects_unobserved_bulk_terminal_retry_before_connecting() -> None:
+    """Terminal recovery requires a fresh operator decision after every page."""
+    with pytest.raises(ValueError, match="one observed bounded page"):
+        asyncio.run(
+            script.queue_post_content_backfill(
+                "postgresql://invalid",
+                "redis://invalid",
+                limit=200,
+                all_pages=True,
+                retry_failed=True,
+            )
+        )
+
+
+def test_all_pages_exhausts_incomplete_rows(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """The explicit continuation drains both durable candidate sets by pages."""
+    """Non-terminal continuation drains the durable candidate set by pages."""
     class Pool:
         async def close(self) -> None:
             return None
@@ -122,7 +138,6 @@ def test_all_pages_retries_failed_then_exhausts_incomplete_rows(
         async def aclose(self) -> None:
             return None
 
-    retry_pages = iter((2, 1))
     candidate_pages = iter((2, 2, 0))
 
     async def create_pool(*_args: object, **_kwargs: object) -> Pool:
@@ -137,15 +152,11 @@ def test_all_pages_retries_failed_then_exhausts_incomplete_rows(
             "recovery_pending": 0,
         }
 
-    async def retry(*_args: object, **_kwargs: object) -> dict[str, int]:
-        return await page(retry_pages)
-
     async def enqueue(*_args: object, **_kwargs: object) -> dict[str, int]:
         return await page(candidate_pages)
 
     monkeypatch.setattr(script.asyncpg, "create_pool", create_pool)
     monkeypatch.setattr(script.redis, "from_url", lambda *_args, **_kwargs: Client())
-    monkeypatch.setattr(script, "requeue_failed_post_content_jobs", retry)
     monkeypatch.setattr(script, "enqueue_post_content_backfill", enqueue)
     monkeypatch.setattr(
         script,
@@ -158,12 +169,12 @@ def test_all_pages_retries_failed_then_exhausts_incomplete_rows(
             "redis://invalid",
             limit=2,
             all_pages=True,
-            retry_failed=True,
+            retry_failed=False,
         )
     )
     assert result == {
-        "selected_posts": 7,
-        "queued_posts": 7,
-        "published_events": 7,
+        "selected_posts": 4,
+        "queued_posts": 4,
+        "published_events": 4,
         "recovery_pending": 0,
     }
