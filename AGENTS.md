@@ -846,6 +846,11 @@ returns a leftover-map origin tick caption independently of leftover-map axis sh
 `leftover axis {axis} origin tick {value}`. Rank-0 unused axes still name leftover-map origin `0.00`. Share and singular omit independently.
 Do not invent leftover-map origin from leftover-map axis share or leftover-map singular values `σ_k`. leftoverMapPlotTickAxisBadge stays leftover-map graphic leftover-map
 axis origin tick keys. leftoverMapComparePlotTickAxisBadge stays leftover-map comparison graphic leftover-map axis origin tick keys. leftoverMapCompareAxisTickBadge stays leftover-map comparison leftover-axis origin tick keys this increment.
+ADR 0347 captions leftover-map graphic leftover-map origin with leftover-map origin when leftoverMapPlotOriginBadge
+returns a leftover-map origin caption independently of leftover-map axis origin ticks, leftover-map axis share, and leftover-map singular values. Distinct accessible name
+`leftover-map origin {origin}`. Rank-0 unused axes still name leftover-map origin `(0.00, 0.00)`.
+Do not invent leftover-map origin from leftover-map axis share or leftover-map singular values `σ_k`. leftoverMapPlotTickAxisBadge stays leftover-map graphic leftover-map
+axis origin tick keys. leftoverMapComparePlotTickAxisBadge stays leftover-map comparison graphic leftover-map axis origin tick keys. leftoverMapCompareAxisTickBadge stays leftover-map comparison leftover-axis origin tick keys. leftoverMapAxisTickBadge stays leftover-map leftover-axis origin tick keys this increment. leftover-map comparison graphic leftover-map origin stays unnamed this increment.
 When `R`, `R̂`, `U`, `x`,
 `s`, and `e` are finite, `e + s + x = 1`. When `Y`, `E`, and `R` are
 finite, `Y − E = R`. When `R`, `R̂`, and `U` are
@@ -1027,6 +1032,8 @@ Leftover-map comparison leftover-axis origin ticks independently of leftover-map
 (ADR 0345) captions leftover-map comparison leftover-axis origin ticks when leftoverMapCompareAxisTickBadge returns a leftover-map origin tick caption.
 Leftover-map leftover-axis origin ticks independently of leftover-map axis share and leftover-map singular values
 (ADR 0346) captions leftover-map leftover-axis origin ticks when leftoverMapAxisTickBadge returns a leftover-map origin tick caption.
+Leftover-map graphic leftover-map origin independently of leftover-map axis origin ticks, leftover-map axis share, and leftover-map singular values
+(ADR 0347) captions leftover-map graphic leftover-map origin when leftoverMapPlotOriginBadge returns a leftover-map origin caption.
 Item complete-case coverage
 (ADR 0282) captions the leftover-map graphic with how many scored criteria
 entered the map. Item complete-case coverage on the pair list (ADR 0285)

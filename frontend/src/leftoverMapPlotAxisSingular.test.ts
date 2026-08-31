@@ -6,6 +6,7 @@ import {
   leftoverMapComparePlotAxisBadge,
   leftoverMapComparePlotTickAxisBadge,
   leftoverMapPlotAxisBadge,
+  leftoverMapPlotOriginBadge,
   leftoverMapPlotTickAxisBadge,
   leftoverMapPlotTickIsOrigin,
   leftoverSingularForAxis,
@@ -33,6 +34,7 @@ import {
   LEFTOVER_MAP_COMPARE_PLOT_ORIGIN_TICK_SINGULAR_SHARE,
   LEFTOVER_MAP_PLOT_AXIS_SINGULAR,
   LEFTOVER_MAP_PLOT_AXIS_SINGULAR_SHARE,
+  LEFTOVER_MAP_PLOT_ORIGIN,
   LEFTOVER_MAP_PLOT_ORIGIN_TICK,
   LEFTOVER_MAP_PLOT_ORIGIN_TICK_SHARE,
   LEFTOVER_MAP_PLOT_ORIGIN_TICK_SINGULAR,
@@ -1027,6 +1029,49 @@ describe("leftover-map comparison leftover-axis tick leftover-map axis share", (
     expect(LEFTOVER_MAP_COMPARE_AXIS_ORIGIN_TICK_SHARE).not.toBe(LEFTOVER_MAP_PLOT_ORIGIN_TICK_SHARE);
     expect(LEFTOVER_MAP_COMPARE_AXIS_ORIGIN_TICK_SINGULAR_SHARE).not.toBe(
       LEFTOVER_MAP_PLOT_ORIGIN_TICK_SINGULAR_SHARE,
+    );
+  });
+});
+
+describe("leftover-map graphic leftover-map origin independently of leftover-map axis origin ticks", () => {
+  it("names leftover-map origin independently of leftover-map axis share and leftover-map singular values", () => {
+    expect(leftoverMapPlotOriginBadge()).toEqual({
+      key: LEFTOVER_MAP_PLOT_ORIGIN,
+      values: { origin: "(0.00, 0.00)" },
+    });
+  });
+
+  it("names rank-0 leftover-map origin (0.00, 0.00)", () => {
+    expect(leftoverMapPlotOriginBadge()?.values.origin).toBe("(0.00, 0.00)");
+  });
+
+  it("does not invent leftover-map origin from leftover-map axis share or leftover-map singular values", () => {
+    expect(leftoverMapPlotOriginBadge()?.values).toEqual({ origin: "(0.00, 0.00)" });
+    expect(leftoverMapPlotOriginBadge()?.key).toBe(LEFTOVER_MAP_PLOT_ORIGIN);
+  });
+
+  it("stays distinct from leftover-map graphic leftover-map axis origin ticks, leftover-map comparison graphic leftover-map axis origin ticks, leftover-map comparison leftover-axis origin ticks, and leftover-axis origin ticks", () => {
+    expect(LEFTOVER_MAP_PLOT_ORIGIN).toBe("leftover-map origin {origin}");
+    expect(LEFTOVER_MAP_PLOT_ORIGIN).not.toBe(LEFTOVER_MAP_PLOT_ORIGIN_TICK);
+    expect(LEFTOVER_MAP_PLOT_ORIGIN).not.toBe(LEFTOVER_MAP_COMPARE_PLOT_ORIGIN_TICK);
+    expect(LEFTOVER_MAP_PLOT_ORIGIN).not.toBe(LEFTOVER_MAP_COMPARE_AXIS_ORIGIN_TICK);
+    expect(leftoverMapPlotOriginBadge()?.key).not.toBe(
+      leftoverMapPlotTickAxisBadge(1, "0.00", null).key,
+    );
+    expect(leftoverMapPlotOriginBadge()?.key).not.toBe(
+      leftoverMapPlotTickAxisBadge(1, "0.00", 0, 0).key,
+    );
+    expect(leftoverMapPlotOriginBadge()?.key).not.toBe(
+      leftoverMapComparePlotTickAxisBadge(1, "0.00", null).key,
+    );
+    expect(leftoverMapPlotOriginBadge()?.key).not.toBe(
+      leftoverMapCompareAxisTickBadge(1, "0.00", null).key,
+    );
+    expect(leftoverMapPlotOriginBadge()?.key).not.toBe(
+      leftoverMapAxisTickBadge(1, "0.00", null).key,
+    );
+    expect(leftoverMapPlotOriginBadge()?.key).not.toBe(
+      leftoverMapPlotAxisBadge(1, 0, 0)?.key,
     );
   });
 });

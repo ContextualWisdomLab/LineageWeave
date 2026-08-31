@@ -4,7 +4,9 @@
 **Date:** 2026-08-31
 
 **Amended by:** [ADR 0344](0344-leftover-map-compare-plot-tick-origin-badge.md)
-(leftover-map origin on leftover-map comparison graphic leftover-map axis ticks independently of leftover-map axis share and leftover-map singular values)
+(leftover-map origin on leftover-map comparison graphic leftover-map axis ticks independently of leftover-map axis share and leftover-map singular values);
+[ADR 0347](0347-leftover-map-plot-origin-badge.md)
+(leftover-map origin on leftover-map graphic independently of leftover-map axis origin ticks, leftover-map axis share, and leftover-map singular values)
 
 Amends leftover-map coordinate ticks
 ([ADR 0270](0270-leftover-map-coordinate-ticks.md)), leftover-map graphic leftover-map axis ticks leftover-map singular values

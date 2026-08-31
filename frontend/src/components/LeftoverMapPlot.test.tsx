@@ -74,6 +74,7 @@ describe("LeftoverMapPlot", () => {
     expect(screen.getByLabelText("leftover-map axis 1 tick +0.50")).toBeInTheDocument();
     expect(screen.getByLabelText("leftover-map axis 2 tick −0.02")).toBeInTheDocument();
     expect(screen.getByLabelText("leftover-map axis 1 origin tick 0.00")).toBeInTheDocument();
+    expect(screen.getByLabelText("leftover-map origin (0.00, 0.00)")).toBeInTheDocument();
     expect(screen.getByLabelText("leftover-map distance d 0.12")).toBeInTheDocument();
     expect(screen.getByLabelText("leftover-map distance d 1.84")).toBeInTheDocument();
     expect(screen.getByLabelText("leftover-map reconstruction R̂ +0.25")).toBeInTheDocument();
@@ -2824,6 +2825,10 @@ describe("LeftoverMapPlot", () => {
     expect(
       screen.getByLabelText("leftover map comparison graphic leftover-map axis 1 origin tick 0.00 σ 1.84 82%"),
     ).toBeInTheDocument();
+    expect(screen.queryByLabelText("leftover-map origin (0.00, 0.00)")).not.toBeInTheDocument();
+    expect(
+      screen.queryByLabelText("leftover map comparison graphic leftover-map origin (0.00, 0.00)"),
+    ).not.toBeInTheDocument();
     expect(
       screen.queryByLabelText("leftover map comparison graphic leftover-map axis 1 tick +0.50"),
     ).not.toBeInTheDocument();
