@@ -3,6 +3,9 @@
 **Decision status:** Accepted
 **Date:** 2026-08-31
 
+**Amended by:** [ADR 0318](0318-leftover-map-compare-plot-rank.md)
+(leftover-map rank on the grouping comparison leftover-map graphic)
+
 Amends leftover expected on graphic-display pair segments
 ([ADR 0279](0279-leftover-map-segment-expected.md)), leftover expected
 on grouping comparison strip pair rows
@@ -69,8 +72,9 @@ Leftover expected omits independently of leftover observed captions and leftover
 A missing leftover expected omits leftover-map comparison graphic leftover expected and keeps
 a usable leftover observed caption and a usable leftover residual caption.
 
-This increment does not caption leftover-map rank on the comparison graphic
-with a distinct comparison-graphic name. That leftover-map rank already sits on
+This increment does not caption leftover-map distance on the comparison graphic
+with a distinct comparison-graphic name. Leftover-map rank on that comparison
+graphic is [ADR 0318](0318-leftover-map-compare-plot-rank.md). That leftover-map rank already sits on
 the strip through ADR 0301.
 
 Do not add SQL migrations. Do not edit shipped migrations. Do not invent a leftover

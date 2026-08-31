@@ -8,6 +8,22 @@ All notable changes to this project are documented here. Format follows
 
 ### Added
 
+- Period leftover pairs now name leftover-map rank on the grouping
+  comparison leftover-map graphic (ADR 0318 / v2.75.0). After `make seed`,
+  closest and farthest leftover pairs sit above the member list with leftover-map
+  rank on that grouping comparison leftover-map graphic when
+  formatLeftoverMapRank returns a usable badge; click a post marker or a pair
+  button opens that post. A missing, negative, or non-integer rank omits that leftover-map
+  comparison graphic leftover-map rank caption and keeps leftover expected `E`
+  and leftover observed `Y`. Rank-0 origin cells still name `rank 0` when that
+  persisted leftover-map rank is a non-negative integer. Comparison copy uses
+  `leftover map comparison graphic leftover-map rank {label}` so it stays
+  distinct from `leftover-map rank {label}` and from strip
+  `Leftover map comparison rank`. This increment does not caption leftover-map
+  distance on the comparison graphic with a distinct name. Do not invent leftover-map
+  rank from plotted coordinates or leftover-map distance. Never invent a leftover score
+  or a theta. No new columns.
+
 - Period leftover pairs now name leftover expected on the grouping
   comparison leftover-map graphic (ADR 0317 / v2.74.0). After `make seed`,
   closest and farthest leftover pairs sit above the member list with leftover

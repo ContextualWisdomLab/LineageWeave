@@ -7,6 +7,9 @@ export const LEFTOVER_RANK_STRUCTURE_ACTION =
 
 export const LEFTOVER_MAP_COMPARE_RANK_LABEL = "Leftover map comparison rank";
 
+export const LEFTOVER_MAP_COMPARE_PLOT_SEGMENT_RANK =
+  "leftover map comparison graphic leftover-map rank {label}";
+
 export function formatLeftoverMapRank(rank: number | null | undefined): string | null {
   if (rank == null || !Number.isInteger(rank) || rank < 0) {
     return null;

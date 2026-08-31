@@ -740,6 +740,9 @@ badge.
 ADR 0317 captions leftover expected on that grouping
 comparison leftover-map graphic when formatLeftoverMapExpected returns a usable
 badge.
+ADR 0318 captions leftover-map rank on that grouping
+comparison leftover-map graphic when formatLeftoverMapRank returns a usable
+badge.
 Click a post marker or a pair button
 opens that post. Those ADRs are the normative mathematical, storage, and
 display contracts. Leftover-map axis share
@@ -786,7 +789,8 @@ graphic (ADR 0313), leftover-map unexplained leftover on the grouping comparison
 graphic (ADR 0314), leftover residual on the grouping comparison leftover-map
 graphic (ADR 0315), leftover observed on the grouping comparison leftover-map
 graphic (ADR 0316), leftover expected on the grouping comparison leftover-map
-graphic (ADR 0317);
+graphic (ADR 0317), leftover-map rank on the grouping comparison leftover-map
+graphic (ADR 0318);
 `POST .../rebuild` scores every grouping kind (post_admin). `make seed`
 folds A-100/B-200 Event Lineage fixtures (and the Riverbend calendar
 post) that already have constructed IRT cells into the same shared
