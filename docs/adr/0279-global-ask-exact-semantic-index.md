@@ -128,6 +128,18 @@ calibration cannot turn a finite passing sample into the required maximum, and
 the owner has no proven service profile for LineageWeave to consume. This ADR
 therefore adds no endpoint setting or native service activation.
 
+An isolated Colima profile then held the cloned PostgreSQL and Valkey state,
+8 GiB memory, and all product services constant while varying virtual CPUs from
+four through the host's ten physical cores. VM-internal authenticated five-way
+k6 removed the macOS port-forward and host k6 process from the measured path.
+Every profile still failed the deterministic maximum: at four CPUs the two
+series reached 30.700/29.700/28.420/28.170/27.390 ms and
+31.020/27.260/26.180/25.680/22.810 ms for search/posts/lineage/dashboard/Ask
+poll; five through ten CPUs reached respective overall maxima of 79.040,
+85.920, 48.280, 127.320, 98.140, and 116.490 ms. Increasing CPU allocation is
+therefore not a measured capacity precondition, and the indexed path remains
+inactive.
+
 ## Consequences
 
 Warm Ask transfers only the query vector and authorized opaque identities to

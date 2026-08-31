@@ -21,22 +21,29 @@ def record_worker_heartbeat(path: Path = HEARTBEAT_PATH) -> None:
 def invalidate_worker_readiness(
     ready: asyncio.Event,
     path: Path = HEARTBEAT_PATH,
+    state_path: Path = HEALTHCHECK_STATE_PATH,
 ) -> None:
-    """Clear readiness and remove progress evidence from the prior snapshot."""
+    """Clear readiness and remove progress evidence from the prior epoch."""
     ready.clear()
     path.unlink(missing_ok=True)
+    state_path.unlink(missing_ok=True)
 
 
 async def run_worker_heartbeat(
     path: Path = HEARTBEAT_PATH,
     *,
     ready: asyncio.Event | None = None,
+    state_path: Path = HEALTHCHECK_STATE_PATH,
 ) -> None:
     """Record progress only after every required startup barrier is ready."""
+    # A restarted container can retain /tmp while the host monotonic clock has
+    # restarted from zero. Begin a fresh comparison epoch before publishing.
+    path.unlink(missing_ok=True)
+    state_path.unlink(missing_ok=True)
     while True:
         if ready is not None:
             if not ready.is_set():
-                path.unlink(missing_ok=True)
+                invalidate_worker_readiness(ready, path, state_path)
             await ready.wait()
         record_worker_heartbeat(path)
         await asyncio.sleep(1.0)

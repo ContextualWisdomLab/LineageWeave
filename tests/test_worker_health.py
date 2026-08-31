@@ -74,6 +74,7 @@ def test_heartbeat_waits_for_required_startup_readiness(tmp_path: Path) -> None:
 def test_heartbeat_invalidates_and_resumes_with_readiness(tmp_path: Path) -> None:
     """A stale snapshot removes health evidence until replacement is ready."""
     heartbeat = tmp_path / "heartbeat"
+    state = tmp_path / "state"
 
     async def exercise() -> None:
         ready = asyncio.Event()
@@ -84,8 +85,10 @@ def test_heartbeat_invalidates_and_resumes_with_readiness(tmp_path: Path) -> Non
         await asyncio.sleep(0)
         assert heartbeat.exists()
 
-        worker_health.invalidate_worker_readiness(ready, heartbeat)
+        state.write_text("1", encoding="ascii")
+        worker_health.invalidate_worker_readiness(ready, heartbeat, state)
         assert not heartbeat.exists()
+        assert not state.exists()
         await asyncio.sleep(1.05)
         assert not heartbeat.exists()
 
@@ -97,6 +100,42 @@ def test_heartbeat_invalidates_and_resumes_with_readiness(tmp_path: Path) -> Non
             await task
 
     asyncio.run(exercise())
+
+
+def test_reboot_discards_prior_monotonic_probe_baseline(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A lower monotonic value after reboot starts a new readiness epoch."""
+    heartbeat = tmp_path / "heartbeat"
+    state = tmp_path / "state"
+    heartbeat.write_text("9000000000", encoding="ascii")
+    state.write_text("9000000000", encoding="ascii")
+    monkeypatch.setattr(worker_health.time, "monotonic_ns", lambda: 1)
+
+    async def exercise() -> None:
+        ready = asyncio.Event()
+        ready.set()
+        task = asyncio.create_task(
+            worker_health.run_worker_heartbeat(
+                heartbeat, ready=ready, state_path=state
+            )
+        )
+        await asyncio.sleep(0)
+        assert heartbeat.read_text(encoding="ascii") == "1"
+        assert not state.exists()
+        task.cancel()
+        with pytest.raises(asyncio.CancelledError):
+            await task
+
+    asyncio.run(exercise())
+    accepted = subprocess.run(
+        ["/bin/sh", _SHELL_PROBE, heartbeat, state],
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    assert accepted.returncode == 0
+    assert accepted.stderr == ""
 
 
 def test_shell_probe_requires_monotonic_progress(tmp_path: Path) -> None:
