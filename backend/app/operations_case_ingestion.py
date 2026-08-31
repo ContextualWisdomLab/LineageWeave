@@ -17,6 +17,10 @@ class _Connection(Protocol):
         """Execute one parameterized statement."""
         pass
 
+    async def fetchval(self, query: str, *args: object) -> Any:
+        """Fetch one scalar value."""
+        pass
+
     async def executemany(self, query: str, args: list[tuple[object, ...]]) -> Any:
         """Execute one parameterized statement for several rows."""
         pass
@@ -38,9 +42,17 @@ async def persist_operations_cases(
 ) -> None:
     """Atomically replace one post's normalized case analysis."""
     async with conn.transaction():
+        current_digest = await conn.fetchval(
+            "select encode(sha256(convert_to(coalesce(post_body, ''), 'UTF8')), 'hex') "
+            "from source_post where post_id = $1::uuid for update",
+            post_id,
+        )
+        if current_digest != source_body_sha256(source_body):
+            raise ValueError("operations result no longer matches the source revision")
         # Product-to-fact evidence is valid only for the exact normalized
         # target rows it was extracted against. Removing the owning analysis
-        # first prevents unchanged replacement values from bypassing a rerun.
+        # under the shared source-row lock prevents concurrent product writes
+        # from publishing a completion for the target set being replaced.
         await conn.execute("delete from post_product_analysis where post_id = $1", post_id)
         await conn.execute(
             "delete from operations_case_analysis where post_id = $1", post_id

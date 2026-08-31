@@ -36,6 +36,7 @@ from backend.app.occupational_construct_ingestion import (
     persist_occupational_construct_assertions,
 )
 from backend.app.product_semantic_ingestion import (
+    load_current_product_relation_targets,
     persist_product_mentions,
     resolve_product_mentions,
 )
@@ -65,7 +66,6 @@ from lineageweave.post_structure import PostStructureClient
 from lineageweave.product_semantics import (
     ContextualOrchestratorProductExtractionClient,
     ProductEvidenceSource,
-    ProductRelationTarget,
     product_analysis_input_sha256,
 )
 from lineageweave.voice_classification import (
@@ -235,45 +235,12 @@ async def _persist_product_analysis_if_needed(
     """Persist focal products independently using only current typed targets."""
     sources = (ProductEvidenceSource(post_id, raw_body),)
     async with pool.acquire() as conn:
-        operation_rows = await conn.fetch(
-            "select fact.case_kind_code, fact.fact_ordinal, fact.fact_type_code, "
-            "fact.value_text from operations_case_fact fact "
-            "join operations_case_analysis analysis on analysis.post_id = fact.post_id "
-            "where fact.post_id = $1 and analysis.source_body_sha256 = $2 "
-            "and $3::text is not null and analysis.analysis_input_sha256 = $3 "
-            "order by fact.case_kind_code, fact.fact_ordinal",
+        targets = await load_current_product_relation_targets(
+            conn,
             post_id,
             source_body_digest,
             expected_operations_input_sha256,
         )
-        project_rows = await conn.fetch(
-            "select project.project_key, project.project_name "
-            "from post_project_mention project join source_post source "
-            "on source.post_id = project.post_id where project.post_id = $1 "
-            "and encode(sha256(convert_to(coalesce(source.post_body, ''), 'UTF8')), 'hex') = $2 "
-            "and btrim(project.evidence_text) <> '' "
-            "and strpos(coalesce(source.post_body, ''), project.evidence_text) > 0 "
-            "order by project.project_key",
-            post_id,
-            source_body_digest,
-        )
-    targets = tuple(
-        ProductRelationTarget(
-            f"operations_fact:{row['case_kind_code']}:{row['fact_ordinal']}",
-            "operations_fact",
-            f"{row['fact_type_code']}: {row['value_text']}",
-            (post_id, str(row["case_kind_code"]), str(row["fact_ordinal"])),
-        )
-        for row in operation_rows
-    ) + tuple(
-        ProductRelationTarget(
-            f"project:{row['project_key']}",
-            "project",
-            str(row["project_name"]),
-            (post_id, str(row["project_key"])),
-        )
-        for row in project_rows
-    )
     input_digest = product_analysis_input_sha256(sources, targets)
     async with pool.acquire() as conn:
         already_persisted = bool(
@@ -304,6 +271,7 @@ async def _persist_product_analysis_if_needed(
             session_id,
             resolved,
             result,
+            expected_operations_input_sha256=expected_operations_input_sha256,
         )
 
 
@@ -784,7 +752,7 @@ async def process_post_content_job(
                     (
                         (stage, failure)
                         for stage, failure in stage_failures
-                        if isinstance(failure, HttpAdmissionDeferred)
+                        if not isinstance(failure, HttpAdmissionDeferred)
                     ),
                     stage_failures[0],
                 )

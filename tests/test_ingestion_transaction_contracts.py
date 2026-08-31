@@ -287,6 +287,7 @@ def test_post_summary_replacement_mentions_and_edges_share_one_transaction(monke
     enter_index = events.index("transaction:enter")
     exit_index = events.index("transaction:exit")
     required_sql = (
+        "select 1 from source_post",
         "delete from post_summary_person_mention",
         "delete from post_team_mention",
         "delete from post_organization_mention",
