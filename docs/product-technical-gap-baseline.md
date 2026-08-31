@@ -2,9 +2,10 @@
 
 > Exact-head development-loop overlay: 2026-09-01 01:41 KST. Protected
 > `main` remains `cb187cadee5fb6c46d8a944815ccc154a1e028d1`; ninety-five PRs and
-> ten non-PR issues are open. PR #780 is open at
+> ten non-PR issues are open. PR #780's exact pre-overlay evidence parent is
 > `29c21916de99fbe26b67ef4fe45aa72f26fc0020`, based directly on that
-> `main`. All review threads are resolved and normal squash auto-merge is
+> `main`; the documentation-only overlay does not inherit its hosted results.
+> All review threads were resolved and normal squash auto-merge was
 > armed, but no independent `APPROVED` review exists. Fourteen exact-head
 > checks succeed, eleven are skipped, three fail, and Strix remains in
 > progress. The failures remain explicit unavailable evidence: the central
