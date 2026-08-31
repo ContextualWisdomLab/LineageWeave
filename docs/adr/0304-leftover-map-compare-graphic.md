@@ -14,7 +14,9 @@
 [ADR 0309](0309-leftover-map-compare-plot-incomplete-item.md)
 (leftover-map incomplete item coverage on the grouping comparison leftover-map graphic),
 [ADR 0336](0336-leftover-map-compare-plot-criterion-coordinates.md)
-(leftover-map item coordinates on leftover-map comparison graphic leftover-map criterion markers)
+(leftover-map item coordinates on leftover-map comparison graphic leftover-map criterion markers);
+[ADR 0337](0337-leftover-map-compare-plot-post-coordinates.md)
+(leftover-map person coordinates on leftover-map comparison graphic leftover-map post markers)
 
 Amends leftover pairs on the grouping comparison strip
 ([ADR 0149](0149-leftover-pairs-on-comparison-strip.md)), leftover-map

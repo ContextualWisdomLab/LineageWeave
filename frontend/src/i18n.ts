@@ -666,6 +666,9 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "leftover-map criterion {label} at ζ {item}": "잔여 지도 기준 {label} (ζ {item})",
     "leftover map comparison graphic leftover-map criterion {label} at ζ {item}":
       "잔여 지도 비교 그림 기준 {label} (ζ {item})",
+    "Open leftover-map post {title}": "잔여 지도 글 {title} 열기",
+    "Open leftover map comparison graphic leftover-map post {title} at ξ {person}":
+      "잔여 지도 비교 그림 글 {title} 열기 (ξ {person})",
     "leftover-map axis 1": "잔여 지도 축 1",
     "leftover-map axis 2": "잔여 지도 축 2",
     "leftover-map axis {axis} ({share}%)": "잔여 지도 축 {axis} ({share}%)",
@@ -1344,6 +1347,9 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "leftover-map criterion {label} at ζ {item}": "残差图准则 {label}（ζ {item}）",
     "leftover map comparison graphic leftover-map criterion {label} at ζ {item}":
       "残差地图比较图形准则 {label}（ζ {item}）",
+    "Open leftover-map post {title}": "打开残差图帖子 {title}",
+    "Open leftover map comparison graphic leftover-map post {title} at ξ {person}":
+      "打开残差地图比较图形帖子 {title}（ξ {person}）",
     "leftover-map axis 1": "残差图轴 1",
     "leftover-map axis 2": "残差图轴 2",
     "leftover-map axis {axis} ({share}%)": "残差图轴 {axis} ({share}%)",
@@ -2026,6 +2032,9 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "leftover-map criterion {label} at ζ {item}": "残差マップの基準 {label}（ζ {item}）",
     "leftover map comparison graphic leftover-map criterion {label} at ζ {item}":
       "残差マップの比較図基準 {label}（ζ {item}）",
+    "Open leftover-map post {title}": "残差マップの投稿 {title} を開く",
+    "Open leftover map comparison graphic leftover-map post {title} at ξ {person}":
+      "残差マップの比較図の投稿 {title} を開く（ξ {person}）",
     "leftover-map axis 1": "残差マップ軸 1",
     "leftover-map axis 2": "残差マップ軸 2",
     "leftover-map axis {axis} ({share}%)": "残差マップ軸 {axis} ({share}%)",
@@ -2712,6 +2721,9 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "leftover-map criterion {label} at ζ {item}": "tiêu chí bản đồ phần dư {label} tại ζ {item}",
     "leftover map comparison graphic leftover-map criterion {label} at ζ {item}":
       "tiêu chí đồ họa so sánh bản đồ phần dư {label} tại ζ {item}",
+    "Open leftover-map post {title}": "Mở bài viết bản đồ phần dư {title}",
+    "Open leftover map comparison graphic leftover-map post {title} at ξ {person}":
+      "Mở bài đồ họa so sánh bản đồ phần dư {title} tại ξ {person}",
     "leftover-map axis 1": "trục bản đồ phần dư 1",
     "leftover-map axis 2": "trục bản đồ phần dư 2",
     "leftover-map axis {axis} ({share}%)": "trục bản đồ phần dư {axis} ({share}%)",

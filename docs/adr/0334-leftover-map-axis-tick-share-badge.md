@@ -121,7 +121,9 @@ axis share persistence ([ADR 0148](0148-leftover-map-axis-share.md)). Independen
 graphic leftover-map criterion leftover-map item coordinates independently of leftover-map post ξ markers
 ([ADR 0335](0335-leftover-map-plot-criterion-coordinates.md)). Independent of leftover-map
 comparison graphic leftover-map criterion leftover-map item coordinates independently of leftover-map post ξ markers
-([ADR 0336](0336-leftover-map-compare-plot-criterion-coordinates.md)).
+([ADR 0336](0336-leftover-map-compare-plot-criterion-coordinates.md)). Independent of leftover-map
+comparison graphic leftover-map post leftover-map person coordinates independently of leftover-map criterion leftover-map item coordinates
+([ADR 0337](0337-leftover-map-compare-plot-post-coordinates.md)).
 
 ## References
 

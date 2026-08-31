@@ -4234,9 +4234,14 @@ describe("App, authenticated", () => {
     expect(screen.getByText("leftover map comparison graphic leftover-map axis 2 σ 0.86 (18%)")).toBeInTheDocument();
     expect(
       screen.getAllByRole("button", {
-        name: /open leftover-map post public post at ξ \(\+0\.50, \+0\.10\)/i,
+        name: "Open leftover-map post Public post at ξ (+0.50, +0.10)",
       }),
-    ).toHaveLength(2);
+    ).toHaveLength(1);
+    expect(
+      within(screen.getByLabelText("Grouping comparison")).getByRole("button", {
+        name: "Open leftover map comparison graphic leftover-map post Public post at ξ (+0.50, +0.10)",
+      }),
+    ).toBeInTheDocument();
     expect(screen.getByLabelText("Leftover map coverage")).toHaveTextContent(
       "Leftover map used 2 of 3 scored posts (complete-case)",
     );
@@ -4438,7 +4443,7 @@ describe("App, authenticated", () => {
     ).toHaveTextContent("Open a leftover pair to read the post–criterion cell");
     expect(
       within(screen.getByLabelText("Grouping comparison")).getByRole("button", {
-        name: "Open leftover-map post Public post at ξ (+0.50, +0.10)",
+        name: "Open leftover map comparison graphic leftover-map post Public post at ξ (+0.50, +0.10)",
       }),
     ).toBeInTheDocument();
     expect(
@@ -4958,7 +4963,7 @@ describe("App, authenticated", () => {
     const comparison = await screen.findByLabelText("Grouping comparison");
     await userEvent.click(
       await within(comparison).findByRole("button", {
-        name: "Open leftover-map post Public post at ξ (+0.50, +0.10)",
+        name: "Open leftover map comparison graphic leftover-map post Public post at ξ (+0.50, +0.10)",
       }),
     );
     await waitFor(() => expect(screen.getByText("The full body text.")).toBeInTheDocument());

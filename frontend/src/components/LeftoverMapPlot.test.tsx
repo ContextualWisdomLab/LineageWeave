@@ -928,6 +928,16 @@ describe("LeftoverMapPlot", () => {
     expect(screen.getByText("leftover map comparison graphic leftover-map axis 2 σ 0.86 (18%)")).toBeInTheDocument();
     expect(screen.getByLabelText("leftover map comparison graphic leftover-map criterion sales-lead at ζ (+0.50, −0.02)")).toBeInTheDocument();
     expect(screen.getByLabelText("leftover map comparison graphic leftover-map criterion negative at ζ (−0.70, −0.40)")).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", {
+        name: "Open leftover map comparison graphic leftover-map post Public post at ξ (+0.50, +0.10)",
+      }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", {
+        name: "Open leftover-map post Public post at ξ (+0.50, +0.10)",
+      }),
+    ).not.toBeInTheDocument();
     expect(screen.queryByLabelText("Criterion ζ sales-lead")).not.toBeInTheDocument();
     expect(screen.queryByLabelText("Criterion ζ negative")).not.toBeInTheDocument();
     expect(
@@ -979,6 +989,16 @@ describe("LeftoverMapPlot", () => {
     expect(
       screen.getByLabelText("leftover map comparison graphic leftover-map criterion sales-lead at ζ (0.00, 0.00)"),
     ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", {
+        name: "Open leftover map comparison graphic leftover-map post Public post at ξ (0.00, 0.00)",
+      }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", {
+        name: "Open leftover-map post Public post at ξ (0.00, 0.00)",
+      }),
+    ).not.toBeInTheDocument();
     expect(screen.queryByLabelText("Criterion ζ sales-lead")).not.toBeInTheDocument();
     expect(screen.queryByLabelText("leftover-map criterion sales-lead at ζ (0.00, 0.00)")).not.toBeInTheDocument();
   });

@@ -123,6 +123,10 @@
  *  markers leftover-map item coordinates ζ through leftoverMapComparePlotCriterionBadge
  *  independently of leftover-map post ξ markers, not leftover-map graphic leftover-map
  *  criterion markers.
+ *  ADR 0337 fail-closes leftover-map comparison graphic leftover-map post
+ *  markers leftover-map person coordinates ξ through leftoverMapComparePlotPostBadge
+ *  independently of leftover-map criterion leftover-map item coordinates ζ, not leftover-map
+ *  graphic leftover-map post markers.
  */
 
 import { formatLeftoverMapCoordinatePair } from "./leftoverMapCoordinates";
@@ -152,6 +156,12 @@ export const LEFTOVER_MAP_COMPARE_PLOT_SVG = "Leftover map comparison";
 export const LEFTOVER_MAP_PLOT_POST_ACTION =
   "Open leftover-map post {title} at ξ {person}";
 
+export const LEFTOVER_MAP_PLOT_POST_ACTION_OMITTED =
+  "Open leftover-map post {title}";
+
+export const LEFTOVER_MAP_COMPARE_PLOT_POST_ACTION =
+  "Open leftover map comparison graphic leftover-map post {title} at ξ {person}";
+
 export const LEFTOVER_MAP_PLOT_CRITERION =
   "leftover-map criterion {label} at ζ {item}";
 
@@ -161,6 +171,11 @@ export const LEFTOVER_MAP_COMPARE_PLOT_CRITERION =
 export type LeftoverMapPlotCriterionBadge = {
   key: string;
   values: { label: string; item: string };
+};
+
+export type LeftoverMapPlotPostBadge = {
+  key: string;
+  values: { title: string; person: string };
 };
 
 export function leftoverMapPlotCriterionBadge(
@@ -185,6 +200,18 @@ export function leftoverMapComparePlotCriterionBadge(
     return null;
   }
   return { key: LEFTOVER_MAP_COMPARE_PLOT_CRITERION, values: { label, item } };
+}
+
+export function leftoverMapComparePlotPostBadge(
+  title: string,
+  axis1: number | null | undefined,
+  axis2: number | null | undefined,
+): LeftoverMapPlotPostBadge | null {
+  const person = formatLeftoverMapCoordinatePair(axis1, axis2);
+  if (person === null) {
+    return null;
+  }
+  return { key: LEFTOVER_MAP_COMPARE_PLOT_POST_ACTION, values: { title, person } };
 }
 
 export const LEFTOVER_MAP_PLOT_TICK =

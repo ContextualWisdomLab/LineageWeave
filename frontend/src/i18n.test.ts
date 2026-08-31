@@ -150,6 +150,8 @@ describe("i18n", () => {
     "Leftover map dropped {dropped} incomplete criteria",
     "Leftover map after IRT main effects. Axis ticks name persisted leftover-map coordinates. Pair segments name leftover-map distance d, leftover-map reconstruction R̂, leftover-map explained leftover share e, leftover-map unexplained leftover share s, leftover-map cross share x, leftover-map unexplained leftover U, leftover residual R, leftover observed Y, leftover expected E, and leftover-map rank. The plot names leftover-map complete-case coverage, leftover-map item complete-case coverage, leftover-map incomplete post coverage, and leftover-map incomplete item coverage when persisted. Click a post marker to open that post. The plot does not invent a leftover score.",
     "Open leftover-map post {title} at ξ {person}",
+    "Open leftover-map post {title}",
+    "Open leftover map comparison graphic leftover-map post {title} at ξ {person}",
     "Read observed Y {observed} and expected E {expected} after IRT main effects, then open this post.",
     "Leftover map has no leftover structure after IRT main effects. Open this post.",
     "Leftover map rank {rank} after IRT main effects. Open this post.",
@@ -458,6 +460,21 @@ describe("i18n", () => {
       tf("leftover map comparison graphic leftover-map criterion {label} at ζ {item}", {
         label: "sales-lead",
         item: "(+0.50, −0.02)",
+      }),
+    ).toBe(expected);
+  });
+
+  it.each([
+    ["ko", "잔여 지도 비교 그림 글 Public post 열기 (ξ (+0.50, +0.10))"],
+    ["zh", "打开残差地图比较图形帖子 Public post（ξ (+0.50, +0.10)）"],
+    ["ja", "残差マップの比較図の投稿 Public post を開く（ξ (+0.50, +0.10)）"],
+    ["vi", "Mở bài đồ họa so sánh bản đồ phần dư Public post tại ξ (+0.50, +0.10)"],
+  ] as const)("formats leftover map comparison graphic leftover-map post ξ in %s", (locale, expected) => {
+    setLocale(locale);
+    expect(
+      tf("Open leftover map comparison graphic leftover-map post {title} at ξ {person}", {
+        title: "Public post",
+        person: "(+0.50, +0.10)",
       }),
     ).toBe(expected);
   });
