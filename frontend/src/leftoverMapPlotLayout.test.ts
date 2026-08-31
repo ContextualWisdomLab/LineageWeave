@@ -7,6 +7,7 @@ import {
   layoutLeftoverMapPlot,
   leftoverMapPlotCriterionBadge,
   leftoverMapComparePlotCriterionBadge,
+  leftoverMapComparePlotPostBadge,
   LEFTOVER_MAP_COMPARE_PLOT_CAPTION,
   LEFTOVER_MAP_COMPARE_PLOT_LABEL,
   LEFTOVER_MAP_COMPARE_PLOT_SEGMENT_RECONSTRUCTION,
@@ -24,6 +25,8 @@ import {
   LEFTOVER_MAP_PLOT_CRITERION,
   LEFTOVER_MAP_COMPARE_PLOT_CRITERION,
   LEFTOVER_MAP_PLOT_POST_ACTION,
+  LEFTOVER_MAP_PLOT_POST_ACTION_OMITTED,
+  LEFTOVER_MAP_COMPARE_PLOT_POST_ACTION,
   LEFTOVER_MAP_PLOT_TICK,
   PLOT_HEIGHT,
   PLOT_PADDING,
@@ -1245,6 +1248,9 @@ describe("leftoverMapPlotCriterionBadge", () => {
     expect(leftoverMapPlotCriterionBadge("sales-lead", 0.5, -0.02)?.key).not.toBe(
       LEFTOVER_MAP_COMPARE_PLOT_CRITERION,
     );
+    expect(leftoverMapPlotCriterionBadge("sales-lead", 0.5, -0.02)?.key).not.toBe(
+      LEFTOVER_MAP_COMPARE_PLOT_POST_ACTION,
+    );
   });
 });
 
@@ -1287,6 +1293,52 @@ describe("leftoverMapComparePlotCriterionBadge", () => {
     );
     expect(leftoverMapComparePlotCriterionBadge("sales-lead", 0.5, -0.02)?.key).not.toBe(
       LEFTOVER_MAP_PLOT_POST_ACTION,
+    );
+    expect(leftoverMapComparePlotCriterionBadge("sales-lead", 0.5, -0.02)?.key).not.toBe(
+      LEFTOVER_MAP_COMPARE_PLOT_POST_ACTION,
+    );
+  });
+});
+
+describe("leftoverMapComparePlotPostBadge", () => {
+  it("names persisted leftover-map person coordinates without inventing a leftover score", () => {
+    expect(leftoverMapComparePlotPostBadge("Public post", 0.5, 0.1)).toEqual({
+      key: LEFTOVER_MAP_COMPARE_PLOT_POST_ACTION,
+      values: { title: "Public post", person: "(+0.50, +0.10)" },
+    });
+    expect(leftoverMapComparePlotPostBadge("negative", -0.7, -0.4)).toEqual({
+      key: LEFTOVER_MAP_COMPARE_PLOT_POST_ACTION,
+      values: { title: "negative", person: "(\u22120.70, \u22120.40)" },
+    });
+  });
+
+  it("names rank-0 origin leftover-map person coordinates as ξ (0.00, 0.00)", () => {
+    expect(leftoverMapComparePlotPostBadge("Public post", 0, 0)).toEqual({
+      key: LEFTOVER_MAP_COMPARE_PLOT_POST_ACTION,
+      values: { title: "Public post", person: "(0.00, 0.00)" },
+    });
+  });
+
+  it("omits leftover-map person coordinates when ξ is missing or non-finite", () => {
+    expect(leftoverMapComparePlotPostBadge("Public post", null, 0.1)).toBeNull();
+    expect(leftoverMapComparePlotPostBadge("Public post", 0.5, undefined)).toBeNull();
+    expect(leftoverMapComparePlotPostBadge("Public post", Number.NaN, 0.1)).toBeNull();
+    expect(leftoverMapComparePlotPostBadge("Public post", 0.5, Number.POSITIVE_INFINITY)).toBeNull();
+  });
+
+  it("stays distinct from leftover-map graphic leftover-map post markers and leftover-map comparison graphic leftover-map criterion markers", () => {
+    expect(LEFTOVER_MAP_COMPARE_PLOT_POST_ACTION).toBe(
+      "Open leftover map comparison graphic leftover-map post {title} at ξ {person}",
+    );
+    expect(LEFTOVER_MAP_COMPARE_PLOT_POST_ACTION).not.toBe(LEFTOVER_MAP_PLOT_POST_ACTION);
+    expect(LEFTOVER_MAP_COMPARE_PLOT_POST_ACTION).not.toBe(LEFTOVER_MAP_PLOT_POST_ACTION_OMITTED);
+    expect(LEFTOVER_MAP_COMPARE_PLOT_POST_ACTION).not.toBe(LEFTOVER_MAP_COMPARE_PLOT_CRITERION);
+    expect(LEFTOVER_MAP_COMPARE_PLOT_POST_ACTION).not.toBe(LEFTOVER_MAP_PLOT_CRITERION);
+    expect(leftoverMapComparePlotPostBadge("Public post", 0.5, 0.1)?.key).not.toBe(
+      LEFTOVER_MAP_PLOT_POST_ACTION,
+    );
+    expect(leftoverMapComparePlotPostBadge("Public post", 0.5, 0.1)?.key).not.toBe(
+      LEFTOVER_MAP_COMPARE_PLOT_CRITERION,
     );
   });
 });

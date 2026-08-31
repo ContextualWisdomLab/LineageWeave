@@ -36,6 +36,7 @@ import {
   layoutLeftoverMapPlot,
   leftoverMapPlotCriterionBadge,
   leftoverMapComparePlotCriterionBadge,
+  leftoverMapComparePlotPostBadge,
   LEFTOVER_MAP_COMPARE_PLOT_CAPTION,
   LEFTOVER_MAP_COMPARE_PLOT_LABEL,
   LEFTOVER_MAP_COMPARE_PLOT_SVG,
@@ -51,6 +52,7 @@ import {
   LEFTOVER_MAP_COMPARE_PLOT_SEGMENT_DISTANCE,
   LEFTOVER_MAP_PLOT_CAPTION,
   LEFTOVER_MAP_PLOT_POST_ACTION,
+  LEFTOVER_MAP_PLOT_POST_ACTION_OMITTED,
   LEFTOVER_MAP_PLOT_SEGMENT_CROSS_SHARE,
   LEFTOVER_MAP_PLOT_SEGMENT_DISTANCE,
   LEFTOVER_MAP_PLOT_SEGMENT_EXPLAINED_SHARE,
@@ -139,6 +141,24 @@ function leftoverMapPlotCriterionText(
   return tf(badge.key, badge.values);
 }
 
+function leftoverMapPlotPostText(
+  marker: { label: string; axis1: number; axis2: number },
+  variant: LeftoverMapPlotVariant,
+): string {
+  if (variant === "comparison") {
+    const badge = leftoverMapComparePlotPostBadge(marker.label, marker.axis1, marker.axis2);
+    if (badge === null) {
+      return tf(LEFTOVER_MAP_PLOT_POST_ACTION_OMITTED, { title: marker.label });
+    }
+    return tf(badge.key, badge.values);
+  }
+  const person = formatLeftoverMapCoordinatePair(marker.axis1, marker.axis2) ?? "";
+  return tf(LEFTOVER_MAP_PLOT_POST_ACTION, {
+    title: marker.label,
+    person,
+  });
+}
+
 /**
  * Gabriel leftover-map graphic display of persisted ``ξ_{1:2}`` / ``ζ_{1:2}``.
  *
@@ -149,7 +169,10 @@ function leftoverMapPlotCriterionText(
  * leftover-map item coordinate caption. Caption leftover-map comparison graphic leftover-map
  * criterion markers with persisted leftover-map item coordinates ``ζ_{1:2}``
  * when leftoverMapComparePlotCriterionBadge returns a usable leftover-map comparison
- * graphic leftover-map criterion leftover-map item coordinate caption. Caption leftover-map axes with persisted
+ * graphic leftover-map criterion leftover-map item coordinate caption. Caption leftover-map
+ * comparison graphic leftover-map post markers with persisted leftover-map person coordinates
+ * ``ξ_{1:2}`` when leftoverMapComparePlotPostBadge returns a usable leftover-map comparison
+ * graphic leftover-map post leftover-map person coordinate caption. Caption leftover-map axes with persisted
  * leftover-map singular values ``σ_k`` and Gabriel inertia share when finite,
  * including rank-0 zero-share axes.
  * Axis ticks name persisted leftover-map coordinates so ξ / ζ on the
@@ -581,17 +604,13 @@ export function LeftoverMapPlot({
             </g>
           ))}
           {layout.persons.map((marker) => {
-            const person = formatLeftoverMapCoordinatePair(marker.axis1, marker.axis2) ?? "";
             return (
               <g
                 key={`person:${marker.id}`}
                 className="leftover-map-plot-marker"
                 role="button"
                 tabIndex={0}
-                aria-label={tf(LEFTOVER_MAP_PLOT_POST_ACTION, {
-                  title: marker.label,
-                  person,
-                })}
+                aria-label={leftoverMapPlotPostText(marker, variant)}
                 onClick={() => openPost(marker.id)}
                 onKeyDown={(event) => {
                   if (event.key === "Enter" || event.key === " ") {
