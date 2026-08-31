@@ -126,8 +126,4 @@ select post_id, btrim(left(source_post_search_text(post_body), 420)),
        char_length(coalesce(post_body, '')),
        octet_length(coalesce(post_body, ''))
   from source_post
-on conflict (post_id) do update set
-    post_body_excerpt = excluded.post_body_excerpt,
-    post_body_truncated = excluded.post_body_truncated,
-    post_body_character_count = excluded.post_body_character_count,
-    post_body_byte_count = excluded.post_body_byte_count;
+on conflict (post_id) do nothing;
