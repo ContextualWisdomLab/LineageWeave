@@ -24,6 +24,8 @@
  *  as leftoverMapAxisTickBadge independently of leftover-map singular values.
  *  ADR 0343 captions leftover-map graphic leftover-map axis origin ticks as
  *  leftoverMapPlotTickAxisBadge, not this helper.
+ *  ADR 0344 captions leftover-map comparison graphic leftover-map axis origin ticks as
+ *  leftoverMapComparePlotTickAxisBadge, not this helper.
  */
 
 import type { LeftoverMapAxis } from "./api";
