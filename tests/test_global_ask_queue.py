@@ -5,6 +5,9 @@ from __future__ import annotations
 import asyncio
 from contextlib import asynccontextmanager
 from datetime import UTC, datetime
+from types import SimpleNamespace
+
+import pytest
 
 from backend.app import global_ask_queue
 from backend.app.global_ask_queue import load_job_visibility
@@ -45,6 +48,90 @@ class _Pool:
     @asynccontextmanager
     async def acquire(self):
         yield self.connection
+
+
+def test_worker_reprepares_when_embedding_model_identity_changes(monkeypatch) -> None:
+    """A discovered model replacement closes readiness and prepares before dispatch."""
+
+    class IdentityConnection:
+        async def fetch(self, query: str, model_identity: str):
+            assert "embedding_dimension_count" in query
+            return [
+                {
+                    "embedding_dimension_count": (
+                        2 if model_identity == "synthetic-model-a" else 3
+                    )
+                }
+            ]
+
+    class ExactIndex:
+        def __init__(self) -> None:
+            self.prepared: list[tuple[str, int]] = []
+            self.bound_pool = None
+
+        def _bind_pool(self, pool) -> None:
+            self.bound_pool = pool
+
+        async def prepare(self, _conn, *, model_identity, vector_dimension) -> None:
+            self.prepared.append((model_identity, vector_dimension))
+
+        async def is_prepared_for(self, _conn, **_identity) -> bool:
+            return True
+
+    models = iter(("synthetic-model-a", "synthetic-model-b"))
+
+    def embedding_factory():
+        return SimpleNamespace(
+            available=True,
+            resolved_model=next(models),
+            batch_capabilities=lambda: None,
+        )
+
+    exact_index = ExactIndex()
+    pool = _Pool(IdentityConnection())
+    readiness = asyncio.Event()
+    invalidations = 0
+
+    def invalidate(ready: asyncio.Event) -> None:
+        nonlocal invalidations
+        invalidations += 1
+        ready.clear()
+
+    async def stream_tail(_client) -> str:
+        return "0-0"
+
+    async def republish(_client, _pool) -> None:
+        return None
+
+    async def consume(*_args, **_kwargs) -> str:
+        assert exact_index.prepared == [
+            ("synthetic-model-a", 2),
+            ("synthetic-model-b", 3),
+        ]
+        assert readiness.is_set()
+        raise asyncio.CancelledError
+
+    monkeypatch.setattr(global_ask_queue, "invalidate_worker_readiness", invalidate)
+    monkeypatch.setattr(global_ask_queue, "_stream_tail", stream_tail)
+    monkeypatch.setattr(
+        global_ask_queue, "republish_queued_global_ask_jobs", republish
+    )
+    monkeypatch.setattr(global_ask_queue, "consume_global_ask_stream_once", consume)
+
+    with pytest.raises(asyncio.CancelledError):
+        asyncio.run(
+            global_ask_queue.run_global_ask_worker(
+                object(),
+                pool,
+                chat_factory=_AvailableClient,
+                embedding_factory=embedding_factory,
+                exact_semantic_index=exact_index,
+                readiness=readiness,
+            )
+        )
+
+    assert exact_index.bound_pool is pool
+    assert invalidations == 1
 
 
 def _queued_row() -> dict[str, object]:

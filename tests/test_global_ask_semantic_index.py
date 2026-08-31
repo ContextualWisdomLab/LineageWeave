@@ -4,6 +4,7 @@ import asyncio
 import hashlib
 import struct
 import threading
+from contextlib import asynccontextmanager
 from datetime import date
 from types import SimpleNamespace
 
@@ -128,6 +129,15 @@ class _Connection:
         return self.authorized_rows
 
 
+class _Pool:
+    def __init__(self, conn: _Connection) -> None:
+        self.conn = conn
+
+    @asynccontextmanager
+    async def acquire(self):
+        yield self.conn
+
+
 class _OwnerIndex:
     constructions = 0
     leak = False
@@ -208,6 +218,20 @@ class _ConcurrentOwnerIndex(_OwnerIndex):
         ]
 
 
+class _BlockingOwnerIndex(_ConcurrentOwnerIndex):
+    started = threading.Event()
+    release = threading.Event()
+
+    def rank_authorized_top_k_batch_packed(
+        self, model, queries, packed_authorization, top_k
+    ):
+        type(self).started.set()
+        assert type(self).release.wait(timeout=2)
+        return super().rank_authorized_top_k_batch_packed(
+            model, queries, packed_authorization, top_k
+        )
+
+
 def _pack_authorization(*identities: tuple[str, str]) -> bytes:
     packed = struct.pack(">Q", len(identities))
     for item_id, unit_id in identities:
@@ -219,6 +243,8 @@ def _pack_authorization(*identities: tuple[str, str]) -> bytes:
 
 def _rank(index, conn):
     async def prepared_rank():
+        if index._pool is None:
+            index._bind_pool(_Pool(conn))
         await index.prepare(conn, model_identity="synthetic-model", vector_dimension=2)
         return await index.rank_authorized(
             conn,
@@ -242,7 +268,7 @@ def test_exact_index_loads_once_then_ranks_only_authorized_ids(monkeypatch) -> N
         lambda: SimpleNamespace(SemanticUnitExactIndex=_OwnerIndex),
     )
     conn = _Connection()
-    index = GlobalAskExactSemanticIndex()
+    index = GlobalAskExactSemanticIndex(_Pool(conn))
 
     first = _rank(index, conn)
     second = _rank(index, conn)
@@ -288,7 +314,7 @@ def test_request_never_builds_an_unprepared_or_stale_snapshot(monkeypatch) -> No
         lambda: SimpleNamespace(SemanticUnitExactIndex=_OwnerIndex),
     )
     conn = _Connection()
-    index = GlobalAskExactSemanticIndex()
+    index = GlobalAskExactSemanticIndex(_Pool(conn))
 
     parameters = {
         "model_identity": "synthetic-model",
@@ -414,7 +440,9 @@ def test_warm_immutable_snapshot_allows_concurrent_exact_ranking(monkeypatch) ->
         lambda: SimpleNamespace(SemanticUnitExactIndex=_ConcurrentOwnerIndex),
     )
     index = GlobalAskExactSemanticIndex()
-    _rank(index, _Connection())
+    batch_conn = _Connection()
+    _rank(index, batch_conn)
+    batch_conn.authorization_queries = []
     _ConcurrentOwnerIndex.batch_sizes = []
     _ConcurrentOwnerIndex.top_k_calls = []
 
@@ -441,12 +469,60 @@ def test_warm_immutable_snapshot_allows_concurrent_exact_ranking(monkeypatch) ->
     assert _ConcurrentOwnerIndex.top_k_calls == [(2, 4)]
     assert _ConcurrentOwnerIndex.batch_sizes == [2]
     assert first_conn.version_fetches + second_conn.version_fetches == 0
-    assert len(first_conn.authorization_queries) + len(second_conn.authorization_queries) == 1
+    assert not first_conn.authorization_queries
+    assert not second_conn.authorization_queries
+    assert len(batch_conn.authorization_queries) == 1
     assert any(
         "authorized on true" in query
-        for query in first_conn.authorization_queries + second_conn.authorization_queries
+        for query in batch_conn.authorization_queries
     )
     _ConcurrentOwnerIndex.barrier = None
+
+
+def test_cancelled_batch_leader_does_not_release_peer_postauthorization(
+    monkeypatch,
+) -> None:
+    """A canceled caller cannot release the batch-owned database connection."""
+    _BlockingOwnerIndex.started.clear()
+    _BlockingOwnerIndex.release.set()
+    monkeypatch.setattr(
+        "backend.app.global_ask_semantic_index._import_rankweave",
+        lambda: SimpleNamespace(SemanticUnitExactIndex=_BlockingOwnerIndex),
+    )
+    batch_conn = _Connection()
+    index = GlobalAskExactSemanticIndex(_Pool(batch_conn))
+    asyncio.run(
+        index.prepare(
+            batch_conn, model_identity="synthetic-model", vector_dimension=2
+        )
+    )
+    batch_conn.authorization_queries = []
+    _BlockingOwnerIndex.started.clear()
+    _BlockingOwnerIndex.release.clear()
+
+    async def exercise() -> None:
+        parameters = {
+            "model_identity": "synthetic-model",
+            "query_vector": [1.0, 0.0],
+            "authorized_corporate_entity_ids": ["entity-a"],
+            "authorized_process_unit_ids": ["unit-a"],
+            "start_date": None,
+            "end_date": None,
+            "limit": 4,
+        }
+        leader = asyncio.create_task(index.rank_authorized(_Connection(), **parameters))
+        peer = asyncio.create_task(index.rank_authorized(_Connection(), **parameters))
+        assert await asyncio.to_thread(_BlockingOwnerIndex.started.wait, 2)
+        leader.cancel()
+        await asyncio.sleep(0)
+        _BlockingOwnerIndex.release.set()
+        with pytest.raises(asyncio.CancelledError):
+            await leader
+        result = await peer
+        assert result[0].post_id == "post-a"
+
+    asyncio.run(exercise())
+    assert any("authorized on true" in sql for sql in batch_conn.authorization_queries)
 
 
 def test_date_filtered_requests_keep_complete_ranking_before_filter(monkeypatch) -> None:
@@ -500,7 +576,7 @@ def test_distinct_authorization_digests_never_share_an_owner_batch(monkeypatch) 
             "process_scope_limited": False,
         },
     ]
-    index = GlobalAskExactSemanticIndex()
+    index = GlobalAskExactSemanticIndex(_Pool(prepare_conn))
     asyncio.run(
         index.prepare(
             prepare_conn, model_identity="synthetic-model", vector_dimension=2

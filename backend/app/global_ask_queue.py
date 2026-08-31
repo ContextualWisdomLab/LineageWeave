@@ -867,6 +867,57 @@ async def _stream_tail(client: redis.Redis) -> str:
     return "0-0"
 
 
+async def _discover_global_ask_exact_identity(
+    pool: asyncpg.Pool,
+    embedding_factory: Callable[[], EmbeddingClient],
+) -> tuple[str, int]:
+    embedding_client = embedding_factory()
+    capabilities = getattr(embedding_client, "batch_capabilities", None)
+    if not embedding_client.available or not callable(capabilities):
+        raise RankWeaveNotAvailable(
+            "rankweave_not_available: embedding model discovery is unavailable"
+        )
+    await asyncio.to_thread(capabilities)
+    model_identity = getattr(embedding_client, "resolved_model", None)
+    if not isinstance(model_identity, str) or not model_identity.strip():
+        raise RankWeaveNotAvailable(
+            "rankweave_not_available: embedding model identity is unavailable"
+        )
+    async with pool.acquire() as conn:
+        dimension_rows = await conn.fetch(
+            """
+            select distinct embedding_dimension_count
+              from post_content_embedding_exact_projection
+             where embedding_model_code = $1
+             order by embedding_dimension_count
+            """,
+            model_identity,
+        )
+    if len(dimension_rows) != 1:
+        raise RankWeaveNotAvailable(
+            "rankweave_not_available: exact semantic model dimension is ambiguous"
+        )
+    return model_identity, int(dimension_rows[0]["embedding_dimension_count"])
+
+
+async def _prepare_global_ask_exact_identity(
+    exact_semantic_index: GlobalAskExactSemanticIndex,
+    pool: asyncpg.Pool,
+    embedding_factory: Callable[[], EmbeddingClient],
+    identity: tuple[str, int] | None = None,
+) -> tuple[str, int]:
+    model_identity, vector_dimension = identity or (
+        await _discover_global_ask_exact_identity(pool, embedding_factory)
+    )
+    async with pool.acquire() as conn:
+        await exact_semantic_index.prepare(
+            conn,
+            model_identity=model_identity,
+            vector_dimension=vector_dimension,
+        )
+    return model_identity, vector_dimension
+
+
 async def run_global_ask_worker(
     client: redis.Redis,
     pool: asyncpg.Pool,
@@ -881,45 +932,17 @@ async def run_global_ask_worker(
     readiness: asyncio.Event | None = None,
 ) -> None:
     """Run the at-least-once Ask consumer with periodic queued-row recovery."""
-    exact_semantic_index = (
-        exact_semantic_index or build_global_ask_exact_semantic_index()
+    exact_semantic_index = exact_semantic_index or build_global_ask_exact_semantic_index(
+        pool
     )
+    if exact_semantic_index is not None:
+        exact_semantic_index._bind_pool(pool)
     prepared_identity: tuple[str, int] | None = None
     while exact_semantic_index is not None and prepared_identity is None:
         try:
-            embedding_client = embedding_factory()
-            capabilities = getattr(embedding_client, "batch_capabilities", None)
-            if not embedding_client.available or not callable(capabilities):
-                raise RankWeaveNotAvailable(
-                    "rankweave_not_available: embedding model discovery is unavailable"
-                )
-            await asyncio.to_thread(capabilities)
-            model_identity = getattr(embedding_client, "resolved_model", None)
-            if not isinstance(model_identity, str) or not model_identity.strip():
-                raise RankWeaveNotAvailable(
-                    "rankweave_not_available: embedding model identity is unavailable"
-                )
-            async with pool.acquire() as conn:
-                dimension_rows = await conn.fetch(
-                    """
-                    select distinct embedding_dimension_count
-                      from post_content_embedding_exact_projection
-                     where embedding_model_code = $1
-                     order by embedding_dimension_count
-                    """,
-                    model_identity,
-                )
-                if len(dimension_rows) != 1:
-                    raise RankWeaveNotAvailable(
-                        "rankweave_not_available: exact semantic model dimension is ambiguous"
-                    )
-                vector_dimension = int(dimension_rows[0]["embedding_dimension_count"])
-                await exact_semantic_index.prepare(
-                    conn,
-                    model_identity=model_identity,
-                    vector_dimension=vector_dimension,
-                )
-            prepared_identity = (model_identity, vector_dimension)
+            prepared_identity = await _prepare_global_ask_exact_identity(
+                exact_semantic_index, pool, embedding_factory
+            )
         except asyncio.CancelledError:
             raise
         except Exception:
@@ -935,22 +958,42 @@ async def run_global_ask_worker(
         while True:
             try:
                 if exact_semantic_index is not None and prepared_identity is not None:
-                    model_identity, vector_dimension = prepared_identity
-                    async with pool.acquire() as conn:
-                        if not await exact_semantic_index.is_prepared_for(
-                            conn,
-                            model_identity=model_identity,
-                            vector_dimension=vector_dimension,
-                        ):
-                            if readiness is not None:
-                                invalidate_worker_readiness(readiness)
-                            await exact_semantic_index.prepare(
+                    try:
+                        current_identity = await _discover_global_ask_exact_identity(
+                            pool, embedding_factory
+                        )
+                    except Exception:
+                        if readiness is not None:
+                            invalidate_worker_readiness(readiness)
+                        raise
+                    if current_identity != prepared_identity:
+                        if readiness is not None:
+                            invalidate_worker_readiness(readiness)
+                        prepared_identity = await _prepare_global_ask_exact_identity(
+                            exact_semantic_index,
+                            pool,
+                            embedding_factory,
+                            current_identity,
+                        )
+                        if readiness is not None:
+                            readiness.set()
+                    else:
+                        model_identity, vector_dimension = prepared_identity
+                        async with pool.acquire() as conn:
+                            if not await exact_semantic_index.is_prepared_for(
                                 conn,
                                 model_identity=model_identity,
                                 vector_dimension=vector_dimension,
-                            )
-                            if readiness is not None:
-                                readiness.set()
+                            ):
+                                if readiness is not None:
+                                    invalidate_worker_readiness(readiness)
+                                await exact_semantic_index.prepare(
+                                    conn,
+                                    model_identity=model_identity,
+                                    vector_dimension=vector_dimension,
+                                )
+                                if readiness is not None:
+                                    readiness.set()
                 now = time.monotonic()
                 if now - last_recovery >= _RECOVERY_INTERVAL_SECONDS:
                     await republish_queued_global_ask_jobs(client, pool)

@@ -45,7 +45,6 @@ class _PreparedAuthorization:
 
 @dataclass
 class _PendingExactQuery:
-    conn: asyncpg.Connection
     query_vector: list[float]
     scope: _AuthorizationScope
     start_date: date | None
@@ -61,7 +60,8 @@ _GLOBAL_ASK_SOURCE_LIMIT = 4
 class GlobalAskExactSemanticIndex:
     """Own one reusable exact RankWeave snapshot for Global Ask."""
 
-    def __init__(self) -> None:
+    def __init__(self, pool: asyncpg.Pool | None = None) -> None:
+        self._pool = pool
         self._replacement_lock = asyncio.Lock()
         self._index: Any | None = None
         self._projection_version: int | None = None
@@ -74,6 +74,13 @@ class GlobalAskExactSemanticIndex:
         ] = {}
         self._pending_batches: dict[tuple[object, ...], list[_PendingExactQuery]] = {}
         self._batch_tasks: set[asyncio.Task[None]] = set()
+
+    def _bind_pool(self, pool: asyncpg.Pool) -> None:
+        if self._pool is not None and self._pool is not pool:
+            raise RankWeaveNotAvailable(
+                "rankweave_not_available: exact semantic pool identity changed"
+            )
+        self._pool = pool
 
     async def is_prepared_for(
         self,
@@ -270,7 +277,6 @@ class GlobalAskExactSemanticIndex:
         )
         future = asyncio.get_running_loop().create_future()
         pending = _PendingExactQuery(
-            conn=conn,
             query_vector=list(query_vector),
             scope=scope,
             start_date=start_date,
@@ -295,6 +301,15 @@ class GlobalAskExactSemanticIndex:
         await asyncio.sleep(0)
         pending = self._pending_batches.pop(batch_key, [])
         if not pending:
+            return
+        pool = self._pool
+        if pool is None:
+            error = RankWeaveNotAvailable(
+                "rankweave_not_available: exact semantic postauthorization pool is unavailable"
+            )
+            for request in pending:
+                if not request.future.done():
+                    request.future.set_exception(error)
             return
         snapshot_version = str(batch_key[0])
         model_identity = str(batch_key[3])
@@ -343,18 +358,17 @@ class GlobalAskExactSemanticIndex:
                 )
             for report in reports:
                 self._validate_owner_snapshot(report, snapshot_version)
-            async with pending[0].conn.transaction(
-                isolation="repeatable_read", readonly=True
-            ):
-                results = await self._postauthorize_batch(
-                    pending[0].conn,
-                    pending=pending,
-                    reports=reports,
-                    model_identity=model_identity,
-                    vector_dimension=vector_dimension,
-                    projection_version=prepared.projection_version,
-                    authorization_version=prepared.authorization_version,
-                )
+            async with pool.acquire() as conn:
+                async with conn.transaction(isolation="repeatable_read", readonly=True):
+                    results = await self._postauthorize_batch(
+                        conn,
+                        pending=pending,
+                        reports=reports,
+                        model_identity=model_identity,
+                        vector_dimension=vector_dimension,
+                        projection_version=prepared.projection_version,
+                        authorization_version=prepared.authorization_version,
+                    )
         except asyncio.CancelledError:
             raise
         except Exception as exc:
@@ -707,7 +721,6 @@ class GlobalAskExactSemanticIndex:
             ) from exc
         self._validate_owner_snapshot(top_k_report, snapshot_version)
         pending = _PendingExactQuery(
-            conn=conn,
             query_vector=[],
             scope=scope,
             start_date=None,
@@ -982,7 +995,9 @@ class GlobalAskExactSemanticIndex:
         return replacement
 
 
-def build_global_ask_exact_semantic_index() -> GlobalAskExactSemanticIndex | None:
+def build_global_ask_exact_semantic_index(
+    pool: asyncpg.Pool | None = None,
+) -> GlobalAskExactSemanticIndex | None:
     """Activate only when the pinned RankWeave exposes the accepted contract."""
     from backend.app.config import load_settings
 
@@ -1003,4 +1018,4 @@ def build_global_ask_exact_semantic_index() -> GlobalAskExactSemanticIndex | Non
         not callable(getattr(owner_type, method, None)) for method in required_methods
     ):
         return None
-    return GlobalAskExactSemanticIndex()
+    return GlobalAskExactSemanticIndex(pool)
