@@ -83,6 +83,8 @@
  *  already-named leftover-map axes.
  *  ADR 0322 captions leftover-axis report badges with persisted leftover-map
  *  singular values, not this graphic.
+ *  ADR 0323 captions leftover-axis report badges on the grouping comparison strip
+ *  with persisted leftover-map singular values, not this graphic.
  */
 
 import { formatLeftoverMapCoordinatePair } from "./leftoverMapCoordinates";

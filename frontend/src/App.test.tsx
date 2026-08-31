@@ -4179,6 +4179,11 @@ describe("App, authenticated", () => {
     expect(screen.getAllByText(/CAT: sales-lead I=0\.70/).length).toBeGreaterThan(0);
     expect(screen.getAllByText(/leftover axis 1 σ 1\.84 82%/).length).toBeGreaterThan(0);
     expect(screen.getAllByText(/leftover axis 2 σ 0\.86 18%/).length).toBeGreaterThan(0);
+    expect(screen.getByText("leftover map comparison leftover axis 1 σ 1.84 82%")).toBeInTheDocument();
+    expect(screen.getByText("leftover map comparison leftover axis 2 σ 0.86 18%")).toBeInTheDocument();
+    expect(screen.getByLabelText("Leftover map comparison leftover axis")).toHaveTextContent(
+      "Open a leftover pair to read the post–criterion cell",
+    );
     expect(screen.getByLabelText("Leftover-map axis share")).toHaveTextContent(
       "Open a leftover pair to read the post–criterion cell",
     );
@@ -4337,11 +4342,26 @@ describe("App, authenticated", () => {
       within(screen.getByLabelText("Grouping comparison")).queryByText("leftover-map axis 2 (18%)"),
     ).not.toBeInTheDocument();
     expect(
+      within(screen.getByLabelText("Grouping comparison")).getByText(
+        "leftover map comparison leftover axis 1 σ 1.84 82%",
+      ),
+    ).toBeInTheDocument();
+    expect(
+      within(screen.getByLabelText("Grouping comparison")).getByText(
+        "leftover map comparison leftover axis 2 σ 0.86 18%",
+      ),
+    ).toBeInTheDocument();
+    expect(
       within(screen.getByLabelText("Grouping comparison")).queryByText("leftover axis 1 σ 1.84 82%"),
     ).not.toBeInTheDocument();
     expect(
       within(screen.getByLabelText("Grouping comparison")).queryByText("leftover axis 2 σ 0.86 18%"),
     ).not.toBeInTheDocument();
+    expect(
+      within(screen.getByLabelText("Grouping comparison")).getByLabelText(
+        "Leftover map comparison leftover axis",
+      ),
+    ).toHaveTextContent("Open a leftover pair to read the post–criterion cell");
     expect(
       within(screen.getByLabelText("Grouping comparison")).getByRole("button", {
         name: "Open leftover-map post Public post at ξ (+0.50, +0.10)",

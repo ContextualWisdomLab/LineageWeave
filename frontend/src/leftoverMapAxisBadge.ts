@@ -1,4 +1,7 @@
-/** Caption leftover-axis report badges with persisted Gabriel singular values. */
+/** Caption leftover-axis report badges with persisted Gabriel singular values.
+ *  ADR 0323 captions leftover-axis report badges on the grouping comparison strip
+ *  with a distinct leftover map comparison leftover axis name, not this helper.
+ */
 
 import type { LeftoverMapAxis } from "./api";
 import {

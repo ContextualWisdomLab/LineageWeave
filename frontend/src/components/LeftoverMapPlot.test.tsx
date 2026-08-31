@@ -895,6 +895,7 @@ describe("LeftoverMapPlot", () => {
     expect(screen.queryByText("leftover map comparison axis 1 (82%)")).not.toBeInTheDocument();
     expect(screen.queryByText("leftover-map axis 1 σ 1.84 (82%)")).not.toBeInTheDocument();
     expect(screen.queryByText("leftover axis 1 σ 1.84 82%")).not.toBeInTheDocument();
+    expect(screen.queryByText("leftover map comparison leftover axis 1 σ 1.84 82%")).not.toBeInTheDocument();
     expect(screen.queryByText("leftover-map axis 1 (82%)")).not.toBeInTheDocument();
   });
 
@@ -903,7 +904,7 @@ describe("LeftoverMapPlot", () => {
       <LeftoverMapPlot
         pairs={PAIRS}
         leftoverMapAxes={[
-          { axis_index: 1, leftover_share: 0.82 },
+          { axis_index: 1, leftover_singular_value: Number.NaN, leftover_share: 0.82 },
           { axis_index: 2, leftover_singular_value: -0.01, leftover_share: 0.18 },
         ]}
         criterionLabel={criterionLabel}

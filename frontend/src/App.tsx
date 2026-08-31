@@ -144,6 +144,13 @@ import {
   LEFTOVER_MAP_AXIS_BADGE_SINGULAR,
 } from "./leftoverMapAxisBadge";
 import {
+  leftoverMapCompareAxisBadge,
+  leftoverSingularForAxis,
+  LEFTOVER_MAP_COMPARE_AXIS_CAPTION,
+  LEFTOVER_MAP_COMPARE_AXIS_LABEL,
+} from "./leftoverMapPlotAxisSingular";
+import { leftoverShareForAxis } from "./leftoverMapPlotAxisShare";
+import {
   formatLeftoverMapReconstruction,
   LEFTOVER_MAP_COMPARE_RECONSTRUCTION_LABEL,
 } from "./leftoverMapReconstruction";
@@ -4099,6 +4106,33 @@ function ReportsPanel({
               {comparisonIncompleteItemCount !== null ? (
                 <p className="post-meta" role="note" aria-label={t(LEFTOVER_MAP_COMPARE_INCOMPLETE_ITEM_LABEL)}>
                   {tf(LEFTOVER_MAP_PLOT_INCOMPLETE_ITEM, comparisonIncompleteItemCount)}
+                </p>
+              ) : null}
+              {row.leftover_map_axes?.map((axis) => {
+                const badge = leftoverMapCompareAxisBadge(
+                  axis.axis_index,
+                  leftoverSingularForAxis([axis], axis.axis_index),
+                  leftoverShareForAxis([axis], axis.axis_index),
+                );
+                if (badge === null) {
+                  return null;
+                }
+                return (
+                  <span key={axis.axis_index} className="post-badge">
+                    {tf(badge.key, badge.values)}
+                  </span>
+                );
+              })}
+              {row.leftover_map_axes?.some(
+                (axis) =>
+                  leftoverMapCompareAxisBadge(
+                    axis.axis_index,
+                    leftoverSingularForAxis([axis], axis.axis_index),
+                    leftoverShareForAxis([axis], axis.axis_index),
+                  ) !== null,
+              ) ? (
+                <p aria-label={t(LEFTOVER_MAP_COMPARE_AXIS_LABEL)}>
+                  {t(LEFTOVER_MAP_COMPARE_AXIS_CAPTION)}
                 </p>
               ) : null}
               {row.leftover_pairs && row.leftover_pairs.length > 0 && (

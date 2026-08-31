@@ -8,6 +8,26 @@ All notable changes to this project are documented here. Format follows
 
 ### Added
 
+- Period leftover pairs now caption leftover-axis report badges on the grouping
+  comparison strip with persisted leftover-map singular values `σ_k`
+  (ADR 0323 / v2.80.0). After `make seed`, grouping comparison leftover-axis
+  badges name persisted leftover-map singular values when finite together with
+  persisted leftover-map axis share; click a leftover pair opens that post. A
+  missing, non-finite, or negative singular value omits that `σ` badge and keeps
+  `leftover map comparison leftover axis {k} {share}%`. Rank-0 unused axes still
+  name `σ 0.00`. Comparison leftover-axis badges stay
+  `leftover map comparison leftover axis {k} σ {value} {share}%` so they stay
+  distinct from period leftover-axis `leftover axis {k} σ {value} {share}%`,
+  from hyphen `leftover-map axis {k} σ {value} ({share}%)`, and from comparison
+  graphic `leftover map comparison graphic leftover-map axis {k} σ {value} ({share}%)`.
+  Do not invent `σ_k` from leftover-map axis share. This increment does not
+  change leftover-map singular values on leftover-axis report badges in the
+  period-report panel. A finite negative leftover is shown, never clamped.
+  Never invent a leftover score or a theta. No new columns.
+  Fail-closes leftover-map comparison graphic TypeScript on omitted leftover-map
+  singular values inherited from the grouping comparison leftover-map graphic σ
+  increment.
+
 - Period leftover pairs now caption leftover-axis report badges with persisted
   leftover-map singular values `σ_k` (ADR 0322 / v2.79.0). After `make seed`,
   leftover-axis badges name persisted leftover-map singular values when finite
@@ -20,7 +40,7 @@ All notable changes to this project are documented here. Format follows
   `leftover map comparison graphic leftover-map axis {k} σ {value} ({share}%)`.
   Do not invent `σ_k` from leftover-map axis share. This increment does not
   caption leftover-map singular values on leftover-axis badges on the grouping
-  comparison strip with a distinct name. A finite negative leftover is shown,
+  comparison strip with a distinct name (ADR 0323). A finite negative leftover is shown,
   never clamped. Never invent a leftover score or a theta. No new columns.
 
 - Period leftover pairs now name leftover-map singular values on the grouping
