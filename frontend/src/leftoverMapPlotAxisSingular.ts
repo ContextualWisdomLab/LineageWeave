@@ -29,6 +29,10 @@
  *  ADR 0334 names leftover-map leftover-axis ticks leftover-map
  *  axis share as leftoverMapAxisTickBadge independently of leftover-map
  *  singular values.
+ *  ADR 0335 names leftover-map comparison graphic leftover-map axis origin ticks as
+ *  leftoverMapComparePlotTickAxisBadge independently of leftover-map axis share and
+ *  leftover-map singular values. leftoverMapPlotTickAxisBadge, leftoverMapCompareAxisTickBadge,
+ *  and leftoverMapAxisTickBadge do not name leftover-map origin this increment.
  */
 
 import type { LeftoverMapAxis } from "./api";
@@ -41,6 +45,7 @@ import {
   LEFTOVER_MAP_COMPARE_PLOT_TICK,
   LEFTOVER_MAP_PLOT_TICK,
 } from "./leftoverMapPlotLayout";
+import { formatSignedLeftoverValue } from "./leftoverMapUnexplained";
 
 export const LEFTOVER_MAP_PLOT_AXIS_SINGULAR = "leftover-map axis {axis} σ {value}";
 
@@ -70,6 +75,18 @@ export const LEFTOVER_MAP_COMPARE_PLOT_TICK_SHARE =
 
 export const LEFTOVER_MAP_COMPARE_PLOT_TICK_SINGULAR_SHARE =
   "leftover map comparison graphic leftover-map axis {axis} tick {value} σ {singular} {share}%";
+
+export const LEFTOVER_MAP_COMPARE_PLOT_ORIGIN_TICK =
+  "leftover map comparison graphic leftover-map axis {axis} origin tick {value}";
+
+export const LEFTOVER_MAP_COMPARE_PLOT_ORIGIN_TICK_SINGULAR =
+  "leftover map comparison graphic leftover-map axis {axis} origin tick {value} σ {singular}";
+
+export const LEFTOVER_MAP_COMPARE_PLOT_ORIGIN_TICK_SHARE =
+  "leftover map comparison graphic leftover-map axis {axis} origin tick {value} {share}%";
+
+export const LEFTOVER_MAP_COMPARE_PLOT_ORIGIN_TICK_SINGULAR_SHARE =
+  "leftover map comparison graphic leftover-map axis {axis} origin tick {value} σ {singular} {share}%";
 
 export const LEFTOVER_MAP_COMPARE_AXIS_SINGULAR =
   "leftover map comparison leftover axis {axis} σ {value}";
@@ -130,6 +147,11 @@ export function formatLeftoverMapPlotAxisSingular(
     return null;
   }
   return leftoverSingular.toFixed(2);
+}
+
+export function leftoverMapPlotTickIsOrigin(tickLabel: string): boolean {
+  const originLabel = formatSignedLeftoverValue(0);
+  return originLabel !== null && tickLabel === originLabel;
 }
 
 export function leftoverMapPlotAxisBadge(
@@ -238,23 +260,31 @@ export function leftoverMapComparePlotTickAxisBadge(
 ): LeftoverMapCompareAxisBadge {
   const singular = formatLeftoverMapPlotAxisSingular(leftoverSingular);
   const percent = formatLeftoverMapPlotAxisShare(leftoverShare);
+  const origin = leftoverMapPlotTickIsOrigin(tickLabel);
   if (singular === null && percent === null) {
-    return { key: LEFTOVER_MAP_COMPARE_PLOT_TICK, values: { axis: axisIndex, value: tickLabel } };
+    return {
+      key: origin ? LEFTOVER_MAP_COMPARE_PLOT_ORIGIN_TICK : LEFTOVER_MAP_COMPARE_PLOT_TICK,
+      values: { axis: axisIndex, value: tickLabel },
+    };
   }
   if (singular === null && percent !== null) {
     return {
-      key: LEFTOVER_MAP_COMPARE_PLOT_TICK_SHARE,
+      key: origin ? LEFTOVER_MAP_COMPARE_PLOT_ORIGIN_TICK_SHARE : LEFTOVER_MAP_COMPARE_PLOT_TICK_SHARE,
       values: { axis: axisIndex, value: tickLabel, share: percent },
     };
   }
   if (singular !== null && percent === null) {
     return {
-      key: LEFTOVER_MAP_COMPARE_PLOT_TICK_SINGULAR,
+      key: origin
+        ? LEFTOVER_MAP_COMPARE_PLOT_ORIGIN_TICK_SINGULAR
+        : LEFTOVER_MAP_COMPARE_PLOT_TICK_SINGULAR,
       values: { axis: axisIndex, value: tickLabel, singular },
     };
   }
   return {
-    key: LEFTOVER_MAP_COMPARE_PLOT_TICK_SINGULAR_SHARE,
+    key: origin
+      ? LEFTOVER_MAP_COMPARE_PLOT_ORIGIN_TICK_SINGULAR_SHARE
+      : LEFTOVER_MAP_COMPARE_PLOT_TICK_SINGULAR_SHARE,
     values: { axis: axisIndex, value: tickLabel, singular: singular as string, share: percent as string },
   };
 }

@@ -303,6 +303,14 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
       "잔여 지도 비교 그림 축 {axis} 눈금 {value} {share}%",
     "leftover map comparison graphic leftover-map axis {axis} tick {value} σ {singular} {share}%":
       "잔여 지도 비교 그림 축 {axis} 눈금 {value} σ {singular} {share}%",
+    "leftover map comparison graphic leftover-map axis {axis} origin tick {value}":
+      "잔여 지도 비교 그림 축 {axis} 원점 눈금 {value}",
+    "leftover map comparison graphic leftover-map axis {axis} origin tick {value} σ {singular}":
+      "잔여 지도 비교 그림 축 {axis} 원점 눈금 {value} σ {singular}",
+    "leftover map comparison graphic leftover-map axis {axis} origin tick {value} {share}%":
+      "잔여 지도 비교 그림 축 {axis} 원점 눈금 {value} {share}%",
+    "leftover map comparison graphic leftover-map axis {axis} origin tick {value} σ {singular} {share}%":
+      "잔여 지도 비교 그림 축 {axis} 원점 눈금 {value} σ {singular} {share}%",
     "leftover map comparison graphic leftover-map axis {axis} σ {value}": "잔여 지도 비교 그림 축 {axis} σ {value}",
     "leftover map comparison graphic leftover-map axis {axis} σ {value} ({share}%)":
       "잔여 지도 비교 그림 축 {axis} σ {value} ({share}%)",
@@ -982,6 +990,14 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
       "残差地图比较图形轴 {axis} 刻度 {value} {share}%",
     "leftover map comparison graphic leftover-map axis {axis} tick {value} σ {singular} {share}%":
       "残差地图比较图形轴 {axis} 刻度 {value} σ {singular} {share}%",
+    "leftover map comparison graphic leftover-map axis {axis} origin tick {value}":
+      "残差地图比较图形轴 {axis} 原点刻度 {value}",
+    "leftover map comparison graphic leftover-map axis {axis} origin tick {value} σ {singular}":
+      "残差地图比较图形轴 {axis} 原点刻度 {value} σ {singular}",
+    "leftover map comparison graphic leftover-map axis {axis} origin tick {value} {share}%":
+      "残差地图比较图形轴 {axis} 原点刻度 {value} {share}%",
+    "leftover map comparison graphic leftover-map axis {axis} origin tick {value} σ {singular} {share}%":
+      "残差地图比较图形轴 {axis} 原点刻度 {value} σ {singular} {share}%",
     "leftover map comparison graphic leftover-map axis {axis} σ {value}": "残差地图比较图形轴 {axis} σ {value}",
     "leftover map comparison graphic leftover-map axis {axis} σ {value} ({share}%)":
       "残差地图比较图形轴 {axis} σ {value} ({share}%)",
@@ -1682,6 +1698,14 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
       "残差マップの比較図軸 {axis} 目盛 {value} {share}%",
     "leftover map comparison graphic leftover-map axis {axis} tick {value} σ {singular} {share}%":
       "残差マップの比較図軸 {axis} 目盛 {value} σ {singular} {share}%",
+    "leftover map comparison graphic leftover-map axis {axis} origin tick {value}":
+      "残差マップの比較図軸 {axis} 原点目盛 {value}",
+    "leftover map comparison graphic leftover-map axis {axis} origin tick {value} σ {singular}":
+      "残差マップの比較図軸 {axis} 原点目盛 {value} σ {singular}",
+    "leftover map comparison graphic leftover-map axis {axis} origin tick {value} {share}%":
+      "残差マップの比較図軸 {axis} 原点目盛 {value} {share}%",
+    "leftover map comparison graphic leftover-map axis {axis} origin tick {value} σ {singular} {share}%":
+      "残差マップの比較図軸 {axis} 原点目盛 {value} σ {singular} {share}%",
     "leftover map comparison graphic leftover-map axis {axis} σ {value}": "残差マップの比較図軸 {axis} σ {value}",
     "leftover map comparison graphic leftover-map axis {axis} σ {value} ({share}%)":
       "残差マップの比較図軸 {axis} σ {value} ({share}%)",
@@ -2361,6 +2385,14 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
       "vạch trục đồ họa so sánh bản đồ phần dư {axis} {value} {share}%",
     "leftover map comparison graphic leftover-map axis {axis} tick {value} σ {singular} {share}%":
       "vạch trục đồ họa so sánh bản đồ phần dư {axis} {value} σ {singular} {share}%",
+    "leftover map comparison graphic leftover-map axis {axis} origin tick {value}":
+      "vạch gốc trục đồ họa so sánh bản đồ phần dư {axis} {value}",
+    "leftover map comparison graphic leftover-map axis {axis} origin tick {value} σ {singular}":
+      "vạch gốc trục đồ họa so sánh bản đồ phần dư {axis} {value} σ {singular}",
+    "leftover map comparison graphic leftover-map axis {axis} origin tick {value} {share}%":
+      "vạch gốc trục đồ họa so sánh bản đồ phần dư {axis} {value} {share}%",
+    "leftover map comparison graphic leftover-map axis {axis} origin tick {value} σ {singular} {share}%":
+      "vạch gốc trục đồ họa so sánh bản đồ phần dư {axis} {value} σ {singular} {share}%",
     "leftover map comparison graphic leftover-map axis {axis} σ {value}":
       "trục đồ họa so sánh bản đồ phần dư {axis} σ {value}",
     "leftover map comparison graphic leftover-map axis {axis} σ {value} ({share}%)":
